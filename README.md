@@ -52,7 +52,7 @@ For licensing information please see the files LICENSE and COPYING.
   - SCons - http://scons.org/
   - bzip2 library - http://bzip.org/
   - zlib - http://zlib.net/
-  - libxml2 - http://xmlsoft.org/
+  - expat - http://expat.sourceforge.net/
   - openssl - http://www.openssl.org/
   - sqlite - http://www.sqlite.org/
   - boost - http://www.boost.org/
@@ -73,9 +73,7 @@ On Debian based systems the prerequisites can be installed with the following
 command line:
 
     sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev libxml2-dev \
-      subversion
-
+      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev subversion
 
 # Build
 
