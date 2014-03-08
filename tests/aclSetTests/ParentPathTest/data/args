@@ -1,0 +1,2 @@
+--acl-add-user /api/pub anon
+--show-allow /api/pub/test anon

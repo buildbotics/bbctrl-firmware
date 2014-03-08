@@ -1,0 +1,10 @@
+/path/to/somefile.txt => {
+     URI: /path/to/somefile.txt
+  Scheme: 
+    Host: 
+    Port: 0
+    Path: /path/to/somefile.txt
+    User: 
+    Pass: 
+   Query: 
+}

@@ -1,0 +1,10 @@
+http://example.com/cgi-bin/test.cgi?name= => {
+     URI: http://example.com/cgi-bin/test.cgi?name
+  Scheme: http
+    Host: example.com
+    Port: 80
+    Path: /cgi-bin/test.cgi
+    User: 
+    Pass: 
+   Query: name=''
+}

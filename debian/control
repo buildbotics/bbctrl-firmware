@@ -1,0 +1,77 @@
+Source: cbang
+Maintainer: Joseph Coffland <joseph@cauldrondevelopment.com>
+Section: libs
+Priority: optional
+Standards-Version: 3.9.2
+Homepage: http://cbang.org/
+Vcs-Svn: svn://cauldrondevelopment.com/svn/cbang/trunk/cbang
+Vcs-Browser: https://cauldrondevelopment.com/svn/cbang/trunk/cbang
+Build-Depends: debhelper (>= 8), cdbs, libexpat1-dev,
+ libssl-dev, libsqlite3-dev, libxml2-dev, libboost-iostreams-dev (>= 1.40.0),
+ libboost-filesystem-dev (>= 1.40.0), libboost-system-dev (>= 1.40.0),
+ libboost-regex-dev (>= 1.40.0)
+
+
+Package: libcbang0-dev
+Provides: libcbang-dev
+Section: libdevel
+Architecture: any
+Depends: libcbang0 (= ${binary:Version}), ${misc:Depends}
+Description: C! development files
+ Include files need for C! development.
+ .
+ C! is a collection of C++ utility libraries developed over the course
+ of +10 years and several major C++ application development
+ projects.  It should compile and run on Windows, Linux and OSX
+ using a modern C++ compiler.
+ .
+ Many of the facilities of C! are geared towards cross-platform
+ application development and providing basic services that most
+ applications need such as a configuration system, run-time build
+ information, logging facilities, threads, smart pointers, simple
+ embedded scripting, etc.
+ .
+ C!'s philosophy is to create clean, simple, readable, modular and
+ reusable code.  C! also encourages exception based error handling,
+ and light use of C++ templates and C preprocesor macros.
+ .
+ C! "leans" on the venerable boost library but also reimplements
+ several boost APIs which are considered by the author to be too
+ template heavy, less readable or overly complicated in boost.
+ .
+ The code was developed on an as needed basis and was never intended to
+ be any sort of grand unifying system for C++ application development.
+ However, I hope you find many parts of the library useful in your C++
+ development projects.
+
+
+Package: libcbang0
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libexpat1,
+ libssl1.0.0, libsqlite3-0, libxml2, libboost-iostreams (>= 1.40.0),
+ libboost-filesystem (>= 1.40.0), libboost-system (>= 1.40.0),
+ libboost-regex (>= 1.40.0)
+Description: C! is a collection of cross-platform C++ utility libraries
+ C! is a collection of C++ utility libraries developed over the course
+ of +10 years and several major C++ application development
+ projects.  It should compile and run on Windows, Linux and OSX
+ using a modern C++ compiler.
+ .
+ Many of the facilities of C! are geared towards cross-platform
+ application development and providing basic services that most
+ applications need such as a configuration system, run-time build
+ information, logging facilities, threads, smart pointers, simple
+ embedded scripting, etc.
+ .
+ C!'s philosophy is to create clean, simple, readable, modular and
+ reusable code.  C! also encourages exception based error handling,
+ and light use of C++ templates and C preprocesor macros.
+ .
+ C! "leans" on the venerable boost library but also reimplements
+ several boost APIs which are considered by the author to be too
+ template heavy, less readable or overly complicated in boost.
+ .
+ The code was developed on an as needed basis and was never intended to
+ be any sort of grand unifying system for C++ application development.
+ However, I hope you find many parts of the library useful in your C++
+ development projects.

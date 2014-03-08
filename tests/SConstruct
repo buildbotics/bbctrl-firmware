@@ -1,0 +1,27 @@
+# Configure system boilerplate
+import os, sys
+sys.path.append(os.environ.get('CONFIG_SCRIPTS_HOME', '../config'))
+import config
+
+# Setup
+env = config.make_env(['compiler', 'cbang', 'build_info'])
+conf = Configure(env)
+Export('env')
+
+# Build Info
+config.configure('build_info', conf, namespace = 'cb::BuildInfo')
+
+# Configure
+if not env.GetOption('clean'):
+    # Configure compiler
+    config.configure('compiler', conf)
+
+    # cbang
+    config.configure('cbang', conf)
+    # Using CBANG macro namespace
+    env.Append(CPPDEFINES = ['USING_CBANG'])
+
+
+suites = ['http', 'server', 'uri', 'JSON', 'base64', 'iostream', 'ipRange', 'aclSet']
+
+SConscript(map(lambda s: s + 'Tests/SConscript', suites))

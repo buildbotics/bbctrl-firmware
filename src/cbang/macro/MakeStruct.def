@@ -1,0 +1,154 @@
+/******************************************************************************\
+
+          This file is part of the C! library.  A.K.A the cbang library.
+
+              Copyright (c) 2003-2014, Cauldron Development LLC
+                 Copyright (c) 2003-2014, Stanford University
+                             All rights reserved.
+
+        The C! library is free software: you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public License
+        as published by the Free Software Foundation, either version 2.1 of
+        the License, or (at your option) any later version.
+
+        The C! library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with the C! library.  If not, see
+        <http://www.gnu.org/licenses/>.
+
+        In addition, BSD licensing may be granted on a case by case basis
+        by written permission from at least one of the copyright holders.
+        You may request written permission by emailing the authors.
+
+                For information regarding this software email:
+                               Joseph Coffland
+                        joseph@cauldrondevelopment.com
+
+\******************************************************************************/
+
+#include <cbang/macro/MacroUtils.h>
+
+#include <iostream>
+
+
+// Check defines
+#ifndef CBANG_STRUCT_NAME
+#error CBANG_STRUCT_NAME undefined
+#endif
+#ifndef CBANG_STRUCT_PATH
+#error CBANG_STRUCT_PATH undefined
+#endif
+
+// Defaults
+#ifndef CBANG_STRUCT_NAME_WIDTH
+#define CBANG_STRUCT_NAME_WIDTH 20
+#endif
+
+
+// Defines
+#define CBANG_STRUCT_CLASS CBANG_STRUCT_NAME
+#define CBANG_STRUCT_DEF <CBANG_STRUCT_PATH/CBANG_STRUCT_CLASS.h>
+#define CBANG_STRUCT_ENUM CBANG_CONCAT(CBANG_STRUCT_CLASS, Enum)
+
+// Structure Class
+namespace cb  {
+  class XMLWriter;
+}
+
+namespace CBANG_STRUCT_NAMESPACE {
+  class CBANG_STRUCT_ENUM {
+  public:
+    typedef enum {
+#define CBANG_ITEM(NAME, MNAME, TYPE, INIT, PRINT, PARSE)   \
+      CBANG_CONCAT(INDEX_, MNAME),
+#include CBANG_STRUCT_DEF
+#undef CBANG_ITEM
+      INDEX_COUNT
+    } member_index_t;
+  };
+
+  class CBANG_STRUCT_CLASS : public CBANG_STRUCT_ENUM {
+  protected:
+#ifdef CBANG_STRUCT_MARK_DIRTY
+    bool dirty;
+#endif
+
+#define CBANG_ITEM(NAME, MNAME, TYPE, INIT, PRINT, PARSE) TYPE NAME;
+#include CBANG_STRUCT_DEF
+#undef CBANG_ITEM
+
+  public:
+    CBANG_STRUCT_CLASS();
+
+    static const char *getStructName() {return CBANG_STRING(CBANG_STRUCT_NAME);}
+    static unsigned getStructNameWidth() {return CBANG_STRUCT_NAME_WIDTH;}
+
+#ifdef CBANG_STRUCT_MARK_DIRTY
+    bool isDirty() const {return dirty;}
+    void markDirty() {dirty = true;}
+    void markClean() {dirty = false;}
+#endif // CBANG_STRUCT_MARK_DIRTY
+
+    void copy(const CBANG_STRUCT_CLASS &o) {*this = o;}
+
+    // Getters
+#define CBANG_ITEM(NAME, MNAME, TYPE, INIT, PRINT, PARSE) \
+    const TYPE &get##MNAME() const {return NAME;}
+#include CBANG_STRUCT_DEF
+#undef CBANG_ITEM
+
+    // Setters
+#ifdef CBANG_STRUCT_SETTERS_PROTECTED
+  protected:
+#endif // CBANG_STRUCT_SETTERS_PROTECTED
+
+#ifdef CBANG_STRUCT_MARK_DIRTY
+#define CBANG_ITEM(NAME, MNAME, TYPE, INIT, PRINT, PARSE) \
+    void set##MNAME(const TYPE &value) {dirty = true; this->NAME = value;}
+#else
+#define CBANG_ITEM(NAME, MNAME, TYPE, INIT, PRINT, PARSE) \
+    void set##MNAME(const TYPE &value) {this->NAME = value;}
+#endif
+#include CBANG_STRUCT_DEF
+#undef CBANG_ITEM
+
+  public:
+    static unsigned getMemberCount() {return (unsigned)INDEX_COUNT;}
+    static unsigned getRawMemberCount() {return (unsigned)INDEX_COUNT;}
+    static const char *getMemberName(unsigned index);
+
+    std::string toString(unsigned index) const;
+    void parse(unsigned index, const std::string &value);
+
+    std::ostream &print(std::ostream &stream, unsigned index) const;
+    std::ostream &print(std::ostream &stream) const;
+  };
+
+  static inline std::ostream &operator<<(std::ostream &stream,
+                                         const CBANG_STRUCT_CLASS &x) {
+    return x.print(stream);
+  }
+}
+
+
+// Cleanup
+#ifndef CBANG_STRUCT_IMPL
+
+#undef CBANG_STRUCT_NAME
+#undef CBANG_STRUCT_PATH
+#undef CBANG_STRUCT_NAME_WIDTH
+#undef CBANG_STRUCT_CLASS
+#undef CBANG_STRUCT_ENUM
+#undef CBANG_STRUCT_DEF
+#ifdef CBANG_STRUCT_SETTERS_PROTECTED
+#undef CBANG_STRUCT_SETTERS_PROTECTED
+#endif // CBANG_STRUCT_SETTERS_PROTECTED
+#ifdef CBANG_STRUCT_MARK_DIRTY
+#undef CBANG_STRUCT_MARK_DIRTY
+#endif // CBANG_STRUCT_MARK_DIRTY
+
+#endif // !CBANG_STRUCT_IMPL

@@ -1,0 +1,12 @@
+allow(/api/pub/test, anon)=true
+{
+  "users": [
+    "anon"
+  ],
+  "acls": {
+    "/api/pub": {
+      "users": [
+        "anon"
+      ]
+    }
+  }

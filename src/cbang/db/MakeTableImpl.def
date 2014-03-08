@@ -1,0 +1,163 @@
+/******************************************************************************\
+
+          This file is part of the C! library.  A.K.A the cbang library.
+
+              Copyright (c) 2003-2014, Cauldron Development LLC
+                 Copyright (c) 2003-2014, Stanford University
+                             All rights reserved.
+
+        The C! library is free software: you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public License
+        as published by the Free Software Foundation, either version 2.1 of
+        the License, or (at your option) any later version.
+
+        The C! library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with the C! library.  If not, see
+        <http://www.gnu.org/licenses/>.
+
+        In addition, BSD licensing may be granted on a case by case basis
+        by written permission from at least one of the copyright holders.
+        You may request written permission by emailing the authors.
+
+                For information regarding this software email:
+                               Joseph Coffland
+                        joseph@cauldrondevelopment.com
+
+\******************************************************************************/
+
+#include <cbang/db/Database.h>
+#include <cbang/db/Blob.h>
+
+#include <cbang/Exception.h>
+#include <cbang/String.h>
+
+using namespace std;
+using namespace cb;
+using namespace cb::DB;
+
+namespace {
+  typedef enum {
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+    CBANG_CONCAT(INDEX_, NAME),
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+    INDEX_COUNT
+  } member_index_t;
+}
+
+#ifdef DB_TABLE_NAMESPACE
+namespace DB_TABLE_NAMESPACE {
+#endif
+#ifdef DB_TABLE_NAMESPACE2
+  namespace DB_TABLE_NAMESPACE2 {
+#endif
+
+    DB_TABLE_CLASS::DB_TABLE_CLASS() :
+      DB::TableDef(CBANG_STRING(DB_TABLE_NAME),
+                   CBANG_STRING(DB_TABLE_CONSTRAINTS)) {
+
+      static const char *columns[][3] = {
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+        {#NAME, #TYPE, #CONSTRAINTS},
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+        {0, 0, 0}
+      };
+
+      add(columns);
+    }
+
+
+    string DB_TABLE_CLASS::toString(const DB_TABLE_ROW &row, unsigned i) {
+      switch (i) {
+#ifdef DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+        case CBANG_CONCAT(INDEX_, NAME):                        \
+          return String(FROM_CAST row.NAME);
+
+#else // DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+        case CBANG_CONCAT(INDEX_, NAME):                        \
+          return String(FROM_CAST row.get##NAME());
+#endif // DB_TABLE_ROW_DIRECT
+
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+
+      default: THROWS("Invalid column index " << i);
+      }
+    }
+
+
+    void DB_TABLE_CLASS::bind(const DB_TABLE_ROW &row,
+                              const Parameter &parameter, unsigned i) {
+      switch (i) {
+#ifdef DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+        case CBANG_CONCAT(INDEX_, NAME):                        \
+          parameter.bind(FROM_CAST row.NAME);                   \
+          break;
+
+#else // DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+        case CBANG_CONCAT(INDEX_, NAME):                        \
+          parameter.bind(FROM_CAST row.get##NAME());            \
+          break;
+#endif // DB_TABLE_ROW_DIRECT
+
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+
+      default: THROWS("Invalid column index " << i);
+      }
+    }
+
+
+    void DB_TABLE_CLASS::bindWriteStmt(const SmartPointer<Statement> &writeStmt,
+                                       const DB_TABLE_ROW &row) {
+      writeStmt->reset();
+
+      unsigned i = 0;
+
+#ifdef DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+      writeStmt->parameter(i++).bind(FROM_CAST row.NAME);
+
+#else // DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST)     \
+      writeStmt->parameter(i++).bind(FROM_CAST row.get##NAME());
+#endif // DB_TABLE_ROW_DIRECT
+
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+    }
+
+
+    void DB_TABLE_CLASS::readRow(const SmartPointer<Statement> &readStmt,
+                                 DB_TABLE_ROW &row) {
+      unsigned i = 0;
+
+#ifdef DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+      row.NAME = TO_CAST readStmt->column(i++).to##TYPE();
+
+#else // DB_TABLE_ROW_DIRECT
+#define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
+      row.set##NAME(TO_CAST readStmt->column(i++).to##TYPE());
+#endif // DB_TABLE_ROW_DIRECT
+
+#include DB_TABLE_DEF
+#undef CBANG_ITEM
+    }
+
+#ifdef DB_TABLE_NAMESPACE2
+  }
+#endif
+#ifdef DB_TABLE_NAMESPACE
+}
+#endif

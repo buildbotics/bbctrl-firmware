@@ -1,0 +1,228 @@
+/******************************************************************************\
+
+          This file is part of the C! library.  A.K.A the cbang library.
+
+              Copyright (c) 2003-2014, Cauldron Development LLC
+                 Copyright (c) 2003-2014, Stanford University
+                             All rights reserved.
+
+        The C! library is free software: you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public License
+        as published by the Free Software Foundation, either version 2.1 of
+        the License, or (at your option) any later version.
+
+        The C! library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with the C! library.  If not, see
+        <http://www.gnu.org/licenses/>.
+
+        In addition, BSD licensing may be granted on a case by case basis
+        by written permission from at least one of the copyright holders.
+        You may request written permission by emailing the authors.
+
+                For information regarding this software email:
+                               Joseph Coffland
+                        joseph@cauldrondevelopment.com
+
+\******************************************************************************/
+
+/// Please see cbang/enum/Enumeration.h for more information.
+
+#include <cbang/Exception.h>
+#include <cbang/String.h>
+
+#include <algorithm>
+
+#include <string.h>
+#include <stdlib.h>
+
+#include <cctype>
+
+using namespace cb;
+using namespace std;
+
+
+namespace {
+  typedef int (*compare_t)(const void *, const void *);
+
+  /// Compare enumeration names for parsing
+  int nameCompare(const char *s1, const char *s2) {
+    while (true) {
+      if (!*s1) return *s2 ? -1 : 0;
+      if (!*s2) return 1;
+      char c1 = *s1++;
+      char c2 = *s2++;
+#ifndef CBANG_ENUM_CASE_SENSITIVE
+      c1 = std::tolower(c1);
+      c2 = std::tolower(c2);
+#endif
+#ifndef CBANG_ENUM_UNDERSCORE_SENSITIVE
+      if (c1 == '-') c1 = '_';
+      if (c2 == '-') c2 = '_';
+#endif
+      if (c1 < c2) return -1;
+      if (c2 < c1) return 1;
+    }
+  }
+}
+
+
+namespace CBANG_ENUM_NAMESPACE {
+
+#ifdef CBANG_ENUM_NAMESPACE2
+  namespace CBANG_ENUM_NAMESPACE2 {
+#endif // CBANG_ENUM_NAMESPACE2
+
+    SmartPointer<CBANG_ENUM_CLASS::Entry>::Array CBANG_ENUM_CLASS::entries;
+    bool CBANG_ENUM_CLASS::fastParseEnabled = false;
+
+
+    bool CBANG_ENUM_CLASS::Entry::operator<(const Entry &e) const {
+      return compare(this, &e) < 0;
+    }
+
+
+    int CBANG_ENUM_CLASS::Entry::compare(const Entry *e1, const Entry *e2) {
+      return nameCompare(e1->name, e2->name);
+    }
+
+
+    unsigned CBANG_ENUM_CLASS::getCount() {
+      // NOTE: The constant is summed at compile time
+      return 0
+#define CBANG_ENUM_EXPAND(name, n) + 1
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+        ;
+    }
+
+
+    unsigned CBANG_ENUM_CLASS::getAliasCount() {
+      return 0
+#define CBANG_ENUM_EXPAND(name, n)
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target) + 1
+
+#include CBANG_ENUM_DEF
+
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target)
+#undef CBANG_ENUM_EXPAND
+        ;
+    }
+
+
+    const char *CBANG_ENUM_CLASS::getName(unsigned index) {
+      static const char *names[] = {
+#define CBANG_ENUM_EXPAND(name, n) #name,
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+      };
+
+      return names[index] + (CBANG_ENUM_PREFIX);
+    }
+
+
+    CBANG_ENUM_CLASS::enum_t CBANG_ENUM_CLASS::getValue(unsigned index) {
+      static enum_t values[] = {
+#define CBANG_ENUM_EXPAND(name, n) name,
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+      };
+
+      return values[index];
+    }
+
+
+    CBANG_ENUM_CLASS::enum_t CBANG_ENUM_CLASS::parse(const string &s,
+                                                     enum_t defaultValue) {
+      if (fastParseEnabled) {
+        Entry key(s.c_str());
+        const Entry *entry =
+          (const Entry *)bsearch(&key, entries.get(), getTotalCount(),
+                                 sizeof(Entry), (compare_t)Entry::compare);
+
+        if (entry) return entry->value;
+
+      } else {
+#define CBANG_ENUM_EXPAND(name, n)                                      \
+        if (nameCompare(s.c_str(), #name + (CBANG_ENUM_PREFIX)) == 0) \
+          return name;
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target)                                 \
+        if (nameCompare(s.c_str(), #alias + (CBANG_ENUM_PREFIX)) == 0) \
+          return target;
+
+#include CBANG_ENUM_DEF
+
+#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target)
+      }
+
+      if (defaultValue != (enum_t)~0) return defaultValue;
+      THROWS("'" << String::escapeC(s) << "' not in "
+             CBANG_STRING(CBANG_ENUM_NAME) " enumeration");
+    }
+
+
+    const char *CBANG_ENUM_CLASS::toString(enum_t e) {
+      switch (e) {
+#define CBANG_ENUM_EXPAND(name, n) \
+        case name: return #name + (CBANG_ENUM_PREFIX);
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+      default: return "UNKNOWN_ENUM";
+      }
+    }
+
+
+    bool CBANG_ENUM_CLASS::isValid(enum_t e) {
+      switch (e) {
+#define CBANG_ENUM_EXPAND(name, n) case name:
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+        return true;
+      default: return false;
+      }
+    }
+
+
+    void CBANG_ENUM_CLASS::enableFastParse() {
+      if (fastParseEnabled) return;
+
+      // Load entries
+      entries = new Entry[getTotalCount()];
+      unsigned i = 0;
+
+      // Add enums + aliases
+#define CBANG_ENUM_EXPAND(_name, n)                     \
+      entries[i].name = #_name + (CBANG_ENUM_PREFIX);   \
+      entries[i++].value = _name;
+
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target)                 \
+      entries[i].name = #alias + (CBANG_ENUM_PREFIX);   \
+      entries[i++].value = target;
+
+#include CBANG_ENUM_DEF
+
+#undef CBANG_ENUM_ALIAS
+#define CBANG_ENUM_ALIAS(alias, target)
+#undef CBANG_ENUM_EXPAND
+
+      // Sort entries
+      qsort(entries.get(), getTotalCount(), sizeof(Entry),
+            (compare_t)Entry::compare);
+
+      fastParseEnabled = true;
+    }
+
+#ifdef CBANG_ENUM_NAMESPACE2
+  }
+#endif // CBANG_ENUM_NAMESPACE2
+}

@@ -1,0 +1,6 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+env.Program('uri', 'uri.cpp');

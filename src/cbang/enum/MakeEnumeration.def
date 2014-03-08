@@ -1,0 +1,160 @@
+/******************************************************************************\
+
+          This file is part of the C! library.  A.K.A the cbang library.
+
+              Copyright (c) 2003-2014, Cauldron Development LLC
+                 Copyright (c) 2003-2014, Stanford University
+                             All rights reserved.
+
+        The C! library is free software: you can redistribute it and/or
+        modify it under the terms of the GNU Lesser General Public License
+        as published by the Free Software Foundation, either version 2.1 of
+        the License, or (at your option) any later version.
+
+        The C! library is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+        Lesser General Public License for more details.
+
+        You should have received a copy of the GNU Lesser General Public
+        License along with the C! library.  If not, see
+        <http://www.gnu.org/licenses/>.
+
+        In addition, BSD licensing may be granted on a case by case basis
+        by written permission from at least one of the copyright holders.
+        You may request written permission by emailing the authors.
+
+                For information regarding this software email:
+                               Joseph Coffland
+                        joseph@cauldrondevelopment.com
+
+\******************************************************************************/
+
+/// Please see cbang/enum/Enumeration.h for more information.
+
+#include <cbang/SmartPointer.h>
+#include <cbang/macro/MacroUtils.h>
+
+#ifdef CBANG_ENUM_PATH
+#define CBANG_ENUM_DEF <CBANG_ENUM_PATH/CBANG_ENUM_NAME.h>
+#else
+#define CBANG_ENUM_DEF <CBANG_ENUM_NAME.h>
+#endif
+
+#ifndef CBANG_ENUM_PREFIX
+#define CBANG_ENUM_PREFIX 0
+#endif
+
+#ifndef CBANG_ENUM_NAMESPACE
+#define CBANG_ENUM_NAMESPACE cb
+#endif
+
+#define CBANG_ENUM_ALIAS(alias, target)
+#define CBANG_ENUM_CLASS CBANG_CONCAT(CBANG_ENUM_NAME, Enumeration)
+#define CBANG_ENUM_BASE CBANG_CONCAT(CBANG_ENUM_CLASS, Base)
+
+#include <string>
+
+#include <cbang/enum/Enumeration.h>
+
+namespace CBANG_ENUM_NAMESPACE {
+#ifdef CBANG_ENUM_NAMESPACE2
+  namespace CBANG_ENUM_NAMESPACE2 {
+#endif // CBANG_ENUM_NAMESPACE2
+
+    class CBANG_ENUM_BASE {
+    public:
+      /// The actual enumeration
+      typedef enum {
+#define CBANG_ENUM_EXPAND(name, n) name = n,
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_EXPAND
+      } enum_t;
+    };
+
+
+    class CBANG_ENUM_CLASS : public CBANG_ENUM_BASE {
+    protected:
+      /// Used for fast parsing
+      struct Entry {
+        const char *name;
+        enum_t value;
+
+        Entry(const char *name = 0) : name(name) {}
+
+        bool operator<(const Entry &e) const;
+        static int compare(const Entry *e1, const Entry *e2);
+      };
+
+      ///  Used for fast parsing
+      static cb::SmartPointer<Entry>::Array entries;
+      static bool fastParseEnabled;
+
+    public:
+      typedef CBANG_ENUM_BASE Enum;
+
+      /// @return the name of the enumeration
+      static const char *getName() {return CBANG_STRING(CBANG_ENUM_NAME);}
+
+      /// @return the number of entries in the enumeration
+      static unsigned getCount();
+      /// @return the number of alises in the enumeration
+      static unsigned getAliasCount();
+      /// @return the total number of entries and alises in the enumeration
+      static unsigned getTotalCount() {return getCount() + getAliasCount();}
+
+      /// @return the name of an enumeration entry with out the prefix
+      static const char *getName(unsigned index);
+
+      /// @return the value of an enumeration entry
+      static enum_t getValue(unsigned index);
+
+      /// Comparison is affected by CBANG_ENUM_CASE_SENSITIVE,
+      /// CBANG_ENUM_UNDERSCORE_SENSITIVE and  CBANG_ENUM_PREFIX.
+      /// parse() performance can be improved
+      /// by a call to enableFastParse().
+      /// If @param defaultValue is specified and the string does not match
+      /// any of the entry names then @param defaultValue will be returned,
+      /// otherwise an cb::Exception will be thrown.
+      /// @return the value of the enumeration entry who's name matches @param s
+      static enum_t parse(const std::string &s,
+                          enum_t defaultValue = (enum_t)~0);
+
+      /// @return the name of the enumeration entry.  If @param e does not match
+      /// the value of any entry in the enumeration the string "UNKNOWN_ENUM" is
+      /// returned.
+      static const char *toString(enum_t e);
+
+      /// @return true if @param e is a valid value in this enumeration.
+      static bool isValid(enum_t e);
+
+      /// Enable O(ln(N)) parse()
+      /// Calls to this function are not thread safe with calls to parse()
+      static void enableFastParse();
+    };
+
+    typedef cb::Enumeration<CBANG_ENUM_CLASS> CBANG_ENUM_NAME;
+#ifdef CBANG_ENUM_NAMESPACE2
+  }
+#endif // CBANG_ENUM_NAMESPACE2
+}
+
+#ifndef CBANG_ENUM_IMPL
+#undef CBANG_ENUM_NAME
+#undef CBANG_ENUM_PATH
+#undef CBANG_ENUM_PREFIX
+#undef CBANG_ENUM_NAMESPACE
+#ifdef CBANG_ENUM_NAMESPACE2
+#undef CBANG_ENUM_NAMESPACE2
+#endif // CBANG_ENUM_NAMESPACE2
+#undef CBANG_ENUM_DEF
+#undef CBANG_ENUM_ALIAS
+#undef CBANG_ENUM_CLASS
+#undef CBANG_ENUM_BASE
+#ifdef CBANG_ENUM_CASE_SENSITIVE
+#undef CBANG_ENUM_CASE_SENSITIVE
+#endif // CBANG_ENUM_CASE_SENSITIVE
+#ifdef CBANG_ENUM_UNDERSCORE_SENSITIVE
+#undef CBANG_ENUM_UNDERSCORE_SENSITIVE
+#endif // CBANG_ENUM_UNDERSCORE_SENSITIVE
+#endif // !CBANG_ENUM_IMPL

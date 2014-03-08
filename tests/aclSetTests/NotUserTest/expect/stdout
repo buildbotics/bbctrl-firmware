@@ -1,0 +1,12 @@
+allow(test, jcoffland)=false
+{
+  "users": [
+    "nobody"
+  ],
+  "acls": {
+    "test": {
+      "users": [
+        "nobody"
+      ]
+    }
+  }

@@ -1,0 +1,17 @@
+allow(test, jcoffland)=false
+{
+  "users": [
+    "nobody"
+  ],
+  "groups": {
+    "admin": [
+      "nobody"
+    ]
+  },
+  "acls": {
+    "test": {
+      "groups": [
+        "admin"
+      ]
+    }
+  }

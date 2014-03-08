@@ -1,0 +1,20 @@
+allow(/api/a, anon)=true
+allow(/api/a/b, anon)=false
+allow(/api/a/b/c, anon)=false
+{
+  "users": [
+    "anon",
+    "nobody"
+  ],
+  "acls": {
+    "/api/a": {
+      "users": [
+        "anon"
+      ]
+    },
+    "/api/a/b": {
+      "users": [
+        "nobody"
+      ]
+    }
+  }

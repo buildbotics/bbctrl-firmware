@@ -1,0 +1,11 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+# Build Info
+info = env.BuildInfo('build_info.cpp', [])
+AlwaysBuild(info)
+
+env.Program('interp', 'interp.cpp');
+env.Program('server', ['server.cpp', info]);

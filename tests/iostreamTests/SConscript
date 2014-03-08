@@ -1,0 +1,6 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+env.Program('bfencdec', ['bfencdec.cpp']);

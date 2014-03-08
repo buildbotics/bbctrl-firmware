@@ -1,0 +1,11 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+# Build Info
+info = env.BuildInfo('build_info.cpp', [])
+AlwaysBuild(info)
+
+env.Program('webserver', ['webserver.cpp', info]);
+env.Program('secure_webserver', ['secure_webserver.cpp', info]);

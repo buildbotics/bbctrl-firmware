@@ -1,0 +1,10 @@
+http://joe@example.com => {
+     URI: http://joe@example.com
+  Scheme: http
+    Host: example.com
+    Port: 80
+    Path: 
+    User: joe
+    Pass: 
+   Query: 
+}
