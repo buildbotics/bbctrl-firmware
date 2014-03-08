@@ -72,9 +72,9 @@ For licensing information please see the files LICENSE and COPYING.
 On Debian based systems the prerequisites can be installed with the following
 command line:
 
-  sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-    libexpat1-dev libssl-dev libboost-dev libsqlite3-dev libxml2-dev \
-    subversion
+    sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
+      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev libxml2-dev \
+      subversion
 
 
 # Build
