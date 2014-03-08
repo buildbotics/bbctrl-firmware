@@ -20,7 +20,7 @@
 .sconsign.dblite
 
 # Build byproducts
-./build
-./config.log
-./package.txt
+build
+config.log
+package.txt
 
