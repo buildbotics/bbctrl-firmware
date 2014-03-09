@@ -53,10 +53,11 @@ For licensing information please see the files LICENSE and COPYING.
   - SCons    http://scons.org/
   - bzip2    http://bzip.org/
   - zlib     http://zlib.net/
-  - expat    http://expat.sourceforge.net/
+  - expat    http://expat.sourceforge.net/ (optional)
   - openssl  http://www.openssl.org/
   - sqlite   http://www.sqlite.org/
   - boost    http://www.boost.org/
+  - v8       http://code.google.com/p/v8/
 
 ## Windows only
   - Winsock
@@ -73,7 +74,7 @@ On Debian based systems the prerequisites can be installed with the following
 command line:
 
     sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev subversion
+      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev libv8-dev git
 
 # Build
 
