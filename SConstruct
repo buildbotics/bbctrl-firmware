@@ -14,12 +14,11 @@ env.CBAddVariables(
     ('soname', 'Shared library soname', 'libcbang%s.so' % libversion),
     PathVariable('prefix', 'Install path prefix', '/usr/local',
                  PathVariable.PathAccept))
-env.CBLoadTools('dist packager compiler cbang'.split())
+env.CBLoadTools('dist packager compiler cbang build_info')
 env.Replace(PACKAGE_VERSION = version)
 conf = env.CBConfigure()
 
 # Build Info
-env.CBLoadTool('build_info')
 env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 
 

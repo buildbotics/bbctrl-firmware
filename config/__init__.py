@@ -192,6 +192,7 @@ def CBLoadTool(env, name):
 
 
 def CBLoadTools(env, tools):
+    if isinstance(tools, str): tools = tools.split()
     for name in tools: env.CBLoadTool(name)
 
 

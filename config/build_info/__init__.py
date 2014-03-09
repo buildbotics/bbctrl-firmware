@@ -106,7 +106,7 @@ def build_function(target, source, env):
         '    info.add(category, "Platform", "%s");\n'
         '    info.add(category, "Bits", String(COMPILER_BITS));\n'
         '    info.add(category, "Mode", "%s");\n'
-        '  }\n') % (
+        '  }') % (
             escstr(' '.join(env['CXXFLAGS'] + env['CCFLAGS'])),
             sys.platform.lower() + ' ' + release(), mode,
             )
@@ -133,10 +133,12 @@ def build_function(target, source, env):
         for namespace in ns.split('::'):
             f.write(env.subst('namespace %s {\n' % namespace))
 
-    f.write(env.subst(contents))
+    f.write(env.subst(contents) + '\n')
 
     if ns:
-        for namespace in ns.split('::'):
+        parts = ns.split('::')
+        parts.reverse()
+        for namespace in parts:
             f.write('} // namespace %s\n' % namespace)
 
     f.close()
