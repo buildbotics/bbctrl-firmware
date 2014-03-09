@@ -19,14 +19,13 @@ def printenv(key):
 
 
 def boost_error(msg):
-    print msg
     printenv('BOOST_SOURCE')
     printenv('BOOST_HOME')
     printenv('BOOST_INCLUDE_PATH')
     printenv('BOOST_LIB_PATH')
     printenv('BOOST_LIB_SUFFIX')
     printenv('BOOST_VERSION')
-    Exit(1)
+    raise Exception, msg
 
 
 def check_version(context, version):
@@ -39,9 +38,10 @@ def check_version(context, version):
     if len(v_arr) > 1: version_n += int(v_arr[1]) * 100
     if len(v_arr) > 2: version_n += int(v_arr[2])
 
-    ret = context.TryRun("""#include <boost/version.hpp>
-     int main() {return BOOST_VERSION >= %d ? 0 : 1;}
-     \n""" % version_n, '.cpp')[0]
+    ret = context.TryRun(
+        "#include <boost/version.hpp>\n"
+        "int main() {return BOOST_VERSION >= %d ? 0 : 1;}\n" % version_n,
+        '.cpp')[0]
 
     context.Result(ret)
     return ret
@@ -78,7 +78,7 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
 
     # Check version
     if not conf.BoostVersion(boost_ver):
-        boost_error("Wrong version")
+        boost_error('Missing boost version ' + boost_ver)
 
     # Check headers
     for name in hdrs:
@@ -93,7 +93,7 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
 
     # Win32
     if env['PLATFORM'] == 'win32':
-        env.AppendUnique(CPPDEFINES = ['BOOST_ALL_NO_LIB'])
+        env.CBDefine('BOOST_ALL_NO_LIB')
         env.Prepend(LIBS = ['wsock32'])
 
 

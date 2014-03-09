@@ -2,6 +2,11 @@ Import('*')
 
 env = env.Clone()
 
+# Remove warnings
+flags = env.subst('${CCFLAGS}')
+flags = flags.replace('-Wall', '').replace('-Werror', '')
+env.Replace(CCFLAGS = flags)
+
 env.Append(CPPDEFINES = [
   'SQLITE_THREADSAFE=2',
   'SQLITE_DEFAULT_CACHE_SIZE=20000',
@@ -9,8 +14,7 @@ env.Append(CPPDEFINES = [
   'SQLITE_TEMP_STORE=2',  # Put temporary tables in memory by default
   ])
 
-if env['PLATFORM'] != 'win32':
-    env.Append(CPPDEFINES = ['HAVE_STDINT_H'])
+if env['PLATFORM'] != 'win32': env.CBDefine('HAVE_STDINT_H')
 
 lib = env.Library('#/lib/sqlite3', Glob('*.c'))
 Return('lib')

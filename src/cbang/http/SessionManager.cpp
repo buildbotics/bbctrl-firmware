@@ -41,11 +41,8 @@
 #include <cbang/security/Digest.h>
 #include <cbang/config/Options.h>
 #include <cbang/time/Time.h>
-
-#ifdef HAVE_DB
 #include <cbang/db/Database.h>
 #include <cbang/db/Transaction.h>
-#endif // HAVE_DB
 
 using namespace std;
 using namespace cb;

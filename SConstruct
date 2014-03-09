@@ -55,43 +55,19 @@ if 'dist' in COMMAND_LINE_TARGETS:
     Return()
 
 
-# Third-party libs
-Export('env conf')
-for lib in 'zlib bzip2 sqlite3 expat'.split():
-    Default(SConscript('src/%s/SConscript' % lib, variant_dir = 'build/' + lib))
-
-
-# Boost
-''''
-boost_source = os.environ.get('BOOST_SOURCE', None)
-if not boost_source: raise Exception, 'BOOST_SOURCE not set'
-
-env.Append(CPPPATH = [boost_source])
-
-boostEnv = env.Clone()
-#env.__setitem__('strict', 0) # Force not strict for boost
-
-if boostEnv['PLATFORM'] == 'win32':
-    boostEnv.Append(CPPDEFINES = ['BOOST_ALL_NO_LIB'])
-
-VariantDir('build/boost', boost_source + '/libs')
-
-for lib in ['iostreams', 'filesystem', 'system', 'regex']:
-    src = Glob(boost_source + '/libs/%s/src/*.cpp' % lib)
-    src = map(lambda x: re.sub(re.escape(boost_source + '/libs'), 'build', x),
-              src)
-
-    libname = 'boost_%s' % lib
-    if boostEnv['PLATFORM'] == 'win32': libname = 'lib' + libname
-    Default(boostEnv.Library('#/lib/' + libname, src))
-'''
-
 # Configure
 if not env.GetOption('clean'):
     conf.CBConfig('compiler')
     conf.CBConfig('cbang-deps')
     env.Append(CPPDEFINES = ['USING_CBANG']) # Using CBANG macro namespace
 
+
+# Build third-party libs
+Export('env conf')
+for lib in 'zlib bzip2 sqlite3 expat boost'.split():
+    l = SConscript('src/%s/SConscript' % lib,
+                   variant_dir = 'build/' + lib)
+    if not env.CBConfigEnabled(lib): Default(l)
 
 # Local includes
 env.Append(CPPPATH = ['#/src'])

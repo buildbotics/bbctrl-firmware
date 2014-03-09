@@ -1,21 +1,63 @@
 from SCons.Script import *
 import sys
+import inspect
+import os
 
 
-def configure_deps(conf):
+def GetHome():
+    path = inspect.getfile(inspect.currentframe())
+    return os.path.dirname(os.path.abspath(path)) + '/../..'
+
+
+def ConfigLocalBoost(env):
+    boost_source = os.environ.get('BOOST_SOURCE', None)
+    if not boost_source: raise Exception, 'BOOST_SOURCE not set'
+
+    env.Append(CPPPATH = [boost_source])
+    env.PrependUnique(LIBPATH = [GetHome() + '/lib'])
+
+    if env.get('compiler') == 'gnu':
+        env.Append(CCFLAGS = '-Wno-unused-local-typedefs')
+
+    return boost_source
+
+
+def ConfigBoost(conf, require = False):
+    return conf.CBConfig('boost', require, version = '1.40',
+                         hdrs = ['version', 'iostreams/stream', 'ref',
+                                 'spirit/version',
+                                 'interprocess/sync/file_lock',
+                                 'date_time/posix_time/posix_time'],
+                         libs = ['iostreams', 'system', 'filesystem', 'regex'])
+
+
+def configure_deps(conf, local = True):
     env = conf.env
 
-    conf.CBConfig('zlib')
-    conf.CBConfig('bzip2')
-    conf.CBConfig('XML', False)
+    home = GetHome()
+
+    if not conf.CBConfig('zlib', False) and not local:
+        env.Append(CPPPATH = [home + '/src/zlib'])
+        conf.CBConfig('zlib', True)
+
+    if not conf.CBConfig('bzip2', False) and not local:
+        env.Append(CPPPATH = [home + '/src/bzip2'])
+        conf.CBConfig('bzip2', True)
+
+    if not conf.CBConfig('XML', False) and not local:
+        env.Append(CPPPATH = [home + '/src/expat'])
+        conf.CBConfig('XML', True)
+
+    if not conf.CBConfig('sqlite3', False) and not local:
+        env.Append(CPPPATH = [home + '/src/sqlite3'])
+        conf.CBConfig('sqlite3', True)
+
+    if not ConfigBoost(conf) and not local:
+        env.ConfigLocalBoost()
+        ConfigBoost(conf, True)
+
     conf.CBConfig('openssl', version = '1.0.0')
     conf.CBConfig('v8', False)
-
-    if conf.CBConfig('sqlite3', False): env.CBDefine('HAVE_DB')
-
-    conf.CBConfig('boost', version = '1.40',
-                  hdrs = ['version', 'iostreams/stream'],
-                  libs = ['iostreams', 'system', 'filesystem', 'regex'])
 
     if env['PLATFORM'] == 'win32':
         conf.CBRequireLib('wsock32')
@@ -32,7 +74,7 @@ def configure_deps(conf):
             raise Exception, \
                 'Need CoreServices, IOKit & CoreFoundation frameworks'
 
-    conf.CBConfig('valgrind')
+    conf.CBConfig('valgrind', False)
 
     # Debug
     if env.get('debug', 0):
@@ -50,26 +92,24 @@ def configure_deps(conf):
 
 def configure(conf):
     env = conf.env
-    conf = conf.sconf
 
-    conf.CBConfig('cbang-deps')
-
-    # lib
-    home = conf.CBCheckHome()
+    home = GetHome()
     if home:
         env.AppendUnique(CPPPATH = [home + '/src'])
         env.AppendUnique(LIBPATH = [home + '/lib'])
 
-    if not (conf.CBCheckLib('cbang') and
-            conf.CBCheckCXXHeader('cbang/Exception.h')):
-        return False
+    if not env.CBConfigEnabled('cbang-deps'):
+        conf.CBConfig('cbang-deps', local = False)
 
-    env.AppendUnique(CPPDEFINES = 'HAVE_CBANG')
+    conf.CBRequireLib('cbang')
+    conf.CBRequireCXXHeader('cbang/Exception.h')
+    env.CBDefine('HAVE_CBANG')
 
 
 def generate(env):
     env.CBAddConfigTest('cbang', configure)
     env.CBAddConfigTest('cbang-deps', configure_deps)
+    env.AddMethod(ConfigLocalBoost)
 
     env.CBAddVariables(
         BoolVariable('backtrace_debugger', 'Enable backtrace debugger', 0),

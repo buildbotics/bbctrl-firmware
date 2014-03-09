@@ -1,5 +1,5 @@
 Import('*')
 env = env.Clone()
-env.Append(CPPDEFINES = ['_POSIX_SOURCE'])
+env.CBDefine('_POSIX_SOURCE')
 lib = env.Library('#/lib/bzip2', Glob('*.c'))
 Return('lib')

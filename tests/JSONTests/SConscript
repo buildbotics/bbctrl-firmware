@@ -3,4 +3,6 @@ Import('*')
 # Local includes
 env.Append(CPPPATH = ['#'])
 
-env.Program('JSON', 'JSON.cpp');
+prog = env.Program('JSON', 'JSON.cpp');
+
+Return('prog')

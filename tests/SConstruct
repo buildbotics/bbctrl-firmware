@@ -1,27 +1,28 @@
-# Configure system boilerplate
-import os, sys
-sys.path.append(os.environ.get('CONFIG_SCRIPTS_HOME', '../config'))
-import config
-
-# Setup
-env = config.make_env(['compiler', 'cbang', 'build_info'])
-conf = Configure(env)
-Export('env')
+env = Environment()
+env.Tool('config', toolpath = [Dir('#/..')])
+env.CBLoadTools('compiler cbang'.split())
+conf = env.CBConfigure()
 
 # Build Info
-config.configure('build_info', conf, namespace = 'cb::BuildInfo')
+env.CBLoadTool('build_info')
+env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 
 # Configure
 if not env.GetOption('clean'):
-    # Configure compiler
-    config.configure('compiler', conf)
+    conf.CBConfig('compiler')
+    conf.CBConfig('cbang')
+    env.Append(CPPDEFINES = ['USING_CBANG']) # Using CBANG macro namespace
 
-    # cbang
-    config.configure('cbang', conf)
-    # Using CBANG macro namespace
-    env.Append(CPPDEFINES = ['USING_CBANG'])
+conf.Finish()
 
+# Test
+Export('env')
+tests = []
+for test in Glob('*Tests'):
+    tests.append(SConscript(str(test) + '/SConscript'))
 
-suites = ['http', 'server', 'uri', 'JSON', 'base64', 'iostream', 'ipRange', 'aclSet']
+test = Command('test', '', './testHarness -I')
+Depends(test, tests)
+Default(test)
 
-SConscript(map(lambda s: s + 'Tests/SConscript', suites))
+Clean(test, tests)

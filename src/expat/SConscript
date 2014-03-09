@@ -1,17 +1,23 @@
 Import('*')
 env = env.Clone()
 
-env.Append(CFLAGS = ['-fexceptions'])
-env.Append(CPPDEFINES = 'XML_CONTEXT_BYTES=1024 XML_DTD=1 XML_NS=1'.split())
+# Remove warnings
+flags = env.subst('${CCFLAGS}')
+flags = flags.replace('-Wall', '').replace('-Werror', '')
+env.Replace(CCFLAGS = flags)
 
-if conf.CheckFunc('memmove'): env.Append(CPPDEFINES = ['HAVE_MEMMOVE'])
-if conf.CheckFunc('bcopy'): env.Append(CPPDEFINES = ['HAVE_BCOPY'])
+if not env.GetOption('clean'):
+    env.Append(CFLAGS = ['-fexceptions'])
+    env.Append(CPPDEFINES = 'XML_CONTEXT_BYTES=1024 XML_DTD=1 XML_NS=1'.split())
 
-# Endian
-import sys
-if sys.byteorder == 'little': order = '1234'
-else: order = '4321'
-env.Append(CPPDEFINES = ['BYTEORDER=' + order])
+    if conf.CheckFunc('memmove'): env.CBDefine('HAVE_MEMMOVE')
+    if conf.CheckFunc('bcopy'): env.CBDefine('HAVE_BCOPY')
+
+    # Endian
+    import sys
+    if sys.byteorder == 'little': order = '1234'
+    else: order = '4321'
+    env.CBDefine('BYTEORDER=' + order)
 
 lib = env.Library('#/lib/expat', 'xmlparse.c xmltok.c xmlrole.c'.split())
 Return('lib')

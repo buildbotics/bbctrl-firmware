@@ -3,4 +3,6 @@ Import('*')
 # Local includes
 env.Append(CPPPATH = ['#'])
 
-env.Program('iprange', 'iprange.cpp');
+prog = env.Program('iprange', 'iprange.cpp');
+
+Return('prog')

@@ -1,0 +1,27 @@
+import os
+import re
+Import('*')
+
+boost_source = env.ConfigLocalBoost()
+
+env = env.Clone()
+
+# Remove warnings
+flags = env.subst('${CCFLAGS}')
+flags = flags.replace('-Wall', '').replace('-Werror', '')
+env.Replace(CCFLAGS = flags)
+
+if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
+
+env.VariantDir('build/boost', boost_source + '/libs')
+
+libs = []
+for lib in ['iostreams', 'filesystem', 'system', 'regex']:
+    src = Glob(boost_source + '/libs/%s/src/*.cpp' % lib)
+
+    libname = 'boost_%s' % lib
+    if env['PLATFORM'] == 'win32': libname = 'lib' + libname
+
+    libs.append(env.Library('#/lib/' + libname, src))
+
+Return('libs')

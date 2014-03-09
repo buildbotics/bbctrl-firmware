@@ -151,9 +151,12 @@ def CBConfig(ctx, name, required = True, **kwargs):
             ret = env.cb_methods[name](conf, **kwargs)
             if ret is None: ret = True
         except Exception, e:
+            if required: raise
             ctx.Message(str(e))
 
         if ret: env.cb_enabled.add(name)
+        elif required: raise Exception, 'Failed to configure ' + name
+
         return ret
 
     elif required:
@@ -197,10 +200,7 @@ def CBDefine(env, defs):
 
 
 def CBAddVariables(env, *args):
-    v = Variables()
-    v.AddVariables(*args)
-    v.Update(env)
-    Help(v.GenerateHelpText(env))
+    env.cb_vars += args
 
 
 def CBAddTest(env, name, func = None):
@@ -225,6 +225,29 @@ def CBConfigure(env):
     for name, test in env.cb_tests.items():
         conf.AddTest(name, test)
 
+    # Load config files
+    configs = []
+
+    if os.environ.has_key('SCONS_OPTIONS'):
+        options = os.environ['SCONS_OPTIONS']
+        if not os.path.exists(options):
+            print 'options file "%s" set in SCONS_OPTIONS does not exist' % \
+                options
+            Exit(1)
+
+        configs.append(options)
+
+    if os.path.exists('default-options.py'):
+        configs.append('default-options.py')
+    if os.path.exists('options.py'): configs.append('options.py')
+
+    # Load variables
+    v = Variables(configs)
+    v.AddVariables(*env.cb_vars)
+    v.Update(env)
+
+    Help(v.GenerateHelpText(env))
+
     return conf
 
 
@@ -235,6 +258,7 @@ def generate(env):
     env.cb_methods = {}
     env.cb_deps_methods = {}
     env.cb_tests = {}
+    env.cb_vars = []
 
     # Add methods
     env.AddMethod(CBTryLoadTool)
@@ -263,25 +287,6 @@ def generate(env):
     env.CBAddTest(CBCheckCXXHeader)
     env.CBAddTest(CBRequireCXXHeader)
     env.CBAddTest(CBConfig)
-
-    # Load config files
-    configs = []
-
-    if os.environ.has_key('SCONS_OPTIONS'):
-        options = os.environ['SCONS_OPTIONS']
-        if not os.path.exists(options):
-            print 'options file "%s" set in SCONS_OPTIONS does not exist' % \
-                options
-            Exit(1)
-
-        configs.append(options)
-
-    if os.path.exists('default-options.py'):
-        configs.append('default-options.py')
-    if os.path.exists('options.py'): configs.append('options.py')
-
-    v = Variables(configs)
-    v.Update(env)
 
 
 def exists(env):

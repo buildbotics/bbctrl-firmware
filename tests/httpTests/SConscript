@@ -7,5 +7,7 @@ env.Append(CPPPATH = ['#'])
 info = env.BuildInfo('build_info.cpp', [])
 AlwaysBuild(info)
 
-env.Program('webserver', ['webserver.cpp', info]);
-env.Program('secure_webserver', ['secure_webserver.cpp', info]);
+prog1 = env.Program('webserver', ['webserver.cpp', info]);
+prog2 = env.Program('secure_webserver', ['secure_webserver.cpp', info]);
+
+Return('prog1 prog2')

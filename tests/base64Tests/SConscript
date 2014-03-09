@@ -3,4 +3,6 @@ Import('*')
 # Local includes
 env.Append(CPPPATH = ['#'])
 
-env.Program('base64', 'base64.cpp');
+prog = env.Program('base64', 'base64.cpp');
+
+Return('prog')

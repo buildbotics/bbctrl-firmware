@@ -10,8 +10,6 @@ def configure(conf):
     if conf.CBCheckHeader('valgrind/drd.h'):
         env.CBDefine('HAVE_VALGRIND_DRD_H')
 
-    return True
-
 
 def generate(env):
     env.CBAddConfigTest('valgrind', configure)

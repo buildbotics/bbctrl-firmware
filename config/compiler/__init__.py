@@ -161,7 +161,7 @@ def configure(conf, cstd = 'c99'):
     # Disable troublesome warnings
     warnings = []
     if compiler_mode == 'msvc':
-        env.AppendUnique(CPPDEFINES = ['_CRT_SECURE_NO_WARNINGS'])
+        env.CBDefine('_CRT_SECURE_NO_WARNINGS')
 
         warnings += [4297, 4103]
         if compiler == 'intel': warnings += [1786]
@@ -205,7 +205,7 @@ def configure(conf, cstd = 'c99'):
 
             if strict: env.AppendUnique(CCFLAGS = ['-Werror'])
 
-        env.AppendUnique(CPPDEFINES = ['DEBUG'])
+        env.CBDefine('DEBUG')
 
         if not optimize and compiler == 'intel':
             if compiler_mode == 'gnu':
@@ -218,7 +218,7 @@ def configure(conf, cstd = 'c99'):
             # Don't add debug info and enable dead code removal
             env.AppendUnique(LINKFLAGS = ['-Wl,-S', '-Wl,-x'])
 
-        env.AppendUnique(CPPDEFINES = ['NDEBUG'])
+        env.CBDefine('NDEBUG')
 
 
     # Optimizations
@@ -310,7 +310,7 @@ def configure(conf, cstd = 'c99'):
             conf.CBRequireLib('pthread')
 
             env.AppendUnique(LINKFLAGS = ['-pthread'])
-            env.AppendUnique(CPPDEFINES = ['_REENTRANT'])
+            env.CBDefine('_REENTRANT')
 
         elif compiler_mode == 'msvc':
             if win32_thread == 'static':
@@ -357,7 +357,7 @@ def configure(conf, cstd = 'c99'):
 
     # For darwin
     if env['PLATFORM'] == 'darwin':
-        env.AppendUnique(CPPDEFINES = ['__APPLE__'])
+        env.CBDefine('__APPLE__')
         if osx_archs and compiler == 'gnu':
             # note: only apple compilers support multipe -arch options
             for arch in osx_archs.split():
