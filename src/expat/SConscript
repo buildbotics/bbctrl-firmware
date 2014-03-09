@@ -1,0 +1,17 @@
+Import('*')
+env = env.Clone()
+
+env.Append(CFLAGS = ['-fexceptions'])
+env.Append(CPPDEFINES = 'XML_CONTEXT_BYTES=1024 XML_DTD=1 XML_NS=1'.split())
+
+if conf.CheckFunc('memmove'): env.Append(CPPDEFINES = ['HAVE_MEMMOVE'])
+if conf.CheckFunc('bcopy'): env.Append(CPPDEFINES = ['HAVE_BCOPY'])
+
+# Endian
+import sys
+if sys.byteorder == 'little': order = '1234'
+else: order = '4321'
+env.Append(CPPDEFINES = ['BYTEORDER=' + order])
+
+lib = env.Library('#/lib/expat', 'xmlparse.c xmltok.c xmlrole.c'.split())
+Return('lib')

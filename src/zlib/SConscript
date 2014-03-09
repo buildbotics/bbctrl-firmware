@@ -1,0 +1,3 @@
+Import('*')
+lib = env.Library('#/lib/z', Glob('*.c'))
+Return('lib')

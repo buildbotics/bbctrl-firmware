@@ -7,7 +7,7 @@ Homepage: http://cbang.org/
 Vcs-Svn: svn://cauldrondevelopment.com/svn/cbang/trunk/cbang
 Vcs-Browser: https://cauldrondevelopment.com/svn/cbang/trunk/cbang
 Build-Depends: debhelper (>= 8), cdbs, libexpat1-dev,
- libssl-dev, libsqlite3-dev, libxml2-dev, libboost-iostreams-dev (>= 1.40.0),
+ libssl-dev, libsqlite3-dev, libboost-iostreams-dev (>= 1.40.0),
  libboost-filesystem-dev (>= 1.40.0), libboost-system-dev (>= 1.40.0),
  libboost-regex-dev (>= 1.40.0)
 
@@ -48,7 +48,7 @@ Description: C! development files
 Package: libcbang0
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libexpat1,
- libssl1.0.0, libsqlite3-0, libxml2, libboost-iostreams (>= 1.40.0),
+ libssl1.0.0, libsqlite3-0, libboost-iostreams (>= 1.40.0),
  libboost-filesystem (>= 1.40.0), libboost-system (>= 1.40.0),
  libboost-regex (>= 1.40.0)
 Description: C! is a collection of cross-platform C++ utility libraries

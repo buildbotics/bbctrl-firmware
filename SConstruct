@@ -1,8 +1,4 @@
-# Configure system boilerplate
-import os, sys, glob
-sys.path.append(os.environ.get('CONFIG_SCRIPTS_HOME', './config-scripts'))
-import config
-import collections
+import os
 
 # Version
 version = '0.0.1'
@@ -10,32 +6,28 @@ libversion = '0'
 major, minor, revision = version.split('.')
 
 # Setup
-vars = [
+env = Environment()
+env.Tool('config', toolpath = ['.'])
+env.CBAddVariables(
     BoolVariable('staticlib', 'Build a static library', True),
     BoolVariable('sharedlib', 'Build a shared library', False),
     ('soname', 'Shared library soname', 'libcbang%s.so' % libversion),
     PathVariable('prefix', 'Install path prefix', '/usr/local',
-                 PathVariable.PathAccept),
-    ]
-env = config.make_env(['compiler', 'dist', 'build_info', 'packager'], vars)
-
-# Configure
-conf = Configure(env)
+                 PathVariable.PathAccept))
+env.CBLoadTools('dist packager compiler cbang'.split())
+env.Replace(PACKAGE_VERSION = version)
+conf = env.CBConfigure()
 
 # Build Info
-config.configure('build_info', conf, namespace = 'cb::BuildInfo',
-                 version = version)
-
-# Packaging
-config.configure('dist', conf, version = version)
-config.configure('packager', conf)
+env.CBLoadTool('build_info')
+env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 
 
 # Debian
 dist_files = []
 '''
 vars = {'version': version}
-for path in glob.glob('debian/*.in'):
+for path in Glob('debian/*.in'):
     inFile = None
     outFile = None
     try:
@@ -60,21 +52,45 @@ if 'dist' in COMMAND_LINE_TARGETS:
 
     tar = env.TarBZ2Dist('libcbang' + libversion, files + dist_files)
     Alias('dist', tar)
-    #AlwaysBuild(tar)
     Return()
 
 
+# Third-party libs
+Export('env conf')
+for lib in 'zlib bzip2 sqlite3 expat'.split():
+    Default(SConscript('src/%s/SConscript' % lib, variant_dir = 'build/' + lib))
+
+
+# Boost
+''''
+boost_source = os.environ.get('BOOST_SOURCE', None)
+if not boost_source: raise Exception, 'BOOST_SOURCE not set'
+
+env.Append(CPPPATH = [boost_source])
+
+boostEnv = env.Clone()
+#env.__setitem__('strict', 0) # Force not strict for boost
+
+if boostEnv['PLATFORM'] == 'win32':
+    boostEnv.Append(CPPDEFINES = ['BOOST_ALL_NO_LIB'])
+
+VariantDir('build/boost', boost_source + '/libs')
+
+for lib in ['iostreams', 'filesystem', 'system', 'regex']:
+    src = Glob(boost_source + '/libs/%s/src/*.cpp' % lib)
+    src = map(lambda x: re.sub(re.escape(boost_source + '/libs'), 'build', x),
+              src)
+
+    libname = 'boost_%s' % lib
+    if boostEnv['PLATFORM'] == 'win32': libname = 'lib' + libname
+    Default(boostEnv.Library('#/lib/' + libname, src))
+'''
+
 # Configure
 if not env.GetOption('clean'):
-    # Configure compiler
-    config.configure('compiler', conf)
-
-    # Dependencies
-    lib = config.load_conf_module('cbang', '.')
-    lib.configure_deps(conf)
-
-    # Using CBANG macro namespace
-    env.Append(CPPDEFINES = ['USING_CBANG'])
+    conf.CBConfig('compiler')
+    conf.CBConfig('cbang-deps')
+    env.Append(CPPDEFINES = ['USING_CBANG']) # Using CBANG macro namespace
 
 
 # Local includes
@@ -89,20 +105,20 @@ subdirs = [
     'socket', 'security', 'tar', 'io', 'geom', 'parse', 'task', 'json',
     'jsapi']
 
-if config.enabled.get('v8', False): subdirs.append('js')
-if config.enabled.get('libsqlite', False): subdirs.append('db')
+if env.CBConfigEnabled('v8'): subdirs.append('js')
+if env.CBConfigEnabled('sqlite3'): subdirs.append('db')
 
 src = []
 for dir in subdirs:
     dir = 'src/cbang/' + dir
-    src += glob.glob(dir + '/*.c')
-    src += glob.glob(dir + '/*.cpp')
+    src += Glob(dir + '/*.c')
+    src += Glob(dir + '/*.cpp')
 
 
 # Build in 'build'
 import re
 VariantDir('build', 'src')
-src = map(lambda path: re.sub(r'^src/', 'build/', path), src)
+src = map(lambda path: re.sub(r'^src/', 'build/', str(path)), src)
 
 
 # Build Info
@@ -114,13 +130,18 @@ src.append(info)
 # Build
 libs = []
 if env.get('staticlib'):
-#    libs.append(env.StaticLibrary('cbang' + libversion, src))
-    libs.append(env.StaticLibrary('cbang', src))
+    libs.append(env.StaticLibrary('lib/cbang', src))
+
 if env.get('sharedlib'):
     env.Append(SHLIBSUFFIX = '.' + version)
     env.Append(SHLINKFLAGS = '-Wl,-soname -Wl,${soname}')
-    libs.append(env.SharedLibrary('cbang' + libversion, src))
+    libs.append(env.SharedLibrary('lib/cbang' + libversion, src))
+
 for lib in libs: Default(lib)
+
+# Clean
+Clean(libs, 'build lib config.log cbang-config.pyc package.txt'.split() +
+      Glob('config/*.pyc'))
 
 
 # Install
@@ -128,8 +149,8 @@ prefix = env.get('prefix')
 install = [env.Install(dir = prefix + '/lib', source = libs)]
 
 for dir in subdirs:
-    files = glob.glob('src/cbang/%s/*.h' % dir)
-    files += glob.glob('src/cbang/%s/*.def' % dir)
+    files = Glob('src/cbang/%s/*.h' % dir)
+    files += Glob('src/cbang/%s/*.def' % dir)
     install.append(env.Install(dir = prefix + '/include/cbang/' + dir,
                                source = files))
 
