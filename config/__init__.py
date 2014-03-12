@@ -174,26 +174,35 @@ def CBTryLoadTool(env, name, path):
         return True
 
     except Exception, e:
-        traceback.print_exc()
+        #traceback.print_exc()
         env.cb_loaded.remove(name)
         return False
 
 
-def CBLoadTool(env, name):
+def CBLoadTool(env, name, paths = []):
     if name in env.cb_loaded: return True
+
+    if isinstance(paths, str): paths = paths.split()
+
+    home = os.environ.get(name.upper() + '_HOME', None)
+    if home is not None: paths.insert(0, home + '/config')
 
     path = inspect.getfile(inspect.currentframe())
     cd = os.path.dirname(os.path.abspath(path))
+    paths.append(cd)
 
-    for path in [cd, './config']:
+    paths.append('./config')
+
+    for path in paths:
         if env.CBTryLoadTool(name, path): return True
 
-    raise Exception, 'Failed to load tool ' + name
+    raise Exception, 'Failed to load tool ' + name + \
+        '\nHave you set ' + name.upper() + '_HOME?'
 
 
-def CBLoadTools(env, tools):
+def CBLoadTools(env, tools, paths = []):
     if isinstance(tools, str): tools = tools.split()
-    for name in tools: env.CBLoadTool(name)
+    for name in tools: env.CBLoadTool(name, paths)
 
 
 def CBDefine(env, defs):

@@ -1,12 +1,11 @@
 from SCons.Script import *
-import sys
 import inspect
 import os
 
 
 def GetHome():
     path = inspect.getfile(inspect.currentframe())
-    return os.path.dirname(os.path.abspath(path)) + '/../..'
+    return os.path.dirname(os.path.abspath(path))
 
 
 def ConfigLocalBoost(env):
@@ -14,7 +13,7 @@ def ConfigLocalBoost(env):
     if not boost_source: raise Exception, 'BOOST_SOURCE not set'
 
     env.Append(CPPPATH = [boost_source])
-    env.PrependUnique(LIBPATH = [GetHome() + '/lib'])
+    env.PrependUnique(LIBPATH = [GetHome() + '../../lib'])
 
     if env.get('compiler') == 'gnu':
         env.Append(CCFLAGS = '-Wno-unused-local-typedefs')
@@ -34,7 +33,7 @@ def ConfigBoost(conf, require = False):
 def configure_deps(conf, local = True):
     env = conf.env
 
-    home = GetHome()
+    home = GetHome() + '/../..'
 
     if not conf.CBConfig('zlib', False) and not local:
         env.Append(CPPPATH = [home + '/src/zlib'])
@@ -93,10 +92,9 @@ def configure_deps(conf, local = True):
 def configure(conf):
     env = conf.env
 
-    home = GetHome()
-    if home:
-        env.AppendUnique(CPPPATH = [home + '/src'])
-        env.AppendUnique(LIBPATH = [home + '/lib'])
+    home = GetHome() + '/../..'
+    env.AppendUnique(CPPPATH = [home + '/src'])
+    env.AppendUnique(LIBPATH = [home + '/lib'])
 
     if not env.CBConfigEnabled('cbang-deps'):
         conf.CBConfig('cbang-deps', local = False)
@@ -116,7 +114,8 @@ def generate(env):
         ('debug_level', 'Set log debug level', 1))
 
     env.CBLoadTools(
-        'sqlite3 boost openssl pthreads valgrind osx zlib bzip2 XML v8'.split())
+        'sqlite3 boost openssl pthreads valgrind osx zlib bzip2 XML v8'.split(),
+        GetHome() + '/..')
 
 
 def exists(env):

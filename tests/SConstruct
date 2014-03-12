@@ -1,6 +1,6 @@
 env = Environment()
 env.Tool('config', toolpath = [Dir('#/..')])
-env.CBLoadTools('compiler cbang'.split())
+env.CBLoadTools('compiler cbang'.split(), paths = [Dir('#/..')])
 conf = env.CBConfigure()
 
 # Build Info
@@ -21,7 +21,7 @@ tests = []
 for test in Glob('*Tests'):
     tests.append(SConscript(str(test) + '/SConscript'))
 
-test = Command('test', '', './testHarness -I')
+test = Command('test', '', './testHarness')
 Depends(test, tests)
 Default(test)
 
