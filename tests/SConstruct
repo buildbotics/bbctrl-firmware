@@ -23,6 +23,6 @@ for test in Glob('*Tests'):
 
 test = Command('test', '', './testHarness')
 Depends(test, tests)
-Default(test)
 
-Clean(test, tests)
+Default(tests)
+Clean(tests, test)
