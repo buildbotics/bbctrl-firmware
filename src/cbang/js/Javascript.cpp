@@ -47,3 +47,9 @@ void Javascript::init(int *argc, char *argv[]) {
   instance();
   if (argv) v8::V8::SetFlagsFromCommandLine(argc, argv, true);
 }
+
+
+void Javascript::terminate() {
+  // Terminate script execution
+  v8::V8::TerminateExecution();
+}

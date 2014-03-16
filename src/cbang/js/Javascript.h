@@ -57,6 +57,7 @@ namespace cb {
       Javascript(Inaccessible);
 
       static void init(int *argc = 0, char *argv[] = 0);
+      static void terminate();
     };
   }
 }

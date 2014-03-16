@@ -19,6 +19,7 @@ env.Replace(PACKAGE_VERSION = version)
 conf = env.CBConfigure()
 
 # Build Info
+env.Replace(PACKAGE_VERSION = version)
 env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 
 
@@ -58,15 +59,15 @@ if 'dist' in COMMAND_LINE_TARGETS:
 if not env.GetOption('clean'):
     conf.CBConfig('compiler')
     conf.CBConfig('cbang-deps')
-    env.Append(CPPDEFINES = ['USING_CBANG']) # Using CBANG macro namespace
+    env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
 
 # Build third-party libs
 Export('env conf')
 for lib in 'zlib bzip2 sqlite3 expat boost'.split():
-    l = SConscript('src/%s/SConscript' % lib,
-                   variant_dir = 'build/' + lib)
-    if not env.CBConfigEnabled(lib): Default(l)
+    if not env.CBConfigEnabled(lib):
+        Default(SConscript('src/%s/SConscript' % lib,
+                           variant_dir = 'build/' + lib))
 
 # Local includes
 env.Append(CPPPATH = ['#/src'])

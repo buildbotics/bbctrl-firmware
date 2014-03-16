@@ -5,6 +5,7 @@ Builds an OSX application bundle
 import os
 import shutil
 import plistlib
+import shlex
 
 from SCons.Script import *
 
@@ -63,6 +64,12 @@ def build_function(target, source, env):
     env.InstallFiles('app_shared', contents_dir + '/SharedSupport')
     env.InstallFiles('app_frameworks', contents_dir + '/Frameworks')
     env.InstallFiles('app_plugins', contents_dir + '/PlugIns')
+
+    # Finish command
+    finish_cmd = env.get('app_finish_cmd', None)
+    if finish_cmd:
+        if isinstance(finish_cmd, str): finish_cmd = shlex.split(finish_cmd)
+        env.RunCommand(finish_cmd + [app_dir])
 
     # Zip results
     env.ZipDir(str(target[0]), app_dir)

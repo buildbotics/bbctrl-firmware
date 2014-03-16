@@ -11,7 +11,7 @@ env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 if not env.GetOption('clean'):
     conf.CBConfig('compiler')
     conf.CBConfig('cbang')
-    env.Append(CPPDEFINES = ['USING_CBANG']) # Using CBANG macro namespace
+    env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
 conf.Finish()
 

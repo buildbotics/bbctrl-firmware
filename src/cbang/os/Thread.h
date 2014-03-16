@@ -117,11 +117,7 @@ namespace cb {
 
     static Thread &current();
 
-    /**
-     * This function is used internally to start the thread.
-     *
-     * @param t A pointer to the thread class.
-     */
+    /// This function is used internally to start the thread.
     virtual void starter();
 
   protected:
