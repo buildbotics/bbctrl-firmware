@@ -1,4 +1,4 @@
-env = Environment()
+env = Environment(ENV = os.environ)
 env.Tool('config', toolpath = [Dir('#/..')])
 env.CBLoadTools('compiler cbang'.split(), paths = [Dir('#/..')])
 conf = env.CBConfigure()
