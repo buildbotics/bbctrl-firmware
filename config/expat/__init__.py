@@ -7,13 +7,15 @@ def configure(conf):
 
     conf.CBCheckHome('expat')
 
-    libname = 'expat'
+    conf.CBRequireCHeader('expat.h')
+
     if env['PLATFORM'] == 'win32':
-        libname = 'lib' + libname + 'MT'
+        if not conf.CBCheckLib('libexpatMT'):
+            conf.CBRequireLib('expat')
         env.CBDefine('XML_STATIC')
 
-    conf.CBRequireCHeader('expat.h')
-    conf.CBRequireLib(libname)
+    else: conf.CBRequireLib('expat')
+
     env.CBDefine('HAVE_EXPAT')
 
 
