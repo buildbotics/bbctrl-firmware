@@ -96,6 +96,8 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
         env.CBDefine('BOOST_ALL_NO_LIB')
         env.Prepend(LIBS = ['wsock32'])
 
+    env.AppendUnique(CCFLAGS = ['-Wno-unused-local-typedefs'])
+
 
 def generate(env):
     env.CBAddConfigTest('boost', configure)
