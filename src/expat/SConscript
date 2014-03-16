@@ -24,4 +24,8 @@ if not env.GetOption('clean'):
     env.CBDefine('BYTEORDER=' + order)
 
 lib = env.Library('#/lib/expat', 'xmlparse.c xmltok.c xmlrole.c'.split())
+
+hdrs = env.Install(dir = '#/include', source = ['expat.h', 'expat_external.h'])
+Depends(lib, hdrs)
+
 Return('lib')

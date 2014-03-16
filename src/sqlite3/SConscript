@@ -1,6 +1,7 @@
 Import('*')
 
 env.AppendUnique(CPPPATH = [str(Dir('#/src/sqlite3'))])
+
 env = env.Clone()
 
 # Remove warnings
@@ -18,4 +19,9 @@ env.Append(CPPDEFINES = [
 if env['PLATFORM'] != 'win32': env.CBDefine('HAVE_STDINT_H')
 
 lib = env.Library('#/lib/sqlite3', Glob('*.c'))
+
+hdrs = env.Install(dir = '#/include', source = 'sqlite3.h')
+Depends(lib, hdrs)
+
+
 Return('lib')

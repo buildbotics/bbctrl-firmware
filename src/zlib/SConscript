@@ -1,4 +1,9 @@
 Import('*')
 env.AppendUnique(CPPPATH = [str(Dir('#/src/zlib'))])
+
 lib = env.Library('#/lib/z', Glob('*.c'))
+
+hdrs = env.Install(dir = '#/include', source = ['zlib.h', 'zconf.h'])
+Depends(lib, hdrs)
+
 Return('lib')

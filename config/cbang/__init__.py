@@ -93,7 +93,7 @@ def configure(conf):
     env = conf.env
 
     home = GetHome() + '/../..'
-    env.AppendUnique(CPPPATH = [home + '/src'])
+    env.AppendUnique(CPPPATH = [home + '/src', home + '/include'])
     env.AppendUnique(LIBPATH = [home + '/lib'])
 
     if not env.CBConfigEnabled('cbang-deps'):
