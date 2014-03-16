@@ -53,7 +53,7 @@ for lib in 'zlib bzip2 sqlite3 expat boost'.split():
                            variant_dir = 'build/' + lib))
 
 # Local includes
-env.Append(CPPPATH = ['#/src'])
+env.Append(CPPPATH = ['#/src', '#/include'])
 
 conf.Finish()
 
