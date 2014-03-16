@@ -6,7 +6,7 @@ libversion = '0'
 major, minor, revision = version.split('.')
 
 # Setup
-env = Environment()
+env = Environment(ENV = os.environ)
 env.Tool('config', toolpath = ['.'])
 env.CBAddVariables(
     BoolVariable('staticlib', 'Build a static library', True),
@@ -130,7 +130,7 @@ for dir in subdirs:
     install.append(env.Install(dir = prefix + '/include/cbang/' + dir,
                                source = files))
 
-docs = ['README', 'COPYING']
+docs = ['README.md', 'COPYING']
 install.append(env.Install(dir = prefix + '/share/doc/cbang', source = docs))
 
 env.Alias('install', install)
