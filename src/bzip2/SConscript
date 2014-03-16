@@ -3,7 +3,7 @@ env.AppendUnique(CPPPATH = [str(Dir('#/src/bzip2'))])
 env = env.Clone()
 env.CBDefine('_POSIX_SOURCE')
 
-lib = env.Library('#/lib/bzip2', Glob('*.c'))
+lib = env.Library('#/lib/bz2', Glob('*.c'))
 
 hdrs = env.Install(dir = '#/include', source = 'bzlib.h')
 Depends(lib, hdrs)
