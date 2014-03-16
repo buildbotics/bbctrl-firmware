@@ -53,7 +53,6 @@ def configure_deps(conf, local = True):
 
     # OSX frameworks
     if env['PLATFORM'] == 'darwin':
-        conf.CBConfig('osx')
         if not (conf.CheckOSXFramework('CoreServices') and
                 conf.CheckOSXFramework('IOKit') and
                 conf.CheckOSXFramework('CoreFoundation')):
