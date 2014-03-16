@@ -1,5 +1,6 @@
 Import('*')
 
+env.AppendUnique(CPPPATH = [str(Dir('#/src/sqlite3'))])
 env = env.Clone()
 
 # Remove warnings

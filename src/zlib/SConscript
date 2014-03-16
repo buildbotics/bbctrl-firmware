@@ -1,3 +1,4 @@
 Import('*')
+env.AppendUnique(CPPPATH = [str(Dir('#/src/zlib'))])
 lib = env.Library('#/lib/z', Glob('*.c'))
 Return('lib')

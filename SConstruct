@@ -23,23 +23,6 @@ env.Replace(PACKAGE_VERSION = version)
 env.Replace(BUILD_INFO_NS = 'cb::BuildInfo')
 
 
-# Debian
-dist_files = []
-'''
-vars = {'version': version}
-for path in Glob('debian/*.in'):
-    inFile = None
-    outFile = None
-    try:
-        inFile = open(path, 'r')
-        outFile = open(path[:-3], 'w')
-        outFile.write(inFile.read() % vars)
-        dist_files.append(path[:-3])
-    finally:
-        if inFile is not None: inFile.close()
-        if outFile is not None: outFile.close()
-'''
-
 # Dist
 if 'dist' in COMMAND_LINE_TARGETS:
     env.__setitem__('dist_build', '')
@@ -50,7 +33,7 @@ if 'dist' in COMMAND_LINE_TARGETS:
     files = map(lambda l: l.split()[-1], lines)
     files = filter(lambda f: not os.path.isdir(f), files)
 
-    tar = env.TarBZ2Dist('libcbang' + libversion, files + dist_files)
+    tar = env.TarBZ2Dist('libcbang' + libversion, files)
     Alias('dist', tar)
     Return()
 
