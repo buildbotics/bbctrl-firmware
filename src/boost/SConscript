@@ -5,7 +5,6 @@ Import('*')
 boost_source = env.ConfigLocalBoost()
 
 if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
-env.AppendUnique(CCFLAGS = ['-Wno-unused-local-typedefs'])
 
 env = env.Clone()
 
