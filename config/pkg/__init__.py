@@ -46,8 +46,8 @@ def build_function(target, source, env):
 
     for i in 'info scripts certificate doc target domain filter'.split():
         if 'pkg_' + i in env: cmd += ['--' + i, env.get('pkg_' + i)]
-    for i in 'no-recommend no-relocate root-volume-only discard-forks ' +\
-            'temp-root'.split():
+    for i in ('no-recommend no-relocate root-volume-only discard-forks '
+              'temp-root').split():
         if env.get('pkg_' + i.replace('-', '_'), False): cmd += ['--' + i]
     env.RunCommand(cmd)
 
