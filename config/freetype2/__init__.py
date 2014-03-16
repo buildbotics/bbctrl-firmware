@@ -1,6 +1,5 @@
 import os
 from SCons.Script import *
-import config
 
 
 def configure(conf):

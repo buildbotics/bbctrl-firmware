@@ -1,5 +1,4 @@
 from SCons.Script import *
-import config
 
 
 def configure(conf):
@@ -8,8 +7,6 @@ def configure(conf):
     conf.CBCheckHome('GL')
 
     if env['PLATFORM'] == 'darwin':
-        config.configure('osx', conf)
-
         if not (conf.CheckOSXFramework('OpenGL') and
                 conf.CheckCHeader('OpenGL/gl.h')):
             raise Exception, 'Need OpenGL'
