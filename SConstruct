@@ -44,6 +44,8 @@ if not env.GetOption('clean'):
     conf.CBConfig('cbang-deps')
     env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
+# Local includes
+env.Append(CPPPATH = ['#/src', '#/include'])
 
 # Build third-party libs
 Export('env conf')
@@ -51,9 +53,6 @@ for lib in 'zlib bzip2 sqlite3 expat boost'.split():
     if not env.CBConfigEnabled(lib):
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
-
-# Local includes
-env.Append(CPPPATH = ['#/src', '#/include'])
 
 conf.Finish()
 
