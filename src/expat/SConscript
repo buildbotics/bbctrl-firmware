@@ -1,6 +1,5 @@
 Import('*')
 
-env.AppendUnique(CPPPATH = [str(Dir('#/src/expat'))])
 env.CBDefine('HAVE_EXPAT')
 
 env = env.Clone()

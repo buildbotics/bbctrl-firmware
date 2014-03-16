@@ -99,8 +99,8 @@ if env.get('sharedlib'):
 for lib in libs: Default(lib)
 
 # Clean
-Clean(libs, 'build lib config.log cbang-config.pyc package.txt'.split() +
-      Glob('config/*.pyc'))
+Clean(libs, 'build lib include config.log cbang-config.pyc package.txt'
+      .split() + Glob('config/*.pyc'))
 
 
 # Install

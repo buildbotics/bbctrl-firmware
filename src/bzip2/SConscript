@@ -1,5 +1,4 @@
 Import('*')
-env.AppendUnique(CPPPATH = [str(Dir('#/src/bzip2'))])
 env = env.Clone()
 env.CBDefine('_POSIX_SOURCE')
 

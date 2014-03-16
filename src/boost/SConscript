@@ -4,14 +4,14 @@ Import('*')
 
 boost_source = env.ConfigLocalBoost()
 
+if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
+
 env = env.Clone()
 
 # Remove warnings
 flags = env.subst('${CCFLAGS}')
 flags = flags.replace('-Wall', '').replace('-Werror', '')
 env.Replace(CCFLAGS = flags)
-
-if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
 
 env.VariantDir('build/boost', boost_source + '/libs')
 

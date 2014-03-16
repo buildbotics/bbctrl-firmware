@@ -33,23 +33,10 @@ def ConfigBoost(conf, require = False):
 def configure_deps(conf, local = True):
     env = conf.env
 
-    home = GetHome() + '/../..'
-
-    if not conf.CBConfig('zlib', False) and not local:
-        env.Append(CPPPATH = [home + '/src/zlib'])
-        conf.CBConfig('zlib', True)
-
-    if not conf.CBConfig('bzip2', False) and not local:
-        env.Append(CPPPATH = [home + '/src/bzip2'])
-        conf.CBConfig('bzip2', True)
-
-    if not conf.CBConfig('XML', False) and not local:
-        env.Append(CPPPATH = [home + '/src/expat'])
-        conf.CBConfig('XML', True)
-
-    if not conf.CBConfig('sqlite3', False) and not local:
-        env.Append(CPPPATH = [home + '/src/sqlite3'])
-        conf.CBConfig('sqlite3', True)
+    conf.CBConfig('zlib', not local)
+    conf.CBConfig('bzip2', not local)
+    conf.CBConfig('XML', not local)
+    conf.CBConfig('sqlite3', not local)
 
     if not ConfigBoost(conf) and not local:
         env.ConfigLocalBoost()
