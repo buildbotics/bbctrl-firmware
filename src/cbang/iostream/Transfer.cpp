@@ -58,7 +58,7 @@ streamsize cb::transfer(istream &in, ostream &out, streamsize length,
   }
 
   out.flush();
-  
+
   if (out.fail() || length) THROW("Transfer failed");
 
   return total;
