@@ -78,7 +78,7 @@ SSLContext::~SSLContext() {
 
 X509_STORE *SSLContext::getStore() const {
   X509_STORE *store = SSL_CTX_get_cert_store(ctx);
-  if (!store) THROW("Could not get SSL context certificate store");  
+  if (!store) THROW("Could not get SSL context certificate store");
 
   return store;
 }
