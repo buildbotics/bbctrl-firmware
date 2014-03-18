@@ -71,7 +71,7 @@ void Revoked::setReason(const string &reason) {
 	"keyCompromise",
 	"CACompromise",
 	"affiliationChanged",
-	"superseded", 
+	"superseded",
 	"cessationOfOperation",
 	"certificateHold",
     "removeFromCRL",
