@@ -14,9 +14,6 @@ def ConfigLocalBoost(env):
 
     env.Append(CPPPATH = [boost_source])
 
-    if env.get('compiler') == 'gnu':
-        env.Append(CCFLAGS = '-Wno-unused-local-typedefs')
-
     return boost_source
 
 

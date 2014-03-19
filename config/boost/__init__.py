@@ -76,9 +76,6 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
     if os.environ.has_key('BOOST_LIB_SUFFIX'):
         boost_lib_suffix = os.environ['BOOST_LIB_SUFFIX'].replace('.', '_')
 
-    if env.get('compiler') == 'gnu':
-        env.AppendUnique(CCFLAGS = ['-Wno-unused-local-typedefs'])
-
     # Check version
     if not conf.BoostVersion(boost_ver):
         boost_error('Missing boost version ' + boost_ver)
