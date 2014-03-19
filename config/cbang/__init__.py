@@ -13,7 +13,6 @@ def ConfigLocalBoost(env):
     if not boost_source: raise Exception, 'BOOST_SOURCE not set'
 
     env.Append(CPPPATH = [boost_source])
-    env.PrependUnique(LIBPATH = [GetHome() + '../../lib'])
 
     if env.get('compiler') == 'gnu':
         env.Append(CCFLAGS = '-Wno-unused-local-typedefs')

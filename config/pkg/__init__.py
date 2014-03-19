@@ -1,6 +1,4 @@
-'''
-Builds an OSX single application package
-'''
+'''Builds an OSX single application package'''
 
 import os
 import shutil
@@ -27,36 +25,51 @@ def build_function(target, source, env):
     if 'pkg_files' in env:
         env.InstallFiles('pkg_files', root_dir)
 
-    # Build package command
-    pkg_dir = '%s.pkg' % env.get('package_name')
-    cmd = ['${PACKAGEMAKER}',
-           '--title', env.get('summary'),
-           '--id', env.get('pkg_id', env.get('app_id', '') + '.pkg'),
+    # pkg_id
+    if 'app_id' in env and not 'pkg_id' in env:
+        env.Replace(pkg_id = env.get('app_id') + '.pkg')
+
+    # pkgbuild command
+    cmd = ['${PKGBUILD}',
+           '--root', root_dir,
+           '--id', env.get('pkg_id'),
            '--version', env.get('version'),
-           '--install-to', env.get('pkg_install_to', '/'),
-           '--out', pkg_dir]
-    if not 'pkg_doc' in env: cmd += ['--root',  root_dir]
+           '--install-location', env.get('pkg_install_to', '/'),
+           ]
+    if 'pkg_scripts' in env: cmd += ['--scripts', env.get('pkg_scripts')]
+    if 'pkg_plist' in env: cmd += ['--component-plist', env.get('pkg_plist')]
+    cmd += [root_dir + '/%s.pkg' % env.get('package_name')]
 
-    # Resources
-    if 'pkg_resources' in env:
-        d = os.path.join(build_dir, 'Resources')
-        os.makedirs(d, 0775)
-        env.InstallFiles('pkg_resources', d)
-        cmd += ['--resources', d]
-
-    for i in 'info scripts certificate doc target domain filter'.split():
-        if 'pkg_' + i in env: cmd += ['--' + i, env.get('pkg_' + i)]
-    for i in ('no-recommend no-relocate root-volume-only discard-forks '
-              'temp-root').split():
-        if env.get('pkg_' + i.replace('-', '_'), False): cmd += ['--' + i]
     env.RunCommand(cmd)
 
-    # Zip results
-    env.ZipDir(str(target[0]), pkg_dir)
+    # Filter distribution.xml
+    dist = None
+    if 'pkg_distribution' in env:
+        f = open(env.get('pkg_distribution'), 'r')
+        data = f.read()
+        f.close()
+        dist = build_dir + '/distribution.xml'
+        f = open(dist, 'w')
+        f.write(data % env)
+        f.close()
+
+    # productbuild command
+    cmd = ['${PRODUCTBUILD}', '--package-path', root_dir]
+    if dist: cmd += ['--distribution', dist]
+    if 'pkg_resources' in env:
+        cmd += ['--resources', env.get('pkg_resources')]
+    if 'sign_id_installer' in env:
+        cmd += ['--sign', env.get('sign_id_installer')]
+        if 'sign_keychain' in env:
+            cmd += ['--keychain', env.get('sign_keychain')]
+    cmd += [str(target[0])]
+
+    env.RunCommand(cmd)
 
 
 def generate(env):
-    env.SetDefault(PACKAGEMAKER = 'packagemaker')
+    env.SetDefault(PKGBUILD = 'pkgbuild')
+    env.SetDefault(PRODUCTBUILD = 'productbuild')
 
     bld = Builder(action = build_function,
                   source_factory = SCons.Node.FS.Entry,

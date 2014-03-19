@@ -119,7 +119,7 @@ def GetPackageName(env, name, without_build = False, type = None):
         else: name += seps[0] + arch # deb and others
 
     name += '.' + type
-    if type in ('app', 'pkg', 'mpkg'): name += '.zip'
+    if type in ('app', 'mpkg'): name += '.zip'
 
     return name
 
