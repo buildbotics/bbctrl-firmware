@@ -1,4 +1,6 @@
 import os
+import sys
+import urllib2
 import traceback
 from SCons.Script import *
 import inspect
@@ -261,6 +263,42 @@ def CBConfigure(env):
     return conf
 
 
+def CBDownload(env, target, url):
+    sys.stdout.write('Downloading ' + url + '.')
+    sys.stdout.flush()
+
+    ftp_proxy = os.getenv('ftp_proxy', None)
+    http_proxy = os.getenv('http_proxy', None)
+
+    if ftp_proxy or http_proxy:
+        handlers = {}
+        if ftp_proxy: handlers['ftp'] = ftp_proxy
+        if http_proxy: handlers['http'] = http_proxy
+
+        opener = urllib2.build_opener(urllib2.ProxyHandler(handlers))
+        urllib2.install_opener(opener)
+
+    f = None
+    stream = None
+    try:
+        stream = urllib2.urlopen(url)
+        f = open(target, 'wb', 0) # Unbuffered
+        while stream and f:
+            data = stream.read(1024 * 1024)
+            if not data: break
+            f.write(data)
+            sys.stdout.write('.')
+            sys.stdout.flush()
+
+        sys.stdout.write('ok\n')
+        sys.stdout.flush()
+
+    finally:
+        if f is not None: f.close()
+        if stream is not None: stream.close()
+
+
+
 def generate(env):
     # Add member variables
     env.cb_loaded = set()
@@ -280,6 +318,7 @@ def generate(env):
     env.AddMethod(CBAddConfigTest)
     env.AddMethod(CBConfigEnabled)
     env.AddMethod(CBConfigure)
+    env.AddMethod(CBDownload)
 
     # Add tests
     env.CBAddTest(CBCheckEnv)
