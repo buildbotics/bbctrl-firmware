@@ -1,15 +1,28 @@
 C!
 =====
 
-The C! or cbang library is a collection of C++ utility libraries developed over the course of +10 years and several major C++ application development projects.  It should compile and run on Windows, Linux and OSX using a modern C++ compiler.
+The C! or cbang library is a collection of C++ utility libraries
+developed over the course of +10 years and several major C++
+application development projects.  It should compile and run on
+Windows, Linux and OSX using a modern C++ compiler.
 
-Many of the facilities of C! are geared towards cross-platform application development and providing basic services that most applications need such as a configuration system, run-time build information, logging facilities, threads, smart pointers, simple embedded scripting, etc.
+Many of the facilities of C! are geared towards cross-platform
+application development and providing basic services that most
+applications need such as a configuration system, run-time build
+information, logging facilities, threads, smart pointers, simple
+embedded scripting, etc.
 
-C!'s philosophy is to create clean, simple, readable, modular and reusable code.  C! also encourages exception based error handling, and light use of C++ templates and C preprocesor macros.
+C!'s philosophy is to create clean, simple, readable, modular and
+reusable code.  C! also encourages exception based error handling, and
+light use of C++ templates and C preprocesor macros.
 
-C! "leans" on the venerable boost library but also reimplements several boost APIs which are considered by the author to be too template heavy, less readable or overly complicated in boost.
+C! "leans" on the venerable boost library but also reimplements
+several boost APIs which are considered by the author to be too
+template heavy, less readable or overly complicated in boost.
 
-The code was developed on an as needed basis and was never intended to be any sort of grand unifying system for C++ application development.  However, I hope you find many parts of the library useful in your C++
+The code was developed on an as needed basis and was never intended to
+be any sort of grand unifying system for C++ application development.
+However, I hope you find many parts of the library useful in your C++
 development projects.
 
 For licensing information please see the files LICENSE and COPYING.
@@ -53,7 +66,7 @@ For licensing information please see the files LICENSE and COPYING.
   - SCons    http://scons.org/
   - bzip2    http://bzip.org/
   - zlib     http://zlib.net/
-  - expat    http://expat.sourceforge.net/ (optional)
+  - expat    http://expat.sourceforge.net/
   - openssl  http://www.openssl.org/
   - sqlite   http://www.sqlite.org/
   - boost    http://www.boost.org/
@@ -74,14 +87,17 @@ On Debian based systems the prerequisites can be installed with the following
 command line:
 
     sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-      libexpat1-dev libssl-dev libboost-dev libsqlite3-dev libv8-dev git
+      libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev \
+      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev git
 
 # Build
 
     cd cbang
     scons
 
-There are a number of build options which can either be passed on the command line to scons or place in a configuration file named 'options.py'.  These options are as follows:
+There are a number of build options which can either be passed on the
+command line to scons or place in a configuration file named
+'options.py'.  These options are as follows:
 
   - debug                - Enable debugging
   - optimize             - Enable compiler optimizations
@@ -95,3 +111,9 @@ There are a number of build options which can either be passed on the command li
 These options are enabled by setting them to 1.  For example:
 
     scons debug=1
+
+## Build Warnings/Errors
+If you get any build warnings, by default, the builds will stop.  If you have
+problems building, especially with warnings related to the boost library you
+can ignore these warnings by building with `scons strict=0`.  This disables
+strict checking.
