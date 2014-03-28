@@ -100,6 +100,20 @@ unsigned Tar::writeFile(const string &filename, ostream &dst, istream &src,
 }
 
 
+unsigned Tar::writeFile(const string &filename, ostream &dst, const char *data,
+                        streamsize size, uint32_t mode) {
+  // Write header
+  setFilename(filename);
+  setSize(size);
+  setType(TarHeader::NORMAL_FILE);
+  setMode(mode);
+  writeHeader(dst);
+
+  // Write data
+  return writeFileData(dst, data, size);
+}
+
+
 unsigned Tar::writeFileData(std::ostream &dst, std::istream &src,
                             streamsize size) {
   char buf[4096];

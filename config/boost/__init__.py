@@ -5,9 +5,7 @@ from SCons.Script import *
 
 def try_dirs(paths):
     for parts in paths:
-        path = ''
-        for part in parts:
-            path = os.path.join(path, part)
+        path = os.path.join(*parts)
         if os.path.isdir(path): return path
 
     return None
@@ -51,27 +49,22 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
     env = conf.env
 
     # Find paths
-    boost_lib = None
     boost_lib_suffix = lib_suffix
-    boost_inc = env.get('BOOST_SOURCE')
+    boost_src = env.get('BOOST_SOURCE')
     boost_ver = env.get('BOOST_VERSION', version)
 
-    boost_home = conf.CBCheckHome('boost')
-    if boost_home:
-        path = try_dirs([[boost_home, 'include', 'boost'],
-                         [boost_home, 'include',
-                          'boost-' + boost_ver.replace('.', '_'), 'boost'],
-                         [boost_home, 'boost']])
-        if not boost_inc:
-            if path: boost_inc = os.path.dirname(path)
-            else: print "WARNING: No boost include path found in BOOST_HOME"
+    if boost_src:
+        if not os.path.isdir(boost_src):
+            print 'WARNING: BOOST_SOURCE is not a directory'
 
-        path = os.path.join(boost_home, 'lib')
-        if os.path.isdir(path): boost_lib = path
-        else: print "WARNING: No boost lib path found in BOOST_HOME"
+        if env.get('BOOST_HOME', 0):
+            print 'WARNING: Both BOOST_SOURCE & BOOST_HOME are set'
 
-    if boost_inc: env.AppendUnique(CPPPATH = [boost_inc])
-    if boost_lib: env.AppendUnique(LIBPATH = [boost_lib])
+        env.AppendUnique(CPPPATH = [boost_src])
+
+    else: conf.CBCheckHome('boost', inc_suffix =
+                           ['/include/boost', '/include/%s/boost' %
+                            boost_ver.replace('.', '_'), '/boost'])
 
     if os.environ.has_key('BOOST_LIB_SUFFIX'):
         boost_lib_suffix = os.environ['BOOST_LIB_SUFFIX'].replace('.', '_')

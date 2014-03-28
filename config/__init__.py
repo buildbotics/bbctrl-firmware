@@ -27,7 +27,7 @@ def CBCheckEnvPath(ctx, name):
     existing = []
     if paths:
         for path in paths.split(';'):
-            if os.path.exists(path): existing.append(path)
+            if os.path.isdir(path): existing.append(path)
 
     return existing
 
@@ -38,14 +38,14 @@ def CBCheckPathWithSuffix(ctx, base, suffixes):
     if isinstance(suffixes, str): suffixes = [suffixes]
     existing = []
     for suffix in suffixes:
-        if os.path.exists(base + suffix): existing.append(base + suffix)
+        if os.path.isdir(base + suffix): existing.append(base + suffix)
     return existing
 
 
 def CBCheckHome(ctx, name, inc_suffix = '/include', lib_suffix = '/lib',
                 require = False, suffix = '_HOME'):
     ctx.did_show_result = 1
-    name = name.upper()
+    name = name.upper().replace('-', '_')
 
     # Include
     user_inc = ctx.sconf.CBCheckEnvPath(name + '_INCLUDE')
@@ -169,15 +169,21 @@ def CBConfig(ctx, name, required = True, **kwargs):
 
 def CBTryLoadTool(env, name, path):
     if name in env.cb_loaded: return True
-    env.cb_loaded.add(name)
+
+    if not os.path.exists(path + '/' + name + '/__init__.py'):
+        return False
 
     try:
+        env.cb_paths.append(path)
+        env.cb_loaded.add(name)
         env.Tool(name, toolpath = [path])
+        env.cb_paths.pop()
         return True
 
     except Exception, e:
-        #traceback.print_exc()
+        traceback.print_exc()
         env.cb_loaded.remove(name)
+        env.cb_paths.pop()
         return False
 
 
@@ -185,8 +191,12 @@ def CBLoadTool(env, name, paths = []):
     if name in env.cb_loaded: return True
 
     if isinstance(paths, str): paths = paths.split()
+    else: paths = list(paths)
+    paths += env.cb_paths
 
-    home = os.environ.get(name.upper() + '_HOME', None)
+    home_env_var = name.upper().replace('-', '_') + '_HOME'
+
+    home = os.environ.get(home_env_var, None)
     if home is not None: paths.insert(0, home + '/config')
 
     path = inspect.getfile(inspect.currentframe())
@@ -198,8 +208,13 @@ def CBLoadTool(env, name, paths = []):
     for path in paths:
         if env.CBTryLoadTool(name, path): return True
 
-    raise Exception, 'Failed to load tool ' + name + \
-        '\nHave you set ' + name.upper() + '_HOME?'
+    msg = 'Failed to load tool ' + name + ' from the following paths:'
+    for path in paths: msg += '\n  ' + path
+    if home is None:
+        msg += '\nHave you set ' + home_env_var + '?'
+
+    print msg
+    raise Exception, 'Failed to load tool ' + name
 
 
 def CBLoadTools(env, tools, paths = []):
@@ -208,7 +223,8 @@ def CBLoadTools(env, tools, paths = []):
 
 
 def CBDefine(env, defs):
-    env.AppendUnique(CPPDEFINES = [defs])
+    if isinstance(defs, str): defs = [defs]
+    env.AppendUnique(CPPDEFINES = defs)
 
 
 def CBAddVariables(env, *args):
@@ -307,6 +323,7 @@ def generate(env):
     env.cb_deps_methods = {}
     env.cb_tests = {}
     env.cb_vars = []
+    env.cb_paths = []
 
     # Add methods
     env.AddMethod(CBTryLoadTool)

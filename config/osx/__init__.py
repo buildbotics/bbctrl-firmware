@@ -2,26 +2,32 @@ import platform
 from SCons.Script import *
 
 
-def CheckOSXFramework(context, name):
+def CheckOSXFramework(ctx, name):
     if (platform.system().lower() == 'darwin'):
-        context.Message('Checking for framework %s... ' % name)
-        save_FRAMEWORKS = context.env['FRAMEWORKS']
-        context.env.PrependUnique(FRAMEWORKS = [name])
+        ctx.Message('Checking for framework %s... ' % name)
+        save_FRAMEWORKS = ctx.env['FRAMEWORKS']
+        ctx.env.PrependUnique(FRAMEWORKS = [name])
         result = \
-            context.TryLink('int main(int argc, char **argv) {return 0;}', '.c')
-        context.Result(result)
+            ctx.TryLink('int main(int argc, char **argv) {return 0;}', '.c')
+        ctx.Result(result)
 
         if not result:
-            context.env.Replace(FRAMEWORKS = save_FRAMEWORKS)
+            ctx.env.Replace(FRAMEWORKS = save_FRAMEWORKS)
 
         return result
 
-    context.Result(False)
+    ctx.Result(False)
     return False
 
 
+def RequireOSXFramework(ctx, name):
+    if not ctx.CheckOSXFramework(name):
+        raise Exception, 'Need Framework ' + name
+
+
 def generate(env):
-    env.CBAddTest('CheckOSXFramework', CheckOSXFramework)
+    env.CBAddTest(CheckOSXFramework)
+    env.CBAddTest(RequireOSXFramework)
 
 
 def exists():

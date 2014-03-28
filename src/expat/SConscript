@@ -1,6 +1,7 @@
 Import('*')
 
 env.CBDefine('HAVE_EXPAT')
+env.CBDefine('XML_STATIC')
 
 env = env.Clone()
 

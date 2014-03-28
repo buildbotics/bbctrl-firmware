@@ -113,7 +113,7 @@ These options are enabled by setting them to 1.  For example:
     scons debug=1
 
 ## Build Warnings/Errors
-If you get any build warnings, by default, the builds will stop.  If you have
+If you get any build warnings, by default, the build will stop.  If you have
 problems building, especially with warnings related to the boost library you
 can ignore these warnings by building with `scons strict=0`.  This disables
 strict checking.

@@ -45,9 +45,13 @@ namespace cb {
 
     Tar() {}
 
-    /// NOTE: Automatically calls TarHeader::writeHeader()
+    /// NOTE: Automatically calls writeHeader()
     unsigned writeFile(const std::string &filename, std::ostream &dst,
                        std::istream &src, uint32_t mode = 0666);
+    /// NOTE: Automatically calls writeHeader()
+    unsigned writeFile(const std::string &filename, std::ostream &dst,
+                       const char *data, std::streamsize size,
+                       uint32_t mode = 0666);
     unsigned writeFileData(std::ostream &dst, std::istream &src,
                            std::streamsize size);
     unsigned writeFileData(std::ostream &dst, const char *data,
@@ -59,9 +63,9 @@ namespace cb {
     bool readHeader(std::istream &stream) {return TarHeader::read(stream);}
     void writeHeader(std::ostream &stream) {TarHeader::write(stream);}
 
-    /// NOTE: You must call TarHeader::readHeader() and check TarHeader::isEOF()
+    /// NOTE: You must call readHeader() and check TarHeader::isEOF()
     void readFile(std::ostream &dst, std::istream &src);
-    /// NOTE: You must call TarHeader::readHeader() and check TarHeader::isEOF()
+    /// NOTE: You must call readHeader() and check TarHeader::isEOF()
     void skipFile(std::istream &src);
   };
 }

@@ -445,6 +445,7 @@ def mostly_static_libs(env, ignore = ['pthread', 'dl']):
 def generate(env):
     env.CBAddConfigTest('compiler', configure)
     env.CBAddTest('CheckRDynamic', check_rdynamic)
+    env.AddMethod(mostly_static_libs, 'MostlyStaticLibs')
 
     env.CBAddVariables(
         ('optimize', 'Enable or disable optimizations', -1),
