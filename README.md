@@ -117,3 +117,10 @@ If you get any build warnings, by default, the build will stop.  If you have
 problems building, especially with warnings related to the boost library you
 can ignore these warnings by building with `scons strict=0`.  This disables
 strict checking.
+
+# Testing the Build
+
+You can testing C! by going to the *tests* directory in the root of the
+cbang source tree.  Then run:
+
+    ./testHarness

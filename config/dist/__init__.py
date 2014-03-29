@@ -61,6 +61,7 @@ def build_function(target, source, env):
 
     tar = tarfile.open(target, mode = 'w:bz2')
 
+    exclude_pats = env.get('DIST_EXCLUDES')
     exclude_re = re.compile('^((' + ')|('.join(exclude_pats) + '))$')
 
     for src in map(str, source):

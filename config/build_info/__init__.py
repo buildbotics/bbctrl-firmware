@@ -64,10 +64,10 @@ def git_get_info():
         print e
 
     try:
-        p = subprocess.Popen(['git', 'branch'],
+        p = subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
                              stderr = subprocess.PIPE, stdout = subprocess.PIPE)
         out, err = p.communicate()
-        branch = out.strip(' \t\n\r*')
+        branch = out.strip()
 
     except Exception, e:
         print e

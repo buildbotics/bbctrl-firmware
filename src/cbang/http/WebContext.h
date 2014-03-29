@@ -73,6 +73,7 @@ namespace cb {
       Script::Environment &getEnvironment();
 
       // From Script::Handler
+      using Script::Handler::eval;
       bool eval(const Script::Context &ctx);
 
       void evalInclude(const Script::Context &ctx);

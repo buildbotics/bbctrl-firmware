@@ -1,0 +1,120 @@
+- var repoURL = 'https://github.com/CauldronDevelopmentLLC/cbang';
+
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    meta(http-equiv='X-UA-Compatible', content='IE=edge')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    meta(name='description', content='C! (cbang) is a library of \
+      cross-platform C++ utilities.')
+    meta(name='author', content='Joseph Coffland')
+    link(rel='shortcut icon', href='images/cbang.ico')
+    link(href='css/style.css', rel='stylesheet')
+
+  body
+    div#header
+      img.logo(src='images/cbang.png')
+      div.ohloh
+        script(type='text/javascript',
+          src='http://www.ohloh.net/p/588261/widgets/project_thin_badge.js')
+
+    div#content
+      h1 About C!
+      p
+        | The C! (aka C Bang or cbang) library is a collection of C++
+        | utility libraries developed over the course of +10 years and
+        | several major C++ application development projects. It should
+        | compile and run on Windows, Linux and OSX using a modern C++
+        | compiler.
+
+      p
+       | Many of the facilities of C! are geared towards
+       | cross-platform application development and provide basic
+       | services that most applications need such as a configuration
+       | system, run-time build information, logging facilities, threads,
+       | smart pointers, simple embedded scripting, etc.
+
+      p
+       | C!'s philosophy is to create clean, simple, readable,
+       | modular and reusable code. C! also encourages exception based
+       | error handling, and light use of C++ templates and C
+       | preprocessor macros.
+
+      p
+        | C! "leans" on the venerable boost library but also
+        | reimplements several boost APIs which are considered by the
+        | author to be too template heavy, less readable or overly
+        | complicated in boost.
+
+      p
+        | The code was developed on an as needed basis and was never
+        | intended to be any sort of grand unifying system for C++
+        | application development. However, I hope you find many parts of
+        | the library useful in your C++ development projects.
+
+      h1 Building C!
+      p See:&nbsp;
+        a(href=repoURL + '/#readme') README.md
+        | .
+
+      h1 Licensing
+      p
+        | C! is licensed under the
+        | <a href="http://www.gnu.org/licenses/gpl-2.0.html">GNU Lesser General
+        | Public License version 2.1</a> or at your option any later version.
+
+      h1 Features
+      p This is a partial list of the features of C!:
+      ul
+        li Smart pointers, both thread safe and non, with downcasting
+          | capability.
+        li Threading, mutexes, conditions & thread local storage
+        li Soft exit & signal handling
+        li Extensively configurable logging facilities.
+        li Exception class with stack trace capability including line and file
+          | info.
+        li Exception throwing and catching convenience macros.
+        li HTTP and HTTPS client and server.
+        li Socket client and server with asynchronous capability.
+        li XMacro based enum implementation.
+        li PyON Python Object Notation language for serializing and
+          | deserializing data.
+        li Simple scripting language for configuration and text based command
+          | server.
+        li Software build information system.
+        li A system for compiling in a directory tree of resources.
+        li Network packet automatic byte order and string packing functionality.
+        li Temporary directories, directory traversal & file operations
+        li C++ style number, to and from, string conversions.
+        li iostream utilities.
+        li Application configuration system.
+        li XML facilities.
+        li TAR file read and write.
+        li Time and timing functions.
+        li OpenSSL C++ interface.
+        li IP address / hostname resolution, parsing and manipulation.
+        li URL parsing.
+        li Geometric primitives.
+        li Human readable size & time formatting.
+        li Many other utility classes.
+        li Completely contained in it's own C++ namespace.
+
+    div#footer
+      p
+        | OpenSCAM and these docs are maintained by
+        | <a href='http://cauldrondevelopment.com/'>Cauldron Development
+        | LLC</a>.
+      p
+        | Source code released under the
+        | <a href='http://www.gnu.org/licenses/gpl-2.0.html'>GLPv2+ License</a>,
+        | documentation under
+        | <a href='http://creativecommons.org/licenses/by/3.0/'>CC BY 3.0</a>.
+      ul
+        li
+          a(href=repoURL) GitHub:
+        li
+          a(href=repoURL + '/issues?state=open') Open Issues
+
+  script(src='//code.jquery.com/jquery-1.10.2.min.js')
+  script(src='js/main.js')

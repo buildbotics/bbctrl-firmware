@@ -1,0 +1,62 @@
+html * {
+    padding: 0;
+    margin: 0;
+}
+
+a {
+    color: darkred;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+h1 {
+    margin: 0.5em 0;
+}
+
+p {
+    margin: 0.5em;
+}
+
+li {
+    margin-left: 4em;
+}
+
+body {
+    background: #eee;
+}
+
+#header {
+    background: #aaa;
+    padding: 1em;
+}
+
+#header .logo {
+    width: 128px;
+}
+
+.ohloh {
+    position: absolute;
+    top: 32px;
+    right: 4px;
+}
+
+#content {
+    padding: 0 1em 1em 1em;
+}
+
+#footer {
+    background: #aaa;
+    padding: 1em;
+}
+
+#footer ul {
+    list-style: none;
+}
+
+#footer li {
+    display: inline-block;
+    margin: 0.5em;
+}

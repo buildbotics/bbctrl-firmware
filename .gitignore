@@ -23,3 +23,6 @@
 build
 config.log
 package.txt
+
+# Backup files
+*~
