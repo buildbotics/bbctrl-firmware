@@ -38,12 +38,15 @@ def build_function(target, source, env):
     # Create distribution.dist
     root = Element('installer-script', {'minSpecVersion': '1.0'})
 
+    if env.get('distpkg_root_volume_only', False): rootVolumeOnly = 'false'
+    else: rootVolumeOnly = 'true'
+    if env.get('distpkg_allow_external_scripts', False):
+        allowExternalScripts = 'yes'
+    else: allowExternalScripts = 'no'
+ 
     SubElement(root, 'options', {
-            'rootVolumeOnly': 'false' if env.get('distpkg_root_volume_only',
-                                                 False) else 'true',
-            'allow-external-scripts':
-                'yes' if env.get('distpkg_allow_external_scripts',
-                                 False) else 'no',
+            'rootVolumeOnly': rootVolumeOnly,
+            'allow-external-scripts': allowExternalScripts,
             'customize': env.get('distpkg_customize', 'allow'),
             })
 
