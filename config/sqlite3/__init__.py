@@ -10,6 +10,7 @@ def configure(conf):
     conf.CBCheckHome('libsqlite', ['', '/include'], ['', '/lib'])
     conf.CBRequireLib('sqlite3')
     conf.CBRequireHeader('sqlite3.h')
+    conf.CBRequireFunc('sqlite3_backup_init')
 
     env.CBDefine('HAVE_LIBSQLITE')
 

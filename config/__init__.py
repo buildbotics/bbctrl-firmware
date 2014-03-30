@@ -142,6 +142,17 @@ def CBRequireCXXHeader(ctx, hdr, **kwargs):
         raise Exception, 'Need C++ header ' + hdr
 
 
+def CBCheckFunc(ctx, func, **kwargs):
+    ctx.did_show_result = 1
+    return ctx.sconf.CheckFunc(func, **kwargs)
+
+
+def CBRequireFunc(ctx, func, **kwargs):
+    ctx.did_show_result = 1
+    if not ctx.sconf.CheckFunc(func, **kwargs):
+        raise Exception, 'Need Function ' + func
+
+
 def CBConfig(ctx, name, required = True, **kwargs):
     ctx.did_show_result = 1
     env = ctx.env
@@ -352,6 +363,8 @@ def generate(env):
     env.CBAddTest(CBRequireCHeader)
     env.CBAddTest(CBCheckCXXHeader)
     env.CBAddTest(CBRequireCXXHeader)
+    env.CBAddTest(CBCheckFunc)
+    env.CBAddTest(CBRequireFunc)
     env.CBAddTest(CBConfig)
 
 

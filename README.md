@@ -124,3 +124,34 @@ You can testing C! by going to the *tests* directory in the root of the
 cbang source tree.  Then run:
 
     ./testHarness
+
+# Troubleshooting
+
+This section describes some common problems and their solutions.
+
+## OpenSSL Library Less than v1.0.0
+
+If you get an error about the openssl library version being too old then you
+either need to upgrade your package or build openssl from source like this:
+
+    wget http://www.openssl.org/source/openssl-1.0.1f.tar.gz
+    tar xzvf openssl-1.0.1f.tar.gz
+    cd openssl-1.0.1f
+    ./config
+    make
+    export OPENSSL_HOME=$PWD
+
+Then try building C!.
+
+## Problems with Boost Library
+
+There are many different versions of boost and some systems have broken
+packages.  If you run into these problems you can try C! built-in boost
+build system like this:
+
+    wget http://sourceforge.net/projects/boost/files/boost/1.55.0/boost_1_55_0.tar.bz2
+    tar xjvf boost_1_55_0.tar.bz2
+    export BOOST_SOURCE=$PWD/boost_1_55_0
+
+Then rebuild C! as above.  Other versions of boost greater or equal to 1.40
+may also work.
