@@ -265,7 +265,8 @@ void Server::process(Connection &con) {
 void Server::poolThread() {
   while (!shouldShutdown()) {
     try {
-      Connection *con = queue.next().castPtr<Connection>();
+      SocketConnectionPtr ptr = queue.next(); // Keep this pointer
+      Connection *con = ptr.castPtr<Connection>();
       if (con && con->getState() == Connection::PROCESSING) process(*con);
     } CBANG_CATCH_ERROR;
   };
