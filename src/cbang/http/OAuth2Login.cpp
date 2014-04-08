@@ -207,8 +207,7 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
 
   // Get & check user email
   string email = claimsJSON->getString("email");
-  string verified = claimsJSON->getString("email_verified");
-  if (verified != "true")
+  if (claimsJSON->getBoolean("email_verified"))
     THROWCS("Email not verified", StatusCode::HTTP_UNAUTHORIZED);
 
   return email;
