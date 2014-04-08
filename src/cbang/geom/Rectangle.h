@@ -231,6 +231,57 @@ namespace cb {
       return rmin != r.rmin || rmax != r.rmax;
     }
 
+    // Arithmetic
+    Rectangle<DIM, T> operator+(const Rectangle<DIM, T> &r) const {
+      return Rectangle<DIM, T>(getMin() + r.getMin(), getMax() + r.getMax());
+    }
+
+    Rectangle<DIM, T> operator-(const Rectangle<DIM, T> &r) const {
+      return Rectangle<DIM, T>(getMin() - r.getMin(), getMax() - r.getMax());
+    }
+
+    Rectangle<DIM, T> operator*(const Rectangle<DIM, T> &r) const {
+      return Rectangle<DIM, T>(getMin() * r.getMin(), getMax() * r.getMax());
+    }
+
+    Rectangle<DIM, T> operator/(const Rectangle<DIM, T> &r) const {
+      return Rectangle<DIM, T>(getMin() / r.getMin(), getMax() / r.getMax());
+    }
+
+
+    Rectangle<DIM, T> operator+(const Vector<DIM, T> &v) const {
+      return Rectangle<DIM, T>(getMin() + v, getMax() + v);
+    }
+
+    Rectangle<DIM, T> operator-(const Vector<DIM, T> &v) const {
+      return Rectangle<DIM, T>(getMin() - v, getMax() - v);
+    }
+
+    Rectangle<DIM, T> operator*(const Vector<DIM, T> &v) const {
+      return Rectangle<DIM, T>(getMin() * v, getMax() * v);
+    }
+
+    Rectangle<DIM, T> operator/(const Vector<DIM, T> &v) const {
+      return Rectangle<DIM, T>(getMin() / v, getMax() / v);
+    }
+
+
+    Rectangle<DIM, T> operator+(T x) const {
+      return Rectangle<DIM, T>(getMin() + x, getMax() + x);
+    }
+
+    Rectangle<DIM, T> operator-(T x) const {
+      return Rectangle<DIM, T>(getMin() - x, getMax() - x);
+    }
+
+    Rectangle<DIM, T> operator*(T x) const {
+      return Rectangle<DIM, T>(getMin() * x, getMax() * x);
+    }
+
+    Rectangle<DIM, T> operator/(T x) const {
+      return Rectangle<DIM, T>(getMin() / x, getMax() / x);
+    }
+
     // Math
     bool isReal() const {return rmin.isReal() || rmax.isReal();}
 
