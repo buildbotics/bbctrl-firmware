@@ -181,7 +181,7 @@ def CBConfig(ctx, name, required = True, **kwargs):
 def CBTryLoadTool(env, name, path):
     if name in env.cb_loaded: return True
 
-    if not os.path.exists(path + '/' + name + '/__init__.py'):
+    if not os.path.exists(str(path) + '/' + name + '/__init__.py'):
         return False
 
     try:
