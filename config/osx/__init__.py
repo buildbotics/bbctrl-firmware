@@ -21,7 +21,7 @@ def CheckOSXFramework(ctx, name):
 
 
 def RequireOSXFramework(ctx, name):
-    if not ctx.CheckOSXFramework(name):
+    if not ctx.sconf.CheckOSXFramework(name):
         raise Exception, 'Need Framework ' + name
 
 
