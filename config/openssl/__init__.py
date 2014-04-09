@@ -25,19 +25,8 @@ def check_version(context, version):
 def configure(conf, version = None):
     env = conf.env
 
-    if os.environ.has_key('OPENSSL_HOME'):
-        home = os.environ['OPENSSL_HOME']
-        if os.path.exists(home + '/inc32') and os.path.exists(home + '/out32'):
-            env.AppendUnique(CPPPATH = [home + '/inc32'])
-            env.AppendUnique(LIBPATH = [home + '/out32'])
-        else:
-            if os.path.exists(home + '/include'):
-                env.AppendUnique(CPPPATH = [home + '/include'])
-            if os.path.exists(home + '/lib'):
-                env.AppendUnique(LIBPATH = [home + '/lib'])
-            else: env.AppendUnique(LIBPATH = [home])
-
-    conf.CBCheckHome('openssl')
+    conf.CBCheckHome('openssl', inc_suffix = ['/inc32', '/include'],
+                     lib_suffix = ['/out32', '/lib'])
 
     if env['PLATFORM'] == 'posix': conf.CBCheckLib('dl')
 

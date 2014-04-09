@@ -13,11 +13,12 @@ flags = env.subst('${CCFLAGS}')
 flags = flags.replace('-Wall', '').replace('-Werror', '')
 env.Replace(CCFLAGS = flags)
 
-env.VariantDir('build/boost', boost_source + '/libs')
+env.VariantDir('src', boost_source)
 
 libs = []
 for lib in ['iostreams', 'filesystem', 'system', 'regex']:
     src = Glob(boost_source + '/libs/%s/src/*.cpp' % lib)
+    src = map(lambda x: str(x).replace(boost_source, 'src/'), src)
 
     libname = 'boost_%s' % lib
     if env['PLATFORM'] == 'win32': libname = 'lib' + libname
