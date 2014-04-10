@@ -411,7 +411,11 @@ def FindLibPath(env, lib):
     if path != libpat: return path
 
 
-def build_pattern(pats):
+def build_pattern(env, name):
+    pats = env.get(name)
+    if isinstance(pats, str): pats = pats.split()
+    pats += env[name.upper()]
+
     if isinstance(pats, str): pats = pats.split()
     return re.compile(r'^(' + ')|('.join(pats) + r')$')
 
@@ -420,12 +424,9 @@ def prefer_static_libs(env):
     if env.get('compiler_mode', '') != 'gnu': return
 
     mostly_static = env.get('mostly_static')
-    prefer_static = env['PREFER_STATIC'] + ' ' + env.get('prefer_static')
-    prefer_static = build_pattern(prefer_static)
-    prefer_dynamic = env['PREFER_DYNAMIC'] + ' ' + env.get('prefer_dynamic')
-    prefer_dynamic = build_pattern(prefer_dynamic)
-    require_static = env['REQUIRE_STATIC'] + ' ' + env.get('require_static')
-    require_static = build_pattern(require_static)
+    prefer_static = build_pattern(env, 'prefer_static')
+    prefer_dynamic = build_pattern(env, 'prefer_dynamic')
+    require_static = build_pattern(env, 'require_static')
 
     libs = []
     changed = False
@@ -457,9 +458,9 @@ def generate(env):
     env.CBAddTest(CheckRDynamic)
     env.CBAddConfigFinishCB(prefer_static_libs)
 
-    env.SetDefault(PREFER_DYNAMIC = 'pthread dl')
-    env.SetDefault(PREFER_STATIC = '')
-    env.SetDefault(REQUIRE_STATIC = '')
+    env.SetDefault(PREFER_DYNAMIC = 'pthread dl'.split())
+    env.SetDefault(PREFER_STATIC = [])
+    env.SetDefault(REQUIRE_STATIC = [])
 
     env.CBAddVariables(
         ('optimize', 'Enable or disable optimizations', -1),
