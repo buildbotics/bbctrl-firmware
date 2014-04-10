@@ -26,7 +26,7 @@ def configure(conf, version = None):
     env = conf.env
 
     conf.CBCheckHome('openssl', inc_suffix = ['/inc32', '/include'],
-                     lib_suffix = ['/out32', '/lib'])
+                     lib_suffix = ['/out32', ''])
 
     if env['PLATFORM'] == 'posix': conf.CBCheckLib('dl')
 
