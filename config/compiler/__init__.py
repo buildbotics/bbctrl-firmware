@@ -449,8 +449,9 @@ def prefer_static_libs(env):
         env.Replace(LIBS = libs)
 
         # Force two pass link to resolve circular dependencies
-        env['_LIBFLAGS'] = \
-            '-Wl,--start-group ' + env['_LIBFLAGS'] + ' -Wl,--end-group'
+        if env['PLATFORM'] == 'posix':
+            env['_LIBFLAGS'] = \
+                '-Wl,--start-group ' + env['_LIBFLAGS'] + ' -Wl,--end-group'
 
 
 def generate(env):
