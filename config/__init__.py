@@ -4,6 +4,7 @@ import urllib2
 import traceback
 from SCons.Script import *
 import inspect
+import types
 
 
 def CBCheckEnv(ctx, name, require = False):
@@ -258,6 +259,12 @@ def CBConfigEnabled(env, name):
     return name in env.cb_enabled
 
 
+def on_config_finish(conf):
+    env = conf.env
+    for cb in env.cb_finish_cbs: cb(env)
+    conf.OrigFinish()
+
+
 def CBConfigure(env):
     conf = Configure(env)
 
@@ -286,6 +293,10 @@ def CBConfigure(env):
     v.Update(env)
 
     Help(v.GenerateHelpText(env))
+
+    # Override Finish
+    conf.OrigFinish = conf.Finish
+    conf.Finish = types.MethodType(on_config_finish, conf)
 
     return conf
 
@@ -325,6 +336,9 @@ def CBDownload(env, target, url):
         if stream is not None: stream.close()
 
 
+def CBAddConfigFinishCB(env, cb):
+    env.cb_finish_cbs.append(cb)
+
 
 def generate(env):
     # Add member variables
@@ -335,6 +349,7 @@ def generate(env):
     env.cb_tests = {}
     env.cb_vars = []
     env.cb_paths = []
+    env.cb_finish_cbs = []
 
     # Add methods
     env.AddMethod(CBTryLoadTool)
@@ -347,6 +362,7 @@ def generate(env):
     env.AddMethod(CBConfigEnabled)
     env.AddMethod(CBConfigure)
     env.AddMethod(CBDownload)
+    env.AddMethod(CBAddConfigFinishCB)
 
     # Add tests
     env.CBAddTest(CBCheckEnv)

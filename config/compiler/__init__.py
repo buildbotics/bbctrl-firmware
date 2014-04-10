@@ -28,7 +28,7 @@ class decider_hack:
             return True
 
 
-def check_rdynamic(context):
+def CheckRDynamic(context):
     context.Message('Checking for -rdynamic...')
     env = context.env
     flags = env['LINKFLAGS']
@@ -66,7 +66,6 @@ def configure(conf, cstd = 'c99'):
     cxxstd = env.get('cxxstd')
     platform = env.get('platform')
     static = int(env.get('static'))
-    mostly_static = int(env.get('mostly_static'))
     num_jobs = env.get('num_jobs')
     osx_min_ver = env.get('osx_min_ver')
     osx_sdk_root = env.get('osx_sdk_root')
@@ -396,56 +395,71 @@ def get_lib_path_env(env):
     return eenv
 
 
-def findLibPath(env, lib):
-    eenv = get_lib_path_env(env)
-    cmd = env['CXX'].split()
-    libpat = env['LIBPREFIX'] + '%s' + env['LIBSUFFIX']
-
-    path = Popen(cmd + ['-print-file-name=' + libpat % lib],
-                 stdout = PIPE, env = eenv).communicate()[0].strip()
-
-    if path == libpat % lib: return None
-    return path
-
-
-def mostly_static_libs(env, ignore = ['pthread', 'dl']):
+def FindLibPath(env, lib):
     if env.get('compiler_mode', '') != 'gnu': return
 
+    if lib.startswith(os.sep) or lib.endswith(env['LIBSUFFIX']):
+        return lib # Already a path
+
     eenv = get_lib_path_env(env)
     cmd = env['CXX'].split()
-    libpat = env['LIBPREFIX'] + '%s' + env['LIBSUFFIX']
+    libpat = env['LIBPREFIX'] + lib + env['LIBSUFFIX']
+
+    path = Popen(cmd + ['-print-file-name=' + libpat],
+                 stdout = PIPE, env = eenv).communicate()[0].strip()
+
+    if path != libpat: return path
+
+
+def build_pattern(pats):
+    if isinstance(pats, str): pats = pats.split()
+    return re.compile(r'^(' + ')|('.join(pats) + r')$')
+
+
+def prefer_static_libs(env):
+    if env.get('compiler_mode', '') != 'gnu': return
+
+    mostly_static = env.get('mostly_static')
+    prefer_static = env['PREFER_STATIC'] + ' ' + env.get('prefer_static')
+    prefer_static = build_pattern(prefer_static)
+    prefer_dynamic = env['PREFER_DYNAMIC'] + ' ' + env.get('prefer_dynamic')
+    prefer_dynamic = build_pattern(prefer_dynamic)
+    require_static = env['REQUIRE_STATIC'] + ' ' + env.get('require_static')
+    require_static = build_pattern(require_static)
 
     libs = []
+    changed = False
 
     for lib in env['LIBS']:
-        skip = False
-        if ignore is not None:
-            for i in ignore:
-                if re.match(i, lib):
-                    skip = True
-                    break
+        if require_static.match(lib) or prefer_static.match(lib) or \
+                (mostly_static and not prefer_dynamic.match(lib)):
+            path = FindLibPath(env, lib)
+            if path is not None:
+                changed = True
+                libs.append(File(path))
+                continue
 
-        if not (skip or lib.startswith(os.sep) or
-                lib.endswith(env['LIBSUFFIX'])):
-            path = Popen(cmd + ['-print-file-name=' + libpat % lib],
-                         stdout = PIPE, env = eenv).communicate()[0].strip()
-            if path == libpat % lib: libs.append(lib)
-            else: libs.append(File(path))
+        if require_static.match(lib):
+            raise Exception, 'Failed to find static library for "%s"' % lib
 
-        else: libs.append(lib)
+        libs.append(lib)
 
-    env.Replace(LIBS = libs)
+    if changed:
+        env.Replace(LIBS = libs)
 
-    # Force two pass link to resolve circular dependencies
-    if env['PLATFORM'] == 'posix':
+        # Force two pass link to resolve circular dependencies
         env['_LIBFLAGS'] = \
             '-Wl,--start-group ' + env['_LIBFLAGS'] + ' -Wl,--end-group'
 
 
 def generate(env):
     env.CBAddConfigTest('compiler', configure)
-    env.CBAddTest('CheckRDynamic', check_rdynamic)
-    env.AddMethod(mostly_static_libs, 'MostlyStaticLibs')
+    env.CBAddTest(CheckRDynamic)
+    env.CBAddConfigFinishCB(prefer_static_libs)
+
+    env.SetDefault(PREFER_DYNAMIC = 'pthread dl')
+    env.SetDefault(PREFER_STATIC = '')
+    env.SetDefault(REQUIRE_STATIC = '')
 
     env.CBAddVariables(
         ('optimize', 'Enable or disable optimizations', -1),
@@ -471,7 +485,11 @@ def generate(env):
                                      'linux-mingw', 'aix', 'posix', 'hp', 'sgi',
                                      'sun')),
         BoolVariable('static', 'Link to static libraries', 0),
-        BoolVariable('mostly_static', 'Link most libraries statically', 0),
+        BoolVariable('mostly_static', 'Prefer static libraries', 0),
+        ('prefer_static', 'Libraries where the static version is prefered', ''),
+        ('require_static', 'Libraries which must be linked statically', ''),
+        ('prefer_dynamic', 'Libraries where the dynamic version is prefered, ' +
+         'regardless of "mostly_static"', ''),
         ('num_jobs', 'Set the concurrency level.', -1),
         ('osx_min_ver', 'Set minimum support OSX version.', '10.5'),
         ('osx_sdk_root', 'Set OSX SDK root.', '/Developer/SDKs/MacOSX10.5.sdk'),
