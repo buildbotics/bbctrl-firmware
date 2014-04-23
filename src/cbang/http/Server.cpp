@@ -382,7 +382,8 @@ void Server::processConnection(const SocketConnectionPtr &_con, bool ready) {
       return; // Done processing this connection
 
     } catch (const Exception &e) {
-      LOG_INFO(3, *con << ": " << e);
+      if (LOG_DEBUG_ENABLED(3)) LOG_DEBUG(3, *con << ": " << e);
+      else LOG_INFO(3, *con << ": " << e.getMessage());
 
     } catch (const std::exception &e) {
       LOG_ERROR("std::exception: " << *con << ": " << e.what());

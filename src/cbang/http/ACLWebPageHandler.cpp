@@ -62,9 +62,10 @@ bool ACLWebPageHandler::handlePage(WebContext &ctx, ostream &stream,
     if (!allow) allow = aclSet.allowGroup(path, group = "unauthenticated");
   }
 
-  LOG_DEBUG(3, __func__ << "(" << path << ", "
-            << (user.empty() ? "@" + group : user) << ") = "
-            << (allow ? "true" : "false"));
+
+  LOG_INFO(allow ? 5 : 3, __func__ << "(" << path << ", "
+           << (user.empty() ? "@" + group : user) << ") = "
+           << (allow ? "true" : "false"));
 
   if (!allow) THROWCS("Access denied", StatusCode::HTTP_UNAUTHORIZED);
 
