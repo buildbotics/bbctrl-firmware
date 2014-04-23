@@ -416,8 +416,7 @@ def build_pattern(env, name):
     if isinstance(pats, str): pats = pats.split()
     pats += env[name.upper()]
 
-    if isinstance(pats, str): pats = pats.split()
-    return re.compile(r'^(' + ')|('.join(pats) + r')$')
+    return env.CBBuildSetRegex(pats)
 
 
 def prefer_static_libs(env):

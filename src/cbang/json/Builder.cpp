@@ -130,6 +130,7 @@ bool Builder::shouldAppend() {
   if (appendNext) {
     appendNext = false;
     return true;
+  }
 
-  } else return false;
+  return false;
 }

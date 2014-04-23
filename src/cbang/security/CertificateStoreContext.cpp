@@ -54,17 +54,19 @@ CertificateStoreContext::CertificateStoreContext(const CertificateStore &store,
                                                  const Certificate &cert) :
   ctx(X509_STORE_CTX_new()) {
   if (!X509_STORE_CTX_init(ctx, store.getX509_STORE(), cert.getX509(), 0))
-    THROWS("Failed to create certificate store context: " << SSL::getErrorStr());
+    THROWS("Failed to create certificate store context: "
+           << SSL::getErrorStr());
 }
 
 
-CertificateStoreContext::CertificateStoreContext(const CertificateStore &store,
-                                                 const Certificate &cert,
-                                                 const CertificateChain &chain) :
+CertificateStoreContext::
+CertificateStoreContext(const CertificateStore &store, const Certificate &cert,
+                        const CertificateChain &chain) :
   ctx(X509_STORE_CTX_new()) {
   if (!X509_STORE_CTX_init(ctx, store.getX509_STORE(), cert.getX509(),
                            chain.getX509_CHAIN()))
-    THROWS("Failed to create certificate store context: " << SSL::getErrorStr());
+    THROWS("Failed to create certificate store context: "
+           << SSL::getErrorStr());
 }
 
 
@@ -105,7 +107,8 @@ const char *CertificateStoreContext::getErrorString(int error) {
     return "Unable to decrypt CRL signature";
   case X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:
     return "Unable to decode issuer public key";
-  case X509_V_ERR_CERT_SIGNATURE_FAILURE: return "Certificate signature failure";
+  case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+    return "Certificate signature failure";
   case X509_V_ERR_CRL_SIGNATURE_FAILURE: return "CRL signature failure";
   case X509_V_ERR_CERT_NOT_YET_VALID: return "Certificate not yet valid";
   case X509_V_ERR_CERT_HAS_EXPIRED: return "Certificate has expired";
@@ -170,6 +173,6 @@ void CertificateStoreContext::setTime(unsigned long flags, time_t t) {
 
 void CertificateStoreContext::verify() const {
   if (!X509_verify_cert(ctx))
-    THROWS("Failed to verify certificate: " << getErrorString(getError()) << ": "
-           << SSL::getErrorStr());
+    THROWS("Failed to verify certificate: " << getErrorString(getError())
+           << ": " << SSL::getErrorStr());
 }

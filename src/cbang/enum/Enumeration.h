@@ -39,34 +39,48 @@
  * easily converted to and from strings and printed to 'std::ostream'.
  *
  * The method used in the '.def' files is admittedly a bit ugly but it
- * eliminates the need to repeat the enumeration several times.  The
- * '.def' files use what is commonly called X-Macros.  For more information
- * on this technique please see:
+ * eliminates the need to repeat the enumeration several times and the
+ * uglyness is confined to two files.  Repeated code is more evil than ugly
+ * code.  The '.def' files use what is commonly called X-Macros.  For more
+ * information on this technique please see:
+ *
  *   http://en.wikipedia.org/wiki/C_preprocessor#X-Macros
  *
  * To create a new enumeration you must create header and implementation files.
  * The header file should look something like this:
  *
- *    #ifndef CBANG_ENUM_EXPAND
- *    #ifndef CBANG_CBANG_ENUM_NAME_H
- *    #define CBANG_CBANG_ENUM_NAME_H
+ *    #ifndef CBANG_ENUM
+ *    #ifndef CBANG_ENUM_NAME_H
+ *    #define CBANG_ENUM_NAME_H
  *
  *    #define CBANG_ENUM_NAME EnumName
  *    #include <cbang/enum/MakeEnumeration.def>
  *
- *    #endif // CBANG_CBANG_ENUM_NAME_H
- *    #else // CBANG_ENUM_EXPAND
+ *    #endif // CBANG_ENUM_NAME_H
+ *    #else // CBANG_ENUM
  *
- *    CBANG_ENUM_EXPAND(ITEM1, 0) ///< A comment
- *    CBANG_ENUM_EXPAND(ITEM2, 1) ///< A comment
+ *    CBANG_ENUM(ITEM1)
+ *    CBANG_ENUM(ITEM2)
  *    . . .
- *    CBANG_ENUM_EXPAND(ITEMN, N) ///< A comment
+ *    CBANG_ENUM(ITEMN)
  *
- *    #endif // CBANG_ENUM_EXPAND
+ *    #endif // CBANG_ENUM
  *
  * Where 'CBANG_ENUM_NAME' and 'EnumName' are replaced with the name of the
- * enumeration and the 'CBANG_ENUM_EXPAND(name, number)' lines are replaced
- * with the enumeration's names and values.
+ * enumeration and the 'CBANG_ENUM(name)' lines are replaced with the
+ * enumeration's names.
+ *
+ * Three other macros are also defined with allow you to specify more
+ * information about the enumeration's entries.  These are:
+ *
+ *   CBANG_ENUM_VALUE(name, value)
+ *   CBANG_ENUM_DESC(name, "description")
+ *   CBANG_ENUM_VALUE_DESC(name, value, "description")
+ *
+ * These macros can be used in place of CBANG_ENUM for some or all of the
+ * entries.  If value is not specified it defaults to 0 for the first
+ * entry and the previous value + 1 for each proceeding entry.  If description
+ * is not specified it defaults to the enumeration entry's name.
  *
  * The implementation file is very simple and should look like this:
  *
@@ -75,7 +89,7 @@
  *   #include <cbang/enum/MakeEnumerationImpl.def>
  *
  * Both files should be placed in the directory 'cbang/enum' if they are not
- * then you should also define 'CBANG_ENUM_PATH' in the header before including
+ * then you must define 'CBANG_ENUM_PATH' in the header before including
  * 'cbang/enum/MakeEnumeration.def'.
  *
  * To use the enumeration use the class EnumName defined in the header file.
@@ -107,6 +121,7 @@ namespace cb {
     uint32_t toInteger() const {return value;}
   };
 
+
   template <typename T>
   class Enumeration : public EnumerationBase, public T {
   public:
@@ -117,6 +132,7 @@ namespace cb {
 
     operator enum_t() const {return (enum_t)value;}
 
+    const char *getDescription() const {return getDescription((enum_t)value);}
     const char *toString() const {return toString((enum_t)value);}
     bool isValid() const {return isValid((enum_t)value);}
     static std::string getFlagsString(uint32_t flags) {
@@ -134,9 +150,11 @@ namespace cb {
     }
 
     using T::parse;
+    using T::getDescription;
     using T::toString;
     using T::isValid;
   };
+
 
   template <typename T> inline static
   std::ostream &operator<<(std::ostream &stream, const Enumeration<T> &e) {

@@ -80,12 +80,14 @@ namespace cb {
      */
     virtual void stop();
 
+    /// Tell the thread to stop then call wait().
+    virtual void join();
+
     /**
      * Block until this thread exits.  If the thread does not exit this
-     * function will never return.  You should generally call stop() before
-     * join().
+     * function will never return.
      */
-    virtual void join();
+    virtual void wait();
 
     /// @return The current thread state.
     state_t getState() const {return state;}

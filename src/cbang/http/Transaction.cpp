@@ -40,11 +40,23 @@
 #include <cbang/log/Logger.h>
 #include <cbang/util/DefaultCatch.h>
 
+#include <boost/ref.hpp>
+#include <boost/iostreams/combine.hpp>
+
 #include <sstream>
 
 using namespace std;
 using namespace cb;
 using namespace cb::HTTP;
+
+
+Transaction::Transaction(SSLContext *sslCtx, double timeout) :
+  Socket(sslCtx), stream((Socket &)*this), chunkedFilter(false, false),
+  timeout(timeout) {
+  push(boost::ref(chunkedFilter));
+  push(boost::ref(stream));
+  rdbuf()->pubsetbuf(0, 0); // Unbuffered
+}
 
 
 Transaction::~Transaction() {
@@ -57,13 +69,17 @@ Transaction::~Transaction() {
 void Transaction::send(const Request &request) {
   LOG_DEBUG(5, "Sending (\n" << request << ")");
 
+  chunkedFilter.setWriteEnabled(false);
   request.write(*this);
   flush();
+  chunkedFilter.setWriteEnabled(request.isChunked());
 }
 
 
 void Transaction::receive(Response &response) {
+  chunkedFilter.setReadEnabled(false);
   response.read(*this);
+  chunkedFilter.setReadEnabled(response.isChunked());
 }
 
 

@@ -13,7 +13,8 @@ env.CBAddVariables(
     BoolVariable('sharedlib', 'Build a shared library', False),
     ('soname', 'Shared library soname', 'libcbang%s.so' % libversion),
     PathVariable('prefix', 'Install path prefix', '/usr/local',
-                 PathVariable.PathAccept))
+                 PathVariable.PathAccept),
+    ('force_local', 'List of 3rd party libraries to be built locally', ''))
 env.CBLoadTools('dist packager compiler cbang build_info')
 env.Replace(PACKAGE_VERSION = version)
 conf = env.CBConfigure()
@@ -48,9 +49,10 @@ if not env.GetOption('clean'):
 env.Append(CPPPATH = ['#/src', '#/include'])
 
 # Build third-party libs
+force_local = env.CBBuildSetRegex(env.get('force_local', ''))
 Export('env conf')
 for lib in 'zlib bzip2 sqlite3 expat boost'.split():
-    if not env.CBConfigEnabled(lib):
+    if not env.CBConfigEnabled(lib) or force_local.match(lib):
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
 

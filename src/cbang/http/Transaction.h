@@ -35,25 +35,33 @@
 
 #include "Request.h"
 #include "Response.h"
+#include "ChunkedStreamFilter.h"
 
 #include <cbang/socket/SocketDevice.h>
 #include <cbang/iostream/Transfer.h>
 
 #include <cbang/net/URI.h>
 
+#include <boost/iostreams/filtering_stream.hpp>
+namespace io = boost::iostreams;
+
 #include <iostream>
+
 
 namespace cb {
   namespace HTTP {
-    class Transaction : public Socket, public SocketStream {
+    class Transaction :
+      public Socket, public io::filtering_stream<io::bidirectional> {
     protected:
+      char buffer;
+      SocketStream stream;
+      ChunkedStreamFilter chunkedFilter;
       Response response;
       IPAddress address;
       double timeout;
 
     public:
-      Transaction(SSLContext *sslCtx = 0, double timeout = 30) :
-        Socket(sslCtx), SocketStream((Socket &)*this), timeout(timeout) {}
+      Transaction(SSLContext *sslCtx = 0, double timeout = 30);
       ~Transaction();
 
       const IPAddress getAddress() const {return address;}
@@ -69,10 +77,11 @@ namespace cb {
 
       std::streamsize receiveHeader();
 
-      using SocketStream::read;
-      using SocketStream::write;
-      using SocketStream::peek;
-      using SocketStream::get;
+      typedef io::filtering_stream<io::bidirectional> Stream_T;
+      using Stream_T::read;
+      using Stream_T::write;
+      using Stream_T::peek;
+      using Stream_T::get;
 
       void upload(std::istream &in, std::streamsize length,
                   SmartPointer<TransferCallback> callback = 0);

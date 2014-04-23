@@ -30,6 +30,7 @@
 
 \******************************************************************************/
 
+/// XMacro definitions are ugly but in this case it's worth it.
 /// Please see cbang/enum/Enumeration.h for more information.
 
 #include <cbang/Exception.h>
@@ -94,16 +95,16 @@ namespace CBANG_ENUM_NAMESPACE {
     unsigned CBANG_ENUM_CLASS::getCount() {
       // NOTE: The constant is summed at compile time
       return 0
-#define CBANG_ENUM_EXPAND(name, n) + 1
+#define CBANG_ENUM_FINAL(name, n, desc) + 1
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
         ;
     }
 
 
     unsigned CBANG_ENUM_CLASS::getAliasCount() {
       return 0
-#define CBANG_ENUM_EXPAND(name, n)
+#define CBANG_ENUM_FINAL(name, n, desc)
 #undef CBANG_ENUM_ALIAS
 #define CBANG_ENUM_ALIAS(alias, target) + 1
 
@@ -111,16 +112,16 @@ namespace CBANG_ENUM_NAMESPACE {
 
 #undef CBANG_ENUM_ALIAS
 #define CBANG_ENUM_ALIAS(alias, target)
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
         ;
     }
 
 
     const char *CBANG_ENUM_CLASS::getName(unsigned index) {
       static const char *names[] = {
-#define CBANG_ENUM_EXPAND(name, n) #name,
+#define CBANG_ENUM_FINAL(name, n, desc) #name,
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
       };
 
       return names[index] + (CBANG_ENUM_PREFIX);
@@ -129,9 +130,9 @@ namespace CBANG_ENUM_NAMESPACE {
 
     CBANG_ENUM_CLASS::enum_t CBANG_ENUM_CLASS::getValue(unsigned index) {
       static enum_t values[] = {
-#define CBANG_ENUM_EXPAND(name, n) name,
+#define CBANG_ENUM_FINAL(name, n, desc) name,
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
       };
 
       return values[index];
@@ -149,17 +150,17 @@ namespace CBANG_ENUM_NAMESPACE {
         if (entry) return entry->value;
 
       } else {
-#define CBANG_ENUM_EXPAND(name, n)                                      \
+#define CBANG_ENUM_FINAL(name, num, desc)                             \
         if (nameCompare(s.c_str(), #name + (CBANG_ENUM_PREFIX)) == 0) \
           return name;
 #undef CBANG_ENUM_ALIAS
-#define CBANG_ENUM_ALIAS(alias, target)                                 \
+#define CBANG_ENUM_ALIAS(alias, target)                                \
         if (nameCompare(s.c_str(), #alias + (CBANG_ENUM_PREFIX)) == 0) \
           return target;
 
 #include CBANG_ENUM_DEF
 
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
 #undef CBANG_ENUM_ALIAS
 #define CBANG_ENUM_ALIAS(alias, target)
       }
@@ -170,12 +171,23 @@ namespace CBANG_ENUM_NAMESPACE {
     }
 
 
+    const char *CBANG_ENUM_CLASS::getDescription(enum_t e) {
+      switch (e) {
+#define CBANG_ENUM_FINAL(name, num, desc)       \
+        case name: return desc;
+#include CBANG_ENUM_DEF
+#undef CBANG_ENUM_FINAL
+      default: return "Unknown enumeration";
+      }
+    }
+
+
     const char *CBANG_ENUM_CLASS::toString(enum_t e) {
       switch (e) {
-#define CBANG_ENUM_EXPAND(name, n) \
+#define CBANG_ENUM_FINAL(name, num, desc)               \
         case name: return #name + (CBANG_ENUM_PREFIX);
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
       default: return "UNKNOWN_ENUM";
       }
     }
@@ -183,9 +195,9 @@ namespace CBANG_ENUM_NAMESPACE {
 
     bool CBANG_ENUM_CLASS::isValid(enum_t e) {
       switch (e) {
-#define CBANG_ENUM_EXPAND(name, n) case name:
+#define CBANG_ENUM_FINAL(name, num, desc) case name:
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
         return true;
       default: return false;
       }
@@ -200,8 +212,8 @@ namespace CBANG_ENUM_NAMESPACE {
       unsigned i = 0;
 
       // Add enums + aliases
-#define CBANG_ENUM_EXPAND(_name, n)                     \
-      entries[i].name = #_name + (CBANG_ENUM_PREFIX);   \
+#define CBANG_ENUM_FINAL(_name, num, desc)               \
+      entries[i].name = #_name + (CBANG_ENUM_PREFIX);    \
       entries[i++].value = _name;
 
 #undef CBANG_ENUM_ALIAS
@@ -213,7 +225,7 @@ namespace CBANG_ENUM_NAMESPACE {
 
 #undef CBANG_ENUM_ALIAS
 #define CBANG_ENUM_ALIAS(alias, target)
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
 
       // Sort entries
       qsort(entries.get(), getTotalCount(), sizeof(Entry),

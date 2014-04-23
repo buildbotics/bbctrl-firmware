@@ -71,6 +71,10 @@ Connection::Connection(Server &server, SmartPointer<Socket> socket,
   lastUpdate(startTime), priority(0), state(READING_HEADER), restartTime(0),
   handler(0), ctx(0), failed(false) {
 
+  memset(readBuf.begin(), 0, readBuf.getCapacity());
+  memset(utilBuf.begin(), 0, utilBuf.getCapacity());
+  memset(dataBuf.begin(), 0, dataBuf.getCapacity());
+
 #ifdef HAVE_VALGRIND_DRD_H
   DRD_IGNORE_VAR(state);
 #endif // HAVE_VALGRIND_DRD_H

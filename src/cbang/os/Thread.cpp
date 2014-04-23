@@ -164,6 +164,12 @@ void Thread::join() {
   if (state == THREAD_STOPPED) return;
 
   if (!shutdown) stop();
+  wait();
+}
+
+
+void Thread::wait() {
+  if (state == THREAD_STOPPED) return;
 
 #ifdef _WIN32
   WaitForSingleObject(p->h, INFINITE);

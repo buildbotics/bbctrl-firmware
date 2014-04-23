@@ -5,6 +5,7 @@ import traceback
 from SCons.Script import *
 import inspect
 import types
+import re
 
 
 def CBCheckEnv(ctx, name, require = False):
@@ -340,6 +341,11 @@ def CBAddConfigFinishCB(env, cb):
     env.cb_finish_cbs.append(cb)
 
 
+def CBBuildSetRegex(env, pats):
+    if isinstance(pats, str): pats = pats.split()
+    return re.compile('^(' + ')|('.join(pats) + ')$')
+
+
 def generate(env):
     # Add member variables
     env.cb_loaded = set()
@@ -363,6 +369,7 @@ def generate(env):
     env.AddMethod(CBConfigure)
     env.AddMethod(CBDownload)
     env.AddMethod(CBAddConfigFinishCB)
+    env.AddMethod(CBBuildSetRegex)
 
     # Add tests
     env.CBAddTest(CBCheckEnv)

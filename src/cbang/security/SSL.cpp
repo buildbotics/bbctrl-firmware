@@ -40,6 +40,10 @@
 
 #include <cbang/log/Logger.h>
 
+#ifdef HAVE_VALGRIND_H
+#include <valgrind/memcheck.h>
+#endif
+
 #include <iostream>
 
 // This avoids a conflict with OCSP_RESPONSE in wincrypt.h
@@ -161,6 +165,11 @@ int cb::SSL::read(char *data, unsigned size) {
     THROWS("SSL read failed: " << err);
   }
   LOG_DEBUG(5, "cb::SSL::read()=" << ret);
+
+#ifdef VALGRIND_MAKE_MEM_DEFINED
+  VALGRIND_MAKE_MEM_DEFINED(data, ret);
+#endif // VALGRIND_MAKE_MEM_DEFINED
+
   return (unsigned)ret;
 }
 

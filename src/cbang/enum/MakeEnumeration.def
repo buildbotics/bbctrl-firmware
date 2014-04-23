@@ -30,6 +30,7 @@
 
 \******************************************************************************/
 
+/// XMacro definitions are ugly but in this case it's worth it.
 /// Please see cbang/enum/Enumeration.h for more information.
 
 #include <cbang/SmartPointer.h>
@@ -53,6 +54,15 @@
 #define CBANG_ENUM_CLASS CBANG_CONCAT(CBANG_ENUM_NAME, Enumeration)
 #define CBANG_ENUM_BASE CBANG_CONCAT(CBANG_ENUM_CLASS, Base)
 
+#define CBANG_ENUM_VALUE_DESC(name, num, desc)  \
+  CBANG_ENUM_FINAL(name, = num, desc)
+#define CBANG_ENUM_DESC(name, desc) CBANG_ENUM_FINAL(name, , desc)
+#define CBANG_ENUM_VALUE(name, num) CBANG_ENUM_FINAL(name, = num, #name)
+#define CBANG_ENUM(name) CBANG_ENUM_FINAL(name, , #name)
+
+// Legacy macro
+#define CBANG_ENUM_EXPAND(name, num) CBANG_ENUM_FINAL(name, = num, #name)
+
 #include <string>
 
 #include <cbang/enum/Enumeration.h>
@@ -66,9 +76,9 @@ namespace CBANG_ENUM_NAMESPACE {
     public:
       /// The actual enumeration
       typedef enum {
-#define CBANG_ENUM_EXPAND(name, n) name = n,
+#define CBANG_ENUM_FINAL(name, num, desc) name num,
 #include CBANG_ENUM_DEF
-#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM_FINAL
       } enum_t;
     };
 
@@ -120,6 +130,11 @@ namespace CBANG_ENUM_NAMESPACE {
       static enum_t parse(const std::string &s,
                           enum_t defaultValue = (enum_t)~0);
 
+      /// @return the description of the enumeration entry.  If @param e does
+      /// not match the value of any entry in the enumeration the string
+      /// "Unknown enumeration" is returned.
+      static const char *getDescription(enum_t e);
+
       /// @return the name of the enumeration entry.  If @param e does not match
       /// the value of any entry in the enumeration the string "UNKNOWN_ENUM" is
       /// returned.
@@ -157,4 +172,9 @@ namespace CBANG_ENUM_NAMESPACE {
 #ifdef CBANG_ENUM_UNDERSCORE_SENSITIVE
 #undef CBANG_ENUM_UNDERSCORE_SENSITIVE
 #endif // CBANG_ENUM_UNDERSCORE_SENSITIVE
+#undef CBANG_ENUM_EXPAND
+#undef CBANG_ENUM
+#undef CBANG_ENUM_VALUE
+#undef CBANG_ENUM_DESC
+#undef CBANG_ENUM_VALUE_DESC
 #endif // !CBANG_ENUM_IMPL

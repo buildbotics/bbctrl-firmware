@@ -30,7 +30,7 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_ENUM_EXPAND
+#ifndef CBANG_ENUM
 #ifndef CBANG_THREADS_TYPE_H
 #define CBANG_THREADS_TYPE_H
 
@@ -40,10 +40,10 @@
 #include <cbang/enum/MakeEnumeration.def>
 
 #endif // CBANG_THREADS_TYPE_H
-#else // CBANG_ENUM_EXPAND
+#else // CBANG_ENUM
 
-CBANG_ENUM_EXPAND(LINUX_THREADS, 0)
-CBANG_ENUM_EXPAND(WINDOWS_THREADS, 1)
-CBANG_ENUM_EXPAND(POSIX_THREADS, 2)
+CBANG_ENUM(LINUX_THREADS)
+CBANG_ENUM(WINDOWS_THREADS)
+CBANG_ENUM(POSIX_THREADS)
 
-#endif // CBANG_ENUM_EXPAND
+#endif // CBANG_ENUM

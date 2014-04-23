@@ -96,9 +96,9 @@ namespace cb {
 
     // Verify signature
     void verifyInit();
-    bool verify(const uint8_t *sigData, size_t sigLen,
+    void verify(const uint8_t *sigData, size_t sigLen,
                 const uint8_t *msgData, size_t msgLen);
-    bool verify(const std::string &sig, const std::string &msg);
+    void verify(const std::string &sig, const std::string &msg);
 
     // Recover signature data
     void verifyRecoverInit();

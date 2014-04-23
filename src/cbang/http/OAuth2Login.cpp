@@ -41,6 +41,7 @@
 #include <cbang/net/Base64.h>
 #include <cbang/config/Options.h>
 #include <cbang/security/SSLContext.h>
+#include <cbang/io/StringInputSource.h>
 
 using namespace std;
 using namespace cb;
@@ -180,6 +181,9 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   string data = postURI.getQuery();
   postURI.clear();
 
+  LOG_DEBUG(5, "Token URI: " << postURI);
+  LOG_DEBUG(5, "Token Query: " << data);
+
   // Verify authorization with OAuth2 server
   Transaction tran(sslCtx.get());
   tran.post(postURI, data.data(), data.length(),
@@ -189,9 +193,12 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   tran.receiveHeader();
   stringstream jsonStream;
   transfer(tran, jsonStream);
+  string response = jsonStream.str();
+  LOG_DEBUG(5, "Token Response Header: " << tran.getResponse());
+  LOG_DEBUG(5, "Token Response: " << response);
 
   // Parse JSON response
-  JSON::ValuePtr json = JSON::Reader(jsonStream).parse();
+  JSON::ValuePtr json = JSON::Reader(StringInputSource(response)).parse();
 
   // Decode JWT claims
   // See: http://openid.net/specs/draft-jones-json-web-token-07.html#ExampleJWT
@@ -201,7 +208,7 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   vector<string> parts;
   String::tokenize(idToken, parts, ".");
   string claims = Base64(0, '-', '_').decode(parts[1]);
-  LOG_DEBUG(3, "Claims: " << claims);
+  LOG_DEBUG(5, "Claims: " << claims);
   JSON::ValuePtr claimsJSON =
     JSON::Reader(InputSource(claims.data(), claims.length())).parse();
 
