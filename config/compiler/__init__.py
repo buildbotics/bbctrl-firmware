@@ -481,6 +481,7 @@ def generate(env):
         EnumVariable('platform', 'Override default platform', '',
                    allowed_values = ('', 'win32', 'posix', 'darwin')),
         ('ccflags', 'Set extra C and C++ compiler flags', None),
+        ('linkflags', 'Set extra linker flags', None),
         EnumVariable('cxxstd', 'Set C++ language standard', 'gnu++98',
                    allowed_values = ('gnu++98', 'c++98', 'c++0x', 'gnu++0x')),
         EnumVariable('compiler', 'Select compiler', 'default',
