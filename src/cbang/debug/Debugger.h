@@ -51,6 +51,7 @@ namespace cb {
     unsigned maxStack;
 
   protected:
+    static Mutex lock;
     static Debugger *singleton;
 
     Debugger() : maxStack(256) {}

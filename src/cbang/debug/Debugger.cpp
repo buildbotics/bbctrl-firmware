@@ -35,6 +35,7 @@
 #include <cbang/debug/BacktraceDebugger.h>
 
 #include <cbang/util/Singleton.h>
+#include <cbang/util/SmartLock.h>
 
 #include <stdexcept>
 
@@ -48,10 +49,13 @@
 using namespace std;
 using namespace cb;
 
+Mutex Debugger::lock;
 Debugger *Debugger::singleton = 0;
 
 
 Debugger &Debugger::instance() {
+  SmartLock l(&lock);
+
   if (!singleton) {
     if (getenv("DISABLE_DEBUGGER")) singleton = new Debugger(); // Null debugger
 #ifdef HAVE_CBANG_BACKTRACE
