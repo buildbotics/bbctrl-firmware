@@ -50,12 +50,12 @@ namespace cb {
       bool readEnable;
       char readLength[32];
       unsigned readLengthBytes;
-      uint64_t readBytes;
+      std::streamsize readBytes;
 
       bool writeEnable;
       char writeLength[32];
       unsigned writeLengthBytes;
-      uint64_t writeBytes;
+      std::streamsize writeBytes;
 
     public:
       typedef char char_type;
