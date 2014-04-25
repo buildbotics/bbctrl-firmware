@@ -35,7 +35,7 @@ def configure(conf):
 
     home = conf.CBCheckHome('python', inc_suffix = '/Include /include')
     if home:
-        ctx.env.AppendUnique(CPPPATH = [home])
+        env.AppendUnique(CPPPATH = [home])
         return check_config(conf)
 
     python_version = env.get('python_version', '')
