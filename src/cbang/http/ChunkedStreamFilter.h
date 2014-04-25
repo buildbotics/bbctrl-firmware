@@ -129,7 +129,7 @@ namespace cb {
         if (!writeBytes || writeLengthBytes) {
           if (!writeLengthBytes) {
             writeLengthBytes =
-              snprintf(writeLength, 32, "%lx\r\n", (uint64_t)n);
+              snprintf(writeLength, 32, "%llx\r\n", (uint64_t)n);
             writeBytes = n;
           }
 
@@ -137,7 +137,7 @@ namespace cb {
           writeLengthBytes -= bytes;
           if (writeLengthBytes) {
             // Shift length buffer
-            for (int i = 0; i <= writeLengthBytes; i++)
+            for (unsigned i = 0; i <= writeLengthBytes; i++)
               writeLength[i] = writeLength[i + bytes];
             return 0;
           }
