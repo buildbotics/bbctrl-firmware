@@ -3,6 +3,15 @@ import inspect
 import traceback
 
 
+def check_config(conf):
+    env = conf.env
+    conf.CBRequireHeader('Python.h')
+    conf.CBRequireFunc('Py_Initialize')
+    env.CBDefine('HAVE_PYTHON')
+    env.Prepend(LIBS = ['util', 'm', 'dl', 'z'])
+    return True
+
+
 def try_config(conf, command):
     env = conf.env
 
@@ -13,15 +22,11 @@ def try_config(conf, command):
     except OSError:
         return False
 
-    if conf.CheckHeader('Python.h') and conf.CheckFunc('Py_Initialize'):
-        env.ParseConfig(command)
-        env.CBDefine('HAVE_PYTHON');
-        env.Prepend(LIBS = ['util', 'm', 'dl', 'z'])
+    try:
+        return check_config(conf)
+    except:
+        return False
 
-        return True
-
-    return False
-    
 
 def configure(conf):
     env = conf.env
@@ -29,7 +34,7 @@ def configure(conf):
     if not env.get('python', 0): return False
 
     if conf.CBCheckHome('python', inc_suffix = '/Include /include'):
-        return True
+        return check_config(conf)
 
     python_version = env.get('python_version', '')
 
