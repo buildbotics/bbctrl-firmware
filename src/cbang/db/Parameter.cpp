@@ -45,7 +45,8 @@ using namespace cb::DB;
 
 
 const char *Parameter::getName() const {
-  return sqlite3_bind_parameter_name(stmt, i);
+  const char *name = sqlite3_bind_parameter_name(stmt, i);
+  return name ? name : "<unknown>";
 }
 
 
