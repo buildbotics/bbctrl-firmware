@@ -187,7 +187,7 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   // Verify authorization with OAuth2 server
   Transaction tran(sslCtx.get());
   tran.post(postURI, data.data(), data.length(),
-            "application/x-www-form-urlencoded", 1.1);
+            "application/x-www-form-urlencoded", 1.0);
 
   // Read response
   tran.receiveHeader();
