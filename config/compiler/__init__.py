@@ -63,6 +63,7 @@ def configure(conf, cstd = 'c99'):
     distcc = int(env.get('distcc'))
     ccache = int(env.get('ccache'))
     ccflags = env.get('ccflags')
+    linkflags = env.get('linkflags')
     cxxstd = env.get('cxxstd')
     platform = env.get('platform')
     static = int(env.get('static'))
@@ -154,6 +155,7 @@ def configure(conf, cstd = 'c99'):
 
     # User flags
     if ccflags: env.Append(CCFLAGS = ccflags.split())
+    if linkflags: env.Append(LINKFLAGS = linkflags.split())
 
     # Exceptions
     if compiler_mode == 'msvc':
