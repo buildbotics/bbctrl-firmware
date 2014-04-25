@@ -129,7 +129,7 @@ namespace cb {
         if (!writeBytes || writeLengthBytes) {
           if (!writeLengthBytes) {
             writeLengthBytes =
-              snprintf(writeLength, 32, "%llx\r\n", (uint64_t)n);
+              snprintf(writeLength, 32, "%llx\r\n", (unsigned long long)n);
             writeBytes = n;
           }
 
