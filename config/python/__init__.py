@@ -28,6 +28,9 @@ def configure(conf):
 
     if not env.get('python', 0): return False
 
+    if conf.CBCheckHome('python', inc_suffix = '/Include /include'):
+        return True
+
     python_version = env.get('python_version', '')
 
     cmd = 'python%s-config' % python_version
