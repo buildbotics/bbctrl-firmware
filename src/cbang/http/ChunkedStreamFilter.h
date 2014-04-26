@@ -127,7 +127,7 @@ namespace cb {
 
         if (!writeBytes || writeLengthBytes) {
           if (!writeLengthBytes) {
-            std::string l = String(n);
+            std::string l = String((uint64_t)n);
             writeLengthBytes = l.length() < 31 ? l.length() : 31;
             memcpy(writeLength, l.c_str(), writeLengthBytes);
             writeLength[writeLengthBytes] = 0;
