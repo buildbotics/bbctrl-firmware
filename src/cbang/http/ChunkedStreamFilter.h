@@ -34,14 +34,13 @@
 #define CBANG_HTTP_CHUNKED_STREAM_FILTER_H
 
 #include <cbang/StdTypes.h>
+#include <cbang/String.h>
 #include <cbang/log/Logger.h>
 
 #include <iosfwd> // streamsize
 #include <boost/iostreams/concepts.hpp>
 #include <boost/iostreams/operations.hpp>
 namespace io = boost::iostreams;
-
-#include <stdio.h>
 
 
 namespace cb {
@@ -128,8 +127,10 @@ namespace cb {
 
         if (!writeBytes || writeLengthBytes) {
           if (!writeLengthBytes) {
-            writeLengthBytes =
-              snprintf(writeLength, 32, "%llx\r\n", (unsigned long long)n);
+            std::string l = String(n);
+            writeLengthBytes = l.length() < 31 ? l.length() : 31;
+            memcpy(writeLength, l.c_str(), writeLengthBytes);
+            writeLength[writeLengthBytes] = 0;
             writeBytes = n;
           }
 
