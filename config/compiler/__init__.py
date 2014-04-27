@@ -432,17 +432,19 @@ def prefer_static_libs(env):
     libs = []
     changed = False
 
-    for lib in map(str, env['LIBS']):
-        if require_static.match(lib) or prefer_static.match(lib) or \
-                (mostly_static and not prefer_dynamic.match(lib)):
-            path = FindLibPath(env, lib)
+    for lib in env['LIBS']:
+        name = str(lib)
+
+        if require_static.match(name) or prefer_static.match(name) or \
+                (mostly_static and not prefer_dynamic.match(name)):
+            path = FindLibPath(env, name)
             if path is not None:
                 changed = True
                 libs.append(File(path))
                 continue
 
-        if require_static.match(lib):
-            raise Exception, 'Failed to find static library for "%s"' % lib
+        if require_static.match(name):
+            raise Exception, 'Failed to find static library for "%s"' % name
 
         libs.append(lib)
 
