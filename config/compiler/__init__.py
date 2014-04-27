@@ -432,7 +432,7 @@ def prefer_static_libs(env):
     libs = []
     changed = False
 
-    for lib in env['LIBS']:
+    for lib in map(str, env['LIBS']):
         if require_static.match(lib) or prefer_static.match(lib) or \
                 (mostly_static and not prefer_dynamic.match(lib)):
             path = FindLibPath(env, lib)
