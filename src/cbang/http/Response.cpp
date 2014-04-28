@@ -52,7 +52,7 @@ void Response::reset() {
 
 
 void Response::redirect(const URI &uri, StatusCode status) {
-  LOG_DEBUG(3, "Redirect: " << status << ": " << uri);
+  LOG_DEBUG(5, "Redirect: " << status << ": " << uri);
   setStatus(status);
   set("Location", uri);
   set("Content-Length", "0");
