@@ -131,26 +131,37 @@ namespace cb {
   };
 
 
-  template<class T>
+  template<class T, typename MEMBER_T = void (T::*)()>
   class ThreadFunc : public Thread {
-    T *obj;            // pointer to object
-    void (T::*func)(); // pointer to member function
+    T *obj;          // pointer to object
+    MEMBER_T member; // pointer to member function
+    bool destroy;
 
   public:
     /**
      * Construct a thread which will execute a member function of the class T.
      *
      * @param obj The class instance.
-     * @param func A pointer to the member function.
+     * @param member A pointer to the member function.
      */
-    ThreadFunc(T *obj, void (T::*func)()) : obj(obj), func(func) {}
+    ThreadFunc(T *obj, MEMBER_T member, bool destroy = false) :
+      obj(obj), member(member), destroy(destroy) {}
+
+    virtual void starter() {
+      Thread::starter();
+
+      if (destroy) {
+        state = THREAD_STOPPED;
+        delete this;
+      }
+    }
 
   private:
     /**
      * Passes the polymorphic call to run on to the target class instance and
      * member function.
      */
-    virtual void run() {(*obj.*func)();}
+    virtual void run() {(*obj.*member)();}
   };
 }
 
