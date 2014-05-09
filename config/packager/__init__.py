@@ -105,6 +105,8 @@ def GetPackageName(env, name, without_build = False, type = None):
     if type == 'rpm': seps = ['-', '_']
     else: seps = ['_', '-']
 
+    name = name.replace(seps[0], seps[1])
+
     if env.get('version', False):
         name += seps[0] + env.get('version').replace(seps[0], seps[1])
 
