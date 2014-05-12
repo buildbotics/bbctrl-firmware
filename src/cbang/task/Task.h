@@ -38,11 +38,23 @@
 
 namespace cb {
   class Task : public Named {
-  public:
-    Task(const std::string &name) : Named(name) {}
+    double period;
+    double lastRun;
 
+  public:
+    Task(const std::string &name, double period) :
+      Named(name), period(period), lastRun(0) {}
     virtual ~Task() {}
-    virtual double run() = 0;
+
+    void setPeriod(double period) {this->period = period;}
+    double getPeriod() const {return period;}
+
+    void setLastRun(double lastRun) {this->lastRun = lastRun;}
+    double getLastRun() const {return lastRun;}
+
+    double getNextRun() const {return lastRun + period;}
+
+    virtual void run() = 0;
   };
 }
 

@@ -41,23 +41,13 @@
 
 namespace cb {
   class TaskScheduler {
-    struct TaskInfo {
-      SmartPointer<Task> task;
-      double nextRun;
-
-      TaskInfo(const SmartPointer<Task> &task, double nextRun) :
-        task(task), nextRun(nextRun) {}
-    };
-
-    OrderedDict<TaskInfo> tasks;
+    OrderedDict<SmartPointer<Task> > tasks;
 
   public:
-    void add(const SmartPointer<Task> &task, double nextRun = 0);
+    void add(const SmartPointer<Task> &task);
     const SmartPointer<Task> &get(const std::string &name) const;
-    void set(const std::string &name, double nextRun);
-    void disable(const std::string &name);
 
-    double update();
+    double schedule();
   };
 }
 

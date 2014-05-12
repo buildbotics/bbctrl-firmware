@@ -33,6 +33,7 @@
 #include "TaskScheduler.h"
 
 #include <cbang/time/Timer.h>
+#include <cbang/util/DefaultCatch.h>
 
 #include <limits>
 
@@ -40,40 +41,35 @@ using namespace std;
 using namespace cb;
 
 
-void TaskScheduler::add(const SmartPointer<Task> &task, double nextRun) {
+void TaskScheduler::add(const SmartPointer<Task> &task) {
   if (tasks.has(task->getName()))
     THROWS("Already have task with name '" << task->getName() << "'");
 
-  tasks.insert(task->getName(), TaskInfo(task, Timer::now() + nextRun));
+  tasks.insert(task->getName(), task);
 }
 
 
 const SmartPointer<Task> &TaskScheduler::get(const string &name) const {
-  return tasks.get(name).task;
+  return tasks.get(name);
 }
 
 
-void TaskScheduler::set(const std::string &name, double nextRun) {
-  tasks.get(name).nextRun = nextRun + (0 <= nextRun ? nextRun : 0);
-}
-
-
-void TaskScheduler::disable(const std::string &name) {
-  tasks.get(name).nextRun = -1;
-}
-
-
-double TaskScheduler::update() {
-  double now = Timer::now();
+double TaskScheduler::schedule() {
   double next = numeric_limits<double>::max();
 
   for (unsigned i = 0; i < tasks.size(); i++) {
-    TaskInfo &info = tasks[i];
+    Task &task = *tasks[i];
+    double now = Timer::now();
 
-    if (0 <= info.nextRun && info.nextRun < now)
-      info.nextRun += info.task->run();
+    if (0 <= task.getNextRun() && task.getNextRun() < now) {
+      task.setLastRun(now);
 
-    if (info.nextRun < next) next = info.nextRun;
+      try {
+        task.run();
+      } CATCH_ERROR;
+    }
+
+    if (task.getNextRun() < next) next = task.getNextRun();
   }
 
   return next;

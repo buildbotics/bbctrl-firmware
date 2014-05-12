@@ -40,15 +40,16 @@ namespace cb {
   template <class T>
   class TaskFunctor : public Task {
     T *obj;
-    typedef double (T::*member_t)();
+    typedef void (T::*member_t)();
     member_t member;
 
   public:
-    TaskFunctor(const std::string &name, T *obj, member_t member) :
-      Task(name), obj(obj), member(member) {}
+    TaskFunctor(const std::string &name, double period, T *obj,
+                member_t member) :
+      Task(name, period), obj(obj), member(member) {}
 
     // From Task
-    double run() {return (*obj.*member)();}
+    void run() {(*obj.*member)();}
   };
 }
 
