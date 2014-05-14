@@ -78,12 +78,12 @@ namespace DB_TABLE_NAMESPACE {
 #ifdef DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
         case CBANG_CONCAT(INDEX_, NAME):                        \
-          return String(FROM_CAST row.NAME);
+          return String(FROM_CAST(row.NAME));
 
 #else // DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
         case CBANG_CONCAT(INDEX_, NAME):                        \
-          return String(FROM_CAST row.get##NAME());
+          return String(FROM_CAST(row.get##NAME()));
 #endif // DB_TABLE_ROW_DIRECT
 
 #include DB_TABLE_DEF
@@ -100,13 +100,13 @@ namespace DB_TABLE_NAMESPACE {
 #ifdef DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
         case CBANG_CONCAT(INDEX_, NAME):                        \
-          parameter.bind(FROM_CAST row.NAME);                   \
+          parameter.bind(FROM_CAST(row.NAME));                  \
           break;
 
 #else // DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
         case CBANG_CONCAT(INDEX_, NAME):                        \
-          parameter.bind(FROM_CAST row.get##NAME());            \
+          parameter.bind(FROM_CAST(row.get##NAME()));           \
           break;
 #endif // DB_TABLE_ROW_DIRECT
 
@@ -126,11 +126,11 @@ namespace DB_TABLE_NAMESPACE {
 
 #ifdef DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
-      writeStmt->parameter(i++).bind(FROM_CAST row.NAME);
+      writeStmt->parameter(i++).bind(FROM_CAST(row.NAME));
 
 #else // DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST)     \
-      writeStmt->parameter(i++).bind(FROM_CAST row.get##NAME());
+      writeStmt->parameter(i++).bind(FROM_CAST(row.get##NAME()));
 #endif // DB_TABLE_ROW_DIRECT
 
 #include DB_TABLE_DEF
@@ -144,11 +144,11 @@ namespace DB_TABLE_NAMESPACE {
 
 #ifdef DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
-      row.NAME = TO_CAST readStmt->column(i++).to##TYPE();
+      row.NAME = TO_CAST(readStmt->column(i++).to##TYPE());
 
 #else // DB_TABLE_ROW_DIRECT
 #define CBANG_ITEM(NAME, TYPE, CONSTRAINTS, FROM_CAST, TO_CAST) \
-      row.set##NAME(TO_CAST readStmt->column(i++).to##TYPE());
+      row.set##NAME(TO_CAST(readStmt->column(i++).to##TYPE()));
 #endif // DB_TABLE_ROW_DIRECT
 
 #include DB_TABLE_DEF

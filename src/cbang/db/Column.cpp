@@ -49,21 +49,36 @@ const char *Column::getDeclType() const {
 }
 
 
-#ifdef SQLITE_ENABLE_COLUMN_METADATA
 const char *Column::getName() const {
+  return sqlite3_column_name(stmt, i);
+}
+
+
+const char *Column::getOrigin() const {
+#ifdef SQLITE_ENABLE_COLUMN_METADATA
   return sqlite3_column_origin_name(stmt, i);
+#else
+  return 0;
+#endif
 }
 
 
 const char *Column::getTableName() const {
+#ifdef SQLITE_ENABLE_COLUMN_METADATA
   return sqlite3_column_table_name(stmt, i);
+#else
+  return 0;
+#endif
 }
 
 
 const char *Column::getDBName() const {
+#ifdef SQLITE_ENABLE_COLUMN_METADATA
   return sqlite3_column_database_name(stmt, i);
+#else
+  return 0;
+#endif
 }
-#endif // SQLITE_ENABLE_COLUMN_METADATA
 
 
 Blob Column::toBlob() const {

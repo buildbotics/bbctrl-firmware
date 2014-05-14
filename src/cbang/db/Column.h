@@ -53,12 +53,10 @@ namespace cb {
       unsigned getIndex() const {return i;}
       type_t getType() const;
       const char *getDeclType() const;
-
-#ifdef SQLITE_ENABLE_COLUMN_METADATA
       const char *getName() const;
+      const char *getOrigin() const;
       const char *getTableName() const;
       const char *getDBName() const;
-#endif // SQLITE_ENABLE_COLUMN_METADATA
 
       Blob toBlob() const;
       double toDouble() const;

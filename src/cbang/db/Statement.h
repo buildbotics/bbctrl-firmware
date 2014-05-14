@@ -42,15 +42,18 @@ struct sqlite3_stmt;
 struct sqlite3;
 
 namespace cb {
+  namespace JSON {class Sync;}
+
   namespace DB {
+    class Database;
+
     class Statement {
       sqlite3_stmt *stmt;
-      std::string sql;
       bool done;
       bool validRow;
 
     public:
-      Statement(const std::string &sql);
+      Statement(Database &db, const std::string &sql);
       ~Statement();
 
       bool isDone() const {return done;}
@@ -77,7 +80,10 @@ namespace cb {
       Parameter parameter(unsigned i) const;
       Parameter parameter(const std::string &name) const;
 
-      void prepare(sqlite3 *db);
+      // JSON functions
+      void readHeader(JSON::Sync &sync);
+      void readOne(JSON::Sync &sync);
+      void readAll(JSON::Sync &sync);
     };
   }
 }

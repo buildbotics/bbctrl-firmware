@@ -50,8 +50,7 @@ using namespace cb;
 using namespace cb::DB;
 
 
-Database::Database(double timeout) : timeout(timeout), db(0), transaction(0) {
-}
+Database::Database(double timeout) : timeout(timeout), db(0), transaction(0) {}
 
 
 Database::~Database() {
@@ -144,9 +143,7 @@ SmartPointer<Statement> Database::compilef(const char *sql, ...) {
 
 
 SmartPointer<Statement> Database::compile(const string &sql) {
-  SmartPointer<Statement> stmt = new Statement(sql);
-  stmt->prepare(db);
-  return stmt;
+  return new Statement(*this, sql);
 }
 
 

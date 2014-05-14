@@ -33,8 +33,11 @@
 #include "Statement.h"
 
 #include "Database.h"
+#include "Blob.h"
 
 #include <cbang/Exception.h>
+#include <cbang/json/Sync.h>
+#include <cbang/net/Base64.h>
 
 #include <sqlite3.h>
 
@@ -43,8 +46,12 @@ using namespace cb;
 using namespace cb::DB;
 
 
-Statement::Statement(const string &sql) :
-  stmt(0), sql(sql), done(false), validRow(false) {
+Statement::Statement(Database &db, const string &sql) :
+  stmt(0), done(false), validRow(false) {
+
+  if (sqlite3_prepare_v2(db.getDB(), sql.c_str(), sql.length(), &stmt, 0))
+    THROWS("Failed to prepare statement: " << sql << ": "
+           << sqlite3_errmsg(db.getDB()));
 }
 
 
@@ -145,9 +152,53 @@ Parameter Statement::parameter(const std::string &name) const {
 }
 
 
-void Statement::prepare(sqlite3 *db) {
-  if (stmt) reset();
-  else if (sqlite3_prepare_v2(db, sql.c_str(), sql.length(), &stmt, 0))
-    THROWS("Failed to prepare statement: " << sql << ": "
-           << sqlite3_errmsg(db));
+void Statement::readHeader(JSON::Sync &sync) {
+  sync.beginList(true);
+
+  unsigned cols = sqlite3_column_count(stmt);
+  for (unsigned i = 0; i < cols; i++)
+    sync.append(column(i).getName());
+
+  sync.endList();
+}
+
+
+void Statement::readOne(JSON::Sync &sync) {
+  sync.beginList(true);
+
+  unsigned cols = sqlite3_data_count(stmt);
+  for (unsigned i = 0; i < cols; i++) {
+    Column col = column(i);
+
+    switch (col.getType()) {
+    case Column::DB_INTEGER: sync.append(col.toInteger()); break;
+    case Column::DB_DOUBLE: sync.append(col.toDouble()); break;
+    case Column::DB_STRING: sync.append(col.toString()); break;
+    case Column::DB_BLOB: {
+      // TODO This could be made more efficient if JSON::Sync would allow
+      //   piecewise strings.
+      Blob blob = col.toBlob();
+      sync.append(Base64().encode((char *)blob.getData(), blob.getLength()));
+      break;
+    }
+    case Column::DB_NULL: sync.appendNull(); break;
+    }
+  }
+
+  sync.endList();
+}
+
+
+void Statement::readAll(JSON::Sync &sync) {
+  sync.beginList();
+
+  sync.beginAppend();
+  readHeader(sync);
+
+  while (next()) {
+    sync.beginAppend();
+    readOne(sync);
+  }
+
+  sync.endList();
 }
