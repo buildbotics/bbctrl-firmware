@@ -71,7 +71,7 @@ namespace cb {
       void add(const ColumnDef &column);
       void add(const char *columns[][3]);
 
-      unsigned getIndex(const std::string &column);
+      unsigned getIndex(const std::string &column) const;
 
       unsigned getNumColumns() const {return columns.size();}
       typedef columns_t::const_iterator iterator;

@@ -58,8 +58,8 @@ void TableDef::add(const char *columns[][3]) {
 }
 
 
-unsigned TableDef::getIndex(const std::string &column) {
-  columnMap_t::iterator it = columnMap.find(column);
+unsigned TableDef::getIndex(const std::string &column) const {
+  columnMap_t::const_iterator it = columnMap.find(column);
   if (it == columnMap.end())
     THROWS("Index for column '" << column << "' not found");
   return it->second;

@@ -1,18 +1,21 @@
 from SCons.Script import *
+import platform
 
 
 def configure(conf):
     conf.CBCheckHome('v8')
 
-    if conf.env['PLATFORM'] == 'win32':
-        if not conf.CBCheckLib('winmm'): return False
+    if conf.env['PLATFORM'] == 'win32': conf.CBRequireLib('winmm')
 
-    if not conf.CBCheckCXXHeader('v8.h'): return False
+    conf.CBRequireCXXHeader('v8.h')
 
-    if conf.CBCheckLib('v8'): return True
-    if not conf.CBCheckLib('v8_snapshot'): return False
+    if not conf.CBCheckLib('v8'):
+        conf.CBRequireLib('v8_snapshot')
 
-    return conf.CBCheckLib('v8_base') or conf.CBCheckLib('v8_base.ia32')
+        if not conf.CBCheckLib('v8_base'):
+            if platform.architecture()[0] == '64bit':
+                conf.CBRequireLib('v8_base.x64')
+            else: conf.CBRequireLib('v8_base.ia32')
 
 
 def generate(env):
