@@ -55,7 +55,7 @@ namespace cb {
       void shutdown();
 
       void add(const SocketConnectionPtr &con);
-      SocketConnectionPtr next();
+      SocketConnectionPtr next(double timeout = -1);
    };
   }
 }

@@ -58,8 +58,9 @@ namespace cb {
       bool initialized;
 
       ConnectionQueue queue;
+      bool queueConnections;
 
-      typedef std::vector<Thread *> pool_t;
+      typedef std::vector<SmartPointer<Thread> > pool_t;
       pool_t pool;
 
       typedef std::vector<Handler *> handlers_t;
@@ -82,6 +83,8 @@ namespace cb {
       Server(Options &options, SSLContext *sslCtx = 0);
 
       virtual const std::string getName() const {return "HTTP::Server";}
+      bool getQueueConnections() const {return queueConnections;}
+      void setQueueConnections(bool x) {queueConnections = x;}
       unsigned getMaxRequestLength() const {return maxRequestLength;}
 
       void addHandler(Handler *handler) {handlers.push_back(handler);}
@@ -91,6 +94,12 @@ namespace cb {
       void captureResponse(Connection *con);
 
       virtual void init();
+
+      bool handleConnection();
+
+      void createThreadPool(unsigned size);
+      void startThreadPool();
+      void stopThreadPool();
 
       // From Thread
       void start();

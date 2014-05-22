@@ -43,7 +43,6 @@
 #include <cbang/socket/SocketSet.h>
 #include <cbang/socket/SocketDebugger.h>
 
-#include <cbang/os/SystemInfo.h>
 #include <cbang/os/SystemUtilities.h>
 
 #include <cbang/log/Logger.h>
@@ -59,9 +58,10 @@ using namespace cb::HTTP;
 
 Server::Server(Options &options, SSLContext *sslCtx)
   : options(options), sslCtx(sslCtx), initialized(false),
-    maxRequestLength(1024 * 1024 * 50), maxConnections(800),
-    connectionTimeout(60), maxConnectTime(60 * 15), minConnectTime(5 * 60),
-    captureRequests(false), captureResponses(false), captureOnError(false) {
+    queueConnections(false), maxRequestLength(1024 * 1024 * 50),
+    maxConnections(800), connectionTimeout(60), maxConnectTime(60 * 15),
+    minConnectTime(5 * 60), captureRequests(false), captureResponses(false),
+    captureOnError(false) {
   SmartPointer<Option> opt;
 
   options.pushCategory("HTTP Server");
@@ -80,8 +80,6 @@ Server::Server(Options &options, SSLContext *sslCtx)
     opt->setDefault("0.0.0.0:443");
   }
 
-  options.add("threads", "Sets the number of server threads."
-              )->setDefault(SystemInfo::instance().getCPUCount());
   options.addTarget("max-connections", maxConnections,
                     "Sets the maximum number of simultaneous connections.");
   options.addTarget("max-request-length", maxRequestLength,
@@ -219,33 +217,58 @@ void Server::init() {
 }
 
 
+bool Server::handleConnection() {
+  try {
+    SocketConnectionPtr ptr = queue.next(); // Hold this pointer
+    Connection *con = ptr.castPtr<Connection>();
+
+    if (!con) return false;
+    if (con->getState() == Connection::PROCESSING) process(*con);
+
+  } CATCH_ERROR;
+
+  return true;
+}
+
+
+void Server::createThreadPool(unsigned size) {
+  stopThreadPool();
+  pool.clear();
+
+  // Process connections via connection queue
+  queueConnections = true;
+
+  for (unsigned i = 0; i < size; i++)
+    pool.push_back(new ThreadFunc<Server>(this, &Server::poolThread));
+}
+
+
+void Server::startThreadPool() {
+  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
+    (*it)->start();
+}
+
+
+void Server::stopThreadPool() {
+  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
+    (*it)->stop();
+
+  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
+    (*it)->join();
+}
+
+
 void Server::start() {
   if (getState() != THREAD_STOPPED) THROW("HTTPServer already running");
-
-  // Start threads
-  unsigned numThreads = options["threads"].toInteger();
-  for (unsigned i = 0; i < numThreads; i++) {
-    Thread *thread = new ThreadFunc<Server>(this, &Server::poolThread);
-    pool.push_back(thread);
-    thread->start();
-  }
-
+  startThreadPool();
   SocketServer::start();
 }
 
 
 void Server::stop() {
   Thread::stop();
-
   queue.shutdown();
-
-  // Shutdown pool threads
-  pool_t::iterator it;
-  for (it = pool.begin(); it != pool.end(); it++) {
-    (*it)->join();
-    delete *it;
-  }
-
+  stopThreadPool();
   join();
 }
 
@@ -263,13 +286,7 @@ void Server::process(Connection &con) {
 
 
 void Server::poolThread() {
-  while (!shouldShutdown()) {
-    try {
-      SocketConnectionPtr ptr = queue.next(); // Keep this pointer
-      Connection *con = ptr.castPtr<Connection>();
-      if (con && con->getState() == Connection::PROCESSING) process(*con);
-    } CBANG_CATCH_ERROR;
-  };
+  while (!shouldShutdown()) handleConnection();
 }
 
 
@@ -325,22 +342,25 @@ void Server::processConnection(const SocketConnectionPtr &_con, bool ready) {
         if (captureRequests) captureRequest(con);
         con->setState(Connection::PROCESSING);
 
-        if (pool.empty()) continue;
-        queue.add(_con); // Add the connection SmartPointer to the queue
-        break;
+        // Add the connection SmartPointer to the queue
+        if (queueConnections) {
+          queue.add(_con);
+          break;
+        }
 
       case Connection::PROCESSING:
-        // Process the connection directly in this thread if the thread pool is
-        // empty.  This allows the HTTP server to run with out threads.
-        if (pool.empty()) process(*con);
+        // Process the connection directly in this thread if connections are
+        // not being queued for processing externally.  This allows the HTTP
+        // server to run with out threads.
+        if (!queueConnections) process(*con);
         break;
 
       case Connection::DELAY_PROCESSING:
         if (con->getRestartTime() < Timer::now()) {
           con->setState(Connection::PROCESSING);
 
-          if (pool.empty()) continue;
-          queue.add(_con); // Put connection SmartPointer back on the queue
+          // Put connection SmartPointer back on the queue
+          if (queueConnections) queue.add(_con);
         }
         break;
 
@@ -474,9 +494,11 @@ void Server::addConnectionSockets(SocketSet &sockSet) {
 
 
 bool Server::connectionsReady() const {
-  for (iterator it = begin(); it != end() && !shouldShutdown(); it++)
-    if (it->castPtr<Connection>()->getState() == Connection::DELAY_PROCESSING)
-      return true;
+  for (iterator it = begin(); it != end() && !shouldShutdown(); it++) {
+    Connection::state_t state = it->castPtr<Connection>()->getState();
+    if (state == Connection::DELAY_PROCESSING) return true;
+    if (!queueConnections && state == Connection::PROCESSING) return true;
+  }
 
   return false;
 }

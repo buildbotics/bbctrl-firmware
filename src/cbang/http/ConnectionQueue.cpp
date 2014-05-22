@@ -67,12 +67,14 @@ void ConnectionQueue::add(const SocketConnectionPtr &con) {
 }
 
 
-SocketConnectionPtr ConnectionQueue::next() {
+SocketConnectionPtr ConnectionQueue::next(double timeout) {
   SmartLock lock(this);
 
   while (empty()) {
-    if (quit) return 0;
-    wait();
+    if (quit || !timeout) return 0;
+
+    if (timeout < 0) wait();
+    else timedWait(timeout);
   }
 
   SocketConnectionPtr con = front();

@@ -82,7 +82,7 @@ bool JSONAPI::handlePage(HTTP::WebContext &ctx, ostream &stream,
         String::startsWith(con.getRequest().getContentType(),
                            "application/json")) {
       MemoryBuffer &payload = con.getPayload();
-      msg = JSON::Reader(payload).parse();
+      if (payload.getFill()) msg = JSON::Reader(payload).parse();
 
     } else if (!uri.empty()) {
       msg = new JSON::Dict;
