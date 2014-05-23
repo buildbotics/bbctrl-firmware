@@ -217,9 +217,9 @@ void Server::init() {
 }
 
 
-bool Server::handleConnection() {
+bool Server::handleConnection(double timeout) {
   try {
-    SocketConnectionPtr ptr = queue.next(); // Hold this pointer
+    SocketConnectionPtr ptr = queue.next(timeout); // Hold this pointer
     Connection *con = ptr.castPtr<Connection>();
 
     if (!con) return false;
@@ -252,7 +252,10 @@ void Server::startThreadPool() {
 void Server::stopThreadPool() {
   for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
     (*it)->stop();
+}
 
+
+void Server::joinThreadPool() {
   for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
     (*it)->join();
 }
@@ -269,7 +272,12 @@ void Server::stop() {
   Thread::stop();
   queue.shutdown();
   stopThreadPool();
-  join();
+}
+
+
+void Server::join() {
+  stopThreadPool();
+  Thread::join();
 }
 
 
@@ -286,7 +294,7 @@ void Server::process(Connection &con) {
 
 
 void Server::poolThread() {
-  while (!shouldShutdown()) handleConnection();
+  while (!shouldShutdown()) handleConnection(0.1);
 }
 
 

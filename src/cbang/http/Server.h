@@ -95,15 +95,17 @@ namespace cb {
 
       virtual void init();
 
-      bool handleConnection();
+      bool handleConnection(double timeout);
 
       void createThreadPool(unsigned size);
       void startThreadPool();
       void stopThreadPool();
+      void joinThreadPool();
 
       // From Thread
       void start();
       void stop();
+      void join();
 
     protected:
       void process(Connection &con);
