@@ -41,17 +41,32 @@ using namespace std;
 using namespace cb;
 
 
+namespace {
+  uint8_t parseVersionPart(const std::string &part) {
+    return String::parseU8(String::trimLeft(part, "0"));
+  }
+}
+
+
 Version::Version(const string &s) {
+  if (s.find_first_not_of("1234567890. ") != string::npos)
+    THROWS("Invalid character in version string: " << s);
+
   vector<string> parts;
   String::tokenize(s, parts, ".");
 
   switch (parts.size()) {
   case 1: *this = Version(String::parseU32(parts[0])); break;
 
+  case 2:
+    getMajor() = parseVersionPart(parts[0]);
+    getMinor() = parseVersionPart(parts[1]);
+    break;
+
   case 3:
-    getMajor() = String::parseU8(parts[0]);
-    getMinor() = String::parseU8(parts[1]);
-    getRevision() = String::parseU8(parts[2]);
+    getMajor() = parseVersionPart(parts[0]);
+    getMinor() = parseVersionPart(parts[1]);
+    getRevision() = parseVersionPart(parts[2]);
     break;
 
   default: THROWS("Error parsing version string: " << s);

@@ -298,6 +298,22 @@ bool String::parseBool(const string &s) {
 }
 
 
+string String::trimLeft(const string &s, const string &delims) {
+  string::size_type start = s.find_first_not_of(delims);
+
+  if (start == string::npos) return "";
+  return s.substr(start);
+}
+
+
+string String::trimRight(const string &s, const string &delims) {
+  string::size_type end = s.find_last_not_of(delims);
+
+  if (end == string::npos) return "";
+  return s.substr(0, end + 1);
+}
+
+
 string String::trim(const string &s, const string &delims) {
   string::size_type start = s.find_first_not_of(delims);
   string::size_type end = s.find_last_not_of(delims);

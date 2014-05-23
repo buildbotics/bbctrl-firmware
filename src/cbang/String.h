@@ -119,6 +119,10 @@ namespace cb {
     static float parseFloat(const std::string &s);
     static bool parseBool(const std::string &s);
 
+    static std::string trimLeft(const std::string &s,
+                                const std::string &delims = DEFAULT_DELIMS);
+    static std::string trimRight(const std::string &s,
+                                 const std::string &delims = DEFAULT_DELIMS);
     static std::string trim(const std::string &s,
                             const std::string &delims = DEFAULT_DELIMS);
     static std::string toUpper(const std::string &s);
