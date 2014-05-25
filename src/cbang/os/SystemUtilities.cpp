@@ -179,18 +179,18 @@ namespace cb {
     }
 
 
-    string relative(const string &path1, const string &path2,
+    string relative(const string &base, const string &target,
                     unsigned maxDotDot) {
       // Find directory
       string dir;
-      if (!exists(path1) || isDirectory(path1)) dir = path1;
-      else dir = dirname(path1);
+      if (!exists(base) || isDirectory(base)) dir = base;
+      else dir = dirname(base);
 
       // Split
       vector<string> parts1;
       vector<string> parts2;
       splitPath(getCanonicalPath(dir), parts1);
-      splitPath(getCanonicalPath(path2), parts2);
+      splitPath(getCanonicalPath(target), parts2);
 
       // Find common parts
       unsigned i = 0;
@@ -198,7 +198,7 @@ namespace cb {
         i++;
 
       // Check number of ..'s
-      if (maxDotDot < parts1.size() - i) return makeAbsolute(path2);
+      if (maxDotDot < parts1.size() - i) return absolute(target);
 
       // Create relative path
       vector<string> parts;
@@ -209,17 +209,16 @@ namespace cb {
     }
 
 
-    string makeRelative(const string &relative, const string &path) {
-      if (isAbsolute(path)) return path;
+    string absolute(const string &base, const string &target) {
+      if (isAbsolute(target)) return target;
 
-      if (!exists(relative) || isDirectory(relative))
-        return relative + "/" + path;
-      else return dirname(relative) + "/" + path;
+      if (!exists(base) || isDirectory(base)) return base + "/" + target;
+      else return dirname(base) + "/" + target;
     }
 
 
-    string makeAbsolute(const string &path) {
-      return makeRelative(getcwd(), path);
+    string absolute(const string &path) {
+      return absolute(getcwd(), path);
     }
 
 

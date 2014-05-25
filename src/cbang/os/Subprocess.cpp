@@ -300,8 +300,7 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
     const char *dir = 0; // Default to current directory
     string wd = this->wd;
     if (!wd.empty()) {
-      if (!SystemUtilities::isAbsolute(wd))
-        wd = SystemUtilities::makeAbsolute(wd);
+      if (!SystemUtilities::isAbsolute(wd)) wd = SystemUtilities::absolute(wd);
       dir = wd.c_str();
     }
 

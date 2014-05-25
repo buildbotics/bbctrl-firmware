@@ -357,7 +357,7 @@ void Application::openConfig(const string &_filename) {
   configured = true;
 
   // Add config to info
-  Info::instance().add(name, "Config", SystemUtilities::makeAbsolute(filename));
+  Info::instance().add(name, "Config", SystemUtilities::absolute(filename));
 }
 
 

@@ -49,7 +49,7 @@ XMLHandler *XIncludeHandler::getHandler(XMLProcessor &processor,
   if (attrs["file"].empty()) THROWS("Empty 'file' attribute");
 
   string filename =
-    SystemUtilities::makeRelative(processor.getCurrentFile(), attrs["file"]);
+    SystemUtilities::absolute(processor.getCurrentFile(), attrs["file"]);
 
   SmartPointer<XMLAdapter> adapter = XMLAdapter::create();
   adapter->pushHandler(&processor);

@@ -69,12 +69,11 @@ namespace cb {
     std::string extension(const std::string &path);
     std::vector<std::string> splitExt(const std::string &path);
     bool isAbsolute(const std::string &path);
-    std::string relative(const std::string &path1,
-                         const std::string &path2, unsigned maxDotDot =
+    std::string relative(const std::string &base,
+                         const std::string &target, unsigned maxDotDot =
                          std::numeric_limits<unsigned>::max());
-    std::string makeRelative(const std::string &relative,
-                             const std::string &path);
-    std::string makeAbsolute(const std::string &path);
+    std::string absolute(const std::string &base, const std::string &target);
+    std::string absolute(const std::string &path);
     std::string getCanonicalPath(const std::string &path);
     bool exists(const std::string &path);
     void splitPath(const std::string &path, std::vector<std::string> &parts);
