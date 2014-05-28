@@ -276,7 +276,7 @@ void Server::stop() {
 
 
 void Server::join() {
-  stopThreadPool();
+  joinThreadPool();
   Thread::join();
 }
 
