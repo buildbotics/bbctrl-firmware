@@ -38,6 +38,7 @@
 
 #include <cbang/SmartPointer.h>
 #include <cbang/Exception.h>
+#include <cbang/StdTypes.h>
 
 #include <ostream>
 
@@ -67,6 +68,8 @@ namespace cb {
 
       virtual bool getBoolean() const {CBANG_THROW("Value is not a Boolean");}
       virtual double getNumber() const {CBANG_THROW("Value is not a Number");}
+      virtual int32_t getS32() const;
+      virtual uint32_t getU32() const;
       virtual std::string &getString() {CBANG_THROW("Value is not a String");}
       virtual const std::string &getString() const
       {CBANG_THROW("Value is not a String");}
@@ -88,6 +91,8 @@ namespace cb {
       // List accessors
       bool getBoolean(unsigned i) const {return get(i)->getBoolean();}
       double getNumber(unsigned i) const {return get(i)->getNumber();}
+      int32_t getS32(unsigned i) const {return get(i)->getS32();}
+      uint32_t getU32(unsigned i) const {return get(i)->getU32();}
       std::string &getString(unsigned i) {return get(i)->getString();}
       const std::string &getString(unsigned i) const
       {return get(i)->getString();}
@@ -118,6 +123,10 @@ namespace cb {
       {return get(key)->getBoolean();}
       double getNumber(const std::string &key) const
       {return get(key)->getNumber();}
+      int32_t getS32(const std::string &key) const
+      {return get(key)->getS32();}
+      uint32_t getU32(const std::string &key) const
+      {return get(key)->getU32();}
       std::string &getString(const std::string &key)
       {return get(key)->getString();}
       const std::string &getString(const std::string &key) const
@@ -138,6 +147,16 @@ namespace cb {
       double getNumber(const std::string &key, double defaultValue) const {
         int index = indexOf(key);
         return index == -1 ? defaultValue : get(index)->getNumber();
+      }
+
+      int32_t getS32(const std::string &key, int32_t defaultValue) const {
+        int index = indexOf(key);
+        return index == -1 ? defaultValue : get(index)->getS32();
+      }
+
+      uint32_t getU32(const std::string &key, uint32_t defaultValue) const {
+        int index = indexOf(key);
+        return index == -1 ? defaultValue : get(index)->getU32();
       }
 
       const std::string &getString(const std::string &key,

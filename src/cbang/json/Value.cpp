@@ -33,9 +33,32 @@
 #include "Value.h"
 
 #include <sstream>
+#include <limits>
 
 using namespace std;
 using namespace cb::JSON;
+
+
+int32_t Value::getS32() const {
+  double value = getNumber();
+
+  if (value < numeric_limits<int32_t>::min() ||
+      numeric_limits<int32_t>::max() < value)
+    CBANG_THROW("Value is not a 32-bit signed integer");
+
+  return (int32_t)value;
+}
+
+
+uint32_t Value::getU32() const {
+  double value = getNumber();
+
+  if (value < numeric_limits<uint32_t>::min() ||
+      numeric_limits<uint32_t>::max() < value)
+    CBANG_THROW("Value is not a 32-bit unsigned integer");
+
+  return (uint32_t)value;
+}
 
 
 string Value::toString() const {
