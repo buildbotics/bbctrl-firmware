@@ -45,7 +45,6 @@ using namespace std;
 
 Digest::Digest(const string &digest, ENGINE *e) : ctx(EVP_MD_CTX_create()) {
   SSL::init();
-  OpenSSL_add_all_digests();
 
   const EVP_MD *md = EVP_get_digestbyname(digest.c_str());
   if (!md) THROWS("Unrecognized digest '" << digest);
@@ -165,6 +164,5 @@ string Digest::hashHex(const string &s, const string &digest, ENGINE *e) {
 
 bool Digest::hasAlgorithm(const string &digest) {
   SSL::init();
-  OpenSSL_add_all_digests();
   return EVP_get_digestbyname(digest.c_str());
 }

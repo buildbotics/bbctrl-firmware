@@ -160,8 +160,6 @@ void KeyContext::setKeyGenCallback(KeyGenCallback *callback) {
 
 
 void KeyContext::setSignatureMD(const string &digest) {
-  OpenSSL_add_all_digests();
-
   const EVP_MD *md = EVP_get_digestbyname(digest.c_str());
   if (!md) THROWS("Unrecognized message digest '" << digest << "'");
 

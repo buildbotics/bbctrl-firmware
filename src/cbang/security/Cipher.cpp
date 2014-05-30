@@ -48,7 +48,6 @@ Cipher::Cipher(const string &cipher, bool encrypt, const void *key,
                const void *iv, ENGINE *e) :
   ctx(new EVP_CIPHER_CTX), encrypt(encrypt) {
   SSL::init();
-  OpenSSL_add_all_algorithms();
 
   EVP_CIPHER_CTX_init(ctx);
 

@@ -290,6 +290,7 @@ void cb::SSL::init() {
   SSL_library_init();
   SSL_load_error_strings();
   ERR_load_crypto_strings();
+  OpenSSL_add_all_algorithms();
 
   locks.resize(CRYPTO_num_locks());
   CRYPTO_set_locking_callback(lockingCallback);
