@@ -60,7 +60,7 @@ namespace cb {
       std::string sessionCookie;
 
       SessionsTable table;
-      bool dirty;
+      mutable bool dirty;
 
     public:
       SessionManager(Options &options);
@@ -70,24 +70,29 @@ namespace cb {
 
       const std::string &getSessionCookie() const {return sessionCookie;}
 
-      SessionPtr getSessionCookie(WebContext &ctx);
-      void setSessionCookie(WebContext &ctx);
+      SessionPtr getSessionCookie(WebContext &ctx) const;
+      void setSessionCookie(WebContext &ctx) const;
 
       std::string generateSessionID(WebContext &ctx) const;
       bool hasSession(const std::string &id) const;
       SessionPtr getSession(WebContext &ctx,
-                            const std::string &id = std::string());
+                            const std::string &id = std::string()) const;
       SessionPtr findSession(WebContext &ctx,
-                             const std::string &id = std::string());
+                             const std::string &id = std::string()) const;
       SessionPtr openSession(WebContext &ctx,
                              const std::string &id = std::string());
       void closeSession(WebContext &ctx, const std::string &id = std::string());
 
       void create(DB::Database &db);
       void load(DB::Database &db);
-      void save(DB::Database &db);
+      void save(DB::Database &db) const;
 
       void update();
+
+    protected:
+      typedef sessions_t::const_iterator iterator;
+      iterator begin() const {return sessions.begin();}
+      iterator end() const {return sessions.end();}
     };
   }
 }

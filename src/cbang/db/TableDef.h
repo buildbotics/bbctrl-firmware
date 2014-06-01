@@ -78,16 +78,18 @@ namespace cb {
       iterator begin() const {return columns.begin();}
       iterator end() const {return columns.end();}
 
-      void create(Database &db);
+      void create(Database &db) const;
       typedef CIStringMap columnRemap_t;
       void rebuild(Database &db,
-                   const columnRemap_t &columnRemap = columnRemap_t());
-      void deleteAll(Database &db);
+                   const columnRemap_t &columnRemap = columnRemap_t()) const;
+      void deleteAll(Database &db) const;
 
       SmartPointer<Statement>
-      makeWriteStmt(Database &db, const std::string &suffix = std::string());
+      makeWriteStmt(Database &db,
+                    const std::string &suffix = std::string()) const;
       SmartPointer<DB::Statement>
-      makeReadStmt(DB::Database &db, const std::string &suffix = std::string());
+      makeReadStmt(DB::Database &db,
+                   const std::string &suffix = std::string()) const;
     };
   }
 }

@@ -30,27 +30,49 @@
 
 \******************************************************************************/
 
-#ifndef CB_HTTP_ACLWEB_PAGE_HANDLER_H
-#define CB_HTTP_ACLWEB_PAGE_HANDLER_H
+#ifndef CBANG_THREAD_POOL_H
+#define CBANG_THREAD_POOL_H
 
-#include "WebPageHandler.h"
+#include "Thread.h"
+
+#include <cbang/SmartPointer.h>
+
+#include <vector>
 
 
 namespace cb {
-  class ACLSet;
+  class ThreadPool {
+    typedef std::vector<SmartPointer<Thread> > pool_t;
+    pool_t pool;
 
-  namespace HTTP {
-    class ACLWebPageHandler : public WebPageHandler {
-      const ACLSet &aclSet;
+  public:
+    ThreadPool(unsigned size);
+    virtual ~ThreadPool() {}
 
-    public:
-      ACLWebPageHandler(const ACLSet &aclSet) : aclSet(aclSet) {}
+    void start();
+    void stop();
+    void join();
+    void wait();
 
-      // From WebPageHandler
-      bool handlePage(WebContext &ctx, std::ostream &stream, const URI &uri);
-    };
-  }
+    void getStates(std::vector<Thread::state_t> &states) const;
+    void getIDs(std::vector<unsigned> &ids) const;
+    void getExitStatuses(std::vector<int> &statuses) const;
+
+    void cancel();
+    void kill(int signal);
+
+  protected:
+    /**
+     * This function should be overriden by sub classes and will be called
+     * by the running thread.
+     */
+    virtual void run() = 0;
+
+    typedef pool_t::const_iterator iterator;
+    iterator begin() const {return pool.begin();}
+    iterator end() const {return pool.end();}
+  };
 }
 
-#endif // CB_HTTP_ACLWEB_PAGE_HANDLER_H
+#endif // CBANG_THREAD_POOL_H
 

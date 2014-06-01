@@ -43,6 +43,7 @@
 #include <cbang/time/Time.h>
 #include <cbang/db/Database.h>
 #include <cbang/db/Transaction.h>
+#include <cbang/log/Logger.h>
 
 using namespace std;
 using namespace cb;
@@ -70,13 +71,13 @@ SessionManager::SessionManager(Options &options) :
 }
 
 
-SessionPtr SessionManager::getSessionCookie(WebContext &ctx) {
+SessionPtr SessionManager::getSessionCookie(WebContext &ctx) const {
   if (!ctx.getRequest().hasCookie(sessionCookie)) return 0;
   return getSession(ctx, ctx.getRequest().getCookie(sessionCookie));
 }
 
 
-void SessionManager::setSessionCookie(WebContext &ctx) {
+void SessionManager::setSessionCookie(WebContext &ctx) const {
   SessionPtr session = ctx.getSession();
 
   Cookie cookie(sessionCookie, session->getID(), "", "",
@@ -104,7 +105,8 @@ bool SessionManager::hasSession(const string &id) const {
 }
 
 
-SessionPtr SessionManager::getSession(WebContext &ctx, const std::string &_id) {
+SessionPtr SessionManager::getSession(WebContext &ctx,
+                                      const std::string &_id) const {
   string id = _id;
   if (id.empty()) id = ctx.getRequest().findCookie(sessionCookie);
   if (id.empty()) THROW("Session ID is not set");
@@ -114,9 +116,8 @@ SessionPtr SessionManager::getSession(WebContext &ctx, const std::string &_id) {
 
   SmartLock lock(this);
 
-  sessions_t::iterator it = sessions.find(id);
-  if (it == sessions.end()) THROWS("Session ID '" << id << "' does not exist");
-
+  iterator it = sessions.find(id);
+  if (it == end()) THROWS("Session ID '" << id << "' does not exist");
   SmartPointer<Session> session = it->second;
 
   // Check that IP address matches
@@ -132,7 +133,8 @@ SessionPtr SessionManager::getSession(WebContext &ctx, const std::string &_id) {
 }
 
 
-SessionPtr SessionManager::findSession(WebContext &ctx, const std::string &id) {
+SessionPtr SessionManager::findSession(WebContext &ctx,
+                                       const std::string &id) const {
   try {
     return getSession(ctx, id);
   } catch (const Exception &e) {
@@ -200,6 +202,7 @@ void SessionManager::load(DB::Database &db) {
   }
 
   // Replace current
+  SmartLock lock(this);
   this->sessions = sessions;
 
   // Update
@@ -207,7 +210,7 @@ void SessionManager::load(DB::Database &db) {
 }
 
 
-void SessionManager::save(DB::Database &db) {
+void SessionManager::save(DB::Database &db) const {
   if (!dirty) return;
   dirty = false;
 
@@ -218,7 +221,8 @@ void SessionManager::save(DB::Database &db) {
   table.deleteAll(db);
 
   // Write sessions
-  for (sessions_t::iterator it = sessions.begin(); it != sessions.end(); it++) {
+  SmartLock lock(this);
+  for (iterator it = begin(); it != end(); it++) {
     table.bindWriteStmt(writeStmt, *it->second);
     writeStmt->execute();
   }
@@ -229,7 +233,7 @@ void SessionManager::save(DB::Database &db) {
 
 void SessionManager::update() {
   // Cleanup old sessions
-  if ((sessionLifetime || sessionTimeout)) {
+  if (sessionLifetime || sessionTimeout) {
     SmartLock lock(this);
 
     uint64_t now = Time::now();
@@ -237,8 +241,7 @@ void SessionManager::update() {
       lastSessionCleanup = now;
 
       vector<string> remove;
-      sessions_t::iterator it;
-      for (it = sessions.begin(); it != sessions.end(); it++)
+      for (iterator it = begin(); it != end(); it++)
         if (it->second->getLastUsed() + sessionTimeout < now ||
             it->second->getCreationTime() + sessionLifetime < now)
           remove.push_back(it->first);

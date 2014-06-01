@@ -36,12 +36,13 @@
 #include "ConnectionQueue.h"
 
 #include <cbang/socket/SocketServer.h>
-
+#include <cbang/os/ThreadPool.h>
 #include <cbang/net/URI.h>
 #include <cbang/net/IPAddressFilter.h>
 
 #include <vector>
 #include <list>
+
 
 namespace cb {
   class SSLContext;
@@ -60,8 +61,7 @@ namespace cb {
       ConnectionQueue queue;
       bool queueConnections;
 
-      typedef std::vector<SmartPointer<Thread> > pool_t;
-      pool_t pool;
+      SmartPointer<ThreadPool> pool;
 
       typedef std::vector<Handler *> handlers_t;
       handlers_t handlers;
@@ -98,9 +98,9 @@ namespace cb {
       bool handleConnection(double timeout);
 
       void createThreadPool(unsigned size);
-      void startThreadPool();
-      void stopThreadPool();
-      void joinThreadPool();
+      void startThreadPool() {if (!pool.isNull()) pool->start();}
+      void stopThreadPool() {if (!pool.isNull()) pool->stop();}
+      void joinThreadPool() {if (!pool.isNull()) pool->join();}
 
       // From Thread
       void start();

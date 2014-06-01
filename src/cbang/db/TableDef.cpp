@@ -66,7 +66,7 @@ unsigned TableDef::getIndex(const std::string &column) const {
 }
 
 
-void TableDef::create(Database &db) {
+void TableDef::create(Database &db) const {
   ostringstream sql;
 
   sql << "CREATE TABLE IF NOT EXISTS \"" << name << "\" (";
@@ -88,7 +88,7 @@ void TableDef::create(Database &db) {
 }
 
 
-void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) {
+void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) const {
   // Parse existing structure
   string result;
   if (!db.execute(string("SELECT sql FROM sqlite_master WHERE name=\"") + name +
@@ -156,13 +156,13 @@ void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) {
 }
 
 
-void TableDef::deleteAll(Database &db) {
+void TableDef::deleteAll(Database &db) const {
   db.execute(string("DELETE FROM \"") + name + "\"");
 }
 
 
 SmartPointer<Statement>
-TableDef::makeWriteStmt(Database &db, const string &suffix) {
+TableDef::makeWriteStmt(Database &db, const string &suffix) const {
   ostringstream sql;
 
   sql << "REPLACE INTO \"" << name << "\" (";
@@ -187,7 +187,7 @@ TableDef::makeWriteStmt(Database &db, const string &suffix) {
 
 
 SmartPointer<Statement>
-TableDef::makeReadStmt(Database &db, const string &suffix) {
+TableDef::makeReadStmt(Database &db, const string &suffix) const {
   ostringstream sql;
 
   sql << "SELECT ";

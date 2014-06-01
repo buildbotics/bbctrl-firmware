@@ -30,27 +30,34 @@
 
 \******************************************************************************/
 
-#ifndef CB_HTTP_ACLWEB_PAGE_HANDLER_H
-#define CB_HTTP_ACLWEB_PAGE_HANDLER_H
+#ifndef CBANG_THREAD_POOL_FUNC_H
+#define CBANG_THREAD_POOL_FUNC_H
 
-#include "WebPageHandler.h"
+#include "ThreadPool.h"
 
 
 namespace cb {
-  class ACLSet;
+  template<class T, typename METHOD_T = void (T::*)()>
+  class ThreadPoolFunc : public ThreadPool {
+    T *obj;          // pointer to object
+    METHOD_T method; // pointer to method
 
-  namespace HTTP {
-    class ACLWebPageHandler : public WebPageHandler {
-      const ACLSet &aclSet;
+  public:
+    /**
+     * Construct a ThreadPool which will execute a method of class T.
+     *
+     * @param size The number of threads in the pool.
+     * @param obj The class instance.
+     * @param method A pointer to the method.
+     */
+    ThreadPoolFunc(unsigned size, T *obj, METHOD_T method) :
+      ThreadPool(size), obj(obj), method(method) {}
 
-    public:
-      ACLWebPageHandler(const ACLSet &aclSet) : aclSet(aclSet) {}
-
-      // From WebPageHandler
-      bool handlePage(WebContext &ctx, std::ostream &stream, const URI &uri);
-    };
-  }
+  private:
+    /// Passes the polymorphic call to run on to the target class.
+    virtual void run() {(*obj.*method)();}
+  };
 }
 
-#endif // CB_HTTP_ACLWEB_PAGE_HANDLER_H
+#endif // CBANG_THREAD_POOL_FUNC_H
 

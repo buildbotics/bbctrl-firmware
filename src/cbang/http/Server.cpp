@@ -44,6 +44,7 @@
 #include <cbang/socket/SocketDebugger.h>
 
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/os/ThreadPoolFunc.h>
 
 #include <cbang/log/Logger.h>
 #include <cbang/time/Time.h>
@@ -232,32 +233,12 @@ bool Server::handleConnection(double timeout) {
 
 
 void Server::createThreadPool(unsigned size) {
-  stopThreadPool();
-  pool.clear();
+  if (!pool.isNull()) pool->join();
 
   // Process connections via connection queue
   queueConnections = true;
 
-  for (unsigned i = 0; i < size; i++)
-    pool.push_back(new ThreadFunc<Server>(this, &Server::poolThread));
-}
-
-
-void Server::startThreadPool() {
-  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
-    (*it)->start();
-}
-
-
-void Server::stopThreadPool() {
-  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
-    (*it)->stop();
-}
-
-
-void Server::joinThreadPool() {
-  for (pool_t::iterator it = pool.begin(); it != pool.end(); it++)
-    (*it)->join();
+  pool = new ThreadPoolFunc<Server>(size, this, &Server::poolThread);
 }
 
 

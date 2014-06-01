@@ -31,8 +31,10 @@
 \******************************************************************************/
 
 #include "RWLock.h"
+#include "Thread.h"
 
 #include <cbang/Exception.h>
+#include <cbang/log/Logger.h>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -56,7 +58,8 @@ namespace cb {
   };
 };
 
-RWLock::RWLock() : p(new RWLock::private_t){
+
+RWLock::RWLock() : p(new RWLock::private_t) {
 #ifdef _WIN32
   InitializeSRWLock(&p->lock);
 
@@ -82,6 +85,8 @@ RWLock::~RWLock() {
 
 
 void RWLock::readLock() const {
+  LOG_DEBUG(5, "readLock() " << Thread::self());
+
 #ifdef _WIN32
   // TODO this only works in Vista+
   AcquireSRWLockShared(&p->lock);
@@ -89,10 +94,14 @@ void RWLock::readLock() const {
 #else // pthreads
   pthread_rwlock_rdlock(&p->lock);
 #endif
+
+  LOG_DEBUG(5, "readLock() " << Thread::self() << " acquired");
 }
 
 
 void RWLock::writeLock() const {
+  LOG_DEBUG(5, "writeLock() " << Thread::self());
+
 #ifdef _WIN32
   // TODO this only works in Vista+
   AcquireSRWLockExclusive(&p->lock);
@@ -100,10 +109,14 @@ void RWLock::writeLock() const {
 #else // pthreads
   pthread_rwlock_wrlock(&p->lock);
 #endif
+
+  LOG_DEBUG(5, "writeLock() " << Thread::self() << " acquired");
 }
 
 
 void RWLock::unlock() const {
+  LOG_DEBUG(5, "unlock() " << Thread::self());
+
 #ifdef _WIN32
   // TODO this only works in Vista+
   if (p->exclusive) ReleaseSRWLockExclusive(&p->lock);

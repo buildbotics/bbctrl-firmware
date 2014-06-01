@@ -30,27 +30,70 @@
 
 \******************************************************************************/
 
-#ifndef CB_HTTP_ACLWEB_PAGE_HANDLER_H
-#define CB_HTTP_ACLWEB_PAGE_HANDLER_H
+#include "ThreadPool.h"
 
-#include "WebPageHandler.h"
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  class ACLSet;
-
-  namespace HTTP {
-    class ACLWebPageHandler : public WebPageHandler {
-      const ACLSet &aclSet;
-
-    public:
-      ACLWebPageHandler(const ACLSet &aclSet) : aclSet(aclSet) {}
-
-      // From WebPageHandler
-      bool handlePage(WebContext &ctx, std::ostream &stream, const URI &uri);
-    };
-  }
+ThreadPool::ThreadPool(unsigned size) {
+  for (unsigned i = 0; i < size; i++)
+    pool.push_back(new ThreadFunc<ThreadPool>(this, &ThreadPool::run));
 }
 
-#endif // CB_HTTP_ACLWEB_PAGE_HANDLER_H
 
+void ThreadPool::start() {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->start();
+}
+
+
+void ThreadPool::stop() {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->stop();
+}
+
+
+void ThreadPool::join() {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->stop();
+
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->wait();
+}
+
+
+void ThreadPool::wait() {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->wait();
+}
+
+
+void ThreadPool::getStates(vector<Thread::state_t> &states) const {
+  for (iterator it = begin(); it != end(); it++)
+    states.push_back((*it)->getState());
+}
+
+
+void ThreadPool::getIDs(vector<unsigned> &ids) const {
+  for (iterator it = begin(); it != end(); it++)
+    ids.push_back((*it)->getID());
+}
+
+
+void ThreadPool::getExitStatuses(vector<int> &statuses) const {
+  for (iterator it = begin(); it != end(); it++)
+    statuses.push_back((*it)->getExitStatus());
+}
+
+
+void ThreadPool::cancel() {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->cancel();
+}
+
+
+void ThreadPool::kill(int signal) {
+  for (iterator it = begin(); it != end(); it++)
+    (*it)->kill(signal);
+}
