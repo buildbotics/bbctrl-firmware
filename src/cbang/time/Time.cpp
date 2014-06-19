@@ -86,7 +86,6 @@ const string Time::toString() const {
     THROWS("Failed to format time '" << time << "' with format '" << format
            << "': " << e.what());
   }
-
 }
 
 

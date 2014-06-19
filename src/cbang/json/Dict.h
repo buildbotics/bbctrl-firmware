@@ -59,6 +59,8 @@ namespace cb {
       Dict &getDict() {return *this;}
       const Dict &getDict() const {return *this;}
       unsigned size() const {return OrderedDict<ValuePtr>::size();}
+      const std::string &keyAt(unsigned i) const
+      {return OrderedDict<ValuePtr>::keyAt(i);}
       int indexOf(const std::string &key) const {return lookup(key);}
       const ValuePtr &get(unsigned i) const
       {return OrderedDict<ValuePtr>::get(i);}

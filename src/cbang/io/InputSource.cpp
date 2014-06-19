@@ -39,6 +39,8 @@
 #include <cbang/util/Resource.h>
 #include <cbang/buffer/BufferDevice.h>
 
+#include <sstream>
+
 using namespace std;
 using namespace cb;
 
@@ -80,4 +82,11 @@ streamsize InputSource::getLength() const {
   }
 
   return length;
+}
+
+
+string InputSource::toString() const {
+  ostringstream str;
+  SystemUtilities::cp(getStream(), str);
+  return str.str();
 }

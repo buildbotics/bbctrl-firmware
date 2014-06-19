@@ -33,7 +33,7 @@
 #ifndef CB_JS_LIBRARY_CONTEXT_H
 #define CB_JS_LIBRARY_CONTEXT_H
 
-#include "Library.h"
+#include "Value.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -46,17 +46,20 @@
 namespace cb {
   namespace js {
     class LibraryContext {
-      typedef std::map<std::string, SmartPointer<Library> > libs_t;
-      libs_t libs;
+      typedef std::map<std::string, Value> modules_t;
+      modules_t modules;
 
+      std::vector<std::string> paths;
       std::vector<std::string> current;
 
     public:
       std::ostream &out;
 
-      SmartPointer<Library> load(const std::string &path);
-
       LibraryContext(std::ostream &out) : out(out) {}
+
+      std::vector<std::string> &getPaths() {return paths;}
+
+      Value load(const std::string &path);
     };
   }
 }

@@ -52,6 +52,8 @@ namespace cb {
 
       void enter() {context->Enter();}
       void exit() {context->Exit();}
+
+      Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
     };
   }
 }

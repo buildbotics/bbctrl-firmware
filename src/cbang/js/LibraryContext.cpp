@@ -32,32 +32,48 @@
 
 #include "LibraryContext.h"
 
+#include "Script.h"
+#include "Context.h"
+
 #include <cbang/String.h>
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/io/InputSource.h>
 
 using namespace cb;
 using namespace cb::js;
 using namespace std;
 
 
-SmartPointer<Library> LibraryContext::load(const string &path) {
-  // Normalize path
-  string nPath = path; // TODO
+Value LibraryContext::load(const string &_path) {
+  string path = _path;
 
-  // Search already loaded libraries
-  libs_t::iterator it = libs.find(nPath);
-  if (it != libs.end()) return it->second;
+  // TODO Check if path is a core module
 
   // Check absolute/relative paths
   if (String::startsWith(path, "./") || String::startsWith(path, "/") ||
       String::startsWith(path, "../")) {
-    string cwd =
-      current.empty() ? "." : SystemUtilities::dirname(current.back());
 
+    if (!String::startsWith(path, "/") && !current.empty())
+      path = SystemUtilities::joinPath
+        (SystemUtilities::dirname(current.back()), path);
 
+    path = SystemUtilities::absolute(path);
+
+  } else {
+    // TODO Search paths
   }
 
-  // Check search TPL_PATH
+  // Search already loaded modules
+  modules_t::iterator it = modules.find(path);
+  if (it != modules.end()) return it->second;
 
-  return 0;
+  ObjectTemplate tmpl;
+  Context ctx(tmpl);
+  Script script(ctx, InputSource(path));
+  script.eval();
+
+  Value module = ctx.getGlobal();
+  modules[path] = module;
+
+  return module;
 }

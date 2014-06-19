@@ -61,6 +61,7 @@ namespace cb {
 
     virtual std::istream &getStream() const {return stream;}
     virtual std::streamsize getLength() const;
+    virtual std::string toString() const;
   };
 }
 

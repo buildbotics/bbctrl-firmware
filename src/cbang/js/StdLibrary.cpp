@@ -31,7 +31,6 @@
 \******************************************************************************/
 
 #include "StdLibrary.h"
-#include "ObjectTemplate.h"
 #include "LibraryContext.h"
 
 using namespace cb::js;
@@ -53,8 +52,5 @@ Value StdLibrary::print(const Arguments &args) {
 
 
 Value StdLibrary::require(const Arguments &args) {
-  SmartPointer<Library> lib = ctx.load(args.getString("path"));
-  ObjectTemplate obj;
-  lib->add(obj);
-  return obj.create();
+  return ctx.load(args.getString("path"));
 }

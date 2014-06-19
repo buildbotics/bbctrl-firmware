@@ -102,6 +102,8 @@ namespace cb {
       const Dict &getDict(unsigned i) const {return get(i)->getDict();}
 
       // Dict functions
+      virtual const std::string &keyAt(unsigned i) const
+      {CBANG_THROW("Not a Dict");}
       virtual int indexOf(const std::string &key) const
       {CBANG_THROW("Not a Dict");}
       bool has(const std::string &key) const {return indexOf(key) != -1;}

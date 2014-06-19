@@ -42,18 +42,12 @@ using namespace cb::js;
 
 Script::Script(Context &context, const string &s, const string &filename) :
   context(context) {
-  v8::HandleScope handleScope;
-  v8::Local<v8::String> source = v8::String::New(s.c_str(), s.length());
-  v8::Local<v8::String> origin;
+  load(s, filename);
+}
 
-  if (!filename.empty())
-    origin = v8::String::New(filename.c_str(), filename.length());
 
-  ContextScope contextScope(context);
-
-  v8::TryCatch tryCatch;
-  script = v8::Persistent<v8::Script>::New(v8::Script::Compile(source, origin));
-  if (tryCatch.HasCaught()) translateException(tryCatch);
+Script::Script(Context &context, const InputSource &source) : context(context) {
+  load(source.toString(), source.getName());
 }
 
 
@@ -68,6 +62,8 @@ Value Script::eval() {
   v8::TryCatch tryCatch;
   Value ret = script->Run();
   if (tryCatch.HasCaught()) translateException(tryCatch);
+
+  LOG_DEBUG(3, "Global: " << context.getGlobal().toString());
 
   return ret;
 }
@@ -89,4 +85,20 @@ void Script::translateException(const v8::TryCatch &tryCatch) {
   int col = message->GetStartColumn();
 
   throw Exception(msg, FileLocation(filename, line, col));
+}
+
+
+void Script::load(const string &s, const string &filename) {
+  v8::HandleScope handleScope;
+  v8::Local<v8::String> source = v8::String::New(s.c_str(), s.length());
+  v8::Local<v8::String> origin;
+
+  if (!filename.empty())
+    origin = v8::String::New(filename.c_str(), filename.length());
+
+  ContextScope contextScope(context);
+
+  v8::TryCatch tryCatch;
+  script = v8::Persistent<v8::Script>::New(v8::Script::Compile(source, origin));
+  if (tryCatch.HasCaught()) translateException(tryCatch);
 }

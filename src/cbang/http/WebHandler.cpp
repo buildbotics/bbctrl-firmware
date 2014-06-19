@@ -136,7 +136,7 @@ void WebHandler::evalOption(const Script::Context &ctx) {
 
 
 void WebHandler::errorPage(WebContext &ctx, StatusCode status,
-                          const string &message) const {
+                           const string &message) const {
   Connection &con = ctx.getConnection();
   Response &response = con.getResponse();
 

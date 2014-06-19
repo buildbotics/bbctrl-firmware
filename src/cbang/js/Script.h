@@ -54,11 +54,15 @@ namespace cb {
     public:
       Script(Context &context, const std::string &s,
              const std::string &filename = std::string());
+      Script(Context &context, const InputSource &source);
       ~Script();
 
       Value eval();
 
       static void translateException(const v8::TryCatch &tryCatch);
+
+    protected:
+      void load(const std::string &s, const std::string &filename);
     };
   }
 }
