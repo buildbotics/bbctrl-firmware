@@ -43,6 +43,8 @@ using namespace cb;
 
 namespace {
   uint8_t parseVersionPart(const std::string &part) {
+    if (part.empty()) THROW("Invalid version string, part is empty");
+    if (part.find_first_not_of("0") == string::npos) return 0;
     return String::parseU8(String::trimLeft(part, "0"));
   }
 }
