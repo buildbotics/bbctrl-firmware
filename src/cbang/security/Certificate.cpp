@@ -32,6 +32,7 @@
 
 #include "Certificate.h"
 
+#include "CertificateContext.h"
 #include "SSL.h"
 #include "KeyPair.h"
 #include "BIStream.h"
@@ -195,9 +196,11 @@ string Certificate::getExtension(const string &name) {
 }
 
 
-void Certificate::addExtension(const string &name, const string &value) {
+void Certificate::addExtension(const string &name, const string &value,
+                               CertificateContext *ctx) {
   X509_EXTENSION *ext =
-    X509V3_EXT_conf(0, 0, (char *)name.c_str(), (char *)value.c_str());
+    X509V3_EXT_conf(0, ctx ? ctx->getX509V3_CTX() : 0, (char *)name.c_str(),
+                    (char *)value.c_str());
   if (!ext) THROWS("Failed to create extension '" << name << "'='" << value
                   << "': " << SSL::getErrorStr());
 

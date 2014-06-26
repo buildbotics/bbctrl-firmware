@@ -43,6 +43,7 @@ typedef struct x509_st X509;
 
 namespace cb {
   class KeyPair;
+  class CertificateContext;
 
   class Certificate {
     X509 *cert;
@@ -77,7 +78,8 @@ namespace cb {
 
     bool hasExtension(const std::string &name);
     std::string getExtension(const std::string &name);
-    void addExtension(const std::string &name, const std::string &value);
+    void addExtension(const std::string &name, const std::string &value,
+                      CertificateContext *ctx = 0);
     static void addExtensionAlias(const std::string &alias,
                                   const std::string &name);
 
