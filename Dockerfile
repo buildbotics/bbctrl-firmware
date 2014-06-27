@@ -5,7 +5,8 @@ FROM debian:testing
 MAINTAINER Joseph Coffland <joseph@cauldrondevelopment.com>
 
 # Get the prerequisites
-RUN apt-get install -y scons git build-essential libssl-dev \
+RUN apt-get update && \
+  apt-get install -y scons git build-essential libssl-dev \
   libboost-iostreams-dev libboost-system-dev libboost-filesystem-dev \
   libboost-regex-dev libv8-dev
 
