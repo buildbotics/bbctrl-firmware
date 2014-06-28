@@ -4,7 +4,6 @@ Builds an OSX distribution package
 
 import os
 import shutil
-from xml.etree.ElementTree import ElementTree, Element, SubElement
 
 from SCons.Script import *
 
@@ -34,6 +33,7 @@ def build_function(target, source, env):
         else: raise Exception, 'Missing %s' % infofile
 
     # Create distribution.dist
+    from xml.etree.ElementTree import ElementTree, Element, SubElement
     root = Element('installer-script', {'minSpecVersion': '1.0'})
 
     if env.get('distpkg_root_volume_only', False): rootVolumeOnly = 'false'
