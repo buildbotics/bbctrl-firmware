@@ -8,6 +8,16 @@ from SCons.Action import CommandAction
 deps = ['nsi', 'pkg', 'distpkg', 'app', 'deb', 'rpm']
 
 
+# Older versions of Python don't have shutil.ignore_patterns()
+def ignore_patterns(*patterns):
+    def _ignore_patterns(path, names):
+        ignored_names = []
+        for pattern in patterns:
+            ignored_names.extend(fnmatch.filter(names, pattern))
+        return set(ignored_names)
+    return _ignore_patterns
+
+
 def recursive_zip(path, archive, ignores):
     if os.path.isdir(path): names = os.listdir(path)
     else:
@@ -25,7 +35,7 @@ def recursive_zip(path, archive, ignores):
 
 
 def ZipDir(env, target, source):
-    ignores = shutil.ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
+    ignores = ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
     zip = zipfile.ZipFile(target, 'w')
     recursive_zip(source, zip, ignores)
     zip.close()
@@ -186,12 +196,12 @@ def resolve_file_map(sources, target, ignores = None, mode = None):
 
 
 def ResolvePackageFileMap(env, sources, target):
-    ignores = shutil.ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
+    ignores = ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
     return resolve_file_map(sources, target, ignores)
 
 
 def CopyToPackage(env, sources, target, perms = 0644, dperms = 0755):
-    ignores = shutil.ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
+    ignores = ignore_patterns(*env.get('PACKAGE_EXCLUDES'))
 
     for src, dst, mode in resolve_file_map(sources, target, ignores):
         print 'installing "%s" to "%s"' % (src, dst)
