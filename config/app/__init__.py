@@ -4,7 +4,6 @@ Builds an OSX application bundle
 
 import os
 import shutil
-import plistlib
 import shlex
 
 from SCons.Script import *
@@ -22,6 +21,7 @@ def build_function(target, source, env):
     for d in (contents_dir, resources_dir, macos_dir): os.makedirs(d, 0775)
 
     # Create Info.plist
+    import plistlib
     plist_template = env.get('app_plist_template', None)
     if plist_template is not None: info = plistlib.readPlist(plist_template)
     else: info = {}
