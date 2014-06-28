@@ -4,7 +4,6 @@ Builds an OSX distribution package
 
 import os
 import shutil
-import plistlib
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 
 from SCons.Script import *
@@ -30,6 +29,7 @@ def build_function(target, source, env):
     for p in packages:
         infofile = os.path.join(p, 'Contents/Info.plist')
         if os.path.exists(infofile):
+            import plistlib
             pkg_info.append(plistlib.readPlist(infofile))
         else: raise Exception, 'Missing %s' % infofile
 
