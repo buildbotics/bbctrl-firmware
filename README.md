@@ -155,3 +155,23 @@ build system like this:
 
 Then rebuild C! as above.  Other versions of boost greater or equal to 1.40
 may also work.
+
+## Problems with V8
+
+C! does not work with the latest version of Google's Javascript engine because
+they have made incompatible changes to the API.  C! is known to work with V8
+version 3.14.  You can build from source like this:
+
+    svn co http://v8.googlecode.com/svn/branches/3.14 v8
+    cd v8
+    make dependencies
+    make release werror=no
+    mkdir lib
+    cp out/ia32.release/obj.target/tools/gyp/*.a lib
+    export V8_HOME=$PWD
+
+The build may emit a lot of warnings but *werror=no* prevents the compiler from
+treating them as errors. The last three commands copy the compiled libraries to
+a place where C! can find them and set the environment variable *V8_HOME* to
+point to the build directory.  You must then build C! in the same terminal or
+set *V8_HOME* to the correct value before running scons.
