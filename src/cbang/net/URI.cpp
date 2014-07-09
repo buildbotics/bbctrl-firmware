@@ -300,9 +300,12 @@ char URI::parseEscape(const char *&s) {
 
 
 void URI::parseAbsPath(const char *&s) {
-  path.append(1, match(s, '/'));
-  parsePathSegment(s);
-  if (*s == '/') parseAbsPath(s);
+  match(s, '/');
+
+  do {
+    path.append(1, '/');
+    parsePathSegment(s);
+  } while (consume(s, '/'));
 }
 
 
