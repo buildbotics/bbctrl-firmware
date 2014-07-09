@@ -40,6 +40,11 @@ using namespace std;
 using namespace cb;
 
 
+IPAddressRange IPRangeSet::get(unsigned i) const {
+  return IPAddressRange(rangeSet.at(i * 2), rangeSet.at(i * 2 + 1));
+}
+
+
 void IPRangeSet::insert(const string &spec) {
   vector<string> tokens;
   String::tokenize(spec, tokens, " \r\n\t,;");

@@ -56,6 +56,8 @@ namespace cb {
 
     void clear() {rangeSet.clear();}
     bool empty() {return rangeSet.empty();}
+    unsigned size() {return rangeSet.size() / 2;}
+    IPAddressRange get(unsigned i) const;
 
     void insert(const std::string &spec);
     void insert(const IPAddressRange &range);
