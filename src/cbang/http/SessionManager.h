@@ -43,6 +43,7 @@
 
 namespace cb {
   class Options;
+  class LevelDB;
 
   namespace DB {class Database;}
 
@@ -86,6 +87,9 @@ namespace cb {
       void create(DB::Database &db);
       void load(DB::Database &db);
       void save(DB::Database &db) const;
+
+      void load(LevelDB db);
+      void save(LevelDB db) const;
 
       void update();
 

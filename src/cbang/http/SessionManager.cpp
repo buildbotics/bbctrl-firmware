@@ -43,6 +43,7 @@
 #include <cbang/time/Time.h>
 #include <cbang/db/Database.h>
 #include <cbang/db/Transaction.h>
+#include <cbang/db/LevelDB.h>
 #include <cbang/log/Logger.h>
 
 using namespace std;
@@ -228,6 +229,45 @@ void SessionManager::save(DB::Database &db) const {
   }
 
   db.commit();
+}
+
+
+void SessionManager::load(LevelDB db) {
+  sessions_t sessions;
+
+  // Load sessions
+  LevelDB nsDB = db.ns("session:");
+
+  for (LevelDB::Iterator it = nsDB.begin(); it.valid(); it++) {
+    SmartPointer<Session> session = factory->createSession(it.key());
+    session->parse(it.value());
+    sessions.insert(sessions_t::value_type(session->getID(), session));
+  }
+
+  // Replace current
+  SmartLock lock(this);
+  this->sessions = sessions;
+
+  // Update
+  update();
+}
+
+
+void SessionManager::save(LevelDB db) const {
+  if (!dirty) return;
+  dirty = false;
+
+  LevelDB nsDB = db.ns("session:");
+  LevelDB::Batch batch = nsDB.batch();
+
+  // Delete old sessions
+  for (LevelDB::Iterator it = nsDB.begin(); it.valid(); it++)
+    batch.erase(it.key());
+
+  // Write sessions
+  SmartLock lock(this);
+  for (iterator it = begin(); it != end(); it++)
+    nsDB.set(it->second->getID(), SSTR(*it->second));
 }
 
 
