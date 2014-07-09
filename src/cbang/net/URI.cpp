@@ -35,25 +35,6 @@
 #include <cbang/String.h>
 #include <cbang/Exception.h>
 
-#include <boost/version.hpp>
-
-#if (BOOST_VERSION < 103600)
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/actor/assign_actor.hpp>
-#include <boost/spirit/actor/insert_at_actor.hpp>
-#include <boost/spirit/actor/clear_actor.hpp>
-
-using namespace boost::spirit;
-
-#else
-#include <boost/spirit/include/classic_core.hpp>
-#include <boost/spirit/include/classic_assign_actor.hpp>
-#include <boost/spirit/include/classic_insert_at_actor.hpp>
-#include <boost/spirit/include/classic_clear_actor.hpp>
-
-using namespace boost::spirit::classic;
-#endif
-
 #include <sstream>
 
 #include <ctype.h>
@@ -62,35 +43,69 @@ using namespace boost::spirit::classic;
 using namespace cb;
 using namespace std;
 
-typedef rule<scanner<string::const_iterator> > rule_t;
 
-static const rule_t reserved =
-  ch_p(';') | '/' | '?' | ':' | '@' | '&' | '=' | '+' | '$' | ',';
-
-static const rule_t unreserved =
-  alnum_p | '-' | '_' | '.' | '!' | '~' | '*' | '\'' | '(' | ')';
-
-static const rule_t escaped = ch_p('%') >> xdigit_p >> xdigit_p;
-
-static const rule_t uric = reserved | unreserved | escaped;
-
-static const rule_t user_pass =
-  *(unreserved | escaped | ';' | '&' | '=' | '+' | '$' | ',');
-
-static const rule_t name_char =
-  unreserved | escaped | ';' | '/' | '?' | ':' | '@' | '+' | '$' | ',';
-
-static const rule_t value_char =
-  name_char | '=';
-
-static const rule_t segment =
-  *(unreserved | escaped | ':' | '@' | '&' | '=' | '+' | '$' | ',');
-
-static const rule_t path_segments = segment >> *(ch_p('/') >> segment);
+#define DIGIT_CHARS        "1234567890"
+#define HEX_CHARS          DIGIT_CHARS "abcdefABCDEF"
+#define LOWER_CHARS        "abcdefghijklmnopqrstuvwxyz"
+#define UPPER_CHARS        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#define ALPHA_CHARS        LOWER_CHARS UPPER_CHARS
+#define ALPHANUMERIC_CHARS ALPHA_CHARS DIGIT_CHARS
+#define RESERVED_CHARS     ";/?:@&=+$,"
+#define UNRESERVED_CHARS   ALPHANUMERIC_CHARS "-_.!~*'()"
+#define USER_PASS_CHARS    UNRESERVED_CHARS ";&=+$,"
+#define NAME_CHARS         UNRESERVED_CHARS ";/?:@+$,"
+#define VALUE_CHARS        NAME_CHARS "="
+#define PATH_SEGMENT_CHARS UNRESERVED_CHARS ":@&=+$,"
+#define HOST_CHARS         ALPHANUMERIC_CHARS "-."
+#define SCHEME_CHARS       ALPHANUMERIC_CHARS "+-."
 
 
-URI::URI() : port(0) {
+namespace {
+  int hexToInt(char x) {
+    return isdigit(x) ? x - '0' : ((islower(x) ? x - 'a' : x - 'A') + 10);
+  }
+
+
+  char nibblesToChar(char a, char b) {
+    return (char)((hexToInt(a) << 4) + hexToInt(b));
+  }
+
+
+  bool isUnreserved(char c) {
+    switch (c) {
+    case '-': case '_': case '.': case '!': case '~': case '*': case '\'':
+    case '(': case ')': return true;
+    default: if (isalnum(c)) return true;
+    }
+
+    return false;
+  }
+
+
+  char match(const char *&s, char c) {
+    if (*s != c) THROWS("Expected '" << c << "'");
+    s++;
+    return c;
+  }
+
+
+  bool consume(const char *&s, char c) {
+    if (*s == c) s++;
+    else return false;
+    return true;
+  }
+
+
+  bool contains(const char *s, char c) {
+    return c && strchr(s, c);
+  }
 }
+
+
+const char *URI::DEFAULT_UNESCAPED = UNRESERVED_CHARS "/";
+
+
+URI::URI() : port(0) {}
 
 
 URI::URI(const string &uri) : port(0) {
@@ -137,37 +152,32 @@ const string URI::getQuery() const {
 }
 
 
-namespace {
-  struct assign_decoded {
-    string &target;
-
-    assign_decoded(string &target) : target(target) {}
-
-    void operator()(string::const_iterator first,
-                    string::const_iterator last) const {
-      target = URI::decode(string(first, last));
-    }
-  };
+void URI::setQuery(const string &query) {
+  setQuery(query.c_str());
 }
 
 
-void URI::setQuery(const string &query) {
-  string key;
-  string value;
+void URI::setQuery(const char *query) {
+  StringMap::clear(); // Reset query string vars
+  const char *s = query;
 
-  clear(); // Reset query string vars
+  try {
+    parseQuery(s);
+  } catch (const Exception &e) {
+    THROWS("Failed to parse URI query at char " << (s - query) << ": "
+           << e.getMessage());
+  }
+}
 
-  rule_t pair =
-    ((+name_char)[assign_decoded(key)][clear_a(value)] >>
-     !(ch_p('=') >> (*value_char)[assign_decoded(value)]))
-    [insert_at_a(*this, key, value)];
 
-  rule_t parser = pair >> *(ch_p('&') >> pair);
-
-  parse_info<string::const_iterator> info =
-    parse(query.begin(), query.end(), parser);
-
-  if (!info.full) THROWS("Invalid URI query '" << query << "'");
+void URI::clear() {
+  StringMap::clear();
+  scheme.clear();
+  host.clear();
+  port = 0;
+  path.clear();
+  user.clear();
+  pass.clear();
 }
 
 
@@ -181,48 +191,34 @@ void URI::normalize() {
 
 
 void URI::read(const string &uri) {
+  read(uri.c_str());
+}
+
+
+void URI::read(const char *uri) {
   // See RFC2396
   // Does not support:
   //   opaque URI data (Section 3)
   //   registry-based naming (Section 3.2.1)
   //   path parameters (Section 3.3)
 
-  clear(); // Reset query string vars
+  clear(); // Reset all
 
-  rule_t scheme =
-    (alpha_p >> *(alnum_p | '+' | '-' | '.'))[assign_a(this->scheme)] >> ':';
+  const char *s = uri;
+  try {
+    if (!*s) THROW("Cannot be empty");
 
-  bool haveUserInfo = false;
-  rule_t userinfo =
-    user_pass[assign_a(user)] >> !(':' >> user_pass[assign_a(pass)]);
+    if (*s == '/') parseAbsPath(s);
+    else {
+      parseScheme(s);
+      parseNetPath(s);
+      if (*s == '?') parseQuery(s);
+    }
 
-  rule_t host = +(alnum_p | '-' | '.');
-
-  rule_t hostport =
-    host[assign_a(this->host)] >> !(':' >> !(uint_p[assign_a(this->port)]));
-
-  rule_t authority =
-    !(userinfo >> '@')[assign_a(haveUserInfo, true)] >> hostport;
-
-  rule_t abs_path = (ch_p('/') >> path_segments)[assign_a(path)];
-
-  rule_t net_path = (strlit<>("//") | ch_p('/')) >> authority >> !abs_path;
-
-  string queryStr;
-  rule_t query = ch_p('?') >> (*uric)[assign_a(queryStr)];
-
-  rule_t parser = ((scheme >> net_path) | abs_path) >> !query;
-
-  parse_info<string::const_iterator> info =
-    parse(uri.begin(), uri.end(), parser);
-
-  if (!info.full) THROWS("Invalid URI '" << uri << "'");
-
-  if (!haveUserInfo) {
-    setUser("");
-    setPass("");
+  } catch (const Exception &e) {
+    THROWS("Failed to parse URI at char " << (s - uri) << ": "
+           << e.getMessage());
   }
-  if (!queryStr.empty()) setQuery(queryStr);
 }
 
 
@@ -231,15 +227,15 @@ ostream &URI::write(ostream &stream) const {
   if (!host.empty()) {
     stream << "//";
 
-    if (!user.empty()) stream << encode(user);
-    if (!pass.empty()) stream << ':' << encode(pass);
+    if (!user.empty()) stream << encode(user, USER_PASS_CHARS);
+    if (!pass.empty()) stream << ':' << encode(pass, USER_PASS_CHARS);
     if (!user.empty() || !pass.empty()) stream << '@';
 
-    stream << encode(host);
+    stream << encode(host, HOST_CHARS);
     if (port) stream << ':' << port;
   }
 
-  stream << encode(path);
+  stream << encode(path, PATH_SEGMENT_CHARS "/");
 
   if (!empty()) stream << '?';
 
@@ -251,8 +247,8 @@ ostream &URI::writeQuery(ostream &stream) const {
   for (const_iterator it = begin(); it != end(); it++) {
     if (it != begin()) stream << '&';
 
-    stream << encode(it->first);
-    if (!it->second.empty()) stream << '=' << encode(it->second);
+    stream << encode(it->first, NAME_CHARS);
+    if (!it->second.empty()) stream << '=' << encode(it->second, VALUE_CHARS);
   }
 
   return stream;
@@ -266,36 +262,165 @@ string URI::toString() const {
 }
 
 
-string URI::encode(const string &s) {
-  const char *not_escaped = "-_.!~*'()/";
-  ostringstream str;
+string URI::encode(const string &s, const char *unescaped) {
+  string result;
 
   for (unsigned i = 0; i < s.length(); i++)
-    if (isalnum(s[i]) || strchr(not_escaped, s[i])) str << s[i];
-    else str << String::printf("%%%02x", (unsigned)s[i]);
+    if (contains(unescaped, s[i])) result.append(1, s[i]);
+    else result.append(String::printf("%%%02x", (unsigned)s[i]));
 
-  return str.str();
-}
-
-
-int URI::hex2digit(char x) {
-  return isdigit(x) ? x - '0' : ((islower(x) ? x - 'a' : x - 'A') + 10);
+  return result;
 }
 
 
 string URI::decode(const string &s) {
-  string result(s.length(), ' ');
-  unsigned len = 0;
+  string result;
 
   for (unsigned i = 0; i < s.length(); i++)
     if (s[i] == '%' && i < s.length() - 2 &&
         isxdigit(s[i + 1]) && isxdigit(s[i + 2])) {
-      result[len++] = (char)((hex2digit(s[i + 1]) << 4) + hex2digit(s[i + 2]));
+      result.append(1, nibblesToChar(s[i + 1], s[i + 2]));
       i += 2;
 
-    } else result[len++] = s[i];
+    } else result.append(1, s[i]);
 
-  result.resize(len);
+  return result;
+}
+
+
+char URI::parseEscape(const char *&s) {
+  match(s, '%');
+
+  char a, b;
+  if (!isxdigit(a = *s++) || !isxdigit(b = *s++))
+    THROW("Expected hexadecimal digit in escape sequence");
+
+  return nibblesToChar(a, b);
+}
+
+
+void URI::parseAbsPath(const char *&s) {
+  path.append(1, match(s, '/'));
+  parsePathSegment(s);
+  if (*s == '/') parseAbsPath(s);
+}
+
+
+void URI::parsePathSegment(const char *&s) {
+  while (true)
+    if (contains(PATH_SEGMENT_CHARS, *s)) path.append(1, *s++);
+    else if (*s == '%') path.append(1, parseEscape(s));
+    else break;
+}
+
+
+void URI::parseScheme(const char *&s) {
+  if (!isalpha(*s)) THROW("Expected alpha at start of scheme");
+
+  while (true)
+    if (contains(SCHEME_CHARS, *s)) scheme.append(1, *s++);
+    else break;
+
+  match(s, ':');
+}
+
+
+void URI::parseNetPath(const char *&s) {
+  match(s, '/');
+  consume(s, '/');
+  parseAuthority(s);
+  if (*s == '/') parseAbsPath(s);
+}
+
+
+void URI::parseAuthority(const char *&s) {
+  // Try parsing user info
+  const char *save = s;
+  parseUserInfo(s);
+  if (!consume(s, '@')) {
+    // Backtrack, wasn't user info
+    s = save;
+    user.clear();
+    pass.clear();
+  }
+
+  parseHost(s);
+  if (consume(s, ':')) parsePort(s);
+}
+
+
+string URI::parseUserPass(const char *&s) {
+  string result;
+
+  while (true)
+    if (contains(USER_PASS_CHARS, *s)) result.append(1, *s++);
+    else if (*s == '%') result.append(1, parseEscape(s));
+    else break;
+
+  return result;
+}
+
+
+void URI::parseUserInfo(const char *&s) {
+  user = parseUserPass(s);
+  if (consume(s, ':')) pass = parseUserPass(s);
+}
+
+
+void URI::parseHost(const char *&s) {
+  while (true)
+    if (contains(HOST_CHARS, *s)) host.append(1, *s++);
+    else break;
+
+  if (host.empty()) THROW("Expected host character");
+}
+
+
+void URI::parsePort(const char *&s) {
+  string result;
+
+  while (isdigit(*s)) result.append(1, *s++);
+
+  if (result.empty()) return;
+  port = String::parseU32(result);
+}
+
+
+void URI::parseQuery(const char *&s) {
+  match(s, '?');
+  parsePair(s);
+  while (consume(s, '&')) parsePair(s);
+}
+
+
+void URI::parsePair(const char *&s) {
+  string name = parseName(s);
+  string value = consume(s, '=') ? parseValue(s) : "";
+  set(name, value);
+}
+
+
+string URI::parseName(const char *&s) {
+  string result;
+
+  while (true)
+    if (contains(NAME_CHARS, *s)) result.append(1, *s++);
+    else if (*s == '%') result.append(1, parseEscape(s));
+    else break;
+
+  if (result.empty()) THROW("Expected query name character");
+
+  return result;
+}
+
+
+string URI::parseValue(const char *&s) {
+  string result;
+
+  while (true)
+    if (contains(VALUE_CHARS, *s)) result.append(1, *s++);
+    else if (*s == '%') result.append(1, parseEscape(s));
+    else break;
 
   return result;
 }

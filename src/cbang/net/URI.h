@@ -48,6 +48,8 @@ namespace cb {
     std::string pass;
 
   public:
+    static const char *DEFAULT_UNESCAPED;
+
     URI();
     URI(const std::string &uri);
     URI(const char *uri);
@@ -67,20 +69,39 @@ namespace cb {
     void setUser(const std::string &user) {this->user = user;}
     void setPass(const std::string &pass) {this->pass = pass;}
     void setQuery(const std::string &query);
+    void setQuery(const char *query);
 
+    void clear();
     void normalize();
 
-    void read(const std::string &data);
+    void read(const std::string &s);
+    void read(const char *s);
     std::ostream &write(std::ostream &stream) const;
     std::ostream &writeQuery(std::ostream &stream) const;
 
     std::string toString() const;
     operator std::string() const {return toString();}
 
-    static int hex2digit(char x);
-    static std::string encode(const std::string &s);
+    static std::string encode(const std::string &s,
+                              const char *unescaped = DEFAULT_UNESCAPED);
     static std::string decode(const std::string &s);
-  };
+
+  protected:
+    char parseEscape(const char *&s);
+    void parseAbsPath(const char *&s);
+    void parsePathSegment(const char *&s);
+    void parseScheme(const char *&s);
+    void parseNetPath(const char *&s);
+    void parseAuthority(const char *&s);
+    std::string parseUserPass(const char *&s);
+    void parseUserInfo(const char *&s);
+    void parseHost(const char *&s);
+    void parsePort(const char *&s);
+    void parseQuery(const char *&s);
+    void parsePair(const char *&s);
+    std::string parseName(const char *&s);
+    std::string parseValue(const char *&s);
+ };
 
   inline std::ostream &operator<<(std::ostream &stream, const URI &uri) {
     return uri.write(stream);

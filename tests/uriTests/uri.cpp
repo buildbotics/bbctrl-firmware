@@ -35,8 +35,8 @@ int main(int argc, char *argv[]) {
 
         cout << "}";
 
-      } catch (Exception) {
-        cout << "INVALID";
+      } catch (const Exception &e) {
+        cout << "INVALID: " << e.getMessage() << endl;
       }
 
       cout << endl;
