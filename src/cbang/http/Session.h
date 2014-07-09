@@ -37,6 +37,7 @@
 #include <cbang/time/Time.h>
 #include <cbang/os/Mutex.h>
 #include <cbang/net/IPAddress.h>
+#include <cbang/json/Serializable.h>
 
 #include <string>
 
@@ -44,7 +45,7 @@ namespace cb {
   namespace HTTP {
     class SessionsTable;
 
-    class Session : public Mutex {
+    class Session : public Mutex, public JSON::Serializable {
       std::string id;
       uint64_t creationTime;
       uint64_t lastUsed;
@@ -72,6 +73,10 @@ namespace cb {
 
       const IPAddress &getIP() const {return ip;}
       void setIP(const IPAddress &ip) {this->ip = ip;}
+
+      // From JSON::Serializable
+      void read(const JSON::Value &value);
+      void write(JSON::Sync &sync) const;
     };
 
     typedef SmartPointer<Session>::Protected SessionPtr;
