@@ -109,6 +109,7 @@ IPAddressRange::IPAddressRange(IPAddress start, IPAddress end) {
 
 
 string IPAddressRange::toString() const {
+  if (start == end) return start.toString();
   return start.toString() + "-" + end.toString();
 }
 
