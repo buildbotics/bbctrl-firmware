@@ -34,6 +34,7 @@
 
 #include <cbang/String.h>
 #include <cbang/Exception.h>
+#include <cbang/log/Logger.h>
 
 #include <sstream>
 
@@ -212,8 +213,8 @@ void URI::read(const char *uri) {
     else {
       parseScheme(s);
       parseNetPath(s);
-      if (*s == '?') parseQuery(s);
     }
+    if (consume(s, '?')) parseQuery(s);
 
   } catch (const Exception &e) {
     THROWS("Failed to parse URI at char " << (s - uri) << ": "
@@ -390,7 +391,7 @@ void URI::parsePort(const char *&s) {
 
 
 void URI::parseQuery(const char *&s) {
-  match(s, '?');
+  if (!*s) return; // Empty query
   parsePair(s);
   while (consume(s, '&')) parsePair(s);
 }

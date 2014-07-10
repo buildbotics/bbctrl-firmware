@@ -101,7 +101,8 @@ namespace cb {
     void parsePair(const char *&s);
     std::string parseName(const char *&s);
     std::string parseValue(const char *&s);
- };
+  };
+
 
   inline std::ostream &operator<<(std::ostream &stream, const URI &uri) {
     return uri.write(stream);
