@@ -41,6 +41,7 @@
 
 #include <string>
 #include <ostream>
+#include <typeinfo>
 
 
 namespace cb {
@@ -68,6 +69,8 @@ namespace cb {
       virtual int64_t toInteger() const {THROW("Cannot convert to integer");}
       virtual double toReal() const {THROW("Cannot convert to real");}
       virtual void *toObject() const {THROW("Cannot convert to object");}
+      virtual const std::type_info &getTypeID() const
+      {THROW("Cannot convert to object");}
       virtual SmartPointer<Value> parse(const std::string &value)
       {THROW("Cannot parse from string");}
 
@@ -185,6 +188,8 @@ namespace cb {
       void *toObject() const {return value.get();}
       SmartPointer<Value> parse(const std::string &value)
       {return new Object(T::parse(value));}
+      const std::type_info &getTypeID() const {return typeid(T);}
+      int compare(const Value &v) const {return Value::compare(v);}
     };
 
 
@@ -248,7 +253,13 @@ namespace cb {
     double toReal() const {return value->toReal();}
 
     template <typename T>
-    T &toObject() const {return *static_cast<T *>(value->toObject());}
+    T &toObject() const {
+      if (!instanceOf<T>()) THROW("Invalid cast");
+      return *static_cast<T *>(value->toObject());
+    }
+
+    template <typename T>
+    bool instanceOf() const {return typeid(T) == value->getTypeID();}
 
     template <typename T>
     Variant &operator=(T value) {set(value); return *this;}
