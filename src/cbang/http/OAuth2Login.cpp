@@ -91,7 +91,8 @@ bool OAuth2Login::handlePage(WebContext &ctx, ostream &stream, const URI &uri) {
 
   try {
     if (session.isNull() ||
-        (uri.has("state") && uri.get("state") != session->getID())) {
+        (uri.has("state") && uri.get("state") != session->getID()) ||
+        (!uri.has("state") && session->getUser().empty())) {
       session = sessionManager->openSession(ctx);
       sid = session->getID();
 
@@ -154,8 +155,13 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   const URI &uri = request.getURI();
 
   // Check that SID matches state (Confirm anti-forgery state token)
-  if (!uri.has("code") || !uri.has("state") || uri.get("state") != state)
+  if (!uri.has("code") || !uri.has("state") || uri.get("state") != state) {
+    LOG_DEBUG(3, "Failed anti-forgery check: uri code="
+              << (uri.has("code") ? uri.get("code") : "<null>") << " uri state="
+              << (uri.has("state") ? uri.get("state") : "<null>")
+              << " server state=" << state);
     THROWCS("Failed anti-forgery check", StatusCode::HTTP_UNAUTHORIZED);
+  }
 
   // Check config
   if (clientID.empty())
@@ -179,7 +185,7 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   postURI.set("redirect_uri", redirectBase + request.getURI().getPath());
   postURI.set("grant_type", "authorization_code");
   string data = postURI.getQuery();
-  postURI.clear();
+  postURI.setQuery("");
 
   LOG_DEBUG(5, "Token URI: " << postURI);
   LOG_DEBUG(5, "Token Query: " << data);
