@@ -263,7 +263,7 @@ void SocketDefaultImpl::connect(const IPAddress &ip) {
   LOG_INFO(3, "Connecting to " << ip);
 
   try {
-    static struct sockaddr_in sin;
+    struct sockaddr_in sin;
     memset(&sin, 0, sizeof(sin));
 
     sin.sin_family = AF_INET;
@@ -287,7 +287,7 @@ void SocketDefaultImpl::connect(const IPAddress &ip) {
 
 
 streamsize SocketDefaultImpl::write(const char *data, streamsize length,
-                                  unsigned flags) {
+                                    unsigned flags) {
   if (!isOpen()) THROW("Socket not open");
   if (!length) return 0;
 
