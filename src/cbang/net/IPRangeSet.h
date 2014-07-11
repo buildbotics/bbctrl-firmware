@@ -65,6 +65,7 @@ namespace cb {
     void erase(const IPAddressRange &range);
     bool contains(const IPAddress &ip) const {return find(ip) & 1;}
 
+    std::string toString() const;
     void print(std::ostream &stream) const;
     void write(JSON::Sync &sync) const;
 

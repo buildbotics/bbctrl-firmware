@@ -33,6 +33,7 @@
 #include <cbang/net/IPRangeSet.h>
 
 #include <cbang/String.h>
+#include <cbang/SStream.h>
 #include <cbang/Zap.h>
 #include <cbang/json/Sync.h>
 
@@ -117,6 +118,11 @@ void IPRangeSet::erase(const IPAddressRange &range) {
 
   if (startInside) rangeSet[startPos] = start - 1;
   if (endInside) rangeSet[endPos - 1] = end + 1;
+}
+
+
+string IPRangeSet::toString() const {
+  return SSTR(*this);
 }
 
 
