@@ -30,6 +30,8 @@
 
 \******************************************************************************/
 
+#ifdef HAVE_LEVELDB
+
 #include "LevelDB.h"
 
 #include <cbang/Exception.h>
@@ -338,3 +340,5 @@ leveldb::WriteOptions LevelDB::getWriteOptions(int options) {
 
   return opts;
 }
+
+#endif // HAVE_LEVELDB

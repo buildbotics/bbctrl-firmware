@@ -34,6 +34,9 @@ def configure_deps(conf, local = True):
     conf.CBConfig('XML', not local)
     conf.CBConfig('sqlite3', not local)
 
+    if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
+        env.CBDefine('HAVE_LEVELDB')
+
     if not ConfigBoost(conf) and not local:
         env.ConfigLocalBoost()
         ConfigBoost(conf, True)

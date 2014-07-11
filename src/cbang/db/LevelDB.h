@@ -30,6 +30,7 @@
 
 \******************************************************************************/
 
+#ifdef HAVE_LEVELDB
 #ifndef CB_LEVEL_DB_H
 #define CB_LEVEL_DB_H
 
@@ -182,4 +183,4 @@ namespace cb {
 }
 
 #endif // CB_LEVEL_DB_H
-
+#endif // HAVE_LEVELDB
