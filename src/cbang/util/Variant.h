@@ -185,6 +185,7 @@ namespace cb {
       // From Value
       type_t getType() const {return OBJECT_TYPE;}
       bool toBoolean() const {return !value.isNull();}
+      std::string toString() const {return value->toString();}
       void *toObject() const {return value.get();}
       SmartPointer<Value> parse(const std::string &value)
       {return new Object(T::parse(value));}
@@ -266,9 +267,9 @@ namespace cb {
 
     int compare(const Variant &v) const {return value->compare(*v.value);}
 
-    bool operator<(const Variant &v) const {return compare(v) < 0;}
+    bool operator< (const Variant &v) const {return compare(v) <  0;}
     bool operator<=(const Variant &v) const {return compare(v) <= 0;}
-    bool operator>(const Variant &v) const {return compare(v) > 0;}
+    bool operator> (const Variant &v) const {return compare(v) >  0;}
     bool operator>=(const Variant &v) const {return compare(v) >= 0;}
     bool operator==(const Variant &v) const {return compare(v) == 0;}
     bool operator!=(const Variant &v) const {return compare(v) != 0;}

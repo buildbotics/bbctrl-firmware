@@ -42,7 +42,8 @@ SmartPointer<Variant::Value> Variant::null = new Variant::Null;
 
 
 int Variant::Value::compare(const Value &v) const {
-  if (getType() == STRING_TYPE || v.getType() == STRING_TYPE)
+  if (getType() == STRING_TYPE || v.getType() == STRING_TYPE ||
+      getType() == OBJECT_TYPE || v.getType() == OBJECT_TYPE)
     return strcmp(toString().c_str(), v.toString().c_str());
 
   if (getType() == REAL_TYPE || v.getType() == REAL_TYPE)
