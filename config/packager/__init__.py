@@ -10,6 +10,7 @@ deps = ['nsi', 'pkg', 'distpkg', 'app', 'deb', 'rpm']
 
 # Older versions of Python don't have shutil.ignore_patterns()
 def ignore_patterns(*patterns):
+    import fnmatch
     def _ignore_patterns(path, names):
         ignored_names = []
         for pattern in patterns:
