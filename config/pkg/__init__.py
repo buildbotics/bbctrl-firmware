@@ -38,7 +38,7 @@ def build_function(target, source, env):
            ]
     if 'pkg_scripts' in env: cmd += ['--scripts', env.get('pkg_scripts')]
     if 'pkg_plist' in env: cmd += ['--component-plist', env.get('pkg_plist')]
-    cmd += [root_dir + '/%s.pkg' % env.get('package_name')]
+    cmd += [build_dir + '/%s.pkg' % env.get('package_name')]
 
     env.RunCommand(cmd)
 
