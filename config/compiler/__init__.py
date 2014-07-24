@@ -497,8 +497,8 @@ def generate(env):
         ('prefer_dynamic', 'Libraries where the dynamic version is prefered, ' +
          'regardless of "mostly_static"', ''),
         ('num_jobs', 'Set the concurrency level.', -1),
-        ('osx_min_ver', 'Set minimum support OSX version.', '10.5'),
-        ('osx_sdk_root', 'Set OSX SDK root.', '/Developer/SDKs/MacOSX10.5.sdk'),
+        ('osx_min_ver', 'Set minimum support OSX version.', '10.6'),
+        ('osx_sdk_root', 'Set OSX SDK root.', None),
         ('osx_archs', 'Set OSX gcc target architectures.', 'x86_64'),
         EnumVariable('win32_thread', 'Windows thread mode.', 'static',
                      allowed_values = ('static', 'dynamic'))
