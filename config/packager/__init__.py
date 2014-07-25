@@ -5,7 +5,7 @@ import zipfile
 from SCons.Script import *
 from SCons.Action import CommandAction
 
-deps = ['nsi', 'pkg', 'distpkg', 'app', 'deb', 'rpm']
+deps = ['nsi', 'pkg', 'distpkg', 'flatdistpkg', 'app', 'deb', 'rpm']
 
 
 # Older versions of Python don't have shutil.ignore_patterns()
@@ -271,7 +271,11 @@ def Packager(env, name, **kwargs):
 
         return (app, pkg)
 
-    elif type == 'mpkg': return env.DistPkg(target, [], **kwargs)
+    elif type == 'mpkg':
+        if 'distpkg_components' in kwargs:
+            return env.FlatDistPkg(target, [], **kwargs)
+        else:
+            return env.DistPkg(target, [], **kwargs)
     elif type == 'deb': return env.Deb(target, [], **kwargs)
     elif type == 'rpm': return env.RPM(target, [], **kwargs)
 
@@ -303,6 +307,7 @@ def generate(env):
     env.CBLoadTool('nsi')
     env.CBLoadTool('pkg')
     env.CBLoadTool('distpkg')
+    env.CBLoadTool('flatdistpkg')
     env.CBLoadTool('app')
     env.CBLoadTool('deb')
     env.CBLoadTool('rpm')
