@@ -232,6 +232,7 @@ void SessionManager::save(DB::Database &db) const {
 }
 
 
+#ifdef HAVE_LEVELDB
 void SessionManager::load(LevelDB db) {
   sessions_t sessions;
 
@@ -269,6 +270,7 @@ void SessionManager::save(LevelDB db) const {
   for (iterator it = begin(); it != end(); it++)
     nsDB.set(it->second->getID(), SSTR(*it->second));
 }
+#endif // HAVE_LEVELDB
 
 
 void SessionManager::update() {

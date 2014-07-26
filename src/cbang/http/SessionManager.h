@@ -88,8 +88,10 @@ namespace cb {
       void load(DB::Database &db);
       void save(DB::Database &db) const;
 
+#ifdef HAVE_LEVELDB
       void load(LevelDB db);
       void save(LevelDB db) const;
+#endif // HAVE_LEVELDB
 
       void update();
 
