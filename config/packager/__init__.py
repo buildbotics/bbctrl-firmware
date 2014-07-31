@@ -5,11 +5,12 @@ import zipfile
 from SCons.Script import *
 from SCons.Action import CommandAction
 
-deps = ['nsi', 'pkg', 'distpkg', 'app', 'deb', 'rpm']
+deps = ['nsi', 'pkg', 'distpkg', 'flatdistpkg', 'app', 'deb', 'rpm']
 
 
 # Older versions of Python don't have shutil.ignore_patterns()
 def ignore_patterns(*patterns):
+    import fnmatch
     def _ignore_patterns(path, names):
         ignored_names = []
         for pattern in patterns:
@@ -270,7 +271,11 @@ def Packager(env, name, **kwargs):
 
         return (app, pkg)
 
-    elif type == 'mpkg': return env.DistPkg(target, [], **kwargs)
+    elif type == 'mpkg':
+        if 'distpkg_components' in kwargs:
+            return env.FlatDistPkg(target, [], **kwargs)
+        else:
+            return env.DistPkg(target, [], **kwargs)
     elif type == 'deb': return env.Deb(target, [], **kwargs)
     elif type == 'rpm': return env.RPM(target, [], **kwargs)
 
@@ -283,12 +288,26 @@ def generate(env):
             ('package_arch', 'Clean package architecture'),
             )
 
+    if env['PLATFORM'] == 'darwin': env.CBAddVariables(
+            # put sign_* in scons-options.py
+            # if not sign_keychain, the default (login) keychain will be used
+            # if not sign_id_installer, productsign will be skipped
+            # sign_id_app is required for sign_apps and sign_tools
+            # sign_prefix is required for sign_tools
+            # global; cannot currently be overridden per-component
+            ('sign_keychain', 'Keychain that has signatures'),
+            ('sign_id_installer', 'Installer signature name'),
+            ('sign_id_app', 'Application/Tool signature name'),
+            ('sign_prefix', 'codesign identifier prefix'),
+            )
+
     env.SetDefault(PACKAGE_EXCLUDES = ['.svn', '.sconsign.dblite',
                                        '.sconf_temp', '*~', '*.o', '*.obj'])
 
     env.CBLoadTool('nsi')
     env.CBLoadTool('pkg')
     env.CBLoadTool('distpkg')
+    env.CBLoadTool('flatdistpkg')
     env.CBLoadTool('app')
     env.CBLoadTool('deb')
     env.CBLoadTool('rpm')

@@ -38,7 +38,7 @@ def build_function(target, source, env):
            ]
     if 'pkg_scripts' in env: cmd += ['--scripts', env.get('pkg_scripts')]
     if 'pkg_plist' in env: cmd += ['--component-plist', env.get('pkg_plist')]
-    cmd += [root_dir + '/%s.pkg' % env.get('package_name')]
+    cmd += [build_dir + '/%s.pkg' % env.get('package_name')]
 
     env.RunCommand(cmd)
 
@@ -54,8 +54,18 @@ def build_function(target, source, env):
         f.close()
 
     # productbuild command
-    cmd = ['${PRODUCTBUILD}', '--package-path', root_dir]
-    if dist: cmd += ['--distribution', dist]
+    cmd = ['${PRODUCTBUILD}']
+    if dist:
+        cmd += ['--distribution', dist]
+        cmd += ['--package-path', build_dir]
+    else:
+        print "WARNING: No distribution specified. Attempting to build " \
+          "using --root. Package will not have Resources and will put " \
+          "wrong package id in receipts."
+        cmd += ['--root', root_dir, env.get('pkg_install_to', '/'),
+                '--id', env.get('pkg_id'),
+                '--version', env.get('version')]
+        if 'pkg_scripts' in env: cmd += ['--scripts', env.get('pkg_scripts')]
     if 'pkg_resources' in env:
         cmd += ['--resources', env.get('pkg_resources')]
     if 'sign_id_installer' in env:
