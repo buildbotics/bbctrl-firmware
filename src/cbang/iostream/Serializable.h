@@ -30,54 +30,46 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_TIME_H
-#define CBANG_TIME_H
+#ifndef CB_SERIALIZABLE_H
+#define CB_SERIALIZABLE_H
 
-#include <cbang/StdTypes.h>
-#include <ostream>
-#include <string>
+#include <iostream>
+#include <sstream>
+
 
 namespace cb {
-  /**
-   * Used for printing and parsing times.  Should be 64-bit everywhere and
-   * there for safe past year 2038.
-   *
-   * E.g.  cout << Time(Time::now() + Time::SEC_PER_HOUR, "%H:%M:%S") << endl;
-   */
-  class Time {
-    const std::string format;
-    uint64_t time;
-
+  class Serializable {
   public:
-    static const char *defaultFormat;
+    virtual ~Serializable() {}
 
-    static const unsigned SEC_PER_MIN;
-    static const unsigned SEC_PER_HOUR;
-    static const unsigned SEC_PER_DAY;
-    static const unsigned SEC_PER_YEAR;
+    virtual void read(std::istream &stream) = 0;
+    virtual void write(std::ostream &stream) const = 0;
 
-    /// @param time In seconds since Janary 1st, 1970
-    Time(uint64_t time = ~(uint64_t)0,
-         const std::string &format = defaultFormat);
-    Time(const std::string &format);
+    virtual std::string toString() const {
+      std::ostringstream str;
+      write(str);
+      return str.str();
+    }
 
-    std::string toString() const;
-    operator std::string () const {return toString();}
-    operator uint64_t () const {return time;}
+    virtual void parse(const std::string &s) {
+      std::istringstream str(s);
+      read(str);
+    }
+  };
 
-    static Time parse(const std::string &s,
-                      const std::string &format = defaultFormat);
 
-    /// Get current time in seconds since Janary 1st, 1970.
-    static uint64_t now();
+  inline static
+  std::ostream &operator<<(std::ostream &stream, const Serializable &s) {
+    s.write(stream);
+    return stream;
+  }
 
-    // UTC offset in seconds
-    static int32_t offset();
- };
-
-  inline std::ostream &operator<<(std::ostream &stream, const Time &t) {
-    return stream << t.toString();
+  inline static
+  std::istream &operator>>(std::istream &stream, Serializable &s) {
+    s.read(stream);
+    return stream;
   }
 }
 
-#endif // CBANG_TIME_H
+#endif // CB_SERIALIZABLE_H
+

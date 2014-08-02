@@ -165,6 +165,10 @@ namespace CBANG_ENUM_NAMESPACE {
 #define CBANG_ENUM_ALIAS(alias, target)
       }
 
+      try {
+        return (enum_t)String::parseU32(s);
+      } catch (const Exception &e) {}
+
       if (defaultValue != (enum_t)~0) return defaultValue;
       THROWS("'" << String::escapeC(s) << "' not in "
              CBANG_STRING(CBANG_ENUM_NAME) " enumeration");

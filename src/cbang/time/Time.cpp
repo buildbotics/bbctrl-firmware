@@ -68,7 +68,7 @@ Time::Time(uint64_t time, const string &format) :
 Time::Time(const string &format) : format(format), time(now()) {}
 
 
-const string Time::toString() const {
+string Time::toString() const {
   if (!time) return "<invalid>";
 
   try {

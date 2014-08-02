@@ -84,10 +84,21 @@ IPAddress::IPAddress(const string &host, uint16_t port) :
 const string &IPAddress::getHost() const {
   if (host.empty())
     const_cast<IPAddress *>(this)->host =
-      String(ip >> 24) + "." + String((ip >> 16) & 0xff) + "." +
-      String((ip >> 8) & 0xff) + "." + String(ip & 0xff);
+      String::printf("%d.%d.%d.%d", ip >> 24, (ip >> 16) & 0xff,
+                     (ip >> 8) & 0xff, ip & 0xff);
 
   return host;
+}
+
+
+bool IPAddress::hasHost() const {
+  return !host.empty() &&
+    host.find_first_not_of("1234567890. \t\n\r") != string::npos;
+}
+
+
+void IPAddress::lookupHost() {
+  host = hostFromIP(*this);
 }
 
 
@@ -154,7 +165,9 @@ unsigned IPAddress::ipsFromString(const string &host, vector<IPAddress> &addrs,
 }
 
 
-const string IPAddress::hostFromIP(const IPAddress &ip) {
+string IPAddress::hostFromIP(const IPAddress &ip) {
+  if (ip.hasHost()) return ip.getHost();
+
   // Force 127.0.0.1 to localhost
   if (ip.getIP() == 0x7f000001) return "localhost";
 

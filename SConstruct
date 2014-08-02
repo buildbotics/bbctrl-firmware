@@ -119,15 +119,16 @@ install.append(env.Install(dir = prefix + '/share/doc/cbang', source = docs))
 env.Alias('install', install)
 
 
-# .deb Package
-if env.GetPackageType() == 'deb':
-    arch = env.GetPackageArch()
-    pkg = 'libcbang%s_%s_%s.deb' % (libversion, version, arch)
-    dev = 'libcbang%s-dev_%s_%s.deb' % (libversion, version, arch)
+if 'package' in COMMAND_LINE_TARGETS:
+    # .deb Package
+    if env.GetPackageType() == 'deb':
+        arch = env.GetPackageArch()
+        pkg = 'libcbang%s_%s_%s.deb' % (libversion, version, arch)
+        dev = 'libcbang%s-dev_%s_%s.deb' % (libversion, version, arch)
 
-    env['ENV']['DEB_DEST_DIR'] = '1'
-    cmd = env.Command([pkg, dev], libs, 'fakeroot debian/rules binary')
-    env.Alias('package', cmd)
+        env['ENV']['DEB_DEST_DIR'] = '1'
+        cmd = env.Command([pkg, dev], libs, 'fakeroot debian/rules binary')
+        env.Alias('package', cmd)
 
-    # Write package.txt
-    env.WriteStringToFile('package.txt', [pkg, dev])
+        # Write package.txt
+        env.WriteStringToFile('package.txt', [pkg, dev])

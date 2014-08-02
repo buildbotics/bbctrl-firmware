@@ -33,10 +33,7 @@
 #ifndef CB_JSON_SERIALIZABLE_H
 #define CB_JSON_SERIALIZABLE_H
 
-#include <cbang/SStream.h>
-
-#include <iostream>
-#include <sstream>
+#include <cbang/iostream/Serializable.h>
 
 
 namespace cb {
@@ -44,27 +41,16 @@ namespace cb {
     class Value;
     class Sync;
 
-    class Serializable {
+    class Serializable : public cb::Serializable {
     public:
-      virtual ~Serializable() {}
-
       virtual void read(const Value &value) = 0;
       virtual void write(Sync &sync) const = 0;
 
-      virtual void read(std::istream &stream);
-      virtual void write(std::ostream &stream) const;
-
-      std::string toString() const {
-        std::ostringstream str;
-        write(str);
-        return str.str();
-      }
-
-      void parse(const std::string &s) {
-        std::istringstream str(s);
-        read(str);
-      }
+      // From cb::Serializable
+      void read(std::istream &stream);
+      void write(std::ostream &stream) const;
     };
+
 
     inline static
     Sync &operator<<(Sync &sync, const Serializable &s) {
@@ -76,18 +62,6 @@ namespace cb {
     const Value &operator>>(const Value &value, Serializable &s) {
       s.read(value);
       return value;
-    }
-
-    inline static
-    std::ostream &operator<<(std::ostream &stream, const Serializable &s) {
-      s.write(stream);
-      return stream;
-    }
-
-    inline static
-    std::istream &operator>>(std::istream &stream, Serializable &s) {
-      s.read(stream);
-      return stream;
     }
   }
 }

@@ -53,6 +53,8 @@ namespace cb {
     IPAddress(const std::string &host, uint16_t port);
 
     const std::string &getHost() const;
+    bool hasHost() const;
+    void lookupHost();
 
     uint32_t getIP() const;
 
@@ -78,7 +80,7 @@ namespace cb {
     static unsigned ipsFromString(const std::string &host,
                                   std::vector<IPAddress> &addrs,
                                   uint16_t port = 0, unsigned max = 0);
-    static const std::string hostFromIP(const IPAddress &ip);
+    static std::string hostFromIP(const IPAddress &ip);
     static uint16_t portFromString(const std::string &host);
   };
 
