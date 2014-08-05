@@ -144,6 +144,11 @@ LevelDB::Batch::Batch(const SmartPointer<leveldb::DB> &db,
 LevelDB::Batch::~Batch() {}
 
 
+LevelDB::Batch LevelDB::Batch::ns(const std::string &name) {
+  return Batch(db, batch, getNS() + name);
+}
+
+
 void LevelDB::Batch::clear() {
   batch->Clear();
 }
@@ -156,6 +161,12 @@ void LevelDB::Batch::set(const string &key, const string &value) {
 
 void LevelDB::Batch::erase(const string &key) {
   batch->Delete(nsKey(key));
+}
+
+
+void LevelDB::Batch::eraseAll(int options) {
+  Iterator it(db->NewIterator(getReadOptions(options)), getNS());
+  for (it.first(); it.valid(); it++) erase(it.key());
 }
 
 
@@ -263,6 +274,12 @@ void LevelDB::set(const string &key, const string &value, int options) {
 
 void LevelDB::erase(const string &key, int options) {
   check(db->Delete(getWriteOptions(options), nsKey(key)), key);
+}
+
+
+void LevelDB::eraseAll(int options) {
+  for (Iterator it = begin(); it.valid(); it++)
+    erase(it.key(), options);
 }
 
 

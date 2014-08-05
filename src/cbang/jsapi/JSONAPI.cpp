@@ -73,7 +73,9 @@ bool JSONAPI::handlePage(HTTP::WebContext &ctx, ostream &stream,
 
   } else con.getResponse().setContentType("application/json");
 
-  JSON::Writer writer(con, 0, true);
+  JSON::Writer writer(con, 0, !uri.has("pretty"),
+                      uri.has("python_mode") ? JSON::Writer::PYTHON_MODE :
+                      JSON::Writer::JSON_MODE);
 
   try {
     // Parse JSON data

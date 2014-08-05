@@ -139,9 +139,12 @@ namespace cb {
             const std::string &name);
       ~Batch();
 
+      Batch ns(const std::string &name);
+
       void clear();
       void set(const std::string &key, const std::string &value);
       void erase(const std::string &key);
+      void eraseAll(int options = 0);
       void commit(int options = 0);
     };
 
@@ -166,6 +169,7 @@ namespace cb {
                     const std::string &defaultValue, int options = 0) const;
     void set(const std::string &key, const std::string &value, int options = 0);
     void erase(const std::string &key, int options = 0);
+    void eraseAll(int options = 0);
 
     Iterator iterator(int options = 0) const;
     Iterator begin(int options = 0) const;
