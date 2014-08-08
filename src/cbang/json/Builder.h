@@ -61,6 +61,7 @@ namespace cb {
       void beginAppend();
       void endList();
       void beginDict(bool simple = false);
+      bool has(const std::string &key) const;
       void beginInsert(const std::string &key);
       void endDict();
 

@@ -39,6 +39,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <set>
 
 
 namespace cb {
@@ -74,6 +75,8 @@ namespace cb {
       bool simple;
       mode_t mode;
       std::vector<ValueType> stack;
+      typedef std::set<std::string> keys_t;
+      std::vector<keys_t> keyStack;
       bool first;
       bool canWrite;
 
@@ -94,6 +97,7 @@ namespace cb {
       void beginAppend();
       void endList();
       void beginDict(bool simple = false);
+      bool has(const std::string &key) const;
       void beginInsert(const std::string &key);
       void endDict();
 

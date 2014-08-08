@@ -92,6 +92,12 @@ void Builder::beginDict(bool simple) {
 }
 
 
+bool Builder::has(const string &key) const {
+  if (stack.empty() || !stack.back()->isDict()) THROW("Not a Dict");
+  return stack.back()->has(key);
+}
+
+
 void Builder::beginInsert(const string &key) {
   assertNotPending();
   nextKey = key;

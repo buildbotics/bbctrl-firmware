@@ -43,55 +43,67 @@
 #endif // DEBUG
 
 
-#define CBANG_CATCH_CBANG(LOG, MSG)                                     \
+#define CBANG_CATCH_CBANG(LEVEL, MSG)                                   \
   catch (const cb::Exception &e) {                                      \
-    LOG("Exception" << MSG << ": " << e CBANG_CATCH_LOCATION);          \
+    CBANG_LOG_LEVEL(LEVEL, "Exception" << MSG << ": "                   \
+                    << e CBANG_CATCH_LOCATION);                         \
   }
 
-#define CBANG_CATCH_STD(LOG, MSG)                                   \
-  catch (const std::exception &e) {                                 \
-    LOG("std::exception" << MSG << ": " << e.what()                 \
-        CBANG_CATCH_LOCATION);                                      \
+#define CBANG_CATCH_STD(LEVEL, MSG)                                     \
+  catch (const std::exception &e) {                                     \
+    CBANG_LOG_LEVEL(LEVEL, "std::exception" << MSG << ": " << e.what()  \
+                    CBANG_CATCH_LOCATION);                              \
   }
 
-#define CBANG_CATCH_UNKNOWN(LOG, MSG)                               \
-  catch (...) {                                                     \
-    LOG("unknown exception" << MSG CBANG_CATCH_LOCATION);           \
+#define CBANG_CATCH_UNKNOWN(LEVEL, MSG)                                 \
+  catch (...) {                                                         \
+    CBANG_LOG_LEVEL(LEVEL, "unknown exception" << MSG CBANG_CATCH_LOCATION); \
   }
 
 
-#define CBANG_CATCH_ALL(LOG, MSG)                                   \
-  CBANG_CATCH_CBANG(LOG, MSG)                                       \
-  CBANG_CATCH_STD(LOG, MSG)                                         \
-  CBANG_CATCH_UNKNOWN(LOG, MSG)
+#define CBANG_CATCH_ALL(LEVEL, MSG)                                   \
+  CBANG_CATCH_CBANG(LEVEL, MSG)                                       \
+  CBANG_CATCH_STD(LEVEL, MSG)                                         \
+  CBANG_CATCH_UNKNOWN(LEVEL, MSG)
 
-#define CBANG_CATCH_CS(LOG, MSG)                                    \
-  CBANG_CATCH_CBANG(LOG, MSG)                                       \
-  CBANG_CATCH_STD(LOG, MSG)
+#define CBANG_CATCH_CS(LEVEL, MSG)                                    \
+  CBANG_CATCH_CBANG(LEVEL, MSG)                                       \
+  CBANG_CATCH_STD(LEVEL, MSG)
 
 
 #ifdef DEBUG
-#define CBANG_CATCH(LOG, MSG) CBANG_CATCH_CBANG(LOG, MSG)
+#define CBANG_CATCH(LEVEL, MSG) CBANG_CATCH_CBANG(LEVEL, MSG)
 #else // DEBUG
-#define CBANG_CATCH(LOG, MSG) CBANG_CATCH_ALL(LOG, MSG)
+#define CBANG_CATCH(LEVEL, MSG) CBANG_CATCH_ALL(LEVEL, MSG)
 #endif // DEBUG
 
-#define CBANG_TRY_CATCH(LOG, EXPR, MSG) try {EXPR;} CBANG_CATCH(LOG, MSG)
+#define CBANG_TRY_CATCH(LEVEL, EXPR, MSG) try {EXPR;} CBANG_CATCH(LEVEL, MSG)
 
-#define CBANG_CATCH_ERROR CBANG_CATCH(CBANG_LOG_ERROR, "")
-#define CBANG_CATCH_WARNING CBANG_CATCH(CBANG_LOG_WARNING, "")
+#define CBANG_CATCH_ERROR CBANG_CATCH(CBANG_LOG_ERROR_LEVEL, "")
+#define CBANG_CATCH_WARNING CBANG_CATCH(CBANG_LOG_WARNING_LEVEL, "")
+#define CBANG_CATCH_INFO(LEVEL) CBANG_CATCH(CBANG_LOG_INFO_LEVEL(LEVEL), "")
+#define CBANG_CATCH_DEBUG(LEVEL) CBANG_CATCH(CBANG_LOG_DEBUG_LEVEL(LEVEL), "")
 
-#define CBANG_TRY_CATCH_ERROR(EXPR) CBANG_TRY_CATCH(CBANG_LOG_ERROR, EXPR, "")
-#define CBANG_TRY_CATCH_WARNING(EXPR) \
-  CBANG_TRY_CATCH(CBANG_LOG_WARNING, EXPR, "")
+#define CBANG_TRY_CATCH_ERROR(EXPR)                 \
+  CBANG_TRY_CATCH(CBANG_LOG_ERROR_LEVEL, EXPR, "")
+#define CBANG_TRY_CATCH_WARNING(EXPR)                   \
+  CBANG_TRY_CATCH(CBANG_LOG_WARNING_LEVEL, EXPR, "")
+#define CBANG_TRY_CATCH_INFO(LEVEL, EXPR)                   \
+  CBANG_TRY_CATCH(CBANG_LOG_INFO_LEVEL(LEVEL), EXPR, "")
+#define CBANG_TRY_CATCH_DEBUG(LEVEL, EXPR)                  \
+  CBANG_TRY_CATCH(CBANG_LOG_DEBUG_LEVEL(LEVEL), EXPR, "")
 
 #ifdef USING_CBANG
-#define CATCH(LOG, MSG) CBANG_CATCH(LOG, MSG)
+#define CATCH(LEVEL, MSG) CBANG_CATCH(LEVEL, MSG)
 #define CATCH_ERROR CBANG_CATCH_ERROR
 #define CATCH_WARNING CBANG_CATCH_WARNING
-#define TRY_CATCH(LOG, EXPR, MSG) CBANG_TRY_CATCH(LOG, EXPR, MSG)
+#define CATCH_INFO(LEVEL) CBANG_CATCH_INFO(LEVEL)
+#define CATCH_DEBUG(LEVEL) CBANG_CATCH_DEBUG(LEVEL)
+#define TRY_CATCH(LEVEL, EXPR, MSG) CBANG_TRY_CATCH(LEVEL, EXPR, MSG)
 #define TRY_CATCH_ERROR(EXPR) CBANG_TRY_CATCH_ERROR(EXPR)
 #define TRY_CATCH_WARNING(EXPR) CBANG_TRY_CATCH_WARNING(EXPR)
+#define TRY_CATCH_INFO(LEVEL, EXPR) CBANG_TRY_CATCH_INFO(LEVEL, EXPR)
+#define TRY_CATCH_DEBUG(LEVEL, EXPR) CBANG_TRY_CATCH_DEBUG(LEVEL, EXPR)
 #endif // USING_CBANG
 
 #endif // DEFAULT_CATCH_H

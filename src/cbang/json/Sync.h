@@ -47,25 +47,21 @@ namespace cb {
       virtual ~Sync() {}
 
       // Element functions
-      virtual void writeNull() {CBANG_THROW("Cannot write Null");}
-      virtual void writeBoolean(bool value)
-      {CBANG_THROW("Cannot write Boolean");}
-      virtual void write(double value) {CBANG_THROW("Cannot write Number");}
-      virtual void write(const std::string &value)
-      {CBANG_THROW("Cannot write String");}
+      virtual void writeNull() = 0;
+      virtual void writeBoolean(bool value) = 0;
+      virtual void write(double value) = 0;
+      virtual void write(const std::string &value) = 0;
 
       // List functions
-      virtual void beginList(bool simple = false)
-      {CBANG_THROW("Cannot begin List");}
-      virtual void beginAppend() {CBANG_THROW("Not a List");}
-      virtual void endList() {CBANG_THROW("Not a List");}
+      virtual void beginList(bool simple = false) = 0;
+      virtual void beginAppend() = 0;
+      virtual void endList() = 0;
 
       // Dict functions
-      virtual void beginDict(bool simple = false)
-      {CBANG_THROW("Cannot begin Dict");}
-      virtual void beginInsert(const std::string &key)
-      {CBANG_THROW("Not a Dict");}
-      virtual void endDict() {CBANG_THROW("Not a Dict");}
+      virtual void beginDict(bool simple = false) = 0;
+      virtual bool has(const std::string &key) const = 0;
+      virtual void beginInsert(const std::string &key) = 0;
+      virtual void endDict() = 0;
 
       // List functions
       void appendNull() {beginAppend(); writeNull();}

@@ -70,6 +70,8 @@ namespace cb {
     bool adjacent(const IPAddressRange &range) const;
     void add(const IPAddressRange &range);
 
+    bool operator<(const IPAddressRange &range) const;
+
   protected:
     static IPAddress parseIP(const char *&s);
   };

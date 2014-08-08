@@ -335,7 +335,7 @@ void Connection::process() {
       utilBuf.clear();
       return;
 
-    } CBANG_CATCH(LOG_ERROR, ": " << *this);
+    } CBANG_CATCH(LOG_ERROR_LEVEL, ": " << *this);
 
     // Error occured
     fail(StatusCode::HTTP_INTERNAL_SERVER_ERROR);

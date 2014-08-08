@@ -54,7 +54,7 @@ namespace cb {
 
       return 0;
 
-    } CBANG_CATCH_CBANG(CBANG_LOG_ERROR, "");
+    } CBANG_CATCH_CBANG(CBANG_LOG_ERROR_LEVEL, "");
 
     return 1;
   }

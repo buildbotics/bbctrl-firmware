@@ -125,15 +125,23 @@ void Writer::beginDict(bool simple) {
   this->simple = simple;
   stream << "{";
   stack.push_back(ValueType::JSON_DICT);
+  keyStack.push_back(keys_t());
   level++;
   first = true;
   canWrite = false;
 }
 
 
+bool Writer::has(const string &key) const {
+  if (stack.empty() || stack.back() != ValueType::JSON_DICT)
+    THROW("Not a Dict");
+  return keyStack.back().find(key) != keyStack.back().end();
+}
+
+
 void Writer::beginInsert(const string &key) {
   assertWriteNotPending();
-  if (stack.back() != ValueType::JSON_DICT) THROW("Not a Dict");
+  if (has(key)) THROWS("Key '" << key << "' already written to output");
 
   if (first) first = false;
   else {
@@ -150,6 +158,8 @@ void Writer::beginInsert(const string &key) {
   write(key);
   stream << ": ";
 
+  keyStack.back().insert(key);
+
   canWrite = true;
 }
 
@@ -161,6 +171,7 @@ void Writer::endDict() {
     THROW("Not a Dict");
 
   stack.pop_back();
+  keyStack.pop_back();
   level--;
 
   if (!isCompact() && !first) {

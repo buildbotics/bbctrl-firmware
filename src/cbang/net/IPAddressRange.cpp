@@ -139,6 +139,14 @@ void IPAddressRange::add(const IPAddressRange &range) {
 }
 
 
+bool IPAddressRange::operator<(const IPAddressRange &range) const {
+  if (start.getIP() < range.start.getIP()) return true;
+  if (range.start.getIP() < start.getIP()) return false;
+  if (end.getIP() < range.end.getIP()) return true;
+  return false;
+}
+
+
 IPAddress IPAddressRange::parseIP(const char *&s) {
   char buf[16];
   unsigned i = 0;

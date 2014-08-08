@@ -243,7 +243,7 @@ void Thread::starter() {
       exitStatus = -1;
       throw;
     }
-  } CBANG_CATCH(LOG_ERROR, ": In thread " << id);
+  } CBANG_CATCH(LOG_ERROR_LEVEL, ": In thread " << id);
 
   state = THREAD_DONE;
 }

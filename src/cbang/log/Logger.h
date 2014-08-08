@@ -194,7 +194,11 @@ namespace cb {
 #define CBANG_LOG_DOMAIN __FILE__
 #endif
 
-// Compute DEBUG and INFO levels
+// Log levels
+#define CBANG_LOG_RAW_LEVEL      cb::Logger::LEVEL_RAW
+#define CBANG_LOG_ERROR_LEVEL    cb::Logger::LEVEL_ERROR
+#define CBANG_LOG_CRITICAL_LEVEL cb::Logger::LEVEL_CRITICAL
+#define CBANG_LOG_WARNING_LEVEL  cb::Logger::LEVEL_WARNING
 #define CBANG_LOG_DEBUG_LEVEL(x) (cb::Logger::LEVEL_DEBUG + ((x) << 8))
 #define CBANG_LOG_INFO_LEVEL(x)  (cb::Logger::LEVEL_INFO + ((x) << 8))
 
@@ -218,13 +222,13 @@ namespace cb {
   cb::Logger::instance().createStream(domain, level)
 
 #define CBANG_LOG_RAW_STREAM()                              \
-  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_RAW)
+  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, CBANG_LOG_RAW_LEVEL)
 #define CBANG_LOG_ERROR_STREAM()                                \
-  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_ERROR)
+  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, CBANG_LOG_ERROR_LEVEL)
 #define CBANG_LOG_CRITICAL_STREAM()                                 \
-  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_CRITICAL)
+  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, CBANG_LOG_CRITICAL_LEVEL)
 #define CBANG_LOG_WARNING_STREAM()                              \
-  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_WARNING)
+  CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, CBANG_LOG_WARNING_LEVEL)
 #define CBANG_LOG_DEBUG_STREAM(level)                               \
   CBANG_LOG_STREAM(CBANG_LOG_DOMAIN, CBANG_LOG_DEBUG_LEVEL(level))
 #define CBANG_LOG_INFO_STREAM(level)                                \
@@ -240,26 +244,26 @@ namespace cb {
       *CBANG_LOG_STREAM(domain, level) << msg;  \
   } while (false)
 
-#define CBANG_LOG_RAW(msg)                                  \
-  CBANG_LOG(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_RAW, msg)
-#define CBANG_LOG_ERROR(msg)                                \
-  CBANG_LOG(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_ERROR, msg)
-#define CBANG_LOG_CRITICAL(msg)                                 \
-  CBANG_LOG(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_CRITICAL, msg)
-#define CBANG_LOG_WARNING(msg)                                  \
-  CBANG_LOG(CBANG_LOG_DOMAIN, cb::Logger::LEVEL_WARNING, msg)
-#define CBANG_LOG_INFO(x, msg)                              \
-  CBANG_LOG(CBANG_LOG_DOMAIN, CBANG_LOG_INFO_LEVEL(x), msg)
+#define CBANG_LOG_LEVEL(level, msg) CBANG_LOG(CBANG_LOG_DOMAIN, level, msg)
+
+#define CBANG_LOG_RAW(msg)      CBANG_LOG_LEVEL(CBANG_LOG_RAW_LEVEL, msg)
+#define CBANG_LOG_ERROR(msg)    CBANG_LOG_LEVEL(CBANG_LOG_ERROR_LEVEL, msg)
+#define CBANG_LOG_CRITICAL(msg) CBANG_LOG_LEVEL(CBANG_LOG_CRITICAL_LEVEL, msg)
+#define CBANG_LOG_WARNING(msg)  CBANG_LOG_LEVEL(CBANG_LOG_WARNING_LEVEL, msg)
+#define CBANG_LOG_INFO(x, msg)  CBANG_LOG_LEVEL(CBANG_LOG_INFO_LEVEL(x), msg)
 
 #ifdef DEBUG
-#define CBANG_LOG_DEBUG(x, msg)                                 \
-  CBANG_LOG(CBANG_LOG_DOMAIN, CBANG_LOG_DEBUG_LEVEL(x), msg)
+#define CBANG_LOG_DEBUG(x, msg) CBANG_LOG_LEVEL(CBANG_LOG_DEBUG_LEVEL(x), msg)
 #else
 #define CBANG_LOG_DEBUG(x, msg)
 #endif
 
 
 #ifdef USING_CBANG
+#define LOG_RAW_LEVEL CBANG_LOG_RAW_LEVEL
+#define LOG_ERROR_LEVEL CBANG_LOG_ERROR_LEVEL
+#define LOG_CRITICAL_LEVEL CBANG_LOG_CRITICAL_LEVEL
+#define LOG_WARNING_LEVEL CBANG_LOG_WARNING_LEVEL
 #define LOG_DEBUG_LEVEL(x) CBANG_LOG_DEBUG_LEVEL(x)
 #define LOG_INFO_LEVEL(x) CBANG_LOG_INFO_LEVEL(x)
 
@@ -276,6 +280,7 @@ namespace cb {
 #define LOG_INFO_STREAM(level) CBANG_LOG_INFO_STREAM(level)
 
 #define LOG(domain, level, msg) CBANG_LOG(domain, level, msg)
+#define LOG_LEVEL(level, msg) CBANG_LOG_LEVEL(level, msg)
 #define LOG_RAW(msg) CBANG_LOG_RAW(msg)
 #define LOG_ERROR(msg) CBANG_LOG_ERROR(msg)
 #define LOG_CRITICAL(msg) CBANG_LOG_CRITICAL(msg)
