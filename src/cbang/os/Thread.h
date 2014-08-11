@@ -55,13 +55,14 @@ namespace cb {
 
     volatile state_t state;
     volatile bool shutdown;
+    bool destroy;
     unsigned id;
     int exitStatus;
 
     static ThreadLocalStorage<Thread *> threads;
 
   public:
-    Thread();
+    Thread(bool destroy = false);
     virtual ~Thread();
 
     /**
@@ -135,7 +136,6 @@ namespace cb {
   class ThreadFunc : public Thread {
     T *obj;          // pointer to object
     METHOD_T method; // pointer to method function
-    bool destroy;
 
   public:
     /**
@@ -145,20 +145,11 @@ namespace cb {
      * @param method A pointer to the method function.
      */
     ThreadFunc(T *obj, METHOD_T method, bool destroy = false) :
-      obj(obj), method(method), destroy(destroy) {}
-
-    virtual void starter() {
-      Thread::starter();
-
-      if (destroy) {
-        state = THREAD_STOPPED;
-        delete this;
-      }
-    }
+      Thread(destroy), obj(obj), method(method) {}
 
   private:
     /// Passes the polymorphic call to run on to the target class.
-    virtual void run() {(*obj.*method)();}
+    void run() {(*obj.*method)();}
   };
 }
 

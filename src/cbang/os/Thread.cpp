@@ -94,9 +94,9 @@ static void *start_func(void *t) {
 ThreadLocalStorage<Thread *> Thread::threads;
 
 
-Thread::Thread() :
+Thread::Thread(bool destroy) :
   p(new Thread::private_t), state(THREAD_STOPPED), shutdown(false),
-  id(getNextID()), exitStatus(0) {
+  destroy(destroy), id(getNextID()), exitStatus(0) {
 
   threads.set(this);
 
@@ -246,4 +246,13 @@ void Thread::starter() {
   } CBANG_CATCH(LOG_ERROR_LEVEL, ": In thread " << id);
 
   state = THREAD_DONE;
+
+  if (destroy) {
+#ifdef _WIN32
+    CloseHandle(p->h);
+#endif
+
+    state = THREAD_STOPPED;
+    delete this;
+  }
 }
