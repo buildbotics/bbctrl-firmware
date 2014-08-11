@@ -79,7 +79,7 @@ void SocketSSLImpl::connect(const IPAddress &ip) {
 
 
 streamsize SocketSSLImpl::write(const char *data, streamsize length,
-                              unsigned flags) {
+                                unsigned flags) {
   if (!length) return 0;
 
   if (inSSL) return SocketDefaultImpl::write(data, length, flags);

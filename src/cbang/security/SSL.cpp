@@ -71,7 +71,7 @@ bool cb::SSL::initialized = false;
 vector<Mutex *> cb::SSL::locks;
 
 
-cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) : ssl(0) {
+cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) : ssl(0), state(PROCEED) {
   init();
   ssl = SSL_new(ctx);
   if (!ssl) THROW("Failed to create new SSL");
@@ -129,6 +129,18 @@ SmartPointer<Certificate> cb::SSL::getPeerCertificate() const {
 void cb::SSL::connect() {
   LOG_DEBUG(5, "cb::SSL::connect()");
   int ret = SSL_connect(ssl);
+
+  if (ret == -1) {
+    int err = SSL_get_error(ssl, ret);
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE ||
+        err == SSL_ERROR_WANT_CONNECT) {
+      state = WANTS_CONNECT;
+      return;
+    }
+  }
+
+  state = PROCEED;
+
   if (ret != 1) THROWS("SSL connect failed: " << getFullSSLErrorStr(ret));
 }
 
@@ -136,6 +148,18 @@ void cb::SSL::connect() {
 void cb::SSL::accept() {
   LOG_DEBUG(5, "cb::SSL::accept()");
   int ret = SSL_accept(ssl);
+
+  if (ret == -1) {
+    int err = SSL_get_error(ssl, ret);
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE ||
+        err == SSL_ERROR_WANT_ACCEPT) {
+      state = WANTS_ACCEPT;
+      return;
+    }
+  }
+
+  state = PROCEED;
+
   // We can ignore WANT_READ etc. here because the Socket layer already
   // retries reads and writes up to the specified timeout.
   if (ret != 1) THROWS("SSL accept failed: " << getFullSSLErrorStr(ret));
@@ -152,17 +176,20 @@ void cb::SSL::shutdown() {
 
 int cb::SSL::read(char *data, unsigned size) {
   LOG_DEBUG(5, "cb::SSL::read(" << size << ')');
-  if (!size) return 0;
+
+  if (!checkWants() || !size) return 0;
+
   int ret = SSL_read(ssl, data, size);
   if (ret <= 0) {
     // Detect End of Stream
     if (SSL_get_shutdown(ssl) == SSL_RECEIVED_SHUTDOWN) return -1;
 
-    if (SSL_get_error(ssl, ret) == SSL_ERROR_WANT_READ) return 0;
+    int err = SSL_get_error(ssl, ret);
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return 0;
 
-    string err = getFullSSLErrorStr(ret);
-    LOG_DEBUG(5, "cb::SSL::read() " << err);
-    THROWS("SSL read failed: " << err);
+    string errMsg = getFullSSLErrorStr(ret);
+    LOG_DEBUG(5, "cb::SSL::read() " << errMsg);
+    THROWS("SSL read failed: " << errMsg);
   }
   LOG_DEBUG(5, "cb::SSL::read()=" << ret);
 
@@ -176,9 +203,15 @@ int cb::SSL::read(char *data, unsigned size) {
 
 unsigned cb::SSL::write(const char *data, unsigned size) {
   LOG_DEBUG(5, "cb::SSL::write(" << size << ')');
-  if (!size) return 0;
+
+  if (!checkWants() || !size) return 0;
+
   int ret = SSL_write(ssl, data, size);
-  if (ret <= 0) THROWS("SSL write failed: " << getFullSSLErrorStr(ret));
+  if (ret <= 0) {
+    int err = SSL_get_error(ssl, ret);
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return 0;
+    THROWS("SSL write failed: " << getFullSSLErrorStr(ret));
+  }
   LOG_DEBUG(5, "cb::SSL::write()=" << ret);
   return (unsigned)ret;
 }
@@ -296,4 +329,15 @@ void cb::SSL::init() {
   CRYPTO_set_locking_callback(lockingCallback);
 
   initialized = true;
+}
+
+
+bool cb::SSL::checkWants() {
+  switch (state) {
+  case WANTS_ACCEPT: accept(); break;
+  case WANTS_CONNECT: connect(); break;
+  default: break;
+  }
+
+  return state == PROCEED;
 }

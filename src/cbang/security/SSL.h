@@ -53,6 +53,12 @@ namespace cb {
     static bool initialized;
     static std::vector<Mutex *> locks;
 
+    enum {
+      PROCEED,
+      WANTS_ACCEPT,
+      WANTS_CONNECT,
+    } state;
+
   public:
     SSL(SSL_CTX *ctx, BIO *bio = 0);
     ~SSL();
@@ -89,6 +95,9 @@ namespace cb {
     static int findObject(const std::string &name);
 
     static void init();
+
+  protected:
+    bool checkWants();
   };
 }
 
