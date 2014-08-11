@@ -132,8 +132,7 @@ void cb::SSL::connect() {
 
   if (ret == -1) {
     int err = SSL_get_error(ssl, ret);
-    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE ||
-        err == SSL_ERROR_WANT_CONNECT) {
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
       state = WANTS_CONNECT;
       return;
     }
@@ -151,8 +150,7 @@ void cb::SSL::accept() {
 
   if (ret == -1) {
     int err = SSL_get_error(ssl, ret);
-    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE ||
-        err == SSL_ERROR_WANT_ACCEPT) {
+    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
       state = WANTS_ACCEPT;
       return;
     }
@@ -162,7 +160,10 @@ void cb::SSL::accept() {
 
   // We can ignore WANT_READ etc. here because the Socket layer already
   // retries reads and writes up to the specified timeout.
-  if (ret != 1) THROWS("SSL accept failed: " << getFullSSLErrorStr(ret));
+  if (ret != 1) {
+    LOG_DEBUG(5, "SSL accept failed: " << getFullSSLErrorStr(ret));
+    THROWS("SSL accept failed: " << getFullSSLErrorStr(ret));
+  }
 }
 
 
@@ -191,6 +192,7 @@ int cb::SSL::read(char *data, unsigned size) {
     LOG_DEBUG(5, "cb::SSL::read() " << errMsg);
     THROWS("SSL read failed: " << errMsg);
   }
+
   LOG_DEBUG(5, "cb::SSL::read()=" << ret);
 
 #ifdef VALGRIND_MAKE_MEM_DEFINED
@@ -212,6 +214,7 @@ unsigned cb::SSL::write(const char *data, unsigned size) {
     if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) return 0;
     THROWS("SSL write failed: " << getFullSSLErrorStr(ret));
   }
+
   LOG_DEBUG(5, "cb::SSL::write()=" << ret);
   return (unsigned)ret;
 }
