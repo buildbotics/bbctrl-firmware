@@ -79,6 +79,8 @@ namespace cb {
       return CBANG_SSTR((int)getMajor() << '.' << (int)getMinor() << '.'
                         << (int)getRevision());
     }
+
+    static Version *parse(const std::string &s) {return new Version(s);}
   };
 
 
