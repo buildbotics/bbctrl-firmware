@@ -233,26 +233,32 @@ void Thread::starter() {
   state = THREAD_RUNNING;
 
   try {
-    try {
-      Logger::instance().setThreadID(getID());
-      LOG_INFO(5, "Started thread " << getID() << " on PID "
-               << SystemUtilities::getPID());
-      run();
+    Logger::instance().setThreadID(getID());
+    LOG_INFO(5, "Started thread " << getID() << " on PID "
+             << SystemUtilities::getPID());
+    run();
+    done();
+    return;
 
-    } catch (...) {
-      exitStatus = -1;
-      throw;
-    }
-  } CBANG_CATCH(LOG_ERROR_LEVEL, ": In thread " << id);
+  } CATCH(LOG_ERROR_LEVEL, ": In thread " << id);
 
+  exitStatus = -1;
+  done();
+}
+
+
+void Thread::done() {
   state = THREAD_DONE;
 
   if (destroy) {
+    state = THREAD_STOPPED;
+
 #ifdef _WIN32
     CloseHandle(p->h);
 #endif
 
-    state = THREAD_STOPPED;
-    delete this;
+    try {
+      delete this;
+    } CATCH_ERROR;
   }
 }

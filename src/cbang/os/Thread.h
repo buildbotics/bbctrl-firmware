@@ -129,6 +129,9 @@ namespace cb {
      * by the running thread.
      */
     virtual void run() = 0;
+
+    /// Called just before thread exit
+    virtual void done();
   };
 
 
