@@ -73,6 +73,12 @@ namespace cb {
       {THROW("Cannot convert to object");}
       virtual SmartPointer<Value> parse(const std::string &value)
       {THROW("Cannot parse from string");}
+      virtual const char *getEnumName() const {THROW("Cannot convert to enum");}
+      virtual unsigned getEnumCount() const {THROW("Cannot convert to enum");}
+      virtual const char *getEnumName(unsigned i) const
+      {THROW("Cannot convert to enum");}
+      virtual unsigned getEnumValue(unsigned i) const
+      {THROW("Cannot convert to enum");}
 
       virtual int compare(const Value &v) const;
     };
@@ -173,6 +179,10 @@ namespace cb {
       double toReal() const {return value.toInteger();}
       SmartPointer<Value> parse(const std::string &value)
       {return new Enum<T>(T::parse(value));}
+      const char *getEnumName() const {return T::getName();}
+      unsigned getEnumCount() const {return T::getCount();}
+      const char *getEnumName(unsigned i) const {return T::getName(i);}
+      unsigned getEnumValue(unsigned i) const {return T::getValue(i);}
     };
 
 
@@ -261,6 +271,11 @@ namespace cb {
 
     template <typename T>
     bool instanceOf() const {return typeid(T) == value->getTypeID();}
+
+    const char *getEnumName() const {return value->getEnumName();}
+    unsigned getEnumCount() const {return value->getEnumCount();}
+    const char *getEnumName(unsigned i) const {return value->getEnumName(i);}
+    unsigned getEnumValue(unsigned i) const {return value->getEnumValue(i);}
 
     template <typename T>
     Variant &operator=(T value) {set(value); return *this;}
