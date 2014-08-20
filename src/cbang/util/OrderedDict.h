@@ -175,9 +175,9 @@ namespace cb {
     operator[](const KEY &key) const {return get(key);}
 
 
-    // NOTE: There is no erase() because it would not be constant with out
+    // NOTE: There is no erase() because it would not be constant time with out
     // using std::list instead of std::vector but then get(size_type i) would
-    // no longer be constant.
+    // no longer be constant time.
   };
 }
 

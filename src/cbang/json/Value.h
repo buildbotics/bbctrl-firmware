@@ -107,6 +107,30 @@ namespace cb {
       virtual int indexOf(const std::string &key) const
       {CBANG_THROW("Not a Dict");}
       bool has(const std::string &key) const {return indexOf(key) != -1;}
+      bool hasNull(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isNull();
+      }
+      bool hasBoolean(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isBoolean();
+      }
+      bool hasNumber(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isNumber();
+      }
+      bool hasString(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isString();
+      }
+      bool hasList(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isList();
+      }
+      bool hasDict(const std::string &key) const {
+        int index = indexOf(key);
+        return index == -1 ? false : get(index)->isDict();
+      }
       virtual const ValuePtr &get(const std::string &key) const
       {CBANG_THROW("Not a Dict");}
       virtual void insertNull(const std::string &key)
