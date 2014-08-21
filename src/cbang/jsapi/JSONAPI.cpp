@@ -102,7 +102,7 @@ bool JSONAPI::handlePage(HTTP::WebContext &ctx, ostream &stream,
     writer.close();
 
   } catch (const Exception &e) {
-    LOG_DEBUG(5, e);
+    LOG_ERROR(e);
 
     // Clear possibly partial or invalid response
     con.clearResponseBuffer();
