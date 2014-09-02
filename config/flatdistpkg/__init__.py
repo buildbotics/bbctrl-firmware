@@ -295,8 +295,12 @@ def build_component_pkgs(env):
         if not desc:
             fname = os.path.join(home, filename_package_desc_txt)
             if os.path.isfile(fname):
-                with open(fname, 'r') as f:
+                f = None
+                try:
+                    f = open(fname, 'r')
                     desc = f.read().strip()
+                finally:
+                    if f is not None: f.close()
         if not desc:
             desc = info.get('summary', '').strip()
         if desc:
@@ -348,8 +352,12 @@ def unlock_keychain(env, keychain=None, password=None):
     if password is None:
         passfile = os.path.expanduser('~/.ssh/p')
         if os.path.isfile(passfile):
-            with open(passfile, 'r') as f:
+            f = None
+            try:
+                f = open(passfile, 'r')
                 password = f.read().strip('\n')
+            finally:
+                if f is not None: f.close()
     if password:
         cmd = ['security', 'unlock-keychain', '-p', password]
         if keychain: cmd += [keychain]
@@ -648,8 +656,12 @@ function """ + name_lower + """_start_selected() {
     if have_lxml:
         tree.write(target,encoding='utf-8',standalone=True,pretty_print=True)
     else:
-        with open(target, 'w') as f:
+        f = None
+        try:
+            f = open(target, 'w')
             tree.write(f, encoding='utf-8')
+        finally:
+            if f is not None: f.close()
     return
 
 
@@ -682,8 +694,12 @@ def patch_expanded_pkg_distribution(target, source, env):
             tree.write(fpath, encoding='utf-8',
                 standalone=True, pretty_print=True)
         else:
-            with open(fpath, 'w') as f:
+            f = None
+            try:
+                f = open(fpath, 'w')
                 tree.write(f, encoding='utf-8')
+            finally:
+                if f is not None: f.close()
         # FIXME detect any failures somehow
         return
     # failed to load xml
