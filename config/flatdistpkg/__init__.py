@@ -490,15 +490,21 @@ def build_distribution_template(env, target=None):
     # non-root pkg installs are very buggy, so this should stay True
     distpkg_root_volume_only = env.get('distpkg_root_volume_only', True)
     allow_external = env.get('distpkg_allow_external_scripts', False)
+    if allow_external: allow_external = 'yes'
+    else: allow_external = 'no'
     allow_ppc = distpkg_arch and 'ppc' in distpkg_arch and \
         (distpkg_target.split('.') < '10.6'.split('.'))
+    if allow_ppc: hostArchitectures = 'i386,ppc'
+    else: hostArchitectures = 'i386'
+    if distpkg_root_volume_only: rootVolumeOnly = 'true'
+    else: rootVolumeOnly = 'false'
     opts = {
-        'allow-external-scripts': 'yes' if allow_external else 'no',
+        'allow-external-scripts': allow_external,
         'customize': env.get('distpkg_customize', 'allow'),
         # i386 covers both 32 and 64 bit kernel, NOT cpu
         # cpu 64 bit check must be done in script
-        'hostArchitectures': 'i386,ppc' if allow_ppc else 'i386',
-        'rootVolumeOnly': 'true' if distpkg_root_volume_only else 'false',
+        'hostArchitectures': hostArchitectures,
+        'rootVolumeOnly': rootVolumeOnly,
         }
     etree.SubElement(root, 'options', opts)
 
