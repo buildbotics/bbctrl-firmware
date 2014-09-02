@@ -9,7 +9,6 @@ from SCons.Action import CommandAction
 
 import glob
 #import plistlib
-import json
 from pprint import pprint
 
 
@@ -267,6 +266,7 @@ def build_component_pkgs(env):
             jsonfile = os.path.join(home, filename_package_info_json)
             if os.path.isfile(jsonfile):
                 print 'loading info from %s' % jsonfile
+                import json
                 info2 = json.load(jsonfile)
                 # merge
                 # trust what we were passed over what json says
