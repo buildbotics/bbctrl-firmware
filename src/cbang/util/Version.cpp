@@ -57,22 +57,12 @@ Version::Version(const string &s) {
   vector<string> parts;
   String::tokenize(s, parts, ".");
 
-  switch (parts.size()) {
-  case 1: *this = Version(String::parseU32(parts[0])); break;
+  if (parts.empty() || 3 < parts.size())
+    THROWS("Error parsing version string: '" << s << "'");
 
-  case 2:
-    getMajor() = parseVersionPart(parts[0]);
-    getMinor() = parseVersionPart(parts[1]);
-    break;
-
-  case 3:
-    getMajor() = parseVersionPart(parts[0]);
-    getMinor() = parseVersionPart(parts[1]);
-    getRevision() = parseVersionPart(parts[2]);
-    break;
-
-  default: THROWS("Error parsing version string: " << s);
-  }
+  getMajor() = parseVersionPart(parts[0]);
+  if (1 < parts.size()) getMinor() = parseVersionPart(parts[1]);
+  if (2 < parts.size()) getRevision() = parseVersionPart(parts[2]);
 }
 
 
