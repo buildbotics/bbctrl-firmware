@@ -7,13 +7,6 @@ import zipfile
 from SCons.Script import *
 from SCons.Action import CommandAction
 
-try:
-    have_lxml = False
-    from lxml import etree
-    have_lxml = True
-except:
-    import xml.etree.ElementTree as etree
-
 import glob
 #import plistlib
 import json
@@ -480,7 +473,8 @@ def build_distribution_template(env, target=None):
         print 'using distpkg_arch i386 instead of "%s"' % distpkg_arch
         distpkg_arch = 'i386'
 
-    # generate new tree via lxml
+    # generate new tree
+    import xml.etree.ElementTree as etree
     root = etree.Element('installer-script', {'minSpecVersion':'1'})
     tree = etree.ElementTree(root)
 
@@ -653,22 +647,15 @@ function """ + name_lower + """_start_selected() {
 """
     for ref in pkgrefs: root.append(ref)
 
-    if have_lxml:
-        etree.SubElement(root, 'script').text = etree.CDATA(script_text)
-    else:
-        etree.SubElement(root, 'script').text = script_text
+    etree.SubElement(root, 'script').text = script_text
 
     # save tree to target
-    if have_lxml:
-        tree.write(target,encoding='utf-8',standalone=True,pretty_print=True)
-    else:
-        f = None
-        try:
-            f = open(target, 'w')
-            tree.write(f, encoding='utf-8')
-        finally:
-            if f is not None: f.close()
-    return
+    f = None
+    try:
+        f = open(target, 'w')
+        tree.write(f, encoding='utf-8')
+    finally:
+        if f is not None: f.close()
 
 
 def patch_expanded_pkg_distribution(target, source, env):
@@ -677,6 +664,7 @@ def patch_expanded_pkg_distribution(target, source, env):
     # load xml
     tree = None
     if os.path.isfile(fpath):
+        import xml.etree.ElementTree as etree
         tree = etree.parse(fpath)
     # make changes
     if tree:
@@ -689,23 +677,13 @@ def patch_expanded_pkg_distribution(target, source, env):
         if minSpecVersion != '1':
             print 'changing minSpecVersion from %s to 1' % minSpecVersion
             root.set('minSpecVersion', '1')
-        if have_lxml:
-            # avoid losing CDATA for <script> text
-            script = root.find('script')
-            if script is not None:
-                text = script.text
-                script.text = etree.CDATA(text)
         # overwrite back to fpath
-        if have_lxml:
-            tree.write(fpath, encoding='utf-8',
-                standalone=True, pretty_print=True)
-        else:
-            f = None
-            try:
-                f = open(fpath, 'w')
-                tree.write(f, encoding='utf-8')
-            finally:
-                if f is not None: f.close()
+        f = None
+        try:
+            f = open(fpath, 'w')
+            tree.write(f, encoding='utf-8')
+        finally:
+            if f is not None: f.close()
         # FIXME detect any failures somehow
         return
     # failed to load xml
