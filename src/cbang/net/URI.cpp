@@ -72,17 +72,6 @@ namespace {
   }
 
 
-  bool isUnreserved(char c) {
-    switch (c) {
-    case '-': case '_': case '.': case '!': case '~': case '*': case '\'':
-    case '(': case ')': return true;
-    default: if (isalnum(c)) return true;
-    }
-
-    return false;
-  }
-
-
   char match(const char *&s, char c) {
     if (*s != c) THROWS("Expected '" << c << "'");
     s++;
