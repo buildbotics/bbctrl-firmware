@@ -65,8 +65,8 @@ namespace cb {
     void setVersion(int version);
     int getVersion() const;
 
-    void setSerial(int serial);
-    int getSerial() const;
+    void setSerial(long serial);
+    long getSerial() const;
 
     void setNotBefore(uint64_t x = 0);
     void setNotAfter(uint64_t x);
@@ -82,6 +82,9 @@ namespace cb {
                       CertificateContext *ctx = 0);
     static void addExtensionAlias(const std::string &alias,
                                   const std::string &name);
+
+    bool hasAuthorityKeyIdentifer() const;
+    bool issued(const Certificate &o) const;
 
     void sign(KeyPair &key, const std::string &digest = "sha256");
     void verify();

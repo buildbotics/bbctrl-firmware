@@ -155,6 +155,12 @@ void CRL::addExtension(const string &name, const string &value) {
 }
 
 
+bool CRL::issuedBy(const Certificate &cert) const {
+  return X509_NAME_cmp(X509_CRL_get_issuer(crl),
+                       X509_get_subject_name(cert.getX509())) == 0;
+}
+
+
 void CRL::revoke(const Certificate &cert, const std::string &reason,
                  uint64_t ts) {
   Revoked rev;

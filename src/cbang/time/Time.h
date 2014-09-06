@@ -45,7 +45,7 @@ namespace cb {
    * E.g.  cout << Time(Time::now() + Time::SEC_PER_HOUR, "%H:%M:%S") << endl;
    */
   class Time {
-    const std::string format;
+    std::string format;
     uint64_t time;
 
   public:
@@ -64,6 +64,13 @@ namespace cb {
     std::string toString() const;
     operator std::string () const {return toString();}
     operator uint64_t () const {return time;}
+
+    bool operator==(const Time &o) const {return time == o.time;}
+    bool operator!=(const Time &o) const {return time != o.time;}
+    bool operator< (const Time &o) const {return time <  o.time;}
+    bool operator<=(const Time &o) const {return time <= o.time;}
+    bool operator> (const Time &o) const {return time >  o.time;}
+    bool operator>=(const Time &o) const {return time >= o.time;}
 
     static Time parse(const std::string &s,
                       const std::string &format = defaultFormat);

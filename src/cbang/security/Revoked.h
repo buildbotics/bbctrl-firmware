@@ -56,7 +56,7 @@ namespace cb {
 
     void setDate(uint64_t ts);
     void setReason(const std::string &reason);
-    void setSerial(int number);
+    void setSerial(long number);
   };
 }
 

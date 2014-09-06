@@ -43,6 +43,11 @@
 
 
 namespace cb {
+  namespace JSON {
+    class Value;
+    class Sync;
+  }
+
   namespace JSAPI {
     class JSONAPI : public HTTP::WebPageHandler {
       std::string root;
@@ -58,6 +63,10 @@ namespace cb {
 
       void add(const std::string &path,
                const SmartPointer<Handler> &handler);
+
+      void dispatch(HTTP::WebContext &ctx, const std::string &cmd,
+                    const SmartPointer<JSON::Value> &msg,
+                    JSON::Sync &sync) const;
 
       // From HTTP::WebPageHandler
       bool handlePage(HTTP::WebContext &ctx, std::ostream &stream,

@@ -118,13 +118,13 @@ int Certificate::getVersion() const {
 }
 
 
-void Certificate::setSerial(int serial) {
+void Certificate::setSerial(long serial) {
   if (!ASN1_INTEGER_set(X509_get_serialNumber(cert), serial))
     THROWS("Failed to set certificate's serial: " << SSL::getErrorStr());
 }
 
 
-int Certificate::getSerial() const {
+long Certificate::getSerial() const {
   return ASN1_INTEGER_get(X509_get_serialNumber(cert));
 }
 
@@ -162,6 +162,8 @@ void Certificate::addNameEntry(const string &name, const string &value) {
 
 string Certificate::getNameEntry(const string &name) const {
   X509_NAME *subject = X509_get_subject_name(cert);
+
+  if (!subject) THROW("Failed to get cetficate subject name");
 
   for (int i = 0; i < X509_NAME_entry_count(subject); i++) {
     X509_NAME_ENTRY *entry = X509_NAME_get_entry(subject, i);
@@ -218,6 +220,16 @@ void Certificate::addExtensionAlias(const string &alias, const string &name) {
   if (!X509V3_EXT_add_alias(SSL::findObject(alias), SSL::findObject(name)))
     THROWS("Failed to alias extension '" << alias << "' to '" << name
            << "': " << SSL::getErrorStr());
+}
+
+
+bool Certificate::hasAuthorityKeyIdentifer() const {
+  return cert->akid;
+}
+
+
+bool Certificate::issued(const Certificate &o) const {
+  return X509_check_issued(cert, o.cert) == 0;
 }
 
 

@@ -71,11 +71,13 @@ bool cb::SSL::initialized = false;
 vector<Mutex *> cb::SSL::locks;
 
 
-cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) : ssl(0), state(PROCEED) {
+cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) :
+  ssl(0), renegotiateLimited(false), handshakes(0), state(PROCEED) {
   init();
   ssl = SSL_new(ctx);
   if (!ssl) THROW("Failed to create new SSL");
   if (bio) setBIO(bio);
+  SSL_set_app_data(ssl, (char *)this);
 }
 
 
@@ -116,11 +118,11 @@ void cb::SSL::verifyPeerCertificate() const {
 
 
 SmartPointer<Certificate> cb::SSL::getPeerCertificate() const {
-  X509 *cert = SSL_get_peer_certificate(ssl);
-  if (!cert) THROW("Peer did not present a certificate");
-
   if (SSL_get_verify_result(ssl) != X509_V_OK)
     THROW("Certificate does not verify");
+
+  X509 *cert = SSL_get_peer_certificate(ssl);
+  if (!cert) THROW("Peer did not present a certificate");
 
   return new Certificate(cert);
 }
@@ -146,6 +148,7 @@ void cb::SSL::connect() {
 
 void cb::SSL::accept() {
   LOG_DEBUG(5, "cb::SSL::accept()");
+  limitRenegotiation();
   int ret = SSL_accept(ssl);
 
   if (ret == -1) {
@@ -178,6 +181,7 @@ void cb::SSL::shutdown() {
 int cb::SSL::read(char *data, unsigned size) {
   LOG_DEBUG(5, "cb::SSL::read(" << size << ')');
 
+  checkHandshakes();
   if (!checkWants() || !size) return 0;
 
   int ret = SSL_read(ssl, data, size);
@@ -206,6 +210,7 @@ int cb::SSL::read(char *data, unsigned size) {
 unsigned cb::SSL::write(const char *data, unsigned size) {
   LOG_DEBUG(5, "cb::SSL::write(" << size << ')');
 
+  checkHandshakes();
   if (!checkWants() || !size) return 0;
 
   int ret = SSL_write(ssl, data, size);
@@ -332,6 +337,33 @@ void cb::SSL::init() {
   CRYPTO_set_locking_callback(lockingCallback);
 
   initialized = true;
+}
+
+
+void cb::SSL::infoCallback(int where, int ret) {
+  if (where & SSL_CB_HANDSHAKE_START) handshakes++;
+}
+
+
+namespace {
+  extern "C" void ssl_info_callback(const ::SSL *ssl, int where, int ret) {
+    ((cb::SSL *)SSL_get_app_data(ssl))->infoCallback(where, ret);
+  }
+}
+
+void cb::SSL::limitRenegotiation() {
+  handshakes = 0;
+
+  if (renegotiateLimited) return;
+  renegotiateLimited = true;
+
+  SSL_set_info_callback(ssl, ssl_info_callback);
+}
+
+
+void cb::SSL::checkHandshakes() {
+  if (3 < handshakes)
+    THROW("Potential Client-Initiated Renegotiation DOS attack detected");
 }
 
 

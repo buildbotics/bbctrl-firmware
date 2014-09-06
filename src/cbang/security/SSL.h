@@ -49,6 +49,8 @@ namespace cb {
 
   class SSL {
     _SSL *ssl;
+    bool renegotiateLimited;
+    int handshakes;
 
     static bool initialized;
     static std::vector<Mutex *> locks;
@@ -96,7 +98,11 @@ namespace cb {
 
     static void init();
 
+    void infoCallback(int where, int ret);
+    void limitRenegotiation();
+
   protected:
+    void checkHandshakes();
     bool checkWants();
   };
 }

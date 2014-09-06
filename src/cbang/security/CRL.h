@@ -67,6 +67,8 @@ namespace cb {
     std::string getExtension(const std::string &name);
     void addExtension(const std::string &name, const std::string &value);
 
+    bool issuedBy(const Certificate &cert) const;
+
     void revoke(const Certificate &cert,
                 const std::string &reason = "unspecified", uint64_t ts = 0);
     bool wasRevoked(const Certificate &cert) const;

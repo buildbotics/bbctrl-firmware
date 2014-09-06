@@ -35,7 +35,6 @@
 #include <cbang/String.h>
 #include <cbang/log/Logger.h>
 #include <cbang/json/JSON.h>
-#include <cbang/json/List.h>
 #include <cbang/http/WebContext.h>
 #include <cbang/http/Connection.h>
 #include <cbang/http/StatusCode.h>
@@ -49,6 +48,15 @@ using namespace std;
 void JSONAPI::add(const string &cmd, const SmartPointer<Handler> &handler) {
   if (!api.insert(api_t::value_type(cmd, handler)).second)
     THROWS("'" << root << cmd << "' already exists in JSON API");
+}
+
+
+void JSONAPI::dispatch(HTTP::WebContext &ctx, const string &cmd,
+                       const JSON::ValuePtr &msg, JSON::Sync &sync) const {
+  api_t::const_iterator it = api.find(cmd);
+  if (it == api.end()) THROWS("Unsupported JSON API call: " << cmd);
+
+  it->second->handle(ctx, cmd, msg, sync);
 }
 
 

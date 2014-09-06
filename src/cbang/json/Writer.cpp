@@ -39,51 +39,47 @@ using namespace cb::JSON;
 
 
 void Writer::close() {
-  assertWriteNotPending();
-  if (!stack.empty()) THROWS("Writer closed with open " << stack.back());
+  NullSync::close();
   stream.flush();
 }
 
 
 void Writer::writeNull() {
-  assertCanWrite();
+  NullSync::writeNull();
   stream << (mode == PYTHON_MODE ? "None" : "null");
 }
 
 
 void Writer::writeBoolean(bool value) {
-  assertCanWrite();
+  NullSync::writeBoolean(value);
   stream << (mode == PYTHON_MODE ?
              (value ? "True" : "False") : (value ? "true" : "false"));
 }
 
 
 void Writer::write(double value) {
-  assertCanWrite();
+  NullSync::write(value);
   stream << cb::String(value);
 }
 
 
 void Writer::write(const string &value) {
-  assertCanWrite();
+  NullSync::write(value);
   stream << '"' << String::escapeC(value) << '"';
 }
 
 
 void Writer::beginList(bool simple) {
-  assertCanWrite();
+  NullSync::beginList(simple);
   this->simple = simple;
   stream << "[";
-  stack.push_back(ValueType::JSON_LIST);
   level++;
   first = true;
-  canWrite = false;
 }
 
 
 void Writer::beginAppend() {
-  assertWriteNotPending();
-  if (stack.back() != ValueType::JSON_LIST) THROW("Not a List");
+  NullSync::beginAppend();
 
   if (first) first = false;
   else {
@@ -95,17 +91,11 @@ void Writer::beginAppend() {
     stream << '\n';
     indent();
   }
-
-  canWrite = true;
 }
 
 
 void Writer::endList() {
-  assertWriteNotPending();
-  if (stack.empty() || stack.back() != ValueType::JSON_LIST)
-    THROW("Not a List");
-
-  stack.pop_back();
+  NullSync::endList();
   level--;
 
   if (!isCompact() && !first) {
@@ -121,28 +111,16 @@ void Writer::endList() {
 
 
 void Writer::beginDict(bool simple) {
-  assertCanWrite();
+  NullSync::beginDict(simple);
   this->simple = simple;
   stream << "{";
-  stack.push_back(ValueType::JSON_DICT);
-  keyStack.push_back(keys_t());
   level++;
   first = true;
-  canWrite = false;
-}
-
-
-bool Writer::has(const string &key) const {
-  if (stack.empty() || stack.back() != ValueType::JSON_DICT)
-    THROW("Not a Dict");
-  return keyStack.back().find(key) != keyStack.back().end();
 }
 
 
 void Writer::beginInsert(const string &key) {
-  assertWriteNotPending();
-  if (has(key)) THROWS("Key '" << key << "' already written to output");
-
+  NullSync::beginInsert(key);
   if (first) first = false;
   else {
     stream << ',';
@@ -154,11 +132,8 @@ void Writer::beginInsert(const string &key) {
     indent();
   }
 
-  canWrite = true;
   write(key);
   stream << ": ";
-
-  keyStack.back().insert(key);
 
   canWrite = true;
 }
@@ -166,12 +141,7 @@ void Writer::beginInsert(const string &key) {
 
 
 void Writer::endDict() {
-  assertWriteNotPending();
-  if (stack.empty() || stack.back() != ValueType::JSON_DICT)
-    THROW("Not a Dict");
-
-  stack.pop_back();
-  keyStack.pop_back();
+  NullSync::endDict();
   level--;
 
   if (!isCompact() && !first) {
@@ -183,15 +153,4 @@ void Writer::endDict() {
 
   first = false;
   simple = false;
-}
-
-
-void Writer::assertCanWrite() {
-  if (!canWrite) THROW("Not ready for write");
-  canWrite = false;
-}
-
-
-void Writer::assertWriteNotPending() {
-  if (canWrite) THROW("Expected write");
 }

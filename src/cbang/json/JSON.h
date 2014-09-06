@@ -42,6 +42,7 @@
 #include "Reader.h"
 #include "Writer.h"
 #include "Builder.h"
+#include "NullSync.h"
 #include "Format.h"
 
 #endif // CB_JSON_JSON_H

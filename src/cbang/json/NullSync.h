@@ -30,64 +30,50 @@
 
 \******************************************************************************/
 
-#ifndef CB_HTTP_WEB_CONTEXT_H
-#define CB_HTTP_WEB_CONTEXT_H
+#ifndef CB_JSON_NULL_SYNC_H
+#define CB_JSON_NULL_SYNC_H
 
-#include "Context.h"
-
-#include <cbang/script/Environment.h>
+#include "Sync.h"
+#include "ValueType.h"
 
 #include <vector>
-#include <string>
+#include <set>
 
 
 namespace cb {
-  namespace HTTP {
-    class WebHandler;
-    class Session;
+  namespace JSON {
+    class NullSync : public Sync {
+    protected:
+      std::vector<ValueType> stack;
+      typedef std::set<std::string> keys_t;
+      std::vector<keys_t> keyStack;
 
-    class WebContext : public Context, public Script::Handler {
-      WebHandler &handler;
-
-      SmartPointer<Session> session;
-      bool dynamic;
-
-      SmartPointer<Script::Environment> env;
-      std::vector<std::string> paths;
+      bool canWrite;
 
     public:
-      WebContext(WebHandler &handler, Connection &con);
-      ~WebContext();
+      NullSync() : canWrite(true) {}
 
-      WebHandler &getWebHandler() {return handler;}
+      virtual void close();
 
-      void setDynamic() {dynamic = true;}
-      bool isDynamic() const {return dynamic;}
-      void setStatic() {dynamic = false;}
-      bool isStatic() const {return !dynamic;}
+      // From Sync
+      void writeNull();
+      void writeBoolean(bool value);
+      void write(double value);
+      void write(const std::string &value);
+      void beginList(bool simple = false);
+      void beginAppend();
+      void endList();
+      void beginDict(bool simple = false);
+      bool has(const std::string &key) const;
+      void beginInsert(const std::string &key);
+      void endDict();
 
-      const SmartPointer<Session> &getSession() const {return session;}
-      void setSession(const SmartPointer<Session> &session)
-      {this->session = session;}
-
-      const std::string &getUser() const;
-
-      Script::Environment &getEnvironment();
-
-      // From Script::Handler
-      using Script::Handler::eval;
-      bool eval(const Script::Context &ctx);
-
-      void evalInclude(const Script::Context &ctx);
-      void evalGet(const Script::Context &ctx);
-      void evalRemoteAddr(const Script::Context &ctx);
-      void evalRequestURI(const Script::Context &ctx);
-      void evalRequestMethod(const Script::Context &ctx);
-      void evalRequestQuery(const Script::Context &ctx);
-      void evalRequestPath(const Script::Context &ctx);
+    protected:
+      void assertCanWrite();
+      void assertWriteNotPending();
     };
   }
 }
 
-#endif // CB_HTTP_WEB_CONTEXT_H
+#endif // CB_JSON_NULL_SYNC_H
 

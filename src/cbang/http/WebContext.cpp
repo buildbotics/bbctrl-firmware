@@ -52,6 +52,11 @@ WebContext::WebContext(WebHandler &handler, Connection &con) :
 WebContext::~WebContext() {} // Hide destructor implementation
 
 
+const string &WebContext::getUser() const {
+  return session->getUser();
+}
+
+
 Script::Environment &WebContext::getEnvironment() {
   if (env.isNull()) env = new Script::Environment("HTTP Context", &handler);
   return *env;

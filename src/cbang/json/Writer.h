@@ -33,18 +33,14 @@
 #ifndef CBANG_JSON_WRITER_H
 #define CBANG_JSON_WRITER_H
 
-#include "ValueType.h"
-#include "Sync.h"
+#include "NullSync.h"
 
 #include <ostream>
-#include <string>
-#include <vector>
-#include <set>
 
 
 namespace cb {
   namespace JSON {
-    class Writer : public Sync {
+    class Writer : public NullSync {
       /***
        * The differences between JSON (Javascript Object Notation) and
        * JSON (Python Object Notation) are small.  They are as follows:
@@ -74,18 +70,15 @@ namespace cb {
       bool compact;
       bool simple;
       mode_t mode;
-      std::vector<ValueType> stack;
-      typedef std::set<std::string> keys_t;
-      std::vector<keys_t> keyStack;
       bool first;
-      bool canWrite;
 
     public:
       Writer(std::ostream &stream, unsigned indent = 0, bool compact = false,
              mode_t mode = JSON_MODE)
         : stream(stream), level(indent), compact(compact), simple(false),
-          mode(mode), first(true), canWrite(true) {}
+          mode(mode), first(true) {}
 
+      // From NullSync
       void close();
 
       // From Sync
@@ -97,15 +90,12 @@ namespace cb {
       void beginAppend();
       void endList();
       void beginDict(bool simple = false);
-      bool has(const std::string &key) const;
       void beginInsert(const std::string &key);
       void endDict();
 
     protected:
       void indent() const {stream << std::string(level * 2, ' ');}
       bool isCompact() const {return compact || simple;}
-      void assertCanWrite();
-      void assertWriteNotPending();
     };
   }
 }

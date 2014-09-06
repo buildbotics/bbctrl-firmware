@@ -98,7 +98,7 @@ void Revoked::setReason(const string &reason) {
 }
 
 
-void Revoked::setSerial(int number) {
+void Revoked::setSerial(long number) {
   ASN1_INTEGER *serial = ASN1_INTEGER_new();
   ASN1_INTEGER_set(serial, number);
 
