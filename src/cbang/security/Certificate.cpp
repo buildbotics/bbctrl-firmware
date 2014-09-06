@@ -94,7 +94,7 @@ void Certificate::getPublicKey(KeyPair &key) const {
 }
 
 
-SmartPointer<KeyPair> Certificate::getPublicKey() {
+SmartPointer<KeyPair> Certificate::getPublicKey() const {
   SmartPointer<KeyPair> key = new KeyPair(0);
   getPublicKey(*key);
   return key;
