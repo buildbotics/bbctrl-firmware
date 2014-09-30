@@ -51,7 +51,7 @@ namespace cb {
   protected:
     SmartPointer<Socket> socket;
     IPAddress clientIP;
-    IPAddress incommingIP;
+    IPAddress incomingIP;
     const uint64_t startTime;
 
   public:
@@ -65,8 +65,8 @@ namespace cb {
     cb::SSL *getSSL() const;
     bool isSecure() const {return getSSL();}
     const IPAddress &getClientIP() const {return clientIP;}
-    void setIncommingIP(const IPAddress &ip) {incommingIP = ip;}
-    const IPAddress &getIncommingIP() const {return incommingIP;}
+    void setIncomingIP(const IPAddress &ip) {incomingIP = ip;}
+    const IPAddress &getIncomingIP() const {return incomingIP;}
     uint64_t getStartTime() const {return startTime;}
 
     virtual bool isFinished() const = 0;
