@@ -47,6 +47,7 @@ namespace cb {
 
       Connection &getConnection() const {return con;}
       const IPAddress &getClientIP() const {return con.getClientIP();}
+      const IPAddress &getIncommingIP() const {return con.getIncommingIP();}
       Request &getRequest() const {return con.getRequest();}
       Response &getResponse() const {return con.getResponse();}
       const URI &getURI() const {return getRequest().getURI();}

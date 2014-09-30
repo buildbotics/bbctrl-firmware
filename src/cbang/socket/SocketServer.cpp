@@ -116,6 +116,7 @@ void SocketServer::service() {
           }
 
           SocketConnectionPtr con = createConnection(client, clientIP);
+          con->setIncommingIP(ports[i]->ip);
           client = 0; // Release socket pointer
 
           if (con.isNull())
