@@ -35,14 +35,12 @@
 
 #include "Handler.h"
 #include "WebContext.h"
-#include "WebPageHandler.h"
+#include "WebPageHandlerGroup.h"
 #include "StatusCode.h"
 
 #include <cbang/SmartPointer.h>
-#include <cbang/script/Environment.h>
+#include <cbang/util/Features.h>
 #include <cbang/net/IPAddressFilter.h>
-
-#include <boost/regex.hpp>
 
 #include <vector>
 
@@ -51,50 +49,33 @@ namespace cb {
   class Options;
 
   namespace HTTP {
-    class WebHandler : public Handler, public Script::Environment {
+    class WebHandler :
+      public Features, public Handler, public WebPageHandlerGroup {
     public:
-      typedef bool (*hasFeature_t)(int feature);
-
       enum {
-        FEATURE_FS_DYNAMIC,
         FEATURE_FS_STATIC,
-        FEATURE_INFO,
         FEATURE_LAST,
       };
-
-      const hasFeature_t hasFeature;
 
     protected:
       Options &options;
       IPAddressFilter ipFilter;
-      typedef std::pair<SmartPointer<WebPageHandler>,
-                        SmartPointer<boost::regex> > handler_t;
-      std::vector<handler_t> handlers;
       bool initialized;
 
     public:
-      WebHandler(Options &options, const std::string &match = "^/.*$",
-                 Script::Handler *parent = 0,
+      WebHandler(Options &options, const std::string &match = "",
                  hasFeature_t hasFeature = WebHandler::_hasFeature);
       virtual ~WebHandler() {}
 
       static bool _hasFeature(int feature);
 
-      void addHandler(const SmartPointer<WebPageHandler> &handler)
-      {handlers.push_back(handler_t(handler, SmartPointer<boost::regex>(0)));}
-      void addHandler(const SmartPointer<WebPageHandler> &handler,
-                      const std::string &match)
-      {handlers.push_back(handler_t(handler, new boost::regex(match)));}
-
       virtual void init();
       virtual bool allow(WebContext &ctx) const;
-
-      void evalInfo(const Script::Context &ctx);
-      void evalOption(const Script::Context &ctx);
 
       virtual void errorPage(WebContext &ctx, StatusCode status,
                              const std::string &message = std::string()) const;
 
+      // From WebPageHandlerGroup
       bool handlePage(WebContext &ctx, std::ostream &stream,
                       const cb::URI &uri);
 

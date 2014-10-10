@@ -45,10 +45,12 @@ namespace cb {
     class Connection;
 
     class Handler {
+      bool matchAll;
       boost::regex re;
 
     public:
-      Handler(const std::string &pattern) : re(pattern) {}
+      Handler(const std::string &pattern = "") :
+        matchAll(pattern.empty()), re(pattern) {}
       virtual ~Handler() {}
 
       /// Create a HTTP::Context instance

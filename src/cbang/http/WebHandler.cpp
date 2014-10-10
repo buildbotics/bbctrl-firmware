@@ -54,19 +54,15 @@ using namespace cb::Script;
 
 
 WebHandler::WebHandler(Options &options, const string &match,
-                       Script::Handler *parent, hasFeature_t hasFeature) :
-  HTTP::Handler(match), Environment("Web Handler", parent),
-  hasFeature(hasFeature), options(options), initialized(false) {
+                       hasFeature_t hasFeature) :
+  Features(hasFeature), HTTP::Handler(match), options(options),
+  initialized(false) {
 
   options.pushCategory("Web Server");
 
   if (hasFeature(FEATURE_FS_STATIC))
     options.add("web-static", "Path to static web pages.  Empty to disable "
                 "filesystem access for static pages.")->setDefault("www");
-
-  if (hasFeature(FEATURE_FS_DYNAMIC))
-    options.add("web-dynamic", "Path to dynamic web pages.  Empty to disable "
-                "filesystem access for dynamic pages.");
 
   options.add("web-allow", "Client addresses which are allowed to connect to "
               "this Web server.  This option overrides IPs which are denied in "
@@ -79,12 +75,6 @@ WebHandler::WebHandler(Options &options, const string &match,
               "this Web server.")->setDefault("");
 
   options.popCategory();
-
-  // Dynamic Page Functions
-#define MF_ADD(name, func, min, max)                                    \
-  add(new MemberFunctor<WebHandler>(name, this, &WebHandler::func, min, max))
-
-  if (hasFeature(FEATURE_INFO)) MF_ADD("info", evalInfo, 0, 2);
 }
 
 
@@ -103,10 +93,6 @@ void WebHandler::init() {
 
   if (hasFeature(FEATURE_FS_STATIC) && options["web-static"].hasValue())
     addHandler(new FileWebPageHandler(options["web-static"]));
-
-  if (hasFeature(FEATURE_FS_DYNAMIC) && options["web-dynamic"].hasValue())
-    addHandler(new ScriptWebPageHandler
-               (new FileWebPageHandler(options["web-dynamic"])));
 }
 
 
@@ -115,66 +101,23 @@ bool WebHandler::allow(WebContext &ctx) const {
 }
 
 
-void WebHandler::evalInfo(const Script::Context &ctx) {
-  Info &info = Info::instance();
-
-  switch (ctx.args.size()) {
-  case 1: {
-    XMLWriter writer(ctx.stream);
-    info.write(writer);
-    break;
-  }
-  case 2: ctx.args.invalidNum(); break;
-  case 3: ctx.stream << info.get(ctx.args[1], ctx.args[2]); break;
-  }
-}
-
-
-void WebHandler::evalOption(const Script::Context &ctx) {
-  ctx.stream << options[ctx.args[1]];
-}
-
-
 void WebHandler::errorPage(WebContext &ctx, StatusCode status,
                            const string &message) const {
-  Connection &con = ctx.getConnection();
-  Response &response = con.getResponse();
-
-  response.setStatus(status);
-  response.setContentType("text/html");
-
-  string err =
-    SSTR((unsigned)status << ' '
-         << String::replace(status.toString(), '_', ' ')
-         << ' ' << con.getRequest().getURI());
-
-  if (!message.empty()) err += string(": ") + message;
-
-  XMLWriter writer(con);
-  writer.simpleElement("h1", err);
-  con << flush;
-
-  LOG_WARNING(con << ':' << err);
+  ctx.errorPage(status, message);
 }
 
 
 bool WebHandler::handlePage(WebContext &ctx, ostream &stream, const URI &uri) {
-  for (unsigned i = 0; i < handlers.size(); i++) {
-    if (!handlers[i].second.isNull() &&
-        !regex_match(uri.getPath(), *handlers[i].second)) continue;
+  if (WebPageHandlerGroup::handlePage(ctx, stream, uri)) {
+    // Tell client to cache static pages
+    if (ctx.isStatic()) ctx.getConnection().getResponse().setCacheExpire();
 
-    if (handlers[i].first->handlePage(ctx, stream, uri)) {
+    // Set default content type
+    Response &response = ctx.getConnection().getResponse();
+    if (!response.has("Content-Type"))
+      response.setContentTypeFromExtension(uri.getPath());
 
-      // Tell client to cache static pages
-      if (ctx.isStatic()) ctx.getConnection().getResponse().setCacheExpire();
-
-      // Set default content type
-      Response &response = ctx.getConnection().getResponse();
-      if (!response.has("Content-Type"))
-        response.setContentTypeFromExtension(uri.getPath());
-
-      return true;
-    }
+    return true;
   }
 
   return false;

@@ -30,11 +30,9 @@
 
 \******************************************************************************/
 
-#include "OAuth2Login.h"
+#include "OAuth2.h"
 
-#include "SessionManager.h"
-#include "WebContext.h"
-
+#include <cbang/http/WebContext.h>
 #include <cbang/http/Connection.h>
 #include <cbang/http/Transaction.h>
 #include <cbang/json/JSON.h>
@@ -45,113 +43,63 @@
 
 using namespace std;
 using namespace cb;
-using namespace cb::HTTP;
 
 
-OAuth2Login::OAuth2Login(Options &options,
-                         const SmartPointer<SessionManager> &sessionManager,
-                         const SmartPointer<SSLContext> &sslCtx) :
-  sessionManager(sessionManager), sslCtx(sslCtx) {
+OAuth2::OAuth2(const SmartPointer<SSLContext> &sslCtx) :
+  sslCtx(sslCtx.isNull() ? new SSLContext : sslCtx) {}
 
-  if (sessionManager.isNull())
-    this->sessionManager = new SessionManager(options);
-  if (sslCtx.isNull()) this->sslCtx = new SSLContext;
 
-  options.pushCategory("OAuth2 Login");
-  options.addTarget("oauth2-auth-url", authURL, "OAuth2 Auth URL");
-  options.addTarget("oauth2-token-url", tokenURL, "OAuth2 token URL");
-  options.addTarget("oauth2-redirect-base", redirectBase,
+OAuth2::~OAuth2() {} // Hide destructor
+
+
+void OAuth2::addOptions(Options &options, const string &prefix) {
+  this->prefix = prefix;
+  options.addTarget(prefix + "auth-url", authURL, "OAuth2 Auth URL");
+  options.addTarget(prefix + "token-url", tokenURL, "OAuth2 token URL");
+  options.addTarget(prefix + "redirect-base", redirectBase,
                     "OAuth2 redirect base URL");
-  options.addTarget("oauth2-client-id", clientID, "OAuth2 API Client ID");
-  options.addTarget("oauth2-client-secret", clientSecret,
+  options.addTarget(prefix + "client-id", clientID, "OAuth2 API Client ID");
+  options.addTarget(prefix + "client-secret", clientSecret,
                     "OAuth2 API Client Secret")->setObscured();
-  options.popCategory();
 }
 
 
-OAuth2Login::~OAuth2Login() {} // Hide destructor
-
-
-bool OAuth2Login::handlePage(WebContext &ctx, ostream &stream, const URI &uri) {
-  Connection &con = ctx.getConnection();
-  Request &request = con.getRequest();
-  Response &response = con.getResponse();
-
-  ctx.setDynamic(); // Don't cache
-
-  // Force secure
-  if (!con.isSecure())
-    THROWCS("Cannot logon via insecure port", StatusCode::HTTP_UNAUTHORIZED);
-
-  // Get session ID
-  string sid = request.findCookie(sessionManager->getSessionCookie());
-  if (sid.empty() && uri.has("state")) sid = uri.get("state");
-
-  SessionPtr session = sessionManager->findSession(ctx, sid);
-
-  try {
-    if (session.isNull() ||
-        (uri.has("state") && uri.get("state") != session->getID()) ||
-        (!uri.has("state") && session->getUser().empty())) {
-      session = sessionManager->openSession(ctx);
-      sid = session->getID();
-
-      redirect(ctx, sid);
-
-    } else if (session->getUser().empty()) {
-      // TODO Make sure session is not very old
-
-      string email = verify(ctx, session->getID());
-      session->setUser(email);
-      LOG_INFO(1, "Authorized: " << email);
-
-      // Final redirect to remove auth parameters
-      response.redirect(uri.getPath());
-
-    } else return false; // Already authorized
-
-    // Make sure session cookie is set
-    sessionManager->setSessionCookie(ctx);
-
-  } catch (...) {
-    // Close session on error
-    if (!sid.empty()) sessionManager->closeSession(ctx, sid);
-    throw;
-  }
-
-  return true;
-}
-
-
-void OAuth2Login::redirect(WebContext &ctx, const string &state) {
-  Connection &con = ctx.getConnection();
-  Request &request = con.getRequest();
-  Response &response = con.getResponse();
-
+URI OAuth2::getRedirectURL(const string &path, const string &state,
+                           const string &scope) const {
   // Check config
   if (clientID.empty())
-    THROWCS("oauth2-client-id not configured", StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "client-id not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (redirectBase.empty())
-    THROWCS("oauth2-redirect-base not configured",
-            StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "redirect-base not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (authURL.empty())
-    THROWCS("oauth2-auth-url not configured", StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "auth-url not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
 
+  // Build redirect URL
   URI uri(authURL);
-
   uri.set("client_id", clientID);
   uri.set("response_type", "code");
-  uri.set("scope", "openid email");
-  uri.set("redirect_uri", redirectBase + request.getURI().getPath());
+  uri.set("scope", scope);
+  uri.set("redirect_uri", redirectBase + path);
   uri.set("state", state);
-  uri.set("max_auth_age", "0");
 
-  response.redirect(uri);
+  return uri;
 }
 
 
-string OAuth2Login::verify(WebContext &ctx, const string &state) {
-  Request &request = ctx.getConnection().getRequest();
+void OAuth2::redirect(HTTP::WebContext &ctx, const string &state,
+                      const string &scope) const {
+  HTTP::Connection &con = ctx.getConnection();
+  URI url = getRedirectURL(con.getRequest().getURI().getPath(), state, scope);
+  con.getResponse().redirect(url);
+}
+
+
+JSON::ValuePtr OAuth2::verify(HTTP::WebContext &ctx,
+                              const string &state) const {
+  HTTP::Request &request = ctx.getConnection().getRequest();
   const URI &uri = request.getURI();
 
   // Check that SID matches state (Confirm anti-forgery state token)
@@ -160,20 +108,22 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
               << (uri.has("code") ? uri.get("code") : "<null>") << " uri state="
               << (uri.has("state") ? uri.get("state") : "<null>")
               << " server state=" << state);
-    THROWCS("Failed anti-forgery check", StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS("Failed anti-forgery check", HTTP::StatusCode::HTTP_UNAUTHORIZED);
   }
 
   // Check config
   if (clientID.empty())
-    THROWCS("oauth2-client-id not configured", StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "client-id not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (clientSecret.empty())
-    THROWCS("oauth2-client-secret not configured",
-            StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "client-secret not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (redirectBase.empty())
-    THROWCS("oauth2-redirect-base not configured",
-            StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "redirect-base not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (tokenURL.empty())
-    THROWCS("oauth2-token-url not configured", StatusCode::HTTP_UNAUTHORIZED);
+    THROWCS(prefix + "token-url not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
 
   // Exchange code for access token and ID token
   URI postURI(tokenURL);
@@ -191,7 +141,7 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   LOG_DEBUG(5, "Token Query: " << data);
 
   // Verify authorization with OAuth2 server
-  Transaction tran(sslCtx.get());
+  HTTP::Transaction tran(sslCtx.get());
   tran.post(postURI, data.data(), data.length(),
             "application/x-www-form-urlencoded", 1.0);
 
@@ -215,13 +165,5 @@ string OAuth2Login::verify(WebContext &ctx, const string &state) {
   String::tokenize(idToken, parts, ".");
   string claims = Base64(0, '-', '_').decode(parts[1]);
   LOG_DEBUG(5, "Claims: " << claims);
-  JSON::ValuePtr claimsJSON =
-    JSON::Reader(InputSource(claims.data(), claims.length())).parse();
-
-  // Get & check user email
-  string email = claimsJSON->getString("email");
-  if (!claimsJSON->getBoolean("email_verified"))
-    THROWCS("Email not verified", StatusCode::HTTP_UNAUTHORIZED);
-
-  return email;
+  return JSON::Reader(StringInputSource(claims)).parse();
 }

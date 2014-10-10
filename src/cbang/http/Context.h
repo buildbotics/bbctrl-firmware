@@ -56,6 +56,8 @@ namespace cb {
       /// A sub-class of Context can return false from
       /// Context::isReady() in order to put a connection on hold
       virtual bool isReady() const {return true;}
+
+      void errorPage(StatusCode status, const std::string &message) const;
     };
   }
 }

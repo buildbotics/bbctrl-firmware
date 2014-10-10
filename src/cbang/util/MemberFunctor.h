@@ -42,7 +42,7 @@ namespace cb {
     typedef bool (T::*member_t)() const;
     member_t member;
 
-    public:
+  public:
     MemberFunctor(T *object, member_t member) :
       object(object), member(member) {}
 

@@ -30,50 +30,50 @@
 
 \******************************************************************************/
 
-#ifndef CB_HTTP_OAUTH2_LOGIN_H
-#define CB_HTTP_OAUTH2_LOGIN_H
+#ifndef CB_RESTLOGIN_STATE_H
+#define CB_RESTLOGIN_STATE_H
 
-#include "WebPageHandler.h"
-
-#include <cbang/SmartPointer.h>
+#include <cbang/StdTypes.h>
+#include <cbang/json/Serializable.h>
+#include <cbang/security/KeyPair.h>
 
 #include <string>
 
 
 namespace cb {
-  class Options;
-  class SSLContext;
+  class RESTLoginState : public JSON::Serializable {
+    KeyPair key;
 
-  namespace HTTP {
-    class WebContext;
-    class SessionManager;
+    uint64_t nonce;
+    uint64_t ts;
+    std::string user;
+    uint64_t auth;
 
-    class OAuth2Login : public WebPageHandler {
-      SmartPointer<SessionManager> sessionManager;
-      SmartPointer<SSLContext> sslCtx;
+  public:
+    RESTLoginState(const KeyPair &key);
+    RESTLoginState(const KeyPair &key, const std::string &state);
+    virtual ~RESTLoginState() {}
 
-      std::string authURL;
-      std::string tokenURL;
-      std::string redirectBase;
-      std::string clientID;
-      std::string clientSecret;
+    uint64_t getTS() const {return ts;}
 
-    public:
-      OAuth2Login(Options &options,
-                  const SmartPointer<SessionManager> &sessionManager = 0,
-                  const SmartPointer<SSLContext> &sslCtx = 0);
-      ~OAuth2Login();
+    void setUser(const std::string &user) {this->user = user;}
+    const std::string &getUser() const {return user;}
 
-      // From WebPageHandler
-      bool handlePage(WebContext &ctx, std::ostream &stream,
-                      const cb::URI &uri);
+    void set(uint64_t auth) {this->auth |= auth;}
+    void clear(uint64_t auth) {this->auth &= ~auth;}
+    bool allow(uint64_t auth) const {return (this->auth & auth) == auth;}
 
-    protected:
-      void redirect(WebContext &ctx, const std::string &state);
-      std::string verify(WebContext &ctx, const std::string &state);
-    };
-  }
+    virtual std::string toString() const;
+
+    // From JSON::Serializable
+    void read(const JSON::Value &value);
+    void write(JSON::Sync &sync) const;
+
+  protected:
+    std::string encode(const std::string &state) const;
+    std::string decode(const std::string &state) const;
+  };
 }
 
-#endif // CB_HTTP_OAUTH2_LOGIN_H
+#endif // CB_RESTLOGIN_STATE_H
 

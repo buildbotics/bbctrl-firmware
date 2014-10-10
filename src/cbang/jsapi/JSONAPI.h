@@ -34,6 +34,7 @@
 #define CB_JSAPI_JSONAPI_H
 
 #include "Handler.h"
+#include "MemberFunctor.h"
 
 #include <cbang/http/WebPageHandler.h>
 #include <cbang/SmartPointer.h>
@@ -63,6 +64,12 @@ namespace cb {
 
       void add(const std::string &path,
                const SmartPointer<Handler> &handler);
+
+      template <class T>
+      void add(const std::string &path, T *obj,
+               typename MemberFunctor<T>::member_t member) {
+        add(path, new MemberFunctor<T>(obj, member));
+      }
 
       void dispatch(HTTP::WebContext &ctx, const std::string &cmd,
                     const SmartPointer<JSON::Value> &msg,

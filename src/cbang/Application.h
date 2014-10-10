@@ -41,6 +41,7 @@
 #include <cbang/xml/XMLReader.h>
 
 #include <cbang/util/Version.h>
+#include <cbang/util/Features.h>
 
 #include <cbang/os/ExitSignalHandler.h>
 
@@ -58,10 +59,9 @@ namespace cb {
   class EnumerationManager;
   class XMLWriter;
 
-  class Application : protected ExitSignalHandler, public Script::Environment {
+  class Application :
+    public Features, protected ExitSignalHandler, public Script::Environment {
   public:
-    typedef bool (*hasFeature_t)(int feature);
-
     enum {
       FEATURE_ENUMERATION_MANAGER,
       FEATURE_PROCESS_CONTROL,
@@ -71,8 +71,6 @@ namespace cb {
       FEATURE_SCRIPT_SERVER,
       FEATURE_LAST,
     };
-
-    const hasFeature_t hasFeature;
 
   protected:
     Options options; // Must be first

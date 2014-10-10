@@ -33,6 +33,7 @@ def configure_deps(conf, local = True):
     conf.CBConfig('bzip2', not local)
     conf.CBConfig('XML', not local)
     conf.CBConfig('sqlite3', not local)
+    conf.CBConfig('event', not local)
 
     if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
         env.CBDefine('HAVE_LEVELDB')
@@ -103,9 +104,8 @@ def generate(env):
         BoolVariable('backtrace_debugger', 'Enable backtrace debugger', 0),
         ('debug_level', 'Set log debug level', 1))
 
-    env.CBLoadTools(
-        'sqlite3 boost openssl pthreads valgrind osx zlib bzip2 XML v8'.split(),
-        GetHome() + '/..')
+    env.CBLoadTools('''sqlite3 boost openssl pthreads valgrind osx zlib bzip2
+        XML v8 event'''.split(), GetHome() + '/..')
 
 
 def exists(env):

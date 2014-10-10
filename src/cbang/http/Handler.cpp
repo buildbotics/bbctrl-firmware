@@ -45,5 +45,5 @@ Context *Handler::createContext(Connection *con) {
 
 
 bool Handler::match(Connection *con) const {
-  return regex_match(con->getRequest().getURI().getPath(), re);
+  return matchAll || regex_match(con->getRequest().getURI().getPath(), re);
 }

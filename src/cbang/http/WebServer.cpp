@@ -45,7 +45,7 @@ using namespace cb::HTTP;
 WebServer::WebServer(Options &options, const string &match,
                      Script::Handler *parent, hasFeature_t hasFeature) :
   Server(options, hasFeature(FEATURE_SSL) ? &sslCtx : 0),
-  WebHandler(options, match, parent, hasFeature),
+  ScriptedWebHandler(options, match, parent, hasFeature),
   sessionManager(hasFeature(FEATURE_SESSIONS) ?
                  new SessionManager(options) : 0), initialized(false) {}
 

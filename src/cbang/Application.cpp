@@ -84,7 +84,7 @@ namespace cb {
 
 
 Application::Application(const string &name, hasFeature_t hasFeature) :
-  Environment(name), hasFeature(hasFeature), logger(Logger::instance()),
+  Features(hasFeature), Environment(name), logger(Logger::instance()),
   enumMan(new EnumerationManager(*this)), name(name), configRotate(true),
   configRotateMax(16), configRotateDir("configs"), initialized(false),
   configured(false), quit(false), startTime(Timer::now()) {

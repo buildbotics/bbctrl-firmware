@@ -34,7 +34,7 @@
 #define CBANG_HTTP_WEB_SERVER_H
 
 #include "Server.h"
-#include "WebHandler.h"
+#include "ScriptedWebHandler.h"
 
 #include <cbang/security/SSLContext.h>
 
@@ -45,10 +45,10 @@ namespace cb {
   namespace HTTP {
     class SessionManager;
 
-    class WebServer : public Server, public WebHandler {
+    class WebServer : public Server, public ScriptedWebHandler {
     public:
       enum {
-        FEATURE_SSL = WebHandler::FEATURE_LAST,
+        FEATURE_SSL = ScriptedWebHandler::FEATURE_LAST,
         FEATURE_SESSIONS,
         FEATURE_LAST,
       };
@@ -59,7 +59,7 @@ namespace cb {
       bool initialized;
 
     public:
-      WebServer(Options &options, const std::string &match = "^/.*$",
+      WebServer(Options &options, const std::string &match = "",
                 Script::Handler *parent = 0,
                 hasFeature_t hasFeature = WebServer::_hasFeature);
       virtual ~WebServer() {}

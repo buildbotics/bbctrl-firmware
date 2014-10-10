@@ -51,7 +51,7 @@ env.Append(CPPPATH = ['#/src', '#/include'])
 # Build third-party libs
 force_local = env.CBBuildSetRegex(env.get('force_local', ''))
 Export('env conf')
-for lib in 'zlib bzip2 sqlite3 expat boost'.split():
+for lib in 'zlib bzip2 sqlite3 expat boost libevent'.split():
     if not env.CBConfigEnabled(lib) or force_local.match(lib):
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
@@ -63,7 +63,7 @@ subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
     'socket', 'security', 'tar', 'io', 'geom', 'parse', 'task', 'json',
-    'jsapi', 'db']
+    'jsapi', 'db', 'auth', 'event']
 
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 

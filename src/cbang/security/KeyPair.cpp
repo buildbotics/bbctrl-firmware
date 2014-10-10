@@ -56,6 +56,11 @@ using namespace cb;
 using namespace std;
 
 
+KeyPair::KeyPair(const KeyPair &o) : key(o.key) {
+  CRYPTO_add(&(key->references), 1, CRYPTO_LOCK_EVP_PKEY);
+}
+
+
 KeyPair::KeyPair() {
   SSL::init();
   key = EVP_PKEY_new();

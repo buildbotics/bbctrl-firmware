@@ -40,9 +40,12 @@ namespace cb {
   namespace JSAPI {
     template <class T>
     class MemberFunctor : public Handler {
-      T *object;
+    public:
       typedef void (T::*member_t)(HTTP::WebContext &, const std::string &,
                                   const JSON::ValuePtr &, JSON::Sync &sync);
+
+    protected:
+      T *object;
       member_t member;
 
     public:

@@ -1,0 +1,23 @@
+Import('*')
+env = env.Clone()
+
+src = Glob('src/*.c')
+inc = Glob('include/event2/*.h')
+env.Append(CPPPATH = ['include'])
+
+copy = env.Install(dir = '#/include/event2', source = inc)
+copy += env.Install(dir = '#/include', source = Glob('include/*.h'))
+
+# Windows
+if env['PLATFORM'] == 'win32':
+    src += Glob('win32/*.c')
+    inc += Glob('win32/event2/*.h')
+
+# arc4random
+if conf.CBCheckLib('kern') and conf.CBCheckFunc('arc4random'):
+    env.CBDefine('EVENT__HAVE_ARC4RANDOM')
+
+lib = env.Library('#/lib/event', src)
+Depends(lib, copy)
+
+Return('lib')

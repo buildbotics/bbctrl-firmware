@@ -472,8 +472,8 @@ void Server::addConnectionSockets(SocketSet &sockSet) {
 
     case Connection::WRITING_HEADER:
     case Connection::WRITING_DATA:
-      // TODO check if streamed data has more and warn
-      sockSet.add(con.getSocket(), SocketSet::WRITE);
+      if (!con.getContext() || con.getContext()->isReady())
+        sockSet.add(con.getSocket(), SocketSet::WRITE);
       break;
 
     default: break;

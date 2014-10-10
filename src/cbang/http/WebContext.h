@@ -46,14 +46,11 @@ namespace cb {
     class WebHandler;
     class Session;
 
-    class WebContext : public Context, public Script::Handler {
+    class WebContext : public Context {
       WebHandler &handler;
 
       SmartPointer<Session> session;
       bool dynamic;
-
-      SmartPointer<Script::Environment> env;
-      std::vector<std::string> paths;
 
     public:
       WebContext(WebHandler &handler, Connection &con);
@@ -71,20 +68,6 @@ namespace cb {
       {this->session = session;}
 
       const std::string &getUser() const;
-
-      Script::Environment &getEnvironment();
-
-      // From Script::Handler
-      using Script::Handler::eval;
-      bool eval(const Script::Context &ctx);
-
-      void evalInclude(const Script::Context &ctx);
-      void evalGet(const Script::Context &ctx);
-      void evalRemoteAddr(const Script::Context &ctx);
-      void evalRequestURI(const Script::Context &ctx);
-      void evalRequestMethod(const Script::Context &ctx);
-      void evalRequestQuery(const Script::Context &ctx);
-      void evalRequestPath(const Script::Context &ctx);
     };
   }
 }

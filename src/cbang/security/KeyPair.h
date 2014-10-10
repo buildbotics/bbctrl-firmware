@@ -49,6 +49,7 @@ namespace cb {
     EVP_PKEY *key;
 
   public:
+    KeyPair(const KeyPair &o);
     KeyPair(EVP_PKEY *key) : key(key) {}
     KeyPair();
     ~KeyPair();
@@ -65,7 +66,7 @@ namespace cb {
     bool hasPublic() const;
     bool hasPrivate() const;
 
-    unsigned size() const;
+    unsigned size() const; ///< In bytes
     bool match(const KeyPair &o) const;
 
     // Generate

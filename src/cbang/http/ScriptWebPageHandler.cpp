@@ -61,6 +61,8 @@ bool ScriptWebPageHandler::handlePage(WebContext &ctx, ostream &stream,
   if (!handled) return false;
 
   ctx.setDynamic(); // Don't cache
-  cb::Script::Handler::eval(Script::Context(ctx, stream), str.str());
+  cb::Script::Handler *handler = dynamic_cast<cb::Script::Handler *>(&ctx);
+  if (!handler) THROWS("Expected Script::Handler");
+  cb::Script::Handler::eval(Script::Context(*handler, stream), str.str());
   return true;
 }

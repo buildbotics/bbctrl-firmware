@@ -48,12 +48,12 @@ namespace cb {
 
     const char *getName() const {return name;}
     virtual const char *getData() const
-    {CBANG_THROWS(__func__ << " not supported");}
+    {CBANG_THROWS(__func__ << "() not supported by resource");}
     virtual unsigned getLength() const
-    {CBANG_THROWS(__func__ << " not supported");}
+    {CBANG_THROWS(__func__ << "() not supported by resource");}
 
     virtual const Resource *find(const std::string &path) const
-    {CBANG_THROWS(__func__ << " not supported");}
+    {CBANG_THROWS(__func__ << "() not supported by resource");}
 
     const Resource &get(const std::string &path) const;
   };
