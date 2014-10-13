@@ -33,7 +33,7 @@
 #ifndef CB_EVENT_HTTP_H
 #define CB_EVENT_HTTP_H
 
-#include "RequestMemberFunctor.h"
+#include "HTTPHandler.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -48,13 +48,12 @@ namespace cb {
 
   namespace Event {
     class Base;
-    class RequestCallback;
 
     class HTTP {
       evhttp *http;
       SmartPointer<SSLContext> sslCtx;
 
-      std::vector<SmartPointer<RequestCallback> > requestCallbacks;
+      std::vector<SmartPointer<HTTPHandler> > requestCallbacks;
 
     public:
       HTTP(const Base &base, const SmartPointer<SSLContext> &sslCtx = 0);
@@ -65,19 +64,19 @@ namespace cb {
       void setTimeout(int timeout);
 
       void setCallback(const std::string &path,
-                       const SmartPointer<RequestCallback> &cb);
-      void setGeneralCallback(const SmartPointer<RequestCallback> &cb);
+                       const SmartPointer<HTTPHandler> &cb);
+      void setGeneralCallback(const SmartPointer<HTTPHandler> &cb);
 
       template <class T>
       void setCallback(const std::string &path, T *obj,
-                       typename RequestMemberFunctor<T>::member_t member) {
-        setCallback(path, new RequestMemberFunctor<T>(obj, member));
+                       typename HTTPHandlerMemberFunctor<T>::member_t member) {
+        setCallback(path, new HTTPHandlerMemberFunctor<T>(obj, member));
       }
 
       template <class T>
-      void setGeneralCallback(T *obj, typename RequestMemberFunctor<T>::member_t
-                              member) {
-        setGeneralCallback(new RequestMemberFunctor<T>(obj, member));
+      void setGeneralCallback(T *obj, typename HTTPHandlerMemberFunctor<T>::
+                              member_t member) {
+        setGeneralCallback(new HTTPHandlerMemberFunctor<T>(obj, member));
       }
 
       int bind(const IPAddress &addr);

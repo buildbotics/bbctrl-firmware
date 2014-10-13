@@ -33,7 +33,7 @@
 #ifndef CB_EVENT_BASE_H
 #define CB_EVENT_BASE_H
 
-#include "EventMemberFunctor.h"
+#include "EventCallback.h"
 
 #include <cbang/SmartPointer.h>
 

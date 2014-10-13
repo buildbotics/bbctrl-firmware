@@ -39,10 +39,8 @@ using namespace cb;
 using namespace std;
 
 
-GoogleOAuth2::GoogleOAuth2(Options &options,
-                           const SmartPointer<SSLContext> &sslCtx,
-                           const string &maxAuthAge) :
-  OAuth2(sslCtx), maxAuthAge(maxAuthAge) {
+GoogleOAuth2::GoogleOAuth2(Options &options, const string &maxAuthAge) :
+  maxAuthAge(maxAuthAge) {
   authURL = "https://accounts.google.com/o/oauth2/auth";
   tokenURL = "https://accounts.google.com/o/oauth2/token";
 

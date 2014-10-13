@@ -34,6 +34,7 @@
 #define CB_HTTP_WEB_PAGE_HANDLER_GROUP_H
 
 #include "WebPageHandler.h"
+#include "MethodWebPageHandler.h"
 
 
 namespace cb {
@@ -43,8 +44,20 @@ namespace cb {
 
     public:
       void addHandler(const SmartPointer<WebPageHandler> &handler);
-      void addHandler(const SmartPointer<WebPageHandler> &handler,
-                      const std::string &match);
+      void addHandler(const std::string &match,
+                      const SmartPointer<WebPageHandler> &handler);
+
+      template <class T>
+      void addMethod(T *obj,
+                      typename MethodWebPageHandler<T>::method_t method) {
+        addHandler(new MethodWebPageHandler<T>(obj, method));
+      }
+
+      template <class T>
+      void addMethod(const std::string &match, T *obj,
+                     typename MethodWebPageHandler<T>::method_t method) {
+        addHandler(match, new MethodWebPageHandler<T>(obj, method));
+      }
 
       // From WebPageHandler
       bool handlePage(WebContext &ctx, std::ostream &stream,

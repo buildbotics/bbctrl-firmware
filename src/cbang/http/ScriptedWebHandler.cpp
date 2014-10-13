@@ -36,9 +36,9 @@
 #include "Connection.h"
 #include "Response.h"
 #include "Request.h"
-#include "ScriptedWebContext.h"
 #include "FileWebPageHandler.h"
 #include "ScriptWebPageHandler.h"
+#include "ScriptedWebContext.h"
 
 #include <cbang/Info.h>
 #include <cbang/SStream.h>
@@ -56,7 +56,7 @@ using namespace cb::Script;
 ScriptedWebHandler::ScriptedWebHandler(Options &options, const string &match,
                        Script::Handler *parent, hasFeature_t hasFeature) :
   WebHandler(options, match, hasFeature), Environment("Web Handler", parent),
-  options(options), initialized(false) {
+  options(options) {
 
   options.pushCategory("Web Server");
   if (hasFeature(FEATURE_FS_DYNAMIC))
@@ -64,9 +64,9 @@ ScriptedWebHandler::ScriptedWebHandler(Options &options, const string &match,
                 "filesystem access for dynamic pages.");
   options.popCategory();
 
-  // Dynamic Page Functions
+  // Dynamic page functions
 #define MF_ADD(name, func, min, max)                                    \
-  add(new MemberFunctor<ScriptedWebHandler>                             \
+  add(new Script::MemberFunctor<ScriptedWebHandler>                     \
       (name, this, &ScriptedWebHandler::func, min, max))
 
   if (hasFeature(FEATURE_INFO)) MF_ADD("info", evalInfo, 0, 2);
@@ -74,9 +74,6 @@ ScriptedWebHandler::ScriptedWebHandler(Options &options, const string &match,
 
 
 void ScriptedWebHandler::init() {
-  if (initialized) return;
-  initialized = true;
-
   WebHandler::init();
 
   if (hasFeature(FEATURE_FS_DYNAMIC) && options["web-dynamic"].hasValue())

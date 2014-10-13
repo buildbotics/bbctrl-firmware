@@ -66,6 +66,7 @@ namespace cb {
 
     protected:
       std::ostream &stream;
+      unsigned initLevel;
       unsigned level;
       bool compact;
       bool simple;
@@ -75,11 +76,12 @@ namespace cb {
     public:
       Writer(std::ostream &stream, unsigned indent = 0, bool compact = false,
              mode_t mode = JSON_MODE)
-        : stream(stream), level(indent), compact(compact), simple(false),
-          mode(mode), first(true) {}
+        : stream(stream), initLevel(indent), level(indent), compact(compact),
+          simple(false), mode(mode), first(true) {}
 
       // From NullSync
       void close();
+      void reset();
 
       // From Sync
       void writeNull();

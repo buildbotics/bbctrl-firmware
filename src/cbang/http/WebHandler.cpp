@@ -38,7 +38,6 @@
 #include "Request.h"
 #include "WebContext.h"
 #include "FileWebPageHandler.h"
-#include "ScriptWebPageHandler.h"
 
 #include <cbang/Info.h>
 #include <cbang/SStream.h>

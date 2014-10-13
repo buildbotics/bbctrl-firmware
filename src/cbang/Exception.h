@@ -45,7 +45,8 @@
 
 namespace cb {
   // Forward Declarations
-  template <class T, class Counter_T> class SmartPointer;
+  template <typename T, typename DeallocT, typename CounterT>
+  class SmartPointer;
 
   /**
    * Exception is a general purpose exception class.  It is similar to

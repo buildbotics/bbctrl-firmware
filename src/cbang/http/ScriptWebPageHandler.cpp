@@ -32,7 +32,7 @@
 
 #include "ScriptWebPageHandler.h"
 
-#include "WebContext.h"
+#include "ScriptedWebContext.h"
 #include "WebHandler.h"
 
 #include <cbang/script/Handler.h>
@@ -61,8 +61,9 @@ bool ScriptWebPageHandler::handlePage(WebContext &ctx, ostream &stream,
   if (!handled) return false;
 
   ctx.setDynamic(); // Don't cache
-  cb::Script::Handler *handler = dynamic_cast<cb::Script::Handler *>(&ctx);
+  Script::Handler *handler = dynamic_cast<ScriptedWebContext *>(&ctx);
   if (!handler) THROWS("Expected Script::Handler");
-  cb::Script::Handler::eval(Script::Context(*handler, stream), str.str());
+  Script::Handler::eval(Script::Context(*handler, stream), str.str());
+
   return true;
 }

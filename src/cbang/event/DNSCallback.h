@@ -30,34 +30,40 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_REQUEST_MEMBER_FUNCTOR_H
-#define CB_EVENT_REQUEST_MEMBER_FUNCTOR_H
+#ifndef CB_EVENT_DNSCALLBACK_H
+#define CB_EVENT_DNSCALLBACK_H
 
-#include "RequestCallback.h"
+#include <cbang/SmartPointer.h>
+#include <cbang/net/IPAddress.h>
+#include <cbang/util/MemberFunctor.h>
+
+#include <vector>
 
 
 namespace cb {
   namespace Event {
-    template <typename T>
-    class RequestMemberFunctor : public RequestCallback {
-    public:
-      typedef bool (T::*member_t)(Request &);
-
-    protected:
-      T *object;
-      member_t member;
+    class DNSCallback {
+      IPAddress source;
 
     public:
-      RequestMemberFunctor(T *object, member_t member) :
-        object(object), member(member) {}
+      SmartPointer<DNSCallback> self;
 
-      // From RequestCallback
-      bool operator()(Request &req) {
-        return (*object.*member)(req);
-      }
+      virtual ~DNSCallback() {}
+
+      void setSource(const IPAddress &source) {this->source = source;}
+      const IPAddress &getSource() const {return source;}
+
+      virtual void operator()(int error, std::vector<IPAddress> &addrs,
+                              int ttl) = 0;
     };
+
+
+    CBANG_FUNCTOR3(DNSFunctor, DNSCallback, void, operator(), int,
+                   std::vector<IPAddress> &, int);
+    CBANG_MEMBER_FUNCTOR3(DNSMemberFunctor, DNSCallback, void, operator(), int,
+                          std::vector<IPAddress> &, int);
   }
 }
 
-#endif // CB_EVENT_REQUEST_MEMBER_FUNCTOR_H
+#endif // CB_EVENT_DNSCALLBACK_H
 

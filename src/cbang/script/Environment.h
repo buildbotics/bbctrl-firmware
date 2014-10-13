@@ -36,6 +36,8 @@
 #include "Entity.h"
 #include "Function.h"
 #include "Variable.h"
+#include "MemberFunctor.h"
+#include "BareMemberFunctor.h"
 
 #include <map>
 
@@ -54,6 +56,31 @@ namespace cb {
       const std::string &getName() const {return name;}
 
       Entity *add(Entity *e);
+
+      template <class T>
+      Entity *addMember(const std::string &name, T *obj,
+                        typename Script::MemberFunctor<T>::member_t member,
+                        unsigned minArgs = 0, unsigned maxArgs = 0,
+                        const std::string &help = "",
+                        const std::string &argHelp = "",
+                        bool autoEvalArgs = true) {
+        return add(new Script::MemberFunctor<T>
+                   (name, obj, member, minArgs, maxArgs, help, argHelp,
+                    autoEvalArgs));
+      }
+
+      template <class T>
+      Entity *addMember(const std::string &name, T *obj,
+                        typename Script::BareMemberFunctor<T>::member_t member,
+                        unsigned minArgs = 0, unsigned maxArgs = 0,
+                        const std::string &help = "",
+                        const std::string &argHelp = "",
+                        bool autoEvalArgs = true) {
+        return add(new Script::BareMemberFunctor<T>
+                   (name, obj, member, minArgs, maxArgs, help, argHelp,
+                    autoEvalArgs));
+      }
+
       void set(const std::string &name, const std::string &value);
       void setf(const char *key, const char *value, ...);
       void unset(const std::string &name);

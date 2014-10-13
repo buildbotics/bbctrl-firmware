@@ -30,21 +30,13 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_REQUEST_CALLBACK_H
-#define CB_EVENT_REQUEST_CALLBACK_H
+#include "DNSRequest.h"
 
-namespace cb {
-  namespace Event {
-    class Request;
+#include <event2/dns.h>
 
-    class RequestCallback {
-    public:
-      virtual ~RequestCallback() {}
+using namespace cb::Event;
 
-      virtual bool operator()(Request &req) = 0;
-    };
-  }
+
+void DNSRequest::cancel() {
+  evdns_cancel_request(dns, req);
 }
-
-#endif // CB_EVENT_REQUEST_CALLBACK_H
-

@@ -40,8 +40,11 @@ namespace cb {
   namespace HTTP {
     template <typename T>
     class MethodWebPageHandler : public WebPageHandler {
-      T *object;
+    public:
       typedef bool (T::*method_t)(WebContext &, std::ostream &, const URI &);
+
+    protected:
+      T *object;
       method_t method;
 
     public:

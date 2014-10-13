@@ -33,7 +33,13 @@
 #ifndef CB_EVENT_REQUEST_H
 #define CB_EVENT_REQUEST_H
 
+#include "RequestMethod.h"
+#include "HTTPStatus.h"
+#include "HTTPHandler.h"
+
 #include <cbang/SmartPointer.h>
+#include <cbang/net/IPAddress.h>
+#include <cbang/net/URI.h>
 
 #include <string>
 
@@ -42,31 +48,88 @@ struct evhttp_request;
 
 namespace cb {
   class URI;
+  class IPAddress;
 
   namespace Event {
     class Buffer;
     class Headers;
 
-    class Request {
+    class Request : public RequestMethod {
       evhttp_request *req;
+      bool deallocate;
+
+      URI uri;
+      IPAddress clientIP;
+      bool secure;
 
     public:
-      Request(evhttp_request *req);
+      Request(const SmartPointer<HTTPHandler> &cb);
+      Request(evhttp_request *req, bool deallocate = false);
+      Request(evhttp_request *req, const URI &uri, bool deallocate = false);
       ~Request();
 
-      std::string getHost() const;
-      SmartPointer<URI> getURI() const;
+      evhttp_request *getRequest() const {return req;}
+      evhttp_request *adopt() {deallocate = false; return req;}
 
-      SmartPointer<Headers> getInputHeaders() const;
-      SmartPointer<Headers> getOutputHeaders() const;
+      bool isSecure() const {return secure;}
+      void setSecure(bool secure) {this->secure = secure;}
+
+      std::string getHost() const;
+      const URI &getURI() const {return uri;}
+      const IPAddress &getClientIP() const {return clientIP;}
+      RequestMethod getMethod() const;
+      unsigned getResponseCode() const;
+      std::string getResponseMessage() const;
+      std::string getResponseLine() const;
+
+      Headers getInputHeaders() const;
+      Headers getOutputHeaders() const;
+
+      bool inHas(const std::string &name) const;
+      std::string inFind(const std::string &name) const;
+      std::string inGet(const std::string &name) const;
+      void inAdd(const std::string &name, const std::string &value);
+      void inSet(const std::string &name, const std::string &value);
+      void inRemove(const std::string &name);
+
+      bool outHas(const std::string &name) const;
+      std::string outFind(const std::string &name) const;
+      std::string outGet(const std::string &name) const;
+      void outAdd(const std::string &name, const std::string &value);
+      void outSet(const std::string &name, const std::string &value);
+      void outRemove(const std::string &name);
+
+      std::string getContentType() const;
+      void setContentType(const std::string &contentType);
+      void guessContentType();
+
+      bool hasCookie(const std::string &name) const;
+      std::string findCookie(const std::string &name) const;
+      std::string getCookie(const std::string &name) const;
+      void setCookie(const std::string &name, const std::string &value,
+                     const std::string &domain = std::string(),
+                     const std::string &path = std::string(),
+                     uint64_t expires = 0, uint64_t maxAge = 0,
+                     bool httpOnly = false, bool secure = false);
 
       void cancel();
 
-      void sendError(int error, const std::string &reason);
-      void sendReply(int code, const std::string &reason, const Buffer &buf);
-      void sendReplyStart(int code, const std::string &reason);
+      Buffer getInputBuffer() const;
+      Buffer getOutputBuffer() const;
+
+      void sendError(int code);
+
+      void sendReply(const Buffer &buf);
+      void sendReply(const char *data, unsigned length);
+      void sendReply(int code, const Buffer &buf);
+      void sendReply(int code, const char *data, unsigned length);
+      void sendReplyStart(int code);
       void sendReplyChunk(const Buffer &buf);
+      void sendReplyChunk(const char *data, unsigned length);
       void sendReplyEnd();
+
+      void redirect(const URI &uri,
+                    int code = HTTPStatus::HTTP_TEMPORARY_REDIRECT);
     };
   }
 }

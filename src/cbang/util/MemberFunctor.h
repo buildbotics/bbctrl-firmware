@@ -33,22 +33,83 @@
 #ifndef CBANG_MEMBER_FUNCTOR_H
 #define CBANG_MEMBER_FUNCTOR_H
 
+#include "Functor.h"
+
+
+#define CBANG_MF(CLASS, BASE, RETURN, CALLBACK, CONST, ARGS, PARAMS)    \
+  template <typename T>                                                 \
+  class CLASS : public BASE {                                           \
+  public:                                                               \
+    typedef RETURN (T::*member_t)(ARGS) CONST;                          \
+  protected:                                                            \
+    T *obj;                                                             \
+    member_t member;                                                    \
+  public:                                                               \
+    CLASS(T *obj, member_t member) : obj(obj), member(member) {}        \
+    RETURN CALLBACK(ARGS) CONST {return (*obj.*member)(PARAMS);}        \
+  }
+
+
+#define CBANG_MEMBER_FUNCTOR(CLASS, PARENT, RETURN, CALLBACK)   \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, , ,)
+
+#define CBANG_MEMBER_FUNCTOR1(CLASS, PARENT, RETURN, CALLBACK, ARG1)    \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, ,                           \
+           CBANG_ARGS1(ARG1), CBANG_PARAMS1)
+
+#define CBANG_MEMBER_FUNCTOR2(CLASS, PARENT, RETURN, CALLBACK, ARG1, ARG2) \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, ,                           \
+           CBANG_ARGS2(ARG1, ARG2), CBANG_PARAMS2)
+
+#define CBANG_MEMBER_FUNCTOR3(CLASS, PARENT, RETURN, CALLBACK, ARG1, ARG2, \
+                              ARG3)                                     \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, ,                           \
+           CBANG_ARGS3(ARG1, ARG2, ARG3), CBANG_PARAMS3)
+
+#define CBANG_MEMBER_FUNCTOR4(CLASS, PARENT, RETURN, CALLBACK, ARG1, ARG2, \
+                              ARG3, ARG4)                               \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, ,                           \
+           CBANG_ARGS4(ARG1, ARG2, ARG3, ARG4), CBANG_PARAMS4)
+
+#define CBANG_MEMBER_FUNCTOR5(CLASS, PARENT, RETURN, CALLBACK, ARG1, ARG2, \
+                              ARG3, ARG4, ARG5)                         \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, ,                           \
+           CBANG_ARGS5(ARG1, ARG2, ARG3, ARG4, ARG5), CBANG_PARAMS5)
+
+
+#define CBANG_CONST_MEMBER_FUNCTOR(CLASS, PARENT, RETURN, CALLBACK) \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const, ,)
+
+#define CBANG_CONST_MEMBER_FUNCTOR1(CLASS, PARENT, RETURN, CALLBACK, ARG1) \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const,                      \
+           CBANG_ARGS1(ARG1), CBANG_PARAMS1)
+
+#define CBANG_CONST_MEMBER_FUNCTOR2(CLASS, PARENT, RETURN, CALLBACK, ARG1, \
+                                    ARG2)                               \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const,                      \
+           CBANG_ARGS2(ARG1, ARG2), CBANG_PARAMS2)
+
+#define CBANG_CONST_MEMBER_FUNCTOR3(CLASS, PARENT, RETURN, CALLBACK, ARG1, \
+                                    ARG2, ARG3)                         \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const,                      \
+           CBANG_ARGS3(ARG1, ARG2, ARG3), CBANG_PARAMS3)
+
+#define CBANG_CONST_MEMBER_FUNCTOR4(CLASS, PARENT, RETURN, CALLBACK, ARG1, \
+                                    ARG2, ARG3, ARG4)                   \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const,                      \
+           CBANG_ARGS4(ARG1, ARG2, ARG3, ARG4), CBANG_PARAMS4)
+
+#define CBANG_CONST_MEMBER_FUNCTOR5(CLASS, PARENT, RETURN, CALLBACK, ARG1, \
+                                    ARG2, ARG3, ARG4, ARG5)             \
+  CBANG_MF(CLASS, PARENT, RETURN, CALLBACK, const,                      \
+           CBANG_ARGS5(ARG1, ARG2, ARG3, ARG4, ARG5), CBANG_PARAMS5)
+
+
 #include "Callback.h"
 
+
 namespace cb {
-  template <typename T>
-  class MemberFunctor : public Callback {
-    T *object;
-    typedef bool (T::*member_t)() const;
-    member_t member;
-
-  public:
-    MemberFunctor(T *object, member_t member) :
-      object(object), member(member) {}
-
-    // From Callback
-    bool operator()() const {return (*object.*member)();}
-  };
+  CBANG_CONST_MEMBER_FUNCTOR(MemberFunctor, Callback, bool, operator());
 }
 
 #endif // CBANG_MEMBER_FUNCTOR_H

@@ -44,6 +44,14 @@ void Writer::close() {
 }
 
 
+void Writer::reset() {
+  NullSync::reset();
+  level = initLevel;
+  simple = false;
+  first = true;
+}
+
+
 void Writer::writeNull() {
   NullSync::writeNull();
   stream << (mode == PYTHON_MODE ? "None" : "null");

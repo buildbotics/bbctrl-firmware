@@ -34,6 +34,7 @@
 #define CB_EVENT_HEADERS_H
 
 #include <string>
+#include <ostream>
 
 struct evkeyvalq;
 
@@ -49,11 +50,26 @@ namespace cb {
 
       void clear();
       void add(const std::string &key, const std::string &value);
+      void set(const std::string &key, const std::string &value);
       bool has(const std::string &key) const;
       std::string find(const std::string &key) const;
       std::string get(const std::string &key) const;
       void remove(const std::string &key);
+
+      bool hasContentType() const {return has("Content-Type");}
+      std::string getContentType() const;
+      void setContentType(const std::string &contentType);
+      void guessContentType(const std::string &ext);
+
+      void write(std::ostream &stream) const;
     };
+
+
+    inline static
+    std::ostream &operator<<(std::ostream &stream, const Headers &h) {
+      h.write(stream);
+      return stream;
+    }
   }
 }
 

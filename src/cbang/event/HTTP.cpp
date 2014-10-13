@@ -33,11 +33,15 @@
 #include "HTTP.h"
 #include "Base.h"
 #include "Request.h"
-#include "RequestCallback.h"
+#include "HTTPHandler.h"
+#include "HTTPStatus.h"
+#include "Headers.h"
 
 #include <cbang/Exception.h>
 #include <cbang/security/SSLContext.h>
 #include <cbang/net/IPAddress.h>
+#include <cbang/log/Logger.h>
+#include <cbang/util/DefaultCatch.h>
 
 #include <event2/http.h>
 #include <event2/bufferevent_ssl.h>
@@ -57,21 +61,39 @@ namespace {
 
 
   void request_cb(struct evhttp_request *_req, void *cb) {
-    Request req(_req);
-
     try {
-      if (!(*(RequestCallback *)cb)(req))
-        req.sendError(404, "Not Found");
+      Request req(_req);
 
-    } catch (cb::Exception &e) {
-      req.sendError(e.getCode() ? e.getCode() : 500, e.getMessage());
+      // Guess Content-Type
+      req.guessContentType();
 
-    } catch (std::exception &e) {
-      req.sendError(500, e.what());
+      LOG_INFO(1, req.getMethod() << " " << req.getURI());
+      LOG_DEBUG(5, req.getInputHeaders() << '\n');
 
-    } catch (...) {
-      req.sendError(500, "Internal Server Error");
-    }
+      try {
+        if (!(*(HTTPHandler *)cb)(req))
+          req.sendError(HTTPStatus::HTTP_NOT_FOUND);
+
+      } catch (cb::Exception &e) {
+        req.sendError(e.getCode() ? e.getCode() :
+                      HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
+        if (!CBANG_LOG_DEBUG_ENABLED(3)) LOG_WARNING(e.getMessage());
+        LOG_DEBUG(3, e);
+
+      } catch (std::exception &e) {
+        req.sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
+        LOG_ERROR(e.what());
+
+      } catch (...) {
+        req.sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
+        LOG_ERROR(HTTPStatus(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR)
+                  .getDescription());
+      }
+
+      LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getOutputHeaders()
+                << '\n');
+
+    } CATCH_ERROR;
   }
 }
 
@@ -105,7 +127,7 @@ void HTTP::setTimeout(int timeout) {
 
 
 void HTTP::setCallback(const string &path,
-                       const SmartPointer<RequestCallback> &cb) {
+                       const SmartPointer<HTTPHandler> &cb) {
   int ret = evhttp_set_cb(http, path.c_str(), request_cb, cb.get());
   if (ret)
     THROWS("Failed to set callback on path '" << path << '"'
@@ -114,7 +136,7 @@ void HTTP::setCallback(const string &path,
 }
 
 
-void HTTP::setGeneralCallback(const SmartPointer<RequestCallback> &cb) {
+void HTTP::setGeneralCallback(const SmartPointer<HTTPHandler> &cb) {
   evhttp_set_gencb(http, request_cb, cb.get());
   requestCallbacks.push_back(cb);
 }

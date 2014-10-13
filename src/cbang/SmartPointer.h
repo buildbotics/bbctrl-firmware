@@ -90,7 +90,8 @@ namespace cb {
    * See http://ootips.org/yonat/4dev/smart-pointers.html for more
    * information about smart pointers and why to use them.
    */
-  template <typename T, typename CounterT = RefCounter<T, DeallocNew<T> > >
+  template <typename T, typename DeallocT = DeallocNew<T>,
+            typename CounterT = RefCounter<T, DeallocT> >
   class SmartPointer {
   protected:
     /// A pointer to the reference counter
@@ -99,18 +100,21 @@ namespace cb {
     /// The actual pointer
     T *ptr;
 
-    typedef SmartPointer<T, CounterT> SmartPointerT;
+    typedef SmartPointer<T, DeallocT, CounterT> SmartPointerT;
 
   public:
-    typedef SmartPointer<T, RefCounter<T, DeallocNull> > Null;
-    typedef SmartPointer<T, RefCounter<T, DeallocMalloc> > Malloc;
-    typedef SmartPointer<T, RefCounter<T, DeallocArray<T> > > Array;
-    typedef SmartPointer<T, ProtectedRefCounter<T, DeallocNew<T> > > Protected;
-    typedef SmartPointer<T, ProtectedRefCounter<T, DeallocNull> >
+    typedef SmartPointer<T, DeallocNull> Null;
+    typedef SmartPointer<T, DeallocMalloc> Malloc;
+    typedef SmartPointer<T, DeallocArray<T> > Array;
+    typedef SmartPointer<T, DeallocNew<T>,
+                         ProtectedRefCounter<T, DeallocNew<T> > > Protected;
+    typedef SmartPointer<T, DeallocNull, ProtectedRefCounter<T, DeallocNull> >
     ProtectedNull;
-    typedef SmartPointer<T, ProtectedRefCounter<T, DeallocMalloc> >
+    typedef SmartPointer<T, DeallocMalloc,
+                         ProtectedRefCounter<T, DeallocMalloc> >
     ProtecteMalloc;
-    typedef SmartPointer<T, ProtectedRefCounter<T, DeallocArray<T> > >
+    typedef SmartPointer<T, DeallocArray<T>,
+                         ProtectedRefCounter<T, DeallocArray<T> > >
     ProtectedArray;
 
     /**
@@ -257,9 +261,9 @@ namespace cb {
 
 
     /// Convert to a base type.
-    template <typename _BaseT, typename _CounterT>
-    operator SmartPointer<_BaseT, _CounterT> () const {
-      return SmartPointer<_BaseT, _CounterT>(ptr, refCounter);
+    template <typename _BaseT, typename _DeallocT, typename _CounterT>
+    operator SmartPointer<_BaseT, _DeallocT, _CounterT> () const {
+      return SmartPointer<_BaseT, _DeallocT, _CounterT>(ptr, refCounter);
     }
 
     /// Dynamic cast
@@ -272,8 +276,9 @@ namespace cb {
     }
 
     template <typename CastT>
-    SmartPointer<CastT, CounterT> cast() const {
-      return SmartPointer<CastT, CounterT>(castPtr<CastT>(), refCounter);
+    SmartPointer<CastT, DeallocT, CounterT> cast() const {
+      return SmartPointer<CastT, DeallocT, CounterT>
+        (castPtr<CastT>(), refCounter);
     }
 
     // Type check
@@ -341,4 +346,21 @@ namespace cb {
     }
   };
 }
+
+
+#define CBANG_SP(T) cb::SmartPointer<T>
+#define CBANG_SP_PHONY(T) cb::SmartPointer<T>::Null
+#define CBANG_SP_MALLOC(T) cb::SmartPointer<T>::Malloc
+#define CBANG_SP_ARRAY(T) cb::SmartPointer<T>::Array
+#define CBANG_SP_DEALLOC(T, DEALLOC) \
+  cb::SmartPointer<T, cb::DeallocFunc<T, DEALLOC> >
+
+#ifdef USING_CBANG
+#define SP(T) CBANG_SP(T)
+#define SP_PHONY(T) CBANG_SP_PHONY(T)
+#define SP_MALLOC(T) CBANG_SP_MALLOC(T)
+#define SP_ARRAY(T) CBANG_SP_ARRAY(T)
+#define SP_DEALLOC(T, DEALLOC) CBANG_SP_DEALLOC(T, DEALLOC)
+#endif
+
 #endif // CBANG_SMART_POINTER_H

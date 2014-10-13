@@ -9,6 +9,13 @@ void NullSync::close() {
 }
 
 
+void NullSync::reset() {
+  stack.clear();
+  keyStack.clear();
+  canWrite = true;
+}
+
+
 void NullSync::writeNull() {
   assertCanWrite();
 }

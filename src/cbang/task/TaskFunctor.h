@@ -35,21 +35,20 @@
 
 #include "Task.h"
 
+#include <cbang/util/MemberFunctor.h>
 
 namespace cb {
-  template <class T>
-  class TaskFunctor : public Task {
-    T *obj;
-    typedef void (T::*member_t)();
-    member_t member;
+  CBANG_MEMBER_FUNCTOR(TaskFunctorBase, TaskCallback, void, run);
 
+  template <class T>
+  class TaskFunctor : public virtual TaskFunctorBase<T>, public Task {
   public:
     TaskFunctor(const std::string &name, double period, T *obj,
-                member_t member) :
-      Task(name, period), obj(obj), member(member) {}
+                typename TaskFunctorBase<T>::member_t member) :
+      TaskFunctorBase<T>(obj, member), Task(name, period) {}
 
-    // From Task
-    void run() {(*obj.*member)();}
+    // From TaskCallback
+    void run() {TaskFunctorBase<T>::run();}
   };
 }
 

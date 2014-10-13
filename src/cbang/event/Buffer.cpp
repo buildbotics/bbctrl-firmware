@@ -43,31 +43,47 @@ using namespace cb::Event;
 using namespace std;
 
 
-Buffer::Buffer(const char *data, unsigned length) : evb(evbuffer_new()) {
+Buffer::Buffer(evbuffer *evb, bool deallocate) :
+  evb(evb), deallocate(deallocate) {
+}
+
+
+Buffer::Buffer(const char *data, unsigned length) :
+  evb(evbuffer_new()), deallocate(true) {
   if (!evb) THROW("Failed to create event buffer");
   add(data, length);
 }
 
 
-Buffer::Buffer(const char *s) : evb(evbuffer_new()) {
+Buffer::Buffer(const char *s) : evb(evbuffer_new()), deallocate(true) {
   if (!evb) THROW("Failed to create event buffer");
   add(s);
 }
 
 
-Buffer::Buffer(const string &s) : evb(evbuffer_new()) {
+Buffer::Buffer(const string &s) : evb(evbuffer_new()), deallocate(true) {
   if (!evb) THROW("Failed to create event buffer");
   add(s);
 }
 
 
-Buffer::Buffer() : evb(evbuffer_new()) {
+Buffer::Buffer() : evb(evbuffer_new()), deallocate(true) {
   if (!evb) THROW("Failed to create event buffer");
 }
 
 
 Buffer::~Buffer() {
   if (evb) evbuffer_free(evb);
+}
+
+
+unsigned Buffer::getLength() const {
+  return evbuffer_get_length(evb);
+}
+
+
+void Buffer::clear() {
+  evbuffer_drain(evb, evbuffer_get_length(evb));
 }
 
 
@@ -87,4 +103,9 @@ void Buffer::add(const string &s) {
 #else
   add(s.c_str(), s.length());
 #endif
+}
+
+
+int Buffer::remove(char *data, unsigned length) {
+  return evbuffer_remove(evb, data, length);
 }

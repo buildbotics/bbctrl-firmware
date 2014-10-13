@@ -33,7 +33,8 @@
 #ifndef CBANG_SMART_FUNCTOR_H
 #define CBANG_SMART_FUNCTOR_H
 
-#include <cbang/util/DefaultCatch.h>
+#include "DefaultCatch.h"
+
 
 namespace cb {
   template <typename T, typename MEMBER = void (T::*)()>

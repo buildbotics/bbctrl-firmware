@@ -37,14 +37,21 @@
 
 
 namespace cb {
-  class Task : public Named {
+  class TaskCallback {
+  public:
+    virtual ~TaskCallback() {}
+
+    virtual void run() = 0;
+  };
+
+
+  class Task : public Named, public TaskCallback {
     double period;
     double lastRun;
 
   public:
     Task(const std::string &name, double period) :
       Named(name), period(period), lastRun(0) {}
-    virtual ~Task() {}
 
     void setPeriod(double period) {this->period = period;}
     double getPeriod() const {return period;}
@@ -53,8 +60,6 @@ namespace cb {
     double getLastRun() const {return lastRun;}
 
     double getNextRun() const {return lastRun + period;}
-
-    virtual void run() = 0;
   };
 }
 

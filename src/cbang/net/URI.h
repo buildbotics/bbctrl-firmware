@@ -58,6 +58,7 @@ namespace cb {
     const std::string &getHost() const {return host;}
     unsigned getPort() const;
     const std::string &getPath() const {return path;}
+    std::string getExtension() const;
     const std::string &getUser() const {return user;}
     const std::string &getPass() const {return pass;}
     const std::string getQuery() const;

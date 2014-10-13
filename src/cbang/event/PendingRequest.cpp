@@ -30,26 +30,41 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_EVENT_FUNCTOR_H
-#define CB_EVENT_EVENT_FUNCTOR_H
+#include "PendingRequest.h"
+#include "Client.h"
+#include "Buffer.h"
+#include "BufferEvent.h"
 
-#include "EventCallback.h"
+#include <cbang/String.h>
+#include <cbang/security/SSLContext.h>
+
+using namespace cb;
+using namespace cb::Event;
 
 
-namespace cb {
-  namespace Event {
-    class EventFunctor : public EventCallback {
-      typedef void (*fpt_t)(int fd);
-      fpt_t fpt;
-
-    public:
-      EventFunctor(fpt_t fpt) : fpt(fpt) {}
-
-      // From EventCallback
-      void operator()(int fd) {(*fpt)(fd);}
-    };
-  }
+PendingRequest::PendingRequest(Client &client, const URI &uri, unsigned method,
+                               const SmartPointer<HTTPHandler> &cb) :
+  Connection(client.getBase(), client.getDNS(), uri, client.getSSLContext()),
+  Request(cb), uri(uri), method(method) {
 }
 
-#endif // CB_EVENT_EVENT_FUNCTOR_H
 
+void PendingRequest::send() {
+  // Set output headers
+  if (!outHas("Host")) outSet("Host", uri.getHost());
+  if (!outHas("Connection")) outSet("Connection", "close");
+
+  // Set Content-Length
+  switch (method) {
+  case HTTP_POST:
+  case HTTP_PUT:
+  case HTTP_PATCH:
+    if (!outHas("Content-Length"))
+      outSet("Content-Length", String(getOutputBuffer().getLength()));
+    break;
+  default: break;
+  }
+
+  // Do it
+  makeRequest(*this, method, uri);
+}

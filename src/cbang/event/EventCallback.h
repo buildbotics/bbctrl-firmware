@@ -33,6 +33,8 @@
 #ifndef CB_EVENT_EVENT_CALLBACK_H
 #define CB_EVENT_EVENT_CALLBACK_H
 
+#include <cbang/util/MemberFunctor.h>
+
 namespace cb {
   namespace Event {
     class Base;
@@ -43,6 +45,10 @@ namespace cb {
 
       virtual void operator()(int fd) = 0;
     };
+
+    CBANG_FUNCTOR1(EventFunctor, EventCallback, void, operator(), int);
+    CBANG_MEMBER_FUNCTOR1(EventMemberFunctor, EventCallback, void, operator(), \
+                          int);
   }
 }
 

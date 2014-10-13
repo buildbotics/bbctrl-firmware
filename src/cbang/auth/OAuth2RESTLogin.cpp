@@ -64,13 +64,16 @@ bool OAuth2RESTLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
   try {
     if (state.empty()) {
       RESTLoginState state(key);
-      auth->redirect(ctx, state.toString(), "openid email");
+
+      URI redirectURL =
+        auth->getRedirectURL(uri.getPath(), state.toString(), "openid email");
+      response.redirect(redirectURL);
 
 #if 0
     } else if (session->getUser().empty()) {
       // TODO Make sure session is not very old
 
-      JSON::ValuePtr claims = auth->verify(ctx, session->getID());
+      JSON::ValuePtr claims = auth->verify(uri, session->getID());
       string email = claims->getString("email");
       if (!claims->getBoolean("email_verified"))
         THROWCS("Email not verified", HTTP::StatusCode::HTTP_UNAUTHORIZED);

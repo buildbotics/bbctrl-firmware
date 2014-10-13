@@ -47,8 +47,8 @@ namespace cb {
 
   struct DeallocMalloc {static void dealloc(void *ptr) {free(ptr);}};
 
-  template <void (*Func)(void *)>
-  struct DeallocFunc {static void dealloc(void *ptr) {Func(ptr);}};
+  template <typename T, void (*Func)(T *)>
+  struct DeallocFunc {static void dealloc(void *ptr) {Func((T *)ptr);}};
 };
 
 #endif // CBANG_DEALLOCATORS_H

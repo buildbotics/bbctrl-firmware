@@ -41,6 +41,7 @@
 
 namespace cb {
   class OAuth2;
+  class SSLContext;
 
   namespace HTTP {
     class WebContext;
@@ -49,11 +50,13 @@ namespace cb {
 
   class OAuth2SessionLogin : public HTTP::WebPageHandler {
     SmartPointer<OAuth2> auth;
+    SmartPointer<SSLContext> sslCtx;
     SmartPointer<HTTP::SessionManager> sessionManager;
 
   public:
     OAuth2SessionLogin
     (const SmartPointer<OAuth2> &auth,
+     const SmartPointer<SSLContext> &sslCtx,
      const SmartPointer<HTTP::SessionManager> &sessionManager);
     ~OAuth2SessionLogin();
 

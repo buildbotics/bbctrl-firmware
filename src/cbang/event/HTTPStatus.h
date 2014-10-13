@@ -30,32 +30,21 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_EVENT_MEMBER_FUNCTOR_H
-#define CB_EVENT_EVENT_MEMBER_FUNCTOR_H
+#ifndef CB_EVENT_HTTPSTATUS_H
+#define CB_EVENT_HTTPSTATUS_H
 
-#include "EventCallback.h"
+#include <cbang/http/StatusCode.h>
 
 
 namespace cb {
   namespace Event {
-    template <typename T>
-    class EventMemberFunctor : public EventCallback {
+    class HTTPStatus : public cb::HTTP::StatusCode {
     public:
-      typedef void (T::*member_t)(int fd);
-
-    protected:
-      T *object;
-      member_t member;
-
-    public:
-      EventMemberFunctor(T *object, member_t member) :
-        object(object), member(member) {}
-
-      // From EventCallback
-      void operator()(int fd) {(*object.*member)(fd);}
+      HTTPStatus() {}
+      HTTPStatus(enum_t e) : cb::HTTP::StatusCode(e) {}
     };
   }
 }
 
-#endif // CB_EVENT_EVENT_MEMBER_FUNCTOR_H
+#endif // CB_EVENT_HTTPSTATUS_H
 

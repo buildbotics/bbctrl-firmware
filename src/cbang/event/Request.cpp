@@ -33,23 +33,68 @@
 #include "Request.h"
 #include "Buffer.h"
 #include "Headers.h"
+#include "Connection.h"
 
 #include <cbang/Exception.h>
-#include <cbang/net/URI.h>
+#include <cbang/log/Logger.h>
+#include <cbang/http/Cookie.h>
+#include <cbang/util/DefaultCatch.h>
 
 #include <event2/http.h>
+#include <event2/http_struct.h>
+
+#include <netinet/in.h>
 
 using namespace cb::Event;
 using namespace cb;
 using namespace std;
 
 
-Request::Request(evhttp_request *req) : req(req) {
+namespace {
+  void request_cb(struct evhttp_request *_req, void *cb) {
+    try {
+      Request req(_req);
+
+      LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getInputHeaders()
+                << '\n');
+
+      (*(HTTPHandler *)cb)(req);
+    } CATCH_ERROR;
+  }
+}
+
+
+Request::Request(const SmartPointer<HTTPHandler> &cb) :
+  req(evhttp_request_new(request_cb, cb.get())), deallocate(true),
+  secure(false) {
+  if (!req) THROW("Failed to create request");
+}
+
+
+Request::Request(evhttp_request *req, bool deallocate) :
+  req(req), deallocate(deallocate), secure(false) {
+  if (!req) THROW("Event request cannot be null");
+
+  // Parse URI
+  const char *uri = evhttp_request_get_uri(req);
+  if (uri) this->uri = uri;
+
+  // Parse client IP
+  Connection con(evhttp_request_get_connection(req), false);
+  clientIP = con.getPeer();
+}
+
+
+Request::Request(evhttp_request *req, const URI &uri, bool deallocate) :
+  req(req), deallocate(deallocate), uri(uri),
+  clientIP(uri.getHost(), uri.getPort()), secure(false) {
   if (!req) THROW("Event request cannot be null");
 }
 
 
-Request::~Request() {}
+Request::~Request() {
+  if (req && deallocate) evhttp_request_free(req);
+}
 
 
 string Request::getHost() const {
@@ -58,19 +103,166 @@ string Request::getHost() const {
 }
 
 
-SmartPointer<URI> Request::getURI() const {
-  const char *uri = evhttp_request_get_uri(req);
-  return uri ? new URI(uri) : new URI;
+RequestMethod Request::getMethod() const {
+  switch (evhttp_request_get_command(req)) {
+  case EVHTTP_REQ_GET:     return HTTP_GET;
+  case EVHTTP_REQ_POST:    return HTTP_POST;
+  case EVHTTP_REQ_HEAD:    return HTTP_HEAD;
+  case EVHTTP_REQ_PUT:     return HTTP_PUT;
+  case EVHTTP_REQ_DELETE:  return HTTP_DELETE;
+  case EVHTTP_REQ_OPTIONS: return HTTP_OPTIONS;
+  case EVHTTP_REQ_TRACE:   return HTTP_TRACE;
+  case EVHTTP_REQ_CONNECT: return HTTP_CONNECT;
+  case EVHTTP_REQ_PATCH:   return HTTP_PATCH;
+  default:                 return HTTP_UNKNOWN;
+  }
 }
 
 
-SmartPointer<Headers> Request::getInputHeaders() const {
-  return new Headers(evhttp_request_get_input_headers(req));
+unsigned Request::getResponseCode() const {
+  return evhttp_request_get_response_code(req);
 }
 
 
-SmartPointer<Headers> Request::getOutputHeaders() const {
-  return new Headers(evhttp_request_get_output_headers(req));
+string Request::getResponseMessage() const {
+  return evhttp_request_get_response_code_line(req);
+}
+
+
+string Request::getResponseLine() const {
+  return SSTR("HTTP/" << (int)req->major << '.' << (int)req->minor << ' '
+              << getResponseCode() << ' ' << getResponseMessage());
+}
+
+
+Headers Request::getInputHeaders() const {
+  return evhttp_request_get_input_headers(req);
+}
+
+
+Headers Request::getOutputHeaders() const {
+  return evhttp_request_get_output_headers(req);
+}
+
+
+bool Request::inHas(const string &name) const {
+  return getInputHeaders().has(name);
+}
+
+
+string Request::inFind(const string &name) const {
+  return getInputHeaders().find(name);
+}
+
+
+string Request::inGet(const string &name) const {
+  return getInputHeaders().get(name);
+}
+
+
+void Request::inAdd(const string &name, const string &value) {
+  getInputHeaders().add(name, value);
+}
+
+
+void Request::inSet(const string &name, const string &value) {
+  getInputHeaders().set(name, value);
+}
+
+
+void Request::inRemove(const string &name) {
+  getInputHeaders().remove(name);
+}
+
+
+bool Request::outHas(const string &name) const {
+  return getOutputHeaders().has(name);
+}
+
+
+string Request::outFind(const string &name) const {
+  return getOutputHeaders().find(name);
+}
+
+
+string Request::outGet(const string &name) const {
+  return getOutputHeaders().get(name);
+}
+
+
+void Request::outAdd(const string &name, const string &value) {
+  getOutputHeaders().add(name, value);
+}
+
+
+void Request::outSet(const string &name, const string &value) {
+  getOutputHeaders().set(name, value);
+}
+
+
+void Request::outRemove(const string &name) {
+  getOutputHeaders().remove(name);
+}
+
+
+string Request::getContentType() const {
+  return getOutputHeaders().getContentType();
+}
+
+
+void Request::setContentType(const string &contentType) {
+  getOutputHeaders().setContentType(contentType);
+}
+
+
+void Request::guessContentType() {
+  getOutputHeaders().guessContentType(uri.getExtension());
+}
+
+
+bool Request::hasCookie(const string &name) const {
+  if (!inHas("Cookie")) return false;
+
+  vector<string> cookies;
+  String::tokenize(inGet("Cookie"), cookies, "; \t\n\r");
+
+  for (unsigned i = 0; i < cookies.size(); i++)
+    if (name == cookies[i].substr(0, cookies[i].find('='))) return true;
+
+  return false;
+}
+
+
+string Request::findCookie(const string &name) const {
+  if (inHas("Cookie")) {
+    // Return only the first matching cookie
+    vector<string> cookies;
+    String::tokenize(inGet("Cookie"), cookies, "; \t\n\r");
+
+    for (unsigned i = 0; i < cookies.size(); i++) {
+      size_t pos = cookies[i].find('=');
+
+      if (name == cookies[i].substr(0, pos))
+        return pos == string::npos ? string() : cookies[i].substr(pos + 1);
+    }
+  }
+
+  return "";
+}
+
+
+string Request::getCookie(const string &name) const {
+  if (!hasCookie(name)) THROWS("Cookie '" << name << "' not set");
+  return findCookie(name);
+}
+
+
+void Request::setCookie(const string &name, const string &value,
+                        const string &domain, const string &path,
+                        uint64_t expires, uint64_t maxAge, bool httpOnly,
+                        bool secure) {
+  outAdd("Set-Cookie", HTTP::Cookie(name, value, domain, path, expires, maxAge,
+                                    httpOnly, secure).toString());
 }
 
 
@@ -79,18 +271,49 @@ void Request::cancel() {
 }
 
 
-void Request::sendError(int error, const string &reason) {
-  evhttp_send_error(req, error, reason.c_str());
+Buffer Request::getInputBuffer() const {
+  return Buffer(evhttp_request_get_input_buffer(req), false);
 }
 
 
-void Request::sendReply(int code, const string &reason, const Buffer &buf) {
-  evhttp_send_reply(req, code, reason.c_str(), buf.getBuffer());
+Buffer Request::getOutputBuffer() const {
+  return Buffer(evhttp_request_get_output_buffer(req), false);
 }
 
 
-void Request::sendReplyStart(int code, const string &reason) {
-  evhttp_send_reply_start(req, code, reason.c_str());
+void Request::sendError(int code) {
+  string msg = HTTPStatus((HTTPStatus::enum_t)code).getDescription();
+  msg = SSTR(code << " " << String::replace(msg, "_", " "));
+
+  evhttp_send_error(req, code, msg.c_str());
+}
+
+
+void Request::sendReply(const Buffer &buf) {
+  sendReply(HTTP_OK, buf);
+}
+
+
+void Request::sendReply(const char *data, unsigned length) {
+  sendReply(HTTP_OK, data, length);
+}
+
+
+void Request::sendReply(int code, const Buffer &buf) {
+  evhttp_send_reply(req, code,
+                    HTTPStatus((HTTPStatus::enum_t)code).getDescription(),
+                    buf.getBuffer());
+}
+
+
+void Request::sendReply(int code, const char *data, unsigned length) {
+  sendReply(code, Buffer(data, length));
+}
+
+
+void Request::sendReplyStart(int code) {
+  evhttp_send_reply_start
+    (req, code, HTTPStatus((HTTPStatus::enum_t)code).getDescription());
 }
 
 
@@ -99,6 +322,18 @@ void Request::sendReplyChunk(const Buffer &buf) {
 }
 
 
+void Request::sendReplyChunk(const char *data, unsigned length) {
+  sendReplyChunk(Buffer(data, length));
+}
+
+
 void Request::sendReplyEnd() {
   evhttp_send_reply_end(req);
+}
+
+
+void Request::redirect(const URI &uri, int code) {
+  outSet("Location", uri);
+  outSet("Content-Length", "0");
+  sendReply(code, "", 0);
 }

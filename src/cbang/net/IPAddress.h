@@ -52,10 +52,12 @@ namespace cb {
     IPAddress(const std::string &host);
     IPAddress(const std::string &host, uint16_t port);
 
+    void setHost(const std::string &host) {this->host = host;}
     const std::string &getHost() const;
     bool hasHost() const;
     void lookupHost();
 
+    void setIP(uint32_t ip) {this->ip = ip;}
     uint32_t getIP() const;
 
     void setPort(uint16_t port) {this->port = port;}

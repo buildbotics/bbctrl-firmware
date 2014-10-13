@@ -88,6 +88,7 @@ bool JSONAPI::handlePage(HTTP::WebContext &ctx, ostream &stream,
   try {
     // Parse JSON data
     JSON::ValuePtr msg;
+
     if (con.getRequest().hasContentType() &&
         String::startsWith(con.getRequest().getContentType(),
                            "application/json")) {

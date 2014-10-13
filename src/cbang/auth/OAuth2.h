@@ -39,17 +39,12 @@
 
 
 namespace cb {
-  class Options;
-  class SSLContext;
   class URI;
+  class Options;
   namespace JSON {class Value;}
-  namespace HTTP {class WebContext;}
-
 
   class OAuth2 {
   protected:
-    SmartPointer<SSLContext> sslCtx;
-
     std::string prefix;
     std::string authURL;
     std::string tokenURL;
@@ -58,16 +53,17 @@ namespace cb {
     std::string clientSecret;
 
   public:
-    OAuth2(const SmartPointer<SSLContext> &sslCtx = 0);
+    OAuth2();
     virtual ~OAuth2();
 
     virtual URI getRedirectURL(const std::string &path,
                                const std::string &state,
                                const std::string &scope = "openid email") const;
-    virtual void redirect(HTTP::WebContext &ctx, const std::string &state,
-                          const std::string &scope = "openid email") const;
-    virtual SmartPointer<JSON::Value> verify(HTTP::WebContext &ctx,
-                                             const std::string &state) const;
+
+    virtual URI getVerifyURL(const URI &uri, const std::string &state) const;
+
+    virtual SmartPointer<JSON::Value>
+    parseClaims(const std::string &token) const;
 
   protected:
     void addOptions(Options &options, const std::string &prefix = "oauth2-");

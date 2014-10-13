@@ -41,8 +41,7 @@ namespace cb {
     std::string maxAuthAge;
 
   public:
-    GoogleOAuth2(Options &options, const SmartPointer<SSLContext> &sslCtx = 0,
-                 const std::string &maxAuthAge = "");
+    GoogleOAuth2(Options &options, const std::string &maxAuthAge = "");
 
     void setMaxAuthAge(const std::string &x) {maxAuthAge = x;}
 

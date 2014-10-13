@@ -33,6 +33,8 @@
 #include "Event.h"
 #include "EventCallback.h"
 
+#include <cbang/time/Timer.h>
+
 #include <event2/event.h>
 
 using namespace cb::Event;
@@ -44,7 +46,7 @@ Event::~Event() {
 
 
 void Event::add(double t) {
-  timeval tv = {(long)t, (long)(1000000 * (t - (long)t))};
+  struct timeval tv = Timer::toTimeVal(t);
   event_add(e, &tv);
 }
 

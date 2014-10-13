@@ -52,7 +52,6 @@ namespace cb {
 
     protected:
       Options &options;
-      bool initialized;
 
     public:
       ScriptedWebHandler(Options &options, const std::string &match = "",

@@ -34,6 +34,7 @@
 #define CB_TASK_SCHEDULER_H
 
 #include "Task.h"
+#include "TaskFunctor.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/util/OrderedDict.h>
@@ -46,6 +47,13 @@ namespace cb {
   public:
     void add(const SmartPointer<Task> &task);
     const SmartPointer<Task> &get(const std::string &name) const;
+
+    template <class T>
+    void addMember(const std::string &name, double period, T *obj,
+                   typename TaskFunctor<T>::member_t member) {
+      add(new TaskFunctor<T>(name, period, obj, member));
+    }
+
 
     double schedule();
   };

@@ -32,36 +32,21 @@
 
 #include "OAuth2.h"
 
-#include <cbang/http/WebContext.h>
-#include <cbang/http/Connection.h>
-#include <cbang/http/Transaction.h>
+#include <cbang/Exception.h>
 #include <cbang/json/JSON.h>
 #include <cbang/net/Base64.h>
+#include <cbang/net/URI.h>
 #include <cbang/config/Options.h>
-#include <cbang/security/SSLContext.h>
 #include <cbang/io/StringInputSource.h>
+#include <cbang/log/Logger.h>
+#include <cbang/http/StatusCode.h>
 
 using namespace std;
 using namespace cb;
 
 
-OAuth2::OAuth2(const SmartPointer<SSLContext> &sslCtx) :
-  sslCtx(sslCtx.isNull() ? new SSLContext : sslCtx) {}
-
-
+OAuth2::OAuth2() {}
 OAuth2::~OAuth2() {} // Hide destructor
-
-
-void OAuth2::addOptions(Options &options, const string &prefix) {
-  this->prefix = prefix;
-  options.addTarget(prefix + "auth-url", authURL, "OAuth2 Auth URL");
-  options.addTarget(prefix + "token-url", tokenURL, "OAuth2 token URL");
-  options.addTarget(prefix + "redirect-base", redirectBase,
-                    "OAuth2 redirect base URL");
-  options.addTarget(prefix + "client-id", clientID, "OAuth2 API Client ID");
-  options.addTarget(prefix + "client-secret", clientSecret,
-                    "OAuth2 API Client Secret")->setObscured();
-}
 
 
 URI OAuth2::getRedirectURL(const string &path, const string &state,
@@ -89,19 +74,7 @@ URI OAuth2::getRedirectURL(const string &path, const string &state,
 }
 
 
-void OAuth2::redirect(HTTP::WebContext &ctx, const string &state,
-                      const string &scope) const {
-  HTTP::Connection &con = ctx.getConnection();
-  URI url = getRedirectURL(con.getRequest().getURI().getPath(), state, scope);
-  con.getResponse().redirect(url);
-}
-
-
-JSON::ValuePtr OAuth2::verify(HTTP::WebContext &ctx,
-                              const string &state) const {
-  HTTP::Request &request = ctx.getConnection().getRequest();
-  const URI &uri = request.getURI();
-
+URI OAuth2::getVerifyURL(const URI &uri, const string &state) const {
   // Check that SID matches state (Confirm anti-forgery state token)
   if (!uri.has("code") || !uri.has("state") || uri.get("state") != state) {
     LOG_DEBUG(3, "Failed anti-forgery check: uri code="
@@ -132,38 +105,35 @@ JSON::ValuePtr OAuth2::verify(HTTP::WebContext &ctx,
   postURI.set("code", uri.get("code"));
   postURI.set("client_id", clientID);
   postURI.set("client_secret", clientSecret);
-  postURI.set("redirect_uri", redirectBase + request.getURI().getPath());
+  postURI.set("redirect_uri", redirectBase + uri.getPath());
   postURI.set("grant_type", "authorization_code");
-  string data = postURI.getQuery();
-  postURI.setQuery("");
 
-  LOG_DEBUG(5, "Token URI: " << postURI);
-  LOG_DEBUG(5, "Token Query: " << data);
+  return postURI;
+}
 
-  // Verify authorization with OAuth2 server
-  HTTP::Transaction tran(sslCtx.get());
-  tran.post(postURI, data.data(), data.length(),
-            "application/x-www-form-urlencoded", 1.0);
 
-  // Read response
-  tran.receiveHeader();
-  stringstream jsonStream;
-  transfer(tran, jsonStream);
-  string response = jsonStream.str();
-  LOG_DEBUG(5, "Token Response Header: " << tran.getResponse());
-  LOG_DEBUG(5, "Token Response: " << response);
-
-  // Parse JSON response
-  JSON::ValuePtr json = JSON::Reader(StringInputSource(response)).parse();
-
+SmartPointer<JSON::Value> OAuth2::parseClaims(const std::string &token) const {
   // Decode JWT claims
   // See: http://openid.net/specs/draft-jones-json-web-token-07.html#ExampleJWT
   // Note: There is no need to verify the JWT because it comes directly from
   //   the server over a secure connection.
-  string idToken = json->getString("id_token");
   vector<string> parts;
-  String::tokenize(idToken, parts, ".");
+  String::tokenize(token, parts, ".");
+
   string claims = Base64(0, '-', '_').decode(parts[1]);
   LOG_DEBUG(5, "Claims: " << claims);
+
   return JSON::Reader(StringInputSource(claims)).parse();
+}
+
+
+void OAuth2::addOptions(Options &options, const string &prefix) {
+  this->prefix = prefix;
+  options.addTarget(prefix + "auth-url", authURL, "OAuth2 Auth URL");
+  options.addTarget(prefix + "token-url", tokenURL, "OAuth2 token URL");
+  options.addTarget(prefix + "redirect-base", redirectBase,
+                    "OAuth2 redirect base URL");
+  options.addTarget(prefix + "client-id", clientID, "OAuth2 API Client ID");
+  options.addTarget(prefix + "client-secret", clientSecret,
+                    "OAuth2 API Client Secret")->setObscured();
 }

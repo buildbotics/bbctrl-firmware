@@ -35,8 +35,11 @@
 
 #include <cbang/http/SessionManager.h>
 #include <cbang/http/WebContext.h>
+#include <cbang/http/Transaction.h>
+
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
+#include <cbang/security/SSLContext.h>
 
 using namespace std;
 using namespace cb;
@@ -44,15 +47,17 @@ using namespace cb;
 
 OAuth2SessionLogin::
 OAuth2SessionLogin(const SmartPointer<OAuth2> &auth,
+                   const SmartPointer<SSLContext> &sslCtx,
                    const SmartPointer<HTTP::SessionManager> &sessionManager) :
-  auth(auth), sessionManager(sessionManager) {}
+  auth(auth), sslCtx(sslCtx.isNull() ? new SSLContext : sslCtx),
+  sessionManager(sessionManager) {}
 
 
 OAuth2SessionLogin::~OAuth2SessionLogin() {} // Hide destructor
 
 
 bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
-                             const URI &uri) {
+                                    const URI &uri) {
   HTTP::Connection &con = ctx.getConnection();
   HTTP::Request &request = con.getRequest();
   HTTP::Response &response = con.getResponse();
@@ -77,12 +82,33 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
       session = sessionManager->openSession(ctx);
       sid = session->getID();
 
-      auth->redirect(ctx, sid, "openid email");
+      URI redirectURL =
+        auth->getRedirectURL(uri.getPath(), sid, "openid email");
+      response.redirect(redirectURL);
 
     } else if (session->getUser().empty()) {
       // TODO Make sure session is not very old
 
-      JSON::ValuePtr claims = auth->verify(ctx, session->getID());
+      URI postURI = auth->getVerifyURL(uri, sid);
+      LOG_DEBUG(5, "Token URI: " << postURI);
+
+      // Extract query data
+      string data = postURI.getQuery();
+      postURI.setQuery("");
+
+      // Verify authorization with OAuth2 server
+      HTTP::Transaction tran(sslCtx.get());
+      tran.post(postURI, data.data(), data.length(),
+                "application/x-www-form-urlencoded", 1.0);
+
+      // Read response
+      tran.receiveHeader();
+      JSON::ValuePtr json = JSON::Reader(tran).parse();
+
+      LOG_DEBUG(5, "Token Response: \n" << tran.getResponse() << *json);
+
+      // Process claims
+      JSON::ValuePtr claims = auth->parseClaims(json->getString("id_token"));
       string email = claims->getString("email");
       if (!claims->getBoolean("email_verified"))
         THROWCS("Email not verified", HTTP::StatusCode::HTTP_UNAUTHORIZED);

@@ -135,6 +135,12 @@ unsigned URI::getPort() const {
 }
 
 
+string URI::getExtension() const {
+  size_t ptr = path.find_last_of('.');
+  return (ptr == string::npos) ? "" : path.substr(ptr + 1);
+}
+
+
 const string URI::getQuery() const {
   ostringstream str;
   writeQuery(str);

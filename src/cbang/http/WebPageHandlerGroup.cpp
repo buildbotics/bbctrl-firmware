@@ -44,7 +44,7 @@ addHandler(const SmartPointer<WebPageHandler> &handler) {
 
 
 void WebPageHandlerGroup::
-addHandler(const SmartPointer<WebPageHandler> &handler, const string &match) {
+addHandler(const string &match, const SmartPointer<WebPageHandler> &handler) {
   addHandler(new RegexWebPageHandler(match, handler));
 }
 

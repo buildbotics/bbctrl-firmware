@@ -47,6 +47,9 @@ namespace cb {
     virtual ~Resource() {}
 
     const char *getName() const {return name;}
+
+    virtual bool isDirectory() const {return false;}
+
     virtual const char *getData() const
     {CBANG_THROWS(__func__ << "() not supported by resource");}
     virtual unsigned getLength() const
@@ -66,8 +69,8 @@ namespace cb {
     FileResource(const char *name, const char *data, unsigned length) :
       Resource(name), data(data), length(length) {}
 
-    virtual const char *getData() const {return data;}
-    virtual unsigned getLength() const {return length;}
+    const char *getData() const {return data;}
+    unsigned getLength() const {return length;}
   };
 
 
@@ -77,6 +80,7 @@ namespace cb {
     DirectoryResource(const char *name, const Resource **children) :
       Resource(name), children(children) {}
 
+    bool isDirectory() const {return true;}
     const Resource *find(const std::string &path) const;
   };
 

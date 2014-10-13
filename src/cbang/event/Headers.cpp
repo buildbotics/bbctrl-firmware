@@ -33,8 +33,11 @@
 #include "Headers.h"
 
 #include <cbang/Exception.h>
+#include <cbang/http/ContentTypes.h>
 
 #include <event2/http.h>
+#include <event2/keyvalq_struct.h>
+#include <sys/queue.h>
 
 using namespace cb::Event;
 using namespace std;
@@ -47,6 +50,12 @@ void Headers::clear() {
 
 void Headers::add(const string &key, const string &value) {
   evhttp_add_header(hdrs, key.c_str(), value.c_str());
+}
+
+
+void Headers::set(const string &key, const string &value) {
+  if (has(key)) remove(key);
+  add(key, value);
 }
 
 
@@ -70,4 +79,27 @@ string Headers::get(const string &key) const {
 
 void Headers::remove(const string &key) {
   evhttp_remove_header(hdrs, key.c_str());
+}
+
+
+string Headers::getContentType() const {
+  return find("Content-Type");
+}
+
+
+void Headers::setContentType(const string &contentType) {
+  set("Content-Type", contentType);
+}
+
+
+void Headers::guessContentType(const std::string &ext) {
+  HTTP::ContentTypes::const_iterator it =
+    HTTP::ContentTypes::instance().find(ext);
+  if (it != HTTP::ContentTypes::instance().end()) setContentType(it->second);
+}
+
+
+void Headers::write(ostream &stream) const {
+  for (evkeyval *hdr = TAILQ_FIRST(hdrs); hdr; hdr = TAILQ_NEXT(hdr, next))
+    stream << hdr->key << ": " << hdr->value << "\n";
 }

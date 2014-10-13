@@ -30,26 +30,35 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_REQUEST_FUNCTOR_H
-#define CB_EVENT_REQUEST_FUNCTOR_H
+#ifndef CB_EVENT_HTTPMATCHER_H
+#define CB_EVENT_HTTPMATCHER_H
 
-#include "RequestCallback.h"
+#include "HTTPHandler.h"
+
+#include <cbang/SmartPointer.h>
+
+#include <boost/regex.hpp>
 
 
 namespace cb {
   namespace Event {
-    class RequestFunctor : public RequestCallback {
-      typedef bool (*fpt_t)(Request &req);
-      fpt_t fpt;
+    class HTTPMatcher : public HTTPHandler {
+      unsigned methods;
+      bool matchAll;
+      boost::regex regex;
+      SmartPointer<HTTPHandler> child;
 
     public:
-      RequestFunctor(fpt_t fpt) : fpt(fpt) {}
+      HTTPMatcher(unsigned methods, const std::string &pattern,
+                  const SmartPointer<HTTPHandler> &child) :
+        methods(methods), matchAll(pattern.empty()),
+        regex(boost::regex(pattern)), child(child) {}
 
-      // From RequestCallback
-      bool operator()(Request &req) {return (*fpt)(req);}
+      // From HTTPHandler
+      bool operator()(Request &req);
     };
   }
 }
 
-#endif // CB_EVENT_REQUEST_FUNCTOR_H
+#endif // CB_EVENT_HTTPMATCHER_H
 

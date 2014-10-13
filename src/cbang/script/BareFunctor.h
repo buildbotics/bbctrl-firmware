@@ -35,22 +35,24 @@
 
 #include "Function.h"
 
+#include <cbang/util/Functor.h>
+
+
 namespace cb {
   namespace Script {
-    class BareFunctor : public Function {
-      typedef void (*fpt_t)();
-      fpt_t fpt;
+    CBANG_FUNCTOR(FunctorBase, Handler, void, evalCB);
 
+    class BareFunctor : public Function, public BareFunctor {
     public:
-      BareFunctor(const std::string &name, fpt_t fpt,
+      BareFunctor(const std::string &name, BareFunctor::func_t func,
               unsigned minArgs = 0, unsigned maxArgs = 0,
               const std::string &help = "", const std::string &argHelp = "",
               bool autoEvalArgs = true) :
         Function(name, minArgs, maxArgs, help, argHelp, autoEvalArgs),
-        fpt(fpt) {}
+        BareFunctor(func) {}
 
       // From Handler
-      bool eval(const Context &ctx) {fpt(); return true;}
+      bool eval(const Context &ctx) {BareFunctor::evalCB(); return true;}
     };
   }
 }

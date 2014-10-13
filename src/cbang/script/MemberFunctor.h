@@ -35,25 +35,31 @@
 
 #include "Function.h"
 
+#include <cbang/util/MemberFunctor.h>
+
+
 namespace cb {
   namespace Script {
-    template <typename T>
-    class MemberFunctor : public Function {
-      T *obj;
-      typedef void (T::*fpt_t)(const Context &);
-      fpt_t fpt;
+    CBANG_MEMBER_FUNCTOR1(MemberFunctorBase, Handler, void, evalCB,  \
+                          const Context &);
 
+    template <typename T>
+    class MemberFunctor : public Function, public MemberFunctorBase<T> {
     public:
-      MemberFunctor(const std::string &name, T *obj, fpt_t fpt,
+      MemberFunctor(const std::string &name, T *obj,
+                    typename MemberFunctorBase<T>::member_t member,
                     unsigned minArgs = 0, unsigned maxArgs = 0,
                     const std::string &help = "",
                     const std::string &argHelp = "",
                     bool autoEvalArgs = true) :
-        Function(name, minArgs, maxArgs, help, argHelp, autoEvalArgs), obj(obj),
-        fpt(fpt) {}
+        Function(name, minArgs, maxArgs, help, argHelp, autoEvalArgs),
+        MemberFunctorBase<T>(obj, member) {}
 
       // From Handler
-      bool eval(const Context &ctx) {(*obj.*fpt)(ctx); return true;}
+      bool eval(const Context &ctx) {
+        MemberFunctorBase<T>::evalCB(ctx);
+        return true;
+      }
     };
   }
 }

@@ -54,6 +54,7 @@ namespace cb {
       NullSync() : canWrite(true) {}
 
       virtual void close();
+      virtual void reset();
 
       // From Sync
       void writeNull();

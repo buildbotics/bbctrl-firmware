@@ -42,19 +42,28 @@ namespace cb {
   namespace Event {
     class Buffer {
       evbuffer *evb;
+      bool deallocate;
 
     public:
+      Buffer(evbuffer *evb, bool deallocate);
       Buffer(const char *data, unsigned length);
       Buffer(const char *s);
       Buffer(const std::string &s);
       Buffer();
       ~Buffer();
 
-      struct evbuffer *getBuffer() const {return evb;}
+      evbuffer *getBuffer() const {return evb;}
+      evbuffer *adopt() {deallocate = false; return evb;}
+
+      unsigned getLength() const;
+
+      void clear();
 
       void add(const char *data, unsigned length);
       void add(const char *s);
       void add(const std::string &s);
+
+      int remove(char *data, unsigned length);
     };
   }
 }
