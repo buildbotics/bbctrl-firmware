@@ -38,7 +38,6 @@
 #include <cbang/Exception.h>
 #include <cbang/log/Logger.h>
 #include <cbang/http/Cookie.h>
-#include <cbang/util/DefaultCatch.h>
 
 #include <event2/http.h>
 #include <event2/http_struct.h>
@@ -50,29 +49,8 @@ using namespace cb;
 using namespace std;
 
 
-namespace {
-  void request_cb(struct evhttp_request *_req, void *cb) {
-    try {
-      Request req(_req);
-
-      LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getInputHeaders()
-                << '\n');
-
-      (*(HTTPHandler *)cb)(req);
-    } CATCH_ERROR;
-  }
-}
-
-
-Request::Request(const SmartPointer<HTTPHandler> &cb) :
-  req(evhttp_request_new(request_cb, cb.get())), deallocate(true),
-  secure(false) {
-  if (!req) THROW("Failed to create request");
-}
-
-
 Request::Request(evhttp_request *req, bool deallocate) :
-  req(req), deallocate(deallocate), secure(false) {
+  req(req), deallocate(deallocate), incomming(false), secure(false) {
   if (!req) THROW("Event request cannot be null");
 
   // Parse URI
@@ -80,14 +58,17 @@ Request::Request(evhttp_request *req, bool deallocate) :
   if (uri) this->uri = uri;
 
   // Parse client IP
-  Connection con(evhttp_request_get_connection(req), false);
-  clientIP = con.getPeer();
+  evhttp_connection *_con = evhttp_request_get_connection(req);
+  if (_con) {
+    Connection con(_con, false);
+    clientIP = con.getPeer();
+  }
 }
 
 
 Request::Request(evhttp_request *req, const URI &uri, bool deallocate) :
   req(req), deallocate(deallocate), uri(uri),
-  clientIP(uri.getHost(), uri.getPort()), secure(false) {
+  clientIP(uri.getHost(), uri.getPort()), incomming(false), secure(false) {
   if (!req) THROW("Event request cannot be null");
 }
 
@@ -336,4 +317,17 @@ void Request::redirect(const URI &uri, int code) {
   outSet("Location", uri);
   outSet("Content-Length", "0");
   sendReply(code, "", 0);
+}
+
+
+const char *Request::getErrorStr(int error) {
+  switch (error) {
+  case EVREQ_HTTP_TIMEOUT:        return "Timeout";
+  case EVREQ_HTTP_EOF:            return "End of file";
+  case EVREQ_HTTP_INVALID_HEADER: return "Invalid header";
+  case EVREQ_HTTP_BUFFER_ERROR:   return "Buffer error";
+  case EVREQ_HTTP_REQUEST_CANCEL: return "Requeset canceled";
+  case EVREQ_HTTP_DATA_TOO_LONG:  return "Data too long";
+  default:                        return "Unknown";
+  }
 }

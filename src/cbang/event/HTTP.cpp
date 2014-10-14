@@ -36,6 +36,7 @@
 #include "HTTPHandler.h"
 #include "HTTPStatus.h"
 #include "Headers.h"
+#include "Buffer.h"
 
 #include <cbang/Exception.h>
 #include <cbang/security/SSLContext.h>
@@ -48,8 +49,8 @@
 
 #include <openssl/ssl.h>
 
-using namespace cb::Event;
 using namespace std;
+using namespace cb::Event;
 
 
 namespace {
@@ -64,11 +65,12 @@ namespace {
     try {
       Request req(_req);
 
-      // Guess Content-Type
+      req.setIncomming(true);
       req.guessContentType();
 
-      LOG_INFO(1, req.getMethod() << " " << req.getURI());
+      LOG_INFO(1, "< " << req.getMethod() << " " << req.getURI());
       LOG_DEBUG(5, req.getInputHeaders() << '\n');
+      LOG_DEBUG(6, req.getInputBuffer().hexdump() << '\n');
 
       try {
         if (!(*(HTTPHandler *)cb)(req))
@@ -92,6 +94,7 @@ namespace {
 
       LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getOutputHeaders()
                 << '\n');
+      LOG_DEBUG(6, req.getOutputBuffer().hexdump() << '\n');
 
     } CATCH_ERROR;
   }

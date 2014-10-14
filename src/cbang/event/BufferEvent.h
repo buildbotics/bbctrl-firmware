@@ -51,12 +51,15 @@ namespace cb {
       bool deallocate;
 
     public:
+      BufferEvent(bufferevent *bev, bool deallocate);
       BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx = 0,
                   const std::string &host = std::string());
       ~BufferEvent();
 
       bufferevent *getBufferEvent() const {return bev;}
       bufferevent *adopt() {deallocate = false; return bev;}
+
+      void logSSLErrors();
     };
   }
 }

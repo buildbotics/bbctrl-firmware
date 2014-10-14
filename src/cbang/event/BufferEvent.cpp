@@ -34,7 +34,9 @@
 #include "Base.h"
 
 #include <cbang/Exception.h>
+#include <cbang/security/SSL.h>
 #include <cbang/security/SSLContext.h>
+#include <cbang/log/Logger.h>
 
 #include <event2/bufferevent_ssl.h>
 #include <event2/bufferevent.h>
@@ -44,6 +46,11 @@
 using namespace std;
 using namespace cb;
 using namespace cb::Event;
+
+
+BufferEvent::BufferEvent(bufferevent *bev, bool deallocate) :
+  bev(bev), deallocate(deallocate) {
+}
 
 
 BufferEvent::BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx,
@@ -64,7 +71,7 @@ BufferEvent::BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx,
        BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
   }
 
-  if (!bev) THROW("Failed to create event buffer");
+  if (!bev) THROW("Failed to create buffer event");
 
   bufferevent_openssl_set_allow_dirty_shutdown(bev, 1);
 }
@@ -72,4 +79,12 @@ BufferEvent::BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx,
 
 BufferEvent::~BufferEvent() {
   if (bev && deallocate) bufferevent_free(bev);
+}
+
+
+void BufferEvent::logSSLErrors() {
+  unsigned error;
+
+  while ((error = bufferevent_get_openssl_error(bev)))
+    LOG_ERROR("SSL error: " << SSL::getErrorStr(error));
 }

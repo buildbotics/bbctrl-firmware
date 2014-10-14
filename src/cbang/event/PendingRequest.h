@@ -49,12 +49,16 @@ namespace cb {
     class PendingRequest : public Connection, public Request {
       URI uri;
       unsigned method;
+      SmartPointer<HTTPHandler> cb;
 
     public:
       PendingRequest(Client &client, const URI &uri, unsigned method,
                      const SmartPointer<HTTPHandler> &cb);
 
       void send();
+
+      void callback(evhttp_request *req);
+      void error(int code);
     };
   }
 }

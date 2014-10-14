@@ -67,11 +67,15 @@ namespace cb {
 
       cb::IPAddress getPeer() const;
 
+      void setMaxBodySize(unsigned size);
+      void setMaxHeaderSize(unsigned size);
       void setInitialRetryDelay(double delay);
       void setRetries(unsigned retries);
       void setTimeout(double timeout);
 
       void makeRequest(Request &req, unsigned method, const URI &uri);
+
+      void logSSLErrors();
     };
   }
 }

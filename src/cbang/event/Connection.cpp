@@ -40,6 +40,7 @@
 #include <cbang/net/IPAddress.h>
 #include <cbang/time/Timer.h>
 #include <cbang/security/SSLContext.h>
+#include <cbang/log/Logger.h>
 
 #include <event2/http.h>
 
@@ -91,12 +92,17 @@ Connection::Connection(Base &base, DNSBase &dns, BufferEvent &bev,
 Connection::Connection(Base &base, DNSBase &dns, const URI &uri,
                        const SmartPointer<SSLContext> &sslCtx) :
   con(0), deallocate(true) {
-  BufferEvent
-    bev(base, (uri.getScheme() == "https") ? sslCtx : 0, uri.getHost());
+  bool https = uri.getScheme() == "https";
+
+  if (https && sslCtx.isNull()) THROW("Need SSL context for https connection");
+
+  BufferEvent bev(base, https ? sslCtx : 0, uri.getHost());
 
   con = evhttp_connection_base_bufferevent_new
     (base.getBase(), dns.getDNSBase(), bev.adopt(), uri.getHost().c_str(),
      uri.getPort());
+
+  LOG_DEBUG(5, "Connecting to " << uri.getHost() << ':' << uri.getPort());
 
   if (!con) THROWS("Failed to create connection to " << uri);
 }
@@ -125,6 +131,16 @@ IPAddress Connection::getPeer() const {
 }
 
 
+void Connection::setMaxBodySize(unsigned size) {
+  evhttp_connection_set_max_body_size(con, size);
+}
+
+
+void Connection::setMaxHeaderSize(unsigned size) {
+  evhttp_connection_set_max_headers_size(con, size);
+}
+
+
 void Connection::setInitialRetryDelay(double delay) {
   struct timeval tv = Timer::toTimeVal(delay);
   evhttp_connection_set_initial_retry_tv(con, &tv);
@@ -147,4 +163,10 @@ void Connection::makeRequest(Request &req, unsigned method, const URI &uri) {
 
   if (evhttp_make_request(con, req.adopt(), m, uri.toString().c_str()))
     THROWS("Failed to make request to " << uri);
+}
+
+
+void Connection::logSSLErrors() {
+  bufferevent *bev = evhttp_connection_get_bufferevent(con);
+  if (bev) BufferEvent(bev, false).logSSLErrors();
 }

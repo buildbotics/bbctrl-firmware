@@ -34,18 +34,38 @@
 #include "Client.h"
 #include "Buffer.h"
 #include "BufferEvent.h"
+#include "Headers.h"
 
 #include <cbang/String.h>
 #include <cbang/security/SSLContext.h>
+#include <cbang/log/Logger.h>
+#include <cbang/util/DefaultCatch.h>
+#include <cbang/os/SysError.h>
+
+#include <event2/http.h>
 
 using namespace cb;
 using namespace cb::Event;
 
 
+namespace {
+  void request_cb(struct evhttp_request *req, void *pr) {
+    ((PendingRequest *)pr)->callback(req);
+  }
+
+
+  void error_cb(enum evhttp_request_error error, void *pr) {
+    ((PendingRequest *)pr)->error(error);
+  }
+}
+
+
 PendingRequest::PendingRequest(Client &client, const URI &uri, unsigned method,
                                const SmartPointer<HTTPHandler> &cb) :
   Connection(client.getBase(), client.getDNS(), uri, client.getSSLContext()),
-  Request(cb), uri(uri), method(method) {
+  Request(evhttp_request_new(request_cb, this), uri, true), uri(uri),
+  method(method), cb(cb) {
+  evhttp_request_set_error_cb(req, error_cb);
 }
 
 
@@ -67,4 +87,32 @@ void PendingRequest::send() {
 
   // Do it
   makeRequest(*this, method, uri);
+
+  LOG_INFO(1, "> " << getMethod() << " " << getURI());
+  LOG_DEBUG(5, getOutputHeaders() << '\n');
+  LOG_DEBUG(6, getOutputBuffer().hexdump() << '\n');
+}
+
+
+void PendingRequest::callback(evhttp_request *_req) {
+  try {
+    if (!_req) return;
+    Request req(_req);
+
+    LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getInputHeaders()
+              << '\n');
+      LOG_DEBUG(6, req.getInputBuffer().hexdump() << '\n');
+
+    (*cb)(req);
+  } CATCH_ERROR;
+}
+
+
+void PendingRequest::error(int code) {
+  logSSLErrors();
+
+  SysError sysError;
+  if (sysError.getCode()) LOG_ERROR("System error: " << sysError);
+
+  THROWS(getErrorStr(code));
 }

@@ -55,15 +55,16 @@ namespace cb {
     class Headers;
 
     class Request : public RequestMethod {
+    protected:
       evhttp_request *req;
       bool deallocate;
 
       URI uri;
       IPAddress clientIP;
+      bool incomming;
       bool secure;
 
     public:
-      Request(const SmartPointer<HTTPHandler> &cb);
       Request(evhttp_request *req, bool deallocate = false);
       Request(evhttp_request *req, const URI &uri, bool deallocate = false);
       ~Request();
@@ -71,6 +72,8 @@ namespace cb {
       evhttp_request *getRequest() const {return req;}
       evhttp_request *adopt() {deallocate = false; return req;}
 
+      void setIncomming(bool incomming) {this->incomming = incomming;}
+      bool isIncomming() const {return incomming;}
       bool isSecure() const {return secure;}
       void setSecure(bool secure) {this->secure = secure;}
 
@@ -130,6 +133,8 @@ namespace cb {
 
       void redirect(const URI &uri,
                     int code = HTTPStatus::HTTP_TEMPORARY_REDIRECT);
+
+      static const char *getErrorStr(int error);
     };
   }
 }

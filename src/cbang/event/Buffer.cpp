@@ -33,14 +33,15 @@
 #include "Buffer.h"
 
 #include <cbang/Exception.h>
+#include <cbang/String.h>
 
 #include <event2/buffer.h>
 
 #include <string.h>
 
 
-using namespace cb::Event;
 using namespace std;
+using namespace cb::Event;
 
 
 Buffer::Buffer(evbuffer *evb, bool deallocate) :
@@ -73,12 +74,23 @@ Buffer::Buffer() : evb(evbuffer_new()), deallocate(true) {
 
 
 Buffer::~Buffer() {
-  if (evb) evbuffer_free(evb);
+  if (evb && deallocate) evbuffer_free(evb);
 }
 
 
 unsigned Buffer::getLength() const {
   return evbuffer_get_length(evb);
+}
+
+
+string Buffer::toString() const {
+  return string((char *)evbuffer_pullup(evb, -1), evbuffer_get_length(evb));
+}
+
+
+string Buffer::hexdump() const {
+  return
+    String::hexdump((char *)evbuffer_pullup(evb, -1), evbuffer_get_length(evb));
 }
 
 
