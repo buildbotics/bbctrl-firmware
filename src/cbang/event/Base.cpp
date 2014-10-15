@@ -59,7 +59,7 @@ Base::~Base() {
 }
 
 
-SmartPointer<Event::Event>
+SmartPointer<cb::Event::Event>
 Base::newSignal(int signal, const SmartPointer<EventCallback> &cb) {
   event *e = event_new(base, signal, EV_SIGNAL, event_cb, cb.get());
   return new Event(e, cb);
