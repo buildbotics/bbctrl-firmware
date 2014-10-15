@@ -33,6 +33,7 @@
 #include "HTTPHandlerGroup.h"
 #include "HTTPMatcher.h"
 #include "ResourceHTTPHandler.h"
+#include "FileHandler.h"
 
 using namespace cb::Event;
 using namespace cb;
@@ -55,8 +56,13 @@ void HTTPHandlerGroup::addHandler(const string &pattern, const Resource &res) {
 }
 
 
+void HTTPHandlerGroup::addHandler(const string &pattern, const string &path) {
+  addHandler(HTTP_GET, pattern, new FileHandler(path));
+}
+
+
 SmartPointer<HTTPHandlerGroup>
-HTTPHandlerGroup::addHandlerGroup(unsigned methods, const string &pattern) {
+HTTPHandlerGroup::addGroup(unsigned methods, const string &pattern) {
   SmartPointer<HTTPHandlerGroup> group = new HTTPHandlerGroup;
   addHandler(methods, pattern, group);
   return group;

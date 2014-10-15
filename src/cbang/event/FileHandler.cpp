@@ -30,36 +30,41 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTP_HANDLER_H
-#define CB_EVENT_HTTP_HANDLER_H
+#include "FileHandler.h"
+#include "Request.h"
+#include "Buffer.h"
 
-#include "HTTPStatus.h"
-#include "RequestMethod.h"
+#include <cbang/os/SystemUtilities.h>
 
-#include <cbang/util/MemberFunctor.h>
+using namespace std;
+using namespace cb;
+using namespace cb::Event;
 
-struct evhttp_request;
 
-
-namespace cb {
-  namespace Event {
-    class Request;
-
-    class HTTPHandler : public HTTPStatus, public RequestMethod {
-    public:
-      virtual ~HTTPHandler() {}
-
-      virtual Request *createRequest(evhttp_request *req);
-
-      virtual bool operator()(Request &req) = 0;
-    };
-
-    CBANG_FUNCTOR1(HTTPHandlerFunctor, HTTPHandler, bool, operator(), \
-                   Request &);
-    CBANG_MEMBER_FUNCTOR1(HTTPHandlerMemberFunctor, HTTPHandler, bool, \
-                          operator(), Request &);
-  }
+FileHandler::FileHandler(const string &root, uint64_t timeout) :
+  root(root), timeout(timeout), directory(SystemUtilities::isDirectory(root)) {
 }
 
-#endif // CB_EVENT_HTTP_HANDLER_H
 
+bool FileHandler::operator()(Request &req) {
+  string path;
+
+  if (directory) {
+    // Relative to root
+    // TODO protect against .. attacks
+    path = SystemUtilities::joinPath(root, req.getURI().getPath());
+
+  } else path = root; // Single file
+
+  if (!SystemUtilities::isFile(path)) return false;
+
+  // Send file
+  Buffer buf;
+  buf.addFile(path);
+  req.sendReply(buf);
+
+  if (!req.outHas("Cache-Control"))
+    req.outAdd("Cache-Control", "max-age=" + String(timeout));
+
+  return true;
+}

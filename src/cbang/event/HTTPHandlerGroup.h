@@ -35,6 +35,8 @@
 
 #include "HTTPHandler.h"
 #include "JSONHandler.h"
+#include "HTTPRecastHandler.h"
+#include "JSONRecastHandler.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -56,15 +58,17 @@ namespace cb {
                       const SmartPointer<HTTPHandler> &handler);
       void addHandler(const std::string &pattern, const Resource &res);
       void addHandler(const Resource &res) {addHandler("", res);}
+      void addHandler(const std::string &pattern, const std::string &path);
+      void addHandler(const std::string &path) {addHandler("", path);}
 
       template <class T>
-      void addMemberHandler
+      void addMember
       (T *obj, typename HTTPHandlerMemberFunctor<T>::member_t member) {
         addHandler(new HTTPHandlerMemberFunctor<T>(obj, member));
       }
 
       template <class T>
-      void addMemberHandler
+      void addMember
       (unsigned methods, const std::string &pattern,
        T *obj, typename HTTPHandlerMemberFunctor<T>::member_t member) {
         addHandler(methods, pattern,
@@ -72,20 +76,42 @@ namespace cb {
       }
 
       SmartPointer<HTTPHandlerGroup>
-      addHandlerGroup(unsigned methods, const std::string &pattern);
+      addGroup(unsigned methods, const std::string &pattern);
 
       template <class T>
-      void addMemberHandler
+      void addMember
       (T *obj, typename JSONHandlerMemberFunctor<T>::member_t member) {
         addHandler(new JSONHandlerMemberFunctor<T>(obj, member));
       }
 
       template <class T>
-      void addMemberHandler
+      void addMember
       (unsigned methods, const std::string &pattern,
        T *obj, typename JSONHandlerMemberFunctor<T>::member_t member) {
         addHandler(methods, pattern,
                    new JSONHandlerMemberFunctor<T>(obj, member));
+      }
+
+      template <class T>
+      void addMember(typename HTTPRecastHandler<T>::member_t member) {
+        addHandler(new HTTPRecastHandler<T>(member));
+      }
+
+      template <class T>
+      void addMember(unsigned methods, const std::string &pattern,
+                     typename HTTPRecastHandler<T>::member_t member) {
+        addHandler(methods, pattern, new HTTPRecastHandler<T>(member));
+      }
+
+      template <class T>
+      void addMember(typename JSONRecastHandler<T>::member_t member) {
+        addHandler(new JSONRecastHandler<T>(member));
+      }
+
+      template <class T>
+      void addMember(unsigned methods, const std::string &pattern,
+                     typename JSONRecastHandler<T>::member_t member) {
+        addHandler(methods, pattern, new JSONRecastHandler<T>(member));
       }
 
       // From HTTPHandler

@@ -43,6 +43,27 @@
 using namespace std;
 using namespace cb::Event;
 
+namespace {
+  class MarkRequestSecure : public HTTPHandler {
+    WebServer &server;
+
+  public:
+    MarkRequestSecure(WebServer &server) : server(server) {}
+
+
+    // From HTTPHandler
+    Request *createRequest(evhttp_request *req) {
+      return server.createRequest(req);
+    }
+
+
+    bool operator()(Request &req) {
+      req.setSecure(true);
+      return server(req);
+    }
+  };
+}
+
 
 WebServer::WebServer(Options &options, const Base &base,
                      const SmartPointer<SSLContext> &sslCtx) :
@@ -143,10 +164,10 @@ void WebServer::init() {
       else LOG_WARNING("Certificate Relocation List not found " << crlFile);
     }
 
-    https->setGeneralCallback(this, &WebServer::httpsCB);
+    https->setGeneralCallback(new MarkRequestSecure(*this));
   }
 
-  http->setGeneralCallback(this, &WebServer::httpCB);
+  http->setGeneralCallback(SmartPointer<HTTPHandler>::Null(this));
 }
 
 
@@ -155,9 +176,9 @@ bool WebServer::allow(Request &req) const {
 }
 
 
-bool WebServer::handle(Request &req) {
+bool WebServer::operator()(Request &req) {
   if (!allow(req)) THROWX("Unauthorized", HTTP_UNAUTHORIZED);
-  return (*this)(req);
+  return HTTPHandlerGroup::operator()(req);
 }
 
 
@@ -190,15 +211,4 @@ void WebServer::setMaxHeadersSize(unsigned size) {
 void WebServer::setTimeout(int timeout) {
   http->setTimeout(timeout);
   if (!https.isNull()) https->setTimeout(timeout);
-}
-
-
-bool WebServer::httpCB(Request &req) {
-  return handle(req);
-}
-
-
-bool WebServer::httpsCB(Request &req) {
-  req.setSecure(true);
-  return handle(req);
 }

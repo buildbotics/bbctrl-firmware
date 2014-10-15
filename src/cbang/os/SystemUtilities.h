@@ -76,6 +76,7 @@ namespace cb {
     std::string absolute(const std::string &path);
     std::string getCanonicalPath(const std::string &path);
     bool exists(const std::string &path);
+    bool isFile(const std::string &path);
     void splitPath(const std::string &path, std::vector<std::string> &parts);
     void splitPaths(const std::string &s, std::vector<std::string> &paths);
     std::string joinPath(const std::string &left, const std::string &right);

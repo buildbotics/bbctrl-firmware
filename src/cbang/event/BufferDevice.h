@@ -43,13 +43,13 @@ namespace cb {
   namespace Event {
     template <typename T = char>
     class BufferDevice {
-      Buffer &buffer;
+      Buffer buffer;
 
     public:
       typedef T char_type;
       typedef boost::iostreams::bidirectional_device_tag category;
 
-      BufferDevice(Buffer &buffer) : buffer(buffer) {}
+      BufferDevice(const Buffer &buffer) : buffer(buffer) {}
 
       std::streamsize read(char_type *s, std::streamsize n) {
         return buffer.remove(s, n);
@@ -65,7 +65,7 @@ namespace cb {
     template <typename T = char>
     class BufferStream : public boost::iostreams::stream<BufferDevice<T> > {
     public:
-      BufferStream(Buffer &buffer) :
+      BufferStream(const Buffer &buffer) :
         boost::iostreams::stream<BufferDevice<T> >(buffer) {}
     };
   }

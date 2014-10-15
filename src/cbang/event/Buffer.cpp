@@ -38,6 +38,9 @@
 #include <event2/buffer.h>
 
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 
 using namespace std;
@@ -115,6 +118,18 @@ void Buffer::add(const string &s) {
 #else
   add(s.c_str(), s.length());
 #endif
+}
+
+
+void Buffer::addFile(const string &path) {
+  int fd = open(path.c_str(), O_RDONLY);
+  if (fd == -1) THROWS("Failed to open file " << path);
+
+  struct stat buf;
+  if (fstat(fd, &buf)) THROWS("Failed to get file size " << path);
+
+  if (evbuffer_add_file(evb, fd, 0, buf.st_size))
+    THROWS("Failed to add file to buffer: " << path);
 }
 
 

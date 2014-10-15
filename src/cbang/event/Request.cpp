@@ -32,12 +32,14 @@
 
 #include "Request.h"
 #include "Buffer.h"
+#include "BufferDevice.h"
 #include "Headers.h"
 #include "Connection.h"
 
 #include <cbang/Exception.h>
 #include <cbang/log/Logger.h>
 #include <cbang/http/Cookie.h>
+#include <cbang/json/JSON.h>
 
 #include <event2/http.h>
 #include <event2/http_struct.h>
@@ -95,7 +97,7 @@ RequestMethod Request::getMethod() const {
   case EVHTTP_REQ_TRACE:   return HTTP_TRACE;
   case EVHTTP_REQ_CONNECT: return HTTP_CONNECT;
   case EVHTTP_REQ_PATCH:   return HTTP_PATCH;
-  default:                 return HTTP_UNKNOWN;
+  default:                 return RequestMethod::HTTP_UNKNOWN;
   }
 }
 
@@ -106,7 +108,8 @@ unsigned Request::getResponseCode() const {
 
 
 string Request::getResponseMessage() const {
-  return evhttp_request_get_response_code_line(req);
+  const char *s = evhttp_request_get_response_code_line(req);
+  return s ? s : "";
 }
 
 
@@ -252,13 +255,29 @@ void Request::cancel() {
 }
 
 
-Buffer Request::getInputBuffer() const {
+Event::Buffer Request::getInputBuffer() const {
   return Buffer(evhttp_request_get_input_buffer(req), false);
 }
 
 
-Buffer Request::getOutputBuffer() const {
+Event::Buffer Request::getOutputBuffer() const {
   return Buffer(evhttp_request_get_output_buffer(req), false);
+}
+
+
+SmartPointer<JSON::Value> Request::getInputJSON() const {
+  Buffer buf = getInputBuffer();
+  if (!buf.getLength()) return 0;
+  Event::BufferStream<> stream(buf);
+  return JSON::Reader(stream).parse();
+}
+
+
+SmartPointer<JSON::Value> Request::getOutputJSON() const {
+  Buffer buf = getOutputBuffer();
+  if (!buf.getLength()) return 0;
+  Event::BufferStream<> stream(buf);
+  return JSON::Reader(stream).parse();
 }
 
 

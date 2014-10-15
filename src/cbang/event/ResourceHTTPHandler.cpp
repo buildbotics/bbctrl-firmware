@@ -33,6 +33,9 @@
 #include "ResourceHTTPHandler.h"
 #include "Request.h"
 
+#include <cbang/String.h>
+
+using namespace cb;
 using namespace cb::Event;
 
 
@@ -45,6 +48,9 @@ bool ResourceHTTPHandler::operator()(Request &req) {
   if (!res || res->isDirectory()) return false;
 
   req.sendReply(HTTP_OK, res->getData(), res->getLength());
+
+  if (!req.outHas("Cache-Control"))
+    req.outAdd("Cache-Control", "max-age=" + String(timeout));
 
   return true;
 }

@@ -68,18 +68,22 @@ namespace cb {
 
       virtual void init();
       virtual bool allow(Request &req) const;
-      virtual bool handle(Request &req);
+
+      // From HTTPHandler
+      bool operator()(Request &req);
 
       void addListenPort(const IPAddress &addr);
+      unsigned getNumListenPorts() const {return ports.size();}
+      const IPAddress &getListenPort(unsigned i) const {return ports.at(i);}
+
       void addSecureListenPort(const IPAddress &addr);
+      unsigned getNumSecureListenPorts() const {return securePorts.size();}
+      const IPAddress &getSecureListenPort(unsigned i) const
+      {return securePorts.at(i);}
 
       void setMaxBodySize(unsigned size);
       void setMaxHeadersSize(unsigned size);
       void setTimeout(int timeout);
-
-    protected:
-      bool httpCB(Request &req);
-      bool httpsCB(Request &req);
     };
   }
 }

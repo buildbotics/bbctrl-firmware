@@ -45,6 +45,7 @@ namespace cb {
       bool deallocate;
 
     public:
+      Buffer(const Buffer &o) : evb(o.evb), deallocate(false) {}
       Buffer(evbuffer *evb, bool deallocate);
       Buffer(const char *data, unsigned length);
       Buffer(const char *s);
@@ -64,6 +65,7 @@ namespace cb {
       void add(const char *data, unsigned length);
       void add(const char *s);
       void add(const std::string &s);
+      void addFile(const std::string &path);
 
       int remove(char *data, unsigned length);
     };

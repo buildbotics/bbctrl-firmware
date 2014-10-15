@@ -30,36 +30,34 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTP_HANDLER_H
-#define CB_EVENT_HTTP_HANDLER_H
+#ifndef CB_EVENT_JSONRECAST_HANDLER_H
+#define CB_EVENT_JSONRECAST_HANDLER_H
 
-#include "HTTPStatus.h"
-#include "RequestMethod.h"
-
-#include <cbang/util/MemberFunctor.h>
-
-struct evhttp_request;
+#include "JSONHandler.h"
+#include "Request.h"
 
 
 namespace cb {
   namespace Event {
-    class Request;
-
-    class HTTPHandler : public HTTPStatus, public RequestMethod {
+    template <class T>
+    class JSONRecastHandler : public JSONHandler {
     public:
-      virtual ~HTTPHandler() {}
+      typedef bool (T::*member_t)(const JSON::ValuePtr &, JSON::Sync &);
 
-      virtual Request *createRequest(evhttp_request *req);
+    protected:
+      member_t member;
 
-      virtual bool operator()(Request &req) = 0;
+    public:
+      JSONRecastHandler(member_t member) : member(member) {}
+
+      // From JSONHandler
+      bool operator()(Request &req, const JSON::ValuePtr &msg,
+                      JSON::Sync &sync) {
+        return (req.cast<T>().*member)(msg, sync);
+      }
     };
-
-    CBANG_FUNCTOR1(HTTPHandlerFunctor, HTTPHandler, bool, operator(), \
-                   Request &);
-    CBANG_MEMBER_FUNCTOR1(HTTPHandlerMemberFunctor, HTTPHandler, bool, \
-                          operator(), Request &);
   }
 }
 
-#endif // CB_EVENT_HTTP_HANDLER_H
+#endif // CB_EVENT_JSONRECAST_HANDLER_H
 

@@ -30,36 +30,35 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTP_HANDLER_H
-#define CB_EVENT_HTTP_HANDLER_H
+#ifndef CB_EVENT_FILE_HANDLER_H
+#define CB_EVENT_FILE_HANDLER_H
 
-#include "HTTPStatus.h"
-#include "RequestMethod.h"
+#include "HTTPHandler.h"
 
-#include <cbang/util/MemberFunctor.h>
+#include <cbang/time/Time.h>
 
-struct evhttp_request;
+#include <string>
 
 
 namespace cb {
   namespace Event {
-    class Request;
+    class FileHandler : public HTTPHandler {
+      std::string root;
+      uint64_t timeout;
+      bool directory;
 
-    class HTTPHandler : public HTTPStatus, public RequestMethod {
     public:
-      virtual ~HTTPHandler() {}
+      FileHandler(const std::string &root,
+                  uint64_t timeout = Time::SEC_PER_HOUR);
 
-      virtual Request *createRequest(evhttp_request *req);
+      void setTimeout(uint64_t timeout) {this->timeout = timeout;}
+      uint64_t getTimeout() const {return timeout;}
 
-      virtual bool operator()(Request &req) = 0;
+      // From HTTPHandler
+      bool operator()(Request &req);
     };
-
-    CBANG_FUNCTOR1(HTTPHandlerFunctor, HTTPHandler, bool, operator(), \
-                   Request &);
-    CBANG_MEMBER_FUNCTOR1(HTTPHandlerMemberFunctor, HTTPHandler, bool, \
-                          operator(), Request &);
   }
 }
 
-#endif // CB_EVENT_HTTP_HANDLER_H
+#endif // CB_EVENT_FILE_HANDLER_H
 

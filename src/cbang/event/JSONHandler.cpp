@@ -63,11 +63,7 @@ bool JSONHandler::operator()(Request &req) {
     if (hdrs.hasContentType() &&
         String::startsWith(hdrs.getContentType(), "application/json")) {
 
-      Buffer input = req.getInputBuffer();
-      if (input.getLength()) {
-        BufferStream<> istr(input);
-        msg = JSON::Reader(istr).parse();
-      }
+      msg = req.getInputJSON();
 
     } else if (!uri.empty()) {
       msg = new JSON::Dict;

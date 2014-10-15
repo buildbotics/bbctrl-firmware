@@ -35,16 +35,23 @@
 
 #include "HTTPHandler.h"
 
+#include <cbang/time/Time.h>
 #include <cbang/util/Resource.h>
 
 
 namespace cb {
   namespace Event {
     class ResourceHTTPHandler : public HTTPHandler {
-     const Resource &root;
+      const Resource &root;
+      uint64_t timeout;
 
     public:
-      ResourceHTTPHandler(const Resource &root) : root(root) {}
+      ResourceHTTPHandler(const Resource &root,
+                          uint64_t timeout = Time::SEC_PER_HOUR) :
+        root(root), timeout(timeout) {}
+
+      void setTimeout(uint64_t timeout) {this->timeout = timeout;}
+      uint64_t getTimeout() const {return timeout;}
 
       // From HTTPHandler
       bool operator()(Request &req);

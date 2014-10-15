@@ -30,36 +30,33 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTP_HANDLER_H
-#define CB_EVENT_HTTP_HANDLER_H
+#ifndef CB_EVENT_HTTPRECAST_HANDLER_H
+#define CB_EVENT_HTTPRECAST_HANDLER_H
 
-#include "HTTPStatus.h"
-#include "RequestMethod.h"
-
-#include <cbang/util/MemberFunctor.h>
-
-struct evhttp_request;
+#include "HTTPHandler.h"
+#include "Request.h"
 
 
 namespace cb {
   namespace Event {
-    class Request;
-
-    class HTTPHandler : public HTTPStatus, public RequestMethod {
+    template <class T>
+    class HTTPRecastHandler : public HTTPHandler {
     public:
-      virtual ~HTTPHandler() {}
+      typedef bool (T::*member_t)();
 
-      virtual Request *createRequest(evhttp_request *req);
+    protected:
+      member_t member;
 
-      virtual bool operator()(Request &req) = 0;
+    public:
+      HTTPRecastHandler(member_t member) : member(member) {}
+
+      // From HTTPHandler
+      bool operator()(Request &req) {
+        return (req.cast<T>().*member)();
+      }
     };
-
-    CBANG_FUNCTOR1(HTTPHandlerFunctor, HTTPHandler, bool, operator(), \
-                   Request &);
-    CBANG_MEMBER_FUNCTOR1(HTTPHandlerMemberFunctor, HTTPHandler, bool, \
-                          operator(), Request &);
   }
 }
 
-#endif // CB_EVENT_HTTP_HANDLER_H
+#endif // CB_EVENT_HTTPRECAST_HANDLER_H
 

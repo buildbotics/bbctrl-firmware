@@ -273,6 +273,24 @@ namespace cb {
     }
 
 
+    bool isFile(const string &path) {
+      try {
+        return fs::is_regular_file(path);
+      } catch (const exception &e) {
+        THROW(e.what());
+      }
+    }
+
+
+    bool isLink(const string &path) {
+      try {
+        return fs::is_symlink(path);
+      } catch (const exception &e) {
+        THROW(e.what());
+      }
+    }
+
+
     void splitPath(const string &path, vector<string> &parts) {
       String::tokenize(path, parts, path_separators);
     }

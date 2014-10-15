@@ -42,6 +42,7 @@
 #include <cbang/net/URI.h>
 
 #include <string>
+#include <typeinfo>
 
 struct evhttp_request;
 
@@ -50,11 +51,13 @@ namespace cb {
   class URI;
   class IPAddress;
 
+  namespace JSON {class Value;}
+
   namespace Event {
     class Buffer;
     class Headers;
 
-    class Request : public RequestMethod {
+    class Request : public RequestMethod, public HTTPStatus {
     protected:
       evhttp_request *req;
       bool deallocate;
@@ -67,7 +70,14 @@ namespace cb {
     public:
       Request(evhttp_request *req, bool deallocate = false);
       Request(evhttp_request *req, const URI &uri, bool deallocate = false);
-      ~Request();
+      virtual ~Request();
+
+      template <class T>
+      T &cast() {
+        T *ptr = dynamic_cast<T *>(this);
+        if (!ptr) THROWS("Cannot cast Request to " << typeid(T).name());
+        return *ptr;
+      }
 
       evhttp_request *getRequest() const {return req;}
       evhttp_request *adopt() {deallocate = false; return req;}
@@ -119,6 +129,9 @@ namespace cb {
 
       Buffer getInputBuffer() const;
       Buffer getOutputBuffer() const;
+
+      SmartPointer<JSON::Value> getInputJSON() const;
+      SmartPointer<JSON::Value> getOutputJSON() const;
 
       void sendError(int code);
 

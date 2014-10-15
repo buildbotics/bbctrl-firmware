@@ -54,47 +54,63 @@ using namespace cb::Event;
 
 
 namespace {
-  struct bufferevent *bev_cb(struct event_base *base, void *arg) {
+  bufferevent *bev_cb(event_base *base, void *arg) {
     return bufferevent_openssl_socket_new(base, -1, SSL_new((SSL_CTX *)arg),
                                           BUFFEREVENT_SSL_ACCEPTING,
                                           BEV_OPT_CLOSE_ON_FREE);
   }
 
 
-  void request_cb(struct evhttp_request *_req, void *cb) {
+  void complete_cb(evhttp_request *_req, void *cb) {
     try {
-      Request req(_req);
+      delete (Request *)cb;
+    } CATCH_ERROR;
+  }
 
-      req.setIncomming(true);
-      req.guessContentType();
 
-      LOG_INFO(1, "< " << req.getMethod() << " " << req.getURI());
-      LOG_DEBUG(5, req.getInputHeaders() << '\n');
-      LOG_DEBUG(6, req.getInputBuffer().hexdump() << '\n');
+  void request_cb(evhttp_request *_req, void *cb) {
+    try {
+      // Allocate request
+      HTTPHandler *handler = (HTTPHandler *)cb;
+      Request *req = handler->createRequest(_req);
 
+      // Set deallocator
+      evhttp_request_set_on_complete_cb(_req, complete_cb, req);
+
+      // Initialize request
+      req->setIncomming(true);
+      req->guessContentType();
+
+      // Log request
+      LOG_INFO(1, "< " << req->getMethod() << " " << req->getURI());
+      LOG_DEBUG(5, req->getInputHeaders() << '\n');
+      LOG_DEBUG(6, req->getInputBuffer().hexdump() << '\n');
+
+      // Dispatch request
       try {
-        if (!(*(HTTPHandler *)cb)(req))
-          req.sendError(HTTPStatus::HTTP_NOT_FOUND);
+        if (!(*handler)(*req))
+          req->sendError(HTTPStatus::HTTP_NOT_FOUND);
 
       } catch (cb::Exception &e) {
-        req.sendError(e.getCode() ? e.getCode() :
+        req->sendError(e.getCode() ? e.getCode() :
                       HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         if (!CBANG_LOG_DEBUG_ENABLED(3)) LOG_WARNING(e.getMessage());
         LOG_DEBUG(3, e);
 
       } catch (std::exception &e) {
-        req.sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
+        req->sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         LOG_ERROR(e.what());
 
       } catch (...) {
-        req.sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
+        req->sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         LOG_ERROR(HTTPStatus(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR)
                   .getDescription());
       }
 
-      LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getOutputHeaders()
+      // Log results
+      LOG_DEBUG(5, req->getResponseLine() << '\n' << req->getOutputHeaders()
                 << '\n');
-      LOG_DEBUG(6, req.getOutputBuffer().hexdump() << '\n');
+      LOG_DEBUG(6, req->getOutputBuffer().hexdump() << '\n');
 
     } CATCH_ERROR;
   }

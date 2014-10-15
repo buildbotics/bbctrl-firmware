@@ -30,36 +30,25 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTP_HANDLER_H
-#define CB_EVENT_HTTP_HANDLER_H
+#ifndef CB_EVENT_REDIRECT_SECURE_H
+#define CB_EVENT_REDIRECT_SECURE_H
 
-#include "HTTPStatus.h"
-#include "RequestMethod.h"
-
-#include <cbang/util/MemberFunctor.h>
-
-struct evhttp_request;
+#include "HTTPHandler.h"
 
 
 namespace cb {
   namespace Event {
-    class Request;
+    class RedirectSecure : public HTTPHandler {
+      uint32_t port;
 
-    class HTTPHandler : public HTTPStatus, public RequestMethod {
     public:
-      virtual ~HTTPHandler() {}
+      RedirectSecure(uint32_t port = 443) : port(port) {}
 
-      virtual Request *createRequest(evhttp_request *req);
-
-      virtual bool operator()(Request &req) = 0;
+      // From HTTPHandler
+      bool operator()(Request &req);
     };
-
-    CBANG_FUNCTOR1(HTTPHandlerFunctor, HTTPHandler, bool, operator(), \
-                   Request &);
-    CBANG_MEMBER_FUNCTOR1(HTTPHandlerMemberFunctor, HTTPHandler, bool, \
-                          operator(), Request &);
   }
 }
 
-#endif // CB_EVENT_HTTP_HANDLER_H
+#endif // CB_EVENT_REDIRECT_SECURE_H
 
