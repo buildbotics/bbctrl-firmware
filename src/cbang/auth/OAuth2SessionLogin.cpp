@@ -82,8 +82,7 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
       session = sessionManager->openSession(ctx);
       sid = session->getID();
 
-      URI redirectURL =
-        auth->getRedirectURL(uri.getPath(), sid, "openid email");
+      URI redirectURL = auth->getRedirectURL(uri.getPath(), sid);
       response.redirect(redirectURL);
 
     } else if (session->getUser().empty()) {

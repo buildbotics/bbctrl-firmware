@@ -48,22 +48,26 @@ namespace cb {
     std::string prefix;
     std::string authURL;
     std::string tokenURL;
+    std::string profileURL;
     std::string redirectBase;
     std::string clientID;
     std::string clientSecret;
+    std::string scope;
 
   public:
     OAuth2();
     virtual ~OAuth2();
 
     virtual URI getRedirectURL(const std::string &path,
-                               const std::string &state,
-                               const std::string &scope = "openid email") const;
-
+                               const std::string &state) const;
     virtual URI getVerifyURL(const URI &uri, const std::string &state) const;
+    virtual URI getProfileURL(const std::string &token) const;
 
     virtual SmartPointer<JSON::Value>
     parseClaims(const std::string &token) const;
+
+    virtual SmartPointer<JSON::Value>
+    processProfile(const SmartPointer<JSON::Value> &profile) const;
 
   protected:
     void addOptions(Options &options, const std::string &prefix = "oauth2-");

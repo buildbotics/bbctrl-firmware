@@ -46,8 +46,7 @@ namespace cb {
     void setMaxAuthAge(const std::string &x) {maxAuthAge = x;}
 
     // From OAuth2
-    URI getRedirectURL(const std::string &path, const std::string &state,
-                       const std::string &scope = "openid email") const;
+    URI getRedirectURL(const std::string &path, const std::string &state) const;
   };
 }
 

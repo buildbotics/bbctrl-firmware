@@ -49,8 +49,7 @@ OAuth2::OAuth2() {}
 OAuth2::~OAuth2() {} // Hide destructor
 
 
-URI OAuth2::getRedirectURL(const string &path, const string &state,
-                           const string &scope) const {
+URI OAuth2::getRedirectURL(const string &path, const string &state) const {
   // Check config
   if (clientID.empty())
     THROWCS(prefix + "client-id not configured",
@@ -60,6 +59,9 @@ URI OAuth2::getRedirectURL(const string &path, const string &state,
             HTTP::StatusCode::HTTP_UNAUTHORIZED);
   if (authURL.empty())
     THROWCS(prefix + "auth-url not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
+  if (scope.empty())
+    THROWCS(prefix + "scope not configured",
             HTTP::StatusCode::HTTP_UNAUTHORIZED);
 
   // Build redirect URL
@@ -112,6 +114,23 @@ URI OAuth2::getVerifyURL(const URI &uri, const string &state) const {
 }
 
 
+URI OAuth2::getProfileURL(const string &accessToken) const {
+  if (profileURL.empty())
+    THROWCS(prefix + "profile-url not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
+
+  URI url(profileURL);
+  url.set("access_token", accessToken);
+  return url;
+}
+
+
+SmartPointer<JSON::Value>
+OAuth2::processProfile(const SmartPointer<JSON::Value> &profile) const {
+  return profile;
+}
+
+
 SmartPointer<JSON::Value> OAuth2::parseClaims(const std::string &token) const {
   // Decode JWT claims
   // See: http://openid.net/specs/draft-jones-json-web-token-07.html#ExampleJWT
@@ -129,11 +148,12 @@ SmartPointer<JSON::Value> OAuth2::parseClaims(const std::string &token) const {
 
 void OAuth2::addOptions(Options &options, const string &prefix) {
   this->prefix = prefix;
-  options.addTarget(prefix + "auth-url", authURL, "OAuth2 Auth URL");
+  options.addTarget(prefix + "auth-url", authURL, "OAuth2 auth URL");
   options.addTarget(prefix + "token-url", tokenURL, "OAuth2 token URL");
   options.addTarget(prefix + "redirect-base", redirectBase,
                     "OAuth2 redirect base URL");
-  options.addTarget(prefix + "client-id", clientID, "OAuth2 API Client ID");
+  options.addTarget(prefix + "client-id", clientID, "OAuth2 API client ID");
   options.addTarget(prefix + "client-secret", clientSecret,
-                    "OAuth2 API Client Secret")->setObscured();
+                    "OAuth2 API client secret")->setObscured();
+  options.addTarget(prefix + "scope", scope, "OAuth2 API scope");
 }

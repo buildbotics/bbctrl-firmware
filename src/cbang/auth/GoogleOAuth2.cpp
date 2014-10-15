@@ -43,6 +43,8 @@ GoogleOAuth2::GoogleOAuth2(Options &options, const string &maxAuthAge) :
   maxAuthAge(maxAuthAge) {
   authURL = "https://accounts.google.com/o/oauth2/auth";
   tokenURL = "https://accounts.google.com/o/oauth2/token";
+  profileURL = "https://www.googleapis.com/plus/v1/people/me/openIdConnect";
+  scope = "openid email profile";
 
   options.pushCategory("Google OAuth2 Login");
   OAuth2::addOptions(options, "google-");
@@ -50,9 +52,9 @@ GoogleOAuth2::GoogleOAuth2(Options &options, const string &maxAuthAge) :
 }
 
 
-URI GoogleOAuth2::getRedirectURL(const string &path, const string &state,
-                                 const string &scope) const {
-  URI url = OAuth2::getRedirectURL(path, state, scope);
+URI GoogleOAuth2::getRedirectURL(const string &path,
+                                 const string &state) const {
+  URI url = OAuth2::getRedirectURL(path, state);
   if (!maxAuthAge.empty()) url.set("max_auth_age", maxAuthAge);
   return url;
 }

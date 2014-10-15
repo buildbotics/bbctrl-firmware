@@ -66,7 +66,7 @@ bool OAuth2RESTLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
       RESTLoginState state(key);
 
       URI redirectURL =
-        auth->getRedirectURL(uri.getPath(), state.toString(), "openid email");
+        auth->getRedirectURL(uri.getPath(), state.toString());
       response.redirect(redirectURL);
 
 #if 0
