@@ -30,50 +30,43 @@
 
 \******************************************************************************/
 
-#ifndef CB_RESTLOGIN_STATE_H
-#define CB_RESTLOGIN_STATE_H
+#include "FacebookOAuth2.h"
 
-#include <cbang/StdTypes.h>
-#include <cbang/json/Serializable.h>
-#include <cbang/security/KeyPair.h>
+#include <cbang/String.h>
+#include <cbang/net/URI.h>
+#include <cbang/config/Options.h>
+#include <cbang/json/JSON.h>
 
-#include <string>
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  class RESTLoginState : public JSON::Serializable {
-    KeyPair key;
+FacebookOAuth2::FacebookOAuth2(Options &options) : OAuth2("facebook") {
+  authURL = "https://graph.facebook.com/oauth/authorize";
+  tokenURL = "https://graph.facebook.com/oauth/access_token";
+  profileURL =
+    "https://graph.facebook.com/me?fields=id,name,email,picture,verified";
+  //profileURL = "https://graph.facebook.com/me";
+  scope = "email";
 
-    uint64_t nonce;
-    uint64_t ts;
-    std::string user;
-    uint64_t auth;
-
-  public:
-    RESTLoginState(const KeyPair &key);
-    RESTLoginState(const KeyPair &key, const std::string &state);
-    virtual ~RESTLoginState() {}
-
-    uint64_t getTS() const {return ts;}
-
-    void setUser(const std::string &user) {this->user = user;}
-    const std::string &getUser() const {return user;}
-
-    void set(uint64_t auth) {this->auth |= auth;}
-    void clear(uint64_t auth) {this->auth &= ~auth;}
-    bool allow(uint64_t auth) const {return (this->auth & auth) == auth;}
-
-    virtual std::string toString() const;
-
-    // From JSON::Serializable
-    void read(const JSON::Value &value);
-    void write(JSON::Sync &sync) const;
-
-  protected:
-    std::string encode(const std::string &state) const;
-    std::string decode(const std::string &state) const;
-  };
+  options.pushCategory("Facebook OAuth2 Login");
+  OAuth2::addOptions(options);
+  options.popCategory();
 }
 
-#endif // CB_RESTLOGIN_STATE_H
 
+SmartPointer<JSON::Value>
+FacebookOAuth2::processProfile(const SmartPointer<JSON::Value> &profile) const {
+  SmartPointer<JSON::Value> p = new JSON::Dict;
+
+  p->insert("provider", provider);
+  p->insert("id", profile->getString("id"));
+  p->insert("name", profile->getString("name"));
+  p->insert("email", profile->getString("email"));
+  p->insert("avatar",
+            profile->getDict("picture").getDict("data").getString("url"));
+  p->insertBoolean("verified", profile->getBoolean("verified"));
+  p->insert("raw", profile);
+
+  return p;
+}

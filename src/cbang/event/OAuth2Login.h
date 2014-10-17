@@ -30,48 +30,48 @@
 
 \******************************************************************************/
 
-#include "GoogleOAuth2.h"
+#ifndef CB_EVENT_OAUTH2_LOGIN_H
+#define CB_EVENT_OAUTH2_LOGIN_H
 
-#include <cbang/net/URI.h>
-#include <cbang/config/Options.h>
-#include <cbang/json/JSON.h>
+#include "RequestMethod.h"
 
-using namespace cb;
-using namespace std;
+#include <cbang/SmartPointer.h>
+
+#include <string>
 
 
-GoogleOAuth2::GoogleOAuth2(Options &options, const string &maxAuthAge) :
-  OAuth2("google"), maxAuthAge(maxAuthAge) {
-  authURL = "https://accounts.google.com/o/oauth2/auth";
-  tokenURL = "https://accounts.google.com/o/oauth2/token";
-  profileURL = "https://www.googleapis.com/plus/v1/people/me/openIdConnect";
-  scope = "openid email profile";
+namespace cb {
+  class OAuth2;
+  class OAuth2Login;
+  namespace JSON {class Value;}
 
-  options.pushCategory("Google OAuth2 Login");
-  OAuth2::addOptions(options);
-  options.popCategory();
+  namespace Event {
+    class Client;
+    class Request;
+    class PendingRequest;
+
+    class OAuth2Login : public RequestMethod {
+      Client &client;
+      OAuth2 *auth;
+      SmartPointer<PendingRequest> pending;
+      std::string state;
+
+    public:
+      OAuth2Login(Client &client);
+      virtual ~OAuth2Login();
+
+      virtual void processProfile(const SmartPointer<JSON::Value> &profile) = 0;
+
+      bool authorize(Request &req, cb::OAuth2 &auth, const std::string &state);
+      bool authRedirect(Request &req, cb::OAuth2 &auth,
+                        const std::string &state);
+      bool requestToken(Request &req, cb::OAuth2 &auth,
+                        const std::string &state);
+      bool verifyToken(Request &req);
+      bool processProfile(Request &req);
+    };
+  }
 }
 
+#endif // CB_EVENT_OAUTH2_LOGIN_H
 
-URI GoogleOAuth2::getRedirectURL(const string &path,
-                                 const string &state) const {
-  URI url = OAuth2::getRedirectURL(path, state);
-  if (!maxAuthAge.empty()) url.set("max_auth_age", maxAuthAge);
-  return url;
-}
-
-
-SmartPointer<JSON::Value>
-GoogleOAuth2::processProfile(const SmartPointer<JSON::Value> &profile) const {
-  SmartPointer<JSON::Value> p = new JSON::Dict;
-
-  p->insert("provider", provider);
-  p->insert("id", profile->getString("sub"));
-  p->insert("name", profile->getString("name"));
-  p->insert("email", profile->getString("email"));
-  p->insert("avatar", profile->getString("picture"));
-  p->insertBoolean("verified", profile->getBoolean("email_verified"));
-  p->insert("raw", profile);
-
-  return p;
-}

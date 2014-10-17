@@ -33,36 +33,29 @@
 #include "OAuth2.h"
 
 #include <cbang/Exception.h>
+#include <cbang/String.h>
+
 #include <cbang/json/JSON.h>
-#include <cbang/net/Base64.h>
 #include <cbang/net/URI.h>
 #include <cbang/config/Options.h>
-#include <cbang/io/StringInputSource.h>
 #include <cbang/log/Logger.h>
 #include <cbang/http/StatusCode.h>
+#include <cbang/io/StringInputSource.h>
 
 using namespace std;
 using namespace cb;
 
 
-OAuth2::OAuth2() {}
+OAuth2::OAuth2(const string &provider) : provider(provider) {}
 OAuth2::~OAuth2() {} // Hide destructor
 
 
 URI OAuth2::getRedirectURL(const string &path, const string &state) const {
   // Check config
-  if (clientID.empty())
-    THROWCS(prefix + "client-id not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (redirectBase.empty())
-    THROWCS(prefix + "redirect-base not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (authURL.empty())
-    THROWCS(prefix + "auth-url not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (scope.empty())
-    THROWCS(prefix + "scope not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
+  validateOption(clientID, "client-id");
+  validateOption(redirectBase, "redirect-base");
+  validateOption(authURL, "auth-url");
+  validateOption(scope, "scope");
 
   // Build redirect URL
   URI uri(authURL);
@@ -87,18 +80,10 @@ URI OAuth2::getVerifyURL(const URI &uri, const string &state) const {
   }
 
   // Check config
-  if (clientID.empty())
-    THROWCS(prefix + "client-id not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (clientSecret.empty())
-    THROWCS(prefix + "client-secret not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (redirectBase.empty())
-    THROWCS(prefix + "redirect-base not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
-  if (tokenURL.empty())
-    THROWCS(prefix + "token-url not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
+  validateOption(clientID, "client-id");
+  validateOption(clientSecret, "client-secret");
+  validateOption(redirectBase, "redirect-base");
+  validateOption(tokenURL, "token-url");
 
   // Exchange code for access token and ID token
   URI postURI(tokenURL);
@@ -115,9 +100,7 @@ URI OAuth2::getVerifyURL(const URI &uri, const string &state) const {
 
 
 URI OAuth2::getProfileURL(const string &accessToken) const {
-  if (profileURL.empty())
-    THROWCS(prefix + "profile-url not configured",
-            HTTP::StatusCode::HTTP_UNAUTHORIZED);
+  validateOption(profileURL, "profile-url");
 
   URI url(profileURL);
   url.set("access_token", accessToken);
@@ -125,35 +108,31 @@ URI OAuth2::getProfileURL(const string &accessToken) const {
 }
 
 
-SmartPointer<JSON::Value>
-OAuth2::processProfile(const SmartPointer<JSON::Value> &profile) const {
-  return profile;
+string OAuth2::verifyToken(const string &data) const {
+  if (String::startsWith(data, "access_token=")) {
+    URI uri("http://x.com/?" + data);
+    return uri.get("access_token");
+  }
+
+  JSON::ValuePtr json = JSON::Reader(StringInputSource(data)).parse();
+  return json->getString("access_token");
 }
 
 
-SmartPointer<JSON::Value> OAuth2::parseClaims(const std::string &token) const {
-  // Decode JWT claims
-  // See: http://openid.net/specs/draft-jones-json-web-token-07.html#ExampleJWT
-  // Note: There is no need to verify the JWT because it comes directly from
-  //   the server over a secure connection.
-  vector<string> parts;
-  String::tokenize(token, parts, ".");
-
-  string claims = Base64(0, '-', '_').decode(parts[1]);
-  LOG_DEBUG(5, "Claims: " << claims);
-
-  return JSON::Reader(StringInputSource(claims)).parse();
-}
-
-
-void OAuth2::addOptions(Options &options, const string &prefix) {
-  this->prefix = prefix;
-  options.addTarget(prefix + "auth-url", authURL, "OAuth2 auth URL");
-  options.addTarget(prefix + "token-url", tokenURL, "OAuth2 token URL");
-  options.addTarget(prefix + "redirect-base", redirectBase,
+void OAuth2::addOptions(Options &options) {
+  options.addTarget(provider + "-auth-url", authURL, "OAuth2 auth URL");
+  options.addTarget(provider + "-token-url", tokenURL, "OAuth2 token URL");
+  options.addTarget(provider + "-redirect-base", redirectBase,
                     "OAuth2 redirect base URL");
-  options.addTarget(prefix + "client-id", clientID, "OAuth2 API client ID");
-  options.addTarget(prefix + "client-secret", clientSecret,
+  options.addTarget(provider + "-client-id", clientID, "OAuth2 API client ID");
+  options.addTarget(provider + "-client-secret", clientSecret,
                     "OAuth2 API client secret")->setObscured();
-  options.addTarget(prefix + "scope", scope, "OAuth2 API scope");
+  options.addTarget(provider + "-scope", scope, "OAuth2 API scope");
+}
+
+
+void OAuth2::validateOption(const string &option, const string &name) const {
+  if (option.empty())
+    THROWCS(provider + "-" + name + " not configured",
+            HTTP::StatusCode::HTTP_UNAUTHORIZED);
 }

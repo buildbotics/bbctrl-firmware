@@ -255,6 +255,16 @@ void Request::cancel() {
 }
 
 
+string Request::getInput() const {
+  return getInputBuffer().toString();
+}
+
+
+string Request::getOutput() const {
+  return getOutputBuffer().toString();
+}
+
+
 Event::Buffer Request::getInputBuffer() const {
   return Buffer(evhttp_request_get_input_buffer(req), false);
 }

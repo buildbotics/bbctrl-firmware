@@ -45,7 +45,8 @@ namespace cb {
 
   class OAuth2 {
   protected:
-    std::string prefix;
+    std::string provider;
+
     std::string authURL;
     std::string tokenURL;
     std::string profileURL;
@@ -55,22 +56,25 @@ namespace cb {
     std::string scope;
 
   public:
-    OAuth2();
+    OAuth2(const std::string &prefix);
     virtual ~OAuth2();
+
+    const std::string &getProvider() const {return provider;}
 
     virtual URI getRedirectURL(const std::string &path,
                                const std::string &state) const;
     virtual URI getVerifyURL(const URI &uri, const std::string &state) const;
     virtual URI getProfileURL(const std::string &token) const;
 
-    virtual SmartPointer<JSON::Value>
-    parseClaims(const std::string &token) const;
+    virtual std::string verifyToken(const std::string &data) const;
 
     virtual SmartPointer<JSON::Value>
-    processProfile(const SmartPointer<JSON::Value> &profile) const;
+    processProfile(const SmartPointer<JSON::Value> &profile) const = 0;
 
   protected:
-    void addOptions(Options &options, const std::string &prefix = "oauth2-");
+    void addOptions(Options &options);
+    void validateOption(const std::string &option,
+                        const std::string &name) const;
   };
 }
 

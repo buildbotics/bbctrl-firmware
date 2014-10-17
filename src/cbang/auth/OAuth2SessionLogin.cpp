@@ -102,14 +102,34 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
 
       // Read response
       tran.receiveHeader();
-      JSON::ValuePtr json = JSON::Reader(tran).parse();
 
-      LOG_DEBUG(5, "Token Response: \n" << tran.getResponse() << *json);
+      streamsize size = response.getContentLength();
+      if (!size) THROWC("Failed to get access token",
+                        HTTP::StatusCode::HTTP_UNAUTHORIZED);
+      string token;
+      {
+        SmartPointer<char>::Array buffer = new char[size];
+        tran.read(buffer.get(), size);
+        token = string(buffer.get(), size);
+      }
 
-      // Process claims
-      JSON::ValuePtr claims = auth->parseClaims(json->getString("id_token"));
-      string email = claims->getString("email");
-      if (!claims->getBoolean("email_verified"))
+      LOG_DEBUG(5, "Token Response: \n" << tran.getResponse() << token);
+
+      // Verify token
+      string accessToken = auth->verifyToken(token);
+
+      // Get profile
+      URI profileURL = auth->getProfileURL(accessToken);
+      HTTP::Transaction tran2(sslCtx.get());
+      tran2.get(profileURL);
+
+      // Read response
+      tran2.receiveHeader();
+      JSON::ValuePtr profile = JSON::Reader(tran2).parse();
+
+      // Process profile
+      string email = profile->getString("email");
+      if (!profile->getBoolean("email_verified"))
         THROWCS("Email not verified", HTTP::StatusCode::HTTP_UNAUTHORIZED);
       session->setUser(email);
       LOG_INFO(1, "Authorized: " << email);

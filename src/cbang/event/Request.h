@@ -127,6 +127,9 @@ namespace cb {
 
       void cancel();
 
+      std::string getInput() const;
+      std::string getOutput() const;
+
       Buffer getInputBuffer() const;
       Buffer getOutputBuffer() const;
 

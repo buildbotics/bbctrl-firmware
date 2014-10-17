@@ -30,34 +30,22 @@
 
 \******************************************************************************/
 
-#ifndef CB_OAUTH2_REST_LOGIN_H
-#define CB_OAUTH2_REST_LOGIN_H
+#ifndef CB_GITHUB_OAUTH2_H
+#define CB_GITHUB_OAUTH2_H
 
-#include <cbang/SmartPointer.h>
-#include <cbang/http/WebPageHandler.h>
-#include <cbang/security/KeyPair.h>
-
-#include <string>
+#include "OAuth2.h"
 
 
 namespace cb {
-  class OAuth2;
-
-  namespace HTTP {class WebContext;}
-
-  class OAuth2RESTLogin : public HTTP::WebPageHandler {
-    SmartPointer<OAuth2> auth;
-    KeyPair key;
-
+  class GitHubOAuth2 : public OAuth2 {
   public:
-    OAuth2RESTLogin(const SmartPointer<OAuth2> &auth, const KeyPair &key);
-    ~OAuth2RESTLogin();
+    GitHubOAuth2(Options &options);
 
-    // From WebPageHandler
-    bool handlePage(HTTP::WebContext &ctx, std::ostream &stream,
-                    const URI &uri);
+    // From OAuth2
+    SmartPointer<JSON::Value>
+    processProfile(const SmartPointer<JSON::Value> &profile) const;
   };
 }
 
-#endif // CB_OAUTH2_REST_LOGIN_H
+#endif // CB_GITHUB_OAUTH2_H
 

@@ -30,48 +30,22 @@
 
 \******************************************************************************/
 
-#include "OAuth2Login.h"
+#ifndef CB_FACEBOOK_OAUTH2_H
+#define CB_FACEBOOK_OAUTH2_H
+
 #include "OAuth2.h"
 
-#include <cbang/json/JSON.h>
-#include <cbang/net/URI.h>
-#include <cbang/log/Logger.h>
 
-using namespace std;
-using namespace cb;
+namespace cb {
+  class FacebookOAuth2 : public OAuth2 {
+  public:
+    FacebookOAuth2(Options &options);
 
-
-OAuth2Login::~OAuth2Login() {}
-
-
-URI OAuth2Login::getRedirectURL(const URI &uri, const string &state) {
-  return auth.getRedirectURL(uri.getPath(), state);
+    // From OAuth2
+    SmartPointer<JSON::Value>
+    processProfile(const SmartPointer<JSON::Value> &profile) const;
+  };
 }
 
+#endif // CB_FACEBOOK_OAUTH2_H
 
-URI OAuth2Login::getVerifyURL(const URI &uri, const string &state) {
-  return auth.getVerifyURL(uri, state);
-}
-
-
-URI OAuth2Login::getProfileURL() {
-  return auth.getProfileURL(accessToken);
-}
-
-
-void OAuth2Login::verifyToken(const SmartPointer<JSON::Value> &json) {
-  LOG_DEBUG(5, "OAuth2 Token: " << *json);
-
-  // Process claims
-  claims = auth.parseClaims(json->getString("id_token"));
-  accessToken = json->getString("access_token");
-
-  LOG_INFO(1, "Authenticated: " << claims->getString("email"));
-  LOG_DEBUG(3, "Claims: " << *claims);
-}
-
-
-SmartPointer<JSON::Value>
-OAuth2Login::processProfile(const SmartPointer<JSON::Value> &profile) {
-  return this->profile = auth.processProfile(profile);
-}

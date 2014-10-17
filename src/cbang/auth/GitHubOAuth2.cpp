@@ -30,43 +30,40 @@
 
 \******************************************************************************/
 
-#ifndef CB_OAUTH2_LOGIN_H
-#define CB_OAUTH2_LOGIN_H
+#include "GitHubOAuth2.h"
 
-#include <cbang/SmartPointer.h>
+#include <cbang/String.h>
+#include <cbang/net/URI.h>
+#include <cbang/config/Options.h>
+#include <cbang/json/JSON.h>
 
-#include <string>
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  class OAuth2;
-  class URI;
-  namespace JSON {class Value;}
+GitHubOAuth2::GitHubOAuth2(Options &options) : OAuth2("github") {
+  authURL = "https://github.com/login/oauth/authorize";
+  tokenURL = "https://github.com/login/oauth/access_token";
+  profileURL = "https://api.github.com/user";
+  scope = "user:email";
 
-  class OAuth2Login {
-    OAuth2 &auth;
-
-    SmartPointer<JSON::Value> claims;
-    SmartPointer<JSON::Value> profile;
-    std::string accessToken;
-
-  public:
-    OAuth2Login(OAuth2 &auth) : auth(auth) {}
-    virtual ~OAuth2Login();
-
-    const SmartPointer<JSON::Value> &getClaims() const {return claims;}
-    const SmartPointer<JSON::Value> &getProfile() const {return profile;}
-    const std::string &getAccessToken() const {return accessToken;}
-
-    URI getRedirectURL(const URI &uri, const std::string &state);
-    URI getVerifyURL(const URI &uri, const std::string &state);
-    URI getProfileURL();
-
-    void verifyToken(const SmartPointer<JSON::Value> &json);
-    SmartPointer<JSON::Value>
-    processProfile(const SmartPointer<JSON::Value> &profile);
-  };
+  options.pushCategory("GitHub OAuth2 Login");
+  OAuth2::addOptions(options);
+  options.popCategory();
 }
 
-#endif // CB_OAUTH2_LOGIN_H
 
+SmartPointer<JSON::Value>
+GitHubOAuth2::processProfile(const SmartPointer<JSON::Value> &profile) const {
+  SmartPointer<JSON::Value> p = new JSON::Dict;
+
+  p->insert("provider", provider);
+  p->insert("id", String(profile->getNumber("id")));
+  p->insert("name", profile->getString("name"));
+  p->insert("email", profile->getString("email"));
+  p->insert("avatar", profile->getString("avatar_url"));
+  p->insertBoolean("verified", true);
+  p->insert("raw", profile);
+
+  return p;
+}
