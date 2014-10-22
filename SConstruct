@@ -56,22 +56,25 @@ for lib in 'zlib bzip2 sqlite3 expat boost libevent'.split():
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
 
-conf.Finish()
-
 # Source
 subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
     'socket', 'security', 'tar', 'io', 'geom', 'parse', 'task', 'json',
-    'jsapi', 'db', 'auth', 'event', 'db/maria']
+    'jsapi', 'db', 'auth', 'event']
 
 if env.CBConfigEnabled('v8'): subdirs.append('js')
+if conf.CBCheckCHeader('mysql/mysql.h') and conf.CBCheckLib('mariadbclient'):
+    subdirs.append('db/maria')
 
 src = []
 for dir in subdirs:
     dir = 'src/cbang/' + dir
     src += Glob(dir + '/*.c')
     src += Glob(dir + '/*.cpp')
+
+
+conf.Finish()
 
 
 # Build in 'build'
