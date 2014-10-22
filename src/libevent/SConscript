@@ -274,7 +274,6 @@ def get_event_config_defs():
     if conf.CheckType('sa_family_t', ['sys/socket.h']):
             defs['HAVE_SA_FAMILY_T'] = '1'
 
-    # TODO This check isn't quite right.  fd_mask is defined if _BSD_SOURCE is.
     if conf.CheckType('fd_mask', ['sys/select.h'], ['_GNU_SOURCE']):
             defs['HAVE_FD_MASK'] = '1'
 
