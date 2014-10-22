@@ -72,7 +72,7 @@ conf.AddTest('CheckDecl', CheckDecl)
 
 # Structs
 def CheckStruct(ctx, struct, includes = None):
-    src = 'int main() {struct %s *x = 0; x = x; return 0;}' % struct
+    src = 'int main() {struct %s *x = 0; x = x; return 0;}\n' % struct
 
     if includes is not None:
         for inc in includes:
@@ -88,7 +88,7 @@ conf.AddTest('CheckStruct', CheckStruct)
 
 # Types
 def CheckType(ctx, type, includes = None, defs = None):
-    src = 'int main() {%s *x = 0; x = x; return 0;}' % type
+    src = 'int main() {%s *x = 0; x = x; return 0;}\n' % type
 
     if includes is not None:
         for inc in includes:
@@ -319,18 +319,18 @@ def build_function(target, source, env):
     f.close()
 
 
-import os
-os.remove(str(File('#/include/event2/event-config.h')))
 bld = Builder(action = build_function)
 env.Append(BUILDERS = {'LibEventConfig' : bld})
 
 if env['PLATFORM'] != 'win32':
-    target = '#/include/event2/event-config.h'
+    target = 'include/event2/event-config.h'
 
     if not File(target).exists():
         defs = get_event_config_defs()
 
     config = env.LibEventConfig(target, [])
+    copy = env.Install(dir = '#/include/event2', source = config)
+
 
 
 # Windows
