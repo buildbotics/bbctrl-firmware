@@ -297,12 +297,12 @@ def get_event_config_defs():
 def build_function(target, source, env):
     target = str(target[0])
 
+    if env['PLATFORM'] == 'darwin': defs['HAVE_FD_MASK'] = '1'
+
     f = open(target, 'w')
 
     f.write('#ifndef EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
     f.write('#define EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
-
-    #if env['PLATFORM'] == 'darwin': f.write('#define _POSIX_C_SOURCE\n')
 
     for name, value in sorted(defs.items()):
         f.write('#define EVENT__%s %s\n' % (name, value))
