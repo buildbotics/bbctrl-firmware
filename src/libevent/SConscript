@@ -8,16 +8,337 @@ env.Append(CPPPATH = ['include'])
 copy = env.Install(dir = '#/include/event2', source = inc)
 copy += env.Install(dir = '#/include', source = Glob('include/*.h'))
 
+
+# libkern
+conf.CBCheckLib('kern')
+
+
+# sys/timerfd.h
+def CheckSYS_TIMERFD_H(ctx):
+    src = '''
+      #include <sys/types.h>
+      #include <sys/timerfd.h>
+      int main(int argc, char **argv) {return 0;}
+    '''
+    ctx.Message('Checking for C header file sys/timerfd.h...')
+    result = ctx.TryCompile(src, '.c')
+    ctx.Result(result)
+    return result
+
+conf.AddTest('CheckSYS_TIMERFD_H', CheckSYS_TIMERFD_H)
+
+
+# sizeof
+def CheckSizeOf(ctx, type, includes = None):
+    src = '''
+      #include <sys/types.h>
+      #include <stdlib.h>
+      #include <stdio.h>
+      int main() {printf("%d", (int)sizeof(''' + type + ''')); return 0;}
+    '''
+
+    if includes is not None:
+        for inc in includes:
+            src = '#include <%s>\n%s' % (inc, src)
+
+    ctx.Message('Checking size of ' + type + '... ')
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[1]
+
+conf.AddTest('CheckSizeOf', CheckSizeOf)
+
+
+# decl
+def CheckDecl(ctx, decl, includes = None):
+    src = '''
+      #ifndef %s
+      #error %s not defined
+      #endif
+      int main() {return 0;}
+    ''' % (decl, decl)
+
+    if includes is not None:
+        for inc in includes:
+            src = '#include <%s>\n%s' % (inc, src)
+
+    ctx.Message('Checking for decl ' + decl + '... ')
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[0]
+
+conf.AddTest('CheckDecl', CheckDecl)
+
+
+# Structs
+def CheckStruct(ctx, struct, includes = None):
+    src = 'int main() {struct %s *x = 0; x = x; return 0;}' % struct
+
+    if includes is not None:
+        for inc in includes:
+            src = '#include <%s>\n%s' % (inc, src)
+
+    ctx.Message('Checking for struct ' + struct + '... ')
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[0]
+
+conf.AddTest('CheckStruct', CheckStruct)
+
+
+# Types
+def CheckType(ctx, type, includes = None, defs = None):
+    src = 'int main() {%s *x = 0; x = x; return 0;}' % type
+
+    if includes is not None:
+        for inc in includes:
+            src = '#include <%s>\n%s' % (inc, src)
+
+    if defs is not None:
+        for d in defs:
+            src = '#define %s\n%s' % (d, src)
+
+    ctx.Message('Checking for type ' + type + '... ')
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[0]
+
+conf.AddTest('CheckType', CheckType)
+
+
+# Struct member
+def CheckStructMember(ctx, struct, member, includes = None):
+    src = '''
+      int main() {
+        struct %s a, b;
+        a.%s = b.%s;
+        a = a;
+        b = b;
+        return 0;
+      }
+    ''' % (struct, member, member)
+
+    if includes is not None:
+        for inc in includes:
+            src = '#include <%s>\n%s' % (inc, src)
+
+    ctx.Message('Checking for %s in struct %s... ' % (member, struct))
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[0]
+
+conf.AddTest('CheckStructMember', CheckStructMember)
+
+
+# General compile and run check
+def CheckRun(ctx, msg, src):
+    ctx.Message('Checking for %s... ' % msg)
+    ret = ctx.TryRun(src, '.c')
+    ctx.Result(ret[0])
+    return ret[0]
+
+conf.AddTest('CheckRun', CheckRun)
+
+
+# event-config.h
+defs = {}
+functions = '''accept4 arc4random arc4random_buf clock_gettime epoll_create1
+  epoll_ctl fcntl getaddrinfo getegid geteuid gethostbyname_r getifaddrs
+  getnameinfo getprotobynumber getservbyname gettimeofday inet_ntop inet_pton
+  issetugid kqueue mach_absolute_time mmap nanosleep pipe pipe2 poll port_create
+  putenv select sendfile setenv setrlimit sigaction signal splice strlcpy strsep
+  strtok_r strtoll sysctl eventfd timerfd_create umask unsetenv usleep vasprintf
+'''
+headers = '''arpa/inet.h dlfcn.h fcntl.h ifaddrs.h inttypes.h mach/mach_time.h
+  memory.h netdb.h netinet/in6.h netinet/in.h netinet/tcp.h poll.h port.h
+  stdarg.h stddef.h stdint.h stdlib.h strings.h sys/devpoll.h sys/epoll.h
+  sys/eventfd.h sys/event.h sys/ioctl.h sys/mman.h sys/param.h sys/queue.h
+  sys/resource.h sys/select.h sys/sendfile.h sys/socket.h sys/stat.h
+  sys/sysctl.h sys/time.h sys/types.h sys/uio.h sys/wait.h unistd.h zlib.h
+'''
+decls = '''CTL_KERN KERN_ARND KERN_RANDOM RANDOM_UUID'''
+structs = 'addrinfo in6_addr sockaddr_in6 sockaddr_storage so_linger'
+sizeof = ['int', 'long', 'long long', 'off_t', 'short', 'size_t',
+          'void *']
+
+gethostbyname_r_3_arg_src = '''
+  #define _BSD_SOURCE
+  #include <netdb.h>
+  int main(int argc, char **argv) {
+    struct hostent ent;
+    struct hostent_data data;
+    int err = gethostbyname_r("", &ent, &data);
+    return 0;
+  }
+'''
+
+gethostbyname_r_5_arg_src = '''
+  #define _BSD_SOURCE
+  #include <netdb.h>
+  int main(int argc, char **argv) {
+    char buf[1];
+    struct hostent *ent;
+    struct hostent hostent;
+    int err;
+    ent = gethostbyname_r("", &hostent, buf, sizeof(buf), &err);
+    return 0;
+  }
+'''
+
+gethostbyname_r_6_arg_src = '''
+  #define _BSD_SOURCE
+  #include <netdb.h>
+  int main(int argc, char **argv) {
+    char buf[1];
+    struct hostent *ent;
+    struct hostent hostent;
+    int err = gethostbyname_r("", &hostent, buf, sizeof(buf), &ent, &err);
+    return 0;
+  }
+'''
+
+def get_event_config_defs():
+    # TODO Define EVENT__HAVE_WORKING_KQUEUE if kqueue works correctly w/ pipes
+
+
+    # to_def
+    from string import maketrans
+    trans = maketrans('/. *', '___P')
+
+    def to_def(name):
+        return name.upper().translate(trans)
+
+
+    # Functions
+    for func in functions.split():
+        if conf.CBCheckFunc(func): defs['HAVE_' + to_def(func)] = '1'
+
+
+    # Headers
+    for hdr in headers.split():
+      if conf.CBCheckCHeader(hdr): defs['HAVE_' + to_def(hdr)] = '1'
+
+    if conf.CheckSYS_TIMERFD_H(): defs['HAVE_SYS_TIMERFD_H'] = '1'
+
+
+    # Sizes
+    for type in sizeof:
+        size = conf.CheckSizeOf(type)
+        if size:
+            defs['SIZEOF_' + to_def(type)] = size
+
+    size = conf.CheckSizeOf('pthread_t', ['pthread.h'])
+    if size: defs['SIZEOF_PTHREAD_T'] = size
+
+
+    # Decls
+    for decl in decls.split():
+        if conf.CheckDecl(decl, 'unistd.h stdlib.h'.split()):
+            defs['HAVE_DECL_' + decl] = '1'
+
+    if conf.CheckDecl('F_SETFD', ['fcntl.h']):
+        defs['HAVE_SETFD'] = '1'
+
+    if conf.CheckDecl('TAILQ_FOREACH', ['sys/queue.h']):
+        defs['HAVE_TAILQFOREACH'] = '1'
+
+    for decl in 'timeradd timerclear timercmp timerisset'.split():
+        if conf.CheckDecl(decl, ['sys/time.h']):
+            defs['HAVE_' + decl] = '1'
+
+
+    # Structs
+    for struct in structs.split():
+        if conf.CheckStruct(struct, ['sys/socket.h', 'sys/types.h']):
+            defs['HAVE_STRUCT_' + to_def(struct)] = '1'
+
+
+    # Struct members
+    if conf.CheckStructMember('sockaddr_in6', 'sin6_len', ['netinet/in.h']):
+        defs['HAVE_STRUCT_SOCKADDR_IN6_SIN6_LEN'] = '1'
+
+    if conf.CheckStructMember('sockaddr_storage', 'ss_family',
+                              ['sys/socket.h']):
+        defs['EVENT__HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY'] = '1'
+
+    if conf.CheckStructMember('sockaddr_storage', '__ss_family',
+                              ['sys/socket.h']):
+        defs['EVENT__HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY'] = '1'
+
+
+    # Types
+    for type in 'uint32_t uint64_t uint8_t uintptr_t'.split():
+        if conf.CheckType(type, ['stdint.h']):
+            defs['HAVE_' + to_def(type)] = '1'
+
+    if conf.CheckType('sa_family_t', ['sys/socket.h']):
+            defs['HAVE_SA_FAMILY_T'] = '1'
+
+    # TODO This check isn't quite right.  fd_mask is defined if _BSD_SOURCE is.
+    if conf.CheckType('fd_mask', ['sys/select.h'], ['_GNU_SOURCE']):
+            defs['HAVE_FD_MASK'] = '1'
+
+
+    # gethostbyname_r
+    if conf.CheckRun('3 arg gethostbyname_r()', gethostbyname_r_3_arg_src):
+        defs['HAVE_GETHOSTBYNAME_R_3_ARG'] = '1'
+
+    if conf.CheckRun('5 arg gethostbyname_r()', gethostbyname_r_5_arg_src):
+        defs['HAVE_GETHOSTBYNAME_R_5_ARG'] = '1'
+
+    if conf.CheckRun('6 arg gethostbyname_r()', gethostbyname_r_6_arg_src):
+        defs['HAVE_GETHOSTBYNAME_R_6_ARG'] = '1'
+
+
+    # OpenSSL
+    if conf.CBCheckLib('ssl') and conf.CBCheckLib('crypto') and \
+            conf.CBCheckCHeader('openssl/ssl.h'):
+        defs['HAVE_OPENSSL'] = '1'
+
+    # Pthreads
+    if conf.CBCheckLib('pthread') and conf.CBCheckCHeader('pthread.h'):
+        defs['HAVE_PTHREADS'] = '1'
+
+    # Version
+    defs['VERSION'] = '"2.1.4-alpha-dev"'
+    defs['NUMERIC_VERSION'] = '0x02010401'
+
+    return defs
+
+
+def build_function(target, source, env):
+    target = str(target[0])
+    f = open(target, 'w')
+
+    f.write('#ifndef EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
+    f.write('#define EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
+
+    for name, value in sorted(defs.items()):
+        f.write('#define EVENT__%s %s\n' % (name, value))
+
+    f.write('#endif /* EVENT2_EVENT_CONFIG_H_INCLUDED_ */\n')
+    f.close()
+
+
+bld = Builder(action = build_function)
+env.Append(BUILDERS = {'LibEventConfig' : bld})
+
+if env['PLATFORM'] != 'win32':
+    target = '#/include/event2/event-config.h'
+
+    if not File(target).exists():
+        defs = get_event_config_defs()
+
+    config = env.LibEventConfig(target, [])
+
+
 # Windows
 if env['PLATFORM'] == 'win32':
     src += Glob('win32/*.c')
     inc += Glob('win32/event2/*.h')
 
-# arc4random
-if conf.CBCheckLib('kern') and conf.CBCheckFunc('arc4random'):
-    env.CBDefine('EVENT__HAVE_ARC4RANDOM')
-
 lib = env.Library('#/lib/event', src)
 Depends(lib, copy)
+if env['PLATFORM'] != 'win32': Depends(lib, config)
 
 Return('lib')
