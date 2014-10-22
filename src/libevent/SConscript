@@ -340,6 +340,7 @@ if env['PLATFORM'] == 'win32':
     src += Glob('win32/*.c')
     copy = env.Install(dir = '#/include/event2',
                        source = File('win32/event2/event-config.h'))
+    env.Append(CPPPATH = ['src'])
 
 
 # Bulid library
