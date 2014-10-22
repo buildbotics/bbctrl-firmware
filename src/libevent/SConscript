@@ -1,17 +1,6 @@
 Import('*')
 env = env.Clone()
 
-src = Glob('src/*.c')
-inc = Glob('include/event2/*.h')
-env.Append(CPPPATH = ['include'])
-
-copy = env.Install(dir = '#/include/event2', source = inc)
-copy += env.Install(dir = '#/include', source = Glob('include/*.h'))
-
-
-# libkern
-conf.CBCheckLib('kern')
-
 
 # sys/timerfd.h
 def CheckSYS_TIMERFD_H(ctx):
@@ -331,12 +320,28 @@ if env['PLATFORM'] != 'win32':
     config = env.LibEventConfig(target, [])
 
 
+# Source
+src = Glob('src/*.c')
+inc = Glob('include/event2/*.h')
+env.Append(CPPPATH = ['include'])
+
+
+# libkern
+conf.CBCheckLib('kern')
+
+
+# Install headers
+copy = env.Install(dir = '#/include/event2', source = inc)
+copy += env.Install(dir = '#/include', source = Glob('include/*.h'))
+
 
 # Windows
 if env['PLATFORM'] == 'win32':
     src += Glob('win32/*.c')
     inc += Glob('win32/event2/*.h')
 
+
+# Bulid library
 lib = env.Library('#/lib/event', src)
 Depends(lib, copy)
 if env['PLATFORM'] != 'win32': Depends(lib, config)
