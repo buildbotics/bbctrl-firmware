@@ -21,7 +21,7 @@ def CheckSYS_TIMERFD_H(ctx):
       int main(int argc, char **argv) {return 0;}
     '''
     ctx.Message('Checking for C header file sys/timerfd.h...')
-    result = ctx.TryCompile(src, '.c')
+    result = ctx.TryCompile(src + '\n', '.c')
     ctx.Result(result)
     return result
 
@@ -42,7 +42,7 @@ def CheckSizeOf(ctx, type, includes = None):
             src = '#include <%s>\n%s' % (inc, src)
 
     ctx.Message('Checking size of ' + type + '... ')
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[1]
 
@@ -63,7 +63,7 @@ def CheckDecl(ctx, decl, includes = None):
             src = '#include <%s>\n%s' % (inc, src)
 
     ctx.Message('Checking for decl ' + decl + '... ')
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[0]
 
@@ -72,14 +72,14 @@ conf.AddTest('CheckDecl', CheckDecl)
 
 # Structs
 def CheckStruct(ctx, struct, includes = None):
-    src = 'int main() {struct %s *x = 0; x = x; return 0;}\n' % struct
+    src = 'int main() {struct %s *x = 0; x = x; return 0;}' % struct
 
     if includes is not None:
         for inc in includes:
             src = '#include <%s>\n%s' % (inc, src)
 
     ctx.Message('Checking for struct ' + struct + '... ')
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[0]
 
@@ -88,7 +88,7 @@ conf.AddTest('CheckStruct', CheckStruct)
 
 # Types
 def CheckType(ctx, type, includes = None, defs = None):
-    src = 'int main() {%s *x = 0; x = x; return 0;}\n' % type
+    src = 'int main() {%s *x = 0; x = x; return 0;}' % type
 
     if includes is not None:
         for inc in includes:
@@ -99,7 +99,7 @@ def CheckType(ctx, type, includes = None, defs = None):
             src = '#define %s\n%s' % (d, src)
 
     ctx.Message('Checking for type ' + type + '... ')
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[0]
 
@@ -123,7 +123,7 @@ def CheckStructMember(ctx, struct, member, includes = None):
             src = '#include <%s>\n%s' % (inc, src)
 
     ctx.Message('Checking for %s in struct %s... ' % (member, struct))
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[0]
 
@@ -133,7 +133,7 @@ conf.AddTest('CheckStructMember', CheckStructMember)
 # General compile and run check
 def CheckRun(ctx, msg, src):
     ctx.Message('Checking for %s... ' % msg)
-    ret = ctx.TryRun(src, '.c')
+    ret = ctx.TryRun(src + '\n', '.c')
     ctx.Result(ret[0])
     return ret[0]
 
