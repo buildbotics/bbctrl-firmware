@@ -33,6 +33,8 @@
 #ifndef CB_EVENT_EVENT_H
 #define CB_EVENT_EVENT_H
 
+#include "Base.h"
+
 #include <cbang/SmartPointer.h>
 
 struct event;
@@ -49,6 +51,8 @@ namespace cb {
     public:
       Event(event *e, const SmartPointer<EventCallback> &cb) : e(e), cb(cb) {}
       ~Event();
+
+      event *getEvent() const {return e;}
 
       void add(double t);
       void add();

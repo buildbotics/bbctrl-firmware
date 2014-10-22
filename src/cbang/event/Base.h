@@ -49,13 +49,37 @@ namespace cb {
       event_base *base;
 
     public:
+      typedef enum {
+        EVENT_NONE     = 0,
+        EVENT_TIMEOUT  = 1 << 0,
+        EVENT_READ     = 1 << 1,
+        EVENT_WRITE    = 1 << 2,
+        EVENT_SIGNAL   = 1 << 3,
+        EVENT_PERSIST  = 1 << 4,
+        EVENT_ET       = 1 << 5,
+        EVENT_FINALIZE = 1 << 6,
+        EVENT_CLOSED   = 1 << 7,
+      } event_t;
+
       Base();
       ~Base();
 
       struct event_base *getBase() const {return base;}
 
+      void assign(Event &event, int fd, event_t events,
+                  const SmartPointer<EventCallback> &cb);
+
+      SmartPointer<Event> newEvent(int fd, unsigned events,
+                                   const SmartPointer<EventCallback> &cb);
       SmartPointer<Event> newSignal(int signal,
                                     const SmartPointer<EventCallback> &cb);
+
+      template <class T>
+      SmartPointer<Event> newEvent(int fd, unsigned events, T *obj,
+                                   typename EventMemberFunctor<T>::member_t
+                                   member) {
+        return newEvent(fd, events, new EventMemberFunctor<T>(obj, member));
+      }
 
       template <class T>
       SmartPointer<Event> newSignal(int signal, T *obj,

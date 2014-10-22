@@ -59,6 +59,19 @@ Base::~Base() {
 }
 
 
+void Base::assign(Event &event, int fd, event_t events,
+                  const SmartPointer<EventCallback> &cb) {
+  event_assign(event.getEvent(), base, fd, events, event_cb, cb.get());
+}
+
+
+SmartPointer<cb::Event::Event>
+Base::newEvent(int fd, unsigned events, const SmartPointer<EventCallback> &cb) {
+  event *e = event_new(base, fd, events, event_cb, cb.get());
+  return new Event(e, cb);
+}
+
+
 SmartPointer<cb::Event::Event>
 Base::newSignal(int signal, const SmartPointer<EventCallback> &cb) {
   event *e = event_new(base, signal, EV_SIGNAL, event_cb, cb.get());

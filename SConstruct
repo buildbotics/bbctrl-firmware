@@ -63,7 +63,7 @@ subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
     'socket', 'security', 'tar', 'io', 'geom', 'parse', 'task', 'json',
-    'jsapi', 'db', 'auth', 'event']
+    'jsapi', 'db', 'auth', 'event', 'db/maria']
 
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 
