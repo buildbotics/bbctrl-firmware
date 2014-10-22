@@ -273,6 +273,8 @@
 /* Define if kqueue works correctly with pipes */
 /* #undef EVENT__HAVE_WORKING_KQUEUE */
 
+#define EVENT__HAVE_OPENSSL 1
+
 /* Numeric representation of the version */
 #define EVENT__NUMERIC_VERSION 0x02010401
 

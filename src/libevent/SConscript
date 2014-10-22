@@ -338,8 +338,10 @@ copy += env.Install(dir = '#/include', source = Glob('include/*.h'))
 # Windows
 if env['PLATFORM'] == 'win32':
     src += Glob('win32/*.c')
-    copy = env.Install(dir = '#/include/event2',
-                       source = File('win32/event2/event-config.h'))
+    copy += env.Install(dir = '#/include/event2',
+                        source = File('win32/event2/event-config.h'))
+    copy += env.Install(dir = '#/include/sys',
+                        source = File('include/sys/queue.h'))
     env.Append(CPPPATH = ['src'])
 
 

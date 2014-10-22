@@ -35,7 +35,7 @@
 
 #ifdef _WIN32
 #define FD_SETSIZE 4096
-#include <winsock.h>
+#include <winsock2.h>
 #endif
 
 namespace cb {

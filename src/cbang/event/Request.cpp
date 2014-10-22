@@ -44,8 +44,6 @@
 #include <event2/http.h>
 #include <event2/http_struct.h>
 
-#include <netinet/in.h>
-
 using namespace cb::Event;
 using namespace cb;
 using namespace std;

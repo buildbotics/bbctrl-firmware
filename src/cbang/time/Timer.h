@@ -34,7 +34,7 @@
 #define CBANG_TIMER_H
 
 #ifdef _WIN32
-#include <winsock.h> // For timeval
+#include <winsock2.h> // For timeval
 
 #undef max
 #undef min
