@@ -301,7 +301,7 @@ def build_function(target, source, env):
     f.write('#ifndef EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
     f.write('#define EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
 
-    if env['PLATFORM'] == 'darwin': f.write('#define _DARWIN_C_SOURCE\n')
+    if env['PLATFORM'] == 'darwin': f.write('#define _POSIX_C_SOURCE\n')
 
     for name, value in sorted(defs.items()):
         f.write('#define EVENT__%s %s\n' % (name, value))
