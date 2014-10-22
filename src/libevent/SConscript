@@ -320,7 +320,7 @@ def build_function(target, source, env):
 
 
 import os
-os.remove('#/build/include/event2/event-config.h')
+os.remove(str(File('#/build/include/event2/event-config.h')))
 bld = Builder(action = build_function)
 env.Append(BUILDERS = {'LibEventConfig' : bld})
 
