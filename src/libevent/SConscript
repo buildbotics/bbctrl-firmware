@@ -296,6 +296,7 @@ def get_event_config_defs():
 
 def build_function(target, source, env):
     target = str(target[0])
+
     f = open(target, 'w')
 
     f.write('#ifndef EVENT2_EVENT_CONFIG_H_INCLUDED_\n')
@@ -313,13 +314,13 @@ def build_function(target, source, env):
 bld = Builder(action = build_function)
 env.Append(BUILDERS = {'LibEventConfig' : bld})
 
+config = None
 if env['PLATFORM'] != 'win32':
     target = '#/include/event2/event-config.h'
 
     if not File(target).exists():
         defs = get_event_config_defs()
-
-    config = env.LibEventConfig(target, [])
+        config = env.LibEventConfig(target, [])
 
 
 # Source
@@ -350,6 +351,6 @@ if env['PLATFORM'] == 'win32':
 # Bulid library
 lib = env.Library('#/lib/event', src)
 Depends(lib, copy)
-if env['PLATFORM'] != 'win32': Depends(lib, config)
+if env['PLATFORM'] != 'win32' and config is not None: Depends(lib, config)
 
 Return('lib')
