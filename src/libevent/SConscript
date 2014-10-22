@@ -323,13 +323,12 @@ bld = Builder(action = build_function)
 env.Append(BUILDERS = {'LibEventConfig' : bld})
 
 if env['PLATFORM'] != 'win32':
-    target = 'include/event2/event-config.h'
+    target = '#/include/event2/event-config.h'
 
     if not File(target).exists():
         defs = get_event_config_defs()
 
     config = env.LibEventConfig(target, [])
-    copy = env.Install(dir = '#/include/event2', source = config)
 
 
 
