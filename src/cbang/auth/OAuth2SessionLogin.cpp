@@ -102,18 +102,9 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
 
       // Read response
       tran.receiveHeader();
+      JSON::ValuePtr token = JSON::Reader(tran).parse();
 
-      streamsize size = response.getContentLength();
-      if (!size) THROWC("Failed to get access token",
-                        HTTP::StatusCode::HTTP_UNAUTHORIZED);
-      string token;
-      {
-        SmartPointer<char>::Array buffer = new char[size];
-        tran.read(buffer.get(), size);
-        token = string(buffer.get(), size);
-      }
-
-      LOG_DEBUG(5, "Token Response: \n" << tran.getResponse() << token);
+      LOG_DEBUG(5, "Token Response: \n" << tran.getResponse() << *token);
 
       // Verify token
       string accessToken = auth->verifyToken(token);

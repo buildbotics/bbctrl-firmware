@@ -114,7 +114,11 @@ string OAuth2::verifyToken(const string &data) const {
     return uri.get("access_token");
   }
 
-  JSON::ValuePtr json = JSON::Reader(StringInputSource(data)).parse();
+  return verifyToken(JSON::Reader(StringInputSource(data)).parse());
+}
+
+
+string OAuth2::verifyToken(const SmartPointer<JSON::Value> &json) const {
   return json->getString("access_token");
 }
 

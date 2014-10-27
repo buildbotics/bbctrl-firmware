@@ -67,6 +67,8 @@ namespace cb {
     virtual URI getProfileURL(const std::string &token) const;
 
     virtual std::string verifyToken(const std::string &data) const;
+    virtual std::string
+    verifyToken(const SmartPointer<JSON::Value> &json) const;
 
     virtual SmartPointer<JSON::Value>
     processProfile(const SmartPointer<JSON::Value> &profile) const = 0;
