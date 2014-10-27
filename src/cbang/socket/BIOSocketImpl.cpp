@@ -51,7 +51,12 @@ int BIOSocketImpl::read(char *buf, int length) {
     try {
       ret = 0;
       exception = 0;
-      return ret = socket.read(buf, length);
+      ret = socket.read(buf, length);
+
+      if (!ret && !socket.getBlocking()) bio->flags |= BIO_FLAGS_SHOULD_RETRY;
+      else bio->flags &= ~BIO_FLAGS_SHOULD_RETRY;
+
+      return ret ? ret : -1;
 
     } catch (const Exception &e) {
       exception = new Exception(e);
@@ -68,7 +73,12 @@ int BIOSocketImpl::write(const char *buf, int length) {
     try {
       ret = 0;
       exception = 0;
-      return ret = socket.write(buf, length);
+      ret = socket.write(buf, length);
+
+      if (!ret && !socket.getBlocking()) bio->flags |= BIO_FLAGS_SHOULD_RETRY;
+      else bio->flags &= ~BIO_FLAGS_SHOULD_RETRY;
+
+      return ret ? ret : -1;
 
     } catch (const Exception &e) {
       exception = new Exception(e);

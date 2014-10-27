@@ -249,6 +249,7 @@ SmartPointer<Socket> SocketDefaultImpl::accept(IPAddress *ip) {
 
     aSock->connected = true;
     aSock->capture(inAddr, true);
+    aSock->setBlocking(blocking);
 
     return a;
   }
