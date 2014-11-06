@@ -44,19 +44,34 @@ namespace cb {
   namespace Event {
     class EventCallback;
 
-    class Event {
+    class Event : public EventFlag {
       event *e;
       SmartPointer<EventCallback> cb;
+      bool selfDestruct;
 
     public:
-      Event(event *e, const SmartPointer<EventCallback> &cb) : e(e), cb(cb) {}
-      ~Event();
+      Event(Base &base, int fd, unsigned events,
+            const SmartPointer<EventCallback> &cb, bool selfDestruct = false);
+      Event(Base &base, int signal, const SmartPointer<EventCallback> &cb,
+            bool selfDestruct = false);
+      Event(event *e, const SmartPointer<EventCallback> &cb,
+            bool selfDestruct = false) :
+        e(e), cb(cb), selfDestruct(selfDestruct) {}
+      virtual ~Event();
 
       event *getEvent() const {return e;}
 
+      bool isPending(unsigned events = ~0) const;
+
+      void assign(Base &base, int fd, unsigned events,
+                  const SmartPointer<EventCallback> &cb);
+      void renew(int fd, unsigned events);
+      void renew(int signal);
       void add(double t);
       void add();
       void del();
+
+      void call(int fd, short flags);
     };
   }
 }

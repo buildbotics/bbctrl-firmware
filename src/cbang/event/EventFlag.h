@@ -30,31 +30,27 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_EVENT_CALLBACK_H
-#define CB_EVENT_EVENT_CALLBACK_H
+#ifndef CBANG_ENUM
+#ifndef CBANG_EVENT_FLAG_H
+#define CBANG_EVENT_FLAG_H
 
-#include "EventFlag.h"
+#define CBANG_ENUM_NAME EventFlag
+#define CBANG_ENUM_NAMESPACE cb
+#define CBANG_ENUM_NAMESPACE2 Event
+#define CBANG_ENUM_PATH cbang/event
+#include <cbang/enum/MakeEnumeration.def>
 
-#include <cbang/util/MemberFunctor.h>
+#endif // CBANG_EVENT_FLAG_H
+#else // CBANG_ENUM
 
-namespace cb {
-  namespace Event {
-    class Event;
-    class Base;
+CBANG_ENUM_VALUE(EVENT_NONE,     0)
+CBANG_ENUM_VALUE(EVENT_TIMEOUT,  1 << 0)
+CBANG_ENUM_VALUE(EVENT_READ,     1 << 1)
+CBANG_ENUM_VALUE(EVENT_WRITE,    1 << 2)
+CBANG_ENUM_VALUE(EVENT_SIGNAL,   1 << 3)
+CBANG_ENUM_VALUE(EVENT_PERSIST,  1 << 4)
+CBANG_ENUM_VALUE(EVENT_ET,       1 << 5)
+CBANG_ENUM_VALUE(EVENT_FINALIZE, 1 << 6)
+CBANG_ENUM_VALUE(EVENT_CLOSED,   1 << 7)
 
-    class EventCallback : public EventFlag {
-    public:
-      virtual ~EventCallback() {}
-
-      virtual void operator()(Event &event, int fd, unsigned flags) = 0;
-    };
-
-    CBANG_FUNCTOR3(EventFunctor, EventCallback, void, operator(), Event &, \
-                   int, unsigned);
-    CBANG_MEMBER_FUNCTOR3(EventMemberFunctor, EventCallback, void, operator(), \
-                          Event &, int, unsigned);
-  }
-}
-
-#endif // CB_EVENT_EVENT_CALLBACK_H
-
+#endif // CBANG_ENUM

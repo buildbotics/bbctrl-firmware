@@ -37,7 +37,6 @@
 
 #include <cbang/SmartPointer.h>
 #include <cbang/StdTypes.h>
-#include <cbang/event/EventCallback.h>
 
 #include <string>
 #include <vector>
@@ -48,12 +47,6 @@ struct st_mysql_res;
 
 
 namespace cb {
-  namespace Event {
-    class Base;
-    class Event;
-    class EventCallback;
-  }
-
   namespace MariaDB {
     class DB {
     public:
@@ -97,7 +90,7 @@ namespace cb {
       st_mysql *db;
       st_mysql_res *res;
 
-      typedef bool (DB::*continue_func_t)(ready_t ready);
+      typedef bool (DB::*continue_func_t)(unsigned ready);
 
       bool nonBlocking;
       bool connected;
@@ -162,6 +155,7 @@ namespace cb {
       void freeResult();
       bool freeResultNB();
       uint64_t getRowCount() const;
+      uint64_t getAffectedRowCount() const;
       unsigned getFieldCount() const;
       bool fetchRow();
       bool fetchRowNB();
@@ -195,11 +189,14 @@ namespace cb {
       uint64_t getBit(unsigned i) const;
       void getSet(unsigned i, std::set<std::string> &s) const;
       double getTime(unsigned i) const;
+      std::string rowToString() const;
 
       // Error handling
       std::string getInfo() const;
+      bool hasError() const;
       std::string getError() const;
       void raiseError(const std::string &msg) const;
+      unsigned getWarningCount() const;
 
       // Assertions
       void assertConnected() const;
@@ -208,33 +205,28 @@ namespace cb {
       void assertNonBlocking() const;
       void assertHaveResult() const;
       void assertHaveRow() const;
-      void assertDontHaveResult() const;
+      void assertNotHaveResult() const;
       void assertInFieldRange(unsigned i) const;
 
       // Non-blocking API
       bool isNonBlocking() const {return nonBlocking;}
       bool inProgress() const {return status;}
-      bool continueNB(ready_t ready);
+      bool continueNB(unsigned ready);
       bool waitRead() const;
       bool waitWrite() const;
       bool waitTimeout() const;
       int getSocket() const;
       double getTimeout() const;
 
-      SmartPointer<Event::Event>
-      addEvent(Event::Base &base,
-               const SmartPointer<Event::EventCallback> &cb) const;
-
-      template <class T>
-      SmartPointer<Event::Event>
-      addEvent(Event::Base &base, T *obj,
-               typename Event::EventMemberFunctor<T>::member_t member) {
-        return addEvent(base, new Event::EventMemberFunctor<T>(obj, member));
-      }
-
       // Formatting
       std::string escape(const std::string &s) const;
       static std::string toHex(const std::string &s);
+
+      // Library
+      static void libraryInit(int argc = 0, char *argv[] = 0,
+                              char *groups[] = 0);
+      static void libraryEnd();
+      static const char *getClientInfo();
 
       // Thread API
       static void threadInit();
@@ -243,14 +235,14 @@ namespace cb {
 
     protected:
       // Continue non-blocking calls
-      bool closeContinue(ready_t ready);
-      bool connectContinue(ready_t ready);
-      bool useContinue(ready_t ready);
-      bool queryContinue(ready_t ready);
-      bool storeResultContinue(ready_t ready);
-      bool nextResultContinue(ready_t ready);
-      bool freeResultContinue(ready_t ready);
-      bool fetchRowContinue(ready_t ready);
+      bool closeContinue(unsigned ready);
+      bool connectContinue(unsigned ready);
+      bool useContinue(unsigned ready);
+      bool queryContinue(unsigned ready);
+      bool storeResultContinue(unsigned ready);
+      bool nextResultContinue(unsigned ready);
+      bool freeResultContinue(unsigned ready);
+      bool fetchRowContinue(unsigned ready);
     };
   }
 }

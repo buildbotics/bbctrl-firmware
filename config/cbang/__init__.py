@@ -38,6 +38,12 @@ def configure_deps(conf, local = True):
     if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
         env.CBDefine('HAVE_LEVELDB')
 
+    if conf.CBCheckCHeader('mysql/mysql.h') and \
+            conf.CBCheckLib('mysqlclient') and \
+            conf.CBCheckFunc('mysql_real_connect_start'):
+        env.CBDefine('HAVE_MARIADB')
+        env.cb_enabled.add('mariadb')
+
     if not ConfigBoost(conf) and not local:
         env.ConfigLocalBoost()
         ConfigBoost(conf, True)

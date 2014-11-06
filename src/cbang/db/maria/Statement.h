@@ -30,31 +30,16 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_EVENT_CALLBACK_H
-#define CB_EVENT_EVENT_CALLBACK_H
-
-#include "EventFlag.h"
-
-#include <cbang/util/MemberFunctor.h>
+#ifndef CB_MARIADB_STATEMENT_H
+#define CB_MARIADB_STATEMENT_H
 
 namespace cb {
-  namespace Event {
-    class Event;
-    class Base;
-
-    class EventCallback : public EventFlag {
+  namespace MariaDB {
+    class Statement {
     public:
-      virtual ~EventCallback() {}
-
-      virtual void operator()(Event &event, int fd, unsigned flags) = 0;
     };
-
-    CBANG_FUNCTOR3(EventFunctor, EventCallback, void, operator(), Event &, \
-                   int, unsigned);
-    CBANG_MEMBER_FUNCTOR3(EventMemberFunctor, EventCallback, void, operator(), \
-                          Event &, int, unsigned);
   }
 }
 
-#endif // CB_EVENT_EVENT_CALLBACK_H
+#endif // CB_MARIADB_STATEMENT_H
 

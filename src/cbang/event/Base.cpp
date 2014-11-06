@@ -42,13 +42,6 @@ using namespace cb::Event;
 using namespace cb;
 
 
-namespace {
-  void event_cb(evutil_socket_t fd, short flags, void *arg) {
-    (*(EventCallback *)arg)(fd);
-  }
-}
-
-
 Base::Base() : base(event_base_new()) {
   if (!base) THROW("Failed to create event base");
 }
@@ -59,23 +52,15 @@ Base::~Base() {
 }
 
 
-void Base::assign(Event &event, int fd, event_t events,
-                  const SmartPointer<EventCallback> &cb) {
-  event_assign(event.getEvent(), base, fd, events, event_cb, cb.get());
+Event::Event &Base::newEvent(int fd, unsigned events,
+                    const SmartPointer<EventCallback> &cb) {
+  return *new Event(*this, fd, events, cb, true); // Deletes itself when done
 }
 
 
-SmartPointer<cb::Event::Event>
-Base::newEvent(int fd, unsigned events, const SmartPointer<EventCallback> &cb) {
-  event *e = event_new(base, fd, events, event_cb, cb.get());
-  return new Event(e, cb);
-}
-
-
-SmartPointer<cb::Event::Event>
-Base::newSignal(int signal, const SmartPointer<EventCallback> &cb) {
-  event *e = event_new(base, signal, EV_SIGNAL, event_cb, cb.get());
-  return new Event(e, cb);
+Event::Event &Base::newSignal(int signal,
+                              const SmartPointer<EventCallback> &cb) {
+  return *new Event(*this, signal, cb, true); // Deletes itself when done
 }
 
 

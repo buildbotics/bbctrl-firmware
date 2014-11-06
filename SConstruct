@@ -64,8 +64,7 @@ subdirs = [
     'jsapi', 'db', 'auth', 'event']
 
 if env.CBConfigEnabled('v8'): subdirs.append('js')
-if conf.CBCheckCHeader('mysql/mysql.h') and conf.CBCheckLib('mariadbclient'):
-    subdirs.append('db/maria')
+if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
 
 src = []
 for dir in subdirs:
