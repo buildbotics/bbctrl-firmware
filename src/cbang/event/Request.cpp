@@ -50,7 +50,8 @@ using namespace std;
 
 
 Request::Request(evhttp_request *req, bool deallocate) :
-  req(req), deallocate(deallocate), incomming(false), secure(false) {
+  req(req), deallocate(deallocate), incoming(false), secure(false),
+  finalized(false) {
   if (!req) THROW("Event request cannot be null");
 
   // Parse URI
@@ -63,12 +64,18 @@ Request::Request(evhttp_request *req, bool deallocate) :
     Connection con(_con, false);
     clientIP = con.getPeer();
   }
+
+  // Log request
+  LOG_INFO(1, "< " << getMethod() << " " << getURI());
+  LOG_DEBUG(5, getInputHeaders() << '\n');
+  LOG_DEBUG(6, getInputBuffer().hexdump() << '\n');
 }
 
 
 Request::Request(evhttp_request *req, const URI &uri, bool deallocate) :
   req(req), deallocate(deallocate), uri(uri),
-  clientIP(uri.getHost(), uri.getPort()), incomming(false), secure(false) {
+  clientIP(uri.getHost(), uri.getPort()), incoming(false), secure(false),
+  finalized(false) {
   if (!req) THROW("Event request cannot be null");
 }
 
@@ -187,6 +194,11 @@ void Request::outRemove(const string &name) {
 }
 
 
+bool Request::hasContentType() const {
+  return getOutputHeaders().hasContentType();
+}
+
+
 string Request::getContentType() const {
   return getOutputHeaders().getContentType();
 }
@@ -248,11 +260,6 @@ void Request::setCookie(const string &name, const string &value,
 }
 
 
-void Request::cancel() {
-  evhttp_cancel_request(req);
-}
-
-
 string Request::getInput() const {
   return getInputBuffer().toString();
 }
@@ -281,61 +288,110 @@ SmartPointer<JSON::Value> Request::getInputJSON() const {
 }
 
 
-SmartPointer<JSON::Value> Request::getOutputJSON() const {
-  Buffer buf = getOutputBuffer();
-  if (!buf.getLength()) return 0;
-  Event::BufferStream<> stream(buf);
-  return JSON::Reader(stream).parse();
+SmartPointer<JSON::Writer>
+Request::getJSONWriter(unsigned indent, bool compact) const {
+  class JSONBufferWriter : public JSON::Writer {
+    SmartPointer<ostream> streamPtr;
+
+  public:
+    JSONBufferWriter(const SmartPointer<ostream> &streamPtr, unsigned indent,
+                     bool compact) :
+      JSON::Writer(*streamPtr, indent, compact), streamPtr(streamPtr) {}
+  };
+
+  return new JSONBufferWriter(getOutputStream(), indent, compact);
+}
+
+
+SmartPointer<istream> Request::getInputStream() const {
+  return new Event::BufferStream<>(getInputBuffer());
+}
+
+
+SmartPointer<ostream> Request::getOutputStream() const {
+  return new Event::BufferStream<>(getOutputBuffer());
 }
 
 
 void Request::sendError(int code) {
-  string msg = HTTPStatus((HTTPStatus::enum_t)code).getDescription();
-  msg = SSTR(code << " " << String::replace(msg, "_", " "));
-
-  evhttp_send_error(req, code, msg.c_str());
+  finalize();
+  evhttp_send_error(req, code, 0);
 }
 
 
-void Request::sendReply(const Buffer &buf) {
-  sendReply(HTTP_OK, buf);
+void Request::send(const Buffer &buf) {
+  getOutputBuffer().add(buf);
 }
 
 
-void Request::sendReply(const char *data, unsigned length) {
-  sendReply(HTTP_OK, data, length);
+void Request::send(const char *data, unsigned length) {
+  getOutputBuffer().add(data, length);
 }
 
 
-void Request::sendReply(int code, const Buffer &buf) {
+void Request::send(const char *s) {
+  getOutputBuffer().add(s);
+}
+
+
+void Request::send(const std::string &s) {
+  getOutputBuffer().add(s);
+}
+
+
+void Request::sendFile(const std::string &path) {
+  getOutputBuffer().addFile(path);
+}
+
+
+void Request::reply(int code) {
+  finalize();
+  evhttp_send_reply(req, code,
+                    HTTPStatus((HTTPStatus::enum_t)code).getDescription(), 0);
+}
+
+
+void Request::reply(const Buffer &buf) {
+  reply(HTTP_OK, buf);
+}
+
+
+void Request::reply(const char *data, unsigned length) {
+  reply(HTTP_OK, data, length);
+}
+
+
+void Request::reply(int code, const Buffer &buf) {
+  finalize();
   evhttp_send_reply(req, code,
                     HTTPStatus((HTTPStatus::enum_t)code).getDescription(),
                     buf.getBuffer());
 }
 
 
-void Request::sendReply(int code, const char *data, unsigned length) {
-  sendReply(code, Buffer(data, length));
+void Request::reply(int code, const char *data, unsigned length) {
+  reply(code, Buffer(data, length));
 }
 
 
-void Request::sendReplyStart(int code) {
+void Request::startChunked(int code) {
   evhttp_send_reply_start
     (req, code, HTTPStatus((HTTPStatus::enum_t)code).getDescription());
 }
 
 
-void Request::sendReplyChunk(const Buffer &buf) {
+void Request::sendChunk(const Buffer &buf) {
   evhttp_send_reply_chunk(req, buf.getBuffer());
 }
 
 
-void Request::sendReplyChunk(const char *data, unsigned length) {
-  sendReplyChunk(Buffer(data, length));
+void Request::sendChunk(const char *data, unsigned length) {
+  sendChunk(Buffer(data, length));
 }
 
 
-void Request::sendReplyEnd() {
+void Request::endChunked() {
+  finalize();
   evhttp_send_reply_end(req);
 }
 
@@ -343,7 +399,13 @@ void Request::sendReplyEnd() {
 void Request::redirect(const URI &uri, int code) {
   outSet("Location", uri);
   outSet("Content-Length", "0");
-  sendReply(code, "", 0);
+  reply(code, "", 0);
+}
+
+
+void Request::cancel() {
+  evhttp_cancel_request(req);
+  finalized = true;
 }
 
 
@@ -353,8 +415,20 @@ const char *Request::getErrorStr(int error) {
   case EVREQ_HTTP_EOF:            return "End of file";
   case EVREQ_HTTP_INVALID_HEADER: return "Invalid header";
   case EVREQ_HTTP_BUFFER_ERROR:   return "Buffer error";
-  case EVREQ_HTTP_REQUEST_CANCEL: return "Requeset canceled";
+  case EVREQ_HTTP_REQUEST_CANCEL: return "Request canceled";
   case EVREQ_HTTP_DATA_TOO_LONG:  return "Data too long";
   default:                        return "Unknown";
   }
+}
+
+
+void Request::finalize() {
+  if (finalized) THROWS("Request already finalized");
+  finalized = true;
+
+  if (!hasContentType()) guessContentType();
+
+  // Log results
+  LOG_DEBUG(5, getResponseLine() << '\n' << getOutputHeaders() << '\n');
+  LOG_DEBUG(6, getOutputBuffer().hexdump() << '\n');
 }

@@ -41,7 +41,9 @@ namespace cb {
     public:
       typedef enum {
         EVENTDB_ERROR,
+        EVENTDB_BEGIN_RESULT,
         EVENTDB_ROW,
+        EVENTDB_END_RESULT,
         EVENTDB_DONE,
       } state_t;
 

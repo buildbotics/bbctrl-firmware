@@ -73,7 +73,7 @@ void Writer::write(double value) {
 
 void Writer::write(const string &value) {
   NullSync::write(value);
-  stream << '"' << String::escapeC(value) << '"';
+  stream << '"' << escape(value) << '"';
 }
 
 
@@ -161,4 +161,55 @@ void Writer::endDict() {
 
   first = false;
   simple = false;
+}
+
+
+string Writer::escape(const string &s) {
+  string result;
+  result.reserve(s.length());
+
+  for (string::const_iterator it = s.begin(); it != s.end(); it++) {
+    char c = *it;
+
+    switch (c) {
+    case 0: result.append("\\u0000"); break;
+    case '\"': result.append("\\\""); break;
+    case '\b': result.append("\\b"); break;
+    case '\f': result.append("\\f"); break;
+    case '\n': result.append("\\n"); break;
+    case '\r': result.append("\\r"); break;
+    case '\t': result.append("\\t"); break;
+    default:
+      // Check UTF-8 encodings
+      if (0x80 <= c) {
+        // Compute width
+        int width = 0;
+        if ((c & 0xe0) == 0xc0) width = 1;
+        else if ((c & 0xf0) == 0xe0) width = 2;
+        else if ((c & 0xf8) == 0xf0) width = 3;
+        else if ((c & 0xfc) == 0xf8) width = 4;
+        else if ((c & 0xfe) == 0xfc) width = 5;
+        else THROW("Invalid UTF-8");
+
+        // Escape short codes and pass long ones
+        uint16_t code = c & 0x1f;
+        if (2 < width) result.push_back(c);
+
+        for (int i = 0; i < width; i++) {
+          if (++it == s.end() || (*it & 0xc0) != 0x80)
+            THROWS("Invalid UTF-8");
+
+          if (2 < width) result.push_back(*it);
+          else code = (code << 6) | (*it & 0x3f);
+        }
+
+        if (width < 3)
+          result.append(String::printf("\\u%04x", (unsigned)code));
+
+      } else result.push_back(c);
+      break;
+    }
+  }
+
+  return result;
 }

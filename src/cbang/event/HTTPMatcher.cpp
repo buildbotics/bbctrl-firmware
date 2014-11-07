@@ -33,13 +33,19 @@
 #include "HTTPMatcher.h"
 #include "Request.h"
 
+using namespace std;
 using namespace cb::Event;
 
 
 bool HTTPMatcher::operator()(Request &req) {
+  boost::smatch m;
+
   if (!(methods & req.getMethod()) ||
-      (!matchAll && !boost::regex_match(req.getURI().getPath(), regex)))
+      (!matchAll && !boost::regex_match(req.getURI().getPath(), m, regex)))
     return false;
+
+  for (unsigned i = 1; i < m.size(); i++)
+    req.appendPathArg(string(m[i].first, m[i].second));
 
   return (*child)(req);
 }

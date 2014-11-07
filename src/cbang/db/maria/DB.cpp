@@ -35,6 +35,7 @@
 #include <cbang/String.h>
 #include <cbang/Exception.h>
 #include <cbang/time/Time.h>
+#include <cbang/json/Sync.h>
 
 #include <mysql/mysql.h>
 
@@ -49,17 +50,6 @@
 using namespace std;
 using namespace cb;
 using namespace cb::MariaDB;
-
-
-namespace {
-  int ready_to_mysql(unsigned ready) {
-    int x = 0;
-    if (ready & DB::READY_READ) x |= MYSQL_WAIT_READ;
-    if (ready & DB::READY_WRITE) x |= MYSQL_WAIT_WRITE;
-    if (ready & DB::READY_TIMEOUT) x |= MYSQL_WAIT_TIMEOUT;
-    return x;
-  }
-}
 
 
 DB::DB(st_mysql *db) :
@@ -308,9 +298,9 @@ void DB::storeResult() {
   assertNotHaveResult();
 
   res = mysql_store_result(db);
-  if (!res) {
-    if (hasError()) raiseError("Failed to store result");
-  } else stored = true;
+
+  if (res) stored = true;
+  else if (hasError()) raiseError("Failed to store result");
 }
 
 
@@ -326,9 +316,8 @@ bool DB::storeResultNB() {
     return false;
   }
 
-  if (!res) {
-    if (hasError()) raiseError("Failed to store result");
-  } else stored = true;
+  if (res) stored = true;
+  else if (hasError()) raiseError("Failed to store result");
 
   return true;
 }
@@ -345,7 +334,7 @@ bool DB::nextResult() {
   assertNotPending();
 
   int ret = mysql_next_result(db);
-  if (0 < ret) raiseError("Failed get next result");
+  if (0 < ret) raiseError("Failed to get next result");
 
   return ret == 0;
 }
@@ -364,7 +353,7 @@ bool DB::nextResultNB() {
     return false;
   }
 
-  if (0 < ret) raiseError("Failed get next result");
+  if (0 < ret) raiseError("Failed to get next result");
 
   return true;
 }
@@ -456,6 +445,30 @@ void DB::seekRow(uint64_t row) {
 }
 
 
+void DB::writeRowList(JSON::Sync &sync) const {
+  sync.beginList();
+
+  for (unsigned i = 0; i < getFieldCount(); i++) {
+    sync.beginAppend();
+    writeField(sync, i);
+  }
+
+  sync.endList();
+}
+
+
+void DB::writeRowDict(JSON::Sync &sync) const {
+  sync.beginDict();
+
+  for (unsigned i = 0; i < getFieldCount(); i++) {
+    sync.beginInsert(getField(i).getName());
+    writeField(sync, i);
+  }
+
+  sync.endDict();
+}
+
+
 Field DB::getField(unsigned i) const {
   assertInFieldRange(i);
   return &mysql_fetch_fields(res)[i];
@@ -476,6 +489,15 @@ unsigned DB::getLength(unsigned i) const {
 const char *DB::getData(unsigned i) const {
   assertInFieldRange(i);
   return res->current_row[i];
+}
+
+
+void DB::writeField(JSON::Sync &sync, unsigned i) const {
+  Field field = getField(i);
+
+  if (field.isNull()) sync.writeNull();
+  else if (field.isNumber()) sync.write(getDouble(i));
+  else sync.write(getString(i));
 }
 
 
@@ -607,6 +629,11 @@ string DB::getError() const {
 }
 
 
+unsigned DB::getErrorNumber() const {
+  return mysql_errno(db);
+}
+
+
 void DB::raiseError(const string &msg) const {
   THROWS("MariaDB: " << msg << ": " << getError());
 }
@@ -686,7 +713,7 @@ int DB::getSocket() const {
 
 
 double DB::getTimeout() const {
-  return (double)mysql_get_timeout_value_ms(db) / 1000000.0;
+  return (double)mysql_get_timeout_value_ms(db) / 1000.0; // millisec -> sec
 }
 
 
@@ -740,7 +767,7 @@ bool DB::threadSafe() {
 
 
 bool DB::closeContinue(unsigned ready) {
-  status = mysql_close_cont(this->db, ready_to_mysql(ready));
+  status = mysql_close_cont(this->db, ready);
   if (status) return false;
 
   connected = false;
@@ -750,7 +777,7 @@ bool DB::closeContinue(unsigned ready) {
 
 bool DB::connectContinue(unsigned ready) {
   MYSQL *db = 0;
-  status = mysql_real_connect_cont(&db, this->db, ready_to_mysql(ready));
+  status = mysql_real_connect_cont(&db, this->db, ready);
   if (status) return false;
 
   if (!db) THROW("Failed to connect");
@@ -761,8 +788,8 @@ bool DB::connectContinue(unsigned ready) {
 
 
 bool DB::useContinue(unsigned ready) {
-  int ret;
-  status = mysql_select_db_cont(&ret, this->db, ready_to_mysql(ready));
+  int ret = 0;
+  status = mysql_select_db_cont(&ret, this->db, ready);
   if (status) return false;
 
   if (ret) THROW("Failed to select DB");
@@ -772,8 +799,8 @@ bool DB::useContinue(unsigned ready) {
 
 
 bool DB::queryContinue(unsigned ready) {
-  int ret;
-  status = mysql_real_query_cont(&ret, this->db, ready_to_mysql(ready));
+  int ret = 0;
+  status = mysql_real_query_cont(&ret, this->db, ready);
   if (status) return false;
 
   if (ret) THROW("Query failed");
@@ -783,12 +810,11 @@ bool DB::queryContinue(unsigned ready) {
 
 
 bool DB::storeResultContinue(unsigned ready) {
-  status = mysql_store_result_cont(&res, this->db, ready_to_mysql(ready));
+  status = mysql_store_result_cont(&res, this->db, ready);
   if (status) return false;
 
-  if (!res) {
-    if (hasError()) THROW("Failed to store result");
-  } else stored = true;
+  if (res) stored = true;
+  else if (hasError()) THROW("Failed to store result");
 
   return true;
 }
@@ -796,7 +822,7 @@ bool DB::storeResultContinue(unsigned ready) {
 
 bool DB::nextResultContinue(unsigned ready) {
   int ret = 0;
-  status = mysql_next_result_cont(&ret, this->db, ready_to_mysql(ready));
+  status = mysql_next_result_cont(&ret, this->db, ready);
   if (status) return false;
 
   if (0 < ret) THROW("Failed to get next result");
@@ -806,7 +832,7 @@ bool DB::nextResultContinue(unsigned ready) {
 
 
 bool DB::freeResultContinue(unsigned ready) {
-  status = mysql_free_result_cont(res, ready_to_mysql(ready));
+  status = mysql_free_result_cont(res, ready);
   if (status) return false;
 
   res = 0;
@@ -817,7 +843,7 @@ bool DB::freeResultContinue(unsigned ready) {
 
 bool DB::fetchRowContinue(unsigned ready) {
   MYSQL_ROW row = 0;
-  status = mysql_fetch_row_cont(&row, res, ready_to_mysql(ready));
+  status = mysql_fetch_row_cont(&row, res, ready);
 
   return !status;
 }

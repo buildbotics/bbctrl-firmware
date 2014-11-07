@@ -50,6 +50,7 @@ namespace {
 
     if (flags & Event::EventFlag::EVENT_READ) ready |= DB::READY_READ;
     if (flags & Event::EventFlag::EVENT_WRITE) ready |= DB::READY_WRITE;
+    if (flags & Event::EventFlag::EVENT_CLOSED) ready |= DB::READY_EXCEPT;
     if (flags & Event::EventFlag::EVENT_TIMEOUT) ready |= DB::READY_TIMEOUT;
 
     return ready;
@@ -71,7 +72,6 @@ namespace {
           try {
             (*cb)(EventDBCallback::EVENTDB_DONE);
           } CATCH_ERROR;
-
         } else db.addEvent(e);
 
       } catch (const Exception &e) {
@@ -83,56 +83,86 @@ namespace {
 
   class QueryCallback : public Event::EventCallback {
     EventDB &db;
+    string query;
     SmartPointer<EventDBCallback> cb;
 
     typedef enum {
-      QUERY_START,
-      QUERY_STORE,
-      QUERY_FETCH,
-      QUERY_FREE,
-      QUERY_NEXT,
-      QUERY_DONE,
+      STATE_START,
+      STATE_QUERY,
+      STATE_STORE,
+      STATE_FETCH,
+      STATE_FREE,
+      STATE_NEXT,
+      STATE_DONE,
     } state_t;
 
     state_t state;
 
   public:
-    QueryCallback(EventDB &db, const SmartPointer<EventDBCallback> &cb) :
-      db(db), cb(cb), state(QUERY_START) {}
+    QueryCallback(EventDB &db, const string &query,
+                  const SmartPointer<EventDBCallback> &cb) :
+      db(db), query(query), cb(cb), state(STATE_START) {}
+
+
+    void call(EventDBCallback::state_t state) {
+      try {
+        (*cb)(state);
+        return;
+      } CATCH_ERROR;
+
+      if (state != EventDBCallback::EVENTDB_ERROR &&
+          state != EventDBCallback::EVENTDB_DONE)
+        try {
+          (*cb)(EventDBCallback::EVENTDB_ERROR);
+        } CATCH_ERROR;
+    }
 
 
     bool next() {
       switch (state) {
-      case QUERY_START:
-        state = QUERY_STORE;
+      case STATE_START:
+        state = STATE_QUERY;
+        if (!db.queryNB(query)) return false;
+
+      case STATE_QUERY:
+        state = STATE_STORE;
         if (!db.storeResultNB()) return false;
 
-      case QUERY_STORE:
-        state = QUERY_FETCH;
+      case STATE_STORE:
+        if (!db.haveResult()) {
+          if (db.moreResults()) state = STATE_NEXT;
+          else state = STATE_DONE;
+          return next();
+        }
+
+        call(EventDBCallback::EVENTDB_BEGIN_RESULT);
+        state = STATE_FETCH;
         if (!db.fetchRowNB()) return false;
 
-      case QUERY_FETCH:
+      case STATE_FETCH:
         while (db.haveRow()) {
-          (*cb)(EventDBCallback::EVENTDB_ROW);
+          call(EventDBCallback::EVENTDB_ROW);
           if (!db.fetchRowNB()) return false;
         }
-        state = QUERY_FREE;
+        state = STATE_FREE;
         if (!db.freeResultNB()) return false;
 
-      case QUERY_FREE:
-        if (db.moreResults()) {
-          state = QUERY_NEXT;
+      case STATE_FREE:
+        call(EventDBCallback::EVENTDB_END_RESULT);
 
-        } else {
-          state = QUERY_DONE;
-          (*cb)(EventDBCallback::EVENTDB_DONE);
-          return true;
+        if (!db.moreResults()) {
+          state = STATE_DONE;
+          return next();
         }
 
-      case QUERY_NEXT:
-        state = QUERY_STORE;
+      case STATE_NEXT:
+        state = STATE_QUERY;
         if (!db.nextResultNB()) return false;
         return next();
+
+      case STATE_DONE:
+        call(EventDBCallback::EVENTDB_DONE);
+        return true;
 
       default: THROW("Invalid state");
       }
@@ -147,7 +177,8 @@ namespace {
         } else db.addEvent(e);
 
       } catch (const Exception &e) {
-        (*cb)(EventDBCallback::EVENTDB_ERROR);
+        LOG_ERROR(e);
+        call(EventDBCallback::EVENTDB_ERROR);
       }
     }
   };
@@ -201,6 +232,6 @@ void EventDB::connect(const SmartPointer<EventDBCallback> &cb,
 
 
 void EventDB::query(const SmartPointer<EventDBCallback> &cb, const string &s) {
-  SmartPointer<QueryCallback> queryCB = new QueryCallback(*this, cb);
-  if (!queryNB(s) || !queryCB->next()) newEvent(queryCB);
+  SmartPointer<QueryCallback> queryCB = new QueryCallback(*this, s, cb);
+  if (isPending() || !queryCB->next()) newEvent(queryCB);
 }

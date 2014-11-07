@@ -557,72 +557,110 @@ string String::escapeC(const string &s) {
 }
 
 
+namespace {
+  bool is_oct(char c) {
+    return '0' <= c && c <= '7';
+  }
+
+
+  bool is_hex(char c) {
+    return
+      ('a' <= c && c <= 'f') ||
+      ('A' <= c && c <= 'F') ||
+      ('0' <= c && c <= '9');
+  }
+
+
+  string::const_iterator parseOctalEscape(string &result,
+                                          string::const_iterator start,
+                                          string::const_iterator end) {
+    string::const_iterator it = start + 1;
+
+    string s;
+    while (it != end && is_oct(*it) && s.length() < 3) s.push_back(*it++);
+
+    if (s.empty()) return start;
+
+    result.push_back((char)String::parseU8("0" + s));
+
+    return it;
+  }
+
+
+  string::const_iterator parseHexEscape(string &result,
+                                        string::const_iterator start,
+                                        string::const_iterator end) {
+    string::const_iterator it = start + 1;
+
+    string s;
+    while (it != end && is_hex(*it) && s.length() < 2) s.push_back(*it++);
+
+    if (s.empty()) return start;
+
+    result.push_back((char)String::parseU8("0x" + s));
+
+    return it;
+  }
+
+
+  string::const_iterator parseUnicodeEscape(string &result,
+                                            string::const_iterator start,
+                                            string::const_iterator end) {
+    string::const_iterator it = start + 1;
+
+    string s;
+    while (it != end && is_hex(*it) && s.length() < 4) s.push_back(*it++);
+
+    if (s.length() != 4) return start;
+
+    uint16_t code = String::parseU16("0x" + s);
+
+    if (code < 0x80) result.push_back((char)code);
+
+    else if (code < 0x800) {
+      result.push_back(0xc0 | (code >> 6));
+      result.push_back(0x80 | (code & 0x3f));
+
+    } else {
+      result.push_back(0xe0 | (code >> 12));
+      result.push_back(0x80 | ((code >> 6) & 0x3f));
+      result.push_back(0x80 | (code & 0x3f));
+    }
+
+    return it;
+  }
+}
+
+
 string String::unescapeC(const string &s) {
   string result;
   result.reserve(s.length());
 
   bool escape = false;
-  bool hex = false;
-  bool octal = false;
-  string num;
 
-  for (string::const_iterator it = s.begin(); it != s.end(); it++) {
-    // Octal escape codes
-    if (octal) {
-      if ('0' <= *it && *it <= '7') {
-        num += *it;
-        if (num.length() == 4) {
-          result.push_back((char)String::parseU8(num));
-          octal = false;
-        }
-        continue;
-
-      } else {
-        result.push_back((char)String::parseU8(num));
-        octal = false;
-      }
-    }
-
-    // Hex escape codes
-    if (hex) {
-      if (('a' <= *it && *it <= 'f') || ('A' <= *it && *it <= 'F') ||
-          ('0' <= *it && *it <= '9')) {
-        num += *it;
-        if (num.length() == 4) {
-          result.push_back((char)String::parseU8(num));
-          hex = false;
-        }
-        continue;
-
-      } else {
-        if (num.length() == 2) result.push_back('x');
-        else result.push_back((char)String::parseU8(num));
-
-        hex = false;
-      }
-    }
-
-    // Escape codes
+  for (string::const_iterator it = s.begin(); it != s.end();) {
     if (escape) {
+      escape = false;
+
       switch (*it) {
-      case '0': num = "0"; octal = true; break;
+      case '0': it = parseOctalEscape(result, it, s.end()); continue;
       case 'a': result.push_back('\a'); break;
       case 'b': result.push_back('\b'); break;
       case 'f': result.push_back('\f'); break;
       case 'n': result.push_back('\n'); break;
       case 'r': result.push_back('\r'); break;
       case 't': result.push_back('\t'); break;
+      case 'u': it = parseUnicodeEscape(result, it, s.end()); continue;
       case 'v': result.push_back('\v'); break;
-      case 'x': num = "0x"; hex = true; break;
+      case 'x': it = parseHexEscape(result, it, s.end()); continue;
       default: result.push_back(*it); break;
       }
 
-      escape = false;
-      continue;
-    }
+    } else if (*it == '\\') escape = true;
 
-    if (*it == '\\') escape = true;
     else result.push_back(*it);
+
+    it++;
   }
 
   return result;

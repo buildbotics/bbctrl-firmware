@@ -101,7 +101,7 @@ void PendingRequest::callback(evhttp_request *_req) {
 
     LOG_DEBUG(5, req.getResponseLine() << '\n' << req.getInputHeaders()
               << '\n');
-      LOG_DEBUG(6, req.getInputBuffer().hexdump() << '\n');
+    LOG_DEBUG(6, req.getInputBuffer().hexdump() << '\n');
 
     (*cb)(req);
   } CATCH_ERROR;

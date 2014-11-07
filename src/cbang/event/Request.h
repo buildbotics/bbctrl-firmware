@@ -42,6 +42,7 @@
 #include <cbang/net/URI.h>
 
 #include <string>
+#include <iostream>
 #include <typeinfo>
 
 struct evhttp_request;
@@ -51,7 +52,10 @@ namespace cb {
   class URI;
   class IPAddress;
 
-  namespace JSON {class Value;}
+  namespace JSON {
+    class Value;
+    class Writer;
+  }
 
   namespace Event {
     class Buffer;
@@ -64,8 +68,12 @@ namespace cb {
 
       URI uri;
       IPAddress clientIP;
-      bool incomming;
+      bool incoming;
       bool secure;
+      bool finalized;
+
+      typedef std::vector<std::string> path_args_t;
+      path_args_t pathArgs;
 
     public:
       Request(evhttp_request *req, bool deallocate = false);
@@ -82,75 +90,96 @@ namespace cb {
       evhttp_request *getRequest() const {return req;}
       evhttp_request *adopt() {deallocate = false; return req;}
 
-      void setIncomming(bool incomming) {this->incomming = incomming;}
-      bool isIncomming() const {return incomming;}
+      void setIncoming(bool incoming) {this->incoming = incoming;}
+      bool isIncoming() const {return incoming;}
       bool isSecure() const {return secure;}
       void setSecure(bool secure) {this->secure = secure;}
 
-      std::string getHost() const;
-      const URI &getURI() const {return uri;}
-      const IPAddress &getClientIP() const {return clientIP;}
-      RequestMethod getMethod() const;
-      unsigned getResponseCode() const;
-      std::string getResponseMessage() const;
-      std::string getResponseLine() const;
+      virtual void appendPathArg(const std::string &arg)
+      {pathArgs.push_back(arg);}
+      virtual const path_args_t &getPathArgs() const {return pathArgs;}
+      virtual const std::string &getPathArg(unsigned i) const
+      {return pathArgs.at(i);}
 
-      Headers getInputHeaders() const;
-      Headers getOutputHeaders() const;
+      virtual std::string getHost() const;
+      virtual const URI &getURI() const {return uri;}
+      virtual const IPAddress &getClientIP() const {return clientIP;}
+      virtual RequestMethod getMethod() const;
+      virtual unsigned getResponseCode() const;
+      virtual std::string getResponseMessage() const;
+      virtual std::string getResponseLine() const;
 
-      bool inHas(const std::string &name) const;
-      std::string inFind(const std::string &name) const;
-      std::string inGet(const std::string &name) const;
-      void inAdd(const std::string &name, const std::string &value);
-      void inSet(const std::string &name, const std::string &value);
-      void inRemove(const std::string &name);
+      virtual Headers getInputHeaders() const;
+      virtual Headers getOutputHeaders() const;
 
-      bool outHas(const std::string &name) const;
-      std::string outFind(const std::string &name) const;
-      std::string outGet(const std::string &name) const;
-      void outAdd(const std::string &name, const std::string &value);
-      void outSet(const std::string &name, const std::string &value);
-      void outRemove(const std::string &name);
+      virtual bool inHas(const std::string &name) const;
+      virtual std::string inFind(const std::string &name) const;
+      virtual std::string inGet(const std::string &name) const;
+      virtual void inAdd(const std::string &name, const std::string &value);
+      virtual void inSet(const std::string &name, const std::string &value);
+      virtual void inRemove(const std::string &name);
 
-      std::string getContentType() const;
-      void setContentType(const std::string &contentType);
-      void guessContentType();
+      virtual bool outHas(const std::string &name) const;
+      virtual std::string outFind(const std::string &name) const;
+      virtual std::string outGet(const std::string &name) const;
+      virtual void outAdd(const std::string &name, const std::string &value);
+      virtual void outSet(const std::string &name, const std::string &value);
+      virtual void outRemove(const std::string &name);
 
-      bool hasCookie(const std::string &name) const;
-      std::string findCookie(const std::string &name) const;
-      std::string getCookie(const std::string &name) const;
-      void setCookie(const std::string &name, const std::string &value,
-                     const std::string &domain = std::string(),
-                     const std::string &path = std::string(),
-                     uint64_t expires = 0, uint64_t maxAge = 0,
-                     bool httpOnly = false, bool secure = false);
+      virtual bool hasContentType() const;
+      virtual std::string getContentType() const;
+      virtual void setContentType(const std::string &contentType);
+      virtual void guessContentType();
 
-      void cancel();
+      virtual bool hasCookie(const std::string &name) const;
+      virtual std::string findCookie(const std::string &name) const;
+      virtual std::string getCookie(const std::string &name) const;
+      virtual void setCookie(const std::string &name, const std::string &value,
+                             const std::string &domain = std::string(),
+                             const std::string &path = std::string(),
+                             uint64_t expires = 0, uint64_t maxAge = 0,
+                             bool httpOnly = false, bool secure = false);
 
-      std::string getInput() const;
-      std::string getOutput() const;
+      virtual std::string getInput() const;
+      virtual std::string getOutput() const;
 
-      Buffer getInputBuffer() const;
-      Buffer getOutputBuffer() const;
+      virtual Buffer getInputBuffer() const;
+      virtual Buffer getOutputBuffer() const;
 
-      SmartPointer<JSON::Value> getInputJSON() const;
-      SmartPointer<JSON::Value> getOutputJSON() const;
+      virtual SmartPointer<JSON::Value> getInputJSON() const;
+      virtual SmartPointer<JSON::Writer>
+      getJSONWriter(unsigned indent = 0, bool compact = false) const;
 
-      void sendError(int code);
+      virtual SmartPointer<std::istream> getInputStream() const;
+      virtual SmartPointer<std::ostream> getOutputStream() const;
 
-      void sendReply(const Buffer &buf);
-      void sendReply(const char *data, unsigned length);
-      void sendReply(int code, const Buffer &buf);
-      void sendReply(int code, const char *data, unsigned length);
-      void sendReplyStart(int code);
-      void sendReplyChunk(const Buffer &buf);
-      void sendReplyChunk(const char *data, unsigned length);
-      void sendReplyEnd();
+      virtual void sendError(int code);
 
-      void redirect(const URI &uri,
-                    int code = HTTPStatus::HTTP_TEMPORARY_REDIRECT);
+      virtual void send(const Buffer &buf);
+      virtual void send(const char *data, unsigned length);
+      virtual void send(const char *s);
+      virtual void send(const std::string &s);
+      virtual void sendFile(const std::string &path);
+
+      virtual void reply(int code = HTTP_OK);
+      virtual void reply(const Buffer &buf);
+      virtual void reply(const char *data, unsigned length);
+      virtual void reply(int code, const Buffer &buf);
+      virtual void reply(int code, const char *data, unsigned length);
+
+      virtual void startChunked(int code);
+      virtual void sendChunk(const Buffer &buf);
+      virtual void sendChunk(const char *data, unsigned length);
+      virtual void endChunked();
+
+      virtual void redirect(const URI &uri,
+                            int code = HTTPStatus::HTTP_TEMPORARY_REDIRECT);
+      virtual void cancel();
 
       static const char *getErrorStr(int error);
+
+    protected:
+      virtual void finalize();
     };
   }
 }

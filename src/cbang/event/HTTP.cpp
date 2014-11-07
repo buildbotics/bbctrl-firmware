@@ -77,14 +77,8 @@ namespace {
       // Set deallocator
       evhttp_request_set_on_complete_cb(_req, complete_cb, req);
 
-      // Initialize request
-      req->setIncomming(true);
-      req->guessContentType();
-
-      // Log request
-      LOG_INFO(1, "< " << req->getMethod() << " " << req->getURI());
-      LOG_DEBUG(5, req->getInputHeaders() << '\n');
-      LOG_DEBUG(6, req->getInputBuffer().hexdump() << '\n');
+      // Set to incoming
+      req->setIncoming(true);
 
       // Dispatch request
       try {
@@ -106,12 +100,6 @@ namespace {
         LOG_ERROR(HTTPStatus(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR)
                   .getDescription());
       }
-
-      // Log results
-      LOG_DEBUG(5, req->getResponseLine() << '\n' << req->getOutputHeaders()
-                << '\n');
-      LOG_DEBUG(6, req->getOutputBuffer().hexdump() << '\n');
-
     } CATCH_ERROR;
   }
 }

@@ -62,6 +62,8 @@ namespace cb {
 
       void clear();
 
+      void add(const Buffer &buf);
+      void addRef(const Buffer &buf);
       void add(const char *data, unsigned length);
       void add(const char *s);
       void add(const std::string &s);

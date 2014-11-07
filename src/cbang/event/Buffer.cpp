@@ -101,17 +101,29 @@ string Buffer::hexdump() const {
 
 
 void Buffer::clear() {
-  evbuffer_drain(evb, evbuffer_get_length(evb));
+  if (evbuffer_drain(evb, evbuffer_get_length(evb)))
+    THROW("Buffer drain failed");
 }
 
 
 void Buffer::add(const char *data, unsigned length) {
-  evbuffer_add(evb, data, length);
+  if (evbuffer_add(evb, data, length)) THROW("Buffer add failed");
+}
+
+
+void Buffer::add(const Buffer &buf) {
+  if (evbuffer_add_buffer(evb, buf.getBuffer())) THROW("Add buffer failed");
+}
+
+
+void Buffer::addRef(const Buffer &buf) {
+  if (evbuffer_add_buffer_reference(evb, buf.getBuffer()))
+    THROW("Add buffer reference failed");
 }
 
 
 void Buffer::add(const char *s) {
-  evbuffer_add(evb, s, strlen(s));
+  if (evbuffer_add(evb, s, strlen(s))) THROW("Buffer add failed");
 }
 
 

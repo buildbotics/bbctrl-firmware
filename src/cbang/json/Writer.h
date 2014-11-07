@@ -95,6 +95,8 @@ namespace cb {
       void beginInsert(const std::string &key);
       void endDict();
 
+      static std::string escape(const std::string &s);
+
     protected:
       void indent() const {stream << std::string(level * 2, ' ');}
       bool isCompact() const {return compact || simple;}

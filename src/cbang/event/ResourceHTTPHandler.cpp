@@ -47,7 +47,7 @@ bool ResourceHTTPHandler::operator()(Request &req) {
 
   if (!res || res->isDirectory()) return false;
 
-  req.sendReply(HTTP_OK, res->getData(), res->getLength());
+  req.reply(HTTP_OK, res->getData(), res->getLength());
 
   if (!req.outHas("Cache-Control"))
     req.outAdd("Cache-Control", "max-age=" + String(timeout));

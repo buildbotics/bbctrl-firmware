@@ -82,7 +82,7 @@ bool JSONHandler::operator()(Request &req) {
     // Make sure JSON stream is complete
     writer.close();
 
-    req.sendReply(output);
+    req.reply(output);
 
   } catch (const Exception &e) {
     LOG_ERROR(e);
@@ -98,7 +98,7 @@ bool JSONHandler::operator()(Request &req) {
     writer.endList();
     writer.close();
 
-    req.sendReply(output);
+    req.reply(output);
   }
 
   return true;

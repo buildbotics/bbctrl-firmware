@@ -47,6 +47,8 @@ struct st_mysql_res;
 
 
 namespace cb {
+  namespace JSON {class Sync;}
+
   namespace MariaDB {
     class DB {
     public:
@@ -83,7 +85,8 @@ namespace cb {
         READY_NONE    = 0,
         READY_READ    = 1 << 0,
         READY_WRITE   = 1 << 1,
-        READY_TIMEOUT = 1 << 2,
+        READY_EXCEPT  = 1 << 2,
+        READY_TIMEOUT = 1 << 3,
       } ready_t;
 
     protected:
@@ -161,12 +164,15 @@ namespace cb {
       bool fetchRowNB();
       bool haveRow() const;
       void seekRow(uint64_t row);
+      void writeRowList(JSON::Sync &sync) const;
+      void writeRowDict(JSON::Sync &sync) const;
 
       // Field
       Field getField(unsigned i) const;
       Field::type_t getType(unsigned i) const;
       unsigned getLength(unsigned i) const;
       const char *getData(unsigned i) const;
+      void writeField(JSON::Sync &sync, unsigned i) const;
 
       // Field type
       bool isNull(unsigned i) const {return getField(i).isNull();}
@@ -195,6 +201,7 @@ namespace cb {
       std::string getInfo() const;
       bool hasError() const;
       std::string getError() const;
+      unsigned getErrorNumber() const;
       void raiseError(const std::string &msg) const;
       unsigned getWarningCount() const;
 
@@ -210,7 +217,7 @@ namespace cb {
 
       // Non-blocking API
       bool isNonBlocking() const {return nonBlocking;}
-      bool inProgress() const {return status;}
+      bool isPending() const {return status;}
       bool continueNB(unsigned ready);
       bool waitRead() const;
       bool waitWrite() const;

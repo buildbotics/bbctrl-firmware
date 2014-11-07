@@ -75,6 +75,8 @@ namespace cb {
       void parseDict(Dict &dict);
 
       void error(const std::string &msg) const;
+
+      static std::string unescape(const std::string &s);
     };
   }
 }

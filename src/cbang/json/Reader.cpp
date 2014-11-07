@@ -213,7 +213,7 @@ const string Reader::parseString() {
     escape = !escape && c == '\\';
   }
 
-  return cb::String::unescapeC(s);
+  return unescape(s);
 }
 
 
@@ -247,4 +247,9 @@ void Reader::parseDict(Dict &dict) {
 
 void Reader::error(const string &msg) const {
   THROWS('@' << src << ':' << line << ':' << column << ' ' << msg);
+}
+
+
+string Reader::unescape(const string &s) {
+  return cb::String::unescapeC(s);
 }
