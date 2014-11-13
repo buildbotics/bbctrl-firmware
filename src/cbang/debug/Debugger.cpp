@@ -72,14 +72,14 @@ Debugger &Debugger::instance() {
 
 
 bool Debugger::printStackTrace(ostream &stream) {
-  SmartPointer<StackTrace> trace;
-  if (!instance().getStackTrace(*trace)) return false;
+  StackTrace trace;
+  if (!instance().getStackTrace(trace)) return false;
 
   unsigned count = 0;
   bool skip = true;
 
   StackTrace::iterator it;
-  for (it = trace->begin(); it != trace->end(); it++) {
+  for (it = trace.begin(); it != trace.end(); it++) {
     if (skip) {
       if (it->getFunction().find("cb::Debugger::printStackTrace"))
         skip = false;
@@ -116,6 +116,13 @@ string Debugger::getExecutableName() {
 #else
   throw runtime_error("Not supported");
 #endif
+}
+
+
+extern "C" {
+  int cbang_print_stacktrace() {
+    return Debugger::printStackTrace(cout);
+  }
 }
 
 

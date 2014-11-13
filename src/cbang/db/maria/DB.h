@@ -47,7 +47,10 @@ struct st_mysql_res;
 
 
 namespace cb {
-  namespace JSON {class Sync;}
+  namespace JSON {
+    class Sync;
+    class Dict;
+  }
 
   namespace MariaDB {
     class DB {
@@ -166,6 +169,9 @@ namespace cb {
       void seekRow(uint64_t row);
       void writeRowList(JSON::Sync &sync) const;
       void writeRowDict(JSON::Sync &sync) const;
+      void writeRowDict(JSON::Sync &sync,
+                        const std::set<std::string> &exclude) const;
+      void writeRowDict(JSON::Sync &sync, const std::string &exclude) const;
 
       // Field
       Field getField(unsigned i) const;
@@ -187,6 +193,7 @@ namespace cb {
 
       // Field getters
       std::string getString(unsigned i) const;
+      bool getBoolean(unsigned i) const;
       double getDouble(unsigned i) const;
       uint32_t getU32(unsigned i) const;
       int32_t getS32(unsigned i) const;
@@ -199,6 +206,7 @@ namespace cb {
 
       // Error handling
       std::string getInfo() const;
+      const char *getSQLState() const;
       bool hasError() const;
       std::string getError() const;
       unsigned getErrorNumber() const;
@@ -221,6 +229,7 @@ namespace cb {
       bool continueNB(unsigned ready);
       bool waitRead() const;
       bool waitWrite() const;
+      bool waitExcept() const;
       bool waitTimeout() const;
       int getSocket() const;
       double getTimeout() const;
@@ -228,6 +237,7 @@ namespace cb {
       // Formatting
       std::string escape(const std::string &s) const;
       static std::string toHex(const std::string &s);
+      std::string format(const std::string &s, const JSON::Dict &dict) const;
 
       // Library
       static void libraryInit(int argc = 0, char *argv[] = 0,

@@ -68,7 +68,7 @@ BufferEvent::BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx,
 
     bev = bufferevent_openssl_socket_new
       (base.getBase(), -1, ssl, BUFFEREVENT_SSL_CONNECTING,
-       BEV_OPT_CLOSE_ON_FREE | BEV_OPT_DEFER_CALLBACKS);
+       BEV_OPT_DEFER_CALLBACKS);
   }
 
   if (!bev) THROW("Failed to create buffer event");

@@ -1530,24 +1530,25 @@ event_process_active_single_queue(struct event_base *base,
 	for (evcb = TAILQ_FIRST(activeq); evcb; evcb = TAILQ_FIRST(activeq)) {
 		struct event *ev=NULL;
 		if (evcb->evcb_flags & EVLIST_INIT) {
-			ev = event_callback_to_event(evcb);
+            ev = event_callback_to_event(evcb);
 
 			if (ev->ev_events & EV_PERSIST || ev->ev_flags & EVLIST_FINALIZING)
 				event_queue_remove_active(base, evcb);
 			else
 				event_del_nolock_(ev, EVENT_DEL_NOBLOCK);
 			event_debug((
-			    "event_process_active: event: %p, %s%s%scall %p",
+                "event_process_active: event: %p, %s%s%scall %p (fd"
+                EV_SOCK_FMT")",
 			    ev,
 			    ev->ev_res & EV_READ ? "EV_READ " : " ",
 			    ev->ev_res & EV_WRITE ? "EV_WRITE " : " ",
 			    ev->ev_res & EV_CLOSED ? "EV_CLOSED " : " ",
-			    ev->ev_callback));
+                ev->ev_callback, EV_SOCK_ARG(ev->ev_fd)));
 		} else {
 			event_queue_remove_active(base, evcb);
 			event_debug(("event_process_active: event_callback %p, "
-				"closure %d, call %p",
-				evcb, evcb->evcb_closure, evcb->evcb_cb_union.evcb_callback));
+                "closure %d, call %p",
+                evcb, evcb->evcb_closure, evcb->evcb_cb_union.evcb_callback));
 		}
 
 		if (!(evcb->evcb_flags & EVLIST_INTERNAL))

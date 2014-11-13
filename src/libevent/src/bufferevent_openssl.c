@@ -1219,7 +1219,7 @@ be_openssl_destruct(struct bufferevent *bev)
 			if (bio)
 				fd = BIO_get_fd(bio, NULL);
 			if (fd >= 0)
-				evutil_closesocket(fd);
+              evutil_closesocket(fd);
 		}
 		SSL_free(bev_ssl->ssl);
 	}

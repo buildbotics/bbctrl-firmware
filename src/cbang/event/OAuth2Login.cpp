@@ -114,7 +114,9 @@ bool OAuth2Login::processProfile(Request &req) {
 
   try {
     if (!auth) THROW("Auth is null");
-    profile = auth->processProfile(req.getInputJSON());
+    profile = req.getInputJSON();
+    if (profile.isNull()) THROW("Did not receive profile");
+    profile = auth->processProfile(profile);
   } CATCH_ERROR;
 
   processProfile(profile);

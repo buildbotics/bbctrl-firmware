@@ -36,6 +36,8 @@
 #include <cbang/Exception.h>
 #include <cbang/time/Time.h>
 #include <cbang/json/Sync.h>
+#include <cbang/json/Dict.h>
+#include <cbang/log/Logger.h>
 
 #include <mysql/mysql.h>
 
@@ -176,6 +178,8 @@ void DB::connect(const string &host, const string &user, const string &password,
 bool DB::connectNB(const string &host, const string &user,
                    const string &password, const string &dbName, unsigned port,
                    const string &socketName, flags_t flags) {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertNotPending();
   assertNonBlocking();
 
@@ -208,6 +212,8 @@ void DB::close() {
 
 
 bool DB::closeNB() {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertConnected();
   assertNotPending();
   assertNonBlocking();
@@ -234,6 +240,8 @@ void DB::use(const string &dbName) {
 
 
 bool DB::useNB(const string &dbName) {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertConnected();
   assertNotPending();
   assertNonBlocking();
@@ -268,6 +276,8 @@ bool DB::queryNB(const string &s) {
 
   int ret = 0;
   status = mysql_real_query_start(&ret, db, STR_DATA(s), s.length());
+
+  LOG_DEBUG(5, __func__ << "() status=" << status << " ret=" << ret);
 
   if (status) {
     continueFunc = &DB::queryContinue;
@@ -305,6 +315,8 @@ void DB::storeResult() {
 
 
 bool DB::storeResultNB() {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertConnected();
   assertNotPending();
   assertNonBlocking();
@@ -341,6 +353,8 @@ bool DB::nextResult() {
 
 
 bool DB::nextResultNB() {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertConnected();
   assertNotHaveResult();
   assertNotPending();
@@ -375,6 +389,8 @@ void DB::freeResult() {
 
 
 bool DB::freeResultNB() {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertNotPending();
   assertNonBlocking();
   assertHaveResult();
@@ -417,6 +433,8 @@ bool DB::fetchRow() {
 
 
 bool DB::fetchRowNB() {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertNotPending();
   assertNonBlocking();
   assertHaveResult();
@@ -469,6 +487,27 @@ void DB::writeRowDict(JSON::Sync &sync) const {
 }
 
 
+void DB::writeRowDict(JSON::Sync &sync, const set<string> &exclude) const {
+  sync.beginDict();
+
+  for (unsigned i = 0; i < getFieldCount(); i++) {
+    string name = getField(i).getName();
+    if (exclude.find(name) != exclude.end()) continue;
+    sync.beginInsert(name);
+    writeField(sync, i);
+  }
+
+  sync.endDict();
+}
+
+
+void DB::writeRowDict(JSON::Sync &sync, const string &exclude) const {
+  vector<string> tokens;
+  String::tokenize(exclude, tokens);
+  writeRowDict(sync, set<string>(tokens.begin(), tokens.end()));
+}
+
+
 Field DB::getField(unsigned i) const {
   assertInFieldRange(i);
   return &mysql_fetch_fields(res)[i];
@@ -504,6 +543,11 @@ void DB::writeField(JSON::Sync &sync, unsigned i) const {
 string DB::getString(unsigned i) const {
   unsigned length = getLength(i);
   return string(res->current_row[i], length);
+}
+
+
+bool DB::getBoolean(unsigned i) const {
+  return String::parseBool(getString(i));
 }
 
 
@@ -619,6 +663,11 @@ string DB::getInfo() const {
 }
 
 
+const char *DB::getSQLState() const {
+  return mysql_sqlstate(db);
+}
+
+
 bool DB::hasError() const {
   return mysql_errno(db);
 }
@@ -702,6 +751,11 @@ bool DB::waitWrite() const {
 }
 
 
+bool DB::waitExcept() const {
+  return status & MYSQL_WAIT_EXCEPT;
+}
+
+
 bool DB::waitTimeout() const {
   return status & MYSQL_WAIT_TIMEOUT;
 }
@@ -724,6 +778,58 @@ string DB::escape(const string &s) const {
     mysql_real_escape_string(db, to.get(), STR_DATA(s), s.length());
 
   return string(to.get(), len);
+}
+
+
+namespace {
+  string::const_iterator parseSubstitution(string &result, const DB &db,
+                                           const JSON::Dict &dict,
+                                           string::const_iterator start,
+                                           string::const_iterator end) {
+    string::const_iterator it = start + 1;
+
+    string name;
+    while (it != end && *it != ')') name.push_back(*it++);
+
+    if (it == end || ++it == end) return start;
+
+    switch (*it) {
+    case 'b': result.append(dict.getBoolean(name) ? "true" : "false"); break;
+    case 'f': result.append(String(dict.getNumber(name))); break;
+    case 'i': result.append(String(dict.getS32(name))); break;
+    case 's': result.append("'" + db.escape(dict.getString(name)) + "'"); break;
+    case 'u': result.append(String(dict.getU32(name))); break;
+    default: return start;
+    }
+
+    return ++it;
+  }
+}
+
+
+string DB::format(const string &s, const JSON::Dict &dict) const {
+  string result;
+  result.reserve(s.length());
+
+  bool escape = false;
+
+  for (string::const_iterator it = s.begin(); it != s.end(); it++) {
+    if (escape) {
+      escape  = false;
+      if (*it == '(') {
+        it = parseSubstitution(result, *this, dict, it, s.end());
+        if (it == s.end()) break;
+      }
+
+    } else if (*it == '%') {
+      escape = true;
+      continue;
+    }
+
+    result.push_back(*it);
+  }
+
+  return result;
 }
 
 
@@ -767,6 +873,8 @@ bool DB::threadSafe() {
 
 
 bool DB::closeContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   status = mysql_close_cont(this->db, ready);
   if (status) return false;
 
@@ -776,6 +884,8 @@ bool DB::closeContinue(unsigned ready) {
 
 
 bool DB::connectContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   MYSQL *db = 0;
   status = mysql_real_connect_cont(&db, this->db, ready);
   if (status) return false;
@@ -788,6 +898,8 @@ bool DB::connectContinue(unsigned ready) {
 
 
 bool DB::useContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   int ret = 0;
   status = mysql_select_db_cont(&ret, this->db, ready);
   if (status) return false;
@@ -801,8 +913,11 @@ bool DB::useContinue(unsigned ready) {
 bool DB::queryContinue(unsigned ready) {
   int ret = 0;
   status = mysql_real_query_cont(&ret, this->db, ready);
-  if (status) return false;
 
+  LOG_DEBUG(5, __func__ << "() ready=" << ready << " status=" << status
+            << " ret=" << ret);
+
+  if (status) return false;
   if (ret) THROW("Query failed");
 
   return true;
@@ -810,6 +925,8 @@ bool DB::queryContinue(unsigned ready) {
 
 
 bool DB::storeResultContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   status = mysql_store_result_cont(&res, this->db, ready);
   if (status) return false;
 
@@ -821,6 +938,8 @@ bool DB::storeResultContinue(unsigned ready) {
 
 
 bool DB::nextResultContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   int ret = 0;
   status = mysql_next_result_cont(&ret, this->db, ready);
   if (status) return false;
@@ -832,6 +951,8 @@ bool DB::nextResultContinue(unsigned ready) {
 
 
 bool DB::freeResultContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   status = mysql_free_result_cont(res, ready);
   if (status) return false;
 
@@ -842,6 +963,8 @@ bool DB::freeResultContinue(unsigned ready) {
 
 
 bool DB::fetchRowContinue(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   MYSQL_ROW row = 0;
   status = mysql_fetch_row_cont(&row, res, ready);
 

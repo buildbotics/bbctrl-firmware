@@ -38,6 +38,7 @@
 
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/log/Logger.h>
+#include <cbang/json/Value.h>
 
 using namespace std;
 using namespace cb;
@@ -83,8 +84,9 @@ namespace {
 
   class QueryCallback : public Event::EventCallback {
     EventDB &db;
-    string query;
     SmartPointer<EventDBCallback> cb;
+    string query;
+    const SmartPointer<JSON::Value> dict;
 
     typedef enum {
       STATE_START,
@@ -99,9 +101,9 @@ namespace {
     state_t state;
 
   public:
-    QueryCallback(EventDB &db, const string &query,
-                  const SmartPointer<EventDBCallback> &cb) :
-      db(db), query(query), cb(cb), state(STATE_START) {}
+    QueryCallback(EventDB &db, const SmartPointer<EventDBCallback> &cb,
+                  const string &query, const SmartPointer<JSON::Value> &dict) :
+      db(db), cb(cb), query(query), dict(dict), state(STATE_START) {}
 
 
     void call(EventDBCallback::state_t state) {
@@ -122,6 +124,8 @@ namespace {
       switch (state) {
       case STATE_START:
         state = STATE_QUERY;
+        if (!dict.isNull()) query = db.format(query, dict->getDict());
+        LOG_DEBUG(5, "SQL: " << query);
         if (!db.queryNB(query)) return false;
 
       case STATE_QUERY:
@@ -192,6 +196,7 @@ unsigned EventDB::getEventFlags() const {
   return
     (waitRead() ? Event::Base::EVENT_READ : 0) |
     (waitWrite() ? Event::Base::EVENT_WRITE : 0) |
+    (waitExcept() ? Event::Base::EVENT_CLOSED : 0) |
     (waitTimeout() ? Event::Base::EVENT_TIMEOUT : 0);
 }
 
@@ -231,7 +236,8 @@ void EventDB::connect(const SmartPointer<EventDBCallback> &cb,
 }
 
 
-void EventDB::query(const SmartPointer<EventDBCallback> &cb, const string &s) {
-  SmartPointer<QueryCallback> queryCB = new QueryCallback(*this, s, cb);
+void EventDB::query(const SmartPointer<EventDBCallback> &cb, const string &s,
+                    const SmartPointer<JSON::Value> &dict) {
+  SmartPointer<QueryCallback> queryCB = new QueryCallback(*this, cb, s, dict);
   if (isPending() || !queryCB->next()) newEvent(queryCB);
 }

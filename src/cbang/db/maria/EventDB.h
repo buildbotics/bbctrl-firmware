@@ -44,6 +44,8 @@ namespace cb {
     class Base;
   }
 
+  namespace JSON {class Value;}
+
   namespace MariaDB {
     class EventDB : public DB {
       Event::Base &base;
@@ -66,7 +68,8 @@ namespace cb {
                    unsigned port = 3306,
                    const std::string &socketName = std::string(),
                    flags_t flags = FLAG_NONE);
-      void query(const SmartPointer<EventDBCallback> &cb, const std::string &s);
+      void query(const SmartPointer<EventDBCallback> &cb, const std::string &s,
+                 const SmartPointer<JSON::Value> &dict = 0);
 
 
       template <class T>
@@ -93,8 +96,9 @@ namespace cb {
 
       template <class T>
       void query(T *obj, typename EventDBMemberFunctor<T>::member_t member,
-                 const std::string &s) {
-        query(new EventDBMemberFunctor<T>(obj, member), s);
+                 const std::string &s,
+                 const SmartPointer<JSON::Value> &dict = 0) {
+        query(new EventDBMemberFunctor<T>(obj, member), s, dict);
       }
 
 

@@ -52,6 +52,7 @@ Event::Event(Base &base, int fd, unsigned events,
              const SmartPointer<EventCallback> &cb, bool selfDestruct) :
   e(event_new(base.getBase(), fd, events, event_cb, this)), cb(cb),
   selfDestruct(selfDestruct) {
+  LOG_DEBUG(5, "Created new event with fd=" << fd);
   if (!e) THROW("Failed to create event");
 }
 
@@ -115,4 +116,45 @@ void Event::call(int fd, short flags) {
   } CATCH_ERROR;
 
   if (selfDestruct && !isPending()) delete this;
+}
+
+
+void Event::enableDebugMode() {
+  event_enable_debug_mode();
+}
+
+
+namespace {
+  static int event_log_level = 0;
+
+  void log_cb(int severity, const char *msg) {
+    switch (severity) {
+    case _EVENT_LOG_DEBUG:
+      LOG_DEBUG(event_log_level, "Event: " << msg);
+      break;
+
+    case _EVENT_LOG_MSG:
+      LOG_DEBUG(event_log_level, "Event: " << msg);
+      break;
+
+    case _EVENT_LOG_WARN:
+      LOG_WARNING("Event: " << msg);
+      break;
+
+    case _EVENT_LOG_ERR:
+      LOG_ERROR("Event: " << msg);
+      break;
+    }
+  }
+}
+
+
+void Event::enableLogging(int level) {
+  event_log_level = level;
+  event_set_log_callback(log_cb);
+}
+
+
+void Event::enableDebugLogging() {
+  event_enable_debug_logging(EVENT_DBG_ALL);
 }

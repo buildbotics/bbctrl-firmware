@@ -419,6 +419,8 @@ evutil_fast_socket_closeonexec(evutil_socket_t fd)
 int
 evutil_closesocket(evutil_socket_t sock)
 {
+    event_debug(("evutil_closesocket("EV_SOCK_FMT")", sock));
+
 #ifndef _WIN32
 	return close(sock);
 #else

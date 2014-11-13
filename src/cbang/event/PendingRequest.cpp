@@ -33,7 +33,6 @@
 #include "PendingRequest.h"
 #include "Client.h"
 #include "Buffer.h"
-#include "BufferEvent.h"
 #include "Headers.h"
 
 #include <cbang/String.h>
@@ -109,10 +108,12 @@ void PendingRequest::callback(evhttp_request *_req) {
 
 
 void PendingRequest::error(int code) {
-  logSSLErrors();
+  try {
+    logSSLErrors();
 
-  SysError sysError;
-  if (sysError.getCode()) LOG_ERROR("System error: " << sysError);
+    SysError sysError;
+    if (sysError.getCode()) LOG_ERROR("System error: " << sysError);
 
-  THROWS(getErrorStr(code));
+    THROWS(getErrorStr(code));
+  } CATCH_ERROR;
 }

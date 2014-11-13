@@ -173,6 +173,7 @@ string Writer::escape(const string &s) {
 
     switch (c) {
     case 0: result.append("\\u0000"); break;
+    case '\\': result.append("\\\\"); break;
     case '\"': result.append("\\\""); break;
     case '\b': result.append("\\b"); break;
     case '\f': result.append("\\f"); break;
@@ -180,9 +181,24 @@ string Writer::escape(const string &s) {
     case '\r': result.append("\\r"); break;
     case '\t': result.append("\\t"); break;
     default:
-      // Check UTF-8 encodings
+      // Check UTF-8 encodings.
+      //
+      // UTF-8 code can be of the following formats:
+      //
+      //    Range in Hex   Binary representation
+      //        0-7f       0xxxxxxx
+      //       80-7ff      110xxxxx 10xxxxxx
+      //      800-ffff     1110xxxx 10xxxxxx 10xxxxxx
+      //    10000-1fffff   11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+      //   200000-3ffffff  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+      //  4000000-7fffffff 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+      //
+      // The last two formats are non-standard.
+      //
+      // See: http://en.wikipedia.org/wiki/UTF-8
+
       if (0x80 <= c) {
-        // Compute width
+        // Compute code width
         int width = 0;
         if ((c & 0xe0) == 0xc0) width = 1;
         else if ((c & 0xf0) == 0xe0) width = 2;

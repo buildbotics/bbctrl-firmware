@@ -66,4 +66,5 @@ namespace cb {
     virtual bool getStackTrace(StackTrace &trace) {return 0;}
   };
 }
+
 #endif // CBANG_DEBUGGER_H

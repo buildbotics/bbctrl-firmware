@@ -72,6 +72,10 @@ namespace cb {
       void del();
 
       void call(int fd, short flags);
+
+      static void enableDebugMode();
+      static void enableLogging(int level = 3);
+      static void enableDebugLogging();
     };
   }
 }
