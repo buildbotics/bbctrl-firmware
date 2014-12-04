@@ -524,6 +524,25 @@ string String::hexdump(const char *data, unsigned size) {
 }
 
 
+char String::hexNibble(int x, bool lower) {
+  x &= 0xf;
+  return (x < 0xa ? '0' + x : (lower ? 'a' : 'A') + x - 0xa);
+}
+
+
+string String::hexEncode(const string &s) {
+  string result;
+  result.reserve(s.length() * 2);
+
+  for (string::const_iterator it = s.begin(); it != s.end(); it++) {
+    result.append(1, hexNibble(*it >> 4));
+    result.append(1, hexNibble(*it));
+  }
+
+  return result;
+}
+
+
 string String::escapeRE(const string &s) {
   using namespace boost;
   static const regex esc("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");

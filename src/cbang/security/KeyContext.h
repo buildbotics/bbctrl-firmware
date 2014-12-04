@@ -49,6 +49,7 @@ namespace cb {
 
   class KeyContext {
     EVP_PKEY_CTX *ctx;
+    bool deallocate;
 
   public:
     KeyContext(int nid, ENGINE *e = 0);
@@ -56,6 +57,7 @@ namespace cb {
     KeyContext(const KeyPair &keyPair);
     KeyContext(EVP_PKEY *pkey = 0, ENGINE *e = 0);
     KeyContext(const KeyContext &kc);
+    KeyContext(EVP_PKEY_CTX *ctx, bool deallocate);
     ~KeyContext();
 
     EVP_PKEY_CTX *getEVP_PKEY_CTX() const {return ctx;}

@@ -66,9 +66,11 @@ namespace {
 
 
 WebServer::WebServer(Options &options, const Base &base,
-                     const SmartPointer<SSLContext> &sslCtx) :
-  options(options), sslCtx(sslCtx), http(new HTTP(base)),
-  https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)), initialized(false) {
+                     const SmartPointer<SSLContext> &sslCtx,
+                     const SmartPointer<HTTPHandlerFactory> &factory) :
+  HTTPHandlerGroup(factory), options(options), sslCtx(sslCtx),
+  http(new HTTP(base)), https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)),
+  initialized(false) {
 
   SmartPointer<Option> opt;
   options.pushCategory("HTTP Server");

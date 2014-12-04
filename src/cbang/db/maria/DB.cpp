@@ -206,7 +206,7 @@ void DB::close() {
   assertNotHaveResult();
 
   mysql_close(db);
-
+  db = 0;
   connected = false;
 }
 
@@ -420,7 +420,7 @@ uint64_t DB::getAffectedRowCount() const {
 
 
 unsigned DB::getFieldCount() const {
-  assertHaveRow();
+  assertHaveResult();
   return mysql_num_fields(res);
 }
 
@@ -463,48 +463,33 @@ void DB::seekRow(uint64_t row) {
 }
 
 
-void DB::writeRowList(JSON::Sync &sync) const {
-  sync.beginList();
-
+void DB::appendRow(JSON::Sync &sync) const {
   for (unsigned i = 0; i < getFieldCount(); i++) {
     sync.beginAppend();
     writeField(sync, i);
   }
+}
 
+
+void DB::insertRow(JSON::Sync &sync) const {
+  for (unsigned i = 0; i < getFieldCount(); i++) {
+    sync.beginInsert(getField(i).getName());
+    writeField(sync, i);
+  }
+}
+
+
+void DB::writeRowList(JSON::Sync &sync) const {
+  sync.beginList();
+  appendRow(sync);
   sync.endList();
 }
 
 
 void DB::writeRowDict(JSON::Sync &sync) const {
   sync.beginDict();
-
-  for (unsigned i = 0; i < getFieldCount(); i++) {
-    sync.beginInsert(getField(i).getName());
-    writeField(sync, i);
-  }
-
+  insertRow(sync);
   sync.endDict();
-}
-
-
-void DB::writeRowDict(JSON::Sync &sync, const set<string> &exclude) const {
-  sync.beginDict();
-
-  for (unsigned i = 0; i < getFieldCount(); i++) {
-    string name = getField(i).getName();
-    if (exclude.find(name) != exclude.end()) continue;
-    sync.beginInsert(name);
-    writeField(sync, i);
-  }
-
-  sync.endDict();
-}
-
-
-void DB::writeRowDict(JSON::Sync &sync, const string &exclude) const {
-  vector<string> tokens;
-  String::tokenize(exclude, tokens);
-  writeRowDict(sync, set<string>(tokens.begin(), tokens.end()));
 }
 
 

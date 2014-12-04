@@ -41,6 +41,9 @@ SINGLETON_DECL(ContentTypes);
 
 ContentTypes::ContentTypes(Inaccessible) {
   insert(value_type("png",  "image/png"));
+  insert(value_type("jpg",  "image/jpeg"));
+  insert(value_type("jpeg", "image/jpeg"));
+  insert(value_type("gif",  "image/gif"));
   insert(value_type("ico",  "image/x-icon"));
   insert(value_type("css",  "text/css"));
   insert(value_type("txt",  "text/plain"));

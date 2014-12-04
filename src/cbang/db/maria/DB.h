@@ -167,11 +167,10 @@ namespace cb {
       bool fetchRowNB();
       bool haveRow() const;
       void seekRow(uint64_t row);
+      void appendRow(JSON::Sync &sync) const;
+      void insertRow(JSON::Sync &sync) const;
       void writeRowList(JSON::Sync &sync) const;
       void writeRowDict(JSON::Sync &sync) const;
-      void writeRowDict(JSON::Sync &sync,
-                        const std::set<std::string> &exclude) const;
-      void writeRowDict(JSON::Sync &sync, const std::string &exclude) const;
 
       // Field
       Field getField(unsigned i) const;

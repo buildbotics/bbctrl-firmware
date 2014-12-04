@@ -53,6 +53,10 @@ namespace cb {
     public:
       NullSync() : canWrite(true) {}
 
+      bool inList() const;
+      bool inDict() const;
+      void end();
+
       virtual void close();
       virtual void reset();
 

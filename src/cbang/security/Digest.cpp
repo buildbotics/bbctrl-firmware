@@ -33,6 +33,8 @@
 #include "Digest.h"
 
 #include "SSL.h"
+#include "KeyPair.h"
+#include "KeyContext.h"
 
 #include <cbang/Exception.h>
 #include <cbang/String.h>
@@ -43,14 +45,14 @@ using namespace cb;
 using namespace std;
 
 
-Digest::Digest(const string &digest, ENGINE *e) : ctx(EVP_MD_CTX_create()) {
+Digest::Digest(const string &digest) : md(0), ctx(0), initialized(false) {
   SSL::init();
 
-  const EVP_MD *md = EVP_get_digestbyname(digest.c_str());
-  if (!md) THROWS("Unrecognized digest '" << digest);
+  ctx = EVP_MD_CTX_create();
+  if (!ctx) THROWS("Failed to created digest context: " << SSL::getErrorStr());
 
-  if (!EVP_DigestInit_ex(ctx, md, e))
-    THROWS("Error initializing digest context: " << SSL::getErrorStr());
+  md = EVP_get_digestbyname(digest.c_str());
+  if (!md) THROWS("Unrecognized digest '" << digest);
 }
 
 
@@ -61,6 +63,17 @@ Digest::~Digest() {
 
 unsigned Digest::size() const {
   return EVP_MD_CTX_size(ctx);
+}
+
+
+void Digest::init(ENGINE *e) {
+  if (initialized) THROW("Digest already initialized");
+
+  e = (e || !ctx) ? e : ctx->engine;
+  if (!EVP_DigestInit_ex(ctx, md, e))
+    THROWS("Error initializing digest context: " << SSL::getErrorStr());
+
+  initialized = true;
 }
 
 
@@ -80,6 +93,8 @@ void Digest::update(const string &data) {
 
 
 void Digest::update(const uint8_t *data, unsigned length) {
+  if (!initialized) init();
+
   if (!EVP_DigestUpdate(ctx, data, length))
       THROWS("Error updating digest: " << SSL::getErrorStr());
 }
@@ -90,6 +105,75 @@ void Digest::finalize() {
 
   if (!EVP_DigestFinal_ex(ctx, digest.get(), 0))
     THROWS("Error finalizing digest: " << SSL::getErrorStr());
+}
+
+
+SmartPointer<KeyContext> Digest::signInit(const KeyPair &key, ENGINE *e) {
+  if (initialized) THROW("Digest already initialized");
+
+  EVP_PKEY_CTX *pctx = 0;
+
+  e = (e || !ctx) ? e : ctx->engine;
+  if (!EVP_DigestSignInit(ctx, &pctx, md, e, key.getEVP_PKEY()))
+    THROWS("Error initializing digest sign context: " << SSL::getErrorStr());
+
+  initialized = true;
+
+  return (pctx ? new KeyContext(pctx, false) : 0);
+}
+
+
+size_t Digest::sign(uint8_t *sigData, size_t sigLen) {
+  if (EVP_DigestSignFinal(ctx, sigData, &sigLen) <= 0)
+    THROWS("Failed to "
+           << (sigData ? "sign digest" : "compute signature length") << ": "
+           << SSL::getErrorStr());
+
+  return sigLen;
+}
+
+
+string Digest::sign() {
+  // Determine signature length
+  size_t sigLen = sign(0, 0);
+
+  // Allocate space
+  SmartPointer<uint8_t>::Array sigData = new uint8_t[sigLen];
+
+  // Sign
+  sign(sigData.get(), sigLen);
+
+  // Return result
+  return string((char *)sigData.get(), sigLen);
+}
+
+
+SmartPointer<KeyContext> Digest::verifyInit(const KeyPair &key, ENGINE *e) {
+  if (initialized) THROW("Digest already initialized");
+
+  EVP_PKEY_CTX *pctx = 0;
+
+  e = (e || !ctx) ? e : ctx->engine;
+  if (!EVP_DigestVerifyInit(ctx, &pctx, md, e, key.getEVP_PKEY()))
+    THROWS("Error initializing digest verify context: " << SSL::getErrorStr());
+
+  initialized = true;
+
+  return (pctx ? new KeyContext(pctx, false) : 0);
+}
+
+
+bool Digest::verify(const uint8_t *sigData, size_t sigLen) {
+  switch (EVP_DigestVerifyFinal(ctx, (uint8_t *)sigData, sigLen)) {
+  case 0: return false;
+  case 1: return true;
+  default: THROWS("Error verifing digest signature: " << SSL::getErrorStr());
+  }
+}
+
+
+bool Digest::verify(const string &sig) {
+  return verify((const uint8_t *)sig.c_str(), sig.size());
 }
 
 
@@ -140,29 +224,57 @@ unsigned Digest::getDigest(uint8_t *buffer, unsigned length) {
 
 void Digest::reset() {
   digest.release();
-  const EVP_MD *md = EVP_MD_CTX_md(ctx);
-  ENGINE *e = ctx->engine;
-
-  if (!EVP_DigestInit_ex(ctx, md, e))
-    THROWS("Error initializing digest context: " << SSL::getErrorStr());
+  initialized = false;
 }
 
 
 string Digest::hash(const string &s, const string &digest, ENGINE *e) {
-  Digest d(digest, e);
+  Digest d(digest);
+  d.init(e);
   d.update(s);
   return d.toString();
 }
 
 
 string Digest::hashHex(const string &s, const string &digest, ENGINE *e) {
-  Digest d(digest, e);
+  Digest d(digest);
+  d.init(e);
   d.update(s);
   return d.toHexString();
+}
+
+
+string Digest::sign(const KeyPair &key, const string &s, const string &digest,
+                    ENGINE *e) {
+  Digest d(digest);
+  d.signInit(key, e);
+  d.update(s);
+  return d.sign();
+}
+
+
+bool Digest::verify(const KeyPair &key, const std::string &s, const string &sig,
+                    const string &digest, ENGINE *e) {
+  Digest d(digest);
+  d.verifyInit(key, e);
+  d.update(s);
+  return d.verify(sig);
 }
 
 
 bool Digest::hasAlgorithm(const string &digest) {
   SSL::init();
   return EVP_get_digestbyname(digest.c_str());
+}
+
+
+string Digest::signHMAC(const string &key, const string &s,
+                        const string &digest, ENGINE *e) {
+  return sign(KeyPair(key, KeyPair::HMAC_KEY, e), s, digest, e);
+}
+
+
+bool Digest::verifyHMAC(const string &key, const string &s, const string &sig,
+                        const string &digest, ENGINE *e) {
+  return verify(KeyPair(key, KeyPair::HMAC_KEY, e), s, sig, digest, e);
 }

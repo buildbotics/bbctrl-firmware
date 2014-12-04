@@ -38,8 +38,10 @@
 #include "HTTPHandler.h"
 
 #include <cbang/SmartPointer.h>
+#include <cbang/util/OrderedDict.h>
 #include <cbang/net/IPAddress.h>
 #include <cbang/net/URI.h>
+#include <cbang/json/JSON.h>
 
 #include <string>
 #include <iostream>
@@ -51,11 +53,6 @@ struct evhttp_request;
 namespace cb {
   class URI;
   class IPAddress;
-
-  namespace JSON {
-    class Value;
-    class Writer;
-  }
 
   namespace Event {
     class Buffer;
@@ -72,8 +69,7 @@ namespace cb {
       bool secure;
       bool finalized;
 
-      typedef std::vector<std::string> path_args_t;
-      path_args_t pathArgs;
+      JSON::Dict args;
 
     public:
       Request(evhttp_request *req, bool deallocate = false);
@@ -95,11 +91,20 @@ namespace cb {
       bool isSecure() const {return secure;}
       void setSecure(bool secure) {this->secure = secure;}
 
-      virtual void appendPathArg(const std::string &arg)
-      {pathArgs.push_back(arg);}
-      virtual const path_args_t &getPathArgs() const {return pathArgs;}
-      virtual const std::string &getPathArg(unsigned i) const
-      {return pathArgs.at(i);}
+      // Args
+      virtual void insertArg(const std::string &arg)
+      {args.insert(String(args.size()), arg);}
+      virtual void insertArg(const std::string &key, const std::string &arg)
+      {args.insert(key, arg);}
+      virtual const JSON::Dict &getArgs() const {return args;}
+      virtual JSON::Dict &getArgs() {return args;}
+      virtual const std::string &getArg(unsigned i) const
+      {return args.getString(i);}
+      virtual const std::string &getArg(const std::string &key) const
+      {return args.getString(key);}
+      virtual const std::string &getArg(const std::string &key,
+                                        const std::string &defaultVal) const
+      {return args.getString(key, defaultVal);}
 
       virtual std::string getHost() const;
       virtual const URI &getURI() const {return uri;}

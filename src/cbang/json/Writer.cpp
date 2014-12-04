@@ -34,6 +34,8 @@
 
 #include <cbang/String.h>
 
+#include <cctype>
+
 using namespace std;
 using namespace cb::JSON;
 
@@ -221,6 +223,12 @@ string Writer::escape(const string &s) {
 
         if (width < 3)
           result.append(String::printf("\\u%04x", (unsigned)code));
+
+      } else if (iscntrl(c)) {
+        result.append(1, '\\');
+        result.append(1, 'x');
+        result.append(1, String::hexNibble(c >> 4));
+        result.append(1, String::hexNibble(c));
 
       } else result.push_back(c);
       break;

@@ -142,6 +142,8 @@ namespace cb {
     static std::string bar(const std::string &title = "", unsigned width = 80,
                            const std::string &chars = "*");
     static std::string hexdump(const char *data, unsigned size);
+    static char hexNibble(int x, bool lower = true);
+    static std::string hexEncode(const std::string &s);
     static std::string escapeRE(const std::string &s);
     static std::string escapeC(const std::string &s);
     static std::string unescapeC(const std::string &s);

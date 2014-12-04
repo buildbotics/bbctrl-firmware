@@ -63,7 +63,9 @@ namespace cb {
 
     public:
       WebServer(Options &options, const Base &base,
-                const SmartPointer<SSLContext> &sslCtx = 0);
+                const SmartPointer<SSLContext> &sslCtx = 0,
+                const SmartPointer<HTTPHandlerFactory> &factory =
+                new HTTPHandlerFactory);
       virtual ~WebServer() {}
 
       virtual void init();

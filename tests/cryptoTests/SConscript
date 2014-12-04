@@ -1,0 +1,8 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+prog = env.Program('hmac-sha256-aws-s3', 'hmac-sha256-aws-s3.cpp')
+
+Return('prog')

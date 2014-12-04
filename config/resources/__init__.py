@@ -8,7 +8,6 @@ import stat
 import shutil
 from SCons.Script import *
 
-next_id = 0
 col = 0
 
 class ResourceContext:
@@ -186,7 +185,6 @@ def resources_build(target, source, env):
     # Write resources
     f = start_file(ctx, target)
 
-    next_id = 0
     for src in source:
         write_resource(ctx, f, data_dir, str(src))
 

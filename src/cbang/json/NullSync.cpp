@@ -3,6 +3,23 @@
 using namespace cb::JSON;
 
 
+bool NullSync::inList() const {
+  return !stack.empty() && stack.back() == ValueType::JSON_LIST;
+}
+
+
+bool NullSync::inDict() const {
+  return !stack.empty() && stack.back() == ValueType::JSON_DICT;
+}
+
+
+void NullSync::end() {
+  if (inList()) endList();
+  else if (inDict()) endDict();
+  else THROW("Not in list or dict");
+}
+
+
 void NullSync::close() {
   assertWriteNotPending();
   if (!stack.empty()) THROWS("Writer closed with open " << stack.back());
@@ -45,15 +62,14 @@ void NullSync::beginList(bool simple) {
 
 void NullSync::beginAppend() {
   assertWriteNotPending();
-  if (stack.back() != ValueType::JSON_LIST) THROW("Not a List");
+  if (!inList()) THROW("Not a List");
   canWrite = true;
 }
 
 
 void NullSync::endList() {
   assertWriteNotPending();
-  if (stack.empty() || stack.back() != ValueType::JSON_LIST)
-    THROW("Not a List");
+  if (!inList()) THROW("Not a List");
 
   stack.pop_back();
 }
@@ -68,8 +84,7 @@ void NullSync::beginDict(bool simple) {
 
 
 bool NullSync::has(const std::string &key) const {
-  if (stack.empty() || stack.back() != ValueType::JSON_DICT)
-    THROW("Not a Dict");
+  if (!inDict()) THROW("Not a Dict");
   return keyStack.back().find(key) != keyStack.back().end();
 }
 
@@ -84,8 +99,7 @@ void NullSync::beginInsert(const std::string &key) {
 
 void NullSync::endDict() {
   assertWriteNotPending();
-  if (stack.empty() || stack.back() != ValueType::JSON_DICT)
-    THROW("Not a Dict");
+  if (!inDict()) THROW("Not a Dict");
 
   stack.pop_back();
   keyStack.pop_back();

@@ -48,7 +48,7 @@ using namespace std;
 using namespace cb;
 
 
-KeyContext::KeyContext(int nid, ENGINE *e) : ctx(0) {
+KeyContext::KeyContext(int nid, ENGINE *e) : ctx(0), deallocate(true) {
   SSL::init();
 
   if (!(ctx = EVP_PKEY_CTX_new_id(nid, e)))
@@ -56,7 +56,8 @@ KeyContext::KeyContext(int nid, ENGINE *e) : ctx(0) {
 }
 
 
-KeyContext::KeyContext(const std::string &algorithm, ENGINE *e) : ctx(0) {
+KeyContext::KeyContext(const std::string &algorithm, ENGINE *e) :
+  ctx(0), deallocate(true) {
   SSL::init();
 
   if (!(ctx = EVP_PKEY_CTX_new_id(SSL::findObject(algorithm), e)))
@@ -65,19 +66,23 @@ KeyContext::KeyContext(const std::string &algorithm, ENGINE *e) : ctx(0) {
 
 
 KeyContext::KeyContext(const KeyPair &keyPair) :
-  ctx(EVP_PKEY_CTX_new(keyPair.getEVP_PKEY(), 0)) {}
+  ctx(EVP_PKEY_CTX_new(keyPair.getEVP_PKEY(), 0)), deallocate(true) {}
 
 
 KeyContext::KeyContext(EVP_PKEY *pkey, ENGINE *e) :
-  ctx(EVP_PKEY_CTX_new(pkey, e)) {SSL::init();}
+  ctx(EVP_PKEY_CTX_new(pkey, e)), deallocate(true) {SSL::init();}
 
 
 KeyContext::KeyContext(const KeyContext &kc) :
-  ctx(EVP_PKEY_CTX_dup(kc.ctx)) {}
+  ctx(EVP_PKEY_CTX_dup(kc.ctx)), deallocate(true) {}
+
+
+KeyContext::KeyContext(EVP_PKEY_CTX *ctx, bool deallocate) :
+  ctx(ctx), deallocate(deallocate) {}
 
 
 KeyContext::~KeyContext() {
-  if (ctx) EVP_PKEY_CTX_free(ctx);
+  if (ctx && deallocate) EVP_PKEY_CTX_free(ctx);
 }
 
 

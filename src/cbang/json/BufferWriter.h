@@ -52,6 +52,9 @@ namespace cb {
 
       const char *data() const {return buffer.data();}
       size_t const size() const {return buffer.size();}
+      std::string toString() const
+      {return std::string(buffer.data(), buffer.size());}
+
       void flush() {stream.flush();}
     };
   }

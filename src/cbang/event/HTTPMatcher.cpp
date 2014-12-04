@@ -45,7 +45,7 @@ bool HTTPMatcher::operator()(Request &req) {
     return false;
 
   for (unsigned i = 1; i < m.size(); i++)
-    req.appendPathArg(string(m[i].first, m[i].second));
+    req.insertArg(string(m[i].first, m[i].second));
 
   return (*child)(req);
 }

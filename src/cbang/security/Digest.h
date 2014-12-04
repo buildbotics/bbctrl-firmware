@@ -38,22 +38,30 @@
 
 #include <istream>
 
+typedef struct env_md_st EVP_MD;
 typedef struct env_md_ctx_st EVP_MD_CTX;
 typedef struct engine_st ENGINE;
 
-
 namespace cb {
+  class KeyPair;
+  class KeyContext;
+
   class Digest {
+    const EVP_MD *md;
     EVP_MD_CTX *ctx;
+    bool initialized;
     SmartPointer<uint8_t>::Array digest;
 
   public:
-    Digest(const std::string &digest, ENGINE *e = 0);
+    Digest(const std::string &digest);
     virtual ~Digest();
 
     EVP_MD_CTX *getEVP_MD_CTX() const {return ctx;}
 
     virtual unsigned size() const;
+
+    // Hash
+    void init(ENGINE *e = 0);
 
     void update(std::istream &stream);
     void update(const std::string &data);
@@ -63,19 +71,45 @@ namespace cb {
     void updateWith(const T &o) {update((const uint8_t *)&o, sizeof(T));}
 
     virtual void finalize();
+
+    // Sign
+    SmartPointer<KeyContext> signInit(const KeyPair &key, ENGINE *e = 0);
+    size_t sign(uint8_t *sigData, size_t sigLen);
+    std::string sign();
+
+    // Verify
+    SmartPointer<KeyContext> verifyInit(const KeyPair &key, ENGINE *e = 0);
+    bool verify(const uint8_t *sigData, size_t sigLen);
+    bool verify(const std::string &sig);
+
+    // Get hash
     std::string toString() const;
     std::string toString();
     std::string toHexString() const;
     std::string toHexString();
     unsigned getDigest(uint8_t *buffer, unsigned length) const;
     unsigned getDigest(uint8_t *buffer, unsigned length);
+
+    // Reset
     virtual void reset();
 
+    // Static
     static std::string hash(const std::string &s, const std::string &digest,
                             ENGINE *e = 0);
     static std::string hashHex(const std::string &s, const std::string &digest,
                                ENGINE *e = 0);
+    static std::string sign(const KeyPair &key, const std::string &s,
+                            const std::string &digest, ENGINE *e = 0);
+    static bool verify(const KeyPair &key, const std::string &s,
+                       const std::string &sig, const std::string &digest,
+                       ENGINE *e = 0);
     static bool hasAlgorithm(const std::string &digest);
+
+    static std::string signHMAC(const std::string &key, const std::string &s,
+                                const std::string &digest, ENGINE *e = 0);
+    static bool verifyHMAC(const std::string &key, const std::string &s,
+                           const std::string &sig, const std::string &digest,
+                           ENGINE *e = 0);
   };
 }
 

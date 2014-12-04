@@ -42,6 +42,7 @@
 #include <string>
 
 typedef struct evp_pkey_st EVP_PKEY;
+typedef struct engine_st ENGINE;
 
 
 namespace cb {
@@ -49,8 +50,14 @@ namespace cb {
     EVP_PKEY *key;
 
   public:
+    typedef enum {
+      HMAC_KEY,
+      CMAC_KEY,
+    } mac_key_t;
+
     KeyPair(const KeyPair &o);
     KeyPair(EVP_PKEY *key) : key(key) {}
+    KeyPair(const std::string &key, mac_key_t type = HMAC_KEY, ENGINE *e = 0);
     KeyPair();
     ~KeyPair();
 

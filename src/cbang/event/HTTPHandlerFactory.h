@@ -30,48 +30,32 @@
 
 \******************************************************************************/
 
-#include "HTTPHandlerGroup.h"
-#include "HTTPMatcher.h"
-#include "ResourceHTTPHandler.h"
-#include "FileHandler.h"
+#ifndef CB_EVENT_HTTPHANDLER_FACTORY_H
+#define CB_EVENT_HTTPHANDLER_FACTORY_H
 
-using namespace cb::Event;
-using namespace cb;
-using namespace std;
+#include "HTTPHandler.h"
+
+#include <cbang/SmartPointer.h>
+
+#include <string>
 
 
-void HTTPHandlerGroup::addHandler(const SmartPointer<HTTPHandler> &handler) {
-  handlers.push_back(handler);
+namespace cb {
+  class Resource;
+
+  namespace Event {
+    class HTTPHandlerFactory {
+    public:
+      virtual ~HTTPHandlerFactory() {}
+
+      virtual SmartPointer<HTTPHandler>
+      createMatcher(unsigned methods, const std::string &pattern,
+                    const SmartPointer<HTTPHandler> &child);
+      virtual SmartPointer<HTTPHandler> createHandler(const Resource &res);
+      virtual SmartPointer<HTTPHandler> createHandler(const std::string &path);
+    };
+  }
 }
 
+#endif // CB_EVENT_HTTPHANDLER_FACTORY_H
 
-void HTTPHandlerGroup::addHandler(unsigned methods, const string &pattern,
-                                  const SmartPointer<HTTPHandler> &handler) {
-  addHandler(factory->createMatcher(methods, pattern, handler));
-}
-
-
-void HTTPHandlerGroup::addHandler(const string &pattern, const Resource &res) {
-  addHandler(HTTP_GET, pattern, factory->createHandler(res));
-}
-
-
-void HTTPHandlerGroup::addHandler(const string &pattern, const string &path) {
-  addHandler(HTTP_GET, pattern, factory->createHandler(path));
-}
-
-
-SmartPointer<HTTPHandlerGroup>
-HTTPHandlerGroup::addGroup(unsigned methods, const string &pattern) {
-  SmartPointer<HTTPHandlerGroup> group = new HTTPHandlerGroup(factory);
-  addHandler(methods, pattern, group);
-  return group;
-}
-
-
-bool HTTPHandlerGroup::operator()(Request &req) {
-  for (unsigned i = 0; i < handlers.size(); i++)
-    if ((*handlers[i])(req)) return true;
-
-  return false;
-}

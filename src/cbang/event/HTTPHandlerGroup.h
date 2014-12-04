@@ -34,6 +34,7 @@
 #define CB_EVENT_HTTPHANDLER_GROUP_H
 
 #include "HTTPHandler.h"
+#include "HTTPHandlerFactory.h"
 #include "JSONHandler.h"
 #include "HTTPRecastHandler.h"
 #include "JSONRecastHandler.h"
@@ -49,10 +50,15 @@ namespace cb {
 
   namespace Event {
     class HTTPHandlerGroup : public HTTPHandler {
+      SmartPointer<HTTPHandlerFactory> factory;
+
       typedef std::vector<SmartPointer<HTTPHandler> > handlers_t;
       handlers_t handlers;
 
     public:
+      HTTPHandlerGroup(const SmartPointer<HTTPHandlerFactory> &factory =
+                       new HTTPHandlerFactory) : factory(factory) {}
+
       void addHandler(const SmartPointer<HTTPHandler> &handler);
       void addHandler(unsigned methods, const std::string &pattern,
                       const SmartPointer<HTTPHandler> &handler);
@@ -60,6 +66,9 @@ namespace cb {
       void addHandler(const Resource &res) {addHandler("", res);}
       void addHandler(const std::string &pattern, const std::string &path);
       void addHandler(const std::string &path) {addHandler("", path);}
+
+      SmartPointer<HTTPHandlerGroup>
+      addGroup(unsigned methods, const std::string &pattern);
 
       template <class T>
       void addMember
@@ -74,9 +83,6 @@ namespace cb {
         addHandler(methods, pattern,
                    new HTTPHandlerMemberFunctor<T>(obj, member));
       }
-
-      SmartPointer<HTTPHandlerGroup>
-      addGroup(unsigned methods, const std::string &pattern);
 
       template <class T>
       void addMember
