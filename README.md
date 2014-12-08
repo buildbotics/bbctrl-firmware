@@ -121,8 +121,10 @@ strict checking.
 # Testing the Build
 
 You can testing C! by going to the *tests* directory in the root of the
-cbang source tree.  Then run:
+cbang source tree, building the test programs and running the test harness:
 
+    cd tests
+    scons
     ./testHarness
 
 # Troubleshooting
