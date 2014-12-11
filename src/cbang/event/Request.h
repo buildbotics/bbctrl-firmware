@@ -105,6 +105,9 @@ namespace cb {
       virtual const std::string &getArg(const std::string &key,
                                         const std::string &defaultVal) const
       {return args.getString(key, defaultVal);}
+      virtual JSON::Dict &parseJSONArgs();
+      virtual JSON::Dict &parseQueryArgs();
+      virtual JSON::Dict &parseArgs();
 
       virtual std::string getHost() const;
       virtual const URI &getURI() const {return uri;}

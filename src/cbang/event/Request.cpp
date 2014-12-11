@@ -85,6 +85,45 @@ Request::~Request() {
 }
 
 
+JSON::Dict &Request::parseJSONArgs() {
+  Headers hdrs = getInputHeaders();
+
+  if (hdrs.hasContentType() &&
+      String::startsWith(hdrs.getContentType(), "application/json")) {
+
+    Buffer buf = getInputBuffer();
+    if (buf.getLength()) {
+      Event::BufferStream<> stream(buf);
+      JSON::Reader reader(stream);
+
+      // Find start of dict & parse keys into request args
+      if (reader.next() == '{') {
+        JSON::ValuePtr argsPtr = JSON::ValuePtr::Null(&args);
+        JSON::Builder builder(argsPtr);
+        reader.parseDict(builder);
+      }
+    }
+  }
+
+  return args;
+}
+
+
+JSON::Dict &Request::parseQueryArgs() {
+  const URI &uri = getURI();
+  for (URI::const_iterator it = uri.begin(); it != uri.end(); it++)
+    insertArg(it->first, it->second);
+  return args;
+}
+
+
+JSON::Dict &Request::parseArgs() {
+  parseJSONArgs();
+  parseQueryArgs();
+  return args;
+}
+
+
 string Request::getHost() const {
   const char *host = evhttp_request_get_host(req);
   return host ? host : "";

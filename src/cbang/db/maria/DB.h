@@ -167,10 +167,12 @@ namespace cb {
       bool fetchRowNB();
       bool haveRow() const;
       void seekRow(uint64_t row);
-      void appendRow(JSON::Sync &sync) const;
-      void insertRow(JSON::Sync &sync) const;
-      void writeRowList(JSON::Sync &sync) const;
-      void writeRowDict(JSON::Sync &sync) const;
+      void appendRow(JSON::Sync &sync, int first = 0, int last = -1) const;
+      void insertRow(JSON::Sync &sync, int first = 0, int last = -1,
+                     bool withNulls = true) const;
+      void writeRowList(JSON::Sync &sync, int first = 0, int last = -1) const;
+      void writeRowDict(JSON::Sync &sync, int first = 0, int last = -1,
+                        bool withNulls = true) const;
 
       // Field
       Field getField(unsigned i) const;
@@ -191,6 +193,7 @@ namespace cb {
       bool isGeometry(unsigned i) const {return getField(i).isGeometry();}
 
       // Field getters
+      bool getNull(unsigned i) const;
       std::string getString(unsigned i) const;
       bool getBoolean(unsigned i) const;
       double getDouble(unsigned i) const;

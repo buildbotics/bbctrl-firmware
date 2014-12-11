@@ -37,13 +37,18 @@ using namespace std;
 using namespace cb::JSON;
 
 
+void Sync::write(const Value &value) {
+  value.write(*this);
+}
+
+
 void Sync::append(const Value &value) {
   beginAppend();
-  value.write(*this);
+  write(value);
 }
 
 
 void Sync::insert(const string &key, const Value &value) {
   beginInsert(key);
-  value.write(*this);
+  write(value);
 }

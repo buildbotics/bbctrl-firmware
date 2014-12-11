@@ -83,7 +83,7 @@ void Builder::endList() {
   assertNotPending();
 
   if (stack.empty() || !stack.back()->isList()) THROW("Not a List");
-  stack.pop_back();
+  if (stack.size() != 1) stack.pop_back();
 }
 
 
@@ -108,7 +108,7 @@ void Builder::endDict() {
   assertNotPending();
 
   if (stack.empty() || !stack.back()->isDict()) THROW("Not a Dict");
-  stack.pop_back();
+  if (stack.size() != 1) stack.pop_back();
 }
 
 

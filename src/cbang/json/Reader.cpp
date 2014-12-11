@@ -38,6 +38,7 @@
 #include "String.h"
 #include "List.h"
 #include "Dict.h"
+#include "Builder.h"
 
 #include <cbang/String.h>
 
@@ -50,35 +51,35 @@ using namespace cb;
 using namespace cb::JSON;
 
 
-ValuePtr Reader::parse() {
-  ValuePtr value;
-
+void Reader::parse(Sync &sync) {
   while (good()) {
     switch (next()) {
     case 'N': case 'n':
       parseNull();
-      return Null::instancePtr();
+      return sync.writeNull();
 
     case 'T': case 't': case 'F': case 'f':
-      return new Boolean(parseBoolean());
+      return sync.writeBoolean(parseBoolean());
 
     case '-': case '.':
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
-      return new Number(parseNumber());
+      return sync.write(parseNumber());
 
     case '"':
-      return new String(parseString());
+      return sync.write(parseString());
 
     case '[':
-      value = new List;
-      parseList(value->getList());
-      return value;
+      sync.beginList();
+      parseList(sync);
+      sync.endList();
+      return;
 
     case '{':
-      value = new Dict;
-      parseDict(value->getDict());
-      return value;
+      sync.beginDict();
+      parseDict(sync);
+      sync.endDict();
+      return;
 
     default: match("NnTtFf-.0123456789\"[{");
     }
@@ -86,6 +87,13 @@ ValuePtr Reader::parse() {
 
   error("Unexpected end of expression");
   throw "Unreachable";
+}
+
+
+ValuePtr Reader::parse() {
+  Builder builder;
+  parse(builder);
+  return builder.getRoot();
 }
 
 
@@ -217,20 +225,21 @@ const string Reader::parseString() {
 }
 
 
-void Reader::parseList(List &list) {
+void Reader::parseList(Sync &sync) {
   match("[");
 
   while (good()) {
     if (tryMatch(']')) return; // End or trailing comma
 
-    list.append(parse()); // Read value
+    sync.beginAppend();
+    parse(sync);
 
     if (match(",]") == ']') return; // Continuation or end
   }
 }
 
 
-void Reader::parseDict(Dict &dict) {
+void Reader::parseDict(Sync &sync) {
   match("{");
 
   while (good()) {
@@ -238,7 +247,8 @@ void Reader::parseDict(Dict &dict) {
 
     string key = parseString();
     match(":");
-    dict.insert(key, parse());
+    sync.beginInsert(key);
+    parse(sync);
 
     if (match(",}") == '}') return; // Continuation or end
   }

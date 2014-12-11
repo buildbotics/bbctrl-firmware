@@ -202,11 +202,11 @@ bool DB::connectNB(const string &host, const string &user,
 
 void DB::close() {
   assertConnected();
-  assertNotPending();
-  assertNotHaveResult();
 
-  mysql_close(db);
-  db = 0;
+  if (db) {
+    mysql_close(db);
+    db = 0;
+  }
   connected = false;
 }
 
@@ -217,7 +217,6 @@ bool DB::closeNB() {
   assertConnected();
   assertNotPending();
   assertNonBlocking();
-  assertNotHaveResult();
 
   status = mysql_close_start(db);
   if (status) {
@@ -463,32 +462,36 @@ void DB::seekRow(uint64_t row) {
 }
 
 
-void DB::appendRow(JSON::Sync &sync) const {
-  for (unsigned i = 0; i < getFieldCount(); i++) {
+void DB::appendRow(JSON::Sync &sync, int first, int count) const {
+  for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
     sync.beginAppend();
     writeField(sync, i);
   }
 }
 
 
-void DB::insertRow(JSON::Sync &sync) const {
-  for (unsigned i = 0; i < getFieldCount(); i++) {
+void DB::insertRow(JSON::Sync &sync, int first, int count,
+                   bool withNulls) const {
+
+  for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
+    if (!withNulls && getNull(i)) continue;
     sync.beginInsert(getField(i).getName());
     writeField(sync, i);
   }
 }
 
 
-void DB::writeRowList(JSON::Sync &sync) const {
+void DB::writeRowList(JSON::Sync &sync, int first, int count) const {
   sync.beginList();
-  appendRow(sync);
+  appendRow(sync, first, count);
   sync.endList();
 }
 
 
-void DB::writeRowDict(JSON::Sync &sync) const {
+void DB::writeRowDict(JSON::Sync &sync, int first, int count,
+                      bool withNulls) const {
   sync.beginDict();
-  insertRow(sync);
+  insertRow(sync, first, count, withNulls);
   sync.endDict();
 }
 
@@ -517,11 +520,18 @@ const char *DB::getData(unsigned i) const {
 
 
 void DB::writeField(JSON::Sync &sync, unsigned i) const {
-  Field field = getField(i);
+  if (getNull(i)) sync.writeNull();
+  else {
+    Field field = getField(i);
 
-  if (field.isNull()) sync.writeNull();
-  else if (field.isNumber()) sync.write(getDouble(i));
-  else sync.write(getString(i));
+    if (field.isNumber()) sync.write(getDouble(i));
+    else sync.write(getString(i));
+  }
+}
+
+
+bool DB::getNull(unsigned i) const {
+  return !res->current_row[i];
 }
 
 
@@ -778,14 +788,16 @@ namespace {
 
     if (it == end || ++it == end) return start;
 
-    switch (*it) {
-    case 'b': result.append(dict.getBoolean(name) ? "true" : "false"); break;
-    case 'f': result.append(String(dict.getNumber(name))); break;
-    case 'i': result.append(String(dict.getS32(name))); break;
-    case 's': result.append("'" + db.escape(dict.getString(name)) + "'"); break;
-    case 'u': result.append(String(dict.getU32(name))); break;
-    default: return start;
-    }
+    if (!dict.has(name)) result.append("null");
+    else switch (*it) {
+      case 'b': result.append(dict.getBoolean(name) ? "true" : "false"); break;
+      case 'f': result.append(String(dict.getNumber(name))); break;
+      case 'i': result.append(String(dict.getS32(name))); break;
+      case 's': result.append("'" + db.escape(dict.getString(name)) + "'");
+        break;
+      case 'u': result.append(String(dict.getU32(name))); break;
+      default: return start;
+      }
 
     return ++it;
   }

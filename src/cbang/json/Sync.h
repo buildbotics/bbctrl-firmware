@@ -51,6 +51,7 @@ namespace cb {
       virtual void writeBoolean(bool value) = 0;
       virtual void write(double value) = 0;
       virtual void write(const std::string &value) = 0;
+      void write(const Value &value);
 
       // List functions
       virtual void beginList(bool simple = false) = 0;
