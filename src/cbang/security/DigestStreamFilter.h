@@ -46,7 +46,7 @@ namespace cb {
 
   public:
     DigestStreamFilter(const std::string &digest, ENGINE *e = 0) :
-      Digest(digest, e) {}
+      Digest(digest) {init(e);}
 
     template<typename Source>
     std::streamsize read(Source &src, char *s, std::streamsize n) {
