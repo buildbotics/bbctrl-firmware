@@ -65,6 +65,9 @@ namespace cb {
     Thread(bool destroy = false);
     virtual ~Thread();
 
+    /// @return True if state == THREAD_STARTING or THREAD_RUNNING.
+    bool isRunning() const;
+
     /**
      * Start the thread.  This call will change the state to THREAD_STARTING.
      * Upon return there is no guarantee the thread will actually be started

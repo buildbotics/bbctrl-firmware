@@ -119,6 +119,11 @@ Thread::~Thread() {
 }
 
 
+bool Thread::isRunning() const {
+  return state == THREAD_STARTING || state == THREAD_RUNNING;
+}
+
+
 void Thread::start() {
   if (state != THREAD_STOPPED) join();
 
