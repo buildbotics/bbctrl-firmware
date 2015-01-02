@@ -38,6 +38,7 @@
 
 #include <cbang/Exception.h>
 #include <cbang/String.h>
+#include <cbang/net/Base64.h>
 
 #include <openssl/evp.h>
 
@@ -202,6 +203,16 @@ string Digest::toHexString() const {
 string Digest::toHexString() {
   if (digest.isNull()) finalize();
   return const_cast<const Digest *>(this)->toHexString();
+}
+
+
+string Digest::toBase64(char pad, char a, char b) const {
+  return Base64(pad, a, b).encode(toString());
+}
+
+
+string Digest::toBase64(char pad, char a, char b) {
+  return Base64(pad, a, b).encode(toString());
 }
 
 

@@ -87,6 +87,8 @@ namespace cb {
     std::string toString();
     std::string toHexString() const;
     std::string toHexString();
+    std::string toBase64(char pad = 0, char a = '-', char b = '_') const;
+    std::string toBase64(char pad = 0, char a = '-', char b = '_');
     unsigned getDigest(uint8_t *buffer, unsigned length) const;
     unsigned getDigest(uint8_t *buffer, unsigned length);
 
