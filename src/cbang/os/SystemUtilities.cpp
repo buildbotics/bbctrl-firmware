@@ -151,9 +151,10 @@ namespace cb {
 
 
     string extension(const string &path) {
-      string::size_type pos = path.find_last_of('.');
+      string base = basename(path);
+      string::size_type pos = base.find_last_of('.');
       if (pos == string::npos) return "";
-      else return path.substr(pos + 1);
+      else return base.substr(pos + 1);
     }
 
 
