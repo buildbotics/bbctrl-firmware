@@ -68,6 +68,7 @@ namespace cb {
       FEATURE_CONFIG_FILE,
       FEATURE_DEBUGGING,
       FEATURE_INFO,
+      FEATURE_PRINT_INFO,
       FEATURE_SCRIPT_SERVER,
       FEATURE_LAST,
     };
@@ -117,10 +118,10 @@ namespace cb {
 
     double getUptime() const;
 
-    virtual void preConstruct() {}
     virtual int init(int argc, char *argv[]);
     virtual void initialize() {}
     virtual void run() {}
+    virtual void printInfo() const;
     virtual void write(XMLWriter &writer, uint32_t flags = 0) const;
     virtual std::ostream &print(std::ostream &stream) const;
     virtual void usage(std::ostream &stream, const std::string &name) const;

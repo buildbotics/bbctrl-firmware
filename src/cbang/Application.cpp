@@ -242,6 +242,7 @@ bool Application::_hasFeature(int feature) {
   switch (feature) {
   case FEATURE_CONFIG_FILE:
   case FEATURE_DEBUGGING:
+  case FEATURE_PRINT_INFO:
     return true;
 
   default: return false;
@@ -318,18 +319,23 @@ int Application::init(int argc, char *argv[]) {
 
   catchExitSignals(); // Also enables SignalManager
 
+  if (hasFeature(FEATURE_PRINT_INFO)) printInfo();
+
+  initialize();
+  return ret;
+}
+
+
+void Application::printInfo() const {
   // Print Info
   if (hasFeature(FEATURE_INFO))
-    Info::instance().print(*LOG_INFO_STREAM(1),
-                           80 - Logger::instance().getHeaderWidth());
+    Info::instance().print
+      (*LOG_INFO_STREAM(1), 80 - Logger::instance().getHeaderWidth());
 
   // Write config to log
   if (hasFeature(FEATURE_CONFIG_FILE))
     writeConfig(*LOG_INFO_STREAM(2), 3 < Logger::instance().getVerbosity() ?
                 Option::DEFAULT_SET_FLAG : 0);
-
-  initialize();
-  return ret;
 }
 
 
