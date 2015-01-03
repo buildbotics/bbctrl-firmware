@@ -38,47 +38,118 @@ using namespace cb::js;
 using namespace std;
 
 
-Value::Value() : value(v8::Undefined()) {}
-Value::Value(const v8::Handle<v8::Value> &value) :
-  value(value.IsEmpty() ? v8::Handle<v8::Value>(v8::Undefined()) : value) {}
-Value::Value(bool x) : value(x ? v8::True() : v8::False()) {}
-Value::Value(double x) : value(v8::Number::New(x)) {}
-Value::Value(int32_t x) : value(v8::Int32::New(x)) {}
-Value::Value(uint32_t x) : value(v8::Uint32::New(x)) {}
-Value::Value(const char *s, int length) : value(v8::String::New(s, length)) {}
-Value::Value(const string &s) : value(v8::String::New(s.data(), s.length())) {}
+// Forward declaration of template specialization
+namespace cb {
+  namespace js {
+    template<>
+    ValueBase<v8::Persistent<v8::Value> >::ValueBase(const ValueBase<> &);
+    template<>
+    ValueBase<v8::Persistent<v8::Value> >::ValueBase(const value_t &);
+  }
+}
 
-void Value::assertDefined() const {
+
+// Explicit instantiations
+template class ValueBase<>;
+template class ValueBase<v8::Persistent<v8::Value> >;
+
+
+template<typename T>
+ValueBase<T>::ValueBase() : value(v8::Undefined()) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(const Value &value) :
+value(value.getV8Value().IsEmpty() ? value_t(v8::Undefined()) :
+      value.getV8Value()) {}
+
+
+template<>
+ValueBase<v8::Persistent<v8::Value> >::ValueBase(const Value &value) :
+value(value.getV8Value().IsEmpty() ? value_t(v8::Undefined()) :
+      value_t::New(value.getV8Value())) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(const PersistentValue &value) :
+value(value.getV8Value().IsEmpty() ? value_t(v8::Undefined()) :
+      value_t(value.getV8Value())) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(const value_t &value) :
+  value(value.IsEmpty() ? value_t(v8::Undefined()) : value) {}
+
+
+template<>
+ValueBase<v8::Persistent<v8::Value> >::ValueBase(const value_t &value) :
+value(value.IsEmpty() ? value_t(v8::Undefined()) : value_t::New(value)) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(bool x) : value(x ? v8::True() : v8::False()) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(double x) : value(v8::Number::New(x)) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(int32_t x) : value(v8::Int32::New(x)) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(uint32_t x) : value(v8::Uint32::New(x)) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(const char *s, int length) :
+  value(v8::String::New(s, length)) {}
+
+
+template<typename T>
+ValueBase<T>::ValueBase(const string &s) :
+value(v8::String::New(s.data(), s.length())) {}
+
+
+template<typename T>
+void ValueBase<T>::assertDefined() const {
   if (isUndefined()) THROW("Value is undefined");
 }
 
 
-void Value::assertBoolean() const {
+template<typename T>
+void ValueBase<T>::assertBoolean() const {
   if (!isBoolean()) THROW("Value is not a boolean");
 }
 
 
-void Value::assertNumber() const {
+template<typename T>
+void ValueBase<T>::assertNumber() const {
   if (!isNumber()) THROW("Value is not a number");
 }
 
 
-void Value::assertInt32() const {
+template<typename T>
+void ValueBase<T>::assertInt32() const {
   if (!isInt32()) THROW("Value is not a int32");
 }
 
 
-void Value::assertUint32() const {
+template<typename T>
+void ValueBase<T>::assertUint32() const {
   if (!isUint32()) THROW("Value is not a uint32");
 }
 
 
-void Value::assertString() const {
+template<typename T>
+void ValueBase<T>::assertString() const {
   if (!isString()) THROW("Value is not a string");
 }
 
 
-string Value::toString() const {
+template<typename T>
+string ValueBase<T>::toString() const {
   assertDefined();
   // TODO this is not very efficient
   v8::String::Utf8Value s(value);
@@ -86,81 +157,96 @@ string Value::toString() const {
 }
 
 
-void Value::print(ostream &stream) const {
+template<typename T>
+void ValueBase<T>::print(ostream &stream) const {
   v8::String::Utf8Value s(value);
   stream.write(*s, s.length());
 }
 
 
-Value Value::createObject() {
-  return v8::Handle<v8::Value>(v8::Object::New());
+template<typename T>
+Value ValueBase<T>::createObject() {
+  return T(v8::Object::New());
 }
 
 
-void Value::assertObject() const {
+template<typename T>
+void ValueBase<T>::assertObject() const {
   if (!isObject()) THROW("Value is not a object");
 }
 
 
-bool Value::has(uint32_t index) const {
+template<typename T>
+bool ValueBase<T>::has(uint32_t index) const {
   return value->ToObject()->Has(index);
 }
 
 
-bool Value::has(const string &key) const {
+template<typename T>
+bool ValueBase<T>::has(const string &key) const {
   return
     value->ToObject()->Has(v8::String::NewSymbol(key.data(), key.length()));
 }
 
 
-Value Value::get(uint32_t index) const {
+template<typename T>
+Value ValueBase<T>::get(uint32_t index) const {
   return value->ToObject()->Get(index);
 }
 
 
-Value Value::get(const string &key) const {
+template<typename T>
+Value ValueBase<T>::get(const string &key) const {
   return
     value->ToObject()->Get(v8::String::NewSymbol(key.data(), key.length()));
 }
 
 
-Value Value::get(uint32_t index, Value defaultValue) const {
+template<typename T>
+Value ValueBase<T>::get(uint32_t index, Value defaultValue) const {
   return has(index) ? get(index) : defaultValue;
 }
 
 
-Value Value::get(const string &key, Value defaultValue) const {
+template<typename T>
+Value ValueBase<T>::get(const string &key, Value defaultValue) const {
   return has(key) ? get(key) : defaultValue;
 }
 
 
-Value Value::getOwnPropertyNames() const {
-  return v8::Handle<v8::Value>(value->ToObject()->GetOwnPropertyNames());
+template<typename T>
+Value ValueBase<T>::getOwnPropertyNames() const {
+  return T(value->ToObject()->GetOwnPropertyNames());
 }
 
 
-void Value::set(uint32_t index, Value value) {
+template<typename T>
+void ValueBase<T>::set(uint32_t index, Value value) {
   this->value->ToObject()->Set(index, value.getV8Value());
 }
 
 
-void Value::set(const string &key, Value value) {
+template<typename T>
+void ValueBase<T>::set(const string &key, Value value) {
   this->value->ToObject()->Set(v8::String::NewSymbol(key.data(), key.length()),
                                value.getV8Value());
 }
 
 
-Value Value::createArray(unsigned size) {
-  return v8::Handle<v8::Value>(v8::Array::New(size));
+template<typename T>
+Value ValueBase<T>::createArray(unsigned size) {
+  return T(v8::Array::New(size));
 }
 
 
-void Value::assertArray() const {
+template<typename T>
+void ValueBase<T>::assertArray() const {
   if (!isArray()) THROW("Value is not a array");
 }
 
 
-int Value::length() const {
+template<typename T>
+int ValueBase<T>::length() const {
   if (isString()) return v8::String::Cast(*value)->Length();
   else if (isArray()) return v8::Array::Cast(*value)->Length();
   else if (isObject())

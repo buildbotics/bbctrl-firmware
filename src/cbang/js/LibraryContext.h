@@ -51,7 +51,7 @@ namespace cb {
     class LibraryContext : public ObjectTemplate {
       SmartPointer<Context> ctx;
 
-      typedef std::map<std::string, Value> modules_t;
+      typedef std::map<std::string, PersistentValue> modules_t;
       modules_t modules;
 
       std::vector<std::string> pathStack;

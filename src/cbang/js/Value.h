@@ -44,19 +44,32 @@
 
 namespace cb {
   namespace js {
-    class Value {
+    // Forward Declarations
+    template <typename T> class ValueBase;
+
+    // Type Definitions
+    typedef ValueBase<v8::Handle<v8::Value> > Value;
+    typedef ValueBase<v8::Persistent<v8::Value> > PersistentValue;
+
+
+    template <typename T = v8::Handle<v8::Value> >
+    class ValueBase {
     protected:
-      v8::Handle<v8::Value> value;
+      typedef ValueBase<T> Super_T;
+      typedef T value_t;
+      value_t value;
 
     public:
-      Value();
-      Value(const v8::Handle<v8::Value> &value);
-      explicit Value(bool x);
-      Value(double x);
-      Value(int32_t x);
-      Value(uint32_t x);
-      Value(const char *s, int length = -1);
-      Value(const std::string &s);
+      ValueBase();
+      ValueBase(const ValueBase<> &value);
+      ValueBase(const ValueBase<v8::Persistent<v8::Value> > &value);
+      ValueBase(const value_t &value);
+      explicit ValueBase(bool x);
+      ValueBase(double x);
+      ValueBase(int32_t x);
+      ValueBase(uint32_t x);
+      ValueBase(const char *s, int length = -1);
+      ValueBase(const std::string &s);
 
       // Undefined
       void assertDefined() const;
@@ -111,11 +124,10 @@ namespace cb {
       static Value createArray(unsigned size = 0);
       void assertArray() const;
       bool isArray() const {return value->IsArray();}
-
       int length() const;
 
-      const v8::Handle<v8::Value> &getV8Value() const {return value;}
-      v8::Handle<v8::Value> &getV8Value() {return value;}
+      const value_t &getV8Value() const {return value;}
+      value_t &getV8Value() {return value;}
     };
 
 

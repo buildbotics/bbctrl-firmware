@@ -44,11 +44,10 @@ namespace cb {
   namespace js {
     class Context {
       ObjectTemplate &tmpl;
-      v8::Persistent<v8::Context> context;
+      v8::Handle<v8::Context> context;
 
     public:
       Context(ObjectTemplate &tmpl);
-      ~Context();
 
       void enter() {context->Enter();}
       void exit() {context->Exit();}

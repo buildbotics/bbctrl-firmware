@@ -129,7 +129,7 @@ Value LibraryContext::require(const string &_path) {
 
   // Search already loaded modules
   modules_t::iterator it = modules.find(path);
-  if (it != modules.end()) return it->second;
+  if (it != modules.end()) return it->second.get("exports");
 
   // Setup 'module.exports' for node.js style modules
   if (ctx.isNull()) ctx = new Context(*this);
@@ -139,7 +139,6 @@ Value LibraryContext::require(const string &_path) {
   module.set("id", path);
   module.set("filename", path);
   module.set("loaded", false);
-
   ctx->getGlobal().set("module", module);
   modules[path] = module;
 
@@ -151,7 +150,12 @@ Value LibraryContext::require(const string &_path) {
   Value exports = module.get("exports");
   Value names = exports.getOwnPropertyNames();
 
-  return names.length() ? exports : ret;
+  if (!names.length()) {
+    module.set("exports", ret);
+    return ret;
+  }
+
+  return exports;
 }
 
 
