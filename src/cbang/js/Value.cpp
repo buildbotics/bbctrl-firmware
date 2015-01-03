@@ -134,6 +134,11 @@ Value Value::get(const string &key, Value defaultValue) const {
 }
 
 
+Value Value::getOwnPropertyNames() const {
+  return v8::Handle<v8::Value>(value->ToObject()->GetOwnPropertyNames());
+}
+
+
 void Value::set(uint32_t index, Value value) {
   this->value->ToObject()->Set(index, value.getV8Value());
 }

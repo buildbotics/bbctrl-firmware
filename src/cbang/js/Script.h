@@ -49,7 +49,7 @@ namespace cb {
   namespace js {
     class Script {
       Context &context;
-      v8::Persistent<v8::Script> script;
+      v8::Handle<v8::Script> script;
 
     public:
       Script(Context &context, const std::string &s,

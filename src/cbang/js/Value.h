@@ -103,6 +103,7 @@ namespace cb {
       Value get(const std::string &key) const;
       Value get(uint32_t index, Value defaultValue) const;
       Value get(const std::string &key, Value defaultValue) const;
+      Value getOwnPropertyNames() const;
       void set(uint32_t index, Value value);
       void set(const std::string &key, Value value);
 

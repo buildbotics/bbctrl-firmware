@@ -36,23 +36,29 @@ using namespace std;
 using namespace cb::js;
 
 
-ObjectTemplate::ObjectTemplate() : global(v8::ObjectTemplate::New()) {}
+ObjectTemplate::ObjectTemplate() : tmpl(v8::ObjectTemplate::New()) {}
 
 
 Value ObjectTemplate::create() const {
-  return v8::Handle<v8::Value>(global->NewInstance());
+  return v8::Handle<v8::Value>(tmpl->NewInstance());
 }
 
 
 void ObjectTemplate::set(const string &name, const Value &value) {
-  global->Set(v8::String::NewSymbol(name.c_str(), name.length()),
-              value.getV8Value());
+  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
+            value.getV8Value());
+}
+
+
+void ObjectTemplate::set(const string &name, const ObjectTemplate &tmpl) {
+  this->tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
+                  tmpl.getTemplate());
 }
 
 
 void ObjectTemplate::set(const string &name, const Callback &callback) {
-  global->Set(v8::String::NewSymbol(name.c_str(), name.length()),
-              callback.getTemplate());
+  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
+            callback.getTemplate());
 }
 
 

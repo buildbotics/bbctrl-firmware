@@ -37,6 +37,7 @@
 #include "Callback.h"
 #include "FunctionCallback.h"
 #include "MethodCallback.h"
+#include "VoidMethodCallback.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -49,7 +50,7 @@
 namespace cb {
   namespace js {
     class ObjectTemplate {
-      v8::Handle<v8::ObjectTemplate> global;
+      v8::Handle<v8::ObjectTemplate> tmpl;
       std::vector<SmartPointer<Callback> > callbacks;
 
     public:
@@ -58,6 +59,7 @@ namespace cb {
       Value create() const;
 
       void set(const std::string &name, const Value &value);
+      void set(const std::string &name, const ObjectTemplate &tmpl);
       void set(const std::string &name, const Callback &callback);
       void set(const Signature &sig, FunctionCallback::func_t func);
 
@@ -69,7 +71,16 @@ namespace cb {
         set(sig.getName(), *cb);
       }
 
-      v8::Handle<v8::ObjectTemplate> getTemplate() const {return global;}
+      template <class T>
+      void set(const Signature &sig, T *object,
+               typename VoidMethodCallback<T>::member_t member) {
+        SmartPointer<Callback> cb =
+          new VoidMethodCallback<T>(sig, object, member);
+        callbacks.push_back(cb);
+        set(sig.getName(), *cb);
+      }
+
+      v8::Handle<v8::ObjectTemplate> getTemplate() const {return tmpl;}
     };
   }
 }

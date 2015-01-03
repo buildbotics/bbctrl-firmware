@@ -33,24 +33,61 @@
 #include "StdLibrary.h"
 #include "LibraryContext.h"
 
-using namespace cb::js;
+#include <cbang/log/Logger.h>
+
 using namespace std;
+using namespace cb;
+using namespace cb::js;
 
 
 void StdLibrary::add(ObjectTemplate &tmpl) {
   tmpl.set("print(...)", this, &StdLibrary::print);
   tmpl.set("require(path)", this, &StdLibrary::require);
+
+  // TODO implement other console.* methods
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
+  console.set("log(...)", this, &StdLibrary::consoleLog);
+  console.set("debug(...)", this, &StdLibrary::consoleDebug);
+  console.set("warn(...)", this, &StdLibrary::consoleWarn);
+  console.set("error(...)", this, &StdLibrary::consoleError);
+  tmpl.set("console", console);
 }
 
 
-Value StdLibrary::print(const Arguments &args) {
+void StdLibrary::dumpArgs(ostream &stream, const Arguments &args) const {
+  for (unsigned i = 0; i < args.getCount(); i++) {
+    stream << args[i];
+    if (i) stream << ' ';
+  }
+}
+
+
+void StdLibrary::print(const Arguments &args) {
   for (unsigned i = 0; i < args.getCount(); i++) ctx.out << args[i];
   ctx.out << flush;
-
-  return Value(); // Undefined
 }
 
 
 Value StdLibrary::require(const Arguments &args) {
-  return ctx.load(args.getString("path"));
+  return ctx.require(args.getString("path"));
+}
+
+
+void StdLibrary::consoleLog(const Arguments &args) {
+  dumpArgs(*CBANG_LOG_INFO_STREAM(1), args);
+}
+
+
+void StdLibrary::consoleDebug(const Arguments &args) {
+  dumpArgs(*CBANG_LOG_DEBUG_STREAM(1), args);
+}
+
+
+void StdLibrary::consoleWarn(const Arguments &args) {
+  dumpArgs(*CBANG_LOG_WARNING_STREAM(), args);
+}
+
+
+void StdLibrary::consoleError(const Arguments &args) {
+  dumpArgs(*CBANG_LOG_ERROR_STREAM(), args);
 }

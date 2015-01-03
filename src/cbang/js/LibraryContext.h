@@ -34,8 +34,11 @@
 #define CB_JS_LIBRARY_CONTEXT_H
 
 #include "Value.h"
+#include "Context.h"
+#include "ObjectTemplate.h"
 
 #include <cbang/SmartPointer.h>
+#include <cbang/io/InputSource.h>
 
 #include <ostream>
 #include <map>
@@ -45,21 +48,39 @@
 
 namespace cb {
   namespace js {
-    class LibraryContext {
+    class LibraryContext : public ObjectTemplate {
+      SmartPointer<Context> ctx;
+
       typedef std::map<std::string, Value> modules_t;
       modules_t modules;
 
-      std::vector<std::string> paths;
-      std::vector<std::string> current;
+      std::vector<std::string> pathStack;
+      std::vector<std::string> searchExts;
+      std::vector<std::string> searchPaths;
 
     public:
       std::ostream &out;
 
-      LibraryContext(std::ostream &out) : out(out) {}
+      LibraryContext(std::ostream &out);
+      virtual ~LibraryContext() {}
 
-      std::vector<std::string> &getPaths() {return paths;}
+      void pushPath(const std::string &path) {pathStack.push_back(path);}
+      void popPath();
+      const std::string &getCurrentPath() const;
 
-      Value load(const std::string &path);
+      void addSearchExtensions(const std::string &exts);
+      void appendSearchExtension(const std::string &ext);
+      void clearSearchExtensions() {searchExts.clear();}
+      std::vector<std::string> &getSearchExts() {return searchExts;}
+      std::string searchExtensions(const std::string &path) const;
+
+      void addSearchPaths(const std::string &paths);
+      std::vector<std::string> &getSearchPaths() {return searchPaths;}
+      void clearSearchPaths() {searchPaths.clear();}
+      std::string searchPath(const std::string &path) const;
+
+      virtual Value require(const std::string &path);
+      virtual Value eval(const InputSource &source);
     };
   }
 }

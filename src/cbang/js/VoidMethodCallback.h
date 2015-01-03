@@ -30,37 +30,35 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_STD_LIBRARY_H
-#define CB_JS_STD_LIBRARY_H
+#ifndef CB_JS_VOID_METHOD_CALLBACK_H
+#define CB_JS_VOID_METHOD_CALLBACK_H
 
-#include "Library.h"
-
-#include <ostream>
+#include "Callback.h"
 
 
 namespace cb {
   namespace js {
-    class StdLibrary : public Library {
-      ObjectTemplate console;
+    template <class T>
+    class VoidMethodCallback : public Callback {
+    public:
+      typedef void (T::*member_t)(const Arguments &args);
+
+    protected:
+      T *object;
+      member_t member;
 
     public:
-      StdLibrary(LibraryContext &ctx) : Library(ctx) {}
+      VoidMethodCallback(const Signature &sig, T *object, member_t member) :
+        Callback(sig), object(object), member(member) {}
 
-      // From Library
-      void add(ObjectTemplate &tmpl);
-
-      void dumpArgs(std::ostream &stream, const Arguments &args) const;
-
-      void print(const Arguments &args);
-      Value require(const Arguments &args);
-
-      void consoleLog(const Arguments &args);
-      void consoleDebug(const Arguments &args);
-      void consoleWarn(const Arguments &args);
-      void consoleError(const Arguments &args);
+      // From Callback
+      Value operator()(const Arguments &args) {
+        (*object.*member)(args);
+        return Value(); // Undefined
+      }
     };
   }
 }
 
-#endif // CB_JS_STD_LIBRARY_H
+#endif // CB_JS_VOID_METHOD_CALLBACK_H
 

@@ -34,46 +34,137 @@
 
 #include "Script.h"
 #include "Context.h"
+#include "Scope.h"
 
 #include <cbang/String.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/io/InputSource.h>
+#include <cbang/util/SmartFunctor.h>
+#include <cbang/log/Logger.h>
 
 using namespace cb;
 using namespace cb::js;
 using namespace std;
 
 
-Value LibraryContext::load(const string &_path) {
-  string path = _path;
+LibraryContext::LibraryContext(ostream &out) : out(out) {
+  pushPath(SystemUtilities::getcwd());
+}
 
-  // TODO Check if path is a core module
 
-  // Check absolute/relative paths
-  if (String::startsWith(path, "./") || String::startsWith(path, "/") ||
-      String::startsWith(path, "../")) {
+void LibraryContext::popPath() {
+  if (pathStack.size() == 1) THROW("No path top pop");
+  pathStack.pop_back();
+}
 
-    if (!String::startsWith(path, "/") && !current.empty())
-      path = SystemUtilities::joinPath
-        (SystemUtilities::dirname(current.back()), path);
 
-    path = SystemUtilities::absolute(path);
+const string &LibraryContext::getCurrentPath() const {
+  return pathStack.back();
+}
+
+
+void LibraryContext::addSearchExtensions(const string &exts) {
+  String::tokenize(exts, searchExts);
+}
+
+
+void LibraryContext::appendSearchExtension(const string &ext) {
+  searchExts.push_back(ext);
+}
+
+
+string LibraryContext::searchExtensions(const string &path) const {
+  if (!SystemUtilities::extension(path).empty()) return path;
+
+  for (unsigned i = 0; i < searchExts.size(); i++) {
+    string candidate = path;
+    if (!searchExts[i].empty()) candidate += "." + searchExts[i];
+    if (SystemUtilities::isFile(candidate)) return candidate;
+  }
+
+  return "";
+}
+
+
+void LibraryContext::addSearchPaths(const string &paths) {
+  String::tokenize(paths, searchPaths,
+                   string(1, SystemUtilities::path_delimiter));
+}
+
+
+string LibraryContext::searchPath(const string &path) const {
+  if (SystemUtilities::isAbsolute(path)) {
+    // Search extensions
+    return searchExtensions(path);
+
+  } else if (String::startsWith(path, "./") ||
+             String::startsWith(path, "../")) {
+    // Search relative to current file
+    string candidate = SystemUtilities::absolute(getCurrentPath(), path);
+    candidate = searchExtensions(candidate);
+    if (SystemUtilities::isFile(candidate)) return candidate;
 
   } else {
-    // TODO Search paths
+    // Search paths
+    for (unsigned i = 0; i < searchPaths.size(); i++) {
+      string candidate = SystemUtilities::joinPath(searchPaths[i], path);
+      candidate = searchExtensions(candidate);
+      if (SystemUtilities::isFile(candidate)) return candidate;
+    }
   }
+
+  return "";
+}
+
+
+Value LibraryContext::require(const string &_path) {
+  // TODO Check if path is a core module
+
+  string path = searchPath(_path);
+
+  if (path.empty()) THROWS("Module '" << _path << "' not found");
+
+  // Normalize path
+  path = SystemUtilities::getCanonicalPath(path);
 
   // Search already loaded modules
   modules_t::iterator it = modules.find(path);
   if (it != modules.end()) return it->second;
 
-  ObjectTemplate tmpl;
-  Context ctx(tmpl);
-  Script script(ctx, InputSource(path));
-  script.eval();
+  // Setup 'module.exports' for node.js style modules
+  if (ctx.isNull()) ctx = new Context(*this);
 
-  Value module = ctx.getGlobal();
+  Value module = Value::createObject();
+  module.set("exports", Value::createObject());
+  module.set("id", path);
+  module.set("filename", path);
+  module.set("loaded", false);
+
+  ctx->getGlobal().set("module", module);
   modules[path] = module;
 
-  return module;
+  // Load module
+  Value ret = eval(InputSource(path));
+
+  module.set("loaded", true);
+
+  Value exports = module.get("exports");
+  Value names = exports.getOwnPropertyNames();
+
+  return names.length() ? exports : ret;
+}
+
+
+Value LibraryContext::eval(const InputSource &source) {
+  SmartFunctor<LibraryContext>
+    smartPopPath(this, &LibraryContext::popPath, false);
+
+  if (!source.getName().empty() && source.getName()[0] != '<') {
+    pushPath(source.getName());
+    smartPopPath.setEngaged(true);
+  }
+
+  if (ctx.isNull()) ctx = new Context(*this);
+
+  return Script(*ctx, source).eval();
 }

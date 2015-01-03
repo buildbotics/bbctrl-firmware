@@ -51,21 +51,19 @@ Script::Script(Context &context, const InputSource &source) : context(context) {
 }
 
 
-Script::~Script() {
-  script.Dispose();
-}
+Script::~Script() {}
 
 
 Value Script::eval() {
+  v8::HandleScope handleScope;
+
   ContextScope contextScope(context);
 
   v8::TryCatch tryCatch;
-  Value ret = script->Run();
+  v8::Handle<v8::Value> ret = script->Run();
   if (tryCatch.HasCaught()) translateException(tryCatch);
 
-  LOG_DEBUG(3, "Global: " << context.getGlobal().toString());
-
-  return ret;
+  return handleScope.Close(ret);
 }
 
 
@@ -99,6 +97,8 @@ void Script::load(const string &s, const string &filename) {
   ContextScope contextScope(context);
 
   v8::TryCatch tryCatch;
-  script = v8::Persistent<v8::Script>::New(v8::Script::Compile(source, origin));
+  script = v8::Script::Compile(source, origin);
   if (tryCatch.HasCaught()) translateException(tryCatch);
+
+  script = handleScope.Close(script);
 }
