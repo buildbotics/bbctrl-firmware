@@ -43,16 +43,21 @@
 namespace cb {
   namespace js {
     class Context {
-      ObjectTemplate &tmpl;
       v8::Handle<v8::Context> context;
 
     public:
+      Context(const v8::Handle<v8::Context> &context) : context(context) {}
       Context(ObjectTemplate &tmpl);
 
       void enter() {context->Enter();}
       void exit() {context->Exit();}
 
       Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
+
+      static Context calling() {return v8::Context::GetCalling();}
+      static Context current() {return v8::Context::GetCurrent();}
+      static Context entered() {return v8::Context::GetEntered();}
+      static bool inContext() {return v8::Context::InContext();}
     };
   }
 }

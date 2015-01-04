@@ -33,12 +33,16 @@
 #ifndef CB_JS_SCOPE_H
 #define CB_JS_SCOPE_H
 
-#include "V8.h"
+#include "Value.h"
 
 
 namespace cb {
   namespace js {
-    typedef v8::HandleScope Scope;
+    class Scope : private v8::HandleScope {
+    public:
+      Value close(Value value)
+      {return v8::HandleScope::Close(value.getV8Value());}
+    };
   }
 }
 

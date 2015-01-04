@@ -80,6 +80,7 @@ namespace cb {
       std::string searchPath(const std::string &path) const;
 
       virtual Value require(const std::string &path);
+      virtual Value load(const std::string &path);
       virtual Value eval(const InputSource &source);
     };
   }

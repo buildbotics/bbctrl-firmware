@@ -41,15 +41,14 @@ using namespace std;
 Arguments::Arguments(const v8::Arguments &args, const Signature &sig) :
   args(args), sig(sig), positional(args.Length()) {
 
-  if (positional && args[positional - 1]->IsObject()) {
+  if (sig.size() && positional && args[positional - 1]->IsObject()) {
     keyWord = args[positional - 1];
     positional--;
 
     if (sig.isVariable()) return;
 
-    // Validate key work arguments
-    Value props = (v8::Handle<v8::Value>)
-      keyWord.getV8Value()->ToObject()->GetOwnPropertyNames();
+    // Validate key word arguments
+    Value props = keyWord.getOwnPropertyNames();
 
     for (int i = 0; i < props.length(); i++) {
       string name = props.get(i).toString();

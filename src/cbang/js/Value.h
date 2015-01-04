@@ -126,6 +126,18 @@ namespace cb {
       bool isArray() const {return value->IsArray();}
       int length() const;
 
+      // Function
+      bool isFunction() const {return value->IsFunction();}
+      Value call(Value arg0);
+      Value call(Value arg0, Value arg1);
+      Value call(Value arg0, Value arg1, Value arg2);
+      Value call(Value arg0, Value arg1, Value arg2, Value arg3);
+      Value call(Value arg0, std::vector<Value> args);
+      std::string getName() const;
+      void setName(const std::string &name);
+      int getScriptLineNumber() const;
+
+      // Accessors
       const value_t &getV8Value() const {return value;}
       value_t &getV8Value() {return value;}
     };

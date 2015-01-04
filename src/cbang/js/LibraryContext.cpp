@@ -40,6 +40,7 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/io/InputSource.h>
 #include <cbang/util/SmartFunctor.h>
+#include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
 
 using namespace cb;
@@ -49,6 +50,7 @@ using namespace std;
 
 LibraryContext::LibraryContext(ostream &out) : out(out) {
   pushPath(SystemUtilities::getcwd());
+  addSearchExtensions("/package.json .js .json");
 }
 
 
@@ -78,7 +80,7 @@ string LibraryContext::searchExtensions(const string &path) const {
 
   for (unsigned i = 0; i < searchExts.size(); i++) {
     string candidate = path;
-    if (!searchExts[i].empty()) candidate += "." + searchExts[i];
+    if (!searchExts[i].empty()) candidate += searchExts[i];
     if (SystemUtilities::isFile(candidate)) return candidate;
   }
 
@@ -143,7 +145,7 @@ Value LibraryContext::require(const string &_path) {
   modules[path] = module;
 
   // Load module
-  Value ret = eval(InputSource(path));
+  Value ret = load(path);
 
   module.set("loaded", true);
 
@@ -156,6 +158,29 @@ Value LibraryContext::require(const string &_path) {
   }
 
   return exports;
+}
+
+
+Value LibraryContext::load(const string &_path) {
+  string path = _path;
+
+  if (String::endsWith(path, "/package.json")) {
+    JSON::ValuePtr package = JSON::Reader(path).parse();
+    path = SystemUtilities::absolute(path, package->getString("main"));
+
+  } else if (String::endsWith(path, ".json")) {
+    if (ctx.isNull()) ctx = new Context(*this);
+
+    Scope scope;
+
+    Value JSON = ctx->getGlobal().get("JSON");
+    Value parse = JSON.get("parse");
+    Value jsonString = SystemUtilities::read(path);
+
+    return scope.close(parse.call(JSON, jsonString));
+  }
+
+  return eval(InputSource(path));
 }
 
 

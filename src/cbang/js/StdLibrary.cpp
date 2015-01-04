@@ -63,7 +63,14 @@ void StdLibrary::dumpArgs(ostream &stream, const Arguments &args) const {
 
 
 void StdLibrary::print(const Arguments &args) {
-  for (unsigned i = 0; i < args.getCount(); i++) ctx.out << args[i];
+  Value JSON = Context::current().getGlobal().get("JSON");
+  Value stringify = JSON.get("stringify");
+
+  for (unsigned i = 0; i < args.getCount(); i++)
+    if (args[i].isObject())
+      ctx.out << stringify.call(JSON, args[i]);
+    else ctx.out << args[i];
+
   ctx.out << flush;
 }
 

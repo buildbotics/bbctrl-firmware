@@ -150,7 +150,7 @@ void ValueBase<T>::assertString() const {
 
 template<typename T>
 string ValueBase<T>::toString() const {
-  assertDefined();
+  if (isUndefined()) return "undefined";
   // TODO this is not very efficient
   v8::String::Utf8Value s(value);
   return *s ? string(*s, s.length()) : "(null)";
@@ -252,4 +252,82 @@ int ValueBase<T>::length() const {
   else if (isObject())
     return value->ToObject()->GetOwnPropertyNames()->Length();
   THROW("Value does not have length");
+}
+
+
+template<typename T>
+string ValueBase<T>::getName() const {
+  if (!isFunction()) THROWS("Value is not a function");
+  return Value(v8::Handle<v8::Function>::Cast(value)->GetName()).toString();
+}
+
+
+template<typename T>
+void ValueBase<T>::setName(const string &name) {
+  if (!isFunction()) THROWS("Value is not a function");
+  v8::Handle<v8::Function>::Cast(value)->
+    SetName(v8::String::NewSymbol(name.c_str(), name.length()));
+}
+
+
+template<typename T>
+int ValueBase<T>::getScriptLineNumber() const {
+  if (!isFunction()) THROWS("Value is not a function");
+  return v8::Handle<v8::Function>::Cast(value)->GetScriptLineNumber();
+}
+
+
+template<typename T>
+Value ValueBase<T>::call(Value arg0) {
+  if (!isFunction()) THROWS("Value is not a function");
+  return v8::Handle<v8::Function>::Cast(value)->
+    Call(arg0.getV8Value()->ToObject(), 0, 0);
+}
+
+
+template<typename T>
+Value ValueBase<T>::call(Value arg0, Value arg1) {
+  if (!isFunction()) THROWS("Value is not a function");
+  return v8::Handle<v8::Function>::Cast(value)->
+    Call(arg0.getV8Value()->ToObject(), 1, &arg1.getV8Value());
+}
+
+
+template<typename T>
+Value ValueBase<T>::call(Value arg0, Value arg1, Value arg2) {
+  if (!isFunction()) THROWS("Value is not a function");
+
+  v8::Handle<v8::Value> argv[] = {arg1.getV8Value(), arg2.getV8Value()};
+
+  return v8::Handle<v8::Function>::Cast(value)->
+    Call(arg0.getV8Value()->ToObject(), 2, argv);
+}
+
+
+template<typename T>
+Value ValueBase<T>::call(Value arg0, Value arg1, Value arg2, Value arg3) {
+  if (!isFunction()) THROWS("Value is not a function");
+
+  v8::Handle<v8::Value> argv[] =
+    {arg1.getV8Value(), arg2.getV8Value(), arg3.getV8Value()};
+
+  return v8::Handle<v8::Function>::Cast(value)->
+    Call(arg0.getV8Value()->ToObject(), 3, argv);
+}
+
+
+template<typename T>
+Value ValueBase<T>::call(Value arg0, std::vector<Value> args) {
+  if (!isFunction()) THROWS("Value is not a function");
+
+  SmartPointer<v8::Handle<v8::Value> >::Array argv =
+    new v8::Handle<v8::Value>[args.size()];
+
+  for (unsigned i = 0; i < args.size(); i++)
+    argv[i] = args[i].getV8Value();
+
+  return v8::Handle<v8::Function>::Cast(value)->
+    Call(arg0.getV8Value()->ToObject(), args.size(), argv.get());
+
+  return 0;
 }
