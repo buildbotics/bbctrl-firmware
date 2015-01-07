@@ -41,10 +41,11 @@ using namespace cb::js;
 
 
 void StdLibrary::add(ObjectTemplate &tmpl) {
+  // TODO Implement printf()
   tmpl.set("print(...)", this, &StdLibrary::print);
   tmpl.set("require(path)", this, &StdLibrary::require);
 
-  // TODO implement other console.* methods
+  // TODO Implement other console.* methods
   // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
   console.set("log(...)", this, &StdLibrary::consoleLog);
   console.set("debug(...)", this, &StdLibrary::consoleDebug);
