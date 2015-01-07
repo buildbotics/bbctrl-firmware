@@ -52,14 +52,14 @@ Base::~Base() {
 }
 
 
-Event::Event &Base::newEvent(int fd, unsigned events,
-                    const SmartPointer<EventCallback> &cb) {
+cb::Event::Event &Base::newEvent(int fd, unsigned events,
+                                 const SmartPointer<EventCallback> &cb) {
   return *new Event(*this, fd, events, cb, true); // Deletes itself when done
 }
 
 
-Event::Event &Base::newSignal(int signal,
-                              const SmartPointer<EventCallback> &cb) {
+cb::Event::Event &Base::newSignal(int signal,
+                                  const SmartPointer<EventCallback> &cb) {
   return *new Event(*this, signal, cb, true); // Deletes itself when done
 }
 
