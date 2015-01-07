@@ -171,7 +171,7 @@ string Writer::escape(const string &s) {
   result.reserve(s.length());
 
   for (string::const_iterator it = s.begin(); it != s.end(); it++) {
-    char c = *it;
+    unsigned char c = *it;
 
     switch (c) {
     case 0: result.append("\\u0000"); break;
