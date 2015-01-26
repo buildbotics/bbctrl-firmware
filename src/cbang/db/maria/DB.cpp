@@ -85,7 +85,8 @@ void DB::setConnectTimeout(unsigned secs) {
 
 
 void DB::setLocalInFile(bool enable) {
-  if (mysql_options(db, MYSQL_OPT_LOCAL_INFILE, enable ? "1" : 0))
+  my_bool x = enable;
+  if (mysql_options(db, MYSQL_OPT_LOCAL_INFILE, &x))
     THROWS("Failed to " << (enable ? "enable" : "disable")
            << " MariaD local infile");
 }
@@ -112,7 +113,8 @@ void DB::setProtocol(protocol_t protocol) {
 
 
 void DB::setReconnect(bool enable) {
-  if (mysql_options(db, MYSQL_OPT_RECONNECT, enable ? "1" : 0))
+  my_bool x = enable;
+  if (mysql_options(db, MYSQL_OPT_RECONNECT, &x))
     THROWS("Failed to " << (enable ? "enable" : "disable")
            << "MariaDB auto reconnect");
 }
@@ -143,7 +145,8 @@ void DB::readDefaultGroup(const string &path) {
 
 
 void DB::setReportDataTruncation(bool enable) {
-  if (mysql_options(db, MYSQL_REPORT_DATA_TRUNCATION, enable ? "1" : 0))
+  my_bool x = enable;
+  if (mysql_options(db, MYSQL_REPORT_DATA_TRUNCATION, &x))
     THROWS("Failed to" << (enable ? "enable" : "disable")
            << " MariaDB data truncation reporting.");
 }
