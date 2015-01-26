@@ -697,7 +697,7 @@ void DB::assertConnected() const {
 
 
 void DB::assertPending() const {
-  if (!nonBlocking || !status) THROW("Connect not pending");
+  if (!nonBlocking || !status) THROW("Connection not pending");
 }
 
 

@@ -82,6 +82,7 @@ namespace cb {
         FLAG_MULTI_STATEMENTS  = 1 << 16,
         FLAG_MULTI_RESULTS     = 1 << 17,
         FLAG_PS_MULTI_RESULTS  = 1 << 18,
+        FLAG_DEFAULTS = FLAG_MULTI_STATEMENTS | FLAG_MULTI_RESULTS,
       } flags_t;
 
       typedef enum {
@@ -133,14 +134,14 @@ namespace cb {
                    const std::string &dbName = std::string(),
                    unsigned port = 3306,
                    const std::string &socketName = std::string(),
-                   flags_t flags = FLAG_NONE);
+                   flags_t flags = FLAG_DEFAULTS);
       bool connectNB(const std::string &host = "localhost",
                      const std::string &user = "root",
                      const std::string &password = std::string(),
                      const std::string &dbName = std::string(),
                      unsigned port = 3306,
                      const std::string &socketName = std::string(),
-                     flags_t flags = FLAG_NONE);
+                     flags_t flags = FLAG_DEFAULTS);
       void close();
       bool closeNB();
       void use(const std::string &db);
