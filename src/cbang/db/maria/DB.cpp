@@ -738,7 +738,7 @@ bool DB::continueNB(unsigned ready) {
   assertPending();
   if (!continueFunc) THROWS("Continue function not set");
   bool ret = (this->*continueFunc)(ready);
-  continueFunc = 0;
+  if (ret) continueFunc = 0;
   return ret;
 }
 
