@@ -75,6 +75,8 @@ namespace cb {
       uint32_t getUint32(unsigned index) const;
       std::string getString(unsigned index) const;
 
+      std::string toString() const;
+
       Value operator[](const std::string &name) const {return get(name);}
       Value operator[](unsigned i) const {return get(i);}
    };

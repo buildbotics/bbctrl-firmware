@@ -34,6 +34,8 @@
 
 #include "Signature.h"
 
+#include <cbang/log/Logger.h>
+
 using namespace cb::js;
 using namespace std;
 
@@ -52,9 +54,11 @@ Arguments::Arguments(const v8::Arguments &args, const Signature &sig) :
 
     for (int i = 0; i < props.length(); i++) {
       string name = props.get(i).toString();
+      //LOG_DEBUG(1, i << ' ' << name);
+
       if (!sig.has(name))
-        THROWS("Invalid key word argument '" << name << "' when calling "
-               << sig);
+        ;//THROWS("Invalid key word argument '" << name << "' when calling "
+         //      << sig);
     }
   }
 }
@@ -157,4 +161,16 @@ uint32_t Arguments::getUint32(unsigned index) const {
 
 string Arguments::getString(unsigned index) const {
   return get(index).toString();
+}
+
+
+string Arguments::toString() const {
+  string s = "(";
+
+  for (unsigned i = 0; i < getCount(); i++) {
+    if (i) s += ", ";
+    s += getString(i);
+  }
+
+  return s + ")";
 }

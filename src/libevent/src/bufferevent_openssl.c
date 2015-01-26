@@ -67,6 +67,10 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#ifdef HAVE_VALGRIND_H
+#include <valgrind/memcheck.h>
+#endif
+
 /*
  * Define an OpenSSL bio that targets a bufferevent.
  */
@@ -596,7 +600,12 @@ do_read(struct bufferevent_openssl *bev_ssl, int n_to_read) {
 		if (bev_ssl->bev.read_suspended)
 			break;
 		r = SSL_read(bev_ssl->ssl, space[i].iov_base, space[i].iov_len);
-		if (r>0) {
+        if (r>0) {
+
+#ifdef VALGRIND_MAKE_MEM_DEFINED
+          VALGRIND_MAKE_MEM_DEFINED(space[i].iov_base, r);
+#endif // VALGRIND_MAKE_MEM_DEFINED
+
 			result |= OP_MADE_PROGRESS;
 			if (bev_ssl->read_blocked_on_write)
 				if (clear_rbow(bev_ssl) < 0)

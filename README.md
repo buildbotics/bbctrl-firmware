@@ -54,6 +54,8 @@ For licensing information please see the files LICENSE and COPYING.
   - IP address / hostname resolution, parsing and manipulation.
   - URL parsing.
   - Geometric primitives.
+  - C++ wrapper for libevent.
+  - Async MariaDB interface using libevent.
   - Human readable size & time formatting.
   - Many other utility classes.
   - Completely contained in it's own C++ namespace.
@@ -63,14 +65,21 @@ For licensing information please see the files LICENSE and COPYING.
 # Prerequisites
 ## General
   - A modern C++ compiler: GNU C++, Intel C++, MSVS
-  - SCons    http://scons.org/
-  - bzip2    http://bzip.org/
-  - zlib     http://zlib.net/
-  - expat    http://expat.sourceforge.net/
-  - openssl  http://www.openssl.org/
-  - sqlite   http://www.sqlite.org/
-  - boost    http://www.boost.org/
-  - v8       http://code.google.com/p/v8/
+  - SCons     http://scons.org/
+  - bzip2     http://bzip.org/
+  - zlib      http://zlib.net/
+  - expat     http://expat.sourceforge.net/
+  - openssl   http://www.openssl.org/
+  - sqlite    http://www.sqlite.org/
+  - boost     http://www.boost.org/
+  - v8        http://code.google.com/p/v8/ (optional)
+  - libevent  http://libevent.org/ (optional)
+  - mariadb   https://mariadb.org/ (optional)
+
+## Debug mode only
+
+  - libbfd    ftp://ftp.gnu.org/old-gnu/Manuals/bfd-2.9.1/html_mono/bfd.html
+  - libiberty https://gcc.gnu.org/onlinedocs/libiberty/
 
 ## Windows only
   - Winsock
@@ -88,7 +97,8 @@ command line:
 
     sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
       libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev \
-      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev git
+      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev \
+      binutils-dev libiberty-dev libmariadbclient-dev git
 
 # Build
 

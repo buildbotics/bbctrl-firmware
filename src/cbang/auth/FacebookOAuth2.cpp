@@ -46,7 +46,6 @@ FacebookOAuth2::FacebookOAuth2(Options &options) : OAuth2("facebook") {
   tokenURL = "https://graph.facebook.com/oauth/access_token";
   profileURL =
     "https://graph.facebook.com/me?fields=id,name,email,picture,verified";
-  //profileURL = "https://graph.facebook.com/me";
   scope = "email";
 
   options.pushCategory("Facebook OAuth2 Login");
