@@ -733,6 +733,8 @@ void DB::assertInFieldRange(unsigned i) const {
 
 
 bool DB::continueNB(unsigned ready) {
+  LOG_DEBUG(5, __func__ << "()");
+
   assertPending();
   if (!continueFunc) THROWS("Continue function not set");
   bool ret = (this->*continueFunc)(ready);
