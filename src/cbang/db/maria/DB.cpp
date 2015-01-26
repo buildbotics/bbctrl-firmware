@@ -188,8 +188,9 @@ bool DB::connectNB(const string &host, const string &user,
 
   MYSQL *db = 0;
   status = mysql_real_connect_start
-    (&db, this->db, host.c_str(), user.c_str(), password.c_str(),
-     dbName.c_str(), port, socketName.empty() ? 0 : socketName.c_str(), flags);
+    (&db, this->db, strdup(host.c_str()), strdup(user.c_str()),
+     strdup(password.c_str()), strdup(dbName.c_str()), port,
+     socketName.empty() ? 0 : strdup(socketName.c_str()), flags);
 
   if (status) {
     continueFunc = &DB::connectContinue;
