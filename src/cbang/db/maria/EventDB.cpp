@@ -165,7 +165,7 @@ namespace {
         return next();
 
       case STATE_DONE:
-        LOG_DEBUG(5, "EVENTDB_DONE");
+        LOG_DEBUG(6, "EVENTDB_DONE");
         call(EventDBCallback::EVENTDB_DONE);
         return true;
 
