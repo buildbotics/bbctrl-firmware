@@ -57,11 +57,13 @@ using namespace cb::MariaDB;
 DB::DB(st_mysql *db) :
   db(db ? db : mysql_init(0)), res(0), nonBlocking(false), connected(false),
   stored(false), status(0), continueFunc(0) {
+  LOG_DEBUG(5, __func__ << "()");
   if (!this->db) THROW("Failed to create MariaDB");
 }
 
 
 DB::~DB() {
+  LOG_DEBUG(5, __func__ << "()");
   if (db) mysql_close(db);
 }
 
@@ -227,6 +229,7 @@ bool DB::closeNB() {
     return false;
   }
 
+  db = 0;
   connected = false;
   return true;
 }
@@ -697,7 +700,7 @@ void DB::assertConnected() const {
 
 
 void DB::assertPending() const {
-  if (!nonBlocking || !status) THROW("Connection not pending");
+  if (!nonBlocking || !status) raiseError("Non-blocking call not pending");
 }
 
 
@@ -879,9 +882,10 @@ bool DB::threadSafe() {
 bool DB::closeContinue(unsigned ready) {
   LOG_DEBUG(5, __func__ << "()");
 
-  status = mysql_close_cont(this->db, ready);
+  status = mysql_close_cont(db, ready);
   if (status) return false;
 
+  db = 0;
   connected = false;
   return true;
 }
