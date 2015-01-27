@@ -213,7 +213,7 @@ namespace cb {
       bool hasError() const;
       std::string getError() const;
       unsigned getErrorNumber() const;
-      void raiseError(const std::string &msg) const;
+      void raiseError(const std::string &msg, bool withDBError = true) const;
       unsigned getWarningCount() const;
 
       // Assertions

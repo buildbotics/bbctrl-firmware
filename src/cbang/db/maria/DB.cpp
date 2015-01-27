@@ -49,6 +49,9 @@
 #define STR_DATA(s) (s).data()
 #endif
 
+#define RAISE_ERROR(msg) raiseError(SSTR(msg), false)
+#define RAISE_DB_ERROR(msg) raiseError(SSTR(msg), true)
+
 using namespace std;
 using namespace cb;
 using namespace cb::MariaDB;
@@ -58,7 +61,7 @@ DB::DB(st_mysql *db) :
   db(db ? db : mysql_init(0)), res(0), nonBlocking(false), connected(false),
   stored(false), status(0), continueFunc(0) {
   LOG_DEBUG(5, __func__ << "()");
-  if (!this->db) THROW("Failed to create MariaDB");
+  if (!this->db) RAISE_DB_ERROR("Failed to create MariaDB");
 }
 
 
@@ -70,33 +73,33 @@ DB::~DB() {
 
 void DB::setInitCommand(const string &cmd) {
   if (mysql_options(db, MYSQL_INIT_COMMAND, cmd.c_str()))
-    THROWS("Failed to set MariaDB init command: " << cmd);
+    RAISE_DB_ERROR("Failed to set MariaDB init command: " << cmd);
 }
 
 
 void DB::enableCompression() {
   if (mysql_options(db, MYSQL_OPT_COMPRESS, 0))
-    THROW("Failed to enable MariaDB compress");
+    RAISE_DB_ERROR("Failed to enable MariaDB compress");
 }
 
 
 void DB::setConnectTimeout(unsigned secs) {
   if (mysql_options(db, MYSQL_OPT_CONNECT_TIMEOUT, &secs))
-    THROWS("Failed to set MariaDB connect timeout to " << secs);
+    RAISE_DB_ERROR("Failed to set MariaDB connect timeout to " << secs);
 }
 
 
 void DB::setLocalInFile(bool enable) {
   my_bool x = enable;
   if (mysql_options(db, MYSQL_OPT_LOCAL_INFILE, &x))
-    THROWS("Failed to " << (enable ? "enable" : "disable")
-           << " MariaD local infile");
+    RAISE_DB_ERROR("Failed to " << (enable ? "enable" : "disable")
+                << " MariaD local infile");
 }
 
 
 void DB::enableNamedPipe() {
   if (mysql_options(db, MYSQL_OPT_NAMED_PIPE, 0))
-    THROWS("Failed to enable MariaDB named pipe");
+    RAISE_DB_ERROR("Failed to enable MariaDB named pipe");
 }
 
 
@@ -106,63 +109,63 @@ void DB::setProtocol(protocol_t protocol) {
   case PROTOCOL_TCP: type = MYSQL_PROTOCOL_TCP; break;
   case PROTOCOL_SOCKET: type = MYSQL_PROTOCOL_SOCKET; break;
   case PROTOCOL_PIPE: type = MYSQL_PROTOCOL_PIPE; break;
-  default: THROWS("Invalid protocol " << protocol);
+  default: RAISE_ERROR("Invalid protocol " << protocol);
   }
 
   if (mysql_options(db, MYSQL_OPT_PROTOCOL, &type))
-    THROWS("Failed to set MariaDB protocol to " << protocol);
+    RAISE_DB_ERROR("Failed to set MariaDB protocol to " << protocol);
 }
 
 
 void DB::setReconnect(bool enable) {
   my_bool x = enable;
   if (mysql_options(db, MYSQL_OPT_RECONNECT, &x))
-    THROWS("Failed to " << (enable ? "enable" : "disable")
-           << "MariaDB auto reconnect");
+    RAISE_DB_ERROR("Failed to " << (enable ? "enable" : "disable")
+                   << "MariaDB auto reconnect");
 }
 
 
 void DB::setReadTimeout(unsigned secs) {
   if (mysql_options(db, MYSQL_OPT_READ_TIMEOUT, &secs))
-    THROWS("Failed to set MariaDB read timeout to " << secs);
+    RAISE_DB_ERROR("Failed to set MariaDB read timeout to " << secs);
 }
 
 
 void DB::setWriteTimeout(unsigned secs) {
   if (mysql_options(db, MYSQL_OPT_WRITE_TIMEOUT, &secs))
-    THROWS("Failed to set MariaDB write timeout to " << secs);
+    RAISE_DB_ERROR("Failed to set MariaDB write timeout to " << secs);
 }
 
 
 void DB::setDefaultFile(const string &path) {
   if (mysql_options(db, MYSQL_READ_DEFAULT_FILE, path.c_str()))
-    THROWS("Failed to set MariaDB default type to " << path);
+    RAISE_DB_ERROR("Failed to set MariaDB default type to " << path);
 }
 
 
 void DB::readDefaultGroup(const string &path) {
   if (mysql_options(db, MYSQL_READ_DEFAULT_GROUP, path.c_str()))
-    THROWS("Failed to read MariaDB default group file " << path);
+    RAISE_DB_ERROR("Failed to read MariaDB default group file " << path);
 }
 
 
 void DB::setReportDataTruncation(bool enable) {
   my_bool x = enable;
   if (mysql_options(db, MYSQL_REPORT_DATA_TRUNCATION, &x))
-    THROWS("Failed to" << (enable ? "enable" : "disable")
-           << " MariaDB data truncation reporting.");
+    RAISE_DB_ERROR("Failed to" << (enable ? "enable" : "disable")
+                << " MariaDB data truncation reporting.");
 }
 
 
 void DB::setCharacterSet(const string &name) {
   if (mysql_options(db, MYSQL_SET_CHARSET_NAME, name.c_str()))
-    THROWS("Failed to set MariaDB character set to " << name);
+    RAISE_DB_ERROR("Failed to set MariaDB character set to " << name);
 }
 
 
 void DB::enableNonBlocking() {
   if (mysql_options(db, MYSQL_OPT_NONBLOCK, 0))
-    THROW("Failed to set MariaDB to non-blocking mode");
+    RAISE_DB_ERROR("Failed to set MariaDB to non-blocking mode");
   nonBlocking = true;
 }
 
@@ -175,7 +178,7 @@ void DB::connect(const string &host, const string &user, const string &password,
     (this->db, host.c_str(), user.c_str(), password.c_str(), dbName.c_str(),
      port, socketName.empty() ? 0 : socketName.c_str(), flags);
 
-  if (!db) raiseError("Failed to connect");
+  if (!db) RAISE_DB_ERROR("Failed to connect");
   connected = true;
 }
 
@@ -198,7 +201,7 @@ bool DB::connectNB(const string &host, const string &user,
     return false;
   }
 
-  if (!db) raiseError("Failed to connect");
+  if (!db) RAISE_DB_ERROR("Failed to connect");
   connected = true;
 
   return true;
@@ -240,7 +243,7 @@ void DB::use(const string &dbName) {
   assertNotPending();
 
   if (mysql_select_db(db, dbName.c_str()))
-    raiseError("Failed to select DB");
+    RAISE_DB_ERROR("Failed to select DB");
 }
 
 
@@ -259,7 +262,7 @@ bool DB::useNB(const string &dbName) {
     return false;
   }
 
-  if (ret) raiseError("Failed to select DB");
+  if (ret) RAISE_DB_ERROR("Failed to select DB");
 
   return true;
 }
@@ -270,7 +273,7 @@ void DB::query(const string &s) {
   assertNotPending();
 
   if (mysql_real_query(db, STR_DATA(s), s.length()))
-    raiseError("Query failed");
+    RAISE_DB_ERROR("Query failed");
 }
 
 
@@ -289,7 +292,7 @@ bool DB::queryNB(const string &s) {
     return false;
   }
 
-  if (ret) raiseError("Query failed");
+  if (ret) RAISE_DB_ERROR("Query failed");
 
   return true;
 }
@@ -301,7 +304,7 @@ void DB::useResult() {
   assertNotHaveResult();
 
   res = mysql_use_result(db);
-  if (!res) THROW("Failed to use result");
+  if (!res) RAISE_DB_ERROR("Failed to use result");
 
   stored = false;
 }
@@ -315,7 +318,7 @@ void DB::storeResult() {
   res = mysql_store_result(db);
 
   if (res) stored = true;
-  else if (hasError()) raiseError("Failed to store result");
+  else if (hasError()) RAISE_DB_ERROR("Failed to store result");
 }
 
 
@@ -334,7 +337,7 @@ bool DB::storeResultNB() {
   }
 
   if (res) stored = true;
-  else if (hasError()) raiseError("Failed to store result");
+  else if (hasError()) RAISE_DB_ERROR("Failed to store result");
 
   return true;
 }
@@ -351,7 +354,7 @@ bool DB::nextResult() {
   assertNotPending();
 
   int ret = mysql_next_result(db);
-  if (0 < ret) raiseError("Failed to get next result");
+  if (0 < ret) RAISE_DB_ERROR("Failed to get next result");
 
   return ret == 0;
 }
@@ -372,7 +375,8 @@ bool DB::nextResultNB() {
     return false;
   }
 
-  if (0 < ret) raiseError("Failed to get next result");
+  if (0 < ret) RAISE_DB_ERROR("Failed to get next result");
+  if (ret) LOG_DEBUG(5, "No more results");
 
   return true;
 }
@@ -462,8 +466,9 @@ bool DB::haveRow() const {
 
 void DB::seekRow(uint64_t row) {
   assertHaveResult();
-  if (!stored) THROW("Must use storeResult() before seekRow()");
-  if (mysql_num_rows(res) <= row) THROWS("Row seek out of range " << row);
+  if (!stored) RAISE_ERROR("Must use storeResult() before seekRow()");
+  if (mysql_num_rows(res) <= row)
+    RAISE_ERROR("Row seek out of range " << row);
   mysql_data_seek(res, row);
 }
 
@@ -553,37 +558,43 @@ bool DB::getBoolean(unsigned i) const {
 
 
 double DB::getDouble(unsigned i) const {
-  if (!getField(i).isNumber()) THROWS("Field " << i << " is not a number");
+  if (!getField(i).isNumber())
+    RAISE_ERROR("Field " << i << " is not a number");
   return String::parseDouble(getString(i));
 }
 
 
 uint32_t DB::getU32(unsigned i) const {
-  if (!getField(i).isInteger()) THROWS("Field " << i << " is not an integer");
+  if (!getField(i).isInteger())
+    RAISE_ERROR("Field " << i << " is not an integer");
   return String::parseU32(getString(i));
 }
 
 
 int32_t DB::getS32(unsigned i) const {
-  if (!getField(i).isInteger()) THROWS("Field " << i << " is not an integer");
+  if (!getField(i).isInteger())
+    RAISE_ERROR("Field " << i << " is not an integer");
   return String::parseS32(getString(i));
 }
 
 
 uint64_t DB::getU64(unsigned i) const {
-  if (!getField(i).isInteger()) THROWS("Field " << i << " is not an integer");
+  if (!getField(i).isInteger())
+    RAISE_ERROR("Field " << i << " is not an integer");
   return String::parseU64(getString(i));
 }
 
 
 int64_t DB::getS64(unsigned i) const {
-  if (!getField(i).isInteger()) THROWS("Field " << i << " is not an integer");
+  if (!getField(i).isInteger())
+    RAISE_ERROR("Field " << i << " is not an integer");
   return String::parseS64(getString(i));
 }
 
 
 uint64_t DB::getBit(unsigned i) const {
-  if (getType(i) != Field::TYPE_BIT) THROWS("Field " << i << " is not bit");
+  if (getType(i) != Field::TYPE_BIT)
+    RAISE_ERROR("Field " << i << " is not bit");
 
   uint64_t x = 0;
   for (const char *ptr = res->current_row[i]; *ptr; ptr++) {
@@ -596,7 +607,8 @@ uint64_t DB::getBit(unsigned i) const {
 
 
 void DB::getSet(unsigned i, set<string> &s) const {
-  if (getType(i) != Field::TYPE_SET) THROWS("Field " << i << " is not a set");
+  if (getType(i) != Field::TYPE_SET)
+    RAISE_ERROR("Field " << i << " is not a set");
 
   const char *start = res->current_row[i];
   const char *end = start;
@@ -642,7 +654,9 @@ double DB::getTime(unsigned i) const {
   case Field::TYPE_DATETIME:
     return decimal + Time::parse(time, "%Y-%m-%d %H%M%S");
 
-  default: THROWS("Invalid time type");
+  default:
+    RAISE_ERROR("Invalid time type");
+    return 0;
   }
 }
 
@@ -684,8 +698,9 @@ unsigned DB::getErrorNumber() const {
 }
 
 
-void DB::raiseError(const string &msg) const {
-  THROWS("MariaDB: " << msg << ": " << getError());
+void DB::raiseError(const string &msg, bool withDBError) const {
+  if (!withDBError || db) THROWS("MariaDB: " << msg << ": " << getError());
+  else THROWS("MariaDB: " << msg);
 }
 
 
@@ -695,43 +710,47 @@ unsigned DB::getWarningCount() const {
 
 
 void DB::assertConnected() const {
-  if (!connected) THROW("Not connected");
+  if (!connected) RAISE_ERROR("Not connected");
 }
 
 
 void DB::assertPending() const {
-  if (!nonBlocking || !status) raiseError("Non-blocking call not pending");
+  if (!nonBlocking || !status)
+    RAISE_ERROR("Non-blocking call not pending");
 }
 
 
 void DB::assertNotPending() const {
-  if (status) raiseError("Non-blocking call still pending");
+  if (status) RAISE_ERROR("Non-blocking call still pending");
 }
 
 
 void DB::assertNonBlocking() const {
-  if (!nonBlocking) raiseError("Connection is not in nonBlocking mode");
+  if (!nonBlocking) RAISE_ERROR("Connection is not in nonBlocking mode");
 }
 
 
 void DB::assertHaveResult() const {
-  if (!haveResult()) raiseError("Don't have result, must call query() and "
-                                "useResult() or storeResult()");
+  if (!haveResult()) RAISE_ERROR("Don't have result, must call query() and "
+                                 "useResult() or storeResult()");
 }
 
 
 void DB::assertNotHaveResult() const {
-  if (haveResult()) raiseError("Already have result, must call freeResult()");
+  if (haveResult())
+    RAISE_ERROR("Already have result, must call freeResult()");
 }
 
 
 void DB::assertHaveRow() const {
-  if (!haveRow()) raiseError("Don't have row, must call fetchRow()");
+  if (!haveRow())
+    RAISE_ERROR("Don't have row, must call fetchRow()");
 }
 
 
 void DB::assertInFieldRange(unsigned i) const {
-  if (getFieldCount() <= 0) THROWS("Out of field range " << i);
+  if (getFieldCount() <= 0)
+    RAISE_ERROR("Out of field range " << i);
 }
 
 
@@ -739,7 +758,7 @@ bool DB::continueNB(unsigned ready) {
   LOG_DEBUG(5, __func__ << "()");
 
   assertPending();
-  if (!continueFunc) THROWS("Continue function not set");
+  if (!continueFunc) RAISE_ERROR("Continue function not set");
   bool ret = (this->*continueFunc)(ready);
   if (ret) continueFunc = 0;
   return ret;
@@ -898,7 +917,7 @@ bool DB::connectContinue(unsigned ready) {
   status = mysql_real_connect_cont(&db, this->db, ready);
   if (status) return false;
 
-  if (!db) THROW("Failed to connect");
+  if (!db) RAISE_DB_ERROR("Failed to connect");
   connected = true;
 
   return true;
@@ -912,7 +931,7 @@ bool DB::useContinue(unsigned ready) {
   status = mysql_select_db_cont(&ret, this->db, ready);
   if (status) return false;
 
-  if (ret) THROW("Failed to select DB");
+  if (ret) RAISE_DB_ERROR("Failed to select DB");
 
   return true;
 }
@@ -926,7 +945,7 @@ bool DB::queryContinue(unsigned ready) {
             << " ret=" << ret);
 
   if (status) return false;
-  if (ret) THROW("Query failed");
+  if (ret) RAISE_DB_ERROR("Query failed");
 
   return true;
 }
@@ -939,7 +958,7 @@ bool DB::storeResultContinue(unsigned ready) {
   if (status) return false;
 
   if (res) stored = true;
-  else if (hasError()) THROW("Failed to store result");
+  else if (hasError()) RAISE_DB_ERROR("Failed to store result");
 
   return true;
 }
@@ -952,7 +971,8 @@ bool DB::nextResultContinue(unsigned ready) {
   status = mysql_next_result_cont(&ret, this->db, ready);
   if (status) return false;
 
-  if (0 < ret) THROW("Failed to get next result");
+  if (0 < ret) RAISE_DB_ERROR("Failed to get next result");
+  if (ret) LOG_DEBUG(5, "No more results");
 
   return true;
 }
