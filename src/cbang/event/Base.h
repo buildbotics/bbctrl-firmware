@@ -54,9 +54,15 @@ namespace cb {
 
       struct event_base *getBase() const {return base;}
 
+      Event &newEvent(const SmartPointer<EventCallback> &cb);
       Event &newEvent(int fd, unsigned events,
                       const SmartPointer<EventCallback> &cb);
       Event &newSignal(int signal, const SmartPointer<EventCallback> &cb);
+
+      template <class T>
+      Event &newEvent(T *obj, typename EventMemberFunctor<T>::member_t member) {
+        return newEvent(new EventMemberFunctor<T>(obj, member));
+      }
 
       template <class T>
       Event &newEvent(int fd, unsigned events, T *obj,

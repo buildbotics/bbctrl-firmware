@@ -52,6 +52,11 @@ Base::~Base() {
 }
 
 
+cb::Event::Event &Base::newEvent(const SmartPointer<EventCallback> &cb) {
+  return *new Event(*this, -1, 0, cb, true); // Deletes itself when done
+}
+
+
 cb::Event::Event &Base::newEvent(int fd, unsigned events,
                                  const SmartPointer<EventCallback> &cb) {
   return *new Event(*this, fd, events, cb, true); // Deletes itself when done
