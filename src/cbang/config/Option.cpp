@@ -424,6 +424,7 @@ void Option::printHelp(XMLHandler &handler) const {
   handler.endElement("a");
 
   // Name
+  attrs.clear();
   attrs["class"] = "name";
   handler.startElement("span", attrs);
   handler.text(getName());
@@ -439,9 +440,12 @@ void Option::printHelp(XMLHandler &handler) const {
   if (hasDefault()) {
     handler.text(" = ");
 
+    bool isString = type == STRING_TYPE || type == STRINGS_TYPE;
+
     attrs["class"] = "default";
     handler.startElement("span", attrs);
-    handler.text(getDefault());
+    handler.text((isString ? "\"" : "") + getDefault() +
+                 (isString ? "\"" : ""));
     handler.endElement("span");
   }
 

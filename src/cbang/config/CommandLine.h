@@ -85,6 +85,7 @@ namespace cb {
 
   private:
     int usageAction(Option &option);
+    int htmlHelpAction();
     int licenseAction();
     int incVerbosityAction();
   };

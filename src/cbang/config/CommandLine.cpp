@@ -34,6 +34,7 @@
 
 #include <cbang/Exception.h>
 
+#include <cbang/xml/XMLWriter.h>
 #include <cbang/log/Logger.h>
 
 #include <stdlib.h>
@@ -51,6 +52,10 @@ CommandLine::CommandLine() :
             "Print help screen or help on a particular option and exit.");
   opt->setType(Option::STRING_TYPE);
   opt->setOptional();
+
+  add("help-html", 0,
+      new OptionAction<CommandLine>(this, &CommandLine::htmlHelpAction),
+      "Print help in HTML format and exit.");
 
   add(string(), 'v',
       new OptionAction<CommandLine>(this, &CommandLine::incVerbosityAction),
@@ -171,6 +176,61 @@ int CommandLine::usageAction(Option &option) {
     opt->printHelp(cout) << endl;
 
   } else usage(cout, name);
+
+  exit(0); // TODO cb::Option calls this action so we have to exit(0). FIXME!
+  return -1;
+}
+
+
+int CommandLine::htmlHelpAction() {
+  if (keywords) {
+    XMLWriter writer(cout);
+
+    writer.startElement("html");
+    writer.startElement("head");
+
+    writer.startElement("style");
+    writer.text
+      (".option {"
+       "  border: 1px solid black;"
+       "  margin: 5px;"
+       "  padding: 5px;"
+       "  background: white;"
+       "  text-align: left;"
+       "}"
+       ""
+       ".option .name {"
+       "  font-weight: bold;"
+       "  margin-right: 1em;"
+       "}"
+       ""
+       ".option .type {"
+       "  color: green;"
+       "}"
+       ""
+       ".option .default {"
+       "  color: red;"
+       "}"
+       ""
+       ".option .help {"
+       "  margin-top: 1em;"
+       "  white-space: pre-wrap;"
+       "}"
+       ""
+       ".options td {"
+       "  text-align: left;"
+       "}");
+
+    writer.endElement("style");
+    writer.endElement("head");
+
+    writer.startElement("body");
+
+    keywords->printHelp(writer);
+
+    writer.endElement("body");
+    writer.endElement("html");
+  }
 
   exit(0); // TODO cb::Option calls this action so we have to exit(0). FIXME!
   return -1;
