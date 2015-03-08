@@ -44,6 +44,7 @@ namespace cb {
         EVENTDB_BEGIN_RESULT,
         EVENTDB_ROW,
         EVENTDB_END_RESULT,
+        EVENTDB_RETRY,
         EVENTDB_DONE,
       } state_t;
 

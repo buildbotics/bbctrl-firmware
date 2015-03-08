@@ -48,6 +48,7 @@ void Writer::close() {
 
 void Writer::reset() {
   NullSync::reset();
+  stream.flush();
   level = initLevel;
   simple = false;
   first = true;

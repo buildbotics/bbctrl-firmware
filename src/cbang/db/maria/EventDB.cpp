@@ -40,6 +40,8 @@
 #include <cbang/log/Logger.h>
 #include <cbang/json/Value.h>
 
+#include <mysql/mysqld_error.h>
+
 using namespace std;
 using namespace cb;
 using namespace cb::MariaDB;
@@ -87,6 +89,7 @@ namespace {
     SmartPointer<EventDBCallback> cb;
     string query;
     const SmartPointer<JSON::Value> dict;
+    unsigned retry;
 
     typedef enum {
       STATE_START,
@@ -102,8 +105,10 @@ namespace {
 
   public:
     QueryCallback(EventDB &db, const SmartPointer<EventDBCallback> &cb,
-                  const string &query, const SmartPointer<JSON::Value> &dict) :
-      db(db), cb(cb), query(query), dict(dict), state(STATE_START) {}
+                  const string &query, const SmartPointer<JSON::Value> &dict,
+                  unsigned retry = 5) :
+      db(db), cb(cb), query(query), dict(dict), retry(retry),
+      state(STATE_START) {}
 
 
     void call(EventDBCallback::state_t state) {
@@ -175,15 +180,24 @@ namespace {
 
 
     // From cb::Event::EventCallback
-    void operator()(Event::Event &e, int fd, unsigned flags) {
+    void operator()(Event::Event &event, int fd, unsigned flags) {
       try {
         if (db.continueNB(event_flags_to_db_ready(flags))) {
-          if (!next()) db.renewEvent(e);
-        } else db.addEvent(e);
+          if (!next()) db.renewEvent(event);
+        } else db.addEvent(event);
 
       } catch (const Exception &e) {
-        LOG_ERROR(e);
-        call(EventDBCallback::EVENTDB_ERROR);
+        // Retry deadlocks
+        if (db.getErrorNumber() == ER_LOCK_DEADLOCK && --retry) {
+          LOG_WARNING("DB deadlock detected, retrying");
+          call(EventDBCallback::EVENTDB_RETRY);
+          state = STATE_START;
+          if (!next()) db.renewEvent(event);
+
+        } else {
+          LOG_ERROR(e);
+          call(EventDBCallback::EVENTDB_ERROR);
+        }
       }
     }
   };
