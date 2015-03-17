@@ -89,14 +89,18 @@ unsigned Buffer::getLength() const {
 }
 
 
+const char *Buffer::toCString() const {
+  return (const char *)evbuffer_pullup(evb, -1);
+}
+
+
 string Buffer::toString() const {
-  return string((char *)evbuffer_pullup(evb, -1), evbuffer_get_length(evb));
+  return string(toCString(), getLength());
 }
 
 
 string Buffer::hexdump() const {
-  return
-    String::hexdump((char *)evbuffer_pullup(evb, -1), evbuffer_get_length(evb));
+  return String::hexdump(toCString(), getLength());
 }
 
 

@@ -57,6 +57,7 @@ namespace cb {
       evbuffer *adopt() {deallocate = false; return evb;}
 
       unsigned getLength() const;
+      const char *toCString() const;
       std::string toString() const;
       std::string hexdump() const;
 

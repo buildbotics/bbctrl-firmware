@@ -33,6 +33,7 @@
 #include "Headers.h"
 
 #include <cbang/Exception.h>
+#include <cbang/String.h>
 #include <cbang/http/ContentTypes.h>
 
 #include <event2/http.h>
@@ -94,7 +95,7 @@ void Headers::setContentType(const string &contentType) {
 
 void Headers::guessContentType(const std::string &ext) {
   HTTP::ContentTypes::const_iterator it =
-    HTTP::ContentTypes::instance().find(ext);
+    HTTP::ContentTypes::instance().find(String::toLower(ext));
   if (it != HTTP::ContentTypes::instance().end()) setContentType(it->second);
 }
 

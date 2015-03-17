@@ -38,7 +38,6 @@
 #include <cbang/log/Logger.h>
 #include <cbang/config/Options.h>
 #include <cbang/os/SystemUtilities.h>
-#include <cbang/security/SSLContext.h>
 
 using namespace std;
 using namespace cb::Event;
@@ -112,6 +111,9 @@ WebServer::WebServer(Options &options, const Base &base,
     options.popCategory();
   }
 }
+
+
+WebServer::~WebServer() {}
 
 
 void WebServer::init() {

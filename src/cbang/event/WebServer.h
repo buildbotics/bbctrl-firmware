@@ -36,10 +36,11 @@
 #include "HTTPHandlerGroup.h"
 
 #include <cbang/net/IPAddressFilter.h>
+#include <cbang/security/SSLContext.h>
+
 
 namespace cb {
   class Options;
-  class SSLContext;
 
   namespace Event {
     class Base;
@@ -66,7 +67,7 @@ namespace cb {
                 const SmartPointer<SSLContext> &sslCtx = 0,
                 const SmartPointer<HTTPHandlerFactory> &factory =
                 new HTTPHandlerFactory);
-      virtual ~WebServer() {}
+      virtual ~WebServer();
 
       virtual void init();
       virtual bool allow(Request &req) const;
