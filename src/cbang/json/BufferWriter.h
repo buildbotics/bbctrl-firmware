@@ -55,9 +55,9 @@ namespace cb {
 #else
       const char *data() const {return buffer.data();}
 #endif
+
       size_t const size() const {return buffer.size();}
-      std::string toString() const
-      {return std::string(buffer.data(), buffer.size());}
+      std::string toString() const {return std::string(data(), size());}
 
       void flush() {stream.flush();}
     };
