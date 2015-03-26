@@ -50,7 +50,11 @@ namespace cb {
                    mode_t mode = Writer::JSON_MODE) :
         Writer(stream, indent, compact, mode), stream(buffer) {}
 
+#ifdef _WIN32
+      const char *data() const {return &buffer[0];}
+#else
       const char *data() const {return buffer.data();}
+#endif
       size_t const size() const {return buffer.size();}
       std::string toString() const
       {return std::string(buffer.data(), buffer.size());}
