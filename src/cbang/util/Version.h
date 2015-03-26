@@ -52,6 +52,9 @@ namespace cb {
 
     Version(const std::string &s);
 
+    void setMajor(uint8_t major) {data[0] = major;}
+    void setMinor(uint8_t minor) {data[1] = minor;}
+    void setRevision(uint8_t rev) {data[2] = rev;}
     uint8_t getMajor() const {return data[0];}
     uint8_t getMinor() const {return data[1];}
     uint8_t getRevision() const {return data[2];}
