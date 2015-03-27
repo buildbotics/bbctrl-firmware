@@ -298,6 +298,45 @@ bool String::parseBool(const string &s) {
 }
 
 
+namespace cb {
+  template <>
+  uint8_t String::parse<uint8_t>(const string &s) {return parseU8(s);}
+
+  template <>
+  int8_t String::parse<int8_t>(const string &s) {return parseS8(s);}
+
+  template <>
+  uint16_t String::parse<uint16_t>(const string &s) {return parseU16(s);}
+
+  template <>
+  int16_t String::parse<int16_t>(const string &s) {return parseS16(s);}
+
+  template <>
+  uint32_t String::parse<uint32_t>(const string &s) {return parseU32(s);}
+
+  template <>
+  int32_t String::parse<int32_t>(const string &s) {return parseS32(s);}
+
+  template <>
+  uint64_t String::parse<uint64_t>(const string &s) {return parseU64(s);}
+
+  template <>
+  int64_t String::parse<int64_t>(const string &s) {return parseS64(s);}
+
+  template <>
+  uint128_t String::parse<uint128_t>(const string &s) {return parseU128(s);}
+
+  template <>
+  double String::parse<double>(const string &s) {return parseDouble(s);}
+
+  template <>
+  float String::parse<float>(const string &s) {return parseFloat(s);}
+
+  template <>
+  bool String::parse<bool>(const string &s) {return parseBool(s);}
+}
+
+
 string String::trimLeft(const string &s, const string &delims) {
   string::size_type start = s.find_first_not_of(delims);
 

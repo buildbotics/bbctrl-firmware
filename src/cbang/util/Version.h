@@ -33,48 +33,67 @@
 #ifndef CB_VERSION_H
 #define CB_VERSION_H
 
+#include <cbang/Exception.h>
 #include <cbang/StdTypes.h>
 #include <cbang/SStream.h>
+#include <cbang/String.h>
 #include <cbang/geom/Vector.h>
 
 #include <ostream>
+#include <vector>
+
 
 namespace cb {
   // TODO Remove the dependency on Vector
-  class Version : public Vector<3, uint8_t> {
+  template <typename T = uint8_t>
+  class VersionBase : public Vector<3, T> {
+    using Vector<3, T>::data;
+
   public:
-    Version(uint8_t verMajor = 0, uint8_t verMinor = 0,
-            uint8_t verRevision = 0) :
-      Vector<3, uint8_t>(verMajor, verMinor, verRevision) {}
+    VersionBase(T verMajor = 0, T verMinor = 0, T verRevision = 0) :
+      Vector<3, T>(verMajor, verMinor, verRevision) {}
 
-    Version(uint32_t v):
-      Vector<3, uint8_t>((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff) {}
+    VersionBase(const std::string &s) {
+      if (s.find_first_not_of("1234567890. ") != std::string::npos)
+        CBANG_THROWS("Invalid character in version string: "
+                     << String::hexdump(s));
 
-    Version(const std::string &s);
+      std::vector<std::string> parts;
+      String::tokenize(s, parts, ".");
 
-    void setMajor(uint8_t major) {data[0] = major;}
-    void setMinor(uint8_t minor) {data[1] = minor;}
-    void setRevision(uint8_t rev) {data[2] = rev;}
-    uint8_t getMajor() const {return data[0];}
-    uint8_t getMinor() const {return data[1];}
-    uint8_t getRevision() const {return data[2];}
-    uint8_t &getMajor() {return data[0];}
-    uint8_t &getMinor() {return data[1];}
-    uint8_t &getRevision() {return data[2];}
+      if (parts.empty() || 3 < parts.size())
+        CBANG_THROWS("Error parsing version string: '" << s << "'");
 
-    int compare(const Version &v) const;
-
-    bool operator<(const Version &v) const {return compare(v) < 0;}
-    bool operator<=(const Version &v) const {return compare(v) <= 0;}
-    bool operator>(const Version &v) const {return compare(v) > 0;}
-    bool operator>=(const Version &v) const {return compare(v) >= 0;}
-    bool operator==(const Version &v) const {return compare(v) == 0;}
-    bool operator!=(const Version &v) const {return compare(v) != 0;}
-
-    operator uint32_t () const {
-      return ((uint32_t)getMajor() << 16) | ((uint32_t)getMinor() << 8) |
-        getRevision();
+      setMajor(parsePart(parts[0]));
+      if (1 < parts.size()) setMinor(parsePart(parts[1]));
+      if (2 < parts.size()) setRevision(parsePart(parts[2]));
     }
+
+
+    void setMajor(T major) {data[0] = major;}
+    void setMinor(T minor) {data[1] = minor;}
+    void setRevision(T rev) {data[2] = rev;}
+
+    T getMajor() const {return data[0];}
+    T getMinor() const {return data[1];}
+    T getRevision() const {return data[2];}
+
+    T &getMajor() {return data[0];}
+    T &getMinor() {return data[1];}
+    T &getRevision() {return data[2];}
+
+    int compare(const VersionBase<T> &v) const {
+      if (getMajor() != v.getMajor()) return getMajor() - v.getMajor();
+      if (getMinor() != v.getMinor()) return getMinor() - v.getMinor();
+      return getRevision() - v.getRevision();
+    }
+
+    bool operator<(const VersionBase<T> &v) const {return compare(v) < 0;}
+    bool operator<=(const VersionBase<T> &v) const {return compare(v) <= 0;}
+    bool operator>(const VersionBase<T> &v) const {return compare(v) > 0;}
+    bool operator>=(const VersionBase<T> &v) const {return compare(v) >= 0;}
+    bool operator==(const VersionBase<T> &v) const {return compare(v) == 0;}
+    bool operator!=(const VersionBase<T> &v) const {return compare(v) != 0;}
 
     operator std::string () const {return toString();}
 
@@ -83,14 +102,45 @@ namespace cb {
                         << (int)getRevision());
     }
 
-    static Version *parse(const std::string &s) {return new Version(s);}
+
+    static uint8_t parsePart(const std::string &part) {
+      if (part.empty()) CBANG_THROW("Invalid version string, part is empty");
+      if (part.find_first_not_of("0") == std::string::npos) return 0;
+      return String::parse<T>(String::trimLeft(part, "0"));
+    }
+
+
+    static VersionBase<T> *parse(const std::string &s)
+    {return new VersionBase<T>(s);}
   };
 
 
-  inline static
-  std::ostream &operator<<(std::ostream &stream, const Version &v) {
+  template <typename T> inline static
+  std::ostream &operator<<(std::ostream &stream, const VersionBase<T> &v) {
     return stream << v.toString();
   }
+
+
+  typedef VersionBase<uint8_t> Version8;
+  typedef VersionBase<uint16_t> Version16;
+
+
+  class Version : public Version8 {
+  public:
+    Version(uint8_t verMajor = 0, uint8_t verMinor = 0,
+            uint8_t verRevision = 0) :
+      Version8(verMajor, verMinor, verRevision) {}
+
+    Version(uint32_t v):
+      Version8((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff) {}
+
+    Version(const std::string &s) : Version8(s) {}
+
+    operator uint32_t () const {
+      return ((uint32_t)getMajor() << 16) | ((uint32_t)getMinor() << 8) |
+        getRevision();
+    }
+  };
 }
 
 #endif // CB_VERSION_H

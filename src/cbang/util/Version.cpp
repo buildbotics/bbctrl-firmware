@@ -39,35 +39,3 @@
 
 using namespace std;
 using namespace cb;
-
-
-namespace {
-  uint8_t parseVersionPart(const std::string &part) {
-    if (part.empty()) THROW("Invalid version string, part is empty");
-    if (part.find_first_not_of("0") == string::npos) return 0;
-    return String::parseU8(String::trimLeft(part, "0"));
-  }
-}
-
-
-Version::Version(const string &s) {
-  if (s.find_first_not_of("1234567890. ") != string::npos)
-    THROWS("Invalid character in version string: " << s);
-
-  vector<string> parts;
-  String::tokenize(s, parts, ".");
-
-  if (parts.empty() || 3 < parts.size())
-    THROWS("Error parsing version string: '" << s << "'");
-
-  getMajor() = parseVersionPart(parts[0]);
-  if (1 < parts.size()) getMinor() = parseVersionPart(parts[1]);
-  if (2 < parts.size()) getRevision() = parseVersionPart(parts[2]);
-}
-
-
-int Version::compare(const Version &v) const {
-  if (getMajor() != v.getMajor()) return getMajor() - v.getMajor();
-  if (getMinor() != v.getMinor()) return getMinor() - v.getMinor();
-  return getRevision() - v.getRevision();
-}

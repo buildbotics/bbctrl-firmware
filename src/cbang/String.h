@@ -119,6 +119,8 @@ namespace cb {
     static float parseFloat(const std::string &s);
     static bool parseBool(const std::string &s);
 
+    template <typename T> static T parse(const std::string &s);
+
     static std::string trimLeft(const std::string &s,
                                 const std::string &delims = DEFAULT_DELIMS);
     static std::string trimRight(const std::string &s,
@@ -164,4 +166,5 @@ namespace cb {
                                  const std::string &replace);
   };
 }
+
 #endif // CBANG_STRING_H
