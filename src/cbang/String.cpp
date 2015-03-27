@@ -524,6 +524,15 @@ string String::hexdump(const char *data, unsigned size) {
 }
 
 
+string String::hexdump(const string &s) {
+#ifdef _WIN32
+  return hexdump(s.c_str(), s.length());
+#else
+  return hexdump(s.data(), s.length());
+#endif
+}
+
+
 char String::hexNibble(int x, bool lower) {
   x &= 0xf;
   return (x < 0xa ? '0' + x : (lower ? 'a' : 'A') + x - 0xa);
