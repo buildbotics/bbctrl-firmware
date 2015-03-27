@@ -97,20 +97,21 @@ namespace cb {
 
     operator std::string () const {return toString();}
 
-    std::string toString() const {
-      return CBANG_SSTR((int)getMajor() << '.' << (int)getMinor() << '.'
-                        << (int)getRevision());
+    std::string toString(bool trimRev = true) const {
+      std::string s = String(getMajor()) + "." + String(getMinor());
+      if (!trimRev || getRevision()) s += "." + String(getRevision());
+      return s;
     }
 
 
-    static uint8_t parsePart(const std::string &part) {
+    static T parsePart(const std::string &part) {
       if (part.empty()) CBANG_THROW("Invalid version string, part is empty");
       if (part.find_first_not_of("0") == std::string::npos) return 0;
       return String::parse<T>(String::trimLeft(part, "0"));
     }
 
 
-    static VersionBase<T> *parse(const std::string &s)
+    static SmartPointer<VersionBase<T> > parse(const std::string &s)
     {return new VersionBase<T>(s);}
   };
 
@@ -140,6 +141,10 @@ namespace cb {
       return ((uint32_t)getMajor() << 16) | ((uint32_t)getMinor() << 8) |
         getRevision();
     }
+
+
+    static SmartPointer<Version> parse(const std::string &s)
+    {return new Version(s);}
   };
 }
 
