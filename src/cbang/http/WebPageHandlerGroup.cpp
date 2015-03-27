@@ -35,6 +35,7 @@
 
 using namespace std;
 using namespace cb::HTTP;
+using namespace cb;
 
 
 void WebPageHandlerGroup::

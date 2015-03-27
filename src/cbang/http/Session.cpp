@@ -39,7 +39,7 @@
 using namespace cb::HTTP;
 
 
-void Session::read(const JSON::Value &value) {
+void Session::read(const cb::JSON::Value &value) {
   creationTime =
     value.has("created") ?
     (uint64_t)Time::parse(value.getString("created")) : 0;
@@ -51,7 +51,7 @@ void Session::read(const JSON::Value &value) {
 }
 
 
-void Session::write(JSON::Sync &sync) const {
+void Session::write(cb::JSON::Sync &sync) const {
   sync.beginDict();
   sync.insert("created", Time(creationTime).toString());
   sync.insert("last_used", Time(lastUsed).toString());

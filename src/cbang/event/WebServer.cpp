@@ -64,9 +64,9 @@ namespace {
 }
 
 
-WebServer::WebServer(Options &options, const Base &base,
-                     const SmartPointer<SSLContext> &sslCtx,
-                     const SmartPointer<HTTPHandlerFactory> &factory) :
+WebServer::WebServer(cb::Options &options, const Base &base,
+                     const cb::SmartPointer<cb::SSLContext> &sslCtx,
+                     const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), sslCtx(sslCtx),
   http(new HTTP(base)), https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)),
   initialized(false) {
@@ -186,14 +186,14 @@ bool WebServer::operator()(Request &req) {
 }
 
 
-void WebServer::addListenPort(const IPAddress &addr) {
+void WebServer::addListenPort(const cb::IPAddress &addr) {
   LOG_INFO(1, "Listening for HTTP on " << addr);
   http->bind(addr);
   ports.push_back(addr);
 }
 
 
-void WebServer::addSecureListenPort(const IPAddress &addr) {
+void WebServer::addSecureListenPort(const cb::IPAddress &addr) {
   LOG_INFO(1, "Listening for HTTPS on " << addr);
   https->bind(addr);
   securePorts.push_back(addr);

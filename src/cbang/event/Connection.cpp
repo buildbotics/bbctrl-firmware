@@ -72,7 +72,7 @@ Connection::Connection(evhttp_connection *con, bool deallocate) :
 }
 
 
-Connection::Connection(Base &base, DNSBase &dns, const IPAddress &peer) :
+Connection::Connection(cb::Event::Base &base, DNSBase &dns, const IPAddress &peer) :
   con(evhttp_connection_base_new(base.getBase(), dns.getDNSBase(),
                                  peer.getHost().c_str(), peer.getPort())),
   deallocate(true) {
@@ -80,7 +80,7 @@ Connection::Connection(Base &base, DNSBase &dns, const IPAddress &peer) :
 }
 
 
-Connection::Connection(Base &base, DNSBase &dns, BufferEvent &bev,
+Connection::Connection(cb::Event::Base &base, DNSBase &dns, BufferEvent &bev,
                        const IPAddress &peer) :
   con(evhttp_connection_base_bufferevent_new
       (base.getBase(), dns.getDNSBase(), bev.adopt(), peer.getHost().c_str(),
@@ -89,7 +89,7 @@ Connection::Connection(Base &base, DNSBase &dns, BufferEvent &bev,
 }
 
 
-Connection::Connection(Base &base, DNSBase &dns, const URI &uri,
+Connection::Connection(cb::Event::Base &base, DNSBase &dns, const URI &uri,
                        const SmartPointer<SSLContext> &sslCtx) :
   con(0), deallocate(true) {
   bool https = uri.getScheme() == "https";

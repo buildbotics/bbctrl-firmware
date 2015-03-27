@@ -358,7 +358,7 @@ void Request::sendError(int code) {
 }
 
 
-void Request::send(const Buffer &buf) {
+void Request::send(const cb::Event::Buffer &buf) {
   getOutputBuffer().add(buf);
 }
 
@@ -390,7 +390,7 @@ void Request::reply(int code) {
 }
 
 
-void Request::reply(const Buffer &buf) {
+void Request::reply(const cb::Event::Buffer &buf) {
   reply(HTTP_OK, buf);
 }
 
@@ -400,7 +400,7 @@ void Request::reply(const char *data, unsigned length) {
 }
 
 
-void Request::reply(int code, const Buffer &buf) {
+void Request::reply(int code, const cb::Event::Buffer &buf) {
   finalize();
   evhttp_send_reply(req, code,
                     HTTPStatus((HTTPStatus::enum_t)code).getDescription(),
@@ -419,7 +419,7 @@ void Request::startChunked(int code) {
 }
 
 
-void Request::sendChunk(const Buffer &buf) {
+void Request::sendChunk(const cb::Event::Buffer &buf) {
   evhttp_send_reply_chunk(req, buf.getBuffer());
 }
 

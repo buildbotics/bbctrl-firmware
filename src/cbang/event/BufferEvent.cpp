@@ -53,7 +53,7 @@ BufferEvent::BufferEvent(bufferevent *bev, bool deallocate) :
 }
 
 
-BufferEvent::BufferEvent(Base &base, const SmartPointer<SSLContext> &sslCtx,
+BufferEvent::BufferEvent(cb::Event::Base &base, const SmartPointer<SSLContext> &sslCtx,
                          const string &host) : bev(0), deallocate(true) {
   if (sslCtx.isNull())
     bev = bufferevent_socket_new(base.getBase(), -1, BEV_OPT_CLOSE_ON_FREE);

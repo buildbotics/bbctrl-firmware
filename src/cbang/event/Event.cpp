@@ -49,7 +49,7 @@ namespace {
 
 
 Event::Event(Base &base, int fd, unsigned events,
-             const SmartPointer<EventCallback> &cb, bool selfDestruct) :
+             const cb::SmartPointer<EventCallback> &cb, bool selfDestruct) :
   e(event_new(base.getBase(), fd, events, event_cb, this)), cb(cb),
   selfDestruct(selfDestruct) {
   LOG_DEBUG(5, "Created new event with fd=" << fd);
@@ -57,7 +57,7 @@ Event::Event(Base &base, int fd, unsigned events,
 }
 
 
-Event::Event(Base &base, int signal, const SmartPointer<EventCallback> &cb,
+Event::Event(Base &base, int signal, const cb::SmartPointer<EventCallback> &cb,
              bool selfDestruct) :
   e(event_new(base.getBase(), signal, EV_SIGNAL, event_cb, this)), cb(cb),
   selfDestruct(selfDestruct) {
@@ -76,7 +76,7 @@ bool Event::isPending(unsigned events) const {
 
 
 void Event::assign(Base &base, int fd, unsigned events,
-                   const SmartPointer<EventCallback> &cb) {
+                   const cb::SmartPointer<EventCallback> &cb) {
   event_del(e);
   event_assign(e, base.getBase(), fd, events, event_cb, this);
 }

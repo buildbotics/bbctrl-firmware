@@ -105,7 +105,7 @@ namespace {
 }
 
 
-HTTP::HTTP(const Base &base, const SmartPointer<SSLContext> &sslCtx) :
+HTTP::HTTP(const Base &base, const cb::SmartPointer<cb::SSLContext> &sslCtx) :
   http(evhttp_new(base.getBase())), sslCtx(sslCtx) {
   if (!http) THROW("Failed to create event HTTP");
 
@@ -134,7 +134,7 @@ void HTTP::setTimeout(int timeout) {
 
 
 void HTTP::setCallback(const string &path,
-                       const SmartPointer<HTTPHandler> &cb) {
+                       const cb::SmartPointer<HTTPHandler> &cb) {
   int ret = evhttp_set_cb(http, path.c_str(), request_cb, cb.get());
   if (ret)
     THROWS("Failed to set callback on path '" << path << '"'
@@ -143,13 +143,13 @@ void HTTP::setCallback(const string &path,
 }
 
 
-void HTTP::setGeneralCallback(const SmartPointer<HTTPHandler> &cb) {
+void HTTP::setGeneralCallback(const cb::SmartPointer<HTTPHandler> &cb) {
   evhttp_set_gencb(http, request_cb, cb.get());
   requestCallbacks.push_back(cb);
 }
 
 
-int HTTP::bind(const IPAddress &addr) {
+int HTTP::bind(const cb::IPAddress &addr) {
   evhttp_bound_socket *handle =
     evhttp_bind_socket_with_handle(http, addr.getHost().c_str(),
                                    addr.getPort());
