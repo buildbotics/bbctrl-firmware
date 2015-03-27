@@ -122,20 +122,20 @@ namespace cb {
   }
 
 
-  typedef VersionBase<uint8_t> Version8;
-  typedef VersionBase<uint16_t> Version16;
+  typedef VersionBase<uint8_t> VersionU8;
+  typedef VersionBase<uint16_t> VersionU16;
 
 
-  class Version : public Version8 {
+  class Version : public VersionU8 {
   public:
     Version(uint8_t verMajor = 0, uint8_t verMinor = 0,
             uint8_t verRevision = 0) :
-      Version8(verMajor, verMinor, verRevision) {}
+      VersionU8(verMajor, verMinor, verRevision) {}
 
     Version(uint32_t v):
-      Version8((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff) {}
+      VersionU8((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff) {}
 
-    Version(const std::string &s) : Version8(s) {}
+    Version(const std::string &s) : VersionU8(s) {}
 
     operator uint32_t () const {
       return ((uint32_t)getMajor() << 16) | ((uint32_t)getMinor() << 8) |
