@@ -148,6 +148,8 @@ namespace cb {
                              uint64_t expires = 0, uint64_t maxAge = 0,
                              bool httpOnly = false, bool secure = false);
 
+      virtual void setCache(uint32_t age);
+
       virtual std::string getInput() const;
       virtual std::string getOutput() const;
 

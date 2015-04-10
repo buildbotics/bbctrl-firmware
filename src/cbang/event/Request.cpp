@@ -40,6 +40,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/http/Cookie.h>
 #include <cbang/json/JSON.h>
+#include <cbang/time/Time.h>
 
 #include <event2/http.h>
 #include <event2/http_struct.h>
@@ -296,6 +297,23 @@ void Request::setCookie(const string &name, const string &value,
                         bool secure) {
   outAdd("Set-Cookie", HTTP::Cookie(name, value, domain, path, expires, maxAge,
                                     httpOnly, secure).toString());
+}
+
+
+void Request::setCache(uint32_t age) {
+  const char *format = "%a, %d %b %Y %H:%M:%S GMT";
+  string now = Time(format).toString();
+
+  outSet("Date", now);
+
+  if (age) {
+    outSet("Cache-Control", "max-age=" + String(age));
+    outSet("Expires", Time(Time::now() + age, format).toString());
+
+  } else {
+    outSet("Cache-Control", "max-age=0, no-cache, no-store");
+    outSet("Expires", now);
+  }
 }
 
 
