@@ -66,11 +66,11 @@ For licensing information please see the files LICENSE and COPYING.
 ## General
   - A modern C++ compiler: GNU C++, Intel C++, MSVS
   - SCons     http://scons.org/
-  - bzip2     http://bzip.org/
-  - zlib      http://zlib.net/
-  - expat     http://expat.sourceforge.net/
+  - bzip2     http://bzip.org/ (built-in)
+  - zlib      http://zlib.net/ (built-in)
+  - expat     http://expat.sourceforge.net/ (built-in)
   - openssl   http://www.openssl.org/
-  - sqlite    http://www.sqlite.org/
+  - sqlite    http://www.sqlite.org/ (built-in)
   - boost     http://www.boost.org/
   - v8        http://code.google.com/p/v8/ (optional)
   - libevent  http://libevent.org/ (optional)
