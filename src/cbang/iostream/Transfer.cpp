@@ -32,6 +32,8 @@
 
 #include "Transfer.h"
 
+#include <algorithm>
+
 using namespace cb;
 using namespace std;
 
