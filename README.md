@@ -69,9 +69,9 @@ For licensing information please see the files LICENSE and COPYING.
   - bzip2     http://bzip.org/ (built-in)
   - zlib      http://zlib.net/ (built-in)
   - expat     http://expat.sourceforge.net/ (built-in)
-  - openssl   http://www.openssl.org/ (optional)
   - sqlite    http://www.sqlite.org/ (built-in)
   - boost     http://www.boost.org/
+  - openssl   http://www.openssl.org/ (optional)
   - v8        http://code.google.com/p/v8/ (optional)
   - libevent  http://libevent.org/ (optional)
   - mariadb   https://mariadb.org/ (optional)
