@@ -325,6 +325,9 @@ src = Glob('src/*.c')
 inc = Glob('include/event2/*.h')
 env.Append(CPPPATH = ['include'])
 
+# OpenSSL
+if not env['with_openssl']:
+    src = filter(lambda f: not 'openssl' in f.path, src)
 
 # libkern
 conf.CBCheckLib('kern')
