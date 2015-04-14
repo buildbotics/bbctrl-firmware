@@ -6,7 +6,8 @@ libversion = '0'
 major, minor, revision = version.split('.')
 
 # Setup
-env = Environment(ENV = os.environ)
+env = Environment(ENV = os.environ,
+                  TARGET_ARCH = os.environ.get('TARGET_ARCH', 'x86'))
 env.Tool('config', toolpath = ['.'])
 env.CBAddVariables(
     BoolVariable('staticlib', 'Build a static library', True),
