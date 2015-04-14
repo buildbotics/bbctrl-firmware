@@ -40,7 +40,7 @@
 
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
-#include <cbang/security/SSLContext.h>
+#include <cbang/openssl/SSLContext.h>
 
 using namespace std;
 using namespace cb;

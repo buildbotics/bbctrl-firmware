@@ -42,7 +42,7 @@
 #include <cbang/net/Base64.h>
 
 #ifdef HAVE_OPENSSL
-#include <cbang/security/Digest.h>
+#include <cbang/openssl/Digest.h>
 #endif
 
 #include <cbang/util/Random.h>

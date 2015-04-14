@@ -38,7 +38,7 @@
 #include <cbang/util/ACLSet.h>
 
 #ifdef HAVE_OPENSSL
-#include <cbang/security/SSLContext.h>
+#include <cbang/openssl/SSLContext.h>
 #else
 namespace cb {class SSLContext {};}
 #endif

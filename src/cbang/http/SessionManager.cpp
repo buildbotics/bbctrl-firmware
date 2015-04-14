@@ -46,7 +46,7 @@
 #include <cbang/log/Logger.h>
 
 #if HAVE_OPENSSL
-#include <cbang/security/Digest.h>
+#include <cbang/openssl/Digest.h>
 #else
 #include <cbang/util/Random.h>
 #endif

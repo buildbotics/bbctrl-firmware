@@ -35,7 +35,7 @@
 
 #include <cbang/Exception.h>
 #include <cbang/SmartPointer.h>
-#include <cbang/security/BStream.h>
+#include <cbang/openssl/BStream.h>
 
 namespace cb {
   class Socket;

@@ -39,8 +39,8 @@
 #include <event2/bufferevent.h>
 
 #ifdef HAVE_OPENSSL
-#include <cbang/security/SSL.h>
-#include <cbang/security/SSLContext.h>
+#include <cbang/openssl/SSL.h>
+#include <cbang/openssl/SSLContext.h>
 
 #include <event2/bufferevent_ssl.h>
 

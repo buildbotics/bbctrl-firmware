@@ -38,8 +38,8 @@
 #include <cbang/Zap.h>
 #include <cbang/Exception.h>
 
-#include <cbang/security/SSL.h>
-#include <cbang/security/SSLContext.h>
+#include <cbang/openssl/SSL.h>
+#include <cbang/openssl/SSLContext.h>
 
 #include <cbang/util/SmartToggle.h>
 

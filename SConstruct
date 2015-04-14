@@ -65,7 +65,7 @@ subdirs = [
     'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json',
     'jsapi', 'db', 'auth', 'event']
 
-if env.CBConfigEnabled('openssl'): subdirs.append('security')
+if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
 
