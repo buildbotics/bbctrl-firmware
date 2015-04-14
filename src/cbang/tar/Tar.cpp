@@ -34,6 +34,8 @@
 
 #include <cbang/Exception.h>
 
+#include <algorithm>
+
 using namespace std;
 using namespace cb;
 
