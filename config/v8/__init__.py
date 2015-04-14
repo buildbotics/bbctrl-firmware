@@ -4,7 +4,7 @@ import platform
 
 def configure(conf):
     lib_suffix = ['/lib']
-    if env.get('debug', False): lib_suffix.append('/build/Release/lib')
+    if conf.env.get('debug', False): lib_suffix.append('/build/Release/lib')
     else: lib_suffix.append('/build/Debug/lib')
 
     conf.CBCheckHome('v8', lib_suffix = lib_suffix)
