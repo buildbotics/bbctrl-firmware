@@ -36,10 +36,9 @@
 #include "Server.h"
 #include "ScriptedWebHandler.h"
 
-#include <cbang/security/SSLContext.h>
-
 
 namespace cb {
+  class SSLContext;
   class Options;
 
   namespace HTTP {
@@ -54,7 +53,6 @@ namespace cb {
       };
 
     protected:
-      SSLContext sslCtx;
       SmartPointer<SessionManager> sessionManager;
       bool initialized;
 
@@ -66,7 +64,6 @@ namespace cb {
 
       static bool _hasFeature(int feature);
 
-      SSLContext &getSSLContext() {return sslCtx;}
       SessionManager &getSessionManager() {return *sessionManager;}
 
       // From Server & WebHandler

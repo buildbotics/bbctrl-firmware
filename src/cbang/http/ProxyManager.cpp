@@ -40,7 +40,10 @@
 #include <cbang/config/Options.h>
 
 #include <cbang/net/Base64.h>
+
+#ifdef HAVE_OPENSSL
 #include <cbang/security/Digest.h>
+#endif
 
 #include <cbang/util/Random.h>
 #include <cbang/log/Logger.h>
@@ -111,6 +114,7 @@ void ProxyManager::authenticate(Response &response) {
     scheme = String::toLower(auth.substr(start, end - start));
     if (scheme == "basic") initialized = true;
 
+#ifdef HAVE_OPENSSL
     else if (scheme == "digest") {
       StringMap challenge;
       Header::parseKeyValueList(auth.substr(end), challenge);
@@ -148,8 +152,10 @@ void ProxyManager::authenticate(Response &response) {
       } else qop.clear();
 
       initialized = true;
+    }
+#endif // HAVE_OPENSSL
 
-    } else THROWS("Unsupported proxy authorization scheme: " << scheme);
+    else THROWS("Unsupported proxy authorization scheme: " << scheme);
 
   } else if (response.has("Proxy-Authentication-Info")) {
     StringMap info;
@@ -166,6 +172,7 @@ void ProxyManager::addCredentials(Request &request) {
     string auth = "Basic " + Base64().encode(user + ":" + pass);
     request.set("Proxy-Authorization", auth);
 
+#ifdef HAVE_OPENSSL
   } else if (scheme == "digest") {
     string algorithm = String::toLower(this->algorithm);
     string ha1 = Digest::hashHex(user + ':' + realm + ':' + pass, algorithm);
@@ -197,5 +204,6 @@ void ProxyManager::addCredentials(Request &request) {
     auth += ", response=\"" + digest + '"';
 
     request.set("Proxy-Authorization", auth);
+#endif // HAVE_OPENSSL
   }
 }

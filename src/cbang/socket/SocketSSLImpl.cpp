@@ -29,6 +29,7 @@
                         joseph@cauldrondevelopment.com
 
 \******************************************************************************/
+#ifdef HAVE_OPENSSL
 
 #include "SocketSSLImpl.h"
 
@@ -118,3 +119,5 @@ void SocketSSLImpl::close() {
   }
   SocketDefaultImpl::close();
 }
+
+#endif // HAVE_OPENSSL

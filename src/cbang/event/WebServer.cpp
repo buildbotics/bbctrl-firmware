@@ -39,6 +39,12 @@
 #include <cbang/config/Options.h>
 #include <cbang/os/SystemUtilities.h>
 
+#ifdef HAVE_OPENSSL
+#include <cbang/security/SSLContext.h>
+#else
+namespace cb {class SSLContext {};}
+#endif
+
 using namespace std;
 using namespace cb::Event;
 
@@ -137,6 +143,7 @@ void WebServer::init() {
   if (options["http-server-timeout"].hasValue())
     setTimeout(options["http-server-timeout"].toInteger());
 
+#ifdef HAVE_OPENSSL
   // SSL
   if (!https.isNull()) {
     // Configure secure ports
@@ -170,6 +177,7 @@ void WebServer::init() {
 
     https->setGeneralCallback(new MarkRequestSecure(*this));
   }
+#endif // HAVE_OPENSSL
 
   http->setGeneralCallback(SmartPointer<HTTPHandler>::Null(this));
 }

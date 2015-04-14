@@ -26,7 +26,7 @@ def ConfigBoost(conf, require = False):
                          libs = ['iostreams', 'system', 'filesystem', 'regex'])
 
 
-def configure_deps(conf, local = True):
+def configure_deps(conf, local = True, with_openssl = True):
     env = conf.env
 
     conf.CBConfig('zlib', not local)
@@ -53,7 +53,7 @@ def configure_deps(conf, local = True):
         conf.CBRequireLib('rt')
         conf.CBRequireFunc('clock_gettime')
 
-    conf.CBConfig('openssl', version = '1.0.0')
+    if with_openssl: conf.CBConfig('openssl', False, version = '1.0.0')
     conf.CBConfig('v8', False)
 
     if env['PLATFORM'] == 'win32':

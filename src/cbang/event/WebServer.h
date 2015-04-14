@@ -36,10 +36,10 @@
 #include "HTTPHandlerGroup.h"
 
 #include <cbang/net/IPAddressFilter.h>
-#include <cbang/security/SSLContext.h>
 
 
 namespace cb {
+  class SSLContext;
   class Options;
 
   namespace Event {

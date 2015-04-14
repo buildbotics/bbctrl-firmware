@@ -14,6 +14,7 @@ env.CBAddVariables(
     ('soname', 'Shared library soname', 'libcbang%s.so' % libversion),
     PathVariable('prefix', 'Install path prefix', '/usr/local',
                  PathVariable.PathAccept),
+    BoolVariable('with_openssl', 'Build with OpenSSL support', True),
     ('force_local', 'List of 3rd party libraries to be built locally', ''))
 env.CBLoadTools('dist packager compiler cbang build_info')
 env.Replace(PACKAGE_VERSION = version)
@@ -42,7 +43,7 @@ if 'dist' in COMMAND_LINE_TARGETS:
 # Configure
 if not env.GetOption('clean'):
     conf.CBConfig('compiler')
-    conf.CBConfig('cbang-deps')
+    conf.CBConfig('cbang-deps', with_openssl = env['with_openssl'])
     env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
 # Local includes
@@ -60,9 +61,10 @@ for lib in 'zlib bzip2 sqlite3 expat boost libevent'.split():
 subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
-    'socket', 'security', 'tar', 'io', 'geom', 'parse', 'task', 'json',
+    'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json',
     'jsapi', 'db', 'auth', 'event']
 
+if env.CBConfigEnabled('openssl'): subdirs.append('security')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
 

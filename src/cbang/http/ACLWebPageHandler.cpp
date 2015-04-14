@@ -36,7 +36,7 @@
 #include "Session.h"
 
 #include <cbang/log/Logger.h>
-#include <cbang/security/ACLSet.h>
+#include <cbang/util/ACLSet.h>
 
 using namespace std;
 using namespace cb;

@@ -39,26 +39,32 @@
 #include "Buffer.h"
 
 #include <cbang/Exception.h>
-#include <cbang/security/SSLContext.h>
 #include <cbang/net/IPAddress.h>
 #include <cbang/log/Logger.h>
 #include <cbang/util/DefaultCatch.h>
 
 #include <event2/http.h>
+
+#ifdef HAVE_OPENSSL
+#include <cbang/security/SSLContext.h>
+
 #include <event2/bufferevent_ssl.h>
 
 #include <openssl/ssl.h>
+#endif
 
 using namespace std;
 using namespace cb::Event;
 
 
 namespace {
+#ifdef HAVE_OPENSSL
   bufferevent *bev_cb(event_base *base, void *arg) {
     return bufferevent_openssl_socket_new(base, -1, SSL_new((SSL_CTX *)arg),
                                           BUFFEREVENT_SSL_ACCEPTING,
                                           BEV_OPT_CLOSE_ON_FREE);
   }
+#endif // HAVE_OPENSSL
 
 
   void complete_cb(evhttp_request *_req, void *cb) {
@@ -109,7 +115,11 @@ HTTP::HTTP(const Base &base, const cb::SmartPointer<cb::SSLContext> &sslCtx) :
   http(evhttp_new(base.getBase())), sslCtx(sslCtx) {
   if (!http) THROW("Failed to create event HTTP");
 
+#ifdef HAVE_OPENSSL
   if (!sslCtx.isNull()) evhttp_set_bevcb(http, bev_cb, sslCtx->getCTX());
+#else
+  if (!sslCtx.isNull()) THROW("C! was not built with openssl support");
+#endif
 }
 
 

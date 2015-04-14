@@ -29,6 +29,7 @@
                         joseph@cauldrondevelopment.com
 
 \******************************************************************************/
+#ifdef HAVE_OPENSSL
 
 #include "OAuth2SessionLogin.h"
 #include "OAuth2.h"
@@ -141,3 +142,5 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
 
   return true;
 }
+
+#endif // HAVE_OPENSSL

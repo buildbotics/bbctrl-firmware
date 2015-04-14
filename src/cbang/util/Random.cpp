@@ -32,12 +32,11 @@
 
 #include "Random.h"
 
-#include <cbang/Exception.h>
-#include <cbang/Zap.h>
-
-#include <cbang/time/Time.h>
-
+#ifdef HAVE_OPENSSL
 #include <openssl/rand.h>
+#else
+#include <stdlib.h>
+#endif
 
 using namespace cb;
 
@@ -47,17 +46,32 @@ SINGLETON_DECL(Random);
 Random::Random(Inaccessible) {
   // On systems with /dev/urandom the generator is automatically seeded
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(HAVE_OPENSSL)
   RAND_screen();
 #endif
 }
 
 
 void Random::addEntropy(const void *buffer, uint32_t bytes, double entropy) {
+#ifdef HAVE_OPENSSL
   RAND_add(buffer, bytes, entropy ? entropy : bytes);
+
+#else
+  if (sizeof(unsigned) <= bytes) srand(*(unsigned *)buffer);
+#endif
 }
 
 
 void Random::bytes(void *buffer, uint32_t bytes) {
+#ifdef HAVE_OPENSSL
   RAND_pseudo_bytes((unsigned char *)buffer, bytes);
+
+#else
+  while (1 < bytes) {
+    bytes -= 2;
+    ((uint16_t *)buffer)[bytes / 2] = ::rand();
+  }
+
+  if (bytes) *(uint8_t *)buffer = ::rand();
+#endif
 }

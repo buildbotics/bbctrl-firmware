@@ -55,7 +55,7 @@ namespace cb {
     class Server : public SocketServer {
     protected:
       Options &options;
-      SSLContext *sslCtx;
+      SmartPointer<SSLContext> sslCtx;
       bool initialized;
 
       ConnectionQueue queue;
@@ -80,7 +80,9 @@ namespace cb {
       std::string captureDir;
 
     public:
-      Server(Options &options, SSLContext *sslCtx = 0);
+      Server(Options &options, SmartPointer<SSLContext> sslCtx = 0);
+
+      SSLContext &getSSLContext() {return *sslCtx;}
 
       virtual const std::string getName() const {return "HTTP::Server";}
       bool getQueueConnections() const {return queueConnections;}

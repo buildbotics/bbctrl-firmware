@@ -34,14 +34,18 @@
 #include "Base.h"
 
 #include <cbang/Exception.h>
-#include <cbang/security/SSL.h>
-#include <cbang/security/SSLContext.h>
 #include <cbang/log/Logger.h>
 
-#include <event2/bufferevent_ssl.h>
 #include <event2/bufferevent.h>
 
+#ifdef HAVE_OPENSSL
+#include <cbang/security/SSL.h>
+#include <cbang/security/SSLContext.h>
+
+#include <event2/bufferevent_ssl.h>
+
 #include <openssl/ssl.h>
+#endif // HAVE_OPENSSL
 
 using namespace std;
 using namespace cb;
@@ -53,11 +57,13 @@ BufferEvent::BufferEvent(bufferevent *bev, bool deallocate) :
 }
 
 
-BufferEvent::BufferEvent(cb::Event::Base &base, const SmartPointer<SSLContext> &sslCtx,
+BufferEvent::BufferEvent(cb::Event::Base &base,
+                         const SmartPointer<SSLContext> &sslCtx,
                          const string &host) : bev(0), deallocate(true) {
   if (sslCtx.isNull())
     bev = bufferevent_socket_new(base.getBase(), -1, BEV_OPT_CLOSE_ON_FREE);
 
+#ifdef HAVE_OPENSSL
   else {
     ::SSL *ssl = SSL_new(sslCtx->getCTX());
 
@@ -70,10 +76,17 @@ BufferEvent::BufferEvent(cb::Event::Base &base, const SmartPointer<SSLContext> &
       (base.getBase(), -1, ssl, BUFFEREVENT_SSL_CONNECTING,
        BEV_OPT_DEFER_CALLBACKS);
   }
+#else
+  else THROW("C! was not built with OpenSSL support");
+
+#endif // HAVE_OPENSSL
+
 
   if (!bev) THROW("Failed to create buffer event");
 
+#ifdef HAVE_OPENSSL
   bufferevent_openssl_set_allow_dirty_shutdown(bev, 1);
+#endif
 }
 
 
@@ -83,8 +96,10 @@ BufferEvent::~BufferEvent() {
 
 
 void BufferEvent::logSSLErrors() {
+#ifdef HAVE_OPENSSL
   unsigned error;
 
   while ((error = bufferevent_get_openssl_error(bev)))
     LOG_ERROR("SSL error: " << SSL::getErrorStr(error));
+#endif
 }

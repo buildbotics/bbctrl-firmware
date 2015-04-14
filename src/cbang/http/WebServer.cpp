@@ -35,7 +35,13 @@
 #include "SessionManager.h"
 
 #include <cbang/log/Logger.h>
-#include <cbang/security/ACLSet.h>
+#include <cbang/util/ACLSet.h>
+
+#ifdef HAVE_OPENSSL
+#include <cbang/security/SSLContext.h>
+#else
+namespace cb {class SSLContext {};}
+#endif
 
 using namespace std;
 using namespace cb;
@@ -44,7 +50,11 @@ using namespace cb::HTTP;
 
 WebServer::WebServer(Options &options, const string &match,
                      Script::Handler *parent, hasFeature_t hasFeature) :
-  Server(options, hasFeature(FEATURE_SSL) ? &sslCtx : 0),
+#ifdef HAVE_OPENSSL
+  Server(options, hasFeature(FEATURE_SSL) ? new SSLContext : 0),
+#else
+  Server(options, 0),
+#endif
   ScriptedWebHandler(options, match, parent, hasFeature),
   sessionManager(hasFeature(FEATURE_SESSIONS) ?
                  new SessionManager(options) : 0), initialized(false) {}

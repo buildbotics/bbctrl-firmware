@@ -38,13 +38,19 @@
 
 #include <cbang/String.h>
 #include <cbang/util/SmartLock.h>
-#include <cbang/security/Digest.h>
 #include <cbang/config/Options.h>
 #include <cbang/time/Time.h>
 #include <cbang/db/Database.h>
 #include <cbang/db/Transaction.h>
 #include <cbang/db/LevelDB.h>
 #include <cbang/log/Logger.h>
+
+#if HAVE_OPENSSL
+#include <cbang/security/Digest.h>
+#else
+#include <cbang/util/Random.h>
+#endif
+
 
 using namespace std;
 using namespace cb;
@@ -90,6 +96,7 @@ void SessionManager::setSessionCookie(WebContext &ctx) const {
 
 
 string SessionManager::generateSessionID(WebContext &ctx) const {
+#ifdef HAVE_OPENSSL
   Digest digest("md5");
 
   if (ctx.getRequest().has("User-Agent"))
@@ -97,6 +104,10 @@ string SessionManager::generateSessionID(WebContext &ctx) const {
   digest.updateWith(Time::now());
 
   return digest.toHexString();
+#else
+
+  return SSTR("0x" << hex << Random::instance().rand<uint64_t>());
+#endif
 }
 
 

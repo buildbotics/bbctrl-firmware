@@ -39,8 +39,13 @@
 #include <cbang/Exception.h>
 #include <cbang/net/IPAddress.h>
 #include <cbang/time/Timer.h>
-#include <cbang/security/SSLContext.h>
 #include <cbang/log/Logger.h>
+
+#ifdef HAVE_OPENSSL
+#include <cbang/security/SSLContext.h>
+#else
+namespace cb {class SSLContext {};}
+#endif
 
 #include <event2/http.h>
 
@@ -94,9 +99,16 @@ Connection::Connection(cb::Event::Base &base, DNSBase &dns, const URI &uri,
   con(0), deallocate(true) {
   bool https = uri.getScheme() == "https";
 
+#ifdef HAVE_OPENSSL
   if (https && sslCtx.isNull()) THROW("Need SSL context for https connection");
 
   BufferEvent bev(base, https ? sslCtx : 0, uri.getHost());
+#else
+
+  if (https) THROW("C! not built with OpenSSL support");
+
+  BufferEvent bev(base, 0, uri.getHost());
+#endif
 
   con = evhttp_connection_base_bufferevent_new
     (base.getBase(), dns.getDNSBase(), bev.adopt(), uri.getHost().c_str(),
@@ -167,6 +179,8 @@ void Connection::makeRequest(Request &req, unsigned method, const URI &uri) {
 
 
 void Connection::logSSLErrors() {
+#ifdef HAVE_OPENSSL
   bufferevent *bev = evhttp_connection_get_bufferevent(con);
   if (bev) BufferEvent(bev, false).logSSLErrors();
+#endif
 }

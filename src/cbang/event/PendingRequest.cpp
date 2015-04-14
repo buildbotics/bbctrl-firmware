@@ -36,7 +36,6 @@
 #include "Headers.h"
 
 #include <cbang/String.h>
-#include <cbang/security/SSLContext.h>
 #include <cbang/log/Logger.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/os/SysError.h>

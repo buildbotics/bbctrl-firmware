@@ -46,8 +46,6 @@
 #include <cbang/log/Logger.h>
 #include <cbang/time/Timer.h>
 
-#include <cbang/security/SSL.h>
-
 using namespace std;
 using namespace cb;
 
@@ -58,8 +56,10 @@ bool Socket::initialized = false;
 Socket::Socket(SSLContext *sslCtx) {
   if (SocketDebugger::instance().isEnabled())
     impl = new SocketDebugImpl(this);
+#ifdef HAVE_OPENSSL
   else if (sslCtx) impl = new SocketSSLImpl(this, sslCtx);
-  else impl = new SocketDefaultImpl(this, sslCtx);
+#endif
+  else impl = new SocketDefaultImpl(this);
 }
 
 

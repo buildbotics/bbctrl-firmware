@@ -37,6 +37,11 @@
 using namespace cb;
 
 SSL *SocketConnection::getSSL() const {
+#ifdef HAVE_OPENSSL
   SocketSSLImpl *impl = dynamic_cast<SocketSSLImpl *>(socket->getImpl());
   return impl ? impl->getSSL() : 0;
+
+#else
+  return 0;
+#endif // HAVE_OPENSSL
 }

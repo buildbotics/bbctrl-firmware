@@ -34,7 +34,11 @@
 #include "Buffer.h"
 #include "PendingRequest.h"
 
+#ifdef HAVE_OPENSSL
 #include <cbang/security/SSLContext.h>
+#else
+namespace cb {class SSLContext {};}
+#endif
 
 using namespace std;
 using namespace cb;

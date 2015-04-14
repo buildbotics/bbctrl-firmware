@@ -50,14 +50,19 @@
 #include <cbang/time/Time.h>
 #include <cbang/time/Timer.h>
 #include <cbang/util/DefaultCatch.h>
+
+#ifdef HAVE_OPENSSL
 #include <cbang/security/SSLContext.h>
+#else
+namespace cb {class SSLContext {};}
+#endif
 
 using namespace std;
 using namespace cb;
 using namespace cb::HTTP;
 
 
-Server::Server(Options &options, SSLContext *sslCtx)
+Server::Server(Options &options, SmartPointer<SSLContext> sslCtx)
   : options(options), sslCtx(sslCtx), initialized(false),
     queueConnections(false), maxRequestLength(1024 * 1024 * 50),
     maxConnections(800), connectionTimeout(60), maxConnectTime(60 * 15),
@@ -73,6 +78,7 @@ Server::Server(Options &options, SSLContext *sslCtx)
   opt->setType(Option::STRINGS_TYPE);
   opt->setDefault("0.0.0.0:80");
 
+#ifdef HAVE_OPENSSL
   if (sslCtx) {
     opt = options.add("https-addresses", "A space separated list of secure "
                       "server address and port pairs to listen on in the form "
@@ -80,6 +86,7 @@ Server::Server(Options &options, SSLContext *sslCtx)
     opt->setType(Option::STRINGS_TYPE);
     opt->setDefault("0.0.0.0:443");
   }
+#endif // HAVE_OPENSSL
 
   options.addTarget("max-connections", maxConnections,
                     "Sets the maximum number of simultaneous connections.");
@@ -105,6 +112,7 @@ Server::Server(Options &options, SSLContext *sslCtx)
 
   options.popCategory();
 
+#ifdef HAVE_OPENSSL
   if (sslCtx) {
     options.pushCategory("HTTP Server SSL");
     options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
@@ -115,6 +123,7 @@ Server::Server(Options &options, SSLContext *sslCtx)
                 "format.")->setDefault("private.pem");
     options.popCategory();
   }
+#endif // HAVE_OPENSSL
 
   // TODO should probably remove these in favor of the new Socket level capture
   options.pushCategory("Debugging");
@@ -178,6 +187,7 @@ void Server::init() {
   for (unsigned i = 0; i < addresses.size(); i++)
     addListenPort(addresses[i]);
 
+#ifdef HAVE_OPENSSL
   // SSL
   if (sslCtx) {
     // Configure secure ports
@@ -209,6 +219,7 @@ void Server::init() {
       else LOG_WARNING("Certificate Relocation List not found " << crlFile);
     }
   }
+#endif // HAVE_OPENSSL
 
   // Packet capture
   if (options["capture-packets"].toBoolean())

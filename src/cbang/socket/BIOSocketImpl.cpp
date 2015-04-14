@@ -29,6 +29,7 @@
                         joseph@cauldrondevelopment.com
 
 \******************************************************************************/
+#ifdef HAVE_OPENSSL
 
 #include "BIOSocketImpl.h"
 
@@ -88,3 +89,5 @@ int BIOSocketImpl::write(const char *buf, int length) {
 
   return -1;
 }
+
+#endif // HAVE_OPENSSL
