@@ -5,7 +5,7 @@ from SCons.Script import *
 def configure(conf):
     env = conf.env
 
-    conf.CBCheckHome('freetype2')
+    conf.CBCheckHome('freetype2', inc_suffix=['/include', '/include/freetype2'])
 
     if not os.environ.has_key('FREETYPE2_INCLUDE'):
         try:
