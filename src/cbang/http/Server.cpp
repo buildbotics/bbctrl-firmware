@@ -79,7 +79,7 @@ Server::Server(Options &options, SmartPointer<SSLContext> sslCtx)
   opt->setDefault("0.0.0.0:80");
 
 #ifdef HAVE_OPENSSL
-  if (sslCtx) {
+  if (!sslCtx.isNull()) {
     opt = options.add("https-addresses", "A space separated list of secure "
                       "server address and port pairs to listen on in the form "
                       "<ip | hostname>[:<port>]");
@@ -113,7 +113,7 @@ Server::Server(Options &options, SmartPointer<SSLContext> sslCtx)
   options.popCategory();
 
 #ifdef HAVE_OPENSSL
-  if (sslCtx) {
+  if (!sslCtx.isNull()) {
     options.pushCategory("HTTP Server SSL");
     options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
                 "any internal CRL");
@@ -189,11 +189,11 @@ void Server::init() {
 
 #ifdef HAVE_OPENSSL
   // SSL
-  if (sslCtx) {
+  if (!sslCtx.isNull()) {
     // Configure secure ports
     addresses = options["https-addresses"].toStrings();
     for (unsigned i = 0; i < addresses.size(); i++)
-      addListenPort(addresses[i], sslCtx);
+      addListenPort(addresses[i], sslCtx.get());
 
     // Load server certificate
     // TODO should load file relative to configuration file
