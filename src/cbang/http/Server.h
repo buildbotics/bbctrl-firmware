@@ -80,7 +80,8 @@ namespace cb {
       std::string captureDir;
 
     public:
-      Server(Options &options, SmartPointer<SSLContext> sslCtx = 0);
+      Server(Options &options);
+      Server(Options &options, SmartPointer<SSLContext> sslCtx);
 
       SSLContext &getSSLContext() {return *sslCtx;}
 
@@ -110,6 +111,8 @@ namespace cb {
       void join();
 
     protected:
+      void construct();
+
       void process(Connection &con);
       void poolThread();
 

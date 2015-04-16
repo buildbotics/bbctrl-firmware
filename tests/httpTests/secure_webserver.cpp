@@ -11,8 +11,8 @@
 
 #include <cbang/os/SystemUtilities.h>
 
-#include <cbang/security/SSLContext.h>
-#include <cbang/security/BIMemory.h>
+#include <cbang/openssl/SSLContext.h>
+#include <cbang/openssl/BIMemory.h>
 
 #include <cbang/time/Timer.h>
 

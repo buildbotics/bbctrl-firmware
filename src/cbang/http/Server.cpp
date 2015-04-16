@@ -62,82 +62,11 @@ using namespace cb;
 using namespace cb::HTTP;
 
 
+Server::Server(Options &options) : options(options) {construct();}
+
+
 Server::Server(Options &options, SmartPointer<SSLContext> sslCtx)
-  : options(options), sslCtx(sslCtx), initialized(false),
-    queueConnections(false), maxRequestLength(1024 * 1024 * 50),
-    maxConnections(800), connectionTimeout(60), maxConnectTime(60 * 15),
-    minConnectTime(5 * 60), captureRequests(false), captureResponses(false),
-    captureOnError(false) {
-  SmartPointer<Option> opt;
-
-  options.pushCategory("HTTP Server");
-
-  opt = options.add("http-addresses", "A space separated list of server "
-                    "address and port pairs to listen on in the form "
-                    "<ip | hostname>[:<port>]");
-  opt->setType(Option::STRINGS_TYPE);
-  opt->setDefault("0.0.0.0:80");
-
-#ifdef HAVE_OPENSSL
-  if (!sslCtx.isNull()) {
-    opt = options.add("https-addresses", "A space separated list of secure "
-                      "server address and port pairs to listen on in the form "
-                      "<ip | hostname>[:<port>]");
-    opt->setType(Option::STRINGS_TYPE);
-    opt->setDefault("0.0.0.0:443");
-  }
-#endif // HAVE_OPENSSL
-
-  options.addTarget("max-connections", maxConnections,
-                    "Sets the maximum number of simultaneous connections.");
-  options.addTarget("max-request-length", maxRequestLength,
-                    "Sets the maximum length of a client request packet.");
-  options.addTarget("connection-timeout", connectionTimeout, "The maximum "
-                    "amount of time, in seconds, a connection can be idle "
-                    "before being dropped.");
-  options.addTarget("max-connect-time", maxConnectTime, "The maximum amount of "
-                    "time, in seconds, a client can be connected to the "
-                    "server.");
-  options.addTarget("min-connect-time", minConnectTime, "The minimum amount "
-                    "of time, in seconds, a client must be connected to the "
-                    "server before it can be dropped in favor or a new "
-                    "connection.");
-
-  options.add("allow", "Client addresses which are allowed to connect to this "
-              "server.  This option overrides IPs which are denied in the "
-              "deny option.  The pattern 0/0 matches all addresses."
-              )->setDefault("0/0");
-  options.add("deny", "Client address which are not allowed to connect to this "
-              "server.")->setType(Option::STRINGS_TYPE);
-
-  options.popCategory();
-
-#ifdef HAVE_OPENSSL
-  if (!sslCtx.isNull()) {
-    options.pushCategory("HTTP Server SSL");
-    options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
-                "any internal CRL");
-    options.add("certificate-file", "The servers certificate file in PEM "
-                "format.")->setDefault("certificate.pem");
-    options.add("private-key-file", "The servers private key file in PEM "
-                "format.")->setDefault("private.pem");
-    options.popCategory();
-  }
-#endif // HAVE_OPENSSL
-
-  // TODO should probably remove these in favor of the new Socket level capture
-  options.pushCategory("Debugging");
-  options.add("capture-packets", "Capture HTTP request and response packets "
-              "and save them to 'capture-directory'."
-              )->setDefault(false);
-  options.addTarget("capture-requests", captureRequests, "Capture HTTP "
-                    "requests and save them to 'capture-directory'.");
-  options.addTarget("capture-responses", captureResponses, "Capture HTTP "
-                    "responses and save them to 'capture-directory'.");
-  options.addTarget("capture-on-error", captureOnError, "Capture HTTP request "
-                    "and response packets only in case of errors.");
-  options.popCategory();
-}
+  : options(options), sslCtx(sslCtx) {construct();}
 
 
 Handler *Server::match(Connection *con) {
@@ -270,6 +199,90 @@ void Server::stop() {
 void Server::join() {
   joinThreadPool();
   Thread::join();
+}
+
+
+void Server::construct() {
+  initialized = false;
+  queueConnections = false;
+  maxRequestLength = 1024 * 1024 * 50;
+  maxConnections = 800;
+  connectionTimeout = 60;
+  maxConnectTime = 60 * 15;
+  minConnectTime = 5 * 60;
+  captureRequests = false;
+  captureResponses = false;
+  captureOnError = false;
+
+  SmartPointer<Option> opt;
+
+  options.pushCategory("HTTP Server");
+
+  opt = options.add("http-addresses", "A space separated list of server "
+                    "address and port pairs to listen on in the form "
+                    "<ip | hostname>[:<port>]");
+  opt->setType(Option::STRINGS_TYPE);
+  opt->setDefault("0.0.0.0:80");
+
+#ifdef HAVE_OPENSSL
+  if (!sslCtx.isNull()) {
+    opt = options.add("https-addresses", "A space separated list of secure "
+                      "server address and port pairs to listen on in the form "
+                      "<ip | hostname>[:<port>]");
+    opt->setType(Option::STRINGS_TYPE);
+    opt->setDefault("0.0.0.0:443");
+  }
+#endif // HAVE_OPENSSL
+
+  options.addTarget("max-connections", maxConnections,
+                    "Sets the maximum number of simultaneous connections.");
+  options.addTarget("max-request-length", maxRequestLength,
+                    "Sets the maximum length of a client request packet.");
+  options.addTarget("connection-timeout", connectionTimeout, "The maximum "
+                    "amount of time, in seconds, a connection can be idle "
+                    "before being dropped.");
+  options.addTarget("max-connect-time", maxConnectTime, "The maximum amount of "
+                    "time, in seconds, a client can be connected to the "
+                    "server.");
+  options.addTarget("min-connect-time", minConnectTime, "The minimum amount "
+                    "of time, in seconds, a client must be connected to the "
+                    "server before it can be dropped in favor or a new "
+                    "connection.");
+
+  options.add("allow", "Client addresses which are allowed to connect to this "
+              "server.  This option overrides IPs which are denied in the "
+              "deny option.  The pattern 0/0 matches all addresses."
+              )->setDefault("0/0");
+  options.add("deny", "Client address which are not allowed to connect to this "
+              "server.")->setType(Option::STRINGS_TYPE);
+
+  options.popCategory();
+
+#ifdef HAVE_OPENSSL
+  if (!sslCtx.isNull()) {
+    options.pushCategory("HTTP Server SSL");
+    options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
+                "any internal CRL");
+    options.add("certificate-file", "The servers certificate file in PEM "
+                "format.")->setDefault("certificate.pem");
+    options.add("private-key-file", "The servers private key file in PEM "
+                "format.")->setDefault("private.pem");
+    options.popCategory();
+  }
+#endif // HAVE_OPENSSL
+
+  // TODO should probably remove these in favor of the new Socket level capture
+  options.pushCategory("Debugging");
+  options.add("capture-packets", "Capture HTTP request and response packets "
+              "and save them to 'capture-directory'."
+              )->setDefault(false);
+  options.addTarget("capture-requests", captureRequests, "Capture HTTP "
+                    "requests and save them to 'capture-directory'.");
+  options.addTarget("capture-responses", captureResponses, "Capture HTTP "
+                    "responses and save them to 'capture-directory'.");
+  options.addTarget("capture-on-error", captureOnError, "Capture HTTP request "
+                    "and response packets only in case of errors.");
+  options.popCategory();
 }
 
 

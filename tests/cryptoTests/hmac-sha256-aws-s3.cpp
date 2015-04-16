@@ -1,5 +1,5 @@
 #include <cbang/String.h>
-#include <cbang/security/Digest.h>
+#include <cbang/openssl/Digest.h>
 #include <cbang/util/DefaultCatch.h>
 
 using namespace std;
