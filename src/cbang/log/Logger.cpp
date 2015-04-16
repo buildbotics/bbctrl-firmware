@@ -63,7 +63,12 @@ SINGLETON_DECL(Logger);
 
 
 Logger::Logger(Inaccessible) :
-  verbosity(DEFAULT_VERBOSITY), logCRLF(false), logDebug(true),
+  verbosity(DEFAULT_VERBOSITY), logCRLF(false),
+#ifdef DEBUG
+  logDebug(true),
+#else
+  logDebug(false),
+#endif
   logTime(true), logDate(false), logDatePeriodically(0), logShortLevel(false),
   logLevel(true), logThreadPrefix(false), logDomain(false),
   logSimpleDomains(true), logThreadID(false), logHeader(true),
@@ -84,10 +89,15 @@ void Logger::addOptions(Options &options) {
   options.pushCategory("Logging");
   options.add("log", "Set log file.");
   options.addTarget("verbosity", verbosity, "Set logging level for INFO "
-                    "and DEBUG messages.");
+#ifdef DEBUG
+                    "and DEBUG "
+#endif
+                    "messages.");
   options.addTarget("log-crlf", logCRLF, "Print carriage return and line feed "
                     "at end of log lines.");
+#ifdef DEBUG
   options.addTarget("log-debug", logDebug, "Disable or enable debugging info.");
+#endif
   options.addTarget("log-time", logTime,
                     "Print time information with log entries.");
   options.addTarget("log-date", logDate,
@@ -113,13 +123,18 @@ void Logger::addOptions(Options &options) {
               "\t<domain>[:i|d|t]:<level> ...\n"
               "Entries are separated by white-space and or commas.\n"
               "\ti - info\n"
+#ifdef DEBUG
               "\td - debug\n"
+#endif
 #ifdef HAVE_DEBUGGER
               "\tt - enable traces\n"
 #endif
               "For example: server:i:3 module:6\n"
               "Set 'server' domain info messages to level 3 and 'module' info "
-              "and debug messages to level 6.  All other domains will follow "
+#ifdef DEBUG
+              "and debug "
+#endif
+              "messages to level 6.  All other domains will follow "
               "the system wide log verbosity level.\n"
               "If <level> is negative it is relative to the system wide "
               "verbosity."

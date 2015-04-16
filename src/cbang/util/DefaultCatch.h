@@ -82,7 +82,15 @@
 #define CBANG_CATCH_ERROR CBANG_CATCH(CBANG_LOG_ERROR_LEVEL, "")
 #define CBANG_CATCH_WARNING CBANG_CATCH(CBANG_LOG_WARNING_LEVEL, "")
 #define CBANG_CATCH_INFO(LEVEL) CBANG_CATCH(CBANG_LOG_INFO_LEVEL(LEVEL), "")
+
+#ifdef DEBUG
 #define CBANG_CATCH_DEBUG(LEVEL) CBANG_CATCH(CBANG_LOG_DEBUG_LEVEL(LEVEL), "")
+#else
+#define CBANG_CATCH_DEBUG(LEVEL)                \
+  catch (const cb::Exception &e) {}             \
+  catch (const std::exception &e) {}            \
+  catch (...) {}
+#endif
 
 #define CBANG_TRY_CATCH_ERROR(EXPR)                 \
   CBANG_TRY_CATCH(CBANG_LOG_ERROR_LEVEL, EXPR, "")
@@ -90,8 +98,13 @@
   CBANG_TRY_CATCH(CBANG_LOG_WARNING_LEVEL, EXPR, "")
 #define CBANG_TRY_CATCH_INFO(LEVEL, EXPR)                   \
   CBANG_TRY_CATCH(CBANG_LOG_INFO_LEVEL(LEVEL), EXPR, "")
+
+#ifdef DEBUG
 #define CBANG_TRY_CATCH_DEBUG(LEVEL, EXPR)                  \
   CBANG_TRY_CATCH(CBANG_LOG_DEBUG_LEVEL(LEVEL), EXPR, "")
+#else
+#define CBANG_TRY_CATCH_DEBUG(LEVEL, EXPR) try {EXPR} CBANG_CATCH_DEBUG(LEVEL)
+#endif
 
 #ifdef USING_CBANG
 #define CATCH(LEVEL, MSG) CBANG_CATCH(LEVEL, MSG)
