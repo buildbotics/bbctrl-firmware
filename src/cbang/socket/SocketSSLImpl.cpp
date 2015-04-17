@@ -35,7 +35,6 @@
 
 #include "Socket.h"
 
-#include <cbang/Zap.h>
 #include <cbang/Exception.h>
 
 #include <cbang/openssl/SSL.h>
@@ -47,13 +46,17 @@ using namespace cb;
 using namespace std;
 
 
-SocketSSLImpl::SocketSSLImpl(Socket *parent, SSLContext *sslCtx) :
-  SocketDefaultImpl(parent, sslCtx), bio(*parent),
-  ssl(sslCtx->createSSL(bio.getBIO())), inSSL(false) {}
+SocketSSLImpl::SocketSSLImpl(Socket *parent,
+                             const SmartPointer<SSLContext> &sslCtx) :
+  SocketDefaultImpl(parent), bio(*parent), ssl(sslCtx->createSSL(bio.getBIO())),
+  sslCtx(sslCtx), inSSL(false) {}
 
 
-SocketSSLImpl::~SocketSSLImpl() {
-  zap(ssl);
+SocketSSLImpl::~SocketSSLImpl() {}
+
+
+Socket *SocketSSLImpl::createSocket() {
+  return new Socket(sslCtx);
 }
 
 

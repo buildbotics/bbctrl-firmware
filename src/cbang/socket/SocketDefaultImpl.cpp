@@ -76,8 +76,8 @@ using namespace std;
 using namespace cb;
 
 
-SocketDefaultImpl::SocketDefaultImpl(Socket *parent, SSLContext *sslCtx) :
-  SocketImpl(parent, sslCtx), socket(INVALID_SOCKET), blocking(true),
+SocketDefaultImpl::SocketDefaultImpl(Socket *parent) :
+  SocketImpl(parent), socket(INVALID_SOCKET), blocking(true),
   connected(false) {
   Socket::initialize();
 }

@@ -51,7 +51,8 @@ namespace cb {
       Request &getRequest() const {return con.getRequest();}
       Response &getResponse() const {return con.getResponse();}
       const URI &getURI() const {return getRequest().getURI();}
-      cb::SSL *getSSL() const {return con.getSSL();}
+      bool isSecure() const {return con.isSecure();}
+      cb::SSL &getSSL() const {return con.getSSL();}
 
       /// A sub-class of Context can return false from
       /// Context::isReady() in order to put a connection on hold

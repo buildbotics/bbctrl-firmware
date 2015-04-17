@@ -62,8 +62,8 @@ namespace cb {
 
     unsigned getID() const {return id;}
     Socket &getSocket() const {return *socket;}
-    cb::SSL *getSSL() const;
-    bool isSecure() const {return getSSL();}
+    cb::SSL &getSSL() const {return socket->getImpl()->getSSL();}
+    bool isSecure() const {return socket->getImpl()->isSecure();}
     const IPAddress &getClientIP() const {return clientIP;}
     void setIncomingIP(const IPAddress &ip) {incomingIP = ip;}
     const IPAddress &getIncomingIP() const {return incomingIP;}

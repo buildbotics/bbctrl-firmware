@@ -41,23 +41,25 @@ namespace cb {
 
   class SocketSSLImpl : public SocketDefaultImpl {
     BIOSocketImpl bio;
-    cb::SSL *ssl;
+    SmartPointer<SSL> ssl;
+    SmartPointer<SSLContext> sslCtx;
 
     bool inSSL;
 
     // Don't allow copy constructor or assignment
     SocketSSLImpl(const SocketSSLImpl &o) :
-      SocketDefaultImpl(0, 0), bio(*o.parent) {}
+      SocketDefaultImpl(0), bio(*o.parent) {}
     SocketSSLImpl &operator=(const SocketSSLImpl &o) {return *this;}
 
   public:
-    SocketSSLImpl(Socket *parent, SSLContext *sslCtx);
+    SocketSSLImpl(Socket *parent, const SmartPointer<SSLContext> &sslCtx);
     ~SocketSSLImpl();
 
-    const cb::SSL *getSSL() const {return ssl;}
-    cb::SSL *getSSL() {return ssl;}
-
     // From SocketImpl
+    SSL &getSSL() {return *ssl;}
+    SSLContext &getSSLContext() {return *sslCtx;}
+    bool isSecure() {return true;}
+    Socket *createSocket();
     SmartPointer<Socket> accept(IPAddress *ip);
     void connect(const IPAddress &ip);
     std::streamsize write(const char *data, std::streamsize length,

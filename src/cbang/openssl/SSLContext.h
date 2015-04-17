@@ -57,7 +57,7 @@ namespace cb {
     SSL_CTX *getCTX() const {return ctx;}
     X509_STORE *getStore() const;
 
-    SSL *createSSL(BIO *bio);
+    SmartPointer<SSL> createSSL(BIO *bio);
 
     void setVerifyNone();
     void setVerifyPeer(bool verifyClientOnce = true,

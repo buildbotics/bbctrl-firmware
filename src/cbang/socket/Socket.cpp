@@ -42,6 +42,8 @@
 #include <cbang/Exception.h>
 #include <cbang/Zap.h>
 #include <cbang/String.h>
+#include <cbang/openssl/SSL.h>
+#include <cbang/openssl/SSLContext.h>
 
 #include <cbang/log/Logger.h>
 #include <cbang/time/Timer.h>
@@ -49,17 +51,25 @@
 using namespace std;
 using namespace cb;
 
-
 bool Socket::initialized = false;
 
 
-Socket::Socket(SSLContext *sslCtx) {
+Socket::Socket() {
   if (SocketDebugger::instance().isEnabled())
     impl = new SocketDebugImpl(this);
-#ifdef HAVE_OPENSSL
-  else if (sslCtx) impl = new SocketSSLImpl(this, sslCtx);
-#endif
   else impl = new SocketDefaultImpl(this);
+}
+
+
+Socket::Socket(const SmartPointer<SSLContext> &sslCtx) {
+  if (SocketDebugger::instance().isEnabled())
+    impl = new SocketDebugImpl(this);
+
+#ifdef HAVE_OPENSSL
+  else impl = new SocketSSLImpl(this, sslCtx);
+#else
+  else THROW("C! not built with OpenSSL support");
+#endif
 }
 
 

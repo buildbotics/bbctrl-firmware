@@ -54,7 +54,7 @@ namespace cb {
     SocketDefaultImpl &operator=(const SocketDefaultImpl &o) {return *this;}
 
   public:
-    SocketDefaultImpl(Socket *parent, SSLContext *sslCtx = 0);
+    SocketDefaultImpl(Socket *parent);
 
     // From SocketImpl
     bool isOpen() const;

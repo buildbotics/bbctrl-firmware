@@ -38,5 +38,5 @@ using namespace cb;
 
 
 Socket *SocketImpl::createSocket() {
-  return new Socket(sslCtx);
+  return new Socket;
 }

@@ -56,13 +56,14 @@ namespace cb {
       PEEK,
     };
 
-    Socket(SSLContext *sslCtx = 0);
+    Socket();
+    Socket(const SmartPointer<SSLContext> &sslCtx);
     virtual ~Socket();
 
     static void initialize();
 
     virtual SocketImpl *getImpl() {return impl;}
-    virtual bool isSecure() {return impl->getSSL();}
+    virtual bool isSecure() {return impl->isSecure();}
 
     /// @return True if the socket is open.
     virtual bool isOpen() const {return impl->isOpen();}

@@ -40,6 +40,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/time/Timer.h>
+#include <cbang/openssl/SSLContext.h>
 
 #include <exception>
 
@@ -50,11 +51,17 @@ using namespace cb;
 SocketServer::SocketServer() {}
 
 
-Socket &SocketServer::addListenPort(const IPAddress &ip, SSLContext *sslCtx) {
+Socket &SocketServer::addListenPort(const IPAddress &ip,
+                                    const SmartPointer<SSLContext> &sslCtx) {
   SmartPointer<ListenPort> port = new ListenPort(ip, sslCtx);
   ports.push_back(port);
 
   return port->socket;
+}
+
+
+Socket &SocketServer::addListenPort(const IPAddress &ip) {
+  return addListenPort(ip, 0);
 }
 
 

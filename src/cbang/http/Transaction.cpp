@@ -50,12 +50,17 @@ using namespace cb;
 using namespace cb::HTTP;
 
 
-Transaction::Transaction(SSLContext *sslCtx, double timeout) :
+Transaction::Transaction(double timeout) :
+  stream((Socket &)*this), chunkedFilter(false, false), timeout(timeout) {
+  init();
+}
+
+
+Transaction::Transaction(const SmartPointer<SSLContext> &sslCtx,
+                         double timeout) :
   Socket(sslCtx), stream((Socket &)*this), chunkedFilter(false, false),
   timeout(timeout) {
-  push(boost::ref(chunkedFilter));
-  push(boost::ref(stream));
-  rdbuf()->pubsetbuf(0, 0); // Unbuffered
+  init();
 }
 
 
@@ -186,4 +191,11 @@ URI Transaction::resolve(const URI &_uri) {
   }
 
   return uri;
+}
+
+
+void Transaction::init() {
+  push(boost::ref(chunkedFilter));
+  push(boost::ref(stream));
+  rdbuf()->pubsetbuf(0, 0); // Unbuffered
 }

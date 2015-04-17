@@ -60,7 +60,6 @@ namespace cb {
       WebServer(Options &options, const std::string &match = "",
                 Script::Handler *parent = 0,
                 hasFeature_t hasFeature = WebServer::_hasFeature);
-      virtual ~WebServer() {}
 
       static bool _hasFeature(int feature);
 

@@ -84,7 +84,7 @@ X509_STORE *SSLContext::getStore() const {
 }
 
 
-cb::SSL *SSLContext::createSSL(BIO *bio) {
+SmartPointer<cb::SSL> SSLContext::createSSL(BIO *bio) {
   return new cb::SSL(ctx, bio);
 }
 

@@ -49,6 +49,8 @@ namespace io = boost::iostreams;
 
 
 namespace cb {
+  class  SSLContext;
+
   namespace HTTP {
     class Transaction :
       public Socket, public io::filtering_stream<io::bidirectional> {
@@ -61,7 +63,9 @@ namespace cb {
       double timeout;
 
     public:
-      Transaction(SSLContext *sslCtx = 0, double timeout = 30);
+      Transaction(double timeout = 30);
+      Transaction(const SmartPointer<SSLContext> &sslCtx,
+                  double timeout = 30);
       ~Transaction();
 
       const IPAddress getAddress() const {return address;}
@@ -98,6 +102,8 @@ namespace cb {
       const Response &getResponse() const {return response;}
 
     protected:
+      void init();
+
       /// Add the connect Address and Port to URI if not otherwise set
       URI resolve(const URI &uri);
     };

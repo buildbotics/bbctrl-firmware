@@ -54,7 +54,7 @@ namespace cb {
       Socket socket;
       IPAddress ip;
 
-      ListenPort(const IPAddress &ip, SSLContext *sslCtx) :
+      ListenPort(const IPAddress &ip, const SmartPointer<SSLContext> &sslCtx) :
         socket(sslCtx), ip(ip) {}
     };
 
@@ -72,7 +72,10 @@ namespace cb {
     SocketServer();
     virtual ~SocketServer() {}
 
-    Socket &addListenPort(const IPAddress &ip, SSLContext *sslCtx = 0);
+    Socket &addListenPort(const IPAddress &ip,
+                          const SmartPointer<SSLContext> &sslCtx);
+    Socket &addListenPort(const IPAddress &ip);
+
     IPAddressFilter &getAddressFilter() {return ipFilter;}
 
     unsigned getNumListenPorts() const {return ports.size();}

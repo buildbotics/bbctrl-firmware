@@ -52,8 +52,8 @@ namespace cb {
     bool deleteCon;
 
   public:
-    SocketDebugImpl(Socket *parent, SSLContext *sslCtx = 0) :
-      SocketImpl(parent, sslCtx), socketOpen(false), blocking(true),
+    SocketDebugImpl(Socket *parent) :
+      SocketImpl(parent), socketOpen(false), blocking(true),
       listening(false), bound(false), con(0), deleteCon(false) {}
     ~SocketDebugImpl();
 

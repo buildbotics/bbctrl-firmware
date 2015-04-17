@@ -40,22 +40,23 @@
 
 namespace cb {
   class Socket;
+  class SSL;
   class SSLContext;
 
   /// Socket implementation interface
   class SocketImpl {
   protected:
     Socket *parent;
-    SSLContext *sslCtx;
 
   public:
-    SocketImpl(Socket *parent, SSLContext *sslCtx = 0) :
-      parent(parent), sslCtx(sslCtx) {}
+    SocketImpl(Socket *parent) : parent(parent) {}
     virtual ~SocketImpl() {}
 
     Socket *getSocket() {return parent;}
-    SSLContext *getSSL() {return sslCtx;}
 
+    virtual SSL &getSSL() {THROW("Not a secure socket");}
+    virtual SSLContext &getSSLContext() {THROW("Not a secure socket");}
+    virtual bool isSecure() {return false;}
     virtual Socket *createSocket();
     virtual bool isOpen() const = 0;
     virtual void setReuseAddr(bool reuse) = 0;
@@ -72,9 +73,9 @@ namespace cb {
     virtual SmartPointer<Socket> accept(IPAddress *ip) = 0;
     virtual void connect(const IPAddress &ip) = 0;
     virtual std::streamsize write(const char *data, std::streamsize length,
-                           unsigned flags) = 0;
-    virtual std::streamsize  read(char *data, std::streamsize length,
                                   unsigned flags) = 0;
+    virtual std::streamsize read(char *data, std::streamsize length,
+                                 unsigned flags) = 0;
     virtual void close() = 0;
     virtual int get() const = 0;
   };
