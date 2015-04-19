@@ -162,12 +162,6 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
     cmdLine.add("info", 0, new Action(this, &Application::infoAction),
                 "Print application and system information and exit.");
 
-  cmdLine.add("chdir", 0, new Action(this, &Application::chdirAction),
-              "Change directory before starting server.  All files opened "
-              "after this point, such as the configuration file, must have "
-              "paths relative to the new directory."
-              )->setType(Option::STRING_TYPE);
-
   cmdLine.setKeywordOptions(&options);
 
   // Info
@@ -522,12 +516,6 @@ int Application::versionAction() {
   LOG_RAW(version);
   exit(0);
   return -1;
-}
-
-
-int Application::chdirAction(Option &option) {
-  SystemUtilities::chdir(option.toString());
-  return 0;
 }
 
 

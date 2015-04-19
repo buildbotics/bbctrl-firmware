@@ -47,6 +47,7 @@ namespace cb {
   class CommandLine : public Options {
     const Options *keywords;
     std::string name;
+    std::string usageArgs;
     std::vector<std::string> usageExtras;
     bool allowConfigAsFirstArg;
     bool allowSingleDashLongOpts;
@@ -66,6 +67,7 @@ namespace cb {
     virtual const SmartPointer<Option> &get(const std::string &key) const;
 
     void setKeywordOptions(const Options *options) {keywords = options;}
+    void setUsageArgs(const std::string &s) {usageArgs = s;}
     void addUsageLine(const std::string &line) {usageExtras.push_back(line);}
     void addLicenseText(const char *text) {licenseText.push_back(text);}
 
@@ -88,6 +90,7 @@ namespace cb {
     int htmlHelpAction();
     int licenseAction();
     int incVerbosityAction();
+    int quietAction();
   };
 };
 

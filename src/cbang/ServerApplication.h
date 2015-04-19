@@ -54,6 +54,7 @@ namespace cb {
 
   protected:
     // Command line actions
+    int chdirAction(Option &option);
     int daemonAction();
 
     // From SignalHandler

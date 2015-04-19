@@ -53,18 +53,19 @@ CommandLine::CommandLine() :
   opt->setType(Option::STRING_TYPE);
   opt->setOptional();
 
-  add("help-html", 0,
-      new OptionAction<CommandLine>(this, &CommandLine::htmlHelpAction),
+  typedef OptionAction<CommandLine> Action;
+
+  add("help-html", 0, new Action(this, &CommandLine::htmlHelpAction),
       "Print help in HTML format and exit.");
 
-  add(string(), 'v',
-      new OptionAction<CommandLine>(this, &CommandLine::incVerbosityAction),
+  add("verbose", 'v', new Action(this, &CommandLine::incVerbosityAction),
       "Increase verbosity level.");
 
-  alias("-v", "--verbose");
+  add("quiet", 'q', new Action(this, &CommandLine::quietAction),
+      "Set verbosity to zero.");
 
-  add("license", 0, new OptionAction<CommandLine>
-      (this, &CommandLine::licenseAction), "License information and exit.");
+  add("license", 0, new Action (this, &CommandLine::licenseAction),
+      "License information and exit.");
 }
 
 
@@ -170,6 +171,7 @@ int CommandLine::usageAction(Option &option) {
     SmartPointer<Option> opt;
 
     if (has(string("--") + name)) opt = get(string("--") + name);
+    else if (has(string("-") + name)) opt = get(string("-") + name);
     else if (keywords && keywords->has(name)) opt = keywords->get(name);
     else THROWS("Unrecognized command line option or keyword '" << name << "'");
 
@@ -239,14 +241,27 @@ int CommandLine::htmlHelpAction() {
 
 void CommandLine::usage(ostream &stream, const string &name) const {
   stream << "Usage: " << name;
-  if (allowConfigAsFirstArg) stream << " [[--config] <filename>]";
 
-  stream << " [OPTIONS]...";
-  if (allowExtraOpts) stream << " [-- OPTIONS]";
-  stream << endl << "Command line options:" << endl;
+  if (usageArgs.empty()) {
+    if (allowConfigAsFirstArg) stream << " [[--config] <filename>]";
 
-  for (const_iterator it = begin(); it != end(); it++)
-    it->second->printHelp(stream) << "\n\n";
+    stream << " [OPTIONS]...";
+    if (allowExtraOpts) stream << " [-- OPTIONS]";
+
+  } else stream << ' ' << usageArgs;
+
+  stream << "\n\nCommand line options:\n";
+
+  for (const_iterator it = begin(); it != end(); it++) {
+    const Option &opt = *it->second;
+
+    // Don't print options with both short and long names twice.
+    if (String::startsWith(it->first, "--") && opt.getShortName() &&
+        !opt.getName().empty())
+      continue;
+
+    opt.printHelp(stream) << "\n\n";
+  }
 
   if (keywords) {
     stream << "\nConfiguration options:\n";
@@ -288,5 +303,11 @@ int CommandLine::licenseAction() {
 
 int CommandLine::incVerbosityAction() {
   Logger::instance().setVerbosity(Logger::instance().getVerbosity() + 1);
+  return 0;
+}
+
+
+int CommandLine::quietAction() {
+  Logger::instance().setVerbosity(0);
   return 0;
 }

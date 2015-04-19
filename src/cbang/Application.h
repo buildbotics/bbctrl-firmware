@@ -144,7 +144,6 @@ namespace cb {
     virtual int printAction();
     virtual int infoAction();
     virtual int versionAction();
-    virtual int chdirAction(Option &option);
     virtual int configAction(Option &option);
 
     // From SignalHandler

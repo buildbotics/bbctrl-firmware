@@ -56,6 +56,14 @@ ServerApplication::ServerApplication(const string &name,
 
   if (!hasFeature(FEATURE_SERVER)) return;
 
+  typedef OptionAction<ServerApplication> Action;
+
+  cmdLine.add("chdir", 0, new Action(this, &ServerApplication::chdirAction),
+              "Change directory before starting server.  All files opened "
+              "after this point, such as the configuration file, must have "
+              "paths relative to the new directory."
+              )->setType(Option::STRING_TYPE);
+
   options.pushCategory("Process Control");
 #ifndef _WIN32
   options.add("run-as", "Run as specified user");
@@ -70,8 +78,7 @@ ServerApplication::ServerApplication(const string &name,
               "Also defaults 'log-to-screen' to false. Used internally."
               )->setDefault(false);
 
-  options.add("daemon", 0, new OptionAction<ServerApplication>
-              (this, &ServerApplication::daemonAction),
+  options.add("daemon", 0, new Action(this, &ServerApplication::daemonAction),
               "Short for --pid --service --respawn --log=''"
 #ifndef _WIN32
               " --fork"
@@ -177,6 +184,12 @@ int ServerApplication::init(int argc, char *argv[]) {
   }
 
   return ret;
+}
+
+
+int ServerApplication::chdirAction(Option &option) {
+  SystemUtilities::chdir(option.toString());
+  return 0;
 }
 
 
