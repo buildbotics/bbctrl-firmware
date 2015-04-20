@@ -65,6 +65,7 @@ Socket::Socket(const SmartPointer<SSLContext> &sslCtx) {
   if (SocketDebugger::instance().isEnabled())
     impl = new SocketDebugImpl(this);
 
+  else if (sslCtx.isNull()) impl = new SocketDefaultImpl(this);
 #ifdef HAVE_OPENSSL
   else impl = new SocketSSLImpl(this, sslCtx);
 #else
