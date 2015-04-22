@@ -142,6 +142,11 @@ void XMLReader::text(const string &text) {
 }
 
 
+void XMLReader::cdata(const string &data) {
+  if (depth) get().cdata(data);
+}
+
+
 void XMLReader::push(XMLHandler *handler, XMLHandlerFactory *factory) {
   handlers.push_back(HandlerRecord(handler, depth, factory));
   get().pushFile(getCurrentFile());

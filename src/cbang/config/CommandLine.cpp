@@ -46,16 +46,16 @@ using namespace cb;
 CommandLine::CommandLine() :
   keywords(0), allowConfigAsFirstArg(false), allowSingleDashLongOpts(false),
   allowExtraOpts(false), allowPositionalArgs(true), warnOnInvalidArgs(false) {
+
   SmartPointer<Option> opt;
-  opt = add("help", 0,
-            new OptionAction<CommandLine>(this, &CommandLine::usageAction),
+  typedef OptionAction<CommandLine> Action;
+
+  opt = add("help", 0, new Action(this, &CommandLine::usageAction),
             "Print help screen or help on a particular option and exit.");
   opt->setType(Option::STRING_TYPE);
   opt->setOptional();
 
-  typedef OptionAction<CommandLine> Action;
-
-  add("help-html", 0, new Action(this, &CommandLine::htmlHelpAction),
+  add("html-help", 0, new Action(this, &CommandLine::htmlHelpAction),
       "Print help in HTML format and exit.");
 
   add("verbose", 'v', new Action(this, &CommandLine::incVerbosityAction),
@@ -187,51 +187,7 @@ int CommandLine::usageAction(Option &option) {
 int CommandLine::htmlHelpAction() {
   if (keywords) {
     XMLWriter writer(cout);
-
-    writer.startElement("html");
-    writer.startElement("head");
-
-    writer.startElement("style");
-    writer.text
-      (".option {"
-       "  border: 1px solid black;"
-       "  margin: 5px;"
-       "  padding: 5px;"
-       "  background: white;"
-       "  text-align: left;"
-       "}"
-       ""
-       ".option .name {"
-       "  font-weight: bold;"
-       "  margin-right: 1em;"
-       "}"
-       ""
-       ".option .type {"
-       "  color: green;"
-       "}"
-       ""
-       ".option .default {"
-       "  color: red;"
-       "}"
-       ""
-       ".option .help {"
-       "  margin-top: 1em;"
-       "  white-space: pre-wrap;"
-       "}"
-       ""
-       ".options td {"
-       "  text-align: left;"
-       "}");
-
-    writer.endElement("style");
-    writer.endElement("head");
-
-    writer.startElement("body");
-
-    keywords->printHelp(writer);
-
-    writer.endElement("body");
-    writer.endElement("html");
+    keywords->printHelpPage(writer);
   }
 
   exit(0); // TODO cb::Option calls this action so we have to exit(0). FIXME!

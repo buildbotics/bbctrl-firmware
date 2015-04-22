@@ -123,3 +123,8 @@ void XMLValueMap::endElement(const string &name) {
 void XMLValueMap::text(const string &text) {
   xmlValue.append(text);
 }
+
+
+void XMLValueMap::cdata(const string &data) {
+  xmlValue.append(data);
+}

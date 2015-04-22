@@ -197,7 +197,8 @@ namespace cb {
     operator const std::string &() const {return toString();}
 
     void write(XMLHandler &handler, uint32_t flags) const;
-    void printHelp(XMLHandler &handler) const;
+    void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
+    void printHelp(XMLHandler &handler, const std::string &prefix) const;
 
   protected:
     void setDefault(const std::string &value, type_t type);

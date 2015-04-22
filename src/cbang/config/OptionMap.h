@@ -106,6 +106,7 @@ namespace cb {
     void startElement(const std::string &name, const XMLAttributes &attrs);
     void endElement(const std::string &name);
     void text(const std::string &text);
+    void cdata(const std::string &data);
   };
 }
 

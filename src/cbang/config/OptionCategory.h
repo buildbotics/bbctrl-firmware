@@ -67,6 +67,8 @@ namespace cb {
     void add(const SmartPointer<Option> &option);
 
     void write(XMLHandler &handler, uint32_t flags) const;
+    void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
+    void printHelp(XMLHandler &handler, const std::string &prefix) const;
     void printHelp(std::ostream &stream) const;
   };
 }

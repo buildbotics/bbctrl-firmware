@@ -97,16 +97,32 @@ void XMLWriter::text(const string &text) {
   }
 
   for (; it != text.end(); it++) {
-    switch (*it) {
-    case '<': stream << "&lt;"; break;
-    case '>': stream << "&gt;"; break;
-    case '&': stream << "&amp;"; break;
-    default: stream << *it; break;
-    }
+    if (dontEscapeText) stream << *it;
+    else
+      switch (*it) {
+      case '<': stream << "&lt;"; break;
+      case '>': stream << "&gt;"; break;
+      case '&': stream << "&amp;"; break;
+      default: stream << *it; break;
+      }
+
     startOfLine = *it == '\n' || *it == '\r';
   }
 
   // TODO wrap lines at 80 columns in pretty print mode?
+}
+
+
+void XMLWriter::cdata(const string &data) {
+  if (!data.length()) return;
+
+  if (!closed) {
+    stream << '>';
+    closed = true;
+    startOfLine = false;
+  }
+
+  stream << "<![CDATA[" << data << "]]>";
 }
 
 

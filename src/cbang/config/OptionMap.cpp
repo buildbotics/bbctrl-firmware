@@ -143,3 +143,8 @@ void OptionMap::endElement(const string &name) {
 void OptionMap::text(const string &text) {
   xmlValue.append(text);
 }
+
+
+void OptionMap::cdata(const string &data) {
+  xmlValue.append(data);
+}

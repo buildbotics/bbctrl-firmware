@@ -72,6 +72,73 @@ void OptionCategory::write(XMLHandler &handler, uint32_t flags) const {
 }
 
 
+void OptionCategory::printHelpTOC(XMLHandler &handler,
+                                  const string &prefix) const {
+  if (options.empty()) return;
+
+  XMLAttributes attrs;
+
+  attrs["class"] = "option-category";
+  handler.startElement("li", attrs);
+
+  string catName = name.empty() ? "Uncategorized" : name;
+  attrs.clear();
+  attrs["href"] = "#" + prefix + "option-category-" + catName;
+  handler.startElement("a", attrs);
+  handler.text(catName);
+  handler.endElement("a");
+
+  handler.startElement("ul");
+
+  options_t::const_iterator it;
+  for (it = options.begin(); it != options.end(); it++) {
+    const string &name = it->second->getName();
+
+    if (!name.empty() && name[0] != '_')
+      it->second->printHelpTOC(handler, prefix);
+  }
+
+  handler.endElement("ul");
+  handler.endElement("li");
+}
+
+
+void OptionCategory::printHelp(XMLHandler &handler,
+                               const string &prefix) const {
+  if (options.empty()) return;
+
+  XMLAttributes attrs;
+
+  attrs["class"] = "option-category";
+  attrs["id"] = prefix + "option-category-" + name;
+  handler.startElement("div", attrs);
+
+  if (!name.empty()) {
+    attrs["class"] = "option-category-name";
+    handler.startElement("div", attrs);
+    handler.text(name);
+    handler.endElement("div");
+  }
+
+  if (!description.empty()) {
+    attrs["class"] = "option-category-description";
+    handler.startElement("div", attrs);
+    handler.text(description);
+    handler.endElement("div");
+  }
+
+  options_t::const_iterator it;
+  for (it = options.begin(); it != options.end(); it++) {
+    const string &name = it->second->getName();
+
+    if (!name.empty() && name[0] != '_')
+      it->second->printHelp(handler, prefix);
+  }
+
+  handler.endElement("div");
+}
+
+
 void OptionCategory::printHelp(ostream &stream) const {
   if (!name.empty()) stream << name << ":\n";
   if (!description.empty()) stream << description << "\n";

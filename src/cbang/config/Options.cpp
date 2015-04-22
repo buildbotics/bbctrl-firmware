@@ -204,9 +204,83 @@ void Options::write(XMLHandler &handler, uint32_t flags) const {
 }
 
 
-void Options::printHelp(XMLHandler &writer) const {
-  for (const_iterator it = begin(); it != end(); it++)
-    it->second->printHelp(writer);
+void Options::printHelpTOC(XMLHandler &handler, const string &prefix) const {
+  handler.startElement("ul");
+
+  categories_t::const_iterator it;
+
+  for (it = categories.begin(); it != categories.end(); it++)
+    it->second->printHelpTOC(handler, prefix);
+
+  handler.endElement("ul");
+}
+
+
+void Options::printHelp(XMLHandler &handler, const string &prefix) const {
+  categories_t::const_iterator it;
+
+  for (it = categories.begin(); it != categories.end(); it++)
+    it->second->printHelp(handler, prefix);
+}
+
+
+const char *Options::getHelpStyle() const {
+  return
+    ".option {"
+    "  padding: 1.5em;"
+    "  text-align: left;"
+    "}"
+    ""
+    ".option .name {"
+    "  font-weight: bold;"
+       "  margin-right: 1em;"
+    "}"
+    ""
+    ".option .type {"
+    "  color: green;"
+    "}"
+    ""
+    ".option .default {"
+       "  color: red;"
+    "}"
+    ""
+    ".option .help {"
+    "  margin-top: 1em;"
+    "  white-space: pre-wrap;"
+    "}"
+       ""
+    ".options td {"
+    "  text-align: left;"
+    "}"
+    ".option-category-name {"
+    "  font-size: 20pt;"
+    "  margin: 2em 0 1em 0;"
+    "}";
+}
+
+
+void Options::printHelpPage(XMLHandler &handler) const {
+  handler.startElement("html");
+  handler.startElement("head");
+
+  XMLAttributes attrs;
+  attrs["charset"] = "utf-8";
+  handler.startElement("meta", attrs);
+  handler.endElement("meta");
+
+  handler.startElement("style");
+  handler.text(getHelpStyle());
+
+  handler.endElement("style");
+  handler.endElement("head");
+
+  handler.startElement("body");
+
+  printHelpTOC(handler, "");
+  printHelp(handler, "");
+
+  handler.endElement("body");
+  handler.endElement("html");
 }
 
 

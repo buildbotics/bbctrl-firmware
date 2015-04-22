@@ -74,7 +74,12 @@ namespace cb {
     virtual void printHelp(std::ostream &stream) const;
 
     virtual void write(XMLHandler &handler, uint32_t flags = 0) const;
-    virtual void printHelp(XMLHandler &handler) const;
+    virtual void printHelpTOC(XMLHandler &handler,
+                              const std::string &prefix = std::string()) const;
+    virtual void printHelp(XMLHandler &handler,
+                           const std::string &prefix = std::string()) const;
+    virtual const char *getHelpStyle() const;
+    virtual void printHelpPage(XMLHandler &handler) const;
     virtual SmartPointer<JSON::Dict> getDict(bool defaults = false,
                                              bool all = false) const;
 

@@ -410,18 +410,25 @@ void Option::write(XMLHandler &handler, uint32_t flags) const {
 }
 
 
-void Option::printHelp(XMLHandler &handler) const {
+void Option::printHelpTOC(XMLHandler &handler, const string &prefix) const {
+  handler.startElement("li");
+
+  XMLAttributes attrs;
+  attrs["href"] = "#" + prefix + "option-" + getName();
+  handler.startElement("a", attrs);
+  handler.text(getName());
+  handler.endElement("a");
+
+  handler.endElement("li");
+}
+
+
+void Option::printHelp(XMLHandler &handler, const string &prefix) const {
   XMLAttributes attrs;
 
   attrs["class"] = "option";
+  attrs["id"] = prefix + "option-" + getName();
   handler.startElement("div", attrs);
-
-  // Anchor
-  attrs.clear();
-  attrs["name"] = getName();
-  handler.startElement("a", attrs);
-  handler.text(" ");
-  handler.endElement("a");
 
   // Name
   attrs.clear();

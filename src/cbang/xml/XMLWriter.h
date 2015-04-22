@@ -44,15 +44,19 @@ namespace cb {
 
     bool closed;
     bool startOfLine;
+    bool dontEscapeText;
     unsigned depth;
 
   public:
     XMLWriter(std::ostream &stream, bool pretty = false) :
       stream(stream), pretty(pretty), closed(true), startOfLine(true),
-      depth(0) {}
+      dontEscapeText(false), depth(0) {}
 
     void setPretty(bool x) {pretty = x;}
     bool getPretty() const {return pretty;}
+
+    void setDontEscapeText(bool x = true) {dontEscapeText = x;}
+    bool getDontEscapeText() const {return dontEscapeText;}
 
     void entityRef(const std::string &name);
 
@@ -62,6 +66,7 @@ namespace cb {
                       const XMLAttributes &attrs = XMLAttributes());
     void endElement(const std::string &name);
     void text(const std::string &text);
+    void cdata(const std::string &cdata);
     void comment(const std::string &text);
 
     void indent();

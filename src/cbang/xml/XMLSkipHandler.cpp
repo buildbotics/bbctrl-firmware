@@ -50,3 +50,8 @@ void XMLSkipHandler::endElement(const string &name) {
 void XMLSkipHandler::text(const string &text) {
   if (depth) parent.text(text);
 }
+
+
+void XMLSkipHandler::cdata(const string &data) {
+  if (depth) parent.cdata(data);
+}
