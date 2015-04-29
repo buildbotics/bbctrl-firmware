@@ -48,7 +48,7 @@ namespace cb {
                               const XMLAttributes &attrs = XMLAttributes()) = 0;
     virtual void endElement(const std::string &name) = 0;
     virtual void text(const std::string &text) = 0;
-    virtual void cdata(const std::string &data) = 0;
+    virtual void cdata(const std::string &data) {}
     virtual void comment(const std::string &text) {}
   };
 }
