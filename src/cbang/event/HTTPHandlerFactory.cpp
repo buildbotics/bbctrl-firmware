@@ -35,6 +35,7 @@
 #include "HTTPMatcher.h"
 #include "ResourceHTTPHandler.h"
 #include "FileHandler.h"
+#include "IndexHTMLHandler.h"
 
 using namespace std;
 using namespace cb;
@@ -42,19 +43,20 @@ using namespace cb::Event;
 
 
 SmartPointer<HTTPHandler>
-HTTPHandlerFactory::createMatcher(unsigned methods, const string &pattern,
+HTTPHandlerFactory::createMatcher(unsigned methods, const string &search,
+                                  const string &replace,
                                   const SmartPointer<HTTPHandler> &child) {
-  return new HTTPMatcher(methods, pattern, child);
+  return new HTTPMatcher(methods, search, replace, child);
 }
 
 
 SmartPointer<HTTPHandler>
 HTTPHandlerFactory::createHandler(const Resource &res) {
-  return new ResourceHTTPHandler(res);
+  return new IndexHTMLHandler(new ResourceHTTPHandler(res));
 }
 
 
 SmartPointer<HTTPHandler>
 HTTPHandlerFactory::createHandler(const string &path) {
-  return new FileHandler(path);
+  return new IndexHTMLHandler(new FileHandler(path));
 }

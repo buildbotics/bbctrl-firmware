@@ -45,14 +45,19 @@ namespace cb {
     class HTTPMatcher : public HTTPHandler {
       unsigned methods;
       bool matchAll;
-      boost::regex regex;
+      boost::regex search;
+      std::string replace;
       SmartPointer<HTTPHandler> child;
+      boost::match_flag_type flags;
 
     public:
-      HTTPMatcher(unsigned methods, const std::string &pattern,
-                  const SmartPointer<HTTPHandler> &child) :
-        methods(methods), matchAll(pattern.empty()),
-        regex(boost::regex(pattern)), child(child) {}
+      HTTPMatcher(unsigned methods, const std::string &search,
+                  const std::string &replace,
+                  const SmartPointer<HTTPHandler> &child,
+                  boost::match_flag_type flags = boost::match_default) :
+        methods(methods), matchAll(search.empty()),
+        search(boost::regex(search)), replace(replace), child(child),
+        flags(flags) {}
 
       // From HTTPHandler
       bool operator()(Request &req);

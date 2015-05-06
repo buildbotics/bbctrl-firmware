@@ -30,33 +30,24 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTPHANDLER_FACTORY_H
-#define CB_EVENT_HTTPHANDLER_FACTORY_H
+#ifndef CB_EVENT_RESTORE_URIPATH_H
+#define CB_EVENT_RESTORE_URIPATH_H
 
-#include "HTTPHandler.h"
-
-#include <cbang/SmartPointer.h>
-
-#include <string>
+#include <cbang/net/URI.h>
 
 
 namespace cb {
-  class Resource;
-
   namespace Event {
-    class HTTPHandlerFactory {
-    public:
-      virtual ~HTTPHandlerFactory() {}
+    class RestoreURIPath {
+      URI &uri;
+      std::string path;
 
-      virtual SmartPointer<HTTPHandler>
-      createMatcher(unsigned methods, const std::string &search,
-                    const std::string &replace,
-                    const SmartPointer<HTTPHandler> &child);
-      virtual SmartPointer<HTTPHandler> createHandler(const Resource &res);
-      virtual SmartPointer<HTTPHandler> createHandler(const std::string &path);
+    public:
+      RestoreURIPath(URI &uri) : uri(uri), path(uri.getPath()) {}
+      ~RestoreURIPath() {uri.setPath(path);}
     };
   }
 }
 
-#endif // CB_EVENT_HTTPHANDLER_FACTORY_H
+#endif // CB_EVENT_RESTORE_URIPATH_H
 

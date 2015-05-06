@@ -32,6 +32,7 @@
 
 #include "HTTPMatcher.h"
 #include "Request.h"
+#include "RestoreURIPath.h"
 
 using namespace std;
 using namespace cb::Event;
@@ -39,13 +40,20 @@ using namespace cb::Event;
 
 bool HTTPMatcher::operator()(Request &req) {
   boost::smatch m;
+  const string &path = req.getURI().getPath();
 
   if (!(methods & req.getMethod()) ||
-      (!matchAll && !boost::regex_match(req.getURI().getPath(), m, regex)))
+      (!matchAll && !boost::regex_match(path, m, search, flags)))
     return false;
 
   for (unsigned i = 1; i < m.size(); i++)
     req.insertArg(string(m[i].first, m[i].second));
+
+  if (replace.empty()) return (*child)(req);
+
+  RestoreURIPath restoreURIPath(req.getURI());
+
+  req.getURI().setPath(m.format(replace, flags)); // Modify path
 
   return (*child)(req);
 }

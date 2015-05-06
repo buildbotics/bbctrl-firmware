@@ -63,6 +63,7 @@ namespace cb {
       evhttp_request *req;
       bool deallocate;
 
+      URI originalURI;
       URI uri;
       IPAddress clientIP;
       bool incoming;
@@ -110,7 +111,9 @@ namespace cb {
       virtual JSON::Dict &parseArgs();
 
       virtual std::string getHost() const;
+      virtual const URI &getOriginalURI() const {return originalURI;}
       virtual const URI &getURI() const {return uri;}
+      virtual URI &getURI() {return uri;}
       virtual const IPAddress &getClientIP() const {return clientIP;}
       virtual RequestMethod getMethod() const;
       virtual unsigned getResponseCode() const;

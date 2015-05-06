@@ -30,33 +30,30 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTPHANDLER_FACTORY_H
-#define CB_EVENT_HTTPHANDLER_FACTORY_H
+#include "IndexHTMLHandler.h"
 
-#include "HTTPHandler.h"
+#include "Request.h"
 
-#include <cbang/SmartPointer.h>
+#include <cbang/os/SystemUtilities.h>
 
-#include <string>
+using namespace std;
+using namespace cb;
+using namespace cb::Event;
 
 
-namespace cb {
-  class Resource;
+bool IndexHTMLHandler::operator()(Request &req) {
+  URI &uri = req.getURI();
 
-  namespace Event {
-    class HTTPHandlerFactory {
-    public:
-      virtual ~HTTPHandlerFactory() {}
+  if (String::endsWith(uri.getPath(), "/"))
+    uri.setPath(uri.getPath() + filename);
 
-      virtual SmartPointer<HTTPHandler>
-      createMatcher(unsigned methods, const std::string &search,
-                    const std::string &replace,
-                    const SmartPointer<HTTPHandler> &child);
-      virtual SmartPointer<HTTPHandler> createHandler(const Resource &res);
-      virtual SmartPointer<HTTPHandler> createHandler(const std::string &path);
-    };
+  if ((*child)(req)) return true;
+
+  if (SystemUtilities::extension(uri.getPath()).empty()) {
+    uri.setPath(uri.getPath() + "/" + filename);
+    return (*child)(req);
   }
-}
 
-#endif // CB_EVENT_HTTPHANDLER_FACTORY_H
+  return false;
+}
 

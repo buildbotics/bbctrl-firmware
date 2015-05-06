@@ -57,7 +57,7 @@ Request::Request(evhttp_request *req, bool deallocate) :
 
   // Parse URI
   const char *uri = evhttp_request_get_uri(req);
-  if (uri) this->uri = uri;
+  if (uri) this->uri = originalURI = uri;
 
   // Parse client IP
   evhttp_connection *_con = evhttp_request_get_connection(req);
@@ -74,7 +74,7 @@ Request::Request(evhttp_request *req, bool deallocate) :
 
 
 Request::Request(evhttp_request *req, const URI &uri, bool deallocate) :
-  req(req), deallocate(deallocate), uri(uri),
+  req(req), deallocate(deallocate), originalURI(uri), uri(uri),
   clientIP(uri.getHost(), uri.getPort()), incoming(false), secure(false),
   finalized(false) {
   if (!req) THROW("Event request cannot be null");

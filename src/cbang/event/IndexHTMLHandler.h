@@ -30,33 +30,28 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTPHANDLER_FACTORY_H
-#define CB_EVENT_HTTPHANDLER_FACTORY_H
+#ifndef CB_INDEX_HTMLHANDLER_H
+#define CB_INDEX_HTMLHANDLER_H
 
 #include "HTTPHandler.h"
 
-#include <cbang/SmartPointer.h>
-
-#include <string>
-
 
 namespace cb {
-  class Resource;
-
   namespace Event {
-    class HTTPHandlerFactory {
-    public:
-      virtual ~HTTPHandlerFactory() {}
+    class IndexHTMLHandler : public HTTPHandler {
+      SmartPointer<HTTPHandler> child;
+      std::string filename;
 
-      virtual SmartPointer<HTTPHandler>
-      createMatcher(unsigned methods, const std::string &search,
-                    const std::string &replace,
-                    const SmartPointer<HTTPHandler> &child);
-      virtual SmartPointer<HTTPHandler> createHandler(const Resource &res);
-      virtual SmartPointer<HTTPHandler> createHandler(const std::string &path);
+    public:
+      IndexHTMLHandler(const SmartPointer<HTTPHandler> &child,
+                       const std::string &filename = "index.html") :
+        child(child), filename(filename) {}
+
+      // From HTTPHandler
+      bool operator()(Request &req);
     };
   }
 }
 
-#endif // CB_EVENT_HTTPHANDLER_FACTORY_H
+#endif // CB_INDEX_HTMLHANDLER_H
 
