@@ -58,6 +58,7 @@
   CBANG_ENUM_FINAL(name, = num, desc)
 #define CBANG_ENUM_DESC(name, desc) CBANG_ENUM_FINAL(name, , desc)
 #define CBANG_ENUM_VALUE(name, num) CBANG_ENUM_FINAL(name, = num, #name)
+#define CBANG_ENUM_BIT(name, bit) CBANG_ENUM_FINAL(name, = (1 << bit), #name)
 #define CBANG_ENUM(name) CBANG_ENUM_FINAL(name, , #name)
 
 // Legacy macro
@@ -175,6 +176,7 @@ namespace CBANG_ENUM_NAMESPACE {
 #undef CBANG_ENUM_EXPAND
 #undef CBANG_ENUM
 #undef CBANG_ENUM_VALUE
+#undef CBANG_ENUM_BIT
 #undef CBANG_ENUM_DESC
 #undef CBANG_ENUM_VALUE_DESC
 #endif // !CBANG_ENUM_IMPL
