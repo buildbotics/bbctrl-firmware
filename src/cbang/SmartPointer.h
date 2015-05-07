@@ -197,8 +197,31 @@ namespace cb {
      * @return True if this smart pointers internal pointer equals ptr.
      *         False otherwise.
      */
-    bool operator==(const T *ptr) {
+    bool operator==(const T *ptr) const {
       return this->ptr == ptr;
+    }
+
+    /**
+     * Compare this smart pointer to an actual pointer value.
+     *
+     * @param ptr The pointer to compare with.
+     *
+     * @return False if this smart pointers internal pointer equals ptr.
+     *         True otherwise.
+     */
+    bool operator!=(const T *ptr) const {
+      return this->ptr != ptr;
+    }
+
+    /**
+     * Compare this smart pointer to an actual pointer value.
+     *
+     * @param ptr The pointer to compare with.
+     *
+     * @return True if less than @param ptr. False otherwise.
+     */
+    bool operator<(const T *ptr) const {
+      return this->ptr < ptr;
     }
 
     /**
