@@ -97,7 +97,7 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
       postURI.setQuery("");
 
       // Verify authorization with OAuth2 server
-      HTTP::Transaction tran(sslCtx.get());
+      HTTP::Transaction tran(sslCtx);
       tran.post(postURI, data.data(), data.length(),
                 "application/x-www-form-urlencoded", 1.0);
 
@@ -112,7 +112,7 @@ bool OAuth2SessionLogin::handlePage(HTTP::WebContext &ctx, ostream &stream,
 
       // Get profile
       URI profileURL = auth->getProfileURL(accessToken);
-      HTTP::Transaction tran2(sslCtx.get());
+      HTTP::Transaction tran2(sslCtx);
       tran2.get(profileURL);
 
       // Read response

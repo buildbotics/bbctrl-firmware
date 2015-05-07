@@ -122,7 +122,7 @@ void Server::init() {
     // Configure secure ports
     addresses = options["https-addresses"].toStrings();
     for (unsigned i = 0; i < addresses.size(); i++)
-      addListenPort(addresses[i], sslCtx.get());
+      addListenPort(addresses[i], sslCtx);
 
     // Load server certificate
     // TODO should load file relative to configuration file
