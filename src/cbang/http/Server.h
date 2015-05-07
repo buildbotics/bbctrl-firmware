@@ -82,6 +82,7 @@ namespace cb {
     public:
       Server(Options &options);
       Server(Options &options, SmartPointer<SSLContext> sslCtx);
+      ~Server();
 
       const SmartPointer<SSLContext> &getSSLContext() const {return sslCtx;}
 

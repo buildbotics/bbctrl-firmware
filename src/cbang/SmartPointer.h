@@ -91,11 +91,11 @@ namespace cb {
    * information about smart pointers and why to use them.
    */
   template <typename T, typename DeallocT = DeallocNew<T>,
-            typename CounterT = RefCounter<T, DeallocT> >
+            typename CounterT = RefCounterImpl<T, DeallocT> >
   class SmartPointer {
   protected:
     /// A pointer to the reference counter
-    RefCounterBase *refCounter;
+    RefCounter *refCounter;
 
     /// The actual pointer
     T *ptr;
@@ -103,18 +103,16 @@ namespace cb {
     typedef SmartPointer<T, DeallocT, CounterT> SmartPointerT;
 
   public:
-    typedef SmartPointer<T, DeallocNull> Null;
+    typedef SmartPointer<T, DeallocPhony, RefCounterPhonyImpl> Phony;
     typedef SmartPointer<T, DeallocMalloc> Malloc;
     typedef SmartPointer<T, DeallocArray<T> > Array;
     typedef SmartPointer<T, DeallocNew<T>,
-                         ProtectedRefCounter<T, DeallocNew<T> > > Protected;
-    typedef SmartPointer<T, DeallocNull, ProtectedRefCounter<T, DeallocNull> >
-    ProtectedNull;
+                         ProtectedRefCounterImpl<T, DeallocNew<T> > > Protected;
     typedef SmartPointer<T, DeallocMalloc,
-                         ProtectedRefCounter<T, DeallocMalloc> >
+                         ProtectedRefCounterImpl<T, DeallocMalloc> >
     ProtecteMalloc;
     typedef SmartPointer<T, DeallocArray<T>,
-                         ProtectedRefCounter<T, DeallocArray<T> > >
+                         ProtectedRefCounterImpl<T, DeallocArray<T> > >
     ProtectedArray;
 
     /**
@@ -139,11 +137,11 @@ namespace cb {
      * @param ptr The pointer to point to.
      * @param refCounter The reference counter.
      */
-    SmartPointer(T *ptr = 0, RefCounterBase *refCounter = 0) :
+    SmartPointer(T *ptr = 0, RefCounter *refCounter = 0) :
       refCounter(refCounter), ptr(ptr) {
       if (ptr) {
         if (refCounter) refCounter->incCount();
-        else this->refCounter = new CounterT(ptr);
+        else this->refCounter = CounterT::create();
       }
     }
 
@@ -314,7 +312,7 @@ namespace cb {
      * smart pointer points will be deleted.
      */
     void release() {
-      if (refCounter) refCounter->decCount();
+      if (refCounter) refCounter->decCount(ptr);
       refCounter = 0;
       ptr = 0;
     }
@@ -372,7 +370,7 @@ namespace cb {
 
 
 #define CBANG_SP(T) cb::SmartPointer<T>
-#define CBANG_SP_PHONY(T) cb::SmartPointer<T>::Null
+#define CBANG_SP_PHONY(T) cb::SmartPointer<T>::Phony
 #define CBANG_SP_MALLOC(T) cb::SmartPointer<T>::Malloc
 #define CBANG_SP_ARRAY(T) cb::SmartPointer<T>::Array
 #define CBANG_SP_DEALLOC(T, DEALLOC) \

@@ -71,51 +71,20 @@ namespace {
 
 
 WebServer::WebServer(cb::Options &options, const Base &base,
+                     const cb::SmartPointer<HTTPHandlerFactory> &factory) :
+  HTTPHandlerGroup(factory), options(options), http(new HTTP(base)),
+  initialized(false) {
+  initOptions();
+}
+
+
+WebServer::WebServer(cb::Options &options, const Base &base,
                      const cb::SmartPointer<cb::SSLContext> &sslCtx,
                      const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), sslCtx(sslCtx),
   http(new HTTP(base)), https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)),
   initialized(false) {
-
-  SmartPointer<Option> opt;
-  options.pushCategory("HTTP Server");
-
-  opt = options.add("http-addresses", "A space separated list of server "
-                    "address and port pairs to listen on in the form "
-                    "<ip | hostname>[:<port>]");
-  opt->setType(Option::STRINGS_TYPE);
-  opt->setDefault("0.0.0.0:80");
-
-  options.add("allow", "Client addresses which are allowed to connect to this "
-              "server.  This option overrides IPs which are denied in the "
-              "deny option.  The pattern 0/0 matches all addresses."
-              )->setDefault("0/0");
-  options.add("deny", "Client address which are not allowed to connect to this "
-              "server.")->setType(Option::STRINGS_TYPE);
-
-  options.add("http-max-body-size", "Maximum size of an HTTP request body.");
-  options.add("http-max-headers-size", "Maximum size of the HTTP request "
-              "headers.");
-  options.add("http-server-timeout", "Maximum time in seconds before an http "
-              "request times out.");
-
-  options.popCategory();
-
-  if (!https.isNull()) {
-    options.pushCategory("HTTP Server SSL");
-    opt = options.add("https-addresses", "A space separated list of secure "
-                      "server address and port pairs to listen on in the form "
-                      "<ip | hostname>[:<port>]");
-    opt->setType(Option::STRINGS_TYPE);
-    opt->setDefault("0.0.0.0:443");
-    options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
-                "any internal CRL");
-    options.add("certificate-file", "The servers certificate file in PEM "
-                "format.")->setDefault("certificate.pem");
-    options.add("private-key-file", "The servers private key file in PEM "
-                "format.")->setDefault("private.pem");
-    options.popCategory();
-  }
+  initOptions();
 }
 
 
@@ -179,7 +148,7 @@ void WebServer::init() {
   }
 #endif // HAVE_OPENSSL
 
-  http->setGeneralCallback(SmartPointer<HTTPHandler>::Null(this));
+  http->setGeneralCallback(SmartPointer<HTTPHandler>::Phony(this));
 }
 
 
@@ -223,4 +192,47 @@ void WebServer::setMaxHeadersSize(unsigned size) {
 void WebServer::setTimeout(int timeout) {
   http->setTimeout(timeout);
   if (!https.isNull()) https->setTimeout(timeout);
+}
+
+
+void WebServer::initOptions() {
+  SmartPointer<Option> opt;
+  options.pushCategory("HTTP Server");
+
+  opt = options.add("http-addresses", "A space separated list of server "
+                    "address and port pairs to listen on in the form "
+                    "<ip | hostname>[:<port>]");
+  opt->setType(Option::STRINGS_TYPE);
+  opt->setDefault("0.0.0.0:80");
+
+  options.add("allow", "Client addresses which are allowed to connect to this "
+              "server.  This option overrides IPs which are denied in the "
+              "deny option.  The pattern 0/0 matches all addresses."
+              )->setDefault("0/0");
+  options.add("deny", "Client address which are not allowed to connect to this "
+              "server.")->setType(Option::STRINGS_TYPE);
+
+  options.add("http-max-body-size", "Maximum size of an HTTP request body.");
+  options.add("http-max-headers-size", "Maximum size of the HTTP request "
+              "headers.");
+  options.add("http-server-timeout", "Maximum time in seconds before an http "
+              "request times out.");
+
+  options.popCategory();
+
+  if (!https.isNull()) {
+    options.pushCategory("HTTP Server SSL");
+    opt = options.add("https-addresses", "A space separated list of secure "
+                      "server address and port pairs to listen on in the form "
+                      "<ip | hostname>[:<port>]");
+    opt->setType(Option::STRINGS_TYPE);
+    opt->setDefault("0.0.0.0:443");
+    options.add("crl-file", "Supply a Certificate Revocation List.  Overrides "
+                "any internal CRL");
+    options.add("certificate-file", "The servers certificate file in PEM "
+                "format.")->setDefault("certificate.pem");
+    options.add("private-key-file", "The servers private key file in PEM "
+                "format.")->setDefault("private.pem");
+    options.popCategory();
+  }
 }

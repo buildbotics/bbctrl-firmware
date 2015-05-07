@@ -30,31 +30,9 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_JSON_NULL_H
-#define CBANG_JSON_NULL_H
+#include "RefCounter.h"
 
-#include "Value.h"
+using namespace cb;
 
 
-namespace cb {
-  namespace JSON {
-    class Null : public Value {
-      static Null null;
-
-      Null() {}
-      ~Null() {}
-
-    public:
-      inline static Null &instance() {return null;}
-      inline static ValuePtr instancePtr() {return ValuePtr::Phony(&null);}
-
-      // From Value
-      ValueType getType() const {return JSON_NULL;}
-      ValuePtr copy(bool deep = false) const {return instancePtr();}
-      void write(Sync &sync) const {sync.writeNull();}
-    };
-  }
-}
-
-#endif // CBANG_JSON_NULL_H
-
+RefCounterPhonyImpl RefCounterPhonyImpl::singleton;

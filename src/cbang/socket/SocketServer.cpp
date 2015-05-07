@@ -48,7 +48,7 @@ using namespace std;
 using namespace cb;
 
 
-SocketServer::SocketServer() {}
+SocketServer::~SocketServer() {} // Hide destructor
 
 
 Socket &SocketServer::addListenPort(const IPAddress &ip,

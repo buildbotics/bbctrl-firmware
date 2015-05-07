@@ -111,6 +111,11 @@ namespace {
 }
 
 
+HTTP::HTTP(const Base &base) : http(evhttp_new(base.getBase())) {
+  if (!http) THROW("Failed to create event HTTP");
+}
+
+
 HTTP::HTTP(const Base &base, const cb::SmartPointer<cb::SSLContext> &sslCtx) :
   http(evhttp_new(base.getBase())), sslCtx(sslCtx) {
   if (!http) THROW("Failed to create event HTTP");

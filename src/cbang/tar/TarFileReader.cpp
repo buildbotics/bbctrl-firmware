@@ -61,7 +61,7 @@ TarFileReader::TarFileReader(const string &path, compression_t compression) :
 
 
 TarFileReader::TarFileReader(istream &stream, compression_t compression) :
-  pri(new private_t), stream(SmartPointer<istream>::Null(&stream)),
+  pri(new private_t), stream(SmartPointer<istream>::Phony(&stream)),
   didReadHeader(false) {
 
   addCompression(compression);

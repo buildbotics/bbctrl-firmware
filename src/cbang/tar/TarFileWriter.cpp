@@ -61,7 +61,7 @@ TarFileWriter::TarFileWriter(const string &path, ios::openmode mode, int perm,
 
 
 TarFileWriter::TarFileWriter(ostream &stream, compression_t compression) :
-  pri(new private_t), stream(SmartPointer<ostream>::Null(&stream)) {
+  pri(new private_t), stream(SmartPointer<ostream>::Phony(&stream)) {
 
   addCompression(compression);
   pri->filter.push(*this->stream);

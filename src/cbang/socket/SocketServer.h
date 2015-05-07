@@ -69,8 +69,7 @@ namespace cb {
   public:
     typedef connections_t::const_iterator iterator;
 
-    SocketServer();
-    virtual ~SocketServer() {}
+    virtual ~SocketServer();
 
     Socket &addListenPort(const IPAddress &ip,
                           const SmartPointer<SSLContext> &sslCtx);

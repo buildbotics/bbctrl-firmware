@@ -69,6 +69,9 @@ Server::Server(Options &options, SmartPointer<SSLContext> sslCtx)
   : options(options), sslCtx(sslCtx) {construct();}
 
 
+Server::~Server() {} // Hide destructor
+
+
 Handler *Server::match(Connection *con) {
   for (unsigned i = 0; i < handlers.size(); i++)
     if (handlers[i]->match(con)) return handlers[i];

@@ -56,7 +56,8 @@ namespace cb {
       std::vector<SmartPointer<HTTPHandler> > requestCallbacks;
 
     public:
-      HTTP(const Base &base, const SmartPointer<SSLContext> &sslCtx = 0);
+      HTTP(const Base &base);
+      HTTP(const Base &base, const SmartPointer<SSLContext> &sslCtx);
       virtual ~HTTP();
 
       void setMaxBodySize(unsigned size);

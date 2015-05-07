@@ -54,8 +54,8 @@ namespace cb {
       cb::SmartPointer<SSLContext> sslCtx;
 
     public:
-      Client(Base &base, DNSBase &dns,
-             const cb::SmartPointer<SSLContext> &sslCtx = 0);
+      Client(Base &base, DNSBase &dns);
+      Client(Base &base, DNSBase &dns, const SmartPointer<SSLContext> &sslCtx);
       ~Client();
 
       Base &getBase() {return base;}

@@ -93,7 +93,7 @@ namespace cb {
       int64_t toInteger() const {return 0;}
       double toReal() const {return 0;}
       SmartPointer<Value> parse(const std::string &value)
-      {return SmartPointer<Value>::Null(this);}
+      {return SmartPointer<Value>::Phony(this);}
     };
 
 

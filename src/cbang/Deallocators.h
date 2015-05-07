@@ -37,7 +37,7 @@
 
 
 namespace cb {
-  struct DeallocNull {static void dealloc(void *ptr) {}};
+  struct DeallocPhony {static void dealloc(void *ptr) {}};
 
   template <typename T>
   struct DeallocNew {static void dealloc(T *ptr) {delete ptr;}};

@@ -45,10 +45,12 @@ using namespace cb;
 using namespace cb::Event;
 
 
+Client::Client(Base &base, DNSBase &dns) : base(base), dns(dns) {}
+
+
 Client::Client(Base &base, DNSBase &dns,
                const SmartPointer<SSLContext> &sslCtx) :
-  base(base), dns(dns), sslCtx(sslCtx) {
-}
+  base(base), dns(dns), sslCtx(sslCtx) {}
 
 
 Client::~Client() {}

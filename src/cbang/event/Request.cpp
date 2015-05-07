@@ -99,7 +99,7 @@ JSON::Dict &Request::parseJSONArgs() {
 
       // Find start of dict & parse keys into request args
       if (reader.next() == '{') {
-        JSON::ValuePtr argsPtr = JSON::ValuePtr::Null(&args);
+        JSON::ValuePtr argsPtr = JSON::ValuePtr::Phony(&args);
         JSON::Builder builder(argsPtr);
         reader.parseDict(builder);
       }

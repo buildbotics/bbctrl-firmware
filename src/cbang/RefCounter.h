@@ -40,59 +40,75 @@
 
 namespace cb {
   /// This class is used by SmartPointer to count pointer references
-  class RefCounterBase {
+  class RefCounter {
+  public:
+    virtual ~RefCounter() {}
+
+    virtual long getCount() const = 0;
+    virtual void incCount() = 0;
+    virtual void decCount(const void *ptr) = 0;
+  };
+
+
+  class RefCounterPhonyImpl : public RefCounter {
+    static RefCounterPhonyImpl singleton;
+
+  public:
+    static RefCounter *create() {return &singleton;}
+
+    // From RefCounter
+    long getCount() const {return 1;}
+    void incCount() {};
+    void decCount(const void *ptr) {}
+  };
+
+
+  template<typename T, class Dealloc_T = DeallocNew<T> >
+  class RefCounterImpl : public RefCounter {
+  protected:
     long count;
 
   public:
-    RefCounterBase(long count) : count(count) {}
-    virtual ~RefCounterBase() {}
+    RefCounterImpl() : count(1) {}
+    static RefCounter *create() {return new RefCounterImpl;}
 
-    virtual long getCount() const {return count;}
-    virtual void incCount() {count++;}
-    virtual void decCount() {count--;}
-  };
+    // From RefCounter
+    long getCount() const {return count;}
+    void incCount() {count++;}
 
-
-  template<typename T, class Dealloc_T = DeallocNew<T> >
-  class RefCounter : public RefCounterBase {
-  protected:
-    T *ptr;
-
-  public:
-    RefCounter(T *ptr) : RefCounterBase(1), ptr(ptr) {}
-
-    // From RefCounterBase
-    void decCount() {
-      RefCounterBase::decCount();
-      if (!RefCounterBase::getCount()) {
-        release();
+    void decCount(const void *ptr) {
+      if (!--count) {
+        Dealloc_T::dealloc((T *)ptr);
         delete this;
       }
     }
-
-    void release() {
-      Dealloc_T::dealloc(ptr);
-      ptr = 0;
-    }
   };
 
 
   template<typename T, class Dealloc_T = DeallocNew<T> >
-  class ProtectedRefCounter : public RefCounter<T, Dealloc_T>, public Mutex {
+  class ProtectedRefCounterImpl :
+    public RefCounterImpl<T, Dealloc_T>, public Mutex {
+  protected:
+    using RefCounterImpl<T>::count;
+
   public:
-    ProtectedRefCounter(T *ptr) : RefCounter<T, Dealloc_T>(ptr) {}
+    static RefCounter *create() {return new ProtectedRefCounterImpl;}
 
-    // From RefCounterBase
-    long getCount() const
-    {lock(); long x = RefCounterBase::getCount(); unlock(); return x;}
-    void incCount() {lock(); RefCounterBase::incCount(); unlock();}
+    // From RefCounterImpl
+    long getCount() const {
+      lock();
+      long x = count;
+      unlock();
+      return x;
+    }
 
-    void decCount() {
+    void incCount() {lock(); count++; unlock();}
+
+    void decCount(const void *ptr) {
       lock();
 
-      RefCounterBase::decCount();
-      if (!RefCounterBase::getCount()) {
-        RefCounter<T, Dealloc_T>::release();
+      if (!--count) {
+        Dealloc_T::dealloc((T *)ptr);
         unlock();
         delete this;
 
