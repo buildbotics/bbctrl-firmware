@@ -38,7 +38,6 @@
 
 
 namespace cb {
-  class SSLContext;
   class Options;
 
   namespace HTTP {

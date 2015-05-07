@@ -83,7 +83,7 @@ namespace cb {
       Server(Options &options);
       Server(Options &options, SmartPointer<SSLContext> sslCtx);
 
-      SSLContext &getSSLContext() {return *sslCtx;}
+      const SmartPointer<SSLContext> &getSSLContext() const {return sslCtx;}
 
       virtual const std::string getName() const {return "HTTP::Server";}
       bool getQueueConnections() const {return queueConnections;}
