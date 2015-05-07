@@ -432,7 +432,7 @@ Logger::LogStream Logger::createStream(const string &_domain, int level,
 
 
 streamsize Logger::write(const char *s, streamsize n) {
-  if (logFile.get()) logFile->write(s, n);
+  if (!logFile.isNull()) logFile->write(s, n);
   if (logToScreen) screenStream->write(s, n);
   return n;
 }
@@ -444,7 +444,7 @@ void Logger::write(const string &s) {
 
 
 bool Logger::flush() {
-  if (logFile.get()) logFile->flush();
+  if (!logFile.isNull()) logFile->flush();
   if (logToScreen) screenStream->flush();
   return true;
 }

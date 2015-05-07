@@ -312,7 +312,7 @@ streamsize SocketDefaultImpl::write(const char *data, streamsize length,
     THROWS("Send error: " << err << ": " << SysError(err));
   }
 
-  if (out.get()) out->write(data, ret); // Capture
+  if (!out.isNull()) out->write(data, ret); // Capture
 
   return ret;
 }
@@ -346,7 +346,7 @@ streamsize SocketDefaultImpl::read(char *data, streamsize length,
     THROWS("Receive error: " << err << ": " << SysError(err));
   }
 
-  if (in.get()) in->write(data, ret); // Capture
+  if (!in.isNull()) in->write(data, ret); // Capture
 
   return ret;
 }

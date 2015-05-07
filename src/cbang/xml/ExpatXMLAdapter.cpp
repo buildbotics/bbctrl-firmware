@@ -77,12 +77,12 @@ void ExpatXMLAdapter::read(istream &stream) {
                             FileLocation(getFilename(), line, column));
     }
 
-    if (error.get()) break;
+    if (!error.isNull()) break;
   } while (count);
 
   names.clear();
 
-  if (error.get()) {
+  if (!error.isNull()) {
     Exception e(*error.get());
     error = 0;
 
@@ -92,7 +92,7 @@ void ExpatXMLAdapter::read(istream &stream) {
 
 
 void ExpatXMLAdapter::setError(const Exception &e) {
-  if (error.get()) return;
+  if (!error.isNull()) return;
 
   int line = XML_GetCurrentLineNumber((XML_Parser)parser);
   int column = XML_GetCurrentColumnNumber((XML_Parser)parser);

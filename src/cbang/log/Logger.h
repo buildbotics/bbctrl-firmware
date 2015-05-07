@@ -131,7 +131,7 @@ namespace cb {
      * @param filename The log file name.
      */
     void startLogFile(const std::string &filename);
-    bool getLogFileStarted() const {return logFile.get();}
+    bool getLogFileStarted() const {return !logFile.isNull();}
 
     void setScreenStream(std::ostream &stream) {screenStream = &stream;}
 

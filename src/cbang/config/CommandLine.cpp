@@ -118,7 +118,7 @@ int CommandLine::parse(const vector<string> &args) {
       if (allowConfigAsFirstArg && !configSet && !optionStr.empty()) {
         option = get("--config");
 
-        if (option.get()) {
+        if (!option.isNull()) {
           unsigned cmdI = 0;
           vector<string> cmdArgs;
 
