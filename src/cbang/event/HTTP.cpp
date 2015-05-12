@@ -92,16 +92,19 @@ namespace {
           req->sendError(HTTPStatus::HTTP_NOT_FOUND);
 
       } catch (cb::Exception &e) {
+        req->reset();
         req->sendError(e.getCode() ? e.getCode() :
                       HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         if (!CBANG_LOG_DEBUG_ENABLED(3)) LOG_WARNING(e.getMessage());
         LOG_DEBUG(3, e);
 
       } catch (std::exception &e) {
+        req->reset();
         req->sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         LOG_ERROR(e.what());
 
       } catch (...) {
+        req->reset();
         req->sendError(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR);
         LOG_ERROR(HTTPStatus(HTTPStatus::HTTP_INTERNAL_SERVER_ERROR)
                   .getDescription());

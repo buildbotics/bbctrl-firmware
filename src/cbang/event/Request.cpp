@@ -86,6 +86,12 @@ Request::~Request() {
 }
 
 
+void Request::reset() {
+  getOutputBuffer().clear();
+  finalized = false;
+}
+
+
 JSON::Dict &Request::parseJSONArgs() {
   Headers hdrs = getInputHeaders();
 

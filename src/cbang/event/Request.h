@@ -92,7 +92,8 @@ namespace cb {
       bool isSecure() const {return secure;}
       void setSecure(bool secure) {this->secure = secure;}
 
-      // Args
+      virtual void reset();
+
       virtual void insertArg(const std::string &arg)
       {args.insert(String(args.size()), arg);}
       virtual void insertArg(const std::string &key, const std::string &arg)
