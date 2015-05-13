@@ -57,6 +57,7 @@ namespace cb {
     void run() {}
     bool shouldQuit() const;
 
+    uint64_t getLifeline() const {return lifeline;}
     bool lostLifeline() const;
 
   protected:

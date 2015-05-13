@@ -64,7 +64,7 @@ ServerApplication::ServerApplication(const string &name,
               "paths relative to the new directory."
               )->setType(Option::STRING_TYPE);
 
-  if (hasFeature(FEATURE_SERVER))
+  if (hasFeature(FEATURE_LIFELINE))
     cmdLine.add("lifeline", 0, new OptionActionSet<uint64_t>(lifeline),
                 "The application will watch for this process ID and exit if it "
                 "goes away.  Usually the calling process' PID."
@@ -103,7 +103,7 @@ bool ServerApplication::_hasFeature(int feature) {
 int ServerApplication::init(int argc, char *argv[]) {
   // Hide child's output
   if (hasFeature(FEATURE_SERVER) && options["child"].toBoolean())
-    options["log-to-screen"].setDefault(false);
+    ;//options["log-to-screen"].setDefault(false);
 
   int ret = Application::init(argc, argv);
   if (ret == -1) return -1;
@@ -148,7 +148,7 @@ int ServerApplication::init(int argc, char *argv[]) {
     args.push_back(argv[0]);
     args.push_back((char *)"--child");
 
-    if (hasFeature(FEATURE_SERVER)) {
+    if (hasFeature(FEATURE_LIFELINE)) {
       args.push_back((char *)"--lifeline");
       args.push_back(String(SystemUtilities::getPID()));
     }

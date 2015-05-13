@@ -80,8 +80,8 @@ void Base::loopOnce() {
 
 
 bool Base::loopNonBlock() {
-  int ret = event_base_loop(base, EVLOOP_ONCE);
-  if (ret == -1) THROW("Loop once failed");
+  int ret = event_base_loop(base, EVLOOP_NONBLOCK);
+  if (ret == -1) THROW("Loop nonblock failed");
   return ret == 0;
 }
 
