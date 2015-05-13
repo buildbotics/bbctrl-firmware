@@ -92,7 +92,7 @@ namespace cb {
       bool isSecure() const {return secure;}
       void setSecure(bool secure) {this->secure = secure;}
 
-      virtual void reset();
+      virtual void resetOutput();
 
       virtual void insertArg(const std::string &arg)
       {args.insert(String(args.size()), arg);}
@@ -168,6 +168,7 @@ namespace cb {
       virtual SmartPointer<std::ostream> getOutputStream() const;
 
       virtual void sendError(int code);
+      virtual void sendError(int code, const std::string &message);
 
       virtual void send(const Buffer &buf);
       virtual void send(const char *data, unsigned length);

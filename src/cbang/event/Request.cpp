@@ -86,9 +86,9 @@ Request::~Request() {
 }
 
 
-void Request::reset() {
-  getOutputBuffer().clear();
+void Request::resetOutput() {
   finalized = false;
+  getOutputBuffer().clear();
 }
 
 
@@ -378,7 +378,15 @@ SmartPointer<ostream> Request::getOutputStream() const {
 
 void Request::sendError(int code) {
   finalize();
-  evhttp_send_error(req, code, 0);
+  evhttp_send_error(req, code ? code : HTTP_INTERNAL_SERVER_ERROR, 0);
+}
+
+
+void Request::sendError(int code, const string &message) {
+  resetOutput();
+  setContentType("text/plain");
+  send(message);
+  sendError(code);
 }
 
 
