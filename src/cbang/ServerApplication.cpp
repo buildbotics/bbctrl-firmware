@@ -52,7 +52,7 @@ using namespace std;
 
 ServerApplication::ServerApplication(const string &name,
                                      hasFeature_t hasFeature) :
-  Application(name, hasFeature), restartChild(false) {
+  Application(name, hasFeature), restartChild(false), lifeline(0) {
 
   if (!hasFeature(FEATURE_SERVER)) return;
 
@@ -63,6 +63,12 @@ ServerApplication::ServerApplication(const string &name,
               "after this point, such as the configuration file, must have "
               "paths relative to the new directory."
               )->setType(Option::STRING_TYPE);
+
+  if (hasFeature(FEATURE_SERVER))
+    cmdLine.add("lifeline", 0, new OptionActionSet<uint64_t>(lifeline),
+                "The application will watch for this process ID and exit if it "
+                "goes away.  Usually the calling process' PID."
+                )->setType(Option::INTEGER_TYPE);
 
   options.pushCategory("Process Control");
 #ifndef _WIN32
@@ -85,6 +91,12 @@ ServerApplication::ServerApplication(const string &name,
 #endif
               )->setDefault(false);
   options.popCategory();
+}
+
+
+bool ServerApplication::_hasFeature(int feature) {
+  if (feature == FEATURE_SERVER) return true;
+  return Application::_hasFeature(feature);
 }
 
 
@@ -135,8 +147,12 @@ int ServerApplication::init(int argc, char *argv[]) {
     vector<string> args;
     args.push_back(argv[0]);
     args.push_back((char *)"--child");
-    args.push_back((char *)"--lifeline");
-    args.push_back(String(SystemUtilities::getPID()));
+
+    if (hasFeature(FEATURE_SERVER)) {
+      args.push_back((char *)"--lifeline");
+      args.push_back(String(SystemUtilities::getPID()));
+    }
+
     args.insert(args.end(), argv + 1, argv + argc);
 
     unsigned lastRespawn = 0;
@@ -187,6 +203,25 @@ int ServerApplication::init(int argc, char *argv[]) {
 }
 
 
+bool ServerApplication::shouldQuit() const {
+  if (!quit && lostLifeline())
+    const_cast<ServerApplication *>(this)->requestExit();
+
+  return Application::shouldQuit();
+}
+
+
+bool ServerApplication::lostLifeline() const {
+  if (!hasFeature(FEATURE_LIFELINE)) return false;
+
+  if (!lifeline || SystemUtilities::pidAlive(lifeline)) return false;
+
+  LOG_INFO(1, "Lost lifeline PID " << lifeline << ", exiting");
+
+  return true;
+}
+
+
 int ServerApplication::chdirAction(Option &option) {
   SystemUtilities::chdir(option.toString());
   return 0;
@@ -201,7 +236,8 @@ int ServerApplication::daemonAction() {
       options["fork"].set(true);
 #endif
       options["pid"].set(true);
-      options["service"].set(true);
+      if (hasFeature(FEATURE_PROCESS_CONTROL))
+        options["service"].set(true);
       options["log"].unset();
 
     } else LOG_WARNING("deamon=false has no effect");

@@ -38,19 +38,26 @@
 namespace cb {
   class ServerApplication : public Application {
     bool restartChild;
+    uint64_t lifeline;
 
   public:
     enum {
       FEATURE_SERVER = Application::FEATURE_LAST,
+      FEATURE_LIFELINE,
       FEATURE_LAST,
     };
 
     ServerApplication(const std::string &name,
-                      hasFeature_t hasFeature = Application::_hasFeature);
+                      hasFeature_t hasFeature = ServerApplication::_hasFeature);
+
+    static bool _hasFeature(int feature);
 
     // From Application
     int init(int argc, char *argv[]);
     void run() {}
+    bool shouldQuit() const;
+
+    bool lostLifeline() const;
 
   protected:
     // Command line actions
