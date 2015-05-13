@@ -200,7 +200,7 @@ string Writer::escape(const string &s) {
       //
       // See: http://en.wikipedia.org/wiki/UTF-8
 
-      if (0x80 <= c) {
+      if (0x80 <= c || iscntrl(c)) {
         // Compute code width
         int width = 0;
         if ((c & 0xe0) == 0xc0) width = 1;
@@ -224,12 +224,6 @@ string Writer::escape(const string &s) {
 
         if (width < 3)
           result.append(String::printf("\\u%04x", (unsigned)code));
-
-      } else if (iscntrl(c)) {
-        result.append(1, '\\');
-        result.append(1, 'x');
-        result.append(1, String::hexNibble(c >> 4));
-        result.append(1, String::hexNibble(c));
 
       } else result.push_back(c);
       break;
