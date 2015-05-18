@@ -30,12 +30,13 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_LIBRARY_CONTEXT_H
-#define CB_JS_LIBRARY_CONTEXT_H
+#ifndef CB_JS_ENVIRONMENT_H
+#define CB_JS_ENVIRONMENT_H
 
 #include "Value.h"
 #include "Context.h"
 #include "ObjectTemplate.h"
+#include "ConsoleModule.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/io/InputSource.h>
@@ -48,21 +49,26 @@
 
 namespace cb {
   namespace js {
-    class LibraryContext : public ObjectTemplate {
+    class Module;
+
+
+    class Environment : public ObjectTemplate {
       SmartPointer<Context> ctx;
 
       typedef std::map<std::string, PersistentValue> modules_t;
       modules_t modules;
 
+      ConsoleModule consoleMod;
+
       std::vector<std::string> pathStack;
       std::vector<std::string> searchExts;
       std::vector<std::string> searchPaths;
 
-    public:
       std::ostream &out;
 
-      LibraryContext(std::ostream &out);
-      virtual ~LibraryContext() {}
+    public:
+      Environment(std::ostream &out);
+      virtual ~Environment() {}
 
       void pushPath(const std::string &path) {pathStack.push_back(path);}
       void popPath();
@@ -79,12 +85,20 @@ namespace cb {
       void clearSearchPaths() {searchPaths.clear();}
       std::string searchPath(const std::string &path) const;
 
+      virtual void addModule(const std::string &name, const Value &exports);
+      virtual void addModule(const std::string &name, Module &module);
+
       virtual Value require(const std::string &path);
+      virtual Value load(Context &ctx, const std::string &path);
       virtual Value load(const std::string &path);
+      virtual Value eval(Context &ctx, const InputSource &source);
       virtual Value eval(const InputSource &source);
+
+      virtual Value require(const Arguments &args);
+      virtual void print(const Arguments &args);
     };
   }
 }
 
-#endif // CB_JS_LIBRARY_CONTEXT_H
+#endif // CB_JS_ENVIRONMENT_H
 

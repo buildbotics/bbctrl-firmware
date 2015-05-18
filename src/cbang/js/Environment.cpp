@@ -30,52 +30,59 @@
 
 \******************************************************************************/
 
-#include "LibraryContext.h"
+#include "Environment.h"
 
 #include "Script.h"
 #include "Context.h"
 #include "Scope.h"
+#include "ContextScope.h"
+#include "Object.h"
+#include "Module.h"
 
 #include <cbang/String.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/io/InputSource.h>
 #include <cbang/util/SmartFunctor.h>
 #include <cbang/json/JSON.h>
-#include <cbang/log/Logger.h>
 
 using namespace cb;
 using namespace cb::js;
 using namespace std;
 
 
-LibraryContext::LibraryContext(ostream &out) : out(out) {
+Environment::Environment(ostream &out) : out(out) {
   pushPath(SystemUtilities::getcwd());
   addSearchExtensions("/package.json .js .json");
+
+  // Setup global object template
+  set("require(path)", this, &Environment::require);
+  set("print(...)", this, &Environment::print);
+  set("console", consoleMod);
 }
 
 
-void LibraryContext::popPath() {
+void Environment::popPath() {
   if (pathStack.size() == 1) THROW("No path top pop");
   pathStack.pop_back();
 }
 
 
-const string &LibraryContext::getCurrentPath() const {
+const string &Environment::getCurrentPath() const {
   return pathStack.back();
 }
 
 
-void LibraryContext::addSearchExtensions(const string &exts) {
+void Environment::addSearchExtensions(const string &exts) {
   String::tokenize(exts, searchExts);
 }
 
 
-void LibraryContext::appendSearchExtension(const string &ext) {
+void Environment::appendSearchExtension(const string &ext) {
   searchExts.push_back(ext);
 }
 
 
-string LibraryContext::searchExtensions(const string &path) const {
+string Environment::searchExtensions(const string &path) const {
   if (!SystemUtilities::extension(path).empty()) return path;
 
   for (unsigned i = 0; i < searchExts.size(); i++) {
@@ -88,13 +95,13 @@ string LibraryContext::searchExtensions(const string &path) const {
 }
 
 
-void LibraryContext::addSearchPaths(const string &paths) {
+void Environment::addSearchPaths(const string &paths) {
   String::tokenize(paths, searchPaths,
                    string(1, SystemUtilities::path_delimiter));
 }
 
 
-string LibraryContext::searchPath(const string &path) const {
+string Environment::searchPath(const string &path) const {
   if (SystemUtilities::isAbsolute(path)) {
     // Search extensions
     return searchExtensions(path);
@@ -119,9 +126,18 @@ string LibraryContext::searchPath(const string &path) const {
 }
 
 
-Value LibraryContext::require(const string &_path) {
-  // TODO Check if path is a core module
+void Environment::addModule(const string &name, const Value &exports) {
+  if (!modules.insert(modules_t::value_type(name, exports)).second)
+    THROWS("Module '" << name << "' already added");
+}
 
+
+void Environment::addModule(const string &name, Module &module) {
+  addModule(name, module.create());
+}
+
+
+Value Environment::require(const string &_path) {
   string path = searchPath(_path);
 
   if (path.empty()) THROWS("Module '" << _path << "' not found");
@@ -131,37 +147,39 @@ Value LibraryContext::require(const string &_path) {
 
   // Search already loaded modules
   modules_t::iterator it = modules.find(path);
-  if (it != modules.end()) return it->second.get("exports");
+  if (it != modules.end()) return it->second;
 
-  // Setup 'module.exports' for node.js style modules
-  if (ctx.isNull()) ctx = new Context(*this);
+  // Create new context
+  Scope scope;
+  Context ctx(*this);
+  ContextScope ctxScope(ctx);
+
+  // Setup 'module.exports' & 'exports' for common.js style modules
+  Value exports = Value::createObject();
+  ctx.getGlobal().set("exports", exports);
 
   Value module = Value::createObject();
-  module.set("exports", Value::createObject());
+  module.set("exports", exports);
   module.set("id", path);
   module.set("filename", path);
   module.set("loaded", false);
-  ctx->getGlobal().set("module", module);
-  modules[path] = module;
+  // NOTE, node.js also sets 'parent' & 'children'
+  ctx.getGlobal().set("module", module);
+
+  addModule(path, exports);
 
   // Load module
-  Value ret = load(path);
+  Value ret = load(ctx, path);
 
   module.set("loaded", true);
 
-  Value exports = module.get("exports");
-  Value names = exports.getOwnPropertyNames();
+  if (!exports.getOwnPropertyNames().length()) exports = ret;
 
-  if (!names.length()) {
-    module.set("exports", ret);
-    return ret;
-  }
-
-  return exports;
+  return scope.close(exports);
 }
 
 
-Value LibraryContext::load(const string &_path) {
+Value Environment::load(Context &ctx, const string &_path) {
   string path = _path;
 
   if (String::endsWith(path, "/package.json")) {
@@ -169,31 +187,57 @@ Value LibraryContext::load(const string &_path) {
     path = SystemUtilities::absolute(path, package->getString("main"));
 
   } else if (String::endsWith(path, ".json")) {
-    if (ctx.isNull()) ctx = new Context(*this);
-
     Scope scope;
 
-    Value JSON = ctx->getGlobal().get("JSON");
+    Value JSON = ctx.getGlobal().get("JSON");
     Value parse = JSON.get("parse");
     Value jsonString = SystemUtilities::read(path);
 
     return scope.close(parse.call(JSON, jsonString));
   }
 
-  return eval(InputSource(path));
+  return eval(ctx, InputSource(path));
 }
 
 
-Value LibraryContext::eval(const InputSource &source) {
-  SmartFunctor<LibraryContext>
-    smartPopPath(this, &LibraryContext::popPath, false);
+Value Environment::load(const string &path) {
+  if (ctx.isNull()) ctx = new Context(*this);
+  return load(*ctx, path);
+}
+
+
+Value Environment::eval(Context &ctx, const InputSource &source) {
+  SmartFunctor<Environment>
+    smartPopPath(this, &Environment::popPath, false);
 
   if (!source.getName().empty() && source.getName()[0] != '<') {
     pushPath(source.getName());
     smartPopPath.setEngaged(true);
   }
 
-  if (ctx.isNull()) ctx = new Context(*this);
+  return Script(ctx, source).eval();
+}
 
-  return Script(*ctx, source).eval();
+
+Value Environment::eval(const InputSource &source) {
+  if (ctx.isNull()) ctx = new Context(*this);
+  return eval(*ctx, source);
+}
+
+
+Value Environment::require(const Arguments &args) {
+  return require(args.getString("path"));
+}
+
+
+void Environment::print(const Arguments &args) {
+  Value JSON = Context::current().getGlobal().get("JSON");
+  Value stringify = JSON.get("stringify");
+
+  for (unsigned i = 0; i < args.getCount(); i++)
+    if (args[i].isObject())
+      out << stringify.call(JSON, args[i]);
+    else out << args[i];
+
+  out << flush;
 }

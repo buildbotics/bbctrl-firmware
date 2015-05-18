@@ -30,28 +30,19 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_LIBRARY_H
-#define CB_JS_LIBRARY_H
+#ifndef CB_JS_MODULE_H
+#define CB_JS_MODULE_H
 
 #include "ObjectTemplate.h"
 
 
 namespace cb {
   namespace js {
-    class LibraryContext;
-
-    class Library {
-    protected:
-      LibraryContext &ctx;
-
+    class Module : public ObjectTemplate {
     public:
-      Library(LibraryContext &ctx) : ctx(ctx) {}
-      virtual ~Library() {}
-
-      virtual void add(ObjectTemplate &tmpl) = 0;
     };
   }
 }
 
-#endif // CB_JS_LIBRARY_H
+#endif // CB_JS_MODULE_H
 

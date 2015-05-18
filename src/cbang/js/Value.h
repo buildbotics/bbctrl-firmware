@@ -56,23 +56,21 @@ namespace cb {
     template <typename T = v8::Handle<v8::Value> >
     class ValueBase {
     protected:
-      typedef ValueBase<T> Super_T;
-      typedef T value_t;
-      value_t value;
+      T value;
 
     public:
       ValueBase() : value(v8::Undefined()) {}
 
-      ValueBase(const ValueBase<> &value) :
-        value(value.getV8Value().IsEmpty() ? value_t(v8::Undefined()) :
+      ValueBase(const Value &value) :
+        value(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
               value.getV8Value()) {}
 
-      ValueBase(const ValueBase<v8::Persistent<v8::Value> > &value) :
-        value(value.getV8Value().IsEmpty() ? value_t(v8::Undefined()) :
-              value_t(value.getV8Value())) {}
+      ValueBase(const PersistentValue &value) :
+        value(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
+              T(value.getV8Value())) {}
 
-      ValueBase(const value_t &value) :
-      value(value.IsEmpty() ? value_t(v8::Undefined()) : value) {}
+      ValueBase(const T &value) :
+      value(value.IsEmpty() ? T(v8::Undefined()) : value) {}
 
       explicit ValueBase(bool x) : value(x ? v8::True() : v8::False()) {}
 
@@ -263,8 +261,8 @@ namespace cb {
       }
 
       // Accessors
-      const value_t &getV8Value() const {return value;}
-      value_t &getV8Value() {return value;}
+      const T &getV8Value() const {return value;}
+      T &getV8Value() {return value;}
     };
 
 
