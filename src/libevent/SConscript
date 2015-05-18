@@ -189,7 +189,6 @@ gethostbyname_r_6_arg_src = '''
 def get_event_config_defs():
     # TODO Define EVENT__HAVE_WORKING_KQUEUE if kqueue works correctly w/ pipes
 
-
     # to_def
     from string import maketrans
     trans = maketrans('/. *', '___P')
