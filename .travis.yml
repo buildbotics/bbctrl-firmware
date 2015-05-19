@@ -6,15 +6,25 @@ env:
   - DEBUG_BUILD=1
   - DEBUG_BUILD=0
 
-before_install:
-  - apt-key adv --recv-keys --keyserver pgp.mit.edu 0xcbcb082a1bb943db
-  - bash -c "echo deb http://mirror.jmu.edu/pub/mariadb/repo/10.0/debian wheezy main > /etc/apt/sources.list.d/mariadb-10.0.list"
-  - apt-get update -y
+script:
+  - scons debug=$DEBUG_BUILD -j 4
 
-install:
-  - apt-get install scons build-essential libbz2-dev zlib1g-dev
-    libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev
-    libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev
-    binutils-dev libmariadbclient-dev
+addons:
+  apt:
+    sources:
+      - mariadb-10.0
 
-script: scons debug=$DEBUG_BUILD -j 4
+    packages:
+      - scons
+      - libbz2-dev
+      -  zlib1g-dev
+      - libexpat1-dev
+      - libssl-dev
+      - libboost-iostreams-dev
+      - libboost-system-dev
+      - libboost-filesystem-dev
+      - libboost-regex-dev
+      - libsqlite3-dev
+      - libv8-dev
+      - binutils-dev
+      - libmariadbclient-dev
