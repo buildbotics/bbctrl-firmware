@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/CauldronDevelopmentLLC/cbang.svg)](https://travis-ci.org/CauldronDevelopmentLLC/cbang)
+
 C!
 =====
 

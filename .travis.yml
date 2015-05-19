@@ -11,9 +11,9 @@ before_install:
   - sudo apt-get update -y
 
 install:
-  - sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-    libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev \
-    libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev \
+  - sudo apt-get install scons build-essential libbz2-dev zlib1g-dev
+    libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev
+    libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev
     binutils-dev libiberty-dev libmariadbclient-dev
 
 script: scons debug=$DEBUG_BUILD -j 4
