@@ -258,7 +258,7 @@ bool Connection::readHeader() {
 
   // Check if header is too large
   if (readBuf.isFull()) {
-    LOG_ERROR("Header too large: "
+    LOG_WARNING("Header too large: "
               << String::hexdump(readBuf.begin(), readBuf.getFill()));
     error(StatusCode::HTTP_BAD_REQUEST);
   }
@@ -279,13 +279,18 @@ bool Connection::read() {
 
     case RequestMethod::HTTP_POST: {
       // Check Content-Length
-      if (!request.has("Content-Length"))
+      if (!request.has("Content-Length")) {
+        LOG_WARNING("Request missing Content-Length");
         error(StatusCode::HTTP_LENGTH_REQUIRED);
+      }
 
       contentLength = request.getContentLength();
 
-      if (contentLength > server.getMaxRequestLength())
+      if (contentLength > server.getMaxRequestLength()) {
+        LOG_WARNING("Request entity too large (" << server.getMaxRequestLength()
+                    << "<" << contentLength << ")");
         error(StatusCode::HTTP_REQUEST_ENTITY_TOO_LARGE);
+      }
 
       // Allocate buffer
       dataBuf.increase(contentLength);
@@ -307,6 +312,7 @@ bool Connection::read() {
 
     default:
       // Unsupported request method
+      LOG_WARNING("Unsupported request method (" << request.getMethod() << ")");
       error(StatusCode::HTTP_METHOD_NOT_ALLOWED);
     }
   }
