@@ -257,7 +257,7 @@ void KeyContext::verify(const uint8_t *sigData, size_t sigLen,
   switch (EVP_PKEY_verify(ctx, sigData, sigLen, msgData, msgLen)) {
   case 0: THROW("Failed to verify signature");
   case 1: return;
-  default: THROWS("Error verifing signature: " << SSL::getErrorStr());
+  default: THROWS("Error verifying signature: " << SSL::getErrorStr());
   }
 }
 
