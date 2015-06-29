@@ -69,7 +69,10 @@ namespace cb {
     long getSerial() const;
 
     void setNotBefore(uint64_t x = 0);
+    bool isNotBeforeInFuture() const;
+
     void setNotAfter(uint64_t x);
+    bool isNotAfterInPast() const;
 
     void setIssuer(const Certificate &issuer);
 

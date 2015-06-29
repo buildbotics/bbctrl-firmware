@@ -135,9 +135,29 @@ void Certificate::setNotBefore(uint64_t x) {
 }
 
 
+bool Certificate::isNotBeforeInFuture() const {
+  int ret = X509_cmp_current_time(X509_get_notBefore(cert));
+
+  if (!ret)
+    THROWS("Failed to get certificate's not before: " << SSL::getErrorStr());
+
+  return 0 < ret;
+}
+
+
 void Certificate::setNotAfter(uint64_t x) {
   if (!X509_gmtime_adj(X509_get_notAfter(cert), x))
     THROWS("Failed to set certificate's not after: " << SSL::getErrorStr());
+}
+
+
+bool Certificate::isNotAfterInPast() const {
+  int ret = X509_cmp_current_time(X509_get_notAfter(cert));
+
+  if (!ret)
+    THROWS("Failed to get certificate's not after: " << SSL::getErrorStr());
+
+  return ret < 0;
 }
 
 
