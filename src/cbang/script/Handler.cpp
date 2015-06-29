@@ -201,6 +201,7 @@ void Handler::eval(const Context &ctx, const char *s) {
 
   while (*s) {
     if (escape) {
+      if (*s != '\\' && *s != '$') ctx.stream << '\\';
       ctx.stream << escapeChar(*s++);
       escape = false;
       continue;
