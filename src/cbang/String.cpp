@@ -780,8 +780,14 @@ string String::replace(const string &s, char search, char replace) {
 string String::replace(const string &s, const string &search,
                        const string &replace) {
   using namespace boost;
-  regex exp(search);
-  return regex_replace(s, exp, replace, match_default | format_sed);
+
+  try {
+    regex exp(search);
+    return regex_replace(s, exp, replace, match_default | format_sed);
+
+  } catch (boost::regex_error &e) {
+    THROWS("Replace failed: " << e.what());
+  }
 }
 
 
