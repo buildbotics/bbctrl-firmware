@@ -98,6 +98,7 @@ namespace cb {
     virtual void alias(const std::string &name, const std::string &alias) = 0;
 
     // From Script::Handler
+    using Script::Handler::eval;
     bool eval(const Script::Context &ctx);
 
     // From XMLHandler
