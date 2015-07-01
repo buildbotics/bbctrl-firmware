@@ -1,1 +1,1 @@
-["", "Hello World!", "Multiple\nLines", "\n\t\r", "\x1b\x1b", "\\\""]
+["", "Hello World!", "Multiple\nLines", "\n\t\r", "\u001b\u001b", "\\\""]
