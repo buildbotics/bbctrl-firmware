@@ -43,10 +43,10 @@ namespace cb {
       Value &value;
       unsigned level;
       bool compact;
-      Writer::mode_t mode;
+      Writer::output_mode_t mode;
 
       Format(Value &value, unsigned level = 0, bool compact = false,
-             Writer::mode_t mode = Writer::JSON_MODE) :
+             Writer::output_mode_t mode = Writer::JSON_MODE) :
         value(value), level(level), compact(compact), mode(mode) {}
     };
 

@@ -62,7 +62,7 @@ namespace cb {
       typedef enum {
         JSON_MODE,
         PYTHON_MODE,
-      } mode_t;
+      } output_mode_t;
 
     protected:
       std::ostream &stream;
@@ -70,12 +70,12 @@ namespace cb {
       unsigned level;
       bool compact;
       bool simple;
-      mode_t mode;
+      output_mode_t mode;
       bool first;
 
     public:
       Writer(std::ostream &stream, unsigned indent = 0, bool compact = false,
-             mode_t mode = JSON_MODE)
+             output_mode_t mode = JSON_MODE)
         : stream(stream), initLevel(indent), level(indent), compact(compact),
           simple(false), mode(mode), first(true) {}
 

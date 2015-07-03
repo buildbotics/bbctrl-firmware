@@ -47,7 +47,7 @@ namespace cb {
 
     public:
       BufferWriter(unsigned indent = 0, bool compact = false,
-                   mode_t mode = Writer::JSON_MODE) :
+                   output_mode_t mode = Writer::JSON_MODE) :
         Writer(stream, indent, compact, mode), stream(buffer) {}
 
 #ifdef _WIN32
