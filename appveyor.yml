@@ -1,0 +1,5 @@
+version: 1.0.{build}
+install:
+- nuget install openssl
+- nuget install boost
+build: off
