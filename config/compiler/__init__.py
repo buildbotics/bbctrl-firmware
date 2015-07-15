@@ -197,7 +197,7 @@ def configure(conf, cstd = 'c99'):
     if debug:
         if compiler_mode == 'msvc':
             env.AppendUnique(CCFLAGS = ['/W1'])
-            env['CCPDBFLAGS'] = ['${(PDB and "/Zi /Fd%s" % File(PDB)) or ""}']
+            env['CCPDBFLAGS'] = '/Zi /Fd${TARGET}.pdb'
             env.AppendUnique(LINKFLAGS = ['/DEBUG', '/MAP:${TARGET}.map'])
 
         elif compiler_mode == 'gnu':
