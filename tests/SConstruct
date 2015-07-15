@@ -1,6 +1,7 @@
 import os
 
-env = Environment(ENV = os.environ)
+env = Environment(ENV = os.environ,
+                  TARGET_ARCH = os.environ.get('TARGET_ARCH', 'x86'))
 env.Tool('config', toolpath = [Dir('#/..')])
 env.CBLoadTools('compiler cbang'.split(), paths = [str(Dir('#/..'))])
 conf = env.CBConfigure()

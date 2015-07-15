@@ -196,7 +196,8 @@ def configure(conf, cstd = 'c99'):
 
     if debug:
         if compiler_mode == 'msvc':
-            env.AppendUnique(CCFLAGS = ['/W1', '/Zi'])
+            env.AppendUnique(CCFLAGS = ['/W1'])
+            env['CCPDBFLAGS'] = ['${(PDB and "/Zi /Fd%s" % File(PDB)) or ""}']
             env.AppendUnique(LINKFLAGS = ['/DEBUG', '/MAP:${TARGET}.map'])
 
         elif compiler_mode == 'gnu':
@@ -299,7 +300,7 @@ def configure(conf, cstd = 'c99'):
     if cstd:
         if compiler_mode == 'gnu':
             env.AppendUnique(CFLAGS = ['-std=' + cstd])
-        elif compiler_mode == 'msvc':
+        elif compiler_mode == 'msvc' and compiler == 'intel':
             env.AppendUnique(CFLAGS = ['/Qstd=' + cstd])
 
     # C++ mode
