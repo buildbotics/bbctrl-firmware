@@ -37,6 +37,7 @@
 #include "Certificate.h"
 
 #include <cbang/os/Mutex.h>
+#include <cbang/os/Thread.h>
 
 #include <cbang/log/Logger.h>
 
@@ -68,7 +69,7 @@ using namespace cb;
 
 
 bool cb::SSL::initialized = false;
-vector<Mutex *> cb::SSL::locks;
+Mutex * cb::SSL::locks = 0;
 
 
 cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) :
@@ -225,16 +226,14 @@ unsigned cb::SSL::write(const char *data, unsigned size) {
 }
 
 
+unsigned long cb::SSL::idCallback() {
+  return (unsigned long)cb::Thread::self();
+}
+
+
 void cb::SSL::lockingCallback(int mode, int n, const char *file, int line) {
-  if ((int)locks.size() <= n)
-    THROWS("Requested lock index " << n
-           << " larger than CRYPTO_num_locks() at " << file << ":" << line);
-
-  Mutex *lock = locks[n];
-  if (!lock) locks[n] = lock = new Mutex;
-
-  if (mode & CRYPTO_LOCK) lock->lock();
-  else lock->unlock();
+  if (mode & CRYPTO_LOCK) locks[n].lock();
+  else locks[n].unlock();
 }
 
 
@@ -333,10 +332,26 @@ void cb::SSL::init() {
   ERR_load_crypto_strings();
   OpenSSL_add_all_algorithms();
 
-  locks.resize(CRYPTO_num_locks());
+  locks = new Mutex[CRYPTO_num_locks()];
+  CRYPTO_set_id_callback(idCallback);
   CRYPTO_set_locking_callback(lockingCallback);
 
   initialized = true;
+}
+
+
+void cb::SSL::deinit() {
+  if (!initialized) return;
+
+  CRYPTO_set_id_callback(0);
+  CRYPTO_set_locking_callback(0);
+
+  ERR_remove_state(0);
+  ERR_free_strings();
+  EVP_cleanup();
+  CRYPTO_cleanup_all_ex_data();
+
+  initialized = false;
 }
 
 

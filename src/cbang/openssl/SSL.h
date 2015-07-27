@@ -53,7 +53,7 @@ namespace cb {
     int handshakes;
 
     static bool initialized;
-    static std::vector<Mutex *> locks;
+    static Mutex *locks;
 
     enum {
       PROCEED,
@@ -80,6 +80,7 @@ namespace cb {
     int read(char *data, unsigned size);
     unsigned write(const char *data, unsigned size);
 
+    static unsigned long idCallback();
     static void lockingCallback(int mode, int n, const char *file, int line);
     static int passwordCallback(char *buf, int num, int rwglags, void *data);
 
@@ -97,6 +98,7 @@ namespace cb {
     static int findObject(const std::string &name);
 
     static void init();
+    static void deinit();
 
     void infoCallback(int where, int ret);
     void limitRenegotiation();
