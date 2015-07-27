@@ -11,7 +11,8 @@ flags = flags.replace('-Wall', '').replace('-Werror', '')
 env.Replace(CCFLAGS = flags)
 
 if not env.GetOption('clean'):
-    env.Append(CFLAGS = ['-fexceptions'])
+    if compiler_mode == 'gnu': env.Append(CFLAGS = ['-fexceptions'])
+
     env.Append(CPPDEFINES = 'XML_CONTEXT_BYTES=1024 XML_DTD=1 XML_NS=1'.split())
 
     if conf.CheckFunc('memmove'): env.CBDefine('HAVE_MEMMOVE')
