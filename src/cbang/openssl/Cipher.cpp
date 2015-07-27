@@ -46,7 +46,7 @@ using namespace cb;
 
 Cipher::Cipher(const string &cipher, bool encrypt, const void *key,
                const void *iv, ENGINE *e) :
-  ctx(new EVP_CIPHER_CTX), encrypt(encrypt) {
+  ctx(EVP_CIPHER_CTX_new()), encrypt(encrypt) {
   SSL::init();
 
   EVP_CIPHER_CTX_init(ctx);
