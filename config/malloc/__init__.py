@@ -31,10 +31,10 @@ def configure(conf, cxx = True, threads = True):
         #if env.get('debug'): libname += '_debug'
 
         conf.CBRequireLib(libname)
-        conf.CBRequireLib('unwind')
+        env.Append(PREFER_DYNAMIC = [libname])
 
-        if env.get('static') or env.get('mostly_static'):
-            env.AppendUnique(LINKFLAGS = ['-Wl,--eh-frame-hdr'])
+        #if env.get('static') or env.get('mostly_static'):
+        #    env.AppendUnique(LINKFLAGS = ['-Wl,--eh-frame-hdr'])
 
         env.AppendUnique(CCFLAGS = [
                 '-fno-builtin-malloc', '-fno-builtin-calloc',
