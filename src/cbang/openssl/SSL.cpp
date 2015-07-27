@@ -69,7 +69,7 @@ using namespace cb;
 
 
 bool cb::SSL::initialized = false;
-Mutex * cb::SSL::locks = 0;
+Mutex *cb::SSL::locks = 0;
 
 
 cb::SSL::SSL(SSL_CTX *ctx, BIO *bio) :
