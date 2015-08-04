@@ -33,9 +33,6 @@ def configure(conf, cxx = True, threads = True):
         conf.CBRequireLib(libname)
         env.Append(PREFER_DYNAMIC = [libname])
 
-        #if env.get('static') or env.get('mostly_static'):
-        #    env.AppendUnique(LINKFLAGS = ['-Wl,--eh-frame-hdr'])
-
         env.AppendUnique(CCFLAGS = [
                 '-fno-builtin-malloc', '-fno-builtin-calloc',
                 '-fno-builtin-realloc', '-fno-builtin-free'])
