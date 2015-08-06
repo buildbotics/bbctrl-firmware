@@ -1,0 +1,18 @@
+Import('*')
+
+env = env.Clone()
+
+if not env.GetOption('clean'):
+    env.Append(CPPPATH = ['#/src/re2/src'])
+
+# Build lib
+src = Glob('src/re2/*.cc') + Glob('src/util/*.cc')
+lib = env.Library('#/lib/re2', src)
+
+# Install headers
+hdrs = 'src/re2/re2.h src/re2/stringpiece.h src/re2/variadic_function.h'.split()
+hdrs = env.Install(dir = '#/include/re2', source = hdrs)
+Depends(lib, hdrs)
+
+# Return
+Return('lib')
