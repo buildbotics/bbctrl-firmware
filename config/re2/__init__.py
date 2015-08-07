@@ -6,7 +6,7 @@ def configure(conf):
 
     conf.CBCheckHome('re2')
 
-    conf.CBRequireCXXHeader('re2.h')
+    conf.CBRequireCXXHeader('re2/re2.h')
     conf.CBRequireLib('re2')
 
 
