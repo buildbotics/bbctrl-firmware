@@ -199,6 +199,20 @@ eq_debug_entry(const struct event_debug_entry *a,
 }
 
 int event_debug_mode_on_ = 0;
+
+
+/**
+ * @brief debug mode variable which is set for any function/structure that needs
+ *        to be shared across threads (if thread support is enabled).
+ *
+ *        When and if evthreads are initialized, this variable will be evaluated,
+ *        and if set to something other than zero, this means the evthread setup 
+ *        functions were called out of order.
+ *
+ *        See: "Locks and threading" in the documentation.
+ */
+int event_debug_created_threadable_ctx_ = 0;
+
 /* Set if it's too late to enable event_debug_mode. */
 static int event_debug_mode_too_late = 0;
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
@@ -526,22 +540,24 @@ event_enable_debug_mode(void)
 #endif
 }
 
-#if 0
 void
 event_disable_debug_mode(void)
 {
+#ifndef EVENT__DISABLE_DEBUG_MODE
 	struct event_debug_entry **ent, *victim;
 
 	EVLOCK_LOCK(event_debug_map_lock_, 0);
 	for (ent = HT_START(event_debug_map, &global_debug_map); ent; ) {
 		victim = *ent;
-		ent = HT_NEXT_RMV(event_debug_map,&global_debug_map, ent);
+		ent = HT_NEXT_RMV(event_debug_map, &global_debug_map, ent);
 		mm_free(victim);
 	}
 	HT_CLEAR(event_debug_map, &global_debug_map);
 	EVLOCK_UNLOCK(event_debug_map_lock_ , 0);
-}
+
+	event_debug_mode_on_  = 0;
 #endif
+}
 
 struct event_base *
 event_base_new_with_config(const struct event_config *cfg)
@@ -654,6 +670,8 @@ event_base_new_with_config(const struct event_config *cfg)
 	/* prepare for threading */
 
 #ifndef EVENT__DISABLE_THREAD_SUPPORT
+	event_debug_created_threadable_ctx_ = 1;
+
 	if (EVTHREAD_LOCKING_ENABLED() &&
 	    (!cfg || !(cfg->flags & EVENT_BASE_FLAG_NOLOCK))) {
 		int r;
@@ -991,6 +1009,21 @@ event_reinit(struct event_base *base)
 done:
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
 	return (res);
+}
+
+/* Get the monotonic time for this event_base' timer */
+int
+event_gettime_monotonic(struct event_base *base, struct timeval *tv)
+{
+  int rv = -1;
+
+  if (base && tv) {
+    EVBASE_ACQUIRE_LOCK(base, th_base_lock);
+    rv = evutil_gettime_monotonic_(&(base->monotonic_timer), tv);
+    EVBASE_RELEASE_LOCK(base, th_base_lock);
+  }
+
+  return rv;
 }
 
 const char **
@@ -1454,9 +1487,12 @@ done:
 static inline void
 event_persist_closure(struct event_base *base, struct event *ev)
 {
-
-	// Define our callback, we use this to store our callback before it's executed
 	void (*evcb_callback)(evutil_socket_t, short, void *);
+
+        // Other fields of *ev that must be stored before executing
+        evutil_socket_t evcb_fd;
+        short evcb_res;
+        void *evcb_arg;
 
 	/* reschedule the persistent event if we have a timeout. */
 	if (ev->ev_io_timeout.tv_sec || ev->ev_io_timeout.tv_usec) {
@@ -1501,13 +1537,16 @@ event_persist_closure(struct event_base *base, struct event *ev)
 	}
 
 	// Save our callback before we release the lock
-	evcb_callback = *ev->ev_callback;
+	evcb_callback = ev->ev_callback;
+        evcb_fd = ev->ev_fd;
+        evcb_res = ev->ev_res;
+        evcb_arg = ev->ev_arg;
 
 	// Release the lock
  	EVBASE_RELEASE_LOCK(base, th_base_lock);
 
 	// Execute the callback
-	(evcb_callback)(ev->ev_fd, ev->ev_res, ev->ev_arg);
+        (evcb_callback)(evcb_fd, evcb_res, evcb_arg);
 }
 
 /*
@@ -1530,25 +1569,24 @@ event_process_active_single_queue(struct event_base *base,
 	for (evcb = TAILQ_FIRST(activeq); evcb; evcb = TAILQ_FIRST(activeq)) {
 		struct event *ev=NULL;
 		if (evcb->evcb_flags & EVLIST_INIT) {
-            ev = event_callback_to_event(evcb);
+			ev = event_callback_to_event(evcb);
 
 			if (ev->ev_events & EV_PERSIST || ev->ev_flags & EVLIST_FINALIZING)
 				event_queue_remove_active(base, evcb);
 			else
 				event_del_nolock_(ev, EVENT_DEL_NOBLOCK);
 			event_debug((
-                "event_process_active: event: %p, %s%s%scall %p (fd"
-                EV_SOCK_FMT")",
+			    "event_process_active: event: %p, %s%s%scall %p",
 			    ev,
 			    ev->ev_res & EV_READ ? "EV_READ " : " ",
 			    ev->ev_res & EV_WRITE ? "EV_WRITE " : " ",
 			    ev->ev_res & EV_CLOSED ? "EV_CLOSED " : " ",
-                ev->ev_callback, EV_SOCK_ARG(ev->ev_fd)));
+			    ev->ev_callback));
 		} else {
 			event_queue_remove_active(base, evcb);
 			event_debug(("event_process_active: event_callback %p, "
-                "closure %d, call %p",
-                evcb, evcb->evcb_closure, evcb->evcb_cb_union.evcb_callback));
+				"closure %d, call %p",
+				evcb, evcb->evcb_closure, evcb->evcb_cb_union.evcb_callback));
 		}
 
 		if (!(evcb->evcb_flags & EVLIST_INTERNAL))
@@ -2909,16 +2947,17 @@ event_callback_activate_nolock_(struct event_base *base,
 	return r;
 }
 
-void
+int
 event_callback_activate_later_nolock_(struct event_base *base,
     struct event_callback *evcb)
 {
 	if (evcb->evcb_flags & (EVLIST_ACTIVE|EVLIST_ACTIVE_LATER))
-		return;
+		return 0;
 
 	event_queue_insert_active_later(base, evcb);
 	if (EVBASE_NEED_NOTIFY(base))
 		evthread_notify_base(base);
+	return 1;
 }
 
 void
@@ -3003,10 +3042,12 @@ event_deferred_cb_schedule_(struct event_base *base, struct event_callback *cb)
 		base = current_base;
 	EVBASE_ACQUIRE_LOCK(base, th_base_lock);
 	if (base->n_deferreds_queued > MAX_DEFERREDS_QUEUED) {
-		event_callback_activate_later_nolock_(base, cb);
+		r = event_callback_activate_later_nolock_(base, cb);
 	} else {
-		++base->n_deferreds_queued;
 		r = event_callback_activate_nolock_(base, cb);
+		if (r) {
+			++base->n_deferreds_queued;
+		}
 	}
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
 	return r;
@@ -3743,6 +3784,7 @@ event_free_debug_globals_locks(void)
 	if (event_debug_map_lock_ != NULL) {
 		EVTHREAD_FREE_LOCK(event_debug_map_lock_, 0);
 		event_debug_map_lock_ = NULL;
+		evthreadimpl_disable_lock_debugging_();
 	}
 #endif /* EVENT__DISABLE_DEBUG_MODE */
 #endif /* EVENT__DISABLE_THREAD_SUPPORT */
@@ -3778,6 +3820,7 @@ event_free_globals(void)
 void
 libevent_global_shutdown(void)
 {
+	event_disable_debug_mode();
 	event_free_globals();
 }
 

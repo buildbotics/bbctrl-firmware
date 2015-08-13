@@ -687,8 +687,9 @@ evhttp_connection_fail_(struct evhttp_connection *evcon,
 	void (*cb)(struct evhttp_request *, void *);
 	void *cb_arg;
 	void (*error_cb)(enum evhttp_request_error, void *);
-	void *error_cb_arg;
-	EVUTIL_ASSERT(req != NULL);
+    void *error_cb_arg;
+    if (!req) return; // jcoffland 20150810
+    EVUTIL_ASSERT(req != NULL);
 
 	bufferevent_disable(evcon->bufev, EV_READ|EV_WRITE);
 
@@ -769,6 +770,7 @@ evhttp_connection_done(struct evhttp_connection *evcon)
 {
 	struct evhttp_request *req = TAILQ_FIRST(&evcon->requests);
 	int con_outgoing = evcon->flags & EVHTTP_CON_OUTGOING;
+	int free_evcon = 0;
 
 	if (con_outgoing) {
 		/* idle or close the connection */
@@ -787,7 +789,7 @@ evhttp_connection_done(struct evhttp_connection *evcon)
 			evhttp_connection_reset_(evcon);
 
 		if (TAILQ_FIRST(&evcon->requests) != NULL) {
-			/*
+            /*
 			 * We have more requests; reset the connection
 			 * and deal with the next request.
 			 */
@@ -801,6 +803,12 @@ evhttp_connection_done(struct evhttp_connection *evcon)
 			 * need to detect if the other side closes it.
 			 */
 			evhttp_connection_start_detectclose(evcon);
+		} else if ((evcon->flags & EVHTTP_CON_AUTOFREE)) {
+			/*
+			 * If we have no more requests that need completion
+			 * and we're not waiting for the connection to close
+			 */
+			 free_evcon = 1;
 		}
 	} else {
 		/*
@@ -818,6 +826,16 @@ evhttp_connection_done(struct evhttp_connection *evcon)
 	 */
 	if (con_outgoing && ((req->flags & EVHTTP_USER_OWNED) == 0)) {
 		evhttp_request_free(req);
+	}
+
+	/* If this was the last request of an outgoing connection and we're
+	 * not waiting to receive a connection close event and we want to
+	 * automatically free the connection. We check to ensure our request
+	 * list is empty one last time just in case our callback added a
+	 * new request.
+	 */
+	if (free_evcon && TAILQ_FIRST(&evcon->requests) == NULL) {
+		evhttp_connection_free(evcon);
 	}
 }
 
@@ -1108,6 +1126,9 @@ evhttp_write_connectioncb(struct evhttp_connection *evcon, void *arg)
 
 	EVUTIL_ASSERT(evcon->state == EVCON_WRITING);
 
+	/* We need to wait until we've written all of our output data before we can continue */
+	if (evbuffer_get_length(bufferevent_get_output(evcon->bufev)) > 0) { return; }
+
 	/* We are done writing our header and are now expecting the response */
 	req->kind = EVHTTP_RESPONSE;
 
@@ -1172,6 +1193,11 @@ evhttp_connection_free(struct evhttp_connection *evcon)
 		mm_free(evcon->conn_address);
 
 	mm_free(evcon);
+}
+
+void
+evhttp_connection_free_on_completion(struct evhttp_connection *evcon) {
+	evcon->flags |= EVHTTP_CON_AUTOFREE;
 }
 
 void
@@ -1243,6 +1269,7 @@ evhttp_connection_reset_(struct evhttp_connection *evcon)
 
 		shutdown(evcon->fd, EVUTIL_SHUT_WR);
 		evutil_closesocket(evcon->fd);
+		bufferevent_setfd(evcon->bufev, -1);
 		evcon->fd = -1;
 	}
 
@@ -1285,6 +1312,7 @@ evhttp_connection_cb_cleanup(struct evhttp_connection *evcon)
 {
 	struct evcon_requestq requests;
 
+	evhttp_connection_reset_(evcon);
 	if (evcon->retry_max < 0 || evcon->retry_cnt < evcon->retry_max) {
 		struct timeval tv_retry = evcon->initial_retry_timeout;
 		int i;
@@ -1306,7 +1334,6 @@ evhttp_connection_cb_cleanup(struct evhttp_connection *evcon)
 		evcon->retry_cnt++;
 		return;
 	}
-	evhttp_connection_reset_(evcon);
 
 	/*
 	 * User callback can do evhttp_make_request() on the same
@@ -1385,12 +1412,23 @@ evhttp_error_cb(struct bufferevent *bufev, short what, void *arg)
 		 */
 		EVUTIL_ASSERT(evcon->state == EVCON_IDLE);
 		evhttp_connection_reset_(evcon);
+
+		/*
+		 * If we have no more requests that need completion
+		 * and we want to auto-free the connection when all
+		 * requests have been completed.
+		 */
+		if (TAILQ_FIRST(&evcon->requests) == NULL
+		  && (evcon->flags & EVHTTP_CON_OUTGOING)
+		  && (evcon->flags & EVHTTP_CON_AUTOFREE)) {
+			evhttp_connection_free(evcon);
+		}
 		return;
 	}
 
 	if (what & BEV_EVENT_TIMEOUT) {
 		evhttp_connection_fail_(evcon, EVREQ_HTTP_TIMEOUT);
-	} else if (what & (BEV_EVENT_EOF|BEV_EVENT_ERROR)) {
+    } else if (what & (BEV_EVENT_EOF|BEV_EVENT_ERROR)) {
 		evhttp_connection_fail_(evcon, EVREQ_HTTP_EOF);
 	} else if (what == BEV_EVENT_CONNECTED) {
 	} else {

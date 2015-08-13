@@ -257,6 +257,9 @@ evutil_ersatz_socketpair_(int family, int type, int protocol,
 	connector = socket(AF_INET, type, 0);
 	if (connector < 0)
 		goto tidy_up_and_fail;
+
+	memset(&connect_addr, 0, sizeof(connect_addr));
+
 	/* We want to find out the port number to connect to.  */
 	size = sizeof(connect_addr);
 	if (getsockname(listener, (struct sockaddr *) &connect_addr, &size) == -1)
@@ -368,6 +371,20 @@ evutil_make_listen_socket_reuseable(evutil_socket_t sock)
 }
 
 int
+evutil_make_listen_socket_reuseable_port(evutil_socket_t sock)
+{
+#if defined __linux__ && defined(SO_REUSEPORT)
+	int one = 1;
+	/* REUSEPORT on Linux 3.9+ means, "Multiple servers (processes or
+	 * threads) can bind to the same port if they each set the option. */
+	return setsockopt(sock, SOL_SOCKET, SO_REUSEPORT, (void*) &one,
+	    (ev_socklen_t)sizeof(one));
+#else
+	return 0;
+#endif
+}
+
+int
 evutil_make_tcp_listen_socket_deferred(evutil_socket_t sock)
 {
 #if defined(EVENT__HAVE_NETINET_TCP_H) && defined(TCP_DEFER_ACCEPT)
@@ -419,8 +436,6 @@ evutil_fast_socket_closeonexec(evutil_socket_t fd)
 int
 evutil_closesocket(evutil_socket_t sock)
 {
-    event_debug(("evutil_closesocket("EV_SOCK_FMT")", sock));
-
 #ifndef _WIN32
 	return close(sock);
 #else
@@ -1147,7 +1162,7 @@ addrinfo_from_hostent(const struct hostent *ent,
 		sin6.sin6_family = AF_INET6;
 		sin6.sin6_port = htons(port);
 		sa = (struct sockaddr *)&sin6;
-		socklen = sizeof(struct sockaddr_in);
+		socklen = sizeof(struct sockaddr_in6);
 		addrp = &sin6.sin6_addr;
 		if (ent->h_length != sizeof(sin6.sin6_addr)) {
 			event_warnx("Weird h_length from gethostbyname");
