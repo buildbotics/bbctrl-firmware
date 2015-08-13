@@ -78,9 +78,14 @@ namespace cb {
       // From HTTPHandler
       bool operator()(Request &req);
 
+      const SmartPointer<SSLContext> &getSSLContext() const {return sslCtx;}
+
       void addListenPort(const IPAddress &addr);
       unsigned getNumListenPorts() const {return ports.size();}
       const IPAddress &getListenPort(unsigned i) const {return ports.at(i);}
+
+      void allow(const IPAddress &addr);
+      void deny(const IPAddress &addr);
 
       void addSecureListenPort(const IPAddress &addr);
       unsigned getNumSecureListenPorts() const {return securePorts.size();}

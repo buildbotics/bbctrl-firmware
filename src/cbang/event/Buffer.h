@@ -34,6 +34,7 @@
 #define CB_EVENT_BUFFER_H
 
 #include <string>
+#include <ostream>
 
 struct evbuffer;
 
@@ -62,6 +63,16 @@ namespace cb {
       std::string hexdump() const;
 
       void clear();
+      void expand(unsigned length);
+      char *pullup(int length = -1);
+
+      unsigned copy(char *data, unsigned length);
+      unsigned copy(std::ostream &stream, unsigned length);
+      unsigned copy(std::ostream &stream);
+      void drain(unsigned length);
+      unsigned remove(char *data, unsigned length);
+      unsigned remove(std::ostream &stream, unsigned length);
+      unsigned remove(std::ostream &stream);
 
       void add(const Buffer &buf);
       void addRef(const Buffer &buf);
@@ -70,7 +81,10 @@ namespace cb {
       void add(const std::string &s);
       void addFile(const std::string &path);
 
-      int remove(char *data, unsigned length);
+      void prepend(const Buffer &buf);
+      void prepend(const char *data, unsigned length);
+      void prepend(const char *s);
+      void prepend(const std::string &s);
     };
   }
 }

@@ -105,13 +105,76 @@ string Buffer::hexdump() const {
 
 
 void Buffer::clear() {
-  if (evbuffer_drain(evb, evbuffer_get_length(evb)))
-    THROW("Buffer drain failed");
+  drain(getLength());
 }
 
 
-void Buffer::add(const char *data, unsigned length) {
-  if (evbuffer_add(evb, data, length)) THROW("Buffer add failed");
+void Buffer::expand(unsigned length) {
+  if (evbuffer_expand(evb, length)) THROW("Failed to expand buffer");
+}
+
+
+char *Buffer::pullup(int length) {
+  return (char *)evbuffer_pullup(evb, length);
+}
+
+
+unsigned Buffer::copy(char *data, unsigned length) {
+  ev_ssize_t ret = evbuffer_copyout(evb, data, length);
+  if (ret < 0) THROW("Failed to copy from buffer");
+  return (unsigned)ret;
+}
+
+
+unsigned Buffer::copy(ostream &stream, unsigned length) {
+  unsigned total = 0;
+  char buffer[4096];
+
+  while (0 < length) {
+    unsigned size = copy(buffer, min(length, (unsigned)4096));
+    stream.write(buffer, size);
+    length -= size;
+    total += size;
+  }
+
+  return total;
+}
+
+
+unsigned Buffer::copy(ostream &stream) {
+  return copy(stream, getLength());
+}
+
+
+void Buffer::drain(unsigned length) {
+  if (evbuffer_drain(evb, length)) THROW("Buffer drain failed");
+}
+
+
+unsigned Buffer::remove(char *data, unsigned length) {
+  ev_ssize_t ret = evbuffer_remove(evb, data, length);
+  if (ret < 0) THROW("Failed to copy from buffer");
+  return (unsigned)ret;
+}
+
+
+unsigned Buffer::remove(ostream &stream, unsigned length) {
+  unsigned total = 0;
+  char buffer[4096];
+
+  while (0 < length) {
+    unsigned size = remove(buffer, min(length, (unsigned)4096));
+    stream.write(buffer, size);
+    length -= size;
+    total += size;
+  }
+
+  return total;
+}
+
+
+unsigned Buffer::remove(ostream &stream) {
+  return remove(stream, getLength());
 }
 
 
@@ -126,8 +189,13 @@ void Buffer::addRef(const Buffer &buf) {
 }
 
 
+void Buffer::add(const char *data, unsigned length) {
+  if (evbuffer_add(evb, data, length)) THROW("Buffer add failed");
+}
+
+
 void Buffer::add(const char *s) {
-  if (evbuffer_add(evb, s, strlen(s))) THROW("Buffer add failed");
+  add(s, strlen(s));
 }
 
 
@@ -152,6 +220,26 @@ void Buffer::addFile(const string &path) {
 }
 
 
-int Buffer::remove(char *data, unsigned length) {
-  return evbuffer_remove(evb, data, length);
+void Buffer::prepend(const Buffer &buf) {
+  if (evbuffer_prepend_buffer(evb, buf.getBuffer()))
+    THROW("Prepend buffer failed");
+}
+
+
+void Buffer::prepend(const char *data, unsigned length) {
+  if (evbuffer_prepend(evb, data, length)) THROW("Buffer prepend failed");
+}
+
+
+void Buffer::prepend(const char *s) {
+  prepend(s, strlen(s));
+}
+
+
+void Buffer::prepend(const string &s) {
+#ifndef WIN32
+  prepend(s.data(), s.length());
+#else
+  prepend(s.c_str(), s.length());
+#endif
 }

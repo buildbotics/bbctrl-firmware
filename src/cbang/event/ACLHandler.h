@@ -35,11 +35,6 @@
 
 #include "HTTPHandler.h"
 
-#include <cbang/time/Time.h>
-
-#include <string>
-
-
 namespace cb {
   class ACLSet;
 

@@ -51,8 +51,8 @@ using namespace std;
 
 
 Request::Request(evhttp_request *req, bool deallocate) :
-  req(req), deallocate(deallocate), incoming(false), secure(false),
-  finalized(false) {
+  req(req), deallocate(deallocate), user("anonymous"), incoming(false),
+  secure(false), finalized(false) {
   if (!req) THROW("Event request cannot be null");
 
   // Parse URI
@@ -131,13 +131,28 @@ JSON::Dict &Request::parseArgs() {
 }
 
 
+Version Request::getVersion() const {
+  return Version(req->major, req->minor);
+}
+
+
 string Request::getHost() const {
   const char *host = evhttp_request_get_host(req);
   return host ? host : "";
 }
 
 
+URI Request::getURI(evhttp_request *req) {
+  return evhttp_request_get_uri(req);
+}
+
+
 RequestMethod Request::getMethod() const {
+  return getMethod(req);
+}
+
+
+RequestMethod Request::getMethod(evhttp_request *req) {
   switch (evhttp_request_get_command(req)) {
   case EVHTTP_REQ_GET:     return HTTP_GET;
   case EVHTTP_REQ_POST:    return HTTP_POST;
@@ -237,6 +252,16 @@ void Request::outSet(const string &name, const string &value) {
 
 void Request::outRemove(const string &name) {
   getOutputHeaders().remove(name);
+}
+
+
+void Request::setPersistent(bool x) {
+  if (getVersion() < Version(1, 1)) {
+    if (x) outSet("Connection", "Keep-Alive");
+    else outRemove("Connection");
+
+  } else if (x) outRemove("Connection");
+  else outSet("Connection", "close");
 }
 
 
@@ -476,6 +501,7 @@ void Request::redirect(const URI &uri, int code) {
 
 void Request::cancel() {
   evhttp_cancel_request(req);
+  req = 0;
   finalized = true;
 }
 

@@ -38,7 +38,7 @@
 #include "HTTPHandler.h"
 
 #include <cbang/SmartPointer.h>
-#include <cbang/util/OrderedDict.h>
+#include <cbang/util/Version.h>
 #include <cbang/net/IPAddress.h>
 #include <cbang/net/URI.h>
 #include <cbang/json/JSON.h>
@@ -66,6 +66,7 @@ namespace cb {
       URI originalURI;
       URI uri;
       IPAddress clientIP;
+      std::string user;
       bool incoming;
       bool secure;
       bool finalized;
@@ -86,6 +87,9 @@ namespace cb {
 
       evhttp_request *getRequest() const {return req;}
       evhttp_request *adopt() {deallocate = false; return req;}
+
+      const std::string &getUser() const {return user;}
+      void setUser(const std::string &user) {this->user = user;}
 
       void setIncoming(bool incoming) {this->incoming = incoming;}
       bool isIncoming() const {return incoming;}
@@ -111,12 +115,15 @@ namespace cb {
       virtual JSON::Dict &parseQueryArgs();
       virtual JSON::Dict &parseArgs();
 
+      virtual Version getVersion() const;
       virtual std::string getHost() const;
       virtual const URI &getOriginalURI() const {return originalURI;}
       virtual const URI &getURI() const {return uri;}
       virtual URI &getURI() {return uri;}
+      static URI getURI(evhttp_request *req);
       virtual const IPAddress &getClientIP() const {return clientIP;}
       virtual RequestMethod getMethod() const;
+      static RequestMethod getMethod(evhttp_request *req);
       virtual unsigned getResponseCode() const;
       virtual std::string getResponseMessage() const;
       virtual std::string getResponseLine() const;
@@ -137,6 +144,8 @@ namespace cb {
       virtual void outAdd(const std::string &name, const std::string &value);
       virtual void outSet(const std::string &name, const std::string &value);
       virtual void outRemove(const std::string &name);
+
+      virtual void setPersistent(bool x);
 
       virtual bool hasContentType() const;
       virtual std::string getContentType() const;

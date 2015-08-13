@@ -72,6 +72,7 @@ namespace cb {
       void setInitialRetryDelay(double delay);
       void setRetries(unsigned retries);
       void setTimeout(double timeout);
+      void setLocalAddress(const IPAddress &addr);
 
       void makeRequest(Request &req, unsigned method, const URI &uri);
 

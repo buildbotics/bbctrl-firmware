@@ -163,6 +163,16 @@ bool WebServer::operator()(Request &req) {
 }
 
 
+void WebServer::allow(const IPAddress &addr) {
+  ipFilter.allow(addr);
+}
+
+
+void WebServer::deny(const IPAddress &addr) {
+  ipFilter.deny(addr);
+}
+
+
 void WebServer::addListenPort(const cb::IPAddress &addr) {
   LOG_INFO(1, "Listening for HTTP on " << addr);
   http->bind(addr);

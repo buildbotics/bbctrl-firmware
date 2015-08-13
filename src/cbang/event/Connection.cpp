@@ -49,6 +49,7 @@ namespace cb {class SSLContext {};}
 
 #include <event2/http.h>
 
+using namespace std;
 using namespace cb;
 using namespace cb::Event;
 
@@ -77,7 +78,8 @@ Connection::Connection(evhttp_connection *con, bool deallocate) :
 }
 
 
-Connection::Connection(cb::Event::Base &base, DNSBase &dns, const IPAddress &peer) :
+Connection::Connection(cb::Event::Base &base, DNSBase &dns,
+                       const IPAddress &peer) :
   con(evhttp_connection_base_new(base.getBase(), dns.getDNSBase(),
                                  peer.getHost().c_str(), peer.getPort())),
   deallocate(true) {
@@ -167,6 +169,16 @@ void Connection::setRetries(unsigned retries) {
 void Connection::setTimeout(double timeout) {
   struct timeval tv = Timer::toTimeVal(timeout);
   evhttp_connection_set_timeout_tv(con, &tv);
+}
+
+
+void Connection::setLocalAddress(const IPAddress &addr) {
+  if (addr.getIP()) {
+    string ip(IPAddress(addr.getIP()).getHost());
+    evhttp_connection_set_local_address(con, ip.c_str());
+  }
+
+  if (addr.getPort()) evhttp_connection_set_local_port(con, addr.getPort());
 }
 
 

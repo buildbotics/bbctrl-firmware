@@ -52,6 +52,16 @@ Base::~Base() {
 }
 
 
+void Base::initPriority(int num) {
+  if (event_base_priority_init(base, num))
+    THROW("Failed to init event base priority");
+}
+
+SmartPointer<cb::Event::Event>
+Base::newPersistentEvent(const SmartPointer<EventCallback> &cb) {
+  return new Event(*this, -1, EVENT_PERSIST, cb, false);
+}
+
 cb::Event::Event &Base::newEvent(const SmartPointer<EventCallback> &cb) {
   return *new Event(*this, -1, 0, cb, true); // Deletes itself when done
 }
@@ -71,6 +81,11 @@ cb::Event::Event &Base::newSignal(int signal,
 
 void Base::dispatch() {
   if (event_base_dispatch(base)) THROW("Dispatch failed");
+}
+
+
+void Base::loop() {
+  if (event_base_loop(base, 0)) THROW("Loop failed");
 }
 
 

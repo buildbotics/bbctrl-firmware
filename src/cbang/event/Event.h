@@ -62,6 +62,9 @@ namespace cb {
       event *getEvent() const {return e;}
 
       bool isPending(unsigned events = ~0) const;
+      unsigned getEvents() const;
+      int getFD() const;
+      void setPriority(int priority);
 
       void assign(Base &base, int fd, unsigned events,
                   const SmartPointer<EventCallback> &cb);
@@ -69,7 +72,9 @@ namespace cb {
       void renew(int signal);
       void add(double t);
       void add();
+      void readd();
       void del();
+      void activate(int flags = EVENT_TIMEOUT);
 
       void call(int fd, short flags);
 

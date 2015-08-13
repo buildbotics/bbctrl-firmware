@@ -35,8 +35,10 @@
 
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/time/Timer.h>
+#include <cbang/log/Logger.h>
 
 #include <event2/event.h>
+#include <event2/event_struct.h>
 
 using namespace cb::Event;
 
@@ -61,17 +63,34 @@ Event::Event(Base &base, int signal, const cb::SmartPointer<EventCallback> &cb,
              bool selfDestruct) :
   e(event_new(base.getBase(), signal, EV_SIGNAL, event_cb, this)), cb(cb),
   selfDestruct(selfDestruct) {
+  LOG_DEBUG(5, "Created new event with signal=" << signal);
   if (!e) THROW("Failed to create signal event");
 }
 
 
 Event::~Event() {
+  LOG_DEBUG(5, "~Event()");
   if (e) event_free(e);
 }
 
 
 bool Event::isPending(unsigned events) const {
   return event_pending(e, events, 0);
+}
+
+
+unsigned Event::getEvents() const {
+  return event_get_events(e);
+}
+
+
+int Event::getFD() const {
+  return event_get_fd(e);
+}
+
+
+void Event::setPriority(int priority) {
+  if (event_priority_set(e, priority)) THROW("Failed to set event priority");
 }
 
 
@@ -105,12 +124,25 @@ void Event::add() {
 }
 
 
+void Event::readd() {
+  struct timeval tv = e->ev_timeout;
+  event_add(e, &tv);
+}
+
+
 void Event::del() {
   event_del(e);
 }
 
 
+void Event::activate(int flags) {
+  event_active(e, flags, 0);
+}
+
+
 void Event::call(int fd, short flags) {
+  LOG_DEBUG(5, "Event callback fd=" << fd << " flags=" << flags);
+
   try {
     (*cb)(*this, fd, flags);
   } CATCH_ERROR;

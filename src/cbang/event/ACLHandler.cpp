@@ -33,6 +33,11 @@
 #include "ACLHandler.h"
 #include "Request.h"
 
+#include <cbang/util/ACLSet.h>
+#include <cbang/log/Logger.h>
+
+#include <string>
+
 using namespace std;
 using namespace cb;
 using namespace cb::Event;
@@ -41,9 +46,16 @@ using namespace cb::Event;
 bool ACLHandler::operator()(Request &req) {
   string path = req.getURI().getPath();
   string user = req.getUser();
+  bool allowed = aclSet.allow(path, user);
 
-  if (!aclSet.allow(path, user))
-    THROWX("Access denied", StatusCode::HTTP_UNAUTHORIZED);
+  if (allowed)
+    LOG_DEBUG(5, "Access to '" << path << "' by user '" << user << "'@"
+              << req.getClientIP().getHost() << " allowed");
+  else
+    LOG_INFO(2, "Access to '" << path << "' by user '" << user << "'@"
+             << req.getClientIP().getHost() << " denied");
+
+  if (!allowed) THROWX("Access denied", HTTP_UNAUTHORIZED);
 
   return false;
 }

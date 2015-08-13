@@ -54,10 +54,20 @@ namespace cb {
 
       struct event_base *getBase() const {return base;}
 
+      void initPriority(int num);
+
+      SmartPointer<Event>
+      newPersistentEvent(const SmartPointer<EventCallback> &cb);
       Event &newEvent(const SmartPointer<EventCallback> &cb);
       Event &newEvent(int fd, unsigned events,
                       const SmartPointer<EventCallback> &cb);
       Event &newSignal(int signal, const SmartPointer<EventCallback> &cb);
+
+      template <class T> SmartPointer<Event>
+      newPersistentEvent(T *obj,
+                         typename EventMemberFunctor<T>::member_t member) {
+        return newPersistentEvent(new EventMemberFunctor<T>(obj, member));
+      }
 
       template <class T>
       Event &newEvent(T *obj, typename EventMemberFunctor<T>::member_t member) {
@@ -77,6 +87,7 @@ namespace cb {
       }
 
       void dispatch();
+      void loop();
       void loopOnce();
       bool loopNonBlock();
       void loopBreak();

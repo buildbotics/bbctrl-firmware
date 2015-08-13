@@ -51,7 +51,7 @@ namespace cb {
     class Client {
       Base &base;
       DNSBase &dns;
-      cb::SmartPointer<SSLContext> sslCtx;
+      SmartPointer<SSLContext> sslCtx;
 
     public:
       Client(Base &base, DNSBase &dns);
@@ -65,6 +65,10 @@ namespace cb {
       SmartPointer<PendingRequest>
       call(const URI &uri, unsigned method, const char *data,
            unsigned length, const cb::SmartPointer<HTTPHandler> &cb);
+
+      SmartPointer<PendingRequest>
+      call(const URI &uri, unsigned method, const std:: string &data,
+           const cb::SmartPointer<HTTPHandler> &cb);
 
       SmartPointer<PendingRequest>
       call(const URI &uri, unsigned method,
