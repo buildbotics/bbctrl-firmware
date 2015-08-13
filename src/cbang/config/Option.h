@@ -47,6 +47,7 @@
 #include <set>
 
 namespace cb {
+  namespace JSON {class Sync;}
 
   /**
    * A Configuration option.  Holds option defaults, user values, and parses
@@ -196,6 +197,7 @@ namespace cb {
 
     operator const std::string &() const {return toString();}
 
+    void write(JSON::Sync &sync) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
     void printHelp(XMLHandler &handler, const std::string &prefix) const;

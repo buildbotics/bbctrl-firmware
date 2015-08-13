@@ -42,6 +42,8 @@ namespace cb {
   class Option;
   class XMLHandler;
 
+  namespace JSON {class Sync;}
+
   class OptionCategory {
     typedef std::map<const std::string, SmartPointer<Option> > options_t;
     options_t options;
@@ -58,6 +60,8 @@ namespace cb {
 
     const std::string &getName() const {return name;}
 
+    bool isEmpty() const {return options.empty();}
+
     void setDescription(const std::string &x) {description = x;}
     const std::string &getDescription() const {return description;}
 
@@ -66,6 +70,7 @@ namespace cb {
 
     void add(const SmartPointer<Option> &option);
 
+    void write(JSON::Sync &sync) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
     void printHelp(XMLHandler &handler, const std::string &prefix) const;

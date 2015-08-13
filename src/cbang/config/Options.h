@@ -41,7 +41,10 @@
 #include "OptionCategory.h"
 
 namespace cb {
-  namespace JSON {class Dict;}
+  namespace JSON {
+    class Dict;
+    class Sync;
+  }
 
   /// A container class for a set of configuration options
   class Options : public OptionMap {
@@ -73,6 +76,7 @@ namespace cb {
     virtual std::ostream &print(std::ostream &stream) const;
     virtual void printHelp(std::ostream &stream) const;
 
+    virtual void write(JSON::Sync &sync) const;
     virtual void write(XMLHandler &handler, uint32_t flags = 0) const;
     virtual void printHelpTOC(XMLHandler &handler,
                               const std::string &prefix = std::string()) const;

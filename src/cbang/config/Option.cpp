@@ -38,6 +38,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/util/DefaultCatch.h>
+#include <cbang/json/Sync.h>
 
 using namespace std;
 using namespace cb;
@@ -390,6 +391,29 @@ ostream &Option::print(ostream &stream) const {
   stream << String::escapeC(name) << ':';
   if (hasValue()) stream << ' ' << String::escapeC(toString());
   return stream;
+}
+
+
+void Option::write(JSON::Sync &sync) const {
+  sync.beginDict();
+
+  if (!getHelp().empty()) sync.insert("help", getHelp());
+
+  if (hasValue()) {
+    string value = toString();
+    if (isObscured() && !(flags & OBSCURED_FLAG))
+      value = string(value.size(), '*');
+    sync.insert("value", value);
+  }
+
+  if (hasDefault()) sync.insert("default", getDefault());
+  sync.insert("type", getTypeString());
+  if (isOptional()) sync.insertBoolean("optional", true);
+  if (shortName) sync.insert("short", string(1, shortName));
+  if (isSet()) sync.insertBoolean("set", true);
+  if (isCommandLine()) sync.insertBoolean("command_line", true);
+
+  sync.endDict();
 }
 
 

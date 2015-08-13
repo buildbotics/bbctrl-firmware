@@ -38,6 +38,7 @@
 #include <cbang/String.h>
 
 #include <cbang/json/Dict.h>
+#include <cbang/json/Sync.h>
 
 #include <cbang/log/Logger.h>
 
@@ -111,6 +112,20 @@ void Options::alias(const string &_key, const string &_alias) {
 
   option->addAlias(alias);
   map[alias] = option;
+}
+
+
+void Options::write(JSON::Sync &sync) const {
+  sync.beginDict();
+
+  categories_t::const_iterator it;
+  for (it = categories.begin(); it != categories.end(); it++)
+    if (!it->second->getHidden() && !it->second->isEmpty()) {
+      sync.beginInsert(it->first);
+      it->second->write(sync);
+    }
+
+  sync.endDict();
 }
 
 
