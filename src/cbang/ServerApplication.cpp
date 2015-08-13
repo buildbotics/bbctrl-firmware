@@ -115,9 +115,11 @@ int ServerApplication::init(int argc, char *argv[]) {
     if (options["fork"].toBoolean()) {
       // Note, all threads must be stopped before daemonize() forks and
       // SignalManager runs in a thread.
-      SignalManager::instance().setEnabled(false);
+      if (hasFeature(FEATURE_SIGNAL_HANDLER))
+        SignalManager::instance().setEnabled(false);
       SystemUtilities::daemonize();
-      SignalManager::instance().setEnabled(true);
+      if (hasFeature(FEATURE_SIGNAL_HANDLER))
+        SignalManager::instance().setEnabled(true);
     }
 #endif
 

@@ -98,7 +98,8 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
 
 #ifndef _WIN32
   // Ignore SIGPIPE by default
-  SignalManager::instance().ignoreSignal(SIGPIPE);
+  if (hasFeature(FEATURE_SIGNAL_HANDLER))
+    SignalManager::instance().ignoreSignal(SIGPIPE);
 #endif
 
 #ifndef DEBUG
@@ -236,6 +237,7 @@ bool Application::_hasFeature(int feature) {
   case FEATURE_CONFIG_FILE:
   case FEATURE_DEBUGGING:
   case FEATURE_PRINT_INFO:
+  case FEATURE_SIGNAL_HANDLER:
     return true;
 
   default: return false;
@@ -310,7 +312,8 @@ int Application::init(int argc, char *argv[]) {
                                      (options["priority"]));
     } CBANG_CATCH_WARNING;
 
-  catchExitSignals(); // Also enables SignalManager
+  if (hasFeature(FEATURE_SIGNAL_HANDLER))
+    catchExitSignals(); // Also enables SignalManager
 
   if (hasFeature(FEATURE_PRINT_INFO)) printInfo();
 

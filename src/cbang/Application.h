@@ -70,6 +70,7 @@ namespace cb {
       FEATURE_INFO,
       FEATURE_PRINT_INFO,
       FEATURE_SCRIPT_SERVER,
+      FEATURE_SIGNAL_HANDLER,
       FEATURE_LAST,
     };
 
