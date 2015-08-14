@@ -73,6 +73,12 @@ cb::Event::Event &Base::newEvent(int fd, unsigned events,
 }
 
 
+SmartPointer<cb::Event::Event>
+Base::newPersistentSignal(int signal, const SmartPointer<EventCallback> &cb) {
+  return new Event(*this, signal, EVENT_PERSIST | EV_SIGNAL, cb, false);
+}
+
+
 cb::Event::Event &Base::newSignal(int signal,
                                   const SmartPointer<EventCallback> &cb) {
   return *new Event(*this, signal, cb, true); // Deletes itself when done

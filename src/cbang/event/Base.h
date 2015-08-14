@@ -61,6 +61,8 @@ namespace cb {
       Event &newEvent(const SmartPointer<EventCallback> &cb);
       Event &newEvent(int fd, unsigned events,
                       const SmartPointer<EventCallback> &cb);
+      SmartPointer<Event>
+      newPersistentSignal(int signal, const SmartPointer<EventCallback> &cb);
       Event &newSignal(int signal, const SmartPointer<EventCallback> &cb);
 
       template <class T> SmartPointer<Event>
@@ -78,6 +80,13 @@ namespace cb {
       Event &newEvent(int fd, unsigned events, T *obj,
                       typename EventMemberFunctor<T>::member_t member) {
         return newEvent(fd, events, new EventMemberFunctor<T>(obj, member));
+      }
+
+      template <class T> SmartPointer<Event>
+      newPersistentSignal(int signal, T *obj,
+                          typename EventMemberFunctor<T>::member_t member) {
+        return newPersistentSignal(signal,
+                                   new EventMemberFunctor<T>(obj, member));
       }
 
       template <class T>
