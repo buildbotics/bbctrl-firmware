@@ -247,7 +247,7 @@ bool Option::hasValue() const {
 
 
 bool Option::toBoolean() const {
-  return String::parseBool(toString());
+  return parseBoolean(toString());
 }
 
 
@@ -260,29 +260,59 @@ const string &Option::toString() const {
 
 
 int64_t Option::toInteger() const {
-  return String::parseS64(toString());
+  return parseInteger(toString());
 }
 
 
 double Option::toDouble() const {
-  return String::parseDouble(toString());
+  return parseDouble(toString());
 }
 
 
-const Option::strings_t Option::toStrings(const string &delims) const {
+Option::strings_t Option::toStrings(const string &delims) const {
+  return parseStrings(toString());
+}
+
+
+Option::integers_t Option::toIntegers(const string &delims) const {
+  return parseIntegers(toString());
+}
+
+
+Option::doubles_t Option::toDoubles(const string &delims) const {
+  return parseDoubles(toString());
+}
+
+
+bool Option::parseBoolean(const string &value) {
+  return String::parseBool(value);
+}
+
+
+int64_t Option::parseInteger(const string &value) {
+  return String::parseS64(value);
+}
+
+
+double Option::parseDouble(const string &value) {
+  return String::parseDouble(value);
+}
+
+
+Option::strings_t Option::parseStrings(const string &value,
+                                       const string &delims) {
   strings_t result;
-
-  String::tokenize(toString(), result, delims);
-
+  String::tokenize(value, result, delims);
   return result;
 }
 
 
-const Option::integers_t Option::toIntegers(const string &delims) const {
+Option::integers_t Option::parseIntegers(const string &value,
+                                         const string &delims) {
   integers_t result;
   strings_t tokens;
 
-  String::tokenize(toString(), tokens, delims);
+  String::tokenize(value, tokens, delims);
 
   for (strings_t::iterator it = tokens.begin(); it != tokens.end(); it++)
     result.push_back(String::parseS32(*it));
@@ -291,11 +321,12 @@ const Option::integers_t Option::toIntegers(const string &delims) const {
 }
 
 
-const Option::doubles_t Option::toDoubles(const string &delims) const {
+Option::doubles_t Option::parseDoubles(const string &value,
+                                       const string &delims) {
   doubles_t result;
   strings_t tokens;
 
-  String::tokenize(toString(), tokens, delims);
+  String::tokenize(value, tokens, delims);
 
   for (strings_t::iterator it = tokens.begin(); it != tokens.end(); it++)
     result.push_back(String::parseDouble(*it));
@@ -394,19 +425,105 @@ ostream &Option::print(ostream &stream) const {
 }
 
 
-void Option::write(JSON::Sync &sync) const {
+void Option::writeBoolean(JSON::Sync &sync, const string &value) {
+  sync.writeBoolean(parseBoolean(value));
+}
+
+
+void Option::writeInteger(JSON::Sync &sync, const string &value) {
+  int64_t x = parseInteger(value);
+
+  if (-9007199254740991 < x && x < 9007199254740991) sync.write(x);
+  else sync.write(SSTR("0x" << hex << x));
+}
+
+
+void Option::writeDouble(JSON::Sync &sync, const string &value) {
+  sync.write(parseDouble(value));
+}
+
+
+void Option::writeStrings(JSON::Sync &sync, const string &value,
+                          const string &delims) {
+  strings_t l = parseStrings(value, delims);
+
+  sync.beginList();
+  for (unsigned i = 0; i < l.size(); i++) sync.append(l[i]);
+  sync.endList();
+}
+
+
+void Option::writeIntegers(JSON::Sync &sync, const string &value,
+                           const string &delims) {
+  integers_t l = parseIntegers(value, delims);
+
+  sync.beginList();
+  for (unsigned i = 0; i < l.size(); i++) {
+    sync.beginAppend();
+    if (-9007199254740991 < l[i] && l[i] < 9007199254740991) sync.write(l[i]);
+    else sync.write(SSTR("0x" << hex << l[i]));
+  }
+  sync.endList();
+}
+
+
+void Option::writeDoubles(JSON::Sync &sync, const string &value,
+                          const string &delims) {
+  doubles_t l = parseDoubles(value, delims);
+
+  sync.beginList();
+  for (unsigned i = 0; i < value.size(); i++) {
+    sync.beginAppend();
+    sync.append(l[i]);
+  }
+  sync.endList();
+}
+
+
+void Option::writeValue(JSON::Sync &sync, const string &value,
+                        const string &delims) const {
+  switch (type) {
+  case BOOLEAN_TYPE: writeBoolean(sync, value); break;
+  case STRING_TYPE: sync.write(value); break;
+  case INTEGER_TYPE: writeInteger(sync, value); break;
+  case DOUBLE_TYPE: writeDouble(sync, value); break;
+  case STRINGS_TYPE: writeStrings(sync, value, delims); break;
+  case INTEGERS_TYPE: writeIntegers(sync, value, delims); break;
+  case DOUBLES_TYPE: writeDoubles(sync, value, delims); break;
+  default: THROWS("Invalid type " << type);
+  }
+}
+
+
+void Option::write(JSON::Sync &sync, bool config, const string &delims) const {
+  if (config) {
+    string value = toString();
+
+    if (isObscured() && !(flags & OBSCURED_FLAG))
+      sync.write(string(value.size(), '*'));
+    else writeValue(sync, value, delims);
+
+    return;
+  }
+
   sync.beginDict();
 
   if (!getHelp().empty()) sync.insert("help", getHelp());
 
   if (hasValue()) {
+    sync.beginInsert("value");
     string value = toString();
+
     if (isObscured() && !(flags & OBSCURED_FLAG))
-      value = string(value.size(), '*');
-    sync.insert("value", value);
+      sync.write(string(value.size(), '*'));
+    else writeValue(sync, value, delims);
   }
 
-  if (hasDefault()) sync.insert("default", getDefault());
+  if (hasDefault()) {
+    sync.beginInsert("default");
+    writeValue(sync, getDefault(), delims);
+  }
+
   sync.insert("type", getTypeString());
   if (isOptional()) sync.insertBoolean("optional", true);
   if (shortName) sync.insert("short", string(1, shortName));

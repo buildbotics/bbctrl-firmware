@@ -32,8 +32,6 @@
 
 #include "OptionCategory.h"
 
-#include "Option.h"
-
 #include <cbang/String.h>
 #include <cbang/json/Sync.h>
 
@@ -41,25 +39,38 @@ using namespace std;
 using namespace cb;
 
 
+bool OptionCategory::hasSetOption() const {
+  options_t::const_iterator it;
+  for (it = options.begin(); it != options.end(); it++)
+    if (it->second->isSet()) return true;
+
+  return false;
+}
+
+
 void OptionCategory::add(const SmartPointer<Option> &option) {
   options.insert(options_t::value_type(option->getName(), option));
 }
 
 
-void OptionCategory::write(JSON::Sync &sync) const {
-  sync.beginDict();
+void OptionCategory::write(JSON::Sync &sync, bool config,
+                           const string &delims) const {
+  if (!config) sync.beginDict();
 
   options_t::const_iterator it;
   for (it = options.begin(); it != options.end(); it++) {
-    const string &name = it->second->getName();
+    Option &option = *it->second;
+    const string &name = option.getName();
+
+    if (config && !option.isSet()) continue;
 
     if (!name.empty() && name[0] != '_') {
       sync.beginInsert(name);
-      it->second->write(sync);
+      option.write(sync, config, delims);
     }
   }
 
-  sync.endDict();
+  if (!config) sync.endDict();
 }
 
 

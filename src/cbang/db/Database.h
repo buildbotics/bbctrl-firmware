@@ -99,6 +99,8 @@ namespace cb {
       const char *lastErrorMsg() const;
 
       static const char *errorMsg(int code);
+
+      static std::string escape(const std::string &s);
     };
   }
 }

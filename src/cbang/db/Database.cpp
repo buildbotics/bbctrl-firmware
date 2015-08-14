@@ -233,3 +233,11 @@ const char *Database::errorMsg(int code) {
   default:                return "UNKNOWN SQLITE error code";
   }
 }
+
+
+string Database::escape(const string &s) {
+  char *escaped = sqlite3_mprintf("%q", s.c_str());
+  string result(escaped);
+  sqlite3_free(escaped);
+  return result;
+}

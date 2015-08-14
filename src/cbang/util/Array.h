@@ -40,36 +40,41 @@ namespace cb {
   class Array {
     typedef Array<T, SIZE> Type_T;
 
-    T data[SIZE];
+    T array[SIZE];
 
   public:
     Array(const T init = T()) {
       if (!SIZE) CBANG_THROW("Cannot allocate zero length array");
-      for (unsigned i = 0; i < SIZE; i++) data[i] = init;
+      for (unsigned i = 0; i < SIZE; i++) array[i] = init;
     }
 
-    Array(const T data[SIZE]) {
+    Array(const T array[SIZE]) {
       if (!SIZE) CBANG_THROW("Cannot allocate zero length array");
-      for (unsigned i = 0; i < SIZE; i++) this->data[i] = data[i];
+      for (unsigned i = 0; i < SIZE; i++) this->array[i] = array[i];
     }
 
     Array(const Type_T &o) {
       if (!SIZE) CBANG_THROW("Cannot allocate zero length array");
-      for (unsigned i = 0; i < SIZE; i++) data[i] = o.data[i];
+      for (unsigned i = 0; i < SIZE; i++) array[i] = o.array[i];
     }
+
+    const unsigned size() const {return SIZE;}
+
+    const T *data() const {return array;}
+    T *data() {return array;}
 
     T &get(unsigned i) {
       if (SIZE <= i) CBANG_THROW("Array index out of range");
-      return data[i];
+      return array[i];
     }
 
     const T &get(unsigned i) const {
       if (SIZE <= i) CBANG_THROW("Array index out of range");
-      return data[i];
+      return array[i];
     }
 
     Type_T &operator=(const Type_T &o) {
-      for (unsigned i = 0; i < SIZE; i++) data[i] = o.data[i];
+      for (unsigned i = 0; i < SIZE; i++) array[i] = o.array[i];
       return *this;
     }
 
@@ -79,12 +84,12 @@ namespace cb {
     T &operator*() {return get(0);}
     const T &operator*() const {return get(0);}
 
-    operator T *() {return data;}
-    operator const T *() const {return data;}
+    operator T *() {return array;}
+    operator const T *() const {return array;}
 
     bool operator==(const Type_T &o) const {
       for (unsigned i = 0; i < SIZE; i++)
-        if (data[i] != o.data[i]) return false;
+        if (array[i] != o.array[i]) return false;
       return true;
     }
     bool operator!=(const Type_T &o) const {return !(*this == o);}

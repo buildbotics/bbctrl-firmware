@@ -176,10 +176,19 @@ namespace cb {
     const std::string &toString() const;
     int64_t toInteger() const;
     double toDouble() const;
-    const strings_t toStrings(const std::string &delims = DEFAULT_DELIMS) const;
-    const integers_t toIntegers(const std::string &delims =
-                                DEFAULT_DELIMS) const;
-    const doubles_t toDoubles(const std::string &delims = DEFAULT_DELIMS) const;
+    strings_t toStrings(const std::string &delims = DEFAULT_DELIMS) const;
+    integers_t toIntegers(const std::string &delims = DEFAULT_DELIMS) const;
+    doubles_t toDoubles(const std::string &delims = DEFAULT_DELIMS) const;
+
+    static bool parseBoolean(const std::string &value);
+    static int64_t parseInteger(const std::string &value);
+    static double parseDouble(const std::string &value);
+    static strings_t parseStrings(const std::string &value,
+                                  const std::string &delims = DEFAULT_DELIMS);
+    static integers_t parseIntegers(const std::string &value,
+                                    const std::string &delims = DEFAULT_DELIMS);
+    static doubles_t parseDoubles(const std::string &value,
+                                  const std::string &delims = DEFAULT_DELIMS);
 
     template <typename T>
     void checkConstraint(T value) const {
@@ -197,7 +206,20 @@ namespace cb {
 
     operator const std::string &() const {return toString();}
 
-    void write(JSON::Sync &sync) const;
+    static void writeBoolean(JSON::Sync &sync, const std::string &value);
+    static void writeInteger(JSON::Sync &sync, const std::string &value);
+    static void writeDouble(JSON::Sync &sync, const std::string &value);
+    static void writeStrings(JSON::Sync &sync, const std::string &value,
+                             const std::string &delims = DEFAULT_DELIMS);
+    static void writeIntegers(JSON::Sync &sync, const std::string &value,
+                              const std::string &delims = DEFAULT_DELIMS);
+    static void writeDoubles(JSON::Sync &sync, const std::string &value,
+                             const std::string &delims = DEFAULT_DELIMS);
+
+    void writeValue(JSON::Sync &sync, const std::string &value,
+                    const std::string &delims = DEFAULT_DELIMS) const;
+    void write(JSON::Sync &sync, bool config = false,
+               const std::string &delims = DEFAULT_DELIMS) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
     void printHelp(XMLHandler &handler, const std::string &prefix) const;

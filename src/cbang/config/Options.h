@@ -76,7 +76,12 @@ namespace cb {
     virtual std::ostream &print(std::ostream &stream) const;
     virtual void printHelp(std::ostream &stream) const;
 
-    virtual void write(JSON::Sync &sync) const;
+    virtual void insert(JSON::Sync &sync, bool config = false,
+                        const std::string &delims =
+                        Option::DEFAULT_DELIMS) const;
+    virtual void write(JSON::Sync &sync, bool config = false,
+                       const std::string &delims =
+                       Option::DEFAULT_DELIMS) const;
     virtual void write(XMLHandler &handler, uint32_t flags = 0) const;
     virtual void printHelpTOC(XMLHandler &handler,
                               const std::string &prefix = std::string()) const;

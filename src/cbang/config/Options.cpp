@@ -115,16 +115,21 @@ void Options::alias(const string &_key, const string &_alias) {
 }
 
 
-void Options::write(JSON::Sync &sync) const {
-  sync.beginDict();
-
+void Options::insert(JSON::Sync &sync, bool config,
+                     const string &delims) const {
   categories_t::const_iterator it;
   for (it = categories.begin(); it != categories.end(); it++)
-    if (!it->second->getHidden() && !it->second->isEmpty()) {
-      sync.beginInsert(it->first);
-      it->second->write(sync);
+    if (!it->second->getHidden() && !it->second->isEmpty() &&
+        (!config || it->second->hasSetOption())) {
+      if (!config) sync.beginInsert(it->first);
+      it->second->write(sync, config, delims);
     }
+}
 
+
+void Options::write(JSON::Sync &sync, bool config, const string &delims) const {
+  sync.beginDict();
+  insert(sync, config, delims);
   sync.endDict();
 }
 

@@ -33,13 +33,14 @@
 #ifndef CBANG_OPTION_CATEGORY_H
 #define CBANG_OPTION_CATEGORY_H
 
+#include "Option.h"
+
 #include <cbang/SmartPointer.h>
 
 #include <map>
 #include <string>
 
 namespace cb {
-  class Option;
   class XMLHandler;
 
   namespace JSON {class Sync;}
@@ -61,6 +62,7 @@ namespace cb {
     const std::string &getName() const {return name;}
 
     bool isEmpty() const {return options.empty();}
+    bool hasSetOption() const;
 
     void setDescription(const std::string &x) {description = x;}
     const std::string &getDescription() const {return description;}
@@ -70,7 +72,8 @@ namespace cb {
 
     void add(const SmartPointer<Option> &option);
 
-    void write(JSON::Sync &sync) const;
+    void write(JSON::Sync &sync, bool config = false,
+               const std::string &delims = Option::DEFAULT_DELIMS) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;
     void printHelp(XMLHandler &handler, const std::string &prefix) const;
