@@ -39,8 +39,9 @@ namespace cb {
 
     class Transaction {
       Database *db;
+      double timeout;
 
-      Transaction(Database *db) : db(db) {}
+      Transaction(Database *db, double timeout) : db(db), timeout(timeout) {}
       void release() {db = 0;}
 
     public:

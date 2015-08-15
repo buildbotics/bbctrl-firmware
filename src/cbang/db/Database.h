@@ -89,7 +89,8 @@ namespace cb {
       SmartPointer<Statement> compilef(const char *sql, ...);
       SmartPointer<Statement> compile(const std::string &sql);
 
-      SmartPointer<Transaction> begin(transaction_t type = DEFERRED);
+      SmartPointer<Transaction> begin(transaction_t type = DEFERRED,
+                                      double timeout = 30);
       void commit();
       void rollback();
 

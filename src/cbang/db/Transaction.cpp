@@ -35,17 +35,28 @@
 #include "Database.h"
 
 #include <cbang/util/DefaultCatch.h>
+#include <cbang/time/Timer.h>
 
 using namespace cb::DB;
 
+
 Transaction::~Transaction() {
-  // Retry indefinately
-  while (db) {
+  if (!db) return;
+
+  // Retry for at most timeout seconds
+  double start = Timer::now();
+
+  while (true) {
     try {
       db->rollback();
       return;
     } CBANG_CATCH_WARNING;
+
+    if (timeout < Timer::now() - start) break;
+    Timer::sleep(0.25);
   }
+
+  LOG_ERROR("Failed to roll back DB transaction, continuing anyway");
 }
 
 

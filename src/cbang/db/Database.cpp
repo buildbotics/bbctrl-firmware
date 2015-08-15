@@ -147,7 +147,7 @@ SmartPointer<Statement> Database::compile(const string &sql) {
 }
 
 
-SmartPointer<Transaction> Database::begin(transaction_t type) {
+SmartPointer<Transaction> Database::begin(transaction_t type, double timeout) {
   if (transaction) THROW("Already in a transaction");
 
   switch (type) {
@@ -156,7 +156,7 @@ SmartPointer<Transaction> Database::begin(transaction_t type) {
   case EXCLUSIVE: execute("BEGIN EXCLUSIVE"); break;
   }
 
-  return transaction = new Transaction(this);
+  return transaction = new Transaction(this, timeout);
 }
 
 
