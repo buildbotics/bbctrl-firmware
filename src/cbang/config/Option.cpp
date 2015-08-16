@@ -529,6 +529,7 @@ void Option::write(JSON::Sync &sync, bool config, const string &delims) const {
   if (shortName) sync.insert("short", string(1, shortName));
   if (isSet()) sync.insertBoolean("set", true);
   if (isCommandLine()) sync.insertBoolean("command_line", true);
+  if (!constraint.isNull()) sync.insert("constraint", constraint->getHelp());
 
   sync.endDict();
 }

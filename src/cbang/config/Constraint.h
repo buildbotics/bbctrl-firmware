@@ -58,6 +58,8 @@ namespace cb {
           CBANG_THROWCS("Item " << i << " is invalid", e);
         }
     }
+
+    virtual std::string getHelp() const = 0;
   };
 }
 

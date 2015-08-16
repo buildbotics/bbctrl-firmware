@@ -56,6 +56,11 @@ namespace cb {
       minimum.validate(value);
       maximum.validate(value);
     }
+
+
+    std::string getHelp() const {
+      return minimum.getHelp() + " & " + maximum.getHelp();
+    }
   };
 }
 

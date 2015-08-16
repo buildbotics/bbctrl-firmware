@@ -47,6 +47,9 @@ namespace cb {
     void validate(const std::string &value) const {depreciated();}
     void validate(int64_t value) const {depreciated();}
     void validate(double value) const {depreciated();}
+
+
+    std::string getHelp() const {return "Depreciated";}
   };
 }
 

@@ -48,6 +48,18 @@ namespace cb {
         CBANG_THROWS(value << " is not a member of enumeration "
                      << T::getName());
     }
+
+
+    std::string getHelp() const {
+      std::string s = "one of";
+
+      for (unsigned i = 0; i < T::getCount(); i++) {
+        if (0) s += ",";
+        s += std::string(" \"") + T::getName(i) + "\"";
+      }
+
+      return s;
+    }
   };
 }
 

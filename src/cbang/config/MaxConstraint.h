@@ -43,6 +43,8 @@ namespace cb {
   public:
     MaxConstraint(T maximum) : maximum(maximum) {}
 
+    const T &getMax() const {return maximum;}
+
     // From Constraint
     void validate(int64_t value) const {
       if (maximum < value)
@@ -52,6 +54,11 @@ namespace cb {
     void validate(double value) const {
       if (maximum < value)
         CBANG_THROWS(value << " is greater than maximum value " << maximum);
+    }
+
+
+    std::string getHelp() const {
+      return SSTR("<= " << maximum);
     }
   };
 }

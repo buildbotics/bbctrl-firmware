@@ -43,6 +43,8 @@ namespace cb {
   public:
     MinConstraint(T minimum) : minimum(minimum) {}
 
+    const T &getMin() const {return minimum;}
+
     // From Constraint
     void validate(int64_t value) const {
       if (value < minimum)
@@ -52,6 +54,11 @@ namespace cb {
     void validate(double value) const {
       if (value < minimum)
         CBANG_THROWS(value << " is less than minium value " << minimum);
+    }
+
+
+    std::string getHelp() const {
+      return SSTR(">= " << minimum);
     }
   };
 }
