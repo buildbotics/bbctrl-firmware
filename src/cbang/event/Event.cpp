@@ -36,6 +36,7 @@
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/time/Timer.h>
 #include <cbang/log/Logger.h>
+#include <cbang/debug/Debugger.h>
 
 #include <event2/event.h>
 #include <event2/event_struct.h>
@@ -178,12 +179,20 @@ namespace {
       break;
     }
   }
+
+
+  void fatal_cb(int err) {
+    LOG_ERROR("Fatal error in event system " << err);
+    LOG_DEBUG(3, cb::Debugger::getStackTrace());
+    exit(err);
+  }
 }
 
 
 void Event::enableLogging(int level) {
   event_log_level = level;
   event_set_log_callback(log_cb);
+  event_set_fatal_callback(fatal_cb);
 }
 
 
