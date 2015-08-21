@@ -112,9 +112,10 @@ Connection::Connection(cb::Event::Base &base, DNSBase &dns, const URI &uri,
   BufferEvent bev(base, 0, uri.getHost());
 #endif
 
+  // TODO OpenSSL connections do not work with async DNS
   con = evhttp_connection_base_bufferevent_new
-    (base.getBase(), dns.getDNSBase(), bev.adopt(), uri.getHost().c_str(),
-     uri.getPort());
+    (base.getBase(), sslCtx.isNull() ? dns.getDNSBase() : 0, bev.adopt(),
+     uri.getHost().c_str(), uri.getPort());
 
   LOG_DEBUG(5, "Connecting to " << uri.getHost() << ':' << uri.getPort());
 

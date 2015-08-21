@@ -37,6 +37,7 @@
 
 #include <cbang/String.h>
 #include <cbang/log/Logger.h>
+#include <cbang/debug/Debugger.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/os/SysError.h>
 
@@ -108,8 +109,10 @@ void PendingRequest::callback(evhttp_request *_req) {
 
 void PendingRequest::error(int code) {
   LOG_ERROR("Request failed: " << getErrorStr(code)
-            << " System error: " << SysError()
-            << " SSL errors: " << getSSLErrors());
+            << ", System error: " << SysError()
+            << ", SSL errors: " << getSSLErrors());
+
+  LOG_DEBUG(5, Debugger::getStackTrace());
 
   try {cb->error(code);} CATCH_ERROR;
 }
