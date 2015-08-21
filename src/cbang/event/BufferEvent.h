@@ -60,6 +60,7 @@ namespace cb {
       bufferevent *adopt() {deallocate = false; return bev;}
 
       void logSSLErrors();
+      std::string getSSLErrors();
     };
   }
 }

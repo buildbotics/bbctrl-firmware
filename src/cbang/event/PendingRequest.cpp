@@ -107,9 +107,9 @@ void PendingRequest::callback(evhttp_request *_req) {
 
 
 void PendingRequest::error(int code) {
-  logSSLErrors();
   LOG_ERROR("Request failed: " << getErrorStr(code)
-            << " System error: " << SysError());
+            << " System error: " << SysError()
+            << " SSL errors: " << getSSLErrors());
 
   try {cb->error(code);} CATCH_ERROR;
 }

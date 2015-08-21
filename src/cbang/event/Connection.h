@@ -77,6 +77,7 @@ namespace cb {
       void makeRequest(Request &req, unsigned method, const URI &uri);
 
       void logSSLErrors();
+      std::string getSSLErrors();
     };
   }
 }

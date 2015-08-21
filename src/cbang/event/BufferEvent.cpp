@@ -96,10 +96,22 @@ BufferEvent::~BufferEvent() {
 
 
 void BufferEvent::logSSLErrors() {
+  string errors = getSSLErrors();
+  if (!errors.empty()) LOG_ERROR("SSL errors: " << errors);
+}
+
+
+string BufferEvent::getSSLErrors() {
+  string errors;
+
 #ifdef HAVE_OPENSSL
   unsigned error;
 
-  while ((error = bufferevent_get_openssl_error(bev)))
-    LOG_ERROR("SSL error: " << SSL::getErrorStr(error));
+  while ((error = bufferevent_get_openssl_error(bev))) {
+    if (!errors.empty()) errors += ", ";
+    errors += SSL::getErrorStr(error);
+  }
 #endif
+
+  return errors;
 }

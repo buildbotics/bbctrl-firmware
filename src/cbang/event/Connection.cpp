@@ -196,3 +196,13 @@ void Connection::logSSLErrors() {
   if (bev) BufferEvent(bev, false).logSSLErrors();
 #endif
 }
+
+
+string Connection::getSSLErrors() {
+#ifdef HAVE_OPENSSL
+  bufferevent *bev = evhttp_connection_get_bufferevent(con);
+  if (bev) return BufferEvent(bev, false).getSSLErrors();
+#endif
+
+  return "";
+}
