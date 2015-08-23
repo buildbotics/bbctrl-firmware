@@ -41,7 +41,7 @@ using namespace std;
 
 Scanner::Scanner(const InputSource &source) : x(-2), source(source) {
   location.setCol(-1);
-  location.setLine(0);
+  location.setLine(1);
   if (!source.getName().empty()) location.setFilename(source.getName());
 }
 
