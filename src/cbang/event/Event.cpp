@@ -182,8 +182,8 @@ namespace {
 
 
   void fatal_cb(int err) {
-    LOG_ERROR("Fatal error in event system " << err);
-    LOG_DEBUG(3, cb::Debugger::getStackTrace());
+    LOG_ERROR("Fatal error in event system " << err << ": "
+              << cb::Debugger::getStackTrace());
     exit(err);
   }
 }
