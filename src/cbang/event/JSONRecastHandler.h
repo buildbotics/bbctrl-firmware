@@ -42,7 +42,7 @@ namespace cb {
     template <class T>
     class JSONRecastHandler : public JSONHandler {
     public:
-      typedef bool (T::*member_t)(const JSON::ValuePtr &, JSON::Sync &);
+      typedef bool (T::*member_t)(const JSON::ValuePtr &, JSON::Sink &);
 
     protected:
       member_t member;
@@ -52,7 +52,7 @@ namespace cb {
 
       // From JSONHandler
       bool operator()(Request &req, const JSON::ValuePtr &msg,
-                      JSON::Sync &sync) {
+                      JSON::Sink &sync) {
         return (req.cast<T>().*member)(msg, sync);
       }
     };

@@ -43,7 +43,7 @@
 namespace cb {
   namespace JSON {
     class Dict;
-    class Sync;
+    class Sink;
   }
 
   /// A container class for a set of configuration options
@@ -76,10 +76,10 @@ namespace cb {
     virtual std::ostream &print(std::ostream &stream) const;
     virtual void printHelp(std::ostream &stream) const;
 
-    virtual void insert(JSON::Sync &sync, bool config = false,
+    virtual void insert(JSON::Sink &sync, bool config = false,
                         const std::string &delims =
                         Option::DEFAULT_DELIMS) const;
-    virtual void write(JSON::Sync &sync, bool config = false,
+    virtual void write(JSON::Sink &sync, bool config = false,
                        const std::string &delims =
                        Option::DEFAULT_DELIMS) const;
     virtual void write(XMLHandler &handler, uint32_t flags = 0) const;

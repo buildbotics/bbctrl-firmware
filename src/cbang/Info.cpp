@@ -183,7 +183,7 @@ SmartPointer<JSON::List> Info::getJSONList() const {
 }
 
 
-void Info::write(JSON::Sync &sync) const {
+void Info::write(JSON::Sink &sync) const {
   sync.beginDict();
 
   categories_t::const_iterator it;

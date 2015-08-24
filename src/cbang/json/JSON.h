@@ -42,7 +42,7 @@
 #include "Reader.h"
 #include "Writer.h"
 #include "Builder.h"
-#include "NullSync.h"
+#include "NullSink.h"
 #include "Format.h"
 #include "BufferWriter.h"
 

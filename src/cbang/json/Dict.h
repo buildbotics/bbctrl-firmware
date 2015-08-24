@@ -71,7 +71,7 @@ namespace cb {
       void insert(const std::string &key, double value);
       void insert(const std::string &key, const std::string &value);
       void insert(const std::string &key, const ValuePtr &value);
-      void write(Sync &sync) const;
+      void write(Sink &sync) const;
     };
   }
 }

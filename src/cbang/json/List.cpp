@@ -83,7 +83,7 @@ void List::append(const ValuePtr &value) {
 }
 
 
-void List::write(Sync &sync) const {
+void List::write(Sink &sync) const {
   sync.beginList(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {

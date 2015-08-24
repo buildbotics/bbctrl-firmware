@@ -42,7 +42,7 @@ struct sqlite3_stmt;
 struct sqlite3;
 
 namespace cb {
-  namespace JSON {class Sync;}
+  namespace JSON {class Sink;}
 
   namespace DB {
     class Database;
@@ -81,9 +81,9 @@ namespace cb {
       Parameter parameter(const std::string &name) const;
 
       // JSON functions
-      void readHeader(JSON::Sync &sync);
-      void readOne(JSON::Sync &sync);
-      void readAll(JSON::Sync &sync);
+      void readHeader(JSON::Sink &sync);
+      void readOne(JSON::Sink &sync);
+      void readAll(JSON::Sink &sync);
     };
   }
 }

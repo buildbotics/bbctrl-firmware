@@ -53,7 +53,7 @@ namespace cb {
       ValueType getType() const {return JSON_NUMBER;}
       ValuePtr copy(bool deep = false) const {return new Number(x);}
       double getNumber() const {return getValue();}
-      void write(Sync &sync) const {sync.write(x);}
+      void write(Sink &sync) const {sync.write(x);}
     };
   }
 }

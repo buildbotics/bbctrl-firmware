@@ -46,7 +46,7 @@
 namespace cb {
   namespace JSON {
     class Value;
-    class Sync;
+    class Sink;
   }
 
   namespace JSAPI {
@@ -73,7 +73,7 @@ namespace cb {
 
       void dispatch(HTTP::WebContext &ctx, const std::string &cmd,
                     const SmartPointer<JSON::Value> &msg,
-                    JSON::Sync &sync) const;
+                    JSON::Sink &sync) const;
 
       // From HTTP::WebPageHandler
       bool handlePage(HTTP::WebContext &ctx, std::ostream &stream,

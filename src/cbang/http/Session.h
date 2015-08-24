@@ -76,7 +76,7 @@ namespace cb {
 
       // From JSON::Serializable
       void read(const JSON::Value &value);
-      void write(JSON::Sync &sync) const;
+      void write(JSON::Sink &sync) const;
     };
 
     typedef SmartPointer<Session>::Protected SessionPtr;

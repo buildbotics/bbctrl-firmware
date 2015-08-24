@@ -33,7 +33,7 @@
 #ifndef CB_JSON_BUILDER_H
 #define CB_JSON_BUILDER_H
 
-#include "Sync.h"
+#include "Sink.h"
 #include "Value.h"
 
 #include <vector>
@@ -41,7 +41,7 @@
 
 namespace cb {
   namespace JSON {
-    class Builder : public Sync {
+    class Builder : public Sink {
       std::vector<ValuePtr> stack;
       bool appendNext;
       std::string nextKey;
@@ -52,7 +52,7 @@ namespace cb {
       ValuePtr getRoot() const;
       void clear() {stack.clear();}
 
-      // From Sync
+      // From Sink
       void writeNull();
       void writeBoolean(bool value);
       void write(double value);

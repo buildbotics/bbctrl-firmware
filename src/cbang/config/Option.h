@@ -47,7 +47,7 @@
 #include <set>
 
 namespace cb {
-  namespace JSON {class Sync;}
+  namespace JSON {class Sink;}
 
   /**
    * A Configuration option.  Holds option defaults, user values, and parses
@@ -206,19 +206,19 @@ namespace cb {
 
     operator const std::string &() const {return toString();}
 
-    static void writeBoolean(JSON::Sync &sync, const std::string &value);
-    static void writeInteger(JSON::Sync &sync, const std::string &value);
-    static void writeDouble(JSON::Sync &sync, const std::string &value);
-    static void writeStrings(JSON::Sync &sync, const std::string &value,
+    static void writeBoolean(JSON::Sink &sync, const std::string &value);
+    static void writeInteger(JSON::Sink &sync, const std::string &value);
+    static void writeDouble(JSON::Sink &sync, const std::string &value);
+    static void writeStrings(JSON::Sink &sync, const std::string &value,
                              const std::string &delims = DEFAULT_DELIMS);
-    static void writeIntegers(JSON::Sync &sync, const std::string &value,
+    static void writeIntegers(JSON::Sink &sync, const std::string &value,
                               const std::string &delims = DEFAULT_DELIMS);
-    static void writeDoubles(JSON::Sync &sync, const std::string &value,
+    static void writeDoubles(JSON::Sink &sync, const std::string &value,
                              const std::string &delims = DEFAULT_DELIMS);
 
-    void writeValue(JSON::Sync &sync, const std::string &value,
+    void writeValue(JSON::Sink &sync, const std::string &value,
                     const std::string &delims = DEFAULT_DELIMS) const;
-    void write(JSON::Sync &sync, bool config = false,
+    void write(JSON::Sink &sync, bool config = false,
                const std::string &delims = DEFAULT_DELIMS) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;

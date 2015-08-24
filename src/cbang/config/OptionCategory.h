@@ -43,7 +43,7 @@
 namespace cb {
   class XMLHandler;
 
-  namespace JSON {class Sync;}
+  namespace JSON {class Sink;}
 
   class OptionCategory {
     typedef std::map<const std::string, SmartPointer<Option> > options_t;
@@ -72,7 +72,7 @@ namespace cb {
 
     void add(const SmartPointer<Option> &option);
 
-    void write(JSON::Sync &sync, bool config = false,
+    void write(JSON::Sink &sync, bool config = false,
                const std::string &delims = Option::DEFAULT_DELIMS) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;

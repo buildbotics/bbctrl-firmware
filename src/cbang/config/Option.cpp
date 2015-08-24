@@ -38,7 +38,7 @@
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/util/DefaultCatch.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 using namespace std;
 using namespace cb;
@@ -425,12 +425,12 @@ ostream &Option::print(ostream &stream) const {
 }
 
 
-void Option::writeBoolean(JSON::Sync &sync, const string &value) {
+void Option::writeBoolean(JSON::Sink &sync, const string &value) {
   sync.writeBoolean(parseBoolean(value));
 }
 
 
-void Option::writeInteger(JSON::Sync &sync, const string &value) {
+void Option::writeInteger(JSON::Sink &sync, const string &value) {
   int64_t x = parseInteger(value);
 
   if (-9007199254740991 < x && x < 9007199254740991) sync.write(x);
@@ -438,12 +438,12 @@ void Option::writeInteger(JSON::Sync &sync, const string &value) {
 }
 
 
-void Option::writeDouble(JSON::Sync &sync, const string &value) {
+void Option::writeDouble(JSON::Sink &sync, const string &value) {
   sync.write(parseDouble(value));
 }
 
 
-void Option::writeStrings(JSON::Sync &sync, const string &value,
+void Option::writeStrings(JSON::Sink &sync, const string &value,
                           const string &delims) {
   strings_t l = parseStrings(value, delims);
 
@@ -453,7 +453,7 @@ void Option::writeStrings(JSON::Sync &sync, const string &value,
 }
 
 
-void Option::writeIntegers(JSON::Sync &sync, const string &value,
+void Option::writeIntegers(JSON::Sink &sync, const string &value,
                            const string &delims) {
   integers_t l = parseIntegers(value, delims);
 
@@ -467,7 +467,7 @@ void Option::writeIntegers(JSON::Sync &sync, const string &value,
 }
 
 
-void Option::writeDoubles(JSON::Sync &sync, const string &value,
+void Option::writeDoubles(JSON::Sink &sync, const string &value,
                           const string &delims) {
   doubles_t l = parseDoubles(value, delims);
 
@@ -480,7 +480,7 @@ void Option::writeDoubles(JSON::Sync &sync, const string &value,
 }
 
 
-void Option::writeValue(JSON::Sync &sync, const string &value,
+void Option::writeValue(JSON::Sink &sync, const string &value,
                         const string &delims) const {
   switch (type) {
   case BOOLEAN_TYPE: writeBoolean(sync, value); break;
@@ -495,7 +495,7 @@ void Option::writeValue(JSON::Sync &sync, const string &value,
 }
 
 
-void Option::write(JSON::Sync &sync, bool config, const string &delims) const {
+void Option::write(JSON::Sink &sync, bool config, const string &delims) const {
   if (config) {
     string value = toString();
 

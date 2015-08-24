@@ -42,9 +42,9 @@ namespace cb {
   namespace JSON {
     class Value;
 
-    class Sync {
+    class Sink {
     public:
-      virtual ~Sync() {}
+      virtual ~Sink() {}
 
       // Element functions
       virtual void writeNull() = 0;

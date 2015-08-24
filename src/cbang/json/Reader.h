@@ -42,7 +42,7 @@ namespace cb {
     class Value;
     class List;
     class Dict;
-    class Sync;
+    class Sink;
 
     class Reader {
       unsigned line;
@@ -54,7 +54,7 @@ namespace cb {
       Reader(const InputSource &src) :
       line(0), column(0), src(src), stream(src.getStream()) {}
 
-      void parse(Sync &sync);
+      void parse(Sink &sync);
       SmartPointer<Value> parse();
       static SmartPointer<Value> parse(const InputSource &src);
 
@@ -73,8 +73,8 @@ namespace cb {
       bool parseBoolean();
       double parseNumber();
       const std::string parseString();
-      void parseList(Sync &sync);
-      void parseDict(Sync &sync);
+      void parseList(Sink &sync);
+      void parseDict(Sink &sync);
 
       void error(const std::string &msg) const;
 

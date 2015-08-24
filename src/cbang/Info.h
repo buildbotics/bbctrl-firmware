@@ -42,7 +42,7 @@
 
 
 namespace cb {
-  namespace JSON {class List; class Sync;}
+  namespace JSON {class List; class Sink;}
 
   class XMLWriter;
 
@@ -92,7 +92,7 @@ namespace cb {
                         bool wrap = true) const;
     void write(XMLWriter &writer) const;
     SmartPointer<JSON::List> getJSONList() const;
-    void write(JSON::Sync &sync) const;
+    void write(JSON::Sink &sync) const;
   };
 
   inline static

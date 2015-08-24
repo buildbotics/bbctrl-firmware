@@ -34,7 +34,7 @@
 
 #include <cbang/time/Time.h>
 #include <cbang/json/Value.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 using namespace cb::HTTP;
 
@@ -51,7 +51,7 @@ void Session::read(const cb::JSON::Value &value) {
 }
 
 
-void Session::write(cb::JSON::Sync &sync) const {
+void Session::write(cb::JSON::Sink &sync) const {
   sync.beginDict();
   sync.insert("created", Time(creationTime).toString());
   sync.insert("last_used", Time(lastUsed).toString());

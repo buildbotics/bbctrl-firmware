@@ -35,7 +35,7 @@
 #include <cbang/String.h>
 #include <cbang/SStream.h>
 #include <cbang/Zap.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 using namespace std;
 using namespace cb;
@@ -134,7 +134,7 @@ void IPRangeSet::print(ostream &stream) const {
 }
 
 
-void IPRangeSet::write(JSON::Sync &sync) const {
+void IPRangeSet::write(JSON::Sink &sync) const {
   sync.beginList();
 
   for (unsigned i = 0; i < rangeSet.size(); i += 2)

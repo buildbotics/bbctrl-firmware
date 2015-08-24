@@ -52,7 +52,7 @@ void JSONAPI::add(const string &cmd, const SmartPointer<Handler> &handler) {
 
 
 void JSONAPI::dispatch(HTTP::WebContext &ctx, const string &cmd,
-                       const JSON::ValuePtr &msg, JSON::Sync &sync) const {
+                       const JSON::ValuePtr &msg, JSON::Sink &sync) const {
   api_t::const_iterator it = api.find(cmd);
   if (it == api.end()) THROWS("Unsupported JSON API call: " << cmd);
 

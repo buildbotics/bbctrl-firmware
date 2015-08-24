@@ -35,7 +35,7 @@
 #include <cbang/String.h>
 #include <cbang/Exception.h>
 #include <cbang/time/Time.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 #include <cbang/json/Dict.h>
 #include <cbang/log/Logger.h>
 
@@ -473,7 +473,7 @@ void DB::seekRow(uint64_t row) {
 }
 
 
-void DB::appendRow(JSON::Sync &sync, int first, int count) const {
+void DB::appendRow(JSON::Sink &sync, int first, int count) const {
   for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
     sync.beginAppend();
     writeField(sync, i);
@@ -481,7 +481,7 @@ void DB::appendRow(JSON::Sync &sync, int first, int count) const {
 }
 
 
-void DB::insertRow(JSON::Sync &sync, int first, int count,
+void DB::insertRow(JSON::Sink &sync, int first, int count,
                    bool withNulls) const {
 
   for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
@@ -492,14 +492,14 @@ void DB::insertRow(JSON::Sync &sync, int first, int count,
 }
 
 
-void DB::writeRowList(JSON::Sync &sync, int first, int count) const {
+void DB::writeRowList(JSON::Sink &sync, int first, int count) const {
   sync.beginList();
   appendRow(sync, first, count);
   sync.endList();
 }
 
 
-void DB::writeRowDict(JSON::Sync &sync, int first, int count,
+void DB::writeRowDict(JSON::Sink &sync, int first, int count,
                       bool withNulls) const {
   sync.beginDict();
   insertRow(sync, first, count, withNulls);
@@ -530,7 +530,7 @@ const char *DB::getData(unsigned i) const {
 }
 
 
-void DB::writeField(JSON::Sync &sync, unsigned i) const {
+void DB::writeField(JSON::Sink &sync, unsigned i) const {
   if (getNull(i)) sync.writeNull();
   else {
     Field field = getField(i);

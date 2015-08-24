@@ -36,7 +36,7 @@
 #include "Blob.h"
 
 #include <cbang/Exception.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 #include <cbang/net/Base64.h>
 
 #include <sqlite3.h>
@@ -152,7 +152,7 @@ Parameter Statement::parameter(const std::string &name) const {
 }
 
 
-void Statement::readHeader(JSON::Sync &sync) {
+void Statement::readHeader(JSON::Sink &sync) {
   sync.beginList(true);
 
   unsigned cols = sqlite3_column_count(stmt);
@@ -163,7 +163,7 @@ void Statement::readHeader(JSON::Sync &sync) {
 }
 
 
-void Statement::readOne(JSON::Sync &sync) {
+void Statement::readOne(JSON::Sink &sync) {
   sync.beginList(true);
 
   unsigned cols = sqlite3_data_count(stmt);
@@ -175,7 +175,7 @@ void Statement::readOne(JSON::Sync &sync) {
     case Column::DB_DOUBLE: sync.append(col.toDouble()); break;
     case Column::DB_STRING: sync.append(col.toString()); break;
     case Column::DB_BLOB: {
-      // TODO This could be made more efficient if JSON::Sync would allow
+      // TODO This could be made more efficient if JSON::Sink would allow
       //   piecewise strings.
       Blob blob = col.toBlob();
       sync.append(Base64().encode((char *)blob.getData(), blob.getLength()));
@@ -189,7 +189,7 @@ void Statement::readOne(JSON::Sync &sync) {
 }
 
 
-void Statement::readAll(JSON::Sync &sync) {
+void Statement::readAll(JSON::Sink &sync) {
   sync.beginList();
 
   sync.beginAppend();

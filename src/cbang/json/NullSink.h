@@ -33,7 +33,7 @@
 #ifndef CB_JSON_NULL_SYNC_H
 #define CB_JSON_NULL_SYNC_H
 
-#include "Sync.h"
+#include "Sink.h"
 #include "ValueType.h"
 
 #include <vector>
@@ -42,7 +42,7 @@
 
 namespace cb {
   namespace JSON {
-    class NullSync : public Sync {
+    class NullSink : public Sink {
     protected:
       std::vector<ValueType> stack;
       typedef std::set<std::string> keys_t;
@@ -51,7 +51,7 @@ namespace cb {
       bool canWrite;
 
     public:
-      NullSync() : canWrite(true) {}
+      NullSink() : canWrite(true) {}
 
       bool inList() const;
       bool inDict() const;
@@ -60,7 +60,7 @@ namespace cb {
       virtual void close();
       virtual void reset();
 
-      // From Sync
+      // From Sink
       void writeNull();
       void writeBoolean(bool value);
       void write(double value);

@@ -30,25 +30,25 @@
 
 \******************************************************************************/
 
-#include "Sync.h"
+#include "Sink.h"
 #include "Value.h"
 
 using namespace std;
 using namespace cb::JSON;
 
 
-void Sync::write(const Value &value) {
+void Sink::write(const Value &value) {
   value.write(*this);
 }
 
 
-void Sync::append(const Value &value) {
+void Sink::append(const Value &value) {
   beginAppend();
   write(value);
 }
 
 
-void Sync::insert(const string &key, const Value &value) {
+void Sink::insert(const string &key, const Value &value) {
   beginInsert(key);
   write(value);
 }

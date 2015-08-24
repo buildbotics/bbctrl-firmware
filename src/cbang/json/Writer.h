@@ -33,14 +33,14 @@
 #ifndef CBANG_JSON_WRITER_H
 #define CBANG_JSON_WRITER_H
 
-#include "NullSync.h"
+#include "NullSink.h"
 
 #include <ostream>
 
 
 namespace cb {
   namespace JSON {
-    class Writer : public NullSync {
+    class Writer : public NullSink {
       /***
        * The differences between JSON (Javascript Object Notation) and
        * JSON (Python Object Notation) are small.  They are as follows:
@@ -79,11 +79,11 @@ namespace cb {
         : stream(stream), initLevel(indent), level(indent), compact(compact),
           simple(false), mode(mode), first(true) {}
 
-      // From NullSync
+      // From NullSink
       void close();
       void reset();
 
-      // From Sync
+      // From Sink
       void writeNull();
       void writeBoolean(bool value);
       void write(double value);

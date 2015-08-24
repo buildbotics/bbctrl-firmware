@@ -51,7 +51,7 @@ namespace cb {
       // From Value
       ValueType getType() const {return JSON_NULL;}
       ValuePtr copy(bool deep = false) const {return instancePtr();}
-      void write(Sync &sync) const {sync.writeNull();}
+      void write(Sink &sync) const {sync.writeNull();}
     };
   }
 }

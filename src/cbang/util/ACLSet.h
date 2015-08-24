@@ -41,7 +41,7 @@
 
 namespace cb {
   namespace JSON {
-    class Sync;
+    class Sink;
     class Value;
   }
 
@@ -124,7 +124,7 @@ namespace cb {
     void aclDelGroup(const std::string &path, const std::string &group);
 
     // IO
-    void write(JSON::Sync &sync) const;
+    void write(JSON::Sink &sync) const;
     void set(const JSON::Value &json);
 
     void write(std::ostream &stream) const;

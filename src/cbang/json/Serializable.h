@@ -39,12 +39,12 @@
 namespace cb {
   namespace JSON {
     class Value;
-    class Sync;
+    class Sink;
 
     class Serializable : public cb::Serializable {
     public:
       virtual void read(const Value &value) = 0;
-      virtual void write(Sync &sync) const = 0;
+      virtual void write(Sink &sync) const = 0;
 
       // From cb::Serializable
       void read(std::istream &stream);
@@ -53,7 +53,7 @@ namespace cb {
 
 
     inline static
-    Sync &operator<<(Sync &sync, const Serializable &s) {
+    Sink &operator<<(Sink &sync, const Serializable &s) {
       s.write(sync);
       return sync;
     }

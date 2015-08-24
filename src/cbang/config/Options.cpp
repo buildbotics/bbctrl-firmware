@@ -38,7 +38,7 @@
 #include <cbang/String.h>
 
 #include <cbang/json/Dict.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 #include <cbang/log/Logger.h>
 
@@ -115,7 +115,7 @@ void Options::alias(const string &_key, const string &_alias) {
 }
 
 
-void Options::insert(JSON::Sync &sync, bool config,
+void Options::insert(JSON::Sink &sync, bool config,
                      const string &delims) const {
   categories_t::const_iterator it;
   for (it = categories.begin(); it != categories.end(); it++)
@@ -127,7 +127,7 @@ void Options::insert(JSON::Sync &sync, bool config,
 }
 
 
-void Options::write(JSON::Sync &sync, bool config, const string &delims) const {
+void Options::write(JSON::Sink &sync, bool config, const string &delims) const {
   sync.beginDict();
   insert(sync, config, delims);
   sync.endDict();

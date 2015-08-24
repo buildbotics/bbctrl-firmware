@@ -221,7 +221,7 @@ void ACLSet::aclDelGroup(const string &path, const string &group) {
 }
 
 
-void ACLSet::write(JSON::Sync &sync) const {
+void ACLSet::write(JSON::Sink &sync) const {
   sync.beginDict();
 
   // Users

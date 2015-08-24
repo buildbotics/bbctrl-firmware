@@ -33,7 +33,7 @@
 #include "OptionCategory.h"
 
 #include <cbang/String.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 using namespace std;
 using namespace cb;
@@ -53,7 +53,7 @@ void OptionCategory::add(const SmartPointer<Option> &option) {
 }
 
 
-void OptionCategory::write(JSON::Sync &sync, bool config,
+void OptionCategory::write(JSON::Sink &sync, bool config,
                            const string &delims) const {
   if (!config) sync.beginDict();
 

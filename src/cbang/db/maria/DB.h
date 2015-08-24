@@ -48,7 +48,7 @@ struct st_mysql_res;
 
 namespace cb {
   namespace JSON {
-    class Sync;
+    class Sink;
     class Dict;
   }
 
@@ -168,11 +168,11 @@ namespace cb {
       bool fetchRowNB();
       bool haveRow() const;
       void seekRow(uint64_t row);
-      void appendRow(JSON::Sync &sync, int first = 0, int last = -1) const;
-      void insertRow(JSON::Sync &sync, int first = 0, int last = -1,
+      void appendRow(JSON::Sink &sync, int first = 0, int last = -1) const;
+      void insertRow(JSON::Sink &sync, int first = 0, int last = -1,
                      bool withNulls = true) const;
-      void writeRowList(JSON::Sync &sync, int first = 0, int last = -1) const;
-      void writeRowDict(JSON::Sync &sync, int first = 0, int last = -1,
+      void writeRowList(JSON::Sink &sync, int first = 0, int last = -1) const;
+      void writeRowDict(JSON::Sink &sync, int first = 0, int last = -1,
                         bool withNulls = true) const;
 
       // Field
@@ -180,7 +180,7 @@ namespace cb {
       Field::type_t getType(unsigned i) const;
       unsigned getLength(unsigned i) const;
       const char *getData(unsigned i) const;
-      void writeField(JSON::Sync &sync, unsigned i) const;
+      void writeField(JSON::Sink &sync, unsigned i) const;
 
       // Field type
       bool isNull(unsigned i) const {return getField(i).isNull();}

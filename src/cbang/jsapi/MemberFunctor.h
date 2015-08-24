@@ -41,7 +41,7 @@ namespace cb {
   namespace JSAPI {
     CBANG_MEMBER_FUNCTOR4(MemberFunctor, Handler, void, handle,
                           HTTP::WebContext &, const std::string &,
-                          const JSON::ValuePtr &, JSON::Sync &);
+                          const JSON::ValuePtr &, JSON::Sink &);
   }
 }
 

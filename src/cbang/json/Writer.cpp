@@ -41,13 +41,13 @@ using namespace cb::JSON;
 
 
 void Writer::close() {
-  NullSync::close();
+  NullSink::close();
   stream.flush();
 }
 
 
 void Writer::reset() {
-  NullSync::reset();
+  NullSink::reset();
   stream.flush();
   level = initLevel;
   simple = false;
@@ -56,32 +56,32 @@ void Writer::reset() {
 
 
 void Writer::writeNull() {
-  NullSync::writeNull();
+  NullSink::writeNull();
   stream << (mode == PYTHON_MODE ? "None" : "null");
 }
 
 
 void Writer::writeBoolean(bool value) {
-  NullSync::writeBoolean(value);
+  NullSink::writeBoolean(value);
   stream << (mode == PYTHON_MODE ?
              (value ? "True" : "False") : (value ? "true" : "false"));
 }
 
 
 void Writer::write(double value) {
-  NullSync::write(value);
+  NullSink::write(value);
   stream << cb::String(value);
 }
 
 
 void Writer::write(const string &value) {
-  NullSync::write(value);
+  NullSink::write(value);
   stream << '"' << escape(value) << '"';
 }
 
 
 void Writer::beginList(bool simple) {
-  NullSync::beginList(simple);
+  NullSink::beginList(simple);
   this->simple = simple;
   stream << "[";
   level++;
@@ -90,7 +90,7 @@ void Writer::beginList(bool simple) {
 
 
 void Writer::beginAppend() {
-  NullSync::beginAppend();
+  NullSink::beginAppend();
 
   if (first) first = false;
   else {
@@ -106,7 +106,7 @@ void Writer::beginAppend() {
 
 
 void Writer::endList() {
-  NullSync::endList();
+  NullSink::endList();
   level--;
 
   if (!isCompact() && !first) {
@@ -122,7 +122,7 @@ void Writer::endList() {
 
 
 void Writer::beginDict(bool simple) {
-  NullSync::beginDict(simple);
+  NullSink::beginDict(simple);
   this->simple = simple;
   stream << "{";
   level++;
@@ -131,7 +131,7 @@ void Writer::beginDict(bool simple) {
 
 
 void Writer::beginInsert(const string &key) {
-  NullSync::beginInsert(key);
+  NullSink::beginInsert(key);
   if (first) first = false;
   else {
     stream << ',';
@@ -152,7 +152,7 @@ void Writer::beginInsert(const string &key) {
 
 
 void Writer::endDict() {
-  NullSync::endDict();
+  NullSink::endDict();
   level--;
 
   if (!isCompact() && !first) {

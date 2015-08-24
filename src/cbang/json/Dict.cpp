@@ -82,7 +82,7 @@ void Dict::insert(const string &key, const ValuePtr &value) {
 }
 
 
-void Dict::write(Sync &sync) const {
+void Dict::write(Sink &sync) const {
   sync.beginDict(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {

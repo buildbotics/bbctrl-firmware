@@ -40,7 +40,7 @@
 #include <vector>
 #include <iostream>
 
-namespace cb {namespace JSON {class Sync;}}
+namespace cb {namespace JSON {class Sink;}}
 
 
 namespace cb {
@@ -67,7 +67,7 @@ namespace cb {
 
     std::string toString() const;
     void print(std::ostream &stream) const;
-    void write(JSON::Sync &sync) const;
+    void write(JSON::Sink &sync) const;
 
     static SmartPointer<IPRangeSet> parse(const std::string &s)
     {return new IPRangeSet(s);}

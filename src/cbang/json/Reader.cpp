@@ -51,7 +51,7 @@ using namespace cb;
 using namespace cb::JSON;
 
 
-void Reader::parse(Sync &sync) {
+void Reader::parse(Sink &sync) {
   while (good()) {
     switch (next()) {
     case 'N': case 'n':
@@ -225,7 +225,7 @@ const string Reader::parseString() {
 }
 
 
-void Reader::parseList(Sync &sync) {
+void Reader::parseList(Sink &sync) {
   match("[");
 
   while (good()) {
@@ -239,7 +239,7 @@ void Reader::parseList(Sync &sync) {
 }
 
 
-void Reader::parseDict(Sync &sync) {
+void Reader::parseDict(Sink &sync) {
   match("{");
 
   while (good()) {

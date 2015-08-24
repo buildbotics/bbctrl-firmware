@@ -36,7 +36,7 @@
 #include "HTTPHandler.h"
 
 #include <cbang/json/Value.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 #include <cbang/util/MemberFunctor.h>
 
@@ -46,7 +46,7 @@ namespace cb {
     class JSONHandler : public HTTPHandler {
     public:
       virtual bool operator()(Request &req, const JSON::ValuePtr &msg,
-                              JSON::Sync &sync) = 0;
+                              JSON::Sink &sync) = 0;
 
       // From HTTPHandler
       bool operator()(Request &req);
@@ -54,7 +54,7 @@ namespace cb {
 
     CBANG_MEMBER_FUNCTOR3(JSONHandlerMemberFunctor, JSONHandler, bool,  \
                           operator(), Request &, const JSON::ValuePtr &, \
-                          JSON::Sync &);
+                          JSON::Sink &);
   }
 }
 

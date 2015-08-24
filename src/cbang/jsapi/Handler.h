@@ -34,7 +34,7 @@
 #define CB_JSAPI_HANDLER_H
 
 #include <cbang/json/Value.h>
-#include <cbang/json/Sync.h>
+#include <cbang/json/Sink.h>
 
 
 namespace cb {
@@ -45,7 +45,7 @@ namespace cb {
     public:
       virtual ~Handler() {}
       virtual void handle(HTTP::WebContext &ctx, const std::string &cmd,
-                          const JSON::ValuePtr &msg, JSON::Sync &sync) = 0;
+                          const JSON::ValuePtr &msg, JSON::Sink &sync) = 0;
     };
   }
 }

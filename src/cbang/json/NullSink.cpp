@@ -30,76 +30,76 @@
 
 \******************************************************************************/
 
-#include "NullSync.h"
+#include "NullSink.h"
 
 using namespace cb::JSON;
 
 
-bool NullSync::inList() const {
+bool NullSink::inList() const {
   return !stack.empty() && stack.back() == ValueType::JSON_LIST;
 }
 
 
-bool NullSync::inDict() const {
+bool NullSink::inDict() const {
   return !stack.empty() && stack.back() == ValueType::JSON_DICT;
 }
 
 
-void NullSync::end() {
+void NullSink::end() {
   if (inList()) endList();
   else if (inDict()) endDict();
   else THROW("Not in list or dict");
 }
 
 
-void NullSync::close() {
+void NullSink::close() {
   assertWriteNotPending();
   if (!stack.empty()) THROWS("Writer closed with open " << stack.back());
 }
 
 
-void NullSync::reset() {
+void NullSink::reset() {
   stack.clear();
   keyStack.clear();
   canWrite = true;
 }
 
 
-void NullSync::writeNull() {
+void NullSink::writeNull() {
   assertCanWrite();
 }
 
 
-void NullSync::writeBoolean(bool value) {
+void NullSink::writeBoolean(bool value) {
   assertCanWrite();
 }
 
 
-void NullSync::write(double value) {
+void NullSink::write(double value) {
   assertCanWrite();
 }
 
 
-void NullSync::write(const std::string &value) {
+void NullSink::write(const std::string &value) {
   assertCanWrite();
 }
 
 
-void NullSync::beginList(bool simple) {
+void NullSink::beginList(bool simple) {
   assertCanWrite();
   stack.push_back(ValueType::JSON_LIST);
   canWrite = false;
 }
 
 
-void NullSync::beginAppend() {
+void NullSink::beginAppend() {
   assertWriteNotPending();
   if (!inList()) THROW("Not a List");
   canWrite = true;
 }
 
 
-void NullSync::endList() {
+void NullSink::endList() {
   assertWriteNotPending();
   if (!inList()) THROW("Not a List");
 
@@ -107,7 +107,7 @@ void NullSync::endList() {
 }
 
 
-void NullSync::beginDict(bool simple) {
+void NullSink::beginDict(bool simple) {
   assertCanWrite();
   stack.push_back(ValueType::JSON_DICT);
   keyStack.push_back(keys_t());
@@ -115,13 +115,13 @@ void NullSync::beginDict(bool simple) {
 }
 
 
-bool NullSync::has(const std::string &key) const {
+bool NullSink::has(const std::string &key) const {
   if (!inDict()) THROW("Not a Dict");
   return keyStack.back().find(key) != keyStack.back().end();
 }
 
 
-void NullSync::beginInsert(const std::string &key) {
+void NullSink::beginInsert(const std::string &key) {
   assertWriteNotPending();
   if (has(key)) THROWS("Key '" << key << "' already written to output");
   keyStack.back().insert(key);
@@ -129,7 +129,7 @@ void NullSync::beginInsert(const std::string &key) {
 }
 
 
-void NullSync::endDict() {
+void NullSink::endDict() {
   assertWriteNotPending();
   if (!inDict()) THROW("Not a Dict");
 
@@ -138,12 +138,12 @@ void NullSync::endDict() {
 }
 
 
-void NullSync::assertCanWrite() {
+void NullSink::assertCanWrite() {
   if (!canWrite) THROW("Not ready for write");
   canWrite = false;
 }
 
 
-void NullSync::assertWriteNotPending() {
+void NullSink::assertWriteNotPending() {
   if (canWrite) THROW("Expected write");
 }
