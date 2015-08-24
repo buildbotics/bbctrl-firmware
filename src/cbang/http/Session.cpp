@@ -51,11 +51,11 @@ void Session::read(const cb::JSON::Value &value) {
 }
 
 
-void Session::write(cb::JSON::Sink &sync) const {
-  sync.beginDict();
-  sync.insert("created", Time(creationTime).toString());
-  sync.insert("last_used", Time(lastUsed).toString());
-  sync.insert("user", user);
-  sync.insert("ip", ip.toString());
-  sync.endDict();
+void Session::write(cb::JSON::Sink &sink) const {
+  sink.beginDict();
+  sink.insert("created", Time(creationTime).toString());
+  sink.insert("last_used", Time(lastUsed).toString());
+  sink.insert("user", user);
+  sink.insert("ip", ip.toString());
+  sink.endDict();
 }

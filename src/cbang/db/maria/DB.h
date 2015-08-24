@@ -168,11 +168,11 @@ namespace cb {
       bool fetchRowNB();
       bool haveRow() const;
       void seekRow(uint64_t row);
-      void appendRow(JSON::Sink &sync, int first = 0, int last = -1) const;
-      void insertRow(JSON::Sink &sync, int first = 0, int last = -1,
+      void appendRow(JSON::Sink &sink, int first = 0, int last = -1) const;
+      void insertRow(JSON::Sink &sink, int first = 0, int last = -1,
                      bool withNulls = true) const;
-      void writeRowList(JSON::Sink &sync, int first = 0, int last = -1) const;
-      void writeRowDict(JSON::Sink &sync, int first = 0, int last = -1,
+      void writeRowList(JSON::Sink &sink, int first = 0, int last = -1) const;
+      void writeRowDict(JSON::Sink &sink, int first = 0, int last = -1,
                         bool withNulls = true) const;
 
       // Field
@@ -180,7 +180,7 @@ namespace cb {
       Field::type_t getType(unsigned i) const;
       unsigned getLength(unsigned i) const;
       const char *getData(unsigned i) const;
-      void writeField(JSON::Sink &sync, unsigned i) const;
+      void writeField(JSON::Sink &sink, unsigned i) const;
 
       // Field type
       bool isNull(unsigned i) const {return getField(i).isNull();}

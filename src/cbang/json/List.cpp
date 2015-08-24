@@ -83,13 +83,13 @@ void List::append(const ValuePtr &value) {
 }
 
 
-void List::write(Sink &sync) const {
-  sync.beginList(isSimple());
+void List::write(Sink &sink) const {
+  sink.beginList(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
-    sync.beginAppend();
-    (*it)->write(sync);
+    sink.beginAppend();
+    (*it)->write(sink);
   }
 
-  sync.endList();
+  sink.endList();
 }

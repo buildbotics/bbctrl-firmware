@@ -87,13 +87,13 @@ inline void WriteMemoryBarrier() {
 
 // Native Client
 inline void WriteMemoryBarrier() {
-  __sync_synchronize();
+  __sink_synchronize();
 }
 
 #elif defined(__mips__)
 
 inline void WriteMemoryBarrier() {
-  __asm__ __volatile__("sync" : : : "memory");
+  __asm__ __volatile__("sink" : : : "memory");
 }
 
 #else
@@ -146,7 +146,7 @@ static inline void ReadMemoryBarrier() {
 #elif defined(__mips__)
 
 inline void ReadMemoryBarrier() {
-  __asm__ __volatile__("sync" : : : "memory");
+  __asm__ __volatile__("sink" : : : "memory");
 }
 
 #else

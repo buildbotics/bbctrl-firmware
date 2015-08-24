@@ -81,9 +81,9 @@ namespace cb {
       Parameter parameter(const std::string &name) const;
 
       // JSON functions
-      void readHeader(JSON::Sink &sync);
-      void readOne(JSON::Sink &sync);
-      void readAll(JSON::Sink &sync);
+      void readHeader(JSON::Sink &sink);
+      void readOne(JSON::Sink &sink);
+      void readAll(JSON::Sink &sink);
     };
   }
 }

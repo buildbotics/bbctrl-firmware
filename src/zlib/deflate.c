@@ -926,7 +926,7 @@ int ZEXPORT deflate (strm, flush)
             } else if (flush != Z_BLOCK) { /* FULL_FLUSH or SYNC_FLUSH */
                 _tr_stored_block(s, (char*)0, 0L, 0);
                 /* For a full flush, this empty block will be recognized
-                 * as a special marker by inflate_sync().
+                 * as a special marker by inflate_sink().
                  */
                 if (flush == Z_FULL_FLUSH) {
                     CLEAR_HASH(s);             /* forget history */

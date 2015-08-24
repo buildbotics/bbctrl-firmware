@@ -473,37 +473,37 @@ void DB::seekRow(uint64_t row) {
 }
 
 
-void DB::appendRow(JSON::Sink &sync, int first, int count) const {
+void DB::appendRow(JSON::Sink &sink, int first, int count) const {
   for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
-    sync.beginAppend();
-    writeField(sync, i);
+    sink.beginAppend();
+    writeField(sink, i);
   }
 }
 
 
-void DB::insertRow(JSON::Sink &sync, int first, int count,
+void DB::insertRow(JSON::Sink &sink, int first, int count,
                    bool withNulls) const {
 
   for (unsigned i = first; i < getFieldCount() && count; i++, count--) {
     if (!withNulls && getNull(i)) continue;
-    sync.beginInsert(getField(i).getName());
-    writeField(sync, i);
+    sink.beginInsert(getField(i).getName());
+    writeField(sink, i);
   }
 }
 
 
-void DB::writeRowList(JSON::Sink &sync, int first, int count) const {
-  sync.beginList();
-  appendRow(sync, first, count);
-  sync.endList();
+void DB::writeRowList(JSON::Sink &sink, int first, int count) const {
+  sink.beginList();
+  appendRow(sink, first, count);
+  sink.endList();
 }
 
 
-void DB::writeRowDict(JSON::Sink &sync, int first, int count,
+void DB::writeRowDict(JSON::Sink &sink, int first, int count,
                       bool withNulls) const {
-  sync.beginDict();
-  insertRow(sync, first, count, withNulls);
-  sync.endDict();
+  sink.beginDict();
+  insertRow(sink, first, count, withNulls);
+  sink.endDict();
 }
 
 
@@ -530,13 +530,13 @@ const char *DB::getData(unsigned i) const {
 }
 
 
-void DB::writeField(JSON::Sink &sync, unsigned i) const {
-  if (getNull(i)) sync.writeNull();
+void DB::writeField(JSON::Sink &sink, unsigned i) const {
+  if (getNull(i)) sink.writeNull();
   else {
     Field field = getField(i);
 
-    if (field.isNumber()) sync.write(getDouble(i));
-    else sync.write(getString(i));
+    if (field.isNumber()) sink.write(getDouble(i));
+    else sink.write(getString(i));
   }
 }
 

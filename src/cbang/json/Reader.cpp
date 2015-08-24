@@ -51,34 +51,34 @@ using namespace cb;
 using namespace cb::JSON;
 
 
-void Reader::parse(Sink &sync) {
+void Reader::parse(Sink &sink) {
   while (good()) {
     switch (next()) {
     case 'N': case 'n':
       parseNull();
-      return sync.writeNull();
+      return sink.writeNull();
 
     case 'T': case 't': case 'F': case 'f':
-      return sync.writeBoolean(parseBoolean());
+      return sink.writeBoolean(parseBoolean());
 
     case '-': case '.':
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9':
-      return sync.write(parseNumber());
+      return sink.write(parseNumber());
 
     case '"':
-      return sync.write(parseString());
+      return sink.write(parseString());
 
     case '[':
-      sync.beginList();
-      parseList(sync);
-      sync.endList();
+      sink.beginList();
+      parseList(sink);
+      sink.endList();
       return;
 
     case '{':
-      sync.beginDict();
-      parseDict(sync);
-      sync.endDict();
+      sink.beginDict();
+      parseDict(sink);
+      sink.endDict();
       return;
 
     default: match("NnTtFf-.0123456789\"[{");
@@ -225,21 +225,21 @@ const string Reader::parseString() {
 }
 
 
-void Reader::parseList(Sink &sync) {
+void Reader::parseList(Sink &sink) {
   match("[");
 
   while (good()) {
     if (tryMatch(']')) return; // End or trailing comma
 
-    sync.beginAppend();
-    parse(sync);
+    sink.beginAppend();
+    parse(sink);
 
     if (match(",]") == ']') return; // Continuation or end
   }
 }
 
 
-void Reader::parseDict(Sink &sync) {
+void Reader::parseDict(Sink &sink) {
   match("{");
 
   while (good()) {
@@ -247,8 +247,8 @@ void Reader::parseDict(Sink &sync) {
 
     string key = parseString();
     match(":");
-    sync.beginInsert(key);
-    parse(sync);
+    sink.beginInsert(key);
+    parse(sink);
 
     if (match(",}") == '}') return; // Continuation or end
   }

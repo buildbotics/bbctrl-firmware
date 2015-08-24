@@ -183,20 +183,20 @@ SmartPointer<JSON::List> Info::getJSONList() const {
 }
 
 
-void Info::write(JSON::Sink &sync) const {
-  sync.beginDict();
+void Info::write(JSON::Sink &sink) const {
+  sink.beginDict();
 
   categories_t::const_iterator it;
   for (it = categories.begin(); it != categories.end(); it++) {
-    sync.insertDict((*it)->first);
+    sink.insertDict((*it)->first);
 
     const category_t &cat = (*it)->second;
     category_t::const_iterator it2;
     for (it2 = cat.begin(); it2 != cat.end(); it2++)
-      sync.insert((*it2)->first, (*it2)->second);
+      sink.insert((*it2)->first, (*it2)->second);
 
-    sync.endDict();
+    sink.endDict();
   }
 
-  sync.endDict();
+  sink.endDict();
 }

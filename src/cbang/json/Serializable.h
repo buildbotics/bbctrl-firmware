@@ -44,7 +44,7 @@ namespace cb {
     class Serializable : public cb::Serializable {
     public:
       virtual void read(const Value &value) = 0;
-      virtual void write(Sink &sync) const = 0;
+      virtual void write(Sink &sink) const = 0;
 
       // From cb::Serializable
       void read(std::istream &stream);
@@ -53,9 +53,9 @@ namespace cb {
 
 
     inline static
-    Sink &operator<<(Sink &sync, const Serializable &s) {
-      s.write(sync);
-      return sync;
+    Sink &operator<<(Sink &sink, const Serializable &s) {
+      s.write(sink);
+      return sink;
     }
 
     inline static

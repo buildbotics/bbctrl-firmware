@@ -443,7 +443,7 @@ typedef int (XMLCALL *XML_ExternalEntityRefHandler) (
       XML_SetDefaultHandler has been called.
    Note: skipped parameter entities in declarations and skipped general
          entities in attribute values cannot be reported, because
-         the event would be out of sync with the reporting of the
+         the event would be out of sink with the reporting of the
          declarations or attribute values
 */
 typedef void (XMLCALL *XML_SkippedEntityHandler) (

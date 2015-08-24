@@ -152,53 +152,53 @@ Parameter Statement::parameter(const std::string &name) const {
 }
 
 
-void Statement::readHeader(JSON::Sink &sync) {
-  sync.beginList(true);
+void Statement::readHeader(JSON::Sink &sink) {
+  sink.beginList(true);
 
   unsigned cols = sqlite3_column_count(stmt);
   for (unsigned i = 0; i < cols; i++)
-    sync.append(column(i).getName());
+    sink.append(column(i).getName());
 
-  sync.endList();
+  sink.endList();
 }
 
 
-void Statement::readOne(JSON::Sink &sync) {
-  sync.beginList(true);
+void Statement::readOne(JSON::Sink &sink) {
+  sink.beginList(true);
 
   unsigned cols = sqlite3_data_count(stmt);
   for (unsigned i = 0; i < cols; i++) {
     Column col = column(i);
 
     switch (col.getType()) {
-    case Column::DB_INTEGER: sync.append(col.toInteger()); break;
-    case Column::DB_DOUBLE: sync.append(col.toDouble()); break;
-    case Column::DB_STRING: sync.append(col.toString()); break;
+    case Column::DB_INTEGER: sink.append(col.toInteger()); break;
+    case Column::DB_DOUBLE: sink.append(col.toDouble()); break;
+    case Column::DB_STRING: sink.append(col.toString()); break;
     case Column::DB_BLOB: {
       // TODO This could be made more efficient if JSON::Sink would allow
       //   piecewise strings.
       Blob blob = col.toBlob();
-      sync.append(Base64().encode((char *)blob.getData(), blob.getLength()));
+      sink.append(Base64().encode((char *)blob.getData(), blob.getLength()));
       break;
     }
-    case Column::DB_NULL: sync.appendNull(); break;
+    case Column::DB_NULL: sink.appendNull(); break;
     }
   }
 
-  sync.endList();
+  sink.endList();
 }
 
 
-void Statement::readAll(JSON::Sink &sync) {
-  sync.beginList();
+void Statement::readAll(JSON::Sink &sink) {
+  sink.beginList();
 
-  sync.beginAppend();
-  readHeader(sync);
+  sink.beginAppend();
+  readHeader(sink);
 
   while (next()) {
-    sync.beginAppend();
-    readOne(sync);
+    sink.beginAppend();
+    readOne(sink);
   }
 
-  sync.endList();
+  sink.endList();
 }

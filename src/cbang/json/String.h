@@ -60,7 +60,7 @@ namespace cb {
       double getNumber() const {return cb::String::parseDouble(getString());}
       std::string &getString() {return getValue();}
       const std::string &getString() const {return getValue();}
-      void write(Sink &sync) const {sync.write(s);}
+      void write(Sink &sink) const {sink.write(s);}
     };
   }
 }

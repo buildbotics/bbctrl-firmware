@@ -537,7 +537,7 @@ SQLITE_API int sqlite3_exec(
 ** these integer values as the second argument.
 **
 ** When the SQLITE_SYNC_DATAONLY flag is used, it means that the
-** sync operation only needs to flush data to mass storage.  Inode
+** sink operation only needs to flush data to mass storage.  Inode
 ** information need not be flushed. If the lower four bits of the flag
 ** equal SQLITE_SYNC_NORMAL, that means to use normal fsync() semantics.
 ** If the lower four bits equal SQLITE_SYNC_FULL, that means

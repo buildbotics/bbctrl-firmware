@@ -195,7 +195,7 @@ namespace cb {
       const Value &operator[](unsigned i) const {return *get(i);}
       const Value &operator[](const std::string &key) const {return *get(key);}
 
-      virtual void write(Sink &sync) const = 0;
+      virtual void write(Sink &sink) const = 0;
       std::string toString() const;
     };
 

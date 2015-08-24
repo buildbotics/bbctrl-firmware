@@ -45,7 +45,7 @@ namespace cb {
     public:
       virtual ~Handler() {}
       virtual void handle(HTTP::WebContext &ctx, const std::string &cmd,
-                          const JSON::ValuePtr &msg, JSON::Sink &sync) = 0;
+                          const JSON::ValuePtr &msg, JSON::Sink &sink) = 0;
     };
   }
 }

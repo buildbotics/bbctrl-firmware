@@ -425,113 +425,113 @@ ostream &Option::print(ostream &stream) const {
 }
 
 
-void Option::writeBoolean(JSON::Sink &sync, const string &value) {
-  sync.writeBoolean(parseBoolean(value));
+void Option::writeBoolean(JSON::Sink &sink, const string &value) {
+  sink.writeBoolean(parseBoolean(value));
 }
 
 
-void Option::writeInteger(JSON::Sink &sync, const string &value) {
+void Option::writeInteger(JSON::Sink &sink, const string &value) {
   int64_t x = parseInteger(value);
 
-  if (-9007199254740991 < x && x < 9007199254740991) sync.write(x);
-  else sync.write(SSTR("0x" << hex << x));
+  if (-9007199254740991 < x && x < 9007199254740991) sink.write(x);
+  else sink.write(SSTR("0x" << hex << x));
 }
 
 
-void Option::writeDouble(JSON::Sink &sync, const string &value) {
-  sync.write(parseDouble(value));
+void Option::writeDouble(JSON::Sink &sink, const string &value) {
+  sink.write(parseDouble(value));
 }
 
 
-void Option::writeStrings(JSON::Sink &sync, const string &value,
+void Option::writeStrings(JSON::Sink &sink, const string &value,
                           const string &delims) {
   strings_t l = parseStrings(value, delims);
 
-  sync.beginList();
-  for (unsigned i = 0; i < l.size(); i++) sync.append(l[i]);
-  sync.endList();
+  sink.beginList();
+  for (unsigned i = 0; i < l.size(); i++) sink.append(l[i]);
+  sink.endList();
 }
 
 
-void Option::writeIntegers(JSON::Sink &sync, const string &value,
+void Option::writeIntegers(JSON::Sink &sink, const string &value,
                            const string &delims) {
   integers_t l = parseIntegers(value, delims);
 
-  sync.beginList();
+  sink.beginList();
   for (unsigned i = 0; i < l.size(); i++) {
-    sync.beginAppend();
-    if (-9007199254740991 < l[i] && l[i] < 9007199254740991) sync.write(l[i]);
-    else sync.write(SSTR("0x" << hex << l[i]));
+    sink.beginAppend();
+    if (-9007199254740991 < l[i] && l[i] < 9007199254740991) sink.write(l[i]);
+    else sink.write(SSTR("0x" << hex << l[i]));
   }
-  sync.endList();
+  sink.endList();
 }
 
 
-void Option::writeDoubles(JSON::Sink &sync, const string &value,
+void Option::writeDoubles(JSON::Sink &sink, const string &value,
                           const string &delims) {
   doubles_t l = parseDoubles(value, delims);
 
-  sync.beginList();
+  sink.beginList();
   for (unsigned i = 0; i < value.size(); i++) {
-    sync.beginAppend();
-    sync.append(l[i]);
+    sink.beginAppend();
+    sink.append(l[i]);
   }
-  sync.endList();
+  sink.endList();
 }
 
 
-void Option::writeValue(JSON::Sink &sync, const string &value,
+void Option::writeValue(JSON::Sink &sink, const string &value,
                         const string &delims) const {
   switch (type) {
-  case BOOLEAN_TYPE: writeBoolean(sync, value); break;
-  case STRING_TYPE: sync.write(value); break;
-  case INTEGER_TYPE: writeInteger(sync, value); break;
-  case DOUBLE_TYPE: writeDouble(sync, value); break;
-  case STRINGS_TYPE: writeStrings(sync, value, delims); break;
-  case INTEGERS_TYPE: writeIntegers(sync, value, delims); break;
-  case DOUBLES_TYPE: writeDoubles(sync, value, delims); break;
+  case BOOLEAN_TYPE: writeBoolean(sink, value); break;
+  case STRING_TYPE: sink.write(value); break;
+  case INTEGER_TYPE: writeInteger(sink, value); break;
+  case DOUBLE_TYPE: writeDouble(sink, value); break;
+  case STRINGS_TYPE: writeStrings(sink, value, delims); break;
+  case INTEGERS_TYPE: writeIntegers(sink, value, delims); break;
+  case DOUBLES_TYPE: writeDoubles(sink, value, delims); break;
   default: THROWS("Invalid type " << type);
   }
 }
 
 
-void Option::write(JSON::Sink &sync, bool config, const string &delims) const {
+void Option::write(JSON::Sink &sink, bool config, const string &delims) const {
   if (config) {
     string value = toString();
 
     if (isObscured() && !(flags & OBSCURED_FLAG))
-      sync.write(string(value.size(), '*'));
-    else writeValue(sync, value, delims);
+      sink.write(string(value.size(), '*'));
+    else writeValue(sink, value, delims);
 
     return;
   }
 
-  sync.beginDict();
+  sink.beginDict();
 
-  if (!getHelp().empty()) sync.insert("help", getHelp());
+  if (!getHelp().empty()) sink.insert("help", getHelp());
 
   if (hasValue()) {
-    sync.beginInsert("value");
+    sink.beginInsert("value");
     string value = toString();
 
     if (isObscured() && !(flags & OBSCURED_FLAG))
-      sync.write(string(value.size(), '*'));
-    else writeValue(sync, value, delims);
+      sink.write(string(value.size(), '*'));
+    else writeValue(sink, value, delims);
   }
 
   if (hasDefault()) {
-    sync.beginInsert("default");
-    writeValue(sync, getDefault(), delims);
+    sink.beginInsert("default");
+    writeValue(sink, getDefault(), delims);
   }
 
-  sync.insert("type", getTypeString());
-  if (isOptional()) sync.insertBoolean("optional", true);
-  if (shortName) sync.insert("short", string(1, shortName));
-  if (isSet()) sync.insertBoolean("set", true);
-  if (isCommandLine()) sync.insertBoolean("command_line", true);
-  if (!constraint.isNull()) sync.insert("constraint", constraint->getHelp());
+  sink.insert("type", getTypeString());
+  if (isOptional()) sink.insertBoolean("optional", true);
+  if (shortName) sink.insert("short", string(1, shortName));
+  if (isSet()) sink.insertBoolean("set", true);
+  if (isCommandLine()) sink.insertBoolean("command_line", true);
+  if (!constraint.isNull()) sink.insert("constraint", constraint->getHelp());
 
-  sync.endDict();
+  sink.endDict();
 }
 
 

@@ -82,13 +82,13 @@ void Dict::insert(const string &key, const ValuePtr &value) {
 }
 
 
-void Dict::write(Sink &sync) const {
-  sync.beginDict(isSimple());
+void Dict::write(Sink &sink) const {
+  sink.beginDict(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
-    sync.beginInsert(it->first);
-    it->second->write(sync);
+    sink.beginInsert(it->first);
+    it->second->write(sink);
   }
 
-  sync.endDict();
+  sink.endDict();
 }

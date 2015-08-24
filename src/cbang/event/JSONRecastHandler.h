@@ -52,8 +52,8 @@ namespace cb {
 
       // From JSONHandler
       bool operator()(Request &req, const JSON::ValuePtr &msg,
-                      JSON::Sink &sync) {
-        return (req.cast<T>().*member)(msg, sync);
+                      JSON::Sink &sink) {
+        return (req.cast<T>().*member)(msg, sink);
       }
     };
   }

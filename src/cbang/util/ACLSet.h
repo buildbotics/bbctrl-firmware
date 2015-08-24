@@ -124,7 +124,7 @@ namespace cb {
     void aclDelGroup(const std::string &path, const std::string &group);
 
     // IO
-    void write(JSON::Sink &sync) const;
+    void write(JSON::Sink &sink) const;
     void set(const JSON::Value &json);
 
     void write(std::ostream &stream) const;

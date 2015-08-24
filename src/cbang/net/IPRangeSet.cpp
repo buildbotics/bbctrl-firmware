@@ -134,16 +134,16 @@ void IPRangeSet::print(ostream &stream) const {
 }
 
 
-void IPRangeSet::write(JSON::Sink &sync) const {
-  sync.beginList();
+void IPRangeSet::write(JSON::Sink &sink) const {
+  sink.beginList();
 
   for (unsigned i = 0; i < rangeSet.size(); i += 2)
     if (rangeSet[i] == rangeSet[i + 1])
-      sync.append(IPAddress(rangeSet[i]).toString());
+      sink.append(IPAddress(rangeSet[i]).toString());
 
-    else sync.append(IPAddress(rangeSet[i]).toString() + "-" +
+    else sink.append(IPAddress(rangeSet[i]).toString() + "-" +
                      IPAddress(rangeSet[i + 1]).toString());
-  sync.endList();
+  sink.endList();
 }
 
 

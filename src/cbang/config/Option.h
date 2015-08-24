@@ -206,19 +206,19 @@ namespace cb {
 
     operator const std::string &() const {return toString();}
 
-    static void writeBoolean(JSON::Sink &sync, const std::string &value);
-    static void writeInteger(JSON::Sink &sync, const std::string &value);
-    static void writeDouble(JSON::Sink &sync, const std::string &value);
-    static void writeStrings(JSON::Sink &sync, const std::string &value,
+    static void writeBoolean(JSON::Sink &sink, const std::string &value);
+    static void writeInteger(JSON::Sink &sink, const std::string &value);
+    static void writeDouble(JSON::Sink &sink, const std::string &value);
+    static void writeStrings(JSON::Sink &sink, const std::string &value,
                              const std::string &delims = DEFAULT_DELIMS);
-    static void writeIntegers(JSON::Sink &sync, const std::string &value,
+    static void writeIntegers(JSON::Sink &sink, const std::string &value,
                               const std::string &delims = DEFAULT_DELIMS);
-    static void writeDoubles(JSON::Sink &sync, const std::string &value,
+    static void writeDoubles(JSON::Sink &sink, const std::string &value,
                              const std::string &delims = DEFAULT_DELIMS);
 
-    void writeValue(JSON::Sink &sync, const std::string &value,
+    void writeValue(JSON::Sink &sink, const std::string &value,
                     const std::string &delims = DEFAULT_DELIMS) const;
-    void write(JSON::Sink &sync, bool config = false,
+    void write(JSON::Sink &sink, bool config = false,
                const std::string &delims = DEFAULT_DELIMS) const;
     void write(XMLHandler &handler, uint32_t flags) const;
     void printHelpTOC(XMLHandler &handler, const std::string &prefix) const;

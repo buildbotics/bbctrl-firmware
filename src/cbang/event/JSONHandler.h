@@ -46,7 +46,7 @@ namespace cb {
     class JSONHandler : public HTTPHandler {
     public:
       virtual bool operator()(Request &req, const JSON::ValuePtr &msg,
-                              JSON::Sink &sync) = 0;
+                              JSON::Sink &sink) = 0;
 
       // From HTTPHandler
       bool operator()(Request &req);

@@ -53,7 +53,7 @@ namespace cb {
       ValueType getType() const {return JSON_BOOLEAN;}
       ValuePtr copy(bool deep = false) const {return new Boolean(x);}
       bool getBoolean() const {return getValue();}
-      void write(Sink &sync) const {sync.writeBoolean(x);}
+      void write(Sink &sink) const {sink.writeBoolean(x);}
     };
   }
 }

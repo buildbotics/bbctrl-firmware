@@ -67,7 +67,7 @@ namespace cb {
 
     std::string toString() const;
     void print(std::ostream &stream) const;
-    void write(JSON::Sink &sync) const;
+    void write(JSON::Sink &sink) const;
 
     static SmartPointer<IPRangeSet> parse(const std::string &s)
     {return new IPRangeSet(s);}

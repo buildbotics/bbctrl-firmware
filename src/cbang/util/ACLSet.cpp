@@ -221,72 +221,72 @@ void ACLSet::aclDelGroup(const string &path, const string &group) {
 }
 
 
-void ACLSet::write(JSON::Sink &sync) const {
-  sync.beginDict();
+void ACLSet::write(JSON::Sink &sink) const {
+  sink.beginDict();
 
   // Users
   if (!users.empty()) {
-    sync.insertList("users");
+    sink.insertList("users");
     for (users_t::const_iterator it = users.begin(); it != users.end(); it++)
-      sync.append(*it);
-    sync.endList();
+      sink.append(*it);
+    sink.endList();
   }
 
   // Groups
   if (!groups.empty()) {
-    sync.insertDict("groups");
+    sink.insertDict("groups");
     groups_t::const_iterator it;
     for (it = groups.begin(); it != groups.end(); it++) {
-      sync.insertList(it->first);
+      sink.insertList(it->first);
 
       // Users
       const string_set_t &users = it->second.users;
       string_set_t::const_iterator it2;
       for (it2 = users.begin(); it2 != users.end(); it2++)
-        sync.append(*it2);
+        sink.append(*it2);
 
-      sync.endList();
+      sink.endList();
     }
-    sync.endDict();
+    sink.endDict();
   }
 
   // ACLS
   if (!acls.empty()) {
-    sync.insertDict("acls");
+    sink.insertDict("acls");
     for (acls_t::const_iterator it = acls.begin(); it != acls.end(); it++) {
-      sync.insertDict(it->first);
+      sink.insertDict(it->first);
 
       // Users
       const string_set_t &users = it->second.users;
       if (!users.empty()) {
-        sync.insertList("users");
+        sink.insertList("users");
 
         string_set_t::const_iterator it2;
         for (it2 = users.begin(); it2 != users.end(); it2++)
-          sync.append(*it2);
+          sink.append(*it2);
 
-        sync.endList();
+        sink.endList();
       }
 
       // Groups
       const string_set_t &groups = it->second.groups;
       if (!groups.empty()) {
-        sync.insertList("groups");
+        sink.insertList("groups");
 
         string_set_t::const_iterator it2;
         for (it2 = groups.begin(); it2 != groups.end(); it2++)
-          sync.append(*it2);
+          sink.append(*it2);
 
-        sync.endList();
+        sink.endList();
       }
 
-      sync.endDict();
+      sink.endDict();
     }
 
-    sync.endDict();
+    sink.endDict();
   }
 
-  sync.endDict();
+  sink.endDict();
 }
 
 

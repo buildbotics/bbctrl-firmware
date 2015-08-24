@@ -5040,7 +5040,7 @@ appendAttributeValue(XML_Parser parser, const ENCODING *enc, XML_Bool isCdata,
             skippedEntityHandler(handlerArg, name, 0);
           */
           /* Cannot call the default handler because this would be
-             out of sync with the call to the startElementHandler.
+             out of sink with the call to the startElementHandler.
           if ((pool == &tempPool) && defaultHandler)
             reportDefault(parser, enc, ptr, next);
           */

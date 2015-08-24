@@ -43,7 +43,7 @@ namespace cb {
   public:
     virtual ~Writer() {}
 
-    virtual void write(const OutputSink &sync) const = 0;
+    virtual void write(const OutputSink &sink) const = 0;
   };
 
 

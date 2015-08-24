@@ -92,7 +92,7 @@ namespace cb {
                         bool wrap = true) const;
     void write(XMLWriter &writer) const;
     SmartPointer<JSON::List> getJSONList() const;
-    void write(JSON::Sink &sync) const;
+    void write(JSON::Sink &sink) const;
   };
 
   inline static

@@ -53,9 +53,9 @@ void OptionCategory::add(const SmartPointer<Option> &option) {
 }
 
 
-void OptionCategory::write(JSON::Sink &sync, bool config,
+void OptionCategory::write(JSON::Sink &sink, bool config,
                            const string &delims) const {
-  if (!config) sync.beginDict();
+  if (!config) sink.beginDict();
 
   options_t::const_iterator it;
   for (it = options.begin(); it != options.end(); it++) {
@@ -65,12 +65,12 @@ void OptionCategory::write(JSON::Sink &sync, bool config,
     if (config && !option.isSet()) continue;
 
     if (!name.empty() && name[0] != '_') {
-      sync.beginInsert(name);
-      option.write(sync, config, delims);
+      sink.beginInsert(name);
+      option.write(sink, config, delims);
     }
   }
 
-  if (!config) sync.endDict();
+  if (!config) sink.endDict();
 }
 
 

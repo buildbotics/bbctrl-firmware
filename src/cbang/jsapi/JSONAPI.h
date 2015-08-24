@@ -73,7 +73,7 @@ namespace cb {
 
       void dispatch(HTTP::WebContext &ctx, const std::string &cmd,
                     const SmartPointer<JSON::Value> &msg,
-                    JSON::Sink &sync) const;
+                    JSON::Sink &sink) const;
 
       // From HTTP::WebPageHandler
       bool handlePage(HTTP::WebContext &ctx, std::ostream &stream,

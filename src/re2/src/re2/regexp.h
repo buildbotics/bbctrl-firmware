@@ -91,7 +91,7 @@
 
 namespace re2 {
 
-// Keep in sync with string list kOpcodeNames[] in testing/dump.cc
+// Keep in sink with string list kOpcodeNames[] in testing/dump.cc
 enum RegexpOp {
   // Matches no strings.
   kRegexpNoMatch = 1,
@@ -156,7 +156,7 @@ enum RegexpOp {
   kMaxRegexpOp = kRegexpHaveMatch,
 };
 
-// Keep in sync with string list in regexp.cc
+// Keep in sink with string list in regexp.cc
 enum RegexpStatusCode {
   // No error
   kRegexpSuccess = 0,

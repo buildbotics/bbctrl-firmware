@@ -66,7 +66,7 @@ namespace cb {
       void append(double value);
       void append(const std::string &value);
       void append(const ValuePtr &value);
-      void write(Sink &sync) const;
+      void write(Sink &sink) const;
     };
   }
 }
