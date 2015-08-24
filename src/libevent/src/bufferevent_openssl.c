@@ -1076,10 +1076,9 @@ set_handshake_callbacks(struct bufferevent_openssl *bev_ssl, evutil_socket_t fd)
 		int r1=0, r2=0;
 		if (fd < 0 && bev_ssl->fd_is_set)
 			fd = event_get_fd(&bev->ev_read);
-		if (bev_ssl->fd_is_set) {
-			event_del(&bev->ev_read);
-			event_del(&bev->ev_write);
-		}
+        // -4, +2 lines jcoffland
+        if (event_initialized(&bev->ev_read)) event_del(&bev->ev_read);
+        if (event_initialized(&bev->ev_write)) event_del(&bev->ev_write);
 		event_assign(&bev->ev_read, bev->ev_base, fd,
 		    EV_READ|EV_PERSIST|EV_FINALIZE,
 		    be_openssl_handshakeeventcb, bev_ssl);
