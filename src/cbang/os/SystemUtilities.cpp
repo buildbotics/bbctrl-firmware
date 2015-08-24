@@ -151,10 +151,14 @@ namespace cb {
 
 
     string extension(const string &path) {
-      string base = basename(path);
-      string::size_type pos = base.find_last_of('.');
+      string::size_type pos = path.find_last_of('.');
       if (pos == string::npos) return "";
-      else return base.substr(pos + 1);
+      else return path.substr(pos + 1);
+    }
+
+
+    string swapExtension(const string &path, const string &ext) {
+      return path.substr(0, path.find_last_of('.')) + "." + ext;
     }
 
 

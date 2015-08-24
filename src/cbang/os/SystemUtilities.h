@@ -67,6 +67,7 @@ namespace cb {
     std::string basename(const std::string &path);
     std::string dirname(const std::string &path);
     std::string extension(const std::string &path);
+    std::string swapExtension(const std::string &path, const std::string &ext);
     std::vector<std::string> splitExt(const std::string &path);
     bool isAbsolute(const std::string &path);
     std::string relative(const std::string &base,
