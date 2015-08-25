@@ -44,7 +44,10 @@ string Parser::get() {
     // Find start
     while (true) {
       char c = next();
-      if (!stream.good() || delims.find(c) == string::npos) break;
+      if (!stream.good() || delims.find(c) == string::npos) {
+        current.append(1, c);
+        break;
+      }
     }
 
     // Find end
@@ -60,8 +63,9 @@ string Parser::get() {
 
 
 string Parser::advance() {
+  string token = get();
   current.clear();
-  return get();
+  return token;
 }
 
 
@@ -76,6 +80,7 @@ void Parser::match(const string &token) {
     THROWS("Expected '" << token << "' but found " <<
            (current.empty() ? string("end of stream") :
             SSTR("'" << current << '"')));
+  current.clear();
 }
 
 

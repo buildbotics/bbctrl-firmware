@@ -38,6 +38,7 @@
 #include <cbang/Math.h>
 
 #include <cbang/json/List.h>
+#include <cbang/json/Sink.h>
 
 #include <string>
 #include <iostream>
@@ -454,12 +455,20 @@ namespace cb {
       return list;
     }
 
-    void loadJSON(const cb::JSON::Value &value) {
+    void loadJSON(const cb::JSON::Value &value) {read(value);}
+
+    void read(const cb::JSON::Value &value) {
       const JSON::List &list = value.getList();
 
       if (list.size() != DIM)
         CBANG_THROWS("Vector<" << DIM << "> expected list of length " << DIM);
       for (unsigned i = 0; i < DIM; i++) data[i] = list[i]->getNumber();
+    }
+
+    void write(JSON::Sink &sink) const {
+      sink.beginList();
+      for (unsigned i = 0; i < DIM; i++) sink.append(data[i]);
+      sink.endList();
     }
 
 

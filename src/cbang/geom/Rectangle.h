@@ -293,6 +293,16 @@ namespace cb {
 
     std::ostream &print(std::ostream &stream) const
     {return stream << '(' << rmin << ", " << rmax << ')';}
+
+
+    void write(JSON::Sink &sink) const {
+      sink.beginDict();
+      sink.beginInsert("min");
+      rmin.write(sink);
+      sink.beginInsert("max");
+      rmax.write(sink);
+      sink.endDict();
+    }
   };
 
 
