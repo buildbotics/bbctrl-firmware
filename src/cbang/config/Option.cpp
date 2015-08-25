@@ -39,6 +39,7 @@
 #include <cbang/os/SystemUtilities.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/json/Sink.h>
+#include <cbang/json/Integer.h>
 
 using namespace std;
 using namespace cb;
@@ -433,7 +434,7 @@ void Option::writeBoolean(JSON::Sink &sink, const string &value) {
 void Option::writeInteger(JSON::Sink &sink, const string &value) {
   int64_t x = parseInteger(value);
 
-  if (-9007199254740991 < x && x < 9007199254740991) sink.write(x);
+  if (JSON_MIN_INT < x && x < JSON_MAX_INT) sink.write(x);
   else sink.write(SSTR("0x" << hex << x));
 }
 
@@ -460,7 +461,7 @@ void Option::writeIntegers(JSON::Sink &sink, const string &value,
   sink.beginList();
   for (unsigned i = 0; i < l.size(); i++) {
     sink.beginAppend();
-    if (-9007199254740991 < l[i] && l[i] < 9007199254740991) sink.write(l[i]);
+    if (JSON_MIN_INT < l[i] && l[i] < JSON_MAX_INT) sink.write(l[i]);
     else sink.write(SSTR("0x" << hex << l[i]));
   }
   sink.endList();

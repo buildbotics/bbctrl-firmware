@@ -30,22 +30,16 @@
 
 \******************************************************************************/
 
-#ifndef CB_JSON_JSON_H
-#define CB_JSON_JSON_H
+#ifndef INTEGER_H
+#define INTEGER_H
 
-#include "Null.h"
-#include "Boolean.h"
-#include "Number.h"
-#include "String.h"
-#include "List.h"
-#include "Dict.h"
-#include "Reader.h"
-#include "Writer.h"
-#include "Builder.h"
-#include "NullSink.h"
-#include "Format.h"
-#include "BufferWriter.h"
-#include "Integer.h"
+#define CBANG_JSON_MAX_INT (9007199254740991LL)
+#define CBANG_JSON_MIN_INT (-9007199254740991LL)
 
-#endif // CB_JSON_JSON_H
+#ifdef USING_CBANG
+#define JSON_MAX_INT CBANG_JSON_MAX_INT
+#define JSON_MIN_INT CBANG_JSON_MIN_INT
+#endif // USING_CBANG
+
+#endif // INTEGER_H
 
