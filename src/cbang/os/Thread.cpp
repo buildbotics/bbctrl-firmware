@@ -58,8 +58,9 @@
 #include <sched.h>
 #endif // __APPLE__
 
-#ifdef HAVE_VALGRIND_DRD_H
+#ifdef HAVE_VALGRIND
 #include <valgrind/drd.h>
+#include <valgrind/helgrind.h>
 #endif
 
 using namespace std;
@@ -100,10 +101,12 @@ Thread::Thread(bool destroy) :
 
   threads.set(this);
 
-#ifdef HAVE_VALGRIND_DRD_H
+#ifdef HAVE_VALGRIND
+  VALGRIND_HG_DISABLE_CHECKING(state, sizeof(state));
   DRD_IGNORE_VAR((const state_t &)state);
+  VALGRIND_HG_DISABLE_CHECKING(shutdown, sizeof(shutdown));
   DRD_IGNORE_VAR((const bool &)shutdown);
-#endif // HAVE_VALGRIND_DRD_H
+#endif // HAVE_VALGRIND
 }
 
 

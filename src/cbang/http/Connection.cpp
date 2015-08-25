@@ -49,7 +49,8 @@
 #include <cbang/util/SmartLock.h>
 #include <cbang/log/Logger.h>
 
-#ifdef HAVE_VALGRIND_DRD_H
+#ifdef HAVE_VALGRIND
+#include <valgrind/helgrind.h>
 #include <valgrind/drd.h>
 #endif
 
@@ -75,9 +76,10 @@ Connection::Connection(Server &server, SmartPointer<Socket> socket,
   memset(utilBuf.begin(), 0, utilBuf.getCapacity());
   memset(dataBuf.begin(), 0, dataBuf.getCapacity());
 
-#ifdef HAVE_VALGRIND_DRD_H
+#ifdef HAVE_VALGRIND
+  VALGRIND_HG_DISABLE_CHECKING(state, sizeof(state));
   DRD_IGNORE_VAR(state);
-#endif // HAVE_VALGRIND_DRD_H
+#endif // HAVE_VALGRIND
 }
 
 

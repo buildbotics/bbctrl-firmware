@@ -49,7 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef HAVE_VALGRIND_H
+#ifdef HAVE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
 
