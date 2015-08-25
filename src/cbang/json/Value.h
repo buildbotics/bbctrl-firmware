@@ -196,7 +196,7 @@ namespace cb {
       const Value &operator[](const std::string &key) const {return *get(key);}
 
       virtual void write(Sink &sink) const = 0;
-      std::string toString() const;
+      std::string toString(unsigned indent = 0, bool compact = false) const;
     };
 
     static inline

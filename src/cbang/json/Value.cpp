@@ -61,8 +61,10 @@ uint32_t Value::getU32() const {
 }
 
 
-string Value::toString() const {
+string Value::toString(unsigned indent, bool compact) const {
   ostringstream str;
-  str << *this << flush;
+  Writer writer(str, indent, compact);
+  write(writer);
+  str << flush;
   return str.str();
 }
