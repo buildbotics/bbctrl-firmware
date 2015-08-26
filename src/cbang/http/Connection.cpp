@@ -414,7 +414,7 @@ unsigned Connection::tryParsingHeader(MemoryBuffer &buffer) {
   // Look for end of HTTP header
   char *ptr = buffer.begin();
   unsigned match = 0;
-  while (ptr < buffer.end() && match != 4) {
+  while (ptr && ptr < buffer.end() && match != 4) {
     switch (*ptr++) {
     case '\r': match = match == 2 ? 3 : 1; break;
     case '\n': match = (match == 1 || match == 3) ? match + 1 : 0; break;
