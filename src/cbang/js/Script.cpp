@@ -70,10 +70,11 @@ Value Script::eval() {
 void Script::translateException(const v8::TryCatch &tryCatch) {
   v8::HandleScope handleScope;
 
-  string msg = Value(tryCatch.Exception()).toString();
+  string msg;
 
   if (Exception::enableStackTraces && !tryCatch.StackTrace().IsEmpty())
-    msg += string("\n") + Value(tryCatch.StackTrace()).toString();
+    msg = Value(tryCatch.StackTrace()).toString();
+  else msg = Value(tryCatch.Exception()).toString();
 
   v8::Handle<v8::Message> message = tryCatch.Message();
   if (message.IsEmpty()) THROW(msg);

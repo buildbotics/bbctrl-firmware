@@ -76,7 +76,6 @@ TarFileWriter::~TarFileWriter() {
 void TarFileWriter::add(const string &path, const string &filename,
                         uint32_t mode) {
   uint64_t size = SystemUtilities::getFileSize(path);
-  if (!mode) mode = SystemUtilities::getMode(path);
 
   // TODO handle other file types (e.g. symlinks)
 
