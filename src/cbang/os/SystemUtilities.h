@@ -96,7 +96,6 @@ namespace cb {
     std::string createTempDir(const std::string &parent);
 
     // File
-    uint32_t getMode(const std::string &filename);
     uint64_t getFileSize(const std::string &filename);
     uint64_t getModificationTime(const std::string &filename);
     bool unlink(const std::string &filename);
