@@ -162,7 +162,7 @@ unsigned Buffer::remove(ostream &stream, unsigned length) {
   unsigned total = 0;
   char buffer[4096];
 
-  while (0 < length) {
+  while (!stream.fail() && 0 < length) {
     unsigned size = remove(buffer, min(length, (unsigned)4096));
     stream.write(buffer, size);
     length -= size;
