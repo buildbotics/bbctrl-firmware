@@ -70,14 +70,13 @@ Value Script::eval() {
 void Script::translateException(const v8::TryCatch &tryCatch) {
   v8::HandleScope handleScope;
 
-  string msg;
+  if (!tryCatch.StackTrace().IsEmpty())
+    throw Exception(Value(tryCatch.StackTrace()).toString());
 
-  if (Exception::enableStackTraces && !tryCatch.StackTrace().IsEmpty())
-    msg = Value(tryCatch.StackTrace()).toString();
-  else msg = Value(tryCatch.Exception()).toString();
+  string msg = Value(tryCatch.Exception()).toString();
 
   v8::Handle<v8::Message> message = tryCatch.Message();
-  if (message.IsEmpty()) THROW(msg);
+  if (message.IsEmpty()) throw Exception(msg);
 
   string filename = Value(message->GetScriptResourceName()).toString();
   int line = message->GetLineNumber();
