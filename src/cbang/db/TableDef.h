@@ -61,6 +61,9 @@ namespace cb {
                const std::string &constraints = std::string()) :
         name(name), constraints(constraints) {}
 
+      static std::string getEscapedName(const std::string &name);
+      std::string getEscapedName() const {return getEscapedName(name);}
+
       const std::string &getName() const {return name;}
       void setName(const std::string &name) {this->name = name;}
 

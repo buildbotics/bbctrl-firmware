@@ -99,6 +99,8 @@ void Database::execute(const string &sql) {
   // TODO handle SQLITE_LOCKED return code with sqlite3_unlock_notify() and a
   //   condition variable to support shared-cache mode.
 
+  LOG_DEBUG(5, "SQL: " << sql);
+
   char *err = 0;
   int ret = sqlite3_exec(db, sql.c_str(), 0, 0, &err);
 

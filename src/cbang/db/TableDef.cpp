@@ -46,6 +46,13 @@ using namespace cb;
 using namespace cb::DB;
 
 
+string TableDef::getEscapedName(const string &name) {
+  vector<string> parts;
+  String::tokenize(name, parts, ".");
+  return "\"" + String::join(parts, "\".\"") + "\"";
+}
+
+
 void TableDef::add(const ColumnDef &column) {
   columnMap[column.getName()] = columns.size();
   columns.push_back(column);
@@ -69,7 +76,7 @@ unsigned TableDef::getIndex(const std::string &column) const {
 void TableDef::create(Database &db) const {
   ostringstream sql;
 
-  sql << "CREATE TABLE IF NOT EXISTS \"" << name << "\" (";
+  sql << "CREATE TABLE IF NOT EXISTS " << getEscapedName() << " (";
 
   for (iterator it = begin(); it != end(); it++) {
     if (it != begin()) sql << ",";
@@ -89,10 +96,12 @@ void TableDef::create(Database &db) const {
 
 
 void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) const {
+  string escName = getEscapedName();
+
   // Parse existing structure
   string result;
-  if (!db.execute(string("SELECT sql FROM sqlite_master WHERE name=\"") + name +
-                  "\" AND type=\"table\"", result))
+  if (!db.execute(string("SELECT sql FROM sqlite_master WHERE name=") +
+                  escName + " AND type=\"table\"", result))
     THROWS("Failed to read " << name << " table structure");
 
   {
@@ -121,7 +130,7 @@ void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) const {
   }
 
   // Create SQL copy command
-  string sql = string("INSERT INTO \"") + name + "\" SELECT ";
+  string sql = "INSERT INTO " + escName + " SELECT ";
 
   for (iterator it = begin(); it != end(); it++) {
     if (it != begin()) sql += ", ";
@@ -137,13 +146,13 @@ void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) const {
     } else sql += string("\"") + it2->second + "\"";
   }
 
-  sql += " FROM \"" + name + "_Temp\"";
+  string tmpName = getEscapedName(name + "_Tmp");
+  sql += " FROM " + tmpName;
 
-  // Move table to temp
-  db.execute(string("ALTER TABLE \"") + name + "\" RENAME TO \"" + name +
-             "_Temp\"");
+  // Move table to tmp
+  db.execute("ALTER TABLE " + escName + " RENAME TO " + tmpName);
 
-  // Recreated table
+  // Recreate table using new definition
   create(db);
 
   // Copy data
@@ -152,12 +161,12 @@ void TableDef::rebuild(Database &db, const columnRemap_t &_columnRemap) const {
   } CBANG_CATCH_ERROR;
 
   // Delete temp
-  db.execute(string("DROP TABLE \"") + name + "_Temp\"");
+  db.execute("DROP TABLE " + tmpName);
 }
 
 
 void TableDef::deleteAll(Database &db) const {
-  db.execute(string("DELETE FROM \"") + name + "\"");
+  db.execute("DELETE FROM " + getEscapedName());
 }
 
 
@@ -165,7 +174,7 @@ SmartPointer<Statement>
 TableDef::makeWriteStmt(Database &db, const string &suffix) const {
   ostringstream sql;
 
-  sql << "REPLACE INTO \"" << name << "\" (";
+  sql << "REPLACE INTO " << getEscapedName() << " (";
 
   for (iterator it = begin(); it != end(); it++) {
     if (it != begin()) sql << ", ";
@@ -198,7 +207,7 @@ TableDef::makeReadStmt(Database &db, const string &suffix) const {
     sql << '"' << it->getName() << '"';
   }
 
-  sql << "FROM \"" << name << "\" " << suffix;
+  sql << " FROM " << getEscapedName() << " " << suffix;
 
   return db.compile(sql.str());
 }

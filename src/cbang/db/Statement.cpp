@@ -38,6 +38,7 @@
 #include <cbang/Exception.h>
 #include <cbang/json/Sink.h>
 #include <cbang/net/Base64.h>
+#include <cbang/log/Logger.h>
 
 #include <sqlite3.h>
 
@@ -48,6 +49,8 @@ using namespace cb::DB;
 
 Statement::Statement(Database &db, const string &sql) :
   stmt(0), done(false), validRow(false) {
+
+  LOG_DEBUG(5, "SQL: " << sql);
 
   if (sqlite3_prepare_v2(db.getDB(), sql.c_str(), sql.length(), &stmt, 0))
     THROWS("Failed to prepare statement: " << sql << ": "
