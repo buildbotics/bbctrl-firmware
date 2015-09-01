@@ -170,11 +170,6 @@ namespace cb {
     bool getLogCRLF() const {return logCRLF;}
     unsigned getHeaderWidth() const;
 
-    uint64_t getErrorCount() const;
-    void resetErrorCount();
-    uint64_t getWarningCount() const;
-    void resetWarningCount();
-
     void setThreadID(unsigned long id);
     unsigned long getThreadID() const;
     void setThreadPrefix(const std::string &prefix);
