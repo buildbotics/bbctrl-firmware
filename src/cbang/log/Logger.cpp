@@ -46,6 +46,8 @@
 #include <cbang/config/Options.h>
 #include <cbang/config/OptionActionSet.h>
 
+#include <cbang/util/SmartLock.h>
+
 #include <iostream>
 #include <stdio.h> // for freopen()
 
@@ -74,6 +76,7 @@ Logger::Logger(Inaccessible) :
   logSimpleDomains(true), logThreadID(false), logHeader(true),
   logNoInfoHeader(false), logColor(true), logToScreen(true), logTrunc(false),
   logRedirect(false), logRotate(true), logRotateMax(0), logRotateDir("logs"),
+  errorCount(0), warningCount(0),
   threadIDStorage(new ThreadLocalStorage<unsigned long>),
   threadPrefixStorage(new ThreadLocalStorage<string>), screenStream(&cout),
   idWidth(1), lastDate(Time::now()) {
@@ -233,6 +236,30 @@ void Logger::setLogDomainLevels(const string &levels) {
 
 unsigned Logger::getHeaderWidth() const {
   return getHeader("", LOG_INFO_LEVEL(10)).size();
+}
+
+
+uint64_t Logger::getErrorCount() const {
+  SmartLock lock(this);
+  return errorCount;
+}
+
+
+void Logger::resetErrorCount() {
+  SmartLock lock(this);
+  errorCount = 0;
+}
+
+
+uint64_t Logger::getWarningCount() const {
+  SmartLock lock(this);
+  return warningCount;
+}
+
+
+void Logger::resetWarningCount() {
+  SmartLock lock(this);
+  warningCount = 0;
 }
 
 
@@ -429,6 +456,9 @@ Logger::LogStream Logger::createStream(const string &_domain, int level,
       trailer = SSTR(trace);
     }
 #endif
+
+    if (level == LEVEL_ERROR) {lock(); errorCount++; unlock();}
+    if (level == LEVEL_WARNING) {lock(); warningCount++; unlock();}
 
     return new cb::LogStream(prefix, suffix, trailer);
 

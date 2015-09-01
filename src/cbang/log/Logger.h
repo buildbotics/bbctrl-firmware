@@ -101,6 +101,9 @@ namespace cb {
     unsigned logRotateMax;
     std::string logRotateDir;
 
+    uint64_t errorCount;
+    uint64_t warningCount;
+
     SmartPointer<ThreadLocalStorage<unsigned long> > threadIDStorage;
     SmartPointer<ThreadLocalStorage<std::string> > threadPrefixStorage;
 
@@ -166,6 +169,11 @@ namespace cb {
     unsigned getVerbosity() const {return verbosity;}
     bool getLogCRLF() const {return logCRLF;}
     unsigned getHeaderWidth() const;
+
+    uint64_t getErrorCount() const;
+    void resetErrorCount();
+    uint64_t getWarningCount() const;
+    void resetWarningCount();
 
     void setThreadID(unsigned long id);
     unsigned long getThreadID() const;
