@@ -33,8 +33,7 @@ def configure_deps(conf, local = True, with_openssl = True):
     conf.CBConfig('bzip2', not local)
     conf.CBConfig('XML', not local)
     conf.CBConfig('sqlite3', not local)
-    conf.CBConfig('event', not local)
-    conf.CBConfig('re2', not local)
+    if conf.CBConfig('event', False): conf.CBConfig('re2', not local)
 
     if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
         env.CBDefine('HAVE_LEVELDB')
