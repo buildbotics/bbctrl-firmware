@@ -53,7 +53,7 @@ using namespace std;
 using namespace cb;
 using namespace cb::HTTP;
 
-SINGLETON_DECL(ProxyManager);
+namespace cb {SINGLETON_DECL(ProxyManager);}
 
 
 ProxyManager::ProxyManager(Inaccessible) : enable(false), initialized(false) {

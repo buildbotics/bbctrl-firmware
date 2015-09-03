@@ -88,6 +88,11 @@ def configure(conf, cstd = 'c99'):
             Tool('g++')(env)
             compiler_mode = "gnu"
 
+        elif compiler == 'clang':
+            env.Replace(CC = 'clang')
+            env.Replace(CXX = 'clang++')
+            compiler_mode = "gnu"
+
         elif compiler == 'intel':
             Tool('intelc')(env)
             env['ENV']['INTEL_LICENSE_FILE'] = (
@@ -491,7 +496,7 @@ def generate(env):
         EnumVariable('compiler', 'Select compiler', 'default',
                    allowed_values = ('default', 'gnu', 'intel', 'mingw', 'msvc',
                                      'linux-mingw', 'aix', 'posix', 'hp', 'sgi',
-                                     'sun')),
+                                     'sun', 'clang')),
         BoolVariable('static', 'Link to static libraries', 0),
         BoolVariable('mostly_static', 'Prefer static libraries', 0),
         ('prefer_static', 'Libraries where the static version is prefered', ''),

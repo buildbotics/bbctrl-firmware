@@ -72,7 +72,7 @@
 using namespace cb;
 using namespace std;
 
-SINGLETON_DECL(SystemInfo);
+namespace cb {SINGLETON_DECL(SystemInfo);}
 
 
 SystemInfo::SystemInfo(Inaccessible) {

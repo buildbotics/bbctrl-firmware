@@ -52,7 +52,7 @@ using namespace std;
 using namespace cb;
 using namespace cb::Script;
 
-SINGLETON_DECL(SocketDebugger);
+namespace cb {SINGLETON_DECL(SocketDebugger);}
 
 
 SocketDebugger::~SocketDebugger() {

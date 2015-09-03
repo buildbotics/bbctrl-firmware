@@ -42,7 +42,7 @@
 using namespace std;
 using namespace cb;
 
-SINGLETON_DECL(ExitSignalHandler);
+namespace cb {SINGLETON_DECL(ExitSignalHandler);}
 
 
 #ifdef _WIN32

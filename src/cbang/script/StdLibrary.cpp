@@ -44,7 +44,7 @@ using namespace std;
 using namespace cb;
 using namespace cb::Script;
 
-SINGLETON_DECL(StdLibrary);
+namespace cb {SINGLETON_DECL(StdLibrary);}
 
 
 // Have to pass 'this' as parent pointer to Environment to stop infinite loop.

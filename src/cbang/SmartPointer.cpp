@@ -30,36 +30,11 @@
 
 \******************************************************************************/
 
-#include "ContentTypes.h"
+#include "SmartPointer.h"
+#include "Exception.h"
 
 using namespace std;
 using namespace cb;
-using namespace cb::HTTP;
-
-namespace cb {SINGLETON_DECL(ContentTypes);}
 
 
-ContentTypes::ContentTypes(Inaccessible) {
-  insert(value_type("png",  "image/png"));
-  insert(value_type("jpg",  "image/jpeg"));
-  insert(value_type("jpeg", "image/jpeg"));
-  insert(value_type("gif",  "image/gif"));
-  insert(value_type("ico",  "image/x-icon"));
-  insert(value_type("css",  "text/css"));
-  insert(value_type("txt",  "text/plain"));
-  insert(value_type("c",    "text/plain"));
-  insert(value_type("cpp",  "text/plain"));
-  insert(value_type("c++",  "text/plain"));
-  insert(value_type("h",    "text/plain"));
-  insert(value_type("hpp",  "text/plain"));
-  insert(value_type("py",   "text/plain"));
-  insert(value_type("xml",  "text/xml"));
-  insert(value_type("html", "text/html"));
-  insert(value_type("htm",  "text/html"));
-  insert(value_type("js",   "text/javascript"));
-  insert(value_type("json", "application/json"));
-  insert(value_type("tar",  "application/x-tar"));
-  insert(value_type("bz2",  "application/x-bzip2"));
-  insert(value_type("gz",   "application/x-gzip"));
-  insert(value_type("crt",  "application/x-x509-ca-cert"));
-}
+void SmartPointerBase::raise(const string &msg) const {THROW(msg);}

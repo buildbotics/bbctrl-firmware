@@ -47,7 +47,7 @@
 using namespace std;
 using namespace cb;
 
-SINGLETON_DECL(SignalManager);
+namespace cb {SINGLETON_DECL(SignalManager);}
 
 
 namespace {

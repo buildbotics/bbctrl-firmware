@@ -40,7 +40,7 @@
 
 using namespace cb;
 
-SINGLETON_DECL(Random);
+namespace cb {SINGLETON_DECL(Random);}
 
 
 Random::Random(Inaccessible) {

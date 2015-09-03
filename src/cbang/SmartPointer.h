@@ -39,9 +39,6 @@
 
 
 namespace cb {
-  // Forward Delcarations
-  class Exception;
-
   /**
    * This is an implementation of a smart pointer.  It is ONLY THREAD
    * SAFE IF you create a protected smart pointer.
@@ -90,9 +87,15 @@ namespace cb {
    * See http://ootips.org/yonat/4dev/smart-pointers.html for more
    * information about smart pointers and why to use them.
    */
+  class SmartPointerBase {
+  public:
+    void raise(const std::string &msg) const;
+  };
+
+
   template <typename T, typename DeallocT = DeallocNew<T>,
             typename CounterT = RefCounterImpl<T, DeallocT> >
-  class SmartPointer {
+  class SmartPointer : public SmartPointerBase {
   protected:
     /// A pointer to the reference counter
     RefCounter *refCounter;
@@ -291,7 +294,7 @@ namespace cb {
     template <typename CastT>
     CastT *castPtr() const {
       CastT *ptr = dynamic_cast<CastT *>(this->ptr);
-      if (!ptr && this->ptr) throw Exception("Invalid SmartPointer cast");
+      if (!ptr && this->ptr) raise("Invalid SmartPointer cast");
 
       return ptr;
     }
@@ -329,8 +332,7 @@ namespace cb {
      */
     T *adopt() {
       if (refCounter && refCounter->getCount() > 1)
-        throw Exception
-          ("SmartPointer: Cannot adopt a pointer with multiple references!");
+        raise("SmartPointer: Cannot adopt a pointer with multiple references!");
 
       if (refCounter) {
         delete refCounter;
@@ -362,12 +364,10 @@ namespace cb {
 
   protected:
     void checkPtr() const {
-      if (!ptr)
-        throw Exception("SmartPointer: Can't dereference a NULL pointer!");
+      if (!ptr) raise("SmartPointer: Can't dereference a NULL pointer!");
     }
   };
 }
-
 
 #define CBANG_SP(T) cb::SmartPointer<T>
 #define CBANG_SP_PHONY(T) cb::SmartPointer<T>::Phony

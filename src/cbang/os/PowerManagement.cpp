@@ -72,7 +72,7 @@ typedef Window (*XDefaultRootWindow_t)(void *);
 using namespace cb;
 using namespace std;
 
-SINGLETON_DECL(PowerManagement);
+namespace cb {SINGLETON_DECL(PowerManagement);}
 
 
 struct PowerManagement::private_t {
