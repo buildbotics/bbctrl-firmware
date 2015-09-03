@@ -236,8 +236,11 @@ def configure(conf, cstd = 'c99'):
         if compiler_mode == 'gnu':
             env.AppendUnique(CCFLAGS = ['-O3', '-funroll-loops'])
             if compiler != 'intel':
-                env.AppendUnique(CCFLAGS = ['-mfpmath=sse', '-ffast-math',
-                                            '-fno-unsafe-math-optimizations'])
+                env.AppendUnique(CCFLAGS = ['-ffast-math'])
+                if compiler != 'clang':
+                    env.AppendUnique(CCFLAGS =
+                                     ['-mfpmath=sse',
+                                      '-fno-unsafe-math-optimizations'])
         elif compiler_mode == 'msvc':
             env.AppendUnique(CCFLAGS = ['/Ox'])
             if compiler == 'intel' and not globalopt:
