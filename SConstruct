@@ -66,11 +66,12 @@ subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
     'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json',
-    'jsapi', 'db', 'auth', 'event']
+    'jsapi', 'db', 'auth']
 
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
+if env.CBConfigEnabled('libevent'): subdirs.append('event')
 
 src = []
 for dir in subdirs:
