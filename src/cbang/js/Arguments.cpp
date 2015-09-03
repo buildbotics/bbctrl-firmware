@@ -54,11 +54,9 @@ Arguments::Arguments(const v8::Arguments &args, const Signature &sig) :
 
     for (int i = 0; i < props.length(); i++) {
       string name = props.get(i).toString();
-      //LOG_DEBUG(1, i << ' ' << name);
-
       if (!sig.has(name))
-        ;//THROWS("Invalid key word argument '" << name << "' when calling "
-         //      << sig);
+        THROWS("Invalid key word argument '" << name << "' when calling "
+               << sig);
     }
   }
 }

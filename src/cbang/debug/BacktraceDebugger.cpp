@@ -86,7 +86,7 @@ bool BacktraceDebugger::getStackTrace(StackTrace &trace) {
   int n = backtrace(stack, maxStack);
 
 #ifdef VALGRIND_MAKE_MEM_DEFINED
-  VALGRIND_MAKE_MEM_DEFINED(stack, n * sizeof(void *));
+  (void)VALGRIND_MAKE_MEM_DEFINED(stack, n * sizeof(void *));
 #endif // VALGRIND_MAKE_MEM_DEFINED
 
   //cerr << "backtrace() = " << n << endl;
@@ -119,9 +119,9 @@ bool BacktraceDebugger::getStackTrace(StackTrace &trace) {
                             &filename, &function, &line);
 
 #ifdef VALGRIND_MAKE_MEM_DEFINED
-      if (filename) VALGRIND_MAKE_MEM_DEFINED(filename, strlen(filename));
-      if (function) VALGRIND_MAKE_MEM_DEFINED(function, strlen(function));
-      VALGRIND_MAKE_MEM_DEFINED(&line, sizeof(line));
+      if (filename) (void)VALGRIND_MAKE_MEM_DEFINED(filename, strlen(filename));
+      if (function) (void)VALGRIND_MAKE_MEM_DEFINED(function, strlen(function));
+      (void)VALGRIND_MAKE_MEM_DEFINED(&line, sizeof(line));
 #endif // VALGRIND_MAKE_MEM_DEFINED
     }
 

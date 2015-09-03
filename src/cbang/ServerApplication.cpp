@@ -101,10 +101,6 @@ bool ServerApplication::_hasFeature(int feature) {
 
 
 int ServerApplication::init(int argc, char *argv[]) {
-  // Hide child's output
-  if (hasFeature(FEATURE_SERVER) && options["child"].toBoolean())
-    ;//options["log-to-screen"].setDefault(false);
-
   int ret = Application::init(argc, argv);
   if (ret == -1) return -1;
 

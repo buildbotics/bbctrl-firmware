@@ -201,7 +201,7 @@ int cb::SSL::read(char *data, unsigned size) {
   LOG_DEBUG(5, "cb::SSL::read()=" << ret);
 
 #ifdef VALGRIND_MAKE_MEM_DEFINED
-  VALGRIND_MAKE_MEM_DEFINED(data, ret);
+  (void)VALGRIND_MAKE_MEM_DEFINED(data, ret);
 #endif // VALGRIND_MAKE_MEM_DEFINED
 
   return (unsigned)ret;
