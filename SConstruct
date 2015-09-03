@@ -16,7 +16,8 @@ env.CBAddVariables(
     PathVariable('prefix', 'Install path prefix', '/usr/local',
                  PathVariable.PathAccept),
     BoolVariable('with_openssl', 'Build with OpenSSL support', True),
-    ('force_local', 'List of 3rd party libraries to be built locally', ''))
+    ('force_local', 'List of 3rd party libs to be built locally', ''),
+    ('disable_local', 'List of 3rd party libs not to be built locally', ''))
 env.CBLoadTools('dist packager compiler cbang build_info')
 env.Replace(PACKAGE_VERSION = version)
 conf = env.CBConfigure()
@@ -52,8 +53,10 @@ env.Append(CPPPATH = ['#/src', '#/include'])
 
 # Build third-party libs
 force_local = env.CBBuildSetRegex(env.get('force_local', ''))
+disable_local = env.CBBuildSetRegex(env.get('disable_local', ''))
 Export('env conf')
 for lib in 'zlib bzip2 sqlite3 expat boost libevent re2'.split():
+    if disable_local.match(lib): continue
     if not env.CBConfigEnabled(lib) or force_local.match(lib):
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
