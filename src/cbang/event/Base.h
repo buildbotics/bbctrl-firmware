@@ -34,6 +34,7 @@
 #define CB_EVENT_BASE_H
 
 #include "EventCallback.h"
+#include "BareEventCallback.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -71,15 +72,33 @@ namespace cb {
         return newPersistentEvent(new EventMemberFunctor<T>(obj, member));
       }
 
+      template <class T> SmartPointer<Event>
+      newPersistentEvent(T *obj,
+                         typename BareEventMemberFunctor<T>::member_t member) {
+        return newPersistentEvent(new BareEventMemberFunctor<T>(obj, member));
+      }
+
       template <class T>
       Event &newEvent(T *obj, typename EventMemberFunctor<T>::member_t member) {
         return newEvent(new EventMemberFunctor<T>(obj, member));
       }
 
       template <class T>
+      Event &newEvent(T *obj,
+                      typename BareEventMemberFunctor<T>::member_t member) {
+        return newEvent(new BareEventMemberFunctor<T>(obj, member));
+      }
+
+      template <class T>
       Event &newEvent(int fd, unsigned events, T *obj,
                       typename EventMemberFunctor<T>::member_t member) {
         return newEvent(fd, events, new EventMemberFunctor<T>(obj, member));
+      }
+
+      template <class T>
+      Event &newEvent(int fd, unsigned events, T *obj,
+                      typename BareEventMemberFunctor<T>::member_t member) {
+        return newEvent(fd, events, new BareEventMemberFunctor<T>(obj, member));
       }
 
       template <class T> SmartPointer<Event>
@@ -89,10 +108,23 @@ namespace cb {
                                    new EventMemberFunctor<T>(obj, member));
       }
 
+      template <class T> SmartPointer<Event>
+      newPersistentSignal(int signal, T *obj,
+                          typename BareEventMemberFunctor<T>::member_t member) {
+        return newPersistentSignal(signal,
+                                   new BareEventMemberFunctor<T>(obj, member));
+      }
+
       template <class T>
       Event &newSignal(int signal, T *obj,
                        typename EventMemberFunctor<T>::member_t member) {
         return newSignal(signal, new EventMemberFunctor<T>(obj, member));
+      }
+
+      template <class T>
+      Event &newSignal(int signal, T *obj,
+                       typename BareEventMemberFunctor<T>::member_t member) {
+        return newSignal(signal, new BareEventMemberFunctor<T>(obj, member));
       }
 
       void dispatch();
