@@ -71,7 +71,8 @@ subdirs = [
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
-if env.CBConfigEnabled('libevent'): subdirs.append('event')
+if env.CBConfigEnabled('libevent') or not disable_local.match(lib):
+    subdirs.append('event')
 
 src = []
 for dir in subdirs:
