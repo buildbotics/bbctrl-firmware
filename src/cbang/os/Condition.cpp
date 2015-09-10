@@ -33,6 +33,7 @@
 #include "Condition.h"
 
 #include "MutexPrivate.h"
+#include "SysError.h"
 
 #include <cbang/Exception.h>
 #include <cbang/Zap.h>
@@ -74,7 +75,7 @@ namespace cb {
 
 Condition::Condition() : p(new Condition::private_t) {
 #ifdef _WIN32
-  p->sema = CreatedSemaphore(0, 0, 0x7fffffff, 0);
+  p->sema = CreateSemaphore(0, 0, 0x7fffffff, 0);
   InitializeCriticalSection(&p->waitersCountLock);
   p->waitersDone = CreateEvent(0, FALSE, FALSE, 0);
 
@@ -146,7 +147,7 @@ bool Condition::timedWait(double timeout) {
     SignalObjectAndWait(p->waitersDone, Mutex::p->h, INFINITE, FALSE);
   else
     // Always regain the mutex since that's the guarantee we give our callers.
-    WaitForSingleObject(Mutex::p->h);
+    WaitForSingleObject(Mutex::p->h, INFINITE);
 
   // Process return code from SignalObjectAndWait() above.
   if (ret == WAIT_TIMEOUT) return true;
