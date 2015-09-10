@@ -61,16 +61,16 @@ Value Script::eval() {
 
   v8::TryCatch tryCatch;
   v8::Handle<v8::Value> ret = script->Run();
-  if (tryCatch.HasCaught()) translateException(tryCatch);
+  if (tryCatch.HasCaught()) translateException(tryCatch, true);
 
   return handleScope.Close(ret);
 }
 
 
-void Script::translateException(const v8::TryCatch &tryCatch) {
+void Script::translateException(const v8::TryCatch &tryCatch, bool useStack) {
   v8::HandleScope handleScope;
 
-  if (!tryCatch.StackTrace().IsEmpty())
+  if (useStack && !tryCatch.StackTrace().IsEmpty())
     throw Exception(Value(tryCatch.StackTrace()).toString());
 
   string msg = Value(tryCatch.Exception()).toString();
@@ -98,7 +98,7 @@ void Script::load(const string &s, const string &filename) {
 
   v8::TryCatch tryCatch;
   script = v8::Script::Compile(source, origin);
-  if (tryCatch.HasCaught()) translateException(tryCatch);
+  if (tryCatch.HasCaught()) translateException(tryCatch, false);
 
   script = handleScope.Close(script);
 }

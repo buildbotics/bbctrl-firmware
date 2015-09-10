@@ -59,7 +59,8 @@ namespace cb {
 
       Value eval();
 
-      static void translateException(const v8::TryCatch &tryCatch);
+      static void translateException(const v8::TryCatch &tryCatch,
+                                     bool useStack);
 
     protected:
       void load(const std::string &s, const std::string &filename);
