@@ -34,9 +34,9 @@
 #define CBANG_PACKED_H
 
 #if defined _WIN32
-#define PACKED
+#define PACK(DECL) __pragma(pack(push, 1)) DECL __pragma(pack(pop))
 #else
-#define PACKED __attribute__((packed))
+#define PACK(DECL) DECL __attribute__((packed))
 #endif
 
 #endif // CBANG_PACKED_H
