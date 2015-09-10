@@ -90,7 +90,7 @@ bool Mutex::lock(double timeout) const {
   if (ret == WAIT_TIMEOUT) return false;
   if (ret == WAIT_FAILED)
     THROWS("Wait failed: " << SysError());
-  if (ret == WAIT_ABANDONED) // Lock still aquired
+  if (ret == WAIT_ABANDONED) // Lock still acquired
     LOG_WARNING("Wait Abandoned, Mutex owner terminated");
 
 #else // pthreads

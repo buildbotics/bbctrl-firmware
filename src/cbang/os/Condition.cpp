@@ -33,9 +33,6 @@
 #include "Condition.h"
 
 #include "MutexPrivate.h"
-#ifdef _WIN32
-#include "Semaphore.h"
-#endif
 
 #include <cbang/Exception.h>
 #include <cbang/Zap.h>
@@ -49,15 +46,24 @@ using namespace cb;
 namespace cb {
   struct Condition::private_t {
 #ifdef _WIN32
-    Semaphore blockLock;
-    Semaphore blockQueue;
-    Mutex unblockLock;
+    // Number of waiting threads.
+    int waitersCount;
 
-    int gone;
-    int blocked;
-    int unblock;
+    // Serialize access to waitersCount.
+    CRITICAL_SECTION waitersCountLock;
 
-    private_t() : blockLock("", 1), gone(0), blocked(0), unblock(0) {}
+    // Semaphore used to queue threads waiting for the condition.
+    HANDLE sema;
+
+    // An auto-reset event used by the broadcast/signal thread to wait for all
+    // waiting thread(s) to wake up and be released from the semaphore.
+    HANDLE waitersDone;
+
+    // Keeps track of whether we were broadcasting or signaling.  This allows
+    // us to optimize the code if we're just signaling.
+    bool wasBroadcast;
+
+    private_t() : waitersCount(0), wasBroadcast(false) {}
 
 #else // pthreads
     pthread_cond_t cond;
@@ -67,7 +73,12 @@ namespace cb {
 
 
 Condition::Condition() : p(new Condition::private_t) {
-#ifndef _WIN32
+#ifdef _WIN32
+  p->sema = CreatedSemaphore(0, 0, 0x7fffffff, 0);
+  InitializeCriticalSection(&p->waitersCountLock);
+  p->waitersDone = CreateEvent(0, FALSE, FALSE, 0);
+
+#else
   if (pthread_cond_init(&p->cond, 0))
     THROW("Failed to initialize condition");
 #endif
@@ -103,69 +114,47 @@ bool Condition::timedWait(double timeout) {
   // condition variables.  This implementation uses an algorithm described
   // in the pthreads-win32 source.
   //
-  // See algorithm described here:
-  //   ftp://sourceware.org/pub/pthreads-win32/sources/
-  //     pthreads-w32-2-8-0-release/pthread_cond_wait.c
-  //
-  // And discussion here:
-  //   http://blogs.msdn.com/oldnewthing/archive/2005/01/05/346888.aspx
+  // See algorithm 3.4 described here:
+  //   http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
 
-  bool timedout = true;
+  // Avoid race conditions.
+  EnterCriticalSection(&p->waitersCountLock);
+  p->waitersCount++;
+  LeaveCriticalSection(&p->waitersCountLock);
 
-  p->blockLock.wait();
-  p->blocked++;
-  p->blockLock.post();
+  // This call atomically releases the mutex and waits on the semaphore until
+  // signal() is called by another thread.
+  DWORD t = timeout < 0 ? INFINITE : (DWORD)(timeout * 1000);
+  DWORD ret = SignalObjectAndWait(Mutex::p->h, p->sema, t, FALSE);
 
-  unlock();
-  try {
-    int signals = 0;
-    int wasGone = 0;
-    timedout = p->blockQueue.wait(timeout);
+  // Reacquire lock to avoid race conditions.
+  EnterCriticalSection(&p->waitersCountLock);
 
-    {
-      SmartLock lock(&p->unblockLock);
+  // We're no longer waiting...
+  p->waitersCount--;
 
-      signals = p->unblock;
+  // Check to see if we're the last waiter after a broadcast.
+  bool lastWaiter = p->wasBroadcast && p->waitersCount == 0;
 
-      if (signals) {
-        if (timedout) {
-          if (p->blocked) p->blocked--;
-          else p->gone++; // Spurious wakeup
-        }
+  LeaveCriticalSection(&p->waitersCountLock);
 
-        if (!--p->unblock) {
-          if (p->blocked) {
-            p->blockLock.post();
-            signals = 0;
+  // If we're the last waiter thread during this particular broadcast then let
+  // all the other threads proceed.
+  if (lastWaiter)
+    // This call atomically signals the waitersDone event and waits until
+    // it can acquire the mutex.  This is required to ensure fairness.
+    SignalObjectAndWait(p->waitersDone, Mutex::p->h, INFINITE, FALSE);
+  else
+    // Always regain the mutex since that's the guarantee we give our callers.
+    WaitForSingleObject(Mutex::p->h);
 
-          } else {
-            wasGone = p->gone;
-            p->gone = 0;
-          }
-        }
+  // Process return code from SignalObjectAndWait() above.
+  if (ret == WAIT_TIMEOUT) return true;
+  else if (ret == WAIT_FAILED) THROWS("Wait failed: " << SysError());
+  else if (ret == WAIT_ABANDONED) // Lock still acquired
+    LOG_WARNING("Wait Abandoned, Mutex owner terminated");
 
-      } else if ((1 << 30) == ++p->gone) {
-        // p->gone overflowed
-        p->blockLock.wait();
-        p->blocked -= p->gone;
-        p->blockLock.post();
-        p->gone = 0;
-      }
-    }
-
-    if (signals == 1) {
-      if (wasGone) while (wasGone--) p->blockQueue.wait(); // Spurious
-      else p->blockLock.post();
-    }
-
-  } catch (...) {
-    lock();
-    throw;
-  }
-
-  lock();
-
-  return !timedout;
+  return false;
 
 #else // pthreads
   timeout += Timer::now(); // Convert to absolute time
@@ -178,43 +167,39 @@ bool Condition::timedWait(double timeout) {
 
 void Condition::signal(bool broadcast) {
 #ifdef _WIN32
-  int signals = 0;
+  if (broadcast) {
+    // This is needed to ensure that waitersCount and wasBroadcast are
+    // consistent relative to each other.
+    EnterCriticalSection(&p->waitersCountLock);
 
-  {
-    SmartLock(&p->unblockLock);
+    if (p->waitersCount > 0) {
+      // We are broadcasting, even if there is just one waiter.  Record that we
+      // are broadcasting, which helps optimize wait() for the non-broadcast
+      // case.
+      p->wasBroadcast = true;
 
-    if (p->unblock) {
-      if (!p->blocked) return;
+      // Wake up all the waiters atomically.
+      ReleaseSemaphore(p->sema, p->waitersCount, 0);
 
-      if (broadcast) {
-        signals = p->blocked;
-        p->unblock += signals;
-        p->blocked = 0;
+      LeaveCriticalSection(&p->waitersCountLock);
 
-      } else {
-        signals = 1;
-        p->unblock++;
-        p->blocked--;
-      }
+      // Wait for all the awakened threads to acquire the counting semaphore.
+      WaitForSingleObject(p->waitersDone, INFINITE);
 
-    } else if (p->blocked > p->gone) {
-      p->blockLock.wait();
+      // This assignment is okay, even without the waitersCountLock held
+      // because no other waiter threads can wake up to access it.
+      p->wasBroadcast = false;
 
-      p->blocked -= p->gone;
-      p->gone = 0;
+    } else LeaveCriticalSection(&p->waitersCountLock);
 
-      if (broadcast) {
-        signals = p->unblock = p->blocked;
-        p->blocked = 0;
+  } else { // Signal
+    EnterCriticalSection(&p->waitersCountLock);
+    bool haveWaiters = p->waitersCount > 0;
+    LeaveCriticalSection(&p->waitersCountLock);
 
-      } else {
-        signals = p->unblock = 1;
-        p->blocked--;
-      }
-    }
+    // If there aren't any waiters, then this is a no-op.
+    if (haveWaiters) ReleaseSemaphore(p->sema, 1, 0);
   }
-
-  p->blockQueue.post(signals);
 
 #else // pthreads
   if (broadcast) pthread_cond_broadcast(&p->cond);
