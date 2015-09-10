@@ -150,22 +150,39 @@ namespace cb {
     }
 
 
-    string extension(const string &path) {
+    string::size_type getExtensionPosition(const string &path) {
+      string::size_type lastSep = path.find_last_of(path_separators);
       string::size_type pos = path.find_last_of('.');
-      if (pos == string::npos) return "";
-      else return path.substr(pos + 1);
+
+      // Don't count '.' in directory names
+      if (lastSep != string::npos && pos != string::npos && pos < lastSep)
+        return string::npos;
+
+      return pos;
+    }
+
+
+    bool hasExtension(const string &path) {
+      return getExtensionPosition(path) != string::npos;
+    }
+
+
+    string extension(const string &path) {
+      string::size_type pos = getExtensionPosition(path);
+      return (pos == string::npos) ? string() : path.substr(pos + 1);
     }
 
 
     string swapExtension(const string &path, const string &ext) {
-      return path.substr(0, path.find_last_of('.')) + "." + ext;
+      string::size_type pos = getExtensionPosition(path);
+      return path.substr(0, pos) + "." + ext;
     }
 
 
     vector<string> splitExt(const string &path) {
       vector<string> result;
 
-      string::size_type pos = path.find_last_of('.');
+      string::size_type pos = getExtensionPosition(path);
       if (pos == string::npos) {
         result.push_back(path);
         result.push_back(string());

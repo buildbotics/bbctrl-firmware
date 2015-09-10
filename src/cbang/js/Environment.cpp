@@ -83,11 +83,12 @@ void Environment::appendSearchExtension(const string &ext) {
 
 
 string Environment::searchExtensions(const string &path) const {
-  if (!SystemUtilities::extension(path).empty()) return path;
+  if (SystemUtilities::hasExtension(path) &&
+      SystemUtilities::isFile(path)) return path;
 
   for (unsigned i = 0; i < searchExts.size(); i++) {
-    string candidate = path;
-    if (!searchExts[i].empty()) candidate += searchExts[i];
+    string candidate = path + searchExts[i];
+    LOG_DEBUG(5, "Searching " << candidate);
     if (SystemUtilities::isFile(candidate)) return candidate;
   }
 
@@ -102,12 +103,9 @@ void Environment::addSearchPaths(const string &paths) {
 
 
 string Environment::searchPath(const string &path) const {
-  if (SystemUtilities::isAbsolute(path)) {
-    // Search extensions
-    return searchExtensions(path);
+  if (SystemUtilities::isAbsolute(path)) return searchExtensions(path);
 
-  } else if (String::startsWith(path, "./") ||
-             String::startsWith(path, "../")) {
+  else if (String::startsWith(path, "./") || String::startsWith(path, "../")) {
     // Search relative to current file
     string candidate = SystemUtilities::absolute(getCurrentPath(), path);
     candidate = searchExtensions(candidate);
@@ -116,7 +114,11 @@ string Environment::searchPath(const string &path) const {
   } else {
     // Search paths
     for (unsigned i = 0; i < searchPaths.size(); i++) {
-      string candidate = SystemUtilities::joinPath(searchPaths[i], path);
+      string dir = searchPaths[i];
+      if (!SystemUtilities::isAbsolute(dir))
+        dir = SystemUtilities::absolute(getCurrentPath(), dir);
+
+      string candidate = SystemUtilities::joinPath(dir, path);
       candidate = searchExtensions(candidate);
       if (SystemUtilities::isFile(candidate)) return candidate;
     }
