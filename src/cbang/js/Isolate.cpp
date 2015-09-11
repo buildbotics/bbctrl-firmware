@@ -30,39 +30,53 @@
 
 \******************************************************************************/
 
-#include "Callback.h"
 #include "Isolate.h"
 
-#include <cbang/Exception.h>
-#include <cbang/SStream.h>
+#include "V8.h"
 
-using namespace std;
 using namespace cb::js;
 
 
-Callback::Callback(const Signature &sig) :
-  sig(sig), data(v8::External::New(this)),
-  function(v8::FunctionTemplate::New(&Callback::callback, data)) {
+namespace cb {
+  namespace js {
+    class Isolate::Scope::Private {
+      v8::Locker locker;
+      v8::Isolate::Scope isolateScope;
+      v8::HandleScope handleScope;
+
+    public:
+      Private(v8::Isolate *isolate) : locker(isolate), isolateScope(isolate) {}
+    };
+  }
 }
 
 
-v8::Handle<v8::Value> Callback::callback(const v8::Arguments &args) {
-  if (Isolate::shouldQuit())
-    return v8::ThrowException(v8::String::New("Interrupted"));
+Isolate::Scope::Scope(Isolate &iso) : pri(new Private(iso.getIsolate())) {}
+Isolate::Scope::~Scope() {delete pri;}
 
-  Callback *cb =
-    static_cast<Callback *>(v8::External::Cast(*args.Data())->Value());
 
-  try {
-    return (*cb)(Arguments(args, cb->sig)).getV8Value();
+Isolate::Isolate() : isolate(v8::Isolate::New()), interrupted(false) {
+  isolate->SetData(this);
+}
 
-  } catch (const Exception &e) {
-    return v8::ThrowException(v8::String::New(SSTR(e).c_str()));
 
-  } catch (const std::exception &e) {
-    return v8::ThrowException(v8::String::New(e.what()));
+Isolate::~Isolate() {
+  isolate->Dispose();
+}
 
-  } catch (...) {
-    return v8::ThrowException(v8::String::New("Unknown exception"));
-  }
+
+void Isolate::interrupt() {
+  interrupted = true;
+  v8::V8::TerminateExecution(isolate);
+}
+
+
+Isolate *Isolate::current() {
+  return (Isolate *)v8::Isolate::GetCurrent()->GetData();
+}
+
+
+bool Isolate::shouldQuit() {
+  Isolate *iso = current();
+  return iso && iso->wasInterrupted();
 }

@@ -30,39 +30,45 @@
 
 \******************************************************************************/
 
-#include "Callback.h"
-#include "Isolate.h"
+#ifndef CB_JS_ISOLATE_H
+#define CB_JS_ISOLATE_H
 
-#include <cbang/Exception.h>
-#include <cbang/SStream.h>
-
-using namespace std;
-using namespace cb::js;
+#include <cbang/SmartPointer.h>
 
 
-Callback::Callback(const Signature &sig) :
-  sig(sig), data(v8::External::New(this)),
-  function(v8::FunctionTemplate::New(&Callback::callback, data)) {
-}
+namespace v8 {class Isolate;}
 
+namespace cb {
+  namespace js {
+    class Isolate {
+      v8::Isolate *isolate;
+      bool interrupted;
 
-v8::Handle<v8::Value> Callback::callback(const v8::Arguments &args) {
-  if (Isolate::shouldQuit())
-    return v8::ThrowException(v8::String::New("Interrupted"));
+    public:
+      class Scope {
+        class Private;
+        Private *pri;
 
-  Callback *cb =
-    static_cast<Callback *>(v8::External::Cast(*args.Data())->Value());
+      public:
+        Scope(Isolate &iso);
+        ~Scope();
+      };
 
-  try {
-    return (*cb)(Arguments(args, cb->sig)).getV8Value();
+      Isolate();
+      ~Isolate();
 
-  } catch (const Exception &e) {
-    return v8::ThrowException(v8::String::New(SSTR(e).c_str()));
+      v8::Isolate *getIsolate() {return isolate;}
+      bool wasInterrupted() const {return interrupted;}
+      void interrupt();
 
-  } catch (const std::exception &e) {
-    return v8::ThrowException(v8::String::New(e.what()));
+      typedef SmartPointer<Scope> ScopePtr;
+      ScopePtr getScope() {return new Scope(*this);}
 
-  } catch (...) {
-    return v8::ThrowException(v8::String::New("Unknown exception"));
+      static Isolate *current();
+      static bool shouldQuit();
+    };
   }
 }
+
+#endif // CB_JS_ISOLATE_H
+

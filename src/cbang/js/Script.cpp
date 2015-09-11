@@ -73,6 +73,8 @@ void Script::translateException(const v8::TryCatch &tryCatch, bool useStack) {
   if (useStack && !tryCatch.StackTrace().IsEmpty())
     throw Exception(Value(tryCatch.StackTrace()).toString());
 
+  if (tryCatch.Exception()->IsNull()) throw Exception("Interrupted");
+
   string msg = Value(tryCatch.Exception()).toString();
 
   v8::Handle<v8::Message> message = tryCatch.Message();
