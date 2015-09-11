@@ -167,6 +167,8 @@ bool Condition::timedWait(double timeout) {
 
 
 void Condition::signal(bool broadcast) {
+  SmartLock lock(this);
+
 #ifdef _WIN32
   if (broadcast) {
     // This is needed to ensure that waitersCount and wasBroadcast are
