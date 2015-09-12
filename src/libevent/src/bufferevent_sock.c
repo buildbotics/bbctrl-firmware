@@ -651,7 +651,8 @@ bufferevent_priority_set(struct bufferevent *bufev, int priority)
 	struct bufferevent_private *bufev_p =
 	    EVUTIL_UPCAST(bufev, struct bufferevent_private, bev);
 
-	BEV_LOCK(bufev);
+    BEV_LOCK(bufev);
+    // jcoffland 20161109
     //if (bufev->be_ops != &bufferevent_ops_socket)
     //	goto done;
 

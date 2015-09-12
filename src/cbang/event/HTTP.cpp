@@ -44,6 +44,7 @@
 #include <cbang/util/DefaultCatch.h>
 
 #include <event2/http.h>
+#include <event2/bufferevent.h>
 
 #ifdef HAVE_OPENSSL
 #include <cbang/openssl/SSLContext.h>
