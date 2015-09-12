@@ -58,13 +58,13 @@ using namespace cb::Event;
 
 
 namespace {
-#ifdef HAVE_OPENSSL
   bufferevent *bev_cb(event_base *base, void *arg) {
-    return bufferevent_openssl_socket_new(base, -1, SSL_new((SSL_CTX *)arg),
-                                          BUFFEREVENT_SSL_ACCEPTING,
-                                          BEV_OPT_CLOSE_ON_FREE);
+    try {
+      return ((HTTP *)arg)->bevCB(base);
+    } CATCH_ERROR;
+
+    return 0;
   }
-#endif // HAVE_OPENSSL
 
 
   void complete_cb(evhttp_request *_req, void *cb) {
@@ -110,18 +110,20 @@ namespace {
 }
 
 
-HTTP::HTTP(const Base &base) : http(evhttp_new(base.getBase())) {
+HTTP::HTTP(const Base &base) : http(evhttp_new(base.getBase())), priority(-1) {
   if (!http) THROW("Failed to create event HTTP");
+
+  evhttp_set_bevcb(http, bev_cb, this);
 }
 
 
 HTTP::HTTP(const Base &base, const cb::SmartPointer<cb::SSLContext> &sslCtx) :
-  http(evhttp_new(base.getBase())), sslCtx(sslCtx) {
+  http(evhttp_new(base.getBase())), sslCtx(sslCtx), priority(-1) {
   if (!http) THROW("Failed to create event HTTP");
 
-#ifdef HAVE_OPENSSL
-  if (!sslCtx.isNull()) evhttp_set_bevcb(http, bev_cb, sslCtx->getCTX());
-#else
+  evhttp_set_bevcb(http, bev_cb, this);
+
+#ifndef HAVE_OPENSSL
   if (!sslCtx.isNull()) THROW("C! was not built with openssl support");
 #endif
 }
@@ -171,4 +173,27 @@ int HTTP::bind(const cb::IPAddress &addr) {
   if (!handle) THROWS("Unable to bind HTTP server to " << addr);
 
   return (int)evhttp_bound_socket_get_fd(handle);
+}
+
+
+bufferevent *HTTP::bevCB(event_base *base) {
+  bufferevent *bev;
+
+#ifdef HAVE_OPENSSL
+  if (!sslCtx.isNull())
+    bev = bufferevent_openssl_socket_new(base, -1, SSL_new(sslCtx->getCTX()),
+                                         BUFFEREVENT_SSL_ACCEPTING,
+                                         BEV_OPT_CLOSE_ON_FREE);
+  else
+#endif
+    bev = bufferevent_socket_new(base, -1, BEV_OPT_CLOSE_ON_FREE);
+
+  if (0 <= priority) {
+    bufferevent *ubev = bufferevent_get_underlying(bev);
+
+    if (bufferevent_priority_set(ubev ? ubev : bev, priority))
+      THROWS("Unable to set buffer event priority to " << priority);
+  }
+
+  return bev;
 }

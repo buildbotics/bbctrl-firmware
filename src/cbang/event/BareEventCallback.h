@@ -42,7 +42,7 @@ namespace cb {
       virtual void operator()() = 0;
 
       // From EventCallback
-      void operator()(Event &event, int fd, unsigned flags) {(*this)();}
+      void operator()(Event &event, int fd, unsigned flags) {operator()();}
     };
 
     CBANG_FUNCTOR(BareEventFunctor, BareEventCallback, void, operator());

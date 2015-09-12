@@ -40,6 +40,8 @@
 #include <vector>
 
 struct evhttp;
+struct event_base;
+struct bufferevent;
 
 
 namespace cb {
@@ -52,6 +54,7 @@ namespace cb {
     class HTTP {
       evhttp *http;
       SmartPointer<SSLContext> sslCtx;
+      int priority;
 
       std::vector<SmartPointer<HTTPHandler> > requestCallbacks;
 
@@ -63,6 +66,7 @@ namespace cb {
       void setMaxBodySize(unsigned size);
       void setMaxHeadersSize(unsigned size);
       void setTimeout(int timeout);
+      void setEventPriority(int priority) {this->priority = priority;}
 
       void setCallback(const std::string &path,
                        const SmartPointer<HTTPHandler> &cb);
@@ -81,6 +85,8 @@ namespace cb {
       }
 
       int bind(const IPAddress &addr);
+
+      bufferevent *bevCB(event_base *base);
     };
   }
 }

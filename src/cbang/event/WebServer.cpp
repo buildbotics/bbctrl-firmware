@@ -163,6 +163,12 @@ bool WebServer::operator()(Request &req) {
 }
 
 
+void WebServer::setEventPriority(int priority) {
+  http->setEventPriority(priority);
+  if (!https.isNull()) http->setEventPriority(priority);
+}
+
+
 void WebServer::allow(const IPAddress &addr) {
   ipFilter.allow(addr);
 }

@@ -80,9 +80,14 @@ namespace cb {
 
       const SmartPointer<SSLContext> &getSSLContext() const {return sslCtx;}
 
+      const SmartPointer<HTTP> &getHTTP() const {return http;}
+      const SmartPointer<HTTP> &getHTTPS() const {return https;}
+
       void addListenPort(const IPAddress &addr);
       unsigned getNumListenPorts() const {return ports.size();}
       const IPAddress &getListenPort(unsigned i) const {return ports.at(i);}
+
+      void setEventPriority(int priority);
 
       void allow(const IPAddress &addr);
       void deny(const IPAddress &addr);
