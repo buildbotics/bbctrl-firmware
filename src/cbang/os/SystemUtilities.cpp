@@ -270,13 +270,7 @@ namespace cb {
       }
 
       fs::path p = fs::system_complete(path);
-
-      // Save root path
-#if BOOST_FILESYSTEM_VERSION < 3
-      string root = p.root_path();
-#else
       string root = p.root_path().string();
-#endif
 
       // Get relative part
       p = p.relative_path();
