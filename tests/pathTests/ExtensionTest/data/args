@@ -1,0 +1,7 @@
+--extension test
+--extension test.
+--extension test.json
+--extension test.json/test
+--extension test/test/./test
+--extension test/test.json
+

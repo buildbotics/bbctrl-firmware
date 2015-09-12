@@ -1,0 +1,8 @@
+Import('*')
+
+# Local includes
+env.Append(CPPPATH = ['#'])
+
+prog = env.Program('path', 'path.cpp')
+
+Return('prog')

@@ -10,3 +10,4 @@ allow(/api/pub/test, anon)=true
       ]
     }
   }
+}

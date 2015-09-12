@@ -1,0 +1,7 @@
+--is_absolute .
+--is_absolute test
+--is_absolute root/test
+--is_absolute /
+--is_absolute ///
+--is_absolute /test
+--is_absolute /root/test

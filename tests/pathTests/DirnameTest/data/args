@@ -1,0 +1,7 @@
+--dirname test
+--dirname /test
+--dirname /
+--dirname root/test
+--dirname /root/test
+--dirname .
+--dirname ./test

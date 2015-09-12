@@ -1,0 +1,11 @@
+--canonical /test
+--canonical /../test
+--canonical /root/./test
+--canonical /root/../test
+--canonical /../../test
+--canonical /root/a/b/c/d/../../../test
+--canonical /root/a/b/./c/d/../../../test
+--canonical /root//test
+--canonical /root//test/
+--canonical /root///test
+

@@ -120,7 +120,7 @@ string Environment::searchPath(const string &path) const {
 
       string candidate = SystemUtilities::joinPath(dir, path);
       candidate = searchExtensions(candidate);
-      if (SystemUtilities::isFile(candidate)) return candidate;
+      if (!candidate.empty()) return candidate;
     }
   }
 

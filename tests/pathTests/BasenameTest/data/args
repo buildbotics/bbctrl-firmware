@@ -1,0 +1,8 @@
+--basename test.json
+--basename test.
+--basename test
+--basename root/test
+--basename /
+--basename .
+--basename ..
+--basename test/..

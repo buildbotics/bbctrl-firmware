@@ -3,10 +3,10 @@ import glob
 
 class Suite:
     def __init__(self, th):
-	aclSet = os.path.abspath(th.path + '/aclSet')
+        prog = os.path.abspath(th.path + '/path')
 
         for test in glob.glob(th.path + '/*Test'):
-            cmd = [aclSet]
+            cmd = [prog]
 
             args = test + '/data/args'
             if os.path.exists(args):

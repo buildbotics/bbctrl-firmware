@@ -18,3 +18,4 @@ allow(/api/a/b/c, anon)=false
       ]
     }
   }
+}

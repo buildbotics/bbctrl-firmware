@@ -249,7 +249,6 @@ namespace cb {
 
       string path = _path;
 
-#ifndef _WIN32
       // Expand tilde
       if (path[0] == '~') {
         string name;
@@ -257,20 +256,37 @@ namespace cb {
         for (i = 1; i < path.length() && path[i] != '/'; i++)
           name.append(1, path[i]);
 
-        string home = getUserHome(name);
-        if (i < path.length()) path = home + "/" + path.substr(i + 1);
-        else path = home;
-      }
+#ifdef _WIN32
+        if (name.empty()) {
 #endif // _WIN32
 
+          string home = getUserHome(name);
+          if (i < path.length()) path = home + "/" + path.substr(i + 1);
+          else path = home;
+
+#ifdef _WIN32
+        }
+#endif // _WIN32
+      }
+
       fs::path p = fs::system_complete(path);
-      vector<string> parts;
+
+      // Save root path
+#if BOOST_FILESYSTEM_VERSION < 3
+      string root = p.root_path();
+#else
+      string root = p.root_path().string();
+#endif
+
+      // Get relative part
+      p = p.relative_path();
 
       // Normalize
+      vector<string> parts;
       fs::path::iterator it;
       for (it = p.begin(); it != p.end(); it++)
         if (*it == ".." && !parts.empty()) parts.pop_back();
-        else if (*it != "" && *it != ".") {
+        else if (*it != "" && *it != "." && *it != "..") {
 #if BOOST_FILESYSTEM_VERSION < 3
           parts.push_back(*it);
 #else
@@ -278,9 +294,12 @@ namespace cb {
 #endif
         }
 
-      string result;
-      for (unsigned i = 0; i < parts.size(); i++)
-        if (parts[i] != "/") result += string("/") + parts[i];
+      // Reassemble
+      string result = root;
+      for (unsigned i = 0; i < parts.size(); i++) {
+        if (i) result += "/";
+        result += parts[i];
+      }
 
       return result;
     }
