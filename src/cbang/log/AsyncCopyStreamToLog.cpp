@@ -34,6 +34,8 @@
 
 #include "Logger.h"
 
+#include <cbang/util/DefaultCatch.h>
+
 #include <string.h>
 
 using namespace std;
@@ -41,20 +43,21 @@ using namespace cb;
 
 
 void AsyncCopyStreamToLog::run() {
-  Logger::LogStream log =
-    Logger::instance().createStream(CBANG_LOG_DOMAIN, CBANG_LOG_INFO_LEVEL(1),
-                                    prefix);
+  try {
+    Logger::LogStream log = Logger::instance().createStream
+      (CBANG_LOG_DOMAIN, CBANG_LOG_INFO_LEVEL(1), prefix);
 
-  char buffer[4096];
-  while (!in.fail() && !log->fail() && !shouldShutdown()) {
-    in.getline(buffer, 4095);
+    char buffer[4096];
+    while (!in.fail() && !log->fail() && !shouldShutdown()) {
+      in.getline(buffer, 4095);
 
-    if (in.fail()) break;
+      if (in.fail()) break;
 
-    streamsize len = strlen(buffer);
-    buffer[len++] = '\n';
+      streamsize len = strlen(buffer);
+      buffer[len++] = '\n';
 
-    log->write(buffer, len);
-    log->flush();
-  }
+      log->write(buffer, len);
+      log->flush();
+    }
+  } CATCH_ERROR;
 }
