@@ -77,9 +77,10 @@ namespace cb {
                              const std::string &help = "");
     template <typename T>
     SmartPointer<Option> addTarget(const std::string &name, T &target,
-                                   const std::string &help = "") {
+                                   const std::string &help = "",
+                                   char shortName = 0) {
       SmartPointer<OptionActionBase> action = new OptionActionSet<T>(target);
-      SmartPointer<Option> option = add(name, 0, action, help);
+      SmartPointer<Option> option = add(name, shortName, action, help);
       option->setDefault(target);
       option->setDefaultSetAction(action);
       return option;
