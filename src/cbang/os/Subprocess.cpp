@@ -75,44 +75,138 @@ using namespace cb;
 using namespace std;
 
 
-struct Subprocess::private_t {
+namespace {
+#ifdef _WIN32
+  HANDLE OpenNUL() {
+    // Setup security attributes for pipe inheritance
+    SECURITY_ATTRIBUTES sAttrs;
+    memset(&sAttrs, 0, sizeof(SECURITY_ATTRIBUTES));
+    sAttrs.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sAttrs.bInheritHandle = TRUE;
+    sAttrs.lpSecurityDescriptor = 0;
+
+    return CreateFile("NUL", GENERIC_WRITE, 0, &sAttrs, OPEN_EXISTING, 0, 0);
+  }
+#endif
+
+
+  struct Pipe {
+    bool toChild;
+
+#ifdef _WIN32
+    HANDLE handles[2];
+#else
+    int handles[2];
+#endif
+
+    SmartPointer<iostream> stream;
+
+
+    explicit Pipe(bool toChild) : toChild(toChild) {
+      handles[0] = handles[1] = 0;
+    }
+
+
+    void create() {
+#ifdef _WIN32
+      // Setup security attributes for pipe inheritance
+      SECURITY_ATTRIBUTES sAttrs;
+      memset(&sAttrs, 0, sizeof(SECURITY_ATTRIBUTES));
+      sAttrs.nLength = sizeof(SECURITY_ATTRIBUTES);
+      sAttrs.bInheritHandle = TRUE;
+      sAttrs.lpSecurityDescriptor = 0;
+
+      if (!CreatePipe(&handles[0], &handles[1], &sAttrs, 0))
+        THROWS("Failed to create pipe: " << SysError());
+
+      // Don't inherit other handle
+      if (!SetHandleInformation(handles[toChild ? 1 : 0],
+                                HANDLE_FLAG_INHERIT, 0))
+        THROWS("Failed to clear pipe inherit flag: " << SysError());
+
+#else
+      if (pipe(handles)) THROWS("Failed to create pipe: " << SysError());
+#endif
+    }
+
+
+#ifndef _WIN32
+    void inChildProc(int target = -1) {
+      // Close parent end
+      ::close(handles[toChild ? 1 : 0]);
+
+      // Move to target
+      if (target != -1 && dup2(handles[toChild ? 0 : 1], target) != target)
+        perror("Moving file descriptor");
+    }
+#endif
+
+
+    void close() {
+      for (unsigned i = 0; i < 2; i++)
+        if (handles[i]) {
+#ifdef _WIN32
+          CloseHandle(handles[i]);
+#else
+          ::close(handles[i]);
+#endif
+          handles[i] = 0;
+        }
+    }
+
+
+    void openStream() {
+      typedef io::stream<io::file_descriptor> stream_t;
+
+      if (toChild) {
+        stream = new stream_t(handles[1], BOOST_CLOSE_HANDLE);
+        handles[1] = 0; // Don't close this end later in close()
+
+      } else {
+        stream = new stream_t(handles[0], BOOST_CLOSE_HANDLE);
+        handles[0] = 0; // Don't close this end later in close()
+      }
+    }
+
+
+    void closeStream() {stream.release();}
+  };
+}
+
+
+struct Subprocess::Private {
 #ifdef _WIN32
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
-
-  HANDLE stdInPipe[2];
-  HANDLE stdOutPipe[2];
-  HANDLE stdErrPipe[2];
-
-#else // _WIN32
+#else
   pid_t pid;
+#endif
 
-  int stdInPipe[2];
-  int stdOutPipe[2];
-  int stdErrPipe[2];
-#endif // _WIN32
+  vector<Pipe> pipes;
 
-  typedef io::stream<io::file_descriptor_sink> sink_t;
-  typedef io::stream<io::file_descriptor_source> source_t;
+  Private() {
+#ifdef _WIN32
+    memset(&pi, 0, sizeof(PROCESS_INFORMATION));
+    memset(&si, 0, sizeof(STARTUPINFO));
+#else
+    pid = 0;
+#endif
 
-  sink_t *stdIn;
-  source_t *stdOut;
-  source_t *stdErr;
+    pipes.push_back(Pipe(true)); // stdin
+    pipes.push_back(Pipe(false)); // stdout
+    pipes.push_back(Pipe(false)); // stderr
+ }
 };
 
 
 Subprocess::Subprocess() :
-  p(new private_t), running(false), wasKilled(false), dumpedCore(false),
+  p(new Private), running(false), wasKilled(false), dumpedCore(false),
   signalGroup(false),
   returnCode(0) {
-  memset(p, 0, sizeof(private_t));
 }
 
 
 Subprocess::~Subprocess() {
-  closeStdIn();
-  closeStdOut();
-  closeStdErr();
   zap(p);
 }
 
@@ -133,67 +227,30 @@ uint64_t Subprocess::getPID() const {
 }
 
 
-ostream &Subprocess::getStdIn() const {
-  if (!p->stdIn) THROW("Subprocess stdIn stream not available");
-  return *p->stdIn;
+unsigned Subprocess::createPipe(bool toChild) {
+  p->pipes.push_back(Pipe(toChild));
+  p->pipes.back().create();
+  return p->pipes.size() - 1;
 }
 
 
-istream &Subprocess::getStdOut() const {
-  if (!p->stdOut) THROW("Subprocess stdOut stream not available");
-  return *p->stdOut;
+Subprocess::handle_t Subprocess::getPipeHandle(unsigned i, bool childEnd) {
+  if (p->pipes.size() <= i) THROWS("Subprocess does not have pipe " << i);
+  return p->pipes[i].handles[(p->pipes[i].toChild ^ childEnd) ? 1 : 0];
 }
 
 
-istream &Subprocess::getStdErr() const {
-  if (!p->stdErr) THROW("Subprocess stdErr stream not available");
-  return *p->stdErr;
+iostream &Subprocess::getStream(unsigned i) const {
+  if (p->pipes.size() <= i || p->pipes[i].stream.isNull())
+    THROWS("Subprocess stream " << i << " not available");
+  return *p->pipes[i].stream;
 }
 
 
-void Subprocess::closeStdIn() {
-  zap(p->stdIn);
+void Subprocess::closeStream(unsigned i) {
+  if (p->pipes.size() <= i) THROWS("Subprocess does not have pipe " << i);
+  p->pipes[i].closeStream();
 }
-
-
-void Subprocess::closeStdOut() {
-  zap(p->stdOut);
-}
-
-
-void Subprocess::closeStdErr() {
-  zap(p->stdErr);
-}
-
-
-#ifdef _WIN32
-static void createPipe(HANDLE *pipe, bool toChild) {
-  // Setup security attributes for pipe inheritance
-  SECURITY_ATTRIBUTES sAttrs;
-  memset(&sAttrs, 0, sizeof(SECURITY_ATTRIBUTES));
-  sAttrs.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sAttrs.bInheritHandle = TRUE;
-  sAttrs.lpSecurityDescriptor = 0;
-
-  if (!CreatePipe(&pipe[0], &pipe[1], &sAttrs, 0))
-    THROWS("Failed to create pipe: " << SysError());
-
-  // Don't inherit other handle
-  if (!SetHandleInformation(pipe[toChild ? 1 : 0], HANDLE_FLAG_INHERIT, 0))
-    THROWS("Failed to clear pipe inherit flag: " << SysError());
-}
-
-static HANDLE OpenNUL() {
-  // Setup security attributes for pipe inheritance
-  SECURITY_ATTRIBUTES sAttrs;
-  memset(&sAttrs, 0, sizeof(SECURITY_ATTRIBUTES));
-  sAttrs.nLength = sizeof(SECURITY_ATTRIBUTES);
-  sAttrs.bInheritHandle = TRUE;
-  sAttrs.lpSecurityDescriptor = 0;
-
-  return CreateFile("NUL", GENERIC_WRITE, 0, &sAttrs, OPEN_EXISTING, 0, 0);
-}
-#endif
 
 
 void Subprocess::exec(const vector<string> &_args, unsigned flags,
@@ -217,15 +274,15 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
   signalGroup = flags & CREATE_PROCESS_GROUP;
 
   // Close any open handles
-  closeHandles();
+  //closeHandles();
 
   try {
-#ifdef _WIN32
     // Create pipes
-    if (flags & REDIR_STDIN) createPipe(p->stdInPipe, true);
-    if (flags & REDIR_STDOUT) createPipe(p->stdOutPipe, false);
-    if (flags & REDIR_STDERR) createPipe(p->stdErrPipe, false);
+    if (flags & REDIR_STDIN) p->pipes[0].create();
+    if (flags & REDIR_STDOUT) p->pipes[1].create();
+    if (flags & REDIR_STDERR) p->pipes[2].create();
 
+#ifdef _WIN32
     // Clear PROCESS_INFORMATION
     memset(&p->pi, 0, sizeof(PROCESS_INFORMATION));
 
@@ -233,12 +290,13 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
     memset(&p->si, 0, sizeof(STARTUPINFO));
     p->si.cb = sizeof(STARTUPINFO);
     p->si.hStdInput =
-      (flags & REDIR_STDIN) ? p->stdInPipe[0] : GetStdHandle(STD_INPUT_HANDLE);
+      (flags & REDIR_STDIN) ? p->pipes[0].handles[0] :
+      GetStdHandle(STD_INPUT_HANDLE);
     p->si.hStdOutput =
-      (flags & REDIR_STDOUT) ? p->stdOutPipe[1] :
+      (flags & REDIR_STDOUT) ? p->pipes[1].handles[1] :
       GetStdHandle(STD_OUTPUT_HANDLE);
-    p->si.hStdError = (flags & REDIR_STDERR) ? p->stdErrPipe[1] :
-      ((flags & MERGE_STDOUT_AND_STDERR) ? p->stdOutPipe[1] :
+    p->si.hStdError = (flags & REDIR_STDERR) ? p->pipes[2].handles[1] :
+      ((flags & MERGE_STDOUT_AND_STDERR) ? p->pipes[1].handles[1] :
        GetStdHandle(STD_ERROR_HANDLE));
     p->si.dwFlags |= STARTF_USESTDHANDLES;
 
@@ -328,40 +386,20 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
       args.push_back((char *)_args[i].c_str());
     args.push_back(0); // Sentinal
 
-    // Create pipes
-    if (((flags & REDIR_STDIN) && pipe(p->stdInPipe)) ||
-        ((flags & REDIR_STDOUT) && pipe(p->stdOutPipe)) ||
-        ((flags & REDIR_STDERR) && pipe(p->stdErrPipe)))
-      THROWS("Failed to create pipes: " << SysError());
-
     p->pid = fork();
 
     if (!p->pid) { // Child
-
       // Process group
       if (flags & CREATE_PROCESS_GROUP) setpgid(0, 0);
 
       // Configure pipes
-      if (flags & REDIR_STDIN) {
-        close(p->stdInPipe[1]); // Close write end
-        if (dup2(p->stdInPipe[0], 0) != 0) // Move to stdIn
-          perror("Moving stdin descriptor");
-      }
-
-      if (flags & REDIR_STDOUT) {
-        close(p->stdOutPipe[0]); // Close read end
-        if (dup2(p->stdOutPipe[1], 1) != 1) // Move to stdOut
-          perror("Moving stdout descriptor");
-      }
+      if (flags & REDIR_STDIN) p->pipes[0].inChildProc(0);
+      if (flags & REDIR_STDOUT) p->pipes[1].inChildProc(1);
 
       if (flags & MERGE_STDOUT_AND_STDERR)
         if (dup2(1, 2) != 2) perror("Copying stdout to stderr");
 
-      if (flags & REDIR_STDERR) {
-        close(p->stdErrPipe[0]); // Close read end
-        if (dup2(p->stdErrPipe[1], 2) != 2) // Move to stdErr
-          perror("Moving stderr descriptor");
-      }
+      if (flags & REDIR_STDERR) p->pipes[2].inChildProc(2);
 
       if ((flags & NULL_STDOUT) || (flags & NULL_STDERR)) {
         int fd = open("/dev/null", O_WRONLY);
@@ -375,6 +413,9 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
           if (flags & NULL_STDERR) close(2);
         }
       }
+
+      for (unsigned i = 3; i < p->pipes.size(); i++)
+        p->pipes[i].inChildProc();
 
       // Priority
       SystemUtilities::setPriority(priority);
@@ -408,23 +449,14 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
   }
 
   // Create pipe streams
-  if (flags & REDIR_STDIN) {
-    p->stdIn = new private_t::sink_t(p->stdInPipe[1], BOOST_CLOSE_HANDLE);
-    p->stdInPipe[1] = 0; // Don't close this end later
-  }
-
-  if (flags & REDIR_STDOUT) {
-    p->stdOut = new private_t::source_t(p->stdOutPipe[0], BOOST_CLOSE_HANDLE);
-    p->stdOutPipe[0] = 0; // Don't close this end later
-  }
-
-  if (flags & REDIR_STDERR) {
-    p->stdErr = new private_t::source_t(p->stdErrPipe[0], BOOST_CLOSE_HANDLE);
-    p->stdErrPipe[0] = 0; // Don't close this end later
-  }
+  if (flags & REDIR_STDIN) p->pipes[0].openStream();
+  if (flags & REDIR_STDOUT) p->pipes[1].openStream();
+  if (flags & REDIR_STDERR) p->pipes[2].openStream();
+  for (unsigned i = 3; i < p->pipes.size(); i++)
+    p->pipes[i].openStream();
 
 #ifndef _WIN32
-  closePipes(); // Close pipe ends
+  closePipes(); // Close pipe child ends
 #endif
 
   running = true;
@@ -461,7 +493,7 @@ void Subprocess::kill(bool nonblocking) {
 
   SystemUtilities::killPID(getPID(), signalGroup);
   wasKilled = true;
-  wait(nonblocking);
+  if (!nonblocking) wait();
 }
 
 
@@ -600,9 +632,8 @@ string Subprocess::assemble(const vector<string> &args) {
 
 
 void Subprocess::closeHandles() {
-  closeStdIn();
-  closeStdOut();
-  closeStdErr();
+  for (unsigned i = 0; i < p->pipes.size(); i++)
+    p->pipes[i].closeStream();
 
 #ifdef _WIN32
   // Close process and thread handles
@@ -616,19 +647,6 @@ void Subprocess::closeHandles() {
 
 
 void Subprocess::closePipes() {
-  // Close pipe handles
-  for (int i = 0; i < 2; i++) {
-#ifdef _WIN32
-    if (p->stdInPipe[i]) CloseHandle(p->stdInPipe[i]);
-    if (p->stdOutPipe[i]) CloseHandle(p->stdOutPipe[i]);
-    if (p->stdErrPipe[i]) CloseHandle(p->stdErrPipe[i]);
-
-#else
-    if (p->stdInPipe[i]) close(p->stdInPipe[i]);
-    if (p->stdOutPipe[i]) close(p->stdOutPipe[i]);
-    if (p->stdErrPipe[i]) close(p->stdErrPipe[i]);
-#endif
-
-    p->stdInPipe[i] = p->stdOutPipe[i] = p->stdErrPipe[i] = 0;
-  }
+  for (unsigned i = 0; i < p->pipes.size(); i++)
+    p->pipes[i].close();
 }

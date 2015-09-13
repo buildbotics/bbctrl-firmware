@@ -58,8 +58,8 @@ namespace cb {
       };
 
   protected:
-    struct private_t;
-    private_t *p;
+    struct Private;
+    Private *p;
 
     bool running;
     bool wasKilled;
@@ -79,13 +79,24 @@ namespace cb {
     bool getWasKilled() const {return wasKilled;}
     bool getDumpedCore() const {return dumpedCore;}
 
-    std::ostream &getStdIn() const;
-    std::istream &getStdOut() const;
-    std::istream &getStdErr() const;
+#ifdef _WIN32
+    typedef void *handle_t;
+#else
+    typedef int handle_t;
+#endif
 
-    void closeStdIn();
-    void closeStdOut();
-    void closeStdErr();
+    unsigned createPipe(bool toChild);
+    handle_t getPipeHandle(unsigned i, bool childEnd = true);
+
+    std::iostream &getStream(unsigned i) const;
+    std::ostream &getStdIn() const {return getStream(0);}
+    std::istream &getStdOut() const {return getStream(1);}
+    std::istream &getStdErr() const {return getStream(2);}
+
+    void closeStream(unsigned i);
+    void closeStdIn() {closeStream(0);}
+    void closeStdOut() {closeStream(1);}
+    void closeStdErr() {closeStream(2);}
 
     void setWorkingDirectory(const std::string &wd) {this->wd = wd;}
 
