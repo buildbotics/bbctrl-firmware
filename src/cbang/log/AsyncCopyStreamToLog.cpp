@@ -48,10 +48,10 @@ void AsyncCopyStreamToLog::run() {
       (CBANG_LOG_DOMAIN, CBANG_LOG_INFO_LEVEL(1), prefix);
 
     char buffer[4096];
-    while (!in.fail() && !log->fail() && !shouldShutdown()) {
-      in.getline(buffer, 4095);
+    while (!in->fail() && !log->fail() && !shouldShutdown()) {
+      in->getline(buffer, 4095);
 
-      if (in.fail()) break;
+      if (in->fail()) break;
 
       streamsize len = strlen(buffer);
       buffer[len++] = '\n';

@@ -88,10 +88,10 @@ namespace cb {
     unsigned createPipe(bool toChild);
     handle_t getPipeHandle(unsigned i, bool childEnd = true);
 
-    std::iostream &getStream(unsigned i) const;
-    std::ostream &getStdIn() const {return getStream(0);}
-    std::istream &getStdOut() const {return getStream(1);}
-    std::istream &getStdErr() const {return getStream(2);}
+    const SmartPointer<std::iostream> &getStream(unsigned i) const;
+    std::ostream &getStdIn() const {return *getStream(0);}
+    std::istream &getStdOut() const {return *getStream(1);}
+    std::istream &getStdErr() const {return *getStream(2);}
 
     void closeStream(unsigned i);
     void closeStdIn() {closeStream(0);}

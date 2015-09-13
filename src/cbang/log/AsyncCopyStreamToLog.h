@@ -33,19 +33,24 @@
 #ifndef CBANG_ASYNC_COPY_STREAM_TO_LOG_H
 #define CBANG_ASYNC_COPY_STREAM_TO_LOG_H
 
+#include <cbang/SmartPointer.h>
 #include <cbang/os/Thread.h>
 
 #include <iostream>
 
 namespace cb {
   class AsyncCopyStreamToLog : public Thread {
-    std::istream &in;
+    SmartPointer<std::istream> in;
     std::string prefix;
 
   public:
-    AsyncCopyStreamToLog(std::istream &in,
+    AsyncCopyStreamToLog(const SmartPointer<std::istream> &in,
                          const std::string &prefix = std::string()) :
       in(in), prefix(prefix) {}
+
+    AsyncCopyStreamToLog(std::istream &in,
+                         const std::string &prefix = std::string()) :
+      in(SmartPointer<std::istream>::Phony(&in)), prefix(prefix) {}
 
     // From Thread
     void run();

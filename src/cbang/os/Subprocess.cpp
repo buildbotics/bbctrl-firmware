@@ -240,10 +240,10 @@ Subprocess::handle_t Subprocess::getPipeHandle(unsigned i, bool childEnd) {
 }
 
 
-iostream &Subprocess::getStream(unsigned i) const {
+const SmartPointer<iostream> &Subprocess::getStream(unsigned i) const {
   if (p->pipes.size() <= i || p->pipes[i].stream.isNull())
     THROWS("Subprocess stream " << i << " not available");
-  return *p->pipes[i].stream;
+  return p->pipes[i].stream;
 }
 
 
