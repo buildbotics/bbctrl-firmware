@@ -54,6 +54,12 @@ ServerApplication::ServerApplication(const string &name,
                                      hasFeature_t hasFeature) :
   Application(name, hasFeature), restartChild(false), lifeline(0) {
 
+  if (hasFeature(FEATURE_LIFELINE))
+    cmdLine.add("lifeline", 0, new OptionActionSet<uint64_t>(lifeline),
+                "The application will watch for this process ID and exit if it "
+                "goes away.  Usually the calling process' PID."
+                )->setType(Option::INTEGER_TYPE);
+
   if (!hasFeature(FEATURE_SERVER)) return;
 
   typedef OptionAction<ServerApplication> Action;
@@ -63,12 +69,6 @@ ServerApplication::ServerApplication(const string &name,
               "after this point, such as the configuration file, must have "
               "paths relative to the new directory."
               )->setType(Option::STRING_TYPE);
-
-  if (hasFeature(FEATURE_LIFELINE))
-    cmdLine.add("lifeline", 0, new OptionActionSet<uint64_t>(lifeline),
-                "The application will watch for this process ID and exit if it "
-                "goes away.  Usually the calling process' PID."
-                )->setType(Option::INTEGER_TYPE);
 
   options.pushCategory("Process Control");
 #ifndef _WIN32
