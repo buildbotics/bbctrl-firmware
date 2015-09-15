@@ -162,7 +162,7 @@ ostream &Options::print(ostream &stream) const {
 }
 
 
-void Options::printHelp(ostream &stream) const {
+void Options::printHelp(ostream &stream, bool cmdLine) const {
   categories_t::const_iterator it;
 
   bool first = true;
@@ -170,7 +170,7 @@ void Options::printHelp(ostream &stream) const {
     if (!it->second->getHidden()) {
       if (first) first = false;
       else stream << "\n\n";
-      it->second->printHelp(stream);
+      it->second->printHelp(stream, cmdLine);
     }
 }
 

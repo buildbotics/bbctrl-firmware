@@ -168,7 +168,7 @@ void OptionCategory::printHelp(XMLHandler &handler,
 }
 
 
-void OptionCategory::printHelp(ostream &stream) const {
+void OptionCategory::printHelp(ostream &stream, bool cmdLine) const {
   if (!name.empty()) stream << name << ":\n";
   if (!description.empty()) stream << description << "\n";
 
@@ -180,7 +180,7 @@ void OptionCategory::printHelp(ostream &stream) const {
     if (!name.empty() && name[0] != '_') {
       if (first) first = false;
       else stream << "\n\n";
-      it->second->printHelp(stream, false);
+      it->second->printHelp(stream, cmdLine);
     }
   }
 }

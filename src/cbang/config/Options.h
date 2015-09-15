@@ -74,7 +74,7 @@ namespace cb {
     virtual const_iterator end() const {return map.end();}
 
     virtual std::ostream &print(std::ostream &stream) const;
-    virtual void printHelp(std::ostream &stream) const;
+    virtual void printHelp(std::ostream &stream, bool cmdLine = false) const;
 
     virtual void insert(JSON::Sink &sink, bool config = false,
                         const std::string &delims =

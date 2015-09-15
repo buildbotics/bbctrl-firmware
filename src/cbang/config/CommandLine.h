@@ -54,6 +54,7 @@ namespace cb {
     bool allowExtraOpts;
     bool allowPositionalArgs;
     bool warnOnInvalidArgs;
+    bool showKeywordOpts;
 
     std::vector<const char *> licenseText;
     std::vector<std::string> positionalArgs;
@@ -76,6 +77,7 @@ namespace cb {
     void setAllowExtraOpts(bool x) {allowExtraOpts = x;}
     void setAllowPositionalArgs(bool x) {allowPositionalArgs = x;}
     void setWarnOnInvalidArgs(bool x) {warnOnInvalidArgs = x;}
+    void setShowKeywordOpts(bool x) {showKeywordOpts = x;}
 
     const std::vector<std::string> &getPositionalArgs() const
     {return positionalArgs;}

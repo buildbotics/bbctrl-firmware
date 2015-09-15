@@ -45,10 +45,13 @@ using namespace cb;
 
 CommandLine::CommandLine() :
   keywords(0), allowConfigAsFirstArg(false), allowSingleDashLongOpts(false),
-  allowExtraOpts(false), allowPositionalArgs(true), warnOnInvalidArgs(false) {
+  allowExtraOpts(false), allowPositionalArgs(true), warnOnInvalidArgs(false),
+  showKeywordOpts(true) {
 
   SmartPointer<Option> opt;
   typedef OptionAction<CommandLine> Action;
+
+  pushCategory("Informational");
 
   opt = add("help", 0, new Action(this, &CommandLine::usageAction),
             "Print help screen or help on a particular option and exit.");
@@ -66,6 +69,8 @@ CommandLine::CommandLine() :
 
   add("license", 0, new Action (this, &CommandLine::licenseAction),
       "License information and exit.");
+
+  popCategory();
 }
 
 
@@ -206,20 +211,12 @@ void CommandLine::usage(ostream &stream, const string &name) const {
 
   } else stream << ' ' << usageArgs;
 
-  stream << "\n\nCommand line options:\n";
+  stream << "\n\nOPTIONS:\n";
 
-  for (const_iterator it = begin(); it != end(); it++) {
-    const Option &opt = *it->second;
+  printHelp(stream, true);
+  stream << "\n\n";
 
-    // Don't print options with both short and long names twice.
-    if (String::startsWith(it->first, "--") && opt.getShortName() &&
-        !opt.getName().empty())
-      continue;
-
-    opt.printHelp(stream) << "\n\n";
-  }
-
-  if (keywords) {
+  if (showKeywordOpts && keywords) {
     stream << "\nConfiguration options:\n";
     String::fill(stream, "The following options can be specified in a "
                  "configuration file or on the command line using the "

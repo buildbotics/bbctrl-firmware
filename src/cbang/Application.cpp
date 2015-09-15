@@ -149,12 +149,18 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
   typedef OptionAction<Application> Action;
 
   if (hasFeature(FEATURE_CONFIG_FILE)) {
+    cmdLine.pushCategory("Configuration");
+
     cmdLine.add("config", 0, new Action(this, &Application::configAction),
                 "Set configuration file.")->setDefault("config.xml");
 
     cmdLine.add("print", 0, new Action(this, &Application::printAction),
                 "Print configuration and exit.");
+
+    cmdLine.popCategory();
   }
+
+  cmdLine.pushCategory("Informational");
 
   cmdLine.add("version", 0, new Action(this, &Application::versionAction),
               "Print application version and exit.");
@@ -163,6 +169,7 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
     cmdLine.add("info", 0, new Action(this, &Application::infoAction),
                 "Print application and system information and exit.");
 
+  cmdLine.popCategory();
   cmdLine.setKeywordOptions(&options);
 
   // Info
