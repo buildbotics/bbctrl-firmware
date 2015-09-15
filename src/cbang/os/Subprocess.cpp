@@ -465,9 +465,8 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
   for (unsigned i = 3; i < p->pipes.size(); i++)
     p->pipes[i].openStream();
 
-#ifndef _WIN32
-  closePipes(); // Close pipe child ends
-#endif
+  // Close pipe child ends
+  closePipes();
 
   running = true;
 }
