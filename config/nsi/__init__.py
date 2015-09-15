@@ -23,7 +23,7 @@ def build_function(target, source, env):
     ret = action.execute(target, [tmp], env)
     if ret != 0: return ret
 
-    if 'code_sign_key' in env:
+    if env.get('code_sign_key', None):
         cmd = '"$SIGNTOOL" sign /f "%s"' % env.get('code_sign_key')
         if 'code_sign_key_pass' in env:
             cmd += ' /p "%s"' % env.get('code_sign_key_pass')
