@@ -379,6 +379,12 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
       THROWS("Failed to create process with: " << command << ": "
              << SysError());
 
+    if (flags & W32_WAIT_FOR_INPUT_IDLE) {
+      int ret = WaitForInputIdle(p->pi.hProcess, 5000);
+      if (ret == WAIT_TIMEOUT) THROW("Wait timedout");
+      if (ret == WAIT_FAILED) THROW("Wait failed");
+    }
+
 #else // _WIN32
     // Convert args
     vector<char *> args;

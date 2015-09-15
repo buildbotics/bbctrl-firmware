@@ -55,6 +55,7 @@ namespace cb {
       NULL_STDERR             = 1 << 7,
       CREATE_PROCESS_GROUP    = 1 << 8,
       W32_HIDE_WINDOW         = 1 << 9,
+      W32_WAIT_FOR_INPUT_IDLE = 1 << 10,
       };
 
   protected:
