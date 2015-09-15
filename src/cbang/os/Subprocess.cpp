@@ -385,6 +385,10 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
       if (ret == WAIT_FAILED) THROW("Wait failed");
     }
 
+    // Close process & thread handles
+    CloseHandle(p->pi.hProcess);
+    CloseHandle(p->pi.hThread);
+
 #else // _WIN32
     // Convert args
     vector<char *> args;
@@ -640,13 +644,6 @@ string Subprocess::assemble(const vector<string> &args) {
 void Subprocess::closeHandles() {
   for (unsigned i = 0; i < p->pipes.size(); i++)
     p->pipes[i].closeStream();
-
-#ifdef _WIN32
-  // Close process and thread handles
-  if (p->pi.hProcess) CloseHandle(p->pi.hProcess);
-  if (p->pi.hThread) CloseHandle(p->pi.hThread);
-  p->pi.hProcess = p->pi.hThread = 0;
-#endif
 
   closePipes();
 }
