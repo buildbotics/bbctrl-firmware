@@ -234,8 +234,9 @@ namespace cb {
     string absolute(const string &base, const string &target) {
       if (isAbsolute(target)) return target;
 
-      if (!exists(base) || isDirectory(base)) return base + "/" + target;
-      else return dirname(base) + "/" + target;
+      if (!exists(base) || isDirectory(base))
+        return base + string(1, path_separator) + target;
+      else return dirname(base) + string(1, path_separator) + target;
     }
 
 
@@ -261,7 +262,8 @@ namespace cb {
 #endif // _WIN32
 
           string home = getUserHome(name);
-          if (i < path.length()) path = home + "/" + path.substr(i + 1);
+          if (i < path.length())
+            path = home + string(1, path_separator) + path.substr(i + 1);
           else path = home;
 
 #ifdef _WIN32
@@ -636,7 +638,7 @@ namespace cb {
       // Directory
       if (!dir.empty()) {
         ensureDirectory(dir);
-        target = dir + "/" + basename(path);
+        target = dir + string(1, path_separator) + basename(path);
 
       } else target = path;
 
