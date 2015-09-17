@@ -1,0 +1,5 @@
+{
+  "args": [
+    "http://example.com/cgi-bin/test.cgi?name1&name2=value&name3"
+  ]
+}

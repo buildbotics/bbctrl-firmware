@@ -1,0 +1,10 @@
+{
+  "args": [ 
+    "--acl-add-user", "/api/a",     "anon",
+    "--acl-add-user", "/api/a/b",   "nobody",
+    "--show-allow",   "/api/a",     "anon",
+    "--show-allow",   "/api/a/b",   "anon",
+    "--show-allow",   "/api/a/b/c", "anon"
+  ]
+}
+

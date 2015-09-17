@@ -1,0 +1,8 @@
+{
+  "args": [ 
+    "--acl-add-user", "test", "jcoffland",
+    "--show-allow", "test", "jcoffland"
+  ]
+}
+
+

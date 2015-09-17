@@ -1,0 +1,3 @@
+{
+  "command": "%(suite-dir)s/hmac-sha256-aws-s3"
+}

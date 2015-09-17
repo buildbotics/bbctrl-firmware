@@ -1,3 +1,0 @@
---group-add-user admin nobody
---acl-add-group test admin
---show-allow test jcoffland
