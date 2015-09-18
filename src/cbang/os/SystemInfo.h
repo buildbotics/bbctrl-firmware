@@ -67,6 +67,8 @@ namespace cb {
     uint64_t getTotalMemory() const {return getMemoryInfo(MEM_INFO_TOTAL);}
     uint64_t getFreeMemory() const {return getMemoryInfo(MEM_INFO_FREE);}
 
+    static uint64_t getFreeDiskSpace(const std::string &path);
+
     Version getOSVersion() const;
 
     void add(Info &info);

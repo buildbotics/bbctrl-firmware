@@ -43,6 +43,8 @@
 #include <cbang/log/Logger.h>
 #include <cbang/util/HumanSize.h>
 
+#include <boost/filesystem/operations.hpp>
+
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -71,6 +73,9 @@
 
 using namespace cb;
 using namespace std;
+
+namespace fs = boost::filesystem;
+
 
 namespace cb {SINGLETON_DECL(SystemInfo);}
 
@@ -159,6 +164,20 @@ uint64_t SystemInfo::getMemoryInfo(memory_info_t type) const {
 #endif
 
   return 0;
+}
+
+
+uint64_t SystemInfo::getFreeDiskSpace(const string &path) {
+  fs::space_info si;
+
+  try {
+    si = fs::space(path);
+
+  } catch (const fs::filesystem_error &e) {
+    THROWS("Could not get disk space at '" << path << "': " << e.what());
+  }
+
+  return si.available;
 }
 
 
