@@ -54,7 +54,10 @@ namespace cb {
 
       return 0;
 
-    } CBANG_CATCH_CBANG(CBANG_LOG_ERROR_LEVEL, "");
+    } catch (const Exception &e) {
+      CBANG_LOG_ERROR("Exception: " << e CBANG_CATCH_LOCATION);
+      if (e.getCode()) return e.getCode();
+    }
 
     return 1;
   }
