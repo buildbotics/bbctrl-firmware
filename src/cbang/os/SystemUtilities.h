@@ -137,7 +137,7 @@ namespace cb {
     uint64_t getPID();
     bool waitPID(uint64_t pid, int *returnCode = 0, bool nonblocking = false,
                  int *flags = 0);
-    void killPID(uint64_t pid, bool group = false);
+    bool killPID(uint64_t pid, bool group = false);
     void setUser(const std::string &user);
     void interruptProcessGroup();
     void daemonize();

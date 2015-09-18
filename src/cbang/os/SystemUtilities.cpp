@@ -884,20 +884,24 @@ namespace cb {
     }
 
 
-    void killPID(uint64_t pid, bool group) {
+    bool killPID(uint64_t pid, bool group) {
+      try {
+
 #ifdef _WIN32
-      SmartWin32Handle h = OpenProcess(PROCESS_TERMINATE, pid);
-      if (TerminateProcess(h, -1)) return;
+        SmartWin32Handle h = OpenProcess(PROCESS_TERMINATE, pid);
+        if (TerminateProcess(h, -1)) return true;
 
 #else // _WIN32
-      int err;
-      if (group) err = ::killpg((pid_t)pid, SIGKILL);
-      else err = ::kill((pid_t)pid, SIGKILL);
+        int err;
+        if (group) err = ::killpg((pid_t)pid, SIGKILL);
+        else err = ::kill((pid_t)pid, SIGKILL);
 
-      if (!err) return;
+        if (!err) return true;
 #endif // _WIN32
 
-      THROWS("Failed to kill process " << pid << ": " << SysError());
+      } catch (const Exception &e) {} // Ignore
+
+      return false;
     }
 
 

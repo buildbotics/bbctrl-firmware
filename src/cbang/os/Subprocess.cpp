@@ -500,8 +500,7 @@ void Subprocess::interrupt() {
 void Subprocess::kill(bool nonblocking) {
   if (!running) THROW("Process not running!");
 
-  SystemUtilities::killPID(getPID(), signalGroup);
-  wasKilled = true;
+  wasKilled = SystemUtilities::killPID(getPID(), signalGroup);
   if (!nonblocking) wait();
 }
 
