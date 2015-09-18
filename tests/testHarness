@@ -62,7 +62,7 @@ except:
 PASSED = 0
 FAILED = 1
 UNINITIALIZED = 2
-INITIALIZED = 3 
+INITIALIZED = 3
 INVALID = 4
 DISABLED = 5
 
@@ -174,7 +174,7 @@ def write_file(path, data):
 
 
 def split_cmd_line(cmd):
-  if isinstance(cmd, basestring): return shlex.split(cmd)
+  if isinstance(cmd, basestring): return shlex.split(str(cmd))
   return cmd
 
 
@@ -214,7 +214,7 @@ def execute_proc(command, timeout, **kwargs):
 
 def remove_tree(path):
   mode = os.stat(path).st_mode
-  
+
   if not os.path.islink(path) and os.path.isdir(path):
     if (mode & 0700) != 0700: os.chmod(path, mode | 0700)
 
@@ -228,7 +228,7 @@ def remove_tree(path):
       os.chmod(path, mode | 0200)
     os.remove(path)
 
-    
+
 class HarnessError(Exception):
   def __init__(self, msg, show_usage = False):
     self.msg = msg
@@ -336,7 +336,7 @@ class Logger:
   def start_suite(self, suite):
     if self.json is not None: self.push(suite.name)
     labeled_bar('Test Suite: ' + suite.name)
-    
+
 
   def end_suite(self, suite):
     if self.json is not None: self.pop(suite.name)
@@ -455,7 +455,7 @@ class CheckGroup(Check):
     if reasons: self.reason = ' '.join(reasons)
 
     return status
-  
+
 
   def view(self, test):
     for check in self.checks: check.view(test)
@@ -463,7 +463,7 @@ class CheckGroup(Check):
 
   def log(self, test, with_expected):
     for check in self.checks: check.log(test, with_expected)
-    
+
 
   def diff(self, test):
     ret = False
@@ -510,6 +510,20 @@ class CheckFileExists(Check):
 
     return PASSED
 
+
+class CheckFileSize(CheckFileExists):
+  def __init__(self, filename, size):
+    CheckFileExists.__init__(filename, size = size)
+
+
+class CheckFileMinSize(CheckFileExists):
+  def __init__(self, filename, size):
+    CheckFileExists.__init__(filename, min_size = size)
+
+
+class CheckFileMaxSize(CheckFileExists):
+  def __init__(self, filename, size):
+    CheckFileExists.__init__(filename, max_size = size)
 
 
 class MatchFilter:
@@ -567,6 +581,13 @@ class CheckFile(Check):
     self.exists = exists
 
     if isinstance(filter, basestring): filter = MatchFilter(filter)
+    if isinstance(filter, (list, tuple)):
+      if not filter[0] in filter_classes:
+        raise 'Invalid filter "%s"' % filter[0]
+
+      klass = filter_classes[filter[0]]
+      filter = klass(*filter[1:])
+
     self.filter = filter
 
 
@@ -733,8 +754,8 @@ class CheckFile(Check):
 
 
 class CheckFilePattern(CheckFile):
-  def __init__(self, name, pattern):
-    CheckFile.__init__(self, name)
+  def __init__(self, name, pattern, **kwargs):
+    CheckFile.__init__(self, name, **kwargs)
 
     if isinstance(pattern, list): self.pattern = pattern
     else: self.pattern = [pattern]
@@ -982,7 +1003,7 @@ class Unit:
       self.test_dir = self.path + '/run'
 
     self.config['test-dir'] = self.test_dir
-    self.config['data-dir'] = self.path + '/data'
+    self.config['data-dir'] = self.data_dir = self.path + '/data'
     self.config['expect-dir'] = self.path + '/expect'
 
     # Functions
@@ -1013,10 +1034,17 @@ class Unit:
       self.check = CheckGroup()
 
       for check in checks:
-        if isinstance(check, basestring):
-          raise 'TODO, lookup check by name'
+        if isinstance(check, Check): self.check.add(check)
+        else:
+          if isinstance(check, basestring):
+            check = [check]
 
-        else: self.check.add(check)
+          if isinstance(check, (list, tuple)) and len(check):
+            if not check[0] in check_classes:
+              raise 'Invalid check "%s" in %s' % (check[0], self.name)
+
+            klass = check_classes[check[0]]
+            self.check.add(klass(*check[1:]))
 
     # Inherit parent config
     config = copy.deepcopy(parent.config)
@@ -1098,7 +1126,7 @@ class Unit:
     if self.check.diff(self): bar()
     return self.failed()
 
-  
+
   def enable(self): pass
   def disable(self): pass
   def is_enabled(self): return True
@@ -1380,7 +1408,7 @@ class Test(Unit):
   def run_interactive(self):
     if self.units is None: return Unit.run_interactive(self)
     else: return self.run()
-    
+
 
 
 class TestSuite:
@@ -1585,7 +1613,7 @@ class TestSuite:
           os.chdir(save_cwd)
 
       finally: os.chdir(save_cwd)
-      
+
       if withChildren:
         for child in self.children: failures += child.run()
 
@@ -1791,8 +1819,26 @@ config = {
   'script': 'th.py',
   'stdin_file': '%(data-dir)s/stdin',
   'args_file': '%(data-dir)s/args',
+  'copy': '%(data-dir)s/*',
   'timeout': 300
   }
+
+check_classes = {
+  'exists': CheckFileExists,
+  'size': CheckFileSize,
+  'min_size': CheckFileMinSize,
+  'max_size': CheckFileMaxSize,
+  'file': CheckFile,
+  'standard': StandardCheck,
+  'db': CheckDB,
+  'command': CheckCommand
+}
+
+filter_classes = {
+  'match': MatchFilter,
+  'not_match': NotMatchFilter,
+  'replace': ReplaceFilter
+}
 
 
 # Setup command line options
