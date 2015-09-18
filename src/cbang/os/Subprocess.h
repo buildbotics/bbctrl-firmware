@@ -106,7 +106,7 @@ namespace cb {
     void exec(const std::string &command, unsigned flags = 0,
               ProcessPriority priority = ProcessPriority::PRIORITY_INHERIT);
 
-    void kill(bool nonblocking = false);
+    bool kill(bool nonblocking = false);
     void interrupt();
     int wait(bool nonblocking = false);
     int waitFor(double interrupt = 0, double kill = 0);

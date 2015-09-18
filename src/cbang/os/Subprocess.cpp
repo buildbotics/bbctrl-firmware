@@ -385,10 +385,6 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
       if (ret == WAIT_FAILED) THROW("Wait failed");
     }
 
-    // Close process & thread handles
-    CloseHandle(p->pi.hProcess);
-    CloseHandle(p->pi.hThread);
-
 #else // _WIN32
     // Convert args
     vector<char *> args;
@@ -482,26 +478,34 @@ void Subprocess::exec(const string &command, unsigned flags,
 
 void Subprocess::interrupt() {
   if (!running) THROW("Process not running!");
+
 #ifdef _WIN32
   if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, p->pi.dwProcessId)) return;
-
 #else // _WIN32
-  int err;
-  if (signalGroup) err = ::killpg((pid_t)getPID(), SIGINT);
-  else err = ::kill((pid_t)getPID(), SIGINT);
-
-  if (!err) return;
+  if (!(signalGroup ? ::killpg : ::kill)((pid_t)getPID(), SIGINT)) return;
 #endif // _WIN32
 
   THROWS("Failed to interrupt process " << getPID() << ": " << SysError());
 }
 
 
-void Subprocess::kill(bool nonblocking) {
+bool Subprocess::kill(bool nonblocking) {
   if (!running) THROW("Process not running!");
 
-  wasKilled = SystemUtilities::killPID(getPID(), signalGroup);
+#ifdef _WIN32
+  HANDLE h = p->pi.hProcess;
+  if (!h) h = OpenProcess(PROCESS_TERMINATE, false, getPID());
+  if (!h || !TerminateProcess(h, -1)) return false;
+
+#else
+  if (!(signalGroup ? ::killpg : ::kill)((pid_t)getPID(), SIGKILL))
+    return false;
+#endif
+
   if (!nonblocking) wait();
+
+  wasKilled = true;
+  return true;
 }
 
 
@@ -640,6 +644,12 @@ string Subprocess::assemble(const vector<string> &args) {
 
 
 void Subprocess::closeHandles() {
+#ifdef _WIN32
+  // Close process & thread handles
+  if (p->pi.hProcess) {CloseHandle(p->pi.hProcess); p->pi.hProcess = 0;}
+  if (p->pi.hThread) {CloseHandle(p->pi.hThread); p->pi.hThread = 0;}
+#endif
+
   for (unsigned i = 0; i < p->pipes.size(); i++)
     p->pipes[i].closeStream();
 
