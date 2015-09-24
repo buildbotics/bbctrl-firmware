@@ -153,7 +153,7 @@ void Buffer::drain(unsigned length) {
 
 unsigned Buffer::remove(char *data, unsigned length) {
   ev_ssize_t ret = evbuffer_remove(evb, data, length);
-  if (ret < 0) THROW("Failed to copy from buffer");
+  if (ret < 0) THROW("Failed to remove data from buffer");
   return (unsigned)ret;
 }
 

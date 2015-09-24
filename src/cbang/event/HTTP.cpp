@@ -115,6 +115,7 @@ HTTP::HTTP(const Base &base) : http(evhttp_new(base.getBase())), priority(-1) {
   if (!http) THROW("Failed to create event HTTP");
 
   evhttp_set_bevcb(http, bev_cb, this);
+  evhttp_set_allowed_methods(http, ~0); // Allow all methods
 }
 
 
@@ -123,6 +124,7 @@ HTTP::HTTP(const Base &base, const cb::SmartPointer<cb::SSLContext> &sslCtx) :
   if (!http) THROW("Failed to create event HTTP");
 
   evhttp_set_bevcb(http, bev_cb, this);
+  evhttp_set_allowed_methods(http, ~0); // Allow all methods
 
 #ifndef HAVE_OPENSSL
   if (!sslCtx.isNull()) THROW("C! was not built with openssl support");

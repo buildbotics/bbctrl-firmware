@@ -52,6 +52,10 @@ namespace cb {
     bool initialized;
     SmartPointer<uint8_t>::Array digest;
 
+    // No copy
+    Digest(const Digest &);
+    Digest &operator=(const Digest &);
+
   public:
     Digest(const std::string &digest);
     virtual ~Digest();
