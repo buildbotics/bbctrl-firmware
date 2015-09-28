@@ -55,16 +55,13 @@ ServerApplication::ServerApplication(const string &name,
   Application(name, hasFeature), restartChild(false), lifeline(0) {
 
   if (hasFeature(FEATURE_LIFELINE))
-    cmdLine.add("lifeline", 0, new OptionActionSet<uint64_t>(lifeline),
-                "The application will watch for this process ID and exit if it "
-                "goes away.  Usually the calling process' PID."
-                )->setType(Option::INTEGER_TYPE);
+    cmdLine.addTarget("lifeline", lifeline, "The application will watch for "
+                      "this process ID and exit if it goes away.  Usually the "
+                      "calling process' PID.")->setType(Option::INTEGER_TYPE);
 
   if (!hasFeature(FEATURE_SERVER)) return;
 
-  typedef OptionAction<ServerApplication> Action;
-
-  cmdLine.add("chdir", 0, new Action(this, &ServerApplication::chdirAction),
+  cmdLine.add("chdir", 0, this, &ServerApplication::chdirAction,
               "Change directory before starting server.  All files opened "
               "after this point, such as the configuration file, must have "
               "paths relative to the new directory."
@@ -84,7 +81,7 @@ ServerApplication::ServerApplication(const string &name,
               "Also defaults 'log-to-screen' to false. Used internally."
               )->setDefault(false);
 
-  options.add("daemon", 0, new Action(this, &ServerApplication::daemonAction),
+  options.add("daemon", 0, this, &ServerApplication::daemonAction,
               "Short for --pid --service --respawn --log=''"
 #ifndef _WIN32
               " --fork"

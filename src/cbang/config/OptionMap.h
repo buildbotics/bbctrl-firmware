@@ -75,6 +75,26 @@ namespace cb {
     SmartPointer<Option> add(const std::string &name, const char shortName = 0,
                              SmartPointer<OptionActionBase> action = 0,
                              const std::string &help = "");
+
+    template <typename T>
+    SmartPointer<Option> add(const std::string &name, const char shortName,
+                             T *obj, typename OptionAction<T>::member_t member,
+                             const std::string &help = "") {
+      SmartPointer<Option> option = add(name, shortName, 0, help);
+      option->setAction(obj, member);
+      return option;
+    }
+
+    template <typename T>
+    SmartPointer<Option> add(const std::string &name, const char shortName,
+                             T *obj,
+                             typename BareOptionAction<T>::member_t member,
+                             const std::string &help = "") {
+      SmartPointer<Option> option = add(name, shortName, 0, help);
+      option->setAction(obj, member);
+      return option;
+    }
+
     template <typename T>
     SmartPointer<Option> addTarget(const std::string &name, T &target,
                                    const std::string &help = "",

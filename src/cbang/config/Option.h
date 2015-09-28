@@ -145,8 +145,31 @@ namespace cb {
 
     void setAction(const SmartPointer<OptionActionBase> &action)
     {this->action = action;}
+
+    template <class T>
+    void setAction(T *obj, typename OptionAction<T>::member_t member) {
+      setAction(new OptionAction<T>(obj, member));
+    }
+
+    template <class T>
+    void setAction(T *obj, typename BareOptionAction<T>::member_t member) {
+      setAction(new BareOptionAction<T>(obj, member));
+    }
+
     void setDefaultSetAction(const SmartPointer<OptionActionBase> &action)
     {defaultSetAction = action;}
+
+    template <class T>
+    void setDefaultSetAction(T *obj,
+                             typename OptionAction<T>::member_t member) {
+      setDefaultSetAction(new OptionAction<T>(obj, member));
+    }
+
+    template <class T>
+    void setDefaultSetAction(T *obj,
+                             typename BareOptionAction<T>::member_t member) {
+      setDefaultSetAction(new BareOptionAction<T>(obj, member));
+    }
 
     void setConstraint(const SmartPointer<Constraint> &constraint)
     {this->constraint = constraint;}

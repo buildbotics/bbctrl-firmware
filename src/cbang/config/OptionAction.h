@@ -33,8 +33,8 @@
 #ifndef OPTION_ACTION_H
 #define OPTION_ACTION_H
 
-#include <string>
-#include <vector>
+#include <cbang/util/MemberFunctor.h>
+
 
 namespace cb {
   class Option;
@@ -46,33 +46,25 @@ namespace cb {
     virtual int operator()(Option &option) = 0;
   };
 
+
+  class BareOptionActionBase : public OptionActionBase {
+  public:
+    virtual int operator()() = 0;
+
+    // From OptionActionBase
+    int operator()(Option &option) {return operator()();}
+  };
+
+
   /**
    * Used to execute an fuction when a command line option is encountered.
    * This makes it possible to load a configuration file in the middle of
    * command line processing.  Thus making the options overridable by
    * subsequent options.
    */
-  template <typename T>
-  class OptionAction : public OptionActionBase {
-    T *obj;
-    typedef int (T::*fpt_t)(Option &option);
-    fpt_t fpt;
-
-    typedef int (T::*fpt_noargs_t)();
-    fpt_noargs_t fpt_noargs;
-
-  public:
-    OptionAction(T *obj, fpt_t fpt) : obj(obj), fpt(fpt), fpt_noargs(0) {}
-    OptionAction(T *obj, fpt_noargs_t fpt_noargs) :
-      obj(obj), fpt(0), fpt_noargs(fpt_noargs) {}
-
-    virtual ~OptionAction() {}
-
-    virtual int operator()(Option &option) {
-      if (fpt) return (*obj.*fpt)(option);
-      else return (*obj.*fpt_noargs)();
-    }
-  };
+  CBANG_MEMBER_FUNCTOR(BareOptionAction, BareOptionActionBase, int, operator());
+  CBANG_MEMBER_FUNCTOR1(OptionAction, OptionActionBase, int, operator(), \
+                        Option &);
 }
 
 #endif // OPTION_ACTION_H

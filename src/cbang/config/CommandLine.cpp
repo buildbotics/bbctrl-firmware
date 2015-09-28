@@ -49,25 +49,24 @@ CommandLine::CommandLine() :
   showKeywordOpts(true) {
 
   SmartPointer<Option> opt;
-  typedef OptionAction<CommandLine> Action;
 
   pushCategory("Informational");
 
-  opt = add("help", 0, new Action(this, &CommandLine::usageAction),
+  opt = add("help", 0, this, &CommandLine::usageAction,
             "Print help screen or help on a particular option and exit.");
   opt->setType(Option::STRING_TYPE);
   opt->setOptional();
 
-  add("html-help", 0, new Action(this, &CommandLine::htmlHelpAction),
+  add("html-help", 0, this, &CommandLine::htmlHelpAction,
       "Print help in HTML format and exit.");
 
-  add("verbose", 'v', new Action(this, &CommandLine::incVerbosityAction),
+  add("verbose", 'v', this, &CommandLine::incVerbosityAction,
       "Increase verbosity level.");
 
-  add("quiet", 'q', new Action(this, &CommandLine::quietAction),
+  add("quiet", 'q', this, &CommandLine::quietAction,
       "Set verbosity to zero.");
 
-  add("license", 0, new Action (this, &CommandLine::licenseAction),
+  add("license", 0, this, &CommandLine::licenseAction,
       "License information and exit.");
 
   popCategory();

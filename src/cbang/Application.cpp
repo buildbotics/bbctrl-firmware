@@ -146,15 +146,13 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
   logger.addOptions(options);
 
   // Command line
-  typedef OptionAction<Application> Action;
-
   if (hasFeature(FEATURE_CONFIG_FILE)) {
     cmdLine.pushCategory("Configuration");
 
-    cmdLine.add("config", 0, new Action(this, &Application::configAction),
+    cmdLine.add("config", 0, this, &Application::configAction,
                 "Set configuration file.")->setDefault("config.xml");
 
-    cmdLine.add("print", 0, new Action(this, &Application::printAction),
+    cmdLine.add("print", 0, this, &Application::printAction,
                 "Print configuration and exit.");
 
     cmdLine.popCategory();
@@ -162,11 +160,11 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
 
   cmdLine.pushCategory("Informational");
 
-  cmdLine.add("version", 0, new Action(this, &Application::versionAction),
+  cmdLine.add("version", 0, this, &Application::versionAction,
               "Print application version and exit.");
 
   if (hasFeature(FEATURE_INFO))
-    cmdLine.add("info", 0, new Action(this, &Application::infoAction),
+    cmdLine.add("info", 0, this, &Application::infoAction,
                 "Print application and system information and exit.");
 
   cmdLine.popCategory();
