@@ -52,7 +52,7 @@ namespace cb {
     template<typename Source>
     std::streamsize read(Source &src, char *s, std::streamsize n) {
       std::streamsize bytes = io::read(src, s, n);
-      target.write(s, bytes);
+      if (0 < bytes) target.write(s, bytes);
       return bytes;
     }
 
@@ -60,7 +60,7 @@ namespace cb {
     template<typename Sink>
     std::streamsize write(Sink &dst, const char *s, std::streamsize n) {
       std::streamsize bytes = io::write(dst, s, n);
-      target.write(s, bytes);
+      if (0 < bytes) target.write(s, bytes);
       return bytes;
     }
   };
