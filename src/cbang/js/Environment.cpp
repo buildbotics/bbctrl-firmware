@@ -175,7 +175,12 @@ Value Environment::require(const string &_path) {
 
   module.set("loaded", true);
 
+  // Get the final exports from module.exports or the script return value
+  exports = module.get("exports");
   if (!exports.getOwnPropertyNames().length()) exports = ret;
+
+  // Save the final exports dictionary
+  modules[path] = exports;
 
   return scope.close(exports);
 }
