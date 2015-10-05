@@ -59,24 +59,25 @@ namespace cb {
       T value;
 
     public:
-      ValueBase() : value(v8::Undefined()) {}
+      ValueBase() {assign(T(v8::Undefined()));}
 
       ValueBase(const Value &value) {
-        assign(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
-               value.getV8Value());
+        if (value.getV8Value().IsEmpty()) assign(T(v8::Undefined()));
+        else assign(value.getV8Value());
       }
 
       ValueBase(const PersistentValue &value) {
-        assign(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
-               T(value.getV8Value()));
+        if (value.getV8Value().IsEmpty()) assign(T(v8::Undefined()));
+        else assign(value.getV8Value());
       }
 
       ValueBase(const T &value) {
-        assign(value.IsEmpty() ? T(v8::Undefined()) : value);
+        if(value.IsEmpty()) assign(T(v8::Undefined()));
+        else assign(value);
       }
 
       explicit ValueBase(bool x) {
-        assign(x ? v8::True() : v8::False());
+        assign(T(x ? v8::True() : v8::False()));
       }
 
       ValueBase(double x) {
