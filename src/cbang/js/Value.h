@@ -61,31 +61,51 @@ namespace cb {
     public:
       ValueBase() : value(v8::Undefined()) {}
 
-      ValueBase(const Value &value) :
-        value(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
-              value.getV8Value()) {}
+      ValueBase(const Value &value) {
+        assign(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
+               value.getV8Value());
+      }
 
-      ValueBase(const PersistentValue &value) :
-        value(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
-              T(value.getV8Value())) {}
+      ValueBase(const PersistentValue &value) {
+        assign(value.getV8Value().IsEmpty() ? T(v8::Undefined()) :
+               T(value.getV8Value()));
+      }
 
-      ValueBase(const T &value) :
-      value(value.IsEmpty() ? T(v8::Undefined()) : value) {}
+      ValueBase(const T &value) {
+        assign(value.IsEmpty() ? T(v8::Undefined()) : value);
+      }
 
-      explicit ValueBase(bool x) : value(x ? v8::True() : v8::False()) {}
+      explicit ValueBase(bool x) {
+        assign(x ? v8::True() : v8::False());
+      }
 
-      ValueBase(double x) : value(v8::Number::New(x)) {}
+      ValueBase(double x) {
+        assign(v8::Number::New(x));
+      }
 
-      ValueBase(int32_t x) : value(v8::Int32::New(x)) {}
+      ValueBase(int32_t x) {
+        assign(v8::Int32::New(x));
+      }
 
-      ValueBase(uint32_t x) : value(v8::Uint32::New(x)) {}
+      ValueBase(uint32_t x) {
+        assign(v8::Uint32::New(x));
+      }
 
-      ValueBase(const char *s, int length = -1) :
-        value(v8::String::New(s, length)) {}
+      ValueBase(const char *s, int length = -1) {
+        assign(v8::String::New(s, length));
+      }
 
-      ValueBase(const std::string &s) :
-        value(v8::String::New(s.data(), s.length())) {}
+      ValueBase(const std::string &s) {
+        assign(v8::String::New(s.data(), s.length()));
+      }
 
+      ~ValueBase() {}
+
+    protected:
+      void assign(const v8::Handle<v8::Value> &value) {this->value = value;}
+      void assign(const v8::Persistent<v8::Value> &value) {this->value = value;}
+
+    public:
       // Undefined
       void assertDefined() const
       {if (isUndefined()) THROW("Value is undefined");}
@@ -266,6 +286,17 @@ namespace cb {
     };
 
 
+    // Specializations
+    template<> inline
+    void ValueBase<v8::Persistent<v8::Value> >::
+    assign(const v8::Handle<v8::Value> &value) {
+      this->value = v8::Persistent<v8::Value>::New(value);
+    }
+
+    template<> inline
+    ValueBase<v8::Persistent<v8::Value> >::~ValueBase() {
+      if (value.IsNearDeath()) value.Dispose();
+    }
 
 
     // Stream operator
