@@ -157,17 +157,18 @@ Value Environment::require(const string &_path) {
   ContextScope ctxScope(ctx);
 
   // Setup 'module.exports' & 'exports' for common.js style modules
-  Value exports = Value::createObject();
-  ctx.getGlobal().set("exports", exports);
+  Value dummy = Value::createObject();
+  ctx.getGlobal().set("exports", dummy);
 
   Value module = Value::createObject();
-  module.set("exports", exports);
+  module.set("exports", dummy);
   module.set("id", path);
   module.set("filename", path);
   module.set("loaded", false);
   // NOTE, node.js also sets 'parent' & 'children'
   ctx.getGlobal().set("module", module);
 
+  Value exports = Value::createObject();
   addModule(path, exports);
 
   // Load module
@@ -176,11 +177,15 @@ Value Environment::require(const string &_path) {
   module.set("loaded", true);
 
   // Get the final exports from module.exports or the script return value
-  exports = module.get("exports");
-  if (!exports.getOwnPropertyNames().length()) exports = ret;
+  Value actual = module.get("exports");
+  if (!actual.getOwnPropertyNames().length()) actual = ret;
 
-  // Save the final exports dictionary
-  modules[path] = exports;
+  // Copy to the actual exports dictionary
+  Value propNames = actual.getOwnPropertyNames();
+  for (int i = 0; i < propNames.length(); i++) {
+    string name = propNames.get(i).toString();
+    exports.set(name, actual.get(name));
+  }
 
   return scope.close(exports);
 }
