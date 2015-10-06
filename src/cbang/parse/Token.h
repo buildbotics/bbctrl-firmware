@@ -73,7 +73,7 @@ namespace cb {
     bool operator!=(const Token &token) const {return *this != token;}
 
     std::ostream &print(std::ostream &stream) const {
-      return stream << type << '=' << value;
+      return stream << type << '=' << String::escapeC(value);
     }
   };
 

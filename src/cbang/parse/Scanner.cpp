@@ -39,6 +39,9 @@ using namespace cb;
 using namespace std;
 
 
+int Scanner::defaultWS[6] = {0x20, 0x09, 0x0d, 0x0a, 0xfeff, 0};
+
+
 Scanner::Scanner(const InputSource &source) : x(-2), source(source) {
   location.setCol(-1);
   location.setLine(1);
@@ -75,18 +78,18 @@ void Scanner::advance() {
 }
 
 
-void Scanner::match(char c) {
-  if (!hasMore())  THROWS("Expected '" << String::escapeC(string(1, c))
+void Scanner::match(int c) {
+  if (!hasMore())  THROWS("Expected '" << String::escapeC(c)
                           << "' found end of stream");
-  if (c != peek()) THROWS("Expected '" << String::escapeC(string(1, c))
-                          << "' found '" << String::escapeC(string(1, peek())));
+  if (c != peek()) THROWS("Expected '" << String::escapeC(c)
+                          << "' found '" << String::escapeC(peek()));
 
   advance();
 }
 
 
-bool Scanner::consume(char c) {
-  if (c == (char)x) {
+bool Scanner::consume(int c) {
+  if (c == x) {
     advance();
     return true;
   }
@@ -95,17 +98,17 @@ bool Scanner::consume(char c) {
 }
 
 
-string Scanner::seek(const char *s, bool inverse, bool skip) {
+string Scanner::seek(const int *s, bool inverse, bool skip) {
   string buffer;
 
   while (hasMore()) {
-    const char *ptr;
+    const int *ptr;
     for (ptr = s; *ptr; ptr++)
-      if (*ptr == (char)x) break;
+      if (*ptr == x) break;
 
     if ((inverse && !*ptr) || (!inverse && *ptr)) break;
 
-    if (!skip) buffer += (char)x;
+    if (!skip) buffer += (char)x; // TODO does not work with UTF-8
     advance();
   }
 
@@ -113,6 +116,43 @@ string Scanner::seek(const char *s, bool inverse, bool skip) {
 }
 
 
-void Scanner::skipWhiteSpace(const char *s) {
+void Scanner::skipWhiteSpace(const int *s) {
   seek(s, true, true);
+}
+
+
+int Scanner::next() {
+  istream &stream = source.getStream();
+
+  if (!stream.good()) return -1;
+
+  int x = stream.get();
+
+  // Handle UTF-8
+  int width = 0;
+  if ((x & 0xe0) == 0xc0) width = 1;
+  else if ((x & 0xf0) == 0xe0) width = 2;
+  else if ((x & 0xf8) == 0xf0) width = 3;
+
+  if (width) {
+    bool extractedChars = false;
+    uint32_t utf8 = x & ((1 << (6 - width)) - 1);
+
+    for (int i = 0; i < width && stream.good(); i++) {
+      int c = stream.peek();
+
+      if ((c & 0xc0) != 0x80) break; // Not UTF-8
+
+      utf8 = (utf8 << 6) | (c & 0x3f);
+
+      stream.ignore();
+      extractedChars = true;
+
+      if (i == width - 1) return utf8;
+    }
+
+    if (extractedChars) THROW("Invalid UTF-8 data");
+  }
+
+  return x;
 }

@@ -43,6 +43,8 @@ namespace cb {
     FileLocation location;
 
   public:
+    static int defaultWS[6];
+
     Scanner(const InputSource &source);
 
     FileLocation &getLocation() {return location;}
@@ -51,14 +53,13 @@ namespace cb {
     bool hasMore();
     int peek();
     void advance();
-    void match(char c);
-    bool consume(char c);
-    std::string seek(const char *s, bool inverse = false, bool skip = false);
-    void skipWhiteSpace(const char *s = " \t\r\n");
+    void match(int c);
+    bool consume(int c);
+    std::string seek(const int *s, bool inverse = false, bool skip = false);
+    void skipWhiteSpace(const int *s = defaultWS);
 
   protected:
-    int next()
-    {return source.getStream().good() ? source.getStream().get() : -1;}
+    int next();
   };
 }
 

@@ -148,6 +148,8 @@ namespace cb {
     static char hexNibble(int x, bool lower = true);
     static std::string hexEncode(const std::string &s);
     static std::string escapeRE(const std::string &s);
+    static std::string escapeC(int c);
+    static void escapeC(std::string &result, int c);
     static std::string escapeC(const std::string &s);
     static std::string unescapeC(const std::string &s);
     static std::string join(const std::vector<std::string> &s,

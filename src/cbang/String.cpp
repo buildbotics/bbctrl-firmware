@@ -599,12 +599,8 @@ string String::escapeRE(const string &s) {
 }
 
 
-string String::escapeC(const string &s) {
-  string result;
-  result.reserve(s.length());
-
-  for (string::const_iterator it = s.begin(); it != s.end(); it++)
-    switch (*it) {
+void String::escapeC(string &result, int c) {
+    switch (c) {
     case '\"': result.append("\\\""); break;
     case '\\': result.append("\\\\"); break;
     case '\a': result.append("\\a"); break;
@@ -615,10 +611,31 @@ string String::escapeC(const string &s) {
     case '\t': result.append("\\t"); break;
     case '\v': result.append("\\v"); break;
     default:
-      if (iscntrl(*it)) result.append(printf("\\x%0x", (unsigned)*it));
-      else result.push_back(*it);
+      if (!isprint(c)) {
+        uint32_t x = c;
+        if (x <= 0xffff) result.append(printf("\\x%02x", x));
+        else if (x <= 0xffffffff) result.append(printf("\\u%04x", x));
+        else result.append(printf("\\U%08x", x));
+
+      } else result.push_back(c);
       break;
     }
+}
+
+
+string String::escapeC(int c) {
+  string result;
+  escapeC(result, c);
+  return result;
+}
+
+
+string String::escapeC(const string &s) {
+  string result;
+  result.reserve(s.length());
+
+  for (string::const_iterator it = s.begin(); it != s.end(); it++)
+    escapeC(result, *it);
 
   return result;
 }
