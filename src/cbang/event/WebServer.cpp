@@ -73,7 +73,7 @@ namespace {
 WebServer::WebServer(cb::Options &options, const Base &base,
                      const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), http(new HTTP(base)),
-  initialized(false) {
+  initialized(false), logPrefix(false), nextID(0) {
   initOptions();
 }
 
@@ -83,7 +83,7 @@ WebServer::WebServer(cb::Options &options, const Base &base,
                      const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), sslCtx(sslCtx),
   http(new HTTP(base)), https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)),
-  initialized(false) {
+  initialized(false), logPrefix(false), nextID(0) {
   initOptions();
 }
 
@@ -158,8 +158,17 @@ bool WebServer::allow(Request &req) const {
 
 
 bool WebServer::operator()(Request &req) {
+  req.setID(nextID++);
+
+  if (logPrefix) Logger::instance().setThreadPrefix(req.getLogPrefix());
   if (!allow(req)) THROWX("Unauthorized", HTTP_UNAUTHORIZED);
+
   return HTTPHandlerGroup::operator()(req);
+}
+
+
+void WebServer::endRequestEvent(Request *req) {
+  if (logPrefix) Logger::instance().setThreadPrefix("");
 }
 
 

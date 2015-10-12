@@ -63,6 +63,7 @@ namespace cb {
       evhttp_request *req;
       bool deallocate;
 
+      uint64_t id;
       URI originalURI;
       URI uri;
       IPAddress clientIP;
@@ -87,6 +88,10 @@ namespace cb {
 
       evhttp_request *getRequest() const {return req;}
       evhttp_request *adopt() {deallocate = false; return req;}
+
+      uint64_t getID() const {return id;}
+      void setID(uint64_t id) {this->id = id;}
+      virtual std::string getLogPrefix() const;
 
       const std::string &getUser() const {return user;}
       void setUser(const std::string &user) {this->user = user;}

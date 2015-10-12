@@ -142,11 +142,15 @@ void Event::activate(int flags) {
 
 
 void Event::call(int fd, short flags) {
+  if (!logPrefix.empty()) Logger::instance().setThreadPrefix(logPrefix);
+
   LOG_DEBUG(5, "Event callback fd=" << fd << " flags=" << flags);
 
   try {
     (*cb)(*this, fd, flags);
   } CATCH_ERROR;
+
+  if (!logPrefix.empty()) Logger::instance().setThreadPrefix("");
 
   if (selfDestruct && !isPending()) delete this;
 }

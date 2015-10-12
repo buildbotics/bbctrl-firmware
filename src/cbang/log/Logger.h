@@ -91,7 +91,6 @@ namespace cb {
     bool logSimpleDomains;
     bool logThreadID;
     bool logHeader;
-    std::string logPrefix;
     bool logNoInfoHeader;
     bool logColor;
     bool logToScreen;
@@ -157,7 +156,6 @@ namespace cb {
     void setLogThreadID(bool x) {logThreadID = x;}
     void setLogNoInfoHeader(bool x) {logNoInfoHeader = x;}
     void setLogHeader(bool x) {logHeader = x;}
-    void setLogPrefix(const std::string &x) {logPrefix = x;}
     void setLogColor(bool x) {logColor = x;}
     void setLogToScreen(bool x) {logToScreen = x;}
     void setLogTruncate(bool x) {logTrunc = x;}

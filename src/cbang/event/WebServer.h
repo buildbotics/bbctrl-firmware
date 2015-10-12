@@ -62,6 +62,9 @@ namespace cb {
       ports_t ports;
       ports_t securePorts;
 
+      bool logPrefix;
+      uint64_t nextID;
+
     public:
       WebServer(Options &options, const Base &base,
                 const SmartPointer<HTTPHandlerFactory> &factory =
@@ -72,11 +75,15 @@ namespace cb {
                 new HTTPHandlerFactory);
       virtual ~WebServer();
 
+      bool getLogPrefix() const {return logPrefix;}
+      void setLogPrefix(bool logPrefix) {this->logPrefix = logPrefix;}
+
       virtual void init();
       virtual bool allow(Request &req) const;
 
       // From HTTPHandler
       bool operator()(Request &req);
+      void endRequestEvent(Request *req);
 
       const SmartPointer<SSLContext> &getSSLContext() const {return sslCtx;}
 

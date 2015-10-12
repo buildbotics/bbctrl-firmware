@@ -86,6 +86,11 @@ Request::~Request() {
 }
 
 
+string Request::getLogPrefix() const {
+  return String::printf("#%lld:", getID());
+}
+
+
 void Request::resetOutput() {
   finalized = false;
   getOutputBuffer().clear();

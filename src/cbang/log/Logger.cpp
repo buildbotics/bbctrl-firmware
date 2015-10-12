@@ -143,8 +143,6 @@ void Logger::addOptions(Options &options) {
               )->setType(Option::STRINGS_TYPE);
   options.addTarget("log-thread-id", logThreadID, "Print id with log entries.");
   options.addTarget("log-header", logHeader, "Enable log message headers.");
-  options.addTarget("log-prefix", logPrefix,
-                    "Prefix which is prepended to the header.");
   options.addTarget("log-no-info-header", logNoInfoHeader,
                     "Don't print 'INFO(#):' in header.");
   options.addTarget("log-color", logColor,
@@ -296,9 +294,6 @@ string Logger::getHeader(const string &domain, int level) const {
 
   int verbosity = level >> 8;
   level &= LEVEL_MASK;
-
-  // Prefix
-  header += logPrefix;
 
   // Thread ID
   if (logThreadID) {

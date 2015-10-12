@@ -76,10 +76,12 @@ namespace {
 
 
   void request_cb(evhttp_request *_req, void *cb) {
+    HTTPHandler *handler = (HTTPHandler *)cb;
+    Request *req = 0;
+
     try {
       // Allocate request
-      HTTPHandler *handler = (HTTPHandler *)cb;
-      Request *req = handler->createRequest(_req);
+      req = handler->createRequest(_req);
 
       // Set deallocator
       evhttp_request_set_on_complete_cb(_req, complete_cb, req);
@@ -107,6 +109,8 @@ namespace {
                   .getDescription());
       }
     } CATCH_ERROR;
+
+    try {handler->endRequestEvent(req);} CATCH_ERROR;
   }
 }
 

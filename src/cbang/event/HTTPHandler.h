@@ -50,6 +50,7 @@ namespace cb {
       virtual ~HTTPHandler() {}
 
       virtual Request *createRequest(evhttp_request *req);
+      virtual void endRequestEvent(Request *req) {}
 
       virtual bool operator()(Request &req) = 0;
       virtual void error(int err) {}

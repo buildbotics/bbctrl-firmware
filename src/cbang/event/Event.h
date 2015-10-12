@@ -48,6 +48,7 @@ namespace cb {
       event *e;
       SmartPointer<EventCallback> cb;
       bool selfDestruct;
+      std::string logPrefix;
 
     public:
       Event(Base &base, int fd, unsigned events,
@@ -60,6 +61,9 @@ namespace cb {
       virtual ~Event();
 
       event *getEvent() const {return e;}
+
+      const std::string &getLogPrefix() const {return logPrefix;}
+      void setLogPrefix(const std::string &prefix) {logPrefix = prefix;}
 
       bool isPending(unsigned events = ~0) const;
       unsigned getEvents() const;
