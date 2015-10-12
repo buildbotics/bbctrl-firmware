@@ -51,7 +51,7 @@ using namespace std;
 
 
 Request::Request(evhttp_request *req, bool deallocate) :
-  req(req), deallocate(deallocate), user("anonymous"), incoming(false),
+  req(req), deallocate(deallocate), id(0), user("anonymous"), incoming(false),
   secure(false), finalized(false) {
   if (!req) THROW("Event request cannot be null");
 

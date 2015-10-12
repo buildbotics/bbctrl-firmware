@@ -73,7 +73,7 @@ namespace {
 WebServer::WebServer(cb::Options &options, const Base &base,
                      const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), http(new HTTP(base)),
-  initialized(false), logPrefix(false), nextID(0) {
+  initialized(false), logPrefix(false), nextID(1) {
   initOptions();
 }
 
@@ -83,7 +83,7 @@ WebServer::WebServer(cb::Options &options, const Base &base,
                      const cb::SmartPointer<HTTPHandlerFactory> &factory) :
   HTTPHandlerGroup(factory), options(options), sslCtx(sslCtx),
   http(new HTTP(base)), https(sslCtx.isNull() ? 0 : new HTTP(base, sslCtx)),
-  initialized(false), logPrefix(false), nextID(0) {
+  initialized(false), logPrefix(false), nextID(1) {
   initOptions();
 }
 
