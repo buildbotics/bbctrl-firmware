@@ -45,7 +45,9 @@ def configure(conf, cstd = 'c99'):
     if env.GetOption('clean'): return
 
     # Decider hack.  Works around some SCons bugs.
-    env.Decider(decider_hack(env))
+    major, minor, rev = SCons.__version__.split('.')
+    if major <= 2 and minor < 4:
+        env.Decider(decider_hack(env))
 
     # Get options
     debug = int(env.get('debug'))
