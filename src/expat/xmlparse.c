@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <string.h>                     /* memset(), memcpy() */
+#include <strings.h>                    /* bcopy() */
 #include <assert.h>
 #include <limits.h>                     /* UINT_MAX */
 #include <time.h>                       /* time() */

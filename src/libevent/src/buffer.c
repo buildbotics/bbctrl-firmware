@@ -2485,10 +2485,11 @@ evbuffer_write_sendfile(struct evbuffer *buffer, evutil_socket_t dest_fd,
 #elif defined(SENDFILE_IS_SOLARIS)
 	{
 		const off_t offset_orig = offset;
-		res = sendfile(dest_fd, source_fd, &offset, chain->off);
+        const off_t offset_new = offset;
+        res = sendfile(dest_fd, source_fd, &offset_new, chain->off);
 		if (res == -1 && EVUTIL_ERR_RW_RETRIABLE(errno)) {
-			if (offset - offset_orig)
-				return offset - offset_orig;
+            if (offset_new - offset_orig)
+                return offset_new - offset_orig;
 			/* if this is EAGAIN or EINTR and no bytes were
 			 * written, return 0 */
 			return (0);
