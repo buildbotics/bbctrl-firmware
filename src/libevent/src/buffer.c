@@ -2476,7 +2476,8 @@ evbuffer_write_sendfile(struct evbuffer *buffer, evutil_socket_t dest_fd,
 	return (len);
 #elif defined(SENDFILE_IS_LINUX)
 	/* TODO(niels): implement splice */
-	res = sendfile(dest_fd, source_fd, &offset, chain->off);
+    off_t offset_orig = offset;
+    res = sendfile(dest_fd, source_fd, &offset_orig, chain->off);
 	if (res == -1 && EVUTIL_ERR_RW_RETRIABLE(errno)) {
 		/* if this is EAGAIN or EINTR return 0; otherwise, -1 */
 		return (0);
@@ -2485,11 +2486,10 @@ evbuffer_write_sendfile(struct evbuffer *buffer, evutil_socket_t dest_fd,
 #elif defined(SENDFILE_IS_SOLARIS)
 	{
 		const off_t offset_orig = offset;
-        const off_t offset_new = offset;
-        res = sendfile(dest_fd, source_fd, &offset_new, chain->off);
+        res = sendfile(dest_fd, source_fd, &offset, chain->off);
 		if (res == -1 && EVUTIL_ERR_RW_RETRIABLE(errno)) {
-            if (offset_new - offset_orig)
-                return offset_new - offset_orig;
+            if (offset - offset_orig)
+                return offset - offset_orig;
 			/* if this is EAGAIN or EINTR and no bytes were
 			 * written, return 0 */
 			return (0);
