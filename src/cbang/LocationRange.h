@@ -42,6 +42,8 @@ namespace cb {
 
   public:
     LocationRange() {}
+    LocationRange(const FileLocation &loc) : start(loc), end(loc) {}
+
     LocationRange(const FileLocation &start, const FileLocation &end) :
       start(start), end(end) {}
 

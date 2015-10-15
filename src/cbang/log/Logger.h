@@ -259,7 +259,7 @@ namespace cb {
 #ifdef DEBUG
 #define CBANG_LOG_DEBUG(x, msg) CBANG_LOG_LEVEL(CBANG_LOG_DEBUG_LEVEL(x), msg)
 #else
-#define CBANG_LOG_DEBUG(x, msg)
+#define CBANG_LOG_DEBUG(x, msg) do {} while (false)
 #endif
 
 

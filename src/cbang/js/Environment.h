@@ -70,8 +70,8 @@ namespace cb {
       Environment(std::ostream &out);
       virtual ~Environment() {}
 
-      void pushPath(const std::string &path) {pathStack.push_back(path);}
-      void popPath();
+      virtual void pushPath(const std::string &path);
+      virtual void popPath();
       const std::string &getCurrentPath() const;
 
       void addSearchExtensions(const std::string &exts);

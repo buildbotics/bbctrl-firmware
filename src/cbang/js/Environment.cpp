@@ -61,6 +61,11 @@ Environment::Environment(ostream &out) : out(out) {
 }
 
 
+void Environment::pushPath(const std::string &path) {
+  pathStack.push_back(path);
+}
+
+
 void Environment::popPath() {
   if (pathStack.size() == 1) THROW("No path top pop");
   pathStack.pop_back();
