@@ -13,8 +13,10 @@ env.CBAddVariables(
     BoolVariable('staticlib', 'Build a static library', True),
     BoolVariable('sharedlib', 'Build a shared library', False),
     ('soname', 'Shared library soname', 'libcbang%s.so' % libversion),
+    ('libsuffix', 'Suffix for library path, e.g. "64" to get lib64', ''),
     PathVariable('prefix', 'Install path prefix', '/usr/local',
                  PathVariable.PathAccept),
+    ('docdir', 'Path for documentation', '${prefix}/share/doc/cbang'),
     BoolVariable('with_openssl', 'Build with OpenSSL support', True),
     ('force_local', 'List of 3rd party libs to be built locally', ''),
     ('disable_local', 'List of 3rd party libs not to be built locally', ''))
@@ -115,7 +117,8 @@ Clean(libs, 'build lib include config.log cbang-config.pyc package.txt'
 
 # Install
 prefix = env.get('prefix')
-install = [env.Install(dir = prefix + '/lib', source = libs)]
+libsuffix = env.get('libsuffix')
+install = [env.Install(dir = prefix + '/lib' + libsuffix, source = libs)]
 
 for dir in subdirs:
     files = Glob('src/cbang/%s/*.h' % dir)
@@ -124,7 +127,8 @@ for dir in subdirs:
                                source = files))
 
 docs = ['README.md', 'COPYING']
-install.append(env.Install(dir = prefix + '/share/doc/cbang', source = docs))
+docdir = env.get('docdir').replace('${prefix}', prefix)
+install.append(env.Install(dir = docdir, source = docs))
 
 env.Alias('install', install)
 
