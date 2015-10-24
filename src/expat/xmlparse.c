@@ -8,10 +8,6 @@
 #include <limits.h>                     /* UINT_MAX */
 #include <time.h>                       /* time() */
 
-#ifndef _WIN32
-#include <strings.h>                    /* bcopy() */
-#endif
-
 #define XML_BUILDING_EXPAT 1
 
 #ifdef COMPILED_FROM_DSP
@@ -82,6 +78,7 @@ typedef char ICHAR;
 /* Handle the case where memmove() doesn't exist. */
 #ifndef HAVE_MEMMOVE
 #ifdef HAVE_BCOPY
+#include <strings.h>                    /* bcopy() */
 #define memmove(d,s,l) bcopy((s),(d),(l))
 #else
 #error memmove does not exist on this platform, nor is a substitute available

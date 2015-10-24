@@ -17,7 +17,8 @@ if not env.GetOption('clean'):
     env.Append(CPPDEFINES = 'XML_CONTEXT_BYTES=1024 XML_DTD=1 XML_NS=1'.split())
 
     if conf.CheckFunc('memmove'): env.CBDefine('HAVE_MEMMOVE')
-    if conf.CheckFunc('bcopy'): env.CBDefine('HAVE_BCOPY')
+    if confi.CBCheckCHeader('strings.h') and conf.CheckFunc('bcopy'):
+        env.CBDefine('HAVE_BCOPY')
 
     # Endian
     import sys
