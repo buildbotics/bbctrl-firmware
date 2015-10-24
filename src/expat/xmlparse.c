@@ -4,10 +4,13 @@
 
 #include <stddef.h>
 #include <string.h>                     /* memset(), memcpy() */
-#include <strings.h>                    /* bcopy() */
 #include <assert.h>
 #include <limits.h>                     /* UINT_MAX */
 #include <time.h>                       /* time() */
+
+#ifndef _WIN32
+#include <strings.h>                    /* bcopy() */
+#endif
 
 #define XML_BUILDING_EXPAT 1
 
