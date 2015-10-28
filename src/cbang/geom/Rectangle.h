@@ -203,6 +203,13 @@ namespace cb {
     }
 
 
+    template <unsigned LEN>
+    Rectangle<LEN, T> slice(unsigned start = 0) const {
+      return Rectangle<LEN, T>(rmin.template slice<LEN>(start),
+                               rmax.template slice<LEN>(start));
+    }
+
+
     Rectangle<DIM, T> grow(const Vector<DIM, T> &amount) const {
       return Rectangle<DIM, T>(rmin - amount, rmax + amount);
     }

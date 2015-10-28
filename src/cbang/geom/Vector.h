@@ -423,19 +423,24 @@ namespace cb {
 
 
     // Math
-    Vector<DIM, T> fabs(T v) const {
+    template <T (*F)(T)>
+    Vector<DIM, T> apply() const {
       Vector<DIM, T> result;
-      for (unsigned i = 0; i < DIM; i++) result[i] = ::fabs(data[i]);
+      for (unsigned i = 0; i < DIM; i++) result[i] = F(data[i]);
       return result;
     }
 
-    T min(T v) const {
+    Vector<DIM, T> abs() const {return apply<std::abs>();}
+    Vector<DIM, T> ceil() const {return apply<std::ceil>();}
+    Vector<DIM, T> floor() const {return apply<std::floor>();}
+
+    T min() const {
       T value = std::numeric_limits<T>::max();
       for (unsigned i = 0; i < DIM; i++) if (data[i] < value) value = data[i];
       return value;
     }
 
-    T max(T v) const {
+    T max() const {
       T value = std::numeric_limits<T>::min();
       for (unsigned i = 0; i < DIM; i++) if (value < data[i]) value = data[i];
       return value;
