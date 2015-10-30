@@ -5,18 +5,22 @@ These instructions are for a Debian *testing* development system targeting the R
 ## Download & install the base RPi system
 
 ```
-wget https://downloads.raspberrypi.org/raspbian_latest -O raspbian-jessie.zip
-unzip raspbian-jessie.zip
+wget https://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip
+unzip 2015-05-05-raspbian-wheezy.zip
 ```
 
-Now copy the base system to an SD card.  You need to make sure you have the correct device in the command below or you can destroy your Linux system by overwriting the disk.
+Now copy the base system to an SD card.  You need a card with at least 4GiB.  After installing the RPi system all data on the SD card will be lost.  So make sure you back up the SD card if there's anything important on it
+
+In the command below, make sure you have the correct device or you can **destroy your Linux system** by overwriting the disk.  One way to do this is to run ``sudo tail -f /var/log/syslog`` before inserting the SD card.  After inserting the card look for log messages containing ``/dev/sdx`` where ``x`` is a letter.  This should be the device name of the SD card.  Hit ``CTRL-C`` to stop following the system log.
 
 ```
-sudo dd bs=4M if=2015-09-24-raspbian-jessie.img of=/dev/sdd
+sudo dd bs=4M if=2015-05-05-raspbian-wheezy.img of=/dev/sde
 sudo sync
 ```
 
-Insert the SD card into your RPi and power it on.  Plug in the network connection and determine IP address of the RPi.
+The first command takes awhile and does not produce any output until it's done.
+
+Insert the SD card into your RPi and power it on.  Plug in the network connection, wired or wireless.
 
 ## Login to the RPi
 
@@ -28,7 +32,7 @@ Login:
 ssh pi@<ip>
 ```
 
-Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``
+Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``, but in color.
 
 ## Configure the RPi
 Update the package system, install the network auto discovery deamon, change the hostname and reboot.
@@ -40,7 +44,7 @@ sudo sed -i 's/raspberrypi/bbctrl/' /etc/hosts /etc/hostname
 sudo reboot
 ```
 
-In the future you can now log in to the system like this:
+In the future, you can now log in to the system like this:
 
 ```
 ssh pi@bbctrl.local
@@ -54,9 +58,9 @@ sudo apt-get update
 sudo apt-get install -y gcc-arm-linux-gnueabihf
 ```
 
-# Compile and run a test program
+## Compile and run a test program
 
-On the developmnet system, create a file ``hello.c`` with these contents:
+On the development system, create a file ``hello.c`` with these contents:
 
 ```
 #include <stdio.h>
