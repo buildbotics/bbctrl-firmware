@@ -35,19 +35,17 @@ ssh pi@<ip>
 Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``, but in color.
 
 ## Configure the RPi
-Update the package system, install the network auto discovery deamon, change the hostname and reboot.
+Copy the ``setup.sh`` script to the RPi and run it as root:
 
 ```
-sudo apt-get update
-sudo apt-get install -y avahi-daemon
-sudo sed -i 's/raspberrypi/bbctrl/' /etc/hosts /etc/hostname
-sudo reboot
+scp setup.sh pi@<ip>:
+ssh pi@<ip> sudo ./setup.sh
 ```
 
-In the future, you can now log in to the system like this:
+This will take some time and will end by rebooting the RPi.  After this script has run you can log in to the RPi with out typing the IP addrerss like this:
 
 ```
-ssh pi@bbctrl.local
+ssh bbmc@bbctrl.local
 ```
 
 ## Install the toolchain
@@ -86,7 +84,7 @@ scp hello pi@bbctrl.local:
 Login to the system and run ``hello`` like this:
 
 ```
-ssh pi@bbctrl.local
+ssh bbmc@bbctrl.local
 ./hello
 ```
 
