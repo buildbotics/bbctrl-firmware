@@ -292,6 +292,12 @@ namespace cb {
     // Math
     bool isReal() const {return rmin.isReal() || rmax.isReal();}
 
+    bool isEmpty() const {
+      for (unsigned i = 0; i < DIM; i++)
+        if (rmin[i] == rmax[i]) return true;
+      return false;
+    }
+
     // Cast
     template <typename U>
     operator Rectangle<DIM, U>() const {
