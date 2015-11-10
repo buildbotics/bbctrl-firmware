@@ -103,7 +103,8 @@ namespace cb {
       Vector<DIM, T> closest;
 
       for (unsigned i = 0; i < DIM; i++)
-        closest[i] = min(max(p[i], mid[i] - half[i]), mid[i] + half[i]);
+        closest[i] =
+          std::min(std::max(p[i], mid[i] - half[i]), mid[i] + half[i]);
 
       return closest;
     }
@@ -145,6 +146,18 @@ namespace cb {
 
     bool contains(const Segment<DIM, T> &s) const {
       return contains(s.p1) && contains(s.p2);
+    }
+
+
+    Rectangle<DIM, T> intersection(const Rectangle<DIM, T> &o) const {
+      Rectangle<DIM, T> r;
+
+      for (unsigned i = 0; i < DIM; i++) {
+        r.rmax[i] = std::min(rmax[i], o.rmax[i]);
+        r.rmin[i] = std::max(rmin[i], o.rmin[i]);
+      }
+
+      return r;
     }
 
 
