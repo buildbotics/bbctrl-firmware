@@ -117,8 +117,8 @@ namespace cb {
       // First find the closest face
       float faceDist[DIM * 2];
       for (unsigned i = 0; i < DIM; i++) {
-        faceDist[0] = p[i] - rmin[i];
-        faceDist[1] = rmax[i] - p[i];
+        faceDist[i * 2] = p[i] - rmin[i];
+        faceDist[i * 2 + 1] = rmax[i] - p[i];
       }
 
       unsigned face = 0;
