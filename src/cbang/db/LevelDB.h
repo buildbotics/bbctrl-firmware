@@ -51,6 +51,8 @@ namespace leveldb {
 
 
 namespace cb {
+  CBANG_DEFINE_EXCEPTION_SUBCLASS(LevelDBException);
+
   class LevelDBNS {
     std::string name;
 
@@ -94,10 +96,7 @@ namespace cb {
       const std::string &getName() const {return name;}
 
       virtual int operator()(const std::string &key1,
-                             const std::string &key2) const {
-        CBANG_THROW("Must implement one of the compare functions");
-      }
-
+                             const std::string &key2) const;
       virtual int operator()(const char *key1, unsigned len1,
                              const char *key2, unsigned len2) const {
         return (*this)(std::string(key1, len1), std::string(key2, len2));

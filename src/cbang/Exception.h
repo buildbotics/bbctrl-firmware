@@ -183,10 +183,12 @@ namespace cb {
 
 // Convenience macros
 
-// Exception subclassing
+// Exception class
+#ifndef CBANG_EXCEPTION
 #define CBANG_EXCEPTION cb::Exception
-#define CBANG_EXCEPTION_SUBCLASS(name) (name)cb::Exception
+#endif
 
+#define CBANG_EXCEPTION_SUBCLASS(name) (name)cb::Exception
 #define CBANG_DEFINE_EXCEPTION_SUBCLASS(name)                       \
   struct name : public cb::Exception {                              \
     name(const cb::Exception &e) : cb::Exception(e) {}              \

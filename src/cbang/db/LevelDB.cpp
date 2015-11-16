@@ -42,6 +42,9 @@
 #include <leveldb/iterator.h>
 #include <leveldb/write_batch.h>
 
+#undef CBANG_EXCEPTION
+#define CBANG_EXCEPTION CBANG_EXCEPTION_SUBCLASS(LevelDBException)
+
 using namespace cb;
 using namespace std;
 
@@ -54,6 +57,7 @@ namespace {
     "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
     "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
 }
+
 
 string LevelDBNS::nsKey(const string &key) const {
   return name + key;
@@ -76,6 +80,11 @@ void LevelDBNS::check(const leveldb::Status &s, const std::string &key) const {
   if (s.ok()) return;
   if (s.IsNotFound()) THROWS("DB ERROR: Not '" << nsKey(key) << "' found");
   THROWS("DB ERROR: " << s.ToString());
+}
+
+
+int LevelDB::Comparator::operator()(const string &, const string &) const {
+  THROW("Must implement one of the compare functions");
 }
 
 
