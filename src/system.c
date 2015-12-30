@@ -47,7 +47,7 @@
 void sys_init() 
 {
 	xmega_init();		// set system clock
-	sys_port_bindings(TINYG_HARDWARE_VERSION);
+    sys_port_bindings(8);
 }
 
 void sys_port_bindings(float hw_version)
