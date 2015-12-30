@@ -28,10 +28,6 @@
 #ifndef TEXT_PARSER_H_ONCE
 #define TEXT_PARSER_H_ONCE
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 enum textVerbosity {
 	TV_SILENT = 0,					// no response is provided
 	TV_VERBOSE						// response is provided. Error responses ech message and failed commands
@@ -102,9 +98,5 @@ extern txtSingleton_t txt;
 stat_t text_parser_stub(char_t *str);
 void text_response_stub(const stat_t status, char_t *buf);
 void text_print_list_stub(stat_t status, uint8_t flags);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // End of include guard: TEXT_PARSER_H_ONCE

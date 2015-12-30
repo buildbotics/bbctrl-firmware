@@ -25,9 +25,7 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef __AVR
 #include <avr/wdt.h>			// used for software reset
-#endif
 
 #include "tinyg.h"		// #1
 #include "config.h"		// #2
@@ -35,14 +33,8 @@
 #include "switch.h"
 #include "controller.h"
 #include "text_parser.h"
-#ifdef __AVR
 #include "xmega/xmega_init.h"
 #include "xmega/xmega_rtc.h"
-#endif
-
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 /*
  * _port_bindings  - bind XMEGA ports to hardware - these changed at board revision 7
@@ -51,8 +43,7 @@ extern "C"{
 
 static void _port_bindings(float hw_version)
 {
-#ifdef __AVR
-	hw.st_port[0] = &PORT_MOTOR_1;
+    hw.st_port[0] = &PORT_MOTOR_1;
 	hw.st_port[1] = &PORT_MOTOR_2;
 	hw.st_port[2] = &PORT_MOTOR_3;
 	hw.st_port[3] = &PORT_MOTOR_4;
@@ -73,42 +64,25 @@ static void _port_bindings(float hw_version)
 		hw.out_port[2] = &PORT_OUT_V6_Z;
 		hw.out_port[3] = &PORT_OUT_V6_A;
 	}
-#endif
 }
 
 void hardware_init()
 {
-#ifdef __AVR
-	xmega_init();							// set system clock
+    xmega_init();							// set system clock
 	_port_bindings(TINYG_HARDWARE_VERSION);
 	rtc_init();								// real time counter
-#endif
 }
 
 /*
  * _get_id() - get a human readable signature
  *
- * FOR AVR:
  *	Produce a unique deviceID based on the factory calibration data.
  *		Format is: 123456-ABC
  *
  *	The number part is a direct readout of the 6 digit lot number
  *	The alpha is the low 5 bits of wafer number and XY coords in printable ASCII
  *	Refer to NVM_PROD_SIGNATURES_t in iox192a3.h for details.
- *
- * FOR ARM:
- *	Currently not implemented
  */
-
-/* UNUSED
-static uint8_t _read_calibration_byte(uint8_t index)
-{
-	NVM_CMD = NVM_NV_READ_CALIB_ROW_gc; 	// Load NVM Command register to read the calibration row
-	uint8_t result = pgm_read_byte(index);
-	NVM_CMD = NVM_NV_NO_OPERATION_gc; 	 	// Clean up NVM Command register
-	return(result);
-}
-*/
 
 enum {
 	LOTNUM0=8,  // Lot Number Byte 0, ASCII
@@ -126,8 +100,7 @@ enum {
 
 static void _get_id(char_t *id)
 {
-#ifdef __AVR
-	char printable[33] = {"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"};
+    char printable[33] = {"ABCDEFGHJKLMNPQRSTUVWXYZ23456789"};
 	uint8_t i;
 
 	NVM_CMD = NVM_CMD_READ_CALIB_ROW_gc; 	// Load NVM Command register to read the calibration row
@@ -144,7 +117,6 @@ static void _get_id(char_t *id)
 	id[i] = 0;
 
 	NVM_CMD = NVM_CMD_NO_OPERATION_gc; 	 	// Clean up NVM Command register
-#endif
 }
 
 /*
@@ -158,10 +130,8 @@ void hw_request_hard_reset() { cs.hard_reset_requested = true; }
 
 void hw_hard_reset(void)			// software hard reset using the watchdog timer
 {
-#ifdef __AVR
-	wdt_enable(WDTO_15MS);
+    wdt_enable(WDTO_15MS);
 	while (true);					// loops for about 15ms then resets
-#endif
 }
 
 stat_t hw_hard_reset_handler(void)
@@ -183,12 +153,11 @@ void hw_request_bootloader() { cs.bootloader_requested = true;}
 
 stat_t hw_bootloader_handler(void)
 {
-#ifdef __AVR
-	if (cs.bootloader_requested == false)
+    if (cs.bootloader_requested == false)
         return (STAT_NOOP);
 	cli();
 	CCPWrite(&RST.CTRL, RST_SWRST_bm);  // fire a software reset
-#endif
+
 	return (STAT_EAGAIN);				// never gets here but keeps the compiler happy
 }
 
@@ -232,8 +201,7 @@ stat_t hw_set_hv(nvObj_t *nv)
 	set_flt(nv);					// record the hardware version
 	_port_bindings(nv->value);		// reset port bindings
 	switch_init();					// re-initialize the GPIO ports
-//++++	gpio_init();				// re-initialize the GPIO ports
-	return (STAT_OK);
+    return (STAT_OK);
 }
 
 /***********************************************************************************
@@ -256,7 +224,3 @@ void hw_print_hv(nvObj_t *nv) { text_print_flt(nv, fmt_hv);}
 void hw_print_id(nvObj_t *nv) { text_print_str(nv, fmt_id);}
 
 #endif //__TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif

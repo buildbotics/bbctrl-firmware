@@ -35,10 +35,6 @@
 #include "switch.h"
 #include "report.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /**** Homing singleton structure ****/
 
 struct hmHomingSingleton {			// persistent homing runtime variables
@@ -211,24 +207,6 @@ static stat_t _set_homing_func(stat_t (*func)(int8_t axis))
 	return (STAT_EAGAIN);
 }
 
-/* UNUSED
-
-static void _trigger_feedhold(switch_t *s)
-{
-	cm_request_feedhold();
-}
-
-static void _bind_switch_settings(switch_t *s)
-{
-	hm.switch_saved_on_trailing = s->on_trailing;
-	s->on_trailing = _trigger_feedhold;							// bind feedhold to trailing edge
-}
-
-static void _restore_switch_settings(switch_t *s)
-{
-	s->on_trailing = hm.switch_saved_on_trailing;
-}
-*/
 static stat_t _homing_axis_start(int8_t axis)
 {
 	// get the first or next axis
@@ -484,22 +462,7 @@ static stat_t _homing_finalize_exit(int8_t axis)			// third part of return to ho
 static int8_t _get_next_axis(int8_t axis)
 {
 #if (HOMING_AXES <= 4)
-//    uint8_t axis;
-//    for(axis = AXIS_X; axis < HOMING_AXES; axis++)
-//        if(fp_TRUE(cm.gf.target[axis])) break;
-//    if(axis >= HOMING_AXES) return -2;
-//    switch(axis) {
-//        case -1:        if (fp_TRUE(cm.gf.target[AXIS_Z])) return (AXIS_Z);
-//        case AXIS_Z:    if (fp_TRUE(cm.gf.target[AXIS_X])) return (AXIS_X);
-//        case AXIS_X:    if (fp_TRUE(cm.gf.target[AXIS_Y])) return (AXIS_Y);
-//        case AXIS_Y:    if (fp_TRUE(cm.gf.target[AXIS_A])) return (AXIS_A);
-//#if (HOMING_AXES > 4)
-//        case AXIS_A:    if (fp_TRUE(cm.gf.target[AXIS_B])) return (AXIS_B);
-//        case AXIS_B:    if (fp_True(cm.gf.target[AXIS_C])) return (AXIS_C);
-//#endif
-//        default:        return -1;
-//    }
-	if (axis == -1) {	// inelegant brute force solution
+    if (axis == -1) {	// inelegant brute force solution
 		if (fp_TRUE(cm.gf.target[AXIS_Z])) return (AXIS_Z);
 		if (fp_TRUE(cm.gf.target[AXIS_X])) return (AXIS_X);
 		if (fp_TRUE(cm.gf.target[AXIS_Y])) return (AXIS_Y);
@@ -552,65 +515,3 @@ static int8_t _get_next_axis(int8_t axis)
 
 #endif
 }
-
-/*
- * _get_next_axes() - return next axis in sequence based on axis in arg
- *
- *	Accepts "axis" arg as the current axis; or -1 to retrieve the first axis
- *	Returns next axis based on "axis" argument
- *	Returns -1 when all axes have been processed
- *	Returns -2 if no axes are specified (Gcode calling error)
- *
- *	hm.axis2 is set to the secondary axis if axis is a dual axis
- *	hm.axis2 is set to -1 otherwise
- *
- *	Isolating this function facilitates implementing more complex and
- *	user-specified axis homing orders
- *
- *	Note: the logic to test for disabled or inhibited axes will allow the
- *	following condition to occur: A single axis is specified but it is
- *	disabled or inhibited - homing will say that it was successfully homed.
- */
-
-// _run_homing_dual_axis() - kernal routine for running homing on a dual axis
-//static stat_t _run_homing_dual_axis(int8_t axis) { return (STAT_OK);}
-
-/*
-int8_t _get_next_axes(int8_t axis)
-{
-	int8_t next_axis;
-	hm.axis2 = -1;
-
-	// Scan target vector for case where no valid axes are specified
-	for (next_axis = 0; next_axis < AXES; next_axis++) {
-		if ((fp_TRUE(cm.gf.target[next_axis])) &&
-			(cm.a[next_axis].axis_mode != AXIS_INHIBITED) &&
-			(cm.a[next_axis].axis_mode != AXIS_DISABLED)) {
-			break;
-		}
-	}
-	if (next_axis == AXES) {
-//		fprintf_P(stderr, PSTR("***** Homing failed: none or disabled/inhibited axes specified\n"));
-		return (-2);	// didn't find any axes to process
-	}
-
-	// Scan target vector from the current axis to find next axis or the end
-	for (next_axis = ++axis; next_axis < AXES; next_axis++) {
-		if (fp_TRUE(cm.gf.target[next_axis])) {
-			if ((cm.a[next_axis].axis_mode == AXIS_INHIBITED) ||
-				(cm.a[next_axis].axis_mode == AXIS_DISABLED)) {	// Skip if axis disabled or inhibited
-				continue;
-			}
-			break;		// got a good one
-		}
-		return (-1);	// you are done
-	}
-
-	// Got a valid axis. Find out if it's a dual
-	return (STAT_OK);
-}
-*/
-
-#ifdef __cplusplus
-}
-#endif

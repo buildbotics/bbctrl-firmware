@@ -40,8 +40,6 @@
 #include <string.h>
 #include <math.h>
 
-//#include "MotatePins.h"
-
 /****** REVISIONS ******/
 
 #ifndef TINYG_FIRMWARE_BUILD
@@ -71,26 +69,9 @@
 //#define __DEBUG_SETTINGS					// special settings. See settings.h
 //#define __CANNED_STARTUP					// run any canned startup moves
 
-//#ifndef WEAK
-//#define WEAK  __attribute__ ((weak))
-//#endif
-
-/************************************************************************************
- ***** PLATFORM COMPATIBILITY *******************************************************
- ************************************************************************************/
-#undef __AVR
-#define __AVR
-//#undef __ARM
-//#define __ARM
-
-/*********************
- * AVR Compatibility *
- *********************/
-#ifdef __AVR
-
 #include <avr/pgmspace.h>		// defines PROGMEM and PSTR
 
-typedef char char_t;			// ARM/C++ version uses uint8_t as char_t
+typedef char char_t;
 
 																	// gets rely on nv->index having been set
 #define GET_TABLE_WORD(a)  pgm_read_word(&cfgArray[nv->index].a)	// get word value from cfgArray
@@ -114,70 +95,6 @@ typedef char char_t;			// ARM/C++ version uses uint8_t as char_t
 
 // String compatibility
 #define strtof strtod			// strtof is not in the AVR lib
-
-#endif // __AVR
-
-/*********************
- * ARM Compatibility *
- *********************/
-#ifdef __ARM
-								// Use macros to fake out AVR's PROGMEM and other AVRisms.
-#define PROGMEM					// ignore PROGMEM declarations in ARM/GCC++
-#define PSTR (const char *)		// AVR macro is: PSTR(s) ((const PROGMEM char *)(s))
-
-typedef char char_t;			// In the ARM/GCC++ version char_t is typedef'd to uint8_t
-								// because in C++ uint8_t and char are distinct types and
-								// we want chars to behave as uint8's
-
-													// gets rely on nv->index having been set
-#define GET_TABLE_WORD(a)  cfgArray[nv->index].a	// get word value from cfgArray
-#define GET_TABLE_BYTE(a)  cfgArray[nv->index].a	// get byte value from cfgArray
-#define GET_TABLE_FLOAT(a) cfgArray[nv->index].a	// get byte value from cfgArray
-#define GET_TOKEN_BYTE(i,a) (char_t)cfgArray[i].a	// get token byte value from cfgArray
-
-#define GET_TOKEN_STRING(i,a) cfgArray[(index_t)i].a
-//#define GET_TOKEN_STRING(i,a) (char_t)cfgArray[i].token)// populate the token string given the index
-
-#define GET_TEXT_ITEM(b,a) b[a]						// get text from an array of strings in flash
-#define GET_UNITS(a) msg_units[cm_get_units_mode(a)]
-
-// IO settings
-#define DEV_STDIN 0				// STDIO defaults - stdio is not yet used in the ARM version
-#define DEV_STDOUT 0
-#define DEV_STDERR 0
-
-/* String compatibility
- *
- * The ARM stdio functions we are using still use char as input and output. The macros
- * below do the casts for most cases, but not all. Vararg functions like the printf()
- * family need special handling. These like char * as input and require casts as per:
- *
- *   printf((const char *)"Good Morning Hoboken!\n");
- *
- * The AVR also has "_P" variants that take PROGMEM strings as args.
- * On the ARM/GCC++ the _P functions are just aliases of the non-P variants.
- */
-#define strncpy(d,s,l) (char_t *)strncpy((char *)d, (char *)s, l)
-#define strpbrk(d,s) (char_t *)strpbrk((char *)d, (char *)s)
-#define strcpy(d,s) (char_t *)strcpy((char *)d, (char *)s)
-#define strcat(d,s) (char_t *)strcat((char *)d, (char *)s)
-#define strstr(d,s) (char_t *)strstr((char *)d, (char *)s)
-#define strchr(d,s) (char_t *)strchr((char *)d, (char)s)
-#define strcmp(d,s) strcmp((char *)d, (char *)s)
-#define strtod(d,p) strtod((char *)d, (char **)p)
-#define strtof(d,p) strtof((char *)d, (char **)p)
-#define strlen(s) strlen((char *)s)
-#define isdigit(c) isdigit((char)c)
-#define isalnum(c) isalnum((char)c)
-#define tolower(c) (char_t)tolower((char)c)
-#define toupper(c) (char_t)toupper((char)c)
-
-#define printf_P printf		// these functions want char * as inputs, not char_t *
-#define fprintf_P fprintf	// just sayin'
-#define sprintf_P sprintf
-#define strcpy_P strcpy
-
-#endif // __ARM
 
 /******************************************************************************
  ***** TINYG APPLICATION DEFINITIONS ******************************************

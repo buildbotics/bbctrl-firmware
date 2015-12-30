@@ -19,8 +19,6 @@
 #ifndef test_h
 #define test_h
 
-//#include <stdio.h>					// needed for FILE def'n
-
 uint8_t run_test(nvObj_t *nv);
 void run_canned_startup(void);
 
@@ -106,11 +104,6 @@ struct mpSegmentLog {
 	uint32_t segments;
 	float velocity;
 	float microseconds;
-//	float position_x;
-//	float target_x;
-//	float step_x;
-//	float move_time;
-//	float accel_time;
 };
 struct mpSegmentLog sl[SEGMENT_LOGGER_MAX];
 uint16_t sl_index;
@@ -122,25 +115,12 @@ void segment_logger(uint8_t move_state,
 					uint32_t segment_count,
 					float velocity,
 					float microseconds
-//					float position_x,
-//					float target_x,
-//					float step_x,
-//					float move_time,
-//					float accel_time
-					);
+                    );
 
 #define SEGMENT_LOGGER segment_logger(bf->move_state, \
 									  mr.linenum, mr.segments, mr.segment_count, \
 									  mr.segment_velocity, \
 									  mr.microseconds);
-/*
-									  mr.microseconds, \
-									  mr.position[X], \
-									  mr.target[X], \
-									  steps[X], \
-									  mr.segment_move_time, \
-									  mr.segment_accel_time);
-*/
 #else
 #define SEGMENT_LOGGER
 #endif	// __SEGMENT_LOGGER

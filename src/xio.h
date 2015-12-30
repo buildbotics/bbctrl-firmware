@@ -282,7 +282,6 @@ enum xioSignals {
 #define CHAR_FEEDHOLD (char)'!'
 #define CHAR_CYCLE_START (char)'~'
 #define CHAR_QUEUE_FLUSH (char)'%'
-//#define CHAR_BOOTLOADER ESC
 
 /* XIO return codes
  * These codes are the "inner nest" for the STAT_ return codes.

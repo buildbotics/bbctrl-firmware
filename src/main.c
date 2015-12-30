@@ -36,78 +36,15 @@
 #include "pwm.h"
 #include "xio.h"
 
-#ifdef __AVR
 #include <avr/interrupt.h>
 #include "xmega/xmega_interrupts.h"
-#endif // __AVR
-
-#ifdef __ARM
-#include "MotateTimers.h"
-using Motate::delay;
-
-#ifdef __cplusplus
-extern "C"{
-#endif // __cplusplus
 
 void _init() __attribute__ ((weak));
 void _init() {;}
 
 void __libc_init_array(void);
 
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-#endif // __ARM
-
 /******************** Application Code ************************/
-
-#ifdef __ARM
-const Motate::USBSettings_t Motate::USBSettings = {
-	/*gVendorID         = */ 0x1d50,
-	/*gProductID        = */ 0x606d,
-	/*gProductVersion   = */ TINYG_FIRMWARE_VERSION,
-	/*gAttributes       = */ kUSBConfigAttributeSelfPowered,
-	/*gPowerConsumption = */ 500
-};
-	/*gProductVersion   = */ //0.1,
-
-Motate::USBDevice< Motate::USBCDC > usb;
-//Motate::USBDevice< Motate::USBCDC, Motate::USBCDC > usb;
-
-typeof usb._mixin_0_type::Serial &SerialUSB = usb._mixin_0_type::Serial;
-//typeof usb._mixin_1_type::Serial &SerialUSB1 = usb._mixin_1_type::Serial;
-
-MOTATE_SET_USB_VENDOR_STRING( {'S' ,'y', 'n', 't', 'h', 'e', 't', 'o', 's'} )
-MOTATE_SET_USB_PRODUCT_STRING( {'T', 'i', 'n', 'y', 'G', ' ', 'v', '2'} )
-MOTATE_SET_USB_SERIAL_NUMBER_STRING( {'0','0','1'} )
-
-Motate::SPI<kSocket4_SPISlaveSelectPinNumber> spi;
-#endif
-
-/*
- * _system_init()
- */
-
-void _system_init(void)
-{
-#ifdef __ARM
-	SystemInit();
-
-	// Disable watchdog
-	WDT->WDT_MR = WDT_MR_WDDIS;
-
-	// Initialize C library
-	__libc_init_array();
-
-	usb.attach();					// USB setup
-	delay(1000);
-#endif
-}
-
-/*
- * _application_init()
- */
-
 static void _application_init(void)
 {
 	// There are a lot of dependencies in the order of these inits.
@@ -149,10 +86,7 @@ static void _application_init(void)
 
 int main(void)
 {
-	// system initialization
-	_system_init();
-
-	// TinyG application setup
+    // TinyG application setup
 	_application_init();
 	run_canned_startup();			// run any pre-loaded commands
 

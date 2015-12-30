@@ -36,10 +36,6 @@
 #include "util.h"
 #include "xio.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /**** Allocation ****/
 
 srSingleton_t sr;
@@ -247,23 +243,13 @@ stat_t sr_set_status_report(nvObj_t *nv)
  */
 stat_t sr_request_status_report(uint8_t request_type)
 {
-#ifdef __ARM
-	if (request_type == SR_IMMEDIATE_REQUEST) {
-		sr.status_report_systick = SysTickTimer.getValue();
-	}
-	if ((request_type == SR_TIMED_REQUEST) && (sr.status_report_requested == false)) {
-		sr.status_report_systick = SysTickTimer.getValue() + sr.status_report_interval;
-	}
-#endif
-#ifdef __AVR
-	if (request_type == SR_IMMEDIATE_REQUEST) {
+    if (request_type == SR_IMMEDIATE_REQUEST) {
 		sr.status_report_systick = SysTickTimer_getValue();
 	}
 	if ((request_type == SR_TIMED_REQUEST) && (sr.status_report_requested == false)) {
 		sr.status_report_systick = SysTickTimer_getValue() + sr.status_report_interval;
 	}
-#endif
-	sr.status_report_requested = true;
+    sr.status_report_requested = true;
 	return (STAT_OK);
 }
 
@@ -279,14 +265,8 @@ stat_t sr_status_report_callback() 		// called by controller dispatcher
 	if (sr.status_report_requested == false)
         return (STAT_NOOP);
 
-#ifdef __ARM
-	if (SysTickTimer.getValue() < sr.status_report_systick)
+    if (SysTickTimer_getValue() < sr.status_report_systick)
         return (STAT_NOOP);
-#endif
-#ifdef __AVR
-	if (SysTickTimer_getValue() < sr.status_report_systick)
-        return (STAT_NOOP);
-#endif
 
 	sr.status_report_requested = false;		// disable reports until requested again
 
@@ -683,7 +663,3 @@ void qr_print_qo(nvObj_t *nv) { text_print_int(nv, fmt_qo);}
 void qr_print_qv(nvObj_t *nv) { text_print_ui8(nv, fmt_qv);}
 
 #endif // __TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif

@@ -28,10 +28,6 @@
 #ifndef PWM_H_ONCE
 #define PWM_H_ONCE
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 typedef struct pwmConfigChannel {
 	float frequency;				// base frequency for PWM driver, in Hz
 	float cw_speed_lo;				// minimum clockwise spindle speed [0..N]
@@ -47,9 +43,7 @@ typedef struct pwmConfigChannel {
 
 typedef struct pwmChannel {
 	uint8_t ctrla;					// byte needed to active CTRLA (it's dynamic - rest are static)
-#ifdef __AVR
-	TC1_t *timer;					// assumes TC1 flavor timers used for PWM channels
-#endif
+    TC1_t *timer;					// assumes TC1 flavor timers used for PWM channels
 } pwmChannel_t;
 
 typedef struct pwmSingleton {
@@ -92,9 +86,5 @@ stat_t pwm_set_duty(uint8_t channel, float duty);
 	#define pwm_print_p1pof tx_print_stub
 
 #endif // __TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif	// End of include guard: PWM_H_ONCE

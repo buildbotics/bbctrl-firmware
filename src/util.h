@@ -35,18 +35,6 @@
 #ifndef UTIL_H_ONCE
 #define UTIL_H_ONCE
 
-#ifdef __ARM
-//#include <stdint.h>
-//#include "sam.h"
-#include "MotateTimers.h"
-using Motate::delay;
-using Motate::SysTickTimer;
-#endif
-
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /****** Global Scope Variables and Functions ******/
 
 //*** vector utilities ***
@@ -70,10 +58,6 @@ float max4(float x1, float x2, float x3, float x4);
 //float std_dev(float a[], uint8_t n, float *mean);
 
 //*** string utilities ***
-
-//#ifdef __ARM
-//char_t * strcpy_U( char_t * dst, const char_t * src );
-//#endif
 
 uint8_t isnumber(char_t c);
 char_t *escape_string(char_t *dst, char_t *src);
@@ -143,14 +127,8 @@ uint32_t SysTickTimer_getValue(void);
 #define uSec(a) ((float)(a * MICROSECONDS_PER_MINUTE))
 
 #define RADIAN (57.2957795)
-//		M_PI is pi as defined in math.h
-//		M_SQRT2 is radical2 as defined in math.h
 #ifndef M_SQRT3
 #define M_SQRT3 (1.73205080756888)
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif	// End of include guard: UTIL_H_ONCE

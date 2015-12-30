@@ -28,10 +28,6 @@
 #ifndef REPORT_H_ONCE
 #define REPORT_H_ONCE
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /**** Configs, Definitions and Structures ****/
 //
 // Notes:
@@ -118,7 +114,6 @@ stat_t sr_run_text_status_report(void);
 stat_t sr_get(nvObj_t *nv);
 stat_t sr_set(nvObj_t *nv);
 stat_t sr_set_si(nvObj_t *nv);
-//void sr_print_sr(nvObj_t *nv);
 
 void qr_init_queue_report(void);
 void qr_request_queue_report(int8_t buffers);
@@ -152,9 +147,5 @@ stat_t qo_get(nvObj_t *nv);
 	#define qr_print_qo tx_print_stub
 
 #endif // __TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // End of include guard: REPORT_H_ONCE

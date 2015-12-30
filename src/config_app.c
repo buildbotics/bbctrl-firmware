@@ -45,10 +45,6 @@
 #include "network.h"
 #include "xio.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /*** structures ***/
 
 cfgParameters_t cfg; 				// application specific configuration parameters
@@ -212,9 +208,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "1","1mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_1].microsteps,	M1_MICROSTEPS },
 	{ "1","1po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_1].polarity,	M1_POLARITY },
 	{ "1","1pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_1].power_mode,	M1_POWER_MODE },
-#ifdef __ARM
-	{ "1","1pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_1].power_level,M1_POWER_LEVEL },
-#endif
 #if (MOTORS >= 2)
 	{ "2","2ma",_fip, 0, st_print_ma, get_ui8, set_ui8,   (float *)&st_cfg.mot[MOTOR_2].motor_map,	M2_MOTOR_MAP },
 	{ "2","2sa",_fip, 3, st_print_sa, get_flt, st_set_sa, (float *)&st_cfg.mot[MOTOR_2].step_angle,	M2_STEP_ANGLE },
@@ -222,9 +215,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "2","2mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_2].microsteps,	M2_MICROSTEPS },
 	{ "2","2po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_2].polarity,	M2_POLARITY },
 	{ "2","2pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_2].power_mode,	M2_POWER_MODE },
-#ifdef __ARM
-	{ "2","2pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_2].power_level,M2_POWER_LEVEL},
-#endif
 #endif
 #if (MOTORS >= 3)
 	{ "3","3ma",_fip, 0, st_print_ma, get_ui8, set_ui8,   (float *)&st_cfg.mot[MOTOR_3].motor_map,	M3_MOTOR_MAP },
@@ -233,9 +223,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "3","3mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_3].microsteps,	M3_MICROSTEPS },
 	{ "3","3po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_3].polarity,	M3_POLARITY },
 	{ "3","3pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_3].power_mode,	M3_POWER_MODE },
-#ifdef __ARM
-	{ "3","3pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_3].power_level,M3_POWER_LEVEL },
-#endif
 #endif
 #if (MOTORS >= 4)
 	{ "4","4ma",_fip, 0, st_print_ma, get_ui8, set_ui8,   (float *)&st_cfg.mot[MOTOR_4].motor_map,	M4_MOTOR_MAP },
@@ -244,9 +231,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "4","4mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_4].microsteps,	M4_MICROSTEPS },
 	{ "4","4po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_4].polarity,	M4_POLARITY },
 	{ "4","4pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_4].power_mode,	M4_POWER_MODE },
-#ifdef __ARM
-	{ "4","4pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_4].power_level,M4_POWER_LEVEL },
-#endif
 #endif
 #if (MOTORS >= 5)
 	{ "5","5ma",_fip, 0, st_print_ma, get_ui8, set_ui8,   (float *)&st_cfg.mot[MOTOR_5].motor_map,	M5_MOTOR_MAP },
@@ -255,9 +239,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "5","5mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_5].microsteps,	M5_MICROSTEPS },
 	{ "5","5po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_5].polarity,	M5_POLARITY },
 	{ "5","5pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_5].power_mode,	M5_POWER_MODE },
-#ifdef __ARM
-	{ "5","5pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_5].power_level,M5_POWER_LEVEL },
-#endif
 #endif
 #if (MOTORS >= 6)
 	{ "6","6ma",_fip, 0, st_print_ma, get_ui8, set_ui8,   (float *)&st_cfg.mot[MOTOR_6].motor_map,	M6_MOTOR_MAP },
@@ -266,9 +247,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "6","6mi",_fip, 0, st_print_mi, get_ui8, st_set_mi, (float *)&st_cfg.mot[MOTOR_6].microsteps,	M6_MICROSTEPS },
 	{ "6","6po",_fip, 0, st_print_po, get_ui8, set_01,    (float *)&st_cfg.mot[MOTOR_6].polarity,	M6_POLARITY },
 	{ "6","6pm",_fip, 0, st_print_pm, get_ui8, st_set_pm, (float *)&st_cfg.mot[MOTOR_6].power_mode,	M6_POWER_MODE },
-#ifdef __ARM
-	{ "6","6pl",_fip, 3, st_print_pl, get_flt, st_set_pl, (float *)&st_cfg.mot[MOTOR_6].power_level,M6_POWER_LEVEL },
-#endif
 #endif
 	// Axis parameters
 	{ "x","xam",_fip,  0, cm_print_am, cm_get_am, cm_set_am, (float *)&cm.a[AXIS_X].axis_mode,		X_AXIS_MODE },
@@ -348,15 +326,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "b","bjm",_fip,  0, cm_print_jm, get_flt,	  cm_set_xjm,(float *)&cm.a[AXIS_B].jerk_max,		B_JERK_MAX },
 	{ "b","bjd",_fip,  0, cm_print_jd, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].junction_dev,	B_JUNCTION_DEVIATION },
 	{ "b","bra",_fipc, 3, cm_print_ra, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].radius,			B_RADIUS },
-#ifdef __ARM	// B axis extended parameters
-	{ "b","asn",_fip,  0, cm_print_sn, get_ui8,   sw_set_sw, (float *)&sw.s[AXIS_B][SW_MIN].mode,	B_SWITCH_MODE_MIN },
-	{ "b","asx",_fip,  0, cm_print_sx, get_ui8,   sw_set_sw, (float *)&sw.s[AXIS_B][SW_MAX].mode,	B_SWITCH_MODE_MAX },
-	{ "b","bsv",_fip,  0, cm_print_sv, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].search_velocity,B_SEARCH_VELOCITY },
-	{ "b","blv",_fip,  0, cm_print_lv, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].latch_velocity,	B_LATCH_VELOCITY },
-	{ "b","blb",_fip,  3, cm_print_lb, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].latch_backoff,	B_LATCH_BACKOFF },
-	{ "b","bzb",_fip,  3, cm_print_zb, get_flt,   set_flt,   (float *)&cm.a[AXIS_B].zero_backoff,	B_ZERO_BACKOFF },
-	{ "b","bjh",_fip,  0, cm_print_jh, get_flt,	  cm_set_xjh,(float *)&cm.a[AXIS_B].jerk_homing,	B_JERK_HOMING },
-#endif
 
 	{ "c","cam",_fip,  0, cm_print_am, cm_get_am, cm_set_am, (float *)&cm.a[AXIS_C].axis_mode,		C_AXIS_MODE },
 	{ "c","cvm",_fip,  0, cm_print_vm, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].velocity_max,	C_VELOCITY_MAX },
@@ -366,15 +335,6 @@ const cfgItem_t cfgArray[] PROGMEM = {
 	{ "c","cjm",_fip,  0, cm_print_jm, get_flt,	  cm_set_xjm,(float *)&cm.a[AXIS_C].jerk_max,		C_JERK_MAX },
 	{ "c","cjd",_fip,  0, cm_print_jd, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].junction_dev,	C_JUNCTION_DEVIATION },
 	{ "c","cra",_fipc, 3, cm_print_ra, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].radius,			C_RADIUS },
-#ifdef __ARM	// C axis extended parameters
-	{ "c","csn",_fip,  0, cm_print_sn, get_ui8,   sw_set_sw, (float *)&sw.s[AXIS_C][SW_MIN].mode,	C_SWITCH_MODE_MIN },
-	{ "c","csx",_fip,  0, cm_print_sx, get_ui8,   sw_set_sw, (float *)&sw.s[AXIS_C][SW_MAX].mode,	C_SWITCH_MODE_MAX },
-	{ "c","csv",_fip,  0, cm_print_sv, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].search_velocity,C_SEARCH_VELOCITY },
-	{ "c","clv",_fip,  0, cm_print_lv, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].latch_velocity,	C_LATCH_VELOCITY },
-	{ "c","clb",_fip,  3, cm_print_lb, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].latch_backoff,	C_LATCH_BACKOFF },
-	{ "c","czb",_fip,  3, cm_print_zb, get_flt,   set_flt,   (float *)&cm.a[AXIS_C].zero_backoff,	C_ZERO_BACKOFF },
-	{ "c","cjh",_fip,  0, cm_print_jh, get_flt,	  cm_set_xjh,(float *)&cm.a[AXIS_C].jerk_homing, 	C_JERK_HOMING },
-#endif
 
 	// PWM settings
 	{ "p1","p1frq",_fip, 0, pwm_print_p1frq, get_flt, set_flt,(float *)&pwm.c[PWM_1].frequency,		P1_PWM_FREQUENCY },
@@ -901,16 +861,9 @@ static stat_t set_ex(nvObj_t *nv)				// enable XON/XOFF or RTS/CTS flow control
 
 static stat_t get_rx(nvObj_t *nv)
 {
-#ifdef __AVR
-	nv->value = (float)xio_get_usb_rx_free();
+    nv->value = (float)xio_get_usb_rx_free();
 	nv->valuetype = TYPE_INTEGER;
 	return (STAT_OK);
-#endif
-#ifdef __ARM
-	nv->value = (float)254;				// ARM always says the serial buffer is available (max)
-	nv->valuetype = TYPE_INTEGER;
-	return (STAT_OK);
-#endif
 }
 
 /* run_sx()	- send XOFF, XON --- test only
@@ -988,7 +941,3 @@ void cfg_print_net(nvObj_t *nv) { text_print_ui8(nv, fmt_net);}
 void cfg_print_rx(nvObj_t *nv) { text_print_ui8(nv, fmt_rx);}
 
 #endif // __TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif

@@ -32,13 +32,7 @@
 #include "gpio.h"
 #include "pwm.h"
 
-#ifdef __AVR
 #include <avr/interrupt.h>
-#endif
-
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 /***** PWM defines, structures and memory allocation *****/
 
@@ -85,8 +79,7 @@ pwmSingleton_t pwm;
  */
 void pwm_init()
 {
-#ifdef __AVR
-	gpio_set_bit_off(SPINDLE_PWM);
+    gpio_set_bit_off(SPINDLE_PWM);
 
 	// setup PWM channel 1
 	memset(&pwm.p[PWM_1], 0, sizeof(pwmChannel_t));		// clear parent structure
@@ -101,13 +94,11 @@ void pwm_init()
 	pwm.p[PWM_2].ctrla = PWM2_CTRLA_CLKSEL;
 	pwm.p[PWM_2].timer->CTRLB = PWM2_CTRLB;
 	pwm.p[PWM_2].timer->INTCTRLB = PWM2_INTCTRLB;
-#endif // __AVR
 }
 
 /*
  * ISRs for PWM timers
  */
-#ifdef __AVR
 ISR(PWM1_ISR_vect)
 {
 	return;
@@ -117,21 +108,7 @@ ISR(PWM2_ISR_vect)
 {
 	return;
 }
-#endif // __AVR
-/*
-#ifdef __ARM
-MOTATE_TIMER_INTERRUPT
-ISR(PWM1_ISR_vect)
-{
-	return;
-}
 
-ISR(PWM2_ISR_vect)
-{
-	return;
-}
-#endif // __ARM
-*/
 /*
  * pwm_set_freq() - set PWM channel frequency
  *
@@ -148,8 +125,7 @@ stat_t pwm_set_freq(uint8_t chan, float freq)
 	if (freq > PWM_MAX_FREQ) { return (STAT_INPUT_EXCEEDS_MAX_VALUE);}
 	if (freq < PWM_MIN_FREQ) { return (STAT_INPUT_LESS_THAN_MIN_VALUE);}
 
-#ifdef __AVR
-	// set the period and the prescaler
+    // set the period and the prescaler
 	float prescale = F_CPU/65536/freq;	// optimal non-integer prescaler value
 	if (prescale <= 1) {
 		pwm.p[chan].timer->PER = F_CPU/freq;
@@ -167,15 +143,6 @@ stat_t pwm_set_freq(uint8_t chan, float freq)
 		pwm.p[chan].timer->PER = F_CPU/64/freq;
 		pwm.p[chan].timer->CTRLA = TC_CLKSEL_DIV64_gc;
 	}
-#endif // __AVR
-
-#ifdef __ARM
-	if (chan == PWM_1) {
-		spindle_pwm_pin.setFrequency(freq);
-	} else if (chan == PWM_2) {
-		secondary_pwm_pin.setFrequency(freq);
-	}
-#endif // __ARM
 
 	return (STAT_OK);
 }
@@ -198,20 +165,10 @@ stat_t pwm_set_duty(uint8_t chan, float duty)
 	if (duty < 0.0) { return (STAT_INPUT_LESS_THAN_MIN_VALUE);}
 	if (duty > 1.0) { return (STAT_INPUT_EXCEEDS_MAX_VALUE);}
 
-	#ifdef __AVR
 //  Ffrq = Fper/(2N(CCA+1))
 //  Fpwm = Fper/((N(PER+1))
 	float period_scalar = pwm.p[chan].timer->PER;
 	pwm.p[chan].timer->CCB = (uint16_t)(period_scalar * duty) + 1;
-	#endif // __AVR
-
-	#ifdef __ARM
-	if (chan == PWM_1) {
-		spindle_pwm_pin = duty;
-	} else if (chan == PWM_2) {
-		secondary_pwm_pin = duty;
-	}
-	#endif // __ARM
 
 	return (STAT_OK);
 }
@@ -255,7 +212,3 @@ void pwm_print_p1wph(nvObj_t *nv) { text_print_flt(nv, fmt_p1wph);}
 void pwm_print_p1pof(nvObj_t *nv) { text_print_flt(nv, fmt_p1pof);}
 
 #endif //__TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif

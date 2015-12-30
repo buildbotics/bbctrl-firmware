@@ -34,11 +34,7 @@
 #include "encoder.h"
 #include "report.h"
 #include "util.h"
-/*
-#ifdef __cplusplus
-extern "C"{
-#endif
-*/
+
 // execute routines (NB: These are all called from the LO interrupt)
 static stat_t _exec_aline_head(void);
 static stat_t _exec_aline_body(void);
@@ -353,9 +349,6 @@ static void _init_forward_diffs(float Vi, float Vt)
 	// F = Vi
 
 	float h   = 1/(mr.segments);
-//	float h_3 = h * h * h;
-//	float h_4 = h_3 * h;
-//	float h_5 = h_4 * h;
 
 	float Ah_5 = A * h * h * h * h * h;
 	float Bh_4 = B * h * h * h * h;

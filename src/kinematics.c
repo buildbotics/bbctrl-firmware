@@ -31,11 +31,6 @@
 #include "stepper.h"
 #include "kinematics.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
-//static void _inverse_kinematics(float travel[], float joint[]);
 
 /*
  * ik_kinematics() - wrapper routine for inverse kinematics
@@ -72,38 +67,5 @@ void ik_kinematics(const float travel[], float steps[])
 		if (st_cfg.mot[MOTOR_6].motor_map == axis) { steps[MOTOR_6] = joint[axis] * st_cfg.mot[MOTOR_6].steps_per_unit;}
 #endif
 	}
-
-/* The above is a loop unrolled version of this:
-	for (uint8_t axis=0; axis<AXES; axis++) {
-		for (uint8_t motor=0; motor<MOTORS; motor++) {
-			if (st_cfg.mot[motor].motor_map == axis) {
-				steps[motor] = joint[axis] * st_cfg.mot[motor].steps_per_unit;
-			}
-		}
-	}
-*/
 }
 
-/*
- * _inverse_kinematics() - inverse kinematics - example is for a cartesian machine
- *
- *	You can glue in inverse kinematics here, but be aware of time budget constrants.
- *	This function is run during the _exec() portion of the cycle and will therefore
- *	be run once per interpolation segment. The total time for the segment load,
- *	including the inverse kinematics transformation cannot exceed the segment time,
- *	and ideally should be no more than 25-50% of the segment time. Currently segments
- *	run avery 5 ms, but this might be lowered. To profile this time look at the
- *	time it takes to complete the mp_exec_move() function.
- */
-/*
-static void _inverse_kinematics(float travel[], float joint[])
-{
-	for (uint8_t i=0; i<AXES; i++) {
-		joint[i] = travel[i];
-	}
-}
-*/
-
-#ifdef __cplusplus
-}
-#endif

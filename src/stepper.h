@@ -56,8 +56,7 @@
  *
  *		At 50 KHz constant clock rate we have 20 uSec between pulse timer (DDA) interrupts.
  *		On the Xmega we consume <10 uSec in the interrupt - a whopping 50% of available cycles
- *		going into pulse generation. On the ARM this is less of an issue, and we run a
- *		100 Khz (or higher) pulse rate.
+ *		going into pulse generation.
  *
  *    - Pulse timing is also helped by minimizing the time spent loading the next move
  *		segment. The time budget for the load is less than the time remaining before the
@@ -272,11 +271,6 @@ enum cmMotorPowerMode {
 	MOTOR_POWER_MODE_MAX_VALUE			// for input range checking
 };
 
-// Stepper power management settings (applicable to ARM only)
-#define Vcc	3.3							// volts
-#define MaxVref	2.25					// max vref for driver circuit. Our ckt is 2.25 volts
-#define POWER_LEVEL_SCALE_FACTOR ((MaxVref/Vcc)) // scale power level setting for voltage range
-
 // Min/Max timeouts allowed for motor disable. Allow for inertial stop; must be non-zero
 #define MOTOR_TIMEOUT_SECONDS_MIN 	(float)0.1		// seconds !!! SHOULD NEVER BE ZERO !!!
 #define MOTOR_TIMEOUT_SECONDS_MAX	(float)4294967	// (4294967295/1000) -- for conversion to uint32_t
@@ -299,8 +293,6 @@ enum cmMotorPowerMode {
  *		0.90 == a safety factor used to reduce the result from theoretical maximum
  *
  *	The number is about 8.5 million for the Xmega running a 50 KHz DDA with 5 millisecond segments
- *	The ARM is about 1/4 that (or less) as the DDA clock rate is 4x higher. Decreasing the nominal
- *	segment time increases the number precision.
  */
 #define DDA_SUBSTEPS ((MAX_LONG * 0.90) / (FREQUENCY_DDA * (NOM_SEGMENT_TIME * 60)))
 
@@ -365,7 +357,6 @@ typedef struct stRunMotor {				// one per controlled motor
 	int32_t substep_accumulator;		// DDA phase angle accumulator
 	uint8_t power_state;				// state machine for managing motor power
 	uint32_t power_systick;				// sys_tick for next motor power state transition
-	float power_level_dynamic;			// power level for this segment of idle (ARM only)
 } stRunMotor_t;
 
 typedef struct stRunSingleton {			// Stepper static values and axis parameters

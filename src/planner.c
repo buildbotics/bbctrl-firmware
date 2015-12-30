@@ -61,13 +61,8 @@
 #include "encoder.h"
 #include "report.h"
 #include "util.h"
-/*
-#ifdef __cplusplus
-extern "C"{
-#endif
-*/
-// Allocate planner structures
 
+// Allocate planner structures
 mpBufferPool_t mb;				// move buffer queue
 mpMoveMasterSingleton_t mm;		// context for line planning
 mpMoveRuntimeSingleton_t mr;	// context for line runtime
@@ -444,38 +439,3 @@ void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp)
 	bf->nx = nx;					// restore pointers
 	bf->pv = pv;
 }
-
-/*
-// currently this routine is only used by debug routines
-uint8_t mp_get_buffer_index(mpBuf_t *bf)
-{
-	mpBuf_t *b = bf;				// temp buffer pointer
-
-	for (uint8_t i=0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
-		if (b->pv > b) {
-			return (i);
-		}
-		b = b->pv;
-	}
-	return(cm_hard_alarm(PLANNER_BUFFER_POOL_SIZE));	// should never happen
-}
-*/
-
-/****************************
- * END OF PLANNER FUNCTIONS *
- ****************************/
-
-/***********************************************************************************
- * CONFIGURATION AND INTERFACE FUNCTIONS
- * Functions to get and set variables from the cfgArray table
- ***********************************************************************************/
-
-/***********************************************************************************
- * TEXT MODE SUPPORT
- * Functions to print variables from the cfgArray table
- ***********************************************************************************/
-/*
-#ifdef __cplusplus
-}
-#endif
-*/

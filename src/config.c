@@ -41,10 +41,6 @@
 #include "util.h"
 #include "xio.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 static void _set_defa(nvObj_t *nv);
 
 /***********************************************************************************
@@ -116,14 +112,7 @@ void config_init()
 	nvObj_t *nv = nv_reset_nv_list();
 	config_init_assertions();
 
-#ifdef __ARM
-// ++++ The following code is offered until persistence is implemented.
-// ++++ Then you can use the AVR code (or something like it)
-	cfg.comm_mode = JSON_MODE;					// initial value until EEPROM is read
-	_set_defa(nv);
-#endif
-#ifdef __AVR
-	cm_set_units_mode(MILLIMETERS);				// must do inits in millimeter mode
+    cm_set_units_mode(MILLIMETERS);				// must do inits in millimeter mode
 	nv->index = 0;								// this will read the first record in NVM
 
 	read_persistent_value(nv);
@@ -141,7 +130,6 @@ void config_init()
 		}
 		sr_init_status_report();
 	}
-#endif
 }
 
 /*
@@ -488,7 +476,6 @@ uint8_t nv_get_type(nvObj_t *nv)
  *
  *	On the AVR this will save a little static RAM. The "msg" string will occupy flash
  *	as an initializer and be instantiated in stack RAM when the function executes.
- *	On the ARM (however) this will put the string into flash and skip RAM allocation.
  */
 
 void nv_get_nvObj(nvObj_t *nv)
@@ -716,7 +703,3 @@ void nv_dump_nv(nvObj_t *nv)
 			 nv->token,
 			 (char *)nv->stringp);
 }
-
-#ifdef __cplusplus
-}
-#endif // __cplusplus

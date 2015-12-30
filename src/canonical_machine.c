@@ -101,11 +101,7 @@
 #include "hardware.h"
 #include "util.h"
 #include "xio.h"			// for serial queue flush
-/*
-#ifdef __cplusplus
-extern "C"{
-#endif
-*/
+
 /***********************************************************************************
  **** STRUCTURE ALLOCATIONS ********************************************************
  ***********************************************************************************/
@@ -379,10 +375,8 @@ void cm_update_model_position_from_runtime() { copy_vector(cm.gmx.position, mr.g
 stat_t cm_deferred_write_callback()
 {
 	if ((cm.cycle_state == CYCLE_OFF) && (cm.deferred_write_flag == true)) {
-#ifdef __AVR
-		if (xio_isbusy()) return (STAT_OK);		// don't write back if serial RX is not empty
-#endif
-		cm.deferred_write_flag = false;
+        if (xio_isbusy()) return (STAT_OK);		// don't write back if serial RX is not empty
+        cm.deferred_write_flag = false;
 		nvObj_t nv;
 		for (uint8_t i=1; i<=COORDS; i++) {
 			for (uint8_t j=0; j<AXES; j++) {
@@ -1020,17 +1014,9 @@ static void _exec_mist_coolant_control(float *value, float *flag)
 {
 	cm.gm.mist_coolant = (uint8_t)value[0];
 
-#ifdef __AVR
-	if (cm.gm.mist_coolant == true)
+    if (cm.gm.mist_coolant == true)
 		gpio_set_bit_on(MIST_COOLANT_BIT);	// if
 	gpio_set_bit_off(MIST_COOLANT_BIT);		// else
-#endif // __AVR
-
-#ifdef __ARM
-	if (cm.gm.mist_coolant == true)
-		coolant_enable_pin.set();	// if
-	coolant_enable_pin.clear();		// else
-#endif // __ARM
 }
 
 stat_t cm_flood_coolant_control(uint8_t flood_coolant)
@@ -1043,25 +1029,13 @@ static void _exec_flood_coolant_control(float *value, float *flag)
 {
 	cm.gm.flood_coolant = (uint8_t)value[0];
 
-#ifdef __AVR
-	if (cm.gm.flood_coolant == true) {
+    if (cm.gm.flood_coolant == true) {
 		gpio_set_bit_on(FLOOD_COOLANT_BIT);
 	} else {
 		gpio_set_bit_off(FLOOD_COOLANT_BIT);
 		float vect[] = { 0,0,0,0,0,0 };				// turn off mist coolant
 		_exec_mist_coolant_control(vect, vect);		// M9 special function
 	}
-#endif // __AVR
-
-#ifdef __ARM
-	if (cm.gm.flood_coolant == true) {
-		coolant_enable_pin.set();
-	} else {
-		coolant_enable_pin.clear();
-		float vect[] = { 0,0,0,0,0,0 };				// turn off mist coolant
-		_exec_mist_coolant_control(vect, vect);		// M9 special function
-	}
-#endif // __ARM
 }
 
 /*
@@ -1243,10 +1217,8 @@ stat_t cm_queue_flush()
 	if (cm_get_runtime_busy() == true)
         return (STAT_COMMAND_NOT_ACCEPTED);
 
-#ifdef __AVR
-	xio_reset_usb_rx_buffers();				// flush serial queues
-#endif
-	mp_flush_planner();						// flush planner queue
+    xio_reset_usb_rx_buffers();				// flush serial queues
+    mp_flush_planner();						// flush planner queue
 	qr_request_queue_report(0);				// request a queue report, since we've changed the number of buffers available
 	rx_request_rx_report();
 
@@ -1994,8 +1966,3 @@ void cm_print_mpo(nvObj_t *nv) { _print_pos(nv, fmt_mpo, MILLIMETERS);}
 void cm_print_ofs(nvObj_t *nv) { _print_pos(nv, fmt_ofs, MILLIMETERS);}
 
 #endif // __TEXT_MODE
-/*
-#ifdef __cplusplus
-}
-#endif
-*/

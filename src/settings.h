@@ -51,7 +51,6 @@
 															//		   MOTOR_POWERED_ONLY_WHEN_MOVING	(3)
 
 #define MOTOR_IDLE_TIMEOUT			2.00					// seconds to maintain motor at full power before idling
-#define MOTOR_POWER_LEVEL			0.25					// default motor power level (0,000 - 1.000, ARM only)
 
 // Communications and reporting settings
 #define COMM_MODE					JSON_MODE				// one of: TEXT_MODE, JSON_MODE

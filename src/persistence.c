@@ -29,33 +29,16 @@
 #include "report.h"
 #include "canonical_machine.h"
 #include "util.h"
-
-#ifdef __AVR
 #include "xmega/xmega_eeprom.h"
-#endif
-
-/***********************************************************************************
- **** STRUCTURE ALLOCATIONS ********************************************************
- ***********************************************************************************/
 
 nvmSingleton_t nvm;
 
-/***********************************************************************************
- **** GENERIC STATIC FUNCTIONS AND VARIABLES ***************************************
- ***********************************************************************************/
-
-
-/***********************************************************************************
- **** CODE *************************************************************************
- ***********************************************************************************/
 
 void persistence_init()
 {
-#ifdef __AVR
-	nvm.base_addr = NVM_BASE_ADDR;
+    nvm.base_addr = NVM_BASE_ADDR;
 	nvm.profile_base = 0;
-#endif
-	return;
+    return;
 }
 
 /************************************************************************************
@@ -65,7 +48,6 @@ void persistence_init()
  *	It's the responsibility of the caller to make sure the index does not exceed range
  */
 
-#ifdef __AVR
 stat_t read_persistent_value(nvObj_t *nv)
 {
 	nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
@@ -73,29 +55,12 @@ stat_t read_persistent_value(nvObj_t *nv)
 	memcpy(&nv->value, &nvm.byte_array, NVM_VALUE_LEN);
 	return (STAT_OK);
 }
-#endif // __AVR
 
-#ifdef __ARM
-stat_t read_persistent_value(nvObj_t *nv)
-{
-	nv->value = 0;
-	return (STAT_OK);
-}
-#endif // __ARM
-
-#ifdef __AVR
 stat_t write_persistent_value(nvObj_t *nv)
 {
 	if (cm.cycle_state != CYCLE_OFF)
         return(rpt_exception(STAT_FILE_NOT_OPEN));	// can't write when machine is moving
-
-/* not needed
-	if (nv->valuetype == TYPE_FLOAT) {
-		if (isnan((double)nv->value)) return(rpt_exception(STAT_FLOAT_IS_NAN));		// bad floating point value
-		if (isinf((double)nv->value)) return(rpt_exception(STAT_FLOAT_IS_INFINITE));// bad floating point value
-	}
-*/
-	nvm.tmp_value = nv->value;
+    nvm.tmp_value = nv->value;
 	ritorno(read_persistent_value(nv));
 	if ((isnan((double)nv->value)) || (isinf((double)nv->value)) || (fp_NE(nv->value, nvm.tmp_value))) {
 		memcpy(&nvm.byte_array, &nvm.tmp_value, NVM_VALUE_LEN);
@@ -105,25 +70,3 @@ stat_t write_persistent_value(nvObj_t *nv)
 	nv->value =nvm.tmp_value;		// always restore value
 	return (STAT_OK);
 }
-#endif // __AVR
-
-#ifdef __ARM
-stat_t write_persistent_value(nvObj_t *nv)
-{
-	if (cm.cycle_state != CYCLE_OFF)
-        return(rpt_exception(STAT_FILE_NOT_OPEN));	// can't write when machine is moving
-
-/* not needed
-	if (nv->valuetype == TYPE_FLOAT) {
-		if (isnan((double)nv->value)) return(rpt_exception(STAT_FLOAT_IS_NAN));		// bad floating point value
-		if (isinf((double)nv->value)) return(rpt_exception(STAT_FLOAT_IS_INFINITE));// bad floating point value
-	}
-*/
-	return (STAT_OK);
-}
-#endif // __ARM
-
-#ifdef __cplusplus
-}
-#endif
-

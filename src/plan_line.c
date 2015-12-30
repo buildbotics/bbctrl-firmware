@@ -655,20 +655,8 @@ stat_t mp_plan_hold_callback()
 	// examine and process mr buffer
 	mr_available_length = get_axis_vector_length(mr.target, mr.position);
 
-/*	mr_available_length =
-		(sqrt(square(mr.endpoint[AXIS_X] - mr.position[AXIS_X]) +
-			  square(mr.endpoint[AXIS_Y] - mr.position[AXIS_Y]) +
-			  square(mr.endpoint[AXIS_Z] - mr.position[AXIS_Z]) +
-			  square(mr.endpoint[AXIS_A] - mr.position[AXIS_A]) +
-			  square(mr.endpoint[AXIS_B] - mr.position[AXIS_B]) +
-			  square(mr.endpoint[AXIS_C] - mr.position[AXIS_C])));
-
-*/
-
-	// compute next_segment velocity
-//	braking_velocity = mr.segment_velocity;
-//	if (mr.section != SECTION_BODY) { braking_velocity += mr.forward_diff_1;}
-	braking_velocity = _compute_next_segment_velocity();
+    // compute next_segment velocity
+    braking_velocity = _compute_next_segment_velocity();
 	braking_length = mp_get_target_length(braking_velocity, 0, bp); // bp is OK to use here
 
 	// Hack to prevent Case 2 moves for perfect-fit decels. Happens in homing situations

@@ -14,7 +14,7 @@ COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
 CFLAGS += -gdwarf-2 -std=gnu99 -Wall -DF_CPU=$(CLOCK)UL -Os -funsigned-char
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums
-CFLAGS += -MD -MP -MT $(*F).o -MF build/dep/$(@F).d
+CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm -Wl,-Map=$(PROJECT).map

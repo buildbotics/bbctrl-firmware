@@ -33,13 +33,7 @@
 #include "tinyg.h"
 #include "util.h"
 
-#ifdef __AVR
 #include "xmega/xmega_rtc.h"
-#endif
-
-#ifdef __cplusplus
-extern "C"{
-#endif
 
 /**** Vector utilities ****
  * copy_vector()			- copy vector of arbitrary length
@@ -51,12 +45,6 @@ extern "C"{
 
 float vector[AXES];	// statically allocated global for vector utilities
 
-/*
-void copy_vector(float dst[], const float src[])
-{
-	memcpy(dst, src, sizeof(dst));
-}
-*/
 
 uint8_t vector_equal(const float a[], const float b[])
 {
@@ -164,17 +152,6 @@ float max4(float x1, float x2, float x3, float x4)
  * escape_string() - add escapes to a string - currently for quotes only
  */
 
-/*
-uint8_t * strcpy_U( uint8_t * dst, const uint8_t * src )
-{
-	uint16_t index = 0;
-	do {
-		dst[index] = src[index];
-	} while (src[index++] != 0);
-	return dst;
-}
-*/
-
 uint8_t isnumber(char_t c)
 {
 	if (c == '.') { return (true); }
@@ -196,25 +173,15 @@ char_t *escape_string(char_t *dst, char_t *src)
 }
 
 /*
- * pstr2str() - return an AVR style progmem string as a RAM string. No effect on ARMs
+ * pstr2str() - return an AVR style progmem string as a RAM string.
  *
- *	This function deals with FLASH memory string confusion between the AVR serias and ARMs.
- *	AVRs typically have xxxxx_P() functions which take strings from FLASH as args.
- *	On ARMs there is no need for this as strings are handled identically in FLASH and RAM.
- *
- *	This function copies a string from FLASH to a pre-allocated RAM buffer - see main.c for
- *	allocation and max length. On the ARM it's a pass through that just returns the address
- *	of the input string
+ *	This function copies a string from FLASH to a pre-allocated RAM buffer -
+ *  see main.c for allocation and max length.
  */
 char_t *pstr2str(const char *pgm_string)
 {
-#ifdef __AVR
-	strncpy_P(global_string_buf, pgm_string, MESSAGE_LEN);
+    strncpy_P(global_string_buf, pgm_string, MESSAGE_LEN);
 	return (global_string_buf);
-#endif
-#ifdef __ARM
-	return ((char_t *)pgm_string);
-#endif
 }
 
 /*
@@ -269,20 +236,7 @@ uint16_t compute_checksum(char_t const *string, const uint16_t length)
  * SysTickTimer_getValue() - this is a hack to get around some compatibility problems
  */
 
-#ifdef __AVR
 uint32_t SysTickTimer_getValue()
 {
 	return (rtc.sys_ticks);
 }
-#endif // __AVR
-
-#ifdef __ARM
-uint32_t SysTickTimer_getValue()
-{
-	return (SysTickTimer.getValue());
-}
-#endif // __ARM
-
-#ifdef __cplusplus
-}
-#endif

@@ -46,10 +46,6 @@
 #include "util.h"
 #include "xio.h"
 
-#ifdef __ARM
-#include "Reset.h"
-#endif
-
 /***********************************************************************************
  **** STRUCTURE ALLOCATIONS *********************************************************
  ***********************************************************************************/
@@ -89,19 +85,12 @@ void controller_init(uint8_t std_in, uint8_t std_out, uint8_t std_err)
 	cs.fw_version = TINYG_FIRMWARE_VERSION;
 	cs.hw_platform = TINYG_HARDWARE_PLATFORM;		// NB: HW version is set from EEPROM
 
-#ifdef __AVR
-	cs.state = CONTROLLER_STARTUP;					// ready to run startup lines
+    cs.state = CONTROLLER_STARTUP;					// ready to run startup lines
 	xio_set_stdin(std_in);
 	xio_set_stdout(std_out);
 	xio_set_stderr(std_err);
 	cs.default_src = std_in;
 	tg_set_primary_source(cs.default_src);
-#endif
-
-#ifdef __ARM
-	cs.state = CONTROLLER_NOT_CONNECTED;			// find USB next
-	IndicatorLed.setFrequency(100000);
-#endif
 }
 
 /*
@@ -182,10 +171,8 @@ static void _controller_HSM()
 
 	DISPATCH(_sync_to_planner());				// ensure there is at least one free buffer in planning queue
 	DISPATCH(_sync_to_tx_buffer());				// sync with TX buffer (pseudo-blocking)
-#ifdef __AVR
-	DISPATCH(set_baud_callback());				// perform baud rate update (must be after TX sync)
-#endif
-	DISPATCH(_command_dispatch());				// read and execute next command
+    DISPATCH(set_baud_callback());				// perform baud rate update (must be after TX sync)
+    DISPATCH(_command_dispatch());				// read and execute next command
 	DISPATCH(_normal_idler());					// blink LEDs slowly to show everything is OK
 }
 
@@ -200,8 +187,7 @@ static void _controller_HSM()
 
 static stat_t _command_dispatch()
 {
-#ifdef __AVR
-	stat_t status;
+    stat_t status;
 
 	// read input line or return if not a completed line
 	// xio_gets() is a non-blocking workalike of fgets()
@@ -221,31 +207,6 @@ static stat_t _command_dispatch()
 		}
 		return (status);								// Note: STAT_EAGAIN, errors, etc. will drop through
 	}
-#endif // __AVR
-#ifdef __ARM
-	// detect USB connection and transition to disconnected state if it disconnected
-	if (SerialUSB.isConnected() == false) cs.state = CONTROLLER_NOT_CONNECTED;
-
-	// read input line and return if not a completed line
-	if (cs.state == CONTROLLER_READY) {
-		if (read_line(cs.in_buf, &cs.read_index, sizeof(cs.in_buf)) != STAT_OK) {
-			cs.bufp = cs.in_buf;
-			return (STAT_OK);	// This is an exception: returns OK for anything NOT OK, so the idler always runs
-		}
-	} else if (cs.state == CONTROLLER_NOT_CONNECTED) {
-		if (SerialUSB.isConnected() == false) return (STAT_OK);
-		cm_request_queue_flush();
-		rpt_print_system_ready_message();
-		cs.state = CONTROLLER_STARTUP;
-
-	} else if (cs.state == CONTROLLER_STARTUP) {		// run startup code
-		cs.state = CONTROLLER_READY;
-
-	} else {
-		return (STAT_OK);
-	}
-	cs.read_index = 0;
-#endif // __ARM
 
 	// set up the buffers
 	cs.linelen = strlen(cs.in_buf)+1;					// linelen only tracks primary input
@@ -254,7 +215,7 @@ static stat_t _command_dispatch()
 	// dispatch the new text line
 	switch (toupper(*cs.bufp)) {						// first char
 
-		case '!': { cm_request_feedhold(); break; }		// include for AVR diagnostics and ARM serial
+        case '!': { cm_request_feedhold(); break; }		// include for diagnostics
 		case '%': { cm_request_queue_flush(); break; }
 		case '~': { cm_request_cycle_start(); break; }
 
@@ -312,51 +273,7 @@ static stat_t _shutdown_idler()
 
 static stat_t _normal_idler()
 {
-#ifdef __ARM
-	/*
-	 * S-curve heartbeat code. Uses forward-differencing math from the stepper code.
-	 * See plan_line.cpp for explanations.
-	 * Here, the "velocity" goes from 0.0 to 1.0, then back.
-	 * t0 = 0, t1 = 0, t2 = 0.5, and we'll complete the S in 100 segments.
-	 */
-
-	// These are statics, and the assignments will only evaluate once.
-	static float indicator_led_value = 0.0;
-	static float indicator_led_forward_diff_1 = 50.0 * square(1.0/100.0);
-	static float indicator_led_forward_diff_2 = indicator_led_forward_diff_1 * 2.0;
-
-
-	if (SysTickTimer.getValue() > cs.led_timer) {
-		cs.led_timer = SysTickTimer.getValue() + LED_NORMAL_TIMER / 100;
-
-		indicator_led_value += indicator_led_forward_diff_1;
-		if (indicator_led_value > 100.0)
-			indicator_led_value = 100.0;
-
-		if ((indicator_led_forward_diff_2 > 0.0 && indicator_led_value >= 50.0) || (indicator_led_forward_diff_2 < 0.0 && indicator_led_value <= 50.0)) {
-			indicator_led_forward_diff_2 = -indicator_led_forward_diff_2;
-		}
-		else if (indicator_led_value <= 0.0) {
-			indicator_led_value = 0.0;
-
-			// Reset to account for rounding errors
-			indicator_led_forward_diff_1 = 50.0 * square(1.0/100.0);
-		} else {
-			indicator_led_forward_diff_1 += indicator_led_forward_diff_2;
-		}
-
-		IndicatorLed = indicator_led_value/100.0;
-	}
-#endif
-#ifdef __AVR
-/*
-	if (SysTickTimer_getValue() > cs.led_timer) {
-		cs.led_timer = SysTickTimer_getValue() + LED_NORMAL_TIMER;
-//		IndicatorLed_toggle();
-	}
-*/
-#endif
-	return (STAT_OK);
+    return (STAT_OK);
 }
 
 /*

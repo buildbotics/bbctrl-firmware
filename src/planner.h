@@ -30,11 +30,7 @@
 #define PLANNER_H_ONCE
 
 #include "canonical_machine.h"	// used for GCodeState_t
-/*
-#ifdef __cplusplus
-extern "C"{
-#endif
-*/
+
 enum moveType {				// bf->move_type values
 	MOVE_TYPE_NULL = 0,		// null move - does a no-op
 	MOVE_TYPE_ALINE,		// acceleration planned line
@@ -322,9 +318,5 @@ float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
 // plan_exec.c functions
 stat_t mp_exec_move(void);
 stat_t mp_exec_aline(mpBuf_t *bf);
-/*
-#ifdef __cplusplus
-}
-#endif
-*/
+
 #endif	// End of include Guard: PLANNER_H_ONCE

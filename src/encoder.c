@@ -29,17 +29,10 @@
 #include "config.h"
 #include "encoder.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
-
 /**** Allocate Structures ****/
 
 enEncoders_t en;
 
-/************************************************************************************
- **** CODE **************************************************************************
- ************************************************************************************/
 
 /*
  * encoder_init() - initialize encoders
@@ -96,21 +89,3 @@ float en_read_encoder(uint8_t motor)
 {
 	return((float)en.en[motor].encoder_steps);
 }
-
-/***********************************************************************************
- * CONFIGURATION AND INTERFACE FUNCTIONS
- * Functions to get and set variables from the cfgArray table
- ***********************************************************************************/
-
-/***********************************************************************************
- * TEXT MODE SUPPORT
- * Functions to print variables from the cfgArray table
- ***********************************************************************************/
-
-#ifdef __TEXT_MODE
-
-#endif // __TEXT_MODE
-
-#ifdef __cplusplus
-}
-#endif
