@@ -43,7 +43,7 @@ SRC += $(wildcard src/xmega/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
 
 # Build
-all: $(TARGET) $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss
+all: $(TARGET) $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss size
 
 # Compile
 build/%.o: src/%.c
@@ -88,7 +88,7 @@ tidy:
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
-	  $(PROJECT).map build
+	  $(PROJECT).map build fuse?.hex
 
 .PHONY: tidy clean size all erase program fuses read_fuses
 
