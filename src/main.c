@@ -61,14 +61,14 @@ static void init() {
   canonical_machine_init();       // canonical machine                - must follow config_init()
 
   // now bring up the interrupts and get started
-  PMIC_SetVectorLocationToApplication();// as opposed to boot ROM
+  PMIC_SetVectorLocationToApplication(); // as opposed to boot ROM
   PMIC_EnableHighLevel();         // all levels are used, so don't bother to abstract them
   PMIC_EnableMediumLevel();
   PMIC_EnableLowLevel();
 
   sei();                          // enable global interrupts
 
-  rpt_print_system_ready_message();// (LAST) announce system is ready
+  rpt_print_system_ready_message(); // (LAST) announce system is ready
 }
 
 

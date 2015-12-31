@@ -52,20 +52,20 @@
 /*--- Hardware platform enumerations ---*/
 
 enum hwPlatform {
-    HM_PLATFORM_NONE = 0,
+  HM_PLATFORM_NONE = 0,
 
-    HW_PLATFORM_TINYG_XMEGA,    // TinyG code base on Xmega boards.
-                                //    hwVersion 7 = TinyG v7 and earlier
-                                //    hwVersion 8 = TinyG v8
+  HW_PLATFORM_TINYG_XMEGA,    // TinyG code base on Xmega boards.
+  //    hwVersion 7 = TinyG v7 and earlier
+  //    hwVersion 8 = TinyG v8
 
-    HW_PLATFORM_G2_DUE,            // G2 code base on native Arduino Due
+  HW_PLATFORM_G2_DUE,            // G2 code base on native Arduino Due
 
-    HW_PLATFORM_TINYG_V9        // G2 code base on v9 boards
-                                //  hwVersion 0 = v9c
-                                //  hwVersion 1 = v9d
-                                //  hwVersion 2 = v9f
-                                //  hwVersion 3 = v9h
-                                //  hwVersion 4 = v9i
+  HW_PLATFORM_TINYG_V9        // G2 code base on v9 boards
+  //  hwVersion 0 = v9c
+  //  hwVersion 1 = v9d
+  //  hwVersion 2 = v9f
+  //  hwVersion 3 = v9h
+  //  hwVersion 4 = v9i
 };
 
 #define HW_VERSION_TINYGV6        6
@@ -140,14 +140,14 @@ enum hwPlatform {
 #define MOTOR_PORT_DIR_gm 0x3F    // dir settings: lower 6 out, upper 2 in
 
 enum cfgPortBits {            // motor control port bit positions
-    STEP_BIT_bp = 0,        // bit 0
-    DIRECTION_BIT_bp,        // bit 1
-    MOTOR_ENABLE_BIT_bp,    // bit 2
-    MICROSTEP_BIT_0_bp,        // bit 3
-    MICROSTEP_BIT_1_bp,        // bit 4
-    GPIO1_OUT_BIT_bp,        // bit 5 (4 gpio1 output bits; 1 from each axis)
-    SW_MIN_BIT_bp,            // bit 6 (4 input bits for homing/limit switches)
-    SW_MAX_BIT_bp            // bit 7 (4 input bits for homing/limit switches)
+  STEP_BIT_bp = 0,        // bit 0
+  DIRECTION_BIT_bp,        // bit 1
+  MOTOR_ENABLE_BIT_bp,    // bit 2
+  MICROSTEP_BIT_0_bp,        // bit 3
+  MICROSTEP_BIT_1_bp,        // bit 4
+  GPIO1_OUT_BIT_bp,        // bit 5 (4 gpio1 output bits; 1 from each axis)
+  SW_MIN_BIT_bp,            // bit 6 (4 input bits for homing/limit switches)
+  SW_MAX_BIT_bp            // bit 7 (4 input bits for homing/limit switches)
 };
 
 #define STEP_BIT_bm            (1<<STEP_BIT_bp)
@@ -222,21 +222,21 @@ enum cfgPortBits {            // motor control port bit positions
 
 /**** Device singleton - global structure to allow iteration through similar devices ****/
 /*
-    Ports are shared between steppers and GPIO so we need a global struct.
-    Each xmega port has 3 bindings; motors, switches and the output bit
+  Ports are shared between steppers and GPIO so we need a global struct.
+  Each xmega port has 3 bindings; motors, switches and the output bit
 
-    The initialization sequence is important. the order is:
-        - sys_init()    binds all ports to the device struct
-        - st_init()     sets IO directions and sets stepper VPORTS and stepper specific functions
+  The initialization sequence is important. the order is:
+  - sys_init()    binds all ports to the device struct
+  - st_init()     sets IO directions and sets stepper VPORTS and stepper specific functions
 
-    Care needs to be taken in routines that use ports not to write to bits that are
-    not assigned to the designated function - ur unpredicatable results will occur
+  Care needs to be taken in routines that use ports not to write to bits that are
+  not assigned to the designated function - ur unpredicatable results will occur
 */
 
 typedef struct hmSingleton {
-    PORT_t *st_port[MOTORS];        // bindings for stepper motor ports (stepper.c)
-    PORT_t *sw_port[MOTORS];        // bindings for switch ports (GPIO2)
-    PORT_t *out_port[MOTORS];        // bindings for output ports (GPIO1)
+  PORT_t *st_port[MOTORS];        // bindings for stepper motor ports (stepper.c)
+  PORT_t *sw_port[MOTORS];        // bindings for switch ports (GPIO2)
+  PORT_t *out_port[MOTORS];        // bindings for output ports (GPIO1)
 } hwSingleton_t;
 hwSingleton_t hw;
 
