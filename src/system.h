@@ -27,13 +27,13 @@
 /*
  * INTERRUPT USAGE - TinyG uses a lot of them all over the place
  *
- *    HI    Stepper DDA pulse generation        (set in stepper.h)
+ *    HI    Stepper DDA pulse generation         (set in stepper.h)
  *    HI    Stepper load routine SW interrupt    (set in stepper.h)
- *    HI    Dwell timer counter                 (set in stepper.h)
- *  LO    Segment execution SW interrupt        (set in stepper.h) 
- *    MED    GPIO1 switch port                    (set in gpio.h)
- *  MED    Serial RX for USB & RS-485            (set in xio_usart.h)
- *  LO    Serial TX for USB & RS-485            (set in xio_usart.h)
+ *    HI    Dwell timer counter                  (set in stepper.h)
+ *    LO    Segment execution SW interrupt       (set in stepper.h)
+ *   MED    GPIO1 switch port                    (set in gpio.h)
+ *   MED    Serial RX                            (set in usart.c)
+ *    LO    Serial TX                            (set in usart.c)
  *    LO    Real time clock interrupt            (set in xmega_rtc.h)
  */
 #ifndef system_h

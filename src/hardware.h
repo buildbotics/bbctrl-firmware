@@ -27,21 +27,22 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 /*
  * INTERRUPT USAGE - TinyG uses a lot of them all over the place
  *
- *    HI    Stepper DDA pulse generation        (set in stepper.h)
+ *    HI    Stepper DDA pulse generation         (set in stepper.h)
  *    HI    Stepper load routine SW interrupt    (set in stepper.h)
- *    HI    Dwell timer counter                 (set in stepper.h)
- *  LO    Segment execution SW interrupt        (set in stepper.h)
- *    MED    GPIO1 switch port                    (set in gpio.h)
- *  MED    Serial RX for USB & RS-485            (set in xio_usart.h)
- *  MED    Serial TX for USB & RS-485            (set in xio_usart.h) (* see note)
+ *    HI    Dwell timer counter                  (set in stepper.h)
+ *    LO    Segment execution SW interrupt       (set in stepper.h)
+ *   MED    GPIO1 switch port                    (set in gpio.h)
+ *   MED    Serial RX for USB & RS-485           (set in usart.c)
+ *   MED    Serial TX for USB & RS-485           (set in usart.c) (* see note)
  *    LO    Real time clock interrupt            (set in xmega_rtc.h)
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
  *        called from a LO interrupt (as in prep_line()) will kill the system in a
- *        permanent sleep_mode() call in xio_putc_usb() (xio.usb.c) as no interrupt
+ *        permanent sleep_mode() call in usart_putc() (usart.c) as no interrupt
  *        can release the sleep mode.
  */
 

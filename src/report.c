@@ -34,7 +34,7 @@
 #include "planner.h"
 #include "settings.h"
 #include "util.h"
-#include "xio/xio.h"
+#include "usart.h"
 
 /**** Allocation ****/
 
@@ -504,16 +504,19 @@ stat_t qr_queue_report_callback()         // called by controller dispatcher
         }
     }
     qr_init_queue_report();
+
     return STAT_OK;
 }
+
 
 /*
  * rx_request_rx_report() - request an update on usb serial buffer space available
  */
 void rx_request_rx_report() {
     rx.rx_report_requested = true;
-    rx.space_available = xio_get_usb_rx_free();
+    rx.space_available = usart_rx_space();
 }
+
 
 /*
  * rx_report_callback() - send rx report if one has been requested
@@ -528,21 +531,6 @@ stat_t rx_report_callback() {
     return STAT_OK;
 }
 
-/* Alternate Formulation for a Single report - using nvObj list
-
-    // get a clean nv object
-//    nvObj_t *nv = nv_reset_nv_list();        // normally you do a list reset but the following is more time efficient
-    nvObj_t *nv = nv_body;
-    nv_reset_nv(nv);
-    nv->nx = 0;                            // terminate the list
-
-    // make a qr object and print it
-    sprintf_P(nv->token, PSTR("qr"));
-    nv->value = qr.buffers_available;
-    nv->valuetype = TYPE_INTEGER;
-    nv_print_list(STAT_OK, TEXT_INLINE_PAIRS, JSON_OBJECT_FORMAT);
-    return STAT_OK;
-*/
 
 /*
  * Wrappers and Setters - for calling from cfgArray table
@@ -551,28 +539,28 @@ stat_t rx_report_callback() {
  * qi_get() - run a queue report - buffers in
  * qo_get() - run a queue report - buffers out
  */
-stat_t qr_get(nvObj_t *nv)
-{
+stat_t qr_get(nvObj_t *nv) {
     nv->value = (float)mp_get_planner_buffers_available(); // ensure that manually requested QR count is always up to date
     nv->valuetype = TYPE_INTEGER;
     return STAT_OK;
 }
 
-stat_t qi_get(nvObj_t *nv)
-{
+
+stat_t qi_get(nvObj_t *nv) {
     nv->value = (float)qr.buffers_added;
     nv->valuetype = TYPE_INTEGER;
     qr.buffers_added = 0;                // reset it
     return STAT_OK;
 }
 
-stat_t qo_get(nvObj_t *nv)
-{
+
+stat_t qo_get(nvObj_t *nv) {
     nv->value = (float)qr.buffers_removed;
     nv->valuetype = TYPE_INTEGER;
     qr.buffers_removed = 0;                // reset it
     return STAT_OK;
 }
+
 
 /*****************************************************************************
  * JOB ID REPORTS
@@ -584,8 +572,7 @@ stat_t qo_get(nvObj_t *nv)
  *    job_set()
  *    job_print_job()
  */
-stat_t job_populate_job_report()
-{
+stat_t job_populate_job_report() {
     const char_t job_str[] = "job";
     char_t tmp[TOKEN_LEN+1];
     nvObj_t *nv = nv_reset_nv_list();        // sets *nv to the start of the body

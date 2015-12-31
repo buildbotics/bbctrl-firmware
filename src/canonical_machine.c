@@ -103,7 +103,7 @@
 #include "switch.h"
 #include "hardware.h"
 #include "util.h"
-#include "xio/xio.h"            // for serial queue flush
+#include "usart.h"            // for serial queue flush
 
 cmSingleton_t cm;        // canonical machine controller singleton
 
@@ -347,7 +347,7 @@ void cm_update_model_position_from_runtime() {copy_vector(cm.gmx.position, mr.gm
  */
 stat_t cm_deferred_write_callback() {
   if ((cm.cycle_state == CYCLE_OFF) && (cm.deferred_write_flag == true)) {
-    if (xio_isbusy()) return STAT_OK;        // don't write back if serial RX is not empty
+    if (!usart_rx_empty()) return STAT_OK;        // don't write back if serial RX is not empty
     cm.deferred_write_flag = false;
     nvObj_t nv;
     for (uint8_t i=1; i<=COORDS; i++)
@@ -1161,7 +1161,7 @@ stat_t cm_feedhold_sequencing_callback() {
 stat_t cm_queue_flush() {
   if (cm_get_runtime_busy() == true) return STAT_COMMAND_NOT_ACCEPTED;
 
-  xio_reset_usb_rx_buffers();                // flush serial queues
+  usart_rx_flush();                          // flush serial queues
   mp_flush_planner();                        // flush planner queue
   qr_request_queue_report(0);                // request a queue report, since we've changed the number of buffers available
   rx_request_rx_report();

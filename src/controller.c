@@ -44,7 +44,7 @@
 #include "report.h"
 #include "help.h"
 #include "util.h"
-#include "xio/xio.h"
+#include "usart.h"
 
 controller_t cs;        // controller state structure
 
@@ -61,7 +61,7 @@ stat_t hardware_hard_reset_handler();
 stat_t hardware_bootloader_handler();
 
 
-void controller_init(uint8_t std_in, uint8_t std_out, uint8_t std_err) {
+void controller_init() {
   memset(&cs, 0, sizeof(controller_t));            // clear all values, job_id's, pointers and status
   controller_init_assertions();
 
@@ -70,11 +70,6 @@ void controller_init(uint8_t std_in, uint8_t std_out, uint8_t std_err) {
   cs.hw_platform = TINYG_HARDWARE_PLATFORM;         // NB: HW version is set from EEPROM
 
   cs.state = CONTROLLER_STARTUP;                    // ready to run startup lines
-  xio_set_stdin(std_in);
-  xio_set_stdout(std_out);
-  xio_set_stderr(std_err);
-  cs.default_src = std_in;
-  tg_set_primary_source(cs.default_src);
 }
 
 
@@ -151,43 +146,33 @@ void controller_run() {
  *
  *    Reads next command line and dispatches to relevant parser or action
  *    Accepts commands if the move queue has room - EAGAINS if it doesn't
- *    Manages cutback to serial input from file devices (EOF)
  *    Also responsible for prompts and for flow control
  */
 static stat_t _command_dispatch() {
   stat_t status;
 
   // read input line or return if not a completed line
-  // xio_gets() is a non-blocking workalike of fgets()
+  // usart_gets() is a non-blocking workalike of fgets()
   while (true) {
-    if ((status = xio_gets(cs.primary_src, cs.in_buf, sizeof(cs.in_buf))) == STAT_OK) {
+    if ((status = usart_gets(cs.in_buf, sizeof(cs.in_buf))) == STAT_OK) {
       cs.bufp = cs.in_buf;
       break;
-    }
-
-    // handle end-of-file from file devices
-    if (status == STAT_EOF) {                        // EOF can come from file devices only
-      if (cfg.comm_mode == TEXT_MODE)
-        fprintf_P(stderr, PSTR("End of command file\n"));
-      else rpt_exception(STAT_EOF);                // not really an exception
-
-      tg_reset_source();                            // reset to default source
     }
 
     return status;                                // Note: STAT_EAGAIN, errors, etc. will drop through
   }
 
   // set up the buffers
-  cs.linelen = strlen(cs.in_buf)+1;                      // linelen only tracks primary input
-  strncpy(cs.saved_buf, cs.bufp, SAVED_BUFFER_LEN-1);    // save input buffer for reporting
+  cs.linelen = strlen(cs.in_buf) + 1;                    // linelen only tracks primary input
+  strncpy(cs.saved_buf, cs.bufp, SAVED_BUFFER_LEN - 1);  // save input buffer for reporting
 
   // dispatch the new text line
   switch (toupper(*cs.bufp)) {                        // first char
-  case '!': cm_request_feedhold(); break;         // include for diagnostics
+  case '!': cm_request_feedhold(); break;             // include for diagnostics
   case '%': cm_request_queue_flush(); break;
   case '~': cm_request_cycle_start(); break;
 
-  case 0:                                     // blank line (just a CR)
+  case 0:                                        // blank line (just a CR)
     if (cfg.comm_mode != JSON_MODE)
       text_response(STAT_OK, cs.saved_buf);
     break;
@@ -243,27 +228,12 @@ static stat_t _normal_idler() {
 }
 
 /*
- * tg_reset_source()          - reset source to default input device (see note)
- * tg_set_primary_source()      - set current primary input source
- * tg_set_secondary_source() - set current primary input source
- *
- * Note: Once multiple serial devices are supported reset_source() should
- * be expanded to also set the stdout/stderr console device so the prompt
- * and other messages are sent to the active device.
- */
-
-void tg_reset_source() {tg_set_primary_source(cs.default_src);}
-void tg_set_primary_source(uint8_t dev) {cs.primary_src = dev;}
-void tg_set_secondary_source(uint8_t dev) {cs.secondary_src = dev;}
-
-/*
  * _sync_to_tx_buffer() - return eagain if TX queue is backed up
  * _sync_to_planner() - return eagain if planner is not ready for a new command
  * _sync_to_time() - return eagain if planner is not ready for a new command
  */
 static stat_t _sync_to_tx_buffer() {
-  if ((xio_get_tx_bufcount_usart(ds[XIO_DEV_USB].x) >= XOFF_TX_LO_WATER_MARK))
-    return STAT_EAGAIN;
+  if (usart_tx_full()) return STAT_EAGAIN;
 
   return STAT_OK;
 }
@@ -296,7 +266,6 @@ stat_t _system_assertions() {
   system_assert(planner_test_assertions());
   system_assert(stepper_test_assertions());
   system_assert(encoder_test_assertions());
-  system_assert(xio_test_assertions());
 
   return STAT_OK;
 }

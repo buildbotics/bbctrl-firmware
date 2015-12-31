@@ -45,25 +45,16 @@ typedef struct controllerSingleton {    // main TG controller struct
     float hw_platform;                    // tinyg hardware compatibility - platform type
     float hw_version;                    // tinyg hardware compatibility - platform revision
 
-    // communications state variables
-    uint8_t primary_src;                // primary input source device
-    uint8_t secondary_src;                // secondary input source device
-    uint8_t default_src;                // default source device
-    uint8_t network_mode;                // 0=master, 1=repeater, 2=slave
-
     uint16_t linelen;                    // length of currently processing line
     uint16_t read_index;                // length of line being read
 
     // system state variables
     uint8_t led_state;        // LEGACY    // 0=off, 1=on
-    int32_t led_counter;    // LEGACY    // a convenience for flashing an LED
+    int32_t led_counter;      // LEGACY    // a convenience for flashing an LED
     uint32_t led_timer;                    // used by idlers to flash indicator LED
-    uint8_t hard_reset_requested;        // flag to perform a hard reset
-    uint8_t bootloader_requested;        // flag to enter the bootloader
+    uint8_t hard_reset_requested;          // flag to perform a hard reset
+    uint8_t bootloader_requested;          // flag to enter the bootloader
     uint8_t shared_buf_overrun;            // flag for shared string buffer overrun condition
-
-//    uint8_t sync_to_time_state;
-//    uint32_t sync_to_time_time;
 
     int32_t job_id[4];                    // uuid to identify the job
 
@@ -85,16 +76,10 @@ enum cmControllerState {                // manages startup lines
     CONTROLLER_READY                    // controller is active and ready for use
 };
 
-/**** function prototypes ****/
 
-void controller_init(uint8_t std_in, uint8_t std_out, uint8_t std_err);
+void controller_init();
 void controller_init_assertions();
 stat_t controller_test_assertions();
 void controller_run();
-//void controller_reset();
-
-void tg_reset_source();
-void tg_set_primary_source(uint8_t dev);
-void tg_set_secondary_source(uint8_t dev);
 
 #endif // End of include guard: CONTROLLER_H_ONCE

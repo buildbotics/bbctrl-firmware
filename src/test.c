@@ -17,13 +17,12 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"            // #1
+#include "tinyg.h"             // #1
 #include "config.h"            // #2
 #include "controller.h"
 #include "planner.h"
 #include "test.h"
 #include "util.h"
-#include "xio/xio.h"
 
 // regression test files
 #ifdef __CANNED_TESTS
@@ -61,32 +60,30 @@ uint8_t run_test(nvObj_t *nv) {
     switch ((uint8_t)nv->value) {
         case 0: return STAT_OK;
 #ifdef __CANNED_TESTS
-        case 1: xio_open(XIO_DEV_PGM, PGMFILE(&test_smoke),PGM_FLAGS); break;
-        case 2: xio_open(XIO_DEV_PGM, PGMFILE(&test_homing),PGM_FLAGS); break;
-        case 3: xio_open(XIO_DEV_PGM, PGMFILE(&test_squares),PGM_FLAGS); break;
-        case 4: xio_open(XIO_DEV_PGM, PGMFILE(&test_arcs),PGM_FLAGS); break;
-        case 5: xio_open(XIO_DEV_PGM, PGMFILE(&test_dwell),PGM_FLAGS); break;
-        case 6: xio_open(XIO_DEV_PGM, PGMFILE(&test_feedhold),PGM_FLAGS); break;
-        case 7: xio_open(XIO_DEV_PGM, PGMFILE(&test_Mcodes),PGM_FLAGS); break;
-        case 8: xio_open(XIO_DEV_PGM, PGMFILE(&test_json),PGM_FLAGS); break;
-        case 9: xio_open(XIO_DEV_PGM, PGMFILE(&test_inverse_time),PGM_FLAGS); break;
-        case 10: xio_open(XIO_DEV_PGM, PGMFILE(&test_rotary),PGM_FLAGS); break;
-        case 11: xio_open(XIO_DEV_PGM, PGMFILE(&test_small_moves),PGM_FLAGS); break;
-        case 12: xio_open(XIO_DEV_PGM, PGMFILE(&test_slow_moves),PGM_FLAGS); break;
-        case 13: xio_open(XIO_DEV_PGM, PGMFILE(&test_coordinate_offsets),PGM_FLAGS); break;
-        case 14: xio_open(XIO_DEV_PGM, PGMFILE(&test_microsteps),PGM_FLAGS); break;
-        case 50: xio_open(XIO_DEV_PGM, PGMFILE(&test_mudflap),PGM_FLAGS); break;
-        case 51: xio_open(XIO_DEV_PGM, PGMFILE(&test_braid),PGM_FLAGS); break;
+        case 1: test_open(PGMFILE(&test_smoke),PGM_FLAGS); break;
+        case 2: test_open(PGMFILE(&test_homing),PGM_FLAGS); break;
+        case 3: test_open(PGMFILE(&test_squares),PGM_FLAGS); break;
+        case 4: test_open(PGMFILE(&test_arcs),PGM_FLAGS); break;
+        case 5: test_open(PGMFILE(&test_dwell),PGM_FLAGS); break;
+        case 6: test_open(PGMFILE(&test_feedhold),PGM_FLAGS); break;
+        case 7: test_open(PGMFILE(&test_Mcodes),PGM_FLAGS); break;
+        case 8: test_open(PGMFILE(&test_json),PGM_FLAGS); break;
+        case 9: test_open(PGMFILE(&test_inverse_time),PGM_FLAGS); break;
+        case 10: test_open(PGMFILE(&test_rotary),PGM_FLAGS); break;
+        case 11: test_open(PGMFILE(&test_small_moves),PGM_FLAGS); break;
+        case 12: test_open(PGMFILE(&test_slow_moves),PGM_FLAGS); break;
+        case 13: test_open(PGMFILE(&test_coordinate_offsets),PGM_FLAGS); break;
+        case 14: test_open(PGMFILE(&test_microsteps),PGM_FLAGS); break;
+        case 50: test_open(PGMFILE(&test_mudflap),PGM_FLAGS); break;
+        case 51: test_open(PGMFILE(&test_braid),PGM_FLAGS); break;
 #endif
 #ifdef __TEST_99
-        case 99: xio_open(XIO_DEV_PGM, PGMFILE(&test_99),PGM_FLAGS); break;
+        case 99: test_open(PGMFILE(&test_99),PGM_FLAGS); break;
 #endif
         default:
           fprintf_P(stderr,PSTR("Test #%d not found\n"),(uint8_t)nv->value);
           return STAT_ERROR;
     }
-
-    tg_set_primary_source(XIO_DEV_PGM);
 
     return STAT_OK;
 }

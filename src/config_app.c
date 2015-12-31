@@ -42,8 +42,7 @@
 #include "test.h"
 #include "util.h"
 #include "help.h"
-#include "network.h"
-#include "xio/xio.h"
+#include "usart.h"
 
 cfgParameters_t cfg;                 // application specific configuration parameters
 
@@ -62,7 +61,7 @@ static stat_t _do_all(nvObj_t *nv);            // print all parameters
 static stat_t set_ec(nvObj_t *nv);            // expand CRLF on TX output
 static stat_t set_ee(nvObj_t *nv);            // enable character echo
 static stat_t set_ex(nvObj_t *nv);            // enable XON/XOFF and RTS/CTS flow control
-static stat_t set_baud(nvObj_t *nv);          // set USB baud rate
+static stat_t set_baud(nvObj_t *nv);          // set baud rate
 static stat_t get_rx(nvObj_t *nv);            // get bytes in RX buffer
 
 
@@ -417,11 +416,10 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"sys","sv",  _fipn, 0, sr_print_sv,  get_ui8,   set_012,    (float *)&sr.status_report_verbosity, STATUS_REPORT_VERBOSITY},
   {"sys","si",  _fipn, 0, sr_print_si,  get_int,   sr_set_si,  (float *)&sr.status_report_interval,  STATUS_REPORT_INTERVAL_MS},
 
-  {"sys","ec",  _fipn, 0, cfg_print_ec,  get_ui8,   set_ec,     (float *)&cfg.enable_cr,           COM_EXPAND_CR},
-  {"sys","ee",  _fipn, 0, cfg_print_ee,  get_ui8,   set_ee,     (float *)&cfg.enable_echo,         COM_ENABLE_ECHO},
-  {"sys","ex",  _fipn, 0, cfg_print_ex,  get_ui8,   set_ex,     (float *)&cfg.enable_flow_control, COM_ENABLE_FLOW_CONTROL},
-  {"sys","baud",_fn,   0, cfg_print_baud,get_ui8,   set_baud,   (float *)&cfg.usb_baud_rate,       XIO_BAUD_115200},
-  {"sys","net", _fipn, 0, cfg_print_net, get_ui8,   set_ui8,    (float *)&cs.network_mode,         NETWORK_MODE},
+  {"sys","ec",  _fipn, 0, cfg_print_ec,  get_ui8,   set_ec,     (float *)&cfg.enable_cr,             COM_EXPAND_CR},
+  {"sys","ee",  _fipn, 0, cfg_print_ee,  get_ui8,   set_ee,     (float *)&cfg.enable_echo,           COM_ENABLE_ECHO},
+  {"sys","ex",  _fipn, 0, cfg_print_ex,  get_ui8,   set_ex,     (float *)&cfg.enable_flow_control,   COM_ENABLE_FLOW_CONTROL},
+  {"sys","baud",_fn,   0, cfg_print_baud,get_ui8,   set_baud,   (float *)&cfg.baud_rate,             USART_BAUD_115200},
 
   // NOTE: The ordering within the gcode defaults is important for token resolution
   {"sys","gpl", _fipn, 0, cm_print_gpl, get_ui8, set_012, (float *)&cm.select_plane,  GCODE_DEFAULT_PLANE},
@@ -779,10 +777,8 @@ static stat_t _do_all(nvObj_t *nv) {  // print all parameters
  * set_baud() - set baud rate
  * get_rx()    - get bytes available in RX buffer
  */
-static stat_t _set_comm_helper(nvObj_t *nv, uint32_t yes, uint32_t no) {
-  if (fp_NOT_ZERO(nv->value)) xio_ctrl(XIO_DEV_USB, yes);
-  else xio_ctrl(XIO_DEV_USB, no);
-
+static stat_t _set_comm_helper(nvObj_t *nv, int cmd) {
+  usart_ctrl(cmd, fp_NOT_ZERO(nv->value));
   return STAT_OK;
 }
 
@@ -790,35 +786,35 @@ static stat_t _set_comm_helper(nvObj_t *nv, uint32_t yes, uint32_t no) {
 static stat_t set_ec(nvObj_t *nv) {                // expand CR to CRLF on TX
   if (nv->value > true) return STAT_INPUT_VALUE_RANGE_ERROR;
   cfg.enable_cr = (uint8_t)nv->value;
-  return _set_comm_helper(nv, XIO_CRLF, XIO_NOCRLF);
+  return _set_comm_helper(nv, USART_CRLF);
 }
 
 
 static stat_t set_ee(nvObj_t *nv) {                // enable character echo
   if (nv->value > true) return STAT_INPUT_VALUE_RANGE_ERROR;
   cfg.enable_echo = (uint8_t)nv->value;
-  return _set_comm_helper(nv, XIO_ECHO, XIO_NOECHO);
+  return _set_comm_helper(nv, USART_ECHO);
 }
 
 
 static stat_t set_ex(nvObj_t *nv) {               // enable XON/XOFF or RTS/CTS flow control
   if (nv->value > FLOW_CONTROL_RTS) return STAT_INPUT_VALUE_RANGE_ERROR;
   cfg.enable_flow_control = (uint8_t)nv->value;
-  return _set_comm_helper(nv, XIO_XOFF, XIO_NOXOFF);
+  return _set_comm_helper(nv, USART_XOFF);
 }
 
 
 static stat_t get_rx(nvObj_t *nv) {
-  nv->value = (float)xio_get_usb_rx_free();
+  nv->value = (float)usart_rx_space();
   nv->valuetype = TYPE_INTEGER;
   return STAT_OK;
 }
 
 
 /*
- * set_baud() - set USB baud rate
+ * set_baud() - set baud rate
  *
- *    See xio_usart.h for valid values. Works as a callback.
+ *    See usart.h for valid values. Works as a callback.
  *    The initial routine changes the baud config setting and sets a flag
  *    Then it posts a user message indicating the new baud rate
  *    Then it waits for the TX buffer to empty (so the message is sent)
@@ -841,8 +837,8 @@ static stat_t set_baud(nvObj_t *nv) {
     return STAT_INPUT_VALUE_RANGE_ERROR;
   }
 
-  cfg.usb_baud_rate = baud;
-  cfg.usb_baud_flag = true;
+  cfg.baud_rate = baud;
+  cfg.baud_flag = true;
   char_t message[NV_MESSAGE_LEN];
   sprintf_P(message, PSTR("*** NOTICE *** Resetting baud rate to %s"),GET_TEXT_ITEM(msg_baud, baud));
   nv_add_conditional_message(message);
@@ -852,9 +848,9 @@ static stat_t set_baud(nvObj_t *nv) {
 
 
 stat_t set_baud_callback() {
-  if (cfg.usb_baud_flag == false) return STAT_NOOP;
-  cfg.usb_baud_flag = false;
-  xio_set_baud(XIO_DEV_USB, cfg.usb_baud_rate);
+  if (cfg.baud_flag == false) return STAT_NOOP;
+  cfg.baud_flag = false;
+  usart_set_baud(cfg.baud_rate);
 
   return STAT_OK;
 }
@@ -870,14 +866,12 @@ static const char fmt_ec[] PROGMEM = "[ec]  expand LF to CRLF on TX%6d [0=off,1=
 static const char fmt_ee[] PROGMEM = "[ee]  enable echo%18d [0=off,1=on]\n";
 static const char fmt_ex[] PROGMEM = "[ex]  enable flow control%10d [0=off,1=XON/XOFF, 2=RTS/CTS]\n";
 static const char fmt_baud[] PROGMEM = "[baud] Baud rate%15d [1=9600,2=19200,3=38400,4=57600,5=115200,6=230400]\n";
-static const char fmt_net[] PROGMEM = "[net] network mode%17d [0=master]\n";
 static const char fmt_rx[] PROGMEM = "rx:%d\n";
 
 void cfg_print_ec(nvObj_t *nv)   {text_print_ui8(nv, fmt_ec);}
 void cfg_print_ee(nvObj_t *nv)   {text_print_ui8(nv, fmt_ee);}
 void cfg_print_ex(nvObj_t *nv)   {text_print_ui8(nv, fmt_ex);}
 void cfg_print_baud(nvObj_t *nv) {text_print_ui8(nv, fmt_baud);}
-void cfg_print_net(nvObj_t *nv)  {text_print_ui8(nv, fmt_net);}
 void cfg_print_rx(nvObj_t *nv)   {text_print_ui8(nv, fmt_rx);}
 
 #endif // __TEXT_MODE

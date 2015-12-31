@@ -38,7 +38,6 @@ FUSE5=0xeb
 
 # SRC
 SRC = $(wildcard src/*.c)
-SRC += $(wildcard src/xio/*.c)
 SRC += $(wildcard src/xmega/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
 

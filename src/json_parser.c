@@ -33,13 +33,8 @@
 #include "canonical_machine.h"
 #include "report.h"
 #include "util.h"
-#include "xio/xio.h"                    // for char definitions
-
-/**** Allocation ****/
 
 jsSingleton_t js;
-
-/**** local scope stuff ****/
 
 static stat_t _json_parser_kernal(char_t *str);
 static stat_t _get_nv_pair(nvObj_t *nv, char_t **pstr, int8_t *depth);
@@ -156,7 +151,7 @@ static stat_t _normalize_json_string(char_t *str, uint16_t size)
     for (wr = str; *str != 0; str++) {
         if (!in_comment) {                    // normal processing
             if (*str == '(') in_comment = true;
-            if ((*str <= ' ') || (*str == DEL)) continue; // toss ctrls, WS & DEL
+            if ((*str <= ' ') || (*str == 0x7f)) continue; // toss ctrls, WS & DEL
             *wr++ = tolower(*str);
         } else {                            // Gcode comment processing
             if (*str == ')') in_comment = false;
