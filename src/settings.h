@@ -80,10 +80,8 @@
 #define COM_ENABLE_ECHO              true
 #define COM_ENABLE_FLOW_CONTROL      FLOW_CONTROL_XON           // FLOW_CONTROL_OFF, FLOW_CONTROL_XON, FLOW_CONTROL_RTS
 
-//**** DEBUG SETTINGS ****
-
+// Debug settings
 #ifdef __DEBUG_SETTINGS
-
 #undef QUEUE_REPORT_VERBOSITY
 #define QUEUE_REPORT_VERBOSITY       QR_SINGLE                  // one of: QR_OFF, QR_SINGLE, QR_TRIPLE
 
@@ -95,17 +93,15 @@
 
 #undef STATUS_REPORT_VERBOSITY
 #define STATUS_REPORT_VERBOSITY      SR_FILTERED                // one of: SR_OFF, SR_FILTERED, SR_VERBOSE
-#endif
+#endif // __DEBUG_SETTINGS
 
-/**** MACHINE PROFILES ******************************************************/
-
-// machine default profiles - choose only one:
+// Machine profile
 #include "settings/settings_default.h"                // Default settings for release
 
 /*** Handle optional modules that may not be in every machine ***/
 
 // If PWM_1 is not defined fill it with default values
-#ifndef    P1_PWM_FREQUENCY
+#ifndef P1_PWM_FREQUENCY
 #define P1_PWM_FREQUENCY             100                 // in Hz
 #define P1_CW_SPEED_LO               1000                // in RPM (arbitrary units)
 #define P1_CW_SPEED_HI               2000

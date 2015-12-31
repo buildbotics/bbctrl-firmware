@@ -83,7 +83,7 @@ read_fuses:
 
 # Clean
 tidy:
-	rm -f *~ \#*
+	rm -f $(shell find -name *~ -o -name \#*)
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
