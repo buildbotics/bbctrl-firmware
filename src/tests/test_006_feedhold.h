@@ -2,8 +2,8 @@
  * test_006_feedhold.h 
  *
  * Notes:
- *	  -	The character array should be the same name as the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be the same name as the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
  */
 const char test_feedhold[] PROGMEM = "\
 (MSG**** Feedhold Test [v1] ****)\n\

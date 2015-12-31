@@ -24,21 +24,21 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* 	This module is really nothing mre than a placeholder at this time.
- * 	"Networking" refers to a planned RS485 broadcast network to support
- *	multi-board configs and external RS485 devices such as extruders.
- *	Basic operation of RS485 on the TinyG hardware has been verified
- *	using what's in this file, but you won;t find much more.
+/*     This module is really nothing mre than a placeholder at this time.
+ *     "Networking" refers to a planned RS485 broadcast network to support
+ *    multi-board configs and external RS485 devices such as extruders.
+ *    Basic operation of RS485 on the TinyG hardware has been verified
+ *    using what's in this file, but you won;t find much more.
  */
 
-#include <util/delay.h>				// for tests
+#include <util/delay.h>                // for tests
 
 #include "tinyg.h"
 #include "network.h"
 #include "controller.h"
 #include "gpio.h"
 #include "hardware.h"
-#include "xio.h"
+#include "xio/xio.h"
 
 /*
  * Local Scope Functions and Data
@@ -49,17 +49,17 @@
  */
 void network_init()
 {
-	// re-point IO if in slave mode
-	if (cs.network_mode == NETWORK_SLAVE) {
-		controller_init(XIO_DEV_RS485, XIO_DEV_USB, XIO_DEV_USB);
-		tg_set_secondary_source(XIO_DEV_USB);
-	}
-	xio_enable_rs485_rx();		// needed for clean start for RS-485;
+    // re-point IO if in slave mode
+    if (cs.network_mode == NETWORK_SLAVE) {
+        controller_init(XIO_DEV_RS485, XIO_DEV_USB, XIO_DEV_USB);
+        tg_set_secondary_source(XIO_DEV_USB);
+    }
+    xio_enable_rs485_rx();        // needed for clean start for RS-485;
 }
 
 void net_forward(unsigned char c)
 {
-	xio_putc(XIO_DEV_RS485, c);	// write to RS485 port
+    xio_putc(XIO_DEV_RS485, c);    // write to RS485 port
 }
 
 /*
@@ -69,46 +69,46 @@ void net_forward(unsigned char c)
 
 uint8_t net_test_rxtx(uint8_t c)
 {
-	int d;
+    int d;
 
-	// master operation
-	if (cs.network_mode == NETWORK_MASTER) {
-		if ((c < 0x20) || (c >= 0x7F)) { c = 0x20; }
-		c++;
-		xio_putc(XIO_DEV_RS485, c);			// write to RS485 port
-		xio_putc(XIO_DEV_USB, c);			// write to USB port
-		_delay_ms(2);
+    // master operation
+    if (cs.network_mode == NETWORK_MASTER) {
+        if ((c < 0x20) || (c >= 0x7F)) { c = 0x20; }
+        c++;
+        xio_putc(XIO_DEV_RS485, c);            // write to RS485 port
+        xio_putc(XIO_DEV_USB, c);            // write to USB port
+        _delay_ms(2);
 
-	// slave operation
-	} else {
-		if ((d = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
-			xio_putc(XIO_DEV_USB, d);
-		}
-	}
-	return (c);
+    // slave operation
+    } else {
+        if ((d = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
+            xio_putc(XIO_DEV_USB, d);
+        }
+    }
+    return c;
 }
 
 uint8_t net_test_loopback(uint8_t c)
 {
-	if (cs.network_mode == NETWORK_MASTER) {
-		// send a character
-		if ((c < 0x20) || (c >= 0x7F)) { c = 0x20; }
-		c++;
-		xio_putc(XIO_DEV_RS485, c);			// write to RS485 port
+    if (cs.network_mode == NETWORK_MASTER) {
+        // send a character
+        if ((c < 0x20) || (c >= 0x7F)) { c = 0x20; }
+        c++;
+        xio_putc(XIO_DEV_RS485, c);            // write to RS485 port
 
-		// wait for loopback character
-		while (true) {
-			if ((c = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
-				xio_putc(XIO_DEV_USB, c);			// write to USB port
-			}
-		}
-	} else {
-		if ((c = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
-			xio_putc(XIO_DEV_RS485, c);			// write back to master
-			xio_putc(XIO_DEV_USB, c);			// write to slave USB
-		}
-	}
-	_delay_ms(2);
-	return (c);
+        // wait for loopback character
+        while (true) {
+            if ((c = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
+                xio_putc(XIO_DEV_USB, c);            // write to USB port
+            }
+        }
+    } else {
+        if ((c = xio_getc(XIO_DEV_RS485)) != _FDEV_ERR) {
+            xio_putc(XIO_DEV_RS485, c);            // write back to master
+            xio_putc(XIO_DEV_USB, c);            // write to slave USB
+        }
+    }
+    _delay_ms(2);
+    return c;
 }
 

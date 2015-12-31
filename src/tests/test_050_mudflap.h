@@ -2,8 +2,8 @@
  * test_011_mudflap.h 
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
 
 N25 G92 X0 Y0 Z0\n\
 N30 X0.076 Y0.341\n\

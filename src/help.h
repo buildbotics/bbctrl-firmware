@@ -22,20 +22,20 @@
 
 #ifdef __HELP_SCREENS
 
-	stat_t help_general(nvObj_t *nv);
-	stat_t help_config(nvObj_t *nv);
-	stat_t help_test(nvObj_t *nv);
-	stat_t help_defa(nvObj_t *nv);
-	stat_t help_boot_loader(nvObj_t *nv);
+    stat_t help_general(nvObj_t *nv);
+    stat_t help_config(nvObj_t *nv);
+    stat_t help_test(nvObj_t *nv);
+    stat_t help_defa(nvObj_t *nv);
+    stat_t help_boot_loader(nvObj_t *nv);
 
 #else
 
-	stat_t help_stub(nvObj_t *nv);
-	#define help_general help_stub
-	#define help_config help_stub
-	#define help_test help_stub
-	#define help_defa help_stub
-	#define help_boot_loader help_stub
+    stat_t help_stub(nvObj_t *nv);
+    #define help_general help_stub
+    #define help_config help_stub
+    #define help_test help_stub
+    #define help_defa help_stub
+    #define help_boot_loader help_stub
 
 #endif // __HELP_SCREENS
 

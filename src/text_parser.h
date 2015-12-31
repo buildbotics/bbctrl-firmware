@@ -29,26 +29,26 @@
 #define TEXT_PARSER_H_ONCE
 
 enum textVerbosity {
-	TV_SILENT = 0,					// no response is provided
-	TV_VERBOSE						// response is provided. Error responses ech message and failed commands
+    TV_SILENT = 0,                    // no response is provided
+    TV_VERBOSE                        // response is provided. Error responses ech message and failed commands
 };
 
-enum textFormats {					// text output print modes
-	TEXT_NO_PRINT = 0,				// don't print anything if you find yourself in TEXT mode
-	TEXT_INLINE_PAIRS,				// print key:value pairs as comma separated pairs
-	TEXT_INLINE_VALUES,				// print values as commas separated values
-	TEXT_MULTILINE_FORMATTED		// print formatted values on separate lines with formatted print per line
+enum textFormats {                    // text output print modes
+    TEXT_NO_PRINT = 0,                // don't print anything if you find yourself in TEXT mode
+    TEXT_INLINE_PAIRS,                // print key:value pairs as comma separated pairs
+    TEXT_INLINE_VALUES,                // print values as commas separated values
+    TEXT_MULTILINE_FORMATTED        // print formatted values on separate lines with formatted print per line
 };
 
-typedef struct txtSingleton {		// text mode data
+typedef struct txtSingleton {        // text mode data
 
-	/*** config values (PUBLIC) ***/
+    /*** config values (PUBLIC) ***/
 
-	char_t format[NV_FORMAT_LEN+1];
+    char_t format[NV_FORMAT_LEN+1];
 
-	/*** runtime values (PRIVATE) ***/
+    /*** runtime values (PRIVATE) ***/
 
-	uint8_t text_verbosity;			// see enum in this file for settings
+    uint8_t text_verbosity;            // see enum in this file for settings
 
 } txtSingleton_t;
 extern txtSingleton_t txt;
@@ -57,41 +57,41 @@ extern txtSingleton_t txt;
 
 #ifdef __TEXT_MODE
 
-	stat_t text_parser(char_t *str);
-	void text_response(const stat_t status, char_t *buf);
-	void text_print_list(stat_t status, uint8_t flags);
-	void text_print_inline_pairs(nvObj_t *nv);
-	void text_print_inline_values(nvObj_t *nv);
-	void text_print_multiline_formatted(nvObj_t *nv);
+    stat_t text_parser(char_t *str);
+    void text_response(const stat_t status, char_t *buf);
+    void text_print_list(stat_t status, uint8_t flags);
+    void text_print_inline_pairs(nvObj_t *nv);
+    void text_print_inline_values(nvObj_t *nv);
+    void text_print_multiline_formatted(nvObj_t *nv);
 
-	void tx_print_nul(nvObj_t *nv);
-	void tx_print_str(nvObj_t *nv);
-	void tx_print_ui8(nvObj_t *nv);
-	void tx_print_int(nvObj_t *nv);
-	void tx_print_flt(nvObj_t *nv);
+    void tx_print_nul(nvObj_t *nv);
+    void tx_print_str(nvObj_t *nv);
+    void tx_print_ui8(nvObj_t *nv);
+    void tx_print_int(nvObj_t *nv);
+    void tx_print_flt(nvObj_t *nv);
 
-	void text_print_nul(nvObj_t *nv, const char *format);
-	void text_print_str(nvObj_t *nv, const char *format);
-	void text_print_ui8(nvObj_t *nv, const char *format);
-	void text_print_int(nvObj_t *nv, const char *format);
-	void text_print_flt(nvObj_t *nv, const char *format);
-	void text_print_flt_units(nvObj_t *nv, const char *format, const char *units);
+    void text_print_nul(nvObj_t *nv, const char *format);
+    void text_print_str(nvObj_t *nv, const char *format);
+    void text_print_ui8(nvObj_t *nv, const char *format);
+    void text_print_int(nvObj_t *nv, const char *format);
+    void text_print_flt(nvObj_t *nv, const char *format);
+    void text_print_flt_units(nvObj_t *nv, const char *format, const char *units);
 
-	void tx_print_tv(nvObj_t *nv);
+    void tx_print_tv(nvObj_t *nv);
 
 #else
 
-	#define text_parser text_parser_stub
-	#define text_response text_response_stub
-	#define text_print_list text_print_list_stub
-	#define tx_print_nul tx_print_stub
-	#define tx_print_ui8 tx_print_stub
-	#define tx_print_int tx_print_stub
-	#define tx_print_flt tx_print_stub
-	#define tx_print_str tx_print_stub
-	#define tx_print_tv tx_print_stub
+    #define text_parser text_parser_stub
+    #define text_response text_response_stub
+    #define text_print_list text_print_list_stub
+    #define tx_print_nul tx_print_stub
+    #define tx_print_ui8 tx_print_stub
+    #define tx_print_int tx_print_stub
+    #define tx_print_flt tx_print_stub
+    #define tx_print_str tx_print_stub
+    #define tx_print_tv tx_print_stub
 
-	void tx_print_stub(nvObj_t *nv);
+    void tx_print_stub(nvObj_t *nv);
 
 #endif
 

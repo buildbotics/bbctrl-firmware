@@ -1,11 +1,11 @@
 /* 
  * test_005_dwell.h 
  *
- *	Tests a 1 second dwell
+ *    Tests a 1 second dwell
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
  */
 const char test_dwell[] PROGMEM = "\
 (MSG**** Dwell Test [v1] ****)\n\

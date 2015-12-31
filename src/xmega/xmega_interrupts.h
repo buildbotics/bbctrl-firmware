@@ -67,7 +67,7 @@
 #ifndef xmega_interrupts_h
 #define xmega_interrupts_h
 
-#include <avr/io.h>			// Was #include "avr_compiler.h"  (ash mod)
+#include <avr/io.h>            // Was #include "avr_compiler.h"  (ash mod)
 
 
 /* Definitions of macros. */
@@ -97,7 +97,7 @@
 
 
 /*! \brief Enable round-robin scheduling for low-level interrupts. */
-#define	PMIC_EnableRoundRobin() (PMIC.CTRL |= PMIC_RREN_bm)
+#define    PMIC_EnableRoundRobin() (PMIC.CTRL |= PMIC_RREN_bm)
 
 
 /*! \brief Disable round-robin scheduling for low-level interrupts. */

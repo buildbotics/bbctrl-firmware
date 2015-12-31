@@ -2,8 +2,8 @@
  * test_051_braid.h 
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
 
 Search for ********************************* to get to the uncommented code
 
@@ -12,7 +12,7 @@ N5 (M3)\n\
 N6 G92X0.327Y-33.521Z-1.000\n\
 N7 G0Z4.000\n\
 N8 F1800.0\n\
-N9 G1 X0.327Y-33.521\n\		(Questionable???)
+N9 G1 X0.327Y-33.521\n\        (Questionable???)
 N10 G1Z-1.000\n\
 N11 X0.654Y-33.526\n\
 

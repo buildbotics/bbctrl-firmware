@@ -17,14 +17,14 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"		// #1
-#include "config.h"		// #2
+#include "tinyg.h"        // #1
+#include "config.h"        // #2
 #include "report.h"
 #include "help.h"
 
 // help helper functions (snicker)
 
-stat_t help_stub(nvObj_t *nv) {return (STAT_OK);}
+stat_t help_stub(nvObj_t *nv) {return STAT_OK;}
 
 #ifdef __HELP_SCREENS
 

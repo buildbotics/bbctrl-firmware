@@ -3,14 +3,14 @@
  * XMEGA EEPROM driver header file.
  *
  *      This file contains the function prototypes and enumerator 
- *		definitions for various configuration parameters for the 
- *		XMEGA EEPROM driver.
+ *        definitions for various configuration parameters for the 
+ *        XMEGA EEPROM driver.
  *
  *      The driver is not intended for size and/or speed critical code, 
- *		since most functions are just a few lines of code, and the 
- *		function call overhead would decrease code performance. The driver
- *		is intended for rapid prototyping and documentation purposes for 
- *		getting started with the XMEGA EEPROM module.
+ *        since most functions are just a few lines of code, and the 
+ *        function call overhead would decrease code performance. The driver
+ *        is intended for rapid prototyping and documentation purposes for 
+ *        getting started with the XMEGA EEPROM module.
  *
  *      For size and/or speed critical code, it is recommended to copy the
  *      function contents directly into your application instead of making
@@ -21,7 +21,7 @@
  *
  * Author: * \author
  *      Original Author: Atmel Corporation: http://www.atmel.com \n
- *		Adapted by: Alden S. Hart Jr; 04/02/2010
+ *        Adapted by: Alden S. Hart Jr; 04/02/2010
  *
  * Copyright (c) 2008, Atmel Corporation All rights reserved.
  *
@@ -59,19 +59,19 @@
 
 /* Configuration settings */
 // UNCOMMENT FOR TEST ONLY - uses a RAM block to simulate EEPROM
-//#define __NNVM				// uncomment to use non-non-volatile RAM
-#define NNVM_SIZE 2000 		// size of emulation RAM block - xmega192/256 has 4096
+//#define __NNVM                // uncomment to use non-non-volatile RAM
+#define NNVM_SIZE 2000         // size of emulation RAM block - xmega192/256 has 4096
 
 #ifndef MAPPED_EEPROM_START
 #define MAPPED_EEPROM_START 0x1000
 #endif //__NNVM
 
-#define EEPROM_PAGESIZE 32				// if this changes ...change below:
-#define EEPROM_BYTE_ADDR_MASK_gm 0x1F	// range of valid byte addrs in page
-#define EEPROM_ADDR1_MASK_gm 0x0F		// EEPROM is 4K = 0x0F, 2K = 0x07
+#define EEPROM_PAGESIZE 32                // if this changes ...change below:
+#define EEPROM_BYTE_ADDR_MASK_gm 0x1F    // range of valid byte addrs in page
+#define EEPROM_ADDR1_MASK_gm 0x0F        // EEPROM is 4K = 0x0F, 2K = 0x07
 
 #define EEPROM(_pageAddr, _byteAddr) \
-	((uint8_t *) MAPPED_EEPROM_START)[_pageAddr*EEPROM_PAGESIZE + _byteAddr]
+    ((uint8_t *) MAPPED_EEPROM_START)[_pageAddr*EEPROM_PAGESIZE + _byteAddr]
 
 /* function prototypes for TinyG added functions */
 uint16_t EEPROM_WriteString(const uint16_t address, const char *buf, const uint8_t terminate);
@@ -80,7 +80,7 @@ uint16_t EEPROM_WriteBytes(const uint16_t address, const int8_t *buf, const uint
 uint16_t EEPROM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size);
 
 //#ifdef __UNIT_TEST_EEPROM
-void EEPROM_unit_tests(void);
+void EEPROM_unit_tests();
 //#endif
 
 /* Function prototypes for Atmel and Atmel-derived functions */
@@ -112,9 +112,9 @@ void EEPROM_EraseAll( void );
 
 /* Enable EEPROM block sleep-when-not-used mode.
  *
- *	This macro enables power reduction mode for EEPROM. It means that 
- *	the EEPROM block is disabled when not used. Note that there will be 
- *	a penalty of 6 CPU cycles if EEPROM is accessed.
+ *    This macro enables power reduction mode for EEPROM. It means that 
+ *    the EEPROM block is disabled when not used. Note that there will be 
+ *    a penalty of 6 CPU cycles if EEPROM is accessed.
  */
 #define EEPROM_EnablePowerReduction() ( NVM.CTRLB |= NVM_EPRM_bm )
 
@@ -126,9 +126,9 @@ void EEPROM_EraseAll( void );
 
 /* Enable EEPROM mapping into data space.
  *
- *	This macro enables mapping of EEPROM into data space. EEPROM starts at 
- *	EEPROM_START in data memory. Read access can be done similar to ordinary 
- *	SRAM access.
+ *    This macro enables mapping of EEPROM into data space. EEPROM starts at 
+ *    EEPROM_START in data memory. Read access can be done similar to ordinary 
+ *    SRAM access.
  *
  *  Note: This disables IO-mapped access to EEPROM, although page erase and
  *        write operations still needs to be done through IO register.
@@ -147,24 +147,24 @@ void EEPROM_EraseAll( void );
  *
  *  This macro sets the CCP register before setting the CMDEX bit in the
  *  NVM.CTRLA register. The CMDEX bit must be set within 4 clock cycles 
- *	after setting the protection byte in the CCP register.
+ *    after setting the protection byte in the CCP register.
  */
 /*
-#define NVM_EXEC()  asm("push r30"	"\n\t"	\
-			    "push r31"			"\n\t"	\
-    			"push r16"			"\n\t"	\
-    			"push r18"			"\n\t"	\
-			    "ldi r30, 0xCB"		"\n\t"	\
-			    "ldi r31, 0x01"		"\n\t"	\
-			    "ldi r16, 0xD8"		"\n\t"	\
-			    "ldi r18, 0x01"		"\n\t"	\
-			    "out 0x34, r16"		"\n\t"	\
-			    "st Z, r18"			"\n\t"	\
-    			"pop r18"			"\n\t"	\
-			    "pop r16"			"\n\t"	\
-			    "pop r31"			"\n\t"	\
-			    "pop r30"			"\n\t"	\
-			    )
+#define NVM_EXEC()  asm("push r30"    "\n\t"    \
+                "push r31"            "\n\t"    \
+                "push r16"            "\n\t"    \
+                "push r18"            "\n\t"    \
+                "ldi r30, 0xCB"        "\n\t"    \
+                "ldi r31, 0x01"        "\n\t"    \
+                "ldi r16, 0xD8"        "\n\t"    \
+                "ldi r18, 0x01"        "\n\t"    \
+                "out 0x34, r16"        "\n\t"    \
+                "st Z, r18"            "\n\t"    \
+                "pop r18"            "\n\t"    \
+                "pop r16"            "\n\t"    \
+                "pop r31"            "\n\t"    \
+                "pop r30"            "\n\t"    \
+                )
 */
 /* ------------------------------------------------------------------------
  * Modified version from jl_1978 - Feb 01, 2010 - 06:30 PM in thread:
@@ -174,42 +174,42 @@ void EEPROM_EraseAll( void );
  * complete which wakes the CPU back up. In your .c eeprom write/erase 
  * functions, set the flag to enable sleep mode: 
  *
- *	SLEEP.CTRL = 1; 
+ *    SLEEP.CTRL = 1; 
  *
  * Oh yeah, and disable other interrupts. My system only uses low and 
  * medium interrupts for other tasks. The high interrupt is only used 
  * for the stuff above."
  */
 /*
-#define NVM_EXEC() asm("push r30" "\n\t"	\
-				"push r31" 		"\n\t"	\
-				"push r16" 		"\n\t"	\
-				"push r18" 		"\n\t"	\
-				"ldi r30, 0xCB" "\n\t"	\
-				"ldi r31, 0x01" "\n\t"	\
-				"ldi r16, 0xD8" "\n\t"	\
-				"ldi r18, 0x01" "\n\t"	\
-				"out 0x34, r16" "\n\t"	\
-				"st Z, r18"	 	"\n\t"	\
-				"ldi r30, 0xCD" "\n\t"	\
-				"ldi r31, 0x01" "\n\t"	\
-				"ldi r18, 0x0C" "\n\t"	\
-				"st Z, r18"	 	"\n\t"	\
-				"sleep"	 		"\n\t"	\
-				"pop r18" 		"\n\t"	\
-				"pop r16" 		"\n\t"	\
-				"pop r31" 		"\n\t"	\
-				"pop r30" 		"\n\t"	\
-				)
+#define NVM_EXEC() asm("push r30" "\n\t"    \
+                "push r31"         "\n\t"    \
+                "push r16"         "\n\t"    \
+                "push r18"         "\n\t"    \
+                "ldi r30, 0xCB" "\n\t"    \
+                "ldi r31, 0x01" "\n\t"    \
+                "ldi r16, 0xD8" "\n\t"    \
+                "ldi r18, 0x01" "\n\t"    \
+                "out 0x34, r16" "\n\t"    \
+                "st Z, r18"         "\n\t"    \
+                "ldi r30, 0xCD" "\n\t"    \
+                "ldi r31, 0x01" "\n\t"    \
+                "ldi r18, 0x0C" "\n\t"    \
+                "st Z, r18"         "\n\t"    \
+                "sleep"             "\n\t"    \
+                "pop r18"         "\n\t"    \
+                "pop r16"         "\n\t"    \
+                "pop r31"         "\n\t"    \
+                "pop r30"         "\n\t"    \
+                )
 
 */
 
 //#define __UNIT_TEST_EEPROM
 #ifdef __UNIT_TEST_EEPROM
-void EEPROM_unit_tests(void);
-#define	EEPROM_UNITS EEPROM_unit_tests();
+void EEPROM_unit_tests();
+#define    EEPROM_UNITS EEPROM_unit_tests();
 #else
-#define	EEPROM_UNITS
+#define    EEPROM_UNITS
 #endif
 
 #endif

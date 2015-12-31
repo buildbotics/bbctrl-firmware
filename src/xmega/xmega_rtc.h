@@ -20,22 +20,22 @@
 #ifndef XMEGA_RTC_H_ONCE
 #define XMEGA_RTC_H_ONCE
 
-#define RTC_MILLISECONDS 10							// interrupt on every 10 RTC ticks (~10 ms)
+#define RTC_MILLISECONDS 10                            // interrupt on every 10 RTC ticks (~10 ms)
 
 // Interrupt level: pick one
-#define	RTC_COMPINTLVL RTC_COMPINTLVL_LO_gc;		// lo interrupt on compare
-//#define	RTC_COMPINTLVL RTC_COMPINTLVL_MED_gc;	// med interrupt on compare
-//#define	RTC_COMPINTLVL RTC_COMPINTLVL_HI_gc;	// hi interrupt on compare
+#define    RTC_COMPINTLVL RTC_COMPINTLVL_LO_gc;        // lo interrupt on compare
+//#define    RTC_COMPINTLVL RTC_COMPINTLVL_MED_gc;    // med interrupt on compare
+//#define    RTC_COMPINTLVL RTC_COMPINTLVL_HI_gc;    // hi interrupt on compare
 
 // Note: sys_ticks is in ms but is only accurate to 10 ms as it's derived from rtc_ticks
 typedef struct rtClock {
-	uint32_t rtc_ticks;								// RTC tick counter, 10 uSec each
-	uint32_t sys_ticks;								// system tick counter, 1 ms each
-	uint16_t magic_end;								// magic number is read directly
+    uint32_t rtc_ticks;                                // RTC tick counter, 10 uSec each
+    uint32_t sys_ticks;                                // system tick counter, 1 ms each
+    uint16_t magic_end;                                // magic number is read directly
 } rtClock_t;
 
 extern rtClock_t rtc;
 
-void rtc_init(void);								// initialize and start general timer
+void rtc_init();                                // initialize and start general timer
 
 #endif // End of include guard: XMEGA_RTC_H_ONCE

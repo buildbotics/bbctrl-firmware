@@ -2,8 +2,8 @@
  * test_011_small_moves.h
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
  */
 const char test_small_moves[] PROGMEM = "\
 (MSG**** Test very short moves [v1] ****)\n\

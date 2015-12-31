@@ -2,8 +2,8 @@
  * test_008_json.h 
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
  */
 const char test_json[] PROGMEM= "\
 {\"gc\":\"g00g17g21g40g49g80g90\"}\n\

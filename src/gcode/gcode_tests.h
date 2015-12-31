@@ -340,7 +340,7 @@ g2 f800 x10 y10 i5 j5\n\
 g3 f800 x0 y0 i5 j5\n\
 g0 x0 y0 z0";
 */
-// G1 F600 x21.45 y76.0982\n\		// test max feed rate error
+// G1 F600 x21.45 y76.0982\n\        // test max feed rate error
 
 const char PROGMEM square_test1[] = "\
 g1 f333 x1 y0\n\

@@ -2,8 +2,8 @@
  * test_012_slow_moves.h 
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
 $si=3000\n\
 g1y5\n\
 x0\n\

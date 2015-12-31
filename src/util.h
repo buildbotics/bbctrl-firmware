@@ -27,9 +27,9 @@
 /* util.c/.h contains a dog's breakfast of supporting functions that are
  * not specific to tinyg: including:
  *
- *	  - math and min/max utilities and extensions
- *	  - vector manipulation utilities
- *	  - support for debugging routines
+ *      - math and min/max utilities and extensions
+ *      - vector manipulation utilities
+ *      - support for debugging routines
  */
 
 #ifndef UTIL_H_ONCE
@@ -42,7 +42,7 @@
 extern float vector[AXES]; // vector of axes for passing to subroutines
 
 #define clear_vector(a) (memset(a,0,sizeof(a)))
-#define	copy_vector(d,s) (memcpy(d,s,sizeof(d)))
+#define    copy_vector(d,s) (memcpy(d,s,sizeof(d)))
 
 float get_axis_vector_length(const float a[], const float b[]);
 uint8_t vector_equal(const float a[], const float b[]);
@@ -67,12 +67,12 @@ uint16_t compute_checksum(char_t const *string, const uint16_t length);
 
 //*** other utilities ***
 
-uint32_t SysTickTimer_getValue(void);
+uint32_t SysTickTimer_getValue();
 
 //**** Math Support *****
 
 #ifndef square
-#define square(x) ((x)*(x))		/* UNSAFE */
+#define square(x) ((x)*(x))        /* UNSAFE */
 #endif
 
 // side-effect safe forms of min and max
@@ -80,14 +80,14 @@ uint32_t SysTickTimer_getValue(void);
 #define max(a,b) \
    ({ __typeof__ (a) termA = (a); \
       __typeof__ (b) termB = (b); \
-	  termA>termB ? termA:termB; })
+      termA>termB ? termA:termB; })
 #endif
 
 #ifndef min
 #define min(a,b) \
-	({ __typeof__ (a) term1 = (a); \
-	   __typeof__ (b) term2 = (b); \
-	   term1<term2 ? term1:term2; })
+    ({ __typeof__ (a) term1 = (a); \
+       __typeof__ (b) term2 = (b); \
+       term1<term2 ? term1:term2; })
 #endif
 
 #ifndef avg
@@ -95,27 +95,27 @@ uint32_t SysTickTimer_getValue(void);
 #endif
 
 #ifndef EPSILON
-#define EPSILON		((float)0.00001)		// allowable rounding error for floats
-//#define EPSILON 	((float)0.000001)		// allowable rounding error for floats
+#define EPSILON        ((float)0.00001)        // allowable rounding error for floats
+//#define EPSILON     ((float)0.000001)        // allowable rounding error for floats
 #endif
 
 #ifndef fp_EQ
-#define fp_EQ(a,b) (fabs(a-b) < EPSILON)	// requires math.h to be included in each file used
+#define fp_EQ(a,b) (fabs(a-b) < EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_NE
-#define fp_NE(a,b) (fabs(a-b) > EPSILON)	// requires math.h to be included in each file used
+#define fp_NE(a,b) (fabs(a-b) > EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_ZERO
-#define fp_ZERO(a) (fabs(a) < EPSILON)		// requires math.h to be included in each file used
+#define fp_ZERO(a) (fabs(a) < EPSILON)        // requires math.h to be included in each file used
 #endif
 #ifndef fp_NOT_ZERO
-#define fp_NOT_ZERO(a) (fabs(a) > EPSILON)	// requires math.h to be included in each file used
+#define fp_NOT_ZERO(a) (fabs(a) > EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_FALSE
-#define fp_FALSE(a) (a < EPSILON)			// float is interpreted as FALSE (equals zero)
+#define fp_FALSE(a) (a < EPSILON)            // float is interpreted as FALSE (equals zero)
 #endif
 #ifndef fp_TRUE
-#define fp_TRUE(a) (a > EPSILON)			// float is interpreted as TRUE (not equal to zero)
+#define fp_TRUE(a) (a > EPSILON)            // float is interpreted as TRUE (not equal to zero)
 #endif
 
 // Constants
@@ -131,4 +131,4 @@ uint32_t SysTickTimer_getValue(void);
 #define M_SQRT3 (1.73205080756888)
 #endif
 
-#endif	// End of include guard: UTIL_H_ONCE
+#endif    // End of include guard: UTIL_H_ONCE

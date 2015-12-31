@@ -24,7 +24,7 @@
  * Global Scope Functions
  */
 
-void xmega_init(void);
+void xmega_init();
 void CCPWrite( volatile uint8_t * address, uint8_t value );
 
 #endif

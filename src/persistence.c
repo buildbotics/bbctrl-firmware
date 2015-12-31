@@ -34,39 +34,39 @@
 nvmSingleton_t nvm;
 
 
-void persistence_init()
-{
-    nvm.base_addr = NVM_BASE_ADDR;
-	nvm.profile_base = 0;
-    return;
+void persistence_init() {
+  nvm.base_addr = NVM_BASE_ADDR;
+  nvm.profile_base = 0;
+  return;
 }
+
 
 /************************************************************************************
- * read_persistent_value()	- return value (as float) by index
+ * read_persistent_value()    - return value (as float) by index
  * write_persistent_value() - write to NVM by index, but only if the value has changed
  *
- *	It's the responsibility of the caller to make sure the index does not exceed range
+ *    It's the responsibility of the caller to make sure the index does not exceed range
  */
-
-stat_t read_persistent_value(nvObj_t *nv)
-{
-	nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
-	(void)EEPROM_ReadBytes(nvm.address, nvm.byte_array, NVM_VALUE_LEN);
-	memcpy(&nv->value, &nvm.byte_array, NVM_VALUE_LEN);
-	return (STAT_OK);
+stat_t read_persistent_value(nvObj_t *nv) {
+  nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
+  EEPROM_ReadBytes(nvm.address, nvm.byte_array, NVM_VALUE_LEN);
+  memcpy(&nv->value, &nvm.byte_array, NVM_VALUE_LEN);
+  return STAT_OK;
 }
 
-stat_t write_persistent_value(nvObj_t *nv)
-{
-	if (cm.cycle_state != CYCLE_OFF)
-        return(rpt_exception(STAT_FILE_NOT_OPEN));	// can't write when machine is moving
-    nvm.tmp_value = nv->value;
-	ritorno(read_persistent_value(nv));
-	if ((isnan((double)nv->value)) || (isinf((double)nv->value)) || (fp_NE(nv->value, nvm.tmp_value))) {
-		memcpy(&nvm.byte_array, &nvm.tmp_value, NVM_VALUE_LEN);
-		nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
-		(void)EEPROM_WriteBytes(nvm.address, nvm.byte_array, NVM_VALUE_LEN);
-	}
-	nv->value =nvm.tmp_value;		// always restore value
-	return (STAT_OK);
+
+stat_t write_persistent_value(nvObj_t *nv) {
+  if (cm.cycle_state != CYCLE_OFF)
+    return(rpt_exception(STAT_FILE_NOT_OPEN));    // can't write when machine is moving
+
+  nvm.tmp_value = nv->value;
+  ritorno(read_persistent_value(nv));
+  if ((isnan((double)nv->value)) || (isinf((double)nv->value)) || (fp_NE(nv->value, nvm.tmp_value))) {
+    memcpy(&nvm.byte_array, &nvm.tmp_value, NVM_VALUE_LEN);
+    nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
+    EEPROM_WriteBytes(nvm.address, nvm.byte_array, NVM_VALUE_LEN);
+  }
+  nv->value =nvm.tmp_value;        // always restore value
+
+  return STAT_OK;
 }

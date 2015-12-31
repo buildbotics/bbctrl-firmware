@@ -2,8 +2,8 @@
  * test_007_Mcodes.h 
  *
  * Notes:
- *	  -	The character array should be derived from the filename (by convention)
- *	  - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
+ *      -    The character array should be derived from the filename (by convention)
+ *      - Comments are not allowed in the char array, but gcode comments are OK e.g. (g0 test)
  *
  * Turn the bits on and off in sequence so you can see the LEDs light in a chain 
  */

@@ -37,15 +37,6 @@
 #define CTRLA_RXOFF_TXON_TXCON (USART_DREINTLVL_MED_gc | USART_TXCINTLVL_MED_gc)
 #define CTRLA_RXOFF_TXOFF_TXCON (USART_TXCINTLVL_MED_gc)
 
-// Maps RX to medium and TX to lo interrupt levels
-// But don't use this or exception reports and other prints from medium interrupts
-// can cause the system to lock up if the TX buffer is full. See xio.h for explanation.
-//#define CTRLA_RXON_TXON (USART_RXCINTLVL_MED_gc | USART_DREINTLVL_LO_gc)
-//#define CTRLA_RXON_TXOFF (USART_RXCINTLVL_MED_gc)
-//#define CTRLA_RXON_TXOFF_TXCON (USART_RXCINTLVL_MED_gc | USART_TXCINTLVL_LO_gc)
-//#define CTRLA_RXOFF_TXON_TXCON (USART_DREINTLVL_LO_gc | USART_TXCINTLVL_LO_gc)
-//#define CTRLA_RXOFF_TXOFF_TXCON (USART_TXCINTLVL_LO_gc)
-
 // Buffer sizing
 #define buffer_t uint_fast8_t					// fast, but limits buffer to 255 char max
 //#define buffer_t uint16_t						// larger buffers
@@ -53,15 +44,6 @@
 // Must reserve 2 bytes for buffer management
 #define RX_BUFFER_SIZE (buffer_t)254			// buffer_t can be 8 bits
 #define TX_BUFFER_SIZE (buffer_t)254			// buffer_t can be 8 bits
-//#define RX_BUFFER_SIZE (buffer_t)255			// buffer_t can be 8 bits
-//#define TX_BUFFER_SIZE (buffer_t)255			// buffer_t can be 8 bits
-
-// Alternates for larger buffers - mostly for debugging
-//#define buffer_t uint16_t						// slower, but larger buffers
-//#define RX_BUFFER_SIZE (buffer_t)510			// buffer_t must be 16 bits if >255
-//#define TX_BUFFER_SIZE (buffer_t)510			// buffer_t must be 16 bits if >255
-//#define RX_BUFFER_SIZE (buffer_t)1022			// 2046 is the practical upper limit
-//#define TX_BUFFER_SIZE (buffer_t)1022			// 2046 is practical upper limit given RAM
 
 // XON/XOFF hi and lo watermarks. At 115.200 the host has approx. 100 uSec per char
 // to react to an XOFF. 90% (0.9) of 255 chars gives 25 chars to react, or about 2.5 ms.
@@ -155,9 +137,6 @@ enum xioFCState {
 		FC_IN_XOFF					// flow controlled state
 };
 
-/******************************************************************************
- * STRUCTURES
- ******************************************************************************/
 /*
  * USART extended control structure
  * Note: As defined this struct won't do buffers larger than 256 chars -
@@ -182,10 +161,6 @@ typedef struct xioUSART {
 	volatile char rx_buf[RX_BUFFER_SIZE];	// (written by ISR)
 	volatile char tx_buf[TX_BUFFER_SIZE];
 } xioUsart_t;
-
-/******************************************************************************
- * USART CLASS AND DEVICE FUNCTION PROTOTYPES AND ALIASES
- ******************************************************************************/
 
 void xio_init_usart(void);
 FILE *xio_open_usart(const uint8_t dev, const char *addr, const flags_t flags);

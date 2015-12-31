@@ -68,9 +68,9 @@
  */
 void PMIC_SetVectorLocationToBoot( void )
 {
-	uint8_t temp = PMIC.CTRL | PMIC_IVSEL_bm;
-	CCP = CCP_IOREG_gc;
-	PMIC.CTRL = temp;
+    uint8_t temp = PMIC.CTRL | PMIC_IVSEL_bm;
+    CCP = CCP_IOREG_gc;
+    PMIC.CTRL = temp;
 }
 
 /*! \brief Move interrupt vector table to application area.
@@ -82,7 +82,7 @@ void PMIC_SetVectorLocationToBoot( void )
  */
 void PMIC_SetVectorLocationToApplication( void )
 {
-	uint8_t temp = PMIC.CTRL & ~PMIC_IVSEL_bm;
-	CCP = CCP_IOREG_gc;
-	PMIC.CTRL = temp;
+    uint8_t temp = PMIC.CTRL & ~PMIC_IVSEL_bm;
+    CCP = CCP_IOREG_gc;
+    PMIC.CTRL = temp;
 }

@@ -4,7 +4,7 @@
 
 // circles test #2
 const char PROGMEM gcode_file[] = "\
-G20	(inches mode)\n\
+G20    (inches mode)\n\
 G40 G17\n\
 T1 M06\n\
 M3\n\
