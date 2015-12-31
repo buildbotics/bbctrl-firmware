@@ -24,6 +24,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 /* util.c/.h contains a dog's breakfast of supporting functions that are
  * not specific to tinyg: including:
  *
@@ -35,10 +36,7 @@
 #ifndef UTIL_H_ONCE
 #define UTIL_H_ONCE
 
-/****** Global Scope Variables and Functions ******/
-
-//*** vector utilities ***
-
+// Vector utilities
 extern float vector[AXES]; // vector of axes for passing to subroutines
 
 #define clear_vector(a) (memset(a,0,sizeof(a)))
@@ -49,28 +47,24 @@ uint8_t vector_equal(const float a[], const float b[]);
 float *set_vector(float x, float y, float z, float a, float b, float c);
 float *set_vector_by_axis(float value, uint8_t axis);
 
-//*** math utilities ***
-
+// Math utilities
 float min3(float x1, float x2, float x3);
 float min4(float x1, float x2, float x3, float x4);
 float max3(float x1, float x2, float x3);
 float max4(float x1, float x2, float x3, float x4);
-//float std_dev(float a[], uint8_t n, float *mean);
 
-//*** string utilities ***
 
+// String utilities
 uint8_t isnumber(char_t c);
 char_t *escape_string(char_t *dst, char_t *src);
 char_t *pstr2str(const char *pgm_string);
 char_t fntoa(char_t *str, float n, uint8_t precision);
 uint16_t compute_checksum(char_t const *string, const uint16_t length);
 
-//*** other utilities ***
-
+// Other utilities
 uint32_t SysTickTimer_getValue();
 
-//**** Math Support *****
-
+// Math support
 #ifndef square
 #define square(x) ((x)*(x))        /* UNSAFE */
 #endif
@@ -95,15 +89,14 @@ uint32_t SysTickTimer_getValue();
 #endif
 
 #ifndef EPSILON
-#define EPSILON        ((float)0.00001)        // allowable rounding error for floats
-//#define EPSILON     ((float)0.000001)        // allowable rounding error for floats
+#define EPSILON        ((float)0.00001)       // allowable rounding error for floats
 #endif
 
 #ifndef fp_EQ
-#define fp_EQ(a,b) (fabs(a-b) < EPSILON)    // requires math.h to be included in each file used
+#define fp_EQ(a,b) (fabs(a - b) < EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_NE
-#define fp_NE(a,b) (fabs(a-b) > EPSILON)    // requires math.h to be included in each file used
+#define fp_NE(a,b) (fabs(a - b) > EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_ZERO
 #define fp_ZERO(a) (fabs(a) < EPSILON)        // requires math.h to be included in each file used
@@ -112,17 +105,17 @@ uint32_t SysTickTimer_getValue();
 #define fp_NOT_ZERO(a) (fabs(a) > EPSILON)    // requires math.h to be included in each file used
 #endif
 #ifndef fp_FALSE
-#define fp_FALSE(a) (a < EPSILON)            // float is interpreted as FALSE (equals zero)
+#define fp_FALSE(a) (a < EPSILON)             // float is interpreted as FALSE (equals zero)
 #endif
 #ifndef fp_TRUE
-#define fp_TRUE(a) (a > EPSILON)            // float is interpreted as TRUE (not equal to zero)
+#define fp_TRUE(a) (a > EPSILON)              // float is interpreted as TRUE (not equal to zero)
 #endif
 
 // Constants
 #define MAX_LONG (2147483647)
 #define MAX_ULONG (4294967295)
 #define MM_PER_INCH (25.4)
-#define INCHES_PER_MM (1/25.4)
+#define INCHES_PER_MM (1 / 25.4)
 #define MICROSECONDS_PER_MINUTE ((float)60000000)
 #define uSec(a) ((float)(a * MICROSECONDS_PER_MINUTE))
 
@@ -131,4 +124,4 @@ uint32_t SysTickTimer_getValue();
 #define M_SQRT3 (1.73205080756888)
 #endif
 
-#endif    // End of include guard: UTIL_H_ONCE
+#endif // UTIL_H_ONCE

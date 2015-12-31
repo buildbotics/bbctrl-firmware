@@ -87,138 +87,68 @@
 #include <string.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
-#include "../tinyg.h"                // only used to define __UNIT_TEST_EEPROM. can be removed.
+#include "../tinyg.h"               // only used to define __UNIT_TEST_EEPROM. can be removed.
 
 #ifdef __UNIT_TEST_EEPROM
 #include <stdio.h>
-#include <avr/pgmspace.h>            // precursor for xio.h
-#include <string.h>                    // for memset()
 #include <avr/pgmspace.h>
-#include "xio.h"                    // all device includes are nested here
+#include <string.h>                 // for memset()
+#include <avr/pgmspace.h>
 #endif
 
 #define __USE_AVR1008_EEPROM        // use the AVR1008 workaround code
-#define ARBITRARY_MAX_LENGTH 80        // string max for NNVM write
+#define ARBITRARY_MAX_LENGTH 80     // string max for NNVM write
 
-/**** Inline assembly to support NVM operations ****/
 
-static inline void NVM_EXEC()
-{
-    void *z = (void *)&NVM_CTRLA;
+// Inline assembly to support NVM operations
+static inline void NVM_EXEC() {
+  void *z = (void *)&NVM_CTRLA;
 
-    __asm__ volatile("out %[ccp], %[ioreg]"  "\n\t"
-    "st z, %[cmdex]"
-    :
-    : [ccp] "I" (_SFR_IO_ADDR(CCP)),
-    [ioreg] "d" (CCP_IOREG_gc),
-    [cmdex] "r" (NVM_CMDEX_bm),
-        [z] "z" (z)
-                     );
+  __asm__ volatile("out %[ccp], %[ioreg]"  "\n\t"
+                   "st z, %[cmdex]"
+                   :
+                   : [ccp] "I" (_SFR_IO_ADDR(CCP)),
+                     [ioreg] "d" (CCP_IOREG_gc),
+                     [cmdex] "r" (NVM_CMDEX_bm),
+                     [z] "z" (z)
+                   );
 }
-
-/**** AVR1008 fixes ****/
 
 #ifdef __USE_AVR1008_EEPROM
 
-//Interrupt handler for for EEPROM write "done" interrupt
 
-ISR(NVM_EE_vect)
-{
-    NVM.INTCTRL = (NVM.INTCTRL & ~NVM_EELVL_gm); // Disable EEPROM interrupt
+// Interrupt handler for for EEPROM write "done" interrupt
+ISR(NVM_EE_vect) {
+  NVM.INTCTRL = (NVM.INTCTRL & ~NVM_EELVL_gm); // Disable EEPROM interrupt
 }
 
-// Wrapper for NVM_EXEC that executes the workaround code
 
-static inline void NVM_EXEC_WRAPPER()
-{
-    uint8_t sleepCtr = SLEEP.CTRL;            // Save the Sleep register
+// Wrapper for NVM_EXEC that executes the workaround code
+static inline void NVM_EXEC_WRAPPER() {
+  uint8_t sleepCtr = SLEEP.CTRL;            // Save the Sleep register
                                             // Set sleep mode to IDLE
-    SLEEP.CTRL = (SLEEP.CTRL & ~SLEEP.CTRL) | SLEEP_SMODE_IDLE_gc;
-    uint8_t statusStore = PMIC.STATUS;        // Save the PMIC Status...
-    uint8_t pmicStore = PMIC.CTRL;            //...and control registers
+  SLEEP.CTRL = (SLEEP.CTRL & ~SLEEP.CTRL) | SLEEP_SMODE_IDLE_gc;
+  uint8_t statusStore = PMIC.STATUS;        // Save the PMIC Status...
+  uint8_t pmicStore = PMIC.CTRL;            //...and control registers
                                             // Enable only  hi interrupts
-    PMIC.CTRL = (PMIC.CTRL & ~(PMIC_MEDLVLEN_bm | PMIC_LOLVLEN_bm)) | PMIC_HILVLEN_bm;
-    uint8_t globalInt = SREG;                // Save SREG for later use
-    sei();                                    // Enable global interrupts
-    SLEEP.CTRL |= SLEEP_SEN_bm;                // Set sleep enabled
-    uint8_t eepromintStore = NVM.INTCTRL;    // Save eeprom int settings
-    NVM_EXEC();                                // exec EEPROM command
-    NVM.INTCTRL = NVM_EELVL0_bm | NVM_EELVL1_bm;// Enable EEPROM int
-    sleep_cpu();                            // Sleep before 2.5uS passed
-    SLEEP.CTRL = sleepCtr;                    // Restore sleep settings
-    PMIC.STATUS = statusStore;                // Restore PMIC status...
-    PMIC.CTRL = pmicStore;                    //...and control registers
-    NVM.INTCTRL = eepromintStore;            // Restore EEPROM int settings
-    SREG = globalInt;                        // Restore global int settings
+  PMIC.CTRL = (PMIC.CTRL & ~(PMIC_MEDLVLEN_bm | PMIC_LOLVLEN_bm)) | PMIC_HILVLEN_bm;
+  uint8_t globalInt = SREG;                 // Save SREG for later use
+  sei();                                    // Enable global interrupts
+  SLEEP.CTRL |= SLEEP_SEN_bm;               // Set sleep enabled
+  uint8_t eepromintStore = NVM.INTCTRL;     // Save eeprom int settings
+  NVM_EXEC();                               // exec EEPROM command
+  NVM.INTCTRL = NVM_EELVL0_bm | NVM_EELVL1_bm;// Enable EEPROM int
+  sleep_cpu();                              // Sleep before 2.5uS passed
+  SLEEP.CTRL = sleepCtr;                    // Restore sleep settings
+  PMIC.STATUS = statusStore;                // Restore PMIC status...
+  PMIC.CTRL = pmicStore;                    //...and control registers
+  NVM.INTCTRL = eepromintStore;             // Restore EEPROM int settings
+  SREG = globalInt;                         // Restore global int settings
 }
 #else
 #define NVM_EXEC_WRAPPER NVM_EXEC
 #endif // __USE_AVR1008_EEPROM
 
-
-/*************************************************************************
- ****** Functions added for TinyG ****************************************
- *************************************************************************/
-
-/*
- * Non Non-Volatile Memory RAM array &
- * functions to substitute for EEPROM for testing.
- */
-
-#ifdef __NNVM
-char nnvm[NNVM_SIZE]; // not non-volatile memory - emulate xmega192 or 256 has 4096
-
-void NNVM_WriteString(const uint16_t address, const char *buf, const uint8_t unused);
-void NNVM_ReadString(const uint16_t address, char *buf, const uint8_t size);
-void NNVM_WriteBytes(const uint16_t address, const int8_t *buf, const uint16_t size);
-void NNVM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size);
-
-void NNVM_WriteString(const uint16_t address, const char *buf, const uint8_t unused)
-{
-    uint16_t j = address;        // NNVM pointer
-
-    for (uint16_t i = 0; i < ARBITRARY_MAX_LENGTH; i++) {
-        nnvm[j++] = buf[i];
-        if (!buf[i]) {
-            return;
-        }
-    }
-}
-
-void NNVM_ReadString(const uint16_t address, char *buf, const uint8_t size)
-{
-    uint16_t j = address;        // NNVM pointer
-
-    for (uint16_t i = 0; i < size; i++) {
-        buf[i] = nnvm[j++];
-        if (!buf[i]) {
-            return;
-        }
-    }
-}
-
-void NNVM_WriteBytes(const uint16_t address, const int8_t *buf, const uint16_t size)
-{
-    uint16_t j = address;        // NNVM pointer
-
-    for (uint16_t i = 0; i < size; i++) {
-        nnvm[j++] = buf[i];
-    }
-    return;
-}
-
-void NNVM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size)
-{
-    uint16_t j = address;        // NNVM pointer
-
-    for (uint16_t i = 0; i < size; i++) {
-        buf[i] = nnvm[j++];
-    }
-    return;
-}
-
-
-#endif // __NNVM
 
 /*
  * EEPROM_WriteString() - write string to EEPROM; may span multiple pages
@@ -259,79 +189,17 @@ void NNVM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size)
  *    as single page operations.
  */
 
-uint16_t EEPROM_WriteString(const uint16_t address, const char *buf, const uint8_t terminate)
-{
-#ifdef __NNVM
-    NNVM_WriteString(address, buf, true);
-    return address;
-#else
-    uint16_t addr = address;    // local copy
-    uint8_t i = 0;                // index into string
+uint16_t EEPROM_WriteString(const uint16_t address, const char *buf, const uint8_t terminate) {
+  uint16_t addr = address;    // local copy
+  uint8_t i = 0;                // index into string
 
-    EEPROM_DisableMapping();
-    while (buf[i]) {
-        EEPROM_WriteByte(addr++, buf[i++]);
-    }
-    if (terminate) {
-        EEPROM_WriteByte(addr++, 0);
-    }
-    return addr;                 // return next address in EEPROM
-#endif //__NNVM
+  EEPROM_DisableMapping();
+  while (buf[i]) EEPROM_WriteByte(addr++, buf[i++]);
+  if (terminate) EEPROM_WriteByte(addr++, 0);
+
+  return addr;                 // return next address in EEPROM
 }
 
-/* //+++ this is broken and will need to be fixed to work with NNVM
-#ifdef __TEST_EEPROM_WRITE
-    uint8_t testbuffer[32];            // fake out the page buffer
-#endif    // __TEST_EEPROM_WRITE
-
-uint16_t EEPROM_WriteString(const uint16_t address, const char *string, const uint8_t terminate)
-{
-    uint8_t i = 0;            // index into string
-    uint16_t curaddr;        // starting addr of string remaining to write
-    uint16_t endaddr;        // ending address, adjusted for termination
-    uint16_t strnlen;        // remaining unwritten string len (zero based)
-    uint8_t curpage;        // current page number (0 - 127)
-    uint8_t endpage;        // ending page number  (0 - 127)
-    uint8_t byteidx;        // index into page
-    uint8_t byteend;        // ending byte number in page
-
-    // initialize variables
-    EEPROM_DisableMapping();
-    curaddr = address;
-    strnlen = strlen(buf) + terminate - 1;        // terminate will be 1 or 0
-    endaddr = address + strnlen;
-    curpage = (curaddr >> 5) & 0x7F;            // mask it just to be safe
-    endpage = (endaddr >> 5) & 0x7F;            // mask it just to be safe
-
-    while (curpage <= endpage) {
-        // initialize addresses and variables for this write page
-        byteidx = curaddr & EEPROM_BYTE_ADDR_MASK_gm;
-        byteend = min((byteidx + strnlen), EEPROM_PAGESIZE-1);
-        strnlen = strnlen - (byteend - byteidx) - 1;// chars left in string
-        curaddr = curaddr + (byteend - byteidx) + 1;// bump current address
-        NVM.ADDR1 = curpage++;                         // set upper addr bytes
-        NVM.ADDR2 = 0x00;
-
-        // load page buffer w/string contents and optional 0 termination
-        EEPROM_FlushBuffer();    // ensure no unintentional data is written
-        NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc; // Page Load command
-        while (byteidx <= byteend) {
-#ifdef __NNVM
-            NVM.ADDR0 = byteidx;
-            testbuffer[byteidx++] = buf[i++];
-#else
-            // use EEPROM (the real code)
-            NVM.ADDR0 = byteidx++;    // set buffer location for data
-            NVM.DATA0 = buf[i++];    // writing DATA0 triggers write to buffer
-#endif
-        }
-        // run EEPROM Atomic Write (Erase&Write) command.
-        NVM.CMD = NVM_CMD_ERASE_WRITE_EEPROM_PAGE_gc;    // load command
-        NVM_EXEC_WRAPPER();    //write protection signature and execute cmd
-    }
-    return curaddr;
-}
-*/
 
 /*
  * EEPROM_ReadString() - read string from EEPROM; may span multiple pages
@@ -345,36 +213,28 @@ uint16_t EEPROM_WriteString(const uint16_t address, const char *string, const ui
  *        size        cutoff string and terminate at this length
  *        return        next address past string termination
  */
+uint16_t EEPROM_ReadString(const uint16_t address, char *buf, const uint16_t size) {
+  uint16_t addr = address;                // local copy
+  uint16_t i = 0;                            // index into strings
 
-uint16_t EEPROM_ReadString(const uint16_t address, char *buf, const uint16_t size)
-{
-#ifdef __NNVM
-    NNVM_ReadString(address, buf, size);
-    return(address + sizeof(buf));
-#else
-    uint16_t addr = address;                // local copy
-    uint16_t i = 0;                            // index into strings
+  EEPROM_DisableMapping();
 
-    EEPROM_DisableMapping();
+  for (i = 0; i < size; i++) {
+    NVM.ADDR0 = addr & 0xFF;            // set read address
+    NVM.ADDR1 = (addr++ >> 8) & EEPROM_ADDR1_MASK_gm;
+    NVM.ADDR2 = 0x00;
 
-    for (i = 0; i < size; i++) {
-        NVM.ADDR0 = addr & 0xFF;            // set read address
-        NVM.ADDR1 = (addr++ >> 8) & EEPROM_ADDR1_MASK_gm;
-        NVM.ADDR2 = 0x00;
+    EEPROM_WaitForNVM();                // Wait until NVM is not busy
+    NVM.CMD = NVM_CMD_READ_EEPROM_gc;    // issue EEPROM Read command
+    NVM_EXEC();
+    if (!(buf[i] = NVM.DATA0)) break;
+  }
 
-        EEPROM_WaitForNVM();                // Wait until NVM is not busy
-        NVM.CMD = NVM_CMD_READ_EEPROM_gc;    // issue EEPROM Read command
-        NVM_EXEC();
-        if (!(buf[i] = NVM.DATA0)) {
-            break;
-        }
-    }
-    if (i == size) {        // null terinate the buffer overflow case
-        buf[i] = 0;
-    }
-    return addr;
-#endif //__NNVM
+  if (i == size) buf[i] = 0;        // null terinate the buffer overflow case
+
+  return addr;
 }
+
 
 /*
  * EEPROM_WriteBytes() - write N bytes to EEPROM; may span multiple pages
@@ -386,23 +246,16 @@ uint16_t EEPROM_ReadString(const uint16_t address, char *buf, const uint16_t siz
  *
  *    Returns address past the write
  */
+uint16_t EEPROM_WriteBytes(const uint16_t address, const int8_t *buf, const uint16_t size) {
+  uint16_t addr = address;    // local copy
 
-uint16_t EEPROM_WriteBytes(const uint16_t address, const int8_t *buf, const uint16_t size)
-{
-#ifdef __NNVM
-    NNVM_WriteBytes(address, buf, size);
-    return(address + size);
-#else
-    uint16_t i;
-    uint16_t addr = address;    // local copy
+  EEPROM_DisableMapping();
+  for (uint16_t i = 0; i < size; i++)
+    EEPROM_WriteByte(addr++, buf[i]);
 
-    EEPROM_DisableMapping();
-    for (i=0; i<size; i++) {
-        EEPROM_WriteByte(addr++, buf[i]);
-    }
-    return addr;                 // return next address in EEPROM
-#endif //__NNVM
+  return addr;                 // return next address in EEPROM
 }
+
 
 /*
  * EEPROM_ReadBytes() - read N bytes to EEPROM; may span multiple pages
@@ -411,37 +264,25 @@ uint16_t EEPROM_WriteBytes(const uint16_t address, const int8_t *buf, const uint
  *    If memory mapped EEPROM is enabled this function will not work.
  *    A string may span multiple EEPROM pages.
  */
+uint16_t EEPROM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size) {
+  uint16_t addr = address;               // local copy
 
-uint16_t EEPROM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t size)
-{
-#ifdef __NNVM
-    NNVM_ReadBytes(address, buf, size);
-    return(address + size);
-#else
-    uint16_t i;
-    uint16_t addr = address;                // local copy
+  EEPROM_DisableMapping();
 
-    EEPROM_DisableMapping();
+  for (uint16_t i = 0; i < size; i++) {
+    NVM.ADDR0 = addr & 0xFF;             // set read address
+    NVM.ADDR1 = (addr++ >> 8) & EEPROM_ADDR1_MASK_gm;
+    NVM.ADDR2 = 0x00;
 
-    for (i=0; i<size; i++) {
-        NVM.ADDR0 = addr & 0xFF;            // set read address
-        NVM.ADDR1 = (addr++ >> 8) & EEPROM_ADDR1_MASK_gm;
-        NVM.ADDR2 = 0x00;
+    EEPROM_WaitForNVM();                 // Wait until NVM is not busy
+    NVM.CMD = NVM_CMD_READ_EEPROM_gc;    // issue EEPROM Read command
+    NVM_EXEC();
+    buf[i] = NVM.DATA0;
+  }
 
-        EEPROM_WaitForNVM();                // Wait until NVM is not busy
-        NVM.CMD = NVM_CMD_READ_EEPROM_gc;    // issue EEPROM Read command
-        NVM_EXEC();
-        buf[i] = NVM.DATA0;
-    }
-    return addr;
-#endif //__NNVM
+  return addr;
 }
 
-/*************************************************************************
- ****** Functions from Atmel eeprom_driver.c w/some changes **************
- *************************************************************************/
-
-// Look for NVM_EXEC_WRAPPER in places.
 
 /*
  * EEPROM_WaitForNVM() - Wait for any NVM access to finish
@@ -451,11 +292,10 @@ uint16_t EEPROM_ReadBytes(const uint16_t address, int8_t *buf, const uint16_t si
  *    any previous operations are finished yet, like an EEPROM write.
  */
 
-void EEPROM_WaitForNVM( void )
-{
-    do {
-    } while ((NVM.STATUS & NVM_NVMBUSY_bm) == NVM_NVMBUSY_bm);
+void EEPROM_WaitForNVM() {
+  while ((NVM.STATUS & NVM_NVMBUSY_bm) == NVM_NVMBUSY_bm);
 }
+
 
 /*
  * EEPROM_FlushBuffer() - Flush temporary EEPROM page buffer.
@@ -466,15 +306,15 @@ void EEPROM_WaitForNVM( void )
  *
  *  Note: The EEPROM write operations will automatically flush the buffer for you
  */
+void EEPROM_FlushBuffer() {
+  EEPROM_WaitForNVM();                         // Wait until NVM is not busy
 
-void EEPROM_FlushBuffer( void )
-{
-    EEPROM_WaitForNVM();                        // Wait until NVM is not busy
-    if ((NVM.STATUS & NVM_EELOAD_bm) != 0) {     // Flush page buffer if necessary
-        NVM.CMD = NVM_CMD_ERASE_EEPROM_BUFFER_gc;
-        NVM_EXEC();
-    }
+  if ((NVM.STATUS & NVM_EELOAD_bm) != 0) {     // Flush page buffer if necessary
+    NVM.CMD = NVM_CMD_ERASE_EEPROM_BUFFER_gc;
+    NVM_EXEC();
+  }
 }
+
 
 /*
  * EEPROM_WriteByte()         - write one byte to EEPROM using IO mapping
@@ -491,19 +331,18 @@ void EEPROM_FlushBuffer( void )
  *    Note: DO NOT USE THIS FUNCTION IF YOU CAN AVOID IT AS ENDURANCE SUCKS
  *          Use EEPROM_WriteString(), or write a new routine for binary blocks.
  */
-
-void EEPROM_WriteByte(uint16_t address, uint8_t value)
-{
-    EEPROM_DisableMapping();                // *** SAFETY ***
-    EEPROM_FlushBuffer();                    // prevent unintentional write
-    NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;// load page_load command
-    NVM.ADDR0 = address & 0xFF;             // set buffer addresses
-    NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
-    NVM.ADDR2 = 0x00;
-    NVM.DATA0 = value;    // load write data - triggers EEPROM page buffer load
-    NVM.CMD = NVM_CMD_ERASE_WRITE_EEPROM_PAGE_gc;// Atomic Write (Erase&Write)
-    NVM_EXEC_WRAPPER(); // Load command, write protection signature & exec command
+void EEPROM_WriteByte(uint16_t address, uint8_t value) {
+  EEPROM_DisableMapping();                // *** SAFETY ***
+  EEPROM_FlushBuffer();                    // prevent unintentional write
+  NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;// load page_load command
+  NVM.ADDR0 = address & 0xFF;             // set buffer addresses
+  NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
+  NVM.ADDR2 = 0x00;
+  NVM.DATA0 = value;    // load write data - triggers EEPROM page buffer load
+  NVM.CMD = NVM_CMD_ERASE_WRITE_EEPROM_PAGE_gc;// Atomic Write (Erase&Write)
+  NVM_EXEC_WRAPPER(); // Load command, write protection signature & exec command
 }
+
 
 /*
  * EEPROM_ReadByte()        - Read one byte from EEPROM using IO mapping.
@@ -518,18 +357,18 @@ void EEPROM_WriteByte(uint16_t address, uint8_t value)
  *      address      EEPROM address, between 0 and EEPROM_SIZE
  *      returns     byte value read from EEPROM.
  */
+uint8_t EEPROM_ReadByte(uint16_t address) {
+  EEPROM_DisableMapping();                // *** SAFETY ***
+  EEPROM_WaitForNVM();                    // Wait until NVM is not busy
+  NVM.ADDR0 = address & 0xFF;                // set read address
+  NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
+  NVM.ADDR2 = 0x00;
+  NVM.CMD = NVM_CMD_READ_EEPROM_gc;        // issue EEPROM Read command
+  NVM_EXEC();
 
-uint8_t EEPROM_ReadByte(uint16_t address)
-{
-    EEPROM_DisableMapping();                // *** SAFETY ***
-    EEPROM_WaitForNVM();                    // Wait until NVM is not busy
-    NVM.ADDR0 = address & 0xFF;                // set read address
-    NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
-    NVM.ADDR2 = 0x00;
-    NVM.CMD = NVM_CMD_READ_EEPROM_gc;        // issue EEPROM Read command
-    NVM_EXEC();
-    return NVM.DATA0;
+  return NVM.DATA0;
 }
+
 
 /*
  * EEPROM_LoadByte() - Load single byte into temporary page buffer.
@@ -547,17 +386,16 @@ uint8_t EEPROM_ReadByte(uint16_t address)
  *    byteAddr  EEPROM Byte address, between 0 and EEPROM_PAGESIZE.
  *    value     Byte value to write to buffer.
  */
-
-void EEPROM_LoadByte(uint8_t byteAddr, uint8_t value)
-{
-    EEPROM_DisableMapping();                    // +++ SAFETY
-    EEPROM_WaitForNVM();                         // wait until NVM is not busy
-    NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;    // prepare NVM command
-    NVM.ADDR0 = byteAddr & EEPROM_ADDR1_MASK_gm;// set address
-    NVM.ADDR1 = 0x00;
-    NVM.ADDR2 = 0x00;
-    NVM.DATA0 = value; // Set data, which triggers loading EEPROM page buffer
+void EEPROM_LoadByte(uint8_t byteAddr, uint8_t value) {
+  EEPROM_DisableMapping();                    // +++ SAFETY
+  EEPROM_WaitForNVM();                         // wait until NVM is not busy
+  NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;    // prepare NVM command
+  NVM.ADDR0 = byteAddr & EEPROM_ADDR1_MASK_gm;// set address
+  NVM.ADDR1 = 0x00;
+  NVM.ADDR2 = 0x00;
+  NVM.DATA0 = value; // Set data, which triggers loading EEPROM page buffer
 }
+
 
 /*
  * EEPROM_LoadPage() - Load entire page into temporary EEPROM page buffer.
@@ -574,21 +412,20 @@ void EEPROM_LoadByte(uint8_t byteAddr, uint8_t value)
  *
  *    values   Pointer to SRAM buffer containing an entire page.
  */
+void EEPROM_LoadPage(const uint8_t * values) {
+  EEPROM_DisableMapping();                    // +++ SAFETY
+  EEPROM_WaitForNVM();                        // wait until NVM not busy
+  NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;
+  NVM.ADDR1 = 0x00;                            // set upper addr's to zero
+  NVM.ADDR2 = 0x00;
 
-void EEPROM_LoadPage( const uint8_t * values )
-{
-    EEPROM_DisableMapping();                    // +++ SAFETY
-    EEPROM_WaitForNVM();                        // wait until NVM not busy
-    NVM.CMD = NVM_CMD_LOAD_EEPROM_BUFFER_gc;
-    NVM.ADDR1 = 0x00;                            // set upper addr's to zero
-    NVM.ADDR2 = 0x00;
-
-    for (uint8_t i = 0; i < EEPROM_PAGESIZE; ++i) { // load multiple bytes
-        NVM.ADDR0 = i;
-        NVM.DATA0 = *values;
-        ++values;
-    }
+  for (uint8_t i = 0; i < EEPROM_PAGESIZE; ++i) { // load multiple bytes
+    NVM.ADDR0 = i;
+    NVM.DATA0 = *values;
+    ++values;
+  }
 }
+
 
 /*
  * EEPROM_AtomicWritePage() - Write already loaded page into EEPROM.
@@ -602,17 +439,16 @@ void EEPROM_LoadPage( const uint8_t * values )
  *
  *      pageAddr  EEPROM Page address between 0 and EEPROM_SIZE/EEPROM_PAGESIZE
  */
-
-inline void EEPROM_AtomicWritePage(uint8_t pageAddr)
-{
-    EEPROM_WaitForNVM();                        // wait until NVM not busy
-    uint16_t address = (uint16_t)(pageAddr*EEPROM_PAGESIZE);
-    NVM.ADDR0 = address & 0xFF;                    // set addresses
-    NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
-    NVM.ADDR2 = 0x00;
-    NVM.CMD = NVM_CMD_ERASE_WRITE_EEPROM_PAGE_gc; // erase & write page command
-    NVM_EXEC();
+inline void EEPROM_AtomicWritePage(uint8_t pageAddr) {
+  EEPROM_WaitForNVM();                        // wait until NVM not busy
+  uint16_t address = (uint16_t)(pageAddr * EEPROM_PAGESIZE);
+  NVM.ADDR0 = address & 0xFF;                    // set addresses
+  NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
+  NVM.ADDR2 = 0x00;
+  NVM.CMD = NVM_CMD_ERASE_WRITE_EEPROM_PAGE_gc; // erase & write page command
+  NVM_EXEC();
 }
+
 
 /*
  * EEPROM_ErasePage() - Erase EEPROM page.
@@ -621,17 +457,16 @@ inline void EEPROM_AtomicWritePage(uint8_t pageAddr)
  *
  *      pageAddr  EEPROM Page address between 0 and EEPROM_SIZE/EEPROM_PAGESIZE
  */
-
-inline void EEPROM_ErasePage( uint8_t pageAddr )
-{
-    EEPROM_WaitForNVM();                        // wait until NVM not busy
-    uint16_t address = (uint16_t)(pageAddr*EEPROM_PAGESIZE);
-    NVM.ADDR0 = address & 0xFF;                    // set addresses
-    NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
-    NVM.ADDR2 = 0x00;
-    NVM.CMD = NVM_CMD_ERASE_EEPROM_PAGE_gc;        // erase page command
-    NVM_EXEC_WRAPPER();
+inline void EEPROM_ErasePage(uint8_t pageAddr) {
+  EEPROM_WaitForNVM();                        // wait until NVM not busy
+  uint16_t address = (uint16_t)(pageAddr * EEPROM_PAGESIZE);
+  NVM.ADDR0 = address & 0xFF;                    // set addresses
+  NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
+  NVM.ADDR2 = 0x00;
+  NVM.CMD = NVM_CMD_ERASE_EEPROM_PAGE_gc;        // erase page command
+  NVM_EXEC_WRAPPER();
 }
+
 
 /*
  * EEPROM_SplitWritePage() - Write (without erasing) EEPROM page.
@@ -642,26 +477,21 @@ inline void EEPROM_ErasePage( uint8_t pageAddr )
  *
  *      pageAddr  EEPROM Page address between 0 and EEPROM_SIZE/EEPROM_PAGESIZE
  */
-
-inline void EEPROM_SplitWritePage( uint8_t pageAddr )
-{
-    EEPROM_WaitForNVM();                        // wait until NVM not busy
-    uint16_t address = (uint16_t)(pageAddr*EEPROM_PAGESIZE);
-    NVM.ADDR0 = address & 0xFF;                    // set addresses
-    NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
-    NVM.ADDR2 = 0x00;
-    NVM.CMD = NVM_CMD_WRITE_EEPROM_PAGE_gc;        // split write command
-    NVM_EXEC_WRAPPER();
+inline void EEPROM_SplitWritePage(uint8_t pageAddr) {
+  EEPROM_WaitForNVM();                        // wait until NVM not busy
+  uint16_t address = (uint16_t)(pageAddr * EEPROM_PAGESIZE);
+  NVM.ADDR0 = address & 0xFF;                    // set addresses
+  NVM.ADDR1 = (address >> 8) & EEPROM_ADDR1_MASK_gm;
+  NVM.ADDR2 = 0x00;
+  NVM.CMD = NVM_CMD_WRITE_EEPROM_PAGE_gc;        // split write command
+  NVM_EXEC_WRAPPER();
 }
 
-/*
- * EEPROM_EraseAll() - Erase entire EEPROM memory to 0xFF
- */
 
-inline void EEPROM_EraseAll( void )
-{
-    EEPROM_WaitForNVM();                        // wait until NVM not busy
-    NVM.CMD = NVM_CMD_ERASE_EEPROM_gc;            // erase all command
-    NVM_EXEC_WRAPPER();
+/// EEPROM_EraseAll() - Erase entire EEPROM memory to 0xFF
+inline void EEPROM_EraseAll() {
+  EEPROM_WaitForNVM();                        // wait until NVM not busy
+  NVM.CMD = NVM_CMD_ERASE_EEPROM_gc;            // erase all command
+  NVM_EXEC_WRAPPER();
 }
 
