@@ -36,8 +36,8 @@
  *    HI    Dwell timer counter                  (set in stepper.h)
  *    LO    Segment execution SW interrupt       (set in stepper.h)
  *   MED    GPIO1 switch port                    (set in gpio.h)
- *   MED    Serial RX for USB & RS-485           (set in usart.c)
- *   MED    Serial TX for USB & RS-485           (set in usart.c) (* see note)
+ *   MED    Serial RX                            (set in usart.c)
+ *   MED    Serial TX                            (set in usart.c) (* see note)
  *    LO    Real time clock interrupt            (set in xmega_rtc.h)
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
@@ -49,34 +49,14 @@
 #ifndef HARDWARE_H_ONCE
 #define HARDWARE_H_ONCE
 
-/*--- Hardware platform enumerations ---*/
-
 enum hwPlatform {
   HM_PLATFORM_NONE = 0,
-
   HW_PLATFORM_TINYG_XMEGA,    // TinyG code base on Xmega boards.
-  //    hwVersion 7 = TinyG v7 and earlier
-  //    hwVersion 8 = TinyG v8
-
-  HW_PLATFORM_G2_DUE,            // G2 code base on native Arduino Due
-
-  HW_PLATFORM_TINYG_V9        // G2 code base on v9 boards
-  //  hwVersion 0 = v9c
-  //  hwVersion 1 = v9d
-  //  hwVersion 2 = v9f
-  //  hwVersion 3 = v9h
-  //  hwVersion 4 = v9i
 };
 
-#define HW_VERSION_TINYGV6        6
-#define HW_VERSION_TINYGV7        7
-#define HW_VERSION_TINYGV8        8
-
-#define HW_VERSION_TINYGV9C        0
-#define HW_VERSION_TINYGV9D        1
-#define HW_VERSION_TINYGV9F        2
-#define HW_VERSION_TINYGV9H        3
-#define HW_VERSION_TINYGV9I        4
+#define HW_VERSION_TINYGV6 6
+#define HW_VERSION_TINYGV7 7
+#define HW_VERSION_TINYGV8 8
 
 #include "config.h"                        // needed for the stat_t typedef
 #include <avr/interrupt.h>
@@ -95,40 +75,40 @@ enum hwPlatform {
  *** These are not all the same, and must line up in multiple places in gpio.h ***
  * Sorry if this is confusing - it's a board routing issue
  */
-#define PORT_MOTOR_1    PORTA            // motors mapped to ports
+#define PORT_MOTOR_1     PORTA            // motors mapped to ports
 #define PORT_MOTOR_2     PORTF
-#define PORT_MOTOR_3    PORTE
-#define PORT_MOTOR_4    PORTD
+#define PORT_MOTOR_3     PORTE
+#define PORT_MOTOR_4     PORTD
 
-#define PORT_SWITCH_X     PORTA            // Switch axes mapped to ports
-#define PORT_SWITCH_Y     PORTD
-#define PORT_SWITCH_Z     PORTE
-#define PORT_SWITCH_A     PORTF
+#define PORT_SWITCH_X    PORTA            // Switch axes mapped to ports
+#define PORT_SWITCH_Y    PORTD
+#define PORT_SWITCH_Z    PORTE
+#define PORT_SWITCH_A    PORTF
 
 #define PORT_OUT_V7_X    PORTA            // v7 mapping - Output bits mapped to ports
-#define PORT_OUT_V7_Y     PORTF
+#define PORT_OUT_V7_Y    PORTF
 #define PORT_OUT_V7_Z    PORTD
 #define PORT_OUT_V7_A    PORTE
 
 #define PORT_OUT_V6_X    PORTA            // v6 and earlier mapping - Output bits mapped to ports
-#define PORT_OUT_V6_Y     PORTF
+#define PORT_OUT_V6_Y    PORTF
 #define PORT_OUT_V6_Z    PORTE
 #define PORT_OUT_V6_A    PORTD
 
 // These next four must be changed when the PORT_MOTOR_* definitions change!
-#define PORTCFG_VP0MAP_PORT_MOTOR_1_gc PORTCFG_VP0MAP_PORTA_gc
-#define PORTCFG_VP1MAP_PORT_MOTOR_2_gc PORTCFG_VP1MAP_PORTF_gc
-#define PORTCFG_VP2MAP_PORT_MOTOR_3_gc PORTCFG_VP2MAP_PORTE_gc
-#define PORTCFG_VP3MAP_PORT_MOTOR_4_gc PORTCFG_VP3MAP_PORTD_gc
+#define PORTCFG_VP0MAP_PORT_MOTOR_1_gc PORTCFG_VP02MAP_PORTA_gc
+#define PORTCFG_VP1MAP_PORT_MOTOR_2_gc PORTCFG_VP13MAP_PORTF_gc
+#define PORTCFG_VP2MAP_PORT_MOTOR_3_gc PORTCFG_VP02MAP_PORTE_gc
+#define PORTCFG_VP3MAP_PORT_MOTOR_4_gc PORTCFG_VP13MAP_PORTD_gc
 
-#define PORT_MOTOR_1_VPORT    VPORT0
-#define PORT_MOTOR_2_VPORT    VPORT1
-#define PORT_MOTOR_3_VPORT    VPORT2
-#define PORT_MOTOR_4_VPORT    VPORT3
+#define PORT_MOTOR_1_VPORT VPORT0
+#define PORT_MOTOR_2_VPORT VPORT1
+#define PORT_MOTOR_3_VPORT VPORT2
+#define PORT_MOTOR_4_VPORT VPORT3
 
 /*
  * Port setup - Stepper / Switch Ports:
- *    b0    (out) step            (SET is step,  CLR is rest)
+ *    b0    (out) step             (SET is step,  CLR is rest)
  *    b1    (out) direction        (CLR = Clockwise)
  *    b2    (out) motor enable     (CLR = Enabled)
  *    b3    (out) microstep 0
@@ -139,33 +119,33 @@ enum hwPlatform {
  */
 #define MOTOR_PORT_DIR_gm 0x3F    // dir settings: lower 6 out, upper 2 in
 
-enum cfgPortBits {            // motor control port bit positions
+enum cfgPortBits {        // motor control port bit positions
   STEP_BIT_bp = 0,        // bit 0
-  DIRECTION_BIT_bp,        // bit 1
+  DIRECTION_BIT_bp,       // bit 1
   MOTOR_ENABLE_BIT_bp,    // bit 2
-  MICROSTEP_BIT_0_bp,        // bit 3
-  MICROSTEP_BIT_1_bp,        // bit 4
-  GPIO1_OUT_BIT_bp,        // bit 5 (4 gpio1 output bits; 1 from each axis)
-  SW_MIN_BIT_bp,            // bit 6 (4 input bits for homing/limit switches)
-  SW_MAX_BIT_bp            // bit 7 (4 input bits for homing/limit switches)
+  MICROSTEP_BIT_0_bp,     // bit 3
+  MICROSTEP_BIT_1_bp,     // bit 4
+  GPIO1_OUT_BIT_bp,       // bit 5 (4 gpio1 output bits; 1 from each axis)
+  SW_MIN_BIT_bp,          // bit 6 (4 input bits for homing/limit switches)
+  SW_MAX_BIT_bp           // bit 7 (4 input bits for homing/limit switches)
 };
 
-#define STEP_BIT_bm            (1<<STEP_BIT_bp)
-#define DIRECTION_BIT_bm    (1<<DIRECTION_BIT_bp)
-#define MOTOR_ENABLE_BIT_bm (1<<MOTOR_ENABLE_BIT_bp)
-#define MICROSTEP_BIT_0_bm    (1<<MICROSTEP_BIT_0_bp)
-#define MICROSTEP_BIT_1_bm    (1<<MICROSTEP_BIT_1_bp)
-#define GPIO1_OUT_BIT_bm    (1<<GPIO1_OUT_BIT_bp)    // spindle and coolant output bits
-#define SW_MIN_BIT_bm        (1<<SW_MIN_BIT_bp)        // minimum switch inputs
-#define SW_MAX_BIT_bm        (1<<SW_MAX_BIT_bp)        // maximum switch inputs
+#define STEP_BIT_bm           (1 << STEP_BIT_bp)
+#define DIRECTION_BIT_bm      (1 << DIRECTION_BIT_bp)
+#define MOTOR_ENABLE_BIT_bm   (1 << MOTOR_ENABLE_BIT_bp)
+#define MICROSTEP_BIT_0_bm    (1 << MICROSTEP_BIT_0_bp)
+#define MICROSTEP_BIT_1_bm    (1 << MICROSTEP_BIT_1_bp)
+#define GPIO1_OUT_BIT_bm      (1 << GPIO1_OUT_BIT_bp)    // spindle and coolant output bits
+#define SW_MIN_BIT_bm         (1 << SW_MIN_BIT_bp)       // minimum switch inputs
+#define SW_MAX_BIT_bm         (1 << SW_MAX_BIT_bp)       // maximum switch inputs
 
 /* Bit assignments for GPIO1_OUTs for spindle, PWM and coolant */
 
 #define SPINDLE_BIT            0x08        // spindle on/off
 #define SPINDLE_DIR            0x04        // spindle direction, 1=CW, 0=CCW
 #define SPINDLE_PWM            0x02        // spindle PWMs output bit
-#define MIST_COOLANT_BIT    0x01        // coolant on/off - these are the same due to limited ports
-#define FLOOD_COOLANT_BIT    0x01        // coolant on/off
+#define MIST_COOLANT_BIT       0x01        // coolant on/off - these are the same due to limited ports
+#define FLOOD_COOLANT_BIT      0x01        // coolant on/off
 
 #define SPINDLE_LED            0
 #define SPINDLE_DIR_LED        1
@@ -177,47 +157,47 @@ enum cfgPortBits {            // motor control port bit positions
 /* Timer assignments - see specific modules for details) */
 
 #define TIMER_DDA            TCC0        // DDA timer     (see stepper.h)
-#define TIMER_DWELL             TCD0        // Dwell timer    (see stepper.h)
-#define TIMER_LOAD            TCE0        // Loader timer    (see stepper.h)
-#define TIMER_EXEC            TCF0        // Exec timer    (see stepper.h)
-#define TIMER_5                TCC1        // unallocated timer
-#define TIMER_PWM1            TCD1        // PWM timer #1 (see pwm.c)
-#define TIMER_PWM2            TCE1        // PWM timer #2    (see pwm.c)
+#define TIMER_DWELL          TCD0        // Dwell timer   (see stepper.h)
+#define TIMER_LOAD           TCE0        // Loader time   (see stepper.h)
+#define TIMER_EXEC           TCF0        // Exec timer    (see stepper.h)
+#define TIMER_TMC2660        TCC1        // TMC2660 timer (see tmc2660.h)
+#define TIMER_PWM1           TCD1        // PWM timer #1  (see pwm.c)
+#define TIMER_PWM2           TCE1        // PWM timer #2  (see pwm.c)
 
 /* Timer setup for stepper and dwells */
 
-#define FREQUENCY_DDA         (float)50000    // DDA frequency in hz.
+#define FREQUENCY_DDA          (float)50000    // DDA frequency in hz.
 #define FREQUENCY_DWELL        (float)10000    // Dwell count frequency in hz.
-#define LOAD_TIMER_PERIOD     100                // cycles you have to shut off SW interrupt
-#define EXEC_TIMER_PERIOD     100                // cycles you have to shut off SW interrupt
-#define EXEC_TIMER_PERIOD_LONG 100            // cycles you have to shut off SW interrupt
+#define LOAD_TIMER_PERIOD      100             // cycles you have to shut off SW interrupt
+#define EXEC_TIMER_PERIOD      100             // cycles you have to shut off SW interrupt
+#define EXEC_TIMER_PERIOD_LONG 100             // cycles you have to shut off SW interrupt
 
-#define STEP_TIMER_TYPE        TC0_struct         // stepper subsybstem uses all the TC0's
+#define STEP_TIMER_TYPE        TC0_struct       // stepper subsybstem uses all the TC0's
 #define STEP_TIMER_DISABLE     0                // turn timer off (clock = 0 Hz)
-#define STEP_TIMER_ENABLE    1                // turn timer clock on (F_CPU = 32 Mhz)
-#define STEP_TIMER_WGMODE    0                // normal mode (count to TOP and rollover)
+#define STEP_TIMER_ENABLE      1                // turn timer clock on (F_CPU = 32 Mhz)
+#define STEP_TIMER_WGMODE      0                // normal mode (count to TOP and rollover)
 
 #define LOAD_TIMER_DISABLE     0                // turn load timer off (clock = 0 Hz)
-#define LOAD_TIMER_ENABLE    1                // turn load timer clock on (F_CPU = 32 Mhz)
-#define LOAD_TIMER_WGMODE    0                // normal mode (count to TOP and rollover)
+#define LOAD_TIMER_ENABLE      1                // turn load timer clock on (F_CPU = 32 Mhz)
+#define LOAD_TIMER_WGMODE      0                // normal mode (count to TOP and rollover)
 
 #define EXEC_TIMER_DISABLE     0                // turn exec timer off (clock = 0 Hz)
-#define EXEC_TIMER_ENABLE    1                // turn exec timer clock on (F_CPU = 32 Mhz)
-#define EXEC_TIMER_WGMODE    0                // normal mode (count to TOP and rollover)
+#define EXEC_TIMER_ENABLE      1                // turn exec timer clock on (F_CPU = 32 Mhz)
+#define EXEC_TIMER_WGMODE      0                // normal mode (count to TOP and rollover)
 
-#define TIMER_DDA_ISR_vect    TCC0_OVF_vect    // must agree with assignment in system.h
-#define TIMER_DWELL_ISR_vect TCD0_OVF_vect    // must agree with assignment in system.h
+#define TIMER_DDA_ISR_vect     TCC0_OVF_vect    // must agree with assignment in system.h
+#define TIMER_DWELL_ISR_vect   TCD0_OVF_vect    // must agree with assignment in system.h
 #define TIMER_LOAD_ISR_vect    TCE0_OVF_vect    // must agree with assignment in system.h
 #define TIMER_EXEC_ISR_vect    TCF0_OVF_vect    // must agree with assignment in system.h
 
-#define TIMER_OVFINTLVL_HI    3                // timer interrupt level (3=hi)
-#define    TIMER_OVFINTLVL_MED 2;                // timer interrupt level (2=med)
-#define    TIMER_OVFINTLVL_LO  1;                // timer interrupt level (1=lo)
+#define TIMER_OVFINTLVL_HI     3                // timer interrupt level (3=hi)
+#define TIMER_OVFINTLVL_MED    2                // timer interrupt level (2=med)
+#define TIMER_OVFINTLVL_LO     1                // timer interrupt level (1=lo)
 
-#define TIMER_DDA_INTLVL     TIMER_OVFINTLVL_HI
-#define TIMER_DWELL_INTLVL    TIMER_OVFINTLVL_HI
-#define TIMER_LOAD_INTLVL    TIMER_OVFINTLVL_HI
-#define TIMER_EXEC_INTLVL    TIMER_OVFINTLVL_LO
+#define TIMER_DDA_INTLVL       TIMER_OVFINTLVL_HI
+#define TIMER_DWELL_INTLVL     TIMER_OVFINTLVL_HI
+#define TIMER_LOAD_INTLVL      TIMER_OVFINTLVL_HI
+#define TIMER_EXEC_INTLVL      TIMER_OVFINTLVL_LO
 
 
 /**** Device singleton - global structure to allow iteration through similar devices ****/
@@ -236,11 +216,11 @@ enum cfgPortBits {            // motor control port bit positions
 typedef struct hmSingleton {
   PORT_t *st_port[MOTORS];        // bindings for stepper motor ports (stepper.c)
   PORT_t *sw_port[MOTORS];        // bindings for switch ports (GPIO2)
-  PORT_t *out_port[MOTORS];        // bindings for output ports (GPIO1)
+  PORT_t *out_port[MOTORS];       // bindings for output ports (GPIO1)
 } hwSingleton_t;
 hwSingleton_t hw;
 
-void hardware_init();            // master hardware init
+void hardware_init();             // master hardware init
 void hw_request_hard_reset();
 void hw_hard_reset();
 stat_t hw_hard_reset_handler();

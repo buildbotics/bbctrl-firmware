@@ -32,6 +32,7 @@
 #include "test.h"
 #include "pwm.h"
 #include "usart.h"
+#include "tmc2660.h"
 
 #include <avr/interrupt.h>
 #include "xmega/xmega_interrupts.h"
@@ -50,6 +51,7 @@ static void init() {
   usart_init();                   // serial port
 
   // do these next
+  tmc2660_init();                 // motor drivers
   stepper_init();                 // stepper subsystem
   encoder_init();                 // virtual encoders
   switch_init();                  // switches

@@ -2,7 +2,7 @@
 
                    This file is part of the TinyG firmware.
 
-                     Copyright (c) 2015, Buildbotics LLC
+                   Copyright (c) 2015-2016, Buildbotics LLC
                              All rights reserved.
 
         The C! library is free software: you can redistribute it and/or
@@ -118,7 +118,7 @@ void usart_init(void) {
   USARTC0.CTRLA = USART_RXCINTLVL_HI_gc;
   USARTC0.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 
-  PMIC.CTRL |= PMIC_HILVLEN_bm; // Lowlevel interrupt on
+  PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
 
   // Connect IO
   stdout = &_stdout;

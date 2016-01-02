@@ -25,8 +25,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*     This module provides the low-level stepper drivers and some related functions.
- *    See stepper.h for a detailed explanation of this module.
+
+/* This module provides the low-level stepper drivers and some related functions.
+ * See stepper.h for a detailed explanation of this module.
  */
 
 #include "tinyg.h"
@@ -62,6 +63,7 @@ static void _request_load_move();
  *      - motor polarity is setup during config_init()
  *      - high level interrupts must be enabled in main() once all inits are complete
  */
+
 /*    NOTE: This is the bare code that the Motate timer calls replace.
  *    NB: requires: #include <component_tc.h>
  *
@@ -814,7 +816,6 @@ static int8_t _get_motor(const nvObj_t *nv)
 static void _set_motor_steps_per_unit(nvObj_t *nv)
 {
     uint8_t m = _get_motor(nv);
-//    st_cfg.mot[m].units_per_step = (st_cfg.mot[m].travel_rev * st_cfg.mot[m].step_angle) / (360 * st_cfg.mot[m].microsteps); // unused
     st_cfg.mot[m].steps_per_unit = (360 * st_cfg.mot[m].microsteps) / (st_cfg.mot[m].travel_rev * st_cfg.mot[m].step_angle);
     st_reset();
 }

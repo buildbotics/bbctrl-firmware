@@ -2,7 +2,7 @@
 
                    This file is part of the TinyG firmware.
 
-                     Copyright (c) 2015, Buildbotics LLC
+                   Copyright (c) 2015-2016, Buildbotics LLC
                              All rights reserved.
 
         The C! library is free software: you can redistribute it and/or

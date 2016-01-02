@@ -1,6 +1,6 @@
 # Makefile for the project TinyG firmware
 PROJECT = tinyg
-MCU     = atxmega192a3
+MCU     = atxmega192a3u
 CLOCK   = 32000000
 
 TARGET  = $(PROJECT).elf
@@ -12,8 +12,8 @@ CPP = avr-g++
 COMMON = -mmcu=$(MCU)
 
 CFLAGS += $(COMMON)
-CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -Os -funsigned-char
-CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -Os
+CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 
 # Linker flags
