@@ -49,6 +49,10 @@ typedef enum {
 } spi_state_t;
 
 typedef struct {
+  tmc2660_state_t state;
+  uint8_t reset;
+  uint8_t reg;
+
   uint16_t mstep;
   uint8_t status;
   uint32_t regs[5];
@@ -64,9 +68,7 @@ static const uint32_t reg_addrs[] = {
 };
 
 
-static volatile tmc2660_state_t state;
 static volatile uint8_t driver;
-static volatile uint8_t reg;
 static tmc2660_driver_t drivers[TMC2660_NUM_DRIVERS];
 
 static volatile spi_state_t spi_state;
@@ -97,8 +99,7 @@ static void spi_cs(int driver, int enable) {
 
 
 static void spi_send() {
-  // Flush any status errors
-  // TODO check errors
+  // Flush any status errors (TODO check for errors)
   uint8_t x = SPIC.STATUS;
   x = x;
 
@@ -107,29 +108,45 @@ static void spi_send() {
   else spi_in = spi_in << 8 | SPIC.DATA;
 
   // Write
-  if (spi_byte < 3)
-    SPIC.DATA = 0xff & (spi_out >> ((2 - spi_byte++) * 8));
+  if (spi_byte < 3) SPIC.DATA = 0xff & (spi_out >> ((2 - spi_byte++) * 8));
   else spi_byte = 0;
 }
 
 
 void spi_next() {
+  tmc2660_driver_t *drv = &drivers[driver];
+  uint16_t spi_delay = 1;
+
   switch (spi_state) {
   case SPI_STATE_SELECT:
     // Select driver
     spi_cs(driver, 1);
 
     // Next state
-    TMC2660_TIMER.PER = 4;
+    spi_delay = 2;
     spi_state = SPI_STATE_WRITE;
     break;
 
   case SPI_STATE_WRITE:
-    spi_out = reg_addrs[reg] | drivers[driver].regs[reg];
+    switch (drv->state) {
+    case TMC2660_STATE_CONFIG:
+      spi_out = reg_addrs[drv->reg] | drv->regs[drv->reg];
+      break;
+
+    case TMC2660_STATE_MONITOR:
+      spi_out = reg_addrs[TMC2660_DRVCONF] | drv->regs[TMC2660_DRVCONF];
+      break;
+
+    case TMC2660_STATE_RESET:
+      spi_out =
+        reg_addrs[TMC2660_CHOPCONF] | (drv->regs[TMC2660_CHOPCONF] & 0xffff0);
+      break;
+    }
+
     spi_send();
 
     // Next state
-    TMC2660_TIMER.PER = 16;
+    spi_delay = 3;
     spi_state = SPI_STATE_READ;
     break;
 
@@ -137,22 +154,41 @@ void spi_next() {
     // Deselect driver
     spi_cs(driver, 0);
 
-    // Read response
-    drivers[driver].mstep = (spi_in >> 14) & 0x3ff;
-    drivers[driver].status = spi_in >> 4;
+    switch (drv->state) {
+    case TMC2660_STATE_CONFIG:
+      if (++drv->reg == 5) {
+        drv->state = TMC2660_STATE_MONITOR;
+        drv->reg = 0;
+      }
+      break;
 
-    // Next state
+    case TMC2660_STATE_MONITOR:
+      // Read response
+      drv->mstep = (spi_in >> 14) & 0x3ff;
+      drv->status = spi_in >> 4;
+
+      if (drv->reset) {
+        drv->state = TMC2660_STATE_RESET;
+        drv->reset = 0;
+
+      } else if (++driver == TMC2660_NUM_DRIVERS) {
+        driver = 0;
+        spi_delay = 500;
+        break;
+      }
+      break;
+
+    case TMC2660_STATE_RESET:
+      drv->state = TMC2660_STATE_CONFIG;
+      break;
+    }
+
+    // Next state (delay set above)
     spi_state = SPI_STATE_SELECT;
-
-    if (++reg == 5) {
-      reg = 0;
-      if (++driver == TMC2660_NUM_DRIVERS) driver = 0;
-
-      TMC2660_TIMER.PER = 10;
-
-    } else TMC2660_TIMER.PER = 2;
     break;
   }
+
+  TMC2660_TIMER.PER = spi_delay;
 }
 
 
@@ -168,13 +204,15 @@ ISR(TCC1_OVF_vect) {
 
 void tmc2660_init() {
   // Reset state
-  state = TMC2660_STATE_CONFIG;
   spi_state = SPI_STATE_SELECT;
-  driver = reg = spi_byte = 0;
+  driver = spi_byte = 0;
   memset(drivers, 0, sizeof(drivers));
 
   // Configure motors
   for (int i = 0; i < TMC2660_NUM_DRIVERS; i++) {
+    drivers[i].state = TMC2660_STATE_CONFIG;
+    drivers[i].reg = 0;
+
     drivers[i].regs[TMC2660_DRVCTRL] = 0;
     drivers[i].regs[TMC2660_CHOPCONF] = 0x14557;
     drivers[i].regs[TMC2660_SMARTEN] = 0x8202;
@@ -214,7 +252,7 @@ void tmc2660_init() {
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
-  SPIC.CTRL = SPI_ENABLE_bm | SPI_DORD_bm | SPI_MASTER_bm | SPI_MODE_3_gc |
+  SPIC.CTRL = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_MODE_3_gc |
     SPI_PRESCALER_DIV128_gc; // enable, big endian, master, mode 3, clock/128
   PORTC.REMAP = PORT_SPI_bm; // Swap SCK and MOSI
   SPIC.INTCTRL = SPI_INTLVL_MED_gc; // interupt level
@@ -234,4 +272,23 @@ uint8_t tmc2660_status(int driver) {
 
 uint16_t tmc2660_step(int driver) {
   return drivers[driver].mstep;
+}
+
+
+void tmc2660_reset(int driver) {
+  drivers[driver].reset = 1;
+}
+
+
+int tmc2660_ready(int driver) {
+  return
+    drivers[driver].state == TMC2660_STATE_MONITOR && !drivers[driver].reset;
+}
+
+
+int tmc2660_all_ready() {
+  for (int i = 0; i < TMC2660_NUM_DRIVERS; i++)
+    if (!tmc2660_ready(i)) return 0;
+
+  return 1;
 }

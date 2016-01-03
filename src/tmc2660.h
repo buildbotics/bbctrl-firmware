@@ -57,6 +57,9 @@
 void tmc2660_init();
 uint8_t tmc2660_status(int driver);
 uint16_t tmc2660_step(int driver);
+void tmc2660_reset(int driver);
+int tmc2660_ready(int driver);
+int tmc2660_all_ready();
 
 #define TMC2660_DRVCTRL             0
 #define TMC2660_DRVCTRL_ADDR        (0UL << 18)
