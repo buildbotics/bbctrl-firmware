@@ -254,7 +254,7 @@ static stat_t _get_nv_pair(nvObj_t *nv, char_t **pstr, int8_t *depth)
         nv->valuetype = TYPE_PARENT;
 //        *depth += 1;                            // nv_reset_nv() sets the next object's level so this is redundant
         (*pstr)++;
-        return(STAT_EAGAIN);                    // signal that there is more to parse
+        return STAT_EAGAIN;                    // signal that there is more to parse
 
     // strings
     } else if (**pstr == '\"') {                 // value is a string
@@ -566,7 +566,7 @@ stat_t json_set_jv(nvObj_t *nv)
     if (nv->value >= JV_LINENUM)    { js.echo_json_linenum = true;}
     if (nv->value >= JV_VERBOSE)    { js.echo_json_gcode_block = true;}
 
-    return(STAT_OK);
+    return STAT_OK;
 }
 
 

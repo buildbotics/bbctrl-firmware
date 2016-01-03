@@ -65,7 +65,7 @@ stat_t gc_gcode_parser(char_t *block)
     // queue a "(MSG" response
     if (*msg) cm_message(msg);                // queue the message
 
-    return(_parse_gcode_block(block));
+    return _parse_gcode_block(block);
 }
 
 /*
@@ -181,7 +181,7 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value)
     char *end;
     *value = strtof(*pstr, &end);
     if(end == *pstr)
-        return(STAT_BAD_NUMBER_FORMAT); // more robust test then checking for value=0;
+        return STAT_BAD_NUMBER_FORMAT; // more robust test then checking for value=0;
     *pstr = end;
     return STAT_OK;            // pointer points to next character after the word
 }
@@ -191,7 +191,7 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value)
  */
 static uint8_t _point(float value)
 {
-    return((uint8_t)(value*10 - trunc(value)*10));    // isolate the decimal point as an int
+    return (uint8_t)(value*10 - trunc(value)*10);    // isolate the decimal point as an int
 }
 
 /*
@@ -518,5 +518,5 @@ stat_t gc_get_gc(nvObj_t *nv)
 
 stat_t gc_run_gc(nvObj_t *nv)
 {
-    return(gc_gcode_parser(*nv->stringp));
+    return gc_gcode_parser(*nv->stringp);
 }

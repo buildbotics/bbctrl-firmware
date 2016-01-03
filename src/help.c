@@ -69,7 +69,7 @@ These commands are active from the command line:\n\
 _status_report_advisory();
 _postscript();
 rpt_print_system_ready_message();
-return(STAT_OK);
+return STAT_OK;
 }
 
 /*
@@ -102,7 +102,7 @@ For configuration details see: https://github.com/synthetos/TinyG/wiki/TinyG-Con
 "));
 _status_report_advisory();
 _postscript();
-return(STAT_OK);
+return STAT_OK;
 }
 
 /*
@@ -133,7 +133,7 @@ Tests start with a G0 X0 Y0 Z0 move\n\
 Homing is the exception. No initial position or clearance is assumed\n\
 "));
 _postscript();
-return(STAT_OK);
+return STAT_OK;
 }
 
 /*
@@ -146,7 +146,7 @@ fprintf_P(stderr, PSTR("\
 Enter $defa=1 to reset the system to the factory default values.\n\
 This will overwrite any changes you have made.\n"));
 _postscript();
-return(STAT_OK);
+return STAT_OK;
 }
 
 /*
@@ -158,7 +158,7 @@ fprintf_P(stderr, PSTR("\n\n\n### TinyG BOOT LOADER Help ###\n"));
 fprintf_P(stderr, PSTR("\
 Enter $boot=1 to enter the boot loader.\n"));
 _postscript();
-return(STAT_OK);
+return STAT_OK;
 }
 
 #endif // __HELP_SCREENS

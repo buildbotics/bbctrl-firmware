@@ -87,5 +87,5 @@ void en_set_encoder_steps(uint8_t motor, float steps)
 
 float en_read_encoder(uint8_t motor)
 {
-    return((float)en.en[motor].encoder_steps);
+    return (float)en.en[motor].encoder_steps;
 }

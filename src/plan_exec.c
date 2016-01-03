@@ -65,7 +65,7 @@ stat_t mp_exec_move()
         if (cm.motion_state == MOTION_STOP) cm_set_motion_state(MOTION_RUN);
     }
     if (bf->bf_func == 0)
-        return(cm_hard_alarm(STAT_INTERNAL_ERROR));     // never supposed to get here
+        return cm_hard_alarm(STAT_INTERNAL_ERROR);     // never supposed to get here
 
     return bf->bf_func(bf);                             // run the move callback in the planner buffer
 }
@@ -203,7 +203,7 @@ stat_t mp_exec_aline(mpBuf_t *bf)
     if (mr.section == SECTION_BODY) { status = _exec_aline_body();} else
     if (mr.section == SECTION_TAIL) { status = _exec_aline_tail();} else
     if (mr.move_state == MOVE_SKIP_BLOCK) { status = STAT_OK;}
-    else { return(cm_hard_alarm(STAT_INTERNAL_ERROR));}    // never supposed to get here
+    else { return cm_hard_alarm(STAT_INTERNAL_ERROR);}    // never supposed to get here
 
     // Feedhold processing. Refer to canonical_machine.h for state machine
     // Catch the feedhold request and start the planning the hold
@@ -387,7 +387,7 @@ static stat_t _exec_aline_head()
     if (mr.section_state == SECTION_NEW) {                            // initialize the move singleton (mr)
         if (fp_ZERO(mr.head_length)) {
             mr.section = SECTION_BODY;
-            return(_exec_aline_body());                                // skip ahead to the body generator
+            return _exec_aline_body();                                // skip ahead to the body generator
         }
         mr.midpoint_velocity = (mr.entry_velocity + mr.cruise_velocity) / 2;
         mr.gm.move_time = mr.head_length / mr.midpoint_velocity;    // time for entire accel region
@@ -399,7 +399,7 @@ static stat_t _exec_aline_head()
         mr.elapsed_accel_time = mr.segment_accel_time / 2;            // elapsed time starting point (offset)
         mr.segment_count = (uint32_t)mr.segments;
         if (mr.segment_time < MIN_SEGMENT_TIME)
-            return(STAT_MINIMUM_TIME_MOVE);                         // exit without advancing position
+            return STAT_MINIMUM_TIME_MOVE;                         // exit without advancing position
         mr.section = SECTION_HEAD;
         mr.section_state = SECTION_1st_HALF;
     }
@@ -410,7 +410,7 @@ static stat_t _exec_aline_head()
             mr.section_state = SECTION_2nd_HALF;
             mr.elapsed_accel_time = mr.segment_accel_time / 2;        // start time from midpoint of segment
         }
-        return(STAT_EAGAIN);
+        return STAT_EAGAIN;
     }
     if (mr.section_state == SECTION_2nd_HALF) {                        // SECOND HAF (convex part of accel curve)
         mr.segment_velocity = mr.midpoint_velocity +
@@ -418,12 +418,12 @@ static stat_t _exec_aline_head()
             (square(mr.elapsed_accel_time) * mr.jerk_div2);
         if (_exec_aline_segment() == STAT_OK) {                        // OK means this section is done
             if ((fp_ZERO(mr.body_length)) && (fp_ZERO(mr.tail_length)))
-                return(STAT_OK);                                    // ends the move
+                return STAT_OK;                                    // ends the move
             mr.section = SECTION_BODY;
             mr.section_state = SECTION_NEW;
         }
     }
-    return(STAT_EAGAIN);
+    return STAT_EAGAIN;
 }
 #else // __ JERK_EXEC
 
@@ -432,7 +432,7 @@ static stat_t _exec_aline_head()
     if (mr.section_state == SECTION_NEW) {                            // initialize the move singleton (mr)
         if (fp_ZERO(mr.head_length)) {
             mr.section = SECTION_BODY;
-            return(_exec_aline_body());                                // skip ahead to the body generator
+            return _exec_aline_body();                                // skip ahead to the body generator
         }
         mr.gm.move_time = 2*mr.head_length / (mr.entry_velocity + mr.cruise_velocity);// time for entire accel region
         mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);// # of segments for the section
@@ -440,7 +440,7 @@ static stat_t _exec_aline_head()
         _init_forward_diffs(mr.entry_velocity, mr.cruise_velocity);
         mr.segment_count = (uint32_t)mr.segments;
         if (mr.segment_time < MIN_SEGMENT_TIME)
-            return(STAT_MINIMUM_TIME_MOVE);                         // exit without advancing position
+            return STAT_MINIMUM_TIME_MOVE;                         // exit without advancing position
         mr.section = SECTION_HEAD;
         mr.section_state = SECTION_1st_HALF;                        // Note: Set to SECTION_1st_HALF for one segment
     }
@@ -453,7 +453,7 @@ static stat_t _exec_aline_head()
         } else {
             mr.section_state = SECTION_2nd_HALF;
         }
-        return(STAT_EAGAIN);
+        return STAT_EAGAIN;
     }
     if (mr.section_state == SECTION_2nd_HALF) {                        // SECOND HALF (convex part of accel curve)
 #ifndef __KAHAN
@@ -467,7 +467,7 @@ static stat_t _exec_aline_head()
 
         if (_exec_aline_segment() == STAT_OK) {                     // set up for body
             if ((fp_ZERO(mr.body_length)) && (fp_ZERO(mr.tail_length)))
-                return(STAT_OK);                                    // ends the move
+                return STAT_OK;                                    // ends the move
             mr.section = SECTION_BODY;
             mr.section_state = SECTION_NEW;
         } else {
@@ -503,7 +503,7 @@ static stat_t _exec_aline_head()
 #endif
         }
     }
-    return(STAT_EAGAIN);
+    return STAT_EAGAIN;
 }
 #endif // __ JERK_EXEC
 
@@ -518,7 +518,7 @@ static stat_t _exec_aline_body()
     if (mr.section_state == SECTION_NEW) {
         if (fp_ZERO(mr.body_length)) {
             mr.section = SECTION_TAIL;
-            return(_exec_aline_tail());                        // skip ahead to tail periods
+            return _exec_aline_tail();                        // skip ahead to tail periods
         }
         mr.gm.move_time = mr.body_length / mr.cruise_velocity;
         mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);
@@ -526,19 +526,19 @@ static stat_t _exec_aline_body()
         mr.segment_velocity = mr.cruise_velocity;
         mr.segment_count = (uint32_t)mr.segments;
         if (mr.segment_time < MIN_SEGMENT_TIME)
-            return(STAT_MINIMUM_TIME_MOVE);                 // exit without advancing position
+            return STAT_MINIMUM_TIME_MOVE;                 // exit without advancing position
         mr.section = SECTION_BODY;
         mr.section_state = SECTION_2nd_HALF;                // uses PERIOD_2 so last segment detection works
     }
     if (mr.section_state == SECTION_2nd_HALF) {                // straight part (period 3)
         if (_exec_aline_segment() == STAT_OK) {                // OK means this section is done
             if (fp_ZERO(mr.tail_length))
-                return(STAT_OK);                            // ends the move
+                return STAT_OK;                            // ends the move
             mr.section = SECTION_TAIL;
             mr.section_state = SECTION_NEW;
         }
     }
-    return(STAT_EAGAIN);
+    return STAT_EAGAIN;
 }
 
 /*********************************************************************************************
@@ -551,7 +551,7 @@ static stat_t _exec_aline_tail()
 {
     if (mr.section_state == SECTION_NEW) {                            // INITIALIZATION
         if (fp_ZERO(mr.tail_length))
-            return(STAT_OK);                                        // end the move
+            return STAT_OK;                                        // end the move
         mr.midpoint_velocity = (mr.cruise_velocity + mr.exit_velocity) / 2;
         mr.gm.move_time = mr.tail_length / mr.midpoint_velocity;
         mr.segments = ceil(uSec(mr.gm.move_time) / (2 * NOM_SEGMENT_USEC));// # of segments in *each half*
@@ -562,7 +562,7 @@ static stat_t _exec_aline_tail()
         mr.elapsed_accel_time = mr.segment_accel_time / 2;            //compute time from midpoint of segment
         mr.segment_count = (uint32_t)mr.segments;
         if (mr.segment_time < MIN_SEGMENT_TIME)
-            return(STAT_MINIMUM_TIME_MOVE);                         // exit without advancing position
+            return STAT_MINIMUM_TIME_MOVE;                         // exit without advancing position
         mr.section = SECTION_TAIL;
         mr.section_state = SECTION_1st_HALF;
     }
@@ -573,7 +573,7 @@ static stat_t _exec_aline_tail()
             mr.section_state = SECTION_2nd_HALF;
             mr.elapsed_accel_time = mr.segment_accel_time / 2;        // start time from midpoint of segment
         }
-        return(STAT_EAGAIN);
+        return STAT_EAGAIN;
     }
     if (mr.section_state == SECTION_2nd_HALF) {                        // SECOND HALF - concave part (period 5)
         mr.segment_velocity = mr.midpoint_velocity -
@@ -581,7 +581,7 @@ static stat_t _exec_aline_tail()
             (square(mr.elapsed_accel_time) * mr.jerk_div2);
         return _exec_aline_segment();                             // ends the move or continues EAGAIN
     }
-    return(STAT_EAGAIN);                                            // should never get here
+    return STAT_EAGAIN;                                            // should never get here
 }
 
 #else // __JERK_EXEC -- run forward differencing math
@@ -590,14 +590,14 @@ static stat_t _exec_aline_tail()
 {
     if (mr.section_state == SECTION_NEW) {                            // INITIALIZATION
         if (fp_ZERO(mr.tail_length))
-            return(STAT_OK);                                        // end the move
+            return STAT_OK;                                        // end the move
         mr.gm.move_time = 2*mr.tail_length / (mr.cruise_velocity + mr.exit_velocity); // len/avg. velocity
         mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);// # of segments for the section
         mr.segment_time = mr.gm.move_time / mr.segments;            // time to advance for each segment
         _init_forward_diffs(mr.cruise_velocity, mr.exit_velocity);
         mr.segment_count = (uint32_t)mr.segments;
         if (mr.segment_time < MIN_SEGMENT_TIME)
-            return(STAT_MINIMUM_TIME_MOVE);                         // exit without advancing position
+            return STAT_MINIMUM_TIME_MOVE;                         // exit without advancing position
         mr.section = SECTION_TAIL;
         mr.section_state = SECTION_1st_HALF;
     }
@@ -611,7 +611,7 @@ static stat_t _exec_aline_tail()
         } else {
             mr.section_state = SECTION_2nd_HALF;
         }
-        return(STAT_EAGAIN);
+        return STAT_EAGAIN;
     }
     if (mr.section_state == SECTION_2nd_HALF) {                        // SECOND HALF - concave part (period 5)
 #ifndef __KAHAN
@@ -658,7 +658,7 @@ static stat_t _exec_aline_tail()
 #endif
         }
     }
-    return(STAT_EAGAIN);                                    // should never get here
+    return STAT_EAGAIN;                                    // should never get here
 }
 #endif // __JERK_EXEC
 

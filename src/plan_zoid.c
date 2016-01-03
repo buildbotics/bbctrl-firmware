@@ -336,7 +336,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf)
  *     e)    Vf = L^(2/3) * Jm^(1/3) + Vi
  *
  *  FYI: Here's an expression that returns the jerk for a given deltaV and L:
- *     return(cube(deltaV / (pow(L, 0.66666666))));
+ *     return cube(deltaV / (pow(L, 0.66666666)));
  */
 
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf)

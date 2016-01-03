@@ -88,7 +88,7 @@ stat_t cm_spindle_control(uint8_t spindle_mode)
 {
     float value[AXES] = { (float)spindle_mode, 0,0,0,0,0 };
     mp_queue_command(_exec_spindle_control, value, value);
-    return(STAT_OK);
+    return STAT_OK;
 }
 
 //static void _exec_spindle_control(uint8_t spindle_mode, float f, float *vector, float *flag)

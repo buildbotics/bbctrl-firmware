@@ -111,11 +111,11 @@ enum hwPlatform {
  *    b0    (out) step             (SET is step,  CLR is rest)
  *    b1    (out) direction        (CLR = Clockwise)
  *    b2    (out) motor enable     (CLR = Enabled)
- *    b3    (out) microstep 0
- *    b4    (out) microstep 1
+ *    b3    (out) chip select
+ *    b4    (in)  fault
  *    b5    (out) output bit for GPIO port1
- *    b6    (in) min limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
- *    b7    (in) max limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
+ *    b6    (in)  min limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
+ *    b7    (in)  max limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
  */
 #define MOTOR_PORT_DIR_gm 0x3F    // dir settings: lower 6 out, upper 2 in
 
@@ -123,8 +123,8 @@ enum cfgPortBits {        // motor control port bit positions
   STEP_BIT_bp = 0,        // bit 0
   DIRECTION_BIT_bp,       // bit 1
   MOTOR_ENABLE_BIT_bp,    // bit 2
-  MICROSTEP_BIT_0_bp,     // bit 3
-  MICROSTEP_BIT_1_bp,     // bit 4
+  CHIP_SELECT_BIT_bp,     // bit 3
+  FAULT_BIT_bp,           // bit 4
   GPIO1_OUT_BIT_bp,       // bit 5 (4 gpio1 output bits; 1 from each axis)
   SW_MIN_BIT_bp,          // bit 6 (4 input bits for homing/limit switches)
   SW_MAX_BIT_bp           // bit 7 (4 input bits for homing/limit switches)
@@ -133,8 +133,8 @@ enum cfgPortBits {        // motor control port bit positions
 #define STEP_BIT_bm           (1 << STEP_BIT_bp)
 #define DIRECTION_BIT_bm      (1 << DIRECTION_BIT_bp)
 #define MOTOR_ENABLE_BIT_bm   (1 << MOTOR_ENABLE_BIT_bp)
-#define MICROSTEP_BIT_0_bm    (1 << MICROSTEP_BIT_0_bp)
-#define MICROSTEP_BIT_1_bm    (1 << MICROSTEP_BIT_1_bp)
+#define CHIP_SELECT_BIT_bm    (1 << CHIP_SELECT_BIT_bp)
+#define FAULT_BIT_bm          (1 << FAULT_BIT_bp)
 #define GPIO1_OUT_BIT_bm      (1 << GPIO1_OUT_BIT_bp)    // spindle and coolant output bits
 #define SW_MIN_BIT_bm         (1 << SW_MIN_BIT_bp)       // minimum switch inputs
 #define SW_MAX_BIT_bm         (1 << SW_MAX_BIT_bp)       // maximum switch inputs

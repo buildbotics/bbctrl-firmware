@@ -165,7 +165,7 @@ char *get_status_message(stat_t status);
 
 // ritorno is a handy way to provide exception returns
 // It returns only if an error occurred. (ritorno is Italian for return)
-#define ritorno(a) if((status_code=a) != STAT_OK) { return(status_code); }
+#define ritorno(a) if((status_code=a) != STAT_OK) { return status_code; }
 
 // OS, communications and low-level status
 #define STAT_OK 0                        // function completed OK

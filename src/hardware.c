@@ -163,7 +163,7 @@ stat_t hw_get_id(nvObj_t *nv) {
 /// hw_run_boot() - invoke boot form the cfgArray
 stat_t hw_run_boot(nvObj_t *nv) {
   hw_request_bootloader();
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 

@@ -65,7 +65,7 @@ nvList_t nvl;
  */
 stat_t nv_set(nvObj_t *nv) {
   if (nv->index >= nv_index_max())
-    return(STAT_INTERNAL_RANGE_ERROR);
+    return STAT_INTERNAL_RANGE_ERROR;
   return ((fptrCmd)GET_TABLE_WORD(set))(nv);
 }
 
@@ -83,8 +83,8 @@ void nv_print(nvObj_t *nv) {
 
 
 stat_t nv_persist(nvObj_t *nv) {   // nv_persist() cannot be called from an interrupt on the AVR due to the AVR1008 EEPROM workaround
-  if (nv_index_lt_groups(nv->index) == false) return(STAT_INTERNAL_RANGE_ERROR);
-  if (GET_TABLE_BYTE(flags) & F_PERSIST) return(write_persistent_value(nv));
+  if (nv_index_lt_groups(nv->index) == false) return STAT_INTERNAL_RANGE_ERROR;
+  if (GET_TABLE_BYTE(flags) & F_PERSIST) return write_persistent_value(nv);
 
   return STAT_OK;
 }
@@ -148,7 +148,7 @@ static void _set_defa(nvObj_t *nv) {
 
 stat_t set_defaults(nvObj_t *nv) {
   // failsafe. nv->value must be true or no action occurs
-  if (fp_FALSE(nv->value)) return(help_defa(nv));
+  if (fp_FALSE(nv->value)) return help_defa(nv);
   _set_defa(nv);
 
   // The values in nv are now garbage. Mark the nv as $defa so it displays nicely.
@@ -240,7 +240,7 @@ stat_t set_nul(nvObj_t *nv) { return STAT_PARAMETER_IS_READ_ONLY; }
 stat_t set_ui8(nvObj_t *nv) {
   *((uint8_t *)GET_TABLE_WORD(target)) = nv->value;
   nv->valuetype = TYPE_INTEGER;
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 
@@ -265,7 +265,7 @@ stat_t set_0123(nvObj_t *nv) {
 stat_t set_int(nvObj_t *nv) {
   *((uint32_t *)GET_TABLE_WORD(target)) = (uint32_t)nv->value;
   nv->valuetype = TYPE_INTEGER;
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 
@@ -273,7 +273,7 @@ stat_t set_data(nvObj_t *nv) {
   uint32_t *v = (uint32_t*)&nv->value;
   *((uint32_t *)GET_TABLE_WORD(target)) = *v;
   nv->valuetype = TYPE_DATA;
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 
@@ -281,7 +281,7 @@ stat_t set_flt(nvObj_t *nv) {
   *((float *)GET_TABLE_WORD(target)) = nv->value;
   nv->precision = GET_TABLE_WORD(precision);
   nv->valuetype = TYPE_FLOAT;
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 
@@ -399,13 +399,13 @@ index_t nv_get_index(const char_t *group, const char_t *token) {
 
   for (i = 0; i < index_max; i++) {
     if ((c = GET_TOKEN_BYTE(token[0])) != str[0]) continue;                   // 1st character mismatch
-    if ((c = GET_TOKEN_BYTE(token[1])) == 0) {if (str[1] == 0) return(i);}    // one character match
+    if ((c = GET_TOKEN_BYTE(token[1])) == 0) {if (str[1] == 0) return i;}    // one character match
     if (c != str[1]) continue;                                                // 2nd character mismatch
-    if ((c = GET_TOKEN_BYTE(token[2])) == 0) {if (str[2] == 0) return(i);}    // two character match
+    if ((c = GET_TOKEN_BYTE(token[2])) == 0) {if (str[2] == 0) return i;}    // two character match
     if (c != str[2]) continue;                                                // 3rd character mismatch
-    if ((c = GET_TOKEN_BYTE(token[3])) == 0) {if (str[3] == 0) return(i);}    // three character match
+    if ((c = GET_TOKEN_BYTE(token[3])) == 0) {if (str[3] == 0) return i;}    // three character match
     if (c != str[3]) continue;                                                // 4th character mismatch
-    if ((c = GET_TOKEN_BYTE(token[4])) == 0) {if (str[4] == 0) return(i);}    // four character match
+    if ((c = GET_TOKEN_BYTE(token[4])) == 0) {if (str[4] == 0) return i;}    // four character match
     if (c != str[4]) continue;                                                // 5th character mismatch
     return i;                                                                 // five character match
   }
@@ -537,7 +537,7 @@ nvObj_t *nv_add_object(const char_t *token) {  // add an object to the body usin
   nvObj_t *nv = nv_body;
   for (uint8_t i=0; i<NV_BODY_LEN; i++) {
     if (nv->valuetype != TYPE_EMPTY) {
-      if ((nv = nv->nx) == 0) return(0); // not supposed to find a 0; here for safety
+      if ((nv = nv->nx) == 0) return 0; // not supposed to find a 0; here for safety
       continue;
     }
 
@@ -555,7 +555,7 @@ nvObj_t *nv_add_integer(const char_t *token, const uint32_t value) { // add an i
   nvObj_t *nv = nv_body;
   for (uint8_t i=0; i<NV_BODY_LEN; i++) {
     if (nv->valuetype != TYPE_EMPTY) {
-      if ((nv = nv->nx) == 0) return(0); // not supposed to find a 0; here for safety
+      if ((nv = nv->nx) == 0) return 0; // not supposed to find a 0; here for safety
       continue;
     }
 
@@ -573,7 +573,7 @@ nvObj_t *nv_add_data(const char_t *token, const uint32_t value) { // add an inte
   nvObj_t *nv = nv_body;
   for (uint8_t i=0; i<NV_BODY_LEN; i++) {
     if (nv->valuetype != TYPE_EMPTY) {
-      if ((nv = nv->nx) == 0) return(0); // not supposed to find a 0; here for safety
+      if ((nv = nv->nx) == 0) return 0; // not supposed to find a 0; here for safety
       continue;
     }
 
@@ -591,7 +591,7 @@ nvObj_t *nv_add_float(const char_t *token, const float value) { // add a float o
   nvObj_t *nv = nv_body;
   for (uint8_t i=0; i<NV_BODY_LEN; i++) {
     if (nv->valuetype != TYPE_EMPTY) {
-      if ((nv = nv->nx) == 0) return(0);        // not supposed to find a 0; here for safety
+      if ((nv = nv->nx) == 0) return 0;        // not supposed to find a 0; here for safety
       continue;
     }
 

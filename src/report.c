@@ -61,7 +61,7 @@ stat_t rpt_exception(uint8_t status)
                TINYG_FIRMWARE_BUILD, status, get_status_message(status));
     }
   }
-  return status;            // makes it possible to inline, e.g: return(rpt_exception(status));
+  return status;            // makes it possible to inline, e.g: return rpt_exception(status);
 }
 
 /*
@@ -69,7 +69,7 @@ stat_t rpt_exception(uint8_t status)
  */
 stat_t rpt_er(nvObj_t *nv)
 {
-  return(rpt_exception(STAT_GENERIC_EXCEPTION_REPORT)); // bogus exception report for testing
+  return rpt_exception(STAT_GENERIC_EXCEPTION_REPORT); // bogus exception report for testing
 }
 
 /**** Application Messages *********************************************************
@@ -226,7 +226,7 @@ stat_t sr_set_status_report(nvObj_t *nv)
   if (elements == 0)
     return STAT_INVALID_OR_MALFORMED_COMMAND;
   memcpy(sr.status_report_list, status_report_list, sizeof(status_report_list));
-  return(_populate_unfiltered_status_report());            // return current values
+  return _populate_unfiltered_status_report();            // return current values
 }
 
 /*
@@ -386,7 +386,7 @@ stat_t sr_set_si(nvObj_t *nv)
 {
   if (nv->value < STATUS_REPORT_MIN_MS) { nv->value = STATUS_REPORT_MIN_MS;}
   sr.status_report_interval = (uint32_t)nv->value;
-  return(STAT_OK);
+  return STAT_OK;
 }
 
 /*********************

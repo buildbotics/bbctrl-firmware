@@ -237,7 +237,7 @@ stat_t mp_dwell(float seconds)
     mpBuf_t *bf;
 
     if ((bf = mp_get_write_buffer()) == 0)            // get write buffer or fail
-        return(cm_hard_alarm(STAT_BUFFER_FULL_FATAL));    // not ever supposed to fail
+        return cm_hard_alarm(STAT_BUFFER_FULL_FATAL);    // not ever supposed to fail
 
     bf->bf_func = _exec_dwell;                            // register callback to dwell start
     bf->gm.move_time = seconds;                            // in seconds, not minutes
@@ -400,7 +400,7 @@ uint8_t mp_free_run_buffer()                    // EMPTY current run buf & adv t
 
 mpBuf_t * mp_get_first_buffer()
 {
-    return(mp_get_run_buffer());    // returns buffer or 0 if nothing's running
+    return mp_get_run_buffer();    // returns buffer or 0 if nothing's running
 }
 
 mpBuf_t * mp_get_last_buffer()
@@ -408,7 +408,7 @@ mpBuf_t * mp_get_last_buffer()
     mpBuf_t *bf = mp_get_run_buffer();
     mpBuf_t *bp = bf;
 
-    if (bf == 0) return(0);
+    if (bf == 0) return 0;
 
     do {
         if ((bp->nx->move_state == MOVE_OFF) || (bp->nx == bf)) {

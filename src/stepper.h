@@ -67,56 +67,58 @@
  *        Also, all moves are loaded from the DDA interrupt level (HI), avoiding the need
  *        for mutual exclusion locking or volatiles (which slow things down).
  */
+
 /*
- **** Move generation overview and timing illustration ****
- *
- *    This ASCII art illustrates a 4 segment move to show stepper sequencing timing.
- *
- *    LOAD/STEP (~5000uSec)          [L1][segment1][L2][segment2][L3][segment3][L4][segment4][Lb1]
- *    PREP (100 uSec)            [P1]       [P2]          [P3]          [P4]          [Pb1]
- *    EXEC (400 uSec)         [EXEC1]    [EXEC2]       [EXEC3]       [EXEC4]       [EXECb1]
- *    PLAN (<4ms)  [planmoveA][plan move B][plan move C][plan move D][plan move E] etc.
- *
- *    The move begins with the planner PLANning move A [planmoveA]. When this is done the
- *    computations for the first segment of move A's S curve are performed by the planner
- *    runtime, EXEC1. The runtime computes the number of segments and the segment-by-segment
- *    accelerations and decelerations for the move. Each call to EXEC generates the values
- *    for the next segment to be run. Once the move is running EXEC is executed as a
- *    callback from the step loader.
- *
- *    When the runtime calculations are done EXEC calls the segment PREParation function [P1].
- *    PREP turns the EXEC results into values needed for the loader and does some encoder work.
- *    The combined exec and prep take about 400 uSec.
- *
- *    PREP takes care of heavy numerics and other cycle-intesive operations so the step loader
- *    L1 can run as fast as possible. The time budget for LOAD is about 10 uSec. In the diagram,
- *    when P1 is done segment 1 is loaded into the stepper runtime [L1]
- *
- *    Once the segment is loaded it will pulse out steps for the duration of the segment.
- *    Segment timing can vary, but segments take around 5 Msec to pulse out, which is 250 DDA
- *    ticks at a 50 KHz step clock.
- *
- *    Now the move is pulsing out segment 1 (at HI interrupt level). Once the L1 loader is
- *    finished it invokes the exec function for the next segment (at LO interrupt level).
- *    [EXEC2] and [P2] compute and prepare the segment 2 for the loader so it can be loaded
- *    as soon as segment 1 is complete [L2]. When move A is done EXEC pulls the next move
- *    (moveB) from the planner queue, The process repeats until there are no more segments or moves.
- *
- *    While all this is happening subsequent moves (B, C, and D) are being planned in background.
- *    As long as a move takes less than the segment times (5ms x N) the timing budget is satisfied,
- *
- *    A few things worth noting:
- *      -    This scheme uses 2 interrupt levels and background, for 3 levels of execution:
- *        - STEP pulsing and LOADs occur at HI interrupt level
- *        - EXEC and PREP occur at LO interrupt level (leaving MED int level for serial IO)
- *        - move PLANning occurs in background and is managed by the controller
- *
- *      -    Because of the way the timing is laid out there is no contention for resources between
- *        the STEP, LOAD, EXEC, and PREP phases. PLANing is similarly isolated. Very few volatiles
- *        or mutexes are needed, which makes the code simpler and faster. With the exception of
- *        the actual values used in step generation (which runs continuously) you can count on
- *        LOAD, EXEC, PREP and PLAN not stepping on each other's variables.
- */
+**** Move generation overview and timing illustration ****
+*
+*    This ASCII art illustrates a 4 segment move to show stepper sequencing timing.
+*
+*    LOAD/STEP (~5000uSec)          [L1][segment1][L2][segment2][L3][segment3][L4][segment4][Lb1]
+*    PREP (100 uSec)            [P1]       [P2]          [P3]          [P4]          [Pb1]
+*    EXEC (400 uSec)         [EXEC1]    [EXEC2]       [EXEC3]       [EXEC4]       [EXECb1]
+*    PLAN (<4ms)  [planmoveA][plan move B][plan move C][plan move D][plan move E] etc.
+*
+*    The move begins with the planner PLANning move A [planmoveA]. When this is done the
+*    computations for the first segment of move A's S curve are performed by the planner
+*    runtime, EXEC1. The runtime computes the number of segments and the segment-by-segment
+*    accelerations and decelerations for the move. Each call to EXEC generates the values
+*    for the next segment to be run. Once the move is running EXEC is executed as a
+*    callback from the step loader.
+*
+*    When the runtime calculations are done EXEC calls the segment PREParation function [P1].
+*    PREP turns the EXEC results into values needed for the loader and does some encoder work.
+*    The combined exec and prep take about 400 uSec.
+*
+*    PREP takes care of heavy numerics and other cycle-intesive operations so the step loader
+*    L1 can run as fast as possible. The time budget for LOAD is about 10 uSec. In the diagram,
+*    when P1 is done segment 1 is loaded into the stepper runtime [L1]
+*
+*    Once the segment is loaded it will pulse out steps for the duration of the segment.
+*    Segment timing can vary, but segments take around 5 Msec to pulse out, which is 250 DDA
+*    ticks at a 50 KHz step clock.
+*
+*    Now the move is pulsing out segment 1 (at HI interrupt level). Once the L1 loader is
+*    finished it invokes the exec function for the next segment (at LO interrupt level).
+*    [EXEC2] and [P2] compute and prepare the segment 2 for the loader so it can be loaded
+*    as soon as segment 1 is complete [L2]. When move A is done EXEC pulls the next move
+*    (moveB) from the planner queue, The process repeats until there are no more segments or moves.
+*
+*    While all this is happening subsequent moves (B, C, and D) are being planned in background.
+*    As long as a move takes less than the segment times (5ms x N) the timing budget is satisfied,
+*
+*    A few things worth noting:
+*        - This scheme uses 2 interrupt levels and background, for 3 levels of execution:
+*        - STEP pulsing and LOADs occur at HI interrupt level
+*        - EXEC and PREP occur at LO interrupt level (leaving MED int level for serial IO)
+*        - move PLANning occurs in background and is managed by the controller
+*
+*        - Because of the way the timing is laid out there is no contention for resources between
+*          the STEP, LOAD, EXEC, and PREP phases. PLANing is similarly isolated. Very few volatiles
+*          or mutexes are needed, which makes the code simpler and faster. With the exception of
+*          the actual values used in step generation (which runs continuously) you can count on
+*          LOAD, EXEC, PREP and PLAN not stepping on each other's variables.
+*/
+
 /**** Line planning and execution (in more detail) ****
  *
  *    Move planning, execution and pulse generation takes place at 3 levels:
@@ -145,7 +147,8 @@
  *    timer interrupts that generate the stepper pulses. This level also transfers new
  *    stepper parameters once each pulse train ("segment") is complete ("load" and "run" stages).
  */
-/*     What happens when the pulse generator is done with the current pulse train (segment)
+
+/*    What happens when the pulse generator is done with the current pulse train (segment)
  *    is a multi-stage "pull" queue that looks like this:
  *
  *    As long as the steppers are running the sequence of events is:
@@ -183,6 +186,7 @@
  *    invoked from the main loop by the software interrupt, and the stepper load is
  *    invoked from the exec by another software interrupt.
  */
+
 /*    Control flow can be a bit confusing. This is a typical sequence for planning
  *    executing, and running an acceleration planned line:
  *
@@ -229,6 +233,7 @@
  *    Note: For this to work you have to be really careful about what structures
  *    are modified at what level, and use volatiles where necessary.
  */
+
 /* Partial steps and phase angle compensation
  *
  *    The DDA accepts partial steps as input. Fractional steps are managed by the
@@ -237,45 +242,43 @@
  *    be thought of as a phase angle value for the DDA accumulation. Each 360
  *    degrees of phase angle results in a step being generated.
  */
+
 #ifndef STEPPER_H_ONCE
 #define STEPPER_H_ONCE
 
-/*********************************
- * Stepper configs and constants *
- *********************************/
-//See hardware.h for platform specific stepper definitions
+// See hardware.h for platform specific stepper definitions
 
 enum prepBufferState {
-    PREP_BUFFER_OWNED_BY_LOADER = 0,    // staging buffer is ready for load
-    PREP_BUFFER_OWNED_BY_EXEC            // staging buffer is being loaded
+  PREP_BUFFER_OWNED_BY_LOADER = 0,     // staging buffer is ready for load
+  PREP_BUFFER_OWNED_BY_EXEC            // staging buffer is being loaded
 };
+
 
 // Currently there is no distinction between IDLE and OFF (DEENERGIZED)
 // In the future IDLE will be powered at a low, torque-maintaining current
-
-enum motorPowerState {                    // used w/start and stop flags to sequence motor power
-    MOTOR_OFF = 0,                        // motor is stopped and deenergized
-    MOTOR_IDLE,                            // motor is stopped and may be partially energized for torque maintenance
-    MOTOR_RUNNING,                        // motor is running (and fully energized)
-    MOTOR_POWER_TIMEOUT_START,            // transitional state to start power-down timeout
-    MOTOR_POWER_TIMEOUT_COUNTDOWN        // count down the time to de-energizing motors
+enum motorPowerState {                 // used w/start and stop flags to sequence motor power
+  MOTOR_OFF = 0,                       // motor is stopped and deenergized
+  MOTOR_IDLE,                          // motor is stopped and may be partially energized for torque maintenance
+  MOTOR_RUNNING,                       // motor is running (and fully energized)
+  MOTOR_POWER_TIMEOUT_START,           // transitional state to start power-down timeout
+  MOTOR_POWER_TIMEOUT_COUNTDOWN        // count down the time to de-energizing motors
 };
+
 
 enum cmMotorPowerMode {
-    MOTOR_DISABLED = 0,                    // motor enable is deactivated
-    MOTOR_ALWAYS_POWERED,                // motor is always powered while machine is ON
-    MOTOR_POWERED_IN_CYCLE,                // motor fully powered during cycles, de-powered out of cycle
-    MOTOR_POWERED_ONLY_WHEN_MOVING,        // motor only powered while moving - idles shortly after it's stopped - even in cycle
-//    MOTOR_POWER_REDUCED_WHEN_IDLE,        // enable Vref current reduction for idle (FUTURE)
-//    MOTOR_ADAPTIVE_POWER                // adjust motor current with velocity (FUTURE)
-    MOTOR_POWER_MODE_MAX_VALUE            // for input range checking
+  MOTOR_DISABLED = 0,                  // motor enable is deactivated
+  MOTOR_ALWAYS_POWERED,                // motor is always powered while machine is ON
+  MOTOR_POWERED_IN_CYCLE,              // motor fully powered during cycles, de-powered out of cycle
+  MOTOR_POWERED_ONLY_WHEN_MOVING,      // motor only powered while moving - idles shortly after it's stopped - even in cycle
+  MOTOR_POWER_MODE_MAX_VALUE           // for input range checking
 };
 
+
 // Min/Max timeouts allowed for motor disable. Allow for inertial stop; must be non-zero
-#define MOTOR_TIMEOUT_SECONDS_MIN     (float)0.1        // seconds !!! SHOULD NEVER BE ZERO !!!
+#define MOTOR_TIMEOUT_SECONDS_MIN    (float)0.1        // seconds !!! SHOULD NEVER BE ZERO !!!
 #define MOTOR_TIMEOUT_SECONDS_MAX    (float)4294967    // (4294967295/1000) -- for conversion to uint32_t
-#define MOTOR_TIMEOUT_SECONDS         (float)0.1        // seconds in DISABLE_AXIS_WHEN_IDLE mode
-#define MOTOR_TIMEOUT_WHEN_MOVING    (float)0.25        // timeout for a motor in _ONLY_WHEN_MOVING mode
+#define MOTOR_TIMEOUT_SECONDS        (float)0.1        // seconds in DISABLE_AXIS_WHEN_IDLE mode
+#define MOTOR_TIMEOUT_WHEN_MOVING    (float)0.25       // timeout for a motor in _ONLY_WHEN_MOVING mode
 
 /* DDA substepping
  *    DDA Substepping is a fixed.point scheme to increase the resolution of the DDA pulse generation
@@ -296,6 +299,7 @@ enum cmMotorPowerMode {
  */
 #define DDA_SUBSTEPS ((MAX_LONG * 0.90) / (FREQUENCY_DDA * (NOM_SEGMENT_TIME * 60)))
 
+
 /* Step correction settings
  *    Step correction settings determine how the encoder error is fed back to correct position errors.
  *    Since the following_error is running 2 segments behind the current segment you have to be careful
@@ -305,10 +309,11 @@ enum cmMotorPowerMode {
  *    and error will grow instead of shrink (or oscillate).
  */
 #define STEP_CORRECTION_THRESHOLD    (float)2.00        // magnitude of forwarding error to apply correction (in steps)
-#define STEP_CORRECTION_FACTOR        (float)0.25        // factor to apply to step correction for a single segment
-#define STEP_CORRECTION_MAX            (float)0.60        // max step correction allowed in a single segment
-#define STEP_CORRECTION_HOLDOFF                    5        // minimum number of segments to wait between error correction
-#define STEP_INITIAL_DIRECTION        DIRECTION_CW
+#define STEP_CORRECTION_FACTOR       (float)0.25        // factor to apply to step correction for a single segment
+#define STEP_CORRECTION_MAX          (float)0.60        // max step correction allowed in a single segment
+#define STEP_CORRECTION_HOLDOFF      5                  // minimum number of segments to wait between error correction
+#define STEP_INITIAL_DIRECTION       DIRECTION_CW
+
 
 /*
  * Stepper control structures
@@ -316,11 +321,11 @@ enum cmMotorPowerMode {
  *    There are 5 main structures involved in stepper operations;
  *
  *    data structure:                        found in:        runs primarily at:
- *      mpBuffer planning buffers (bf)      planner.c          main loop
- *      mrRuntimeSingleton (mr)              planner.c          MED ISR
- *      stConfig (st_cfg)                      stepper.c          write=bkgd, read=ISRs
- *      stPrepSingleton (st_pre)              stepper.c          MED ISR
- *      stRunSingleton (st_run)              stepper.c          HI ISR
+ *      mpBuffer planning buffers (bf)         planner.c        main loop
+ *      mrRuntimeSingleton (mr)                planner.c        MED ISR
+ *      stConfig (st_cfg)                      stepper.c        write=bkgd, read=ISRs
+ *      stPrepSingleton (st_pre)               stepper.c        MED ISR
+ *      stRunSingleton (st_run)                stepper.c        HI ISR
  *
  *    Care has been taken to isolate actions on these structures to the execution level
  *    in which they run and to use the minimum number of volatiles in these structures.
@@ -328,84 +333,86 @@ enum cmMotorPowerMode {
  */
 
 // Motor config structure
+typedef struct cfgMotor {               // per-motor configs
+  // public
+  uint8_t motor_map;                    // map motor to axis
+  uint32_t microsteps;                  // microsteps to apply for each axis (ex: 8)
+  uint8_t polarity;                     // 0=normal polarity, 1=reverse motor direction
+  uint8_t power_mode;                   // See cmMotorPowerMode for enum
+  float power_level;                    // set 0.000 to 1.000 for PMW vref setting
+  float step_angle;                     // degrees per whole step (ex: 1.8)
+  float travel_rev;                     // mm or deg of travel per motor revolution
+  float steps_per_unit;                 // microsteps per mm (or degree) of travel
+  float units_per_step;                 // mm or degrees of travel per microstep
 
-typedef struct cfgMotor {                // per-motor configs
-    // public
-    uint8_t    motor_map;                    // map motor to axis
-    uint32_t microsteps;                // microsteps to apply for each axis (ex: 8)
-    uint8_t polarity;                    // 0=normal polarity, 1=reverse motor direction
-    uint8_t power_mode;                    // See cmMotorPowerMode for enum
-    float power_level;                    // set 0.000 to 1.000 for PMW vref setting
-    float step_angle;                    // degrees per whole step (ex: 1.8)
-    float travel_rev;                    // mm or deg of travel per motor revolution
-    float steps_per_unit;                // microsteps per mm (or degree) of travel
-    float units_per_step;                // mm or degrees of travel per microstep
-
-    // private
-    float power_level_scaled;            // scaled to internal range - must be between 0 and 1
+  // private
+  float power_level_scaled;             // scaled to internal range - must be between 0 and 1
 } cfgMotor_t;
 
-typedef struct stConfig {                // stepper configs
-    float motor_power_timeout;            // seconds before setting motors to idle current (currently this is OFF)
-    cfgMotor_t mot[MOTORS];                // settings for motors 1-N
+
+typedef struct stConfig {               // stepper configs
+  float motor_power_timeout;            // seconds before setting motors to idle current (currently this is OFF)
+  cfgMotor_t mot[MOTORS];               // settings for motors 1-N
 } stConfig_t;
 
-// Motor runtime structure. Used exclusively by step generation ISR (HI)
 
-typedef struct stRunMotor {                // one per controlled motor
-    uint32_t substep_increment;            // total steps in axis times substeps factor
-    int32_t substep_accumulator;        // DDA phase angle accumulator
-    uint8_t power_state;                // state machine for managing motor power
-    uint32_t power_systick;                // sys_tick for next motor power state transition
+// Motor runtime structure. Used exclusively by step generation ISR (HI)
+typedef struct stRunMotor {           // one per controlled motor
+  uint32_t substep_increment;         // total steps in axis times substeps factor
+  int32_t substep_accumulator;        // DDA phase angle accumulator
+  uint8_t power_state;                // state machine for managing motor power
+  uint32_t power_systick;             // sys_tick for next motor power state transition
 } stRunMotor_t;
 
-typedef struct stRunSingleton {            // Stepper static values and axis parameters
-    uint16_t magic_start;                // magic number to test memory integrity
-    uint32_t dda_ticks_downcount;        // tick down-counter (unscaled)
-    uint32_t dda_ticks_X_substeps;        // ticks multiplied by scaling factor
-    stRunMotor_t mot[MOTORS];            // runtime motor structures
-    uint16_t magic_end;
+
+typedef struct stRunSingleton {       // Stepper static values and axis parameters
+  uint16_t magic_start;               // magic number to test memory integrity
+  uint32_t dda_ticks_downcount;       // tick down-counter (unscaled)
+  uint32_t dda_ticks_X_substeps;      // ticks multiplied by scaling factor
+  stRunMotor_t mot[MOTORS];           // runtime motor structures
+  uint16_t magic_end;
 } stRunSingleton_t;
+
 
 // Motor prep structure. Used by exec/prep ISR (MED) and read-only during load
 // Must be careful about volatiles in this one
-
 typedef struct stPrepMotor {
-    uint32_t substep_increment;             // total steps in axis times substep factor
+  uint32_t substep_increment;         // total steps in axis times substep factor
 
-    // direction and direction change
-    int8_t direction;                    // travel direction corrected for polarity
-    uint8_t prev_direction;                // travel direction from previous segment run for this motor
-    int8_t step_sign;                    // set to +1 or -1 for encoders
+  // direction and direction change
+  int8_t direction;                   // travel direction corrected for polarity
+  uint8_t prev_direction;             // travel direction from previous segment run for this motor
+  int8_t step_sign;                   // set to +1 or -1 for encoders
 
-    // following error correction
-    int32_t correction_holdoff;            // count down segments between corrections
-    float corrected_steps;                // accumulated correction steps for the cycle (for diagnostic display only)
+  // following error correction
+  int32_t correction_holdoff;         // count down segments between corrections
+  float corrected_steps;              // accumulated correction steps for the cycle (for diagnostic display only)
 
-    // accumulator phase correction
-    float prev_segment_time;            // segment time from previous segment run for this motor
-    float accumulator_correction;        // factor for adjusting accumulator between segments
-    uint8_t accumulator_correction_flag;// signals accumulator needs correction
+  // accumulator phase correction
+  float prev_segment_time;            // segment time from previous segment run for this motor
+  float accumulator_correction;       // factor for adjusting accumulator between segments
+  uint8_t accumulator_correction_flag;// signals accumulator needs correction
 
 } stPrepMotor_t;
 
-typedef struct stPrepSingleton {
-    uint16_t magic_start;                // magic number to test memory integrity
-    volatile uint8_t buffer_state;        // prep buffer state - owned by exec or loader
-    struct mpBuffer *bf;                // static pointer to relevant buffer
-    uint8_t move_type;                    // move type
 
-    uint16_t dda_period;                // DDA or dwell clock period setting
-    uint32_t dda_ticks;                    // DDA or dwell ticks for the move
-    uint32_t dda_ticks_X_substeps;        // DDA ticks scaled by substep factor
-    stPrepMotor_t mot[MOTORS];            // prep time motor structs
-    uint16_t magic_end;
+typedef struct stPrepSingleton {
+  uint16_t magic_start;               // magic number to test memory integrity
+  volatile uint8_t buffer_state;      // prep buffer state - owned by exec or loader
+  struct mpBuffer *bf;                // static pointer to relevant buffer
+  uint8_t move_type;                  // move type
+
+  uint16_t dda_period;                // DDA or dwell clock period setting
+  uint32_t dda_ticks;                 // DDA or dwell ticks for the move
+  uint32_t dda_ticks_X_substeps;      // DDA ticks scaled by substep factor
+  stPrepMotor_t mot[MOTORS];          // prep time motor structs
+  uint16_t magic_end;
 } stPrepSingleton_t;
 
-extern stConfig_t st_cfg;                // config struct is exposed. The rest are private
-extern stPrepSingleton_t st_pre;        // only used by config_app diagnostics
 
-/**** FUNCTION PROTOTYPES ****/
+extern stConfig_t st_cfg;             // config struct is exposed. The rest are private
+extern stPrepSingleton_t st_pre;      // only used by config_app diagnostics
+
 
 void stepper_init();
 void stepper_init_assertions();
@@ -441,32 +448,32 @@ stat_t st_set_me(nvObj_t *nv);
 
 #ifdef __TEXT_MODE
 
-    void st_print_ma(nvObj_t *nv);
-    void st_print_sa(nvObj_t *nv);
-    void st_print_tr(nvObj_t *nv);
-    void st_print_mi(nvObj_t *nv);
-    void st_print_po(nvObj_t *nv);
-    void st_print_pm(nvObj_t *nv);
-    void st_print_pl(nvObj_t *nv);
-    void st_print_pwr(nvObj_t *nv);
-    void st_print_mt(nvObj_t *nv);
-    void st_print_me(nvObj_t *nv);
-    void st_print_md(nvObj_t *nv);
+void st_print_ma(nvObj_t *nv);
+void st_print_sa(nvObj_t *nv);
+void st_print_tr(nvObj_t *nv);
+void st_print_mi(nvObj_t *nv);
+void st_print_po(nvObj_t *nv);
+void st_print_pm(nvObj_t *nv);
+void st_print_pl(nvObj_t *nv);
+void st_print_pwr(nvObj_t *nv);
+void st_print_mt(nvObj_t *nv);
+void st_print_me(nvObj_t *nv);
+void st_print_md(nvObj_t *nv);
 
 #else
 
-    #define st_print_ma tx_print_stub
-    #define st_print_sa tx_print_stub
-    #define st_print_tr tx_print_stub
-    #define st_print_mi tx_print_stub
-    #define st_print_po tx_print_stub
-    #define st_print_pm tx_print_stub
-    #define st_print_pl tx_print_stub
-    #define st_print_pwr tx_print_stub
-    #define st_print_mt tx_print_stub
-    #define st_print_me tx_print_stub
-    #define st_print_md tx_print_stub
+#define st_print_ma tx_print_stub
+#define st_print_sa tx_print_stub
+#define st_print_tr tx_print_stub
+#define st_print_mi tx_print_stub
+#define st_print_po tx_print_stub
+#define st_print_pm tx_print_stub
+#define st_print_pl tx_print_stub
+#define st_print_pwr tx_print_stub
+#define st_print_mt tx_print_stub
+#define st_print_me tx_print_stub
+#define st_print_md tx_print_stub
 
 #endif // __TEXT_MODE
 
-#endif    // End of include guard: STEPPER_H_ONCE
+#endif // STEPPER_H_ONCE
