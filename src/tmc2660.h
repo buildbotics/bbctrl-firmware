@@ -35,6 +35,7 @@
 #include <stdint.h>
 
 #define TMC2660_SPI_PORT PORTC
+#define TMC2660_SPI_SS_PIN 4
 #define TMC2660_SPI_SCK_PIN 5
 #define TMC2660_SPI_MISO_PIN 6
 #define TMC2660_SPI_MOSI_PIN 7
@@ -116,7 +117,7 @@ int tmc2660_all_ready();
 
 #define TMC2660_SGCSCONF            3
 #define TMC2660_SGCSCONF_ADDR       (6UL << 17)
-#define TMC2660_SGCSCONF_SFILT      (1UL << 17)
+#define TMC2660_SGCSCONF_SFILT      (1UL << 16)
 #define TMC2660_SGCSCONF_THRESH(x)  (((int32_t)x & 0x7f) << 8)
 #define TMC2660_SGCSCONF_CS(x)      (((int32_t)x & 0x1f) << 0)
 #define TMC2660_SGCSCONF_CS_NONE    (31UL << 0)

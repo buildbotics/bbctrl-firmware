@@ -189,15 +189,18 @@ void cm_set_spindle_mode(GCodeState_t *gcode_state, uint8_t spindle_mode) {gcode
 void cm_set_spindle_speed_parameter(GCodeState_t *gcode_state, float speed) {gcode_state->spindle_speed = speed;}
 void cm_set_tool_number(GCodeState_t *gcode_state, uint8_t tool) {gcode_state->tool = tool;}
 
+
 void cm_set_absolute_override(GCodeState_t *gcode_state, uint8_t absolute_override) {
   gcode_state->absolute_override = absolute_override;
   cm_set_work_offsets(MODEL);                // must reset offsets if you change absolute override
 }
 
+
 void cm_set_model_linenum(uint32_t linenum) {
   cm.gm.linenum = linenum;                // you must first set the model line number,
   nv_add_object((const char_t *)"n");    // then add the line number to the nv list
 }
+
 
 /***********************************************************************************
  * COORDINATE SYSTEMS AND OFFSETS

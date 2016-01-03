@@ -78,7 +78,7 @@ int main() {
   init();
 
   // main loop
-  while (true) controller_run();    // single pass through the controller
+  while (true) controller_run();  // single pass through the controller
 
   return 0;
 }

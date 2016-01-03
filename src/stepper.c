@@ -54,7 +54,7 @@ static void _request_load_move();
 
 
 /*
- * stepper_init() - initialize stepper motor subsystem
+ * Initialize stepper motor subsystem
  *
  *    Notes:
  *      - This init requires sys_init() to be run beforehand
@@ -62,20 +62,8 @@ static void _request_load_move();
  *      - motor polarity is setup during config_init()
  *      - high level interrupts must be enabled in main() once all inits are complete
  */
-
-/*    NOTE: This is the bare code that the Motate timer calls replace.
- *    NB: requires: #include <component_tc.h>
- *
- *    REG_TC1_WPMR = 0x54494D00;            // enable write to registers
- *    TC_Configure(TC_BLOCK_DDA, TC_CHANNEL_DDA, TC_CMR_DDA);
- *    REG_RC_DDA = TC_RC_DDA;                // set frequency
- *    REG_IER_DDA = TC_IER_DDA;            // enable interrupts
- *    NVIC_EnableIRQ(TC_IRQn_DDA);
- *    pmc_enable_periph_clk(TC_ID_DDA);
- *    TC_Start(TC_BLOCK_DDA, TC_CHANNEL_DDA);
- */
 void stepper_init() {
-  memset(&st_run, 0, sizeof(st_run));            // clear all values, pointers and status
+  memset(&st_run, 0, sizeof(st_run));          // clear all values, pointers and status
   stepper_init_assertions();
 
   // Configure virtual ports
@@ -84,8 +72,8 @@ void stepper_init() {
 
   // setup ports and data structures
   for (uint8_t i = 0; i < MOTORS; i++) {
-    hw.st_port[i]->DIR = MOTOR_PORT_DIR_gm;    // sets outputs for motors & GPIO1, and GPIO2 inputs
-    hw.st_port[i]->OUT = MOTOR_ENABLE_BIT_bm;  // zero port bits AND disable motor
+    hw.st_port[i]->DIR = MOTOR_PORT_DIR_gm;      // sets outputs for motors & GPIO1, and GPIO2 inputs
+    hw.st_port[i]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
   }
 
   // setup DDA timer
@@ -111,22 +99,19 @@ void stepper_init() {
   TIMER_EXEC.PER = EXEC_TIMER_PERIOD;          // set period
 
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
-  st_reset();                                    // reset steppers to known state
+  st_reset();                                  // reset steppers to known state
 }
 
 
-/*
- * stepper_init_assertions() - test assertions, return error code if violation exists
- * stepper_test_assertions() - test assertions, return error code if violation exists
- */
 void stepper_init_assertions() {
-  st_run.magic_end = MAGICNUM;
+  st_run.magic_end   = MAGICNUM;
   st_run.magic_start = MAGICNUM;
-  st_pre.magic_end = MAGICNUM;
+  st_pre.magic_end   = MAGICNUM;
   st_pre.magic_start = MAGICNUM;
 }
 
 
+/// Test assertions, return error code if violation exists
 stat_t stepper_test_assertions() {
   if (st_run.magic_end   != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
   if (st_run.magic_start != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
@@ -138,7 +123,7 @@ stat_t stepper_test_assertions() {
 
 
 /*
- * st_runtime_isbusy() - return TRUE if runtime is busy:
+ * return TRUE if runtime is busy:
  *
  *    Busy conditions:
  *    - motors are running
@@ -161,12 +146,12 @@ void st_reset() {
 }
 
 
-/// Clear counters
+/// Clear diagnostic counters, reset stepper prep
 stat_t st_clc(nvObj_t *nv) {
-  // clear diagnostic counters, reset stepper prep
   st_reset();
   return STAT_OK;
 }
+
 
 /*
  * Motor power management functions
@@ -186,10 +171,11 @@ static uint8_t _motor_is_enabled(uint8_t motor) {
   case (MOTOR_2): port = PORT_MOTOR_2_VPORT.OUT; break;
   case (MOTOR_3): port = PORT_MOTOR_3_VPORT.OUT; break;
   case (MOTOR_4): port = PORT_MOTOR_4_VPORT.OUT; break;
-  default: port = 0xff;    // defaults to disabled for bad motor input value
+  default: port = 0xff; // defaults to disabled for bad motor input value
   }
 
-  return port & MOTOR_ENABLE_BIT_bm ? 0 : 1;    // returns 1 if motor is enabled (motor is actually active low)
+  // returns 1 if motor is enabled (motor is actually active low)
+  return port & MOTOR_ENABLE_BIT_bm ? 0 : 1;
 }
 
 
@@ -237,11 +223,10 @@ void st_deenergize_motors() {
 
 
 /*
- * st_motor_power_callback() - callback to manage motor power sequencing
- *
- *    Handles motor power-down timing, low-power idle, and adaptive motor power
+ * Callback to manage motor power sequencing
+ * Handles motor power-down timing, low-power idle, and adaptive motor power
  */
-stat_t st_motor_power_callback() {    // called by controller
+stat_t st_motor_power_callback() { // called by controller
   // manage power for each motor individually
   for (uint8_t m = MOTOR_1; m < MOTORS; m++) {
 
@@ -265,14 +250,10 @@ stat_t st_motor_power_callback() {    // called by controller
     }
 
     // do not process countdown if in a feedhold
-    if (cm_get_combined_state() == COMBINED_HOLD) {
-      continue;
-    }
+    if (cm_get_combined_state() == COMBINED_HOLD) continue;
 
     // do not process countdown if in a feedhold
-    if (cm_get_combined_state() == COMBINED_HOLD) {
-      continue;
-    }
+    if (cm_get_combined_state() == COMBINED_HOLD) continue;
 
     // run the countdown if you are in a countdown
     if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN) {
@@ -321,10 +302,10 @@ ISR(TIMER_DDA_ISR_vect) {
   }
 
   // pulse stretching for using external drivers.- turn step bits off
-  PORT_MOTOR_1_VPORT.OUT &= ~STEP_BIT_bm;                // ~ 5 uSec pulse width
-  PORT_MOTOR_2_VPORT.OUT &= ~STEP_BIT_bm;                // ~ 4 uSec
-  PORT_MOTOR_3_VPORT.OUT &= ~STEP_BIT_bm;                // ~ 3 uSec
-  PORT_MOTOR_4_VPORT.OUT &= ~STEP_BIT_bm;                // ~ 2 uSec
+  PORT_MOTOR_1_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 5 uSec pulse width
+  PORT_MOTOR_2_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 4 uSec
+  PORT_MOTOR_3_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 3 uSec
+  PORT_MOTOR_4_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 2 uSec
 
   if (--st_run.dda_ticks_downcount != 0) return;
 
@@ -334,7 +315,7 @@ ISR(TIMER_DDA_ISR_vect) {
 
 
 /// DDA timer interrupt routine - service ticks from DDA timer
-ISR(TIMER_DWELL_ISR_vect) {                                // DWELL timer interrupt
+ISR(TIMER_DWELL_ISR_vect) {                            // DWELL timer interrupt
   if (--st_run.dda_ticks_downcount == 0) {
     TIMER_DWELL.CTRLA = STEP_TIMER_DISABLE;            // disable DWELL timer
     _load_move();
@@ -343,9 +324,9 @@ ISR(TIMER_DWELL_ISR_vect) {                                // DWELL timer interr
 
 
 /****************************************************************************************
- * Exec sequencing code        - computes and prepares next load segment
+ * Exec sequencing code      - computes and prepares next load segment
  * st_request_exec_move()    - SW interrupt to request to execute a move
- * exec_timer interrupt        - interrupt handler for calling exec function
+ * exec_timer interrupt      - interrupt handler for calling exec function
  */
 void st_request_exec_move() {
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC) {// bother interrupting
@@ -355,8 +336,8 @@ void st_request_exec_move() {
 }
 
 
-ISR(TIMER_EXEC_ISR_vect) {                                // exec move SW interrupt
-  TIMER_EXEC.CTRLA = EXEC_TIMER_DISABLE;                // disable SW interrupt timer
+ISR(TIMER_EXEC_ISR_vect) {                               // exec move SW interrupt
+  TIMER_EXEC.CTRLA = EXEC_TIMER_DISABLE;                 // disable SW interrupt timer
 
   // exec_move
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC) {
@@ -386,8 +367,8 @@ static void _request_load_move() {
 }
 
 
-ISR(TIMER_LOAD_ISR_vect) {                                      // load steppers SW interrupt
-  TIMER_LOAD.CTRLA = LOAD_TIMER_DISABLE;                        // disable SW interrupt timer
+ISR(TIMER_LOAD_ISR_vect) {                                   // load steppers SW interrupt
+  TIMER_LOAD.CTRLA = LOAD_TIMER_DISABLE;                     // disable SW interrupt timer
   _load_move();
 }
 

@@ -146,7 +146,7 @@ void spi_next() {
     spi_send();
 
     // Next state
-    spi_delay = 3;
+    spi_delay = 4;
     spi_state = SPI_STATE_READ;
     break;
 
@@ -213,42 +213,35 @@ void tmc2660_init() {
     drivers[i].state = TMC2660_STATE_CONFIG;
     drivers[i].reg = 0;
 
-    drivers[i].regs[TMC2660_DRVCTRL] = 0;
-    drivers[i].regs[TMC2660_CHOPCONF] = 0x14557;
-    drivers[i].regs[TMC2660_SMARTEN] = 0x8202;
-    drivers[i].regs[TMC2660_SGCSCONF] = 0x1001f;
-    drivers[i].regs[TMC2660_DRVCONF] = 0x10;
+    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_MRES_256;
+    //drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 | TMC2660_CHOPCONF_HEND(0) | TMC2660_CHOPCONF_HSTART(4) |
+    //  TMC2660_CHOPCONF_TOFF(4);
+    drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 | TMC2660_CHOPCONF_CHM | TMC2660_CHOPCONF_HEND(7) |
+      TMC2660_CHOPCONF_HSTART(6) | TMC2660_CHOPCONF_TOFF(7);
+    drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN | TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
+    drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT | TMC2660_SGCSCONF_CS_NONE;
+    drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_MSTEP;
   }
 
   // Setup pins
-  TMC2660_SPI_PORT.OUTSET = 1 << 4;  // High
-  TMC2660_SPI_PORT.DIRSET = 1 << 4;  // Output
+  TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SS_PIN;   // High
+  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SS_PIN;   // Output (Why is it necessary to set the SS pin?)
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SCK_PIN;  // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SCK_PIN;  // Output
   TMC2660_SPI_PORT.DIRCLR = 1 << TMC2660_SPI_MISO_PIN; // Input
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_MOSI_PIN; // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_MOSI_PIN; // Output
 
-#if TMC2660_NUM_DRIVERS > 0
   TMC2660_SPI_SSX_PORT.OUTSET = 1 << TMC2660_SPI_SSX_PIN; // High
   TMC2660_SPI_SSX_PORT.DIRSET = 1 << TMC2660_SPI_SSX_PIN; // Output
-#endif
-#if TMC2660_NUM_DRIVERS > 1
   TMC2660_SPI_SSY_PORT.OUTSET = 1 << TMC2660_SPI_SSY_PIN; // High
   TMC2660_SPI_SSY_PORT.DIRSET = 1 << TMC2660_SPI_SSY_PIN; // Output
-#endif
-#if TMC2660_NUM_DRIVERS > 2
   TMC2660_SPI_SSZ_PORT.OUTSET = 1 << TMC2660_SPI_SSZ_PIN; // High
   TMC2660_SPI_SSZ_PORT.DIRSET = 1 << TMC2660_SPI_SSZ_PIN; // Output
-#endif
-#if TMC2660_NUM_DRIVERS > 3
   TMC2660_SPI_SSA_PORT.OUTSET = 1 << TMC2660_SPI_SSA_PIN; // High
   TMC2660_SPI_SSA_PORT.DIRSET = 1 << TMC2660_SPI_SSA_PIN; // Output
-#endif
-#if TMC2660_NUM_DRIVERS > 4
   TMC2660_SPI_SSB_PORT.OUTSET = 1 << TMC2660_SPI_SSB_PIN; // High
   TMC2660_SPI_SSB_PORT.DIRSET = 1 << TMC2660_SPI_SSB_PIN; // Output
-#endif
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
@@ -260,7 +253,7 @@ void tmc2660_init() {
   // Configure timer
   PR.PRPC &= ~PR_TC1_bm; // Disable power reduction
   TMC2660_TIMER.PER = F_CPU / 1024 / 10; // Set timer period
-  TMC2660_TIMER.INTCTRLA = TC_OVFINTLVL_LO_gc; // Low priority overflow int
+  TMC2660_TIMER.INTCTRLA = TC_OVFINTLVL_MED_gc; // overflow interupt level
   TMC2660_TIMER.CTRLA = TC_CLKSEL_DIV1024_gc; // enable, clock/1024
 }
 

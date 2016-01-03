@@ -41,9 +41,9 @@
  *    LO    Real time clock interrupt            (set in xmega_rtc.h)
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
- *        called from a LO interrupt (as in prep_line()) will kill the system in a
- *        permanent sleep_mode() call in usart_putc() (usart.c) as no interrupt
- *        can release the sleep mode.
+ *        called from a LO interrupt (as in prep_line()) will kill the system
+ *        in a permanent sleep_mode() call in usart_putc() (usart.c) as no
+ *        interrupt can release the sleep mode.
  */
 
 #ifndef HARDWARE_H_ONCE
@@ -51,49 +51,43 @@
 
 enum hwPlatform {
   HM_PLATFORM_NONE = 0,
-  HW_PLATFORM_TINYG_XMEGA,    // TinyG code base on Xmega boards.
+  HW_PLATFORM_TINYG_XMEGA,       // TinyG code base on Xmega boards.
 };
 
 #define HW_VERSION_TINYGV6 6
 #define HW_VERSION_TINYGV7 7
 #define HW_VERSION_TINYGV8 8
 
-#include "config.h"                        // needed for the stat_t typedef
+#include "config.h"              // needed for the stat_t typedef
 #include <avr/interrupt.h>
-#include "xmega/xmega_rtc.h"            // Xmega only. Goes away with RTC refactoring
+#include "xmega/xmega_rtc.h"
 
-#define MILLISECONDS_PER_TICK 1            // MS for system tick (systick * N)
-#define SYS_ID_LEN 12                    // length of system ID string from sys_get_id()
+#define MILLISECONDS_PER_TICK 1  // MS for system tick (systick * N)
+#define SYS_ID_LEN 12            // length of system ID string from sys_get_id()
 
 
 // Clock Crystal Config. Pick one:
-//#define __CLOCK_INTERNAL_32MHZ TRUE    // use internal oscillator
-//#define __CLOCK_EXTERNAL_8MHZ    TRUE    // uses PLL to provide 32 MHz system clock
-#define __CLOCK_EXTERNAL_16MHZ TRUE        // uses PLL to provide 32 MHz system clock
+//#define __CLOCK_INTERNAL_32MHZ TRUE // use internal oscillator
+//#define __CLOCK_EXTERNAL_8MHZ TRUE  // uses PLL to provide 32 MHz system clock
+#define __CLOCK_EXTERNAL_16MHZ TRUE   // uses PLL to provide 32 MHz system clock
 
-/*** Motor, output bit & switch port assignments ***
- *** These are not all the same, and must line up in multiple places in gpio.h ***
- * Sorry if this is confusing - it's a board routing issue
- */
-#define PORT_MOTOR_1     PORTA            // motors mapped to ports
+// Motor, output bit & switch port assignments
+// These are not all the same, and must line up in multiple places in gpio.h
+// Sorry if this is confusing - it's a board routing issue
+#define PORT_MOTOR_1     PORTA        // motors mapped to ports
 #define PORT_MOTOR_2     PORTF
 #define PORT_MOTOR_3     PORTE
 #define PORT_MOTOR_4     PORTD
 
-#define PORT_SWITCH_X    PORTA            // Switch axes mapped to ports
+#define PORT_SWITCH_X    PORTA        // Switch axes mapped to ports
 #define PORT_SWITCH_Y    PORTD
 #define PORT_SWITCH_Z    PORTE
 #define PORT_SWITCH_A    PORTF
 
-#define PORT_OUT_V7_X    PORTA            // v7 mapping - Output bits mapped to ports
+#define PORT_OUT_V7_X    PORTA        // v7 mapping
 #define PORT_OUT_V7_Y    PORTF
 #define PORT_OUT_V7_Z    PORTD
 #define PORT_OUT_V7_A    PORTE
-
-#define PORT_OUT_V6_X    PORTA            // v6 and earlier mapping - Output bits mapped to ports
-#define PORT_OUT_V6_Y    PORTF
-#define PORT_OUT_V6_Z    PORTE
-#define PORT_OUT_V6_A    PORTD
 
 // These next four must be changed when the PORT_MOTOR_* definitions change!
 #define PORTCFG_VP0MAP_PORT_MOTOR_1_gc PORTCFG_VP02MAP_PORTA_gc
@@ -114,10 +108,11 @@ enum hwPlatform {
  *    b3    (out) chip select
  *    b4    (in)  fault
  *    b5    (out) output bit for GPIO port1
- *    b6    (in)  min limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
- *    b7    (in)  max limit switch on GPIO 2 (note: motor controls and GPIO2 port mappings are not the same)
+ *    b6    (in)  min limit switch on GPIO 2 *
+ *    b7    (in)  max limit switch on GPIO 2 *
+ *  * motor controls and GPIO2 port mappings are not the same
  */
-#define MOTOR_PORT_DIR_gm 0x3F    // dir settings: lower 6 out, upper 2 in
+#define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
 enum cfgPortBits {        // motor control port bit positions
   STEP_BIT_bp = 0,        // bit 0
@@ -135,27 +130,26 @@ enum cfgPortBits {        // motor control port bit positions
 #define MOTOR_ENABLE_BIT_bm   (1 << MOTOR_ENABLE_BIT_bp)
 #define CHIP_SELECT_BIT_bm    (1 << CHIP_SELECT_BIT_bp)
 #define FAULT_BIT_bm          (1 << FAULT_BIT_bp)
-#define GPIO1_OUT_BIT_bm      (1 << GPIO1_OUT_BIT_bp)    // spindle and coolant output bits
-#define SW_MIN_BIT_bm         (1 << SW_MIN_BIT_bp)       // minimum switch inputs
-#define SW_MAX_BIT_bm         (1 << SW_MAX_BIT_bp)       // maximum switch inputs
+#define GPIO1_OUT_BIT_bm      (1 << GPIO1_OUT_BIT_bp)   // spindle and coolant
+#define SW_MIN_BIT_bm         (1 << SW_MIN_BIT_bp)      // minimum switch inputs
+#define SW_MAX_BIT_bm         (1 << SW_MAX_BIT_bp)      // maximum switch inputs
 
-/* Bit assignments for GPIO1_OUTs for spindle, PWM and coolant */
-
+// Bit assignments for GPIO1_OUTs for spindle, PWM and coolant
 #define SPINDLE_BIT            0x08        // spindle on/off
 #define SPINDLE_DIR            0x04        // spindle direction, 1=CW, 0=CCW
 #define SPINDLE_PWM            0x02        // spindle PWMs output bit
-#define MIST_COOLANT_BIT       0x01        // coolant on/off - these are the same due to limited ports
-#define FLOOD_COOLANT_BIT      0x01        // coolant on/off
+#define MIST_COOLANT_BIT       0x01        // coolant on/off (same as flood)
+#define FLOOD_COOLANT_BIT      0x01        // coolant on/off (same as mist)
 
 #define SPINDLE_LED            0
 #define SPINDLE_DIR_LED        1
 #define SPINDLE_PWM_LED        2
 #define COOLANT_LED            3
 
-#define INDICATOR_LED        SPINDLE_DIR_LED    // can use the spindle direction as an indicator LED
+// Can use the spindle direction as an indicator LED
+#define INDICATOR_LED        SPINDLE_DIR_LED
 
-/* Timer assignments - see specific modules for details) */
-
+// Timer assignments - see specific modules for details)
 #define TIMER_DDA            TCC0        // DDA timer     (see stepper.h)
 #define TIMER_DWELL          TCD0        // Dwell timer   (see stepper.h)
 #define TIMER_LOAD           TCE0        // Loader time   (see stepper.h)
@@ -164,8 +158,7 @@ enum cfgPortBits {        // motor control port bit positions
 #define TIMER_PWM1           TCD1        // PWM timer #1  (see pwm.c)
 #define TIMER_PWM2           TCE1        // PWM timer #2  (see pwm.c)
 
-/* Timer setup for stepper and dwells */
-
+// Timer setup for stepper and dwells
 #define FREQUENCY_DDA          (float)50000    // DDA frequency in hz.
 #define FREQUENCY_DWELL        (float)10000    // Dwell count frequency in hz.
 #define LOAD_TIMER_PERIOD      100             // cycles you have to shut off SW interrupt
@@ -200,27 +193,30 @@ enum cfgPortBits {        // motor control port bit positions
 #define TIMER_EXEC_INTLVL      TIMER_OVFINTLVL_LO
 
 
-/**** Device singleton - global structure to allow iteration through similar devices ****/
 /*
+  Device singleton - global structure to allow iteration through similar devices
+
   Ports are shared between steppers and GPIO so we need a global struct.
   Each xmega port has 3 bindings; motors, switches and the output bit
 
   The initialization sequence is important. the order is:
   - sys_init()    binds all ports to the device struct
-  - st_init()     sets IO directions and sets stepper VPORTS and stepper specific functions
+  - st_init()     sets IO directions and sets stepper VPORTS and stepper
+                  specific functions
 
-  Care needs to be taken in routines that use ports not to write to bits that are
-  not assigned to the designated function - ur unpredicatable results will occur
+  Care needs to be taken in routines that use ports not to write to bits that
+  are not assigned to the designated function - ur unpredicatable results will
+  occur.
 */
 
-typedef struct hmSingleton {
-  PORT_t *st_port[MOTORS];        // bindings for stepper motor ports (stepper.c)
-  PORT_t *sw_port[MOTORS];        // bindings for switch ports (GPIO2)
-  PORT_t *out_port[MOTORS];       // bindings for output ports (GPIO1)
+typedef struct {
+  PORT_t *st_port[MOTORS];       // bindings for stepper motor ports (stepper.c)
+  PORT_t *sw_port[MOTORS];       // bindings for switch ports (GPIO2)
+  PORT_t *out_port[MOTORS];      // bindings for output ports (GPIO1)
 } hwSingleton_t;
 hwSingleton_t hw;
 
-void hardware_init();             // master hardware init
+void hardware_init();            // master hardware init
 void hw_request_hard_reset();
 void hw_hard_reset();
 stat_t hw_hard_reset_handler();
