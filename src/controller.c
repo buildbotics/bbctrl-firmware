@@ -46,7 +46,9 @@
 #include "util.h"
 #include "usart.h"
 
+
 controller_t cs;        // controller state structure
+
 
 static stat_t _shutdown_idler();
 static stat_t _normal_idler();
@@ -55,6 +57,7 @@ static stat_t _system_assertions();
 static stat_t _sync_to_planner();
 static stat_t _sync_to_tx_buffer();
 static stat_t _command_dispatch();
+
 
 // prep for export to other modules:
 stat_t hardware_hard_reset_handler();
@@ -67,13 +70,13 @@ void controller_init() {
 
   cs.fw_build = TINYG_FIRMWARE_BUILD;
   cs.fw_version = TINYG_FIRMWARE_VERSION;
-  cs.hw_platform = TINYG_HARDWARE_PLATFORM;         // NB: HW version is set from EEPROM
+  cs.hw_platform = TINYG_HARDWARE_PLATFORM;        // NB: HW version is set from EEPROM
 
-  cs.state = CONTROLLER_STARTUP;                    // ready to run startup lines
+  cs.state = CONTROLLER_STARTUP;                   // ready to run startup lines
 }
 
 
-/// controller_test_assertions() - check memory integrity of controller
+/// Check memory integrity of controller
 void controller_init_assertions() {
   cs.magic_start = MAGICNUM;
   cs.magic_end = MAGICNUM;
@@ -89,7 +92,7 @@ stat_t controller_test_assertions() {
 
 
 /*
- * controller_run() - MAIN LOOP - top-level controller
+ * Main loop - top-level controller
  *
  * The order of the dispatched tasks is very important.
  * Tasks are ordered by increasing dependency (blocking hierarchy).
@@ -113,24 +116,24 @@ void controller_run() {
   // See hardware.h for a list of ISRs and their priorities.
 
   // Kernel level ISR handlers, flags are set in ISRs, order is important
-  DISPATCH(hw_hard_reset_handler());            // 1. handle hard reset requests
-  DISPATCH(hw_bootloader_handler());            // 2. handle requests to enter bootloader
-  DISPATCH(_shutdown_idler());                  // 3. idle in shutdown state
-  DISPATCH(_limit_switch_handler());            // 4. limit switch has been thrown
-  DISPATCH(cm_feedhold_sequencing_callback());  // 5a. feedhold state machine runner
-  DISPATCH(mp_plan_hold_callback());            // 5b. plan a feedhold from line runtime
-  DISPATCH(_system_assertions());               // 6. system integrity assertions
+  DISPATCH(hw_hard_reset_handler());           // 1. handle hard reset requests
+  DISPATCH(hw_bootloader_handler());           // 2. handle requests to enter bootloader
+  DISPATCH(_shutdown_idler());                 // 3. idle in shutdown state
+  DISPATCH(_limit_switch_handler());           // 4. limit switch has been thrown
+  DISPATCH(cm_feedhold_sequencing_callback()); // 5a. feedhold state machine runner
+  DISPATCH(mp_plan_hold_callback());           // 5b. plan a feedhold from line runtime
+  DISPATCH(_system_assertions());              // 6. system integrity assertions
 
   // Planner hierarchy for gcode and cycles
-  DISPATCH(st_motor_power_callback());        // stepper motor power sequencing
-  DISPATCH(sr_status_report_callback());      // conditionally send status report
-  DISPATCH(qr_queue_report_callback());       // conditionally send queue report
-  DISPATCH(rx_report_callback());             // conditionally send rx report
-  DISPATCH(cm_arc_callback());                // arc generation runs behind lines
-  DISPATCH(cm_homing_callback());             // G28.2 continuation
-  DISPATCH(cm_jogging_callback());            // jog function
-  DISPATCH(cm_probe_callback());              // G38.2 continuation
-  DISPATCH(cm_deferred_write_callback());     // persist G10 changes when not in machining cycle
+  DISPATCH(st_motor_power_callback());         // stepper motor power sequencing
+  DISPATCH(sr_status_report_callback());       // conditionally send status report
+  DISPATCH(qr_queue_report_callback());        // conditionally send queue report
+  DISPATCH(rx_report_callback());              // conditionally send rx report
+  DISPATCH(cm_arc_callback());                 // arc generation runs behind lines
+  DISPATCH(cm_homing_callback());              // G28.2 continuation
+  DISPATCH(cm_jogging_callback());             // jog function
+  DISPATCH(cm_probe_callback());               // G38.2 continuation
+  DISPATCH(cm_deferred_write_callback());      // persist G10 changes when not in machining cycle
 
   // Command readers and parsers
   DISPATCH(_sync_to_planner());                // ensure there is at least one free buffer in planning queue
@@ -142,7 +145,7 @@ void controller_run() {
 
 
 /*****************************************************************************
- * _command_dispatch() - dispatch line received from active input device
+ * Dispatch line received from active input device
  *
  *    Reads next command line and dispatches to relevant parser or action
  *    Accepts commands if the move queue has room - EAGAINS if it doesn't
@@ -167,50 +170,44 @@ static stat_t _command_dispatch() {
   strncpy(cs.saved_buf, cs.bufp, SAVED_BUFFER_LEN - 1);  // save input buffer for reporting
 
   // dispatch the new text line
-  switch (toupper(*cs.bufp)) {                        // first char
-  case '!': cm_request_feedhold(); break;             // include for diagnostics
+  switch (toupper(*cs.bufp)) {                    // first char
+  case '!': cm_request_feedhold(); break;         // include for diagnostics
   case '%': cm_request_queue_flush(); break;
   case '~': cm_request_cycle_start(); break;
 
-  case 0:                                        // blank line (just a CR)
+  case 0:                                         // blank line (just a CR)
     if (cfg.comm_mode != JSON_MODE)
       text_response(STAT_OK, cs.saved_buf);
     break;
 
-  case '$': case '?': case 'H':                  // text mode input
+  case '$': case '?': case 'H':                   // text mode input
     cfg.comm_mode = TEXT_MODE;
     text_response(text_parser(cs.bufp), cs.saved_buf);
     break;
 
-  case '{':                                      // JSON input
+  case '{':                                       // JSON input
     cfg.comm_mode = JSON_MODE;
     json_parser(cs.bufp);
     break;
 
-  default:                                          // anything else must be Gcode
+  default:                                        // anything else must be Gcode
     if (cfg.comm_mode == JSON_MODE) {             // run it as JSON...
-      strncpy(cs.out_buf, cs.bufp, INPUT_BUFFER_LEN -8);                    // use out_buf as temp
-      sprintf((char *)cs.bufp,"{\"gc\":\"%s\"}\n", (char *)cs.out_buf);     // '-8' is used for JSON chars
+      strncpy(cs.out_buf, cs.bufp, INPUT_BUFFER_LEN -8);                 // use out_buf as temp
+      sprintf((char *)cs.bufp,"{\"gc\":\"%s\"}\n", (char *)cs.out_buf);  // '-8' is used for JSON chars
       json_parser(cs.bufp);
 
-    } else text_response(gc_gcode_parser(cs.bufp), cs.saved_buf);           //...or run it as text
+    } else text_response(gc_gcode_parser(cs.bufp), cs.saved_buf);        //...or run it as text
   }
 
   return STAT_OK;
 }
 
 
-/**** Local Utilities ********************************************************/
-/*
- * _shutdown_idler() - blink rapidly and prevent further activity from occurring
- * _normal_idler() - blink Indicator LED slowly to show everything is OK
- *
- *    Shutdown idler flashes indicator LED rapidly to show everything is not OK.
- *    Shutdown idler returns EAGAIN causing the control loop to never advance beyond
- *    this point. It's important that the reset handler is still called so a SW reset
- *    (ctrl-x) or bootloader request can be processed.
- */
-
+/// Blink rapidly and prevent further activity from occurring
+/// Shutdown idler flashes indicator LED rapidly to show everything is not OK.
+/// Shutdown idler returns EAGAIN causing the control loop to never advance beyond
+/// this point. It's important that the reset handler is still called so a SW reset
+/// (ctrl-x) or bootloader request can be processed.
 static stat_t _shutdown_idler() {
   if (cm_get_machine_state() != MACHINE_SHUTDOWN) return STAT_OK;
 
@@ -227,11 +224,8 @@ static stat_t _normal_idler() {
   return STAT_OK;
 }
 
-/*
- * _sync_to_tx_buffer() - return eagain if TX queue is backed up
- * _sync_to_planner() - return eagain if planner is not ready for a new command
- * _sync_to_time() - return eagain if planner is not ready for a new command
- */
+
+/// Return eagain if TX queue is backed up
 static stat_t _sync_to_tx_buffer() {
   if (usart_tx_full()) return STAT_EAGAIN;
 
@@ -239,6 +233,7 @@ static stat_t _sync_to_tx_buffer() {
 }
 
 
+/// Return eagain if planner is not ready for a new command
 static stat_t _sync_to_planner() {
   if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM) // allow up to N planner buffers for this line
     return STAT_EAGAIN;

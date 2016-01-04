@@ -278,7 +278,7 @@ stat_t st_motor_power_callback() { // called by controller
 */
 ISR(TIMER_DDA_ISR_vect) {
   if ((st_run.mot[MOTOR_1].substep_accumulator += st_run.mot[MOTOR_1].substep_increment) > 0) {
-    PORT_MOTOR_1_VPORT.OUT |= STEP_BIT_bm;        // turn step bit on
+    PORT_MOTOR_1_VPORT.OUT ^= STEP_BIT_bm;        // turn step bit on
     st_run.mot[MOTOR_1].substep_accumulator -= st_run.dda_ticks_X_substeps;
     INCREMENT_ENCODER(MOTOR_1);
   }
@@ -301,8 +301,8 @@ ISR(TIMER_DDA_ISR_vect) {
     INCREMENT_ENCODER(MOTOR_4);
   }
 
-  // pulse stretching for using external drivers.- turn step bits off
-  PORT_MOTOR_1_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 5 uSec pulse width
+  // Turn step bits off - pulse stretching for using external drivers.
+  //PORT_MOTOR_1_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 5 uSec pulse width
   PORT_MOTOR_2_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 4 uSec
   PORT_MOTOR_3_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 3 uSec
   PORT_MOTOR_4_VPORT.OUT &= ~STEP_BIT_bm;              // ~ 2 uSec

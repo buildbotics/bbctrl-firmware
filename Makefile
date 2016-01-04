@@ -66,6 +66,9 @@ size: $(TARGET)
 	avr-size -C --mcu=$(MCU) $(TARGET)
 
 # Program
+reset:
+	avrdude $(AVRDUDE_OPTS)
+
 erase:
 	avrdude $(AVRDUDE_OPTS) -e
 
@@ -89,7 +92,7 @@ clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
 	  $(PROJECT).map build fuse?.hex
 
-.PHONY: tidy clean size all erase program fuses read_fuses
+.PHONY: tidy clean size all reset erase program fuses read_fuses
 
 # Dependencies
 -include $(shell mkdir -p build/dep) $(wildcard build/dep/*)

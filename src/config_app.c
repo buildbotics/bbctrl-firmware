@@ -43,21 +43,20 @@
 #include "util.h"
 #include "help.h"
 #include "usart.h"
+#include "tmc2660.h"
 
-cfgParameters_t cfg;                 // application specific configuration parameters
+cfgParameters_t cfg; // Application specific configuration parameters
 
 // See config.cpp/.h for generic variables and functions that are not specific to
 // TinyG or the motion control application domain
 
 // helpers (most helpers are defined immediately above their usage so they don't need prototypes here)
-
 static stat_t _do_motors(nvObj_t *nv);        // print parameters for all motor groups
-static stat_t _do_axes(nvObj_t *nv);        // print parameters for all axis groups
-static stat_t _do_offsets(nvObj_t *nv);        // print offset parameters for G54-G59,G92, G28, G30
-static stat_t _do_all(nvObj_t *nv);            // print all parameters
+static stat_t _do_axes(nvObj_t *nv);          // print parameters for all axis groups
+static stat_t _do_offsets(nvObj_t *nv);       // print offset parameters for G54-G59,G92, G28, G30
+static stat_t _do_all(nvObj_t *nv);           // print all parameters
 
 // communications settings and functions
-
 static stat_t set_ec(nvObj_t *nv);            // expand CRLF on TX output
 static stat_t set_ee(nvObj_t *nv);            // enable character echo
 static stat_t set_ex(nvObj_t *nv);            // enable XON/XOFF and RTS/CTS flow control
@@ -90,31 +89,40 @@ static stat_t get_rx(nvObj_t *nv);            // get bytes in RX buffer
  *    uint16_t in the config.h file.
  */
 const cfgItem_t cfgArray[] PROGMEM = {
-  // group token flags p, print_func,     get_func,  set_func, target for get/set,       default value
+  // group, token, flags, p, print_func, get_func, set_func, target for get/set, default value
   {"sys", "fb", _fipn,2, hw_print_fb, get_flt,   set_nul,  (float *)&cs.fw_build,   TINYG_FIRMWARE_BUILD}, // MUST BE FIRST!
   {"sys", "fv", _fipn,3, hw_print_fv, get_flt,   set_nul,  (float *)&cs.fw_version, TINYG_FIRMWARE_VERSION},
   {"sys", "hp", _fipn,0, hw_print_hp, get_flt,   set_flt,  (float *)&cs.hw_platform,TINYG_HARDWARE_PLATFORM},
   {"sys", "hv", _fipn,0, hw_print_hv, get_flt,   hw_set_hv,(float *)&cs.hw_version, TINYG_HARDWARE_VERSION},
-  {"sys", "id", _fn,  0, hw_print_id, hw_get_id, set_nul,  (float *)&cs.null, 0},  // device ID (ASCII signature)
+  {"sys", "id", _fn,  0, hw_print_id, hw_get_id, set_nul,  (float *)&cs.null, 0},           // device ID (ASCII signature)
 
-  // dynamic model attributes for reporting purposes (up front for speed)
-  {"",   "n",   _fi, 0, cm_print_line, cm_get_mline,set_int,(float *)&cm.gm.linenum,0},       // Model line number
-  {"",   "line",_fi, 0, cm_print_line, cm_get_line, set_int,(float *)&cm.gm.linenum,0},       // Active line number - model or runtime line number
-  {"",   "vel", _f0, 2, cm_print_vel,  cm_get_vel,  set_nul,(float *)&cs.null, 0},            // current velocity
-  {"",   "feed",_f0, 2, cm_print_feed, cm_get_feed, set_nul,(float *)&cs.null, 0},            // feed rate
-  {"",   "stat",_f0, 0, cm_print_stat, cm_get_stat, set_nul,(float *)&cs.null, 0},            // combined machine state
-  {"",   "macs",_f0, 0, cm_print_macs, cm_get_macs, set_nul,(float *)&cs.null, 0},            // raw machine state
-  {"",   "cycs",_f0, 0, cm_print_cycs, cm_get_cycs, set_nul,(float *)&cs.null, 0},            // cycle state
-  {"",   "mots",_f0, 0, cm_print_mots, cm_get_mots, set_nul,(float *)&cs.null, 0},            // motion state
-  {"",   "hold",_f0, 0, cm_print_hold, cm_get_hold, set_nul,(float *)&cs.null, 0},            // feedhold state
-  {"",   "unit",_f0, 0, cm_print_unit, cm_get_unit, set_nul,(float *)&cs.null, 0},            // units mode
-  {"",   "coor",_f0, 0, cm_print_coor, cm_get_coor, set_nul,(float *)&cs.null, 0},            // coordinate system
-  {"",   "momo",_f0, 0, cm_print_momo, cm_get_momo, set_nul,(float *)&cs.null, 0},            // motion mode
-  {"",   "plan",_f0, 0, cm_print_plan, cm_get_plan, set_nul,(float *)&cs.null, 0},            // plane select
-  {"",   "path",_f0, 0, cm_print_path, cm_get_path, set_nul,(float *)&cs.null, 0},            // path control mode
-  {"",   "dist",_f0, 0, cm_print_dist, cm_get_dist, set_nul,(float *)&cs.null, 0},            // distance mode
-  {"",   "frmo",_f0, 0, cm_print_frmo, cm_get_frmo, set_nul,(float *)&cs.null, 0},            // feed rate mode
-  {"",   "tool",_f0, 0, cm_print_tool, cm_get_toolv,set_nul,(float *)&cs.null, 0},            // active tool
+  {"mst", "mst1", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
+  {"mst", "mst2", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
+  {"mst", "mst3", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
+  {"mst", "mst4", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
+  {"mfl", "mfl1", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
+  {"mfl", "mfl2", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
+  {"mfl", "mfl3", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
+  {"mfl", "mfl4", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
+
+  // Dynamic model attributes for reporting purposes (up front for speed)
+  {"",   "n",   _fi, 0, cm_print_line, cm_get_mline,set_int,(float *)&cm.gm.linenum,0},     // Model line number
+  {"",   "line",_fi, 0, cm_print_line, cm_get_line, set_int,(float *)&cm.gm.linenum,0},     // Active model or runtime line number
+  {"",   "vel", _f0, 2, cm_print_vel,  cm_get_vel,  set_nul,(float *)&cs.null, 0},          // current velocity
+  {"",   "feed",_f0, 2, cm_print_feed, cm_get_feed, set_nul,(float *)&cs.null, 0},          // feed rate
+  {"",   "stat",_f0, 0, cm_print_stat, cm_get_stat, set_nul,(float *)&cs.null, 0},          // combined machine state
+  {"",   "macs",_f0, 0, cm_print_macs, cm_get_macs, set_nul,(float *)&cs.null, 0},          // raw machine state
+  {"",   "cycs",_f0, 0, cm_print_cycs, cm_get_cycs, set_nul,(float *)&cs.null, 0},          // cycle state
+  {"",   "mots",_f0, 0, cm_print_mots, cm_get_mots, set_nul,(float *)&cs.null, 0},          // motion state
+  {"",   "hold",_f0, 0, cm_print_hold, cm_get_hold, set_nul,(float *)&cs.null, 0},          // feedhold state
+  {"",   "unit",_f0, 0, cm_print_unit, cm_get_unit, set_nul,(float *)&cs.null, 0},          // units mode
+  {"",   "coor",_f0, 0, cm_print_coor, cm_get_coor, set_nul,(float *)&cs.null, 0},          // coordinate system
+  {"",   "momo",_f0, 0, cm_print_momo, cm_get_momo, set_nul,(float *)&cs.null, 0},          // motion mode
+  {"",   "plan",_f0, 0, cm_print_plan, cm_get_plan, set_nul,(float *)&cs.null, 0},          // plane select
+  {"",   "path",_f0, 0, cm_print_path, cm_get_path, set_nul,(float *)&cs.null, 0},          // path control mode
+  {"",   "dist",_f0, 0, cm_print_dist, cm_get_dist, set_nul,(float *)&cs.null, 0},          // distance mode
+  {"",   "frmo",_f0, 0, cm_print_frmo, cm_get_frmo, set_nul,(float *)&cs.null, 0},          // feed rate mode
+  {"",   "tool",_f0, 0, cm_print_tool, cm_get_toolv,set_nul,(float *)&cs.null, 0},          // active tool
 
   {"mpo","mpox",_f0, 3, cm_print_mpo, cm_get_mpo, set_nul,(float *)&cs.null, 0},            // X machine position
   {"mpo","mpoy",_f0, 3, cm_print_mpo, cm_get_mpo, set_nul,(float *)&cs.null, 0},            // Y machine position
@@ -137,13 +145,13 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"ofs","ofsb",_f0, 3, cm_print_ofs, cm_get_ofs, set_nul,(float *)&cs.null, 0},            // B work offset
   {"ofs","ofsc",_f0, 3, cm_print_ofs, cm_get_ofs, set_nul,(float *)&cs.null, 0},            // C work offset
 
-  {"hom","home",_f0, 0, cm_print_home, cm_get_home, cm_run_home,(float *)&cs.null, 0},        // homing state, invoke homing cycle
-  {"hom","homx",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_X], false},    // X homed - Homing status group
-  {"hom","homy",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_Y], false},    // Y homed
-  {"hom","homz",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_Z], false},    // Z homed
-  {"hom","homa",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_A], false},    // A homed
-  {"hom","homb",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_B], false},    // B homed
-  {"hom","homc",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_C], false},    // C homed
+  {"hom","home",_f0, 0, cm_print_home, cm_get_home, cm_run_home,(float *)&cs.null, 0},      // homing state, invoke homing cycle
+  {"hom","homx",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_X], false},  // X homed - Homing status group
+  {"hom","homy",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_Y], false},  // Y homed
+  {"hom","homz",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_Z], false},  // Z homed
+  {"hom","homa",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_A], false},  // A homed
+  {"hom","homb",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_B], false},  // B homed
+  {"hom","homc",_f0, 0, cm_print_pos, get_ui8, set_nul,(float *)&cm.homed[AXIS_C], false},  // C homed
 
   {"prb","prbe",_f0, 0, tx_print_nul, get_ui8, set_nul,(float *)&cm.probe_state, 0},        // probing state
   {"prb","prbx",_f0, 3, tx_print_nul, get_flt, set_nul,(float *)&cm.probe_results[AXIS_X], 0},
@@ -158,7 +166,7 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"jog","jogz",_f0, 0, tx_print_nul, get_nul, cm_run_jogz, (float *)&cm.jogging_dest, 0},
   {"jog","joga",_f0, 0, tx_print_nul, get_nul, cm_run_joga, (float *)&cm.jogging_dest, 0},
 
-  {"pwr","pwr1",_f0, 0, st_print_pwr, st_get_pwr, set_nul, (float *)&cs.null, 0},    // motor power enable readouts
+  {"pwr","pwr1",_f0, 0, st_print_pwr, st_get_pwr, set_nul, (float *)&cs.null, 0}, // motor power enable readouts
   {"pwr","pwr2",_f0, 0, st_print_pwr, st_get_pwr, set_nul, (float *)&cs.null, 0},
   {"pwr","pwr3",_f0, 0, st_print_pwr, st_get_pwr, set_nul, (float *)&cs.null, 0},
   {"pwr","pwr4",_f0, 0, st_print_pwr, st_get_pwr, set_nul, (float *)&cs.null, 0},
@@ -170,23 +178,23 @@ const cfgItem_t cfgArray[] PROGMEM = {
 #endif
 
   // Reports, tests, help, and messages
-  {"", "sr",  _f0, 0, sr_print_sr,  sr_get,  sr_set,   (float *)&cs.null, 0},    // status report object
-  {"", "qr",  _f0, 0, qr_print_qr,  qr_get,  set_nul,  (float *)&cs.null, 0},    // queue report - planner buffers available
-  {"", "qi",  _f0, 0, qr_print_qi,  qi_get,  set_nul,  (float *)&cs.null, 0},    // queue report - buffers added to queue
-  {"", "qo",  _f0, 0, qr_print_qo,  qo_get,  set_nul,  (float *)&cs.null, 0},    // queue report - buffers removed from queue
-  {"", "er",  _f0, 0, tx_print_nul, rpt_er,  set_nul,  (float *)&cs.null, 0},    // invoke bogus exception report for testing
-  {"", "qf",  _f0, 0, tx_print_nul, get_nul, cm_run_qf,(float *)&cs.null, 0},    // queue flush
-  {"", "rx",  _f0, 0, tx_print_int, get_rx,  set_nul,  (float *)&cs.null, 0},    // space in RX buffer
-  {"", "msg", _f0, 0, tx_print_str, get_nul, set_nul,  (float *)&cs.null, 0},    // string for generic messages
-  {"", "clear",_f0,0, tx_print_nul, cm_clear,cm_clear, (float *)&cs.null, 0},    // GET a clear to clear soft alarm
+  {"", "sr",  _f0, 0, sr_print_sr,  sr_get,  sr_set,   (float *)&cs.null, 0},     // status report object
+  {"", "qr",  _f0, 0, qr_print_qr,  qr_get,  set_nul,  (float *)&cs.null, 0},     // queue report - planner buffers available
+  {"", "qi",  _f0, 0, qr_print_qi,  qi_get,  set_nul,  (float *)&cs.null, 0},     // queue report - buffers added to queue
+  {"", "qo",  _f0, 0, qr_print_qo,  qo_get,  set_nul,  (float *)&cs.null, 0},     // queue report - buffers removed from queue
+  {"", "er",  _f0, 0, tx_print_nul, rpt_er,  set_nul,  (float *)&cs.null, 0},     // invoke bogus exception report for testing
+  {"", "qf",  _f0, 0, tx_print_nul, get_nul, cm_run_qf,(float *)&cs.null, 0},     // queue flush
+  {"", "rx",  _f0, 0, tx_print_int, get_rx,  set_nul,  (float *)&cs.null, 0},     // space in RX buffer
+  {"", "msg", _f0, 0, tx_print_str, get_nul, set_nul,  (float *)&cs.null, 0},     // string for generic messages
+  {"", "clear",_f0,0, tx_print_nul, cm_clear,cm_clear, (float *)&cs.null, 0},     // GET a clear to clear soft alarm
 
   {"", "test",_f0, 0, tx_print_nul, help_test, run_test, (float *)&cs.null,0},    // run tests, print test help screen
-  {"", "defa",_f0, 0, tx_print_nul, help_defa, set_defaults,(float *)&cs.null,0},    // set/print defaults / help screen
+  {"", "defa",_f0, 0, tx_print_nul, help_defa, set_defaults,(float *)&cs.null,0}, // set/print defaults / help screen
   {"", "boot",_f0, 0, tx_print_nul, help_boot_loader,hw_run_boot, (float *)&cs.null,0},
 
 #ifdef __HELP_SCREENS
-  {"", "help",_f0, 0, tx_print_nul, help_config, set_nul, (float *)&cs.null,0},  // prints config help screen
-  {"", "h",   _f0, 0, tx_print_nul, help_config, set_nul, (float *)&cs.null,0},  // alias for "help"
+  {"", "help",_f0, 0, tx_print_nul, help_config, set_nul, (float *)&cs.null,0},   // prints config help screen
+  {"", "h",   _f0, 0, tx_print_nul, help_config, set_nul, (float *)&cs.null,0},   // alias for "help"
 #endif
 
   // Motor parameters
@@ -371,7 +379,7 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"g59","g59b",_fipc, 3, cm_print_cofs, get_flt, set_flu,(float *)&cm.offset[G59][AXIS_B], G59_B_OFFSET},
   {"g59","g59c",_fipc, 3, cm_print_cofs, get_flt, set_flu,(float *)&cm.offset[G59][AXIS_C], G59_C_OFFSET},
 
-  {"g92","g92x",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_X], 0},// G92 handled differently
+  {"g92","g92x",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_X], 0}, // G92 handled differently
   {"g92","g92y",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_Y], 0},
   {"g92","g92z",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_Z], 0},
   {"g92","g92a",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_A], 0},
@@ -379,14 +387,14 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"g92","g92c",_fi, 3, cm_print_cofs, get_flt, set_nul,(float *)&cm.gmx.origin_offset[AXIS_C], 0},
 
   // Coordinate positions (G28, G30)
-  {"g28","g28x",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_X], 0},// g28 handled differently
+  {"g28","g28x",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_X], 0},  // g28 handled differently
   {"g28","g28y",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_Y], 0},
   {"g28","g28z",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_Z], 0},
   {"g28","g28a",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_A], 0},
   {"g28","g28b",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_B], 0},
   {"g28","g28c",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g28_position[AXIS_C], 0},
 
-  {"g30","g30x",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g30_position[AXIS_X], 0},// g30 handled differently
+  {"g30","g30x",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g30_position[AXIS_X], 0},  // g30 handled differently
   {"g30","g30y",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g30_position[AXIS_Y], 0},
   {"g30","g30z",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g30_position[AXIS_Z], 0},
   {"g30","g30a",_fi, 3, cm_print_cpos, get_flt, set_nul,(float *)&cm.gmx.g30_position[AXIS_A], 0},
@@ -456,14 +464,14 @@ const cfgItem_t cfgArray[] PROGMEM = {
 
   // Diagnostic parameters
 #ifdef __DIAGNOSTIC_PARAMETERS
-  {"_te","_tex",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_X], 0},            // X target endpoint
+  {"_te","_tex",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_X], 0},             // X target endpoint
   {"_te","_tey",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_Y], 0},
   {"_te","_tez",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_Z], 0},
   {"_te","_tea",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_A], 0},
   {"_te","_teb",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_B], 0},
   {"_te","_tec",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.target[AXIS_C], 0},
 
-  {"_tr","_trx",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.gm.target[AXIS_X], 0},            // X target runtime
+  {"_tr","_trx",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.gm.target[AXIS_X], 0},          // X target runtime
   {"_tr","_try",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.gm.target[AXIS_Y], 0},
   {"_tr","_trz",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.gm.target[AXIS_Z], 0},
   {"_tr","_tra",_f0, 2, tx_print_flt, get_flt, set_nul,(float *)&mr.gm.target[AXIS_A], 0},
@@ -598,10 +606,10 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"","jog",_f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // axis jogging state group
   {"","jid",_f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // job ID group
 
-  {"","uda", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // user data group
-  {"","udb", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // user data group
-  {"","udc", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // user data group
-  {"","udd", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // user data group
+  {"","uda", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},   // user data group
+  {"","udb", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},   // user data group
+  {"","udc", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},   // user data group
+  {"","udd", _f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},   // user data group
 
 #ifdef __DIAGNOSTIC_PARAMETERS
   {"","_te",_f0, 0, tx_print_nul, get_grp, set_grp,(float *)&cs.null,0},    // target axis endpoint group
@@ -622,9 +630,9 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"", "$", _f0, 0, tx_print_nul, _do_all,    set_nul,(float *)&cs.null,0}
 };
 
-/***** Make sure these defines line up with any changes in the above table *****/
 
-#define NV_COUNT_UBER_GROUPS     4         // count of uber-groups, above
+// Make sure these defines line up with any changes in the above table
+#define NV_COUNT_UBER_GROUPS     4        // count of uber-groups, above
 #define STANDARD_GROUPS         33        // count of standard groups, excluding diagnostic parameter groups
 
 #if (MOTORS >= 5)
@@ -655,20 +663,22 @@ const cfgItem_t cfgArray[] PROGMEM = {
 
 index_t nv_index_max() {return  NV_INDEX_MAX;}
 uint8_t nv_index_is_single(index_t index) {return (index <= NV_INDEX_END_SINGLES ? true : false);}
-uint8_t nv_index_is_group(index_t index) {return ((index >= NV_INDEX_START_GROUPS && (index < NV_INDEX_START_UBER_GROUPS)) ? true : false);}
+
+uint8_t nv_index_is_group(index_t index) {
+  return ((index >= NV_INDEX_START_GROUPS && (index < NV_INDEX_START_UBER_GROUPS)) ? true : false);
+}
+
 uint8_t nv_index_lt_groups(index_t index) {return (index <= NV_INDEX_START_GROUPS ? true : false);}
 
-/***** APPLICATION SPECIFIC CONFIGS AND EXTENSIONS TO GENERIC FUNCTIONS *****/
 
 /*
- * set_flu() - set floating point number with G20/G21 units conversion
+ * Det floating point number with G20/G21 units conversion
  *
  * The number 'setted' will have been delivered in external units (inches or mm).
  * It is written to the target memory location in internal canonical units (mm).
  * The original nv->value is also changed so persistence works correctly.
  * Displays should convert back from internal canonical form to external form.
  */
-
 stat_t set_flu(nvObj_t *nv) {
   if (cm_get_units_mode(MODEL) == INCHES)       // if in inches...
     nv->value *= MM_PER_INCH;                   // convert to canonical millimeter units
@@ -680,10 +690,8 @@ stat_t set_flu(nvObj_t *nv) {
   return STAT_OK;
 }
 
-/*
- * preprocess_float() - pre-process floating point number for units display
- */
 
+/// Pre-process floating point number for units display
 void preprocess_float(nvObj_t *nv) {
   if (isnan((double)nv->value) || isinf((double)nv->value)) return; // illegal float values
 
@@ -695,16 +703,16 @@ void preprocess_float(nvObj_t *nv) {
 
 /**** TinyG UberGroup Operations ****************************************************
  * Uber groups are groups of groups organized for convenience:
- *    - motors        - group of all motor groups
- *    - axes            - group of all axis groups
+ *    - motors         - group of all motor groups
+ *    - axes           - group of all axis groups
  *    - offsets        - group of all offsets and stored positions
  *    - all            - group of all groups
  *
  * _do_group_list()    - get and print all groups in the list (iteration)
  * _do_motors()        - get and print motor uber group 1-N
- * _do_axes()        - get and print axis uber group XYZABC
- * _do_offsets()    - get and print offset uber group G54-G59, G28, G30, G92
- * _do_all()        - get and print all groups uber group
+ * _do_axes()          - get and print axis uber group XYZABC
+ * _do_offsets()       - get and print offset uber group G54-G59, G28, G30, G92
+ * _do_all()           - get and print all groups uber group
  */
 static stat_t _do_group_list(nvObj_t *nv, char list[][TOKEN_LEN + 1]) { // helper to print multiple groups in a list
   for (uint8_t i = 0; i < NV_MAX_OBJECTS; i++) {
@@ -754,13 +762,13 @@ static stat_t _do_offsets(nvObj_t *nv) {   // print offset parameters for G54-G5
 }
 
 
-static stat_t _do_all(nvObj_t *nv) {  // print all parameters
-  strcpy(nv->token,"sys");            // print system group
+static stat_t _do_all(nvObj_t *nv) { // print all parameters
+  strcpy(nv->token,"sys");           // print system group
   get_grp(nv);
   nv_print_list(STAT_OK, TEXT_MULTILINE_FORMATTED, JSON_RESPONSE_FORMAT);
 
   _do_motors(nv);                    // print all motor groups
-  _do_axes(nv);                        // print all axis groups
+  _do_axes(nv);                      // print all axis groups
 
   strcpy(nv->token,"p1");            // print PWM group
   get_grp(nv);
@@ -783,14 +791,14 @@ static stat_t _set_comm_helper(nvObj_t *nv, int cmd) {
 }
 
 
-static stat_t set_ec(nvObj_t *nv) {                // expand CR to CRLF on TX
+static stat_t set_ec(nvObj_t *nv) {               // expand CR to CRLF on TX
   if (nv->value > true) return STAT_INPUT_VALUE_RANGE_ERROR;
   cfg.enable_cr = (uint8_t)nv->value;
   return _set_comm_helper(nv, USART_CRLF);
 }
 
 
-static stat_t set_ee(nvObj_t *nv) {                // enable character echo
+static stat_t set_ee(nvObj_t *nv) {               // enable character echo
   if (nv->value > true) return STAT_INPUT_VALUE_RANGE_ERROR;
   cfg.enable_echo = (uint8_t)nv->value;
   return _set_comm_helper(nv, USART_ECHO);
@@ -856,11 +864,6 @@ stat_t set_baud_callback() {
 }
 
 
-/***********************************************************************************
- * TEXT MODE SUPPORT
- * Functions to print variables from the cfgArray table
- ***********************************************************************************/
-
 #ifdef __TEXT_MODE
 static const char fmt_ec[] PROGMEM = "[ec]  expand LF to CRLF on TX%6d [0=off,1=on]\n";
 static const char fmt_ee[] PROGMEM = "[ee]  enable echo%18d [0=off,1=on]\n";
@@ -873,5 +876,4 @@ void cfg_print_ee(nvObj_t *nv)   {text_print_ui8(nv, fmt_ee);}
 void cfg_print_ex(nvObj_t *nv)   {text_print_ui8(nv, fmt_ex);}
 void cfg_print_baud(nvObj_t *nv) {text_print_ui8(nv, fmt_baud);}
 void cfg_print_rx(nvObj_t *nv)   {text_print_ui8(nv, fmt_rx);}
-
 #endif // __TEXT_MODE

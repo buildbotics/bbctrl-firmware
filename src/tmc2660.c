@@ -29,6 +29,8 @@
 
 \******************************************************************************/
 
+#include "tinyg.h"
+#include "config.h"
 #include "tmc2660.h"
 
 #include <avr/io.h>
@@ -53,7 +55,7 @@ typedef struct {
   uint8_t reset;
   uint8_t reg;
 
-  uint16_t mstep;
+  int16_t mstep;
   uint8_t status;
   uint32_t regs[5];
 } tmc2660_driver_t;
@@ -164,7 +166,8 @@ void spi_next() {
 
     case TMC2660_STATE_MONITOR:
       // Read response
-      drv->mstep = (spi_in >> 14) & 0x3ff;
+      drv->mstep = (int16_t)((spi_in >> 14) & 0x1ff);
+      if (spi_in & (1UL << 19)) drv->mstep = -drv->mstep;
       drv->status = spi_in >> 4;
 
       if (drv->reset) {
@@ -213,19 +216,24 @@ void tmc2660_init() {
     drivers[i].state = TMC2660_STATE_CONFIG;
     drivers[i].reg = 0;
 
-    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_MRES_256;
-    //drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 | TMC2660_CHOPCONF_HEND(0) | TMC2660_CHOPCONF_HSTART(4) |
+    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_MRES_8;
+    //drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
+    // TMC2660_CHOPCONF_HEND(0) | TMC2660_CHOPCONF_HSTART(4) |
     //  TMC2660_CHOPCONF_TOFF(4);
-    drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 | TMC2660_CHOPCONF_CHM | TMC2660_CHOPCONF_HEND(7) |
+    drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
+      TMC2660_CHOPCONF_CHM | TMC2660_CHOPCONF_HEND(7) |
       TMC2660_CHOPCONF_HSTART(6) | TMC2660_CHOPCONF_TOFF(7);
-    drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN | TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
-    drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT | TMC2660_SGCSCONF_CS_NONE;
+    //drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN |
+    //  TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
+    drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT |
+      TMC2660_SGCSCONF_THRESH(63) | TMC2660_SGCSCONF_CS_NONE;
     drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_MSTEP;
   }
 
   // Setup pins
+  // Why is it necessary to set the SS pin for master mode to work?
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SS_PIN;   // High
-  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SS_PIN;   // Output (Why is it necessary to set the SS pin?)
+  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SS_PIN;   // Output
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SCK_PIN;  // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SCK_PIN;  // Output
   TMC2660_SPI_PORT.DIRCLR = 1 << TMC2660_SPI_MISO_PIN; // Input
@@ -284,4 +292,62 @@ int tmc2660_all_ready() {
     if (!tmc2660_ready(i)) return 0;
 
   return 1;
+}
+
+
+static void tmc2660_get_status_flags(uint8_t status, char buf[35]) {
+  buf[0] = 0;
+
+  if (TMC2660_DRVSTATUS_STST & status) strcat(buf, "stst,");
+  if (TMC2660_DRVSTATUS_OLB  & status) strcat(buf, "olb,");
+  if (TMC2660_DRVSTATUS_OLA  & status) strcat(buf, "ola,");
+  if (TMC2660_DRVSTATUS_S2GB & status) strcat(buf, "s2gb,");
+  if (TMC2660_DRVSTATUS_S2GA & status) strcat(buf, "s2ga,");
+  if (TMC2660_DRVSTATUS_OTPW & status) strcat(buf, "otpw,");
+  if (TMC2660_DRVSTATUS_OT   & status) strcat(buf, "ot,");
+  if (TMC2660_DRVSTATUS_SG   & status) strcat(buf, "sg,");
+
+  if (buf[0] != 0) buf[strlen(buf) - 1] = 0; // Remove last comma
+}
+
+
+static const char mst_fmt[] PROGMEM = "Motor %i step:       %i\n";
+static const char mfl_fmt[] PROGMEM = "Motor %i flags:      %s\n";
+
+
+void tmc2660_print_motor_step(nvObj_t *nv) {
+  int driver = nv->token[3] - '1';
+  fprintf_P(stderr, mst_fmt, driver + 1, drivers[driver].mstep);
+}
+
+
+void tmc2660_print_motor_flags(nvObj_t *nv) {
+  int driver = nv->token[3] - '1';
+
+  char buf[35];
+  tmc2660_get_status_flags(drivers[driver].status, buf);
+
+  fprintf_P(stderr, mfl_fmt, driver + 1, buf);
+}
+
+
+stat_t tmc2660_get_motor_step(nvObj_t *nv) {
+  int driver = nv->token[3] - '1';
+
+  nv->value = drivers[driver].mstep;
+  nv->valuetype = TYPE_INTEGER;
+
+  return STAT_OK;
+}
+
+
+stat_t tmc2660_get_motor_flags(nvObj_t *nv) {
+  int driver = nv->token[3] - '1';
+  char buf[35];
+
+  tmc2660_get_status_flags(drivers[driver].status, buf);
+  nv_copy_string(nv, buf);
+  nv->valuetype = TYPE_STRING;
+
+  return STAT_OK;
 }
