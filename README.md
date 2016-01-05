@@ -5,6 +5,13 @@ These instructions are for a Debian *testing* development system targeting the R
 ## Download & install the base RPi system
 
 ```
+https://downloads.raspberrypi.org/raspbian/images/raspbian-2015-09-28/2015-09-24-raspbian-jessie.zip
+unzip 2015-09-24-raspbian-jessie.zip
+```
+
+or
+
+```
 wget https://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip
 unzip 2015-05-05-raspbian-wheezy.zip
 ```
@@ -48,7 +55,7 @@ This will take some time and will end by rebooting the RPi.  After this script h
 ssh bbmc@bbctrl.local
 ```
 
-## Install the toolchain
+## Install the RPi toolchain
 On the development system (i.e. not on the RPi):
 
 ```
@@ -89,3 +96,27 @@ ssh bbmc@bbctrl.local
 ```
 
 You should see the output ``Hello World!``.
+
+## Install the AVR toolchain
+Install the following tools for programming the AVR:
+
+```
+sudo apt-get install -y avrdude gcc-avr
+```
+
+## Connect to TinyG
+
+From RPi terminal
+
+```
+minicom -b 115200 -o -D /dev/ttyAMA0
+```
+
+You should see a prompt.
+
+
+## Program TinyG
+
+```
+avrdude -c avrispmkII -p ATxmega128A3U -P usb -U flash:w:tinyg.hex:i
+```
