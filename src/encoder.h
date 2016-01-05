@@ -43,9 +43,9 @@
  *    these points. This synchronization is taken care of by the Target, Position, Position_delayed
  *    sequence in plan_exec. Referring to ASCII art in stepper.h and reproduced here:
  *
- *  LOAD/STEP (~5000uSec)          [L1][Segment1][L2][Segment2][L3][Segment3][L4][Segment4][Lb1][Segmentb1]
- *  PREP (100 uSec)            [P1]       [P2]          [P3]          [P4]          [Pb1]          [Pb2]
- *  EXEC (400 uSec)         [EXEC1]    [EXEC2]       [EXEC3]       [EXEC4]       [EXECb1]       [EXECb2]
+ *  LOAD/STEP (~5000uSec) [L1][Segment1][L2][Segment2][L3][Segment3][L4][Segment4][Lb1][Segmentb1]
+ *  PREP (100 uSec)       [P1]          [P2]          [P3]          [P4]          [Pb1]          [Pb2]
+ *  EXEC (400 uSec)       [EXEC1]       [EXEC2]       [EXEC3]       [EXEC4]       [EXECb1]       [EXECb2]
  *  PLAN (<4ms)  [PLANmoveA][PLANmoveB][PLANmoveC][PLANmoveD][PLANmoveE] etc.
  *
  *    You can collect the target for moveA as early as the end of [PLANmoveA]. The system will
@@ -58,6 +58,7 @@
  *    runtime (the EXEC), but the exec will have moved on to moveB by the time we need it. So moveA's
  *    target needs to be saved somewhere.
  */
+
 /*
  * ERROR CORRECTION
  *
@@ -85,36 +86,31 @@
  *    correction will be applied to moveC. (It's possible to recompute the body of moveB, but it may
  *    not be worth the trouble).
  */
+
 #ifndef ENCODER_H_ONCE
 #define ENCODER_H_ONCE
 
-/**** Configs and Constants ****/
-
-/**** Macros ****/
 // used to abstract the encoder code out of the stepper so it can be managed in one place
-
-#define SET_ENCODER_STEP_SIGN(m,s)    en.en[m].step_sign = s;
+#define SET_ENCODER_STEP_SIGN(m, s) en.en[m].step_sign = s;
 #define INCREMENT_ENCODER(m)        en.en[m].steps_run += en.en[m].step_sign;
-#define ACCUMULATE_ENCODER(m)        en.en[m].encoder_steps += en.en[m].steps_run; en.en[m].steps_run = 0;
+#define ACCUMULATE_ENCODER(m)       en.en[m].encoder_steps += en.en[m].steps_run; en.en[m].steps_run = 0;
 
-/**** Structures ****/
 
-typedef struct enEncoder {             // one real or virtual encoder per controlled motor
-    int8_t  step_sign;                // set to +1 or -1
-    int16_t steps_run;                // steps counted during stepper interrupt
-    int32_t encoder_steps;            // counted encoder position    in steps
+typedef struct enEncoder { // one real or virtual encoder per controlled motor
+  int8_t  step_sign;       // set to +1 or -1
+  int16_t steps_run;       // steps counted during stepper interrupt
+  int32_t encoder_steps;   // counted encoder position in steps
 } enEncoder_t;
 
+
 typedef struct enEncoders {
-    magic_t magic_start;
-    enEncoder_t en[MOTORS];            // runtime encoder structures
-    magic_t magic_end;
+  magic_t magic_start;
+  enEncoder_t en[MOTORS];   // runtime encoder structures
+  magic_t magic_end;
 } enEncoders_t;
 
 extern enEncoders_t en;
 
-
-/**** FUNCTION PROTOTYPES ****/
 
 void encoder_init();
 void encoder_init_assertions();
@@ -123,4 +119,4 @@ stat_t encoder_test_assertions();
 void en_set_encoder_steps(uint8_t motor, float steps);
 float en_read_encoder(uint8_t motor);
 
-#endif    // End of include guard: ENCODER_H_ONCE
+#endif // ENCODER_H_ONCE

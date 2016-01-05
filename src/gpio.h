@@ -28,9 +28,9 @@
 #ifndef gpio_h
 #define gpio_h
 
-void IndicatorLed_set();
-void IndicatorLed_clear();
-void IndicatorLed_toggle();
+void indicator_led_set();
+void indicator_led_clear();
+void indicator_led_toggle();
 
 void gpio_led_on(uint8_t led);
 void gpio_led_off(uint8_t led);
@@ -39,5 +39,6 @@ void gpio_led_toggle(uint8_t led);
 uint8_t gpio_read_bit(uint8_t b);
 void gpio_set_bit_on(uint8_t b);
 void gpio_set_bit_off(uint8_t b);
+void gpio_set_bit_toggle(uint8_t b);
 
 #endif

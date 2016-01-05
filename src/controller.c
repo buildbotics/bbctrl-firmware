@@ -213,7 +213,7 @@ static stat_t _shutdown_idler() {
 
   if (SysTickTimer_getValue() > cs.led_timer) {
     cs.led_timer = SysTickTimer_getValue() + LED_ALARM_TIMER;
-    IndicatorLed_toggle();
+    indicator_led_toggle();
   }
 
   return STAT_EAGAIN;    // EAGAIN prevents any lower-priority actions from running
