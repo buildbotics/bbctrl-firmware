@@ -29,62 +29,64 @@
 #define PWM_H_ONCE
 
 typedef struct pwmConfigChannel {
-    float frequency;                // base frequency for PWM driver, in Hz
-    float cw_speed_lo;                // minimum clockwise spindle speed [0..N]
-    float cw_speed_hi;                // maximum clockwise spindle speed
-    float cw_phase_lo;                // pwm phase at minimum CW spindle speed, clamped [0..1]
-    float cw_phase_hi;                // pwm phase at maximum CW spindle speed, clamped [0..1]
-    float ccw_speed_lo;                // minimum counter-clockwise spindle speed [0..N]
-    float ccw_speed_hi;                // maximum counter-clockwise spindle speed
-    float ccw_phase_lo;                // pwm phase at minimum CCW spindle speed, clamped [0..1]
-    float ccw_phase_hi;                // pwm phase at maximum CCW spindle speed, clamped
-    float phase_off;                // pwm phase when spindle is disabled
+  float frequency;            // base frequency for PWM driver, in Hz
+  float cw_speed_lo;          // minimum clockwise spindle speed [0..N]
+  float cw_speed_hi;          // maximum clockwise spindle speed
+  float cw_phase_lo;          // pwm phase at minimum CW spindle speed, clamped [0..1]
+  float cw_phase_hi;          // pwm phase at maximum CW spindle speed, clamped [0..1]
+  float ccw_speed_lo;         // minimum counter-clockwise spindle speed [0..N]
+  float ccw_speed_hi;         // maximum counter-clockwise spindle speed
+  float ccw_phase_lo;         // pwm phase at minimum CCW spindle speed, clamped [0..1]
+  float ccw_phase_hi;         // pwm phase at maximum CCW spindle speed, clamped
+  float phase_off;            // pwm phase when spindle is disabled
 } pwmConfigChannel_t;
 
+
 typedef struct pwmChannel {
-    uint8_t ctrla;                    // byte needed to active CTRLA (it's dynamic - rest are static)
-    TC1_t *timer;                    // assumes TC1 flavor timers used for PWM channels
+  uint8_t ctrla;              // byte needed to active CTRLA (it's dynamic - rest are static)
+  TC1_t *timer;               // assumes TC1 flavor timers used for PWM channels
 } pwmChannel_t;
 
+
 typedef struct pwmSingleton {
-    pwmConfigChannel_t  c[PWMS];    // array of channel configs
-    pwmChannel_t         p[PWMS];    // array of PWM channels
+  pwmConfigChannel_t c[PWMS]; // array of channel configs
+  pwmChannel_t p[PWMS];       // array of PWM channels
 } pwmSingleton_t;
 
 extern pwmSingleton_t pwm;
 
-/*** function prototypes ***/
 
 void pwm_init();
 stat_t pwm_set_freq(uint8_t channel, float freq);
 stat_t pwm_set_duty(uint8_t channel, float duty);
 
+
 #ifdef __TEXT_MODE
 
-    void pwm_print_p1frq(nvObj_t *nv);
-    void pwm_print_p1csl(nvObj_t *nv);
-    void pwm_print_p1csh(nvObj_t *nv);
-    void pwm_print_p1cpl(nvObj_t *nv);
-    void pwm_print_p1cph(nvObj_t *nv);
-    void pwm_print_p1wsl(nvObj_t *nv);
-    void pwm_print_p1wsh(nvObj_t *nv);
-    void pwm_print_p1wpl(nvObj_t *nv);
-    void pwm_print_p1wph(nvObj_t *nv);
-    void pwm_print_p1pof(nvObj_t *nv);
+void pwm_print_p1frq(nvObj_t *nv);
+void pwm_print_p1csl(nvObj_t *nv);
+void pwm_print_p1csh(nvObj_t *nv);
+void pwm_print_p1cpl(nvObj_t *nv);
+void pwm_print_p1cph(nvObj_t *nv);
+void pwm_print_p1wsl(nvObj_t *nv);
+void pwm_print_p1wsh(nvObj_t *nv);
+void pwm_print_p1wpl(nvObj_t *nv);
+void pwm_print_p1wph(nvObj_t *nv);
+void pwm_print_p1pof(nvObj_t *nv);
 
 #else
 
-    #define pwm_print_p1frq tx_print_stub
-    #define pwm_print_p1csl tx_print_stub
-    #define pwm_print_p1csh tx_print_stub
-    #define pwm_print_p1cpl tx_print_stub
-    #define pwm_print_p1cph tx_print_stub
-    #define pwm_print_p1wsl tx_print_stub
-    #define pwm_print_p1wsh tx_print_stub
-    #define pwm_print_p1wpl tx_print_stub
-    #define pwm_print_p1wph tx_print_stub
-    #define pwm_print_p1pof tx_print_stub
+#define pwm_print_p1frq tx_print_stub
+#define pwm_print_p1csl tx_print_stub
+#define pwm_print_p1csh tx_print_stub
+#define pwm_print_p1cpl tx_print_stub
+#define pwm_print_p1cph tx_print_stub
+#define pwm_print_p1wsl tx_print_stub
+#define pwm_print_p1wsh tx_print_stub
+#define pwm_print_p1wpl tx_print_stub
+#define pwm_print_p1wph tx_print_stub
+#define pwm_print_p1pof tx_print_stub
 
 #endif // __TEXT_MODE
 
-#endif    // End of include guard: PWM_H_ONCE
+#endif // PWM_H_ONCE
