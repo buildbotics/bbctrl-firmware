@@ -25,7 +25,7 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <avr/wdt.h>            // used for software reset
+#include <avr/wdt.h>      // used for software reset
 
 #include "tinyg.h"        // #1
 #include "config.h"       // #2
@@ -65,7 +65,7 @@ void hardware_init() {
 
 
 /*
- * _get_id() - get a human readable signature
+ * Get a human readable signature
  *
  *    Produce a unique deviceID based on the factory calibration data.
  *        Format is: 123456-ABC
@@ -93,7 +93,7 @@ static void _get_id(char_t *id) {
   char printable[33] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   uint8_t i;
 
-  NVM_CMD = NVM_CMD_READ_CALIB_ROW_gc;     // Load NVM Command register to read the calibration row
+  NVM_CMD = NVM_CMD_READ_CALIB_ROW_gc; // Load NVM Command register to read the calibration row
 
   for (i = 0; i < 6; i++)
     id[i] = pgm_read_byte(LOTNUM0 + i);
@@ -104,38 +104,29 @@ static void _get_id(char_t *id) {
   id[i++] = printable[(pgm_read_byte(COORDY0) & 0x1F)];
   id[i] = 0;
 
-  NVM_CMD = NVM_CMD_NO_OPERATION_gc;          // Clean up NVM Command register
+  NVM_CMD = NVM_CMD_NO_OPERATION_gc; // Clean up NVM Command register
 }
 
 
-/*
- * Hardware Reset Handlers
- *
- * hw_request_hard_reset()
- * hw_hard_reset()            - hard reset using watchdog timer
- * hw_hard_reset_handler()    - controller's rest handler
- */
 void hw_request_hard_reset() {cs.hard_reset_requested = true;}
 
 
+/// Hard reset using watchdog timer
 void hw_hard_reset() {            // software hard reset using the watchdog timer
   wdt_enable(WDTO_15MS);
-  while (true);                    // loops for about 15ms then resets
+  while (true);                   // loops for about 15ms then resets
 }
 
 
+/// Controller's rest handler
 stat_t hw_hard_reset_handler() {
   if (cs.hard_reset_requested == false) return STAT_NOOP;
   hw_hard_reset();                // hard reset - identical to hitting RESET button
   return STAT_EAGAIN;
 }
 
-/*
- * Bootloader Handlers
- *
- * hw_request_bootloader()
- * hw_request_bootloader_handler() - executes a software reset using CCPWrite
- */
+
+/// Executes a software reset using CCPWrite
 void hw_request_bootloader() {cs.bootloader_requested = true;}
 
 
@@ -144,13 +135,13 @@ stat_t hw_bootloader_handler() {
     return STAT_NOOP;
 
   cli();
-  CCPWrite(&RST.CTRL, RST_SWRST_bm);  // fire a software reset
+  CCPWrite(&RST.CTRL, RST_SWRST_bm); // fire a software reset
 
   return STAT_EAGAIN;                // never gets here but keeps the compiler happy
 }
 
 
-/// hw_get_id() - get device ID (signature)
+/// Get device ID (signature)
 stat_t hw_get_id(nvObj_t *nv) {
   char_t tmp[SYS_ID_LEN];
   _get_id(tmp);
@@ -160,21 +151,21 @@ stat_t hw_get_id(nvObj_t *nv) {
 }
 
 
-/// hw_run_boot() - invoke boot form the cfgArray
+/// Invoke boot form the cfgArray
 stat_t hw_run_boot(nvObj_t *nv) {
   hw_request_bootloader();
   return STAT_OK;
 }
 
 
-/// hw_set_hv() - set hardware version number
+/// Set hardware version number
 stat_t hw_set_hv(nvObj_t *nv) {
   if (nv->value > TINYG_HARDWARE_VERSION_MAX)
     return STAT_INPUT_EXCEEDS_MAX_VALUE;
 
   set_flt(nv);                    // record the hardware version
-  _port_bindings(nv->value);        // reset port bindings
-  switch_init();                    // re-initialize the GPIO ports
+  _port_bindings(nv->value);      // reset port bindings
+  switch_init();                  // re-initialize the GPIO ports
   return STAT_OK;
 }
 

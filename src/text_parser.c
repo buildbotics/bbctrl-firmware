@@ -88,6 +88,7 @@ stat_t text_parser(char_t *str) {
     status = nv_set(nv);                        // set (or run) single value
     if (status == STAT_OK) nv_persist(nv);      // conditionally persist depending on flags in array
   }
+
   nv_print_list(status, TEXT_MULTILINE_FORMATTED, JSON_RESPONSE_FORMAT); // print the results
   return status;
 }
@@ -109,9 +110,10 @@ static stat_t _text_parser_kernal(char_t *str, nvObj_t *nv) {
 
   // parse fields into the nv struct
   nv->valuetype = TYPE_0;
-  if ((rd = strpbrk(str, separators)) == 0) {     // no value part
+  if ((rd = strpbrk(str, separators)) == 0)       // no value part
     strncpy(nv->token, str, TOKEN_LEN);
-  } else {
+
+  else {
     *rd = 0;                                      // terminate at end of name
     strncpy(nv->token, str, TOKEN_LEN);
     str = ++rd;
@@ -120,7 +122,7 @@ static stat_t _text_parser_kernal(char_t *str, nvObj_t *nv) {
   }
 
   // validate and post-process the token
-  if ((nv->index = nv_get_index((const char_t *)"", nv->token)) == NO_MATCH) // get index or fail it
+  if ((nv->index = nv_get_index("", nv->token)) == NO_MATCH) // get index or fail it
     return STAT_UNRECOGNIZED_NAME;
 
   strcpy_P(nv->group, cfgArray[nv->index].group);    // capture the group string if there is one

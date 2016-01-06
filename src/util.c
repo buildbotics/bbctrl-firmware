@@ -35,17 +35,10 @@
 
 #include "xmega/xmega_rtc.h"
 
-/**** Vector utilities ****
- * copy_vector()            - copy vector of arbitrary length
- * vector_equal()            - test if vectors are equal
- * get_axis_vector_length()    - return the length of an axis vector
- * set_vector()                - load values into vector form
- * set_vector_by_axis()        - load a single value into a zero vector
- */
-
 float vector[AXES];    // statically allocated global for vector utilities
 
 
+/// Test if vectors are equal
 uint8_t vector_equal(const float a[], const float b[]) {
   if ((fp_EQ(a[AXIS_X], b[AXIS_X])) &&
       (fp_EQ(a[AXIS_Y], b[AXIS_Y])) &&
@@ -60,6 +53,7 @@ uint8_t vector_equal(const float a[], const float b[]) {
 }
 
 
+/// Return the length of an axis vector
 float get_axis_vector_length(const float a[], const float b[]) {
   return sqrt(square(a[AXIS_X] - b[AXIS_X] +
                      square(a[AXIS_Y] - b[AXIS_Y]) +
@@ -70,6 +64,7 @@ float get_axis_vector_length(const float a[], const float b[]) {
 }
 
 
+/// Load values into vector form
 float *set_vector(float x, float y, float z, float a, float b, float c) {
   vector[AXIS_X] = x;
   vector[AXIS_Y] = y;
@@ -81,6 +76,7 @@ float *set_vector(float x, float y, float z, float a, float b, float c) {
 }
 
 
+/// load a single value into a zero vector
 float *set_vector_by_axis(float value, uint8_t axis) {
   clear_vector(vector);
   switch (axis) {
@@ -106,7 +102,7 @@ float *set_vector_by_axis(float value, uint8_t axis) {
  * Implementation tip: Order the min and max values from most to least likely in the calling args
  *
  * (*) Macro min4 is about 20uSec, inline function version is closer to 10 uSec (Xmega 32 MHz)
- *     #define min3(a,b,c) (min(min(a,b),c))
+ *    #define min3(a,b,c) (min(min(a,b),c))
  *    #define min4(a,b,c,d) (min(min(a,b),min(c,d)))
  *    #define max3(a,b,c) (max(max(a,b),c))
  *    #define max4(a,b,c,d) (max(max(a,b),max(c,d)))
@@ -145,19 +141,13 @@ float max4(float x1, float x2, float x3, float x4) {
 }
 
 
-/**** String utilities ****
- * strcpy_U()        - strcpy workalike to get around initial 0 for blank string - possibly wrong
- * isnumber()        - isdigit that also accepts plus, minus, and decimal point
- * escape_string() - add escapes to a string - currently for quotes only
- */
+/// isdigit that also accepts plus, minus, and decimal point
 uint8_t isnumber(char_t c) {
-  if (c == '.') return true;
-  if (c == '-') return true;
-  if (c == '+') return true;
-  return isdigit(c);
+  return c == '.' || c == '-' || c == '+' || isdigit(c);
 }
 
 
+/// Add escapes to a string - currently for quotes only
 char_t *escape_string(char_t *dst, char_t *src) {
   char_t c;
   char_t *start_dst = dst;
@@ -172,7 +162,7 @@ char_t *escape_string(char_t *dst, char_t *src) {
 
 
 /*
- * pstr2str() - return an AVR style progmem string as a RAM string.
+ * Return an AVR style progmem string as a RAM string.
  *
  *    This function copies a string from FLASH to a pre-allocated RAM buffer -
  *  see main.c for allocation and max length.
@@ -184,7 +174,7 @@ char_t *pstr2str(const char *pgm_string) {
 
 
 /*
- * fntoa() - return ASCII string given a float and a decimal precision value
+ * Return ASCII string given a float and a decimal precision value
  *
  *    Returns length of string, less the terminating 0 character
  */
@@ -193,24 +183,19 @@ char_t fntoa(char_t *str, float n, uint8_t precision) {
   if (isnan(n)) {
     strcpy(str, "nan");
     return 3;
+  }
 
-  } else if (isinf(n)) {
+  if (isinf(n)) {
     strcpy(str, "inf");
     return 3;
+  }
 
-  } else if (precision == 0 ) {return (char_t)sprintf((char *)str, "%0.0f", (double)n);
-  } else if (precision == 1 ) {return (char_t)sprintf((char *)str, "%0.1f", (double)n);
-  } else if (precision == 2 ) {return (char_t)sprintf((char *)str, "%0.2f", (double)n);
-  } else if (precision == 3 ) {return (char_t)sprintf((char *)str, "%0.3f", (double)n);
-  } else if (precision == 4 ) {return (char_t)sprintf((char *)str, "%0.4f", (double)n);
-  } else if (precision == 5 ) {return (char_t)sprintf((char *)str, "%0.5f", (double)n);
-  } else if (precision == 6 ) {return (char_t)sprintf((char *)str, "%0.6f", (double)n);
-  } else if (precision == 7 ) {return (char_t)sprintf((char *)str, "%0.7f", (double)n);
-  } else return (char_t)sprintf((char *)str, "%f", (double)n);
+  return (char_t)sprintf((char *)str, "%0.*f", (int)precision, (double)n);
 }
 
+
 /*
- * compute_checksum() - calculate the checksum for a string
+ * Calculate the checksum for a string
  *
  *    Stops calculation on null termination or length value if non-zero.
  *
@@ -232,7 +217,7 @@ uint16_t compute_checksum(char_t const *string, const uint16_t length) {
 }
 
 
-/// SysTickTimer_getValue() - this is a hack to get around some compatibility problems
+/// This is a hack to get around some compatibility problems
 uint32_t SysTickTimer_getValue() {
   return rtc.sys_ticks;
 }

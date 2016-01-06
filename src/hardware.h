@@ -163,7 +163,6 @@ enum cfgPortBits {        // motor control port bit positions
 #define FREQUENCY_DWELL        (float)10000    // Dwell count frequency in hz.
 #define LOAD_TIMER_PERIOD      100             // cycles you have to shut off SW interrupt
 #define EXEC_TIMER_PERIOD      100             // cycles you have to shut off SW interrupt
-#define EXEC_TIMER_PERIOD_LONG 100             // cycles you have to shut off SW interrupt
 
 #define STEP_TIMER_TYPE        TC0_struct       // stepper subsybstem uses all the TC0's
 #define STEP_TIMER_DISABLE     0                // turn timer off (clock = 0 Hz)
@@ -208,7 +207,6 @@ enum cfgPortBits {        // motor control port bit positions
   are not assigned to the designated function - ur unpredicatable results will
   occur.
 */
-
 typedef struct {
   PORT_t *st_port[MOTORS];       // bindings for stepper motor ports (stepper.c)
   PORT_t *sw_port[MOTORS];       // bindings for switch ports (GPIO2)

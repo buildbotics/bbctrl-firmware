@@ -41,12 +41,9 @@ void persistence_init() {
 }
 
 
-/************************************************************************************
- * read_persistent_value()    - return value (as float) by index
- * write_persistent_value() - write to NVM by index, but only if the value has changed
- *
- *    It's the responsibility of the caller to make sure the index does not exceed range
- */
+// It's the responsibility of the caller to make sure the index does not exceed range
+
+/// return value (as float) by index
 stat_t read_persistent_value(nvObj_t *nv) {
   nvm.address = nvm.profile_base + (nv->index * NVM_VALUE_LEN);
   EEPROM_ReadBytes(nvm.address, nvm.byte_array, NVM_VALUE_LEN);
@@ -55,6 +52,7 @@ stat_t read_persistent_value(nvObj_t *nv) {
 }
 
 
+/// write to NVM by index, but only if the value has changed
 stat_t write_persistent_value(nvObj_t *nv) {
   if (cm.cycle_state != CYCLE_OFF)
     return rpt_exception(STAT_FILE_NOT_OPEN);    // can't write when machine is moving

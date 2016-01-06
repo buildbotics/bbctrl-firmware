@@ -100,6 +100,7 @@ const cfgItem_t cfgArray[] PROGMEM = {
   {"mst", "mst2", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
   {"mst", "mst3", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
   {"mst", "mst4", _f0, 0, tmc2660_print_motor_step, tmc2660_get_motor_step, set_nul, (float *)&cs.null, 0},
+
   {"mfl", "mfl1", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
   {"mfl", "mfl2", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
   {"mfl", "mfl3", _f0, 0, tmc2660_print_motor_flags, tmc2660_get_motor_flags, set_nul, (float *)&cs.null, 0},
@@ -672,7 +673,7 @@ uint8_t nv_index_lt_groups(index_t index) {return (index <= NV_INDEX_START_GROUP
 
 
 /*
- * Det floating point number with G20/G21 units conversion
+ * Set floating point number with G20/G21 units conversion
  *
  * The number 'setted' will have been delivered in external units (inches or mm).
  * It is written to the target memory location in internal canonical units (mm).

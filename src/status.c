@@ -23,19 +23,13 @@
 #include <avr/interrupt.h>
 
 /**** Status Messages ***************************************************************
- * get_status_message() - return the status message
- *
  * See tinyg.h for status codes. These strings must align with the status codes in tinyg.h
  * The number of elements in the indexing array must match the # of strings
- *
- * Reference for putting display strings and string arrays in AVR program memory:
- * http://www.cs.mun.ca/~paul/cs4723/material/atmel/avr-libc-user-manual-1.6.5/pgmspace.html
  */
 
 stat_t status_code;                     // allocate a variable for the ritorno macro
 char global_string_buf[MESSAGE_LEN];    // allocate a string for global message use
 
-/*** Status message strings ***/
 
 static const char stat_00[] PROGMEM = "OK";
 static const char stat_01[] PROGMEM = "Error";
@@ -341,6 +335,7 @@ static const char *const stat_msg[] PROGMEM = {
 };
 
 
+/// Return the status message
 char *get_status_message(stat_t status) {
   return (char *)GET_TEXT_ITEM(stat_msg, status);
 }
