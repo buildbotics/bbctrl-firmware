@@ -24,10 +24,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/*
- *    See config.h for a Config system overview and a bunch of details.
- */
-
 #include "tinyg.h"        // #1
 #include "config.h"       // #2
 #include "report.h"
@@ -42,10 +38,6 @@
 
 static void _set_defa(nvObj_t *nv);
 
-/***********************************************************************************
- **** STRUCTURE ALLOCATIONS ********************************************************
- ***********************************************************************************/
-
 nvStr_t nvStr;
 nvList_t nvl;
 
@@ -57,8 +49,8 @@ nvList_t nvl;
  *
  * nv_set()     - Write a value or invoke a function - operates on single valued elements or groups
  * nv_get()     - Build a nvObj with the values from the target & return the value
- *                     Populate nv body with single valued elements or groups (iterates)
- * nv_print()    - Output a formatted string for the value.
+ *                Populate nv body with single valued elements or groups (iterates)
+ * nv_print()   - Output a formatted string for the value.
  * nv_persist() - persist value to non-volatile storage. Takes special cases into account
  *
  *    !!!! NOTE: nv_persist() cannot be called from an interrupt on the AVR due to the AVR1008 EEPROM workaround
@@ -82,7 +74,7 @@ void nv_print(nvObj_t *nv) {
 }
 
 
-stat_t nv_persist(nvObj_t *nv) {   // nv_persist() cannot be called from an interrupt on the AVR due to the AVR1008 EEPROM workaround
+stat_t nv_persist(nvObj_t *nv) { // nv_persist() cannot be called from an interrupt on the AVR due to the AVR1008 EEPROM workaround
   if (nv_index_lt_groups(nv->index) == false) return STAT_INTERNAL_RANGE_ERROR;
   if (GET_TABLE_BYTE(flags) & F_PERSIST) return write_persistent_value(nv);
 
@@ -91,7 +83,7 @@ stat_t nv_persist(nvObj_t *nv) {   // nv_persist() cannot be called from an inte
 
 
 /************************************************************************************
- * config_init() - called once on hard reset
+ * Called once on hard reset
  *
  * Performs one of 2 actions:
  *    (1) if persistence is set up or out-of-rev load RAM and NVM with settings.h defaults
@@ -106,18 +98,18 @@ void config_init() {
   nvObj_t *nv = nv_reset_nv_list();
   config_init_assertions();
 
-  cm_set_units_mode(MILLIMETERS);                // must do inits in millimeter mode
-  nv->index = 0;                                // this will read the first record in NVM
+  cm_set_units_mode(MILLIMETERS);              // must do inits in millimeter mode
+  nv->index = 0;                               // this will read the first record in NVM
 
   read_persistent_value(nv);
-  if (nv->value != cs.fw_build)                // case (1) NVM is not setup or not in revision
-    _set_defa(nv);
-  else {                                    // case (2) NVM is setup and in revision
+  if (nv->value != cs.fw_build) _set_defa(nv); // case (1) NVM is not setup or not in revision
+
+  else {                                       // case (2) NVM is setup and in revision
     rpt_print_loading_configs_message();
 
-    for (nv->index=0; nv_index_is_single(nv->index); nv->index++)
+    for (nv->index = 0; nv_index_is_single(nv->index); nv->index++)
       if (GET_TABLE_BYTE(flags) & F_INITIALIZE) {
-        strncpy_P(nv->token, cfgArray[nv->index].token, TOKEN_LEN);    // read the token from the array
+        strncpy_P(nv->token, cfgArray[nv->index].token, TOKEN_LEN); // read the token from the array
         read_persistent_value(nv);
         nv_set(nv);
       }
@@ -133,7 +125,7 @@ void config_init() {
  */
 static void _set_defa(nvObj_t *nv) {
   cm_set_units_mode(MILLIMETERS);                // must do inits in MM mode
-  for (nv->index=0; nv_index_is_single(nv->index); nv->index++)
+  for (nv->index = 0; nv_index_is_single(nv->index); nv->index++)
     if (GET_TABLE_BYTE(flags) & F_INITIALIZE) {
       nv->value = GET_TABLE_FLOAT(def_value);
       strncpy_P(nv->token, cfgArray[nv->index].token, TOKEN_LEN);
@@ -142,7 +134,7 @@ static void _set_defa(nvObj_t *nv) {
     }
 
   sr_init_status_report();                    // reset status reports
-  rpt_print_initializing_message();            // don't start TX until all the NVM persistence is done
+  rpt_print_initializing_message();           // don't start TX until all the NVM persistence is done
 }
 
 

@@ -28,10 +28,6 @@
 #ifndef KINEMATICS_H_ONCE
 #define KINEMATICS_H_ONCE
 
-/*
- * Global Scope Functions
- */
-
 void ik_kinematics(const float travel[], float steps[]);
 
-#endif // End of include Guard: KINEMATICS_H_ONCE
+#endif // KINEMATICS_H_ONCE

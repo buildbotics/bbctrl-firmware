@@ -190,7 +190,17 @@ char_t fntoa(char_t *str, float n, uint8_t precision) {
     return 3;
   }
 
-  return (char_t)sprintf((char *)str, "%0.*f", (int)precision, (double)n);
+  switch (precision) {
+  case 0: return (char_t)sprintf((char *)str, "%0.0f", (double)n);
+  case 1: return (char_t)sprintf((char *)str, "%0.1f", (double)n);
+  case 2: return (char_t)sprintf((char *)str, "%0.2f", (double)n);
+  case 3: return (char_t)sprintf((char *)str, "%0.3f", (double)n);
+  case 4: return (char_t)sprintf((char *)str, "%0.4f", (double)n);
+  case 5: return (char_t)sprintf((char *)str, "%0.5f", (double)n);
+  case 6: return (char_t)sprintf((char *)str, "%0.6f", (double)n);
+  case 7: return (char_t)sprintf((char *)str, "%0.7f", (double)n);
+  default: return (char_t)sprintf((char *)str, "%f", (double)n);
+  }
 }
 
 

@@ -40,6 +40,7 @@ static stat_t _execute_gcode_block();        // Execute the gcode block
 #define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=1; break;})
 #define EXEC_FUNC(f,v) if((uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
 
+
 /// Parse a block (line) of gcode
 /// Top level of gcode parser. Normalizes block and looks for special cases
 stat_t gc_gcode_parser(char_t *block) {

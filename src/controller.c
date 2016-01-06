@@ -140,7 +140,25 @@ void controller_run() {
   DISPATCH(_sync_to_tx_buffer());              // sync with TX buffer (pseudo-blocking)
   DISPATCH(set_baud_callback());               // perform baud rate update (must be after TX sync)
   DISPATCH(_command_dispatch());               // read and execute next command
-  DISPATCH(_normal_idler());                   // blink LEDs slowly to show everything is OK
+  DISPATCH(_normal_idler());
+}
+
+
+stat_t _command_dispatch() {
+  stat_t status;
+
+  // read input line or return if not a completed line
+  // usart_gets() is a non-blocking workalike of fgets()
+  while (true) {
+    if ((status = usart_gets(cs.in_buf, sizeof(cs.in_buf))) == STAT_OK) {
+      cs.bufp = cs.in_buf;
+      break;
+    }
+
+    return status;                                // Note: STAT_EAGAIN, errors, etc. will drop through
+  }
+
+  return gc_gcode_parser(cs.in_buf);
 }
 
 
@@ -151,7 +169,7 @@ void controller_run() {
  *    Accepts commands if the move queue has room - EAGAINS if it doesn't
  *    Also responsible for prompts and for flow control
  */
-static stat_t _command_dispatch() {
+stat_t _command_dispatch_old() {
   stat_t status;
 
   // read input line or return if not a completed line
@@ -170,7 +188,7 @@ static stat_t _command_dispatch() {
   strncpy(cs.saved_buf, cs.bufp, SAVED_BUFFER_LEN - 1);  // save input buffer for reporting
 
   // dispatch the new text line
-  switch (toupper(*cs.bufp)) {                    // first char
+  switch (*cs.bufp) {                             // first char
   case '!': cm_request_feedhold(); break;         // include for diagnostics
   case '%': cm_request_queue_flush(); break;
   case '~': cm_request_cycle_start(); break;
@@ -180,7 +198,7 @@ static stat_t _command_dispatch() {
       text_response(STAT_OK, cs.saved_buf);
     break;
 
-  case '$': case '?': case 'H':                   // text mode input
+  case '$': case '?': case 'H': case 'h':         // text mode input
     cfg.comm_mode = TEXT_MODE;
     text_response(text_parser(cs.bufp), cs.saved_buf);
     break;

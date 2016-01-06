@@ -33,7 +33,7 @@
 
 
 /*
- * ik_kinematics() - wrapper routine for inverse kinematics
+ * Wrapper routine for inverse kinematics
  *
  *    Calls kinematics function(s).
  *    Performs axis mapping & conversion of length units to steps (and deals with inhibited axes)
@@ -43,29 +43,21 @@
  *    order to get the smoothest possible operation. Steps are passed to the move prep routine
  *    as floats and converted to fixed-point binary during queue loading. See stepper.c for details.
  */
+void ik_kinematics(const float travel[], float steps[]) {
+  float joint[AXES];
 
-void ik_kinematics(const float travel[], float steps[])
-{
-    float joint[AXES];
+  //  _inverse_kinematics(travel, joint);           // you can insert inverse kinematics transformations here
+  memcpy(joint, travel, sizeof(float) * AXES);      //...or just do a memcpy for Cartesian machines
 
-//    _inverse_kinematics(travel, joint);                // you can insert inverse kinematics transformations here
-    memcpy(joint, travel, sizeof(float)*AXES);        //...or just do a memcpy for Cartesian machines
+  // Map motors to axes and convert length units to steps
+  // Most of the conversion math has already been done in during config in steps_per_unit()
+  // which takes axis travel, step angle and microsteps into account.
+  for (uint8_t axis = 0; axis < AXES; axis++) {
+    if (cm.a[axis].axis_mode == AXIS_INHIBITED) joint[axis] = 0;
 
-    // Map motors to axes and convert length units to steps
-    // Most of the conversion math has already been done in during config in steps_per_unit()
-    // which takes axis travel, step angle and microsteps into account.
-    for (uint8_t axis=0; axis<AXES; axis++) {
-        if (cm.a[axis].axis_mode == AXIS_INHIBITED) { joint[axis] = 0;}
-        if (st_cfg.mot[MOTOR_1].motor_map == axis) { steps[MOTOR_1] = joint[axis] * st_cfg.mot[MOTOR_1].steps_per_unit;}
-        if (st_cfg.mot[MOTOR_2].motor_map == axis) { steps[MOTOR_2] = joint[axis] * st_cfg.mot[MOTOR_2].steps_per_unit;}
-        if (st_cfg.mot[MOTOR_3].motor_map == axis) { steps[MOTOR_3] = joint[axis] * st_cfg.mot[MOTOR_3].steps_per_unit;}
-        if (st_cfg.mot[MOTOR_4].motor_map == axis) { steps[MOTOR_4] = joint[axis] * st_cfg.mot[MOTOR_4].steps_per_unit;}
-#if (MOTORS >= 5)
-        if (st_cfg.mot[MOTOR_5].motor_map == axis) { steps[MOTOR_5] = joint[axis] * st_cfg.mot[MOTOR_5].steps_per_unit;}
-#endif
-#if (MOTORS >= 6)
-        if (st_cfg.mot[MOTOR_6].motor_map == axis) { steps[MOTOR_6] = joint[axis] * st_cfg.mot[MOTOR_6].steps_per_unit;}
-#endif
-    }
+    for (int i = 0; i < MOTORS; i++)
+      if (st_cfg.mot[i].motor_map == axis)
+        steps[i] = joint[axis] * st_cfg.mot[i].steps_per_unit;
+  }
 }
 

@@ -16,17 +16,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* Is this code over documented? Possibly.
- * We try to follow this (at least we are evolving to it). It's worth a read.
- * ftp://ftp.idsoftware.com/idstuff/doom3/source/CodeStyleConventions.doc
- */
-/* Xmega project setup notes:
- * from: http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&t=117023
- * "Yes it's definitely worth making WinAVR work. To install WinAVR for the project use
- * Project-Configuration Options and under Custom Options untick the "Use toolchain" box
- * then set the top one to \winavr\bin\avr-gcc.exe  (C:\WinAVR-20100110\bin\avr-gcc.exe)
- * and the lower one to \winavr\utils\bin\make.exe  (C:\WinAVR-20100110\utils\bin\make.exe)"
- */
 
 #ifndef TINYG_H_ONCE
 #define TINYG_H_ONCE
@@ -40,31 +29,28 @@
 #include <string.h>
 #include <math.h>
 
-/****** REVISIONS ******/
-
+// Revisions
 #ifndef TINYG_FIRMWARE_BUILD
 #define TINYG_FIRMWARE_BUILD        440.20    // arc test
 
 #endif
-#define TINYG_FIRMWARE_VERSION        0.97                      // firmware major version
-#define TINYG_HARDWARE_PLATFORM       HW_PLATFORM_TINYG_XMEGA   // see hardware.h
-#define TINYG_HARDWARE_VERSION        HW_VERSION_TINYGV8        // see hardware.h
-#define TINYG_HARDWARE_VERSION_MAX    TINYG_HARDWARE_VERSION
+#define TINYG_FIRMWARE_VERSION     0.97                      // firmware major version
+#define TINYG_HARDWARE_PLATFORM    HW_PLATFORM_TINYG_XMEGA   // see hardware.h
+#define TINYG_HARDWARE_VERSION     HW_VERSION_TINYGV8        // see hardware.h
+#define TINYG_HARDWARE_VERSION_MAX TINYG_HARDWARE_VERSION
 
-/****** COMPILE-TIME SETTINGS ******/
-
+// Compile-time settings
 #define __STEP_CORRECTION
-//#define __JERK_EXEC                        // Use computed jerk (versus forward difference based exec)
-//#define __KAHAN                            // Use Kahan summation in aline exec functions
+//#define __JERK_EXEC                         // Use computed jerk (versus forward difference based exec)
+//#define __KAHAN                             // Use Kahan summation in aline exec functions
 
-#define __TEXT_MODE                            // enables text mode    (~10Kb)
+#define __TEXT_MODE                           // enables text mode    (~10Kb)
 #define __HELP_SCREENS                        // enables help screens (~3.5Kb)
-//#define __CANNED_TESTS                         // enables $tests         (~12Kb)
-//#define __TEST_99                             // enables diagnostic test 99 (independent of other tests)
+//#define __CANNED_TESTS                      // enables $tests         (~12Kb)
+//#define __TEST_99                           // enables diagnostic test 99 (independent of other tests)
 
-/****** DEVELOPMENT SETTINGS ******/
-
-#define __DIAGNOSTIC_PARAMETERS                // enables system diagnostic parameters (_xx) in config_app
+// Development settings
+#define __DIAGNOSTIC_PARAMETERS               // enables system diagnostic parameters (_xx) in config_app
 //#define __DEBUG_SETTINGS                    // special settings. See settings.h
 //#define __CANNED_STARTUP                    // run any canned startup moves
 
@@ -75,7 +61,7 @@ typedef char char_t;
                                                                     // gets rely on nv->index having been set
 #define GET_TABLE_WORD(a)  pgm_read_word(&cfgArray[nv->index].a)    // get word value from cfgArray
 #define GET_TABLE_BYTE(a)  pgm_read_byte(&cfgArray[nv->index].a)    // get byte value from cfgArray
-#define GET_TABLE_FLOAT(a) pgm_read_float(&cfgArray[nv->index].a)    // get float value from cfgArray
+#define GET_TABLE_FLOAT(a) pgm_read_float(&cfgArray[nv->index].a)   // get float value from cfgArray
 #define GET_TOKEN_BYTE(a)  (char_t)pgm_read_byte(&cfgArray[i].a)    // get token byte value from cfgArray
 
 // populate the shared buffer with the token string given the index
@@ -90,9 +76,6 @@ typedef char char_t;
 // String compatibility
 #define strtof strtod            // strtof is not in the AVR lib
 
-/******************************************************************************
- ***** TINYG APPLICATION DEFINITIONS ******************************************
- ******************************************************************************/
 
 typedef uint16_t magic_t;        // magic number size
 #define MAGICNUM 0x12EF          // used for memory integrity assertions
@@ -114,12 +97,12 @@ typedef uint16_t magic_t;        // magic number size
 #define AXIS_A        3
 #define AXIS_B        4
 #define AXIS_C        5
-#define AXIS_U        6            // reserved
-#define AXIS_V        7            // reserved
-#define AXIS_W        8            // reserved
+#define AXIS_U        6           // reserved
+#define AXIS_V        7           // reserved
+#define AXIS_W        8           // reserved
 
-#define MOTOR_1        0            // define motor numbers and array indexes
-#define MOTOR_2        1            // must be defines. enums don't work
+#define MOTOR_1        0          // define motor numbers and array indexes
+#define MOTOR_2        1          // must be defines. enums don't work
 #define MOTOR_3        2
 #define MOTOR_4        3
 #define MOTOR_5        4
@@ -127,6 +110,7 @@ typedef uint16_t magic_t;        // magic number size
 
 #define PWM_1        0
 #define PWM_2        1
+
 
 /************************************************************************************
  * STATUS CODES
@@ -137,10 +121,10 @@ typedef uint16_t magic_t;        // magic number size
  *
  * Ranges are:
  *
- *   0 - 19        OS, communications and low-level status
+ *   0 - 19      OS, communications and low-level status
  *
- *  20 - 99        Generic internal and application errors. Internal errors start at 20 and work up,
- *                 Assertion failures start at 99 and work down.
+ *  20 - 99      Generic internal and application errors. Internal errors start at 20 and work up,
+ *               Assertion failures start at 99 and work down.
  *
  * 100 - 129    Generic data and input errors - not specific to Gcode or TinyG
  *
@@ -318,23 +302,23 @@ char *get_status_message(stat_t status);
 // Gcode errors and warnings (Most originate from NIST - by concept, not number)
 // Fascinating: http://www.cncalarms.com/
 
-#define STAT_GCODE_GENERIC_INPUT_ERROR 130                // generic error for gcode input
-#define STAT_GCODE_COMMAND_UNSUPPORTED 131                // G command is not supported
-#define STAT_MCODE_COMMAND_UNSUPPORTED 132                // M command is not supported
+#define STAT_GCODE_GENERIC_INPUT_ERROR 130              // generic error for gcode input
+#define STAT_GCODE_COMMAND_UNSUPPORTED 131              // G command is not supported
+#define STAT_MCODE_COMMAND_UNSUPPORTED 132              // M command is not supported
 #define STAT_GCODE_MODAL_GROUP_VIOLATION 133            // gcode modal group error
-#define STAT_GCODE_AXIS_IS_MISSING 134                    // command requires at least one axis present
-#define STAT_GCODE_AXIS_CANNOT_BE_PRESENT 135            // error if G80 has axis words
-#define STAT_GCODE_AXIS_IS_INVALID 136                    // an axis is specified that is illegal for the command
-#define STAT_GCODE_AXIS_IS_NOT_CONFIGURED 137            // WARNING: attempt to program an axis that is disabled
-#define STAT_GCODE_AXIS_NUMBER_IS_MISSING 138            // axis word is missing its value
-#define STAT_GCODE_AXIS_NUMBER_IS_INVALID 139             // axis word value is illegal
+#define STAT_GCODE_AXIS_IS_MISSING 134                  // command requires at least one axis present
+#define STAT_GCODE_AXIS_CANNOT_BE_PRESENT 135           // error if G80 has axis words
+#define STAT_GCODE_AXIS_IS_INVALID 136                  // an axis is specified that is illegal for the command
+#define STAT_GCODE_AXIS_IS_NOT_CONFIGURED 137           // WARNING: attempt to program an axis that is disabled
+#define STAT_GCODE_AXIS_NUMBER_IS_MISSING 138           // axis word is missing its value
+#define STAT_GCODE_AXIS_NUMBER_IS_INVALID 139           // axis word value is illegal
 
-#define STAT_GCODE_ACTIVE_PLANE_IS_MISSING 140            // active plane is not programmed
-#define STAT_GCODE_ACTIVE_PLANE_IS_INVALID 141            // active plane selected is not valid for this command
-#define STAT_GCODE_FEEDRATE_NOT_SPECIFIED 142            // move has no feedrate
-#define STAT_GCODE_INVERSE_TIME_MODE_CANNOT_BE_USED 143    // G38.2 and some canned cycles cannot accept inverse time mode
-#define STAT_GCODE_ROTARY_AXIS_CANNOT_BE_USED 144        // G38.2 and some other commands cannot have rotary axes
-#define STAT_GCODE_G53_WITHOUT_G0_OR_G1 145                // G0 or G1 must be active for G53
+#define STAT_GCODE_ACTIVE_PLANE_IS_MISSING 140          // active plane is not programmed
+#define STAT_GCODE_ACTIVE_PLANE_IS_INVALID 141          // active plane selected is not valid for this command
+#define STAT_GCODE_FEEDRATE_NOT_SPECIFIED 142           // move has no feedrate
+#define STAT_GCODE_INVERSE_TIME_MODE_CANNOT_BE_USED 143 // G38.2 and some canned cycles cannot accept inverse time mode
+#define STAT_GCODE_ROTARY_AXIS_CANNOT_BE_USED 144       // G38.2 and some other commands cannot have rotary axes
+#define STAT_GCODE_G53_WITHOUT_G0_OR_G1 145             // G0 or G1 must be active for G53
 #define STAT_REQUESTED_VELOCITY_EXCEEDS_LIMITS 146
 #define STAT_CUTTER_COMPENSATION_CANNOT_BE_ENABLED 147
 #define STAT_PROGRAMMED_POINT_SAME_AS_CURRENT_POINT 148
@@ -351,11 +335,11 @@ char *get_status_message(stat_t status);
 #define STAT_ARC_RADIUS_OUT_OF_TOLERANCE 158            // WARNING - radius arc is too small or too large - accuracy in question
 #define STAT_ARC_ENDPOINT_IS_STARTING_POINT 159
 
-#define STAT_P_WORD_IS_MISSING 160                        // P must be present for dwells and other functions
-#define STAT_P_WORD_IS_INVALID 161                        // generic P value error
+#define STAT_P_WORD_IS_MISSING 160                      // P must be present for dwells and other functions
+#define STAT_P_WORD_IS_INVALID 161                      // generic P value error
 #define STAT_P_WORD_IS_ZERO 162
-#define STAT_P_WORD_IS_NEGATIVE 163                        // dwells require positive P values
-#define STAT_P_WORD_IS_NOT_AN_INTEGER 164                // G10s and other commands require integer P numbers
+#define STAT_P_WORD_IS_NEGATIVE 163                     // dwells require positive P values
+#define STAT_P_WORD_IS_NOT_AN_INTEGER 164               // G10s and other commands require integer P numbers
 #define STAT_P_WORD_IS_NOT_VALID_TOOL_NUMBER 165
 #define STAT_D_WORD_IS_MISSING 166
 #define STAT_D_WORD_IS_INVALID 167
@@ -373,7 +357,7 @@ char *get_status_message(stat_t status);
 #define STAT_T_WORD_IS_MISSING 178
 #define STAT_T_WORD_IS_INVALID 179
 
-#define STAT_ERROR_180 180                                    // reserved for Gcode errors
+#define STAT_ERROR_180 180                              // reserved for Gcode errors
 #define STAT_ERROR_181 181
 #define STAT_ERROR_182 182
 #define STAT_ERROR_183 183
@@ -396,13 +380,12 @@ char *get_status_message(stat_t status);
 #define STAT_ERROR_199 199
 
 // TinyG errors and warnings
-
 #define STAT_GENERIC_ERROR 200
 #define STAT_MINIMUM_LENGTH_MOVE 201                    // move is less than minimum length
-#define STAT_MINIMUM_TIME_MOVE 202                        // move is less than minimum time
+#define STAT_MINIMUM_TIME_MOVE 202                      // move is less than minimum time
 #define STAT_MACHINE_ALARMED 203                        // machine is alarmed. Command not processed
-#define STAT_LIMIT_SWITCH_HIT 204                        // a limit switch was hit causing shutdown
-#define STAT_PLANNER_FAILED_TO_CONVERGE 205                // trapezoid generator can through this exception
+#define STAT_LIMIT_SWITCH_HIT 204                       // a limit switch was hit causing shutdown
+#define STAT_PLANNER_FAILED_TO_CONVERGE 205             // trapezoid generator can through this exception
 #define STAT_ERROR_206 206
 #define STAT_ERROR_207 207
 #define STAT_ERROR_208 208
@@ -420,19 +403,19 @@ char *get_status_message(stat_t status);
 #define STAT_ERROR_219 219
 
 #define STAT_SOFT_LIMIT_EXCEEDED 220                    // soft limit error - axis unspecified
-#define STAT_SOFT_LIMIT_EXCEEDED_XMIN 221                // soft limit error - X minimum
-#define STAT_SOFT_LIMIT_EXCEEDED_XMAX 222                // soft limit error - X maximum
-#define STAT_SOFT_LIMIT_EXCEEDED_YMIN 223                // soft limit error - Y minimum
-#define STAT_SOFT_LIMIT_EXCEEDED_YMAX 224                // soft limit error - Y maximum
-#define STAT_SOFT_LIMIT_EXCEEDED_ZMIN 225                // soft limit error - Z minimum
-#define STAT_SOFT_LIMIT_EXCEEDED_ZMAX 226                // soft limit error - Z maximum
-#define STAT_SOFT_LIMIT_EXCEEDED_AMIN 227                // soft limit error - A minimum
-#define STAT_SOFT_LIMIT_EXCEEDED_AMAX 228                // soft limit error - A maximum
-#define STAT_SOFT_LIMIT_EXCEEDED_BMIN 229                // soft limit error - B minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_XMIN 221               // soft limit error - X minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_XMAX 222               // soft limit error - X maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_YMIN 223               // soft limit error - Y minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_YMAX 224               // soft limit error - Y maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_ZMIN 225               // soft limit error - Z minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_ZMAX 226               // soft limit error - Z maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_AMIN 227               // soft limit error - A minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_AMAX 228               // soft limit error - A maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_BMIN 229               // soft limit error - B minimum
 
-#define STAT_SOFT_LIMIT_EXCEEDED_BMAX 220                // soft limit error - B maximum
-#define STAT_SOFT_LIMIT_EXCEEDED_CMIN 231                // soft limit error - C minimum
-#define STAT_SOFT_LIMIT_EXCEEDED_CMAX 232                // soft limit error - C maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_BMAX 220               // soft limit error - B maximum
+#define STAT_SOFT_LIMIT_EXCEEDED_CMIN 231               // soft limit error - C minimum
+#define STAT_SOFT_LIMIT_EXCEEDED_CMAX 232               // soft limit error - C maximum
 #define STAT_ERROR_233 233
 #define STAT_ERROR_234 234
 #define STAT_ERROR_235 235
@@ -452,10 +435,10 @@ char *get_status_message(stat_t status);
 #define STAT_ERROR_248 248
 #define STAT_ERROR_249 249
 
-#define STAT_PROBE_CYCLE_FAILED 250                        // probing cycle did not complete
+#define STAT_PROBE_CYCLE_FAILED 250                     // probing cycle did not complete
 #define STAT_PROBE_ENDPOINT_IS_STARTING_POINT 251
-#define STAT_JOGGING_CYCLE_FAILED 252                    // jogging cycle did not complete
+#define STAT_JOGGING_CYCLE_FAILED 252                   // jogging cycle did not complete
 
 // !!! Do not exceed 255 without also changing stat_t typedef
 
-#endif // End of include guard: TINYG2_H_ONCE
+#endif // TINYG2_H_ONCE
