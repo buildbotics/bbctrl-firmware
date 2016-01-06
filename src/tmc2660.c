@@ -233,7 +233,7 @@ void tmc2660_init() {
   // Setup pins
   // Must set the SS pin either in/high or any/output for master mode to work
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SS_PIN;   // High
-  TMC2660_SPI_PORT.DIRCLR = 1 << TMC2660_SPI_SS_PIN;   // Input
+  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SS_PIN;   // Output
 
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SCK_PIN;  // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SCK_PIN;  // Output
