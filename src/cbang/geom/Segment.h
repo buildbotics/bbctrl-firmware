@@ -67,17 +67,26 @@ namespace cb {
 
       if (!d) return false; // Parallel
 
-      T ua = ((s.data[1][0] - s.data[0][0]) * (data[0][1] - s.data[0][1]) -
-              (s.data[1][1] - s.data[0][1]) * (data[0][0] - s.data[0][0])) / d;
-      T ub = ((data[1][0] - data[0][0]) * (data[0][1] - s.data[0][1]) -
-              (data[1][1] - data[0][1]) * (data[0][0] - s.data[0][0])) / d;
+      d = 1.0 / d;
 
-      if (ua <= 0 || 1 <= ua || ub <= 0 || 1 <= ub) return false;
+      T ua = ((s.data[1][0] - s.data[0][0]) * (data[0][1] - s.data[0][1]) -
+              (s.data[1][1] - s.data[0][1]) * (data[0][0] - s.data[0][0])) * d;
+      if (ua <= 0 || 1 <= ua) return false;
+
+      T ub = ((data[1][0] - data[0][0]) * (data[0][1] - s.data[0][1]) -
+              (data[1][1] - data[0][1]) * (data[0][0] - s.data[0][0])) * d;
+      if (ub <= 0 || 1 <= ub) return false;
 
       p[0] = data[0][0] + ua * (data[1][0] - data[0][0]);
       p[1] = data[0][1] + ua * (data[1][1] - data[0][1]);
 
       return true;
+    }
+
+
+    bool intersects(const Segment<DIM, T> &s) const {
+      Vector<DIM, T> p;
+      return intersection(s, p);
     }
 
 

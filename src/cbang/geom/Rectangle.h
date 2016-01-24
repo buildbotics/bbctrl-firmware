@@ -167,11 +167,63 @@ namespace cb {
       return true;
     }
 
+
+    bool intersects(const Segment<DIM, T> &s) const {
+      if (contains(s.p1) || contains(s.p2)) return true;
+
+      if (DIM == 1) return false;
+
+      else if (DIM == 2) {
+        Vector<2, T> corners[4] = {
+          Vector<2, T>(rmin.x(), rmin.y()),
+          Vector<2, T>(rmax.x(), rmin.y()),
+          Vector<2, T>(rmin.x(), rmax.y()),
+          Vector<2, T>(rmax.x(), rmax.y()),
+        };
+
+        return
+          s.intersects(Segment<2, T>(corners[0], corners[1])) ||
+          s.intersects(Segment<2, T>(corners[1], corners[2])) ||
+          s.intersects(Segment<2, T>(corners[2], corners[3])) ||
+          s.intersects(Segment<2, T>(corners[3], corners[1]));
+
+      }
+
+      // NOTE Not sure this works for dimensions higher than 3
+
+      Vector<DIM - 1, T> rminl;
+      Vector<DIM - 1, T> rmaxl;
+      Segment<DIM - 1, T> sl;
+
+      for (int i = 0; i < DIM; i++) {
+        int k = 0;
+
+        for (int j = 0; j < DIM; j++) {
+          if (j == i) continue;
+          rminl[k] = rmin[j];
+          rmaxl[k] = rmax[j];
+          sl.p1[k] = s.p1[j];
+          sl.p2[k] = s.p2[j];
+          k++;
+        }
+
+        // Intersect in lower dimension
+        if (!Rectangle<DIM - 1, T>(rminl, rmaxl).intersects(sl))
+          return false;
+      }
+
+      return true;
+    }
+
+
     bool intersects(const Segment<DIM, T> &s, Vector<DIM, T> &p1,
                     Vector<DIM, T> &p2) const {
       // TODO Currently only implemented for the 2D case
       if (DIM != 2)
         CBANG_THROWS("Invalid operation for Vector of dimension " << DIM);
+
+      // NOTE This does not work if the segment is wholly inside the square.
+      //   Of course then there are no intersection points either.
 
       Vector<DIM, T> nil(std::numeric_limits<T>::max(),
                          std::numeric_limits<T>::max());
