@@ -61,8 +61,9 @@ EOF
     update-rc.d resize2fs_once defaults
 fi
 
-# Install auto discovery daemon
-apt-get install -y avahi-daemon avrdude minicom
+# Install pacakges
+apt-get install -y avahi-daemon avrdude minicom python-pip
+pip install tornado sockjs-tornado pyserial
 
 # Clean
 apt-get autoclean
@@ -77,5 +78,7 @@ echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # Disable console on serial port
 #sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
 sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
+
+# TODO install bbctrl w/ init.d script
 
 reboot
