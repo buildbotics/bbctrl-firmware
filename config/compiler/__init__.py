@@ -17,7 +17,8 @@ class decider_hack:
             csig = dep.csig
         except AttributeError:
             csig = MD5signature(dep.get_contents())
-            dep.csig = csig
+            major, minor, rev = SCons.__version__.split('.')
+            if major < 2 or (major == 2 and minor < 4): dep.csig = csig
             dep.get_ninfo().csig = csig
 
         #print dependency, csig, "?=", prev_ni.csig
@@ -45,9 +46,7 @@ def configure(conf, cstd = 'c99'):
     if env.GetOption('clean'): return
 
     # Decider hack.  Works around some SCons bugs.
-    major, minor, rev = SCons.__version__.split('.')
-    if major <= 2 and minor < 4:
-        env.Decider(decider_hack(env))
+    env.Decider(decider_hack(env))
 
     # Get options
     debug = int(env.get('debug'))
