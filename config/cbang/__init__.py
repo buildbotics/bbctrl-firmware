@@ -36,7 +36,9 @@ def configure_deps(conf, local = True, with_openssl = True):
     if conf.CBConfig('event', False): conf.CBConfig('re2', not local)
 
     if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
-        env.CBDefine('HAVE_LEVELDB')
+        conf.CBCheckHome('leveldb')
+        if conf.CBCheckCXXHeader('leveldb/db.h'):
+            env.CBDefine('HAVE_LEVELDB')
 
     if conf.CBCheckCHeader('mysql/mysql.h') and \
             conf.CBCheckLib('mysqlclient') and \
