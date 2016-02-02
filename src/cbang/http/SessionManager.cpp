@@ -269,17 +269,17 @@ void SessionManager::save(LevelDB db) const {
   if (!dirty) return;
   dirty = false;
 
-  LevelDB nsDB = db.ns("session:");
-  LevelDB::Batch batch = nsDB.batch();
+  LevelDB::Batch batch = db.ns("session:").batch();
 
   // Delete old sessions
-  for (LevelDB::Iterator it = nsDB.begin(); it.valid(); it++)
-    batch.erase(it.key());
+  batch.eraseAll();
 
-  // Write sessions
+  // Write new sessions
   SmartLock lock(this);
   for (iterator it = begin(); it != end(); it++)
-    nsDB.set(it->second->getID(), SSTR(*it->second));
+    batch.set(it->second->getID(), SSTR(*it->second));
+
+  batch.commit();
 }
 #endif // HAVE_LEVELDB
 
@@ -299,10 +299,10 @@ void SessionManager::update() {
             it->second->getCreationTime() + sessionLifetime < now)
           remove.push_back(it->first);
 
-      for (unsigned i = 0; i < remove.size(); i++)
+      for (unsigned i = 0; i < remove.size(); i++) {
         sessions.erase(remove[i]);
+        dirty = true;
+      }
     }
   }
-
-  dirty = false;
 }
