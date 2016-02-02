@@ -17,7 +17,7 @@ class decider_hack:
             csig = dep.csig
         except AttributeError:
             csig = MD5signature(dep.get_contents())
-            major, minor, rest = SCons.__version__.split('.', 3)
+            major, minor = SCons.__version__.split('.')[:2]
             if major < 2 or (major == 2 and minor < 4): dep.csig = csig
             dep.get_ninfo().csig = csig
 
