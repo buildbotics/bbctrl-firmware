@@ -15,6 +15,7 @@ CFLAGS += $(COMMON)
 CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -Os
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
+CFLAGS += -Isrc
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm -Wl,-Map=$(PROJECT).map
@@ -38,7 +39,7 @@ FUSE5=0xeb
 
 # SRC
 SRC = $(wildcard src/*.c)
-SRC += $(wildcard src/xmega/*.c)
+SRC += $(wildcard src/plan/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
 
 # Build

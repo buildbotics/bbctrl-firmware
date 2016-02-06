@@ -25,8 +25,18 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PWM_H_ONCE
-#define PWM_H_ONCE
+#ifndef PWM_H
+#define PWM_H
+
+#include "config.h"
+#include "status.h"
+
+#include <avr/interrupt.h>
+
+
+#define PWM_1        0
+#define PWM_2        1
+
 
 typedef struct pwmConfigChannel {
   float frequency;            // base frequency for PWM driver, in Hz
@@ -60,33 +70,4 @@ void pwm_init();
 stat_t pwm_set_freq(uint8_t channel, float freq);
 stat_t pwm_set_duty(uint8_t channel, float duty);
 
-
-#ifdef __TEXT_MODE
-
-void pwm_print_p1frq(nvObj_t *nv);
-void pwm_print_p1csl(nvObj_t *nv);
-void pwm_print_p1csh(nvObj_t *nv);
-void pwm_print_p1cpl(nvObj_t *nv);
-void pwm_print_p1cph(nvObj_t *nv);
-void pwm_print_p1wsl(nvObj_t *nv);
-void pwm_print_p1wsh(nvObj_t *nv);
-void pwm_print_p1wpl(nvObj_t *nv);
-void pwm_print_p1wph(nvObj_t *nv);
-void pwm_print_p1pof(nvObj_t *nv);
-
-#else
-
-#define pwm_print_p1frq tx_print_stub
-#define pwm_print_p1csl tx_print_stub
-#define pwm_print_p1csh tx_print_stub
-#define pwm_print_p1cpl tx_print_stub
-#define pwm_print_p1cph tx_print_stub
-#define pwm_print_p1wsl tx_print_stub
-#define pwm_print_p1wsh tx_print_stub
-#define pwm_print_p1wpl tx_print_stub
-#define pwm_print_p1wph tx_print_stub
-#define pwm_print_p1pof tx_print_stub
-
-#endif // __TEXT_MODE
-
-#endif // PWM_H_ONCE
+#endif // PWM_H

@@ -47,32 +47,25 @@
  *              **** These bits CANNOT be used as 5v inputs ****
  */
 
-#include <avr/interrupt.h>
-
-#include "tinyg.h"
-#include "util.h"
-#include "config.h"
 #include "controller.h"
 #include "hardware.h"
 #include "gpio.h"
-#include "canonical_machine.h"
+
+#include <avr/interrupt.h>
 
 
 void indicator_led_set() {
   gpio_led_on(INDICATOR_LED);
-  cs.led_state = 1;
 }
 
 
 void indicator_led_clear() {
   gpio_led_off(INDICATOR_LED);
-  cs.led_state = 0;
 }
 
 
 void indicator_led_toggle() {
   gpio_led_toggle(INDICATOR_LED);
-  cs.led_state = !cs.led_state;
 }
 
 

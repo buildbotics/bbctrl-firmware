@@ -29,64 +29,20 @@
 
 \******************************************************************************/
 
-#include "report.h"
-#include "config.h"
-#include "canonical_machine.h"
-#include "usart.h"
-#include "rtc.h"
-#include "vars.h"
+#define MOTORS_LABEL "xyzabcuvw"
 
-#include "plan/planner.h"
+// VAR(name, type,   index, settable, default, help)
+VAR(pos,    float,    MOTORS,  0, 0, "Current axis position")
+VAR(vel,    float,    0,       0, 0, "Current velosity")
+VAR(ang,    float,    MOTORS,  1, 0, "Rotation angle in deg per full step")
+VAR(trvl,   float,    MOTORS,  1, 0, "Travel in mm per revolution")
+VAR(mstep,  uint16_t, MOTORS,  1, 0, "Microsteps per full step")
+VAR(pol,    bool,     MOTORS,  1, 0, "Normal or reversed")
+VAR(mvel,   uint16_t, MOTORS,  1, 0, "Maxium velocity in mm/min")
+VAR(mjerk,  uint16_t, MOTORS,  1, 0, "Maxium jerk in m/min^3")
 
-#include <avr/pgmspace.h>
-
-#include <stdio.h>
-#include <stdbool.h>
-
-
-static bool report_requested = false;
-static bool report_full = false;
-static uint32_t last_report = 0;
-
-static float velocity;
-static float positions[AXES];
-
-
-void report_init() {
-  velocity = 0;
-
-  for (int axis = 0; axis < AXES; axis++)
-    positions[axis] = 0;
-}
-
-
-void report_request() {
-  report_requested = true;
-}
-
-
-void report_request_full() {
-  report_requested = report_full = true;
-}
-
-
-stat_t report_callback() {
-  uint32_t now = rtc_get_time();
-  if (now - last_report < 100) return STAT_OK;
-  last_report = now;
-
-  if (report_requested && usart_tx_empty()) vars_report(report_full);
-  report_requested = report_full = false;
-
-  return STAT_OK;
-}
-
-
-float get_pos(int index) {
-  return cm_get_absolute_position(0, index);
-}
-
-
-float get_vel() {
-  return mp_get_runtime_velocity();
-}
+// Motor driver
+VAR(dflags, uint8_t,  MOTORS,  0, 0, "Current motor status flags")
+VAR(dcur,   float,    MOTORS,  1, 0, "Driver current as a percentage")
+VAR(sguard, uint16_t, MOTORS,  0, 0, "Driver StallGuard reading")
+VAR(sgt,    int8_t,   MOTORS,  1, 0, "Driver StallGuard threshold -64 to 63")

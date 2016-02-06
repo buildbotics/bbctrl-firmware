@@ -46,21 +46,13 @@
  *        interrupt can release the sleep mode.
  */
 
-#ifndef HARDWARE_H_ONCE
-#define HARDWARE_H_ONCE
+#ifndef HARDWARE_H
+#define HARDWARE_H
 
-enum hwPlatform {
-  HM_PLATFORM_NONE = 0,
-  HW_PLATFORM_TINYG_XMEGA,       // TinyG code base on Xmega boards.
-};
+#include "status.h"
+#include "config.h"
 
-#define HW_VERSION_TINYGV6 6
-#define HW_VERSION_TINYGV7 7
-#define HW_VERSION_TINYGV8 8
-
-#include "config.h"              // needed for the stat_t typedef
 #include <avr/interrupt.h>
-#include "xmega/xmega_rtc.h"
 
 #define MILLISECONDS_PER_TICK 1  // MS for system tick (systick * N)
 #define SYS_ID_LEN 12            // length of system ID string from sys_get_id()
@@ -177,10 +169,10 @@ enum cfgPortBits {        // motor control port bit positions
 #define EXEC_TIMER_ENABLE      1                // turn exec timer clock on (F_CPU = 32 Mhz)
 #define EXEC_TIMER_WGMODE      0                // normal mode (count to TOP and rollover)
 
-#define TIMER_DDA_ISR_vect     TCC0_OVF_vect    // must agree with assignment in system.h
-#define TIMER_DWELL_ISR_vect   TCD0_OVF_vect    // must agree with assignment in system.h
-#define TIMER_LOAD_ISR_vect    TCE0_OVF_vect    // must agree with assignment in system.h
-#define TIMER_EXEC_ISR_vect    TCF0_OVF_vect    // must agree with assignment in system.h
+#define TIMER_DDA_ISR_vect     TCC0_OVF_vect
+#define TIMER_DWELL_ISR_vect   TCD0_OVF_vect
+#define TIMER_LOAD_ISR_vect    TCE0_OVF_vect
+#define TIMER_EXEC_ISR_vect    TCF0_OVF_vect
 
 #define TIMER_OVFINTLVL_HI     3                // timer interrupt level (3=hi)
 #define TIMER_OVFINTLVL_MED    2                // timer interrupt level (2=med)
@@ -215,30 +207,12 @@ typedef struct {
 hwSingleton_t hw;
 
 void hardware_init();            // master hardware init
+void hw_get_id(char *id);
 void hw_request_hard_reset();
 void hw_hard_reset();
 stat_t hw_hard_reset_handler();
 
 void hw_request_bootloader();
 stat_t hw_bootloader_handler();
-stat_t hw_run_boot(nvObj_t *nv);
 
-stat_t hw_set_hv(nvObj_t *nv);
-stat_t hw_get_id(nvObj_t *nv);
-
-#ifdef __TEXT_MODE
-void hw_print_fb(nvObj_t *nv);
-void hw_print_fv(nvObj_t *nv);
-void hw_print_hp(nvObj_t *nv);
-void hw_print_hv(nvObj_t *nv);
-void hw_print_id(nvObj_t *nv);
-
-#else
-#define hw_print_fb tx_print_stub
-#define hw_print_fv tx_print_stub
-#define hw_print_hp tx_print_stub
-#define hw_print_hv tx_print_stub
-#define hw_print_id tx_print_stub
-#endif // __TEXT_MODE
-
-#endif    // end of include guard: HARDWARE_H_ONCE
+#endif // HARDWARE_H

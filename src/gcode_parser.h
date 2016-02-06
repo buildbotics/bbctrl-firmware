@@ -17,11 +17,11 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GCODE_PARSER_H_ONCE
-#define GCODE_PARSER_H_ONCE
+#ifndef GCODE_PARSER_H
+#define GCODE_PARSER_H
 
-stat_t gc_gcode_parser(char_t *block);
-stat_t gc_get_gc(nvObj_t *nv);
-stat_t gc_run_gc(nvObj_t *nv);
+#include "status.h"
 
-#endif // GCODE_PARSER_H_ONCE
+stat_t gc_gcode_parser(char *block);
+
+#endif // GCODE_PARSER_H

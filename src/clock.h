@@ -1,9 +1,7 @@
 /*
- * status.c - TinyG - An embedded rs274/ngc CNC controller
- * This file is part of the TinyG project.
+ * Part of TinyG project
  *
- * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
- * Copyright (c) 2013 - 2015 Robert Giseburt
+ * Copyright (c) 2010 - 2013 Alden S. Hart Jr.
  *
  * This file ("the software") is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2 as published by the
@@ -18,25 +16,12 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "status.h"
+#ifndef CLOCK_H
+#define CLOCK_H
 
-#include <avr/pgmspace.h>
-#include <stdio.h>
+#include <stdint.h>
 
-stat_t status_code; // allocate a variable for the ritorno macro
+void clock_init();
+void CCPWrite(volatile uint8_t *address, uint8_t value);
 
-#define MSG(N, TEXT) static const char stat_##N[] PROGMEM = TEXT;
-#include "messages.def"
-#undef MSG
-
-static const char *const stat_msg[] PROGMEM = {
-#define MSG(N, TEXT) stat_##N,
-#include "messages.def"
-#undef MSG
-};
-
-
-/// Return the status message
-void print_status_message(const char *msg, stat_t status) {
-  printf_P("%S: %S (%d)\n", pgm_read_word(&stat_msg[status]));
-}
+#endif // CLOCK_H

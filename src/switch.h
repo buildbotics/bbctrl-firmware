@@ -37,8 +37,10 @@
  *
  *    Read switch contains the results of read pin and manages edges and debouncing.
  */
-#ifndef SWITCH_H_ONCE
-#define SWITCH_H_ONCE
+#ifndef SWITCH_H
+#define SWITCH_H
+
+#include <stdint.h>
 
 // timer for debouncing switches
 #define SW_LOCKOUT_TICKS 25                    // 25=250ms. RTC ticks are ~10ms each
@@ -61,7 +63,7 @@ enum swType {
 enum swState {
   SW_DISABLED = -1,
   SW_OPEN = 0,                    // also read as 'false'
-  SW_CLOSED                        // also read as 'true'
+  SW_CLOSED                       // also read as 'true'
 };
 
 // macros for finding the index into the switch table give the axis number
@@ -98,7 +100,7 @@ enum swNums {                 // indexes into switch arrays
 //#define GPIO1_INTLVL (PORT_INT0LVL_LO_gc|PORT_INT1LVL_LO_gc)    // shouldn;t be low
 
 // port assignments for vectors
-#define X_MIN_ISR_vect PORTA_INT0_vect    // these must line up with the SWITCH assignments in system.h
+#define X_MIN_ISR_vect PORTA_INT0_vect
 #define Y_MIN_ISR_vect PORTD_INT0_vect
 #define Z_MIN_ISR_vect PORTE_INT0_vect
 #define A_MIN_ISR_vect PORTF_INT0_vect
@@ -137,14 +139,4 @@ void sw_show_switch();
 void set_switch_type(uint8_t switch_type);
 uint8_t get_switch_type();
 
-// Switch config accessors and text functions
-stat_t sw_set_st(nvObj_t *nv);
-stat_t sw_set_sw(nvObj_t *nv);
-
-#ifdef __TEXT_MODE
-void sw_print_st(nvObj_t *nv);
-#else
-#define sw_print_st tx_print_stub
-#endif // __TEXT_MODE
-
-#endif // End of include guard: SWITCH_H_ONCE
+#endif // SWITCH_H

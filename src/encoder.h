@@ -41,7 +41,7 @@
  *    You only know where the machine should be at known "targets", which are at the end of
  *    each move section (end of head, body, and tail). You need to take encoder readings at
  *    these points. This synchronization is taken care of by the Target, Position, Position_delayed
- *    sequence in plan_exec. Referring to ASCII art in stepper.h and reproduced here:
+ *    sequence in exec. Referring to ASCII art in stepper.h and reproduced here:
  *
  *  LOAD/STEP (~5000uSec) [L1][Segment1][L2][Segment2][L3][Segment3][L4][Segment4][Lb1][Segmentb1]
  *  PREP (100 uSec)       [P1]          [P2]          [P3]          [P4]          [Pb1]          [Pb2]
@@ -87,8 +87,12 @@
  *    not be worth the trouble).
  */
 
-#ifndef ENCODER_H_ONCE
-#define ENCODER_H_ONCE
+#ifndef ENCODER_H
+#define ENCODER_H
+
+#include "config.h"
+
+#include <stdint.h>
 
 // used to abstract the encoder code out of the stepper so it can be managed in one place
 #define SET_ENCODER_STEP_SIGN(m, s) en.en[m].step_sign = s;
@@ -104,19 +108,14 @@ typedef struct enEncoder { // one real or virtual encoder per controlled motor
 
 
 typedef struct enEncoders {
-  magic_t magic_start;
   enEncoder_t en[MOTORS];   // runtime encoder structures
-  magic_t magic_end;
 } enEncoders_t;
 
 extern enEncoders_t en;
 
 
 void encoder_init();
-void encoder_init_assertions();
-stat_t encoder_test_assertions();
-
 void en_set_encoder_steps(uint8_t motor, float steps);
 float en_read_encoder(uint8_t motor);
 
-#endif // ENCODER_H_ONCE
+#endif // ENCODER_H

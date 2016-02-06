@@ -29,13 +29,16 @@
 
 \******************************************************************************/
 
-#include "tinyg.h"
-#include "config.h"
 #include "tmc2660.h"
+#include "status.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/pgmspace.h>
+
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 
 typedef enum {
@@ -48,6 +51,7 @@ typedef enum {
   SPI_STATE_SELECT,
   SPI_STATE_WRITE,
   SPI_STATE_READ,
+  SPI_STATE_QUIT,
 } spi_state_t;
 
 typedef struct {
@@ -55,8 +59,8 @@ typedef struct {
   uint8_t reset;
   uint8_t reg;
 
-  int16_t mstep;
-  uint8_t status;
+  uint16_t sguard;
+  uint8_t flags;
   uint32_t regs[5];
 } tmc2660_driver_t;
 
@@ -136,7 +140,7 @@ void spi_next() {
       break;
 
     case TMC2660_STATE_MONITOR:
-      spi_out = reg_addrs[TMC2660_DRVCONF] | drv->regs[TMC2660_DRVCONF];
+      spi_out = reg_addrs[TMC2660_DRVCTRL] | drv->regs[TMC2660_DRVCTRL];
       break;
 
     case TMC2660_STATE_RESET:
@@ -155,6 +159,7 @@ void spi_next() {
   case SPI_STATE_READ:
     // Deselect driver
     spi_cs(driver, 0);
+    spi_state = SPI_STATE_SELECT;
 
     switch (drv->state) {
     case TMC2660_STATE_CONFIG:
@@ -166,9 +171,8 @@ void spi_next() {
 
     case TMC2660_STATE_MONITOR:
       // Read response
-      drv->mstep = (int16_t)((spi_in >> 14) & 0x1ff);
-      if (spi_in & (1UL << 19)) drv->mstep = -drv->mstep;
-      drv->status = spi_in >> 4;
+      drv->sguard = (uint16_t)((spi_in >> 14) & 0x1ff);
+      drv->flags = spi_in >> 4;
 
       if (drv->reset) {
         drv->state = TMC2660_STATE_RESET;
@@ -177,6 +181,7 @@ void spi_next() {
       } else if (++driver == TMC2660_NUM_DRIVERS) {
         driver = 0;
         spi_delay = 500;
+        //spi_state = SPI_STATE_QUIT;
         break;
       }
       break;
@@ -187,8 +192,9 @@ void spi_next() {
     }
 
     // Next state (delay set above)
-    spi_state = SPI_STATE_SELECT;
     break;
+
+  case SPI_STATE_QUIT: break;
   }
 
   TMC2660_TIMER.PER = spi_delay;
@@ -216,18 +222,19 @@ void tmc2660_init() {
     drivers[i].state = TMC2660_STATE_CONFIG;
     drivers[i].reg = 0;
 
-    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_DEDGE | TMC2660_DRVCTRL_MRES_8;
+    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_DEDGE |
+      TMC2660_DRVCTRL_MRES_8;
     drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
-      TMC2660_CHOPCONF_HEND(0) | TMC2660_CHOPCONF_HSTART(4) |
+      TMC2660_CHOPCONF_HEND(3) | TMC2660_CHOPCONF_HSTART(7) |
       TMC2660_CHOPCONF_TOFF(4);
     //drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
     //  TMC2660_CHOPCONF_CHM | TMC2660_CHOPCONF_HEND(7) |
-    //  TMC2660_CHOPCONF_HSTART(6) | TMC2660_CHOPCONF_TOFF(7);
-    //drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN |
-    //  TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
+    //  TMC2660_CHOPCONF_FASTD(6) | TMC2660_CHOPCONF_TOFF(7);
+    drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN |
+      TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
     drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT |
       TMC2660_SGCSCONF_THRESH(63) | TMC2660_SGCSCONF_CS(6);
-    drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_MSTEP;
+    drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_SG;
   }
 
   // Setup pins
@@ -268,18 +275,13 @@ void tmc2660_init() {
 }
 
 
-uint8_t tmc2660_status(int driver) {
-  return drivers[driver].status;
-}
-
-
-uint16_t tmc2660_step(int driver) {
-  return drivers[driver].mstep;
+uint8_t tmc2660_flags(int driver) {
+  return driver < TMC2660_NUM_DRIVERS ? drivers[driver].flags : 0;
 }
 
 
 void tmc2660_reset(int driver) {
-  drivers[driver].reset = 1;
+  if (driver < TMC2660_NUM_DRIVERS) drivers[driver].reset = 1;
 }
 
 
@@ -297,59 +299,61 @@ int tmc2660_all_ready() {
 }
 
 
-static void tmc2660_get_status_flags(uint8_t status, char buf[35]) {
+void tmc2660_get_flags(uint8_t flags, char buf[35]) {
   buf[0] = 0;
 
-  if (TMC2660_DRVSTATUS_STST & status) strcat(buf, "stst,");
-  if (TMC2660_DRVSTATUS_OLB  & status) strcat(buf, "olb,");
-  if (TMC2660_DRVSTATUS_OLA  & status) strcat(buf, "ola,");
-  if (TMC2660_DRVSTATUS_S2GB & status) strcat(buf, "s2gb,");
-  if (TMC2660_DRVSTATUS_S2GA & status) strcat(buf, "s2ga,");
-  if (TMC2660_DRVSTATUS_OTPW & status) strcat(buf, "otpw,");
-  if (TMC2660_DRVSTATUS_OT   & status) strcat(buf, "ot,");
-  if (TMC2660_DRVSTATUS_SG   & status) strcat(buf, "sg,");
+  if (TMC2660_DRVSTATUS_STST & flags) strcat(buf, "stst,");
+  if (TMC2660_DRVSTATUS_OLB  & flags) strcat(buf, "olb,");
+  if (TMC2660_DRVSTATUS_OLA  & flags) strcat(buf, "ola,");
+  if (TMC2660_DRVSTATUS_S2GB & flags) strcat(buf, "s2gb,");
+  if (TMC2660_DRVSTATUS_S2GA & flags) strcat(buf, "s2ga,");
+  if (TMC2660_DRVSTATUS_OTPW & flags) strcat(buf, "otpw,");
+  if (TMC2660_DRVSTATUS_OT   & flags) strcat(buf, "ot,");
+  if (TMC2660_DRVSTATUS_SG   & flags) strcat(buf, "sg,");
 
   if (buf[0] != 0) buf[strlen(buf) - 1] = 0; // Remove last comma
 }
 
 
-static const char mst_fmt[] PROGMEM = "Motor %i step:       %i\n";
-static const char mfl_fmt[] PROGMEM = "Motor %i flags:      %s\n";
+uint8_t get_dflags(int driver) {return drivers[driver].flags;}
 
 
-void tmc2660_print_motor_step(nvObj_t *nv) {
-  int driver = nv->token[3] - '1';
-  fprintf_P(stderr, mst_fmt, driver + 1, drivers[driver].mstep);
+float get_dcur(int driver) {
+  uint8_t x = drivers[driver].regs[TMC2660_SGCSCONF] & 31;
+  return (x + 1) / 32.0;
 }
 
 
-void tmc2660_print_motor_flags(nvObj_t *nv) {
-  int driver = nv->token[3] - '1';
+void set_dcur(int driver, float value) {
+  if (value < 0 || 1 < value) return;
 
-  char buf[35];
-  tmc2660_get_status_flags(drivers[driver].status, buf);
+  uint8_t x = value * 32.0 - 1;
+  if (x < 0) x = 1;
 
-  fprintf_P(stderr, mfl_fmt, driver + 1, buf);
+  tmc2660_driver_t *d = &drivers[driver];
+  d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) | x;
+
+  tmc2660_reset(driver);
 }
 
 
-stat_t tmc2660_get_motor_step(nvObj_t *nv) {
-  int driver = nv->token[3] - '1';
-
-  nv->value = drivers[driver].mstep;
-  nv->valuetype = TYPE_INTEGER;
-
-  return STAT_OK;
+uint16_t get_sguard(int driver) {
+  return drivers[driver].sguard;
 }
 
 
-stat_t tmc2660_get_motor_flags(nvObj_t *nv) {
-  int driver = nv->token[3] - '1';
-  char buf[35];
+int8_t get_sgt(int driver) {
+  uint8_t x = (drivers[driver].regs[TMC2660_SGCSCONF] & 0x7f) >> 8;
+  return (x & (1 << 6)) ? (x & 0xc0) : x;
+}
 
-  tmc2660_get_status_flags(drivers[driver].status, buf);
-  nv_copy_string(nv, buf);
-  nv->valuetype = TYPE_STRING;
 
-  return STAT_OK;
+void set_sgt(int driver, int8_t value) {
+  if (value < -64 || 63 < value) return;
+
+  tmc2660_driver_t *d = &drivers[driver];
+  d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) |
+    TMC2660_SGCSCONF_THRESH(value);
+
+  tmc2660_reset(driver);
 }

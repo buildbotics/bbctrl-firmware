@@ -24,16 +24,21 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-/* util contains a dog's breakfast of supporting functions that are not specific to tinyg:
- * including:
+
+/* util contains:
  *      - math and min/max utilities and extensions
  *      - vector manipulation utilities
  */
 
-#include "tinyg.h"
 #include "util.h"
 
-#include "xmega/xmega_rtc.h"
+#include <avr/pgmspace.h>
+
+#include <math.h>
+#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdio.h>
 
 float vector[AXES];    // statically allocated global for vector utilities
 
@@ -142,15 +147,15 @@ float max4(float x1, float x2, float x3, float x4) {
 
 
 /// isdigit that also accepts plus, minus, and decimal point
-uint8_t isnumber(char_t c) {
+uint8_t isnumber(char c) {
   return c == '.' || c == '-' || c == '+' || isdigit(c);
 }
 
 
 /// Add escapes to a string - currently for quotes only
-char_t *escape_string(char_t *dst, char_t *src) {
-  char_t c;
-  char_t *start_dst = dst;
+char *escape_string(char *dst, char *src) {
+  char c;
+  char *start_dst = dst;
 
   while ((c = *(src++)) != 0) {    // 0
     if (c == '"') *(dst++) = '\\';
@@ -162,23 +167,11 @@ char_t *escape_string(char_t *dst, char_t *src) {
 
 
 /*
- * Return an AVR style progmem string as a RAM string.
- *
- *    This function copies a string from FLASH to a pre-allocated RAM buffer -
- *  see main.c for allocation and max length.
- */
-char_t *pstr2str(const char *pgm_string) {
-  strncpy_P(global_string_buf, pgm_string, MESSAGE_LEN);
-  return global_string_buf;
-}
-
-
-/*
  * Return ASCII string given a float and a decimal precision value
  *
  *    Returns length of string, less the terminating 0 character
  */
-char_t fntoa(char_t *str, float n, uint8_t precision) {
+char fntoa(char *str, float n, uint8_t precision) {
   // handle special cases
   if (isnan(n)) {
     strcpy(str, "nan");
@@ -191,15 +184,15 @@ char_t fntoa(char_t *str, float n, uint8_t precision) {
   }
 
   switch (precision) {
-  case 0: return (char_t)sprintf((char *)str, "%0.0f", (double)n);
-  case 1: return (char_t)sprintf((char *)str, "%0.1f", (double)n);
-  case 2: return (char_t)sprintf((char *)str, "%0.2f", (double)n);
-  case 3: return (char_t)sprintf((char *)str, "%0.3f", (double)n);
-  case 4: return (char_t)sprintf((char *)str, "%0.4f", (double)n);
-  case 5: return (char_t)sprintf((char *)str, "%0.5f", (double)n);
-  case 6: return (char_t)sprintf((char *)str, "%0.6f", (double)n);
-  case 7: return (char_t)sprintf((char *)str, "%0.7f", (double)n);
-  default: return (char_t)sprintf((char *)str, "%f", (double)n);
+  case 0: return (char)sprintf((char *)str, "%0.0f", (double)n);
+  case 1: return (char)sprintf((char *)str, "%0.1f", (double)n);
+  case 2: return (char)sprintf((char *)str, "%0.2f", (double)n);
+  case 3: return (char)sprintf((char *)str, "%0.3f", (double)n);
+  case 4: return (char)sprintf((char *)str, "%0.4f", (double)n);
+  case 5: return (char)sprintf((char *)str, "%0.5f", (double)n);
+  case 6: return (char)sprintf((char *)str, "%0.6f", (double)n);
+  case 7: return (char)sprintf((char *)str, "%0.7f", (double)n);
+  default: return (char)sprintf((char *)str, "%f", (double)n);
   }
 }
 
@@ -214,7 +207,7 @@ char_t fntoa(char_t *str, float n, uint8_t precision) {
  */
 #define HASHMASK 9999
 
-uint16_t compute_checksum(char_t const *string, const uint16_t length) {
+uint16_t compute_checksum(char const *string, const uint16_t length) {
   uint32_t h = 0;
   uint16_t len = strlen(string);
 
@@ -224,10 +217,4 @@ uint16_t compute_checksum(char_t const *string, const uint16_t length) {
     h = 31 * h + string[i];
 
   return h % HASHMASK;
-}
-
-
-/// This is a hack to get around some compatibility problems
-uint32_t SysTickTimer_getValue() {
-  return rtc.sys_ticks;
 }

@@ -30,16 +30,21 @@
  * See stepper.h for a detailed explanation of this module.
  */
 
-#include "tinyg.h"
-#include "config.h"
 #include "stepper.h"
-#include "encoder.h"
-#include "planner.h"
-#include "report.h"
-#include "hardware.h"
-#include "text_parser.h"
-#include "util.h"
 
+#include "config.h"
+#include "encoder.h"
+#include "hardware.h"
+#include "util.h"
+#include "rtc.h"
+#include "report.h"
+
+#include "plan/planner.h"
+
+#include <string.h>
+#include <stdbool.h>
+#include <math.h>
+#include <stdio.h>
 
 stConfig_t st_cfg;
 stPrepSingleton_t st_pre;
@@ -51,6 +56,13 @@ static void _request_load_move();
 
 // handy macro
 #define _f_to_period(f) (uint16_t)((float)F_CPU / (float)f)
+
+#define MOTOR_1        0
+#define MOTOR_2        1
+#define MOTOR_3        2
+#define MOTOR_4        3
+#define MOTOR_5        4
+#define MOTOR_6        5
 
 
 /*
@@ -64,7 +76,6 @@ static void _request_load_move();
  */
 void stepper_init() {
   memset(&st_run, 0, sizeof(st_run));          // clear all values, pointers and status
-  stepper_init_assertions();
 
   // Configure virtual ports
   PORTCFG.VPCTRLA = PORTCFG_VP0MAP_PORT_MOTOR_1_gc | PORTCFG_VP1MAP_PORT_MOTOR_2_gc;
@@ -99,26 +110,63 @@ void stepper_init() {
   TIMER_EXEC.PER = EXEC_TIMER_PERIOD;          // set period
 
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
+
+  // defaults
+  st_cfg.motor_power_timeout = MOTOR_IDLE_TIMEOUT;
+
+  st_cfg.mot[MOTOR_1].motor_map =  M1_MOTOR_MAP;
+  st_cfg.mot[MOTOR_1].step_angle = M1_STEP_ANGLE;
+  st_cfg.mot[MOTOR_1].travel_rev = M1_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_1].microsteps = M1_MICROSTEPS;
+  st_cfg.mot[MOTOR_1].polarity =   M1_POLARITY;
+  st_cfg.mot[MOTOR_1].power_mode = M1_POWER_MODE;
+#if (MOTORS >= 2)
+  st_cfg.mot[MOTOR_2].motor_map =  M2_MOTOR_MAP;
+  st_cfg.mot[MOTOR_2].step_angle = M2_STEP_ANGLE;
+  st_cfg.mot[MOTOR_2].travel_rev = M2_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_2].microsteps = M2_MICROSTEPS;
+  st_cfg.mot[MOTOR_2].polarity =   M2_POLARITY;
+  st_cfg.mot[MOTOR_2].power_mode = M2_POWER_MODE;
+#endif
+#if (MOTORS >= 3)
+  st_cfg.mot[MOTOR_3].motor_map =  M3_MOTOR_MAP;
+  st_cfg.mot[MOTOR_3].step_angle = M3_STEP_ANGLE;
+  st_cfg.mot[MOTOR_3].travel_rev = M3_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_3].microsteps = M3_MICROSTEPS;
+  st_cfg.mot[MOTOR_3].polarity =   M3_POLARITY;
+  st_cfg.mot[MOTOR_3].power_mode = M3_POWER_MODE;
+#endif
+#if (MOTORS >= 4)
+  st_cfg.mot[MOTOR_4].motor_map =  M4_MOTOR_MAP;
+  st_cfg.mot[MOTOR_4].step_angle = M4_STEP_ANGLE;
+  st_cfg.mot[MOTOR_4].travel_rev = M4_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_4].microsteps = M4_MICROSTEPS;
+  st_cfg.mot[MOTOR_4].polarity =   M4_POLARITY;
+  st_cfg.mot[MOTOR_4].power_mode = M4_POWER_MODE;
+#endif
+#if (MOTORS >= 5)
+  st_cfg.mot[MOTOR_5].motor_map =  M5_MOTOR_MAP;
+  st_cfg.mot[MOTOR_5].step_angle = M5_STEP_ANGLE;
+  st_cfg.mot[MOTOR_5].travel_rev = M5_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_5].microsteps = M5_MICROSTEPS;
+  st_cfg.mot[MOTOR_5].polarity =   M5_POLARITY;
+  st_cfg.mot[MOTOR_5].power_mode = M5_POWER_MODE;
+#endif
+#if (MOTORS >= 6)
+  st_cfg.mot[MOTOR_6].motor_map =  M6_MOTOR_MAP;
+  st_cfg.mot[MOTOR_6].step_angle = M6_STEP_ANGLE;
+  st_cfg.mot[MOTOR_6].travel_rev = M6_TRAVEL_PER_REV;
+  st_cfg.mot[MOTOR_6].microsteps = M6_MICROSTEPS;
+  st_cfg.mot[MOTOR_6].polarity =   M6_POLARITY;
+  st_cfg.mot[MOTOR_6].power_mode = M6_POWER_MODE;
+#endif
+
+  // Init steps per unit
+  for (int m = 0; m < MOTORS; m++)
+    st_cfg.mot[m].steps_per_unit =
+      (360 * st_cfg.mot[m].microsteps) / (st_cfg.mot[m].travel_rev * st_cfg.mot[m].step_angle);
+
   st_reset();                                  // reset steppers to known state
-}
-
-
-void stepper_init_assertions() {
-  st_run.magic_end   = MAGICNUM;
-  st_run.magic_start = MAGICNUM;
-  st_pre.magic_end   = MAGICNUM;
-  st_pre.magic_start = MAGICNUM;
-}
-
-
-/// Test assertions, return error code if violation exists
-stat_t stepper_test_assertions() {
-  if (st_run.magic_end   != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
-  if (st_run.magic_start != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
-  if (st_pre.magic_end   != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
-  if (st_pre.magic_start != MAGICNUM) return STAT_STEPPER_ASSERTION_FAILURE;
-
-  return STAT_OK;
 }
 
 
@@ -146,19 +194,11 @@ void st_reset() {
 }
 
 
-/// Clear diagnostic counters, reset stepper prep
-stat_t st_clc(nvObj_t *nv) {
-  st_reset();
-  return STAT_OK;
-}
-
-
 /*
  * Motor power management functions
  *
  * _deenergize_motor()         - remove power from a motor
  * _energize_motor()         - apply power to a motor
- * _set_motor_power_level()     - set the actual Vref to a specified power level
  *
  * st_energize_motors()         - apply power to all motors
  * st_deenergize_motors()     - remove power from all motors
@@ -228,7 +268,7 @@ void st_deenergize_motors() {
  */
 stat_t st_motor_power_callback() { // called by controller
   // manage power for each motor individually
-  for (uint8_t m = MOTOR_1; m < MOTORS; m++) {
+  for (uint8_t m = 0; m < MOTORS; m++) {
 
     // de-energize motor if it's set to MOTOR_DISABLED
     if (st_cfg.mot[m].power_mode == MOTOR_DISABLED) {
@@ -245,7 +285,7 @@ stat_t st_motor_power_callback() { // called by controller
     // start a countdown if MOTOR_POWERED_IN_CYCLE or MOTOR_POWERED_ONLY_WHEN_MOVING
     if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_START) {
       st_run.mot[m].power_state = MOTOR_POWER_TIMEOUT_COUNTDOWN;
-      st_run.mot[m].power_systick = SysTickTimer_getValue() +
+      st_run.mot[m].power_systick = rtc_get_time() +
         (st_cfg.motor_power_timeout * 1000);
     }
 
@@ -257,10 +297,10 @@ stat_t st_motor_power_callback() { // called by controller
 
     // run the countdown if you are in a countdown
     if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN) {
-      if (SysTickTimer_getValue() > st_run.mot[m].power_systick ) {
+      if (rtc_get_time() > st_run.mot[m].power_systick ) {
         st_run.mot[m].power_state = MOTOR_IDLE;
         _deenergize_motor(m);
-        sr_request_status_report(SR_TIMED_REQUEST);        // request a status report when motors shut down
+        report_request(); // request a status report when motors shut down
       }
     }
   }
@@ -641,7 +681,6 @@ stat_t st_prep_line(float travel_steps[], float following_error[], float segment
   st_pre.dda_ticks_X_substeps = st_pre.dda_ticks * DDA_SUBSTEPS;
 
   // setup motor parameters
-  float correction_steps;
   for (uint8_t motor = 0; motor < MOTORS; motor++) {
     // Skip this motor if there are no new steps. Leave all other values intact.
     if (fp_ZERO(travel_steps[motor])) {
@@ -673,6 +712,8 @@ stat_t st_prep_line(float travel_steps[], float following_error[], float segment
     }
 
 #ifdef __STEP_CORRECTION
+    float correction_steps;
+
     // 'Nudge' correction strategy. Inject a single, scaled correction value then hold off
     if ((--st_pre.mot[motor].correction_holdoff < 0) &&
         (fabs(following_error[motor]) > STEP_CORRECTION_THRESHOLD)) {
@@ -727,176 +768,53 @@ void st_prep_dwell(float microseconds) {
 }
 
 
-/// Helper to return motor number as an index
-static int8_t _get_motor(const nvObj_t *nv) {
-  return nv->group[0] ? nv->group[0] : nv->token[0] - 0x31;
+float get_ang(int index) {return st_cfg.mot[index].step_angle;}
+float get_trvl(int index) {return st_cfg.mot[index].travel_rev;}
+uint16_t get_mstep(int index) {return st_cfg.mot[index].microsteps;}
+bool get_pol(int index) {return st_cfg.mot[index].polarity;}
+uint16_t get_mvel(int index) {return 0;}
+uint16_t get_mjerk(int index) {return 0;}
+
+
+void update_steps_per_unit(int index) {
+  st_cfg.mot[index].steps_per_unit =
+    (360 * st_cfg.mot[index].microsteps) /
+    (st_cfg.mot[index].travel_rev * st_cfg.mot[index].step_angle);
 }
 
 
-/// This function will need to be rethought if microstep morphing is implemented
-static void _set_motor_steps_per_unit(nvObj_t *nv) {
-  uint8_t m = _get_motor(nv);
-  st_cfg.mot[m].steps_per_unit = (360 * st_cfg.mot[m].microsteps) / (st_cfg.mot[m].travel_rev * st_cfg.mot[m].step_angle);
-  st_reset();
+void set_ang(int index, float value) {
+  st_cfg.mot[index].step_angle = value;
+  update_steps_per_unit(index);
 }
 
 
-/// Set motor step angle
-stat_t st_set_sa(nvObj_t *nv) {
-  set_flt(nv);
-  _set_motor_steps_per_unit(nv);
-
-  return STAT_OK;
+void set_trvl(int index, float value) {
+  st_cfg.mot[index].travel_rev = value;
+  update_steps_per_unit(index);
 }
 
 
-/// Set motor travel per revolution
-stat_t st_set_tr(nvObj_t *nv) {
-  set_flu(nv);
-  _set_motor_steps_per_unit(nv);
-
-  return STAT_OK;
-}
-
-
-// Set motor microsteps
-stat_t st_set_mi(nvObj_t *nv) {
-  set_int(nv);
-  _set_motor_steps_per_unit(nv);
-
-  return STAT_OK;
-}
-
-
-// Set motor power mode
-stat_t st_set_pm(nvObj_t *nv) {
-  // NOTE: The motor power callback makes these settings take effect immediately
-  if ((uint8_t)nv->value >= MOTOR_POWER_MODE_MAX_VALUE)
-    return STAT_INPUT_VALUE_RANGE_ERROR;
-
-  set_ui8(nv);
-
-  return STAT_OK;
-}
-
-
-/*
- * st_set_pl() - set motor power level
- *
- *    Input value may vary from 0.000 to 1.000 The setting is scaled to allowable PWM range.
- *    This function sets both the scaled and dynamic power levels, and applies the
- *    scaled value to the vref.
- */
-stat_t st_set_pl(nvObj_t *nv) {
-  return STAT_OK;
-}
-
-
-/// get motor enable power state
-stat_t st_get_pwr(nvObj_t *nv) {
-  nv->value = _motor_is_enabled(_get_motor(nv));
-  nv->valuetype = TYPE_INTEGER;
-
-  return STAT_OK;
-}
-
-
-/* GLOBAL FUNCTIONS (SYSTEM LEVEL)
- * Calling me or md with 0 will enable or disable all motors
- * Setting a value of 0 will enable or disable all motors
- * Setting a value from 1 to MOTORS will enable or disable that motor only
- */
-
-/// Set motor timeout in seconds
-stat_t st_set_mt(nvObj_t *nv) {
-  st_cfg.motor_power_timeout = min(MOTOR_TIMEOUT_SECONDS_MAX, max(nv->value, MOTOR_TIMEOUT_SECONDS_MIN));
-  return STAT_OK;
-}
-
-
-/// Disable motor power
-stat_t st_set_md(nvObj_t *nv) {
-  // Make sure this function is not part of initialization --> f00
-  if (((uint8_t)nv->value == 0) || (nv->valuetype == TYPE_0))
-    st_deenergize_motors();
-
-  else {
-    uint8_t motor = (uint8_t)nv->value;
-    if (motor > MOTORS) return STAT_INPUT_VALUE_RANGE_ERROR;
-    _deenergize_motor(motor - 1);     // adjust so that motor 1 is actually 0 (etc)
+void set_mstep(int index, uint16_t value) {
+  switch (value) {
+  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
+    break;
+  default: return;
   }
 
-  return STAT_OK;
+  st_cfg.mot[index].microsteps = value;
+  update_steps_per_unit(index);
 }
 
 
-/// enable motor power
-stat_t st_set_me(nvObj_t *nv) {
-  // Make sure this function is not part of initialization --> f00
-  if (((uint8_t)nv->value == 0) || (nv->valuetype == TYPE_0))
-    st_energize_motors();
-
-  else {
-    uint8_t motor = (uint8_t)nv->value;
-    if (motor > MOTORS) return STAT_INPUT_VALUE_RANGE_ERROR;
-    _energize_motor(motor - 1);     // adjust so that motor 1 is actually 0 (etc)
-  }
-
-  return STAT_OK;
+void set_pol(int index, bool value) {
+  st_cfg.mot[index].polarity = value;
 }
 
 
-#ifdef __TEXT_MODE
-
-static const char msg_units0[] PROGMEM = " in";    // used by generic print functions
-static const char msg_units1[] PROGMEM = " mm";
-static const char msg_units2[] PROGMEM = " deg";
-static const char *const msg_units[] PROGMEM = {msg_units0, msg_units1, msg_units2};
-#define DEGREE_INDEX 2
-
-static const char fmt_me[] PROGMEM = "motors energized\n";
-static const char fmt_md[] PROGMEM = "motors de-energized\n";
-static const char fmt_mt[] PROGMEM = "[mt]  motor idle timeout%14.2f Sec\n";
-static const char fmt_0ma[] PROGMEM = "[%s%s] m%s map to axis%15d [0=X,1=Y,2=Z...]\n";
-static const char fmt_0sa[] PROGMEM = "[%s%s] m%s step angle%20.3f%s\n";
-static const char fmt_0tr[] PROGMEM = "[%s%s] m%s travel per revolution%10.4f%s\n";
-static const char fmt_0mi[] PROGMEM = "[%s%s] m%s microsteps%16d [1,2,4,8,16,32,64,128,256]\n";
-static const char fmt_0po[] PROGMEM = "[%s%s] m%s polarity%18d [0=normal,1=reverse]\n";
-static const char fmt_0pm[] PROGMEM = "[%s%s] m%s power management%10d [0=disabled,1=always on,2=in cycle,3=when moving]\n";
-static const char fmt_0pl[] PROGMEM = "[%s%s] m%s motor power level%13.3f [0.000=minimum, 1.000=maximum]\n";
-static const char fmt_pwr[] PROGMEM = "Motor %c power enabled state:%2.0f\n";
-
-void st_print_mt(nvObj_t *nv) {text_print_flt(nv, fmt_mt);}
-void st_print_me(nvObj_t *nv) {text_print_nul(nv, fmt_me);}
-void st_print_md(nvObj_t *nv) {text_print_nul(nv, fmt_md);}
-
-
-static void _print_motor_ui8(nvObj_t *nv, const char *format) {
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, (uint8_t)nv->value);
+void set_mvel(int index, uint16_t value) {
 }
 
 
-static void _print_motor_flt_units(nvObj_t *nv, const char *format, uint8_t units) {
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, nv->value, GET_TEXT_ITEM(msg_units, units));
+void set_mjerk(int index, uint16_t value) {
 }
-
-
-static void _print_motor_flt(nvObj_t *nv, const char *format) {
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, nv->value);
-}
-
-static void _print_motor_pwr(nvObj_t *nv, const char *format) {
-  fprintf_P(stderr, format, nv->token[0], nv->value);
-}
-
-
-void st_print_ma(nvObj_t *nv) {_print_motor_ui8(nv, fmt_0ma);}
-void st_print_sa(nvObj_t *nv) {_print_motor_flt_units(nv, fmt_0sa, DEGREE_INDEX);}
-void st_print_tr(nvObj_t *nv) {_print_motor_flt_units(nv, fmt_0tr, cm_get_units_mode(MODEL));}
-void st_print_mi(nvObj_t *nv) {_print_motor_ui8(nv, fmt_0mi);}
-void st_print_po(nvObj_t *nv) {_print_motor_ui8(nv, fmt_0po);}
-void st_print_pm(nvObj_t *nv) {_print_motor_ui8(nv, fmt_0pm);}
-void st_print_pl(nvObj_t *nv) {_print_motor_flt(nv, fmt_0pl);}
-void st_print_pwr(nvObj_t *nv){_print_motor_pwr(nv, fmt_pwr);}
-
-#endif // __TEXT_MODE

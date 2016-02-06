@@ -1,8 +1,8 @@
 /*
- * gpio.c - general purpose IO bits - including limit switches, inputs, outputs
- * Part of TinyG project
+ * kinematics.h - inverse kinematics routines
+ * This file is part of the TinyG project
  *
- * Copyright (c) 2010 - 2014 Alden S. Hart Jr.
+ * Copyright (c) 2013 - 2014 Alden S. Hart, Jr.
  *
  * This file ("the software") is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2 as published by the
@@ -25,22 +25,9 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GPIO_H
-#define GPIO_H
+#ifndef KINEMATICS_H
+#define KINEMATICS_H
 
-#include <stdint.h>
+void ik_kinematics(const float travel[], float steps[]);
 
-void indicator_led_set();
-void indicator_led_clear();
-void indicator_led_toggle();
-
-void gpio_led_on(uint8_t led);
-void gpio_led_off(uint8_t led);
-void gpio_led_toggle(uint8_t led);
-
-uint8_t gpio_read_bit(uint8_t b);
-void gpio_set_bit_on(uint8_t b);
-void gpio_set_bit_off(uint8_t b);
-void gpio_set_bit_toggle(uint8_t b);
-
-#endif // GPIO_H
+#endif // KINEMATICS_H

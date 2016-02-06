@@ -89,21 +89,25 @@
  *        and have no buffer.
  */
 
-#include "tinyg.h"            // #1
-#include "config.h"           // #2
-#include "text_parser.h"
 #include "canonical_machine.h"
-#include "plan_arc.h"
-#include "planner.h"
+
+#include "config.h"
 #include "stepper.h"
 #include "encoder.h"
 #include "spindle.h"
-#include "report.h"
 #include "gpio.h"
 #include "switch.h"
 #include "hardware.h"
 #include "util.h"
 #include "usart.h"            // for serial queue flush
+
+#include "plan/arc.h"
+#include "plan/planner.h"
+
+#include <stdbool.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
 
 cmSingleton_t cm;        // canonical machine controller singleton
 
@@ -115,9 +119,6 @@ static void _exec_mist_coolant_control(float *value, float *flag);
 static void _exec_flood_coolant_control(float *value, float *flag);
 static void _exec_absolute_origin(float *value, float *flag);
 static void _exec_program_finalize(float *value, float *flag);
-
-static int8_t _get_axis(const index_t index);
-static int8_t _get_axis_type(const index_t index);
 
 /*
  * Canonical Machine State functions
@@ -184,21 +185,33 @@ uint8_t cm_get_runtime_busy() {return mp_get_runtime_busy();}
 
 float cm_get_feed_rate(GCodeState_t *gcode_state) {return gcode_state->feed_rate;}
 
-void cm_set_motion_mode(GCodeState_t *gcode_state, uint8_t motion_mode) {gcode_state->motion_mode = motion_mode;}
-void cm_set_spindle_mode(GCodeState_t *gcode_state, uint8_t spindle_mode) {gcode_state->spindle_mode = spindle_mode;}
-void cm_set_spindle_speed_parameter(GCodeState_t *gcode_state, float speed) {gcode_state->spindle_speed = speed;}
+
+void cm_set_motion_mode(GCodeState_t *gcode_state, uint8_t motion_mode) {
+  gcode_state->motion_mode = motion_mode;
+}
+
+
+void cm_set_spindle_mode(GCodeState_t *gcode_state, uint8_t spindle_mode) {
+  gcode_state->spindle_mode = spindle_mode;
+}
+
+
+void cm_set_spindle_speed_parameter(GCodeState_t *gcode_state, float speed) {
+  gcode_state->spindle_speed = speed;
+}
+
+
 void cm_set_tool_number(GCodeState_t *gcode_state, uint8_t tool) {gcode_state->tool = tool;}
 
 
 void cm_set_absolute_override(GCodeState_t *gcode_state, uint8_t absolute_override) {
   gcode_state->absolute_override = absolute_override;
-  cm_set_work_offsets(MODEL);                // must reset offsets if you change absolute override
+  cm_set_work_offsets(MODEL); // must reset offsets if you change absolute override
 }
 
 
 void cm_set_model_linenum(uint32_t linenum) {
-  cm.gm.linenum = linenum;                // you must first set the model line number,
-  nv_add_object((const char_t *)"n");    // then add the line number to the nv list
+  cm.gm.linenum = linenum; // you must first set the model line number,
 }
 
 
@@ -224,7 +237,7 @@ void cm_set_model_linenum(uint32_t linenum) {
  *
  * To reduce complexity and data load the following is done:
  *    - Full data for coordinates/offsets is only accessible by the canonical machine, not the downstream
- *    - A fully resolved set of coord and G92 offsets, with per-move exceptions can be captured as "work_offsets"
+ *    - Resolved set of coord and G92 offsets, with per-move exceptions can be captured as "work_offsets"
  *    - The core gcode context (gm) only knows about the active coord system and the work offsets
  */
 
@@ -266,7 +279,7 @@ float cm_get_work_offset(GCodeState_t *gcode_state, uint8_t axis) {
  *        MODEL         (GCodeState_t *)&cm.gm      // absolute pointer from canonical machine gm model
  *        PLANNER       (GCodeState_t *)&bf->gm     // relative to buffer *bf is currently pointing to
  *        RUNTIME       (GCodeState_t *)&mr.gm      // absolute pointer from runtime mm struct
- *        ACTIVE_MODEL cm.am                        // active model pointer is maintained by state management
+ *        ACTIVE_MODEL cm.am                        // active model pointer maintained by state management
  */
 void cm_set_work_offsets(GCodeState_t *gcode_state) {
   for (uint8_t axis = AXIS_X; axis < AXES; axis++)
@@ -275,7 +288,7 @@ void cm_set_work_offsets(GCodeState_t *gcode_state) {
 
 
 /*
- * cm_get_absolute_position() - get position of axis in absolute coordinates
+ * Get position of axis in absolute coordinates
  *
  *    This function accepts as input:
  *        MODEL         (GCodeState_t *)&cm.gm        // absolute pointer from canonical machine gm model
@@ -289,8 +302,9 @@ float cm_get_absolute_position(GCodeState_t *gcode_state, uint8_t axis) {
   return mp_get_runtime_absolute_position(axis);
 }
 
+
 /*
- * cm_get_work_position() - return work position in external form
+ * Return work position in external form
  *
  *    ... that means in prevailing units (mm/inch) and with all offsets applied
  *
@@ -323,12 +337,11 @@ float cm_get_work_position(GCodeState_t *gcode_state, uint8_t axis) {
  ***********************************************************************************/
 
 /*
- * cm_finalize_move() - perform final operations for a traverse or feed
- * cm_update_model_position_from_runtime() - set endpoint position from final runtime position
+ * Perform final operations for a traverse or feed
  *
- *     These routines set the point position in the gcode model.
+ *    These routines set the point position in the gcode model.
  *
- *     Note: As far as the canonical machine is concerned the final position of a Gcode block (move)
+ *    Note: As far as the canonical machine is concerned the final position of a Gcode block (move)
  *    is achieved as soon as the move is planned and the move target becomes the new model position.
  *    In reality the planner will (in all likelihood) have only just queued the move for later
  *    execution, and the real tool position is still close to the starting point.
@@ -342,27 +355,23 @@ void cm_finalize_move() {
 }
 
 
+/// Set endpoint position from final runtime position
 void cm_update_model_position_from_runtime() {copy_vector(cm.gmx.position, mr.gm.target);}
 
 
 /*
- * cm_deferred_write_callback() - write any changed G10 values back to persistence
+ * Write any changed G10 values back to persistence
  *
  *    Only runs if there is G10 data to write, there is no movement, and the serial queues are quiescent
  *    This could be made tighter by issuing an XOFF or ~CTS beforehand and releasing it afterwards.
  */
 stat_t cm_deferred_write_callback() {
-  if ((cm.cycle_state == CYCLE_OFF) && (cm.deferred_write_flag == true)) {
-    if (!usart_rx_empty()) return STAT_OK; // don't write back if serial RX is not empty
+  if (cm.cycle_state == CYCLE_OFF && cm.deferred_write_flag && usart_rx_empty()) {
     cm.deferred_write_flag = false;
-    nvObj_t nv;
-    for (uint8_t i=1; i<=COORDS; i++)
-      for (uint8_t j=0; j<AXES; j++) {
-        sprintf((char *)nv.token, "g%2d%c", 53+i, ("xyzabc")[j]);
-        nv.index = nv_get_index((const char_t *)"", nv.token);
-        nv.value = cm.offset[i][j];
-        nv_persist(&nv);                  // Note: only writes values that have changed
-      }
+
+    for (uint8_t i = 1; i <= COORDS; i++)
+      for (uint8_t j = 0; j < AXES; j++)
+        ;// TODO store cm.offset[i][j];
   }
 
   return STAT_OK;
@@ -370,7 +379,7 @@ stat_t cm_deferred_write_callback() {
 
 
 /*
- * cm_set_model_target() - set target vector in GM model
+ * Set target vector in GM model
  *
  * This is a core routine. It handles:
  *    - conversion of linear units to internal canonical form (mm)
@@ -437,9 +446,9 @@ void cm_set_model_target(float target[], float flag[]) {
  *    disabled, should that requirement ever arise.
  */
 stat_t cm_test_soft_limits(float target[]) {
-  if (cm.soft_limit_enable == true) {
+  if (cm.soft_limit_enable)
     for (uint8_t axis = AXIS_X; axis < AXES; axis++) {
-      if (cm.homed[axis] != true) continue;        // don't test axes that are not homed
+      if (!cm.homed[axis]) continue; // don't test axes that are not homed
 
       if (fp_EQ(cm.a[axis].travel_min, cm.a[axis].travel_max)) continue;
 
@@ -449,7 +458,6 @@ stat_t cm_test_soft_limits(float target[]) {
       if ((cm.a[axis].travel_max > DISABLE_SOFT_LIMIT) && (target[axis] > cm.a[axis].travel_max))
         return STAT_SOFT_LIMIT_EXCEEDED;
     }
-  }
 
   return STAT_OK;
 }
@@ -475,10 +483,141 @@ void canonical_machine_init() {
   memset(&cm.gn, 0, sizeof(GCodeInput_t));
   memset(&cm.gf, 0, sizeof(GCodeInput_t));
 
-  canonical_machine_init_assertions();          // establish assertions
   ACTIVE_MODEL = MODEL;                         // setup initial Gcode model pointer
 
-  // set gcode defaults
+  // axes defaults
+  cm.a[AXIS_X].axis_mode =         X_AXIS_MODE;
+  cm.a[AXIS_X].velocity_max =      X_VELOCITY_MAX;
+  cm.a[AXIS_X].feedrate_max =      X_FEEDRATE_MAX;
+  cm.a[AXIS_X].travel_min =        X_TRAVEL_MIN;
+  cm.a[AXIS_X].travel_max =        X_TRAVEL_MAX;
+  cm.a[AXIS_X].jerk_max =          X_JERK_MAX;
+  cm.a[AXIS_X].jerk_homing =       X_JERK_HOMING;
+  cm.a[AXIS_X].junction_dev =      X_JUNCTION_DEVIATION;
+  cm.a[AXIS_X].search_velocity =   X_SEARCH_VELOCITY;
+  cm.a[AXIS_X].latch_velocity =    X_LATCH_VELOCITY;
+  cm.a[AXIS_X].latch_backoff =     X_LATCH_BACKOFF;
+  cm.a[AXIS_X].zero_backoff =      X_ZERO_BACKOFF;
+
+  cm.a[AXIS_Y].axis_mode =         Y_AXIS_MODE;
+  cm.a[AXIS_Y].velocity_max =      Y_VELOCITY_MAX;
+  cm.a[AXIS_Y].feedrate_max =      Y_FEEDRATE_MAX;
+  cm.a[AXIS_Y].travel_min =        Y_TRAVEL_MIN;
+  cm.a[AXIS_Y].travel_max =        Y_TRAVEL_MAX;
+  cm.a[AXIS_Y].jerk_max =          Y_JERK_MAX;
+  cm.a[AXIS_Y].jerk_homing =       Y_JERK_HOMING;
+  cm.a[AXIS_Y].junction_dev =      Y_JUNCTION_DEVIATION;
+  cm.a[AXIS_Y].search_velocity =   Y_SEARCH_VELOCITY;
+  cm.a[AXIS_Y].latch_velocity =    Y_LATCH_VELOCITY;
+  cm.a[AXIS_Y].latch_backoff =     Y_LATCH_BACKOFF;
+  cm.a[AXIS_Y].zero_backoff =      Y_ZERO_BACKOFF;
+
+  cm.a[AXIS_Z].axis_mode =         Z_AXIS_MODE;
+  cm.a[AXIS_Z].velocity_max =      Z_VELOCITY_MAX;
+  cm.a[AXIS_Z].feedrate_max =      Z_FEEDRATE_MAX;
+  cm.a[AXIS_Z].travel_min =        Z_TRAVEL_MIN;
+  cm.a[AXIS_Z].travel_max =        Z_TRAVEL_MAX;
+  cm.a[AXIS_Z].jerk_max =          Z_JERK_MAX;
+  cm.a[AXIS_Z].jerk_homing =       Z_JERK_HOMING;
+  cm.a[AXIS_Z].junction_dev =      Z_JUNCTION_DEVIATION;
+  cm.a[AXIS_Z].search_velocity =   Z_SEARCH_VELOCITY;
+  cm.a[AXIS_Z].latch_velocity =    Z_LATCH_VELOCITY;
+  cm.a[AXIS_Z].latch_backoff =     Z_LATCH_BACKOFF;
+  cm.a[AXIS_Z].zero_backoff =      Z_ZERO_BACKOFF;
+
+  cm.a[AXIS_A].axis_mode =         A_AXIS_MODE;
+  cm.a[AXIS_A].velocity_max =      A_VELOCITY_MAX;
+  cm.a[AXIS_A].feedrate_max =      A_FEEDRATE_MAX;
+  cm.a[AXIS_A].travel_min =        A_TRAVEL_MIN;
+  cm.a[AXIS_A].travel_max =        A_TRAVEL_MAX;
+  cm.a[AXIS_A].jerk_max =          A_JERK_MAX;
+  cm.a[AXIS_A].jerk_homing =       A_JERK_HOMING;
+  cm.a[AXIS_A].junction_dev =      A_JUNCTION_DEVIATION;
+  cm.a[AXIS_A].radius =            A_RADIUS;
+  cm.a[AXIS_A].search_velocity =   A_SEARCH_VELOCITY;
+  cm.a[AXIS_A].latch_velocity =    A_LATCH_VELOCITY;
+  cm.a[AXIS_A].latch_backoff =     A_LATCH_BACKOFF;
+  cm.a[AXIS_A].zero_backoff =      A_ZERO_BACKOFF;
+
+  cm.a[AXIS_B].axis_mode =         B_AXIS_MODE;
+  cm.a[AXIS_B].velocity_max =      B_VELOCITY_MAX;
+  cm.a[AXIS_B].feedrate_max =      B_FEEDRATE_MAX;
+  cm.a[AXIS_B].travel_min =        B_TRAVEL_MIN;
+  cm.a[AXIS_B].travel_max =        B_TRAVEL_MAX;
+  cm.a[AXIS_B].jerk_max =          B_JERK_MAX;
+  cm.a[AXIS_B].junction_dev =      B_JUNCTION_DEVIATION;
+  cm.a[AXIS_B].radius =            B_RADIUS;
+
+  cm.a[AXIS_C].axis_mode =         C_AXIS_MODE;
+  cm.a[AXIS_C].velocity_max =      C_VELOCITY_MAX;
+  cm.a[AXIS_C].feedrate_max =      C_FEEDRATE_MAX;
+  cm.a[AXIS_C].travel_min =        C_TRAVEL_MIN;
+  cm.a[AXIS_C].travel_max =        C_TRAVEL_MAX;
+  cm.a[AXIS_C].jerk_max =          C_JERK_MAX;
+  cm.a[AXIS_C].junction_dev =      C_JUNCTION_DEVIATION;
+  cm.a[AXIS_C].radius =            C_RADIUS;
+
+  // Init 1/jerk
+  for (uint8_t axis = 0; axis < AXES; axis++)
+    cm.a[axis].recip_jerk = 1 / (cm.a[axis].jerk_max * JERK_MULTIPLIER);
+
+  // Coordinate system offset defaults (G54-G59)
+  cm.offset[G54][AXIS_X] = G54_X_OFFSET;
+  cm.offset[G54][AXIS_Y] = G54_Y_OFFSET;
+  cm.offset[G54][AXIS_Z] = G54_Z_OFFSET;
+  cm.offset[G54][AXIS_A] = G54_A_OFFSET;
+  cm.offset[G54][AXIS_B] = G54_B_OFFSET;
+  cm.offset[G54][AXIS_C] = G54_C_OFFSET;
+
+  cm.offset[G55][AXIS_X] = G55_X_OFFSET;
+  cm.offset[G55][AXIS_Y] = G55_Y_OFFSET;
+  cm.offset[G55][AXIS_Z] = G55_Z_OFFSET;
+  cm.offset[G55][AXIS_A] = G55_A_OFFSET;
+  cm.offset[G55][AXIS_B] = G55_B_OFFSET;
+  cm.offset[G55][AXIS_C] = G55_C_OFFSET;
+
+  cm.offset[G56][AXIS_X] = G56_X_OFFSET;
+  cm.offset[G56][AXIS_Y] = G56_Y_OFFSET;
+  cm.offset[G56][AXIS_Z] = G56_Z_OFFSET;
+  cm.offset[G56][AXIS_A] = G56_A_OFFSET;
+  cm.offset[G56][AXIS_B] = G56_B_OFFSET;
+  cm.offset[G56][AXIS_C] = G56_C_OFFSET;
+
+  cm.offset[G57][AXIS_X] = G57_X_OFFSET;
+  cm.offset[G57][AXIS_Y] = G57_Y_OFFSET;
+  cm.offset[G57][AXIS_Z] = G57_Z_OFFSET;
+  cm.offset[G57][AXIS_A] = G57_A_OFFSET;
+  cm.offset[G57][AXIS_B] = G57_B_OFFSET;
+  cm.offset[G57][AXIS_C] = G57_C_OFFSET;
+
+  cm.offset[G58][AXIS_X] = G58_X_OFFSET;
+  cm.offset[G58][AXIS_Y] = G58_Y_OFFSET;
+  cm.offset[G58][AXIS_Z] = G58_Z_OFFSET;
+  cm.offset[G58][AXIS_A] = G58_A_OFFSET;
+  cm.offset[G58][AXIS_B] = G58_B_OFFSET;
+  cm.offset[G58][AXIS_C] = G58_C_OFFSET;
+
+  cm.offset[G59][AXIS_X] = G59_X_OFFSET;
+  cm.offset[G59][AXIS_Y] = G59_Y_OFFSET;
+  cm.offset[G59][AXIS_Z] = G59_Z_OFFSET;
+  cm.offset[G59][AXIS_A] = G59_A_OFFSET;
+  cm.offset[G59][AXIS_B] = G59_B_OFFSET;
+  cm.offset[G59][AXIS_C] = G59_C_OFFSET;
+
+  // Machine defaults
+  cm.junction_acceleration = JUNCTION_ACCELERATION;
+  cm.chordal_tolerance = CHORDAL_TOLERANCE;
+  cm.soft_limit_enable = SOFT_LIMIT_ENABLE;
+  cm.arc_segment_len = ARC_SEGMENT_LENGTH;
+
+  // GCode defaults
+  cm.select_plane = GCODE_DEFAULT_PLANE;
+  cm.units_mode = GCODE_DEFAULT_UNITS;
+  cm.coord_system = GCODE_DEFAULT_COORD_SYSTEM;
+  cm.path_control = GCODE_DEFAULT_PATH_CONTROL;
+  cm.distance_mode = GCODE_DEFAULT_DISTANCE_MODE;
+
+  // Set gcode defaults
   cm_set_units_mode(cm.units_mode);
   cm_set_coord_system(cm.coord_system);
   cm_select_plane(cm.select_plane);
@@ -488,60 +627,34 @@ void canonical_machine_init() {
 
   cm.gmx.block_delete_switch = true;
 
-  // never start a machine in a motion mode
+  // Never start a machine in a motion mode
   cm.gm.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE;
 
-  // reset request flags
+  // Reset request flags
   cm.feedhold_requested = false;
   cm.queue_flush_requested = false;
   cm.cycle_start_requested = false;
 
-  // signal that the machine is ready for action
+  // Signal that the machine is ready for action
   cm.machine_state = MACHINE_READY;
   cm.combined_state = COMBINED_READY;
 
-  // sub-system inits
+  // Sub-system inits
   cm_spindle_init();
   cm_arc_init();
 }
 
 
-/*
- * canonical_machine_init_assertions()
- * canonical_machine_test_assertions() - test assertions, return error code if violation exists
- */
-void canonical_machine_init_assertions() {
-  cm.magic_start = MAGICNUM;
-  cm.magic_end = MAGICNUM;
-  cm.gmx.magic_start = MAGICNUM;
-  cm.gmx.magic_end = MAGICNUM;
-  arc.magic_start = MAGICNUM;
-  arc.magic_end = MAGICNUM;
-}
-
-
-stat_t canonical_machine_test_assertions() {
-  if ((cm.magic_start     != MAGICNUM) || (cm.magic_end     != MAGICNUM)) return STAT_CANONICAL_MACHINE_ASSERTION_FAILURE;
-  if ((cm.gmx.magic_start != MAGICNUM) || (cm.gmx.magic_end != MAGICNUM)) return STAT_CANONICAL_MACHINE_ASSERTION_FAILURE;
-  if ((arc.magic_start    != MAGICNUM) || (arc.magic_end    != MAGICNUM)) return STAT_CANONICAL_MACHINE_ASSERTION_FAILURE;
-
-  return STAT_OK;
-}
-
-
-/*
- * cm_soft_alarm() - alarm state; send an exception report and stop processing input
- * cm_clear()      - clear soft alarm
- * cm_hard_alarm() - alarm state; send an exception report and shut down machine
- */
+/// Alarm state; send an exception report and stop processing input
 stat_t cm_soft_alarm(stat_t status) {
-  rpt_exception(status);                // send alarm message
+  print_status_message("Soft alarm", status);
   cm.machine_state = MACHINE_ALARM;
-  return status;                        // NB: More efficient than inlining rpt_exception() call.
+  return status;
 }
 
 
-stat_t cm_clear(nvObj_t *nv) {               // clear soft alarm
+/// Clear soft alarm
+stat_t cm_clear() {
   if (cm.cycle_state == CYCLE_OFF)
     cm.machine_state = MACHINE_PROGRAM_STOP;
   else cm.machine_state = MACHINE_CYCLE;
@@ -550,11 +663,12 @@ stat_t cm_clear(nvObj_t *nv) {               // clear soft alarm
 }
 
 
+/// Alarm state; send an exception report and shut down machine
 stat_t cm_hard_alarm(stat_t status) {
-  // stop the motors and the spindle
-  stepper_init();                           // hard stop
+  // Hard stop the motors and the spindle
+  stepper_init();
   cm_spindle_control(SPINDLE_OFF);
-  rpt_exception(status);                    // send shutdown message
+  print_status_message("HARD ALARM", status);
   cm.machine_state = MACHINE_SHUTDOWN;
   return status;
 }
@@ -865,7 +979,7 @@ stat_t cm_set_path_control(uint8_t mode) {
  * Machining Functions (4.3.6) *
  *******************************/
 /*
- * cm_arc_feed() - SEE plan_arc.c(pp)
+ * cm_arc_feed() - SEE arc.c(pp)
  */
 
 
@@ -895,6 +1009,7 @@ stat_t cm_straight_feed(float target[], float flags[]) {
   cm_cycle_start();                           // required for homing & other cycles
   status = mp_aline(&cm.gm);                  // send the move to the planner
   cm_finalize_move();
+
   return status;
 }
 
@@ -1051,13 +1166,8 @@ stat_t cm_spindle_override_factor(uint8_t flag) {       // M50.1
 }
 
 
-/*
- * cm_message() - queue a RAM string as a message in the response (unconditionally)
- *
- *    Note: If you need to post a FLASH string use pstr2str to convert it to a RAM string
- */
-void cm_message(char_t *message) {
-  nv_add_string((const char_t *)"msg", message);    // add message to the response object
+void cm_message(char *message) {
+  printf(message);
 }
 
 
@@ -1160,8 +1270,6 @@ stat_t cm_queue_flush() {
 
   usart_rx_flush();                          // flush serial queues
   mp_flush_planner();                        // flush planner queue
-  qr_request_queue_report(0);                // request a queue report, since we've changed the number of buffers available
-  rx_request_rx_report();
 
   // Note: The following uses low-level mp calls for absolute position.
   //   It could also use cm_get_absolute_position(RUNTIME, axis);
@@ -1231,18 +1339,14 @@ static void _exec_program_finalize(float *value, float *flag) {
     cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);    // G94
     cm_set_motion_mode(MODEL, MOTION_MODE_CANCEL_MOTION_MODE);
   }
-
-  sr_request_status_report(SR_IMMEDIATE_REQUEST);    // request a final status report (not unfiltered)
 }
 
 
 void cm_cycle_start() {
   cm.machine_state = MACHINE_CYCLE;
 
-  if (cm.cycle_state == CYCLE_OFF) {                 // don't (re)start homing, probe or other canned cycles
+  if (cm.cycle_state == CYCLE_OFF)                   // don't (re)start homing, probe or other canned cycles
     cm.cycle_state = CYCLE_MACHINING;
-    qr_init_queue_report();                          // clear queue reporting buffer counts
-  }
 }
 
 
@@ -1272,310 +1376,13 @@ void cm_program_end() {
 }
 
 
-// Strings for writing settings as nvObj string values
-// Ref: http://www.avrfreaks.net/index.php?name=PNphpBB2&file=printview&t=120881&start=0
-#ifdef __TEXT_MODE
-
-static const char msg_units0[] PROGMEM = " in";    // used by generic print functions
-static const char msg_units1[] PROGMEM = " mm";
-static const char msg_units2[] PROGMEM = " deg";
-static const char *const msg_units[] PROGMEM = {msg_units0, msg_units1, msg_units2};
-#define DEGREE_INDEX 2
-
-static const char msg_am00[] PROGMEM = "[disabled]";
-static const char msg_am01[] PROGMEM = "[standard]";
-static const char msg_am02[] PROGMEM = "[inhibited]";
-static const char msg_am03[] PROGMEM = "[radius]";
-static const char *const msg_am[] PROGMEM = {msg_am00, msg_am01, msg_am02, msg_am03};
-
-static const char msg_g20[] PROGMEM = "G20 - inches mode";
-static const char msg_g21[] PROGMEM = "G21 - millimeter mode";
-static const char *const msg_unit[] PROGMEM = {msg_g20, msg_g21};
-
-static const char msg_stat0[] PROGMEM = "Initializing";    // combined state (stat) uses this array
-static const char msg_stat1[] PROGMEM = "Ready";
-static const char msg_stat2[] PROGMEM = "Alarm";
-static const char msg_stat3[] PROGMEM = "Stop";
-static const char msg_stat4[] PROGMEM = "End";
-static const char msg_stat5[] PROGMEM = "Run";
-static const char msg_stat6[] PROGMEM = "Hold";
-static const char msg_stat7[] PROGMEM = "Probe";
-static const char msg_stat8[] PROGMEM = "Cycle";
-static const char msg_stat9[] PROGMEM = "Homing";
-static const char msg_stat10[] PROGMEM = "Jog";
-static const char msg_stat11[] PROGMEM = "Shutdown";
-static const char *const msg_stat[] PROGMEM = {
-  msg_stat0, msg_stat1, msg_stat2, msg_stat3,
-  msg_stat4, msg_stat5, msg_stat6, msg_stat7,
-  msg_stat8, msg_stat9, msg_stat10, msg_stat11
-};
-
-static const char msg_macs0[] PROGMEM = "Initializing";
-static const char msg_macs1[] PROGMEM = "Ready";
-static const char msg_macs2[] PROGMEM = "Alarm";
-static const char msg_macs3[] PROGMEM = "Stop";
-static const char msg_macs4[] PROGMEM = "End";
-static const char msg_macs5[] PROGMEM = "Cycle";
-static const char msg_macs6[] PROGMEM = "Shutdown";
-static const char *const msg_macs[] PROGMEM = {
-  msg_macs0, msg_macs1, msg_macs2, msg_macs3,
-  msg_macs4, msg_macs5, msg_macs6
-};
-
-static const char msg_cycs0[] PROGMEM = "Off";
-static const char msg_cycs1[] PROGMEM = "Machining";
-static const char msg_cycs2[] PROGMEM = "Probe";
-static const char msg_cycs3[] PROGMEM = "Homing";
-static const char msg_cycs4[] PROGMEM = "Jog";
-static const char *const msg_cycs[] PROGMEM = {msg_cycs0, msg_cycs1, msg_cycs2, msg_cycs3,  msg_cycs4};
-
-static const char msg_mots0[] PROGMEM = "Stop";
-static const char msg_mots1[] PROGMEM = "Run";
-static const char msg_mots2[] PROGMEM = "Hold";
-static const char *const msg_mots[] PROGMEM = {msg_mots0, msg_mots1, msg_mots2};
-
-static const char msg_hold0[] PROGMEM = "Off";
-static const char msg_hold1[] PROGMEM = "Sync";
-static const char msg_hold2[] PROGMEM = "Plan";
-static const char msg_hold3[] PROGMEM = "Decel";
-static const char msg_hold4[] PROGMEM = "Hold";
-static const char msg_hold5[] PROGMEM = "End Hold";
-static const char *const msg_hold[] PROGMEM = {msg_hold0, msg_hold1, msg_hold2, msg_hold3, msg_hold4,  msg_hold5};
-
-static const char msg_home0[] PROGMEM = "Not Homed";
-static const char msg_home1[] PROGMEM = "Homed";
-static const char msg_home2[] PROGMEM = "Homing";
-static const char *const msg_home[] PROGMEM = {msg_home0, msg_home1, msg_home2};
-
-static const char msg_g53[] PROGMEM = "G53 - machine coordinate system";
-static const char msg_g54[] PROGMEM = "G54 - coordinate system 1";
-static const char msg_g55[] PROGMEM = "G55 - coordinate system 2";
-static const char msg_g56[] PROGMEM = "G56 - coordinate system 3";
-static const char msg_g57[] PROGMEM = "G57 - coordinate system 4";
-static const char msg_g58[] PROGMEM = "G58 - coordinate system 5";
-static const char msg_g59[] PROGMEM = "G59 - coordinate system 6";
-static const char *const msg_coor[] PROGMEM = {msg_g53, msg_g54, msg_g55, msg_g56, msg_g57, msg_g58, msg_g59};
-
-static const char msg_g00[] PROGMEM = "G0  - linear traverse (seek)";
-static const char msg_g01[] PROGMEM = "G1  - linear feed";
-static const char msg_g02[] PROGMEM = "G2  - clockwise arc feed";
-static const char msg_g03[] PROGMEM = "G3  - counter clockwise arc feed";
-static const char msg_g80[] PROGMEM = "G80 - cancel motion mode (none active)";
-static const char *const msg_momo[] PROGMEM = {msg_g00, msg_g01, msg_g02, msg_g03, msg_g80};
-
-static const char msg_g17[] PROGMEM = "G17 - XY plane";
-static const char msg_g18[] PROGMEM = "G18 - XZ plane";
-static const char msg_g19[] PROGMEM = "G19 - YZ plane";
-static const char *const msg_plan[] PROGMEM = {msg_g17, msg_g18, msg_g19};
-
-static const char msg_g61[] PROGMEM = "G61 - exact path mode";
-static const char msg_g6a[] PROGMEM = "G61.1 - exact stop mode";
-static const char msg_g64[] PROGMEM = "G64 - continuous mode";
-static const char *const msg_path[] PROGMEM = {msg_g61, msg_g6a, msg_g64};
-
-static const char msg_g90[] PROGMEM = "G90 - absolute distance mode";
-static const char msg_g91[] PROGMEM = "G91 - incremental distance mode";
-static const char *const msg_dist[] PROGMEM = {msg_g90, msg_g91};
-
-static const char msg_g93[] PROGMEM = "G93 - inverse time mode";
-static const char msg_g94[] PROGMEM = "G94 - units-per-minute mode (i.e. feedrate mode)";
-static const char msg_g95[] PROGMEM = "G95 - units-per-revolution mode";
-static const char *const msg_frmo[] PROGMEM = {msg_g93, msg_g94, msg_g95};
-
-#else
-
-#define msg_units 0
-#define msg_unit 0
-#define msg_stat 0
-#define msg_macs 0
-#define msg_cycs 0
-#define msg_mots 0
-#define msg_hold 0
-#define msg_home 0
-#define msg_coor 0
-#define msg_momo 0
-#define msg_plan 0
-#define msg_path 0
-#define msg_dist 0
-#define msg_frmo 0
-#define msg_am 0
-
-#endif // __TEXT_MODE
-
 /// return ASCII char for axis given the axis number
-char_t cm_get_axis_char(const int8_t axis) {
-  char_t axis_char[] = "XYZABC";
+char cm_get_axis_char(const int8_t axis) {
+  char axis_char[] = "XYZABC";
   if ((axis < 0) || (axis > AXES)) return ' ';
   return axis_char[axis];
 }
 
-
-/// return axis number or -1 if NA
-static int8_t _get_axis(const index_t index) {
-  char_t *ptr;
-  char_t tmp[TOKEN_LEN+1];
-  char_t axes[] = {"xyzabc"};
-
-  strncpy_P(tmp, cfgArray[index].token, TOKEN_LEN);   // kind of a hack. Looks for an axis
-  if ((ptr = strchr(axes, tmp[0])) == 0) {            // character in the 0 and 3 positions
-    if ((ptr = strchr(axes, tmp[3])) == 0)            // to accommodate 'xam' and 'g54x' styles
-      return -1;
-  }
-
-  return ptr - axes;
-}
-
-
-/// return 0 -f axis is linear, 1 if rotary, -1 if NA
-static int8_t _get_axis_type(const index_t index) {
-  int8_t axis = _get_axis(index);
-  if (axis >= AXIS_A) return 1;
-  if (axis == -1) return -1;
-  return 0;
-}
-
-
-/**** Functions called directly from cfgArray table - mostly wrappers ****
- * _get_msg_helper() - helper to get string values
- *
- * cm_get_stat() - get combined machine state as value and string
- * cm_get_macs() - get raw machine state as value and string
- * cm_get_cycs() - get raw cycle state as value and string
- * cm_get_mots() - get raw motion state as value and string
- * cm_get_hold() - get raw hold state as value and string
- * cm_get_home() - get raw homing state as value and string
- *
- * cm_get_unit() - get units mode as integer and display string
- * cm_get_coor() - get goodinate system
- * cm_get_momo() - get runtime motion mode
- * cm_get_plan() - get model gcode plane select
- * cm_get_path() - get model gcode path control mode
- * cm_get_dist() - get model gcode distance mode
- * cm_get_frmo() - get model gcode feed rate mode
- * cm_get_tool() - get tool
- * cm_get_feed() - get feed rate
- * cm_get_mline()- get model line number for status reports
- * cm_get_line() - get active (model or runtime) line number for status reports
- * cm_get_vel()  - get runtime velocity
- * cm_get_ofs()  - get current work offset (runtime)
- * cm_get_pos()  - get current work position (runtime)
- * cm_get_mpos() - get current machine position (runtime)
- *
- * cm_print_pos()- print work position (with proper units)
- * cm_print_mpos()- print machine position (always mm units)
- * cm_print_coor()- print coordinate offsets with linear units
- * cm_print_corr()- print coordinate offsets with rotary units
- */
-stat_t _get_msg_helper(nvObj_t *nv, const char *const msg_array[], uint8_t value) {
-  nv->value = (float)value;
-  nv->valuetype = TYPE_INTEGER;
-  return nv_copy_string(nv, (const char_t *)GET_TEXT_ITEM(msg_array, value));
-}
-
-
-stat_t cm_get_stat(nvObj_t *nv) {return _get_msg_helper(nv, msg_stat, cm_get_combined_state());}
-stat_t cm_get_macs(nvObj_t *nv) {return _get_msg_helper(nv, msg_macs, cm_get_machine_state());}
-stat_t cm_get_cycs(nvObj_t *nv) {return _get_msg_helper(nv, msg_cycs, cm_get_cycle_state());}
-stat_t cm_get_mots(nvObj_t *nv) {return _get_msg_helper(nv, msg_mots, cm_get_motion_state());}
-stat_t cm_get_hold(nvObj_t *nv) {return _get_msg_helper(nv, msg_hold, cm_get_hold_state());}
-stat_t cm_get_home(nvObj_t *nv) {return _get_msg_helper(nv, msg_home, cm_get_homing_state());}
-
-stat_t cm_get_unit(nvObj_t *nv) {return _get_msg_helper(nv, msg_unit, cm_get_units_mode(ACTIVE_MODEL));}
-stat_t cm_get_coor(nvObj_t *nv) {return _get_msg_helper(nv, msg_coor, cm_get_coord_system(ACTIVE_MODEL));}
-stat_t cm_get_momo(nvObj_t *nv) {return _get_msg_helper(nv, msg_momo, cm_get_motion_mode(ACTIVE_MODEL));}
-stat_t cm_get_plan(nvObj_t *nv) {return _get_msg_helper(nv, msg_plan, cm_get_select_plane(ACTIVE_MODEL));}
-stat_t cm_get_path(nvObj_t *nv) {return _get_msg_helper(nv, msg_path, cm_get_path_control(ACTIVE_MODEL));}
-stat_t cm_get_dist(nvObj_t *nv) {return _get_msg_helper(nv, msg_dist, cm_get_distance_mode(ACTIVE_MODEL));}
-stat_t cm_get_frmo(nvObj_t *nv) {return _get_msg_helper(nv, msg_frmo, cm_get_feed_rate_mode(ACTIVE_MODEL));}
-
-
-stat_t cm_get_toolv(nvObj_t *nv) {
-  nv->value = (float)cm_get_tool(ACTIVE_MODEL);
-  nv->valuetype = TYPE_INTEGER;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_mline(nvObj_t *nv) {
-  nv->value = (float)cm_get_linenum(MODEL);
-  nv->valuetype = TYPE_INTEGER;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_line(nvObj_t *nv) {
-  nv->value = (float)cm_get_linenum(ACTIVE_MODEL);
-  nv->valuetype = TYPE_INTEGER;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_vel(nvObj_t *nv) {
-  if (cm_get_motion_state() == MOTION_STOP) nv->value = 0;
-  else {
-    nv->value = mp_get_runtime_velocity();
-    if (cm_get_units_mode(RUNTIME) == INCHES) nv->value *= INCHES_PER_MM;
-  }
-  nv->precision = GET_TABLE_WORD(precision);
-  nv->valuetype = TYPE_FLOAT;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_feed(nvObj_t *nv) {
-  nv->value = cm_get_feed_rate(ACTIVE_MODEL);
-  if (cm_get_units_mode(ACTIVE_MODEL) == INCHES) nv->value *= INCHES_PER_MM;
-  nv->precision = GET_TABLE_WORD(precision);
-  nv->valuetype = TYPE_FLOAT;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_pos(nvObj_t *nv) {
-  nv->value = cm_get_work_position(ACTIVE_MODEL, _get_axis(nv->index));
-  nv->precision = GET_TABLE_WORD(precision);
-  nv->valuetype = TYPE_FLOAT;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_mpo(nvObj_t *nv) {
-  nv->value = cm_get_absolute_position(ACTIVE_MODEL, _get_axis(nv->index));
-  nv->precision = GET_TABLE_WORD(precision);
-  nv->valuetype = TYPE_FLOAT;
-  return STAT_OK;
-}
-
-
-stat_t cm_get_ofs(nvObj_t *nv) {
-  nv->value = cm_get_work_offset(ACTIVE_MODEL, _get_axis(nv->index));
-  nv->precision = GET_TABLE_WORD(precision);
-  nv->valuetype = TYPE_FLOAT;
-  return STAT_OK;
-}
-
-
-/*
- * AXIS GET AND SET FUNCTIONS
- *
- * cm_get_am()    - get axis mode w/enumeration string
- * cm_set_am()    - set axis mode w/exception handling for axis type
- * cm_set_sw()    - run this any time you change a switch setting
- */
-stat_t cm_get_am(nvObj_t *nv) {
-  get_ui8(nv);
-  return _get_msg_helper(nv, msg_am, nv->value);
-}
-
-
-stat_t cm_set_am(nvObj_t *nv) {        // axis mode
-  if (_get_axis_type(nv->index) == 0) {   // linear
-    if (nv->value > AXIS_MODE_MAX_LINEAR) return STAT_INPUT_EXCEEDS_MAX_VALUE;
-  } else if (nv->value > AXIS_MODE_MAX_ROTARY) return STAT_INPUT_EXCEEDS_MAX_VALUE;
-
-  set_ui8(nv);
-  return STAT_OK;
-}
 
 /**** Jerk functions
  * cm_get_axis_jerk() - returns jerk for an axis
@@ -1605,254 +1412,7 @@ void cm_set_axis_jerk(uint8_t axis, float jerk) {
 }
 
 
-stat_t cm_set_xjm(nvObj_t *nv) {
-  if (nv->value > JERK_MULTIPLIER) nv->value /= JERK_MULTIPLIER;
-  set_flu(nv);
-  cm_set_axis_jerk(_get_axis(nv->index), nv->value);
-  return STAT_OK;
-}
-
-
-stat_t cm_set_xjh(nvObj_t *nv) {
-  if (nv->value > JERK_MULTIPLIER) nv->value /= JERK_MULTIPLIER;
-  set_flu(nv);
-  return STAT_OK;
-}
-
-/*
- * Commands
- *
- * cm_run_qf() - flush planner queue
- * cm_run_home() - run homing sequence
- */
-stat_t cm_run_qf(nvObj_t *nv) {
-  cm_request_queue_flush();
-  return STAT_OK;
-}
-
-
-stat_t cm_run_home(nvObj_t *nv) {
-  if (fp_TRUE(nv->value)) {cm_homing_cycle_start();}
-  return STAT_OK;
-}
-
-
-/*
- * Debugging Commands
- *
- * cm_dam() - dump active model
- */
-stat_t cm_dam(nvObj_t *nv) {
-  printf("Active model:\n");
-  cm_print_vel(nv);
-  cm_print_feed(nv);
-  cm_print_line(nv);
-  cm_print_stat(nv);
-  cm_print_macs(nv);
-  cm_print_cycs(nv);
-  cm_print_mots(nv);
-  cm_print_hold(nv);
-  cm_print_home(nv);
-  cm_print_unit(nv);
-  cm_print_coor(nv);
-  cm_print_momo(nv);
-  cm_print_plan(nv);
-  cm_print_path(nv);
-  cm_print_dist(nv);
-  cm_print_frmo(nv);
-  cm_print_tool(nv);
-
-  return STAT_OK;
-}
-
-
-// AXIS JOGGING
+// Axis jogging
 float cm_get_jogging_dest() {
   return cm.jogging_dest;
 }
-
-
-stat_t cm_run_jogx(nvObj_t *nv) {
-  set_flt(nv);
-  cm_jogging_cycle_start(AXIS_X);
-  return STAT_OK;
-}
-
-
-stat_t cm_run_jogy(nvObj_t *nv) {
-  set_flt(nv);
-  cm_jogging_cycle_start(AXIS_Y);
-  return STAT_OK;
-}
-
-
-stat_t cm_run_jogz(nvObj_t *nv) {
-  set_flt(nv);
-  cm_jogging_cycle_start(AXIS_Z);
-  return STAT_OK;
-}
-
-
-stat_t cm_run_joga(nvObj_t *nv) {
-  set_flt(nv);
-  cm_jogging_cycle_start(AXIS_A);
-  return STAT_OK;
-}
-
-#ifdef __TEXT_MODE
-
-// model state print functions
-const char fmt_vel[]  PROGMEM = "Velocity:%17.3f%s/min\n";
-const char fmt_feed[] PROGMEM = "Feed rate:%16.3f%s/min\n";
-const char fmt_line[] PROGMEM = "Line number:%10.0f\n";
-const char fmt_stat[] PROGMEM = "Machine state:       %s\n"; // combined machine state
-const char fmt_macs[] PROGMEM = "Raw machine state:   %s\n"; // raw machine state
-const char fmt_cycs[] PROGMEM = "Cycle state:         %s\n";
-const char fmt_mots[] PROGMEM = "Motion state:        %s\n";
-const char fmt_hold[] PROGMEM = "Feedhold state:      %s\n";
-const char fmt_home[] PROGMEM = "Homing state:        %s\n";
-const char fmt_unit[] PROGMEM = "Units:               %s\n"; // units mode as ASCII string
-const char fmt_coor[] PROGMEM = "Coordinate system:   %s\n";
-const char fmt_momo[] PROGMEM = "Motion mode:         %s\n";
-const char fmt_plan[] PROGMEM = "Plane:               %s\n";
-const char fmt_path[] PROGMEM = "Path Mode:           %s\n";
-const char fmt_dist[] PROGMEM = "Distance mode:       %s\n";
-const char fmt_frmo[] PROGMEM = "Feed rate mode:      %s\n";
-const char fmt_tool[] PROGMEM = "Tool number          %d\n";
-
-const char fmt_pos[] PROGMEM = "%c position:%15.3f%s\n";
-const char fmt_mpo[] PROGMEM = "%c machine posn:%11.3f%s\n";
-const char fmt_ofs[] PROGMEM = "%c work offset:%12.3f%s\n";
-const char fmt_hom[] PROGMEM = "%c axis homing state:%2.0f\n";
-
-const char fmt_gpl[] PROGMEM = "[gpl] default gcode plane%10d [0=G17,1=G18,2=G19]\n";
-const char fmt_gun[] PROGMEM = "[gun] default gcode units mode%5d [0=G20,1=G21]\n";
-const char fmt_gco[] PROGMEM = "[gco] default gcode coord system%3d [1-6 (G54-G59)]\n";
-const char fmt_gpa[] PROGMEM = "[gpa] default gcode path control%3d [0=G61,1=G61.1,2=G64]\n";
-const char fmt_gdi[] PROGMEM = "[gdi] default gcode distance mode%2d [0=G90,1=G91]\n";
-
-void cm_print_vel(nvObj_t *nv) {text_print_flt_units(nv, fmt_vel, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_feed(nvObj_t *nv) {text_print_flt_units(nv, fmt_feed, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_line(nvObj_t *nv) {text_print_int(nv, fmt_line);}
-void cm_print_stat(nvObj_t *nv) {text_print_str(nv, fmt_stat);}
-void cm_print_macs(nvObj_t *nv) {text_print_str(nv, fmt_macs);}
-void cm_print_cycs(nvObj_t *nv) {text_print_str(nv, fmt_cycs);}
-void cm_print_mots(nvObj_t *nv) {text_print_str(nv, fmt_mots);}
-void cm_print_hold(nvObj_t *nv) {text_print_str(nv, fmt_hold);}
-void cm_print_home(nvObj_t *nv) {text_print_str(nv, fmt_home);}
-void cm_print_unit(nvObj_t *nv) {text_print_str(nv, fmt_unit);}
-void cm_print_coor(nvObj_t *nv) {text_print_str(nv, fmt_coor);}
-void cm_print_momo(nvObj_t *nv) {text_print_str(nv, fmt_momo);}
-void cm_print_plan(nvObj_t *nv) {text_print_str(nv, fmt_plan);}
-void cm_print_path(nvObj_t *nv) {text_print_str(nv, fmt_path);}
-void cm_print_dist(nvObj_t *nv) {text_print_str(nv, fmt_dist);}
-void cm_print_frmo(nvObj_t *nv) {text_print_str(nv, fmt_frmo);}
-void cm_print_tool(nvObj_t *nv) {text_print_int(nv, fmt_tool);}
-
-void cm_print_gpl(nvObj_t *nv) {text_print_int(nv, fmt_gpl);}
-void cm_print_gun(nvObj_t *nv) {text_print_int(nv, fmt_gun);}
-void cm_print_gco(nvObj_t *nv) {text_print_int(nv, fmt_gco);}
-void cm_print_gpa(nvObj_t *nv) {text_print_int(nv, fmt_gpa);}
-void cm_print_gdi(nvObj_t *nv) {text_print_int(nv, fmt_gdi);}
-
-// system state print functions
-const char fmt_ja[] PROGMEM = "[ja]  junction acceleration%8.0f%s\n";
-const char fmt_ct[] PROGMEM = "[ct]  chordal tolerance%17.4f%s\n";
-const char fmt_sl[] PROGMEM = "[sl]  soft limit enable%12d\n";
-const char fmt_ml[] PROGMEM = "[ml]  min line segment%17.3f%s\n";
-const char fmt_ma[] PROGMEM = "[ma]  min arc segment%18.3f%s\n";
-const char fmt_ms[] PROGMEM = "[ms]  min segment time%13.0f uSec\n";
-
-void cm_print_ja(nvObj_t *nv) {text_print_flt_units(nv, fmt_ja, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_ct(nvObj_t *nv) {text_print_flt_units(nv, fmt_ct, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_sl(nvObj_t *nv) {text_print_ui8(nv, fmt_sl);}
-void cm_print_ml(nvObj_t *nv) {text_print_flt_units(nv, fmt_ml, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_ma(nvObj_t *nv) {text_print_flt_units(nv, fmt_ma, GET_UNITS(ACTIVE_MODEL));}
-void cm_print_ms(nvObj_t *nv) {text_print_flt_units(nv, fmt_ms, GET_UNITS(ACTIVE_MODEL));}
-
-// axis print functions
-static const char fmt_Xam[] PROGMEM = "[%s%s] %s axis mode%18d %s\n";
-static const char fmt_Xfr[] PROGMEM = "[%s%s] %s feedrate maximum%11.0f%s/min\n";
-static const char fmt_Xvm[] PROGMEM = "[%s%s] %s velocity maximum%11.0f%s/min\n";
-static const char fmt_Xtm[] PROGMEM = "[%s%s] %s travel maximum%17.3f%s\n";
-static const char fmt_Xtn[] PROGMEM = "[%s%s] %s travel minimum%17.3f%s\n";
-static const char fmt_Xjm[] PROGMEM = "[%s%s] %s jerk maximum%15.0f%s/min^3 * 1 million\n";
-static const char fmt_Xjh[] PROGMEM = "[%s%s] %s jerk homing%16.0f%s/min^3 * 1 million\n";
-static const char fmt_Xjd[] PROGMEM = "[%s%s] %s junction deviation%14.4f%s (larger is faster)\n";
-static const char fmt_Xra[] PROGMEM = "[%s%s] %s radius value%20.4f%s\n";
-static const char fmt_Xsn[] PROGMEM = "[%s%s] %s switch min%17d [0=off,1=homing,2=limit,3=limit+homing]\n";
-static const char fmt_Xsx[] PROGMEM = "[%s%s] %s switch max%17d [0=off,1=homing,2=limit,3=limit+homing]\n";
-static const char fmt_Xsv[] PROGMEM = "[%s%s] %s search velocity%12.0f%s/min\n";
-static const char fmt_Xlv[] PROGMEM = "[%s%s] %s latch velocity%13.0f%s/min\n";
-static const char fmt_Xlb[] PROGMEM = "[%s%s] %s latch backoff%18.3f%s\n";
-static const char fmt_Xzb[] PROGMEM = "[%s%s] %s zero backoff%19.3f%s\n";
-static const char fmt_cofs[] PROGMEM = "[%s%s] %s %s offset%20.3f%s\n";
-static const char fmt_cpos[] PROGMEM = "[%s%s] %s %s position%18.3f%s\n";
-
-
-/// helper to print an integer value with no units
-static void _print_axis_ui8(nvObj_t *nv, const char *format) {
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, (uint8_t)nv->value);
-}
-
-
-/// helper to print a floating point linear value in prevailing units
-static void _print_axis_flt(nvObj_t *nv, const char *format) {
-  char *units;
-  if (_get_axis_type(nv->index) == 0)    // linear
-    units = (char *)GET_UNITS(MODEL);
-  else units = (char *)GET_TEXT_ITEM(msg_units, DEGREE_INDEX);
-
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, nv->value, units);
-}
-
-
-static void _print_axis_coord_flt(nvObj_t *nv, const char *format) {
-  char *units;
-  if (_get_axis_type(nv->index) == 0)   // linear
-    units = (char *)GET_UNITS(MODEL);
-  else units = (char *)GET_TEXT_ITEM(msg_units, DEGREE_INDEX);
-
-  fprintf_P(stderr, format, nv->group, nv->token, nv->group, nv->token, nv->value, units);
-}
-
-
-/// print position with unit displays for MM or Inches
-static void _print_pos(nvObj_t *nv, const char *format, uint8_t units) {
-  char axes[] = {"XYZABC"};
-  uint8_t axis = _get_axis(nv->index);
-  if (axis >= AXIS_A) {units = DEGREES;}
-  fprintf_P(stderr, format, axes[axis], nv->value, GET_TEXT_ITEM(msg_units, units));
-}
-
-
-void cm_print_am(nvObj_t *nv) {    // print axis mode with enumeration string
-  fprintf_P(stderr, fmt_Xam, nv->group, nv->token, nv->group, (uint8_t)nv->value,
-            GET_TEXT_ITEM(msg_am, (uint8_t)nv->value));
-}
-
-
-void cm_print_fr(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xfr);}
-void cm_print_vm(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xvm);}
-void cm_print_tm(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xtm);}
-void cm_print_tn(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xtn);}
-void cm_print_jm(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xjm);}
-void cm_print_jh(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xjh);}
-void cm_print_jd(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xjd);}
-void cm_print_ra(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xra);}
-void cm_print_sn(nvObj_t *nv) {_print_axis_ui8(nv, fmt_Xsn);}
-void cm_print_sx(nvObj_t *nv) {_print_axis_ui8(nv, fmt_Xsx);}
-void cm_print_sv(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xsv);}
-void cm_print_lv(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xlv);}
-void cm_print_lb(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xlb);}
-void cm_print_zb(nvObj_t *nv) {_print_axis_flt(nv, fmt_Xzb);}
-
-void cm_print_cofs(nvObj_t *nv) {_print_axis_coord_flt(nv, fmt_cofs);}
-void cm_print_cpos(nvObj_t *nv) {_print_axis_coord_flt(nv, fmt_cpos);}
-
-void cm_print_pos(nvObj_t *nv) {_print_pos(nv, fmt_pos, cm_get_units_mode(MODEL));}
-/// print position with fixed unit display - always in Degrees or MM
-void cm_print_mpo(nvObj_t *nv) {_print_pos(nv, fmt_mpo, MILLIMETERS);}
-void cm_print_ofs(nvObj_t *nv) {_print_pos(nv, fmt_ofs, MILLIMETERS);}
-
-#endif // __TEXT_MODE

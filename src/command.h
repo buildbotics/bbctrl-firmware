@@ -29,64 +29,27 @@
 
 \******************************************************************************/
 
-#include "report.h"
-#include "config.h"
-#include "canonical_machine.h"
-#include "usart.h"
-#include "rtc.h"
-#include "vars.h"
+#ifndef COMMAND_H
+#define COMMAND_H
 
-#include "plan/planner.h"
+#include "status.h"
 
-#include <avr/pgmspace.h>
+#define MAX_ARGS 16
 
-#include <stdio.h>
-#include <stdbool.h>
+typedef uint8_t (*command_cb_t)(int argc, char *argv[]);
 
-
-static bool report_requested = false;
-static bool report_full = false;
-static uint32_t last_report = 0;
-
-static float velocity;
-static float positions[AXES];
+typedef struct {
+  const char *name;
+  command_cb_t cb;
+  uint8_t minArgs;
+  uint8_t maxArgs;
+  const char *help;
+} command_t;
 
 
-void report_init() {
-  velocity = 0;
+stat_t command_dispatch();
+int command_find(const char *name);
+int command_exec(int argc, char *argv[]);
+int command_eval(char *cmd);
 
-  for (int axis = 0; axis < AXES; axis++)
-    positions[axis] = 0;
-}
-
-
-void report_request() {
-  report_requested = true;
-}
-
-
-void report_request_full() {
-  report_requested = report_full = true;
-}
-
-
-stat_t report_callback() {
-  uint32_t now = rtc_get_time();
-  if (now - last_report < 100) return STAT_OK;
-  last_report = now;
-
-  if (report_requested && usart_tx_empty()) vars_report(report_full);
-  report_requested = report_full = false;
-
-  return STAT_OK;
-}
-
-
-float get_pos(int index) {
-  return cm_get_absolute_position(0, index);
-}
-
-
-float get_vel() {
-  return mp_get_runtime_velocity();
-}
+#endif // COMMAND_H

@@ -25,16 +25,16 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <avr/wdt.h>      // used for software reset
-
-#include "tinyg.h"        // #1
-#include "config.h"       // #2
 #include "hardware.h"
 #include "switch.h"
 #include "controller.h"
-#include "text_parser.h"
-#include "xmega/xmega_init.h"
-#include "xmega/xmega_rtc.h"
+#include "clock.h"
+#include "rtc.h"
+
+#include <avr/pgmspace.h> // defines PROGMEM and PSTR
+#include <avr/wdt.h>      // used for software reset
+
+#include <stdbool.h>
 
 
 /// Bind XMEGA ports to hardware
@@ -58,7 +58,7 @@ static void _port_bindings() {
 
 /// Lowest level hardware init
 void hardware_init() {
-  xmega_init();                            // set system clock
+  clock_init();                            // set system clock
   _port_bindings();
   rtc_init();                              // real time counter
 }
@@ -89,7 +89,7 @@ enum {
 };
 
 
-static void _get_id(char_t *id) {
+void hw_get_id(char *id) {
   char printable[33] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   uint8_t i;
 
@@ -139,48 +139,3 @@ stat_t hw_bootloader_handler() {
 
   return STAT_EAGAIN;                // never gets here but keeps the compiler happy
 }
-
-
-/// Get device ID (signature)
-stat_t hw_get_id(nvObj_t *nv) {
-  char_t tmp[SYS_ID_LEN];
-  _get_id(tmp);
-  nv->valuetype = TYPE_STRING;
-  ritorno(nv_copy_string(nv, tmp));
-  return STAT_OK;
-}
-
-
-/// Invoke boot form the cfgArray
-stat_t hw_run_boot(nvObj_t *nv) {
-  hw_request_bootloader();
-  return STAT_OK;
-}
-
-
-/// Set hardware version number
-stat_t hw_set_hv(nvObj_t *nv) {
-  if (nv->value > TINYG_HARDWARE_VERSION_MAX)
-    return STAT_INPUT_EXCEEDS_MAX_VALUE;
-
-  set_flt(nv);                    // record the hardware version
-  _port_bindings(nv->value);      // reset port bindings
-  switch_init();                  // re-initialize the GPIO ports
-  return STAT_OK;
-}
-
-#ifdef __TEXT_MODE
-
-static const char fmt_fb[] PROGMEM = "[fb]  firmware build%18.2f\n";
-static const char fmt_fv[] PROGMEM = "[fv]  firmware version%16.2f\n";
-static const char fmt_hp[] PROGMEM = "[hp]  hardware platform%15.2f\n";
-static const char fmt_hv[] PROGMEM = "[hv]  hardware version%16.2f\n";
-static const char fmt_id[] PROGMEM = "[id]  TinyG ID%30s\n";
-
-void hw_print_fb(nvObj_t *nv) {text_print_flt(nv, fmt_fb);}
-void hw_print_fv(nvObj_t *nv) {text_print_flt(nv, fmt_fv);}
-void hw_print_hp(nvObj_t *nv) {text_print_flt(nv, fmt_hp);}
-void hw_print_hv(nvObj_t *nv) {text_print_flt(nv, fmt_hv);}
-void hw_print_id(nvObj_t *nv) {text_print_str(nv, fmt_id);}
-
-#endif //__TEXT_MODE

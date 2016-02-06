@@ -33,14 +33,18 @@
  *      - support for debugging routines
  */
 
-#ifndef UTIL_H_ONCE
-#define UTIL_H_ONCE
+#ifndef UTIL_H
+#define UTIL_H
+
+#include "config.h"
+
+#include <stdint.h>
 
 // Vector utilities
 extern float vector[AXES]; // vector of axes for passing to subroutines
 
-#define clear_vector(a) (memset(a,0,sizeof(a)))
-#define    copy_vector(d,s) (memcpy(d,s,sizeof(d)))
+#define clear_vector(a) memset(a, 0, sizeof(a))
+#define copy_vector(d,s) memcpy(d, s, sizeof(d))
 
 float get_axis_vector_length(const float a[], const float b[]);
 uint8_t vector_equal(const float a[], const float b[]);
@@ -55,33 +59,25 @@ float max4(float x1, float x2, float x3, float x4);
 
 
 // String utilities
-uint8_t isnumber(char_t c);
-char_t *escape_string(char_t *dst, char_t *src);
-char_t *pstr2str(const char *pgm_string);
-char_t fntoa(char_t *str, float n, uint8_t precision);
-uint16_t compute_checksum(char_t const *string, const uint16_t length);
+uint8_t isnumber(char c);
+char *escape_string(char *dst, char *src);
+char fntoa(char *str, float n, uint8_t precision);
+uint16_t compute_checksum(char const *string, const uint16_t length);
 
-// Other utilities
-uint32_t SysTickTimer_getValue();
-
-// Math support
-#ifndef square
-#define square(x) ((x)*(x))        /* UNSAFE */
-#endif
 
 // side-effect safe forms of min and max
 #ifndef max
-#define max(a,b) \
-   ({ __typeof__ (a) termA = (a); \
-      __typeof__ (b) termB = (b); \
-      termA>termB ? termA:termB; })
+#define max(a,b)                                \
+  ({ __typeof__ (a) termA = (a);                \
+    __typeof__ (b) termB = (b);                 \
+    termA>termB ? termA:termB; })
 #endif
 
 #ifndef min
-#define min(a,b) \
-    ({ __typeof__ (a) term1 = (a); \
-       __typeof__ (b) term2 = (b); \
-       term1<term2 ? term1:term2; })
+#define min(a,b)                                \
+  ({ __typeof__ (a) term1 = (a);                \
+    __typeof__ (b) term2 = (b);                 \
+    term1<term2 ? term1:term2; })
 #endif
 
 #ifndef avg
@@ -124,4 +120,4 @@ uint32_t SysTickTimer_getValue();
 #define M_SQRT3 (1.73205080756888)
 #endif
 
-#endif // UTIL_H_ONCE
+#endif // UTIL_H

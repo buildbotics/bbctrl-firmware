@@ -32,6 +32,8 @@
 #ifndef TMC2660_H
 #define TMC2660_H
 
+#include "config.h"
+
 #include <stdint.h>
 
 #define TMC2660_SPI_PORT PORTC
@@ -51,21 +53,15 @@
 #define TMC2660_SPI_SSB_PORT PORTB
 #define TMC2660_SPI_SSB_PIN 3
 
-#define TMC2660_NUM_DRIVERS 3
+#define TMC2660_NUM_DRIVERS MOTORS
 
 #define TMC2660_TIMER TCC1
 
 void tmc2660_init();
 uint8_t tmc2660_status(int driver);
-uint16_t tmc2660_step(int driver);
 void tmc2660_reset(int driver);
 int tmc2660_ready(int driver);
 int tmc2660_all_ready();
-
-void tmc2660_print_motor_step(nvObj_t *nv);
-void tmc2660_print_motor_flags(nvObj_t *nv);
-stat_t tmc2660_get_motor_step(nvObj_t *nv);
-stat_t tmc2660_get_motor_flags(nvObj_t *nv);
 
 #define TMC2660_DRVCTRL             0
 #define TMC2660_DRVCTRL_ADDR        (0UL << 18)
@@ -102,7 +98,7 @@ stat_t tmc2660_get_motor_flags(nvObj_t *nv);
 #define TMC2660_CHOPCONF_HEND(x)    ((((int32_t)x + 3) & 0xf) << 7)
 #define TMC2660_CHOPCONF_SWO(x)     ((((int32_t)x + 3) & 0xf) << 7)
 #define TMC2660_CHOPCONF_HSTART(x)  ((((int32_t)x - 1) & 7) << 4)
-#define TMC2660_CHOPCONF_FASTD(x)   ((((int32_t)x & 8) << 11) | (x & 7) << 4))
+#define TMC2660_CHOPCONF_FASTD(x)   ((((int32_t)x & 8) << 11) | ((x & 7) << 4))
 #define TMC2660_CHOPCONF_TOFF_TBL   (1 << 0)
 #define TMC2660_CHOPCONF_TOFF(x)    (((int32_t)x & 0xf) << 0)
 

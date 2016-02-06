@@ -16,24 +16,31 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "tinyg.h"             // #1
-#include "config.h"            // #2
-#include "controller.h"
+
 #include "gcode_parser.h"
+
+#include "controller.h"
 #include "canonical_machine.h"
 #include "spindle.h"
 #include "util.h"
+
+#include <stdbool.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <math.h>
+
 
 struct gcodeParserSingleton {          // struct to manage globals
   uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
 }; struct gcodeParserSingleton gp;
 
 // local helper functions and macros
-static void _normalize_gcode_block(char_t *str, char_t **com, char_t **msg, uint8_t *block_delete_flag);
+static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag);
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value);
 static stat_t _point(float value);
 static stat_t _validate_gcode_block();
-static stat_t _parse_gcode_block(char_t *line);    // Parse the block into the GN/GF structs
+static stat_t _parse_gcode_block(char *line);    // Parse the block into the GN/GF structs
 static stat_t _execute_gcode_block();        // Execute the gcode block
 
 #define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=1; gp.modals[m]+=1; break;})
@@ -43,11 +50,11 @@ static stat_t _execute_gcode_block();        // Execute the gcode block
 
 /// Parse a block (line) of gcode
 /// Top level of gcode parser. Normalizes block and looks for special cases
-stat_t gc_gcode_parser(char_t *block) {
-  char_t *str = block;                    // gcode command or 0 string
-  char_t none = 0;
-  char_t *com = &none;                    // gcode comment or 0 string
-  char_t *msg = &none;                    // gcode message or 0 string
+stat_t gc_gcode_parser(char *block) {
+  char *str = block;                    // gcode command or 0 string
+  char none = 0;
+  char *com = &none;                    // gcode comment or 0 string
+  char *msg = &none;                    // gcode message or 0 string
   uint8_t block_delete_flag;
 
   // don't process Gcode blocks if in alarmed state
@@ -103,9 +110,9 @@ stat_t gc_gcode_parser(char_t *block) {
  *     - block_delete_flag is set true if block delete encountered, false otherwise
  */
 
-static void _normalize_gcode_block(char_t *str, char_t **com, char_t **msg, uint8_t *block_delete_flag) {
-  char_t *rd = str;                // read pointer
-  char_t *wr = str;                // write pointer
+static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag) {
+  char *rd = str;                // read pointer
+  char *wr = str;                // write pointer
 
   // mark block deletes
   if (*rd == '/') { *block_delete_flag = true; }
@@ -116,7 +123,7 @@ static void _normalize_gcode_block(char_t *str, char_t **com, char_t **msg, uint
     if (*rd == 0) { *wr = 0; }
     else if ((*rd == '(') || (*rd == ';')) { *wr = 0; *com = rd+1; }
     else if ((isalnum((char)*rd)) || (strchr("-.", *rd))) { // all valid characters
-      *(wr++) = (char_t)toupper((char)*(rd));
+      *(wr++) = (char)toupper((char)*(rd));
     }
   }
 
@@ -170,7 +177,7 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
 
   // get-value general case
   char *end;
-  *value = strtof(*pstr, &end);
+  *value = strtod(*pstr, &end);
   if (end == *pstr) return STAT_BAD_NUMBER_FORMAT; // more robust test then checking for value=0;
   *pstr = end;
 
@@ -216,7 +223,7 @@ static stat_t _validate_gcode_block() {
  *    A number of implicit things happen when the gn struct is zeroed:
  *      - inverse feed rate mode is canceled - set back to units_per_minute mode
  */
-static stat_t _parse_gcode_block(char_t *buf) {
+static stat_t _parse_gcode_block(char *buf) {
   char *pstr = (char *)buf;       // persistent pointer into gcode block for parsing words
   char letter;                    // parsed letter, eg.g. G or X or Y
   float value = 0;                // value parsed from letter (e.g. 2 for G2)
@@ -486,17 +493,4 @@ static stat_t _execute_gcode_block() {
   }
 
   return status;
-}
-
-
-stat_t gc_get_gc(nvObj_t *nv) {
-  ritorno(nv_copy_string(nv, cs.saved_buf));
-  nv->valuetype = TYPE_STRING;
-
-  return STAT_OK;
-}
-
-
-stat_t gc_run_gc(nvObj_t *nv) {
-  return gc_gcode_parser(*nv->stringp);
 }

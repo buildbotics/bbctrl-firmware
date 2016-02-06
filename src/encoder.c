@@ -25,30 +25,17 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"
-#include "config.h"
 #include "encoder.h"
+
+#include <string.h>
+#include <math.h>
+
 
 enEncoders_t en;
 
 
 void encoder_init() {
   memset(&en, 0, sizeof(en));        // clear all values, pointers and status
-  encoder_init_assertions();
-}
-
-
-void encoder_init_assertions() {
-  en.magic_end = MAGICNUM;
-  en.magic_start = MAGICNUM;
-}
-
-
-stat_t encoder_test_assertions() {
-  if (en.magic_end   != MAGICNUM) return STAT_ENCODER_ASSERTION_FAILURE;
-  if (en.magic_start != MAGICNUM) return STAT_ENCODER_ASSERTION_FAILURE;
-
-  return STAT_OK;
 }
 
 

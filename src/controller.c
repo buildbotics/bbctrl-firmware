@@ -26,68 +26,38 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"                 // #1
-#include "config.h"                // #2
 #include "controller.h"
-#include "json_parser.h"
-#include "text_parser.h"
-#include "gcode_parser.h"
-#include "canonical_machine.h"
-#include "plan_arc.h"
-#include "planner.h"
-#include "stepper.h"
 
+#include "canonical_machine.h"
+#include "stepper.h"
 #include "gpio.h"
 #include "switch.h"
 #include "encoder.h"
 #include "hardware.h"
-#include "report.h"
-#include "help.h"
-#include "util.h"
 #include "usart.h"
+#include "util.h"
+#include "rtc.h"
+#include "command.h"
+#include "report.h"
+
+#include "plan/arc.h"
+#include "plan/planner.h"
+
+#include <string.h>
+#include <stdio.h>
 
 
 controller_t cs;        // controller state structure
 
 
 static stat_t _shutdown_idler();
-static stat_t _normal_idler();
 static stat_t _limit_switch_handler();
-static stat_t _system_assertions();
 static stat_t _sync_to_planner();
 static stat_t _sync_to_tx_buffer();
-static stat_t _command_dispatch();
-
-
-// prep for export to other modules:
-stat_t hardware_hard_reset_handler();
-stat_t hardware_bootloader_handler();
 
 
 void controller_init() {
   memset(&cs, 0, sizeof(controller_t));            // clear all values, job_id's, pointers and status
-  controller_init_assertions();
-
-  cs.fw_build = TINYG_FIRMWARE_BUILD;
-  cs.fw_version = TINYG_FIRMWARE_VERSION;
-  cs.hw_platform = TINYG_HARDWARE_PLATFORM;        // NB: HW version is set from EEPROM
-
-  cs.state = CONTROLLER_STARTUP;                   // ready to run startup lines
-}
-
-
-/// Check memory integrity of controller
-void controller_init_assertions() {
-  cs.magic_start = MAGICNUM;
-  cs.magic_end = MAGICNUM;
-}
-
-
-stat_t controller_test_assertions() {
-  if ((cs.magic_start != MAGICNUM) || (cs.magic_end != MAGICNUM))
-    return STAT_CONTROLLER_ASSERTION_FAILURE;
-
-  return STAT_OK;
 }
 
 
@@ -122,13 +92,9 @@ void controller_run() {
   DISPATCH(_limit_switch_handler());           // 4. limit switch has been thrown
   DISPATCH(cm_feedhold_sequencing_callback()); // 5a. feedhold state machine runner
   DISPATCH(mp_plan_hold_callback());           // 5b. plan a feedhold from line runtime
-  DISPATCH(_system_assertions());              // 6. system integrity assertions
 
   // Planner hierarchy for gcode and cycles
   DISPATCH(st_motor_power_callback());         // stepper motor power sequencing
-  DISPATCH(sr_status_report_callback());       // conditionally send status report
-  DISPATCH(qr_queue_report_callback());        // conditionally send queue report
-  DISPATCH(rx_report_callback());              // conditionally send rx report
   DISPATCH(cm_arc_callback());                 // arc generation runs behind lines
   DISPATCH(cm_homing_callback());              // G28.2 continuation
   DISPATCH(cm_jogging_callback());             // jog function
@@ -136,89 +102,12 @@ void controller_run() {
   DISPATCH(cm_deferred_write_callback());      // persist G10 changes when not in machining cycle
 
   // Command readers and parsers
-  DISPATCH(_sync_to_planner());                // ensure there is at least one free buffer in planning queue
+  DISPATCH(_sync_to_planner());                // ensure at least one free buffer in planning queue
   DISPATCH(_sync_to_tx_buffer());              // sync with TX buffer (pseudo-blocking)
-  DISPATCH(set_baud_callback());               // perform baud rate update (must be after TX sync)
-  DISPATCH(_command_dispatch());               // read and execute next command
-  DISPATCH(_normal_idler());
+  DISPATCH(report_callback());
+  DISPATCH(command_dispatch());                // read and execute next command
 }
 
-
-stat_t _command_dispatch() {
-  stat_t status;
-
-  // read input line or return if not a completed line
-  // usart_gets() is a non-blocking workalike of fgets()
-  while (true) {
-    if ((status = usart_gets(cs.in_buf, sizeof(cs.in_buf))) == STAT_OK) {
-      cs.bufp = cs.in_buf;
-      break;
-    }
-
-    return status;                                // Note: STAT_EAGAIN, errors, etc. will drop through
-  }
-
-  return gc_gcode_parser(cs.in_buf);
-}
-
-
-/*****************************************************************************
- * Dispatch line received from active input device
- *
- *    Reads next command line and dispatches to relevant parser or action
- *    Accepts commands if the move queue has room - EAGAINS if it doesn't
- *    Also responsible for prompts and for flow control
- */
-stat_t _command_dispatch_old() {
-  stat_t status;
-
-  // read input line or return if not a completed line
-  // usart_gets() is a non-blocking workalike of fgets()
-  while (true) {
-    if ((status = usart_gets(cs.in_buf, sizeof(cs.in_buf))) == STAT_OK) {
-      cs.bufp = cs.in_buf;
-      break;
-    }
-
-    return status;                                // Note: STAT_EAGAIN, errors, etc. will drop through
-  }
-
-  // set up the buffers
-  cs.linelen = strlen(cs.in_buf) + 1;                    // linelen only tracks primary input
-  strncpy(cs.saved_buf, cs.bufp, SAVED_BUFFER_LEN - 1);  // save input buffer for reporting
-
-  // dispatch the new text line
-  switch (*cs.bufp) {                             // first char
-  case '!': cm_request_feedhold(); break;         // include for diagnostics
-  case '%': cm_request_queue_flush(); break;
-  case '~': cm_request_cycle_start(); break;
-
-  case 0:                                         // blank line (just a CR)
-    if (cfg.comm_mode != JSON_MODE)
-      text_response(STAT_OK, cs.saved_buf);
-    break;
-
-  case '$': case '?': case 'H': case 'h':         // text mode input
-    cfg.comm_mode = TEXT_MODE;
-    text_response(text_parser(cs.bufp), cs.saved_buf);
-    break;
-
-  case '{':                                       // JSON input
-    cfg.comm_mode = JSON_MODE;
-    json_parser(cs.bufp);
-    break;
-
-  default:                                        // anything else must be Gcode
-    if (cfg.comm_mode == JSON_MODE) {             // run it as JSON...
-      strncpy(cs.out_buf, cs.bufp, INPUT_BUFFER_LEN -8);                 // use out_buf as temp
-      sprintf((char *)cs.bufp,"{\"gc\":\"%s\"}\n", (char *)cs.out_buf);  // '-8' is used for JSON chars
-      json_parser(cs.bufp);
-
-    } else text_response(gc_gcode_parser(cs.bufp), cs.saved_buf);        //...or run it as text
-  }
-
-  return STAT_OK;
-}
 
 
 /// Blink rapidly and prevent further activity from occurring
@@ -229,17 +118,12 @@ stat_t _command_dispatch_old() {
 static stat_t _shutdown_idler() {
   if (cm_get_machine_state() != MACHINE_SHUTDOWN) return STAT_OK;
 
-  if (SysTickTimer_getValue() > cs.led_timer) {
-    cs.led_timer = SysTickTimer_getValue() + LED_ALARM_TIMER;
+  if (rtc_get_time() > cs.led_timer) {
+    cs.led_timer = rtc_get_time() + LED_ALARM_TIMER;
     indicator_led_toggle();
   }
 
-  return STAT_EAGAIN;    // EAGAIN prevents any lower-priority actions from running
-}
-
-
-static stat_t _normal_idler() {
-  return STAT_OK;
+  return STAT_EAGAIN; // EAGAIN prevents any lower-priority actions from running
 }
 
 
@@ -253,7 +137,8 @@ static stat_t _sync_to_tx_buffer() {
 
 /// Return eagain if planner is not ready for a new command
 static stat_t _sync_to_planner() {
-  if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM) // allow up to N planner buffers for this line
+  // allow up to N planner buffers for this line
+  if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM)
     return STAT_EAGAIN;
 
   return STAT_OK;
@@ -266,19 +151,4 @@ static stat_t _limit_switch_handler() {
   if (!get_limit_switch_thrown()) return STAT_NOOP;
 
   return cm_hard_alarm(STAT_LIMIT_SWITCH_HIT);
-}
-
-
-/// _system_assertions() - check memory integrity and other assertions
-stat_t _system_assertions() {
-#define system_assert(a) if ((status_code = a) != STAT_OK) return cm_hard_alarm(status_code);
-
-  system_assert(config_test_assertions());
-  system_assert(controller_test_assertions());
-  system_assert(canonical_machine_test_assertions());
-  system_assert(planner_test_assertions());
-  system_assert(stepper_test_assertions());
-  system_assert(encoder_test_assertions());
-
-  return STAT_OK;
 }

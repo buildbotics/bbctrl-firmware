@@ -25,15 +25,13 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"        // #1
-#include "config.h"        // #2
-#include "hardware.h"
-#include "text_parser.h"
-#include "gpio.h"
 #include "pwm.h"
 
-#include <avr/interrupt.h>
+#include "config.h"
+#include "hardware.h"
+#include "gpio.h"
 
+#include <string.h>
 
 pwmSingleton_t pwm;
 
@@ -57,12 +55,12 @@ pwmSingleton_t pwm;
  */
 #define PWM1_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc    // starting clock select value
 #define PWM1_CTRLB           (3 | TC0_CCBEN_bm)   // single slope PWM enabled on channel B
-#define PWM1_ISR_vect        TCD1_CCB_vect        // must match timer assignments in system.h
+#define PWM1_ISR_vect        TCD1_CCB_vect
 #define PWM1_INTCTRLB        0                    // timer interrupt level (0=off, 1=lo, 2=med, 3=hi)
 
 #define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc
 #define PWM2_CTRLB           3                    // single slope PWM enabled, no output channel
-#define PWM2_ISR_vect        TCE1_CCB_vect        // must match timer assignments in system.h
+#define PWM2_ISR_vect        TCE1_CCB_vect
 #define PWM2_INTCTRLB        0                    // timer interrupt level (0=off, 1=lo, 2=med, 3=hi)
 
 
@@ -72,7 +70,6 @@ pwmSingleton_t pwm;
  *   Notes:
  *     - Whatever level interrupts you use must be enabled in main()
  *     - init assumes PWM1 output bit (D5) has been set to output previously (stepper.c)
- *     - See system.h for timer and port assignments
  */
 void pwm_init() {
   gpio_set_bit_off(SPINDLE_PWM);
@@ -90,6 +87,17 @@ void pwm_init() {
   pwm.p[PWM_2].ctrla = PWM2_CTRLA_CLKSEL;
   pwm.p[PWM_2].timer->CTRLB = PWM2_CTRLB;
   pwm.p[PWM_2].timer->INTCTRLB = PWM2_INTCTRLB;
+
+  pwm.c[PWM_1].frequency =    P1_PWM_FREQUENCY;
+  pwm.c[PWM_1].cw_speed_lo =  P1_CW_SPEED_LO;
+  pwm.c[PWM_1].cw_speed_hi =  P1_CW_SPEED_HI;
+  pwm.c[PWM_1].cw_phase_lo =  P1_CW_PHASE_LO;
+  pwm.c[PWM_1].cw_phase_hi =  P1_CW_PHASE_HI;
+  pwm.c[PWM_1].ccw_speed_lo = P1_CCW_SPEED_LO;
+  pwm.c[PWM_1].ccw_speed_hi = P1_CCW_SPEED_HI;
+  pwm.c[PWM_1].ccw_phase_lo = P1_CCW_PHASE_LO;
+  pwm.c[PWM_1].ccw_phase_hi = P1_CCW_PHASE_HI;
+  pwm.c[PWM_1].phase_off =    P1_PWM_PHASE_OFF;
 }
 
 
@@ -109,9 +117,9 @@ ISR(PWM2_ISR_vect) {}
  *    Doesn't turn time on until duty cycle is set
  */
 stat_t pwm_set_freq(uint8_t chan, float freq) {
-  if (chan > PWMS) { return STAT_NO_SUCH_DEVICE;}
-  if (freq > PWM_MAX_FREQ) { return STAT_INPUT_EXCEEDS_MAX_VALUE;}
-  if (freq < PWM_MIN_FREQ) { return STAT_INPUT_LESS_THAN_MIN_VALUE;}
+  if (chan > PWMS) return STAT_NO_SUCH_DEVICE;
+  if (freq > PWM_MAX_FREQ) return STAT_INPUT_EXCEEDS_MAX_VALUE;
+  if (freq < PWM_MIN_FREQ) return STAT_INPUT_LESS_THAN_MIN_VALUE;
 
   // Set the period and the prescaler
   float prescale = F_CPU / 65536 / freq;    // optimal non-integer prescaler value
@@ -163,28 +171,3 @@ stat_t pwm_set_duty(uint8_t chan, float duty) {
 
   return STAT_OK;
 }
-
-
-#ifdef __TEXT_MODE
-static const char fmt_p1frq[] PROGMEM = "[p1frq] pwm frequency   %15.0f Hz\n";
-static const char fmt_p1csl[] PROGMEM = "[p1csl] pwm cw speed lo %15.0f RPM\n";
-static const char fmt_p1csh[] PROGMEM = "[p1csh] pwm cw speed hi %15.0f RPM\n";
-static const char fmt_p1cpl[] PROGMEM = "[p1cpl] pwm cw phase lo %15.3f [0..1]\n";
-static const char fmt_p1cph[] PROGMEM = "[p1cph] pwm cw phase hi %15.3f [0..1]\n";
-static const char fmt_p1wsl[] PROGMEM = "[p1wsl] pwm ccw speed lo%15.0f RPM\n";
-static const char fmt_p1wsh[] PROGMEM = "[p1wsh] pwm ccw speed hi%15.0f RPM\n";
-static const char fmt_p1wpl[] PROGMEM = "[p1wpl] pwm ccw phase lo%15.3f [0..1]\n";
-static const char fmt_p1wph[] PROGMEM = "[p1wph] pwm ccw phase hi%15.3f [0..1]\n";
-static const char fmt_p1pof[] PROGMEM = "[p1pof] pwm phase off   %15.3f [0..1]\n";
-
-void pwm_print_p1frq(nvObj_t *nv) {text_print_flt(nv, fmt_p1frq);}
-void pwm_print_p1csl(nvObj_t *nv) {text_print_flt(nv, fmt_p1csl);}
-void pwm_print_p1csh(nvObj_t *nv) {text_print_flt(nv, fmt_p1csh);}
-void pwm_print_p1cpl(nvObj_t *nv) {text_print_flt(nv, fmt_p1cpl);}
-void pwm_print_p1cph(nvObj_t *nv) {text_print_flt(nv, fmt_p1cph);}
-void pwm_print_p1wsl(nvObj_t *nv) {text_print_flt(nv, fmt_p1wsl);}
-void pwm_print_p1wsh(nvObj_t *nv) {text_print_flt(nv, fmt_p1wsh);}
-void pwm_print_p1wpl(nvObj_t *nv) {text_print_flt(nv, fmt_p1wpl);}
-void pwm_print_p1wph(nvObj_t *nv) {text_print_flt(nv, fmt_p1wph);}
-void pwm_print_p1pof(nvObj_t *nv) {text_print_flt(nv, fmt_p1pof);}
-#endif //__TEXT_MODE

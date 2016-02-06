@@ -25,47 +25,61 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 /*
- *    Coordinated motion (line drawing) is performed using a classic Bresenham DDA.
- *    A number of additional steps are taken to optimize interpolation and pulse train
- *    timing accuracy to minimize pulse jitter and make for very smooth motion and surface
- *    finish.
+ *    Coordinated motion (line drawing) is performed using a classic
+ *    Bresenham DDA.  A number of additional steps are taken to
+ *    optimize interpolation and pulse train timing accuracy to
+ *    minimize pulse jitter and make for very smooth motion and
+ *    surface finish.
  *
- *    - The DDA is not used as a 'ramp' for acceleration management. Accel is computed
- *        upstream in the motion planner as 3rd order (controlled jerk) equations. These
- *        generate accel/decel segments that are passed to the DDA for step output.
+ *    - The DDA is not used as a 'ramp' for acceleration
+ *        management. Accel is computed upstream in the motion planner
+ *        as 3rd order (controlled jerk) equations. These generate
+ *        accel/decel segments that are passed to the DDA for step
+ *        output.
  *
- *      - The DDA accepts and processes fractional motor steps as floating point nuymbers
- *        from the planner. Steps do not need to be whole numbers, and are not expected to be.
- *        The step values are converted to integer by multiplying by a fixed-point precision
- *        (DDA_SUBSTEPS, 100000). Rounding is performed to avoid a truncation bias.
+ *    - The DDA accepts and processes fractional motor steps as
+ *        floating point numbers from the planner. Steps do not need
+ *        to be whole numbers, and are not expected to be.  The step
+ *        values are converted to integer by multiplying by a
+ *        fixed-point precision (DDA_SUBSTEPS, 100000). Rounding is
+ *        performed to avoid a truncation bias.
  *
- *    - Constant Rate DDA clock: The DDA runs at a constant, maximum rate for every
- *        segment regardless of actual step rate required. This means that the DDA clock
- *        is not tuned to the step rate (or a multiple) of the major axis, as is typical
- *        for most DDAs. Running the DDA flat out might appear to be "wasteful", but it ensures
- *        that the best aliasing results are achieved, and is part of maintaining step accuracy
+ *    - Constant Rate DDA clock: The DDA runs at a constant, maximum
+ *        rate for every segment regardless of actual step rate
+ *        required. This means that the DDA clock is not tuned to the
+ *        step rate (or a multiple) of the major axis, as is typical
+ *        for most DDAs. Running the DDA flat out might appear to be
+ *        "wasteful", but it ensures that the best aliasing results
+ *        are achieved, and is part of maintaining step accuracy
  *        across motion segments.
  *
- *        The observation is that TinyG is a hard real-time system in which every clock cycle
- *        is knowable and can be accounted for. So if the system is capable of sustaining
- *        max pulse rate for the fastest move, it's capable of sustaining this rate for any
- *        move. So we just run it flat out and get the best pulse resolution for all moves.
- *        If we were running from batteries or otherwise cared about the energy budget we
+ *        The observation is that TinyG is a hard real-time system in
+ *        which every clock cycle is knowable and can be accounted
+ *        for. So if the system is capable of sustaining max pulse
+ *        rate for the fastest move, it's capable of sustaining this
+ *        rate for any move. So we just run it flat out and get the
+ *        best pulse resolution for all moves.  If we were running
+ *        from batteries or otherwise cared about the energy budget we
  *        might not be so cavalier about this.
  *
- *        At 50 KHz constant clock rate we have 20 uSec between pulse timer (DDA) interrupts.
- *        On the Xmega we consume <10 uSec in the interrupt - a whopping 50% of available cycles
- *        going into pulse generation.
+ *        At 50 KHz constant clock rate we have 20 uSec between pulse
+ *        timer (DDA) interrupts.  On the Xmega we consume <10 uSec in
+ *        the interrupt - a whopping 50% of available cycles going
+ *        into pulse generation.
  *
- *    - Pulse timing is also helped by minimizing the time spent loading the next move
- *        segment. The time budget for the load is less than the time remaining before the
- *        next DDA clock tick. This means that the load must take < 10 uSec or the time
- *        between pulses will stretch out when changing segments. This does not affect
- *        positional accuracy but it would affect jitter and smoothness. To this end as much
- *        as possible about that move is pre-computed during move execution (prep cycles).
- *        Also, all moves are loaded from the DDA interrupt level (HI), avoiding the need
- *        for mutual exclusion locking or volatiles (which slow things down).
+ *    - Pulse timing is also helped by minimizing the time spent
+ *        loading the next move segment. The time budget for the load
+ *        is less than the time remaining before the next DDA clock
+ *        tick. This means that the load must take < 10 uSec or the
+ *        time between pulses will stretch out when changing
+ *        segments. This does not affect positional accuracy but it
+ *        would affect jitter and smoothness. To this end as much as
+ *        possible about that move is pre-computed during move
+ *        execution (prep cycles).  Also, all moves are loaded from
+ *        the DDA interrupt level (HI), avoiding the need for mutual
+ *        exclusion locking or volatiles (which slow things down).
  */
 
 /*
@@ -200,7 +214,7 @@
  *     3b If the steppers are not running this will set a timer to cause an
  *        EXEC "software interrupt" that will ultimately call st_exec_move().
  *
- *   4  At this point a call to _exec_move() is made, either by the
+ *     4  At this point a call to _exec_move() is made, either by the
  *        software interrupt from 3b, or once the steppers finish running
  *        the current segment and have loaded the next segment. In either
  *        case the call is initated via the EXEC software interrupt which
@@ -243,8 +257,11 @@
  *    degrees of phase angle results in a step being generated.
  */
 
-#ifndef STEPPER_H_ONCE
-#define STEPPER_H_ONCE
+#ifndef STEPPER_H
+#define STEPPER_H
+
+#include "config.h"
+#include "status.h"
 
 // See hardware.h for platform specific stepper definitions
 
@@ -257,8 +274,8 @@ enum prepBufferState {
 // Currently there is no distinction between IDLE and OFF (DEENERGIZED)
 // In the future IDLE will be powered at a low, torque-maintaining current
 enum motorPowerState {                 // used w/start and stop flags to sequence motor power
-  MOTOR_OFF = 0,                       // motor is stopped and deenergized
-  MOTOR_IDLE,                          // motor is stopped and may be partially energized for torque maintenance
+  MOTOR_OFF = 0,                       // motor stopped and deenergized
+  MOTOR_IDLE,                          // motor stopped and may be partially energized
   MOTOR_RUNNING,                       // motor is running (and fully energized)
   MOTOR_POWER_TIMEOUT_START,           // transitional state to start power-down timeout
   MOTOR_POWER_TIMEOUT_COUNTDOWN        // count down the time to de-energizing motors
@@ -269,16 +286,16 @@ enum cmMotorPowerMode {
   MOTOR_DISABLED = 0,                  // motor enable is deactivated
   MOTOR_ALWAYS_POWERED,                // motor is always powered while machine is ON
   MOTOR_POWERED_IN_CYCLE,              // motor fully powered during cycles, de-powered out of cycle
-  MOTOR_POWERED_ONLY_WHEN_MOVING,      // motor only powered while moving - idles shortly after it's stopped - even in cycle
+  MOTOR_POWERED_ONLY_WHEN_MOVING,      // idles shortly after it's stopped - even in cycle
   MOTOR_POWER_MODE_MAX_VALUE           // for input range checking
 };
 
 
 // Min/Max timeouts allowed for motor disable. Allow for inertial stop; must be non-zero
-#define MOTOR_TIMEOUT_SECONDS_MIN    (float)0.1        // seconds !!! SHOULD NEVER BE ZERO !!!
-#define MOTOR_TIMEOUT_SECONDS_MAX    (float)4294967    // (4294967295/1000) -- for conversion to uint32_t
-#define MOTOR_TIMEOUT_SECONDS        (float)0.1        // seconds in DISABLE_AXIS_WHEN_IDLE mode
-#define MOTOR_TIMEOUT_WHEN_MOVING    (float)0.25       // timeout for a motor in _ONLY_WHEN_MOVING mode
+#define MOTOR_TIMEOUT_SECONDS_MIN (float)0.1      // seconds !!! SHOULD NEVER BE ZERO !!!
+#define MOTOR_TIMEOUT_SECONDS_MAX (float)4294967  // (4294967295/1000) -- for conversion to uint32_t
+#define MOTOR_TIMEOUT_SECONDS     (float)0.1      // seconds in DISABLE_AXIS_WHEN_IDLE mode
+#define MOTOR_TIMEOUT_WHEN_MOVING (float)0.25     // timeout for a motor in _ONLY_WHEN_MOVING mode
 
 /* DDA substepping
  *    DDA Substepping is a fixed.point scheme to increase the resolution of the DDA pulse generation
@@ -286,11 +303,11 @@ enum cmMotorPowerMode {
  *    results in more precise pulse timing and therefore less pulse jitter and smoother motor operation.
  *
  *    The DDA accumulator is an int32_t, so the accumulator has the number range of about 2.1 billion.
- *    The DDA_SUBSTEPS is used to multiply the step count for a segment to maximally use this number range.
- *    DDA_SUBSTEPS can be computed for a given DDA clock rate and segment time not to exceed the available
+ *    The DDA_SUBSTEPS is used to multiply step count for a segment to maximally use this number range.
+ *    DDA_SUBSTEPS can be computed for a given DDA clock rate and segment time not to exceed available
  *    number range. Variables are:
  *
- *        MAX_LONG == 2^31, maximum signed long (depth of accumulator. NB: accumulator values are negative)
+ *        MAX_LONG == 2^31, maximum signed long (depth of accumulator. NB: values are negative)
  *        FREQUENCY_DDA == DDA clock rate in Hz.
  *        NOM_SEGMENT_TIME == upper bound of segment time in minutes
  *        0.90 == a safety factor used to reduce the result from theoretical maximum
@@ -304,15 +321,15 @@ enum cmMotorPowerMode {
  *    Step correction settings determine how the encoder error is fed back to correct position errors.
  *    Since the following_error is running 2 segments behind the current segment you have to be careful
  *    not to overcompensate. The threshold determines if a correction should be applied, and the factor
- *    is how much. The holdoff is how many segments to wait before applying another correction. If threshold
+ *    is how much. The holdoff is how many segments before applying another correction. If threshold
  *    is too small and/or amount too large and/or holdoff is too small you may get a runaway correction
  *    and error will grow instead of shrink (or oscillate).
  */
-#define STEP_CORRECTION_THRESHOLD    (float)2.00        // magnitude of forwarding error to apply correction (in steps)
-#define STEP_CORRECTION_FACTOR       (float)0.25        // factor to apply to step correction for a single segment
-#define STEP_CORRECTION_MAX          (float)0.60        // max step correction allowed in a single segment
-#define STEP_CORRECTION_HOLDOFF      5                  // minimum number of segments to wait between error correction
-#define STEP_INITIAL_DIRECTION       DIRECTION_CW
+#define STEP_CORRECTION_THRESHOLD (float)2.00  // magnitude of forwarding error (in steps)
+#define STEP_CORRECTION_FACTOR    (float)0.25  // apply to step correction for a single segment
+#define STEP_CORRECTION_MAX       (float)0.60  // max step correction allowed in a single segment
+#define STEP_CORRECTION_HOLDOFF   5            // minimum wait between error correction
+#define STEP_INITIAL_DIRECTION    DIRECTION_CW
 
 
 /*
@@ -333,26 +350,20 @@ enum cmMotorPowerMode {
  */
 
 // Motor config structure
-typedef struct cfgMotor {               // per-motor configs
-  // public
-  uint8_t motor_map;                    // map motor to axis
-  uint32_t microsteps;                  // microsteps to apply for each axis (ex: 8)
-  uint8_t polarity;                     // 0=normal polarity, 1=reverse motor direction
-  uint8_t power_mode;                   // See cmMotorPowerMode for enum
-  float power_level;                    // set 0.000 to 1.000 for PMW vref setting
-  float step_angle;                     // degrees per whole step (ex: 1.8)
-  float travel_rev;                     // mm or deg of travel per motor revolution
-  float steps_per_unit;                 // microsteps per mm (or degree) of travel
-  float units_per_step;                 // mm or degrees of travel per microstep
-
-  // private
-  float power_level_scaled;             // scaled to internal range - must be between 0 and 1
+typedef struct cfgMotor {             // per-motor configs
+  uint8_t motor_map;                  // map motor to axis
+  uint32_t microsteps;                // microsteps to apply for each axis (ex: 8)
+  uint8_t polarity;                   // 0=normal polarity, 1=reverse motor direction
+  uint8_t power_mode;                 // See cmMotorPowerMode for enum
+  float step_angle;                   // degrees per whole step (ex: 1.8)
+  float travel_rev;                   // mm or deg of travel per motor revolution
+  float steps_per_unit;               // microsteps per mm (or degree) of travel
 } cfgMotor_t;
 
 
-typedef struct stConfig {               // stepper configs
-  float motor_power_timeout;            // seconds before setting motors to idle current (currently this is OFF)
-  cfgMotor_t mot[MOTORS];               // settings for motors 1-N
+typedef struct stConfig {             // stepper configs
+  float motor_power_timeout;          // seconds before set to idle current (currently this is OFF)
+  cfgMotor_t mot[MOTORS];             // settings for motors 1-N
 } stConfig_t;
 
 
@@ -366,11 +377,9 @@ typedef struct stRunMotor {           // one per controlled motor
 
 
 typedef struct stRunSingleton {       // Stepper static values and axis parameters
-  uint16_t magic_start;               // magic number to test memory integrity
   uint32_t dda_ticks_downcount;       // tick down-counter (unscaled)
   uint32_t dda_ticks_X_substeps;      // ticks multiplied by scaling factor
   stRunMotor_t mot[MOTORS];           // runtime motor structures
-  uint16_t magic_end;
 } stRunSingleton_t;
 
 
@@ -386,18 +395,16 @@ typedef struct stPrepMotor {
 
   // following error correction
   int32_t correction_holdoff;         // count down segments between corrections
-  float corrected_steps;              // accumulated correction steps for the cycle (for diagnostic display only)
+  float corrected_steps;              // accumulated correction steps for the cycle (diagnostic)
 
   // accumulator phase correction
   float prev_segment_time;            // segment time from previous segment run for this motor
   float accumulator_correction;       // factor for adjusting accumulator between segments
   uint8_t accumulator_correction_flag;// signals accumulator needs correction
-
 } stPrepMotor_t;
 
 
 typedef struct stPrepSingleton {
-  uint16_t magic_start;               // magic number to test memory integrity
   volatile uint8_t buffer_state;      // prep buffer state - owned by exec or loader
   struct mpBuffer *bf;                // static pointer to relevant buffer
   uint8_t move_type;                  // move type
@@ -406,27 +413,21 @@ typedef struct stPrepSingleton {
   uint32_t dda_ticks;                 // DDA or dwell ticks for the move
   uint32_t dda_ticks_X_substeps;      // DDA ticks scaled by substep factor
   stPrepMotor_t mot[MOTORS];          // prep time motor structs
-  uint16_t magic_end;
 } stPrepSingleton_t;
 
 
 extern stConfig_t st_cfg;             // config struct is exposed. The rest are private
-extern stPrepSingleton_t st_pre;      // only used by config_app diagnostics
+extern stPrepSingleton_t st_pre;      // used by planner
 
 
 void stepper_init();
-void stepper_init_assertions();
-stat_t stepper_test_assertions();
-
 uint8_t st_runtime_isbusy();
 void st_reset();
 void st_cycle_start();
 void st_cycle_end();
-stat_t st_clc(nvObj_t *nv);
 
 void st_energize_motors();
 void st_deenergize_motors();
-void st_set_motor_power(const uint8_t motor);
 stat_t st_motor_power_callback();
 
 void st_request_exec_move();
@@ -435,45 +436,4 @@ void st_prep_command(void *bf);        // use a void pointer since we don't know
 void st_prep_dwell(float microseconds);
 stat_t st_prep_line(float travel_steps[], float following_error[], float segment_time);
 
-stat_t st_set_sa(nvObj_t *nv);
-stat_t st_set_tr(nvObj_t *nv);
-stat_t st_set_mi(nvObj_t *nv);
-stat_t st_set_pm(nvObj_t *nv);
-stat_t st_set_pl(nvObj_t *nv);
-stat_t st_get_pwr(nvObj_t *nv);
-
-stat_t st_set_mt(nvObj_t *nv);
-stat_t st_set_md(nvObj_t *nv);
-stat_t st_set_me(nvObj_t *nv);
-
-#ifdef __TEXT_MODE
-
-void st_print_ma(nvObj_t *nv);
-void st_print_sa(nvObj_t *nv);
-void st_print_tr(nvObj_t *nv);
-void st_print_mi(nvObj_t *nv);
-void st_print_po(nvObj_t *nv);
-void st_print_pm(nvObj_t *nv);
-void st_print_pl(nvObj_t *nv);
-void st_print_pwr(nvObj_t *nv);
-void st_print_mt(nvObj_t *nv);
-void st_print_me(nvObj_t *nv);
-void st_print_md(nvObj_t *nv);
-
-#else
-
-#define st_print_ma tx_print_stub
-#define st_print_sa tx_print_stub
-#define st_print_tr tx_print_stub
-#define st_print_mi tx_print_stub
-#define st_print_po tx_print_stub
-#define st_print_pm tx_print_stub
-#define st_print_pl tx_print_stub
-#define st_print_pwr tx_print_stub
-#define st_print_mt tx_print_stub
-#define st_print_me tx_print_stub
-#define st_print_md tx_print_stub
-
-#endif // __TEXT_MODE
-
-#endif // STEPPER_H_ONCE
+#endif // STEPPER_H

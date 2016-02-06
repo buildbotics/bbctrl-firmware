@@ -40,27 +40,23 @@
  *    and lockout subsequent interrupts for the defined lockout period. Ditto on the method.
  */
 
-#include "tinyg.h"
-#include "config.h"
 #include "switch.h"
+
 #include "hardware.h"
 #include "canonical_machine.h"
-#include "text_parser.h"
+#include "config.h"
 
 #include <avr/interrupt.h>
 
+#include <stdbool.h>
 
 static void _switch_isr_helper(uint8_t sw_num);
 
 /*
- * switch_init() - initialize homing/limit switches
+ * Initialize homing/limit switches
  *
  *    This function assumes sys_init() and st_init() have been run previously to
- *    bind the ports and set bit IO directions, repsectively. See system.h for details
- */
-/* Note: v7 boards have external strong pullups on GPIO2 pins (2.7K ohm).
- *    v6 and earlier use internal pullups only. Internal pullups are set
- *    regardless of board type but are extraneous for v7 boards.
+ *    bind the ports and set bit IO directions, repsectively.
  */
 #define PIN_MODE PORT_OPC_PULLUP_gc                // pin mode. see iox192a3.h for details
 
@@ -85,23 +81,30 @@ void switch_init() {
     hw.sw_port[i]->INTCTRL = GPIO1_INTLVL;               // see gpio.h for setting
   }
 
+  // Defaults
+  sw.switch_type = SWITCH_TYPE;
+  sw.mode[0] = X_SWITCH_MODE_MIN;
+  sw.mode[1] = X_SWITCH_MODE_MAX;
+  sw.mode[2] = Y_SWITCH_MODE_MIN;
+  sw.mode[3] = Y_SWITCH_MODE_MAX;
+  sw.mode[4] = Z_SWITCH_MODE_MIN;
+  sw.mode[5] = Z_SWITCH_MODE_MAX;
+  sw.mode[6] = A_SWITCH_MODE_MIN;
+  sw.mode[7] = A_SWITCH_MODE_MAX;
+
   reset_switches();
 }
 
 
 /*
- * Switch closure processing routines
- *
- * ISRs                  - switch interrupt handler vectors
- * _isr_helper()         - common code for all switch ISRs
- * switch_rtc_callback() - called from RTC for each RTC tick.
- *
  *    These functions interact with each other to process switch closures and firing.
  *    Each switch has a counter which is initially set to negative SW_DEGLITCH_TICKS.
  *    When a switch closure is DETECTED the count increments for each RTC tick.
  *    When the count reaches zero the switch is tripped and action occurs.
  *    The counter continues to increment positive until the lockout is exceeded.
  */
+
+// Switch interrupt handler vectors
 ISR(X_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_X);}
 ISR(Y_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Y);}
 ISR(Z_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Z);}
@@ -113,29 +116,32 @@ ISR(A_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_A);}
 
 
 static void _switch_isr_helper(uint8_t sw_num) {
-  if (sw.mode[sw_num] == SW_MODE_DISABLED) return;    // this is never supposed to happen
-  if (sw.debounce[sw_num] == SW_LOCKOUT) return;      // exit if switch is in lockout
+  if (sw.mode[sw_num] == SW_MODE_DISABLED) return; // this is never supposed to happen
+  if (sw.debounce[sw_num] == SW_LOCKOUT) return;   // exit if switch is in lockout
 
-  sw.debounce[sw_num] = SW_DEGLITCHING;               // either transitions state from IDLE or overwrites it
-  sw.count[sw_num] = -SW_DEGLITCH_TICKS;              // reset deglitch count regardless of entry state
+  sw.debounce[sw_num] = SW_DEGLITCHING;            // either transitions state from IDLE or overwrites it
+  sw.count[sw_num] = -SW_DEGLITCH_TICKS;           // reset deglitch count regardless of entry state
 
-  read_switch(sw_num);                                // sets the state value in the struct
+  read_switch(sw_num);                             // sets the state value in the struct
 }
 
 
+/// Called from RTC for each RTC tick
 void switch_rtc_callback() {
   for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
     if (sw.mode[i] == SW_MODE_DISABLED || sw.debounce[i] == SW_IDLE)
       continue;
 
-    if (++sw.count[i] == SW_LOCKOUT_TICKS) {        // state is either lockout or deglitching
+    if (++sw.count[i] == SW_LOCKOUT_TICKS) {       // state is either lockout or deglitching
       sw.debounce[i] = SW_IDLE;
+
       // check if the state has changed while we were in lockout...
       uint8_t old_state = sw.state[i];
-      if(old_state != read_switch(i)) {
+      if (old_state != read_switch(i)) {
         sw.debounce[i] = SW_DEGLITCHING;
         sw.count[i] = -SW_DEGLITCH_TICKS;
       }
+
       continue;
     }
 
@@ -195,36 +201,10 @@ uint8_t read_switch(uint8_t sw_num) {
   case SW_MAX_A: read = hw.sw_port[AXIS_A]->IN & SW_MAX_BIT_bm; break;
   }
 
+  // A NO switch drives the pin LO when thrown
   if (sw.switch_type == SW_TYPE_NORMALLY_OPEN)
-    sw.state[sw_num] = (read == 0) ? SW_CLOSED : SW_OPEN; // confusing. An NO switch drives the pin LO when thrown
+    sw.state[sw_num] = (read == 0) ? SW_CLOSED : SW_OPEN;
   else sw.state[sw_num] = (read != 0) ? SW_CLOSED : SW_OPEN;
 
   return sw.state[sw_num];
 }
-
-
-stat_t sw_set_st(nvObj_t *nv) {            // switch type (global)
-  set_01(nv);
-  switch_init();
-
-  return STAT_OK;
-}
-
-
-stat_t sw_set_sw(nvObj_t *nv) {            // switch setting
-  if (nv->value > SW_MODE_MAX_VALUE)
-    return STAT_INPUT_VALUE_RANGE_ERROR;
-
-  set_ui8(nv);
-  switch_init();
-
-  return STAT_OK;
-}
-
-
-#ifdef __TEXT_MODE
-
-static const char fmt_st[] PROGMEM = "[st]  switch type%18d [0=NO,1=NC]\n";
-void sw_print_st(nvObj_t *nv) {text_print_ui8(nv, fmt_st);}
-
-#endif

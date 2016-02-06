@@ -18,24 +18,21 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyg.h"                  // #1 There are some dependencies
-#include "config.h"                 // #2
 #include "hardware.h"
-#include "persistence.h"
 #include "controller.h"
 #include "canonical_machine.h"
-#include "report.h"
-#include "planner.h"
 #include "stepper.h"
 #include "encoder.h"
 #include "switch.h"
-#include "test.h"
 #include "pwm.h"
 #include "usart.h"
 #include "tmc2660.h"
+#include "plan/planner.h"
 
 #include <avr/interrupt.h>
-#include "xmega/xmega_interrupts.h"
+#include <avr/pgmspace.h>
+
+#include <stdio.h>
 
 
 static void init() {
@@ -46,8 +43,6 @@ static void init() {
 
   // do these first
   hardware_init();                // system hardware setup            - must be first
-  persistence_init();             // set up EEPROM or other NVM       - must be second
-  rtc_init();                     // real time counter
   usart_init();                   // serial port
 
   // do these next
@@ -58,19 +53,20 @@ static void init() {
   pwm_init();                     // pulse width modulation drivers
 
   controller_init();              // must be first app init
-  config_init();                  // config records from eeprom       - must be next app init
   planner_init();                 // motion planning subsystem
   canonical_machine_init();       // canonical machine                - must follow config_init()
 
-  // now bring up the interrupts and get started
-  PMIC_SetVectorLocationToApplication(); // as opposed to boot ROM
-  PMIC_EnableHighLevel();         // all levels are used, so don't bother to abstract them
-  PMIC_EnableMediumLevel();
-  PMIC_EnableLowLevel();
+  // set vector location to application, as opposed to boot ROM
+  uint8_t temp = PMIC.CTRL & ~PMIC_IVSEL_bm;
+  CCP = CCP_IOREG_gc;
+  PMIC.CTRL = temp;
+
+  // all levels are used, so don't bother to abstract them
+  PMIC.CTRL |= PMIC_HILVLEN_bm | PMIC_MEDLVLEN_bm | PMIC_LOLVLEN_bm;
 
   sei();                          // enable global interrupts
 
-  rpt_print_system_ready_message(); // (LAST) announce system is ready
+  fprintf_P(stderr, PSTR("TinyG firmware\n"));
 }
 
 
@@ -78,7 +74,7 @@ int main() {
   init();
 
   // main loop
-  while (true) controller_run();  // single pass through the controller
+  while (1) controller_run();  // single pass through the controller
 
   return 0;
 }

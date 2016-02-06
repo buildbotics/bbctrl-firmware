@@ -28,10 +28,13 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CANONICAL_MACHINE_H_ONCE
-#define CANONICAL_MACHINE_H_ONCE
+#ifndef CANONICAL_MACHINE_H
+#define CANONICAL_MACHINE_H
 
 #include "config.h"
+#include "status.h"
+
+#include <stdint.h>
 
 #define MODEL   (GCodeState_t *)&cm.gm        // absolute pointer from canonical machine gm model
 #define PLANNER (GCodeState_t *)&bf->gm       // relative to buffer *bf is currently pointing to
@@ -105,7 +108,6 @@ typedef struct GCodeState {           // Gcode model state - used by model, plan
 
 
 typedef struct GCodeStateExtended {   // Gcode dynamic state extensions - used by model and arcs
-  uint16_t magic_start;               // magic number to test memory integrity
   uint8_t next_action;                // handles G modal group 1 moves & non-modals
   uint8_t program_flow;               // used only by the gcode_parser
 
@@ -129,8 +131,6 @@ typedef struct GCodeStateExtended {   // Gcode dynamic state extensions - used b
   // unimplemented gcode parameters
   //    float cutter_radius;                // D - cutter radius compensation (0 is off)
   //    float cutter_length;                // H - cutter length compensation (0 is off)
-
-  uint16_t magic_end;
 } GCodeStateX_t;
 
 
@@ -201,8 +201,6 @@ typedef struct cmAxis {
 
 
 typedef struct cmSingleton {          // struct to manage cm globals and cycles
-  magic_t magic_start;                // magic number to test memory integrity
-
   // Public
   // system group settings
   float junction_acceleration;        // centripetal acceleration max for cornering
@@ -253,8 +251,6 @@ typedef struct cmSingleton {          // struct to manage cm globals and cycles
   GCodeStateX_t gmx;                   // extended gcode model state
   GCodeInput_t  gn;                    // gcode input values - transient
   GCodeInput_t  gf;                    // gcode input flags - transient
-
-  magic_t magic_end;
 } cmSingleton_t;
 
 
@@ -511,7 +507,7 @@ enum cmAxisMode {                 // axis modes (ordered: see _cm_get_feed_time(
   AXIS_STANDARD,                  // axis in coordinated motion w/standard behaviors
   AXIS_INHIBITED,                 // axis is computed but not activated
   AXIS_RADIUS                     // rotary axis calibrated to circumference
-}; // ordering must be preserved. See cm_set_move_times()
+}; // ordering must be preserved.
 
 #define AXIS_MODE_MAX_LINEAR AXIS_INHIBITED
 #define AXIS_MODE_MAX_ROTARY AXIS_RADIUS
@@ -568,12 +564,9 @@ stat_t cm_test_soft_limits(float target[]);
 
 // Initialization and termination (4.3.2)
 void canonical_machine_init();
-void canonical_machine_init_assertions();
-stat_t canonical_machine_test_assertions();
-
 stat_t cm_hard_alarm(stat_t status);                            // enter hard alarm state. returns same status code
 stat_t cm_soft_alarm(stat_t status);                            // enter soft alarm state. returns same status code
-stat_t cm_clear(nvObj_t *nv);
+stat_t cm_clear();
 
 // Representation (4.3.3)
 stat_t cm_select_plane(uint8_t plane);                          // G17, G18, G19
@@ -629,7 +622,7 @@ stat_t cm_traverse_override_factor(uint8_t flag);                // M50.3
 stat_t cm_spindle_override_enable(uint8_t flag);                 // M51
 stat_t cm_spindle_override_factor(uint8_t flag);                 // M51.1
 
-void cm_message(char_t *message);                                // msg to console (e.g. Gcode comments)
+void cm_message(char *message);                                // msg to console (e.g. Gcode comments)
 
 // Program Functions (4.3.10)
 void cm_request_feedhold();
@@ -645,6 +638,8 @@ void cm_feedhold();                                              // (no Gcode)
 void cm_program_stop();                                          // M0
 void cm_optional_program_stop();                                 // M1
 void cm_program_end();                                           // M2
+
+char cm_get_axis_char(const int8_t axis);
 
 /*--- Cycles ---*/
 
@@ -662,162 +657,4 @@ stat_t cm_jogging_callback();                                    // jogging cycl
 stat_t cm_jogging_cycle_start(uint8_t axis);                     // {"jogx":-100.3}
 float cm_get_jogging_dest();
 
-/*--- cfgArray interface functions ---*/
-
-char_t cm_get_axis_char(const int8_t axis);
-
-stat_t cm_get_mline(nvObj_t *nv);       // get model line number
-stat_t cm_get_line(nvObj_t *nv);        // get active (model or runtime) line number
-stat_t cm_get_stat(nvObj_t *nv);        // get combined machine state as value and string
-stat_t cm_get_macs(nvObj_t *nv);        // get raw machine state as value and string
-stat_t cm_get_cycs(nvObj_t *nv);        // get raw cycle state (etc etc)...
-stat_t cm_get_mots(nvObj_t *nv);        // get raw motion state...
-stat_t cm_get_hold(nvObj_t *nv);        // get raw hold state...
-stat_t cm_get_home(nvObj_t *nv);        // get raw homing state...
-stat_t cm_get_unit(nvObj_t *nv);        // get unit mode...
-stat_t cm_get_coor(nvObj_t *nv);        // get coordinate system in effect...
-stat_t cm_get_momo(nvObj_t *nv);        // get motion mode...
-stat_t cm_get_plan(nvObj_t *nv);        // get active plane...
-stat_t cm_get_path(nvObj_t *nv);        // get patch control mode...
-stat_t cm_get_dist(nvObj_t *nv);        // get distance mode...
-stat_t cm_get_frmo(nvObj_t *nv);        // get feedrate mode...
-stat_t cm_get_toolv(nvObj_t *nv);       // get tool (value)
-stat_t cm_get_pwr(nvObj_t *nv);         // get motor power enable state
-
-stat_t cm_get_vel(nvObj_t *nv);         // get runtime velocity...
-stat_t cm_get_feed(nvObj_t *nv);
-stat_t cm_get_pos(nvObj_t *nv);         // get runtime work position...
-stat_t cm_get_mpo(nvObj_t *nv);         // get runtime machine position...
-stat_t cm_get_ofs(nvObj_t *nv);         // get runtime work offset...
-
-stat_t cm_run_qf(nvObj_t *nv);          // run queue flush
-stat_t cm_run_home(nvObj_t *nv);        // start homing cycle
-
-stat_t cm_dam(nvObj_t *nv);             // dump active model (debugging command)
-
-stat_t cm_run_jogx(nvObj_t *nv);        // start jogging cycle for x
-stat_t cm_run_jogy(nvObj_t *nv);        // start jogging cycle for y
-stat_t cm_run_jogz(nvObj_t *nv);        // start jogging cycle for z
-stat_t cm_run_joga(nvObj_t *nv);        // start jogging cycle for a
-
-stat_t cm_get_am(nvObj_t *nv);          // get axis mode
-stat_t cm_set_am(nvObj_t *nv);          // set axis mode
-stat_t cm_set_xjm(nvObj_t *nv);         // set jerk max with 1,000,000 correction
-stat_t cm_set_xjh(nvObj_t *nv);         // set jerk homing with 1,000,000 correction
-
-#ifdef __TEXT_MODE
-
-void cm_print_vel(nvObj_t *nv);         // model state reporting
-void cm_print_feed(nvObj_t *nv);
-void cm_print_line(nvObj_t *nv);
-void cm_print_stat(nvObj_t *nv);
-void cm_print_macs(nvObj_t *nv);
-void cm_print_cycs(nvObj_t *nv);
-void cm_print_mots(nvObj_t *nv);
-void cm_print_hold(nvObj_t *nv);
-void cm_print_home(nvObj_t *nv);
-void cm_print_unit(nvObj_t *nv);
-void cm_print_coor(nvObj_t *nv);
-void cm_print_momo(nvObj_t *nv);
-void cm_print_plan(nvObj_t *nv);
-void cm_print_path(nvObj_t *nv);
-void cm_print_dist(nvObj_t *nv);
-void cm_print_frmo(nvObj_t *nv);
-void cm_print_tool(nvObj_t *nv);
-
-void cm_print_gpl(nvObj_t *nv);         // Gcode defaults
-void cm_print_gun(nvObj_t *nv);
-void cm_print_gco(nvObj_t *nv);
-void cm_print_gpa(nvObj_t *nv);
-void cm_print_gdi(nvObj_t *nv);
-
-void cm_print_lin(nvObj_t *nv);         // generic print for linear values
-void cm_print_pos(nvObj_t *nv);         // print runtime work position in prevailing units
-void cm_print_mpo(nvObj_t *nv);         // print runtime work position always in MM units
-void cm_print_ofs(nvObj_t *nv);         // print runtime work offset always in MM units
-
-void cm_print_ja(nvObj_t *nv);          // global CM settings
-void cm_print_ct(nvObj_t *nv);
-void cm_print_sl(nvObj_t *nv);
-void cm_print_ml(nvObj_t *nv);
-void cm_print_ma(nvObj_t *nv);
-void cm_print_ms(nvObj_t *nv);
-void cm_print_st(nvObj_t *nv);
-
-void cm_print_am(nvObj_t *nv);          // axis print functions
-void cm_print_fr(nvObj_t *nv);
-void cm_print_vm(nvObj_t *nv);
-void cm_print_tm(nvObj_t *nv);
-void cm_print_tn(nvObj_t *nv);
-void cm_print_jm(nvObj_t *nv);
-void cm_print_jh(nvObj_t *nv);
-void cm_print_jd(nvObj_t *nv);
-void cm_print_ra(nvObj_t *nv);
-void cm_print_sn(nvObj_t *nv);
-void cm_print_sx(nvObj_t *nv);
-void cm_print_sv(nvObj_t *nv);
-void cm_print_lv(nvObj_t *nv);
-void cm_print_lb(nvObj_t *nv);
-void cm_print_zb(nvObj_t *nv);
-void cm_print_cofs(nvObj_t *nv);
-void cm_print_cpos(nvObj_t *nv);
-
-#else // __TEXT_MODE
-
-#define cm_print_vel tx_print_stub      // model state reporting
-#define cm_print_feed tx_print_stub
-#define cm_print_line tx_print_stub
-#define cm_print_stat tx_print_stub
-#define cm_print_macs tx_print_stub
-#define cm_print_cycs tx_print_stub
-#define cm_print_mots tx_print_stub
-#define cm_print_hold tx_print_stub
-#define cm_print_home tx_print_stub
-#define cm_print_unit tx_print_stub
-#define cm_print_coor tx_print_stub
-#define cm_print_momo tx_print_stub
-#define cm_print_plan tx_print_stub
-#define cm_print_path tx_print_stub
-#define cm_print_dist tx_print_stub
-#define cm_print_frmo tx_print_stub
-#define cm_print_tool tx_print_stub
-
-#define cm_print_gpl tx_print_stub      // Gcode defaults
-#define cm_print_gun tx_print_stub
-#define cm_print_gco tx_print_stub
-#define cm_print_gpa tx_print_stub
-#define cm_print_gdi tx_print_stub
-
-#define cm_print_lin tx_print_stub      // generic print for linear values
-#define cm_print_pos tx_print_stub      // print runtime work position in prevailing units
-#define cm_print_mpo tx_print_stub      // print runtime work position always in MM uints
-#define cm_print_ofs tx_print_stub      // print runtime work offset always in MM uints
-
-#define cm_print_ja tx_print_stub       // global CM settings
-#define cm_print_ct tx_print_stub
-#define cm_print_sl tx_print_stub
-#define cm_print_ml tx_print_stub
-#define cm_print_ma tx_print_stub
-#define cm_print_ms tx_print_stub
-#define cm_print_st tx_print_stub
-
-#define cm_print_am tx_print_stub       // axis print functions
-#define cm_print_fr tx_print_stub
-#define cm_print_vm tx_print_stub
-#define cm_print_tm tx_print_stub
-#define cm_print_tn tx_print_stub
-#define cm_print_jm tx_print_stub
-#define cm_print_jh tx_print_stub
-#define cm_print_jd tx_print_stub
-#define cm_print_ra tx_print_stub
-#define cm_print_sn tx_print_stub
-#define cm_print_sx tx_print_stub
-#define cm_print_sv tx_print_stub
-#define cm_print_lv tx_print_stub
-#define cm_print_lb tx_print_stub
-#define cm_print_zb tx_print_stub
-#define cm_print_cofs tx_print_stub
-#define cm_print_cpos tx_print_stub
-
-#endif // __TEXT_MODE
-#endif // CANONICAL_MACHINE_H_ONCE
+#endif // CANONICAL_MACHINE_H
