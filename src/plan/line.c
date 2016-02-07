@@ -45,20 +45,24 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]);
 static void _reset_replannable_list();
 
 
-/* Runtime-specific setters and getters
- *
- * mp_zero_segment_velocity()        - correct velocity in last segment for reporting purposes
- * mp_get_runtime_velocity()         - returns current velocity (aggregate)
- * mp_get_runtime_machine_position() - returns current axis position in machine coordinates
- * mp_set_runtime_work_offset()      - set offsets in the MR struct
- * mp_get_runtime_work_position()    - returns current axis position in work coordinates
- *                                     that were in effect at move planning time
- */
+/// Correct velocity in last segment for reporting purposes
 void mp_zero_segment_velocity() {mr.segment_velocity = 0;}
+
+
+/// Returns current velocity (aggregate)
 float mp_get_runtime_velocity() {return mr.segment_velocity;}
+
+
+/// Returns current axis position in machine coordinates
 float mp_get_runtime_absolute_position(uint8_t axis) {return mr.position[axis];}
+
+/// Set offsets in the MR struct
 void mp_set_runtime_work_offset(float offset[]) {copy_vector(mr.gm.work_offset, offset);}
+
+/// Returns current axis position in work coordinates
+/// that were in effect at move planning time
 float mp_get_runtime_work_position(uint8_t axis) {return mr.position[axis] - mr.gm.work_offset[axis];}
+
 
 /*
  * Return TRUE if motion control busy (i.e. robot is moving)
@@ -86,12 +90,6 @@ uint8_t mp_get_runtime_busy() {
  *    that are too short to move will accumulate and get executed once the accumulated error
  *    exceeds the minimums.
  */
-/*
-  #define axis_length bf->body_length
-  #define axis_velocity bf->cruise_velocity
-  #define axis_tail bf->tail_length
-  #define longest_tail bf->head_length
-*/
 stat_t mp_aline(GCodeState_t *gm_in) {
   mpBuf_t *bf;                         // current move pointer
   float exact_stop = 0;                // preset this value OFF
@@ -257,13 +255,6 @@ stat_t mp_aline(GCodeState_t *gm_in) {
 }
 
 
-/***** ALINE HELPERS *****
- * _calc_move_times()
- * _plan_block_list()
- * _get_junction_vmax()
- * _reset_replannable_list()
- */
-
 /*
  * Compute optimal and minimum move times into the gcode_state
  *
@@ -321,7 +312,6 @@ stat_t mp_aline(GCodeState_t *gm_in) {
  *        so that the elapsed time from the start to the end of the motion is T plus
  *        any time required for acceleration or deceleration.
  */
-
 static void _calc_move_times(GCodeState_t *gms, const float axis_length[], const float axis_square[]) {
   // gms = Gcode model state
   float inv_time = 0;             // inverse time if doing a feed in G93 mode
@@ -359,7 +349,6 @@ static void _calc_move_times(GCodeState_t *gms, const float axis_length[], const
 
     if (tmp_time > 0) // collect minimum time if this axis is not zero
       gms->minimum_time = min(gms->minimum_time, tmp_time);
-
   }
 
   gms->move_time = max4(inv_time, max_time, xyz_time, abc_time);
@@ -416,8 +405,8 @@ static void _calc_move_times(GCodeState_t *gms, const float axis_length[], const
  *      bf->unit[]            - block unit vector
  *      bf->time                - gets set later
  *      bf->jerk                - source of the other jerk variables. Used in mr.
- */
-/* Notes:
+ *
+ * Notes:
  *    [1]    Whether or not a block is planned is controlled by the bf->replannable
  *        setting (set TRUE if it should be). Replan flags are checked during the
  *        backwards pass and prune the replan list to include only the the latest
@@ -528,8 +517,8 @@ static void _reset_replannable_list() {
  *    How to compute the radius using brute-force trig:
  *        float theta = acos(costheta);
  *        float radius = delta * sin(theta/2)/(1-sin(theta/2));
- */
-/*  This version extends Chamnit's algorithm by computing a value for delta that takes
+ *
+ *  This version extends Chamnit's algorithm by computing a value for delta that takes
  *    the contributions of the individual axes in the move into account. This allows the
  *    control radius to vary by axis. This is necessary to support axes that have
  *    different dynamics; such as a Z axis that doesn't move as fast as X and Y (such as a
@@ -544,7 +533,6 @@ static void _reset_replannable_list() {
  *         Usum    Length of sums            Ux + Uy
  *         d        Delta of sums            (Dx*Ux+DY*UY)/Usum
  */
-
 static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float costheta =
     -a_unit[AXIS_X] * b_unit[AXIS_X] -
@@ -590,8 +578,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  *    Feedhold is executed as cm.hold_state transitions executed inside
  *    _exec_aline() and main loop callbacks to these functions:
  *    mp_plan_hold_callback() and mp_end_hold().
- */
-/*    Holds work like this:
+ *
+ *    Holds work like this:
  *
  *      - Hold is asserted by calling cm_feedhold() (usually invoked via a ! char)
  *        If hold_state is OFF and motion_state is RUNning it sets
@@ -636,7 +624,6 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  *          code in this module, but the code is so complicated I just left it
  *          organized for clarity and hoped for the best from compiler optimization.
  */
-
 static float _compute_next_segment_velocity() {
   if (mr.section == SECTION_BODY) return mr.segment_velocity;
 #ifdef __JERK_EXEC

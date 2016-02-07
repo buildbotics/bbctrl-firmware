@@ -48,12 +48,8 @@ static void _init_forward_diffs(float Vi, float Vt);
 #endif
 
 
-/*************************************************************************
- * Execute runtime functions to prep move for steppers
- *
- *    Dequeues the buffer queue and executes the move continuations.
- *    Manages run buffers and other details
- */
+/// Dequeues the buffer queue and executes the move continuations.
+/// Manages run buffers and other details
 stat_t mp_exec_move() {
   mpBuf_t *bf;
 
@@ -133,8 +129,8 @@ stat_t mp_exec_move() {
  *    to make sure this actually all works out. move_time is the actual time of the
  *    move, accel_time is the time valaue needed to compute the velocity - which
  *    takes the initial velocity into account (move_time does not need to).
- */
-/* --- State transitions - hierarchical state machine ---
+ *
+ * --- State transitions - hierarchical state machine ---
  *
  *    bf->move_state transitions:
  *     from _NEW to _RUN on first call (sub_state set to _OFF)
@@ -150,7 +146,6 @@ stat_t mp_exec_move() {
  *    Note: For a direct math implementation see build 357.xx or earlier
  *          Builds 358 onward have only forward difference code
  */
-
 stat_t mp_exec_aline(mpBuf_t *bf) {
   if (bf->move_state == MOVE_OFF) return STAT_NOOP;
 
@@ -169,6 +164,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
       bf->nx->replannable = false;                   // prevent overplanning (Note 2)
       st_prep_null();                                // call this to keep the loader happy
       if (mp_free_run_buffer()) cm_cycle_end();      // free buffer & end cycle if planner is empty
+
       return STAT_NOOP;
     }
 
@@ -346,9 +342,9 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 #ifndef __JERK_EXEC
 
 static void _init_forward_diffs(float Vi, float Vt) {
-  float A =  -6.0*Vi +  6.0*Vt;
-  float B =  15.0*Vi - 15.0*Vt;
-  float C = -10.0*Vi + 10.0*Vt;
+  float A =  -6.0 * Vi +  6.0 * Vt;
+  float B =  15.0 * Vi - 15.0 * Vt;
+  float C = -10.0 * Vi + 10.0 * Vt;
   // D = 0
   // E = 0
   // F = Vi
@@ -359,8 +355,8 @@ static void _init_forward_diffs(float Vi, float Vt) {
   float Bh_4 = B * h * h * h * h;
   float Ch_3 = C * h * h * h;
 
-  mr.forward_diff_5 = (121.0 / 16.0) * Ah_5 + 5.0 * Bh_4 + (13.0 / 4.0) * Ch_3;
-  mr.forward_diff_4 = (165.0 / 2.0) * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
+  mr.forward_diff_5 = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
+  mr.forward_diff_4 = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
   mr.forward_diff_3 = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
   mr.forward_diff_2 = 300.0 * Ah_5 + 24.0 * Bh_4;
   mr.forward_diff_1 = 120.0 * Ah_5;
@@ -382,10 +378,10 @@ static void _init_forward_diffs(float Vi, float Vt) {
 }
 #endif
 
-#ifdef __JERK_EXEC
 
+#ifdef __JERK_EXEC
 static stat_t _exec_aline_head() {
-  if (mr.section_state == SECTION_NEW) {                            // initialize the move singleton (mr)
+  if (mr.section_state == SECTION_NEW) {                     // initialize the move singleton (mr)
     if (fp_ZERO(mr.head_length)) {
       mr.section = SECTION_BODY;
       return _exec_aline_body();                             // skip ahead to the body generator
@@ -398,11 +394,11 @@ static stat_t _exec_aline_head() {
     mr.accel_time = 2 * sqrt((mr.cruise_velocity - mr.entry_velocity) / mr.jerk);
     mr.midpoint_acceleration = 2 * (mr.cruise_velocity - mr.entry_velocity) / mr.accel_time;
     mr.segment_accel_time = mr.accel_time / (2 * mr.segments); // time to advance for each segment
-    mr.elapsed_accel_time = mr.segment_accel_time / 2;       // elapsed time starting point (offset)
+    mr.elapsed_accel_time = mr.segment_accel_time / 2;         // elapsed time starting point (offset)
     mr.segment_count = (uint32_t)mr.segments;
 
     if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE;                         // exit without advancing position
+      return STAT_MINIMUM_TIME_MOVE;                           // exit without advancing position
 
     mr.section = SECTION_HEAD;
     mr.section_state = SECTION_1st_HALF;
@@ -427,7 +423,7 @@ static stat_t _exec_aline_head() {
 
     if (_exec_aline_segment() == STAT_OK) {                        // OK means this section is done
       if ((fp_ZERO(mr.body_length)) && (fp_ZERO(mr.tail_length)))
-        return STAT_OK;                                    // ends the move
+        return STAT_OK;                                            // ends the move
 
       mr.section = SECTION_BODY;
       mr.section_state = SECTION_NEW;
@@ -558,7 +554,6 @@ static stat_t _exec_aline_body() {
 
 
 #ifdef __JERK_EXEC
-
 static stat_t _exec_aline_tail() {
   if (mr.section_state == SECTION_NEW) { // INITIALIZATION
     if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
@@ -601,7 +596,6 @@ static stat_t _exec_aline_tail() {
 
 
 #else // __JERK_EXEC -- run forward differencing math
-
 static stat_t _exec_aline_tail() {
   if (mr.section_state == SECTION_NEW) { // INITIALIZATION
     if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move

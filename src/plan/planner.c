@@ -75,7 +75,7 @@ mpMoveRuntimeSingleton_t mr;    // context for line runtime
 #define flag_vector unit         // alias for vector of flags
 
 
-// execution routines (NB: These are all called from the LO interrupt)
+// Execution routines (NB: These are all called from the LO interrupt)
 static stat_t _exec_dwell(mpBuf_t *bf);
 static stat_t _exec_command(mpBuf_t *bf);
 
@@ -102,11 +102,8 @@ void mp_flush_planner() {
   cm_set_motion_state(MOTION_STOP);
 }
 
+
 /*
- * mp_set_planner_position() - set planner position for a single axis
- * mp_set_runtime_position() - set runtime position for a single axis
- * mp_set_steps_to_runtime_position() - set encoder counts to the runtime position
- *
  *    Since steps are in motor space you have to run the position vector through inverse
  *    kinematics to get the right numbers. This means that in a non-Cartesian robot changing
  *    any position can result in changes to multiple step values. So this operation is provided
@@ -117,7 +114,7 @@ void mp_flush_planner() {
  *
  *     - mm.position    - start and end position for planning
  *     - mr.position    - current position of runtime segment
- *     - mr.target    - target position of runtime segment
+ *     - mr.target      - target position of runtime segment
  *     - mr.endpoint    - final target position of runtime segment
  *
  *    Note that position is set immediately when called and may not be not an accurate representation
@@ -125,9 +122,15 @@ void mp_flush_planner() {
  *    still close to the starting point.
  */
 
+/// Set planner position for a single axis
 void mp_set_planner_position(uint8_t axis, const float position) {mm.position[axis] = position;}
+
+
+/// Set runtime position for a single axis
 void mp_set_runtime_position(uint8_t axis, const float position) {mr.position[axis] = position;}
 
+
+/// Set encoder counts to the runtime position
 void mp_set_steps_to_runtime_position() {
   float step_position[MOTORS];
 
@@ -147,26 +150,24 @@ void mp_set_steps_to_runtime_position() {
 
 
 /************************************************************************************
- * mp_queue_command() - queue a synchronous Mcode, program control, or other command
- * _exec_command()       - callback to execute command
+ * How this works:
+ *   - The command is called by the Gcode interpreter (cm_<command>, e.g. an M code)
+ *   - cm_ function calls mp_queue_command which puts it in the planning queue (bf buffer).
+ *     This involves setting some parameters and registering a callback to the
+ *     execution function in the canonical machine
+ *   - the planning queue gets to the function and calls _exec_command()
+ *   - ...which puts a pointer to the bf buffer in the prep struct (st_pre)
+ *   - When the runtime gets to the end of the current activity (sending steps, counting a dwell)
+ *     if executes mp_runtime_command...
+ *   - ...which uses the callback function in the bf and the saved parameters in the vectors
+ *   - To finish up mp_runtime_command() needs to free the bf buffer
  *
- *    How this works:
- *      - The command is called by the Gcode interpreter (cm_<command>, e.g. an M code)
- *      - cm_ function calls mp_queue_command which puts it in the planning queue (bf buffer).
- *        This involves setting some parameters and registering a callback to the
- *        execution function in the canonical machine
- *      - the planning queue gets to the function and calls _exec_command()
- *      - ...which puts a pointer to the bf buffer in the prep stratuc (st_pre)
- *      - When the runtime gets to the end of the current activity (sending steps, counting a dwell)
- *        if executes mp_runtime_command...
- *      - ...which uses the callback function in the bf and the saved parameters in the vectors
- *      - To finish up mp_runtime_command() needs to free the bf buffer
- *
- *    Doing it this way instead of synchronizing on queue empty simplifies the
- *    handling of feedholds, feed overrides, buffer flushes, and thread blocking,
- *    and makes keeping the queue full much easier - therefore avoiding Q starvation
+ * Doing it this way instead of synchronizing on queue empty simplifies the
+ * handling of feedholds, feed overrides, buffer flushes, and thread blocking,
+ * and makes keeping the queue full much easier - therefore avoiding starvation
  */
 
+/// Queue a synchronous Mcode, program control, or other command
 void mp_queue_command(void(*cm_exec)(float[], float[]), float *value, float *flag) {
   mpBuf_t *bf;
 
@@ -189,6 +190,7 @@ void mp_queue_command(void(*cm_exec)(float[], float[]), float *value, float *fla
 }
 
 
+/// callback to execute command
 static stat_t _exec_command(mpBuf_t *bf) {
   st_prep_command(bf);
   return STAT_OK;
@@ -205,14 +207,12 @@ stat_t mp_runtime_command(mpBuf_t *bf) {
 }
 
 
-/*************************************************************************
- * mp_dwell()    - queue a dwell
- * _exec_dwell() - dwell execution
- *
- * Dwells are performed by passing a dwell move to the stepper drivers.
+/* Dwells are performed by passing a dwell move to the stepper drivers.
  * When the stepper driver sees a dwell it times the dwell on a separate
  * timer than the stepper pulse timer.
  */
+
+/// Queue a dwell
 stat_t mp_dwell(float seconds) {
   mpBuf_t *bf;
 
@@ -228,12 +228,14 @@ stat_t mp_dwell(float seconds) {
 }
 
 
+/// Dwell execution
 static stat_t _exec_dwell(mpBuf_t *bf) {
   st_prep_dwell((uint32_t)(bf->gm.move_time * 1000000)); // convert seconds to uSec
   if (mp_free_run_buffer()) cm_cycle_end();  // free buffer & perform cycle_end if planner is empty
 
   return STAT_OK;
 }
+
 
 /**** PLANNER BUFFERS *****************************************************
  *
@@ -255,43 +257,14 @@ static stat_t _exec_dwell(mpBuf_t *bf) {
  *    The write buffer pointer only moves forward on _queue_write_buffer, and
  *    the read buffer pointer only moves forward on free_read calls.
  *    (test, get and unget have no effect)
- *
- * mp_get_planner_buffers_available()   Returns # of available planner buffers
- *
- * mp_init_buffers()         Initializes or resets buffers
- *
- * mp_get_write_buffer()     Get pointer to next available write buffer
- *                           Returns pointer or 0 if no buffer available.
- *
- * mp_unget_write_buffer()   Free write buffer if you decide not to commit it.
- *
- * mp_commit_write_buffer()  Commit the next write buffer to the queue
- *                           Advances write pointer & changes buffer state
- *                           WARNING: The calling routine must not use the write buffer
- *                           once it has been queued as it may be processed and freed (wiped)
- *                           before mp_queue_write_buffer() returns.
- *
- * mp_get_run_buffer()       Get pointer to the next or current run buffer
- *                           Returns a new run buffer if prev buf was ENDed
- *                           Returns same buf if called again before ENDing
- *                           Returns 0 if no buffer available
- *                           The behavior supports continuations (iteration)
- *
- * mp_free_run_buffer()      Release the run buffer & return to buffer pool.
- *                           Returns true if queue is empty, false otherwise.
- *                           This is useful for doing queue empty / end move functions.
- *
- * mp_get_prev_buffer(bf)    Returns pointer to prev buffer in linked list
- * mp_get_next_buffer(bf)    Returns pointer to next buffer in linked list
- * mp_get_first_buffer(bf)   Returns pointer to first buffer, i.e. the running block
- * mp_get_last_buffer(bf)    Returns pointer to last buffer, i.e. last block (zero)
- * mp_clear_buffer(bf)       Zeroes the contents of the buffer
- * mp_copy_buffer(bf,bp)     Copies the contents of bp into bf - preserves links
  */
 
+
+/// Returns # of available planner buffers
 uint8_t mp_get_planner_buffers_available() {return mb.buffers_available;}
 
 
+/// Initializes or resets buffers
 void mp_init_buffers() {
   mpBuf_t *pv;
 
@@ -312,7 +285,10 @@ void mp_init_buffers() {
 }
 
 
-mpBuf_t *mp_get_write_buffer() {              // get & clear a buffer
+/// Get pointer to next available write buffer
+/// Returns pointer or 0 if no buffer available.
+mpBuf_t *mp_get_write_buffer() {
+  // get & clear a buffer
   if (mb.w->buffer_state == MP_BUFFER_EMPTY) {
     mpBuf_t *w = mb.w;
     mpBuf_t *nx = mb.w->nx;                   // save linked list pointers
@@ -331,6 +307,7 @@ mpBuf_t *mp_get_write_buffer() {              // get & clear a buffer
 }
 
 
+/// Free write buffer if you decide not to commit it.
 void mp_unget_write_buffer() {
   mb.w = mb.w->pv;                            // queued --> write
   mb.w->buffer_state = MP_BUFFER_EMPTY;       // not loading anymore
@@ -338,9 +315,17 @@ void mp_unget_write_buffer() {
 }
 
 
-/*** WARNING: The routine calling mp_commit_write_buffer() must not use the write buffer
-     once it has been queued. Action may start on the buffer immediately,
-     invalidating its contents ***/
+/* Commit the next write buffer to the queue
+ * Advances write pointer & changes buffer state
+ *
+ * WARNING: The calling routine must not use the write buffer
+ *  once it has been queued as it may be processed and freed (wiped)
+ *  before mp_queue_write_buffer() returns.
+ *
+ * WARNING: The routine calling mp_commit_write_buffer() must not use the write buffer
+ *  once it has been queued. Action may start on the buffer immediately,
+ *  invalidating its contents
+ */
 void mp_commit_write_buffer(const uint8_t move_type) {
   mb.q->move_type = move_type;
   mb.q->move_state = MOVE_NEW;
@@ -352,6 +337,12 @@ void mp_commit_write_buffer(const uint8_t move_type) {
 }
 
 
+/* Get pointer to the next or current run buffer
+ * Returns a new run buffer if prev buf was ENDed
+ * Returns same buf if called again before ENDing
+ * Returns 0 if no buffer available
+ * The behavior supports continuations (iteration)
+ */
 mpBuf_t *mp_get_run_buffer() {
   // CASE: fresh buffer; becomes running if queued or pending
   if ((mb.r->buffer_state == MP_BUFFER_QUEUED) ||
@@ -365,6 +356,10 @@ mpBuf_t *mp_get_run_buffer() {
 }
 
 
+/* Release the run buffer & return to buffer pool.
+ * Returns true if queue is empty, false otherwise.
+ * This is useful for doing queue empty / end move functions.
+ */
 uint8_t mp_free_run_buffer() {                // EMPTY current run buf & adv to next
   mp_clear_buffer(mb.r);                      // clear it out (& reset replannable)
   mb.r = mb.r->nx;                            // advance to next run buffer
@@ -378,11 +373,13 @@ uint8_t mp_free_run_buffer() {                // EMPTY current run buf & adv to 
 }
 
 
+///  Returns pointer to first buffer, i.e. the running block
 mpBuf_t *mp_get_first_buffer() {
   return mp_get_run_buffer();    // returns buffer or 0 if nothing's running
 }
 
 
+/// Returns pointer to last buffer, i.e. last block (zero)
 mpBuf_t *mp_get_last_buffer() {
   mpBuf_t *bf = mp_get_run_buffer();
   mpBuf_t *bp;
@@ -394,6 +391,7 @@ mpBuf_t *mp_get_last_buffer() {
 }
 
 
+/// Zeroes the contents of the buffer
 void mp_clear_buffer(mpBuf_t *bf) {
   mpBuf_t *nx = bf->nx;            // save pointers
   mpBuf_t *pv = bf->pv;
@@ -403,6 +401,7 @@ void mp_clear_buffer(mpBuf_t *bf) {
 }
 
 
+///  Copies the contents of bp into bf - preserves links
 void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp) {
   mpBuf_t *nx = bf->nx;            // save pointers
   mpBuf_t *pv = bf->pv;

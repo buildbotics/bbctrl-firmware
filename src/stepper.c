@@ -385,7 +385,7 @@ ISR(TIMER_EXEC_ISR_vect) {                               // exec move SW interru
 /****************************************************************************************
  * Loader sequencing code
  * st_request_load_move() - fires a software interrupt (timer) to request to load a move
- * load_move interrupt      - interrupt handler for running the loader
+ * load_move interrupt    - interrupt handler for running the loader
  *
  *    _load_move() can only be called be called from an ISR at the same or higher level as
  *    the DDA or dwell ISR. A software interrupt has been provided to allow a non-ISR to

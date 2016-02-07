@@ -97,21 +97,27 @@ enum sectionState {
  *    Suggest 12 min. Limit is 255
  */
 #define PLANNER_BUFFER_POOL_SIZE 32
-#define PLANNER_BUFFER_HEADROOM 4   // buffers to reserve in planner before processing new input line
+/// Buffers to reserve in planner before processing new input line
+#define PLANNER_BUFFER_HEADROOM 4
 
-/* Some parameters for _generate_trapezoid()
- * TRAPEZOID_ITERATION_MAX             Max iterations for convergence in the HT asymmetric case.
- * TRAPEZOID_ITERATION_ERROR_PERCENT   Error percentage for iteration convergence. As percent - 0.01 = 1%
- * TRAPEZOID_LENGTH_FIT_TOLERANCE      Tolerance for "exact fit" for H and T cases
- * TRAPEZOID_VELOCITY_TOLERANCE        Adaptive velocity tolerance term
- */
+// Parameters for _generate_trapezoid()
+
+/// Max iterations for convergence in the HT asymmetric case.
 #define TRAPEZOID_ITERATION_MAX             10
+
+///  Error percentage for iteration convergence. As percent - 0.01 = 1%
 #define TRAPEZOID_ITERATION_ERROR_PERCENT   ((float)0.10)
-#define TRAPEZOID_LENGTH_FIT_TOLERANCE      ((float)0.0001) // allowable mm of error in planning phase
+
+/// Tolerance for "exact fit" for H and T cases
+/// allowable mm of error in planning phase
+#define TRAPEZOID_LENGTH_FIT_TOLERANCE      ((float)0.0001)
+
+///  Adaptive velocity tolerance term
 #define TRAPEZOID_VELOCITY_TOLERANCE        (max(2, bf->entry_velocity / 100))
 
 
-typedef void (*cm_exec_t)(float[], float[]);    // callback to canonical_machine execution function
+/// callback to canonical_machine execution function
+typedef void (*cm_exec_t)(float[], float[]);
 
 
 // All the enums that equal zero must be zero. Don't change this
@@ -278,7 +284,10 @@ uint8_t mp_free_run_buffer();
 mpBuf_t *mp_get_first_buffer();
 mpBuf_t *mp_get_last_buffer();
 
-#define mp_get_prev_buffer(b) ((mpBuf_t *)(b->pv))    // use the macro instead
+/// Returns pointer to prev buffer in linked list
+#define mp_get_prev_buffer(b) ((mpBuf_t *)(b->pv))
+
+/// Returns pointer to next buffer in linked list
 #define mp_get_next_buffer(b) ((mpBuf_t *)(b->nx))
 
 void mp_clear_buffer(mpBuf_t *bf);
