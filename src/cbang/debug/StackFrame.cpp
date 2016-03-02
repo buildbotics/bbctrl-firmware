@@ -32,6 +32,8 @@
 
 #include "StackFrame.h"
 
+#include <cbang/StdTypes.h>
+
 #include <iomanip>
 
 using namespace std;
@@ -40,7 +42,7 @@ using namespace cb;
 
 ostream &StackFrame::print(ostream &stream) const {
   stream
-    << "0x" << hex << setfill('0') << setw(8) << (unsigned long)addr << dec
+    << "0x" << hex << setfill('0') << setw(8) << (uintptr_t)addr << dec
     << " in " << (function == "" ? "??" : function);
 
   if (location.getFilename() != "")

@@ -33,7 +33,7 @@
 #ifndef CBANG_STD_TYPES_H
 #define CBANG_STD_TYPES_H
 
-#if defined(_WIN32) && _MSC_VER < 1600
+#if defined(_WIN32) && !defined(__MINGW32__) && _MSC_VER < 1600
 #include <limits.h>
 
 namespace {

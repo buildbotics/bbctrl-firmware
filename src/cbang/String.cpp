@@ -51,7 +51,7 @@
 using namespace std;
 using namespace cb;
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #define strtoll(p, e, b) _strtoi64(p, e, b)
 #define strtoull(p, e, b) _strtoui64(p, e, b)
 #define strtof(p, e) (float)strtod(p, e)

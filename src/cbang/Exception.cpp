@@ -88,7 +88,7 @@ ostream &Exception::print(ostream &stream, unsigned level) const {
   return stream;
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -128,7 +128,7 @@ extern "C" void convert_win32_exception(unsigned x, EXCEPTION_POINTERS *e){
 #endif // _WIN32
 
 void Exception::init() {
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
   _set_se_translator(convert_win32_exception);
 #endif
 

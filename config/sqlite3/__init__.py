@@ -7,7 +7,7 @@ def configure(conf):
     if env['PLATFORM'] == 'win32': conf.CBRequireLib('wsock32')
     else:
         conf.CBConfig('pthreads')
-        conf.CBRequireLib('dl')
+        conf.CBCheckLib('dl')
 
     conf.CBCheckHome('libsqlite', ['', '/include'], ['', '/lib'])
     conf.CBRequireLib('sqlite3')
