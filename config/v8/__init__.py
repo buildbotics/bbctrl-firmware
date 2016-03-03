@@ -9,7 +9,8 @@ def configure(conf):
 
     conf.CBCheckHome('v8', lib_suffix = lib_suffix)
 
-    if conf.env['PLATFORM'] == 'win32': conf.CBRequireLib('winmm')
+    if conf.env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+        conf.CBRequireLib('winmm')
 
     conf.CBRequireCXXHeader('v8.h')
 

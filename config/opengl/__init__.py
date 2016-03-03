@@ -12,7 +12,7 @@ def configure(conf):
             raise Exception, 'Need OpenGL'
 
     else:
-        if env['PLATFORM'] == 'win32':
+        if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
             glulib = 'glu32'
             gllib = 'opengl32'
 

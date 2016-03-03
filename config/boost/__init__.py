@@ -85,7 +85,7 @@ def configure(conf, hdrs = [], libs = [], version = '1.35', lib_suffix = ''):
         conf.CBRequireLib(libname)
 
     # Win32
-    if env['PLATFORM'] == 'win32':
+    if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
         env.CBDefine('BOOST_ALL_NO_LIB')
         env.Prepend(LIBS = ['wsock32'])
 

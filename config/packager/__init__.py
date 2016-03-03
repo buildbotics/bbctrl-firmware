@@ -62,7 +62,8 @@ def WriteVariable(self, env, stream, name, var, default = None, callback = None,
 
 
 def _GetPackageType(env):
-    if env['PLATFORM'] == 'win32': return 'exe'
+    if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+        return 'exe'
 
     elif env['PLATFORM'] == 'darwin':
         pkg_type = env.get('pkg_type', None)
