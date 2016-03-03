@@ -95,6 +95,10 @@ def configure(conf, cstd = 'c99'):
             '-i $SOURCE -o $TARGET'
         env['BUILDERS']['RES'] = res_builder
 
+        env.CBDefine('WINVER=0x0600')
+        env.CBDefine('_WIN32_WINNT=0x0600')
+        env.CBDefine('_POSIX_SOURCE')
+
     if platform != '': env.Replace(PLATFORM = platform)
 
     # Select compiler
