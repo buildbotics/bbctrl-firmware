@@ -94,6 +94,7 @@ def configure(conf, cstd = 'c99'):
         env['RCCOM'] = '$RC $RCINCFLAGS $RCINCPREFIX $SOURCE.dir $RCFLAGS ' +\
             '-i $SOURCE -o $TARGET'
         env['BUILDERS']['RES'] = res_builder
+        env['PROGSUFFIX'] = '.exe'
 
         env.CBDefine('WINVER=0x0600')
         env.CBDefine('_WIN32_WINNT=0x0600')
