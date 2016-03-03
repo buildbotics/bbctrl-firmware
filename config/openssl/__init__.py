@@ -37,7 +37,7 @@ def configure(conf, version = None):
          conf.CBCheckLib('ssleay32'))):
 
         if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-            if not config.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
+            if not conf.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
             for lib in ['advapi32', 'gdi32', 'user32']:
                 conf.CBRequireLib(lib)
 

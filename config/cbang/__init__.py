@@ -59,8 +59,8 @@ def configure_deps(conf, local = True, with_openssl = True):
     conf.CBConfig('v8', False)
 
     if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-        if not config.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
-        config.CBCheckLib('winmm')
+        if not conf.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
+        conf.CBCheckLib('winmm')
         conf.CBRequireLib('setupapi')
 
     else: conf.CBConfig('pthreads')

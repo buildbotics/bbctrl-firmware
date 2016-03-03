@@ -5,7 +5,7 @@ def configure(conf):
     env = conf.env
 
     if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-        if not config.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
+        if not conf.CBCheckLib('ws2_32'): conf.CBRequireLib('wsock32')
     else:
         conf.CBConfig('pthreads')
         conf.CBCheckLib('dl')
