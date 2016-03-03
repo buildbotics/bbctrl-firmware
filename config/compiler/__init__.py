@@ -5,6 +5,9 @@ from platform import machine, architecture
 from SCons.Script import *
 from subprocess import *
 from SCons.Util import MD5signature
+import SCons.Action
+import SCons.Builder
+import SCons.Tool
 
 
 class decider_hack:
@@ -73,6 +76,24 @@ def configure(conf, cstd = 'c99'):
     osx_sdk_root = env.get('osx_sdk_root')
     osx_archs = env.get('osx_archs')
     win32_thread = env.get('win32_thread')
+    cross_mingw = int(env.get('cross_mingw'))
+
+    if cross_mingw:
+        res_action = SCons.Action.Action('$RCCOM', '$RCCOMSTR')
+        res_builder = \
+            SCons.Builder.Builder(action = res_action, suffix='.o',
+                                  source_scanner = SCons.Tool.SourceFileScanner)
+        SCons.Tool.SourceFileScanner.add_scanner('.rc', SCons.Defaults.CScan)
+
+        env['RC'] = 'windres'
+        env['RCFLAGS'] = SCons.Util.CLVar('')
+        env['RCINCFLAGS'] = '$( ${_concat(RCINCPREFIX, CPPPATH, ' +\
+            'RCINCSUFFIX, __env__, RDirs, TARGET)} $)'
+        env['RCINCPREFIX'] = '--include-dir '
+        env['RCINCSUFFIX'] = ''
+        env['RCCOM'] = '$RC $RCINCFLAGS $RCINCPREFIX $SOURCE.dir $RCFLAGS ' +\
+            '-i $SOURCE -o $TARGET'
+        env['BUILDERS']['RES'] = res_builder
 
     if platform != '': env.Replace(PLATFORM = platform)
 
@@ -509,7 +530,8 @@ def generate(env):
         ('osx_sdk_root', 'Set OSX SDK root.', None),
         ('osx_archs', 'Set OSX gcc target architectures.', 'x86_64'),
         EnumVariable('win32_thread', 'Windows thread mode.', 'static',
-                     allowed_values = ('static', 'dynamic'))
+                     allowed_values = ('static', 'dynamic')),
+        BoolVariable('cross_mingw', 'Enable mingw cross compile mode', 0)
         )
 
 
