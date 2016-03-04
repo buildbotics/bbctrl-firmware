@@ -38,7 +38,7 @@ using namespace cb;
 
 CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
                     uint32_t _edx) {
-#ifdef _WIN32
+#ifdef _MSC_VER
 #if (!defined(_M_X64) || defined(__INTEL_COMPILER))
   __asm {
     mov eax, _eax
