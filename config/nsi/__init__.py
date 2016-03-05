@@ -7,6 +7,10 @@ def build_function(target, source, env):
 
     env.Replace(package = str(target[0]))
 
+    if not 'PACKAGE_ARCH' in env:
+        import platform
+        env['PACKAGE_ARCH'] = platform.architecture()[0][:2]
+
     tmp = nsi + '.tmp'
     input = None
     output = None
