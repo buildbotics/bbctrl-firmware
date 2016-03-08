@@ -42,11 +42,11 @@ ssh pi@<ip>
 Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``, but in color.
 
 ## Configure the RPi
-Copy the ``setup.sh`` script to the RPi and run it as root:
+Copy the ``setup_rpi.sh`` script to the RPi and run it as root:
 
 ```
-scp setup.sh pi@<ip>:
-ssh pi@<ip> sudo ./setup.sh
+scp setup_rpi.sh pi@<ip>:
+ssh pi@<ip> sudo ./setup_rpi.sh
 ```
 
 This will take some time and will end by rebooting the RPi.  After this script has run you can log in to the RPi with out typing the IP addrerss like this:

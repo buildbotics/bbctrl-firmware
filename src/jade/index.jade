@@ -1,0 +1,65 @@
+doctype html
+html(lang="en")
+  head
+    title Buildbotics Controller - Web interface
+    meta(charset="utf-8")
+
+    script(src="//code.jquery.com/jquery-1.11.3.min.js")
+    script(src="//cdn.jsdelivr.net/vue/1.0.13/vue.min.js")
+    script(src="js/sockjs.min.js")
+    script(src="js/gauge.min.js")
+    script(src="js/fd-slider.min.js")
+    script(src="js/assets.js")
+
+    - var faURL = "//maxcdn.bootstrapcdn.com/font-awesome"
+    link(rel="stylesheet" href=faURL + "/4.5.0/css/font-awesome.min.css")
+
+    link(rel="stylesheet" href="/style.css")
+
+  body
+    table
+      tr
+        td
+        td: button(@click="jog('y', 1)") Y+
+        td
+        td: button(@click="jog('z', 1)") Z+
+        td: button(@click="jog('a', 1)") A+
+      tr
+        td: button(@click="jog('x', -1)") -X
+        td
+        td: button(@click="jog('x', 1)") X+
+      tr
+        td
+        td: button(@click="jog('y', -1)") -Y
+        td
+        td: button(@click="jog('z', -1)") Z-
+        td: button(@click="jog('a', -1)") A-
+
+    h2 Velocity {{state.vel}}
+    h2 Step {{step}}
+
+    table.axes
+      tr
+        th Axis
+        th Position
+        th Step
+        th Flags
+        th Current
+        th StallGuard
+
+      each axis in ['x', 'y', 'z']
+        tr.axis
+          th.name #{axis}
+          td {{state.pos#{axis}}}
+          td {{state.dstep#{axis}}}
+          td {{state.dflags#{axis}}}
+          td
+            | {{state.dcur#{axis} | percent}}
+            gauge(:value="state.dcur#{axis} * 32", :min="1", :max="32")
+            input(type="range" min=1 max=32 v-model="current#{axis}")
+          td
+            gauge(:value="state.sguard#{axis}", :min="0", :max="511")
+
+
+    #templates
+
