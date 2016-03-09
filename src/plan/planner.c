@@ -134,7 +134,7 @@ void mp_set_runtime_position(uint8_t axis, const float position) {mr.position[ax
 void mp_set_steps_to_runtime_position() {
   float step_position[MOTORS];
 
-  ik_kinematics(mr.position, step_position);                // convert lengths to steps in floating point
+  ik_kinematics(mr.position, step_position);              // convert lengths to steps in floating point
 
   for (uint8_t motor = 0; motor < MOTORS; motor++) {
     mr.target_steps[motor] = step_position[motor];

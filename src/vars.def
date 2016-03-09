@@ -33,7 +33,7 @@
 
 // VAR(name, type,   index, settable, default, help)
 VAR(pos,    float,    MOTORS,  0, 0, "Current axis position")
-VAR(vel,    float,    0,       0, 0, "Current velosity")
+VAR(vel,    float,    0,       0, 0, "Current velocity")
 VAR(ang,    float,    MOTORS,  1, 0, "Rotation angle in deg per full step")
 VAR(trvl,   float,    MOTORS,  1, 0, "Travel in mm per revolution")
 VAR(mstep,  uint16_t, MOTORS,  1, 0, "Microsteps per full step")

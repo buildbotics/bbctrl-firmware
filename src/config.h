@@ -3,7 +3,7 @@
 
 // Compile-time settings
 #define __STEP_CORRECTION
-//#define __JERK_EXEC            // Use computed jerk (versus forward difference based exec)
+//#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
 //#define __KAHAN                // Use Kahan summation in aline exec functions
 
 #define INPUT_BUFFER_LEN 255     // text buffer size (255 max)
@@ -25,11 +25,16 @@
 
 // Motor settings
 #define MOTOR_MICROSTEPS         8
-#define MOTOR_POWER_MODE         MOTOR_POWERED_IN_CYCLE  // one of: MOTOR_DISABLED                    (0)
-                                                         //         MOTOR_ALWAYS_POWERED              (1)
-                                                         //         MOTOR_POWERED_IN_CYCLE            (2)
-                                                         //         MOTOR_POWERED_ONLY_WHEN_MOVING    (3)
-#define MOTOR_IDLE_TIMEOUT       2.00 // seconds to maintain motor at full power before idling
+
+/// One of:
+///   MOTOR_DISABLED
+///   MOTOR_ALWAYS_POWERED
+///   MOTOR_POWERED_IN_CYCLE
+///   MOTOR_POWERED_ONLY_WHEN_MOVING
+#define MOTOR_POWER_MODE         MOTOR_ALWAYS_POWERED
+
+/// Seconds to maintain motor at full power before idling
+#define MOTOR_IDLE_TIMEOUT       2.00
 
 
 #define M1_MOTOR_MAP             AXIS_X              // 1ma

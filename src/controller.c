@@ -50,19 +50,56 @@
 controller_t cs;        // controller state structure
 
 
-static stat_t _shutdown_idler();
-static stat_t _limit_switch_handler();
-static stat_t _sync_to_planner();
-static stat_t _sync_to_tx_buffer();
+/// Blink rapidly and prevent further activity from occurring
+/// Shutdown idler flashes indicator LED rapidly to show everything is not OK.
+/// Shutdown idler returns EAGAIN causing the control loop to never advance beyond
+/// this point. It's important that the reset handler is still called so a SW reset
+/// (ctrl-x) or bootloader request can be processed.
+static stat_t _shutdown_idler() {
+  if (cm_get_machine_state() != MACHINE_SHUTDOWN) return STAT_OK;
 
+  if (rtc_get_time() > cs.led_timer) {
+    cs.led_timer = rtc_get_time() + LED_ALARM_TIMER;
+    indicator_led_toggle();
+  }
 
-void controller_init() {
-  memset(&cs, 0, sizeof(controller_t));            // clear all values, job_id's, pointers and status
+  return STAT_EAGAIN; // EAGAIN prevents any lower-priority actions from running
 }
 
 
-/*
- * Main loop - top-level controller
+/// Return eagain if TX queue is backed up
+static stat_t _sync_to_tx_buffer() {
+  if (usart_tx_full()) return STAT_EAGAIN;
+
+  return STAT_OK;
+}
+
+
+/// Return eagain if planner is not ready for a new command
+static stat_t _sync_to_planner() {
+  // allow up to N planner buffers for this line
+  if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM)
+    return STAT_EAGAIN;
+
+  return STAT_OK;
+}
+
+
+/// Shut down system if limit switch fired
+static stat_t _limit_switch_handler() {
+  if (cm_get_machine_state() == MACHINE_ALARM) return STAT_NOOP;
+  if (!get_limit_switch_thrown()) return STAT_NOOP;
+
+  return cm_hard_alarm(STAT_LIMIT_SWITCH_HIT);
+}
+
+
+void controller_init() {
+  memset(&cs, 0, sizeof(controller_t)); // clear all values, job_id's, pointers and status
+}
+
+
+/* Main loop - top-level controller
  *
  * The order of the dispatched tasks is very important.
  * Tasks are ordered by increasing dependency (blocking hierarchy).
@@ -110,45 +147,3 @@ void controller_run() {
 
 
 
-/// Blink rapidly and prevent further activity from occurring
-/// Shutdown idler flashes indicator LED rapidly to show everything is not OK.
-/// Shutdown idler returns EAGAIN causing the control loop to never advance beyond
-/// this point. It's important that the reset handler is still called so a SW reset
-/// (ctrl-x) or bootloader request can be processed.
-static stat_t _shutdown_idler() {
-  if (cm_get_machine_state() != MACHINE_SHUTDOWN) return STAT_OK;
-
-  if (rtc_get_time() > cs.led_timer) {
-    cs.led_timer = rtc_get_time() + LED_ALARM_TIMER;
-    indicator_led_toggle();
-  }
-
-  return STAT_EAGAIN; // EAGAIN prevents any lower-priority actions from running
-}
-
-
-/// Return eagain if TX queue is backed up
-static stat_t _sync_to_tx_buffer() {
-  if (usart_tx_full()) return STAT_EAGAIN;
-
-  return STAT_OK;
-}
-
-
-/// Return eagain if planner is not ready for a new command
-static stat_t _sync_to_planner() {
-  // allow up to N planner buffers for this line
-  if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM)
-    return STAT_EAGAIN;
-
-  return STAT_OK;
-}
-
-
-/// _limit_switch_handler() - shut down system if limit switch fired
-static stat_t _limit_switch_handler() {
-  if (cm_get_machine_state() == MACHINE_ALARM) return STAT_NOOP;
-  if (!get_limit_switch_thrown()) return STAT_NOOP;
-
-  return cm_hard_alarm(STAT_LIMIT_SWITCH_HIT);
-}

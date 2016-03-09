@@ -220,7 +220,7 @@ typedef struct cmSingleton {          // struct to manage cm globals and cycles
   uint8_t distance_mode;               // G90,G91 reset default
 
   // coordinate systems and offsets
-  float offset[COORDS+1][AXES];        // persistent coordinate offsets: absolute (G53) + G54,G55,G56,G57,G58,G59
+  float offset[COORDS + 1][AXES];      // persistent coordinate offsets: absolute (G53) + G54,G55,G56,G57,G58,G59
 
   // settings for axes X,Y,Z,A B,C
   cfgAxis_t a[AXES];
@@ -520,7 +520,6 @@ uint8_t cm_get_cycle_state();
 uint8_t cm_get_motion_state();
 uint8_t cm_get_hold_state();
 uint8_t cm_get_homing_state();
-uint8_t cm_get_jogging_state();
 void cm_set_motion_state(uint8_t motion_state);
 float cm_get_axis_jerk(uint8_t axis);
 void cm_set_axis_jerk(uint8_t axis, float jerk);

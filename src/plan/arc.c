@@ -60,7 +60,7 @@ stat_t cm_arc_feed(float target[], float flags[],       // arc endpoints
 
   // set radius mode flag and do simple test(s)
   bool radius_f = fp_NOT_ZERO(cm.gf.arc_radius);              // set true if radius arc
-  if (radius_f && (cm.gn.arc_radius < MIN_ARC_RADIUS))      // radius value must be + and > minimum radius
+  if (radius_f && (cm.gn.arc_radius < MIN_ARC_RADIUS))        // radius value must be + and > minimum radius
     return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
 
   // setup some flags
@@ -156,7 +156,6 @@ stat_t cm_arc_feed(float target[], float flags[],       // arc endpoints
  */
 stat_t cm_arc_callback() {
   if (arc.run_state == MOVE_OFF) return STAT_NOOP;
-
   if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM) return STAT_EAGAIN;
 
   arc.theta += arc.arc_segment_theta;

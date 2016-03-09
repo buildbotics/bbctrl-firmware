@@ -5,25 +5,31 @@
  * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
  * Copyright (c) 2012 - 2015 Rob Giseburt
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * As a special exception, you may use this file as part of a software library without
- * restriction. Specifically, if other files instantiate templates or use macros or
- * inline functions from this file, or you compile this file and link it with  other
- * files to produce an executable, this file does not by itself cause the resulting
- * executable to be covered by the GNU General Public License. This exception does not
- * however invalidate any other reasons why the executable file might be covered by the
- * GNU General Public License.
+ * As a special exception, you may use this file as part of a software
+ * library without restriction. Specifically, if other files
+ * instantiate templates or use macros or inline functions from this
+ * file, or you compile this file and link it with  other files to
+ * produce an executable, this file does not by itself cause the
+ * resulting executable to be covered by the GNU General Public
+ * License. This exception does not however invalidate any other
+ * reasons why the executable file might be covered by the GNU General
+ * Public License.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "planner.h"
@@ -63,29 +69,28 @@ stat_t mp_exec_move() {
   if (bf->move_type == MOVE_TYPE_ALINE && cm.motion_state == MOTION_STOP)
     cm_set_motion_state(MOTION_RUN);
 
-  if (bf->bf_func == 0)
+  if (!bf->bf_func)
     return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
 
   return bf->bf_func(bf); // run the move callback in the planner buffer
 }
 
 
-/*************************************************************************/
-/**** ALINE EXECUTION ROUTINES *******************************************/
-/*************************************************************************
+/* Aline execution routines
+ *
  * ---> Everything here fires from interrupts and must be interrupt safe
  *
- *  _exec_aline()          - acceleration line main routine
- *    _exec_aline_head()      - helper for acceleration section
- *    _exec_aline_body()      - helper for cruise section
- *    _exec_aline_tail()      - helper for deceleration section
+ *    _exec_aline()         - acceleration line main routine
+ *    _exec_aline_head()    - helper for acceleration section
+ *    _exec_aline_body()    - helper for cruise section
+ *    _exec_aline_tail()    - helper for deceleration section
  *    _exec_aline_segment() - helper for running a segment
  *
  *    Returns:
  *     STAT_OK        move is done
  *     STAT_EAGAIN    move is not finished - has more segments to run
- *     STAT_NOOP        cause no operation from the steppers - do not load the move
- *     STAT_xxxxx        fatal error. Ends the move and frees the bf buffer
+ *     STAT_NOOP      cause no operation from the steppers - do not load the move
+ *     STAT_xxxxx     fatal error. Ends the move and frees the bf buffer
  *
  *    This routine is called from the (LO) interrupt level. The interrupt
  *    sequencing relies on the behaviors of the routines being exactly correct.
@@ -101,10 +106,10 @@ stat_t mp_exec_move() {
  *           position error will be compensated by the next move.
  *
  *    Note 2 Solves a potential race condition where the current move ends but the
- *            new move has not started because the previous move is still being run
+ *           new move has not started because the previous move is still being run
  *           by the steppers. Planning can overwrite the new move.
  */
-/* OPERATION:
+/* Operation:
  *    Aline generates jerk-controlled S-curves as per Ed Red's course notes:
  *      http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
  *      http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
@@ -196,23 +201,23 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
         mr.position[axis] + mr.unit[axis] * (mr.head_length + mr.body_length + mr.tail_length);
     }
   }
-  // NB: from this point on the contents of the bf buffer do not affect execution
 
-  //**** main dispatcher to process segments ***
+  // main dispatcher to process segments
+  // from this point on the contents of the bf buffer do not affect execution
   stat_t status = STAT_OK;
 
   if (mr.section == SECTION_HEAD) status = _exec_aline_head();
   else if (mr.section == SECTION_BODY) status = _exec_aline_body();
   else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
   else if (mr.move_state == MOVE_SKIP_BLOCK) status = STAT_OK;
-  else return cm_hard_alarm(STAT_INTERNAL_ERROR);    // never supposed to get here
+  else return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
 
   // Feedhold processing. Refer to canonical_machine.h for state machine
   // Catch the feedhold request and start the planning the hold
-  if (cm.hold_state == FEEDHOLD_SYNC) { cm.hold_state = FEEDHOLD_PLAN;}
+  if (cm.hold_state == FEEDHOLD_SYNC) cm.hold_state = FEEDHOLD_PLAN;
 
   // Look for the end of the decel to go into HOLD state
-  if ((cm.hold_state == FEEDHOLD_DECEL) && (status == STAT_OK)) {
+  if (cm.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
     cm.hold_state = FEEDHOLD_HOLD;
     cm_set_motion_state(MOTION_HOLD);
     report_request();
@@ -226,7 +231,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   //      STAT_OK        MOVE_NEW            mr done; bf must be run again (it's been reused)
   if (status == STAT_EAGAIN) report_request();
   else {
-    mr.move_state = MOVE_OFF;                        // reset mr buffer
+    mr.move_state = MOVE_OFF;                       // reset mr buffer
     mr.section_state = SECTION_OFF;
     bf->nx->replannable = false;                    // prevent overplanning (Note 2)
 
@@ -434,6 +439,7 @@ static stat_t _exec_aline_head() {
 }
 #else // __ JERK_EXEC
 
+
 static stat_t _exec_aline_head() {
   if (mr.section_state == SECTION_NEW) {                        // initialize the move singleton (mr)
     if (fp_ZERO(mr.head_length)) {
@@ -443,7 +449,7 @@ static stat_t _exec_aline_head() {
 
     // Time for entire accel region
     mr.gm.move_time = 2 * mr.head_length / (mr.entry_velocity + mr.cruise_velocity);
-    mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);// # of segments for the section
+    mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC); // # of segments for the section
     mr.segment_time = mr.gm.move_time / mr.segments;
     _init_forward_diffs(mr.entry_velocity, mr.cruise_velocity);
     mr.segment_count = (uint32_t)mr.segments;
@@ -664,7 +670,7 @@ static stat_t _exec_aline_tail() {
     }
   }
 
-  return STAT_EAGAIN; // should never get here
+  return STAT_EAGAIN;
 }
 #endif // __JERK_EXEC
 
@@ -696,12 +702,11 @@ static stat_t _exec_aline_segment() {
   // If the segment ends on a section waypoint synchronize to the head, body or tail end
   // Otherwise if not at a section waypoint compute target from segment time and velocity
   // Don't do waypoint correction if you are going into a hold.
-
-  if ((--mr.segment_count == 0) && (mr.section_state == SECTION_2nd_HALF) &&
-      (cm.motion_state == MOTION_RUN) && (cm.cycle_state == CYCLE_MACHINING)) {
+  if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
+      cm.motion_state == MOTION_RUN && cm.cycle_state == CYCLE_MACHINING)
     copy_vector(mr.gm.target, mr.waypoint[mr.section]);
 
-  } else {
+  else {
     float segment_length = mr.segment_velocity * mr.segment_time;
 
     for (i = 0; i < AXES; i++)
@@ -711,8 +716,8 @@ static stat_t _exec_aline_segment() {
   // Convert target position to steps
   // Bucket-brigade the old target down the chain before getting the new target from kinematics
   //
-  // NB: The direct manipulation of steps to compute travel_steps only works for Cartesian kinematics.
-  //       Other kinematics may require transforming travel distance as opposed to simply subtracting steps.
+  // The direct manipulation of steps to compute travel_steps only works for Cartesian kinematics.
+  // Other kinematics may require transforming travel distance as opposed to simply subtracting steps.
 
   for (i = 0; i < MOTORS; i++) {
     mr.commanded_steps[i] = mr.position_steps[i]; // previous segment's position, delayed by 1 segment
@@ -730,9 +735,9 @@ static stat_t _exec_aline_segment() {
   ritorno(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
   copy_vector(mr.position, mr.gm.target);         // update position from target
 #ifdef __JERK_EXEC
-  mr.elapsed_accel_time += mr.segment_accel_time; // needed by jerk-based exec (NB: ignored if running body)
+  mr.elapsed_accel_time += mr.segment_accel_time; // needed by jerk-based exec (ignored if running body)
 #endif
 
-  if (mr.segment_count == 0) return STAT_OK;      // this section has run all its segments
+  if (!mr.segment_count) return STAT_OK;          // this section has run all its segments
   return STAT_EAGAIN;                             // this section still has more segments to run
 }

@@ -44,20 +44,20 @@
  *    (Note: sections, not moves) so we can compute entry and exits for adjacent sections.
  *
  *    Inputs used are:
- *      bf->length            - actual block length    (length is never changed)
+ *      bf->length            - actual block length     (length is never changed)
  *      bf->entry_velocity    - requested Ve            (entry velocity is never changed)
- *      bf->cruise_velocity    - requested Vt            (is often changed)
- *      bf->exit_velocity        - requested Vx            (may be changed for degenerate cases)
- *      bf->cruise_vmax        - used in some comparisons
+ *      bf->cruise_velocity   - requested Vt            (is often changed)
+ *      bf->exit_velocity     - requested Vx            (may be changed for degenerate cases)
+ *      bf->cruise_vmax       - used in some comparisons
  *      bf->delta_vmax        - used to degrade velocity of pathologically short blocks
  *
  *    Variables that may be set/updated are:
- *    bf->entry_velocity    - requested Ve
- *      bf->cruise_velocity    - requested Vt
- *      bf->exit_velocity        - requested Vx
- *      bf->head_length        - bf->length allocated to head
- *      bf->body_length        - bf->length allocated to body
- *      bf->tail_length        - bf->length allocated to tail
+ *    bf->entry_velocity      - requested Ve
+ *      bf->cruise_velocity   - requested Vt
+ *      bf->exit_velocity     - requested Vx
+ *      bf->head_length       - bf->length allocated to head
+ *      bf->body_length       - bf->length allocated to body
+ *      bf->tail_length       - bf->length allocated to tail
  *
  *    Note: The following conditions must be met on entry:
  *        bf->length must be non-zero (filter these out upstream)
@@ -77,7 +77,7 @@
  *        the entry velocity to the exit velocity in the available length. These
  *        velocities are not negotiable, so a degraded solution is found.
  *
- *          In worst cases the move cannot be executed as the required execution time is
+ *        In worst cases the move cannot be executed as the required execution time is
  *        less than the minimum segment time. The first degradation is to reduce the
  *        move to a body-only segment with an average velocity. If that still doesn't
  *        fit then the move velocity is reduced so it fits into a minimum segment.
@@ -87,26 +87,26 @@
  *    Various cases handled (H=head, B=body, T=tail)
  *
  *      Requested-Fit cases
- *          HBT    Ve<Vt>Vx    sufficient length exists for all parts (corner case: HBT')
- *          HB    Ve<Vt=Vx    head accelerates to cruise - exits at full speed (corner case: H')
- *          BT    Ve=Vt>Vx    enter at full speed and decelerate (corner case: T')
- *          HT    Ve & Vx        perfect fit HT (very rare). May be symmetric or asymmetric
- *          H    Ve<Vx        perfect fit H (common, results from planning)
- *          T    Ve>Vx        perfect fit T (common, results from planning)
+ *          HBT  Ve<Vt>Vx    sufficient length exists for all parts (corner case: HBT')
+ *          HB   Ve<Vt=Vx    head accelerates to cruise - exits at full speed (corner case: H')
+ *          BT   Ve=Vt>Vx    enter at full speed and decelerate (corner case: T')
+ *          HT   Ve & Vx     perfect fit HT (very rare). May be symmetric or asymmetric
+ *          H    Ve<Vx       perfect fit H (common, results from planning)
+ *          T    Ve>Vx       perfect fit T (common, results from planning)
  *          B    Ve=Vt=Vx    Velocities are close to each other and within matching tolerance
  *
  *      Rate-Limited cases - Ve and Vx can be satisfied but Vt cannot
  *          HT    (Ve=Vx)<Vt    symmetric case. Split the length and compute Vt.
- *          HT'    (Ve!=Vx)<Vt    asymmetric case. Find H and T by successive approximation.
- *        HBT'            body length < min body length - treated as an HT case
- *        H'                body length < min body length - subsume body into head length
- *        T'                body length < min body length - subsume body into tail length
+ *          HT'   (Ve!=Vx)<Vt   asymmetric case. Find H and T by successive approximation.
+ *          HBT'  body length < min body length - treated as an HT case
+ *          H'    body length < min body length - subsume body into head length
+ *          T'    body length < min body length - subsume body into tail length
  *
  *      Degraded fit cases - line is too short to satisfy both Ve and Vx
- *        H"    Ve<Vx        Ve is degraded (velocity step). Vx is met
+ *          H"    Ve<Vx        Ve is degraded (velocity step). Vx is met
  *          T"    Ve>Vx        Ve is degraded (velocity step). Vx is met
- *          B"    <short>        line is very short but drawable; is treated as a body only
- *        F    <too short>    force fit: This block is slowed down until it can be executed
+ *          B"    <short>      line is very short but drawable; is treated as a body only
+ *          F     <too short>  force fit: This block is slowed down until it can be executed
  *
  *    NOTE: The order of the cases/tests in the code is pretty important. Start with the
  *      shortest cases first and work up. Not only does this simplify the order of the tests,
@@ -224,7 +224,8 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
     if (fabs(bf->entry_velocity - bf->exit_velocity) < TRAPEZOID_VELOCITY_TOLERANCE) {
       bf->head_length = bf->length/2;
       bf->tail_length = bf->head_length;
-      bf->cruise_velocity = min(bf->cruise_vmax, mp_get_target_velocity(bf->entry_velocity, bf->head_length, bf));
+      bf->cruise_velocity =
+        min(bf->cruise_vmax, mp_get_target_velocity(bf->entry_velocity, bf->head_length, bf));
 
       if (bf->head_length < MIN_HEAD_LENGTH) {
         // Convert this to a body-only move
@@ -304,14 +305,14 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
 /*
  *    This set of functions returns the fourth thing knowing the other three.
  *
- *       Jm = the given maximum jerk
+ *      Jm = the given maximum jerk
  *      T  = time of the entire move
- *    Vi = initial velocity
- *    Vf = final velocity
+ *      Vi = initial velocity
+ *      Vf = final velocity
  *      T  = 2*sqrt((Vt-Vi)/Jm)
  *      As = The acceleration at inflection point between convex and concave portions of the S-curve.
  *      As = (Jm*T)/2
- *    Ar = ramp acceleration
+ *      Ar = ramp acceleration
  *      Ar = As/2 = (Jm*T)/4
  *
  *    mp_get_target_length() is a convenient function for determining the optimal_length (L)
@@ -319,18 +320,18 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *
  *    The length (distance) equation is derived from:
  *
- *     a)    L = (Vf-Vi) * T - (Ar*T^2)/2    ... which becomes b) with substitutions for Ar and T
- *     b) L = (Vf-Vi) * 2*sqrt((Vf-Vi)/Jm) - (2*sqrt((Vf-Vi)/Jm) * (Vf-Vi))/2
- *     c)    L = (Vf-Vi)^(3/2) / sqrt(Jm)    ...is an alternate form of b) (see Wolfram Alpha)
- *     c')L = (Vf-Vi) * sqrt((Vf-Vi)/Jm) ... second alternate form; requires Vf >= Vi
+ *     a)  L = (Vf-Vi) * T - (Ar*T^2)/2    ... which becomes b) with substitutions for Ar and T
+ *     b)  L = (Vf-Vi) * 2*sqrt((Vf-Vi)/Jm) - (2*sqrt((Vf-Vi)/Jm) * (Vf-Vi))/2
+ *     c)  L = (Vf-Vi)^(3/2) / sqrt(Jm)    ...is an alternate form of b) (see Wolfram Alpha)
+ *     c') L = (Vf-Vi) * sqrt((Vf-Vi)/Jm) ... second alternate form; requires Vf >= Vi
  *
  *     Notes: Ar = (Jm*T)/4                    Ar is ramp acceleration
- *            T  = 2*sqrt((Vf-Vi)/Jm)            T is time
+ *            T  = 2*sqrt((Vf-Vi)/Jm)          T is time
  *            Assumes Vi, Vf and L are positive or zero
  *            Cannot assume Vf>=Vi due to rounding errors and use of PLANNER_VELOCITY_TOLERANCE
- *              necessitating the introduction of fabs()
+ *            necessitating the introduction of fabs()
  *
- *     mp_get_target_velocity() is a convenient function for determining Vf target velocity for
+ *    mp_get_target_velocity() is a convenient function for determining Vf target velocity for
  *    a given the initial velocity (Vi), length (L), and maximum jerk (Jm).
  *    Equation d) is b) solved for Vf. Equation e) is c) solved for Vf. Use e) (obviously)
  *
@@ -365,14 +366,15 @@ float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
  * There are (at least) two such functions we can use:
  *      L from J, Vi, and Vf
  *      L = sqrt((Vf - Vi) / J) (Vi + Vf)
+ *
  *   Replacing Vf with x, and subtracting the known L:
  *      0 = sqrt((x - Vi) / J) (Vi + x) - L
  *      Z(x) = sqrt((x - Vi) / J) (Vi + x) - L
  *
  *  OR
- *
  *      J from L, Vi, and Vf
  *      J = ((Vf - Vi) (Vi + Vf)²) / L²
+ *
  *  Replacing Vf with x, and subtracting the known J:
  *      0 = ((x - Vi) (Vi + x)²) / L² - J
  *      Z(x) = ((x - Vi) (Vi + x)²) / L² - J

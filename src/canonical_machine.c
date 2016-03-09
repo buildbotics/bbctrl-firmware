@@ -414,19 +414,21 @@ void cm_set_model_target(float target[], float flag[]) {
   float tmp = 0;
 
   // process XYZABC for lower modes
-  for (axis=AXIS_X; axis<=AXIS_Z; axis++) {
-    if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED))
-      continue;        // skip axis if not flagged for update or its disabled
-    else if ((cm.a[axis].axis_mode == AXIS_STANDARD) || (cm.a[axis].axis_mode == AXIS_INHIBITED)) {
+  for (axis = AXIS_X; axis <= AXIS_Z; axis++) {
+    if (fp_FALSE(flag[axis]) || cm.a[axis].axis_mode == AXIS_DISABLED)
+      continue; // skip axis if not flagged for update or its disabled
+
+    else if (cm.a[axis].axis_mode == AXIS_STANDARD || cm.a[axis].axis_mode == AXIS_INHIBITED) {
       if (cm.gm.distance_mode == ABSOLUTE_MODE)
         cm.gm.target[axis] = cm_get_active_coord_offset(axis) + _to_millimeters(target[axis]);
       else cm.gm.target[axis] += _to_millimeters(target[axis]);
     }
   }
+
   // FYI: The ABC loop below relies on the XYZ loop having been run first
-  for (axis=AXIS_A; axis<=AXIS_C; axis++) {
-    if ((fp_FALSE(flag[axis])) || (cm.a[axis].axis_mode == AXIS_DISABLED))
-      continue;        // skip axis if not flagged for update or its disabled
+  for (axis = AXIS_A; axis <= AXIS_C; axis++) {
+    if (fp_FALSE(flag[axis]) || cm.a[axis].axis_mode == AXIS_DISABLED)
+      continue; // skip axis if not flagged for update or its disabled
     else tmp = _calc_ABC(axis, target, flag);
 
     if (cm.gm.distance_mode == ABSOLUTE_MODE)
@@ -434,6 +436,7 @@ void cm_set_model_target(float target[], float flag[]) {
     else cm.gm.target[axis] += tmp;
   }
 }
+
 
 /*
  * cm_test_soft_limits() - return error code if soft limit is exceeded
@@ -898,6 +901,7 @@ stat_t cm_straight_traverse(float target[], float flags[]) {
   cm_cycle_start();                           // required for homing & other cycles
   mp_aline(&cm.gm);                           // send the move to the planner
   cm_finalize_move();
+
   return STAT_OK;
 }
 
@@ -1408,7 +1412,7 @@ float cm_get_axis_jerk(uint8_t axis) {
 
 void cm_set_axis_jerk(uint8_t axis, float jerk) {
   cm.a[axis].jerk_max = jerk;
-  cm.a[axis].recip_jerk = 1/(jerk * JERK_MULTIPLIER);
+  cm.a[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
 }
 
 

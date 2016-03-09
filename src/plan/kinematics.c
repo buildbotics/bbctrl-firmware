@@ -50,8 +50,9 @@ void ik_kinematics(const float travel[], float steps[]) {
   memcpy(joint, travel, sizeof(float) * AXES);      //...or just do a memcpy for Cartesian machines
 
   // Map motors to axes and convert length units to steps
-  // Most of the conversion math has already been done in during config in steps_per_unit()
-  // which takes axis travel, step angle and microsteps into account.
+  // Most of the conversion math has already been done during config in
+  // steps_per_unit() which takes axis travel, step angle and microsteps into
+  // account.
   for (uint8_t axis = 0; axis < AXES; axis++) {
     if (cm.a[axis].axis_mode == AXIS_INHIBITED) joint[axis] = 0;
 
