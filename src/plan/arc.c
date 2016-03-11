@@ -4,22 +4,27 @@
  *
  * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/* This module actually contains some parts that belong ion the canonical machine,
- * and other parts that belong at the motion planner level, but the whole thing is
- * treated as if it were part of the motion planner.
+/* This module actually contains some parts that belong ion the
+ * canonical machine, * and other parts that belong at the motion planner
+ * level, but the whole thing is * treated as if it were part of the
+ * motion planner.
  */
 
 #include "arc.h"
@@ -81,21 +86,25 @@ stat_t cm_arc_feed(float target[], float flags[],       // arc endpoints
 
     if (radius_f) {
       // must have at least one endpoint specified
-      if (!(target_x || target_y)) return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
+      if (!(target_x || target_y))
+        return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
 
-    } else if (offset_k)  // center format arc tests, it's OK to be missing either or both i and j, but error if k is present
+    } else if (offset_k)
+      // center format arc tests, it's OK to be missing either or both i and j,
+      // but error if k is present
       return STAT_ARC_SPECIFICATION_ERROR;
 
-  } else if (cm.gm.select_plane == CANON_PLANE_XZ) {    // G18
+  } else if (cm.gm.select_plane == CANON_PLANE_XZ) { // G18
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_Y;
 
     if (radius_f) {
-      if (!(target_x || target_z)) return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
+      if (!(target_x || target_z))
+        return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
     } else if (offset_j) return STAT_ARC_SPECIFICATION_ERROR;
 
-  } else if (cm.gm.select_plane == CANON_PLANE_YZ) {    // G19
+  } else if (cm.gm.select_plane == CANON_PLANE_YZ) { // G19
     arc.plane_axis_0 = AXIS_Y;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_X;
@@ -149,8 +158,8 @@ stat_t cm_arc_feed(float target[], float flags[],       // arc endpoints
 /*
  * Generate an arc
  *
- *    cm_arc_callback() is called from the controller main loop. Each time it's called it
- *    queues as many arc segments (lines) as it can before it blocks, then returns.
+ *  Called from the controller main loop. Each time it's called it queues
+ *  as many arc segments (lines) as it can before it blocks, then returns.
  *
  *  Parts of this routine were originally sourced from the grbl project.
  */
@@ -256,7 +265,7 @@ static stat_t _compute_arc() {
   // arc.length is the total mm of travel of the helix (or just a planar arc)
   arc.linear_travel = arc.gm.target[arc.linear_axis] - arc.position[arc.linear_axis];
   arc.planar_travel = arc.angular_travel * arc.radius;
-  arc.length = hypotf(arc.planar_travel, arc.linear_travel);  // NB: hypot is insensitive to +/- signs
+  arc.length = hypotf(arc.planar_travel, arc.linear_travel);  // hypot is insensitive to +/- signs
   _estimate_arc_time();    // get an estimate of execution time to inform arc_segment calculation
 
   // Find the minimum number of arc_segments that meets these constraints...

@@ -4,25 +4,31 @@
  *
  * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * As a special exception, you may use this file as part of a software library without
- * restriction. Specifically, if other files instantiate templates or use macros or
- * inline functions from this file, or you compile this file and link it with  other
- * files to produce an executable, this file does not by itself cause the resulting
- * executable to be covered by the GNU General Public License. This exception does not
- * however invalidate any other reasons why the executable file might be covered by the
- * GNU General Public License.
+ * As a special exception, you may use this file as part of a software
+ * library without restriction. Specifically, if other files
+ * instantiate templates or use macros or inline functions from this
+ * file, or you compile this file and link it with other files to
+ * produce an executable, this file does not by itself cause the
+ * resulting executable to be covered by the GNU General Public
+ * License. This exception does not however invalidate any other
+ * reasons why the executable file might be covered by the GNU General
+ * Public License.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "hardware.h"
@@ -67,12 +73,12 @@ void hardware_init() {
 /*
  * Get a human readable signature
  *
- *    Produce a unique deviceID based on the factory calibration data.
- *        Format is: 123456-ABC
+ * Produce a unique deviceID based on the factory calibration data.
+ *     Format is: 123456-ABC
  *
- *    The number part is a direct readout of the 6 digit lot number
- *    The alpha is the low 5 bits of wafer number and XY coords in printable ASCII
- *    Refer to NVM_PROD_SIGNATURES_t in iox192a3.h for details.
+ * The number part is a direct readout of the 6 digit lot number
+ * The alpha is the low 5 bits of wafer number and XY coords in printable ASCII
+ * Refer to NVM_PROD_SIGNATURES_t in iox192a3.h for details.
  */
 enum {
   LOTNUM0 = 8,  // Lot Number Byte 0, ASCII
@@ -93,7 +99,8 @@ void hw_get_id(char *id) {
   char printable[33] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   uint8_t i;
 
-  NVM_CMD = NVM_CMD_READ_CALIB_ROW_gc; // Load NVM Command register to read the calibration row
+  // Load NVM Command register to read the calibration row
+  NVM_CMD = NVM_CMD_READ_CALIB_ROW_gc;
 
   for (i = 0; i < 6; i++)
     id[i] = pgm_read_byte(LOTNUM0 + i);
@@ -112,7 +119,8 @@ void hw_request_hard_reset() {cs.hard_reset_requested = true;}
 
 
 /// Hard reset using watchdog timer
-void hw_hard_reset() {            // software hard reset using the watchdog timer
+/// software hard reset using the watchdog timer
+void hw_hard_reset() {
   wdt_enable(WDTO_15MS);
   while (true);                   // loops for about 15ms then resets
 }
@@ -120,8 +128,8 @@ void hw_hard_reset() {            // software hard reset using the watchdog time
 
 /// Controller's rest handler
 stat_t hw_hard_reset_handler() {
-  if (cs.hard_reset_requested == false) return STAT_NOOP;
-  hw_hard_reset();                // hard reset - identical to hitting RESET button
+  if (!cs.hard_reset_requested) return STAT_NOOP;
+  hw_hard_reset(); // identical to hitting RESET button
   return STAT_EAGAIN;
 }
 
@@ -131,11 +139,10 @@ void hw_request_bootloader() {cs.bootloader_requested = true;}
 
 
 stat_t hw_bootloader_handler() {
-  if (cs.bootloader_requested == false)
-    return STAT_NOOP;
+  if (!cs.bootloader_requested) return STAT_NOOP;
 
   cli();
   CCPWrite(&RST.CTRL, RST_SWRST_bm); // fire a software reset
 
-  return STAT_EAGAIN;                // never gets here but keeps the compiler happy
+  return STAT_EAGAIN; // never gets here but keeps the compiler happy
 }

@@ -43,7 +43,6 @@
 
 #define _to_millimeters(a) ((cm.gm.units_mode == INCHES) ? (a * MM_PER_INCH) : a)
 
-#define JOGGING_START_VELOCITY ((float)10.0)
 #define DISABLE_SOFT_LIMIT (-1000000)
 
 
@@ -239,11 +238,9 @@ typedef struct cmSingleton {          // struct to manage cm globals and cycles
 
   uint8_t g28_flag;                    // true = complete a G28 move
   uint8_t g30_flag;                    // true = complete a G30 move
-  uint8_t deferred_write_flag;         // G10 data has changed (e.g. offsets) - flag to persist them
   uint8_t feedhold_requested;          // feedhold character has been received
   uint8_t queue_flush_requested;       // queue flush character has been received
   uint8_t cycle_start_requested;       // cycle start character has been received (flag to end feedhold)
-  float jogging_dest;                  // jogging direction as a relative move from current position
   struct GCodeState *am;               // active Gcode model is maintained by state management
 
   // Model states
@@ -299,8 +296,7 @@ enum cmCombinedState {              // check alignment with messages in config.c
   COMBINED_PROBE,                   // [7] probe cycle active
   COMBINED_CYCLE,                   // [8] machine is running (cycling)
   COMBINED_HOMING,                  // [9] homing is treated as a cycle
-  COMBINED_JOG,                     // [10] jogging is treated as a cycle
-  COMBINED_SHUTDOWN,                // [11] machine in hard alarm state (shutdown)
+  COMBINED_SHUTDOWN,                // [10] machine in hard alarm state (shutdown)
 };
 //### END CRITICAL REGION ###
 
@@ -321,7 +317,6 @@ enum cmCycleState {
   CYCLE_MACHINING,                  // in normal machining cycle
   CYCLE_PROBE,                      // in probe cycle
   CYCLE_HOMING,                     // homing is treated as a specialized cycle
-  CYCLE_JOG                         // jogging is treated as a specialized cycle
 };
 
 
@@ -394,7 +389,7 @@ enum cmMotionMode {                   // G Modal Group 1
   MOTION_MODE_CANNED_CYCLE_86,        // G86 - boring, spindle stop, rapid out
   MOTION_MODE_CANNED_CYCLE_87,        // G87 - back boring
   MOTION_MODE_CANNED_CYCLE_88,        // G88 - boring, spindle stop, manual out
-  MOTION_MODE_CANNED_CYCLE_89         // G89 - boring, dwell, feed out
+  MOTION_MODE_CANNED_CYCLE_89,        // G89 - boring, dwell, feed out
 };
 
 
@@ -650,10 +645,5 @@ stat_t cm_homing_callback();                                     // G28.2/.4 mai
 // Probe cycles
 stat_t cm_straight_probe(float target[], float flags[]);         // G38.2
 stat_t cm_probe_callback();                                      // G38.2 main loop callback
-
-// Jogging cycle
-stat_t cm_jogging_callback();                                    // jogging cycle main loop
-stat_t cm_jogging_cycle_start(uint8_t axis);                     // {"jogx":-100.3}
-float cm_get_jogging_dest();
 
 #endif // CANONICAL_MACHINE_H

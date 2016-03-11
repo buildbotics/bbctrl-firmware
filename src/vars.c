@@ -243,7 +243,8 @@ int vars_parser(char *vars) {
 void vars_print_help() {
   static const char fmt[] PROGMEM = "  %-8S %-10S  %S\n";
 
-#define VAR(NAME, TYPE, ...) printf_P(fmt, NAME##_name, TYPE##_name, NAME##_help);
+#define VAR(NAME, TYPE, ...) \
+  printf_P(fmt, NAME##_name, TYPE##_name, NAME##_help);
 #include "vars.def"
 #undef VAR
 }

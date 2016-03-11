@@ -4,17 +4,21 @@
  *
  * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "gcode_parser.h"
@@ -31,21 +35,24 @@
 #include <math.h>
 
 
-struct gcodeParserSingleton {          // struct to manage globals
+struct gcodeParserSingleton {        // struct to manage globals
   uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
 }; struct gcodeParserSingleton gp;
 
 // local helper functions and macros
-static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag);
+static void _normalize_gcode_block(char *str, char **com, char **msg,
+                                   uint8_t *block_delete_flag);
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value);
 static stat_t _point(float value);
 static stat_t _validate_gcode_block();
-static stat_t _parse_gcode_block(char *line);    // Parse the block into the GN/GF structs
+/// Parse the block into the GN/GF structs
+static stat_t _parse_gcode_block(char *line);
 static stat_t _execute_gcode_block();        // Execute the gcode block
 
-#define SET_MODAL(m,parm,val) ({cm.gn.parm=val; cm.gf.parm=1; gp.modals[m]+=1; break;})
-#define SET_NON_MODAL(parm,val) ({cm.gn.parm=val; cm.gf.parm=1; break;})
-#define EXEC_FUNC(f,v) if((uint8_t)cm.gf.v != false) { status = f(cm.gn.v);}
+#define SET_MODAL(m, parm, val) \
+  {cm.gn.parm = val; cm.gf.parm = 1; gp.modals[m] += 1; break;}
+#define SET_NON_MODAL(parm, val) {cm.gn.parm = val; cm.gf.parm = 1; break;}
+#define EXEC_FUNC(f, v) if ((uint8_t)cm.gf.v) {status = f(cm.gn.v);}
 
 
 /// Parse a block (line) of gcode
@@ -67,7 +74,7 @@ stat_t gc_gcode_parser(char *block) {
   if (block_delete_flag) return STAT_NOOP;
 
   // queue a "(MSG" response
-  if (*msg) cm_message(msg);                // queue the message
+  if (*msg) cm_message(msg);            // queue the message
 
   return _parse_gcode_block(block);
 }
@@ -76,41 +83,45 @@ stat_t gc_gcode_parser(char *block) {
 /*
  * Normalize a block (line) of gcode in place
  *
- *    Normalization functions:
+ * Normalization functions:
  *   - convert all letters to upper case
- *     - remove white space, control and other invalid characters
- *     - remove (erroneous) leading zeros that might be taken to mean Octal
- *     - identify and return start of comments and messages
- *     - signal if a block-delete character (/) was encountered in the first space
+ *   - remove white space, control and other invalid characters
+ *   - remove (erroneous) leading zeros that might be taken to mean Octal
+ *   - identify and return start of comments and messages
+ *   - signal if a block-delete character (/) was encountered in the first space
  *
- *    So this: "  g1 x100 Y100 f400" becomes this: "G1X100Y100F400"
+ * So this: "  g1 x100 Y100 f400" becomes this: "G1X100Y100F400"
  *
- *    Comment and message handling:
- *     - Comments field start with a '(' char or alternately a semicolon ';'
- *     - Comments and messages are not normalized - they are left alone
- *     - The 'MSG' specifier in comment can have mixed case but cannot cannot have embedded white spaces
- *     - Normalization returns true if there was a message to display, false otherwise
- *     - Comments always terminate the block - i.e. leading or embedded comments are not supported
- *         - Valid cases (examples)            Notes:
- *            G0X10                             - command only - no comment
- *            (comment text)                   - There is no command on this line
- *            G0X10 (comment text)
- *            G0X10 (comment text                 - It's OK to drop the trailing paren
- *            G0X10 ;comment text                 - It's OK to drop the trailing paren
+ * Comment and message handling:
+ *   - Comments field start with a '(' char or alternately a semicolon ';'
+ *   - Comments and messages are not normalized - they are left alone
+ *   - The 'MSG' specifier in comment can have mixed case but cannot cannot
+ *     have embedded white spaces
+ *   - Normalization returns true if there was a message to display, false
+ *     otherwise
+ *   - Comments always terminate the block - i.e. leading or embedded comments
+ *     are not supported
+ *   - Valid cases (examples)          Notes:
+ *     G0X10                           - command only - no comment
+ *     (comment text)                  - There is no command on this line
+ *     G0X10 (comment text)
+ *     G0X10 (comment text             - It's OK to drop the trailing paren
+ *     G0X10 ;comment text             - It's OK to drop the trailing paren
  *
- *         - Invalid cases (examples)            Notes:
- *            G0X10 comment text                 - Comment with no separator
- *            N10 (comment) G0X10              - embedded comment. G0X10 will be ignored
- *            (comment) G0X10                  - leading comment. G0X10 will be ignored
- *             G0X10 # comment                     - invalid separator
+ *   - Invalid cases (examples)        Notes:
+ *     G0X10 comment text              - Comment with no separator
+ *     N10 (comment) G0X10             - embedded comment. G0X10 will be ignored
+ *     (comment) G0X10                 - leading comment. G0X10 will be ignored
+ *     G0X10 # comment                 - invalid separator
  *
- *    Returns:
- *     - com points to comment string or to 0 if no comment
- *     - msg points to message string or to 0 if no comment
- *     - block_delete_flag is set true if block delete encountered, false otherwise
+ * Returns:
+ *  - com points to comment string or to 0 if no comment
+ *  - msg points to message string or to 0 if no comment
+ *  - block_delete_flag is set true if block delete encountered, false otherwise
  */
 
-static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *block_delete_flag) {
+static void _normalize_gcode_block(char *str, char **com, char **msg,
+                                   uint8_t *block_delete_flag) {
   char *rd = str;                // read pointer
   char *wr = str;                // write pointer
 
@@ -119,96 +130,98 @@ static void _normalize_gcode_block(char *str, char **com, char **msg, uint8_t *b
   else { *block_delete_flag = false; }
 
   // normalize the command block & find the comment (if any)
-  for (; *wr != 0; rd++) {
-    if (*rd == 0) { *wr = 0; }
-    else if ((*rd == '(') || (*rd == ';')) { *wr = 0; *com = rd+1; }
-    else if ((isalnum((char)*rd)) || (strchr("-.", *rd))) { // all valid characters
-      *(wr++) = (char)toupper((char)*(rd));
-    }
-  }
+  for (; *wr != 0; rd++)
+    if (*rd == 0) *wr = 0;
+    else if (*rd == '(' || *rd == ';') {*wr = 0; *com = rd + 1;}
+    else if (isalnum((char)*rd) || strchr("-.", *rd)) // all valid characters
+      *wr++ = (char)toupper((char)*rd);
 
   // Perform Octal stripping - remove invalid leading zeros in number strings
   rd = str;
   while (*rd != 0) {
-    if (*rd == '.') break;                            // don't strip past a decimal point
-    if ((!isdigit(*rd)) && (*(rd + 1) == '0') && (isdigit(*(rd + 2)))) {
+    if (*rd == '.') break; // don't strip past a decimal point
+    if (!isdigit(*rd) && *(rd + 1) == '0' && isdigit(*(rd + 2))) {
       wr = rd + 1;
       while (*wr != 0) {*wr = *(wr + 1); wr++;}    // copy forward w/overwrite
       continue;
     }
+
     rd++;
   }
 
   // process comments and messages
   if (**com != 0) {
     rd = *com;
-    while (isspace(*rd)) { rd++; }        // skip any leading spaces before "msg"
-    if ((tolower(*rd) == 'm') && (tolower(*(rd+1)) == 's') && (tolower(*(rd+2)) == 'g'))
+    while (isspace(*rd)) rd++;        // skip any leading spaces before "msg"
+
+    if (tolower(*rd) == 'm' && tolower(*(rd + 1)) == 's' &&
+        tolower(*(rd + 2)) == 'g')
       *msg = rd + 3;
 
     for (; *rd != 0; rd++)
-      if (*rd == ')') *rd = 0;        // 0 terminate on trailing parenthesis, if any
+      // 0 terminate on trailing parenthesis, if any
+      if (*rd == ')') *rd = 0;
   }
 }
 
 
-/*
- * Get gcode word consisting of a letter and a value
+/* Get gcode word consisting of a letter and a value
  *
- *    This function requires the Gcode string to be normalized.
- *    Normalization must remove any leading zeros or they will be converted to Octal
- *    G0X... is not interpreted as hexadecimal. This is trapped.
+ * This function requires the Gcode string to be normalized.
+ * Normalization must remove any leading zeros or they will be converted to
+ * octal.  G0X... is not interpreted as hexadecimal. This is trapped.
  */
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
-  if (**pstr == 0) return STAT_COMPLETE;    // no more words to process
+  if (**pstr == 0) return STAT_COMPLETE; // no more words to process
 
   // get letter part
-  if(isupper(**pstr) == false)
-    return STAT_INVALID_OR_MALFORMED_COMMAND;
+  if (!isupper(**pstr)) return STAT_INVALID_OR_MALFORMED_COMMAND;
   *letter = **pstr;
   (*pstr)++;
 
   // X-axis-becomes-a-hexadecimal-number get-value case, e.g. G0X100 --> G255
-  if ((**pstr == '0') && (*(*pstr+1) == 'X')) {
+  if (**pstr == '0' && *(*pstr + 1) == 'X') {
     *value = 0;
     (*pstr)++;
-    return STAT_OK;        // pointer points to X
+    return STAT_OK; // pointer points to X
   }
 
   // get-value general case
   char *end;
   *value = strtod(*pstr, &end);
-  if (end == *pstr) return STAT_BAD_NUMBER_FORMAT; // more robust test then checking for value=0;
+  // more robust test then checking for value == 0
+  if (end == *pstr) return STAT_BAD_NUMBER_FORMAT;
   *pstr = end;
 
-  return STAT_OK;            // pointer points to next character after the word
+  return STAT_OK; // pointer points to next character after the word
 }
 
 
 /// Isolate the decimal point value as an integer
 static uint8_t _point(float value) {
-  return (uint8_t)(value * 10 - trunc(value) * 10);    // isolate the decimal point as an int
+  // isolate the decimal point as an int
+  return (uint8_t)(value * 10 - trunc(value) * 10);
 }
 
 
 /// Check for some gross Gcode block semantic violations
 static stat_t _validate_gcode_block() {
-  //    Check for modal group violations. From NIST, section 3.4 "It is an error to put
-  //    a G-code from group 1 and a G-code from group 0 on the same line if both of them
-  //    use axis words. If an axis word-using G-code from group 1 is implicitly in effect
-  //    on a line (by having been activated on an earlier line), and a group 0 G-code that
-  //    uses axis words appears on the line, the activity of the group 1 G-code is suspended
-  //    for that line. The axis word-using G-codes from group 0 are G10, G28, G30, and G92"
+  // Check for modal group violations. From NIST, section 3.4 "It
+  // is an error to put a G-code from group 1 and a G-code from
+  // group 0 on the same line if both of them use axis words. If an
+  // axis word-using G-code from group 1 is implicitly in effect on
+  // a line (by having been activated on an earlier line), and a
+  // group 0 G-code that uses axis words appears on the line, the
+  // activity of the group 1 G-code is suspended for that line. The
+  // axis word-using G-codes from group 0 are G10, G28, G30, and G92"
 
-  //    if ((gp.modals[MODAL_GROUP_G0] == true) && (gp.modals[MODAL_GROUP_G1] == true)) {
-  //        return STAT_MODAL_GROUP_VIOLATION;
-  //    }
+  // if (gp.modals[MODAL_GROUP_G0] && gp.modals[MODAL_GROUP_G1])
+  //   return STAT_MODAL_GROUP_VIOLATION;
 
   // look for commands that require an axis word to be present
-  //    if ((gp.modals[MODAL_GROUP_G0] == true) || (gp.modals[MODAL_GROUP_G1] == true)) {
-  //        if (_axis_changed() == false)
-  //        return STAT_GCODE_AXIS_IS_MISSING;
-  //    }
+  // if (gp.modals[MODAL_GROUP_G0] || gp.modals[MODAL_GROUP_G1])
+  //   if (!_axis_changed()) return STAT_GCODE_AXIS_IS_MISSING;
+
   return STAT_OK;
 }
 
@@ -216,36 +229,41 @@ static stat_t _validate_gcode_block() {
 /*
  * Parses one line of 0 terminated G-Code.
  *
- *    All the parser does is load the state values in gn (next model state) and set flags
- *    in gf (model state flags). The execute routine applies them. The buffer is assumed to
- *    contain only uppercase characters and signed floats (no whitespace).
+ *    All the parser does is load the state values in gn (next model
+ *    state) and set flags in gf (model state flags). The execute
+ *    routine applies them. The buffer is assumed to contain only
+ *    uppercase characters and signed floats (no whitespace).
  *
  *    A number of implicit things happen when the gn struct is zeroed:
  *      - inverse feed rate mode is canceled - set back to units_per_minute mode
  */
 static stat_t _parse_gcode_block(char *buf) {
-  char *pstr = (char *)buf;       // persistent pointer into gcode block for parsing words
-  char letter;                    // parsed letter, eg.g. G or X or Y
-  float value = 0;                // value parsed from letter (e.g. 2 for G2)
+  char *pstr = (char *)buf; // persistent pointer for parsing words
+  char letter;              // parsed letter, eg.g. G or X or Y
+  float value = 0;          // value parsed from letter (e.g. 2 for G2)
   stat_t status = STAT_OK;
 
   // set initial state for new move
   memset(&gp, 0, sizeof(gp));                     // clear all parser values
   memset(&cm.gf, 0, sizeof(GCodeInput_t));        // clear all next-state flags
   memset(&cm.gn, 0, sizeof(GCodeInput_t));        // clear all next-state values
-  cm.gn.motion_mode = cm_get_motion_mode(MODEL);  // get motion mode from previous block
+  // get motion mode from previous block
+  cm.gn.motion_mode = cm_get_motion_mode(MODEL);
 
   // extract commands and parameters
-  while((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
+  while ((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
     switch(letter) {
     case 'G':
       switch((uint8_t)value) {
-      case 0:  SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_TRAVERSE);
-      case 1:  SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_FEED);
-      case 2:  SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CW_ARC);
-      case 3:  SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CCW_ARC);
-      case 4:  SET_NON_MODAL(next_action, NEXT_ACTION_DWELL);
-      case 10: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_COORD_DATA);
+      case 0:
+        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_TRAVERSE);
+      case 1:
+        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_FEED);
+      case 2: SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CW_ARC);
+      case 3: SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CCW_ARC);
+      case 4: SET_NON_MODAL(next_action, NEXT_ACTION_DWELL);
+      case 10:
+        SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_COORD_DATA);
       case 17: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_XY);
       case 18: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_XZ);
       case 19: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_YZ);
@@ -253,8 +271,10 @@ static stat_t _parse_gcode_block(char *buf) {
       case 21: SET_MODAL(MODAL_GROUP_G6, units_mode, MILLIMETERS);
       case 28:
         switch (_point(value)) {
-        case 0: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_GOTO_G28_POSITION);
-        case 1: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_G28_POSITION);
+        case 0:
+          SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_GOTO_G28_POSITION);
+        case 1:
+          SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_G28_POSITION);
         case 2: SET_NON_MODAL(next_action, NEXT_ACTION_SEARCH_HOME);
         case 3: SET_NON_MODAL(next_action, NEXT_ACTION_SET_ABSOLUTE_ORIGIN);
         case 4: SET_NON_MODAL(next_action, NEXT_ACTION_HOMING_NO_SET);
@@ -264,8 +284,10 @@ static stat_t _parse_gcode_block(char *buf) {
 
       case 30:
         switch (_point(value)) {
-        case 0: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_GOTO_G30_POSITION);
-        case 1: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_G30_POSITION);
+        case 0:
+          SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_GOTO_G30_POSITION);
+        case 1:
+          SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_G30_POSITION);
         default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
         }
         break;
@@ -295,7 +317,8 @@ static stat_t _parse_gcode_block(char *buf) {
         break;
 
       case 64: SET_MODAL(MODAL_GROUP_G13,path_control, PATH_CONTINUOUS);
-      case 80: SET_MODAL(MODAL_GROUP_G1, motion_mode,  MOTION_MODE_CANCEL_MOTION_MODE);
+      case 80: SET_MODAL(MODAL_GROUP_G1, motion_mode,
+                         MOTION_MODE_CANCEL_MOTION_MODE);
         // case 90: SET_MODAL(MODAL_GROUP_G3, distance_mode, ABSOLUTE_MODE);
         // case 91: SET_MODAL(MODAL_GROUP_G3, distance_mode, INCREMENTAL_MODE);
       case 90:
@@ -316,7 +339,8 @@ static stat_t _parse_gcode_block(char *buf) {
 
       case 92:
         switch (_point(value)) {
-        case 0: SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_ORIGIN_OFFSETS);
+        case 0: SET_MODAL(MODAL_GROUP_G0, next_action,
+                          NEXT_ACTION_SET_ORIGIN_OFFSETS);
         case 1: SET_NON_MODAL(next_action, NEXT_ACTION_RESET_ORIGIN_OFFSETS);
         case 2: SET_NON_MODAL(next_action, NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS);
         case 3: SET_NON_MODAL(next_action, NEXT_ACTION_RESUME_ORIGIN_OFFSETS);
@@ -326,7 +350,8 @@ static stat_t _parse_gcode_block(char *buf) {
 
       case 93: SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, INVERSE_TIME_MODE);
       case 94: SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, UNITS_PER_MINUTE_MODE);
-        // case 95: SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, UNITS_PER_REVOLUTION_MODE);
+        // case 95:
+        // SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, UNITS_PER_REVOLUTION_MODE);
       default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
       }
       break;
@@ -346,15 +371,16 @@ static stat_t _parse_gcode_block(char *buf) {
       case 9: SET_MODAL(MODAL_GROUP_M8, flood_coolant, false);
       case 48: SET_MODAL(MODAL_GROUP_M9, override_enables, true);
       case 49: SET_MODAL(MODAL_GROUP_M9, override_enables, false);
-      case 50: SET_MODAL(MODAL_GROUP_M9, feed_rate_override_enable, true); // conditionally true
-      case 51: SET_MODAL(MODAL_GROUP_M9, spindle_override_enable, true);      // conditionally true
+      case 50: SET_MODAL(MODAL_GROUP_M9, feed_rate_override_enable, true);
+      case 51: SET_MODAL(MODAL_GROUP_M9, spindle_override_enable, true);
       default: status = STAT_MCODE_COMMAND_UNSUPPORTED;
       }
       break;
 
     case 'T': SET_NON_MODAL(tool_select, (uint8_t)trunc(value));
     case 'F': SET_NON_MODAL(feed_rate, value);
-    case 'P': SET_NON_MODAL(parameter, value);                // used for dwell time, G10 coord select, rotations
+      // used for dwell time, G10 coord select, rotations
+    case 'P': SET_NON_MODAL(parameter, value);
     case 'S': SET_NON_MODAL(spindle_speed, value);
     case 'X': SET_NON_MODAL(target[AXIS_X], value);
     case 'Y': SET_NON_MODAL(target[AXIS_Y], value);
@@ -369,14 +395,16 @@ static stat_t _parse_gcode_block(char *buf) {
     case 'J': SET_NON_MODAL(arc_offset[1], value);
     case 'K': SET_NON_MODAL(arc_offset[2], value);
     case 'R': SET_NON_MODAL(arc_radius, value);
-    case 'N': SET_NON_MODAL(linenum,(uint32_t)value);       // line number
-    case 'L': break;                                        // not used for anything
+    case 'N': SET_NON_MODAL(linenum,(uint32_t)value);   // line number
+    case 'L': break;                                    // not used for anything
+    case 0: break;
     default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
     }
+
     if (status != STAT_OK) break;
   }
 
-  if ((status != STAT_OK) && (status != STAT_COMPLETE)) return status;
+  if (status != STAT_OK && status != STAT_COMPLETE) return status;
   ritorno(_validate_gcode_block());
 
   return _execute_gcode_block();        // if successful execute the block
@@ -386,40 +414,40 @@ static stat_t _parse_gcode_block(char *buf) {
 /*
  * Execute parsed block
  *
- *  Conditionally (based on whether a flag is set in gf) call the canonical
- *  machining functions in order of execution as per RS274NGC_3 table 8
- *  (below, with modifications):
+ * Conditionally (based on whether a flag is set in gf) call the canonical
+ * machining functions in order of execution as per RS274NGC_3 table 8
+ * (below, with modifications):
  *
- *        0. record the line number
- *        1. comment (includes message) [handled during block normalization]
- *        2. set feed rate mode (G93, G94 - inverse time or per minute)
- *        3. set feed rate (F)
- *        3a. set feed override rate (M50.1)
- *        3a. set traverse override rate (M50.2)
- *        4. set spindle speed (S)
- *        4a. set spindle override rate (M51.1)
- *        5. select tool (T)
- *        6. change tool (M6)
- *        7. spindle on or off (M3, M4, M5)
- *        8. coolant on or off (M7, M8, M9)
- *        9. enable or disable overrides (M48, M49, M50, M51)
- *        10. dwell (G4)
- *        11. set active plane (G17, G18, G19)
- *        12. set length units (G20, G21)
- *        13. cutter radius compensation on or off (G40, G41, G42)
- *        14. cutter length compensation on or off (G43, G49)
- *        15. coordinate system selection (G54, G55, G56, G57, G58, G59)
- *        16. set path control mode (G61, G61.1, G64)
- *        17. set distance mode (G90, G91)
- *        18. set retract mode (G98, G99)
- *        19a. homing functions (G28.2, G28.3, G28.1, G28, G30)
- *        19b. update system data (G10)
- *        19c. set axis offsets (G92, G92.1, G92.2, G92.3)
- *        20. perform motion (G0 to G3, G80-G89) as modified (possibly) by G53
- *        21. stop and end (M0, M1, M2, M30, M60)
+ *   0. record the line number
+ *   1. comment (includes message) [handled during block normalization]
+ *   2. set feed rate mode (G93, G94 - inverse time or per minute)
+ *   3. set feed rate (F)
+ *   3a. set feed override rate (M50.1)
+ *   3a. set traverse override rate (M50.2)
+ *   4. set spindle speed (S)
+ *   4a. set spindle override rate (M51.1)
+ *   5. select tool (T)
+ *   6. change tool (M6)
+ *   7. spindle on or off (M3, M4, M5)
+ *   8. coolant on or off (M7, M8, M9)
+ *   9. enable or disable overrides (M48, M49, M50, M51)
+ *   10. dwell (G4)
+ *   11. set active plane (G17, G18, G19)
+ *   12. set length units (G20, G21)
+ *   13. cutter radius compensation on or off (G40, G41, G42)
+ *   14. cutter length compensation on or off (G43, G49)
+ *   15. coordinate system selection (G54, G55, G56, G57, G58, G59)
+ *   16. set path control mode (G61, G61.1, G64)
+ *   17. set distance mode (G90, G91)
+ *   18. set retract mode (G98, G99)
+ *   19a. homing functions (G28.2, G28.3, G28.1, G28, G30)
+ *   19b. update system data (G10)
+ *   19c. set axis offsets (G92, G92.1, G92.2, G92.3)
+ *   20. perform motion (G0 to G3, G80-G89) as modified (possibly) by G53
+ *   21. stop and end (M0, M1, M2, M30, M60)
  *
- *    Values in gn are in original units and should not be unit converted prior
- *    to calling the canonical functions (which do the unit conversions)
+ * Values in gn are in original units and should not be unit converted prior
+ * to calling the canonical functions (which do the unit conversions)
  */
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
@@ -431,18 +459,21 @@ static stat_t _execute_gcode_block() {
   EXEC_FUNC(cm_traverse_override_factor, traverse_override_factor);
   EXEC_FUNC(cm_set_spindle_speed, spindle_speed);
   EXEC_FUNC(cm_spindle_override_factor, spindle_override_factor);
-  EXEC_FUNC(cm_select_tool, tool_select);                    // tool_select is where it's written
+  // tool_select is where it's written
+  EXEC_FUNC(cm_select_tool, tool_select);
   EXEC_FUNC(cm_change_tool, tool_change);
-  EXEC_FUNC(cm_spindle_control, spindle_mode);               // spindle on or off
+  EXEC_FUNC(cm_spindle_control, spindle_mode); // spindle on or off
   EXEC_FUNC(cm_mist_coolant_control, mist_coolant);
-  EXEC_FUNC(cm_flood_coolant_control, flood_coolant);        // also disables mist coolant if OFF
+  // also disables mist coolant if OFF
+  EXEC_FUNC(cm_flood_coolant_control, flood_coolant);
   EXEC_FUNC(cm_feed_rate_override_enable, feed_rate_override_enable);
   EXEC_FUNC(cm_traverse_override_enable, traverse_override_enable);
   EXEC_FUNC(cm_spindle_override_enable, spindle_override_enable);
   EXEC_FUNC(cm_override_enables, override_enables);
 
-  if (cm.gn.next_action == NEXT_ACTION_DWELL)              // G4 - dwell
-    ritorno(cm_dwell(cm.gn.parameter));                    // return if error, otherwise complete the block
+  if (cm.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
+    // return if error, otherwise complete the block
+    ritorno(cm_dwell(cm.gn.parameter));
 
   EXEC_FUNC(cm_select_plane, select_plane);
   EXEC_FUNC(cm_set_units_mode, units_mode);
@@ -454,37 +485,69 @@ static stat_t _execute_gcode_block() {
   //--> set retract mode goes here
 
   switch (cm.gn.next_action) {
-  case NEXT_ACTION_SET_G28_POSITION:  status = cm_set_g28_position(); break;                                // G28.1
-  case NEXT_ACTION_GOTO_G28_POSITION: status = cm_goto_g28_position(cm.gn.target, cm.gf.target); break;     // G28
-  case NEXT_ACTION_SET_G30_POSITION:  status = cm_set_g30_position(); break;                                // G30.1
-  case NEXT_ACTION_GOTO_G30_POSITION: status = cm_goto_g30_position(cm.gn.target, cm.gf.target); break;     // G30
-
-  case NEXT_ACTION_SEARCH_HOME: status = cm_homing_cycle_start(); break;                                    // G28.2
-  case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: status = cm_set_absolute_origin(cm.gn.target, cm.gf.target); break; // G28.3
-  case NEXT_ACTION_HOMING_NO_SET: status = cm_homing_cycle_start_no_set(); break;                           // G28.4
-
-  case NEXT_ACTION_STRAIGHT_PROBE: status = cm_straight_probe(cm.gn.target, cm.gf.target); break;           // G38.2
-
-  case NEXT_ACTION_SET_COORD_DATA: status = cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target); break;
-  case NEXT_ACTION_SET_ORIGIN_OFFSETS: status = cm_set_origin_offsets(cm.gn.target, cm.gf.target); break;
-  case NEXT_ACTION_RESET_ORIGIN_OFFSETS: status = cm_reset_origin_offsets(); break;
-  case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS: status = cm_suspend_origin_offsets(); break;
-  case NEXT_ACTION_RESUME_ORIGIN_OFFSETS: status = cm_resume_origin_offsets(); break;
+  case NEXT_ACTION_SET_G28_POSITION: // G28.1
+    status = cm_set_g28_position();
+    break;
+  case NEXT_ACTION_GOTO_G28_POSITION: // G28
+    status = cm_goto_g28_position(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_G30_POSITION: // G30.1
+    status = cm_set_g30_position();
+    break;
+  case NEXT_ACTION_GOTO_G30_POSITION: // G30
+    status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SEARCH_HOME: // G28.2
+    status = cm_homing_cycle_start();
+    break;
+  case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
+    status = cm_set_absolute_origin(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_HOMING_NO_SET: // G28.4
+    status = cm_homing_cycle_start_no_set();
+    break;
+  case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
+    status = cm_straight_probe(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_COORD_DATA:
+    status = cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_ORIGIN_OFFSETS:
+    status = cm_set_origin_offsets(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
+    status = cm_reset_origin_offsets();
+    break;
+  case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS:
+    status = cm_suspend_origin_offsets();
+    break;
+  case NEXT_ACTION_RESUME_ORIGIN_OFFSETS:
+    status = cm_resume_origin_offsets();
+    break;
 
   case NEXT_ACTION_DEFAULT:
-    cm_set_absolute_override(MODEL, cm.gn.absolute_override);    // apply override setting to gm struct
+    // apply override setting to gm struct
+    cm_set_absolute_override(MODEL, cm.gn.absolute_override);
     switch (cm.gn.motion_mode) {
-    case MOTION_MODE_CANCEL_MOTION_MODE: cm.gm.motion_mode = cm.gn.motion_mode; break;
-    case MOTION_MODE_STRAIGHT_TRAVERSE: status = cm_straight_traverse(cm.gn.target, cm.gf.target); break;
-    case MOTION_MODE_STRAIGHT_FEED: status = cm_straight_feed(cm.gn.target, cm.gf.target); break;
+    case MOTION_MODE_CANCEL_MOTION_MODE:
+      cm.gm.motion_mode = cm.gn.motion_mode;
+      break;
+    case MOTION_MODE_STRAIGHT_TRAVERSE:
+      status = cm_straight_traverse(cm.gn.target, cm.gf.target);
+      break;
+    case MOTION_MODE_STRAIGHT_FEED:
+      status = cm_straight_feed(cm.gn.target, cm.gf.target);
+      break;
     case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
       // gf.radius sets radius mode if radius was collected in gn
-      status = cm_arc_feed(cm.gn.target, cm.gf.target, cm.gn.arc_offset[0], cm.gn.arc_offset[1],
-                           cm.gn.arc_offset[2], cm.gn.arc_radius, cm.gn.motion_mode);
+      status = cm_arc_feed(cm.gn.target, cm.gf.target, cm.gn.arc_offset[0],
+                           cm.gn.arc_offset[1], cm.gn.arc_offset[2],
+                           cm.gn.arc_radius, cm.gn.motion_mode);
       break;
     }
   }
-  cm_set_absolute_override(MODEL, false);     // un-set absolute override once the move is planned
+  // un-set absolute override once the move is planned
+  cm_set_absolute_override(MODEL, false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
   if (cm.gf.program_flow == true) {

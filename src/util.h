@@ -4,25 +4,31 @@
  *
  * Copyright (c) 2010 - 2014 Alden S. Hart, Jr.
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * As a special exception, you may use this file as part of a software library without
- * restriction. Specifically, if other files instantiate templates or use macros or
- * inline functions from this file, or you compile this file and link it with  other
- * files to produce an executable, this file does not by itself cause the resulting
- * executable to be covered by the GNU General Public License. This exception does not
- * however invalidate any other reasons why the executable file might be covered by the
- * GNU General Public License.
+ * As a special exception, you may use this file as part of a software
+ * library without restriction. Specifically, if other files
+ * instantiate templates or use macros or inline functions from this
+ * file, or you compile this file and link it with other files to
+ * produce an executable, this file does not by itself cause the
+ * resulting executable to be covered by the GNU General Public
+ * License. This exception does not however invalidate any other
+ * reasons why the executable file might be covered by the GNU General
+ * Public License.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /* util.c/.h contains a dog's breakfast of supporting functions that are
@@ -39,6 +45,7 @@
 #include "config.h"
 
 #include <stdint.h>
+#include <math.h>
 
 // Vector utilities
 extern float vector[AXES]; // vector of axes for passing to subroutines
@@ -84,27 +91,30 @@ uint16_t compute_checksum(char const *string, const uint16_t length);
 #define avg(a,b) ((a+b)/2)
 #endif
 
+// allowable rounding error for floats
 #ifndef EPSILON
-#define EPSILON        ((float)0.00001)       // allowable rounding error for floats
+#define EPSILON        ((float)0.00001)
 #endif
 
 #ifndef fp_EQ
-#define fp_EQ(a,b) (fabs(a - b) < EPSILON)    // requires math.h to be included in each file used
+#define fp_EQ(a,b) (fabs(a - b) < EPSILON)
 #endif
 #ifndef fp_NE
-#define fp_NE(a,b) (fabs(a - b) > EPSILON)    // requires math.h to be included in each file used
+#define fp_NE(a,b) (fabs(a - b) > EPSILON)
 #endif
 #ifndef fp_ZERO
-#define fp_ZERO(a) (fabs(a) < EPSILON)        // requires math.h to be included in each file used
+#define fp_ZERO(a) (fabs(a) < EPSILON)
 #endif
 #ifndef fp_NOT_ZERO
-#define fp_NOT_ZERO(a) (fabs(a) > EPSILON)    // requires math.h to be included in each file used
+#define fp_NOT_ZERO(a) (fabs(a) > EPSILON)
 #endif
+/// float is interpreted as FALSE (equals zero)
 #ifndef fp_FALSE
-#define fp_FALSE(a) (a < EPSILON)             // float is interpreted as FALSE (equals zero)
+#define fp_FALSE(a) (a < EPSILON)
 #endif
+/// float is interpreted as TRUE (not equal to zero)
 #ifndef fp_TRUE
-#define fp_TRUE(a) (a > EPSILON)              // float is interpreted as TRUE (not equal to zero)
+#define fp_TRUE(a) (a > EPSILON)
 #endif
 
 // Constants

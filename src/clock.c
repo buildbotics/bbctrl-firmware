@@ -3,17 +3,21 @@
  *
  * Copyright (c) 2010 - 2013 Alden S. Hart Jr.
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "clock.h"
@@ -25,35 +29,36 @@
 
 void CCPWrite(volatile uint8_t * address, uint8_t value);
 
-/*
- * This routine is lifted and modified from Boston Android and from
- * http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&p=711659
-*/
 
+/// This routine is lifted and modified from Boston Android and from
+/// http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&p=711659
 void clock_init()  {
-#ifdef __CLOCK_EXTERNAL_8MHZ               // external 8 Mhx Xtal with 4x PLL = 32 Mhz
-  OSC.XOSCCTRL = 0x4B;                     // 2-9 MHz crystal; 0.4-16 MHz XTAL w/16K CLK startup
-  OSC.CTRL = 0x08;                         // enable external crystal oscillator
-  while (!(OSC.STATUS & OSC_XOSCRDY_bm));  // wait for oscillator ready
-  OSC.PLLCTRL = 0xC4;                      // XOSC is PLL Source; 4x Factor (32 MHz sys clock)
+  // external 8 Mhx Xtal with 4x PLL = 32 Mhz
+#ifdef __CLOCK_EXTERNAL_8MHZ
+  OSC.XOSCCTRL = 0x4B; // 2-9 MHz crystal; 0.4-16 MHz XTAL w/16K CLK startup
+  OSC.CTRL = 0x08; // enable external crystal oscillator
+  while (!(OSC.STATUS & OSC_XOSCRDY_bm)); // wait for oscillator ready
+  OSC.PLLCTRL = 0xC4; // XOSC is PLL Source; 4x Factor (32 MHz sys clock)
   OSC.CTRL = 0x18;                         // Enable PLL & External Oscillator
   while (!(OSC.STATUS & OSC_PLLRDY_bm));   // wait for PLL ready
   CCPWrite(&CLK.CTRL, CLK_SCLKSEL_PLL_gc); // switch to PLL clock
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
 #endif
 
-#ifdef __CLOCK_EXTERNAL_16MHZ              // external 16 Mhx Xtal with 2x PLL = 32 Mhz
-  OSC.XOSCCTRL = 0xCB;                     // 12-16 MHz crystal; 0.4-16 MHz XTAL w/16K CLK startup
+  // external 16 Mhx Xtal with 2x PLL = 32 Mhz
+#ifdef __CLOCK_EXTERNAL_16MHZ
+  OSC.XOSCCTRL = 0xCB; // 12-16 MHz crystal; 0.4-16 MHz XTAL w/16K CLK startup
   OSC.CTRL = 0x08;                         // enable external crystal oscillator
   while (!(OSC.STATUS & OSC_XOSCRDY_bm));  // wait for oscillator ready
-  OSC.PLLCTRL = 0xC2;                      // XOSC is PLL Source; 2x Factor (32 MHz sys clock)
+  OSC.PLLCTRL = 0xC2; // XOSC is PLL Source; 2x Factor (32 MHz sys clock)
   OSC.CTRL = 0x18;                         // Enable PLL & External Oscillator
   while(!(OSC.STATUS & OSC_PLLRDY_bm));    // wait for PLL ready
   CCPWrite(&CLK.CTRL, CLK_SCLKSEL_PLL_gc); // switch to PLL clock
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
 #endif
 
-#ifdef __CLOCK_INTERNAL_32MHZ              // 32 MHz internal clock (Boston Android code)
+  // 32 MHz internal clock (Boston Android code)
+#ifdef __CLOCK_INTERNAL_32MHZ
   CCP = CCP_IOREG_gc;                      // Security Signature to modify clk
   OSC.CTRL = OSC_RC32MEN_bm;               // enable internal 32MHz oscillator
   while (!(OSC.STATUS & OSC_RC32MRDY_bm)); // wait for oscillator ready

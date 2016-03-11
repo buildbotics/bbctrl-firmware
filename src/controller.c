@@ -5,25 +5,31 @@
  * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
  * Copyright (c) 2013 - 2015 Robert Giseburt
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * As a special exception, you may use this file as part of a software library without
- * restriction. Specifically, if other files instantiate templates or use macros or
- * inline functions from this file, or you compile this file and link it with  other
- * files to produce an executable, this file does not by itself cause the resulting
- * executable to be covered by the GNU General Public License. This exception does not
- * however invalidate any other reasons why the executable file might be covered by the
- * GNU General Public License.
+ * As a special exception, you may use this file as part of a software
+ * library without restriction. Specifically, if other files
+ * instantiate templates or use macros or inline functions from this
+ * file, or you compile this file and link it with  other files to
+ * produce an executable, this file does not by itself cause the
+ * resulting executable to be covered by the GNU General Public
+ * License. This exception does not however invalidate any other
+ * reasons why the executable file might be covered by the GNU General
+ * Public License.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "controller.h"
@@ -50,11 +56,12 @@
 controller_t cs;        // controller state structure
 
 
-/// Blink rapidly and prevent further activity from occurring
-/// Shutdown idler flashes indicator LED rapidly to show everything is not OK.
-/// Shutdown idler returns EAGAIN causing the control loop to never advance beyond
-/// this point. It's important that the reset handler is still called so a SW reset
-/// (ctrl-x) or bootloader request can be processed.
+/// Blink rapidly and prevent further activity from occurring Shutdown
+/// idler flashes indicator LED rapidly to show everything is not OK.
+/// Shutdown idler returns EAGAIN causing the control loop to never
+/// advance beyond this point. It's important that the reset handler
+/// is still called so a SW reset (ctrl-x) or bootloader request can
+/// be processed.
 static stat_t _shutdown_idler() {
   if (cm_get_machine_state() != MACHINE_SHUTDOWN) return STAT_OK;
 
@@ -95,7 +102,8 @@ static stat_t _limit_switch_handler() {
 
 
 void controller_init() {
-  memset(&cs, 0, sizeof(controller_t)); // clear all values, job_id's, pointers and status
+  // clear all values, job_id's, pointers and status
+  memset(&cs, 0, sizeof(controller_t));
 }
 
 
@@ -124,23 +132,24 @@ void controller_run() {
 
   // Kernel level ISR handlers, flags are set in ISRs, order is important
   DISPATCH(hw_hard_reset_handler());           // 1. handle hard reset requests
-  DISPATCH(hw_bootloader_handler());           // 2. handle requests to enter bootloader
+  DISPATCH(hw_bootloader_handler());           // 2. handle bootloader requests
   DISPATCH(_shutdown_idler());                 // 3. idle in shutdown state
-  DISPATCH(_limit_switch_handler());           // 4. limit switch has been thrown
-  DISPATCH(cm_feedhold_sequencing_callback()); // 5a. feedhold state machine runner
-  DISPATCH(mp_plan_hold_callback());           // 5b. plan a feedhold from line runtime
+  DISPATCH(_limit_switch_handler());           // 4. limit switch thrown
+  DISPATCH(cm_feedhold_sequencing_callback()); // 5a. feedhold state machine
+  DISPATCH(mp_plan_hold_callback());           // 5b. plan a feedhold
 
   // Planner hierarchy for gcode and cycles
   DISPATCH(st_motor_power_callback());         // stepper motor power sequencing
-  DISPATCH(cm_arc_callback());                 // arc generation runs behind lines
+  DISPATCH(cm_arc_callback());                 // arc generation runs
   DISPATCH(cm_homing_callback());              // G28.2 continuation
-  DISPATCH(cm_jogging_callback());             // jog function
   DISPATCH(cm_probe_callback());               // G38.2 continuation
-  DISPATCH(cm_deferred_write_callback());      // persist G10 changes when not in machining cycle
 
   // Command readers and parsers
-  DISPATCH(_sync_to_planner());                // ensure at least one free buffer in planning queue
-  DISPATCH(_sync_to_tx_buffer());              // sync with TX buffer (pseudo-blocking)
+  // ensure at least one free buffer in planning queue
+  DISPATCH(_sync_to_planner());
+  // sync with TX buffer (pseudo-blocking)
+  DISPATCH(_sync_to_tx_buffer());
+
   DISPATCH(report_callback());
   DISPATCH(command_dispatch());                // read and execute next command
 }

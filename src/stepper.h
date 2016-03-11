@@ -427,6 +427,7 @@ typedef struct stRunMotor {      // one per controlled motor
 
 
 typedef struct stRunSingleton {  // Stepper static values and axis parameters
+  uint8_t move_type;
   uint32_t dda_ticks_downcount;  // tick down-counter (unscaled)
   uint32_t dda_ticks_X_substeps; // ticks multiplied by scaling factor
   stRunMotor_t mot[MOTORS];      // runtime motor structures

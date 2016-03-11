@@ -63,13 +63,14 @@ static void _request_load_move();
 
 #define _f_to_period(f) (uint16_t)((float)F_CPU / (float)f)
 
-#define MOTOR_1        0
-#define MOTOR_2        1
-#define MOTOR_3        2
-#define MOTOR_4        3
-#define MOTOR_5        4
-#define MOTOR_6        5
-
+enum {
+  MOTOR_1,
+  MOTOR_2,
+  MOTOR_3,
+  MOTOR_4,
+  MOTOR_5,
+  MOTOR_6,
+};
 
 static VPORT_t *vports[] = {
   &PORT_MOTOR_1_VPORT,
@@ -108,23 +109,6 @@ void stepper_init() {
   TIMER_DDA.CTRLA = STEP_TIMER_DISABLE;        // turn timer off
   TIMER_DDA.CTRLB = STEP_TIMER_WGMODE;         // waveform mode
   TIMER_DDA.INTCTRLA = TIMER_DDA_INTLVL;       // interrupt mode
-
-  // setup DWELL timer
-  TIMER_DWELL.CTRLA = STEP_TIMER_DISABLE;      // turn timer off
-  TIMER_DWELL.CTRLB = STEP_TIMER_WGMODE;       // waveform mode
-  TIMER_DWELL.INTCTRLA = TIMER_DWELL_INTLVL;   // interrupt mode
-
-  // setup software interrupt load timer
-  TIMER_LOAD.CTRLA = LOAD_TIMER_DISABLE;       // turn timer off
-  TIMER_LOAD.CTRLB = LOAD_TIMER_WGMODE;        // waveform mode
-  TIMER_LOAD.INTCTRLA = TIMER_LOAD_INTLVL;     // interrupt mode
-  TIMER_LOAD.PER = LOAD_TIMER_PERIOD;          // set period
-
-  // setup software interrupt exec timer
-  TIMER_EXEC.CTRLA = EXEC_TIMER_DISABLE;       // turn timer off
-  TIMER_EXEC.CTRLB = EXEC_TIMER_WGMODE;        // waveform mode
-  TIMER_EXEC.INTCTRLA = TIMER_EXEC_INTLVL;     // interrupt mode
-  TIMER_EXEC.PER = EXEC_TIMER_PERIOD;          // set period
 
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
 
@@ -266,7 +250,7 @@ stat_t st_motor_power_callback() { // called by controller
 
     // Run the countdown if you are in a countdown
     if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN) {
-      if (rtc_get_time() > st_run.mot[m].power_systick ) {
+      if (rtc_get_time() > st_run.mot[m].power_systick) {
         st_run.mot[m].power_state = MOTOR_IDLE;
         _deenergize_motor(m);
         report_request(); // request a status report when motors shut down
@@ -289,14 +273,15 @@ static inline void _step_motor(int motor) {
 }
 
 
-
 /// Stepper Interrupt Service Routine
 /// DDA timer interrupt routine - service ticks from DDA timer
 ISR(TIMER_DDA_ISR_vect) {
-  _step_motor(MOTOR_1);
-  _step_motor(MOTOR_2);
-  _step_motor(MOTOR_3);
-  _step_motor(MOTOR_4);
+  if (st_run.move_type == MOVE_TYPE_ALINE) {
+    _step_motor(MOTOR_1);
+    _step_motor(MOTOR_2);
+    _step_motor(MOTOR_3);
+    _step_motor(MOTOR_4);
+  }
 
   if (--st_run.dda_ticks_downcount) return;
 
@@ -305,28 +290,18 @@ ISR(TIMER_DDA_ISR_vect) {
 }
 
 
-/// DWELL timer interrupt
-ISR(TIMER_DWELL_ISR_vect) {
-  if (--st_run.dda_ticks_downcount == 0) {
-    TIMER_DWELL.CTRLA = STEP_TIMER_DISABLE; // disable DWELL timer
-    _load_move();
-  }
-}
-
-
 /// SW interrupt to request to execute a move
 void st_request_exec_move() {
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC) {
-    TIMER_EXEC.PER = EXEC_TIMER_PERIOD;
-    TIMER_EXEC.CTRLA = EXEC_TIMER_ENABLE; // trigger a LO interrupt
+    ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
+    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
   }
 }
 
 
 /// Interrupt handler for calling exec function
-ISR(TIMER_EXEC_ISR_vect) {
-  TIMER_EXEC.CTRLA = EXEC_TIMER_DISABLE; // disable SW interrupt timer
-
+/// Use ADC channel 0 as software interrupt
+ISR(ADCB_CH0_vect) {
   // Exec move
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC &&
       mp_exec_move() != STAT_NOOP) {
@@ -341,16 +316,15 @@ static void _request_load_move() {
   if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
 
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_LOADER) {
-    TIMER_LOAD.PER = LOAD_TIMER_PERIOD;
-    TIMER_LOAD.CTRLA = LOAD_TIMER_ENABLE; // trigger a HI interrupt
+    ADCB_CH1_INTCTRL = ADC_CH_INTLVL_HI_gc; // trigger HI interrupt
+    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH1START_bm;
   }
 }
 
 
 /// Interrupt handler for running the loader
-ISR(TIMER_LOAD_ISR_vect) {
-  TIMER_LOAD.CTRLA = LOAD_TIMER_DISABLE; // disable SW interrupt timer
-
+/// Use ADC channel 1 as software interrupt
+ISR(ADCB_CH1_vect) {
   // _load_move() can only be called be called from an ISR at the same or
   // higher level as the DDA or dwell ISR. A software interrupt has been
   // provided to allow a non-ISR to request a load
@@ -433,7 +407,9 @@ static void _load_move() {
   // initialization
   if (st_runtime_isbusy()) return; // exit if the runtime is busy
   if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_LOADER)
-    return; // if there are no moves to load...
+    return; // no more moves to load
+
+  st_run.move_type = st_pre.move_type;
 
   // Handle aline loads first (most common case)
   if (st_pre.move_type == MOVE_TYPE_ALINE) {
@@ -459,8 +435,8 @@ static void _load_move() {
   } else if (st_pre.move_type == MOVE_TYPE_DWELL) {
     // handle dwells
     st_run.dda_ticks_downcount = st_pre.dda_ticks;
-    TIMER_DWELL.PER = st_pre.dda_period;   // load dwell timer period
-    TIMER_DWELL.CTRLA = STEP_TIMER_ENABLE; // enable the dwell timer
+    TIMER_DDA.PER = st_pre.dda_period;   // load dwell timer period
+    TIMER_DDA.CTRLA = STEP_TIMER_ENABLE; // enable the dwell timer
 
   } else if (st_pre.move_type == MOVE_TYPE_COMMAND)
     // handle synchronous commands
@@ -613,8 +589,8 @@ void st_prep_command(void *bf) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float microseconds) {
   st_pre.move_type = MOVE_TYPE_DWELL;
-  st_pre.dda_period = _f_to_period(FREQUENCY_DWELL);
-  st_pre.dda_ticks = (uint32_t)(microseconds / 1000000 * FREQUENCY_DWELL);
+  st_pre.dda_period = _f_to_period(FREQUENCY_DDA);
+  st_pre.dda_ticks = (uint32_t)(microseconds / 1000000 * FREQUENCY_DDA);
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
 }
 

@@ -36,6 +36,7 @@
 #define PLANNER_H
 
 #include "canonical_machine.h" // used for GCodeState_t
+#include "util.h"
 #include "config.h"
 
 enum moveType {            // bf->move_type values
@@ -43,10 +44,7 @@ enum moveType {            // bf->move_type values
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
   MOVE_TYPE_COMMAND,       // general command
-  MOVE_TYPE_TOOL,          // T command
-  MOVE_TYPE_SPINDLE_SPEED, // S command
-  MOVE_TYPE_STOP,          // program stop
-  MOVE_TYPE_END            // program end
+  MOVE_TYPE_JOG,           // interactive jogging
 };
 
 enum moveState {
@@ -93,12 +91,12 @@ enum sectionState {
 #define MIN_BLOCK_TIME          MIN_SEGMENT_TIME
 
 #define MIN_SEGMENT_TIME_PLUS_MARGIN \
-  ((MIN_SEGMENT_USEC+1) / MICROSECONDS_PER_MINUTE)
+  ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
 
 /* PLANNER_BUFFER_POOL_SIZE
- *    Should be at least the number of buffers requires to support optimal
- *    planning in the case of very short lines or arc segments.
- *    Suggest 12 min. Limit is 255
+ *  Should be at least the number of buffers requires to support optimal
+ *  planning in the case of very short lines or arc segments.
+ *  Suggest 12 min. Limit is 255
  */
 #define PLANNER_BUFFER_POOL_SIZE 32
 /// Buffers to reserve in planner before processing new input line
@@ -109,18 +107,18 @@ enum sectionState {
 /// Max iterations for convergence in the HT asymmetric case.
 #define TRAPEZOID_ITERATION_MAX             10
 
-///  Error percentage for iteration convergence. As percent - 0.01 = 1%
+/// Error percentage for iteration convergence. As percent - 0.01 = 1%
 #define TRAPEZOID_ITERATION_ERROR_PERCENT   ((float)0.10)
 
 /// Tolerance for "exact fit" for H and T cases
 /// allowable mm of error in planning phase
 #define TRAPEZOID_LENGTH_FIT_TOLERANCE      ((float)0.0001)
 
-///  Adaptive velocity tolerance term
+/// Adaptive velocity tolerance term
 #define TRAPEZOID_VELOCITY_TOLERANCE        (max(2, bf->entry_velocity / 100))
 
 
-/// callback to canonical_machine execution function
+/// Callback to canonical_machine execution function
 typedef void (*cm_exec_t)(float[], float[]);
 
 
@@ -265,29 +263,38 @@ extern mpBufferPool_t mb;           // move buffer queue
 extern mpMoveMasterSingleton_t mm;  // context for line planning
 extern mpMoveRuntimeSingleton_t mr; // context for line runtime
 
+// planner.c functions
 void planner_init();
-void planner_init_assertions();
-stat_t planner_test_assertions();
-
 void mp_flush_planner();
 void mp_set_planner_position(uint8_t axis, const float position);
 void mp_set_runtime_position(uint8_t axis, const float position);
 void mp_set_steps_to_runtime_position();
 
-void mp_queue_command(void(*cm_exec_t)(float[], float[]), float *value,
-                      float *flag);
-stat_t mp_runtime_command(mpBuf_t *bf);
-
-stat_t mp_dwell(const float seconds);
-void mp_end_dwell();
-
+// line.c functions
+float mp_get_runtime_velocity();
+float mp_get_runtime_work_position(uint8_t axis);
+float mp_get_runtime_absolute_position(uint8_t axis);
+void mp_set_runtime_work_offset(float offset[]);
+void mp_zero_segment_velocity();
+uint8_t mp_get_runtime_busy();
+float* mp_get_planner_position_vector();
+void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
 stat_t mp_aline(GCodeState_t *gm_in);
 
+// zoid.c functions
+void mp_calculate_trapezoid(mpBuf_t *bf);
+float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
+float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
+
+// exec.c functions
+stat_t mp_exec_move();
+stat_t mp_exec_aline(mpBuf_t *bf);
+
+// feedhold.c functions
 stat_t mp_plan_hold_callback();
 stat_t mp_end_hold();
-stat_t mp_feed_rate_override(uint8_t flag, float parameter);
 
-// planner buffer handlers
+// buffer.c functions
 uint8_t mp_get_planner_buffers_available();
 void mp_init_buffers();
 mpBuf_t *mp_get_write_buffer();
@@ -304,22 +311,12 @@ mpBuf_t *mp_get_last_buffer();
 void mp_clear_buffer(mpBuf_t *bf);
 void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);
 
-// line.c functions
-float mp_get_runtime_velocity();
-float mp_get_runtime_work_position(uint8_t axis);
-float mp_get_runtime_absolute_position(uint8_t axis);
-void mp_set_runtime_work_offset(float offset[]);
-void mp_zero_segment_velocity();
-uint8_t mp_get_runtime_busy();
-float* mp_get_planner_position_vector();
+// dwell.c functions
+stat_t mp_dwell(const float seconds);
 
-// zoid.c functions
-void mp_calculate_trapezoid(mpBuf_t *bf);
-float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
-float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
-
-// exec.c functions
-stat_t mp_exec_move();
-stat_t mp_exec_aline(mpBuf_t *bf);
+// command.c functions
+typedef void (*cm_exec_t)(float[], float[]);
+void mp_queue_command(cm_exec_t, float *value, float *flag);
+void mp_runtime_command(mpBuf_t *bf);
 
 #endif // PLANNER_H

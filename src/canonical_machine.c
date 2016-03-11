@@ -5,88 +5,103 @@
  * Copyright (c) 2010 - 2015 Alden S Hart, Jr.
  * Copyright (c) 2014 - 2015 Robert Giseburt
  *
- * This file ("the software") is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2 as published by the
- * Free Software Foundation. You should have received a copy of the GNU General Public
- * License, version 2 along with the software.  If not, see <http://www.gnu.org/licenses/>.
+ * This file ("the software") is free software: you can redistribute
+ * it and/or modify it under the terms of the GNU General Public
+ * License, version 2 as published by the Free Software
+ * Foundation. You should have received a copy of the GNU General
+ * Public License, version 2 along with the software.  If not, see
+ * <http://www.gnu.org/licenses/>.
  *
- * As a special exception, you may use this file as part of a software library without
- * restriction. Specifically, if other files instantiate templates or use macros or
- * inline functions from this file, or you compile this file and link it with  other
- * files to produce an executable, this file does not by itself cause the resulting
- * executable to be covered by the GNU General Public License. This exception does not
- * however invalidate any other reasons why the executable file might be covered by the
- * GNU General Public License.
+ * As a special exception, you may use this file as part of a software
+ * library without restriction. Specifically, if other files
+ * instantiate templates or use macros or inline functions from this
+ * file, or you compile this file and link it with  other files to
+ * produce an executable, this file does not by itself cause the
+ * resulting executable to be covered by the GNU General Public
+ * License. This exception does not however invalidate any other
+ * reasons why the executable file might be covered by the GNU General
+ * Public License.
  *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY
- * WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
- * SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
- * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
+ * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /*
- *    This code is a loose implementation of Kramer, Proctor and Messina's canonical
- *    machining functions as described in the NIST RS274/NGC v3
  *
- *    The canonical machine is the layer between the Gcode parser and the motion control
- *    code for a specific robot. It keeps state and executes commands - passing the
- *    stateless commands to the motion planning layer.
- */
-
-/* --- System state contexts - Gcode models ---
+ *    This code is a loose implementation of Kramer, Proctor and Messina's
+ *    canonical machining functions as described in the NIST RS274/NGC v3
  *
- *    Useful reference for doing C callbacks http://www.newty.de/fpt/fpt.html
+ *    The canonical machine is the layer between the Gcode parser and
+ *    the motion control code for a specific robot. It keeps state and
+ *    executes commands - passing the stateless commands to the motion
+ *    planning layer.
  *
- *    There are 3 temporal contexts for system state:
- *      - The gcode model in the canonical machine (the MODEL context, held in gm)
- *      - The gcode model used by the planner (PLANNER context, held in bf's and mm)
- *      - The gcode model used during motion for reporting (RUNTIME context, held in mr)
+ * System state contexts - Gcode models
  *
- *    It's a bit more complicated than this. The 'gm' struct contains the core Gcode model
- *    context. This originates in the canonical machine and is copied to each planner buffer
- *    (bf buffer) during motion planning. Finally, the gm context is passed to the runtime
- *    (mr) for the RUNTIME context. So at last count the Gcode model exists in as many as
- *    30 copies in the system. (1+28+1)
+ *    Useful reference for doing C callbacks
+ *    http://www.newty.de/fpt/fpt.html
  *
- *    Depending on the need, any one of these contexts may be called for reporting or by
- *    a function. Most typically, all new commends from the gcode parser work form the MODEL
- *    context, and status reports pull from the RUNTIME while in motion, and from MODEL when
- *    at rest. A convenience is provided in the ACTIVE_MODEL pointer to point to the right
- *    context.
- */
-
-/* --- Synchronizing command execution ---
+ *    There are 3 temporal contexts for system state: - The gcode
+ *    model in the canonical machine (the MODEL context, held in gm) -
+ *    The gcode model used by the planner (PLANNER context, held in
+ *    bf's and mm) - The gcode model used during motion for reporting
+ *    (RUNTIME context, held in mr)
  *
- *    Some gcode commands only set the MODEL state for interpretation of the current Gcode
- *    block. For example, cm_set_feed_rate(). This sets the MODEL so the move time is
- *    properly calculated for the current (and subsequent) blocks, so it's effected
- *    immediately.
+ *    It's a bit more complicated than this. The 'gm' struct contains
+ *    the core Gcode model context. This originates in the canonical
+ *    machine and is copied to each planner buffer (bf buffer) during
+ *    motion planning. Finally, the gm context is passed to the
+ *    runtime (mr) for the RUNTIME context. So at last count the Gcode
+ *    model exists in as many as 30 copies in the system. (1+28+1)
  *
- *    "Synchronous commands" are commands that affect the runtime need to be synchronized
- *    with movement. Examples include G4 dwells, program stops and ends, and most M commands.
- *    These are queued into the planner queue and execute from the queue. Synchronous commands
- *    work like this:
+ *    Depending on the need, any one of these contexts may be called
+ *    for reporting or by a function. Most typically, all new commends
+ *    from the gcode parser work form the MODEL context, and status
+ *    reports pull from the RUNTIME while in motion, and from MODEL
+ *    when at rest. A convenience is provided in the ACTIVE_MODEL
+ *    pointer to point to the right context.
  *
- *      - Call the cm_xxx_xxx() function which will do any input validation and return an
- *        error if it detects one.
+ * Synchronizing command execution
  *
- *      - The cm_ function calls mp_queue_command(). Arguments are a callback to the _exec_...()
- *        function, which is the runtime execution routine, and any arguments that are needed
- *        by the runtime. See typedef for *exec in planner.h for details
+ *    Some gcode commands only set the MODEL state for interpretation
+ *    of the current Gcode block. For example,
+ *    cm_set_feed_rate(). This sets the MODEL so the move time is
+ *    properly calculated for the current (and subsequent) blocks, so
+ *    it's effected immediately.
  *
- *      - mp_queue_command() stores the callback and the args in a planner buffer.
+ *    "Synchronous commands" are commands that affect the runtime need
+ *    to be synchronized with movement. Examples include G4 dwells,
+ *    program stops and ends, and most M commands.  These are queued
+ *    into the planner queue and execute from the queue. Synchronous
+ *    commands work like this:
  *
- *      - When planner execution reaches the buffer it executes the callback w/ the args.
- *        Take careful note that the callback executes under an interrupt, so beware of
- *        variables that may need to be volatile.
+ *      - Call the cm_xxx_xxx() function which will do any input
+ *        validation and return an error if it detects one.
  *
- *    Note:
- *      - The synchronous command execution mechanism uses 2 vectors in the bf buffer to store
- *        and return values for the callback. It's obvious, but impractical to pass the entire
- *        bf buffer to the callback as some of these commands are actually executed locally
- *        and have no buffer.
+ *      - The cm_ function calls mp_queue_command(). Arguments are a
+ *        callback to the _exec_...() function, which is the runtime
+ *        execution routine, and any arguments that are needed by the
+ *        runtime. See typedef for *exec in planner.h for details
+ *
+ *      - mp_queue_command() stores the callback and the args in a
+          planner buffer.
+ *
+ *      - When planner execution reaches the buffer it executes the
+ *        callback w/ the args.  Take careful note that the callback
+ *        executes under an interrupt, so beware of variables that may
+ *        need to be volatile.
+ *
+ *    Note: - The synchronous command execution mechanism uses 2
+ *    vectors in the bf buffer to store and return values for the
+ *    callback. It's obvious, but impractical to pass the entire bf
+ *    buffer to the callback as some of these commands are actually
+ *    executed locally and have no buffer.
  */
 
 #include "canonical_machine.h"
@@ -135,7 +150,6 @@ uint8_t cm_get_combined_state() {
   if (cm.cycle_state == CYCLE_OFF) cm.combined_state = cm.machine_state;
   else if (cm.cycle_state == CYCLE_PROBE) cm.combined_state = COMBINED_PROBE;
   else if (cm.cycle_state == CYCLE_HOMING) cm.combined_state = COMBINED_HOMING;
-  else if (cm.cycle_state == CYCLE_JOG) cm.combined_state = COMBINED_JOG;
   else {
     if (cm.motion_state == MOTION_RUN) cm.combined_state = COMBINED_RUN;
     if (cm.motion_state == MOTION_HOLD) cm.combined_state = COMBINED_HOLD;
@@ -201,12 +215,16 @@ void cm_set_spindle_speed_parameter(GCodeState_t *gcode_state, float speed) {
 }
 
 
-void cm_set_tool_number(GCodeState_t *gcode_state, uint8_t tool) {gcode_state->tool = tool;}
+void cm_set_tool_number(GCodeState_t *gcode_state, uint8_t tool) {
+  gcode_state->tool = tool;
+}
 
 
-void cm_set_absolute_override(GCodeState_t *gcode_state, uint8_t absolute_override) {
+void cm_set_absolute_override(GCodeState_t *gcode_state,
+                              uint8_t absolute_override) {
   gcode_state->absolute_override = absolute_override;
-  cm_set_work_offsets(MODEL); // must reset offsets if you change absolute override
+  // must reset offsets if you change absolute override
+  cm_set_work_offsets(MODEL);
 }
 
 
@@ -349,32 +367,17 @@ float cm_get_work_position(GCodeState_t *gcode_state, uint8_t axis) {
 void cm_finalize_move() {
   copy_vector(cm.gmx.position, cm.gm.target);        // update model position
 
-  // if in ivnerse time mode reset feed rate so next block requires an explicit feed rate setting
-  if ((cm.gm.feed_rate_mode == INVERSE_TIME_MODE) && (cm.gm.motion_mode == MOTION_MODE_STRAIGHT_FEED))
+  // if in ivnerse time mode reset feed rate so next block requires an
+  // explicit feed rate setting
+  if (cm.gm.feed_rate_mode == INVERSE_TIME_MODE &&
+      cm.gm.motion_mode == MOTION_MODE_STRAIGHT_FEED)
     cm.gm.feed_rate = 0;
 }
 
 
 /// Set endpoint position from final runtime position
-void cm_update_model_position_from_runtime() {copy_vector(cm.gmx.position, mr.gm.target);}
-
-
-/*
- * Write any changed G10 values back to persistence
- *
- *    Only runs if there is G10 data to write, there is no movement, and the serial queues are quiescent
- *    This could be made tighter by issuing an XOFF or ~CTS beforehand and releasing it afterwards.
- */
-stat_t cm_deferred_write_callback() {
-  if (cm.cycle_state == CYCLE_OFF && cm.deferred_write_flag && usart_rx_empty()) {
-    cm.deferred_write_flag = false;
-
-    for (uint8_t i = 1; i <= COORDS; i++)
-      for (uint8_t j = 0; j < AXES; j++)
-        ;// TODO store cm.offset[i][j];
-  }
-
-  return STAT_OK;
+void cm_update_model_position_from_runtime() {
+  copy_vector(cm.gmx.position, mr.gm.target);
 }
 
 
@@ -711,30 +714,28 @@ stat_t cm_set_distance_mode(uint8_t mode) {
 /*
  * cm_set_coord_offsets() - G10 L2 Pn (affects MODEL only)
  *
- *    This function applies the offset to the GM model but does not persist the offsets
- *    during the Gcode cycle. The persist flag is used to persist offsets once the cycle
- *    has ended. You can also use $g54x - $g59c config functions to change offsets.
+ * This function applies the offset to the GM model. You can also
+ * use $g54x - $g59c config functions to change offsets.
  *
- *    It also does not reset the work_offsets which may be accomplished by calling
- *    cm_set_work_offsets() immediately afterwards.
+ * It also does not reset the work_offsets which may be
+ * accomplished by calling cm_set_work_offsets() immediately
+ * afterwards.
  */
-stat_t cm_set_coord_offsets(uint8_t coord_system, float offset[], float flag[]) {
-  if ((coord_system < G54) || (coord_system > COORD_SYSTEM_MAX))    // you can't set G53
-    return STAT_INPUT_VALUE_RANGE_ERROR;
+stat_t cm_set_coord_offsets(uint8_t coord_system, float offset[],
+                            float flag[]) {
+  if ((coord_system < G54) || (coord_system > COORD_SYSTEM_MAX))
+    return STAT_INPUT_VALUE_RANGE_ERROR; // you can't set G53
 
   for (uint8_t axis = AXIS_X; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis])) {
+    if (fp_TRUE(flag[axis]))
       cm.offset[coord_system][axis] = _to_millimeters(offset[axis]);
-      cm.deferred_write_flag = true;                                // persist offsets once machining cycle is over
-    }
 
   return STAT_OK;
 }
 
 
-/******************************************************************************************
- * Representation functions that affect gcode model and are queued to planner (synchronous)
- */
+// Representation functions that affect gcode model and are queued to planner
+// (synchronous)
 /*
  * cm_set_coord_system() - G54-G59
  * _exec_offset() - callback from planner
@@ -742,8 +743,10 @@ stat_t cm_set_coord_offsets(uint8_t coord_system, float offset[], float flag[]) 
 stat_t cm_set_coord_system(uint8_t coord_system) {
   cm.gm.coord_system = coord_system;
 
-  float value[AXES] = { (float)coord_system,0,0,0,0,0 };    // pass coordinate system in value[0] element
-  mp_queue_command(_exec_offset, value, value);             // second vector (flags) is not used, so fake it
+  // pass coordinate system in value[0] element
+  float value[AXES] = {(float)coord_system, 0, 0, 0, 0, 0};
+  // second vector (flags) is not used, so fake it
+  mp_queue_command(_exec_offset, value, value);
   return STAT_OK;
 }
 
@@ -952,7 +955,7 @@ stat_t cm_goto_g30_position(float target[], float flags[]) {
  */
 stat_t cm_set_feed_rate(float feed_rate) {
   if (cm.gm.feed_rate_mode == INVERSE_TIME_MODE)
-    cm.gm.feed_rate = 1 / feed_rate;    // normalize to minutes (NB: active for this gcode block only)
+    cm.gm.feed_rate = 1 / feed_rate;    // normalize to minutes (active for this gcode block only)
   else cm.gm.feed_rate = _to_millimeters(feed_rate);
 
   return STAT_OK;
@@ -990,8 +993,7 @@ stat_t cm_set_path_control(uint8_t mode) {
 /// G4, P parameter (seconds)
 stat_t cm_dwell(float seconds) {
   cm.gm.parameter = seconds;
-  mp_dwell(seconds);
-  return STAT_OK;
+  return mp_dwell(seconds);
 }
 
 
@@ -1009,9 +1011,9 @@ stat_t cm_straight_feed(float target[], float flags[]) {
   if (status != STAT_OK) return cm_soft_alarm(status);
 
   // prep and plan the move
-  cm_set_work_offsets(&cm.gm);                // capture the fully resolved offsets to the state
-  cm_cycle_start();                           // required for homing & other cycles
-  status = mp_aline(&cm.gm);                  // send the move to the planner
+  cm_set_work_offsets(&cm.gm); // capture the fully resolved offsets to state
+  cm_cycle_start();            // required for homing & other cycles
+  status = mp_aline(&cm.gm);   // send the move to the planner
   cm_finalize_move();
 
   return status;
@@ -1349,8 +1351,8 @@ static void _exec_program_finalize(float *value, float *flag) {
 void cm_cycle_start() {
   cm.machine_state = MACHINE_CYCLE;
 
-  if (cm.cycle_state == CYCLE_OFF)                   // don't (re)start homing, probe or other canned cycles
-    cm.cycle_state = CYCLE_MACHINING;
+  // don't (re)start homing, probe or other canned cycles
+  if (cm.cycle_state == CYCLE_OFF) cm.cycle_state = CYCLE_MACHINING;
 }
 
 
@@ -1413,10 +1415,4 @@ float cm_get_axis_jerk(uint8_t axis) {
 void cm_set_axis_jerk(uint8_t axis, float jerk) {
   cm.a[axis].jerk_max = jerk;
   cm.a[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
-}
-
-
-// Axis jogging
-float cm_get_jogging_dest() {
-  return cm.jogging_dest;
 }

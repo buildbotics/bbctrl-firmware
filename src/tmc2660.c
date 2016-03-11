@@ -41,6 +41,9 @@
 #include <stdio.h>
 
 
+void set_dcur(int driver, float value);
+
+
 typedef enum {
   TMC2660_STATE_CONFIG,
   TMC2660_STATE_MONITOR,
@@ -222,8 +225,22 @@ void tmc2660_init() {
     drivers[i].state = TMC2660_STATE_CONFIG;
     drivers[i].reg = 0;
 
-    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_DEDGE |
-      TMC2660_DRVCTRL_MRES_8;
+    uint32_t mstep = 0;
+    switch (MOTOR_MICROSTEPS) {
+    case 1: mstep = TMC2660_DRVCTRL_MRES_1; break;
+    case 2: mstep = TMC2660_DRVCTRL_MRES_2; break;
+    case 4: mstep = TMC2660_DRVCTRL_MRES_4; break;
+    case 8: mstep = TMC2660_DRVCTRL_MRES_8; break;
+    case 16: mstep = TMC2660_DRVCTRL_MRES_16; break;
+    case 32: mstep = TMC2660_DRVCTRL_MRES_32; break;
+    case 64: mstep = TMC2660_DRVCTRL_MRES_64; break;
+    case 128: mstep = TMC2660_DRVCTRL_MRES_128; break;
+    case 256: mstep = TMC2660_DRVCTRL_MRES_256; break;
+    default: break; // Invalid
+    }
+
+    drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_DEDGE | mstep |
+      TMC2660_DRVCTRL_INTPOL;
     drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
       TMC2660_CHOPCONF_HEND(3) | TMC2660_CHOPCONF_HSTART(7) |
       TMC2660_CHOPCONF_TOFF(4);
@@ -233,8 +250,11 @@ void tmc2660_init() {
     drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN |
       TMC2660_SMARTEN_MAX(2) | TMC2660_SMARTEN_MIN(2);
     drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT |
-      TMC2660_SGCSCONF_THRESH(63) | TMC2660_SGCSCONF_CS(6);
+      TMC2660_SGCSCONF_THRESH(63);
     drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_SG;
+
+    set_dcur(i, MOTOR_CURRENT);
+    drivers[driver].reset = 0; // No need to reset
   }
 
   // Setup pins
@@ -327,8 +347,8 @@ float get_dcur(int driver) {
 void set_dcur(int driver, float value) {
   if (value < 0 || 1 < value) return;
 
-  uint8_t x = value * 32.0 - 1;
-  if (x < 0) x = 1;
+  uint8_t x = value ? value * 32.0 - 1 : 0;
+  if (x < 0) x = 0;
 
   tmc2660_driver_t *d = &drivers[driver];
   d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) | x;

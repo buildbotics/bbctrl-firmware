@@ -36,11 +36,13 @@
 #include "hardware.h"
 #include "report.h"
 #include "vars.h"
+#include "plan/jog.h"
 #include "config.h"
 
 #include <avr/pgmspace.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 
@@ -117,17 +119,7 @@ int command_exec(int argc, char *argv[]) {
 }
 
 
-int command_eval(char *cmd) {
-  while (*cmd && isspace(*cmd)) cmd++;
-
-  if (!*cmd) {
-    report_request_full();
-    return STAT_OK;
-  }
-
-  if (*cmd == '{') return vars_parser(cmd);
-  if (*cmd != '$') return gc_gcode_parser(cmd);
-
+int command_parser(char *cmd) {
   // Parse line
   char *p = cmd + 1;
   int argc = 0;
@@ -151,6 +143,21 @@ int command_eval(char *cmd) {
 }
 
 
+int command_eval(char *cmd) {
+  // Skip leading whitespace
+  while (*cmd && isspace(*cmd)) cmd++;
+
+  switch (*cmd) {
+  case 0: report_request_full(); return STAT_OK;
+  case '{': return vars_parser(cmd);
+  case '$': return command_parser(cmd);
+  default:
+    if (!mp_jog_busy()) return gc_gcode_parser(cmd);
+    return STAT_OK;
+  }
+}
+
+
 // Command functions
 void static print_command_help(int i) {
   static const char fmt[] PROGMEM = "  %-8S  %S\n";
@@ -163,7 +170,7 @@ void static print_command_help(int i) {
 
 uint8_t command_help(int argc, char *argv[]) {
   if (argc == 2) {
-    int i = command_find(argv[0]);
+    int i = command_find(argv[1]);
 
     if (i == -1) {
       printf_P(PSTR("Command not found\n"));
@@ -190,5 +197,18 @@ uint8_t command_help(int argc, char *argv[]) {
 
 uint8_t command_reboot(int argc, char *argv[]) {
   hw_request_hard_reset();
+  return 0;
+}
+
+
+uint8_t command_jog(int argc, char *argv[]) {
+  float velocity[AXES];
+
+  for (int axis = 0; axis < AXES; axis++)
+    if (axis < argc - 1) velocity[axis] = atof(argv[axis + 1]);
+    else velocity[axis] = 0;
+
+  mp_jog(velocity);
+
   return 0;
 }
