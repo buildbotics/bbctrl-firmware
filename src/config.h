@@ -47,7 +47,7 @@
 #define M2_POWER_MODE            MOTOR_POWER_MODE
 #define M2_POWER_LEVEL           MOTOR_POWER_LEVEL
 
-#define M3_MOTOR_MAP             AXIS_Z
+#define M3_MOTOR_MAP             AXIS_A
 #define M3_STEP_ANGLE            1.8
 #define M3_TRAVEL_PER_REV        1.25
 #define M3_MICROSTEPS            MOTOR_MICROSTEPS
@@ -55,7 +55,7 @@
 #define M3_POWER_MODE            MOTOR_POWER_MODE
 #define M3_POWER_LEVEL           MOTOR_POWER_LEVEL
 
-#define M4_MOTOR_MAP             AXIS_A
+#define M4_MOTOR_MAP             AXIS_Z
 #define M4_STEP_ANGLE            1.8
 #define M4_TRAVEL_PER_REV        360            // degrees moved per motor rev
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
@@ -241,20 +241,20 @@
 // Motor, output bit & switch port assignments
 // These are not all the same, and must line up in multiple places in gpio.h
 // Sorry if this is confusing - it's a board routing issue
-#define PORT_MOTOR_1     PORTA        // motors mapped to ports
-#define PORT_MOTOR_2     PORTF
-#define PORT_MOTOR_3     PORTE
-#define PORT_MOTOR_4     PORTD
+#define PORT_MOTOR_1  PORTA        // motors mapped to ports
+#define PORT_MOTOR_2  PORTF
+#define PORT_MOTOR_3  PORTE
+#define PORT_MOTOR_4  PORTD
 
-#define PORT_SWITCH_X    PORTA        // Switch axes mapped to ports
-#define PORT_SWITCH_Y    PORTD
-#define PORT_SWITCH_Z    PORTE
-#define PORT_SWITCH_A    PORTF
+#define PORT_SWITCH_X PORTA        // Switch axes mapped to ports
+#define PORT_SWITCH_Y PORTF
+#define PORT_SWITCH_Z PORTE
+#define PORT_SWITCH_A PORTD
 
-#define PORT_OUT_V7_X    PORTA        // v7 mapping
-#define PORT_OUT_V7_Y    PORTF
-#define PORT_OUT_V7_Z    PORTD
-#define PORT_OUT_V7_A    PORTE
+#define PORT_OUT_X    PORTA
+#define PORT_OUT_Y    PORTF
+#define PORT_OUT_Z    PORTE
+#define PORT_OUT_A    PORTD
 
 // These next four must be changed when the PORT_MOTOR_* definitions change!
 #define PORTCFG_VP0MAP_PORT_MOTOR_1_gc PORTCFG_VP02MAP_PORTA_gc

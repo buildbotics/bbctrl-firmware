@@ -55,10 +55,10 @@ static void _port_bindings() {
   hw.sw_port[2] = &PORT_SWITCH_Z;
   hw.sw_port[3] = &PORT_SWITCH_A;
 
-  hw.out_port[0] = &PORT_OUT_V7_X;
-  hw.out_port[1] = &PORT_OUT_V7_Y;
-  hw.out_port[2] = &PORT_OUT_V7_Z;
-  hw.out_port[3] = &PORT_OUT_V7_A;
+  hw.out_port[0] = &PORT_OUT_X;
+  hw.out_port[1] = &PORT_OUT_Y;
+  hw.out_port[2] = &PORT_OUT_Z;
+  hw.out_port[3] = &PORT_OUT_A;
 }
 
 
