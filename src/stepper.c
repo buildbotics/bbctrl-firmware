@@ -59,6 +59,7 @@ static stRunSingleton_t st_run;
 
 static void _load_move();
 static void _request_load_move();
+static void _update_steps_per_unit(int motor);
 
 
 #define _f_to_period(f) (uint16_t)((float)F_CPU / (float)f)
@@ -147,20 +148,14 @@ void stepper_init() {
 #endif
 
   // Init steps per unit
-  for (int m = 0; m < MOTORS; m++)
-    st_cfg.mot[m].steps_per_unit =
-      (360 * st_cfg.mot[m].microsteps) /
-      (st_cfg.mot[m].travel_rev * st_cfg.mot[m].step_angle);
+  for (int m = 0; m < MOTORS; m++) _update_steps_per_unit(m);
 
   st_reset(); // reset steppers to known state
 }
 
 
-/// return true if runtime is busy:
-/// Busy conditions: 1. motors are running, 2. dwell is running
-uint8_t st_runtime_isbusy() {
-  return st_run.dda_ticks_downcount != 0;
-}
+/// Return true if motors or dwell are running
+uint8_t st_runtime_isbusy() {return st_run.dda_ticks_downcount;}
 
 
 /// Reset stepper internals
@@ -300,8 +295,8 @@ void st_request_exec_move() {
 
 
 /// Interrupt handler for calling exec function
-/// Use ADC channel 0 as software interrupt
 ISR(ADCB_CH0_vect) {
+  // Use ADC channel 0 as software interrupt
   // Exec move
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC &&
       mp_exec_move() != STAT_NOOP) {
@@ -323,12 +318,11 @@ static void _request_load_move() {
 
 
 /// Interrupt handler for running the loader
-/// Use ADC channel 1 as software interrupt
 ISR(ADCB_CH1_vect) {
+  // Use ADC channel 1 as software interrupt.
   // _load_move() can only be called be called from an ISR at the same or
-  // higher level as the DDA or dwell ISR. A software interrupt has been
-  // provided to allow a non-ISR to request a load
-  // (see st_request_load_move())
+  // higher level as the DDA ISR. A software interrupt is used to allow a
+  // non-ISR to request a load. See st_request_load_move()
   _load_move();
 }
 
@@ -338,7 +332,7 @@ static inline void _load_motor_move(int motor) {
   stPrepMotor_t *prep_mot = &st_pre.mot[motor];
   cfgMotor_t *cfg_mot = &st_cfg.mot[motor];
 
-  // Set or zero runtime substep increment
+  // Set or zero, runtime substep increment
   run_mot->substep_increment = prep_mot->substep_increment;
 
   if (run_mot->substep_increment) {
@@ -369,18 +363,13 @@ static inline void _load_motor_move(int motor) {
     }
 
     SET_ENCODER_STEP_SIGN(motor, prep_mot->step_sign);
+  }
 
-    // Enable the stepper and start motor power management
-    if (cfg_mot->power_mode != MOTOR_DISABLED) {
-      vports[motor]->OUT &= ~MOTOR_ENABLE_BIT_bm;       // energize motor
-      run_mot->power_state = MOTOR_POWER_TIMEOUT_START; // set power management
-    }
-
-  } else if (cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE) {
-    // Motor has 0 steps; might need to energize motor for power mode
-    // processing
-    vports[motor]->OUT &= ~MOTOR_ENABLE_BIT_bm;         // energize motor
-    run_mot->power_state = MOTOR_POWER_TIMEOUT_START;
+  // Enable the stepper and start motor power management
+  if ((run_mot->substep_increment && cfg_mot->power_mode != MOTOR_DISABLED) ||
+      cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE) {
+    vports[motor]->OUT &= ~MOTOR_ENABLE_BIT_bm;       // energize motor
+    run_mot->power_state = MOTOR_POWER_TIMEOUT_START; // start power management
   }
 
   // Accumulate counted steps to the step position and zero out counted steps
@@ -418,19 +407,13 @@ static void _load_move() {
     st_run.dda_ticks_X_substeps = st_pre.dda_ticks_X_substeps;
 
     _load_motor_move(MOTOR_1);
-#if 1 < MOTORS
     _load_motor_move(MOTOR_2);
-#endif
-#if 2 < MOTORS
     _load_motor_move(MOTOR_3);
-#endif
-#if 3 < MOTORS
     _load_motor_move(MOTOR_4);
-#endif
 
     // do this last
     TIMER_DDA.PER = st_pre.dda_period;
-    TIMER_DDA.CTRLA = STEP_TIMER_ENABLE;   // enable the DDA timer
+    TIMER_DDA.CTRLA = STEP_TIMER_ENABLE; // enable the DDA timer
 
   } else if (st_pre.move_type == MOVE_TYPE_DWELL) {
     // handle dwells
@@ -474,6 +457,7 @@ static void _load_move() {
  * NOTE: Many of the expressions are sensitive to casting and execution order to
  * avoid long-term accuracy errors due to floating point round off. One earlier
  * failed attempt was:
+ *
  *   dda_ticks_X_substeps =
  *     (int32_t)((microseconds / 1000000) * f_dda * dda_substeps);
  */
@@ -522,7 +506,7 @@ stat_t st_prep_line(float travel_steps[], float following_error[],
     // and flag. Putting this here computes the correct factor even if the motor
     // was dormant for some number of previous moves. Correction is computed
     // based on the last segment time actually used.
-    if (fabs(segment_time - st_pre.mot[motor].prev_segment_time) > 0.0000001) {
+    if (0.0000001 < fabs(segment_time - st_pre.mot[motor].prev_segment_time)) {
       // special case to skip first move
       if (fp_NOT_ZERO(st_pre.mot[motor].prev_segment_time)) {
         st_pre.mot[motor].accumulator_correction_flag = true;
@@ -538,13 +522,13 @@ stat_t st_prep_line(float travel_steps[], float following_error[],
 
     // 'Nudge' correction strategy. Inject a single, scaled correction value
     // then hold off
-    if ((--st_pre.mot[motor].correction_holdoff < 0) &&
-        (fabs(following_error[motor]) > STEP_CORRECTION_THRESHOLD)) {
+    if (--st_pre.mot[motor].correction_holdoff < 0 &&
+        fabs(following_error[motor]) > STEP_CORRECTION_THRESHOLD) {
 
       st_pre.mot[motor].correction_holdoff = STEP_CORRECTION_HOLDOFF;
       correction_steps = following_error[motor] * STEP_CORRECTION_FACTOR;
 
-      if (correction_steps > 0)
+      if (0 < correction_steps)
         correction_steps = min3(correction_steps, fabs(travel_steps[motor]),
                                 STEP_CORRECTION_MAX);
       else correction_steps = max3(correction_steps, -fabs(travel_steps[motor]),
@@ -555,7 +539,7 @@ stat_t st_prep_line(float travel_steps[], float following_error[],
     }
 #endif
 
-    // Compute substeb increment. The accumulator must be *exactly* the
+    // Compute substep increment. The accumulator must be *exactly* the
     // incoming fractional steps times the substep multiplier or positional
     // drift will occur. Rounding is performed to eliminate a negative bias
     // in the uint32 conversion that results in long-term negative drift.
@@ -590,7 +574,7 @@ void st_prep_command(void *bf) {
 void st_prep_dwell(float microseconds) {
   st_pre.move_type = MOVE_TYPE_DWELL;
   st_pre.dda_period = _f_to_period(FREQUENCY_DDA);
-  st_pre.dda_ticks = (uint32_t)(microseconds / 1000000 * FREQUENCY_DDA);
+  st_pre.dda_ticks = microseconds / 1000000 * FREQUENCY_DDA;
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
 }
 
@@ -603,22 +587,22 @@ uint16_t get_mvel(int index) {return 0;}
 uint16_t get_mjerk(int index) {return 0;}
 
 
-void update_steps_per_unit(int index) {
-  st_cfg.mot[index].steps_per_unit =
-    (360 * st_cfg.mot[index].microsteps) /
-    (st_cfg.mot[index].travel_rev * st_cfg.mot[index].step_angle);
+static void _update_steps_per_unit(int motor) {
+  st_cfg.mot[motor].steps_per_unit =
+    (360 * st_cfg.mot[motor].microsteps) /
+    (st_cfg.mot[motor].travel_rev * st_cfg.mot[motor].step_angle);
 }
 
 
 void set_ang(int index, float value) {
   st_cfg.mot[index].step_angle = value;
-  update_steps_per_unit(index);
+  _update_steps_per_unit(index);
 }
 
 
 void set_trvl(int index, float value) {
   st_cfg.mot[index].travel_rev = value;
-  update_steps_per_unit(index);
+  _update_steps_per_unit(index);
 }
 
 
@@ -630,7 +614,7 @@ void set_mstep(int index, uint16_t value) {
   }
 
   st_cfg.mot[index].microsteps = value;
-  update_steps_per_unit(index);
+  _update_steps_per_unit(index);
 }
 
 

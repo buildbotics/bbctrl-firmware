@@ -59,23 +59,10 @@ pwmSingleton_t pwm;
  *   TC_CLKSEL_DIV8_gc  - good for about  62 Hz to  16 KHz
  *   TC_CLKSEL_DIV64_gc - good for about   8 Hz to   2 Khz
  */
-#define PWM1_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc    // starting clock select value
-/// single slope PWM enabled on channel B
-#define PWM1_CTRLB           (3 | TC0_CCBEN_bm)
-#define PWM1_ISR_vect        TCD1_CCB_vect
-/// timer interrupt level (0=off, 1=lo, 2=med, 3=hi)
-#define PWM1_INTCTRLB        0
-
-#define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc
-/// single slope PWM enabled, no output channel
-#define PWM2_CTRLB           3
-#define PWM2_ISR_vect        TCE1_CCB_vect
-/// timer interrupt level (0=off, 1=lo, 2=med, 3=hi)
-#define PWM2_INTCTRLB        0
+#define PWM1_CTRLA_CLKSEL TC_CLKSEL_DIV1_gc  // starting clock select value
 
 
-/*
- * Initialize pwm channels
+/* Initialize pwm channels
  *
  * Notes:
  *   - Whatever level interrupts you use must be enabled in main()
@@ -83,6 +70,8 @@ pwmSingleton_t pwm;
  *     (stepper.c)
  */
 void pwm_init() {
+  return; // Don't init PWM for now.  TODO fix this
+
   gpio_set_bit_off(SPINDLE_PWM);
 
   // setup PWM channel 1
@@ -94,7 +83,6 @@ void pwm_init() {
   // initialize starting clock operating range
   pwm.p[PWM_1].ctrla = PWM1_CTRLA_CLKSEL;
   pwm.p[PWM_1].timer->CTRLB = PWM1_CTRLB;
-  pwm.p[PWM_1].timer->INTCTRLB = PWM1_INTCTRLB; // set interrupt level
 
   // setup PWM channel 2
   // clear all values, pointers and status
@@ -103,7 +91,6 @@ void pwm_init() {
   pwm.p[PWM_2].timer = &TIMER_PWM2;
   pwm.p[PWM_2].ctrla = PWM2_CTRLA_CLKSEL;
   pwm.p[PWM_2].timer->CTRLB = PWM2_CTRLB;
-  pwm.p[PWM_2].timer->INTCTRLB = PWM2_INTCTRLB;
 
   pwm.c[PWM_1].frequency =    P1_PWM_FREQUENCY;
   pwm.c[PWM_1].cw_speed_lo =  P1_CW_SPEED_LO;
@@ -118,20 +105,13 @@ void pwm_init() {
 }
 
 
-ISR(PWM1_ISR_vect) {}
-
-
-ISR(PWM2_ISR_vect) {}
-
-
-/*
- * Set PWM channel frequency
+/* Set PWM channel frequency
  *
- *    @param channel PWM channel
- *    @param freq PWM frequency in Khz as a float
+ * @param channel PWM channel
+ * @param freq PWM frequency in Khz as a float
  *
- *    Assumes 32MHz clock.
- *    Doesn't turn time on until duty cycle is set
+ * Assumes 32MHz clock.
+ * Doesn't turn time on until duty cycle is set
  */
 stat_t pwm_set_freq(uint8_t chan, float freq) {
   if (chan > PWMS) return STAT_NO_SUCH_DEVICE;
@@ -169,14 +149,14 @@ stat_t pwm_set_freq(uint8_t chan, float freq) {
 /*
  * Set PWM channel duty cycle
  *
- *    @param channel PWM channel
- *    @param duty PWM duty cycle from 0% to 100%
+ * @param channel PWM channel
+ * @param duty PWM duty cycle from 0% to 100%
  *
- *    Setting duty cycle to 0 disables the PWM channel with output low
- *    Setting duty cycle to 100 disables the PWM channel with output high
- *    Setting duty cycle between 0 and 100 enables PWM channel
+ * Setting duty cycle to 0 disables the PWM channel with output low
+ * Setting duty cycle to 100 disables the PWM channel with output high
+ * Setting duty cycle between 0 and 100 enables PWM channel
  *
- *    The frequency must have been set previously
+ * The frequency must have been set previously
  */
 stat_t pwm_set_duty(uint8_t chan, float duty) {
   if (duty < 0.0) return STAT_INPUT_LESS_THAN_MIN_VALUE;

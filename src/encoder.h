@@ -112,12 +112,11 @@
 
 #include <stdint.h>
 
-// used to abstract the encoder code out of the stepper so it can be managed in
-// one place
-#define SET_ENCODER_STEP_SIGN(m, s) en.en[m].step_sign = s;
-#define INCREMENT_ENCODER(m) en.en[m].steps_run += en.en[m].step_sign;
+// macros used in stepper.c
+#define SET_ENCODER_STEP_SIGN(m, s) en[m].step_sign = s;
+#define INCREMENT_ENCODER(m) en[m].steps_run += en[m].step_sign;
 #define ACCUMULATE_ENCODER(m) \
-  en.en[m].encoder_steps += en.en[m].steps_run; en.en[m].steps_run = 0;
+  do {en[m].encoder_steps += en[m].steps_run; en[m].steps_run = 0;} while (0)
 
 
 typedef struct enEncoder { // one real or virtual encoder per controlled motor
@@ -127,11 +126,7 @@ typedef struct enEncoder { // one real or virtual encoder per controlled motor
 } enEncoder_t;
 
 
-typedef struct enEncoders {
-  enEncoder_t en[MOTORS];   // runtime encoder structures
-} enEncoders_t;
-
-extern enEncoders_t en;
+extern enEncoder_t en[MOTORS];
 
 
 void encoder_init();

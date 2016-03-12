@@ -37,34 +37,32 @@
 #include <math.h>
 
 
-enEncoders_t en;
+enEncoder_t en[MOTORS];
 
 
 void encoder_init() {
-  memset(&en, 0, sizeof(en)); // clear all values, pointers and status
+  memset(en, 0, sizeof(en)); // clear all values, pointers and status
 }
 
 
-/*
- * Set encoder values to a current step count
+/* Set encoder values to a current step count
  *
- * Sets the encoder_position steps. Takes floating point steps as input,
+ * Sets encoder_steps. Takes floating point steps as input,
  * writes integer steps. So it's not an exact representation of machine
  * position except if the machine is at zero.
  */
 void en_set_encoder_steps(uint8_t motor, float steps) {
-  en.en[motor].encoder_steps = (int32_t)round(steps);
+  en[motor].encoder_steps = (int32_t)round(steps);
 }
 
 
-/*
- * The stepper ISR count steps into steps_run(). These values are
- * accumulated to encoder_position during LOAD (HI interrupt
- * level). The encoder position is therefore always stable. But be
- * advised: the position lags target and position valaues
- * elsewherein the system becuase the sample is taken when the
+/* The stepper ISR counts steps into steps_run. These values are
+ * accumulated to encoder_steps during LOAD (HI interrupt
+ * level). The encoder_steps is therefore always stable. But be
+ * advised: the position lags target and position values
+ * elsewhere in the system becuase the sample is taken when the
  * steps for that segment are complete.
  */
 float en_read_encoder(uint8_t motor) {
-  return (float)en.en[motor].encoder_steps;
+  return en[motor].encoder_steps;
 }

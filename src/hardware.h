@@ -151,19 +151,25 @@ enum cfgPortBits {        // motor control port bit positions
 #define TIMER_DDA           TCC0 // DDA timer       (see stepper.h)
 #define TIMER_TMC2660       TCC1 // TMC2660 timer   (see tmc2660.h)
 #define TIMER_PWM1          TCD1 // PWM timer #1    (see pwm.c)
-#define TIMER_PWM2          TCE1 // PWM timer #2    (see pwm.c)
-#define TIMER_MOTOR1        TCD0
-#define TIMER_MOTOR2        TCE0
-#define TIMER_MOTOR3        TCF0
-#define TIMER_MOTOR4        TCF1
+#define TIMER_PWM2          TCD1 // PWM timer #2    (see pwm.c)
+#define TIMER_MOTOR1        TCE1
+#define TIMER_MOTOR2        TCF0
+#define TIMER_MOTOR3        TCE0
+#define TIMER_MOTOR4        TCD0
 
 // Timer setup for stepper and dwells
-#define FREQUENCY_DDA        50000 // DDA frequency in hz.
-#define STEP_TIMER_DISABLE   0   // turn timer off
-#define STEP_TIMER_ENABLE    1   // turn timer clock on
-#define STEP_TIMER_WGMODE    0   // normal mode (count to TOP and rollover)
+#define FREQUENCY_DDA        25000 // DDA frequency in hz.
+#define STEP_TIMER_DISABLE   0     // turn timer off
+#define STEP_TIMER_ENABLE    1     // turn timer clock on
+#define STEP_TIMER_WGMODE    0     // normal mode (count to TOP and rollover)
 #define TIMER_DDA_ISR_vect   TCC0_OVF_vect
-#define TIMER_DDA_INTLVL     3   // Timer overflow HI
+#define TIMER_DDA_INTLVL     3     // Timer overflow HI
+
+#define PWM1_CTRLB           (3 | TC1_CCBEN_bm) // single slope PWM channel B
+#define PWM1_ISR_vect        TCD1_CCB_vect
+#define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc
+#define PWM2_CTRLB           3                  // single slope PWM no output
+#define PWM2_ISR_vect        TCE1_CCB_vect
 
 /*
   Device singleton - global structure to allow iteration through similar devices

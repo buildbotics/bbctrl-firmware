@@ -117,8 +117,8 @@
 
 
 // Axis settings
-#define VELOCITY_MAX             1000
-#define FEEDRATE_MAX             4000
+#define VELOCITY_MAX             575
+#define FEEDRATE_MAX             VELOCITY_MAX
 
 // see canonical_machine.h cmAxisMode for valid values
 #define X_AXIS_MODE              AXIS_STANDARD
