@@ -45,8 +45,8 @@
  * Read switch contains the results of read pin and manages edges and
  * debouncing.
  */
-#ifndef SWITCH_H
-#define SWITCH_H
+#pragma once
+
 
 #include <stdint.h>
 
@@ -145,4 +145,4 @@ void sw_show_switch();
 void set_switch_type(uint8_t switch_type);
 uint8_t get_switch_type();
 
-#endif // SWITCH_H
+

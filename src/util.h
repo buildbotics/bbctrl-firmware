@@ -39,8 +39,8 @@
  *      - support for debugging routines
  */
 
-#ifndef UTIL_H
-#define UTIL_H
+#pragma once
+
 
 #include "config.h"
 
@@ -130,4 +130,4 @@ uint16_t compute_checksum(char const *string, const uint16_t length);
 #define M_SQRT3 (1.73205080756888)
 #endif
 
-#endif // UTIL_H
+

@@ -21,8 +21,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef RTC_H
-#define RTC_H
+#pragma once
+
 
 #include <stdint.h>
 
@@ -43,4 +43,4 @@ extern rtClock_t rtc;
 void rtc_init(); // initialize and start general timer
 uint32_t rtc_get_time();
 
-#endif // RTC_H
+

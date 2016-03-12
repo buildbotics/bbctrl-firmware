@@ -10,26 +10,26 @@
  * The majority of the magic tricks used in this file are based on those
  * described by pfultz2 in his "Cloak" library:
  *
- *    https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
+ * https://github.com/pfultz2/Cloak/wiki/C-Preprocessor-tricks,-tips,-and-idioms
  *
  * Major differences are a greater level of detailed explanation in this
  * implementation and also a refusal to include any macros which require a O(N)
  * macro definitions to handle O(N) arguments (with the exception of DEFERn).
  */
 
-#ifndef CPP_MAGIC_H
-#define CPP_MAGIC_H
+#pragma once
 
 /**
- * Force the pre-processor to expand the macro a large number of times. Usage:
+ * Force the pre-processor to expand the macro a large number of times.
+ * Usage:
  *
  *   EVAL(expression)
  *
- * This is useful when you have a macro which evaluates to a valid macro
- * expression which is not subsequently expanded in the same pass. A contrived,
- * but easy to understand, example of such a macro follows. Note that though
- * this example is contrived, this behaviour is abused to implement bounded
- * recursion in macros such as FOR.
+ * This is useful when you have a macro which evaluates to a valid
+ * macro expression which is not subsequently expanded in the same
+ * pass. A contrived, but easy to understand, example of such a macro
+ * follows. Note that though this example is contrived, this behaviour
+ * is abused to implement bounded recursion in macros such as FOR.
  *
  *   #define A(x) x+1
  *   #define EMPTY
@@ -38,37 +38,44 @@
  *
  * Here's what happens inside the C preprocessor:
  *
- * 1. It sees a macro "NOT_QUITE_RIGHT" and performs a single macro expansion
- *    pass on its arguments. Since the argument is "999" and this isn't a macro,
- *    this is a boring step resulting in no change.
- * 2. The NOT_QUITE_RIGHT macro is substituted for its definition giving "A
- *    EMPTY() (x)".
- * 3. The expander moves from left-to-right trying to expand the macro:
- *    The first token, A, cannot be expanded since there are no brackets
- *    immediately following it. The second token EMPTY(), however, can be
- *    expanded (recursively in this manner) and is replaced with "".
- * 4. Expansion continues from the start of the substituted test (which in this
- *    case is just empty), and sees "(999)" but since no macro name is present,
- *    nothing is done. This results in a final expansion of "A (999)".
+ * 1. It sees a macro "NOT_QUITE_RIGHT" and performs a single macro
+ *    expansion pass on its arguments. Since the argument is "999" and
+ *    this isn't a macro, this is a boring step resulting in no
+ *    change.
  *
- * Unfortunately, this doesn't quite meet expectations since you may expect that
- * "A (999)" would have been expanded into "999+1". Unfortunately this requires
- * a second expansion pass but luckily we can force the macro processor to make
- * more passes by abusing the first step of macro expansion: the preprocessor
- * expands arguments in their own pass. If we define a macro which does nothing
- * except produce its arguments e.g.:
+ * 2. The NOT_QUITE_RIGHT macro is substituted for its definition
+ *    giving "A EMPTY() (x)".
+ *
+ * 3. The expander moves from left-to-right trying to expand the
+ *    macro: The first token, A, cannot be expanded since there are no
+ *    brackets immediately following it. The second token EMPTY(),
+ *    however, can be expanded (recursively in this manner) and is
+ *    replaced with "".
+ *
+ * 4. Expansion continues from the start of the substituted test
+ *    (which in this case is just empty), and sees "(999)" but since
+ *    no macro name is present, nothing is done. This results in a
+ *    final expansion of "A (999)".
+ *
+ * Unfortunately, this doesn't quite meet expectations since you may
+ * expect that "A (999)" would have been expanded into
+ * "999+1". Unfortunately this requires a second expansion pass but
+ * luckily we can force the macro processor to make more passes by
+ * abusing the first step of macro expansion: the preprocessor expands
+ * arguments in their own pass. If we define a macro which does
+ * nothing except produce its arguments e.g.:
  *
  *   #define PASS_THROUGH(...) __VA_ARGS__
  *
- * We can now do "PASS_THROUGH(NOT_QUITE_RIGHT(999))" causing "NOT_QUITE_RIGHT" to be
- * expanded to "A (999)", as described above, when the arguments are expanded.
- * Now when the body of PASS_THROUGH is expanded, "A (999)" gets expanded to
- * "999+1".
+ * We can now do "PASS_THROUGH(NOT_QUITE_RIGHT(999))" causing
+ * "NOT_QUITE_RIGHT" to be expanded to "A (999)", as described above,
+ * when the arguments are expanded.  Now when the body of PASS_THROUGH
+ * is expanded, "A (999)" gets expanded to "999+1".
  *
- * The EVAL defined below is essentially equivalent to a large nesting of
- * "PASS_THROUGH(PASS_THROUGH(PASS_THROUGH(..." which results in the
- * preprocessor making a large number of expansion passes over the given
- * expression.
+ * The EVAL defined below is essentially equivalent to a large nesting
+ * of "PASS_THROUGH(PASS_THROUGH(PASS_THROUGH(..." which results in
+ * the preprocessor making a large number of expansion passes over the
+ * given expression.
  */
 #define EVAL(...) EVAL1024(__VA_ARGS__)
 #define EVAL1024(...) EVAL512(EVAL512(__VA_ARGS__))
@@ -135,7 +142,8 @@
 #define DEFER5(id) id EMPTY EMPTY EMPTY EMPTY EMPTY()()()()()
 #define DEFER6(id) id EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY()()()()()()
 #define DEFER7(id) id EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY()()()()()()()
-#define DEFER8(id) id EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY()()()()()()()()
+#define DEFER8(id) \
+  id EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY EMPTY()()()()()()()()
 
 
 /**
@@ -172,10 +180,11 @@
 /**
  * Logical negation. 0 is defined as false and everything else as true.
  *
- * When 0, _NOT_0 will be found which evaluates to the PROBE. When 1 (or any other
- * value) is given, an appropriately named macro won't be found and the
- * concatenated string will be produced. IS_PROBE then simply checks to see if
- * the PROBE was returned, cleanly converting the argument into a 1 or 0.
+ * When 0, _NOT_0 will be found which evaluates to the PROBE. When 1
+ * (or any other value) is given, an appropriately named macro won't
+ * be found and the concatenated string will be produced. IS_PROBE
+ * then simply checks to see if the PROBE was returned, cleanly
+ * converting the argument into a 1 or 0.
  */
 #define NOT(x) IS_PROBE(CAT(_NOT_, x))
 #define _NOT_0 PROBE()
@@ -310,20 +319,24 @@
  *
  * Important tricks used:
  *
- * * If we directly produce "MAP_INNER" in an expansion of MAP_INNER, a special
- *   case in the preprocessor will prevent it being expanded in the future, even
- *   if we EVAL.  As a result, the MAP_INNER macro carefully only expands to
- *   something containing "_MAP_INNER()" which requires a further expansion step
- *   to invoke MAP_INNER and thus implementing the recursion.
- * * To prevent _MAP_INNER being expanded within the macro we must first defer its
- *   expansion during its initial pass as an argument to _IF_0 or _IF_1. We must
- *   then defer its expansion a second time as part of the body of the _IF_0. As
- *   a result hence the DEFER2.
- * * _MAP_INNER seemingly gets away with producing itself because it actually only
- *   produces MAP_INNER. It just happens that when _MAP_INNER() is expanded in
- *   this case it is followed by some arguments which get consumed by MAP_INNER
- *   and produce a _MAP_INNER.  As such, the macro expander never marks
- *   _MAP_INNER as expanding to itself and thus it will still be expanded in
+ * * If we directly produce "MAP_INNER" in an expansion of MAP_INNER,
+ *   a special case in the preprocessor will prevent it being expanded
+ *   in the future, even if we EVAL.  As a result, the MAP_INNER macro
+ *   carefully only expands to something containing "_MAP_INNER()"
+ *   which requires a further expansion step to invoke MAP_INNER and
+ *   thus implementing the recursion.
+ *
+ * * To prevent _MAP_INNER being expanded within the macro we must
+ *   first defer its expansion during its initial pass as an argument
+ *   to _IF_0 or _IF_1. We must then defer its expansion a second time
+ *   as part of the body of the _IF_0. As a result hence the DEFER2.
+ *
+ * * _MAP_INNER seemingly gets away with producing itself because it
+ *   actually only produces MAP_INNER. It just happens that when
+ *   _MAP_INNER() is expanded in this case it is followed by some
+ *   arguments which get consumed by MAP_INNER and produce a
+ *   _MAP_INNER.  As such, the macro expander never marks _MAP_INNER
+ *   as expanding to itself and thus it will still be expanded in
  *   future productions of itself.
  */
 #define MAP(...) \
@@ -354,7 +367,8 @@
  *
  * Which expands to:
  *
- *   static int I; static int II; static int III; static bool IIII; static char IIIII;
+ *   static int I; static int II; static int III; static bool IIII;
+ *   static char IIIII;
  *
  * The mechanism is analogous to the MAP macro.
  */
@@ -414,7 +428,8 @@
  *   #define SIMON_SAYS_LAST_OP(val) last_but_not_least_##val
  *   #define SIMON_SAYS() 0
  *
- *   MAP_SLIDE(SIMON_SAYS_OP, SIMON_SAYS_LAST_OP, EMPTY, wiggle, SIMON_SAYS, dance, move, SIMON_SAYS, boogie, stop)
+ *   MAP_SLIDE(SIMON_SAYS_OP, SIMON_SAYS_LAST_OP, EMPTY, wiggle, SIMON_SAYS,
+ *     dance, move, SIMON_SAYS, boogie, stop)
  *
  * Which expands to:
  *
@@ -467,5 +482,3 @@
 
 #define _EMAP2_INNER() EMAP2_INNER
 
-
-#endif

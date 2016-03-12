@@ -28,8 +28,8 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CANONICAL_MACHINE_H
-#define CANONICAL_MACHINE_H
+#pragma once
+
 
 #include "config.h"
 #include "status.h"
@@ -507,6 +507,49 @@ enum cmAxisMode {                 // axis modes (ordered: see _cm_get_feed_time(
 #define AXIS_MODE_MAX_LINEAR AXIS_INHIBITED
 #define AXIS_MODE_MAX_ROTARY AXIS_RADIUS
 
+// Coordinate offsets
+#define G54_X_OFFSET 0            // G54 is traditionally set to all zeros
+#define G54_Y_OFFSET 0
+#define G54_Z_OFFSET 0
+#define G54_A_OFFSET 0
+#define G54_B_OFFSET 0
+#define G54_C_OFFSET 0
+
+#define G55_X_OFFSET (X_TRAVEL_MAX / 2)    // set to middle of table
+#define G55_Y_OFFSET (Y_TRAVEL_MAX / 2)
+#define G55_Z_OFFSET 0
+#define G55_A_OFFSET 0
+#define G55_B_OFFSET 0
+#define G55_C_OFFSET 0
+
+#define G56_X_OFFSET 0
+#define G56_Y_OFFSET 0
+#define G56_Z_OFFSET 0
+#define G56_A_OFFSET 0
+#define G56_B_OFFSET 0
+#define G56_C_OFFSET 0
+
+#define G57_X_OFFSET 0
+#define G57_Y_OFFSET 0
+#define G57_Z_OFFSET 0
+#define G57_A_OFFSET 0
+#define G57_B_OFFSET 0
+#define G57_C_OFFSET 0
+
+#define G58_X_OFFSET 0
+#define G58_Y_OFFSET 0
+#define G58_Z_OFFSET 0
+#define G58_A_OFFSET 0
+#define G58_B_OFFSET 0
+#define G58_C_OFFSET 0
+
+#define G59_X_OFFSET 0
+#define G59_Y_OFFSET 0
+#define G59_Z_OFFSET 0
+#define G59_A_OFFSET 0
+#define G59_B_OFFSET 0
+#define G59_C_OFFSET 0
+
 
 // Model state getters and setters
 uint8_t cm_get_combined_state();
@@ -646,4 +689,4 @@ stat_t cm_homing_callback();                                     // G28.2/.4 mai
 stat_t cm_straight_probe(float target[], float flags[]);         // G38.2
 stat_t cm_probe_callback();                                      // G38.2 main loop callback
 
-#endif // CANONICAL_MACHINE_H
+

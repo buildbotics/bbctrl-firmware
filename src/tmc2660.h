@@ -29,8 +29,8 @@
 
 \******************************************************************************/
 
-#ifndef TMC2660_H
-#define TMC2660_H
+#pragma once
+
 
 #include "config.h"
 
@@ -153,4 +153,4 @@ int tmc2660_all_ready();
 #define TMC2660_DRVSTATUS_OT        (1UL << 1)
 #define TMC2660_DRVSTATUS_SG        (1UL << 0)
 
-#endif // TMC2660_H
+

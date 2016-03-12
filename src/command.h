@@ -29,8 +29,8 @@
 
 \******************************************************************************/
 
-#ifndef COMMAND_H
-#define COMMAND_H
+#pragma once
+
 
 #include "status.h"
 
@@ -52,4 +52,4 @@ int command_find(const char *name);
 int command_exec(int argc, char *argv[]);
 int command_eval(char *cmd);
 
-#endif // COMMAND_H
+

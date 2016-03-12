@@ -31,8 +31,8 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef CONTROLLER_H
-#define CONTROLLER_H
+#pragma once
+
 
 #include "status.h"
 
@@ -53,4 +53,4 @@ extern controller_t cs;                 // controller state structure
 void controller_init();
 void controller_run();
 
-#endif // CONTROLLER_H
+

@@ -29,8 +29,8 @@
 
 \******************************************************************************/
 
-#ifndef REPORT_H
-#define REPORT_H
+#pragma once
+
 
 #include "status.h"
 
@@ -39,4 +39,4 @@ void report_request();
 void report_request_full();
 stat_t report_callback();
 
-#endif // REPORT_H
+

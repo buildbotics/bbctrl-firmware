@@ -29,8 +29,8 @@
 
 \******************************************************************************/
 
-#ifndef USART_H
-#define USART_H
+#pragma once
+
 
 #include <stdint.h>
 
@@ -76,4 +76,4 @@ int16_t usart_tx_space();
 inline int usart_tx_empty() {return !usart_tx_fill();}
 inline int usart_tx_full() {return !usart_tx_space();}
 
-#endif // USART_H
+

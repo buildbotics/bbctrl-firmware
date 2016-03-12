@@ -32,8 +32,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLANNER_H
-#define PLANNER_H
+#pragma once
+
 
 #include "canonical_machine.h" // used for GCodeState_t
 #include "util.h"
@@ -319,4 +319,4 @@ typedef void (*cm_exec_t)(float[], float[]);
 void mp_queue_command(cm_exec_t, float *value, float *flag);
 void mp_runtime_command(mpBuf_t *bf);
 
-#endif // PLANNER_H
+

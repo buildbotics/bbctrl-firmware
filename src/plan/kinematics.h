@@ -31,9 +31,9 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef KINEMATICS_H
-#define KINEMATICS_H
+#pragma once
+
 
 void ik_kinematics(const float travel[], float steps[]);
 
-#endif // KINEMATICS_H
+

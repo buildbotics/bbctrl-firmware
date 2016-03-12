@@ -105,8 +105,8 @@
  * recompute the body of moveB, but it may not be worth the trouble).
  */
 
-#ifndef ENCODER_H
-#define ENCODER_H
+#pragma once
+
 
 #include "config.h"
 
@@ -133,4 +133,4 @@ void encoder_init();
 void en_set_encoder_steps(uint8_t motor, float steps);
 float en_read_encoder(uint8_t motor);
 
-#endif // ENCODER_H
+

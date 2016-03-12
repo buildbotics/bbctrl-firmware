@@ -31,8 +31,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GPIO_H
-#define GPIO_H
+#pragma once
+
 
 #include <stdint.h>
 
@@ -49,4 +49,4 @@ void gpio_set_bit_on(uint8_t b);
 void gpio_set_bit_off(uint8_t b);
 void gpio_set_bit_toggle(uint8_t b);
 
-#endif // GPIO_H
+

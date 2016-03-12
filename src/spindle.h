@@ -31,8 +31,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef SPINDLE_H
-#define SPINDLE_H
+#pragma once
+
 
 #include "status.h"
 
@@ -44,4 +44,4 @@ void cm_exec_spindle_speed(float speed);            // callback for above
 stat_t cm_spindle_control(uint8_t spindle_mode);    // M3, M4, M5
 void cm_exec_spindle_control(uint8_t spindle_mode); // callback for above
 
-#endif // SPINDLE_H
+

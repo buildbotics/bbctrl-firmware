@@ -21,11 +21,11 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef GCODE_PARSER_H
-#define GCODE_PARSER_H
+#pragma once
+
 
 #include "status.h"
 
 stat_t gc_gcode_parser(char *block);
 
-#endif // GCODE_PARSER_H
+

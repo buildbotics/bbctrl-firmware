@@ -31,8 +31,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PWM_H
-#define PWM_H
+#pragma once
+
 
 #include "config.h"
 #include "status.h"
@@ -76,4 +76,4 @@ void pwm_init();
 stat_t pwm_set_freq(uint8_t channel, float freq);
 stat_t pwm_set_duty(uint8_t channel, float duty);
 
-#endif // PWM_H
+

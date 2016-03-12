@@ -20,12 +20,12 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef CLOCK_H
-#define CLOCK_H
+#pragma once
+
 
 #include <stdint.h>
 
 void clock_init();
 void CCPWrite(volatile uint8_t *address, uint8_t value);
 
-#endif // CLOCK_H
+

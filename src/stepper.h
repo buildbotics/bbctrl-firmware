@@ -32,8 +32,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef STEPPER_H
-#define STEPPER_H
+#pragma once
+
 
 /*
  * Coordinated motion (line drawing) is performed using a classic
@@ -486,4 +486,4 @@ void st_prep_dwell(float microseconds);
 stat_t st_prep_line(float travel_steps[], float following_error[],
                     float segment_time);
 
-#endif // STEPPER_H
+

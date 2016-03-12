@@ -29,8 +29,8 @@
 
 \******************************************************************************/
 
-#ifndef STATUS_H
-#define STATUS_H
+#pragma once
+
 
 /************************************************************************************
  * STATUS CODES
@@ -233,4 +233,4 @@ void print_status_message(const char *msg, stat_t status);
 
 // !!! Do not exceed 255 without also changing stat_t typedef
 
-#endif // STATUS_H
+

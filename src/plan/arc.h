@@ -21,8 +21,8 @@
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef PLAN_ARC_H
-#define PLAN_ARC_H
+#pragma once
+
 
 #include "canonical_machine.h"
 
@@ -73,4 +73,4 @@ void cm_arc_init();
 stat_t cm_arc_callback();
 void cm_abort_arc();
 
-#endif // PLAN_ARC_H
+
