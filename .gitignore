@@ -1,4 +1,8 @@
 .sconf_temp/
 .sconsign.dblite
+/http
+node_modules
 *~
 \#*
+*.pyc
+__pycache__

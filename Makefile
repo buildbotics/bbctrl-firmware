@@ -17,14 +17,18 @@ TEMPLS    := $(wildcard src/jade/templates/*.jade)
 STATIC    := $(shell find src/resources -type f)
 STATIC    := $(patsubst src/resources/%,http/%,$(STATIC))
 
+ifndef DEST
+DEST=bbctrl/
+endif
+
 WATCH := src/jade src/stylus src/js Makefile
 
 TARGETS := $(HTML) $(CSS) $(JS_ASSETS) $(STATIC)
 
-all: node_modules $(TARGETS) copy
+all: node_modules $(TARGETS)
 
 copy: $(TARGETS)
-	cp -r bbctrl.py http/ bbctrl/
+	cp -r *.py inevent http/ $(DEST)
 
 $(HTTP)/admin.html: build/templates.jade
 

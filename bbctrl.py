@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ## Change this to match your local settings
 SERIAL_PORT = '/dev/ttyAMA0'
@@ -10,8 +10,22 @@ from sockjs.tornado import SockJSRouter, SockJSConnection
 import json
 import serial
 import multiprocessing
+import time
+
+import inevent
+from inevent.Constants import *
+
 
 DIR = os.path.dirname(__file__)
+
+config = {
+    "deadband": 0.1,
+    "axes": [ABS_X, ABS_Y, ABS_RZ, ABS_Z],
+    "arrows": [ABS_HAT0X, ABS_HAT0Y],
+    "speed": [0x120, 0x121, 0x122, 0x123],
+    "activate": [0x124, 0x126, 0x125, 0x127],
+    "verbose": False
+    }
 
 state = {}
 clients = []
@@ -38,7 +52,7 @@ class SerialProcess(multiprocessing.Process):
 
 
     def readSerial(self):
-        return self.sp.readline().replace("\n", "")
+        return self.sp.readline().replace(b"\n", b"")
 
 
     def run(self):
@@ -57,7 +71,7 @@ class SerialProcess(multiprocessing.Process):
                 data = self.readSerial()
                 # send it back to tornado
                 self.output_queue.put(data)
-                print data
+                print(data.decode('utf-8'))
 
 
 
@@ -65,6 +79,7 @@ class Connection(SockJSConnection):
     def on_open(self, info):
         clients.append(self)
         self.send(state)
+
 
     def on_close(self):
         clients.remove(self)
@@ -94,6 +109,36 @@ handlers = [
 router = SockJSRouter(Connection, '/ws')
 
 
+# Listen for input events
+class JogHandler(inevent.JogHandler):
+    def __init__(self, config):
+        super().__init__(config)
+
+        self.lastV = [0.0] * 4
+
+
+    def changed(self):
+        if self.speed == 1: scale = 1.0 / 128.0
+        if self.speed == 2: scale = 1.0 / 32.0
+        if self.speed == 3: scale = 1.0 / 4.0
+        if self.speed == 4: scale = 1.0
+
+        v = [x * scale for x in self.axes]
+
+        if v != self.lastV:
+            self.lastV = v
+
+            v = ["{:6.5f}".format(x) for x in v]
+            cmd = '$jog ' + ' '.join(v) + '\n'
+            input_queue.put(cmd)
+
+
+def checkEvents(): eventProcessor.process_events(eventHandler)
+eventProcessor = inevent.InEvent(types = "js kbd".split())
+eventHandler = JogHandler(config)
+
+
+
 if __name__ == "__main__":
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
@@ -105,6 +150,7 @@ if __name__ == "__main__":
 
     # Adjust the interval according to frames sent by serial port
     ioloop.PeriodicCallback(checkQueue, 100).start()
+    ioloop.PeriodicCallback(checkEvents, 100).start()
 
     # Start the web server
     app = web.Application(router.urls + handlers)

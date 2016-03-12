@@ -62,8 +62,8 @@ EOF
 fi
 
 # Install pacakges
-apt-get install -y avahi-daemon avrdude minicom python-pip
-pip install tornado sockjs-tornado pyserial
+apt-get install -y avahi-daemon avrdude minicom python3-pip
+pip-3.2 install tornado sockjs-tornado pyserial
 
 # Clean
 apt-get autoclean
@@ -79,6 +79,7 @@ echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 #sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
 sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
 
+# TODO setup input and serial device permissions in udev
 # TODO install bbctrl w/ init.d script
 
 reboot
