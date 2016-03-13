@@ -45,41 +45,222 @@
 #include <math.h>
 
 
+/* Sonny's algorithm - simple
+ *
+ * Computes the maximum allowable junction speed by finding the
+ * velocity that will yield the centripetal acceleration in the
+ * corner_acceleration value. The value of delta sets the effective
+ * radius of curvature. Here's Sonny's (Sungeun K. Jeon's)
+ * explanation of what's going on:
+ *
+ * "First let's assume that at a junction we only look a centripetal
+ * acceleration to simply things. At a junction of two lines, let's
+ * place a circle such that both lines are tangent to the circle. The
+ * circular segment joining the lines represents the path for
+ * constant centripetal acceleration. This creates a deviation from
+ * the path (let's call this delta), which is the distance from the
+ * junction to the edge of the circular segment. Delta needs to be
+ * defined, so let's replace the term max_jerk (see note 1) with
+ * max_junction_deviation, or "delta". This indirectly sets the
+ * radius of the circle, and hence limits the velocity by the
+ * centripetal acceleration. Think of the this as widening the race
+ * track. If a race car is driving on a track only as wide as a car,
+ * it'll have to slow down a lot to turn corners. If we widen the
+ * track a bit, the car can start to use the track to go into the
+ * turn. The wider it is, the faster through the corner it can go.
+ *
+ * (Note 1: "max_jerk" refers to the old grbl/marlin max_jerk"
+ * approximation term, not the tinyG jerk terms)
+ *
+ * If you do the geometry in terms of the known variables, you get:
+ *     sin(theta/2) = R/(R+delta)
+ * Re-arranging in terms of circle radius (R)
+ *     R = delta*sin(theta/2)/(1-sin(theta/2).
+ *
+ * Theta is the angle between line segments given by:
+ *     cos(theta) = dot(a,b)/(norm(a)*norm(b)).
+ *
+ * Most of these calculations are already done in the planner.
+ * To remove the acos() and sin() computations, use the trig half
+ * angle identity:
+ *     sin(theta/2) = +/- sqrt((1-cos(theta))/2).
+ *
+ * For our applications, this should always be positive. Now just
+ * plug the equations into the centripetal acceleration equation:
+ * v_c = sqrt(a_max*R). You'll see that there are only two sqrt
+ * computations and no sine/cosines."
+ *
+ * How to compute the radius using brute-force trig:
+ *    float theta = acos(costheta);
+ *    float radius = delta * sin(theta/2)/(1-sin(theta/2));
+ *
+ * This version extends Chamnit's algorithm by computing a value for
+ * delta that takes the contributions of the individual axes in the
+ * move into account. This allows the control radius to vary by
+ * axis. This is necessary to support axes that have different
+ * dynamics; such as a Z axis that doesn't move as fast as X and Y
+ * (such as a screw driven Z axis on machine with a belt driven XY -
+ * like a Shapeoko), or rotary axes ABC that have completely
+ * different dynamics than their linear counterparts.
+ *
+ * The function takes the absolute values of the sum of the unit
+ * vector components as a measure of contribution to the move, then
+ * scales the delta values from the non-zero axes into a composite
+ * delta to be used for the move. Shown for an XY vector:
+ *
+ *     U[i]    Unit sum of i'th axis    fabs(unit_a[i]) + fabs(unit_b[i])
+ *     Usum    Length of sums           Ux + Uy
+ *     d       Delta of sums            (Dx*Ux+DY*UY)/Usum
+ */
+static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
+  float costheta =
+    -a_unit[AXIS_X] * b_unit[AXIS_X] -
+    a_unit[AXIS_Y] * b_unit[AXIS_Y] -
+    a_unit[AXIS_Z] * b_unit[AXIS_Z] -
+    a_unit[AXIS_A] * b_unit[AXIS_A] -
+    a_unit[AXIS_B] * b_unit[AXIS_B] -
+    a_unit[AXIS_C] * b_unit[AXIS_C];
+
+  if (costheta < -0.99) return 10000000;         // straight line cases
+  if (costheta > 0.99)  return 0;                // reversal cases
+
+  // Fuse the junction deviations into a vector sum
+  float a_delta = square(a_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
+  a_delta += square(a_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
+  a_delta += square(a_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
+  a_delta += square(a_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
+  a_delta += square(a_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
+  a_delta += square(a_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
+
+  float b_delta = square(b_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
+  b_delta += square(b_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
+  b_delta += square(b_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
+  b_delta += square(b_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
+  b_delta += square(b_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
+  b_delta += square(b_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
+
+  float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
+  float sintheta_over2 = sqrt((1 - costheta) / 2);
+  float radius = delta * sintheta_over2 / (1 - sintheta_over2);
+  float velocity = sqrt(radius * cm.junction_acceleration);
+
+  return velocity;
+}
+
+
+/*
+ * Compute optimal and minimum move times into the gcode_state
+ *
+ * "Minimum time" is the fastest the move can be performed given
+ * the velocity constraints on each participating axis - regardless
+ * of the feed rate requested. The minimum time is the time limited
+ * by the rate-limiting axis. The minimum time is needed to compute
+ * the optimal time and is recorded for possible feed override
+ * computation.
+ *
+ * "Optimal time" is either the time resulting from the requested
+ * feed rate or the minimum time if the requested feed rate is not
+ * achievable. Optimal times for traverses are always the minimum
+ * time.
+ *
+ * The gcode state must have targets set prior by having
+ * cm_set_target(). Axis modes are taken into account by this.
+ *
+ * The following times are compared and the longest is returned:
+ *   - G93 inverse time (if G93 is active)
+ *   - time for coordinated move at requested feed rate
+ *   - time that the slowest axis would require for the move
+ *
+ * Sets the following variables in the gcode_state struct
+ *   - move_time is set to optimal time
+ *   - minimum_time is set to minimum time
+ *
+ * NIST RS274NGC_v3 Guidance
+ *
+ * The following is verbatim text from NIST RS274NGC_v3. As I
+ * interpret A for moves that combine both linear and rotational
+ * movement, the feed rate should apply to the XYZ movement, with
+ * the rotational axis (or axes) timed to start and end at the same
+ * time the linear move is performed. It is possible under this
+ * case for the rotational move to rate-limit the linear move.
+ *
+ *  2.1.2.5 Feed Rate
+ *
+ * The rate at which the controlled point or the axes move is
+ * nominally a steady rate which may be set by the user. In the
+ * Interpreter, the interpretation of the feed rate is as follows
+ * unless inverse time feed rate mode is being used in the
+ * RS274/NGC view (see Section 3.5.19). The canonical machining
+ * functions view of feed rate, as described in Section 4.3.5.1,
+ * has conditions under which the set feed rate is applied
+ * differently, but none of these is used in the Interpreter.
+ *
+ * A.  For motion involving one or more of the X, Y, and Z axes
+ *     (with or without simultaneous rotational axis motion), the
+ *     feed rate means length units per minute along the programmed
+ *     XYZ path, as if the rotational axes were not moving.
+ *
+ * B.  For motion of one rotational axis with X, Y, and Z axes not
+ *     moving, the feed rate means degrees per minute rotation of
+ *     the rotational axis.
+ *
+ * C.  For motion of two or three rotational axes with X, Y, and Z
+ *     axes not moving, the rate is applied as follows. Let dA, dB,
+ *     and dC be the angles in degrees through which the A, B, and
+ *     C axes, respectively, must move.  Let D = sqrt(dA^2 + dB^2 +
+ *     dC^2). Conceptually, D is a measure of total angular motion,
+ *     using the usual Euclidean metric. Let T be the amount of
+ *     time required to move through D degrees at the current feed
+ *     rate in degrees per minute. The rotational axes should be
+ *     moved in coordinated linear motion so that the elapsed time
+ *     from the start to the end of the motion is T plus any time
+ *     required for acceleration or deceleration.
+ */
 static void _calc_move_times(GCodeState_t *gms, const float axis_length[],
-                             const float axis_square[]);
-static float _get_junction_vmax(const float a_unit[], const float b_unit[]);
+                             const float axis_square[]) {
+  // gms = Gcode model state
+  float inv_time = 0;          // inverse time if doing a feed in G93 mode
+  float xyz_time = 0;          // linear coordinated move at requested feed
+  float abc_time = 0;          // rotary coordinated move at requested feed
+  float max_time = 0;          // time required for the rate-limiting axis
+  float tmp_time = 0;          // used in computation
+  gms->minimum_time = 8675309; // arbitrarily large number
 
+  // compute times for feed motion
+  if (gms->motion_mode != MOTION_MODE_STRAIGHT_TRAVERSE) {
+    if (gms->feed_rate_mode == INVERSE_TIME_MODE) {
+      // feed rate was un-inverted to minutes by cm_set_feed_rate()
+      inv_time = gms->feed_rate;
+      gms->feed_rate_mode = UNITS_PER_MINUTE_MODE;
 
-/// Correct velocity in last segment for reporting purposes
-void mp_zero_segment_velocity() {mr.segment_velocity = 0;}
+    } else {
+      // compute length of linear move in millimeters. Feed rate is provided as
+      // mm/min
+      xyz_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
+                      axis_square[AXIS_Z]) / gms->feed_rate;
 
+      // if no linear axes, compute length of multi-axis rotary move in degrees.
+      // Feed rate is provided as degrees/min
+      if (fp_ZERO(xyz_time))
+        abc_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
+                        axis_square[AXIS_C]) / gms->feed_rate;
+    }
+  }
 
-/// Returns current velocity (aggregate)
-float mp_get_runtime_velocity() {return mr.segment_velocity;}
+  for (uint8_t axis = 0; axis < AXES; axis++) {
+    if (gms->motion_mode == MOTION_MODE_STRAIGHT_TRAVERSE)
+      tmp_time = fabs(axis_length[axis]) / cm.a[axis].velocity_max;
 
+    else // MOTION_MODE_STRAIGHT_FEED
+      tmp_time = fabs(axis_length[axis]) / cm.a[axis].feedrate_max;
 
-/// Returns current axis position in machine coordinates
-float mp_get_runtime_absolute_position(uint8_t axis) {return mr.position[axis];}
+    max_time = max(max_time, tmp_time);
 
+    if (tmp_time > 0) // collect minimum time if this axis is not zero
+      gms->minimum_time = min(gms->minimum_time, tmp_time);
+  }
 
-/// Set offsets in the MR struct
-void mp_set_runtime_work_offset(float offset[]) {
-  copy_vector(mr.gm.work_offset, offset);
-}
-
-
-/// Returns current axis position in work coordinates
-/// that were in effect at move planning time
-float mp_get_runtime_work_position(uint8_t axis) {
-  return mr.position[axis] - mr.gm.work_offset[axis];
-}
-
-
-/// Return TRUE if motion control busy (i.e. robot is moving)
-/// Use this function to sync to the queue. If you wait until it returns
-/// FALSE you know the queue is empty and the motors have stopped.
-uint8_t mp_get_runtime_busy() {
-  return st_runtime_isbusy() || mr.move_state == MOVE_RUN;
+  gms->move_time = max4(inv_time, max_time, xyz_time, abc_time);
 }
 
 
@@ -290,122 +471,6 @@ stat_t mp_aline(GCodeState_t *gm_in) {
 }
 
 
-/*
- * Compute optimal and minimum move times into the gcode_state
- *
- * "Minimum time" is the fastest the move can be performed given
- * the velocity constraints on each participating axis - regardless
- * of the feed rate requested. The minimum time is the time limited
- * by the rate-limiting axis. The minimum time is needed to compute
- * the optimal time and is recorded for possible feed override
- * computation.
- *
- * "Optimal time" is either the time resulting from the requested
- * feed rate or the minimum time if the requested feed rate is not
- * achievable. Optimal times for traverses are always the minimum
- * time.
- *
- * The gcode state must have targets set prior by having
- * cm_set_target(). Axis modes are taken into account by this.
- *
- * The following times are compared and the longest is returned:
- *   - G93 inverse time (if G93 is active)
- *   - time for coordinated move at requested feed rate
- *   - time that the slowest axis would require for the move
- *
- * Sets the following variables in the gcode_state struct
- *   - move_time is set to optimal time
- *   - minimum_time is set to minimum time
- *
- * NIST RS274NGC_v3 Guidance
- *
- * The following is verbatim text from NIST RS274NGC_v3. As I
- * interpret A for moves that combine both linear and rotational
- * movement, the feed rate should apply to the XYZ movement, with
- * the rotational axis (or axes) timed to start and end at the same
- * time the linear move is performed. It is possible under this
- * case for the rotational move to rate-limit the linear move.
- *
- *  2.1.2.5 Feed Rate
- *
- * The rate at which the controlled point or the axes move is
- * nominally a steady rate which may be set by the user. In the
- * Interpreter, the interpretation of the feed rate is as follows
- * unless inverse time feed rate mode is being used in the
- * RS274/NGC view (see Section 3.5.19). The canonical machining
- * functions view of feed rate, as described in Section 4.3.5.1,
- * has conditions under which the set feed rate is applied
- * differently, but none of these is used in the Interpreter.
- *
- * A.  For motion involving one or more of the X, Y, and Z axes
- *     (with or without simultaneous rotational axis motion), the
- *     feed rate means length units per minute along the programmed
- *     XYZ path, as if the rotational axes were not moving.
- *
- * B.  For motion of one rotational axis with X, Y, and Z axes not
- *     moving, the feed rate means degrees per minute rotation of
- *     the rotational axis.
- *
- * C.  For motion of two or three rotational axes with X, Y, and Z
- *     axes not moving, the rate is applied as follows. Let dA, dB,
- *     and dC be the angles in degrees through which the A, B, and
- *     C axes, respectively, must move.  Let D = sqrt(dA^2 + dB^2 +
- *     dC^2). Conceptually, D is a measure of total angular motion,
- *     using the usual Euclidean metric. Let T be the amount of
- *     time required to move through D degrees at the current feed
- *     rate in degrees per minute. The rotational axes should be
- *     moved in coordinated linear motion so that the elapsed time
- *     from the start to the end of the motion is T plus any time
- *     required for acceleration or deceleration.
- */
-static void _calc_move_times(GCodeState_t *gms, const float axis_length[],
-                             const float axis_square[]) {
-  // gms = Gcode model state
-  float inv_time = 0;          // inverse time if doing a feed in G93 mode
-  float xyz_time = 0;          // linear coordinated move at requested feed
-  float abc_time = 0;          // rotary coordinated move at requested feed
-  float max_time = 0;          // time required for the rate-limiting axis
-  float tmp_time = 0;          // used in computation
-  gms->minimum_time = 8675309; // arbitrarily large number
-
-  // compute times for feed motion
-  if (gms->motion_mode != MOTION_MODE_STRAIGHT_TRAVERSE) {
-    if (gms->feed_rate_mode == INVERSE_TIME_MODE) {
-      // feed rate was un-inverted to minutes by cm_set_feed_rate()
-      inv_time = gms->feed_rate;
-      gms->feed_rate_mode = UNITS_PER_MINUTE_MODE;
-
-    } else {
-      // compute length of linear move in millimeters. Feed rate is provided as
-      // mm/min
-      xyz_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
-                      axis_square[AXIS_Z]) / gms->feed_rate;
-
-      // if no linear axes, compute length of multi-axis rotary move in degrees.
-      // Feed rate is provided as degrees/min
-      if (fp_ZERO(xyz_time))
-        abc_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
-                        axis_square[AXIS_C]) / gms->feed_rate;
-    }
-  }
-
-  for (uint8_t axis = 0; axis < AXES; axis++) {
-    if (gms->motion_mode == MOTION_MODE_STRAIGHT_TRAVERSE)
-      tmp_time = fabs(axis_length[axis]) / cm.a[axis].velocity_max;
-
-    else // MOTION_MODE_STRAIGHT_FEED
-      tmp_time = fabs(axis_length[axis]) / cm.a[axis].feedrate_max;
-
-    max_time = max(max_time, tmp_time);
-
-    if (tmp_time > 0) // collect minimum time if this axis is not zero
-      gms->minimum_time = min(gms->minimum_time, tmp_time);
-  }
-
-  gms->move_time = max4(inv_time, max_time, xyz_time, abc_time);
-}
-
-
 /* Plans the entire block list
  *
  * The block list is the circular buffer of planner buffers
@@ -498,7 +563,7 @@ void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag) {
   // forward planning pass - recomputes trapezoids in the list from the first
   // block to the bf block.
   while ((bp = mp_get_next_buffer(bp)) != bf) {
-    if (bp->pv == bf || *mr_flag == true)  {
+    if (bp->pv == bf || *mr_flag)  {
       bp->entry_velocity = bp->entry_vmax; // first block in the list
       *mr_flag = false;
 
@@ -526,107 +591,4 @@ void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag) {
   bp->cruise_velocity = bp->cruise_vmax;
   bp->exit_velocity = 0;
   mp_calculate_trapezoid(bp);
-}
-
-
-/* Sonny's algorithm - simple
- *
- * Computes the maximum allowable junction speed by finding the
- * velocity that will yield the centripetal acceleration in the
- * corner_acceleration value. The value of delta sets the effective
- * radius of curvature. Here's Sonny's (Sungeun K. Jeon's)
- * explanation of what's going on:
- *
- * "First let's assume that at a junction we only look a centripetal
- * acceleration to simply things. At a junction of two lines, let's
- * place a circle such that both lines are tangent to the circle. The
- * circular segment joining the lines represents the path for
- * constant centripetal acceleration. This creates a deviation from
- * the path (let's call this delta), which is the distance from the
- * junction to the edge of the circular segment. Delta needs to be
- * defined, so let's replace the term max_jerk (see note 1) with
- * max_junction_deviation, or "delta". This indirectly sets the
- * radius of the circle, and hence limits the velocity by the
- * centripetal acceleration. Think of the this as widening the race
- * track. If a race car is driving on a track only as wide as a car,
- * it'll have to slow down a lot to turn corners. If we widen the
- * track a bit, the car can start to use the track to go into the
- * turn. The wider it is, the faster through the corner it can go.
- *
- * (Note 1: "max_jerk" refers to the old grbl/marlin max_jerk"
- * approximation term, not the tinyG jerk terms)
- *
- * If you do the geometry in terms of the known variables, you get:
- *     sin(theta/2) = R/(R+delta)
- * Re-arranging in terms of circle radius (R)
- *     R = delta*sin(theta/2)/(1-sin(theta/2).
- *
- * Theta is the angle between line segments given by:
- *     cos(theta) = dot(a,b)/(norm(a)*norm(b)).
- *
- * Most of these calculations are already done in the planner.
- * To remove the acos() and sin() computations, use the trig half
- * angle identity:
- *     sin(theta/2) = +/- sqrt((1-cos(theta))/2).
- *
- * For our applications, this should always be positive. Now just
- * plug the equations into the centripetal acceleration equation:
- * v_c = sqrt(a_max*R). You'll see that there are only two sqrt
- * computations and no sine/cosines."
- *
- * How to compute the radius using brute-force trig:
- *    float theta = acos(costheta);
- *    float radius = delta * sin(theta/2)/(1-sin(theta/2));
- *
- * This version extends Chamnit's algorithm by computing a value for
- * delta that takes the contributions of the individual axes in the
- * move into account. This allows the control radius to vary by
- * axis. This is necessary to support axes that have different
- * dynamics; such as a Z axis that doesn't move as fast as X and Y
- * (such as a screw driven Z axis on machine with a belt driven XY -
- * like a Shapeoko), or rotary axes ABC that have completely
- * different dynamics than their linear counterparts.
- *
- * The function takes the absolute values of the sum of the unit
- * vector components as a measure of contribution to the move, then
- * scales the delta values from the non-zero axes into a composite
- * delta to be used for the move. Shown for an XY vector:
- *
- *     U[i]    Unit sum of i'th axis    fabs(unit_a[i]) + fabs(unit_b[i])
- *     Usum    Length of sums           Ux + Uy
- *     d       Delta of sums            (Dx*Ux+DY*UY)/Usum
- */
-static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
-  float costheta =
-    -a_unit[AXIS_X] * b_unit[AXIS_X] -
-    a_unit[AXIS_Y] * b_unit[AXIS_Y] -
-    a_unit[AXIS_Z] * b_unit[AXIS_Z] -
-    a_unit[AXIS_A] * b_unit[AXIS_A] -
-    a_unit[AXIS_B] * b_unit[AXIS_B] -
-    a_unit[AXIS_C] * b_unit[AXIS_C];
-
-  if (costheta < -0.99) return 10000000;         // straight line cases
-  if (costheta > 0.99)  return 0;                // reversal cases
-
-  // Fuse the junction deviations into a vector sum
-  float a_delta = square(a_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
-  a_delta += square(a_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
-  a_delta += square(a_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
-  a_delta += square(a_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
-  a_delta += square(a_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
-  a_delta += square(a_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
-
-  float b_delta = square(b_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
-  b_delta += square(b_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
-  b_delta += square(b_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
-  b_delta += square(b_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
-  b_delta += square(b_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
-  b_delta += square(b_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
-
-  float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
-  float sintheta_over2 = sqrt((1 - costheta) / 2);
-  float radius = delta * sintheta_over2 / (1 - sintheta_over2);
-  float velocity = sqrt(radius * cm.junction_acceleration);
-
-  return velocity;
 }

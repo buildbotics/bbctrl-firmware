@@ -43,6 +43,9 @@
 #include <stdbool.h>
 
 
+hwSingleton_t hw;
+
+
 /// Bind XMEGA ports to hardware
 static void _port_bindings() {
   hw.st_port[0] = &PORT_MOTOR_1;
@@ -70,10 +73,10 @@ void hardware_init() {
 }
 
 
-/*
- * Get a human readable signature
+/* Get a human readable device signature
  *
  * Produce a unique deviceID based on the factory calibration data.
+ *
  *     Format is: 123456-ABC
  *
  * The number part is a direct readout of the 6 digit lot number
@@ -122,7 +125,7 @@ void hw_request_hard_reset() {cs.hard_reset_requested = true;}
 /// software hard reset using the watchdog timer
 void hw_hard_reset() {
   wdt_enable(WDTO_15MS);
-  while (true);                   // loops for about 15ms then resets
+  while (true) continue; // loops for about 15ms then resets
 }
 
 

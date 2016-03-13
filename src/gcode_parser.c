@@ -130,19 +130,19 @@ static void _normalize_gcode_block(char *str, char **com, char **msg,
   else { *block_delete_flag = false; }
 
   // normalize the command block & find the comment (if any)
-  for (; *wr != 0; rd++)
-    if (*rd == 0) *wr = 0;
+  for (; *wr; rd++)
+    if (!*rd) *wr = 0;
     else if (*rd == '(' || *rd == ';') {*wr = 0; *com = rd + 1;}
     else if (isalnum((char)*rd) || strchr("-.", *rd)) // all valid characters
       *wr++ = (char)toupper((char)*rd);
 
   // Perform Octal stripping - remove invalid leading zeros in number strings
   rd = str;
-  while (*rd != 0) {
+  while (*rd) {
     if (*rd == '.') break; // don't strip past a decimal point
     if (!isdigit(*rd) && *(rd + 1) == '0' && isdigit(*(rd + 2))) {
       wr = rd + 1;
-      while (*wr != 0) {*wr = *(wr + 1); wr++;}    // copy forward w/overwrite
+      while (*wr) {*wr = *(wr + 1); wr++;}    // copy forward w/overwrite
       continue;
     }
 
@@ -150,7 +150,7 @@ static void _normalize_gcode_block(char *str, char **com, char **msg,
   }
 
   // process comments and messages
-  if (**com != 0) {
+  if (**com) {
     rd = *com;
     while (isspace(*rd)) rd++;        // skip any leading spaces before "msg"
 
@@ -158,7 +158,7 @@ static void _normalize_gcode_block(char *str, char **com, char **msg,
         tolower(*(rd + 2)) == 'g')
       *msg = rd + 3;
 
-    for (; *rd != 0; rd++)
+    for (; *rd; rd++)
       // 0 terminate on trailing parenthesis, if any
       if (*rd == ')') *rd = 0;
   }
@@ -172,7 +172,7 @@ static void _normalize_gcode_block(char *str, char **com, char **msg,
  * octal.  G0X... is not interpreted as hexadecimal. This is trapped.
  */
 static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
-  if (**pstr == 0) return STAT_COMPLETE; // no more words to process
+  if (!**pstr) return STAT_COMPLETE; // no more words to process
 
   // get letter part
   if (!isupper(**pstr)) return STAT_INVALID_OR_MALFORMED_COMMAND;
@@ -411,8 +411,7 @@ static stat_t _parse_gcode_block(char *buf) {
 }
 
 
-/*
- * Execute parsed block
+/* Execute parsed block
  *
  * Conditionally (based on whether a flag is set in gf) call the canonical
  * machining functions in order of execution as per RS274NGC_3 table 8
@@ -550,7 +549,7 @@ static stat_t _execute_gcode_block() {
   cm_set_absolute_override(MODEL, false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
-  if (cm.gf.program_flow == true) {
+  if (cm.gf.program_flow) {
     if (cm.gn.program_flow == PROGRAM_STOP) cm_program_stop();
     else cm_program_end();
   }

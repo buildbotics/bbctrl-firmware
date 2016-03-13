@@ -53,32 +53,19 @@
 #include <stdio.h>
 
 
+#define DDA_PERIOD (F_CPU / STEP_CLOCK_FREQ)
+
+enum {MOTOR_1, MOTOR_2, MOTOR_3, MOTOR_4};
+
+
 stConfig_t st_cfg;
 stPrepSingleton_t st_pre;
 static stRunSingleton_t st_run;
 
+
 static void _load_move();
 static void _request_load_move();
 static void _update_steps_per_unit(int motor);
-
-
-#define _f_to_period(f) (uint16_t)((float)F_CPU / (float)f)
-
-enum {
-  MOTOR_1,
-  MOTOR_2,
-  MOTOR_3,
-  MOTOR_4,
-  MOTOR_5,
-  MOTOR_6,
-};
-
-static VPORT_t *vports[] = {
-  &PORT_MOTOR_1_VPORT,
-  &PORT_MOTOR_2_VPORT,
-  &PORT_MOTOR_3_VPORT,
-  &PORT_MOTOR_4_VPORT
-};
 
 
 /* Initialize stepper motor subsystem
@@ -93,27 +80,20 @@ static VPORT_t *vports[] = {
 void stepper_init() {
   memset(&st_run, 0, sizeof(st_run)); // clear all values, pointers and status
 
-  // Configure virtual ports
-  PORTCFG.VPCTRLA =
-    PORTCFG_VP0MAP_PORT_MOTOR_1_gc | PORTCFG_VP1MAP_PORT_MOTOR_2_gc;
-  PORTCFG.VPCTRLB =
-    PORTCFG_VP2MAP_PORT_MOTOR_3_gc | PORTCFG_VP3MAP_PORT_MOTOR_4_gc;
-
-  // setup ports and data structures
+  // Setup ports
   for (uint8_t i = 0; i < MOTORS; i++) {
-    // motors outputs & GPIO1 and GPIO2 inputs
     hw.st_port[i]->DIR = MOTOR_PORT_DIR_gm;
     hw.st_port[i]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
   }
 
-  // setup DDA timer
+  // Setup DDA timer
   TIMER_DDA.CTRLA = STEP_TIMER_DISABLE;        // turn timer off
   TIMER_DDA.CTRLB = STEP_TIMER_WGMODE;         // waveform mode
   TIMER_DDA.INTCTRLA = TIMER_DDA_INTLVL;       // interrupt mode
 
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
 
-  // defaults
+  // Defaults
   st_cfg.motor_power_timeout = MOTOR_IDLE_TIMEOUT;
 
   st_cfg.mot[MOTOR_1].motor_map =  M1_MOTOR_MAP;
@@ -122,30 +102,27 @@ void stepper_init() {
   st_cfg.mot[MOTOR_1].microsteps = M1_MICROSTEPS;
   st_cfg.mot[MOTOR_1].polarity =   M1_POLARITY;
   st_cfg.mot[MOTOR_1].power_mode = M1_POWER_MODE;
-#if 1 < MOTORS
+
   st_cfg.mot[MOTOR_2].motor_map =  M2_MOTOR_MAP;
   st_cfg.mot[MOTOR_2].step_angle = M2_STEP_ANGLE;
   st_cfg.mot[MOTOR_2].travel_rev = M2_TRAVEL_PER_REV;
   st_cfg.mot[MOTOR_2].microsteps = M2_MICROSTEPS;
   st_cfg.mot[MOTOR_2].polarity =   M2_POLARITY;
   st_cfg.mot[MOTOR_2].power_mode = M2_POWER_MODE;
-#endif
-#if 2 < MOTORS
+
   st_cfg.mot[MOTOR_3].motor_map =  M3_MOTOR_MAP;
   st_cfg.mot[MOTOR_3].step_angle = M3_STEP_ANGLE;
   st_cfg.mot[MOTOR_3].travel_rev = M3_TRAVEL_PER_REV;
   st_cfg.mot[MOTOR_3].microsteps = M3_MICROSTEPS;
   st_cfg.mot[MOTOR_3].polarity =   M3_POLARITY;
   st_cfg.mot[MOTOR_3].power_mode = M3_POWER_MODE;
-#endif
-#if 3 < MOTORS
+
   st_cfg.mot[MOTOR_4].motor_map =  M4_MOTOR_MAP;
   st_cfg.mot[MOTOR_4].step_angle = M4_STEP_ANGLE;
   st_cfg.mot[MOTOR_4].travel_rev = M4_TRAVEL_PER_REV;
   st_cfg.mot[MOTOR_4].microsteps = M4_MICROSTEPS;
   st_cfg.mot[MOTOR_4].polarity =   M4_POLARITY;
   st_cfg.mot[MOTOR_4].power_mode = M4_POWER_MODE;
-#endif
 
   // Init steps per unit
   for (int m = 0; m < MOTORS; m++) _update_steps_per_unit(m);
@@ -171,36 +148,34 @@ void st_reset() {
 }
 
 
+/// returns 1 if motor is enabled (motor is actually active low)
 static uint8_t _motor_is_enabled(uint8_t motor) {
-  uint8_t port = 0xff;
-  if (motor < 4) port = vports[motor]->OUT;
-  // returns 1 if motor is enabled (motor is actually active low)
+  uint8_t port = motor < MOTORS ? hw.st_port[motor]->OUT : 0xff;
   return port & MOTOR_ENABLE_BIT_bm ? 0 : 1;
 }
 
 
 /// Remove power from a motor
 static void _deenergize_motor(const uint8_t motor) {
-  if (motor < 4) vports[motor]->OUT |= MOTOR_ENABLE_BIT_bm;
+  if (motor < MOTORS) hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm;
   st_run.mot[motor].power_state = MOTOR_OFF;
 }
 
 
 /// Apply power to a motor
 static void _energize_motor(const uint8_t motor) {
-  if (st_cfg.mot[motor].power_mode == MOTOR_DISABLED) {
-    _deenergize_motor(motor);
-    return;
-  }
+  if (st_cfg.mot[motor].power_mode == MOTOR_DISABLED) _deenergize_motor(motor);
 
-  if (motor < 4) vports[motor]->OUT &= ~MOTOR_ENABLE_BIT_bm;
-  st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
+  else {
+    if (motor < MOTORS) hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm;
+    st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
+  }
 }
 
 
 /// Apply power to all motors
 void st_energize_motors() {
-  for (uint8_t motor = MOTOR_1; motor < MOTORS; motor++) {
+  for (uint8_t motor = 0; motor < MOTORS; motor++) {
     _energize_motor(motor);
     st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
   }
@@ -209,7 +184,7 @@ void st_energize_motors() {
 
 /// Remove power from all motors
 void st_deenergize_motors() {
-  for (uint8_t motor = MOTOR_1; motor < MOTORS; motor++)
+  for (uint8_t motor = 0; motor < MOTORS; motor++)
     _deenergize_motor(motor);
 }
 
@@ -219,39 +194,32 @@ void st_deenergize_motors() {
 /// Handles motor power-down timing, low-power idle, and adaptive motor power
 stat_t st_motor_power_callback() { // called by controller
   // Manage power for each motor individually
-  for (uint8_t m = 0; m < MOTORS; m++) {
-    // De-energize motor if it's set to MOTOR_DISABLED
-    if (st_cfg.mot[m].power_mode == MOTOR_DISABLED) {
-      _deenergize_motor(m);
-      continue;
-    }
+  for (int motor = 0; motor < MOTORS; motor++)
+    switch (st_cfg.mot[motor].power_mode) {
+    case MOTOR_ALWAYS_POWERED:
+      if (!_motor_is_enabled(motor)) _energize_motor(motor);
+      break;
 
-    // Energize motor if it's set to MOTOR_ALWAYS_POWERED
-    if (st_cfg.mot[m].power_mode == MOTOR_ALWAYS_POWERED) {
-      if (!_motor_is_enabled(m)) _energize_motor(m);
-      continue;
-    }
+    case MOTOR_POWERED_IN_CYCLE: case MOTOR_POWERED_ONLY_WHEN_MOVING:
+      if (st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_START) {
+        // Start a countdown
+        st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_COUNTDOWN;
+        st_run.mot[motor].power_systick = rtc_get_time() +
+          (st_cfg.motor_power_timeout * 1000);
+      }
 
-    // Start a countdown if MOTOR_POWERED_IN_CYCLE or
-    // MOTOR_POWERED_ONLY_WHEN_MOVING
-    if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_START) {
-      st_run.mot[m].power_state = MOTOR_POWER_TIMEOUT_COUNTDOWN;
-      st_run.mot[m].power_systick = rtc_get_time() +
-        (st_cfg.motor_power_timeout * 1000);
-    }
-
-    // Do not process countdown if in a feedhold
-    if (cm_get_combined_state() == COMBINED_HOLD) continue;
-
-    // Run the countdown if you are in a countdown
-    if (st_run.mot[m].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN) {
-      if (rtc_get_time() > st_run.mot[m].power_systick) {
-        st_run.mot[m].power_state = MOTOR_IDLE;
-        _deenergize_motor(m);
+      // Run the countdown if not in feedhold and in a countdown
+      if (cm_get_combined_state() != COMBINED_HOLD &&
+          st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN &&
+          rtc_get_time() > st_run.mot[motor].power_systick) {
+        st_run.mot[motor].power_state = MOTOR_IDLE;
+        _deenergize_motor(motor);
         report_request(); // request a status report when motors shut down
       }
+      break;
+
+    default: _deenergize_motor(motor); break; // Motor disabled
     }
-  }
 
   return STAT_OK;
 }
@@ -261,7 +229,7 @@ static inline void _step_motor(int motor) {
   st_run.mot[motor].substep_accumulator += st_run.mot[motor].substep_increment;
 
   if (0 < st_run.mot[motor].substep_accumulator) {
-    vports[motor]->OUT ^= STEP_BIT_bm; // toggle step line
+    hw.st_port[motor]->OUTTGL = STEP_BIT_bm; // toggle step line
     st_run.mot[motor].substep_accumulator -= st_run.dda_ticks_X_substeps;
     INCREMENT_ENCODER(motor);
   }
@@ -355,11 +323,11 @@ static inline void _load_motor_move(int motor) {
     if (prep_mot->direction != prep_mot->prev_direction) {
       prep_mot->prev_direction = prep_mot->direction;
       run_mot->substep_accumulator =
-        -(st_run.dda_ticks_X_substeps + run_mot->substep_accumulator);
+        -st_run.dda_ticks_X_substeps - run_mot->substep_accumulator;
 
       if (prep_mot->direction == DIRECTION_CW)
-        vports[motor]->OUT &= ~DIRECTION_BIT_bm;
-      else vports[motor]->OUT |= DIRECTION_BIT_bm;
+        hw.st_port[motor]->OUTCLR = DIRECTION_BIT_bm;
+      else hw.st_port[motor]->OUTSET = DIRECTION_BIT_bm;
     }
 
     SET_ENCODER_STEP_SIGN(motor, prep_mot->step_sign);
@@ -368,7 +336,7 @@ static inline void _load_motor_move(int motor) {
   // Enable the stepper and start motor power management
   if ((run_mot->substep_increment && cfg_mot->power_mode != MOTOR_DISABLED) ||
       cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE) {
-    vports[motor]->OUT &= ~MOTOR_ENABLE_BIT_bm;       // energize motor
+    hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm; // energize motor
     run_mot->power_state = MOTOR_POWER_TIMEOUT_START; // start power management
   }
 
@@ -394,15 +362,13 @@ static void _load_move() {
   // Be aware that dda_ticks_downcount must equal zero for the loader to run.
   // So the initial load must also have this set to zero as part of
   // initialization
-  if (st_runtime_isbusy()) return; // exit if the runtime is busy
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_LOADER)
-    return; // no more moves to load
+  if (st_runtime_isbusy() || st_pre.buffer_state != PREP_BUFFER_OWNED_BY_LOADER)
+    return; // exit if the runtime is busy or there are no more moves
 
   st_run.move_type = st_pre.move_type;
 
-  // Handle aline loads first (most common case)
-  if (st_pre.move_type == MOVE_TYPE_ALINE) {
-    // Setup the new segment
+  switch (st_pre.move_type) {
+  case MOVE_TYPE_ALINE: // Setup the new segment
     st_run.dda_ticks_downcount = st_pre.dda_ticks;
     st_run.dda_ticks_X_substeps = st_pre.dda_ticks_X_substeps;
 
@@ -412,21 +378,28 @@ static void _load_move() {
     _load_motor_move(MOTOR_4);
 
     // do this last
-    TIMER_DDA.PER = st_pre.dda_period;
+    TIMER_DDA.PER = DDA_PERIOD;
     TIMER_DDA.CTRLA = STEP_TIMER_ENABLE; // enable the DDA timer
+    break;
 
-  } else if (st_pre.move_type == MOVE_TYPE_DWELL) {
-    // handle dwells
+  case MOVE_TYPE_DWELL: // handle dwells
     st_run.dda_ticks_downcount = st_pre.dda_ticks;
-    TIMER_DDA.PER = st_pre.dda_period;   // load dwell timer period
+    TIMER_DDA.PER = DDA_PERIOD;          // load dwell timer period
     TIMER_DDA.CTRLA = STEP_TIMER_ENABLE; // enable the dwell timer
+    break;
 
-  } else if (st_pre.move_type == MOVE_TYPE_COMMAND)
-    // handle synchronous commands
+  case MOVE_TYPE_COMMAND: // handle synchronous commands
     mp_runtime_command(st_pre.bf);
+    // Fall through
 
-  // all other cases drop to here (e.g. Null moves after Mcodes skip to here)
+  default:
+    TIMER_DDA.CTRLA = STEP_TIMER_DISABLE;
+    break;
+  }
+
+  // all other cases skip to here (e.g. Null moves after Mcodes skip to here)
   st_pre.move_type = MOVE_TYPE_0;
+
   // we are done with the prep buffer - flip the flag back
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
   st_request_exec_move(); // exec and prep next move
@@ -477,9 +450,8 @@ stat_t st_prep_line(float travel_steps[], float following_error[],
   //   segment
   // - ticks_X_substeps is the maximum depth of the DDA accumulator (as a
   //   negative number)
-  st_pre.dda_period = _f_to_period(FREQUENCY_DDA);
-  // converts minutes to seconds
-  st_pre.dda_ticks = (int32_t)(segment_time * 60 * FREQUENCY_DDA);
+  // convert minutes to seconds
+  st_pre.dda_ticks = (int32_t)(segment_time * 60 * STEP_CLOCK_FREQ);
   st_pre.dda_ticks_X_substeps = st_pre.dda_ticks * DDA_SUBSTEPS;
 
   // setup motor parameters
@@ -573,8 +545,7 @@ void st_prep_command(void *bf) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float microseconds) {
   st_pre.move_type = MOVE_TYPE_DWELL;
-  st_pre.dda_period = _f_to_period(FREQUENCY_DDA);
-  st_pre.dda_ticks = microseconds / 1000000 * FREQUENCY_DDA;
+  st_pre.dda_ticks = microseconds / 1000000 * STEP_CLOCK_FREQ;
   st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
 }
 

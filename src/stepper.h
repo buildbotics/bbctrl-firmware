@@ -320,6 +320,12 @@ enum cmMotorPowerMode {
 };
 
 
+enum {
+  MOTOR_POLARITY_NORMAL,
+  MOTOR_POLARITY_REVERSED
+};
+
+
 /// Min/Max timeouts allowed for motor disable.  Allow for inertial stop.
 /// Must be non-zero
 #define MOTOR_TIMEOUT_SECONDS_MIN (float)0.1
@@ -346,7 +352,7 @@ enum cmMotorPowerMode {
  *
  *     MAX_LONG            2^31, maximum signed long (depth of accumulator.
  *                         values are negative)
- *     FREQUENCY_DDA       DDA clock rate in Hz.
+ *     STEP_CLOCK_FREQ     DDA clock rate in Hz.
  *     NOM_SEGMENT_TIME    upper bound of segment time in minutes
  *     0.90                a safety factor used to reduce the result from
  *                         theoretical maximum
@@ -355,7 +361,7 @@ enum cmMotorPowerMode {
  * millisecond segments
  */
 #define DDA_SUBSTEPS \
-  ((MAX_LONG * 0.90) / (FREQUENCY_DDA * (NOM_SEGMENT_TIME * 60)))
+  ((MAX_LONG * 0.90) / (STEP_CLOCK_FREQ * (NOM_SEGMENT_TIME * 60)))
 
 
 /* Step correction settings
@@ -460,7 +466,6 @@ typedef struct stPrepSingleton {
   struct mpBuffer *bf;           // static pointer to relevant buffer
   uint8_t move_type;             // move type
 
-  uint16_t dda_period;           // DDA or dwell clock period setting
   uint32_t dda_ticks;            // DDA or dwell ticks for the move
   uint32_t dda_ticks_X_substeps; // DDA ticks scaled by substep factor
   stPrepMotor_t mot[MOTORS];     // prep time motor structs

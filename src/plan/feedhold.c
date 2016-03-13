@@ -26,7 +26,7 @@
  * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
  * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+ * OTHER LIABILITY, WHETHER IN AN ACTIN OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
@@ -125,8 +125,7 @@ stat_t mp_plan_hold_callback() {
     return STAT_NOOP; // not planning a feedhold
 
   mpBuf_t *bp; // working buffer pointer
-  if ((bp = mp_get_run_buffer()) == 0)
-    return STAT_NOOP; // Oops! nothing's running
+  if (!(bp = mp_get_run_buffer())) return STAT_NOOP; // Oops! nothing's running
 
   uint8_t mr_flag = true;    // used to tell replan to account for mr buffer Vx
   float mr_available_length; // length left in mr buffer for deceleration

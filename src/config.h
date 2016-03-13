@@ -17,16 +17,11 @@
 #define PWMS         2           // number of supported PWM channels
 
 // Motor settings
-#define STEP_CLOCK_FREQ 25000
-#define MOTOR_CURRENT            0.8    // 1.0 is full power
+#define STEP_CLOCK_FREQ          25000 // Hz
+#define MOTOR_CURRENT            0.8   // 1.0 is full power
 #define MOTOR_MICROSTEPS         16
-
-/// One of: MOTOR_DISABLED, MOTOR_ALWAYS_POWERED, MOTOR_POWERED_IN_CYCLE,
-///   MOTOR_POWERED_ONLY_WHEN_MOVING
-#define MOTOR_POWER_MODE         MOTOR_ALWAYS_POWERED
-
-/// Seconds to maintain motor at full power before idling
-#define MOTOR_IDLE_TIMEOUT       2.00
+#define MOTOR_POWER_MODE         MOTOR_ALWAYS_POWERED // See stepper.c
+#define MOTOR_IDLE_TIMEOUT       2.00  // secs, motor off after this time
 
 #define MAX_VELOCITY(angle, travel, mstep) \
   (0.98 * (angle) * (travel) * STEP_CLOCK_FREQ / (mstep) / 6.0)
@@ -35,7 +30,7 @@
 #define M1_STEP_ANGLE            1.8
 #define M1_TRAVEL_PER_REV        1.25
 #define M1_MICROSTEPS            MOTOR_MICROSTEPS
-#define M1_POLARITY              0                   // 0=normal, 1=reversed
+#define M1_POLARITY              MOTOR_POLARITY_NORMAL
 #define M1_POWER_MODE            MOTOR_POWER_MODE
 #define M1_POWER_LEVEL           MOTOR_POWER_LEVEL
 
@@ -43,47 +38,29 @@
 #define M2_STEP_ANGLE            1.8
 #define M2_TRAVEL_PER_REV        1.25
 #define M2_MICROSTEPS            MOTOR_MICROSTEPS
-#define M2_POLARITY              0
+#define M2_POLARITY              MOTOR_POLARITY_NORMAL
 #define M2_POWER_MODE            MOTOR_POWER_MODE
 #define M2_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 #define M3_MOTOR_MAP             AXIS_A
 #define M3_STEP_ANGLE            1.8
-#define M3_TRAVEL_PER_REV        1.25
+#define M3_TRAVEL_PER_REV        360 // degrees per motor rev
 #define M3_MICROSTEPS            MOTOR_MICROSTEPS
-#define M3_POLARITY              0
+#define M3_POLARITY              MOTOR_POLARITY_NORMAL
 #define M3_POWER_MODE            MOTOR_POWER_MODE
 #define M3_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 #define M4_MOTOR_MAP             AXIS_Z
 #define M4_STEP_ANGLE            1.8
-#define M4_TRAVEL_PER_REV        360            // degrees moved per motor rev
+#define M4_TRAVEL_PER_REV        1.25
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
-#define M4_POLARITY              0
+#define M4_POLARITY              MOTOR_POLARITY_NORMAL
 #define M4_POWER_MODE            MOTOR_POWER_MODE
 #define M4_POWER_LEVEL           MOTOR_POWER_LEVEL
 
-#define M5_MOTOR_MAP             AXIS_B
-#define M5_STEP_ANGLE            1.8
-#define M5_TRAVEL_PER_REV        360
-#define M5_MICROSTEPS            MOTOR_MICROSTEPS
-#define M5_POLARITY              0
-#define M5_POWER_MODE            MOTOR_POWER_MODE
-#define M5_POWER_LEVEL           MOTOR_POWER_LEVEL
 
-#define M6_MOTOR_MAP             AXIS_C
-#define M6_STEP_ANGLE            1.8
-#define M6_TRAVEL_PER_REV        360
-#define M6_MICROSTEPS            MOTOR_MICROSTEPS
-#define M6_POLARITY              0
-#define M6_POWER_MODE            MOTOR_POWER_MODE
-#define M6_POWER_LEVEL           MOTOR_POWER_LEVEL
-
-
-// Switch settings
-/// one of: SW_TYPE_NORMALLY_OPEN, SW_TYPE_NORMALLY_CLOSED
+// Switch settings.  See switch.h
 #define SWITCH_TYPE              SW_TYPE_NORMALLY_OPEN
-/// SW_MODE_DISABLED, SW_MODE_HOMING, SW_MODE_LIMIT, SW_MODE_HOMING_LIMIT
 #define X_SWITCH_MODE_MIN        SW_MODE_HOMING
 #define X_SWITCH_MODE_MAX        SW_MODE_DISABLED
 #define Y_SWITCH_MODE_MIN        SW_MODE_HOMING
@@ -97,8 +74,10 @@
 #define C_SWITCH_MODE_MIN        SW_MODE_HOMING
 #define C_SWITCH_MODE_MAX        SW_MODE_DISABLED
 
+
 // Jog settings
 #define JOG_ACCELERATION          50000  // mm/min^2
+
 
 // Machine settings
 #define CHORDAL_TOLERANCE         0.01   // chordal accuracy for arc drawing
@@ -113,7 +92,7 @@
   MAX_VELOCITY(M1_STEP_ANGLE, M1_TRAVEL_PER_REV, MOTOR_MICROSTEPS)
 #define FEEDRATE_MAX             VELOCITY_MAX
 
-// see canonical_machine.h cmAxisMode for valid values
+// See canonical_machine.h cmAxisMode for valid values
 #define X_AXIS_MODE              AXIS_STANDARD
 #define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
 #define X_FEEDRATE_MAX           FEEDRATE_MAX  // G1 max feed rate in mm/min
@@ -213,8 +192,7 @@
 
 // Gcode defaults
 #define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-// CANON_PLANE_XY, CANON_PLANE_XZ, or CANON_PLANE_YZ
-#define GCODE_DEFAULT_PLANE         CANON_PLANE_XY
+#define GCODE_DEFAULT_PLANE         CANON_PLANE_XY // See canonical_machine.h
 #define GCODE_DEFAULT_COORD_SYSTEM  G54 // G54, G55, G56, G57, G58 or G59
 #define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
@@ -233,51 +211,37 @@
 #define MILLISECONDS_PER_TICK 1  // MS for system tick (systick * N)
 #define SYS_ID_LEN 12            // length of system ID string from sys_get_id()
 
-// Clock Crystal Config. Pick one:
-//#define __CLOCK_INTERNAL_32MHZ TRUE // use internal oscillator
-//#define __CLOCK_EXTERNAL_8MHZ TRUE  // uses PLL to provide 32 MHz system clock
-#define __CLOCK_EXTERNAL_16MHZ TRUE   // uses PLL to provide 32 MHz system clock
+// Clock Crystal Config. See clock.c
+#define __CLOCK_EXTERNAL_16MHZ // uses PLL to provide 32 MHz system clock
 
-// Motor, output bit & switch port assignments
-// These are not all the same, and must line up in multiple places in gpio.h
-// Sorry if this is confusing - it's a board routing issue
-#define PORT_MOTOR_1  PORTA        // motors mapped to ports
+// Motors mapped to ports
+#define PORT_MOTOR_1  PORTA
 #define PORT_MOTOR_2  PORTF
 #define PORT_MOTOR_3  PORTE
 #define PORT_MOTOR_4  PORTD
 
-#define PORT_SWITCH_X PORTA        // Switch axes mapped to ports
+// Switch axes mapped to ports
+#define PORT_SWITCH_X PORTA
 #define PORT_SWITCH_Y PORTF
 #define PORT_SWITCH_Z PORTE
 #define PORT_SWITCH_A PORTD
 
+// Axes mapped to output ports
 #define PORT_OUT_X    PORTA
 #define PORT_OUT_Y    PORTF
 #define PORT_OUT_Z    PORTE
 #define PORT_OUT_A    PORTD
 
-// These next four must be changed when the PORT_MOTOR_* definitions change!
-#define PORTCFG_VP0MAP_PORT_MOTOR_1_gc PORTCFG_VP02MAP_PORTA_gc
-#define PORTCFG_VP1MAP_PORT_MOTOR_2_gc PORTCFG_VP13MAP_PORTF_gc
-#define PORTCFG_VP2MAP_PORT_MOTOR_3_gc PORTCFG_VP02MAP_PORTE_gc
-#define PORTCFG_VP3MAP_PORT_MOTOR_4_gc PORTCFG_VP13MAP_PORTD_gc
-
-#define PORT_MOTOR_1_VPORT VPORT0
-#define PORT_MOTOR_2_VPORT VPORT1
-#define PORT_MOTOR_3_VPORT VPORT2
-#define PORT_MOTOR_4_VPORT VPORT3
-
 /*
- * Port setup - Stepper / Switch Ports:
- *    b0    (out) step             (SET is step,  CLR is rest)
- *    b1    (out) direction        (CLR = Clockwise)
- *    b2    (out) motor enable     (CLR = Enabled)
+ * Port setup - stepper / switch ports:
+ *    b0    (out) step
+ *    b1    (out) direction        (low = clockwise)
+ *    b2    (out) motor enable     (low = enabled)
  *    b3    (out) chip select
  *    b4    (in)  fault
- *    b5    (out) output bit for GPIO port1
- *    b6    (in)  min limit switch on GPIO 2 *
- *    b7    (in)  max limit switch on GPIO 2 *
- *  * motor controls and GPIO2 port mappings are not the same
+ *    b5    (out) output bit for GPIO port 1
+ *    b6    (in)  min limit switch on GPIO 2
+ *    b7    (in)  max limit switch on GPIO 2
  */
 #define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
@@ -308,16 +272,10 @@ enum cfgPortBits {        // motor control port bit positions
 #define MIST_COOLANT_BIT    1 // coolant on/off (same as flood)
 #define FLOOD_COOLANT_BIT   1 // coolant on/off (same as mist)
 
-#define SPINDLE_LED         0
-#define SPINDLE_DIR_LED     1
-#define SPINDLE_PWM_LED     2
-#define COOLANT_LED         3
-
-// Can use the spindle direction as an indicator LED
+// Can use the spindle direction as an indicator LED.  See gpio.h
 #define INDICATOR_LED       SPINDLE_DIR_LED
 
-/*
- * Interrupt usage - TinyG uses a lot of them all over the place
+/* Interrupt usage:
  *
  *    HI    Stepper DDA pulse generation         (set in stepper.h)
  *    HI    Stepper load routine SW interrupt    (set in stepper.h)
@@ -335,23 +293,24 @@ enum cfgPortBits {        // motor control port bit positions
  */
 
 // Timer assignments - see specific modules for details
-#define TIMER_DDA           TCC0 // DDA timer       (see stepper.h)
-#define TIMER_TMC2660       TCC1 // TMC2660 timer   (see tmc2660.h)
-#define TIMER_PWM1          TCD1 // PWM timer #1    (see pwm.c)
-#define TIMER_PWM2          TCD1 // PWM timer #2    (see pwm.c)
+#define TIMER_DDA           TCC0 // DDA timer     (see stepper.h)
+#define TIMER_TMC2660       TCC1 // TMC2660 timer (see tmc2660.h)
+#define TIMER_PWM1          TCD1 // PWM timer #1  (see pwm.c)
+#define TIMER_PWM2          TCD1 // PWM timer #2  (see pwm.c)
 #define TIMER_MOTOR1        TCE1
 #define TIMER_MOTOR2        TCF0
 #define TIMER_MOTOR3        TCE0
 #define TIMER_MOTOR4        TCD0
 
 // Timer setup for stepper and dwells
-#define FREQUENCY_DDA        STEP_CLOCK_FREQ // DDA frequency in hz.
-#define STEP_TIMER_DISABLE   0     // turn timer off
-#define STEP_TIMER_ENABLE    1     // turn timer clock on
-#define STEP_TIMER_WGMODE    0     // normal mode (count to TOP and rollover)
+#define STEP_TIMER_DISABLE   0     // timer clock off
+#define STEP_TIMER_ENABLE    1     // timer clock on
+#define STEP_TIMER_WGMODE    0     // normal mode (count to TOP & rollover)
 #define TIMER_DDA_ISR_vect   TCC0_OVF_vect
-#define TIMER_DDA_INTLVL     3     // Timer overflow HI
+#define TIMER_DDA_INTLVL     3     // timer overflow HI
 
+
+// PWM settings
 #define PWM1_CTRLB           (3 | TC1_CCBEN_bm) // single slope PWM channel B
 #define PWM1_ISR_vect        TCD1_CCB_vect
 #define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc

@@ -56,12 +56,10 @@ static stat_t _exec_jog(mpBuf_t *bf) {
   // Check if we are done
   if (done) {
     // Update machine position
-    for (uint8_t axis = 0; axis < AXES; axis++) {
+    for (int motor = 0; motor < MOTORS; motor++) {
+      int axis = st_cfg.mot[motor].motor_map;
       float steps = en_read_encoder(axis);
-
-      for (int motor = 0; motor < MOTORS; motor++)
-        if (st_cfg.mot[motor].motor_map == axis)
-          cm_set_position(axis, steps / st_cfg.mot[motor].steps_per_unit);
+      cm_set_position(axis, steps / st_cfg.mot[motor].steps_per_unit);
     }
 
     // Release queue

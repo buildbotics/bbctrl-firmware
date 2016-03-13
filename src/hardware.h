@@ -36,7 +36,6 @@
 
 #pragma once
 
-
 #include "status.h"
 #include "config.h"
 
@@ -55,7 +54,8 @@ typedef struct {
   PORT_t *sw_port[MOTORS];  // bindings for switch ports (GPIO2)
   PORT_t *out_port[MOTORS]; // bindings for output ports (GPIO1)
 } hwSingleton_t;
-hwSingleton_t hw;
+extern hwSingleton_t hw;
+
 
 void hardware_init();
 void hw_get_id(char *id);

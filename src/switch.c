@@ -165,7 +165,7 @@ void switch_rtc_callback() {
       continue;
     }
 
-    if (sw.count[i] == 0) { // trigger point
+    if (!sw.count[i]) { // trigger point
       sw.sw_num_thrown = i; // record number of thrown switch
       sw.debounce[i] = SW_LOCKOUT;
 
@@ -209,7 +209,7 @@ void reset_switches() {
 
 /// read a switch directly with no interrupts or deglitching
 uint8_t read_switch(uint8_t sw_num) {
-  if ((sw_num < 0) || (sw_num >= NUM_SWITCHES)) return SW_DISABLED;
+  if (sw_num < 0 || sw_num >= NUM_SWITCHES) return SW_DISABLED;
 
   uint8_t read = 0;
   switch (sw_num) {
@@ -225,8 +225,8 @@ uint8_t read_switch(uint8_t sw_num) {
 
   // A NO switch drives the pin LO when thrown
   if (sw.switch_type == SW_TYPE_NORMALLY_OPEN)
-    sw.state[sw_num] = (read == 0) ? SW_CLOSED : SW_OPEN;
-  else sw.state[sw_num] = (read != 0) ? SW_CLOSED : SW_OPEN;
+    sw.state[sw_num] = read ? SW_OPEN : SW_CLOSED;
+  else sw.state[sw_num] = read ? SW_CLOSED : SW_OPEN;
 
   return sw.state[sw_num];
 }

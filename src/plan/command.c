@@ -70,8 +70,7 @@ static stat_t _exec_command(mpBuf_t *bf) {
 
 
 /// Queue a synchronous Mcode, program control, or other command
-void mp_queue_command(void(*cm_exec)(float[], float[]), float *value,
-                      float *flag) {
+void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
   mpBuf_t *bf;
 
   // Never supposed to fail as buffer availability was checked upstream in the

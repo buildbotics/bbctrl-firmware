@@ -269,15 +269,14 @@ void mp_flush_planner();
 void mp_set_planner_position(uint8_t axis, const float position);
 void mp_set_runtime_position(uint8_t axis, const float position);
 void mp_set_steps_to_runtime_position();
-
-// line.c functions
 float mp_get_runtime_velocity();
 float mp_get_runtime_work_position(uint8_t axis);
 float mp_get_runtime_absolute_position(uint8_t axis);
 void mp_set_runtime_work_offset(float offset[]);
 void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
-float* mp_get_planner_position_vector();
+
+// line.c functions
 void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
 stat_t mp_aline(GCodeState_t *gm_in);
 
@@ -315,8 +314,7 @@ void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);
 stat_t mp_dwell(const float seconds);
 
 // command.c functions
-typedef void (*cm_exec_t)(float[], float[]);
-void mp_queue_command(cm_exec_t, float *value, float *flag);
+void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
 void mp_runtime_command(mpBuf_t *bf);
 
 

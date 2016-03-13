@@ -51,24 +51,19 @@
  * loading. See stepper.c for details.
  */
 void ik_kinematics(const float travel[], float steps[]) {
-  float joint[AXES];
-
   // you can insert inverse kinematics transformations here
-  //  _inverse_kinematics(travel, joint);
-
-  //...or just do a memcpy for Cartesian machines
-  memcpy(joint, travel, sizeof(float) * AXES);
+  //   float joint[AXES];
+  //   _inverse_kinematics(travel, joint);
+  // ...or just use travel directly for Cartesian machines
 
   // Map motors to axes and convert length units to steps
   // Most of the conversion math has already been done during config in
   // steps_per_unit() which takes axis travel, step angle and microsteps into
   // account.
-  for (uint8_t axis = 0; axis < AXES; axis++) {
-    if (cm.a[axis].axis_mode == AXIS_INHIBITED) joint[axis] = 0;
-
-    for (int i = 0; i < MOTORS; i++)
-      if (st_cfg.mot[i].motor_map == axis)
-        steps[i] = joint[axis] * st_cfg.mot[i].steps_per_unit;
+  for (int motor = 0; motor < MOTORS; motor++) {
+    int axis = st_cfg.mot[motor].motor_map;
+    if (cm.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
+    else steps[motor] = travel[axis] * st_cfg.mot[motor].steps_per_unit;
   }
 }
 

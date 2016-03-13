@@ -55,8 +55,8 @@
 #define SW_DEGLITCH_TICKS 3          // 3=30ms
 
 // switch modes
-#define SW_HOMING_BIT 0x01
-#define SW_LIMIT_BIT 0x02
+#define SW_HOMING_BIT         1
+#define SW_LIMIT_BIT          2
 #define SW_MODE_DISABLED      0               // disabled for all operations
 #define SW_MODE_HOMING        SW_HOMING_BIT   // enable switch for homing only
 #define SW_MODE_LIMIT         SW_LIMIT_BIT    // enable switch for limits only

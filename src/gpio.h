@@ -33,8 +33,10 @@
 
 #pragma once
 
-
 #include <stdint.h>
+
+
+enum {SPINDLE_LED, SPINDLE_DIR_LED, SPINDLE_PWM_LED, COOLANT_LED};
 
 void indicator_led_set();
 void indicator_led_clear();

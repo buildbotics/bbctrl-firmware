@@ -37,7 +37,7 @@
  *
  * There are 2 GPIO ports:
  *
- *   gpio1   Located on 5x2 header next to the PDI programming plugs (on v7's)
+ *   gpio1   Located on 5x2 header next to the PDI programming plugs
  *           Four (4) output bits capable of driving 3.3v or 5v logic
  *
  *           Note: On v6 and earlier boards there are also 4 inputs:
@@ -53,41 +53,16 @@
  *           **** These bits CANNOT be used as 5v inputs ****
  */
 
-#include "controller.h"
-#include "hardware.h"
 #include "gpio.h"
-
-#include <avr/interrupt.h>
-
-
-void indicator_led_set() {
-  gpio_led_on(INDICATOR_LED);
-}
+#include "hardware.h"
 
 
-void indicator_led_clear() {
-  gpio_led_off(INDICATOR_LED);
-}
-
-
-void indicator_led_toggle() {
-  gpio_led_toggle(INDICATOR_LED);
-}
-
-
-void gpio_led_on(uint8_t led) {
-  gpio_set_bit_on(8 >> led);
-}
-
-
-void gpio_led_off(uint8_t led) {
-  gpio_set_bit_off(8 >> led);
-}
-
-
-void gpio_led_toggle(uint8_t led) {
-  gpio_set_bit_toggle(8 >> led);
-}
+void indicator_led_set() {gpio_led_on(INDICATOR_LED);}
+void indicator_led_clear() {gpio_led_off(INDICATOR_LED);}
+void indicator_led_toggle() {gpio_led_toggle(INDICATOR_LED);}
+void gpio_led_on(uint8_t led) {gpio_set_bit_on(8 >> led);}
+void gpio_led_off(uint8_t led) {gpio_set_bit_off(8 >> led);}
+void gpio_led_toggle(uint8_t led) {gpio_set_bit_toggle(8 >> led);}
 
 
 uint8_t gpio_read_bit(uint8_t b) {

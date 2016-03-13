@@ -51,16 +51,10 @@ float vector[AXES];    // statically allocated global for vector utilities
 
 /// Test if vectors are equal
 uint8_t vector_equal(const float a[], const float b[]) {
-  if ((fp_EQ(a[AXIS_X], b[AXIS_X])) &&
-      (fp_EQ(a[AXIS_Y], b[AXIS_Y])) &&
-      (fp_EQ(a[AXIS_Z], b[AXIS_Z])) &&
-      (fp_EQ(a[AXIS_A], b[AXIS_A])) &&
-      (fp_EQ(a[AXIS_B], b[AXIS_B])) &&
-      (fp_EQ(a[AXIS_C], b[AXIS_C])))
-    return true;
-
-
-  return false;
+  return
+    fp_EQ(a[AXIS_X], b[AXIS_X]) && fp_EQ(a[AXIS_Y], b[AXIS_Y]) &&
+    fp_EQ(a[AXIS_Z], b[AXIS_Z]) && fp_EQ(a[AXIS_A], b[AXIS_A]) &&
+    fp_EQ(a[AXIS_B], b[AXIS_B]) && fp_EQ(a[AXIS_C], b[AXIS_C]);
 }
 
 
@@ -83,6 +77,7 @@ float *set_vector(float x, float y, float z, float a, float b, float c) {
   vector[AXIS_A] = a;
   vector[AXIS_B] = b;
   vector[AXIS_C] = c;
+
   return vector;
 }
 
@@ -90,14 +85,16 @@ float *set_vector(float x, float y, float z, float a, float b, float c) {
 /// load a single value into a zero vector
 float *set_vector_by_axis(float value, uint8_t axis) {
   clear_vector(vector);
+
   switch (axis) {
-  case (AXIS_X): vector[AXIS_X] = value; break;
-  case (AXIS_Y): vector[AXIS_Y] = value; break;
-  case (AXIS_Z): vector[AXIS_Z] = value; break;
-  case (AXIS_A): vector[AXIS_A] = value; break;
-  case (AXIS_B): vector[AXIS_B] = value; break;
-  case (AXIS_C): vector[AXIS_C] = value;
+  case AXIS_X: vector[AXIS_X] = value; break;
+  case AXIS_Y: vector[AXIS_Y] = value; break;
+  case AXIS_Z: vector[AXIS_Z] = value; break;
+  case AXIS_A: vector[AXIS_A] = value; break;
+  case AXIS_B: vector[AXIS_B] = value; break;
+  case AXIS_C: vector[AXIS_C] = value; break;
   }
+
   return vector;
 }
 
@@ -219,9 +216,9 @@ uint16_t compute_checksum(char const *string, const uint16_t length) {
   uint32_t h = 0;
   uint16_t len = strlen(string);
 
-  if (length != 0) len = min(len, length);
+  if (length) len = min(len, length);
 
-  for (uint16_t i=0; i<len; i++)
+  for (uint16_t i = 0; i < len; i++)
     h = 31 * h + string[i];
 
   return h % HASHMASK;

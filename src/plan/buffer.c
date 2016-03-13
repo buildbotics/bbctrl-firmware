@@ -143,8 +143,8 @@ void mp_commit_write_buffer(const uint8_t move_type) {
  */
 mpBuf_t *mp_get_run_buffer() {
   // CASE: fresh buffer; becomes running if queued or pending
-  if ((mb.r->buffer_state == MP_BUFFER_QUEUED) ||
-      (mb.r->buffer_state == MP_BUFFER_PENDING))
+  if (mb.r->buffer_state == MP_BUFFER_QUEUED ||
+      mb.r->buffer_state == MP_BUFFER_PENDING)
     mb.r->buffer_state = MP_BUFFER_RUNNING;
 
   // CASE: asking for the same run buffer for the Nth time

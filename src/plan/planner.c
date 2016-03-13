@@ -158,3 +158,34 @@ void mp_set_steps_to_runtime_position() {
 }
 
 
+/// Correct velocity in last segment for reporting purposes
+void mp_zero_segment_velocity() {mr.segment_velocity = 0;}
+
+
+/// Returns current velocity (aggregate)
+float mp_get_runtime_velocity() {return mr.segment_velocity;}
+
+
+/// Returns current axis position in machine coordinates
+float mp_get_runtime_absolute_position(uint8_t axis) {return mr.position[axis];}
+
+
+/// Set offsets in the MR struct
+void mp_set_runtime_work_offset(float offset[]) {
+  copy_vector(mr.gm.work_offset, offset);
+}
+
+
+/// Returns current axis position in work coordinates
+/// that were in effect at move planning time
+float mp_get_runtime_work_position(uint8_t axis) {
+  return mr.position[axis] - mr.gm.work_offset[axis];
+}
+
+
+/// Return TRUE if motion control busy (i.e. robot is moving)
+/// Use this function to sync to the queue. If you wait until it returns
+/// FALSE you know the queue is empty and the motors have stopped.
+uint8_t mp_get_runtime_busy() {
+  return st_runtime_isbusy() || mr.move_state == MOVE_RUN;
+}
