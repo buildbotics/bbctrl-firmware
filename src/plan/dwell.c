@@ -43,8 +43,7 @@
 
 /// Dwell execution
 static stat_t _exec_dwell(mpBuf_t *bf) {
-  // convert seconds to uSec
-  st_prep_dwell((uint32_t)(bf->gm.move_time * 1000000));
+  st_prep_dwell(bf->gm.move_time); // in seconds
   // free buffer & perform cycle_end if planner is empty
   if (mp_free_run_buffer()) cm_cycle_end();
 

@@ -158,8 +158,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     memcpy(&mr.gm, &(bf->gm), sizeof(GCodeState_t));
     bf->replannable = false;
 
-    // too short lines have already been removed
-    // looks for an actual zero here
+    // short lines have already been removed, look for an actual zero
     if (fp_ZERO(bf->length)) {
       mr.move_state = MOVE_OFF; // reset mr buffer
       mr.section_state = SECTION_OFF;

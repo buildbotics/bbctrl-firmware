@@ -17,18 +17,14 @@
 #define PWMS         2           // number of supported PWM channels
 
 // Motor settings
-#define STEP_CLOCK_FREQ          25000 // Hz
 #define MOTOR_CURRENT            0.8   // 1.0 is full power
 #define MOTOR_MICROSTEPS         16
 #define MOTOR_POWER_MODE         MOTOR_ALWAYS_POWERED // See stepper.c
 #define MOTOR_IDLE_TIMEOUT       2.00  // secs, motor off after this time
 
-#define MAX_VELOCITY(angle, travel, mstep) \
-  (0.98 * (angle) * (travel) * STEP_CLOCK_FREQ / (mstep) / 6.0)
-
 #define M1_MOTOR_MAP             AXIS_X
 #define M1_STEP_ANGLE            1.8
-#define M1_TRAVEL_PER_REV        1.25
+#define M1_TRAVEL_PER_REV        3.175
 #define M1_MICROSTEPS            MOTOR_MICROSTEPS
 #define M1_POLARITY              MOTOR_POLARITY_NORMAL
 #define M1_POWER_MODE            MOTOR_POWER_MODE
@@ -36,7 +32,7 @@
 
 #define M2_MOTOR_MAP             AXIS_Y
 #define M2_STEP_ANGLE            1.8
-#define M2_TRAVEL_PER_REV        1.25
+#define M2_TRAVEL_PER_REV        3.175
 #define M2_MICROSTEPS            MOTOR_MICROSTEPS
 #define M2_POLARITY              MOTOR_POLARITY_NORMAL
 #define M2_POWER_MODE            MOTOR_POWER_MODE
@@ -52,7 +48,7 @@
 
 #define M4_MOTOR_MAP             AXIS_Z
 #define M4_STEP_ANGLE            1.8
-#define M4_TRAVEL_PER_REV        1.25
+#define M4_TRAVEL_PER_REV        3.175
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
 #define M4_POLARITY              MOTOR_POLARITY_NORMAL
 #define M4_POWER_MODE            MOTOR_POWER_MODE
@@ -82,14 +78,13 @@
 // Machine settings
 #define CHORDAL_TOLERANCE         0.01   // chordal accuracy for arc drawing
 #define SOFT_LIMIT_ENABLE         0      // 0 = off, 1 = on
-#define JERK_MAX                  10     // yes, that's "20,000,000" mm/min^3
+#define JERK_MAX                  40     // yes, that's "20,000,000" mm/min^3
 #define JUNCTION_DEVIATION        0.05   // default value, in mm
 #define JUNCTION_ACCELERATION     100000 // centripetal corner acceleration
 
 
 // Axis settings
-#define VELOCITY_MAX                                                \
-  MAX_VELOCITY(M1_STEP_ANGLE, M1_TRAVEL_PER_REV, MOTOR_MICROSTEPS)
+#define VELOCITY_MAX             16000
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 // See canonical_machine.h cmAxisMode for valid values
@@ -232,23 +227,13 @@
 #define PORT_OUT_Z    PORTE
 #define PORT_OUT_A    PORTD
 
-/*
- * Port setup - stepper / switch ports:
- *    b0    (out) step
- *    b1    (out) direction        (low = clockwise)
- *    b2    (out) motor enable     (low = enabled)
- *    b3    (out) chip select
- *    b4    (in)  fault
- *    b5    (out) output bit for GPIO port 1
- *    b6    (in)  min limit switch on GPIO 2
- *    b7    (in)  max limit switch on GPIO 2
- */
 #define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
-enum cfgPortBits {        // motor control port bit positions
+/// motor control port bit positions
+enum cfgPortBits {
   STEP_BIT_bp = 0,        // bit 0
-  DIRECTION_BIT_bp,       // bit 1
-  MOTOR_ENABLE_BIT_bp,    // bit 2
+  DIRECTION_BIT_bp,       // bit 1 (low = clockwise)
+  MOTOR_ENABLE_BIT_bp,    // bit 2 (low = enabled)
   CHIP_SELECT_BIT_bp,     // bit 3
   FAULT_BIT_bp,           // bit 4
   GPIO1_OUT_BIT_bp,       // bit 5 (4 gpio1 output bits; 1 from each axis)
@@ -293,21 +278,27 @@ enum cfgPortBits {        // motor control port bit positions
  */
 
 // Timer assignments - see specific modules for details
-#define TIMER_DDA           TCC0 // DDA timer     (see stepper.h)
-#define TIMER_TMC2660       TCC1 // TMC2660 timer (see tmc2660.h)
-#define TIMER_PWM1          TCD1 // PWM timer #1  (see pwm.c)
-#define TIMER_PWM2          TCD1 // PWM timer #2  (see pwm.c)
-#define TIMER_MOTOR1        TCE1
-#define TIMER_MOTOR2        TCF0
-#define TIMER_MOTOR3        TCE0
-#define TIMER_MOTOR4        TCD0
+#define TIMER_STEP      TCC0 // DDA timer     (see stepper.h)
+#define TIMER_TMC2660   TCC1 // TMC2660 timer (see tmc2660.h)
+#define TIMER_PWM1      TCD1 // PWM timer #1  (see pwm.c)
+#define TIMER_PWM2      TCD1 // PWM timer #2  (see pwm.c)
+#define M1_TIMER        TCE1
+#define M2_TIMER        TCF0
+#define M3_TIMER        TCE0
+#define M4_TIMER        TCD0
+
+#define M1_TIMER_CC     CCA
+#define M2_TIMER_CC     CCA
+#define M3_TIMER_CC     CCA
+#define M4_TIMER_CC     CCA
 
 // Timer setup for stepper and dwells
-#define STEP_TIMER_DISABLE   0     // timer clock off
-#define STEP_TIMER_ENABLE    1     // timer clock on
+#define STEP_TIMER_DISABLE   0
+#define STEP_TIMER_ENABLE    TC_CLKSEL_DIV4_gc
+#define STEP_TIMER_DIV       4
 #define STEP_TIMER_WGMODE    0     // normal mode (count to TOP & rollover)
-#define TIMER_DDA_ISR_vect   TCC0_OVF_vect
-#define TIMER_DDA_INTLVL     3     // timer overflow HI
+#define STEP_TIMER_ISR       TCC0_OVF_vect
+#define STEP_TIMER_INTLVL    3     // timer overflow HI
 
 
 // PWM settings

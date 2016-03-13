@@ -191,7 +191,7 @@ stat_t cm_homing_cycle_start_no_set() {
 stat_t cm_homing_callback() {
   if (cm.cycle_state != CYCLE_HOMING)
     return STAT_NOOP; // exit if not in a homing cycle
-  if (cm_get_runtime_busy()) return STAT_EAGAIN;    // sync to planner move ends
+  if (cm_get_runtime_busy()) return STAT_EAGAIN; // sync to planner move ends
   return hm.func(hm.axis); // execute the current homing move
 }
 

@@ -291,6 +291,7 @@
 #include "config.h"
 #include "status.h"
 
+#include <stdbool.h>
 
 enum prepBufferState {
   PREP_BUFFER_OWNED_BY_LOADER = 0, // staging buffer is ready for load
@@ -335,33 +336,6 @@ enum {
 #define MOTOR_TIMEOUT_SECONDS     (float)0.1
 /// timeout for a motor in _ONLY_WHEN_MOVING mode
 #define MOTOR_TIMEOUT_WHEN_MOVING (float)0.25
-
-/* DDA substepping
- *
- * DDA Substepping is a fixed.point scheme to increase the resolution
- * of the DDA pulse generation while still using integer math (as
- * opposed to floating point). Improving the accuracy of the DDA
- * results in more precise pulse timing and therefore less pulse
- * jitter and smoother motor operation.
- *
- * The DDA accumulator is an int32_t, so the accumulator has the
- * number range of about 2.1 billion.  The DDA_SUBSTEPS is used to
- * multiply step count for a segment to maximally use this number
- * range.  DDA_SUBSTEPS can be computed for a given DDA clock rate and
- * segment time not to exceed available number range. Variables are:
- *
- *     MAX_LONG            2^31, maximum signed long (depth of accumulator.
- *                         values are negative)
- *     STEP_CLOCK_FREQ     DDA clock rate in Hz.
- *     NOM_SEGMENT_TIME    upper bound of segment time in minutes
- *     0.90                a safety factor used to reduce the result from
- *                         theoretical maximum
- *
- * The number is about 8.5 million for the Xmega running a 50 KHz DDA with 5
- * millisecond segments
- */
-#define DDA_SUBSTEPS \
-  ((MAX_LONG * 0.90) / (STEP_CLOCK_FREQ * (NOM_SEGMENT_TIME * 60)))
 
 
 /* Step correction settings
@@ -414,6 +388,7 @@ typedef struct cfgMotor {        // per-motor configs
   float step_angle;              // degrees per whole step (ex: 1.8)
   float travel_rev;              // mm or deg of travel per motor revolution
   float steps_per_unit;          // microsteps per mm (or degree) of travel
+  TC0_t *timer;
 } cfgMotor_t;
 
 
@@ -423,10 +398,8 @@ typedef struct stConfig {        // stepper configs
 } stConfig_t;
 
 
-// Motor runtime structure. Used exclusively by step generation ISR (HI)
+// Motor runtime structure. Used by step generation ISR (HI)
 typedef struct stRunMotor {      // one per controlled motor
-  uint32_t substep_increment;    // total steps in axis times substeps factor
-  int32_t substep_accumulator;   // DDA phase angle accumulator
   uint8_t power_state;           // state machine for managing motor power
   uint32_t power_systick;        // for next motor power state transition
 } stRunMotor_t;
@@ -434,16 +407,18 @@ typedef struct stRunMotor {      // one per controlled motor
 
 typedef struct stRunSingleton {  // Stepper static values and axis parameters
   uint8_t move_type;
-  uint32_t dda_ticks_downcount;  // tick down-counter (unscaled)
-  uint32_t dda_ticks_X_substeps; // ticks multiplied by scaling factor
+  bool busy;
+  uint16_t dwell;
   stRunMotor_t mot[MOTORS];      // runtime motor structures
 } stRunSingleton_t;
 
 
-// Motor prep structure. Used by exec/prep ISR (MED) and read-only during load
+// Motor prep structure. Used by exec/prep ISR (LO) and read-only during load
 // Must be careful about volatiles in this one
 typedef struct stPrepMotor {
-  uint32_t substep_increment;    // total steps in axis times substep factor
+  uint8_t timer_clock;
+  uint16_t timer_period;
+  uint32_t steps;
 
   // direction and direction change
   int8_t direction;              // travel direction corrected for polarity
@@ -465,9 +440,9 @@ typedef struct stPrepSingleton {
   volatile uint8_t buffer_state; // prep buffer state - owned by exec or loader
   struct mpBuffer *bf;           // static pointer to relevant buffer
   uint8_t move_type;             // move type
+  uint16_t seg_period;
+  uint32_t dwell;
 
-  uint32_t dda_ticks;            // DDA or dwell ticks for the move
-  uint32_t dda_ticks_X_substeps; // DDA ticks scaled by substep factor
   stPrepMotor_t mot[MOTORS];     // prep time motor structs
 } stPrepSingleton_t;
 
@@ -487,7 +462,7 @@ stat_t st_motor_power_callback();
 void st_request_exec_move();
 void st_prep_null();
 void st_prep_command(void *bf); // void * since mpBuf_t is not visible here
-void st_prep_dwell(float microseconds);
+void st_prep_dwell(float seconds);
 stat_t st_prep_line(float travel_steps[], float following_error[],
                     float segment_time);
 
