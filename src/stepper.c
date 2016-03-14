@@ -83,7 +83,7 @@ void stepper_init() {
     hw.st_port[i]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
   }
 
-  // Setup step timer (DDA)
+  // Setup step timer
   TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;        // turn timer off
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;         // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL;       // interrupt mode
@@ -243,7 +243,7 @@ ISR(TCE1_CCA_vect) {
 }
 
 
-/// Step timer interrupt routine - service ticks from DDA timer
+/// Step timer interrupt routine
 ISR(STEP_TIMER_ISR) {
   if (st_run.move_type == MOVE_TYPE_DWELL && --st_run.dwell) return;
   st_run.busy = false;
@@ -251,7 +251,7 @@ ISR(STEP_TIMER_ISR) {
 }
 
 
-/// SW interrupt to request to execute a move
+/// "Software" interrupt to request move execution
 void st_request_exec_move() {
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC) {
     ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
@@ -260,10 +260,9 @@ void st_request_exec_move() {
 }
 
 
-/// Interrupt handler for calling exec function
+/// Interrupt handler for calling move exec function.
+/// Uses ADC channel 0 as software interrupt.
 ISR(ADCB_CH0_vect) {
-  // Use ADC channel 0 as software interrupt
-  // Exec move
   if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC &&
       mp_exec_move() != STAT_NOOP) {
     st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // flip it back
@@ -272,7 +271,7 @@ ISR(ADCB_CH0_vect) {
 }
 
 
-/// Fires a software interrupt (timer) to request to load a move
+/// Fires a "software" interrupt to request to load a move
 static void _request_load_move() {
   if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
 
@@ -287,7 +286,7 @@ static void _request_load_move() {
 ISR(ADCB_CH1_vect) {
   // Use ADC channel 1 as software interrupt.
   // _load_move() can only be called be called from an ISR at the same or
-  // higher level as the DDA ISR. A software interrupt is used to allow a
+  // higher level as the step timer ISR. A software interrupt is used to allow a
   // non-ISR to request a load. See st_request_load_move()
   _load_move();
 }
@@ -320,6 +319,7 @@ static inline void _load_motor_move(int motor) {
 
     // Accumulate encoder
     en[motor].encoder_steps += pre_mot->steps * pre_mot->step_sign;
+    pre_mot->steps = 0;
   }
 
   // Energize motor and start power management
@@ -386,10 +386,84 @@ static void _load_move() {
 }
 
 
+static void _prep_motor_line(int motor, float travel_steps, float error) {
+  stPrepMotor_t *pre_mot = &st_pre.mot[motor];
+  cfgMotor_t *cfg_mot = &st_cfg.mot[motor];
+
+  // Disable this motor's clock if there are no new steps
+  if (fp_ZERO(travel_steps)) {
+    pre_mot->timer_clock = 0; // Off
+    return;
+  }
+
+  // Setup the direction, compensating for polarity.
+  // Set the step_sign which is used by the stepper ISR to accumulate step
+  // position
+  if (0 <= travel_steps) { // positive direction
+    pre_mot->direction = DIRECTION_CW ^ cfg_mot->polarity;
+    pre_mot->step_sign = 1;
+
+  } else {
+    pre_mot->direction = DIRECTION_CCW ^ cfg_mot->polarity;
+    pre_mot->step_sign = -1;
+  }
+
+#ifdef __STEP_CORRECTION
+  float correction;
+
+  // 'Nudge' correction strategy. Inject a single, scaled correction value
+  // then hold off
+  if (--pre_mot->correction_holdoff < 0 &&
+      STEP_CORRECTION_THRESHOLD < fabs(error)) {
+
+    pre_mot->correction_holdoff = STEP_CORRECTION_HOLDOFF;
+    correction = error * STEP_CORRECTION_FACTOR;
+
+    if (0 < correction)
+      correction = min3(correction, fabs(travel_steps), STEP_CORRECTION_MAX);
+    else correction =
+           max3(correction, -fabs(travel_steps), -STEP_CORRECTION_MAX);
+
+    pre_mot->corrected_steps += correction;
+    travel_steps -= correction;
+  }
+#endif
+
+  // Compute motor timer clock and period. Rounding is performed to eliminate
+  // a negative bias in the uint32_t conversion that results in long-term
+  // negative drift.
+  uint16_t steps = round(fabs(travel_steps));
+  uint32_t seg_clocks = (uint32_t)st_pre.seg_period * STEP_TIMER_DIV;
+  uint32_t ticks_per_step = seg_clocks / (steps + 0.5);
+
+  // Find the right clock rate
+  if (ticks_per_step & 0xffff0000UL) {
+    ticks_per_step /= 2;
+    seg_clocks /= 2;
+
+    if (ticks_per_step & 0xffff0000UL) {
+      ticks_per_step /= 2;
+      seg_clocks /= 2;
+
+      if (ticks_per_step & 0xffff0000UL) {
+        ticks_per_step /= 2;
+        seg_clocks /= 2;
+
+        if (ticks_per_step & 0xffff0000UL) pre_mot->timer_clock = 0; // Off
+        else pre_mot->timer_clock = TC_CLKSEL_DIV8_gc;
+      } else pre_mot->timer_clock = TC_CLKSEL_DIV4_gc;
+    } else pre_mot->timer_clock = TC_CLKSEL_DIV2_gc;
+  } else pre_mot->timer_clock = TC_CLKSEL_DIV1_gc;
+
+  pre_mot->timer_period = ticks_per_step * 2; // TODO why do we need *2 here?
+  pre_mot->steps = seg_clocks / ticks_per_step;
+}
+
+
 /* Prepare the next move for the loader
  *
  * This function does the math on the next pulse segment and gets it ready for
- * the loader. It deals with all the DDA optimizations and timer setups so that
+ * the loader. It deals with all the optimizations and timer setups so that
  * loading can be performed as rapidly as possible. It works in joint space
  * (motors) and it works in steps, not length units. All args are provided as
  * floats and converted to their appropriate integer types for the loader.
@@ -400,122 +474,33 @@ static void _load_move() {
  *     sign indicates direction. Motors that are not in the move should be 0
  *     steps on input.
  *
- *   - following_error[] is a vector of measured errors to the step count. Used
- *     for correction.
+ *   - error[] is a vector of measured errors to the step count. Used for
+ *     correction.
  *
  *   - segment_time - how many minutes the segment should run. If timing is not
  *     100% accurate this will affect the move velocity, but not the distance
  *     traveled.
  */
-stat_t st_prep_line(float travel_steps[], float following_error[],
-                    float segment_time) {
+stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
   // Trap conditions that would prevent queueing the line
   if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_EXEC)
     return cm_hard_alarm(STAT_INTERNAL_ERROR);
-  else if (isinf(segment_time)) // never supposed to happen
+  if (isinf(segment_time))
     return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  else if (isnan(segment_time)) // never supposed to happen
+  if (isnan(segment_time))
     return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
-  else if (segment_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
+  if (segment_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
 
-  // setup segment parameters
+  // Setup segment parameters (need st_pre.seg_period for motor calcs)
   st_pre.seg_period = segment_time * 60 * F_CPU / STEP_TIMER_DIV;
-
-  // setup motor parameters
-  for (uint8_t motor = 0; motor < MOTORS; motor++) {
-    stPrepMotor_t *pre_mot = &st_pre.mot[motor];
-
-    // Disable this motor's clock if there are no new steps
-    if (fp_ZERO(travel_steps[motor])) {
-      pre_mot->timer_clock = 0; // Off
-      continue;
-    }
-
-    // Setup the direction, compensating for polarity.
-    // Set the step_sign which is used by the stepper ISR to accumulate step
-    // position
-    if (0 <= travel_steps[motor]) { // positive direction
-      pre_mot->direction = DIRECTION_CW ^ st_cfg.mot[motor].polarity;
-      pre_mot->step_sign = 1;
-
-    } else {
-      pre_mot->direction = DIRECTION_CCW ^ st_cfg.mot[motor].polarity;
-      pre_mot->step_sign = -1;
-    }
-
-    // Detect segment time changes and setup the accumulator correction factor
-    // and flag. Putting this here computes the correct factor even if the motor
-    // was dormant for some number of previous moves. Correction is computed
-    // based on the last segment time actually used.
-    if (0.0000001 < fabs(segment_time - pre_mot->prev_segment_time)) {
-      // special case to skip first move
-      if (fp_NOT_ZERO(pre_mot->prev_segment_time)) {
-        pre_mot->accumulator_correction_flag = true;
-        pre_mot->accumulator_correction =
-          segment_time / pre_mot->prev_segment_time;
-      }
-
-      pre_mot->prev_segment_time = segment_time;
-    }
-
-#ifdef __STEP_CORRECTION
-    float correction;
-
-    // 'Nudge' correction strategy. Inject a single, scaled correction value
-    // then hold off
-    if (--pre_mot->correction_holdoff < 0 &&
-        STEP_CORRECTION_THRESHOLD < fabs(following_error[motor])) {
-
-      pre_mot->correction_holdoff = STEP_CORRECTION_HOLDOFF;
-      correction = following_error[motor] * STEP_CORRECTION_FACTOR;
-
-      if (0 < correction)
-        correction =
-          min3(correction, fabs(travel_steps[motor]), STEP_CORRECTION_MAX);
-      else correction =
-             max3(correction, -fabs(travel_steps[motor]), -STEP_CORRECTION_MAX);
-
-      pre_mot->corrected_steps += correction;
-      travel_steps[motor] -= correction;
-    }
-#endif
-
-    // Compute motor timer clock and period. Rounding is performed to eliminate
-    // a negative bias in the uint32_t conversion that results in long-term
-    // negative drift.
-    uint16_t steps = round(fabs(travel_steps[motor]));
-    uint32_t seg_clocks = (uint32_t)st_pre.seg_period * STEP_TIMER_DIV;
-    uint32_t ticks_per_step = seg_clocks / (steps + 0.5);
-
-    // Find the right clock rate
-    if (ticks_per_step & 0xffff0000UL) {
-      ticks_per_step /= 2;
-      seg_clocks /= 2;
-
-      if (ticks_per_step & 0xffff0000UL) {
-        ticks_per_step /= 2;
-        seg_clocks /= 2;
-
-        if (ticks_per_step & 0xffff0000UL) {
-          ticks_per_step /= 2;
-          seg_clocks /= 2;
-
-          if (ticks_per_step & 0xffff0000UL) pre_mot->timer_clock = 0; // Off
-          else pre_mot->timer_clock = TC_CLKSEL_DIV8_gc;
-        } else pre_mot->timer_clock = TC_CLKSEL_DIV4_gc;
-      } else pre_mot->timer_clock = TC_CLKSEL_DIV2_gc;
-    } else pre_mot->timer_clock = TC_CLKSEL_DIV1_gc;
-
-    pre_mot->timer_period = ticks_per_step * 2; // TODO why do we need *2 here?
-    pre_mot->steps = seg_clocks / ticks_per_step;
-
-    if (false && usart_tx_empty() && motor == 0)
-      printf("period=%d steps=%ld time=%0.6f\n",
-             pre_mot->timer_period, pre_mot->steps, segment_time * 60);
-  }
-
   st_pre.move_type = MOVE_TYPE_ALINE;
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
+
+  // Setup motor parameters
+  for (uint8_t motor = 0; motor < MOTORS; motor++)
+    _prep_motor_line(motor, travel_steps[motor], error[motor]);
+
+  // Signal prep buffer ready (do this last)
+  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER;
 
   return STAT_OK;
 }
