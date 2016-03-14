@@ -40,6 +40,7 @@
 
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 
 #include <stdio.h>
 
@@ -80,10 +81,15 @@ static void init() {
 
 
 int main() {
+  wdt_enable(WDTO_250MS);
+
   init();
 
   // main loop
-  while (1) controller_run(); // single pass through the controller
+  while (1) {
+    controller_run(); // single pass through the controller
+    wdt_reset();
+  }
 
   return 0;
 }
