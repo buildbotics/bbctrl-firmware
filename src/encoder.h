@@ -105,21 +105,16 @@
 
 #include <stdint.h>
 
-// macros used in stepper.c
-#define SET_ENCODER_STEP_SIGN(m, s) en[m].step_sign = s;
-#define INCREMENT_ENCODER(m) en[m].steps_run += en[m].step_sign;
-#define ACCUMULATE_ENCODER(m) \
-  do {en[m].encoder_steps += en[m].steps_run; en[m].steps_run = 0;} while (0)
 
-
-typedef struct enEncoder { // one real or virtual encoder per controlled motor
+/// One real or virtual encoder per controlled motor
+typedef struct enEncoder {
   int8_t  step_sign;       // set to +1 or -1
   int16_t steps_run;       // steps counted during stepper interrupt
   int32_t encoder_steps;   // counted encoder position in steps
 } enEncoder_t;
 
 
-extern enEncoder_t en[MOTORS];
+extern enEncoder_t en[MOTORS]; // Used by stepper.c
 
 
 void encoder_init();
