@@ -143,8 +143,7 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
 }
 
 
-/*
- * Compute optimal and minimum move times into the gcode_state
+/* Compute optimal and minimum move times into the gcode_state
  *
  * "Minimum time" is the fastest the move can be performed given
  * the velocity constraints on each participating axis - regardless

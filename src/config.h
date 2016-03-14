@@ -149,14 +149,14 @@
 // A values are chosen to make the A motor react the same as X for testing
 // set to the same speed as X axis
 #define A_AXIS_MODE              AXIS_RADIUS
-#define A_VELOCITY_MAX           ((X_VELOCITY_MAX / M1_TRAVEL_PER_REV) * 360)
+#define A_VELOCITY_MAX           (X_VELOCITY_MAX / M1_TRAVEL_PER_REV * 360)
 #define A_FEEDRATE_MAX           A_VELOCITY_MAX
 #define A_TRAVEL_MIN             -1
-#define A_TRAVEL_MAX             -1 // same number means infinite
-#define A_JERK_MAX               (X_JERK_MAX * (360 / M1_TRAVEL_PER_REV))
+#define A_TRAVEL_MAX             -1 // same value means infinite
+#define A_JERK_MAX               (X_JERK_MAX * 360 / M1_TRAVEL_PER_REV)
 #define A_JERK_HOMING            (A_JERK_MAX * 2)
 #define A_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define A_RADIUS                 (M1_TRAVEL_PER_REV/(2*3.14159628))
+#define A_RADIUS                 (M1_TRAVEL_PER_REV / 2 / M_PI)
 #define A_SEARCH_VELOCITY         600
 #define A_LATCH_VELOCITY          100
 #define A_LATCH_BACKOFF           5
@@ -281,9 +281,7 @@ enum cfgPortBits {
 
 /* Interrupt usage:
  *
- *    HI    Stepper DDA pulse generation         (set in stepper.h)
- *    HI    Stepper load routine SW interrupt    (set in stepper.h)
- *    HI    Dwell timer counter                  (set in stepper.h)
+ *    HI    Stepper timers                       (set in stepper.h)
  *    LO    Segment execution SW interrupt       (set in stepper.h)
  *   MED    GPIO1 switch port                    (set in gpio.h)
  *   MED    Serial RX                            (set in usart.c)
@@ -297,10 +295,11 @@ enum cfgPortBits {
  */
 
 // Timer assignments - see specific modules for details
-#define TIMER_STEP      TCC0 // DDA timer     (see stepper.h)
+#define TIMER_STEP      TCC0 // Step timer    (see stepper.h)
 #define TIMER_TMC2660   TCC1 // TMC2660 timer (see tmc2660.h)
 #define TIMER_PWM1      TCD1 // PWM timer #1  (see pwm.c)
 #define TIMER_PWM2      TCD1 // PWM timer #2  (see pwm.c)
+
 #define M1_TIMER        TCE1
 #define M2_TIMER        TCF0
 #define M3_TIMER        TCE0
@@ -315,14 +314,14 @@ enum cfgPortBits {
 #define STEP_TIMER_DISABLE   0
 #define STEP_TIMER_ENABLE    TC_CLKSEL_DIV4_gc
 #define STEP_TIMER_DIV       4
-#define STEP_TIMER_WGMODE    0     // normal mode (count to TOP & rollover)
+#define STEP_TIMER_WGMODE    TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR       TCC0_OVF_vect
-#define STEP_TIMER_INTLVL    3     // timer overflow HI
+#define STEP_TIMER_INTLVL    TC_OVFINTLVL_HI_gc
 
 
 // PWM settings
-#define PWM1_CTRLB           (3 | TC1_CCBEN_bm) // single slope PWM channel B
+#define PWM1_CTRLB           (3 | TC1_CCBEN_bm)  // single slope PWM channel B
 #define PWM1_ISR_vect        TCD1_CCB_vect
 #define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc
-#define PWM2_CTRLB           3                  // single slope PWM no output
+#define PWM2_CTRLB           3                   // single slope PWM no output
 #define PWM2_ISR_vect        TCE1_CCB_vect

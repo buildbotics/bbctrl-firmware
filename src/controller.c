@@ -148,6 +148,3 @@ void controller_run() {
   DISPATCH(report_callback());
   DISPATCH(command_dispatch());                // read and execute next command
 }
-
-
-
