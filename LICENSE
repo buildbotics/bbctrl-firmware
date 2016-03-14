@@ -1,3 +1,44 @@
+The Buildbotics firmware ("the software") is free software: you can
+redistribute it and/or modify it under the terms of the GNU General
+Public License, version 2 (with out any licensing exceptions) as
+published by the Free Software Foundation.  See the full license terms
+below.
+
+***********************************************************************
+
+Substantial effort was made to give credit to all authors of this
+software and of the works it was derived from and to adhere to the
+terms of the applicable license agreements.  If you belive any
+mistakes have been made in this regard please contact Joseph Coffland
+<joseph@buildbotics.com>.
+
+Portions of this software are copyrighted by the following entities:
+
+  Copyright (c) 2015 - 2016 Buildbotics LLC
+  Copyright (c) 2014 Thomas Nixon, Jonathan Heathcote (cpp_magic.h)
+  Copyright (c) 2013 - 2015 Robert Giseburt
+  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+  Copyright (c) 2008 Atmel Corporation (part of clock.c)
+  All rights reserved.
+
+Each source code file lists the entities which claim copyright to
+parts of those files.
+
+Much of this software was originally written by Alden S. Hart, Jr. and
+Robert Giseburt as part of the TinyG project.  The TinyG project was
+in turn derived from grbl/marlin firmwares.  All of the original code
+has been reformatted and cleaned up to fit our coding standards.
+Functionality in many areas has been substantially modified.
+
+The original TinyG firmware is licensed under the GPL v2 and includes
+an exception which allows use of the source code by non-GPLed
+libraires and potentially executables linked to those libraries.  The
+TinyG project's license did not specify that this exception must be
+offered in derived works, therefore this software's license DOES NOT
+offer any exceptions to the GPL v2 license.
+
+***********************************************************************
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 

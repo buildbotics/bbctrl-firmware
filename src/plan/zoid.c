@@ -1,37 +1,31 @@
-/*
- * zoid.c - acceleration managed line planning and motion execution -
- * trapezoid planner.
- * This file is part of the TinyG project
- *
- * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
- * Copyright (c) 2012 - 2015 Rob Giseburt
- *
- * This file ("the software") is free software: you can redistribute
- * it and/or modify it under the terms of the GNU General Public
- * License, version 2 as published by the Free Software
- * Foundation. You should have received a copy of the GNU General
- * Public License, version 2 along with the software.  If not, see
- * <http://www.gnu.org/licenses/>.
- *
- * As a special exception, you may use this file as part of a software
- * library without restriction. Specifically, if other files
- * instantiate templates or use macros or inline functions from this
- * file, or you compile this file and link it with  other files to
- * produce an executable, this file does not by itself cause the
- * resulting executable to be covered by the GNU General Public
- * License. This exception does not however invalidate any other
- * reasons why the executable file might be covered by the GNU General
- * Public License.
- *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
- * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2012 - 2015 Rob Giseburt
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
 
 #include "planner.h"
 #include "util.h"
@@ -433,11 +427,11 @@ float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
  *
  * Or
  *   J from L, Vi, and Vf
- *   J = ((Vf - Vi) (Vi + Vf)²) / L²
+ *   J = ((Vf - Vi) (Vi + Vf)^2) / L^2
  *
  * Replacing Vf with x, and subtracting the known J:
- *   0 = ((x - Vi) (Vi + x)²) / L² - J
- *   Z(x) = ((x - Vi) (Vi + x)²) / L² - J
+ *   0 = ((x - Vi) (Vi + x)^2) / L^2 - J
+ *   Z(x) = ((x - Vi) (Vi + x)^2) / L^2 - J
  *
  * L doesn't resolve to the value very quickly (it graphs near-vertical).
  * So, we'll use J, which resolves in < 10 iterations, often in only two or
@@ -451,7 +445,7 @@ float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
  *   SqrtDeltaOverJ = sqrt((x - Vi) / J)
  *   L'(x) = SqrtDeltaOverJ + (Vi + x) / (2*J) + (Vi + x) / (2 * SqrtDeltaJ)
  *
- *   J'(x) = (2 * Vi * x - Vi² + 3 * x²) / L²
+ *   J'(x) = (2 * Vi * x - Vi^2 + 3 * x^2) / L^2
  */
 
 #define GET_VELOCITY_ITERATIONS 0 // must be 0, 1, or 2

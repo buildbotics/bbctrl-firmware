@@ -1,36 +1,31 @@
-/*
- * line.c - acceleration managed line planning and motion execution
- * This file is part of the TinyG project
- *
- * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
- * Copyright (c) 2012 - 2015 Rob Giseburt
- *
- * This file ("the software") is free software: you can redistribute
- * it and/or modify it under the terms of the GNU General Public
- * License, version 2 as published by the Free Software
- * Foundation. You should have received a copy of the GNU General
- * Public License, version 2 along with the software.  If not, see
- * <http://www.gnu.org/licenses/>.
- *
- * As a special exception, you may use this file as part of a software
- * library without restriction. Specifically, if other files
- * instantiate templates or use macros or inline functions from this
- * file, or you compile this file and link it with  other files to
- * produce an executable, this file does not by itself cause the
- * resulting executable to be covered by the GNU General Public
- * License. This exception does not however invalidate any other
- * reasons why the executable file might be covered by the GNU General
- * Public License.
- *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
- * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2012 - 2015 Rob Giseburt
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
 
 #include "planner.h"
 
@@ -70,7 +65,7 @@
  * turn. The wider it is, the faster through the corner it can go.
  *
  * (Note 1: "max_jerk" refers to the old grbl/marlin max_jerk"
- * approximation term, not the tinyG jerk terms)
+ * approximation term, not the TinyG jerk terms)
  *
  * If you do the geometry in terms of the known variables, you get:
  *     sin(theta/2) = R/(R+delta)

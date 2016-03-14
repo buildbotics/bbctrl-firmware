@@ -1,35 +1,30 @@
-/*
- * switch.c - switch handling functions
- * This file is part of the TinyG project
- *
- * Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
- *
- * This file ("the software") is free software: you can redistribute
- * it and/or modify it under the terms of the GNU General Public
- * License, version 2 as published by the Free Software
- * Foundation. You should have received a copy of the GNU General
- * Public License, version 2 along with the software. If not, see
- * <http://www.gnu.org/licenses/>.
- *
- * As a special exception, you may use this file as part of a software
- * library without restriction. Specifically, if other files
- * instantiate templates or use macros or inline functions from this
- * file, or you compile this file and link it with other files to
- * produce an executable, this file does not by itself cause the
- * resulting executable to be covered by the GNU General Public
- * License. This exception does not however invalidate any other
- * reasons why the executable file might be covered by the GNU General
- * Public License.
- *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
- * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
 
 /* Switch Modes
  *
@@ -62,8 +57,6 @@
 #include <stdbool.h>
 
 
-static void _switch_isr_helper(uint8_t sw_num);
-
 /* Initialize homing/limit switches
  *
  * This function assumes sys_init() and st_init() have been run previously to
@@ -78,7 +71,7 @@ void switch_init() {
     if (sw.mode[MIN_SWITCH(i)] != SW_MODE_DISABLED) {
       // set min input - see 13.14.14
       hw.sw_port[i]->DIRCLR = SW_MIN_BIT_bm;
-      hw.sw_port[i]->PIN6CTRL = (PIN_MODE | PORT_ISC_BOTHEDGES_gc);
+      hw.sw_port[i]->PIN6CTRL = PIN_MODE | PORT_ISC_BOTHEDGES_gc;
       // interrupt on min switch
       hw.sw_port[i]->INT0MASK = SW_MIN_BIT_bm;
 
@@ -87,7 +80,7 @@ void switch_init() {
     if (sw.mode[MAX_SWITCH(i)] != SW_MODE_DISABLED) {
       // set max input - see 13.14.14
       hw.sw_port[i]->DIRCLR = SW_MAX_BIT_bm;
-      hw.sw_port[i]->PIN7CTRL = (PIN_MODE | PORT_ISC_BOTHEDGES_gc);
+      hw.sw_port[i]->PIN7CTRL = PIN_MODE | PORT_ISC_BOTHEDGES_gc;
       hw.sw_port[i]->INT1MASK = SW_MAX_BIT_bm; // max on INT1
 
     } else hw.sw_port[i]->INT1MASK = 0;
@@ -111,25 +104,13 @@ void switch_init() {
 }
 
 
-/*
- * These functions interact with each other to process switch closures
+/* These functions interact with each other to process switch closures
  * and firing.  Each switch has a counter which is initially set to
  * negative SW_DEGLITCH_TICKS.  When a switch closure is DETECTED the
  * count increments for each RTC tick.  When the count reaches zero
  * the switch is tripped and action occurs.  The counter continues to
  * increment positive until the lockout is exceeded.
  */
-
-// Switch interrupt handler vectors
-ISR(X_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_X);}
-ISR(Y_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Y);}
-ISR(Z_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Z);}
-ISR(A_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_A);}
-ISR(X_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_X);}
-ISR(Y_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_Y);}
-ISR(Z_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_Z);}
-ISR(A_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_A);}
-
 
 static void _switch_isr_helper(uint8_t sw_num) {
   if (sw.mode[sw_num] == SW_MODE_DISABLED) return; // never supposed to happen
@@ -143,6 +124,17 @@ static void _switch_isr_helper(uint8_t sw_num) {
   // sets the state value in the struct
   read_switch(sw_num);
 }
+
+
+// Switch interrupt handler vectors
+ISR(X_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_X);}
+ISR(Y_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Y);}
+ISR(Z_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_Z);}
+ISR(A_MIN_ISR_vect) {_switch_isr_helper(SW_MIN_A);}
+ISR(X_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_X);}
+ISR(Y_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_Y);}
+ISR(Z_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_Z);}
+ISR(A_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_A);}
 
 
 /// Called from RTC for each RTC tick

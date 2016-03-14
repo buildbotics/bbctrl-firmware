@@ -1,9 +1,6 @@
-/******************************************************************************\
-
                 This file is part of the Buildbotics firmware.
 
-                  Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2015 - 2016, Buildbotics LLC
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -23,13 +20,3 @@
 
                 For information regarding this software email:
                   "Joseph Coffland" <joseph@buildbotics.com>
-
-\******************************************************************************/
-
-#pragma once
-
-
-#include <stdint.h>
-
-void clock_init();
-void CCPWrite(volatile uint8_t *address, uint8_t value);

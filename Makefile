@@ -1,5 +1,5 @@
-# Makefile for the project TinyG firmware
-PROJECT = tinyg
+# Makefile for the project Bulidbotics firmware
+PROJECT = buildbotics
 MCU     = atxmega192a3u
 CLOCK   = 32000000
 

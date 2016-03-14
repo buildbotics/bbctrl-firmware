@@ -1,38 +1,30 @@
-/*
- * canonical_machine.h - rs274/ngc canonical machining functions
- * This file is part of the TinyG project
- *
- * Copyright (c) 2010 - 2015 Alden S. Hart Jr.
- *
- * This code is a loose implementation of Kramer, Proctor and Messina's
- * canonical machining functions as described in the NIST RS274/NGC v3
- *
- * This file ("the software") is free software: you can redistribute
- * it and/or modify it under the terms of the GNU General Public
- * License, version 2 as published by the Free Software
- * Foundation. You should have received a copy of the GNU General
- * Public License, version 2 along with the software.  If not, see
- * <http://www.gnu.org/licenses/>.
- *
- * As a special exception, you may use this file as part of a software
- * library without restriction. Specifically, if other files
- * instantiate templates or use macros or inline functions from this
- * file, or you compile this file and link it with other files to
- * produce an executable, this file does not by itself cause the
- * resulting executable to be covered by the GNU General Public
- * License. This exception does not however invalidate any other
- * reasons why the executable file might be covered by the GNU General
- * Public License.
- *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
- * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
 
 #pragma once
 
@@ -43,9 +35,9 @@
 #include <stdint.h>
 
 /// absolute pointer from canonical machine gm model
-#define MODEL   (GCodeState_t *)&cm.gm        
+#define MODEL   (GCodeState_t *)&cm.gm
 /// relative to buffer *bf is currently pointing to
-#define PLANNER (GCodeState_t *)&bf->gm       
+#define PLANNER (GCodeState_t *)&bf->gm
 /// absolute pointer from runtime mm struct
 #define RUNTIME (GCodeState_t *)&mr.gm
 /// active model pointer is maintained by state management
@@ -479,7 +471,7 @@ enum cmCoordSystem {
 /// G Modal Group 13
 enum cmPathControlMode {
   /// G61 - hits corners but does not stop if it does not need to.
-  PATH_EXACT_PATH,    
+  PATH_EXACT_PATH,
   PATH_EXACT_STOP,                // G61.1 - stops at all corners
   PATH_CONTINUOUS                 // G64 and typically the default mode
 };
@@ -507,14 +499,14 @@ enum cmOriginOffset {
 
 
 enum cmProgramFlow {
-  PROGRAM_STOP,    
+  PROGRAM_STOP,
   PROGRAM_END
 };
 
 
 /// spindle state settings (See hardware.h for bit settings)
 enum cmSpindleState {
-  SPINDLE_OFF,    
+  SPINDLE_OFF,
   SPINDLE_CW,
   SPINDLE_CCW
 };
@@ -531,7 +523,7 @@ enum cmCoolantState {
 
 /// used for spindle and arc dir
 enum cmDirection {
-  DIRECTION_CW,    
+  DIRECTION_CW,
   DIRECTION_CCW
 };
 
@@ -650,87 +642,87 @@ stat_t cm_soft_alarm(stat_t status);
 stat_t cm_clear();
 
 // Representation (4.3.3)
-stat_t cm_select_plane(uint8_t plane);                          
-stat_t cm_set_units_mode(uint8_t mode);                         
-stat_t cm_set_distance_mode(uint8_t mode);                      
+stat_t cm_select_plane(uint8_t plane);
+stat_t cm_set_units_mode(uint8_t mode);
+stat_t cm_set_distance_mode(uint8_t mode);
 stat_t cm_set_coord_offsets(uint8_t coord_system, float offset[], float flag[]);
 
-void cm_set_position(uint8_t axis, float position);             
-stat_t cm_set_absolute_origin(float origin[], float flag[]);    
-void cm_set_axis_origin(uint8_t axis, const float position);    
+void cm_set_position(uint8_t axis, float position);
+stat_t cm_set_absolute_origin(float origin[], float flag[]);
+void cm_set_axis_origin(uint8_t axis, const float position);
 
-stat_t cm_set_coord_system(uint8_t coord_system);               
-stat_t cm_set_origin_offsets(float offset[], float flag[]);     
-stat_t cm_reset_origin_offsets();                               
-stat_t cm_suspend_origin_offsets();                             
-stat_t cm_resume_origin_offsets();                              
+stat_t cm_set_coord_system(uint8_t coord_system);
+stat_t cm_set_origin_offsets(float offset[], float flag[]);
+stat_t cm_reset_origin_offsets();
+stat_t cm_suspend_origin_offsets();
+stat_t cm_resume_origin_offsets();
 
 // Free Space Motion (4.3.4)
-stat_t cm_straight_traverse(float target[], float flags[]);     
-stat_t cm_set_g28_position();                                   
-stat_t cm_goto_g28_position(float target[], float flags[]);     
-stat_t cm_set_g30_position();                                   
-stat_t cm_goto_g30_position(float target[], float flags[]);     
+stat_t cm_straight_traverse(float target[], float flags[]);
+stat_t cm_set_g28_position();
+stat_t cm_goto_g28_position(float target[], float flags[]);
+stat_t cm_set_g30_position();
+stat_t cm_goto_g30_position(float target[], float flags[]);
 
 // Machining Attributes (4.3.5)
-stat_t cm_set_feed_rate(float feed_rate);                        
-stat_t cm_set_feed_rate_mode(uint8_t mode);                      
-stat_t cm_set_path_control(uint8_t mode);                        
+stat_t cm_set_feed_rate(float feed_rate);
+stat_t cm_set_feed_rate_mode(uint8_t mode);
+stat_t cm_set_path_control(uint8_t mode);
 
 // Machining Functions (4.3.6)
-stat_t cm_straight_feed(float target[], float flags[]);          
-stat_t cm_arc_feed(float target[], float flags[],                
+stat_t cm_straight_feed(float target[], float flags[]);
+stat_t cm_arc_feed(float target[], float flags[],
                    float i, float j, float k,
                    float radius, uint8_t motion_mode);
-stat_t cm_dwell(float seconds);                                  
+stat_t cm_dwell(float seconds);
 
 // Spindle Functions (4.3.7)
 // see spindle.h for spindle definitions - which would go right here
 
 // Tool Functions (4.3.8)
-stat_t cm_select_tool(uint8_t tool);                             
-stat_t cm_change_tool(uint8_t tool);                             
+stat_t cm_select_tool(uint8_t tool);
+stat_t cm_change_tool(uint8_t tool);
 
 // Miscellaneous Functions (4.3.9)
-stat_t cm_mist_coolant_control(uint8_t mist_coolant);            
-stat_t cm_flood_coolant_control(uint8_t flood_coolant);          
+stat_t cm_mist_coolant_control(uint8_t mist_coolant);
+stat_t cm_flood_coolant_control(uint8_t flood_coolant);
 
-stat_t cm_override_enables(uint8_t flag);                        
-stat_t cm_feed_rate_override_enable(uint8_t flag);               
-stat_t cm_feed_rate_override_factor(uint8_t flag);               
-stat_t cm_traverse_override_enable(uint8_t flag);                
-stat_t cm_traverse_override_factor(uint8_t flag);                
-stat_t cm_spindle_override_enable(uint8_t flag);                 
-stat_t cm_spindle_override_factor(uint8_t flag);                 
+stat_t cm_override_enables(uint8_t flag);
+stat_t cm_feed_rate_override_enable(uint8_t flag);
+stat_t cm_feed_rate_override_factor(uint8_t flag);
+stat_t cm_traverse_override_enable(uint8_t flag);
+stat_t cm_traverse_override_factor(uint8_t flag);
+stat_t cm_spindle_override_enable(uint8_t flag);
+stat_t cm_spindle_override_factor(uint8_t flag);
 
-void cm_message(char *message);                                
+void cm_message(char *message);
 
 // Program Functions (4.3.10)
 void cm_request_feedhold();
 void cm_request_queue_flush();
 void cm_request_cycle_start();
 
-stat_t cm_feedhold_sequencing_callback();                   
-stat_t cm_queue_flush();                                    
+stat_t cm_feedhold_sequencing_callback();
+stat_t cm_queue_flush();
 
-void cm_cycle_start();                                           
-void cm_cycle_end();                                             
-void cm_feedhold();                                              
-void cm_program_stop();                                          
-void cm_optional_program_stop();                                 
-void cm_program_end();                                           
+void cm_cycle_start();
+void cm_cycle_end();
+void cm_feedhold();
+void cm_program_stop();
+void cm_optional_program_stop();
+void cm_program_end();
 
 char cm_get_axis_char(const int8_t axis);
 
 // Cycles
 
 // Homing cycles
-stat_t cm_homing_cycle_start();                                  
-stat_t cm_homing_cycle_start_no_set();                           
-stat_t cm_homing_callback();                                     
+stat_t cm_homing_cycle_start();
+stat_t cm_homing_cycle_start_no_set();
+stat_t cm_homing_callback();
 
 // Probe cycles
-stat_t cm_straight_probe(float target[], float flags[]);         
-stat_t cm_probe_callback();                                      
+stat_t cm_straight_probe(float target[], float flags[]);
+stat_t cm_probe_callback();
 
 

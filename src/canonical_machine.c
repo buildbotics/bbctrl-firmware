@@ -1,36 +1,31 @@
-/*
- * canonical_machine.c - rs274/ngc canonical machine.
- * This file is part of the TinyG project
- *
- * Copyright (c) 2010 - 2015 Alden S Hart, Jr.
- * Copyright (c) 2014 - 2015 Robert Giseburt
- *
- * This file ("the software") is free software: you can redistribute
- * it and/or modify it under the terms of the GNU General Public
- * License, version 2 as published by the Free Software
- * Foundation. You should have received a copy of the GNU General
- * Public License, version 2 along with the software.  If not, see
- * <http://www.gnu.org/licenses/>.
- *
- * As a special exception, you may use this file as part of a software
- * library without restriction. Specifically, if other files
- * instantiate templates or use macros or inline functions from this
- * file, or you compile this file and link it with  other files to
- * produce an executable, this file does not by itself cause the
- * resulting executable to be covered by the GNU General Public
- * License. This exception does not however invalidate any other
- * reasons why the executable file might be covered by the GNU General
- * Public License.
- *
- * THE SOFTWARE IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT
- * WITHOUT ANY WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
- * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
- * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2012 - 2015 Rob Giseburt
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
 
 /* This code is a loose implementation of Kramer, Proctor and Messina's
  * canonical machining functions as described in the NIST RS274/NGC v3
@@ -225,7 +220,7 @@ uint8_t cm_get_spindle_mode(GCodeState_t *gcode_state) {
 uint8_t cm_get_block_delete_switch() {return cm.gmx.block_delete_switch;}
 uint8_t cm_get_runtime_busy() {return mp_get_runtime_busy();}
 
-                               
+
 float cm_get_feed_rate(GCodeState_t *gcode_state) {
   return gcode_state->feed_rate;
 }
@@ -282,7 +277,7 @@ void cm_set_model_linenum(uint32_t linenum) {
  *    - coordinate system selected. 1-9 correspond to G54-G59
  *    - absolute override: forces current move to be interpreted in machine
  *      coordinates: G53 (system 0)
- *    - G92 offsets are added "on top of" the coord system offsets -- 
+ *    - G92 offsets are added "on top of" the coord system offsets --
  *      if origin_offset_enable
  *    - G28 and G30 moves; these are run in absolute coordinates
  *
@@ -290,7 +285,7 @@ void cm_set_model_linenum(uint32_t linenum) {
  * supposed to be persistent.
  *
  * To reduce complexity and data load the following is done:
- *    - Full data for coordinates/offsets is only accessible by the canonical 
+ *    - Full data for coordinates/offsets is only accessible by the canonical
  *      machine, not the downstream
  *    - Resolved set of coord and G92 offsets, with per-move exceptions can
  *      be captured as "work_offsets"
@@ -522,7 +517,7 @@ stat_t cm_test_soft_limits(float target[]) {
 void canonical_machine_init() {
   // If you can assume all memory has been zeroed by a hard reset you don't
   // need this code:
-  memset(&cm.gm, 0, sizeof(GCodeState_t));      
+  memset(&cm.gm, 0, sizeof(GCodeState_t));
   memset(&cm.gn, 0, sizeof(GCodeInput_t));
   memset(&cm.gf, 0, sizeof(GCodeInput_t));
 
@@ -781,7 +776,7 @@ stat_t cm_set_coord_system(uint8_t coord_system) {
 
 static void _exec_offset(float *value, float *flag) {
   // coordinate system is passed in value[0] element
-  uint8_t coord_system = ((uint8_t)value[0]); 
+  uint8_t coord_system = ((uint8_t)value[0]);
   float offsets[AXES];
   for (uint8_t axis = AXIS_X; axis < AXES; axis++)
     offsets[axis] = cm.offset[coord_system][axis] +
@@ -949,9 +944,9 @@ stat_t cm_set_g28_position() {
 stat_t cm_goto_g28_position(float target[], float flags[]) {
   cm_set_absolute_override(MODEL, true);
   // move through intermediate point, or skip
-  cm_straight_traverse(target, flags);            
+  cm_straight_traverse(target, flags);
 
-  // make sure you have an available buffer     
+  // make sure you have an available buffer
   while (!mp_get_planner_buffers_available());
 
   // execute actual stored move
@@ -971,7 +966,7 @@ stat_t cm_set_g30_position() {
 stat_t cm_goto_g30_position(float target[], float flags[]) {
   cm_set_absolute_override(MODEL, true);
   // move through intermediate point, or skip
-  cm_straight_traverse(target, flags); 
+  cm_straight_traverse(target, flags);
   // make sure you have an available buffer
   while (!mp_get_planner_buffers_available());
   float f[] = {1, 1, 1, 1, 1, 1};
@@ -1133,7 +1128,7 @@ stat_t cm_override_enables(uint8_t flag) {
 
 
 /// M50
-stat_t cm_feed_rate_override_enable(uint8_t flag) {   
+stat_t cm_feed_rate_override_enable(uint8_t flag) {
   if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter))
     cm.gmx.feed_rate_override_enable = false;
   else cm.gmx.feed_rate_override_enable = true;
@@ -1143,7 +1138,7 @@ stat_t cm_feed_rate_override_enable(uint8_t flag) {
 
 
 /// M50.1
-stat_t cm_feed_rate_override_factor(uint8_t flag) {    
+stat_t cm_feed_rate_override_factor(uint8_t flag) {
   cm.gmx.feed_rate_override_enable = flag;
   cm.gmx.feed_rate_override_factor = cm.gn.parameter;
   return STAT_OK;
@@ -1151,7 +1146,7 @@ stat_t cm_feed_rate_override_factor(uint8_t flag) {
 
 
 /// M50.2
-stat_t cm_traverse_override_enable(uint8_t flag) {     
+stat_t cm_traverse_override_enable(uint8_t flag) {
   if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter))
     cm.gmx.traverse_override_enable = false;
   else cm.gmx.traverse_override_enable = true;
@@ -1161,7 +1156,7 @@ stat_t cm_traverse_override_enable(uint8_t flag) {
 
 
 /// M51
-stat_t cm_traverse_override_factor(uint8_t flag) {     
+stat_t cm_traverse_override_factor(uint8_t flag) {
   cm.gmx.traverse_override_enable = flag;
   cm.gmx.traverse_override_factor = cm.gn.parameter;
   return STAT_OK;
@@ -1169,7 +1164,7 @@ stat_t cm_traverse_override_factor(uint8_t flag) {
 
 
 /// M51.1
-stat_t cm_spindle_override_enable(uint8_t flag) {       
+stat_t cm_spindle_override_enable(uint8_t flag) {
   if (fp_TRUE(cm.gf.parameter) && fp_ZERO(cm.gn.parameter))
     cm.gmx.spindle_override_enable = false;
   else cm.gmx.spindle_override_enable = true;
@@ -1179,7 +1174,7 @@ stat_t cm_spindle_override_enable(uint8_t flag) {
 
 
 /// M50.1
-stat_t cm_spindle_override_factor(uint8_t flag) {       
+stat_t cm_spindle_override_factor(uint8_t flag) {
   cm.gmx.spindle_override_enable = flag;
   cm.gmx.spindle_override_factor = cm.gn.parameter;
 
@@ -1296,7 +1291,7 @@ stat_t cm_queue_flush() {
  *
  * cm_program_end() implements M2 and M30
  * The END behaviors are defined by NIST 3.6.1 are:
- *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set 
+ *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set
  *       to the default (like G54)
  *    2. Selected plane is set to CANON_PLANE_XY (like G17)
  *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
@@ -1308,7 +1303,7 @@ stat_t cm_queue_flush() {
  *    9. Coolant is turned off (like M9)
  *
  * cm_program_end() implments things slightly differently:
- *    1. Axis offsets are set to G92.1 CANCEL offsets 
+ *    1. Axis offsets are set to G92.1 CANCEL offsets
  *       (instead of using G92.2 SUSPEND Offsets)
  *       Set default coordinate system (uses $gco, not G54)
  *    2. Selected plane is set to default plane ($gpl)

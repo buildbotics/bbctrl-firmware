@@ -1,31 +1,27 @@
 /******************************************************************************\
 
-                   This file is part of the TinyG firmware.
+                This file is part of the Buildbotics firmware.
 
-                     Copyright (c) 2016, Buildbotics LLC
-                             All rights reserved.
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                            All rights reserved.
 
-        The C! library is free software: you can redistribute it and/or
-        modify it under the terms of the GNU Lesser General Public License
-        as published by the Free Software Foundation, either version 2.1 of
-        the License, or (at your option) any later version.
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
 
-        The C! library is distributed in the hope that it will be useful,
-        but WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-        Lesser General Public License for more details.
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
 
-        You should have received a copy of the GNU Lesser General Public
-        License along with the C! library.  If not, see
-        <http://www.gnu.org/licenses/>.
-
-        In addition, BSD licensing may be granted on a case by case basis
-        by written permission from at least one of the copyright holders.
-        You may request written permission by emailing the authors.
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
 
                 For information regarding this software email:
-                               Joseph Coffland
-                            joseph@buildbotics.com
+                  "Joseph Coffland" <joseph@buildbotics.com>
 
 \******************************************************************************/
 
@@ -46,9 +42,9 @@
  *  20 - 99    Generic internal and application errors. Internal errors start at
  *             20 and work up, Assertion failures start at 99 and work down.
  *
- * 100 - 129   Generic data and input errors - not specific to Gcode or TinyG
+ * 100 - 129   Generic data and input errors - not specific to Gcode
  *
- * 130 -       Gcode and TinyG application errors and warnings
+ * 130 -       Gcode and application errors and warnings
  *
  * See main.c for associated message strings. Any changes to the codes may also
  * require changing the message strings and string array in main.c
@@ -147,17 +143,17 @@ void print_status_message(const char *msg, stat_t status);
 #define STAT_GCODE_MODAL_GROUP_VIOLATION 133
 #define STAT_GCODE_AXIS_IS_MISSING 134
 #define STAT_GCODE_AXIS_CANNOT_BE_PRESENT 135
-#define STAT_GCODE_AXIS_IS_INVALID 136       
-#define STAT_GCODE_AXIS_IS_NOT_CONFIGURED 137           
-#define STAT_GCODE_AXIS_NUMBER_IS_MISSING 138           
-#define STAT_GCODE_AXIS_NUMBER_IS_INVALID 139           
+#define STAT_GCODE_AXIS_IS_INVALID 136
+#define STAT_GCODE_AXIS_IS_NOT_CONFIGURED 137
+#define STAT_GCODE_AXIS_NUMBER_IS_MISSING 138
+#define STAT_GCODE_AXIS_NUMBER_IS_INVALID 139
 
-#define STAT_GCODE_ACTIVE_PLANE_IS_MISSING 140          
-#define STAT_GCODE_ACTIVE_PLANE_IS_INVALID 141          
-#define STAT_GCODE_FEEDRATE_NOT_SPECIFIED 142           
-#define STAT_GCODE_INVERSE_TIME_MODE_CANNOT_BE_USED 143 
-#define STAT_GCODE_ROTARY_AXIS_CANNOT_BE_USED 144       
-#define STAT_GCODE_G53_WITHOUT_G0_OR_G1 145             
+#define STAT_GCODE_ACTIVE_PLANE_IS_MISSING 140
+#define STAT_GCODE_ACTIVE_PLANE_IS_INVALID 141
+#define STAT_GCODE_FEEDRATE_NOT_SPECIFIED 142
+#define STAT_GCODE_INVERSE_TIME_MODE_CANNOT_BE_USED 143
+#define STAT_GCODE_ROTARY_AXIS_CANNOT_BE_USED 144
+#define STAT_GCODE_G53_WITHOUT_G0_OR_G1 145
 #define STAT_REQUESTED_VELOCITY_EXCEEDS_LIMITS 146
 #define STAT_CUTTER_COMPENSATION_CANNOT_BE_ENABLED 147
 #define STAT_PROGRAMMED_POINT_SAME_AS_CURRENT_POINT 148
@@ -196,7 +192,7 @@ void print_status_message(const char *msg, stat_t status);
 #define STAT_T_WORD_IS_MISSING 178
 #define STAT_T_WORD_IS_INVALID 179
 
-// TinyG errors and warnings
+// Errors and warnings
 #define STAT_GENERIC_ERROR 200
 #define STAT_MINIMUM_LENGTH_MOVE 201         // move is less than minimum length
 #define STAT_MINIMUM_TIME_MOVE 202           // move is less than minimum time
@@ -230,5 +226,3 @@ void print_status_message(const char *msg, stat_t status);
 #define STAT_PROBE_ENDPOINT_IS_STARTING_POINT 251
 
 // Do not exceed 255 without also changing stat_t typedef
-
-

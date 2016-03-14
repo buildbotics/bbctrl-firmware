@@ -1,11 +1,10 @@
-TinyG is a 6 axis motion control system designed for high-performance on small to mid-sized machines.  This fork contains a modified version of the TinyG firmware.  See the [original TinyG](https://github.com/synthetos/TinyG) for more info.
+The Buildbotics firmware is a 4 axis motion control system designed for
+high-performance on small to mid-sized machines.  It was originally
+derived from the [TinyG firmware](https://github.com/synthetos/TinyG).
 
 # Features
-* 6 axis motion (XYZABC axes)
+* 4 axis motion
 * jerk controlled motion for acceleration planning (3rd order motion planning)
-* status displays ('?' character)
-* XON/XOFF and RTS/CTS protocol over USB serial
-* RESTful interface using JSON
 
 # Build Instructions
 To build in Linux run:
@@ -21,8 +20,3 @@ Other make commands are:
  * **read_fuses** - Read and pring AVR fuse bytes
  * **clean** - Remove build files
  * **tidy** - Remove backup files
-
-# Links
-* [TinyG Wiki](https://github.com/synthetos/TinyG/wiki)
-* [TinyG Support Forum](https://www.synthetos.com/forum/tinyg/)
-* [TinyG Github](https://github.com/synthetos/TinyG)

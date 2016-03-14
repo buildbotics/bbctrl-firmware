@@ -1,3 +1,30 @@
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
+
 #pragma once
 
 #include <avr/interrupt.h>
@@ -28,7 +55,6 @@
 #define M1_MICROSTEPS            MOTOR_MICROSTEPS
 #define M1_POLARITY              MOTOR_POLARITY_NORMAL
 #define M1_POWER_MODE            MOTOR_POWER_MODE
-#define M1_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 #define M2_MOTOR_MAP             AXIS_Y
 #define M2_STEP_ANGLE            1.8
@@ -36,7 +62,6 @@
 #define M2_MICROSTEPS            MOTOR_MICROSTEPS
 #define M2_POLARITY              MOTOR_POLARITY_NORMAL
 #define M2_POWER_MODE            MOTOR_POWER_MODE
-#define M2_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 #define M3_MOTOR_MAP             AXIS_A
 #define M3_STEP_ANGLE            1.8
@@ -44,7 +69,6 @@
 #define M3_MICROSTEPS            MOTOR_MICROSTEPS
 #define M3_POLARITY              MOTOR_POLARITY_NORMAL
 #define M3_POWER_MODE            MOTOR_POWER_MODE
-#define M3_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 #define M4_MOTOR_MAP             AXIS_Z
 #define M4_STEP_ANGLE            1.8
@@ -52,7 +76,6 @@
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
 #define M4_POLARITY              MOTOR_POLARITY_NORMAL
 #define M4_POWER_MODE            MOTOR_POWER_MODE
-#define M4_POWER_LEVEL           MOTOR_POWER_LEVEL
 
 
 // Switch settings.  See switch.h
@@ -71,17 +94,13 @@
 #define C_SWITCH_MODE_MAX        SW_MODE_DISABLED
 
 
-// Jog settings
-#define JOG_ACCELERATION          50000  // mm/min^2
-
-
 // Machine settings
 #define CHORDAL_TOLERANCE         0.01   // chordal accuracy for arc drawing
 #define SOFT_LIMIT_ENABLE         0      // 0 = off, 1 = on
-#define JERK_MAX                  40     // yes, that's "20,000,000" mm/min^3
+#define JERK_MAX                  40     // yes, that's km/min^3
 #define JUNCTION_DEVIATION        0.05   // default value, in mm
 #define JUNCTION_ACCELERATION     100000 // centripetal corner acceleration
-
+#define JOG_ACCELERATION          500000  // mm/min^2
 
 // Axis settings
 #define VELOCITY_MAX             16000
