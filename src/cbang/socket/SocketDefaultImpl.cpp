@@ -50,7 +50,9 @@ typedef int socklen_t;  // Unix socket length
 #define MSG_DONTWAIT 0
 #define MSG_NOSIGNAL 0
 #define SHUT_RDWR 2
+#ifndef EINPROGRESS
 #define EINPROGRESS WSAEWOULDBLOCK
+#endif
 
 #else // _WIN32
 #include <sys/socket.h>
