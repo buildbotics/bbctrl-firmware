@@ -54,12 +54,14 @@ if not env.GetOption('clean'):
 env.Append(CPPPATH = ['#/src', '#/include'])
 
 # Build third-party libs
-force_local = env.CBBuildSetRegex(env.get('force_local', ''))
-disable_local = env.CBBuildSetRegex(env.get('disable_local', ''))
+force_local = env.get('force_local', '')
+if isinstance(force_local, str): force_local = force_local.split()
+disable_local = env.get('disable_local', '')
+if isinstance(disable_local, str): disable_local = disable_local.split()
 Export('env conf')
 for lib in 'zlib bzip2 sqlite3 expat boost libevent re2'.split():
-    if disable_local.match(lib): continue
-    if not env.CBConfigEnabled(lib) or force_local.match(lib):
+    if lib in disable_local: continue
+    if not env.CBConfigEnabled(lib) or lib in force_local:
         Default(SConscript('src/%s/SConscript' % lib,
                            variant_dir = 'build/' + lib))
 
@@ -73,7 +75,7 @@ subdirs = [
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
-if env.CBConfigEnabled('libevent') or not disable_local.match(lib):
+if env.CBConfigEnabled('libevent') or lib not in disable_local:
     subdirs.append('event')
 
 src = []
