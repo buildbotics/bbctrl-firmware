@@ -1,65 +1,90 @@
+include ../../build/hashes.jade
+
+
 doctype html
 html(lang="en")
   head
-    title Buildbotics Controller - Web interface
     meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
 
-    script(src="//code.jquery.com/jquery-1.11.3.min.js")
-    script(src="//cdn.jsdelivr.net/vue/1.0.13/vue.min.js")
-    script(src="js/sockjs.min.js")
-    script(src="js/gauge.min.js")
-    script(src="js/fd-slider.min.js")
-    script(src="js/assets.js")
+    title Buildbotics Controller - Web interface
+
+    link(rel="stylesheet",
+      href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css")
+    //if lte IE 8
+      link(rel="stylesheet", href="css/side-menu-old-ie.css")
+    // [if gt IE 8] <!
+    link(rel="stylesheet", href="css/side-menu.css")
+    // <![endif]
 
     - var faURL = "//maxcdn.bootstrapcdn.com/font-awesome"
     link(rel="stylesheet" href=faURL + "/4.5.0/css/font-awesome.min.css")
+    link(href='//fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'
+      type='text/css')
+    link(rel='stylesheet' href='//yui.yahooapis.com/pure/0.6.0/pure-min.css')
 
-    link(rel="stylesheet" href="/style.css")
+    link(rel='stylesheet' href='/css/style-' + css_hash + '.css')
+
 
   body
-    table
-      tr
-        td
-        td: button(@click="jog('y', 1)") Y+
-        td
-        td: button(@click="jog('z', 1)") Z+
-        td: button(@click="jog('a', 1)") A+
-      tr
-        td: button(@click="jog('x', -1)") -X
-        td
-        td: button(@click="jog('x', 1)") X+
-      tr
-        td
-        td: button(@click="jog('y', -1)") -Y
-        td
-        td: button(@click="jog('z', -1)") Z-
-        td: button(@click="jog('a', -1)") A-
+    #layout
+      a#menuLink.menu-link(href="#menu"): span
 
-    h2 Velocity {{state.vel}}
-    h2 Step {{step}}
+      #menu
+        button.save(:disabled="!modified", class="pure-button button-success"
+          @click="save") Save
 
-    table.axes
-      tr
-        th Axis
-        th Position
-        th Step
-        th Flags
-        th Current
-        th StallGuard
+        .pure-menu
+          ul.pure-menu-list
+            li.pure-menu-heading
+              a.pure-menu-link(href="#status") Status
 
-      each axis in ['x', 'y', 'z']
-        tr.axis
-          th.name #{axis}
-          td {{state.pos#{axis}}}
-          td {{state.dstep#{axis}}}
-          td {{state.dflags#{axis}}}
-          td
-            | {{state.dcur#{axis} | percent}}
-            gauge(:value="state.dcur#{axis} * 32", :min="1", :max="32")
-            input(type="range" min=1 max=32 v-model="current#{axis}")
-          td
-            gauge(:value="state.sguard#{axis}", :min="0", :max="511")
+            li.pure-menu-heading
+              a.pure-menu-link(href="#motor:0") Motors
 
+            li.pure-menu-item(v-for="motor in config.motors")
+              a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#axis:x") Axes
+
+            li.pure-menu-item(v-for="axis in config.axes")
+              a.pure-menu-link(:href="'#axis:' + $key")
+                | {{$key | capitalize}} Axis
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#spindle") Spindle
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#switches") Switches
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#gcode") Gcode
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#admin") Admin
+
+      #main
+        .header
+          img(src="/images/buildbotics_logo.png")
+          .logo
+            span.left Build
+            span.right botics
+          h2 Machine Controller
+
+        .content
+          component(:is="currentView + '-view'", :index="index",
+            :config="config", :template="template")
 
     #templates
+      include ../../build/templates.jade
 
+    script(src="//code.jquery.com/jquery-1.11.3.min.js")
+    script(src="//cdn.jsdelivr.net/vue/1.0.17/vue.js")
+    script(src="js/sockjs.min.js")
+    script(src="js/gauge.min.js")
+    script(src="js/fd-slider.min.js")
+
+    script(src='/js/assets-' + js_hash + '.js')
+
+    script(src="js/ui.js")

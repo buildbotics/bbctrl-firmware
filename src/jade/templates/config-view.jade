@@ -1,0 +1,14 @@
+script#config-view-template(type="text/x-template")
+  #config-page
+    h1.title {{page}} {{motor}}
+
+    .buttons
+      button(@click="back") Back
+      button(@click="next") Next
+
+    component(:is="page + '-view'", :config="config.motors[motor]",
+      :template="template")
+
+    .buttons
+      button(@click="back") Back
+      button(@click="next") Next

@@ -1,0 +1,10 @@
+script#motor-view-template(type="text/x-template")
+  #motor
+    h1 Motor {{index}} Configuration
+
+    form.pure-form.pure-form-aligned
+      fieldset(v-for="category in template.motors", :class="$key")
+        h2 {{$key}}
+
+        templated-input(v-for="templ in category", :name="$key",
+          :model.sync="motor[$key]", :template="templ")

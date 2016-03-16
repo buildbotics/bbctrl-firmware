@@ -1,0 +1,26 @@
+script#templated-input-template(type="text/x-template")
+  .pure-control-group(:class="name")
+    label(:for="name") {{name}}
+
+    select(v-if="template.type == 'enum'", v-model="model",
+      :id="name", @change="change")
+      option(v-for="opt in template.values", :value="opt") {{opt}}
+
+    input(v-if="template.type == 'bool'", type="checkbox",
+      v-model="model", :id="name", @change="change")
+
+    input(v-if="template.type == 'float'", v-model="model", number,
+      :min="template.min", :max="template.max", step="any", type="number",
+        :id="name", @change="change")
+
+    input(v-if="template.type == 'int'", v-model="model", number,
+      :min="template.min", :max="template.max", type="number",
+        :id="name", @change="change")
+
+    input(v-if="template.type == 'string'", v-model="model",
+      type="text", :id="name", @change="change")
+
+    textarea(v-if="template.type == 'text'", v-model="model",
+      :id="name", @change="change")
+
+    label.units {{template.unit}}

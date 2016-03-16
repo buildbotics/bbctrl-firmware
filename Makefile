@@ -6,54 +6,71 @@ STYLUS     := $(NODE_MODS)/stylus/bin/stylus
 AP         := $(NODE_MODS)/autoprefixer/autoprefixer
 BROWSERIFY := $(NODE_MODS)/browserify/bin/cmd.js
 
-HTTP      := http
 HTML      := index
-HTML      := $(patsubst %,$(HTTP)/%.html,$(HTML))
-CSS       := style
-CSS       := $(patsubst %,$(HTTP)/%.css,$(CSS))
+HTML      := $(patsubst %,http/%.html,$(HTML))
+CSS       := $(wildcard src/stylus/*.styl)
+CSS_ASSETS := build/css/style.css
 JS        := $(wildcard src/js/*.js)
-JS_ASSETS := $(HTTP)/js/assets.js
-TEMPLS    := $(wildcard src/jade/templates/*.jade)
+JS_ASSETS := http/js/assets.js
 STATIC    := $(shell find src/resources -type f)
 STATIC    := $(patsubst src/resources/%,http/%,$(STATIC))
+TEMPLS    := $(wildcard src/jade/templates/*.jade)
 
 ifndef DEST
 DEST=bbctrl/
 endif
 
-WATCH := src/jade src/stylus src/js Makefile
+WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 
-TARGETS := $(HTML) $(CSS) $(JS_ASSETS) $(STATIC)
+all: html css js static
 
-all: node_modules $(TARGETS)
-
-copy: $(TARGETS)
+copy: all
 	cp -r *.py inevent http/ $(DEST)
 
-$(HTTP)/admin.html: build/templates.jade
+html: templates $(HTML)
 
-$(HTTP)/%.html: src/jade/%.jade
-	$(JADE) -P $< --out $(shell dirname $@) || \
-	(rm -f $@; exit 1)
+css: $(CSS_ASSETS) $(CSS_ASSETS).sha256
+	install -D $< http/css/style-$(shell cat $(CSS_ASSETS).sha256).css
 
-$(HTTP)/%.css: src/stylus/%.styl
-	mkdir -p $(shell dirname $@)
-	$(STYLUS) < $< > $@ || (rm -f $@; exit 1)
+js: $(JS_ASSETS) $(JS_ASSETS).sha256
+	install -D $< http/js/assets-$(shell cat $(JS_ASSETS).sha256).js
 
-$(HTTP)/%: src/resources/%
-	install -D $< $@
+static: $(STATIC)
+
+templates: build/templates.jade
 
 build/templates.jade: $(TEMPLS)
 	mkdir -p build
 	cat $(TEMPLS) >$@
 
-$(JS_ASSETS): $(JS)
+build/hashes.jade: $(CSS_ASSETS).sha256 $(JS_ASSETS).sha256
+	echo "- var css_hash = '$(shell cat $(CSS_ASSETS).sha256)'" > $@
+	echo "- var js_hash = '$(shell cat $(JS_ASSETS).sha256)'" >> $@
+
+http/index.html: build/templates.jade build/hashes.jade
+
+$(JS_ASSETS): $(JS) node_modules
 	@mkdir -p $(shell dirname $@)
 	$(BROWSERIFY) src/js/main.js -s main -o $@ || \
 	(rm -f $@; exit 1)
 
 node_modules:
 	npm install
+
+%.sha256: %
+	mkdir -p $(shell dirname $@)
+	sha256sum $< | sed 's/^\([a-f0-9]\+\) .*$$/\1/' > $@
+
+http/%: src/resources/%
+	install -D $< $@
+
+http/%.html: src/jade/%.jade $(wildcard src/jade/*.jade) node_modules
+	@mkdir -p $(shell dirname $@)
+	$(JADE) -P $< -o http || (rm -f $@; exit 1)
+
+build/css/%.css: src/stylus/%.styl node_modules
+	mkdir -p $(shell dirname $@)
+	$(STYLUS) < $< > $@ || (rm -f $@; exit 1)
 
 watch:
 	@clear
@@ -65,5 +82,13 @@ watch:
 	  $(MAKE); \
 	done
 
-clean:
-	rm -rf $(HTTP)
+tidy:
+	rm -f $(shell find "$(DIR)" -name \*~)
+
+clean: tidy
+	rm -rf build html
+
+dist-clean: clean
+	rm -rf node_modules
+
+.PHONY: all install html css static templates clean tidy

@@ -26,7 +26,7 @@ class JogHandler:
     def __init__(self, config):
         self.config = config
         self.axes = [0.0, 0.0, 0.0, 0.0]
-        self.speed = 1
+        self.speed = 3
         self.activate = 0
 
 
@@ -74,7 +74,8 @@ class JogHandler:
             self.axes[axis] = event.stream.state.abs[self.config['axes'][axis]]
             if abs(self.axes[axis]) < self.config['deadband']:
                 self.axes[axis] = 0
-            if not (1 << axis) & self.activate: self.axes[axis] = 0
+            if not (1 << axis) & self.activate and self.activate:
+                self.axes[axis] = 0
 
         if old_axes != self.axes: changed = True
 

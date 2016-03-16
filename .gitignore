@@ -1,6 +1,7 @@
 .sconf_temp/
 .sconsign.dblite
 /http
+/build
 node_modules
 *~
 \#*

@@ -3,6 +3,8 @@
 ## Change this to match your local settings
 SERIAL_PORT = '/dev/ttyAMA0'
 SERIAL_BAUDRATE = 115200
+HTTP_PORT = 8080
+HTTP_ADDR = '0.0.0.0'
 
 import os
 from tornado import web, ioloop
@@ -45,7 +47,7 @@ class SerialProcess(multiprocessing.Process):
 
     def close(self):
         self.sp.close()
- 
+
 
     def writeSerial(self, data):
         self.sp.write(data.encode())
@@ -57,12 +59,12 @@ class SerialProcess(multiprocessing.Process):
 
     def run(self):
         self.sp.flushInput()
- 
+
         while True:
             # look for incoming tornado request
             if not self.input_queue.empty():
                 data = self.input_queue.get()
- 
+
                 # send it to the serial device
                 self.writeSerial(data)
 
@@ -71,14 +73,17 @@ class SerialProcess(multiprocessing.Process):
                 data = self.readSerial()
                 # send it back to tornado
                 self.output_queue.put(data)
-                print(data.decode('utf-8'))
+                try:
+                    print(data.decode('utf-8'))
+                except Exception as e:
+                    print(e, data)
 
 
 
 class Connection(SockJSConnection):
     def on_open(self, info):
         clients.append(self)
-        self.send(state)
+        self.send(str.encode(json.dumps(state)))
 
 
     def on_close(self):
@@ -114,7 +119,17 @@ class JogHandler(inevent.JogHandler):
     def __init__(self, config):
         super().__init__(config)
 
-        self.lastV = [0.0] * 4
+        self.v = [0.0] * 4
+        self.lastV = self.v
+
+
+    def processed_events(self):
+        if self.v != self.lastV:
+            self.lastV = self.v
+
+            v = ["{:6.5f}".format(x) for x in self.v]
+            cmd = '$jog ' + ' '.join(v) + '\n'
+            input_queue.put(cmd)
 
 
     def changed(self):
@@ -123,17 +138,14 @@ class JogHandler(inevent.JogHandler):
         if self.speed == 3: scale = 1.0 / 4.0
         if self.speed == 4: scale = 1.0
 
-        v = [x * scale for x in self.axes]
-
-        if v != self.lastV:
-            self.lastV = v
-
-            v = ["{:6.5f}".format(x) for x in v]
-            cmd = '$jog ' + ' '.join(v) + '\n'
-            input_queue.put(cmd)
+        self.v = [x * scale for x in self.axes]
 
 
-def checkEvents(): eventProcessor.process_events(eventHandler)
+
+def checkEvents():
+    eventProcessor.process_events(eventHandler)
+    eventHandler.processed_events()
+
 eventProcessor = inevent.InEvent(types = "js kbd".split())
 eventHandler = JogHandler(config)
 
@@ -144,9 +156,12 @@ if __name__ == "__main__":
     logging.getLogger().setLevel(logging.DEBUG)
 
     # Start the serial worker
-    sp = SerialProcess(input_queue, output_queue)
-    sp.daemon = True
-    sp.start()
+    try:
+        sp = SerialProcess(input_queue, output_queue)
+        sp.daemon = True
+        sp.start()
+    except Exception as e:
+        print(e)
 
     # Adjust the interval according to frames sent by serial port
     ioloop.PeriodicCallback(checkQueue, 100).start()
@@ -154,5 +169,6 @@ if __name__ == "__main__":
 
     # Start the web server
     app = web.Application(router.urls + handlers)
-    app.listen(8080)
+    app.listen(HTTP_PORT, address = HTTP_ADDR)
+    print('Listening on http://{}:{}/'.format(HTTP_ADDR, HTTP_PORT))
     ioloop.IOLoop.instance().start()

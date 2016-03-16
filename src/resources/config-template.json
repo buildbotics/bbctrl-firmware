@@ -1,0 +1,207 @@
+{
+  "axes": {
+    "motion": {
+      "mode": {
+        "type": "enum",
+        "values": ["standard", "radius", "disabled"],
+        "default": "disabled"
+      },
+      "max-velocity": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm/min",
+        "default": 16000
+      },
+      "max-feedrate": {
+        "type": "float",
+        "min": 0, "unit":
+        "mm/min",
+        "default": 16000
+      },
+      "max-jerk": {
+        "type": "float",
+        "min": 0,
+        "unit": "km/min^3",
+        "default": 20
+      },
+      "junction-deviation": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm",
+        "default": 0.05
+      }
+    },
+
+    "limits": {
+      "min-soft-limit": {
+        "type": "float",
+        "unit": "mm",
+        "default": 0
+      },
+      "max-soft-limit": {
+        "type": "float",
+        "unit": "mm",
+        "default": 150
+      },
+      "min-switch": {
+        "type": "int",
+        "unit": "id",
+        "min": 0,
+        "max": 8,
+        "default": 0
+      },
+      "max-switch": {
+        "type": "int",
+        "unit": "id",
+        "min": 0,
+        "max": 8,
+        "default": 0
+      }
+    },
+
+    "homing": {
+      "max-homing-jerk": {
+        "type": "float",
+        "min": 0,
+        "unit": "km/min^3",
+        "default": 40
+      },
+      "search-velocity": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm/min",
+        "default": 500
+      },
+      "latch-velocity": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm/min",
+        "default": 100
+      },
+      "latch-backoff": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm",
+        "default": 5
+      },
+      "zero-backoff": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm",
+        "default": 1
+      }
+    }
+  },
+
+  "motors": {
+    "general": {
+      "axis-mapping": {
+        "type": "enum",
+        "values": ["x", "y", "z", "a", "b", "c"],
+        "default": "x"
+      },
+      "step-angle": {
+        "type": "float",
+        "unit": "degrees",
+        "default": 1.8
+      },
+      "travel-per-rev": {
+        "type": "float",
+        "unit": "mm",
+        "default": 3.175
+      },
+      "microsteps": {
+        "type": "int",
+        "values": [1, 2, 4, 8, 16, 32, 64, 128, 256],
+        "unit": "per full step",
+        "default": 16
+      },
+      "polarity": {
+        "type": "enum",
+        "values": ["normal", "reversed"],
+        "default": "normal"
+      }
+    },
+
+    "power": {
+      "power-mode": {
+        "type": "enum",
+        "values": ["always-on", "in-cycle", "when-moving"],
+        "default": "in-cycle"
+      },
+      "power-level": {
+        "type": "float",
+        "min": 0,
+        "max": 100,
+        "unit": "%",
+        "default": 80
+      },
+      "stall-guard": {
+        "type": "float",
+        "min": 0,
+        "max": 100,
+        "unit": "%",
+        "default": 70
+      },
+      "cool-step": {
+        "type": "bool",
+        "default": true
+      }
+    }
+  },
+
+  "spindle": {
+    "max-speed": {
+      "type": "float",
+      "unit": "RPM",
+      "min": 0,
+      "default": 10000
+    },
+    "type": {
+      "type": "enum",
+      "values": ["RS485", "PWM"],
+      "default": "RS485"
+    },
+    "min-pulse-width": {
+      "type": "float",
+      "unit": "ms",
+      "default": 20
+    },
+    "max-pulse-width": {
+      "type": "float",
+      "unit": "ms",
+      "default": 100
+    },
+    "polarity": {
+      "type": "enum",
+      "values": ["normal", "reversed"],
+      "default": "normal"
+    },
+    "ramp-up-velocity": {
+      "type": "float",
+      "unit": "rev/min^2",
+      "min": 0,
+      "default": 48000
+    },
+    "ramp-down-velocity": {
+      "type": "float",
+      "unit": "rev/min^2",
+      "min": 0,
+      "default": 48000
+    }
+  },
+
+  "switches": {
+    "type": {
+      "type": "enum",
+      "values": ["normally-open", "normally-closed"],
+      "default": "normally-closed"
+    }
+  },
+
+  "gcode": {
+    "preamble": {"type": "text"},
+    "tool-change": {"type": "text"},
+    "epilogue": {"type": "text"}
+  }
+}

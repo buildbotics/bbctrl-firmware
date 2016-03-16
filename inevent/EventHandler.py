@@ -117,4 +117,3 @@ class EventHandler(object):
       if self.buttons[k] != 0: k_list.append(k)
 
     return k_list
-
