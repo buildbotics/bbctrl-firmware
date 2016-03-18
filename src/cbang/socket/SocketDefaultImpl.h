@@ -34,7 +34,6 @@
 #define CBANG_SOCKET_DEFAULT_IMPL_H
 
 #include "SocketImpl.h"
-#include "SocketType.h"
 
 #include <cbang/SmartPointer.h>
 

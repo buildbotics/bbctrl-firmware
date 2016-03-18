@@ -33,6 +33,8 @@
 #ifndef CBANG_SOCKET_IMPL_H
 #define CBANG_SOCKET_IMPL_H
 
+#include "SocketType.h"
+
 #include <cbang/SmartPointer.h>
 #include <cbang/net/IPAddress.h>
 
@@ -77,7 +79,7 @@ namespace cb {
     virtual std::streamsize read(char *data, std::streamsize length,
                                  unsigned flags) = 0;
     virtual void close() = 0;
-    virtual int get() const = 0;
+    virtual socket_t get() const = 0;
   };
 }
 

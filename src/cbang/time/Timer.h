@@ -33,8 +33,11 @@
 #ifndef CBANG_TIMER_H
 #define CBANG_TIMER_H
 
-#ifdef _WIN32
-#include <winsock2.h> // For timeval
+#ifdef _MSC_VER
+struct timeval {
+  long tv_sec;
+  long tv_usec;
+};
 
 #undef max
 #undef min

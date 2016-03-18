@@ -73,7 +73,7 @@ namespace cb {
                           unsigned flags);
     std::streamsize read(char *data, std::streamsize length, unsigned flags);
     void close();
-    int get() const {return 0;}
+    socket_t get() const {return 0;}
   };
 }
 
