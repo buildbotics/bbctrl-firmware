@@ -381,8 +381,8 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
 
     if (flags & W32_WAIT_FOR_INPUT_IDLE) {
       int ret = WaitForInputIdle(p->pi.hProcess, 5000);
-      if (ret == WAIT_TIMEOUT) THROW("Wait timedout");
-      if (ret == WAIT_FAILED) THROW("Wait failed");
+      if (ret == (int)WAIT_TIMEOUT) THROW("Wait timedout");
+      if (ret == (int)WAIT_FAILED) THROW("Wait failed");
     }
 
 #else // _WIN32

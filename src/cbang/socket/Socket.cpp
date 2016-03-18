@@ -37,7 +37,6 @@
 #include "SocketDebugImpl.h"
 #include "SocketDebugger.h"
 #include "SocketSet.h"
-#include "SocketType.h" // For winsock.h
 
 #include <cbang/Exception.h>
 #include <cbang/Zap.h>
@@ -47,6 +46,11 @@
 
 #include <cbang/log/Logger.h>
 #include <cbang/time/Timer.h>
+
+#ifdef _WIN32
+#define FD_SETSIZE 4096
+#include <winsock2.h>
+#endif
 
 using namespace std;
 using namespace cb;

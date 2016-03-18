@@ -46,6 +46,9 @@
 #include <cbang/String.h>
 
 #ifdef _WIN32
+#define FD_SETSIZE 4096
+#include <winsock2.h>
+
 typedef int socklen_t;  // Unix socket length
 #define MSG_DONTWAIT 0
 #define MSG_NOSIGNAL 0
@@ -93,7 +96,7 @@ bool SocketDefaultImpl::isOpen() const {
 void SocketDefaultImpl::open() {
   if (isOpen()) THROW("Socket already open");
 
-  if ((socket = (int)::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) ==
+  if ((socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) ==
       INVALID_SOCKET)
     THROW("Failed to create socket");
 }
@@ -242,7 +245,7 @@ SmartPointer<Socket> SocketDefaultImpl::accept(IPAddress *ip) {
   socklen_t len = sizeof(addr);
 
   if ((aSock->socket =
-       (int)::accept((socket_t)socket, (struct sockaddr *)&addr, &len)) !=
+       ::accept((socket_t)socket, (struct sockaddr *)&addr, &len)) !=
       INVALID_SOCKET) {
     IPAddress inAddr = ntohl(addr.sin_addr.s_addr);
     inAddr.setPort(ntohs(addr.sin_port));

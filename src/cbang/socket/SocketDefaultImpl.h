@@ -34,6 +34,7 @@
 #define CBANG_SOCKET_DEFAULT_IMPL_H
 
 #include "SocketImpl.h"
+#include "SocketType.h"
 
 #include <cbang/SmartPointer.h>
 
@@ -42,7 +43,7 @@
 namespace cb {
   /// Create a TCP socket connection.
   class SocketDefaultImpl : public SocketImpl {
-    int socket;
+    socket_t socket;
     bool blocking;
     bool connected;
 
@@ -75,7 +76,7 @@ namespace cb {
                           unsigned flags);
     std::streamsize read(char *data, std::streamsize length, unsigned flags);
     void close();
-    int get() const {return socket;}
+    socket_t get() const {return socket;}
 
   protected:
     void capture(const IPAddress &addr, bool incoming);

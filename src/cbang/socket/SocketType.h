@@ -33,18 +33,24 @@
 #ifndef CBANG_SOCKET_TYPE_H
 #define CBANG_SOCKET_TYPE_H
 
-#ifdef _WIN32
-#define FD_SETSIZE 4096
-#include <winsock2.h>
-#endif
+#include <cbang/StdTypes.h>
+
 
 namespace cb {
-#ifdef _WIN32
-  typedef SOCKET socket_t;
+#ifdef _MSC_VER
+  typedef void * socket_t;  // In windows a SOCKET is the same as a HANDLE
+
+#elif __MINGW32__
+
+#ifdef _WIN64
+  typedef uint64_t socket_t;
+#else
+  typedef uint32_t socket_t;
+#endif
+
 #else
   typedef int socket_t;
 #endif
 }
 
 #endif // CBANG_SOCKET_TYPE_H
-
