@@ -222,9 +222,9 @@
 #include <stdbool.h>
 
 typedef enum {
-  PREP_BUFFER_OWNED_BY_LOADER, // staging buffer is ready for load
-  PREP_BUFFER_OWNED_BY_EXEC    // staging buffer is being loaded
-} prepBufferState_t;
+  PREP_BUFFER_OWNER_LOADER, // staging buffer is ready for load
+  PREP_BUFFER_OWNER_EXEC    // staging buffer is being loaded
+} prepBufferOwner_t;
 
 
 // Currently there is no distinction between IDLE and OFF (DEENERGIZED)
@@ -361,12 +361,12 @@ typedef struct {
 
 
 typedef struct {
-  volatile prepBufferState_t buffer_state; // owned by exec or loader
+  volatile prepBufferOwner_t owner; // owned by exec or loader
   moveType_t move_type;
-  struct mpBuffer *bf;                     // used for command moves
+  struct mpBuffer *bf;              // used for command moves
   uint16_t seg_period;
   uint32_t dwell;
-  stPrepMotor_t mot[MOTORS];               // prep time motor structs
+  stPrepMotor_t mot[MOTORS];        // prep time motor structs
 } stPrepSingleton_t;
 
 

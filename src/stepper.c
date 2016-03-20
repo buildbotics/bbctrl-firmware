@@ -88,7 +88,7 @@ void stepper_init() {
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;         // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL;       // interrupt mode
 
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
+  st_pre.owner = PREP_BUFFER_OWNER_EXEC;
 
   // Defaults
   st_cfg.motor_power_timeout = MOTOR_IDLE_TIMEOUT;
@@ -231,7 +231,7 @@ ISR(STEP_TIMER_ISR) {
 
 /// "Software" interrupt to request move execution
 void st_request_exec_move() {
-  if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC) {
+  if (st_pre.owner == PREP_BUFFER_OWNER_EXEC) {
     ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
     ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
   }
@@ -241,9 +241,9 @@ void st_request_exec_move() {
 /// Interrupt handler for calling move exec function.
 /// Uses ADC channel 0 as software interrupt.
 ISR(ADCB_CH0_vect) {
-  if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_EXEC &&
+  if (st_pre.owner == PREP_BUFFER_OWNER_EXEC &&
       mp_exec_move() != STAT_NOOP) {
-    st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // flip it back
+    st_pre.owner = PREP_BUFFER_OWNER_LOADER; // flip it back
     _request_load_move();
   }
 }
@@ -253,7 +253,7 @@ ISR(ADCB_CH0_vect) {
 static void _request_load_move() {
   if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
 
-  if (st_pre.buffer_state == PREP_BUFFER_OWNED_BY_LOADER) {
+  if (st_pre.owner == PREP_BUFFER_OWNER_LOADER) {
     ADCB_CH1_INTCTRL = ADC_CH_INTLVL_HI_gc; // trigger HI interrupt
     ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH1START_bm;
   }
@@ -324,7 +324,7 @@ static inline void _load_motor_move(int motor) {
 static void _load_move() {
   if (st_runtime_isbusy()) return;
 
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_LOADER) {
+  if (st_pre.owner != PREP_BUFFER_OWNER_LOADER) {
     // There are no more moves, disable motor clocks
     for (int motor = 0; motor < MOTORS; motor++)
       st_cfg.mot[motor].timer->CTRLA = 0;
@@ -359,7 +359,7 @@ static void _load_move() {
 
   // we are done with the prep buffer - flip the flag back
   st_pre.move_type = MOVE_TYPE_0;
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC;
+  st_pre.owner = PREP_BUFFER_OWNER_EXEC;
   st_request_exec_move(); // exec and prep next move
 }
 
@@ -461,7 +461,7 @@ static void _prep_motor_line(int motor, float travel_steps, float error) {
  */
 stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
   // Trap conditions that would prevent queueing the line
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_EXEC)
+  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
     return cm_hard_alarm(STAT_INTERNAL_ERROR);
   if (isinf(segment_time))
     return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
@@ -478,7 +478,7 @@ stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
     _prep_motor_line(motor, travel_steps[motor], error[motor]);
 
   // Signal prep buffer ready (do this last)
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER;
+  st_pre.owner = PREP_BUFFER_OWNER_LOADER;
 
   return STAT_OK;
 }
@@ -486,34 +486,34 @@ stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
 
 /// Keeps the loader happy. Otherwise performs no action
 void st_prep_null() {
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_EXEC)
+  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
     cm_hard_alarm(STAT_INTERNAL_ERROR);
 
   st_pre.move_type = MOVE_TYPE_0;
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_EXEC; // signal prep buffer empty
+  st_pre.owner = PREP_BUFFER_OWNER_EXEC; // signal prep buffer empty
 }
 
 
 /// Stage command to execution
 void st_prep_command(void *bf) {
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_EXEC)
+  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
     cm_hard_alarm(STAT_INTERNAL_ERROR);
 
   st_pre.move_type = MOVE_TYPE_COMMAND;
   st_pre.bf = (mpBuf_t *)bf;
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
+  st_pre.owner = PREP_BUFFER_OWNER_LOADER; // signal prep buffer ready
 }
 
 
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  if (st_pre.buffer_state != PREP_BUFFER_OWNED_BY_EXEC)
+  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
     cm_hard_alarm(STAT_INTERNAL_ERROR);
 
   st_pre.move_type = MOVE_TYPE_DWELL;
   st_pre.seg_period = F_CPU / STEP_TIMER_DIV / 1000; // 1 ms
   st_pre.dwell = seconds * 1000; // convert to ms
-  st_pre.buffer_state = PREP_BUFFER_OWNED_BY_LOADER; // signal prep buffer ready
+  st_pre.owner = PREP_BUFFER_OWNER_LOADER; // signal prep buffer ready
 }
 
 
