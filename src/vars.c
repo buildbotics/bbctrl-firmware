@@ -40,16 +40,12 @@
 #include <math.h>
 
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
 MAP(TYPE_NAME, SEMI, string, float, int8_t, uint8_t, uint16_t);
-
-
-static void var_print_bool(bool x) {
-  printf_P(x ? PSTR("true") : PSTR("false"));
-}
 
 
 static void var_print_float(float x) {
@@ -87,17 +83,16 @@ static void var_print_uint16_t(uint16_t x) {
 }
 
 
-static bool var_parse_bool(const char *value) {
-  return strcmp_P(value, PSTR("false"));
-}
-
-
 static float var_parse_float(const char *value) {
   return strtod(value, 0);
 }
 
 
 static int8_t var_parse_int8_t(const char *value) {
+  return strtol(value, 0, 0);
+}
+
+static uint8_t var_parse_uint8_t(const char *value) {
   return strtol(value, 0, 0);
 }
 
@@ -108,7 +103,7 @@ static uint16_t var_parse_uint16_t(const char *value) {
 
 
 // Var forward declarations
-#define VAR(NAME, TYPE, INDEX, SET, ...)               \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)         \
   TYPE get_##NAME(IF(INDEX)(int index));               \
   IF(SET)                                              \
   (void set_##NAME(IF(INDEX)(int index,) TYPE value);)
@@ -117,16 +112,16 @@ static uint16_t var_parse_uint16_t(const char *value) {
 #undef VAR
 
 // Var names, count & help
-#define VAR(NAME, TYPE, INDEX, SET, DEFAULT, HELP)   \
-  static const char NAME##_name[] PROGMEM = #NAME;   \
-  static const int NAME##_count = INDEX ? INDEX : 1; \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, HELP)    \
+  static const char NAME##_name[] PROGMEM = #NAME;          \
+  static const int NAME##_count = INDEX ? INDEX : 1;        \
   static const char NAME##_help[] PROGMEM = HELP;
 
 #include "vars.def"
 #undef VAR
 
 // Last value
-#define VAR(NAME, TYPE, INDEX, ...)             \
+#define VAR(NAME, CODE, TYPE, INDEX, ...)       \
   static TYPE NAME##_last IF(INDEX)([INDEX]);
 
 #include "vars.def"
@@ -134,7 +129,7 @@ static uint16_t var_parse_uint16_t(const char *value) {
 
 
 void vars_init() {
-#define VAR(NAME, TYPE, INDEX, SET, DEFAULT, ...) \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, ...)  \
   IF(SET)                                         \
     (IF(INDEX)(for (int i = 0; i < INDEX; i++)) { \
       set_##NAME(IF(INDEX)(i,) DEFAULT);          \
@@ -149,10 +144,10 @@ void vars_init() {
 void vars_report(bool full) {
   bool reported = false;
 
-  static const char value_fmt[] PROGMEM = "\"%S\":";
-  static const char index_value_fmt[] PROGMEM = "\"%S%c\":";
+  static const char value_fmt[] PROGMEM = "\"%s\":";
+  static const char index_value_fmt[] PROGMEM = "\"%c%s\":";
 
-#define VAR(NAME, TYPE, INDEX, ...)                     \
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                \
   IF(INDEX)(for (int i = 0; i < NAME##_count; i++)) {   \
     TYPE value = get_##NAME(IF(INDEX)(i));              \
                                                         \
@@ -166,10 +161,11 @@ void vars_report(bool full) {
                                                         \
       printf_P                                          \
         (IF_ELSE(INDEX)(index_value_fmt, value_fmt),    \
-         NAME##_name IF(INDEX)(, INDEX##_LABEL[i]));    \
+         IF(INDEX)(INDEX##_LABEL[i],) CODE);            \
                                                         \
       var_print_##TYPE(value);                          \
     }                                                   \
+    wdt_reset();                                        \
   }
 
 #include "vars.def"
@@ -179,26 +175,29 @@ void vars_report(bool full) {
 }
 
 
-void vars_set(const char *name, const char *value) {
+bool vars_set(const char *name, const char *value) {
   uint8_t i;
   unsigned len = strlen(name);
 
-  if (!len) return;
 
-#define VAR(NAME, TYPE, INDEX, SET, ...)                                \
+  if (!len) return false;
+
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
   IF(SET)                                                               \
-    (if (!strncmp_P(name, NAME##_name, IF_ELSE(INDEX)(len - 1, len))) { \
+    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {               \
       IF(INDEX)                                                         \
-        (i = strchr(INDEX##_LABEL, name[len - 1]) - INDEX##_LABEL;      \
-         if (INDEX <= i) return);                                       \
+        (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
+         if (INDEX <= i) return false);                                 \
                                                                         \
       set_##NAME(IF(INDEX)(i ,) var_parse_##TYPE(value));               \
                                                                         \
-      return;                                                           \
-    })
+      return true;                                                      \
+    })                                                                  \
 
 #include "vars.def"
 #undef VAR
+
+  return false;
 }
 
 
@@ -237,10 +236,11 @@ int vars_parser(char *vars) {
 
 
 void vars_print_help() {
-  static const char fmt[] PROGMEM = "  %-8S %-10S  %S\n";
+  static const char fmt[] PROGMEM = "  $%-5s %-14S %-12S  %S\n";
 
-#define VAR(NAME, TYPE, ...) \
-  printf_P(fmt, NAME##_name, TYPE##_name, NAME##_help);
+#define VAR(NAME, CODE, TYPE, ...)                      \
+  printf_P(fmt, CODE, NAME##_name, TYPE##_name, NAME##_help);    \
+  wdt_reset();
 #include "vars.def"
 #undef VAR
 }

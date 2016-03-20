@@ -127,3 +127,66 @@ static void _exec_spindle_speed(float *value, float *flag) {
   // update spindle speed if we're running
   pwm_set_duty(PWM_1, cm_get_spindle_pwm(cm.gm.spindle_mode));
 }
+
+
+float get_max_spin(int index) {
+  return 0;
+}
+
+
+void set_max_spin(int axis, float value) {
+}
+
+
+uint8_t get_spindle_type(int index) {
+  return 0;
+}
+
+
+void set_spindle_type(int axis, uint8_t value) {
+}
+
+
+float get_spin_min_pulse(int index) {
+  return 0;
+}
+
+
+void set_spin_min_pulse(int axis, float value) {
+}
+
+
+float get_spin_max_pulse(int index) {
+  return 0;
+}
+
+
+void set_spin_max_pulse(int axis, float value) {
+}
+
+
+uint8_t get_spin_polarity(int index) {
+  return 0;
+}
+
+
+void set_spin_polarity(int axis, uint8_t value) {
+}
+
+
+float get_spin_up(int index) {
+  return 0;
+}
+
+
+void set_spin_up(int axis, float value) {
+}
+
+
+float get_spin_down(int index) {
+  return 0;
+}
+
+
+void set_spin_down(int axis, float value) {
+}

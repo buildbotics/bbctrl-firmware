@@ -44,6 +44,8 @@
 #pragma once
 
 
+#include "config.h"
+
 #include <stdint.h>
 
 // timer for debouncing switches
@@ -90,11 +92,10 @@ enum swNums { // indexes into switch arrays
   SW_MIN_Z,
   SW_MAX_Z,
   SW_MIN_A,
-  SW_MAX_A,
-  NUM_SWITCHES // must be last one. Used for array sizing and for loops
+  SW_MAX_A
 };
 #define SW_OFFSET SW_MAX_X // offset between MIN and MAX switches
-#define NUM_SWITCH_PAIRS (NUM_SWITCHES / 2)
+#define NUM_SWITCH_PAIRS (SWITCHES / 2)
 
 /// Interrupt levels and vectors - The vectors are hard-wired to xmega ports
 /// If you change axis port assignments you need to change these, too.
@@ -119,12 +120,12 @@ struct swStruct {                       // switch state
   uint8_t limit_flag;                   // 1=limit switch thrown - do a lockout
   uint8_t sw_num_thrown;                // number of switch that was just thrown
   /// 0=OPEN, 1=CLOSED (depends on switch type)
-  uint8_t state[NUM_SWITCHES];
+  uint8_t state[SWITCHES];
   /// 0=disabled, 1=homing, 2=homing+limit, 3=limit
-  volatile uint8_t mode[NUM_SWITCHES];
+  volatile uint8_t mode[SWITCHES];
   /// debouncer state machine - see swDebounce
-  volatile uint8_t debounce[NUM_SWITCHES];
-  volatile int8_t count[NUM_SWITCHES];  // deglitching and lockout counter
+  volatile uint8_t debounce[SWITCHES];
+  volatile int8_t count[SWITCHES];  // deglitching and lockout counter
 };
 struct swStruct sw;
 
@@ -138,8 +139,3 @@ uint8_t get_limit_switch_thrown();
 uint8_t get_switch_thrown();
 void reset_switches();
 void sw_show_switch();
-
-void set_switch_type(uint8_t switch_type);
-uint8_t get_switch_type();
-
-

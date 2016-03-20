@@ -78,11 +78,11 @@ stat_t report_callback() {
 }
 
 
-float get_pos(int index) {
+float get_position(int index) {
   return cm_get_absolute_position(0, index);
 }
 
 
-float get_vel() {
+float get_velocity() {
   return mp_get_runtime_velocity();
 }

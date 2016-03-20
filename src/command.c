@@ -36,9 +36,11 @@
 #include "config.h"
 
 #include <avr/pgmspace.h>
+#include <avr/wdt.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 
 
@@ -106,10 +108,20 @@ int command_exec(int argc, char *argv[]) {
     else if (maxArgs < argc - 1) printf_P(PSTR("Too many arguments\n"));
     else {
       command_cb_t cb = pgm_read_word(&commands[i].cb);
-      status = cb(argc, argv);
+      return cb(argc, argv);
     }
 
-  } else printf_P(PSTR("Unknown command '%s'\n"), argv[0]);
+  } else if (argc == 1) {
+    char *p = strchr(argv[0], '=');
+    if (p) {
+      *p++ = 0;
+      if (vars_set(argv[0], p)) return STAT_OK;
+    }
+
+  } else if (argc == 2 && vars_set(argv[0], argv[1]))
+    return STAT_OK;
+
+  printf_P(PSTR("Unknown command or unsetable variable '%s'\n"), argv[0]);
 
   return status;
 }
@@ -117,7 +129,7 @@ int command_exec(int argc, char *argv[]) {
 
 int command_parser(char *cmd) {
   // Parse line
-  char *p = cmd + 1;
+  char *p = cmd + 1; // Skip `$`
   int argc = 0;
   char *argv[MAX_ARGS] = {};
 
@@ -156,7 +168,7 @@ int command_eval(char *cmd) {
 
 // Command functions
 void static print_command_help(int i) {
-  static const char fmt[] PROGMEM = "  %-8S  %S\n";
+  static const char fmt[] PROGMEM = "  $%-8S  %S\n";
   const char *name = pgm_read_word(&commands[i].name);
   const char *help = pgm_read_word(&commands[i].help);
 
@@ -182,6 +194,7 @@ uint8_t command_help(int argc, char *argv[]) {
     const char *name = pgm_read_word(&commands[i].name);
     if (!name) break;
     print_command_help(i);
+    wdt_reset();
   }
 
   puts_P(PSTR("\nVariables:"));

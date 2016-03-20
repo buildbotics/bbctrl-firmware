@@ -41,12 +41,13 @@
 #define AXES         6           // number of axes
 #define MOTORS       4           // number of motors on the board
 #define COORDS       6           // number of supported coordinate systems (1-6)
+#define SWITCHES     8           // number of supported limit switches
 #define PWMS         2           // number of supported PWM channels
 
 // Motor settings
 #define MOTOR_CURRENT            0.8   // 1.0 is full power
 #define MOTOR_MICROSTEPS         16
-#define MOTOR_POWER_MODE         MOTOR_ALWAYS_POWERED // See stepper.c
+#define MOTOR_POWER_MODE         MOTOR_POWERED_IN_CYCLE // See stepper.c
 #define MOTOR_IDLE_TIMEOUT       2.00  // secs, motor off after this time
 
 #define M1_MOTOR_MAP             AXIS_X
@@ -250,7 +251,7 @@
 
 /// motor control port bit positions
 enum cfgPortBits {
-  STEP_BIT_bp = 0,        // bit 0
+  STEP_BIT_bp,            // bit 0
   DIRECTION_BIT_bp,       // bit 1 (low = clockwise)
   MOTOR_ENABLE_BIT_bp,    // bit 2 (low = enabled)
   CHIP_SELECT_BIT_bp,     // bit 3

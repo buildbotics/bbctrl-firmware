@@ -220,8 +220,8 @@
 #include <stdbool.h>
 
 enum prepBufferState {
-  PREP_BUFFER_OWNED_BY_LOADER = 0, // staging buffer is ready for load
-  PREP_BUFFER_OWNED_BY_EXEC        // staging buffer is being loaded
+  PREP_BUFFER_OWNED_BY_LOADER, // staging buffer is ready for load
+  PREP_BUFFER_OWNED_BY_EXEC    // staging buffer is being loaded
 };
 
 
@@ -229,7 +229,7 @@ enum prepBufferState {
 // In the future IDLE will be powered at a low, torque-maintaining current
 // Used w/start and stop flags to sequence motor power
 enum motorPowerState {
-  MOTOR_OFF = 0,                // motor stopped and deenergized
+  MOTOR_OFF,                    // motor stopped and deenergized
   MOTOR_IDLE,                   // motor stopped and may be partially energized
   MOTOR_RUNNING,                // motor is running (and fully energized)
   MOTOR_POWER_TIMEOUT_START,    // transition state to start power-down timeout
@@ -238,7 +238,7 @@ enum motorPowerState {
 
 
 enum cmMotorPowerMode {
-  MOTOR_DISABLED = 0,             // motor enable is deactivated
+  MOTOR_DISABLED,                 // motor enable is deactivated
   MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
   MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
                                   // de-powered out of cycle
@@ -256,7 +256,7 @@ enum {
 /// Min/Max timeouts allowed for motor disable.  Allow for inertial stop.
 /// Must be non-zero
 #define MOTOR_TIMEOUT_SECONDS_MIN (float)0.1
-/// For conversion to uint32_t (4294967295/1000)
+/// For conversion to uint32_t (4294967295 / 1000)
 #define MOTOR_TIMEOUT_SECONDS_MAX (float)4294967
 /// seconds in DISABLE_AXIS_WHEN_IDLE mode
 #define MOTOR_TIMEOUT_SECONDS     (float)0.1
@@ -307,7 +307,7 @@ enum {
 // Per motor config structure
 typedef struct cfgMotor {
   uint8_t motor_map;             // map motor to axis
-  uint32_t microsteps;           // microsteps to apply for each axis (ex: 8)
+  uint16_t microsteps;           // microsteps to apply for each axis (ex: 8)
   uint8_t polarity;              // 0=normal polarity, 1=reverse motor direction
   uint8_t power_mode;            // See cmMotorPowerMode for enum
   float step_angle;              // degrees per whole step (ex: 1.8)
@@ -374,10 +374,7 @@ extern stPrepSingleton_t st_pre; // used by planner.c
 
 void stepper_init();
 uint8_t st_runtime_isbusy();
-void st_reset();
 
-void st_energize_motors();
-void st_deenergize_motors();
 stat_t st_motor_power_callback();
 
 void st_request_exec_move();

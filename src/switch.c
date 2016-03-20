@@ -139,7 +139,7 @@ ISR(A_MAX_ISR_vect) {_switch_isr_helper(SW_MAX_A);}
 
 /// Called from RTC for each RTC tick
 void switch_rtc_callback() {
-  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
+  for (uint8_t i = 0; i < SWITCHES; i++) {
     if (sw.mode[i] == SW_MODE_DISABLED || sw.debounce[i] == SW_IDLE)
       continue;
 
@@ -183,14 +183,9 @@ uint8_t get_limit_switch_thrown() {return sw.limit_flag;}
 uint8_t get_switch_thrown() {return sw.sw_num_thrown;}
 
 
-// global switch type
-void set_switch_type(uint8_t switch_type) {sw.switch_type = switch_type;}
-uint8_t get_switch_type() {return sw.switch_type;}
-
-
 /// reset all switches and reset limit flag
 void reset_switches() {
-  for (uint8_t i = 0; i < NUM_SWITCHES; i++) {
+  for (uint8_t i = 0; i < SWITCHES; i++) {
     sw.debounce[i] = SW_IDLE;
     read_switch(i);
   }
@@ -201,7 +196,7 @@ void reset_switches() {
 
 /// read a switch directly with no interrupts or deglitching
 uint8_t read_switch(uint8_t sw_num) {
-  if (sw_num < 0 || sw_num >= NUM_SWITCHES) return SW_DISABLED;
+  if (sw_num < 0 || sw_num >= SWITCHES) return SW_DISABLED;
 
   uint8_t read = 0;
   switch (sw_num) {
@@ -221,4 +216,13 @@ uint8_t read_switch(uint8_t sw_num) {
   else sw.state[sw_num] = read ? SW_CLOSED : SW_OPEN;
 
   return sw.state[sw_num];
+}
+
+
+uint8_t get_switch_type(int index) {
+  return 0;
+}
+
+
+void set_switch_type(int axis, uint8_t value) {
 }

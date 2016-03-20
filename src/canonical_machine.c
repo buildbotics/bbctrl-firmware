@@ -990,12 +990,7 @@ stat_t cm_set_feed_rate(float feed_rate) {
 }
 
 
-/* G93, G94 (affects MODEL only)
- *
- *   INVERSE_TIME_MODE = 0,           // G93
- *   UNITS_PER_MINUTE_MODE,           // G94
- *   UNITS_PER_REVOLUTION_MODE        // G95 (unimplemented)
- */
+/// G93, G94 (affects MODEL only) See cmFeedRateMode
 stat_t cm_set_feed_rate_mode(uint8_t mode) {
   cm.gm.feed_rate_mode = mode;
   return STAT_OK;
@@ -1010,7 +1005,6 @@ stat_t cm_set_path_control(uint8_t mode) {
 
 
 // Machining Functions (4.3.6) See arc.c
-
 
 /// G4, P parameter (seconds)
 stat_t cm_dwell(float seconds) {

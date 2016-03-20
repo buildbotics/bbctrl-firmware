@@ -138,16 +138,7 @@ void stepper_init() {
   for (int motor = 0; motor < MOTORS; motor++)
     _update_steps_per_unit(motor);
 
-  st_reset(); // reset steppers to known state
-}
-
-
-/// Return true if motors or dwell are running
-uint8_t st_runtime_isbusy() {return st_run.busy;}
-
-
-/// Reset stepper internals
-void st_reset() {
+  // reset steppers to known state
   for (uint8_t motor = 0; motor < MOTORS; motor++) {
     st_pre.mot[motor].prev_direction = STEP_INITIAL_DIRECTION;
     st_pre.mot[motor].timer_clock = 0;
@@ -158,6 +149,10 @@ void st_reset() {
 
   mp_set_steps_to_runtime_position();
 }
+
+
+/// Return true if motors or dwell are running
+uint8_t st_runtime_isbusy() {return st_run.busy;}
 
 
 /// returns 1 if motor is enabled (motor is actually active low)
@@ -183,23 +178,6 @@ static void _energize_motor(const uint8_t motor) {
     st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
   }
 }
-
-
-/// Apply power to all motors
-void st_energize_motors() {
-  for (uint8_t motor = 0; motor < MOTORS; motor++) {
-    _energize_motor(motor);
-    st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
-  }
-}
-
-
-/// Remove power from all motors
-void st_deenergize_motors() {
-  for (uint8_t motor = 0; motor < MOTORS; motor++)
-    _deenergize_motor(motor);
-}
-
 
 
 /// Callback to manage motor power sequencing
@@ -539,14 +517,6 @@ void st_prep_dwell(float seconds) {
 }
 
 
-float get_ang(int index) {return st_cfg.mot[index].step_angle;}
-float get_trvl(int index) {return st_cfg.mot[index].travel_rev;}
-uint16_t get_mstep(int index) {return st_cfg.mot[index].microsteps;}
-bool get_pol(int index) {return st_cfg.mot[index].polarity;}
-uint16_t get_mvel(int index) {return 0;}
-uint16_t get_mjerk(int index) {return 0;}
-
-
 static void _update_steps_per_unit(int motor) {
   st_cfg.mot[motor].steps_per_unit =
     (360 * st_cfg.mot[motor].microsteps) /
@@ -554,19 +524,34 @@ static void _update_steps_per_unit(int motor) {
 }
 
 
-void set_ang(int index, float value) {
+float get_step_angle(int index) {
+  return st_cfg.mot[index].step_angle;
+}
+
+
+void set_step_angle(int index, float value) {
   st_cfg.mot[index].step_angle = value;
   _update_steps_per_unit(index);
 }
 
 
-void set_trvl(int index, float value) {
+float get_travel(int index) {
+  return st_cfg.mot[index].travel_rev;
+}
+
+
+void set_travel(int index, float value) {
   st_cfg.mot[index].travel_rev = value;
   _update_steps_per_unit(index);
 }
 
 
-void set_mstep(int index, uint16_t value) {
+uint16_t get_microstep(int index) {
+  return st_cfg.mot[index].microsteps;
+}
+
+
+void set_microstep(int index, uint16_t value) {
   switch (value) {
   case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
     break;
@@ -578,14 +563,33 @@ void set_mstep(int index, uint16_t value) {
 }
 
 
-void set_pol(int index, bool value) {
+uint8_t get_polarity(int index) {
+  if (index < 0 || MOTORS <= index) return 0;
+  return st_cfg.mot[index].polarity;
+}
+
+
+void set_polarity(int index, uint8_t value) {
   st_cfg.mot[index].polarity = value;
 }
 
 
-void set_mvel(int index, uint16_t value) {
+uint8_t get_motor_map(int index) {
+  return st_cfg.mot[index].motor_map;
 }
 
 
-void set_mjerk(int index, uint16_t value) {
+void set_motor_map(int index, uint16_t value) {
+  if (value < AXES) st_cfg.mot[index].motor_map = value;
+}
+
+
+uint8_t get_power_mode(int index) {
+  return st_cfg.mot[index].power_mode;
+}
+
+
+void set_power_mode(int index, uint16_t value) {
+  if (value < MOTOR_POWER_MODE_MAX_VALUE)
+    st_cfg.mot[index].power_mode = value;
 }

@@ -533,7 +533,8 @@ enum cmAxisMode {
   AXIS_DISABLED,              // kill axis
   AXIS_STANDARD,              // axis in coordinated motion w/standard behaviors
   AXIS_INHIBITED,             // axis is computed but not activated
-  AXIS_RADIUS                 // rotary axis calibrated to circumference
+  AXIS_RADIUS,                // rotary axis calibrated to circumference
+  AXIS_MODE_MAX
 }; // ordering must be preserved.
 
 #define AXIS_MODE_MAX_LINEAR AXIS_INHIBITED

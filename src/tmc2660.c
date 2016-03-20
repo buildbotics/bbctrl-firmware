@@ -37,7 +37,7 @@
 #include <stdio.h>
 
 
-void set_dcur(int driver, float value);
+void set_power_level(int driver, float value);
 
 
 typedef enum {
@@ -249,7 +249,7 @@ void tmc2660_init() {
       TMC2660_SGCSCONF_THRESH(63);
     drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_SG;
 
-    set_dcur(i, MOTOR_CURRENT);
+    set_power_level(i, MOTOR_CURRENT);
     drivers[driver].reset = 0; // No need to reset
   }
 
@@ -331,45 +331,47 @@ void tmc2660_get_flags(uint8_t flags, char buf[35]) {
 }
 
 
-uint8_t get_dflags(int driver) {return drivers[driver].flags;}
+uint8_t get_status_flags(int index) {
+  return drivers[driver].flags;
+}
 
 
-float get_dcur(int driver) {
-  uint8_t x = drivers[driver].regs[TMC2660_SGCSCONF] & 31;
+float get_power_level(int index) {
+  uint8_t x = drivers[index].regs[TMC2660_SGCSCONF] & 31;
   return (x + 1) / 32.0;
 }
 
 
-void set_dcur(int driver, float value) {
+void set_power_level(int index, float value) {
   if (value < 0 || 1 < value) return;
 
   uint8_t x = value ? value * 32.0 - 1 : 0;
   if (x < 0) x = 0;
 
-  tmc2660_driver_t *d = &drivers[driver];
+  tmc2660_driver_t *d = &drivers[index];
   d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) | x;
 
-  tmc2660_reset(driver);
+  tmc2660_reset(index);
 }
 
 
-uint16_t get_sguard(int driver) {
-  return drivers[driver].sguard;
+uint16_t get_sg_value(int index) {
+  return drivers[index].sguard;
 }
 
 
-int8_t get_sgt(int driver) {
-  uint8_t x = (drivers[driver].regs[TMC2660_SGCSCONF] & 0x7f) >> 8;
+int8_t get_stallguard(int index) {
+  uint8_t x = (drivers[index].regs[TMC2660_SGCSCONF] & 0x7f) >> 8;
   return (x & (1 << 6)) ? (x & 0xc0) : x;
 }
 
 
-void set_sgt(int driver, int8_t value) {
+void set_stallguard(int index, int8_t value) {
   if (value < -64 || 63 < value) return;
 
-  tmc2660_driver_t *d = &drivers[driver];
+  tmc2660_driver_t *d = &drivers[index];
   d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) |
     TMC2660_SGCSCONF_THRESH(value);
 
-  tmc2660_reset(driver);
+  tmc2660_reset(index);
 }
