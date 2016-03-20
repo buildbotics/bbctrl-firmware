@@ -216,41 +216,43 @@
 
 #include "config.h"
 #include "status.h"
+#include "canonical_machine.h"
+#include "plan/planner.h"
 
 #include <stdbool.h>
 
-enum prepBufferState {
+typedef enum {
   PREP_BUFFER_OWNED_BY_LOADER, // staging buffer is ready for load
   PREP_BUFFER_OWNED_BY_EXEC    // staging buffer is being loaded
-};
+} prepBufferState_t;
 
 
 // Currently there is no distinction between IDLE and OFF (DEENERGIZED)
 // In the future IDLE will be powered at a low, torque-maintaining current
 // Used w/start and stop flags to sequence motor power
-enum motorPowerState {
+typedef enum {
   MOTOR_OFF,                    // motor stopped and deenergized
   MOTOR_IDLE,                   // motor stopped and may be partially energized
   MOTOR_RUNNING,                // motor is running (and fully energized)
   MOTOR_POWER_TIMEOUT_START,    // transition state to start power-down timeout
   MOTOR_POWER_TIMEOUT_COUNTDOWN // count down the time to de-energizing motors
-};
+} motorPowerState_t;
 
 
-enum cmMotorPowerMode {
+typedef enum {
   MOTOR_DISABLED,                 // motor enable is deactivated
   MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
   MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
                                   // de-powered out of cycle
   MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
   MOTOR_POWER_MODE_MAX_VALUE      // for input range checking
-};
+} cmMotorPowerMode_t;
 
 
-enum {
+typedef enum {
   MOTOR_POLARITY_NORMAL,
   MOTOR_POLARITY_REVERSED
-};
+} cmMotorPolarity_t;
 
 
 /// Min/Max timeouts allowed for motor disable.  Allow for inertial stop.
@@ -305,11 +307,11 @@ enum {
  */
 
 // Per motor config structure
-typedef struct cfgMotor {
+typedef struct {
   uint8_t motor_map;             // map motor to axis
   uint16_t microsteps;           // microsteps to apply for each axis (ex: 8)
-  uint8_t polarity;              // 0=normal polarity, 1=reverse motor direction
-  uint8_t power_mode;            // See cmMotorPowerMode for enum
+  cmMotorPolarity_t polarity;
+  cmMotorPowerMode_t power_mode;
   float step_angle;              // degrees per whole step (ex: 1.8)
   float travel_rev;              // mm or deg of travel per motor revolution
   float steps_per_unit;          // microsteps per mm (or degree) of travel
@@ -318,22 +320,22 @@ typedef struct cfgMotor {
 
 
 /// stepper configs
-typedef struct stConfig {
+typedef struct {
   float motor_power_timeout;     // seconds before idle current
   cfgMotor_t mot[MOTORS];        // settings for motors 1-N
 } stConfig_t;
 
 
 /// Motor runtime structure. Used by step generation ISR (HI)
-typedef struct stRunMotor {      // one per controlled motor
-  uint8_t power_state;           // state machine for managing motor power
+typedef struct {                 // one per controlled motor
+  motorPowerState_t power_state; // state machine for managing motor power
   uint32_t power_systick;        // for next motor power state transition
 } stRunMotor_t;
 
 
 /// Stepper static values and axis parameters
-typedef struct stRunSingleton {
-  uint8_t move_type;
+typedef struct {
+  moveType_t move_type;
   bool busy;
   uint16_t dwell;
   stRunMotor_t mot[MOTORS];      // runtime motor structures
@@ -342,14 +344,14 @@ typedef struct stRunSingleton {
 
 /// Motor prep structure. Used by exec/prep ISR (LO) and read-only during load
 /// Must be careful about volatiles in this one
-typedef struct stPrepMotor {
+typedef struct {
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
   uint32_t steps;                // expected steps
 
   // direction and direction change
-  int8_t direction;              // travel direction corrected for polarity
-  uint8_t prev_direction;        // travel direction from previous segment run
+  cmDirection_t direction;       // travel direction corrected for polarity
+  cmDirection_t prev_direction;  // travel direction from previous segment run
   int8_t step_sign;              // set to +1 or -1 for encoders
 
   // step error correction
@@ -358,13 +360,13 @@ typedef struct stPrepMotor {
 } stPrepMotor_t;
 
 
-typedef struct stPrepSingleton {
-  volatile uint8_t buffer_state; // prep buffer state - owned by exec or loader
-  uint8_t move_type;             // move type
-  struct mpBuffer *bf;           // used for command moves
+typedef struct {
+  volatile prepBufferState_t buffer_state; // owned by exec or loader
+  moveType_t move_type;
+  struct mpBuffer *bf;                     // used for command moves
   uint16_t seg_period;
   uint32_t dwell;
-  stPrepMotor_t mot[MOTORS];     // prep time motor structs
+  stPrepMotor_t mot[MOTORS];               // prep time motor structs
 } stPrepSingleton_t;
 
 

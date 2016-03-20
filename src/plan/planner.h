@@ -34,34 +34,34 @@
 #include "util.h"
 #include "config.h"
 
-enum moveType {            // bf->move_type values
+typedef enum {             // bf->move_type values
   MOVE_TYPE_0,             // null move - does a no-op
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
   MOVE_TYPE_COMMAND,       // general command
   MOVE_TYPE_JOG,           // interactive jogging
-};
+} moveType_t;
 
-enum moveState {
+typedef enum {
   MOVE_OFF,               // move inactive (MUST BE ZERO)
   MOVE_NEW,               // general value if you need an initialization
   MOVE_RUN,               // general run state (for non-acceleration moves)
   MOVE_SKIP_BLOCK         // mark a skipped block
-};
+} moveState_t;
 
-enum moveSection {
+typedef enum {
   SECTION_HEAD,           // acceleration
   SECTION_BODY,           // cruise
   SECTION_TAIL            // deceleration
-};
+} moveSection_t;
 #define SECTIONS 3
 
-enum sectionState {
+typedef enum {
   SECTION_OFF,            // section inactive
   SECTION_NEW,            // uninitialized section
   SECTION_1st_HALF,       // first half of S curve
   SECTION_2nd_HALF        // second half of S curve or running a BODY (cruise)
-};
+} sectionState_t;
 
 // Most of these factors are the result of a lot of tweaking.
 // Change with caution.
@@ -118,13 +118,13 @@ typedef void (*cm_exec_t)(float[], float[]);
 
 
 // All the enums that equal zero must be zero. Don't change this
-enum mpBufferState {              // bf->buffer_state values
+typedef enum {                    // bf->buffer_state values
   MP_BUFFER_EMPTY,                // struct is available for use (MUST BE 0)
   MP_BUFFER_LOADING,              // being written ("checked out")
   MP_BUFFER_QUEUED,               // in queue
   MP_BUFFER_PENDING,              // marked as the next buffer to run
   MP_BUFFER_RUNNING               // current running buffer
-};
+} mpBufferState_t;
 
 
 typedef struct mpBuffer {         // See Planning Velocity Notes
@@ -311,5 +311,3 @@ stat_t mp_dwell(const float seconds);
 // command.c functions
 void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
 void mp_runtime_command(mpBuf_t *bf);
-
-
