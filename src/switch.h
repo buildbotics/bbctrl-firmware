@@ -70,7 +70,6 @@ typedef enum {
 } swType_t;
 
 typedef enum {
-  SW_DISABLED = -1,
   SW_OPEN,
   SW_CLOSED
 } swState_t;
@@ -100,21 +99,17 @@ typedef enum { // indexes into switch arrays
 
 /// Interrupt levels and vectors - The vectors are hard-wired to xmega ports
 /// If you change axis port assignments you need to change these, too.
-#define SWITCH_INTLVL (PORT_INT0LVL_MED_gc | PORT_INT1LVL_MED_gc)
+#define SWITCH_INTLVL PORT_INT0LVL_MED_gc
 
 // port assignments for vectors
-#define X_MIN_ISR_vect PORTA_INT0_vect
-#define Y_MIN_ISR_vect PORTD_INT0_vect
-#define Z_MIN_ISR_vect PORTE_INT0_vect
-#define A_MIN_ISR_vect PORTF_INT0_vect
-
-#define X_MAX_ISR_vect PORTA_INT1_vect
-#define Y_MAX_ISR_vect PORTD_INT1_vect
-#define Z_MAX_ISR_vect PORTE_INT1_vect
-#define A_MAX_ISR_vect PORTF_INT1_vect
+#define X_ISR_vect PORTA_INT0_vect
+#define Y_ISR_vect PORTD_INT0_vect
+#define Z_ISR_vect PORTE_INT0_vect
+#define A_ISR_vect PORTF_INT0_vect
 
 typedef struct {
-  swState_t state;
+  bool last;
+  bool state;
   swType_t type;
   swMode_t mode;
   swDebounce_t debounce; // debounce state
@@ -127,7 +122,6 @@ typedef struct {
  */
 typedef struct {
   bool limit_thrown;
-  uint8_t switch_thrown;           // number of switch that was just thrown
   switch_t switches[SWITCHES];
 } swSingleton_t;
 
@@ -135,7 +129,6 @@ extern swSingleton_t sw;
 
 
 void switch_init();
-uint8_t read_switch(uint8_t sw_num);
 swMode_t get_switch_mode(uint8_t sw_num);
 
 void switch_rtc_callback();

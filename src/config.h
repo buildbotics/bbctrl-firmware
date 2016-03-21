@@ -235,6 +235,12 @@
 #define PORT_MOTOR_3  PORTE
 #define PORT_MOTOR_4  PORTD
 
+// Motor fault ISRs
+#define PORT_1_FAULT_ISR_vect PORTA_INT1_vect
+#define PORT_2_FAULT_ISR_vect PORTD_INT1_vect
+#define PORT_3_FAULT_ISR_vect PORTE_INT1_vect
+#define PORT_4_FAULT_ISR_vect PORTF_INT1_vect
+
 // Switch axes mapped to ports
 #define PORT_SWITCH_X PORTA
 #define PORT_SWITCH_Y PORTF
@@ -250,16 +256,14 @@
 #define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
 /// motor control port bit positions
-enum cfgPortBits {
-  STEP_BIT_bp,            // bit 0
-  DIRECTION_BIT_bp,       // bit 1 (low = clockwise)
-  MOTOR_ENABLE_BIT_bp,    // bit 2 (low = enabled)
-  CHIP_SELECT_BIT_bp,     // bit 3
-  FAULT_BIT_bp,           // bit 4
-  GPIO1_OUT_BIT_bp,       // bit 5 (gpio1 output bit; 1 from each axis)
-  SW_MIN_BIT_bp,          // bit 6 (input bit for homing/limit switches)
-  SW_MAX_BIT_bp           // bit 7 (input bit for homing/limit switches)
-};
+#define STEP_BIT_bp         0
+#define DIRECTION_BIT_bp    1
+#define MOTOR_ENABLE_BIT_bp 2
+#define CHIP_SELECT_BIT_bp  3
+#define FAULT_BIT_bp        4
+#define GPIO1_OUT_BIT_bp    5
+#define SW_MIN_BIT_bp       6    //4 homing/limit switches
+#define SW_MAX_BIT_bp       7    // homing/limit switches
 
 #define STEP_BIT_bm         (1 << STEP_BIT_bp)
 #define DIRECTION_BIT_bm    (1 << DIRECTION_BIT_bp)

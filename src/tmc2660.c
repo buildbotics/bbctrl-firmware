@@ -29,6 +29,7 @@
 #include "status.h"
 #include "stepper.h"
 #include "hardware.h"
+#include "cpp_magic.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -214,6 +215,17 @@ ISR(TCC1_OVF_vect) {
 }
 
 
+void _fault_isr(int motor) {
+  st_motor_error_callback(driver, MOTOR_FLAG_STALLED_bm);
+}
+
+
+ISR(PORT_1_FAULT_ISR_vect) {_fault_isr(0);}
+ISR(PORT_2_FAULT_ISR_vect) {_fault_isr(1);}
+ISR(PORT_3_FAULT_ISR_vect) {_fault_isr(2);}
+ISR(PORT_4_FAULT_ISR_vect) {_fault_isr(3);}
+
+
 void tmc2660_init() {
   // Reset state
   spi_state = SPI_STATE_SELECT;
@@ -270,9 +282,12 @@ void tmc2660_init() {
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_MOSI_PIN; // Output
 
   for (int motor = 0; motor < MOTORS; motor++) {
-    hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm; // High
-    hw.st_port[motor]->DIRSET = CHIP_SELECT_BIT_bm; // Output
-    hw.st_port[motor]->DIRCLR = FAULT_BIT_bm; // Input
+    hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm;    // High
+    hw.st_port[motor]->DIRSET = CHIP_SELECT_BIT_bm;    // Output
+    hw.st_port[motor]->DIRCLR = FAULT_BIT_bm;          // Input
+    hw.st_port[motor]->PIN4CTRL = PORT_ISC_RISING_gc;
+    hw.st_port[motor]->INT1MASK = FAULT_BIT_bm;        // INT1
+    hw.st_port[motor]->INTCTRL |= PORT_INT1LVL_HI_gc;
   }
 
   // Configure SPI
