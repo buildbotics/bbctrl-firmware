@@ -44,17 +44,6 @@ static bool report_requested = false;
 static bool report_full = false;
 static uint32_t last_report = 0;
 
-static float velocity;
-static float positions[AXES];
-
-
-void report_init() {
-  velocity = 0;
-
-  for (int axis = 0; axis < AXES; axis++)
-    positions[axis] = 0;
-}
-
 
 void report_request() {
   report_requested = true;

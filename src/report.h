@@ -30,7 +30,6 @@
 
 #include "status.h"
 
-void report_init();
 void report_request();
 void report_request_full();
 stat_t report_callback();

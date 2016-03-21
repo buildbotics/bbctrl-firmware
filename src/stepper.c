@@ -75,22 +75,28 @@ static void _update_steps_per_unit(int motor);
  *     complete
  */
 void stepper_init() {
-  memset(&st_run, 0, sizeof(st_run)); // clear all values, pointers and status
+  /// clear all values, pointers and status
+  memset(&st_run, 0, sizeof(st_run));
+  memset(&st_pre, 0, sizeof(st_pre));
 
   // Setup ports
-  for (uint8_t i = 0; i < MOTORS; i++) {
-    hw.st_port[i]->DIR = MOTOR_PORT_DIR_gm;
-    hw.st_port[i]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
+  for (int motor = 0; motor < MOTORS; motor++) {
+    hw.st_port[motor]->DIR = MOTOR_PORT_DIR_gm;
+    hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
   }
 
   // Setup step timer
-  TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;        // turn timer off
-  TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;         // waveform mode
-  TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL;       // interrupt mode
+  TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;   // turn timer off
+  TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
+  TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
 
   st_pre.owner = PREP_BUFFER_OWNER_EXEC;
 
-  // Defaults
+  // Reset steppers to known state
+  for (int motor = 0; motor < MOTORS; motor++)
+    st_pre.mot[motor].prev_direction = STEP_INITIAL_DIRECTION;
+
+  // Motor configuration defaults
   st_cfg.motor_power_timeout = MOTOR_IDLE_TIMEOUT;
 
   st_cfg.mot[MOTOR_1].motor_map  = M1_MOTOR_MAP;
@@ -138,15 +144,7 @@ void stepper_init() {
   for (int motor = 0; motor < MOTORS; motor++)
     _update_steps_per_unit(motor);
 
-  // reset steppers to known state
-  for (uint8_t motor = 0; motor < MOTORS; motor++) {
-    st_pre.mot[motor].prev_direction = STEP_INITIAL_DIRECTION;
-    st_pre.mot[motor].timer_clock = 0;
-    st_pre.mot[motor].timer_period = 0;
-    st_pre.mot[motor].steps = 0;
-    st_pre.mot[motor].corrected_steps = 0; // diagnostic only - no effect
-  }
-
+  // Reset position, must be after update steps per unit
   mp_set_steps_to_runtime_position();
 }
 
@@ -155,27 +153,35 @@ void stepper_init() {
 uint8_t st_runtime_isbusy() {return st_run.busy;}
 
 
-/// returns 1 if motor is enabled (motor is actually active low)
-static uint8_t _motor_is_enabled(uint8_t motor) {
-  uint8_t port = motor < MOTORS ? hw.st_port[motor]->OUT : 0xff;
-  return port & MOTOR_ENABLE_BIT_bm ? 0 : 1;
+/// returns true if motor is enabled (motor is actually active low)
+static bool _motor_is_enabled(uint8_t motor) {
+  return !(hw.st_port[motor]->OUT & MOTOR_ENABLE_BIT_bm);
+}
+
+/// returns true if motor is in an error state
+static bool _motor_error(uint8_t motor) {
+  return st_run.mot[motor].flags & MOTOR_FLAG_ERROR_bm;
 }
 
 
 /// Remove power from a motor
-static void _deenergize_motor(const uint8_t motor) {
-  if (motor < MOTORS) hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm;
-  st_run.mot[motor].power_state = MOTOR_OFF;
+static void _deenergize_motor(uint8_t motor) {
+  if (_motor_is_enabled(motor)) {
+    hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm;
+    st_run.mot[motor].power_state = MOTOR_OFF;
+    st_run.mot[motor].flags &= MOTOR_FLAG_ENABLED_bm;
+    report_request(); // request a status report when motors change state
+  }
 }
 
 
 /// Apply power to a motor
-static void _energize_motor(const uint8_t motor) {
-  if (st_cfg.mot[motor].power_mode == MOTOR_DISABLED) _deenergize_motor(motor);
-
-  else {
-    if (motor < MOTORS) hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm;
+static void _energize_motor(uint8_t motor) {
+  if (!_motor_is_enabled(motor) && !_motor_error(motor)) {
+    hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm;
     st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
+    st_run.mot[motor].flags |= MOTOR_FLAG_ENABLED_bm;
+    report_request(); // request a status report when motors change state
   }
 }
 
@@ -186,9 +192,7 @@ stat_t st_motor_power_callback() { // called by controller
   // Manage power for each motor individually
   for (int motor = 0; motor < MOTORS; motor++)
     switch (st_cfg.mot[motor].power_mode) {
-    case MOTOR_ALWAYS_POWERED:
-      if (!_motor_is_enabled(motor)) _energize_motor(motor);
-      break;
+    case MOTOR_ALWAYS_POWERED: _energize_motor(motor); break;
 
     case MOTOR_POWERED_IN_CYCLE: case MOTOR_POWERED_ONLY_WHEN_MOVING:
       if (st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_START) {
@@ -201,17 +205,20 @@ stat_t st_motor_power_callback() { // called by controller
       // Run the countdown if not in feedhold and in a countdown
       if (cm_get_combined_state() != COMBINED_HOLD &&
           st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN &&
-          rtc_get_time() > st_run.mot[motor].power_systick) {
-        st_run.mot[motor].power_state = MOTOR_IDLE;
+          rtc_get_time() > st_run.mot[motor].power_systick)
         _deenergize_motor(motor);
-        report_request(); // request a status report when motors shut down
-      }
       break;
 
     default: _deenergize_motor(motor); break; // Motor disabled
     }
 
   return STAT_OK;
+}
+
+
+void st_motor_error_callback(uint8_t motor, cmMotorFlags_t errors) {
+  st_run.mot[motor].flags |= MOTOR_FLAG_ERROR_bm & errors;
+  if (_motor_error(motor)) _deenergize_motor(motor);
 }
 
 
@@ -271,7 +278,6 @@ ISR(ADCB_CH1_vect) {
 
 
 static inline void _load_motor_move(int motor) {
-  stRunMotor_t *run_mot = &st_run.mot[motor];
   stPrepMotor_t *pre_mot = &st_pre.mot[motor];
   const cfgMotor_t *cfg_mot = &st_cfg.mot[motor];
 
@@ -302,10 +308,8 @@ static inline void _load_motor_move(int motor) {
 
   // Energize motor and start power management
   if ((pre_mot->timer_clock && cfg_mot->power_mode != MOTOR_DISABLED) ||
-      cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE) {
-    hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm;  // energize motor
-    run_mot->power_state = MOTOR_POWER_TIMEOUT_START; // start power management
-  }
+      cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE)
+    _energize_motor(motor);
 }
 
 

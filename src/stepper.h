@@ -255,6 +255,19 @@ typedef enum {
 } cmMotorPolarity_t;
 
 
+typedef enum {
+  MOTOR_FLAG_ENABLED_bm       = 1 << 0,
+  MOTOR_FLAG_STALLED_bm       = 1 << 1,
+  MOTOR_FLAG_OVERTEMP_WARN_bm = 1 << 2,
+  MOTOR_FLAG_OVERTEMP_bm      = 1 << 3,
+  MOTOR_FLAG_SHORTED_bm       = 1 << 4,
+  MOTOR_FLAG_ERROR_bm         = (MOTOR_FLAG_STALLED_bm |
+                                 MOTOR_FLAG_OVERTEMP_WARN_bm |
+                                 MOTOR_FLAG_OVERTEMP_bm |
+                                 MOTOR_FLAG_SHORTED_bm)
+} cmMotorFlags_t;
+
+
 /// Min/Max timeouts allowed for motor disable.  Allow for inertial stop.
 /// Must be non-zero
 #define MOTOR_TIMEOUT_SECONDS_MIN (float)0.1
@@ -330,6 +343,7 @@ typedef struct {
 typedef struct {                 // one per controlled motor
   motorPowerState_t power_state; // state machine for managing motor power
   uint32_t power_systick;        // for next motor power state transition
+  cmMotorFlags_t flags;
 } stRunMotor_t;
 
 
@@ -378,6 +392,7 @@ void stepper_init();
 uint8_t st_runtime_isbusy();
 
 stat_t st_motor_power_callback();
+void st_motor_error_callback(uint8_t motor, cmMotorFlags_t errors);
 
 void st_request_exec_move();
 void st_prep_null();

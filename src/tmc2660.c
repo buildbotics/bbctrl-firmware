@@ -27,6 +27,8 @@
 
 #include "tmc2660.h"
 #include "status.h"
+#include "stepper.h"
+#include "hardware.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -74,7 +76,7 @@ static const uint32_t reg_addrs[] = {
 
 
 static volatile uint8_t driver;
-static tmc2660_driver_t drivers[TMC2660_NUM_DRIVERS];
+static tmc2660_driver_t drivers[MOTORS];
 
 static volatile spi_state_t spi_state;
 static volatile uint8_t spi_byte;
@@ -82,23 +84,24 @@ static volatile uint32_t spi_out;
 static volatile uint32_t spi_in;
 
 
-static void spi_cs(int driver, int enable) {
-  if (enable)
-    switch (driver) {
-    case 0: TMC2660_SPI_SSX_PORT.OUTCLR = 1 << TMC2660_SPI_SSX_PIN; break;
-    case 1: TMC2660_SPI_SSY_PORT.OUTCLR = 1 << TMC2660_SPI_SSY_PIN; break;
-    case 2: TMC2660_SPI_SSZ_PORT.OUTCLR = 1 << TMC2660_SPI_SSZ_PIN; break;
-    case 3: TMC2660_SPI_SSA_PORT.OUTCLR = 1 << TMC2660_SPI_SSA_PIN; break;
-    case 4: TMC2660_SPI_SSB_PORT.OUTCLR = 1 << TMC2660_SPI_SSB_PIN; break;
-    }
-  else
-    switch (driver) {
-    case 0: TMC2660_SPI_SSX_PORT.OUTSET = 1 << TMC2660_SPI_SSX_PIN; break;
-    case 1: TMC2660_SPI_SSY_PORT.OUTSET = 1 << TMC2660_SPI_SSY_PIN; break;
-    case 2: TMC2660_SPI_SSZ_PORT.OUTSET = 1 << TMC2660_SPI_SSZ_PIN; break;
-    case 3: TMC2660_SPI_SSA_PORT.OUTSET = 1 << TMC2660_SPI_SSA_PIN; break;
-    case 4: TMC2660_SPI_SSB_PORT.OUTSET = 1 << TMC2660_SPI_SSB_PIN; break;
-    }
+static void _report_error_flags(int driver) {
+  uint8_t dflags = drivers[driver].flags;
+  uint8_t mflags = 0;
+
+  if ((TMC2660_DRVSTATUS_SHORT_TO_GND_A | TMC2660_DRVSTATUS_SHORT_TO_GND_B) &
+      dflags) mflags |= MOTOR_FLAG_SHORTED_bm;
+  if (TMC2660_DRVSTATUS_OVERTEMP_WARN & dflags)
+    mflags |= MOTOR_FLAG_OVERTEMP_WARN_bm;
+  if (TMC2660_DRVSTATUS_OVERTEMP & dflags)
+    mflags |= MOTOR_FLAG_OVERTEMP_bm;
+
+  st_motor_error_callback(driver, mflags);
+}
+
+
+static void spi_cs(int motor, int enable) {
+  if (enable) hw.st_port[motor]->OUTCLR = CHIP_SELECT_BIT_bm;
+  else hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm;
 }
 
 
@@ -173,14 +176,15 @@ void spi_next() {
       drv->sguard = (uint16_t)((spi_in >> 14) & 0x1ff);
       drv->flags = spi_in >> 4;
 
+      _report_error_flags(driver);
+
       if (drv->reset) {
         drv->state = TMC2660_STATE_RESET;
         drv->reset = 0;
 
-      } else if (++driver == TMC2660_NUM_DRIVERS) {
+      } else if (++driver == MOTORS) {
         driver = 0;
         spi_delay = 500;
-        //spi_state = SPI_STATE_QUIT;
         break;
       }
       break;
@@ -217,19 +221,19 @@ void tmc2660_init() {
   memset(drivers, 0, sizeof(drivers));
 
   // Configure motors
-  for (int i = 0; i < TMC2660_NUM_DRIVERS; i++) {
+  for (int i = 0; i < MOTORS; i++) {
     drivers[i].state = TMC2660_STATE_CONFIG;
     drivers[i].reg = 0;
 
     uint32_t mstep = 0;
     switch (MOTOR_MICROSTEPS) {
-    case 1: mstep = TMC2660_DRVCTRL_MRES_1; break;
-    case 2: mstep = TMC2660_DRVCTRL_MRES_2; break;
-    case 4: mstep = TMC2660_DRVCTRL_MRES_4; break;
-    case 8: mstep = TMC2660_DRVCTRL_MRES_8; break;
-    case 16: mstep = TMC2660_DRVCTRL_MRES_16; break;
-    case 32: mstep = TMC2660_DRVCTRL_MRES_32; break;
-    case 64: mstep = TMC2660_DRVCTRL_MRES_64; break;
+    case 1:   mstep = TMC2660_DRVCTRL_MRES_1;   break;
+    case 2:   mstep = TMC2660_DRVCTRL_MRES_2;   break;
+    case 4:   mstep = TMC2660_DRVCTRL_MRES_4;   break;
+    case 8:   mstep = TMC2660_DRVCTRL_MRES_8;   break;
+    case 16:  mstep = TMC2660_DRVCTRL_MRES_16;  break;
+    case 32:  mstep = TMC2660_DRVCTRL_MRES_32;  break;
+    case 64:  mstep = TMC2660_DRVCTRL_MRES_64;  break;
     case 128: mstep = TMC2660_DRVCTRL_MRES_128; break;
     case 256: mstep = TMC2660_DRVCTRL_MRES_256; break;
     default: break; // Invalid
@@ -265,16 +269,11 @@ void tmc2660_init() {
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_MOSI_PIN; // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_MOSI_PIN; // Output
 
-  TMC2660_SPI_SSX_PORT.OUTSET = 1 << TMC2660_SPI_SSX_PIN; // High
-  TMC2660_SPI_SSX_PORT.DIRSET = 1 << TMC2660_SPI_SSX_PIN; // Output
-  TMC2660_SPI_SSY_PORT.OUTSET = 1 << TMC2660_SPI_SSY_PIN; // High
-  TMC2660_SPI_SSY_PORT.DIRSET = 1 << TMC2660_SPI_SSY_PIN; // Output
-  TMC2660_SPI_SSZ_PORT.OUTSET = 1 << TMC2660_SPI_SSZ_PIN; // High
-  TMC2660_SPI_SSZ_PORT.DIRSET = 1 << TMC2660_SPI_SSZ_PIN; // Output
-  TMC2660_SPI_SSA_PORT.OUTSET = 1 << TMC2660_SPI_SSA_PIN; // High
-  TMC2660_SPI_SSA_PORT.DIRSET = 1 << TMC2660_SPI_SSA_PIN; // Output
-  TMC2660_SPI_SSB_PORT.OUTSET = 1 << TMC2660_SPI_SSB_PIN; // High
-  TMC2660_SPI_SSB_PORT.DIRSET = 1 << TMC2660_SPI_SSB_PIN; // Output
+  for (int motor = 0; motor < MOTORS; motor++) {
+    hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm; // High
+    hw.st_port[motor]->DIRSET = CHIP_SELECT_BIT_bm; // Output
+    hw.st_port[motor]->DIRCLR = FAULT_BIT_bm; // Input
+  }
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
@@ -292,12 +291,12 @@ void tmc2660_init() {
 
 
 uint8_t tmc2660_flags(int driver) {
-  return driver < TMC2660_NUM_DRIVERS ? drivers[driver].flags : 0;
+  return driver < MOTORS ? drivers[driver].flags : 0;
 }
 
 
 void tmc2660_reset(int driver) {
-  if (driver < TMC2660_NUM_DRIVERS) drivers[driver].reset = 1;
+  if (driver < MOTORS) drivers[driver].reset = 1;
 }
 
 
@@ -308,26 +307,10 @@ int tmc2660_ready(int driver) {
 
 
 int tmc2660_all_ready() {
-  for (int i = 0; i < TMC2660_NUM_DRIVERS; i++)
+  for (int i = 0; i < MOTORS; i++)
     if (!tmc2660_ready(i)) return 0;
 
   return 1;
-}
-
-
-void tmc2660_get_flags(uint8_t flags, char buf[35]) {
-  buf[0] = 0;
-
-  if (TMC2660_DRVSTATUS_STST & flags) strcat(buf, "stst,");
-  if (TMC2660_DRVSTATUS_OLB  & flags) strcat(buf, "olb,");
-  if (TMC2660_DRVSTATUS_OLA  & flags) strcat(buf, "ola,");
-  if (TMC2660_DRVSTATUS_S2GB & flags) strcat(buf, "s2gb,");
-  if (TMC2660_DRVSTATUS_S2GA & flags) strcat(buf, "s2ga,");
-  if (TMC2660_DRVSTATUS_OTPW & flags) strcat(buf, "otpw,");
-  if (TMC2660_DRVSTATUS_OT   & flags) strcat(buf, "ot,");
-  if (TMC2660_DRVSTATUS_SG   & flags) strcat(buf, "sg,");
-
-  if (buf[0] != 0) buf[strlen(buf) - 1] = 0; // Remove last comma
 }
 
 

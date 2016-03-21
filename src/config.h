@@ -256,9 +256,9 @@ enum cfgPortBits {
   MOTOR_ENABLE_BIT_bp,    // bit 2 (low = enabled)
   CHIP_SELECT_BIT_bp,     // bit 3
   FAULT_BIT_bp,           // bit 4
-  GPIO1_OUT_BIT_bp,       // bit 5 (4 gpio1 output bits; 1 from each axis)
-  SW_MIN_BIT_bp,          // bit 6 (4 input bits for homing/limit switches)
-  SW_MAX_BIT_bp           // bit 7 (4 input bits for homing/limit switches)
+  GPIO1_OUT_BIT_bp,       // bit 5 (gpio1 output bit; 1 from each axis)
+  SW_MIN_BIT_bp,          // bit 6 (input bit for homing/limit switches)
+  SW_MAX_BIT_bp           // bit 7 (input bit for homing/limit switches)
 };
 
 #define STEP_BIT_bm         (1 << STEP_BIT_bp)
