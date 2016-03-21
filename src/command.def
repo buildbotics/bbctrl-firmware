@@ -28,3 +28,4 @@
 CMD(help, command_help, 0, 1, "Print this help screen")
 CMD(reboot, command_reboot, 0, 0, "Reboot the controller")
 CMD(jog, command_jog, 1, 4, "Jog")
+CMD(mreset, command_mreset, 1, 1, "Reset motor")

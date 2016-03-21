@@ -90,7 +90,7 @@ static stat_t _sync_to_planner() {
 /// Shut down system if limit switch fired
 static stat_t _limit_switch_handler() {
   if (cm_get_machine_state() == MACHINE_ALARM) return STAT_NOOP;
-  if (!get_limit_switch_thrown()) return STAT_NOOP;
+  if (!switch_get_limit_thrown()) return STAT_NOOP;
 
   return cm_hard_alarm(STAT_LIMIT_SWITCH_HIT);
 }

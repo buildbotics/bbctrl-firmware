@@ -65,15 +65,6 @@ static void _request_load_move();
 static void _update_steps_per_unit(int motor);
 
 
-/* Initialize stepper motor subsystem
- *
- * Notes:
- *   - This init requires sys_init() to be run beforehand
- *   - microsteps are setup during config_init()
- *   - motor polarity is setup during config_init()
- *   - high level interrupts must be enabled in main() once all inits are
- *     complete
- */
 void stepper_init() {
   /// clear all values, pointers and status
   memset(&st_run, 0, sizeof(st_run));
@@ -81,8 +72,8 @@ void stepper_init() {
 
   // Setup ports
   for (int motor = 0; motor < MOTORS; motor++) {
-    hw.st_port[motor]->DIR = MOTOR_PORT_DIR_gm;
     hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
+    hw.st_port[motor]->DIR = MOTOR_PORT_DIR_gm;      // pin directions
   }
 
   // Setup step timer
@@ -153,9 +144,9 @@ void stepper_init() {
 uint8_t st_runtime_isbusy() {return st_run.busy;}
 
 
-/// returns true if motor is enabled (motor is actually active low)
+/// returns true if motor is enabled
 static bool _motor_is_enabled(uint8_t motor) {
-  return !(hw.st_port[motor]->OUT & MOTOR_ENABLE_BIT_bm);
+  return st_run.mot[motor].flags & MOTOR_FLAG_ENABLED_bm;
 }
 
 /// returns true if motor is in an error state
@@ -596,4 +587,9 @@ uint8_t get_power_mode(int index) {
 void set_power_mode(int index, uint16_t value) {
   if (value < MOTOR_POWER_MODE_MAX_VALUE)
     st_cfg.mot[index].power_mode = value;
+}
+
+
+void command_mreset(int motor) {
+  if (motor < MOTORS) st_run.mot[motor].flags &= 0;
 }

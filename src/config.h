@@ -94,6 +94,18 @@
 #define C_SWITCH_MODE_MIN        SW_MODE_HOMING
 #define C_SWITCH_MODE_MAX        SW_MODE_DISABLED
 
+// Switch ISRs
+#define X_SWITCH_ISR_vect PORTA_INT0_vect
+#define Y_SWITCH_ISR_vect PORTD_INT0_vect
+#define Z_SWITCH_ISR_vect PORTE_INT0_vect
+#define A_SWITCH_ISR_vect PORTF_INT0_vect
+
+#define SWITCH_INTLVL PORT_INT0LVL_MED_gc
+
+// Timer for debouncing switches
+#define SW_LOCKOUT_TICKS 25          // 25=250ms. RTC ticks are ~10ms each
+#define SW_DEGLITCH_TICKS 3          // 3=30ms
+
 
 // Machine settings
 #define CHORDAL_TOLERANCE         0.01   // chordal accuracy for arc drawing

@@ -26,21 +26,6 @@
 
 \******************************************************************************/
 
-/* Switch processing functions
- *
- * Switch processing turns pin transitions into reliable switch states.
- * There are 2 main operations:
- *
- *   - read pin        get raw data from a pin
- *   - read switch        return processed switch closures
- *
- * Read pin may be a polled operation or an interrupt on pin
- * change. If interrupts are used they must be provided for both
- * leading and trailing edge transitions.
- *
- * Read switch contains the results of read pin and manages edges and
- * debouncing.
- */
 #pragma once
 
 
@@ -49,11 +34,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// timer for debouncing switches
-#define SW_LOCKOUT_TICKS 25          // 25=250ms. RTC ticks are ~10ms each
-#define SW_DEGLITCH_TICKS 3          // 3=30ms
+// macros for finding the index into the switch table give the axis number
+#define MIN_SWITCH(axis) (axis * 2)
+#define MAX_SWITCH(axis) (axis * 2 + 1)
 
-// switch modes
+/// switch modes
 typedef enum {
   SW_MODE_DISABLED,
   SW_HOMING_BIT,
@@ -69,68 +54,20 @@ typedef enum {
   SW_TYPE_NORMALLY_CLOSED
 } swType_t;
 
+/// indices into switch arrays
 typedef enum {
-  SW_OPEN,
-  SW_CLOSED
-} swState_t;
-
-// macros for finding the index into the switch table give the axis number
-#define MIN_SWITCH(axis) (axis * 2)
-#define MAX_SWITCH(axis) (axis * 2 + 1)
-
-typedef enum { // state machine for managing debouncing and lockout
-  SW_IDLE,
-  SW_DEGLITCHING,
-  SW_LOCKOUT
-} swDebounce_t;
-
-typedef enum { // indexes into switch arrays
-  SW_MIN_X,
-  SW_MAX_X,
-  SW_MIN_Y,
-  SW_MAX_Y,
-  SW_MIN_Z,
-  SW_MAX_Z,
-  SW_MIN_A,
-  SW_MAX_A
+  SW_MIN_X, SW_MAX_X,
+  SW_MIN_Y, SW_MAX_Y,
+  SW_MIN_Z, SW_MAX_Z,
+  SW_MIN_A, SW_MAX_A
 } swNums_t;
-#define SW_OFFSET SW_MAX_X // offset between MIN and MAX switches
-#define NUM_SWITCH_PAIRS (SWITCHES / 2)
-
-/// Interrupt levels and vectors - The vectors are hard-wired to xmega ports
-/// If you change axis port assignments you need to change these, too.
-#define SWITCH_INTLVL PORT_INT0LVL_MED_gc
-
-// port assignments for vectors
-#define X_ISR_vect PORTA_INT0_vect
-#define Y_ISR_vect PORTD_INT0_vect
-#define Z_ISR_vect PORTE_INT0_vect
-#define A_ISR_vect PORTF_INT0_vect
-
-typedef struct {
-  bool last;
-  bool state;
-  swType_t type;
-  swMode_t mode;
-  swDebounce_t debounce; // debounce state
-  int8_t count;          // deglitching and lockout counter
-} switch_t;
-
-/* Switch control structures
- * Note 1: The term "thrown" is used because switches could be normally-open
- * or normally-closed. "Thrown" means activated or hit.
- */
-typedef struct {
-  bool limit_thrown;
-  switch_t switches[SWITCHES];
-} swSingleton_t;
-
-extern swSingleton_t sw;
 
 
 void switch_init();
-swMode_t get_switch_mode(uint8_t sw_num);
-
 void switch_rtc_callback();
-bool get_limit_switch_thrown();
-void reset_switches();
+bool switch_get_closed(uint8_t n);
+swType_t switch_get_type(uint8_t n);
+void switch_set_type(uint8_t n, swType_t type);
+swMode_t switch_get_mode(uint8_t n);
+void switch_set_mode(uint8_t n, swMode_t mode);
+bool switch_get_limit_thrown();

@@ -44,6 +44,13 @@
  * The normally closed switch modes (NC) trigger an interrupt on the
  * rising edge and lockout subsequent interrupts for the defined
  * lockout period.
+ *
+ * These functions interact with each other to process switch closures
+ * and firing.  Each switch has a counter which is initially set to
+ * negative SW_DEGLITCH_TICKS.  When a switch closure is DETECTED the
+ * count increments for each RTC tick.  When the count reaches zero
+ * the switch is tripped and action occurs.  The counter continues to
+ * increment positive until the lockout is exceeded.
  */
 
 #include "switch.h"
@@ -56,6 +63,30 @@
 
 #include <stdbool.h>
 
+
+typedef enum { // state machine for managing debouncing and lockout
+  SW_IDLE,
+  SW_DEGLITCHING,
+  SW_LOCKOUT
+} swDebounce_t;
+
+typedef struct {
+  bool last;
+  bool state;
+  swType_t type;
+  swMode_t mode;
+  swDebounce_t debounce; // debounce state
+  int8_t count;          // deglitching and lockout counter
+} switch_t;
+
+/* Switch control structures
+ * Note 1: The term "thrown" is used because switches could be normally-open
+ * or normally-closed. "Thrown" means activated or hit.
+ */
+typedef struct {
+  bool limit_thrown;
+  switch_t switches[SWITCHES];
+} swSingleton_t;
 
 swSingleton_t sw;
 
@@ -74,14 +105,6 @@ static bool _read_switch(uint8_t sw_num) {
   }
 }
 
-
-/* These functions interact with each other to process switch closures
- * and firing.  Each switch has a counter which is initially set to
- * negative SW_DEGLITCH_TICKS.  When a switch closure is DETECTED the
- * count increments for each RTC tick.  When the count reaches zero
- * the switch is tripped and action occurs.  The counter continues to
- * increment positive until the lockout is exceeded.
- */
 
 static void _switch_isr() {
   for (int i = 0; i < SWITCHES; i++) {
@@ -105,19 +128,14 @@ static void _switch_isr() {
 
 
 // Switch interrupt handler vectors
-ISR(X_ISR_vect) {_switch_isr();}
-ISR(Y_ISR_vect) {_switch_isr();}
-ISR(Z_ISR_vect) {_switch_isr();}
-ISR(A_ISR_vect) {_switch_isr();}
+ISR(X_SWITCH_ISR_vect) {_switch_isr();}
+ISR(Y_SWITCH_ISR_vect) {_switch_isr();}
+ISR(Z_SWITCH_ISR_vect) {_switch_isr();}
+ISR(A_SWITCH_ISR_vect) {_switch_isr();}
 
 
-/* Initialize homing/limit switches
- *
- * This function assumes sys_init() and st_init() have been run previously to
- * bind the ports and set bit IO directions, repsectively.
- */
 void switch_init() {
-  for (int i = 0; i < NUM_SWITCH_PAIRS; i++) {
+  for (int i = 0; i < SWITCHES / 2; i++) {
     // setup input bits and interrupts (previously set to inputs by st_init())
     if (sw.switches[MIN_SWITCH(i)].mode != SW_MODE_DISABLED) {
       hw.sw_port[i]->DIRCLR = SW_MIN_BIT_bm;   // set min input - see 13.14.14
@@ -193,11 +211,24 @@ void switch_rtc_callback() {
 }
 
 
-/// return switch mode setting
-swMode_t get_switch_mode(uint8_t sw_num) {return sw.switches[sw_num].mode;}
+bool switch_get_closed(uint8_t n) {return sw.switches[n].state;}
+swType_t switch_get_type(uint8_t n) {return sw.switches[n].type;}
 
-/// return true if a limit was tripped
-bool get_limit_switch_thrown() {return sw.limit_thrown;}
+
+void switch_set_type(uint8_t n, swType_t type) {
+  sw.switches[n].type = type;
+}
+
+
+swMode_t switch_get_mode(uint8_t n) {return sw.switches[n].mode;}
+
+
+void switch_set_mode(uint8_t n, swMode_t mode) {
+  sw.switches[n].mode = mode;
+}
+
+
+bool switch_get_limit_thrown() {return sw.limit_thrown;}
 
 
 uint8_t get_switch_type(int index) {

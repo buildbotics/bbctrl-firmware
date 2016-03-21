@@ -231,8 +231,8 @@ static stat_t _homing_axis_start(int8_t axis) {
     return _homing_error_exit(axis, STAT_HOMING_ERROR_TRAVEL_MIN_MAX_IDENTICAL);
 
   // determine the switch setup and that config is OK
-  hm.min_mode = get_switch_mode(MIN_SWITCH(axis));
-  hm.max_mode = get_switch_mode(MAX_SWITCH(axis));
+  hm.min_mode = switch_get_mode(MIN_SWITCH(axis));
+  hm.max_mode = switch_get_mode(MAX_SWITCH(axis));
 
   // one or the other must be homing
   if (!((hm.min_mode & SW_HOMING_BIT) ^ (hm.max_mode & SW_HOMING_BIT)))
@@ -263,12 +263,12 @@ static stat_t _homing_axis_start(int8_t axis) {
   }
 
   // if homing is disabled for the axis then skip to the next axis
-  uint8_t sw_mode = get_switch_mode(hm.homing_switch);
+  uint8_t sw_mode = switch_get_mode(hm.homing_switch);
   if (sw_mode != SW_MODE_HOMING && sw_mode != SW_MODE_HOMING_LIMIT)
     return _set_homing_func(_homing_axis_start);
 
   // disable the limit switch parameter if there is no limit switch
-  if (get_switch_mode(hm.limit_switch) == SW_MODE_DISABLED)
+  if (switch_get_mode(hm.limit_switch) == SW_MODE_DISABLED)
     hm.limit_switch = -1;
 
   hm.saved_jerk = cm_get_axis_jerk(axis); // save the max jerk value
@@ -282,10 +282,10 @@ static stat_t _homing_axis_clear(int8_t axis) {
   // Handle an initial switch closure by backing off the closed switch
   // NOTE: Relies on independent switches per axis (not shared)
 
-  if (sw.switches[hm.homing_switch].state == SW_CLOSED)
+  if (switch_get_closed(hm.homing_switch))
     _homing_axis_move(axis, hm.latch_backoff, hm.search_velocity);
 
-  else if (sw.switches[hm.limit_switch].state == SW_CLOSED)
+  else if (switch_get_closed(hm.limit_switch))
     _homing_axis_move(axis, -hm.latch_backoff, hm.search_velocity);
 
   return _set_homing_func(_homing_axis_search);
@@ -306,7 +306,7 @@ static stat_t _homing_axis_search(int8_t axis) {
 static stat_t _homing_axis_latch(int8_t axis) {
   // verify assumption that we arrived here because of homing switch closure
   // rather than user-initiated feedhold or other disruption
-  if (sw.switches[hm.homing_switch].state != SW_CLOSED)
+  if (!switch_get_closed(hm.homing_switch))
     return _set_homing_func(_homing_abort);
 
   _homing_axis_move(axis, hm.latch_backoff, hm.latch_velocity);

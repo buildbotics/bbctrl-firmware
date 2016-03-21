@@ -172,13 +172,13 @@ static uint8_t _probing_init() {
   // Can't because switch mode is global and our probe is NO, not NC.
 
   pb.probe_switch = SW_MIN_Z; // FIXME: hardcoded...
-  pb.saved_switch_mode = sw.switches[pb.probe_switch].mode;
+  pb.saved_switch_mode = switch_get_mode(pb.probe_switch);
 
-  sw.switches[pb.probe_switch].mode = SW_MODE_HOMING;
+  switch_set_mode(pb.probe_switch, SW_MODE_HOMING);
   // save the switch type for recovery later.
-  pb.saved_switch_type = sw.switches[pb.probe_switch].type;
+  pb.saved_switch_type = switch_get_type(pb.probe_switch);
   // contact probes are NO switches... usually
-  sw.switches[pb.probe_switch].type = SW_TYPE_NORMALLY_OPEN;
+  switch_set_type(pb.probe_switch, SW_TYPE_NORMALLY_OPEN);
   // re-init to pick up new switch settings
   switch_init();
 
@@ -197,18 +197,17 @@ static uint8_t _probing_init() {
 
 static stat_t _probing_start() {
   // initial probe state, don't probe if we're already contacted!
-  int8_t probe = sw.switches[pb.probe_switch].state;
+  bool closed = switch_get_closed(pb.probe_switch);
 
-  if (probe == SW_OPEN)
-    ritorno(cm_straight_feed(pb.target, pb.flags));
+  if (!closed) ritorno(cm_straight_feed(pb.target, pb.flags));
 
   return _set_pb_func(_probing_finish);
 }
 
 
 static stat_t _probing_finish() {
-  int8_t probe = sw.switches[pb.probe_switch].state;
-  cm.probe_state = probe == SW_CLOSED ? PROBE_SUCCEEDED : PROBE_FAILED;
+  bool closed = switch_get_closed(pb.probe_switch);
+  cm.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
 
   for (uint8_t axis = 0; axis < AXES; axis++) {
     // if we got here because of a feed hold keep the model position correct
@@ -226,8 +225,8 @@ static void _probe_restore_settings() {
   // we should be stopped now, but in case of switch closure
   mp_flush_planner();
 
-  sw.switches[pb.probe_switch].type = pb.saved_switch_type;
-  sw.switches[pb.probe_switch].mode = pb.saved_switch_mode;
+  switch_set_type(pb.probe_switch, pb.saved_switch_type);
+  switch_set_mode(pb.probe_switch, pb.saved_switch_mode);
   switch_init(); // re-init to pick up changes
 
   // restore axis jerk
