@@ -68,6 +68,13 @@ void stepper_init() {
 uint8_t st_runtime_isbusy() {return st.busy;}
 
 
+/// Interrupt handler for calling move exec function.
+/// ADC channel 0 triggered by load ISR as a "software" interrupt.
+ISR(ADCB_CH0_vect) {
+  mp_exec_move();
+}
+
+
 /// Step timer interrupt routine
 /// Dequeue move and load into stepper struct
 ISR(STEP_TIMER_ISR) {
@@ -85,8 +92,6 @@ ISR(STEP_TIMER_ISR) {
   // If there are no more moves
   if (!st.move_ready) {
     TIMER_STEP.PER = STEP_TIMER_POLL;
-
-    sei(); // Enable interupts
     mp_exec_move();
     return;
   }
@@ -122,9 +127,9 @@ ISR(STEP_TIMER_ISR) {
   st.prep_dwell = 0; // clear dwell
   st.move_ready = false;  // flip the flag back
 
-  // Exec and prep next move
-  sei(); // Enable interupts
-  mp_exec_move();
+  // Use ADC as a "software" interrupt to prep next move
+  ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
+  ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
 }
 
 

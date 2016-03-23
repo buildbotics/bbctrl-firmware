@@ -262,37 +262,36 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   uint16_t steps = round(fabs(travel_steps));
-  uint32_t ticks_per_step = seg_clocks / (steps + 0.5);
+  // TODO why do we need to multiply by 2 here?
+  uint32_t ticks_per_step = seg_clocks / (steps + 0.5) * 2;
 
   // Find the clock rate that will fit the required number of steps
-  if (ticks_per_step & 0xffff8000UL) {
+  if (ticks_per_step & 0xffff0000UL) {
     ticks_per_step /= 2;
     seg_clocks /= 2;
 
-    if (ticks_per_step & 0xffff8000UL) {
+    if (ticks_per_step & 0xffff0000UL) {
       ticks_per_step /= 2;
       seg_clocks /= 2;
 
-      if (ticks_per_step & 0xffff8000UL) {
+      if (ticks_per_step & 0xffff0000UL) {
         ticks_per_step /= 2;
         seg_clocks /= 2;
 
-        if (ticks_per_step & 0xffff8000UL) m->timer_clock = 0; // Off
+        if (ticks_per_step & 0xffff0000UL) m->timer_clock = 0; // Off
         else m->timer_clock = TC_CLKSEL_DIV8_gc;
       } else m->timer_clock = TC_CLKSEL_DIV4_gc;
     } else m->timer_clock = TC_CLKSEL_DIV2_gc;
   } else m->timer_clock = TC_CLKSEL_DIV1_gc;
 
-  m->timer_period = ticks_per_step * 2;   // TODO why do we need x2 here?
+  m->timer_period = ticks_per_step;
   m->steps = seg_clocks / ticks_per_step; // Compute actual steps
 
   // Setup the direction, compensating for polarity.
-  if (0 <= travel_steps) // positive direction
-    m->direction = DIRECTION_CW ^ m->polarity;
-
+  if (0 <= travel_steps) m->direction = DIRECTION_CW ^ m->polarity;
   else {
     m->direction = DIRECTION_CCW ^ m->polarity;
-    m->steps = -m->steps;
+    m->steps *= -1;
   }
 }
 
