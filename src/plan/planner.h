@@ -34,52 +34,26 @@
 #include "util.h"
 #include "config.h"
 
-typedef enum {             // bf->move_type values
-  MOVE_TYPE_NULL,          // null move - does a no-op
-  MOVE_TYPE_ALINE,         // acceleration planned line
-  MOVE_TYPE_DWELL,         // delay with no movement
-  MOVE_TYPE_COMMAND,       // general command
-  MOVE_TYPE_JOG,           // interactive jogging
-} moveType_t;
-
-typedef enum {
-  MOVE_OFF,               // move inactive (MUST BE ZERO)
-  MOVE_NEW,               // general value if you need an initialization
-  MOVE_RUN,               // general run state (for non-acceleration moves)
-  MOVE_SKIP_BLOCK         // mark a skipped block
-} moveState_t;
-
 typedef enum {
   SECTION_HEAD,           // acceleration
   SECTION_BODY,           // cruise
-  SECTION_TAIL            // deceleration
+  SECTION_TAIL,           // deceleration
+  SECTIONS                // section count
 } moveSection_t;
-#define SECTIONS 3
-
-typedef enum {
-  SECTION_OFF,            // section inactive
-  SECTION_NEW,            // uninitialized section
-  SECTION_1st_HALF,       // first half of S curve
-  SECTION_2nd_HALF        // second half of S curve or running a BODY (cruise)
-} sectionState_t;
 
 // Most of these factors are the result of a lot of tweaking.
 // Change with caution.
-#define ARC_SEGMENT_LENGTH      ((float)0.1) // Arc segment size (mm).(0.03)
-#define MIN_ARC_RADIUS          ((float)0.1)
-
-#define JERK_MULTIPLIER         ((float)1000000)
+#define JERK_MULTIPLIER         1000000.0
 /// precision jerk must match to be considered same
-#define JERK_MATCH_PRECISION    ((float)1000)
+#define JERK_MATCH_PRECISION    1000.0
 
-#define NOM_SEGMENT_USEC        ((float)5000) // nominal segment time
+#define NOM_SEGMENT_USEC        5000.0 // nominal segment time
 /// minimum segment time / minimum move time
-#define MIN_SEGMENT_USEC        ((float)2500)
-#define MIN_ARC_SEGMENT_USEC    ((float)10000) // minimum arc segment time
+#define MIN_SEGMENT_USEC        2500.0
+#define MIN_ARC_SEGMENT_USEC    10000.0 // minimum arc segment time
 
 #define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 #define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-#define MIN_ARC_SEGMENT_TIME    (MIN_ARC_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 /// minimum time a move can be is one segment
 #define MIN_TIME_MOVE           MIN_SEGMENT_TIME
 /// factor for minimum size Gcode block to process
@@ -87,93 +61,6 @@ typedef enum {
 
 #define MIN_SEGMENT_TIME_PLUS_MARGIN \
   ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
-
-/* PLANNER_BUFFER_POOL_SIZE
- *  Should be at least the number of buffers requires to support optimal
- *  planning in the case of very short lines or arc segments.
- *  Suggest 12 min. Limit is 255
- */
-#define PLANNER_BUFFER_POOL_SIZE 32
-/// Buffers to reserve in planner before processing new input line
-#define PLANNER_BUFFER_HEADROOM 4
-
-// Parameters for _generate_trapezoid()
-
-/// Max iterations for convergence in the HT asymmetric case.
-#define TRAPEZOID_ITERATION_MAX             10
-
-/// Error percentage for iteration convergence. As percent - 0.01 = 1%
-#define TRAPEZOID_ITERATION_ERROR_PERCENT   ((float)0.10)
-
-/// Tolerance for "exact fit" for H and T cases
-/// allowable mm of error in planning phase
-#define TRAPEZOID_LENGTH_FIT_TOLERANCE      ((float)0.0001)
-
-/// Adaptive velocity tolerance term
-#define TRAPEZOID_VELOCITY_TOLERANCE        (max(2, bf->entry_velocity / 100))
-
-
-/// Callback to canonical_machine execution function
-typedef void (*cm_exec_t)(float[], float[]);
-
-
-// All the enums that equal zero must be zero. Don't change this
-typedef enum {                    // bf->buffer_state values
-  MP_BUFFER_EMPTY,                // struct is available for use (MUST BE 0)
-  MP_BUFFER_LOADING,              // being written ("checked out")
-  MP_BUFFER_QUEUED,               // in queue
-  MP_BUFFER_PENDING,              // marked as the next buffer to run
-  MP_BUFFER_RUNNING               // current running buffer
-} mpBufferState_t;
-
-
-typedef struct mpBuffer {         // See Planning Velocity Notes
-  struct mpBuffer *pv;            // static pointer to previous buffer
-  struct mpBuffer *nx;            // static pointer to next buffer
-  stat_t (*bf_func)(struct mpBuffer *bf); // callback to buffer exec function
-  cm_exec_t cm_func;              // callback to canonical machine
-
-  float naiive_move_time;
-
-  uint8_t buffer_state;           // used to manage queuing/dequeuing
-  uint8_t move_type;              // used to dispatch to run routine
-  uint8_t move_code;              // byte used by used exec functions
-  uint8_t move_state;             // move state machine sequence
-  uint8_t replannable;            // TRUE if move can be re-planned
-
-  float unit[AXES];               // unit vector for axis scaling & planning
-
-  float length;                   // total length of line or helix in mm
-  float head_length;
-  float body_length;
-  float tail_length;
-  // See notes on these variables, in aline()
-  float entry_velocity;           // entry velocity requested for the move
-  float cruise_velocity;          // cruise velocity requested & achieved
-  float exit_velocity;            // exit velocity requested for the move
-
-  float entry_vmax;               // max junction velocity at entry of this move
-  float cruise_vmax;              // max cruise velocity requested for move
-  float exit_vmax;                // max exit velocity possible (redundant)
-  float delta_vmax;               // max velocity difference for this move
-  float braking_velocity;         // current value for braking velocity
-
-  uint8_t jerk_axis;              // rate limiting axis used to compute jerk
-  float jerk;                     // maximum linear jerk term for this move
-  float recip_jerk;               // 1/Jm used for planning (computed & cached)
-  float cbrt_jerk;                // cube root of Jm (computed & cached)
-
-  GCodeState_t gm;                // Gode model state, used by planner & runtime
-} mpBuf_t;
-
-
-typedef struct mpBufferPool {           // ring buffer for sub-moves
-  uint8_t buffers_available;            // running count of available buffers
-  mpBuf_t *w;                           // get_write_buffer pointer
-  mpBuf_t *q;                           // queue_write_buffer pointer
-  mpBuf_t *r;                           // get/end_run_buffer pointer
-  mpBuf_t bf[PLANNER_BUFFER_POOL_SIZE]; // buffer storage
-} mpBufferPool_t;
 
 
 /// common variables for planning (move master)
@@ -254,11 +141,10 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
 
 
 // Reference global scope structures
-extern mpBufferPool_t mb;           // move buffer queue
 extern mpMoveMasterSingleton_t mm;  // context for line planning
 extern mpMoveRuntimeSingleton_t mr; // context for line runtime
 
-// planner.c functions
+
 void planner_init();
 void mp_flush_planner();
 void mp_set_planner_position(uint8_t axis, const float position);
@@ -270,37 +156,3 @@ float mp_get_runtime_absolute_position(uint8_t axis);
 void mp_set_runtime_work_offset(float offset[]);
 void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
-
-// line.c functions
-void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
-stat_t mp_aline(GCodeState_t *gm_in);
-
-// zoid.c functions
-void mp_calculate_trapezoid(mpBuf_t *bf);
-float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
-float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
-
-// exec.c functions
-stat_t mp_exec_move();
-stat_t mp_exec_aline(mpBuf_t *bf);
-
-// feedhold.c functions
-stat_t mp_plan_hold_callback();
-stat_t mp_end_hold();
-
-// buffer.c functions
-uint8_t mp_get_planner_buffers_available();
-void mp_init_buffers();
-mpBuf_t *mp_get_write_buffer();
-void mp_unget_write_buffer();
-void mp_commit_write_buffer(const uint8_t move_type);
-mpBuf_t *mp_get_run_buffer();
-uint8_t mp_free_run_buffer();
-mpBuf_t *mp_get_first_buffer();
-mpBuf_t *mp_get_last_buffer();
-/// Returns pointer to prev buffer in linked list
-#define mp_get_prev_buffer(b) ((mpBuf_t *)(b->pv))
-/// Returns pointer to next buffer in linked list
-#define mp_get_next_buffer(b) ((mpBuf_t *)(b->nx))
-void mp_clear_buffer(mpBuf_t *bf);
-void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);

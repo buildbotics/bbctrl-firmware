@@ -27,10 +27,13 @@
 
 \******************************************************************************/
 
+#include "zoid.h"
+
 #include "planner.h"
 #include "util.h"
 
 #include <math.h>
+
 
 /*
  * This rather brute-force and long-ish function sets section lengths
@@ -150,10 +153,10 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   // velocity you can get given the delta_vmax (maximum velocity slew)
   // supportable.
 
-  bf->naiive_move_time =
+  bf->naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
 
-  if (bf->naiive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
+  if (bf->naive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
     bf->cruise_velocity = bf->length / MIN_SEGMENT_TIME_PLUS_MARGIN;
     bf->exit_velocity = max(0.0, min(bf->cruise_velocity,
                                      (bf->entry_velocity - bf->delta_vmax)));
@@ -167,7 +170,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   }
 
   // B" case: Block is short, but fits into a single body segment
-  if (bf->naiive_move_time <= NOM_SEGMENT_TIME) {
+  if (bf->naive_move_time <= NOM_SEGMENT_TIME) {
     bf->entry_velocity = bf->pv->exit_velocity;
 
     if (fp_NOT_ZERO(bf->entry_velocity)) {

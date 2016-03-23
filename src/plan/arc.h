@@ -28,7 +28,11 @@
 
 #pragma once
 
-#include "status.h"
+#include "planner.h"
+
+#define ARC_SEGMENT_LENGTH      0.1 // mm
+#define MIN_ARC_RADIUS          0.1
+#define MIN_ARC_SEGMENT_TIME    (MIN_ARC_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 
 stat_t cm_arc_callback();
 void cm_abort_arc();

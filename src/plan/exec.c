@@ -28,6 +28,7 @@
 \******************************************************************************/
 
 #include "planner.h"
+#include "buffer.h"
 #include "kinematics.h"
 #include "stepper.h"
 #include "encoder.h"

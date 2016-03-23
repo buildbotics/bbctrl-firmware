@@ -27,8 +27,12 @@
 
 \******************************************************************************/
 
-#include "planner.h"
+#include "line.h"
 
+#include "planner.h"
+#include "exec.h"
+#include "buffer.h"
+#include "zoid.h"
 #include "controller.h"
 #include "canonical_machine.h"
 #include "stepper.h"

@@ -27,7 +27,12 @@
 
 \******************************************************************************/
 
+#include "feedhold.h"
+
 #include "planner.h"
+#include "buffer.h"
+#include "line.h"
+#include "zoid.h"
 #include "util.h"
 
 #include <stdbool.h>

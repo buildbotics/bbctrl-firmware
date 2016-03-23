@@ -49,16 +49,29 @@
  *    (test, get and unget have no effect)
  */
 
-#include "planner.h"
+#include "buffer.h"
 
 #include <string.h>
 
-/// buffer incr & wrap
-#define _bump(a) ((a < PLANNER_BUFFER_POOL_SIZE - 1) ? a + 1 : 0)
+
+typedef struct mpBufferPool {           // ring buffer for sub-moves
+  uint8_t buffers_available;            // running count of available buffers
+  mpBuf_t *w;                           // get_write_buffer pointer
+  mpBuf_t *q;                           // queue_write_buffer pointer
+  mpBuf_t *r;                           // get/end_run_buffer pointer
+  mpBuf_t bf[PLANNER_BUFFER_POOL_SIZE]; // buffer storage
+} mpBufferPool_t;
+
+
+mpBufferPool_t mb; // move buffer queue
 
 
 /// Returns # of available planner buffers
 uint8_t mp_get_planner_buffers_available() {return mb.buffers_available;}
+
+
+/// buffer incr & wrap
+#define _bump(a) ((a < PLANNER_BUFFER_POOL_SIZE - 1) ? a + 1 : 0)
 
 
 /// Initializes or resets buffers
@@ -73,7 +86,7 @@ void mp_init_buffers() {
   pv = &mb.bf[PLANNER_BUFFER_POOL_SIZE - 1];
 
   // setup ring pointers
-  for (uint8_t i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
+  for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
     mb.bf[i].nx = &mb.bf[_bump(i)];
     mb.bf[i].pv = pv;
     pv = &mb.bf[i];

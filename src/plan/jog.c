@@ -26,7 +26,9 @@
 \******************************************************************************/
 
 #include "jog.h"
+
 #include "planner.h"
+#include "buffer.h"
 #include "stepper.h"
 #include "motor.h"
 #include "canonical_machine.h"

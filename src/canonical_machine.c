@@ -110,9 +110,12 @@
 #include "usart.h"            // for serial queue flush
 
 #include "plan/planner.h"
+#include "plan/buffer.h"
+#include "plan/feedhold.h"
 #include "plan/dwell.h"
 #include "plan/command.h"
 #include "plan/arc.h"
+#include "plan/line.h"
 
 #include <stdbool.h>
 #include <string.h>

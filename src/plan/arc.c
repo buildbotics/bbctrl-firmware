@@ -34,7 +34,8 @@
 
 #include "arc.h"
 
-#include "planner.h"
+#include "buffer.h"
+#include "line.h"
 #include "config.h"
 #include "util.h"
 

@@ -29,7 +29,7 @@
 
 #include "dwell.h"
 
-#include "planner.h"
+#include "buffer.h"
 #include "canonical_machine.h"
 #include "stepper.h"
 

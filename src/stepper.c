@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "canonical_machine.h"
-#include "plan/planner.h"
+#include "plan/exec.h"
 #include "plan/command.h"
 #include "motor.h"
 #include "hardware.h"

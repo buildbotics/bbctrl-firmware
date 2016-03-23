@@ -43,8 +43,9 @@
 #include "command.h"
 #include "report.h"
 
+#include "plan/buffer.h"
 #include "plan/arc.h"
-#include "plan/planner.h"
+#include "plan/feedhold.h"
 
 #include <string.h>
 #include <stdio.h>

@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "plan/buffer.h"
+#include "buffer.h"
 
-void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
-void mp_runtime_command(mpBuf_t *bf);
+void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
+stat_t mp_aline(GCodeState_t *gm_in);
