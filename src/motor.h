@@ -46,6 +46,22 @@ typedef enum {
 } cmMotorFlags_t;
 
 
+typedef enum {
+  MOTOR_DISABLED,                 // motor enable is deactivated
+  MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
+  MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
+                                  // de-powered out of cycle
+  MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
+  MOTOR_POWER_MODE_MAX_VALUE      // for input range checking
+} cmMotorPowerMode_t;
+
+
+typedef enum {
+  MOTOR_POLARITY_NORMAL,
+  MOTOR_POLARITY_REVERSED
+} cmMotorPolarity_t;
+
+
 void motor_init();
 
 int motor_get_axis(int motor);

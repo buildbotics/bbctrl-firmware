@@ -27,9 +27,6 @@
 
 \******************************************************************************/
 
-// This module provides the low-level stepper drivers and some related
-// functions. See stepper.h for a detailed explanation of this module.
-
 #include "stepper.h"
 
 #include "motor.h"
@@ -44,29 +41,26 @@
 typedef struct {
   // Runtime
   bool busy;
-  moveType_t run_move;
-  uint16_t run_dwell;
+  uint16_t dwell;
 
   // Move prep
-  bool move_ready;      // preped move ready for loader
-  moveType_t prep_move;
+  bool move_ready;      // prepped move ready for loader
+  moveType_t move_type;
+  uint16_t seg_period;
   uint32_t prep_dwell;
   struct mpBuffer *bf;  // used for command moves
-  uint16_t seg_period;
 } stepper_t;
 
 
-static stepper_t st;
+static stepper_t st = {};
 
 
 void stepper_init() {
-  /// clear all values, pointers and status
-  memset(&st, 0, sizeof(st));
-
   // Setup step timer
-  TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;   // turn timer off
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
+  TIMER_STEP.PER = STEP_TIMER_POLL;        // timer idle rate
+  TIMER_STEP.CTRLA = STEP_TIMER_ENABLE;    // start step timer
 }
 
 
@@ -74,132 +68,82 @@ void stepper_init() {
 uint8_t st_runtime_isbusy() {return st.busy;}
 
 
-/// "Software" interrupt to request move execution
-void st_request_exec_move() {
-  if (!st.move_ready) {
-    ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
-    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
+/// Step timer interrupt routine
+/// Dequeue move and load into stepper struct
+ISR(STEP_TIMER_ISR) {
+  // Dwell
+  if (st.dwell && --st.dwell) return;
+
+  // End last move
+  if (st.busy) {
+    for (int motor = 0; motor < MOTORS; motor++)
+      motor_end_move(motor);
+
+    st.busy = false;
   }
-}
-
-
-/* Dequeue move and load into stepper struct
- *
- * This routine can only be called from an ISR at the same or
- * higher level as the step timer ISR. A software interrupt has been
- * provided to allow a non-ISR to request a load (see st_request_load_move())
- *
- * In ALINE code:
- *   - All axes must set steps and compensate for out-of-range pulse phasing.
- *   - If axis has 0 steps the direction setting can be omitted
- *   - If axis has 0 steps the motor must not be enabled to support power
- *     mode = 1
- */
-static void _load_move() {
-  if (st_runtime_isbusy()) return;
 
   // If there are no more moves
-  if (!st.move_ready) return;
+  if (!st.move_ready) {
+    TIMER_STEP.PER = STEP_TIMER_POLL;
 
+    sei(); // Enable interupts
+    mp_exec_move();
+    return;
+  }
+
+  // Power up motors if needed
   for (int motor = 0; motor < MOTORS; motor++)
     motor_begin_move(motor);
 
   // Wait until motors have energized
-  if (motor_energizing()) return;
+  if (motor_energizing()) {
+    TIMER_STEP.PER = STEP_TIMER_POLL;
+    return;
+  }
 
-  st.run_move = st.prep_move;
+  // Start dwell
+  st.dwell = st.prep_dwell;
 
-  switch (st.run_move) {
-  case MOVE_TYPE_DWELL:
-    st.run_dwell = st.prep_dwell;
-    // Fall through
-
-  case MOVE_TYPE_ALINE:
+  // Start move
+  if (st.seg_period) {
     for (int motor = 0; motor < MOTORS; motor++)
-      if (st.run_move == MOVE_TYPE_ALINE)
-        motor_load_move(motor);
+      motor_load_move(motor);
 
-    st.busy = true;
     TIMER_STEP.PER = st.seg_period;
-    TIMER_STEP.CTRLA = STEP_TIMER_ENABLE; // enable step timer, if not enabled
-    break;
-
-  case MOVE_TYPE_COMMAND: // handle synchronous commands
-    mp_runtime_command(st.bf);
-    // Fall through
-
-  default:
-    TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;
-    break;
+    st.busy = true;
   }
 
-  // we are done with the prep buffer - flip the flag back
-  st.prep_move = MOVE_TYPE_NULL;
-  st.move_ready = false;
-  st_request_exec_move(); // exec and prep next move
+  // Execute command
+  if (st.move_type == MOVE_TYPE_COMMAND) mp_runtime_command(st.bf);
+
+  // We are done with this move
+  st.move_type = MOVE_TYPE_NULL;
+  st.seg_period = 0; // clear timer
+  st.prep_dwell = 0; // clear dwell
+  st.move_ready = false;  // flip the flag back
+
+  // Exec and prep next move
+  sei(); // Enable interupts
+  mp_exec_move();
 }
 
 
-/// Step timer interrupt routine
-ISR(STEP_TIMER_ISR) {
-  if (st.run_move == MOVE_TYPE_DWELL && --st.run_dwell) return;
-
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_end_move(motor);
-
-  st.busy = false;
-  _load_move();
-}
-
-
-/// Interrupt handler for running the loader.
-/// ADC channel 1 triggered by st_request_load_move() as a "software" interrupt.
-ISR(ADCB_CH1_vect) {
-  _load_move();
-}
-
-
-/// Fires a "software" interrupt to request a move load.
-void st_request_load_move() {
-  if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
-
-  if (st.move_ready) {
-    ADCB_CH1_INTCTRL = ADC_CH_INTLVL_HI_gc; // trigger HI interrupt
-    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH1START_bm;
-  }
-}
-
-
-/// Interrupt handler for calling move exec function.
-/// ADC channel 0 triggered by st_request_exec_move() as a "software" interrupt.
-ISR(ADCB_CH0_vect) {
-  if (!st.move_ready && mp_exec_move() != STAT_NOOP) {
-    st.move_ready = true; // flip it back - TODO is this really needed?
-    st_request_load_move();
-  }
-}
-
-
-/* Prepare the next move for the loader
+/* Prepare the next move
  *
- * This function does the math on the next pulse segment and gets it ready for
- * the loader. It deals with all the optimizations and timer setups so that
- * loading can be performed as rapidly as possible. It works in joint space
- * (motors) and it works in steps, not length units. All args are provided as
- * floats and converted to their appropriate integer types for the loader.
+ * This function precomputes the next pulse segment (move) so it can
+ * be executed quickly in the ISR.  It works in steps, rather than
+ * length units.  All args are provided as floats which converted here
+ * to integer values.
  *
  * Args:
- *   - travel_steps[] are signed relative motion in steps for each motor. Steps
- *     are floats that typically have fractional values (fractional steps). The
- *     sign indicates direction. Motors that are not in the move should be 0
- *     steps on input.
+ *   @param travel_steps signed relative motion in steps for each motor.
+ *   Steps are fractional.  Their sign indicates direction.  Motors not in the
+ *   move have 0 steps.
  *
- *   - error[] is a vector of measured errors to the step count. Used for
- *     correction.
+ *   @param error is a vector of measured step errors used for correction.
  *
- *   - seg_time - how many minutes the segment should run. If timing is not
- *     100% accurate this will affect the move velocity, but not the distance
- *     traveled.
+ *   @param seg_time is segment run time in minutes.  If timing is not 100%
+ *   accurate this will affect the move velocity but not travel distance.
  */
 stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   // Trap conditions that would prevent queueing the line
@@ -210,8 +154,8 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   if (seg_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
 
   // Setup segment parameters
-  st.prep_move = MOVE_TYPE_ALINE;
-  st.seg_period = seg_time * 60 * F_CPU / STEP_TIMER_DIV; // Must fit 16-bit
+  st.move_type = MOVE_TYPE_ALINE;
+  st.seg_period = seg_time * 60 * STEP_TIMER_FREQ; // Must fit 16-bit
   uint32_t seg_clocks = (uint32_t)st.seg_period * STEP_TIMER_DIV;
 
   // Prepare motor moves
@@ -227,7 +171,7 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 /// Keeps the loader happy. Otherwise performs no action
 void st_prep_null() {
   if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
-  st.prep_move = MOVE_TYPE_NULL;
+  st.move_type = MOVE_TYPE_NULL;
   st.move_ready = false; // signal prep buffer empty
 }
 
@@ -235,7 +179,7 @@ void st_prep_null() {
 /// Stage command to execution
 void st_prep_command(void *bf) {
   if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
-  st.prep_move = MOVE_TYPE_COMMAND;
+  st.move_type = MOVE_TYPE_COMMAND;
   st.bf = (mpBuf_t *)bf;
   st.move_ready = true; // signal prep buffer ready
 }
@@ -244,8 +188,8 @@ void st_prep_command(void *bf) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
   if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
-  st.prep_move = MOVE_TYPE_DWELL;
-  st.seg_period = F_CPU / STEP_TIMER_DIV / 1000; // 1 ms
+  st.move_type = MOVE_TYPE_DWELL;
+  st.seg_period = STEP_TIMER_FREQ * 0.001; // 1 ms
   st.prep_dwell = seconds * 1000; // convert to ms
   st.move_ready = true; // signal prep buffer ready
 }

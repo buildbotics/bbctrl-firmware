@@ -56,29 +56,13 @@ typedef enum {
 } motorPowerState_t;
 
 
-typedef enum {
-  MOTOR_DISABLED,                 // motor enable is deactivated
-  MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
-  MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
-                                  // de-powered out of cycle
-  MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
-  MOTOR_POWER_MODE_MAX_VALUE      // for input range checking
-} cmMotorPowerMode_t;
-
-
-typedef enum {
-  MOTOR_POLARITY_NORMAL,
-  MOTOR_POLARITY_REVERSED
-} cmMotorPolarity_t;
-
-
 typedef struct {
   // Config
   uint8_t motor_map;             // map motor to axis
-  uint16_t microsteps;           // microsteps to apply for each axis (ex: 8)
+  uint16_t microsteps;           // microsteps per full step
   cmMotorPolarity_t polarity;
   cmMotorPowerMode_t power_mode;
-  float step_angle;              // degrees per whole step (ex: 1.8)
+  float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
   TC0_t *timer;
 
@@ -90,14 +74,10 @@ typedef struct {
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
-  uint32_t steps;                // expected steps
-
-  // direction and direction change
+  int32_t steps;                 // expected steps, for encoder
   cmDirection_t direction;       // travel direction corrected for polarity
-  cmDirection_t prev_direction;  // travel direction from previous segment run
-  int8_t step_sign;              // set to +1 or -1 for encoders
 
-  // step error correction
+  // Step error correction
   int32_t correction_holdoff;    // count down segments between corrections
   float corrected_steps;         // accumulated for cycle (diagnostic)
 } motor_t;
@@ -112,7 +92,6 @@ static motor_t motors[MOTORS] = {
     .polarity   = M1_POLARITY,
     .power_mode = M1_POWER_MODE,
     .timer      = (TC0_t *)&M1_TIMER,
-    .prev_direction = STEP_INITIAL_DIRECTION
   }, {
     .motor_map  = M2_MOTOR_MAP,
     .step_angle = M2_STEP_ANGLE,
@@ -121,7 +100,6 @@ static motor_t motors[MOTORS] = {
     .polarity   = M2_POLARITY,
     .power_mode = M2_POWER_MODE,
     .timer      = &M2_TIMER,
-    .prev_direction = STEP_INITIAL_DIRECTION
   }, {
     .motor_map  = M3_MOTOR_MAP,
     .step_angle = M3_STEP_ANGLE,
@@ -130,7 +108,6 @@ static motor_t motors[MOTORS] = {
     .polarity   = M3_POLARITY,
     .power_mode = M3_POWER_MODE,
     .timer      = &M3_TIMER,
-    .prev_direction = STEP_INITIAL_DIRECTION
   }, {
     .motor_map  = M4_MOTOR_MAP,
     .step_angle = M4_STEP_ANGLE,
@@ -139,7 +116,6 @@ static motor_t motors[MOTORS] = {
     .polarity   = M4_POLARITY,
     .power_mode = M4_POWER_MODE,
     .timer      = &M4_TIMER,
-    .prev_direction = STEP_INITIAL_DIRECTION
   }
 };
 
@@ -221,7 +197,6 @@ void motor_driver_callback(int motor) {
     m->flags |= MOTOR_FLAG_ENABLED_bm;
   }
 
-  st_request_load_move();
   report_request();
 }
 
@@ -264,28 +239,14 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     return;
   }
 
-  // Setup the direction, compensating for polarity.
-  // Set the step_sign which is used by the stepper ISR to accumulate step
-  // position
-  if (0 <= travel_steps) { // positive direction
-    m->direction = DIRECTION_CW ^ m->polarity;
-    m->step_sign = 1;
-
-  } else {
-    m->direction = DIRECTION_CCW ^ m->polarity;
-    m->step_sign = -1;
-  }
-
 #ifdef __STEP_CORRECTION
-  float correction;
-
   // 'Nudge' correction strategy. Inject a single, scaled correction value
   // then hold off
   if (--m->correction_holdoff < 0 &&
       STEP_CORRECTION_THRESHOLD < fabs(error)) {
 
     m->correction_holdoff = STEP_CORRECTION_HOLDOFF;
-    correction = error * STEP_CORRECTION_FACTOR;
+    float correction = error * STEP_CORRECTION_FACTOR;
 
     if (0 < correction)
       correction = min3(correction, fabs(travel_steps), STEP_CORRECTION_MAX);
@@ -303,27 +264,36 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   uint16_t steps = round(fabs(travel_steps));
   uint32_t ticks_per_step = seg_clocks / (steps + 0.5);
 
-  // Find the right clock rate
-  if (ticks_per_step & 0xffff0000UL) {
+  // Find the clock rate that will fit the required number of steps
+  if (ticks_per_step & 0xffff8000UL) {
     ticks_per_step /= 2;
     seg_clocks /= 2;
 
-    if (ticks_per_step & 0xffff0000UL) {
+    if (ticks_per_step & 0xffff8000UL) {
       ticks_per_step /= 2;
       seg_clocks /= 2;
 
-      if (ticks_per_step & 0xffff0000UL) {
+      if (ticks_per_step & 0xffff8000UL) {
         ticks_per_step /= 2;
         seg_clocks /= 2;
 
-        if (ticks_per_step & 0xffff0000UL) m->timer_clock = 0; // Off
+        if (ticks_per_step & 0xffff8000UL) m->timer_clock = 0; // Off
         else m->timer_clock = TC_CLKSEL_DIV8_gc;
       } else m->timer_clock = TC_CLKSEL_DIV4_gc;
     } else m->timer_clock = TC_CLKSEL_DIV2_gc;
   } else m->timer_clock = TC_CLKSEL_DIV1_gc;
 
-  m->timer_period = ticks_per_step * 2; // TODO why do we need *2 here?
-  m->steps = seg_clocks / ticks_per_step;
+  m->timer_period = ticks_per_step * 2;   // TODO why do we need x2 here?
+  m->steps = seg_clocks / ticks_per_step; // Compute actual steps
+
+  // Setup the direction, compensating for polarity.
+  if (0 <= travel_steps) // positive direction
+    m->direction = DIRECTION_CW ^ m->polarity;
+
+  else {
+    m->direction = DIRECTION_CCW ^ m->polarity;
+    m->steps = -m->steps;
+  }
 }
 
 
@@ -351,29 +321,20 @@ void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
   // Set or zero runtime clock and period
-  m->timer->CTRLFCLR = TC0_DIR_bm; // Count up
-  m->timer->CNT = 0; // Start at zero
+  m->timer->CTRLFCLR = TC0_DIR_bm;  // Count up
+  m->timer->CNT = 0;                // Start at zero
   m->timer->CCA = m->timer_period;  // Set frequency
   m->timer->CTRLA = m->timer_clock; // Start or stop
+  m->timer_clock = 0;               // Clear clock
 
-  // If motor has 0 steps the following is all skipped. This ensures that
-  // state comparisons always operate on the last segment actually run by
-  // this motor, regardless of how many segments it may have been inactive
-  // in between.
-  if (m->timer_clock) {
-    // Detect direction change and set the direction bit in hardware.
-    if (m->direction != m->prev_direction) {
-      m->prev_direction = m->direction;
+  // Set direction
+  if (m->direction == DIRECTION_CW)
+    hw.st_port[motor]->OUTCLR = DIRECTION_BIT_bm;
+  else hw.st_port[motor]->OUTSET = DIRECTION_BIT_bm;
 
-      if (m->direction == DIRECTION_CW)
-        hw.st_port[motor]->OUTCLR = DIRECTION_BIT_bm;
-      else hw.st_port[motor]->OUTSET = DIRECTION_BIT_bm;
-    }
-
-    // Accumulate encoder
-    en[motor].encoder_steps += m->steps * m->step_sign;
-    m->steps = 0;
-  }
+  // Accumulate encoder
+  en[motor].encoder_steps += m->steps;
+  m->steps = 0;
 }
 
 

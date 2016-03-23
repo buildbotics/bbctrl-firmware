@@ -313,6 +313,8 @@ typedef enum {
 #define STEP_TIMER_DISABLE   0
 #define STEP_TIMER_ENABLE    TC_CLKSEL_DIV4_gc
 #define STEP_TIMER_DIV       4
+#define STEP_TIMER_FREQ      (F_CPU / STEP_TIMER_DIV)
+#define STEP_TIMER_POLL      (STEP_TIMER_FREQ * 0.001)
 #define STEP_TIMER_WGMODE    TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR       TCC0_OVF_vect
 #define STEP_TIMER_INTLVL    TC_OVFINTLVL_HI_gc

@@ -28,7 +28,6 @@
 \******************************************************************************/
 
 #include "planner.h"
-#include "stepper.h"
 #include "util.h"
 
 #include <stdbool.h>
@@ -234,7 +233,6 @@ stat_t mp_end_hold() {
     }
 
     cm.motion_state = MOTION_RUN;
-    st_request_exec_move();        // restart the steppers
   }
 
   return STAT_OK;

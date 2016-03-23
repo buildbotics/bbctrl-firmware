@@ -50,7 +50,6 @@
  */
 
 #include "planner.h"
-#include "stepper.h"
 
 #include <string.h>
 
@@ -126,8 +125,6 @@ void mp_commit_write_buffer(const uint8_t move_type) {
   mb.q->move_state = MOVE_NEW;
   mb.q->buffer_state = MP_BUFFER_QUEUED;
   mb.q = mb.q->nx; // advance the queued buffer pointer
-
-  st_request_exec_move(); // requests an exec if the runtime is not busy
 }
 
 
