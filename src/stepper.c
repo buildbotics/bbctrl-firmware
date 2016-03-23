@@ -75,6 +75,13 @@ ISR(ADCB_CH0_vect) {
 }
 
 
+static void _request_exec_move() {
+  // Use ADC as a "software" interrupt to trigger next move exec
+  ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // LO level interrupt
+  ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
+}
+
+
 /// Step timer interrupt routine
 /// Dequeue move and load into stepper struct
 ISR(STEP_TIMER_ISR) {
@@ -127,9 +134,8 @@ ISR(STEP_TIMER_ISR) {
   st.prep_dwell = 0; // clear dwell
   st.move_ready = false;  // flip the flag back
 
-  // Use ADC as a "software" interrupt to prep next move
-  ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
-  ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
+  // Request next move
+  _request_exec_move();
 }
 
 
