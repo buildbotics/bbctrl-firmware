@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2012 - 2015 Rob Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -27,40 +25,8 @@
 
 \******************************************************************************/
 
-#include "dwell.h"
+#pragma once
 
-#include "planner.h"
-#include "canonical_machine.h"
-#include "stepper.h"
+#include "status.h"
 
-
-// Dwells are performed by passing a dwell move to the stepper drivers.
-
-
-/// Dwell execution
-static stat_t _exec_dwell(mpBuf_t *bf) {
-  st_prep_dwell(bf->gm.move_time); // in seconds
-
-  // free buffer & perform cycle_end if planner is empty
-  if (mp_free_run_buffer()) cm_cycle_end();
-
-  return STAT_OK;
-}
-
-
-/// Queue a dwell
-stat_t mp_dwell(float seconds) {
-  mpBuf_t *bf = mp_get_write_buffer();
-
-  // never supposed to fail
-  if (!bf) return cm_hard_alarm(STAT_BUFFER_FULL_FATAL);
-
-  bf->bf_func = _exec_dwell;  // register callback to dwell start
-  bf->gm.move_time = seconds; // in seconds, not minutes
-  bf->move_state = MOVE_NEW;
-
-  // must be final operation before exit
-  mp_commit_write_buffer(MOVE_TYPE_DWELL);
-
-  return STAT_OK;
-}
+stat_t mp_dwell(const float seconds);

@@ -304,6 +304,3 @@ mpBuf_t *mp_get_last_buffer();
 #define mp_get_next_buffer(b) ((mpBuf_t *)(b->nx))
 void mp_clear_buffer(mpBuf_t *bf);
 void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);
-
-// dwell.c functions
-stat_t mp_dwell(const float seconds);
