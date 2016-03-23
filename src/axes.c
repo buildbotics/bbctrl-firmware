@@ -155,7 +155,7 @@ void set_zero_backoff(int axis, float value) {
 
 
 
-
+// TODO fix these
 uint8_t get_min_switch(int axis) {
   //return cm.a[axis].min_switch;
   return 0;

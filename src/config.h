@@ -34,15 +34,23 @@
 #define __STEP_CORRECTION
 //#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
 //#define __KAHAN                // Use Kahan summation in aline exec functions
+#define __CLOCK_EXTERNAL_16MHZ // uses PLL to provide 32 MHz system clock
 
 
-#define INPUT_BUFFER_LEN 255     // text buffer size (255 max)
+#define AXES                     6 // number of axes
+#define MOTORS                   4 // number of motors on the board
+#define COORDS                   6 // number of supported coordinate systems
+#define SWITCHES                 8 // number of supported limit switches
+#define PWMS                     2 // number of supported PWM channels
 
-#define AXES         6           // number of axes
-#define MOTORS       4           // number of motors on the board
-#define COORDS       6           // number of supported coordinate systems (1-6)
-#define SWITCHES     8           // number of supported limit switches
-#define PWMS         2           // number of supported PWM channels
+
+// Axes
+typedef enum {
+  AXIS_X, AXIS_Y, AXIS_Z,
+  AXIS_A, AXIS_B, AXIS_C,
+  AXIS_U, AXIS_V, AXIS_W // reserved
+} axis_t;
+
 
 // Motor settings
 #define MOTOR_CURRENT            0.8   // 1.0 is full power
@@ -96,16 +104,15 @@
 #define C_SWITCH_MODE_MAX        SW_MODE_DISABLED
 
 // Switch ISRs
-#define X_SWITCH_ISR_vect PORTA_INT0_vect
-#define Y_SWITCH_ISR_vect PORTD_INT0_vect
-#define Z_SWITCH_ISR_vect PORTE_INT0_vect
-#define A_SWITCH_ISR_vect PORTF_INT0_vect
-
-#define SWITCH_INTLVL PORT_INT0LVL_MED_gc
+#define X_SWITCH_ISR_vect        PORTA_INT0_vect
+#define Y_SWITCH_ISR_vect        PORTD_INT0_vect
+#define Z_SWITCH_ISR_vect        PORTE_INT0_vect
+#define A_SWITCH_ISR_vect        PORTF_INT0_vect
+#define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
 
 // Timer for debouncing switches
-#define SW_LOCKOUT_TICKS 25          // 25=250ms. RTC ticks are ~10ms each
-#define SW_DEGLITCH_TICKS 3          // 3=30ms
+#define SW_LOCKOUT_TICKS         250 // ms
+#define SW_DEGLITCH_TICKS        30  // ms
 
 
 // Machine settings
@@ -120,8 +127,7 @@
 #define VELOCITY_MAX             15000  // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
-// See canonical_machine.h cmAxisMode for valid values
-#define X_AXIS_MODE              AXIS_STANDARD
+#define X_AXIS_MODE              AXIS_STANDARD // See canonical_machine.h
 #define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
 #define X_FEEDRATE_MAX           FEEDRATE_MAX  // G1 max feed rate in mm/min
 #define X_TRAVEL_MIN             0             // minimum travel for soft limits
@@ -225,28 +231,12 @@
 #define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
 
-#define AXIS_X       0
-#define AXIS_Y       1
-#define AXIS_Z       2
-#define AXIS_A       3
-#define AXIS_B       4
-#define AXIS_C       5
-#define AXIS_U       6           // reserved
-#define AXIS_V       7           // reserved
-#define AXIS_W       8           // reserved
-
-
-#define MILLISECONDS_PER_TICK 1  // MS for system tick (systick * N)
-#define SYS_ID_LEN 12            // length of system ID string from sys_get_id()
-
-// Clock Crystal Config. See clock.c
-#define __CLOCK_EXTERNAL_16MHZ // uses PLL to provide 32 MHz system clock
 
 // Motors mapped to ports
-#define PORT_MOTOR_1  PORTA
-#define PORT_MOTOR_2  PORTF
-#define PORT_MOTOR_3  PORTE
-#define PORT_MOTOR_4  PORTD
+#define PORT_MOTOR_1 PORTA
+#define PORT_MOTOR_2 PORTF
+#define PORT_MOTOR_3 PORTE
+#define PORT_MOTOR_4 PORTD
 
 // Motor fault ISRs
 #define PORT_1_FAULT_ISR_vect PORTA_INT1_vect
@@ -255,16 +245,16 @@
 #define PORT_4_FAULT_ISR_vect PORTF_INT1_vect
 
 // Switch axes mapped to ports
-#define PORT_SWITCH_X PORTA
-#define PORT_SWITCH_Y PORTF
-#define PORT_SWITCH_Z PORTE
-#define PORT_SWITCH_A PORTD
+#define PORT_SWITCH_X PORT_MOTOR_1
+#define PORT_SWITCH_Y PORT_MOTOR_2
+#define PORT_SWITCH_Z PORT_MOTOR_3
+#define PORT_SWITCH_A PORT_MOTOR_4
 
 // Axes mapped to output ports
-#define PORT_OUT_X    PORTA
-#define PORT_OUT_Y    PORTF
-#define PORT_OUT_Z    PORTE
-#define PORT_OUT_A    PORTD
+#define PORT_OUT_X PORT_MOTOR_1
+#define PORT_OUT_Y PORT_MOTOR_2
+#define PORT_OUT_Z PORT_MOTOR_3
+#define PORT_OUT_A PORT_MOTOR_4
 
 #define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
@@ -340,32 +330,34 @@
  * instead of shrink (or oscillate).
  */
 /// magnitude of forwarding error (in steps)
-#define STEP_CORRECTION_THRESHOLD (float)2.00
+#define STEP_CORRECTION_THRESHOLD 2.00
 /// apply to step correction for a single segment
-#define STEP_CORRECTION_FACTOR    (float)0.25
+#define STEP_CORRECTION_FACTOR    0.25
 /// max step correction allowed in a single segment
-#define STEP_CORRECTION_MAX       (float)0.60
+#define STEP_CORRECTION_MAX       0.60
 /// minimum wait between error correction
 #define STEP_CORRECTION_HOLDOFF   5
 #define STEP_INITIAL_DIRECTION    DIRECTION_CW
 
 
 // TMC2660 driver settings
-#define TMC2660_SPI_PORT PORTC
-#define TMC2660_SPI_SS_PIN 4
-#define TMC2660_SPI_SCK_PIN 5
-#define TMC2660_SPI_MISO_PIN 6
-#define TMC2660_SPI_MOSI_PIN 7
-
-#define TMC2660_TIMER TCC1
-
+#define TMC2660_SPI_PORT       PORTC
+#define TMC2660_SPI_SS_PIN     4
+#define TMC2660_SPI_SCK_PIN    5
+#define TMC2660_SPI_MISO_PIN   6
+#define TMC2660_SPI_MOSI_PIN   7
+#define TMC2660_TIMER          TCC1
 #define TMC2660_POLL_RATE      0.01  // sec.  Must be in (0, 1]
 #define TMC2660_STABILIZE_TIME 0.01  // sec.  Must be at least 1ms
 
 
 // PWM settings
-#define PWM1_CTRLB           (3 | TC1_CCBEN_bm)  // single slope PWM channel B
-#define PWM1_ISR_vect        TCD1_CCB_vect
-#define PWM2_CTRLA_CLKSEL    TC_CLKSEL_DIV1_gc
-#define PWM2_CTRLB           3                   // single slope PWM no output
-#define PWM2_ISR_vect        TCE1_CCB_vect
+#define PWM1_CTRLB             (3 | TC1_CCBEN_bm) // single slope PWM channel B
+#define PWM1_ISR_vect          TCD1_CCB_vect
+#define PWM2_CTRLA_CLKSEL      TC_CLKSEL_DIV1_gc
+#define PWM2_CTRLB             3                  // single slope PWM no output
+#define PWM2_ISR_vect          TCE1_CCB_vect
+
+
+// Input
+#define INPUT_BUFFER_LEN         255 // text buffer size (255 max)

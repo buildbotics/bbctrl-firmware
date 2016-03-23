@@ -118,7 +118,127 @@
 #include <stdio.h>
 
 
-cmSingleton_t cm; // canonical machine controller singleton
+cmSingleton_t cm = {
+  .junction_acceleration = JUNCTION_ACCELERATION,
+  .chordal_tolerance = CHORDAL_TOLERANCE,
+  .soft_limit_enable = SOFT_LIMIT_ENABLE,
+
+  .arc_segment_len = ARC_SEGMENT_LENGTH,
+
+  .coord_system = GCODE_DEFAULT_COORD_SYSTEM,
+  .select_plane = GCODE_DEFAULT_PLANE,
+  .units_mode = GCODE_DEFAULT_UNITS,
+  .path_control = GCODE_DEFAULT_PATH_CONTROL,
+  .distance_mode = GCODE_DEFAULT_DISTANCE_MODE,
+
+  // Offsets
+  .offset = {
+    {}, // ABSOLUTE_COORDS
+
+    {G54_X_OFFSET, G54_Y_OFFSET, G54_Z_OFFSET,
+     G54_A_OFFSET, G54_B_OFFSET, G54_C_OFFSET},
+
+    {G55_X_OFFSET, G55_Y_OFFSET, G55_Z_OFFSET,
+     G55_A_OFFSET, G55_B_OFFSET, G55_C_OFFSET},
+
+    {G56_X_OFFSET, G56_Y_OFFSET, G56_Z_OFFSET,
+     G56_A_OFFSET, G56_B_OFFSET, G56_C_OFFSET},
+
+    {G57_X_OFFSET, G57_Y_OFFSET, G57_Z_OFFSET,
+     G57_A_OFFSET, G57_B_OFFSET, G57_C_OFFSET},
+
+    {G58_X_OFFSET, G58_Y_OFFSET, G58_Z_OFFSET,
+     G58_A_OFFSET, G58_B_OFFSET, G58_C_OFFSET},
+
+    {G59_X_OFFSET, G59_Y_OFFSET, G59_Z_OFFSET,
+     G59_A_OFFSET, G59_B_OFFSET, G59_C_OFFSET},
+  },
+
+  // Axes
+  .a = {
+    {
+      .axis_mode =         X_AXIS_MODE,
+      .velocity_max =      X_VELOCITY_MAX,
+      .feedrate_max =      X_FEEDRATE_MAX,
+      .travel_min =        X_TRAVEL_MIN,
+      .travel_max =        X_TRAVEL_MAX,
+      .jerk_max =          X_JERK_MAX,
+      .jerk_homing =       X_JERK_HOMING,
+      .junction_dev =      X_JUNCTION_DEVIATION,
+      .search_velocity =   X_SEARCH_VELOCITY,
+      .latch_velocity =    X_LATCH_VELOCITY,
+      .latch_backoff =     X_LATCH_BACKOFF,
+      .zero_backoff =      X_ZERO_BACKOFF,
+    }, {
+      .axis_mode =         Y_AXIS_MODE,
+      .velocity_max =      Y_VELOCITY_MAX,
+      .feedrate_max =      Y_FEEDRATE_MAX,
+      .travel_min =        Y_TRAVEL_MIN,
+      .travel_max =        Y_TRAVEL_MAX,
+      .jerk_max =          Y_JERK_MAX,
+      .jerk_homing =       Y_JERK_HOMING,
+      .junction_dev =      Y_JUNCTION_DEVIATION,
+      .search_velocity =   Y_SEARCH_VELOCITY,
+      .latch_velocity =    Y_LATCH_VELOCITY,
+      .latch_backoff =     Y_LATCH_BACKOFF,
+      .zero_backoff =      Y_ZERO_BACKOFF,
+    }, {
+      .axis_mode =         Z_AXIS_MODE,
+      .velocity_max =      Z_VELOCITY_MAX,
+      .feedrate_max =      Z_FEEDRATE_MAX,
+      .travel_min =        Z_TRAVEL_MIN,
+      .travel_max =        Z_TRAVEL_MAX,
+      .jerk_max =          Z_JERK_MAX,
+      .jerk_homing =       Z_JERK_HOMING,
+      .junction_dev =      Z_JUNCTION_DEVIATION,
+      .search_velocity =   Z_SEARCH_VELOCITY,
+      .latch_velocity =    Z_LATCH_VELOCITY,
+      .latch_backoff =     Z_LATCH_BACKOFF,
+      .zero_backoff =      Z_ZERO_BACKOFF,
+    }, {
+      .axis_mode =         A_AXIS_MODE,
+      .velocity_max =      A_VELOCITY_MAX,
+      .feedrate_max =      A_FEEDRATE_MAX,
+      .travel_min =        A_TRAVEL_MIN,
+      .travel_max =        A_TRAVEL_MAX,
+      .jerk_max =          A_JERK_MAX,
+      .jerk_homing =       A_JERK_HOMING,
+      .junction_dev =      A_JUNCTION_DEVIATION,
+      .radius =            A_RADIUS,
+      .search_velocity =   A_SEARCH_VELOCITY,
+      .latch_velocity =    A_LATCH_VELOCITY,
+      .latch_backoff =     A_LATCH_BACKOFF,
+      .zero_backoff =      A_ZERO_BACKOFF,
+    }, {
+      .axis_mode =         B_AXIS_MODE,
+      .velocity_max =      B_VELOCITY_MAX,
+      .feedrate_max =      B_FEEDRATE_MAX,
+      .travel_min =        B_TRAVEL_MIN,
+      .travel_max =        B_TRAVEL_MAX,
+      .jerk_max =          B_JERK_MAX,
+      .junction_dev =      B_JUNCTION_DEVIATION,
+      .radius =            B_RADIUS,
+    }, {
+      .axis_mode =         C_AXIS_MODE,
+      .velocity_max =      C_VELOCITY_MAX,
+      .feedrate_max =      C_FEEDRATE_MAX,
+      .travel_min =        C_TRAVEL_MIN,
+      .travel_max =        C_TRAVEL_MAX,
+      .jerk_max =          C_JERK_MAX,
+      .junction_dev =      C_JUNCTION_DEVIATION,
+      .radius =            C_RADIUS,
+    }
+  },
+
+  .combined_state = COMBINED_READY,
+  .machine_state = MACHINE_READY,
+
+  // State
+  .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
+  .gmx = {.block_delete_switch = true},
+  .gn = {},
+  .gf = {},
+};
 
 
 // Command execution callbacks from planner queue
@@ -515,145 +635,11 @@ stat_t cm_test_soft_limits(float target[]) {
 
 /// Config init cfg_init() must have been run beforehand
 void canonical_machine_init() {
-  // If you can assume all memory has been zeroed by a hard reset you don't
-  // need this code:
-  memset(&cm.gm, 0, sizeof(GCodeState_t));
-  memset(&cm.gn, 0, sizeof(GCodeInput_t));
-  memset(&cm.gf, 0, sizeof(GCodeInput_t));
-
   ACTIVE_MODEL = MODEL; // setup initial Gcode model pointer
-
-  // axes defaults
-  cm.a[AXIS_X].axis_mode =         X_AXIS_MODE;
-  cm.a[AXIS_X].velocity_max =      X_VELOCITY_MAX;
-  cm.a[AXIS_X].feedrate_max =      X_FEEDRATE_MAX;
-  cm.a[AXIS_X].travel_min =        X_TRAVEL_MIN;
-  cm.a[AXIS_X].travel_max =        X_TRAVEL_MAX;
-  cm.a[AXIS_X].jerk_max =          X_JERK_MAX;
-  cm.a[AXIS_X].jerk_homing =       X_JERK_HOMING;
-  cm.a[AXIS_X].junction_dev =      X_JUNCTION_DEVIATION;
-  cm.a[AXIS_X].search_velocity =   X_SEARCH_VELOCITY;
-  cm.a[AXIS_X].latch_velocity =    X_LATCH_VELOCITY;
-  cm.a[AXIS_X].latch_backoff =     X_LATCH_BACKOFF;
-  cm.a[AXIS_X].zero_backoff =      X_ZERO_BACKOFF;
-
-  cm.a[AXIS_Y].axis_mode =         Y_AXIS_MODE;
-  cm.a[AXIS_Y].velocity_max =      Y_VELOCITY_MAX;
-  cm.a[AXIS_Y].feedrate_max =      Y_FEEDRATE_MAX;
-  cm.a[AXIS_Y].travel_min =        Y_TRAVEL_MIN;
-  cm.a[AXIS_Y].travel_max =        Y_TRAVEL_MAX;
-  cm.a[AXIS_Y].jerk_max =          Y_JERK_MAX;
-  cm.a[AXIS_Y].jerk_homing =       Y_JERK_HOMING;
-  cm.a[AXIS_Y].junction_dev =      Y_JUNCTION_DEVIATION;
-  cm.a[AXIS_Y].search_velocity =   Y_SEARCH_VELOCITY;
-  cm.a[AXIS_Y].latch_velocity =    Y_LATCH_VELOCITY;
-  cm.a[AXIS_Y].latch_backoff =     Y_LATCH_BACKOFF;
-  cm.a[AXIS_Y].zero_backoff =      Y_ZERO_BACKOFF;
-
-  cm.a[AXIS_Z].axis_mode =         Z_AXIS_MODE;
-  cm.a[AXIS_Z].velocity_max =      Z_VELOCITY_MAX;
-  cm.a[AXIS_Z].feedrate_max =      Z_FEEDRATE_MAX;
-  cm.a[AXIS_Z].travel_min =        Z_TRAVEL_MIN;
-  cm.a[AXIS_Z].travel_max =        Z_TRAVEL_MAX;
-  cm.a[AXIS_Z].jerk_max =          Z_JERK_MAX;
-  cm.a[AXIS_Z].jerk_homing =       Z_JERK_HOMING;
-  cm.a[AXIS_Z].junction_dev =      Z_JUNCTION_DEVIATION;
-  cm.a[AXIS_Z].search_velocity =   Z_SEARCH_VELOCITY;
-  cm.a[AXIS_Z].latch_velocity =    Z_LATCH_VELOCITY;
-  cm.a[AXIS_Z].latch_backoff =     Z_LATCH_BACKOFF;
-  cm.a[AXIS_Z].zero_backoff =      Z_ZERO_BACKOFF;
-
-  cm.a[AXIS_A].axis_mode =         A_AXIS_MODE;
-  cm.a[AXIS_A].velocity_max =      A_VELOCITY_MAX;
-  cm.a[AXIS_A].feedrate_max =      A_FEEDRATE_MAX;
-  cm.a[AXIS_A].travel_min =        A_TRAVEL_MIN;
-  cm.a[AXIS_A].travel_max =        A_TRAVEL_MAX;
-  cm.a[AXIS_A].jerk_max =          A_JERK_MAX;
-  cm.a[AXIS_A].jerk_homing =       A_JERK_HOMING;
-  cm.a[AXIS_A].junction_dev =      A_JUNCTION_DEVIATION;
-  cm.a[AXIS_A].radius =            A_RADIUS;
-  cm.a[AXIS_A].search_velocity =   A_SEARCH_VELOCITY;
-  cm.a[AXIS_A].latch_velocity =    A_LATCH_VELOCITY;
-  cm.a[AXIS_A].latch_backoff =     A_LATCH_BACKOFF;
-  cm.a[AXIS_A].zero_backoff =      A_ZERO_BACKOFF;
-
-  cm.a[AXIS_B].axis_mode =         B_AXIS_MODE;
-  cm.a[AXIS_B].velocity_max =      B_VELOCITY_MAX;
-  cm.a[AXIS_B].feedrate_max =      B_FEEDRATE_MAX;
-  cm.a[AXIS_B].travel_min =        B_TRAVEL_MIN;
-  cm.a[AXIS_B].travel_max =        B_TRAVEL_MAX;
-  cm.a[AXIS_B].jerk_max =          B_JERK_MAX;
-  cm.a[AXIS_B].junction_dev =      B_JUNCTION_DEVIATION;
-  cm.a[AXIS_B].radius =            B_RADIUS;
-
-  cm.a[AXIS_C].axis_mode =         C_AXIS_MODE;
-  cm.a[AXIS_C].velocity_max =      C_VELOCITY_MAX;
-  cm.a[AXIS_C].feedrate_max =      C_FEEDRATE_MAX;
-  cm.a[AXIS_C].travel_min =        C_TRAVEL_MIN;
-  cm.a[AXIS_C].travel_max =        C_TRAVEL_MAX;
-  cm.a[AXIS_C].jerk_max =          C_JERK_MAX;
-  cm.a[AXIS_C].junction_dev =      C_JUNCTION_DEVIATION;
-  cm.a[AXIS_C].radius =            C_RADIUS;
 
   // Init 1/jerk
   for (uint8_t axis = 0; axis < AXES; axis++)
     cm.a[axis].recip_jerk = 1 / (cm.a[axis].jerk_max * JERK_MULTIPLIER);
-
-  // Coordinate system offset defaults (G54-G59)
-  cm.offset[G54][AXIS_X] = G54_X_OFFSET;
-  cm.offset[G54][AXIS_Y] = G54_Y_OFFSET;
-  cm.offset[G54][AXIS_Z] = G54_Z_OFFSET;
-  cm.offset[G54][AXIS_A] = G54_A_OFFSET;
-  cm.offset[G54][AXIS_B] = G54_B_OFFSET;
-  cm.offset[G54][AXIS_C] = G54_C_OFFSET;
-
-  cm.offset[G55][AXIS_X] = G55_X_OFFSET;
-  cm.offset[G55][AXIS_Y] = G55_Y_OFFSET;
-  cm.offset[G55][AXIS_Z] = G55_Z_OFFSET;
-  cm.offset[G55][AXIS_A] = G55_A_OFFSET;
-  cm.offset[G55][AXIS_B] = G55_B_OFFSET;
-  cm.offset[G55][AXIS_C] = G55_C_OFFSET;
-
-  cm.offset[G56][AXIS_X] = G56_X_OFFSET;
-  cm.offset[G56][AXIS_Y] = G56_Y_OFFSET;
-  cm.offset[G56][AXIS_Z] = G56_Z_OFFSET;
-  cm.offset[G56][AXIS_A] = G56_A_OFFSET;
-  cm.offset[G56][AXIS_B] = G56_B_OFFSET;
-  cm.offset[G56][AXIS_C] = G56_C_OFFSET;
-
-  cm.offset[G57][AXIS_X] = G57_X_OFFSET;
-  cm.offset[G57][AXIS_Y] = G57_Y_OFFSET;
-  cm.offset[G57][AXIS_Z] = G57_Z_OFFSET;
-  cm.offset[G57][AXIS_A] = G57_A_OFFSET;
-  cm.offset[G57][AXIS_B] = G57_B_OFFSET;
-  cm.offset[G57][AXIS_C] = G57_C_OFFSET;
-
-  cm.offset[G58][AXIS_X] = G58_X_OFFSET;
-  cm.offset[G58][AXIS_Y] = G58_Y_OFFSET;
-  cm.offset[G58][AXIS_Z] = G58_Z_OFFSET;
-  cm.offset[G58][AXIS_A] = G58_A_OFFSET;
-  cm.offset[G58][AXIS_B] = G58_B_OFFSET;
-  cm.offset[G58][AXIS_C] = G58_C_OFFSET;
-
-  cm.offset[G59][AXIS_X] = G59_X_OFFSET;
-  cm.offset[G59][AXIS_Y] = G59_Y_OFFSET;
-  cm.offset[G59][AXIS_Z] = G59_Z_OFFSET;
-  cm.offset[G59][AXIS_A] = G59_A_OFFSET;
-  cm.offset[G59][AXIS_B] = G59_B_OFFSET;
-  cm.offset[G59][AXIS_C] = G59_C_OFFSET;
-
-  // Machine defaults
-  cm.junction_acceleration = JUNCTION_ACCELERATION;
-  cm.chordal_tolerance = CHORDAL_TOLERANCE;
-  cm.soft_limit_enable = SOFT_LIMIT_ENABLE;
-  cm.arc_segment_len = ARC_SEGMENT_LENGTH;
-
-  // GCode defaults
-  cm.select_plane = GCODE_DEFAULT_PLANE;
-  cm.units_mode = GCODE_DEFAULT_UNITS;
-  cm.coord_system = GCODE_DEFAULT_COORD_SYSTEM;
-  cm.path_control = GCODE_DEFAULT_PATH_CONTROL;
-  cm.distance_mode = GCODE_DEFAULT_DISTANCE_MODE;
 
   // Set gcode defaults
   cm_set_units_mode(cm.units_mode);
@@ -662,20 +648,6 @@ void canonical_machine_init() {
   cm_set_path_control(cm.path_control);
   cm_set_distance_mode(cm.distance_mode);
   cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE); // always the default
-
-  cm.gmx.block_delete_switch = true;
-
-  // Never start a machine in a motion mode
-  cm.gm.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE;
-
-  // Reset request flags
-  cm.feedhold_requested = false;
-  cm.queue_flush_requested = false;
-  cm.cycle_start_requested = false;
-
-  // Signal that the machine is ready for action
-  cm.machine_state = MACHINE_READY;
-  cm.combined_state = COMBINED_READY;
 
   // Sub-system inits
   cm_spindle_init();

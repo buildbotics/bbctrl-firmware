@@ -88,7 +88,19 @@ typedef struct {
   switch_t switches[SWITCHES];
 } swSingleton_t;
 
-swSingleton_t sw;
+
+swSingleton_t sw = {
+  .switches = {
+    {.type = SWITCH_TYPE, .mode = X_SWITCH_MODE_MIN, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = X_SWITCH_MODE_MAX, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = Y_SWITCH_MODE_MIN, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = Y_SWITCH_MODE_MAX, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = Z_SWITCH_MODE_MIN, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = Z_SWITCH_MODE_MAX, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = A_SWITCH_MODE_MIN, .debounce = SW_IDLE},
+    {.type = SWITCH_TYPE, .mode = A_SWITCH_MODE_MAX, .debounce = SW_IDLE},
+  }
+};
 
 
 static bool _read_switch(uint8_t sw_num) {
@@ -153,24 +165,11 @@ void switch_init() {
     hw.sw_port[i]->INTCTRL |= SWITCH_INTLVL;
   }
 
-  // Defaults
-  sw.switches[0].mode = X_SWITCH_MODE_MIN;
-  sw.switches[1].mode = X_SWITCH_MODE_MAX;
-  sw.switches[2].mode = Y_SWITCH_MODE_MIN;
-  sw.switches[3].mode = Y_SWITCH_MODE_MAX;
-  sw.switches[4].mode = Z_SWITCH_MODE_MIN;
-  sw.switches[5].mode = Z_SWITCH_MODE_MAX;
-  sw.switches[6].mode = A_SWITCH_MODE_MIN;
-  sw.switches[7].mode = A_SWITCH_MODE_MAX;
-
+  // Initialize state
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
-    s->type = SWITCH_TYPE;
-    s->debounce = SW_IDLE;
     s->state = (s->type == SW_TYPE_NORMALLY_OPEN) ^ _read_switch(i);
   }
-
-  sw.limit_thrown = false;
 }
 
 

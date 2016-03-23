@@ -102,7 +102,46 @@ typedef struct {
   float corrected_steps;         // accumulated for cycle (diagnostic)
 } motor_t;
 
-static motor_t motors[MOTORS];
+
+static motor_t motors[MOTORS] = {
+  {
+    .motor_map  = M1_MOTOR_MAP,
+    .step_angle = M1_STEP_ANGLE,
+    .travel_rev = M1_TRAVEL_PER_REV,
+    .microsteps = M1_MICROSTEPS,
+    .polarity   = M1_POLARITY,
+    .power_mode = M1_POWER_MODE,
+    .timer      = (TC0_t *)&M1_TIMER,
+    .prev_direction = STEP_INITIAL_DIRECTION
+  }, {
+    .motor_map  = M2_MOTOR_MAP,
+    .step_angle = M2_STEP_ANGLE,
+    .travel_rev = M2_TRAVEL_PER_REV,
+    .microsteps = M2_MICROSTEPS,
+    .polarity   = M2_POLARITY,
+    .power_mode = M2_POWER_MODE,
+    .timer      = &M2_TIMER,
+    .prev_direction = STEP_INITIAL_DIRECTION
+  }, {
+    .motor_map  = M3_MOTOR_MAP,
+    .step_angle = M3_STEP_ANGLE,
+    .travel_rev = M3_TRAVEL_PER_REV,
+    .microsteps = M3_MICROSTEPS,
+    .polarity   = M3_POLARITY,
+    .power_mode = M3_POWER_MODE,
+    .timer      = &M3_TIMER,
+    .prev_direction = STEP_INITIAL_DIRECTION
+  }, {
+    .motor_map  = M4_MOTOR_MAP,
+    .step_angle = M4_STEP_ANGLE,
+    .travel_rev = M4_TRAVEL_PER_REV,
+    .microsteps = M4_MICROSTEPS,
+    .polarity   = M4_POLARITY,
+    .power_mode = M4_POWER_MODE,
+    .timer      = &M4_TIMER,
+    .prev_direction = STEP_INITIAL_DIRECTION
+  }
+};
 
 
 /// Special interrupt for X-axis
@@ -112,45 +151,6 @@ ISR(TCE1_CCA_vect) {
 
 
 void motor_init() {
-  // Reset steppers to known state
-  memset(&motors, 0, sizeof(motors));
-
-  for (int motor = 0; motor < MOTORS; motor++)
-    motors[motor].prev_direction = STEP_INITIAL_DIRECTION;
-
-  // Defaults
-  motors[0].motor_map  = M1_MOTOR_MAP;
-  motors[0].step_angle = M1_STEP_ANGLE;
-  motors[0].travel_rev = M1_TRAVEL_PER_REV;
-  motors[0].microsteps = M1_MICROSTEPS;
-  motors[0].polarity   = M1_POLARITY;
-  motors[0].power_mode = M1_POWER_MODE;
-  motors[0].timer      = (TC0_t *)&M1_TIMER;
-
-  motors[1].motor_map  = M2_MOTOR_MAP;
-  motors[1].step_angle = M2_STEP_ANGLE;
-  motors[1].travel_rev = M2_TRAVEL_PER_REV;
-  motors[1].microsteps = M2_MICROSTEPS;
-  motors[1].polarity   = M2_POLARITY;
-  motors[1].power_mode = M2_POWER_MODE;
-  motors[1].timer      = &M2_TIMER;
-
-  motors[2].motor_map  = M3_MOTOR_MAP;
-  motors[2].step_angle = M3_STEP_ANGLE;
-  motors[2].travel_rev = M3_TRAVEL_PER_REV;
-  motors[2].microsteps = M3_MICROSTEPS;
-  motors[2].polarity   = M3_POLARITY;
-  motors[2].power_mode = M3_POWER_MODE;
-  motors[2].timer      = &M3_TIMER;
-
-  motors[3].motor_map  = M4_MOTOR_MAP;
-  motors[3].step_angle = M4_STEP_ANGLE;
-  motors[3].travel_rev = M4_TRAVEL_PER_REV;
-  motors[3].microsteps = M4_MICROSTEPS;
-  motors[3].polarity   = M4_POLARITY;
-  motors[3].power_mode = M4_POWER_MODE;
-  motors[3].timer      = &M4_TIMER;
-
   // Reset position
   mp_set_steps_to_runtime_position();
 
