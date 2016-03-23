@@ -524,18 +524,18 @@ static void _init_forward_diffs(float Vi, float Vt) {
   float Bh_4 = B * h * h * h * h;
   float Ch_3 = C * h * h * h;
 
-  mr.forward_diff_5 = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
-  mr.forward_diff_4 = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
-  mr.forward_diff_3 = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
-  mr.forward_diff_2 = 300.0 * Ah_5 + 24.0 * Bh_4;
-  mr.forward_diff_1 = 120.0 * Ah_5;
+  mr.forward_diff[4] = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
+  mr.forward_diff[3] = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
+  mr.forward_diff[2] = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
+  mr.forward_diff[1] = 300.0 * Ah_5 + 24.0 * Bh_4;
+  mr.forward_diff[0] = 120.0 * Ah_5;
 
 #ifdef __KAHAN
-  mr.forward_diff_5_c = 0;
-  mr.forward_diff_4_c = 0;
-  mr.forward_diff_3_c = 0;
-  mr.forward_diff_2_c = 0;
-  mr.forward_diff_1_c = 0;
+  mr.forward_diff_c[4] = 0;
+  mr.forward_diff_c[3] = 0;
+  mr.forward_diff_c[2] = 0;
+  mr.forward_diff_c[1] = 0;
+  mr.forward_diff_c[0] = 0;
 #endif
 
   // Calculate the initial velocity by calculating V(h/2)
@@ -589,12 +589,12 @@ static stat_t _exec_aline_head() {
   // Second half (convex part of accel curve)
   if (mr.section_state == SECTION_2nd_HALF) {
 #ifndef __KAHAN
-    mr.segment_velocity += mr.forward_diff_5;
+    mr.segment_velocity += mr.forward_diff[4];
 #else
     // Use Kahan summation algorithm to mitigate floating-point errors for above
-    float y = mr.forward_diff_5 - mr.forward_diff_5_c;
+    float y = mr.forward_diff[4] - mr.forward_diff_c[4];
     float v = mr.segment_velocity + y;
-    mr.forward_diff_5_c = (v - mr.segment_velocity) - y;
+    mr.forward_diff_c[4] = (v - mr.segment_velocity) - y;
     mr.segment_velocity = v;
 #endif
 
@@ -607,30 +607,30 @@ static stat_t _exec_aline_head() {
 
     } else {
 #ifndef __KAHAN
-      mr.forward_diff_5 += mr.forward_diff_4;
-      mr.forward_diff_4 += mr.forward_diff_3;
-      mr.forward_diff_3 += mr.forward_diff_2;
-      mr.forward_diff_2 += mr.forward_diff_1;
+      mr.forward_diff[4] += mr.forward_diff[3];
+      mr.forward_diff[3] += mr.forward_diff[2];
+      mr.forward_diff[2] += mr.forward_diff[1];
+      mr.forward_diff[1] += mr.forward_diff[0];
 #else
-      y = mr.forward_diff_4 - mr.forward_diff_4_c;
-      v = mr.forward_diff_5 + y;
-      mr.forward_diff_4_c = (v - mr.forward_diff_5) - y;
-      mr.forward_diff_5 = v;
+      y = mr.forward_diff[3] - mr.forward_diff_c[3];
+      v = mr.forward_diff[4] + y;
+      mr.forward_diff_c[3] = (v - mr.forward_diff[4]) - y;
+      mr.forward_diff[4] = v;
 
-      y = mr.forward_diff_3 - mr.forward_diff_3_c;
-      v = mr.forward_diff_4 + y;
-      mr.forward_diff_3_c = (v - mr.forward_diff_4) - y;
-      mr.forward_diff_4 = v;
+      y = mr.forward_diff[2] - mr.forward_diff_c[2];
+      v = mr.forward_diff[3] + y;
+      mr.forward_diff_c[2] = (v - mr.forward_diff[3]) - y;
+      mr.forward_diff[3] = v;
 
-      y = mr.forward_diff_2 - mr.forward_diff_2_c;
-      v = mr.forward_diff_3 + y;
-      mr.forward_diff_2_c = (v - mr.forward_diff_3) - y;
-      mr.forward_diff_3 = v;
+      y = mr.forward_diff[1] - mr.forward_diff_c[1];
+      v = mr.forward_diff[2] + y;
+      mr.forward_diff_c[1] = (v - mr.forward_diff[2]) - y;
+      mr.forward_diff[2] = v;
 
-      y = mr.forward_diff_1 - mr.forward_diff_1_c;
-      v = mr.forward_diff_2 + y;
-      mr.forward_diff_1_c = (v - mr.forward_diff_2) - y;
-      mr.forward_diff_2 = v;
+      y = mr.forward_diff[0] - mr.forward_diff_c[0];
+      v = mr.forward_diff[1] + y;
+      mr.forward_diff_c[0] = (v - mr.forward_diff[1]) - y;
+      mr.forward_diff[1] = v;
 #endif
     }
   }
@@ -679,42 +679,42 @@ static stat_t _exec_aline_tail() {
   // Second half - concave part (period 5)
   if (mr.section_state == SECTION_2nd_HALF) {
 #ifndef __KAHAN
-    mr.segment_velocity += mr.forward_diff_5;
+    mr.segment_velocity += mr.forward_diff[4];
 #else
     // Use Kahan summation algorithm to mitigate floating-point errors for above
-    float y = mr.forward_diff_5 - mr.forward_diff_5_c;
+    float y = mr.forward_diff[4] - mr.forward_diff_c[4];
     float v = mr.segment_velocity + y;
-    mr.forward_diff_5_c = (v - mr.segment_velocity) - y;
+    mr.forward_diff_c[4] = (v - mr.segment_velocity) - y;
     mr.segment_velocity = v;
 #endif
 
     if (_exec_aline_segment() == STAT_OK) return STAT_OK; // set up for body
     else {
 #ifndef __KAHAN
-      mr.forward_diff_5 += mr.forward_diff_4;
-      mr.forward_diff_4 += mr.forward_diff_3;
-      mr.forward_diff_3 += mr.forward_diff_2;
-      mr.forward_diff_2 += mr.forward_diff_1;
+      mr.forward_diff[4] += mr.forward_diff[3];
+      mr.forward_diff[3] += mr.forward_diff[2];
+      mr.forward_diff[2] += mr.forward_diff[1];
+      mr.forward_diff[1] += mr.forward_diff[0];
 #else
-      y = mr.forward_diff_4 - mr.forward_diff_4_c;
-      v = mr.forward_diff_5 + y;
-      mr.forward_diff_4_c = (v - mr.forward_diff_5) - y;
-      mr.forward_diff_5 = v;
+      y = mr.forward_diff[3] - mr.forward_diff_c[3];
+      v = mr.forward_diff[4] + y;
+      mr.forward_diff_c[3] = (v - mr.forward_diff[4]) - y;
+      mr.forward_diff[4] = v;
 
-      y = mr.forward_diff_3 - mr.forward_diff_3_c;
-      v = mr.forward_diff_4 + y;
-      mr.forward_diff_3_c = (v - mr.forward_diff_4) - y;
-      mr.forward_diff_4 = v;
+      y = mr.forward_diff[2] - mr.forward_diff_c[2];
+      v = mr.forward_diff[3] + y;
+      mr.forward_diff_c[2] = (v - mr.forward_diff[3]) - y;
+      mr.forward_diff[3] = v;
 
-      y = mr.forward_diff_2 - mr.forward_diff_2_c;
-      v = mr.forward_diff_3 + y;
-      mr.forward_diff_2_c = (v - mr.forward_diff_3) - y;
-      mr.forward_diff_3 = v;
+      y = mr.forward_diff[1] - mr.forward_diff_c[1];
+      v = mr.forward_diff[2] + y;
+      mr.forward_diff_c[1] = (v - mr.forward_diff[2]) - y;
+      mr.forward_diff[2] = v;
 
-      y = mr.forward_diff_1 - mr.forward_diff_1_c;
-      v = mr.forward_diff_2 + y;
-      mr.forward_diff_1_c = (v - mr.forward_diff_2) - y;
-      mr.forward_diff_2 = v;
+      y = mr.forward_diff[0] - mr.forward_diff_c[0];
+      v = mr.forward_diff[1] + y;
+      mr.forward_diff_c[0] = (v - mr.forward_diff[1]) - y;
+      mr.forward_diff[1] = v;
 #endif
     }
   }

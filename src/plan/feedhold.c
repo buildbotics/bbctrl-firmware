@@ -114,7 +114,7 @@ static float _compute_next_segment_velocity() {
 #ifdef __JERK_EXEC
   return mr.segment_velocity; // an approximation
 #else
-  return mr.segment_velocity + mr.forward_diff_5;
+  return mr.segment_velocity + mr.forward_diff[4];
 #endif
 }
 

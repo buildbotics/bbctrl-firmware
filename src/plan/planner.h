@@ -32,7 +32,23 @@
 
 #include "canonical_machine.h" // used for GCodeState_t
 #include "util.h"
-#include "config.h"
+
+
+// Most of these factors are the result of a lot of tweaking.
+// Change with caution.
+#define JERK_MULTIPLIER         1000000.0
+#define JERK_MATCH_PRECISION    1000.0 // jerk precision to be considered same
+
+#define NOM_SEGMENT_USEC        5000.0  // nominal segment time
+#define MIN_SEGMENT_USEC        2500.0  // minimum segment time
+
+#define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
+#define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
+#define MIN_BLOCK_TIME          MIN_SEGMENT_TIME // minimum size Gcode block
+
+#define MIN_SEGMENT_TIME_PLUS_MARGIN \
+  ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
+
 
 typedef enum {
   SECTION_HEAD,           // acceleration
@@ -40,27 +56,6 @@ typedef enum {
   SECTION_TAIL,           // deceleration
   SECTIONS                // section count
 } moveSection_t;
-
-// Most of these factors are the result of a lot of tweaking.
-// Change with caution.
-#define JERK_MULTIPLIER         1000000.0
-/// precision jerk must match to be considered same
-#define JERK_MATCH_PRECISION    1000.0
-
-#define NOM_SEGMENT_USEC        5000.0 // nominal segment time
-/// minimum segment time / minimum move time
-#define MIN_SEGMENT_USEC        2500.0
-#define MIN_ARC_SEGMENT_USEC    10000.0 // minimum arc segment time
-
-#define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-#define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-/// minimum time a move can be is one segment
-#define MIN_TIME_MOVE           MIN_SEGMENT_TIME
-/// factor for minimum size Gcode block to process
-#define MIN_BLOCK_TIME          MIN_SEGMENT_TIME
-
-#define MIN_SEGMENT_TIME_PLUS_MARGIN \
-  ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
 
 
 typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
@@ -111,20 +106,13 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   float accel_time;
   float segment_accel_time;
   float elapsed_accel_time;
-#else // values used exclusively by forward differencing acceleration
-  float forward_diff_1;             // forward difference level 1
-  float forward_diff_2;             // forward difference level 2
-  float forward_diff_3;             // forward difference level 3
-  float forward_diff_4;             // forward difference level 4
-  float forward_diff_5;             // forward difference level 5
+
+#else // __JERK_EXEC - used exclusively by forward differencing acceleration
+  float forward_diff[5];             // forward difference levels
 #ifdef __KAHAN
-  float forward_diff_1_c;           // level 1 floating-point compensation
-  float forward_diff_2_c;           // level 2 floating-point compensation
-  float forward_diff_3_c;           // level 3 floating-point compensation
-  float forward_diff_4_c;           // level 4 floating-point compensation
-  float forward_diff_5_c;           // level 5 floating-point compensation
+  float forward_diff_c[5];           // levels floating-point compensation
 #endif
-#endif
+#endif // __JERK_EXEC
 
   GCodeState_t gm;                  // gcode model state currently executing
 } mpMoveRuntimeSingleton_t;
