@@ -33,7 +33,7 @@
 #include "hardware.h"
 #include "pwm.h"
 
-#include "plan/planner.h"
+#include "plan/command.h"
 
 
 static void _exec_spindle_control(float *value, float *flag);

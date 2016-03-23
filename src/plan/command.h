@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2012 - 2015 Rob Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -29,15 +27,7 @@
 
 #pragma once
 
-#include "status.h"
+#include "plan/planner.h"
 
-#include <stdbool.h>
-
-
-void stepper_init();
-uint8_t st_runtime_isbusy();
-stat_t st_prep_line(float travel_steps[], float following_error[],
-                    float segment_time);
-void st_prep_null();
-void st_prep_command(void *bf); // void * since mpBuf_t is not visible here
-void st_prep_dwell(float seconds);
+void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
+void mp_runtime_command(mpBuf_t *bf);

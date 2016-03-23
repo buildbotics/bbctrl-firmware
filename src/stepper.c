@@ -29,8 +29,11 @@
 
 #include "stepper.h"
 
-#include "motor.h"
 #include "config.h"
+#include "canonical_machine.h"
+#include "plan/planner.h"
+#include "plan/command.h"
+#include "motor.h"
 #include "hardware.h"
 #include "util.h"
 #include "cpp_magic.h"

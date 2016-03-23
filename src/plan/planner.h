@@ -307,7 +307,3 @@ void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);
 
 // dwell.c functions
 stat_t mp_dwell(const float seconds);
-
-// command.c functions
-void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
-void mp_runtime_command(mpBuf_t *bf);

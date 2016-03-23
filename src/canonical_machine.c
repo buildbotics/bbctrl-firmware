@@ -109,8 +109,9 @@
 #include "util.h"
 #include "usart.h"            // for serial queue flush
 
-#include "plan/arc.h"
 #include "plan/planner.h"
+#include "plan/arc.h"
+#include "plan/command.h"
 
 #include <stdbool.h>
 #include <string.h>
