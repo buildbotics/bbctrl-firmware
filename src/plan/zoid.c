@@ -399,7 +399,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
 
 /// Derive accel/decel length from delta V and jerk
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
-  return fabs(Vi - Vf * sqrt(fabs(Vi - Vf) * bf->recip_jerk));
+  return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * bf->recip_jerk);
 }
 
 

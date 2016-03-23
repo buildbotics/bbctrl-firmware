@@ -35,7 +35,7 @@
 #include "config.h"
 
 typedef enum {             // bf->move_type values
-  MOVE_TYPE_0,             // null move - does a no-op
+  MOVE_TYPE_NULL,          // null move - does a no-op
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
   MOVE_TYPE_COMMAND,       // general command

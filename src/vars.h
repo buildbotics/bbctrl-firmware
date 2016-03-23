@@ -31,6 +31,8 @@
 
 void vars_init();
 void vars_report(bool full);
+int vars_find(const char *name);
+bool vars_print(const char *name);
 bool vars_set(const char *name, const char *value);
 int vars_parser(char *vars);
 void vars_print_help();

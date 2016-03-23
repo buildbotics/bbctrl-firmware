@@ -29,7 +29,7 @@
 #include "kinematics.h"
 
 #include "canonical_machine.h"
-#include "stepper.h"
+#include "motor.h"
 
 #include <string.h>
 
@@ -56,8 +56,8 @@ void ik_kinematics(const float travel[], float steps[]) {
   // steps_per_unit() which takes axis travel, step angle and microsteps into
   // account.
   for (int motor = 0; motor < MOTORS; motor++) {
-    int axis = st_cfg.mot[motor].motor_map;
+    int axis = motor_get_axis(motor);
     if (cm.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
-    else steps[motor] = travel[axis] * st_cfg.mot[motor].steps_per_unit;
+    else steps[motor] = travel[axis] * motor_get_steps_per_unit(motor);
   }
 }

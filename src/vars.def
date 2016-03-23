@@ -29,7 +29,7 @@
 #define MOTORS_LABEL "1234"
 #define SWITCHES_LABEL "12345678"
 
-// VAR(name, code, type,   index, settable, default, help)
+// VAR(name,        code, type,  index, settable, default, help)
 
 // Motor
 VAR(motor_map,      "ma", uint8_t,  MOTORS, 1, 0, "Motor to axis mapping")
@@ -42,7 +42,8 @@ VAR(power_mode,     "pm", uint8_t,  MOTORS, 1, 0, "Motor power mode")
 VAR(power_level,    "pl", float,    MOTORS, 1, 0, "Motor current")
 VAR(stallguard,     "sg", int8_t,   MOTORS, 1, 0, "StallGuard threshold")
 VAR(sg_value,      "sgv", uint16_t, MOTORS, 0, 0, "StallGuard reading")
-VAR(status_flags,   "sf", uint8_t,  MOTORS, 0, 0, "Motor status flags")
+VAR(status_flags,   "mf", uint8_t,  MOTORS, 0, 0, "Motor status flags")
+VAR(status_strings,"mfs", flags_t,  MOTORS, 0, 0, "Motor status strings")
 
 // Axis
 VAR(position,        "p", float,    AXES,   0, 0, "Current axis position")
@@ -76,4 +77,4 @@ VAR(spin_down,      "sd", float,    0,      1, 0, "Spin down velocity")
 VAR(switch_type,    "sw", uint8_t,  SWITCHES, 1, 0, "Normally open or closed")
 
 // System
-VAR(velocity,       "v", float,    0,      0, 0, "Current velocity")
+VAR(velocity,       "v",  float,    0,      0, 0, "Current velocity")

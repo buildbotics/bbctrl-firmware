@@ -31,6 +31,7 @@
 #include "controller.h"
 #include "canonical_machine.h"
 #include "stepper.h"
+#include "motor.h"
 #include "encoder.h"
 #include "switch.h"
 #include "pwm.h"
@@ -58,6 +59,7 @@ static void init() {
   // do these next
   tmc2660_init();                 // motor drivers
   stepper_init();                 // stepper subsystem
+  motor_init();
   encoder_init();                 // virtual encoders
   switch_init();                  // switches
   pwm_init();                     // pulse width modulation drivers

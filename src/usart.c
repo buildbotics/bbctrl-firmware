@@ -26,12 +26,14 @@
 \******************************************************************************/
 
 #include "usart.h"
+#include "config.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 
 // Ring buffers
 #define RING_BUF_NAME tx_buf
@@ -189,26 +191,37 @@ int8_t usart_getc() {
 }
 
 
-int usart_gets(char *buf, int size) {
-  int fill = rx_buf_fill();
+char *usart_readline() {
+  static char line[INPUT_BUFFER_LEN];
+  static int i = 0;
+  bool eol = false;
 
-  for (int i = 0; i < fill; i++) {
-    uint8_t data = rx_buf_get(i);
+  while (!rx_buf_empty()) {
+    char data = rx_buf_peek();
+    rx_buf_pop();
 
-    if (data == '\r' || data == '\n' || i == size) {
-      for (int j = 0; j < i; j++) {
-        buf[j] = rx_buf_peek();
-        rx_buf_pop();
-      }
+    switch (data) {
+    case '\r': case '\n': eol = true; break;
 
-      buf[i] = 0;
-      if (i != size) rx_buf_pop();
-      set_rxc_interrupt(1); // Enable interrupt
-      return 0; // OK
+    case '\b':
+      printf(" \b");
+      if (i) i--;
+      break;
+
+    default:
+      line[i++] = data;
+      if (i == INPUT_BUFFER_LEN - 1) eol = true;
+      break;
+    }
+
+    if (eol) {
+      line[i] = 0;
+      i = 0;
+      return line;
     }
   }
 
-  return 2; // EAGAIN
+  return 0;
 }
 
 

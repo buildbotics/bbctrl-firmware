@@ -44,9 +44,6 @@
 #include <ctype.h>
 
 
-static char input[INPUT_BUFFER_LEN];
-
-
 // Command forward declarations
 // (Don't be afraid, X-Macros rock!)
 #define CMD(name, func, minArgs, maxArgs, help) \
@@ -76,7 +73,8 @@ static const command_t commands[] PROGMEM = {
 
 stat_t command_dispatch() {
   // Read input line or return if incomplete, usart_gets() is non-blocking
-  ritorno(usart_gets(input, sizeof(input)));
+  char *input = usart_readline();
+  if (!input) return STAT_EAGAIN;
 
   return command_eval(input);
 }
@@ -97,31 +95,43 @@ int command_find(const char *match) {
 int command_exec(int argc, char *argv[]) {
   stat_t status = STAT_INVALID_OR_MALFORMED_COMMAND;
 
+  putchar('\n');
+
   int i = command_find(argv[0]);
   if (i != -1) {
-    putchar('\n');
-
     uint8_t minArgs = pgm_read_byte(&commands[i].minArgs);
     uint8_t maxArgs = pgm_read_byte(&commands[i].maxArgs);
 
-    if (argc <= minArgs) printf_P(PSTR("Too few arguments\n"));
-    else if (maxArgs < argc - 1) printf_P(PSTR("Too many arguments\n"));
-    else {
+    if (argc <= minArgs) {
+      printf_P(PSTR("Too few arguments\n"));
+      return status;
+
+    } else if (maxArgs < argc - 1) {
+      printf_P(PSTR("Too many arguments\n"));
+      return status;
+
+    } else {
       command_cb_t cb = pgm_read_word(&commands[i].cb);
       return cb(argc, argv);
     }
 
-  } else if (argc == 1) {
-    char *p = strchr(argv[0], '=');
-    if (p) {
-      *p++ = 0;
-      if (vars_set(argv[0], p)) return STAT_OK;
-    }
+  } else if (argc != 1) {
+    printf_P(PSTR("Unknown command '%s' or invalid arguments\n"), argv[0]);
+    return status;
+  }
 
-  } else if (argc == 2 && vars_set(argv[0], argv[1]))
+  // Get or set variable
+  char *value = strchr(argv[0], '=');
+  if (value) {
+    *value++ = 0;
+    if (vars_set(argv[0], value)) return STAT_OK;
+
+  } else if (vars_print(argv[0])) {
+    putchar('\n');
     return STAT_OK;
+  }
 
-  printf_P(PSTR("Unknown command or unsetable variable '%s'\n"), argv[0]);
+  printf_P(PSTR("Unknown command or variable '%s'\n"), argv[0]);
 
   return status;
 }

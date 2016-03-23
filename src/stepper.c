@@ -32,275 +32,54 @@
 
 #include "stepper.h"
 
+#include "motor.h"
 #include "config.h"
-#include "encoder.h"
 #include "hardware.h"
 #include "util.h"
-#include "rtc.h"
-#include "report.h"
 #include "cpp_magic.h"
-#include "usart.h"
-
-#include "plan/planner.h"
 
 #include <string.h>
-#include <stdbool.h>
-#include <math.h>
-#include <stdio.h>
 
 
-#define TIMER_CC_BM(x) CAT3(TC1_, x, EN_bm)
+typedef struct {
+  // Runtime
+  bool busy;
+  moveType_t run_move;
+  uint16_t run_dwell;
+
+  // Move prep
+  bool move_ready;      // preped move ready for loader
+  moveType_t prep_move;
+  uint32_t prep_dwell;
+  struct mpBuffer *bf;  // used for command moves
+  uint16_t seg_period;
+} stepper_t;
 
 
-enum {MOTOR_1, MOTOR_2, MOTOR_3, MOTOR_4};
-
-
-stConfig_t st_cfg;
-stPrepSingleton_t st_pre;
-static stRunSingleton_t st_run;
-
-
-static void _load_move();
-static void _request_load_move();
-static void _update_steps_per_unit(int motor);
+static stepper_t st;
 
 
 void stepper_init() {
   /// clear all values, pointers and status
-  memset(&st_run, 0, sizeof(st_run));
-  memset(&st_pre, 0, sizeof(st_pre));
-
-  // Setup ports
-  for (int motor = 0; motor < MOTORS; motor++) {
-    hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm; // disable motor
-    hw.st_port[motor]->DIR = MOTOR_PORT_DIR_gm;      // pin directions
-  }
+  memset(&st, 0, sizeof(st));
 
   // Setup step timer
   TIMER_STEP.CTRLA = STEP_TIMER_DISABLE;   // turn timer off
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
-
-  st_pre.owner = PREP_BUFFER_OWNER_EXEC;
-
-  // Reset steppers to known state
-  for (int motor = 0; motor < MOTORS; motor++)
-    st_pre.mot[motor].prev_direction = STEP_INITIAL_DIRECTION;
-
-  // Motor configuration defaults
-  st_cfg.motor_power_timeout = MOTOR_IDLE_TIMEOUT;
-
-  st_cfg.mot[MOTOR_1].motor_map  = M1_MOTOR_MAP;
-  st_cfg.mot[MOTOR_1].step_angle = M1_STEP_ANGLE;
-  st_cfg.mot[MOTOR_1].travel_rev = M1_TRAVEL_PER_REV;
-  st_cfg.mot[MOTOR_1].microsteps = M1_MICROSTEPS;
-  st_cfg.mot[MOTOR_1].polarity   = M1_POLARITY;
-  st_cfg.mot[MOTOR_1].power_mode = M1_POWER_MODE;
-  st_cfg.mot[MOTOR_1].timer      = (TC0_t *)&M1_TIMER;
-
-  st_cfg.mot[MOTOR_2].motor_map  = M2_MOTOR_MAP;
-  st_cfg.mot[MOTOR_2].step_angle = M2_STEP_ANGLE;
-  st_cfg.mot[MOTOR_2].travel_rev = M2_TRAVEL_PER_REV;
-  st_cfg.mot[MOTOR_2].microsteps = M2_MICROSTEPS;
-  st_cfg.mot[MOTOR_2].polarity   = M2_POLARITY;
-  st_cfg.mot[MOTOR_2].power_mode = M2_POWER_MODE;
-  st_cfg.mot[MOTOR_2].timer      = &M2_TIMER;
-
-  st_cfg.mot[MOTOR_3].motor_map  = M3_MOTOR_MAP;
-  st_cfg.mot[MOTOR_3].step_angle = M3_STEP_ANGLE;
-  st_cfg.mot[MOTOR_3].travel_rev = M3_TRAVEL_PER_REV;
-  st_cfg.mot[MOTOR_3].microsteps = M3_MICROSTEPS;
-  st_cfg.mot[MOTOR_3].polarity   = M3_POLARITY;
-  st_cfg.mot[MOTOR_3].power_mode = M3_POWER_MODE;
-  st_cfg.mot[MOTOR_3].timer      = &M3_TIMER;
-
-  st_cfg.mot[MOTOR_4].motor_map  = M4_MOTOR_MAP;
-  st_cfg.mot[MOTOR_4].step_angle = M4_STEP_ANGLE;
-  st_cfg.mot[MOTOR_4].travel_rev = M4_TRAVEL_PER_REV;
-  st_cfg.mot[MOTOR_4].microsteps = M4_MICROSTEPS;
-  st_cfg.mot[MOTOR_4].polarity   = M4_POLARITY;
-  st_cfg.mot[MOTOR_4].power_mode = M4_POWER_MODE;
-  st_cfg.mot[MOTOR_4].timer      = &M4_TIMER;
-
-  // Setup motor timers
-  M1_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M1_TIMER_CC);
-  M2_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M2_TIMER_CC);
-  M3_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M3_TIMER_CC);
-  M4_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M4_TIMER_CC);
-
-  // Setup special interrupt for X-axis mapping
-  M1_TIMER.INTCTRLB = TC_CCAINTLVL_HI_gc;
-
-  // Init steps per unit
-  for (int motor = 0; motor < MOTORS; motor++)
-    _update_steps_per_unit(motor);
-
-  // Reset position, must be after update steps per unit
-  mp_set_steps_to_runtime_position();
 }
 
 
 /// Return true if motors or dwell are running
-uint8_t st_runtime_isbusy() {return st_run.busy;}
-
-
-/// returns true if motor is enabled
-static bool _motor_is_enabled(uint8_t motor) {
-  return st_run.mot[motor].flags & MOTOR_FLAG_ENABLED_bm;
-}
-
-/// returns true if motor is in an error state
-static bool _motor_error(uint8_t motor) {
-  return st_run.mot[motor].flags & MOTOR_FLAG_ERROR_bm;
-}
-
-
-/// Remove power from a motor
-static void _deenergize_motor(uint8_t motor) {
-  if (_motor_is_enabled(motor)) {
-    hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm;
-    st_run.mot[motor].power_state = MOTOR_OFF;
-    st_run.mot[motor].flags &= MOTOR_FLAG_ENABLED_bm;
-    report_request(); // request a status report when motors change state
-  }
-}
-
-
-/// Apply power to a motor
-static void _energize_motor(uint8_t motor) {
-  if (!_motor_is_enabled(motor) && !_motor_error(motor)) {
-    hw.st_port[motor]->OUTCLR = MOTOR_ENABLE_BIT_bm;
-    st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_START;
-    st_run.mot[motor].flags |= MOTOR_FLAG_ENABLED_bm;
-    report_request(); // request a status report when motors change state
-  }
-}
-
-
-/// Callback to manage motor power sequencing
-/// Handles motor power-down timing, low-power idle, and adaptive motor power
-stat_t st_motor_power_callback() { // called by controller
-  // Manage power for each motor individually
-  for (int motor = 0; motor < MOTORS; motor++)
-    switch (st_cfg.mot[motor].power_mode) {
-    case MOTOR_ALWAYS_POWERED: _energize_motor(motor); break;
-
-    case MOTOR_POWERED_IN_CYCLE: case MOTOR_POWERED_ONLY_WHEN_MOVING:
-      if (st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_START) {
-        // Start a countdown
-        st_run.mot[motor].power_state = MOTOR_POWER_TIMEOUT_COUNTDOWN;
-        st_run.mot[motor].power_systick = rtc_get_time() +
-          (st_cfg.motor_power_timeout * 1000);
-      }
-
-      // Run the countdown if not in feedhold and in a countdown
-      if (cm_get_combined_state() != COMBINED_HOLD &&
-          st_run.mot[motor].power_state == MOTOR_POWER_TIMEOUT_COUNTDOWN &&
-          rtc_get_time() > st_run.mot[motor].power_systick)
-        _deenergize_motor(motor);
-      break;
-
-    default: _deenergize_motor(motor); break; // Motor disabled
-    }
-
-  return STAT_OK;
-}
-
-
-void st_motor_error_callback(uint8_t motor, cmMotorFlags_t errors) {
-  st_run.mot[motor].flags |= MOTOR_FLAG_ERROR_bm & errors;
-  if (_motor_error(motor)) _deenergize_motor(motor);
-}
-
-
-/// Special interrupt for X-axis
-ISR(TCE1_CCA_vect) {
-  PORT_MOTOR_1.OUTTGL = STEP_BIT_bm;
-}
-
-
-/// Step timer interrupt routine
-ISR(STEP_TIMER_ISR) {
-  if (st_run.move_type == MOVE_TYPE_DWELL && --st_run.dwell) return;
-  st_run.busy = false;
-  _load_move();
-}
+uint8_t st_runtime_isbusy() {return st.busy;}
 
 
 /// "Software" interrupt to request move execution
 void st_request_exec_move() {
-  if (st_pre.owner == PREP_BUFFER_OWNER_EXEC) {
+  if (!st.move_ready) {
     ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // trigger LO interrupt
     ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
   }
-}
-
-
-/// Interrupt handler for calling move exec function.
-/// Uses ADC channel 0 as software interrupt.
-ISR(ADCB_CH0_vect) {
-  if (st_pre.owner == PREP_BUFFER_OWNER_EXEC &&
-      mp_exec_move() != STAT_NOOP) {
-    st_pre.owner = PREP_BUFFER_OWNER_LOADER; // flip it back
-    _request_load_move();
-  }
-}
-
-
-/// Fires a "software" interrupt to request to load a move
-static void _request_load_move() {
-  if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
-
-  if (st_pre.owner == PREP_BUFFER_OWNER_LOADER) {
-    ADCB_CH1_INTCTRL = ADC_CH_INTLVL_HI_gc; // trigger HI interrupt
-    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH1START_bm;
-  }
-}
-
-
-/// Interrupt handler for running the loader
-ISR(ADCB_CH1_vect) {
-  // Use ADC channel 1 as software interrupt.
-  // _load_move() can only be called be called from an ISR at the same or
-  // higher level as the step timer ISR. A software interrupt is used to allow a
-  // non-ISR to request a load. See st_request_load_move()
-  _load_move();
-}
-
-
-static inline void _load_motor_move(int motor) {
-  stPrepMotor_t *pre_mot = &st_pre.mot[motor];
-  const cfgMotor_t *cfg_mot = &st_cfg.mot[motor];
-
-  // Set or zero runtime clock and period
-  cfg_mot->timer->CTRLFCLR = TC0_DIR_bm; // Count up
-  cfg_mot->timer->CNT = 0; // Start at zero
-  cfg_mot->timer->CCA = pre_mot->timer_period;  // Set frequency
-  cfg_mot->timer->CTRLA = pre_mot->timer_clock; // Start or stop
-
-  // If motor has 0 steps the following is all skipped. This ensures that
-  // state comparisons always operate on the last segment actually run by
-  // this motor, regardless of how many segments it may have been inactive
-  // in between.
-  if (pre_mot->timer_clock) {
-    // Detect direction change and set the direction bit in hardware.
-    if (pre_mot->direction != pre_mot->prev_direction) {
-      pre_mot->prev_direction = pre_mot->direction;
-
-      if (pre_mot->direction == DIRECTION_CW)
-        hw.st_port[motor]->OUTCLR = DIRECTION_BIT_bm;
-      else hw.st_port[motor]->OUTSET = DIRECTION_BIT_bm;
-    }
-
-    // Accumulate encoder
-    en[motor].encoder_steps += pre_mot->steps * pre_mot->step_sign;
-    pre_mot->steps = 0;
-  }
-
-  // Energize motor and start power management
-  if ((pre_mot->timer_clock && cfg_mot->power_mode != MOTOR_DISABLED) ||
-      cfg_mot->power_mode == MOTOR_POWERED_IN_CYCLE)
-    _energize_motor(motor);
 }
 
 
@@ -319,32 +98,34 @@ static inline void _load_motor_move(int motor) {
 static void _load_move() {
   if (st_runtime_isbusy()) return;
 
-  if (st_pre.owner != PREP_BUFFER_OWNER_LOADER) {
-    // There are no more moves, disable motor clocks
-    for (int motor = 0; motor < MOTORS; motor++)
-      st_cfg.mot[motor].timer->CTRLA = 0;
-    return;
-  }
+  // If there are no more moves
+  if (!st.move_ready) return;
 
-  st_run.move_type = st_pre.move_type;
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_begin_move(motor);
 
-  switch (st_pre.move_type) {
+  // Wait until motors have energized
+  if (motor_energizing()) return;
+
+  st.run_move = st.prep_move;
+
+  switch (st.run_move) {
   case MOVE_TYPE_DWELL:
-    st_run.dwell = st_pre.dwell;
+    st.run_dwell = st.prep_dwell;
     // Fall through
 
   case MOVE_TYPE_ALINE:
     for (int motor = 0; motor < MOTORS; motor++)
-      if (st_pre.move_type == MOVE_TYPE_ALINE) _load_motor_move(motor);
-      else st_pre.mot[motor].timer_clock = 0; // Off
+      if (st.run_move == MOVE_TYPE_ALINE)
+        motor_load_move(motor);
 
-    st_run.busy = true;
-    TIMER_STEP.PER = st_pre.seg_period;
+    st.busy = true;
+    TIMER_STEP.PER = st.seg_period;
     TIMER_STEP.CTRLA = STEP_TIMER_ENABLE; // enable step timer, if not enabled
     break;
 
   case MOVE_TYPE_COMMAND: // handle synchronous commands
-    mp_runtime_command(st_pre.bf);
+    mp_runtime_command(st.bf);
     // Fall through
 
   default:
@@ -353,83 +134,49 @@ static void _load_move() {
   }
 
   // we are done with the prep buffer - flip the flag back
-  st_pre.move_type = MOVE_TYPE_0;
-  st_pre.owner = PREP_BUFFER_OWNER_EXEC;
+  st.prep_move = MOVE_TYPE_NULL;
+  st.move_ready = false;
   st_request_exec_move(); // exec and prep next move
 }
 
 
-static void _prep_motor_line(int motor, float travel_steps, float error) {
-  stPrepMotor_t *pre_mot = &st_pre.mot[motor];
-  cfgMotor_t *cfg_mot = &st_cfg.mot[motor];
+/// Step timer interrupt routine
+ISR(STEP_TIMER_ISR) {
+  if (st.run_move == MOVE_TYPE_DWELL && --st.run_dwell) return;
 
-  // Disable this motor's clock if there are no new steps
-  if (fp_ZERO(travel_steps)) {
-    pre_mot->timer_clock = 0; // Off
-    return;
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_end_move(motor);
+
+  st.busy = false;
+  _load_move();
+}
+
+
+/// Interrupt handler for running the loader.
+/// ADC channel 1 triggered by st_request_load_move() as a "software" interrupt.
+ISR(ADCB_CH1_vect) {
+  _load_move();
+}
+
+
+/// Fires a "software" interrupt to request a move load.
+void st_request_load_move() {
+  if (st_runtime_isbusy()) return; // don't request a load if runtime is busy
+
+  if (st.move_ready) {
+    ADCB_CH1_INTCTRL = ADC_CH_INTLVL_HI_gc; // trigger HI interrupt
+    ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH1START_bm;
   }
+}
 
-  // Setup the direction, compensating for polarity.
-  // Set the step_sign which is used by the stepper ISR to accumulate step
-  // position
-  if (0 <= travel_steps) { // positive direction
-    pre_mot->direction = DIRECTION_CW ^ cfg_mot->polarity;
-    pre_mot->step_sign = 1;
 
-  } else {
-    pre_mot->direction = DIRECTION_CCW ^ cfg_mot->polarity;
-    pre_mot->step_sign = -1;
+/// Interrupt handler for calling move exec function.
+/// ADC channel 0 triggered by st_request_exec_move() as a "software" interrupt.
+ISR(ADCB_CH0_vect) {
+  if (!st.move_ready && mp_exec_move() != STAT_NOOP) {
+    st.move_ready = true; // flip it back - TODO is this really needed?
+    st_request_load_move();
   }
-
-#ifdef __STEP_CORRECTION
-  float correction;
-
-  // 'Nudge' correction strategy. Inject a single, scaled correction value
-  // then hold off
-  if (--pre_mot->correction_holdoff < 0 &&
-      STEP_CORRECTION_THRESHOLD < fabs(error)) {
-
-    pre_mot->correction_holdoff = STEP_CORRECTION_HOLDOFF;
-    correction = error * STEP_CORRECTION_FACTOR;
-
-    if (0 < correction)
-      correction = min3(correction, fabs(travel_steps), STEP_CORRECTION_MAX);
-    else correction =
-           max3(correction, -fabs(travel_steps), -STEP_CORRECTION_MAX);
-
-    pre_mot->corrected_steps += correction;
-    travel_steps -= correction;
-  }
-#endif
-
-  // Compute motor timer clock and period. Rounding is performed to eliminate
-  // a negative bias in the uint32_t conversion that results in long-term
-  // negative drift.
-  uint16_t steps = round(fabs(travel_steps));
-  uint32_t seg_clocks = (uint32_t)st_pre.seg_period * STEP_TIMER_DIV;
-  uint32_t ticks_per_step = seg_clocks / (steps + 0.5);
-
-  // Find the right clock rate
-  if (ticks_per_step & 0xffff0000UL) {
-    ticks_per_step /= 2;
-    seg_clocks /= 2;
-
-    if (ticks_per_step & 0xffff0000UL) {
-      ticks_per_step /= 2;
-      seg_clocks /= 2;
-
-      if (ticks_per_step & 0xffff0000UL) {
-        ticks_per_step /= 2;
-        seg_clocks /= 2;
-
-        if (ticks_per_step & 0xffff0000UL) pre_mot->timer_clock = 0; // Off
-        else pre_mot->timer_clock = TC_CLKSEL_DIV8_gc;
-      } else pre_mot->timer_clock = TC_CLKSEL_DIV4_gc;
-    } else pre_mot->timer_clock = TC_CLKSEL_DIV2_gc;
-  } else pre_mot->timer_clock = TC_CLKSEL_DIV1_gc;
-
-  pre_mot->timer_period = ticks_per_step * 2; // TODO why do we need *2 here?
-  pre_mot->steps = seg_clocks / ticks_per_step;
 }
 
 
@@ -450,30 +197,28 @@ static void _prep_motor_line(int motor, float travel_steps, float error) {
  *   - error[] is a vector of measured errors to the step count. Used for
  *     correction.
  *
- *   - segment_time - how many minutes the segment should run. If timing is not
+ *   - seg_time - how many minutes the segment should run. If timing is not
  *     100% accurate this will affect the move velocity, but not the distance
  *     traveled.
  */
-stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
+stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   // Trap conditions that would prevent queueing the line
-  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
-    return cm_hard_alarm(STAT_INTERNAL_ERROR);
-  if (isinf(segment_time))
+  if (st.move_ready) return cm_hard_alarm(STAT_INTERNAL_ERROR);
+  if (isinf(seg_time))
     return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  if (isnan(segment_time))
-    return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
-  if (segment_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
+  if (isnan(seg_time)) return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
+  if (seg_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
 
-  // Setup segment parameters (need st_pre.seg_period for motor calcs)
-  st_pre.seg_period = segment_time * 60 * F_CPU / STEP_TIMER_DIV;
-  st_pre.move_type = MOVE_TYPE_ALINE;
+  // Setup segment parameters
+  st.prep_move = MOVE_TYPE_ALINE;
+  st.seg_period = seg_time * 60 * F_CPU / STEP_TIMER_DIV; // Must fit 16-bit
+  uint32_t seg_clocks = (uint32_t)st.seg_period * STEP_TIMER_DIV;
 
-  // Setup motor parameters
+  // Prepare motor moves
   for (uint8_t motor = 0; motor < MOTORS; motor++)
-    _prep_motor_line(motor, travel_steps[motor], error[motor]);
+    motor_prep_move(motor, seg_clocks, travel_steps[motor], error[motor]);
 
-  // Signal prep buffer ready (do this last)
-  st_pre.owner = PREP_BUFFER_OWNER_LOADER;
+  st.move_ready = true; // signal prep buffer ready(do this last)
 
   return STAT_OK;
 }
@@ -481,115 +226,26 @@ stat_t st_prep_line(float travel_steps[], float error[], float segment_time) {
 
 /// Keeps the loader happy. Otherwise performs no action
 void st_prep_null() {
-  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
-    cm_hard_alarm(STAT_INTERNAL_ERROR);
-
-  st_pre.move_type = MOVE_TYPE_0;
-  st_pre.owner = PREP_BUFFER_OWNER_EXEC; // signal prep buffer empty
+  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
+  st.prep_move = MOVE_TYPE_NULL;
+  st.move_ready = false; // signal prep buffer empty
 }
 
 
 /// Stage command to execution
 void st_prep_command(void *bf) {
-  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
-    cm_hard_alarm(STAT_INTERNAL_ERROR);
-
-  st_pre.move_type = MOVE_TYPE_COMMAND;
-  st_pre.bf = (mpBuf_t *)bf;
-  st_pre.owner = PREP_BUFFER_OWNER_LOADER; // signal prep buffer ready
+  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
+  st.prep_move = MOVE_TYPE_COMMAND;
+  st.bf = (mpBuf_t *)bf;
+  st.move_ready = true; // signal prep buffer ready
 }
 
 
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  if (st_pre.owner != PREP_BUFFER_OWNER_EXEC)
-    cm_hard_alarm(STAT_INTERNAL_ERROR);
-
-  st_pre.move_type = MOVE_TYPE_DWELL;
-  st_pre.seg_period = F_CPU / STEP_TIMER_DIV / 1000; // 1 ms
-  st_pre.dwell = seconds * 1000; // convert to ms
-  st_pre.owner = PREP_BUFFER_OWNER_LOADER; // signal prep buffer ready
-}
-
-
-static void _update_steps_per_unit(int motor) {
-  st_cfg.mot[motor].steps_per_unit =
-    (360 * st_cfg.mot[motor].microsteps) /
-    (st_cfg.mot[motor].travel_rev * st_cfg.mot[motor].step_angle);
-}
-
-
-float get_step_angle(int index) {
-  return st_cfg.mot[index].step_angle;
-}
-
-
-void set_step_angle(int index, float value) {
-  st_cfg.mot[index].step_angle = value;
-  _update_steps_per_unit(index);
-}
-
-
-float get_travel(int index) {
-  return st_cfg.mot[index].travel_rev;
-}
-
-
-void set_travel(int index, float value) {
-  st_cfg.mot[index].travel_rev = value;
-  _update_steps_per_unit(index);
-}
-
-
-uint16_t get_microstep(int index) {
-  return st_cfg.mot[index].microsteps;
-}
-
-
-void set_microstep(int index, uint16_t value) {
-  switch (value) {
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
-    break;
-  default: return;
-  }
-
-  st_cfg.mot[index].microsteps = value;
-  _update_steps_per_unit(index);
-}
-
-
-uint8_t get_polarity(int index) {
-  if (index < 0 || MOTORS <= index) return 0;
-  return st_cfg.mot[index].polarity;
-}
-
-
-void set_polarity(int index, uint8_t value) {
-  st_cfg.mot[index].polarity = value;
-}
-
-
-uint8_t get_motor_map(int index) {
-  return st_cfg.mot[index].motor_map;
-}
-
-
-void set_motor_map(int index, uint16_t value) {
-  if (value < AXES) st_cfg.mot[index].motor_map = value;
-}
-
-
-uint8_t get_power_mode(int index) {
-  return st_cfg.mot[index].power_mode;
-}
-
-
-void set_power_mode(int index, uint16_t value) {
-  if (value < MOTOR_POWER_MODE_MAX_VALUE)
-    st_cfg.mot[index].power_mode = value;
-}
-
-
-void command_mreset(int motor) {
-  if (motor < MOTORS) st_run.mot[motor].flags &= 0;
+  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
+  st.prep_move = MOVE_TYPE_DWELL;
+  st.seg_period = F_CPU / STEP_TIMER_DIV / 1000; // 1 ms
+  st.prep_dwell = seconds * 1000; // convert to ms
+  st.move_ready = true; // signal prep buffer ready
 }

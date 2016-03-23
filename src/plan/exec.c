@@ -44,17 +44,13 @@ static stat_t _exec_aline_body();
 static stat_t _exec_aline_tail();
 static stat_t _exec_aline_segment();
 
-#ifndef __JERK_EXEC
-static void _init_forward_diffs(float Vi, float Vt);
-#endif
-
 
 /// Dequeues buffer and executes move continuations. Manages run buffers and
 /// other details.
 stat_t mp_exec_move() {
   mpBuf_t *bf;
 
-  if (!(bf = mp_get_run_buffer())) { // 0 means nothing's running
+  if (!(bf = mp_get_run_buffer())) { // null if nothing's running
     st_prep_null();
     return STAT_NOOP;
   }

@@ -28,6 +28,7 @@
 #include "jog.h"
 #include "planner.h"
 #include "stepper.h"
+#include "motor.h"
 #include "canonical_machine.h"
 #include "kinematics.h"
 #include "encoder.h"
@@ -84,9 +85,9 @@ static stat_t _exec_jog(mpBuf_t *bf) {
   if (done) {
     // Update machine position
     for (int motor = 0; motor < MOTORS; motor++) {
-      int axis = st_cfg.mot[motor].motor_map;
+      int axis = motor_get_axis(motor);
       float steps = en_read_encoder(axis);
-      cm_set_position(axis, steps / st_cfg.mot[motor].steps_per_unit);
+      cm_set_position(axis, steps / motor_get_steps_per_unit(motor));
     }
 
     // Release queue

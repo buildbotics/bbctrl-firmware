@@ -1238,14 +1238,14 @@ stat_t cm_feedhold_sequencing_callback() {
 
   if (cm.queue_flush_requested) {
     if ((cm.motion_state == MOTION_STOP ||
-         (cm.motion_state == MOTION_HOLD &&  cm.hold_state == FEEDHOLD_HOLD)) &&
+         (cm.motion_state == MOTION_HOLD && cm.hold_state == FEEDHOLD_HOLD)) &&
         !cm_get_runtime_busy()) {
       cm.queue_flush_requested = false;
       cm_queue_flush();
     }
   }
 
-  bool feedhold_processing = // added feedhold processing lockout from omco fork
+  bool feedhold_processing =
     cm.hold_state == FEEDHOLD_SYNC ||
     cm.hold_state == FEEDHOLD_PLAN ||
     cm.hold_state == FEEDHOLD_DECEL;

@@ -137,13 +137,13 @@ stat_t mp_plan_hold_callback() {
   braking_length = mp_get_target_length(braking_velocity, 0, bp);
 
   // Hack to prevent Case 2 moves for perfect-fit decels. Happens in
-  // homing situations The real fix: The braking velocity cannot
+  // homing situations. The real fix: The braking velocity cannot
   // simply be the mr.segment_velocity as this is the velocity of the
   // last segment, not the one that's going to be executed next.  The
   // braking_velocity needs to be the velocity of the next segment
   // that has not yet been computed. In the mean time, this hack will
   // work.
-  if (braking_length > mr_available_length && fp_ZERO(bp->exit_velocity))
+  if (mr_available_length < braking_length && fp_ZERO(bp->exit_velocity))
     braking_length = mr_available_length;
 
   // Case 1: deceleration fits entirely into the length remaining in mr buffer
@@ -170,7 +170,6 @@ stat_t mp_plan_hold_callback() {
 
   // Case 2: deceleration exceeds length remaining in mr buffer
   // First, replan mr to minimum (but non-zero) exit velocity
-
   mr.section = SECTION_TAIL;
   mr.section_state = SECTION_NEW;
   mr.tail_length = mr_available_length;

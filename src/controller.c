@@ -31,6 +31,8 @@
 
 #include "canonical_machine.h"
 #include "stepper.h"
+#include "motor.h"
+#include "tmc2660.h"
 #include "gpio.h"
 #include "switch.h"
 #include "encoder.h"
@@ -133,8 +135,10 @@ void controller_run() {
   DISPATCH(cm_feedhold_sequencing_callback()); // 5a. feedhold state machine
   DISPATCH(mp_plan_hold_callback());           // 5b. plan a feedhold
 
+  DISPATCH(tmc2660_sync());                    // synchronize driver config
+  DISPATCH(motor_power_callback());            // stepper motor power sequencing
+
   // Planner hierarchy for gcode and cycles
-  DISPATCH(st_motor_power_callback());         // stepper motor power sequencing
   DISPATCH(cm_arc_callback());                 // arc generation runs
   DISPATCH(cm_homing_callback());              // G28.2 continuation
   DISPATCH(cm_probe_callback());               // G38.2 continuation

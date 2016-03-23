@@ -58,7 +58,7 @@ void usart_ctrl(int flag, int enable);
 void usart_putc(char c);
 void usart_puts(const char *s);
 int8_t usart_getc();
-int usart_gets(char *buf, int size);
+char *usart_readline();
 int16_t usart_peek();
 
 void usart_rx_flush();

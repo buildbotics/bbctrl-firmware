@@ -221,86 +221,6 @@
 
 #include <stdbool.h>
 
-typedef enum {
-  PREP_BUFFER_OWNER_LOADER, // staging buffer is ready for load
-  PREP_BUFFER_OWNER_EXEC    // staging buffer is being loaded
-} prepBufferOwner_t;
-
-
-// Currently there is no distinction between IDLE and OFF (DEENERGIZED)
-// In the future IDLE will be powered at a low, torque-maintaining current
-// Used w/start and stop flags to sequence motor power
-typedef enum {
-  MOTOR_OFF,                    // motor stopped and deenergized
-  MOTOR_IDLE,                   // motor stopped and may be partially energized
-  MOTOR_RUNNING,                // motor is running (and fully energized)
-  MOTOR_POWER_TIMEOUT_START,    // transition state to start power-down timeout
-  MOTOR_POWER_TIMEOUT_COUNTDOWN // count down the time to de-energizing motors
-} motorPowerState_t;
-
-
-typedef enum {
-  MOTOR_DISABLED,                 // motor enable is deactivated
-  MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
-  MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
-                                  // de-powered out of cycle
-  MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
-  MOTOR_POWER_MODE_MAX_VALUE      // for input range checking
-} cmMotorPowerMode_t;
-
-
-typedef enum {
-  MOTOR_POLARITY_NORMAL,
-  MOTOR_POLARITY_REVERSED
-} cmMotorPolarity_t;
-
-
-typedef enum {
-  MOTOR_FLAG_ENABLED_bm       = 1 << 0,
-  MOTOR_FLAG_STALLED_bm       = 1 << 1,
-  MOTOR_FLAG_OVERTEMP_WARN_bm = 1 << 2,
-  MOTOR_FLAG_OVERTEMP_bm      = 1 << 3,
-  MOTOR_FLAG_SHORTED_bm       = 1 << 4,
-  MOTOR_FLAG_ERROR_bm         = (MOTOR_FLAG_STALLED_bm |
-                                 MOTOR_FLAG_OVERTEMP_WARN_bm |
-                                 MOTOR_FLAG_OVERTEMP_bm |
-                                 MOTOR_FLAG_SHORTED_bm)
-} cmMotorFlags_t;
-
-
-/// Min/Max timeouts allowed for motor disable.  Allow for inertial stop.
-/// Must be non-zero
-#define MOTOR_TIMEOUT_SECONDS_MIN (float)0.1
-/// For conversion to uint32_t (4294967295 / 1000)
-#define MOTOR_TIMEOUT_SECONDS_MAX (float)4294967
-/// seconds in DISABLE_AXIS_WHEN_IDLE mode
-#define MOTOR_TIMEOUT_SECONDS     (float)0.1
-/// timeout for a motor in _ONLY_WHEN_MOVING mode
-#define MOTOR_TIMEOUT_WHEN_MOVING (float)0.25
-
-
-/* Step correction settings
- *
- * Step correction settings determine how the encoder error is fed
- * back to correct position errors.  Since the following_error is
- * running 2 segments behind the current segment you have to be
- * careful not to overcompensate. The threshold determines if a
- * correction should be applied, and the factor is how much. The
- * holdoff is how many segments before applying another correction. If
- * threshold is too small and/or amount too large and/or holdoff is
- * too small you may get a runaway correction and error will grow
- * instead of shrink (or oscillate).
- */
-/// magnitude of forwarding error (in steps)
-#define STEP_CORRECTION_THRESHOLD (float)2.00
-/// apply to step correction for a single segment
-#define STEP_CORRECTION_FACTOR    (float)0.25
-/// max step correction allowed in a single segment
-#define STEP_CORRECTION_MAX       (float)0.60
-/// minimum wait between error correction
-#define STEP_CORRECTION_HOLDOFF   5
-#define STEP_INITIAL_DIRECTION    DIRECTION_CW
-
 
 /* Stepper control structures
  *
@@ -319,84 +239,12 @@ typedef enum {
  * better.
  */
 
-// Per motor config structure
-typedef struct {
-  uint8_t motor_map;             // map motor to axis
-  uint16_t microsteps;           // microsteps to apply for each axis (ex: 8)
-  cmMotorPolarity_t polarity;
-  cmMotorPowerMode_t power_mode;
-  float step_angle;              // degrees per whole step (ex: 1.8)
-  float travel_rev;              // mm or deg of travel per motor revolution
-  float steps_per_unit;          // microsteps per mm (or degree) of travel
-  TC0_t *timer;
-} cfgMotor_t;
-
-
-/// stepper configs
-typedef struct {
-  float motor_power_timeout;     // seconds before idle current
-  cfgMotor_t mot[MOTORS];        // settings for motors 1-N
-} stConfig_t;
-
-
-/// Motor runtime structure. Used by step generation ISR (HI)
-typedef struct {                 // one per controlled motor
-  motorPowerState_t power_state; // state machine for managing motor power
-  uint32_t power_systick;        // for next motor power state transition
-  cmMotorFlags_t flags;
-} stRunMotor_t;
-
-
-/// Stepper static values and axis parameters
-typedef struct {
-  moveType_t move_type;
-  bool busy;
-  uint16_t dwell;
-  stRunMotor_t mot[MOTORS];      // runtime motor structures
-} stRunSingleton_t;
-
-
-/// Motor prep structure. Used by exec/prep ISR (LO) and read-only during load
-/// Must be careful about volatiles in this one
-typedef struct {
-  uint8_t timer_clock;           // clock divisor setting or zero for off
-  uint16_t timer_period;         // clock period counter
-  uint32_t steps;                // expected steps
-
-  // direction and direction change
-  cmDirection_t direction;       // travel direction corrected for polarity
-  cmDirection_t prev_direction;  // travel direction from previous segment run
-  int8_t step_sign;              // set to +1 or -1 for encoders
-
-  // step error correction
-  int32_t correction_holdoff;    // count down segments between corrections
-  float corrected_steps;         // accumulated for cycle (diagnostic)
-} stPrepMotor_t;
-
-
-typedef struct {
-  volatile prepBufferOwner_t owner; // owned by exec or loader
-  moveType_t move_type;
-  struct mpBuffer *bf;              // used for command moves
-  uint16_t seg_period;
-  uint32_t dwell;
-  stPrepMotor_t mot[MOTORS];        // prep time motor structs
-} stPrepSingleton_t;
-
-
-extern stConfig_t st_cfg;        // used by kienmatics.c
-extern stPrepSingleton_t st_pre; // used by planner.c
-
-
 void stepper_init();
 uint8_t st_runtime_isbusy();
-
-stat_t st_motor_power_callback();
-void st_motor_error_callback(uint8_t motor, cmMotorFlags_t errors);
-
 void st_request_exec_move();
+void st_request_load_move();
+stat_t st_prep_line(float travel_steps[], float following_error[],
+                    float segment_time);
 void st_prep_null();
 void st_prep_command(void *bf); // void * since mpBuf_t is not visible here
 void st_prep_dwell(float seconds);
-stat_t st_prep_line(float travel_steps[], float following_error[],
-                    float segment_time);

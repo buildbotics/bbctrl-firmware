@@ -29,22 +29,20 @@
 
 
 #include "config.h"
+#include "status.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
-#define TMC2660_SPI_PORT PORTC
-#define TMC2660_SPI_SS_PIN 4
-#define TMC2660_SPI_SCK_PIN 5
-#define TMC2660_SPI_MISO_PIN 6
-#define TMC2660_SPI_MOSI_PIN 7
-
-#define TMC2660_TIMER TCC1
 
 void tmc2660_init();
 uint8_t tmc2660_status(int driver);
 void tmc2660_reset(int driver);
-int tmc2660_ready(int driver);
-int tmc2660_all_ready();
+bool tmc2660_ready(int driver);
+stat_t tmc2660_sync();
+void tmc2660_enable(int driver);
+void tmc2660_disable(int driver);
+
 
 #define TMC2660_DRVCTRL             0
 #define TMC2660_DRVCTRL_ADDR        (0UL << 18)
@@ -92,12 +90,13 @@ int tmc2660_all_ready();
 #define TMC2660_SMARTEN_SEDN_8      (1UL << 13)
 #define TMC2660_SMARTEN_SEDN_2      (2UL << 13)
 #define TMC2660_SMARTEN_SEDN_1      (3UL << 13)
-#define TMC2660_SMARTEN_MAX(x)      ((x & 0xf) << 8)
 #define TMC2660_SMARTEN_SEUP_1      (0UL << 5)
 #define TMC2660_SMARTEN_SEUP_2      (1UL << 5)
 #define TMC2660_SMARTEN_SEUP_4      (2UL << 5)
 #define TMC2660_SMARTEN_SEUP_8      (3UL << 5)
-#define TMC2660_SMARTEN_MIN(x)      (((int32_t)x & 0xf) << 0)
+#define TMC2660_SMARTEN_SE(MIN, MAX)                                    \
+  (((uint32_t)(MIN / 32) & 0xf) |                                       \
+   (((uint32_t)(MAX / 32 - MIN / 32 - 1) & 0xf) << 8))
 
 #define TMC2660_SGCSCONF            3
 #define TMC2660_SGCSCONF_ADDR       (6UL << 17)

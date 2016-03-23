@@ -146,9 +146,8 @@ void mp_set_steps_to_runtime_position() {
     // write steps to encoder register
     en_set_encoder_steps(motor, step_position[motor]);
 
-    // These must be zero:
+    // must be zero
     mr.following_error[motor] = 0;
-    st_pre.mot[motor].corrected_steps = 0;
   }
 }
 

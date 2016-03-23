@@ -350,7 +350,7 @@ typedef enum {
 } cmMotionState_t;
 
 
-typedef enum {  // feedhold_state machine
+typedef enum {          // feedhold_state machine
   FEEDHOLD_OFF,         // no feedhold in effect
   FEEDHOLD_SYNC,        // start hold - sync to latest aline segment
   FEEDHOLD_PLAN,        // replan blocks for feedhold
@@ -360,14 +360,14 @@ typedef enum {  // feedhold_state machine
 } cmFeedholdState_t;
 
 
-typedef enum {    // applies to cm.homing_state
+typedef enum {          // applies to cm.homing_state
   HOMING_NOT_HOMED,     // machine is not homed (0=false)
   HOMING_HOMED,         // machine is homed (1=true)
   HOMING_WAITING        // machine waiting to be homed
 } cmHomingState_t;
 
 
-typedef enum {     // applies to cm.probe_state
+typedef enum {          // applies to cm.probe_state
   PROBE_FAILED,         // probe reached endpoint without triggering
   PROBE_SUCCEEDED,      // probe was triggered, cm.probe_results has position
   PROBE_WAITING         // probe is waiting to be started
@@ -725,5 +725,3 @@ stat_t cm_homing_callback();
 // Probe cycles
 stat_t cm_straight_probe(float target[], float flags[]);
 stat_t cm_probe_callback();
-
-

@@ -33,17 +33,5 @@
 
 #define RTC_MILLISECONDS 10 // interrupt on every 10 RTC ticks (~10 ms)
 
-// Interrupt level
-#define RTC_COMPINTLVL RTC_COMPINTLVL_LO_gc;
-
-// Note: sys_ticks is in ms but is only accurate to 10 ms as it's derived from
-// rtc_ticks
-typedef struct rtClock {
-  uint32_t rtc_ticks; // RTC tick counter, 10 uSec each
-  uint32_t sys_ticks; // system tick counter, 1 ms each
-} rtClock_t;
-
-extern rtClock_t rtc;
-
 void rtc_init(); // initialize and start general timer
 uint32_t rtc_get_time();

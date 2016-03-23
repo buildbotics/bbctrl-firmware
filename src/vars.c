@@ -42,10 +42,21 @@
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
 
+
+typedef uint8_t flags_t;
+
+
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, string, float, int8_t, uint8_t, uint16_t);
+MAP(TYPE_NAME, SEMI, flags_t, float, int8_t, uint8_t, uint16_t);
+
+
+extern void print_status_flags(uint8_t x);
+
+static void var_print_flags_t(uint8_t x) {
+  print_status_flags(x);
+}
 
 
 static void var_print_float(float x) {
@@ -103,9 +114,9 @@ static uint16_t var_parse_uint16_t(const char *value) {
 
 
 // Var forward declarations
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)         \
-  TYPE get_##NAME(IF(INDEX)(int index));               \
-  IF(SET)                                              \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)          \
+  TYPE get_##NAME(IF(INDEX)(int index));                \
+  IF(SET)                                               \
   (void set_##NAME(IF(INDEX)(int index,) TYPE value);)
 
 #include "vars.def"
@@ -150,8 +161,9 @@ void vars_report(bool full) {
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                \
   IF(INDEX)(for (int i = 0; i < NAME##_count; i++)) {   \
     TYPE value = get_##NAME(IF(INDEX)(i));              \
+    TYPE last = (NAME##_last)IF(INDEX)([i]);            \
                                                         \
-    if (value != (NAME##_last)IF(INDEX)([i]) || full) { \
+    if (value != last || full) {                        \
       (NAME##_last)IF(INDEX)([i]) = value;              \
                                                         \
       if (!reported) {                                  \
@@ -175,10 +187,56 @@ void vars_report(bool full) {
 }
 
 
-bool vars_set(const char *name, const char *value) {
+int vars_find(const char *name) {
+  uint8_t i = 0;
+  uint8_t n = 0;
+  unsigned len = strlen(name);
+
+  if (!len) return -1;
+
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {                  \
+    IF(INDEX)                                                           \
+      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
+       if (INDEX <= i) return -1);                                      \
+    return n;                                                           \
+  }                                                                     \
+  n++;
+
+#include "vars.def"
+#undef VAR
+
+  return -1;
+}
+
+
+bool vars_print(const char *name) {
   uint8_t i;
   unsigned len = strlen(name);
 
+  if (!len) return false;
+
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {                  \
+    IF(INDEX)                                                           \
+      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
+       if (INDEX <= i) return false);                                   \
+                                                                        \
+    var_print_##TYPE(get_##NAME(IF(INDEX)(i)));                         \
+                                                                        \
+    return true;                                                        \
+  }
+
+#include "vars.def"
+#undef VAR
+
+  return false;
+}
+
+
+bool vars_set(const char *name, const char *value) {
+  uint8_t i;
+  unsigned len = strlen(name);
 
   if (!len) return false;
 

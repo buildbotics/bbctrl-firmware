@@ -27,23 +27,38 @@
 
 #pragma once
 
-
 #include "status.h"
 
-#define MAX_ARGS 16
-
-typedef uint8_t (*command_cb_t)(int argc, char *argv[]);
-
-typedef struct {
-  const char *name;
-  command_cb_t cb;
-  uint8_t minArgs;
-  uint8_t maxArgs;
-  const char *help;
-} command_t;
+#include <stdint.h>
+#include <stdbool.h>
 
 
-stat_t command_dispatch();
-int command_find(const char *name);
-int command_exec(int argc, char *argv[]);
-int command_eval(char *cmd);
+typedef enum {
+  MOTOR_FLAG_ENABLED_bm       = 1 << 0,
+  MOTOR_FLAG_STALLED_bm       = 1 << 1,
+  MOTOR_FLAG_OVERTEMP_WARN_bm = 1 << 2,
+  MOTOR_FLAG_OVERTEMP_bm      = 1 << 3,
+  MOTOR_FLAG_SHORTED_bm       = 1 << 4,
+  MOTOR_FLAG_ERROR_bm         = (MOTOR_FLAG_STALLED_bm |
+                                 MOTOR_FLAG_OVERTEMP_WARN_bm |
+                                 MOTOR_FLAG_OVERTEMP_bm |
+                                 MOTOR_FLAG_SHORTED_bm)
+} cmMotorFlags_t;
+
+
+void motor_init();
+
+int motor_get_axis(int motor);
+int motor_get_steps_per_unit(int motor);
+
+bool motor_energizing();
+
+void motor_driver_callback(int motor);
+stat_t motor_power_callback();
+void motor_error_callback(int motor, cmMotorFlags_t errors);
+
+void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
+                     float error);
+void motor_begin_move(int motor);
+void motor_load_move(int motor);
+void motor_end_move(int motor);

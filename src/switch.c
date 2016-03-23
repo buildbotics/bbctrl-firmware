@@ -81,7 +81,7 @@ typedef struct {
 
 /* Switch control structures
  * Note 1: The term "thrown" is used because switches could be normally-open
- * or normally-closed. "Thrown" means activated or hit.
+ * or normally-closed. "Thrown" means activated.
  */
 typedef struct {
   bool limit_thrown;
@@ -174,7 +174,7 @@ void switch_init() {
 }
 
 
-/// Called from RTC for each RTC tick
+/// Called from RTC on each tick
 void switch_rtc_callback() {
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
@@ -211,8 +211,14 @@ void switch_rtc_callback() {
 }
 
 
-bool switch_get_closed(uint8_t n) {return sw.switches[n].state;}
-swType_t switch_get_type(uint8_t n) {return sw.switches[n].type;}
+bool switch_get_closed(uint8_t n) {
+  return sw.switches[n].state;
+}
+
+
+swType_t switch_get_type(uint8_t n) {
+  return sw.switches[n].type;
+}
 
 
 void switch_set_type(uint8_t n, swType_t type) {
@@ -220,7 +226,9 @@ void switch_set_type(uint8_t n, swType_t type) {
 }
 
 
-swMode_t switch_get_mode(uint8_t n) {return sw.switches[n].mode;}
+swMode_t switch_get_mode(uint8_t n) {
+  return sw.switches[n].mode;
+}
 
 
 void switch_set_mode(uint8_t n, swMode_t mode) {
@@ -228,7 +236,9 @@ void switch_set_mode(uint8_t n, swMode_t mode) {
 }
 
 
-bool switch_get_limit_thrown() {return sw.limit_thrown;}
+bool switch_get_limit_thrown() {
+  return sw.limit_thrown;
+}
 
 
 uint8_t get_switch_type(int index) {

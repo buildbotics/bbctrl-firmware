@@ -46,9 +46,10 @@
 
 // Motor settings
 #define MOTOR_CURRENT            0.8   // 1.0 is full power
+#define MOTOR_IDLE_CURRENT       0.1   // 1.0 is full power
 #define MOTOR_MICROSTEPS         16
-#define MOTOR_POWER_MODE         MOTOR_POWERED_IN_CYCLE // See stepper.c
-#define MOTOR_IDLE_TIMEOUT       2.00  // secs, motor off after this time
+#define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING // See stepper.c
+#define MOTOR_IDLE_TIMEOUT       2     // secs, motor off after this time
 
 #define M1_MOTOR_MAP             AXIS_X
 #define M1_STEP_ANGLE            1.8
@@ -108,15 +109,15 @@
 
 
 // Machine settings
-#define CHORDAL_TOLERANCE         0.01   // chordal accuracy for arc drawing
-#define SOFT_LIMIT_ENABLE         0      // 0 = off, 1 = on
-#define JERK_MAX                  40     // yes, that's km/min^3
-#define JUNCTION_DEVIATION        0.05   // default value, in mm
-#define JUNCTION_ACCELERATION     100000 // centripetal corner acceleration
-#define JOG_ACCELERATION          500000  // mm/min^2
+#define CHORDAL_TOLERANCE        0.01   // chordal accuracy for arc drawing
+#define SOFT_LIMIT_ENABLE        0      // 0 = off, 1 = on
+#define JERK_MAX                 50     // yes, that's km/min^3
+#define JUNCTION_DEVIATION       0.05   // default value, in mm
+#define JUNCTION_ACCELERATION    100000 // centripetal corner acceleration
+#define JOG_ACCELERATION         500000 // mm/min^2
 
 // Axis settings
-#define VELOCITY_MAX             16000
+#define VELOCITY_MAX             15000  // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 // See canonical_machine.h cmAxisMode for valid values
@@ -170,51 +171,51 @@
 #define A_JERK_HOMING            (A_JERK_MAX * 2)
 #define A_JUNCTION_DEVIATION     JUNCTION_DEVIATION
 #define A_RADIUS                 (M1_TRAVEL_PER_REV / 2 / M_PI)
-#define A_SEARCH_VELOCITY         600
-#define A_LATCH_VELOCITY          100
-#define A_LATCH_BACKOFF           5
-#define A_ZERO_BACKOFF            2
+#define A_SEARCH_VELOCITY        600
+#define A_LATCH_VELOCITY         100
+#define A_LATCH_BACKOFF          5
+#define A_ZERO_BACKOFF           2
 
-#define B_AXIS_MODE               AXIS_DISABLED
-#define B_VELOCITY_MAX            3600
-#define B_FEEDRATE_MAX            B_VELOCITY_MAX
-#define B_TRAVEL_MIN              -1
-#define B_TRAVEL_MAX              -1
-#define B_JERK_MAX                JERK_MAX
-#define B_JERK_HOMING             (B_JERK_MAX * 2)
-#define B_JUNCTION_DEVIATION      JUNCTION_DEVIATION
-#define B_RADIUS                  1
-#define B_SEARCH_VELOCITY         600
-#define B_LATCH_VELOCITY          100
-#define B_LATCH_BACKOFF           5
-#define B_ZERO_BACKOFF            2
+#define B_AXIS_MODE              AXIS_DISABLED
+#define B_VELOCITY_MAX           3600
+#define B_FEEDRATE_MAX           B_VELOCITY_MAX
+#define B_TRAVEL_MIN             -1
+#define B_TRAVEL_MAX             -1
+#define B_JERK_MAX               JERK_MAX
+#define B_JERK_HOMING            (B_JERK_MAX * 2)
+#define B_JUNCTION_DEVIATION     JUNCTION_DEVIATION
+#define B_RADIUS                 1
+#define B_SEARCH_VELOCITY        600
+#define B_LATCH_VELOCITY         100
+#define B_LATCH_BACKOFF          5
+#define B_ZERO_BACKOFF           2
 
-#define C_AXIS_MODE               AXIS_DISABLED
-#define C_VELOCITY_MAX            3600
-#define C_FEEDRATE_MAX            C_VELOCITY_MAX
-#define C_TRAVEL_MIN              -1
-#define C_TRAVEL_MAX              -1
-#define C_JERK_MAX                JERK_MAX
-#define C_JERK_HOMING             (C_JERK_MAX * 2)
-#define C_JUNCTION_DEVIATION      JUNCTION_DEVIATION
-#define C_RADIUS                  1
-#define C_SEARCH_VELOCITY         600
-#define C_LATCH_VELOCITY          100
-#define C_LATCH_BACKOFF           5
-#define C_ZERO_BACKOFF            2
+#define C_AXIS_MODE              AXIS_DISABLED
+#define C_VELOCITY_MAX           3600
+#define C_FEEDRATE_MAX           C_VELOCITY_MAX
+#define C_TRAVEL_MIN             -1
+#define C_TRAVEL_MAX             -1
+#define C_JERK_MAX               JERK_MAX
+#define C_JERK_HOMING            (C_JERK_MAX * 2)
+#define C_JUNCTION_DEVIATION     JUNCTION_DEVIATION
+#define C_RADIUS                 1
+#define C_SEARCH_VELOCITY        600
+#define C_LATCH_VELOCITY         100
+#define C_LATCH_BACKOFF          5
+#define C_ZERO_BACKOFF           2
 
 
 // PWM settings
-#define P1_PWM_FREQUENCY          100    // in Hz
-#define P1_CW_SPEED_LO            1000   // in RPM (arbitrary units)
-#define P1_CW_SPEED_HI            2000
-#define P1_CW_PHASE_LO            0.125  // phase [0..1]
-#define P1_CW_PHASE_HI            0.2
-#define P1_CCW_SPEED_LO           1000
-#define P1_CCW_SPEED_HI           2000
-#define P1_CCW_PHASE_LO           0.125
-#define P1_CCW_PHASE_HI           0.2
-#define P1_PWM_PHASE_OFF          0.1
+#define P1_PWM_FREQUENCY         100    // in Hz
+#define P1_CW_SPEED_LO           1000   // in RPM (arbitrary units)
+#define P1_CW_SPEED_HI           2000
+#define P1_CW_PHASE_LO           0.125  // phase [0..1]
+#define P1_CW_PHASE_HI           0.2
+#define P1_CCW_SPEED_LO          1000
+#define P1_CCW_SPEED_HI          2000
+#define P1_CCW_PHASE_LO          0.125
+#define P1_CCW_PHASE_HI          0.2
+#define P1_PWM_PHASE_OFF         0.1
 
 
 // Gcode defaults
@@ -267,24 +268,15 @@
 
 #define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
 
-/// motor control port bit positions
-#define STEP_BIT_bp         0
-#define DIRECTION_BIT_bp    1
-#define MOTOR_ENABLE_BIT_bp 2
-#define CHIP_SELECT_BIT_bp  3
-#define FAULT_BIT_bp        4
-#define GPIO1_OUT_BIT_bp    5
-#define SW_MIN_BIT_bp       6    //4 homing/limit switches
-#define SW_MAX_BIT_bp       7    // homing/limit switches
-
-#define STEP_BIT_bm         (1 << STEP_BIT_bp)
-#define DIRECTION_BIT_bm    (1 << DIRECTION_BIT_bp)
-#define MOTOR_ENABLE_BIT_bm (1 << MOTOR_ENABLE_BIT_bp)
-#define CHIP_SELECT_BIT_bm  (1 << CHIP_SELECT_BIT_bp)
-#define FAULT_BIT_bm        (1 << FAULT_BIT_bp)
-#define GPIO1_OUT_BIT_bm    (1 << GPIO1_OUT_BIT_bp) // spindle and coolant
-#define SW_MIN_BIT_bm       (1 << SW_MIN_BIT_bp)    // minimum switch inputs
-#define SW_MAX_BIT_bm       (1 << SW_MAX_BIT_bp)    // maximum switch inputs
+// Motor control port
+#define STEP_BIT_bm         (1 << 0)
+#define DIRECTION_BIT_bm    (1 << 1)
+#define MOTOR_ENABLE_BIT_bm (1 << 2)
+#define CHIP_SELECT_BIT_bm  (1 << 3)
+#define FAULT_BIT_bm        (1 << 4)
+#define GPIO1_OUT_BIT_bm    (1 << 5) // spindle and coolant
+#define SW_MIN_BIT_bm       (1 << 6) // minimum switch inputs
+#define SW_MAX_BIT_bm       (1 << 7) // maximum switch inputs
 
 // Bit assignments for GPIO1_OUTs for spindle, PWM and coolant
 #define SPINDLE_BIT         8 // spindle on/off
@@ -334,6 +326,41 @@
 #define STEP_TIMER_WGMODE    TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR       TCC0_OVF_vect
 #define STEP_TIMER_INTLVL    TC_OVFINTLVL_HI_gc
+
+/* Step correction settings
+ *
+ * Step correction settings determine how the encoder error is fed
+ * back to correct position errors.  Since the following_error is
+ * running 2 segments behind the current segment you have to be
+ * careful not to overcompensate. The threshold determines if a
+ * correction should be applied, and the factor is how much. The
+ * holdoff is how many segments before applying another correction. If
+ * threshold is too small and/or amount too large and/or holdoff is
+ * too small you may get a runaway correction and error will grow
+ * instead of shrink (or oscillate).
+ */
+/// magnitude of forwarding error (in steps)
+#define STEP_CORRECTION_THRESHOLD (float)2.00
+/// apply to step correction for a single segment
+#define STEP_CORRECTION_FACTOR    (float)0.25
+/// max step correction allowed in a single segment
+#define STEP_CORRECTION_MAX       (float)0.60
+/// minimum wait between error correction
+#define STEP_CORRECTION_HOLDOFF   5
+#define STEP_INITIAL_DIRECTION    DIRECTION_CW
+
+
+// TMC2660 driver settings
+#define TMC2660_SPI_PORT PORTC
+#define TMC2660_SPI_SS_PIN 4
+#define TMC2660_SPI_SCK_PIN 5
+#define TMC2660_SPI_MISO_PIN 6
+#define TMC2660_SPI_MOSI_PIN 7
+
+#define TMC2660_TIMER TCC1
+
+#define TMC2660_POLL_RATE      0.01  // sec.  Must be in (0, 1]
+#define TMC2660_STABILIZE_TIME 0.01  // sec.  Must be at least 1ms
 
 
 // PWM settings

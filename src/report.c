@@ -56,12 +56,14 @@ void report_request_full() {
 
 
 stat_t report_callback() {
-  uint32_t now = rtc_get_time();
-  if (now - last_report < 100) return STAT_OK;
-  last_report = now;
+  if (report_requested && usart_tx_empty()) {
+    uint32_t now = rtc_get_time();
+    if (now - last_report < 100) return STAT_OK;
+    last_report = now;
 
-  if (report_requested && usart_tx_empty()) vars_report(report_full);
-  report_requested = report_full = false;
+    vars_report(report_full);
+    report_requested = report_full = false;
+  }
 
   return STAT_OK;
 }
