@@ -63,16 +63,6 @@ typedef enum {
   ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
 
 
-/// common variables for planning (move master)
-typedef struct mpMoveMasterSingleton {
-  float position[AXES];             // final move position for planning purposes
-
-  float jerk;                       // jerk values cached from previous block
-  float recip_jerk;
-  float cbrt_jerk;
-} mpMoveMasterSingleton_t;
-
-
 typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   uint8_t move_state;    // state of the overall move
   uint8_t section;       // what section is the move in?
@@ -141,13 +131,11 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
 
 
 // Reference global scope structures
-extern mpMoveMasterSingleton_t mm;  // context for line planning
 extern mpMoveRuntimeSingleton_t mr; // context for line runtime
 
 
 void planner_init();
 void mp_flush_planner();
-void mp_set_planner_position(uint8_t axis, const float position);
 void mp_set_runtime_position(uint8_t axis, const float position);
 void mp_set_steps_to_runtime_position();
 float mp_get_runtime_velocity();

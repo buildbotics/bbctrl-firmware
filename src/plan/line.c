@@ -43,6 +43,24 @@
 #include <stdbool.h>
 #include <math.h>
 
+/// common variables for planning (move master)
+typedef struct mpMoveMasterSingleton {
+  float position[AXES];             // final move position for planning purposes
+
+  float jerk;                       // jerk values cached from previous block
+  float recip_jerk;
+  float cbrt_jerk;
+} mpMoveMasterSingleton_t;
+
+
+mpMoveMasterSingleton_t mm = {};     // context for line planning
+
+
+/// Set planner position for a single axis
+void mp_set_planner_position(uint8_t axis, const float position) {
+  mm.position[axis] = position;
+}
+
 
 /* Sonny's algorithm - simple
  *

@@ -71,15 +71,10 @@
 #include <stdio.h>
 
 
-mpMoveMasterSingleton_t mm;     // context for line planning
-mpMoveRuntimeSingleton_t mr;    // context for line runtime
+mpMoveRuntimeSingleton_t mr = {};    // context for line runtime
 
 
 void planner_init() {
-  // If you know all memory has been zeroed by a hard reset you don't need
-  // these next 2 lines
-  memset(&mr, 0, sizeof(mr));    // clear all values, pointers and status
-  memset(&mm, 0, sizeof(mm));    // clear all values, pointers and status
   mp_init_buffers();
 }
 
@@ -119,11 +114,6 @@ void mp_flush_planner() {
  * are still processing the action and the real tool position is
  * still close to the starting point.
  */
-
-/// Set planner position for a single axis
-void mp_set_planner_position(uint8_t axis, const float position) {
-  mm.position[axis] = position;
-}
 
 
 /// Set runtime position for a single axis

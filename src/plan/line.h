@@ -29,5 +29,6 @@
 
 #include "buffer.h"
 
+void mp_set_planner_position(uint8_t axis, const float position);
 void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
 stat_t mp_aline(GCodeState_t *gm_in);
