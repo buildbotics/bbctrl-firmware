@@ -651,7 +651,6 @@ void canonical_machine_init() {
 
   // Sub-system inits
   cm_spindle_init();
-  cm_arc_init();
 }
 
 

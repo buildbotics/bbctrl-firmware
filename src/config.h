@@ -363,3 +363,9 @@ typedef enum {
 
 // Input
 #define INPUT_BUFFER_LEN         255 // text buffer size (255 max)
+
+
+// Arc
+#define ARC_RADIUS_ERROR_MAX 1.0   // max mm diff between start and end radius
+#define ARC_RADIUS_ERROR_MIN 0.005 // min mm where 1% rule applies
+#define ARC_RADIUS_TOLERANCE 0.001 // 0.1% radius variance test
