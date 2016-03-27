@@ -31,7 +31,7 @@
 
 
 // Compile-time settings
-#define __STEP_CORRECTION
+//#define __STEP_CORRECTION
 //#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
 //#define __KAHAN                // Use Kahan summation in aline exec functions
 #define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
@@ -61,14 +61,14 @@ typedef enum {
 
 #define M1_MOTOR_MAP             AXIS_X
 #define M1_STEP_ANGLE            1.8
-#define M1_TRAVEL_PER_REV        3.175
+#define M1_TRAVEL_PER_REV        6.35
 #define M1_MICROSTEPS            MOTOR_MICROSTEPS
 #define M1_POLARITY              MOTOR_POLARITY_NORMAL
 #define M1_POWER_MODE            MOTOR_POWER_MODE
 
 #define M2_MOTOR_MAP             AXIS_Y
 #define M2_STEP_ANGLE            1.8
-#define M2_TRAVEL_PER_REV        3.175
+#define M2_TRAVEL_PER_REV        6.35
 #define M2_MICROSTEPS            MOTOR_MICROSTEPS
 #define M2_POLARITY              MOTOR_POLARITY_NORMAL
 #define M2_POWER_MODE            MOTOR_POWER_MODE
@@ -82,7 +82,7 @@ typedef enum {
 
 #define M4_MOTOR_MAP             AXIS_Z
 #define M4_STEP_ANGLE            1.8
-#define M4_TRAVEL_PER_REV        3.175
+#define M4_TRAVEL_PER_REV        (25.4 / 6.0)
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
 #define M4_POLARITY              MOTOR_POLARITY_NORMAL
 #define M4_POWER_MODE            MOTOR_POWER_MODE
@@ -352,7 +352,7 @@ typedef enum {
 #define TMC2660_SPI_MOSI_PIN   7
 #define TMC2660_TIMER          TCC1
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
-#define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
+#define TMC2660_POLL_RATE      0.01 // sec.  Must be in (0, 1]
 #define TMC2660_STABILIZE_TIME 0.001 // sec.  Must be at least 1ms
 
 

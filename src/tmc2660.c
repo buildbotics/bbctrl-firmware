@@ -71,7 +71,7 @@ static const uint32_t reg_addrs[] = {
   TMC2660_CHOPCONF_ADDR,
   TMC2660_SMARTEN_ADDR,
   TMC2660_SGCSCONF_ADDR,
-  TMC2660_DRVCONF_ADDR
+  TMC2660_DRVCONF_ADDR,
 };
 
 
@@ -160,6 +160,7 @@ static void _driver_write(int driver) {
     break;
 
   case TMC2660_STATE_RECONFIGURE:
+    // Disable MOSFETs during configuration
     spi.out = TMC2660_CHOPCONF_ADDR | (drv->regs[TMC2660_CHOPCONF] & 0xffff0);
     break;
   }
@@ -281,21 +282,25 @@ void tmc2660_init() {
 
     drivers[i].regs[TMC2660_DRVCTRL] = TMC2660_DRVCTRL_DEDGE | mstep |
       (MOTOR_MICROSTEPS == 16 ? TMC2660_DRVCTRL_INTPOL : 0);
+
     drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_16 |
       TMC2660_CHOPCONF_HEND(3) | TMC2660_CHOPCONF_HSTART(7) |
       TMC2660_CHOPCONF_TOFF(4);
     //drivers[i].regs[TMC2660_CHOPCONF] = TMC2660_CHOPCONF_TBL_36 |
     //  TMC2660_CHOPCONF_CHM | TMC2660_CHOPCONF_HEND(7) |
     //  TMC2660_CHOPCONF_FASTD(6) | TMC2660_CHOPCONF_TOFF(7);
+
     drivers[i].regs[TMC2660_SMARTEN] = TMC2660_SMARTEN_SEIMIN |
       TMC2660_SMARTEN_SE(350, 450);
     drivers[i].regs[TMC2660_SMARTEN] = 0; // Disable CoolStep
+
     drivers[i].regs[TMC2660_SGCSCONF] = TMC2660_SGCSCONF_SFILT |
       TMC2660_SGCSCONF_THRESH(63);
+
     drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_SG;
 
     set_power_level(i, MOTOR_IDLE_CURRENT);
-    drivers[i].reconfigure = false; // No need to reconfigure
+    drivers[i].reconfigure = false; // No need to reconfigure after init
   }
 
   // Setup pins
@@ -342,13 +347,21 @@ void tmc2660_init() {
 }
 
 
-uint8_t tmc2660_flags(int motor) {
-  return motor < MOTORS ? drivers[motor].flags : 0;
+static void _set_reg(int motor, int reg, uint32_t value) {
+  if (drivers[motor].regs[reg] == value) return;
+
+  drivers[motor].regs[reg] = value;
+  drivers[motor].reconfigure = true;
 }
 
 
-void tmc2660_reconfigure(int motor) {
-  if (motor < MOTORS) drivers[motor].reconfigure = true;
+static uint32_t _get_reg(int motor, int reg) {
+  return drivers[motor].regs[reg];
+}
+
+
+uint8_t tmc2660_flags(int motor) {
+  return motor < MOTORS ? drivers[motor].flags : 0;
 }
 
 
@@ -366,31 +379,28 @@ stat_t tmc2660_sync() {
 
 
 void tmc2660_enable(int driver) {
+  // TODO MOTOR_CURRENT should be configurable
   set_power_level(driver, MOTOR_CURRENT);
 }
 
 
 void tmc2660_disable(int driver) {
+  // TODO MOTOR_IDLE_CURRENT should be configurable
   set_power_level(driver, MOTOR_IDLE_CURRENT);
 }
 
 
 float get_power_level(int motor) {
-  uint8_t x = drivers[motor].regs[TMC2660_SGCSCONF] & 31;
-  return (x + 1) / 32.0;
+  return (_get_reg(motor, TMC2660_SGCSCONF) & 31) / 31.0;
 }
 
 
 void set_power_level(int motor, float value) {
   if (value < 0 || 1 < value) return;
 
-  uint8_t x = value ? value * 32.0 - 1 : 0;
-  if (x < 0) x = 0;
-
-  tmc2660_driver_t *d = &drivers[motor];
-  d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~31) | x;
-
-  tmc2660_reconfigure(motor);
+  uint32_t reg =
+    (_get_reg(motor, TMC2660_SGCSCONF) & ~31) | (uint8_t)(value * 31.0);
+  _set_reg(motor, TMC2660_SGCSCONF, reg);
 }
 
 
@@ -400,7 +410,7 @@ uint16_t get_sg_value(int motor) {
 
 
 int8_t get_stallguard(int motor) {
-  uint8_t x = (drivers[motor].regs[TMC2660_SGCSCONF] & 0x7f00) >> 8;
+  uint8_t x = (_get_reg(motor, TMC2660_SGCSCONF) & 0x7f00) >> 8;
   return (x & (1 << 6)) ? (x & 0xc0) : x;
 }
 
@@ -408,9 +418,7 @@ int8_t get_stallguard(int motor) {
 void set_stallguard(int motor, int8_t value) {
   if (value < -64 || 63 < value) return;
 
-  tmc2660_driver_t *d = &drivers[motor];
-  d->regs[TMC2660_SGCSCONF] = (d->regs[TMC2660_SGCSCONF] & ~0x7f00) |
-    TMC2660_SGCSCONF_THRESH(value);
-
-  tmc2660_reconfigure(motor);
+  _set_reg(motor, TMC2660_SGCSCONF,
+           (_get_reg(motor, TMC2660_SGCSCONF) & ~0x7f00) |
+           TMC2660_SGCSCONF_THRESH(value));
 }

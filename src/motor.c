@@ -70,11 +70,12 @@ typedef struct {
   uint32_t timeout;
   cmMotorFlags_t flags;
   int32_t encoder;
+  uint8_t last_clock;
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
-  int32_t steps;                 // expected steps, for encoder
+  bool positive;                 // step sign
   cmDirection_t direction;       // travel direction corrected for polarity
 
   // Step error correction
@@ -141,6 +142,7 @@ ISR(TCE1_CCA_vect) {
 }
 
 
+#if 0
 ISR(DMA_CH0_vect) {
   M1_TIMER.CTRLA = 0; // Top motor clock
   M1_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
@@ -163,6 +165,7 @@ ISR(DMA_CH3_vect) {
   M4_TIMER.CTRLA = 0; // Top motor clock
   M4_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
 }
+#endif
 
 
 void motor_init() {
@@ -282,8 +285,7 @@ stat_t motor_power_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
     // Deenergize motor if disabled, in error or after timeout when not holding
     if (motors[motor].power_mode == MOTOR_DISABLED || _error(motor) ||
-        (cm_get_combined_state() != COMBINED_HOLD &&
-         motors[motor].timeout < rtc_get_time()))
+        motors[motor].timeout < rtc_get_time())
       _deenergize(motor);
 
   return STAT_OK;
@@ -310,21 +312,6 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
                      float error) {
   motor_t *m = &motors[motor];
 
-  // Power motor
-  switch (motors[motor].power_mode) {
-  case MOTOR_DISABLED: return;
-
-  case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (fp_ZERO(travel_steps)) return; // Not moving
-    // Fall through
-
-  case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
-    _energize(motor);
-    break;
-
-  case MOTOR_POWER_MODE_MAX_VALUE: break; // Shouldn't get here
-  }
-
 #ifdef __STEP_CORRECTION
   // 'Nudge' correction strategy. Inject a single, scaled correction value
   // then hold off
@@ -344,25 +331,35 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   }
 #endif
 
+  // Power motor
+  switch (motors[motor].power_mode) {
+  case MOTOR_DISABLED: return;
+
+  case MOTOR_POWERED_ONLY_WHEN_MOVING:
+    if (fp_ZERO(travel_steps)) return; // Not moving
+    // Fall through
+
+  case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
+    _energize(motor);
+    break;
+
+  case MOTOR_POWER_MODE_MAX_VALUE: break; // Shouldn't get here
+  }
+
   // Compute motor timer clock and period. Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
-  uint16_t steps = round(fabs(travel_steps / 2));
-  // TODO why do we need to multiply by 2 here?
-  uint32_t ticks_per_step = seg_clocks / steps;
+  uint32_t ticks_per_step = round(fabs(seg_clocks / travel_steps));
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step & 0xffff0000UL) {
     ticks_per_step /= 2;
-    seg_clocks /= 2;
 
     if (ticks_per_step & 0xffff0000UL) {
       ticks_per_step /= 2;
-      seg_clocks /= 2;
 
       if (ticks_per_step & 0xffff0000UL) {
         ticks_per_step /= 2;
-        seg_clocks /= 2;
 
         if (ticks_per_step & 0xffff0000UL) m->timer_clock = 0; // Off, too slow
         else m->timer_clock = TC_CLKSEL_DIV8_gc;
@@ -370,28 +367,43 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     } else m->timer_clock = TC_CLKSEL_DIV2_gc;
   } else m->timer_clock = TC_CLKSEL_DIV1_gc;
 
+  if (!ticks_per_step || fabs(travel_steps) < 0.001) m->timer_clock = 0;
   m->timer_period = ticks_per_step;
-  m->steps = steps;
+  m->positive = 0 <= travel_steps;
 
   // Setup the direction, compensating for polarity.
-  if (0 <= travel_steps) m->direction = DIRECTION_CW ^ m->polarity;
-  else {
-    m->direction = DIRECTION_CCW ^ m->polarity;
-    m->steps *= -1;
-  }
+  if (m->positive) m->direction = DIRECTION_CW ^ m->polarity;
+  else m->direction = DIRECTION_CCW ^ m->polarity;
 }
 
 
 void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
-  // Setup DMA count
-  m->dma->TRFCNT = m->steps < 0 ? -m->steps : m->steps;
+  // Get actual step count from DMA channel
+  uint16_t steps = 0xffff - m->dma->TRFCNT;
+  m->dma->TRFCNT = 0xffff;
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+
+  // Adjust clock count
+  if (m->last_clock) {
+    uint32_t count = m->timer->CNT;
+    int8_t freq_change = m->last_clock - m->timer_clock;
+
+    count <<= freq_change; // Adjust count
+
+    if (m->timer_period < count) count -= m->timer_period;
+    if (m->timer_period < count) count -= m->timer_period;
+    if (m->timer_period < count) count = m->timer_period / 2;
+
+    m->timer->CNT = count;
+
+  } else m->timer->CNT = m->timer_period / 2;
 
   // Set or zero runtime clock and period
-  m->timer->CNT = 0;                   // Start at zero
   m->timer->CCA = m->timer_period;     // Set frequency
   m->timer->CTRLA = m->timer_clock;    // Start or stop
+  m->last_clock = m->timer_clock;
   m->timer_clock = 0;                  // Clear clock
 
   // Set direction
@@ -399,8 +411,13 @@ void motor_load_move(int motor) {
   else m->port->OUTSET = DIRECTION_BIT_bm;
 
   // Accumulate encoder
-  m->encoder += m->steps;
-  m->steps = 0;
+  m->encoder += m->positive ? steps : -steps;
+}
+
+
+void motor_end_move(int motor) {
+  motors[motor].dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  motors[motor].timer->CTRLA = 0; // Stop clock
 }
 
 

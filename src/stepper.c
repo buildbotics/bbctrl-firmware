@@ -44,6 +44,7 @@
 typedef struct {
   // Runtime
   bool busy;
+  bool requesting;
   uint16_t dwell;
 
   // Move prep
@@ -81,10 +82,14 @@ uint8_t st_runtime_isbusy() {return st.busy;}
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(ADCB_CH0_vect) {
   mp_exec_move();
+  st.requesting = false;
 }
 
 
 static void _request_exec_move() {
+  if (st.requesting) return;
+  st.requesting = true;
+
   // Use ADC as a "software" interrupt to trigger next move exec
   ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // LO level interrupt
   ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
@@ -101,9 +106,12 @@ ISR(STEP_TIMER_ISR) {
   st.busy = false;
   TIMER_STEP.PER = STEP_TIMER_POLL;
 
-  // If there are no more moves try to load one
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_end_move(motor);
+
+  // If the next move is not ready try to load it
   if (!st.move_ready) {
-    mp_exec_move();
+    _request_exec_move();
     return;
   }
 
