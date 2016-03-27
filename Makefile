@@ -81,9 +81,17 @@ fuses:
 	  -U fuse2:w:$(FUSE2):m -U fuse4:w:$(FUSE4):m -U fuse5:w:$(FUSE5):m
 
 read_fuses:
-	avrdude $(AVRDUDE_OPTS) -U fuse0:r:fuse0.hex:h -U fuse1:r:fuse1.hex:h \
-	  -U fuse2:r:fuse2.hex:h -U fuse4:r:fuse4.hex:h -U fuse5:r:fuse5.hex:h
-	@ cat fuse?.hex
+	avrdude $(AVRDUDE_OPTS) -q -q -U fuse0:r:-:h -U fuse1:r:-:h -U fuse2:r:-:h \
+	  -U fuse4:r:-:h -U fuse5:r:-:h
+
+signature:
+	avrdude $(AVRDUDE_OPTS) -q -q -U signature:r:-:h
+
+prodsig:
+	avrdude $(AVRDUDE_OPTS) -q -q -U prodsig:r:-:h
+
+usersig:
+	avrdude $(AVRDUDE_OPTS) -q -q -U usersig:r:-:h
 
 # Clean
 tidy:
@@ -91,10 +99,10 @@ tidy:
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
-	  $(PROJECT).map build fuse?.hex
+	  $(PROJECT).map build
 
-.PHONY: tidy clean size all reset erase program fuses read_fuses
+.PHONY: tidy clean size all reset erase program fuses read_fuses prodsig
+.PHONY: signature usersig
 
 # Dependencies
 -include $(shell mkdir -p build/dep) $(wildcard build/dep/*)
-

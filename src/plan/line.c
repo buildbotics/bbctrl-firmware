@@ -33,7 +33,6 @@
 #include "exec.h"
 #include "buffer.h"
 #include "zoid.h"
-#include "controller.h"
 #include "canonical_machine.h"
 #include "stepper.h"
 #include "util.h"
@@ -299,7 +298,6 @@ static void _calc_move_times(GCodeState_t *gms, const float axis_length[],
  * the minimums.
  */
 stat_t mp_aline(GCodeState_t *gm_in) {
-  mpBuf_t *bf;                         // current move pointer
   float exact_stop = 0;                // preset this value OFF
   float junction_velocity;
   uint8_t mr_flag = false;
@@ -343,7 +341,8 @@ stat_t mp_aline(GCodeState_t *gm_in) {
     float delta_velocity = pow(length, 0.66666666) * mm.cbrt_jerk;
     float entry_velocity = 0; // pre-set as if no previous block
 
-    if ((bf = mp_get_run_buffer())) {
+    mpBuf_t *bf = mp_get_run_buffer();
+    if (bf) {
       if (bf->replannable) // not optimally planned
         entry_velocity = bf->entry_velocity + bf->delta_vmax;
       else entry_velocity = bf->exit_velocity; // optimally planned
@@ -355,8 +354,8 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   }
 
   // Get a cleared buffer and setup move variables
-  if (!(bf = mp_get_write_buffer()))
-    return cm_hard_alarm(STAT_BUFFER_FULL_FATAL); // never supposed to fail
+  mpBuf_t *bf = mp_get_write_buffer(); // current move pointer
+  if (!bf) return cm_hard_alarm(STAT_BUFFER_FULL_FATAL); // never fails
 
   // Register callback to exec function
   bf->bf_func = mp_exec_aline;
@@ -374,17 +373,17 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   //
   // The math for time-to-decelerate T from speed S to speed E with constant
   // jerk J is:
-  //   T = 2*sqrt((S-E)/J[n])
+  //   T = 2 * sqrt((S - E) / J[n])
   //
   // Since E is always zero in this calculation, we can simplify:
-  //   T = 2*sqrt(S/J[n])
+  //   T = 2 * sqrt(S / J[n])
   //
   // The math for distance-to-decelerate l from speed S to speed E with
   // constant jerk J is:
-  //   l = (S+E)*sqrt((S-E)/J)
+  //   l = (S + E) * sqrt((S - E) / J)
   //
   // Since E is always zero in this calculation, we can simplify:
-  //   l = S*sqrt(S/J)
+  //   l = S * sqrt(S / J)
   //
   // The final value we want is to know which one is *longest*,
   // compared to the others, so we don't need the actual value. This
@@ -405,22 +404,22 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   //   L = total length of the move in all axes
   //   C[n] = "axis contribution" of axis n
   //
-  // For each axis n: C[n] = sqrt(1/J[n]) * (D[n]/L)
+  // For each axis n: C[n] = sqrt(1 / J[n]) * (D[n] / L)
   //
   //    Keeping in mind that we only need a rank compared to the other
   //    axes, we can further optimize the calculations::
   //
   //    Square the expression to remove the square root:
-  //        C[n]^2 = (1/J[n]) * (D[n]/L)^2    (We don't care the C is squared,
-  //                                           we'll use it that way.)
+  //        C[n]^2 = (1 / J[n]) * (D[n] / L)^2 (We don't care the C is squared,
+  //                                            we'll use it that way.)
   //
   //    Re-arranged to optimize divides for pre-calculated values,
   //    we create a value M that we compute once:
-  //        M = (1/(L^2))
+  //        M = 1 / L^2
   //    Then we use it in the calculations for every axis:
-  //        C[n] = (1/J[n]) * D[n]^2 * M
+  //        C[n] = 1 / J[n] * D[n]^2 * M
   //
-  //    Also note that we already have (1/J[n]) calculated for each axis,
+  //    Also note that we already have 1 / J[n] calculated for each axis,
   //    which simplifies it further.
   //
   // Finally, the selected jerk term needs to be scaled by the

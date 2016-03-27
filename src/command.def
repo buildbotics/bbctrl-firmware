@@ -25,7 +25,13 @@
 
 \******************************************************************************/
 
-CMD(help, command_help, 0, 1, "Print this help screen")
-CMD(reboot, command_reboot, 0, 0, "Reboot the controller")
-CMD(jog, command_jog, 1, 4, "Jog")
-CMD(mreset, command_mreset, 0, 1, "Reset motor")
+//  Name        Min, Max args, Help
+CMD(help,         0, 1, "Print this help screen")
+CMD(reboot,       0, 0, "Reboot the controller")
+CMD(bootloader,   0, 0, "Load bootloader")
+CMD(save,         0, 0, "Save settings")
+CMD(valid,        0, 0, "Print 'true' if saved settings are valid")
+CMD(restore,      0, 0, "Restore settings")
+CMD(clear,        0, 0, "Clear saved settings")
+CMD(jog,          1, 4, "Jog")
+CMD(mreset,       0, 1, "Reset motor")

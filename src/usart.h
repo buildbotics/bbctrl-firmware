@@ -29,6 +29,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define USART_TX_RING_BUF_SIZE 256
 #define USART_RX_RING_BUF_SIZE 256
@@ -47,27 +48,29 @@ enum {
 };
 
 enum {
-  USART_CRLF = (1 << 0),
-  USART_ECHO = (1 << 1),
-  USART_XOFF = (1 << 2),
+  USART_CRLF  = (1 << 0),
+  USART_ECHO  = (1 << 1),
+  USART_XOFF  = (1 << 2),
+  USART_FLUSH = (1 << 3),
 };
 
 void usart_init();
 void usart_set_baud(int baud);
-void usart_ctrl(int flag, int enable);
+void usart_ctrl(int flag, bool enable);
 void usart_putc(char c);
 void usart_puts(const char *s);
 int8_t usart_getc();
 char *usart_readline();
 int16_t usart_peek();
+void usart_flush();
 
 void usart_rx_flush();
 int16_t usart_rx_fill();
 int16_t usart_rx_space();
-inline int usart_rx_empty() {return !usart_rx_fill();}
-inline int usart_rx_full() {return !usart_rx_space();}
+inline bool usart_rx_empty() {return !usart_rx_fill();}
+inline bool usart_rx_full() {return !usart_rx_space();}
 
 int16_t usart_tx_fill();
 int16_t usart_tx_space();
-inline int usart_tx_empty() {return !usart_tx_fill();}
-inline int usart_tx_full() {return !usart_tx_space();}
+inline bool usart_tx_empty() {return !usart_tx_fill();}
+inline bool usart_tx_full() {return !usart_tx_space();}

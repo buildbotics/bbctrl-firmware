@@ -29,6 +29,7 @@
 
 #include "cpp_magic.h"
 #include "status.h"
+#include "hardware.h"
 #include "config.h"
 
 #include <stdint.h>
@@ -40,16 +41,29 @@
 #include <math.h>
 
 #include <avr/pgmspace.h>
-#include <avr/wdt.h>
+#include <avr/eeprom.h>
 
 
 typedef uint8_t flags_t;
+typedef const char *string;
 
 
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, float, int8_t, uint8_t, uint16_t);
+MAP(TYPE_NAME, SEMI, flags_t, string, float, int8_t, uint8_t, uint16_t);
+
+
+static void var_print_string(const char *s) {
+  printf_P(PSTR("\"%s\""), s);
+}
+
+
+#if 0
+static void var_print_bool(bool x) {
+  printf_P(x ? PSTR("true") : PSTR("false"));
+}
+#endif
 
 
 extern void print_status_flags(uint8_t x);
@@ -99,6 +113,13 @@ static float var_parse_float(const char *value) {
 }
 
 
+#if 0
+static bool var_parse_bool(const char *value) {
+  return !strcasecmp(value, "true") || var_parse_float(value);
+}
+#endif
+
+
 static int8_t var_parse_int8_t(const char *value) {
   return strtol(value, 0, 0);
 }
@@ -110,6 +131,36 @@ static uint8_t var_parse_uint8_t(const char *value) {
 
 static uint16_t var_parse_uint16_t(const char *value) {
   return strtol(value, 0, 0);
+}
+
+
+static int8_t eeprom_read_int8_t(int8_t *addr) {
+  return eeprom_read_byte((uint8_t *)addr);
+}
+
+
+static uint8_t eeprom_read_uint8_t(uint8_t *addr) {
+  return eeprom_read_byte(addr);
+}
+
+
+static uint16_t eeprom_read_uint16_t(uint16_t *addr) {
+  return eeprom_read_word(addr);
+}
+
+
+static void eeprom_update_int8_t(int8_t *addr, int8_t value) {
+  eeprom_update_byte((uint8_t *)addr, value);
+}
+
+
+static void eeprom_update_uint8_t(uint8_t *addr, uint8_t value) {
+  eeprom_update_byte(addr, value);
+}
+
+
+static void eeprom_update_uint16_t(uint16_t *addr, uint16_t value) {
+  eeprom_update_word(addr, value);
 }
 
 
@@ -125,27 +176,37 @@ static uint16_t var_parse_uint16_t(const char *value) {
 // Var names, count & help
 #define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, HELP)    \
   static const char NAME##_name[] PROGMEM = #NAME;          \
-  static const int NAME##_count = INDEX ? INDEX : 1;        \
   static const char NAME##_help[] PROGMEM = HELP;
 
 #include "vars.def"
 #undef VAR
 
+// EEPROM storage
+#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, HELP)    \
+  IF(SET)                                                   \
+  (static TYPE NAME##_eeprom IF(INDEX)([INDEX]) EEMEM;)
+
+#include "vars.def"
+#undef VAR
+
+static uint16_t eeprom_crc EEMEM;
+
 // Last value
 #define VAR(NAME, CODE, TYPE, INDEX, ...)       \
-  static TYPE NAME##_last IF(INDEX)([INDEX]);
+  static TYPE NAME##_state IF(INDEX)([INDEX]);
 
 #include "vars.def"
 #undef VAR
 
 
+
 void vars_init() {
-#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, ...)  \
-  IF(SET)                                         \
-    (IF(INDEX)(for (int i = 0; i < INDEX; i++)) { \
-      set_##NAME(IF(INDEX)(i,) DEFAULT);          \
-      (NAME##_last)IF(INDEX)([i]) = DEFAULT;      \
-    })
+  vars_restore();
+
+  // Initialize var state
+#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, ...)         \
+  IF(INDEX)(for (int i = 0; i < INDEX; i++))                    \
+    (NAME##_state)IF(INDEX)([i]) = get_##NAME(IF(INDEX)(i));
 
 #include "vars.def"
 #undef VAR
@@ -153,37 +214,42 @@ void vars_init() {
 
 
 void vars_report(bool full) {
+  // Save and disable watchdog
+  uint8_t wd_state = hw_disable_watchdog();
+
   bool reported = false;
 
   static const char value_fmt[] PROGMEM = "\"%s\":";
   static const char index_value_fmt[] PROGMEM = "\"%c%s\":";
 
-#define VAR(NAME, CODE, TYPE, INDEX, ...)                \
-  IF(INDEX)(for (int i = 0; i < NAME##_count; i++)) {   \
-    TYPE value = get_##NAME(IF(INDEX)(i));              \
-    TYPE last = (NAME##_last)IF(INDEX)([i]);            \
-                                                        \
-    if (value != last || full) {                        \
-      (NAME##_last)IF(INDEX)([i]) = value;              \
-                                                        \
-      if (!reported) {                                  \
-        reported = true;                                \
-        putchar('{');                                   \
-      } else putchar(',');                              \
-                                                        \
-      printf_P                                          \
-        (IF_ELSE(INDEX)(index_value_fmt, value_fmt),    \
-         IF(INDEX)(INDEX##_LABEL[i],) CODE);            \
-                                                        \
-      var_print_##TYPE(value);                          \
-    }                                                   \
-    wdt_reset();                                        \
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                       \
+  IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {    \
+    TYPE value = get_##NAME(IF(INDEX)(i));                      \
+    TYPE last = (NAME##_state)IF(INDEX)([i]);                   \
+                                                                \
+    if (value != last || full) {                                \
+      (NAME##_state)IF(INDEX)([i]) = value;                     \
+                                                                \
+      if (!reported) {                                          \
+        reported = true;                                        \
+        putchar('{');                                           \
+      } else putchar(',');                                      \
+                                                                \
+      printf_P                                                  \
+        (IF_ELSE(INDEX)(index_value_fmt, value_fmt),            \
+         IF(INDEX)(INDEX##_LABEL[i],) CODE);                    \
+                                                                \
+      var_print_##TYPE(value);                                  \
+    }                                                           \
   }
 
 #include "vars.def"
 #undef VAR
 
   if (reported) printf("}\n");
+
+  // Restore watchdog
+  hw_restore_watchdog(wd_state);
 }
 
 
@@ -247,7 +313,9 @@ bool vars_set(const char *name, const char *value) {
         (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
          if (INDEX <= i) return false);                                 \
                                                                         \
-      set_##NAME(IF(INDEX)(i ,) var_parse_##TYPE(value));               \
+      TYPE x = var_parse_##TYPE(value);                                 \
+      set_##NAME(IF(INDEX)(i,) x);                                      \
+      NAME##_state IF(INDEX)([i]) = x;                                  \
                                                                         \
       return true;                                                      \
     })                                                                  \
@@ -296,9 +364,101 @@ int vars_parser(char *vars) {
 void vars_print_help() {
   static const char fmt[] PROGMEM = "  $%-5s %-14S %-12S  %S\n";
 
-#define VAR(NAME, CODE, TYPE, ...)                      \
-  printf_P(fmt, CODE, NAME##_name, TYPE##_name, NAME##_help);    \
-  wdt_reset();
+  // Save and disable watchdog
+  uint8_t wd_state = hw_disable_watchdog();
+
+#define VAR(NAME, CODE, TYPE, ...)                               \
+  printf_P(fmt, CODE, NAME##_name, TYPE##_name, NAME##_help);
 #include "vars.def"
 #undef VAR
+
+  // Restore watchdog
+  hw_restore_watchdog(wd_state);
+}
+
+
+uint16_t vars_crc() {
+  // Save and disable watchdog
+  uint8_t wd_state = hw_disable_watchdog();
+
+  CRC.CTRL = CRC_RESET_RESET0_gc;
+  CRC.CTRL = CRC_SOURCE_IO_gc; // Must be after reset
+
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
+  IF(SET)                                                               \
+    ({                                                                  \
+      for (int j = 0; ; j++) {                                          \
+        char c = pgm_read_byte(&NAME##_name[j]);                        \
+        if (!c) break;                                                  \
+        CRC.DATAIN = c;                                                 \
+      }                                                                 \
+                                                                        \
+      CRC.DATAIN = INDEX;                                               \
+    })
+
+#include "vars.def"
+#undef VAR
+
+  // Restore watchdog
+  hw_restore_watchdog(wd_state);
+
+  CRC.STATUS = CRC_BUSY_bm; // Done
+  return CRC.CHECKSUM1 << 8 | CRC.CHECKSUM0;
+}
+
+
+void vars_save() {
+  // Save and disable watchdog
+  uint8_t wd_state = hw_disable_watchdog();
+
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
+  IF(SET)                                                               \
+    (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
+      TYPE value = get_##NAME(IF(INDEX)(i));                            \
+      eeprom_update_##TYPE(&NAME##_eeprom IF(INDEX)([i]), value);       \
+    })                                                                  \
+
+#include "vars.def"
+#undef VAR
+
+  // Restore watchdog
+  hw_restore_watchdog(wd_state);
+
+  // Save CRC
+  eeprom_update_word(&eeprom_crc, vars_crc());
+}
+
+
+
+bool vars_valid() {
+  return eeprom_read_word(&eeprom_crc) == vars_crc();
+}
+
+
+stat_t vars_restore() {
+  if (!vars_valid()) return STAT_EEPROM_DATA_INVALID;
+
+  // Save and disable watchdog
+  uint8_t wd_state = hw_disable_watchdog();
+
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
+  IF(SET)                                                               \
+    (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
+      TYPE value = eeprom_read_##TYPE(&NAME##_eeprom IF(INDEX)([i]));   \
+      set_##NAME(IF(INDEX)(i,) value);                                  \
+      NAME##_state IF(INDEX)([i]) = value;                              \
+    })                                                                  \
+
+#include "vars.def"
+#undef VAR
+
+  // Restore watchdog
+  hw_restore_watchdog(wd_state);
+
+  return STAT_OK;
+}
+
+
+void vars_clear() {
+  eeprom_update_word(&eeprom_crc, -1);
 }

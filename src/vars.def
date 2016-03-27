@@ -78,3 +78,4 @@ VAR(switch_type,    "sw", uint8_t,  SWITCHES, 1, 0, "Normally open or closed")
 
 // System
 VAR(velocity,       "v",  float,    0,      0, 0, "Current velocity")
+VAR(hw_id,          "id", string,   0,      0, 0, "Hardware ID")

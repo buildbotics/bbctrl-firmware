@@ -64,7 +64,7 @@
 #include "canonical_machine.h"
 #include "kinematics.h"
 #include "stepper.h"
-#include "encoder.h"
+#include "motor.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -135,7 +135,7 @@ void mp_set_steps_to_runtime_position() {
     mr.commanded_steps[motor] = step_position[motor];
 
     // write steps to encoder register
-    en_set_encoder_steps(motor, step_position[motor]);
+    motor_set_encoder(motor, step_position[motor]);
 
     // must be zero
     mr.following_error[motor] = 0;

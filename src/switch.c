@@ -77,6 +77,8 @@ typedef struct {
   swMode_t mode;
   swDebounce_t debounce; // debounce state
   int8_t count;          // deglitching and lockout counter
+  PORT_t *port;
+  bool min;
 } switch_t;
 
 /* Switch control structures
@@ -91,30 +93,62 @@ typedef struct {
 
 swSingleton_t sw = {
   .switches = {
-    {.type = SWITCH_TYPE, .mode = X_SWITCH_MODE_MIN, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = X_SWITCH_MODE_MAX, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = Y_SWITCH_MODE_MIN, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = Y_SWITCH_MODE_MAX, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = Z_SWITCH_MODE_MIN, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = Z_SWITCH_MODE_MAX, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = A_SWITCH_MODE_MIN, .debounce = SW_IDLE},
-    {.type = SWITCH_TYPE, .mode = A_SWITCH_MODE_MAX, .debounce = SW_IDLE},
+    {
+      .type = SWITCH_TYPE,
+      .mode = X_SWITCH_MODE_MIN,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_X,
+      .min = true,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = X_SWITCH_MODE_MAX,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_X,
+      .min = false,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = Y_SWITCH_MODE_MIN,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_Y,
+      .min = true,
+   }, {
+      .type = SWITCH_TYPE,
+      .mode = Y_SWITCH_MODE_MAX,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_Y,
+      .min = false,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = Z_SWITCH_MODE_MIN,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_Z,
+      .min = true,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = Z_SWITCH_MODE_MAX,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_Z,
+      .min = false,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = A_SWITCH_MODE_MIN,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_A,
+      .min = true,
+    }, {
+      .type = SWITCH_TYPE,
+      .mode = A_SWITCH_MODE_MAX,
+      .debounce = SW_IDLE,
+      .port = &PORT_SWITCH_A,
+      .min = false,
+    },
   }
 };
 
 
-static bool _read_switch(uint8_t sw_num) {
-  switch (sw_num) {
-  case SW_MIN_X: return hw.sw_port[AXIS_X]->IN & SW_MIN_BIT_bm;
-  case SW_MAX_X: return hw.sw_port[AXIS_X]->IN & SW_MAX_BIT_bm;
-  case SW_MIN_Y: return hw.sw_port[AXIS_Y]->IN & SW_MIN_BIT_bm;
-  case SW_MAX_Y: return hw.sw_port[AXIS_Y]->IN & SW_MAX_BIT_bm;
-  case SW_MIN_Z: return hw.sw_port[AXIS_Z]->IN & SW_MIN_BIT_bm;
-  case SW_MAX_Z: return hw.sw_port[AXIS_Z]->IN & SW_MAX_BIT_bm;
-  case SW_MIN_A: return hw.sw_port[AXIS_A]->IN & SW_MIN_BIT_bm;
-  case SW_MAX_A: return hw.sw_port[AXIS_A]->IN & SW_MAX_BIT_bm;
-  default: return false;
-  }
+static bool _read_switch(uint8_t i) {
+  return sw.switches[i].port->IN &
+    (sw.switches[i].min ? SW_MIN_BIT_bm : SW_MAX_BIT_bm);
 }
 
 
@@ -147,27 +181,21 @@ ISR(A_SWITCH_ISR_vect) {_switch_isr();}
 
 
 void switch_init() {
-  for (int i = 0; i < SWITCHES / 2; i++) {
-    // setup input bits and interrupts (previously set to inputs by st_init())
-    if (sw.switches[MIN_SWITCH(i)].mode != SW_MODE_DISABLED) {
-      hw.sw_port[i]->DIRCLR = SW_MIN_BIT_bm;   // set min input - see 13.14.14
-      hw.sw_port[i]->PIN6CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
-      hw.sw_port[i]->INT0MASK |= SW_MIN_BIT_bm; // min on INT0
-    }
-
-    if (sw.switches[MAX_SWITCH(i)].mode != SW_MODE_DISABLED) {
-      hw.sw_port[i]->DIRCLR = SW_MAX_BIT_bm;   // set max input - see 13.14.14
-      hw.sw_port[i]->PIN7CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
-      hw.sw_port[i]->INT0MASK |= SW_MAX_BIT_bm; // max on INT0
-    }
-
-    // set interrupt levels. Interrupts must be enabled in main()
-    hw.sw_port[i]->INTCTRL |= SWITCH_INTLVL;
-  }
-
-  // Initialize state
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
+    PORT_t *port = s->port;
+    uint8_t bm = s->min ? SW_MIN_BIT_bm : SW_MAX_BIT_bm;
+
+    if (s->mode == SW_MODE_DISABLED) continue;
+
+    port->DIRCLR = bm;   // See 13.14.14
+    port->INT0MASK |= bm; // Enable INT0
+    port->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
+
+    if (s->min) port->PIN6CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
+    else port->PIN7CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
+
+    // Initialize state
     s->state = (s->type == SW_TYPE_NORMALLY_OPEN) ^ _read_switch(i);
   }
 }
@@ -210,28 +238,28 @@ void switch_rtc_callback() {
 }
 
 
-bool switch_get_closed(uint8_t n) {
-  return sw.switches[n].state;
+bool switch_get_closed(int index) {
+  return sw.switches[index].state;
 }
 
 
-swType_t switch_get_type(uint8_t n) {
-  return sw.switches[n].type;
+swType_t switch_get_type(int index) {
+  return sw.switches[index].type;
 }
 
 
-void switch_set_type(uint8_t n, swType_t type) {
-  sw.switches[n].type = type;
+void switch_set_type(int index, swType_t type) {
+  sw.switches[index].type = type;
 }
 
 
-swMode_t switch_get_mode(uint8_t n) {
-  return sw.switches[n].mode;
+swMode_t switch_get_mode(int index) {
+  return sw.switches[index].mode;
 }
 
 
-void switch_set_mode(uint8_t n, swMode_t mode) {
-  sw.switches[n].mode = mode;
+void switch_set_mode(int index, swMode_t mode) {
+  sw.switches[index].mode = mode;
 }
 
 

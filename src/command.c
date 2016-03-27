@@ -46,23 +46,23 @@
 
 // Command forward declarations
 // (Don't be afraid, X-Macros rock!)
-#define CMD(name, func, minArgs, maxArgs, help) \
-  uint8_t func(int, char *[]);
+#define CMD(NAME, ...)                          \
+  uint8_t command_##NAME(int, char *[]);
 
 #include "command.def"
 #undef CMD
 
 // Command names & help
-#define CMD(name, func, minArgs, maxArgs, help)      \
-  static const char pstr_##name[] PROGMEM = #name;   \
-  static const char name##_help[] PROGMEM = help;
+#define CMD(NAME, MINARGS, MAXARGS, HELP)      \
+  static const char pstr_##NAME[] PROGMEM = #NAME;   \
+  static const char NAME##_help[] PROGMEM = HELP;
 
 #include "command.def"
 #undef CMD
 
 // Command table
-#define CMD(name, func, minArgs, maxArgs, help) \
-  {pstr_##name, func, minArgs, maxArgs, name##_help},
+#define CMD(NAME, MINARGS, MAXARGS, HELP)                       \
+  {pstr_##NAME, command_##NAME, MINARGS, MAXARGS, NAME##_help},
 
 static const command_t commands[] PROGMEM = {
 #include "command.def"
@@ -216,6 +216,35 @@ uint8_t command_help(int argc, char *argv[]) {
 
 uint8_t command_reboot(int argc, char *argv[]) {
   hw_request_hard_reset();
+  return 0;
+}
+
+
+uint8_t command_bootloader(int argc, char *argv[]) {
+  hw_request_bootloader();
+  return 0;
+}
+
+
+uint8_t command_save(int argc, char *argv[]) {
+  vars_save();
+  return 0;
+}
+
+
+uint8_t command_valid(int argc, char *argv[]) {
+  printf_P(vars_valid() ? PSTR("true\n") : PSTR("false\n"));
+  return 0;
+}
+
+
+uint8_t command_restore(int argc, char *argv[]) {
+  return vars_restore();
+}
+
+
+uint8_t command_clear(int argc, char *argv[]) {
+  vars_clear();
   return 0;
 }
 

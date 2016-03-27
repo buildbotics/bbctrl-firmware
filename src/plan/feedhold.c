@@ -124,8 +124,8 @@ stat_t mp_plan_hold_callback() {
   if (cm.hold_state != FEEDHOLD_PLAN)
     return STAT_NOOP; // not planning a feedhold
 
-  mpBuf_t *bp; // working buffer pointer
-  if (!(bp = mp_get_run_buffer())) return STAT_NOOP; // Oops! nothing's running
+  mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
+  if (!bp) return STAT_NOOP; // Oops! nothing's running
 
   uint8_t mr_flag = true;    // used to tell replan to account for mr buffer Vx
   float mr_available_length; // length left in mr buffer for deceleration

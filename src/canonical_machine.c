@@ -101,7 +101,6 @@
 
 #include "config.h"
 #include "stepper.h"
-#include "encoder.h"
 #include "spindle.h"
 #include "gpio.h"
 #include "switch.h"
@@ -680,12 +679,14 @@ stat_t cm_clear() {
 /// Alarm state; send an exception report and shut down machine
 stat_t cm_hard_alarm(stat_t status) {
   // Hard stop the motors and the spindle
-  stepper_init();
+  st_shutdown();
   cm_spindle_control(SPINDLE_OFF);
   print_status_message("HARD ALARM", status);
   cm.machine_state = MACHINE_SHUTDOWN;
+
   return status;
 }
+
 
 // Representation (4.3.3)
 //

@@ -85,6 +85,7 @@ void print_status_message(const char *msg, stat_t status);
 #define STAT_INITIALIZING 15              // initializing - not ready for use
 #define STAT_ENTERING_BOOT_LOADER 16      // emitted from boot loader
 #define STAT_FUNCTION_IS_STUBBED 17
+#define STAT_EEPROM_DATA_INVALID 18
 
 // Internal errors and startup messages
 #define STAT_INTERNAL_ERROR 20            // unrecoverable internal error

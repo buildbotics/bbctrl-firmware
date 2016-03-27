@@ -32,7 +32,6 @@
 #include "rtc.h"
 #include "report.h"
 #include "stepper.h"
-#include "encoder.h"
 #include "tmc2660.h"
 
 #include "plan/planner.h"
@@ -44,9 +43,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-
-#define TIMER_CC_BM(x) CAT3(TC1_, x, EN_bm)
 
 
 typedef enum {
@@ -64,12 +60,16 @@ typedef struct {
   cmMotorPowerMode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
+  PORT_t *port;
   TC0_t *timer;
+  DMA_CH_t *dma;
+  uint8_t dma_trigger;
 
   // Runtime state
   motorPowerState_t power_state; // state machine for managing motor power
   uint32_t timeout;
   cmMotorFlags_t flags;
+  int32_t encoder;
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
@@ -85,39 +85,54 @@ typedef struct {
 
 static motor_t motors[MOTORS] = {
   {
-    .motor_map  = M1_MOTOR_MAP,
-    .step_angle = M1_STEP_ANGLE,
-    .travel_rev = M1_TRAVEL_PER_REV,
-    .microsteps = M1_MICROSTEPS,
-    .polarity   = M1_POLARITY,
-    .power_mode = M1_POWER_MODE,
-    .timer      = (TC0_t *)&M1_TIMER,
+    .motor_map   = M1_MOTOR_MAP,
+    .step_angle  = M1_STEP_ANGLE,
+    .travel_rev  = M1_TRAVEL_PER_REV,
+    .microsteps  = M1_MICROSTEPS,
+    .polarity    = M1_POLARITY,
+    .power_mode  = M1_POWER_MODE,
+    .port        = &PORT_MOTOR_1,
+    .timer       = (TC0_t *)&M1_TIMER,
+    .dma         = &M1_DMA_CH,
+    .dma_trigger = M1_DMA_TRIGGER,
   }, {
-    .motor_map  = M2_MOTOR_MAP,
-    .step_angle = M2_STEP_ANGLE,
-    .travel_rev = M2_TRAVEL_PER_REV,
-    .microsteps = M2_MICROSTEPS,
-    .polarity   = M2_POLARITY,
-    .power_mode = M2_POWER_MODE,
-    .timer      = &M2_TIMER,
+    .motor_map   = M2_MOTOR_MAP,
+    .step_angle  = M2_STEP_ANGLE,
+    .travel_rev  = M2_TRAVEL_PER_REV,
+    .microsteps  = M2_MICROSTEPS,
+    .polarity    = M2_POLARITY,
+    .power_mode  = M2_POWER_MODE,
+    .port        = &PORT_MOTOR_2,
+    .timer       = &M2_TIMER,
+    .dma         = &M2_DMA_CH,
+    .dma_trigger = M2_DMA_TRIGGER,
   }, {
-    .motor_map  = M3_MOTOR_MAP,
-    .step_angle = M3_STEP_ANGLE,
-    .travel_rev = M3_TRAVEL_PER_REV,
-    .microsteps = M3_MICROSTEPS,
-    .polarity   = M3_POLARITY,
-    .power_mode = M3_POWER_MODE,
-    .timer      = &M3_TIMER,
+    .motor_map   = M3_MOTOR_MAP,
+    .step_angle  = M3_STEP_ANGLE,
+    .travel_rev  = M3_TRAVEL_PER_REV,
+    .microsteps  = M3_MICROSTEPS,
+    .polarity    = M3_POLARITY,
+    .power_mode  =  M3_POWER_MODE,
+    .port        = &PORT_MOTOR_3,
+    .timer       = &M3_TIMER,
+    .dma         = &M3_DMA_CH,
+    .dma_trigger = M3_DMA_TRIGGER,
   }, {
-    .motor_map  = M4_MOTOR_MAP,
-    .step_angle = M4_STEP_ANGLE,
-    .travel_rev = M4_TRAVEL_PER_REV,
-    .microsteps = M4_MICROSTEPS,
-    .polarity   = M4_POLARITY,
-    .power_mode = M4_POWER_MODE,
-    .timer      = &M4_TIMER,
+    .motor_map   = M4_MOTOR_MAP,
+    .step_angle  = M4_STEP_ANGLE,
+    .travel_rev  = M4_TRAVEL_PER_REV,
+    .microsteps  = M4_MICROSTEPS,
+    .polarity    = M4_POLARITY,
+    .power_mode  = M4_POWER_MODE,
+    .port        = &PORT_MOTOR_4,
+    .timer       = &M4_TIMER,
+    .dma         = &M4_DMA_CH,
+    .dma_trigger = M4_DMA_TRIGGER,
   }
 };
+
+
+static uint8_t _dummy;
 
 
 /// Special interrupt for X-axis
@@ -126,18 +141,65 @@ ISR(TCE1_CCA_vect) {
 }
 
 
+ISR(DMA_CH0_vect) {
+  M1_TIMER.CTRLA = 0; // Top motor clock
+}
+
+
+ISR(DMA_CH1_vect) {
+  M2_TIMER.CTRLA = 0; // Top motor clock
+}
+
+
+ISR(DMA_CH2_vect) {
+  M3_TIMER.CTRLA = 0; // Top motor clock
+}
+
+
+ISR(DMA_CH3_vect) {
+  M4_TIMER.CTRLA = 0; // Top motor clock
+}
+
+
 void motor_init() {
   // Reset position
   mp_set_steps_to_runtime_position();
 
-  // Setup motor timers
-  M1_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M1_TIMER_CC);
-  M2_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M2_TIMER_CC);
-  M3_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M3_TIMER_CC);
-  M4_TIMER.CTRLB = TC_WGMODE_FRQ_gc | TIMER_CC_BM(M4_TIMER_CC);
+  // Enable DMA
+  DMA.CTRL = DMA_RESET_bm;
+  DMA.CTRL = DMA_ENABLE_bm;
+
+  for (int motor = 0; motor < MOTORS; motor++) {
+    motor_t *m = &motors[motor];
+
+    // Setup motor timer
+    m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
+
+    // Setup DMA channel as timer event counter
+    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
+    m->dma->TRIGSRC = m->dma_trigger;
+    m->dma->REPCNT = 0;
+
+    m->dma->SRCADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
+    m->dma->SRCADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
+    m->dma->SRCADDR2 = 0;
+
+    m->dma->DESTADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
+    m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
+    m->dma->DESTADDR2 = 0;
+
+    m->dma->CTRLB = DMA_CH_TRNINTLVL_HI_gc;
+    m->dma->CTRLA =
+      DMA_CH_ENABLE_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+  }
 
   // Setup special interrupt for X-axis mapping
   M1_TIMER.INTCTRLB = TC_CCAINTLVL_HI_gc;
+}
+
+
+void motor_shutdown(int motor) {
+  motors[motor].port->OUTSET = MOTOR_ENABLE_BIT_bm; // Disable
 }
 
 
@@ -149,6 +211,16 @@ int motor_get_axis(int motor) {
 int motor_get_steps_per_unit(int motor) {
   return (360 * motors[motor].microsteps) /
     (motors[motor].travel_rev * motors[motor].step_angle);
+}
+
+
+int32_t motor_get_encoder(int motor) {
+  return motors[motor].encoder;
+}
+
+
+void motor_set_encoder(int motor, float encoder) {
+  motors[motor].encoder = round(encoder);
 }
 
 
@@ -263,7 +335,7 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   // negative drift.
   uint16_t steps = round(fabs(travel_steps));
   // TODO why do we need to multiply by 2 here?
-  uint32_t ticks_per_step = seg_clocks / (steps + 0.5) * 2;
+  uint32_t ticks_per_step = seg_clocks / steps * 2;
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step & 0xffff0000UL) {
@@ -297,14 +369,11 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
 
 
 void motor_begin_move(int motor) {
-  motor_t *m = &motors[motor];
-
-  // Energize motor
-  switch (m->power_mode) {
+  switch (motors[motor].power_mode) {
   case MOTOR_DISABLED: return;
 
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (!m->timer_clock) return; // Not moving
+    if (!motors[motor].timer_clock) return; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
@@ -319,27 +388,28 @@ void motor_begin_move(int motor) {
 void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
+  // Setup DMA count
+  m->dma->TRFCNT = m->steps < 0 ? -m->steps : m->steps;
+
   // Set or zero runtime clock and period
-  m->timer->CTRLFCLR = TC0_DIR_bm;  // Count up
-  m->timer->CNT = 0;                // Start at zero
-  m->timer->CCA = m->timer_period;  // Set frequency
-  m->timer->CTRLA = m->timer_clock; // Start or stop
-  m->timer_clock = 0;               // Clear clock
+  m->timer->CNT = 0;                   // Start at zero
+  m->timer->CCA = m->timer_period;     // Set frequency
+  m->timer->CTRLA = m->timer_clock;    // Start or stop
+  m->timer_clock = 0;                  // Clear clock
 
   // Set direction
-  if (m->direction == DIRECTION_CW)
-    hw.st_port[motor]->OUTCLR = DIRECTION_BIT_bm;
-  else hw.st_port[motor]->OUTSET = DIRECTION_BIT_bm;
+  if (m->direction == DIRECTION_CW) m->port->OUTCLR = DIRECTION_BIT_bm;
+  else m->port->OUTSET = DIRECTION_BIT_bm;
 
   // Accumulate encoder
-  en[motor].encoder_steps += m->steps;
+  m->encoder += m->steps;
   m->steps = 0;
 }
 
 
 void motor_end_move(int motor) {
   // Disable motor clock
-  motors[motor].timer->CTRLA = 0;
+  //motors[motor].timer->CTRLA = 0;
 }
 
 

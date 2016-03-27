@@ -67,6 +67,12 @@ void stepper_init() {
 }
 
 
+void st_shutdown() {
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_shutdown(motor);
+}
+
+
 /// Return true if motors or dwell are running
 uint8_t st_runtime_isbusy() {return st.busy;}
 
@@ -92,14 +98,9 @@ ISR(STEP_TIMER_ISR) {
   if (st.dwell && --st.dwell) return;
 
   // End last move
-  if (st.busy) {
-    for (int motor = 0; motor < MOTORS; motor++)
-      motor_end_move(motor);
+  st.busy = false;
 
-    st.busy = false;
-  }
-
-  // If there are no more moves
+  // If there are no more moves try to load one
   if (!st.move_ready) {
     TIMER_STEP.PER = STEP_TIMER_POLL;
     mp_exec_move();
@@ -116,9 +117,6 @@ ISR(STEP_TIMER_ISR) {
     return;
   }
 
-  // Start dwell
-  st.dwell = st.prep_dwell;
-
   // Start move
   if (st.seg_period) {
     for (int motor = 0; motor < MOTORS; motor++)
@@ -127,6 +125,9 @@ ISR(STEP_TIMER_ISR) {
     TIMER_STEP.PER = st.seg_period;
     st.busy = true;
   }
+
+  // Start dwell
+  st.dwell = st.prep_dwell;
 
   // Execute command
   if (st.move_type == MOVE_TYPE_COMMAND) mp_runtime_command(st.bf);
@@ -173,7 +174,7 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   uint32_t seg_clocks = (uint32_t)st.seg_period * STEP_TIMER_DIV;
 
   // Prepare motor moves
-  for (uint8_t motor = 0; motor < MOTORS; motor++)
+  for (int motor = 0; motor < MOTORS; motor++)
     motor_prep_move(motor, seg_clocks, travel_steps[motor], error[motor]);
 
   st.move_ready = true; // signal prep buffer ready(do this last)
@@ -191,10 +192,10 @@ void st_prep_null() {
 
 
 /// Stage command to execution
-void st_prep_command(void *bf) {
+void st_prep_command(mpBuf_t *bf) {
   if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_COMMAND;
-  st.bf = (mpBuf_t *)bf;
+  st.bf = bf;
   st.move_ready = true; // signal prep buffer ready
 }
 

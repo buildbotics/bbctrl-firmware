@@ -28,7 +28,6 @@
 
 #include "gcode_parser.h"
 
-#include "controller.h"
 #include "canonical_machine.h"
 #include "spindle.h"
 #include "util.h"

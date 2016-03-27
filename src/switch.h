@@ -65,9 +65,9 @@ typedef enum {
 
 void switch_init();
 void switch_rtc_callback();
-bool switch_get_closed(uint8_t n);
-swType_t switch_get_type(uint8_t n);
-void switch_set_type(uint8_t n, swType_t type);
-swMode_t switch_get_mode(uint8_t n);
-void switch_set_mode(uint8_t n, swMode_t mode);
+bool switch_get_closed(int index);
+swType_t switch_get_type(int index);
+void switch_set_type(int index, swType_t type);
+swMode_t switch_get_mode(int index);
+void switch_set_mode(int index, swMode_t mode);
 bool switch_get_limit_thrown();

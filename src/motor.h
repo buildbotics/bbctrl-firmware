@@ -63,9 +63,12 @@ typedef enum {
 
 
 void motor_init();
+void motor_shutdown(int motor);
 
 int motor_get_axis(int motor);
 int motor_get_steps_per_unit(int motor);
+int32_t motor_get_encoder(int motor);
+void motor_set_encoder(int motor, float encoder);
 
 bool motor_energizing();
 

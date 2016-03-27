@@ -28,7 +28,6 @@
 #include "tmc2660.h"
 #include "status.h"
 #include "motor.h"
-#include "hardware.h"
 #include "rtc.h"
 #include "cpp_magic.h"
 
@@ -67,6 +66,8 @@ typedef struct {
   uint16_t sguard;
   uint8_t flags;
   uint32_t regs[5];
+
+  PORT_t *port;
 } tmc2660_driver_t;
 
 
@@ -79,7 +80,13 @@ static const uint32_t reg_addrs[] = {
 };
 
 
-static tmc2660_driver_t drivers[MOTORS];
+static tmc2660_driver_t drivers[MOTORS] = {
+  {.port = &PORT_MOTOR_1},
+  {.port = &PORT_MOTOR_2},
+  {.port = &PORT_MOTOR_3},
+  {.port = &PORT_MOTOR_4},
+};
+
 
 typedef struct {
   volatile uint8_t driver;
@@ -89,13 +96,15 @@ typedef struct {
   volatile uint32_t in;
 } spi_t;
 
-static spi_t spi;
+static spi_t spi = {};
 
 
 static void _report_error_flags(int driver) {
-  if (drivers[driver].stabilizing < rtc_get_time()) return;
+  tmc2660_driver_t *drv = &drivers[driver];
 
-  uint8_t dflags = drivers[driver].flags;
+  if (drv->stabilizing < rtc_get_time()) return;
+
+  uint8_t dflags = drv->flags;
   uint8_t mflags = 0;
 
   if ((TMC2660_DRVSTATUS_SHORT_TO_GND_A | TMC2660_DRVSTATUS_SHORT_TO_GND_B) &
@@ -104,19 +113,17 @@ static void _report_error_flags(int driver) {
   if (TMC2660_DRVSTATUS_OVERTEMP_WARN & dflags)
     mflags |= MOTOR_FLAG_OVERTEMP_WARN_bm;
 
-  if (TMC2660_DRVSTATUS_OVERTEMP & dflags)
-    mflags |= MOTOR_FLAG_OVERTEMP_bm;
+  if (TMC2660_DRVSTATUS_OVERTEMP & dflags) mflags |= MOTOR_FLAG_OVERTEMP_bm;
 
-  if (hw.st_port[driver]->IN & FAULT_BIT_bm)
-    mflags |= MOTOR_FLAG_STALLED_bm;
+  if (drv->port->IN & FAULT_BIT_bm) mflags |= MOTOR_FLAG_STALLED_bm;
 
   if (mflags) motor_error_callback(driver, mflags);
 }
 
 
-static void spi_cs(int motor, int enable) {
-  if (enable) hw.st_port[motor]->OUTCLR = CHIP_SELECT_BIT_bm;
-  else hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm;
+static void spi_cs(int driver, int enable) {
+  if (enable) drivers[driver].port->OUTCLR = CHIP_SELECT_BIT_bm;
+  else drivers[driver].port->OUTSET = CHIP_SELECT_BIT_bm;
 }
 
 
@@ -184,7 +191,7 @@ void spi_next() {
         drv->reg = 0;
         drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
         drv->callback = true;
-        hw.st_port[spi.driver]->OUTCLR = MOTOR_ENABLE_BIT_bm; // Enable
+        drv->port->OUTCLR = MOTOR_ENABLE_BIT_bm; // Enable
       }
       break;
 
@@ -198,7 +205,7 @@ void spi_next() {
         DACB.CH0DATA = drv->sguard << 2;
       }
 
-      if (drv->stabilizing < rtc_get_time() && drv->callback) {
+      if (drv->callback && drv->stabilizing < rtc_get_time()) {
         motor_driver_callback(spi.driver);
         drv->callback = false;
       }
@@ -254,10 +261,6 @@ ISR(PORT_4_FAULT_ISR_vect) {_fault_isr(3);}
 
 
 void tmc2660_init() {
-  // Reset state
-  memset(&spi, 0, sizeof(spi));
-  memset(drivers, 0, sizeof(drivers));
-
   // Configure motors
   for (int i = 0; i < MOTORS; i++) {
     drivers[i].state = TMC2660_STATE_CONFIG;
@@ -308,14 +311,16 @@ void tmc2660_init() {
   TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_MOSI_PIN; // High
   TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_MOSI_PIN; // Output
 
-  for (int motor = 0; motor < MOTORS; motor++) {
-    hw.st_port[motor]->OUTSET = CHIP_SELECT_BIT_bm;  // High
-    hw.st_port[motor]->OUTSET = MOTOR_ENABLE_BIT_bm; // High (disabled)
-    hw.st_port[motor]->DIR = MOTOR_PORT_DIR_gm;      // Pin directions
+  for (int driver = 0; driver < MOTORS; driver++) {
+    PORT_t *port = drivers[driver].port;
 
-    hw.st_port[motor]->PIN4CTRL = PORT_ISC_RISING_gc;
-    hw.st_port[motor]->INT1MASK = FAULT_BIT_bm;        // INT1
-    hw.st_port[motor]->INTCTRL |= PORT_INT1LVL_HI_gc;
+    port->OUTSET = CHIP_SELECT_BIT_bm;  // High
+    port->OUTSET = MOTOR_ENABLE_BIT_bm; // High (disabled)
+    port->DIR = MOTOR_PORT_DIR_gm;      // Pin directions
+
+    port->PIN4CTRL = PORT_ISC_RISING_gc;
+    port->INT1MASK = FAULT_BIT_bm;        // INT1
+    port->INTCTRL |= PORT_INT1LVL_HI_gc;
   }
 
   // Configure SPI

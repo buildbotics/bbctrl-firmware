@@ -30,14 +30,16 @@
 #pragma once
 
 #include "status.h"
+#include "plan/buffer.h"
 
 #include <stdbool.h>
 
 
 void stepper_init();
+void st_shutdown();
 uint8_t st_runtime_isbusy();
 stat_t st_prep_line(float travel_steps[], float following_error[],
                     float segment_time);
 void st_prep_null();
-void st_prep_command(void *bf); // void * since mpBuf_t is not visible here
+void st_prep_command(mpBuf_t *bf);
 void st_prep_dwell(float seconds);

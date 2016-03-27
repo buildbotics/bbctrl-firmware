@@ -149,7 +149,7 @@ void usart_set_baud(int baud) {
 }
 
 
-void usart_ctrl(int flag, int enable) {
+void usart_ctrl(int flag, bool enable) {
   if (enable) usart_flags |= flag;
   else usart_flags &= ~flag;
 }
@@ -164,7 +164,7 @@ static void usart_sleep() {
 
 
 void usart_putc(char c) {
-  while (tx_buf_full()) usart_sleep();
+  while (tx_buf_full() | (usart_flags & USART_FLUSH)) usart_sleep();
 
   tx_buf_push(c);
 
@@ -227,6 +227,15 @@ char *usart_readline() {
 
 int16_t usart_peek() {
   return rx_buf_empty() ? -1 : rx_buf_peek();
+}
+
+
+void usart_flush() {
+  usart_ctrl(USART_FLUSH, true);
+
+  while (!tx_buf_empty() || !(USARTC0.STATUS & USART_DREIF_bm) ||
+         !(USARTC0.STATUS & USART_TXCIF_bm))
+    usart_sleep();
 }
 
 

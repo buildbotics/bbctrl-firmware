@@ -34,7 +34,7 @@
 #define __STEP_CORRECTION
 //#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
 //#define __KAHAN                // Use Kahan summation in aline exec functions
-#define __CLOCK_EXTERNAL_16MHZ // uses PLL to provide 32 MHz system clock
+#define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
 
 
 #define AXES                     6 // number of axes
@@ -268,15 +268,12 @@ typedef enum {
 #define SW_MIN_BIT_bm       (1 << 6) // minimum switch inputs
 #define SW_MAX_BIT_bm       (1 << 7) // maximum switch inputs
 
-// Bit assignments for GPIO1_OUTs for spindle, PWM and coolant
-#define SPINDLE_BIT         8 // spindle on/off
-#define SPINDLE_DIR         4 // spindle direction, 1=CW, 0=CCW
+// Assignments for GPIO1_OUTs for spindle, PWM and coolant
+#define SPINDLE_BIT         0 // spindle on/off
+#define SPINDLE_DIR         1 // spindle direction, 1=CW, 0=CCW
 #define SPINDLE_PWM         2 // spindle PWMs output bit
-#define MIST_COOLANT_BIT    1 // coolant on/off (same as flood)
-#define FLOOD_COOLANT_BIT   1 // coolant on/off (same as mist)
-
-// Can use the spindle direction as an indicator LED.  See gpio.h
-#define INDICATOR_LED       SPINDLE_DIR_LED
+#define MIST_COOLANT_BIT    3 // coolant on/off (same as flood)
+#define FLOOD_COOLANT_BIT   3 // coolant on/off (same as mist)
 
 /* Interrupt usage:
  *
@@ -304,10 +301,15 @@ typedef enum {
 #define M3_TIMER        TCE0
 #define M4_TIMER        TCD0
 
-#define M1_TIMER_CC     CCA
-#define M2_TIMER_CC     CCA
-#define M3_TIMER_CC     CCA
-#define M4_TIMER_CC     CCA
+#define M1_DMA_CH       DMA.CH0
+#define M2_DMA_CH       DMA.CH1
+#define M3_DMA_CH       DMA.CH2
+#define M4_DMA_CH       DMA.CH3
+
+#define M1_DMA_TRIGGER  DMA_CH_TRIGSRC_TCE1_CCA_gc
+#define M2_DMA_TRIGGER  DMA_CH_TRIGSRC_TCF0_CCA_gc
+#define M3_DMA_TRIGGER  DMA_CH_TRIGSRC_TCE0_CCA_gc
+#define M4_DMA_TRIGGER  DMA_CH_TRIGSRC_TCD0_CCA_gc
 
 // Timer setup for stepper and dwells
 #define STEP_TIMER_DISABLE   0

@@ -31,7 +31,7 @@
 #include "buffer.h"
 #include "kinematics.h"
 #include "stepper.h"
-#include "encoder.h"
+#include "motor.h"
 #include "util.h"
 #include "report.h"
 
@@ -49,9 +49,9 @@ static stat_t _exec_aline_segment();
 /// Dequeues buffer and executes move continuations. Manages run buffers and
 /// other details.
 stat_t mp_exec_move() {
-  mpBuf_t *bf;
+  mpBuf_t *bf = mp_get_run_buffer();
 
-  if (!(bf = mp_get_run_buffer())) { // null if nothing's running
+  if (!bf) { // null if nothing's running
     st_prep_null();
     return STAT_NOOP;
   }
@@ -777,7 +777,7 @@ static stat_t _exec_aline_segment() {
     // previous segment's target becomes position
     mr.position_steps[i] = mr.target_steps[i];
     // current encoder position (aligns to commanded_steps)
-    mr.encoder_steps[i] = en_read_encoder(i);
+    mr.encoder_steps[i] = motor_get_encoder(i);
     mr.following_error[i] = mr.encoder_steps[i] - mr.commanded_steps[i];
   }
 
