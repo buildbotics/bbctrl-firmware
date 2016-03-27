@@ -99,23 +99,16 @@ ISR(STEP_TIMER_ISR) {
 
   // End last move
   st.busy = false;
+  TIMER_STEP.PER = STEP_TIMER_POLL;
 
   // If there are no more moves try to load one
   if (!st.move_ready) {
-    TIMER_STEP.PER = STEP_TIMER_POLL;
     mp_exec_move();
     return;
   }
 
-  // Power up motors if needed
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_begin_move(motor);
-
-  // Wait until motors have energized
-  if (motor_energizing()) {
-    TIMER_STEP.PER = STEP_TIMER_POLL;
-    return;
-  }
+  // Wait until all motors have energized
+  if (motor_energizing()) return;
 
   // Start move
   if (st.seg_period) {
@@ -124,13 +117,12 @@ ISR(STEP_TIMER_ISR) {
 
     TIMER_STEP.PER = st.seg_period;
     st.busy = true;
-  }
 
-  // Start dwell
-  st.dwell = st.prep_dwell;
+    // Start dwell
+    st.dwell = st.prep_dwell;
 
-  // Execute command
-  if (st.move_type == MOVE_TYPE_COMMAND) mp_runtime_command(st.bf);
+  } else if (st.move_type == MOVE_TYPE_COMMAND)
+    mp_runtime_command(st.bf); // Execute command
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
@@ -138,8 +130,9 @@ ISR(STEP_TIMER_ISR) {
   st.prep_dwell = 0; // clear dwell
   st.move_ready = false;  // flip the flag back
 
-  // Request next move
-  _request_exec_move();
+  // Request next move if not currently in a dwell.  Requesting the next move
+  // may power up motors and the motors should not be powered up during a dwell.
+  if (!st.dwell) _request_exec_move();
 }
 
 

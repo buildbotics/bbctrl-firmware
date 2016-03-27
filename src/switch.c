@@ -188,8 +188,8 @@ void switch_init() {
 
     if (s->mode == SW_MODE_DISABLED) continue;
 
-    port->DIRCLR = bm;   // See 13.14.14
-    port->INT0MASK |= bm; // Enable INT0
+    port->DIRCLR = bm;              // See 13.14.14
+    port->INT0MASK |= bm;           // Enable INT0
     port->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
 
     if (s->min) port->PIN6CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;

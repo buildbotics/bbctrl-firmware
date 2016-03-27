@@ -29,42 +29,13 @@
 #pragma once
 
 
-#include "config.h"
 #include "status.h"
 
-#include <avr/interrupt.h>
 
-
-#define PWM_1        0
-#define PWM_2        1
-
-
-typedef struct pwmConfigChannel {
-  float frequency;    // base frequency for PWM driver, in Hz
-  float cw_speed_lo;  // minimum clockwise spindle speed [0..N]
-  float cw_speed_hi;  // maximum clockwise spindle speed
-  float cw_phase_lo;  // pwm phase at minimum CW spindle speed, clamped [0..1]
-  float cw_phase_hi;  // pwm phase at maximum CW spindle speed, clamped [0..1]
-  float ccw_speed_lo; // minimum counter-clockwise spindle speed [0..N]
-  float ccw_speed_hi; // maximum counter-clockwise spindle speed
-  float ccw_phase_lo; // pwm phase at minimum CCW spindle speed, clamped [0..1]
-  float ccw_phase_hi; // pwm phase at maximum CCW spindle speed, clamped
-  float phase_off;    // pwm phase when spindle is disabled
-} pwmConfigChannel_t;
-
-
-typedef struct pwmChannel {
-  uint8_t ctrla; // byte needed to active CTRLA (it's dynamic - rest are static)
-  TC1_t *timer;  // assumes TC1 flavor timers used for PWM channels
-} pwmChannel_t;
-
-
-typedef struct pwmSingleton {
-  pwmConfigChannel_t c[PWMS]; // array of channel configs
-  pwmChannel_t p[PWMS];       // array of PWM channels
-} pwmSingleton_t;
-
-extern pwmSingleton_t pwm;
+enum {
+  PWM_1,
+  PWM_2,
+};
 
 
 void pwm_init();

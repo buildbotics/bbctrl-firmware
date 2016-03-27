@@ -35,7 +35,7 @@
 //#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
 //#define __KAHAN                // Use Kahan summation in aline exec functions
 #define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
-
+//#define __CLOCK_INTERNAL_32MHZ
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
@@ -211,17 +211,17 @@ typedef enum {
 #define C_ZERO_BACKOFF           2
 
 
-// PWM settings
-#define P1_PWM_FREQUENCY         100    // in Hz
-#define P1_CW_SPEED_LO           1000   // in RPM (arbitrary units)
-#define P1_CW_SPEED_HI           2000
-#define P1_CW_PHASE_LO           0.125  // phase [0..1]
-#define P1_CW_PHASE_HI           0.2
-#define P1_CCW_SPEED_LO          1000
-#define P1_CCW_SPEED_HI          2000
-#define P1_CCW_PHASE_LO          0.125
-#define P1_CCW_PHASE_HI          0.2
-#define P1_PWM_PHASE_OFF         0.1
+// Spindle settings
+#define SPINDLE_PWM_FREQUENCY         100    // in Hz
+#define SPINDLE_CW_SPEED_LO           1000   // in RPM (arbitrary units)
+#define SPINDLE_CW_SPEED_HI           2000
+#define SPINDLE_CW_PHASE_LO           0.125  // phase [0..1]
+#define SPINDLE_CW_PHASE_HI           0.2
+#define SPINDLE_CCW_SPEED_LO          1000
+#define SPINDLE_CCW_SPEED_HI          2000
+#define SPINDLE_CCW_PHASE_LO          0.125
+#define SPINDLE_CCW_PHASE_HI          0.2
+#define SPINDLE_PWM_PHASE_OFF         0.1
 
 
 // Gcode defaults
@@ -351,14 +351,16 @@ typedef enum {
 #define TMC2660_SPI_MISO_PIN   6
 #define TMC2660_SPI_MOSI_PIN   7
 #define TMC2660_TIMER          TCC1
-#define TMC2660_POLL_RATE      0.01  // sec.  Must be in (0, 1]
-#define TMC2660_STABILIZE_TIME 0.01  // sec.  Must be at least 1ms
+#define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
+#define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
+#define TMC2660_STABILIZE_TIME 0.001 // sec.  Must be at least 1ms
 
 
 // PWM settings
+#define PWM_MAX_FREQ (F_CPU / 256)        // with 8-bits duty cycle precision
+#define PWM_MIN_FREQ (F_CPU / 64 / 65536) // min frequency for prescaling
 #define PWM1_CTRLB             (3 | TC1_CCBEN_bm) // single slope PWM channel B
 #define PWM1_ISR_vect          TCD1_CCB_vect
-#define PWM2_CTRLA_CLKSEL      TC_CLKSEL_DIV1_gc
 #define PWM2_CTRLB             3                  // single slope PWM no output
 #define PWM2_ISR_vect          TCE1_CCB_vect
 

@@ -50,6 +50,7 @@
 #include <avr/wdt.h>
 
 #include <stdio.h>
+#include <stdbool.h>
 
 
 static stat_t _shutdown_idler() {
@@ -102,57 +103,41 @@ static stat_t _limit_switch_handler() {
 void _run() {
 #define DISPATCH(func) if (func == STAT_EAGAIN) return;
 
-  // Interrupt Service Routines are the highest priority
-  // See hardware.h for a list of ISRs and their priorities.
-
-  // Kernel level ISR handlers, flags are set in ISRs, order is important
   DISPATCH(hw_reset_handler());                // handle hard reset requests
   DISPATCH(_shutdown_idler());                 // idle in shutdown state
   DISPATCH(_limit_switch_handler());           // limit switch thrown
-  DISPATCH(cm_feedhold_sequencing_callback()); // feedhold state machine
-  DISPATCH(mp_plan_hold_callback());           // plan a feedhold
 
   DISPATCH(tmc2660_sync());                    // synchronize driver config
   DISPATCH(motor_power_callback());            // stepper motor power sequencing
 
-  // Planner hierarchy for gcode and cycles
+  DISPATCH(cm_feedhold_sequencing_callback()); // feedhold state machine
+  DISPATCH(mp_plan_hold_callback());           // plan a feedhold
   DISPATCH(cm_arc_callback());                 // arc generation runs
   DISPATCH(cm_homing_callback());              // G28.2 continuation
   DISPATCH(cm_probe_callback());               // G38.2 continuation
 
-  // Command readers and parsers
-  // ensure at least one free buffer in planning queue
-  DISPATCH(_sync_to_planner());
-  // sync with TX buffer (pseudo-blocking)
-  DISPATCH(_sync_to_tx_buffer());
-
-  DISPATCH(report_callback());
+  DISPATCH(_sync_to_planner());                // ensure a free planning buffer
+  DISPATCH(_sync_to_tx_buffer());              // sync with TX buffer
+  DISPATCH(report_callback());                 // report changes
   DISPATCH(command_dispatch());                // read and execute next command
 }
 
 
 static void _init() {
-  // There are a lot of dependencies in the order of these inits.
-  // Don't change the ordering unless you understand this.
+  cli(); // disable interrupts
 
-  cli(); // disable global interrupts
-
-  // do these first
-  hardware_init();                // system hardware setup - must be first
+  hardware_init();                // hardware setup - must be first
   usart_init();                   // serial port
-
-  // do these next
   tmc2660_init();                 // motor drivers
-  stepper_init();                 // stepper subsystem
-  motor_init();
+  stepper_init();                 // steppers
+  motor_init();                   // motors
   switch_init();                  // switches
-  pwm_init();                     // pulse width modulation drivers
+  pwm_init();                     // PWM drivers
+  planner_init();                 // motion planning
+  canonical_machine_init();       // gcode machine
+  vars_init();                    // configuration variables
 
-  planner_init();                 // motion planning subsystem
-  canonical_machine_init();       // must follow config_init()
-  vars_init();
-
-  sei(); // enable global interrupts
+  sei(); // enable interrupts
 
   fprintf_P(stderr, PSTR("\nBuildbotics firmware\n"));
 }
@@ -164,7 +149,7 @@ int main() {
   _init();
 
   // main loop
-  while (1) {
+  while (true) {
     _run(); // single pass
     wdt_reset();
   }

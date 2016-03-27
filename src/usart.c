@@ -44,7 +44,7 @@
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
 #include "ringbuf.def"
 
-int usart_flags = USART_CRLF | USART_ECHO;
+static int usart_flags = USART_CRLF | USART_ECHO;
 
 
 static void set_dre_interrupt(int enable) {
@@ -164,7 +164,7 @@ static void usart_sleep() {
 
 
 void usart_putc(char c) {
-  while (tx_buf_full() | (usart_flags & USART_FLUSH)) usart_sleep();
+  while (tx_buf_full() || (usart_flags & USART_FLUSH)) usart_sleep();
 
   tx_buf_push(c);
 

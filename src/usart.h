@@ -48,10 +48,10 @@ enum {
 };
 
 enum {
-  USART_CRLF  = (1 << 0),
-  USART_ECHO  = (1 << 1),
-  USART_XOFF  = (1 << 2),
-  USART_FLUSH = (1 << 3),
+  USART_CRLF  = 1 << 0,
+  USART_ECHO  = 1 << 1,
+  USART_XOFF  = 1 << 2,
+  USART_FLUSH = 1 << 3,
 };
 
 void usart_init();

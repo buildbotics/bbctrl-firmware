@@ -29,7 +29,7 @@
 #include "hardware.h"
 #include "rtc.h"
 #include "usart.h"
-#include "clock.h"
+#include "config.h"
 
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -41,8 +41,8 @@
 
 typedef struct {
   char id[26];
-  bool hard_reset_requested;         // flag to perform a hard reset
-  bool bootloader_requested;         // flag to enter the bootloader
+  bool hard_reset;         // flag to perform a hard reset
+  bool bootloader;         // flag to enter the bootloader
 } hw_t;
 
 static hw_t hw = {};
@@ -50,6 +50,52 @@ static hw_t hw = {};
 
 #define PROD_SIGS (*(NVM_PROD_SIGNATURES_t *)0x0000)
 #define HEXNIB(x) "0123456789abcdef"[(x) & 0xf]
+
+
+/// This routine is lifted and modified from Boston Android and from
+/// http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&p=711659
+static void _init_clock()  {
+#if defined(__CLOCK_EXTERNAL_8MHZ) // external 8 Mhx Xtal w/ 4x PLL = 32 Mhz
+  // 2-9 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
+  OSC.XOSCCTRL = OSC_FRQRANGE_2TO9_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
+  OSC.CTRL = OSC_XOSCEN_bm;               // enable external crystal oscillator
+  while (!(OSC.STATUS & OSC_XOSCRDY_bm)); // wait for oscillator ready
+
+  OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 4;    // PLL source, 4x (32 MHz sys clock)
+  OSC.CTRL = OSC_PLLEN_bm | OSC_XOSCEN_bm; // Enable PLL & External Oscillator
+  while (!(OSC.STATUS & OSC_PLLRDY_bm));   // wait for PLL ready
+
+  CCP = CCP_IOREG_gc;
+  CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
+
+  OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
+
+#elif defined(__CLOCK_EXTERNAL_16MHZ) // external 16Mhz Xtal w/ 2x PLL = 32 Mhz
+  // 12-16 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
+  OSC.XOSCCTRL = OSC_FRQRANGE_12TO16_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
+  OSC.CTRL = OSC_XOSCEN_bm;                // enable external crystal oscillator
+  while (!(OSC.STATUS & OSC_XOSCRDY_bm));  // wait for oscillator ready
+
+  OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 2;    // PLL source, 2x (32 MHz sys clock)
+  OSC.CTRL = OSC_PLLEN_bm | OSC_XOSCEN_bm; // Enable PLL & External Oscillator
+  while (!(OSC.STATUS & OSC_PLLRDY_bm));   // wait for PLL ready
+
+  CCP = CCP_IOREG_gc;
+  CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
+
+  OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
+
+#elif defined(__CLOCK_INTERNAL_32MHZ) // 32 MHz internal clock
+  OSC.CTRL = OSC_RC32MEN_bm;               // enable internal 32MHz oscillator
+  while (!(OSC.STATUS & OSC_RC32MRDY_bm)); // wait for oscillator ready
+
+  CCP = CCP_IOREG_gc;                      // Security Signature to modify clk
+  CLK.CTRL = CLK_SCLKSEL_RC32M_gc;         // select sysclock 32MHz osc
+
+#else
+#error No clock defined
+#endif
+}
 
 
 static void _load_hw_id_byte(int i, register8_t *reg) {
@@ -84,7 +130,7 @@ static void _read_hw_id() {
 
 /// Lowest level hardware init
 void hardware_init() {
-  clock_init();                            // set system clock
+  _init_clock();                           // set system clock
   rtc_init();                              // real time counter
   _read_hw_id();
 
@@ -95,7 +141,7 @@ void hardware_init() {
 }
 
 
-void hw_request_hard_reset() {hw.hard_reset_requested = true;}
+void hw_request_hard_reset() {hw.hard_reset = true;}
 
 
 /// Hard reset using watchdog timer
@@ -110,11 +156,11 @@ void hw_hard_reset() {
 
 /// Controller's rest handler
 stat_t hw_reset_handler() {
-  if (hw.hard_reset_requested) hw_hard_reset();
+  if (hw.hard_reset) hw_hard_reset();
 
-  if (hw.bootloader_requested) {
+  if (hw.bootloader) {
     // TODO enable bootloader interrupt vectors and jump to BOOT_SECTION_START
-    hw.bootloader_requested = false;
+    hw.bootloader = false;
   }
 
   return STAT_NOOP;
@@ -122,7 +168,7 @@ stat_t hw_reset_handler() {
 
 
 /// Executes a software reset using CCPWrite
-void hw_request_bootloader() {hw.bootloader_requested = true;}
+void hw_request_bootloader() {hw.bootloader = true;}
 
 
 uint8_t hw_disable_watchdog() {
