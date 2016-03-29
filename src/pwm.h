@@ -31,6 +31,8 @@
 
 #include "status.h"
 
+#include <stdint.h>
+
 
 enum {
   PWM_1,

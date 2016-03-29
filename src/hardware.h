@@ -31,6 +31,8 @@
 
 #include "status.h"
 
+#include <stdint.h>
+
 
 void hardware_init();
 void hw_request_hard_reset();
