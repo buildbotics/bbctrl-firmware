@@ -73,7 +73,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
 
   // Store values and flags in planner buffer
   for (int axis = 0; axis < AXES; axis++) {
-    bf->gm.target[axis] = value[axis];
+    bf->ms.target[axis] = value[axis];
     bf->unit[axis] = flag[axis]; // flag vector in unit
   }
 
@@ -84,7 +84,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
 
 void mp_runtime_command(mpBuf_t *bf) {
   // Use values & flags stored in mp_queue_command()
-  bf->cm_func(bf->gm.target, bf->unit);
+  bf->cm_func(bf->ms.target, bf->unit);
 
   // Free buffer & perform cycle_end if planner is empty
   if (mp_free_run_buffer()) cm_cycle_end();

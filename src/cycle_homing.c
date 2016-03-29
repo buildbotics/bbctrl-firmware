@@ -146,8 +146,8 @@ static int8_t _get_next_axis(int8_t axis);
  *
  * Another Note: When coding a cycle (like this one) you must wait until
  * the last move has actually been queued (or has finished) before declaring
- * the cycle to be done. Otherwise there is a nasty race condition in the
- * tg_controller() that will accept the next command before the position of
+ * the cycle to be done. Otherwise there is a nasty race condition
+ * that will accept the next command before the position of
  * the final move has been recorded in the Gcode model. That's what the call
  * to cm_isbusy() is about.
  */
@@ -156,11 +156,11 @@ static int8_t _get_next_axis(int8_t axis);
 /// G28.2 homing cycle using limit switches
 stat_t cm_homing_cycle_start() {
   // save relevant non-axis parameters from Gcode model
-  hm.saved_units_mode = cm_get_units_mode(ACTIVE_MODEL);
-  hm.saved_coord_system = cm_get_coord_system(ACTIVE_MODEL);
-  hm.saved_distance_mode = cm_get_distance_mode(ACTIVE_MODEL);
-  hm.saved_feed_rate_mode = cm_get_feed_rate_mode(ACTIVE_MODEL);
-  hm.saved_feed_rate = cm_get_feed_rate(ACTIVE_MODEL);
+  hm.saved_units_mode = cm_get_units_mode(&cm.gm);
+  hm.saved_coord_system = cm_get_coord_system(&cm.gm);
+  hm.saved_distance_mode = cm_get_distance_mode(&cm.gm);
+  hm.saved_feed_rate_mode = cm_get_feed_rate_mode(&cm.gm);
+  hm.saved_feed_rate = cm_get_feed_rate(&cm.gm);
 
   // set working values
   cm_set_units_mode(MILLIMETERS);
@@ -329,7 +329,7 @@ static stat_t _homing_axis_set_zero(int8_t axis) {
     cm.homed[axis] = true;
 
   } else // do not set axis if in G28.4 cycle
-    cm_set_position(axis, cm_get_work_position(RUNTIME, axis));
+    cm_set_position(axis, mp_get_runtime_work_position(axis));
 
   cm_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
 
@@ -386,7 +386,7 @@ static stat_t _homing_finalize_exit(int8_t axis) {
   cm_set_distance_mode(hm.saved_distance_mode);
   cm_set_feed_rate_mode(hm.saved_feed_rate_mode);
   cm.gm.feed_rate = hm.saved_feed_rate;
-  cm_set_motion_mode(MODEL, MOTION_MODE_CANCEL_MOTION_MODE);
+  cm_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
   cm_cycle_end();
   cm.cycle_state = CYCLE_OFF;
 

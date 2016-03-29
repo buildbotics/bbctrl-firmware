@@ -28,13 +28,10 @@
 
 #pragma once
 
+#include "canonical_machine.h"
 
-#include "status.h"
 
 void cm_spindle_init();
-
-stat_t cm_set_spindle_speed(float speed);           // S parameter
-void cm_exec_spindle_speed(float speed);            // callback for above
-float cm_get_spindle_pwm(uint8_t spindle_mode);
-stat_t cm_spindle_control(uint8_t spindle_mode);    // M3, M4, M5
-void cm_exec_spindle_control(uint8_t spindle_mode); // callback for above
+void cm_set_spindle_speed(float speed);                     // S parameter
+float cm_get_spindle_pwm(cmSpindleMode_t spindle_mode);
+void cm_spindle_control(cmSpindleMode_t spindle_mode);      // M3, M4, M5

@@ -137,10 +137,9 @@ uint8_t cm_probe_callback() {
  * They must be done after the planner has exhasted all current CYCLE moves as
  * they affect the runtime (specifically the switch modes). Side effects would
  * include limit switches initiating probe actions instead of just killing
- *  movement
+ * movement
  */
 static uint8_t _probing_init() {
-  // so optimistic... ;)
   // NOTE: it is *not* an error condition for the probe not to trigger.
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
@@ -152,7 +151,7 @@ static uint8_t _probing_init() {
   for (uint8_t axis = 0; axis < AXES; axis++) {
     pb.saved_jerk[axis] = cm_get_axis_jerk(axis);   // save the max jerk value
     cm_set_axis_jerk(axis, cm.a[axis].jerk_homing); // use homing jerk for probe
-    pb.start_position[axis] = cm_get_absolute_position(ACTIVE_MODEL, axis);
+    pb.start_position[axis] = cm_get_absolute_position(axis);
   }
 
   // error if the probe target is too close to the current position
@@ -183,8 +182,8 @@ static uint8_t _probing_init() {
   switch_init();
 
   // probe in absolute machine coords
-  pb.saved_coord_system = cm_get_coord_system(ACTIVE_MODEL);
-  pb.saved_distance_mode = cm_get_distance_mode(ACTIVE_MODEL);
+  pb.saved_coord_system = cm_get_coord_system(&cm.gm);
+  pb.saved_distance_mode = cm_get_distance_mode(&cm.gm);
   cm_set_distance_mode(ABSOLUTE_MODE);
   cm_set_coord_system(ABSOLUTE_COORDS);
 
@@ -214,7 +213,7 @@ static stat_t _probing_finish() {
     cm_set_position(axis, mp_get_runtime_work_position(axis));
 
     // store the probe results
-    cm.probe_results[axis] = cm_get_absolute_position(ACTIVE_MODEL, axis);
+    cm.probe_results[axis] = cm_get_absolute_position(axis);
   }
 
   return _set_pb_func(_probing_finalize_exit);
@@ -238,7 +237,7 @@ static void _probe_restore_settings() {
   cm_set_distance_mode(pb.saved_distance_mode);
 
   // update the model with actual position
-  cm_set_motion_mode(MODEL, MOTION_MODE_CANCEL_MOTION_MODE);
+  cm_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
   cm_cycle_end();
   cm.cycle_state = CYCLE_OFF;
 }

@@ -106,7 +106,7 @@ void mp_flush_planner() {
  *
  *   - mm.position    - start and end position for planning
  *   - mr.position    - current position of runtime segment
- *   - mr.target      - target position of runtime segment
+ *   - mr.ms.target   - target position of runtime segment
  *   - mr.endpoint    - final target position of runtime segment
  *
  * Note that position is set immediately when called and may not be
@@ -157,14 +157,14 @@ float mp_get_runtime_absolute_position(uint8_t axis) {return mr.position[axis];}
 
 /// Set offsets in the MR struct
 void mp_set_runtime_work_offset(float offset[]) {
-  copy_vector(mr.gm.work_offset, offset);
+  copy_vector(mr.ms.work_offset, offset);
 }
 
 
 /// Returns current axis position in work coordinates
 /// that were in effect at move planning time
 float mp_get_runtime_work_position(uint8_t axis) {
-  return mr.position[axis] - mr.gm.work_offset[axis];
+  return mr.position[axis] - mr.ms.work_offset[axis];
 }
 
 

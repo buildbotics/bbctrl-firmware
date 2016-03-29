@@ -147,7 +147,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
     // initialization to process the new incoming bf buffer (Gcode block)
     // copy in the gcode model state
-    memcpy(&mr.gm, &(bf->gm), sizeof(GCodeState_t));
+    memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
     bf->replannable = false;
 
     // short lines have already been removed, look for an actual zero
@@ -181,7 +181,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     mr.exit_velocity = bf->exit_velocity;
 
     copy_vector(mr.unit, bf->unit);
-    copy_vector(mr.target, bf->gm.target); // save the final target of the move
+    copy_vector(mr.final_target, bf->ms.target); // save move final target
 
     // generate the waypoints for position correction at section ends
     for (uint8_t axis = 0; axis < AXES; axis++) {
@@ -248,9 +248,9 @@ static stat_t _exec_aline_body() {
       return _exec_aline_tail(); // skip ahead to tail periods
     }
 
-    mr.gm.move_time = mr.body_length / mr.cruise_velocity;
-    mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);
-    mr.segment_time = mr.gm.move_time / mr.segments;
+    mr.ms.move_time = mr.body_length / mr.cruise_velocity;
+    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
+    mr.segment_time = mr.ms.move_time / mr.segments;
     mr.segment_velocity = mr.cruise_velocity;
     mr.segment_count = (uint32_t)mr.segments;
 
@@ -284,10 +284,10 @@ static stat_t _exec_aline_head() {
 
     mr.midpoint_velocity = (mr.entry_velocity + mr.cruise_velocity) / 2;
     // time for entire accel region
-    mr.gm.move_time = mr.head_length / mr.midpoint_velocity;
+    mr.ms.move_time = mr.head_length / mr.midpoint_velocity;
     // # of segments in *each half*
-    mr.segments = ceil(uSec(mr.gm.move_time) / (2 * NOM_SEGMENT_USEC));
-    mr.segment_time = mr.gm.move_time / (2 * mr.segments);
+    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
+    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
     mr.accel_time =
       2 * sqrt((mr.cruise_velocity - mr.entry_velocity) / mr.jerk);
     mr.midpoint_acceleration =
@@ -345,11 +345,11 @@ static stat_t _exec_aline_tail() {
     if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
 
     mr.midpoint_velocity = (mr.cruise_velocity + mr.exit_velocity) / 2;
-    mr.gm.move_time = mr.tail_length / mr.midpoint_velocity;
+    mr.ms.move_time = mr.tail_length / mr.midpoint_velocity;
     // # of segments in *each half*
-    mr.segments = ceil(uSec(mr.gm.move_time) / (2 * NOM_SEGMENT_USEC));
+    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
     // time to advance for each segment
-    mr.segment_time = mr.gm.move_time / (2 * mr.segments);
+    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
     mr.accel_time = 2 * sqrt((mr.cruise_velocity - mr.exit_velocity) / mr.jerk);
     mr.midpoint_acceleration =
       2 * (mr.cruise_velocity - mr.exit_velocity) / mr.accel_time;
@@ -556,11 +556,11 @@ static stat_t _exec_aline_head() {
     }
 
     // Time for entire accel region
-    mr.gm.move_time =
+    mr.ms.move_time =
       2 * mr.head_length / (mr.entry_velocity + mr.cruise_velocity);
     // # of segments for the section
-    mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);
-    mr.segment_time = mr.gm.move_time / mr.segments;
+    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
+    mr.segment_time = mr.ms.move_time / mr.segments;
     _init_forward_diffs(mr.entry_velocity, mr.cruise_velocity);
     mr.segment_count = (uint32_t)mr.segments;
 
@@ -645,12 +645,12 @@ static stat_t _exec_aline_tail() {
     if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
 
     // len/avg. velocity
-    mr.gm.move_time =
+    mr.ms.move_time =
       2 * mr.tail_length / (mr.cruise_velocity + mr.exit_velocity);
     // # of segments for the section
-    mr.segments = ceil(uSec(mr.gm.move_time) / NOM_SEGMENT_USEC);
+    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
     // time to advance for each segment
-    mr.segment_time = mr.gm.move_time / mr.segments;
+    mr.segment_time = mr.ms.move_time / mr.segments;
     _init_forward_diffs(mr.cruise_velocity, mr.exit_velocity);
     mr.segment_count = (uint32_t)mr.segments;
 
@@ -755,13 +755,13 @@ static stat_t _exec_aline_segment() {
   // correction if you are going into a hold.
   if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
       cm.motion_state == MOTION_RUN && cm.cycle_state == CYCLE_MACHINING)
-    copy_vector(mr.gm.target, mr.waypoint[mr.section]);
+    copy_vector(mr.ms.target, mr.waypoint[mr.section]);
 
   else {
     float segment_length = mr.segment_velocity * mr.segment_time;
 
     for (i = 0; i < AXES; i++)
-      mr.gm.target[i] = mr.position[i] + (mr.unit[i] * segment_length);
+      mr.ms.target[i] = mr.position[i] + (mr.unit[i] * segment_length);
   }
 
   // Convert target position to steps. Bucket-brigade the old target
@@ -782,7 +782,7 @@ static stat_t _exec_aline_segment() {
   }
 
   // now determine the target steps
-  ik_kinematics(mr.gm.target, mr.target_steps);
+  ik_kinematics(mr.ms.target, mr.target_steps);
 
   // and compute the distances to be traveled
   for (i = 0; i < MOTORS; i++)
@@ -791,7 +791,7 @@ static stat_t _exec_aline_segment() {
   // Call the stepper prep function
   ritorno(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
   // update position from target
-  copy_vector(mr.position, mr.gm.target);
+  copy_vector(mr.position, mr.ms.target);
 #ifdef __JERK_EXEC
   // needed by jerk-based exec (ignored if running body)
   mr.elapsed_accel_time += mr.segment_accel_time;

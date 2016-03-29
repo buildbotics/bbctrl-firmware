@@ -158,124 +158,9 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
   float sintheta_over2 = sqrt((1 - costheta) / 2);
   float radius = delta * sintheta_over2 / (1 - sintheta_over2);
-  float velocity = sqrt(radius * cm.junction_acceleration);
+  float velocity = sqrt(radius * JUNCTION_ACCELERATION);
 
   return velocity;
-}
-
-
-/* Compute optimal and minimum move times into the gcode_state
- *
- * "Minimum time" is the fastest the move can be performed given
- * the velocity constraints on each participating axis - regardless
- * of the feed rate requested. The minimum time is the time limited
- * by the rate-limiting axis. The minimum time is needed to compute
- * the optimal time and is recorded for possible feed override
- * computation.
- *
- * "Optimal time" is either the time resulting from the requested
- * feed rate or the minimum time if the requested feed rate is not
- * achievable. Optimal times for traverses are always the minimum
- * time.
- *
- * The gcode state must have targets set prior by having
- * cm_set_target(). Axis modes are taken into account by this.
- *
- * The following times are compared and the longest is returned:
- *   - G93 inverse time (if G93 is active)
- *   - time for coordinated move at requested feed rate
- *   - time that the slowest axis would require for the move
- *
- * Sets the following variables in the gcode_state struct
- *   - move_time is set to optimal time
- *   - minimum_time is set to minimum time
- *
- * NIST RS274NGC_v3 Guidance
- *
- * The following is verbatim text from NIST RS274NGC_v3. As I
- * interpret A for moves that combine both linear and rotational
- * movement, the feed rate should apply to the XYZ movement, with
- * the rotational axis (or axes) timed to start and end at the same
- * time the linear move is performed. It is possible under this
- * case for the rotational move to rate-limit the linear move.
- *
- *  2.1.2.5 Feed Rate
- *
- * The rate at which the controlled point or the axes move is
- * nominally a steady rate which may be set by the user. In the
- * Interpreter, the interpretation of the feed rate is as follows
- * unless inverse time feed rate mode is being used in the
- * RS274/NGC view (see Section 3.5.19). The canonical machining
- * functions view of feed rate, as described in Section 4.3.5.1,
- * has conditions under which the set feed rate is applied
- * differently, but none of these is used in the Interpreter.
- *
- * A.  For motion involving one or more of the X, Y, and Z axes
- *     (with or without simultaneous rotational axis motion), the
- *     feed rate means length units per minute along the programmed
- *     XYZ path, as if the rotational axes were not moving.
- *
- * B.  For motion of one rotational axis with X, Y, and Z axes not
- *     moving, the feed rate means degrees per minute rotation of
- *     the rotational axis.
- *
- * C.  For motion of two or three rotational axes with X, Y, and Z
- *     axes not moving, the rate is applied as follows. Let dA, dB,
- *     and dC be the angles in degrees through which the A, B, and
- *     C axes, respectively, must move.  Let D = sqrt(dA^2 + dB^2 +
- *     dC^2). Conceptually, D is a measure of total angular motion,
- *     using the usual Euclidean metric. Let T be the amount of
- *     time required to move through D degrees at the current feed
- *     rate in degrees per minute. The rotational axes should be
- *     moved in coordinated linear motion so that the elapsed time
- *     from the start to the end of the motion is T plus any time
- *     required for acceleration or deceleration.
- */
-static void _calc_move_times(GCodeState_t *gms, const float axis_length[],
-                             const float axis_square[]) {
-  // gms = Gcode model state
-  float inv_time = 0;          // inverse time if doing a feed in G93 mode
-  float xyz_time = 0;          // linear coordinated move at requested feed
-  float abc_time = 0;          // rotary coordinated move at requested feed
-  float max_time = 0;          // time required for the rate-limiting axis
-  float tmp_time = 0;          // used in computation
-  gms->minimum_time = 8675309; // arbitrarily large number
-
-  // compute times for feed motion
-  if (gms->motion_mode != MOTION_MODE_STRAIGHT_TRAVERSE) {
-    if (gms->feed_rate_mode == INVERSE_TIME_MODE) {
-      // feed rate was un-inverted to minutes by cm_set_feed_rate()
-      inv_time = gms->feed_rate;
-      gms->feed_rate_mode = UNITS_PER_MINUTE_MODE;
-
-    } else {
-      // compute length of linear move in millimeters. Feed rate is provided as
-      // mm/min
-      xyz_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
-                      axis_square[AXIS_Z]) / gms->feed_rate;
-
-      // if no linear axes, compute length of multi-axis rotary move in degrees.
-      // Feed rate is provided as degrees/min
-      if (fp_ZERO(xyz_time))
-        abc_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
-                        axis_square[AXIS_C]) / gms->feed_rate;
-    }
-  }
-
-  for (uint8_t axis = 0; axis < AXES; axis++) {
-    if (gms->motion_mode == MOTION_MODE_STRAIGHT_TRAVERSE)
-      tmp_time = fabs(axis_length[axis]) / cm.a[axis].velocity_max;
-
-    else // MOTION_MODE_STRAIGHT_FEED
-      tmp_time = fabs(axis_length[axis]) / cm.a[axis].feedrate_max;
-
-    max_time = max(max_time, tmp_time);
-
-    if (tmp_time > 0) // collect minimum time if this axis is not zero
-      gms->minimum_time = min(gms->minimum_time, tmp_time);
-  }
-
-  gms->move_time = max4(inv_time, max_time, xyz_time, abc_time);
 }
 
 
@@ -297,7 +182,7 @@ static void _calc_move_times(GCodeState_t *gms, const float axis_length[],
  * accumulate and get executed once the accumulated error exceeds
  * the minimums.
  */
-stat_t mp_aline(GCodeState_t *gm_in) {
+stat_t mp_aline(MoveState_t *ms) {
   float exact_stop = 0;                // preset this value OFF
   float junction_velocity;
   uint8_t mr_flag = false;
@@ -308,7 +193,7 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   float length_square = 0;
 
   for (uint8_t axis = 0; axis < AXES; axis++) {
-    axis_length[axis] = gm_in->target[axis] - mm.position[axis];
+    axis_length[axis] = ms->target[axis] - mm.position[axis];
     axis_square[axis] = square(axis_length[axis]);
     length_square += axis_square[axis];
   }
@@ -319,7 +204,7 @@ stat_t mp_aline(GCodeState_t *gm_in) {
     return STAT_OK;
   }
 
-  // If _calc_move_times() says the move will take less than the
+  // If cm_calc_move_time() says the move will take less than the
   // minimum move time get a more accurate time estimate based on
   // starting velocity and acceleration.  The time of the move is
   // determined by its initial velocity (Vi) and how much acceleration
@@ -333,10 +218,10 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   //    (3) Previous block is not optimally planned.
   //        Vi <= previous block's entry_velocity + delta_velocity
 
-  // Set move & minimum time in state
-  _calc_move_times(gm_in, axis_length, axis_square);
+  // Set move time in state
+  cm_calc_move_time(axis_length, axis_square);
 
-  if (gm_in->move_time < MIN_BLOCK_TIME) {
+  if (ms->move_time < MIN_BLOCK_TIME) {
     // Max velocity change for this move
     float delta_velocity = pow(length, 0.66666666) * mm.cbrt_jerk;
     float entry_velocity = 0; // pre-set as if no previous block
@@ -360,8 +245,9 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   // Register callback to exec function
   bf->bf_func = mp_exec_aline;
   bf->length = length;
+
   // Copy model state into planner buffer
-  memcpy(&bf->gm, gm_in, sizeof(GCodeState_t));
+  memcpy(&bf->ms, ms, sizeof(MoveState_t));
 
   // Compute the unit vector and find the right jerk to use (combined
   // operations) To determine the jerk value to use for the block we
@@ -462,12 +348,12 @@ stat_t mp_aline(GCodeState_t *gm_in) {
 
   // finish up the current block variables
   // exact stop cases already zeroed
-  if (cm_get_path_control(MODEL) != PATH_EXACT_STOP) {
+  if (cm_get_path_control() != PATH_EXACT_STOP) {
     bf->replannable = true;
     exact_stop = 8675309; // an arbitrarily large floating point number
   }
 
-  bf->cruise_vmax = bf->length / bf->gm.move_time; // target velocity requested
+  bf->cruise_vmax = bf->length / bf->ms.move_time; // target velocity requested
   junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
   bf->entry_vmax = min3(bf->cruise_vmax, junction_velocity, exact_stop);
   bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
@@ -478,7 +364,7 @@ stat_t mp_aline(GCodeState_t *gm_in) {
   // Note: these next lines must remain in exact order. Position must update
   // before committing the buffer.
   mp_plan_block_list(bf, &mr_flag);            // replan block list
-  copy_vector(mm.position, bf->gm.target);     // set the planner position
+  copy_vector(mm.position, bf->ms.target);     // set the planner position
   // commit current block (must follow the position update)
   mp_commit_write_buffer(MOVE_TYPE_ALINE);
 
@@ -539,7 +425,7 @@ stat_t mp_aline(GCodeState_t *gm_in) {
  * Variables that are ignored but here's what you would expect them to be:
  *
  *   bf->move_state        - NEW for all blocks but the earliest
- *   bf->target[]          - block target position
+ *   bf->ms.target[]       - block target position
  *   bf->unit[]            - block unit vector
  *   bf->time              - gets set later
  *   bf->jerk              - source of the other jerk variables. Used in mr.

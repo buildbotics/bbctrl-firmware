@@ -117,7 +117,7 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   float recip_jerk;               // 1/Jm used for planning (computed & cached)
   float cbrt_jerk;                // cube root of Jm (computed & cached)
 
-  GCodeState_t gm;                // Gode model state, used by planner & runtime
+  MoveState_t ms;
 } mpBuf_t;
 
 

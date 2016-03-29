@@ -66,7 +66,7 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   /// unit vector for axis scaling & planning
   float unit[AXES];
   /// final target for bf (used to correct rounding errors)
-  float target[AXES];
+  float final_target[AXES];
   /// current move position
   float position[AXES];
   /// for Kahan summation in _exec_aline_segment()
@@ -114,7 +114,7 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
 #endif
 #endif // __JERK_EXEC
 
-  GCodeState_t gm;                  // gcode model state currently executing
+  MoveState_t ms;
 } mpMoveRuntimeSingleton_t;
 
 

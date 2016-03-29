@@ -74,7 +74,7 @@ typedef struct arArcSingleton {     // persistent planner and runtime variables
   float center_0;           // center of circle at plane axis 0 (e.g. X for G17)
   float center_1;           // center of circle at plane axis 1 (e.g. Y for G17)
 
-  GCodeState_t gm;          // state struct is passed for each arc segment.
+  MoveState_t ms;
 } arc_t;
 
 arc_t arc = {};
@@ -192,8 +192,8 @@ static void _estimate_arc_time() {
  */
 static stat_t _compute_arc_offsets_from_radius() {
   // Calculate the change in position along each selected axis
-  float x = cm.gm.target[arc.plane_axis_0] - cm.gmx.position[arc.plane_axis_0];
-  float y = cm.gm.target[arc.plane_axis_1] - cm.gmx.position[arc.plane_axis_1];
+  float x = cm.ms.target[arc.plane_axis_0] - cm.position[arc.plane_axis_0];
+  float y = cm.ms.target[arc.plane_axis_1] - cm.position[arc.plane_axis_1];
 
   // *** From Forrest Green - Other Machine Co, 3/27/14
   // If the distance between endpoints is greater than the arc diameter, disc
@@ -263,9 +263,9 @@ static stat_t _compute_arc() {
   //  (.05 inch/.5 mm) OR ((.0005 inch/.005mm) AND .1% of radius)."
 
   // Compute end radius from the center of circle (offsets) to target endpoint
-  float end_0 = arc.gm.target[arc.plane_axis_0] -
+  float end_0 = arc.ms.target[arc.plane_axis_0] -
     arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
-  float end_1 = arc.gm.target[arc.plane_axis_1] -
+  float end_1 = arc.ms.target[arc.plane_axis_1] -
     arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
   // end radius - start radius
   float err = fabs(hypotf(end_0, end_1) - arc.radius);
@@ -321,7 +321,7 @@ static stat_t _compute_arc() {
   // should take to perform the move arc.length is the total mm of travel of
   // the helix (or just a planar arc)
   arc.linear_travel =
-    arc.gm.target[arc.linear_axis] - arc.position[arc.linear_axis];
+    arc.ms.target[arc.linear_axis] - arc.position[arc.linear_axis];
   arc.planar_travel = arc.angular_travel * arc.radius;
   // hypot is insensitive to +/- signs
   arc.length = hypotf(arc.planar_travel, arc.linear_travel);
@@ -330,9 +330,9 @@ static stat_t _compute_arc() {
 
   // Find the minimum number of arc_segments that meets these constraints...
   float arc_segments_for_chordal_accuracy =
-    arc.length / sqrt(4 * cm.chordal_tolerance *
-                      (2 * arc.radius - cm.chordal_tolerance));
-  float arc_segments_for_minimum_distance = arc.length / cm.arc_segment_len;
+    arc.length / sqrt(4 * CHORDAL_TOLERANCE *
+                      (2 * arc.radius - CHORDAL_TOLERANCE));
+  float arc_segments_for_minimum_distance = arc.length / ARC_SEGMENT_LENGTH;
   float arc_segments_for_minimum_time =
     arc.arc_time * MICROSECONDS_PER_MINUTE / MIN_ARC_SEGMENT_USEC;
 
@@ -343,14 +343,14 @@ static stat_t _compute_arc() {
 
   arc.arc_segments = max(arc.arc_segments, 1); // at least 1 arc_segment
   // gcode state struct gets arc_segment_time, not arc time
-  arc.gm.move_time = arc.arc_time / arc.arc_segments;
+  arc.ms.move_time = arc.arc_time / arc.arc_segments;
   arc.arc_segment_count = (int32_t)arc.arc_segments;
   arc.arc_segment_theta = arc.angular_travel / arc.arc_segments;
   arc.arc_segment_linear_travel = arc.linear_travel / arc.arc_segments;
   arc.center_0 = arc.position[arc.plane_axis_0] - sin(arc.theta) * arc.radius;
   arc.center_1 = arc.position[arc.plane_axis_1] - cos(arc.theta) * arc.radius;
   // initialize the linear target
-  arc.gm.target[arc.linear_axis] = arc.position[arc.linear_axis];
+  arc.ms.target[arc.linear_axis] = arc.position[arc.linear_axis];
 
   return STAT_OK;
 }
@@ -431,23 +431,23 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
   cm_set_model_target(target, flags);
 
   // in radius mode it's an error for start == end
-  if (radius_f && fp_EQ(cm.gmx.position[AXIS_X], cm.gm.target[AXIS_X]) &&
-      fp_EQ(cm.gmx.position[AXIS_Y], cm.gm.target[AXIS_Y]) &&
-      fp_EQ(cm.gmx.position[AXIS_Z], cm.gm.target[AXIS_Z]))
+  if (radius_f && fp_EQ(cm.position[AXIS_X], cm.ms.target[AXIS_X]) &&
+      fp_EQ(cm.position[AXIS_Y], cm.ms.target[AXIS_Y]) &&
+      fp_EQ(cm.position[AXIS_Z], cm.ms.target[AXIS_Z]))
     return STAT_ARC_ENDPOINT_IS_STARTING_POINT;
 
   // now get down to the rest of the work setting up the arc for execution
   cm.gm.motion_mode = motion_mode;
   cm_set_work_offsets(&cm.gm);                    // resolved offsets to gm
-  memcpy(&arc.gm, &cm.gm, sizeof(GCodeState_t));  // context to arc singleton
+  memcpy(&arc.ms, &cm.ms, sizeof(MoveState_t));// context to arc singleton
 
-  copy_vector(arc.position, cm.gmx.position);     // arc pos from gcode model
+  copy_vector(arc.position, cm.position);      // arc pos from gcode model
 
-  arc.radius = _to_millimeters(radius);           // set arc radius or zero
+  arc.radius = TO_MILLIMETERS(radius);           // set arc radius or zero
 
-  arc.offset[0] = _to_millimeters(i);             // offsets canonical form (mm)
-  arc.offset[1] = _to_millimeters(j);
-  arc.offset[2] = _to_millimeters(k);
+  arc.offset[0] = TO_MILLIMETERS(i);             // offsets canonical form (mm)
+  arc.offset[1] = TO_MILLIMETERS(j);
+  arc.offset[2] = TO_MILLIMETERS(k);
 
   arc.rotations = floor(fabs(cm.gn.parameter));   // P must be positive integer
 
@@ -482,11 +482,11 @@ stat_t cm_arc_callback() {
     return STAT_EAGAIN;
 
   arc.theta += arc.arc_segment_theta;
-  arc.gm.target[arc.plane_axis_0] = arc.center_0 + sin(arc.theta) * arc.radius;
-  arc.gm.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
-  arc.gm.target[arc.linear_axis] += arc.arc_segment_linear_travel;
-  mp_aline(&arc.gm);                               // run the line
-  copy_vector(arc.position, arc.gm.target);        // update arc current pos
+  arc.ms.target[arc.plane_axis_0] = arc.center_0 + sin(arc.theta) * arc.radius;
+  arc.ms.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
+  arc.ms.target[arc.linear_axis] += arc.arc_segment_linear_travel;
+  mp_aline(&arc.ms);                            // run the line
+  copy_vector(arc.position, arc.ms.target);        // update arc current pos
 
   if (--arc.arc_segment_count > 0) return STAT_EAGAIN;
 

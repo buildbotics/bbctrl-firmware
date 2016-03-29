@@ -27,7 +27,6 @@
 
 #include "report.h"
 #include "config.h"
-#include "canonical_machine.h"
 #include "usart.h"
 #include "rtc.h"
 #include "vars.h"
@@ -70,7 +69,7 @@ stat_t report_callback() {
 
 
 float get_position(int index) {
-  return cm_get_absolute_position(0, index);
+  return mp_get_runtime_absolute_position(index);
 }
 
 

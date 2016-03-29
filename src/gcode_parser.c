@@ -56,7 +56,7 @@ static stat_t _execute_gcode_block();        // Execute the gcode block
 #define SET_MODAL(m, parm, val) \
   {cm.gn.parm = val; cm.gf.parm = 1; gp.modals[m] += 1; break;}
 #define SET_NON_MODAL(parm, val) {cm.gn.parm = val; cm.gf.parm = 1; break;}
-#define EXEC_FUNC(f, v) if ((uint8_t)cm.gf.v) {status = f(cm.gn.v);}
+#define EXEC_FUNC(f, v) if ((uint8_t)cm.gf.v) f(cm.gn.v)
 
 
 /// Parse a block (line) of gcode
@@ -249,10 +249,10 @@ static stat_t _parse_gcode_block(char *buf) {
 
   // set initial state for new move
   memset(&gp, 0, sizeof(gp));                     // clear all parser values
-  memset(&cm.gf, 0, sizeof(GCodeInput_t));        // clear all next-state flags
-  memset(&cm.gn, 0, sizeof(GCodeInput_t));        // clear all next-state values
+  memset(&cm.gf, 0, sizeof(GCodeState_t));        // clear all next-state flags
+  memset(&cm.gn, 0, sizeof(GCodeState_t));        // clear all next-state values
   // get motion mode from previous block
-  cm.gn.motion_mode = cm_get_motion_mode(MODEL);
+  cm.gn.motion_mode = cm_get_motion_mode();
 
   // extract commands and parameters
   while ((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
@@ -392,15 +392,15 @@ static stat_t _parse_gcode_block(char *buf) {
     case 'A': SET_NON_MODAL(target[AXIS_A], value);
     case 'B': SET_NON_MODAL(target[AXIS_B], value);
     case 'C': SET_NON_MODAL(target[AXIS_C], value);
-      //    case 'U': SET_NON_MODAL(target[AXIS_U], value);        // reserved
-      //    case 'V': SET_NON_MODAL(target[AXIS_V], value);        // reserved
-      //    case 'W': SET_NON_MODAL(target[AXIS_W], value);        // reserved
+      // case 'U': SET_NON_MODAL(target[AXIS_U], value); // reserved
+      // case 'V': SET_NON_MODAL(target[AXIS_V], value); // reserved
+      // case 'W': SET_NON_MODAL(target[AXIS_W], value); // reserved
     case 'I': SET_NON_MODAL(arc_offset[0], value);
     case 'J': SET_NON_MODAL(arc_offset[1], value);
     case 'K': SET_NON_MODAL(arc_offset[2], value);
     case 'R': SET_NON_MODAL(arc_radius, value);
-    case 'N': SET_NON_MODAL(linenum,(uint32_t)value);   // line number
-    case 'L': break;                                    // not used for anything
+    case 'N': SET_NON_MODAL(linenum, (uint32_t)value); // line number
+    case 'L': break; // not used for anything
     case 0: break;
     default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
     }
@@ -478,7 +478,7 @@ static stat_t _execute_gcode_block() {
     // return if error, otherwise complete the block
     ritorno(cm_dwell(cm.gn.parameter));
 
-  EXEC_FUNC(cm_select_plane, select_plane);
+  EXEC_FUNC(cm_set_plane, select_plane);
   EXEC_FUNC(cm_set_units_mode, units_mode);
   //--> cutter radius compensation goes here
   //--> cutter length compensation goes here
@@ -489,13 +489,13 @@ static stat_t _execute_gcode_block() {
 
   switch (cm.gn.next_action) {
   case NEXT_ACTION_SET_G28_POSITION: // G28.1
-    status = cm_set_g28_position();
+    cm_set_g28_position();
     break;
   case NEXT_ACTION_GOTO_G28_POSITION: // G28
     status = cm_goto_g28_position(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_SET_G30_POSITION: // G30.1
-    status = cm_set_g30_position();
+    cm_set_g30_position();
     break;
   case NEXT_ACTION_GOTO_G30_POSITION: // G30
     status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
@@ -504,7 +504,7 @@ static stat_t _execute_gcode_block() {
     status = cm_homing_cycle_start();
     break;
   case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
-    status = cm_set_absolute_origin(cm.gn.target, cm.gf.target);
+    cm_set_absolute_origin(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_HOMING_NO_SET: // G28.4
     status = cm_homing_cycle_start_no_set();
@@ -513,24 +513,26 @@ static stat_t _execute_gcode_block() {
     status = cm_straight_probe(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_SET_COORD_DATA:
-    status = cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
+    cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_SET_ORIGIN_OFFSETS:
-    status = cm_set_origin_offsets(cm.gn.target, cm.gf.target);
+    cm_set_origin_offsets(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
-    status = cm_reset_origin_offsets();
+    cm_reset_origin_offsets();
     break;
   case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS:
-    status = cm_suspend_origin_offsets();
+    cm_suspend_origin_offsets();
     break;
   case NEXT_ACTION_RESUME_ORIGIN_OFFSETS:
-    status = cm_resume_origin_offsets();
+    cm_resume_origin_offsets();
     break;
+  case NEXT_ACTION_DWELL: break; // Handled above
 
   case NEXT_ACTION_DEFAULT:
     // apply override setting to gm struct
-    cm_set_absolute_override(MODEL, cm.gn.absolute_override);
+    cm_set_absolute_override(cm.gn.absolute_override);
+
     switch (cm.gn.motion_mode) {
     case MOTION_MODE_CANCEL_MOTION_MODE:
       cm.gm.motion_mode = cm.gn.motion_mode;
@@ -547,10 +549,11 @@ static stat_t _execute_gcode_block() {
                            cm.gn.arc_offset[1], cm.gn.arc_offset[2],
                            cm.gn.arc_radius, cm.gn.motion_mode);
       break;
+    default: break; // Should not get here
     }
   }
   // un-set absolute override once the move is planned
-  cm_set_absolute_override(MODEL, false);
+  cm_set_absolute_override(false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
   if (cm.gf.program_flow) {

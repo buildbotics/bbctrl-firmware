@@ -133,7 +133,7 @@ stat_t mp_plan_hold_callback() {
   float braking_length;      // distance to brake to zero from braking_velocity
 
   // examine and process mr buffer
-  mr_available_length = get_axis_vector_length(mr.target, mr.position);
+  mr_available_length = get_axis_vector_length(mr.final_target, mr.position);
 
   // compute next_segment velocity
   braking_velocity = _compute_next_segment_velocity();

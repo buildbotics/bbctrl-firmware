@@ -66,9 +66,9 @@ static spindle_t spindle = {
 
 /// execute the spindle command (called from planner)
 static void _exec_spindle_control(float *value, float *flag) {
-  uint8_t spindle_mode = (uint8_t)value[0];
+  uint8_t spindle_mode = value[0];
 
-  cm_set_spindle_mode(MODEL, spindle_mode);
+  cm_set_spindle_mode(spindle_mode);
 
   if (spindle_mode == SPINDLE_CW) {
     gpio_set_bit_on(SPINDLE_BIT);
@@ -81,13 +81,13 @@ static void _exec_spindle_control(float *value, float *flag) {
   } else gpio_set_bit_off(SPINDLE_BIT); // failsafe: any error causes stop
 
   // PWM spindle control
-  pwm_set_duty(PWM_1, cm_get_spindle_pwm(spindle_mode) );
+  pwm_set_duty(PWM_1, cm_get_spindle_pwm(spindle_mode));
 }
 
 
 /// Spindle speed callback from planner queue
 static void _exec_spindle_speed(float *value, float *flag) {
-  cm_set_spindle_speed_parameter(MODEL, value[0]);
+  cm_set_spindle_speed_parameter(value[0]);
   // update spindle speed if we're running
   pwm_set_duty(PWM_1, cm_get_spindle_pwm(cm.gm.spindle_mode));
 }
@@ -103,7 +103,7 @@ void cm_spindle_init() {
 
 
 /// return PWM phase (duty cycle) for dir and speed
-float cm_get_spindle_pwm(uint8_t spindle_mode) {
+float cm_get_spindle_pwm(cmSpindleMode_t spindle_mode) {
   float speed_lo = 0, speed_hi = 0, phase_lo = 0, phase_hi = 0;
 
   if (spindle_mode == SPINDLE_CW) {
@@ -133,28 +133,20 @@ float cm_get_spindle_pwm(uint8_t spindle_mode) {
 
 
 /// queue the spindle command to the planner buffer
-stat_t cm_spindle_control(uint8_t spindle_mode) {
-  float value[AXES] = {spindle_mode, 0, 0, 0, 0, 0};
-
+void cm_spindle_control(cmSpindleMode_t spindle_mode) {
+  float value[AXES] = {spindle_mode};
   mp_queue_command(_exec_spindle_control, value, value);
-
-  return STAT_OK;
 }
+
 
 /// Queue the S parameter to the planner buffer
-stat_t cm_set_spindle_speed(float speed) {
-  float value[AXES] = { speed, 0,0,0,0,0 };
+void cm_set_spindle_speed(float speed) {
+  float value[AXES] = {speed};
   mp_queue_command(_exec_spindle_speed, value, value);
-  return STAT_OK;
 }
 
 
-/// Execute the S command (called from the planner buffer)
-void cm_exec_spindle_speed(float speed) {
-  cm_set_spindle_speed(speed);
-}
-
-
+// TODO implement these
 float get_max_spin(int index) {
   return 0;
 }
