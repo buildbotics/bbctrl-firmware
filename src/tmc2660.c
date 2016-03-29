@@ -30,6 +30,7 @@
 #include "motor.h"
 #include "rtc.h"
 #include "cpp_magic.h"
+#include "canonical_machine.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -40,27 +41,23 @@
 #include <stdio.h>
 
 
-void set_power_level(int driver, float value);
+#define REGS 5
 
-
-typedef enum {
-  TMC2660_STATE_START,
-  TMC2660_STATE_CONFIG,
-  TMC2660_STATE_MONITOR,
-  TMC2660_STATE_WAIT,
-  TMC2660_STATE_RECONFIGURE,
-} tmc2660_state_t;
 
 typedef struct {
-  tmc2660_state_t state;
-  bool reconfigure;
+  bool wrote_data;
   bool configured;
+  bool monitor;
   uint8_t reg;
   uint32_t stabilizing;
 
   uint16_t sguard;
   uint8_t flags;
-  uint32_t regs[5];
+  uint32_t last_regs[REGS];
+  uint32_t regs[REGS];
+
+  float idle_current;
+  float drive_current;
 
   PORT_t *port;
 } tmc2660_driver_t;
@@ -116,16 +113,16 @@ static void _report_error_flags(int driver) {
 }
 
 
-static void spi_cs(int driver, bool enable) {
+static void _spi_cs(int driver, bool enable) {
   if (enable) drivers[driver].port->OUTCLR = CHIP_SELECT_BIT_bm;
   else drivers[driver].port->OUTSET = CHIP_SELECT_BIT_bm;
 }
 
 
-static void spi_next();
+static void _spi_next();
 
 
-static void spi_send() {
+static void _spi_send() {
   // Flush any status errors (TODO check for errors)
   uint8_t x = SPIC.STATUS;
   x = x;
@@ -139,112 +136,95 @@ static void spi_send() {
   else {
     // SPI transfer complete
     spi.byte = 0;
-    spi_next();
+    _spi_next();
   }
 }
 
 
 static void _driver_write(int driver) {
-  tmc2660_driver_t *drv = &drivers[spi.driver];
+  tmc2660_driver_t *drv = &drivers[driver];
 
-  switch (drv->state) {
-  case TMC2660_STATE_START: return; // Should not get here
-  case TMC2660_STATE_WAIT: return;
+  _spi_cs(spi.driver, true);  // Select driver
 
-  case TMC2660_STATE_CONFIG:
-    spi.out = reg_addrs[drv->reg] | drv->regs[drv->reg];
-    break;
+  if (drv->monitor) spi.out = TMC2660_DRVCTRL_ADDR | drv->regs[TMC2660_DRVCTRL];
+  else spi.out = reg_addrs[drv->reg] | drv->regs[drv->reg];
 
-  case TMC2660_STATE_MONITOR:
-    spi.out = TMC2660_DRVCTRL_ADDR | drv->regs[TMC2660_DRVCTRL];
-    break;
-
-  case TMC2660_STATE_RECONFIGURE:
-    // Disable MOSFETs during configuration
-    spi.out = TMC2660_CHOPCONF_ADDR | (drv->regs[TMC2660_CHOPCONF] & 0xffff0);
-    break;
-  }
-
-  spi_send(); // Start transfer
+  drv->wrote_data = true;
+  _spi_send(); // Start transfer
 }
 
 
-static void _driver_read(int driver) {
-  tmc2660_driver_t *drv = &drivers[spi.driver];
+static bool _driver_read(int driver) {
+  tmc2660_driver_t *drv = &drivers[driver];
 
-  switch (drv->state) {
-  case TMC2660_STATE_START:
-    drv->state = TMC2660_STATE_CONFIG;
-    break;
+  _spi_cs(spi.driver, false); // Deselect driver
 
-  case TMC2660_STATE_CONFIG:
-    if (++drv->reg == 5) {
-      drv->reg = 0;
-      drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
-      drv->port->OUTCLR = MOTOR_ENABLE_BIT_bm; // Enable
-      drv->state = TMC2660_STATE_MONITOR;
-    }
-    break;
+  // Read response
+  bool read_data = drv->wrote_data;
+  if (drv->wrote_data) {
+    drv->wrote_data = false;
 
-  case TMC2660_STATE_MONITOR:
-    // Read response (in bits [23, 4])
-    drv->sguard = (uint16_t)((spi.in >> 14) & 0x3ff);
+    // Read bits [23, 4]
+    drv->sguard = (spi.in >> 14) & 0x3ff;
     drv->flags = spi.in >> 4;
 
     // Write driver 0 stallguard to DAC
-    if (spi.driver == 0) {
-      DACB.STATUS = DAC_CH0DRE_bm;
+    if (driver == 0 && (DACB.STATUS & DAC_CH0DRE_bm))
       DACB.CH0DATA = drv->sguard << 2;
-    }
 
-    if (!drv->configured && drv->stabilizing < rtc_get_time()) {
-      motor_driver_callback(spi.driver);
-      drv->configured = true;
-    }
-
-    _report_error_flags(spi.driver);
-
-    if (drv->reconfigure) {
-      drv->state = TMC2660_STATE_RECONFIGURE;
-      drv->reconfigure = false;
-      drv->configured = false;
-
-    } else if (++spi.driver == MOTORS) {
-      spi.driver = 0;
-      TMC2660_TIMER.CTRLA = TMC2660_TIMER_ENABLE;
-      drv->state = TMC2660_STATE_WAIT;
-      break;
-    }
-    break;
-
-  case TMC2660_STATE_WAIT:
-    drv->state = TMC2660_STATE_MONITOR;
-    break;
-
-  case TMC2660_STATE_RECONFIGURE:
-    drv->state = TMC2660_STATE_CONFIG;
-    break;
+    _report_error_flags(driver);
   }
+
+  // Check if regs have changed
+  for (int i = 0; i < REGS; i++)
+    if (drv->last_regs[i] != drv->regs[i]) {
+      // Reg changed, update driver
+      drv->monitor = false;
+      drv->last_regs[drv->reg] = drv->regs[drv->reg];
+      drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
+      drv->configured = false;
+      return true;
+
+    } else if (++drv->reg == REGS) drv->reg = 0;
+
+  if (!drv->configured && drv->stabilizing < rtc_get_time()) {
+    motor_driver_callback(driver);
+    drv->configured = true;
+
+    // Enable when first fully configured
+    drv->port->OUTCLR = MOTOR_ENABLE_BIT_bm;
+  }
+
+  if (!drv->monitor || !read_data) {
+    drv->monitor = true;
+    return true;
+  }
+
+  return false;
 }
 
 
-static void spi_next() {
-  spi_cs(spi.driver, false); // Deselect driver
-  _driver_read(spi.driver);  // Read
+static void _spi_next() {
+  bool hasMore = _driver_read(spi.driver);
 
-  spi_cs(spi.driver, true);  // Select driver
+  if (!hasMore && ++spi.driver == MOTORS) {
+    spi.driver = 0;
+    TMC2660_TIMER.CTRLA = TMC2660_TIMER_ENABLE;
+    return;
+  }
+
   _driver_write(spi.driver); // Write
 }
 
 
 ISR(SPIC_INT_vect) {
-  spi_send();
+  _spi_send();
 }
 
 
 ISR(TCC1_OVF_vect) {
   TMC2660_TIMER.CTRLA = 0; // Disable clock
-  spi_next();
+  _spi_next();
 }
 
 
@@ -263,8 +243,11 @@ ISR(PORT_4_FAULT_ISR_vect) {_fault_isr(3);}
 void tmc2660_init() {
   // Configure motors
   for (int i = 0; i < MOTORS; i++) {
-    drivers[i].state = i ? TMC2660_STATE_CONFIG : TMC2660_STATE_START;
-    drivers[i].reg = 0;
+    for (int j = 0; j < REGS; j++)
+      drivers[i].last_regs[j] = -1; // Force config
+
+    drivers[i].idle_current = MOTOR_IDLE_CURRENT;
+    drivers[i].drive_current = MOTOR_CURRENT;
 
     uint32_t mstep = 0;
     switch (MOTOR_MICROSTEPS) {
@@ -299,8 +282,7 @@ void tmc2660_init() {
 
     drivers[i].regs[TMC2660_DRVCONF] = TMC2660_DRVCONF_RDSEL_SG;
 
-    set_power_level(i, MOTOR_IDLE_CURRENT);
-    drivers[i].reconfigure = false; // No need to reconfigure after init
+    tmc2660_disable(i);
   }
 
   // Setup pins
@@ -341,9 +323,9 @@ void tmc2660_init() {
   TMC2660_TIMER.CTRLA = TMC2660_TIMER_ENABLE;
 
   // Configure DAC channel 0 for output
+  DACB.CTRLA = DAC_CH0EN_bm | DAC_ENABLE_bm;
   DACB.CTRLB = DAC_CHSEL_SINGLE_gc;
   DACB.CTRLC = DAC_REFSEL_AVCC_gc;
-  DACB.CTRLA = DAC_CH0EN_bm | DAC_ENABLE_bm;
 }
 
 
@@ -351,12 +333,26 @@ static void _set_reg(int motor, int reg, uint32_t value) {
   if (drivers[motor].regs[reg] == value) return;
 
   drivers[motor].regs[reg] = value;
-  drivers[motor].reconfigure = true;
+  drivers[motor].configured = false;
 }
 
 
 static uint32_t _get_reg(int motor, int reg) {
   return drivers[motor].regs[reg];
+}
+
+
+static float _get_current(int motor) {
+  return (_get_reg(motor, TMC2660_SGCSCONF) & 31) / 31.0;
+}
+
+
+static void _set_current(int motor, float value) {
+  if (value < 0 || 1 < value) return;
+
+  uint32_t reg =
+    (_get_reg(motor, TMC2660_SGCSCONF) & ~31) | (uint8_t)(value * 31.0);
+  _set_reg(motor, TMC2660_SGCSCONF, reg);
 }
 
 
@@ -366,7 +362,7 @@ uint8_t tmc2660_flags(int motor) {
 
 
 bool tmc2660_ready(int motor) {
-  return drivers[motor].configured && !drivers[motor].reconfigure;
+  return drivers[motor].configured;
 }
 
 
@@ -379,46 +375,60 @@ stat_t tmc2660_sync() {
 
 
 void tmc2660_enable(int driver) {
-  // TODO MOTOR_CURRENT should be configurable
-  set_power_level(driver, MOTOR_CURRENT);
+  _set_current(driver, drivers[driver].drive_current);
 }
 
 
 void tmc2660_disable(int driver) {
-  // TODO MOTOR_IDLE_CURRENT should be configurable
-  set_power_level(driver, MOTOR_IDLE_CURRENT);
+  _set_current(driver, drivers[driver].idle_current);
 }
 
 
-float get_power_level(int motor) {
-  return (_get_reg(motor, TMC2660_SGCSCONF) & 31) / 31.0;
+float get_power_level(int driver) {
+  return drivers[driver].drive_current;
 }
 
 
-void set_power_level(int motor, float value) {
-  if (value < 0 || 1 < value) return;
-
-  uint32_t reg =
-    (_get_reg(motor, TMC2660_SGCSCONF) & ~31) | (uint8_t)(value * 31.0);
-  _set_reg(motor, TMC2660_SGCSCONF, reg);
+void set_power_level(int driver, float value) {
+  drivers[driver].drive_current = value;
 }
 
 
-uint16_t get_sg_value(int motor) {
-  return drivers[motor].sguard;
+float get_idle_level(int driver) {
+  return drivers[driver].idle_current;
 }
 
 
-int8_t get_stallguard(int motor) {
-  uint8_t x = (_get_reg(motor, TMC2660_SGCSCONF) & 0x7f00) >> 8;
+void set_idle_level(int driver, float value) {
+  drivers[driver].idle_current = value;
+}
+
+
+float get_current_level(int driver) {
+  return _get_current(driver);
+}
+
+
+void set_current_level(int driver, float value) {
+  _set_current(driver, value);
+}
+
+
+uint16_t get_sg_value(int driver) {
+  return drivers[driver].sguard;
+}
+
+
+int8_t get_stallguard(int driver) {
+  uint8_t x = (_get_reg(driver, TMC2660_SGCSCONF) & 0x7f00) >> 8;
   return (x & (1 << 6)) ? (x & 0xc0) : x;
 }
 
 
-void set_stallguard(int motor, int8_t value) {
+void set_stallguard(int driver, int8_t value) {
   if (value < -64 || 63 < value) return;
 
-  _set_reg(motor, TMC2660_SGCSCONF,
-           (_get_reg(motor, TMC2660_SGCSCONF) & ~0x7f00) |
+  _set_reg(driver, TMC2660_SGCSCONF,
+           (_get_reg(driver, TMC2660_SGCSCONF) & ~0x7f00) |
            TMC2660_SGCSCONF_THRESH(value));
 }

@@ -12,7 +12,7 @@ CPP = avr-g++
 COMMON = -mmcu=$(MCU)
 
 CFLAGS += $(COMMON)
-CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -Os
+CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Isrc
@@ -64,7 +64,12 @@ $(TARGET): $(OBJ)
 	avr-objdump -h -S $< > $@
 
 size: $(TARGET)
-	avr-size -C --mcu=$(MCU) $(TARGET)
+	@echo '********************************************************************'
+	@avr-size -A --mcu=$(MCU) $(TARGET)
+	@echo '********************************************************************'
+	@avr-size -B --mcu=$(MCU) $(TARGET)
+	@echo '********************************************************************'
+	@avr-size -C --mcu=$(MCU) $(TARGET)
 
 # Program
 reset:

@@ -48,6 +48,11 @@ typedef uint8_t flags_t;
 typedef const char *string;
 
 
+// Format strings
+static const char code_fmt[] PROGMEM = "\"%s\":";
+static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
+
+
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
@@ -219,9 +224,6 @@ void vars_report(bool full) {
 
   bool reported = false;
 
-  static const char value_fmt[] PROGMEM = "\"%s\":";
-  static const char index_value_fmt[] PROGMEM = "\"%c%s\":";
-
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                       \
   IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {    \
     TYPE value = get_##NAME(IF(INDEX)(i));                      \
@@ -236,7 +238,7 @@ void vars_report(bool full) {
       } else putchar(',');                                      \
                                                                 \
       printf_P                                                  \
-        (IF_ELSE(INDEX)(index_value_fmt, value_fmt),            \
+        (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),            \
          IF(INDEX)(INDEX##_LABEL[i],) CODE);                    \
                                                                 \
       var_print_##TYPE(value);                                  \
@@ -288,7 +290,12 @@ bool vars_print(const char *name) {
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
        if (INDEX <= i) return false);                                   \
                                                                         \
+    putchar('{');                                                       \
+    printf_P                                                            \
+      (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                      \
+       IF(INDEX)(INDEX##_LABEL[i],) CODE);                              \
     var_print_##TYPE(get_##NAME(IF(INDEX)(i)));                         \
+    putchar('}');                                                       \
                                                                         \
     return true;                                                        \
   }

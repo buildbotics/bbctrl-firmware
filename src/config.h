@@ -352,7 +352,7 @@ typedef enum {
 #define TMC2660_SPI_MOSI_PIN   7
 #define TMC2660_TIMER          TCC1
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
-#define TMC2660_POLL_RATE      0.01 // sec.  Must be in (0, 1]
+#define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
 #define TMC2660_STABILIZE_TIME 0.001 // sec.  Must be at least 1ms
 
 
