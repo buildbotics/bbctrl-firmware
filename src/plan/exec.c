@@ -29,7 +29,6 @@
 
 #include "planner.h"
 #include "buffer.h"
-#include "kinematics.h"
 #include "stepper.h"
 #include "motor.h"
 #include "util.h"
@@ -782,7 +781,7 @@ static stat_t _exec_aline_segment() {
   }
 
   // now determine the target steps
-  ik_kinematics(mr.ms.target, mr.target_steps);
+  mp_kinematics(mr.ms.target, mr.target_steps);
 
   // and compute the distances to be traveled
   for (i = 0; i < MOTORS; i++)

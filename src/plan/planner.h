@@ -132,3 +132,4 @@ float mp_get_runtime_absolute_position(uint8_t axis);
 void mp_set_runtime_work_offset(float offset[]);
 void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
+void mp_kinematics(const float travel[], float steps[]);

@@ -32,7 +32,6 @@
 #include "stepper.h"
 #include "motor.h"
 #include "canonical_machine.h"
-#include "kinematics.h"
 #include "motor.h"
 
 #include <stdbool.h>
@@ -102,7 +101,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 
   // Convert to steps
   float steps[MOTORS] = {0};
-  ik_kinematics(travel, steps);
+  mp_kinematics(travel, steps);
 
   // Queue segment
   float error[MOTORS] = {0};

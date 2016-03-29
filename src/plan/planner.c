@@ -62,7 +62,6 @@
 #include "buffer.h"
 #include "arc.h"
 #include "canonical_machine.h"
-#include "kinematics.h"
 #include "stepper.h"
 #include "motor.h"
 
@@ -127,7 +126,7 @@ void mp_set_steps_to_runtime_position() {
   float step_position[MOTORS];
 
   // convert lengths to steps in floating point
-  ik_kinematics(mr.position, step_position);
+  mp_kinematics(mr.position, step_position);
 
   for (uint8_t motor = 0; motor < MOTORS; motor++) {
     mr.target_steps[motor] = step_position[motor];
@@ -173,4 +172,30 @@ float mp_get_runtime_work_position(uint8_t axis) {
 /// FALSE you know the queue is empty and the motors have stopped.
 uint8_t mp_get_runtime_busy() {
   return st_runtime_isbusy() || mr.move_state == MOVE_RUN;
+}
+
+
+/* Performs axis mapping & conversion of length units to steps (and deals
+ * with inhibited axes)
+ *
+ * The reason steps are returned as floats (as opposed to, say,
+ * uint32_t) is to accommodate fractional steps. stepper.c deals
+ * with fractional step values as fixed-point binary in order to get
+ * the smoothest possible operation. Steps are passed to the move prep
+ * routine as floats and converted to fixed-point binary during queue
+ * loading. See stepper.c for details.
+ */
+void mp_kinematics(const float travel[], float steps[]) {
+  // You could insert inverse kinematics transformations here
+  // or just use travel directly for Cartesian machines.
+
+  // Map motors to axes and convert length units to steps
+  // Most of the conversion math has already been done during config in
+  // steps_per_unit() which takes axis travel, step angle and microsteps into
+  // account.
+  for (int motor = 0; motor < MOTORS; motor++) {
+    int axis = motor_get_axis(motor);
+    if (cm.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
+    else steps[motor] = travel[axis] * motor_get_steps_per_unit(motor);
+  }
 }
