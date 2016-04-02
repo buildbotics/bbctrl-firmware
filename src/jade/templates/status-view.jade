@@ -1,43 +1,30 @@
 script#status-view-template(type="text/x-template")
-  table
+  h2 Jog
+  table.jog
     tr
-      td
-      td: button(@click="jog('y', 1)") Y+
-      td
-      td: button(@click="jog('z', 1)") Z+
-      td: button(@click="jog('a', 1)") A+
+      td: button.pure-button(@click="jog('x', 1)") X+
+      td: button.pure-button(@click="jog('y', 1)") Y+
+      td: button.pure-button(@click="jog('z', 1)") Z+
+      td: button.pure-button(@click="jog('a', 1)") A+
     tr
-      td: button(@click="jog('x', -1)") -X
-      td
-      td: button(@click="jog('x', 1)") X+
-    tr
-      td
-      td: button(@click="jog('y', -1)") -Y
-      td
-      td: button(@click="jog('z', -1)") Z-
-      td: button(@click="jog('a', -1)") A-
+      td: button.pure-button(@click="jog('x', -1)") X-
+      td: button.pure-button(@click="jog('y', -1)") Y-
+      td: button.pure-button(@click="jog('z', -1)") Z-
+      td: button.pure-button(@click="jog('a', -1)") A-
 
-  h2 Velocity {{state.vel}}
+  h2 Velocity {{state.v}}
   h2 Step {{step}}
 
   table.axes
     tr
       th Axis
       th Position
-      th Step
       th Flags
-      th Current
       th StallGuard
 
     each axis in ['x', 'y', 'z']
       tr.axis
         th.name #{axis}
-        td {{state.pos#{axis}}}
-        td {{state.dstep#{axis}}}
-        td {{state.dflags#{axis}}}
-        td
-          | {{state.dcur#{axis} | percent}}
-          gauge(:value="state.dcur#{axis} * 32", :min="1", :max="32")
-          input(type="range" min=1 max=32 v-model="current#{axis}")
-        td
-          gauge(:value="state.sguard#{axis}", :min="0", :max="511")
+        td {{state.#{axis}p}}
+        td {{state.#{axis}sf}}
+        td {{state.#{axis}sgv}}

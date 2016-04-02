@@ -1,5 +1,7 @@
 'use strict'
 
+var api = require('./api');
+
 
 module.exports = new Vue({
   el: 'body',
@@ -37,7 +39,7 @@ module.exports = new Vue({
     $.get('/config-template.json').success(function (data, status, xhr) {
       this.template = data;
 
-      $.get('/default-config.json').success(function (data, status, xhr) {
+      api.get('load').done(function (data) {
         this.config = data;
 
         this.parse_hash();
@@ -50,6 +52,12 @@ module.exports = new Vue({
   methods: {
     parse_hash: function () {
       var hash = location.hash.substr(1);
+
+      if (!hash.trim().length) {
+        location.hash = 'status';
+        return;
+      }
+
       var parts = hash.split(':');
 
       if (parts.length == 2) this.index = parts[1];
@@ -59,7 +67,11 @@ module.exports = new Vue({
 
 
     save: function () {
-      this.modified = false;
+      api.post('save', this.config).done(function (data) {
+        this.modified = false;
+      }.bind(this)).fail(function (xhr, status) {
+        alert('Save failed: ' + status + ': ' + xhr.responseText);
+      });
     }
   }
 })

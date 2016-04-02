@@ -7,12 +7,13 @@ HTTP_PORT = 8080
 HTTP_ADDR = '0.0.0.0'
 
 import os
-from tornado import web, ioloop
+from tornado import web, ioloop, escape
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import json
 import serial
 import multiprocessing
 import time
+import select
 
 import inevent
 from inevent.Constants import *
@@ -29,11 +30,112 @@ config = {
     "verbose": False
     }
 
+
+with open('http/config-template.json', 'r') as f:
+    config_template = json.load(f)
+
+
 state = {}
 clients = []
 
 input_queue = multiprocessing.Queue()
 output_queue = multiprocessing.Queue()
+
+
+def encode_cmd(index, value, spec):
+    if spec['type'] == 'enum': value = spec['values'].index(value)
+    elif spec['type'] == 'bool': value = 1 if value else 0
+    elif spec['type'] == 'percent': value /= 100.0
+
+    cmd = '${}{}={}'.format(index, spec['code'], value)
+    input_queue.put(cmd + '\n')
+    #print(cmd)
+
+
+def encode_config_category(index, config, category):
+    for key, spec in category.items():
+        if key in config:
+            encode_cmd(index, config[key], spec)
+
+
+def encode_config(index, config, tmpl):
+    for category in tmpl.values():
+        encode_config_category(index, config, category)
+
+
+def update_config(config):
+    # Motors
+    tmpl = config_template['motors']
+    for index in range(len(config['motors'])):
+        encode_config(index + 1, config['motors'][index], tmpl)
+
+    # Axes
+    tmpl = config_template['axes']
+    axes = 'xyzabc'
+    for axis in axes:
+        if not axis in config['axes']: continue
+        encode_config(axis, config['axes'][axis], tmpl)
+
+    # Switches
+    tmpl = config_template['switches']
+    for index in range(len(config['switches'])):
+        encode_config_category(index + 1, config['switches'][index], tmpl)
+
+    # Spindle
+    tmpl = config_template['spindle']
+    encode_config_category('', config['spindle'], tmpl)
+
+
+
+class APIHandler(web.RequestHandler):
+    def prepare(self):
+        self.json = {}
+
+        if self.request.body:
+            try:
+                self.json = escape.json_decode(self.request.body)
+            except ValueError:
+                self.send_error(400, message = 'Unable to parse JSON.')
+
+
+    def set_default_headers(self):
+        self.set_header('Content-Type', 'application/json')
+
+
+    def write_error(self, status_code, **kwargs):
+        e = {}
+        e['message'] = str(kwargs['exc_info'][1])
+        e['code'] = status_code
+
+        self.write_json(e)
+
+
+    def write_json(self, data):
+        self.write(json.dumps(data))
+
+
+class LoadHandler(APIHandler):
+    def send_file(self, path):
+        with open(path, 'r') as f:
+            self.write_json(json.load(f))
+
+    def get(self):
+        try:
+            self.send_file('config.json')
+        except Exception as e:
+            print(e)
+            self.send_file('http/default-config.json')
+
+
+class SaveHandler(APIHandler):
+    def post(self):
+        with open('config.json', 'w') as f:
+            json.dump(self.json, f)
+
+        update_config(self.json)
+        print('Saved config')
+        self.write_json('ok')
+
 
 
 class SerialProcess(multiprocessing.Process):
@@ -61,6 +163,9 @@ class SerialProcess(multiprocessing.Process):
         self.sp.flushInput()
 
         while True:
+            fds = [self.input_queue._reader.fileno(), self.sp]
+            ready = select.select(fds, [], [], 0.25)[0]
+
             # look for incoming tornado request
             if not self.input_queue.empty():
                 data = self.input_queue.get()
@@ -69,7 +174,7 @@ class SerialProcess(multiprocessing.Process):
                 self.writeSerial(data)
 
             # look for incoming serial data
-            if (self.sp.inWaiting() > 0):
+            if self.sp.inWaiting() > 0:
                 data = self.readSerial()
                 # send it back to tornado
                 self.output_queue.put(data)
@@ -95,7 +200,7 @@ class Connection(SockJSConnection):
 
 
 
-# check the queue for pending messages, and rely that to all connected clients
+# check the queue for pending messages, and relay them to all connected clients
 def checkQueue():
     while not output_queue.empty():
         try:
@@ -106,6 +211,8 @@ def checkQueue():
 
 
 handlers = [
+    (r'/api/load', LoadHandler),
+    (r'/api/save', SaveHandler),
     (r'/(.*)', web.StaticFileHandler,
      {'path': os.path.join(DIR, 'http/'),
       "default_filename": "index.html"}),

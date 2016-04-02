@@ -1,4 +1,15 @@
 script#admin-view-template(type="text/x-template")
-  button.pure-button.pure-button-primary(@click="backup") Backup configuration
-  button.pure-button.pure-button-primary(@click="restore") Restore configuration
-  button.pure-button.pure-button-primary(@click="upgrade") Upgrade firmware
+  h2 Backup configuration
+  button.pure-button.pure-button-primary(@click="backup") Backup
+
+  h2 Restore configuration
+  button.pure-button.pure-button-primary(@click="restore") Restore
+
+  h2 Reset to default configuration
+  button.pure-button.pure-button-primary(@click="reset") Reset
+
+  h2 Check for new firmware
+  button.pure-button.pure-button-primary(@click="check") Check
+
+  h2 Upgrade firmware
+  button.pure-button.pure-button-primary(@click="upgrade") Upgrade

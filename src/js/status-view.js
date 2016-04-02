@@ -14,24 +14,10 @@ module.exports = {
     return {
       axes: 'xyza',
       state: {
-        dcurx: 1, dcury: 1, dcurz: 1, dcura: 1
-        //sguardx: 1, sguardy: 1, sguardz: 1, sguarda: 1
+        xpl: 1, ypl: 1, zpl: 1, apl: 1
       },
       step: 10
     }
-  },
-
-
-  components: {
-    gauge: require('./gauge')
-  },
-
-
-  watch: {
-    currentx: function (value) {this.current('x', value);},
-    currenty: function (value) {this.current('y', value);},
-    currentz: function (value) {this.current('z', value);},
-    currenta: function (value) {this.current('a', value);}
   },
 
 
@@ -46,7 +32,7 @@ module.exports = {
         this.$set('state.' + key, data[key]);
 
         for (var axis of ['x', 'y', 'z', 'a'])
-          if (key == 'dcur' + axis &&
+          if (key == axis + 'pl' &&
               typeof this.$get('current' + axis) == 'undefined')
             this.$set('current' + axis, (32 * data[key]).toFixed());
       }
@@ -61,17 +47,16 @@ module.exports = {
 
 
     jog: function (axis, dir) {
-      var pos = this.state['pos' + axis] + dir * this.step;
-      this.sock.send('g0' + axis + pos);
+      this.sock.send('g91 g0' + axis + (dir * this.step));
     },
 
 
     current: function (axis, value) {
       var x = value / 32.0;
-      if (this.state['dcur' + axis] == x) return;
+      if (this.state[axis + 'pl'] == x) return;
 
       var data = {};
-      data['dcur' + axis] = x;
+      data[axis + 'pl'] = x;
       this.send(data);
     }
   },

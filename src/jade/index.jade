@@ -9,8 +9,7 @@ html(lang="en")
 
     title Buildbotics Controller - Web interface
 
-    link(rel="stylesheet",
-      href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css")
+    link(rel="stylesheet", href="/css/pure-min.css")
     //if lte IE 8
       link(rel="stylesheet", href="css/side-menu-old-ie.css")
     // [if gt IE 8] <!
@@ -19,14 +18,13 @@ html(lang="en")
 
     - var faURL = "//maxcdn.bootstrapcdn.com/font-awesome"
     link(rel="stylesheet" href=faURL + "/4.5.0/css/font-awesome.min.css")
-    link(href='//fonts.googleapis.com/css?family=Audiowide' rel='stylesheet'
-      type='text/css')
-    link(rel='stylesheet' href='//yui.yahooapis.com/pure/0.6.0/pure-min.css')
+    link(href="//fonts.googleapis.com/css?family=Audiowide" rel="stylesheet"
+      type="text/css")
 
-    link(rel='stylesheet' href='/css/style-' + css_hash + '.css')
+    link(rel="stylesheet" href="/css/style-" + css_hash + ".css")
 
 
-  body
+  body(v-cloak)
     #layout
       a#menuLink.menu-link(href="#menu"): span
 
@@ -82,8 +80,6 @@ html(lang="en")
     script(src="//code.jquery.com/jquery-1.11.3.min.js")
     script(src="//cdn.jsdelivr.net/vue/1.0.17/vue.js")
     script(src="js/sockjs.min.js")
-    script(src="js/gauge.min.js")
-    script(src="js/fd-slider.min.js")
 
     script(src='/js/assets-' + js_hash + '.js')
 

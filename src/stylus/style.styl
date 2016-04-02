@@ -1,3 +1,9 @@
+body
+  overflow-y scroll
+
+[v-cloak]
+  display none
+
 .button-success:not([disabled])
   background rgb(28, 184, 65)
 
@@ -15,6 +21,11 @@
   .right
     color #e5aa3d
 
+
+.jog
+  button
+    width 3.5em
+    margin 0.25em
 
 #menu
   .save
@@ -42,9 +53,14 @@
       label.units
         text-align left
 
+      textarea
+        width 24em
+        height 12em
+
     .switch
       h3, .pure-control-group
         display inline-block
+
 
 
 table.axes

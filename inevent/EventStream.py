@@ -134,7 +134,7 @@ class EventStream(object):
 
 
   def __iter__(self):
-    """
+    """s
     Required to make this class an iterator
     """
     return self
