@@ -17,16 +17,33 @@ module.exports = {
       mdi: '',
       uploads: [],
       axes: 'xyza',
-      state: {
-        xpl: 1, ypl: 1, zpl: 1, apl: 1
-      },
-      step: 10
+      state: {xpl: 1, ypl: 1, zpl: 1, apl: 1}
     }
   },
 
 
   components: {
     'axis-control': require('./axis-control')
+  },
+
+
+  events: {
+    jog: function (axis, move) {
+      console.debug('jog(' + axis + ', ' + move + ')');
+      this.sock.send('g91 g0' + axis + move);
+    },
+
+
+    home: function (axis) {
+      console.debug('home(' + axis + ')');
+      this.sock.send('$home ' + axis);
+    },
+
+
+    zero: function (axis) {
+      console.debug('zero(' + axis + ')');
+      this.sock.send('$zero ' + axis);
+    }
   },
 
 
@@ -88,11 +105,6 @@ module.exports = {
 
     send: function (data) {
       this.sock.send(JSON.stringify(data));
-    },
-
-
-    jog: function (axis, dir) {
-      this.sock.send('g91 g0' + axis + (dir * this.step));
     },
 
 

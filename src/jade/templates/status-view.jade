@@ -1,6 +1,7 @@
 script#status-view-template(type="text/x-template")
   h2 Jog
-  axis-control
+  axis-control(axes="XY", :colors="['gold', 'blue']")
+  axis-control(axes="AZ", :colors="['red', 'green']")
 
   h2 MDI
   form.pure-form.pure-form-aligned
@@ -21,7 +22,6 @@ script#status-view-template(type="text/x-template")
       accept=".nc,.gcode,.gc,.ngc")
 
   h2 Velocity {{state.v}}
-  h2 Step {{step}}
 
   table.axes
     tr

@@ -46,9 +46,8 @@ html(lang="en")
             li.pure-menu-heading
               a.pure-menu-link(href="#axis:x") Axes
 
-            li.pure-menu-item(v-for="axis in config.axes")
-              a.pure-menu-link(:href="'#axis:' + $key")
-                | {{$key | capitalize}} Axis
+            li.pure-menu-item(v-for="axis in 'xyzabc'")
+              a.pure-menu-link(href="#axis:{{axis}}") {{axis | capitalize}} Axis
 
             li.pure-menu-heading
               a.pure-menu-link(href="#spindle") Spindle
