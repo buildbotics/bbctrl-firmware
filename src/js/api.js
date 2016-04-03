@@ -22,7 +22,7 @@ function api_cb(method, url, data, config) {
     var text = xhr.responseText;
     try {text = $.parseJSON(xhr.responseText)} catch(e) {}
     d.reject(text, xhr, status, error);
-    console.debug('API Error: ' + url + ': ' + text);
+    console.debug('API Error: ' + url + ': ' + xhr.responseText);
   })
 
   return d.promise();
@@ -42,6 +42,18 @@ module.exports = {
 
   post: function(url, data, config) {
     return api_cb('POST', url, data, config);
+  },
+
+
+  upload: function(url, data, config) {
+    config = $.extend({
+      processData: false,
+      contentType: false,
+      cache: false,
+      data: data
+    }, config);
+
+    return api_cb('POST', url, undefined, config);
   },
 
 

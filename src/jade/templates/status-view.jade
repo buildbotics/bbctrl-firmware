@@ -1,16 +1,24 @@
 script#status-view-template(type="text/x-template")
   h2 Jog
-  table.jog
-    tr
-      td: button.pure-button(@click="jog('x', 1)") X+
-      td: button.pure-button(@click="jog('y', 1)") Y+
-      td: button.pure-button(@click="jog('z', 1)") Z+
-      td: button.pure-button(@click="jog('a', 1)") A+
-    tr
-      td: button.pure-button(@click="jog('x', -1)") X-
-      td: button.pure-button(@click="jog('y', -1)") Y-
-      td: button.pure-button(@click="jog('z', -1)") Z-
-      td: button.pure-button(@click="jog('a', -1)") A-
+  axis-control
+
+  h2 MDI
+  form.pure-form.pure-form-aligned
+    .pure-control-group
+      textarea(v-model="mdi")
+    button(@click="submit_mdi") Submit
+
+  h2 GCode
+  table
+    tr(v-for="file in uploads")
+      td {{file}}
+      td
+        button(@click="delete(file)") Delete
+        button(@click="run(file)") Run
+
+  form
+    input(v-el="gcode", type="file", @change="upload", value="",
+      accept=".nc,.gcode,.gc,.ngc")
 
   h2 Velocity {{state.v}}
   h2 Step {{step}}

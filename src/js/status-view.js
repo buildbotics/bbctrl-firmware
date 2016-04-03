@@ -1,5 +1,7 @@
 'use strict'
 
+var api = require('./api');
+
 
 function is_array(x) {
   return Object.prototype.toString.call(x) === '[object Array]';
@@ -12,12 +14,19 @@ module.exports = {
 
   data: function () {
     return {
+      mdi: '',
+      uploads: [],
       axes: 'xyza',
       state: {
         xpl: 1, ypl: 1, zpl: 1, apl: 1
       },
       step: 10
     }
+  },
+
+
+  components: {
+    'axis-control': require('./axis-control')
   },
 
 
@@ -37,10 +46,46 @@ module.exports = {
             this.$set('current' + axis, (32 * data[key]).toFixed());
       }
     }.bind(this);
+
+    this.update();
   },
 
 
   methods: {
+    update: function () {
+      api.get('upload')
+        .done(function (uploads) {
+          this.uploads = uploads;
+        }.bind(this))
+    },
+
+
+    submit_mdi: function () {
+      this.sock.send(this.mdi);
+    },
+
+
+    upload: function (e) {
+      var files = e.target.files || e.dataTransfer.files;
+      if (!files.length) return;
+
+      var fd = new FormData();
+      fd.append('gcode', files[0]);
+
+      api.upload('upload', fd).done(this.update);
+    },
+
+
+    delete: function (file) {
+      api.delete('upload/' + file).done(this.update);
+    },
+
+
+    run: function (file) {
+      api.put('upload/' + file).done(this.update);
+    },
+
+
     send: function (data) {
       this.sock.send(JSON.stringify(data));
     },

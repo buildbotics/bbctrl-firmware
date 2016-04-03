@@ -1,0 +1,508 @@
+script#axis-control-template(type="text/x-template")
+  svg(xmlns="http://www.w3.org/2000/svg", width="375", height="248",
+    xmlns:xlink="http://www.w3.org/1999/xlink")
+    defs
+      lineargradient#a
+        stop(offset="0", stop-color="#ded99d")
+        stop(offset="1", stop-color="#b7b287")
+
+      lineargradient#b
+        stop(offset="0", stop-color="#b4b8e4")
+        stop(offset="1", stop-color="#868ab6")
+
+      lineargradient#c
+        stop(offset="0", stop-color="#f9f9f9")
+        stop(offset="1", stop-color="#e5e5e5")
+
+      lineargradient#d
+        stop(offset="0", stop-color="#a1cca1")
+        stop(offset="1", stop-color="#6ba469")
+
+      lineargradient#e
+        stop(offset="0", stop-color="#f88")
+        stop(offset="1", stop-color="#ea5858")
+
+      lineargradient#az
+        stop(offset="0", stop-color="#a1cca1")
+        stop(offset="1", stop-color="#6ba469")
+
+      lineargradient#bz
+        stop(offset="0", stop-color="#f88")
+        stop(offset="1", stop-color="#ea5858")
+
+
+      filter#w(color-interpolation-filters="sRGB", x="-.108", width="1.216",
+        y="-.108", height="1.216")
+        fegaussianblur(stddeviation="3.826")
+
+      filter#u(color-interpolation-filters="sRGB", x="-.18", width="1.361",
+        y="-.182", height="1.364")
+        fegaussianblur(stddeviation="3.539")
+
+      filter#r(color-interpolation-filters="sRGB")
+        fegaussianblur(stddeviation="2.863")
+
+      filter#cz(color-interpolation-filters="sRGB", x="-.301", width="1.602",
+        y="-.05", height="1.101")
+        fegaussianblur(stddeviation="4.688")
+
+
+      lineargradient#l(xlink:href="#a", gradientunits="userSpaceOnUse",
+        gradienttransform="rotate(180 -85.912 21.235)",
+        x1="-204.843", y1="23.531", x2="-190.645", y2="-4.643")
+
+      lineargradient#n(xlink:href="#b", gradientunits="userSpaceOnUse",
+        gradienttransform="matrix(1 0 0 -1 377.241 214.33)",
+        x1="-168.279", y1="-18.947", x2="-140.843", y2="2.397")
+
+      lineargradient#p(xlink:href="#c", gradientunits="userSpaceOnUse",
+        gradienttransform="rotate(180 -64.081 107.165)",
+        x1="-157.566", y1="-15.134", x2="-144.204", y2="8.297")
+
+      lineargradient#v(xlink:href="#d", gradientunits="userSpaceOnUse",
+        gradienttransform="translate(377.241 36.636)",
+        x1="-142.626", y1="11.259", x2="-158.147", y2="-16.603")
+
+      lineargradient#x(xlink:href="#b", gradientunits="userSpaceOnUse",
+        gradienttransform="rotate(180 .06 126.215)",
+        x1="-135.583", y1="44.109", x2="-115.921", y2="26.421")
+
+      lineargradient#y(xlink:href="#a", gradientunits="userSpaceOnUse",
+        gradienttransform="translate(265.971 167.066)",
+        x1="-236.439", y1="-42.033", x2="-221.978", y2="-31.237")
+
+      lineargradient#z(xlink:href="#a", gradientunits="userSpaceOnUse",
+        gradienttransform="rotate(180 -8.636 44.528)",
+        x1="-236.439", y1="-42.033", x2="-221.978", y2="-31.237")
+
+      lineargradient#A(xlink:href="#b", gradientunits="userSpaceOnUse",
+        gradienttransform="translate(247.81 4.555)",
+        x1="-135.583", y1="44.109", x2="-115.921", y2="26.421")
+
+      lineargradient#dz(xlink:href="#az", gradientunits="userSpaceOnUse",
+        gradienttransform="translate(377.241 37.094)", x1="-461.654", y1=".695",
+        x2="-435.976", y2="27.766")
+
+      lineargradient#ez(xlink:href="#bz", gradientunits="userSpaceOnUse",
+        gradienttransform="rotate(180 -128.131 -23.292)", x1="-224.3",
+        y1="78.868", x2="-211.306", y2="97.407")
+
+
+    // Home X
+    g(@click="home('x')", title="Home X axis", cursor="pointer")
+      // Shadow
+      path(
+        d="M51.267 352.962v-8.724H4.162v46.64h10.054s15.733-26 37.051-37.916z",
+        color="#000", fill-opacity=".599", overflow="visible", filter="url(#u)",
+        enable-background="accumulate", transform="translate(4.799 -332.398)")
+
+      // Outline
+      path(d="M54.428 21.478v-8.724H7.323v46.64h10.054s15.733-26 37.05-37.916z",
+        color="#000", fill="url(#l)", stroke="#4c4c4c", stroke-width="1.7",
+        overflow="visible", enable-background="accumulate",
+        transform="translate(1.527 -2.914)")
+
+      // Letter
+      text(font-weight="bold", font-family="Sans", font-size="14",
+        x="31", y="28", fill="#2e3436") X
+
+      // House
+      g(stroke="#2e3436")
+        path(d="M14.974 20.11l5.82-4.7 6.1 4.7v6.505H23.64v-4.022c0-.828-.649-1.423-1.415-1.736-.819-.333-1.838-.343-2.653 0-.746.314-1.344.927-1.344 1.736v4.023h-3.254z",
+          fill="#2e3436", stroke-linejoin="round")
+        path(d="M25.915 16.773v-1.892h1.035v2.553", fill="#2e3436")
+        path(d="M12.493 19.325l8.288-6.692 8.686 6.692", fill="none",
+          stroke-width="1.5", stroke-linecap="round", stroke-linejoin="round")
+
+
+    // Home Y
+    g(@click="home('y')", title="Home Y axis", cursor="pointer")
+      // Shadow
+      path(
+        d="M243.661 7.817V-.907h-47.105v46.64h10.054s15.733-26 37.051-37.916z",
+        transform="rotate(180 218.928 116.59)", color="#000",
+        fill-opacity=".599", overflow="visible", filter="url(#u)",
+        enable-background="accumulate")
+
+      // Outline
+      path(d="M194.651 229.488v8.724h47.106v-46.64h-10.055s-15.732 26-37.05 37.916z",
+        color="#000", fill="url(#n)", stroke="#4c4c4c", stroke-width="1.7",
+        overflow="visible", enable-background="accumulate",
+        transform="translate(-1.862 -8.096)")
+
+      // Letter
+      text(font-weight="bold", font-family="Sans", font-size="14",
+        x="208", y="227", fill="#2e3436") Y
+
+      // House
+      g(stroke="#2e3436")
+        path(d="M222.698 219.361l5.82-4.7 6.1 4.7v6.505h-3.254v-4.023c0-.827-.648-1.423-1.414-1.735-.82-.334-1.839-.343-2.654 0-.746.314-1.344.926-1.344 1.735v4.023h-3.254z",
+          fill="#2e3436", stroke-linejoin="round")
+        path(d="M233.64 216.024v-1.893h1.034v2.553", fill="#2e3436")
+        path(d="M220.218 218.576l8.287-6.693 8.687 6.693", fill="none",
+          stroke-width="1.5", stroke-linecap="round", stroke-linejoin="round")
+
+    // Home Z
+    g(@click="home('z')", title="Home Z axis", cursor="pointer")
+      // Shadow
+      path(transform="matrix(-1 0 0 1 437.856 12.746)",
+        d="M243.661 7.817V-.907h-47.105v46.64h10.054s15.733-26 37.051-37.916z",
+        color="#000", fill-opacity=".599", overflow="visible", filter="url(#u)",
+        enable-background="accumulate")
+
+      // Outline
+      path(d="M194.651 21.478v-8.724h47.106v46.64h-10.055s-15.732-26-37.05-37.916z",
+        color="#000", fill="url(#v)", stroke="#4c4c4c", stroke-width="1.7",
+        overflow="visible", enable-background="accumulate",
+        transform="translate(-1.862 -2.914)")
+
+      // Letter
+      text(font-weight="bold", font-family="Sans", font-size="14",
+        x="208", y="28", fill="#2e3436") Z
+
+      // House
+      g(stroke="#2e3436")
+        path(d="M222.698 20.11l5.82-4.7 6.1 4.7v6.505h-3.254v-4.022c0-.828-.648-1.423-1.414-1.736-.82-.333-1.839-.343-2.654 0-.746.314-1.344.927-1.344 1.736v4.023h-3.254z",
+          fill="#2e3436", stroke-linejoin="round")
+        path(d="M233.64 16.773v-1.892h1.034v2.553", fill="#2e3436")
+        path(d="M220.218 19.325l8.287-6.692 8.687 6.692", fill="none",
+          stroke-width="1.5", stroke-linecap="round", stroke-linejoin="round")
+
+
+    // Home All
+    g(@click="home('all')", title="Home all axes", cursor="pointer")
+      // Shadow
+      path(
+        d="M243.661 7.817V-.907h-47.105v46.64h10.054s15.733-26 37.051-37.916z",
+        transform="matrix(1 0 0 -1 -187.595 233.179)", color="#000",
+        fill-opacity=".599", overflow="visible", filter="url(#w)",
+        enable-background="accumulate")
+
+      // Outline
+      path(
+        d="M54.428 229.488v8.724H7.323v-46.64h10.054s15.733 26 37.05 37.916z",
+        color="#000", fill="url(#p)", stroke="#4c4c4c", stroke-width="1.7",
+        overflow="visible", enable-background="accumulate",
+        transform="translate(1.527 -8.096)")
+
+      // Letter
+      text(font-weight="bold", font-family="Sans", font-size="12",
+        x="30", y="227", fill="#2e3436") All
+
+      // House
+      g(stroke="#2e3436")
+        path(d="M14.974 219.361l5.82-4.7 6.1 4.7v6.505H23.64v-4.023c0-.827-.649-1.423-1.415-1.735-.819-.334-1.838-.343-2.653 0-.746.314-1.344.926-1.344 1.735v4.023h-3.254z",
+          fill="#2e3436", stroke-linejoin="round")
+        path(d="M25.915 216.024v-1.893h1.035v2.553", fill="#2e3436")
+        path(d="M12.493 218.576l8.288-6.693 8.686 6.693", fill="none",
+          stroke-width="1.5", stroke-linecap="round", stroke-linejoin="round")
+
+
+    // 100 shadow
+    path(d="M120.493 342.495c-29.034 0-55.484 10.944-75.5 28.938l15.281 15.28c16.085-14.095 37.151-22.624 60.219-22.624 23.07 0 44.164 8.527 60.25 22.625l15.281-15.281c-20.017-17.994-46.497-28.938-75.531-28.938zm-84.063 37.5c-17.993 20.017-28.937 46.466-28.937 75.5s10.944 55.515 28.937 75.531l15.281-15.28c-14.097-16.086-22.625-37.181-22.625-60.25 0-23.068 8.53-44.135 22.625-60.22l-15.28-15.28zm168.156 0l-15.312 15.313c14.088 16.083 22.656 37.126 22.656 60.187 0 23.063-8.566 44.135-22.656 60.219l15.312 15.312c17.988-20.015 28.938-46.502 28.938-75.53 0-29.03-10.95-55.486-28.938-75.5zM60.306 524.276L44.992 539.59c20.015 17.987 46.471 28.937 75.5 28.937 29.028 0 55.516-10.95 75.531-28.937l-15.313-15.313c-16.083 14.09-37.155 22.657-60.218 22.657-23.061 0-44.105-8.568-60.188-22.657z",
+      color="#000", fill-opacity=".725", fill-rule="evenodd",
+      overflow="visible", filter="url(#w)", enable-background="accumulate",
+      transform="translate(4.799 -332.398)")
+
+    // 100 shadow
+    path(d="M119.436 338.53c-29.443 0-56.275 11.115-76.562 29.375l1.062 1.063c20.017-17.994 46.466-28.938 75.5-28.938 29.035 0 55.515 10.944 75.532 28.938l1.062-1.063c-20.287-18.261-47.149-29.375-76.594-29.375zm-85.125 37.938C16.05 396.755 4.936 423.585 4.936 453.03s11.114 56.307 29.375 76.594l1.063-1.063c-17.994-20.016-28.938-46.497-28.938-75.53 0-29.035 10.944-55.484 28.938-75.5l-1.063-1.063zm170.282 0l-1.063 1.062c17.987 20.015 28.938 46.472 28.938 75.5 0 29.029-10.95 55.516-28.938 75.531l1.063 1.063c18.261-20.287 29.375-47.149 29.375-76.594 0-29.445-11.114-56.275-29.375-76.562zM43.936 537.124l-1.062 1.062c20.287 18.26 47.12 29.375 76.562 29.375 29.445 0 56.307-11.113 76.594-29.375l-1.062-1.062c-20.016 17.987-46.503 28.937-75.532 28.937-29.028 0-55.484-10.95-75.5-28.937z",
+      color="#000", fill-opacity=".553", fill-rule="evenodd",
+      overflow="visible", filter="url(#r)", enable-background="accumulate",
+      transform="translate(4.799 -332.39")
+
+    // 100 ring
+    g(color="#000", fill="#9f9f9f", fill-rule="evenodd", stroke="#494949",
+      overflow="visible", enable-background="accumulate")
+      path(@click="jog('x', 100)", title="Jog +100 X", cursor="pointer",
+        d="M208.329,45.132 L193.017,60.445 C207.105,76.528 215.673,97.571 215.673,120.632 C215.673,143.695 207.107,164.767 193.017,180.851 L208.329,196.163 C226.316,176.148 237.267,149.661 237.267,120.633 C237.267,91.603 226.317,65.147 208.329,45.133 z")
+      path(@click="jog('x', -100)", title="Jog -100 X", cursor="pointer",
+        d="M40.173,45.132 C22.179,65.149 11.235,91.598 11.235,120.632 S22.179,176.147 40.173,196.163 L55.454,180.883 C41.356,164.797 32.829,143.702 32.829,120.633 C32.829,97.565 41.359,76.498 55.454,60.413 L40.173,45.133 z")
+      path(@click="jog('y', 100)", title="Jog +100 Y", cursor="pointer",
+        d="M124.235,7.632 C95.201,7.632 68.752,18.576 48.735,36.57 L64.017,51.85 C80.102,37.754 101.167,29.225 124.235,29.225 C147.305,29.225 168.4,37.752 184.485,51.85 L199.767,36.569 C179.75,18.576 153.27,7.632 124.235,7.632 z")
+      path(@click="jog('y', -100)", title="Jog -100 Y", cursor="pointer",
+        d="M64.048,189.413 L48.735,204.726 C68.751,222.713 95.207,233.663 124.235,233.663 C153.264,233.663 179.751,222.713 199.767,204.726 L184.454,189.413 C168.371,203.504 147.298,212.07 124.235,212.07 C101.175,212.07 80.131,203.502 64.048,189.413 z")
+
+
+    // 10 shadow
+    path(d="M120.493 364.089c-23.068 0-44.134 8.53-60.219 22.625l17.344 17.344c11.623-9.702 26.551-15.532 42.875-15.532 16.323 0 31.283 5.83 42.906 15.532l17.344-17.344c-16.086-14.098-37.18-22.625-60.25-22.625zM51.71 395.276c-14.095 16.085-22.625 37.152-22.625 60.22 0 23.069 8.528 44.164 22.625 60.25L69.055 498.4c-9.702-11.622-15.531-26.582-15.531-42.906 0-16.324 5.83-31.252 15.531-42.875l-17.344-17.344zm137.563.032l-17.313 17.312c9.701 11.623 15.532 26.552 15.532 42.875s-5.83 31.284-15.532 42.906l17.313 17.313c14.09-16.084 22.656-37.156 22.656-60.219 0-23.06-8.568-44.104-22.656-60.187zM77.618 506.964l-17.313 17.312c16.083 14.089 37.127 22.657 60.188 22.657 23.063 0 44.135-8.566 60.218-22.657L163.4 506.964c-11.623 9.7-26.583 15.531-42.906 15.531s-31.253-5.83-42.875-15.531z",
+      color="#000", fill-opacity=".725", fill-rule="evenodd",
+      overflow="visible", filter="url(#w)", enable-background="accumulate",
+      transform="translate(4.799 -332.398)")
+
+    // 10 ring
+    g(color="#000", fill="#c5c5c5", fill-rule="evenodd", overflow="visible",
+      enable-background="accumulate")
+      path(@click="jog('x', 10)", title="Jog +10 X", cursor="pointer",
+        d="M193.017,60.445 L175.704,77.757 C185.405,89.38 191.235,104.309 191.235,120.632 S185.405,151.916 175.705,163.538 L193.017,180.851 C207.107,164.767 215.673,143.695 215.673,120.632 C215.673,97.572 207.105,76.528 193.017,60.445 z")
+      path(@click="jog('x', -10)", title="Jog -10 X", cursor="pointer",
+        d="M55.455,60.413 C41.359,76.498 32.829,97.565 32.829,120.633 C32.829,143.702 41.356,164.797 55.454,180.883 L72.798,163.538 C63.096,151.916 57.267,136.956 57.267,120.632 C57.267,104.309 63.097,89.38 72.797,77.757 L55.455,60.413 z")
+      path(@click="jog('y', 10)", title="Jog +10 Y", cursor="pointer",
+        d="M124.235,29.226 C101.168,29.226 80.102,37.756 64.017,51.851 L81.36,69.195 C92.983,59.493 107.912,53.663 124.235,53.663 C140.559,53.663 155.519,59.493 167.142,69.195 L184.485,51.851 C168.4,37.753 147.305,29.226 124.235,29.226 z")
+      path(@click="jog('y', -10)", title="Jog -10 Y", cursor="pointer",
+        d="M81.36,172.1 L64.048,189.412 C80.131,203.501 101.175,212.069 124.235,212.069 C147.298,212.069 168.371,203.503 184.455,189.412 L167.142,172.1 C155.519,181.8 140.558,187.631 124.235,187.631 C107.913,187.631 92.983,181.801 81.36,172.1 z")
+
+
+    // 1 shadow
+    path(d="M120.493 388.526c-16.324 0-31.252 5.83-42.875 15.532l17.406 17.406a42.303 42.303 0 0 1 25.469-8.469c9.556 0 18.399 3.147 25.5 8.469l17.406-17.406c-11.623-9.702-26.583-15.532-42.906-15.532zM69.055 412.62c-9.702 11.623-15.531 26.551-15.531 42.875s5.83 31.284 15.531 42.906l17.406-17.406c-5.321-7.1-8.468-15.943-8.468-25.5 0-9.565 3.138-18.396 8.468-25.5L69.055 412.62zm102.906 0l-17.406 17.406a42.304 42.304 0 0 1 8.469 25.47c0 9.556-3.147 18.398-8.469 25.5l17.406 17.405c9.701-11.622 15.532-26.583 15.532-42.906s-5.83-31.252-15.532-42.875zm-76.937 76.938l-17.406 17.406c11.622 9.7 26.552 15.531 42.875 15.531s31.283-5.83 42.906-15.531l-17.375-17.406c-7.104 5.33-15.966 8.468-25.531 8.468a42.304 42.304 0 0 1-25.469-8.468z",
+      color="#000", fill-opacity=".725", fill-rule="evenodd",
+      overflow="visible", filter="url(#w)", enable-background="accumulate",
+      transform="translate(4.799 -332.398)")
+
+    // 1 ring
+    g(color="#000", fill="#e2e2e2", fill-rule="evenodd", overflow="visible",
+      enable-background="accumulate")
+      path(@click="jog('x', 1)", title="Jog +1 X", cursor="pointer",
+        d="M175.704,77.757 L158.298,95.163 A42.304,42.304 0 0,1 166.767,120.633 C166.767,130.189 163.62,139.031 158.297,146.133 L175.704,163.538 C185.405,151.916 191.235,136.955 191.235,120.632 S185.405,89.38 175.705,77.757 z")
+      path(@click="jog('x', -1)", title="Jog -1 X", cursor="pointer",
+        d="M72.798,77.757 C63.096,89.38 57.267,104.309 57.267,120.632 C57.267,136.956 63.097,151.916 72.797,163.538 L90.204,146.132 C84.882,139.032 81.735,130.189 81.735,120.632 C81.735,111.067 84.873,102.236 90.205,95.132 L72.797,77.757 z")
+      path(@click="jog('y', 1)", title="Jog +1 Y", cursor="pointer",
+        d="M124.235,53.663 C107.912,53.663 92.983,59.493 81.36,69.195 L98.767,86.6 A42.303,42.303 0 0,1 124.235,78.131 C133.792,78.131 142.635,81.278 149.735,86.6 L167.142,69.194 C155.519,59.492 140.559,53.662 124.235,53.662 z")
+      path(@click="jog('y', -1)", title="Jog -1 Y", cursor="pointer",
+        d="M98.767,154.695 L81.36,172.1 C92.983,181.8 107.913,187.631 124.235,187.631 C140.558,187.631 155.519,181.801 167.142,172.1 L149.767,154.694 C142.663,160.024 133.801,163.162 124.235,163.162 A42.304,42.304 0 0,1 98.767,154.694 z")
+
+
+    // 0.1 shadow
+    path(color="#000", fill-opacity=".725", fill-rule="evenodd",
+      overflow="visible", filter="url(#w)", enable-background="accumulate",
+      transform="translate(4.799 -332.398)",
+      d="M120.493 412.995a42.303 42.303 0 0 0-25.469 8.469l25.5 25.469 25.469-25.47c-7.101-5.321-15.944-8.468-25.5-8.468zm-34.032 17c-5.33 7.104-8.468 15.935-8.468 25.5 0 9.557 3.147 18.4 8.468 25.5l25.5-25.5-25.5-25.5zm68.094.031l-25.469 25.47 25.47 25.5c5.321-7.102 8.468-15.944 8.468-25.5a42.304 42.304 0 0 0-8.469-25.47zm-34.031 34.032l-25.5 25.5a42.304 42.304 0 0 0 25.469 8.468c9.565 0 18.427-3.138 25.531-8.468l-25.5-25.5z")
+
+    // 0.1 ring
+    g(color="#000", fill="#f7f7f7", fill-rule="evenodd", overflow="visible",
+      enable-background="accumulate")
+      path(@click="jog('x', 0.1)", title="Jog +0.1 X", cursor="pointer",
+        d="M158.298,95.163 L132.829,120.633 L158.298,146.133 C163.62,139.031 166.767,130.189 166.767,120.633 A42.304,42.304 0 0,0 158.297,95.163 z")
+      path(@click="jog('x', -0.1)", title="Jog -0.1 X", cursor="pointer",
+        d="M90.205,95.132 C84.873,102.236 81.735,111.067 81.735,120.632 C81.735,130.189 84.882,139.032 90.205,146.132 L115.705,120.632 L90.205,95.132 z")
+      path(@click="jog('y', 0.1)", title="Jog +0.1 Y", cursor="pointer",
+        d="M124.235,78.132 A42.303,42.303 0 0,0 98.767,86.601 L124.267,112.07 L149.735,86.6 C142.635,81.278 133.792,78.131 124.235,78.131 z")
+      path(@click="jog('y', -0.1)", title="Jog -0.1 Y", cursor="pointer",
+        d="M124.267,129.195 L98.767,154.695 A42.304,42.304 0 0,0 124.235,163.163 C133.801,163.163 142.663,160.025 149.767,154.695 L124.267,129.195 z")
+
+
+    // 100, 10, 1, 0.1
+    g(font-weight="bold", font-family="Sans", font-size="12", fill="#444")
+      text(x="170", y="41") 100
+      text(x="158", y="60") 10
+      text(x="145", y="78") 1
+      text(x="113", y="98") 0.1
+
+
+    // +X
+    g(@click="jog('x', 100)", title="Jog +100 X", transform="translate(13, 0)",
+      cursor="pointer")
+      path(d="M213.845 110.655l-.125 8.438h-16.062v17.937h16.062l.125 8.438c5.476-5.48 12.606-12.631 17.375-17.406-4.325-4.55-12.073-12.095-17.375-17.407z",
+        fill="url(#z)", stroke="#4c4c4c", stroke-width="1.7",
+        stroke-linejoin="round", transform="translate(.285 -7.414)")
+
+      text(font-weight="bold", font-family="Sans", font-size="14",
+        x="202", y="126", textLength="20") +X
+
+
+    // -X
+    g(@click="jog('x', -100)", title="Jog -100 X",
+      transform="translate(-13, 0)", cursor="pointer")
+      path(d="M34.855 145.468l.125-8.438h16.062v-17.937H34.98l-.125-8.438c-5.475 5.48-12.606 12.632-17.375 17.407 4.325 4.549 12.073 12.094 17.375 17.406z",
+        fill="url(#y)", stroke="#4c4c4c", stroke-width="1.7",
+        stroke-linejoin="round", transform="translate(.285 -7.414)")
+
+      text(font-weight="bold", font-family="Sans", font-size="14",
+        x="26", y="126") -X
+
+
+    // +Y
+    g(@click="jog('y', 100)", title="Jog +100 Y", transform="translate(0, -13)",
+      cursor="pointer")
+      path(d="M106.56 38.086l8.437.125v16.062h17.937V38.211l8.438-.125c-5.48-5.476-12.631-12.606-17.406-17.375-4.55 4.325-12.095 12.073-17.407 17.375z",
+        fill="url(#A)", stroke="#4c4c4c", stroke-width="1.7",
+        stroke-linejoin="round", transform="translate(.285 -7.414)")
+
+      text(font-weight="bold", font-family="Sans", font-size="12",
+        x="115", y="33", textLength="18") +Y
+
+
+    // -Y
+    g(@click="jog('y', -100)", title="Jog -100 Y", transform="translate(0, 13)",
+      cursor="pointer")
+      path(d="M141.372 218.899l-8.438-.125V202.71h-17.937v16.063l-8.438.125c5.48 5.475 12.632 12.605 17.407 17.375 4.549-4.326 12.094-12.073 17.406-17.375z",
+        fill="url(#x)", stroke="#4c4c4c", stroke-width="1.7",
+        stroke-linejoin="round", transform="translate(.285 -7.414)")
+
+      text(font-weight="bold", font-family="Sans", font-size="12",
+        x="115", y="218", textLength="16") -Y
+
+
+    // 10, 1, 0.1
+    g(font-weight="bold", font-family="Sans", font-size="12", fill="#444")
+      text(x="299", y="30") 100
+      text(x="302", y="56") 10
+      text(x="306", y="84") 1
+      text(x="300", y="106") 0.1
+
+
+    // Z axis
+    g(transform="translate(-20 -46.53)")
+      // Shadow
+      rect(rx="5", ry="5", x="278", y="68", width="37", height="203",
+        color="#000", fill="#494949", overflow="visible",
+        filter="url(#cz)", enable-background="accumulate")
+
+      // Box
+      rect(ry="5", rx="5", x="279", y="64", width="37", height="203",
+        color="#000", fill="#9f9f9f", stroke="#6d6d6d",
+        overflow="visible", enable-background="accumulate")
+
+      // 100
+      rect(color="#000", fill="transparent", overflow="visible",
+        cursor="pointer", enable-background="accumulate",
+        @click="jog('z', 100)", title="Jog 100 Z",
+        x="281", y="66", width="34", height="17")
+
+      // 10
+      g(@click="jog('z', 10)", title="Jog +10 Z", cursor="pointer")
+        path(color="#000", fill="#c5c5c5", overflow="visible",
+          enable-background="accumulate",
+          title="Jog +10 Z", d="M279.654 83.607h35.202v27.11h-35.202z")
+
+      // 1
+      g(@click="jog('z', 1)", title="Jog +1 Z", cursor="pointer")
+        path(color="#000", fill="#e2e2e2", overflow="visible",
+          enable-background="accumulate",
+          d="M279.654 111.652h35.202v24.029h-35.202z")
+
+      // 0.1
+      g(@click="jog('z', 0.1)", title="Jog +0.1 Z", cursor="pointer")
+        path(color="#000", fill="#f7f7f7", overflow="visible",
+          enable-background="accumulate",
+          d="M279.654 136.777h35.202v20.772h-35.202z")
+
+      // -100
+      rect(color="#000", fill="transparent", overflow="visible",
+        cursor="pointer", enable-background="accumulate",
+        @click="jog('z', -100)", title="Jog -100 Z",
+        x="281", y="247", width="34", height="17")
+
+      // -10
+      path(color="#000", fill="#c5c5c5", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('z', -10)",
+        title="Jog -10 Z", d="M279.654 245.689h35.202v-27.11h-35.202z")
+
+      // -1
+      path(color="#000", fill="#e2e2e2", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('z', -1)",
+        title="Jog -1 Z", d="M279.654 217.644h35.202v-24.029h-35.202z")
+
+      // -0.1
+      path(color="#000", fill="#f7f7f7", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('z', -0.1)",
+        title="Jog -0.1 Z", d="M279.654 192.518h35.202v-20.772h-35.202z")
+
+
+      // Up arrow
+      g(@click="jog('z', 100)", title="Jog +100 Z", cursor="pointer",
+        transform="translate(0 -7)")
+        path(d="M-89.592 50.1l8.437.125v10.767H-63.217V50.225l8.437-.125c-5.48-5.475-12.631-12.605-17.406-17.375-4.55 4.325-12.095 12.073-17.406 17.375z",
+          color="#000", fill="url(#dz)", stroke="#4c4c4c", stroke-width="1.7",
+          stroke-linejoin="round", overflow="visible",
+          enable-background="accumulate", transform="translate(369.442 22.082)")
+
+        text(font-weight="bold", font-family="Sans", font-size="12",
+          x="287", y="73", overflow="visible", textLength="18",
+          enable-background="accumulate", color="#000") +Z
+
+      // Down arrow
+      g(@click="jog('z', -100)", title="Jog -100 Z", cursor="pointer",
+        transform="translate(0 7)")
+        path(d="M-97.582 114.445l8.438-.125v-12.802h17.937v12.802l8.438.125c-5.48 5.475-12.632 12.605-17.406 17.375-4.55-4.326-12.095-12.074-17.407-17.375z",
+          color="#000", fill="url(#dz)", stroke="#4c4c4c", stroke-width="1.7",
+          stroke-linejoin="round", overflow="visible",
+          enable-background="accumulate",
+          transform="translate(377.431 144.384)")
+
+        text(font-weight="bold", font-family="Sans", font-size="12",
+          x="289", y="266", overflow="visible",
+          enable-background="accumulate", color="#000") -Z
+
+
+    // A axis
+    g(transform="translate(47 -46.53)")
+      // Shadow
+      rect(rx="5", ry="5", x="278", y="68", width="37", height="203",
+        color="#000", fill="#494949", overflow="visible",
+        filter="url(#cz)", enable-background="accumulate")
+
+      // Box
+      rect(ry="5", rx="5", x="279", y="64", width="37", height="203",
+        color="#000", fill="#9f9f9f", stroke="#6d6d6d",
+        overflow="visible", enable-background="accumulate")
+
+      // 100
+      rect(color="#000", fill="transparent", overflow="visible",
+        cursor="pointer", enable-background="accumulate",
+        @click="jog('a', 100)", title="Jog 100 A",
+        x="281", y="66", width="34", height="17")
+
+      // 10
+      g(@click="jog('a', 10)", title="Jog +10 A", cursor="pointer")
+        path(color="#000", fill="#c5c5c5", overflow="visible",
+          enable-background="accumulate",
+          d="M279.654 83.607h35.202v27.11h-35.202z")
+
+      // 1
+      g(@click="jog('a', 1)", title="Jog +1 A", cursor="pointer")
+        path(color="#000", fill="#e2e2e2", overflow="visible",
+          enable-background="accumulate",
+          d="M279.654 111.652h35.202v24.029h-35.202z")
+
+      // 0.1
+      g(@click="jog('a', 0.1)", title="Jog +0.1 A", cursor="pointer")
+        path(color="#000", fill="#f7f7f7", overflow="visible",
+          enable-background="accumulate",
+          d="M279.654 136.777h35.202v20.772h-35.202z")
+
+      // -100
+      rect(color="#000", fill="transparent", overflow="visible",
+        cursor="pointer", enable-background="accumulate",
+        @click="jog('a', -100)", title="Jog -100 A",
+        x="281", y="247", width="34", height="17")
+
+      // -10
+      path(color="#000", fill="#c5c5c5", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('a', -10)",
+        title="Jog -10 A", d="M279.654 245.689h35.202v-27.11h-35.202z")
+
+      // -1
+      path(color="#000", fill="#e2e2e2", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('a', -1)",
+        title="Jog -1 A", d="M279.654 217.644h35.202v-24.029h-35.202z")
+
+      // -0.1
+      path(color="#000", fill="#f7f7f7", overflow="visible", cursor="pointer",
+        enable-background="accumulate", @click="jog('a', -0.1)",
+        title="Jog -0.1 A", d="M279.654 192.518h35.202v-20.772h-35.202z")
+
+
+      // Up arrow
+      g(@click="jog('a', 100)", title="Jog +100 A", cursor="pointer",
+        transform="translate(0 -7)")
+        path(d="M-89.592 50.1l8.437.125v10.767H-63.217V50.225l8.437-.125c-5.48-5.475-12.631-12.605-17.406-17.375-4.55 4.325-12.095 12.073-17.406 17.375z",
+          color="#000", fill="url(#ez)", stroke="#4c4c4c", stroke-width="1.7",
+          stroke-linejoin="round", overflow="visible",
+          enable-background="accumulate", transform="translate(369.442 22.082)")
+
+        text(font-weight="bold", font-family="Sans", font-size="12",
+          x="287", y="73", overflow="visible", textLength="18",
+          enable-background="accumulate", color="#000") +A
+
+      // Down arrow
+      g(@click="jog('a', -100)", title="Jog -100 A", cursor="pointer",
+        transform="translate(0 7)")
+        path(d="M-97.582 114.445l8.438-.125v-12.802h17.937v12.802l8.438.125c-5.48 5.475-12.632 12.605-17.406 17.375-4.55-4.326-12.095-12.074-17.407-17.375z",
+          color="#000", fill="url(#ez)", stroke="#4c4c4c", stroke-width="1.7",
+          stroke-linejoin="round", overflow="visible",
+          enable-background="accumulate",
+          transform="translate(377.431 144.384)")
+
+        text(font-weight="bold", font-family="Sans", font-size="12",
+          x="289", y="266", overflow="visible",
+          enable-background="accumulate", color="#000") -A

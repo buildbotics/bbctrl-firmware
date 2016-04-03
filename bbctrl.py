@@ -137,6 +137,46 @@ class SaveHandler(APIHandler):
         self.write_json('ok')
 
 
+class UploadHandler(APIHandler):
+    def prepare(self): pass
+
+
+    def delete(self, path):
+        path = 'upload' + path
+        if os.path.exists(path): os.unlink(path)
+        self.write_json('ok')
+
+
+    def put(self, path):
+        path = 'upload' + path
+        if not os.path.exists(path): return
+
+        with open(path, 'r') as f:
+            for line in f:
+                input_queue.put(line)
+
+
+    def get(self, path):
+        uploads = []
+
+        if os.path.exists('upload'):
+            for path in os.listdir('upload'):
+                if os.path.isfile('upload/' + path):
+                    uploads.append(path)
+
+        self.write_json(uploads)
+
+
+    def post(self, path):
+        gcode = self.request.files['gcode'][0]
+
+        if not os.path.exists('upload'): os.mkdir('upload')
+
+        with open('upload/' + gcode['filename'], 'wb') as f:
+            f.write(gcode['body'])
+
+        self.write_json('ok')
+
 
 class SerialProcess(multiprocessing.Process):
     def __init__(self, input_queue, output_queue):
@@ -213,6 +253,7 @@ def checkQueue():
 handlers = [
     (r'/api/load', LoadHandler),
     (r'/api/save', SaveHandler),
+    (r'/api/upload(/.*)?', UploadHandler),
     (r'/(.*)', web.StaticFileHandler,
      {'path': os.path.join(DIR, 'http/'),
       "default_filename": "index.html"}),

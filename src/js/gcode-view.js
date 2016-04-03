@@ -35,8 +35,7 @@ module.exports = {
         var template = this.template.gcode;
         for (var key in template)
           if (!this.gcode.hasOwnProperty(key))
-            this.$set('gcode["' + key + '"]',
-                      template[key].default);
+            this.$set('gcode["' + key + '"]', template[key].default);
       }.bind(this));
     }
   }
