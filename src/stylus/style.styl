@@ -22,11 +22,6 @@ body
     color #e5aa3d
 
 
-.jog
-  button
-    width 3.5em
-    margin 0.25em
-
 #menu
   .save
     display block
@@ -62,29 +57,134 @@ body
         display inline-block
 
 
+.control-view
+  table
+    border-collapse collapse
 
-table.axes
-  border-collapse collapse
+    td, th
+      border 1px solid #ddd
+
+
+.axes
+  .axis-x .name
+    color red
+
+  .axis-y .name
+    color green
+
+  .axis-z .name
+    color blue
 
   td, th
-    border 1px solid black
     text-align center
+    padding 8px
 
   .axis
     .name
-      font-size 24pt
+      text-transform capitalize
 
+    .name, .position
+      font-size 36pt
 
-.gauge
-  position relative
+@keyframes blink
+  50%
+    fill #ff9d00
 
-  span
+.estop
+  width 130px
+  transition 250ms
+  display inline-block
+
+  &.active .ring
+    animation blink 2s step-start 0s infinite
+
+  svg
+    cursor pointer
+
+    .button:hover
+      filter brightness(120%)
+
+.jog
+  float right
+
+.jog svg
+  margin-left 2em
+
+  text
+    font-family Sans
     font-weight bold
-    color #000
-    text-shadow 0 0 2px #fff
-    font-size 20pt
-    text-align center
-    position absolute
-    left 0
-    right 0
-    top 75px
+    stroke transparent
+    fill #444
+
+  .button
+    cursor pointer
+    stroke #4c4c4c
+
+    &:hover
+      stroke #e55
+
+    path
+      overflow visible
+
+  .house
+    stroke #444
+    fill #444
+
+  .ring
+    cursor pointer
+    overflow visible
+
+    .button
+      stroke transparent
+
+      &:hover
+        stroke #e55
+
+      text
+        font-size 10pt
+        text-anchor middle
+
+.info
+  float right
+  clear right
+
+  th, td
+    padding 3px
+
+  th
+    text-align right
+
+.overrides .override
+  margin 0.5em
+  display inline-block
+
+  .percent
+    display inline-block
+    width 3em
+
+  input
+    border-radius 0
+    margin -0.4em 0.5em
+
+.mdi
+  clear both
+  white-space nowrap
+  margin 0.5em 0
+
+  input
+    width 90%
+
+.toolbar
+  margin 0.5em 0
+
+.gcode
+  clear both
+  border 2px inset #ccc
+  border-radius 5px
+  overflow auto
+  width 100%
+  max-width 100%
+  min-width 100%
+  height 200px
+  padding 2px
+  white-space pre

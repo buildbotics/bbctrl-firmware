@@ -1,0 +1,94 @@
+script#estop-template(type="text/x-template")
+  svg(version="1.1", xmlns:svg="http://www.w3.org/2000/svg",
+    xmlns="http://www.w3.org/2000/svg",
+    xmlns:xlink="http://www.w3.org/1999/xlink",
+    width="200", height="200", transform="scale(0.92, 0.92)")
+      defs
+        path#text-path-1(style="fill:none;stroke:none", d="m 73.735867,673.1299 c 0,55.10749 44.673453,99.78094 99.780973,99.78094 55.10748,0 99.78093,-44.67345 99.78093,-99.78094 0,-55.10749 -44.67345,-99.78094 -99.78093,-99.78094 -55.10752,0 -99.780973,44.67345 -99.780973,99.78094 z")
+
+        path#text-path-2(style="fill:none;stroke:none", d="m 258.7149,673.1299 c 0,47.0536 -38.14448,85.19809 -85.19809,85.19809 -47.0536,0 -85.198083,-38.14449 -85.198083,-85.19809 0,-47.05361 38.144483,-85.19809 85.198083,-85.19809 47.05361,0 85.19809,38.14448 85.19809,85.19809 z")
+
+        filter#filter5134(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.431373", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="in")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="4", dy="4", result="offset")
+          fecomposite(in="SourceGraphic", in2="offset", operator="over",
+            result="fbSourceGraphic")
+          fecolormatrix(result="fbSourceGraphicAlpha", in="fbSourceGraphic",
+            values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0")
+          feflood(flood-opacity="0.431373", flood-color="rgb(0,0,0)",
+            in="fbSourceGraphic")
+          fecomposite(in2="fbSourceGraphic", operator="out")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="-4", dy="-4", result="offset")
+          fecomposite(in2="fbSourceGraphic", in="offset", operator="atop",
+            result="fbSourceGraphic")
+          fecolormatrix(result="fbSourceGraphicAlpha", in="fbSourceGraphic",
+            values="0 0 0 -1 0 0 0 0 -1 0 0 0 0 -1 0 0 0 0 1 0")
+          feflood(flood-opacity="0.431373", flood-color="rgb(0,0,0)",
+            in="fbSourceGraphic")
+          fecomposite(in2="fbSourceGraphic", operator="in")
+          fegaussianblur(stddeviation="4", result="blur")
+          feoffset(dx="4", dy="4", result="offset")
+          fecomposite(in2="offset", in="fbSourceGraphic", operator="over")
+
+        filter#filter5158(style="color-interpolation-filters:sRGB",)
+          feflood(flood-opacity="0.431373", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="out")
+          fegaussianblur(stddeviation="7", result="blur")
+          feoffset(dx="4", dy="4")
+          fecomposite(in2="SourceGraphic", operator="atop")
+
+        filter#filter5266(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.372549", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="in")
+          fegaussianblur(stddeviation="2", result="blur")
+          feoffset(dx="1", dy="1", result="offset")
+          fecomposite(in="SourceGraphic", in2="offset", operator="over")
+
+        filter#filter5278(style="color-interpolation-filters:sRGB")
+          feflood(flood-opacity="0.372549", flood-color="rgb(0,0,0)")
+          fecomposite(in2="SourceGraphic", operator="out")
+          fegaussianblur(stddeviation="2", result="blur")
+          feoffset(dx="2", dy="2", result="offset")
+          fecomposite(in="offset", in2="SourceGraphic", operator="atop")
+
+
+      g(transform="translate(-65, -526)")
+        // Yellow ring
+        circle.ring(style="fill:#f5e138;filter:url(#filter5266)",
+          cx="173", cy="633", r="100")
+
+        // Text
+        text(style="font-weight:bold;font-size:20px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none",
+          transform="matrix(-0.73361478,-0.67956556,0.67956556,-0.73361478,-156.72624,1250.7027)",
+          x="-1350.5394", y="-1579.3965")
+          textpath(xlink:href="#text-path-2") EMERGENCY
+
+        text(style="font-weight:bold;font-size:20px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none",
+          transform="matrix(0.27634044,-0.96105981,0.96105981,0.27634044,-523.81801,609.02637)",
+          x="-754.20117", y="157.03941")
+          textpath(xlink:href="#text-path-1") STOP
+
+        g.button
+          circle(style="fill:#b72424;filter:url(#filter5134)",
+            cx="173", cy="633", r="74")
+
+          // Inner circle
+          circle(style="fill:#b72424;filter:url(#filter5158)",
+            cx="173", cy="633", r="37")
+
+          // Arrows
+          g(transform="matrix(0.32737901,0,0,0.32737901,50.806169,478.96619)", style="stroke:#fff;stroke-width:26;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;filter:url(#filter5278);fill:none")
+            g
+              path(transform="matrix(1.9461546,0,0,1.9461546,-359.98722,-383.37383)", style="stroke-width:13", d="m 411.6967,521.14701 c -10.57464,4.47269 -22.20085,6.94599 -34.40474,6.94599 -12.20389,0 -23.8301,-2.4733 -34.40474,-6.94599 -10.57463,-4.4727 -20.09769,-10.94478 -28.09526,-18.94236 -7.99757,-7.99757 -12.91355,-13.50409 -17.38625,-24.07872")
+              path(d="m 221.80189,582.65761 -2.99162,-35.52447 28.48213,14.16667 z")
+
+            g(transform="matrix(-0.5,-0.8660254,0.8660254,-0.5,149.81163,1033.4478)")
+              path(transform="matrix(1.9461546,0,0,1.9461546,-359.98722,-383.37383)", style="stroke-width:13", d="m 411.6967,521.14701 c -10.57464,4.47269 -22.20085,6.94599 -34.40474,6.94599 -12.20389,0 -23.8301,-2.4733 -34.40474,-6.94599 -10.57463,-4.4727 -20.09769,-10.94478 -28.09526,-18.94236 -7.99757,-7.99757 -11.52544,-14.20559 -17.38625,-24.07872")
+              path(d="m 221.80189,582.65761 -2.99162,-35.52447 28.48213,14.16667 z")
+
+            g(transform="matrix(-0.5,0.8660254,-0.8660254,-0.5,971.43059,383.18517)")
+              path(transform="matrix(1.9461546,0,0,1.9461546,-359.98722,-383.37383)", style="stroke-width:13", d="m 411.6967,521.14701 c -10.57464,4.47269 -22.20085,6.94599 -34.40474,6.94599 -12.20389,0 -23.8301,-2.4733 -34.40474,-6.94599 -10.57463,-4.4727 -20.09769,-10.94478 -28.09526,-18.94236 -7.99757,-7.99757 -9.56206,-8.6246 -14.03476,-19.19923")
+              path(d="m 221.80189,582.65761 -2.99162,-35.52447 28.48213,14.16667 z")

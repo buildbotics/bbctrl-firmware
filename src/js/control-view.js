@@ -9,21 +9,27 @@ function is_array(x) {
 
 
 module.exports = {
-  template: '#status-view-template',
+  template: '#control-view-template',
 
 
   data: function () {
     return {
       mdi: '',
-      uploads: [],
-      axes: 'xyza',
-      state: {xpl: 1, ypl: 1, zpl: 1, apl: 1}
+      file: '',
+      last_file: '',
+      files: [],
+      axes: 'xyzabc',
+      state: {},
+      gcode: '',
+      speed_override: 0,
+      feed_override: 0
     }
   },
 
 
   components: {
-    'axis-control': require('./axis-control')
+    'axis-control': require('./axis-control'),
+    'estop': {template: '#estop-template'}
   },
 
 
@@ -69,10 +75,20 @@ module.exports = {
 
 
   methods: {
+    estop: function () {
+      this.$set('state.es', !this.state.es);
+    },
+
+
     update: function () {
-      api.get('upload')
-        .done(function (uploads) {
-          this.uploads = uploads;
+      api.get('file')
+        .done(function (files) {
+          var index = files.indexOf(this.file);
+          if (index == -1 && files.length) this.file = files[0];
+
+          this.files = files;
+
+          this.load()
         }.bind(this))
     },
 
@@ -82,24 +98,56 @@ module.exports = {
     },
 
 
+    open: function (e) {
+      $('.gcode-file-input').click();
+    },
+
+
     upload: function (e) {
       var files = e.target.files || e.dataTransfer.files;
       if (!files.length) return;
 
+      var file = files[0];
       var fd = new FormData();
-      fd.append('gcode', files[0]);
 
-      api.upload('upload', fd).done(this.update);
+      fd.append('gcode', file);
+
+      api.upload('file', fd)
+        .done(function () {
+          this.file = file.name;
+          if (file.name == this.last_file) this.last_file = '';
+          this.update();
+        }.bind(this));
     },
 
 
-    delete: function (file) {
-      api.delete('upload/' + file).done(this.update);
+    load: function () {
+      var file = this.file;
+
+      if (!file || this.files.indexOf(file) == -1) {
+        this.file = '';
+        this.gcode = '';
+        return;
+      }
+
+      if (file == this.last_file) return;
+
+      api.get('file/' + file)
+        .done(function (data) {
+          this.gcode = data;
+          this.last_file = file;
+        }.bind(this));
+    },
+
+
+    delete: function () {
+      if (!this.file) return;
+      api.delete('file/' + this.file).done(this.update);
     },
 
 
     run: function (file) {
-      api.put('upload/' + file).done(this.update);
+      api.put('file/' + file).done(this.update);
     },
 
 
@@ -123,6 +171,11 @@ module.exports = {
     percent: function (value, precision) {
       if (typeof precision == 'undefined') precision = 2;
       return (value * 100.0).toFixed(precision) + '%';
+    },
+
+
+    fixed: function (value, precision) {
+      return value.toFixed(precision);
     }
   }
 }

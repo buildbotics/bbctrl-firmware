@@ -137,7 +137,7 @@ class SaveHandler(APIHandler):
         self.write_json('ok')
 
 
-class UploadHandler(APIHandler):
+class FileHandler(APIHandler):
     def prepare(self): pass
 
 
@@ -157,14 +157,19 @@ class UploadHandler(APIHandler):
 
 
     def get(self, path):
-        uploads = []
+        if path:
+            with open('upload/' + path, 'r') as f:
+                self.write_json(f.read())
+            return
+
+        files = []
 
         if os.path.exists('upload'):
             for path in os.listdir('upload'):
                 if os.path.isfile('upload/' + path):
-                    uploads.append(path)
+                    files.append(path)
 
-        self.write_json(uploads)
+        self.write_json(files)
 
 
     def post(self, path):
@@ -253,7 +258,7 @@ def checkQueue():
 handlers = [
     (r'/api/load', LoadHandler),
     (r'/api/save', SaveHandler),
-    (r'/api/upload(/.*)?', UploadHandler),
+    (r'/api/file(/.*)?', FileHandler),
     (r'/(.*)', web.StaticFileHandler,
      {'path': os.path.join(DIR, 'http/'),
       "default_filename": "index.html"}),

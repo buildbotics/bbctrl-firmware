@@ -35,7 +35,7 @@ html(lang="en")
         .pure-menu
           ul.pure-menu-list
             li.pure-menu-heading
-              a.pure-menu-link(href="#status") Status
+              a.pure-menu-link(href="#control") Control
 
             li.pure-menu-heading
               a.pure-menu-link(href="#motor:0") Motors
@@ -69,7 +69,7 @@ html(lang="en")
             span.right botics
           h2 Machine Controller
 
-        .content
+        .content(class="{{currentView}}-view")
           component(:is="currentView + '-view'", :index="index",
             :config="config", :template="template")
 

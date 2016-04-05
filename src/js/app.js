@@ -20,7 +20,7 @@ module.exports = new Vue({
 
   components: {
     'loading-view': {template: '<h1>Loading...</h1>'},
-    'status-view': require('./status-view'),
+    'control-view': require('./control-view'),
     'axis-view': require('./axis-view'),
     'motor-view': require('./motor-view'),
     'spindle-view': require('./spindle-view'),
@@ -54,7 +54,7 @@ module.exports = new Vue({
       var hash = location.hash.substr(1);
 
       if (!hash.trim().length) {
-        location.hash = 'status';
+        location.hash = 'control';
         return;
       }
 

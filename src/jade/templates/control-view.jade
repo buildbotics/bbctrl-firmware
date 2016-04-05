@@ -1,0 +1,100 @@
+script#control-view-template(type="text/x-template")
+  .jog
+    axis-control(axes="XY", :colors="['gold', 'blue']")
+    axis-control(axes="AZ", :colors="['red', 'green']")
+
+
+  .estop(:class="{active: state.es}")
+    estop(@click="estop")
+
+
+  table.info
+    tr
+      th Tool
+      td {{state.t || 0}}
+    tr
+      th Velocity
+      td {{state.v || 0}} mm/min
+    tr
+      th Feed
+      td {{state.f || 0}} mm/min
+    tr
+      th Speed
+      td {{state.s || 0}} RPM
+    tr
+      th Direction
+      td {{state.sd || 'Clockwise'}}
+    tr
+      th Mist
+      td {{state.mist || 'Off'}}
+    tr
+      th Coolant
+      td {{state.coolant || 'Off'}}
+
+
+  table.axes
+    tr
+      th Axis
+      th Position
+      th Offset
+      th Flags
+      th StallGuard
+
+    each axis in 'xyzabc'
+      tr.axis(class="axis-#{axis}")
+        th.name #{axis}
+        td.position {{state.#{axis}p || 0 | fixed 4}}
+        td.offset {{state.#{axis}o || 0 | fixed 4}}
+        td {{state.#{axis}sf}}
+        td {{state.#{axis}sgv}}
+
+
+  .overrides
+    | Override:
+    .override
+      label Feed
+      input(type="range", min="-1", max="1", step="0.01",
+        v-model="feed_override", @change="override_feed")
+      span.percent {{feed_override | percent 0}}
+
+    .override
+      label Spindle
+      input(type="range", min="-1", max="1", step="0.01",
+        v-model="speed_override", @change="override_speed")
+      span.percent {{speed_override | percent 0}}
+
+
+  .mdi.pure-form
+    fieldset
+      button.pure-button.pure-button-primary(
+        @click="submit_mdi", :disabled="running") MDI
+      input(v-model="mdi")
+
+
+  .toolbar
+    button.pure-button(@click="play_pause()", :disabled="!file")
+      .fa(:class="running ? 'fa-pause' : 'fa-play'")
+
+    button.pure-button(@click="stop", :disabled="!running")
+      .fa.fa-stop
+
+    button.pure-button(@click="step", :disabled="running || !file")
+      .fa.fa-step-forward
+
+    button.pure-button(@click="optional_stop", :disabled="!file")
+      .fa.fa-stop-circle-o
+
+    button.pure-button(@click="open")
+      .fa.fa-folder-open
+
+    input.gcode-file-input(type="file", @change="upload", style="display:none",
+      accept=".nc,.gcode,.gc,.ngc")
+
+    select(v-model="file", @change="load")
+      option(v-for="file in files", :value="file") {{file}}
+
+    button.pure-button(@click="delete", :disabled="!file")
+      .fa.fa-trash
+
+
+  .gcode {{gcode || 'GCode displays here.'}}
