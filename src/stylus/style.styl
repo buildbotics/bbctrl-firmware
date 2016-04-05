@@ -59,6 +59,7 @@ body
 
 .control-view
   table
+    margin 0.5em 0
     border-collapse collapse
 
     td, th
@@ -67,17 +68,26 @@ body
 
 .axes
   .axis-x .name
-    color red
+    color #f00
 
   .axis-y .name
-    color green
+    color #0f0
 
   .axis-z .name
-    color blue
+    color #00f
+
+  .axis-a .name
+    color #f80
+
+  .axis-b .name
+    color #0ff
+
+  .axis-c .name
+    color #f0f
 
   td, th
     text-align center
-    padding 8px
+    padding 2px
 
   .axis
     .name
@@ -85,15 +95,16 @@ body
 
     .name, .position
       font-size 36pt
+      line-height 36pt
 
 @keyframes blink
   50%
     fill #ff9d00
 
 .estop
-  width 130px
-  transition 250ms
   display inline-block
+  width 190px
+  transition 250ms
 
   &.active .ring
     animation blink 2s step-start 0s infinite
@@ -108,8 +119,6 @@ body
   float right
 
 .jog svg
-  margin-left 2em
-
   text
     font-family Sans
     font-weight bold
@@ -154,17 +163,20 @@ body
   th
     text-align right
 
-.overrides .override
-  margin 0.5em
-  display inline-block
+.overrides
+  clear both
 
-  .percent
+  .override
+    margin 0.5em
     display inline-block
-    width 3em
 
-  input
-    border-radius 0
-    margin -0.4em 0.5em
+    .percent
+      display inline-block
+      width 3em
+
+    input
+      border-radius 0
+      margin -0.4em 0.5em
 
 .mdi
   clear both
@@ -175,7 +187,14 @@ body
     width 90%
 
 .toolbar
+  clear both
   margin 0.5em 0
+
+  .spacer
+    display inline-block
+    width 1px
+    height 1px
+    margin 0 1em
 
 .gcode
   clear both

@@ -12,8 +12,8 @@ module.exports = new Vue({
       currentView: 'loading',
       index: -1,
       modified: false,
-      template: {"motors": {}, "axes": {}},
-      config: {"motors": [{}]}
+      template: {motors: {}, axes: {}},
+      config: {motors: [{}]}
     }
   },
 

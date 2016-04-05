@@ -10,6 +10,7 @@ function is_array(x) {
 
 module.exports = {
   template: '#control-view-template',
+  props: ['config'],
 
 
   data: function () {
@@ -75,6 +76,13 @@ module.exports = {
 
 
   methods: {
+    enabled: function (axis) {
+      var axis = axis.toLowerCase();
+      return axis in this.config.axes &&
+        this.config.axes[axis].mode != 'disabled';
+    },
+
+
     estop: function () {
       this.$set('state.es', !this.state.es);
     },

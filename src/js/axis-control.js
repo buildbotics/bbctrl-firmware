@@ -3,7 +3,7 @@
 
 module.exports = {
   template: '#axis-control-template',
-  props: ['axes', 'colors'],
+  props: ['axes', 'colors', 'enabled'],
 
 
   methods: {

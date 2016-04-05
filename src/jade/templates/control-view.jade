@@ -1,7 +1,14 @@
 script#control-view-template(type="text/x-template")
   .jog
-    axis-control(axes="XY", :colors="['gold', 'blue']")
-    axis-control(axes="AZ", :colors="['red', 'green']")
+    axis-control(axes="XY", :colors="['red', 'green']",
+      :enabled="[enabled('x'), enabled('y')]",
+      v-if="enabled('x') || enabled('y')")
+    axis-control(axes="AZ", :colors="['orange', 'blue']",
+      :enabled="[enabled('a'), enabled('z')]",
+      v-if="enabled('a') || enabled('z')")
+    axis-control(axes="BC", :colors="['cyan', 'purple']",
+      :enabled="[enabled('b'), enabled('c')]",
+      v-if="enabled('b') || enabled('c')")
 
 
   .estop(:class="{active: state.es}")
@@ -34,6 +41,7 @@ script#control-view-template(type="text/x-template")
 
   table.axes
     tr
+      th Actions
       th Axis
       th Position
       th Offset
@@ -41,7 +49,12 @@ script#control-view-template(type="text/x-template")
       th StallGuard
 
     each axis in 'xyzabc'
-      tr.axis(class="axis-#{axis}")
+      tr.axis(class="axis-#{axis}", v-if="enabled('#{axis}')")
+        th.actions
+          button.pure-button
+            .fa.fa-home
+          button.pure-button
+            .fa.fa-dot-circle-o
         th.name #{axis}
         td.position {{state.#{axis}p || 0 | fixed 4}}
         td.offset {{state.#{axis}o || 0 | fixed 4}}
@@ -72,29 +85,34 @@ script#control-view-template(type="text/x-template")
 
 
   .toolbar
+    button.pure-button(@click="home", :disabled="running")
+      .fa.fa-home
+
     button.pure-button(@click="play_pause()", :disabled="!file")
       .fa(:class="running ? 'fa-pause' : 'fa-play'")
 
     button.pure-button(@click="stop", :disabled="!running")
       .fa.fa-stop
 
-    button.pure-button(@click="step", :disabled="running || !file")
-      .fa.fa-step-forward
-
     button.pure-button(@click="optional_stop", :disabled="!file")
       .fa.fa-stop-circle-o
 
-    button.pure-button(@click="open")
+    button.pure-button(@click="step", :disabled="running || !file")
+      .fa.fa-step-forward
+
+    .spacer
+
+    button.pure-button(@click="open", :disabled="running")
       .fa.fa-folder-open
 
     input.gcode-file-input(type="file", @change="upload", style="display:none",
       accept=".nc,.gcode,.gc,.ngc")
 
-    select(v-model="file", @change="load")
-      option(v-for="file in files", :value="file") {{file}}
-
     button.pure-button(@click="delete", :disabled="!file")
       .fa.fa-trash
+
+    select(v-model="file", @change="load", :disabled="running")
+      option(v-for="file in files", :value="file") {{file}}
 
 
   .gcode {{gcode || 'GCode displays here.'}}
