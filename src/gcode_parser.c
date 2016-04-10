@@ -39,53 +39,16 @@
 #include <math.h>
 
 
-struct gcodeParserSingleton {        // struct to manage globals
-  uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
-}; struct gcodeParserSingleton gp;
-
-// local helper functions and macros
-static void _normalize_gcode_block(char *str, char **com, char **msg,
-                                   uint8_t *block_delete_flag);
-static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value);
-static stat_t _point(float value);
-static stat_t _validate_gcode_block();
-/// Parse the block into the GN/GF structs
-static stat_t _parse_gcode_block(char *line);
-static stat_t _execute_gcode_block();        // Execute the gcode block
-
 #define SET_MODAL(m, parm, val) \
-  {cm.gn.parm = val; cm.gf.parm = 1; gp.modals[m] += 1; break;}
+  {cm.gn.parm = val; cm.gf.parm = 1; modals[m] += 1; break;}
 #define SET_NON_MODAL(parm, val) {cm.gn.parm = val; cm.gf.parm = 1; break;}
 #define EXEC_FUNC(f, v) if ((uint8_t)cm.gf.v) f(cm.gn.v)
 
 
-/// Parse a block (line) of gcode
-/// Top level of gcode parser. Normalizes block and looks for special cases
-stat_t gc_gcode_parser(char *block) {
-  char *str = block;                    // gcode command or 0 string
-  char none = 0;
-  char *com = &none;                    // gcode comment or 0 string
-  char *msg = &none;                    // gcode message or 0 string
-  uint8_t block_delete_flag;
-
-  // don't process Gcode blocks if in alarmed state
-  if (cm.machine_state == MACHINE_ALARM) return STAT_MACHINE_ALARMED;
-
-  _normalize_gcode_block(str, &com, &msg, &block_delete_flag);
-
-  // Block delete omits the line if a / char is present in the first space
-  // For now this is unconditional and will always delete
-  if (block_delete_flag) return STAT_NOOP;
-
-  // queue a "(MSG" response
-  if (*msg) cm_message(msg);            // queue the message
-
-  return _parse_gcode_block(block);
-}
+static uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
 
 
-/*
- * Normalize a block (line) of gcode in place
+/* Normalize a block (line) of gcode in place
  *
  * Normalization functions:
  *   - convert all letters to upper case
@@ -126,19 +89,18 @@ stat_t gc_gcode_parser(char *block) {
 
 static void _normalize_gcode_block(char *str, char **com, char **msg,
                                    uint8_t *block_delete_flag) {
-  char *rd = str;                // read pointer
-  char *wr = str;                // write pointer
+  char *rd = str; // read pointer
+  char *wr = str; // write pointer
 
   // mark block deletes
-  if (*rd == '/') { *block_delete_flag = true; }
-  else { *block_delete_flag = false; }
+  *block_delete_flag = *rd == '/';
 
   // normalize the command block & find the comment (if any)
   for (; *wr; rd++)
     if (!*rd) *wr = 0;
     else if (*rd == '(' || *rd == ';') {*wr = 0; *com = rd + 1;}
-    else if (isalnum((char)*rd) || strchr("-.", *rd)) // all valid characters
-      *wr++ = (char)toupper((char)*rd);
+    else if (isalnum(*rd) || strchr("-.", *rd)) // all valid characters
+      *wr++ = toupper(*rd);
 
   // Perform Octal stripping - remove invalid leading zeros in number strings
   rd = str;
@@ -195,16 +157,15 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
   *value = strtod(*pstr, &end);
   // more robust test then checking for value == 0
   if (end == *pstr) return STAT_BAD_NUMBER_FORMAT;
-  *pstr = end;
+  *pstr = end; // pointer points to next character after the word
 
-  return STAT_OK; // pointer points to next character after the word
+  return STAT_OK;
 }
 
 
 /// Isolate the decimal point value as an integer
 static uint8_t _point(float value) {
-  // isolate the decimal point as an int
-  return (uint8_t)(value * 10 - trunc(value) * 10);
+  return value * 10 - trunc(value) * 10;
 }
 
 
@@ -219,46 +180,193 @@ static stat_t _validate_gcode_block() {
   // activity of the group 1 G-code is suspended for that line. The
   // axis word-using G-codes from group 0 are G10, G28, G30, and G92"
 
-  // if (gp.modals[MODAL_GROUP_G0] && gp.modals[MODAL_GROUP_G1])
+  // if (modals[MODAL_GROUP_G0] && modals[MODAL_GROUP_G1])
   //   return STAT_MODAL_GROUP_VIOLATION;
 
   // look for commands that require an axis word to be present
-  // if (gp.modals[MODAL_GROUP_G0] || gp.modals[MODAL_GROUP_G1])
+  // if (modals[MODAL_GROUP_G0] || modals[MODAL_GROUP_G1])
   //   if (!_axis_changed()) return STAT_GCODE_AXIS_IS_MISSING;
 
   return STAT_OK;
 }
 
 
-/*
- * Parses one line of 0 terminated G-Code.
+/* Execute parsed block
  *
- *    All the parser does is load the state values in gn (next model
- *    state) and set flags in gf (model state flags). The execute
- *    routine applies them. The buffer is assumed to contain only
- *    uppercase characters and signed floats (no whitespace).
+ * Conditionally (based on whether a flag is set in gf) call the canonical
+ * machining functions in order of execution as per RS274NGC_3 table 8
+ * (below, with modifications):
  *
- *    A number of implicit things happen when the gn struct is zeroed:
- *      - inverse feed rate mode is canceled - set back to units_per_minute mode
+ *   0. record the line number
+ *   1. comment (includes message) [handled during block normalization]
+ *   2. set feed rate mode (G93, G94 - inverse time or per minute)
+ *   3. set feed rate (F)
+ *   3a. set feed override rate (M50.1)
+ *   3a. set traverse override rate (M50.2)
+ *   4. set spindle speed (S)
+ *   4a. set spindle override rate (M51.1)
+ *   5. select tool (T)
+ *   6. change tool (M6)
+ *   7. spindle on or off (M3, M4, M5)
+ *   8. coolant on or off (M7, M8, M9)
+ *   9. enable or disable overrides (M48, M49, M50, M51)
+ *   10. dwell (G4)
+ *   11. set active plane (G17, G18, G19)
+ *   12. set length units (G20, G21)
+ *   13. cutter radius compensation on or off (G40, G41, G42)
+ *   14. cutter length compensation on or off (G43, G49)
+ *   15. coordinate system selection (G54, G55, G56, G57, G58, G59)
+ *   16. set path control mode (G61, G61.1, G64)
+ *   17. set distance mode (G90, G91)
+ *   18. set retract mode (G98, G99)
+ *   19a. homing functions (G28.2, G28.3, G28.1, G28, G30)
+ *   19b. update system data (G10)
+ *   19c. set axis offsets (G92, G92.1, G92.2, G92.3)
+ *   20. perform motion (G0 to G3, G80-G89) as modified (possibly) by G53
+ *   21. stop and end (M0, M1, M2, M30, M60)
+ *
+ * Values in gn are in original units and should not be unit converted prior
+ * to calling the canonical functions (which do the unit conversions)
+ */
+static stat_t _execute_gcode_block() {
+  stat_t status = STAT_OK;
+
+  cm_set_model_linenum(cm.gn.linenum);
+  EXEC_FUNC(cm_set_feed_rate_mode, feed_rate_mode);
+  EXEC_FUNC(cm_set_feed_rate, feed_rate);
+  EXEC_FUNC(cm_feed_rate_override_factor, feed_rate_override_factor);
+  EXEC_FUNC(cm_traverse_override_factor, traverse_override_factor);
+  EXEC_FUNC(cm_set_spindle_speed, spindle_speed);
+  EXEC_FUNC(cm_spindle_override_factor, spindle_override_factor);
+  EXEC_FUNC(cm_select_tool, tool_select);
+  EXEC_FUNC(cm_change_tool, tool_change);
+  EXEC_FUNC(cm_spindle_control, spindle_mode);
+  EXEC_FUNC(cm_mist_coolant_control, mist_coolant);
+  EXEC_FUNC(cm_flood_coolant_control, flood_coolant);
+  EXEC_FUNC(cm_feed_rate_override_enable, feed_rate_override_enable);
+  EXEC_FUNC(cm_traverse_override_enable, traverse_override_enable);
+  EXEC_FUNC(cm_spindle_override_enable, spindle_override_enable);
+  EXEC_FUNC(cm_override_enables, override_enables);
+
+  if (cm.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
+    ritorno(cm_dwell(cm.gn.parameter));
+
+  EXEC_FUNC(cm_set_plane, select_plane);
+  EXEC_FUNC(cm_set_units_mode, units_mode);
+  //--> cutter radius compensation goes here
+  //--> cutter length compensation goes here
+  EXEC_FUNC(cm_set_coord_system, coord_system);
+  EXEC_FUNC(cm_set_path_control, path_control);
+  EXEC_FUNC(cm_set_distance_mode, distance_mode);
+  //--> set retract mode goes here
+
+  switch (cm.gn.next_action) {
+  case NEXT_ACTION_SET_G28_POSITION: // G28.1
+    cm_set_g28_position();
+    break;
+  case NEXT_ACTION_GOTO_G28_POSITION: // G28
+    status = cm_goto_g28_position(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_G30_POSITION: // G30.1
+    cm_set_g30_position();
+    break;
+  case NEXT_ACTION_GOTO_G30_POSITION: // G30
+    status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SEARCH_HOME: // G28.2
+    status = cm_homing_cycle_start();
+    break;
+  case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
+    cm_set_absolute_origin(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_HOMING_NO_SET: // G28.4
+    status = cm_homing_cycle_start_no_set();
+    break;
+  case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
+    status = cm_straight_probe(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_COORD_DATA:
+    cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_SET_ORIGIN_OFFSETS:
+    cm_set_origin_offsets(cm.gn.target, cm.gf.target);
+    break;
+  case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
+    cm_reset_origin_offsets();
+    break;
+  case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS:
+    cm_suspend_origin_offsets();
+    break;
+  case NEXT_ACTION_RESUME_ORIGIN_OFFSETS:
+    cm_resume_origin_offsets();
+    break;
+  case NEXT_ACTION_DWELL: break; // Handled above
+
+  case NEXT_ACTION_DEFAULT:
+    // apply override setting to gm struct
+    cm_set_absolute_override(cm.gn.absolute_override);
+
+    switch (cm.gn.motion_mode) {
+    case MOTION_MODE_CANCEL_MOTION_MODE:
+      cm.gm.motion_mode = cm.gn.motion_mode;
+      break;
+    case MOTION_MODE_STRAIGHT_TRAVERSE:
+      status = cm_straight_traverse(cm.gn.target, cm.gf.target);
+      break;
+    case MOTION_MODE_STRAIGHT_FEED:
+      status = cm_straight_feed(cm.gn.target, cm.gf.target);
+      break;
+    case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
+      // gf.radius sets radius mode if radius was collected in gn
+      status = cm_arc_feed(cm.gn.target, cm.gf.target, cm.gn.arc_offset[0],
+                           cm.gn.arc_offset[1], cm.gn.arc_offset[2],
+                           cm.gn.arc_radius, cm.gn.motion_mode);
+      break;
+    default: break; // Should not get here
+    }
+  }
+  // un-set absolute override once the move is planned
+  cm_set_absolute_override(false);
+
+  // do the program stops and ends : M0, M1, M2, M30, M60
+  if (cm.gf.program_flow) {
+    if (cm.gn.program_flow == PROGRAM_STOP) cm_program_stop();
+    else cm_program_end();
+  }
+
+  return status;
+}
+
+
+/* Parses one line of 0 terminated G-Code.
+ *
+ * All the parser does is load the state values in gn (next model
+ * state) and set flags in gf (model state flags). The execute
+ * routine applies them. The buffer is assumed to contain only
+ * uppercase characters and signed floats (no whitespace).
+ *
+ * A number of implicit things happen when the gn struct is zeroed:
+ *   - inverse feed rate mode is canceled - set back to units_per_minute mode
  */
 static stat_t _parse_gcode_block(char *buf) {
-  char *pstr = (char *)buf; // persistent pointer for parsing words
+  char *pstr = buf;         // persistent pointer for parsing words
   char letter;              // parsed letter, eg.g. G or X or Y
   float value = 0;          // value parsed from letter (e.g. 2 for G2)
   stat_t status = STAT_OK;
 
   // set initial state for new move
-  memset(&gp, 0, sizeof(gp));                     // clear all parser values
+  memset(modals, 0, sizeof(modals));              // clear all parser values
   memset(&cm.gf, 0, sizeof(GCodeState_t));        // clear all next-state flags
   memset(&cm.gn, 0, sizeof(GCodeState_t));        // clear all next-state values
+
   // get motion mode from previous block
   cm.gn.motion_mode = cm_get_motion_mode();
 
   // extract commands and parameters
   while ((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
-    switch(letter) {
+    switch (letter) {
     case 'G':
-      switch((uint8_t)value) {
+      switch ((uint8_t)value) {
       case 0:
         SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_TRAVERSE);
       case 1:
@@ -415,151 +523,26 @@ static stat_t _parse_gcode_block(char *buf) {
 }
 
 
-/* Execute parsed block
- *
- * Conditionally (based on whether a flag is set in gf) call the canonical
- * machining functions in order of execution as per RS274NGC_3 table 8
- * (below, with modifications):
- *
- *   0. record the line number
- *   1. comment (includes message) [handled during block normalization]
- *   2. set feed rate mode (G93, G94 - inverse time or per minute)
- *   3. set feed rate (F)
- *   3a. set feed override rate (M50.1)
- *   3a. set traverse override rate (M50.2)
- *   4. set spindle speed (S)
- *   4a. set spindle override rate (M51.1)
- *   5. select tool (T)
- *   6. change tool (M6)
- *   7. spindle on or off (M3, M4, M5)
- *   8. coolant on or off (M7, M8, M9)
- *   9. enable or disable overrides (M48, M49, M50, M51)
- *   10. dwell (G4)
- *   11. set active plane (G17, G18, G19)
- *   12. set length units (G20, G21)
- *   13. cutter radius compensation on or off (G40, G41, G42)
- *   14. cutter length compensation on or off (G43, G49)
- *   15. coordinate system selection (G54, G55, G56, G57, G58, G59)
- *   16. set path control mode (G61, G61.1, G64)
- *   17. set distance mode (G90, G91)
- *   18. set retract mode (G98, G99)
- *   19a. homing functions (G28.2, G28.3, G28.1, G28, G30)
- *   19b. update system data (G10)
- *   19c. set axis offsets (G92, G92.1, G92.2, G92.3)
- *   20. perform motion (G0 to G3, G80-G89) as modified (possibly) by G53
- *   21. stop and end (M0, M1, M2, M30, M60)
- *
- * Values in gn are in original units and should not be unit converted prior
- * to calling the canonical functions (which do the unit conversions)
- */
-static stat_t _execute_gcode_block() {
-  stat_t status = STAT_OK;
+/// Parse a block (line) of gcode
+/// Top level of gcode parser. Normalizes block and looks for special cases
+stat_t gc_gcode_parser(char *block) {
+  char *str = block;                    // gcode command or 0 string
+  char none = 0;
+  char *com = &none;                    // gcode comment or 0 string
+  char *msg = &none;                    // gcode message or 0 string
+  uint8_t block_delete_flag;
 
-  cm_set_model_linenum(cm.gn.linenum);
-  EXEC_FUNC(cm_set_feed_rate_mode, feed_rate_mode);
-  EXEC_FUNC(cm_set_feed_rate, feed_rate);
-  EXEC_FUNC(cm_feed_rate_override_factor, feed_rate_override_factor);
-  EXEC_FUNC(cm_traverse_override_factor, traverse_override_factor);
-  EXEC_FUNC(cm_set_spindle_speed, spindle_speed);
-  EXEC_FUNC(cm_spindle_override_factor, spindle_override_factor);
-  // tool_select is where it's written
-  EXEC_FUNC(cm_select_tool, tool_select);
-  EXEC_FUNC(cm_change_tool, tool_change);
-  EXEC_FUNC(cm_spindle_control, spindle_mode); // spindle on or off
-  EXEC_FUNC(cm_mist_coolant_control, mist_coolant);
-  // also disables mist coolant if OFF
-  EXEC_FUNC(cm_flood_coolant_control, flood_coolant);
-  EXEC_FUNC(cm_feed_rate_override_enable, feed_rate_override_enable);
-  EXEC_FUNC(cm_traverse_override_enable, traverse_override_enable);
-  EXEC_FUNC(cm_spindle_override_enable, spindle_override_enable);
-  EXEC_FUNC(cm_override_enables, override_enables);
+  // don't process Gcode blocks if in alarmed state
+  if (cm.machine_state == MACHINE_ALARM) return STAT_MACHINE_ALARMED;
 
-  if (cm.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
-    // return if error, otherwise complete the block
-    ritorno(cm_dwell(cm.gn.parameter));
+  _normalize_gcode_block(str, &com, &msg, &block_delete_flag);
 
-  EXEC_FUNC(cm_set_plane, select_plane);
-  EXEC_FUNC(cm_set_units_mode, units_mode);
-  //--> cutter radius compensation goes here
-  //--> cutter length compensation goes here
-  EXEC_FUNC(cm_set_coord_system, coord_system);
-  EXEC_FUNC(cm_set_path_control, path_control);
-  EXEC_FUNC(cm_set_distance_mode, distance_mode);
-  //--> set retract mode goes here
+  // Block delete omits the line if a / char is present in the first space
+  // For now this is unconditional and will always delete
+  if (block_delete_flag) return STAT_NOOP;
 
-  switch (cm.gn.next_action) {
-  case NEXT_ACTION_SET_G28_POSITION: // G28.1
-    cm_set_g28_position();
-    break;
-  case NEXT_ACTION_GOTO_G28_POSITION: // G28
-    status = cm_goto_g28_position(cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_SET_G30_POSITION: // G30.1
-    cm_set_g30_position();
-    break;
-  case NEXT_ACTION_GOTO_G30_POSITION: // G30
-    status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_SEARCH_HOME: // G28.2
-    status = cm_homing_cycle_start();
-    break;
-  case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
-    cm_set_absolute_origin(cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_HOMING_NO_SET: // G28.4
-    status = cm_homing_cycle_start_no_set();
-    break;
-  case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
-    status = cm_straight_probe(cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_SET_COORD_DATA:
-    cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_SET_ORIGIN_OFFSETS:
-    cm_set_origin_offsets(cm.gn.target, cm.gf.target);
-    break;
-  case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
-    cm_reset_origin_offsets();
-    break;
-  case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS:
-    cm_suspend_origin_offsets();
-    break;
-  case NEXT_ACTION_RESUME_ORIGIN_OFFSETS:
-    cm_resume_origin_offsets();
-    break;
-  case NEXT_ACTION_DWELL: break; // Handled above
+  // queue a "(MSG" response
+  if (*msg) cm_message(msg);            // queue the message
 
-  case NEXT_ACTION_DEFAULT:
-    // apply override setting to gm struct
-    cm_set_absolute_override(cm.gn.absolute_override);
-
-    switch (cm.gn.motion_mode) {
-    case MOTION_MODE_CANCEL_MOTION_MODE:
-      cm.gm.motion_mode = cm.gn.motion_mode;
-      break;
-    case MOTION_MODE_STRAIGHT_TRAVERSE:
-      status = cm_straight_traverse(cm.gn.target, cm.gf.target);
-      break;
-    case MOTION_MODE_STRAIGHT_FEED:
-      status = cm_straight_feed(cm.gn.target, cm.gf.target);
-      break;
-    case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
-      // gf.radius sets radius mode if radius was collected in gn
-      status = cm_arc_feed(cm.gn.target, cm.gf.target, cm.gn.arc_offset[0],
-                           cm.gn.arc_offset[1], cm.gn.arc_offset[2],
-                           cm.gn.arc_radius, cm.gn.motion_mode);
-      break;
-    default: break; // Should not get here
-    }
-  }
-  // un-set absolute override once the move is planned
-  cm_set_absolute_override(false);
-
-  // do the program stops and ends : M0, M1, M2, M30, M60
-  if (cm.gf.program_flow) {
-    if (cm.gn.program_flow == PROGRAM_STOP) cm_program_stop();
-    else cm_program_end();
-  }
-
-  return status;
+  return _parse_gcode_block(block);
 }

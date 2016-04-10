@@ -39,6 +39,7 @@
 #include "cpp_magic.h"
 
 #include <string.h>
+#include <stdio.h>
 
 
 typedef struct {
@@ -181,14 +182,6 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   st.move_ready = true; // signal prep buffer ready(do this last)
 
   return STAT_OK;
-}
-
-
-/// Keeps the loader happy. Otherwise performs no action
-void st_prep_null() {
-  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
-  st.move_type = MOVE_TYPE_NULL;
-  st.move_ready = false; // signal prep buffer empty
 }
 
 

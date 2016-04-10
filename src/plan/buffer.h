@@ -47,7 +47,6 @@ typedef enum {             // bf->move_type values
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
   MOVE_TYPE_COMMAND,       // general command
-  MOVE_TYPE_JOG,           // interactive jogging
 } moveType_t;
 
 typedef enum {

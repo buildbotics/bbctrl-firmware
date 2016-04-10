@@ -59,18 +59,13 @@ static const char bool_name [] PROGMEM = "<bool>";
 MAP(TYPE_NAME, SEMI, flags_t, string, float, int8_t, uint8_t, uint16_t);
 
 
+// String
 static void var_print_string(const char *s) {
   printf_P(PSTR("\"%s\""), s);
 }
 
 
-#if 0
-static void var_print_bool(bool x) {
-  printf_P(x ? PSTR("true") : PSTR("false"));
-}
-#endif
-
-
+// Flags
 extern void print_status_flags(uint8_t x);
 
 static void var_print_flags_t(uint8_t x) {
@@ -78,6 +73,7 @@ static void var_print_flags_t(uint8_t x) {
 }
 
 
+// Float
 static void var_print_float(float x) {
   char buf[20];
 
@@ -98,43 +94,39 @@ static void var_print_float(float x) {
 }
 
 
-static void var_print_int8_t(int8_t x) {
-  printf_P(PSTR("%"PRIi8), x);
-}
-
-
-static void var_print_uint8_t(uint8_t x) {
-  printf_P(PSTR("%"PRIu8), x);
-}
-
-
-static void var_print_uint16_t(uint16_t x) {
-  printf_P(PSTR("%"PRIu16), x);
-}
-
-
 static float var_parse_float(const char *value) {
   return strtod(value, 0);
 }
 
 
-#if 0
+// Bool
+static void var_print_bool(bool x) {
+  printf_P(x ? PSTR("true") : PSTR("false"));
+}
+
+
 static bool var_parse_bool(const char *value) {
   return !strcasecmp(value, "true") || var_parse_float(value);
 }
-#endif
+
+
+static uint8_t eeprom_read_bool(bool *addr) {
+  return eeprom_read_byte((uint8_t *)addr);
+}
+
+
+static void eeprom_update_bool(bool *addr, bool value) {
+  eeprom_update_byte((uint8_t *)addr, value);
+}
+
+
+// int8
+static void var_print_int8_t(int8_t x) {
+  printf_P(PSTR("%"PRIi8), x);
+}
 
 
 static int8_t var_parse_int8_t(const char *value) {
-  return strtol(value, 0, 0);
-}
-
-static uint8_t var_parse_uint8_t(const char *value) {
-  return strtol(value, 0, 0);
-}
-
-
-static uint16_t var_parse_uint16_t(const char *value) {
   return strtol(value, 0, 0);
 }
 
@@ -144,23 +136,45 @@ static int8_t eeprom_read_int8_t(int8_t *addr) {
 }
 
 
-static uint8_t eeprom_read_uint8_t(uint8_t *addr) {
-  return eeprom_read_byte(addr);
-}
-
-
-static uint16_t eeprom_read_uint16_t(uint16_t *addr) {
-  return eeprom_read_word(addr);
-}
-
-
 static void eeprom_update_int8_t(int8_t *addr, int8_t value) {
   eeprom_update_byte((uint8_t *)addr, value);
 }
 
 
+// uint8
+static void var_print_uint8_t(uint8_t x) {
+  printf_P(PSTR("%"PRIu8), x);
+}
+
+
+static uint8_t var_parse_uint8_t(const char *value) {
+  return strtol(value, 0, 0);
+}
+
+
+static uint8_t eeprom_read_uint8_t(uint8_t *addr) {
+  return eeprom_read_byte(addr);
+}
+
+
 static void eeprom_update_uint8_t(uint8_t *addr, uint8_t value) {
   eeprom_update_byte(addr, value);
+}
+
+
+// unit16
+static void var_print_uint16_t(uint16_t x) {
+  printf_P(PSTR("%"PRIu16), x);
+}
+
+
+static uint16_t var_parse_uint16_t(const char *value) {
+  return strtol(value, 0, 0);
+}
+
+
+static uint16_t eeprom_read_uint16_t(uint16_t *addr) {
+  return eeprom_read_word(addr);
 }
 
 

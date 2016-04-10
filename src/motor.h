@@ -69,6 +69,9 @@ int motor_get_axis(int motor);
 float motor_get_steps_per_unit(int motor);
 int32_t motor_get_encoder(int motor);
 void motor_set_encoder(int motor, float encoder);
+bool motor_error(int motor);
+bool motor_stall(int motor);
+void motor_reset(int motor);
 
 bool motor_energizing();
 

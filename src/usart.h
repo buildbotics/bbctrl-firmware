@@ -56,7 +56,8 @@ enum {
 
 void usart_init();
 void usart_set_baud(int baud);
-void usart_ctrl(int flag, bool enable);
+void usart_set(int flag, bool enable);
+bool usart_is_set(int flags);
 void usart_putc(char c);
 void usart_puts(const char *s);
 int8_t usart_getc();

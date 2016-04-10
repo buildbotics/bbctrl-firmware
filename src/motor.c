@@ -35,6 +35,7 @@
 #include "tmc2660.h"
 
 #include "plan/planner.h"
+#include "plan/calibrate.h"
 
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -232,8 +233,20 @@ void motor_set_encoder(int motor, float encoder) {
 
 
 /// returns true if motor is in an error state
-static bool _error(int motor) {
-  return motors[motor].flags & MOTOR_FLAG_ERROR_bm;
+bool motor_error(int motor) {
+  uint8_t flags = motors[motor].flags;
+  if (calibrate_busy()) flags &= ~MOTOR_FLAG_STALLED_bm;
+  return flags & MOTOR_FLAG_ERROR_bm;
+}
+
+
+bool motor_stall(int motor) {
+  return motors[motor].flags & MOTOR_FLAG_STALLED_bm;
+}
+
+
+void motor_reset(int motor) {
+  motors[motor].flags = 0;
 }
 
 
@@ -248,7 +261,7 @@ static void _deenergize(int motor) {
 
 /// Apply power to a motor
 static void _energize(int motor) {
-  if (motors[motor].power_state == MOTOR_IDLE && !_error(motor)) {
+  if (motors[motor].power_state == MOTOR_IDLE && !motor_error(motor)) {
     motors[motor].power_state = MOTOR_ENERGIZING;
     tmc2660_enable(motor);
   }
@@ -284,7 +297,7 @@ void motor_driver_callback(int motor) {
 stat_t motor_power_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
     // Deenergize motor if disabled, in error or after timeout when not holding
-    if (motors[motor].power_mode == MOTOR_DISABLED || _error(motor) ||
+    if (motors[motor].power_mode == MOTOR_DISABLED || motor_error(motor) ||
         motors[motor].timeout < rtc_get_time())
       _deenergize(motor);
 
@@ -298,7 +311,7 @@ void motor_error_callback(int motor, cmMotorFlags_t errors) {
   motors[motor].flags |= errors;
   report_request();
 
-  if (_error(motor)) {
+  if (motor_error(motor)) {
     _deenergize(motor);
 
     // Stop and flush motion
@@ -543,11 +556,11 @@ uint8_t get_status_strings(int motor) {
 void command_mreset(int argc, char *argv[]) {
   if (argc == 1)
     for (int motor = 0; motor < MOTORS; motor++)
-      motors[motor].flags = 0;
+      motor_reset(motor);
 
   else {
     int motor = atoi(argv[1]);
-    if (motor < MOTORS) motors[motor].flags = 0;
+    if (motor < MOTORS) motor_reset(motor);
   }
 
   report_request();

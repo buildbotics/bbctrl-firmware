@@ -79,5 +79,6 @@ VAR(spin_down,      "sd", float,    0,      1, 0, "Spin down velocity")
 VAR(switch_type,    "sw", uint8_t,  SWITCHES, 1, 0, "Normally open or closed")
 
 // System
-VAR(velocity,       "v",  float,    0,      0, 0, "Current velocity")
+VAR(velocity,        "v", float,    0,      0, 0, "Current velocity")
 VAR(hw_id,          "id", string,   0,      0, 0, "Hardware ID")
+VAR(echo,         "echo", bool,     0,      1, 1, "Enable or disable echo")

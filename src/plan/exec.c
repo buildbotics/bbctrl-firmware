@@ -33,364 +33,93 @@
 #include "motor.h"
 #include "util.h"
 #include "report.h"
+#include "config.h"
 
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
 
-// Execute routines. Called from the LO interrupt
-static stat_t _exec_aline_head();
-static stat_t _exec_aline_body();
-static stat_t _exec_aline_tail();
-static stat_t _exec_aline_segment();
 
-
-/// Dequeues buffer and executes move continuations. Manages run buffers and
-/// other details.
-stat_t mp_exec_move() {
-  mpBuf_t *bf = mp_get_run_buffer();
-
-  if (!bf) { // null if nothing's running
-    st_prep_null();
-    return STAT_NOOP;
-  }
-
-  // Manage cycle and motion state transitions
-  // Cycle auto-start for lines only
-  if (bf->move_type == MOVE_TYPE_ALINE && cm.motion_state == MOTION_STOP)
-    cm_set_motion_state(MOTION_RUN);
-
-  if (!bf->bf_func)
-    return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
-
-  return bf->bf_func(bf); // run the move callback in the planner buffer
-}
-
-
-/* Aline execution routines
+/* Segment runner helper
  *
- * Everything here fires from interrupts and must be interrupt safe
+ * Notes on step error correction:
  *
- * Returns:
- *   STAT_OK        move is done
- *   STAT_EAGAIN    move is not finished - has more segments to run
- *   STAT_NOOP      cause no operation from the steppers - do not load the
- *                  move
- *   STAT_xxxxx     fatal error. Ends the move and frees the bf buffer
+ * The commanded_steps are the target_steps delayed by one more
+ * segment.  This lines them up in time with the encoder readings so a
+ * following error can be generated
  *
- * This routine is called from the (LO) interrupt level. The interrupt
- * sequencing relies on the behaviors of the routines being exactly correct.
- * Each call to _exec_aline() must execute and prep *one and only one*
- * segment. If the segment is the not the last segment in the bf buffer the
- * _aline() must return STAT_EAGAIN. If it's the last segment it must return
- * STAT_OK. If it encounters a fatal error that would terminate the move it
- * should return a valid error code. Failure to obey this will introduce
- * subtle and very difficult to diagnose bugs (trust me on this).
+ * The following_error term is positive if the encoder reading is
+ * greater than (ahead of) the commanded steps, and negative (behind)
+ * if the encoder reading is less than the commanded steps. The
+ * following error is not affected by the direction of movement - it's
+ * purely a statement of relative position. Examples:
  *
- * Note 1 Returning STAT_OK ends the move and frees the bf buffer.
- *        Returning STAT_OK at this point does NOT advance position meaning
- *        any position error will be compensated by the next move.
- *
- * Note 2 Solves a potential race condition where the current move ends but
- *        the new move has not started because the previous move is still
- *        being run by the steppers. Planning can overwrite the new move.
- *
- * Operation:
- * Aline generates jerk-controlled S-curves as per Ed Red's course notes:
- *   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
- *   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
- *
- * A full trapezoid is divided into 5 periods Periods 1 and 2 are the
- * first and second halves of the acceleration ramp (the concave and convex
- * parts of the S curve in the "head"). Periods 3 and 4 are the first
- * and second parts of the deceleration ramp (the tail). There is also
- * a period for the constant-velocity plateau of the trapezoid (the body).
- * There are various degraded trapezoids possible, including 2 section
- * combinations (head and tail; head and body; body and tail), and single
- * sections - any one of the three.
- *
- * The equations that govern the acceleration and deceleration ramps are:
- *
- *   Period 1    V = Vi + Jm*(T^2)/2
- *   Period 2    V = Vh + As*T - Jm*(T^2)/2
- *   Period 3    V = Vi - Jm*(T^2)/2
- *   Period 4    V = Vh + As*T + Jm*(T^2)/2
- *
- * These routines play some games with the acceleration and move timing
- * to make sure this actually all works out. move_time is the actual time of
- * the move, accel_time is the time valaue needed to compute the velocity -
- * which takes the initial velocity into account (move_time does not need
- * to).
- *
- * --- State transitions - hierarchical state machine ---
- *
- * bf->move_state transitions:
- *  from _NEW to _RUN on first call (sub_state set to _OFF)
- *  from _RUN to _OFF on final call
- *   or just remains _OFF
- *
- * mr.move_state transitions on first call from _OFF to one of _HEAD, _BODY,
- * _TAIL.  Within each section state may be:
- *
- *   _NEW - trigger initialization
- *   _RUN1 - run the first part
- *   _RUN2 - run the second part
+ *    Encoder Commanded   Following Err
+ *     100      90        +10    encoder is 10 steps ahead of commanded steps
+ *     -90    -100        +10    encoder is 10 steps ahead of commanded steps
+ *      90     100        -10    encoder is 10 steps behind commanded steps
+ *    -100     -90        -10    encoder is 10 steps behind commanded steps
  */
-stat_t mp_exec_aline(mpBuf_t *bf) {
-  if (bf->move_state == MOVE_OFF) return STAT_NOOP;
+static stat_t _exec_aline_segment() {
+  float travel_steps[MOTORS];
 
-  // start a new move by setting up local context (singleton)
-  if (mr.move_state == MOVE_OFF) {
-    if (cm.hold_state == FEEDHOLD_HOLD)
-      return STAT_NOOP; // stops here if holding
+  // Set target position for the segment
+  // If the segment ends on a section waypoint, synchronize to the
+  // head, body or tail end.  Otherwise, if not at a section waypoint
+  // compute target from segment time and velocity Don't do waypoint
+  // correction if you are going into a hold.
+  if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
+      cm.motion_state == MOTION_RUN && cm.cycle_state == CYCLE_MACHINING)
+    copy_vector(mr.ms.target, mr.waypoint[mr.section]);
 
-    // initialization to process the new incoming bf buffer (Gcode block)
-    // copy in the gcode model state
-    memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
-    bf->replannable = false;
-
-    // short lines have already been removed, look for an actual zero
-    if (fp_ZERO(bf->length)) {
-      mr.move_state = MOVE_OFF; // reset mr buffer
-      mr.section_state = SECTION_OFF;
-      // prevent overplanning (Note 2)
-      bf->nx->replannable = false;
-      // call this to keep the loader happy
-      st_prep_null();
-      // free buffer & end cycle if planner is empty
-      if (mp_free_run_buffer()) cm_cycle_end();
-
-      return STAT_NOOP;
-    }
-
-    bf->move_state = MOVE_RUN;
-    mr.move_state = MOVE_RUN;
-    mr.section = SECTION_HEAD;
-    mr.section_state = SECTION_NEW;
-    mr.jerk = bf->jerk;
-#ifdef __JERK_EXEC
-    mr.jerk_div2 = bf->jerk / 2; // only needed by __JERK_EXEC
-#endif
-    mr.head_length = bf->head_length;
-    mr.body_length = bf->body_length;
-    mr.tail_length = bf->tail_length;
-
-    mr.entry_velocity = bf->entry_velocity;
-    mr.cruise_velocity = bf->cruise_velocity;
-    mr.exit_velocity = bf->exit_velocity;
-
-    copy_vector(mr.unit, bf->unit);
-    copy_vector(mr.final_target, bf->ms.target); // save move final target
-
-    // generate the waypoints for position correction at section ends
-    for (uint8_t axis = 0; axis < AXES; axis++) {
-      mr.waypoint[SECTION_HEAD][axis] =
-        mr.position[axis] + mr.unit[axis] * mr.head_length;
-      mr.waypoint[SECTION_BODY][axis] =
-        mr.position[axis] + mr.unit[axis] *
-        (mr.head_length + mr.body_length);
-      mr.waypoint[SECTION_TAIL][axis] =
-        mr.position[axis] + mr.unit[axis] *
-        (mr.head_length + mr.body_length + mr.tail_length);
-    }
-  }
-
-  // main dispatcher to process segments
-  // from this point on the contents of the bf buffer do not affect execution
-  stat_t status = STAT_OK;
-
-  if (mr.section == SECTION_HEAD) status = _exec_aline_head();
-  else if (mr.section == SECTION_BODY) status = _exec_aline_body();
-  else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
-  else if (mr.move_state == MOVE_SKIP_BLOCK) status = STAT_OK;
-  else return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
-
-  // Feedhold processing. Refer to canonical_machine.h for state machine
-  // Catch the feedhold request and start the planning the hold
-  if (cm.hold_state == FEEDHOLD_SYNC) cm.hold_state = FEEDHOLD_PLAN;
-
-  // Look for the end of the decel to go into HOLD state
-  if (cm.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
-    cm.hold_state = FEEDHOLD_HOLD;
-    cm_set_motion_state(MOTION_HOLD);
-    report_request();
-  }
-
-  // There are 3 things that can happen here depending on return conditions:
-  //    status        bf->move_state        Description
-  //  -----------    --------------        ------------------------------------
-  //    STAT_EAGAIN    <don't care>        mr buffer has more segments to run
-  //    STAT_OK        MOVE_RUN            mr and bf buffers are done
-  //    STAT_OK        MOVE_NEW            mr done; bf must be run again
-  //                                       (it's been reused)
-  if (status == STAT_EAGAIN) report_request();
   else {
-    mr.move_state = MOVE_OFF; // reset mr buffer
-    mr.section_state = SECTION_OFF;
-    bf->nx->replannable = false; // prevent overplanning (Note 2)
+    float segment_length = mr.segment_velocity * mr.segment_time;
 
-    if (bf->move_state == MOVE_RUN && mp_free_run_buffer())
-      cm_cycle_end(); // free buffer & end cycle if planner is empty
+    for (int i = 0; i < AXES; i++)
+      mr.ms.target[i] = mr.position[i] + mr.unit[i] * segment_length;
   }
 
-  return status;
-}
-
-/// Helper for cruise section
-/// The body is broken into little segments even though it is a
-/// straight line so that feedholds can happen in the middle of a line
-/// with a minimum of latency
-static stat_t _exec_aline_body() {
-  if (mr.section_state == SECTION_NEW) {
-    if (fp_ZERO(mr.body_length)) {
-      mr.section = SECTION_TAIL;
-      return _exec_aline_tail(); // skip ahead to tail periods
-    }
-
-    mr.ms.move_time = mr.body_length / mr.cruise_velocity;
-    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
-    mr.segment_time = mr.ms.move_time / mr.segments;
-    mr.segment_velocity = mr.cruise_velocity;
-    mr.segment_count = (uint32_t)mr.segments;
-
-    if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit without advancing position
-
-    mr.section = SECTION_BODY;
-    // uses PERIOD_2 so last segment detection works
-    mr.section_state = SECTION_2nd_HALF;
+  // Convert target position to steps.  Bucket-brigade the old target
+  // down the chain before getting the new target from kinematics
+  //
+  // The direct manipulation of steps to compute travel_steps only
+  // works for Cartesian kinematics.  Other kinematics may require
+  // transforming travel distance as opposed to simply subtracting
+  // steps.
+  for (int i = 0; i < MOTORS; i++) {
+    // previous segment's position, delayed by 1 segment
+    mr.commanded_steps[i] = mr.position_steps[i];
+    // previous segment's target becomes position
+    mr.position_steps[i] = mr.target_steps[i];
+    // current encoder position (aligns to commanded_steps)
+    mr.encoder_steps[i] = motor_get_encoder(i);
+    mr.following_error[i] = mr.encoder_steps[i] - mr.commanded_steps[i];
   }
 
-  if (mr.section_state == SECTION_2nd_HALF) // straight part (period 3)
-    if (_exec_aline_segment() == STAT_OK) { // OK means this section is done
-      if (fp_ZERO(mr.tail_length)) return STAT_OK; // ends the move
-      mr.section = SECTION_TAIL;
-      mr.section_state = SECTION_NEW;
-    }
+  // now determine the target steps
+  mp_kinematics(mr.ms.target, mr.target_steps);
 
-  return STAT_EAGAIN;
-}
+  // and compute the distances to be traveled
+  for (int i = 0; i < MOTORS; i++)
+    travel_steps[i] = mr.target_steps[i] - mr.position_steps[i];
 
+  // Call the stepper prep function
+  ritorno(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
+
+  // update position from target
+  copy_vector(mr.position, mr.ms.target);
 
 #ifdef __JERK_EXEC
-/// Helper for acceleration section
-static stat_t _exec_aline_head() {
-  if (mr.section_state == SECTION_NEW) { // initialize the move singleton (mr)
-    if (fp_ZERO(mr.head_length)) {
-      mr.section = SECTION_BODY;
-      return _exec_aline_body(); // skip ahead to the body generator
-    }
+  // needed by jerk-based exec (ignored if running body)
+  mr.elapsed_accel_time += mr.segment_accel_time;
+#endif
 
-    mr.midpoint_velocity = (mr.entry_velocity + mr.cruise_velocity) / 2;
-    // time for entire accel region
-    mr.ms.move_time = mr.head_length / mr.midpoint_velocity;
-    // # of segments in *each half*
-    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
-    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
-    mr.accel_time =
-      2 * sqrt((mr.cruise_velocity - mr.entry_velocity) / mr.jerk);
-    mr.midpoint_acceleration =
-      2 * (mr.cruise_velocity - mr.entry_velocity) / mr.accel_time;
-    // time to advance for each segment
-    mr.segment_accel_time = mr.accel_time / (2 * mr.segments);
-    // elapsed time starting point (offset)
-    mr.elapsed_accel_time = mr.segment_accel_time / 2;
-    mr.segment_count = (uint32_t)mr.segments;
-
-    if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit without advancing position
-
-    mr.section = SECTION_HEAD;
-    mr.section_state = SECTION_1st_HALF;
-  }
-
-  // First half (concave part of accel curve)
-  if (mr.section_state == SECTION_1st_HALF) {
-    mr.segment_velocity =
-      mr.entry_velocity + (square(mr.elapsed_accel_time) * mr.jerk_div2);
-
-    if (_exec_aline_segment() == STAT_OK) { // set up for second half
-      mr.segment_count = (uint32_t)mr.segments;
-      mr.section_state = SECTION_2nd_HALF;
-      // start time from midpoint of segment
-      mr.elapsed_accel_time = mr.segment_accel_time / 2;
-    }
-
-    return STAT_EAGAIN;
-  }
-
-  // Second half (convex part of accel curve)
-  if (mr.section_state == SECTION_2nd_HALF) {
-    mr.segment_velocity = mr.midpoint_velocity +
-      (mr.elapsed_accel_time * mr.midpoint_acceleration) -
-      (square(mr.elapsed_accel_time) * mr.jerk_div2);
-
-    if (_exec_aline_segment() == STAT_OK) { // OK means this section is done
-      if (fp_ZERO(mr.body_length) && fp_ZERO(mr.tail_length))
-        return STAT_OK; // ends the move
-
-      mr.section = SECTION_BODY;
-      mr.section_state = SECTION_NEW;
-    }
-  }
-
-  return STAT_EAGAIN;
+  if (!mr.segment_count) return STAT_OK; // this section has run all segments
+  return STAT_EAGAIN; // this section still has more segments to run
 }
 
 
-/// helper for deceleration section
-static stat_t _exec_aline_tail() {
-  if (mr.section_state == SECTION_NEW) { // INITIALIZATION
-    if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
-
-    mr.midpoint_velocity = (mr.cruise_velocity + mr.exit_velocity) / 2;
-    mr.ms.move_time = mr.tail_length / mr.midpoint_velocity;
-    // # of segments in *each half*
-    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
-    // time to advance for each segment
-    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
-    mr.accel_time = 2 * sqrt((mr.cruise_velocity - mr.exit_velocity) / mr.jerk);
-    mr.midpoint_acceleration =
-      2 * (mr.cruise_velocity - mr.exit_velocity) / mr.accel_time;
-    // time to advance for each segment
-    mr.segment_accel_time = mr.accel_time / (2 * mr.segments);
-    // compute time from midpoint of segment
-    mr.elapsed_accel_time = mr.segment_accel_time / 2;
-    mr.segment_count = (uint32_t)mr.segments;
-    if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
-    mr.section = SECTION_TAIL;
-    mr.section_state = SECTION_1st_HALF;
-  }
-
-  // FIRST HALF - convex part (period 4)
-  if (mr.section_state == SECTION_1st_HALF) {
-    mr.segment_velocity =
-      mr.cruise_velocity - (square(mr.elapsed_accel_time) * mr.jerk_div2);
-
-    if (_exec_aline_segment() == STAT_OK) { // set up for second half
-      mr.segment_count = (uint32_t)mr.segments;
-      mr.section_state = SECTION_2nd_HALF;
-      // start time from midpoint of segment
-      mr.elapsed_accel_time = mr.segment_accel_time / 2;
-    }
-
-    return STAT_EAGAIN;
-  }
-
-  // SECOND HALF - concave part (period 5)
-  if (mr.section_state == SECTION_2nd_HALF) {
-    mr.segment_velocity = mr.midpoint_velocity -
-      (mr.elapsed_accel_time * mr.midpoint_acceleration) +
-      (square(mr.elapsed_accel_time) * mr.jerk_div2);
-    return _exec_aline_segment(); // ends the move or continues EAGAIN
-  }
-
-  return STAT_EAGAIN; // should never get here
-}
-
-
-#else // __JERK_EXEC
+#ifndef __JERK_EXEC
 /* Forward difference math explained:
  *
  * We are using a quintic (fifth-degree) Bezier polynomial for the
@@ -544,8 +273,266 @@ static void _init_forward_diffs(float Vi, float Vt) {
   float half_Ah_5 = C * half_h * half_h * half_h * half_h * half_h;
   mr.segment_velocity = half_Ah_5 + half_Bh_4 + half_Ch_3 + Vi;
 }
+#endif // !__JERK_EXEC
 
 
+#ifdef __JERK_EXEC
+/// helper for deceleration section
+static stat_t _exec_aline_tail() {
+  if (mr.section_state == SECTION_NEW) { // Initialization
+    if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
+
+    mr.midpoint_velocity = (mr.cruise_velocity + mr.exit_velocity) / 2;
+    mr.ms.move_time = mr.tail_length / mr.midpoint_velocity;
+
+    // segments in each half
+    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
+
+    // time to advance for each segment
+    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
+    mr.accel_time = 2 * sqrt((mr.cruise_velocity - mr.exit_velocity) / mr.jerk);
+    mr.midpoint_acceleration =
+      2 * (mr.cruise_velocity - mr.exit_velocity) / mr.accel_time;
+
+    // time to advance for each segment
+    mr.segment_accel_time = mr.accel_time / (2 * mr.segments);
+
+    // compute time from midpoint of segment
+    mr.elapsed_accel_time = mr.segment_accel_time / 2;
+    mr.segment_count = mr.segments;
+
+    if (mr.segment_time < MIN_SEGMENT_TIME)
+      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
+
+    mr.section = SECTION_TAIL;
+    mr.section_state = SECTION_1st_HALF;
+  }
+
+  // FIRST HALF - convex part (period 4)
+  if (mr.section_state == SECTION_1st_HALF) {
+    mr.segment_velocity =
+      mr.cruise_velocity - (square(mr.elapsed_accel_time) * mr.jerk_div2);
+
+    if (_exec_aline_segment() == STAT_OK) { // set up for second half
+      mr.segment_count = mr.segments;
+      mr.section_state = SECTION_2nd_HALF;
+      // start time from midpoint of segment
+      mr.elapsed_accel_time = mr.segment_accel_time / 2;
+    }
+
+    return STAT_EAGAIN;
+  }
+
+  // SECOND HALF - concave part (period 5)
+  if (mr.section_state == SECTION_2nd_HALF) {
+    mr.segment_velocity = mr.midpoint_velocity -
+      (mr.elapsed_accel_time * mr.midpoint_acceleration) +
+      (square(mr.elapsed_accel_time) * mr.jerk_div2);
+
+    return _exec_aline_segment(); // ends the move or continues EAGAIN
+  }
+
+  return STAT_EAGAIN; // should never get here
+}
+
+
+#else // __JERK_EXEC
+/// helper for deceleration section
+static stat_t _exec_aline_tail() {
+  if (mr.section_state == SECTION_NEW) { // Initialization
+    if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
+
+    // len/avg. velocity
+    mr.ms.move_time =
+      2 * mr.tail_length / (mr.cruise_velocity + mr.exit_velocity);
+    // # of segments for the section
+    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
+    // time to advance for each segment
+    mr.segment_time = mr.ms.move_time / mr.segments;
+    _init_forward_diffs(mr.cruise_velocity, mr.exit_velocity);
+    mr.segment_count = (uint32_t)mr.segments;
+
+    if (mr.segment_time < MIN_SEGMENT_TIME)
+      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
+
+    mr.section = SECTION_TAIL;
+    mr.section_state = SECTION_1st_HALF;
+  }
+
+  // First half - convex part (period 4)
+  if (mr.section_state == SECTION_1st_HALF) {
+    if (_exec_aline_segment() == STAT_OK) {
+      // For forward differencing we should have one segment in
+      // SECTION_1st_HALF. However, if it returns from that as STAT_OK, then
+      // there was only one segment in this section. Show that we did complete
+      // section 2 ... effectively.
+      mr.section_state = SECTION_2nd_HALF;
+      return STAT_OK;
+
+    } else mr.section_state = SECTION_2nd_HALF;
+
+    return STAT_EAGAIN;
+  }
+
+  // Second half - concave part (period 5)
+  if (mr.section_state == SECTION_2nd_HALF) {
+#ifndef __KAHAN
+    mr.segment_velocity += mr.forward_diff[4];
+#else
+    // Use Kahan summation algorithm to mitigate floating-point errors for above
+    float y = mr.forward_diff[4] - mr.forward_diff_c[4];
+    float v = mr.segment_velocity + y;
+    mr.forward_diff_c[4] = (v - mr.segment_velocity) - y;
+    mr.segment_velocity = v;
+#endif
+
+    if (_exec_aline_segment() == STAT_OK) return STAT_OK; // set up for body
+    else {
+#ifndef __KAHAN
+      mr.forward_diff[4] += mr.forward_diff[3];
+      mr.forward_diff[3] += mr.forward_diff[2];
+      mr.forward_diff[2] += mr.forward_diff[1];
+      mr.forward_diff[1] += mr.forward_diff[0];
+#else
+      y = mr.forward_diff[3] - mr.forward_diff_c[3];
+      v = mr.forward_diff[4] + y;
+      mr.forward_diff_c[3] = (v - mr.forward_diff[4]) - y;
+      mr.forward_diff[4] = v;
+
+      y = mr.forward_diff[2] - mr.forward_diff_c[2];
+      v = mr.forward_diff[3] + y;
+      mr.forward_diff_c[2] = (v - mr.forward_diff[3]) - y;
+      mr.forward_diff[3] = v;
+
+      y = mr.forward_diff[1] - mr.forward_diff_c[1];
+      v = mr.forward_diff[2] + y;
+      mr.forward_diff_c[1] = (v - mr.forward_diff[2]) - y;
+      mr.forward_diff[2] = v;
+
+      y = mr.forward_diff[0] - mr.forward_diff_c[0];
+      v = mr.forward_diff[1] + y;
+      mr.forward_diff_c[0] = (v - mr.forward_diff[1]) - y;
+      mr.forward_diff[1] = v;
+#endif
+    }
+  }
+
+  return STAT_EAGAIN;
+}
+#endif // !__JERK_EXEC
+
+
+/// Helper for cruise section
+/// The body is broken into little segments even though it is a
+/// straight line so that feedholds can happen in the middle of a line
+/// with a minimum of latency
+static stat_t _exec_aline_body() {
+  if (mr.section_state == SECTION_NEW) {
+    if (fp_ZERO(mr.body_length)) {
+      mr.section = SECTION_TAIL;
+
+      return _exec_aline_tail(); // skip ahead to tail periods
+    }
+
+    mr.ms.move_time = mr.body_length / mr.cruise_velocity;
+    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
+    mr.segment_time = mr.ms.move_time / mr.segments;
+    mr.segment_velocity = mr.cruise_velocity;
+    mr.segment_count = mr.segments;
+
+    if (mr.segment_time < MIN_SEGMENT_TIME)
+      return STAT_MINIMUM_TIME_MOVE; // exit without advancing position
+
+    mr.section = SECTION_BODY;
+
+    // uses PERIOD_2 so last segment detection works
+    mr.section_state = SECTION_2nd_HALF;
+  }
+
+  if (mr.section_state == SECTION_2nd_HALF) // straight part (period 3)
+    if (_exec_aline_segment() == STAT_OK) { // OK means this section is done
+      if (fp_ZERO(mr.tail_length)) return STAT_OK; // ends the move
+
+      mr.section = SECTION_TAIL;
+      mr.section_state = SECTION_NEW;
+    }
+
+  return STAT_EAGAIN;
+}
+
+
+
+#ifdef __JERK_EXEC
+/// Helper for acceleration section
+static stat_t _exec_aline_head() {
+  if (mr.section_state == SECTION_NEW) { // initialize the move singleton (mr)
+    if (fp_ZERO(mr.head_length)) {
+      mr.section = SECTION_BODY;
+
+      return _exec_aline_body(); // skip ahead to the body generator
+    }
+
+    mr.midpoint_velocity = (mr.entry_velocity + mr.cruise_velocity) / 2;
+
+    // time for entire accel region
+    mr.ms.move_time = mr.head_length / mr.midpoint_velocity;
+
+    // segments in each half
+    mr.segments = ceil(uSec(mr.ms.move_time) / (2 * NOM_SEGMENT_USEC));
+    mr.segment_time = mr.ms.move_time / (2 * mr.segments);
+    mr.accel_time =
+      2 * sqrt((mr.cruise_velocity - mr.entry_velocity) / mr.jerk);
+    mr.midpoint_acceleration =
+      2 * (mr.cruise_velocity - mr.entry_velocity) / mr.accel_time;
+
+    // time to advance for each segment
+    mr.segment_accel_time = mr.accel_time / (2 * mr.segments);
+
+    // elapsed time starting point (offset)
+    mr.elapsed_accel_time = mr.segment_accel_time / 2;
+    mr.segment_count = mr.segments;
+
+    if (mr.segment_time < MIN_SEGMENT_TIME)
+      return STAT_MINIMUM_TIME_MOVE; // exit without advancing position
+
+    mr.section = SECTION_HEAD;
+    mr.section_state = SECTION_1st_HALF;
+  }
+
+  // First half (concave part of accel curve)
+  if (mr.section_state == SECTION_1st_HALF) {
+    mr.segment_velocity =
+      mr.entry_velocity + (square(mr.elapsed_accel_time) * mr.jerk_div2);
+
+    if (_exec_aline_segment() == STAT_OK) { // set up for second half
+      mr.segment_count = mr.segments;
+      mr.section_state = SECTION_2nd_HALF;
+      // start time from midpoint of segment
+      mr.elapsed_accel_time = mr.segment_accel_time / 2;
+    }
+
+    return STAT_EAGAIN;
+  }
+
+  // Second half (convex part of accel curve)
+  if (mr.section_state == SECTION_2nd_HALF) {
+    mr.segment_velocity = mr.midpoint_velocity +
+      (mr.elapsed_accel_time * mr.midpoint_acceleration) -
+      (square(mr.elapsed_accel_time) * mr.jerk_div2);
+
+    if (_exec_aline_segment() == STAT_OK) { // OK means this section is done
+      if (fp_ZERO(mr.body_length) && fp_ZERO(mr.tail_length))
+        return STAT_OK; // ends the move
+
+      mr.section = SECTION_BODY;
+      mr.section_state = SECTION_NEW;
+    }
+  }
+
+  return STAT_EAGAIN;
+}
+
+#else // __JERK_EXEC
 /// Helper for acceleration section
 static stat_t _exec_aline_head() {
   if (mr.section_state == SECTION_NEW) { // initialize the move singleton (mr)
@@ -636,166 +623,192 @@ static stat_t _exec_aline_head() {
 
   return STAT_EAGAIN;
 }
-
-
-/// helper for deceleration section
-static stat_t _exec_aline_tail() {
-  if (mr.section_state == SECTION_NEW) { // Initialization
-    if (fp_ZERO(mr.tail_length)) return STAT_OK; // end the move
-
-    // len/avg. velocity
-    mr.ms.move_time =
-      2 * mr.tail_length / (mr.cruise_velocity + mr.exit_velocity);
-    // # of segments for the section
-    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
-    // time to advance for each segment
-    mr.segment_time = mr.ms.move_time / mr.segments;
-    _init_forward_diffs(mr.cruise_velocity, mr.exit_velocity);
-    mr.segment_count = (uint32_t)mr.segments;
-
-    if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
-
-    mr.section = SECTION_TAIL;
-    mr.section_state = SECTION_1st_HALF;
-  }
-
-  // First half - convex part (period 4)
-  if (mr.section_state == SECTION_1st_HALF) {
-    if (_exec_aline_segment() == STAT_OK) {
-      // For forward differencing we should have one segment in
-      // SECTION_1st_HALF. However, if it returns from that as STAT_OK, then
-      // there was only one segment in this section. Show that we did complete
-      // section 2 ... effectively.
-      mr.section_state = SECTION_2nd_HALF;
-      return STAT_OK;
-
-    } else mr.section_state = SECTION_2nd_HALF;
-
-    return STAT_EAGAIN;
-  }
-
-  // Second half - concave part (period 5)
-  if (mr.section_state == SECTION_2nd_HALF) {
-#ifndef __KAHAN
-    mr.segment_velocity += mr.forward_diff[4];
-#else
-    // Use Kahan summation algorithm to mitigate floating-point errors for above
-    float y = mr.forward_diff[4] - mr.forward_diff_c[4];
-    float v = mr.segment_velocity + y;
-    mr.forward_diff_c[4] = (v - mr.segment_velocity) - y;
-    mr.segment_velocity = v;
-#endif
-
-    if (_exec_aline_segment() == STAT_OK) return STAT_OK; // set up for body
-    else {
-#ifndef __KAHAN
-      mr.forward_diff[4] += mr.forward_diff[3];
-      mr.forward_diff[3] += mr.forward_diff[2];
-      mr.forward_diff[2] += mr.forward_diff[1];
-      mr.forward_diff[1] += mr.forward_diff[0];
-#else
-      y = mr.forward_diff[3] - mr.forward_diff_c[3];
-      v = mr.forward_diff[4] + y;
-      mr.forward_diff_c[3] = (v - mr.forward_diff[4]) - y;
-      mr.forward_diff[4] = v;
-
-      y = mr.forward_diff[2] - mr.forward_diff_c[2];
-      v = mr.forward_diff[3] + y;
-      mr.forward_diff_c[2] = (v - mr.forward_diff[3]) - y;
-      mr.forward_diff[3] = v;
-
-      y = mr.forward_diff[1] - mr.forward_diff_c[1];
-      v = mr.forward_diff[2] + y;
-      mr.forward_diff_c[1] = (v - mr.forward_diff[2]) - y;
-      mr.forward_diff[2] = v;
-
-      y = mr.forward_diff[0] - mr.forward_diff_c[0];
-      v = mr.forward_diff[1] + y;
-      mr.forward_diff_c[0] = (v - mr.forward_diff[1]) - y;
-      mr.forward_diff[1] = v;
-#endif
-    }
-  }
-
-  return STAT_EAGAIN;
-}
 #endif // !__JERK_EXEC
 
 
-/* Segment runner helper
+/* Aline execution routines
  *
- * Notes on step error correction:
+ * Everything here fires from interrupts and must be interrupt safe
  *
- * The commanded_steps are the target_steps delayed by one more
- * segment.  This lines them up in time with the encoder readings so a
- * following error can be generated
+ * Returns:
+ *   STAT_OK        move is done
+ *   STAT_EAGAIN    move is not finished - has more segments to run
+ *   STAT_NOOP      cause no operation from the steppers - do not load the
+ *                  move
+ *   STAT_xxxxx     fatal error. Ends the move and frees the bf buffer
  *
- * The following_error term is positive if the encoder reading is
- * greater than (ahead of) the commanded steps, and negative (behind)
- * if the encoder reading is less than the commanded steps. The
- * following error is not affected by the direction of movement - it's
- * purely a statement of relative position. Examples:
+ * This routine is called from the (LO) interrupt level. The interrupt
+ * sequencing relies on the behaviors of the routines being exactly correct.
+ * Each call to _exec_aline() must execute and prep *one and only one*
+ * segment. If the segment is the not the last segment in the bf buffer the
+ * _aline() must return STAT_EAGAIN. If it's the last segment it must return
+ * STAT_OK. If it encounters a fatal error that would terminate the move it
+ * should return a valid error code. Failure to obey this will introduce
+ * subtle and very difficult to diagnose bugs (trust me on this).
  *
- *    Encoder Commanded   Following Err
- *    100       90        +10    encoder is 10 steps ahead of commanded steps
- *    -90     -100        +10    encoder is 10 steps ahead of commanded steps
- *    90       100        -10    encoder is 10 steps behind commanded steps
- *    -100     -90        -10    encoder is 10 steps behind commanded steps
+ * Note 1 Returning STAT_OK ends the move and frees the bf buffer.
+ *        Returning STAT_OK at this point does NOT advance position meaning
+ *        any position error will be compensated by the next move.
+ *
+ * Note 2 Solves a potential race condition where the current move ends but
+ *        the new move has not started because the previous move is still
+ *        being run by the steppers. Planning can overwrite the new move.
+ *
+ * Operation:
+ * Aline generates jerk-controlled S-curves as per Ed Red's course notes:
+ *   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
+ *   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
+ *
+ * A full trapezoid is divided into 5 periods Periods 1 and 2 are the
+ * first and second halves of the acceleration ramp (the concave and convex
+ * parts of the S curve in the "head"). Periods 3 and 4 are the first
+ * and second parts of the deceleration ramp (the tail). There is also
+ * a period for the constant-velocity plateau of the trapezoid (the body).
+ * There are various degraded trapezoids possible, including 2 section
+ * combinations (head and tail; head and body; body and tail), and single
+ * sections - any one of the three.
+ *
+ * The equations that govern the acceleration and deceleration ramps are:
+ *
+ *   Period 1    V = Vi + Jm*(T^2)/2
+ *   Period 2    V = Vh + As*T - Jm*(T^2)/2
+ *   Period 3    V = Vi - Jm*(T^2)/2
+ *   Period 4    V = Vh + As*T + Jm*(T^2)/2
+ *
+ * These routines play some games with the acceleration and move timing
+ * to make sure this actually all works out. move_time is the actual time of
+ * the move, accel_time is the time valaue needed to compute the velocity -
+ * which takes the initial velocity into account (move_time does not need
+ * to).
+ *
+ * --- State transitions - hierarchical state machine ---
+ *
+ * bf->move_state transitions:
+ *  from _NEW to _RUN on first call (sub_state set to _OFF)
+ *  from _RUN to _OFF on final call
+ *   or just remains _OFF
+ *
+ * mr.move_state transitions on first call from _OFF to one of _HEAD, _BODY,
+ * _TAIL.  Within each section state may be:
+ *
+ *   _NEW - trigger initialization
+ *   _RUN1 - run the first part
+ *   _RUN2 - run the second part
  */
-static stat_t _exec_aline_segment() {
-  uint8_t i;
-  float travel_steps[MOTORS];
+stat_t mp_exec_aline(mpBuf_t *bf) {
+  if (bf->move_state == MOVE_OFF) return STAT_NOOP;
 
-  // Set target position for the segment
-  // If the segment ends on a section waypoint synchronize to the
-  // head, body or tail end Otherwise if not at a section waypoint
-  // compute target from segment time and velocity Don't do waypoint
-  // correction if you are going into a hold.
-  if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
-      cm.motion_state == MOTION_RUN && cm.cycle_state == CYCLE_MACHINING)
-    copy_vector(mr.ms.target, mr.waypoint[mr.section]);
+  // start a new move by setting up local context (singleton)
+  if (mr.move_state == MOVE_OFF) {
+    if (cm.hold_state == FEEDHOLD_HOLD)
+      return STAT_NOOP; // stops here if holding
 
-  else {
-    float segment_length = mr.segment_velocity * mr.segment_time;
+    // initialization to process the new incoming bf buffer (Gcode block)
+    // copy in the gcode model state
+    memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
+    bf->replannable = false;
 
-    for (i = 0; i < AXES; i++)
-      mr.ms.target[i] = mr.position[i] + (mr.unit[i] * segment_length);
-  }
+    // short lines have already been removed, look for an actual zero
+    if (fp_ZERO(bf->length)) {
+      mr.move_state = MOVE_OFF; // reset mr buffer
+      mr.section_state = SECTION_OFF;
+      // prevent overplanning (Note 2)
+      bf->nx->replannable = false;
+      // free buffer & end cycle if planner is empty
+      if (mp_free_run_buffer()) cm_cycle_end();
 
-  // Convert target position to steps. Bucket-brigade the old target
-  // down the chain before getting the new target from kinematics
-  //
-  // The direct manipulation of steps to compute travel_steps only
-  // works for Cartesian kinematics.  Other kinematics may require
-  // transforming travel distance as opposed to simply subtracting
-  // steps.
-  for (i = 0; i < MOTORS; i++) {
-    // previous segment's position, delayed by 1 segment
-    mr.commanded_steps[i] = mr.position_steps[i];
-    // previous segment's target becomes position
-    mr.position_steps[i] = mr.target_steps[i];
-    // current encoder position (aligns to commanded_steps)
-    mr.encoder_steps[i] = motor_get_encoder(i);
-    mr.following_error[i] = mr.encoder_steps[i] - mr.commanded_steps[i];
-  }
+      return STAT_NOOP;
+    }
 
-  // now determine the target steps
-  mp_kinematics(mr.ms.target, mr.target_steps);
-
-  // and compute the distances to be traveled
-  for (i = 0; i < MOTORS; i++)
-    travel_steps[i] = mr.target_steps[i] - mr.position_steps[i];
-
-  // Call the stepper prep function
-  ritorno(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
-  // update position from target
-  copy_vector(mr.position, mr.ms.target);
+    bf->move_state = MOVE_RUN;
+    mr.move_state = MOVE_RUN;
+    mr.section = SECTION_HEAD;
+    mr.section_state = SECTION_NEW;
+    mr.jerk = bf->jerk;
 #ifdef __JERK_EXEC
-  // needed by jerk-based exec (ignored if running body)
-  mr.elapsed_accel_time += mr.segment_accel_time;
+    mr.jerk_div2 = bf->jerk / 2; // only needed by __JERK_EXEC
 #endif
+    mr.head_length = bf->head_length;
+    mr.body_length = bf->body_length;
+    mr.tail_length = bf->tail_length;
 
-  if (!mr.segment_count) return STAT_OK; // this section has run all segments
-  return STAT_EAGAIN; // this section still has more segments to run
+    mr.entry_velocity = bf->entry_velocity;
+    mr.cruise_velocity = bf->cruise_velocity;
+    mr.exit_velocity = bf->exit_velocity;
+
+    copy_vector(mr.unit, bf->unit);
+    copy_vector(mr.final_target, bf->ms.target); // save move final target
+
+    // generate the waypoints for position correction at section ends
+    for (uint8_t axis = 0; axis < AXES; axis++) {
+      mr.waypoint[SECTION_HEAD][axis] =
+        mr.position[axis] + mr.unit[axis] * mr.head_length;
+
+      mr.waypoint[SECTION_BODY][axis] =
+        mr.position[axis] + mr.unit[axis] *
+        (mr.head_length + mr.body_length);
+
+      mr.waypoint[SECTION_TAIL][axis] =
+        mr.position[axis] + mr.unit[axis] *
+        (mr.head_length + mr.body_length + mr.tail_length);
+    }
+  }
+
+  // main dispatcher to process segments
+  // from this point on the contents of the bf buffer do not affect execution
+  stat_t status = STAT_OK;
+
+  if (mr.section == SECTION_HEAD) status = _exec_aline_head();
+  else if (mr.section == SECTION_BODY) status = _exec_aline_body();
+  else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
+  else if (mr.move_state == MOVE_SKIP_BLOCK) status = STAT_OK;
+  else return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
+
+  // Feedhold processing. Refer to canonical_machine.h for state machine
+  // Catch the feedhold request and start the planning the hold
+  if (cm.hold_state == FEEDHOLD_SYNC) cm.hold_state = FEEDHOLD_PLAN;
+
+  // Look for the end of the decel to go into HOLD state
+  if (cm.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
+    cm.hold_state = FEEDHOLD_HOLD;
+    cm_set_motion_state(MOTION_HOLD);
+    report_request();
+  }
+
+  // There are 3 things that can happen here depending on return conditions:
+  //    status        bf->move_state        Description
+  //  -----------    --------------        ------------------------------------
+  //    STAT_EAGAIN    <don't care>        mr buffer has more segments to run
+  //    STAT_OK        MOVE_RUN            mr and bf buffers are done
+  //    STAT_OK        MOVE_NEW            mr done; bf must be run again
+  //                                       (it's been reused)
+  if (status == STAT_EAGAIN) report_request();
+  else {
+    mr.move_state = MOVE_OFF; // reset mr buffer
+    mr.section_state = SECTION_OFF;
+    bf->nx->replannable = false; // prevent overplanning (Note 2)
+
+    if (bf->move_state == MOVE_RUN && mp_free_run_buffer())
+      cm_cycle_end(); // free buffer & end cycle if planner is empty
+  }
+
+  return status;
+}
+
+
+/// Dequeues buffer, executes move continuations and manages run buffers.
+stat_t mp_exec_move() {
+  mpBuf_t *bf = mp_get_run_buffer();
+
+  if (!bf) return STAT_NOOP; // nothing's running
+
+  // Manage cycle and motion state transitions
+  // Cycle auto-start for lines only
+  if (bf->move_type == MOVE_TYPE_ALINE && cm.motion_state == MOTION_STOP)
+    cm_set_motion_state(MOTION_RUN);
+
+  if (!bf->bf_func)
+    return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
+
+  return bf->bf_func(bf); // run the move callback on the planner buffer
 }

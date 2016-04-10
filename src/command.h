@@ -30,6 +30,9 @@
 
 #include "status.h"
 
+#include <stdint.h>
+
+
 #define MAX_ARGS 16
 
 typedef uint8_t (*command_cb_t)(int argc, char *argv[]);

@@ -69,8 +69,6 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   float final_target[AXES];
   /// current move position
   float position[AXES];
-  /// for Kahan summation in _exec_aline_segment()
-  float position_c[AXES];
   /// head/body/tail endpoints for correction
   float waypoint[SECTIONS][AXES];
   /// current MR target (absolute target as steps)

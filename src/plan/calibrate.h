@@ -28,6 +28,8 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
-bool mp_jog_busy();
+bool calibrate_busy();
+void calibrate_set_stallguard(int motor, uint16_t sg);

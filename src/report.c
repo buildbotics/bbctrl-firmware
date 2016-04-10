@@ -31,8 +31,6 @@
 #include "rtc.h"
 #include "vars.h"
 
-#include "plan/planner.h"
-
 #include <avr/pgmspace.h>
 
 #include <stdio.h>
@@ -65,14 +63,4 @@ stat_t report_callback() {
   }
 
   return STAT_OK;
-}
-
-
-float get_position(int index) {
-  return mp_get_runtime_absolute_position(index);
-}
-
-
-float get_velocity() {
-  return mp_get_runtime_velocity();
 }

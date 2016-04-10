@@ -33,11 +33,13 @@
 #include "motor.h"
 #include "canonical_machine.h"
 #include "motor.h"
+#include "config.h"
 
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 
 typedef struct {
@@ -63,8 +65,8 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 
   // Compute next line segment
   float travel[AXES]; // In mm
-  float time = MIN_SEGMENT_TIME; // In minutes
-  float maxDeltaV = JOG_ACCELERATION * time;
+  const float time = MIN_SEGMENT_TIME; // In minutes
+  const float maxDeltaV = JOG_ACCELERATION * time;
   bool done = true;
 
   // Compute new velocities and travel
@@ -91,7 +93,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
       cm_set_position(axis, steps / motor_get_steps_per_unit(motor));
     }
 
-    // Release queue
+    // Release buffer
     mp_free_run_buffer();
 
     jr.running = false;
@@ -111,7 +113,16 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 }
 
 
-void mp_jog(float velocity[AXES]) {
+bool mp_jog_busy() {return jr.running;}
+
+
+uint8_t command_jog(int argc, char *argv[]) {
+  float velocity[AXES];
+
+  for (int axis = 0; axis < AXES; axis++)
+    if (axis < argc - 1) velocity[axis] = atof(argv[axis + 1]);
+    else velocity[axis] = 0;
+
   // Reset
   if (!jr.running) memset(&jr, 0, sizeof(jr));
 
@@ -125,17 +136,14 @@ void mp_jog(float velocity[AXES]) {
     mpBuf_t *bf = mp_get_write_buffer();
     if (!bf) {
       cm_hard_alarm(STAT_BUFFER_FULL_FATAL);
-      return;
+      return 0;
     }
 
     // Start
     jr.running = true;
     bf->bf_func = _exec_jog; // register callback
-    mp_commit_write_buffer(MOVE_TYPE_JOG);
+    mp_commit_write_buffer(MOVE_TYPE_COMMAND);
   }
-}
 
-
-bool mp_jog_busy() {
-  return jr.running;
+  return 0;
 }

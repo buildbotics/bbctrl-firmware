@@ -149,9 +149,14 @@ void usart_set_baud(int baud) {
 }
 
 
-void usart_ctrl(int flag, bool enable) {
+void usart_set(int flag, bool enable) {
   if (enable) usart_flags |= flag;
   else usart_flags &= ~flag;
+}
+
+
+bool usart_is_set(int flags) {
+  return (usart_flags & flags) == flags;
 }
 
 
@@ -231,7 +236,7 @@ int16_t usart_peek() {
 
 
 void usart_flush() {
-  usart_ctrl(USART_FLUSH, true);
+  usart_set(USART_FLUSH, true);
 
   while (!tx_buf_empty() || !(USARTC0.STATUS & USART_DREIF_bm) ||
          !(USARTC0.STATUS & USART_TXCIF_bm))

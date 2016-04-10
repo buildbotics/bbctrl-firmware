@@ -42,6 +42,7 @@ bool tmc2660_ready(int driver);
 stat_t tmc2660_sync();
 void tmc2660_enable(int driver);
 void tmc2660_disable(int driver);
+void tmc2660_set_stallguard_threshold(int driver, int8_t threshold);
 
 
 #define TMC2660_DRVCTRL             0
@@ -101,6 +102,7 @@ void tmc2660_disable(int driver);
 #define TMC2660_SGCSCONF            3
 #define TMC2660_SGCSCONF_ADDR       (6UL << 17)
 #define TMC2660_SGCSCONF_SFILT      (1UL << 16)
+#define TMC2660_SGCSCONF_THRESH_bm  0x7f00
 #define TMC2660_SGCSCONF_THRESH(x)  (((int32_t)x & 0x7f) << 8)
 #define TMC2660_SGCSCONF_CS(x)      (((int32_t)x & 0x1f) << 0)
 #define TMC2660_SGCSCONF_CS_NONE    (31UL << 0)

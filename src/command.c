@@ -33,13 +33,13 @@
 #include "report.h"
 #include "vars.h"
 #include "plan/jog.h"
+#include "plan/calibrate.h"
 #include "config.h"
 
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -170,8 +170,9 @@ int command_eval(char *cmd) {
   case '{': return vars_parser(cmd);
   case '$': return command_parser(cmd);
   default:
-    if (!mp_jog_busy()) return gc_gcode_parser(cmd);
-    return STAT_OK;
+    if (calibrate_busy()) return STAT_OK;
+    if (mp_jog_busy()) return STAT_OK;
+    return gc_gcode_parser(cmd);
   }
 }
 
@@ -245,18 +246,5 @@ uint8_t command_restore(int argc, char *argv[]) {
 
 uint8_t command_clear(int argc, char *argv[]) {
   vars_clear();
-  return 0;
-}
-
-
-uint8_t command_jog(int argc, char *argv[]) {
-  float velocity[AXES];
-
-  for (int axis = 0; axis < AXES; axis++)
-    if (axis < argc - 1) velocity[axis] = atof(argv[axis + 1]);
-    else velocity[axis] = 0;
-
-  mp_jog(velocity);
-
   return 0;
 }

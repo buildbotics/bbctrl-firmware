@@ -31,6 +31,7 @@
 #include "rtc.h"
 #include "cpp_magic.h"
 #include "canonical_machine.h"
+#include "plan/calibrate.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -89,6 +90,7 @@ typedef struct {
 } spi_t;
 
 static spi_t spi = {};
+
 
 
 static void _report_error_flags(int driver) {
@@ -168,6 +170,8 @@ static bool _driver_read(int driver) {
     drv->sguard = (spi.in >> 14) & 0x3ff;
     drv->flags = spi.in >> 4;
 
+    calibrate_set_stallguard(driver, drv->sguard);
+
     // Write driver 0 stallguard to DAC
     if (driver == 0 && (DACB.STATUS & DAC_CH0DRE_bm))
       DACB.CH0DATA = drv->sguard << 2;
@@ -191,7 +195,7 @@ static bool _driver_read(int driver) {
     motor_driver_callback(driver);
     drv->configured = true;
 
-    // Enable when first fully configured
+    // Enable motor when first fully configured
     drv->port->OUTCLR = MOTOR_ENABLE_BIT_bm;
   }
 
@@ -381,6 +385,13 @@ void tmc2660_enable(int driver) {
 
 void tmc2660_disable(int driver) {
   _set_current(driver, drivers[driver].idle_current);
+}
+
+
+void tmc2660_set_stallguard_threshold(int driver, int8_t threshold) {
+  drivers[driver].regs[TMC2660_SGCSCONF] =
+    (drivers[driver].regs[TMC2660_SGCSCONF] & ~TMC2660_SGCSCONF_THRESH_bm) |
+    TMC2660_SGCSCONF_THRESH(threshold);
 }
 
 

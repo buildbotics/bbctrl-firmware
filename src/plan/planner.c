@@ -70,7 +70,7 @@
 #include <stdio.h>
 
 
-mpMoveRuntimeSingleton_t mr = {};    // context for line runtime
+mpMoveRuntimeSingleton_t mr = {}; // context for line runtime
 
 
 void planner_init() {

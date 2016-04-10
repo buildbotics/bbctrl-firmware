@@ -3,6 +3,7 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -25,9 +26,25 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "usart.h"
+#include "plan/planner.h"
 
-#include <stdbool.h>
+
+float get_position(int index) {
+  return mp_get_runtime_absolute_position(index);
+}
 
 
-bool mp_jog_busy();
+float get_velocity() {
+  return mp_get_runtime_velocity();
+}
+
+
+bool get_echo() {
+  return true; // Always true so that echo is always enabled after reboot
+}
+
+
+void set_echo(bool value) {
+  return usart_set(USART_ECHO, value);
+}
