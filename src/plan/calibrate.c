@@ -43,7 +43,7 @@
 
 
 #define CAL_THRESHOLDS 32
-#define CAL_VELOCITIES 16
+#define CAL_VELOCITIES 256
 #define CAL_MIN_THRESH -10
 #define CAL_MAX_THRESH 63
 #define CAL_WAIT_TIME 3 // ms
@@ -64,14 +64,12 @@ typedef struct {
   int state;
   int motor;
   int axis;
-  int tstep;
   int vstep;
 
   float current_velocity;
 
-  uint16_t stallguard[CAL_VELOCITIES][CAL_THRESHOLDS];
+  uint16_t stallguard[CAL_VELOCITIES];
   uint16_t velocities[CAL_VELOCITIES];
-  int8_t thresholds[CAL_THRESHOLDS];
 } calibrate_t;
 
 static calibrate_t cal = {};
@@ -96,47 +94,27 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 
       memset(cal.stallguard, 0, sizeof(cal.stallguard));
 
-      tmc2660_set_stallguard_threshold(cal.motor, CAL_MAX_THRESH);
+      tmc2660_set_stallguard_threshold(cal.motor, 8);
       cal.wait = rtc_get_time() + CAL_WAIT_TIME;
-
-      printf("%d", cal.motor);
-      for (int i = 0; i < CAL_THRESHOLDS; i++)
-        printf(",%d", cal.thresholds[i]);
-      putchar('\n');
 
       break;
     }
 
     case CAL_ACCEL:
-      cal.current_velocity += maxDeltaV;
-
-      // Check if we are at the target velocity
-      if (cal.velocities[cal.vstep] <= cal.current_velocity) {
-        cal.current_velocity = cal.velocities[cal.vstep];
-        cal.tstep = 0;
+      if (cal.velocities[cal.vstep] == cal.current_velocity)
         cal.state = CAL_MEASURE;
 
-        tmc2660_set_stallguard_threshold(cal.motor, cal.thresholds[0]);
-        cal.wait = rtc_get_time() + CAL_WAIT_TIME;
+      else {
+        cal.current_velocity += maxDeltaV;
+
+        if (cal.velocities[cal.vstep] <= cal.current_velocity)
+          cal.current_velocity = cal.velocities[cal.vstep];
       }
       break;
 
     case CAL_MEASURE:
-      if (++cal.tstep == CAL_THRESHOLDS) {
-        if (++cal.vstep == CAL_VELOCITIES) cal.state = CAL_DECEL;
-        else {
-          cal.state = CAL_ACCEL;
-
-          printf("%d", cal.velocities[cal.vstep - 1]);
-          for (int i = 0; i < CAL_THRESHOLDS; i++)
-            printf(",%d", cal.stallguard[cal.vstep - 1][i]);
-          putchar('\n');
-        }
-
-      } else {
-        tmc2660_set_stallguard_threshold(cal.motor, cal.thresholds[cal.tstep]);
-        cal.wait = rtc_get_time() + CAL_WAIT_TIME;
-      }
+      if (++cal.vstep == CAL_VELOCITIES) cal.state = CAL_DECEL;
+      else cal.state = CAL_ACCEL;
       break;
 
     case CAL_DECEL:
@@ -145,11 +123,17 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 
       if (!cal.current_velocity) {
         // Print results
+        putchar('\n');
+        for (int i = 0; i < CAL_VELOCITIES; i++)
+          printf("%d,", cal.velocities[i]);
+        putchar('\n');
+        for (int i = 0; i < CAL_VELOCITIES; i++)
+          printf("%d,", cal.stallguard[i]);
+        putchar('\n');
 
         mp_free_run_buffer(); // Release buffer
         cal.busy = false;
 
-        putchar('\n');
         return STAT_OK;
       }
       break;
@@ -177,9 +161,8 @@ bool calibrate_busy() {return cal.busy;}
 
 
 void calibrate_set_stallguard(int motor, uint16_t sg) {
-  if (cal.vstep < CAL_VELOCITIES && cal.tstep < CAL_THRESHOLDS &&
-      cal.motor == motor)
-    cal.stallguard[cal.vstep][cal.tstep] = sg;
+  if (cal.vstep < CAL_VELOCITIES && cal.motor == motor)
+    cal.stallguard[cal.vstep] = sg;
 }
 
 
@@ -195,10 +178,6 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   // Start
   memset(&cal, 0, sizeof(cal));
   cal.busy = true;
-
-  for (int i = 0; i < CAL_THRESHOLDS; i++)
-    cal.thresholds[i] = CAL_MIN_THRESH + i *
-      (CAL_MAX_THRESH - CAL_MIN_THRESH) / (CAL_THRESHOLDS - 1);
 
   bf->bf_func = _exec_calibrate; // register callback
   mp_commit_write_buffer(MOVE_TYPE_COMMAND);

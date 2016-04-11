@@ -144,7 +144,7 @@ static void _init() {
 
 
 int main() {
-  wdt_enable(WDTO_250MS);
+  //wdt_enable(WDTO_250MS);
 
   _init();
 
