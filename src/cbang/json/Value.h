@@ -70,6 +70,8 @@ namespace cb {
       virtual double getNumber() const {CBANG_THROW("Value is not a Number");}
       virtual int32_t getS32() const;
       virtual uint32_t getU32() const;
+      virtual int64_t getS64() const;
+      virtual uint64_t getU64() const;
       virtual std::string &getString() {CBANG_THROW("Value is not a String");}
       virtual const std::string &getString() const
       {CBANG_THROW("Value is not a String");}
@@ -85,6 +87,15 @@ namespace cb {
       virtual void appendNull() {CBANG_THROW("Not a List");}
       virtual void appendBoolean(bool value) {CBANG_THROW("Not a List");}
       virtual void append(double value) {CBANG_THROW("Not a List");}
+      virtual void append(float value) {append((double)value);}
+      virtual void append(int8_t value) {append((double)value);}
+      virtual void append(uint8_t value) {append((double)value);}
+      virtual void append(int16_t value) {append((double)value);}
+      virtual void append(uint16_t value) {append((double)value);}
+      virtual void append(int32_t value) {append((double)value);}
+      virtual void append(uint32_t value) {append((double)value);}
+      virtual void append(int64_t value) {append(String(value));}
+      virtual void append(uint64_t value) {append(String(value));}
       virtual void append(const std::string &value) {CBANG_THROW("Not a List");}
       virtual void append(const ValuePtr &value) {CBANG_THROW("Not a List");}
 
@@ -93,6 +104,8 @@ namespace cb {
       double getNumber(unsigned i) const {return get(i)->getNumber();}
       int32_t getS32(unsigned i) const {return get(i)->getS32();}
       uint32_t getU32(unsigned i) const {return get(i)->getU32();}
+      int64_t getS64(unsigned i) const {return get(i)->getS64();}
+      uint64_t getU64(unsigned i) const {return get(i)->getU64();}
       std::string &getString(unsigned i) {return get(i)->getString();}
       const std::string &getString(unsigned i) const
       {return get(i)->getString();}
@@ -139,6 +152,24 @@ namespace cb {
       {CBANG_THROW("Not a Dict");}
       virtual void insert(const std::string &key, double value)
       {CBANG_THROW("Not a Dict");}
+      virtual void insert(const std::string &key, float value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, uint8_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, int8_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, uint16_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, int16_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, uint32_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, int32_t value)
+      {insert(key, (double)value);}
+      virtual void insert(const std::string &key, uint64_t value)
+      {insert(key, String(value));}
+      virtual void insert(const std::string &key, int64_t value)
+      {insert(key, String(value));}
       virtual void insert(const std::string &key, const std::string &value)
       {CBANG_THROW("Not a Dict");}
       virtual void insert(const std::string &key, const ValuePtr &value)
@@ -153,6 +184,10 @@ namespace cb {
       {return get(key)->getS32();}
       uint32_t getU32(const std::string &key) const
       {return get(key)->getU32();}
+      int64_t getS64(const std::string &key) const
+      {return get(key)->getS64();}
+      uint64_t getU64(const std::string &key) const
+      {return get(key)->getU64();}
       std::string &getString(const std::string &key)
       {return get(key)->getString();}
       const std::string &getString(const std::string &key) const
@@ -185,6 +220,16 @@ namespace cb {
         return index == -1 ? defaultValue : get(index)->getU32();
       }
 
+      int64_t getS64(const std::string &key, int64_t defaultValue) const {
+        int index = indexOf(key);
+        return index == -1 ? defaultValue : get(index)->getS64();
+      }
+
+      uint64_t getU64(const std::string &key, uint64_t defaultValue) const {
+        int index = indexOf(key);
+        return index == -1 ? defaultValue : get(index)->getU64();
+      }
+
       const std::string &getString(const std::string &key,
                                    const std::string &defaultValue) const {
         int index = indexOf(key);
@@ -209,4 +254,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_VALUE_H
-

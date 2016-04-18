@@ -61,6 +61,35 @@ uint32_t Value::getU32() const {
 }
 
 
+int64_t Value::getS64() const {
+  if (isString()) return String::parseS64(getString());
+  else {
+    double value = getNumber();
+
+    if (value < numeric_limits<int64_t>::min() ||
+        numeric_limits<int64_t>::max() < value)
+      CBANG_THROW("Value is not a 64-bit signed integer");
+
+    return value;
+  }
+}
+
+
+uint64_t Value::getU64() const {
+  if (isString()) return String::parseU64(getString());
+  else {
+    double value = getNumber();
+
+    if (value < numeric_limits<uint64_t>::min() ||
+        numeric_limits<uint64_t>::max() < value)
+      CBANG_THROW("Value is not a 64-bit unsigned integer");
+
+    return value;
+  }
+}
+
+
+
 string Value::toString(unsigned indent, bool compact) const {
   ostringstream str;
   Writer writer(str, indent, compact);
