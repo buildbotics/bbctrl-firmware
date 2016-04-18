@@ -63,8 +63,8 @@ namespace cb {
     std::string getCPUBrand();
     std::string getCPUVendor();
     uint32_t getCPUSignature();
-    uint32_t getCPUFeatures();
-    uint32_t getCPUExtendedFeatures();
+    uint64_t getCPUFeatures();
+    uint64_t getCPUExtendedFeatures();
     bool cpuHasFeature(CPUFeature feature);
     bool cpuHasExtendedFeature(CPUExtendedFeature feature);
     unsigned getCPUFamily();

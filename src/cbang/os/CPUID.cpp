@@ -120,25 +120,26 @@ uint32_t CPUID::getCPUSignature() {
 }
 
 
-uint32_t CPUID::getCPUFeatures() {
+uint64_t CPUID::getCPUFeatures() {
   cpuID(1);
-  return EDX();
+  return (uint64_t)ECX() << 32 | EDX();
 }
 
 
-uint32_t CPUID::getCPUExtendedFeatures() {
-  cpuID(1);
-  return ECX();
+uint64_t CPUID::getCPUExtendedFeatures() {
+  cpuID(7);
+  return (uint64_t)ECX() << 32 | EBX();
 }
 
 
 bool CPUID::cpuHasFeature(CPUFeature feature) {
-  return getCPUFeatures() & (1 << (CPUFeature::enum_t)feature);
+  return getCPUFeatures() & (1UL << (CPUFeature::enum_t)feature);
 }
 
 
 bool CPUID::cpuHasExtendedFeature(CPUExtendedFeature feature) {
-  return getCPUExtendedFeatures() & (1 << (CPUExtendedFeature::enum_t)feature);
+  return getCPUExtendedFeatures() &
+    (1UL << (CPUExtendedFeature::enum_t)feature);
 }
 
 
