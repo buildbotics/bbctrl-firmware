@@ -163,4 +163,3 @@ namespace cb {
 }
 
 #endif // CBANG_ENUMERATION_H
-

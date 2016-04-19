@@ -165,11 +165,14 @@ namespace CBANG_ENUM_NAMESPACE {
 #define CBANG_ENUM_ALIAS(alias, target)
       }
 
-      try {
+      if ((cb::String::startsWith(s, "0x") && 2 < s.length() &&
+           s.substr(2).find_first_not_of("abcdefABCDEF1234567890") ==
+           std::string::npos) ||
+          s.find_first_not_of("1234567890") == std::string::npos)
         return (enum_t)String::parseU32(s);
-      } catch (const Exception &e) {}
 
       if (defaultValue != (enum_t)~0) return defaultValue;
+
       THROWS("'" << String::escapeC(s) << "' not in "
              CBANG_STRING(CBANG_ENUM_NAME) " enumeration");
     }

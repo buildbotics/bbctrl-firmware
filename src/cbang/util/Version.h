@@ -149,4 +149,3 @@ namespace cb {
 }
 
 #endif // CB_VERSION_H
-
