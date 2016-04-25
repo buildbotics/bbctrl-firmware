@@ -106,6 +106,9 @@ namespace cb {
                                  DEFAULT_LINE_DELIMS,
                                  unsigned maxLength = 1024);
 
+    static bool isInteger(const std::string &s);
+    static bool isNumber(const std::string &s);
+
     static uint8_t parseU8(const std::string &s);
     static int8_t parseS8(const std::string &s);
     static uint16_t parseU16(const std::string &s);

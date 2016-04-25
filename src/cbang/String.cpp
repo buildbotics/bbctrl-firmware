@@ -182,6 +182,30 @@ unsigned String::tokenizeLine(istream &stream, vector<string> &tokens,
 }
 
 
+bool String::isInteger(const string &s) {
+  char *endptr = 0;
+
+  errno = 0;
+  strtoll(s.c_str(), &endptr, 0);
+
+  while (isspace(*endptr)) endptr++;
+
+  return !errno && !*endptr;
+}
+
+
+bool String::isNumber(const string &s) {
+  char *endptr = 0;
+
+  errno = 0;
+  strtold(s.c_str(), &endptr);
+
+  while (isspace(*endptr)) endptr++;
+
+  return !errno && !*endptr;
+}
+
+
 uint8_t String::parseU8(const string &s) {
   uint32_t v = parseU32(s);
   if (v > 255) THROWS("Unsigned 8-bit value '" << s << "' out of range");

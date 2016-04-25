@@ -297,4 +297,3 @@ namespace cb {
 }
 
 #endif // CBANG_VARIANT_H
-
