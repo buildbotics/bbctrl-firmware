@@ -32,11 +32,19 @@
 
 #include "Serializable.h"
 
+#include "Builder.h"
 #include "Reader.h"
 #include "Writer.h"
 
 using namespace cb::JSON;
 using namespace std;
+
+
+cb::SmartPointer<Value> Serializable::toJSON() const {
+  Builder builder;
+  write(builder);
+  return builder.getRoot();
+}
 
 
 void Serializable::read(istream &stream) {

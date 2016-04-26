@@ -77,4 +77,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_DICT_H
-

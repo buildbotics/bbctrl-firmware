@@ -75,4 +75,3 @@ namespace cb {
 }
 
 #endif // CB_JSON_BUILDER_H
-

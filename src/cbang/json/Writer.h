@@ -105,4 +105,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_WRITER_H
-

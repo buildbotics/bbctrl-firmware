@@ -33,6 +33,7 @@
 #ifndef CB_JSON_SERIALIZABLE_H
 #define CB_JSON_SERIALIZABLE_H
 
+#include <cbang/SmartPointer.h>
 #include <cbang/iostream/Serializable.h>
 
 
@@ -45,6 +46,8 @@ namespace cb {
     public:
       virtual void read(const Value &value) = 0;
       virtual void write(Sink &sink) const = 0;
+
+      SmartPointer<Value> toJSON() const;
 
       // From cb::Serializable
       void read(std::istream &stream);
@@ -67,4 +70,3 @@ namespace cb {
 }
 
 #endif // CB_JSON_SERIALIZABLE_H
-
