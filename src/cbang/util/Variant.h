@@ -52,6 +52,7 @@ namespace cb {
       BOOLEAN_TYPE,
       STRING_TYPE,
       INTEGER_TYPE,
+      UINT64_TYPE,
       REAL_TYPE,
       ENUM_TYPE,
       OBJECT_TYPE,
@@ -67,6 +68,7 @@ namespace cb {
       {THROW("Cannot convert to C string");}
       virtual std::string toString() const {THROW("Cannot convert to string");}
       virtual int64_t toInteger() const {THROW("Cannot convert to integer");}
+      virtual uint64_t toUInt64() const {return toInteger();}
       virtual double toReal() const {THROW("Cannot convert to real");}
       virtual void *toObject() const {THROW("Cannot convert to object");}
       virtual const std::type_info &getTypeID() const
@@ -147,6 +149,23 @@ namespace cb {
     };
 
 
+    struct UInt64 : public Value {
+      uint64_t value;
+
+      UInt64(uint64_t value) : value(value) {}
+
+      // From Value
+      type_t getType() const {return UINT64_TYPE;}
+      bool toBoolean() const {return value;}
+      std::string toString() const {return cb::String(value);}
+      int64_t toInteger() const {return value;}
+      uint64_t toUInt64() const {return value;}
+      double toReal() const {return value;}
+      SmartPointer<Value> parse(const std::string &value)
+      {return new Integer(cb::String::parseU64(value));}
+    };
+
+
     struct Real : public Value {
       double value;
 
@@ -220,7 +239,7 @@ namespace cb {
     Variant(uint16_t value) : value(new Integer((int64_t)value)) {}
     Variant(int32_t value) : value(new Integer((int64_t)value)) {}
     Variant(uint32_t value) : value(new Integer((int64_t)value)) {}
-    Variant(uint64_t value) : value(new Integer((int64_t)value)) {}
+    Variant(uint64_t value) : value(new UInt64(value)) {}
     Variant(int64_t value) : value(new Integer(value)) {}
     explicit Variant(double value) : value(new Real(value)) {}
     explicit Variant(float value) : value(new Real(value)) {}
@@ -241,15 +260,15 @@ namespace cb {
 
     void set(bool value) {this->value = new Boolean(value);}
     void set(const std::string &value) {this->value = new String(value);}
-    void set(const char *value) {set(std::string(value));}
-    void set(int8_t value) {set((int64_t)value);}
-    void set(uint8_t value) {set((int64_t)value);}
-    void set(int16_t value) {set((int64_t)value);}
-    void set(uint16_t value) {set((int64_t)value);}
-    void set(int32_t value) {set((int64_t)value);}
-    void set(uint32_t value) {set((int64_t)value);}
+    void set(const char *value) {this->value = new String(value);}
+    void set(int8_t value) {this->value = new Integer(value);}
+    void set(uint8_t value) {this->value = new Integer(value);}
+    void set(int16_t value) {this->value = new Integer(value);}
+    void set(uint16_t value) {this->value = new Integer(value);}
+    void set(int32_t value) {this->value = new Integer(value);}
+    void set(uint32_t value) {this->value = new Integer(value);}
     void set(int64_t value) {this->value = new Integer(value);}
-    void set(uint64_t value) {set((int64_t)value);}
+    void set(uint64_t value) {this->value = new UInt64(value);}
     void set(double value) {this->value = new Real(value);}
     void set(float value) {this->value = new Real(value);}
     template <typename T>
@@ -261,6 +280,7 @@ namespace cb {
     const char *toCString() const {return value->toCString();}
     std::string toString() const {return value->toString();}
     int64_t toInteger() const {return value->toInteger();}
+    uint64_t toUInt64() const {return value->toUInt64();}
     double toReal() const {return value->toReal();}
 
     template <typename T>
