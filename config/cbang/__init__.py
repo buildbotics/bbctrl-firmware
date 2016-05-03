@@ -20,7 +20,6 @@ def ConfigLocalBoost(env):
 def ConfigBoost(conf, require = False):
     return conf.CBConfig('boost', require, version = '1.40',
                          hdrs = ['version', 'iostreams/stream', 'ref',
-                                 'spirit/version',
                                  'interprocess/sync/file_lock',
                                  'date_time/posix_time/posix_time'],
                          libs = ['iostreams', 'system', 'filesystem', 'regex'])
