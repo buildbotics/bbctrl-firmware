@@ -50,4 +50,3 @@ namespace cb {
 }
 
 #endif // CB_STRING_INPUT_SOURCE_H
-

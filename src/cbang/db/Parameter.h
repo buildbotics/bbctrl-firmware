@@ -73,4 +73,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_PARAMETER_H
-

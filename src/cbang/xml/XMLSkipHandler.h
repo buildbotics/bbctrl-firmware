@@ -54,4 +54,3 @@ namespace cb {
 }
 
 #endif // CBANG_XMLSKIP_HANDLER_H
-

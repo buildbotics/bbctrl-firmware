@@ -110,4 +110,3 @@ namespace cb {
 }
 
 #endif // CB_SSL_H
-

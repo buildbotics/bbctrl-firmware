@@ -108,4 +108,3 @@ namespace cb {
 }
 
 #endif // CBANG_SOCKET_H
-

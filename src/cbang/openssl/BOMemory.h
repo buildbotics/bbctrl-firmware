@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CB_BOMEMORY_H
-

@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CBANG_ID_H
-

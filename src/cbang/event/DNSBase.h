@@ -75,4 +75,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_DNSBASE_H
-

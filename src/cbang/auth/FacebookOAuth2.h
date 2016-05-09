@@ -48,4 +48,3 @@ namespace cb {
 }
 
 #endif // CB_FACEBOOK_OAUTH2_H
-

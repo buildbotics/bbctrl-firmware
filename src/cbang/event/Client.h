@@ -94,4 +94,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_CLIENT_H
-

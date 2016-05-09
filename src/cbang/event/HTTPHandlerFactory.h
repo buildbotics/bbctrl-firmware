@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTPHANDLER_FACTORY_H
-

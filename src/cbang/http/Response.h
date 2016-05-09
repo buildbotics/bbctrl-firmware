@@ -69,4 +69,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_RESPONSE_H
-

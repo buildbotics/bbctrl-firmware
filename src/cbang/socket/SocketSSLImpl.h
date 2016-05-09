@@ -70,4 +70,3 @@ namespace cb {
 }
 
 #endif // CB_SOCKET_SSLIMPL_H
-

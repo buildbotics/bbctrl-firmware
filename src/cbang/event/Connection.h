@@ -83,4 +83,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_CONNECTION_H
-

@@ -97,4 +97,3 @@ namespace cb {
 }
 
 #endif // CB_ARRAY_H
-

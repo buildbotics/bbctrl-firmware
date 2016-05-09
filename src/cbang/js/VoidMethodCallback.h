@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CB_JS_VOID_METHOD_CALLBACK_H
-

@@ -52,5 +52,3 @@ void XMLFileTracker::pushFile(const string &filename) {
 void XMLFileTracker::popFile() {
   stack.pop_back();
 }
-
-

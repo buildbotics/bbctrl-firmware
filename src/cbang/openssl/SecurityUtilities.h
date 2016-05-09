@@ -43,4 +43,3 @@ namespace cb {
 }
 
 #endif // CB_SECURITY_UTILITIES_H
-

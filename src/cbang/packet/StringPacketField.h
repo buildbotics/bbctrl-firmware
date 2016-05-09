@@ -62,4 +62,3 @@ namespace cb {
 }
 
 #endif // CBANG_STRING_PACKET_FIELD_H
-

@@ -176,4 +176,3 @@ namespace cb {
 }
 
 #endif // CBANG_BZIP2_COMPRESSOR_H
-

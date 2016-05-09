@@ -44,4 +44,3 @@ namespace cb {
 }
 
 #endif // CBANG_SIGNAL_HANDLER_H
-

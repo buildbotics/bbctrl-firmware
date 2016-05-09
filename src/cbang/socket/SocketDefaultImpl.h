@@ -83,4 +83,3 @@ namespace cb {
 }
 
 #endif // CBANG_SOCKET_DEFAULT_IMPL_H
-

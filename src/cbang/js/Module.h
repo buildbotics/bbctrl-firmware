@@ -45,4 +45,3 @@ namespace cb {
 }
 
 #endif // CB_JS_MODULE_H
-

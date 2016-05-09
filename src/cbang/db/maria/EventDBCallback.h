@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CB_MARIADB_EVENT_DBCALLBACK_H
-

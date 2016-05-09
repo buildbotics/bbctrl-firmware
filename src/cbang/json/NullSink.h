@@ -81,4 +81,3 @@ namespace cb {
 }
 
 #endif // CB_JSON_NULL_SYNC_H
-

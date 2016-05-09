@@ -84,4 +84,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_READER_H
-

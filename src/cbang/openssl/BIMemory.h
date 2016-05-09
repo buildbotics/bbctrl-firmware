@@ -53,4 +53,3 @@ namespace cb {
 }
 
 #endif // CB_BIMEMORY_H
-

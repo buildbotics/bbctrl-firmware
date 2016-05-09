@@ -86,4 +86,3 @@ namespace cb {
 }
 
 #endif // CBANG_IP_RANGE_SET_H
-

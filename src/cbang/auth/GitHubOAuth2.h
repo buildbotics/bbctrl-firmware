@@ -48,4 +48,3 @@ namespace cb {
 }
 
 #endif // CB_GITHUB_OAUTH2_H
-

@@ -111,4 +111,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_TRANSACTION_H
-

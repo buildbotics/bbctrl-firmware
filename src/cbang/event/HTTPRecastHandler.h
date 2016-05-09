@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTPRECAST_HANDLER_H
-

@@ -133,4 +133,3 @@ namespace cb {
 }
 
 #endif // CBANG_OPTION_MAP_H
-

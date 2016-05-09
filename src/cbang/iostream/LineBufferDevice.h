@@ -81,4 +81,3 @@ namespace cb {
 }
 
 #endif // CB_LINE_BUFFER_DEVICE_H
-

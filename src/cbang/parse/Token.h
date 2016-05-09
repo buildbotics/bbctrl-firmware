@@ -86,4 +86,3 @@ namespace cb {
 }
 
 #endif // CBANG_TOKEN_H
-

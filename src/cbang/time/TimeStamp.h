@@ -49,4 +49,3 @@ namespace cb {
 }
 
 #endif // CB_TIME_STAMP_H
-

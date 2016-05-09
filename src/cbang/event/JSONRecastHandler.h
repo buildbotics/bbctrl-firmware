@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_JSONRECAST_HANDLER_H
-

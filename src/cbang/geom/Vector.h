@@ -515,4 +515,3 @@ namespace cb {
 }
 
 #endif // CB_VECTOR_H
-

@@ -74,4 +74,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HEADERS_H
-

@@ -199,4 +199,3 @@ namespace cb {
 }
 
 #endif // CBANG_BZIP2_DECOMPRESSOR_H
-

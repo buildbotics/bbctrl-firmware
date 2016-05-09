@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_BLOB_H
-

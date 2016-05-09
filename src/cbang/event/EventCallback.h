@@ -57,4 +57,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_EVENT_CALLBACK_H
-

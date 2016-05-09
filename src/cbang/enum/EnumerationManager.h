@@ -70,4 +70,3 @@ namespace cb {
 }
 
 #endif // CBANG_ENUMERATION_MANAGER_H
-

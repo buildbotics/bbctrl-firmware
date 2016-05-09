@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CBANG_STREAM_LIMITER_H
-

@@ -49,4 +49,3 @@ namespace cb {
 }
 
 #endif // CBANG_SMART_WRITE_LOCK_H
-

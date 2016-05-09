@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_SCRIPTED_WEB_CONTEXT_H
-

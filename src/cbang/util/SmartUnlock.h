@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CBANG_SMART_UNLOCK_H
-

@@ -107,4 +107,3 @@ namespace cb {
 }
 
 #endif // CBANG_TIMER_H
-

@@ -48,4 +48,3 @@
 #include "Integer.h"
 
 #endif // CB_JSON_JSON_H
-

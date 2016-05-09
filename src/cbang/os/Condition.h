@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CBANG_CONDITION_H
-

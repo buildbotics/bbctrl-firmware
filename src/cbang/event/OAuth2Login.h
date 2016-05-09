@@ -74,4 +74,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_OAUTH2_LOGIN_H
-

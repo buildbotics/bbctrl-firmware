@@ -90,4 +90,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_EVENT_H
-

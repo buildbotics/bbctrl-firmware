@@ -64,4 +64,3 @@ namespace cb {
 }
 
 #endif // CB_MIN_CONSTRAINT_H
-

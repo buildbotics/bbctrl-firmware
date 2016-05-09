@@ -99,4 +99,3 @@ namespace cb {
 }
 
 #endif // CB_JS_OBJECT_H
-

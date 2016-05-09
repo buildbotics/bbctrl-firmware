@@ -33,4 +33,3 @@
 #include "Statement.h"
 
 using namespace cb::MariaDB;
-

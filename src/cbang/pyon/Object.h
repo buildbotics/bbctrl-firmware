@@ -67,4 +67,3 @@ namespace cb {
 }
 
 #endif // CBANG_PYON_OBJECT_H
-

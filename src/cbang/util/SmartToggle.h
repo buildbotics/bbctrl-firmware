@@ -44,4 +44,3 @@ namespace cb {
 }
 
 #endif // CB_SMART_TOGGLE_H
-

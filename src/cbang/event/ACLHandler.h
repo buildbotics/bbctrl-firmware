@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_ACL_HANDLER_H
-

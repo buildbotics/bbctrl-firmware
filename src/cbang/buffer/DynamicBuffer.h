@@ -79,4 +79,3 @@ namespace cb {
 }
 
 #endif // CB_DYNAMIC_BUFFER_H
-

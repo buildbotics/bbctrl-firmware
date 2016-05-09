@@ -135,4 +135,3 @@ namespace cb {
 }
 
 #endif // CBANG_SEGMENT_H
-

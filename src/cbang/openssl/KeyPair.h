@@ -120,4 +120,3 @@ namespace cb {
 }
 
 #endif // CBANG_KEY_PAIR_H
-

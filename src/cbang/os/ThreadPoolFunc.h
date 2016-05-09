@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CBANG_THREAD_POOL_FUNC_H
-

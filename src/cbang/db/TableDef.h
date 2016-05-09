@@ -98,4 +98,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_TABLE_DEF_H
-

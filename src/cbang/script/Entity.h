@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_ENTITY_H
-

@@ -48,4 +48,3 @@ namespace cb {
 }
 
 #endif // CBANG_XML_ATTRIBUTES_H
-

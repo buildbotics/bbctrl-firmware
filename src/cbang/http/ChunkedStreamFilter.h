@@ -153,4 +153,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_CHUNKED_STREAM_FILTER_H
-

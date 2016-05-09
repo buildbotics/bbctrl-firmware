@@ -56,4 +56,3 @@ namespace cb {
 }
 
 #endif // CB_CERTIFICATE_CHAIN_H
-

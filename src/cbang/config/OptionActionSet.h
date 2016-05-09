@@ -124,4 +124,3 @@ namespace cb {
 }
 
 #endif // CBANG_OPTION_ACTION_SET_H
-

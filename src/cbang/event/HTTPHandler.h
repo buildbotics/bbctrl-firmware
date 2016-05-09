@@ -64,4 +64,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTP_HANDLER_H
-

@@ -64,4 +64,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_CONTEXT_H
-

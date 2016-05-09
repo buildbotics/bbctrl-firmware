@@ -84,4 +84,3 @@ namespace cb {
 }
 
 #endif // CBANG_IPADDRESS_RANGE_H
-

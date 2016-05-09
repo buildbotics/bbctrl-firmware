@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CBANG_BUFFER_DEVICE_H
-

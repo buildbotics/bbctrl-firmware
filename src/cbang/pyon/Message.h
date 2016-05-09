@@ -71,4 +71,3 @@ namespace cb {
 }
 
 #endif // CBANG_PYON_MESSAGE_H
-

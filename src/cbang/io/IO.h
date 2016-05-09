@@ -41,4 +41,3 @@ namespace cb {
 }
 
 #endif // CBANG_IO_H
-

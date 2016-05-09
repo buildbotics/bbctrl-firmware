@@ -84,4 +84,3 @@ namespace cb {
 }
 
 #endif // CBANG_DIRECTORY_WALKER_H
-

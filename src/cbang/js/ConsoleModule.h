@@ -55,4 +55,3 @@ namespace cb {
 }
 
 #endif // CB_JS_CONSOLE_MODULE_H
-

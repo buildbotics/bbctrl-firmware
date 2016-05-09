@@ -78,4 +78,3 @@ namespace cb {
 }
 
 #endif // CBANG_VECTOR_DEVICE_H
-

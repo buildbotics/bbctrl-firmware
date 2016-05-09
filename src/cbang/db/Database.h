@@ -107,4 +107,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_DATABASE_H
-

@@ -42,4 +42,3 @@
 #endif // USING_CBANG
 
 #endif // INTEGER_H
-

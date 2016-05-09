@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_BACKUP_H
-

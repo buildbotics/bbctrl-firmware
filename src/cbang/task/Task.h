@@ -64,4 +64,3 @@ namespace cb {
 }
 
 #endif // CB_TASK_H
-

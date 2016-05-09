@@ -56,4 +56,3 @@ namespace cb {
 }
 
 #endif // CBANG_BSTREAM_H
-

@@ -63,4 +63,3 @@ namespace cb {
 }
 
 #endif // CBANG_JS_JAVASCRIPT_H
-

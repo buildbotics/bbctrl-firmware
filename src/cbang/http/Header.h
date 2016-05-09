@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_HEADER_H
-

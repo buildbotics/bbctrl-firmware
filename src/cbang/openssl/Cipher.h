@@ -62,4 +62,3 @@ namespace cb {
 }
 
 #endif // CB_CIPHER_H
-

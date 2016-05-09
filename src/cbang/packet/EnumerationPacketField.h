@@ -83,4 +83,3 @@ namespace cb {
 }
 
 #endif // CBANG_ENUMERATION_PACKET_FIELD_H
-

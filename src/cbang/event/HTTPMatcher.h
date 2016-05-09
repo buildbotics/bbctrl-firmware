@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTPMATCHER_H
-

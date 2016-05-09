@@ -57,4 +57,3 @@ namespace cb {
 }
 
 #endif // CB_HUMAN_NUMBER_H
-

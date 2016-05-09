@@ -77,4 +77,3 @@ namespace cb {
 }
 
 #endif // CBANG_PYON_HEADER_H
-

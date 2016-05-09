@@ -46,4 +46,3 @@ namespace cb {
 }
 
 #endif // CBANG_BIOSTREAM_H
-

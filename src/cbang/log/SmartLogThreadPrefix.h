@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CB_SMART_LOG_THREAD_PREFIX_H
-

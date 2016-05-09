@@ -120,4 +120,3 @@ namespace cb {
 }
 
 #endif // CB_DIGEST_H
-

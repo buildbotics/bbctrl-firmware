@@ -402,4 +402,3 @@ namespace cb {
 }
 
 #endif // CBANG_RECTANGLE_H
-

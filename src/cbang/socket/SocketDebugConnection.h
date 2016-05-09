@@ -67,4 +67,3 @@ namespace cb {
 }
 
 #endif // CBANG_SOCKET_DEBUG_CONNECTION_H
-

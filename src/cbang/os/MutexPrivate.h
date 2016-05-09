@@ -56,4 +56,3 @@ namespace cb {
 };
 
 #endif // MUTEX_PRIVATE_H
-

@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CBANG_HUMAN_TIME_H
-

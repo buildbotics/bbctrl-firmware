@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_STD_LIBRARY_H
-

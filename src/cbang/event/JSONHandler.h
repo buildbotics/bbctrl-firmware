@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_JSONHANDLER_H
-

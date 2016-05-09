@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CB_DIGEST_STREAM_FILTER_H
-

@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CBANG_LOCATION_RANGE_H
-

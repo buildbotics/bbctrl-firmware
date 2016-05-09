@@ -54,4 +54,3 @@ namespace cb {
 }
 
 #endif // CB_DEPRECIATED_CONSTRAINT_H
-

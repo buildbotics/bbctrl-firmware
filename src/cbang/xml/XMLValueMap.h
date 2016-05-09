@@ -85,4 +85,3 @@ namespace cb {
 }
 
 #endif // CBANG_XML_VALUE_MAP_H
-

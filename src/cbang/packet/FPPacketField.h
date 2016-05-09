@@ -100,4 +100,3 @@ namespace cb {
 }
 
 #endif // CBANG_FPPACKET_FIELD_H
-

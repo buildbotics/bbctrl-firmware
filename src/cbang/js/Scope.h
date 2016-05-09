@@ -47,4 +47,3 @@ namespace cb {
 }
 
 #endif // CB_JS_SCOPE_H
-

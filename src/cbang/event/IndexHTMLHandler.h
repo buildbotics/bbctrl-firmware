@@ -54,4 +54,3 @@ namespace cb {
 }
 
 #endif // CB_INDEX_HTMLHANDLER_H
-

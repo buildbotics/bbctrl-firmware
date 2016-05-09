@@ -111,4 +111,3 @@ namespace cb {
 }
 
 #endif // CBANG_URI_H
-

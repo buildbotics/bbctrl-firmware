@@ -50,4 +50,3 @@ namespace cb {
 }
 
 #endif // CBANG_BOSTREAM_H
-

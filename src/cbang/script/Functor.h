@@ -58,4 +58,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_FUNCTOR_H
-

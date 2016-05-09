@@ -113,4 +113,3 @@ namespace cb {
 }
 
 #endif // CBANG_MEMBER_FUNCTOR_H
-

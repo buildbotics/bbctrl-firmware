@@ -42,4 +42,3 @@ namespace cb {
 }
 
 #endif // CBANG_CALLBACK_H
-

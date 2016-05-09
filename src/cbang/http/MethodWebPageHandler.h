@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_METHOD_WEB_PAGE_HANDLER_H
-

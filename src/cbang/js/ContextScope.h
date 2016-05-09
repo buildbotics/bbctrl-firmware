@@ -49,4 +49,3 @@ namespace cb {
 }
 
 #endif // CB_JS_CONTEXT_SCOPE_H
-

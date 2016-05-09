@@ -92,4 +92,3 @@ namespace cb {
 }
 
 #endif // CBANG_AXIS_ANGLE_H
-

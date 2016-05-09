@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CBANG_PARSE_SCOPE_H
-

@@ -42,4 +42,3 @@ namespace cb {
 }
 
 #endif // CB_MARIADB_STATEMENT_H
-

@@ -62,4 +62,3 @@ namespace cb {
 }
 
 #endif // CBANG_FILE_INTERFACE_H
-

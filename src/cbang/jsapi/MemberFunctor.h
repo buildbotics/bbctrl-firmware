@@ -46,4 +46,3 @@ namespace cb {
 }
 
 #endif // CB_JSAPI_MEMBER_FUNCTOR_H
-

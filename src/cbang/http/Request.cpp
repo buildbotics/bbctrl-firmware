@@ -73,4 +73,3 @@ void Request::readHeaderLine(const string &line) {
   uri.read(parts[1]);
   readVersionString(parts[2]);
 }
-

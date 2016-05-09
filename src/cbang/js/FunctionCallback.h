@@ -56,4 +56,3 @@ namespace cb {
 }
 
 #endif // CB_JS_FUNCTION_CALLBACK_H
-

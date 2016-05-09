@@ -42,7 +42,7 @@ namespace cb {
 
   class CertificateContext {
     X509V3_CTX *ctx;
-    
+
   public:
     CertificateContext(const Certificate *issuer = 0,
                        const Certificate *subject = 0,
@@ -55,4 +55,3 @@ namespace cb {
 }
 
 #endif // CB_CERTIFICATE_CONTEXT_H
-

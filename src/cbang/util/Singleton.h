@@ -115,4 +115,3 @@ namespace cb {
 #endif // USING_CBANG
 
 #endif // CBANG_SINGLETON_H
-

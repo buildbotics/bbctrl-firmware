@@ -69,4 +69,3 @@ namespace cb {
 #endif
 
 #endif // CBANG_MATH_H
-

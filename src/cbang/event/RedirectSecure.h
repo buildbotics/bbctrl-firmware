@@ -51,4 +51,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_REDIRECT_SECURE_H
-

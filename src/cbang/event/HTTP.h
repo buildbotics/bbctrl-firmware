@@ -92,4 +92,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTP_H
-

@@ -84,4 +84,3 @@ namespace cb {
 }
 
 #endif // CBANG_PACKET_H
-

@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_MEMBER_FUNCTOR_H
-

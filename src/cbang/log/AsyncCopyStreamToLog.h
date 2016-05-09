@@ -58,4 +58,3 @@ namespace cb {
 }
 
 #endif // CBANG_ASYNC_COPY_STREAM_TO_LOG_H
-

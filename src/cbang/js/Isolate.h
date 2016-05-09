@@ -71,4 +71,3 @@ namespace cb {
 }
 
 #endif // CB_JS_ISOLATE_H
-

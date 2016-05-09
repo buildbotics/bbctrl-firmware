@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CBANG_BASE64_H
-

@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_VARIABLE_H
-

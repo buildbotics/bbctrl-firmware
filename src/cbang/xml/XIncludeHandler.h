@@ -51,4 +51,3 @@ namespace cb {
 }
 
 #endif // CBANG_XINCLUDE_HANDLER_H
-

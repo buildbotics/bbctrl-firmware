@@ -58,4 +58,3 @@ namespace cb {
 }
 
 #endif // CB_JS_METHOD_CALLBACK_H
-

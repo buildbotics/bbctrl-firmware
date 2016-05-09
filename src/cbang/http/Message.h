@@ -95,4 +95,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_MESSAGE_H
-

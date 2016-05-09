@@ -99,4 +99,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_ENVIRONMENT_H
-

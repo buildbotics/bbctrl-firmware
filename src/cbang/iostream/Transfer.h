@@ -51,4 +51,3 @@ namespace cb {
 }
 
 #endif // CB_TRANSFER_H
-

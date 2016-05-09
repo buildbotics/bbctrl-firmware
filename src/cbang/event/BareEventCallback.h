@@ -52,4 +52,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_BARE_EVENT_CALLBACK_H
-

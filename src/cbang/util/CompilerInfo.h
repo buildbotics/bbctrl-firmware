@@ -68,4 +68,3 @@
 #endif
 
 #endif // CBANG_COMPILER_INFO_H
-

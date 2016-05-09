@@ -175,4 +175,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_CONNECTION_H
-

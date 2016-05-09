@@ -139,4 +139,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_BASE_H
-

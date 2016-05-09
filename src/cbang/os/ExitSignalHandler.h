@@ -62,4 +62,3 @@ namespace cb {
 }
 
 #endif // CBANG_EXIT_SIGNAL_HANDLER_H
-

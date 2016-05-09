@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CBANG_SYS_ERROR_H
-

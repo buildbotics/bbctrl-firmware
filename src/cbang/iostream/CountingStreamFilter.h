@@ -69,4 +69,3 @@ namespace cb {
 }
 
 #endif // CBANG_Counting_STREAM_FILTER_H
-

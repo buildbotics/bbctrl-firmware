@@ -57,4 +57,3 @@ namespace cb {
 }
 
 #endif // CBANG_GLOB_H
-

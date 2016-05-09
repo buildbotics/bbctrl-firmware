@@ -45,4 +45,3 @@ namespace cb {
 }
 
 #endif // CBANG_LOCKABLE_H
-

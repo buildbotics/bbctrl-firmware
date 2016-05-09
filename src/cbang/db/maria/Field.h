@@ -100,4 +100,3 @@ namespace cb {
 }
 
 #endif // CB_MARIADB_FIELD_H
-

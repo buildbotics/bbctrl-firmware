@@ -73,4 +73,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_SCRIPTED_WEB_HANDLER_H
-

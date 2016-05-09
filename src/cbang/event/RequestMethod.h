@@ -47,4 +47,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_REQUEST_METHOD_H
-

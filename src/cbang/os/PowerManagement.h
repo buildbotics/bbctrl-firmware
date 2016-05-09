@@ -69,4 +69,3 @@ namespace cb {
 }
 
 #endif // CB_POWER_MANAGEMENT_H
-

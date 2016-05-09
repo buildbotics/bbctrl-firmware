@@ -56,4 +56,3 @@ bool IndexHTMLHandler::operator()(Request &req) {
 
   return false;
 }
-

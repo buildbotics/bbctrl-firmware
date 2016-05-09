@@ -82,4 +82,3 @@ namespace cb {
 }
 
 #endif // CBANG_OPTION_CATEGORY_H
-

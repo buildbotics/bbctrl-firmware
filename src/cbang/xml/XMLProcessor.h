@@ -68,4 +68,3 @@ namespace cb {
 }
 
 #endif // CBANG_XML_PROCESSOR_H
-

@@ -48,4 +48,3 @@ namespace cb {
 }
 
 #endif // CBANG_SMART_READ_LOCK_H
-

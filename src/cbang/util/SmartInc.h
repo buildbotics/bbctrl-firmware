@@ -45,4 +45,3 @@ namespace cb {
 }
 
 #endif // CB_SMART_INC_H
-

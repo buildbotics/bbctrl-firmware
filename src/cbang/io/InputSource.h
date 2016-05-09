@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_INPUT_SOURCE_H
-

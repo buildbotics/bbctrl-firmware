@@ -67,4 +67,3 @@ namespace cb {
 #include "Context.h"
 
 #endif // CBANG_SCRIPT_HANDLER_H
-

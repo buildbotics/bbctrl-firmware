@@ -88,4 +88,3 @@ namespace cb {
 }
 
 #endif // CB_XORSTREAM_FILTER_H
-

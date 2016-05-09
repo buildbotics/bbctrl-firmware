@@ -57,4 +57,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_NULL_H
-

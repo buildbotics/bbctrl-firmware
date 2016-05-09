@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CBANG_EVENT_BUFFER_DEVICE_H
-

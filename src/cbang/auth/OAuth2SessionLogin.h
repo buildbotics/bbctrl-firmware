@@ -67,4 +67,3 @@ namespace cb {
 }
 
 #endif // CB_OAUTH2_SESSION_LOGIN_H
-

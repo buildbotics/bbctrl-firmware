@@ -92,4 +92,3 @@ namespace cb {
 }
 
 #endif // CBANG_SIGNAL_MANAGER_H
-

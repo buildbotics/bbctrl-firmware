@@ -153,4 +153,3 @@ namespace cb {
 }
 
 #endif // CBANG_ACLSET_H
-

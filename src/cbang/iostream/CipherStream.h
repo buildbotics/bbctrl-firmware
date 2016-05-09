@@ -93,4 +93,3 @@ namespace cb {
 }
 
 #endif // CB_CIPHER_STREAM_H
-

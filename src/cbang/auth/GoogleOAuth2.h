@@ -53,4 +53,3 @@ namespace cb {
 }
 
 #endif // CB_GOOGLE_OAUTH2_H
-

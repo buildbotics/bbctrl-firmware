@@ -60,4 +60,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_RESOURCE_HTTPHANDLER_H
-

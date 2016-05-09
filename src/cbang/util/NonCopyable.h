@@ -44,4 +44,3 @@ namespace cb {
 }
 
 #endif // CBANG_NON_COPYABLE_H
-

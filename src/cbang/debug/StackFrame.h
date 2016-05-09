@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CBANG_STACK_FRAME_H
-

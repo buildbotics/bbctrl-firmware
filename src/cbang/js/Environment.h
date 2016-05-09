@@ -101,4 +101,3 @@ namespace cb {
 }
 
 #endif // CB_JS_ENVIRONMENT_H
-

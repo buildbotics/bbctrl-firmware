@@ -43,4 +43,3 @@ namespace cb {
 }
 
 #endif // CB_STRING_OR_NULL_H
-

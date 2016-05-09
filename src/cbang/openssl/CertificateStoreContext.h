@@ -79,4 +79,3 @@ namespace cb {
 }
 
 #endif // CB_CERTIFICATE_STORE_CONTEXT_H
-

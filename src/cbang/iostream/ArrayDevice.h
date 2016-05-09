@@ -102,4 +102,3 @@ namespace cb {
 }
 
 #endif // CBANG_ARRAY_DEVICE_H
-

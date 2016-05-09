@@ -57,4 +57,3 @@ ostream &cb::operator<<(ostream &stream, const FileLocation &fl) {
 
   return stream;
 }
-

@@ -268,4 +268,3 @@ namespace cb {
 }
 
 #endif // CB_MARIADB_DB_H
-

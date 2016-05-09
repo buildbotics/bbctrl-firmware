@@ -55,4 +55,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_TRANSACTION_H
-

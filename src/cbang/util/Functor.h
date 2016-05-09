@@ -116,4 +116,3 @@
 
 
 #endif // CBANG_FUNCTOR_H
-

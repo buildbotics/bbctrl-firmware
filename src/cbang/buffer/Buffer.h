@@ -74,4 +74,3 @@ namespace cb {
 }
 
 #endif // CBANG_BUFFER_H
-

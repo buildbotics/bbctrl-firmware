@@ -160,4 +160,3 @@ namespace cb {
 }
 
 #endif // CBANG_STRUCT_PRINTER_H
-

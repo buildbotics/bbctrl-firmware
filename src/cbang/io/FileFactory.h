@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CB_FILE_FACTORY_H
-

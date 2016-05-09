@@ -76,4 +76,3 @@ namespace cb {
 }
 
 #endif // CBANG_SOCKET_CONNECTION_H
-

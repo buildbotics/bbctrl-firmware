@@ -40,4 +40,3 @@
 #endif
 
 #endif // CBANG_PACKED_H
-

@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CB_JSON_FORMAT_H
-

@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_UNIX_FILE_H
-

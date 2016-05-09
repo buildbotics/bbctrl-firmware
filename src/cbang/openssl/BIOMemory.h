@@ -45,4 +45,3 @@ namespace cb {
 }
 
 #endif // CB_BIOMEMORY_H
-

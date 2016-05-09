@@ -111,4 +111,3 @@ namespace cb {
 }
 
 #endif // CB_CERTIFICATE_H
-

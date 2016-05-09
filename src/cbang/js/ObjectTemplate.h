@@ -86,4 +86,3 @@ namespace cb {
 }
 
 #endif // CB_JS_OBJECT_TEMPLATE_H
-

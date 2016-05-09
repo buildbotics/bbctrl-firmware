@@ -73,4 +73,3 @@ namespace cb {
 }
 
 #endif // CBANG_FILE_H
-

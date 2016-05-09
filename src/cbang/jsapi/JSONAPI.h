@@ -83,4 +83,3 @@ namespace cb {
 }
 
 #endif // CB_JSAPI_JSONAPI_H
-

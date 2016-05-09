@@ -80,4 +80,3 @@ namespace cb {
 }
 
 #endif // CB_JS_SIGNATURE_H
-

@@ -88,4 +88,3 @@ namespace cb {
 }
 
 #endif // CB_HEX_STRING_H
-

@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CBANG_XML_ADAPTER_H
-

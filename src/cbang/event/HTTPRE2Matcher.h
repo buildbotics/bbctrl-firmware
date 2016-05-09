@@ -57,4 +57,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_RE2_MATCHER_H
-

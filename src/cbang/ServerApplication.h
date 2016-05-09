@@ -71,4 +71,3 @@ namespace cb {
 }
 
 #endif // CBANG_SERVER_APPLICATION_H
-

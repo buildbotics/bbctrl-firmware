@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_EXPAT_XMLADAPTER_H
-

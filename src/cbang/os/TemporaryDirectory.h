@@ -47,4 +47,3 @@ namespace cb {
 }
 
 #endif // CBANG_TEMPORARY_DIRECTORY_H
-

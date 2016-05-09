@@ -55,4 +55,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_PROCESSOR_H
-

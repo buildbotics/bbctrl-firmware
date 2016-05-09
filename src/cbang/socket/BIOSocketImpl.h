@@ -58,4 +58,3 @@ namespace cb {
 }
 
 #endif // CB_BIOSOCKET_IMPL_H
-

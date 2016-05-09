@@ -59,4 +59,3 @@ namespace cb {
 }
 
 #endif // CB_KEY_GEN_PACIFIER_H
-

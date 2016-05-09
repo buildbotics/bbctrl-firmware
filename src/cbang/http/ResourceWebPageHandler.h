@@ -54,4 +54,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_RESOURCE_WEB_PAGE_HANDLER_H
-

@@ -69,4 +69,3 @@ namespace cb {
 }
 
 #endif // CB_JS_SCRIPT_H
-

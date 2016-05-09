@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CB_UPDATE_STREAM_FILTER_H
-

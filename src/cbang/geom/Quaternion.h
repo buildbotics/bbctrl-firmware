@@ -103,4 +103,3 @@ namespace cb {
 }
 
 #endif // CBANG_QUATERNION_H
-

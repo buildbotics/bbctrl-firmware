@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CB_MIN_MAX_CONSTRAINT_H
-

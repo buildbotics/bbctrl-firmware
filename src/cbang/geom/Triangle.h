@@ -48,4 +48,3 @@ namespace cb {
 }
 
 #endif // CBANG_TRIANGLE_H
-

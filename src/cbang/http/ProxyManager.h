@@ -85,4 +85,3 @@ namespace cb {
 }
 
 #endif // CBANG_PROXY_MANAGER_H
-

@@ -60,4 +60,3 @@ namespace cb {
 
 #endif // _WIN32
 #endif // CBANG_WIN32_REGISTRY_H
-

@@ -122,4 +122,3 @@ namespace cb {
 }
 
 #endif // CBANG_SUBPROCESS_H
-

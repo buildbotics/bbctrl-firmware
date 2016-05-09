@@ -61,4 +61,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_FILE_HANDLER_H
-

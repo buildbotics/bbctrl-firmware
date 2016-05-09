@@ -68,4 +68,3 @@ namespace cb {
 }
 
 #endif // CBANG_CBANG_ITEM_H
-

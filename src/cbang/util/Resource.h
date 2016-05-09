@@ -93,4 +93,3 @@ namespace cb {
 }
 
 #endif // CBANG_RESOURCE_H
-

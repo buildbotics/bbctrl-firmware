@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_JSON_STRING_H
-

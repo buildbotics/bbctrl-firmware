@@ -95,4 +95,3 @@ namespace cb {
 }
 
 #endif // CBANG_THREAD_LOCAL_STORAGE_H
-

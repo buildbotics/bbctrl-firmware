@@ -89,4 +89,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_STATEMENT_H
-

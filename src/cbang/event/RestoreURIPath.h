@@ -50,4 +50,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_RESTORE_URIPATH_H
-

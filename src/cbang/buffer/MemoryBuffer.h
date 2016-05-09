@@ -78,4 +78,3 @@ namespace cb {
 }
 
 #endif // CBANG_MEMORY_BUFFER_H
-

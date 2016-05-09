@@ -56,4 +56,3 @@ namespace cb {
 }
 
 #endif // CB_TAR_FILE_H
-

@@ -194,4 +194,3 @@ namespace cb {
 }
 
 #endif // CBANG_BASE64_ENCODER_H
-

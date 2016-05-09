@@ -44,4 +44,3 @@ namespace cb {
 }
 
 #endif // CB_FEATURES_H
-

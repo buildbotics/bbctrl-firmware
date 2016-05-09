@@ -70,4 +70,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_REQUEST_H
-

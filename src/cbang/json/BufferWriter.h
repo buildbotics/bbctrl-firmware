@@ -65,4 +65,3 @@ namespace cb {
 }
 
 #endif // CB_JSON_BUFFER_WRITER_H
-

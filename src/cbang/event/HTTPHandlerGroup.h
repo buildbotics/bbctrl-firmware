@@ -137,4 +137,3 @@ namespace cb {
 }
 
 #endif // CB_EVENT_HTTPHANDLER_GROUP_H
-

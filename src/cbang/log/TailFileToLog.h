@@ -66,4 +66,3 @@ namespace cb {
 }
 
 #endif // CBANG_TAIL_FILE_TO_LOG_H
-

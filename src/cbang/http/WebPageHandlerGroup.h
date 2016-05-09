@@ -67,4 +67,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_WEB_PAGE_HANDLER_GROUP_H
-

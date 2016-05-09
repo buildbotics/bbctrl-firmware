@@ -72,4 +72,3 @@ namespace cb {
 }
 
 #endif // CB_PARSER_H
-

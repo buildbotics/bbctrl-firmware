@@ -104,4 +104,3 @@ namespace cb {
 }
 
 #endif // CB_HTTP_SESSION_MANAGER_H
-

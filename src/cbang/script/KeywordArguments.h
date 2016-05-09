@@ -47,4 +47,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_KEYWORD_ARGUMENTS_H
-

@@ -49,4 +49,3 @@ namespace cb {
 }
 
 #endif // CBANG_DB_TYPES_H
-

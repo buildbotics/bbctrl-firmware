@@ -71,4 +71,3 @@ namespace cb {
 }
 
 #endif // CBANG_HTTP_HANDLER_H
-

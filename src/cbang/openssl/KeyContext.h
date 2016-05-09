@@ -129,4 +129,3 @@ namespace cb {
 }
 
 #endif // CB_KEY_CONTEXT_H
-

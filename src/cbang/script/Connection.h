@@ -64,4 +64,3 @@ namespace cb {
 }
 
 #endif // CBANG_SCRIPT_CONNECTION_H
-

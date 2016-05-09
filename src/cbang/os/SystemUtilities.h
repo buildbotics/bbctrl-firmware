@@ -163,4 +163,3 @@ namespace cb {
 }
 
 #endif // CBANG_SYSTEM_UTILITIES_H
-

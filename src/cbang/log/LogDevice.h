@@ -92,4 +92,3 @@ namespace cb {
 }
 
 #endif // CBANG_LOG_DEVICE_H
-

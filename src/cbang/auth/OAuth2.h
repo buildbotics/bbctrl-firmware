@@ -81,4 +81,3 @@ namespace cb {
 }
 
 #endif // CB_OAUTH2_H
-

@@ -62,4 +62,3 @@ namespace cb {
 }
 
 #endif // CBANG_TIME_INTERVAL_H
-

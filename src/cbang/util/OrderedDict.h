@@ -182,4 +182,3 @@ namespace cb {
 }
 
 #endif // CBANG_ORDERED_DICT_H
-
