@@ -42,6 +42,7 @@
 #include <cbang/Exception.h>
 #include <cbang/SmartPointer.h>
 #include <cbang/log/Logger.h>
+#include <cbang/util/DefaultCatch.h>
 
 #include <openssl/pem.h>
 #include <openssl/evp.h>
@@ -50,10 +51,28 @@
 #include <openssl/ec.h>
 #include <openssl/engine.h>
 
+#include <string.h>
+
 #include <sstream>
 
 using namespace cb;
 using namespace std;
+
+
+namespace {
+  int password_cb(char *buf, int size, int rwflag, void *cb) {
+    try {
+      string pw = (*(PasswordCallback *)cb)(rwflag, (unsigned)size);
+
+      int length = min(size, (int)pw.length());
+      memcpy(buf, pw.c_str(), length);
+      return length;
+
+    } CATCH_ERROR;
+
+    return 0;
+  }
+}
 
 
 KeyPair::KeyPair(const KeyPair &o) : key(o.key) {
@@ -222,24 +241,28 @@ void KeyPair::readPublic(const string &pem) {
 }
 
 
-istream &KeyPair::readPrivate(istream &stream) {
+istream &KeyPair::readPrivate(istream &stream,
+                              SmartPointer<PasswordCallback> callback) {
   BIStream bio(stream);
 
-  if (!PEM_read_bio_PrivateKey(bio.getBIO(), &key, 0, 0))
+  if (!PEM_read_bio_PrivateKey
+      (bio.getBIO(), &key, callback.isNull() ? 0 : password_cb, callback.get()))
     THROWS("Failed to read private key: " << SSL::getErrorStr());
 
   return stream;
 }
 
 
-void KeyPair::readPrivate(const string &pem) {
+void KeyPair::readPrivate(const string &pem,
+                          SmartPointer<PasswordCallback> callback) {
   istringstream str(pem);
-  readPrivate(str);
+  readPrivate(str, callback);
 }
 
 
-istream &KeyPair::read(istream &stream) {
-  try {return readPrivate(stream);} catch (...) {} // Ignore
+istream &KeyPair::read(istream &stream,
+                       SmartPointer<PasswordCallback> callback) {
+  try {return readPrivate(stream, callback);} catch (...) {} // Ignore
   return readPublic(stream);
 }
 

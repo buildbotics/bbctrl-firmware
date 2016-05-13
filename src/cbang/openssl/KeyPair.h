@@ -34,6 +34,7 @@
 #define CBANG_KEY_PAIR_H
 
 #include "KeyGenCallback.h"
+#include "PasswordCallback.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/StdTypes.h>
@@ -94,9 +95,12 @@ namespace cb {
     // Read PEM
     std::istream &readPublic(std::istream &stream);
     void readPublic(const std::string &pem);
-    std::istream &readPrivate(std::istream &stream);
-    void readPrivate(const std::string &pem);
-    std::istream &read(std::istream &stream);
+    std::istream &readPrivate(std::istream &stream,
+                              SmartPointer<PasswordCallback> callback = 0);
+    void readPrivate(const std::string &pem,
+                     SmartPointer<PasswordCallback> callback = 0);
+    std::istream &read(std::istream &stream,
+                       SmartPointer<PasswordCallback> callback = 0);
 
     // Write PEM
     std::ostream &writePublic(std::ostream &stream) const;
