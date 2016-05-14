@@ -260,9 +260,16 @@ void KeyPair::readPrivate(const string &pem,
 }
 
 
+void KeyPair::read(const string &pem, SmartPointer<PasswordCallback> callback) {
+  try {readPrivate(pem, callback);} catch (...) {} // Ignore
+  readPublic(pem);
+}
+
+
 istream &KeyPair::read(istream &stream,
                        SmartPointer<PasswordCallback> callback) {
   try {return readPrivate(stream, callback);} catch (...) {} // Ignore
+  stream.seekg(0);
   return readPublic(stream);
 }
 

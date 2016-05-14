@@ -99,6 +99,8 @@ namespace cb {
                               SmartPointer<PasswordCallback> callback = 0);
     void readPrivate(const std::string &pem,
                      SmartPointer<PasswordCallback> callback = 0);
+    void read(const std::string &pem,
+              SmartPointer<PasswordCallback> callback = 0);
     std::istream &read(std::istream &stream,
                        SmartPointer<PasswordCallback> callback = 0);
 
