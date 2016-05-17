@@ -98,7 +98,7 @@ bool JSONHandler::operator()(Request &req) {
     writer.endList();
     writer.close();
 
-    req.reply(output);
+    req.reply(e.getCode() ? e.getCode() : HTTP_INTERNAL_SERVER_ERROR, output);
   }
 
   return true;
