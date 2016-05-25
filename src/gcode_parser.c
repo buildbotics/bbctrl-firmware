@@ -480,7 +480,7 @@ static stat_t _parse_gcode_block(char *buf) {
       case 6: SET_NON_MODAL(tool_change, true);
       case 7: SET_MODAL(MODAL_GROUP_M8, mist_coolant, true);
       case 8: SET_MODAL(MODAL_GROUP_M8, flood_coolant, true);
-      case 9: SET_MODAL(MODAL_GROUP_M8, flood_coolant, false);
+      case 9: SET_MODAL(MODAL_GROUP_M8, flood_coolant, false); // Also mist
       case 48: SET_MODAL(MODAL_GROUP_M9, override_enables, true);
       case 49: SET_MODAL(MODAL_GROUP_M9, override_enables, false);
       case 50: SET_MODAL(MODAL_GROUP_M9, feed_rate_override_enable, true);

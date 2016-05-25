@@ -212,6 +212,7 @@ typedef enum {
 
 
 // Spindle settings
+#define SPINDLE_TYPE                  SPINDLE_TYPE_HUANYANG
 #define SPINDLE_PWM_FREQUENCY         100    // in Hz
 #define SPINDLE_CW_SPEED_LO           1000   // in RPM (arbitrary units)
 #define SPINDLE_CW_SPEED_HI           2000
@@ -272,8 +273,8 @@ typedef enum {
 #define SPINDLE_BIT         0 // spindle on/off
 #define SPINDLE_DIR         1 // spindle direction, 1=CW, 0=CCW
 #define SPINDLE_PWM         2 // spindle PWMs output bit
-#define MIST_COOLANT_BIT    3 // coolant on/off (same as flood)
-#define FLOOD_COOLANT_BIT   3 // coolant on/off (same as mist)
+#define MIST_COOLANT_BIT    2 // coolant on/off
+#define FLOOD_COOLANT_BIT   1 // coolant on/off
 
 /* Interrupt usage:
  *
@@ -364,6 +365,11 @@ typedef enum {
 #define PWM2_CTRLB             3                  // single slope PWM no output
 #define PWM2_ISR_vect          TCE1_CCB_vect
 
+
+// Huanyang settings
+#define HUANYANG_TIMEOUT          50 // ms. response timeout
+#define HUANYANG_RETRIES           4 // Number of retries before failure
+#define HUANYANG_ID                1 // Default ID
 
 // Input
 #define INPUT_BUFFER_LEN         255 // text buffer size (255 max)

@@ -12,7 +12,8 @@ CPP = avr-g++
 COMMON = -mmcu=$(MCU)
 
 CFLAGS += $(COMMON)
-CFLAGS += -gdwarf-2 -std=gnu99 -Wall -Werror -DF_CPU=$(CLOCK)UL -O3
+CFLAGS += -Wall -Werror # -Wno-error=unused-function
+CFLAGS += -gdwarf-2 -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Isrc
@@ -27,14 +28,15 @@ EEFLAGS += --set-section-flags=.eeprom="alloc,load"
 EEFLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # Programming flags
-PROGRAMMER = avrispmkII
+#PROGRAMMER = avrispmkII
+PROGRAMMER = jtag3pdi
 PDEV = usb 
 AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
 
 FUSE0=0xff
 FUSE1=0x00
 FUSE2=0xfe
-FUSE4=0xfe
+FUSE4=0xff
 FUSE5=0xeb
 
 # SRC
@@ -100,7 +102,7 @@ usersig:
 
 # Clean
 tidy:
-	rm -f $(shell find -name *~ -o -name \#*)
+	rm -f $(shell find -name \*~ -o -name \#\*)
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \

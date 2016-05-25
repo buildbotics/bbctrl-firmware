@@ -40,12 +40,13 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 
-#define CAL_THRESHOLDS 32
 #define CAL_VELOCITIES 256
-#define CAL_MIN_THRESH -10
-#define CAL_MAX_THRESH 63
+#define CAL_MIN_VELOCITY 1000 // mm/sec
+#define CAL_TARGET_SG 100
+#define CAL_MAX_DELTA_SG 75
 #define CAL_WAIT_TIME 3 // ms
 
 
@@ -59,17 +60,17 @@ enum {
 
 typedef struct {
   bool busy;
+  bool stall_valid;
+  bool stalled;
+  bool reverse;
 
   uint32_t wait;
   int state;
   int motor;
   int axis;
-  int vstep;
 
-  float current_velocity;
-
-  uint16_t stallguard[CAL_VELOCITIES];
-  uint16_t velocities[CAL_VELOCITIES];
+  float velocity;
+  uint16_t stallguard;
 } calibrate_t;
 
 static calibrate_t cal = {};
@@ -86,13 +87,10 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
     case CAL_START: {
       cal.axis = motor_get_axis(cal.motor);
       cal.state = CAL_ACCEL;
-
-      cal.current_velocity = 0;
-      float max_velocity = cm.a[cal.axis].velocity_max / 2;
-      for (int i = 0; i < CAL_VELOCITIES; i++)
-        cal.velocities[i] = (1 + i) * max_velocity / CAL_VELOCITIES;
-
-      memset(cal.stallguard, 0, sizeof(cal.stallguard));
+      cal.velocity = 0;
+      cal.stall_valid = false;
+      cal.stalled = false;
+      cal.reverse = false;
 
       tmc2660_set_stallguard_threshold(cal.motor, 8);
       cal.wait = rtc_get_time() + CAL_WAIT_TIME;
@@ -101,49 +99,39 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
     }
 
     case CAL_ACCEL:
-      if (cal.velocities[cal.vstep] == cal.current_velocity)
-        cal.state = CAL_MEASURE;
+      if (CAL_MIN_VELOCITY < cal.velocity) cal.stall_valid = true;
 
-      else {
-        cal.current_velocity += maxDeltaV;
+      if (cal.velocity < CAL_MIN_VELOCITY || CAL_TARGET_SG < cal.stallguard)
+        cal.velocity += maxDeltaV;
 
-        if (cal.velocities[cal.vstep] <= cal.current_velocity)
-          cal.current_velocity = cal.velocities[cal.vstep];
-      }
-      break;
+      if (cal.stalled) {
+        if (cal.reverse) {
+          int32_t steps = -motor_get_encoder(cal.motor);
+          float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
+          printf("%"PRIi32" steps %0.2f mm\n", steps, mm);
 
-    case CAL_MEASURE:
-      if (++cal.vstep == CAL_VELOCITIES) cal.state = CAL_DECEL;
-      else cal.state = CAL_ACCEL;
-      break;
+          tmc2660_set_stallguard_threshold(cal.motor, 63);
+          mp_free_run_buffer(); // Release buffer
+          cal.busy = false;
+          return STAT_OK;
 
-    case CAL_DECEL:
-      cal.current_velocity -= maxDeltaV;
-      if (cal.current_velocity < 0) cal.current_velocity = 0;
+        } else {
+          motor_set_encoder(cal.motor, 0);
 
-      if (!cal.current_velocity) {
-        // Print results
-        putchar('\n');
-        for (int i = 0; i < CAL_VELOCITIES; i++)
-          printf("%d,", cal.velocities[i]);
-        putchar('\n');
-        for (int i = 0; i < CAL_VELOCITIES; i++)
-          printf("%d,", cal.stallguard[i]);
-        putchar('\n');
-
-        mp_free_run_buffer(); // Release buffer
-        cal.busy = false;
-
-        return STAT_OK;
+          cal.reverse = true;
+          cal.velocity = 0;
+          cal.stall_valid = false;
+          cal.stalled = false;
+        }
       }
       break;
     }
 
-  if (!cal.current_velocity) return STAT_OK;
+  if (!cal.velocity) return STAT_OK;
 
   // Compute travel
   float travel[AXES] = {}; // In mm
-  travel[cal.axis] = time * cal.current_velocity;
+  travel[cal.axis] = time * cal.velocity * (cal.reverse ? -1 : 1);
 
   // Convert to steps
   float steps[MOTORS] = {0};
@@ -161,8 +149,17 @@ bool calibrate_busy() {return cal.busy;}
 
 
 void calibrate_set_stallguard(int motor, uint16_t sg) {
-  if (cal.vstep < CAL_VELOCITIES && cal.motor == motor)
-    cal.stallguard[cal.vstep] = sg;
+  if (cal.motor != motor) return;
+
+  if (cal.stall_valid) {
+    int16_t delta = sg - cal.stallguard;
+    if (!sg || CAL_MAX_DELTA_SG < abs(delta)) {
+      cal.stalled = true;
+      motor_end_move(cal.motor);
+    }
+  }
+
+  cal.stallguard = sg;
 }
 
 
@@ -178,6 +175,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   // Start
   memset(&cal, 0, sizeof(cal));
   cal.busy = true;
+  cal.motor = 1;
 
   bf->bf_func = _exec_calibrate; // register callback
   mp_commit_write_buffer(MOVE_TYPE_COMMAND);

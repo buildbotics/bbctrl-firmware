@@ -71,6 +71,7 @@ typedef struct {
   uint32_t timeout;
   cmMotorFlags_t flags;
   int32_t encoder;
+  uint16_t steps;
   uint8_t last_clock;
 
   // Move prep
@@ -114,7 +115,7 @@ static motor_t motors[MOTORS] = {
     .travel_rev  = M3_TRAVEL_PER_REV,
     .microsteps  = M3_MICROSTEPS,
     .polarity    = M3_POLARITY,
-    .power_mode  =  M3_POWER_MODE,
+    .power_mode  = M3_POWER_MODE,
     .port        = &PORT_MOTOR_3,
     .timer       = &M3_TIMER,
     .dma         = &M3_DMA_CH,
@@ -140,33 +141,8 @@ static uint8_t _dummy;
 /// Special interrupt for X-axis
 ISR(TCE1_CCA_vect) {
   PORT_MOTOR_1.OUTTGL = STEP_BIT_bm;
+  motors[0].steps++;
 }
-
-
-#if 0
-ISR(DMA_CH0_vect) {
-  M1_TIMER.CTRLA = 0; // Top motor clock
-  M1_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
-}
-
-
-ISR(DMA_CH1_vect) {
-  M2_TIMER.CTRLA = 0; // Top motor clock
-  M2_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
-}
-
-
-ISR(DMA_CH2_vect) {
-  M3_TIMER.CTRLA = 0; // Top motor clock
-  M3_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
-}
-
-
-ISR(DMA_CH3_vect) {
-  M4_TIMER.CTRLA = 0; // Top motor clock
-  M4_DMA_CH.CTRLB |= DMA_CH_TRNIF_bm; // Clear interrupt flag
-}
-#endif
 
 
 void motor_init() {
@@ -176,6 +152,7 @@ void motor_init() {
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;
   DMA.CTRL = DMA_ENABLE_bm;
+  DMA.INTFLAGS = 0xff; // clear all interrups
 
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
@@ -183,22 +160,26 @@ void motor_init() {
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
 
+    if (!motor) continue; // Don't configure DMA for motor 0
+
     // Setup DMA channel as timer event counter
     m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
     m->dma->TRIGSRC = m->dma_trigger;
     m->dma->REPCNT = 0;
 
-    m->dma->SRCADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
-    m->dma->SRCADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
+    // Note, the DMA transfer must read CCA to clear the trigger
+    m->dma->SRCADDR0 = (((uintptr_t)&m->timer->CCA) >> 0) & 0xff;
+    m->dma->SRCADDR1 = (((uintptr_t)&m->timer->CCA) >> 8) & 0xff;
     m->dma->SRCADDR2 = 0;
 
     m->dma->DESTADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
     m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
     m->dma->DESTADDR2 = 0;
 
-    m->dma->CTRLB = DMA_CH_TRNINTLVL_HI_gc;
+    m->dma->CTRLB = 0;
     m->dma->CTRLA =
-      DMA_CH_ENABLE_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+      DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
   }
 
   // Setup special interrupt for X-axis mapping
@@ -240,7 +221,7 @@ bool motor_error(int motor) {
 }
 
 
-bool motor_stall(int motor) {
+bool motor_stalled(int motor) {
   return motors[motor].flags & MOTOR_FLAG_STALLED_bm;
 }
 
@@ -396,6 +377,7 @@ void motor_load_move(int motor) {
   // Get actual step count from DMA channel
   uint16_t steps = 0xffff - m->dma->TRFCNT;
   m->dma->TRFCNT = 0xffff;
+  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
   m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
   // Adjust clock count
@@ -424,7 +406,11 @@ void motor_load_move(int motor) {
   else m->port->OUTSET = DIRECTION_BIT_bm;
 
   // Accumulate encoder
-  m->encoder += m->positive ? steps : -steps;
+  if (!motor) {
+    steps = m->steps;
+    m->steps = 0;
+  }
+  m->encoder += m->positive ? steps : -(int32_t)steps;
 }
 
 

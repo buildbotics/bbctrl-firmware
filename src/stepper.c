@@ -107,6 +107,7 @@ ISR(STEP_TIMER_ISR) {
   st.busy = false;
   TIMER_STEP.PER = STEP_TIMER_POLL;
 
+  DMA.INTFLAGS = 0xff; // clear all interrups
   for (int motor = 0; motor < MOTORS; motor++)
     motor_end_move(motor);
 

@@ -68,12 +68,27 @@ VAR(zero_backoff,   "zb", float,    AXES,   1, 0, "Homing zero backof")
 
 // Spindle
 VAR(max_spin,       "ss", float,    0,      1, 0, "Maximum spindle speed")
-VAR(spindle_type,   "st", uint8_t,  0,      1, 0, "RS485 or PWM")
+VAR(spindle_type,   "st", uint8_t,  0,      1, 0, "PWM=0 or HUANYANG=1")
 VAR(spin_min_pulse, "np", float,    0,      1, 0, "Minimum pulse width")
 VAR(spin_max_pulse, "mp", float,    0,      1, 0, "Maximum pulse width")
 VAR(spin_polarity,  "sp", uint8_t,  0,      1, 0, "Normal or reversed")
 VAR(spin_up,        "su", float,    0,      1, 0, "Spin up velocity")
 VAR(spin_down,      "sd", float,    0,      1, 0, "Spin down velocity")
+
+// Huanyang spindle
+VAR(huanyang_id,        "hi", uint8_t,  0,  1, 0, "Huanyang ID")
+VAR(huanyang_freq,      "hz", float,    0,  0, 0, "Huanyang actual freq")
+VAR(huanyang_current,   "hc", float,    0,  0, 0, "Huanyang actual current")
+VAR(huanyang_rpm,       "hr", uint16_t, 0,  0, 0, "Huanyang actual RPM")
+VAR(huanyang_dcv,       "hd", uint16_t, 0,  0, 0, "Huanyang DC voltage")
+VAR(huanyang_acv,       "ha", uint16_t, 0,  0, 0, "Huanyang AC voltage")
+VAR(huanyang_temp,      "ht", uint16_t, 0,  0, 0, "Huanyang temperature")
+VAR(huanyang_max_freq,  "hx", float,    0,  0, 0, "Huanyang max freq")
+VAR(huanyang_min_freq,  "hm", float,    0,  0, 0, "Huanyang min freq")
+VAR(huanyang_rated_rpm, "hq", uint16_t, 0,  0, 0, "Huanyang rated RPM")
+VAR(huanyang_status,    "hs", uint8_t,  0,  0, 0, "Huanyang status flags")
+VAR(huanyang_debug,     "hb", bool,     0,  1, 0, "Huanyang debugging")
+VAR(huanyang_connected, "he", bool,     0,  0, 0, "Huanyang connected")
 
 // Switches
 VAR(switch_type,    "sw", uint8_t,  SWITCHES, 1, 0, "Normally open or closed")

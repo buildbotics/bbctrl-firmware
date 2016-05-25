@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -31,6 +30,7 @@
 #include "canonical_machine.h"
 
 
-void cm_spindle_init();
-void cm_set_spindle_speed(float speed);                     // S parameter
-void cm_spindle_control(cmSpindleMode_t spindle_mode);      // M3, M4, M5
+void huanyang_init();
+void huanyang_set(cmSpindleMode_t mode, float speed);
+void huanyang_reset();
+void huanyang_rtc_callback();

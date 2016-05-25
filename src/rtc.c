@@ -29,6 +29,7 @@
 #include "rtc.h"
 
 #include "switch.h"
+#include "huanyang.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -42,6 +43,7 @@ static uint32_t ticks;
 ISR(RTC_OVF_vect) {
   ticks++;
   switch_rtc_callback(); // switch debouncing
+  huanyang_rtc_callback();
 }
 
 

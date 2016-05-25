@@ -173,8 +173,8 @@ static bool _driver_read(int driver) {
     calibrate_set_stallguard(driver, drv->sguard);
 
     // Write driver 0 stallguard to DAC
-    if (driver == 0 && (DACB.STATUS & DAC_CH0DRE_bm))
-      DACB.CH0DATA = drv->sguard << 2;
+    //if (driver == 0 && (DACB.STATUS & DAC_CH0DRE_bm))
+    //  DACB.CH0DATA = drv->sguard << 2;
 
     _report_error_flags(driver);
   }
@@ -327,9 +327,9 @@ void tmc2660_init() {
   TMC2660_TIMER.CTRLA = TMC2660_TIMER_ENABLE;
 
   // Configure DAC channel 0 for output
-  DACB.CTRLA = DAC_CH0EN_bm | DAC_ENABLE_bm;
-  DACB.CTRLB = DAC_CHSEL_SINGLE_gc;
-  DACB.CTRLC = DAC_REFSEL_AVCC_gc;
+  //DACB.CTRLA = DAC_CH0EN_bm | DAC_ENABLE_bm;
+  //DACB.CTRLB = DAC_CHSEL_SINGLE_gc;
+  //DACB.CTRLC = DAC_REFSEL_AVCC_gc;
 }
 
 

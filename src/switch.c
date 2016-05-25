@@ -181,6 +181,8 @@ ISR(A_SWITCH_ISR_vect) {_switch_isr();}
 
 
 void switch_init() {
+  return; // TODO
+
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
     PORT_t *port = s->port;

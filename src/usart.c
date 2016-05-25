@@ -124,7 +124,7 @@ void usart_init(void) {
 }
 
 
-static void set_baud(uint8_t bsel, uint8_t bscale) {
+static void set_baud(uint16_t bsel, uint8_t bscale) {
   USARTC0.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
   USARTC0.BAUDCTRLA = bsel;
 }
@@ -132,19 +132,20 @@ static void set_baud(uint8_t bsel, uint8_t bscale) {
 
 void usart_set_baud(int baud) {
   // The BSEL / BSCALE values provided below assume a 32 Mhz clock
-  // Assumes CTRLB CLK2X bit (0x04) is not enabled
+  // Assumes CTRLB CLK2X bit (0x04) is set
+  // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
 
   switch (baud) {
-  case USART_BAUD_9600:    set_baud(207, 0);      break;
-  case USART_BAUD_19200:   set_baud(103, 0);      break;
-  case USART_BAUD_38400:   set_baud(51, 0);       break;
-  case USART_BAUD_57600:   set_baud(34, 0);       break;
-  case USART_BAUD_115200:  set_baud(33, -1 << 4); break;
-  case USART_BAUD_230400:  set_baud(31, -2 << 4); break;
-  case USART_BAUD_460800:  set_baud(27, -3 << 4); break;
-  case USART_BAUD_921600:  set_baud(19, -4 << 4); break;
-  case USART_BAUD_500000:  set_baud(1, 1 << 4);   break;
-  case USART_BAUD_1000000: set_baud(1, 0);        break;
+  case USART_BAUD_9600:    set_baud(3325, 0b1101); break;
+  case USART_BAUD_19200:   set_baud(3317, 0b1100); break;
+  case USART_BAUD_38400:   set_baud(3301, 0b1011); break;
+  case USART_BAUD_57600:   set_baud(1095, 0b1100); break;
+  case USART_BAUD_115200:  set_baud(1079, 0b1011); break;
+  case USART_BAUD_230400:  set_baud(1047, 0b1010); break;
+  case USART_BAUD_460800:  set_baud(983,  0b1001); break;
+  case USART_BAUD_921600:  set_baud(107,  0b1011); break;
+  case USART_BAUD_500000:  set_baud(1,    0b0010); break;
+  case USART_BAUD_1000000: set_baud(1,    0b0001); break;
   }
 }
 
