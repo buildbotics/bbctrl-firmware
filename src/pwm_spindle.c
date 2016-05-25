@@ -29,100 +29,101 @@
 #include "pwm_spindle.h"
 
 #include "config.h"
-#include "gpio.h"
-#include "hardware.h"
-#include "pwm.h"
 
 
 typedef struct {
-  float frequency;    // base frequency for PWM driver, in Hz
-  float cw_speed_lo;  // minimum clockwise spindle speed [0..N]
-  float cw_speed_hi;  // maximum clockwise spindle speed
-  float cw_phase_lo;  // pwm phase at minimum CW spindle speed, clamped [0..1]
-  float cw_phase_hi;  // pwm phase at maximum CW spindle speed, clamped [0..1]
-  float ccw_speed_lo; // minimum counter-clockwise spindle speed [0..N]
-  float ccw_speed_hi; // maximum counter-clockwise spindle speed
-  float ccw_phase_lo; // pwm phase at minimum CCW spindle speed, clamped [0..1]
-  float ccw_phase_hi; // pwm phase at maximum CCW spindle speed, clamped
-  float phase_off;    // pwm phase when spindle is disabled
+  uint16_t freq;    // base frequency for PWM driver, in Hz
+  float min_rpm;
+  float max_rpm;
+  float min_duty;
+  float max_duty;
+  bool reverse;
+  bool enable_invert;
 } spindle_t;
 
 
 static spindle_t spindle = {
-  .frequency    = SPINDLE_PWM_FREQUENCY,
-  .cw_speed_lo  = SPINDLE_CW_SPEED_LO,
-  .cw_speed_hi  = SPINDLE_CW_SPEED_HI,
-  .cw_phase_lo  = SPINDLE_CW_PHASE_LO,
-  .cw_phase_hi  = SPINDLE_CW_PHASE_HI,
-  .ccw_speed_lo = SPINDLE_CCW_SPEED_LO,
-  .ccw_speed_hi = SPINDLE_CCW_SPEED_HI,
-  .ccw_phase_lo = SPINDLE_CCW_PHASE_LO,
-  .ccw_phase_hi = SPINDLE_CCW_PHASE_HI,
-  .phase_off    = SPINDLE_PWM_PHASE_OFF,
+  .freq          = SPINDLE_PWM_FREQUENCY,
+  .min_rpm       = SPINDLE_MIN_RPM,
+  .max_rpm       = SPINDLE_MAX_RPM,
+  .min_duty      = SPINDLE_MIN_DUTY,
+  .max_duty      = SPINDLE_MAX_DUTY,
+  .reverse       = SPINDLE_POLARITY,
+  .enable_invert = false,
 };
 
 
-/// return PWM phase (duty cycle) for dir and speed
-static float _get_spindle_pwm(cmSpindleMode_t mode, float speed) {
-  float speed_lo;
-  float speed_hi;
-  float phase_lo;
-  float phase_hi;
-
-  switch (mode) {
-  case SPINDLE_CW:
-    speed_lo = spindle.cw_speed_lo;
-    speed_hi = spindle.cw_speed_hi;
-    phase_lo = spindle.cw_phase_lo;
-    phase_hi = spindle.cw_phase_hi;
-    break;
-
-  case SPINDLE_CCW:
-    speed_lo = spindle.ccw_speed_lo;
-    speed_hi = spindle.ccw_speed_hi;
-    phase_lo = spindle.ccw_phase_lo;
-    phase_hi = spindle.ccw_phase_hi;
-    break;
-
-  default: return spindle.phase_off;
+static void _spindle_set_pwm(cmSpindleMode_t mode, float speed) {
+  if (mode == SPINDLE_OFF || speed < spindle.min_rpm) {
+    TIMER_PWM.CTRLA = 0;
+    return;
   }
 
-  // Clamp spindle speed to lo/hi range
-  if (speed < speed_lo) speed = speed_lo;
-  if (speed > speed_hi) speed = speed_hi;
+  // Clamp speed
+  if (spindle.max_rpm < speed) speed = spindle.max_rpm;
 
-  // Normalize speed to [0..1]
-  speed = (speed - speed_lo) / (speed_hi - speed_lo);
-  return speed * (phase_hi - phase_lo) + phase_lo;
+  // Set clock period and optimal prescaler value
+  float prescale = F_CPU / 65536.0 / spindle.freq;
+  if (prescale <= 1) {
+    TIMER_PWM.PER = F_CPU / spindle.freq;
+    TIMER_PWM.CTRLA = TC_CLKSEL_DIV1_gc;
+
+  } else if (prescale <= 2) {
+    TIMER_PWM.PER = F_CPU / 2 / spindle.freq;
+    TIMER_PWM.CTRLA = TC_CLKSEL_DIV2_gc;
+
+  } else if (prescale <= 4) {
+    TIMER_PWM.PER = F_CPU / 4 / spindle.freq;
+    TIMER_PWM.CTRLA = TC_CLKSEL_DIV4_gc;
+
+  } else if (prescale <= 8) {
+    TIMER_PWM.PER = F_CPU / 8 / spindle.freq;
+    TIMER_PWM.CTRLA = TC_CLKSEL_DIV8_gc;
+
+  } else if (prescale <= 64) {
+    TIMER_PWM.PER = F_CPU / 64 / spindle.freq;
+    TIMER_PWM.CTRLA = TC_CLKSEL_DIV64_gc;
+
+  } else TIMER_PWM.CTRLA = 0;
+
+  // Map RPM to duty cycle
+  float duty = (speed - spindle.min_rpm) / (spindle.max_rpm - spindle.min_rpm) *
+    (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
+
+  TIMER_PWM.CCB = TIMER_PWM.PER * duty;
+}
+
+
+static void _spindle_set_enable(bool enable) {
+  if (enable ^ spindle.enable_invert)
+    SPINDLE_ENABLE_PORT.OUTSET = SPINDLE_ENABLE_PIN_bm;
+  else SPINDLE_ENABLE_PORT.OUTCLR = SPINDLE_ENABLE_PIN_bm;
+}
+
+
+static void _spindle_set_dir(bool forward) {
+  if (forward ^ spindle.reverse) SPINDLE_DIR_PORT.OUTCLR = SPINDLE_DIR_PIN_bm;
+  else SPINDLE_DIR_PORT.OUTSET = SPINDLE_DIR_PIN_bm;
 }
 
 
 void pwm_spindle_init() {
-  if (spindle.frequency < 0) spindle.frequency = 0;
+  // Configure IO
+  SPINDLE_PWM_PORT.DIRSET = SPINDLE_PWM_PIN_bm; // PWM Output
+  _spindle_set_dir(true);
+  SPINDLE_DIR_PORT.DIRSET = SPINDLE_DIR_PIN_bm; // Dir Output
+  _spindle_set_enable(false);
+  SPINDLE_ENABLE_PORT.DIRSET = SPINDLE_ENABLE_PIN_bm; // Enable output
 
-  pwm_set_freq(PWM_1, spindle.frequency);
-  pwm_set_duty(PWM_1, spindle.phase_off);
+  // Configure clock
+  TIMER_PWM.CTRLB = TC1_CCBEN_bm | TC_WGMODE_SINGLESLOPE_gc;
 }
 
 
 void pwm_spindle_set(cmSpindleMode_t mode, float speed) {
-  switch (mode) {
-  case SPINDLE_CW:
-    gpio_set_bit_on(SPINDLE_BIT);
-    gpio_set_bit_off(SPINDLE_DIR);
-    break;
-
-  case SPINDLE_CCW:
-    gpio_set_bit_on(SPINDLE_BIT);
-    gpio_set_bit_on(SPINDLE_DIR);
-    break;
-
-  default:
-    gpio_set_bit_off(SPINDLE_BIT); // failsafe: any error causes stop
-  }
-
-  // PWM spindle control
-  pwm_set_duty(PWM_1, _get_spindle_pwm(mode, speed));
+  _spindle_set_dir(mode == SPINDLE_CW);
+  _spindle_set_pwm(mode, speed);
+  _spindle_set_enable(mode != SPINDLE_OFF && TIMER_PWM.CTRLA);
 }
 
 

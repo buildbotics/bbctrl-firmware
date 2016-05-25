@@ -157,6 +157,12 @@ void motor_init() {
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
 
+    // IO pins
+    m->port->DIRSET = STEP_BIT_bm; // Output
+    m->port->DIRSET = DIRECTION_BIT_bm; // Output
+    m->port->OUTSET = MOTOR_ENABLE_BIT_bm; // High (disabled)
+    m->port->DIRSET = MOTOR_ENABLE_BIT_bm; // Output
+
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
 

@@ -212,17 +212,20 @@ typedef enum {
 
 
 // Spindle settings
-#define SPINDLE_TYPE                  SPINDLE_TYPE_HUANYANG
-#define SPINDLE_PWM_FREQUENCY         100    // in Hz
-#define SPINDLE_CW_SPEED_LO           1000   // in RPM (arbitrary units)
-#define SPINDLE_CW_SPEED_HI           2000
-#define SPINDLE_CW_PHASE_LO           0.125  // phase [0..1]
-#define SPINDLE_CW_PHASE_HI           0.2
-#define SPINDLE_CCW_SPEED_LO          1000
-#define SPINDLE_CCW_SPEED_HI          2000
-#define SPINDLE_CCW_PHASE_LO          0.125
-#define SPINDLE_CCW_PHASE_HI          0.2
-#define SPINDLE_PWM_PHASE_OFF         0.1
+#define SPINDLE_TYPE             SPINDLE_TYPE_PWM
+#define SPINDLE_PWM_FREQUENCY    100    // in Hz
+#define SPINDLE_MIN_RPM          1000
+#define SPINDLE_MAX_RPM          24000
+#define SPINDLE_MIN_DUTY         0.05
+#define SPINDLE_MAX_DUTY         0.99
+#define SPINDLE_POLARITY         0 // 0 = normal, 1 = reverse
+
+#define SPINDLE_PWM_PORT         PORTD
+#define SPINDLE_PWM_PIN_bm       (1 << 5)
+#define SPINDLE_DIR_PORT         PORTB
+#define SPINDLE_DIR_PIN_bm       (1 << 1)
+#define SPINDLE_ENABLE_PORT      PORTB
+#define SPINDLE_ENABLE_PIN_bm    (1 << 6)
 
 
 // Gcode defaults
@@ -257,8 +260,6 @@ typedef enum {
 #define PORT_OUT_Z PORT_MOTOR_3
 #define PORT_OUT_A PORT_MOTOR_4
 
-#define MOTOR_PORT_DIR_gm 0x2f // pin dir settings
-
 // Motor control port
 #define STEP_BIT_bm         (1 << 0)
 #define DIRECTION_BIT_bm    (1 << 1)
@@ -273,8 +274,11 @@ typedef enum {
 #define SPINDLE_BIT         0 // spindle on/off
 #define SPINDLE_DIR         1 // spindle direction, 1=CW, 0=CCW
 #define SPINDLE_PWM         2 // spindle PWMs output bit
-#define MIST_COOLANT_BIT    2 // coolant on/off
-#define FLOOD_COOLANT_BIT   1 // coolant on/off
+
+#define MIST_PORT           PORTE
+#define MIST_PIN_bm         (1 << 5)
+#define FLOOD_PORT          PORTF
+#define FLOOD_PIN_bm        (1 << 5)
 
 /* Interrupt usage:
  *
@@ -294,8 +298,7 @@ typedef enum {
 // Timer assignments - see specific modules for details
 #define TIMER_STEP      TCC0 // Step timer    (see stepper.h)
 #define TIMER_TMC2660   TCC1 // TMC2660 timer (see tmc2660.h)
-#define TIMER_PWM1      TCD1 // PWM timer #1  (see pwm.c)
-#define TIMER_PWM2      TCD1 // PWM timer #2  (see pwm.c)
+#define TIMER_PWM       TCD1 // PWM timer     (see pwm_spindle.c)
 
 #define M1_TIMER        TCE1
 #define M2_TIMER        TCF0

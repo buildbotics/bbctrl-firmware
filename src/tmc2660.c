@@ -305,8 +305,8 @@ void tmc2660_init() {
     PORT_t *port = drivers[driver].port;
 
     port->OUTSET = CHIP_SELECT_BIT_bm;  // High
-    port->OUTSET = MOTOR_ENABLE_BIT_bm; // High (disabled)
-    port->DIR = MOTOR_PORT_DIR_gm;      // Pin directions
+    port->DIRSET = CHIP_SELECT_BIT_bm;  // Output
+    port->DIRCLR = FAULT_BIT_bm;        // Input
 
     port->PIN4CTRL = PORT_ISC_RISING_gc;
     port->INT1MASK = FAULT_BIT_bm;        // INT1

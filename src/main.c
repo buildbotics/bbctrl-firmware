@@ -32,7 +32,6 @@
 #include "stepper.h"
 #include "motor.h"
 #include "switch.h"
-#include "pwm.h"
 #include "usart.h"
 #include "tmc2660.h"
 #include "vars.h"
@@ -132,7 +131,6 @@ static void _init() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  pwm_init();                     // PWM drivers
   planner_init();                 // motion planning
   canonical_machine_init();       // gcode machine
   vars_init();                    // configuration variables

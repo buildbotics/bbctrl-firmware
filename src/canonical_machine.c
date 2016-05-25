@@ -71,7 +71,7 @@
 #include "config.h"
 #include "stepper.h"
 #include "spindle.h"
-#include "gpio.h"
+#include "coolant.h"
 #include "switch.h"
 #include "hardware.h"
 #include "util.h"
@@ -656,6 +656,7 @@ void canonical_machine_init() {
 
   // Sub-system inits
   cm_spindle_init();
+  coolant_init();
 }
 
 
@@ -1019,10 +1020,7 @@ void cm_mist_coolant_control(bool mist_coolant) {
 
 
 static void _exec_mist_coolant_control(float *value, float *flag) {
-  cm.gm.mist_coolant = value[0];
-
-  if (cm.gm.mist_coolant) gpio_set_bit_on(MIST_COOLANT_BIT);
-  else gpio_set_bit_off(MIST_COOLANT_BIT);
+  coolant_set_mist(cm.gm.mist_coolant = value[0]);
 }
 
 
@@ -1036,12 +1034,8 @@ void cm_flood_coolant_control(bool flood_coolant) {
 static void _exec_flood_coolant_control(float *value, float *flag) {
   cm.gm.flood_coolant = value[0];
 
-  if (cm.gm.flood_coolant) gpio_set_bit_on(FLOOD_COOLANT_BIT);
-  else {
-    gpio_set_bit_off(FLOOD_COOLANT_BIT);
-    float vect[] = {}; // turn off mist coolant
-    _exec_mist_coolant_control(vect, vect); // M9 special function
-  }
+  coolant_set_flood(value[0]);
+  if (!value[0]) coolant_set_mist(false); // M9 special function
 }
 
 
