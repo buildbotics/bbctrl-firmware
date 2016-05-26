@@ -7,7 +7,10 @@ module.exports = {
 
 
   data: function () {
-    return {axis: {}}
+    return {
+      active: false,
+      axis: {}
+    }
   },
 
 
@@ -24,13 +27,14 @@ module.exports = {
   },
 
 
-  ready: function () {
-    this.update();
-  },
+  attached: function () {this.active = true; this.update()},
+  detached: function () {this.active = false},
 
 
   methods: {
     update: function () {
+      if (!this.active) return;
+
       Vue.nextTick(function () {
         if (this.config.hasOwnProperty('axes'))
           this.axis = this.config.axes[this.index];

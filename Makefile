@@ -27,6 +27,13 @@ all: html css js static
 copy: all
 	cp -r *.py inevent http/ $(DEST)
 
+mount:
+	mkdir -p $(DEST)
+	sshfs bbmc@bbctrl.local: $(DEST)
+
+umount:
+	fusermount -u $(DEST)
+
 html: templates $(HTML)
 
 css: $(CSS_ASSETS) $(CSS_ASSETS).sha256
@@ -91,4 +98,4 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install html css static templates clean tidy
+.PHONY: all install html css static templates clean tidy copy mount umount

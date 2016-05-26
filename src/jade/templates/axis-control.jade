@@ -1,7 +1,7 @@
 script#axis-control-template(type="text/x-template")
   svg(xmlns="http://www.w3.org/2000/svg",
-    width="200", height="200", transform="scale(0.8, 0.8)",
-    xmlns:xlink="http://www.w3.org/1999/xlink")
+    xmlns:xlink="http://www.w3.org/1999/xlink",
+    width="200", height="200")
     defs
       lineargradient#red
         stop(offset="0", stop-color="#d26969")
@@ -37,7 +37,7 @@ script#axis-control-template(type="text/x-template")
           gradientunits="userSpaceOnUse", x1="10", y1="10", x2="40", y2="40")
 
 
-      filter#shadow-ring(x="-50%" y="-50%" width="200%" height="200%")
+      filter#shadow(x="-50%" y="-50%" width="200%" height="200%")
         feOffset(in="SourceAlpha", dx="3", dy="3")
         feComponentTransfer
           feFuncR(type="discrete", tableValues="0.05")
@@ -46,185 +46,133 @@ script#axis-control-template(type="text/x-template")
         feGaussianBlur(result="shadow", stdDeviation="5")
         feBlend(in="SourceGraphic", in2="shadow", mode="normal")
 
-      filter#shadow(x="-50%" y="-50%" width="200%" height="200%")
-        feOffset(in="SourceAlpha", dx="3", dy="3")
-        feComponentTransfer
-          feFuncR(type="discrete", tableValues="0.3")
-          feFuncG(type="discrete", tableValues="0.3")
-          feFuncB(type="discrete", tableValues="0.3")
-        feGaussianBlur(result="shadow", stdDeviation="3")
-        feBlend(in="SourceGraphic", in2="shadow", mode="normal")
-
-      path#corner-button(d="M47,10 47,0 0,0 0,47 10,47C10,47 26,21 47,10Z",
-        enable-background="accumulate")
-
-      g.house#house
-        path(d="m15,26 0,-6 6,-5 6,5 0,6 -4,0 0,-4a4,8 0 0 0 -4,0l0,0 0,4z")
-        path(d="m27,17 0,-3", fill="none", stroke-width="1.5")
-        path(d="m13,19 8,-7 8,7", fill="none", stroke-width="1.5")
-
-      path#arrow(d="M-16,9 0,9 0,17 17,0 0,-17 0,-9 -16,-9 -16,9Z")
-
       path#pie-1(d="M107,0 83,0 0,83 0,107A107,107 0 0 0 107,0Z")
       path#pie-2(d="M83,0 59,0 0,59 0,83A83,83 0 0 0 83,0Z")
       path#pie-3(d="M59,0 35,0 0,35 0,59A59,59 0 0 0 59,0Z")
       path#pie-4(d="M35,0 0,0 0,35A35,35 0 0 0 35,0Z")
 
-
-    // Home A
-    g.button(@click="home(0)", title="Home {{axes[0]}} axis",
-      filter="url(#shadow)", v-if="enabled[0]")
-      use(xlink:href="#corner-button", fill="url(#{{colors[0]}}-2)",
-        transform="matrix(1 0 0 1 9 9)")
-      text(font-size="14", x="34", y="25") {{axes[0]}}
-      use(xlink:href="#house")
+      path#arrow(d="M-16,9 0,9 0,17 17,0 0,-17 0,-9 -16,-9 -16,9Z")
 
 
-    // Home B
-    g.button(@click="home(1)", title="Home {{axes[1]}} axis",
-      filter="url(#shadow)", v-if="enabled[1]")
-      use(xlink:href="#corner-button", fill="url(#{{colors[1]}}-2)",
-        transform="matrix(-1 0 0 1 241 9)")
-      text(font-size="14", x="205", y="25") {{axes[1]}}
-      use(xlink:href="#house", transform="translate(208 0)")
+    g(transform="scale(0.8, 0.8)")
+      // 100 ring
+      g.ring(fill="#9f9f9f", filter="url(#shadow)")
+        use.button(xlink:href="#pie-1", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @click="jog(0, 100)", title="Jog +100 {{axes[0]}}")
+
+        use.button(xlink:href="#pie-1", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @click="jog(0, -100)", title="Jog -100 {{axes[0]}}")
+
+        g.button(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
+          v-if="enabled[1]")
+          use.button(xlink:href="#pie-1",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="24", transform="rotate(20 125 125)") 100
+          text(x="125", y="24", transform="rotate(-20 125 125)") 100
+          use.button(xlink:href="#pie-1", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-1", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @click="jog(1, -100)", title="Jog -100 {{axes[1]}}")
+
+      // 10 ring
+      g.ring(fill="#c5c5c5", filter="url(#shadow)")
+        use.button(xlink:href="#pie-2", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @click="jog(0, 10)", title="Jog +10 {{axes[0]}}")
+
+        use.button(xlink:href="#pie-2", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @click="jog(0, -10)", title="Jog -10 {{axes[0]}}")
+
+        g.button(@click="jog(1, 10)", title="Jog +10 {{axes[1]}}",
+          v-if="enabled[1]")
+          use.button(xlink:href="#pie-2",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="50") 10
+          use.button(xlink:href="#pie-2", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-2", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @click="jog(1, -10)", title="Jog -10 {{axes[1]}}")
 
 
-    // Zero A
-    g.button(@click="zero(0)", title="Zero {{axes[0]}} axes",
-      filter="url(#shadow)", v-if="enabled[0]")
-      use(xlink:href="#corner-button", fill="url(#{{colors[0]}}-2)",
-        transform="matrix(1 0 0 -1 9 231)")
-      text(font-size="20", x="12", y="227") &empty;
-      text(font-size="14", x="30", y="227") {{axes[0]}}
+      // 1 ring
+      g.ring(fill="#e2e2e2", filter="url(#shadow)")
+        use.button(xlink:href="#pie-3", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @click="jog(0, 1)", title="Jog +1 {{axes[0]}}")
+
+        use.button(xlink:href="#pie-3", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @click="jog(0, -1)", title="Jog -1 {{axes[0]}}")
+
+        g.button(@click="jog(1, 1)", title="Jog +1 {{axes[1]}}",
+          v-if="enabled[1]")
+          use.button(xlink:href="#pie-3",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="75") 1
+          use.button(xlink:href="#pie-3", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-3", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @click="jog(1, -1)", title="Jog -1 {{axes[1]}}")
 
 
-    // Zero B
-    g.button(@click="zero(1)", title="Zero {{axes[1]}} axis",
-      filter="url(#shadow)", v-if="enabled[1]")
-      use(xlink:href="#corner-button", fill="url(#{{colors[1]}}-2)",
-        transform="matrix(-1 0 0 -1 241 231)")
-      text(font-size="14", x="208", y="227") {{axes[1]}}
-      text(font-size="20", x="221", y="227") &empty;
+      // 0.1 ring
+      g.ring(fill="#f7f7f7", filter="url(#shadow)")
+        use.button(xlink:href="#pie-4", v-if="enabled[0]",
+          transform="translate(134 121) rotate(-45)",
+          @click="jog(0, 0.1)", title="Jog +0.1 {{axes[0]}}")
+
+        use.button(xlink:href="#pie-4", v-if="enabled[0]",
+          transform="translate(115 121) rotate(135)",
+          @click="jog(0, -0.1)", title="Jog -0.1 {{axes[0]}}")
+
+        g.button(@click="jog(1, 0.1)", title="Jog +0.1 {{axes[1]}}",
+          v-if="enabled[1]")
+          use.button(xlink:href="#pie-4",
+            transform="translate(124 111) rotate(-135)")
+          text(x="125", y="95") 0.1
+          use.button(xlink:href="#pie-4", fill="transparent",
+            transform="translate(124 111) rotate(-135)")
+
+        use.button(xlink:href="#pie-4", v-if="enabled[1]",
+          transform="translate(124 130) rotate(45)",
+          @click="jog(1, -0.1)", title="Jog -0.1 {{axes[1]}}")
 
 
-    // 100 ring
-    g.ring(fill="#9f9f9f", filter="url(#shadow-ring)")
-      use.button(xlink:href="#pie-1", v-if="enabled[0]",
-        transform="translate(134 121) rotate(-45)",
-        @click="jog(0, 100)", title="Jog +100 {{axes[0]}}")
-
-      use.button(xlink:href="#pie-1", v-if="enabled[0]",
-        transform="translate(115 121) rotate(135)",
-        @click="jog(0, -100)", title="Jog -100 {{axes[0]}}")
-
-      g.button(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
-        v-if="enabled[1]")
-        use.button(xlink:href="#pie-1",
-          transform="translate(124 111) rotate(-135)")
-        text(x="125", y="24", transform="rotate(20 125 125)") 100
-        text(x="125", y="24", transform="rotate(-20 125 125)") 100
-        use.button(xlink:href="#pie-1", fill="transparent",
-          transform="translate(124 111) rotate(-135)")
-
-      use.button(xlink:href="#pie-1", v-if="enabled[1]",
-        transform="translate(124 130) rotate(45)",
-        @click="jog(1, -100)", title="Jog -100 {{axes[1]}}")
-
-    // 10 ring
-    g.ring(fill="#c5c5c5", filter="url(#shadow-ring)")
-      use.button(xlink:href="#pie-2", v-if="enabled[0]",
-        transform="translate(134 121) rotate(-45)",
-        @click="jog(0, 10)", title="Jog +10 {{axes[0]}}")
-
-      use.button(xlink:href="#pie-2", v-if="enabled[0]",
-        transform="translate(115 121) rotate(135)",
-        @click="jog(0, -10)", title="Jog -10 {{axes[0]}}")
-
-      g.button(@click="jog(1, 10)", title="Jog +10 {{axes[1]}}",
-        v-if="enabled[1]")
-        use.button(xlink:href="#pie-2",
-          transform="translate(124 111) rotate(-135)")
-        text(x="125", y="50") 10
-        use.button(xlink:href="#pie-2", fill="transparent",
-          transform="translate(124 111) rotate(-135)")
-
-      use.button(xlink:href="#pie-2", v-if="enabled[1]",
-        transform="translate(124 130) rotate(45)",
-        @click="jog(1, -10)", title="Jog -10 {{axes[1]}}")
+      // +A
+      g.button.arrow(@click="jog(0, 100)", title="Jog +100 {{axes[0]}}",
+        transform="translate(230 120)", v-if="enabled[0]")
+        use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)")
+        text(x="-12", y="5", font-size="14", textLength="21") +{{axes[0]}}
 
 
-    // 1 ring
-    g.ring(fill="#e2e2e2", filter="url(#shadow-ring)")
-      use.button(xlink:href="#pie-3", v-if="enabled[0]",
-        transform="translate(134 121) rotate(-45)",
-        @click="jog(0, 1)", title="Jog +1 {{axes[0]}}")
-
-      use.button(xlink:href="#pie-3", v-if="enabled[0]",
-        transform="translate(115 121) rotate(135)",
-        @click="jog(0, -1)", title="Jog -1 {{axes[0]}}")
-
-      g.button(@click="jog(1, 1)", title="Jog +1 {{axes[1]}}",
-        v-if="enabled[1]")
-        use.button(xlink:href="#pie-3",
-          transform="translate(124 111) rotate(-135)")
-        text(x="125", y="75") 1
-        use.button(xlink:href="#pie-3", fill="transparent",
-          transform="translate(124 111) rotate(-135)")
-
-      use.button(xlink:href="#pie-3", v-if="enabled[1]",
-        transform="translate(124 130) rotate(45)",
-        @click="jog(1, -1)", title="Jog -1 {{axes[1]}}")
+      // -A
+      g.button.arrow(@click="jog(0, -100)", title="Jog -100 {{axes[0]}}",
+        transform="translate(20 120)", v-if="enabled[0]")
+        use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)",
+          transform="rotate(180)")
+        text(x="-8", y="5", font-size="14", textLength="16") -{{axes[0]}}
 
 
-    // 0.1 ring
-    g.ring(fill="#f7f7f7", filter="url(#shadow-ring)")
-      use.button(xlink:href="#pie-4", v-if="enabled[0]",
-        transform="translate(134 121) rotate(-45)",
-        @click="jog(0, 0.1)", title="Jog +0.1 {{axes[0]}}")
-
-      use.button(xlink:href="#pie-4", v-if="enabled[0]",
-        transform="translate(115 121) rotate(135)",
-        @click="jog(0, -0.1)", title="Jog -0.1 {{axes[0]}}")
-
-      g.button(@click="jog(1, 0.1)", title="Jog +0.1 {{axes[1]}}",
-        v-if="enabled[1]")
-        use.button(xlink:href="#pie-4",
-          transform="translate(124 111) rotate(-135)")
-        text(x="125", y="95") 0.1
-        use.button(xlink:href="#pie-4", fill="transparent",
-          transform="translate(124 111) rotate(-135)")
-
-      use.button(xlink:href="#pie-4", v-if="enabled[1]",
-        transform="translate(124 130) rotate(45)",
-        @click="jog(1, -0.1)", title="Jog -0.1 {{axes[1]}}")
+      // +B
+      g.button.arrow(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
+        transform="translate(125, 18)", v-if="enabled[1]")
+        use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
+          transform="rotate(-90)")
+        text(x="-8", y="5", font-size="12", textLength="16") +{{axes[1]}}
 
 
-    // +A
-    g.button.arrow(@click="jog(0, 100)", title="Jog +100 {{axes[0]}}",
-      transform="translate(230 120)", v-if="enabled[0]")
-      use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)")
-      text(x="-12", y="5", font-size="14", textLength="21") +{{axes[0]}}
-
-
-    // -A
-    g.button.arrow(@click="jog(0, -100)", title="Jog -100 {{axes[0]}}",
-      transform="translate(20 120)", v-if="enabled[0]")
-      use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)",
-        transform="rotate(180)")
-      text(x="-8", y="5", font-size="14", textLength="16") -{{axes[0]}}
-
-
-    // +B
-    g.button.arrow(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
-      transform="translate(125, 18)", v-if="enabled[1]")
-      use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
-        transform="rotate(-90)")
-      text(x="-8", y="5", font-size="12", textLength="16") +{{axes[1]}}
-
-
-    // -B
-    g.button.arrow(@click="jog(1, -100)", title="Jog -100 {{axes[1]}}",
-      transform="translate(125, 225)", v-if="enabled[1]")
-      use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
-        transform="rotate(90)")
-      text(x="-7", y="5", font-size="12", textLength="14") -{{axes[1]}}
+      // -B
+      g.button.arrow(@click="jog(1, -100)", title="Jog -100 {{axes[1]}}",
+        transform="translate(125, 225)", v-if="enabled[1]")
+        use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
+          transform="rotate(90)")
+        text(x="-7", y="5", font-size="12", textLength="14") -{{axes[1]}}

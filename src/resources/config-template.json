@@ -170,8 +170,8 @@
   "spindle": {
     "spindle-type": {
       "type": "enum",
-      "values": ["RS485", "PWM"],
-      "default": "RS485",
+      "values": ["PWM", "HUNAYANG"],
+      "default": "PWM",
       "code": "st"
     },
     "spin-polarity": {

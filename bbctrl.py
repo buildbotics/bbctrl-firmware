@@ -220,11 +220,16 @@ class SerialProcess(multiprocessing.Process):
 
             # look for incoming serial data
             if self.sp.inWaiting() > 0:
-                data = self.readSerial()
-                # send it back to tornado
-                self.output_queue.put(data)
                 try:
-                    print(data.decode('utf-8'))
+                    data = self.readSerial()
+                    data = data.decode('utf-8').strip()
+                    if not data: continue
+
+                    # send it back to tornado
+                    self.output_queue.put(data)
+
+                    print(data)
+
                 except Exception as e:
                     print(e, data)
 
@@ -249,10 +254,13 @@ class Connection(SockJSConnection):
 def checkQueue():
     while not output_queue.empty():
         try:
-            msg = json.loads(output_queue.get())
+            data = output_queue.get()
+            msg = json.loads(data)
             state.update(msg)
-            for c in clients: c.send(msg)
-        except: pass
+            if clients: clients[0].broadcast(clients, msg)
+
+        except Exception as e:
+            print('ERROR: {}, data: {}'.format(e, data))
 
 
 handlers = [

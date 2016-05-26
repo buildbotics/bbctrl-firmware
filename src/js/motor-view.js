@@ -8,6 +8,7 @@ module.exports = {
 
   data: function () {
     return {
+      active: false,
       motor: {}
     }
   },
@@ -26,13 +27,14 @@ module.exports = {
   },
 
 
-  ready: function () {
-    this.update();
-  },
+  attached: function () {this.active = true; this.update()},
+  detached: function () {this.active = false},
 
 
   methods: {
     update: function () {
+      if (!this.active) return;
+
       Vue.nextTick(function () {
         if (this.config.hasOwnProperty('motors'))
           this.motor = this.config.motors[this.index];

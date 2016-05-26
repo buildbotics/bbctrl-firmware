@@ -59,16 +59,11 @@ module.exports = {
 
     this.sock.onmessage = function (e) {
       var data = e.data;
-      console.debug(data);
+      console.debug('msg: ' + JSON.stringify(data));
 
-      for (var key in data) {
-        this.$set('state.' + key, data[key]);
-
-        for (var axis of ['x', 'y', 'z', 'a'])
-          if (key == axis + 'pl' &&
-              typeof this.$get('current' + axis) == 'undefined')
-            this.$set('current' + axis, (32 * data[key]).toFixed());
-      }
+      if (typeof data == 'object')
+        for (var key in data)
+          this.$set('state.' + key, data[key]);
     }.bind(this);
 
     this.update();
@@ -171,6 +166,18 @@ module.exports = {
       var data = {};
       data[axis + 'pl'] = x;
       this.send(data);
+    },
+
+
+    override_feed: function () {},
+    override_speed: function () {},
+    step: function () {},
+    stop: function () {},
+    optional_stop: function () {},
+
+
+    home: function () {
+      this.sock.send('$calibrate');
     }
   },
 

@@ -62,8 +62,8 @@ EOF
 fi
 
 # Install pacakges
-apt-get install -y avahi-daemon avrdude minicom python3-pip
-pip-3.2 install tornado sockjs-tornado pyserial
+apt-get install -y avahi-daemon avrdude minicom python3-pip i2c-tools
+pip-3.2 install tornado sockjs-tornado pyserial smbus
 
 # Clean
 apt-get autoclean
@@ -78,6 +78,11 @@ echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 # Disable console on serial port
 #sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
 sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
+
+# Enable I2C
+sed -i 's/#dtparam=i2c/dtparam=i2c/' /boot/config.txt
+echo i2c-bcm2708 >> /etc/modules
+echo i2c-dev >> /etc/modules
 
 # TODO setup input and serial device permissions in udev
 # TODO install bbctrl w/ init.d script
