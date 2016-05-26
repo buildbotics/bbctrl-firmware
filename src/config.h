@@ -40,7 +40,7 @@
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
 #define COORDS                   6 // number of supported coordinate systems
-#define SWITCHES                 8 // number of supported limit switches
+#define SWITCHES                10 // number of supported limit switches
 #define PWMS                     2 // number of supported PWM channels
 
 
@@ -88,29 +88,8 @@ typedef enum {
 #define M4_POWER_MODE            MOTOR_POWER_MODE
 
 
-// Switch settings.  See switch.h
-#define SWITCH_TYPE              SW_TYPE_NORMALLY_OPEN
-#define X_SWITCH_MODE_MIN        SW_MODE_HOMING
-#define X_SWITCH_MODE_MAX        SW_MODE_DISABLED
-#define Y_SWITCH_MODE_MIN        SW_MODE_HOMING
-#define Y_SWITCH_MODE_MAX        SW_MODE_DISABLED
-#define Z_SWITCH_MODE_MIN        SW_MODE_DISABLED
-#define Z_SWITCH_MODE_MAX        SW_MODE_HOMING
-#define A_SWITCH_MODE_MIN        SW_MODE_HOMING
-#define A_SWITCH_MODE_MAX        SW_MODE_DISABLED
-#define B_SWITCH_MODE_MIN        SW_MODE_HOMING
-#define B_SWITCH_MODE_MAX        SW_MODE_DISABLED
-#define C_SWITCH_MODE_MIN        SW_MODE_HOMING
-#define C_SWITCH_MODE_MAX        SW_MODE_DISABLED
-
-// Switch ISRs
-#define X_SWITCH_ISR_vect        PORTA_INT0_vect
-#define Y_SWITCH_ISR_vect        PORTD_INT0_vect
-#define Z_SWITCH_ISR_vect        PORTE_INT0_vect
-#define A_SWITCH_ISR_vect        PORTF_INT0_vect
+// Switch settings.  See switch.c
 #define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
-
-// Timer for debouncing switches
 #define SW_LOCKOUT_TICKS         250 // ms
 #define SW_DEGLITCH_TICKS        30  // ms
 

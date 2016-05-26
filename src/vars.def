@@ -26,8 +26,8 @@
 \******************************************************************************/
 
 #define AXES_LABEL "xyzabcuvw"
-#define MOTORS_LABEL "1234"
-#define SWITCHES_LABEL "12345678"
+#define MOTORS_LABEL "0123"
+#define SWITCHES_LABEL "0123456789"
 
 // VAR(name,        code, type,  index, settable, default, help)
 

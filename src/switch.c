@@ -64,27 +64,26 @@
 #include <stdbool.h>
 
 
-typedef enum { // state machine for managing debouncing and lockout
+typedef enum {
   SW_IDLE,
   SW_DEGLITCHING,
   SW_LOCKOUT
 } swDebounce_t;
 
+
 typedef struct {
-  bool last;
-  bool state;
   swType_t type;
   swMode_t mode;
-  swDebounce_t debounce; // debounce state
-  int8_t count;          // deglitching and lockout counter
   PORT_t *port;
+  uint8_t pin;
   bool min;
+
+  bool state;
+  swDebounce_t debounce;
+  int8_t count;
 } switch_t;
 
-/* Switch control structures
- * Note 1: The term "thrown" is used because switches could be normally-open
- * or normally-closed. "Thrown" means activated.
- */
+
 typedef struct {
   bool limit_thrown;
   switch_t switches[SWITCHES];
@@ -93,62 +92,72 @@ typedef struct {
 
 swSingleton_t sw = {
   .switches = {
-    {
-      .type = SWITCH_TYPE,
-      .mode = X_SWITCH_MODE_MIN,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_X,
+    { //    X min
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_HOMING,
+      .port = &PORTA,
+      .pin  = 6,
+      .min  = true,
+    }, { // X max
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_DISABLED,
+      .port = &PORTA,
+      .pin  = 7,
+      .min  = false,
+    }, { // Y min
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_HOMING,
+      .port = &PORTD,
+      .pin  = 6,
+      .min  = true,
+    }, { // Y max
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_DISABLED,
+      .port = &PORTD,
+      .pin  = 7,
+      .min  = false,
+    }, { // Z min
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_DISABLED,
+      .port = &PORTE,
+      .pin  = 6,
+      .min  = true,
+    }, { // Z max
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_HOMING,
+      .port = &PORTE,
+      .pin  = 7,
+      .min  = false,
+    }, { // A min
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_HOMING,
+      .port = &PORTF,
+      .pin  = 6,
       .min = true,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = X_SWITCH_MODE_MAX,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_X,
-      .min = false,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = Y_SWITCH_MODE_MIN,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_Y,
-      .min = true,
-   }, {
-      .type = SWITCH_TYPE,
-      .mode = Y_SWITCH_MODE_MAX,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_Y,
-      .min = false,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = Z_SWITCH_MODE_MIN,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_Z,
-      .min = true,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = Z_SWITCH_MODE_MAX,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_Z,
-      .min = false,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = A_SWITCH_MODE_MIN,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_A,
-      .min = true,
-    }, {
-      .type = SWITCH_TYPE,
-      .mode = A_SWITCH_MODE_MAX,
-      .debounce = SW_IDLE,
-      .port = &PORT_SWITCH_A,
-      .min = false,
+    }, { // A max
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_MODE_DISABLED,
+      .port = &PORTF,
+      .pin  = 7,
+      .min  = false,
+    }, { // EStop
+      .type = SW_TYPE_NORMALLY_CLOSED,
+      .mode = SW_ESTOP_BIT,
+      .port = &PORTD,
+      .pin  = 5,
+    }, { // Probe
+      .type = SW_TYPE_NORMALLY_OPEN,
+      .mode = SW_PROBE_BIT,
+      .port = &PORTF,
+      .pin  = 1,
     },
   }
 };
 
 
-static bool _read_switch(uint8_t i) {
-  return sw.switches[i].port->IN &
-    (sw.switches[i].min ? SW_MIN_BIT_bm : SW_MAX_BIT_bm);
+static bool _read_state(const switch_t *s) {
+  // A normally open switch drives the pin low when thrown
+  return (s->type == SW_TYPE_NORMALLY_OPEN) ^ (s->port->IN & (1 << s->pin));
 }
 
 
@@ -156,49 +165,51 @@ static void _switch_isr() {
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
 
-    bool set = _read_switch(i);
-    if (set == s->last) continue;
-
-    if (s->mode == SW_MODE_DISABLED) return; // never supposed to happen
-    if (s->debounce == SW_LOCKOUT) return;   // switch is in lockout
+    bool state = _read_state(s);
+    if (state == s->state || s->mode == SW_MODE_DISABLED ||
+        s->debounce == SW_LOCKOUT) continue;
 
     // either transitions state from IDLE or overwrites it
     s->debounce = SW_DEGLITCHING;
     // reset deglitch count regardless of entry state
     s->count = -SW_DEGLITCH_TICKS;
-
-    // A NO switch drives the pin LO when thrown
-    s->state = (s->type == SW_TYPE_NORMALLY_OPEN) ^ set;
+    s->state = state;
   }
 }
 
 
 // Switch interrupt handler vectors
-ISR(X_SWITCH_ISR_vect) {_switch_isr();}
-ISR(Y_SWITCH_ISR_vect) {_switch_isr();}
-ISR(Z_SWITCH_ISR_vect) {_switch_isr();}
-ISR(A_SWITCH_ISR_vect) {_switch_isr();}
+ISR(PORTA_INT0_vect) {_switch_isr();}
+ISR(PORTD_INT0_vect) {_switch_isr();}
+ISR(PORTE_INT0_vect) {_switch_isr();}
+ISR(PORTF_INT0_vect) {_switch_isr();}
+
+
+void _switch_enable(switch_t *s, bool enable) {
+  if (enable) {
+    s->port->INT0MASK |= 1 << s->pin;    // Enable INT0
+
+    // Pull up and trigger on both edges
+    (&s->port->PIN0CTRL)[s->pin] = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
+
+    // Initialize state
+    s->state = _read_state(s);
+
+  } else {
+    s->port->INT0MASK &= ~(1 << s->pin); // Disable INT0
+    (&s->port->PIN0CTRL)[s->pin] = 0;
+  }
+}
 
 
 void switch_init() {
-  return; // TODO
-
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
-    PORT_t *port = s->port;
-    uint8_t bm = s->min ? SW_MIN_BIT_bm : SW_MAX_BIT_bm;
 
-    if (s->mode == SW_MODE_DISABLED) continue;
+    s->port->DIRCLR = 1 << s->pin;     // Input
+    s->port->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
 
-    port->DIRCLR = bm;              // See 13.14.14
-    port->INT0MASK |= bm;           // Enable INT0
-    port->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
-
-    if (s->min) port->PIN6CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
-    else port->PIN7CTRL = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
-
-    // Initialize state
-    s->state = (s->type == SW_TYPE_NORMALLY_OPEN) ^ _read_switch(i);
+    _switch_enable(s, s->mode != SW_MODE_DISABLED);
   }
 }
 
@@ -215,9 +226,8 @@ void switch_rtc_callback() {
     if (++s->count == SW_LOCKOUT_TICKS) {
       s->debounce = SW_IDLE;
 
-      // check if the state has changed while we were in lockout...
-      bool old_state = s->state;
-      if (old_state != _read_switch(i)) {
+      // check if the state has changed while we were in lockout
+      if (s->state != _read_state(s)) {
         s->debounce = SW_DEGLITCHING;
         s->count = -SW_DEGLITCH_TICKS;
       }
@@ -225,22 +235,20 @@ void switch_rtc_callback() {
       continue;
     }
 
-    if (!s->count) { // trigger point
+    if (!s->count) { // switch triggered
       s->debounce = SW_LOCKOUT;
 
-      // regardless of switch type
       if (cm.cycle_state == CYCLE_HOMING || cm.cycle_state == CYCLE_PROBE)
         cm_request_feedhold();
 
-      // should be a limit switch, so fire it.
-      else if (s->mode & SW_LIMIT_BIT)
+      else if (s->mode & SW_LIMIT_BIT || s->mode & SW_ESTOP_BIT)
         sw.limit_thrown = true; // triggers an emergency shutdown
     }
   }
 }
 
 
-bool switch_get_closed(int index) {
+bool switch_get_active(int index) {
   return sw.switches[index].state;
 }
 
@@ -261,7 +269,12 @@ swMode_t switch_get_mode(int index) {
 
 
 void switch_set_mode(int index, swMode_t mode) {
-  sw.switches[index].mode = mode;
+  switch_t *s = &sw.switches[index];
+
+  if (s->mode != mode) {
+    s->mode = mode;
+    _switch_enable(s, s->mode != SW_MODE_DISABLED);
+  }
 }
 
 
@@ -270,6 +283,7 @@ bool switch_get_limit_thrown() {
 }
 
 
+// Var callbacks
 uint8_t get_switch_type(int index) {
   return sw.switches[index].type;
 }

@@ -196,7 +196,7 @@ static uint8_t _probing_init() {
 
 static stat_t _probing_start() {
   // initial probe state, don't probe if we're already contacted!
-  bool closed = switch_get_closed(pb.probe_switch);
+  bool closed = switch_get_active(pb.probe_switch);
 
   if (!closed) ritorno(cm_straight_feed(pb.target, pb.flags));
 
@@ -205,7 +205,7 @@ static stat_t _probing_start() {
 
 
 static stat_t _probing_finish() {
-  bool closed = switch_get_closed(pb.probe_switch);
+  bool closed = switch_get_active(pb.probe_switch);
   cm.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
 
   for (uint8_t axis = 0; axis < AXES; axis++) {

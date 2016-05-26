@@ -3,8 +3,7 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                           All rights reserved.
+                            All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
      and/or modify it under the terms of the GNU General Public License,
@@ -28,49 +27,9 @@
 
 #pragma once
 
-
-#include "config.h"
-
-#include <stdint.h>
 #include <stdbool.h>
 
-// macros for finding the index into the switch table give the axis number
-#define MIN_SWITCH(axis) (axis * 2)
-#define MAX_SWITCH(axis) (axis * 2 + 1)
 
-/// switch modes
-typedef enum {
-  SW_MODE_DISABLED = 0,
-  SW_HOMING_BIT    = 1 << 0,
-  SW_LIMIT_BIT     = 1 << 1,
-  SW_ESTOP_BIT     = 1 << 2,
-  SW_PROBE_BIT     = 1 << 4,
-} swMode_t;
-
-#define SW_MODE_HOMING        SW_HOMING_BIT   // enable switch for homing only
-#define SW_MODE_LIMIT         SW_LIMIT_BIT    // enable switch for limits only
-#define SW_MODE_HOMING_LIMIT  (SW_HOMING_BIT | SW_LIMIT_BIT) // homing & limits
-
-typedef enum {
-  SW_TYPE_NORMALLY_OPEN,
-  SW_TYPE_NORMALLY_CLOSED
-} swType_t;
-
-/// indices into switch arrays
-typedef enum {
-  SW_MIN_X, SW_MAX_X,
-  SW_MIN_Y, SW_MAX_Y,
-  SW_MIN_Z, SW_MAX_Z,
-  SW_MIN_A, SW_MAX_A,
-  SW_ESTOP, SW_PROBE
-} swNums_t;
-
-
-void switch_init();
-void switch_rtc_callback();
-bool switch_get_active(int index);
-swType_t switch_get_type(int index);
-void switch_set_type(int index, swType_t type);
-swMode_t switch_get_mode(int index);
-void switch_set_mode(int index, swMode_t mode);
-bool switch_get_limit_thrown();
+void coolant_init();
+void coolant_set_mist(bool x);
+void coolant_set_flood(bool x);
