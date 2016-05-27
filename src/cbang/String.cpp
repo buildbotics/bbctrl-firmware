@@ -789,6 +789,12 @@ string String::join(const vector<string> &s, const string &delim) {
 }
 
 
+string String::ellipsis(const string &s, unsigned width) {
+  if (s.length() <= width) return s;
+  return s.substr(0, width - 3) + "...";
+}
+
+
 size_t String::find(const string &s, const string &pattern,
                     vector<string> *groups) {
   using namespace boost;

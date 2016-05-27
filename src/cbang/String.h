@@ -157,6 +157,7 @@ namespace cb {
     static std::string unescapeC(const std::string &s);
     static std::string join(const std::vector<std::string> &s,
                             const std::string &delim = " ");
+    static std::string ellipsis(const std::string &s, unsigned width = 80);
 
     /// Regular expression find
     static std::size_t find(const std::string &s, const std::string &pattern,
