@@ -171,15 +171,14 @@ def configure(conf, cstd = 'c99'):
         elif env['CC'] == 'gcc' or env['CC'] == 'icc': compiler_mode = 'gnu'
         else: compiler_mode = 'unknown'
 
-    env.__setitem__('compiler', compiler)
-    env.__setitem__('compiler_mode', compiler_mode)
-
     if compiler == 'default':
         cc = env['CC']
         if cc == 'cl': compiler = 'msvc'
         elif cc == 'gcc': compiler = 'gnu'
         elif cc == 'icl' or cc == 'icc': compiler = 'intel'
 
+    env.__setitem__('compiler', compiler)
+    env.__setitem__('compiler_mode', compiler_mode)
 
     print "  Compiler: " + env['CC'] + ' (%s)' % compiler
     print "  Platform: " + env['PLATFORM']
