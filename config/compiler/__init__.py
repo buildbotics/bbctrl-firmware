@@ -536,6 +536,7 @@ def generate(env):
         EnumVariable('win32_thread', 'Windows thread mode.', 'static',
                      allowed_values = ('static', 'dynamic')),
         BoolVariable('cross_mingw', 'Enable mingw cross compile mode', 0)
+        BoolVariable('cross_osx', 'Enable OSX cross compile mode', 0)
         )
 
 
