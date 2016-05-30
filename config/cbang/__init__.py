@@ -50,7 +50,8 @@ def configure_deps(conf, local = True, with_openssl = True):
         ConfigBoost(conf, True)
 
     # clock_gettime() needed by boost iterprocess
-    if env['PLATFORM'] == 'posix' and not conf.CBCheckFunc('clock_gettime'):
+    if env['PLATFORM'] == 'posix' and not int(env.get('cross_osx', 0)) \
+            and not conf.CBCheckFunc('clock_gettime'):
         conf.CBRequireLib('rt')
         conf.CBRequireFunc('clock_gettime')
 
