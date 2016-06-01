@@ -415,9 +415,22 @@ def configure(conf, cstd = 'c99'):
                 pass
 
     if int(env.get('cross_osx', 0)):
-        env.Replace(FRAMEWORKS = [])
-        env.Replace(FRAMEWORK_PATH = [])
-        env.Append(LINKFLAGS = ['${_FRAMEWORK_PATH} ${_FRAMEWORKS}'])
+        env['FRAMEWORKPATHPREFIX'] = '-F'
+        env['_FRAMEWORKPATH'] = \
+            '${_concat(FRAMEWORKPATHPREFIX, FRAMEWORKPATH, "", __env__)}'
+        env['_FRAMEWORKS'] = \
+            '${_concat("-framework ", FRAMEWORKS, "", __env__)}'
+        env['LINKCOM'] = env['LINKCOM'] + \
+            ' $_FRAMEWORKPATH $_FRAMEWORKS $FRAMEWORKSFLAGS'
+        env['SHLINKFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -dynamiclib')
+        env['SHLINKCOM'] = env['SHLINKCOM'] + \
+            ' $_FRAMEWORKPATH $_FRAMEWORKS $FRAMEWORKSFLAGS'
+        env['LDMODULEPREFIX'] = ''
+        env['LDMODULESUFFIX'] = ''
+        env['LDMODULEFLAGS'] = SCons.Util.CLVar('$LINKFLAGS -bundle')
+        env['LDMODULECOM'] = '$LDMODULE -o ${TARGET} $LDMODULEFLAGS ' + \
+            '$SOURCES $_LIBDIRFLAGS $_LIBFLAGS $_FRAMEWORKPATH ' + \
+            '$_FRAMEWORKS $FRAMEWORKSFLAGS'
 
 
 def get_lib_path_env(env):
@@ -547,4 +560,3 @@ def generate(env):
 
 def exists():
     return 1
-
