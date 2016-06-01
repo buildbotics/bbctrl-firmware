@@ -12,7 +12,7 @@ def configure(conf):
             env.ParseConfig('freetype-config --cflags')
         except OSError: pass
 
-    if env['PLATFORM'] == 'darwin':
+    if env['PLATFORM'] == 'darwin' or int(env.get('cross_osx', 0)):
         if not conf.CheckOSXFramework('CoreServices'):
             raise Exception, 'Need CoreServices framework'
 

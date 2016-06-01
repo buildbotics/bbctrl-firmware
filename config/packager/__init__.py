@@ -46,7 +46,7 @@ def write_single_var(stream, name, value, callback = None):
     if callback is not None: value = callback(value)
 
     stream.write('%s: %s\n' % (name, value))
-    
+
 
 def WriteVariable(self, env, stream, name, var, default = None, callback = None,
                   multi = False):
@@ -64,7 +64,7 @@ def WriteVariable(self, env, stream, name, var, default = None, callback = None,
 def _GetPackageType(env):
     if env['PLATFORM'] == 'win32': return 'exe'
 
-    elif env['PLATFORM'] == 'darwin':
+    elif env['PLATFORM'] == 'darwin' or int(env.get('cross_osx', 0)):
         pkg_type = env.get('pkg_type', None)
         if pkg_type is None or pkg_type in ('single', 'app'): return 'pkg'
         elif pkg_type == 'dist': return 'mpkg'
@@ -288,7 +288,8 @@ def generate(env):
             ('package_arch', 'Clean package architecture'),
             )
 
-    if env['PLATFORM'] == 'darwin': env.CBAddVariables(
+    if env['PLATFORM'] == 'darwin' or int(env.get('cross_osx', 0)):
+        env.CBAddVariables(
             # put sign_* in scons-options.py
             # if not sign_keychain, the default (login) keychain will be used
             # if not sign_id_installer, productsign will be skipped

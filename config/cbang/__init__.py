@@ -66,7 +66,7 @@ def configure_deps(conf, local = True, with_openssl = True):
     else: conf.CBConfig('pthreads')
 
     # OSX frameworks
-    if env['PLATFORM'] == 'darwin':
+    if env['PLATFORM'] == 'darwin' or int(env.get('cross_osx', 0)):
         if not (conf.CheckOSXFramework('CoreServices') and
                 conf.CheckOSXFramework('IOKit') and
                 conf.CheckOSXFramework('CoreFoundation')):

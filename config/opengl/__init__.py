@@ -6,7 +6,7 @@ def configure(conf):
 
     conf.CBCheckHome('GL')
 
-    if env['PLATFORM'] == 'darwin':
+    if env['PLATFORM'] == 'darwin' or int(env.get('cross_osx', 0)):
         if not (conf.CheckOSXFramework('OpenGL') and
                 conf.CheckCHeader('OpenGL/gl.h')):
             raise Exception, 'Need OpenGL'
