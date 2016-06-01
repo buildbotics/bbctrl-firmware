@@ -338,7 +338,6 @@ def configure(conf, cstd = 'c99'):
     if cxxstd:
         if compiler_mode == 'gnu':
             env.AppendUnique(CXXFLAGS = ['-std=' + cxxstd])
-            env.AppendUnique(LINKFLAGS = ['-std=' + cxxstd])
 
 
     # Threads
