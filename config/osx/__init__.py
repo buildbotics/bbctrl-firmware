@@ -5,7 +5,7 @@ from SCons.Script import *
 def CheckOSXFramework(ctx, name):
     env = ctx.env
 
-    if (platform.system().lower() == 'darwin') or int(env.get('cross_osx', 0)):
+    if platform.system().lower() == 'darwin' or int(env.get('cross_osx', 0)):
         ctx.Message('Checking for framework %s... ' % name)
         save_FRAMEWORKS = env['FRAMEWORKS']
         env.PrependUnique(FRAMEWORKS = [name])

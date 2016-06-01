@@ -414,6 +414,9 @@ def configure(conf, cstd = 'c99'):
                 #env.Append(LINKFLAGS = ['-Wl,-isyslibroot,' + osx_sdk_root])
                 pass
 
+    if int(env.get('cross_osx', 0)):
+        env.Append(LINKFLAGS = ['$FRAMEWORKS'])
+
 
 def get_lib_path_env(env):
     eenv = copy.copy(os.environ)
