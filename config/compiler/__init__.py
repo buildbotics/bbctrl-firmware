@@ -312,7 +312,7 @@ def configure(conf, cstd = 'c99'):
 
             if compiler_mode == 'msvc': env.PrependUnique(LIBS = ['libiomp5mt'])
             else: env.PrependUnique(LIBS = ['iomp5'])
-            
+
 
     # Pointer disambiguation
     if compiler == 'intel':

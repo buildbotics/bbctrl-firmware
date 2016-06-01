@@ -3,16 +3,18 @@ from SCons.Script import *
 
 
 def CheckOSXFramework(ctx, name):
+    env = ctx.env
+
     if (platform.system().lower() == 'darwin') or int(env.get('cross_osx', 0)):
         ctx.Message('Checking for framework %s... ' % name)
-        save_FRAMEWORKS = ctx.env['FRAMEWORKS']
-        ctx.env.PrependUnique(FRAMEWORKS = [name])
+        save_FRAMEWORKS = env['FRAMEWORKS']
+        env.PrependUnique(FRAMEWORKS = [name])
         result = \
             ctx.TryLink('int main(int argc, char **argv) {return 0;}', '.c')
         ctx.Result(result)
 
         if not result:
-            ctx.env.Replace(FRAMEWORKS = save_FRAMEWORKS)
+            env.Replace(FRAMEWORKS = save_FRAMEWORKS)
 
         return result
 
@@ -32,4 +34,3 @@ def generate(env):
 
 def exists():
     return 1
-
