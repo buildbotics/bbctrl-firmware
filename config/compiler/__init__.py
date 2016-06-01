@@ -415,7 +415,7 @@ def configure(conf, cstd = 'c99'):
                 pass
 
     if int(env.get('cross_osx', 0)):
-        env.Append(LINKFLAGS = ['$FRAMEWORKS'])
+        env.Append(LINKFLAGS = ['${_FRAMEWORK_PATH} ${_FRAMEWORKS}'])
 
 
 def get_lib_path_env(env):
