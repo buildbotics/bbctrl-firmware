@@ -73,9 +73,6 @@ def configure_deps(conf, local = True, with_openssl = True):
             raise Exception, \
                 'Need CoreServices, IOKit & CoreFoundation frameworks'
 
-    if int(env.get('cross_osx', 0)):
-        env.AppendUnique(LIBS = ['System'])
-
     conf.CBConfig('valgrind', False)
 
     # Debug
