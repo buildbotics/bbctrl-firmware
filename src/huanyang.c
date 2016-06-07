@@ -28,6 +28,7 @@
 #include "huanyang.h"
 #include "config.h"
 #include "rtc.h"
+#include "report.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -267,7 +268,9 @@ static bool _update(int index) {
     return true;
   }
 
-  default: return false;
+  default:
+    report_request();
+    return false;
   }
 
   _set_command3(HUANYANG_FUNC_READ, var, 0, 0);
@@ -297,7 +300,9 @@ static bool _query_status(int index) {
   case 3: var = HUANYANG_DC_VOLTAGE; break;
   case 4: var = HUANYANG_AC_VOLTAGE; break;
   case 5: var = HUANYANG_TEMPERATURE; break;
-  default: return false;
+  default:
+    report_request();
+    return false;
   }
 
   _set_command1(HUANYANG_CTRL_READ, var);
@@ -555,22 +560,22 @@ float get_huanyang_current(int index) {
 }
 
 
-float get_huanyang_rpm(int index) {
+uint16_t get_huanyang_rpm(int index) {
   return ha.actual_rpm;
 }
 
 
-float get_huanyang_dcv(int index) {
+uint16_t get_huanyang_dcv(int index) {
   return ha.dc_voltage;
 }
 
 
-float get_huanyang_acv(int index) {
+uint16_t get_huanyang_acv(int index) {
   return ha.ac_voltage;
 }
 
 
-float get_huanyang_temp(int index) {
+uint16_t get_huanyang_temp(int index) {
   return ha.temperature;
 }
 

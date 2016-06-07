@@ -191,7 +191,7 @@ typedef enum {
 
 
 // Spindle settings
-#define SPINDLE_TYPE             SPINDLE_TYPE_PWM
+#define SPINDLE_TYPE             SPINDLE_TYPE_HUANYANG
 #define SPINDLE_PWM_FREQUENCY    100    // in Hz
 #define SPINDLE_MIN_RPM          1000
 #define SPINDLE_MAX_RPM          24000
