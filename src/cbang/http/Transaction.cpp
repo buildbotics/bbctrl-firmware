@@ -163,6 +163,12 @@ string Transaction::getString(const URI &uri,
 }
 
 
+void Transaction::open() {
+  Socket::open();
+  setTimeout(timeout);
+}
+
+
 void Transaction::connect(const IPAddress &ip) {
   address = ip;
   if (!address.getPort()) address.setPort(80);
