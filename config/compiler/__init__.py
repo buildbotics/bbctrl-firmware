@@ -507,10 +507,21 @@ def prefer_static_libs(env):
                 '-Wl,--start-group ' + env['_LIBFLAGS'] + ' -Wl,--end-group'
 
 
+def CBConfConsole(env):
+    if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
+        if env.get('compiler_mode') == 'gnu':
+            env.Append(LINKFLAGS = ['-Wl,-subsystem,windows'])
+
+        elif env.get('compiler_mode') == 'msvc':
+            env.Append(LINKFLAGS =
+                       ['/subsystem:windows', '/entry:mainCRTStartup'])
+
+
 def generate(env):
     env.CBAddConfigTest('compiler', configure)
     env.CBAddTest(CheckRDynamic)
     env.CBAddConfigFinishCB(prefer_static_libs)
+    env.AddMethod(CBConfConsole)
 
     env.SetDefault(PREFER_DYNAMIC = 'pthread dl'.split())
     env.SetDefault(PREFER_STATIC = [])
