@@ -68,7 +68,8 @@ def build_function(target, source, env):
     # Finish command
     finish_cmd = env.get('app_finish_cmd', None)
     if finish_cmd:
-        if isinstance(finish_cmd, str): finish_cmd = shlex.split(finish_cmd)
+        if isinstance(finish_cmd, basestring):
+            finish_cmd = shlex.split(finish_cmd)
         env.RunCommand(finish_cmd + [app_dir])
 
     # Zip results
@@ -86,4 +87,3 @@ def generate(env):
 
 def exists():
     return 1
-

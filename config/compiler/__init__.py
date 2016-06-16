@@ -465,7 +465,7 @@ def FindLibPath(env, lib):
 
 def build_pattern(env, name):
     pats = env.get(name)
-    if isinstance(pats, str): pats = pats.split()
+    if isinstance(pats, basestring): pats = pats.split()
     pats += env[name.upper()]
 
     return env.CBBuildSetRegex(pats)

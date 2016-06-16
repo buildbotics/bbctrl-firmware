@@ -37,7 +37,7 @@ def CBCheckEnvPath(ctx, name):
 def CBCheckPathWithSuffix(ctx, base, suffixes):
     ctx.did_show_result = 1
     if suffixes is None: return []
-    if isinstance(suffixes, str): suffixes = [suffixes]
+    if isinstance(suffixes, basestring): suffixes = [suffixes]
     existing = []
     for suffix in suffixes:
         if os.path.isdir(base + suffix): existing.append(base + suffix)
@@ -203,7 +203,7 @@ def CBTryLoadTool(env, name, path):
 def CBLoadTool(env, name, paths = []):
     if name in env.cb_loaded: return True
 
-    if isinstance(paths, str): paths = paths.split()
+    if isinstance(paths, basestring): paths = paths.split()
     else: paths = list(paths)
     paths += env.cb_paths
 
@@ -231,12 +231,12 @@ def CBLoadTool(env, name, paths = []):
 
 
 def CBLoadTools(env, tools, paths = []):
-    if isinstance(tools, str): tools = tools.split()
+    if isinstance(tools, basestring): tools = tools.split()
     for name in tools: env.CBLoadTool(name, paths)
 
 
 def CBDefine(env, defs):
-    if isinstance(defs, str): defs = [defs]
+    if isinstance(defs, basestring): defs = [defs]
     env.AppendUnique(CPPDEFINES = defs)
 
 
@@ -342,7 +342,7 @@ def CBAddConfigFinishCB(env, cb):
 
 
 def CBBuildSetRegex(env, pats):
-    if isinstance(pats, str): pats = pats.split()
+    if isinstance(pats, basestring): pats = pats.split()
     return re.compile('^(' + ')|('.join(pats) + ')$')
 
 
