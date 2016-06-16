@@ -57,7 +57,7 @@ Environment::Environment(ostream &out) : out(out) {
   // Setup global object template
   set("require(path)", this, &Environment::require);
   set("print(...)", this, &Environment::print);
-  set("alert(msg)", this, &Environment::alert);
+  set("alert(...)", this, &Environment::alert);
   set("console", consoleMod);
 }
 
@@ -131,16 +131,6 @@ string Environment::searchPath(const string &path) const {
   }
 
   return "";
-}
-
-
-const SmartPointer<AlertCallback> &Environment::getAlertCallback() const {
-  return alertCB;
-}
-
-
-void Environment::setAlertCallback(const SmartPointer<AlertCallback> &alertCB) {
-  this->alertCB = alertCB;
 }
 
 
@@ -259,21 +249,10 @@ Value Environment::require(const Arguments &args) {
 
 
 void Environment::print(const Arguments &args) {
-  Value JSON = Context::current().getGlobal().get("JSON");
-  Value stringify = JSON.get("stringify");
-
-  for (unsigned i = 0; i < args.getCount(); i++)
-    if (args[i].isObject())
-      out << stringify.call(JSON, args[i]);
-    else out << args[i];
-
-  out << flush;
+  args.write(out, "") << flush;
 }
 
 
 void Environment::alert(const Arguments &args) {
-  string msg = args.getString("msg");
-
-  if (alertCB.isNull()) out << "(ALERT: " << msg << ')' << endl;
-  else (*alertCB)(msg);
+  out << "(ALERT, " << args << ")" << endl;
 }

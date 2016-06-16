@@ -33,6 +33,7 @@
 #include "Arguments.h"
 
 #include "Signature.h"
+#include "Context.h"
 
 #include <cbang/log/Logger.h>
 
@@ -163,12 +164,24 @@ string Arguments::getString(unsigned index) const {
 
 
 string Arguments::toString() const {
-  string s = "(";
+  ostringstream str;
+  str << "(" << *this << ")";
+  return str.str();
+}
+
+
+ostream &Arguments::write(ostream &stream, const string &separator) const {
+  Value JSON = Context::current().getGlobal().get("JSON");
+  Value stringify = JSON.get("stringify");
 
   for (unsigned i = 0; i < getCount(); i++) {
-    if (i) s += ", ";
-    s += getString(i);
+    Value value = get(i);
+
+    if (i) stream << separator;
+
+    if (value.isObject()) stream << stringify.call(JSON, value);
+    else stream << value;
   }
 
-  return s + ")";
+  return stream;
 }

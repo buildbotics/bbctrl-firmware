@@ -48,29 +48,21 @@ ConsoleModule::ConsoleModule() {
 }
 
 
-void ConsoleModule::dumpArgs(ostream &stream, const Arguments &args) const {
-  for (unsigned i = 0; i < args.getCount(); i++) {
-    stream << args[i];
-    if (i) stream << ' ';
-  }
-}
-
-
 void ConsoleModule::log(const Arguments &args) {
-  dumpArgs(*CBANG_LOG_INFO_STREAM(1), args);
+  args.write(*CBANG_LOG_INFO_STREAM(1), " ");
 }
 
 
 void ConsoleModule::debug(const Arguments &args) {
-  dumpArgs(*CBANG_LOG_DEBUG_STREAM(1), args);
+  args.write(*CBANG_LOG_DEBUG_STREAM(1), " ");
 }
 
 
 void ConsoleModule::warn(const Arguments &args) {
-  dumpArgs(*CBANG_LOG_WARNING_STREAM(), args);
+  args.write(*CBANG_LOG_WARNING_STREAM(), " ");
 }
 
 
 void ConsoleModule::error(const Arguments &args) {
-  dumpArgs(*CBANG_LOG_ERROR_STREAM(), args);
+  args.write(*CBANG_LOG_ERROR_STREAM(), " ");
 }

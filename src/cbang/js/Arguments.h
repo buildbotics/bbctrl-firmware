@@ -76,10 +76,18 @@ namespace cb {
       std::string getString(unsigned index) const;
 
       std::string toString() const;
+      std::ostream &write(std::ostream &stream,
+                          const std::string &separator = " ") const;
 
       Value operator[](const std::string &name) const {return get(name);}
       Value operator[](unsigned i) const {return get(i);}
-   };
+    };
+
+
+    static inline
+    std::ostream &operator<<(std::ostream &stream, const Arguments &args) {
+      return args.write(stream);
+    }
   }
 }
 

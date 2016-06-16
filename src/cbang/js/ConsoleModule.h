@@ -35,16 +35,12 @@
 
 #include "Module.h"
 
-#include <ostream>
-
 
 namespace cb {
   namespace js {
     class ConsoleModule : public Module {
     public:
       ConsoleModule();
-
-      void dumpArgs(std::ostream &stream, const Arguments &args) const;
 
       virtual void log(const Arguments &args);
       virtual void debug(const Arguments &args);
