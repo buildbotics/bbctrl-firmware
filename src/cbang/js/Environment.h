@@ -37,6 +37,7 @@
 #include "Context.h"
 #include "ObjectTemplate.h"
 #include "ConsoleModule.h"
+#include "AlertCallback.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/io/InputSource.h>
@@ -64,6 +65,8 @@ namespace cb {
       std::vector<std::string> searchExts;
       std::vector<std::string> searchPaths;
 
+      cb::SmartPointer<AlertCallback> alertCB;
+
       std::ostream &out;
 
     public:
@@ -85,6 +88,9 @@ namespace cb {
       void clearSearchPaths() {searchPaths.clear();}
       std::string searchPath(const std::string &path) const;
 
+      const cb::SmartPointer<AlertCallback> &getAlertCallback() const;
+      void setAlertCallback(const cb::SmartPointer<AlertCallback> &alertCB);
+
       virtual void addModule(const std::string &name, const Value &exports);
       virtual void addModule(const std::string &name, Module &module);
 
@@ -96,6 +102,7 @@ namespace cb {
 
       virtual Value require(const Arguments &args);
       virtual void print(const Arguments &args);
+      virtual void alert(const Arguments &args);
     };
   }
 }

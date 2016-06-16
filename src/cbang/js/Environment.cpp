@@ -57,6 +57,7 @@ Environment::Environment(ostream &out) : out(out) {
   // Setup global object template
   set("require(path)", this, &Environment::require);
   set("print(...)", this, &Environment::print);
+  set("alert(msg)", this, &Environment::alert);
   set("console", consoleMod);
 }
 
@@ -130,6 +131,16 @@ string Environment::searchPath(const string &path) const {
   }
 
   return "";
+}
+
+
+const SmartPointer<AlertCallback> &Environment::getAlertCallback() const {
+  return alertCB;
+}
+
+
+void Environment::setAlertCallback(const SmartPointer<AlertCallback> &alertCB) {
+  this->alertCB = alertCB;
 }
 
 
@@ -257,4 +268,12 @@ void Environment::print(const Arguments &args) {
     else out << args[i];
 
   out << flush;
+}
+
+
+void Environment::alert(const Arguments &args) {
+  string msg = args.getString("msg");
+
+  if (alertCB.isNull()) out << "(ALERT: " << msg << ')' << endl;
+  else (*alertCB)(msg);
 }
