@@ -500,7 +500,7 @@ void huanyang_reset() {
 
 
 void huanyang_rtc_callback() {
-  if (ha.last && HUANYANG_TIMEOUT < rtc_get_time() - ha.last) {
+  if (ha.last && rtc_expired(ha.last + HUANYANG_TIMEOUT)) {
     if (ha.retry < HUANYANG_RETRIES) _retry_command();
     else {
       if (ha.debug) printf_P(PSTR("huanyang: timedout\n"));

@@ -82,7 +82,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
   const float time = MIN_SEGMENT_TIME; // In minutes
   const float maxDeltaV = JOG_ACCELERATION * time;
 
-  if (cal.wait <= rtc_get_time())
+  if (rtc_expired(cal.wait))
     switch (cal.state) {
     case CAL_START: {
       cal.axis = motor_get_axis(cal.motor);

@@ -30,8 +30,11 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define RTC_MILLISECONDS 10 // interrupt on every 10 RTC ticks (~10 ms)
 
 void rtc_init(); // initialize and start general timer
 uint32_t rtc_get_time();
+int32_t rtc_diff(uint32_t t);
+bool rtc_expired(uint32_t t);

@@ -285,7 +285,7 @@ stat_t motor_power_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
     // Deenergize motor if disabled, in error or after timeout when not holding
     if (motors[motor].power_mode == MOTOR_DISABLED || motor_error(motor) ||
-        motors[motor].timeout < rtc_get_time())
+        rtc_expired(motors[motor].timeout))
       _deenergize(motor);
 
   return STAT_OK;

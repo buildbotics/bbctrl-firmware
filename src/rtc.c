@@ -67,3 +67,8 @@ void rtc_init() {
 
 
 uint32_t rtc_get_time() {return ticks;}
+
+
+bool rtc_expired(uint32_t t) {
+  return 0 <= (int32_t)(ticks - t);
+}
