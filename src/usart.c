@@ -30,7 +30,6 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/sleep.h>
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -44,25 +43,45 @@
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
 #include "ringbuf.def"
 
+#define RING_BUF_NAME echo_buf
+#define RING_BUF_SIZE USART_ECHO_RING_BUF_SIZE
+#include "ringbuf.def"
+
 static int usart_flags = USART_CRLF | USART_ECHO;
 
 
-static void set_dre_interrupt(int enable) {
+static void _set_dre_interrupt(bool enable) {
   if (enable) USARTC0.CTRLA |= USART_DREINTLVL_HI_gc;
   else USARTC0.CTRLA &= ~USART_DREINTLVL_HI_gc;
 }
 
 
-static void set_rxc_interrupt(int enable) {
+static void _set_rxc_interrupt(bool enable) {
   if (enable) USARTC0.CTRLA |= USART_RXCINTLVL_HI_gc;
   else USARTC0.CTRLA &= ~USART_RXCINTLVL_HI_gc;
 }
 
 
+static void _echo_char(char c) {
+  if (echo_buf_full()) return;
+
+  echo_buf_push(c);
+  _set_dre_interrupt(true); // Enable interrupt
+
+  if ((usart_flags & USART_CRLF) && c == '\n') _echo_char('\r');
+}
+
+
 // Data register empty interrupt vector
 ISR(USARTC0_DRE_vect) {
-  if (tx_buf_empty()) set_dre_interrupt(0); // Disable interrupt
-  else {
+  if (tx_buf_empty() && echo_buf_empty())
+    _set_dre_interrupt(false); // Disable interrupt
+
+  else if (!echo_buf_empty()) {
+    USARTC0.DATA = echo_buf_peek();
+    echo_buf_pop();
+
+  } else {
     USARTC0.DATA = tx_buf_peek();
     tx_buf_pop();
   }
@@ -71,26 +90,22 @@ ISR(USARTC0_DRE_vect) {
 
 // Data received interrupt vector
 ISR(USARTC0_RXC_vect) {
-  if (rx_buf_full()) set_rxc_interrupt(0); // Disable interrupt
+  if (rx_buf_full()) _set_rxc_interrupt(false); // Disable interrupt
 
   else {
     uint8_t data = USARTC0.DATA;
     rx_buf_push(data);
-
-    if ((usart_flags & USART_ECHO) && !tx_buf_full()) {
-      set_dre_interrupt(1); // Enable interrupt
-      usart_putc(data);
-    }
+    if (usart_flags & USART_ECHO) _echo_char(data);
   }
 }
 
 
-static int usart_putchar(char c, FILE *f) {
+static int _usart_putchar(char c, FILE *f) {
   usart_putc(c);
   return 0;
 }
 
-static FILE _stdout = FDEV_SETUP_STREAM(usart_putchar, 0, _FDEV_SETUP_WRITE);
+static FILE _stdout = FDEV_SETUP_STREAM(_usart_putchar, 0, _FDEV_SETUP_WRITE);
 
 
 void usart_init(void) {
@@ -124,7 +139,7 @@ void usart_init(void) {
 }
 
 
-static void set_baud(uint16_t bsel, uint8_t bscale) {
+static void _set_baud(uint16_t bsel, uint8_t bscale) {
   USARTC0.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
   USARTC0.BAUDCTRLA = bsel;
 }
@@ -136,16 +151,16 @@ void usart_set_baud(int baud) {
   // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
 
   switch (baud) {
-  case USART_BAUD_9600:    set_baud(3325, 0b1101); break;
-  case USART_BAUD_19200:   set_baud(3317, 0b1100); break;
-  case USART_BAUD_38400:   set_baud(3301, 0b1011); break;
-  case USART_BAUD_57600:   set_baud(1095, 0b1100); break;
-  case USART_BAUD_115200:  set_baud(1079, 0b1011); break;
-  case USART_BAUD_230400:  set_baud(1047, 0b1010); break;
-  case USART_BAUD_460800:  set_baud(983,  0b1001); break;
-  case USART_BAUD_921600:  set_baud(107,  0b1011); break;
-  case USART_BAUD_500000:  set_baud(1,    0b0010); break;
-  case USART_BAUD_1000000: set_baud(1,    0b0001); break;
+  case USART_BAUD_9600:    _set_baud(3325, 0b1101); break;
+  case USART_BAUD_19200:   _set_baud(3317, 0b1100); break;
+  case USART_BAUD_38400:   _set_baud(3301, 0b1011); break;
+  case USART_BAUD_57600:   _set_baud(1095, 0b1100); break;
+  case USART_BAUD_115200:  _set_baud(1079, 0b1011); break;
+  case USART_BAUD_230400:  _set_baud(1047, 0b1010); break;
+  case USART_BAUD_460800:  _set_baud(983,  0b1001); break;
+  case USART_BAUD_921600:  _set_baud(107,  0b1011); break;
+  case USART_BAUD_500000:  _set_baud(1,    0b0010); break;
+  case USART_BAUD_1000000: _set_baud(1,    0b0001); break;
   }
 }
 
@@ -161,20 +176,12 @@ bool usart_is_set(int flags) {
 }
 
 
-static void usart_sleep() {
-  cli();
-  SLEEP.CTRL = SLEEP_SMODE_IDLE_gc | SLEEP_SEN_bm;
-  sei();
-  sleep_cpu();
-}
-
-
 void usart_putc(char c) {
-  while (tx_buf_full() || (usart_flags & USART_FLUSH)) usart_sleep();
+  while (tx_buf_full() || (usart_flags & USART_FLUSH)) continue;
 
   tx_buf_push(c);
 
-  set_dre_interrupt(1); // Enable interrupt
+  _set_dre_interrupt(true); // Enable interrupt
 
   if ((usart_flags & USART_CRLF) && c == '\n') usart_putc('\r');
 }
@@ -186,12 +193,12 @@ void usart_puts(const char *s) {
 
 
 int8_t usart_getc() {
-  while (rx_buf_empty()) usart_sleep();
+  while (rx_buf_empty()) continue;
 
   uint8_t data = rx_buf_peek();
   rx_buf_pop();
 
-  set_rxc_interrupt(1); // Enable interrupt
+  _set_rxc_interrupt(true); // Enable interrupt
 
   return data;
 }
@@ -241,7 +248,7 @@ void usart_flush() {
 
   while (!tx_buf_empty() || !(USARTC0.STATUS & USART_DREIF_bm) ||
          !(USARTC0.STATUS & USART_TXCIF_bm))
-    usart_sleep();
+    continue;
 }
 
 
