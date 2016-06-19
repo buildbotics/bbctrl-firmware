@@ -240,7 +240,7 @@ stat_t mp_aline(MoveState_t *ms) {
 
   // Get a cleared buffer and setup move variables
   mpBuf_t *bf = mp_get_write_buffer(); // current move pointer
-  if (!bf) return cm_hard_alarm(STAT_BUFFER_FULL_FATAL); // never fails
+  if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 
   // Register callback to exec function
   bf->bf_func = mp_exec_aline;

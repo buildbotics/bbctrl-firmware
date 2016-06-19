@@ -456,6 +456,7 @@ cmSpindleMode_t cm_get_spindle_mode();
 bool cm_get_runtime_busy();
 float cm_get_feed_rate();
 
+void cm_set_machine_state(cmMachineState_t machine_state);
 void cm_set_motion_state(cmMotionState_t motion_state);
 void cm_set_motion_mode(cmMotionMode_t motion_mode);
 void cm_set_spindle_mode(cmSpindleMode_t spindle_mode);
@@ -486,11 +487,11 @@ stat_t cm_test_soft_limits(float target[]);
 
 // Initialization and termination (4.3.2)
 void canonical_machine_init();
-/// enter hard alarm state. returns same status code
-stat_t cm_hard_alarm(stat_t status);
-/// enter soft alarm state. returns same status code
-stat_t cm_soft_alarm(stat_t status);
+/// enter alarm state. returns same status code
+stat_t cm_alarm(const char *location, stat_t status);
 stat_t cm_clear();
+
+#define CM_ALARM(CODE) cm_alarm(STATUS_LOCATION, CODE)
 
 // Representation (4.3.3)
 void cm_set_plane(cmCanonicalPlane_t plane);

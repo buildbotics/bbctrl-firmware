@@ -33,6 +33,7 @@
 #include "report.h"
 #include "stepper.h"
 #include "tmc2660.h"
+#include "estop.h"
 
 #include "plan/planner.h"
 #include "plan/calibrate.h"
@@ -193,8 +194,12 @@ void motor_init() {
 }
 
 
-void motor_shutdown(int motor) {
-  motors[motor].port->OUTSET = MOTOR_ENABLE_BIT_bm; // Disable
+void motor_enable(int motor, bool enable) {
+  if (enable) motors[motor].port->OUTCLR = MOTOR_ENABLE_BIT_bm;
+  else {
+    motors[motor].port->OUTSET = MOTOR_ENABLE_BIT_bm;
+    motors[motor].power_state = MOTOR_IDLE;
+  }
 }
 
 
@@ -234,6 +239,7 @@ bool motor_stalled(int motor) {
 
 void motor_reset(int motor) {
   motors[motor].flags = 0;
+  tmc2660_reset(motor);
 }
 
 
@@ -284,12 +290,15 @@ void motor_driver_callback(int motor) {
 stat_t motor_power_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
     // Deenergize motor if disabled, in error or after timeout when not holding
-    if (motors[motor].power_mode == MOTOR_DISABLED || motor_error(motor) ||
+    if (motors[motor].power_mode == MOTOR_DISABLED || estop_triggered() ||
         rtc_expired(motors[motor].timeout))
       _deenergize(motor);
 
   return STAT_OK;
 }
+
+
+void print_status_flags(uint8_t flags);
 
 
 void motor_error_callback(int motor, cmMotorFlags_t errors) {
@@ -299,11 +308,9 @@ void motor_error_callback(int motor, cmMotorFlags_t errors) {
   report_request();
 
   if (motor_error(motor)) {
-    _deenergize(motor);
-
-    // Stop and flush motion
-    cm_request_feedhold();
-    cm_request_queue_flush();
+    printf_P(PSTR("\nmotor %d flags="), motor);
+    print_status_flags(motors[motor].flags);
+    CM_ALARM(STAT_MOTOR_ERROR);
   }
 }
 

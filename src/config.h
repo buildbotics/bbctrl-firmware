@@ -73,16 +73,16 @@ typedef enum {
 #define M2_POLARITY              MOTOR_POLARITY_NORMAL
 #define M2_POWER_MODE            MOTOR_POWER_MODE
 
-#define M3_MOTOR_MAP             AXIS_A
+#define M3_MOTOR_MAP             AXIS_Z
 #define M3_STEP_ANGLE            1.8
-#define M3_TRAVEL_PER_REV        360 // degrees per motor rev
+#define M3_TRAVEL_PER_REV        (25.4 / 6.0)
 #define M3_MICROSTEPS            MOTOR_MICROSTEPS
 #define M3_POLARITY              MOTOR_POLARITY_NORMAL
 #define M3_POWER_MODE            MOTOR_POWER_MODE
 
-#define M4_MOTOR_MAP             AXIS_Z
+#define M4_MOTOR_MAP             AXIS_A
 #define M4_STEP_ANGLE            1.8
-#define M4_TRAVEL_PER_REV        (25.4 / 6.0)
+#define M4_TRAVEL_PER_REV        360 // degrees per motor rev
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
 #define M4_POLARITY              MOTOR_POLARITY_NORMAL
 #define M4_POWER_MODE            MOTOR_POWER_MODE
@@ -270,8 +270,7 @@ typedef enum {
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
  *        called from a LO interrupt (as in prep_line()) will kill the system
- *        in a permanent sleep_mode() call in usart_putc() (usart.c) as no
- *        interrupt can release the sleep mode.
+ *        in a permanent loop call in usart_putc() (usart.c).
  */
 
 // Timer assignments - see specific modules for details

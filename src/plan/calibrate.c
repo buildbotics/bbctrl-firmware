@@ -168,7 +168,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
 
   mpBuf_t *bf = mp_get_write_buffer();
   if (!bf) {
-    cm_hard_alarm(STAT_BUFFER_FULL_FATAL);
+    CM_ALARM(STAT_BUFFER_FULL_FATAL);
     return 0;
   }
 

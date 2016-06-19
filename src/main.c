@@ -38,6 +38,7 @@
 #include "rtc.h"
 #include "report.h"
 #include "command.h"
+#include "estop.h"
 
 #include "plan/planner.h"
 #include "plan/buffer.h"
@@ -50,14 +51,6 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-
-
-static stat_t _shutdown_idler() {
-  // TODO send some notification out the serial port
-
-  // EAGAIN prevents any lower-priority actions from running
-  return cm_get_machine_state() == MACHINE_SHUTDOWN ? STAT_EAGAIN : STAT_OK;
-}
 
 
 /// Return eagain if TX queue is backed up
@@ -78,7 +71,20 @@ static stat_t _limit_switch_handler() {
   if (cm_get_machine_state() == MACHINE_ALARM) return STAT_NOOP;
   if (!switch_get_limit_thrown()) return STAT_NOOP;
 
-  return cm_hard_alarm(STAT_LIMIT_SWITCH_HIT);
+  return CM_ALARM(STAT_LIMIT_SWITCH_HIT);
+}
+
+
+static bool _dispatch(stat_t (*func)()) {
+  stat_t err = func();
+
+  switch (err) {
+  case STAT_EAGAIN: return true;
+  case STAT_OK: case STAT_NOOP: break;
+  default: printf_P(PSTR("%S\n"), status_to_pgmstr(err));
+  }
+
+  return false;
 }
 
 
@@ -99,26 +105,25 @@ static stat_t _limit_switch_handler() {
  *
  * A routine that had no action (i.e. is OFF or idle) should return STAT_NOOP
  */
-void _run() {
-#define DISPATCH(func) if (func == STAT_EAGAIN) return;
+static void _run() {
+#define DISPATCH(func) if (_dispatch(func)) return;
 
-  DISPATCH(hw_reset_handler());                // handle hard reset requests
-  DISPATCH(_shutdown_idler());                 // idle in shutdown state
-  DISPATCH(_limit_switch_handler());           // limit switch thrown
+  DISPATCH(hw_reset_handler);                // handle hard reset requests
+  DISPATCH(_limit_switch_handler);           // limit switch thrown
 
-  DISPATCH(tmc2660_sync());                    // synchronize driver config
-  DISPATCH(motor_power_callback());            // stepper motor power sequencing
+  DISPATCH(tmc2660_sync);                    // synchronize driver config
+  DISPATCH(motor_power_callback);            // stepper motor power sequencing
 
-  DISPATCH(cm_feedhold_sequencing_callback()); // feedhold state machine
-  DISPATCH(mp_plan_hold_callback());           // plan a feedhold
-  DISPATCH(cm_arc_callback());                 // arc generation runs
-  DISPATCH(cm_homing_callback());              // G28.2 continuation
-  DISPATCH(cm_probe_callback());               // G38.2 continuation
+  DISPATCH(cm_feedhold_sequencing_callback); // feedhold state machine
+  DISPATCH(mp_plan_hold_callback);           // plan a feedhold
+  DISPATCH(cm_arc_callback);                 // arc generation runs
+  DISPATCH(cm_homing_callback);              // G28.2 continuation
+  DISPATCH(cm_probe_callback);               // G38.2 continuation
 
-  DISPATCH(_sync_to_planner());                // ensure a free planning buffer
-  DISPATCH(_sync_to_tx_buffer());              // sync with TX buffer
-  DISPATCH(report_callback());                 // report changes
-  DISPATCH(command_dispatch());                // read and execute next command
+  DISPATCH(_sync_to_planner);                // ensure a free planning buffer
+  DISPATCH(_sync_to_tx_buffer);              // sync with TX buffer
+  DISPATCH(report_callback);                 // report changes
+  DISPATCH(command_dispatch);                // read and execute next command
 }
 
 
@@ -134,6 +139,7 @@ static void _init() {
   planner_init();                 // motion planning
   canonical_machine_init();       // gcode machine
   vars_init();                    // configuration variables
+  estop_init();                   // emergency stop handler
 
   sei(); // enable interrupts
 

@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2012 - 2015 Rob Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -27,40 +25,68 @@
 
 \******************************************************************************/
 
-#include "dwell.h"
-
-#include "buffer.h"
-#include "canonical_machine.h"
+#include "estop.h"
+#include "motor.h"
 #include "stepper.h"
+#include "spindle.h"
+#include "config.h"
+
+#include "plan/planner.h"
 
 
-// Dwells are performed by passing a dwell move to the stepper drivers.
+typedef struct {
+  bool triggered;
+} estop_t;
 
 
-/// Dwell execution
-static stat_t _exec_dwell(mpBuf_t *bf) {
-  st_prep_dwell(bf->ms.move_time); // in seconds
+static estop_t estop = {0};
 
-  // free buffer & perform cycle_end if planner is empty
-  if (mp_free_run_buffer()) cm_cycle_end();
 
-  return STAT_OK;
+void estop_init() {
 }
 
 
-/// Queue a dwell
-stat_t mp_dwell(float seconds) {
-  mpBuf_t *bf = mp_get_write_buffer();
+bool estop_triggered() {
+  return estop.triggered;
+}
 
-  // never supposed to fail
-  if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL);
 
-  bf->bf_func = _exec_dwell;  // register callback to dwell start
-  bf->ms.move_time = seconds; // in seconds, not minutes
-  bf->move_state = MOVE_NEW;
+void estop_trigger() {
+  estop.triggered = true;
 
-  // must be final operation before exit
-  mp_commit_write_buffer(MOVE_TYPE_DWELL);
+  // Hard stop the motors and the spindle
+  st_shutdown();
+  cm_spindle_control(SPINDLE_OFF);
 
-  return STAT_OK;
+  // Stop and flush motion
+  cm_request_feedhold();
+  cm_request_queue_flush();
+
+  // Set alarm state
+  cm_set_machine_state(MACHINE_ALARM);
+}
+
+
+void estop_clear() {
+  estop.triggered = false;
+
+  // Clear motor errors
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_reset(motor);
+
+  // Clear alarm state
+  cm_set_machine_state(MACHINE_READY);
+}
+
+
+bool get_estop() {
+  return estop.triggered;
+}
+
+
+void set_estop(bool value) {
+  if (estop.triggered != value) {
+    if (value) estop_trigger();
+    else estop_clear();
+  }
 }

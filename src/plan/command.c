@@ -63,7 +63,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
   mpBuf_t *bf = mp_get_write_buffer();
 
   if (!bf) {
-    cm_hard_alarm(STAT_BUFFER_FULL_FATAL);
+    CM_ALARM(STAT_BUFFER_FULL_FATAL);
     return; // Shouldn't happen, buffer availability was checked upstream.
   }
 

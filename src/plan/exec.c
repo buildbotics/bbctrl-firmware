@@ -33,6 +33,7 @@
 #include "motor.h"
 #include "util.h"
 #include "report.h"
+#include "estop.h"
 #include "config.h"
 
 #include <string.h>
@@ -762,7 +763,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   else if (mr.section == SECTION_BODY) status = _exec_aline_body();
   else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
   else if (mr.move_state == MOVE_SKIP_BLOCK) status = STAT_OK;
-  else return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
+  else return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
 
   // Feedhold processing. Refer to canonical_machine.h for state machine
   // Catch the feedhold request and start the planning the hold
@@ -801,6 +802,7 @@ stat_t mp_exec_move() {
   mpBuf_t *bf = mp_get_run_buffer();
 
   if (!bf) return STAT_NOOP; // nothing's running
+  if (estop_triggered()) return STAT_MACHINE_ALARMED;
 
   // Manage cycle and motion state transitions
   // Cycle auto-start for lines only
@@ -808,7 +810,7 @@ stat_t mp_exec_move() {
     cm_set_motion_state(MOTION_RUN);
 
   if (!bf->bf_func)
-    return cm_hard_alarm(STAT_INTERNAL_ERROR); // never supposed to get here
+    return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
 
   return bf->bf_func(bf); // run the move callback on the planner buffer
 }

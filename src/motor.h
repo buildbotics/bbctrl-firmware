@@ -39,7 +39,7 @@ typedef enum {
   MOTOR_FLAG_OVERTEMP_WARN_bm = 1 << 2,
   MOTOR_FLAG_OVERTEMP_bm      = 1 << 3,
   MOTOR_FLAG_SHORTED_bm       = 1 << 4,
-  MOTOR_FLAG_ERROR_bm         = (MOTOR_FLAG_STALLED_bm |
+  MOTOR_FLAG_ERROR_bm         = (//MOTOR_FLAG_STALLED_bm | TODO revisit this
                                  MOTOR_FLAG_OVERTEMP_WARN_bm |
                                  MOTOR_FLAG_OVERTEMP_bm |
                                  MOTOR_FLAG_SHORTED_bm)
@@ -63,7 +63,7 @@ typedef enum {
 
 
 void motor_init();
-void motor_shutdown(int motor);
+void motor_enable(int motor, bool enable);
 
 int motor_get_axis(int motor);
 float motor_get_steps_per_unit(int motor);

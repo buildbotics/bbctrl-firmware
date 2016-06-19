@@ -27,13 +27,15 @@
 
 #pragma once
 
+#include <avr/pgmspace.h>
+
 
 // ritorno is a handy way to provide exception returns
 // It returns only if an error occurred. (ritorno is Italian for return)
 #define ritorno(a) if ((status_code = a) != STAT_OK) {return status_code;}
 
 typedef enum {
-// OS, communications and low-level status
+  // OS, communications and low-level status
   STAT_OK,                        // function completed OK
   STAT_EAGAIN,                    // function would block (call again)
   STAT_NOOP,                      // function had no-operation
@@ -42,12 +44,13 @@ typedef enum {
   STAT_BUFFER_FULL,
   STAT_BUFFER_FULL_FATAL,
   STAT_EEPROM_DATA_INVALID,
+  STAT_MOTOR_ERROR,
   STAT_INTERNAL_ERROR,            // unrecoverable internal error
 
   STAT_PREP_LINE_MOVE_TIME_IS_INFINITE,
   STAT_PREP_LINE_MOVE_TIME_IS_NAN,
 
-// Generic data input errors
+  // Generic data input errors
   STAT_UNRECOGNIZED_NAME,
   STAT_INVALID_OR_MALFORMED_COMMAND,
   STAT_BAD_NUMBER_FORMAT,
@@ -59,8 +62,8 @@ typedef enum {
   STAT_INPUT_EXCEEDS_MAX_VALUE,
   STAT_INPUT_VALUE_RANGE_ERROR,
 
-// Gcode errors and warnings (Most originate from NIST - by concept, not number)
-// Fascinating: http://www.cncalarms.com/
+  // Gcode errors & warnings (Most originate from NIST)
+  // Fascinating: http://www.cncalarms.com/
   STAT_GCODE_COMMAND_UNSUPPORTED,
   STAT_MCODE_COMMAND_UNSUPPORTED,
   STAT_GCODE_AXIS_IS_MISSING,
@@ -70,7 +73,7 @@ typedef enum {
   STAT_ARC_RADIUS_OUT_OF_TOLERANCE,
   STAT_ARC_ENDPOINT_IS_STARTING_POINT,
 
-// Errors and warnings
+  // Errors and warnings
   STAT_MINIMUM_LENGTH_MOVE,         // move is less than minimum length
   STAT_MINIMUM_TIME_MOVE,           // move is less than minimum time
   STAT_MACHINE_ALARMED,             // machine is alarmed
@@ -93,4 +96,11 @@ typedef enum {
 
 extern stat_t status_code;
 
-void print_status_message(const char *msg, stat_t status);
+const char *status_to_pgmstr(stat_t status);
+void status_error_P(const char *location, const char *msg, stat_t status);
+
+#define TO_STRING(x) _TO_STRING(x)
+#define _TO_STRING(x) #x
+
+#define STATUS_LOCATION PSTR(__FILE__ ":" TO_STRING(__LINE__))
+#define STATUS_ERROR(MSG, CODE) status_error_P(STATUS_LOCATION, PSTR(MSG), CODE)

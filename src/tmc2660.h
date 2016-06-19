@@ -99,7 +99,7 @@ void tmc2660_set_stallguard_threshold(int driver, int8_t threshold);
   (((uint32_t)(MIN / 32) & 0xf) |                                       \
    (((uint32_t)(MAX / 32 - MIN / 32 - 1) & 0xf) << 8))
 
-#define TMC2660_SGCSCONF            3
+#define TMC2660_SGCSCONF            4
 #define TMC2660_SGCSCONF_ADDR       (6UL << 17)
 #define TMC2660_SGCSCONF_SFILT      (1UL << 16)
 #define TMC2660_SGCSCONF_THRESH_bm  0x7f00
@@ -107,7 +107,7 @@ void tmc2660_set_stallguard_threshold(int driver, int8_t threshold);
 #define TMC2660_SGCSCONF_CS(x)      (((int32_t)x & 0x1f) << 0)
 #define TMC2660_SGCSCONF_CS_NONE    (31UL << 0)
 
-#define TMC2660_DRVCONF             4
+#define TMC2660_DRVCONF             3
 #define TMC2660_DRVCONF_ADDR        (7UL << 17)
 #define TMC2660_DRVCONF_TST         (1UL << 16)
 #define TMC2660_DRVCONF_SLPH_MIN    (0UL << 14)

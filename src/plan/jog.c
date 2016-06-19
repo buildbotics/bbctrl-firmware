@@ -135,7 +135,7 @@ uint8_t command_jog(int argc, char *argv[]) {
     // Should always be at least one free buffer
     mpBuf_t *bf = mp_get_write_buffer();
     if (!bf) {
-      cm_hard_alarm(STAT_BUFFER_FULL_FATAL);
+      CM_ALARM(STAT_BUFFER_FULL_FATAL);
       return 0;
     }
 

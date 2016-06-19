@@ -27,7 +27,6 @@
 
 #include "status.h"
 
-#include <avr/pgmspace.h>
 #include <stdio.h>
 
 stat_t status_code; // allocate a variable for the ritorno macro
@@ -43,7 +42,13 @@ static const char *const stat_msg[] PROGMEM = {
 };
 
 
+const char *status_to_pgmstr(stat_t status) {
+  return pgm_read_ptr(&stat_msg[status]);
+}
+
+
 /// Return the status message
-void print_status_message(const char *msg, stat_t status) {
-  printf_P("%S: %S (%d)\n", pgm_read_word(&stat_msg[status]));
+void status_error_P(const char *location, const char *msg, stat_t status) {
+  printf_P(PSTR("\nERROR: %S: %S: %S (%d)\n"),
+           msg, location, status_to_pgmstr(status), status);
 }

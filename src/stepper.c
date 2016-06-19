@@ -71,7 +71,7 @@ void stepper_init() {
 
 void st_shutdown() {
   for (int motor = 0; motor < MOTORS; motor++)
-    motor_shutdown(motor);
+    motor_enable(motor, false);
 }
 
 
@@ -165,10 +165,10 @@ ISR(STEP_TIMER_ISR) {
  */
 stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready) return cm_hard_alarm(STAT_INTERNAL_ERROR);
+  if (st.move_ready) return CM_ALARM(STAT_INTERNAL_ERROR);
   if (isinf(seg_time))
-    return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  if (isnan(seg_time)) return cm_hard_alarm(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
+    return CM_ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
+  if (isnan(seg_time)) return CM_ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
   if (seg_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
 
   // Setup segment parameters
@@ -188,7 +188,7 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 
 /// Stage command to execution
 void st_prep_command(mpBuf_t *bf) {
-  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
+  if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_COMMAND;
   st.bf = bf;
   st.move_ready = true; // signal prep buffer ready
@@ -197,7 +197,7 @@ void st_prep_command(mpBuf_t *bf) {
 
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  if (st.move_ready) cm_hard_alarm(STAT_INTERNAL_ERROR);
+  if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_DWELL;
   st.seg_period = STEP_TIMER_FREQ * 0.001; // 1 ms
   st.prep_dwell = seconds * 1000; // convert to ms

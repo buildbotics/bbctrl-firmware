@@ -32,6 +32,7 @@
 #include "hardware.h"
 #include "report.h"
 #include "vars.h"
+#include "estop.h"
 #include "plan/jog.h"
 #include "plan/calibrate.h"
 #include "config.h"
@@ -170,6 +171,7 @@ int command_eval(char *cmd) {
   case '{': return vars_parser(cmd);
   case '$': return command_parser(cmd);
   default:
+    if (estop_triggered()) return STAT_MACHINE_ALARMED;
     if (calibrate_busy()) return STAT_OK;
     if (mp_jog_busy()) return STAT_OK;
     return gc_gcode_parser(cmd);

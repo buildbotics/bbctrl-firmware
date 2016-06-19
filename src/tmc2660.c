@@ -48,8 +48,8 @@
 typedef struct {
   bool wrote_data;
   bool configured;
-  bool monitor;
-  uint8_t reg;
+  bool reset;
+  uint32_t next_cmd;
   uint32_t stabilizing;
 
   uint16_t sguard;
@@ -68,8 +68,8 @@ static const uint32_t reg_addrs[] = {
   TMC2660_DRVCTRL_ADDR,
   TMC2660_CHOPCONF_ADDR,
   TMC2660_SMARTEN_ADDR,
-  TMC2660_SGCSCONF_ADDR,
   TMC2660_DRVCONF_ADDR,
+  TMC2660_SGCSCONF_ADDR,
 };
 
 
@@ -93,10 +93,15 @@ static spi_t spi = {};
 
 
 
+static bool _driver_stabilized(tmc2660_driver_t *drv) {
+  return !drv->stabilizing || rtc_expired(drv->stabilizing);
+}
+
+
 static void _report_error_flags(int driver) {
   tmc2660_driver_t *drv = &drivers[driver];
 
-  if (drv->stabilizing < rtc_get_time()) return;
+  if (!_driver_stabilized(drv)) return;
 
   uint8_t dflags = drv->flags;
   uint8_t mflags = 0;
@@ -147,22 +152,20 @@ static void _driver_write(int driver) {
   tmc2660_driver_t *drv = &drivers[driver];
 
   _spi_cs(spi.driver, true);  // Select driver
-
-  if (drv->monitor) spi.out = TMC2660_DRVCTRL_ADDR | drv->regs[TMC2660_DRVCTRL];
-  else spi.out = reg_addrs[drv->reg] | drv->regs[drv->reg];
-
+  spi.out = drv->next_cmd;
   drv->wrote_data = true;
   _spi_send(); // Start transfer
 }
 
 
+// Returns true if the current driver has more data to send
 static bool _driver_read(int driver) {
   tmc2660_driver_t *drv = &drivers[driver];
 
   _spi_cs(spi.driver, false); // Deselect driver
 
   // Read response
-  bool read_data = drv->wrote_data;
+  bool read_response = drv->wrote_data;
   if (drv->wrote_data) {
     drv->wrote_data = false;
 
@@ -170,7 +173,7 @@ static bool _driver_read(int driver) {
     drv->sguard = (spi.in >> 14) & 0x3ff;
     drv->flags = spi.in >> 4;
 
-    calibrate_set_stallguard(driver, drv->sguard);
+    //calibrate_set_stallguard(driver, drv->sguard);
 
     // Write driver 0 stallguard to DAC
     //if (driver == 0 && (DACB.STATUS & DAC_CH0DRE_bm))
@@ -179,32 +182,38 @@ static bool _driver_read(int driver) {
     _report_error_flags(driver);
   }
 
-  // Check if regs have changed
-  for (int i = 0; i < REGS; i++)
+  // Handle reset
+  if (drv->reset) {
+    drv->reset = false;
+    for (int i = 0; i < REGS; i++) drv->last_regs[i] = -1;
+  }
+
+  // Check if regs have changed (skipping DRVCTRL)
+  for (int i = 1; i < REGS; i++)
     if (drv->last_regs[i] != drv->regs[i]) {
       // Reg changed, update driver
-      drv->monitor = false;
-      drv->last_regs[drv->reg] = drv->regs[drv->reg];
+      drv->last_regs[i] = drv->regs[i];
+      drv->next_cmd = reg_addrs[i] | drv->regs[i];
       drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
       drv->configured = false;
+
       return true;
+    }
 
-    } else if (++drv->reg == REGS) drv->reg = 0;
-
-  if (!drv->configured && drv->stabilizing < rtc_get_time()) {
+  // Update motor
+  if (!drv->configured && _driver_stabilized(drv)) {
     motor_driver_callback(driver);
     drv->configured = true;
 
     // Enable motor when first fully configured
-    drv->port->OUTCLR = MOTOR_ENABLE_BIT_bm;
+    motor_enable(driver, true);
   }
 
-  if (!drv->monitor || !read_data) {
-    drv->monitor = true;
-    return true;
-  }
+  // Switch back to monitoring
+  drv->next_cmd = TMC2660_DRVCTRL_ADDR | drv->regs[TMC2660_DRVCTRL];
 
-  return false;
+  // Write command now if we didn't read a response above
+  return !read_response;
 }
 
 
@@ -233,7 +242,7 @@ ISR(TCC1_OVF_vect) {
 
 
 void _fault_isr(int motor) {
-  if (drivers[motor].stabilizing < rtc_get_time())
+  if (_driver_stabilized(&drivers[motor]))
     motor_error_callback(motor, MOTOR_FLAG_STALLED_bm);
 }
 
@@ -334,10 +343,12 @@ void tmc2660_init() {
 
 
 static void _set_reg(int motor, int reg, uint32_t value) {
-  if (drivers[motor].regs[reg] == value) return;
+  tmc2660_driver_t *drv = &drivers[motor];
 
-  drivers[motor].regs[reg] = value;
-  drivers[motor].configured = false;
+  if (drv->regs[reg] == value) return;
+
+  drv->regs[reg] = value;
+  drv->configured = false;
 }
 
 
@@ -365,6 +376,11 @@ uint8_t tmc2660_flags(int motor) {
 }
 
 
+void tmc2660_reset(int driver) {
+  drivers[driver].reset = true;
+}
+
+
 bool tmc2660_ready(int motor) {
   return drivers[motor].configured;
 }
@@ -379,11 +395,14 @@ stat_t tmc2660_sync() {
 
 
 void tmc2660_enable(int driver) {
+  printf("Enable %d\n", driver);
+  tmc2660_reset(driver);
   _set_current(driver, drivers[driver].drive_current);
 }
 
 
 void tmc2660_disable(int driver) {
+  printf("Disable %d\n", driver);
   _set_current(driver, drivers[driver].idle_current);
 }
 

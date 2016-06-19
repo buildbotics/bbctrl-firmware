@@ -203,6 +203,8 @@ void _switch_enable(switch_t *s, bool enable) {
 
 
 void switch_init() {
+  return; // TODO
+
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
 

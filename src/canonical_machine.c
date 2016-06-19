@@ -76,6 +76,7 @@
 #include "hardware.h"
 #include "util.h"
 #include "usart.h"            // for serial queue flush
+#include "estop.h"
 
 #include "plan/planner.h"
 #include "plan/buffer.h"
@@ -247,7 +248,11 @@ bool cm_get_runtime_busy() {return mp_get_runtime_busy();}
 float cm_get_feed_rate() {return cm.gm.feed_rate;}
 
 
-/// Adjusts active model pointer as well
+void cm_set_machine_state(cmMachineState_t machine_state) {
+  cm.machine_state = machine_state;
+}
+
+
 void cm_set_motion_state(cmMotionState_t motion_state) {
   cm.motion_state = motion_state;
 }
@@ -661,9 +666,9 @@ void canonical_machine_init() {
 
 
 /// Alarm state; send an exception report and stop processing input
-stat_t cm_soft_alarm(stat_t status) {
-  print_status_message("Soft alarm", status);
-  cm.machine_state = MACHINE_ALARM;
+stat_t cm_alarm(const char *location, stat_t status) {
+  status_error_P(location, PSTR("ALARM"), status);
+  estop_trigger();
   return status;
 }
 
@@ -675,18 +680,6 @@ stat_t cm_clear() {
   else cm.machine_state = MACHINE_CYCLE;
 
   return STAT_OK;
-}
-
-
-/// Alarm state; send an exception report and shut down machine
-stat_t cm_hard_alarm(stat_t status) {
-  // Hard stop the motors and the spindle
-  st_shutdown();
-  cm_spindle_control(SPINDLE_OFF);
-  print_status_message("HARD ALARM", status);
-  cm.machine_state = MACHINE_SHUTDOWN;
-
-  return status;
 }
 
 
@@ -879,7 +872,7 @@ stat_t cm_straight_traverse(float target[], float flags[]) {
 
   // test soft limits
   stat_t status = cm_test_soft_limits(cm.ms.target);
-  if (status != STAT_OK) return cm_soft_alarm(status);
+  if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
   cm_set_work_offsets(&cm.gm); // capture fully resolved offsets to the state
@@ -967,7 +960,7 @@ stat_t cm_straight_feed(float target[], float flags[]) {
 
   // test soft limits
   stat_t status = cm_test_soft_limits(cm.ms.target);
-  if (status != STAT_OK) return cm_soft_alarm(status);
+  if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
   cm_set_work_offsets(&cm.gm); // capture the fully resolved offsets to state
