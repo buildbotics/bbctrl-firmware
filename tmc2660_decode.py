@@ -14,6 +14,7 @@ def twos_comp(val, bits):
 
 
 def tmc2660_decode_response(x, rdsel = 1):
+    x >>= 4 # Shift right 4 bits
     d = {'_hex': '0x%05x' % x}
 
     if rdsel == 0:
@@ -27,14 +28,14 @@ def tmc2660_decode_response(x, rdsel = 1):
         d['se'] = (x >> 10) & 0x1f
 
     flags = []
-    if x & (1 << 7): flags += ['Standstill']
-    if x & (1 << 6): flags += ['Open B']
-    if x & (1 << 5): flags += ['Open A']
-    if x & (1 << 4): flags += ['Short B']
-    if x & (1 << 3): flags += ['Short A']
-    if x & (1 << 2): flags += ['Temp warn']
-    if x & (1 << 1): flags += ['Overtemp']
-    if x & (1 << 0): flags += ['Stall']
+    if x & (1 << 7): flags += ['stand']
+    if x & (1 << 6): flags += ['open B']
+    if x & (1 << 5): flags += ['open A']
+    if x & (1 << 4): flags += ['short B']
+    if x & (1 << 3): flags += ['short A']
+    if x & (1 << 2): flags += ['temp warn']
+    if x & (1 << 1): flags += ['overtemp']
+    if x & (1 << 0): flags += ['stall']
 
     d['flags'] = flags
 
@@ -78,11 +79,12 @@ def tmc2660_decode_cmd(x, r):
 
     elif addr == 5:
         cmd = 'SMARTEN'
-        d['SEIMIN'] = '1/2 CS' if x & (1 << 15) else '1/4 CS'
+        d['SEIMIN'] = '1/4 CS' if x & (1 << 15) else '1/2 CS'
         d['SEDN'] = (32, 8, 2, 1)[(x >> 13) & 3]
         d['SEMAX'] = (x >> 8) & 0xf
         d['SEUP'] = (1, 2, 4, 8)[(x >> 5) & 3]
-        d['SEMIN'] = x & 0xf
+        semin = x & 0xf
+        d['SEMIN'] = semin if semin else 'disabled'
 
     elif addr == 6:
         cmd = 'SGCSCONF'
@@ -117,10 +119,9 @@ def tmc2660_decode(path):
                 first = False
                 continue
 
-            mosi = int(mosi, 16)
-            miso = int(miso, 16)
-
-            cmd = tmc2660_decode_cmd(mosi, miso)
+            cmd = tmc2660_decode_cmd(int(mosi, 0), int(miso, 0))
+            cmd['id'] = int(packet)
+            cmd['ts'] = float(time)
 
             print(json.dumps(cmd, sort_keys = True))
 

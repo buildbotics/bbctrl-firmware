@@ -48,15 +48,16 @@
 typedef struct {
   bool wrote_data;
   bool configured;
-  bool reset;
   uint32_t next_cmd;
   uint32_t stabilizing;
 
   uint16_t sguard;
   uint8_t flags;
-  uint32_t last_regs[REGS];
+  uint8_t reg_valid;
   uint32_t regs[REGS];
 
+  float current;
+  float target_current;
   float idle_current;
   float drive_current;
 
@@ -114,6 +115,9 @@ static void _report_error_flags(int driver) {
 
   if (TMC2660_DRVSTATUS_OVERTEMP & dflags) mflags |= MOTOR_FLAG_OVERTEMP_bm;
 
+  if ((TMC2660_DRVSTATUS_OPEN_LOAD_A | TMC2660_DRVSTATUS_OPEN_LOAD_A) & dflags)
+    mflags |= MOTOR_FLAG_OPEN_LOAD_bm;
+
   if (drv->port->IN & FAULT_BIT_bm) mflags |= MOTOR_FLAG_STALLED_bm;
 
   if (mflags) motor_error_callback(driver, mflags);
@@ -158,6 +162,9 @@ static void _driver_write(int driver) {
 }
 
 
+static void _set_current(int motor, float value);
+
+
 // Returns true if the current driver has more data to send
 static bool _driver_read(int driver) {
   tmc2660_driver_t *drv = &drivers[driver];
@@ -182,19 +189,22 @@ static bool _driver_read(int driver) {
     _report_error_flags(driver);
   }
 
-  // Handle reset
-  if (drv->reset) {
-    drv->reset = false;
-    for (int i = 0; i < REGS; i++) drv->last_regs[i] = -1;
+  // Update current
+  if (drv->target_current != drv->current) {
+    if (!drv->current) drv->current = 0.05;
+    else drv->current *= 1.05;
+    if (drv->target_current < drv->current) drv->current = drv->target_current;
+
+    _set_current(driver, drv->current);
   }
 
-  // Check if regs have changed (skipping DRVCTRL)
-  for (int i = 1; i < REGS; i++)
-    if (drv->last_regs[i] != drv->regs[i]) {
+  // Check if regs have changed
+  for (int i = 0; i < REGS; i++)
+    if (!(drv->reg_valid & (1 << i))) {
       // Reg changed, update driver
-      drv->last_regs[i] = drv->regs[i];
+      drv->reg_valid |= 1 << i;
       drv->next_cmd = reg_addrs[i] | drv->regs[i];
-      drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
+      //drv->stabilizing = rtc_get_time() + TMC2660_STABILIZE_TIME * 1000;
       drv->configured = false;
 
       return true;
@@ -219,6 +229,8 @@ static bool _driver_read(int driver) {
 
 static void _spi_next() {
   bool hasMore = _driver_read(spi.driver);
+
+  //if (!hasMore) drivers[spi.driver].reg_valid = 0;
 
   if (!hasMore && ++spi.driver == MOTORS) {
     spi.driver = 0;
@@ -256,9 +268,6 @@ ISR(PORT_4_FAULT_ISR_vect) {_fault_isr(3);}
 void tmc2660_init() {
   // Configure motors
   for (int i = 0; i < MOTORS; i++) {
-    for (int j = 0; j < REGS; j++)
-      drivers[i].last_regs[j] = -1; // Force config
-
     drivers[i].idle_current = MOTOR_IDLE_CURRENT;
     drivers[i].drive_current = MOTOR_CURRENT;
 
@@ -348,6 +357,7 @@ static void _set_reg(int motor, int reg, uint32_t value) {
   if (drv->regs[reg] == value) return;
 
   drv->regs[reg] = value;
+  drv->reg_valid &= ~(1 << reg);
   drv->configured = false;
 }
 
@@ -377,7 +387,7 @@ uint8_t tmc2660_flags(int motor) {
 
 
 void tmc2660_reset(int driver) {
-  drivers[driver].reset = true;
+  drivers[driver].reg_valid = 0;
 }
 
 
@@ -397,20 +407,27 @@ stat_t tmc2660_sync() {
 void tmc2660_enable(int driver) {
   printf("Enable %d\n", driver);
   tmc2660_reset(driver);
-  _set_current(driver, drivers[driver].drive_current);
+  cli();
+  drivers[driver].target_current = drivers[driver].drive_current;
+  sei();
+  //_set_current(driver, drivers[driver].drive_current);
 }
 
 
 void tmc2660_disable(int driver) {
   printf("Disable %d\n", driver);
-  _set_current(driver, drivers[driver].idle_current);
+  cli();
+  drivers[driver].target_current = drivers[driver].idle_current;
+  sei();
+  //_set_current(driver, drivers[driver].idle_current);
 }
 
 
 void tmc2660_set_stallguard_threshold(int driver, int8_t threshold) {
-  drivers[driver].regs[TMC2660_SGCSCONF] =
-    (drivers[driver].regs[TMC2660_SGCSCONF] & ~TMC2660_SGCSCONF_THRESH_bm) |
-    TMC2660_SGCSCONF_THRESH(threshold);
+  uint32_t value =
+    _get_reg(driver, TMC2660_SGCSCONF) & ~TMC2660_SGCSCONF_THRESH_bm;
+  value |= TMC2660_SGCSCONF_THRESH(threshold);
+  _set_reg(driver, TMC2660_SGCSCONF, value);
 }
 
 

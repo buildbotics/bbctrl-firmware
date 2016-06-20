@@ -103,7 +103,7 @@ typedef enum {
 #define JOG_ACCELERATION         500000 // mm/min^2
 
 // Axis settings
-#define VELOCITY_MAX             15000  // mm/min
+#define VELOCITY_MAX             13000  // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 #define X_AXIS_MODE              AXIS_STANDARD // See canonical_machine.h
@@ -133,7 +133,7 @@ typedef enum {
 #define Y_ZERO_BACKOFF           1
 
 #define Z_AXIS_MODE              AXIS_STANDARD
-#define Z_VELOCITY_MAX           VELOCITY_MAX
+#define Z_VELOCITY_MAX           2000 //VELOCITY_MAX
 #define Z_FEEDRATE_MAX           FEEDRATE_MAX
 #define Z_TRAVEL_MIN             0
 #define Z_TRAVEL_MAX             75
@@ -335,7 +335,7 @@ typedef enum {
 #define TMC2660_TIMER          TCC1
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
 #define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
-#define TMC2660_STABILIZE_TIME 0.001 // sec.  Must be at least 1ms
+#define TMC2660_STABILIZE_TIME 0.01 // sec.  Must be at least 1ms
 
 
 // PWM settings

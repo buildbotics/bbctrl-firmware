@@ -195,7 +195,7 @@ void motor_init() {
 
 
 void motor_enable(int motor, bool enable) {
-  if (enable) motors[motor].port->OUTCLR = MOTOR_ENABLE_BIT_bm;
+  if (enable) motors[motor].port->OUTCLR = MOTOR_ENABLE_BIT_bm; // Active low
   else {
     motors[motor].port->OUTSET = MOTOR_ENABLE_BIT_bm;
     motors[motor].power_state = MOTOR_IDLE;
@@ -315,6 +315,56 @@ void motor_error_callback(int motor, cmMotorFlags_t errors) {
 }
 
 
+void motor_load_move(int motor) {
+  motor_t *m = &motors[motor];
+
+  // Get actual step count from DMA channel
+  uint16_t steps = 0xffff - m->dma->TRFCNT;
+  m->dma->TRFCNT = 0xffff; // Reset DMA channel counter
+  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+
+  // Adjust clock count
+  if (m->last_clock) {
+    uint32_t count = m->timer->CNT;
+    int8_t freq_change = m->last_clock - m->timer_clock;
+
+    count <<= freq_change; // Adjust count
+
+    if (m->timer_period < count) count -= m->timer_period;
+    if (m->timer_period < count) count -= m->timer_period;
+    if (m->timer_period < count) count = m->timer_period / 2;
+
+    m->timer->CNT = count;
+
+  } else m->timer->CNT = m->timer_period / 2;
+
+  // Set or zero runtime clock and period
+  m->timer->CCA = m->timer_period;     // Set frequency
+  m->timer->CTRLA = m->timer_clock;    // Start or stop
+  m->last_clock = m->timer_clock;
+  m->timer_clock = 0;                  // Clear clock
+
+  // Set direction
+  if (m->direction == DIRECTION_CW) m->port->OUTCLR = DIRECTION_BIT_bm;
+  else m->port->OUTSET = DIRECTION_BIT_bm;
+
+  // Accumulate encoder
+  // TODO we currently accumulate the x-axis here
+  if (!motor) {
+    steps = m->steps;
+    m->steps = 0;
+  }
+  m->encoder += m->positive ? steps : -(int32_t)steps;
+}
+
+
+void motor_end_move(int motor) {
+  motors[motor].dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  motors[motor].timer->CTRLA = 0; // Stop clock
+}
+
+
 void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
                      float error) {
   motor_t *m = &motors[motor];
@@ -378,58 +428,20 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   m->timer_period = ticks_per_step;
   m->positive = 0 <= travel_steps;
 
+  // Sanity check steps
+  if (m->timer_clock) {
+    uint32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
+    float steps = (float)clocks / m->timer_period;
+    float diff = fabs(fabs(travel_steps) - steps);
+    if (10 < diff)
+      printf_P(PSTR("clock=%u period=%u expected=%f actual=%f diff=%f\n"),
+               m->timer_clock, m->timer_period, fabs(travel_steps), steps,
+               diff);
+  }
+
   // Setup the direction, compensating for polarity.
   if (m->positive) m->direction = DIRECTION_CW ^ m->polarity;
   else m->direction = DIRECTION_CCW ^ m->polarity;
-}
-
-
-void motor_load_move(int motor) {
-  motor_t *m = &motors[motor];
-
-  // Get actual step count from DMA channel
-  uint16_t steps = 0xffff - m->dma->TRFCNT;
-  m->dma->TRFCNT = 0xffff;
-  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
-
-  // Adjust clock count
-  if (m->last_clock) {
-    uint32_t count = m->timer->CNT;
-    int8_t freq_change = m->last_clock - m->timer_clock;
-
-    count <<= freq_change; // Adjust count
-
-    if (m->timer_period < count) count -= m->timer_period;
-    if (m->timer_period < count) count -= m->timer_period;
-    if (m->timer_period < count) count = m->timer_period / 2;
-
-    m->timer->CNT = count;
-
-  } else m->timer->CNT = m->timer_period / 2;
-
-  // Set or zero runtime clock and period
-  m->timer->CCA = m->timer_period;     // Set frequency
-  m->timer->CTRLA = m->timer_clock;    // Start or stop
-  m->last_clock = m->timer_clock;
-  m->timer_clock = 0;                  // Clear clock
-
-  // Set direction
-  if (m->direction == DIRECTION_CW) m->port->OUTCLR = DIRECTION_BIT_bm;
-  else m->port->OUTSET = DIRECTION_BIT_bm;
-
-  // Accumulate encoder
-  if (!motor) {
-    steps = m->steps;
-    m->steps = 0;
-  }
-  m->encoder += m->positive ? steps : -(int32_t)steps;
-}
-
-
-void motor_end_move(int motor) {
-  motors[motor].dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  motors[motor].timer->CTRLA = 0; // Stop clock
 }
 
 
@@ -539,6 +551,12 @@ void print_status_flags(uint8_t flags) {
   if (MOTOR_FLAG_SHORTED_bm & flags) {
     if (!first) printf_P(PSTR(", "));
     printf_P(PSTR("short"));
+    first = false;
+  }
+
+  if (MOTOR_FLAG_OPEN_LOAD_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("open"));
     first = false;
   }
 
