@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import smbus
 import time
@@ -123,7 +123,7 @@ class LCD:
 
     def goto(self, x, y):
         if x < 0 or self.width <= x or y < 0 or self.height <= y: return
-        self.write(LCD_SET_DDRAM_ADDR | (0, 64, 20, 84)[y] + x)
+        self.write(LCD_SET_DDRAM_ADDR | (0, 64, 20, 84)[y] + int(x))
 
 
     def text(self, msg):

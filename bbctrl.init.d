@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          bbctl
-# Required-Start:    $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Buildbotics Controller Web service
@@ -17,15 +17,15 @@ DAEMON_USER=root
 DAEMON_DIR=$(dirname $DAEMON)
 PIDFILE=/var/run/$DAEMON_NAME.pid
 
-
 . /lib/lsb/init-functions
 
 
 do_start () {
     log_daemon_msg "Starting system $DAEMON_NAME daemon"
     start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile \
-        --user $DAEMON_USER --chuid $DAEMON_USER --startas $DAEMON \
-        --chdir $DAEMON_DIR -- $DAEMON_OPTS
+        --user $DAEMON_USER --chuid $DAEMON_USER --chdir $DAEMON_DIR \
+        --startas /bin/bash -- \
+        -c "exec $DAEMON $DAEMON_OPTS > /var/log/$DAEMON_NAME.log 2>&1"
     log_end_msg $?
 }
 

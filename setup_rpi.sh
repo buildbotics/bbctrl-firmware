@@ -79,12 +79,19 @@ echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 #sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
 sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
 
+# Disable extra gettys
+sed -i 's/^\([23456]:.*\/sbin\/getty\)/#\1/' /etc/inittab
+
 # Enable I2C
 sed -i 's/#dtparam=i2c/dtparam=i2c/' /boot/config.txt
 echo i2c-bcm2708 >> /etc/modules
 echo i2c-dev >> /etc/modules
 
+# Install bbctrl w/ init.d script
+cp bbctrl.init.d /etc/init.d/bbctrl
+chmod +x /etc/init.d/bbctrl
+update-rc.d bbctrl defaults
+
 # TODO setup input and serial device permissions in udev
-# TODO install bbctrl w/ init.d script
 
 reboot

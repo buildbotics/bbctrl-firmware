@@ -7,6 +7,8 @@ HTTP_PORT = 8080
 HTTP_ADDR = '0.0.0.0'
 
 import os
+import sys
+import signal
 from tornado import web, ioloop, escape
 from sockjs.tornado import SockJSRouter, SockJSConnection
 import json
@@ -14,7 +16,9 @@ import serial
 import multiprocessing
 import time
 import select
+import atexit
 
+import lcd
 import inevent
 from inevent.Constants import *
 
@@ -31,7 +35,7 @@ config = {
     }
 
 
-with open('http/config-template.json', 'r') as f:
+with open('http/config-template.json', 'r', encoding = 'utf-8') as f:
     config_template = json.load(f)
 
 
@@ -40,6 +44,11 @@ clients = []
 
 input_queue = multiprocessing.Queue()
 output_queue = multiprocessing.Queue()
+
+
+def on_exit(sig, func = None):
+    print('exit handler triggered')
+    sys.exit(1)
 
 
 def encode_cmd(index, value, spec):
@@ -310,9 +319,24 @@ def checkEvents():
 eventProcessor = inevent.InEvent(types = "js kbd".split())
 eventHandler = JogHandler(config)
 
+screen = lcd.LCD(1, 0x27)
+
+
+def splash():
+    screen.clear()
+    screen.display(0, 'Buildbotics', lcd.JUSTIFY_CENTER)
+    screen.display(1, 'Controller', lcd.JUSTIFY_CENTER)
+    screen.display(3, '*Ready*', lcd.JUSTIFY_CENTER)
+
+
+def goodbye():
+    screen.clear()
+    screen.display(1, 'Goodbye', lcd.JUSTIFY_CENTER)
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, on_exit)
+
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
 
@@ -327,6 +351,9 @@ if __name__ == "__main__":
     # Adjust the interval according to frames sent by serial port
     ioloop.PeriodicCallback(checkQueue, 100).start()
     ioloop.PeriodicCallback(checkEvents, 100).start()
+
+    splash()
+    atexit.register(goodbye)
 
     # Start the web server
     app = web.Application(router.urls + handlers)
