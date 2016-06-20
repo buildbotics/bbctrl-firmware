@@ -20,7 +20,7 @@ def build_function(target, source, env):
     for path in install_files:
         files += '  File "%s"\n' % path
 
-    env.Replace(NSIS_INSTALL_FILES = files)
+    env['NSIS_INSTALL_FILES'] = files
 
     # Set package name
     env.Replace(package = str(target[0]))
