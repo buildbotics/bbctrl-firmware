@@ -56,8 +56,6 @@ typedef struct {
   uint8_t reg_valid;
   uint32_t regs[REGS];
 
-  float current;
-  float target_current;
   float idle_current;
   float drive_current;
 
@@ -162,9 +160,6 @@ static void _driver_write(int driver) {
 }
 
 
-static void _set_current(int motor, float value);
-
-
 // Returns true if the current driver has more data to send
 static bool _driver_read(int driver) {
   tmc2660_driver_t *drv = &drivers[driver];
@@ -187,15 +182,6 @@ static bool _driver_read(int driver) {
     //  DACB.CH0DATA = drv->sguard << 2;
 
     _report_error_flags(driver);
-  }
-
-  // Update current
-  if (drv->target_current != drv->current) {
-    if (!drv->current) drv->current = 0.05;
-    else drv->current *= 1.05;
-    if (drv->target_current < drv->current) drv->current = drv->target_current;
-
-    _set_current(driver, drv->current);
   }
 
   // Check if regs have changed
@@ -407,19 +393,13 @@ stat_t tmc2660_sync() {
 void tmc2660_enable(int driver) {
   printf("Enable %d\n", driver);
   tmc2660_reset(driver);
-  cli();
-  drivers[driver].target_current = drivers[driver].drive_current;
-  sei();
-  //_set_current(driver, drivers[driver].drive_current);
+  _set_current(driver, drivers[driver].drive_current);
 }
 
 
 void tmc2660_disable(int driver) {
   printf("Disable %d\n", driver);
-  cli();
-  drivers[driver].target_current = drivers[driver].idle_current;
-  sei();
-  //_set_current(driver, drivers[driver].idle_current);
+  _set_current(driver, drivers[driver].idle_current);
 }
 
 
