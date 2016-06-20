@@ -22,7 +22,7 @@ def build_function(target, source, env):
 
     env.Replace(NSIS_INSTALL_FILES = files)
 
-
+    # Set package name
     env.Replace(package = str(target[0]))
 
     if not 'PACKAGE_ARCH' in env:

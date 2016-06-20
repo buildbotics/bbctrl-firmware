@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import subprocess
+import glob
 
 from SCons.Script import *
 
@@ -58,8 +59,9 @@ def FindDLLs(env, source):
     else: exclude = set()
 
     for src in source:
-        for path in find_dlls(env, src, exclude):
-            yield path
+        for path in glob.glob(str(src)):
+            for dll in find_dlls(env, path, exclude):
+                yield dll
 
 
 def generate(env):
