@@ -9,7 +9,7 @@ def generate(env):
     env['RUN_DISTUTILSOPTS'] = 'build'
 
     bld = Builder(action = '$RUN_DISTUTILS $SOURCE $RUN_DISTUTILSOPTS')
-    env.Append(BUILDERS = {'RunDistUtils' : bld}) 
+    env.Append(BUILDERS = {'RunDistUtils' : bld})
 
 
 def exists():

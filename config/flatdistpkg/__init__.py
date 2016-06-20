@@ -587,7 +587,7 @@ function install_check() {"""
     my.result.message ='A 64-bit processor is required (Core 2 Duo or better).';
     my.result.type = 'Fatal';
     return false;
-  }""" 
+  }"""
 
     script_text += """
   return true;
@@ -832,4 +832,3 @@ def generate(env):
 
 def exists():
   return 1
-

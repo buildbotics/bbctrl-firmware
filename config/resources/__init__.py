@@ -207,7 +207,7 @@ def get_targets(exclude, path, data_dir, count = [0]):
         return targets
 
     else:
-        target = '%s/data%d.cpp' % (data_dir, id) 
+        target = '%s/data%d.cpp' % (data_dir, id)
         return [File(target)]
 
 

@@ -43,7 +43,7 @@ def install_files(f, env, key, build_dir, path, prefix = None, perms = None,
         for src, dst, mode in env.ResolvePackageFileMap(env.get(key), target):
             if prefix is not None: f.write(prefix + ' ')
             f.write(dst[len(build_dir):] + '\n')
-            
+
 
 def build_function(target, source, env):
     name = env.get('package_name_lower')
@@ -145,4 +145,3 @@ def generate(env):
 
 def exists():
     return 1
-

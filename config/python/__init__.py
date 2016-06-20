@@ -21,7 +21,7 @@ def try_config(conf, command):
         return True
 
     return False
-    
+
 
 def configure(conf):
     env = conf.env
@@ -54,4 +54,3 @@ def generate(env):
 
 def exists():
     return 1
-

@@ -106,7 +106,7 @@ def GetPackageArch(env):
         return proc.communicate()[0].strip()
 
     return platform.machine()
-    
+
 
 def GetPackageName(env, name, without_build = False, type = None):
     name = name.lower()
@@ -183,7 +183,7 @@ def resolve_file_map(sources, target, ignores = None, mode = None):
 
         if os.path.isdir(src_path):
             names = os.listdir(src_path)
-            
+
             if ignores is not None:
                 ignored_names = ignores(src_path, names)
                 names = filter(lambda x: not x in ignored_names, names)

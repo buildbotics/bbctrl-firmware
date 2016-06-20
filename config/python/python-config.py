@@ -17,4 +17,3 @@ libs.append('-lpython' + pyver)
 if not getvar('Py_ENABLE_SHARED'):
     libs.insert(0, '-L' + getvar('LIBPL'))
 print ' '.join(libs)
-

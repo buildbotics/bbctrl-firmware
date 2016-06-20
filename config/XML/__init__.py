@@ -25,4 +25,3 @@ def generate(env):
 
 def exists():
     return 1
-

@@ -41,7 +41,7 @@ def build_function(target, source, env):
     if env.get('distpkg_allow_external_scripts', False):
         allowExternalScripts = 'yes'
     else: allowExternalScripts = 'no'
- 
+
     SubElement(root, 'options', {
             'rootVolumeOnly': rootVolumeOnly,
             'allow-external-scripts': allowExternalScripts,
@@ -153,4 +153,3 @@ def generate(env):
 
 def exists():
     return 1
-
