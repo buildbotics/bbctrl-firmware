@@ -2,8 +2,26 @@ from SCons.Script import *
 from SCons.Action import CommandAction
 
 
+deps = ['find_dlls']
+
+
 def build_function(target, source, env):
     nsi = str(source[0])
+
+    install_files = env.get('nsis_install_files', [])
+
+    # Find DLLs
+    if 'nsi_dll_deps' in env:
+        for path in env.FindDLLs(env.get('nsi_dll_deps')):
+            install_files += [path]
+
+    # Install files
+    files = '\n'
+    for path in install_files:
+        files += '  File "%s"\n' % path
+
+    env.Replace(NSIS_INSTALL_FILES = files)
+
 
     env.Replace(package = str(target[0]))
 
