@@ -61,6 +61,8 @@ def build_function(target, source, env):
 
 
 def generate(env):
+    env.CBLoadTool('find_dlls')
+
     env.SetDefault(NSISCOM = 'makensis', NSISOPTS = '', SIGNTOOL = 'signtool')
     bld = Builder(action = build_function)
     env.Append(BUILDERS = {'Nsis' : bld})
