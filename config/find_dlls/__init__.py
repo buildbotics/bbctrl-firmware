@@ -59,8 +59,11 @@ def FindDLLs(env, source):
     else: exclude = set()
 
     for src in source:
+        print 'src=' + src
         for path in glob.glob(str(src)):
+            print 'path=' + path
             for dll in find_dlls(env, path, exclude):
+                print 'dll=' + dll
                 yield dll
 
 
