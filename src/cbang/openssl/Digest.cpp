@@ -102,9 +102,9 @@ void Digest::update(const uint8_t *data, unsigned length) {
 
 
 void Digest::finalize() {
-  if (digest.isNull()) digest = new uint8_t[EVP_MAX_MD_SIZE];
+  if (digest.empty()) digest.resize(size());
 
-  if (!EVP_DigestFinal_ex(ctx, digest.get(), 0))
+  if (!EVP_DigestFinal_ex(ctx, &digest[0], 0))
     THROWS("Error finalizing digest: " << SSL::getErrorStr());
 }
 
@@ -179,29 +179,30 @@ bool Digest::verify(const string &sig) {
 
 
 string Digest::toString() const {
-  if (digest.isNull()) THROW("Digest not finalized");
-  return string((const char *)digest.get(), size());
+  if (digest.empty()) THROW("Digest not finalized");
+  return string((const char *)&digest[0], size());
 }
 
 
 string Digest::toString() {
-  if (digest.isNull()) finalize();
+  if (digest.empty()) finalize();
   return const_cast<const Digest *>(this)->toString();
 }
 
 
 string Digest::toHexString() const {
-  if (digest.isNull()) THROW("Digest not finalized");
+  if (digest.empty()) THROW("Digest not finalized");
 
   string result;
   unsigned s = size();
-  for (unsigned i = 0; i < s; i++) result += String::printf("%02x", digest[i]);
+  for (unsigned i = 0; i < s; i++)
+    result += String::printf("%02x", digest.at(i));
   return result;
 }
 
 
 string Digest::toHexString() {
-  if (digest.isNull()) finalize();
+  if (digest.empty()) finalize();
   return const_cast<const Digest *>(this)->toHexString();
 }
 
@@ -221,20 +222,26 @@ unsigned Digest::getDigest(uint8_t *buffer, unsigned length) const {
   unsigned i;
 
   for (i = 0; (!length || i < length) && i < s; i++)
-    buffer[i] = digest[i];
+    buffer[i] = digest.at(i);
 
   return i;
 }
 
 
 unsigned Digest::getDigest(uint8_t *buffer, unsigned length) {
-  if (digest.isNull()) finalize();
+  if (digest.empty()) finalize();
   return const_cast<const Digest *>(this)->getDigest(buffer, length);
 }
 
 
+const vector<uint8_t> &Digest::getDigest() {
+  if (digest.empty()) finalize();
+  return const_cast<const Digest *>(this)->getDigest();
+}
+
+
 void Digest::reset() {
-  digest.release();
+  digest.clear();
   initialized = false;
 }
 

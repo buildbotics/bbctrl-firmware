@@ -37,6 +37,7 @@
 #include <cbang/StdTypes.h>
 
 #include <istream>
+#include <vector>
 
 typedef struct env_md_st EVP_MD;
 typedef struct env_md_ctx_st EVP_MD_CTX;
@@ -50,7 +51,7 @@ namespace cb {
     const EVP_MD *md;
     EVP_MD_CTX *ctx;
     bool initialized;
-    SmartPointer<uint8_t>::Array digest;
+    std::vector<uint8_t> digest;
 
     // No copy
     Digest(const Digest &);
@@ -95,6 +96,8 @@ namespace cb {
     std::string toBase64(char pad = 0, char a = '-', char b = '_');
     unsigned getDigest(uint8_t *buffer, unsigned length) const;
     unsigned getDigest(uint8_t *buffer, unsigned length);
+    const std::vector<uint8_t> &getDigest() const {return digest;}
+    const std::vector<uint8_t> &getDigest();
 
     // Reset
     virtual void reset();
