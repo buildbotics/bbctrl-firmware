@@ -10,11 +10,11 @@
 # Description:       Buildbotics Controller Web service
 ### END INIT INFO
 
-DAEMON=/home/bbmc/bbctrl.py
+DAEMON=/usr/local/bin/bbctrl
 DAEMON_NAME=bbctrl
 DAEMON_OPTS=""
 DAEMON_USER=root
-DAEMON_DIR=$(dirname $DAEMON)
+DAEMON_DIR=/var/lib/$DAEMON_NAME
 PIDFILE=/var/run/$DAEMON_NAME.pid
 
 . /lib/lsb/init-functions
@@ -22,6 +22,7 @@ PIDFILE=/var/run/$DAEMON_NAME.pid
 
 do_start () {
     log_daemon_msg "Starting system $DAEMON_NAME daemon"
+    mkdir -p $DAEMON_DIR &&
     start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile \
         --user $DAEMON_USER --chuid $DAEMON_USER --chdir $DAEMON_DIR \
         --startas /bin/bash -- \

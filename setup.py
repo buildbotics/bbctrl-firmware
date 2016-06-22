@@ -22,5 +22,5 @@ setup(
             ]
         },
     install_requires = 'tornado sockjs-tornado pyserial smbus2'.split(),
-    zip_save = False,
+    zip_safe = False,
     )

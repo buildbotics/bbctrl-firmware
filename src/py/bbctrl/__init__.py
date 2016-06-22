@@ -129,7 +129,7 @@ class LoadHandler(APIHandler):
             self.send_file('config.json')
         except Exception as e:
             print(e)
-            self.send_file('http/default-config.json')
+            self.send_file(get_resource('http/default-config.json'))
 
 
 class SaveHandler(APIHandler):
@@ -273,7 +273,7 @@ handlers = [
     (r'/api/save', SaveHandler),
     (r'/api/file(/.*)?', FileHandler),
     (r'/(.*)', web.StaticFileHandler,
-     {'path': os.path.join(DIR, 'http/'),
+     {'path': os.path.join(DIR, get_resource('http/')),
       "default_filename": "index.html"}),
     ]
 

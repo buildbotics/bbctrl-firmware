@@ -26,7 +26,11 @@ WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 all: html css js static
 
 copy: all
-	cp -r *.py inevent $(TARGET)/ $(DEST)
+	mkdir -p $(DEST)/bbctrl/src/py $(DEST)/bbctrl/build
+	rsync -rLv --no-g --exclude \*.pyc --exclude __pycache__ \
+	  --exclude \*.egg-info src/py $(DEST)/bbctrl/src/
+	rsync -av --no-g build/http $(DEST)/bbctrl/build
+	rsync -av --no-g setup.py README.md $(DEST)/bbctrl
 
 mount:
 	mkdir -p $(DEST)
