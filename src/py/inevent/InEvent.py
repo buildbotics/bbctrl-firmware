@@ -30,12 +30,16 @@ import pyudev
 import re
 import select
 import errno
+import functools
+import logging
 
 from inevent.EventHandler import EventHandler
 from inevent import Keys
 from inevent.Constants import *
 from inevent.EventStream import EventStream
 
+
+log = logging.getLogger('inevent')
 
 _KEYS = (k for k in vars(Keys) if not k.startswith('_'))
 KEY_CODE = dict((k, getattr(Keys, k)) for k in _KEYS)
@@ -113,18 +117,22 @@ class InEvent(object):
   The keys are listed in inevent.Constants.py or /usr/include/linux/input.h
   Note that the key names refer to a US keyboard.
   """
-  def __init__(self, types = ["kbd", "mouse", "js"]):
+  def __init__(self, ioloop, cb, types = ["kbd", "mouse", "js"]):
+    self.ioloop = ioloop
+    self.cb = cb
     self.streams = []
     self.handler = EventHandler()
     self.types = types
 
     devs = list(find_devices(types))
-    for index, type in devs: self.add_stream(index, type)
+    for index, type in devs:
+      self.add_stream(index, type)
 
     self.udevCtx = pyudev.Context()
     self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
     self.udevMon.filter_by(subsystem = 'input')
     self.udevMon.start()
+    ioloop.add_handler(self.udevMon.fileno(), self.udev_handler, ioloop.READ)
 
 
   def process_udev_event(self):
@@ -145,52 +153,42 @@ class InEvent(object):
       self.remove_stream(devIndex)
 
 
-  def process_events(self, cb = None):
-    """
-    Handle all events that have been triggered since the last call.
-    """
+  def stream_handler(self, fd, events):
+    for stream in self.streams:
+      if stream.filehandle == fd:
+        while True:
+          event = stream.read()
+          if event: self.handler.event(event, self.cb)
+          else: break
 
-    # Gather list of file descriptors to watch
-    selectlist = [x.filehandle for x in self.streams]
-    udevFD = self.udevMon.fileno()
-    selectlist.append(udevFD)
 
-    processedEvent = True
-    while processedEvent:
-      processedEvent = False
-
-      # Select
-      ready = select.select(selectlist, [], [], 0)[0]
-
-      # Handle events
-      for fd in ready:
-        if fd == udevFD:
-          self.process_udev_event()
-          processedEvent = True
-
-        for stream in self.streams:
-          if stream.filehandle == fd:
-            event = stream.read()
-            if event:
-              self.handler.event(event, cb)
-              processedEvent = True
+  def udev_handler(self, fd, events):
+    self.process_udev_event()
 
 
   def add_stream(self, devIndex, devType):
     try:
-      self.streams.append(EventStream(devIndex, devType))
-      print('Added {}[{:d}]'.format(devType, devIndex))
+      stream = EventStream(devIndex, devType)
+      self.streams.append(stream)
+
+      self.ioloop.add_handler(stream.filehandle, self.stream_handler,
+                              self.ioloop.READ)
+
+      log.info('Added %s[%d]', devType, devIndex)
 
     except OSError as e:
-      if not e.errno in [errno.EPERM, errno.EACCES]: raise e
+      if e.errno in [errno.EPERM, errno.EACCES]:
+        log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
+      else: raise e
 
 
   def remove_stream(self, devIndex):
     for stream in self.streams:
       if stream.devIndex == devIndex:
         self.streams.remove(stream)
-        print('Removed {}[{:d}]'.format(stream.devType, devIndex))
-        break
+        self.ioloop.remove_handler(stream.filehandle)
+
+        log.info('Removed %s[%d]', stream.devType, devIndex)
 
 
   def key_state(self, key):
@@ -249,4 +247,3 @@ class InEvent(object):
     Only do this when you're finished with this object. You can't use it again.
     """
     for s in self.streams: s.release()
-

@@ -1,25 +1,32 @@
+import logging
+
 from inevent.Constants import *
 
 
+log = logging.getLogger('inevent')
+
+
 def axes_to_string(axes):
-    return "({:6.3f}, {:6.3f}, {:6.3f}, {:6.3f})".format(*axes)
+    return '({:6.3f}, {:6.3f}, {:6.3f})'.format(*axes)
 
 
-def print_event(event, state):
-    print("{} {}: ".format(event.get_source(), event.get_type_name()), end = '')
+def event_to_string(event, state):
+    s = '{} {}: '.format(event.get_source(), event.get_type_name())
 
     if event.type == EV_ABS:
-        print(axes_to_string(state.get_joystick3d()) + " " +
-              axes_to_string(state.get_joystickR3d()) + " " +
-              "({:2.0f}, {:2.0f}) ".format(*state.get_hat()))
+        s += axes_to_string(state.get_joystick3d()) + ' ' + \
+            axes_to_string(state.get_joystickR3d()) + ' ' + \
+            '({:2.0f}, {:2.0f}) '.format(*state.get_hat())
 
     if event.type == EV_REL:
-        print("({:d}, {:d}) ".format(*state.get_mouse()) +
-              "({:d}, {:d})".format(*state.get_wheel()))
+        s += '({:d}, {:d}) '.format(*state.get_mouse()) + \
+            '({:d}, {:d})'.format(*state.get_wheel())
 
     if event.type == EV_KEY:
-        state = "pressed" if event.value else "released"
-        print("0x{:x} {}".format(event.code, state))
+        state = 'pressed' if event.value else 'released'
+        s += '0x{:x} {}'.format(event.code, state)
+
+    return s
 
 
 class JogHandler:
@@ -31,7 +38,7 @@ class JogHandler:
 
 
     def changed(self):
-        print(axes_to_string(self.axes) + " x {:d}".format(self.speed))
+        log.debug(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
 
 
     def __call__(self, event, state):
@@ -47,12 +54,12 @@ class JogHandler:
             axis = self.config['arrows'].index(event.code)
 
             if event.value < 0:
-                if axis == 1: print('up')
-                else: print('left')
+                if axis == 1: log.debug('up')
+                else: log.debug('left')
 
             elif 0 < event.value:
-                if axis == 1: print('down')
-                else: print('right')
+                if axis == 1: log.debug('down')
+                else: log.debug('right')
 
         elif event.type == EV_KEY and event.code in self.config['speed']:
             old_speed = self.speed
@@ -65,7 +72,7 @@ class JogHandler:
             if event.value: self.activate |= 1 << index
             else: self.activate &= ~(1 << index)
 
-        if self.config.get('verbose', False): print_event(event, state)
+        log.debug(event_to_string(event, state))
 
         # Update axes
         old_axes = list(self.axes)

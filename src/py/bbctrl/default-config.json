@@ -1,0 +1,75 @@
+{
+  "motors": [
+    {
+      "motor-map": "x",
+      "step-angle": 1.8,
+      "travel-per-rev": 3.175,
+      "microsteps": 16,
+      "polarity": "normal",
+      "power-mode": "always-on",
+      "power-level": 80,
+      "stallguard": 70
+    }, {
+      "motor-map": "y"
+    }, {
+      "motor-map": "z"
+    }, {
+      "motor-map": "a"
+    }
+  ],
+
+  "axes": {
+    "x": {
+      "mode": "standard",
+      "max-velocity": 16000,
+      "max-feedrate": 16000,
+      "max-jerk": 40,
+      "min-soft-limit": 0,
+      "max-soft-limit": 150,
+      "max-homing-jerk": 80,
+      "junction-deviation": 0.05,
+      "search-velocity": 500,
+      "latch-velocity": 100,
+      "latch-backoff": 5,
+      "zero-backoff": 1
+    },
+
+    "y": {
+      "mode": "standard"
+    },
+
+    "z": {
+      "mode": "standard"
+    },
+
+    "a": {
+      "mode": "radius",
+      "max-velocity": 1000000,
+      "max-feedrate": 1000000,
+      "min-soft-limit": 0,
+      "max-soft-limit": 0
+    },
+
+    "b": {
+      "mode": "disabled"
+    },
+
+    "c": {
+      "mode": "disabled"
+    }
+  },
+
+  "switches": [
+    {"type": "normally-open"},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {},
+    {}
+  ],
+
+  "spindle": {
+  }
+}

@@ -6,6 +6,10 @@ except:
     import smbus2 as smbus
 
 import time
+import logging
+
+
+log = logging.getLogger('LCD')
 
 
 # Control flags
@@ -68,7 +72,7 @@ class LCD:
             self.bus = smbus.SMBus(port)
         except FileNotFoundError as e:
             self.bus = None
-            print('Failed to open LCD device:', e)
+            log.warning('Failed to open device: %s', e)
 
         self.backlight = True
 

@@ -10,14 +10,22 @@
 # Description:       Buildbotics Controller Web service
 ### END INIT INFO
 
-DAEMON=/usr/local/bin/bbctrl
+
 DAEMON_NAME=bbctrl
+DAEMON=/usr/local/bin/$DAEMON_NAME
 DAEMON_OPTS=""
 DAEMON_USER=root
 DAEMON_DIR=/var/lib/$DAEMON_NAME
 PIDFILE=/var/run/$DAEMON_NAME.pid
+DEFAULTS=/etc/default/$DAEMON_NAME
+
 
 . /lib/lsb/init-functions
+
+
+if [ -e $DEFAULTS ]; then
+    . $DEFAULTS
+fi
 
 
 do_start () {
@@ -25,8 +33,7 @@ do_start () {
     mkdir -p $DAEMON_DIR &&
     start-stop-daemon --start --background --pidfile $PIDFILE --make-pidfile \
         --user $DAEMON_USER --chuid $DAEMON_USER --chdir $DAEMON_DIR \
-        --startas /bin/bash -- \
-        -c "exec $DAEMON $DAEMON_OPTS > /var/log/$DAEMON_NAME.log 2>&1"
+        --startas $DAEMON -- $DAEMON_OPTS -l /var/log/$DAEMON_NAME.log
     log_end_msg $?
 }
 

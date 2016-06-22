@@ -17,8 +17,12 @@ STATIC    := $(shell find src/resources -type f)
 STATIC    := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
 TEMPLS    := $(wildcard src/jade/templates/*.jade)
 
+RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
+RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
+RSYNC_OPTS := $(RSYNC_EXCLUDE) -rLv --no-g
+
 ifndef DEST
-DEST=mnt/
+DEST=mnt
 endif
 
 WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
@@ -27,10 +31,8 @@ all: html css js static
 
 copy: all
 	mkdir -p $(DEST)/bbctrl/src/py $(DEST)/bbctrl/build
-	rsync -rLv --no-g --exclude \*.pyc --exclude __pycache__ \
-	  --exclude \*.egg-info src/py $(DEST)/bbctrl/src/
-	rsync -av --no-g build/http $(DEST)/bbctrl/build
-	rsync -av --no-g setup.py README.md $(DEST)/bbctrl
+	rsync $(RSYNC_OPTS) src/py $(DEST)/bbctrl/src/
+	rsync $(RSYNC_OPTS) setup.py README.md $(DEST)/bbctrl
 
 mount:
 	mkdir -p $(DEST)

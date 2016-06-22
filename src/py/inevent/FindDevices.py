@@ -27,7 +27,10 @@
 # SOFTWARE.
 
 import re
+import logging
 from inevent.Constants import *
+
+log = logging.getLogger('inevent')
 
 
 def test_bit(nlst, b):
@@ -50,7 +53,7 @@ def EvToStr(events):
   if test_bit(events, EV_FF):        s.append("EV_FF" )
   if test_bit(events, EV_PWR):       s.append("EV_PWR")
   if test_bit(events, EV_FF_STATUS): s.append("EV_FF_STATUS")
-    
+
   return s
 
 
@@ -68,13 +71,13 @@ class DeviceCapabilities(object):
     self.EV_PWRevents = []
     self.EV_FF_STATUSevents = []
     self.eventTypes = []
-    
+
     match = re.search(".*Bus=([0-9A-Fa-f]+).*Vendor=([0-9A-Fa-f]+).*"
                       "Product=([0-9A-Fa-f]+).*Version=([0-9A-Fa-f]+).*",
                       firstLine)
 
     if not match:
-      print("Do not understand device ID:", line)
+      log.warning("Do not understand device ID:", line)
       self.bus = 0
       self.vendor = 0
       self.product = 0
@@ -182,7 +185,7 @@ class DeviceCapabilities(object):
         self.sysfs, self.uniq, self.handlers, self.eventIndex, self.isKeyboard,
         self.isMouse, self.isJoystick, EvToStr(self.eventTypes)))
 
-        
+
 deviceCapabilities = []
 
 
@@ -193,7 +196,7 @@ def get_devices(filename = "/proc/bus/input/devices"):
     for line in filehandle:
       if line[0] == "I":
         deviceCapabilities.append(DeviceCapabilities(line, filehandle))
-              
+
   return deviceCapabilities
 
 
