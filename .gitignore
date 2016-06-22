@@ -1,9 +1,10 @@
 .sconf_temp/
 .sconsign.dblite
-/http
 /build
 node_modules
 *~
 \#*
 *.pyc
 __pycache__
+*.egg-info
+/upload

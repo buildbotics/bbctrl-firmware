@@ -6,18 +6,19 @@ STYLUS     := $(NODE_MODS)/stylus/bin/stylus
 AP         := $(NODE_MODS)/autoprefixer/autoprefixer
 BROWSERIFY := $(NODE_MODS)/browserify/bin/cmd.js
 
+TARGET    := build/http
 HTML      := index
-HTML      := $(patsubst %,http/%.html,$(HTML))
+HTML      := $(patsubst %,$(TARGET)/%.html,$(HTML))
 CSS       := $(wildcard src/stylus/*.styl)
 CSS_ASSETS := build/css/style.css
 JS        := $(wildcard src/js/*.js)
-JS_ASSETS := http/js/assets.js
+JS_ASSETS := $(TARGET)/js/assets.js
 STATIC    := $(shell find src/resources -type f)
-STATIC    := $(patsubst src/resources/%,http/%,$(STATIC))
+STATIC    := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
 TEMPLS    := $(wildcard src/jade/templates/*.jade)
 
 ifndef DEST
-DEST=bbctrl/
+DEST=mnt/
 endif
 
 WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
@@ -25,7 +26,7 @@ WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 all: html css js static
 
 copy: all
-	cp -r *.py inevent http/ $(DEST)
+	cp -r *.py inevent $(TARGET)/ $(DEST)
 
 mount:
 	mkdir -p $(DEST)
@@ -37,10 +38,10 @@ umount:
 html: templates $(HTML)
 
 css: $(CSS_ASSETS) $(CSS_ASSETS).sha256
-	install -D $< http/css/style-$(shell cat $(CSS_ASSETS).sha256).css
+	install -D $< $(TARGET)/css/style-$(shell cat $(CSS_ASSETS).sha256).css
 
 js: $(JS_ASSETS) $(JS_ASSETS).sha256
-	install -D $< http/js/assets-$(shell cat $(JS_ASSETS).sha256).js
+	install -D $< $(TARGET)/js/assets-$(shell cat $(JS_ASSETS).sha256).js
 
 static: $(STATIC)
 
@@ -54,7 +55,7 @@ build/hashes.jade: $(CSS_ASSETS).sha256 $(JS_ASSETS).sha256
 	echo "- var css_hash = '$(shell cat $(CSS_ASSETS).sha256)'" > $@
 	echo "- var js_hash = '$(shell cat $(JS_ASSETS).sha256)'" >> $@
 
-http/index.html: build/templates.jade build/hashes.jade
+$(TARGET)/index.html: build/templates.jade build/hashes.jade
 
 $(JS_ASSETS): $(JS) node_modules
 	@mkdir -p $(shell dirname $@)
@@ -68,12 +69,12 @@ node_modules:
 	mkdir -p $(shell dirname $@)
 	sha256sum $< | sed 's/^\([a-f0-9]\+\) .*$$/\1/' > $@
 
-http/%: src/resources/%
+$(TARGET)/%: src/resources/%
 	install -D $< $@
 
-http/%.html: src/jade/%.jade $(wildcard src/jade/*.jade) node_modules
+$(TARGET)/%.html: src/jade/%.jade $(wildcard src/jade/*.jade) node_modules
 	@mkdir -p $(shell dirname $@)
-	$(JADE) -P $< -o http || (rm -f $@; exit 1)
+	$(JADE) -P $< -o $(TARGET) || (rm -f $@; exit 1)
 
 build/css/%.css: src/stylus/%.styl node_modules
 	mkdir -p $(shell dirname $@)

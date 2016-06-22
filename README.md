@@ -42,10 +42,10 @@ ssh pi@<ip>
 Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``, but in color.
 
 ## Configure the RPi
-Copy the ``setup_rpi.sh`` script to the RPi and run it as root:
+Copy the ``scripts/setup_rpi.sh`` script to the RPi and run it as root:
 
 ```
-scp setup_rpi.sh pi@<ip>:
+scp scripts/setup_rpi.sh pi@<ip>:
 ssh pi@<ip> sudo ./setup_rpi.sh
 ```
 
@@ -120,3 +120,6 @@ You should see a prompt.
 ```
 avrdude -c avrispmkII -p ATxmega128A3U -P usb -U flash:w:tinyg.hex:i
 ```
+
+
+## Setup Python Development

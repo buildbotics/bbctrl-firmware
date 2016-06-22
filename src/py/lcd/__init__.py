@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
-import smbus
+try:
+    import smbus
+except:
+    import smbus2 as smbus
+
 import time
 
 
@@ -60,7 +64,12 @@ class LCD:
         self.height = height
         self.width = width
 
-        self.bus = smbus.SMBus(port)
+        try:
+            self.bus = smbus.SMBus(port)
+        except FileNotFoundError as e:
+            self.bus = None
+            print('Failed to open LCD device:', e)
+
         self.backlight = True
 
         self.reset()
@@ -75,6 +84,8 @@ class LCD:
 
 
     def write_i2c(self, data):
+        if self.bus is None: return
+
         if self.backlight: data |= BACKLIGHT_BIT
 
         self.bus.write_byte(self.addr, data)

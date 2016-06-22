@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
 
-## Change this to match your local settings
-SERIAL_PORT = '/dev/ttyAMA0'
-SERIAL_BAUDRATE = 115200
-HTTP_PORT = 8080
-HTTP_ADDR = '0.0.0.0'
-
 import os
 import sys
 import signal
@@ -17,6 +11,9 @@ import multiprocessing
 import time
 import select
 import atexit
+import argparse
+
+from pkg_resources import Requirement, resource_filename
 
 import lcd
 import inevent
@@ -34,16 +31,15 @@ config = {
     "verbose": False
     }
 
-
-with open('http/config-template.json', 'r', encoding = 'utf-8') as f:
-    config_template = json.load(f)
-
-
 state = {}
 clients = []
 
 input_queue = multiprocessing.Queue()
 output_queue = multiprocessing.Queue()
+
+
+def get_resource(path):
+    return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
 
 
 def on_exit(sig, func = None):
@@ -193,11 +189,11 @@ class FileHandler(APIHandler):
 
 
 class SerialProcess(multiprocessing.Process):
-    def __init__(self, input_queue, output_queue):
+    def __init__(self, port, baud, input_queue, output_queue):
         multiprocessing.Process.__init__(self)
         self.input_queue = input_queue
         self.output_queue = output_queue
-        self.sp = serial.Serial(SERIAL_PORT, SERIAL_BAUDRATE, timeout = 1)
+        self.sp = serial.Serial(port, baud, timeout = 1)
         self.input_queue.put('\n')
 
 
@@ -319,44 +315,88 @@ def checkEvents():
 eventProcessor = inevent.InEvent(types = "js kbd".split())
 eventHandler = JogHandler(config)
 
-screen = lcd.LCD(1, 0x27)
 
-
-def splash():
+def splash(screen):
     screen.clear()
     screen.display(0, 'Buildbotics', lcd.JUSTIFY_CENTER)
     screen.display(1, 'Controller', lcd.JUSTIFY_CENTER)
     screen.display(3, '*Ready*', lcd.JUSTIFY_CENTER)
 
 
-def goodbye():
+def goodbye(screen):
     screen.clear()
     screen.display(1, 'Goodbye', lcd.JUSTIFY_CENTER)
 
 
-if __name__ == "__main__":
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description = 'Buildbotics Machine Controller')
+
+    parser.add_argument('-p', '--port', default = 80,
+                        type = int, help = 'HTTP port')
+    parser.add_argument('-a', '--addr', metavar = 'IP', default = '0.0.0.0',
+                        help = 'HTTP address to bind')
+    parser.add_argument('-s', '--serial', default = '/dev/ttyAMA0',
+                        help = 'Serial device')
+    parser.add_argument('-b', '--baud', default = 115200, type = int,
+                        help = 'Serial baud rate')
+    parser.add_argument('--lcd-port', default = 1, type = int,
+                        help = 'LCD I2C port')
+    parser.add_argument('--lcd-addr', default = 0x27, type = int,
+                        help = 'LCD I2C address')
+    parser.add_argument('-v', '--verbose', action = 'store_true',
+                        help = 'Verbose output')
+
+    return parser.parse_args()
+
+
+def run():
+    # Set signal handler
     signal.signal(signal.SIGTERM, on_exit)
 
+    global args
+    args = parse_args()
+
+    # Load config template
+    global config_template
+    with open(get_resource('http/config-template.json'), 'r',
+              encoding = 'utf-8') as f:
+        config_template = json.load(f)
+
+    # Init logging
     import logging
     logging.getLogger().setLevel(logging.DEBUG)
 
     # Start the serial worker
     try:
-        sp = SerialProcess(input_queue, output_queue)
+        sp = SerialProcess(args.serial, args.baud, input_queue, output_queue)
         sp.daemon = True
         sp.start()
     except Exception as e:
-        print(e)
+        print('Failed to open serial port:', e)
 
     # Adjust the interval according to frames sent by serial port
     ioloop.PeriodicCallback(checkQueue, 100).start()
     ioloop.PeriodicCallback(checkEvents, 100).start()
 
-    splash()
-    atexit.register(goodbye)
+    # Setup LCD
+    global screen
+    screen = lcd.LCD(args.lcd_port, args.lcd_addr)
+    splash(screen)
+    atexit.register(goodbye, screen)
 
     # Start the web server
     app = web.Application(router.urls + handlers)
-    app.listen(HTTP_PORT, address = HTTP_ADDR)
-    print('Listening on http://{}:{}/'.format(HTTP_ADDR, HTTP_PORT))
+
+    try:
+        app.listen(args.port, address = args.addr)
+    except Exception as e:
+        print('Failed to bind {}:{}:'.format(args.addr, args.port), e)
+        sys.exit(1)
+
+    print('Listening on http://{}:{}/'.format(args.addr, args.port))
+
     ioloop.IOLoop.instance().start()
+
+
+if __name__ == "__main__": run()
