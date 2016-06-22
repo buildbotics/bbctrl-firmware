@@ -15,6 +15,7 @@ module.exports = {
 
   data: function () {
     return {
+      status: 'connecting',
       mdi: '',
       file: '',
       last_file: '',
@@ -37,40 +38,58 @@ module.exports = {
   events: {
     jog: function (axis, move) {
       console.debug('jog(' + axis + ', ' + move + ')');
-      this.sock.send('g91 g0' + axis + move);
+      this.send('g91 g0' + axis + move);
     },
 
 
     home: function (axis) {
       console.debug('home(' + axis + ')');
-      this.sock.send('$home ' + axis);
+      this.send('$home ' + axis);
     },
 
 
     zero: function (axis) {
       console.debug('zero(' + axis + ')');
-      this.sock.send('$zero ' + axis);
+      this.send('$zero ' + axis);
     }
   },
 
 
   ready: function () {
-    this.sock = new SockJS('//' + window.location.host + '/ws');
-
-    this.sock.onmessage = function (e) {
-      var data = e.data;
-      console.debug('msg: ' + JSON.stringify(data));
-
-      if (typeof data == 'object')
-        for (var key in data)
-          this.$set('state.' + key, data[key]);
-    }.bind(this);
-
+    this.connect();
     this.update();
   },
 
 
   methods: {
+    connect: function () {
+      this.sock = new SockJS('//' + window.location.host + '/ws');
+
+      this.sock.onmessage = function (e) {
+        var data = e.data;
+        console.debug('msg: ' + JSON.stringify(data));
+
+        if (typeof data == 'object')
+          for (var key in data)
+            this.$set('state.' + key, data[key]);
+      }.bind(this);
+
+      this.sock.onopen = function (e) {
+        this.status = 'connected';
+      }.bind(this);
+
+      this.sock.onclose = function (e) {
+        this.status = 'disconnected';
+        setTimeout(this.connect, 2000);
+      }.bind(this);
+    },
+
+
+    send: function (msg) {
+      if (this.status == 'connected') this.sock.send(msg);
+    },
+
+
     enabled: function (axis) {
       var axis = axis.toLowerCase();
       return axis in this.config.axes &&
@@ -97,7 +116,7 @@ module.exports = {
 
 
     submit_mdi: function () {
-      this.sock.send(this.mdi);
+      this.send(this.mdi);
     },
 
 
@@ -154,18 +173,13 @@ module.exports = {
     },
 
 
-    send: function (data) {
-      this.sock.send(JSON.stringify(data));
-    },
-
-
     current: function (axis, value) {
       var x = value / 32.0;
       if (this.state[axis + 'pl'] == x) return;
 
       var data = {};
       data[axis + 'pl'] = x;
-      this.send(data);
+      this.send(JSON.stringify(data));
     },
 
 
@@ -177,7 +191,7 @@ module.exports = {
 
 
     home: function () {
-      this.sock.send('$calibrate');
+      this.send('$calibrate');
     }
   },
 

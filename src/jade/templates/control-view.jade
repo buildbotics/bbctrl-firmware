@@ -1,4 +1,6 @@
 script#control-view-template(type="text/x-template")
+  .status(:class="status") {{status}}
+
   #control
     .jog
       axis-control(axes="XY", :colors="['red', 'green']",
