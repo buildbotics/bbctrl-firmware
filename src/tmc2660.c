@@ -391,14 +391,12 @@ stat_t tmc2660_sync() {
 
 
 void tmc2660_enable(int driver) {
-  printf("Enable %d\n", driver);
   tmc2660_reset(driver);
   _set_current(driver, drivers[driver].drive_current);
 }
 
 
 void tmc2660_disable(int driver) {
-  printf("Disable %d\n", driver);
   _set_current(driver, drivers[driver].idle_current);
 }
 

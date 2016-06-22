@@ -143,7 +143,8 @@ static void _init() {
 
   sei(); // enable interrupts
 
-  fprintf_P(stderr, PSTR("\nBuildbotics firmware\n"));
+  fprintf_P(stderr, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
+                         "\"version\": \"" VERSION "\"}\n"));
 }
 
 

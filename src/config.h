@@ -29,6 +29,7 @@
 
 #include <avr/interrupt.h>
 
+#define VERSION "0.3.0"
 
 // Compile-time settings
 //#define __STEP_CORRECTION
