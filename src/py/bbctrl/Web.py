@@ -114,17 +114,31 @@ class FileHandler(APIHandler):
 
 
 class Connection(sockjs.tornado.SockJSConnection):
+    def heartbeat(self):
+        self.timer = self.app.ioloop.call_later(3, self.heartbeat)
+        self.send_json({'heartbeat': self.count})
+        self.count += 1
+
+
+    def send_json(self, data):
+        self.send(str.encode(json.dumps(data)))
+
+
     def on_open(self, info):
-        self.session.server.app.clients.append(self)
-        self.send(str.encode(json.dumps(self.session.server.app.state)))
+        self.app = self.session.server.app
+        self.timer = self.app.ioloop.call_later(3, self.heartbeat)
+        self.count = 0;
+        self.app.clients.append(self)
+        self.send_json(self.session.server.app.state)
 
 
     def on_close(self):
-        self.session.server.app.clients.remove(self)
+        self.app.ioloop.remove_timeout(self.timer)
+        self.app.clients.remove(self)
 
 
     def on_message(self, data):
-        self.session.server.app.input_queue.put(data + '\n')
+        self.app.input_queue.put(data + '\n')
 
 
 
@@ -135,7 +149,7 @@ class Web(tornado.web.Application):
                   encoding = 'utf-8') as f:
             self.config_template = json.load(f)
 
-
+        self.ioloop = ioloop
         self.state = {}
         self.clients = []
 

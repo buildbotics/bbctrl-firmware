@@ -1,6 +1,7 @@
 'use strict'
 
 var api = require('./api');
+var Sock = require('./sock');
 
 
 function is_array(x) {
@@ -63,11 +64,10 @@ module.exports = {
 
   methods: {
     connect: function () {
-      this.sock = new SockJS('//' + window.location.host + '/ws');
+      this.sock = new Sock('//' + window.location.host + '/ws');
 
       this.sock.onmessage = function (e) {
         var data = e.data;
-        console.debug('msg: ' + JSON.stringify(data));
 
         if (typeof data == 'object')
           for (var key in data)
@@ -80,7 +80,6 @@ module.exports = {
 
       this.sock.onclose = function (e) {
         this.status = 'disconnected';
-        setTimeout(this.connect, 2000);
       }.bind(this);
     },
 
