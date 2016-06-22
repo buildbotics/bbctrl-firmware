@@ -25,6 +25,8 @@ html(lang="en")
 
 
   body(v-cloak)
+    #overlay(v-if="status != 'connected'")
+      span {{status}}
     #layout
       a#menuLink.menu-link(href="#menu"): span
 

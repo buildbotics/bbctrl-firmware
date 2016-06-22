@@ -1,6 +1,7 @@
 'use strict'
 
 var api = require('./api');
+var Sock = require('./sock');
 
 
 module.exports = new Vue({
@@ -9,6 +10,7 @@ module.exports = new Vue({
 
   data: function () {
     return {
+      status: 'connecting',
       currentView: 'loading',
       index: -1,
       modified: false,
@@ -31,11 +33,14 @@ module.exports = new Vue({
 
 
   events: {
-    'config-changed': function () {this.modified = true;}
+    'config-changed': function () {this.modified = true;},
+    'send': function (msg) {if (this.status == 'connected') this.sock.send(msg)}
   },
 
 
   ready: function () {
+    this.connect();
+
     $.get('/config-template.json').success(function (data, status, xhr) {
       this.template = data;
 
@@ -50,6 +55,25 @@ module.exports = new Vue({
 
 
   methods: {
+    connect: function () {
+      this.sock = new Sock('//' + window.location.host + '/ws');
+
+      this.sock.onmessage = function (e) {
+        this.$broadcast('message', e.data);
+      }.bind(this);
+
+      this.sock.onopen = function (e) {
+        this.status = 'connected';
+        this.$broadcast(this.status);
+      }.bind(this);
+
+      this.sock.onclose = function (e) {
+        this.status = 'disconnected';
+        this.$broadcast(this.status);
+      }.bind(this);
+    },
+
+
     parse_hash: function () {
       var hash = location.hash.substr(1);
 

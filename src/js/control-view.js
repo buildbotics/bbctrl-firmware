@@ -1,7 +1,6 @@
 'use strict'
 
 var api = require('./api');
-var Sock = require('./sock');
 
 
 function is_array(x) {
@@ -16,7 +15,6 @@ module.exports = {
 
   data: function () {
     return {
-      status: 'connecting',
       mdi: '',
       file: '',
       last_file: '',
@@ -52,40 +50,25 @@ module.exports = {
     zero: function (axis) {
       console.debug('zero(' + axis + ')');
       this.send('$zero ' + axis);
+    },
+
+
+    message: function (data) {
+      if (typeof data == 'object')
+        for (var key in data)
+          this.$set('state.' + key, data[key]);
     }
   },
 
 
   ready: function () {
-    this.connect();
     this.update();
   },
 
 
   methods: {
-    connect: function () {
-      this.sock = new Sock('//' + window.location.host + '/ws');
-
-      this.sock.onmessage = function (e) {
-        var data = e.data;
-
-        if (typeof data == 'object')
-          for (var key in data)
-            this.$set('state.' + key, data[key]);
-      }.bind(this);
-
-      this.sock.onopen = function (e) {
-        this.status = 'connected';
-      }.bind(this);
-
-      this.sock.onclose = function (e) {
-        this.status = 'disconnected';
-      }.bind(this);
-    },
-
-
     send: function (msg) {
-      if (this.status == 'connected') this.sock.send(msg);
+      this.$dispatch('send', msg);
     },
 
 
