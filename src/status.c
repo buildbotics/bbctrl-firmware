@@ -31,12 +31,12 @@
 
 stat_t status_code; // allocate a variable for the ritorno macro
 
-#define MSG(N, TEXT) static const char stat_##N[] PROGMEM = TEXT;
+#define MSG(NAME, TEXT) static const char stat_##NAME[] PROGMEM = TEXT;
 #include "messages.def"
 #undef MSG
 
 static const char *const stat_msg[] PROGMEM = {
-#define MSG(N, TEXT) stat_##N,
+#define MSG(NAME, TEXT) stat_##NAME,
 #include "messages.def"
 #undef MSG
 };
@@ -47,8 +47,20 @@ const char *status_to_pgmstr(stat_t status) {
 }
 
 
-/// Return the status message
-void status_error_P(const char *location, const char *msg, stat_t status) {
-  printf_P(PSTR("\nERROR: %S: %S: %S (%d)\n"),
-           msg, location, status_to_pgmstr(status), status);
+stat_t status_error(stat_t status) {
+  return status_error_P(0, 0, status);
+}
+
+
+stat_t status_error_P(const char *location, const char *msg, stat_t status) {
+  printf_P(PSTR("\n{\"error\": %d, \"code\": %d"),
+           status_to_pgmstr(status), status);
+
+  if (msg) printf_P(PSTR(", \"msg\": %S"), msg);
+  if (location) printf_P(PSTR(", \"location\": %S"), location);
+
+  putchar('}');
+  putchar('\n');
+
+  return status;
 }

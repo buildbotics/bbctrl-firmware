@@ -25,56 +25,61 @@
 
 \******************************************************************************/
 
-// Must keep these aligned with defs in status.h
+// OS, communications and low-level status
+MSG(OK, "OK")
+MSG(EAGAIN, "Run command again")
+MSG(NOOP, "No op")
+MSG(COMPLETE, "Complete")
+MSG(NO_SUCH_DEVICE, "No such device")
+MSG(BUFFER_FULL, "Buffer full")
+MSG(BUFFER_FULL_FATAL, "Buffer full - fatal")
+MSG(EEPROM_DATA_INVALID, "EEPROM data invalid")
+MSG(MOTOR_ERROR, "Motor error")
+MSG(INTERNAL_ERROR, "Internal error")
 
-MSG(00, "OK")
-MSG(01, "Eagain")
-MSG(02, "Noop")
-MSG(03, "Complete")
-MSG(04, "No such device")
-MSG(05, "Buffer full")
-MSG(06, "Buffer full - fatal")
-MSG(07, "EEPROM data invalid")
-MSG(08, "Motor error")
-MSG(09, "Internal error")
+MSG(PREP_LINE_MOVE_TIME_IS_INFINITE, "Move time is infinite")
+MSG(PREP_LINE_MOVE_TIME_IS_NAN, "Move time is NAN")
 
-MSG(10, "Move time is infinite")
-MSG(11, "Move time is NAN")
+// Generic data input errors
+MSG(UNRECOGNIZED_NAME, "Unrecognized command or config name")
+MSG(INVALID_OR_MALFORMED_COMMAND, "Invalid or malformed command")
+MSG(BAD_NUMBER_FORMAT, "Bad number format")
+MSG(PARAMETER_IS_READ_ONLY, "Parameter is read-only")
+MSG(PARAMETER_CANNOT_BE_READ, "Parameter cannot be read")
+MSG(COMMAND_NOT_ACCEPTED, "Command not accepted at this time")
+MSG(INPUT_EXCEEDS_MAX_LENGTH, "Input exceeds max length")
+MSG(INPUT_LESS_THAN_MIN_VALUE, "Input less than minimum value")
+MSG(INPUT_EXCEEDS_MAX_VALUE, "Input exceeds maximum value")
+MSG(INPUT_VALUE_RANGE_ERROR, "Input value range error")
 
-MSG(12, "Unrecognized command or config name")
-MSG(13, "Invalid or malformed command")
-MSG(14, "Bad number format")
-MSG(15, "Parameter is read-only")
-MSG(16, "Parameter cannot be read")
-MSG(17, "Command not accepted at this time")
-MSG(18, "Input exceeds max length")
-MSG(19, "Input less than minimum value")
-MSG(20, "Input exceeds maximum value")
-MSG(21, "Input value range error")
+// Gcode errors & warnings (Most originate from NIST)
+MSG(GCODE_COMMAND_UNSUPPORTED, "Gcode command unsupported")
+MSG(MCODE_COMMAND_UNSUPPORTED, "M code unsupported")
+MSG(GCODE_AXIS_IS_MISSING, "Axis word missing")
+MSG(GCODE_FEEDRATE_NOT_SPECIFIED, "Feedrate not specified")
+MSG(ARC_SPECIFICATION_ERROR, "Arc specification error")
+MSG(ARC_AXIS_MISSING_FOR_SELECTED_PLANE, "Arc missing axis")
+MSG(ARC_RADIUS_OUT_OF_TOLERANCE, "Arc radius arc out of tolerance")
+MSG(ARC_ENDPOINT_IS_STARTING_POINT, "Arc endpoint is starting point")
 
-MSG(22, "Gcode command unsupported")
-MSG(23, "M code unsupported")
-MSG(24, "Axis word missing")
-MSG(25, "Feedrate not specified")
-MSG(26, "Arc specification error")
-MSG(27, "Arc specification error - missing axis")
-// current longest message: 56 char
-MSG(28, "Arc specification error - radius arc out of tolerance")
-MSG(29, "Arc specification error - endpoint is starting point")
+// Errors and warnings
+MSG(MINIMUM_LENGTH_MOVE, "Move less than minimum length")
+MSG(MINIMUM_TIME_MOVE, "Move less than minimum time")
+MSG(MACHINE_ALARMED, "Machine is alarmed - Command not processed")
+MSG(LIMIT_SWITCH_HIT, "Limit switch hit - Shutdown occurred")
+MSG(SOFT_LIMIT_EXCEEDED, "Soft limit exceeded")
 
-MSG(30, "Move less than minimum length")
-MSG(31, "Move less than minimum time")
-MSG(32, "Machine is alarmed - Command not processed")
-MSG(33, "Limit switch hit - Shutdown occurred")
+// Homing
+MSG(HOMING_CYCLE_FAILED, "Homing cycle failed")
+MSG(HOMING_ERROR_BAD_OR_NO_AXIS, "Homing Error - Bad or no axis specified")
+MSG(HOMING_ERROR_ZERO_SEARCH_VELOCITY, "Homing Error - Search velocity is zero")
+MSG(HOMING_ERROR_ZERO_LATCH_VELOCITY, "Homing Error - Latch velocity is zero")
+MSG(HOMING_ERROR_TRAVEL_MIN_MAX_IDENTICAL,
+    "Homing Error - Travel min & max are the same")
+MSG(HOMING_ERROR_NEGATIVE_LATCH_BACKOFF,
+    "Homing Error - Negative latch backoff")
+MSG(HOMING_ERROR_SWITCH_MISCONFIGURATION,
+    "Homing Error - Homing switches misconfigured")
 
-MSG(34, "Soft limit exceeded")
-
-MSG(35, "Homing cycle failed")
-MSG(36, "Homing Error - Bad or no axis specified")
-MSG(37, "Homing Error - Search velocity is zero")
-MSG(38, "Homing Error - Latch velocity is zero")
-MSG(39, "Homing Error - Travel min & max are the same")
-MSG(40, "Homing Error - Negative latch backoff")
-MSG(41, "Homing Error - Homing switches misconfigured")
-
-MSG(42, "Probe cycle failed")
+// Probing
+MSG(PROBE_CYCLE_FAILED, "Probe cycle failed")
