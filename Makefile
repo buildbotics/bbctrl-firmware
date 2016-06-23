@@ -19,7 +19,7 @@ TEMPLS    := $(wildcard src/jade/templates/*.jade)
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
-RSYNC_OPTS := $(RSYNC_EXCLUDE) -rLv --no-g
+RSYNC_OPTS := $(RSYNC_EXCLUDE) -rLv --no-g --delete --force
 
 ifndef DEST
 DEST=mnt
@@ -44,9 +44,11 @@ umount:
 html: templates $(HTML)
 
 css: $(CSS_ASSETS) $(CSS_ASSETS).sha256
+	rm -f $(TARGET)/css/style-*.css
 	install -D $< $(TARGET)/css/style-$(shell cat $(CSS_ASSETS).sha256).css
 
 js: $(JS_ASSETS) $(JS_ASSETS).sha256
+	rm -f $(TARGET)/js/assets-*.js
 	install -D $< $(TARGET)/js/assets-$(shell cat $(JS_ASSETS).sha256).js
 
 static: $(STATIC)

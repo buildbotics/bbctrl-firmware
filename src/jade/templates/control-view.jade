@@ -54,8 +54,8 @@ script#control-view-template(type="text/x-template")
           td.position {{state.#{axis}p || 0 | fixed 4}}
           td.offset {{state.#{axis}o || 0 | fixed 4}}
           td.errors
-            .fa.fa-hot(v-if="state.#{axis}t", title="Driver overtemp")
-            .fa.fa-ban(v-if="state.#{axis}s", title="Motor stalled")
+            .fa.fa-hot(v-if="state.#{axis}t", title="Driver overtemp.")
+            .fa.fa-ban(v-if="state.#{axis}s", title="Motor stalled.")
           th.actions
             button.pure-button(title="Zero #{axis} axis.",
               @click="zero('#{axis}')")
@@ -69,52 +69,61 @@ script#control-view-template(type="text/x-template")
       | Override:
       .override
         label Feed
-        input(type="range", min="-1", max="1", step="0.01",
-          v-model="feed_override", @change="override_feed")
+        input(title="Feed rate override.", type="range", min="-1", max="1",
+          step="0.01", v-model="feed_override", @change="override_feed")
         span.percent {{feed_override | percent 0}}
 
       .override
-        label Spindle
-        input(type="range", min="-1", max="1", step="0.01",
-          v-model="speed_override", @change="override_speed")
+        label Speed
+        input(title="Speed override.", type="range", min="-1", max="1",
+          step="0.01", v-model="speed_override", @change="override_speed")
         span.percent {{speed_override | percent 0}}
 
 
     .mdi.pure-form
       fieldset
         button.pure-button.pure-button-primary(
-          @click="submit_mdi", :disabled="running") MDI
+          title="Manually execute instructions.", @click="submit_mdi",
+          :disabled="running") MDI
         input(v-model="mdi", @keyup.enter="submit_mdi")
 
 
     .toolbar
-      button.pure-button(@click="home", :disabled="running")
+      button.pure-button(title="Home the machine.", @click="home",
+        :disabled="running")
         .fa.fa-home
 
-      button.pure-button(@click="play_pause()", :disabled="!file")
+      button.pure-button(title="{{running ? 'Pause' : 'Start'}} program.",
+        @click="play_pause()", :disabled="!file")
         .fa(:class="running ? 'fa-pause' : 'fa-play'")
 
-      button.pure-button(@click="stop", :disabled="!running")
+      button.pure-button(title="Stop program.", @click="stop",
+        :disabled="!running")
         .fa.fa-stop
 
-      button.pure-button(@click="optional_stop", :disabled="!file")
+      button.pure-button(title="Pause program at next optional stop (M1).",
+        @click="optional_stop", :disabled="!file")
         .fa.fa-stop-circle-o
 
-      button.pure-button(@click="step", :disabled="running || !file")
+      button.pure-button(title="Execute one program step.", @click="step",
+        :disabled="running || !file")
         .fa.fa-step-forward
 
       .spacer
 
-      button.pure-button(@click="open", :disabled="running")
+      button.pure-button(title="Upload a new program file.", @click="open",
+        :disabled="running")
         .fa.fa-folder-open
 
       input.gcode-file-input(type="file", @change="upload",
         style="display:none", accept=".nc,.gcode,.gc,.ngc")
 
-      button.pure-button(@click="delete", :disabled="!file")
+      button.pure-button(title="Delete current program file.", @click="delete",
+        :disabled="!file")
         .fa.fa-trash
 
-      select(v-model="file", @change="load", :disabled="running")
+      select(title="Select previously uploaded program files.", v-model="file",
+        @change="load", :disabled="running")
         option(v-for="file in files", :value="file") {{file}}
 
 

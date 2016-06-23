@@ -12,35 +12,8 @@ import bbctrl
 log = logging.getLogger('Web')
 
 
-class APIHandler(tornado.web.RequestHandler):
-    def prepare(self):
-        self.json = {}
 
-        if self.request.body:
-            try:
-                self.json = tornado.escape.json_decode(self.request.body)
-            except ValueError:
-                self.send_error(400, message = 'Unable to parse JSON.')
-
-
-    def set_default_headers(self):
-        self.set_header('Content-Type', 'application/json')
-
-
-    def write_error(self, status_code, **kwargs):
-        e = {}
-        e['message'] = str(kwargs['exc_info'][1])
-        e['code'] = status_code
-
-        self.write_json(e)
-
-
-    def write_json(self, data):
-        self.write(json.dumps(data))
-
-
-
-class LoadHandler(APIHandler):
+class LoadHandler(bbctrl.APIHandler):
     def send_file(self, path):
         with open(path, 'r') as f:
             self.write_json(json.load(f))
@@ -55,60 +28,13 @@ class LoadHandler(APIHandler):
 
 
 
-class SaveHandler(APIHandler):
+class SaveHandler(bbctrl.APIHandler):
     def post(self):
         with open('config.json', 'w') as f:
             json.dump(self.json, f)
 
         self.application.update_config(self.json)
         log.info('Saved config')
-        self.write_json('ok')
-
-
-
-class FileHandler(APIHandler):
-    def prepare(self): pass
-
-
-    def delete(self, path):
-        path = 'upload' + path
-        if os.path.exists(path): os.unlink(path)
-        self.write_json('ok')
-
-
-    def put(self, path):
-        path = 'upload' + path
-        if not os.path.exists(path): return
-
-        with open(path, 'r') as f:
-            for line in f:
-                self.application.input_queue.put(line)
-
-
-    def get(self, path):
-        if path:
-            with open('upload/' + path, 'r') as f:
-                self.write_json(f.read())
-            return
-
-        files = []
-
-        if os.path.exists('upload'):
-            for path in os.listdir('upload'):
-                if os.path.isfile('upload/' + path):
-                    files.append(path)
-
-        self.write_json(files)
-
-
-    def post(self, path):
-        gcode = self.request.files['gcode'][0]
-
-        if not os.path.exists('upload'): os.mkdir('upload')
-
-        with open('upload/' + gcode['filename'], 'wb') as f:
-            f.write(gcode['body'])
-
         self.write_json('ok')
 
 
@@ -163,7 +89,7 @@ class Web(tornado.web.Application):
         handlers = [
             (r'/api/load', LoadHandler),
             (r'/api/save', SaveHandler),
-            (r'/api/file(/.*)?', FileHandler),
+            (r'/api/file(/.*)?', bbctrl.FileHandler),
             (r'/(.*)', tornado.web.StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),

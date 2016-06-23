@@ -9,6 +9,8 @@ import logging
 
 from pkg_resources import Requirement, resource_filename
 
+from bbctrl.APIHandler import APIHandler
+from bbctrl.FileHandler import FileHandler
 from bbctrl.LCD import LCD
 from bbctrl.AVR import AVR
 from bbctrl.Web import Web

@@ -58,7 +58,6 @@ module.exports = new Vue({
 
         api.get('load').done(function (data) {
           this.config = data;
-
           this.parse_hash();
         }.bind(this))
       }.bind(this))
