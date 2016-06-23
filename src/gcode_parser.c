@@ -249,7 +249,7 @@ static stat_t _execute_gcode_block() {
   EXEC_FUNC(cm_override_enables, override_enables);
 
   if (cm.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
-    ritorno(cm_dwell(cm.gn.parameter));
+    RITORNO(cm_dwell(cm.gn.parameter));
 
   EXEC_FUNC(cm_set_plane, select_plane);
   EXEC_FUNC(cm_set_units_mode, units_mode);
@@ -517,7 +517,7 @@ static stat_t _parse_gcode_block(char *buf) {
   }
 
   if (status != STAT_OK && status != STAT_COMPLETE) return status;
-  ritorno(_validate_gcode_block());
+  RITORNO(_validate_gcode_block());
 
   return _execute_gcode_block();        // if successful execute the block
 }

@@ -347,7 +347,7 @@ static stat_t _homing_axis_move(int8_t axis, float target, float velocity) {
   cm.gm.feed_rate = velocity;
   mp_flush_planner(); // don't use cm_request_queue_flush() here
   cm_request_cycle_start();
-  ritorno(cm_straight_feed(vect, flags));
+  RITORNO(cm_straight_feed(vect, flags));
 
   return STAT_EAGAIN;
 }

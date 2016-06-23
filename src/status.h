@@ -30,9 +30,9 @@
 #include <avr/pgmspace.h>
 
 
-// ritorno is a handy way to provide exception returns
+// RITORNO is a handy way to provide exception returns
 // It returns only if an error occurred. (ritorno is Italian for return)
-#define ritorno(a) if ((status_code = a) != STAT_OK) {return status_code;}
+#define RITORNO(a) if ((status_code = a) != STAT_OK) {return status_code;}
 
 typedef enum {
 #define STAT_MSG(NAME, TEXT) STAT_##NAME,

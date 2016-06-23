@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 
-stat_t status_code; // allocate a variable for the ritorno macro
+stat_t status_code; // allocate a variable for the RITORNO macro
 
 #define STAT_MSG(NAME, TEXT) static const char stat_##NAME[] PROGMEM = TEXT;
 #include "messages.def"

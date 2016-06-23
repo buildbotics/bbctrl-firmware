@@ -105,7 +105,7 @@ static stat_t _exec_aline_segment() {
     travel_steps[i] = mr.target_steps[i] - mr.position_steps[i];
 
   // Call the stepper prep function
-  ritorno(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
+  RITORNO(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
 
   // update position from target
   copy_vector(mr.position, mr.ms.target);

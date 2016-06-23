@@ -198,7 +198,7 @@ static stat_t _probing_start() {
   // initial probe state, don't probe if we're already contacted!
   bool closed = switch_get_active(pb.probe_switch);
 
-  if (!closed) ritorno(cm_straight_feed(pb.target, pb.flags));
+  if (!closed) RITORNO(cm_straight_feed(pb.target, pb.flags));
 
   return _set_pb_func(_probing_finish);
 }

@@ -456,7 +456,7 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
     fp_ZERO(flags[arc.plane_axis_0]) & fp_ZERO(flags[arc.plane_axis_1]);
 
   // compute arc runtime values
-  ritorno(_compute_arc());
+  RITORNO(_compute_arc());
 
   // trap zero length arcs that _compute_arc can throw
   if (fp_ZERO(arc.length)) return STAT_MINIMUM_LENGTH_MOVE;
