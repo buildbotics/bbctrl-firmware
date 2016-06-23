@@ -31,14 +31,14 @@
 
 stat_t status_code; // allocate a variable for the ritorno macro
 
-#define MSG(NAME, TEXT) static const char stat_##NAME[] PROGMEM = TEXT;
+#define STAT_MSG(NAME, TEXT) static const char stat_##NAME[] PROGMEM = TEXT;
 #include "messages.def"
-#undef MSG
+#undef STAT_MSG
 
 static const char *const stat_msg[] PROGMEM = {
-#define MSG(NAME, TEXT) stat_##NAME,
+#define STAT_MSG(NAME, TEXT) stat_##NAME,
 #include "messages.def"
-#undef MSG
+#undef STAT_MSG
 };
 
 

@@ -35,9 +35,9 @@
 #define ritorno(a) if ((status_code = a) != STAT_OK) {return status_code;}
 
 typedef enum {
-#define MSG(NAME, TEXT) STAT_##NAME,
+#define STAT_MSG(NAME, TEXT) STAT_##NAME,
 #include "messages.def"
-#undef MSG
+#undef STAT_MSG
 
   STAT_MAX_VALUE = 255 // Do not exceed 255
 } stat_t;
