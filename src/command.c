@@ -94,8 +94,6 @@ int command_find(const char *match) {
 
 
 int command_exec(int argc, char *argv[]) {
-  stat_t status = STAT_INVALID_OR_MALFORMED_COMMAND;
-
   putchar('\n');
 
   int i = command_find(argv[0]);
@@ -103,23 +101,15 @@ int command_exec(int argc, char *argv[]) {
     uint8_t minArgs = pgm_read_byte(&commands[i].minArgs);
     uint8_t maxArgs = pgm_read_byte(&commands[i].maxArgs);
 
-    if (argc <= minArgs) {
-      printf_P(PSTR("Too few arguments\n"));
-      return status;
-
-    } else if (maxArgs < argc - 1) {
-      printf_P(PSTR("Too many arguments\n"));
-      return status;
-
-    } else {
+    if (argc <= minArgs) return STAT_TOO_FEW_ARGUMENTS;
+    else if (maxArgs < argc - 1) return STAT_TOO_MANY_ARGUMENTS;
+    else {
       command_cb_t cb = pgm_read_word(&commands[i].cb);
       return cb(argc, argv);
     }
 
-  } else if (argc != 1) {
-    printf_P(PSTR("Unknown command '%s' or invalid arguments\n"), argv[0]);
-    return status;
-  }
+  } else if (argc != 1)
+    return STAT_INVALID_OR_MALFORMED_COMMAND;
 
   // Get or set variable
   char *value = strchr(argv[0], '=');
@@ -132,9 +122,7 @@ int command_exec(int argc, char *argv[]) {
     return STAT_OK;
   }
 
-  printf_P(PSTR("Unknown command or variable '%s'\n"), argv[0]);
-
-  return status;
+  return STAT_UNRECOGNIZED_NAME;
 }
 
 
@@ -193,13 +181,10 @@ uint8_t command_help(int argc, char *argv[]) {
   if (argc == 2) {
     int i = command_find(argv[1]);
 
-    if (i == -1) {
-      printf_P(PSTR("Command not found\n"));
-      return STAT_INVALID_OR_MALFORMED_COMMAND;
+    if (i == -1) return STAT_UNRECOGNIZED_NAME;
+    else print_command_help(i);
 
-    } else print_command_help(i);
-
-    return 0;
+    return STAT_OK;
   }
 
   puts_P(PSTR("\nCommands:"));
@@ -213,7 +198,7 @@ uint8_t command_help(int argc, char *argv[]) {
   puts_P(PSTR("\nVariables:"));
   vars_print_help();
 
-  return 0;
+  return STAT_OK;
 }
 
 

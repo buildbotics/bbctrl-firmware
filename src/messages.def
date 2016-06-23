@@ -41,8 +41,10 @@ STAT_MSG(PREP_LINE_MOVE_TIME_IS_INFINITE, "Move time is infinite")
 STAT_MSG(PREP_LINE_MOVE_TIME_IS_NAN, "Move time is NAN")
 
 // Generic data input errors
-STAT_MSG(UNRECOGNIZED_NAME, "Unrecognized command or config name")
+STAT_MSG(UNRECOGNIZED_NAME, "Unrecognized command or variable name")
 STAT_MSG(INVALID_OR_MALFORMED_COMMAND, "Invalid or malformed command")
+STAT_MSG(TOO_MANY_ARGUMENTS, "Too many arguments to command")
+STAT_MSG(TOO_FEW_ARGUMENTS, "Too few arguments to command")
 STAT_MSG(BAD_NUMBER_FORMAT, "Bad number format")
 STAT_MSG(PARAMETER_IS_READ_ONLY, "Parameter is read-only")
 STAT_MSG(PARAMETER_CANNOT_BE_READ, "Parameter cannot be read")

@@ -53,7 +53,7 @@ stat_t status_error(stat_t status) {
 
 
 stat_t status_error_P(const char *location, const char *msg, stat_t status) {
-  printf_P(PSTR("\n{\"error\": %d, \"code\": %d"),
+  printf_P(PSTR("\n{\"error\": \"%S\", \"code\": %d"),
            status_to_pgmstr(status), status);
 
   if (msg) printf_P(PSTR(", \"msg\": %S"), msg);

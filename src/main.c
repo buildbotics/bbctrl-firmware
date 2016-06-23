@@ -81,7 +81,7 @@ static bool _dispatch(stat_t (*func)()) {
   switch (err) {
   case STAT_EAGAIN: return true;
   case STAT_OK: case STAT_NOOP: break;
-  default: printf_P(PSTR("%S\n"), status_to_pgmstr(err));
+  default: status_error(err); break;
   }
 
   return false;
