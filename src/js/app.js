@@ -34,27 +34,37 @@ module.exports = new Vue({
 
   events: {
     'config-changed': function () {this.modified = true;},
-    'send': function (msg) {if (this.status == 'connected') this.sock.send(msg)}
+
+
+    send: function (msg) {
+      if (this.status == 'connected') this.sock.send(msg)
+    },
+
+
+    connected: function () {this.update()}
   },
 
 
   ready: function () {
+    $(window).on('hashchange', this.parse_hash);
     this.connect();
-
-    $.get('/config-template.json').success(function (data, status, xhr) {
-      this.template = data;
-
-      api.get('load').done(function (data) {
-        this.config = data;
-
-        this.parse_hash();
-        $(window).on('hashchange', this.parse_hash);
-     }.bind(this))
-    }.bind(this))
   },
 
 
   methods: {
+    update: function () {
+      $.get('/config-template.json').success(function (data, status, xhr) {
+        this.template = data;
+
+        api.get('load').done(function (data) {
+          this.config = data;
+
+          this.parse_hash();
+        }.bind(this))
+      }.bind(this))
+    },
+
+
     connect: function () {
       this.sock = new Sock('//' + window.location.host + '/ws');
 
@@ -64,6 +74,7 @@ module.exports = new Vue({
 
       this.sock.onopen = function (e) {
         this.status = 'connected';
+        this.$emit(this.status);
         this.$broadcast(this.status);
       }.bind(this);
 
