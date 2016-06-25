@@ -1,8 +1,30 @@
 import json
 import tornado.web
+import tornado.httpclient
 
 
 class APIHandler(tornado.web.RequestHandler):
+    def __init__(self, app, request, **kwargs):
+        super(APIHandler, self).__init__(app, request, **kwargs)
+        self.ctrl = app.ctrl
+
+
+    def delete(self, *args, **kwargs):
+        self.delete_ok(*args, **kwargs)
+        self.write_json('ok')
+
+
+    def delete_ok(self): raise tornado.httpclient.HTTPError(405)
+
+
+    def put(self, *args, **kwargs):
+        self.put_ok(*args, **kwargs)
+        self.write_json('ok')
+
+
+    def put_ok(self): raise tornado.httpclient.HTTPError(405)
+
+
     def prepare(self):
         self.json = {}
 

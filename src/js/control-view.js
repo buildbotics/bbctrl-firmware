@@ -22,8 +22,8 @@ module.exports = {
       axes: 'xyzabc',
       state: {},
       gcode: '',
-      speed_override: 0,
-      feed_override: 0
+      speed_override: 1,
+      feed_override: 1
     }
   },
 
@@ -150,8 +150,34 @@ module.exports = {
     },
 
 
-    run: function (file) {
-      api.put('file/' + file).done(this.update);
+    home: function () {api.put('home').done(this.update)},
+
+
+    start_pause: function () {
+      if (this.running) this.pause();
+      else this.start();
+    },
+
+
+    start: function () {
+      if (!this.file) return;
+      api.put('start/' + this.file).done(this.update);
+    },
+
+
+    pause: function () {api.put('pause').done(this.update)},
+    optional_pause: function () {api.put('pause/optional').done(this.update)},
+    stop: function () {api.put('stop').done(this.update)},
+    step: function () {api.put('step').done(this.update)},
+
+
+    override_feed: function () {
+      api.put('override/feed/' + this.feed_override).done(this.update)
+    },
+
+
+    override_speed: function () {
+      api.put('override/speed/' + this.speed_override).done(this.update)
     },
 
 
@@ -162,18 +188,6 @@ module.exports = {
       var data = {};
       data[axis + 'pl'] = x;
       this.send(JSON.stringify(data));
-    },
-
-
-    override_feed: function () {},
-    override_speed: function () {},
-    step: function () {},
-    stop: function () {},
-    optional_stop: function () {},
-
-
-    home: function () {
-      this.send('$calibrate');
     }
   },
 

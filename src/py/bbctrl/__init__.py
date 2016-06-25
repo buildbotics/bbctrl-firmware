@@ -11,10 +11,12 @@ from pkg_resources import Requirement, resource_filename
 
 from bbctrl.APIHandler import APIHandler
 from bbctrl.FileHandler import FileHandler
+from bbctrl.Config import Config
 from bbctrl.LCD import LCD
 from bbctrl.AVR import AVR
 from bbctrl.Web import Web
 from bbctrl.Jog import Jog
+from bbctrl.Ctrl import Ctrl
 
 
 def get_resource(path):
@@ -64,17 +66,8 @@ def run():
     # Create ioloop
     ioloop = tornado.ioloop.IOLoop.current()
 
-    # Start the web server
-    app = Web(args.addr, args.port, ioloop)
-
-    # Start AVR driver
-    avr = AVR(args.serial, args.baud, ioloop, app)
-
-    # Start job input controler
-    jog = Jog(args, ioloop)
-
-    # Start LCD driver
-    lcd = LCD(args.lcd_port, args.lcd_addr)
+    # Start controller
+    ctrl = Ctrl(args, ioloop)
 
     try:
         ioloop.start()

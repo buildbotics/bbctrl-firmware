@@ -101,7 +101,7 @@ module.exports = new Vue({
 
 
     save: function () {
-      api.post('save', this.config).done(function (data) {
+      api.put('save', this.config).done(function (data) {
         this.modified = false;
       }.bind(this)).fail(function (xhr, status) {
         alert('Save failed: ' + status + ': ' + xhr.responseText);

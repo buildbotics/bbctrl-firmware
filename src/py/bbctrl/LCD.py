@@ -3,8 +3,8 @@ import atexit
 
 
 class LCD:
-    def __init__(self, port, addr):
-        self.lcd = lcd.LCD(port, addr)
+    def __init__(self, ctrl):
+        self.lcd = lcd.LCD(ctrl.args.lcd_port, ctrl.args.lcd_addr)
         self.splash()
         atexit.register(self.goodbye)
 

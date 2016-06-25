@@ -53,7 +53,7 @@ module.exports = {
       data: data
     }, config);
 
-    return api_cb('POST', url, undefined, config);
+    return api_cb('PUT', url, undefined, config);
   },
 
 

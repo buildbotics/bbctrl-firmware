@@ -4,7 +4,7 @@ from inevent.Constants import *
 
 # Listen for input events
 class Jog(inevent.JogHandler):
-    def __init__(self, args, ioloop):
+    def __init__(self, ctrl):
         config = {
             "deadband": 0.1,
             "axes": [ABS_X, ABS_Y, ABS_RZ, ABS_Z],
@@ -18,7 +18,8 @@ class Jog(inevent.JogHandler):
         self.v = [0.0] * 4
         self.lastV = self.v
 
-        self.processor = inevent.InEvent(ioloop, self, types = "js kbd".split())
+        self.processor = inevent.InEvent(ctrl.ioloop, self,
+                                         types = "js kbd".split())
 
 
     def processed_events(self):

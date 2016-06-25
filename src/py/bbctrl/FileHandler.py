@@ -6,19 +6,18 @@ class FileHandler(bbctrl.APIHandler):
     def prepare(self): pass
 
 
-    def delete(self, path):
+    def delete_ok(self, path):
         path = 'upload' + path
         if os.path.exists(path): os.unlink(path)
-        self.write_json('ok')
 
 
-    def put(self, path):
-        path = 'upload' + path
-        if not os.path.exists(path): return
+    def put_ok(self, path):
+        gcode = self.request.files['gcode'][0]
 
-        with open(path, 'r') as f:
-            for line in f:
-                self.application.input_queue.put(line)
+        if not os.path.exists('upload'): os.mkdir('upload')
+
+        with open('upload/' + gcode['filename'], 'wb') as f:
+            f.write(gcode['body'])
 
 
     def get(self, path):
@@ -35,14 +34,3 @@ class FileHandler(bbctrl.APIHandler):
                     files.append(path)
 
         self.write_json(files)
-
-
-    def post(self, path):
-        gcode = self.request.files['gcode'][0]
-
-        if not os.path.exists('upload'): os.mkdir('upload')
-
-        with open('upload/' + gcode['filename'], 'wb') as f:
-            f.write(gcode['body'])
-
-        self.write_json('ok')

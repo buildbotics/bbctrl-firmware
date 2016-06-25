@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import multiprocessing
 import tornado
 import sockjs.tornado
 import logging
@@ -14,34 +13,48 @@ log = logging.getLogger('Web')
 
 
 class LoadHandler(bbctrl.APIHandler):
-    def send_file(self, path):
-        with open(path, 'r') as f:
-            self.write_json(json.load(f))
-
-
-    def get(self):
-        try:
-            self.send_file('config.json')
-        except Exception as e:
-            log.warning('%s', e)
-            self.send_file(bbctrl.get_resource('default-config.json'))
-
+    def get(self): self.write_json(self.ctrl.config.load())
 
 
 class SaveHandler(bbctrl.APIHandler):
-    def post(self):
-        with open('config.json', 'w') as f:
-            json.dump(self.json, f)
+    def put_ok(self): self.ctrl.config.save(self.json)
 
-        self.application.update_config(self.json)
-        log.info('Saved config')
-        self.write_json('ok')
 
+class HomeHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.home()
+
+
+class StartHandler(bbctrl.APIHandler):
+    def put_ok(self, path): self.ctrl.avr.start(path)
+
+
+class StopHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.stop()
+
+
+class PauseHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.pause(False)
+
+
+class OptionalPauseHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.pause(True)
+
+
+class StepHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.step()
+
+
+class OverrideFeedHandler(bbctrl.APIHandler):
+    def put_ok(self, value): self.ctrl.avr.override_feed(float(value))
+
+
+class OverrideSpeedHandler(bbctrl.APIHandler):
+    def put_ok(self, value): self.ctrl.avr.override_speed(float(value))
 
 
 class Connection(sockjs.tornado.SockJSConnection):
     def heartbeat(self):
-        self.timer = self.app.ioloop.call_later(3, self.heartbeat)
+        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.send_json({'heartbeat': self.count})
         self.count += 1
 
@@ -51,117 +64,57 @@ class Connection(sockjs.tornado.SockJSConnection):
 
 
     def on_open(self, info):
-        self.app = self.session.server.app
-        self.timer = self.app.ioloop.call_later(3, self.heartbeat)
+        self.ctrl = self.session.server.ctrl
+
+        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.count = 0;
-        self.app.clients.append(self)
-        self.send_json(self.session.server.app.state)
+
+        self.ctrl.clients.append(self)
+        self.send_json(self.ctrl.state)
 
 
     def on_close(self):
-        self.app.ioloop.remove_timeout(self.timer)
-        self.app.clients.remove(self)
+        self.ctrl.ioloop.remove_timeout(self.timer)
+        self.ctrl.clients.remove(self)
 
 
     def on_message(self, data):
-        self.app.input_queue.put(data + '\n')
+        self.ctrl.input_queue.put(data + '\n')
 
 
 
 class Web(tornado.web.Application):
-    def __init__(self, addr, port, ioloop):
-        # Load config template
-        with open(bbctrl.get_resource('http/config-template.json'), 'r',
-                  encoding = 'utf-8') as f:
-            self.config_template = json.load(f)
-
-        self.ioloop = ioloop
-        self.state = {}
-        self.clients = []
-
-        self.input_queue = multiprocessing.Queue()
-        self.output_queue = multiprocessing.Queue()
-
-        # Handle output queue events
-        ioloop.add_handler(self.output_queue._reader.fileno(),
-                           self.queue_handler, ioloop.READ)
+    def __init__(self, ctrl):
+        self.ctrl = ctrl
 
         handlers = [
             (r'/api/load', LoadHandler),
             (r'/api/save', SaveHandler),
-            (r'/api/file(/.*)?', bbctrl.FileHandler),
+            (r'/api/file(/.+)?', bbctrl.FileHandler),
+            (r'/api/home', HomeHandler),
+            (r'/api/start(/.+)', StartHandler),
+            (r'/api/stop', StopHandler),
+            (r'/api/pause', PauseHandler),
+            (r'/api/pause/optional', OptionalPauseHandler),
+            (r'/api/step', StepHandler),
+            (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
+            (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
             (r'/(.*)', tornado.web.StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),
             ]
 
         router = sockjs.tornado.SockJSRouter(Connection, '/ws')
-        router.app = self
+        router.ctrl = ctrl
 
         tornado.web.Application.__init__(self, router.urls + handlers)
 
         try:
-            self.listen(port, address = addr)
+            self.listen(ctrl.args.port, address = ctrl.args.addr)
 
         except Exception as e:
-            log.error('Failed to bind %s:%d: %s', addr, port, e)
+            log.error('Failed to bind %s:%d: %s', ctrl.args.addr,
+                      ctrl.args.port, e)
             sys.exit(1)
 
-        log.info('Listening on http://%s:%d/', addr, port)
-
-
-    def queue_handler(self, fd, events):
-        try:
-            data = self.output_queue.get()
-            msg = json.loads(data)
-            self.state.update(msg)
-            if self.clients:
-                self.clients[0].broadcast(self.clients, msg)
-
-        except Exception as e:
-            log.error('%s, data: %s', e, data)
-
-
-    def encode_cmd(self, index, value, spec):
-        if spec['type'] == 'enum': value = spec['values'].index(value)
-        elif spec['type'] == 'bool': value = 1 if value else 0
-        elif spec['type'] == 'percent': value /= 100.0
-
-        cmd = '${}{}={}'.format(index, spec['code'], value)
-        self.input_queue.put(cmd + '\n')
-        #log.info(cmd)
-
-
-    def encode_config_category(self, index, config, category):
-        for key, spec in category.items():
-            if key in config:
-                self.encode_cmd(index, config[key], spec)
-
-
-    def encode_config(self, index, config, tmpl):
-        for category in tmpl.values():
-            self.encode_config_category(index, config, category)
-
-
-    def update_config(self, config):
-        # Motors
-        tmpl = self.config_template['motors']
-        for index in range(len(config['motors'])):
-            self.encode_config(index + 1, config['motors'][index], tmpl)
-
-        # Axes
-        tmpl = self.config_template['axes']
-        axes = 'xyzabc'
-        for axis in axes:
-            if not axis in config['axes']: continue
-            self.encode_config(axis, config['axes'][axis], tmpl)
-
-        # Switches
-        tmpl = self.config_template['switches']
-        for index in range(len(config['switches'])):
-            self.encode_config_category(index + 1,
-                                        config['switches'][index], tmpl)
-
-        # Spindle
-        tmpl = self.config_template['spindle']
-        self.encode_config_category('', config['spindle'], tmpl)
+        log.info('Listening on http://%s:%d/', ctrl.args.addr, ctrl.args.port)
