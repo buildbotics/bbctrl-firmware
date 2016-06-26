@@ -35,6 +35,7 @@
 #include "estop.h"
 #include "plan/jog.h"
 #include "plan/calibrate.h"
+#include "plan/buffer.h"
 #include "config.h"
 
 #include <avr/pgmspace.h>
@@ -72,13 +73,7 @@ static const command_t commands[] PROGMEM = {
 };
 
 
-stat_t command_dispatch() {
-  // Read input line or return if incomplete, usart_gets() is non-blocking
-  char *input = usart_readline();
-  if (!input) return STAT_EAGAIN;
-
-  return command_eval(input);
-}
+static char *_cmd = 0;
 
 
 int command_find(const char *match) {
@@ -150,26 +145,51 @@ int command_parser(char *cmd) {
 }
 
 
-int command_eval(char *cmd) {
-  // Skip leading whitespace
-  while (*cmd && isspace(*cmd)) cmd++;
+stat_t command_hi() {
+  // Get next command
+  if (!_cmd) {
+    // Read input line or return if incomplete, usart_readline() is non-blocking
+    _cmd = usart_readline();
+    if (!_cmd) return STAT_OK;
 
-  switch (*cmd) {
-  case 0: report_request_full(); return STAT_OK;
-  case '{': return vars_parser(cmd);
-  case '$': return command_parser(cmd);
-  default:
-    if (estop_triggered()) return STAT_MACHINE_ALARMED;
-    if (calibrate_busy()) return STAT_OK;
-    if (mp_jog_busy()) return STAT_OK;
-    return gc_gcode_parser(cmd);
+    // Skip leading whitespace
+    while (*_cmd && isspace(*_cmd)) _cmd++;
   }
+
+  if (usart_tx_full()) return STAT_OK;
+
+  stat_t status = STAT_OK;
+
+  switch (*_cmd) {
+  case 0: report_request_full(); break; // Full report
+  case '{': status = vars_parser(_cmd); break;
+  case '$': status = command_parser(_cmd); break;
+  default: return STAT_OK; // Continue processing in command_lo()
+  }
+
+  _cmd = 0; // Command complete
+  return status;
+}
+
+
+stat_t command_lo() {
+  if (!_cmd || mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM ||
+      usart_tx_full())
+    return STAT_OK; // Wait
+
+  if (estop_triggered()) return STAT_MACHINE_ALARMED;
+  if (calibrate_busy()) return STAT_BUSY;
+  if (mp_jog_busy()) return STAT_BUSY;
+
+  stat_t status = gc_gcode_parser(_cmd);
+  _cmd = 0;
+  return status;
 }
 
 
 // Command functions
 void static print_command_help(int i) {
-  static const char fmt[] PROGMEM = "  $%-8S  %S\n";
+  static const char fmt[] PROGMEM = "  $%-12S  %S\n";
   const char *name = pgm_read_word(&commands[i].name);
   const char *help = pgm_read_word(&commands[i].help);
 

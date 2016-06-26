@@ -57,8 +57,11 @@ static void _set_dre_interrupt(bool enable) {
 
 
 static void _set_rxc_interrupt(bool enable) {
-  if (enable) USARTC0.CTRLA |= USART_RXCINTLVL_HI_gc;
-  else USARTC0.CTRLA &= ~USART_RXCINTLVL_HI_gc;
+  if (enable) {
+    USARTC0.CTRLA |= USART_RXCINTLVL_HI_gc;
+    if (4 <= rx_buf_space()) PORTC.OUTCLR = 1 << 4; // CTS Lo (enable)
+
+  } else USARTC0.CTRLA &= ~USART_RXCINTLVL_HI_gc;
 }
 
 
@@ -96,6 +99,7 @@ ISR(USARTC0_RXC_vect) {
     uint8_t data = USARTC0.DATA;
     rx_buf_push(data);
     if (usart_flags & USART_ECHO) _echo_char(data);
+    if (rx_buf_space() < 4) PORTC.OUTSET = 1 << 4; // CTS Hi (disable)
   }
 }
 
@@ -116,9 +120,11 @@ void usart_init(void) {
   PR.PRPC &= ~PR_USART0_bm; // Disable power reduction
 
   // Setup pins
-  PORTC.OUTSET = 1 << 3; // High
-  PORTC.DIRSET = 1 << 3; // Output
-  PORTC.DIRCLR = 1 << 2; // Input
+  PORTC.OUTSET = 1 << 4; // CTS Hi (disable)
+  PORTC.DIRSET = 1 << 4; // CTS Output
+  PORTC.OUTSET = 1 << 3; // Tx High
+  PORTC.DIRSET = 1 << 3; // Tx Output
+  PORTC.DIRCLR = 1 << 2; // Rx Input
 
   // Set baud rate
   usart_set_baud(USART_BAUD_115200);
@@ -128,7 +134,6 @@ void usart_init(void) {
     USART_CHSIZE_8BIT_gc;
 
   // Configure receiver and transmitter
-  USARTC0.CTRLA = USART_RXCINTLVL_HI_gc;
   USARTC0.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 
   PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
@@ -136,6 +141,9 @@ void usart_init(void) {
   // Connect IO
   stdout = &_stdout;
   stderr = &_stdout;
+
+  // Enable Rx
+  _set_rxc_interrupt(true);
 }
 
 

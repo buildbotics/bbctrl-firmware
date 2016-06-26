@@ -53,28 +53,6 @@
 #include <stdbool.h>
 
 
-/// Return eagain if TX queue is backed up
-static stat_t _sync_to_tx_buffer() {
-  return usart_tx_full() ? STAT_EAGAIN : STAT_OK;
-}
-
-
-/// Return eagain if planner is not ready for a new command
-static stat_t _sync_to_planner() {
-  return mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM ?
-    STAT_EAGAIN : STAT_OK;
-}
-
-
-/// Shut down system if limit switch fired
-static stat_t _limit_switch_handler() {
-  if (cm_get_machine_state() == MACHINE_ALARM) return STAT_NOOP;
-  if (!switch_get_limit_thrown()) return STAT_NOOP;
-
-  return CM_ALARM(STAT_LIMIT_SWITCH_HIT);
-}
-
-
 static bool _dispatch(stat_t (*func)()) {
   stat_t err = func();
 
@@ -90,40 +68,32 @@ static bool _dispatch(stat_t (*func)()) {
 
 /* Main loop
  *
- * The order of the dispatched tasks is very important.
- * Tasks are ordered by increasing dependency (blocking hierarchy).
- * Tasks that are dependent on completion of lower-level tasks must be
- * later in the list than the task(s) they are dependent upon.
+ * The task order is very important. Tasks are ordered by increasing dependency
+ * (blocking hierarchy).  Tasks that are dependent on completion of lower-level
+ * tasks must be later in the list.  Tasks are called repeatedly even if they
+ * are not currently active.
  *
- * Tasks must be written as continuations as they will be called repeatedly,
- * and are called even if they are not currently active.
- *
- * The DISPATCH macro calls the function and returns to the caller
- * if not finished (STAT_EAGAIN), preventing later routines from running
- * (they remain blocked). Any other condition - OK or ERR - drops through
- * and runs the next routine in the list.
- *
- * A routine that had no action (i.e. is OFF or idle) should return STAT_NOOP
+ * The DISPATCH macro calls a function and returns if not finished
+ * (STAT_EAGAIN).  This prevents later routines from running.  Any other
+ * condition - OK or ERR - drops through and runs the next routine in the list.
  */
 static void _run() {
 #define DISPATCH(func) if (_dispatch(func)) return;
 
   DISPATCH(hw_reset_handler);                // handle hard reset requests
-  DISPATCH(_limit_switch_handler);           // limit switch thrown
-
   DISPATCH(tmc2660_sync);                    // synchronize driver config
   DISPATCH(motor_power_callback);            // stepper motor power sequencing
+
+  DISPATCH(command_hi);
 
   DISPATCH(cm_feedhold_sequencing_callback); // feedhold state machine
   DISPATCH(mp_plan_hold_callback);           // plan a feedhold
   DISPATCH(cm_arc_callback);                 // arc generation runs
   DISPATCH(cm_homing_callback);              // G28.2 continuation
   DISPATCH(cm_probe_callback);               // G38.2 continuation
-
-  DISPATCH(_sync_to_planner);                // ensure a free planning buffer
-  DISPATCH(_sync_to_tx_buffer);              // sync with TX buffer
   DISPATCH(report_callback);                 // report changes
-  DISPATCH(command_dispatch);                // read and execute next command
+
+  DISPATCH(command_lo);
 }
 
 

@@ -486,7 +486,7 @@ stat_t cm_arc_callback() {
   arc.ms.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
   arc.ms.target[arc.linear_axis] += arc.arc_segment_linear_travel;
   mp_aline(&arc.ms);                            // run the line
-  copy_vector(arc.position, arc.ms.target);        // update arc current pos
+  copy_vector(arc.position, arc.ms.target);     // update arc current pos
 
   if (--arc.arc_segment_count > 0) return STAT_EAGAIN;
 

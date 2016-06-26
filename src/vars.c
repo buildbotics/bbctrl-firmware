@@ -383,7 +383,7 @@ int vars_parser(char *vars) {
 
 
 void vars_print_help() {
-  static const char fmt[] PROGMEM = "  $%-5s %-14S %-12S  %S\n";
+  static const char fmt[] PROGMEM = "  $%-5s %-20S %-16S  %S\n";
 
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();

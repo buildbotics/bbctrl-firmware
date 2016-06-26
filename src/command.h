@@ -46,7 +46,7 @@ typedef struct {
 } command_t;
 
 
-stat_t command_dispatch();
 int command_find(const char *name);
 int command_exec(int argc, char *argv[]);
-int command_eval(char *cmd);
+stat_t command_hi();
+stat_t command_lo();
