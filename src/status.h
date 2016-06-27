@@ -39,7 +39,7 @@ typedef enum {
 #include "messages.def"
 #undef STAT_MSG
 
-  STAT_MAX_VALUE = 255 // Do not exceed 255
+  STAT_DO_NOT_EXCEED = 255 // Do not exceed 255
 } stat_t;
 
 
@@ -48,6 +48,7 @@ extern stat_t status_code;
 const char *status_to_pgmstr(stat_t status);
 stat_t status_error(stat_t status);
 stat_t status_error_P(const char *location, const char *msg, stat_t status);
+void status_help();
 
 #define TO_STRING(x) _TO_STRING(x)
 #define _TO_STRING(x) #x

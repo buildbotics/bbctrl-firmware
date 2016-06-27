@@ -156,7 +156,7 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
   char *end;
   *value = strtod(*pstr, &end);
   // more robust test then checking for value == 0
-  if (end == *pstr) return STAT_BAD_NUMBER_FORMAT;
+  if (end == *pstr) return STAT_GCODE_COMMAND_UNSUPPORTED;
   *pstr = end; // pointer points to next character after the word
 
   return STAT_OK;

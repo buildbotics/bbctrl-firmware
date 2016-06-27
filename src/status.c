@@ -64,3 +64,18 @@ stat_t status_error_P(const char *location, const char *msg, stat_t status) {
 
   return status;
 }
+
+
+void status_help() {
+  putchar('{');
+
+  for (int i = 0; i < STAT_MAX; i++) {
+    if (i) putchar(',');
+    putchar('\n');
+    printf_P(PSTR("  \"%d\": \"%S\""), i, status_to_pgmstr(i));
+  }
+
+  putchar('\n');
+  putchar('}');
+  putchar('\n');
+}

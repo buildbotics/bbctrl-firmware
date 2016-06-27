@@ -81,11 +81,11 @@ static void _run() {
 #define DISPATCH(func) if (_dispatch(func)) return;
 
   DISPATCH(hw_reset_handler);                // handle hard reset requests
-  DISPATCH(tmc2660_sync);                    // synchronize driver config
-  DISPATCH(motor_power_callback);            // stepper motor power sequencing
 
   DISPATCH(command_hi);
 
+  DISPATCH(tmc2660_sync);                    // synchronize driver config
+  DISPATCH(motor_power_callback);            // stepper motor power sequencing
   DISPATCH(cm_feedhold_sequencing_callback); // feedhold state machine
   DISPATCH(mp_plan_hold_callback);           // plan a feedhold
   DISPATCH(cm_arc_callback);                 // arc generation runs

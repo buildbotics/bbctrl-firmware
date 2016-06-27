@@ -127,6 +127,11 @@ int command_parser(char *cmd) {
   int argc = 0;
   char *argv[MAX_ARGS] = {};
 
+  if (cmd[1] == '$' && !cmd[2]) {
+    report_request_full(); // Full report
+    return STAT_OK;
+  }
+
   while (argc < MAX_ARGS && *p) {
     // Skip space
     while (*p && isspace(*p)) *p++ = 0;
@@ -152,8 +157,12 @@ stat_t command_hi() {
     _cmd = usart_readline();
     if (!_cmd) return STAT_OK;
 
-    // Skip leading whitespace
+    // Remove leading whitespace
     while (*_cmd && isspace(*_cmd)) _cmd++;
+
+    // Remove trailing whitespace
+    for (size_t len = strlen(_cmd); len && isspace(_cmd[len - 1]); len--)
+      _cmd[len - 1] = 0;
   }
 
   if (usart_tx_full()) return STAT_OK;
@@ -161,9 +170,12 @@ stat_t command_hi() {
   stat_t status = STAT_OK;
 
   switch (*_cmd) {
-  case 0: report_request_full(); break; // Full report
+  case 0: break; // Empty line
   case '{': status = vars_parser(_cmd); break;
   case '$': status = command_parser(_cmd); break;
+  case '!': if (!_cmd[1]) cm_request_feedhold(); break;
+  case '~': if (!_cmd[1]) cm_request_cycle_start(); break;
+  case '%': if (!_cmd[1]) cm_request_queue_flush(); break;
   default: return STAT_OK; // Continue processing in command_lo()
   }
 
@@ -206,6 +218,18 @@ uint8_t command_help(int argc, char *argv[]) {
 
     return STAT_OK;
   }
+
+  puts_P(PSTR("\nSpecial Character Commands:\n"
+              "  !         Feedhold (pause).\n"
+              "  ~         Start cycle (unpause).\n"
+              "  %         Flush queue\n"
+              "\n"
+              "Character commands must be entered alone on a single line."));
+
+  puts_P(PSTR("\nLine editing:\n"
+              "  ENTER     Submit current command line.\n"
+              "  BS        Backspace, delete last character.\n"
+              "  CTRL-X    Cancel current line entry."));
 
   puts_P(PSTR("\nCommands:"));
   for (int i = 0; ; i++) {
@@ -253,5 +277,11 @@ uint8_t command_restore(int argc, char *argv[]) {
 
 uint8_t command_clear(int argc, char *argv[]) {
   vars_clear();
+  return 0;
+}
+
+
+uint8_t command_messages(int argc, char *argv[]) {
+  status_help();
   return 0;
 }

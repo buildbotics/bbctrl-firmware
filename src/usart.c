@@ -43,10 +43,6 @@
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
 #include "ringbuf.def"
 
-#define RING_BUF_NAME echo_buf
-#define RING_BUF_SIZE USART_ECHO_RING_BUF_SIZE
-#include "ringbuf.def"
-
 static int usart_flags = USART_CRLF | USART_ECHO;
 
 
@@ -65,26 +61,11 @@ static void _set_rxc_interrupt(bool enable) {
 }
 
 
-static void _echo_char(char c) {
-  if (echo_buf_full()) return;
-
-  echo_buf_push(c);
-  _set_dre_interrupt(true); // Enable interrupt
-
-  if ((usart_flags & USART_CRLF) && c == '\n') _echo_char('\r');
-}
-
-
 // Data register empty interrupt vector
 ISR(USARTC0_DRE_vect) {
-  if (tx_buf_empty() && echo_buf_empty())
-    _set_dre_interrupt(false); // Disable interrupt
+  if (tx_buf_empty()) _set_dre_interrupt(false); // Disable interrupt
 
-  else if (!echo_buf_empty()) {
-    USARTC0.DATA = echo_buf_peek();
-    echo_buf_pop();
-
-  } else {
+  else {
     USARTC0.DATA = tx_buf_peek();
     tx_buf_pop();
   }
@@ -98,7 +79,6 @@ ISR(USARTC0_RXC_vect) {
   else {
     uint8_t data = USARTC0.DATA;
     rx_buf_push(data);
-    if (usart_flags & USART_ECHO) _echo_char(data);
     if (rx_buf_space() < 4) PORTC.OUTSET = 1 << 4; // CTS Hi (disable)
   }
 }
@@ -221,12 +201,29 @@ char *usart_readline() {
     char data = rx_buf_peek();
     rx_buf_pop();
 
+    if (usart_flags & USART_ECHO) usart_putc(data);
+
     switch (data) {
     case '\r': case '\n': eol = true; break;
 
-    case '\b':
-      printf(" \b");
+    case '\b': // BS - backspace
+      if (usart_flags & USART_ECHO) {
+        usart_putc(' ');
+        usart_putc('\b');
+      }
       if (i) i--;
+      break;
+
+    case 0x18: // CAN - Cancel or CTRL-X
+      if (usart_flags & USART_ECHO)
+        while (i) {
+          usart_putc('\b');
+          usart_putc(' ');
+          usart_putc('\b');
+          i--;
+        }
+
+      i = 0;
       break;
 
     default:

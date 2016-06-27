@@ -56,7 +56,7 @@ STAT_MSG(INPUT_EXCEEDS_MAX_VALUE, "Input exceeds maximum value")
 STAT_MSG(INPUT_VALUE_RANGE_ERROR, "Input value range error")
 
 // Gcode errors & warnings (Most originate from NIST)
-STAT_MSG(GCODE_COMMAND_UNSUPPORTED, "Gcode command unsupported")
+STAT_MSG(GCODE_COMMAND_UNSUPPORTED, "Invalid or unsupported G-Code command")
 STAT_MSG(MCODE_COMMAND_UNSUPPORTED, "M code unsupported")
 STAT_MSG(GCODE_AXIS_IS_MISSING, "Axis word missing")
 STAT_MSG(GCODE_FEEDRATE_NOT_SPECIFIED, "Feedrate not specified")
@@ -88,3 +88,6 @@ STAT_MSG(HOMING_ERROR_SWITCH_MISCONFIGURATION,
 
 // Probing
 STAT_MSG(PROBE_CYCLE_FAILED, "Probe cycle failed")
+
+// End of stats marker
+STAT_MSG(MAX, "")
