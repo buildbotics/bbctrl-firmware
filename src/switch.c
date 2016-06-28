@@ -123,7 +123,7 @@ swSingleton_t sw = {
       .min  = false,
     }, { // A min
       .type = SW_TYPE_NORMALLY_OPEN,
-      .mode = SW_MODE_HOMING,
+      .mode = SW_MODE_DISABLED, // SW_MODE_HOMING,
       .pin  = MIN_A_PIN,
       .min = true,
     }, { // A max
@@ -132,7 +132,7 @@ swSingleton_t sw = {
       .pin  = MAX_A_PIN,
       .min  = false,
     }, { // EStop
-      .type = SW_TYPE_NORMALLY_CLOSED,
+      .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_ESTOP_BIT,
       .pin  = ESTOP_PIN,
     }, { // Probe
@@ -163,12 +163,15 @@ static void _switch_isr() {
     // reset deglitch count regardless of entry state
     s->count = -SW_DEGLITCH_TICKS;
     s->state = state;
+    PORT(s->pin)->INT0MASK &= ~BM(s->pin); // Disable INT0
   }
 }
 
 
 // Switch interrupt handler vectors
 ISR(PORTA_INT0_vect) {_switch_isr();}
+ISR(PORTB_INT0_vect) {_switch_isr();}
+ISR(PORTC_INT0_vect) {_switch_isr();}
 ISR(PORTD_INT0_vect) {_switch_isr();}
 ISR(PORTE_INT0_vect) {_switch_isr();}
 ISR(PORTF_INT0_vect) {_switch_isr();}
@@ -192,8 +195,6 @@ void _switch_enable(switch_t *s, bool enable) {
 
 
 void switch_init() {
-  return; // TODO
-
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
 
@@ -216,6 +217,7 @@ void switch_rtc_callback() {
     // state is either lockout or deglitching
     if (++s->count == SW_LOCKOUT_TICKS) {
       s->debounce = SW_IDLE;
+      PORT(s->pin)->INT0MASK |= BM(s->pin);    // Enable INT0
 
       // check if the state has changed while we were in lockout
       if (s->state != _read_state(s)) {
