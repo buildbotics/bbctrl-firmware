@@ -62,7 +62,9 @@ typedef struct {
   cmMotorPowerMode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
-  PORT_t *port;
+  uint8_t step_pin;
+  uint8_t dir_pin;
+  uint8_t enable_pin;
   TC0_t *timer;
   DMA_CH_t *dma;
   uint8_t dma_trigger;
@@ -95,7 +97,9 @@ static motor_t motors[MOTORS] = {
     .microsteps  = M1_MICROSTEPS,
     .polarity    = M1_POLARITY,
     .power_mode  = M1_POWER_MODE,
-    .port        = &PORT_MOTOR_1,
+    .step_pin    = STEP_X_PIN,
+    .dir_pin     = DIR_X_PIN,
+    .enable_pin  = ENABLE_X_PIN,
     .timer       = (TC0_t *)&M1_TIMER,
     .dma         = &M1_DMA_CH,
     .dma_trigger = M1_DMA_TRIGGER,
@@ -106,7 +110,9 @@ static motor_t motors[MOTORS] = {
     .microsteps  = M2_MICROSTEPS,
     .polarity    = M2_POLARITY,
     .power_mode  = M2_POWER_MODE,
-    .port        = &PORT_MOTOR_2,
+    .step_pin    = STEP_Y_PIN,
+    .dir_pin     = DIR_Y_PIN,
+    .enable_pin  = ENABLE_Y_PIN,
     .timer       = &M2_TIMER,
     .dma         = &M2_DMA_CH,
     .dma_trigger = M2_DMA_TRIGGER,
@@ -117,7 +123,9 @@ static motor_t motors[MOTORS] = {
     .microsteps  = M3_MICROSTEPS,
     .polarity    = M3_POLARITY,
     .power_mode  = M3_POWER_MODE,
-    .port        = &PORT_MOTOR_3,
+    .step_pin    = STEP_Z_PIN,
+    .dir_pin     = DIR_Z_PIN,
+    .enable_pin  = ENABLE_Z_PIN,
     .timer       = &M3_TIMER,
     .dma         = &M3_DMA_CH,
     .dma_trigger = M3_DMA_TRIGGER,
@@ -128,7 +136,9 @@ static motor_t motors[MOTORS] = {
     .microsteps  = M4_MICROSTEPS,
     .polarity    = M4_POLARITY,
     .power_mode  = M4_POWER_MODE,
-    .port        = &PORT_MOTOR_4,
+    .step_pin    = STEP_A_PIN,
+    .dir_pin     = DIR_A_PIN,
+    .enable_pin  = ENABLE_A_PIN,
     .timer       = &M4_TIMER,
     .dma         = &M4_DMA_CH,
     .dma_trigger = M4_DMA_TRIGGER,
@@ -141,7 +151,7 @@ static uint8_t _dummy;
 
 /// Special interrupt for X-axis
 ISR(TCE1_CCA_vect) {
-  PORT_MOTOR_1.OUTTGL = STEP_BIT_bm;
+  OUTTGL_PIN(STEP_X_PIN);
   motors[0].steps++;
 }
 
@@ -159,10 +169,10 @@ void motor_init() {
     motor_t *m = &motors[motor];
 
     // IO pins
-    m->port->DIRSET = STEP_BIT_bm; // Output
-    m->port->DIRSET = DIRECTION_BIT_bm; // Output
-    m->port->OUTSET = MOTOR_ENABLE_BIT_bm; // High (disabled)
-    m->port->DIRSET = MOTOR_ENABLE_BIT_bm; // Output
+    DIRSET_PIN(m->step_pin); // Output
+    DIRSET_PIN(m->dir_pin); // Output
+    OUTSET_PIN(m->enable_pin); // High (disabled)
+    DIRSET_PIN(m->enable_pin); // Output
 
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
@@ -195,9 +205,9 @@ void motor_init() {
 
 
 void motor_enable(int motor, bool enable) {
-  if (enable) motors[motor].port->OUTCLR = MOTOR_ENABLE_BIT_bm; // Active low
+  if (enable) OUTCLR_PIN(motors[motor].enable_pin); // Active low
   else {
-    motors[motor].port->OUTSET = MOTOR_ENABLE_BIT_bm;
+    OUTSET_PIN(motors[motor].enable_pin);
     motors[motor].power_state = MOTOR_IDLE;
   }
 }
@@ -346,8 +356,8 @@ void motor_load_move(int motor) {
   m->timer_clock = 0;                  // Clear clock
 
   // Set direction
-  if (m->direction == DIRECTION_CW) m->port->OUTCLR = DIRECTION_BIT_bm;
-  else m->port->OUTSET = DIRECTION_BIT_bm;
+  if (m->direction == DIRECTION_CW) OUTCLR_PIN(m->dir_pin);
+  else OUTSET_PIN(m->dir_pin);
 
   // Accumulate encoder
   // TODO we currently accumulate the x-axis here

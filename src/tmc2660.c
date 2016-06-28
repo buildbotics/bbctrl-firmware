@@ -59,7 +59,8 @@ typedef struct {
   float idle_current;
   float drive_current;
 
-  PORT_t *port;
+  uint8_t cs_pin;
+  uint8_t fault_pin;
 } tmc2660_driver_t;
 
 
@@ -73,10 +74,10 @@ static const uint32_t reg_addrs[] = {
 
 
 static tmc2660_driver_t drivers[MOTORS] = {
-  {.port = &PORT_MOTOR_1},
-  {.port = &PORT_MOTOR_2},
-  {.port = &PORT_MOTOR_3},
-  {.port = &PORT_MOTOR_4},
+  {.cs_pin = SPI_CS_X_PIN, .fault_pin = FAULT_X_PIN},
+  {.cs_pin = SPI_CS_Y_PIN, .fault_pin = FAULT_Y_PIN},
+  {.cs_pin = SPI_CS_Z_PIN, .fault_pin = FAULT_Z_PIN},
+  {.cs_pin = SPI_CS_A_PIN, .fault_pin = FAULT_A_PIN},
 };
 
 
@@ -116,15 +117,15 @@ static void _report_error_flags(int driver) {
   if ((TMC2660_DRVSTATUS_OPEN_LOAD_A | TMC2660_DRVSTATUS_OPEN_LOAD_A) & dflags)
     mflags |= MOTOR_FLAG_OPEN_LOAD_bm;
 
-  if (drv->port->IN & FAULT_BIT_bm) mflags |= MOTOR_FLAG_STALLED_bm;
+  if (IN_PIN(drv->fault_pin)) mflags |= MOTOR_FLAG_STALLED_bm;
 
   if (mflags) motor_error_callback(driver, mflags);
 }
 
 
 static void _spi_cs(int driver, bool enable) {
-  if (enable) drivers[driver].port->OUTCLR = CHIP_SELECT_BIT_bm;
-  else drivers[driver].port->OUTSET = CHIP_SELECT_BIT_bm;
+  if (enable) OUTCLR_PIN(drivers[driver].cs_pin);
+  else OUTSET_PIN(drivers[driver].cs_pin);
 }
 
 
@@ -233,7 +234,7 @@ ISR(SPIC_INT_vect) {
 }
 
 
-ISR(TCC1_OVF_vect) {
+ISR(TMC2660_OVF_vect) {
   TMC2660_TIMER.CTRLA = 0; // Disable clock
   _spi_next();
 }
@@ -296,32 +297,31 @@ void tmc2660_init() {
   // Setup pins
   // Must set the SS pin either in/high or any/output for master mode to work
   // Note, this pin is also used by the USART as the CTS line
-  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SS_PIN;   // Output
-
-  TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_SCK_PIN;  // High
-  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_SCK_PIN;  // Output
-
-  TMC2660_SPI_PORT.DIRCLR = 1 << TMC2660_SPI_MISO_PIN; // Input
-  TMC2660_SPI_PORT.OUTSET = 1 << TMC2660_SPI_MOSI_PIN; // High
-  TMC2660_SPI_PORT.DIRSET = 1 << TMC2660_SPI_MOSI_PIN; // Output
+  DIRSET_PIN(TMC2660_SPI_SS_PIN); // Output
+  OUTSET_PIN(TMC2660_SPI_SCK_PIN); // High
+  DIRSET_PIN(TMC2660_SPI_SCK_PIN); // Output
+  DIRCLR_PIN(TMC2660_SPI_MISO_PIN); // Intput
+  OUTSET_PIN(TMC2660_SPI_MOSI_PIN); // High
+  DIRSET_PIN(TMC2660_SPI_MOSI_PIN); // Output
 
   for (int driver = 0; driver < MOTORS; driver++) {
-    PORT_t *port = drivers[driver].port;
+    uint8_t cs_pin = drivers[driver].cs_pin;
+    uint8_t fault_pin = drivers[driver].fault_pin;
 
-    port->OUTSET = CHIP_SELECT_BIT_bm;  // High
-    port->DIRSET = CHIP_SELECT_BIT_bm;  // Output
-    port->DIRCLR = FAULT_BIT_bm;        // Input
+    OUTSET_PIN(cs_pin);    // High
+    DIRSET_PIN(cs_pin);    // Output
+    OUTCLR_PIN(fault_pin); // Input
 
-    port->PIN4CTRL = PORT_ISC_RISING_gc;
-    port->INT1MASK = FAULT_BIT_bm;        // INT1
-    port->INTCTRL |= PORT_INT1LVL_HI_gc;
+    PINCTRL_PIN(fault_pin) = PORT_ISC_RISING_gc;
+    PORT(fault_pin)->INT1MASK = BM(fault_pin);      // INT1
+    PORT(fault_pin)->INTCTRL |= PORT_INT1LVL_HI_gc;
   }
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
   SPIC.CTRL = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_MODE_3_gc | SPI_CLK2X_bm |
     SPI_PRESCALER_DIV16_gc; // enable, big endian, master, mode 3, clock/8
-  PORTC.REMAP = PORT_SPI_bm; // Swap SCK and MOSI
+  PORT(TMC2660_SPI_SCK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
   SPIC.INTCTRL = SPI_INTLVL_LO_gc; // interupt level
 
   // Configure timer

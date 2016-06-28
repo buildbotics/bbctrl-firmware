@@ -74,7 +74,6 @@ typedef enum {
 typedef struct {
   swType_t type;
   swMode_t mode;
-  PORT_t *port;
   uint8_t pin;
   bool min;
 
@@ -95,61 +94,51 @@ swSingleton_t sw = {
     { //    X min
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_HOMING,
-      .port = &PORTA,
-      .pin  = 6,
+      .pin  = MIN_X_PIN,
       .min  = true,
     }, { // X max
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_DISABLED,
-      .port = &PORTA,
-      .pin  = 7,
+      .pin  = MAX_X_PIN,
       .min  = false,
     }, { // Y min
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_HOMING,
-      .port = &PORTD,
-      .pin  = 6,
+      .pin  = MIN_Y_PIN,
       .min  = true,
     }, { // Y max
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_DISABLED,
-      .port = &PORTD,
-      .pin  = 7,
+      .pin  = MAX_X_PIN,
       .min  = false,
     }, { // Z min
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_DISABLED,
-      .port = &PORTE,
-      .pin  = 6,
+      .pin  = MIN_Z_PIN,
       .min  = true,
     }, { // Z max
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_HOMING,
-      .port = &PORTE,
-      .pin  = 7,
+      .pin  = MAX_Z_PIN,
       .min  = false,
     }, { // A min
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_HOMING,
-      .port = &PORTF,
-      .pin  = 6,
+      .pin  = MIN_A_PIN,
       .min = true,
     }, { // A max
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_MODE_DISABLED,
-      .port = &PORTF,
-      .pin  = 7,
+      .pin  = MAX_A_PIN,
       .min  = false,
     }, { // EStop
       .type = SW_TYPE_NORMALLY_CLOSED,
       .mode = SW_ESTOP_BIT,
-      .port = &PORTD,
-      .pin  = 5,
+      .pin  = ESTOP_PIN,
     }, { // Probe
       .type = SW_TYPE_NORMALLY_OPEN,
       .mode = SW_PROBE_BIT,
-      .port = &PORTF,
-      .pin  = 1,
+      .pin  = PROBE_PIN,
     },
   }
 };
@@ -157,7 +146,7 @@ swSingleton_t sw = {
 
 static bool _read_state(const switch_t *s) {
   // A normally open switch drives the pin low when thrown
-  return (s->type == SW_TYPE_NORMALLY_OPEN) ^ (s->port->IN & (1 << s->pin));
+  return (s->type == SW_TYPE_NORMALLY_OPEN) ^ IN_PIN(s->pin);
 }
 
 
@@ -187,17 +176,17 @@ ISR(PORTF_INT0_vect) {_switch_isr();}
 
 void _switch_enable(switch_t *s, bool enable) {
   if (enable) {
-    s->port->INT0MASK |= 1 << s->pin;    // Enable INT0
+    PORT(s->pin)->INT0MASK |= BM(s->pin);    // Enable INT0
 
     // Pull up and trigger on both edges
-    (&s->port->PIN0CTRL)[s->pin] = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
+    PINCTRL_PIN(s->pin) = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
 
     // Initialize state
     s->state = _read_state(s);
 
   } else {
-    s->port->INT0MASK &= ~(1 << s->pin); // Disable INT0
-    (&s->port->PIN0CTRL)[s->pin] = 0;
+    PORT(s->pin)->INT0MASK &= ~BM(s->pin); // Disable INT0
+    PINCTRL_PIN(s->pin) = 0;
   }
 }
 
@@ -208,8 +197,8 @@ void switch_init() {
   for (int i = 0; i < SWITCHES; i++) {
     switch_t *s = &sw.switches[i];
 
-    s->port->DIRCLR = 1 << s->pin;     // Input
-    s->port->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
+    DIRCLR_PIN(s->pin); // Input
+    PORT(s->pin)->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
 
     _switch_enable(s, s->mode != SW_MODE_DISABLED);
   }

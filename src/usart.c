@@ -26,6 +26,7 @@
 \******************************************************************************/
 
 #include "usart.h"
+#include "cpp_magic.h"
 #include "config.h"
 
 #include <avr/io.h>
@@ -47,39 +48,39 @@ static int usart_flags = USART_CRLF | USART_ECHO;
 
 
 static void _set_dre_interrupt(bool enable) {
-  if (enable) USARTC0.CTRLA |= USART_DREINTLVL_HI_gc;
-  else USARTC0.CTRLA &= ~USART_DREINTLVL_HI_gc;
+  if (enable) SERIAL_PORT.CTRLA |= USART_DREINTLVL_HI_gc;
+  else SERIAL_PORT.CTRLA &= ~USART_DREINTLVL_HI_gc;
 }
 
 
 static void _set_rxc_interrupt(bool enable) {
   if (enable) {
-    USARTC0.CTRLA |= USART_RXCINTLVL_HI_gc;
-    if (4 <= rx_buf_space()) PORTC.OUTCLR = 1 << 4; // CTS Lo (enable)
+    SERIAL_PORT.CTRLA |= USART_RXCINTLVL_HI_gc;
+    if (4 <= rx_buf_space()) OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
 
-  } else USARTC0.CTRLA &= ~USART_RXCINTLVL_HI_gc;
+  } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_HI_gc;
 }
 
 
 // Data register empty interrupt vector
-ISR(USARTC0_DRE_vect) {
+ISR(SERIAL_DRE_vect) {
   if (tx_buf_empty()) _set_dre_interrupt(false); // Disable interrupt
 
   else {
-    USARTC0.DATA = tx_buf_peek();
+    SERIAL_PORT.DATA = tx_buf_peek();
     tx_buf_pop();
   }
 }
 
 
 // Data received interrupt vector
-ISR(USARTC0_RXC_vect) {
+ISR(SERIAL_RXC_vect) {
   if (rx_buf_full()) _set_rxc_interrupt(false); // Disable interrupt
 
   else {
-    uint8_t data = USARTC0.DATA;
+    uint8_t data = SERIAL_PORT.DATA;
     rx_buf_push(data);
-    if (rx_buf_space() < 4) PORTC.OUTSET = 1 << 4; // CTS Hi (disable)
+    if (rx_buf_space() < 4) OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
   }
 }
 
@@ -100,21 +101,21 @@ void usart_init(void) {
   PR.PRPC &= ~PR_USART0_bm; // Disable power reduction
 
   // Setup pins
-  PORTC.OUTSET = 1 << 4; // CTS Hi (disable)
-  PORTC.DIRSET = 1 << 4; // CTS Output
-  PORTC.OUTSET = 1 << 3; // Tx High
-  PORTC.DIRSET = 1 << 3; // Tx Output
-  PORTC.DIRCLR = 1 << 2; // Rx Input
+  OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
+  DIRSET_PIN(SERIAL_CTS_PIN); // CTS Output
+  OUTSET_PIN(SERIAL_TX_PIN);  // Tx High
+  DIRSET_PIN(SERIAL_TX_PIN);  // Tx Output
+  DIRCLR_PIN(SERIAL_RX_PIN);  // Rx Input
 
   // Set baud rate
-  usart_set_baud(USART_BAUD_115200);
+  usart_set_baud(SERIAL_BAUD);
 
   // No parity, 8 data bits, 1 stop bit
-  USARTC0.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
+  SERIAL_PORT.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
     USART_CHSIZE_8BIT_gc;
 
   // Configure receiver and transmitter
-  USARTC0.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
+  SERIAL_PORT.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 
   PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
 
@@ -128,8 +129,8 @@ void usart_init(void) {
 
 
 static void _set_baud(uint16_t bsel, uint8_t bscale) {
-  USARTC0.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
-  USARTC0.BAUDCTRLA = bsel;
+  SERIAL_PORT.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
+  SERIAL_PORT.BAUDCTRLA = bsel;
 }
 
 
@@ -251,8 +252,8 @@ int16_t usart_peek() {
 void usart_flush() {
   usart_set(USART_FLUSH, true);
 
-  while (!tx_buf_empty() || !(USARTC0.STATUS & USART_DREIF_bm) ||
-         !(USARTC0.STATUS & USART_TXCIF_bm))
+  while (!tx_buf_empty() || !(SERIAL_PORT.STATUS & USART_DREIF_bm) ||
+         !(SERIAL_PORT.STATUS & USART_TXCIF_bm))
     continue;
 }
 

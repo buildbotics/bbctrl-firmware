@@ -27,9 +27,71 @@
 
 #pragma once
 
+#include "pins.h"
+
 #include <avr/interrupt.h>
 
+
 #define VERSION "0.3.0"
+
+
+// Pins
+enum {
+  STEP_X_PIN = PORT_A << 3,
+  DIR_X_PIN,
+  ENABLE_X_PIN,
+  SPI_CS_X_PIN,
+  FAULT_X_PIN,
+  FAULT_PIN,
+  MIN_X_PIN,
+  MAX_X_PIN,
+
+  SPIN_PWM_PIN = PORT_B << 3,
+  SPIN_DIR_PIN,
+  MIN_Y_PIN,
+  MAX_Y_PIN,
+  RS485_RE_PIN,
+  RS485_DE_PIN,
+  SPIN_ENABLE_PIN,
+  BOOT_PIN,
+
+  READY_PIN = PORT_C << 3,
+  PROBE_PIN,
+  SERIAL_RX_PIN,
+  SERIAL_TX_PIN,
+  SERIAL_CTS_PIN,
+  SPI_CLK_PIN,
+  SPI_MOSI_PIN,
+  SPI_MISO_PIN,
+
+  STEP_A_PIN = PORT_D << 3,
+  DIR_A_PIN,
+  ENABLE_A_PIN,
+  SPI_CS_A_PIN,
+  FAULT_A_PIN,
+  ESTOP_PIN,
+  RS485_RO_PIN,
+  RS485_DI_PIN,
+
+  STEP_Z_PIN = PORT_E << 3,
+  DIR_Z_PIN,
+  ENABLE_Z_PIN,
+  SPI_CS_Z_PIN,
+  FAULT_Z_PIN,
+  SWITCH_1_PIN,
+  MIN_Z_PIN,
+  MAX_Z_PIN,
+
+  STEP_Y_PIN = PORT_F << 3,
+  DIR_Y_PIN,
+  ENABLE_Y_PIN,
+  SPI_CS_Y_PIN,
+  FAULT_Y_PIN,
+  SWITCH_2_PIN,
+  MIN_A_PIN,
+  MAX_A_PIN,
+};
+
 
 // Compile-time settings
 //#define __STEP_CORRECTION
@@ -200,13 +262,6 @@ typedef enum {
 #define SPINDLE_MAX_DUTY         0.99
 #define SPINDLE_POLARITY         0 // 0 = normal, 1 = reverse
 
-#define SPINDLE_PWM_PORT         PORTD
-#define SPINDLE_PWM_PIN_bm       (1 << 5)
-#define SPINDLE_DIR_PORT         PORTB
-#define SPINDLE_DIR_PIN_bm       (1 << 1)
-#define SPINDLE_ENABLE_PORT      PORTB
-#define SPINDLE_ENABLE_PIN_bm    (1 << 6)
-
 
 // Gcode defaults
 #define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
@@ -216,49 +271,12 @@ typedef enum {
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
 
 
-// Motors mapped to ports
-#define PORT_MOTOR_1 PORTA
-#define PORT_MOTOR_2 PORTF
-#define PORT_MOTOR_3 PORTE
-#define PORT_MOTOR_4 PORTD
-
 // Motor fault ISRs
 #define PORT_1_FAULT_ISR_vect PORTA_INT1_vect
 #define PORT_2_FAULT_ISR_vect PORTD_INT1_vect
 #define PORT_3_FAULT_ISR_vect PORTE_INT1_vect
 #define PORT_4_FAULT_ISR_vect PORTF_INT1_vect
 
-// Switch axes mapped to ports
-#define PORT_SWITCH_X PORT_MOTOR_1
-#define PORT_SWITCH_Y PORT_MOTOR_2
-#define PORT_SWITCH_Z PORT_MOTOR_3
-#define PORT_SWITCH_A PORT_MOTOR_4
-
-// Axes mapped to output ports
-#define PORT_OUT_X PORT_MOTOR_1
-#define PORT_OUT_Y PORT_MOTOR_2
-#define PORT_OUT_Z PORT_MOTOR_3
-#define PORT_OUT_A PORT_MOTOR_4
-
-// Motor control port
-#define STEP_BIT_bm         (1 << 0)
-#define DIRECTION_BIT_bm    (1 << 1)
-#define MOTOR_ENABLE_BIT_bm (1 << 2)
-#define CHIP_SELECT_BIT_bm  (1 << 3)
-#define FAULT_BIT_bm        (1 << 4)
-#define GPIO1_OUT_BIT_bm    (1 << 5) // spindle and coolant
-#define SW_MIN_BIT_bm       (1 << 6) // minimum switch inputs
-#define SW_MAX_BIT_bm       (1 << 7) // maximum switch inputs
-
-// Assignments for GPIO1_OUTs for spindle, PWM and coolant
-#define SPINDLE_BIT         0 // spindle on/off
-#define SPINDLE_DIR         1 // spindle direction, 1=CW, 0=CCW
-#define SPINDLE_PWM         2 // spindle PWMs output bit
-
-#define MIST_PORT           PORTE
-#define MIST_PIN_bm         (1 << 5)
-#define FLOOD_PORT          PORTF
-#define FLOOD_PIN_bm        (1 << 5)
 
 /* Interrupt usage:
  *
@@ -294,6 +312,7 @@ typedef enum {
 #define M3_DMA_TRIGGER  DMA_CH_TRIGSRC_TCE0_CCA_gc
 #define M4_DMA_TRIGGER  DMA_CH_TRIGSRC_TCD0_CCA_gc
 
+
 // Timer setup for stepper and dwells
 #define STEP_TIMER_DISABLE   0
 #define STEP_TIMER_ENABLE    TC_CLKSEL_DIV4_gc
@@ -303,6 +322,7 @@ typedef enum {
 #define STEP_TIMER_WGMODE    TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR       TCC0_OVF_vect
 #define STEP_TIMER_INTLVL    TC_OVFINTLVL_HI_gc
+
 
 /* Step correction settings
  *
@@ -324,34 +344,36 @@ typedef enum {
 #define STEP_CORRECTION_MAX       0.60
 /// minimum wait between error correction
 #define STEP_CORRECTION_HOLDOFF   5
-#define STEP_INITIAL_DIRECTION    DIRECTION_CW
 
 
 // TMC2660 driver settings
-#define TMC2660_SPI_PORT       PORTC
-#define TMC2660_SPI_SS_PIN     4
-#define TMC2660_SPI_SCK_PIN    5
-#define TMC2660_SPI_MISO_PIN   6
-#define TMC2660_SPI_MOSI_PIN   7
-#define TMC2660_TIMER          TCC1
+#define TMC2660_OVF_vect       TCC1_OVF_vect
+#define TMC2660_SPI_SS_PIN     SERIAL_CTS_PIN
+#define TMC2660_SPI_SCK_PIN    SPI_CLK_PIN
+#define TMC2660_SPI_MISO_PIN   SPI_MOSI_PIN
+#define TMC2660_SPI_MOSI_PIN   SPI_MISO_PIN
+#define TMC2660_TIMER          TIMER_TMC2660
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
 #define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
 #define TMC2660_STABILIZE_TIME 0.01 // sec.  Must be at least 1ms
 
 
-// PWM settings
-#define PWM_MAX_FREQ (F_CPU / 256)        // with 8-bits duty cycle precision
-#define PWM_MIN_FREQ (F_CPU / 64 / 65536) // min frequency for prescaling
-#define PWM1_CTRLB             (3 | TC1_CCBEN_bm) // single slope PWM channel B
-#define PWM1_ISR_vect          TCD1_CCB_vect
-#define PWM2_CTRLB             3                  // single slope PWM no output
-#define PWM2_ISR_vect          TCE1_CCB_vect
-
-
 // Huanyang settings
+#define HUANYANG_PORT             USARTD1
+#define HUANYANG_DRE_vect         USARTD1_DRE_vect
+#define HUANYANG_TXC_vect         USARTD1_TXC_vect
+#define HUANYANG_RXC_vect         USARTD1_RXC_vect
 #define HUANYANG_TIMEOUT          50 // ms. response timeout
 #define HUANYANG_RETRIES           4 // Number of retries before failure
 #define HUANYANG_ID                1 // Default ID
+
+
+// Serial settings
+#define SERIAL_BAUD             USART_BAUD_115200
+#define SERIAL_PORT             USARTC0
+#define SERIAL_DRE_vect         USARTC0_DRE_vect
+#define SERIAL_RXC_vect         USARTC0_RXC_vect
+
 
 // Input
 #define INPUT_BUFFER_LEN         255 // text buffer size (255 max)
@@ -361,46 +383,3 @@ typedef enum {
 #define ARC_RADIUS_ERROR_MAX 1.0   // max mm diff between start and end radius
 #define ARC_RADIUS_ERROR_MIN 0.005 // min mm where 1% rule applies
 #define ARC_RADIUS_TOLERANCE 0.001 // 0.1% radius variance test
-
-// Coordinate offsets
-#define G54_X_OFFSET 0            // G54 is traditionally set to all zeros
-#define G54_Y_OFFSET 0
-#define G54_Z_OFFSET 0
-#define G54_A_OFFSET 0
-#define G54_B_OFFSET 0
-#define G54_C_OFFSET 0
-
-#define G55_X_OFFSET (X_TRAVEL_MAX / 2)    // set to middle of table
-#define G55_Y_OFFSET (Y_TRAVEL_MAX / 2)
-#define G55_Z_OFFSET 0
-#define G55_A_OFFSET 0
-#define G55_B_OFFSET 0
-#define G55_C_OFFSET 0
-
-#define G56_X_OFFSET 0
-#define G56_Y_OFFSET 0
-#define G56_Z_OFFSET 0
-#define G56_A_OFFSET 0
-#define G56_B_OFFSET 0
-#define G56_C_OFFSET 0
-
-#define G57_X_OFFSET 0
-#define G57_Y_OFFSET 0
-#define G57_Z_OFFSET 0
-#define G57_A_OFFSET 0
-#define G57_B_OFFSET 0
-#define G57_C_OFFSET 0
-
-#define G58_X_OFFSET 0
-#define G58_Y_OFFSET 0
-#define G58_Z_OFFSET 0
-#define G58_A_OFFSET 0
-#define G58_B_OFFSET 0
-#define G58_C_OFFSET 0
-
-#define G59_X_OFFSET 0
-#define G59_Y_OFFSET 0
-#define G59_Z_OFFSET 0
-#define G59_A_OFFSET 0
-#define G59_B_OFFSET 0
-#define G59_C_OFFSET 0

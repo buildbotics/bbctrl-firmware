@@ -32,20 +32,20 @@
 
 
 void coolant_init() {
-  MIST_PORT.OUTSET = MIST_PIN_bm; // High
-  MIST_PORT.DIRSET = MIST_PIN_bm; // Output
-  FLOOD_PORT.OUTSET = FLOOD_PIN_bm; // High
-  FLOOD_PORT.DIRSET = FLOOD_PIN_bm; // Output
+  OUTSET_PIN(SWITCH_1_PIN); // High
+  DIRSET_PIN(SWITCH_1_PIN); // Output
+  OUTSET_PIN(SWITCH_2_PIN); // High
+  DIRSET_PIN(SWITCH_2_PIN); // Output
 }
 
 
 void coolant_set_mist(bool x) {
-  if (x) MIST_PORT.OUTCLR = MIST_PIN_bm;
-  else MIST_PORT.OUTSET = MIST_PIN_bm;
+  if (x) OUTCLR_PIN(SWITCH_1_PIN);
+  else OUTSET_PIN(SWITCH_1_PIN);
 }
 
 
 void coolant_set_flood(bool x) {
-  if (x) FLOOD_PORT.OUTCLR = FLOOD_PIN_bm;
-  else FLOOD_PORT.OUTSET = FLOOD_PIN_bm;
+  if (x) OUTCLR_PIN(SWITCH_2_PIN);
+  else OUTSET_PIN(SWITCH_2_PIN);
 }

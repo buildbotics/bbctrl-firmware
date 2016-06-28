@@ -149,38 +149,38 @@ static uint16_t _crc16(const uint8_t *buffer, unsigned length) {
 
 
 static void _set_baud(uint16_t bsel, uint8_t bscale) {
-  USARTD1.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
-  USARTD1.BAUDCTRLA = bsel;
+  HUANYANG_PORT.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
+  HUANYANG_PORT.BAUDCTRLA = bsel;
 }
 
 
 static void _set_write(bool x) {
   if (x)  {
-    PORTB.OUTSET = 1 << 4; // High
-    PORTB.OUTSET = 1 << 5; // High
+    OUTSET_PIN(RS485_RE_PIN); // High
+    OUTSET_PIN(RS485_DE_PIN); // High
 
   } else {
-    PORTB.OUTCLR = 1 << 4; // Low
-    PORTB.OUTCLR = 1 << 5; // Low
+    OUTCLR_PIN(RS485_RE_PIN); // Low
+    OUTCLR_PIN(RS485_DE_PIN); // Low
   }
 }
 
 
 static void _set_dre_interrupt(bool enable) {
-  if (enable) USARTD1.CTRLA |= USART_DREINTLVL_MED_gc;
-  else USARTD1.CTRLA &= ~USART_DREINTLVL_MED_gc;
+  if (enable) HUANYANG_PORT.CTRLA |= USART_DREINTLVL_MED_gc;
+  else HUANYANG_PORT.CTRLA &= ~USART_DREINTLVL_MED_gc;
 }
 
 
 static void _set_txc_interrupt(bool enable) {
-  if (enable) USARTD1.CTRLA |= USART_TXCINTLVL_MED_gc;
-  else USARTD1.CTRLA &= ~USART_TXCINTLVL_MED_gc;
+  if (enable) HUANYANG_PORT.CTRLA |= USART_TXCINTLVL_MED_gc;
+  else HUANYANG_PORT.CTRLA &= ~USART_TXCINTLVL_MED_gc;
 }
 
 
 static void _set_rxc_interrupt(bool enable) {
-  if (enable) USARTD1.CTRLA |= USART_RXCINTLVL_MED_gc;
-  else USARTD1.CTRLA &= ~USART_RXCINTLVL_MED_gc;
+  if (enable) HUANYANG_PORT.CTRLA |= USART_RXCINTLVL_MED_gc;
+  else HUANYANG_PORT.CTRLA &= ~USART_RXCINTLVL_MED_gc;
 }
 
 
@@ -384,8 +384,8 @@ static void _retry_command() {
 
 
 // Data register empty interrupt
-ISR(USARTD1_DRE_vect) {
-  USARTD1.DATA = ha.command[ha.current_offset++];
+ISR(HUANYANG_DRE_vect) {
+  HUANYANG_PORT.DATA = ha.command[ha.current_offset++];
 
   if (ha.current_offset == ha.command_length) {
     _set_dre_interrupt(false);
@@ -396,7 +396,7 @@ ISR(USARTD1_DRE_vect) {
 
 
 /// Transmit complete interrupt
-ISR(USARTD1_TXC_vect) {
+ISR(HUANYANG_TXC_vect) {
   _set_txc_interrupt(false);
   _set_rxc_interrupt(true);
   _set_write(false); // RS485 read mode
@@ -405,7 +405,7 @@ ISR(USARTD1_TXC_vect) {
 
 
 // Data received interrupt
-ISR(USARTD1_RXC_vect) {
+ISR(HUANYANG_RXC_vect) {
   ha.response[ha.current_offset++] = USARTD1.DATA;
 
   if (ha.current_offset == ha.response_length) {
@@ -427,20 +427,13 @@ ISR(USARTD1_RXC_vect) {
 void huanyang_init() {
   PR.PRPD &= ~PR_USART1_bm; // Disable power reduction
 
-  // rs485_ro
-  PORTD.DIRCLR = 1 << 6; // Input
-
-  // rs485_di
-  PORTD.OUTSET = 1 << 7; // High
-  PORTD.DIRSET = 1 << 7; // Output
-
-  // rs485_re
-  PORTB.OUTSET = 1 << 4; // High
-  PORTB.DIRSET = 1 << 4; // Output
-
-  // rs485_de
-  PORTB.OUTSET = 1 << 5; // High
-  PORTB.DIRSET = 1 << 5; // Output
+  DIRCLR_PIN(RS485_RO_PIN); // Input
+  OUTSET_PIN(RS485_DI_PIN); // High
+  DIRSET_PIN(RS485_DI_PIN); // Output
+  OUTSET_PIN(RS485_RE_PIN); // High
+  DIRSET_PIN(RS485_RE_PIN); // Output
+  OUTSET_PIN(RS485_DE_PIN); // High
+  DIRSET_PIN(RS485_DE_PIN); // Output
 
   _set_baud(3325, 0b1101); // 9600 @ 32MHz with 2x USART
 

@@ -96,24 +96,24 @@ static void _spindle_set_pwm(cmSpindleMode_t mode, float speed) {
 
 static void _spindle_set_enable(bool enable) {
   if (enable ^ spindle.enable_invert)
-    SPINDLE_ENABLE_PORT.OUTSET = SPINDLE_ENABLE_PIN_bm;
-  else SPINDLE_ENABLE_PORT.OUTCLR = SPINDLE_ENABLE_PIN_bm;
+    PORT(SPIN_ENABLE_PIN)->OUTSET = BM(SPIN_ENABLE_PIN);
+  else PORT(SPIN_ENABLE_PIN)->OUTCLR = BM(SPIN_ENABLE_PIN);
 }
 
 
 static void _spindle_set_dir(bool forward) {
-  if (forward ^ spindle.reverse) SPINDLE_DIR_PORT.OUTCLR = SPINDLE_DIR_PIN_bm;
-  else SPINDLE_DIR_PORT.OUTSET = SPINDLE_DIR_PIN_bm;
+  if (forward ^ spindle.reverse) PORT(SPIN_DIR_PIN)->OUTCLR = BM(SPIN_DIR_PIN);
+  else PORT(SPIN_DIR_PIN)->OUTSET = BM(SPIN_DIR_PIN);
 }
 
 
 void pwm_spindle_init() {
   // Configure IO
-  SPINDLE_PWM_PORT.DIRSET = SPINDLE_PWM_PIN_bm; // PWM Output
+  PORT(SPIN_PWM_PIN)->DIRSET = BM(SPIN_PWM_PIN); // PWM Output
   _spindle_set_dir(true);
-  SPINDLE_DIR_PORT.DIRSET = SPINDLE_DIR_PIN_bm; // Dir Output
+  PORT(SPIN_DIR_PIN)->DIRSET = BM(SPIN_DIR_PIN); // Dir Output
   _spindle_set_enable(false);
-  SPINDLE_ENABLE_PORT.DIRSET = SPINDLE_ENABLE_PIN_bm; // Enable output
+  PORT(SPIN_ENABLE_PIN)->DIRSET = BM(SPIN_ENABLE_PIN); // Enable output
 
   // Configure clock
   TIMER_PWM.CTRLB = TC1_CCBEN_bm | TC_WGMODE_SINGLESLOPE_gc;

@@ -97,23 +97,12 @@ cmSingleton_t cm = {
   .offset = {
     {}, // ABSOLUTE_COORDS
 
-    {G54_X_OFFSET, G54_Y_OFFSET, G54_Z_OFFSET,
-     G54_A_OFFSET, G54_B_OFFSET, G54_C_OFFSET},
-
-    {G55_X_OFFSET, G55_Y_OFFSET, G55_Z_OFFSET,
-     G55_A_OFFSET, G55_B_OFFSET, G55_C_OFFSET},
-
-    {G56_X_OFFSET, G56_Y_OFFSET, G56_Z_OFFSET,
-     G56_A_OFFSET, G56_B_OFFSET, G56_C_OFFSET},
-
-    {G57_X_OFFSET, G57_Y_OFFSET, G57_Z_OFFSET,
-     G57_A_OFFSET, G57_B_OFFSET, G57_C_OFFSET},
-
-    {G58_X_OFFSET, G58_Y_OFFSET, G58_Z_OFFSET,
-     G58_A_OFFSET, G58_B_OFFSET, G58_C_OFFSET},
-
-    {G59_X_OFFSET, G59_Y_OFFSET, G59_Z_OFFSET,
-     G59_A_OFFSET, G59_B_OFFSET, G59_C_OFFSET},
+    {0, 0, 0, 0, 0, 0}, // G54
+    {X_TRAVEL_MAX / 2, Y_TRAVEL_MAX / 2, 0, 0, 0, 0}, // G55
+    {0, 0, 0, 0, 0, 0}, // G56
+    {0, 0, 0, 0, 0, 0}, // G57
+    {0, 0, 0, 0, 0, 0}, // G58
+    {0, 0, 0, 0, 0, 0}, // G59
   },
 
   // Axes
