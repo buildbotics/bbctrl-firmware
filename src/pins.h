@@ -30,19 +30,9 @@
 #include <avr/io.h>
 
 
-// Ports
-enum {
-  PORT_A,
-  PORT_B,
-  PORT_C,
-  PORT_D,
-  PORT_E,
-  PORT_F,
-};
-
+enum {PORT_A, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F};
 
 extern PORT_t *pin_ports[];
-
 
 #define PORT(PIN) pin_ports[PIN >> 3]
 #define BM(PIN) (1 << (PIN & 7))

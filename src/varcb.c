@@ -41,7 +41,7 @@ float get_velocity() {
 
 
 bool get_echo() {
-  return true; // Always true so that echo is always enabled after reboot
+  return usart_is_set(USART_ECHO);
 }
 
 

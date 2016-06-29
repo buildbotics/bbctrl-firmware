@@ -29,6 +29,8 @@
 #include "motor.h"
 #include "stepper.h"
 #include "spindle.h"
+#include "switch.h"
+#include "report.h"
 #include "config.h"
 
 #include "plan/planner.h"
@@ -42,12 +44,24 @@ typedef struct {
 static estop_t estop = {0};
 
 
+static void _switch_callback(switch_id_t id, bool active) {
+  if (active) estop_trigger();
+  else estop_clear();
+
+  report_request();
+}
+
+
 void estop_init() {
+  switch_set_callback(SW_ESTOP, _switch_callback);
+
+  OUTCLR_PIN(FAULT_PIN); // Low
+  DIRSET_PIN(FAULT_PIN); // Output
 }
 
 
 bool estop_triggered() {
-  return estop.triggered;
+  return estop.triggered || switch_is_active(SW_ESTOP);
 }
 
 
@@ -64,6 +78,9 @@ void estop_trigger() {
 
   // Set alarm state
   cm_set_machine_state(MACHINE_ALARM);
+
+  // Assert fault signal
+  OUTSET_PIN(FAULT_PIN); // High
 }
 
 
@@ -76,6 +93,9 @@ void estop_clear() {
 
   // Clear alarm state
   cm_set_machine_state(MACHINE_READY);
+
+  // Clear fault signal
+  OUTCLR_PIN(FAULT_PIN); // Low
 }
 
 
@@ -85,7 +105,10 @@ bool get_estop() {
 
 
 void set_estop(bool value) {
-  if (estop.triggered != value) {
+  bool triggered = estop_triggered();
+  estop.triggered = value;
+
+  if (triggered != estop_triggered()) {
     if (value) estop_trigger();
     else estop_clear();
   }

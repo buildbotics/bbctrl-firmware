@@ -148,31 +148,3 @@ float get_zero_backoff(int axis) {
 void set_zero_backoff(int axis, float value) {
   cm.a[axis].zero_backoff = value;
 }
-
-
-
-
-
-
-
-// TODO fix these
-uint8_t get_min_switch(int axis) {
-  //return cm.a[axis].min_switch;
-  return 0;
-}
-
-
-void set_min_switch(int axis, uint8_t value) {
-  //cm.a[axis].min_switch = value;
-}
-
-
-uint8_t get_max_switch(int axis) {
-  //return cm.a[axis].max_switch;
-  return 0;
-}
-
-
-void set_max_switch(int axis, uint8_t value) {
-  //cm.a[axis].max_switch = value;
-}

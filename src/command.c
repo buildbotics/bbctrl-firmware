@@ -179,7 +179,9 @@ stat_t command_hi() {
   default: return STAT_OK; // Continue processing in command_lo()
   }
 
+  report_request();
   _cmd = 0; // Command complete
+
   return status;
 }
 
@@ -189,13 +191,15 @@ stat_t command_lo() {
       usart_tx_full())
     return STAT_OK; // Wait
 
+  // Consume command
+  char *cmd = _cmd;
+  _cmd = 0;
+
   if (estop_triggered()) return STAT_MACHINE_ALARMED;
   if (calibrate_busy()) return STAT_BUSY;
   if (mp_jog_busy()) return STAT_BUSY;
 
-  stat_t status = gc_gcode_parser(_cmd);
-  _cmd = 0;
-  return status;
+  return gc_gcode_parser(cmd);
 }
 
 

@@ -110,6 +110,7 @@ static bool var_parse_bool(const char *value) {
 }
 
 
+#if 0
 static uint8_t eeprom_read_bool(bool *addr) {
   return eeprom_read_byte((uint8_t *)addr);
 }
@@ -118,6 +119,7 @@ static uint8_t eeprom_read_bool(bool *addr) {
 static void eeprom_update_bool(bool *addr, bool value) {
   eeprom_update_byte((uint8_t *)addr, value);
 }
+#endif
 
 
 // int8
@@ -193,7 +195,7 @@ static void eeprom_update_uint16_t(uint16_t *addr, uint16_t value) {
 #undef VAR
 
 // Var names, count & help
-#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, HELP)    \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, HELP)       \
   static const char NAME##_name[] PROGMEM = #NAME;          \
   static const char NAME##_help[] PROGMEM = HELP;
 
@@ -201,8 +203,8 @@ static void eeprom_update_uint16_t(uint16_t *addr, uint16_t value) {
 #undef VAR
 
 // EEPROM storage
-#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, HELP)    \
-  IF(SET)                                                   \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, HELP)       \
+  IF(SAVE)                                                  \
   (static TYPE NAME##_eeprom IF(INDEX)([INDEX]) EEMEM;)
 
 #include "vars.def"
@@ -223,7 +225,7 @@ void vars_init() {
   vars_restore();
 
   // Initialize var state
-#define VAR(NAME, CODE, TYPE, INDEX, SET, DEFAULT, ...)         \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)            \
   IF(INDEX)(for (int i = 0; i < INDEX; i++))                    \
     (NAME##_state)IF(INDEX)([i]) = get_##NAME(IF(INDEX)(i));
 
@@ -336,7 +338,6 @@ bool vars_set(const char *name, const char *value) {
                                                                         \
       TYPE x = var_parse_##TYPE(value);                                 \
       set_##NAME(IF(INDEX)(i,) x);                                      \
-      NAME##_state IF(INDEX)([i]) = x;                                  \
                                                                         \
       return true;                                                      \
     })                                                                  \
@@ -405,8 +406,8 @@ uint16_t vars_crc() {
   CRC.CTRL = CRC_RESET_RESET0_gc;
   CRC.CTRL = CRC_SOURCE_IO_gc; // Must be after reset
 
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  IF(SET)                                                               \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
+  IF(SAVE)                                                              \
     ({                                                                  \
       for (int j = 0; ; j++) {                                          \
         char c = pgm_read_byte(&NAME##_name[j]);                        \
@@ -432,8 +433,8 @@ void vars_save() {
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();
 
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  IF(SET)                                                               \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
+  IF(SAVE)                                                              \
     (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
       TYPE value = get_##NAME(IF(INDEX)(i));                            \
       eeprom_update_##TYPE(&NAME##_eeprom IF(INDEX)([i]), value);       \
@@ -462,8 +463,8 @@ stat_t vars_restore() {
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();
 
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  IF(SET)                                                               \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
+  IF(SAVE)                                                              \
     (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
       TYPE value = eeprom_read_##TYPE(&NAME##_eeprom IF(INDEX)([i]));   \
       set_##NAME(IF(INDEX)(i,) value);                                  \

@@ -47,11 +47,6 @@
 struct pbProbingSingleton {       // persistent probing runtime variables
   stat_t (*func)();               // binding for callback function state machine
 
-  // switch configuration
-  uint8_t probe_switch;           // which switch should we check?
-  uint8_t saved_switch_type;      // saved switch type NO/NC
-  uint8_t saved_switch_mode;      // save the probe switch's original settings
-
   // state saved from gcode model
   uint8_t saved_distance_mode;    // G90,G91 global setting
   uint8_t saved_coord_system;     // G54 - G59 setting
@@ -164,23 +159,6 @@ static uint8_t _probing_init() {
     if (fp_NE(pb.start_position[axis], pb.target[axis]))
       _probing_error_exit(axis);
 
-  // initialize the probe switch
-
-  // switch the switch type mode for the probe
-  // FIXME: we should be able to use the homing switch at this point too,
-  // Can't because switch mode is global and our probe is NO, not NC.
-
-  pb.probe_switch = SW_MIN_Z; // FIXME: hardcoded...
-  pb.saved_switch_mode = switch_get_mode(pb.probe_switch);
-
-  switch_set_mode(pb.probe_switch, SW_MODE_HOMING);
-  // save the switch type for recovery later.
-  pb.saved_switch_type = switch_get_type(pb.probe_switch);
-  // contact probes are NO switches... usually
-  switch_set_type(pb.probe_switch, SW_TYPE_NORMALLY_OPEN);
-  // re-init to pick up new switch settings
-  switch_init();
-
   // probe in absolute machine coords
   pb.saved_coord_system = cm_get_coord_system(&cm.gm);
   pb.saved_distance_mode = cm_get_distance_mode(&cm.gm);
@@ -196,7 +174,7 @@ static uint8_t _probing_init() {
 
 static stat_t _probing_start() {
   // initial probe state, don't probe if we're already contacted!
-  bool closed = switch_get_active(pb.probe_switch);
+  bool closed = switch_is_active(SW_PROBE);
 
   if (!closed) RITORNO(cm_straight_feed(pb.target, pb.flags));
 
@@ -205,7 +183,7 @@ static stat_t _probing_start() {
 
 
 static stat_t _probing_finish() {
-  bool closed = switch_get_active(pb.probe_switch);
+  bool closed = switch_is_active(SW_PROBE);
   cm.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
 
   for (uint8_t axis = 0; axis < AXES; axis++) {
@@ -223,10 +201,6 @@ static stat_t _probing_finish() {
 static void _probe_restore_settings() {
   // we should be stopped now, but in case of switch closure
   mp_flush_planner();
-
-  switch_set_type(pb.probe_switch, pb.saved_switch_type);
-  switch_set_mode(pb.probe_switch, pb.saved_switch_mode);
-  switch_init(); // re-init to pick up changes
 
   // restore axis jerk
   for (uint8_t axis = 0; axis < AXES; axis++ )
