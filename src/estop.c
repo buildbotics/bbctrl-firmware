@@ -100,7 +100,7 @@ void estop_clear() {
 
 
 bool get_estop() {
-  return estop.triggered;
+  return estop_triggered();
 }
 
 
