@@ -68,7 +68,6 @@ static void _exec_spindle_speed(float *value, float *flag) {
 
 
 void cm_spindle_init() {
-  return;
   pwm_spindle_init();
   huanyang_init();
 }
