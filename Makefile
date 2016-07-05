@@ -83,6 +83,9 @@ erase:
 program: $(PROJECT).hex
 	avrdude $(AVRDUDE_OPTS) -U flash:w:$(PROJECT).hex:i
 
+verify: $(PROJECT).hex
+	avrdude $(AVRDUDE_OPTS) -U flash:v:$(PROJECT).hex:i
+
 fuses:
 	avrdude $(AVRDUDE_OPTS) -U fuse0:w:$(FUSE0):m -U fuse1:w:$(FUSE1):m \
 	  -U fuse2:w:$(FUSE2):m -U fuse4:w:$(FUSE4):m -U fuse5:w:$(FUSE5):m
