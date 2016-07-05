@@ -3,3 +3,9 @@
 \#*
 
 build
+
+/*.eep
+/*.hex
+/*.elf
+/*.lss
+/*.map
