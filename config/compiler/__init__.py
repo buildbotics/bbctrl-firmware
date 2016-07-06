@@ -52,6 +52,9 @@ def configure(conf, cstd = 'c99'):
     env.Decider(decider_hack(env))
 
     # Get options
+    cc = env.get('cc', '').strip()
+    cxx = env.get('cxx', '').strip()
+    ranlib = env.get('ranlib', '').strip()
     debug = int(env.get('debug'))
     optimize = int(env.get('optimize'))
     if optimize == -1: optimize = not debug
@@ -176,6 +179,10 @@ def configure(conf, cstd = 'c99'):
         if cc == 'cl': compiler = 'msvc'
         elif cc == 'gcc': compiler = 'gnu'
         elif cc == 'icl' or cc == 'icc': compiler = 'intel'
+
+    if cc: env.Replace(CC = cc)
+    if cxx: env.Replace(CXX = cxx)
+    if ranlib: env.Replace(RANLIB = ranlib)
 
     env.__setitem__('compiler', compiler)
     env.__setitem__('compiler_mode', compiler_mode)
@@ -528,6 +535,9 @@ def generate(env):
     env.SetDefault(REQUIRE_STATIC = [])
 
     env.CBAddVariables(
+        ('cc', 'Set C compiler executable', ''),
+        ('cxx', 'Set C++ compiler executable', ''),
+        ('ranlib', 'Set ranlib executable', ''),
         ('optimize', 'Enable or disable optimizations', -1),
         ('globalopt', 'Enable or disable global optimizations', 0),
         ('sse2', 'Enable SSE2 instructions', 0),
