@@ -29,5 +29,9 @@
 
 #include "status.h"
 
-void mp_plan_hold_callback();
-void mp_end_hold();
+#include <stdbool.h>
+
+
+bool cm_is_probing();
+stat_t cm_straight_probe(float target[], float flags[]);
+void cm_probe_callback();

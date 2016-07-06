@@ -108,7 +108,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
         if (cal.reverse) {
           int32_t steps = -motor_get_encoder(cal.motor);
           float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
-          printf("%"PRIi32" steps %0.2f mm\n", steps, mm);
+          STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
 
           tmc2660_set_stallguard_threshold(cal.motor, 63);
           mp_free_run_buffer(); // Release buffer
@@ -178,7 +178,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   cal.motor = 1;
 
   bf->bf_func = _exec_calibrate; // register callback
-  mp_commit_write_buffer(MOVE_TYPE_COMMAND);
+  mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
 
   return 0;
 }

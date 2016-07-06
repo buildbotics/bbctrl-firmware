@@ -323,6 +323,7 @@ typedef enum {
 
 
 typedef struct {
+  int32_t line;              // gcode block line number
   float target[AXES];        // XYZABC where the move should go
   float work_offset[AXES];   // offset from work coordinate system
   float move_time;           // optimal time for move given axis constraints
@@ -331,7 +332,7 @@ typedef struct {
 
 /// Gcode model state
 typedef struct GCodeState {
-  uint32_t linenum;                   // Gcode block line number
+  uint32_t line;                      // Gcode block line number
 
   uint8_t tool;                       // Tool after T and M6
   uint8_t tool_select;                // T - sets this value
@@ -437,7 +438,7 @@ extern cmSingleton_t cm;               // canonical machine controller singleton
 
 
 // Model state getters and setters
-uint32_t cm_get_linenum();
+uint32_t cm_get_line();
 cmCombinedState_t cm_get_combined_state();
 cmMachineState_t cm_get_machine_state();
 cmCycleState_t cm_get_cycle_state();
@@ -463,7 +464,7 @@ void cm_set_spindle_mode(cmSpindleMode_t spindle_mode);
 void cm_set_spindle_speed_parameter(float speed);
 void cm_set_tool_number(uint8_t tool);
 void cm_set_absolute_override(bool absolute_override);
-void cm_set_model_linenum(uint32_t linenum);
+void cm_set_model_line(uint32_t line);
 
 float cm_get_axis_jerk(uint8_t axis);
 void cm_set_axis_jerk(uint8_t axis, float jerk);
@@ -553,7 +554,7 @@ void cm_request_feedhold();
 void cm_request_queue_flush();
 void cm_request_cycle_start();
 
-stat_t cm_feedhold_sequencing_callback();
+void cm_feedhold_sequencing_callback();
 stat_t cm_queue_flush();
 
 void cm_cycle_start();
@@ -565,12 +566,3 @@ void cm_program_end();
 
 // Cycles
 char cm_get_axis_char(int8_t axis);
-
-// Homing cycles
-stat_t cm_homing_cycle_start();
-stat_t cm_homing_cycle_start_no_set();
-stat_t cm_homing_callback();
-
-// Probe cycles
-stat_t cm_straight_probe(float target[], float flags[]);
-stat_t cm_probe_callback();

@@ -27,7 +27,10 @@
 
 #pragma once
 
-#include "status.h"
+#include <stdbool.h>
 
-void mp_plan_hold_callback();
-void mp_end_hold();
+
+bool cm_is_homing();
+void cm_homing_cycle_start();
+void cm_homing_cycle_start_no_set();
+void cm_homing_callback();

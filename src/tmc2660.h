@@ -39,7 +39,6 @@ void tmc2660_init();
 uint8_t tmc2660_status(int driver);
 void tmc2660_reset(int driver);
 bool tmc2660_ready(int driver);
-stat_t tmc2660_sync();
 void tmc2660_enable(int driver);
 void tmc2660_disable(int driver);
 void tmc2660_set_stallguard_threshold(int driver, int8_t threshold);

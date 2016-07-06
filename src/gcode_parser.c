@@ -30,6 +30,8 @@
 
 #include "canonical_machine.h"
 #include "spindle.h"
+#include "probing.h"
+#include "homing.h"
 #include "util.h"
 
 #include <stdbool.h>
@@ -231,7 +233,7 @@ static stat_t _validate_gcode_block() {
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
 
-  cm_set_model_linenum(cm.gn.linenum);
+  cm_set_model_line(cm.gn.line);
   EXEC_FUNC(cm_set_feed_rate_mode, feed_rate_mode);
   EXEC_FUNC(cm_set_feed_rate, feed_rate);
   EXEC_FUNC(cm_feed_rate_override_factor, feed_rate_override_factor);
@@ -274,13 +276,13 @@ static stat_t _execute_gcode_block() {
     status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_SEARCH_HOME: // G28.2
-    status = cm_homing_cycle_start();
+    cm_homing_cycle_start();
     break;
   case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
     cm_set_absolute_origin(cm.gn.target, cm.gf.target);
     break;
   case NEXT_ACTION_HOMING_NO_SET: // G28.4
-    status = cm_homing_cycle_start_no_set();
+    cm_homing_cycle_start_no_set();
     break;
   case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
     status = cm_straight_probe(cm.gn.target, cm.gf.target);
@@ -507,7 +509,7 @@ static stat_t _parse_gcode_block(char *buf) {
     case 'J': SET_NON_MODAL(arc_offset[1], value);
     case 'K': SET_NON_MODAL(arc_offset[2], value);
     case 'R': SET_NON_MODAL(arc_radius, value);
-    case 'N': SET_NON_MODAL(linenum, (uint32_t)value); // line number
+    case 'N': SET_NON_MODAL(line, (uint32_t)value); // line number
     case 'L': break; // not used for anything
     case 0: break;
     default: status = STAT_GCODE_COMMAND_UNSUPPORTED;

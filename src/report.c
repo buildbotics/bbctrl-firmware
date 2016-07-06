@@ -52,17 +52,15 @@ void report_request_full() {
 }
 
 
-stat_t report_callback() {
-  if (usart_tx_full()) return STAT_OK; // Wait for buffer space
+void report_callback() {
+  if (usart_tx_full()) return; // Wait for buffer space
 
   if (report_requested && usart_tx_empty()) {
     uint32_t now = rtc_get_time();
-    if (now - last_report < 100) return STAT_OK;
+    if (now - last_report < 100) return;
     last_report = now;
 
     vars_report(report_full);
     report_requested = report_full = false;
   }
-
-  return STAT_OK;
 }

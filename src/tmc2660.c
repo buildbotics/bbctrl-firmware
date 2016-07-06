@@ -382,14 +382,6 @@ bool tmc2660_ready(int motor) {
 }
 
 
-stat_t tmc2660_sync() {
-  for (int i = 0; i < MOTORS; i++)
-    if (!tmc2660_ready(i)) return STAT_EAGAIN;
-
-  return STAT_OK;
-}
-
-
 void tmc2660_enable(int driver) {
   tmc2660_reset(driver);
   _set_current(driver, drivers[driver].drive_current);

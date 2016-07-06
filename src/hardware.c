@@ -155,15 +155,13 @@ void hw_hard_reset() {
 
 
 /// Controller's rest handler
-stat_t hw_reset_handler() {
+void hw_reset_handler() {
   if (hw.hard_reset) hw_hard_reset();
 
   if (hw.bootloader) {
     // TODO enable bootloader interrupt vectors and jump to BOOT_SECTION_START
     hw.bootloader = false;
   }
-
-  return STAT_NOOP;
 }
 
 

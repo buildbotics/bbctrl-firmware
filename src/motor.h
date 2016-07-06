@@ -77,7 +77,7 @@ void motor_reset(int motor);
 bool motor_energizing();
 
 void motor_driver_callback(int motor);
-stat_t motor_power_callback();
+stat_t motor_rtc_callback();
 void motor_error_callback(int motor, cmMotorFlags_t errors);
 
 void motor_load_move(int motor);

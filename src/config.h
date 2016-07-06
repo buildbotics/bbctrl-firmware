@@ -383,3 +383,13 @@ typedef enum {
 #define ARC_RADIUS_ERROR_MAX 1.0   // max mm diff between start and end radius
 #define ARC_RADIUS_ERROR_MIN 0.005 // min mm where 1% rule applies
 #define ARC_RADIUS_TOLERANCE 0.001 // 0.1% radius variance test
+
+
+// Planner
+/// Should be at least the number of buffers requires to support optimal
+/// planning in the case of very short lines or arc segments.  Suggest 12 min.
+/// Limit is 255.
+#define PLANNER_BUFFER_POOL_SIZE 32
+
+/// Buffers to reserve in planner before processing new input line
+#define PLANNER_BUFFER_HEADROOM 4

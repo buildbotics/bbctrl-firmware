@@ -366,7 +366,7 @@ stat_t mp_aline(MoveState_t *ms) {
   mp_plan_block_list(bf, &mr_flag);            // replan block list
   copy_vector(mm.position, bf->ms.target);     // set the planner position
   // commit current block (must follow the position update)
-  mp_commit_write_buffer(MOVE_TYPE_ALINE);
+  mp_commit_write_buffer(ms->line, MOVE_TYPE_ALINE);
 
   return STAT_OK;
 }

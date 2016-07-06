@@ -186,8 +186,8 @@ cmSingleton_t cm = {
 
   // State
   .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
-  .gn = {},
-  .gf = {},
+  .gn = {0},
+  .gf = {0},
 };
 
 
@@ -218,7 +218,7 @@ cmCombinedState_t cm_get_combined_state() {
   return cm.combined_state;
 }
 
-uint32_t cm_get_linenum() {return cm.gm.linenum;}
+uint32_t cm_get_line() {return cm.gm.line;}
 cmMachineState_t cm_get_machine_state() {return cm.machine_state;}
 cmCycleState_t cm_get_cycle_state() {return cm.cycle_state;}
 cmMotionState_t cm_get_motion_state() {return cm.motion_state;}
@@ -268,7 +268,7 @@ void cm_set_absolute_override(bool absolute_override) {
 }
 
 
-void cm_set_model_linenum(uint32_t linenum) {cm.gm.linenum = linenum;}
+void cm_set_model_line(uint32_t line) {cm.gm.line = line;}
 
 
 /* Jerk functions
@@ -655,10 +655,10 @@ void canonical_machine_init() {
 
 
 /// Alarm state; send an exception report and stop processing input
-stat_t cm_alarm(const char *location, stat_t status) {
-  status_error_P(location, PSTR("ALARM"), status);
+stat_t cm_alarm(const char *location, stat_t code) {
+  status_message_P(location, STAT_LEVEL_ERROR, code, "ALARM");
   estop_trigger();
-  return status;
+  return code;
 }
 
 
@@ -866,6 +866,7 @@ stat_t cm_straight_traverse(float target[], float flags[]) {
   // prep and plan the move
   cm_set_work_offsets(&cm.gm); // capture fully resolved offsets to the state
   cm_cycle_start();            // required for homing & other cycles
+  cm.ms.line = cm.gm.line;     // copy line number
   mp_aline(&cm.ms);            // send the move to the planner
   cm_finalize_move();
 
@@ -880,11 +881,12 @@ void cm_set_g28_position() {copy_vector(cm.g28_position, cm.position);}
 /// G28
 stat_t cm_goto_g28_position(float target[], float flags[]) {
   cm_set_absolute_override(true);
+
   // move through intermediate point, or skip
   cm_straight_traverse(target, flags);
 
   // make sure you have an available buffer
-  while (!mp_get_planner_buffers_available());
+  mp_wait_for_buffer();
 
   // execute actual stored move
   float f[] = {1, 1, 1, 1, 1, 1};
@@ -899,12 +901,15 @@ void cm_set_g30_position() {copy_vector(cm.g30_position, cm.position);}
 /// G30
 stat_t cm_goto_g30_position(float target[], float flags[]) {
   cm_set_absolute_override(true);
+
   // move through intermediate point, or skip
   cm_straight_traverse(target, flags);
+
   // make sure you have an available buffer
-  while (!mp_get_planner_buffers_available());
-  float f[] = {1, 1, 1, 1, 1, 1};
+  mp_wait_for_buffer();
+
   // execute actual stored move
+  float f[] = {1, 1, 1, 1, 1, 1};
   return cm_straight_traverse(cm.g30_position, f);
 }
 
@@ -954,6 +959,7 @@ stat_t cm_straight_feed(float target[], float flags[]) {
   // prep and plan the move
   cm_set_work_offsets(&cm.gm); // capture the fully resolved offsets to state
   cm_cycle_start();            // required for homing & other cycles
+  cm.ms.line = cm.gm.line;     // copy line number
   status = mp_aline(&cm.ms);   // send the move to the planner
   cm_finalize_move();
 
@@ -1079,7 +1085,9 @@ void cm_spindle_override_factor(bool flag) {
 }
 
 
-void cm_message(const char *message) {printf(message);}
+void cm_message(const char *message) {
+  status_message_P(0, STAT_LEVEL_INFO, STAT_OK, PSTR("%s"), message);
+}
 
 
 /* Program Functions (4.3.10)
@@ -1129,7 +1137,7 @@ void cm_request_cycle_start() {cm.cycle_start_requested = true;}
 
 
 /// Process feedholds, cycle starts & queue flushes
-stat_t cm_feedhold_sequencing_callback() {
+void cm_feedhold_sequencing_callback() {
   if (cm.feedhold_requested) {
     if (cm.motion_state == MOTION_RUN && cm.hold_state == FEEDHOLD_OFF) {
       cm_set_motion_state(MOTION_HOLD);
@@ -1148,28 +1156,24 @@ stat_t cm_feedhold_sequencing_callback() {
     }
   }
 
-  bool feedhold_processing =
+  bool processing =
     cm.hold_state == FEEDHOLD_SYNC ||
     cm.hold_state == FEEDHOLD_PLAN ||
     cm.hold_state == FEEDHOLD_DECEL;
 
-  if (cm.cycle_start_requested && !cm.queue_flush_requested &&
-      !feedhold_processing) {
+  if (cm.cycle_start_requested && !cm.queue_flush_requested && !processing) {
     cm.cycle_start_requested = false;
     cm.hold_state = FEEDHOLD_END_HOLD;
     cm_cycle_start();
     mp_end_hold();
   }
-
-  return STAT_OK;
 }
 
 
 stat_t cm_queue_flush() {
   if (cm_get_runtime_busy()) return STAT_COMMAND_NOT_ACCEPTED;
 
-  usart_rx_flush();                          // flush serial queues
-  mp_flush_planner();                        // flush planner queue
+  mp_flush_planner();                      // flush planner queue
 
   // Note: The following uses low-level mp calls for absolute position.
   for (int axis = 0; axis < AXES; axis++)

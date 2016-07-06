@@ -50,12 +50,13 @@
  */
 
 #include "buffer.h"
+#include "report.h"
 
 #include <string.h>
 
 
 typedef struct mpBufferPool {           // ring buffer for sub-moves
-  uint8_t buffers_available;            // running count of available buffers
+  volatile uint8_t buffers_available;   // running count of available buffers
   mpBuf_t *w;                           // get_write_buffer pointer
   mpBuf_t *q;                           // queue_write_buffer pointer
   mpBuf_t *r;                           // get/end_run_buffer pointer
@@ -66,8 +67,15 @@ typedef struct mpBufferPool {           // ring buffer for sub-moves
 mpBufferPool_t mb; // move buffer queue
 
 
-/// Returns # of available planner buffers
-uint8_t mp_get_planner_buffers_available() {return mb.buffers_available;}
+uint8_t mp_get_planner_buffer_room() {
+  uint16_t n = mb.buffers_available;
+  return n < PLANNER_BUFFER_HEADROOM ? 0 : n - PLANNER_BUFFER_HEADROOM;
+}
+
+
+void mp_wait_for_buffer() {
+  while (!mb.buffers_available) continue;
+}
 
 
 /// buffer incr & wrap
@@ -111,18 +119,12 @@ mpBuf_t *mp_get_write_buffer() {
     mb.buffers_available--;
     mb.w = w->nx;
 
+    report_request();
+
     return w;
   }
 
   return 0;
-}
-
-
-/// Free write buffer if you decide not to commit it.
-void mp_unget_write_buffer() {
-  mb.w = mb.w->pv;                            // queued --> write
-  mb.w->buffer_state = MP_BUFFER_EMPTY;       // not loading anymore
-  mb.buffers_available++;
 }
 
 
@@ -133,7 +135,8 @@ void mp_unget_write_buffer() {
  * buffer once it has been queued. Action may start on the buffer immediately,
  * invalidating its contents
  */
-void mp_commit_write_buffer(const uint8_t move_type) {
+void mp_commit_write_buffer(uint32_t line, moveType_t move_type) {
+  mb.q->ms.line = line;
   mb.q->move_type = move_type;
   mb.q->move_state = MOVE_NEW;
   mb.q->buffer_state = MP_BUFFER_QUEUED;
@@ -173,6 +176,7 @@ uint8_t mp_free_run_buffer() {           // EMPTY current run buf & adv to next
     mb.r->buffer_state = MP_BUFFER_PENDING;   // pend next buffer
 
   mb.buffers_available++;
+  report_request();
 
   return mb.w == mb.r; // return true if the queue emptied
 }

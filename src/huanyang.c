@@ -332,15 +332,15 @@ static bool _check_response() {
     ha.response[ha.response_length - 2];
 
   if (computed != expected) {
-    printf(PSTR("huanyang: invalid CRC, expected=0x%04u got=0x%04u\n"),
-           expected, computed);
+    STATUS_WARNING("huanyang: invalid CRC, expected=0x%04u got=0x%04u",
+                   expected, computed);
     return false;
   }
 
   // Check return function code matches sent
   if (ha.command[1] != ha.response[1]) {
-    printf_P(PSTR("huanyang: invalid function code, expected=%u got=%u\n"),
-             ha.command[2], ha.response[2]);
+    STATUS_WARNING("huanyang: invalid function code, expected=%u got=%u",
+                   ha.command[2], ha.response[2]);
     return false;
   }
 
@@ -379,7 +379,7 @@ static void _retry_command() {
   _set_rxc_interrupt(false);
   _set_dre_interrupt(true);
 
-  if (ha.debug) printf_P(PSTR("huanyang: retry %d\n"), ha.retry);
+  if (ha.debug) STATUS_DEBUG("huanyang: retry %d", ha.retry);
 }
 
 
@@ -451,8 +451,7 @@ void huanyang_init() {
 
 void huanyang_set(cmSpindleMode_t mode, float speed) {
   if (ha.mode != mode || ha.speed != speed) {
-    if (ha.debug)
-      printf_P(PSTR("huanyang: mode=%d, speed=%0.2f\n"), mode, speed);
+    if (ha.debug) STATUS_DEBUG("huanyang: mode=%d, speed=%0.2f", mode, speed);
 
     ha.mode = mode;
     ha.speed = speed;
@@ -496,21 +495,24 @@ void huanyang_rtc_callback() {
   if (ha.last && rtc_expired(ha.last + HUANYANG_TIMEOUT)) {
     if (ha.retry < HUANYANG_RETRIES) _retry_command();
     else {
-      if (ha.debug) printf_P(PSTR("huanyang: timedout\n"));
+      if (ha.debug) STATUS_DEBUG("huanyang: timedout");
 
       if (ha.debug && ha.current_offset) {
-        printf_P(PSTR("huanyang: sent 0x"));
+        const uint8_t buf_len = 8 * 2 + 1;
+        char sent[buf_len];
+        char received[buf_len];
 
-        for (uint8_t i = 0; i < ha.command_length; i++)
-          printf("%02x", ha.command[i]);
+        uint8_t i;
+        for (i = 0; i < ha.command_length; i++)
+          sprintf(sent + i * 2, "%02x", ha.command[i]);
+        sent[i * 2] = 0;
 
-        printf_P(PSTR(" received 0x"));
-        for (uint8_t i = 0; i < ha.current_offset; i++)
-          printf("%02x", ha.response[i]);
+        for (i = 0; i < ha.current_offset; i++)
+          sprintf(received + i * 2, "%02x", ha.response[i]);
+        received[i * 2] = 0;
 
-        printf_P(PSTR(" expected %u bytes"), ha.response_length);
-
-        putchar('\n');
+        STATUS_DEBUG("huanyang: sent 0x%s received 0x%s expected %u bytes",
+                     sent, received, ha.response_length);
       }
 
       huanyang_reset();

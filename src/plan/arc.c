@@ -426,7 +426,7 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
     } else if (offset_i) return STAT_ARC_SPECIFICATION_ERROR;
   }
 
-  // set values in the Gcode model state & copy it (linenum was already
+  // set values in the Gcode model state & copy it (line was already
   // captured)
   cm_set_model_target(target, flags);
 
@@ -439,13 +439,14 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
   // now get down to the rest of the work setting up the arc for execution
   cm.gm.motion_mode = motion_mode;
   cm_set_work_offsets(&cm.gm);                    // resolved offsets to gm
-  memcpy(&arc.ms, &cm.ms, sizeof(MoveState_t));// context to arc singleton
+  cm.ms.line = cm.gm.line;                        // copy line number
+  memcpy(&arc.ms, &cm.ms, sizeof(MoveState_t));   // context to arc singleton
 
-  copy_vector(arc.position, cm.position);      // arc pos from gcode model
+  copy_vector(arc.position, cm.position);         // arc pos from gcode model
 
-  arc.radius = TO_MILLIMETERS(radius);           // set arc radius or zero
+  arc.radius = TO_MILLIMETERS(radius);            // set arc radius or zero
 
-  arc.offset[0] = TO_MILLIMETERS(i);             // offsets canonical form (mm)
+  arc.offset[0] = TO_MILLIMETERS(i);              // offsets canonical form (mm)
   arc.offset[1] = TO_MILLIMETERS(j);
   arc.offset[2] = TO_MILLIMETERS(k);
 
@@ -476,24 +477,24 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
  *
  *  Parts of this routine were originally sourced from the grbl project.
  */
-stat_t cm_arc_callback() {
-  if (arc.run_state == MOVE_OFF) return STAT_NOOP;
-  if (mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM)
-    return STAT_EAGAIN;
+void cm_arc_callback() {
+  while (arc.run_state != MOVE_OFF && mp_get_planner_buffer_room()) {
+    arc.theta += arc.arc_segment_theta;
+    arc.ms.target[arc.plane_axis_0] =
+      arc.center_0 + sin(arc.theta) * arc.radius;
+    arc.ms.target[arc.plane_axis_1] =
+      arc.center_1 + cos(arc.theta) * arc.radius;
+    arc.ms.target[arc.linear_axis] += arc.arc_segment_linear_travel;
 
-  arc.theta += arc.arc_segment_theta;
-  arc.ms.target[arc.plane_axis_0] = arc.center_0 + sin(arc.theta) * arc.radius;
-  arc.ms.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
-  arc.ms.target[arc.linear_axis] += arc.arc_segment_linear_travel;
-  mp_aline(&arc.ms);                            // run the line
-  copy_vector(arc.position, arc.ms.target);     // update arc current pos
+    mp_aline(&arc.ms);                            // run the line
+    copy_vector(arc.position, arc.ms.target);     // update arc current pos
 
-  if (--arc.arc_segment_count > 0) return STAT_EAGAIN;
-
-  arc.run_state = MOVE_OFF;
-
-  return STAT_OK;
+    if (!--arc.arc_segment_count) arc.run_state = MOVE_OFF;
+  }
 }
+
+
+bool cm_arc_active() {return arc.run_state != MOVE_OFF;}
 
 
 /// Stop arc movement without maintaining position

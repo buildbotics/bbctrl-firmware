@@ -33,9 +33,12 @@
 #include "report.h"
 #include "vars.h"
 #include "estop.h"
+#include "homing.h"
+#include "probing.h"
 #include "plan/jog.h"
 #include "plan/calibrate.h"
 #include "plan/buffer.h"
+#include "plan/arc.h"
 #include "config.h"
 
 #include <avr/pgmspace.h>
@@ -71,9 +74,6 @@ static const command_t commands[] PROGMEM = {
 #undef CMD
   {}, // Sentinel
 };
-
-
-static char *_cmd = 0;
 
 
 int command_find(const char *match) {
@@ -150,56 +150,53 @@ int command_parser(char *cmd) {
 }
 
 
-stat_t command_hi() {
+static char *_command_next() {
   // Get next command
-  if (!_cmd) {
-    // Read input line or return if incomplete, usart_readline() is non-blocking
-    _cmd = usart_readline();
-    if (!_cmd) return STAT_OK;
+  char *cmd = usart_readline();
+  if (!cmd) return 0;
 
-    // Remove leading whitespace
-    while (*_cmd && isspace(*_cmd)) _cmd++;
+  // Remove leading whitespace
+  while (*cmd && isspace(*cmd)) cmd++;
 
-    // Remove trailing whitespace
-    for (size_t len = strlen(_cmd); len && isspace(_cmd[len - 1]); len--)
-      _cmd[len - 1] = 0;
-  }
+  // Remove trailing whitespace
+  for (size_t len = strlen(cmd); len && isspace(cmd[len - 1]); len--)
+    cmd[len - 1] = 0;
 
-  if (usart_tx_full()) return STAT_OK;
-
-  stat_t status = STAT_OK;
-
-  switch (*_cmd) {
-  case 0: break; // Empty line
-  case '{': status = vars_parser(_cmd); break;
-  case '$': status = command_parser(_cmd); break;
-  case '!': if (!_cmd[1]) cm_request_feedhold(); break;
-  case '~': if (!_cmd[1]) cm_request_cycle_start(); break;
-  case '%': if (!_cmd[1]) cm_request_queue_flush(); break;
-  default: return STAT_OK; // Continue processing in command_lo()
-  }
-
-  report_request();
-  _cmd = 0; // Command complete
-
-  return status;
+  return cmd;
 }
 
 
-stat_t command_lo() {
-  if (!_cmd || mp_get_planner_buffers_available() < PLANNER_BUFFER_HEADROOM ||
-      usart_tx_full())
-    return STAT_OK; // Wait
+void command_callback() {
+  char *cmd = _command_next();
+  if (!cmd) return;
 
-  // Consume command
-  char *cmd = _cmd;
-  _cmd = 0;
+  stat_t status = STAT_OK;
 
-  if (estop_triggered()) return STAT_MACHINE_ALARMED;
-  if (calibrate_busy()) return STAT_BUSY;
-  if (mp_jog_busy()) return STAT_BUSY;
+  switch (*cmd) {
+  case 0: break; // Empty line
+  case '{': status = vars_parser(cmd); break;
+  case '$': status = command_parser(cmd); break;
+  default:
+    if (!cmd[1])
+      switch (*cmd) {
+      case '!': cm_request_feedhold(); return;
+      case '~': cm_request_cycle_start(); return;
+      case '%': cm_request_queue_flush(); return;
+      }
 
-  return gc_gcode_parser(cmd);
+    if (estop_triggered()) status = STAT_MACHINE_ALARMED;
+    else if (!mp_get_planner_buffer_room()) status = STAT_BUFFER_FULL;
+    else if (cm_arc_active()) status = STAT_BUFFER_FULL;
+    else if (calibrate_busy()) status = STAT_BUSY;
+    else if (mp_jog_busy()) status = STAT_BUSY;
+    else if (cm_is_homing()) status = STAT_BUSY;
+    else if (cm_is_probing()) status = STAT_BUSY;
+    else status = gc_gcode_parser(cmd);
+  }
+
+  report_request();
+
+  if (status) status_error(status);
 }
 
 

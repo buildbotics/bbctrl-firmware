@@ -28,6 +28,8 @@
 #include "status.h"
 
 #include <stdio.h>
+#include <stdarg.h>
+
 
 stat_t status_code; // allocate a variable for the RITORNO macro
 
@@ -42,27 +44,53 @@ static const char *const stat_msg[] PROGMEM = {
 };
 
 
-const char *status_to_pgmstr(stat_t status) {
-  return pgm_read_ptr(&stat_msg[status]);
+const char *status_to_pgmstr(stat_t code) {
+  return pgm_read_ptr(&stat_msg[code]);
 }
 
 
-stat_t status_error(stat_t status) {
-  return status_error_P(0, 0, status);
+const char *status_level_pgmstr(status_level_t level) {
+  switch (level) {
+  case STAT_LEVEL_INFO: return PSTR("info");
+  case STAT_LEVEL_DEBUG: return PSTR("debug");
+  case STAT_LEVEL_WARNING: return PSTR("warning");
+  default: return PSTR("error");
+  }
 }
 
 
-stat_t status_error_P(const char *location, const char *msg, stat_t status) {
-  printf_P(PSTR("\n{\"error\": \"%S\", \"code\": %d"),
-           status_to_pgmstr(status), status);
+stat_t status_error(stat_t code) {
+  return status_message_P(0, STAT_LEVEL_ERROR, code, 0);
+}
 
-  if (msg) printf_P(PSTR(", \"msg\": %S"), msg);
+
+stat_t status_message_P(const char *location, status_level_t level,
+                        stat_t code, const char *msg, ...) {
+  va_list args;
+
+  // Type
+  printf_P(PSTR("\n{\"%S\": \""), status_level_pgmstr(level));
+
+  // Message
+  if (msg) {
+    va_start(args, msg);
+    vfprintf_P(stdout, msg, args);
+    va_end(args);
+
+  } else printf_P(status_to_pgmstr(code));
+
+  putchar('"');
+
+  // Code
+  if (code) printf_P(PSTR(", \"code\": %d"), code);
+
+  // Location
   if (location) printf_P(PSTR(", \"location\": %S"), location);
 
   putchar('}');
   putchar('\n');
 
-  return status;
+  return code;
 }
 
 

@@ -56,7 +56,8 @@ static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, string, float, int8_t, uint8_t, uint16_t);
+MAP(TYPE_NAME, SEMI, flags_t, string, float, int8_t, uint8_t, uint16_t,
+    int32_t);
 
 
 // String
@@ -171,7 +172,7 @@ static void var_print_uint16_t(uint16_t x) {
 
 
 static uint16_t var_parse_uint16_t(const char *value) {
-  return strtol(value, 0, 0);
+  return strtoul(value, 0, 0);
 }
 
 
@@ -182,6 +183,12 @@ static uint16_t eeprom_read_uint16_t(uint16_t *addr) {
 
 static void eeprom_update_uint16_t(uint16_t *addr, uint16_t value) {
   eeprom_update_word(addr, value);
+}
+
+
+// int32
+static void var_print_int32_t(uint32_t x) {
+  printf_P(PSTR("%"PRIi32), x);
 }
 
 

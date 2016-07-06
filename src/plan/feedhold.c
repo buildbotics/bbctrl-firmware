@@ -120,12 +120,11 @@ static float _compute_next_segment_velocity() {
 
 
 /// replan block list to execute hold
-stat_t mp_plan_hold_callback() {
-  if (cm.hold_state != FEEDHOLD_PLAN)
-    return STAT_NOOP; // not planning a feedhold
+void mp_plan_hold_callback() {
+  if (cm.hold_state != FEEDHOLD_PLAN) return; // not planning a feedhold
 
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
-  if (!bp) return STAT_NOOP; // Oops! nothing's running
+  if (!bp) return; // Oops! nothing's running
 
   uint8_t mr_flag = true;    // used to tell replan to account for mr buffer Vx
   float mr_available_length; // length left in mr buffer for deceleration
@@ -169,7 +168,7 @@ stat_t mp_plan_hold_callback() {
     mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
     cm.hold_state = FEEDHOLD_DECEL;      // set state to decelerate and exit
 
-    return STAT_OK;
+    return;
   }
 
   // Case 2: deceleration exceeds length remaining in mr buffer
@@ -222,23 +221,16 @@ stat_t mp_plan_hold_callback() {
   _reset_replannable_list();      // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
   cm.hold_state = FEEDHOLD_DECEL; // set state to decelerate and exit
-
-  return STAT_OK;
 }
 
 
 /// End a feedhold, release the hold and restart block list
-stat_t mp_end_hold() {
+void mp_end_hold() {
   if (cm.hold_state == FEEDHOLD_END_HOLD) {
     cm.hold_state = FEEDHOLD_OFF;
 
-    if (!mp_get_run_buffer()) {    // 0 means nothing's running
-      cm_set_motion_state(MOTION_STOP);
-      return STAT_NOOP;
-    }
-
-    cm.motion_state = MOTION_RUN;
+    // 0 means nothing's running
+    if (!mp_get_run_buffer()) cm_set_motion_state(MOTION_STOP);
+    else cm.motion_state = MOTION_RUN;
   }
-
-  return STAT_OK;
 }

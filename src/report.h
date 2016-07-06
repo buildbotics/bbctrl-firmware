@@ -32,4 +32,4 @@
 
 void report_request();
 void report_request_full();
-stat_t report_callback();
+void report_callback();

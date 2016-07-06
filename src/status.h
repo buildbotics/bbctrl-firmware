@@ -43,15 +43,39 @@ typedef enum {
 } stat_t;
 
 
+typedef enum {
+  STAT_LEVEL_INFO,
+  STAT_LEVEL_DEBUG,
+  STAT_LEVEL_WARNING,
+  STAT_LEVEL_ERROR,
+} status_level_t;
+
+
 extern stat_t status_code;
 
-const char *status_to_pgmstr(stat_t status);
-stat_t status_error(stat_t status);
-stat_t status_error_P(const char *location, const char *msg, stat_t status);
+const char *status_to_pgmstr(stat_t code);
+const char *status_level_pgmstr(status_level_t level);
+stat_t status_error(stat_t code);
+stat_t status_message_P(const char *location, status_level_t level,
+                        stat_t code, const char *msg, ...);
 void status_help();
 
 #define TO_STRING(x) _TO_STRING(x)
 #define _TO_STRING(x) #x
 
 #define STATUS_LOCATION PSTR(__FILE__ ":" TO_STRING(__LINE__))
-#define STATUS_ERROR(MSG, CODE) status_error_P(STATUS_LOCATION, PSTR(MSG), CODE)
+
+#define STATUS_MESSAGE(LEVEL, CODE, MSG, ...)                           \
+  status_message_P(STATUS_LOCATION, LEVEL, CODE, PSTR(MSG), ##__VA_ARGS__)
+
+#define STATUS_INFO(MSG, ...)                                   \
+  STATUS_MESSAGE(STAT_LEVEL_INFO, STAT_OK, MSG, ##__VA_ARGS__)
+
+#define STATUS_DEBUG(MSG, ...)                                  \
+  STATUS_MESSAGE(STAT_LEVEL_WARNING, STAT_OK, MSG, ##__VA_ARGS__)
+
+#define STATUS_WARNING(MSG, ...)                                \
+  STATUS_MESSAGE(STAT_LEVEL_WARNING, STAT_OK, MSG, ##__VA_ARGS__)
+
+#define STATUS_ERROR(MSG, CODE, ...)                        \
+  STATUS_MESSAGE(STAT_LEVEL_ERROR, CODE, MSG, ##__VA_ARGS__)

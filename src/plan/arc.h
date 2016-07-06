@@ -28,8 +28,7 @@
 
 #pragma once
 
-#include "util.h"
-#include "status.h"
+#include <stdbool.h>
 
 
 #define ARC_SEGMENT_LENGTH      0.1 // mm
@@ -39,5 +38,6 @@
 #define MIN_ARC_SEGMENT_TIME    (MIN_ARC_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 
 
-stat_t cm_arc_callback();
+void cm_arc_callback();
+bool cm_arc_active();
 void cm_abort_arc();

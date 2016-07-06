@@ -708,6 +708,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     // copy in the gcode model state
     memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
     bf->replannable = false;
+    report_request();
 
     // short lines have already been removed, look for an actual zero
     if (fp_ZERO(bf->length)) {
@@ -762,7 +763,6 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   if (mr.section == SECTION_HEAD) status = _exec_aline_head();
   else if (mr.section == SECTION_BODY) status = _exec_aline_body();
   else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
-  else if (mr.move_state == MOVE_SKIP_BLOCK) status = STAT_OK;
   else return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
 
   // Feedhold processing. Refer to canonical_machine.h for state machine

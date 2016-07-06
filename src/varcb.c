@@ -28,23 +28,12 @@
 
 #include "usart.h"
 #include "plan/planner.h"
+#include "plan/buffer.h"
 
 
-float get_position(int index) {
-  return mp_get_runtime_absolute_position(index);
-}
-
-
-float get_velocity() {
-  return mp_get_runtime_velocity();
-}
-
-
-bool get_echo() {
-  return usart_is_set(USART_ECHO);
-}
-
-
-void set_echo(bool value) {
-  return usart_set(USART_ECHO, value);
-}
+float get_position(int index) {return mp_get_runtime_absolute_position(index);}
+float get_velocity() {return mp_get_runtime_velocity();}
+bool get_echo() {return usart_is_set(USART_ECHO);}
+void set_echo(bool value) {return usart_set(USART_ECHO, value);}
+uint16_t get_queue() {return mp_get_planner_buffer_room();}
+int32_t get_line() {return mr.ms.line;}

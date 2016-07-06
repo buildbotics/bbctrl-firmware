@@ -60,7 +60,7 @@ stat_t mp_dwell(float seconds) {
   bf->move_state = MOVE_NEW;
 
   // must be final operation before exit
-  mp_commit_write_buffer(MOVE_TYPE_DWELL);
+  mp_commit_write_buffer(cm_get_line(), MOVE_TYPE_DWELL);
 
   return STAT_OK;
 }

@@ -37,7 +37,7 @@
 void hardware_init();
 void hw_request_hard_reset();
 void hw_hard_reset();
-stat_t hw_reset_handler();
+void hw_reset_handler();
 
 void hw_request_bootloader();
 

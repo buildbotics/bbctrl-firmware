@@ -36,6 +36,7 @@ STAT_MSG(BUFFER_FULL, "Buffer full")
 STAT_MSG(BUFFER_FULL_FATAL, "Buffer full - fatal")
 STAT_MSG(EEPROM_DATA_INVALID, "EEPROM data invalid")
 STAT_MSG(MOTOR_ERROR, "Motor error")
+STAT_MSG(STEP_CHECK_FAILED, "Step check failed")
 STAT_MSG(INTERNAL_ERROR, "Internal error")
 
 STAT_MSG(PREP_LINE_MOVE_TIME_IS_INFINITE, "Move time is infinite")
@@ -75,6 +76,7 @@ STAT_MSG(SOFT_LIMIT_EXCEEDED, "Soft limit exceeded")
 // Homing
 STAT_MSG(HOMING_CYCLE_FAILED, "Homing cycle failed")
 STAT_MSG(HOMING_ERROR_BAD_OR_NO_AXIS, "Homing Error - Bad or no axis specified")
+STAT_MSG(HOMING_ERROR_AXIS_MISCONFIGURED, "Homing Error - Axis misconfigured")
 STAT_MSG(HOMING_ERROR_ZERO_SEARCH_VELOCITY,
          "Homing Error - Search velocity is zero")
 STAT_MSG(HOMING_ERROR_ZERO_LATCH_VELOCITY,
@@ -87,7 +89,8 @@ STAT_MSG(HOMING_ERROR_SWITCH_MISCONFIGURATION,
          "Homing Error - Homing switches misconfigured")
 
 // Probing
-STAT_MSG(PROBE_CYCLE_FAILED, "Probe cycle failed")
+STAT_MSG(PROBE_INVALID_DEST, "Probing error - invalid destination")
+STAT_MSG(MOVE_DURING_PROBE, "Probing error - move during probe")
 
 // End of stats marker
 STAT_MSG(MAX, "")

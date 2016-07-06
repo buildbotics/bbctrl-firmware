@@ -28,8 +28,6 @@
 #pragma once
 
 
-#include "status.h"
-
 #include <stdint.h>
 
 
@@ -48,5 +46,4 @@ typedef struct {
 
 int command_find(const char *name);
 int command_exec(int argc, char *argv[]);
-stat_t command_hi();
-stat_t command_lo();
+void command_callback();

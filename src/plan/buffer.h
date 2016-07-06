@@ -28,18 +28,9 @@
 #pragma once
 
 #include "canonical_machine.h"
+#include "config.h"
 
 #include <stdbool.h>
-
-/* PLANNER_BUFFER_POOL_SIZE
- *  Should be at least the number of buffers requires to support optimal
- *  planning in the case of very short lines or arc segments.
- *  Suggest 12 min. Limit is 255
- */
-#define PLANNER_BUFFER_POOL_SIZE 32
-
-/// Buffers to reserve in planner before processing new input line
-#define PLANNER_BUFFER_HEADROOM 4
 
 
 typedef enum {             // bf->move_type values
@@ -50,17 +41,16 @@ typedef enum {             // bf->move_type values
 } moveType_t;
 
 typedef enum {
-  MOVE_OFF,               // move inactive (MUST BE ZERO)
-  MOVE_NEW,               // general value if you need an initialization
-  MOVE_RUN,               // general run state (for non-acceleration moves)
-  MOVE_SKIP_BLOCK         // mark a skipped block
+  MOVE_OFF,                // move inactive (MUST BE ZERO)
+  MOVE_NEW,                // initial value
+  MOVE_RUN,                // general run state (for non-acceleration moves)
 } moveState_t;
 
 typedef enum {
-  SECTION_OFF,            // section inactive
-  SECTION_NEW,            // uninitialized section
-  SECTION_1st_HALF,       // first half of S curve
-  SECTION_2nd_HALF        // second half of S curve or running a BODY (cruise)
+  SECTION_OFF,             // section inactive
+  SECTION_NEW,             // uninitialized section
+  SECTION_1st_HALF,        // first half of S curve
+  SECTION_2nd_HALF         // second half of S curve or running a BODY (cruise)
 } sectionState_t;
 
 // All the enums that equal zero must be zero. Don't change this
@@ -120,11 +110,11 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
 } mpBuf_t;
 
 
-uint8_t mp_get_planner_buffers_available();
+uint8_t mp_get_planner_buffer_room();
+void mp_wait_for_buffer();
 void mp_init_buffers();
 mpBuf_t *mp_get_write_buffer();
-void mp_unget_write_buffer();
-void mp_commit_write_buffer(const uint8_t move_type);
+void mp_commit_write_buffer(uint32_t line, moveType_t move_type);
 mpBuf_t *mp_get_run_buffer();
 uint8_t mp_free_run_buffer();
 mpBuf_t *mp_get_first_buffer();

@@ -297,12 +297,11 @@ void motor_driver_callback(int motor) {
 
 
 /// Callback to manage motor power sequencing and power-down timing.
-stat_t motor_power_callback() { // called by controller
+stat_t motor_rtc_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
-    // Deenergize motor if disabled, in error or after timeout when not holding
-    if (motors[motor].power_mode == MOTOR_DISABLED || estop_triggered() ||
-        rtc_expired(motors[motor].timeout))
-      _deenergize(motor);
+    // Deenergize motor if disabled or timedout
+    if (motors[motor].power_mode == MOTOR_DISABLED ||
+        rtc_expired(motors[motor].timeout)) _deenergize(motor);
 
   return STAT_OK;
 }
@@ -317,11 +316,7 @@ void motor_error_callback(int motor, cmMotorFlags_t errors) {
   motors[motor].flags |= errors;
   report_request();
 
-  if (motor_error(motor)) {
-    printf_P(PSTR("\nmotor %d flags="), motor);
-    print_status_flags(motors[motor].flags);
-    CM_ALARM(STAT_MOTOR_ERROR);
-  }
+  if (motor_error(motor)) CM_ALARM(STAT_MOTOR_ERROR);
 }
 
 
@@ -443,10 +438,7 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     uint32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
     float steps = (float)clocks / m->timer_period;
     float diff = fabs(fabs(travel_steps) - steps);
-    if (10 < diff)
-      printf_P(PSTR("clock=%u period=%u expected=%f actual=%f diff=%f\n"),
-               m->timer_clock, m->timer_period, fabs(travel_steps), steps,
-               diff);
+    if (10 < diff) CM_ALARM(STAT_STEP_CHECK_FAILED);
   }
 
   // Setup the direction, compensating for polarity.

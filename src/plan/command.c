@@ -78,7 +78,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
   }
 
   // Must be final operation before exit
-  mp_commit_write_buffer(MOVE_TYPE_COMMAND);
+  mp_commit_write_buffer(cm_get_line(), MOVE_TYPE_COMMAND);
 }
 
 

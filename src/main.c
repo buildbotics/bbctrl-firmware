@@ -39,6 +39,8 @@
 #include "report.h"
 #include "command.h"
 #include "estop.h"
+#include "probing.h"
+#include "homing.h"
 
 #include "plan/planner.h"
 #include "plan/buffer.h"
@@ -53,51 +55,9 @@
 #include <stdbool.h>
 
 
-static bool _dispatch(stat_t (*func)()) {
-  stat_t err = func();
+int main() {
+  //wdt_enable(WDTO_250MS);
 
-  switch (err) {
-  case STAT_EAGAIN: return true;
-  case STAT_OK: case STAT_NOOP: break;
-  default: status_error(err); break;
-  }
-
-  return false;
-}
-
-
-/* Main loop
- *
- * The task order is very important. Tasks are ordered by increasing dependency
- * (blocking hierarchy).  Tasks that are dependent on completion of lower-level
- * tasks must be later in the list.  Tasks are called repeatedly even if they
- * are not currently active.
- *
- * The DISPATCH macro calls a function and returns if not finished
- * (STAT_EAGAIN).  This prevents later routines from running.  Any other
- * condition - OK or ERR - drops through and runs the next routine in the list.
- */
-static void _run() {
-#define DISPATCH(func) if (_dispatch(func)) return;
-
-  DISPATCH(hw_reset_handler);                // handle hard reset requests
-
-  DISPATCH(command_hi);
-
-  DISPATCH(tmc2660_sync);                    // synchronize driver config
-  DISPATCH(motor_power_callback);            // stepper motor power sequencing
-  DISPATCH(cm_feedhold_sequencing_callback); // feedhold state machine
-  DISPATCH(mp_plan_hold_callback);           // plan a feedhold
-  DISPATCH(cm_arc_callback);                 // arc generation runs
-  DISPATCH(cm_homing_callback);              // G28.2 continuation
-  DISPATCH(cm_probe_callback);               // G38.2 continuation
-  DISPATCH(report_callback);                 // report changes
-
-  DISPATCH(command_lo);
-}
-
-
-static void _init() {
   cli(); // disable interrupts
 
   hardware_init();                // hardware setup - must be first
@@ -115,17 +75,18 @@ static void _init() {
 
   fprintf_P(stderr, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
                          "\"version\": \"" VERSION "\"}\n"));
-}
-
-
-int main() {
-  //wdt_enable(WDTO_250MS);
-
-  _init();
 
   // main loop
   while (true) {
-    _run(); // single pass
+    hw_reset_handler();                        // handle hard reset requests
+    cm_feedhold_sequencing_callback();         // feedhold state machine
+    mp_plan_hold_callback();                   // plan a feedhold
+    cm_arc_callback();                         // arc generation runs
+    cm_homing_callback();                      // G28.2 continuation
+    cm_probe_callback();                       // G38.2 continuation
+    command_callback();                        // process next command
+    report_callback();                         // report changes
+
     wdt_reset();
   }
 
