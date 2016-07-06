@@ -42,9 +42,9 @@
 
 
 #define SET_MODAL(m, parm, val) \
-  {cm.gn.parm = val; cm.gf.parm = 1; modals[m] += 1; break;}
-#define SET_NON_MODAL(parm, val) {cm.gn.parm = val; cm.gf.parm = 1; break;}
-#define EXEC_FUNC(f, v) if ((uint8_t)cm.gf.v) f(cm.gn.v)
+  {mach.gn.parm = val; mach.gf.parm = 1; modals[m] += 1; break;}
+#define SET_NON_MODAL(parm, val) {mach.gn.parm = val; mach.gf.parm = 1; break;}
+#define EXEC_FUNC(f, v) if ((uint8_t)mach.gf.v) f(mach.gn.v)
 
 
 static uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
@@ -233,107 +233,108 @@ static stat_t _validate_gcode_block() {
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
 
-  cm_set_model_line(cm.gn.line);
-  EXEC_FUNC(cm_set_feed_rate_mode, feed_rate_mode);
-  EXEC_FUNC(cm_set_feed_rate, feed_rate);
-  EXEC_FUNC(cm_feed_rate_override_factor, feed_rate_override_factor);
-  EXEC_FUNC(cm_traverse_override_factor, traverse_override_factor);
-  EXEC_FUNC(cm_set_spindle_speed, spindle_speed);
-  EXEC_FUNC(cm_spindle_override_factor, spindle_override_factor);
-  EXEC_FUNC(cm_select_tool, tool_select);
-  EXEC_FUNC(cm_change_tool, tool_change);
-  EXEC_FUNC(cm_spindle_control, spindle_mode);
-  EXEC_FUNC(cm_mist_coolant_control, mist_coolant);
-  EXEC_FUNC(cm_flood_coolant_control, flood_coolant);
-  EXEC_FUNC(cm_feed_rate_override_enable, feed_rate_override_enable);
-  EXEC_FUNC(cm_traverse_override_enable, traverse_override_enable);
-  EXEC_FUNC(cm_spindle_override_enable, spindle_override_enable);
-  EXEC_FUNC(cm_override_enables, override_enables);
+  mach_set_model_line(mach.gn.line);
+  EXEC_FUNC(mach_set_feed_rate_mode, feed_rate_mode);
+  EXEC_FUNC(mach_set_feed_rate, feed_rate);
+  EXEC_FUNC(mach_feed_rate_override_factor, feed_rate_override_factor);
+  EXEC_FUNC(mach_traverse_override_factor, traverse_override_factor);
+  EXEC_FUNC(mach_set_spindle_speed, spindle_speed);
+  EXEC_FUNC(mach_spindle_override_factor, spindle_override_factor);
+  EXEC_FUNC(mach_select_tool, tool_select);
+  EXEC_FUNC(mach_change_tool, tool_change);
+  EXEC_FUNC(mach_spindle_control, spindle_mode);
+  EXEC_FUNC(mach_mist_coolant_control, mist_coolant);
+  EXEC_FUNC(mach_flood_coolant_control, flood_coolant);
+  EXEC_FUNC(mach_feed_rate_override_enable, feed_rate_override_enable);
+  EXEC_FUNC(mach_traverse_override_enable, traverse_override_enable);
+  EXEC_FUNC(mach_spindle_override_enable, spindle_override_enable);
+  EXEC_FUNC(mach_override_enables, override_enables);
 
-  if (cm.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
-    RITORNO(cm_dwell(cm.gn.parameter));
+  if (mach.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
+    RITORNO(mach_dwell(mach.gn.parameter));
 
-  EXEC_FUNC(cm_set_plane, select_plane);
-  EXEC_FUNC(cm_set_units_mode, units_mode);
+  EXEC_FUNC(mach_set_plane, select_plane);
+  EXEC_FUNC(mach_set_units_mode, units_mode);
   //--> cutter radius compensation goes here
   //--> cutter length compensation goes here
-  EXEC_FUNC(cm_set_coord_system, coord_system);
-  EXEC_FUNC(cm_set_path_control, path_control);
-  EXEC_FUNC(cm_set_distance_mode, distance_mode);
+  EXEC_FUNC(mach_set_coord_system, coord_system);
+  EXEC_FUNC(mach_set_path_control, path_control);
+  EXEC_FUNC(mach_set_distance_mode, distance_mode);
   //--> set retract mode goes here
 
-  switch (cm.gn.next_action) {
+  switch (mach.gn.next_action) {
   case NEXT_ACTION_SET_G28_POSITION: // G28.1
-    cm_set_g28_position();
+    mach_set_g28_position();
     break;
   case NEXT_ACTION_GOTO_G28_POSITION: // G28
-    status = cm_goto_g28_position(cm.gn.target, cm.gf.target);
+    status = mach_goto_g28_position(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_SET_G30_POSITION: // G30.1
-    cm_set_g30_position();
+    mach_set_g30_position();
     break;
   case NEXT_ACTION_GOTO_G30_POSITION: // G30
-    status = cm_goto_g30_position(cm.gn.target, cm.gf.target);
+    status = mach_goto_g30_position(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_SEARCH_HOME: // G28.2
-    cm_homing_cycle_start();
+    mach_homing_cycle_start();
     break;
   case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
-    cm_set_absolute_origin(cm.gn.target, cm.gf.target);
+    mach_set_absolute_origin(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_HOMING_NO_SET: // G28.4
-    cm_homing_cycle_start_no_set();
+    mach_homing_cycle_start_no_set();
     break;
   case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
-    status = cm_straight_probe(cm.gn.target, cm.gf.target);
+    status = mach_straight_probe(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_SET_COORD_DATA:
-    cm_set_coord_offsets(cm.gn.parameter, cm.gn.target, cm.gf.target);
+    mach_set_coord_offsets(mach.gn.parameter, mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_SET_ORIGIN_OFFSETS:
-    cm_set_origin_offsets(cm.gn.target, cm.gf.target);
+    mach_set_origin_offsets(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
-    cm_reset_origin_offsets();
+    mach_reset_origin_offsets();
     break;
   case NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS:
-    cm_suspend_origin_offsets();
+    mach_suspend_origin_offsets();
     break;
   case NEXT_ACTION_RESUME_ORIGIN_OFFSETS:
-    cm_resume_origin_offsets();
+    mach_resume_origin_offsets();
     break;
   case NEXT_ACTION_DWELL: break; // Handled above
 
   case NEXT_ACTION_DEFAULT:
     // apply override setting to gm struct
-    cm_set_absolute_override(cm.gn.absolute_override);
+    mach_set_absolute_override(mach.gn.absolute_override);
 
-    switch (cm.gn.motion_mode) {
+    switch (mach.gn.motion_mode) {
     case MOTION_MODE_CANCEL_MOTION_MODE:
-      cm.gm.motion_mode = cm.gn.motion_mode;
+      mach.gm.motion_mode = mach.gn.motion_mode;
       break;
     case MOTION_MODE_STRAIGHT_TRAVERSE:
-      status = cm_straight_traverse(cm.gn.target, cm.gf.target);
+      status = mach_straight_traverse(mach.gn.target, mach.gf.target);
       break;
     case MOTION_MODE_STRAIGHT_FEED:
-      status = cm_straight_feed(cm.gn.target, cm.gf.target);
+      status = mach_straight_feed(mach.gn.target, mach.gf.target);
       break;
     case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
       // gf.radius sets radius mode if radius was collected in gn
-      status = cm_arc_feed(cm.gn.target, cm.gf.target, cm.gn.arc_offset[0],
-                           cm.gn.arc_offset[1], cm.gn.arc_offset[2],
-                           cm.gn.arc_radius, cm.gn.motion_mode);
+      status = mach_arc_feed(mach.gn.target, mach.gf.target,
+                             mach.gn.arc_offset[0], mach.gn.arc_offset[1],
+                             mach.gn.arc_offset[2], mach.gn.arc_radius,
+                             mach.gn.motion_mode);
       break;
     default: break; // Should not get here
     }
   }
   // un-set absolute override once the move is planned
-  cm_set_absolute_override(false);
+  mach_set_absolute_override(false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
-  if (cm.gf.program_flow) {
-    if (cm.gn.program_flow == PROGRAM_STOP) cm_program_stop();
-    else cm_program_end();
+  if (mach.gf.program_flow) {
+    if (mach.gn.program_flow == PROGRAM_STOP) mach_program_stop();
+    else mach_program_end();
   }
 
   return status;
@@ -358,11 +359,11 @@ static stat_t _parse_gcode_block(char *buf) {
 
   // set initial state for new move
   memset(modals, 0, sizeof(modals));              // clear all parser values
-  memset(&cm.gf, 0, sizeof(GCodeState_t));        // clear all next-state flags
-  memset(&cm.gn, 0, sizeof(GCodeState_t));        // clear all next-state values
+  memset(&mach.gf, 0, sizeof(GCodeState_t));      // clear all next-state flags
+  memset(&mach.gn, 0, sizeof(GCodeState_t));      // clear all next-state values
 
   // get motion mode from previous block
-  cm.gn.motion_mode = cm_get_motion_mode();
+  mach.gn.motion_mode = mach_get_motion_mode();
 
   // extract commands and parameters
   while ((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {
@@ -535,7 +536,7 @@ stat_t gc_gcode_parser(char *block) {
   uint8_t block_delete_flag;
 
   // don't process Gcode blocks if in alarmed state
-  if (cm.machine_state == MACHINE_ALARM) return STAT_MACHINE_ALARMED;
+  if (mach.machine_state == MACHINE_ALARM) return STAT_MACHINE_ALARMED;
 
   _normalize_gcode_block(str, &com, &msg, &block_delete_flag);
 
@@ -544,7 +545,7 @@ stat_t gc_gcode_parser(char *block) {
   if (block_delete_flag) return STAT_NOOP;
 
   // queue a "(MSG" response
-  if (*msg) cm_message(msg);            // queue the message
+  if (*msg) mach_message(msg);            // queue the message
 
   return _parse_gcode_block(block);
 }

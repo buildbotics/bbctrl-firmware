@@ -64,7 +64,7 @@ typedef enum {                    // bf->buffer_state values
 
 
 // Callbacks
-typedef void (*cm_exec_t)(float[], float[]);
+typedef void (*mach_exec_t)(float[], float[]);
 struct mpBuffer;
 typedef stat_t (*bf_func_t)(struct mpBuffer *bf);
 
@@ -74,7 +74,7 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   struct mpBuffer *nx;            // pointer to next buffer
 
   bf_func_t bf_func;              // callback to buffer exec function
-  cm_exec_t cm_func;              // callback to machine
+  mach_exec_t mach_func;              // callback to machine
 
   float naive_move_time;
 

@@ -78,10 +78,10 @@ int main() {
   // main loop
   while (true) {
     hw_reset_handler();                        // handle hard reset requests
-    cm_feedhold_callback();                    // feedhold state machine
-    cm_arc_callback();                         // arc generation runs
-    cm_homing_callback();                      // G28.2 continuation
-    cm_probe_callback();                       // G38.2 continuation
+    mach_feedhold_callback();                    // feedhold state machine
+    mach_arc_callback();                         // arc generation runs
+    mach_homing_callback();                      // G28.2 continuation
+    mach_probe_callback();                       // G38.2 continuation
     command_callback();                        // process next command
     report_callback();                         // report changes
     wdt_reset();

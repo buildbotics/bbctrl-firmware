@@ -28,8 +28,9 @@
 \******************************************************************************/
 
 /* How this works:
- *   - A command is called by the Gcode interpreter (cm_<command>, e.g. M code)
- *   - cm_ function calls mp_queue_command which puts it in the planning queue
+ *   - A command is called by the Gcode interpreter (mach_<command>,
+ *     e.g. M code)
+ *   - mach_ function calls mp_queue_command which puts it in the planning queue
  *     (bf buffer) which sets some parameters and registers a callback to the
  *     execution function in the machine.
  *   - When the planning queue gets to the function it calls _exec_command()
@@ -59,7 +60,7 @@ static stat_t _exec_command(mpBuf_t *bf) {
 
 
 /// Queue a synchronous Mcode, program control, or other command
-void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
+void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
   mpBuf_t *bf = mp_get_write_buffer();
 
   if (!bf) {
@@ -69,7 +70,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
 
   bf->move_type = MOVE_TYPE_COMMAND;
   bf->bf_func = _exec_command;    // callback to planner queue exec function
-  bf->cm_func = cm_exec;          // callback to machine exec function
+  bf->mach_func = mach_exec;          // callback to machine exec function
 
   // Store values and flags in planner buffer
   for (int axis = 0; axis < AXES; axis++) {
@@ -78,14 +79,14 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
   }
 
   // Must be final operation before exit
-  mp_commit_write_buffer(cm_get_line(), MOVE_TYPE_COMMAND);
+  mp_commit_write_buffer(mach_get_line(), MOVE_TYPE_COMMAND);
 }
 
 
 void mp_runtime_command(mpBuf_t *bf) {
   // Use values & flags stored in mp_queue_command()
-  bf->cm_func(bf->ms.target, bf->unit);
+  bf->mach_func(bf->ms.target, bf->unit);
 
   // Free buffer & perform cycle_end if planner is empty
-  if (mp_free_run_buffer()) cm_cycle_end();
+  if (mp_free_run_buffer()) mach_cycle_end();
 }

@@ -29,5 +29,5 @@
 
 #include "plan/buffer.h"
 
-void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag);
+void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag);
 void mp_runtime_command(mpBuf_t *bf);

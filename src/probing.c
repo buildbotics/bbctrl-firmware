@@ -61,7 +61,7 @@ struct pbProbingSingleton {       // persistent probing runtime variables
 static struct pbProbingSingleton pb;
 
 
-/* All cm_probe_cycle_start does is prevent any new commands from
+/* All mach_probe_cycle_start does is prevent any new commands from
  * queueing to the planner so that the planner can move to a sop and
  * report MACHINE_PROGRAM_STOP.  OK, it also queues the function
  * that's called once motion has stopped.
@@ -74,7 +74,7 @@ static struct pbProbingSingleton pb;
  * before declaring the cycle to be done. Otherwise there is a nasty
  * race condition in the tg_controller() that will accept the next
  * command before the position of the final move has been recorded in
- * the Gcode model. That's what the call to cm_get_runtime_busy() is
+ * the Gcode model. That's what the call to mach_get_runtime_busy() is
  * about.
  */
 
@@ -85,16 +85,16 @@ static void _probe_restore_settings() {
 
   // restore axis jerk
   for (int axis = 0; axis < AXES; axis++ )
-    cm_set_axis_jerk(axis, pb.saved_jerk[axis]);
+    mach_set_axis_jerk(axis, pb.saved_jerk[axis]);
 
   // restore coordinate system and distance mode
-  cm_set_coord_system(pb.saved_coord_system);
-  cm_set_distance_mode(pb.saved_distance_mode);
+  mach_set_coord_system(pb.saved_coord_system);
+  mach_set_distance_mode(pb.saved_distance_mode);
 
   // update the model with actual position
-  cm_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-  cm_cycle_end();
-  cm.cycle_state = CYCLE_OFF;
+  mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
+  mach_cycle_end();
+  mach.cycle_state = CYCLE_OFF;
 }
 
 
@@ -106,14 +106,14 @@ static void _probing_error_exit(stat_t status) {
 
 static void _probing_finish() {
   bool closed = switch_is_active(SW_PROBE);
-  cm.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
+  mach.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
 
   for (int axis = 0; axis < AXES; axis++) {
     // if we got here because of a feed hold keep the model position correct
-    cm_set_position(axis, mp_get_runtime_work_position(axis));
+    mach_set_position(axis, mp_get_runtime_work_position(axis));
 
     // store the probe results
-    cm.probe_results[axis] = cm_get_absolute_position(axis);
+    mach.probe_results[axis] = mach_get_absolute_position(axis);
   }
 
   _probe_restore_settings();
@@ -125,7 +125,7 @@ static void _probing_start() {
   bool closed = switch_is_active(SW_PROBE);
 
   if (!closed) {
-    stat_t status = cm_straight_feed(pb.target, pb.flags);
+    stat_t status = mach_straight_feed(pb.target, pb.flags);
     if (status) return _probing_error_exit(status);
   }
 
@@ -145,15 +145,16 @@ static void _probing_init() {
   // NOTE: it is *not* an error condition for the probe not to trigger.
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
-  cm.probe_state = PROBE_FAILED;
-  cm.cycle_state = CYCLE_PROBE;
+  mach.probe_state = PROBE_FAILED;
+  mach.cycle_state = CYCLE_PROBE;
 
   // initialize the axes - save the jerk settings & switch to the jerk_homing
   // settings
   for (int axis = 0; axis < AXES; axis++) {
-    pb.saved_jerk[axis] = cm_get_axis_jerk(axis);   // save the max jerk value
-    cm_set_axis_jerk(axis, cm.a[axis].jerk_homing); // use homing jerk for probe
-    pb.start_position[axis] = cm_get_absolute_position(axis);
+    pb.saved_jerk[axis] = mach_get_axis_jerk(axis);   // save the max jerk value
+    // use homing jerk for probe
+    mach_set_axis_jerk(axis, mach.a[axis].jerk_homing);
+    pb.start_position[axis] = mach_get_absolute_position(axis);
   }
 
   // error if the probe target is too close to the current position
@@ -167,27 +168,27 @@ static void _probing_init() {
       _probing_error_exit(STAT_MOVE_DURING_PROBE);
 
   // probe in absolute machine coords
-  pb.saved_coord_system = cm_get_coord_system(&cm.gm);
-  pb.saved_distance_mode = cm_get_distance_mode(&cm.gm);
-  cm_set_distance_mode(ABSOLUTE_MODE);
-  cm_set_coord_system(ABSOLUTE_COORDS);
+  pb.saved_coord_system = mach_get_coord_system(&mach.gm);
+  pb.saved_distance_mode = mach_get_distance_mode(&mach.gm);
+  mach_set_distance_mode(ABSOLUTE_MODE);
+  mach_set_coord_system(ABSOLUTE_COORDS);
 
-  cm_spindle_control(SPINDLE_OFF);
+  mach_spindle_control(SPINDLE_OFF);
 
   // start the move
   pb.func = _probing_start;
 }
 
 
-bool cm_is_probing() {
-  return cm.cycle_state == CYCLE_PROBE || cm.probe_state == PROBE_WAITING;
+bool mach_is_probing() {
+  return mach.cycle_state == CYCLE_PROBE || mach.probe_state == PROBE_WAITING;
 }
 
 
 /// G38.2 homing cycle using limit switches
-stat_t cm_straight_probe(float target[], float flags[]) {
+stat_t mach_straight_probe(float target[], float flags[]) {
   // trap zero feed rate condition
-  if (cm.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(cm.gm.feed_rate))
+  if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // trap no axes specified
@@ -198,11 +199,11 @@ stat_t cm_straight_probe(float target[], float flags[]) {
   // set probe move endpoint
   copy_vector(pb.target, target);      // set probe move endpoint
   copy_vector(pb.flags, flags);        // set axes involved on the move
-  clear_vector(cm.probe_results);      // clear the old probe position.
+  clear_vector(mach.probe_results);      // clear the old probe position.
   // NOTE: relying on probe_results will not detect a probe to (0, 0, 0).
 
   // wait until planner queue empties before completing initialization
-  cm.probe_state = PROBE_WAITING;
+  mach.probe_state = PROBE_WAITING;
   pb.func = _probing_init;             // bind probing initialization function
 
   return STAT_OK;
@@ -210,9 +211,9 @@ stat_t cm_straight_probe(float target[], float flags[]) {
 
 
 /// main loop callback for running the homing cycle
-void cm_probe_callback() {
+void mach_probe_callback() {
   // sync to planner move ends
-  if (!cm_is_probing() || cm_get_runtime_busy()) return;
+  if (!mach_is_probing() || mach_get_runtime_busy()) return;
 
   pb.func(); // execute the current homing move
 }

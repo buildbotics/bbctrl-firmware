@@ -169,8 +169,8 @@ void switch_rtc_callback() {
       if (s->cb) s->cb(i, s->state);
 
       // TODO fix this
-      if (cm.cycle_state == CYCLE_HOMING || cm.cycle_state == CYCLE_PROBE)
-        cm_request_feedhold();
+      if (mach.cycle_state == CYCLE_HOMING || mach.cycle_state == CYCLE_PROBE)
+        mach_request_feedhold();
     }
   }
 }

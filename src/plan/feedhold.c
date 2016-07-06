@@ -38,13 +38,13 @@
 #include <stdbool.h>
 #include <math.h>
 
-/* Feedhold is executed as cm.hold_state transitions executed inside
+/* Feedhold is executed as mach.hold_state transitions executed inside
  * _exec_aline() and main loop callbacks to these functions:
  * mp_plan_hold_callback() and mp_end_hold().
  *
  * Holds work like this:
  *
- * - Hold is asserted by calling cm_feedhold() (usually invoked via a
+ * - Hold is asserted by calling mach_feedhold() (usually invoked via a
  *   ! char) If hold_state is OFF and motion_state is RUNning it sets
  *   hold_state to SYNC and motion_state to HOLD.
  *
@@ -67,7 +67,7 @@
  *   TRUE. It can occur any time after the hold is requested - either
  *   before or after motion stops.
  *
- * - mp_end_hold() is executed from cm_feedhold_sequencing_callback()
+ * - mp_end_hold() is executed from mach_feedhold_sequencing_callback()
  *   once the hold state == HOLD and a cycle_start has been
  *   requested.This sets the hold state to OFF which enables
  *   _exec_aline() to continue processing. Move execution begins with
@@ -121,7 +121,7 @@ static float _compute_next_segment_velocity() {
 
 /// replan block list to execute hold
 void mp_plan_hold_callback() {
-  if (cm.hold_state != FEEDHOLD_PLAN) return; // not planning a feedhold
+  if (mach.hold_state != FEEDHOLD_PLAN) return; // not planning a feedhold
 
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
@@ -166,7 +166,7 @@ void mp_plan_hold_callback() {
 
     _reset_replannable_list();           // make it replan all the blocks
     mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
-    cm.hold_state = FEEDHOLD_DECEL;      // set state to decelerate and exit
+    mach.hold_state = FEEDHOLD_DECEL;      // set state to decelerate and exit
 
     return;
   }
@@ -220,17 +220,17 @@ void mp_plan_hold_callback() {
 
   _reset_replannable_list();      // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
-  cm.hold_state = FEEDHOLD_DECEL; // set state to decelerate and exit
+  mach.hold_state = FEEDHOLD_DECEL; // set state to decelerate and exit
 }
 
 
 /// End a feedhold, release the hold and restart block list
 void mp_end_hold() {
-  if (cm.hold_state == FEEDHOLD_END_HOLD) {
-    cm.hold_state = FEEDHOLD_OFF;
+  if (mach.hold_state == FEEDHOLD_END_HOLD) {
+    mach.hold_state = FEEDHOLD_OFF;
 
     // 0 means nothing's running
-    if (!mp_get_run_buffer()) cm_set_motion_state(MOTION_STOP);
-    else cm.motion_state = MOTION_RUN;
+    if (!mp_get_run_buffer()) mach_set_motion_state(MOTION_STOP);
+    else mach.motion_state = MOTION_RUN;
   }
 }

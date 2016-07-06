@@ -70,7 +70,7 @@ static stat_t _exec_aline_segment() {
   // compute target from segment time and velocity Don't do waypoint
   // correction if you are going into a hold.
   if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
-      cm.motion_state == MOTION_RUN && cm.cycle_state == CYCLE_MACHINING)
+      mach.motion_state == MOTION_RUN && mach.cycle_state == CYCLE_MACHINING)
     copy_vector(mr.ms.target, mr.waypoint[mr.section]);
 
   else {
@@ -701,7 +701,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // start a new move by setting up local context (singleton)
   if (mr.move_state == MOVE_OFF) {
-    if (cm.hold_state == FEEDHOLD_HOLD)
+    if (mach.hold_state == FEEDHOLD_HOLD)
       return STAT_NOOP; // stops here if holding
 
     // initialization to process the new incoming bf buffer (Gcode block)
@@ -717,7 +717,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
       // prevent overplanning (Note 2)
       bf->nx->replannable = false;
       // free buffer & end cycle if planner is empty
-      if (mp_free_run_buffer()) cm_cycle_end();
+      if (mp_free_run_buffer()) mach_cycle_end();
 
       return STAT_NOOP;
     }
@@ -767,12 +767,12 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // Feedhold processing. Refer to machine.h for state machine
   // Catch the feedhold request and start the planning the hold
-  if (cm.hold_state == FEEDHOLD_SYNC) cm.hold_state = FEEDHOLD_PLAN;
+  if (mach.hold_state == FEEDHOLD_SYNC) mach.hold_state = FEEDHOLD_PLAN;
 
   // Look for the end of the decel to go into HOLD state
-  if (cm.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
-    cm.hold_state = FEEDHOLD_HOLD;
-    cm_set_motion_state(MOTION_HOLD);
+  if (mach.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
+    mach.hold_state = FEEDHOLD_HOLD;
+    mach_set_motion_state(MOTION_HOLD);
     report_request();
   }
 
@@ -790,7 +790,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     bf->nx->replannable = false; // prevent overplanning (Note 2)
 
     if (bf->move_state == MOVE_RUN && mp_free_run_buffer())
-      cm_cycle_end(); // free buffer & end cycle if planner is empty
+      mach_cycle_end(); // free buffer & end cycle if planner is empty
   }
 
   return status;
@@ -806,8 +806,8 @@ stat_t mp_exec_move() {
 
   // Manage cycle and motion state transitions
   // Cycle auto-start for lines only
-  if (bf->move_type == MOVE_TYPE_ALINE && cm.motion_state == MOTION_STOP)
-    cm_set_motion_state(MOTION_RUN);
+  if (bf->move_type == MOVE_TYPE_ALINE && mach.motion_state == MOTION_STOP)
+    mach_set_motion_state(MOTION_RUN);
 
   if (!bf->bf_func)
     return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here

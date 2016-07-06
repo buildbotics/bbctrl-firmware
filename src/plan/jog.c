@@ -71,7 +71,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 
   // Compute new velocities and travel
   for (int axis = 0; axis < AXES; axis++) {
-    float targetV = jr.target_velocity[axis] * cm.a[axis].velocity_max;
+    float targetV = jr.target_velocity[axis] * mach.a[axis].velocity_max;
     float deltaV = targetV - jr.current_velocity[axis];
     float sign = deltaV < 0 ? -1 : 1;
 
@@ -90,7 +90,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     for (int motor = 0; motor < MOTORS; motor++) {
       int axis = motor_get_axis(motor);
       float steps = motor_get_encoder(axis);
-      cm_set_position(axis, steps / motor_get_steps_per_unit(motor));
+      mach_set_position(axis, steps / motor_get_steps_per_unit(motor));
     }
 
     // Release buffer

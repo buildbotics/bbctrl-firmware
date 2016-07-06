@@ -179,18 +179,18 @@ void command_callback() {
   default:
     if (!cmd[1])
       switch (*cmd) {
-      case '!': cm_request_feedhold(); return;
-      case '~': cm_request_cycle_start(); return;
-      case '%': cm_request_queue_flush(); return;
+      case '!': mach_request_feedhold(); return;
+      case '~': mach_request_cycle_start(); return;
+      case '%': mach_request_queue_flush(); return;
       }
 
     if (estop_triggered()) status = STAT_MACHINE_ALARMED;
     else if (!mp_get_planner_buffer_room()) status = STAT_BUFFER_FULL;
-    else if (cm_arc_active()) status = STAT_BUFFER_FULL;
+    else if (mach_arc_active()) status = STAT_BUFFER_FULL;
     else if (calibrate_busy()) status = STAT_BUSY;
     else if (mp_jog_busy()) status = STAT_BUSY;
-    else if (cm_is_homing()) status = STAT_BUSY;
-    else if (cm_is_probing()) status = STAT_BUSY;
+    else if (mach_is_homing()) status = STAT_BUSY;
+    else if (mach_is_probing()) status = STAT_BUSY;
     else status = gc_gcode_parser(cmd);
   }
 

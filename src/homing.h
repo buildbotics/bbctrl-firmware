@@ -30,7 +30,7 @@
 #include <stdbool.h>
 
 
-bool cm_is_homing();
-void cm_homing_cycle_start();
-void cm_homing_cycle_start_no_set();
-void cm_homing_callback();
+bool mach_is_homing();
+void mach_homing_cycle_start();
+void mach_homing_cycle_start_no_set();
+void mach_homing_callback();

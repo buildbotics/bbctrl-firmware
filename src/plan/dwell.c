@@ -42,7 +42,7 @@ static stat_t _exec_dwell(mpBuf_t *bf) {
   st_prep_dwell(bf->ms.move_time); // in seconds
 
   // free buffer & perform cycle_end if planner is empty
-  if (mp_free_run_buffer()) cm_cycle_end();
+  if (mp_free_run_buffer()) mach_cycle_end();
 
   return STAT_OK;
 }
@@ -60,7 +60,7 @@ stat_t mp_dwell(float seconds) {
   bf->move_state = MOVE_NEW;
 
   // must be final operation before exit
-  mp_commit_write_buffer(cm_get_line(), MOVE_TYPE_DWELL);
+  mp_commit_write_buffer(mach_get_line(), MOVE_TYPE_DWELL);
 
   return STAT_OK;
 }

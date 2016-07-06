@@ -38,6 +38,6 @@
 #define MIN_ARC_SEGMENT_TIME    (MIN_ARC_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 
 
-void cm_arc_callback();
-bool cm_arc_active();
-void cm_abort_arc();
+void mach_arc_callback();
+bool mach_arc_active();
+void mach_abort_arc();

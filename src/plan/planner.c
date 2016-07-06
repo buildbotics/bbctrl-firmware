@@ -45,7 +45,7 @@
  * "planner" and "runtime" in function names.
  *
  * The Gcode model is owned by the machine and should
- * only be accessed by cm_xxxx() functions. Data from the Gcode
+ * only be accessed by mach_xxxx() functions. Data from the Gcode
  * model is transferred to the planner by the mp_xxx() functions
  * called by the machine.
  *
@@ -83,12 +83,12 @@ void planner_init() {
  * Does not affect the move currently running in mr.  Does not affect
  * mm or gm model positions.  This function is designed to be called
  * during a hold to reset the planner.  This function should not
- * generally be called; call cm_queue_flush() instead.
+ * generally be called; call mach_queue_flush() instead.
  */
 void mp_flush_planner() {
-  cm_abort_arc();
+  mach_abort_arc();
   mp_init_buffers();
-  cm_set_motion_state(MOTION_STOP);
+  mach_set_motion_state(MOTION_STOP);
 }
 
 
@@ -195,7 +195,7 @@ void mp_kinematics(const float travel[], float steps[]) {
   // account.
   for (int motor = 0; motor < MOTORS; motor++) {
     int axis = motor_get_axis(motor);
-    if (cm.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
+    if (mach.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
     else steps[motor] = travel[axis] * motor_get_steps_per_unit(motor);
   }
 }

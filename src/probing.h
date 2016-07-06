@@ -32,6 +32,6 @@
 #include <stdbool.h>
 
 
-bool cm_is_probing();
-stat_t cm_straight_probe(float target[], float flags[]);
-void cm_probe_callback();
+bool mach_is_probing();
+stat_t mach_straight_probe(float target[], float flags[]);
+void mach_probe_callback();

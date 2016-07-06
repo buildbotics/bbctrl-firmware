@@ -70,14 +70,14 @@ void estop_trigger() {
 
   // Hard stop the motors and the spindle
   st_shutdown();
-  cm_spindle_control(SPINDLE_OFF);
+  mach_spindle_control(SPINDLE_OFF);
 
   // Stop and flush motion
-  cm_request_feedhold();
-  cm_request_queue_flush();
+  mach_request_feedhold();
+  mach_request_queue_flush();
 
   // Set alarm state
-  cm_set_machine_state(MACHINE_ALARM);
+  mach_set_machine_state(MACHINE_ALARM);
 
   // Assert fault signal
   OUTSET_PIN(FAULT_PIN); // High
@@ -92,7 +92,7 @@ void estop_clear() {
     motor_reset(motor);
 
   // Clear alarm state
-  cm_set_machine_state(MACHINE_READY);
+  mach_set_machine_state(MACHINE_READY);
 
   // Clear fault signal
   OUTCLR_PIN(FAULT_PIN); // Low

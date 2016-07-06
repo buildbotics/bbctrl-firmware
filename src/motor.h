@@ -44,7 +44,7 @@ typedef enum {
                                  MOTOR_FLAG_OVERTEMP_WARN_bm |
                                  MOTOR_FLAG_OVERTEMP_bm |
                                  MOTOR_FLAG_SHORTED_bm)
-} cmMotorFlags_t;
+} machMotorFlags_t;
 
 
 typedef enum {
@@ -54,13 +54,13 @@ typedef enum {
                                   // de-powered out of cycle
   MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
   MOTOR_POWER_MODE_MAX_VALUE      // for input range checking
-} cmMotorPowerMode_t;
+} machMotorPowerMode_t;
 
 
 typedef enum {
   MOTOR_POLARITY_NORMAL,
   MOTOR_POLARITY_REVERSED
-} cmMotorPolarity_t;
+} machMotorPolarity_t;
 
 
 void motor_init();
@@ -78,7 +78,7 @@ bool motor_energizing();
 
 void motor_driver_callback(int motor);
 stat_t motor_rtc_callback();
-void motor_error_callback(int motor, cmMotorFlags_t errors);
+void motor_error_callback(int motor, machMotorFlags_t errors);
 
 void motor_load_move(int motor);
 void motor_end_move(int motor);

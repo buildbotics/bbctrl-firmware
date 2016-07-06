@@ -58,8 +58,8 @@ typedef struct {
   // Config
   uint8_t motor_map;             // map motor to axis
   uint16_t microsteps;           // microsteps per full step
-  cmMotorPolarity_t polarity;
-  cmMotorPowerMode_t power_mode;
+  machMotorPolarity_t polarity;
+  machMotorPowerMode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
   uint8_t step_pin;
@@ -72,7 +72,7 @@ typedef struct {
   // Runtime state
   motorPowerState_t power_state; // state machine for managing motor power
   uint32_t timeout;
-  cmMotorFlags_t flags;
+  machMotorFlags_t flags;
   int32_t encoder;
   uint16_t steps;
   uint8_t last_clock;
@@ -81,7 +81,7 @@ typedef struct {
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
   bool positive;                 // step sign
-  cmDirection_t direction;       // travel direction corrected for polarity
+  machDirection_t direction;       // travel direction corrected for polarity
 
   // Step error correction
   int32_t correction_holdoff;    // count down segments between corrections
@@ -310,7 +310,7 @@ stat_t motor_rtc_callback() { // called by controller
 void print_status_flags(uint8_t flags);
 
 
-void motor_error_callback(int motor, cmMotorFlags_t errors) {
+void motor_error_callback(int motor, machMotorFlags_t errors) {
   if (motors[motor].power_state != MOTOR_ACTIVE) return;
 
   motors[motor].flags |= errors;

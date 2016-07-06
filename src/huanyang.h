@@ -31,6 +31,6 @@
 
 
 void huanyang_init();
-void huanyang_set(cmSpindleMode_t mode, float speed);
+void huanyang_set(machSpindleMode_t mode, float speed);
 void huanyang_reset();
 void huanyang_rtc_callback();

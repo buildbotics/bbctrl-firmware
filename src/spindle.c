@@ -43,7 +43,7 @@ typedef enum {
 static spindleType_t spindle_type = SPINDLE_TYPE;
 
 
-static void _spindle_set(cmSpindleMode_t mode, float speed) {
+static void _spindle_set(machSpindleMode_t mode, float speed) {
   switch (spindle_type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
@@ -53,35 +53,35 @@ static void _spindle_set(cmSpindleMode_t mode, float speed) {
 
 /// execute the spindle command (called from planner)
 static void _exec_spindle_control(float *value, float *flag) {
-  cmSpindleMode_t mode = value[0];
-  cm_set_spindle_mode(mode);
-  _spindle_set(mode, cm.gm.spindle_speed);
+  machSpindleMode_t mode = value[0];
+  mach_set_spindle_mode(mode);
+  _spindle_set(mode, mach.gm.spindle_speed);
 }
 
 
 /// Spindle speed callback from planner queue
 static void _exec_spindle_speed(float *value, float *flag) {
   float speed = value[0];
-  cm_set_spindle_speed_parameter(speed);
-  _spindle_set(cm.gm.spindle_mode, speed);
+  mach_set_spindle_speed_parameter(speed);
+  _spindle_set(mach.gm.spindle_mode, speed);
 }
 
 
-void cm_spindle_init() {
+void mach_spindle_init() {
   pwm_spindle_init();
   huanyang_init();
 }
 
 
 /// Queue the spindle command to the planner buffer
-void cm_spindle_control(cmSpindleMode_t mode) {
+void mach_spindle_control(machSpindleMode_t mode) {
   float value[AXES] = {mode};
   mp_queue_command(_exec_spindle_control, value, value);
 }
 
 
 /// Queue the S parameter to the planner buffer
-void cm_set_spindle_speed(float speed) {
+void mach_set_spindle_speed(float speed) {
   float value[AXES] = {speed};
   mp_queue_command(_exec_spindle_speed, value, value);
 }
@@ -96,6 +96,6 @@ void set_spindle_type(int index, uint8_t value) {
   if (value != spindle_type) {
     _spindle_set(SPINDLE_OFF, 0);
     spindle_type = value;
-    _spindle_set(cm.gm.spindle_mode, cm.gm.spindle_speed);
+    _spindle_set(mach.gm.spindle_mode, mach.gm.spindle_speed);
   }
 }

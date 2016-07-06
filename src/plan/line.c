@@ -141,19 +141,19 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   if (costheta > 0.99)  return 0;                // reversal cases
 
   // Fuse the junction deviations into a vector sum
-  float a_delta = square(a_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
-  a_delta += square(a_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
-  a_delta += square(a_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
-  a_delta += square(a_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
-  a_delta += square(a_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
-  a_delta += square(a_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
+  float a_delta = square(a_unit[AXIS_X] * mach.a[AXIS_X].junction_dev);
+  a_delta += square(a_unit[AXIS_Y] * mach.a[AXIS_Y].junction_dev);
+  a_delta += square(a_unit[AXIS_Z] * mach.a[AXIS_Z].junction_dev);
+  a_delta += square(a_unit[AXIS_A] * mach.a[AXIS_A].junction_dev);
+  a_delta += square(a_unit[AXIS_B] * mach.a[AXIS_B].junction_dev);
+  a_delta += square(a_unit[AXIS_C] * mach.a[AXIS_C].junction_dev);
 
-  float b_delta = square(b_unit[AXIS_X] * cm.a[AXIS_X].junction_dev);
-  b_delta += square(b_unit[AXIS_Y] * cm.a[AXIS_Y].junction_dev);
-  b_delta += square(b_unit[AXIS_Z] * cm.a[AXIS_Z].junction_dev);
-  b_delta += square(b_unit[AXIS_A] * cm.a[AXIS_A].junction_dev);
-  b_delta += square(b_unit[AXIS_B] * cm.a[AXIS_B].junction_dev);
-  b_delta += square(b_unit[AXIS_C] * cm.a[AXIS_C].junction_dev);
+  float b_delta = square(b_unit[AXIS_X] * mach.a[AXIS_X].junction_dev);
+  b_delta += square(b_unit[AXIS_Y] * mach.a[AXIS_Y].junction_dev);
+  b_delta += square(b_unit[AXIS_Z] * mach.a[AXIS_Z].junction_dev);
+  b_delta += square(b_unit[AXIS_A] * mach.a[AXIS_A].junction_dev);
+  b_delta += square(b_unit[AXIS_B] * mach.a[AXIS_B].junction_dev);
+  b_delta += square(b_unit[AXIS_C] * mach.a[AXIS_C].junction_dev);
 
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
   float sintheta_over2 = sqrt((1 - costheta) / 2);
@@ -204,7 +204,7 @@ stat_t mp_aline(MoveState_t *ms) {
     return STAT_OK;
   }
 
-  // If cm_calc_move_time() says the move will take less than the
+  // If mach_calc_move_time() says the move will take less than the
   // minimum move time get a more accurate time estimate based on
   // starting velocity and acceleration.  The time of the move is
   // determined by its initial velocity (Vi) and how much acceleration
@@ -219,7 +219,7 @@ stat_t mp_aline(MoveState_t *ms) {
   //        Vi <= previous block's entry_velocity + delta_velocity
 
   // Set move time in state
-  cm_calc_move_time(axis_length, axis_square);
+  mach_calc_move_time(axis_length, axis_square);
 
   if (ms->move_time < MIN_BLOCK_TIME) {
     // Max velocity change for this move
@@ -324,7 +324,7 @@ stat_t mp_aline(MoveState_t *ms) {
       // compute unit vector term (zeros are already zero)
       bf->unit[axis] = axis_length[axis] / bf->length;
       // squaring axis_length ensures it's positive
-      C = axis_square[axis] * recip_L2 * cm.a[axis].recip_jerk;
+      C = axis_square[axis] * recip_L2 * mach.a[axis].recip_jerk;
 
       if (C > maxC) {
         maxC = C;
@@ -333,7 +333,7 @@ stat_t mp_aline(MoveState_t *ms) {
     }
 
   // set up and pre-compute the jerk terms needed for this round of planning
-  bf->jerk = cm.a[bf->jerk_axis].jerk_max * JERK_MULTIPLIER /
+  bf->jerk = mach.a[bf->jerk_axis].jerk_max * JERK_MULTIPLIER /
     fabs(bf->unit[bf->jerk_axis]); // scale jerk
 
   // specialized comparison for tolerance of delta
@@ -348,7 +348,7 @@ stat_t mp_aline(MoveState_t *ms) {
 
   // finish up the current block variables
   // exact stop cases already zeroed
-  if (cm_get_path_control() != PATH_EXACT_STOP) {
+  if (mach_get_path_control() != PATH_EXACT_STOP) {
     bf->replannable = true;
     exact_stop = 8675309; // an arbitrarily large floating point number
   }

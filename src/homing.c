@@ -135,7 +135,7 @@ static struct hmHomingSingleton hm;
  * the cycle to be done. Otherwise there is a nasty race condition
  * that will accept the next command before the position of
  * the final move has been recorded in the Gcode model. That's what the call
- * to cm_isbusy() is about.
+ * to mach_isbusy() is about.
  */
 
 
@@ -153,12 +153,12 @@ static struct hmHomingSingleton hm;
  */
 static int8_t _get_next_axis(int8_t axis) {
   switch (axis) {
-  case     -1: if (fp_TRUE(cm.gf.target[AXIS_Z])) return AXIS_Z;
-  case AXIS_Z: if (fp_TRUE(cm.gf.target[AXIS_X])) return AXIS_X;
-  case AXIS_X: if (fp_TRUE(cm.gf.target[AXIS_Y])) return AXIS_Y;
-  case AXIS_Y: if (fp_TRUE(cm.gf.target[AXIS_A])) return AXIS_A;
-  case AXIS_A: if (fp_TRUE(cm.gf.target[AXIS_B])) return AXIS_B;
-  case AXIS_B: if (fp_TRUE(cm.gf.target[AXIS_C])) return AXIS_C;
+  case     -1: if (fp_TRUE(mach.gf.target[AXIS_Z])) return AXIS_Z;
+  case AXIS_Z: if (fp_TRUE(mach.gf.target[AXIS_X])) return AXIS_X;
+  case AXIS_X: if (fp_TRUE(mach.gf.target[AXIS_Y])) return AXIS_Y;
+  case AXIS_Y: if (fp_TRUE(mach.gf.target[AXIS_A])) return AXIS_A;
+  case AXIS_A: if (fp_TRUE(mach.gf.target[AXIS_B])) return AXIS_B;
+  case AXIS_B: if (fp_TRUE(mach.gf.target[AXIS_C])) return AXIS_C;
   }
 
   return axis == -1 ? -2 : -1; // error or done
@@ -170,14 +170,14 @@ static void _homing_finalize_exit() {
   mp_flush_planner(); // should be stopped, but in case of switch closure
 
   // restore to work coordinate system
-  cm_set_coord_system(hm.saved_coord_system);
-  cm_set_units_mode(hm.saved_units_mode);
-  cm_set_distance_mode(hm.saved_distance_mode);
-  cm_set_feed_rate_mode(hm.saved_feed_rate_mode);
-  cm.gm.feed_rate = hm.saved_feed_rate;
-  cm_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-  cm_cycle_end();
-  cm.cycle_state = CYCLE_OFF;
+  mach_set_coord_system(hm.saved_coord_system);
+  mach_set_units_mode(hm.saved_units_mode);
+  mach_set_distance_mode(hm.saved_distance_mode);
+  mach_set_feed_rate_mode(hm.saved_feed_rate_mode);
+  mach.gm.feed_rate = hm.saved_feed_rate;
+  mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
+  mach_cycle_end();
+  mach.cycle_state = CYCLE_OFF;
 }
 
 
@@ -194,18 +194,18 @@ static void _homing_axis_move(int8_t axis, float target, float velocity) {
 
   vect[axis] = target;
   flags[axis] = true;
-  cm.gm.feed_rate = velocity;
-  mp_flush_planner(); // don't use cm_request_queue_flush() here
-  cm_request_cycle_start();
+  mach.gm.feed_rate = velocity;
+  mp_flush_planner(); // don't use mach_request_queue_flush() here
+  mach_request_cycle_start();
 
-  stat_t status = cm_straight_feed(vect, flags);
+  stat_t status = mach_straight_feed(vect, flags);
   if (status) _homing_error_exit(status);
 }
 
 
 /// End homing cycle in progress
 static void _homing_abort(int8_t axis) {
-  cm_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
+  mach_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
 
   // homing state remains HOMING_NOT_HOMED
   _homing_error_exit(STAT_HOMING_CYCLE_FAILED);
@@ -217,13 +217,13 @@ static void _homing_abort(int8_t axis) {
 /// set zero and finish up
 static void _homing_axis_set_zero(int8_t axis) {
   if (hm.set_coordinates) {
-    cm_set_position(axis, 0);
-    cm.homed[axis] = true;
+    mach_set_position(axis, 0);
+    mach.homed[axis] = true;
 
   } else // do not set axis if in G28.4 cycle
-    cm_set_position(axis, mp_get_runtime_work_position(axis));
+    mach_set_position(axis, mp_get_runtime_work_position(axis));
 
-  cm_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
+  mach_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
 
   hm.func = _homing_axis_start;
 }
@@ -252,7 +252,7 @@ static void _homing_axis_latch(int8_t axis) {
 /// Fast search for switch, closes switch
 static void _homing_axis_search(int8_t axis) {
   // use the homing jerk for search onward
-  cm_set_axis_jerk(axis, cm.a[axis].jerk_homing);
+  mach_set_axis_jerk(axis, mach.a[axis].jerk_homing);
   _homing_axis_move(axis, hm.search_travel, hm.search_velocity);
   hm.func = _homing_axis_latch;
 }
@@ -278,7 +278,7 @@ static void _homing_axis_start(int8_t axis) {
   // get the first or next axis
   if ((axis = _get_next_axis(axis)) < 0) { // axes are done or error
     if (axis == -1) {                                    // -1 is done
-      cm.homing_state = HOMING_HOMED;
+      mach.homing_state = HOMING_HOMED;
       _homing_finalize_exit();
       return;
 
@@ -287,28 +287,28 @@ static void _homing_axis_start(int8_t axis) {
   }
 
   // clear the homed flag for axis to move w/o triggering soft limits
-  cm.homed[axis] = false;
+  mach.homed[axis] = false;
 
   // trap axis mis-configurations
-  if (fp_ZERO(cm.a[axis].search_velocity))
+  if (fp_ZERO(mach.a[axis].search_velocity))
     return _homing_error_exit(STAT_HOMING_ERROR_ZERO_SEARCH_VELOCITY);
-  if (fp_ZERO(cm.a[axis].latch_velocity))
+  if (fp_ZERO(mach.a[axis].latch_velocity))
     return _homing_error_exit(STAT_HOMING_ERROR_ZERO_LATCH_VELOCITY);
-  if (cm.a[axis].latch_backoff < 0)
+  if (mach.a[axis].latch_backoff < 0)
     return _homing_error_exit(STAT_HOMING_ERROR_NEGATIVE_LATCH_BACKOFF);
 
   // calculate and test travel distance
   float travel_distance =
-    fabs(cm.a[axis].travel_max - cm.a[axis].travel_min) +
-    cm.a[axis].latch_backoff;
+    fabs(mach.a[axis].travel_max - mach.a[axis].travel_min) +
+    mach.a[axis].latch_backoff;
   if (fp_ZERO(travel_distance))
     return _homing_error_exit(STAT_HOMING_ERROR_TRAVEL_MIN_MAX_IDENTICAL);
 
   hm.axis = axis; // persist the axis
   // search velocity is always positive
-  hm.search_velocity = fabs(cm.a[axis].search_velocity);
+  hm.search_velocity = fabs(mach.a[axis].search_velocity);
   // latch velocity is always positive
-  hm.latch_velocity = fabs(cm.a[axis].latch_velocity);
+  hm.latch_velocity = fabs(mach.a[axis].latch_velocity);
 
   // determine which switch to use
   bool min_enabled = switch_is_enabled(MIN_SWITCH(axis));
@@ -319,16 +319,16 @@ static void _homing_axis_start(int8_t axis) {
     hm.homing_switch = MIN_SWITCH(axis);         // min is the homing switch
     hm.limit_switch = MAX_SWITCH(axis);          // max would be limit switch
     hm.search_travel = -travel_distance;         // in negative direction
-    hm.latch_backoff = cm.a[axis].latch_backoff; // in positive direction
-    hm.zero_backoff = cm.a[axis].zero_backoff;
+    hm.latch_backoff = mach.a[axis].latch_backoff; // in positive direction
+    hm.zero_backoff = mach.a[axis].zero_backoff;
 
   } else if (max_enabled) {
     // setup parameters for positive travel (homing to the maximum switch)
     hm.homing_switch = MAX_SWITCH(axis);          // max is homing switch
     hm.limit_switch = MIN_SWITCH(axis);           // min would be limit switch
     hm.search_travel = travel_distance;           // in positive direction
-    hm.latch_backoff = -cm.a[axis].latch_backoff; // in negative direction
-    hm.zero_backoff = -cm.a[axis].zero_backoff;
+    hm.latch_backoff = -mach.a[axis].latch_backoff; // in negative direction
+    hm.zero_backoff = -mach.a[axis].zero_backoff;
 
   } else {
     // if homing is disabled for the axis then skip to the next axis
@@ -337,47 +337,47 @@ static void _homing_axis_start(int8_t axis) {
     return;
   }
 
-  hm.saved_jerk = cm_get_axis_jerk(axis); // save the max jerk value
+  hm.saved_jerk = mach_get_axis_jerk(axis); // save the max jerk value
   hm.func = _homing_axis_clear; // start the clear
 }
 
 
-bool cm_is_homing() {
-  return cm.cycle_state == CYCLE_HOMING;
+bool mach_is_homing() {
+  return mach.cycle_state == CYCLE_HOMING;
 }
 
 
 /// G28.2 homing cycle using limit switches
-void cm_homing_cycle_start() {
+void mach_homing_cycle_start() {
   // save relevant non-axis parameters from Gcode model
-  hm.saved_units_mode = cm_get_units_mode(&cm.gm);
-  hm.saved_coord_system = cm_get_coord_system(&cm.gm);
-  hm.saved_distance_mode = cm_get_distance_mode(&cm.gm);
-  hm.saved_feed_rate_mode = cm_get_feed_rate_mode(&cm.gm);
-  hm.saved_feed_rate = cm_get_feed_rate(&cm.gm);
+  hm.saved_units_mode = mach_get_units_mode(&mach.gm);
+  hm.saved_coord_system = mach_get_coord_system(&mach.gm);
+  hm.saved_distance_mode = mach_get_distance_mode(&mach.gm);
+  hm.saved_feed_rate_mode = mach_get_feed_rate_mode(&mach.gm);
+  hm.saved_feed_rate = mach_get_feed_rate(&mach.gm);
 
   // set working values
-  cm_set_units_mode(MILLIMETERS);
-  cm_set_distance_mode(INCREMENTAL_MODE);
-  cm_set_coord_system(ABSOLUTE_COORDS);    // in machine coordinates
-  cm_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);
+  mach_set_units_mode(MILLIMETERS);
+  mach_set_distance_mode(INCREMENTAL_MODE);
+  mach_set_coord_system(ABSOLUTE_COORDS);    // in machine coordinates
+  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);
   hm.set_coordinates = true;
 
   hm.axis = -1;                            // set to retrieve initial axis
   hm.func = _homing_axis_start;            // bind initial processing function
-  cm.cycle_state = CYCLE_HOMING;
-  cm.homing_state = HOMING_NOT_HOMED;
+  mach.cycle_state = CYCLE_HOMING;
+  mach.homing_state = HOMING_NOT_HOMED;
 }
 
 
-void cm_homing_cycle_start_no_set() {
-  cm_homing_cycle_start();
+void mach_homing_cycle_start_no_set() {
+  mach_homing_cycle_start();
   hm.set_coordinates = false; // don't update position variables at end of cycle
 }
 
 
 /// Main loop callback for running the homing cycle
-void cm_homing_callback() {
-  if (cm.cycle_state != CYCLE_HOMING || cm_get_runtime_busy()) return;
+void mach_homing_callback() {
+  if (mach.cycle_state != CYCLE_HOMING || mach_get_runtime_busy()) return;
   hm.func(hm.axis); // execute the current homing move
 }
