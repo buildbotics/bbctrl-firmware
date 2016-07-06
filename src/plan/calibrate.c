@@ -30,7 +30,7 @@
 
 #include "buffer.h"
 #include "motor.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "planner.h"
 #include "stepper.h"
 #include "rtc.h"

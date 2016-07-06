@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "canonical_machine.h"
+#include "machine.h"
 
 
 void pwm_spindle_init();

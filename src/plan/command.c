@@ -31,7 +31,7 @@
  *   - A command is called by the Gcode interpreter (cm_<command>, e.g. M code)
  *   - cm_ function calls mp_queue_command which puts it in the planning queue
  *     (bf buffer) which sets some parameters and registers a callback to the
- *     execution function in the canonical machine.
+ *     execution function in the machine.
  *   - When the planning queue gets to the function it calls _exec_command()
  *     which loads a pointer to the bf buffer in stepper.c's next move.
  *   - When the runtime gets to the end of the current activity (sending steps,
@@ -47,7 +47,7 @@
 #include "command.h"
 
 #include "buffer.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "stepper.h"
 
 
@@ -69,7 +69,7 @@ void mp_queue_command(cm_exec_t cm_exec, float *value, float *flag) {
 
   bf->move_type = MOVE_TYPE_COMMAND;
   bf->bf_func = _exec_command;    // callback to planner queue exec function
-  bf->cm_func = cm_exec;          // callback to canonical machine exec function
+  bf->cm_func = cm_exec;          // callback to machine exec function
 
   // Store values and flags in planner buffer
   for (int axis = 0; axis < AXES; axis++) {

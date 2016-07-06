@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "canonical_machine.h"
+#include "machine.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -74,7 +74,7 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   struct mpBuffer *nx;            // pointer to next buffer
 
   bf_func_t bf_func;              // callback to buffer exec function
-  cm_exec_t cm_func;              // callback to canonical machine
+  cm_exec_t cm_func;              // callback to machine
 
   float naive_move_time;
 

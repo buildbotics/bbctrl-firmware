@@ -765,7 +765,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
   else return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
 
-  // Feedhold processing. Refer to canonical_machine.h for state machine
+  // Feedhold processing. Refer to machine.h for state machine
   // Catch the feedhold request and start the planning the hold
   if (cm.hold_state == FEEDHOLD_SYNC) cm.hold_state = FEEDHOLD_PLAN;
 

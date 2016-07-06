@@ -169,7 +169,7 @@ typedef enum {
 #define VELOCITY_MAX             13000  // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
-#define X_AXIS_MODE              AXIS_STANDARD // See canonical_machine.h
+#define X_AXIS_MODE              AXIS_STANDARD // See machine.h
 #define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
 #define X_FEEDRATE_MAX           FEEDRATE_MAX  // G1 max feed rate in mm/min
 #define X_TRAVEL_MIN             0             // minimum travel for soft limits
@@ -265,7 +265,7 @@ typedef enum {
 
 // Gcode defaults
 #define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-#define GCODE_DEFAULT_PLANE         CANON_PLANE_XY // See canonical_machine.h
+#define GCODE_DEFAULT_PLANE         PLANE_XY // See machine.h
 #define GCODE_DEFAULT_COORD_SYSTEM  G54 // G54, G55, G56, G57, G58 or G59
 #define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE

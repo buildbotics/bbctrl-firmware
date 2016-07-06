@@ -28,7 +28,7 @@
 
 #include "gcode_parser.h"
 
-#include "canonical_machine.h"
+#include "machine.h"
 #include "spindle.h"
 #include "probing.h"
 #include "homing.h"
@@ -195,7 +195,7 @@ static stat_t _validate_gcode_block() {
 
 /* Execute parsed block
  *
- * Conditionally (based on whether a flag is set in gf) call the canonical
+ * Conditionally (based on whether a flag is set in gf) call the
  * machining functions in order of execution as per RS274NGC_3 table 8
  * (below, with modifications):
  *
@@ -228,7 +228,7 @@ static stat_t _validate_gcode_block() {
  *   21. stop and end (M0, M1, M2, M30, M60)
  *
  * Values in gn are in original units and should not be unit converted prior
- * to calling the canonical functions (which do the unit conversions)
+ * to calling the machine functions (which do the unit conversions)
  */
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
@@ -378,9 +378,9 @@ static stat_t _parse_gcode_block(char *buf) {
       case 4: SET_NON_MODAL(next_action, NEXT_ACTION_DWELL);
       case 10:
         SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_COORD_DATA);
-      case 17: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_XY);
-      case 18: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_XZ);
-      case 19: SET_MODAL(MODAL_GROUP_G2, select_plane, CANON_PLANE_YZ);
+      case 17: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_XY);
+      case 18: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_XZ);
+      case 19: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_YZ);
       case 20: SET_MODAL(MODAL_GROUP_G6, units_mode, INCHES);
       case 21: SET_MODAL(MODAL_GROUP_G6, units_mode, MILLIMETERS);
       case 28:

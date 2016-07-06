@@ -28,7 +28,7 @@
 
 #pragma once
 
-#include "canonical_machine.h"
+#include "machine.h"
 
 
 void cm_spindle_init();

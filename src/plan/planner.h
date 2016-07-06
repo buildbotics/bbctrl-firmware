@@ -30,7 +30,7 @@
 #pragma once
 
 
-#include "canonical_machine.h" // used for GCodeState_t
+#include "machine.h" // used for GCodeState_t
 #include "util.h"
 
 

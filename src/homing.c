@@ -26,7 +26,7 @@
 
 \******************************************************************************/
 
-#include "canonical_machine.h"
+#include "machine.h"
 #include "switch.h"
 #include "util.h"
 #include "report.h"

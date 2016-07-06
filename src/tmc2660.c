@@ -30,7 +30,7 @@
 #include "motor.h"
 #include "rtc.h"
 #include "cpp_magic.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "plan/calibrate.h"
 
 #include <avr/io.h>

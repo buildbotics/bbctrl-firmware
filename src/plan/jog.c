@@ -31,7 +31,7 @@
 #include "buffer.h"
 #include "stepper.h"
 #include "motor.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "motor.h"
 #include "config.h"
 

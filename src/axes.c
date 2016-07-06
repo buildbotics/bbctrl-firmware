@@ -26,7 +26,7 @@
 \******************************************************************************/
 
 
-#include "canonical_machine.h"
+#include "machine.h"
 
 
 uint8_t get_axis_mode(int axis) {

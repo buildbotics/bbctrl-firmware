@@ -28,7 +28,7 @@
 \******************************************************************************/
 
 #include "hardware.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "stepper.h"
 #include "motor.h"
 #include "switch.h"
@@ -43,7 +43,6 @@
 #include "homing.h"
 
 #include "plan/planner.h"
-#include "plan/buffer.h"
 #include "plan/arc.h"
 #include "plan/feedhold.h"
 
@@ -67,7 +66,7 @@ int main() {
   motor_init();                   // motors
   switch_init();                  // switches
   planner_init();                 // motion planning
-  canonical_machine_init();       // gcode machine
+  machine_init();       // gcode machine
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
 
@@ -79,14 +78,12 @@ int main() {
   // main loop
   while (true) {
     hw_reset_handler();                        // handle hard reset requests
-    cm_feedhold_sequencing_callback();         // feedhold state machine
-    mp_plan_hold_callback();                   // plan a feedhold
+    cm_feedhold_callback();                    // feedhold state machine
     cm_arc_callback();                         // arc generation runs
     cm_homing_callback();                      // G28.2 continuation
     cm_probe_callback();                       // G38.2 continuation
     command_callback();                        // process next command
     report_callback();                         // report changes
-
     wdt_reset();
   }
 

@@ -46,7 +46,7 @@
 #include "switch.h"
 
 #include "hardware.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "config.h"
 
 #include <avr/interrupt.h>

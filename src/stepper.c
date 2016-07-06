@@ -30,7 +30,7 @@
 #include "stepper.h"
 
 #include "config.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "plan/exec.h"
 #include "plan/command.h"
 #include "motor.h"

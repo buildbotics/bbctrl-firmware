@@ -44,7 +44,7 @@
 
 /* Machine state model
  *
- * The following main variables track canonical machine state and state
+ * The following main variables track machine state and state
  * transitions.
  *        - cm.machine_state    - overall state of machine and program execution
  *        - cm.cycle_state    - what cycle the machine is executing (or none)
@@ -204,12 +204,12 @@ typedef enum {   // Used for detecting gcode errors. See NIST section 3.4
 // Note 1: Our G0 omits G4,G30,G53,G92.1,G92.2,G92.3 as these have no axis
 // components to error check
 
-typedef enum { // canonical plane - translates to:
+typedef enum { // plane - translates to:
   //                          axis_0    axis_1    axis_2
-  CANON_PLANE_XY,     // G17    X          Y          Z
-  CANON_PLANE_XZ,     // G18    X          Z          Y
-  CANON_PLANE_YZ      // G19    Y          Z          X
-} cmCanonicalPlane_t;
+  PLANE_XY,     // G17    X          Y          Z
+  PLANE_XZ,     // G18    X          Z          Y
+  PLANE_YZ      // G19    Y          Z          X
+} cmPlane_t;
 
 
 typedef enum {
@@ -306,8 +306,8 @@ typedef enum {
  * - gm is the core Gcode model state. It keeps the internal gcode
  *     state model in normalized, canonical form. All values are unit
  *     converted (to mm) and in the machine coordinate system
- *     (absolute coordinate system). Gm is owned by the canonical
- *     machine layer and should be accessed only through cm_ routines.
+ *     (absolute coordinate system). Gm is owned by the machine layer and
+ *     should be accessed only through cm_ routines.
  *
  * - gn is used by the gcode interpreter and is re-initialized for
  *     each gcode block.It accepts data in the new gcode block in the
@@ -317,7 +317,7 @@ typedef enum {
  *
  * - gf is used by the gcode parser interpreter to hold flags for any
  *     data that has changed in gn during the parse. cm.gf.target[]
- *     values are also used by the canonical machine during
+ *     values are also used by the machine during
  *     set_target().
  */
 
@@ -350,7 +350,7 @@ typedef struct GCodeState {
   bool spindle_override_enable;       // true = override enabled
 
   cmMotionMode_t motion_mode;         // Group 1 modal motion
-  cmCanonicalPlane_t select_plane;    // G17, G18, G19
+  cmPlane_t select_plane;    // G17, G18, G19
   cmUnitsMode_t units_mode;           // G20, G21
   cmCoordSystem_t coord_system;       // G54-G59 - select coordinate system 1-9
   bool absolute_override;             // G53 true = move in machine coordinates
@@ -434,7 +434,7 @@ typedef struct cmSingleton {          // struct to manage cm globals and cycles
 } cmSingleton_t;
 
 
-extern cmSingleton_t cm;               // canonical machine controller singleton
+extern cmSingleton_t cm;               // machine controller singleton
 
 
 // Model state getters and setters
@@ -448,7 +448,7 @@ cmHomingState_t cm_get_homing_state();
 cmMotionMode_t cm_get_motion_mode();
 cmCoordSystem_t cm_get_coord_system();
 cmUnitsMode_t cm_get_units_mode();
-cmCanonicalPlane_t cm_get_select_plane();
+cmPlane_t cm_get_select_plane();
 cmPathControlMode_t cm_get_path_control();
 cmDistanceMode_t cm_get_distance_mode();
 cmFeedRateMode_t cm_get_feed_rate_mode();
@@ -484,10 +484,10 @@ stat_t cm_deferred_write_callback();
 void cm_set_model_target(float target[], float flag[]);
 stat_t cm_test_soft_limits(float target[]);
 
-// Canonical machining functions defined by NIST [organized by NIST Gcode doc]
+// machining functions defined by NIST [organized by NIST Gcode doc]
 
 // Initialization and termination (4.3.2)
-void canonical_machine_init();
+void machine_init();
 /// enter alarm state. returns same status code
 stat_t cm_alarm(const char *location, stat_t status);
 stat_t cm_clear();
@@ -495,7 +495,7 @@ stat_t cm_clear();
 #define CM_ALARM(CODE) cm_alarm(STATUS_LOCATION, CODE)
 
 // Representation (4.3.3)
-void cm_set_plane(cmCanonicalPlane_t plane);
+void cm_set_plane(cmPlane_t plane);
 void cm_set_units_mode(cmUnitsMode_t mode);
 void cm_set_distance_mode(cmDistanceMode_t mode);
 void cm_set_coord_offsets(cmCoordSystem_t coord_system, float offset[],
@@ -554,7 +554,7 @@ void cm_request_feedhold();
 void cm_request_queue_flush();
 void cm_request_cycle_start();
 
-void cm_feedhold_sequencing_callback();
+void cm_feedhold_callback();
 stat_t cm_queue_flush();
 
 void cm_cycle_start();

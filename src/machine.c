@@ -28,9 +28,9 @@
 \******************************************************************************/
 
 /* This code is a loose implementation of Kramer, Proctor and Messina's
- * canonical machining functions as described in the NIST RS274/NGC v3
+ * machining functions as described in the NIST RS274/NGC v3
  *
- * The canonical machine is the layer between the Gcode parser and
+ * The machine is the layer between the Gcode parser and
  * the motion control code for a specific robot. It keeps state and
  * executes commands - passing the stateless commands to the motion
  * planning layer.
@@ -66,7 +66,7 @@
  *   executed locally and have no buffer.
  */
 
-#include "canonical_machine.h"
+#include "machine.h"
 
 #include "config.h"
 #include "stepper.h"
@@ -200,7 +200,7 @@ static void _exec_flood_coolant_control(float *value, float *flag);
 static void _exec_absolute_origin(float *value, float *flag);
 static void _exec_program_finalize(float *value, float *flag);
 
-// Canonical Machine State functions
+// Machine State functions
 
 /// Combines raw states into something a user might want to see
 cmCombinedState_t cm_get_combined_state() {
@@ -227,7 +227,7 @@ cmHomingState_t cm_get_homing_state() {return cm.homing_state;}
 cmMotionMode_t cm_get_motion_mode() {return cm.gm.motion_mode;}
 cmCoordSystem_t cm_get_coord_system() {return cm.gm.coord_system;}
 cmUnitsMode_t cm_get_units_mode() {return cm.gm.units_mode;}
-cmCanonicalPlane_t cm_get_select_plane() {return cm.gm.select_plane;}
+cmPlane_t cm_get_select_plane() {return cm.gm.select_plane;}
 cmPathControlMode_t cm_get_path_control() {return cm.gm.path_control;}
 cmDistanceMode_t cm_get_distance_mode() {return cm.gm.distance_mode;}
 cmFeedRateMode_t cm_get_feed_rate_mode() {return cm.gm.feed_rate_mode;}
@@ -302,7 +302,7 @@ void cm_set_axis_jerk(uint8_t axis, float jerk) {
 /*
  * Notes on Coordinate System and Offset functions
  *
- * All positional information in the canonical machine is kept as
+ * All positional information in the machine is kept as
  * absolute coords and in canonical units (mm). The offsets are only
  * used to translate in and out of canonical form during
  * interpretation and response.
@@ -320,7 +320,7 @@ void cm_set_axis_jerk(uint8_t axis, float jerk) {
  * supposed to be persistent.
  *
  * To reduce complexity and data load the following is done:
- *    - Full data for coordinates/offsets is only accessible by the canonical
+ *    - Full data for coordinates/offsets is only accessible by the
  *      machine, not the downstream
  *    - Resolved set of coord and G92 offsets, with per-move exceptions can
  *      be captured as "work_offsets"
@@ -388,7 +388,7 @@ float cm_get_work_position(uint8_t axis) {
 
 /* Critical helpers
  *
- * Core functions supporting the canonical machining functions
+ * Core functions supporting the machining functions
  * These functions are not part of the NIST defined functions
  */
 
@@ -396,7 +396,7 @@ float cm_get_work_position(uint8_t axis) {
  *
  * These routines set the point position in the gcode model.
  *
- * Note: As far as the canonical machine is concerned the final
+ * Note: As far as the machine is concerned the final
  * position of a Gcode block (move) is achieved as soon as the move is
  * planned and the move target becomes the new model position.  In
  * reality the planner will (in all likelihood) have only just queued
@@ -454,7 +454,7 @@ void cm_finalize_move() {
  * nominally a steady rate which may be set by the user. In the
  * Interpreter, the interpretation of the feed rate is as follows
  * unless inverse time feed rate mode is being used in the
- * RS274/NGC view (see Section 3.5.19). The canonical machining
+ * RS274/NGC view (see Section 3.5.19). The machining
  * functions view of feed rate, as described in Section 4.3.5.1,
  * has conditions under which the set feed rate is applied
  * differently, but none of these is used in the Interpreter.
@@ -625,7 +625,7 @@ stat_t cm_test_soft_limits(float target[]) {
 }
 
 
-/* Canonical machining functions
+/* machining functions
  *    Values are passed in pre-unit_converted state (from gn structure)
  *    All operations occur on gm (current model state)
  *
@@ -635,7 +635,7 @@ stat_t cm_test_soft_limits(float target[]) {
 
 // Initialization and Termination (4.3.2)
 
-void canonical_machine_init() {
+void machine_init() {
   // Init 1/jerk
   for (uint8_t axis = 0; axis < AXES; axis++)
     cm.a[axis].recip_jerk = 1 / (cm.a[axis].jerk_max * JERK_MULTIPLIER);
@@ -678,7 +678,7 @@ stat_t cm_clear() {
 // These functions assume input validation occurred upstream.
 
 /// G17, G18, G19 select axis plane
-void cm_set_plane(cmCanonicalPlane_t plane) {cm.gm.select_plane = plane;}
+void cm_set_plane(cmPlane_t plane) {cm.gm.select_plane = plane;}
 
 
 /// G20, G21
@@ -1137,7 +1137,7 @@ void cm_request_cycle_start() {cm.cycle_start_requested = true;}
 
 
 /// Process feedholds, cycle starts & queue flushes
-void cm_feedhold_sequencing_callback() {
+void cm_feedhold_callback() {
   if (cm.feedhold_requested) {
     if (cm.motion_state == MOTION_RUN && cm.hold_state == FEEDHOLD_OFF) {
       cm_set_motion_state(MOTION_HOLD);
@@ -1167,6 +1167,8 @@ void cm_feedhold_sequencing_callback() {
     cm_cycle_start();
     mp_end_hold();
   }
+
+  mp_plan_hold_callback();
 }
 
 
@@ -1193,7 +1195,7 @@ stat_t cm_queue_flush() {
  * The END behaviors are defined by NIST 3.6.1 are:
  *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set
  *       to the default (like G54)
- *    2. Selected plane is set to CANON_PLANE_XY (like G17)
+ *    2. Selected plane is set to PLANE_XY (like G17)
  *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
  *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
  *    5. Feed and speed overrides are set to ON (like M48)

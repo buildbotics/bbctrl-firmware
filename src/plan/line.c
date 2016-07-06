@@ -33,7 +33,7 @@
 #include "exec.h"
 #include "buffer.h"
 #include "zoid.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "stepper.h"
 #include "util.h"
 #include "report.h"

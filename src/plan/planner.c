@@ -29,7 +29,7 @@
 
 /* Planner Notes
  *
- * The planner works below the canonical machine and above the
+ * The planner works below the machine and above the
  * motor mapping and stepper execution layers. A rudimentary
  * multitasking capability is implemented for long-running commands
  * such as lines, arcs, and dwells.  These functions are coded as
@@ -44,10 +44,10 @@
  * mm), and runtime model (mr).  These are designated as "model",
  * "planner" and "runtime" in function names.
  *
- * The Gcode model is owned by the canonical machine and should
+ * The Gcode model is owned by the machine and should
  * only be accessed by cm_xxxx() functions. Data from the Gcode
  * model is transferred to the planner by the mp_xxx() functions
- * called by the canonical machine.
+ * called by the machine.
  *
  * The planner should only use data in the planner model. When a
  * move (block) is ready for execution the planner data is
@@ -61,7 +61,7 @@
 
 #include "buffer.h"
 #include "arc.h"
-#include "canonical_machine.h"
+#include "machine.h"
 #include "stepper.h"
 #include "motor.h"
 

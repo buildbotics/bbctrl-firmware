@@ -27,7 +27,7 @@
 \******************************************************************************/
 
 /* This module actually contains some parts that belong ion the
- * canonical machine, and other parts that belong at the motion planner
+ * machine, and other parts that belong at the motion planner
  * level, but the whole thing is treated as if it were part of the
  * motion planner.
  */
@@ -282,7 +282,7 @@ static stat_t _compute_arc() {
 
   // g18_correction is used to invert G18 XZ plane arcs for proper CW
   // orientation
-  float g18_correction = (cm.gm.select_plane == CANON_PLANE_XZ) ? -1 : 1;
+  float g18_correction = (cm.gm.select_plane == PLANE_XZ) ? -1 : 1;
 
   if (arc.full_circle) {
     // angular travel always starts as zero for full circles
@@ -356,7 +356,7 @@ static stat_t _compute_arc() {
 }
 
 
-/* Canonical machine entry point for arc
+/* machine entry point for arc
  *
  * Generates an arc by queuing line segments to the move buffer. The arc is
  * approximated by generating a large number of tiny, linear arc_segments.
@@ -390,7 +390,7 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
   // specification Plane axis 0 and 1 are the arc plane, the linear axis is
   // normal to the arc plane.
   // G17 - the vast majority of arcs are in the G17 (XY) plane
-  if (cm.gm.select_plane == CANON_PLANE_XY) {
+  if (cm.gm.select_plane == PLANE_XY) {
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Y;
     arc.linear_axis  = AXIS_Z;
@@ -405,7 +405,7 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
       // but error if k is present
       return STAT_ARC_SPECIFICATION_ERROR;
 
-  } else if (cm.gm.select_plane == CANON_PLANE_XZ) { // G18
+  } else if (cm.gm.select_plane == PLANE_XZ) { // G18
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_Y;
@@ -415,7 +415,7 @@ stat_t cm_arc_feed(float target[], float flags[], // arc endpoints
         return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
     } else if (offset_j) return STAT_ARC_SPECIFICATION_ERROR;
 
-  } else if (cm.gm.select_plane == CANON_PLANE_YZ) { // G19
+  } else if (cm.gm.select_plane == PLANE_YZ) { // G19
     arc.plane_axis_0 = AXIS_Y;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_X;
