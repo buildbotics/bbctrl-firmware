@@ -175,10 +175,10 @@ def configure(conf, cstd = 'c99'):
         else: compiler_mode = 'unknown'
 
     if compiler == 'default':
-        cc = env['CC']
-        if cc == 'cl': compiler = 'msvc'
-        elif cc == 'gcc': compiler = 'gnu'
-        elif cc == 'icl' or cc == 'icc': compiler = 'intel'
+        _cc = env['CC']
+        if _cc == 'cl': compiler = 'msvc'
+        elif _cc == 'gcc': compiler = 'gnu'
+        elif _cc == 'icl' or _cc == 'icc': compiler = 'intel'
 
     if cc: env.Replace(CC = cc)
     if cxx: env.Replace(CXX = cxx)
