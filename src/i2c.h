@@ -3,6 +3,7 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2010 - 2013 Alden S. Hart Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -25,16 +26,18 @@
 
 \******************************************************************************/
 
-//  Name        Min, Max args, Help
-CMD(help,         0, 1, "Print this help screen")
-CMD(reboot,       0, 0, "Reboot the controller")
-CMD(bootloader,   0, 0, "Load bootloader")
-CMD(save,         0, 0, "Save settings")
-CMD(valid,        0, 0, "Print 'true' if saved settings are valid")
-CMD(restore,      0, 0, "Restore settings")
-CMD(clear,        0, 0, "Clear saved settings")
-CMD(jog,          1, 4, "Jog")
-CMD(mreset,       0, 1, "Reset motor")
-CMD(calibrate,    0, 0, "Calibrate motors")
-CMD(messages,     0, 0, "Dump all possible status messages")
-CMD(sync,         1, 1, "Synchronize with queue processing")
+#pragma once
+
+#include <stdint.h>
+
+
+#define I2C_DEV TWIC
+#define I2C_ISR TWIC_TWIS_vect
+#define I2C_ADDR 0x2b
+#define I2C_MAX_DATA 8
+
+
+typedef void (*spi_cb_t)(uint8_t *data, uint8_t length);
+
+void i2c_init();
+void i2c_set_callback(spi_cb_t cb);

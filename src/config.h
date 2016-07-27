@@ -55,8 +55,8 @@ enum {
   SPIN_ENABLE_PIN,
   BOOT_PIN,
 
-  READY_PIN = PORT_C << 3,
-  PROBE_PIN,
+  SDA_PIN = PORT_C << 3,
+  SCL_PIN,
   SERIAL_RX_PIN,
   SERIAL_TX_PIN,
   SERIAL_CTS_PIN,
@@ -103,7 +103,7 @@ enum {
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
 #define COORDS                   6 // number of supported coordinate systems
-#define SWITCHES                10 // number of supported limit switches
+#define SWITCHES                 9 // number of supported limit switches
 #define PWMS                     2 // number of supported PWM channels
 
 

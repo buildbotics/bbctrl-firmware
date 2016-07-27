@@ -47,6 +47,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 
 // Command forward declarations
@@ -284,5 +285,14 @@ uint8_t command_clear(int argc, char *argv[]) {
 
 uint8_t command_messages(int argc, char *argv[]) {
   status_help();
+  return 0;
+}
+
+
+uint8_t command_sync(int argc, char *argv[]) {
+  char *end = 0;
+  uint32_t x = strtoul(argv[1], &end, 0);
+
+  if (end) printf_P(PSTR("\n{\"sync\": %lu}\n"), x);
   return 0;
 }

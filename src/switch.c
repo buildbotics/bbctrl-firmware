@@ -83,7 +83,7 @@ static switch_t switches[SWITCHES] = {
   {.pin = MIN_A_PIN, .type = SW_NORMALLY_OPEN},
   {.pin = MAX_A_PIN, .type = SW_NORMALLY_OPEN},
   {.pin = ESTOP_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = PROBE_PIN, .type = SW_NORMALLY_OPEN},
+  //  {.pin = PROBE_PIN, .type = SW_NORMALLY_OPEN},
 };
 
 

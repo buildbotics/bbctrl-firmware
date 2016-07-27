@@ -41,12 +41,12 @@
 #include "estop.h"
 #include "probing.h"
 #include "homing.h"
+#include "i2c.h"
 
 #include "plan/planner.h"
 #include "plan/arc.h"
 #include "plan/feedhold.h"
 
-#include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <avr/wdt.h>
 
@@ -57,33 +57,36 @@
 int main() {
   //wdt_enable(WDTO_250MS);
 
-  cli(); // disable interrupts
+  // Init
+  cli();                          // disable interrupts
 
   hardware_init();                // hardware setup - must be first
   usart_init();                   // serial port
+  i2c_init();                     // i2c port
   tmc2660_init();                 // motor drivers
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
   planner_init();                 // motion planning
-  machine_init();       // gcode machine
+  machine_init();                 // gcode machine
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
 
-  sei(); // enable interrupts
+  sei();                          // enable interrupts
 
-  fprintf_P(stderr, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
+  // Splash
+  fprintf_P(stdout, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
                          "\"version\": \"" VERSION "\"}\n"));
 
-  // main loop
+  // Main loop
   while (true) {
-    hw_reset_handler();                        // handle hard reset requests
-    mach_feedhold_callback();                    // feedhold state machine
-    mach_arc_callback();                         // arc generation runs
-    mach_homing_callback();                      // G28.2 continuation
-    mach_probe_callback();                       // G38.2 continuation
-    command_callback();                        // process next command
-    report_callback();                         // report changes
+    hw_reset_handler();           // handle hard reset requests
+    mach_feedhold_callback();     // feedhold state machine
+    mach_arc_callback();          // arc generation runs
+    mach_homing_callback();       // G28.2 continuation
+    mach_probe_callback();        // G38.2 continuation
+    command_callback();           // process next command
+    report_callback();            // report changes
     wdt_reset();
   }
 
