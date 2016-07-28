@@ -24,7 +24,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include "event2/event-config.h"
 #include "evconfig-private.h"
+
+#ifdef EVENT__HAVE_EPOLL
+
 #include <stdint.h>
 
 #include <sys/param.h>
@@ -64,3 +68,5 @@ epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 	return (syscall(__NR_epoll_wait, epfd, events, maxevents, timeout));
 #endif
 }
+
+#endif /* EVENT__HAVE_EPOLL */
