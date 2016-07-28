@@ -50,6 +50,10 @@
 #include <errno.h>
 #endif // _WIN32
 
+#ifdef __APPLE__
+#include <uuid/uuid.h>
+#endif
+
 using namespace std;
 using namespace cb;
 
@@ -60,6 +64,9 @@ namespace cb {
     HANDLE sem;
 #else // _WIN32
     sem_t *sem;
+#ifdef __APPLE__
+    char name2[39];
+#endif
 #endif // _WIN32
   };
 }
@@ -78,12 +85,26 @@ Semaphore::Semaphore(const string &name, unsigned count, unsigned mode) :
 #else // _WIN32
   if (isNamed()) {
     p->sem = sem_open(name.c_str(), O_CREAT, (mode_t)mode, count);
-    if (!p->sem) THROWS("Failed to create Semaphore: " << SysError());
+    if (p->sem == SEM_FAILED)
+      THROWS("Failed to create Semaphore: " << SysError());
 
   } else {
+#ifdef __APPLE__
+    // unnamed semaphores are deprecated and unimplemented on osx
+    uuid_t uuid;
+    uuid_generate(uuid);
+    p->name2[0] = '/';
+    p->name2[1] = 's';
+    uuid_unparse_lower(uuid, &(p->name2[2]));
+    p->sem = sem_open(p->name2, O_CREAT, (mode_t)mode, count);
+    if (p->sem == SEM_FAILED)
+      THROWS("Failed to create Semaphore: " << SysError());
+
+#else
     p->sem = new sem_t;
     if (sem_init(p->sem, 0, count))
       THROWS("Failed to initialize Semaphore: " << SysError());
+#endif // __APPLE__
   }
 #endif // _WIN32
 }
@@ -94,6 +115,13 @@ Semaphore::~Semaphore() {
   if (p->sem) CloseHandle(p->sem);
 
 #else // _WIN32
+#ifdef __APPLE__
+  if (p->sem) {
+    sem_close(p->sem);
+    if (!isNamed())
+      sem_unlink(p->name2);
+  }
+#else // __APPLE__
   if (isNamed()) {
     if (p->sem) sem_close(p->sem);
 
@@ -101,6 +129,7 @@ Semaphore::~Semaphore() {
     sem_destroy(p->sem);
     zap(p->sem);
   }
+#endif // __APPLE__
 #endif // _WIN32
 
   zap(p);
