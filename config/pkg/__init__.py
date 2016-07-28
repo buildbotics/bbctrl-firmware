@@ -4,6 +4,26 @@ import os
 import shutil
 
 from SCons.Script import *
+from SCons.Action import CommandAction
+
+
+def RunCommandOrRaise(env, cmd):
+    print '@', cmd
+    ret = CommandAction(cmd).execute(None, [], env)
+    if ret: raise Exception, 'command failed, return code %s' % str(ret)
+
+
+def InstallApps(env, key, target):
+    # copy apps, preserving symlinks, no ignores
+    for src in env.get(key):
+        if isinstance(src, (list, tuple)) and len(src) in (2, 3):
+            src_path = src[0]
+            dst_path = os.path.join(target, src[1])
+        else:
+            src_path = src
+            dst_path = os.path.join(target, os.path.basename(src))
+
+        shutil.copytree(src_path, dst_path, True)
 
 
 def build_function(target, source, env):
@@ -19,7 +39,7 @@ def build_function(target, source, env):
     if 'pkg_apps' in env:
         d = os.path.join(root_dir, 'Applications')
         os.makedirs(d, 0775)
-        env.InstallFiles('pkg_apps', d, None)
+        InstallApps(env, 'pkg_apps', d)
 
     # Other files
     if 'pkg_files' in env:
@@ -40,7 +60,7 @@ def build_function(target, source, env):
     if 'pkg_plist' in env: cmd += ['--component-plist', env.get('pkg_plist')]
     cmd += [build_dir + '/%s.pkg' % env.get('package_name')]
 
-    env.RunCommand(cmd)
+    RunCommandOrRaise(env, cmd)
 
     # Filter distribution.xml
     dist = None
@@ -74,7 +94,7 @@ def build_function(target, source, env):
             cmd += ['--keychain', env.get('sign_keychain')]
     cmd += [str(target[0])]
 
-    env.RunCommand(cmd)
+    RunCommandOrRaise(env, cmd)
 
 
 def generate(env):
