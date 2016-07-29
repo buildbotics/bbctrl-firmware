@@ -52,8 +52,8 @@ namespace cb {
 
   public:
     enum {
-      NONBLOCKING = 1,
-      PEEK,
+      NONBLOCKING = 1 << 0,
+      PEEK        = 1 << 1,
     };
 
     Socket();

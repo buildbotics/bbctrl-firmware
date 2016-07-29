@@ -56,6 +56,7 @@ void Connection::run() {
     // NOTE Works around socket write not blocking when buffers are full.
     socket->setSendBuffer(0);
 #endif
+    socket->setBlocking(true);
     socket->setSendTimeout(5);
     socket->setReceiveTimeout(0.001);
     socket->setKeepAlive(true);
