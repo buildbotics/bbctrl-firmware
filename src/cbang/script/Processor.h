@@ -35,7 +35,11 @@
 
 #include "Environment.h"
 
+
 namespace cb {
+  class Socket;
+
+
   namespace Script {
     class Processor : public Environment {
     protected:
@@ -44,7 +48,7 @@ namespace cb {
     public:
       Processor(const std::string &name = "");
 
-      void run(Handler &handler, std::istream &in, std::ostream &out);
+      void run(Handler &handler, Socket &socket);
 
       virtual void update(const Context &ctx) {}
 

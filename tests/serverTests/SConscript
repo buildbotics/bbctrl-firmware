@@ -7,7 +7,6 @@ env.Append(CPPPATH = ['#'])
 info = env.BuildInfo('build_info.cpp', [])
 AlwaysBuild(info)
 
-prog1 = env.Program('interp', 'interp.cpp');
-prog2 = env.Program('server', ['server.cpp', info]);
+prog = env.Program('server', ['server.cpp', info]);
 
-Return('prog1 prog2')
+Return('prog')

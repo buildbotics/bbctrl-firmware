@@ -34,7 +34,6 @@
 
 #include "Server.h"
 
-#include <cbang/socket/SocketDevice.h>
 #include <cbang/log/Logger.h>
 
 #include <boost/iostreams/filtering_stream.hpp>
@@ -54,15 +53,10 @@ void Connection::run() {
   try {
 #ifdef _WIN32
     // NOTE Works around socket write not blocking when buffers are full.
-    socket->setSendBuffer(0);
+    //socket->setSendBuffer(0);
 #endif
-    socket->setBlocking(true);
-    socket->setSendTimeout(30);
-    socket->setReceiveTimeout(0.25);
-    socket->setKeepAlive(true);
-    SocketStream stream(*socket, true);
 
-    Processor::run(*server, stream, stream);
+    Processor::run(*server, *socket);
 
   } catch (const Exception &e) {
     LOG_ERROR(e);

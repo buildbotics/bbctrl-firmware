@@ -39,6 +39,8 @@
 #include <cbang/String.h>
 #include <cbang/time/Timer.h>
 #include <cbang/log/Logger.h>
+#include <cbang/socket/Socket.h>
+#include <cbang/socket/SocketDevice.h>
 
 #include <istream>
 #include <ctype.h>
@@ -58,45 +60,70 @@ Processor::Processor(const string &name) : Environment(name) {
 }
 
 
-void Processor::run(Handler &handler, istream &in, ostream &out) {
+void Processor::run(Handler &handler, Socket &socket) {
   parent = &handler;
 
-  Timer timer;
+  socket.setBlocking(true);
+  socket.setSendTimeout(30);
+  socket.setReceiveTimeout(0.25);
+  socket.setKeepAlive(true);
+
+  SocketStream out(socket);
   Context ctx(*this, out);
+
+  const unsigned size = 4096;
+  unsigned fill = 0;
+  char buffer[size];
 
   Handler::eval(ctx, "$(eval $greeting $prompt)");
   out << flush;
 
   quit = false;
-  while (!quit && !in.fail() && !out.fail()) {
+  while (!quit && !out.fail() && socket.isOpen()) {
     update(Context(*this, out));
 
-    char line[4096];
-    in.getline(line, 4096);
+    // Read
+    streamsize bytes = socket.read(buffer + fill, size - fill);
+    if (!bytes) continue;
+    fill += bytes;
 
-    if (!in.gcount()) {
-      if (!in.bad()) in.clear();
-      timer.throttle(0.25);
-      continue;
+    // Parse lines
+    while (fill) {
+      string line;
+      unsigned i;
+
+      for (i = 0; i < fill; i++)
+        if (buffer[i] == '\n' || buffer[i] == '\r') {
+          line = string(buffer, i);
+
+          // Remove line
+          i++;
+          fill -= i;
+          memmove(buffer, buffer + i, fill);
+          break;
+        }
+      if (i == fill && line.empty()) break;
+      if (line.empty()) continue;
+
+      // Process line
+      try {
+        Arguments args;
+        Arguments::parse(args, line);
+        if (!args.size()) continue;
+
+        bool handled = eval(Context(*this, out, args));
+        if (!handled)
+          out << "ERROR: unknown command or variable '" << args[0] << "'\n";
+
+      } catch (const Exception &e) {
+        out << "ERROR: " << e << '\n';
+      }
+
+      if (quit) break;
+
+      Handler::eval(ctx, "$(eval $prompt)");
+      out << flush;
     }
-
-    try {
-      Arguments args;
-      Arguments::parse(args, line);
-      if (!args.size()) continue;
-
-      bool handled = eval(Context(*this, out, args));
-      if (!handled)
-        out << "ERROR: unknown command or variable '" << args[0] << "'\n";
-
-    } catch (const Exception &e) {
-      out << "ERROR: " << e << '\n';
-    }
-
-    if (quit) break;
-
-    Handler::eval(ctx, "$(eval $prompt)");
-    out << flush;
   }
 
   parent = 0;
