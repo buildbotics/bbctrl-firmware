@@ -57,8 +57,8 @@ void Connection::run() {
     socket->setSendBuffer(0);
 #endif
     socket->setBlocking(true);
-    socket->setSendTimeout(5);
-    socket->setReceiveTimeout(0.001);
+    socket->setSendTimeout(30);
+    socket->setReceiveTimeout(0.25);
     socket->setKeepAlive(true);
     SocketStream stream(*socket, true);
 

@@ -88,6 +88,8 @@ namespace cb {
 
 
     std::streamsize lineBufferedRead(char *s, std::streamsize n) {
+      if (!n) return 0;
+
       // Try to read some if necessary
       std::streamsize fill = buffer.size();
       if (fill < n) {
@@ -106,16 +108,18 @@ namespace cb {
       }
 
       // Do we have any thing?
-      if (buffer.empty()) return 0;
+      if (!buffer.empty()) {
+        // Find last EOL
+        for (std::streamsize i = buffer.size(); i; i--)
+          if (buffer[i - 1] == '\n') return extract(s, i);
 
-      // Find last EOL
-      for (std::streamsize i = buffer.size(); i; i--)
-        if (buffer[i - 1] == '\n') return extract(s, i);
+        // Return buffer with out EOL if requested size is less than buffer
+        if (n < (std::streamsize)buffer.size()) return extract(s, n);
+      }
 
-      // Return buffer with out EOL if requested size is less than buffer
-      if (n < (std::streamsize)buffer.size()) return extract(s, n);
-
-      return 0; // Nothing to return yet
+      // Return a new line to keep std::stream happy
+      *s = '\n';
+      return 1;
     }
 
 
