@@ -84,6 +84,7 @@ void Processor::run(Handler &handler, Socket &socket) {
 
     // Read
     streamsize bytes = socket.read(buffer + fill, size - fill);
+    if (bytes < 0) return;
     if (!bytes) continue;
     fill += bytes;
 
@@ -103,7 +104,6 @@ void Processor::run(Handler &handler, Socket &socket) {
           break;
         }
       if (i == fill && line.empty()) break;
-      if (line.empty()) continue;
 
       // Process line
       try {

@@ -42,42 +42,19 @@
 #include <boost/iostreams/positioning.hpp>  // stream_offset
 #include <boost/iostreams/stream.hpp>
 
-#include <vector>
-
-#include <string.h>
-
 
 namespace cb {
   class SocketDevice {
     Socket &socket;
 
-    bool lineBuffered;
-    std::vector<char> buffer;
-
   public:
     typedef char char_type;
     typedef boost::iostreams::bidirectional_device_tag category;
 
-    SocketDevice(Socket &socket, bool lineBuffered = false) :
-      socket(socket), lineBuffered(lineBuffered) {}
+    SocketDevice(Socket &socket) : socket(socket) {}
 
 
-    std::streamsize read(char *s, std::streamsize n) {
-      if (lineBuffered) return lineBufferedRead(s, n);
-      return unbufferedRead(s, n);
-    }
-
-
-    std::streamsize write(const char *s, std::streamsize n) try {
-      return (std::streamsize)socket.write(s, n);
-    } catch (const Exception &e) {
-      CBANG_LOG_DEBUG(5, "SocketDevice::write(): " << e);
-      throw BOOST_IOSTREAMS_FAILURE(e.getMessage());
-    }
-
-
-  protected:
-    std::streamsize unbufferedRead(char *s, std::streamsize n) try {
+    std::streamsize read(char *s, std::streamsize n) try {
       return (std::streamsize)socket.read(s, n);
 
     } catch (const Exception &e) {
@@ -87,55 +64,12 @@ namespace cb {
     }
 
 
-    std::streamsize lineBufferedRead(char *s, std::streamsize n) {
-      if (!n) return 0;
+    std::streamsize write(const char *s, std::streamsize n) try {
+      return (std::streamsize)socket.write(s, n);
 
-      // Try to read some if necessary
-      std::streamsize fill = buffer.size();
-      if (fill < n) {
-        buffer.resize(n);
-
-        std::streamsize space = n - fill;
-        std::streamsize bytes = unbufferedRead(&buffer[fill], space);
-
-        // Handle end of stream
-        if (bytes == -1) {
-          if (fill) return extract(s, fill);
-          return -1;
-        }
-
-        if (bytes < space) buffer.resize(fill + bytes);
-      }
-
-      // Do we have any thing?
-      if (!buffer.empty()) {
-        // Find last EOL
-        for (std::streamsize i = buffer.size(); i; i--)
-          if (buffer[i - 1] == '\n') return extract(s, i);
-
-        // Return buffer with out EOL if requested size is less than buffer
-        if (n < (std::streamsize)buffer.size()) return extract(s, n);
-      }
-
-      // Return a new line to keep std::stream happy
-      *s = '\n';
-      return 1;
-    }
-
-
-  protected:
-    std::streamsize extract(char *s, std::streamsize n) {
-      memcpy(s, &buffer[0], n);
-
-      if ((std::streamsize)buffer.size() == n) buffer.resize(0);
-      else {
-        // Move remaining data to the front of the buffer
-        std::streamsize newSize = buffer.size() - n;
-        memmove(&buffer[0], &buffer[n], newSize);
-        buffer.resize(newSize);
-      }
-
-      return n;
+    } catch (const Exception &e) {
+      CBANG_LOG_DEBUG(5, "SocketDevice::write(): " << e);
+      throw BOOST_IOSTREAMS_FAILURE(e.getMessage());
     }
   };
 
