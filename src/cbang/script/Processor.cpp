@@ -42,7 +42,7 @@
 #include <cbang/socket/Socket.h>
 #include <cbang/socket/SocketDevice.h>
 
-#include <istream>
+#include <sstream>
 #include <ctype.h>
 #include <string.h>
 
@@ -68,7 +68,7 @@ void Processor::run(Handler &handler, Socket &socket) {
   socket.setReceiveTimeout(0.25);
   socket.setKeepAlive(true);
 
-  SocketStream out(socket);
+  ostringstream out;
   Context ctx(*this, out);
 
   const unsigned size = 4096;
@@ -76,11 +76,25 @@ void Processor::run(Handler &handler, Socket &socket) {
   char buffer[size];
 
   Handler::eval(ctx, "$(eval $greeting $prompt)");
-  out << flush;
 
   quit = false;
   while (!quit && !out.fail() && socket.isOpen()) {
     update(Context(*this, out));
+
+    // Write
+    out << flush;
+    string s = out.str();
+    unsigned length = s.length();
+    const char *data = s.c_str();
+    while (length) {
+      streamsize bytes = socket.write(data, length);
+      if (bytes < 0) return;
+
+      length -= bytes;
+      data += bytes;
+    }
+    out.str(string());
+    out.clear();
 
     // Read
     streamsize bytes = socket.read(buffer + fill, size - fill);
@@ -98,7 +112,7 @@ void Processor::run(Handler &handler, Socket &socket) {
           line = string(buffer, i);
 
           // Remove line
-          i++;
+          while (i < fill && (buffer[i] == '\n' || buffer[i] == '\r')) i++;
           fill -= i;
           memmove(buffer, buffer + i, fill);
           break;
@@ -111,6 +125,7 @@ void Processor::run(Handler &handler, Socket &socket) {
         Arguments::parse(args, line);
         if (!args.size()) continue;
 
+        out << '\n';
         bool handled = eval(Context(*this, out, args));
         if (!handled)
           out << "ERROR: unknown command or variable '" << args[0] << "'\n";
@@ -122,7 +137,6 @@ void Processor::run(Handler &handler, Socket &socket) {
       if (quit) break;
 
       Handler::eval(ctx, "$(eval $prompt)");
-      out << flush;
     }
   }
 
