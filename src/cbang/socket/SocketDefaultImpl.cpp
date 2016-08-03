@@ -310,8 +310,7 @@ streamsize SocketDefaultImpl::write(const char *data, streamsize length,
 #ifdef _WIN32
     // NOTE: send() can return -1 even when there is no error
     if (!err || err == WSAEWOULDBLOCK || err == WSAENOBUFS) return 0;
-#endif
-#ifdef EAGAIN
+#else
     if (err == EAGAIN) return 0;
 #endif
 
@@ -343,17 +342,10 @@ streamsize SocketDefaultImpl::read(char *data, streamsize length,
   if (ret < 0) {
 #ifdef _WIN32
     // NOTE: Windows can return -1 even when there is no error
-    if (!err || err == WSAEWOULDBLOCK) return 0;
-#endif
-
-#ifdef ECONNRESET
+    if (!err || err == WSAEWOULDBLOCK || err == WSAETIMEDOUT) return 0;
+#else
     if (err == ECONNRESET) return -1;
-#endif
-#ifdef EAGAIN
-    if (err == EAGAIN) return 0;
-#endif
-#ifdef EWOULDBLOCK
-    if (err == EWOULDBLOCK) return 0;
+    if (err == EAGAIN || err == EWOULDBLOCK) return 0;
 #endif
 
     THROWS("Receive error: " << err << ": " << SysError(err));
