@@ -51,10 +51,17 @@ namespace cb {
     Socket &operator=(const Socket &o) {return *this;}
 
   public:
+    class EndOfStream : public Exception {
+    public:
+      EndOfStream() : Exception("End of stream") {}
+    };
+
+
     enum {
       NONBLOCKING = 1 << 0,
       PEEK        = 1 << 1,
     };
+
 
     Socket();
     Socket(const SmartPointer<SSLContext> &sslCtx);

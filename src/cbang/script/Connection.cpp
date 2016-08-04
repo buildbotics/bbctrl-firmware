@@ -58,6 +58,9 @@ void Connection::run() {
 
     Processor::run(*server, *socket);
 
+  } catch (const Socket::EndOfStream &e) {
+    // Do nothing
+
   } catch (const Exception &e) {
     LOG_ERROR(e);
   }

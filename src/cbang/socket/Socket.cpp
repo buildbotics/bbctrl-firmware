@@ -147,9 +147,7 @@ streamsize Socket::read(char *data, streamsize length, unsigned flags) {
 
   LOG_DEBUG(5, "Socket read " << bytes);
 
-  // NOTE SocketDevice expects this exact message
-  if (bytes == -1) THROW("End of stream");
-
+  if (bytes == -1) throw EndOfStream();
   if (bytes) LOG_DEBUG(6, String::hexdump(data, bytes));
 
   return bytes;
