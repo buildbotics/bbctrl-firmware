@@ -51,15 +51,10 @@ bool Connection::isFinished() const {
 
 void Connection::run() {
   try {
-#ifdef _WIN32
-    // NOTE Works around socket write not blocking when buffers are full.
-    //socket->setSendBuffer(0);
-#endif
-
     Processor::run(*server, *socket);
 
   } catch (const Socket::EndOfStream &e) {
-    // Do nothing
+    // Normal exit, do nothing
 
   } catch (const Exception &e) {
     LOG_ERROR(e);

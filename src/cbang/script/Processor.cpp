@@ -78,7 +78,7 @@ void Processor::run(Handler &handler, Socket &socket) {
   Handler::eval(ctx, "$(eval $greeting $prompt)");
 
   quit = false;
-  while (!quit && !out.fail() && socket.isOpen()) {
+  while (!quit && socket.isOpen()) {
     update(Context(*this, out));
 
     // Write
@@ -88,7 +88,7 @@ void Processor::run(Handler &handler, Socket &socket) {
     const char *data = s.c_str();
     while (length) {
       streamsize bytes = socket.write(data, length);
-      if (bytes < 0) return;
+      if (bytes <= 0) return;
 
       length -= bytes;
       data += bytes;
@@ -98,7 +98,7 @@ void Processor::run(Handler &handler, Socket &socket) {
 
     // Read
     streamsize bytes = socket.read(buffer + fill, size - fill);
-    if (bytes < 0) return;
+    if (bytes < 0) return; // Connection closed
     if (!bytes) continue;
     fill += bytes;
 
