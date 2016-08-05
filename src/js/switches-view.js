@@ -8,7 +8,7 @@ module.exports = {
 
   data: function () {
     return {
-      'switches': []
+      switches: {}
     }
   },
 
@@ -31,15 +31,12 @@ module.exports = {
       Vue.nextTick(function () {
         if (this.config.hasOwnProperty('switches'))
           this.switches = this.config.switches;
-        else this.switches = [];
+        else this.switches = {};
 
-        for (var i = 0; i < this.switches.length; i++) {
-          var template = this.template.switches;
-          for (var key in template)
-            if (!this.switches[i].hasOwnProperty(key))
-              this.$set('switches[' + i + ']["' + key + '"]',
-                        template[key].default);
-        }
+        var template = this.template.switches;
+        for (var key in template)
+          if (!this.switches.hasOwnProperty(key))
+            this.$set('switches["' + key + '"]', template[key].default);
       }.bind(this));
     }
   }

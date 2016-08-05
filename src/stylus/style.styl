@@ -97,6 +97,9 @@ body
       h3, .pure-control-group
         display inline-block
 
+@keyframes blink
+  50%
+    fill #ff9d00
 
 .control-view
   table
@@ -106,151 +109,146 @@ body
     td, th
       border 1px solid #ddd
 
+  .axes
+    .axis-x .name
+      color #f00
 
-.axes
-  .axis-x .name
-    color #f00
+    .axis-y .name
+      color #0f0
 
-  .axis-y .name
-    color #0f0
+    .axis-z .name
+      color #00f
 
-  .axis-z .name
-    color #00f
+    .axis-a .name
+      color #f80
 
-  .axis-a .name
-    color #f80
+    .axis-b .name
+      color #0ff
 
-  .axis-b .name
-    color #0ff
+    .axis-c .name
+      color #f0f
 
-  .axis-c .name
-    color #f0f
+    td, th
+      padding 2px
 
-  td, th
-    padding 2px
+    th
+      text-align center
 
-  th
-    text-align center
+    td
+      text-align right
+      font-family Courier
 
-  td
-    text-align right
-    font-family Courier
+    .axis
+      .name
+        text-transform capitalize
 
-  .axis
-    .name
-      text-transform capitalize
+      .name, .position
+        font-size 36pt
+        line-height 36pt
 
-    .name, .position
-      font-size 36pt
-      line-height 36pt
+  .estop
+    display inline-block
+    width 190px
+    transition 250ms
 
-@keyframes blink
-  50%
-    fill #ff9d00
+    &.active .ring
+      animation blink 2s step-start 0s infinite
 
-.estop
-  display inline-block
-  width 190px
-  transition 250ms
+    svg
+      cursor pointer
 
-  &.active .ring
-    animation blink 2s step-start 0s infinite
+      .button:hover
+        filter brightness(120%)
 
-  svg
-    cursor pointer
+  .jog
+    float right
 
-    .button:hover
-      filter brightness(120%)
-
-.jog
-  float right
-
-.jog svg
-  text
-    font-family Sans
-    font-weight bold
-    stroke transparent
-    fill #444
-
-  .button
-    cursor pointer
-    stroke #4c4c4c
-
-    &:hover
-      stroke #e55
-
-    path
-      overflow visible
-
-  .house
-    stroke #444
-    fill #444
-
-  .ring
-    cursor pointer
-    overflow visible
+  .jog svg
+    text
+      font-family Sans
+      font-weight bold
+      stroke transparent
+      fill #444
 
     .button
-      stroke transparent
+      cursor pointer
+      stroke #4c4c4c
 
       &:hover
         stroke #e55
 
-      text
-        font-size 10pt
-        text-anchor middle
+      path
+        overflow visible
 
-.info
-  float right
-  clear right
+    .house
+      stroke #444
+      fill #444
 
-  th, td
-    padding 3px
+    .ring
+      cursor pointer
+      overflow visible
 
-  th
-    text-align right
+      .button
+        stroke transparent
 
-.overrides
-  clear both
+        &:hover
+          stroke #e55
 
-  .override
-    margin 0.5em
-    display inline-block
+        text
+          font-size 10pt
+          text-anchor middle
 
-    .percent
+  .info
+    float right
+    clear right
+
+    th, td
+      padding 3px
+
+    th
+      text-align right
+
+  .overrides
+    clear both
+
+    .override
+      margin 0.5em
       display inline-block
-      width 3em
+
+      .percent
+        display inline-block
+        width 3em
+
+      input
+        border-radius 0
+        margin -0.4em 0.5em
+
+  .mdi
+    clear both
+    white-space nowrap
+    margin 0.5em 0
 
     input
-      border-radius 0
-      margin -0.4em 0.5em
+      width 90%
 
-.mdi
-  clear both
-  white-space nowrap
-  margin 0.5em 0
+  .toolbar
+    clear both
+    margin 0.5em 0
 
-  input
-    width 90%
+    .spacer
+      display inline-block
+      width 1px
+      height 1px
+      margin 0 1em
 
-.toolbar
-  clear both
-  margin 0.5em 0
-
-  .spacer
-    display inline-block
-    width 1px
-    height 1px
-    margin 0 1em
-
-.gcode
-  clear both
-  border 2px inset #ccc
-  border-radius 5px
-  overflow auto
-  width 100%
-  max-width 100%
-  min-width 100%
-  height 200px
-  padding 2px
-  white-space pre
+  .gcode
+    clear both
+    border 2px inset #ccc
+    border-radius 5px
+    overflow auto
+    width 100%
+    max-width 100%
+    min-width 100%
+    height 200px
+    padding 2px
+    white-space pre

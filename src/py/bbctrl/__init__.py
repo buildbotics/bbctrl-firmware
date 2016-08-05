@@ -11,6 +11,7 @@ from pkg_resources import Requirement, resource_filename
 
 from bbctrl.APIHandler import APIHandler
 from bbctrl.FileHandler import FileHandler
+from bbctrl.GCodeStream import GCodeStream
 from bbctrl.Config import Config
 from bbctrl.LCD import LCD
 from bbctrl.AVR import AVR
@@ -44,6 +45,10 @@ def parse_args():
                         help = 'LCD I2C port')
     parser.add_argument('--lcd-addr', default = 0x27, type = int,
                         help = 'LCD I2C address')
+    parser.add_argument('--avr-port', default = 0, type = int,
+                        help = 'AVR I2C port')
+    parser.add_argument('--avr-addr', default = 0x2b, type = int,
+                        help = 'AVR I2C address')
     parser.add_argument('-v', '--verbose', action = 'store_true',
                         help = 'Verbose output')
     parser.add_argument('-l', '--log', metavar = "FILE",

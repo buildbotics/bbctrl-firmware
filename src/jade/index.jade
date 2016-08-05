@@ -73,7 +73,7 @@ html(lang="en")
 
         .content(class="{{currentView}}-view")
           component(:is="currentView + '-view'", :index="index",
-            :config="config", :template="template", keep-alive)
+            :config="config", :template="template", :state="state", keep-alive)
 
     #templates
       include ../../build/templates.jade

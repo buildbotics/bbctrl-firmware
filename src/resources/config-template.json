@@ -54,7 +54,7 @@
         "type": "percent",
         "unit": "%",
         "default": 70,
-        "code": "sg"
+        "code": "th"
       }
     }
   },
@@ -111,19 +111,15 @@
         "code": "tm"
       },
       "min-switch": {
-        "type": "int",
-        "unit": "id",
-        "min": 0,
-        "max": 8,
-        "default": 0,
+        "type": "enum",
+        "values": ["disabled", "normally-open", "normally-closed"],
+        "default": "disabled",
         "code": "sn"
       },
       "max-switch": {
-        "type": "int",
-        "unit": "id",
-        "min": 0,
-        "max": 8,
-        "default": 0,
+        "type": "enum",
+        "values": ["disabled", "normally-open", "normally-closed"],
+        "default": "disabled",
         "code": "sx"
       }
     },
@@ -216,11 +212,17 @@
   },
 
   "switches": {
-    "type": {
+    "estop": {
       "type": "enum",
-      "values": ["normally-open", "normally-closed"],
-      "default": "normally-closed",
-      "code": "sw"
+      "values": ["disabled", "normally-open", "normally-closed"],
+      "default": "disabled",
+      "code": "et"
+    },
+    "probe": {
+      "type": "enum",
+      "values": ["disabled", "normally-open", "normally-closed"],
+      "default": "disabled",
+      "code": "pt"
     }
   },
 

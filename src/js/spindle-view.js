@@ -35,8 +35,7 @@ module.exports = {
         var template = this.template.spindle;
         for (var key in template)
           if (!this.spindle.hasOwnProperty(key))
-            this.$set('spindle["' + key + '"]',
-                      template[key].default);
+            this.$set('spindle["' + key + '"]', template[key].default);
       }.bind(this));
     }
   }

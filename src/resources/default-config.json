@@ -59,17 +59,6 @@
     }
   },
 
-  "switches": [
-    {"type": "normally-open"},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {},
-    {}
-  ],
-
-  "spindle": {
-  }
+  "switches": {},
+  "spindle": {}
 }

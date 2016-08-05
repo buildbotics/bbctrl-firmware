@@ -10,7 +10,7 @@ function is_array(x) {
 
 module.exports = {
   template: '#control-view-template',
-  props: ['config'],
+  props: ['config', 'state'],
 
 
   data: function () {
@@ -20,7 +20,6 @@ module.exports = {
       last_file: '',
       files: [],
       axes: 'xyzabc',
-      state: {},
       gcode: '',
       speed_override: 1,
       feed_override: 1
@@ -35,30 +34,9 @@ module.exports = {
 
 
   events: {
-    jog: function (axis, move) {
-      console.debug('jog(' + axis + ', ' + move + ')');
-      this.send('g91 g0' + axis + move);
-    },
-
-
-    home: function (axis) {
-      console.debug('home(' + axis + ')');
-      this.send('$home ' + axis);
-    },
-
-
-    zero: function (axis) {
-      console.debug('zero(' + axis + ')');
-      this.send('$zero ' + axis);
-    },
-
-
-    message: function (data) {
-      if (typeof data == 'object')
-        for (var key in data)
-          this.$set('state.' + key, data[key]);
-    }
-  },
+    jog: function (axis, move) {this.send('g91 g0' + axis + move)},
+    home: function (axis) {this.send('$home ' + axis)},
+    zero: function (axis) {this.send('$zero ' + axis)}  },
 
 
   ready: function () {
@@ -80,7 +58,7 @@ module.exports = {
 
 
     estop: function () {
-      this.$set('state.es', !this.state.es);
+      this.send('$es=' + (this.state.es ? 0 : 1));
     },
 
 

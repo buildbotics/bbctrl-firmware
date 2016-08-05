@@ -15,7 +15,8 @@ module.exports = new Vue({
       index: -1,
       modified: false,
       template: {motors: {}, axes: {}},
-      config: {motors: [{}]}
+      config: {motors: [{}]},
+      state: {}
     }
   },
 
@@ -37,7 +38,10 @@ module.exports = new Vue({
 
 
     send: function (msg) {
-      if (this.status == 'connected') this.sock.send(msg)
+      if (this.status == 'connected') {
+        console.debug('>', msg);
+        this.sock.send(msg)
+      }
     },
 
 
@@ -53,14 +57,15 @@ module.exports = new Vue({
 
   methods: {
     update: function () {
-      $.get('/config-template.json').success(function (data, status, xhr) {
-        this.template = data;
+      $.get('/config-template.json', {cache: false})
+        .success(function (data, status, xhr) {
+          this.template = data;
 
-        api.get('load').done(function (data) {
-          this.config = data;
-          this.parse_hash();
+          api.get('load').done(function (data) {
+            this.config = data;
+            this.parse_hash();
+          }.bind(this))
         }.bind(this))
-      }.bind(this))
     },
 
 
@@ -68,7 +73,11 @@ module.exports = new Vue({
       this.sock = new Sock('//' + window.location.host + '/ws');
 
       this.sock.onmessage = function (e) {
-        this.$broadcast('message', e.data);
+        var msg = e.data;
+
+        if (typeof msg == 'object')
+          for (var key in msg)
+            this.$set('state.' + key, msg[key]);
       }.bind(this);
 
       this.sock.onopen = function (e) {

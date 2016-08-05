@@ -28,6 +28,10 @@ class StartHandler(bbctrl.APIHandler):
     def put_ok(self, path): self.ctrl.avr.start(path)
 
 
+class EStopHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.estop()
+
+
 class StopHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.avr.stop()
 
@@ -55,37 +59,35 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
 class Connection(sockjs.tornado.SockJSConnection):
     def heartbeat(self):
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
-        self.send_json({'heartbeat': self.count})
+        self.send({'heartbeat': self.count})
         self.count += 1
-
-
-    def send_json(self, data):
-        self.send(str.encode(json.dumps(data)))
 
 
     def on_open(self, info):
         self.ctrl = self.session.server.ctrl
+        self.clients = self.ctrl.web.clients
 
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.count = 0;
 
-        self.ctrl.clients.append(self)
-        self.send_json(self.ctrl.state)
+        self.clients.append(self)
+        self.send(self.ctrl.avr.vars)
 
 
     def on_close(self):
         self.ctrl.ioloop.remove_timeout(self.timer)
-        self.ctrl.clients.remove(self)
+        self.clients.remove(self)
 
 
     def on_message(self, data):
-        self.ctrl.input_queue.put(data + '\n')
+        self.ctrl.avr.mdi(data)
 
 
 
 class Web(tornado.web.Application):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.clients = []
 
         handlers = [
             (r'/api/load', LoadHandler),
@@ -93,6 +95,7 @@ class Web(tornado.web.Application):
             (r'/api/file(/.+)?', bbctrl.FileHandler),
             (r'/api/home', HomeHandler),
             (r'/api/start(/.+)', StartHandler),
+            (r'/api/estop', EStopHandler),
             (r'/api/stop', StopHandler),
             (r'/api/pause', PauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
@@ -118,3 +121,8 @@ class Web(tornado.web.Application):
             sys.exit(1)
 
         log.info('Listening on http://%s:%d/', ctrl.args.addr, ctrl.args.port)
+
+
+    def broadcast(self, msg):
+        if self.clients:
+            self.clients[0].broadcast(self.clients, msg)

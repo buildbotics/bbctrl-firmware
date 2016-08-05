@@ -4,7 +4,5 @@ script#switches-view-template(type="text/x-template")
 
     form.pure-form.pure-form-aligned
       fieldset
-        .switch(v-for="sw in switches")
-          h3 Switch {{$index}}
-          templated-input(v-for="templ in template.switches", :name="$key",
-            :model.sync="sw[$key]", :template="templ")
+        templated-input(v-for="templ in template.switches", :name="$key",
+          :model.sync="switches[$key]", :template="templ")

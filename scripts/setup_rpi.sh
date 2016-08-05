@@ -61,9 +61,9 @@ EOF
     update-rc.d resize2fs_once defaults
 fi
 
-# Install pacakges
+# Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip i2c-tools
-pip-3.2 install tornado sockjs-tornado pyserial smbus
+pip-3.2 install --upgrade tornado sockjs-tornado pyserial smbus
 
 # Clean
 apt-get autoclean
@@ -84,6 +84,7 @@ sed -i 's/^\([23456]:.*\/sbin\/getty\)/#\1/' /etc/inittab
 
 # Enable I2C
 sed -i 's/#dtparam=i2c/dtparam=i2c/' /boot/config.txt
+echo 'dtparam=i2c_vc=on' >> /boot/config.txt
 echo i2c-bcm2708 >> /etc/modules
 echo i2c-dev >> /etc/modules
 
@@ -92,6 +93,6 @@ cp bbctrl.init.d /etc/init.d/bbctrl
 chmod +x /etc/init.d/bbctrl
 update-rc.d bbctrl defaults
 
-# TODO setup input and serial device permissions in udev
+# TODO setup input and serial device permissions in udev & forward 80 -> 8080
 
 reboot
