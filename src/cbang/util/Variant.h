@@ -51,6 +51,7 @@ namespace cb {
       NULL_TYPE,
       BOOLEAN_TYPE,
       STRING_TYPE,
+      BYTE_TYPE,
       INTEGER_TYPE,
       UINT64_TYPE,
       REAL_TYPE,
@@ -67,6 +68,7 @@ namespace cb {
       virtual const char *toCString() const
       {THROW("Cannot convert to C string");}
       virtual std::string toString() const {THROW("Cannot convert to string");}
+      virtual uint8_t toByte() const {THROW("Cannot convert to byte");}
       virtual int64_t toInteger() const {THROW("Cannot convert to integer");}
       virtual uint64_t toUInt64() const {return toInteger();}
       virtual double toReal() const {THROW("Cannot convert to real");}
@@ -92,6 +94,7 @@ namespace cb {
       bool toBoolean() const {return false;}
       const char *toCString() const {return "";}
       std::string toString() const {return "";}
+      uint8_t toByte() const {return 0;}
       int64_t toInteger() const {return 0;}
       double toReal() const {return 0;}
       SmartPointer<Value> parse(const std::string &value)
@@ -109,6 +112,7 @@ namespace cb {
       bool toBoolean() const {return value;}
       const char *toCString() const {return value ? "true" : "false";}
       std::string toString() const {return toCString();}
+      uint8_t toByte() const {return value;}
       int64_t toInteger() const {return value;}
       double toReal() const {return value;}
       SmartPointer<Value> parse(const std::string &value)
@@ -126,10 +130,28 @@ namespace cb {
       bool toBoolean() const {return cb::String::parseBool(value);}
       const char *toCString() const {return value.c_str();}
       std::string toString() const {return value;}
+      uint8_t toByte() const {return cb::String::parseU8(value);}
       int64_t toInteger() const {return cb::String::parseS64(value);}
       double toReal() const {return cb::String::parseDouble(value);}
       SmartPointer<Value> parse(const std::string &value)
       {return new String(value);}
+    };
+
+
+    struct Byte : public Value {
+      uint8_t value;
+
+      Byte(int8_t value) : value(value) {}
+
+      // From Value
+      type_t getType() const {return BYTE_TYPE;}
+      bool toBoolean() const {return value;}
+      std::string toString() const {return cb::String(value);}
+      uint8_t toByte() const {return value;}
+      int64_t toInteger() const {return value;}
+      double toReal() const {return value;}
+      SmartPointer<Value> parse(const std::string &value)
+      {return new Byte(cb::String::parseU8(value));}
     };
 
 
@@ -142,6 +164,7 @@ namespace cb {
       type_t getType() const {return INTEGER_TYPE;}
       bool toBoolean() const {return value;}
       std::string toString() const {return cb::String(value);}
+      uint8_t toByte() const {return value;}
       int64_t toInteger() const {return value;}
       double toReal() const {return value;}
       SmartPointer<Value> parse(const std::string &value)
@@ -158,6 +181,7 @@ namespace cb {
       type_t getType() const {return UINT64_TYPE;}
       bool toBoolean() const {return value;}
       std::string toString() const {return cb::String(value);}
+      uint8_t toByte() const {return value;}
       int64_t toInteger() const {return value;}
       uint64_t toUInt64() const {return value;}
       double toReal() const {return value;}
@@ -175,6 +199,7 @@ namespace cb {
       type_t getType() const {return REAL_TYPE;}
       bool toBoolean() const {return value;}
       std::string toString() const {return cb::String(value);}
+      uint8_t toByte() const {return value;}
       int64_t toInteger() const {return (int64_t)value;}
       double toReal() const {return value;}
       SmartPointer<Value> parse(const std::string &value)
@@ -194,6 +219,7 @@ namespace cb {
       bool toBoolean() const {return value.toInteger();}
       const char *toCString() const {return value.toString();}
       std::string toString() const {return value.toString();}
+      uint8_t toByte() const {return value;}
       int64_t toInteger() const {return value.toInteger();}
       double toReal() const {return value.toInteger();}
       SmartPointer<Value> parse(const std::string &value)
@@ -233,8 +259,8 @@ namespace cb {
     explicit Variant(bool value) : value(new Boolean(value)) {}
     Variant(const std::string &value) : value(new String(value)) {}
     Variant(const char *value) : value(new String(value)) {}
-    Variant(int8_t value) : value(new Integer((int64_t)value)) {}
-    Variant(uint8_t value) : value(new Integer((int64_t)value)) {}
+    Variant(int8_t value) : value(new Byte((uint8_t)value)) {}
+    Variant(uint8_t value) : value(new Byte((uint8_t)value)) {}
     Variant(int16_t value) : value(new Integer((int64_t)value)) {}
     Variant(uint16_t value) : value(new Integer((int64_t)value)) {}
     Variant(int32_t value) : value(new Integer((int64_t)value)) {}
@@ -261,8 +287,8 @@ namespace cb {
     void set(bool value) {this->value = new Boolean(value);}
     void set(const std::string &value) {this->value = new String(value);}
     void set(const char *value) {this->value = new String(value);}
-    void set(int8_t value) {this->value = new Integer(value);}
-    void set(uint8_t value) {this->value = new Integer(value);}
+    void set(int8_t value) {this->value = new Byte(value);}
+    void set(uint8_t value) {this->value = new Byte(value);}
     void set(int16_t value) {this->value = new Integer(value);}
     void set(uint16_t value) {this->value = new Integer(value);}
     void set(int32_t value) {this->value = new Integer(value);}
@@ -279,6 +305,7 @@ namespace cb {
     bool toBoolean() const {return value->toBoolean();}
     const char *toCString() const {return value->toCString();}
     std::string toString() const {return value->toString();}
+    uint8_t toByte() const {return value->toByte();}
     int64_t toInteger() const {return value->toInteger();}
     uint64_t toUInt64() const {return value->toUInt64();}
     double toReal() const {return value->toReal();}
