@@ -63,9 +63,23 @@ string SysError::toString() const {
 
   return str;
 
-#else
+#else // _WIN32
+#if _POSIX_C_SOURCE >= 200112L
+  char buffer[4096];
+
+#ifdef _GNU_SOURCE
+  return strerror_r(code, buffer, 4096);
+
+#else // _GNU_SOURCE
+  if (strerror_r(code, buffer, 4096)) return "Unknown error";
+  return buffer;
+#endif // !_GNU_SOURCE
+
+#else // _POSIX_C_SOURCE >= 200112L
   return strerror(code);
-#endif
+
+#endif // _POSIX_C_SOURCE < 200112L
+#endif // !_WIN32
 }
 
 
