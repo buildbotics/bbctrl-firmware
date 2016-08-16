@@ -206,26 +206,44 @@ string Writer::escape(const string &s) {
         if ((c & 0xe0) == 0xc0) width = 1;
         else if ((c & 0xf0) == 0xe0) width = 2;
         else if ((c & 0xf8) == 0xf0) width = 3;
-        else if ((c & 0xfc) == 0xf8) width = 4;
-        else if ((c & 0xfe) == 0xfc) width = 5;
-        else THROW("Invalid UTF-8");
-
-        // Escape short codes and pass long ones
-        uint16_t code = c & 0x1f;
-        if (2 < width) result.push_back(c);
-
-        for (int i = 0; i < width; i++) {
-          if (++it == s.end() || (*it & 0xc0) != 0x80)
-            THROWS("Invalid UTF-8");
-
-          if (2 < width) result.push_back(*it);
-          else code = (code << 6) | (*it & 0x3f);
+        else {
+          // Invalid or non-standard UTF-8 code width, escape it
+          result.append(String::printf("\\u%04x", (unsigned)c));
+          break;
         }
 
-        if (width < 3)
-          result.append(String::printf("\\u%04x", (unsigned)code));
+        // Check if UTF-8 code is valid
+        bool valid = true;
+        uint32_t code = c & 0x1f;
+        string data = string(1, c);
 
-      } else if (iscntrl(c))
+        for (int i = 0; i < width; i++) {
+          // Check for early end of string
+          if (++it == s.end()) {valid = false; break;}
+
+          data.push_back(*it);
+
+          // Check for invalid start bits
+          if ((*it & 0xc0) != 0x80) {valid = false; break;}
+
+          code = (code << 6) | (*it & 0x3f);
+        }
+
+        if (valid) {
+          // Always encode Javascript line separators
+          if (code < 0x2000 || 0x2100 < code) String::printf("\\u%04x", code);
+          else result.append(data); // Otherwise, pass valid UTF-8
+
+        } else {
+          // Encode start character
+          result.append(String::printf("\\u%04x",
+                                       (unsigned)(unsigned char)data[0]));
+
+          // Rewind
+          it -= data.length() - 1;
+        }
+
+      } else if (iscntrl(c)) // Always encode control characters
         result.append(String::printf("\\u%04x", (unsigned)c));
 
       else result.push_back(c);

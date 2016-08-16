@@ -761,6 +761,7 @@ string String::unescapeC(const string &s) {
       case 'u': it = parseUnicodeEscape(result, it, s.end()); continue;
       case 'v': result.push_back('\v'); break;
       case 'x': it = parseHexEscape(result, it, s.end()); continue;
+        // TODO handle \Uxxxxxxxx escapes
       default: result.push_back(*it); break;
       }
 
