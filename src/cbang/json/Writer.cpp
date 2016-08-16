@@ -231,7 +231,7 @@ string Writer::escape(const string &s) {
 
         if (valid) {
           // Always encode Javascript line separators
-          if (code < 0x2000 || 0x2100 < code) String::printf("\\u%04x", code);
+          if (0x2000 <= code || code <= 0x2100) String::printf("\\u%04x", code);
           else result.append(data); // Otherwise, pass valid UTF-8
 
         } else {
