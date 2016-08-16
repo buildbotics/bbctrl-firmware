@@ -193,16 +193,12 @@ string Writer::escape(const string &s) {
       //       80-7ff      110xxxxx 10xxxxxx
       //      800-ffff     1110xxxx 10xxxxxx 10xxxxxx
       //    10000-1fffff   11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-      //   200000-3ffffff  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-      //  4000000-7fffffff 1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-      //
-      // The last two formats are non-standard.
       //
       // See: http://en.wikipedia.org/wiki/UTF-8
 
       if (0x80 <= c) {
         // Compute code width
-        int width = 0;
+        int width;
         if ((c & 0xe0) == 0xc0) width = 1;
         else if ((c & 0xf0) == 0xe0) width = 2;
         else if ((c & 0xf8) == 0xf0) width = 3;
@@ -214,7 +210,7 @@ string Writer::escape(const string &s) {
 
         // Check if UTF-8 code is valid
         bool valid = true;
-        uint32_t code = c & 0x1f;
+        uint16_t code = c & (0x3f >> width);
         string data = string(1, c);
 
         for (int i = 0; i < width; i++) {
@@ -229,24 +225,24 @@ string Writer::escape(const string &s) {
           code = (code << 6) | (*it & 0x3f);
         }
 
-        if (valid) {
-          // Always encode Javascript line separators
-          if (0x2000 <= code || code <= 0x2100) String::printf("\\u%04x", code);
-          else result.append(data); // Otherwise, pass valid UTF-8
-
-        } else {
+        if (!valid) {
           // Encode start character
           result.append(String::printf("\\u%04x",
                                        (unsigned)(unsigned char)data[0]));
 
           // Rewind
           it -= data.length() - 1;
-        }
+
+        } else if (0x2000 <= code || code <= 0x2100)
+          // Always encode Javascript line separators
+          String::printf("\\u%04x", code);
+
+        else result.append(data); // Otherwise, pass valid UTF-8
 
       } else if (iscntrl(c)) // Always encode control characters
         result.append(String::printf("\\u%04x", (unsigned)c));
 
-      else result.push_back(c);
+      else result.push_back(c); // Pass normal characters
       break;
     }
   }
