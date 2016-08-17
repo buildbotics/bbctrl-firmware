@@ -95,7 +95,7 @@ namespace cb {
       void beginInsert(const std::string &key);
       void endDict();
 
-      static std::string escape(const std::string &s);
+      static std::string escape(const std::string &s, bool python = false);
 
     protected:
       void indent() const {stream << std::string(level * 2, ' ');}

@@ -76,7 +76,7 @@ void Writer::write(double value) {
 
 void Writer::write(const string &value) {
   NullSink::write(value);
-  stream << '"' << escape(value) << '"';
+  stream << '"' << escape(value, mode == PYTHON_MODE) << '"';
 }
 
 
@@ -167,7 +167,14 @@ void Writer::endDict() {
 }
 
 
-string Writer::escape(const string &s) {
+namespace {
+  string encodeChar(unsigned char c, bool python) {
+    return cb::String::printf(python ? "\\x%02x": "\\u%04x", (unsigned)c);
+  }
+}
+
+
+string Writer::escape(const string &s, bool python) {
   string result;
   result.reserve(s.length());
 
@@ -175,7 +182,7 @@ string Writer::escape(const string &s) {
     unsigned char c = *it;
 
     switch (c) {
-    case 0: result.append("\\u0000"); break;
+    case 0: result.append(encodeChar(0, python)); break;
     case '\\': result.append("\\\\"); break;
     case '\"': result.append("\\\""); break;
     case '\b': result.append("\\b"); break;
@@ -204,7 +211,7 @@ string Writer::escape(const string &s) {
         else if ((c & 0xf8) == 0xf0) width = 3;
         else {
           // Invalid or non-standard UTF-8 code width, escape it
-          result.append(String::printf("\\u%04x", (unsigned)c));
+          result.append(encodeChar(c, python));
           break;
         }
 
@@ -227,20 +234,19 @@ string Writer::escape(const string &s) {
 
         if (!valid) {
           // Encode start character
-          result.append(String::printf("\\u%04x",
-                                       (unsigned)(unsigned char)data[0]));
+          result.append(encodeChar((uint8_t)data[0], python));
 
           // Rewind
           it -= data.length() - 1;
 
-        } else if (0x2000 <= code || code <= 0x2100)
+        } else if (!python && (0x2000 <= code || code <= 0x2100))
           // Always encode Javascript line separators
-          String::printf("\\u%04x", code);
+          result.append(String::printf("\\u%04x", code));
 
         else result.append(data); // Otherwise, pass valid UTF-8
 
       } else if (iscntrl(c)) // Always encode control characters
-        result.append(String::printf("\\u%04x", (unsigned)c));
+        result.append(encodeChar(c, python));
 
       else result.push_back(c); // Pass normal characters
       break;

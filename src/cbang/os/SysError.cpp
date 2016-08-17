@@ -49,19 +49,24 @@ SysError::SysError(int code) : code(code ? code : get()) {}
 
 
 string SysError::toString() const {
+  if (!code) return "Success";
+
 #ifdef _WIN32
-  // TODO revisit this for unicode builds
-  LPSTR buffer = 0;
+  LPWSTR buffer = 0;
 
-  FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                FORMAT_MESSAGE_IGNORE_INSERTS, 0, (DWORD)code,
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&buffer, 0,
-                0);
-  string str = buffer;
+  if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                     FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                     0, (DWORD)code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                     (LPWSTR)&buffer, 0, 0)) {
+    int len = WideCharToMultiByte(CP_UTF8, 0, buffer, -1, 0, 0, 0, 0);
+    SmartPointer<char>::Array utf8 = new char[len];
+    bool ok =
+      WideCharToMultiByte(CP_UTF8, 0, buffer, -1, utf8.get(), len, 0, 0);
 
-  LocalFree(buffer);
+    LocalFree(buffer);
 
-  return str;
+    if (ok) return utf8.get();
+  }
 
 #else // _WIN32
 #if _POSIX_C_SOURCE >= 200112L
@@ -71,8 +76,7 @@ string SysError::toString() const {
   return strerror_r(code, buffer, 4096);
 
 #else // _GNU_SOURCE
-  if (strerror_r(code, buffer, 4096)) return "Unknown error";
-  return buffer;
+  if (!strerror_r(code, buffer, 4096)) return buffer;
 #endif // !_GNU_SOURCE
 
 #else // _POSIX_C_SOURCE >= 200112L
@@ -80,6 +84,8 @@ string SysError::toString() const {
 
 #endif // _POSIX_C_SOURCE < 200112L
 #endif // !_WIN32
+
+  return "Unknown error";
 }
 
 
