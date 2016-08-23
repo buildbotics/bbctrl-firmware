@@ -31,6 +31,7 @@
 
 
 bool mach_is_homing();
+void mach_set_not_homed();
 void mach_homing_cycle_start();
 void mach_homing_cycle_start_no_set();
 void mach_homing_callback();

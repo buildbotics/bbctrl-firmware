@@ -35,6 +35,7 @@
 #include "plan/command.h"
 #include "motor.h"
 #include "hardware.h"
+#include "estop.h"
 #include "util.h"
 #include "cpp_magic.h"
 
@@ -72,6 +73,9 @@ void stepper_init() {
 void st_shutdown() {
   for (int motor = 0; motor < MOTORS; motor++)
     motor_enable(motor, false);
+
+  st.dwell = 0;
+  st.move_type = MOVE_TYPE_NULL;
 }
 
 
@@ -83,6 +87,7 @@ uint8_t st_runtime_isbusy() {return st.busy;}
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(ADCB_CH0_vect) {
   mp_exec_move();
+  ADCB_CH0_INTCTRL = 0;
   st.requesting = false;
 }
 
@@ -110,6 +115,11 @@ ISR(STEP_TIMER_ISR) {
   DMA.INTFLAGS = 0xff; // clear all interrups
   for (int motor = 0; motor < MOTORS; motor++)
     motor_end_move(motor);
+
+  if (estop_triggered()) {
+    st.move_type = MOVE_TYPE_NULL;
+    return;
+  }
 
   // If the next move is not ready try to load it
   if (!st.move_ready) {

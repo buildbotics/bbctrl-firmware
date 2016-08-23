@@ -347,6 +347,13 @@ bool mach_is_homing() {
 }
 
 
+void mach_set_not_homed() {
+  // TODO save homed to EEPROM
+  for (int axis = 0; axis < AXES; axis++)
+    mach.homed[axis] = false;
+}
+
+
 /// G28.2 homing cycle using limit switches
 void mach_homing_cycle_start() {
   // save relevant non-axis parameters from Gcode model

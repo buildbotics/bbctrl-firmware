@@ -71,6 +71,7 @@ int main() {
   machine_init();                 // gcode machine
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
+  command_init();
 
   sei();                          // enable interrupts
 

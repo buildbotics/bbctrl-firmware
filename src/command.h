@@ -44,6 +44,7 @@ typedef struct {
 } command_t;
 
 
+void command_init();
 int command_find(const char *name);
 int command_exec(int argc, char *argv[]);
 void command_callback();

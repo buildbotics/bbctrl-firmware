@@ -46,6 +46,7 @@
 
 typedef uint8_t flags_t;
 typedef const char *string;
+typedef PGM_P pstring;
 
 
 // Format strings
@@ -56,13 +57,18 @@ static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, string, float, int8_t, uint8_t, uint16_t,
+MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, int8_t, uint8_t, uint16_t,
     int32_t);
 
 
 // String
-static void var_print_string(const char *s) {
+static void var_print_string(string s) {
   printf_P(PSTR("\"%s\""), s);
+}
+
+// Program string
+static void var_print_pstring(pstring s) {
+  printf_P(PSTR("\"%S\""), s);
 }
 
 

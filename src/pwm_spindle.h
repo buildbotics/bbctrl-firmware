@@ -32,3 +32,4 @@
 
 void pwm_spindle_init();
 void pwm_spindle_set(machSpindleMode_t mode, float speed);
+void pwm_spindle_estop();

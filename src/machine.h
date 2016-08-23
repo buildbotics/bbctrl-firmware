@@ -44,56 +44,35 @@
 
 /* Machine state model
  *
- * The following main variables track machine state and state
- * transitions.
- *        - mach.machine_state  - overall state of machine and program execution
- *        - mach.cycle_state    - what cycle the machine is executing (or none)
- *        - mach.motion_state   - state of movement
+ * The following main variables track machine state and state transitions.
  *
- * Allowed states and combined states:
+ *   machine_state  - overall state of machine and program execution
+ *   cycle_state    - what cycle the machine is executing (or none)
+ *   motion_state   - state of movement
  *
- *   MACHINE STATE     CYCLE STATE   MOTION_STATE    COMBINED_STATE (FYI)
- *   -------------     ------------  -------------   --------------------
- *   MACHINE_UNINIT    na            na              (U)
- *   MACHINE_READY     CYCLE_OFF     MOTION_STOP     (ROS) RESET-OFF-STOP
- *   MACHINE_PROG_STOP CYCLE_OFF     MOTION_STOP     (SOS) STOP-OFF-STOP
- *   MACHINE_PROG_END  CYCLE_OFF     MOTION_STOP     (EOS) END-OFF-STOP
+ * Allowed states:
  *
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_STOP     (CSS) CYCLE-START-STOP
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_RUN      (CSR) CYCLE-START-RUN
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_HOLD     (CSH) CYCLE-START-HOLD
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_END_HOLD (CSE) CYCLE-START-END_HOLD
+ *   MACHINE STATE     CYCLE STATE   MOTION_STATE
+ *   -------------     ------------  -------------
+ *   MACHINE_READY     CYCLE_OFF     MOTION_STOP
+ *   MACHINE_PROG_STOP CYCLE_OFF     MOTION_STOP
+ *   MACHINE_PROG_END  CYCLE_OFF     MOTION_STOP
  *
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_STOP     (CHS) CYCLE-HOMING-STOP
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_RUN      (CHR) CYCLE-HOMING-RUN
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_HOLD     (CHH) CYCLE-HOMING-HOLD
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_END_HOLD (CHE) CYCLE-HOMING-END_HOLD
+ *   MACHINE_CYCLE     CYCLE_STARTED MOTION_STOP
+ *   MACHINE_CYCLE     CYCLE_STARTED MOTION_RUN
+ *   MACHINE_CYCLE     CYCLE_STARTED MOTION_HOLD
+ *
+ *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_STOP
+ *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_RUN
+ *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_HOLD
  */
 
-/// check alignment with messages in config.c / msg_stat strings
 typedef enum {
-  COMBINED_INITIALIZING, // machine is initializing
-  COMBINED_READY,        // machine is ready for use. Also null move STOP state
-  COMBINED_ALARM,        // machine in soft alarm state
-  COMBINED_PROGRAM_STOP, // program stop or no more blocks
-  COMBINED_PROGRAM_END,  // program end
-  COMBINED_RUN,          // motion is running
-  COMBINED_HOLD,         // motion is holding
-  COMBINED_PROBE,        // probe cycle active
-  COMBINED_CYCLE,        // machine is running (cycling)
-  COMBINED_HOMING,       // homing is treated as a cycle
-  COMBINED_SHUTDOWN,     // machine in hard alarm state (shutdown)
-} machCombinedState_t;
-
-
-typedef enum {
-  MACHINE_INITIALIZING, // machine is initializing
   MACHINE_READY,        // machine is ready for use
-  MACHINE_ALARM,        // machine in soft alarm state
+  MACHINE_ALARM,        // machine in alarm state
   MACHINE_PROGRAM_STOP, // program stop or no more blocks
   MACHINE_PROGRAM_END,  // program end
   MACHINE_CYCLE,        // machine is running (cycling)
-  MACHINE_SHUTDOWN,     // machine in hard alarm state (shutdown)
 } machMachineState_t;
 
 
@@ -108,7 +87,7 @@ typedef enum {
 typedef enum {
   MOTION_STOP,          // motion has stopped
   MOTION_RUN,           // machine is in motion
-  MOTION_HOLD           // feedhold in progress
+  MOTION_HOLD,          // feedhold in progress
 } machMotionState_t;
 
 
@@ -118,14 +97,14 @@ typedef enum {          // feedhold_state machine
   FEEDHOLD_PLAN,        // replan blocks for feedhold
   FEEDHOLD_DECEL,       // decelerate to hold point
   FEEDHOLD_HOLD,        // holding
-  FEEDHOLD_END_HOLD     // end hold (transient state to OFF)
+  FEEDHOLD_END_HOLD,    // end hold (transient state to OFF)
 } machFeedholdState_t;
 
 
 typedef enum {          // applies to mach.homing_state
-  HOMING_NOT_HOMED,     // machine is not homed (0=false)
-  HOMING_HOMED,         // machine is homed (1=true)
-  HOMING_WAITING        // machine waiting to be homed
+  HOMING_NOT_HOMED,     // machine is not homed
+  HOMING_HOMED,         // machine is homed
+  HOMING_WAITING,       // machine waiting to be homed
 } machHomingState_t;
 
 
@@ -136,9 +115,9 @@ typedef enum {          // applies to mach.probe_state
 } machProbeState_t;
 
 
-/* The difference between NextAction and MotionMode is that NextAction is
- * used by the current block, and may carry non-modal commands, whereas
- * MotionMode persists across blocks (as G modal group 1)
+/* The difference between machNextAction_t and machMotionMode_ is that
+ * machNextAction_t is used by the current block, and may carry non-modal
+ * commands, whereas machMotionMode_t persists across blocks as G modal group 1
  */
 
 /// these are in order to optimized CASE statement
@@ -157,7 +136,7 @@ typedef enum {
   NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS, // G92.2
   NEXT_ACTION_RESUME_ORIGIN_OFFSETS,  // G92.3
   NEXT_ACTION_DWELL,                  // G4
-  NEXT_ACTION_STRAIGHT_PROBE          // G38.2
+  NEXT_ACTION_STRAIGHT_PROBE,         // G38.2
 } machNextAction_t;
 
 
@@ -201,55 +180,49 @@ typedef enum {   // Used for detecting gcode errors. See NIST section 3.4
 
 #define MODAL_GROUP_COUNT (MODAL_GROUP_M9 + 1)
 
-// Note 1: Our G0 omits G4,G30,G53,G92.1,G92.2,G92.3 as these have no axis
+// Note 1: Our G0 omits G4, G30, G53, G92.1, G92.2, G92.3 as these have no axis
 // components to error check
 
 typedef enum { // plane - translates to:
-  //                          axis_0    axis_1    axis_2
-  PLANE_XY,     // G17    X          Y          Z
-  PLANE_XZ,     // G18    X          Z          Y
-  PLANE_YZ      // G19    Y          Z          X
+  //                    axis_0    axis_1    axis_2
+  PLANE_XY,     // G17    X         Y         Z
+  PLANE_XZ,     // G18    X         Z         Y
+  PLANE_YZ,     // G19    Y         Z         X
 } machPlane_t;
 
 
 typedef enum {
   INCHES,        // G20
   MILLIMETERS,   // G21
-  DEGREES        // ABC axes (this value used for displays only)
+  DEGREES,       // ABC axes (this value used for displays only)
 } machUnitsMode_t;
 
 
 typedef enum {
   ABSOLUTE_COORDS,                // machine coordinate system
-  G54,                            // G54 coordinate system
-  G55,                            // G55 coordinate system
-  G56,                            // G56 coordinate system
-  G57,                            // G57 coordinate system
-  G58,                            // G58 coordinate system
-  G59                             // G59 coordinate system
+  G54, G55, G56, G57, G58, G59,
+  MAX_COORDS,
 } machCoordSystem_t;
-
-#define COORD_SYSTEM_MAX G59      // set this manually to the last one
 
 /// G Modal Group 13
 typedef enum {
   /// G61 - hits corners but does not stop if it does not need to.
   PATH_EXACT_PATH,
   PATH_EXACT_STOP,                // G61.1 - stops at all corners
-  PATH_CONTINUOUS                 // G64 and typically the default mode
+  PATH_CONTINUOUS,                // G64 and typically the default mode
 } machPathControlMode_t;
 
 
 typedef enum {
   ABSOLUTE_MODE,                  // G90
-  INCREMENTAL_MODE                // G91
+  INCREMENTAL_MODE,               // G91
 } machDistanceMode_t;
 
 
 typedef enum {
   INVERSE_TIME_MODE,              // G93
   UNITS_PER_MINUTE_MODE,          // G94
-  UNITS_PER_REVOLUTION_MODE       // G95 (unimplemented)
+  UNITS_PER_REVOLUTION_MODE,      // G95 (unimplemented)
 } machFeedRateMode_t;
 
 
@@ -257,13 +230,15 @@ typedef enum {
   ORIGIN_OFFSET_SET,      // G92 - set origin offsets
   ORIGIN_OFFSET_CANCEL,   // G92.1 - zero out origin offsets
   ORIGIN_OFFSET_SUSPEND,  // G92.2 - do not apply offsets, but preserve values
-  ORIGIN_OFFSET_RESUME    // G92.3 - resume application of the suspended offsets
+  ORIGIN_OFFSET_RESUME,   // G92.3 - resume application of the suspended offsets
 } machOriginOffset_t;
 
 
 typedef enum {
   PROGRAM_STOP,
-  PROGRAM_END
+  PROGRAM_OPTIONAL_STOP,
+  PROGRAM_PALLET_CHANGE_STOP,
+  PROGRAM_END,
 } machProgramFlow_t;
 
 
@@ -271,7 +246,7 @@ typedef enum {
 typedef enum {
   SPINDLE_OFF,
   SPINDLE_CW,
-  SPINDLE_CCW
+  SPINDLE_CCW,
 } machSpindleMode_t;
 
 
@@ -280,14 +255,14 @@ typedef enum {
   COOLANT_OFF,        // all coolant off
   COOLANT_ON,         // request coolant on or indicate both coolants are on
   COOLANT_MIST,       // indicates mist coolant on
-  COOLANT_FLOOD       // indicates flood coolant on
+  COOLANT_FLOOD,      // indicates flood coolant on
 } machCoolantState_t;
 
 
 /// used for spindle and arc dir
 typedef enum {
   DIRECTION_CW,
-  DIRECTION_CCW
+  DIRECTION_CCW,
 } machDirection_t;
 
 
@@ -297,7 +272,7 @@ typedef enum {
   AXIS_STANDARD,              // axis in coordinated motion w/standard behaviors
   AXIS_INHIBITED,             // axis is computed but not activated
   AXIS_RADIUS,                // rotary axis calibrated to circumference
-  AXIS_MODE_MAX
+  AXIS_MODE_MAX,
 } machAxisMode_t; // ordering must be preserved.
 
 
@@ -350,7 +325,7 @@ typedef struct {
   bool spindle_override_enable;       // true = override enabled
 
   machMotionMode_t motion_mode;       // Group 1 modal motion
-  machPlane_t select_plane;    // G17, G18, G19
+  machPlane_t select_plane;           // G17, G18, G19
   machUnitsMode_t units_mode;         // G20, G21
   machCoordSystem_t coord_system;     // G54-G59 - select coordinate system 1-9
   bool absolute_override;             // G53 true = move in machine coordinates
@@ -399,47 +374,46 @@ typedef struct {
 
 
 typedef struct { // struct to manage mach globals and cycles
-  // coordinate systems and offsets absolute (G53) + G54,G55,G56,G57,G58,G59
+  // coordinate systems & offsets absolute (G53) + G54, G55, G56, G57, G58, G59
   float offset[COORDS + 1][AXES];
-  float origin_offset[AXES];          // G92 offsets
-  bool origin_offset_enable;          // G92 offsets enabled/disabled
+  float origin_offset[AXES];           // G92 offsets
+  bool origin_offset_enable;           // G92 offsets enabled/disabled
 
-  float position[AXES];               // model position (not used in gn or gf)
-  float g28_position[AXES];           // stored machine position for G28
-  float g30_position[AXES];           // stored machine position for G30
+  float position[AXES];                // model position (not used in gn or gf)
+  float g28_position[AXES];            // stored machine position for G28
+  float g30_position[AXES];            // stored machine position for G30
 
   // settings for axes X,Y,Z,A B,C
   AxisConfig_t a[AXES];
 
-  machCombinedState_t combined_state;    // combination of states for display
   machMachineState_t machine_state;
   machCycleState_t cycle_state;
   machMotionState_t motion_state;
-  machFeedholdState_t hold_state;        // hold: feedhold sub-state machine
-  machHomingState_t homing_state;        // home: homing cycle sub-state machine
+  machFeedholdState_t hold_state;      // hold: feedhold sub-state machine
+  machHomingState_t homing_state;      // home: homing cycle sub-state machine
   bool homed[AXES];                    // individual axis homing flags
 
   machProbeState_t probe_state;
   float probe_results[AXES];           // probing results
 
-  bool feedhold_requested;             // feedhold character received
-  bool queue_flush_requested;          // queue flush character received
-  bool cycle_start_requested;          // cycle start character received
+  bool feedhold_requested;
+  uint16_t queue_flush_request;        // queue flush request id
+  uint16_t queue_flush_id;             // latest queue flush request id
+  bool cycle_start_requested;
 
   // Model states
   MoveState_t ms;
   GCodeState_t gm;                     // core gcode model state
   GCodeState_t gn;                     // gcode input values
   GCodeState_t gf;                     // gcode input flags
-} machSingleton_t;
+} machine_t;
 
 
-extern machSingleton_t mach;               // machine controller singleton
+extern machine_t mach;                 // machine controller singleton
 
 
 // Model state getters and setters
 uint32_t mach_get_line();
-machCombinedState_t mach_get_combined_state();
 machMachineState_t mach_get_machine_state();
 machCycleState_t mach_get_cycle_state();
 machMotionState_t mach_get_motion_state();
@@ -551,7 +525,8 @@ void mach_message(const char *message);
 
 // Program Functions (4.3.10)
 void mach_request_feedhold();
-void mach_request_queue_flush();
+void mach_request_queue_flush(uint16_t id);
+void mach_end_queue_flush(uint16_t id);
 void mach_request_cycle_start();
 
 void mach_feedhold_callback();
@@ -562,6 +537,7 @@ void mach_cycle_end();
 void mach_feedhold();
 void mach_program_stop();
 void mach_optional_program_stop();
+void mach_pallet_change_stop();
 void mach_program_end();
 
 // Cycles

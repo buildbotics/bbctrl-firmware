@@ -28,16 +28,30 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "config.h"
+
+#include <stdbool.h>
 
 
-#define I2C_DEV TWIC
-#define I2C_ISR TWIC_TWIS_vect
-#define I2C_ADDR 0x2b
-#define I2C_MAX_DATA 8
+typedef enum {
+  I2C_NULL,
+  I2C_ESTOP,
+  I2C_CLEAR,
+  I2C_PAUSE,
+  I2C_OPTIONAL_PAUSE,
+  I2C_RUN,
+  I2C_FLUSH,
+  I2C_STEP,
+  I2C_REPORT,
+  I2C_HOME,
+  I2C_REBOOT,
+} i2c_cmd_t;
 
 
-typedef void (*spi_cb_t)(uint8_t *data, uint8_t length);
+typedef void (*i2c_read_cb_t)(i2c_cmd_t cmd, uint8_t *data, uint8_t length);
+typedef uint8_t (*i2c_write_cb_t)(uint8_t offset, bool *done);
+
 
 void i2c_init();
-void i2c_set_callback(spi_cb_t cb);
+void i2c_set_read_callback(i2c_read_cb_t cb);
+void i2c_set_write_callback(i2c_write_cb_t cb);

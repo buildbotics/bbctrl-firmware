@@ -29,10 +29,12 @@
 #include "hardware.h"
 #include "rtc.h"
 #include "usart.h"
+#include "huanyang.h"
 #include "config.h"
 
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 #include <avr/wdt.h>
 
 #include <stdbool.h>
@@ -58,8 +60,8 @@ static void _init_clock()  {
 #if defined(__CLOCK_EXTERNAL_8MHZ) // external 8 Mhx Xtal w/ 4x PLL = 32 Mhz
   // 2-9 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
   OSC.XOSCCTRL = OSC_FRQRANGE_2TO9_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
-  OSC.CTRL = OSC_XOSCEN_bm;               // enable external crystal oscillator
-  while (!(OSC.STATUS & OSC_XOSCRDY_bm)); // wait for oscillator ready
+  OSC.CTRL = OSC_XOSCEN_bm;                // enable external crystal oscillator
+  while (!(OSC.STATUS & OSC_XOSCRDY_bm));  // wait for oscillator ready
 
   OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 4;    // PLL source, 4x (32 MHz sys clock)
   OSC.CTRL = OSC_PLLEN_bm | OSC_XOSCEN_bm; // Enable PLL & External Oscillator
@@ -156,7 +158,11 @@ void hw_hard_reset() {
 
 /// Controller's rest handler
 void hw_reset_handler() {
-  if (hw.hard_reset) hw_hard_reset();
+  if (hw.hard_reset) {
+    while (huanyang_stopping() || !usart_tx_empty() || !eeprom_is_ready())
+      continue;
+    hw_hard_reset();
+  }
 
   if (hw.bootloader) {
     // TODO enable bootloader interrupt vectors and jump to BOOT_SECTION_START

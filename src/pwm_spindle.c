@@ -39,6 +39,7 @@ typedef struct {
   float max_duty;
   bool reverse;
   bool enable_invert;
+  bool estop;
 } spindle_t;
 
 
@@ -50,11 +51,12 @@ static spindle_t spindle = {
   .max_duty      = SPINDLE_MAX_DUTY,
   .reverse       = SPINDLE_POLARITY,
   .enable_invert = false,
+  .estop         = false,
 };
 
 
 static void _spindle_set_pwm(machSpindleMode_t mode, float speed) {
-  if (mode == SPINDLE_OFF || speed < spindle.min_rpm) {
+  if (mode == SPINDLE_OFF || speed < spindle.min_rpm || spindle.estop) {
     TIMER_PWM.CTRLA = 0;
     return;
   }
@@ -124,6 +126,12 @@ void pwm_spindle_set(machSpindleMode_t mode, float speed) {
   _spindle_set_dir(mode == SPINDLE_CW);
   _spindle_set_pwm(mode, speed);
   _spindle_set_enable(mode != SPINDLE_OFF && TIMER_PWM.CTRLA);
+}
+
+
+void pwm_spindle_estop() {
+  spindle.estop = true;
+  _spindle_set_pwm(SPINDLE_OFF, 0);
 }
 
 

@@ -80,6 +80,14 @@ void mach_spindle_control(machSpindleMode_t mode) {
 }
 
 
+void mach_spindle_estop() {
+  switch (spindle_type) {
+  case SPINDLE_TYPE_PWM: pwm_spindle_estop(); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_estop(); break;
+  }
+}
+
+
 /// Queue the S parameter to the planner buffer
 void mach_set_spindle_speed(float speed) {
   float value[AXES] = {speed};

@@ -92,7 +92,7 @@
 #include <stdio.h>
 
 
-machSingleton_t mach = {
+machine_t mach = {
   // Offsets
   .offset = {
     {}, // ABSOLUTE_COORDS
@@ -181,7 +181,6 @@ machSingleton_t mach = {
     }
   },
 
-  .combined_state = COMBINED_READY,
   .machine_state = MACHINE_READY,
 
   // State
@@ -201,25 +200,6 @@ static void _exec_absolute_origin(float *value, float *flag);
 static void _exec_program_finalize(float *value, float *flag);
 
 // Machine State functions
-
-/// Combines raw states into something a user might want to see
-machCombinedState_t mach_get_combined_state() {
-  if (mach.cycle_state == CYCLE_OFF) mach.combined_state = mach.machine_state;
-  else if (mach.cycle_state == CYCLE_PROBE)
-    mach.combined_state = COMBINED_PROBE;
-  else if (mach.cycle_state == CYCLE_HOMING)
-    mach.combined_state = COMBINED_HOMING;
-  else {
-    if (mach.motion_state == MOTION_RUN) mach.combined_state = COMBINED_RUN;
-    if (mach.motion_state == MOTION_HOLD) mach.combined_state = COMBINED_HOLD;
-  }
-
-  if (mach.machine_state == MACHINE_SHUTDOWN)
-    mach.combined_state = COMBINED_SHUTDOWN;
-
-  return mach.combined_state;
-}
-
 uint32_t mach_get_line() {return mach.gm.line;}
 machMachineState_t mach_get_machine_state() {return mach.machine_state;}
 machCycleState_t mach_get_cycle_state() {return mach.cycle_state;}
@@ -664,12 +644,12 @@ void machine_init() {
 /// Alarm state; send an exception report and stop processing input
 stat_t mach_alarm(const char *location, stat_t code) {
   status_message_P(location, STAT_LEVEL_ERROR, code, "ALARM");
-  estop_trigger();
+  estop_trigger(ESTOP_ALARM);
   return code;
 }
 
 
-/// Clear soft alarm
+/// Clear alarm
 stat_t mach_clear() {
   if (mach.cycle_state == CYCLE_OFF)
     mach.machine_state = MACHINE_PROGRAM_STOP;
@@ -700,8 +680,7 @@ void mach_set_distance_mode(machDistanceMode_t mode) {
 
 /* G10 L2 Pn, delayed persistence
  *
- * This function applies the offset to the GM model. You can also
- * use $g54x - $g59c config functions to change offsets.
+ * This function applies the offset to the GM model.
  *
  * It also does not reset the work_offsets which may be
  * accomplished by calling mach_set_work_offsets() immediately
@@ -709,8 +688,7 @@ void mach_set_distance_mode(machDistanceMode_t mode) {
  */
 void mach_set_coord_offsets(machCoordSystem_t coord_system, float offset[],
                             float flag[]) {
-  if (coord_system < G54 || coord_system > COORD_SYSTEM_MAX)
-    return; // you can't set G53
+  if (coord_system < G54 || MAX_COORDS <= coord_system) return;
 
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis]))
@@ -1122,61 +1100,71 @@ void mach_message(const char *message) {
  * functions set flags for these. The sequencing callback interprets the flags
  * according to the following rules:
  *
- *   A feedhold request received during motion should be honored
- *   A feedhold request received during a feedhold should be ignored and reset
- *   A feedhold request received during a motion stop should be ignored and
- *     reset
+ *   Feedhold request received during motion is honored
+ *   Feedhold request received during a feedhold is ignored and reset
+ *   Feedhold request received during a motion stop is ignored and reset
  *
- *   A queue flush request received during motion should be ignored but not
- *     reset
- *   A queue flush request received during a feedhold should be deferred until
+ *   Queue flush request received during motion is ignored but not reset
+ *   Queue flush request received during a feedhold is deferred until
  *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *   A queue flush request received during a motion stop should be honored
+ *   Queue flush request received during a motion stop is honored
  *
- *   A cycle start request received during motion should be ignored and reset
- *   A cycle start request received during a feedhold should be deferred until
+ *   Cycle start request received during motion is ignored and reset
+ *   Cycle start request received during a feedhold is deferred until
  *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *     If a queue flush request is also present the queue flush should be done
- *     first
- *   A cycle start request received during a motion stop should be honored and
- *     should start to run anything in the planner queue
+ *     If a queue flush request is also present the queue flush is done first
+ *   Cycle start request received during a motion stop is honored and starts
+ *     to run anything in the planner queue
  */
 
 
 /// Initiate a feedhold right now
 void mach_request_feedhold() {mach.feedhold_requested = true;}
-void mach_request_queue_flush() {mach.queue_flush_requested = true;}
+
+
+void mach_request_queue_flush(uint16_t id) {
+  if (!id) mach.queue_flush_id = 0;
+  mach.queue_flush_request = id;
+}
+
+
+void mach_end_queue_flush(uint16_t id) {
+  if (mach.queue_flush_request) mach.queue_flush_id = id;
+}
+
+
+bool mach_queue_flushing() {
+  return mach.queue_flush_request &&
+    (int16_t)(mach.queue_flush_id - mach.queue_flush_request) < 0;
+}
+
+
 void mach_request_cycle_start() {mach.cycle_start_requested = true;}
 
 
 /// Process feedholds, cycle starts & queue flushes
 void mach_feedhold_callback() {
-  if (mach.feedhold_requested) {
+  if (mach.feedhold_requested || mach_queue_flushing()) {
     if (mach.motion_state == MOTION_RUN && mach.hold_state == FEEDHOLD_OFF) {
       mach_set_motion_state(MOTION_HOLD);
-      mach.hold_state = FEEDHOLD_SYNC;     // invokes hold from aline execution
+      mach.hold_state = FEEDHOLD_SYNC; // invokes hold from aline execution
     }
 
     mach.feedhold_requested = false;
   }
 
-  if (mach.queue_flush_requested) {
-    if ((mach.motion_state == MOTION_STOP ||
-         (mach.motion_state == MOTION_HOLD &&
-          mach.hold_state == FEEDHOLD_HOLD)) &&
-        !mach_get_runtime_busy()) {
-      mach.queue_flush_requested = false;
-      mach_queue_flush();
-    }
-  }
+  if (mach_queue_flushing() &&
+      (mach.motion_state == MOTION_STOP ||
+       (mach.motion_state == MOTION_HOLD &&
+        mach.hold_state == FEEDHOLD_HOLD)) &&
+      !mach_get_runtime_busy()) mach_queue_flush();
 
   bool processing =
     mach.hold_state == FEEDHOLD_SYNC ||
     mach.hold_state == FEEDHOLD_PLAN ||
     mach.hold_state == FEEDHOLD_DECEL;
 
-  if (mach.cycle_start_requested && !mach.queue_flush_requested &&
-      !processing) {
+  if (mach.cycle_start_requested && !mach_queue_flushing() && !processing) {
     mach.cycle_start_requested = false;
     mach.hold_state = FEEDHOLD_END_HOLD;
     mach_cycle_start();
@@ -1206,8 +1194,9 @@ stat_t mach_queue_flush() {
 
 /* Program and cycle state functions
  *
- * mach_program_end() implements M2 and M30
- * The END behaviors are defined by NIST 3.6.1 are:
+ * mach_program_end() implements M2 and M30.  End behaviors are defined by
+ * NIST 3.6.1 are:
+ *
  *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set
  *       to the default (like G54)
  *    2. Selected plane is set to PLANE_XY (like G17)
@@ -1220,11 +1209,11 @@ stat_t mach_queue_flush() {
  *    9. Coolant is turned off (like M9)
  *
  * mach_program_end() implments things slightly differently:
+ *
  *    1. Axis offsets are set to G92.1 CANCEL offsets
  *       (instead of using G92.2 SUSPEND Offsets)
- *       Set default coordinate system (uses $gco, not G54)
- *    2. Selected plane is set to default plane ($gpl)
- *       (instead of setting it to G54)
+ *       Set default coordinate system
+ *    2. Selected plane is set to default plane
  *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
  *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
  *    5. Not implemented
@@ -1232,10 +1221,10 @@ stat_t mach_queue_flush() {
  *    7. The spindle is stopped (like M5)
  *    8. Motion mode is canceled like G80 (not set to G1)
  *    9. Coolant is turned off (like M9)
- *    +  Default INCHES or MM units mode is restored ($gun)
+ *    +  Default INCHES or MM units mode is restored
  */
 static void _exec_program_finalize(float *value, float *flag) {
-  mach.machine_state = (uint8_t)value[0];
+  mach.machine_state = (machMachineState_t)value[0];
   mach_set_motion_state(MOTION_STOP);
   if (mach.cycle_state == CYCLE_MACHINING)
     mach.cycle_state = CYCLE_OFF;     // don't end cycle if homing, probing, etc
@@ -1286,8 +1275,15 @@ void mach_program_stop() {
 
 /// M1
 void mach_optional_program_stop() {
-  float value[AXES] = {MACHINE_PROGRAM_STOP};
-  mp_queue_command(_exec_program_finalize, value, value);
+  // TODO Check for user stop signal
+  mach_program_stop();
+}
+
+
+/// M60
+void mach_pallet_change_stop() {
+  // TODO Emit pallet change signal
+  mach_program_stop();
 }
 
 

@@ -44,7 +44,7 @@
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
 #include "ringbuf.def"
 
-static int usart_flags = USART_CRLF | USART_ECHO;
+static int usart_flags = USART_CRLF;
 
 
 static void _set_dre_interrupt(bool enable) {

@@ -35,6 +35,7 @@
 #include "estop.h"
 #include "homing.h"
 #include "probing.h"
+#include "i2c.h"
 #include "plan/jog.h"
 #include "plan/calibrate.h"
 #include "plan/buffer.h"
@@ -48,6 +49,40 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+
+
+static char *_cmd = 0;
+
+
+static void _estop()  {estop_trigger(ESTOP_USER);}
+static void _clear()  {estop_clear();}
+static void _pause()  {mach_request_feedhold();}
+static void _run()    {mach_request_cycle_start();}
+static void _flush(uint16_t id) {mach_request_queue_flush(id);}
+static void _step()   {}
+static void _report() {report_request_full();}
+static void _reboot() {hw_request_hard_reset();}
+
+
+static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
+  switch (cmd) {
+  case I2C_ESTOP:  _estop();  break;
+  case I2C_CLEAR:  _clear();  break;
+  case I2C_PAUSE:  _pause();  break;
+  case I2C_RUN:    _run();    break;
+  case I2C_FLUSH:  _flush(*(uint16_t *)data);  break;
+  case I2C_STEP:   _step();   break;
+  case I2C_REPORT: _report(); break;
+  case I2C_HOME: break;
+  case I2C_REBOOT: _reboot(); break;
+  default: break;
+  }
+}
+
+
+void command_init() {
+  i2c_set_read_callback(command_i2c_cb);
+}
 
 
 // Command forward declarations
@@ -152,49 +187,48 @@ int command_parser(char *cmd) {
 
 
 static char *_command_next() {
+  if (_cmd) return _cmd;
+
   // Get next command
-  char *cmd = usart_readline();
-  if (!cmd) return 0;
+  _cmd = usart_readline();
+  if (!_cmd) return 0;
 
   // Remove leading whitespace
-  while (*cmd && isspace(*cmd)) cmd++;
+  while (*_cmd && isspace(*_cmd)) _cmd++;
 
   // Remove trailing whitespace
-  for (size_t len = strlen(cmd); len && isspace(cmd[len - 1]); len--)
-    cmd[len - 1] = 0;
+  for (size_t len = strlen(_cmd); len && isspace(_cmd[len - 1]); len--)
+    _cmd[len - 1] = 0;
 
-  return cmd;
+  return _cmd;
 }
 
 
 void command_callback() {
-  char *cmd = _command_next();
-  if (!cmd) return;
+  if (!_command_next()) return;
 
   stat_t status = STAT_OK;
 
-  switch (*cmd) {
+  switch (*_cmd) {
   case 0: break; // Empty line
-  case '{': status = vars_parser(cmd); break;
-  case '$': status = command_parser(cmd); break;
-  default:
-    if (!cmd[1])
-      switch (*cmd) {
-      case '!': mach_request_feedhold(); return;
-      case '~': mach_request_cycle_start(); return;
-      case '%': mach_request_queue_flush(); return;
-      }
+  case '{': status = vars_parser(_cmd); break;
+  case '$': status = command_parser(_cmd); break;
 
+  default:
     if (estop_triggered()) status = STAT_MACHINE_ALARMED;
-    else if (!mp_get_planner_buffer_room()) status = STAT_BUFFER_FULL;
-    else if (mach_arc_active()) status = STAT_BUFFER_FULL;
-    else if (calibrate_busy()) status = STAT_BUSY;
-    else if (mp_jog_busy()) status = STAT_BUSY;
-    else if (mach_is_homing()) status = STAT_BUSY;
-    else if (mach_is_probing()) status = STAT_BUSY;
-    else status = gc_gcode_parser(cmd);
+
+    else if (!mp_get_planner_buffer_room() ||
+             mach_arc_active() ||
+             mach_is_homing() ||
+             mach_is_probing() ||
+             calibrate_busy() ||
+             mp_jog_busy()) return; // Wait
+
+    // Parse and execute GCode command
+    status = gc_gcode_parser(_cmd);
   }
 
+  _cmd = 0; // Command consumed
   report_request();
 
   if (status) status_error(status);
@@ -221,13 +255,6 @@ uint8_t command_help(int argc, char *argv[]) {
     return STAT_OK;
   }
 
-  puts_P(PSTR("\nSpecial Character Commands:\n"
-              "  !         Feedhold (pause).\n"
-              "  ~         Start cycle (unpause).\n"
-              "  %         Flush queue\n"
-              "\n"
-              "Character commands must be entered alone on a single line."));
-
   puts_P(PSTR("\nLine editing:\n"
               "  ENTER     Submit current command line.\n"
               "  BS        Backspace, delete last character.\n"
@@ -249,7 +276,7 @@ uint8_t command_help(int argc, char *argv[]) {
 
 
 uint8_t command_reboot(int argc, char *argv[]) {
-  hw_request_hard_reset();
+  _reboot();
   return 0;
 }
 
@@ -294,5 +321,20 @@ uint8_t command_sync(int argc, char *argv[]) {
   uint32_t x = strtoul(argv[1], &end, 0);
 
   if (end) printf_P(PSTR("\n{\"sync\": %lu}\n"), x);
+  return 0;
+}
+
+
+uint8_t command_end_flush(int argc, char *argv[]) {
+  uint16_t id = 0;
+  char *end = 0;
+
+  if (argc == 2) {
+    id = strtoul(argv[1], &end, 0);
+    if (!end) return STAT_BAD_NUMBER_FORMAT;
+  }
+
+  mach_end_queue_flush(id);
+
   return 0;
 }

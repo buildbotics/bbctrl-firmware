@@ -265,8 +265,8 @@ typedef enum {
 
 // Gcode defaults
 #define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-#define GCODE_DEFAULT_PLANE         PLANE_XY // See machine.h
-#define GCODE_DEFAULT_COORD_SYSTEM  G54 // G54, G55, G56, G57, G58 or G59
+#define GCODE_DEFAULT_PLANE         PLANE_XY   // See machine.h
+#define GCODE_DEFAULT_COORD_SYSTEM  G54        // G54, G55, G56, G57, G58 or G59
 #define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
 
@@ -393,3 +393,10 @@ typedef enum {
 
 /// Buffers to reserve in planner before processing new input line
 #define PLANNER_BUFFER_HEADROOM 4
+
+
+// I2C
+#define I2C_DEV TWIC
+#define I2C_ISR TWIC_TWIS_vect
+#define I2C_ADDR 0x2b
+#define I2C_MAX_DATA 8

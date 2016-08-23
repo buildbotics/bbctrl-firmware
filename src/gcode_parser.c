@@ -332,10 +332,13 @@ static stat_t _execute_gcode_block() {
   mach_set_absolute_override(false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
-  if (mach.gf.program_flow) {
-    if (mach.gn.program_flow == PROGRAM_STOP) mach_program_stop();
-    else mach_program_end();
-  }
+  if (mach.gf.program_flow)
+    switch (mach.gn.program_flow) {
+    case PROGRAM_STOP: mach_program_stop(); break;
+    case PROGRAM_OPTIONAL_STOP: mach_optional_program_stop(); break;
+    case PROGRAM_PALLET_CHANGE_STOP: mach_pallet_change_stop(); break;
+    case PROGRAM_END: mach_program_end(); break;
+    }
 
   return status;
 }
@@ -473,8 +476,12 @@ static stat_t _parse_gcode_block(char *buf) {
 
     case 'M':
       switch ((uint8_t)value) {
-      case 0: case 1: case 60:
+      case 0:
         SET_MODAL(MODAL_GROUP_M4, program_flow, PROGRAM_STOP);
+      case 1:
+        SET_MODAL(MODAL_GROUP_M4, program_flow, PROGRAM_OPTIONAL_STOP);
+      case 60:
+        SET_MODAL(MODAL_GROUP_M4, program_flow, PROGRAM_PALLET_CHANGE_STOP);
       case 2: case 30:
         SET_MODAL(MODAL_GROUP_M4, program_flow, PROGRAM_END);
       case 3: SET_MODAL(MODAL_GROUP_M7, spindle_mode, SPINDLE_CW);
@@ -534,9 +541,6 @@ stat_t gc_gcode_parser(char *block) {
   char *com = &none;                    // gcode comment or 0 string
   char *msg = &none;                    // gcode message or 0 string
   uint8_t block_delete_flag;
-
-  // don't process Gcode blocks if in alarmed state
-  if (mach.machine_state == MACHINE_ALARM) return STAT_MACHINE_ALARMED;
 
   _normalize_gcode_block(str, &com, &msg, &block_delete_flag);
 

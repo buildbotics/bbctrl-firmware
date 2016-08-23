@@ -30,7 +30,17 @@
 #include <stdbool.h>
 
 
+typedef enum {
+  ESTOP_NONE,
+  ESTOP_USER,
+  ESTOP_SWITCH,
+  ESTOP_LIMIT,
+  ESTOP_ALARM,
+  ESTOP_MAX,
+} estop_reason_t;
+
+
 void estop_init();
 bool estop_triggered();
-void estop_trigger();
+void estop_trigger(estop_reason_t reason);
 void estop_clear();
