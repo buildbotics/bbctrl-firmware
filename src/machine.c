@@ -643,7 +643,7 @@ void machine_init() {
 
 /// Alarm state; send an exception report and stop processing input
 stat_t mach_alarm(const char *location, stat_t code) {
-  status_message_P(location, STAT_LEVEL_ERROR, code, "ALARM");
+  status_message_P(location, STAT_LEVEL_ERROR, code, 0);
   estop_trigger(ESTOP_ALARM);
   return code;
 }

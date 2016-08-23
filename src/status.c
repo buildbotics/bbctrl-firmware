@@ -85,7 +85,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   if (code) printf_P(PSTR(", \"code\": %d"), code);
 
   // Location
-  if (location) printf_P(PSTR(", \"location\": %S"), location);
+  if (location) printf_P(PSTR(", \"location\": \"%S\""), location);
 
   putchar('}');
   putchar('\n');
