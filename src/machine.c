@@ -1118,33 +1118,14 @@ void mach_message(const char *message) {
  */
 
 
-/// Initiate a feedhold right now
 void mach_request_feedhold() {mach.feedhold_requested = true;}
-
-
-void mach_request_queue_flush(uint16_t id) {
-  if (!id) mach.queue_flush_id = 0;
-  mach.queue_flush_request = id;
-}
-
-
-void mach_end_queue_flush(uint16_t id) {
-  if (mach.queue_flush_request) mach.queue_flush_id = id;
-}
-
-
-bool mach_queue_flushing() {
-  return mach.queue_flush_request &&
-    (int16_t)(mach.queue_flush_id - mach.queue_flush_request) < 0;
-}
-
-
+void mach_request_queue_flush() {mach.queue_flush_requested = true;}
 void mach_request_cycle_start() {mach.cycle_start_requested = true;}
 
 
 /// Process feedholds, cycle starts & queue flushes
 void mach_feedhold_callback() {
-  if (mach.feedhold_requested || mach_queue_flushing()) {
+  if (mach.feedhold_requested) {
     if (mach.motion_state == MOTION_RUN && mach.hold_state == FEEDHOLD_OFF) {
       mach_set_motion_state(MOTION_HOLD);
       mach.hold_state = FEEDHOLD_SYNC; // invokes hold from aline execution
@@ -1153,18 +1134,21 @@ void mach_feedhold_callback() {
     mach.feedhold_requested = false;
   }
 
-  if (mach_queue_flushing() &&
+  if (mach.queue_flush_requested &&
       (mach.motion_state == MOTION_STOP ||
        (mach.motion_state == MOTION_HOLD &&
         mach.hold_state == FEEDHOLD_HOLD)) &&
-      !mach_get_runtime_busy()) mach_queue_flush();
+      !mach_get_runtime_busy()) {
+    mach_queue_flush();
+    mach.queue_flush_requested = false;
+  }
 
   bool processing =
     mach.hold_state == FEEDHOLD_SYNC ||
     mach.hold_state == FEEDHOLD_PLAN ||
     mach.hold_state == FEEDHOLD_DECEL;
 
-  if (mach.cycle_start_requested && !mach_queue_flushing() && !processing) {
+  if (mach.cycle_start_requested && !processing) {
     mach.cycle_start_requested = false;
     mach.hold_state = FEEDHOLD_END_HOLD;
     mach_cycle_start();

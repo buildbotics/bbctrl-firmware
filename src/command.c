@@ -58,8 +58,7 @@ static void _estop()  {estop_trigger(ESTOP_USER);}
 static void _clear()  {estop_clear();}
 static void _pause()  {mach_request_feedhold();}
 static void _run()    {mach_request_cycle_start();}
-static void _flush(uint16_t id) {mach_request_queue_flush(id);}
-static void _step()   {}
+static void _step()   {} // TODO
 static void _report() {report_request_full();}
 static void _reboot() {hw_request_hard_reset();}
 
@@ -70,7 +69,6 @@ static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   case I2C_CLEAR:  _clear();  break;
   case I2C_PAUSE:  _pause();  break;
   case I2C_RUN:    _run();    break;
-  case I2C_FLUSH:  _flush(*(uint16_t *)data);  break;
   case I2C_STEP:   _step();   break;
   case I2C_REPORT: _report(); break;
   case I2C_HOME: break;
@@ -312,29 +310,5 @@ uint8_t command_clear(int argc, char *argv[]) {
 
 uint8_t command_messages(int argc, char *argv[]) {
   status_help();
-  return 0;
-}
-
-
-uint8_t command_sync(int argc, char *argv[]) {
-  char *end = 0;
-  uint32_t x = strtoul(argv[1], &end, 0);
-
-  if (end) printf_P(PSTR("\n{\"sync\": %lu}\n"), x);
-  return 0;
-}
-
-
-uint8_t command_end_flush(int argc, char *argv[]) {
-  uint16_t id = 0;
-  char *end = 0;
-
-  if (argc == 2) {
-    id = strtoul(argv[1], &end, 0);
-    if (!end) return STAT_BAD_NUMBER_FORMAT;
-  }
-
-  mach_end_queue_flush(id);
-
   return 0;
 }

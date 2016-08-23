@@ -397,8 +397,7 @@ typedef struct { // struct to manage mach globals and cycles
   float probe_results[AXES];           // probing results
 
   bool feedhold_requested;
-  uint16_t queue_flush_request;        // queue flush request id
-  uint16_t queue_flush_id;             // latest queue flush request id
+  bool queue_flush_requested;
   bool cycle_start_requested;
 
   // Model states
@@ -525,8 +524,7 @@ void mach_message(const char *message);
 
 // Program Functions (4.3.10)
 void mach_request_feedhold();
-void mach_request_queue_flush(uint16_t id);
-void mach_end_queue_flush(uint16_t id);
+void mach_request_queue_flush();
 void mach_request_cycle_start();
 
 void mach_feedhold_callback();
