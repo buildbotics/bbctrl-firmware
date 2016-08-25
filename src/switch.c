@@ -44,9 +44,6 @@
  */
 
 #include "switch.h"
-
-#include "hardware.h"
-#include "machine.h"
 #include "config.h"
 
 #include <avr/interrupt.h>
@@ -167,10 +164,6 @@ void switch_rtc_callback() {
     if (!s->count) { // switch triggered
       s->debounce = SW_LOCKOUT;
       if (s->cb) s->cb(i, s->state);
-
-      // TODO fix this
-      if (mach.cycle_state == CYCLE_HOMING || mach.cycle_state == CYCLE_PROBE)
-        mach_request_feedhold();
     }
   }
 }

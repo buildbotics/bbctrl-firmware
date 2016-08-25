@@ -29,4 +29,3 @@
 
 
 void mp_plan_hold_callback();
-void mp_end_hold();

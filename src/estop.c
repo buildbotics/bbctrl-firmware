@@ -73,8 +73,7 @@ void estop_init() {
 
   switch_set_callback(SW_ESTOP, _switch_callback);
 
-  // Check switch state
-
+  if (estop.triggered) mach_set_state(STATE_ESTOP);
 
   // Fault signal
   if (estop.triggered) OUTSET_PIN(FAULT_PIN); // High
@@ -95,8 +94,8 @@ void estop_trigger(estop_reason_t reason) {
   st_shutdown();
   mach_spindle_estop();
 
-  // Set alarm state
-  mach_set_machine_state(MACHINE_ALARM);
+  // Set machine state
+  mach_set_state(STATE_ESTOP);
 
   // Set axes not homed
   mach_set_not_homed();

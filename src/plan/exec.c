@@ -70,7 +70,7 @@ static stat_t _exec_aline_segment() {
   // compute target from segment time and velocity Don't do waypoint
   // correction if you are going into a hold.
   if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
-      mach.motion_state == MOTION_RUN && mach.cycle_state == CYCLE_MACHINING)
+      mach_get_state() == STATE_RUNNING)
     copy_vector(mr.ms.target, mr.waypoint[mr.section]);
 
   else {
@@ -717,7 +717,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
       // prevent overplanning (Note 2)
       bf->nx->replannable = false;
       // free buffer & end cycle if planner is empty
-      if (mp_free_run_buffer()) mach_cycle_end();
+      mach_advance_buffer();
 
       return STAT_NOOP;
     }
@@ -772,7 +772,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   // Look for the end of the decel to go into HOLD state
   if (mach.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
     mach.hold_state = FEEDHOLD_HOLD;
-    mach_set_motion_state(MOTION_HOLD);
+    mach_set_state(STATE_HOLDING);
     report_request();
   }
 
@@ -789,8 +789,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     mr.section_state = SECTION_OFF;
     bf->nx->replannable = false; // prevent overplanning (Note 2)
 
-    if (bf->move_state == MOVE_RUN && mp_free_run_buffer())
-      mach_cycle_end(); // free buffer & end cycle if planner is empty
+    if (bf->move_state == MOVE_RUN) mach_advance_buffer();
   }
 
   return status;
@@ -804,10 +803,10 @@ stat_t mp_exec_move() {
   if (!bf) return STAT_NOOP; // nothing's running
   if (estop_triggered()) return STAT_MACHINE_ALARMED;
 
-  // Manage cycle and motion state transitions
+  // Manage state transitions
   // Cycle auto-start for lines only
-  if (bf->move_type == MOVE_TYPE_ALINE && mach.motion_state == MOTION_STOP)
-    mach_set_motion_state(MOTION_RUN);
+  if (bf->move_type == MOVE_TYPE_ALINE && mach_get_state() == STATE_IDLE)
+    mach_set_state(STATE_RUNNING);
 
   if (!bf->bf_func)
     return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here

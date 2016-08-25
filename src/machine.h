@@ -42,53 +42,15 @@
 
 
 
-/* Machine state model
- *
- * The following main variables track machine state and state transitions.
- *
- *   machine_state  - overall state of machine and program execution
- *   cycle_state    - what cycle the machine is executing (or none)
- *   motion_state   - state of movement
- *
- * Allowed states:
- *
- *   MACHINE STATE     CYCLE STATE   MOTION_STATE
- *   -------------     ------------  -------------
- *   MACHINE_READY     CYCLE_OFF     MOTION_STOP
- *   MACHINE_PROG_STOP CYCLE_OFF     MOTION_STOP
- *   MACHINE_PROG_END  CYCLE_OFF     MOTION_STOP
- *
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_STOP
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_RUN
- *   MACHINE_CYCLE     CYCLE_STARTED MOTION_HOLD
- *
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_STOP
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_RUN
- *   MACHINE_CYCLE     CYCLE_HOMING  MOTION_HOLD
- */
-
 typedef enum {
-  MACHINE_READY,        // machine is ready for use
-  MACHINE_ALARM,        // machine in alarm state
-  MACHINE_PROGRAM_STOP, // program stop or no more blocks
-  MACHINE_PROGRAM_END,  // program end
-  MACHINE_CYCLE,        // machine is running (cycling)
-} machMachineState_t;
-
-
-typedef enum {
-  CYCLE_OFF,            // machine is idle
-  CYCLE_MACHINING,      // in normal machining cycle
-  CYCLE_PROBE,          // in probe cycle
-  CYCLE_HOMING,         // homing is treated as a specialized cycle
-} machCycleState_t;
-
-
-typedef enum {
-  MOTION_STOP,          // motion has stopped
-  MOTION_RUN,           // machine is in motion
-  MOTION_HOLD,          // feedhold in progress
-} machMotionState_t;
+  STATE_IDLE,
+  STATE_ESTOP,
+  STATE_RUNNING,
+  STATE_HOMING,
+  STATE_PROBING,
+  STATE_STOPPING,
+  STATE_HOLDING,
+} machState_t;
 
 
 typedef enum {          // feedhold_state machine
@@ -97,7 +59,6 @@ typedef enum {          // feedhold_state machine
   FEEDHOLD_PLAN,        // replan blocks for feedhold
   FEEDHOLD_DECEL,       // decelerate to hold point
   FEEDHOLD_HOLD,        // holding
-  FEEDHOLD_END_HOLD,    // end hold (transient state to OFF)
 } machFeedholdState_t;
 
 
@@ -386,9 +347,7 @@ typedef struct { // struct to manage mach globals and cycles
   // settings for axes X,Y,Z,A B,C
   AxisConfig_t a[AXES];
 
-  machMachineState_t machine_state;
-  machCycleState_t cycle_state;
-  machMotionState_t motion_state;
+  machState_t _state;
   machFeedholdState_t hold_state;      // hold: feedhold sub-state machine
   machHomingState_t homing_state;      // home: homing cycle sub-state machine
   bool homed[AXES];                    // individual axis homing flags
@@ -413,9 +372,8 @@ extern machine_t mach;                 // machine controller singleton
 
 // Model state getters and setters
 uint32_t mach_get_line();
-machMachineState_t mach_get_machine_state();
-machCycleState_t mach_get_cycle_state();
-machMotionState_t mach_get_motion_state();
+inline machState_t mach_get_state() {return mach._state;}
+bool mach_is_running();
 machFeedholdState_t mach_get_hold_state();
 machHomingState_t mach_get_homing_state();
 machMotionMode_t mach_get_motion_mode();
@@ -430,8 +388,7 @@ machSpindleMode_t mach_get_spindle_mode();
 bool mach_get_runtime_busy();
 float mach_get_feed_rate();
 
-void mach_set_machine_state(machMachineState_t machine_state);
-void mach_set_motion_state(machMotionState_t motion_state);
+void mach_set_state(machState_t state);
 void mach_set_motion_mode(machMotionMode_t motion_mode);
 void mach_set_spindle_mode(machSpindleMode_t spindle_mode);
 void mach_set_spindle_speed_parameter(float speed);
@@ -463,9 +420,10 @@ stat_t mach_test_soft_limits(float target[]);
 void machine_init();
 /// enter alarm state. returns same status code
 stat_t mach_alarm(const char *location, stat_t status);
-stat_t mach_clear();
 
 #define CM_ALARM(CODE) mach_alarm(STATUS_LOCATION, CODE)
+#define CM_ASSERT(COND) \
+  do {if (!(COND)) CM_ALARM(STAT_INTERNAL_ERROR);} while (0)
 
 // Representation (4.3.3)
 void mach_set_plane(machPlane_t plane);
@@ -538,5 +496,6 @@ void mach_optional_program_stop();
 void mach_pallet_change_stop();
 void mach_program_end();
 
-// Cycles
+void mach_advance_buffer();
+
 char mach_get_axis_char(int8_t axis);

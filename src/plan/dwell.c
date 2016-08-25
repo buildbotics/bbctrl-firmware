@@ -42,7 +42,7 @@ static stat_t _exec_dwell(mpBuf_t *bf) {
   st_prep_dwell(bf->ms.move_time); // in seconds
 
   // free buffer & perform cycle_end if planner is empty
-  if (mp_free_run_buffer()) mach_cycle_end();
+  mach_advance_buffer();
 
   return STAT_OK;
 }

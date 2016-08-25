@@ -61,12 +61,7 @@ struct pbProbingSingleton {       // persistent probing runtime variables
 static struct pbProbingSingleton pb;
 
 
-/* All mach_probe_cycle_start does is prevent any new commands from
- * queueing to the planner so that the planner can move to a sop and
- * report MACHINE_PROGRAM_STOP.  OK, it also queues the function
- * that's called once motion has stopped.
- *
- * Note: When coding a cycle (like this one) you get to perform one
+/* Note: When coding a cycle (like this one) you get to perform one
  * queued move per entry into the continuation, then you must exit.
  *
  * Another Note: When coding a cycle (like this one) you must wait
@@ -94,7 +89,6 @@ static void _probe_restore_settings() {
   // update the model with actual position
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
   mach_cycle_end();
-  mach.cycle_state = CYCLE_OFF;
 }
 
 
@@ -146,7 +140,7 @@ static void _probing_init() {
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
   mach.probe_state = PROBE_FAILED;
-  mach.cycle_state = CYCLE_PROBE;
+  mach_set_state(STATE_PROBING);
 
   // initialize the axes - save the jerk settings & switch to the jerk_homing
   // settings
@@ -181,7 +175,7 @@ static void _probing_init() {
 
 
 bool mach_is_probing() {
-  return mach.cycle_state == CYCLE_PROBE || mach.probe_state == PROBE_WAITING;
+  return mach_get_state() == STATE_PROBING || mach.probe_state == PROBE_WAITING;
 }
 
 

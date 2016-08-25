@@ -168,9 +168,9 @@ mpBuf_t *mp_get_run_buffer() {
  * Returns true if queue is empty, false otherwise.
  * This is useful for doing queue empty / end move functions.
  */
-uint8_t mp_free_run_buffer() {           // EMPTY current run buf & adv to next
-  mp_clear_buffer(mb.r);                 // clear it out (& reset replannable)
-  mb.r = mb.r->nx;                       // advance to next run buffer
+bool mp_free_run_buffer() {           // EMPTY current run buf & adv to next
+  mp_clear_buffer(mb.r);              // clear it out (& reset replannable)
+  mb.r = mb.r->nx;                    // advance to next run buffer
 
   if (mb.r->buffer_state == MP_BUFFER_QUEUED) // only if queued...
     mb.r->buffer_state = MP_BUFFER_PENDING;   // pend next buffer

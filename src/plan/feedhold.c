@@ -39,14 +39,11 @@
 #include <math.h>
 
 /* Feedhold is executed as mach.hold_state transitions executed inside
- * _exec_aline() and main loop callbacks to these functions:
- * mp_plan_hold_callback() and mp_end_hold().
+ * _exec_aline() and main loop callbacks to mp_plan_hold_callback()
  *
  * Holds work like this:
  *
- * - Hold is asserted by calling mach_feedhold() (usually invoked via a
- *   ! char) If hold_state is OFF and motion_state is RUNning it sets
- *   hold_state to SYNC and motion_state to HOLD.
+ * - Hold is asserted by calling mach_feedhold()
  *
  * - Hold state == SYNC tells the aline exec routine to execute the
  *   next aline segment then set hold_state to PLAN. This gives the
@@ -66,12 +63,6 @@
  *   start is an asynchronous event that sets the cycle_start_flag
  *   TRUE. It can occur any time after the hold is requested - either
  *   before or after motion stops.
- *
- * - mp_end_hold() is executed from mach_feedhold_sequencing_callback()
- *   once the hold state == HOLD and a cycle_start has been
- *   requested.This sets the hold state to OFF which enables
- *   _exec_aline() to continue processing. Move execution begins with
- *   the first buffer after the hold.
  *
  * Terms used:
  *  - mr is the runtime buffer. It was initially loaded from the bf
@@ -221,16 +212,4 @@ void mp_plan_hold_callback() {
   _reset_replannable_list();      // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
   mach.hold_state = FEEDHOLD_DECEL; // set state to decelerate and exit
-}
-
-
-/// End a feedhold, release the hold and restart block list
-void mp_end_hold() {
-  if (mach.hold_state == FEEDHOLD_END_HOLD) {
-    mach.hold_state = FEEDHOLD_OFF;
-
-    // 0 means nothing's running
-    if (!mp_get_run_buffer()) mach_set_motion_state(MOTION_STOP);
-    else mach.motion_state = MOTION_RUN;
-  }
 }
