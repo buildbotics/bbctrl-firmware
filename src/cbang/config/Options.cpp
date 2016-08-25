@@ -138,25 +138,21 @@ ostream &Options::print(ostream &stream) const {
   const_iterator it;
   unsigned width = 30;
 
-  for (it = begin(); it != end(); it++) {
-    string name = it->second->getName();
-
-    if (!name.empty() && name[0] != '_') {
-      unsigned len = name.length();
+  // Determine max width
+  for (it = begin(); it != end(); it++)
+    if (!it->second->isHidden()) {
+      unsigned len = it->second->getName().length();
       if (width < len) width = len;
     }
-  }
 
-  for (it = begin(); it != end(); it++) {
-    string name = it->second->getName();
-
-    if (!name.empty() && name[0] != '_') {
-      stream << setw(width) << name << " = ";
+  // Print
+  for (it = begin(); it != end(); it++)
+    if (!it->second->isHidden()) {
+      stream << setw(width) << it->second->getName() << " = ";
 
       if (it->second->hasValue()) stream << *it->second << '\n';
       else stream << "<undefined>" << '\n';
     }
-  }
 
   return stream;
 }

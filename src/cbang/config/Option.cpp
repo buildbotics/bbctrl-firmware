@@ -123,6 +123,11 @@ bool Option::isDefault() const {
 }
 
 
+bool Option::isHidden() const {
+  return isDepreciated() || name.empty() || name[0] == '_';
+}
+
+
 void Option::reset() {
   if (!isSet() && value.empty()) return;  // Don't run action
 
@@ -141,6 +146,8 @@ void Option::unset() {
 
 
 void Option::set(const string &value) {
+  if (isDepreciated())
+    THROWS("Option '" << name << "' has been depreciated: " << help);
   if (isSet() && this->value == value) return;
 
   uint32_t oldFlags = flags;
@@ -405,10 +412,13 @@ ostream &Option::printHelp(ostream &stream, bool cmdLine) const {
     stream << (isOptional() ? ']' : '>');
   }
 
+  // Depreciated
+  if (isDepreciated()) stream << " (Depreciated)";
+
   // Help
   unsigned width = 80;
-  const char *ohw = SystemUtilities::getenv("OPTIONS_HELP_WIDTH");
   try {
+    const char *ohw = SystemUtilities::getenv("OPTIONS_HELP_WIDTH");
     if (ohw) width = String::parseU32(ohw);
   } CATCH_WARNING;
 
@@ -530,6 +540,7 @@ void Option::write(JSON::Sink &sink, bool config, const string &delims) const {
   if (shortName) sink.insert("short", string(1, shortName));
   if (isSet()) sink.insertBoolean("set", true);
   if (isCommandLine()) sink.insertBoolean("command_line", true);
+  if (isDepreciated()) sink.insertBoolean("depreciated", true);
   if (!constraint.isNull()) sink.insert("constraint", constraint->getHelp());
 
   sink.endDict();

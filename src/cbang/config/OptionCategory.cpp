@@ -60,12 +60,11 @@ void OptionCategory::write(JSON::Sink &sink, bool config,
   options_t::const_iterator it;
   for (it = options.begin(); it != options.end(); it++) {
     Option &option = *it->second;
-    const string &name = option.getName();
 
     if (config && !option.isSet()) continue;
 
-    if (!name.empty() && name[0] != '_') {
-      sink.beginInsert(name);
+    if (!option.isHidden()) {
+      sink.beginInsert(option.getName());
       option.write(sink, config, delims);
     }
   }
@@ -120,12 +119,9 @@ void OptionCategory::printHelpTOC(XMLHandler &handler,
   handler.startElement("ul");
 
   options_t::const_iterator it;
-  for (it = options.begin(); it != options.end(); it++) {
-    const string &name = it->second->getName();
-
-    if (!name.empty() && name[0] != '_')
+  for (it = options.begin(); it != options.end(); it++)
+    if (!it->second->isHidden())
       it->second->printHelpTOC(handler, prefix);
-  }
 
   handler.endElement("ul");
   handler.endElement("li");
@@ -157,12 +153,9 @@ void OptionCategory::printHelp(XMLHandler &handler,
   }
 
   options_t::const_iterator it;
-  for (it = options.begin(); it != options.end(); it++) {
-    const string &name = it->second->getName();
-
-    if (!name.empty() && name[0] != '_')
+  for (it = options.begin(); it != options.end(); it++)
+    if (!it->second->isHidden())
       it->second->printHelp(handler, prefix);
-  }
 
   handler.endElement("div");
 }
@@ -174,13 +167,10 @@ void OptionCategory::printHelp(ostream &stream, bool cmdLine) const {
 
   bool first = true;
   options_t::const_iterator it;
-  for (it = options.begin(); it != options.end(); it++) {
-    const string &name = it->second->getName();
-
-    if (!name.empty() && name[0] != '_') {
+  for (it = options.begin(); it != options.end(); it++)
+    if (!it->second->isHidden()) {
       if (first) first = false;
       else stream << "\n\n";
       it->second->printHelp(stream, cmdLine);
     }
-  }
 }

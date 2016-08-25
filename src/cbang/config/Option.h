@@ -76,6 +76,7 @@ namespace cb {
       OPTIONAL_FLAG     = 1 << 2,
       OBSCURED_FLAG     = 1 << 3,
       COMMAND_LINE_FLAG = 1 << 4,
+      DEPRECIATED_FLAG  = 1 << 5,
     } flags_t;
 
   protected:
@@ -130,6 +131,9 @@ namespace cb {
     bool isPlural() const {return type >= STRINGS_TYPE;}
     void setCommandLine() {flags |= COMMAND_LINE_FLAG;}
     bool isCommandLine() const {return flags & COMMAND_LINE_FLAG;}
+    void setDepreciated() {flags |= DEPRECIATED_FLAG;}
+    bool isDepreciated() const {return flags & DEPRECIATED_FLAG;}
+    bool isHidden() const;
 
     const std::string &getHelp() const {return help;}
     void setHelp(const std::string &help) {this->help = help;}
