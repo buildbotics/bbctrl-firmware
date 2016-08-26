@@ -49,7 +49,7 @@ using namespace cb::Script;
 
 
 Environment::Environment(const Environment &env) :
-  map<string, Entity *>(env), parent(env.parent), name(env.name) {}
+  map<string, SmartPointer<Entity> >(env), parent(env.parent), name(env.name) {}
 
 
 Environment::Environment(const string &name, Handler *parent) :
@@ -61,13 +61,7 @@ Environment::Environment(const string &name, Handler *parent) :
 }
 
 
-Environment::~Environment() {
-  for (iterator it = begin(); it != end(); it++)
-    delete it->second;
-}
-
-
-Entity *Environment::add(Entity *e) {
+const SmartPointer<Entity> &Environment::add(const SmartPointer<Entity> &e) {
   if (!insert(value_type(e->getName(), e)).second)
     THROWS("Environment already has '" << e->getName() << "'");
 
@@ -81,11 +75,11 @@ void Environment::set(const string &name, const string &value) {
   if (it == end()) add(new Variable(name, value));
 
   else {
-    Entity *e = it->second;
+    const SmartPointer<Entity> &e = it->second;
     if (e->getType() != Entity::VARIABLE)
       THROWS("'" << name << "' is not a variable in this context");
 
-    ((Variable *)e)->set(value);
+    e.cast<Variable>()->set(value);
   }
 }
 
@@ -99,16 +93,6 @@ void Environment::setf(const char *key, const char *value, ...) {
 }
 
 
-void Environment::unset(const string &name) {
-  iterator it = find(name);
-
-  if (it != end()) {
-    delete it->second;
-    erase(it);
-  }
-}
-
-
 bool Environment::eval(const Context &ctx) {
   if (!ctx.args.size()) THROW("Internal error: Missing arg 0");
 
@@ -118,25 +102,25 @@ bool Environment::eval(const Context &ctx) {
     return false;
   }
 
-  localEval(ctx, it->second);
+  localEval(ctx, *it->second);
 
   return true;
 }
 
 
-void Environment::localEval(const Context &ctx, Entity *e) {
-  e->validate(ctx.args);
+void Environment::localEval(const Context &ctx, Entity &e) {
+  e.validate(ctx.args);
 
-  if (e->evalArgs()) {
+  if (e.evalArgs()) {
     Arguments args;
     args.push_back(ctx.args[0]);
 
     for (unsigned i = 1; i < ctx.args.size(); i++)
       args.push_back(ctx.handler.eval(ctx.args[i]));
 
-    e->eval(Context(ctx, args));
+    e.eval(Context(ctx, args));
 
-  } else e->eval(ctx);
+  } else e.eval(ctx);
 }
 
 
@@ -148,9 +132,9 @@ void Environment::evalHelp(const Context &ctx) {
       return;
     }
 
-    Entity *e = it->second;
-    if (e->getHelp() == "") ctx.stream << "No help for '" << ctx.args[0] << "'";
-    else e->printHelpLine(ctx.stream);
+    Entity &e = *it->second;
+    if (e.getHelp() == "") ctx.stream << "No help for '" << ctx.args[0] << "'";
+    else e.printHelpLine(ctx.stream);
 
   } else {
     bool printedName = false;

@@ -39,12 +39,14 @@
 #include "MemberFunctor.h"
 #include "BareMemberFunctor.h"
 
+#include <cbang/SmartPointer.h>
+
 #include <map>
 
 namespace cb {
   namespace Script {
     class Environment :
-      public Handler, protected std::map<std::string, Entity *> {
+      public Handler, protected std::map<std::string, SmartPointer<Entity> > {
     protected:
       Handler *parent;
       const std::string name;
@@ -52,31 +54,30 @@ namespace cb {
     public:
       Environment(const Environment &env);
       Environment(const std::string &name, Handler *parent = 0);
-      virtual ~Environment();
 
       const std::string &getName() const {return name;}
 
-      Entity *add(Entity *e);
+      const SmartPointer<Entity> &add(const SmartPointer<Entity> &e);
 
-      template <class T>
-      Entity *addMember(const std::string &name, T *obj,
-                        typename Script::MemberFunctor<T>::member_t member,
-                        unsigned minArgs = 0, unsigned maxArgs = 0,
-                        const std::string &help = "",
-                        const std::string &argHelp = "",
-                        bool autoEvalArgs = true) {
+      template <class T> const SmartPointer<Entity> &
+      addMember(const std::string &name, T *obj,
+                typename Script::MemberFunctor<T>::member_t member,
+                unsigned minArgs = 0, unsigned maxArgs = 0,
+                const std::string &help = "",
+                const std::string &argHelp = "",
+                bool autoEvalArgs = true) {
         return add(new Script::MemberFunctor<T>
                    (name, obj, member, minArgs, maxArgs, help, argHelp,
                     autoEvalArgs));
       }
 
-      template <class T>
-      Entity *addMember(const std::string &name, T *obj,
-                        typename Script::BareMemberFunctor<T>::member_t member,
-                        unsigned minArgs = 0, unsigned maxArgs = 0,
-                        const std::string &help = "",
-                        const std::string &argHelp = "",
-                        bool autoEvalArgs = true) {
+      template <class T> const SmartPointer<Entity> &
+      addMember(const std::string &name, T *obj,
+                typename Script::BareMemberFunctor<T>::member_t member,
+                unsigned minArgs = 0, unsigned maxArgs = 0,
+                const std::string &help = "",
+                const std::string &argHelp = "",
+                bool autoEvalArgs = true) {
         return add(new Script::BareMemberFunctor<T>
                    (name, obj, member, minArgs, maxArgs, help, argHelp,
                     autoEvalArgs));
@@ -84,13 +85,13 @@ namespace cb {
 
       void set(const std::string &name, const std::string &value);
       void setf(const char *key, const char *value, ...);
-      void unset(const std::string &name);
+      void unset(const std::string &name) {erase(name);}
 
       // From Handler
       using Handler::eval;
       bool eval(const Context &ctx);
 
-      virtual void localEval(const Context &ctx, Entity *e);
+      virtual void localEval(const Context &ctx, Entity &e);
 
       void evalHelp(const Context &ctx);
       void evalSet(const Context &ctx);
