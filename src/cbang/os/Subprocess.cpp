@@ -98,12 +98,14 @@ namespace {
 #else
     int handles[2];
 #endif
+    bool closeHandles[2];
 
     SmartPointer<iostream> stream;
 
 
     explicit Pipe(bool toChild) : toChild(toChild) {
       handles[0] = handles[1] = 0;
+      closeHandles[0] = closeHandles[1] = false;
     }
 
 
@@ -127,6 +129,8 @@ namespace {
 #else
       if (pipe(handles)) THROWS("Failed to create pipe: " << SysError());
 #endif
+
+      closeHandles[0] = closeHandles[1] = true;
     }
 
 
@@ -144,13 +148,13 @@ namespace {
 
     void close() {
       for (unsigned i = 0; i < 2; i++)
-        if (handles[i]) {
+        if (closeHandles[i]) {
 #ifdef _WIN32
           CloseHandle(handles[i]);
 #else
           ::close(handles[i]);
 #endif
-          handles[i] = 0;
+          closeHandles[i] = false;
         }
     }
 
@@ -160,11 +164,11 @@ namespace {
 
       if (toChild) {
         stream = new stream_t(handles[1], BOOST_CLOSE_HANDLE);
-        handles[1] = 0; // Don't close this end later in close()
+        closeHandles[1] = false; // Don't close this end later in close()
 
       } else {
         stream = new stream_t(handles[0], BOOST_CLOSE_HANDLE);
-        handles[0] = 0; // Don't close this end later in close()
+        closeHandles[0] = false; // Don't close this end later in close()
       }
     }
 
