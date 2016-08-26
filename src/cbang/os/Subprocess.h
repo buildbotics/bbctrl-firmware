@@ -116,8 +116,10 @@ namespace cb {
     static std::string assemble(const std::vector<std::string> &args);
 
   protected:
-    void closeHandles();
+    void closeProcessHandles();
+    void closeStreams();
     void closePipes();
+    void closeHandles();
   };
 }
 

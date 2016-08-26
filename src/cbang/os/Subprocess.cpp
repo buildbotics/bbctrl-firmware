@@ -211,6 +211,7 @@ Subprocess::Subprocess() :
 
 
 Subprocess::~Subprocess() {
+  closeHandles();
   zap(p);
 }
 
@@ -278,7 +279,7 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
   signalGroup = flags & CREATE_PROCESS_GROUP;
 
   // Close any open handles
-  //closeHandles();
+  closeHandles();
 
   try {
     // Create pipes
@@ -536,12 +537,12 @@ int Subprocess::wait(bool nonblocking) {
         ThreadsType::LINUX_THREADS && errno == ECHILD) return 0;
 #endif // _WIN32
 
-    closeHandles();
+    closeProcessHandles();
     running = false;
     throw;
   }
 
-  if (!running) closeHandles();
+  if (!running) closeProcessHandles();
 
   return returnCode;
 }
@@ -647,21 +648,29 @@ string Subprocess::assemble(const vector<string> &args) {
 }
 
 
-void Subprocess::closeHandles() {
+void Subprocess::closeProcessHandles() {
 #ifdef _WIN32
   // Close process & thread handles
   if (p->pi.hProcess) {CloseHandle(p->pi.hProcess); p->pi.hProcess = 0;}
   if (p->pi.hThread) {CloseHandle(p->pi.hThread); p->pi.hThread = 0;}
 #endif
+}
 
+
+void Subprocess::closeStreams() {
   for (unsigned i = 0; i < p->pipes.size(); i++)
     p->pipes[i].closeStream();
-
-  closePipes();
 }
 
 
 void Subprocess::closePipes() {
   for (unsigned i = 0; i < p->pipes.size(); i++)
     p->pipes[i].close();
+}
+
+
+void Subprocess::closeHandles() {
+  closeProcessHandles();
+  closeStreams();
+  closePipes();
 }
