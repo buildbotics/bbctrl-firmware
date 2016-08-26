@@ -57,30 +57,38 @@ void LineBuffer::write(const char *data, unsigned length) {
 
 
 void LineBuffer::read(istream &stream) {
-  streamsize space = bufferSize - fill;
+  while (true) {
+    streamsize space = bufferSize - fill;
 
-  stream.read(buffer + fill, space);
-  streamsize bytes = stream.gcount();
+    stream.read(buffer + fill, space);
+    streamsize bytes = stream.gcount();
 
-  if (!bytes) return;
+    if (!bytes) break;
 
-  fill += bytes;
-  extractLines();
+    fill += bytes;
+    extractLines();
+
+    if (bytes < space) break;
+  }
 }
 
 
 void LineBuffer::read(int fd) {
-  unsigned space = bufferSize - fill;
+  while (true) {
+    unsigned space = bufferSize - fill;
 
-  ssize_t bytes = ::read(fd, buffer + fill, space);
+    ssize_t bytes = ::read(fd, buffer + fill, space);
 
-  if (bytes == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
-    THROWS("Failed to read file descriptor: " << SysError());
+    if (bytes == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
+      THROWS("Failed to read file descriptor: " << SysError());
 
-  if (bytes <= 0) return;
+    if (bytes <= 0) break;
 
-  fill += bytes;
-  extractLines();
+    fill += bytes;
+    extractLines();
+
+    if (bytes < space) break;
+  }
 }
 
 
