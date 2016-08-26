@@ -38,7 +38,7 @@
 
 namespace cb {
   class LineBuffer {
-    static const unsigned bufferSize = 4096;
+    static const unsigned bufferSize = 64 * 1024;
     char buffer[bufferSize];
     unsigned fill;
 
