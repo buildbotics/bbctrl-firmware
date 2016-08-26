@@ -56,6 +56,21 @@ void LineBuffer::write(const char *data, unsigned length) {
 }
 
 
+void LineBuffer::read(istream &stream) {
+  while (true) {
+    streamsize space = bufferSize - fill;
+
+    stream.read(buffer + fill, space);
+    streamsize bytes = stream.gcount();
+
+    if (!bytes) return;
+
+    fill += bytes;
+    extractLines();
+  }
+}
+
+
 void LineBuffer::read(int fd) {
   while (true) {
     unsigned space = bufferSize - fill;
@@ -69,6 +84,14 @@ void LineBuffer::read(int fd) {
 
     fill += bytes;
     extractLines();
+  }
+}
+
+
+void LineBuffer::flush() {
+  if (fill) {
+    line(buffer, bufferSize);
+    fill = 0;
   }
 }
 
@@ -96,8 +119,5 @@ void LineBuffer::extractLines() {
   }
 
   // Dump buffer if full
-  if (fill == bufferSize) {
-    line(buffer, bufferSize);
-    fill = 0;
-  }
+  if (fill == bufferSize) flush();
 }

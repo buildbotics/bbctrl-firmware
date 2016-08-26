@@ -30,33 +30,27 @@
 
 \******************************************************************************/
 
-#ifndef CB_LINE_BUFFER_H
-#define CB_LINE_BUFFER_H
+#ifndef CB_STREAM_LINE_BUFFER_H
+#define CB_STREAM_LINE_BUFFER_H
+
+#include "LineBuffer.h"
 
 #include <iostream>
 
 
 namespace cb {
-  class LineBuffer {
-    static const unsigned bufferSize = 4096;
-    char buffer[bufferSize];
-    unsigned fill;
+  class StreamLineBuffer : public LineBuffer {
+    std::ostream &stream;
 
   public:
-    LineBuffer() : fill(0) {}
-    virtual ~LineBuffer() {}
+    StreamLineBuffer(std::ostream &stream) : stream(stream) {}
 
-    void write(const char *data, unsigned length);
-    void read(std::istream &stream);
-    void read(int fd);
-
-    void flush();
-
-    virtual void line(const char *data, unsigned length) = 0;
-
-  protected:
-    void extractLines();
+    // From LineBuffer
+    void line(const char *data, unsigned length) {
+      stream.write(data, length);
+      stream << '\n';
+    }
   };
 }
 
-#endif // CB_LINE_BUFFER_H
+#endif // CB_STREAM_LINE_BUFFER_H
