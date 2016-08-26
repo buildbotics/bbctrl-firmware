@@ -39,9 +39,11 @@
 using namespace cb;
 using namespace std;
 
+
 TemporaryDirectory::TemporaryDirectory(const string &parent) {
   path = SystemUtilities::createTempDir(parent);
 }
+
 
 TemporaryDirectory::~TemporaryDirectory() {
   try {

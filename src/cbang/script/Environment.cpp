@@ -48,6 +48,10 @@ using namespace cb;
 using namespace cb::Script;
 
 
+Environment::Environment(const Environment &env) :
+  map<string, Entity *>(env), parent(env.parent), name(env.name) {}
+
+
 Environment::Environment(const string &name, Handler *parent) :
   parent(parent ? parent : &StdLibrary::instance()), name(name) {
   typedef MemberFunctor<Environment> MF;

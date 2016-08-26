@@ -50,6 +50,7 @@ namespace cb {
       const std::string name;
 
     public:
+      Environment(const Environment &env);
       Environment(const std::string &name, Handler *parent = 0);
       virtual ~Environment();
 
