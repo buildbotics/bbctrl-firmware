@@ -75,7 +75,7 @@ void LineBuffer::read(istream &stream) {
 
 void LineBuffer::read(int fd) {
   while (true) {
-    unsigned space = bufferSize - fill;
+    ssize_t space = bufferSize - fill;
 
     ssize_t bytes = ::read(fd, buffer + fill, space);
 
