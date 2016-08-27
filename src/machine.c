@@ -183,6 +183,7 @@ machine_t mach = {
   },
 
   ._state = STATE_IDLE,
+  ._cycle = CYCLE_MACHINING,
 
   // State
   .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
@@ -203,14 +204,29 @@ static void _exec_absolute_origin(float *value, float *flag);
 uint32_t mach_get_line() {return mach.gm.line;}
 
 
-bool mach_is_running() {
-  switch (mach_get_state()) {
-  case STATE_RUNNING:
-  case STATE_HOMING:
-  case STATE_PROBING:
-    return true;
-  default: return false;
+PGM_P mach_get_state_pgmstr(machState_t state) {
+  switch (state) {
+  case STATE_IDLE:     return PSTR("idle");
+  case STATE_ESTOPPED: return PSTR("estopped");
+  case STATE_RUNNING:  return PSTR("running");
+  case STATE_STOPPING: return PSTR("stopping");
+  case STATE_HOLDING:  return PSTR("holding");
   }
+
+  return PSTR("invalid");
+}
+
+
+PGM_P mach_get_cycle_pgmstr(machCycle_t cycle) {
+  switch (cycle) {
+  case CYCLE_MACHINING:   return PSTR("machining");
+  case CYCLE_HOMING:      return PSTR("homing");
+  case CYCLE_PROBING:     return PSTR("probing");
+  case CYCLE_CALIBRATING: return PSTR("calibrating");
+  case CYCLE_JOGGING:     return PSTR("jogging");
+  }
+
+  return PSTR("invalid");
 }
 
 
@@ -231,8 +247,31 @@ float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 void mach_set_state(machState_t state) {
   if (mach._state == state) return; // No change
-  if (mach._state == STATE_ESTOP) return; // Can't leave EStop state
+  if (mach._state == STATE_ESTOPPED) return; // Can't leave EStop state
   mach._state = state;
+  report_request();
+}
+
+
+void mach_set_cycle(machCycle_t cycle) {
+  if (mach._cycle == cycle) return; // No change
+
+  if (mach._state != STATE_IDLE) {
+    STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
+                 mach_get_cycle_pgmstr(cycle),
+                 mach_get_state_pgmstr(mach._state));
+    return;
+  }
+
+  if (mach._cycle != CYCLE_MACHINING && cycle != CYCLE_MACHINING) {
+    STATUS_ERROR(STAT_INTERNAL_ERROR,
+                 "Cannot transition to cycle %S while in %S",
+                 mach_get_cycle_pgmstr(cycle),
+                 mach_get_cycle_pgmstr(mach._cycle));
+    return;
+  }
+
+  mach._cycle = cycle;
   report_request();
 }
 
@@ -1126,7 +1165,7 @@ void mach_feedhold_callback() {
   if (mach.feedhold_requested) {
     mach.feedhold_requested = false;
 
-    if (mach_is_running()) {
+    if (mach_get_state() == STATE_RUNNING) {
       mach_set_state(STATE_STOPPING);
       mach.hold_state = FEEDHOLD_SYNC; // invokes hold from aline execution
     }
@@ -1228,7 +1267,6 @@ stat_t mach_queue_flush() {
 
 /// Do a cycle start right now
 void mach_cycle_start() {
-  // don't (re)start homing, probe or other canned cycles
   if (mach_get_state() == STATE_IDLE) mach_set_state(STATE_RUNNING);
 }
 

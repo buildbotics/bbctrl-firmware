@@ -59,7 +59,6 @@ enum {
 
 
 typedef struct {
-  bool busy;
   bool stall_valid;
   bool stalled;
   bool reverse;
@@ -112,7 +111,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 
           tmc2660_set_stallguard_threshold(cal.motor, 63);
           mp_free_run_buffer(); // Release buffer
-          cal.busy = false;
+          mach_set_cycle(CYCLE_MACHINING);
           return STAT_OK;
 
         } else {
@@ -145,7 +144,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 }
 
 
-bool calibrate_busy() {return cal.busy;}
+bool calibrate_busy() {return mach_get_cycle() == CYCLE_CALIBRATING;}
 
 
 void calibrate_set_stallguard(int motor, uint16_t sg) {
@@ -164,7 +163,8 @@ void calibrate_set_stallguard(int motor, uint16_t sg) {
 
 
 uint8_t command_calibrate(int argc, char *argv[]) {
-  if (cal.busy) return 0;
+  if (mach_get_cycle() != CYCLE_MACHINING || mach_get_state() != STATE_IDLE)
+    return 0;
 
   mpBuf_t *bf = mp_get_write_buffer();
   if (!bf) {
@@ -174,7 +174,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
 
   // Start
   memset(&cal, 0, sizeof(cal));
-  cal.busy = true;
+  mach_set_cycle(CYCLE_CALIBRATING);
   cal.motor = 1;
 
   bf->bf_func = _exec_calibrate; // register callback

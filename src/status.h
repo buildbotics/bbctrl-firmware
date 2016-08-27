@@ -77,5 +77,5 @@ void status_help();
 #define STATUS_WARNING(MSG, ...)                                \
   STATUS_MESSAGE(STAT_LEVEL_WARNING, STAT_OK, MSG, ##__VA_ARGS__)
 
-#define STATUS_ERROR(MSG, CODE, ...)                        \
+#define STATUS_ERROR(CODE, MSG, ...)                            \
   STATUS_MESSAGE(STAT_LEVEL_ERROR, CODE, MSG, ##__VA_ARGS__)

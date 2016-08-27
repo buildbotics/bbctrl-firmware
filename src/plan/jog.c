@@ -43,7 +43,6 @@
 
 
 typedef struct {
-  bool running;
   bool writing;
   float next_velocity[AXES];
   float target_velocity[AXES];
@@ -96,7 +95,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     // Release buffer
     mp_free_run_buffer();
 
-    jr.running = false;
+    mach_set_cycle(CYCLE_MACHINING);
 
     return STAT_NOOP;
   }
@@ -113,10 +112,14 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 }
 
 
-bool mp_jog_busy() {return jr.running;}
+bool mp_jog_busy() {return mach_get_cycle() == CYCLE_JOGGING;}
 
 
 uint8_t command_jog(int argc, char *argv[]) {
+  if (!mp_jog_busy() &&
+      (mach_get_state() != STATE_IDLE || mach_get_cycle() != CYCLE_MACHINING))
+    return STAT_NOOP;
+
   float velocity[AXES];
 
   for (int axis = 0; axis < AXES; axis++)
@@ -124,14 +127,14 @@ uint8_t command_jog(int argc, char *argv[]) {
     else velocity[axis] = 0;
 
   // Reset
-  if (!jr.running) memset(&jr, 0, sizeof(jr));
+  if (mp_jog_busy()) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.next_velocity[axis] = velocity[axis];
   jr.writing = false;
 
-  if (!jr.running) {
+  if (!mp_jog_busy()) {
     // Should always be at least one free buffer
     mpBuf_t *bf = mp_get_write_buffer();
     if (!bf) {
@@ -140,7 +143,7 @@ uint8_t command_jog(int argc, char *argv[]) {
     }
 
     // Start
-    jr.running = true;
+    mach_set_cycle(CYCLE_JOGGING);
     bf->bf_func = _exec_jog; // register callback
     mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
   }

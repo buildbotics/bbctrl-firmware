@@ -796,20 +796,15 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 }
 
 
-/// Dequeues buffer, executes move continuations and manages run buffers.
+/// Dequeues buffer, executes move callback and enters RUNNING state
 stat_t mp_exec_move() {
-  mpBuf_t *bf = mp_get_run_buffer();
-
-  if (!bf) return STAT_NOOP; // nothing's running
   if (estop_triggered()) return STAT_MACHINE_ALARMED;
 
-  // Manage state transitions
-  // Cycle auto-start for lines only
-  if (bf->move_type == MOVE_TYPE_ALINE && mach_get_state() == STATE_IDLE)
-    mach_set_state(STATE_RUNNING);
+  mpBuf_t *bf = mp_get_run_buffer();
+  if (!bf) return STAT_NOOP; // nothing running
+  if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
 
-  if (!bf->bf_func)
-    return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
+  if (mach_get_state() == STATE_IDLE) mach_set_state(STATE_RUNNING);
 
-  return bf->bf_func(bf); // run the move callback on the planner buffer
+  return bf->bf_func(bf); // move callback
 }

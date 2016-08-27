@@ -89,6 +89,7 @@ static void _probe_restore_settings() {
   // update the model with actual position
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
   mach_cycle_end();
+  mach_set_cycle(CYCLE_MACHINING);
 }
 
 
@@ -140,7 +141,7 @@ static void _probing_init() {
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
   mach.probe_state = PROBE_FAILED;
-  mach_set_state(STATE_PROBING);
+  mach_set_cycle(CYCLE_PROBING);
 
   // initialize the axes - save the jerk settings & switch to the jerk_homing
   // settings
@@ -175,7 +176,7 @@ static void _probing_init() {
 
 
 bool mach_is_probing() {
-  return mach_get_state() == STATE_PROBING || mach.probe_state == PROBE_WAITING;
+  return mach_get_cycle() == CYCLE_PROBING || mach.probe_state == PROBE_WAITING;
 }
 
 

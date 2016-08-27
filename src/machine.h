@@ -32,6 +32,8 @@
 #include "config.h"
 #include "status.h"
 
+#include <avr/pgmspace.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -44,13 +46,20 @@
 
 typedef enum {
   STATE_IDLE,
-  STATE_ESTOP,
+  STATE_ESTOPPED,
   STATE_RUNNING,
-  STATE_HOMING,
-  STATE_PROBING,
   STATE_STOPPING,
   STATE_HOLDING,
 } machState_t;
+
+
+typedef enum {
+  CYCLE_MACHINING,
+  CYCLE_HOMING,
+  CYCLE_PROBING,
+  CYCLE_CALIBRATING,
+  CYCLE_JOGGING,
+} machCycle_t;
 
 
 typedef enum {          // feedhold_state machine
@@ -348,6 +357,7 @@ typedef struct { // struct to manage mach globals and cycles
   AxisConfig_t a[AXES];
 
   machState_t _state;
+  machCycle_t _cycle;
   machFeedholdState_t hold_state;      // hold: feedhold sub-state machine
   machHomingState_t homing_state;      // home: homing cycle sub-state machine
   bool homed[AXES];                    // individual axis homing flags
@@ -373,7 +383,7 @@ extern machine_t mach;                 // machine controller singleton
 // Model state getters and setters
 uint32_t mach_get_line();
 inline machState_t mach_get_state() {return mach._state;}
-bool mach_is_running();
+inline machCycle_t mach_get_cycle() {return mach._cycle;}
 machFeedholdState_t mach_get_hold_state();
 machHomingState_t mach_get_homing_state();
 machMotionMode_t mach_get_motion_mode();
@@ -389,6 +399,9 @@ bool mach_get_runtime_busy();
 float mach_get_feed_rate();
 
 void mach_set_state(machState_t state);
+void mach_set_cycle(machCycle_t cycle);
+PGM_P mach_get_state_pgmstr(machState_t state);
+PGM_P mach_get_cycle_pgmstr(machCycle_t cycle);
 void mach_set_motion_mode(machMotionMode_t motion_mode);
 void mach_set_spindle_mode(machSpindleMode_t spindle_mode);
 void mach_set_spindle_speed_parameter(float speed);

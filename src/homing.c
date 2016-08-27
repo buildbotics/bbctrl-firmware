@@ -177,6 +177,7 @@ static void _homing_finalize_exit() {
   mach.gm.feed_rate = hm.saved_feed_rate;
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
   mach_cycle_end();
+  mach_set_cycle(CYCLE_MACHINING);
 }
 
 
@@ -342,7 +343,7 @@ static void _homing_axis_start(int8_t axis) {
 
 
 bool mach_is_homing() {
-  return mach_get_state() == STATE_HOMING;
+  return mach_get_cycle() == CYCLE_HOMING;
 }
 
 
@@ -371,7 +372,7 @@ void mach_homing_cycle_start() {
 
   hm.axis = -1;                            // set to retrieve initial axis
   hm.func = _homing_axis_start;            // bind initial processing function
-  mach_set_state(STATE_HOMING);
+  mach_set_cycle(CYCLE_HOMING);
   mach.homing_state = HOMING_NOT_HOMED;
 }
 
@@ -384,6 +385,6 @@ void mach_homing_cycle_start_no_set() {
 
 /// Main loop callback for running the homing cycle
 void mach_homing_callback() {
-  if (mach_get_state() != STATE_HOMING || mach_get_runtime_busy()) return;
+  if (mach_get_cycle() != CYCLE_HOMING || mach_get_runtime_busy()) return;
   hm.func(hm.axis); // execute the current homing move
 }

@@ -27,10 +27,9 @@
 \******************************************************************************/
 
 #include "usart.h"
+#include "machine.h"
 #include "plan/planner.h"
 #include "plan/buffer.h"
-
-#include <avr/pgmspace.h>
 
 
 float get_position(int index) {return mp_get_runtime_absolute_position(index);}
@@ -39,18 +38,5 @@ bool get_echo() {return usart_is_set(USART_ECHO);}
 void set_echo(bool value) {return usart_set(USART_ECHO, value);}
 uint16_t get_queue() {return mp_get_planner_buffer_room();}
 int32_t get_line() {return mr.ms.line;}
-
-
-PGM_P get_state() {
-  switch (mach_get_state()) {
-  case STATE_IDLE:     return PSTR("idle");
-  case STATE_ESTOP:    return PSTR("estop");
-  case STATE_RUNNING:  return PSTR("running");
-  case STATE_HOMING:   return PSTR("homing");
-  case STATE_PROBING:  return PSTR("probing");
-  case STATE_STOPPING: return PSTR("stopping");
-  case STATE_HOLDING:  return PSTR("holding");
-  }
-
-  return PSTR("invalid");
-}
+PGM_P get_state() {return mach_get_state_pgmstr(mach_get_state());}
+PGM_P get_cycle() {return mach_get_cycle_pgmstr(mach_get_cycle());}
