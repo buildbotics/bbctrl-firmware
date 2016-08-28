@@ -45,7 +45,6 @@
 
 #include "plan/planner.h"
 #include "plan/arc.h"
-#include "plan/feedhold.h"
 #include "plan/state.h"
 
 #include <avr/pgmspace.h>
@@ -85,7 +84,6 @@ int main() {
     hw_reset_handler();           // handle hard reset requests
     if (!estop_triggered()) {
       mp_state_callback();
-      mp_plan_hold_callback();      // feedhold state machine
       mach_arc_callback();          // arc generation runs
       mach_homing_callback();       // G28.2 continuation
       mach_probe_callback();        // G38.2 continuation

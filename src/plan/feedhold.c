@@ -32,7 +32,6 @@
 #include "planner.h"
 #include "buffer.h"
 #include "line.h"
-#include "zoid.h"
 #include "util.h"
 #include "state.h"
 
@@ -66,12 +65,13 @@
  * Terms used:
  *  - mr is the runtime buffer. It was initially loaded from the bf
  *    buffer
- *  - bp+0 is the "companion" bf buffer to the mr buffer.
- *  - bp+1 is the bf buffer following bp+0. This runs through bp+N
+ *  - bp + 0 is the "companion" bf buffer to the mr buffer.
+ *  - bp + 1 is the bf buffer following bp+0. This runs through bp + N
  *  - bp (by itself) just refers to the current buffer being
  *    adjusted / replanned
  *
- * Details: Planning re-uses bp+0 as an "extra" buffer. Normally bp+0
+ * Details:
+ *   Planning re-uses bp + 0 as an "extra" buffer. Normally bp + 0
  *   is returned to the buffer pool as it is redundant once mr is
  *   loaded. Use the extra buffer to split the move in two where the
  *   hold decelerates to zero. Use one buffer to go to zero, the other
@@ -79,7 +79,8 @@
  *   unaffected other than that they need to be replanned for
  *   velocity.
  *
- * Note: There are multiple opportunities for more efficient
+ * Note:
+ *   There are multiple opportunities for more efficient
  *   organization of code in this module, but the code is so
  *   complicated I just left it organized for clarity and hoped for
  *   the best from compiler optimization.
@@ -88,7 +89,7 @@
 
 /// Resets all blocks in the planning list to be replannable
 static void _reset_replannable_list() {
-  mpBuf_t *bf = mp_get_first_buffer();
+  mpBuf_t *bf = mp_get_run_buffer();
   if (!bf) return;
 
   mpBuf_t *bp = bf;
@@ -175,9 +176,10 @@ void mp_plan_hold_callback() {
   bp->move_state = MOVE_NEW;                // tell _exec to re-use buffer
 
   // a safety to avoid wraparound
-  for (uint8_t i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
+  for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
     mp_copy_buffer(bp, bp->nx);             // copy bp+1 into bp+0, and onward
 
+    // TODO What about dwells?  Should be stopped when we reach a dwell.
     if (bp->move_type != MOVE_TYPE_ALINE) { // skip any non-move buffers
       bp = mp_get_next_buffer(bp);          // point to next buffer
       continue;

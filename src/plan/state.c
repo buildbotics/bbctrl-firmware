@@ -32,6 +32,7 @@
 #include "planner.h"
 #include "report.h"
 #include "buffer.h"
+#include "feedhold.h"
 
 #include <stdbool.h>
 
@@ -130,13 +131,21 @@ void mp_state_idle() {
 }
 
 
-void mp_state_hold() {
-  mp_set_state(STATE_HOLDING);
+void mp_state_estop() {
+  mp_set_state(STATE_ESTOPPED);
 }
 
 
-void mp_state_estop() {
-  mp_set_state(STATE_ESTOPPED);
+void mp_state_hold_callback(bool done) {
+  // Feedhold processing. Refer to state.h for state machine
+  // Catch the feedhold request and start the planning the hold
+  if (mp_get_hold_state() == FEEDHOLD_SYNC) mp_set_hold_state(FEEDHOLD_PLAN);
+
+  // Look for the end of the decel to go into HOLD state
+  if (mp_get_hold_state() == FEEDHOLD_DECEL && done) {
+    mp_set_hold_state(FEEDHOLD_HOLD);
+    mp_set_state(STATE_HOLDING);
+  }
 }
 
 
@@ -203,4 +212,6 @@ void mp_state_callback() {
       else mp_set_state(STATE_READY);
     }
   }
+
+  mp_plan_hold_callback();      // feedhold state machine
 }

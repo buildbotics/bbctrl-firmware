@@ -117,7 +117,6 @@ mpBuf_t *mp_get_write_buffer();
 void mp_commit_write_buffer(uint32_t line, moveType_t move_type);
 mpBuf_t *mp_get_run_buffer();
 void mp_free_run_buffer();
-mpBuf_t *mp_get_first_buffer();
 mpBuf_t *mp_get_last_buffer();
 /// Returns pointer to prev buffer in linked list
 #define mp_get_prev_buffer(b) ((mpBuf_t *)(b->pv))

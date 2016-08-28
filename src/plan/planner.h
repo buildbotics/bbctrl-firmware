@@ -31,6 +31,7 @@
 
 
 #include "machine.h" // used for GCodeState_t
+#include "buffer.h"
 #include "util.h"
 
 
@@ -48,6 +49,19 @@
 
 #define MIN_SEGMENT_TIME_PLUS_MARGIN \
   ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
+
+/// Max iterations for convergence in the HT asymmetric case.
+#define TRAPEZOID_ITERATION_MAX             10
+
+/// Error percentage for iteration convergence. As percent - 0.01 = 1%
+#define TRAPEZOID_ITERATION_ERROR_PERCENT   0.1
+
+/// Tolerance for "exact fit" for H and T cases
+/// allowable mm of error in planning phase
+#define TRAPEZOID_LENGTH_FIT_TOLERANCE      0.0001
+
+/// Adaptive velocity tolerance term
+#define TRAPEZOID_VELOCITY_TOLERANCE        (max(2, bf->entry_velocity / 100))
 
 
 typedef enum {
@@ -131,3 +145,6 @@ void mp_set_runtime_work_offset(float offset[]);
 void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
 void mp_kinematics(const float travel[], float steps[]);
+void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
+float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
+float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);

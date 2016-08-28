@@ -184,12 +184,6 @@ void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
 }
 
 
-///  Returns pointer to first buffer, i.e. the running block
-mpBuf_t *mp_get_first_buffer() {
-  return mp_get_run_buffer();    // returns buffer or 0 if nothing's running
-}
-
-
 /// Returns pointer to last buffer, i.e. last block (zero)
 mpBuf_t *mp_get_last_buffer() {
   mpBuf_t *bf = mp_get_run_buffer();

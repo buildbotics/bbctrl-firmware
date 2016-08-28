@@ -702,8 +702,8 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // start a new move by setting up local context (singleton)
   if (mr.move_state == MOVE_OFF) {
-    if (mp_get_hold_state() == FEEDHOLD_HOLD)
-      return STAT_NOOP; // stops here if holding
+    // stop here if holding
+    if (mp_get_hold_state() == FEEDHOLD_HOLD) return STAT_NOOP;
 
     // initialization to process the new incoming bf buffer (Gcode block)
     // copy in the gcode model state
@@ -766,15 +766,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
   else return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
 
-  // Feedhold processing. Refer to machine.h for state machine
-  // Catch the feedhold request and start the planning the hold
-  if (mp_get_hold_state() == FEEDHOLD_SYNC) mp_set_hold_state(FEEDHOLD_PLAN);
-
-  // Look for the end of the decel to go into HOLD state
-  if (mp_get_hold_state() == FEEDHOLD_DECEL && status == STAT_OK) {
-    mp_set_hold_state(FEEDHOLD_HOLD);
-    mp_state_hold();
-  }
+  mp_state_hold_callback(status == STAT_OK);
 
   // There are 3 things that can happen here depending on return conditions:
   //    status        bf->move_state        Description
