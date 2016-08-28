@@ -127,8 +127,7 @@ static stat_t _exec_aline_segment() {
  * We are using a quintic (fifth-degree) Bezier polynomial for the
  * velocity curve.  This gives us a "linear pop" velocity curve;
  * with pop being the sixth derivative of position: velocity - 1st,
- * acceleration - 2nd, jerk - 3rd, snap - 4th, crackle - 5th, pop -
- * 6th
+ * acceleration - 2nd, jerk - 3rd, snap - 4th, crackle - 5th, pop - 6th
  *
  * The Bezier curve takes the form:
  *
@@ -139,43 +138,43 @@ static stat_t _exec_aline_segment() {
  * the control points, and B_0(t) through B_5(t) are the Bernstein
  * basis as follows:
  *
- *      B_0(t) =   (1 - t)^5        =   -t^5 +  5t^4 - 10t^3 + 10t^2 -  5t + 1
- *      B_1(t) =  5(1 - t)^4 * t    =   5t^5 - 20t^4 + 30t^3 - 20t^2 +  5t
- *      B_2(t) = 10(1 - t)^3 * t^2  = -10t^5 + 30t^4 - 30t^3 + 10t^2
- *      B_3(t) = 10(1 - t)^2 * t^3  =  10t^5 - 20t^4 + 10t^3
- *      B_4(t) =  5(1 - t)   * t^4  =  -5t^5 +  5t^4
- *      B_5(t) =               t^5  =    t^5
+ *   B_0(t) =   (1 - t)^5        =   -t^5 +  5t^4 - 10t^3 + 10t^2 -  5t + 1
+ *   B_1(t) =  5(1 - t)^4 * t    =   5t^5 - 20t^4 + 30t^3 - 20t^2 +  5t
+ *   B_2(t) = 10(1 - t)^3 * t^2  = -10t^5 + 30t^4 - 30t^3 + 10t^2
+ *   B_3(t) = 10(1 - t)^2 * t^3  =  10t^5 - 20t^4 + 10t^3
+ *   B_4(t) =  5(1 - t)   * t^4  =  -5t^5 +  5t^4
+ *   B_5(t) =               t^5  =    t^5
  *
- *                                         ^       ^       ^       ^     ^   ^
- *                                         A       B       C       D     E   F
+ *                                      ^       ^       ^       ^     ^   ^
+ *                                      A       B       C       D     E   F
  *
  * We use forward-differencing to calculate each position through the curve.
  * This requires a formula of the form:
  *
- *     V_f(t) = A * t^5 + B * t^4 + C * t^3 + D * t^2 + E * t + F
+ *   V_f(t) = A * t^5 + B * t^4 + C * t^3 + D * t^2 + E * t + F
  *
- *  Looking at the above B_0(t) through B_5(t) expanded forms, if we
- *  take the coefficients of t^5 through t of the Bezier form of V(t),
- *  we can determine that:
+ * Looking at the above B_0(t) through B_5(t) expanded forms, if we
+ * take the coefficients of t^5 through t of the Bezier form of V(t),
+ * we can determine that:
  *
- *     A =      -P_0 +  5 * P_1 - 10 * P_2 + 10 * P_3 -  5 * P_4 +  P_5
- *     B =   5 * P_0 - 20 * P_1 + 30 * P_2 - 20 * P_3 +  5 * P_4
- *     C = -10 * P_0 + 30 * P_1 - 30 * P_2 + 10 * P_3
- *     D =  10 * P_0 - 20 * P_1 + 10 * P_2
- *     E = - 5 * P_0 +  5 * P_1
- *     F =       P_0
+ *   A =      -P_0 +  5 * P_1 - 10 * P_2 + 10 * P_3 -  5 * P_4 +  P_5
+ *   B =   5 * P_0 - 20 * P_1 + 30 * P_2 - 20 * P_3 +  5 * P_4
+ *   C = -10 * P_0 + 30 * P_1 - 30 * P_2 + 10 * P_3
+ *   D =  10 * P_0 - 20 * P_1 + 10 * P_2
+ *   E = - 5 * P_0 +  5 * P_1
+ *   F =       P_0
  *
  * Now, since we will (currently) *always* want the initial
  * acceleration and jerk values to be 0, We set P_i = P_0 = P_1 =
  * P_2 (initial velocity), and P_t = P_3 = P_4 = P_5 (target
  * velocity), which, after simplification, resolves to:
  *
- *     A = - 6 * P_i +  6 * P_t
- *     B =  15 * P_i - 15 * P_t
- *     C = -10 * P_i + 10 * P_t
- *     D = 0
- *     E = 0
- *     F = P_i
+ *   A = - 6 * P_i +  6 * P_t
+ *   B =  15 * P_i - 15 * P_t
+ *   C = -10 * P_i + 10 * P_t
+ *   D = 0
+ *   E = 0
+ *   F = P_i
  *
  * Given an interval count of I to get from P_i to P_t, we get the
  * parametric "step" size of h = 1/I.  We need to calculate the
@@ -183,11 +182,11 @@ static stat_t _exec_aline_segment() {
  * inital velocity V = P_i, then we iterate over the following I
  * times:
  *
- *     V   += F_5
- *     F_5 += F_4
- *     F_4 += F_3
- *     F_3 += F_2
- *     F_2 += F_1
+ *   V   += F_5
+ *   F_5 += F_4
+ *   F_4 += F_3
+ *   F_3 += F_2
+ *   F_2 += F_1
  *
  * See
  * http://www.drdobbs.com/forward-difference-calculation-of-bezier/184403417
@@ -196,49 +195,49 @@ static stat_t _exec_aline_segment() {
  * the formulas somewhat. I'll not go into the long-winded
  * step-by-step here, but it gives the resulting formulas:
  *
- *     a = A, b = B, c = C, d = D, e = E, f = F
+ *   a = A, b = B, c = C, d = D, e = E, f = F
  *
- *     F_5(t + h) - F_5(t) = (5ah)t^4 + (10ah^2 + 4bh)t^3 +
- *       (10ah^3 + 6bh^2 + 3ch)t^2 + (5ah^4 + 4bh^3 + 3ch^2 + 2dh)t + ah^5 +
- *       bh^4 + ch^3 + dh^2 + eh
+ *   F_5(t + h) - F_5(t) = (5ah)t^4 + (10ah^2 + 4bh)t^3 +
+ *     (10ah^3 + 6bh^2 + 3ch)t^2 + (5ah^4 + 4bh^3 + 3ch^2 + 2dh)t + ah^5 +
+ *     bh^4 + ch^3 + dh^2 + eh
  *
- *     a = 5ah
- *     b = 10ah^2 + 4bh
- *     c = 10ah^3 + 6bh^2 + 3ch
- *     d = 5ah^4 + 4bh^3 + 3ch^2 + 2dh
+ *   a = 5ah
+ *   b = 10ah^2 + 4bh
+ *   c = 10ah^3 + 6bh^2 + 3ch
+ *   d = 5ah^4 + 4bh^3 + 3ch^2 + 2dh
  *
- *  (After substitution, simplification, and rearranging):
+ * After substitution, simplification, and rearranging:
  *
- *     F_4(t + h) - F_4(t) = (20ah^2)t^3 + (60ah^3 + 12bh^2)t^2 +
- *       (70ah^4 + 24bh^3 + 6ch^2)t + 30ah^5 + 14bh^4 + 6ch^3 + 2dh^2
+ *   F_4(t + h) - F_4(t) = (20ah^2)t^3 + (60ah^3 + 12bh^2)t^2 +
+ *     (70ah^4 + 24bh^3 + 6ch^2)t + 30ah^5 + 14bh^4 + 6ch^3 + 2dh^2
  *
- *     a = 20ah^2
- *     b = 60ah^3 + 12bh^2
- *     c = 70ah^4 + 24bh^3 + 6ch^2
+ *   a = 20ah^2
+ *   b = 60ah^3 + 12bh^2
+ *   c = 70ah^4 + 24bh^3 + 6ch^2
  *
- *  (After substitution, simplification, and rearranging):
+ * After substitution, simplification, and rearranging:
  *
- *     F_3(t+h)-F_3(t) = (60ah^3)t^2 + (180ah^4 + 24bh^3)t + 150ah^5 +
- *       36bh^4 + 6ch^3
+ *   F_3(t + h) - F_3(t) = (60ah^3)t^2 + (180ah^4 + 24bh^3)t + 150ah^5 +
+ *     36bh^4 + 6ch^3
  *
- *  (You get the picture...)
+ * You get the picture...
  *
- *     F_2(t + h) - F_2(t) = (120ah^4)t + 240ah^5 + 24bh^4
- *     F_1(t + h) - F_1(t) = 120ah^5
+ *   F_2(t + h) - F_2(t) = (120ah^4)t + 240ah^5 + 24bh^4
+ *   F_1(t + h) - F_1(t) = 120ah^5
  *
- *  Normally, we could then assign t = 0, use the A-F values from
- *  above, and get out initial F_* values.  However, for the sake of
- *  "averaging" the velocity of each segment, we actually want to have
- *  the initial V be be at t = h/2 and iterate I-1 times. So, the
- *  resulting F_* values are (steps not shown):
+ * Normally, we could then assign t = 0, use the A-F values from
+ * above, and get out initial F_* values.  However, for the sake of
+ * "averaging" the velocity of each segment, we actually want to have
+ * the initial V be be at t = h/2 and iterate I-1 times. So, the
+ * resulting F_* values are (steps not shown):
  *
- *     F_5 = 121Ah^5 / 16 + 5Bh^4 + 13Ch^3 / 4 + 2Dh^2 + Eh
- *     F_4 = 165Ah^5 / 2 + 29Bh^4 + 9Ch^3 + 2Dh^2
- *     F_3 = 255Ah^5 + 48Bh^4 + 6Ch^3
- *     F_2 = 300Ah^5 + 24Bh^4
- *     F_1 = 120Ah^5
+ *   F_5 = 121Ah^5 / 16 + 5Bh^4 + 13Ch^3 / 4 + 2Dh^2 + Eh
+ *   F_4 = 165Ah^5 / 2 + 29Bh^4 + 9Ch^3 + 2Dh^2
+ *   F_3 = 255Ah^5 + 48Bh^4 + 6Ch^3
+ *   F_2 = 300Ah^5 + 24Bh^4
+ *   F_1 = 120Ah^5
  *
- *  Note that with our current control points, D and E are actually 0.
+ * Note that with our current control points, D and E are actually 0.
  */
 static void _init_forward_diffs(float Vi, float Vt) {
   float A =  -6.0 * Vi +  6.0 * Vt;
@@ -633,6 +632,7 @@ static stat_t _exec_aline_head() {
  * Everything here fires from interrupts and must be interrupt safe
  *
  * Returns:
+ *
  *   STAT_OK        move is done
  *   STAT_EAGAIN    move is not finished - has more segments to run
  *   STAT_NOOP      cause no operation from the steppers - do not load the
@@ -642,40 +642,43 @@ static stat_t _exec_aline_head() {
  * This routine is called from the (LO) interrupt level. The interrupt
  * sequencing relies on the behaviors of the routines being exactly correct.
  * Each call to _exec_aline() must execute and prep *one and only one*
- * segment. If the segment is the not the last segment in the bf buffer the
- * _aline() must return STAT_EAGAIN. If it's the last segment it must return
+ * segment. If the segment is not the last segment in the bf buffer the
+ * _aline() returns STAT_EAGAIN. If it's the last segment it returns
  * STAT_OK. If it encounters a fatal error that would terminate the move it
- * should return a valid error code. Failure to obey this will introduce
- * subtle and very difficult to diagnose bugs (trust me on this).
+ * returns a valid error code.
  *
- * Note 1 Returning STAT_OK ends the move and frees the bf buffer.
- *        Returning STAT_OK at this point does NOT advance position meaning
- *        any position error will be compensated by the next move.
+ * Notes:
  *
- * Note 2 Solves a potential race condition where the current move ends but
- *        the new move has not started because the previous move is still
- *        being run by the steppers. Planning can overwrite the new move.
+ * [1] Returning STAT_OK ends the move and frees the bf buffer.
+ *     Returning STAT_OK at does NOT advance position meaning
+ *     any position error will be compensated by the next move.
+ *
+ * [2] Solves a potential race condition where the current move ends but
+ *     the new move has not started because the previous move is still
+ *     being run by the steppers. Planning can overwrite the new move.
  *
  * Operation:
+ *
  * Aline generates jerk-controlled S-curves as per Ed Red's course notes:
+ *
  *   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
  *   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
  *
- * A full trapezoid is divided into 5 periods Periods 1 and 2 are the
+ * A full trapezoid is divided into 5 periods. Periods 1 and 2 are the
  * first and second halves of the acceleration ramp (the concave and convex
  * parts of the S curve in the "head"). Periods 3 and 4 are the first
  * and second parts of the deceleration ramp (the tail). There is also
  * a period for the constant-velocity plateau of the trapezoid (the body).
- * There are various degraded trapezoids possible, including 2 section
- * combinations (head and tail; head and body; body and tail), and single
- * sections - any one of the three.
+ * There are many possible degenerate trapezoids where any of the 5 periods
+ * may be zero length but note that either none or both of a ramping pair can
+ * be zero.
  *
  * The equations that govern the acceleration and deceleration ramps are:
  *
- *   Period 1    V = Vi + Jm*(T^2)/2
- *   Period 2    V = Vh + As*T - Jm*(T^2)/2
- *   Period 3    V = Vi - Jm*(T^2)/2
- *   Period 4    V = Vh + As*T + Jm*(T^2)/2
+ *   Period 1    V = Vi + Jm * (T^2) / 2
+ *   Period 2    V = Vh + As * T - Jm * (T^2) / 2
+ *   Period 3    V = Vi - Jm * (T^2) / 2
+ *   Period 4    V = Vh + As * T + Jm * (T^2) / 2
  *
  * These routines play some games with the acceleration and move timing
  * to make sure this actually all works out. move_time is the actual time of
@@ -683,9 +686,10 @@ static stat_t _exec_aline_head() {
  * which takes the initial velocity into account (move_time does not need
  * to).
  *
- * --- State transitions - hierarchical state machine ---
+ * State transitions - hierarchical state machine:
  *
  * bf->move_state transitions:
+ *
  *  from _NEW to _RUN on first call (sub_state set to _OFF)
  *  from _RUN to _OFF on final call
  *   or just remains _OFF
@@ -709,7 +713,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     // copy in the gcode model state
     memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
     bf->replannable = false;
-    report_request();
+    report_request(); // Executing line number has changed
 
     // short lines have already been removed, look for an actual zero
     if (fp_ZERO(bf->length)) {
@@ -757,8 +761,8 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     }
   }
 
-  // main dispatcher to process segments
-  // from this point on the contents of the bf buffer do not affect execution
+  // Main segment processing dispatch.  From this point on the contents of the
+  // bf buffer do not affect execution.
   stat_t status = STAT_OK;
 
   if (mr.section == SECTION_HEAD) status = _exec_aline_head();
@@ -769,17 +773,17 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   mp_state_hold_callback(status == STAT_OK);
 
   // There are 3 things that can happen here depending on return conditions:
-  //    status        bf->move_state        Description
-  //  -----------    --------------        ------------------------------------
-  //    STAT_EAGAIN    <don't care>        mr buffer has more segments to run
-  //    STAT_OK        MOVE_RUN            mr and bf buffers are done
-  //    STAT_OK        MOVE_NEW            mr done; bf must be run again
-  //                                       (it's been reused)
-  if (status == STAT_EAGAIN) report_request();
-  else {
-    mr.move_state = MOVE_OFF; // reset mr buffer
+  //
+  //   status        bf->move_state      Description
+  //   -----------   --------------      ----------------------------------
+  //   STAT_EAGAIN   <don't care>        mr buffer has more segments to run
+  //   STAT_OK       MOVE_RUN            mr and bf buffers are done
+  //   STAT_OK       MOVE_NEW            mr done; bf must be run again
+  //                                     (it's been reused)
+  if (status != STAT_EAGAIN) {
+    mr.move_state = MOVE_OFF;       // reset mr buffer
     mr.section_state = SECTION_OFF;
-    bf->nx->replannable = false; // prevent overplanning (Note 2)
+    bf->nx->replannable = false;    // prevent overplanning (Note 2)
 
     if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
   }

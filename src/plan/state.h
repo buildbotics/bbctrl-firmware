@@ -75,6 +75,7 @@ PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
 void mp_state_running();
 void mp_state_idle();
 void mp_state_estop();
+
 void mp_state_hold_callback(bool done);
 
 void mp_request_hold();

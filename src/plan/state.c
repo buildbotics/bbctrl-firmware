@@ -113,9 +113,7 @@ void mp_set_cycle(plannerCycle_t cycle) {
 }
 
 
-void mp_set_hold_state(holdState_t hold) {
-  ps.hold = hold;
-}
+void mp_set_hold_state(holdState_t hold) {ps.hold = hold;}
 
 
 void mp_state_running() {
@@ -125,50 +123,32 @@ void mp_state_running() {
 
 void mp_state_idle() {
   mp_set_state(STATE_READY);
-  mp_set_hold_state(FEEDHOLD_OFF);     // if in feedhold, end it
-  ps.start_requested = false; // cancel any pending cycle start request
+  mp_set_hold_state(FEEDHOLD_OFF);    // if in feedhold, end it
+  ps.start_requested = false;         // cancel any pending start request
   mp_zero_segment_velocity();         // for reporting purposes
 }
 
 
-void mp_state_estop() {
-  mp_set_state(STATE_ESTOPPED);
-}
+void mp_state_estop() {mp_set_state(STATE_ESTOPPED);}
 
 
+/// Called by the planner to update feedhold state in sync with planning
 void mp_state_hold_callback(bool done) {
-  // Feedhold processing. Refer to state.h for state machine
-  // Catch the feedhold request and start the planning the hold
-  if (mp_get_hold_state() == FEEDHOLD_SYNC) mp_set_hold_state(FEEDHOLD_PLAN);
+  switch (mp_get_hold_state()) {
+  case FEEDHOLD_OFF: case FEEDHOLD_PLAN: case FEEDHOLD_HOLD: break;
 
-  // Look for the end of the decel to go into HOLD state
-  if (mp_get_hold_state() == FEEDHOLD_DECEL && done) {
-    mp_set_hold_state(FEEDHOLD_HOLD);
-    mp_set_state(STATE_HOLDING);
+    // Catch the feedhold request and start planning the hold
+  case FEEDHOLD_SYNC: mp_set_hold_state(FEEDHOLD_PLAN); break;
+
+  case FEEDHOLD_DECEL:
+    // Look for the end of the decel to go into HOLD state
+    if (done) {
+      mp_set_hold_state(FEEDHOLD_HOLD);
+      mp_set_state(STATE_HOLDING);
+    }
+    break;
   }
 }
-
-
-/* Feedholds, queue flushes and cycles starts are all related. The request
- * functions set flags for these. The sequencing callback interprets the flags
- * according to the following rules:
- *
- *   Feedhold request received during motion is honored
- *   Feedhold request received during a feedhold is ignored and reset
- *   Feedhold request received during a motion stop is ignored and reset
- *
- *   Queue flush request received during motion is ignored but not reset
- *   Queue flush request received during a feedhold is deferred until
- *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *   Queue flush request received during a motion stop is honored
- *
- *   Cycle start request received during motion is ignored and reset
- *   Cycle start request received during a feedhold is deferred until
- *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *     If a queue flush request is also present the queue flush is done first
- *   Cycle start request received during a motion stop is honored and starts
- *     to run anything in the planner queue
- */
 
 
 void mp_request_hold() {ps.hold_requested = true;}
@@ -176,6 +156,27 @@ void mp_request_flush() {ps.flush_requested = true;}
 void mp_request_start() {ps.start_requested = true;}
 
 
+/*** Feedholds, queue flushes and starts are all related. The request functions
+ * set flags. The callback interprets the flags according to these rules:
+ *
+ *   A hold request received:
+ *     - during motion is honored
+ *     - during a feedhold is ignored and reset
+ *     - when already stopped is ignored and reset
+ *
+ *   A flush request received:
+ *     - during motion is ignored but not reset
+ *     - during a feedhold is deferred until the feedhold enters HOLD state.
+ *       I.e. until deceleration is complete.
+ *     - when stopped or holding and the planner is not busy, is honored
+ *
+ *   A start request received:
+ *     - during motion is ignored and reset
+ *     - during a feedhold is deferred until the feedhold enters a HOLD state.
+ *       I.e. until deceleration is complete.  If a queue flush request is also
+ *       present the queue flush is done first
+ *     - when stopped is honored and starts to run anything in the planner queue
+ */
 void mp_state_callback() {
   if (ps.hold_requested) {
     ps.hold_requested = false;
@@ -192,15 +193,14 @@ void mp_state_callback() {
       !mp_get_runtime_busy()) {
     ps.flush_requested = false;
 
-    mp_flush_planner();                      // flush planner queue
+    mp_flush_planner();
 
     // NOTE: The following uses low-level mp calls for absolute position
     for (int axis = 0; axis < AXES; axis++)
-      // set mm from mr
       mach_set_position(axis, mp_get_runtime_absolute_position(axis));
   }
 
-  // Don't start cycle when stopping
+  // Don't start while stopping
   if (ps.start_requested && mp_get_state() != STATE_STOPPING) {
     ps.start_requested = false;
 
@@ -213,5 +213,5 @@ void mp_state_callback() {
     }
   }
 
-  mp_plan_hold_callback();      // feedhold state machine
+  mp_plan_hold_callback(); // call feedhold planner
 }

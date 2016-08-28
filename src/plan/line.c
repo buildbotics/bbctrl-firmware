@@ -372,8 +372,7 @@ stat_t mp_aline(MoveState_t *ms) {
 
   // NOTE: these next lines must remain in exact order. Position must update
   // before committing the buffer.
-  uint8_t mr_flag = false;
-  mp_plan_block_list(bf, &mr_flag);            // replan block list
+  mp_plan_block_list(bf, false);               // replan block list
   copy_vector(mm.position, bf->ms.target);     // set the planner position
   // commit current block (must follow the position update)
   mp_commit_write_buffer(ms->line, MOVE_TYPE_ALINE);

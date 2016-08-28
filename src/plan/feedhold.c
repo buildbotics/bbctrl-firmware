@@ -117,18 +117,14 @@ void mp_plan_hold_callback() {
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
 
-  uint8_t mr_flag = true;    // used to tell replan to account for mr buffer Vx
-  float mr_available_length; // length left in mr buffer for deceleration
-  float braking_velocity;    // velocity left to shed to brake to zero
-  float braking_length;      // distance to brake to zero from braking_velocity
+  // examine and process mr buffer and compute length left for decel
+  float mr_available_length =
+    get_axis_vector_length(mr.final_target, mr.position);
 
-  // examine and process mr buffer
-  mr_available_length = get_axis_vector_length(mr.final_target, mr.position);
-
-  // compute next_segment velocity
-  braking_velocity = _compute_next_segment_velocity();
-  // bp is OK to use here
-  braking_length = mp_get_target_length(braking_velocity, 0, bp);
+  // compute next_segment velocity, velocity left to shed to brake to zero
+  float braking_velocity = _compute_next_segment_velocity();
+  // distance to brake to zero from braking_velocity, bp is OK to use here
+  float braking_length = mp_get_target_length(braking_velocity, 0, bp);
 
   // Hack to prevent Case 2 moves for perfect-fit decels. Happens in
   // homing situations. The real fix: The braking velocity cannot
@@ -156,8 +152,8 @@ void mp_plan_hold_callback() {
     bp->move_state = MOVE_NEW;           // tell _exec to re-use the bf buffer
 
     _reset_replannable_list();           // make it replan all the blocks
-    mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
-    mp_set_hold_state(FEEDHOLD_DECEL);      // set state to decelerate and exit
+    mp_plan_block_list(mp_get_last_buffer(), true);
+    mp_set_hold_state(FEEDHOLD_DECEL);   // set state to decelerate and exit
 
     return;
   }
@@ -179,7 +175,7 @@ void mp_plan_hold_callback() {
   for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
     mp_copy_buffer(bp, bp->nx);             // copy bp+1 into bp+0, and onward
 
-    // TODO What about dwells?  Should be stopped when we reach a dwell.
+    // TODO What about dwells?  Shouldn't we be stopped when we reach a dwell.
     if (bp->move_type != MOVE_TYPE_ALINE) { // skip any non-move buffers
       bp = mp_get_next_buffer(bp);          // point to next buffer
       continue;
@@ -211,6 +207,6 @@ void mp_plan_hold_callback() {
   bp->exit_vmax = bp->delta_vmax;
 
   _reset_replannable_list();      // replan all the blocks
-  mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
+  mp_plan_block_list(mp_get_last_buffer(), true);
   mp_set_hold_state(FEEDHOLD_DECEL); // set state to decelerate and exit
 }

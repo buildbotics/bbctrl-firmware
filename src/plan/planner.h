@@ -34,6 +34,8 @@
 #include "buffer.h"
 #include "util.h"
 
+#include <stdbool.h>
+
 
 // Most of these factors are the result of a lot of tweaking.
 // Change with caution.
@@ -145,7 +147,7 @@ void mp_set_runtime_work_offset(float offset[]);
 void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
 void mp_kinematics(const float travel[], float steps[]);
-void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
+void mp_plan_block_list(mpBuf_t *bf, bool mr_flag);
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
 float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
 inline int32_t mp_get_line() {return mr.ms.line;}
