@@ -34,19 +34,18 @@
 #include "line.h"
 #include "zoid.h"
 #include "util.h"
+#include "state.h"
 
 #include <stdbool.h>
 #include <math.h>
 
-/* Feedhold is executed as mach.hold_state transitions executed inside
+/* Feedhold is executed as hold state transitions executed inside
  * _exec_aline() and main loop callbacks to mp_plan_hold_callback()
  *
  * Holds work like this:
  *
- * - Hold is asserted by calling mach_feedhold()
- *
  * - Hold state == SYNC tells the aline exec routine to execute the
- *   next aline segment then set hold_state to PLAN. This gives the
+ *   next aline segment then set hold state to PLAN. This gives the
  *   planner sufficient time to replan the block list for the hold
  *   before the next aline segment needs to be processed.
  *
@@ -112,7 +111,7 @@ static float _compute_next_segment_velocity() {
 
 /// replan block list to execute hold
 void mp_plan_hold_callback() {
-  if (mach.hold_state != FEEDHOLD_PLAN) return; // not planning a feedhold
+  if (mp_get_hold_state() != FEEDHOLD_PLAN) return; // not planning a feedhold
 
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
@@ -157,7 +156,7 @@ void mp_plan_hold_callback() {
 
     _reset_replannable_list();           // make it replan all the blocks
     mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
-    mach.hold_state = FEEDHOLD_DECEL;      // set state to decelerate and exit
+    mp_set_hold_state(FEEDHOLD_DECEL);      // set state to decelerate and exit
 
     return;
   }
@@ -211,5 +210,5 @@ void mp_plan_hold_callback() {
 
   _reset_replannable_list();      // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), &mr_flag);
-  mach.hold_state = FEEDHOLD_DECEL; // set state to decelerate and exit
+  mp_set_hold_state(FEEDHOLD_DECEL); // set state to decelerate and exit
 }

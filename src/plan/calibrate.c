@@ -35,6 +35,7 @@
 #include "stepper.h"
 #include "rtc.h"
 #include "tmc2660.h"
+#include "state.h"
 #include "config.h"
 
 #include <stdint.h>
@@ -111,7 +112,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 
           tmc2660_set_stallguard_threshold(cal.motor, 63);
           mp_free_run_buffer(); // Release buffer
-          mach_set_cycle(CYCLE_MACHINING);
+          mp_set_cycle(CYCLE_MACHINING);
           return STAT_OK;
 
         } else {
@@ -144,7 +145,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
 }
 
 
-bool calibrate_busy() {return mach_get_cycle() == CYCLE_CALIBRATING;}
+bool calibrate_busy() {return mp_get_cycle() == CYCLE_CALIBRATING;}
 
 
 void calibrate_set_stallguard(int motor, uint16_t sg) {
@@ -163,7 +164,7 @@ void calibrate_set_stallguard(int motor, uint16_t sg) {
 
 
 uint8_t command_calibrate(int argc, char *argv[]) {
-  if (mach_get_cycle() != CYCLE_MACHINING || mach_get_state() != STATE_READY)
+  if (mp_get_cycle() != CYCLE_MACHINING || mp_get_state() != STATE_READY)
     return 0;
 
   mpBuf_t *bf = mp_get_write_buffer();
@@ -174,7 +175,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
 
   // Start
   memset(&cal, 0, sizeof(cal));
-  mach_set_cycle(CYCLE_CALIBRATING);
+  mp_set_cycle(CYCLE_CALIBRATING);
   cal.motor = 1;
 
   bf->bf_func = _exec_calibrate; // register callback

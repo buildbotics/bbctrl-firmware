@@ -426,8 +426,7 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
     } else if (offset_i) return STAT_ARC_SPECIFICATION_ERROR;
   }
 
-  // set values in the Gcode model state & copy it (line was already
-  // captured)
+  // set values in Gcode model state & copy it (line was already captured)
   mach_set_model_target(target, flags);
 
   // in radius mode it's an error for start == end
@@ -462,8 +461,8 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   // trap zero length arcs that _compute_arc can throw
   if (fp_ZERO(arc.length)) return STAT_MINIMUM_LENGTH_MOVE;
 
-  mach_cycle_start();                      // if not already started
   arc.run_state = MOVE_RUN;                // enable arc run from the callback
+  mach_arc_callback();                     // Queue initial arc moves
   mach_finalize_move();
 
   return STAT_OK;

@@ -34,6 +34,7 @@
 #include "util.h"
 #include "report.h"
 #include "estop.h"
+#include "state.h"
 #include "config.h"
 
 #include <string.h>
@@ -70,7 +71,7 @@ static stat_t _exec_aline_segment() {
   // compute target from segment time and velocity Don't do waypoint
   // correction if you are going into a hold.
   if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
-      mach_get_state() == STATE_RUNNING)
+      mp_get_state() == STATE_RUNNING)
     copy_vector(mr.ms.target, mr.waypoint[mr.section]);
 
   else {
@@ -701,7 +702,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // start a new move by setting up local context (singleton)
   if (mr.move_state == MOVE_OFF) {
-    if (mach.hold_state == FEEDHOLD_HOLD)
+    if (mp_get_hold_state() == FEEDHOLD_HOLD)
       return STAT_NOOP; // stops here if holding
 
     // initialization to process the new incoming bf buffer (Gcode block)
@@ -717,7 +718,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
       // prevent overplanning (Note 2)
       bf->nx->replannable = false;
       // free buffer & end cycle if planner is empty
-      mach_advance_buffer();
+      mp_free_run_buffer();
 
       return STAT_NOOP;
     }
@@ -767,13 +768,12 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // Feedhold processing. Refer to machine.h for state machine
   // Catch the feedhold request and start the planning the hold
-  if (mach.hold_state == FEEDHOLD_SYNC) mach.hold_state = FEEDHOLD_PLAN;
+  if (mp_get_hold_state() == FEEDHOLD_SYNC) mp_set_hold_state(FEEDHOLD_PLAN);
 
   // Look for the end of the decel to go into HOLD state
-  if (mach.hold_state == FEEDHOLD_DECEL && status == STAT_OK) {
-    mach.hold_state = FEEDHOLD_HOLD;
-    mach_set_state(STATE_HOLDING);
-    report_request();
+  if (mp_get_hold_state() == FEEDHOLD_DECEL && status == STAT_OK) {
+    mp_set_hold_state(FEEDHOLD_HOLD);
+    mp_state_hold();
   }
 
   // There are 3 things that can happen here depending on return conditions:
@@ -789,22 +789,20 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     mr.section_state = SECTION_OFF;
     bf->nx->replannable = false; // prevent overplanning (Note 2)
 
-    if (bf->move_state == MOVE_RUN) mach_advance_buffer();
+    if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
   }
 
   return status;
 }
 
 
-/// Dequeues buffer, executes move callback and enters RUNNING state
+/// Dequeues buffer and executes move callback
 stat_t mp_exec_move() {
   if (estop_triggered()) return STAT_MACHINE_ALARMED;
 
   mpBuf_t *bf = mp_get_run_buffer();
   if (!bf) return STAT_NOOP; // nothing running
   if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
-
-  if (mach_get_state() == STATE_READY) mach_set_state(STATE_RUNNING);
 
   return bf->bf_func(bf); // move callback
 }

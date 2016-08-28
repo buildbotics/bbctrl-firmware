@@ -36,6 +36,7 @@
 #include "config.h"
 
 #include "plan/planner.h"
+#include "plan/state.h"
 
 #include <avr/eeprom.h>
 
@@ -73,7 +74,7 @@ void estop_init() {
 
   switch_set_callback(SW_ESTOP, _switch_callback);
 
-  if (estop.triggered) mach_set_state(STATE_ESTOPPED);
+  if (estop.triggered) mp_state_estop();
 
   // Fault signal
   if (estop.triggered) OUTSET_PIN(FAULT_PIN); // High
@@ -95,7 +96,7 @@ void estop_trigger(estop_reason_t reason) {
   mach_spindle_estop();
 
   // Set machine state
-  mach_set_state(STATE_ESTOPPED);
+  mp_state_estop();
 
   // Set axes not homed
   mach_set_not_homed();

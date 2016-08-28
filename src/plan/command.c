@@ -88,5 +88,5 @@ void mp_runtime_command(mpBuf_t *bf) {
   bf->mach_func(bf->ms.target, bf->unit);
 
   // Free buffer & perform cycle_end if planner is empty
-  mach_advance_buffer();
+  mp_free_run_buffer();
 }

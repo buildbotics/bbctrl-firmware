@@ -33,6 +33,7 @@
 #include "motor.h"
 #include "machine.h"
 #include "motor.h"
+#include "state.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -95,7 +96,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     // Release buffer
     mp_free_run_buffer();
 
-    mach_set_cycle(CYCLE_MACHINING);
+    mp_set_cycle(CYCLE_MACHINING);
 
     return STAT_NOOP;
   }
@@ -112,12 +113,12 @@ static stat_t _exec_jog(mpBuf_t *bf) {
 }
 
 
-bool mp_jog_busy() {return mach_get_cycle() == CYCLE_JOGGING;}
+bool mp_jog_busy() {return mp_get_cycle() == CYCLE_JOGGING;}
 
 
 uint8_t command_jog(int argc, char *argv[]) {
   if (!mp_jog_busy() &&
-      (mach_get_state() != STATE_READY || mach_get_cycle() != CYCLE_MACHINING))
+      (mp_get_state() != STATE_READY || mp_get_cycle() != CYCLE_MACHINING))
     return STAT_NOOP;
 
   float velocity[AXES];
@@ -143,7 +144,7 @@ uint8_t command_jog(int argc, char *argv[]) {
     }
 
     // Start
-    mach_set_cycle(CYCLE_JOGGING);
+    mp_set_cycle(CYCLE_JOGGING);
     bf->bf_func = _exec_jog; // register callback
     mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
   }

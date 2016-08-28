@@ -64,7 +64,7 @@
 #include "machine.h"
 #include "stepper.h"
 #include "motor.h"
-#include "estop.h"
+#include "state.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -89,7 +89,6 @@ void planner_init() {
 void mp_flush_planner() {
   mach_abort_arc();
   mp_init_buffers();
-  mach_set_state(STATE_READY);
 }
 
 
@@ -172,7 +171,7 @@ float mp_get_runtime_work_position(uint8_t axis) {
 /// Use this function to sync to the queue. If you wait until it returns
 /// FALSE you know the queue is empty and the motors have stopped.
 uint8_t mp_get_runtime_busy() {
-  if (estop_triggered()) return false;
+  if (mp_get_state() == STATE_ESTOPPED) return false;
   return st_runtime_isbusy() || mr.move_state == MOVE_RUN;
 }
 

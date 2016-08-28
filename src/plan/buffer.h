@@ -74,7 +74,7 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   struct mpBuffer *nx;            // pointer to next buffer
 
   bf_func_t bf_func;              // callback to buffer exec function
-  mach_exec_t mach_func;              // callback to machine
+  mach_exec_t mach_func;          // callback to machine
 
   float naive_move_time;
 
@@ -116,7 +116,7 @@ void mp_init_buffers();
 mpBuf_t *mp_get_write_buffer();
 void mp_commit_write_buffer(uint32_t line, moveType_t move_type);
 mpBuf_t *mp_get_run_buffer();
-bool mp_free_run_buffer();
+void mp_free_run_buffer();
 mpBuf_t *mp_get_first_buffer();
 mpBuf_t *mp_get_last_buffer();
 /// Returns pointer to prev buffer in linked list

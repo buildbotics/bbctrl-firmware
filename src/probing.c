@@ -32,6 +32,7 @@
 #include "util.h"
 
 #include "plan/planner.h"
+#include "plan/state.h"
 
 #include <avr/pgmspace.h>
 
@@ -69,7 +70,7 @@ static struct pbProbingSingleton pb;
  * before declaring the cycle to be done. Otherwise there is a nasty
  * race condition in the tg_controller() that will accept the next
  * command before the position of the final move has been recorded in
- * the Gcode model. That's what the call to mach_get_runtime_busy() is
+ * the Gcode model. That's what the call to mp_get_runtime_busy() is
  * about.
  */
 
@@ -88,8 +89,7 @@ static void _probe_restore_settings() {
 
   // update the model with actual position
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-  mach_cycle_end();
-  mach_set_cycle(CYCLE_MACHINING);
+  mp_set_cycle(CYCLE_MACHINING);
 }
 
 
@@ -141,7 +141,7 @@ static void _probing_init() {
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
   mach.probe_state = PROBE_FAILED;
-  mach_set_cycle(CYCLE_PROBING);
+  mp_set_cycle(CYCLE_PROBING);
 
   // initialize the axes - save the jerk settings & switch to the jerk_homing
   // settings
@@ -176,7 +176,7 @@ static void _probing_init() {
 
 
 bool mach_is_probing() {
-  return mach_get_cycle() == CYCLE_PROBING || mach.probe_state == PROBE_WAITING;
+  return mp_get_cycle() == CYCLE_PROBING || mach.probe_state == PROBE_WAITING;
 }
 
 
@@ -208,7 +208,7 @@ stat_t mach_straight_probe(float target[], float flags[]) {
 /// main loop callback for running the homing cycle
 void mach_probe_callback() {
   // sync to planner move ends
-  if (!mach_is_probing() || mach_get_runtime_busy()) return;
+  if (!mach_is_probing() || mp_get_runtime_busy()) return;
 
   pb.func(); // execute the current homing move
 }

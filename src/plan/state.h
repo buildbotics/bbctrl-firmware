@@ -3,7 +3,8 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2016 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2013 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -26,21 +27,56 @@
 
 \******************************************************************************/
 
-#include "usart.h"
-#include "machine.h"
-#include "plan/planner.h"
-#include "plan/state.h"
-#include "plan/buffer.h"
+#pragma once
+
+#include <avr/pgmspace.h>
 
 
-float get_position(int index) {return mp_get_runtime_absolute_position(index);}
-float get_velocity() {return mp_get_runtime_velocity();}
-float get_speed() {return mach_get_spindle_speed();}
-float get_feed() {return mach_get_feed_rate();}
-uint8_t get_tool() {return mach_get_tool();}
-bool get_echo() {return usart_is_set(USART_ECHO);}
-void set_echo(bool value) {return usart_set(USART_ECHO, value);}
-uint16_t get_queue() {return mp_get_planner_buffer_room();}
-int32_t get_line() {return mr.ms.line;}
-PGM_P get_state() {return mp_get_state_pgmstr(mp_get_state());}
-PGM_P get_cycle() {return mp_get_cycle_pgmstr(mp_get_cycle());}
+typedef enum {
+  STATE_READY,
+  STATE_ESTOPPED,
+  STATE_RUNNING,
+  STATE_STOPPING,
+  STATE_HOLDING,
+} plannerState_t;
+
+
+typedef enum {
+  CYCLE_MACHINING,
+  CYCLE_HOMING,
+  CYCLE_PROBING,
+  CYCLE_CALIBRATING,
+  CYCLE_JOGGING,
+} plannerCycle_t;
+
+
+typedef enum {          // feedhold state machine
+  FEEDHOLD_OFF,         // no feedhold in effect
+  FEEDHOLD_SYNC,        // start hold - sync to latest aline segment
+  FEEDHOLD_PLAN,        // replan blocks for feedhold
+  FEEDHOLD_DECEL,       // decelerate to hold point
+  FEEDHOLD_HOLD,        // holding
+} holdState_t;
+
+
+plannerState_t mp_get_state();
+plannerCycle_t mp_get_cycle();
+holdState_t mp_get_hold_state();
+
+void mp_set_state(plannerState_t state);
+void mp_set_cycle(plannerCycle_t cycle);
+void mp_set_hold_state(holdState_t hold);
+
+PGM_P mp_get_state_pgmstr(plannerState_t state);
+PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
+
+void mp_state_running();
+void mp_state_idle();
+void mp_state_hold();
+void mp_state_estop();
+
+void mp_request_hold();
+void mp_request_flush();
+void mp_request_start();
+
+void mp_state_callback();

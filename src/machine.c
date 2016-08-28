@@ -182,9 +182,6 @@ machine_t mach = {
     }
   },
 
-  ._state = STATE_READY,
-  ._cycle = CYCLE_MACHINING,
-
   // State
   .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
   .gn = {0},
@@ -203,34 +200,6 @@ static void _exec_absolute_origin(float *value, float *flag);
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
 
-
-PGM_P mach_get_state_pgmstr(machState_t state) {
-  switch (state) {
-  case STATE_READY:    return PSTR("ready");
-  case STATE_ESTOPPED: return PSTR("estopped");
-  case STATE_RUNNING:  return PSTR("running");
-  case STATE_STOPPING: return PSTR("stopping");
-  case STATE_HOLDING:  return PSTR("holding");
-  }
-
-  return PSTR("invalid");
-}
-
-
-PGM_P mach_get_cycle_pgmstr(machCycle_t cycle) {
-  switch (cycle) {
-  case CYCLE_MACHINING:   return PSTR("machining");
-  case CYCLE_HOMING:      return PSTR("homing");
-  case CYCLE_PROBING:     return PSTR("probing");
-  case CYCLE_CALIBRATING: return PSTR("calibrating");
-  case CYCLE_JOGGING:     return PSTR("jogging");
-  }
-
-  return PSTR("invalid");
-}
-
-
-machFeedholdState_t mach_get_hold_state() {return mach.hold_state;}
 machHomingState_t mach_get_homing_state() {return mach.homing_state;}
 machMotionMode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
 machCoordSystem_t mach_get_coord_system() {return mach.gm.coord_system;}
@@ -241,39 +210,7 @@ machDistanceMode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 machFeedRateMode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
 uint8_t mach_get_tool() {return mach.gm.tool;}
 machSpindleMode_t mach_get_spindle_mode() {return mach.gm.spindle_mode;}
-bool mach_get_runtime_busy() {return mp_get_runtime_busy();}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
-
-
-void mach_set_state(machState_t state) {
-  if (mach._state == state) return; // No change
-  if (mach._state == STATE_ESTOPPED) return; // Can't leave EStop state
-  mach._state = state;
-  report_request();
-}
-
-
-void mach_set_cycle(machCycle_t cycle) {
-  if (mach._cycle == cycle) return; // No change
-
-  if (mach._state != STATE_READY) {
-    STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
-                 mach_get_cycle_pgmstr(cycle),
-                 mach_get_state_pgmstr(mach._state));
-    return;
-  }
-
-  if (mach._cycle != CYCLE_MACHINING && cycle != CYCLE_MACHINING) {
-    STATUS_ERROR(STAT_INTERNAL_ERROR,
-                 "Cannot transition to cycle %S while in %S",
-                 mach_get_cycle_pgmstr(cycle),
-                 mach_get_cycle_pgmstr(mach._cycle));
-    return;
-  }
-
-  mach._cycle = cycle;
-  report_request();
-}
 
 
 void mach_set_motion_mode(machMotionMode_t motion_mode) {
@@ -440,7 +377,7 @@ float mach_get_work_position(uint8_t axis) {
 void mach_finalize_move() {
   copy_vector(mach.position, mach.ms.target);        // update model position
 
-  // if in ivnerse time mode reset feed rate so next block requires an
+  // if in inverse time mode reset feed rate so next block requires an
   // explicit feed rate setting
   if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE &&
       mach.gm.motion_mode == MOTION_MODE_STRAIGHT_FEED)
@@ -613,7 +550,7 @@ void mach_set_model_target(float target[], float flag[]) {
     }
   }
 
-  // FYI: The ABC loop below relies on the XYZ loop having been run first
+  // NOTE: The ABC loop below relies on the XYZ loop having been run first
   for (int axis = AXIS_A; axis <= AXIS_C; axis++) {
     if (fp_FALSE(flag[axis]) || mach.a[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
@@ -776,7 +713,7 @@ static void _exec_offset(float *value, float *flag) {
  * only be called during initialization sequences and during cycles
  * (such as homing cycles) when you know there are no more moves in
  * the planner and that all motion has stopped.  Use
- * mach_get_runtime_busy() to be sure the system is quiescent.
+ * mp_get_runtime_busy() to be sure the system is quiescent.
  */
 void mach_set_position(int axis, float position) {
   // TODO: Interlock involving runtime_busy test
@@ -889,7 +826,6 @@ stat_t mach_straight_traverse(float target[], float flags[]) {
 
   // prep and plan the move
   mach_set_work_offsets(&mach.gm); // capture fully resolved offsets to state
-  mach_cycle_start();              // required for homing & other cycles
   mach.ms.line = mach.gm.line;     // copy line number
   mp_aline(&mach.ms);              // send the move to the planner
   mach_finalize_move();
@@ -986,7 +922,6 @@ stat_t mach_straight_feed(float target[], float flags[]) {
 
   // prep and plan the move
   mach_set_work_offsets(&mach.gm); // capture fully resolved offsets to state
-  mach_cycle_start();              // required for homing & other cycles
   mach.ms.line = mach.gm.line;     // copy line number
   status = mp_aline(&mach.ms);     // send the move to the planner
   mach_finalize_move();
@@ -1133,76 +1068,6 @@ void mach_message(const char *message) {
  * mach_program_end is a stop that also resets the machine to initial state
  */
 
-/* Feedholds, queue flushes and cycles starts are all related. The request
- * functions set flags for these. The sequencing callback interprets the flags
- * according to the following rules:
- *
- *   Feedhold request received during motion is honored
- *   Feedhold request received during a feedhold is ignored and reset
- *   Feedhold request received during a motion stop is ignored and reset
- *
- *   Queue flush request received during motion is ignored but not reset
- *   Queue flush request received during a feedhold is deferred until
- *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *   Queue flush request received during a motion stop is honored
- *
- *   Cycle start request received during motion is ignored and reset
- *   Cycle start request received during a feedhold is deferred until
- *     the feedhold enters a HOLD state (i.e. until deceleration is complete)
- *     If a queue flush request is also present the queue flush is done first
- *   Cycle start request received during a motion stop is honored and starts
- *     to run anything in the planner queue
- */
-
-
-void mach_request_feedhold() {mach.feedhold_requested = true;}
-void mach_request_queue_flush() {mach.queue_flush_requested = true;}
-void mach_request_cycle_start() {mach.cycle_start_requested = true;}
-
-
-/// Process feedholds, cycle starts & queue flushes
-void mach_feedhold_callback() {
-  if (mach.feedhold_requested) {
-    mach.feedhold_requested = false;
-
-    if (mach_get_state() == STATE_RUNNING) {
-      mach_set_state(STATE_STOPPING);
-      mach.hold_state = FEEDHOLD_SYNC; // invokes hold from aline execution
-    }
-  }
-
-  // Only flush queue when we are stopped or holding
-  if (mach.queue_flush_requested &&
-      (mach_get_state() == STATE_READY || mach_get_state() == STATE_HOLDING) &&
-      !mach_get_runtime_busy()) {
-    mach.queue_flush_requested = false;
-    mach_queue_flush();
-  }
-
-  // Don't start cycle when stopping
-  if (mach.cycle_start_requested && mach_get_state() != STATE_STOPPING) {
-    mach.cycle_start_requested = false;
-
-    if (mach_get_state() == STATE_HOLDING) {
-      mach.hold_state = FEEDHOLD_OFF;
-
-      // Check if any moves are buffered
-      if (mp_get_run_buffer()) mach_set_state(STATE_RUNNING);
-      else mach_set_state(STATE_READY);
-    }
-  }
-
-  mp_plan_hold_callback();
-}
-
-
-static void _exec_program_finalize(float *value, float *flag) {
-  mach_set_state(STATE_READY);
-  mach.hold_state = FEEDHOLD_OFF;     // if in feedhold, end it
-  mach.cycle_start_requested = false; // cancel any pending cycle start request
-  mp_zero_segment_velocity();         // for reporting purposes
-}
-
 
 /*** _exec_program_end() implements M2 and M30.  End behaviors are defined by
  * NIST 3.6.1 are:
@@ -1234,9 +1099,6 @@ static void _exec_program_finalize(float *value, float *flag) {
  *    +  Default INCHES or MM units mode is restored
  */
 static void _exec_program_end(float *value, float *flag) {
-  _exec_program_finalize(value, flag);
-
-  // Perform resets
   mach_reset_origin_offsets();      // G92.1 - we do G91.1 instead of G92.2
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
   mach_set_plane(GCODE_DEFAULT_PLANE);
@@ -1248,41 +1110,10 @@ static void _exec_program_end(float *value, float *flag) {
 }
 
 
-stat_t mach_queue_flush() {
-  if (mach_get_runtime_busy()) return STAT_COMMAND_NOT_ACCEPTED;
-
-  mp_flush_planner();                      // flush planner queue
-
-  // Note: The following uses low-level mp calls for absolute position.
-  for (int axis = 0; axis < AXES; axis++)
-    // set mm from mr
-    mach_set_position(axis, mp_get_runtime_absolute_position(axis));
-
-  float value[AXES] = {};
-  _exec_program_finalize(value, value);    // finalize now, not later
-
-  return STAT_OK;
-}
-
-
-/// Do a cycle start right now
-void mach_cycle_start() {
-  if (mach_get_state() == STATE_READY) mach_set_state(STATE_RUNNING);
-}
-
-
-/// Do a cycle end right now
-void mach_cycle_end() {
-  float value[AXES] = {};
-  _exec_program_finalize(value, value);
-}
-
-
-
-/// M0  Queue a program stop
+/// M0 Queue a program stop
 void mach_program_stop() {
-  float value[AXES] = {};
-  mp_queue_command(_exec_program_finalize, value, value);
+  // TODO actually stop program
+  // Need to queue a feedhold event in the planner buffer
 }
 
 
@@ -1304,12 +1135,6 @@ void mach_pallet_change_stop() {
 void mach_program_end() {
   float value[AXES] = {};
   mp_queue_command(_exec_program_end, value, value);
-}
-
-
-/// Free run buffer and end cycle if planner is empty
-void mach_advance_buffer() {
-  if (mp_free_run_buffer()) mach_cycle_end();
 }
 
 

@@ -40,6 +40,7 @@
 #include "plan/calibrate.h"
 #include "plan/buffer.h"
 #include "plan/arc.h"
+#include "plan/state.h"
 #include "config.h"
 
 #include <avr/pgmspace.h>
@@ -56,8 +57,8 @@ static char *_cmd = 0;
 
 static void _estop()  {estop_trigger(ESTOP_USER);}
 static void _clear()  {estop_clear();}
-static void _pause()  {mach_request_feedhold();}
-static void _run()    {mach_request_cycle_start();}
+static void _pause()  {mp_request_hold();}
+static void _run()    {mp_request_start();}
 static void _step()   {} // TODO
 static void _report() {report_request_full();}
 static void _reboot() {hw_request_hard_reset();}
