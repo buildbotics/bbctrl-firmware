@@ -362,9 +362,9 @@ static stat_t _compute_arc() {
  * approximated by generating a large number of tiny, linear arc_segments.
  */
 stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
-                   float i, float j, float k, // raw arc offsets
-                   float radius,  // non-zero radius implies radius mode
-                   uint8_t motion_mode) { // defined motion mode
+                     float i, float j, float k, // raw arc offsets
+                     float radius,  // non-zero radius implies radius mode
+                     uint8_t motion_mode) { // defined motion mode
   // Set axis plane and trap arc specification errors
 
   // trap missing feed rate

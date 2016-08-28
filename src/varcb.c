@@ -41,6 +41,6 @@ uint8_t get_tool() {return mach_get_tool();}
 bool get_echo() {return usart_is_set(USART_ECHO);}
 void set_echo(bool value) {return usart_set(USART_ECHO, value);}
 uint16_t get_queue() {return mp_get_planner_buffer_room();}
-int32_t get_line() {return mr.ms.line;}
+int32_t get_line() {return mp_get_line();}
 PGM_P get_state() {return mp_get_state_pgmstr(mp_get_state());}
 PGM_P get_cycle() {return mp_get_cycle_pgmstr(mp_get_cycle());}

@@ -78,6 +78,7 @@
 #include "usart.h"            // for serial queue flush
 #include "estop.h"
 #include "report.h"
+#include "homing.h"
 
 #include "plan/planner.h"
 #include "plan/buffer.h"
@@ -91,6 +92,9 @@
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
+
+
+#define DISABLE_SOFT_LIMIT -1000000
 
 
 machine_t mach = {
@@ -200,7 +204,6 @@ static void _exec_absolute_origin(float *value, float *flag);
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
 
-machHomingState_t mach_get_homing_state() {return mach.homing_state;}
 machMotionMode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
 machCoordSystem_t mach_get_coord_system() {return mach.gm.coord_system;}
 machUnitsMode_t mach_get_units_mode() {return mach.gm.units_mode;}
@@ -493,12 +496,6 @@ void mach_calc_move_time(const float axis_length[], const float axis_square[]) {
 }
 
 
-/// Set endpoint position from final runtime position
-void mach_update_model_position_from_runtime() {
-  copy_vector(mach.position, mr.ms.target);
-}
-
-
 /* Set target vector in GM model
  *
  * This is a core routine. It handles:
@@ -578,7 +575,7 @@ void mach_set_model_target(float target[], float flag[]) {
 stat_t mach_test_soft_limits(float target[]) {
 #ifdef SOFT_LIMIT_ENABLE
     for (int axis = 0; axis < AXES; axis++) {
-      if (!mach.homed[axis]) continue; // don't test axes that are not homed
+      if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
 
       if (fp_EQ(mach.a[axis].travel_min, mach.a[axis].travel_max)) continue;
 
@@ -758,7 +755,7 @@ static void _exec_absolute_origin(float *value, float *flag) {
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis])) {
       mp_set_runtime_position(axis, value[axis]);
-      mach.homed[axis] = true;    // G28.3 is not considered homed until here
+      mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
 
   mp_set_steps_to_runtime_position();

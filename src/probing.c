@@ -45,7 +45,17 @@
 #define MINIMUM_PROBE_TRAVEL 0.254
 
 
+typedef enum {          // applies to mach.probe_state
+  PROBE_FAILED,         // probe reached endpoint without triggering
+  PROBE_SUCCEEDED,      // probe was triggered, pb.results has position
+  PROBE_WAITING,        // probe is waiting to be started
+} probeState_t;
+
+
 struct pbProbingSingleton {       // persistent probing runtime variables
+  probeState_t state;
+  float results[AXES];            // probing results
+
   void (*func)();                 // binding for callback function state machine
 
   // state saved from gcode model
@@ -59,7 +69,8 @@ struct pbProbingSingleton {       // persistent probing runtime variables
   float flags[AXES];
 };
 
-static struct pbProbingSingleton pb;
+
+static struct pbProbingSingleton pb = {0,};
 
 
 /* Note: When coding a cycle (like this one) you get to perform one
@@ -101,14 +112,14 @@ static void _probing_error_exit(stat_t status) {
 
 static void _probing_finish() {
   bool closed = switch_is_active(SW_PROBE);
-  mach.probe_state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
+  pb.state = closed ? PROBE_SUCCEEDED : PROBE_FAILED;
 
   for (int axis = 0; axis < AXES; axis++) {
     // if we got here because of a feed hold keep the model position correct
     mach_set_position(axis, mp_get_runtime_work_position(axis));
 
     // store the probe results
-    mach.probe_results[axis] = mach_get_absolute_position(axis);
+    pb.results[axis] = mach_get_absolute_position(axis);
   }
 
   _probe_restore_settings();
@@ -140,7 +151,7 @@ static void _probing_init() {
   // NOTE: it is *not* an error condition for the probe not to trigger.
   // it is an error for the limit or homing switches to fire, or for some other
   // configuration error.
-  mach.probe_state = PROBE_FAILED;
+  pb.state = PROBE_FAILED;
   mp_set_cycle(CYCLE_PROBING);
 
   // initialize the axes - save the jerk settings & switch to the jerk_homing
@@ -176,7 +187,7 @@ static void _probing_init() {
 
 
 bool mach_is_probing() {
-  return mp_get_cycle() == CYCLE_PROBING || mach.probe_state == PROBE_WAITING;
+  return mp_get_cycle() == CYCLE_PROBING || pb.state == PROBE_WAITING;
 }
 
 
@@ -194,11 +205,11 @@ stat_t mach_straight_probe(float target[], float flags[]) {
   // set probe move endpoint
   copy_vector(pb.target, target);      // set probe move endpoint
   copy_vector(pb.flags, flags);        // set axes involved on the move
-  clear_vector(mach.probe_results);      // clear the old probe position.
-  // NOTE: relying on probe_results will not detect a probe to (0, 0, 0).
+  clear_vector(pb.results);      // clear the old probe position.
+  // NOTE: relying on pb.results will not detect a probe to (0, 0, 0).
 
   // wait until planner queue empties before completing initialization
-  mach.probe_state = PROBE_WAITING;
+  pb.state = PROBE_WAITING;
   pb.func = _probing_init;             // bind probing initialization function
 
   return STAT_OK;

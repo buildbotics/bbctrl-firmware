@@ -38,23 +38,6 @@
 
 #define TO_MILLIMETERS(a) (mach.gm.units_mode == INCHES ? (a) * MM_PER_INCH : a)
 
-#define DISABLE_SOFT_LIMIT -1000000
-
-
-
-typedef enum {          // applies to mach.homing_state
-  HOMING_NOT_HOMED,     // machine is not homed
-  HOMING_HOMED,         // machine is homed
-  HOMING_WAITING,       // machine waiting to be homed
-} machHomingState_t;
-
-
-typedef enum {          // applies to mach.probe_state
-  PROBE_FAILED,         // probe reached endpoint without triggering
-  PROBE_SUCCEEDED,      // probe was triggered, mach.probe_results has position
-  PROBE_WAITING,        // probe is waiting to be started
-} machProbeState_t;
-
 
 /* The difference between machNextAction_t and machMotionMode_ is that
  * machNextAction_t is used by the current block, and may carry non-modal
@@ -324,14 +307,7 @@ typedef struct { // struct to manage mach globals and cycles
   float g28_position[AXES];            // stored machine position for G28
   float g30_position[AXES];            // stored machine position for G30
 
-  // settings for axes X,Y,Z,A B,C
-  AxisConfig_t a[AXES];
-
-  machHomingState_t homing_state;      // home: homing cycle sub-state machine
-  bool homed[AXES];                    // individual axis homing flags
-
-  machProbeState_t probe_state;
-  float probe_results[AXES];           // probing results
+  AxisConfig_t a[AXES];                // settings for axes
 
   // Model states
   MoveState_t ms;
@@ -346,7 +322,6 @@ extern machine_t mach;                 // machine controller singleton
 
 // Model state getters and setters
 uint32_t mach_get_line();
-machHomingState_t mach_get_homing_state();
 machMotionMode_t mach_get_motion_mode();
 machCoordSystem_t mach_get_coord_system();
 machUnitsMode_t mach_get_units_mode();
@@ -378,7 +353,6 @@ float mach_get_work_position(uint8_t axis);
 
 // Critical helpers
 void mach_calc_move_time(const float axis_length[], const float axis_square[]);
-void mach_update_model_position_from_runtime();
 void mach_finalize_move();
 stat_t mach_deferred_write_callback();
 void mach_set_model_target(float target[], float flag[]);
@@ -425,9 +399,8 @@ void mach_set_path_control(machPathControlMode_t mode);
 
 // Machining Functions (4.3.6)
 stat_t mach_straight_feed(float target[], float flags[]);
-stat_t mach_arc_feed(float target[], float flags[],
-                   float i, float j, float k,
-                   float radius, uint8_t motion_mode);
+stat_t mach_arc_feed(float target[], float flags[], float i, float j, float k,
+                     float radius, uint8_t motion_mode);
 stat_t mach_dwell(float seconds);
 
 // Spindle Functions (4.3.7) see spindle.h

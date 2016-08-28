@@ -148,3 +148,4 @@ void mp_kinematics(const float travel[], float steps[]);
 void mp_plan_block_list(mpBuf_t *bf, uint8_t *mr_flag);
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
 float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
+inline int32_t mp_get_line() {return mr.ms.line;}

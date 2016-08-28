@@ -46,8 +46,18 @@ typedef void (*homing_func_t)(int8_t axis);
 static void _homing_axis_start(int8_t axis);
 
 
+typedef enum {          // applies to mach.homing_state
+  HOMING_NOT_HOMED,     // machine is not homed
+  HOMING_HOMED,         // machine is homed
+  HOMING_WAITING,       // machine waiting to be homed
+} homingState_t;
+
+
 /// persistent homing runtime variables
 struct hmHomingSingleton {
+  homingState_t state;            // homing cycle sub-state machine
+  bool homed[AXES];               // individual axis homing flags
+
   // controls for homing cycle
   int8_t axis;                    // axis currently being homed
 
@@ -82,7 +92,9 @@ struct hmHomingSingleton {
   float saved_feed_rate;          // F setting
   float saved_jerk;               // saved and restored for each axis homed
 };
-static struct hmHomingSingleton hm;
+
+
+static struct hmHomingSingleton hm = {0,};
 
 
 // G28.2 homing cycle
@@ -217,7 +229,7 @@ static void _homing_abort(int8_t axis) {
 static void _homing_axis_set_zero(int8_t axis) {
   if (hm.set_coordinates) {
     mach_set_position(axis, 0);
-    mach.homed[axis] = true;
+    hm.homed[axis] = true;
 
   } else // do not set axis if in G28.4 cycle
     mach_set_position(axis, mp_get_runtime_work_position(axis));
@@ -277,7 +289,7 @@ static void _homing_axis_start(int8_t axis) {
   // get the first or next axis
   if ((axis = _get_next_axis(axis)) < 0) { // axes are done or error
     if (axis == -1) {                                    // -1 is done
-      mach.homing_state = HOMING_HOMED;
+      hm.state = HOMING_HOMED;
       _homing_finalize_exit();
       return;
 
@@ -286,7 +298,7 @@ static void _homing_axis_start(int8_t axis) {
   }
 
   // clear the homed flag for axis to move w/o triggering soft limits
-  mach.homed[axis] = false;
+  hm.homed[axis] = false;
 
   // trap axis mis-configurations
   if (fp_ZERO(mach.a[axis].search_velocity))
@@ -349,7 +361,17 @@ bool mach_is_homing() {
 void mach_set_not_homed() {
   // TODO save homed to EEPROM
   for (int axis = 0; axis < AXES; axis++)
-    mach.homed[axis] = false;
+    hm.homed[axis] = false;
+}
+
+
+bool mach_get_homed(int axis) {
+  return hm.homed[axis];
+}
+
+
+void mach_set_homed(int axis, bool homed) {
+  hm.homed[axis] = homed;
 }
 
 
@@ -372,7 +394,7 @@ void mach_homing_cycle_start() {
   hm.axis = -1;                            // set to retrieve initial axis
   hm.func = _homing_axis_start;            // bind initial processing function
   mp_set_cycle(CYCLE_HOMING);
-  mach.homing_state = HOMING_NOT_HOMED;
+  hm.state = HOMING_NOT_HOMED;
 }
 
 

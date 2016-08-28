@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "buffer.h"
+#include "machine.h"
 
-void mp_set_planner_position(uint8_t axis, const float position);
+void mp_set_planner_position(int axis, const float position);
 stat_t mp_aline(MoveState_t *ms);

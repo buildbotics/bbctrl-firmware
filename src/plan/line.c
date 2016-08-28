@@ -55,7 +55,7 @@ mpMoveMasterSingleton_t mm = {};     // context for line planning
 
 
 /// Set planner position for a single axis
-void mp_set_planner_position(uint8_t axis, const float position) {
+void mp_set_planner_position(int axis, const float position) {
   mm.position[axis] = position;
 }
 
@@ -182,10 +182,6 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  * the minimums.
  */
 stat_t mp_aline(MoveState_t *ms) {
-  float exact_stop = 0;                // preset this value OFF
-  float junction_velocity;
-  uint8_t mr_flag = false;
-
   // Compute some reusable terms
   float axis_length[AXES];
   float axis_square[AXES];
@@ -207,13 +203,15 @@ stat_t mp_aline(MoveState_t *ms) {
   // minimum move time get a more accurate time estimate based on
   // starting velocity and acceleration.  The time of the move is
   // determined by its initial velocity (Vi) and how much acceleration
-  // will be occur. For this we need to look at the exit velocity of
+  // will occur. For this we need to look at the exit velocity of
   // the previous block. There are 3 possible cases:
   //
   //    (1) There is no previous block.
   //        Vi = 0
+  //
   //    (2) Previous block is optimally planned.
   //        Vi = previous block's exit_velocity
+  //
   //    (3) Previous block is not optimally planned.
   //        Vi <= previous block's entry_velocity + delta_velocity
 
@@ -258,19 +256,23 @@ stat_t mp_aline(MoveState_t *ms) {
   //
   // The math for time-to-decelerate T from speed S to speed E with constant
   // jerk J is:
-  //   T = 2 * sqrt((S - E) / J[n])
+  //
+  //   T = 2 * sqrt((S - E) / J)
   //
   // Since E is always zero in this calculation, we can simplify:
-  //   T = 2 * sqrt(S / J[n])
+  //
+  //   T = 2 * sqrt(S / J)
   //
   // The math for distance-to-decelerate l from speed S to speed E with
   // constant jerk J is:
+  //
   //   l = (S + E) * sqrt((S - E) / J)
   //
   // Since E is always zero in this calculation, we can simplify:
+  //
   //   l = S * sqrt(S / J)
   //
-  // The final value we want is to know which one is *longest*,
+  // The final value we want to know is which one is *longest*,
   // compared to the others, so we don't need the actual value. This
   // means that the scale of the value doesn't matter, so for T we
   // can remove the "2 *" and For L we can remove the "S*".  This
@@ -281,7 +283,7 @@ stat_t mp_aline(MoveState_t *ms) {
   // However, we *do* need to compensate for the fact that each axis
   // contributes differently to the move, so we will scale each
   // contribution C[n] by the proportion of the axis movement length
-  // D[n] to the total length of the move L.  0Using that, we
+  // D[n] to the total length of the move L.  Using that, we
   // construct the following, with these definitions:
   //
   //   J[n] = max_jerk for axis n
@@ -289,23 +291,30 @@ stat_t mp_aline(MoveState_t *ms) {
   //   L = total length of the move in all axes
   //   C[n] = "axis contribution" of axis n
   //
-  // For each axis n: C[n] = sqrt(1 / J[n]) * (D[n] / L)
+  // For each axis n:
   //
-  //    Keeping in mind that we only need a rank compared to the other
-  //    axes, we can further optimize the calculations::
+  //   C[n] = sqrt(1 / J[n]) * (D[n] / L)
   //
-  //    Square the expression to remove the square root:
-  //        C[n]^2 = (1 / J[n]) * (D[n] / L)^2 (We don't care the C is squared,
-  //                                            we'll use it that way.)
+  // Keeping in mind that we only need a rank compared to the other
+  // axes, we can further optimize the calculations:
   //
-  //    Re-arranged to optimize divides for pre-calculated values,
-  //    we create a value M that we compute once:
-  //        M = 1 / L^2
-  //    Then we use it in the calculations for every axis:
-  //        C[n] = 1 / J[n] * D[n]^2 * M
+  // Square the expression to remove the square root:
   //
-  //    Also note that we already have 1 / J[n] calculated for each axis,
-  //    which simplifies it further.
+  //   C[n]^2 = (1 / J[n]) * (D[n] / L)^2
+  //
+  // We don't care the C is squared, so we'll use it that way.
+  //
+  // Re-arranged to optimize divides for pre-calculated values,
+  // we create a value M that we compute once:
+  //
+  //   M = 1 / L^2
+  //
+  // Then we use it in the calculations for every axis:
+  //
+  //   C[n] = 1 / J[n] * D[n]^2 * M
+  //
+  // Also note that we already have 1 / J[n] calculated for each axis,
+  // which simplifies it further.
   //
   // Finally, the selected jerk term needs to be scaled by the
   // reciprocal of the absolute value of the jerk-limit axis's unit
@@ -347,21 +356,23 @@ stat_t mp_aline(MoveState_t *ms) {
 
   // finish up the current block variables
   // exact stop cases already zeroed
+  float exact_stop = 0;
   if (mach_get_path_control() != PATH_EXACT_STOP) {
     bf->replannable = true;
     exact_stop = 8675309; // an arbitrarily large floating point number
   }
 
+  float junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
   bf->cruise_vmax = bf->length / bf->ms.move_time; // target velocity requested
-  junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
   bf->entry_vmax = min3(bf->cruise_vmax, junction_velocity, exact_stop);
   bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
-  bf->exit_vmax = min3(bf->cruise_vmax, (bf->entry_vmax + bf->delta_vmax),
-                       exact_stop);
+  bf->exit_vmax =
+    min3(bf->cruise_vmax, (bf->entry_vmax + bf->delta_vmax), exact_stop);
   bf->braking_velocity = bf->delta_vmax;
 
-  // Note: these next lines must remain in exact order. Position must update
+  // NOTE: these next lines must remain in exact order. Position must update
   // before committing the buffer.
+  uint8_t mr_flag = false;
   mp_plan_block_list(bf, &mr_flag);            // replan block list
   copy_vector(mm.position, bf->ms.target);     // set the planner position
   // commit current block (must follow the position update)
