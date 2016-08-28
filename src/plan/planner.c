@@ -71,7 +71,7 @@
 #include <stdio.h>
 
 
-mpMoveRuntimeSingleton_t mr = {}; // context for line runtime
+mpMoveRuntimeSingleton_t mr = {0}; // context for line runtime
 
 
 void planner_init() {
@@ -128,7 +128,7 @@ void mp_set_steps_to_runtime_position() {
   // convert lengths to steps in floating point
   mp_kinematics(mr.position, step_position);
 
-  for (uint8_t motor = 0; motor < MOTORS; motor++) {
+  for (int motor = 0; motor < MOTORS; motor++) {
     mr.target_steps[motor] = step_position[motor];
     mr.position_steps[motor] = step_position[motor];
     mr.commanded_steps[motor] = step_position[motor];

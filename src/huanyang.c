@@ -132,7 +132,7 @@ typedef struct {
 } huanyang_t;
 
 
-static huanyang_t ha = {};
+static huanyang_t ha = {0};
 
 
 #define CTRL_STATUS_RESPONSE(R) ((uint16_t)R[4] << 8 | R[5])

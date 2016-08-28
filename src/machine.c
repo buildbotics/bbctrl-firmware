@@ -271,8 +271,7 @@ void mach_set_axis_jerk(uint8_t axis, float jerk) {
  *
  * Functions to get, set and report coordinate systems and work offsets
  * These functions are not part of the NIST defined functions
- */
-/*
+ *
  * Notes on Coordinate System and Offset functions
  *
  * All positional information in the machine is kept as
@@ -482,7 +481,7 @@ void mach_calc_move_time(const float axis_length[], const float axis_square[]) {
     }
   }
 
-  for (uint8_t axis = 0; axis < AXES; axis++) {
+  for (int axis = 0; axis < AXES; axis++) {
     if (mach.gm.motion_mode == MOTION_MODE_STRAIGHT_TRAVERSE)
       tmp_time = fabs(axis_length[axis]) / mach.a[axis].velocity_max;
 
@@ -605,8 +604,8 @@ stat_t mach_test_soft_limits(float target[]) {
 
 void machine_init() {
   // Init 1/jerk
-  for (uint8_t axis = 0; axis < AXES; axis++)
-    mach.a[axis].recip_jerk = 1 / (mach.a[axis].jerk_max * JERK_MULTIPLIER);
+  for (int axis = 0; axis < AXES; axis++)
+    mach_set_axis_jerk(axis, mach.a[axis].jerk_max);
 
   // Set gcode defaults
   mach_set_units_mode(GCODE_DEFAULT_UNITS);
@@ -1130,7 +1129,7 @@ void mach_pallet_change_stop() {
 
 /// M2, M30
 void mach_program_end() {
-  float value[AXES] = {};
+  float value[AXES] = {0};
   mp_queue_command(_exec_program_end, value, value);
 }
 

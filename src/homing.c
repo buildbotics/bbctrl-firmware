@@ -46,7 +46,7 @@ typedef void (*homing_func_t)(int8_t axis);
 static void _homing_axis_start(int8_t axis);
 
 
-typedef enum {          // applies to mach.homing_state
+typedef enum {
   HOMING_NOT_HOMED,     // machine is not homed
   HOMING_HOMED,         // machine is homed
   HOMING_WAITING,       // machine waiting to be homed
@@ -94,7 +94,7 @@ struct hmHomingSingleton {
 };
 
 
-static struct hmHomingSingleton hm = {0,};
+static struct hmHomingSingleton hm = {0};
 
 
 // G28.2 homing cycle
@@ -201,8 +201,8 @@ static void _homing_error_exit(stat_t status) {
 
 /// helper that actually executes the above moves
 static void _homing_axis_move(int8_t axis, float target, float velocity) {
-  float vect[] = {};
-  float flags[] = {};
+  float vect[AXES] = {0};
+  float flags[AXES] = {0};
 
   vect[axis] = target;
   flags[axis] = true;

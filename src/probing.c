@@ -45,7 +45,7 @@
 #define MINIMUM_PROBE_TRAVEL 0.254
 
 
-typedef enum {          // applies to mach.probe_state
+typedef enum {
   PROBE_FAILED,         // probe reached endpoint without triggering
   PROBE_SUCCEEDED,      // probe was triggered, pb.results has position
   PROBE_WAITING,        // probe is waiting to be started
@@ -70,7 +70,7 @@ struct pbProbingSingleton {       // persistent probing runtime variables
 };
 
 
-static struct pbProbingSingleton pb = {0,};
+static struct pbProbingSingleton pb = {0};
 
 
 /* Note: When coding a cycle (like this one) you get to perform one

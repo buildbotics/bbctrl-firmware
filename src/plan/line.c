@@ -51,7 +51,7 @@ typedef struct mpMoveMasterSingleton {
 } mpMoveMasterSingleton_t;
 
 
-mpMoveMasterSingleton_t mm = {};     // context for line planning
+mpMoveMasterSingleton_t mm = {{0}}; // context for line planning
 
 
 /// Set planner position for a single axis
@@ -187,7 +187,7 @@ stat_t mp_aline(MoveState_t *ms) {
   float axis_square[AXES];
   float length_square = 0;
 
-  for (uint8_t axis = 0; axis < AXES; axis++) {
+  for (int axis = 0; axis < AXES; axis++) {
     axis_length[axis] = ms->target[axis] - mm.position[axis];
     axis_square[axis] = square(axis_length[axis]);
     length_square += axis_square[axis];

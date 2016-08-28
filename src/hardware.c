@@ -47,7 +47,7 @@ typedef struct {
   bool bootloader;         // flag to enter the bootloader
 } hw_t;
 
-static hw_t hw = {};
+static hw_t hw = {{0}};
 
 
 #define PROD_SIGS (*(NVM_PROD_SIGNATURES_t *)0x0000)

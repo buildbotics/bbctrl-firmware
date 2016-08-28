@@ -58,7 +58,7 @@ typedef struct {
 } stepper_t;
 
 
-static stepper_t st = {};
+static stepper_t st = {0};
 
 
 void stepper_init() {

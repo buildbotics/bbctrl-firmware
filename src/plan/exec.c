@@ -743,7 +743,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     copy_vector(mr.final_target, bf->ms.target); // save move final target
 
     // generate the waypoints for position correction at section ends
-    for (uint8_t axis = 0; axis < AXES; axis++) {
+    for (int axis = 0; axis < AXES; axis++) {
       mr.waypoint[SECTION_HEAD][axis] =
         mr.position[axis] + mr.unit[axis] * mr.head_length;
 

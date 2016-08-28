@@ -77,7 +77,7 @@ typedef struct arArcSingleton {     // persistent planner and runtime variables
   MoveState_t ms;
 } arc_t;
 
-arc_t arc = {};
+arc_t arc = {0};
 
 
 /* Returns a naive estimate of arc execution time to inform segment
@@ -101,15 +101,15 @@ static void _estimate_arc_time() {
   } else arc.arc_time = arc.length / mach.gm.feed_rate;
 
   // Downgrade the time if there is a rate-limiting axis
-  arc.arc_time =
-    max(arc.arc_time, arc.planar_travel/mach.a[arc.plane_axis_0].feedrate_max);
-  arc.arc_time =
-    max(arc.arc_time, arc.planar_travel/mach.a[arc.plane_axis_1].feedrate_max);
+  arc.arc_time = max(arc.arc_time,
+                     arc.planar_travel / mach.a[arc.plane_axis_0].feedrate_max);
+  arc.arc_time = max(arc.arc_time,
+                     arc.planar_travel / mach.a[arc.plane_axis_1].feedrate_max);
 
   if (0 < fabs(arc.linear_travel))
     arc.arc_time =
       max(arc.arc_time,
-          fabs(arc.linear_travel/mach.a[arc.linear_axis].feedrate_max));
+          fabs(arc.linear_travel / mach.a[arc.linear_axis].feedrate_max));
 }
 
 
@@ -498,6 +498,4 @@ bool mach_arc_active() {return arc.run_state != MOVE_OFF;}
 
 /// Stop arc movement without maintaining position
 /// OK to call if no arc is running
-void mach_abort_arc() {
-  arc.run_state = MOVE_OFF;
-}
+void mach_abort_arc() {arc.run_state = MOVE_OFF;}

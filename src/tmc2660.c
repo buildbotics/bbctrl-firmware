@@ -89,7 +89,7 @@ typedef struct {
   volatile uint32_t in;
 } spi_t;
 
-static spi_t spi = {};
+static spi_t spi = {0};
 
 
 

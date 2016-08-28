@@ -160,7 +160,7 @@ int command_parser(char *cmd) {
   // Parse line
   char *p = cmd + 1; // Skip `$`
   int argc = 0;
-  char *argv[MAX_ARGS] = {};
+  char *argv[MAX_ARGS] = {0};
 
   if (cmd[1] == '$' && !cmd[2]) {
     report_request_full(); // Full report

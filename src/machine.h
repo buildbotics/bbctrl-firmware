@@ -308,8 +308,6 @@ typedef struct { // struct to manage mach globals and cycles
   float g30_position[AXES];            // stored machine position for G30
 
   AxisConfig_t a[AXES];                // settings for axes
-
-  // Model states
   MoveState_t ms;
   GCodeState_t gm;                     // core gcode model state
   GCodeState_t gn;                     // gcode input values

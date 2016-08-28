@@ -73,7 +73,7 @@ typedef struct {
   uint16_t stallguard;
 } calibrate_t;
 
-static calibrate_t cal = {};
+static calibrate_t cal = {0};
 
 
 static stat_t _exec_calibrate(mpBuf_t *bf) {
@@ -130,7 +130,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
   if (!cal.velocity) return STAT_OK;
 
   // Compute travel
-  float travel[AXES] = {}; // In mm
+  float travel[AXES] = {0}; // In mm
   travel[cal.axis] = time * cal.velocity * (cal.reverse ? -1 : 1);
 
   // Convert to steps
