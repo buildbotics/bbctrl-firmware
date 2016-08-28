@@ -89,7 +89,7 @@ void planner_init() {
 void mp_flush_planner() {
   mach_abort_arc();
   mp_init_buffers();
-  mach_set_state(STATE_IDLE);
+  mach_set_state(STATE_READY);
 }
 
 

@@ -182,7 +182,7 @@ machine_t mach = {
     }
   },
 
-  ._state = STATE_IDLE,
+  ._state = STATE_READY,
   ._cycle = CYCLE_MACHINING,
 
   // State
@@ -206,7 +206,7 @@ uint32_t mach_get_line() {return mach.gm.line;}
 
 PGM_P mach_get_state_pgmstr(machState_t state) {
   switch (state) {
-  case STATE_IDLE:     return PSTR("idle");
+  case STATE_READY:    return PSTR("ready");
   case STATE_ESTOPPED: return PSTR("estopped");
   case STATE_RUNNING:  return PSTR("running");
   case STATE_STOPPING: return PSTR("stopping");
@@ -256,7 +256,7 @@ void mach_set_state(machState_t state) {
 void mach_set_cycle(machCycle_t cycle) {
   if (mach._cycle == cycle) return; // No change
 
-  if (mach._state != STATE_IDLE) {
+  if (mach._state != STATE_READY) {
     STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
                  mach_get_cycle_pgmstr(cycle),
                  mach_get_state_pgmstr(mach._state));
@@ -1173,7 +1173,7 @@ void mach_feedhold_callback() {
 
   // Only flush queue when we are stopped or holding
   if (mach.queue_flush_requested &&
-      (mach_get_state() == STATE_IDLE || mach_get_state() == STATE_HOLDING) &&
+      (mach_get_state() == STATE_READY || mach_get_state() == STATE_HOLDING) &&
       !mach_get_runtime_busy()) {
     mach.queue_flush_requested = false;
     mach_queue_flush();
@@ -1188,7 +1188,7 @@ void mach_feedhold_callback() {
 
       // Check if any moves are buffered
       if (mp_get_run_buffer()) mach_set_state(STATE_RUNNING);
-      else mach_set_state(STATE_IDLE);
+      else mach_set_state(STATE_READY);
     }
   }
 
@@ -1197,7 +1197,7 @@ void mach_feedhold_callback() {
 
 
 static void _exec_program_finalize(float *value, float *flag) {
-  mach_set_state(STATE_IDLE);
+  mach_set_state(STATE_READY);
   mach.hold_state = FEEDHOLD_OFF;     // if in feedhold, end it
   mach.cycle_start_requested = false; // cancel any pending cycle start request
   mp_zero_segment_velocity();         // for reporting purposes
@@ -1267,7 +1267,7 @@ stat_t mach_queue_flush() {
 
 /// Do a cycle start right now
 void mach_cycle_start() {
-  if (mach_get_state() == STATE_IDLE) mach_set_state(STATE_RUNNING);
+  if (mach_get_state() == STATE_READY) mach_set_state(STATE_RUNNING);
 }
 
 

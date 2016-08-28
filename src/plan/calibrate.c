@@ -163,7 +163,7 @@ void calibrate_set_stallguard(int motor, uint16_t sg) {
 
 
 uint8_t command_calibrate(int argc, char *argv[]) {
-  if (mach_get_cycle() != CYCLE_MACHINING || mach_get_state() != STATE_IDLE)
+  if (mach_get_cycle() != CYCLE_MACHINING || mach_get_state() != STATE_READY)
     return 0;
 
   mpBuf_t *bf = mp_get_write_buffer();

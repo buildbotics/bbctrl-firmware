@@ -34,6 +34,9 @@
 
 float get_position(int index) {return mp_get_runtime_absolute_position(index);}
 float get_velocity() {return mp_get_runtime_velocity();}
+float get_speed() {return mach_get_spindle_speed();}
+float get_feed() {return mach_get_feed_rate();}
+uint8_t get_tool() {return mach_get_tool();}
 bool get_echo() {return usart_is_set(USART_ECHO);}
 void set_echo(bool value) {return usart_set(USART_ECHO, value);}
 uint16_t get_queue() {return mp_get_planner_buffer_room();}

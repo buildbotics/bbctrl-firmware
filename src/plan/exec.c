@@ -804,7 +804,7 @@ stat_t mp_exec_move() {
   if (!bf) return STAT_NOOP; // nothing running
   if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
 
-  if (mach_get_state() == STATE_IDLE) mach_set_state(STATE_RUNNING);
+  if (mach_get_state() == STATE_READY) mach_set_state(STATE_RUNNING);
 
   return bf->bf_func(bf); // move callback
 }

@@ -45,7 +45,7 @@
 
 
 typedef enum {
-  STATE_IDLE,
+  STATE_READY,
   STATE_ESTOPPED,
   STATE_RUNNING,
   STATE_STOPPING,
@@ -395,6 +395,7 @@ machDistanceMode_t mach_get_distance_mode();
 machFeedRateMode_t mach_get_feed_rate_mode();
 uint8_t mach_get_tool();
 machSpindleMode_t mach_get_spindle_mode();
+inline float mach_get_spindle_speed() {return mach.gm.spindle_speed;}
 bool mach_get_runtime_busy();
 float mach_get_feed_rate();
 

@@ -117,7 +117,7 @@ bool mp_jog_busy() {return mach_get_cycle() == CYCLE_JOGGING;}
 
 uint8_t command_jog(int argc, char *argv[]) {
   if (!mp_jog_busy() &&
-      (mach_get_state() != STATE_IDLE || mach_get_cycle() != CYCLE_MACHINING))
+      (mach_get_state() != STATE_READY || mach_get_cycle() != CYCLE_MACHINING))
     return STAT_NOOP;
 
   float velocity[AXES];
