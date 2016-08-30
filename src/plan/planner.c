@@ -171,7 +171,7 @@ float mp_get_runtime_work_position(uint8_t axis) {
 /// FALSE you know the queue is empty and the motors have stopped.
 uint8_t mp_get_runtime_busy() {
   if (mp_get_state() == STATE_ESTOPPED) return false;
-  return st_runtime_isbusy() || mr.move_state == MOVE_RUN;
+  return st_runtime_isbusy() || mr.active;
 }
 
 
@@ -594,7 +594,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
 void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
   mpBuf_t *bp = bf;
 
-  // Backward planning pass. Find first block and update the braking velocities.
+  // Backward planning pass.  Find first block and update braking velocities.
   // At the end *bp points to the buffer before the first block.
   while ((bp = mp_get_prev_buffer(bp)) != bf) {
     if (!bp->replannable) break;

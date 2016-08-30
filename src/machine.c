@@ -75,18 +75,16 @@
 #include "switch.h"
 #include "hardware.h"
 #include "util.h"
-#include "usart.h"            // for serial queue flush
 #include "estop.h"
 #include "report.h"
 #include "homing.h"
 
 #include "plan/planner.h"
-#include "plan/buffer.h"
-#include "plan/feedhold.h"
 #include "plan/dwell.h"
 #include "plan/command.h"
 #include "plan/arc.h"
 #include "plan/line.h"
+#include "plan/state.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -1106,10 +1104,15 @@ static void _exec_program_end(float *value, float *flag) {
 }
 
 
+static void _exec_program_stop(float *value, float *flag) {
+  mp_set_hold_state(FEEDHOLD_HOLD);
+}
+
+
 /// M0 Queue a program stop
 void mach_program_stop() {
-  // TODO actually stop program
-  // Need to queue a feedhold event in the planner buffer
+  float value[AXES] = {0};
+  mp_queue_command(_exec_program_stop, value, value);
 }
 
 

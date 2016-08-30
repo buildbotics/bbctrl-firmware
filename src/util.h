@@ -68,33 +68,33 @@ uint16_t compute_checksum(char const *string, const uint16_t length);
 
 // side-effect safe forms of min and max
 #ifndef max
-#define max(a,b)                                \
+#define max(a, b)                               \
   ({ __typeof__ (a) termA = (a);                \
     __typeof__ (b) termB = (b);                 \
-    termA>termB ? termA:termB; })
+    termA > termB ? termA : termB;})
 #endif
 
 #ifndef min
-#define min(a,b)                                \
+#define min(a, b)                               \
   ({ __typeof__ (a) term1 = (a);                \
     __typeof__ (b) term2 = (b);                 \
-    term1<term2 ? term1:term2; })
+    term1 < term2 ? term1 : term2;})
 #endif
 
 #ifndef avg
-#define avg(a,b) ((a+b)/2)
+#define avg(a, b) ((a + b) / 2)
 #endif
 
 // allowable rounding error for floats
 #ifndef EPSILON
-#define EPSILON        ((float)0.00001)
+#define EPSILON 0.00001
 #endif
 
 #ifndef fp_EQ
-#define fp_EQ(a,b) (fabs(a - b) < EPSILON)
+#define fp_EQ(a, b) (fabs(a - b) < EPSILON)
 #endif
 #ifndef fp_NE
-#define fp_NE(a,b) (fabs(a - b) > EPSILON)
+#define fp_NE(a, b) (fabs(a - b) > EPSILON)
 #endif
 #ifndef fp_ZERO
 #define fp_ZERO(a) (fabs(a) < EPSILON)
@@ -112,14 +112,14 @@ uint16_t compute_checksum(char const *string, const uint16_t length);
 #endif
 
 // Constants
-#define MAX_LONG (2147483647)
-#define MAX_ULONG (4294967295)
-#define MM_PER_INCH (25.4)
+#define MAX_LONG 2147483647
+#define MAX_ULONG 4294967295
+#define MM_PER_INCH 25.4
 #define INCHES_PER_MM (1 / 25.4)
-#define MICROSECONDS_PER_MINUTE ((float)60000000)
-#define uSec(a) ((float)(a * MICROSECONDS_PER_MINUTE))
+#define MICROSECONDS_PER_MINUTE 60000000.0
+#define uSec(a) ((a) * MICROSECONDS_PER_MINUTE)
 
-#define RADIAN (57.2957795)
+#define RADIAN 57.2957795
 #ifndef M_SQRT3
-#define M_SQRT3 (1.73205080756888)
+#define M_SQRT3 1.73205080756888
 #endif

@@ -75,9 +75,9 @@ typedef enum {
 
 
 typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
-  uint8_t move_state;    // state of the overall move
-  uint8_t section;       // what section is the move in?
-  uint8_t section_state; // state within a move section
+  bool active;                  // True if a move is running
+  moveSection_t section;        // what section is the move in?
+  bool section_new;             // true if it's a new section
 
   /// unit vector for axis scaling & planning
   float unit[AXES];

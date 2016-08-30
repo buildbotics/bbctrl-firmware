@@ -38,6 +38,7 @@
 #include <stdbool.h>
 #include <math.h>
 
+
 /* Feedhold is executed as hold state transitions executed inside
  * _exec_aline() and main loop callbacks to mp_plan_hold_callback()
  *
@@ -106,7 +107,7 @@ static float _compute_next_segment_velocity() {
 }
 
 
-/// replan block list to execute hold
+/// Replan block list to execute hold
 void mp_plan_hold_callback() {
   if (mp_get_hold_state() != FEEDHOLD_PLAN) return; // not planning a feedhold
 
@@ -123,11 +124,11 @@ void mp_plan_hold_callback() {
   float braking_length = mp_get_target_length(braking_velocity, 0, bp);
 
   // Hack to prevent Case 2 moves for perfect-fit decels. Happens in
-  // homing situations. The real fix: The braking velocity cannot
+  // homing situations.  The real fix: The braking velocity cannot
   // simply be the mr.segment_velocity as this is the velocity of the
   // last segment, not the one that's going to be executed next.  The
   // braking_velocity needs to be the velocity of the next segment
-  // that has not yet been computed. In the mean time, this hack will
+  // that has not yet been computed.  In the mean time, this hack will
   // work.
   if (mr_available_length < braking_length && fp_ZERO(bp->exit_velocity))
     braking_length = mr_available_length;
@@ -139,7 +140,7 @@ void mp_plan_hold_callback() {
     mr.tail_length = braking_length;
     mr.cruise_velocity = braking_velocity;
     mr.section = SECTION_TAIL;
-    mr.section_state = SECTION_NEW;
+    mr.section_new = true;
 
     // re-use bp+0 to be the hold point and to run the remaining block length
     bp->length = mr_available_length - braking_length;
@@ -157,7 +158,7 @@ void mp_plan_hold_callback() {
   // Case 2: deceleration exceeds length remaining in mr buffer
   // First, replan mr to minimum (but non-zero) exit velocity
   mr.section = SECTION_TAIL;
-  mr.section_state = SECTION_NEW;
+  mr.section_new = true;
   mr.tail_length = mr_available_length;
   mr.cruise_velocity = braking_velocity;
   mr.exit_velocity =
@@ -204,5 +205,5 @@ void mp_plan_hold_callback() {
 
   _reset_replannable_list();      // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), true);
-  mp_set_hold_state(FEEDHOLD_DECEL); // set state to decelerate and exit
+  mp_set_hold_state(FEEDHOLD_DECEL); // set state to decelerate
 }

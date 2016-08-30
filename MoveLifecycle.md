@@ -70,14 +70,11 @@ later for position correction which adjust position for rounding errors.
 ### Move execution
 After move initialization ``mp_exec_aline()`` calls ``_exec_aline_head()``,
 ``_exec_aline_body()`` and ``exec_aline_tail()`` on successive callbacks.  Each
-of these functions are called repeatedly until the section finishes.  They
-advance through states ``SECTION_NEW`` which initializes the section,
-``SECTION_1st_HALF`` which executes the first half of the S-curve and
-``SECTION_2nd_HALF``.  If any sections have zero length they are skipped and
-execution is passed immediately to the next section.  During each section
-forward differencing is used to map the trapezoid computed during the planning
-stage to a fifth-degree Bezier polynomial S-curve.  The curve is used to find
-the next target position.
+of these functions are called repeatedly until the section finishes.  If any
+sections have zero length they are skipped and execution is passed immediately
+to the next section.  During each section forward differencing is used to map
+the trapezoid computed during the planning stage to a fifth-degree Bezier
+polynomial S-curve.  The curve is used to find the next target position.
 
 ``_exec_aline_segment()`` is called for each non-zero section to convert the
 computed target position to target steps by calling ``mp_kinematics()``.  The

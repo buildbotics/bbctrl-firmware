@@ -40,18 +40,13 @@ typedef enum {             // bf->move_type values
   MOVE_TYPE_COMMAND,       // general command
 } moveType_t;
 
+
 typedef enum {
   MOVE_OFF,                // move inactive (MUST BE ZERO)
   MOVE_NEW,                // initial value
   MOVE_RUN,                // general run state (for non-acceleration moves)
 } moveState_t;
 
-typedef enum {
-  SECTION_OFF,             // section inactive
-  SECTION_NEW,             // uninitialized section
-  SECTION_1st_HALF,        // first half of S curve
-  SECTION_2nd_HALF         // second half of S curve or running a BODY (cruise)
-} sectionState_t;
 
 // All the enums that equal zero must be zero. Don't change this
 typedef enum {                    // bf->buffer_state values
