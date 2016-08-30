@@ -95,8 +95,6 @@ enum {
 
 // Compile-time settings
 //#define __STEP_CORRECTION
-//#define __JERK_EXEC            // Use computed jerk (vs. forward difference)
-//#define __KAHAN                // Use Kahan summation in aline exec functions
 #define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
 //#define __CLOCK_INTERNAL_32MHZ
 

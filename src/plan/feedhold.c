@@ -102,11 +102,7 @@ static void _reset_replannable_list() {
 
 static float _compute_next_segment_velocity() {
   if (mr.section == SECTION_BODY) return mr.segment_velocity;
-#ifdef __JERK_EXEC
-  return mr.segment_velocity; // an approximation
-#else
   return mr.segment_velocity + mr.forward_diff[4];
-#endif
 }
 
 

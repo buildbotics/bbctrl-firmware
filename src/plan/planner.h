@@ -112,21 +112,7 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   float segment_velocity;           // computed velocity for aline segment
   float segment_time;               // actual time increment per aline segment
   float jerk;                       // max linear jerk
-
-#ifdef __JERK_EXEC // values used exclusively by computed jerk acceleration
-  float jerk_div2;                  // cached value for efficiency
-  float midpoint_velocity;          // velocity at accel/decel midpoint
-  float midpoint_acceleration;
-  float accel_time;
-  float segment_accel_time;
-  float elapsed_accel_time;
-
-#else // __JERK_EXEC - used exclusively by forward differencing acceleration
-  float forward_diff[5];             // forward difference levels
-#ifdef __KAHAN
-  float forward_diff_c[5];           // levels floating-point compensation
-#endif
-#endif // __JERK_EXEC
+  float forward_diff[5];            // forward difference levels
 
   MoveState_t ms;
 } mpMoveRuntimeSingleton_t;
