@@ -68,7 +68,7 @@ static stat_t _exec_aline_segment() {
   // Set target position for the segment
   // If the segment ends on a section waypoint, synchronize to the
   // head, body or tail end.  Otherwise, if not at a section waypoint
-  // compute target from segment time and velocity Don't do waypoint
+  // compute target from segment time and velocity.  Don't do waypoint
   // correction if you are going into a hold.
   if (--mr.segment_count == 0 && mr.section_state == SECTION_2nd_HALF &&
       mp_get_state() == STATE_RUNNING)
@@ -101,7 +101,7 @@ static stat_t _exec_aline_segment() {
   // now determine the target steps
   mp_kinematics(mr.ms.target, mr.target_steps);
 
-  // and compute the distances to be traveled
+  // and compute the distances, in steps, to be traveled
   for (int i = 0; i < MOTORS; i++)
     travel_steps[i] = mr.target_steps[i] - mr.position_steps[i];
 
@@ -131,8 +131,8 @@ static stat_t _exec_aline_segment() {
  *
  * The Bezier curve takes the form:
  *
- *     V(t) = P_0 * B_0(t) + P_1 * B_1(t) + P_2 * B_2(t) + P_3 * B_3(t) +
- *     P_4 * B_4(t) + P_5 * B_5(t)
+ *   V(t) = P_0 * B_0(t) + P_1 * B_1(t) + P_2 * B_2(t) + P_3 * B_3(t) +
+ *          P_4 * B_4(t) + P_5 * B_5(t)
  *
  * Where 0 <= t <= 1, and V(t) is the velocity. P_0 through P_5 are
  * the control points, and B_0(t) through B_5(t) are the Bernstein
@@ -364,8 +364,8 @@ static stat_t _exec_aline_tail() {
   if (mr.section_state == SECTION_1st_HALF) {
     if (_exec_aline_segment() == STAT_OK) {
       // For forward differencing we should have one segment in
-      // SECTION_1st_HALF. However, if it returns from that as STAT_OK, then
-      // there was only one segment in this section. Show that we did complete
+      // SECTION_1st_HALF.  However, if it returns from that as STAT_OK, then
+      // there was only one segment in this section.  Show that we did complete
       // section 2 ... effectively.
       mr.section_state = SECTION_2nd_HALF;
       return STAT_OK;
@@ -424,9 +424,6 @@ static stat_t _exec_aline_tail() {
 
 
 /// Helper for cruise section
-/// The body is broken into little segments even though it is a
-/// straight line so that feedholds can happen in the middle of a line
-/// with a minimum of latency
 static stat_t _exec_aline_body() {
   if (mr.section_state == SECTION_NEW) {
     if (fp_ZERO(mr.body_length)) {
@@ -446,7 +443,7 @@ static stat_t _exec_aline_body() {
 
     mr.section = SECTION_BODY;
 
-    // uses PERIOD_2 so last segment detection works
+    // use SECTION_2nd_HALF so last segment detection works
     mr.section_state = SECTION_2nd_HALF;
   }
 
@@ -533,12 +530,14 @@ static stat_t _exec_aline_head() {
   return STAT_EAGAIN;
 }
 
+
 #else // __JERK_EXEC
 /// Helper for acceleration section
 static stat_t _exec_aline_head() {
   if (mr.section_state == SECTION_NEW) { // initialize the move singleton (mr)
     if (fp_ZERO(mr.head_length)) {
       mr.section = SECTION_BODY;
+
       return _exec_aline_body(); // skip ahead to the body generator
     }
 
@@ -560,7 +559,7 @@ static stat_t _exec_aline_head() {
   }
 
   // For forward differencing we should have one segment in
-  // SECTION_1st_HALF However, if it returns from that as STAT_OK,
+  // SECTION_1st_HALF.  However, if it returns from that as STAT_OK,
   // then there was only one segment in this section.
   // First half (concave part of accel curve)
   if (mr.section_state == SECTION_1st_HALF) {
@@ -627,6 +626,62 @@ static stat_t _exec_aline_head() {
 #endif // !__JERK_EXEC
 
 
+/// Initializes a new planner buffer
+static stat_t _exec_aline_init(mpBuf_t *bf) {
+  // Stop here if holding
+  if (mp_get_hold_state() == FEEDHOLD_HOLD) return STAT_NOOP;
+
+  // copy in the gcode model state
+  memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
+  bf->replannable = false;
+  report_request(); // Executing line number has changed
+
+  // Remove zero length lines.  Short lines have already been removed.
+  if (fp_ZERO(bf->length)) {
+    mr.move_state = MOVE_OFF; // reset mr buffer
+    mr.section_state = SECTION_OFF;
+    bf->nx->replannable = false; // prevent overplanning (Note 2)
+    mp_free_run_buffer(); // free buffer
+
+    return STAT_NOOP;
+  }
+
+  // Initialize the move runtime
+  bf->move_state = MOVE_RUN;
+  mr.move_state = MOVE_RUN;
+  mr.section = SECTION_HEAD;
+  mr.section_state = SECTION_NEW;
+  mr.jerk = bf->jerk;
+#ifdef __JERK_EXEC
+  mr.jerk_div2 = bf->jerk / 2; // only needed by __JERK_EXEC
+#endif
+  mr.head_length = bf->head_length;
+  mr.body_length = bf->body_length;
+  mr.tail_length = bf->tail_length;
+  mr.entry_velocity = bf->entry_velocity;
+  mr.cruise_velocity = bf->cruise_velocity;
+  mr.exit_velocity = bf->exit_velocity;
+
+  copy_vector(mr.unit, bf->unit);
+  copy_vector(mr.final_target, bf->ms.target); // save move final target
+
+  // Generate waypoints for position correction at section ends
+  for (int axis = 0; axis < AXES; axis++) {
+    mr.waypoint[SECTION_HEAD][axis] =
+      mr.position[axis] + mr.unit[axis] * mr.head_length;
+
+    mr.waypoint[SECTION_BODY][axis] =
+      mr.position[axis] + mr.unit[axis] * (mr.head_length + mr.body_length);
+
+    mr.waypoint[SECTION_TAIL][axis] =
+      mr.position[axis] + mr.unit[axis] *
+      (mr.head_length + mr.body_length + mr.tail_length);
+  }
+
+  return STAT_OK;
+}
+
+
 /* Aline execution routines
  *
  * Everything here fires from interrupts and must be interrupt safe
@@ -635,14 +690,13 @@ static stat_t _exec_aline_head() {
  *
  *   STAT_OK        move is done
  *   STAT_EAGAIN    move is not finished - has more segments to run
- *   STAT_NOOP      cause no operation from the steppers - do not load the
- *                  move
- *   STAT_xxxxx     fatal error. Ends the move and frees the bf buffer
+ *   STAT_NOOP      cause no stepper operation - do not load the move
+ *   STAT_xxxxx     fatal error.  Ends the move and frees the bf buffer
  *
- * This routine is called from the (LO) interrupt level. The interrupt
- * sequencing relies on the behaviors of the routines being exactly correct.
+ * This routine is called from the (LO) interrupt level.  The interrupt
+ * sequencing relies on the correct behavior of these routines.
  * Each call to _exec_aline() must execute and prep *one and only one*
- * segment. If the segment is not the last segment in the bf buffer the
+ * segment.  If the segment is not the last segment in the bf buffer the
  * _aline() returns STAT_EAGAIN. If it's the last segment it returns
  * STAT_OK. If it encounters a fatal error that would terminate the move it
  * returns a valid error code.
@@ -655,7 +709,7 @@ static stat_t _exec_aline_head() {
  *
  * [2] Solves a potential race condition where the current move ends but
  *     the new move has not started because the previous move is still
- *     being run by the steppers. Planning can overwrite the new move.
+ *     being run by the steppers.  Planning can overwrite the new move.
  *
  * Operation:
  *
@@ -681,18 +735,16 @@ static stat_t _exec_aline_head() {
  *   Period 4    V = Vh + As * T + Jm * (T^2) / 2
  *
  * These routines play some games with the acceleration and move timing
- * to make sure this actually all works out. move_time is the actual time of
- * the move, accel_time is the time valaue needed to compute the velocity -
- * which takes the initial velocity into account (move_time does not need
- * to).
+ * to make sure this actually work out.  move_time is the actual time of
+ * the move, accel_time is the time value needed to compute the velocity -
+ * taking the initial velocity into account (move_time does not need to).
  *
  * State transitions - hierarchical state machine:
  *
  * bf->move_state transitions:
  *
  *  from _NEW to _RUN on first call (sub_state set to _OFF)
- *  from _RUN to _OFF on final call
- *   or just remains _OFF
+ *  from _RUN to _OFF on final call or just remain _OFF
  *
  * mr.move_state transitions on first call from _OFF to one of _HEAD, _BODY,
  * _TAIL.  Within each section state may be:
@@ -704,71 +756,22 @@ static stat_t _exec_aline_head() {
 stat_t mp_exec_aline(mpBuf_t *bf) {
   if (bf->move_state == MOVE_OFF) return STAT_NOOP;
 
-  // start a new move by setting up local context (singleton)
+  stat_t status = STAT_OK;
+
+  // Start a new move
   if (mr.move_state == MOVE_OFF) {
-    // stop here if holding
-    if (mp_get_hold_state() == FEEDHOLD_HOLD) return STAT_NOOP;
-
-    // initialization to process the new incoming bf buffer (Gcode block)
-    // copy in the gcode model state
-    memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
-    bf->replannable = false;
-    report_request(); // Executing line number has changed
-
-    // short lines have already been removed, look for an actual zero
-    if (fp_ZERO(bf->length)) {
-      mr.move_state = MOVE_OFF; // reset mr buffer
-      mr.section_state = SECTION_OFF;
-      // prevent overplanning (Note 2)
-      bf->nx->replannable = false;
-      // free buffer & end cycle if planner is empty
-      mp_free_run_buffer();
-
-      return STAT_NOOP;
-    }
-
-    bf->move_state = MOVE_RUN;
-    mr.move_state = MOVE_RUN;
-    mr.section = SECTION_HEAD;
-    mr.section_state = SECTION_NEW;
-    mr.jerk = bf->jerk;
-#ifdef __JERK_EXEC
-    mr.jerk_div2 = bf->jerk / 2; // only needed by __JERK_EXEC
-#endif
-    mr.head_length = bf->head_length;
-    mr.body_length = bf->body_length;
-    mr.tail_length = bf->tail_length;
-
-    mr.entry_velocity = bf->entry_velocity;
-    mr.cruise_velocity = bf->cruise_velocity;
-    mr.exit_velocity = bf->exit_velocity;
-
-    copy_vector(mr.unit, bf->unit);
-    copy_vector(mr.final_target, bf->ms.target); // save move final target
-
-    // generate the waypoints for position correction at section ends
-    for (int axis = 0; axis < AXES; axis++) {
-      mr.waypoint[SECTION_HEAD][axis] =
-        mr.position[axis] + mr.unit[axis] * mr.head_length;
-
-      mr.waypoint[SECTION_BODY][axis] =
-        mr.position[axis] + mr.unit[axis] *
-        (mr.head_length + mr.body_length);
-
-      mr.waypoint[SECTION_TAIL][axis] =
-        mr.position[axis] + mr.unit[axis] *
-        (mr.head_length + mr.body_length + mr.tail_length);
-    }
+    status = _exec_aline_init(bf);
+    if (status != STAT_OK) return status;
   }
 
   // Main segment processing dispatch.  From this point on the contents of the
   // bf buffer do not affect execution.
-  stat_t status = STAT_OK;
-
-  if (mr.section == SECTION_HEAD) status = _exec_aline_head();
-  else if (mr.section == SECTION_BODY) status = _exec_aline_body();
-  else if (mr.section == SECTION_TAIL) status = _exec_aline_tail();
-  else return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
+  switch (mr.section) {
+  case SECTION_HEAD: status = _exec_aline_head(); break;
+  case SECTION_BODY: status = _exec_aline_body(); break;
+  case SECTION_TAIL: status = _exec_aline_tail(); break;
+  default: return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
+  }
 
   mp_state_hold_callback(status == STAT_OK);
 

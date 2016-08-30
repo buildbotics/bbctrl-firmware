@@ -235,7 +235,8 @@ stat_t mp_aline(MoveState_t *ms) {
     if (move_time < MIN_BLOCK_TIME) return STAT_MINIMUM_TIME_MOVE;
   }
 
-  // Get a cleared buffer and setup move variables
+  // Get a *cleared* buffer and setup move variables
+  // Note, mp_free_run_buffer() initializes all buffer variables to zero
   mpBuf_t *bf = mp_get_write_buffer(); // current move pointer
   if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 
@@ -354,7 +355,6 @@ stat_t mp_aline(MoveState_t *ms) {
   bf->recip_jerk = mm.recip_jerk;
   bf->cbrt_jerk = mm.cbrt_jerk;
 
-  // finish up the current block variables
   // exact stop cases already zeroed
   float exact_stop = 0;
   if (mach_get_path_control() != PATH_EXACT_STOP) {
@@ -362,6 +362,7 @@ stat_t mp_aline(MoveState_t *ms) {
     exact_stop = 8675309; // an arbitrarily large floating point number
   }
 
+  // finish up the current block variables
   float junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
   bf->cruise_vmax = bf->length / bf->ms.move_time; // target velocity requested
   bf->entry_vmax = min3(bf->cruise_vmax, junction_velocity, exact_stop);

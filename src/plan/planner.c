@@ -213,11 +213,11 @@ void mp_kinematics(const float travel[], float steps[]) {
 
 
 /*** This rather brute-force and long-ish function sets section lengths
- * and velocities based on the line length and velocities
- * requested. It modifies the incoming bf buffer and returns accurate
- * head, body and tail lengths, and accurate or reasonably approximate
- * velocities. We care about accuracy on lengths, less so for velocity,
- * as long as velocity errs on the side of too slow.
+ * and velocities based on the line length and velocities requested.  It
+ * modifies the incoming bf buffer and returns accurate head, body and
+ * tail lengths, and accurate or reasonably approximate velocities.  We
+ * care about accuracy on lengths, less so for velocity, as long as velocity
+ * errs on the side of too slow.
  *
  * Note: We need the velocities to be set even for zero-length
  * sections (Note: sections, not moves) so we can compute entry and
@@ -230,8 +230,7 @@ void mp_kinematics(const float travel[], float steps[]) {
  *   bf->cruise_velocity   - requested Vt, is often changed
  *   bf->exit_velocity     - requested Vx, may change for degenerate cases
  *   bf->cruise_vmax       - used in some comparisons
- *   bf->delta_vmax        - used to degrade velocity of pathologically
- *                           short blocks
+ *   bf->delta_vmax        - used to degrade velocity of short blocks
  *
  * Variables that may be set/updated are:
  *
@@ -250,13 +249,13 @@ void mp_kinematics(const float travel[], float steps[]) {
  * Classes of moves:
  *
  *   Requested-Fit - The move has sufficient length to achieve the
- *     target velocity (cruise velocity). I.e: it will accommodate
+ *     target velocity (cruise velocity).  I.e it will accommodate
  *     the acceleration / deceleration profile in the given length.
  *
  *   Rate-Limited-Fit - The move does not have sufficient length to
- *     achieve target velocity. In this case the cruise velocity
+ *     achieve target velocity.  In this case the cruise velocity
  *     will be set lower than the requested velocity (incoming
- *     bf->cruise_velocity). The entry and exit velocities are
+ *     bf->cruise_velocity).  The entry and exit velocities are
  *     satisfied.
  *
  *   Degraded-Fit - The move does not have sufficient length to
@@ -264,10 +263,10 @@ void mp_kinematics(const float travel[], float steps[]) {
  *     the available length. These velocities are not negotiable,
  *     so a degraded solution is found.
  *
- *     In worst cases the move cannot be executed as the required
- *     execution time is less than the minimum segment time. The
+ *     In worst cases, the move cannot be executed as the required
+ *     execution time is less than the minimum segment time.  The
  *     first degradation is to reduce the move to a body-only
- *     segment with an average velocity. If that still doesn't fit
+ *     segment with an average velocity.  If that still doesn't fit
  *     then the move velocity is reduced so it fits into a minimum
  *     segment.  This will reduce the velocities in that region of
  *     the planner buffer as the moves are replanned to that
@@ -307,7 +306,7 @@ void mp_kinematics(const float travel[], float steps[]) {
  *       F     <too short>  force fit: This block is slowed down until it can
  *                          be executed
  *
- * Note: The order of the cases/tests in the code is important. Start with
+ * Note: The order of the cases/tests in the code is important.  Start with
  * the shortest cases first and work up. Not only does this simplify the order
  * of the tests, but it reduces execution time when you need it most - when
  * tons of pathologically short Gcode blocks are being thrown at you.
@@ -360,9 +359,8 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   }
 
   // B case:  Velocities all match (or close enough)
-  //   This occurs frequently in normal gcode files with lots of short lines
-  //   This case is not really necessary, but saves lots of processing time
-
+  // This occurs frequently in normal gcode files with lots of short lines.
+  // This case is not really necessary, but saves lots of processing time.
   if (((bf->cruise_velocity - bf->entry_velocity) <
        TRAPEZOID_VELOCITY_TOLERANCE) &&
       ((bf->cruise_velocity - bf->exit_velocity) <
@@ -378,7 +376,6 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   //   H" and T" degraded-fit cases
   //   H' and T' requested-fit cases where the body residual is less than
   //   MIN_BODY_LENGTH
-
   bf->body_length = 0;
   float minimum_length =
     mp_get_target_length(bf->entry_velocity, bf->exit_velocity, bf);
