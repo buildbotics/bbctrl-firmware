@@ -62,19 +62,20 @@ returns ``STAT_EAGAIN``.
 On the first call to ``mp_exec_aline()`` a call is made to
 ``_exec_aline_init()``.  This function may stop processing the move if a
 feedhold is in effect.  It may also skip a move if it has zero length.
-Otherwise, it initializes the move runtime state (``mr``) by copying the move
-state from the planner buffer and initializing variables.  In addition, it
-computes waypoints at the ends of each trapezoid section.  Waypoints are used
-later for position correction which adjust position for rounding errors.
+Otherwise, it initializes the move runtime state (``mr``) copying over the
+variables set in the planner buffer.  In addition, it computes waypoints at
+the ends of each trapezoid section.  Waypoints are used later to correct
+position for rounding errors.
 
 ### Move execution
 After move initialization ``mp_exec_aline()`` calls ``_exec_aline_head()``,
-``_exec_aline_body()`` and ``exec_aline_tail()`` on successive callbacks.  Each
-of these functions are called repeatedly until the section finishes.  If any
+``_exec_aline_body()`` and ``exec_aline_tail()`` on successive callbacks.
+These functions are called repeatedly until each section finishes.  If any
 sections have zero length they are skipped and execution is passed immediately
-to the next section.  During each section forward differencing is used to map
+to the next section.  During each section, forward differencing is used to map
 the trapezoid computed during the planning stage to a fifth-degree Bezier
-polynomial S-curve.  The curve is used to find the next target position.
+polynomial S-curve.  The curve is used to find the appropriate velocity at the
+next target position.
 
 ``_exec_aline_segment()`` is called for each non-zero section to convert the
 computed target position to target steps by calling ``mp_kinematics()``.  The
@@ -83,13 +84,13 @@ move fragment is then passed to the stepper driver by a call to
 returns ``STAT_OK`` indicating the next segment should be loaded.  When all
 non-zero segments have been executed, the move is complete.
 
-## Stepper driver
-Calls to ``st_prep_line()`` prepare short (~5ms) moves for execution by the
-stepper driver.  The move time in clock ticks is computed from travel in steps
-and the move duration.  Then ``motor_prep_move()`` is called for each motor.
-``motor_prep_move()`` may perform step correction, enables the motors if needed.
-It then computes the optimal step clock divisor, clock ticks and sets the move
-direction, taking the motor's configuration in to account.
+## Pulse generation
+Calls to ``st_prep_line()`` prepare short (~5ms) move fragements for pluse
+generation by the stepper driver.  Move time in clock ticks is computed from
+travel in steps and move duration.  Then ``motor_prep_move()`` is called for
+each motor. ``motor_prep_move()`` may perform step correction and enable the
+motor.  It then computes the optimal step clock divisor, clock ticks and sets
+the move direction, taking the motor's configuration in to account.
 
 The stepper timer ISR, after ending the previous move, calls
 ``motor_load_move()`` on each motor.  This sets up and starts the motor clocks,

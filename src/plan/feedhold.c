@@ -64,21 +64,18 @@
  *   before or after motion stops.
  *
  * Terms used:
- *  - mr is the runtime buffer. It was initially loaded from the bf
- *    buffer
+ *  - mr is the runtime buffer. It was initially loaded from the bf buffer
  *  - bp + 0 is the "companion" bf buffer to the mr buffer.
  *  - bp + 1 is the bf buffer following bp+0. This runs through bp + N
- *  - bp (by itself) just refers to the current buffer being
- *    adjusted / replanned
+ *  - bp (by itself) refers to the current buffer being adjusted / replanned
  *
  * Details:
  *   Planning re-uses bp + 0 as an "extra" buffer. Normally bp + 0
  *   is returned to the buffer pool as it is redundant once mr is
- *   loaded. Use the extra buffer to split the move in two where the
- *   hold decelerates to zero. Use one buffer to go to zero, the other
- *   to replan up from zero. All buffers past that point are
- *   unaffected other than that they need to be replanned for
- *   velocity.
+ *   loaded.  Use the extra buffer to split the move in two where the
+ *   hold decelerates to zero.  Use one buffer to go to zero, the other
+ *   to replan up from zero.  All buffers past that point are
+ *   unaffected other than that they need to be replanned for velocity.
  *
  * Note:
  *   There are multiple opportunities for more efficient
@@ -128,8 +125,7 @@ void mp_plan_hold_callback() {
   // simply be the mr.segment_velocity as this is the velocity of the
   // last segment, not the one that's going to be executed next.  The
   // braking_velocity needs to be the velocity of the next segment
-  // that has not yet been computed.  In the mean time, this hack will
-  // work.
+  // that has not yet been computed.  In the mean time, this hack will work.
   if (mr_available_length < braking_length && fp_ZERO(bp->exit_velocity))
     braking_length = mr_available_length;
 
@@ -168,7 +164,7 @@ void mp_plan_hold_callback() {
   braking_velocity = mr.exit_velocity;      // adjust braking velocity downward
   bp->move_state = MOVE_NEW;                // tell _exec to re-use buffer
 
-  // a safety to avoid wraparound
+  // A safety to avoid wraparound
   for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
     mp_copy_buffer(bp, bp->nx);             // copy bp+1 into bp+0, and onward
 
@@ -197,13 +193,13 @@ void mp_plan_hold_callback() {
   bp->length = braking_length;
   bp->exit_vmax = 0;
 
-  bp = mp_get_next_buffer(bp);    // point to the acceleration buffer
+  bp = mp_get_next_buffer(bp);       // point to the acceleration buffer
   bp->entry_vmax = 0;
-  bp->length -= braking_length;   // identical buffers and hence their lengths
+  bp->length -= braking_length;      // identical buffers, hence their lengths
   bp->delta_vmax = mp_get_target_velocity(0, bp->length, bp);
   bp->exit_vmax = bp->delta_vmax;
 
-  _reset_replannable_list();      // replan all the blocks
+  _reset_replannable_list();         // replan all the blocks
   mp_plan_block_list(mp_get_last_buffer(), true);
   mp_set_hold_state(FEEDHOLD_DECEL); // set state to decelerate
 }

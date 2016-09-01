@@ -35,35 +35,35 @@
  * executes commands - passing the stateless commands to the motion
  * planning layer.
  *
- * Synchronizing command execution
+ * Synchronizing command execution:
  *
- *   "Synchronous commands" are commands that affect the runtime need
- *   to be synchronized with movement. Examples include G4 dwells,
- *   program stops and ends, and most M commands.  These are queued
- *   into the planner queue and execute from the queue. Synchronous
- *   commands work like this:
+ * "Synchronous commands" are commands that affect the runtime need
+ * to be synchronized with movement. Examples include G4 dwells,
+ * program stops and ends, and most M commands.  These are queued
+ * into the planner queue and execute from the queue. Synchronous
+ * commands work like this:
  *
- *     - Call the mach_xxx_xxx() function which will do any input
- *       validation and return an error if it detects one.
+ *   - Call the mach_xxx_xxx() function which will do any input
+ *     validation and return an error if it detects one.
  *
- *     - The mach_ function calls mp_queue_command(). Arguments are a
- *       callback to the _exec_...() function, which is the runtime
- *       execution routine, and any arguments that are needed by the
- *       runtime. See typedef for *exec in planner.h for details
+ *   - The mach_ function calls mp_queue_command(). Arguments are a
+ *     callback to the _exec_...() function, which is the runtime
+ *     execution routine, and any arguments that are needed by the
+ *     runtime. See typedef for *exec in planner.h for details
  *
- *     - mp_queue_command() stores the callback and the args in a
-          planner buffer.
+ *   - mp_queue_command() stores the callback and the args in a
+ *     planner buffer.
  *
- *     - When planner execution reaches the buffer it executes the
- *       callback w/ the args.  Take careful note that the callback
- *       executes under an interrupt, so beware of variables that may
- *       need to be volatile.
+ *   - When planner execution reaches the buffer it executes the
+ *     callback w/ the args.  Take careful note that the callback
+ *     executes under an interrupt, so beware of variables that may
+ *     need to be volatile.
  *
- *   Note: - The synchronous command execution mechanism uses 2
- *   vectors in the bf buffer to store and return values for the
- *   callback. It's obvious, but impractical to pass the entire bf
- *   buffer to the callback as some of these commands are actually
- *   executed locally and have no buffer.
+ * Note: The synchronous command execution mechanism uses 2
+ * vectors in the bf buffer to store and return values for the
+ * callback.  It's obvious, but impractical to pass the entire bf
+ * buffer to the callback as some of these commands are actually
+ * executed locally and have no buffer.
  */
 
 #include "machine.h"

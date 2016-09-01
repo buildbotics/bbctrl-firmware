@@ -33,7 +33,7 @@
 #include <stdbool.h>
 
 
-typedef enum {             // bf->move_type values
+typedef enum {
   MOVE_TYPE_NULL,          // null move - does a no-op
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
@@ -55,7 +55,7 @@ typedef enum {                    // bf->buffer_state values
   MP_BUFFER_QUEUED,               // in queue
   MP_BUFFER_PENDING,              // marked as the next buffer to run
   MP_BUFFER_RUNNING               // current running buffer
-} mpBufferState_t;
+} bufferState_t;
 
 
 // Callbacks
@@ -71,11 +71,8 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   bf_func_t bf_func;              // callback to buffer exec function
   mach_exec_t mach_func;          // callback to machine
 
-  float naive_move_time;
-
-  mpBufferState_t buffer_state;   // used to manage queuing/dequeuing
+  bufferState_t buffer_state;     // used to manage queuing/dequeuing
   moveType_t move_type;           // used to dispatch to run routine
-  uint8_t move_code;              // byte used by used exec functions
   moveState_t move_state;         // move state machine sequence
   bool replannable;               // true if move can be re-planned
 
@@ -85,18 +82,18 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   float head_length;
   float body_length;
   float tail_length;
+
   // See notes on these variables, in aline()
   float entry_velocity;           // entry velocity requested for the move
   float cruise_velocity;          // cruise velocity requested & achieved
   float exit_velocity;            // exit velocity requested for the move
+  float braking_velocity;         // current value for braking velocity
 
   float entry_vmax;               // max junction velocity at entry of this move
   float cruise_vmax;              // max cruise velocity requested for move
   float exit_vmax;                // max exit velocity possible (redundant)
   float delta_vmax;               // max velocity difference for this move
-  float braking_velocity;         // current value for braking velocity
 
-  uint8_t jerk_axis;              // rate limiting axis used to compute jerk
   float jerk;                     // maximum linear jerk term for this move
   float recip_jerk;               // 1/Jm used for planning (computed & cached)
   float cbrt_jerk;                // cube root of Jm (computed & cached)
@@ -109,7 +106,7 @@ uint8_t mp_get_planner_buffer_room();
 void mp_wait_for_buffer();
 void mp_init_buffers();
 mpBuf_t *mp_get_write_buffer();
-void mp_commit_write_buffer(uint32_t line, moveType_t move_type);
+void mp_commit_write_buffer(uint32_t line, moveType_t type);
 mpBuf_t *mp_get_run_buffer();
 void mp_free_run_buffer();
 mpBuf_t *mp_get_last_buffer();

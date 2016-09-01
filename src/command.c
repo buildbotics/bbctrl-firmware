@@ -55,25 +55,28 @@
 static char *_cmd = 0;
 
 
-static void _estop()  {estop_trigger(ESTOP_USER);}
-static void _clear()  {estop_clear();}
-static void _pause()  {mp_request_hold();}
-static void _run()    {mp_request_start();}
-static void _step()   {} // TODO
-static void _report() {report_request_full();}
-static void _reboot() {hw_request_hard_reset();}
+static void _estop()      {estop_trigger(ESTOP_USER);}
+static void _clear()      {estop_clear();}
+static void _pause()      {mp_request_hold();}
+static void _opt_pause()  {} // TODO
+static void _run()        {mp_request_start();}
+static void _step()       {} // TODO
+static void _report()     {report_request_full();}
+static void _home()       {} // TODO
+static void _reboot()     {hw_request_hard_reset();}
 
 
 static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   switch (cmd) {
-  case I2C_ESTOP:  _estop();  break;
-  case I2C_CLEAR:  _clear();  break;
-  case I2C_PAUSE:  _pause();  break;
-  case I2C_RUN:    _run();    break;
-  case I2C_STEP:   _step();   break;
-  case I2C_REPORT: _report(); break;
-  case I2C_HOME: break;
-  case I2C_REBOOT: _reboot(); break;
+  case I2C_ESTOP:          _estop();     break;
+  case I2C_CLEAR:          _clear();     break;
+  case I2C_PAUSE:          _pause();     break;
+  case I2C_OPTIONAL_PAUSE: _opt_pause(); break;
+  case I2C_RUN:            _run();       break;
+  case I2C_STEP:           _step();      break;
+  case I2C_REPORT:         _report();    break;
+  case I2C_HOME:           _home();      break;
+  case I2C_REBOOT:         _reboot();    break;
   default: break;
   }
 }

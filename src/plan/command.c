@@ -68,7 +68,6 @@ void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
     return; // Shouldn't happen, buffer availability was checked upstream.
   }
 
-  bf->move_type = MOVE_TYPE_COMMAND;
   bf->bf_func = _exec_command;    // callback to planner queue exec function
   bf->mach_func = mach_exec;      // callback to machine exec function
 

@@ -39,6 +39,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <stdio.h>
 
 
 /*** Segment runner
@@ -231,7 +232,7 @@ static stat_t _exec_aline_segment() {
  *
  * Note that with our current control points, D and E are actually 0.
  */
-static void _init_forward_diffs(float Vi, float Vt) {
+static float _init_forward_diffs(float Vi, float Vt, float segments) {
   float A =  -6.0 * Vi +  6.0 * Vt;
   float B =  15.0 * Vi - 15.0 * Vt;
   float C = -10.0 * Vi + 10.0 * Vt;
@@ -239,7 +240,7 @@ static void _init_forward_diffs(float Vi, float Vt) {
   // E = 0
   // F = Vi
 
-  float h = 1 / mr.segments;
+  float h = 1 / segments;
 
   float Ah_5 = A * h * h * h * h * h;
   float Bh_4 = B * h * h * h * h;
@@ -257,23 +258,23 @@ static void _init_forward_diffs(float Vi, float Vt) {
   float half_Bh_4 = B * half_h * half_h * half_h * half_h;
   float half_Ah_5 = C * half_h * half_h * half_h * half_h * half_h;
 
-  mr.segment_velocity = half_Ah_5 + half_Bh_4 + half_Ch_3 + Vi;
+  return half_Ah_5 + half_Bh_4 + half_Ch_3 + Vi;
 }
 
 
 /// Common code for head and tail sections
-static stat_t _exec_aline_ends(float length, float entry_velocity,
-                               float exit_velocity) {
+static stat_t _exec_aline_section(float length, float vin, float vout) {
   if (mr.section_new) {
     if (fp_ZERO(length)) return STAT_OK; // end the move
 
     // len / avg. velocity
-    mr.ms.move_time = 2 * length / (entry_velocity + exit_velocity);
+    mr.ms.move_time = 2 * length / (vin + vout);
     mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
     mr.segment_time = mr.ms.move_time / mr.segments;
     mr.segment_count = (uint32_t)mr.segments;
 
-    _init_forward_diffs(entry_velocity, exit_velocity);
+    if (vin == vout) mr.segment_velocity = vin;
+    else mr.segment_velocity = _init_forward_diffs(vin, vout, mr.segments);
 
     if (mr.segment_time < MIN_SEGMENT_TIME)
       return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
@@ -286,11 +287,12 @@ static stat_t _exec_aline_ends(float length, float entry_velocity,
 
     mr.section_new = false;
 
-  } else {
-    mr.segment_velocity += mr.forward_diff[4];
+  } else { // Do subsequent segments
+    if (vin != vout) mr.segment_velocity += mr.forward_diff[4];
 
     if (_exec_aline_segment() == STAT_OK) return STAT_OK;
-    else {
+
+    if (vin != vout) {
       mr.forward_diff[4] += mr.forward_diff[3];
       mr.forward_diff[3] += mr.forward_diff[2];
       mr.forward_diff[2] += mr.forward_diff[1];
@@ -305,37 +307,28 @@ static stat_t _exec_aline_ends(float length, float entry_velocity,
 /// Callback for tail section
 static stat_t _exec_aline_tail() {
   mr.section = SECTION_TAIL;
-  return _exec_aline_ends(mr.tail_length, mr.cruise_velocity, mr.exit_velocity);
+  return
+    _exec_aline_section(mr.tail_length, mr.cruise_velocity, mr.exit_velocity);
 }
 
 
-/// Callback for cruise section
+/// Callback for body section
 static stat_t _exec_aline_body() {
-  if (mr.section_new) {
-    if (fp_ZERO(mr.body_length)) {
-      mr.section = SECTION_TAIL;
-      return _exec_aline_tail(); // skip to tail
-    }
+  mr.section = SECTION_BODY;
 
-    mr.ms.move_time = mr.body_length / mr.cruise_velocity;
-    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
-    mr.segment_time = mr.ms.move_time / mr.segments;
-    mr.segment_velocity = mr.cruise_velocity;
-    mr.segment_count = mr.segments;
+  stat_t status =
+    _exec_aline_section(mr.body_length, mr.cruise_velocity, mr.cruise_velocity);
 
-    if (mr.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit without advancing position
+  if (status == STAT_OK) {
+    if (mr.section_new) return _exec_aline_tail();
 
-    mr.section = SECTION_BODY;
-    mr.section_new = false;
-  }
-
-  if (_exec_aline_segment() == STAT_OK) { // OK means this section is done
     mr.section = SECTION_TAIL;
     mr.section_new = true;
+
+    return STAT_EAGAIN;
   }
 
-  return STAT_EAGAIN;
+  return status;
 }
 
 
@@ -343,12 +336,15 @@ static stat_t _exec_aline_body() {
 static stat_t _exec_aline_head() {
   mr.section = SECTION_HEAD;
   stat_t status =
-    _exec_aline_ends(mr.head_length, mr.entry_velocity, mr.cruise_velocity);
+    _exec_aline_section(mr.head_length, mr.entry_velocity, mr.cruise_velocity);
 
   if (status == STAT_OK) {
-    mr.section = SECTION_BODY;
     if (mr.section_new) return _exec_aline_body();
+
+    mr.section = SECTION_BODY;
     mr.section_new = true;
+
+    return STAT_EAGAIN;
   }
 
   return status;
@@ -380,16 +376,16 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
   mr.section = SECTION_HEAD;
   mr.section_new = true;
 
-  mr.jerk = bf->jerk;
+  copy_vector(mr.unit, bf->unit);
+  copy_vector(mr.final_target, bf->ms.target);
+
   mr.head_length = bf->head_length;
   mr.body_length = bf->body_length;
   mr.tail_length = bf->tail_length;
   mr.entry_velocity = bf->entry_velocity;
   mr.cruise_velocity = bf->cruise_velocity;
   mr.exit_velocity = bf->exit_velocity;
-
-  copy_vector(mr.unit, bf->unit);
-  copy_vector(mr.final_target, bf->ms.target);
+  mr.jerk = bf->jerk;
 
   // Generate waypoints for position correction at section ends
   for (int axis = 0; axis < AXES; axis++) {
@@ -489,7 +485,6 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   case SECTION_HEAD: status = _exec_aline_head(); break;
   case SECTION_BODY: status = _exec_aline_body(); break;
   case SECTION_TAIL: status = _exec_aline_tail(); break;
-  default: return CM_ALARM(STAT_INTERNAL_ERROR); // never supposed to get here
   }
 
   mp_state_hold_callback(status == STAT_OK);

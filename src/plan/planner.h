@@ -70,7 +70,6 @@ typedef enum {
   SECTION_HEAD,           // acceleration
   SECTION_BODY,           // cruise
   SECTION_TAIL,           // deceleration
-  SECTIONS                // section count
 } moveSection_t;
 
 
@@ -86,7 +85,7 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   /// current move position
   float position[AXES];
   /// head/body/tail endpoints for correction
-  float waypoint[SECTIONS][AXES];
+  float waypoint[3][AXES];
   /// current MR target (absolute target as steps)
   float target_steps[MOTORS];
   /// current MR position (target from previous segment)
@@ -102,16 +101,15 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   float head_length;
   float body_length;
   float tail_length;
-
   float entry_velocity;
   float cruise_velocity;
   float exit_velocity;
+  float jerk;                       // max linear jerk
 
   float segments;                   // number of segments in line or arc
   uint32_t segment_count;           // count of running segments
   float segment_velocity;           // computed velocity for aline segment
   float segment_time;               // actual time increment per aline segment
-  float jerk;                       // max linear jerk
   float forward_diff[5];            // forward difference levels
 
   MoveState_t ms;

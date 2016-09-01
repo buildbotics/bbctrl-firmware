@@ -320,10 +320,10 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   // velocity you can get given the delta_vmax (maximum velocity slew)
   // supportable.
 
-  bf->naive_move_time =
+  float naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
 
-  if (bf->naive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
+  if (naive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
     bf->cruise_velocity = bf->length / MIN_SEGMENT_TIME_PLUS_MARGIN;
     bf->exit_velocity = max(0.0, min(bf->cruise_velocity,
                                      (bf->entry_velocity - bf->delta_vmax)));
@@ -337,7 +337,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
   }
 
   // B" case: Block is short, but fits into a single body segment
-  if (bf->naive_move_time <= NOM_SEGMENT_TIME) {
+  if (naive_move_time <= NOM_SEGMENT_TIME) {
     bf->entry_velocity = bf->pv->exit_velocity;
 
     if (fp_NOT_ZERO(bf->entry_velocity)) {
@@ -532,7 +532,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  * planned becomes the effective first block.
  *
  * mp_plan_block_list() plans all blocks between and including the
- * (effective) first block and the bf. It sets entry, exit and
+ * (effective) first block and the bf.  It sets entry, exit and
  * cruise v's from vmax's then calls trapezoid generation.
  *
  * Variables that must be provided in the mpBuffers that will be processed:
@@ -595,21 +595,20 @@ void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
   mpBuf_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
-  // At the end *bp points to the buffer before the first block.
+  // By the end bp points to the buffer before the first block.
   while ((bp = mp_get_prev_buffer(bp)) != bf) {
     if (!bp->replannable) break;
     bp->braking_velocity =
       min(bp->nx->entry_vmax, bp->nx->braking_velocity) + bp->delta_vmax;
   }
 
-  // Forward planning pass - recomputes trapezoids in the list from the first
-  // block to the bf block.
+  // Forward planning pass.  Recompute trapezoids from the first block to bf.
   while ((bp = mp_get_next_buffer(bp)) != bf) {
     if (bp->pv == bf || mr_flag)  {
-      bp->entry_velocity = bp->entry_vmax; // first block in the list
+      bp->entry_velocity = bp->entry_vmax; // first block
       mr_flag = false;
 
-    } else bp->entry_velocity = bp->pv->exit_velocity; // other blocks in list
+    } else bp->entry_velocity = bp->pv->exit_velocity; // other blocks
 
     bp->cruise_velocity = bp->cruise_vmax;
     bp->exit_velocity = min4(bp->exit_vmax, bp->nx->entry_vmax,
@@ -618,8 +617,7 @@ void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
 
     mp_calculate_trapezoid(bp);
 
-    // test for optimally planned trapezoids - only need to check various exit
-    // conditions
+    // Test for optimally planned trapezoids by checking exit conditions
     if  ((fp_EQ(bp->exit_velocity, bp->exit_vmax) ||
           fp_EQ(bp->exit_velocity, bp->nx->entry_vmax)) ||
          (!bp->pv->replannable &&
@@ -627,10 +625,11 @@ void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
       bp->replannable = false;
   }
 
-  // finish up the last block move
+  // Finish last block
   bp->entry_velocity = bp->pv->exit_velocity;
   bp->cruise_velocity = bp->cruise_vmax;
   bp->exit_velocity = 0;
+
   mp_calculate_trapezoid(bp);
 }
 

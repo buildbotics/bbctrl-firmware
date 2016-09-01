@@ -42,16 +42,16 @@
 #include <math.h>
 
 /// common variables for planning (move master)
-typedef struct mpMoveMasterSingleton {
+typedef struct {
   float position[AXES];             // final move position for planning purposes
 
   float jerk;                       // jerk values cached from previous block
   float recip_jerk;
   float cbrt_jerk;
-} mpMoveMasterSingleton_t;
+} mpMoveMaster_t;
 
 
-mpMoveMasterSingleton_t mm = {{0}}; // context for line planning
+mpMoveMaster_t mm = {{0}}; // context for line planning
 
 
 /// Set planner position for a single axis
@@ -88,17 +88,22 @@ void mp_set_planner_position(int axis, const float position) {
  * approximation term, not the TinyG jerk terms)
  *
  * If you do the geometry in terms of the known variables, you get:
- *     sin(theta/2) = R/(R+delta)
+ *
+ *     sin(theta/2) = R / (R + delta)
+ *
  * Re-arranging in terms of circle radius (R)
- *     R = delta*sin(theta/2)/(1-sin(theta/2).
+ *
+ *     R = delta * sin(theta/2) / (1 - sin(theta/2))
  *
  * Theta is the angle between line segments given by:
- *     cos(theta) = dot(a,b)/(norm(a)*norm(b)).
+ *
+ *     cos(theta) = dot(a, b) / (norm(a) * norm(b)).
  *
  * Most of these calculations are already done in the planner.
  * To remove the acos() and sin() computations, use the trig half
  * angle identity:
- *     sin(theta/2) = +/- sqrt((1-cos(theta))/2).
+ *
+ *     sin(theta/2) = +/-sqrt((1 - cos(theta)) / 2)
  *
  * For our applications, this should always be positive. Now just
  * plug the equations into the centripetal acceleration equation:
@@ -106,8 +111,9 @@ void mp_set_planner_position(int axis, const float position) {
  * computations and no sine/cosines."
  *
  * How to compute the radius using brute-force trig:
+ *
  *    float theta = acos(costheta);
- *    float radius = delta * sin(theta/2)/(1-sin(theta/2));
+ *    float radius = delta * sin(theta/2) / (1 - sin(theta/2));
  *
  * This version extends Chamnit's algorithm by computing a value for
  * delta that takes the contributions of the individual axes in the
@@ -125,34 +131,24 @@ void mp_set_planner_position(int axis, const float position) {
  *
  *     U[i]    Unit sum of i'th axis    fabs(unit_a[i]) + fabs(unit_b[i])
  *     Usum    Length of sums           Ux + Uy
- *     d       Delta of sums            (Dx*Ux+DY*UY)/Usum
+ *     d       Delta of sums            (Dx * Ux + DY * UY) / Usum
  */
 static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
-  float costheta =
-    -a_unit[AXIS_X] * b_unit[AXIS_X] -
-    a_unit[AXIS_Y] * b_unit[AXIS_Y] -
-    a_unit[AXIS_Z] * b_unit[AXIS_Z] -
-    a_unit[AXIS_A] * b_unit[AXIS_A] -
-    a_unit[AXIS_B] * b_unit[AXIS_B] -
-    a_unit[AXIS_C] * b_unit[AXIS_C];
+  float costheta = 0;
+  for (int axis = 0; axis < AXES; axis++)
+    costheta -= a_unit[axis] * b_unit[axis];
 
   if (costheta < -0.99) return 10000000;         // straight line cases
   if (costheta > 0.99)  return 0;                // reversal cases
 
   // Fuse the junction deviations into a vector sum
-  float a_delta = square(a_unit[AXIS_X] * mach.a[AXIS_X].junction_dev);
-  a_delta += square(a_unit[AXIS_Y] * mach.a[AXIS_Y].junction_dev);
-  a_delta += square(a_unit[AXIS_Z] * mach.a[AXIS_Z].junction_dev);
-  a_delta += square(a_unit[AXIS_A] * mach.a[AXIS_A].junction_dev);
-  a_delta += square(a_unit[AXIS_B] * mach.a[AXIS_B].junction_dev);
-  a_delta += square(a_unit[AXIS_C] * mach.a[AXIS_C].junction_dev);
+  float a_delta = 0;
+  float b_delta = 0;
 
-  float b_delta = square(b_unit[AXIS_X] * mach.a[AXIS_X].junction_dev);
-  b_delta += square(b_unit[AXIS_Y] * mach.a[AXIS_Y].junction_dev);
-  b_delta += square(b_unit[AXIS_Z] * mach.a[AXIS_Z].junction_dev);
-  b_delta += square(b_unit[AXIS_A] * mach.a[AXIS_A].junction_dev);
-  b_delta += square(b_unit[AXIS_B] * mach.a[AXIS_B].junction_dev);
-  b_delta += square(b_unit[AXIS_C] * mach.a[AXIS_C].junction_dev);
+  for (int axis = 0; axis < AXES; axis++) {
+    a_delta += square(a_unit[axis] * mach.a[axis].junction_dev);
+    b_delta += square(b_unit[axis] * mach.a[axis].junction_dev);
+  }
 
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
   float sintheta_over2 = sqrt((1 - costheta) / 2);
@@ -326,6 +322,7 @@ stat_t mp_aline(MoveState_t *ms) {
   float C; // contribution term. C = T * a
   float maxC = 0;
   float recip_L2 = 1 / length_square;
+  int jerk_axis = 0;
 
   for (int axis = 0; axis < AXES; axis++)
     // You cannot use the fp_XXX comparisons here!
@@ -337,13 +334,13 @@ stat_t mp_aline(MoveState_t *ms) {
 
       if (C > maxC) {
         maxC = C;
-        bf->jerk_axis = axis; // also needed for junction vmax calculation
+        jerk_axis = axis; // also needed for junction vmax calculation
       }
     }
 
   // set up and pre-compute the jerk terms needed for this round of planning
-  bf->jerk = mach.a[bf->jerk_axis].jerk_max * JERK_MULTIPLIER /
-    fabs(bf->unit[bf->jerk_axis]); // scale jerk
+  bf->jerk = mach.a[jerk_axis].jerk_max * JERK_MULTIPLIER /
+    fabs(bf->unit[jerk_axis]); // scale jerk
 
   // specialized comparison for tolerance of delta
   if (fabs(bf->jerk - mm.jerk) > JERK_MATCH_PRECISION) {
@@ -375,6 +372,7 @@ stat_t mp_aline(MoveState_t *ms) {
   // before committing the buffer.
   mp_plan_block_list(bf, false);               // replan block list
   copy_vector(mm.position, bf->ms.target);     // set the planner position
+
   // commit current block (must follow the position update)
   mp_commit_write_buffer(ms->line, MOVE_TYPE_ALINE);
 

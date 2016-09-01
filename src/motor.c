@@ -402,7 +402,7 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
-    _energize(motor);
+    _energize(motor); // TODO is ~5ms enough time to enable the motor?
     break;
 
   case MOTOR_POWER_MODE_MAX_VALUE: break; // Shouldn't get here
