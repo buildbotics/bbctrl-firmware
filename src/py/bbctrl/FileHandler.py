@@ -16,14 +16,20 @@ class FileHandler(bbctrl.APIHandler):
 
         if not os.path.exists('upload'): os.mkdir('upload')
 
-        with open('upload/' + gcode['filename'], 'wb') as f:
+        path ='upload/' + gcode['filename']
+
+        with open(path, 'wb') as f:
             f.write(gcode['body'])
+
+        self.ctrl.avr.open(path)
 
 
     def get(self, path):
         if path:
             with open('upload/' + path, 'r') as f:
                 self.write_json(f.read())
+
+            self.ctrl.avr.open(path)
             return
 
         files = []

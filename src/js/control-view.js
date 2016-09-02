@@ -36,7 +36,8 @@ module.exports = {
   events: {
     jog: function (axis, move) {this.send('g91 g0' + axis + move)},
     home: function (axis) {this.send('$home ' + axis)},
-    zero: function (axis) {this.send('$zero ' + axis)}  },
+    zero: function (axis) {this.send('$zero ' + axis)}
+  },
 
 
   ready: function () {
@@ -58,7 +59,8 @@ module.exports = {
 
 
     estop: function () {
-      this.send('$es=' + (this.state.es ? 0 : 1));
+      if (this.state.x == 'estopped') api.put('clear').done(this.update);
+      else api.put('estop').done(this.update);
     },
 
 
@@ -132,17 +134,12 @@ module.exports = {
 
 
     start_pause: function () {
-      if (this.running) this.pause();
+      if (this.state.x == 'running') this.pause();
       else this.start();
     },
 
 
-    start: function () {
-      if (!this.file) return;
-      api.put('start/' + this.file).done(this.update);
-    },
-
-
+    start: function () {api.put('start').done(this.update)},
     pause: function () {api.put('pause').done(this.update)},
     optional_pause: function () {api.put('pause/optional').done(this.update)},
     stop: function () {api.put('stop').done(this.update)},

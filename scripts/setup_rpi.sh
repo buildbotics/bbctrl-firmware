@@ -3,8 +3,7 @@
 ID=2
 
 # Update the system
-apt-get update
-apt-get dist-upgrade -y
+apt-get update && apt-get dist-upgrade -y || exit 1
 
 # Resize FS
 # TODO no /dev/root in Jessie
@@ -92,6 +91,10 @@ echo i2c-dev >> /etc/modules
 cp bbctrl.init.d /etc/init.d/bbctrl
 chmod +x /etc/init.d/bbctrl
 update-rc.d bbctrl defaults
+
+# Disable Pi 3 USART BlueTooth swap
+echo -e "\ndtoverlay=pi3-disable-bt" >> /boot/config.txt
+# sudo systemctl disable hciuart
 
 # TODO setup input and serial device permissions in udev & forward 80 -> 8080
 

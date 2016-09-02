@@ -38,6 +38,12 @@ script#control-view-template(type="text/x-template")
       tr
         th Coolant
         td {{state.coolant || 'Off'}}
+      tr
+        th State
+        td {{state.x || ''}}
+      tr
+        th Cycle
+        td {{state.c || ''}}
 
 
     table.axes
@@ -84,35 +90,37 @@ script#control-view-template(type="text/x-template")
       fieldset
         button.pure-button.pure-button-primary(
           title="Manually execute instructions.", @click="submit_mdi",
-          :disabled="running") MDI
+          :disabled="state.x != 'ready'") MDI
         input(v-model="mdi", @keyup.enter="submit_mdi")
 
 
     .toolbar
       button.pure-button(title="Home the machine.", @click="home",
-        :disabled="running")
+        :disabled="state.x != 'ready'")
         .fa.fa-home
 
-      button.pure-button(title="{{running ? 'Pause' : 'Start'}} program.",
-        @click="start_pause", :disabled="!file")
-        .fa(:class="running ? 'fa-pause' : 'fa-play'")
+      button.pure-button(
+        title="{{state.x == 'running' ? 'Pause' : 'Start'}} program.",
+        @click="start_pause",
+        :disabled="state.c == 'homing'")
+        .fa(:class="state.x == 'running' ? 'fa-pause' : 'fa-play'")
 
       button.pure-button(title="Stop program.", @click="stop",
-        :disabled="!running")
+        :disabled="state.x == 'ready'")
         .fa.fa-stop
 
       button.pure-button(title="Pause program at next optional stop (M1).",
-        @click="optional_pause", :disabled="!file")
+        @click="optional_pause", :disabled="state.c == 'homing'")
         .fa.fa-stop-circle-o
 
       button.pure-button(title="Execute one program step.", @click="step",
-        :disabled="running || !file")
+        :disabled="(state.x != 'ready' && state.x != 'holding') || !file")
         .fa.fa-step-forward
 
       .spacer
 
       button.pure-button(title="Upload a new program file.", @click="open",
-        :disabled="running")
+        :disabled="state.x != 'ready'")
         .fa.fa-folder-open
 
       input.gcode-file-input(type="file", @change="upload",
@@ -123,7 +131,7 @@ script#control-view-template(type="text/x-template")
         .fa.fa-trash
 
       select(title="Select previously uploaded program files.", v-model="file",
-        @change="load", :disabled="running")
+        @change="load", :disabled="state.x != 'ready'")
         option(v-for="file in files", :value="file") {{file}}
 
 

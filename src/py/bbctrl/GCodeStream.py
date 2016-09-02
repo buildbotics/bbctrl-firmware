@@ -53,7 +53,7 @@ class GCodeStream():
         line = line.strip()
 
         # Append line number
-        line += ' N%d' % self.line
         self.line += 1
+        line += ' N%d' % self.line
 
         return line

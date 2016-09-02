@@ -4,6 +4,11 @@ import json
 import logging
 from collections import deque
 
+try:
+    import smbus
+except:
+    import smbus2 as smbus
+
 import bbctrl
 
 
@@ -12,26 +17,27 @@ log = logging.getLogger('AVR')
 # These constants must be kept in sync with i2c.h from the AVR code
 I2C_NULL           = 0
 I2C_ESTOP          = 1
-I2C_PAUSE          = 2
-I2C_OPTIONAL_PAUSE = 3
-I2C_RUN            = 4
-I2C_FLUSH          = 5
+I2C_CLEAR          = 2
+I2C_PAUSE          = 3
+I2C_OPTIONAL_PAUSE = 4
+I2C_RUN            = 5
 I2C_STEP           = 6
-I2C_REPORT         = 7
-I2C_HOME           = 8
+I2C_FLUSH          = 7
+I2C_REPORT         = 8
+I2C_HOME           = 9
+I2C_REBOOT         = 10
 
 
 class AVR():
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
+        self.state = 'init'
         self.vars = {}
-        self.state = 'idle'
         self.stream = None
         self.queue = deque()
         self.in_buf = ''
         self.command = None
-        self.flush_id = 1
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -48,82 +54,46 @@ class AVR():
             self.i2c_bus = smbus.SMBus(ctrl.args.avr_port)
             self.i2c_addr = ctrl.args.avr_addr
 
-         except FileNotFoundError as e:
+        except FileNotFoundError as e:
             self.i2c_bus = None
             log.warning('Failed to open device: %s', e)
 
         self.report()
 
 
-    def _state_transition_error(self, state):
-        raise Exception('Cannot %s in %s state' % (state, self.state))
+    def _start_sending_gcode(self):
+        if self.state == 'init': raise Exception('No file loaded')
+        self.state = 'streaming'
+        self.set_write(True)
 
 
-    def _state_transition(self, state, optional = False, step = False):
-        if state == self.state: return
-
-        if state == 'idle':
-            if self.stream is not None: self.stream.reset()
-
-        elif state == 'run':
-            if self.state in ['idle', 'pause'] and self.stream is not None:
-                self.set_write(True)
-
-                if step:
-                    self._i2c_command(I2C_STEP)
-                    state = 'pause'
-
-                else: self._i2c_command(I2C_RUN)
-
-            else: self._state_transition_error(state)
-
-        elif state  == 'pause'
-            if self.state == 'run':
-                if optional: self._i2c_command(I2C_OPTIONAL_PAUSE)
-                else: self._i2c_command(I2C_PAUSE)
-
-            else: self._state_transition_error(state)
-
-        elif state == 'stop':
-            if self.state in ['run', 'pause']: self._flush()
-            else: self._state_transition_error(state)
-
-        elif state == 'estop': self._i2c_command(I2C_ESTOP)
-
-        elif state == 'home':
-            if self.state == 'idle': self._i2c_command(I2C_HOME)
-            else: self._state_transition_error(state)
-
-        else: raise Exception('Unrecognized state "%s"' % state)
-
-        self.state = state
+    def _stop_sending_gcode(self):
+        if self.state != 'streaming': return
+        if self.stream is not None: self.stream.reset()
+        self.state = 'idle'
 
 
     def _i2c_command(self, cmd, word = None):
+        if not hasattr(self, 'i2c_bus'): return
+
+        log.info('I2C: %d' % cmd)
+
         if word is not None:
             self.i2c_bus.write_word_data(self.i2c_addr, cmd, word)
         self.i2c_bus.write_byte(self.i2c_addr, cmd)
-
-
-    def _flush(self):
-        if self.stream is not None: self.stream.reset()
-
-        self._i2c_command(I2C_FLUSH, word = self.flush_id)
-        self.queue_command('$end_flush %u' % self.flush_id)
-
-        self.flush_id += 1
-        if 1 << 16 <= self.flush_id: self.flush_id = 1
 
 
     def report(self): self._i2c_command(I2C_REPORT)
 
 
     def load_next_command(self, cmd):
-        log.info(cmd)
+        log.info('Serial: ' + cmd)
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
 
 
     def set_write(self, enable):
+        if not hasattr(self, 'sp'): return
+
         flags = self.ctrl.ioloop.READ
         if enable: flags |= self.ctrl.ioloop.WRITE
         self.ctrl.ioloop.update_handler(self.sp, flags)
@@ -152,10 +122,13 @@ class AVR():
         if len(self.queue): self.load_next_command(self.queue.pop())
 
         # Load next GCode command, if running or paused
-        elif self.state in ['run', 'pause'] and self.stream is not None:
+        elif self.state == 'streaming':
             cmd = self.stream.next()
 
-            if cmd is None: self.set_write(False)
+            if cmd is None:
+                self.set_write(False)
+                self.state = 'idle'
+
             else: self.load_next_command(cmd)
 
         # Else stop writing
@@ -181,8 +154,13 @@ class AVR():
                 try:
                     msg = json.loads(line)
 
-                    if 'firmware' in msg: self.report()
-                    if 'es' in msg and msg['es']: self.estop()
+                    if 'firmware' in msg:
+                        log.error('AVR rebooted')
+                        self._stop_sending_gcode()
+                        self.report()
+
+                    if 'x' in msg and msg['x'] == 'estopped':
+                        self._stop_sending_gcode()
 
                     self.vars.update(msg)
                     self.ctrl.web.broadcast(msg)
@@ -197,22 +175,25 @@ class AVR():
         self.set_write(True)
 
 
-    def load(self, path):
-        if self.stream is None:
-            self.stream = bbctrl.GCodeStream(path)
+    def open(self, path):
+        if self.state not in ['idle', 'init']:
+            raise Exception('Busy, cannot open new file')
+
+        self.stream = bbctrl.GCodeStream(path)
+        self.state = 'idle'
 
 
     def mdi(self, cmd):
-        if self.state != 'idle':
-            raise Exception('Busy, cannot run MDI command')
+        if self.state == 'streaming':
+            raise Exception('Busy, cannot queue MDI command')
 
         self.queue_command(cmd)
 
 
     def jog(self, axes):
-        # TODO jogging via I2C
+        if self.state == 'streaming': raise Exception('Busy, cannot jog')
 
-        if self.state != 'idle': raise Exception('Busy, cannot jog')
+        # TODO jogging via I2C
 
         axes = ["{:6.5f}".format(x) for x in axes]
         self.queue_command('$jog ' + ' '.join(axes))
@@ -222,9 +203,22 @@ class AVR():
         self.queue_command('${}{}={}'.format(index, code, value))
 
 
-    def home(self): self._state_transition('home')
-    def start(self): self._state_transition('run')
-    def estop(self): self._state_transition('estop')
-    def stop(self): self._state_transition('stop')
-    def pause(self, opt): self._state_transition('pause', optional = opt)
-    def step(self): self._state_transition('run', step = True)
+    def home(self): self._i2c_command(I2C_HOME)
+    def estop(self): self._i2c_command(I2C_ESTOP)
+    def clear(self): self._i2c_command(I2C_CLEAR)
+
+
+    def start(self):
+        if self.state == 'idle': self._start_sending_gcode()
+        self._i2c_command(I2C_RUN)
+
+
+    def stop(self):
+        self._i2c_command(I2C_FLUSH)
+        self._stop_sending_gcode()
+        # Resume processing once current queue of GCode commands has flushed
+        self.queue_command('$resume')
+
+    def pause(self): self._i2c_command(I2C_PAUSE)
+    def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
+    def step(self): self._i2c_command(I2C_STEP)
