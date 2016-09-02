@@ -156,16 +156,16 @@ void mp_commit_write_buffer(uint32_t line, moveType_t type) {
  * The behavior supports continuations (iteration)
  */
 mpBuf_t *mp_get_run_buffer() {
-  // CASE: fresh buffer; becomes running if queued or pending
-  if (mb.r->buffer_state == MP_BUFFER_QUEUED ||
-      mb.r->buffer_state == MP_BUFFER_PENDING)
+  switch (mb.r->buffer_state) {
+  case MP_BUFFER_QUEUED: // fresh buffer; becomes running if queued or pending
     mb.r->buffer_state = MP_BUFFER_RUNNING;
+    // Fall through
 
-  // CASE: asking for the same run buffer for the Nth time
-  if (mb.r->buffer_state == MP_BUFFER_RUNNING)
+  case MP_BUFFER_RUNNING: // asking for the same run buffer for the Nth time
     return mb.r; // return same buffer
 
-  return 0; // CASE: no queued buffers. fail it.
+  default: return 0; // no queued buffers
+  }
 }
 
 
@@ -173,10 +173,6 @@ mpBuf_t *mp_get_run_buffer() {
 void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
   mp_clear_buffer(mb.r);              // clear it out (& reset replannable)
   mb.r = mb.r->nx;                    // advance to next run buffer
-
-  if (mb.r->buffer_state == MP_BUFFER_QUEUED) // only if queued...
-    mb.r->buffer_state = MP_BUFFER_PENDING;   // pend next buffer
-
   mb.buffers_available++;
   report_request();
 

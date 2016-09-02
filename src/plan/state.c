@@ -32,7 +32,6 @@
 #include "planner.h"
 #include "report.h"
 #include "buffer.h"
-#include "feedhold.h"
 
 #include <stdbool.h>
 
@@ -40,7 +39,6 @@
 typedef struct {
   plannerState_t state;
   plannerCycle_t cycle;
-  holdState_t hold;
 
   bool hold_requested;
   bool flush_requested;
@@ -53,7 +51,6 @@ static planner_state_t ps = {0};
 
 plannerState_t mp_get_state() {return ps.state;}
 plannerCycle_t mp_get_cycle() {return ps.cycle;}
-holdState_t mp_get_hold_state() {return ps.hold;}
 
 
 PGM_P mp_get_state_pgmstr(plannerState_t state) {
@@ -113,7 +110,7 @@ void mp_set_cycle(plannerCycle_t cycle) {
 }
 
 
-void mp_set_hold_state(holdState_t hold) {ps.hold = hold;}
+void mp_state_holding() {mp_set_state(STATE_HOLDING);}
 
 
 void mp_state_running() {
@@ -122,33 +119,11 @@ void mp_state_running() {
 
 
 void mp_state_idle() {
-  mp_set_state(STATE_READY);
-  mp_set_hold_state(FEEDHOLD_OFF);    // if in feedhold, end it
-  ps.start_requested = false;         // cancel any pending start request
-  mp_zero_segment_velocity();         // for reporting purposes
+  if (mp_get_state() == STATE_RUNNING) mp_set_state(STATE_READY);
 }
 
 
 void mp_state_estop() {mp_set_state(STATE_ESTOPPED);}
-
-
-/// Called by the planner to update feedhold state in sync with planning
-void mp_state_hold_callback(bool done) {
-  switch (mp_get_hold_state()) {
-  case FEEDHOLD_OFF: case FEEDHOLD_PLAN: case FEEDHOLD_HOLD: break;
-
-    // Catch the feedhold request and start planning the hold
-  case FEEDHOLD_SYNC: mp_set_hold_state(FEEDHOLD_PLAN); break;
-
-  case FEEDHOLD_DECEL:
-    // Look for the end of the decel to go into HOLD state
-    if (done) {
-      mp_set_hold_state(FEEDHOLD_HOLD);
-      mp_set_state(STATE_HOLDING);
-    }
-    break;
-  }
-}
 
 
 void mp_request_hold() {ps.hold_requested = true;}
@@ -181,10 +156,7 @@ void mp_state_callback() {
   if (ps.hold_requested) {
     ps.hold_requested = false;
 
-    if (mp_get_state() == STATE_RUNNING) {
-      mp_set_state(STATE_STOPPING);
-      mp_set_hold_state(FEEDHOLD_SYNC); // invokes hold from aline execution
-    }
+    if (mp_get_state() == STATE_RUNNING) mp_set_state(STATE_STOPPING);
   }
 
   // Only flush queue when we are stopped or holding
@@ -205,13 +177,12 @@ void mp_state_callback() {
     ps.start_requested = false;
 
     if (mp_get_state() == STATE_HOLDING) {
-      mp_set_hold_state(FEEDHOLD_OFF);
-
       // Check if any moves are buffered
-      if (mp_get_run_buffer()) mp_set_state(STATE_RUNNING);
-      else mp_set_state(STATE_READY);
+      if (mp_get_run_buffer()) {
+        mp_replan_blocks();
+        mp_set_state(STATE_RUNNING);
+
+      } else mp_set_state(STATE_READY);
     }
   }
-
-  mp_plan_hold_callback(); // call feedhold planner
 }

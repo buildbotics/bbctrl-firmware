@@ -1105,7 +1105,8 @@ static void _exec_program_end(float *value, float *flag) {
 
 
 static void _exec_program_stop(float *value, float *flag) {
-  mp_set_hold_state(FEEDHOLD_HOLD);
+  // This is ok because we should be already stopped at this point
+  mp_state_holding();
 }
 
 

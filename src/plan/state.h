@@ -52,31 +52,19 @@ typedef enum {
 } plannerCycle_t;
 
 
-typedef enum {          // feedhold state machine
-  FEEDHOLD_OFF,         // no feedhold in effect
-  FEEDHOLD_SYNC,        // start hold - sync to latest aline segment
-  FEEDHOLD_PLAN,        // replan blocks for feedhold
-  FEEDHOLD_DECEL,       // decelerate to hold point
-  FEEDHOLD_HOLD,        // holding
-} holdState_t;
-
-
 plannerState_t mp_get_state();
 plannerCycle_t mp_get_cycle();
-holdState_t mp_get_hold_state();
 
 void mp_set_state(plannerState_t state);
 void mp_set_cycle(plannerCycle_t cycle);
-void mp_set_hold_state(holdState_t hold);
 
 PGM_P mp_get_state_pgmstr(plannerState_t state);
 PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
 
+void mp_state_holding();
 void mp_state_running();
 void mp_state_idle();
 void mp_state_estop();
-
-void mp_state_hold_callback(bool done);
 
 void mp_request_hold();
 void mp_request_flush();

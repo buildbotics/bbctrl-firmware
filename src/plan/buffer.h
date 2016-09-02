@@ -53,7 +53,6 @@ typedef enum {                    // bf->buffer_state values
   MP_BUFFER_EMPTY,                // struct is available for use (MUST BE 0)
   MP_BUFFER_LOADING,              // being written ("checked out")
   MP_BUFFER_QUEUED,               // in queue
-  MP_BUFFER_PENDING,              // marked as the next buffer to run
   MP_BUFFER_RUNNING               // current running buffer
 } bufferState_t;
 
@@ -111,8 +110,8 @@ mpBuf_t *mp_get_run_buffer();
 void mp_free_run_buffer();
 mpBuf_t *mp_get_last_buffer();
 /// Returns pointer to prev buffer in linked list
-#define mp_get_prev_buffer(b) ((mpBuf_t *)(b->pv))
+#define mp_get_prev_buffer(b) (b->pv)
 /// Returns pointer to next buffer in linked list
-#define mp_get_next_buffer(b) ((mpBuf_t *)(b->nx))
+#define mp_get_next_buffer(b) (b->nx)
 void mp_clear_buffer(mpBuf_t *bf);
 void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);

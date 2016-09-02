@@ -141,10 +141,6 @@ void mp_set_steps_to_runtime_position() {
 }
 
 
-/// Correct velocity in last segment for reporting purposes
-void mp_zero_segment_velocity() {mr.segment_velocity = 0;}
-
-
 /// Returns current velocity (aggregate)
 float mp_get_runtime_velocity() {return mr.segment_velocity;}
 
@@ -586,12 +582,8 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *     These routines also set all blocks in the list to be
  *     replannable so the list can be recomputed regardless of
  *     exact stops and previous replanning optimizations.
- *
- * [2] The mr_flag is used to tell replan to account for mr
- *     buffer's exit velocity (Vx) mr's Vx is always found in the
- *     provided bf buffer. Used to replan feedholds
  */
-void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
+void mp_plan_block_list(mpBuf_t *bf) {
   mpBuf_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
@@ -604,11 +596,8 @@ void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
 
   // Forward planning pass.  Recompute trapezoids from the first block to bf.
   while ((bp = mp_get_next_buffer(bp)) != bf) {
-    if (bp->pv == bf || mr_flag)  {
-      bp->entry_velocity = bp->entry_vmax; // first block
-      mr_flag = false;
-
-    } else bp->entry_velocity = bp->pv->exit_velocity; // other blocks
+    if (bp->pv == bf) bp->entry_velocity = bp->entry_vmax; // first block
+    else bp->entry_velocity = bp->pv->exit_velocity; // other blocks
 
     bp->cruise_velocity = bp->cruise_vmax;
     bp->exit_velocity = min4(bp->exit_vmax, bp->nx->entry_vmax,
@@ -631,6 +620,24 @@ void mp_plan_block_list(mpBuf_t *bf, bool mr_flag) {
   bp->exit_velocity = 0;
 
   mp_calculate_trapezoid(bp);
+}
+
+
+void mp_replan_blocks() {
+  mpBuf_t *bf = mp_get_run_buffer();
+  mpBuf_t *bp = bf;
+
+  // Mark all blocks replanable
+  while (true) {
+    if (bp->move_state != MOVE_OFF || fp_ZERO(bp->exit_velocity)) break;
+    bp->replannable = true;
+
+    bp = mp_get_next_buffer(bp);
+    if (bp == bf) break; // Avoid wrap around
+  }
+
+  // Plan blocks
+  mp_plan_block_list(bp);
 }
 
 

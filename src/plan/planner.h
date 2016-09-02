@@ -111,6 +111,7 @@ typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
   float segment_velocity;           // computed velocity for aline segment
   float segment_time;               // actual time increment per aline segment
   float forward_diff[5];            // forward difference levels
+  bool hold_planned;                // true when a feedhold has been planned
 
   MoveState_t ms;
 } mpMoveRuntimeSingleton_t;
@@ -128,10 +129,10 @@ float mp_get_runtime_velocity();
 float mp_get_runtime_work_position(uint8_t axis);
 float mp_get_runtime_absolute_position(uint8_t axis);
 void mp_set_runtime_work_offset(float offset[]);
-void mp_zero_segment_velocity();
 uint8_t mp_get_runtime_busy();
 void mp_kinematics(const float travel[], float steps[]);
-void mp_plan_block_list(mpBuf_t *bf, bool mr_flag);
+void mp_plan_block_list(mpBuf_t *bf);
+void mp_replan_blocks();
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
 float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
 inline int32_t mp_get_line() {return mr.ms.line;}

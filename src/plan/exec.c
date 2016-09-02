@@ -350,12 +350,73 @@ static stat_t _exec_aline_head() {
   return status;
 }
 
+static float _compute_next_segment_velocity() {
+  if (mr.section == SECTION_BODY) return mr.segment_velocity;
+  return mr.segment_velocity + mr.forward_diff[4];
+}
+
+
+/*** Replan current move to execute hold
+ *
+ * Holds are initiated by the planner entering STATE_STOPPING.  In which case
+ * _plan_hold() is called to replan the current move towards zero.  If it is
+ * unable to plan to zero in the remaining length of the current move it will
+ * decelerate as much as possible and then wait for the next move.  Once it
+ * is possible to plan to zero velocity in the current move the remaining length
+ * is put into the run buffer, which is still allocated, and the run buffer
+ * becomes the hold point.  The hold is left by a start request in state.c.  At
+ * this point the remaining buffers, if any, are replanned from zero up to
+ * speed.
+ */
+void _plan_hold() {
+  mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
+  if (!bp) return; // Oops! nothing's running
+
+  // Examine and process mr buffer and compute length left for decel
+  float available_length = get_axis_vector_length(mr.final_target, mr.position);
+  // Compute next_segment velocity, velocity left to shed to brake to zero
+  float braking_velocity = _compute_next_segment_velocity();
+  // Distance to brake to zero from braking_velocity, bp is OK to use here
+  float braking_length = mp_get_target_length(braking_velocity, 0, bp);
+
+  // Hack to prevent Case 2 moves for perfect-fit decels.  Happens in
+  // homing situations.  The real fix: The braking velocity cannot
+  // simply be the mr.segment_velocity as this is the velocity of the
+  // last segment, not the one that's going to be executed next.  The
+  // braking_velocity needs to be the velocity of the next segment
+  // that has not yet been computed.  In the mean time, this hack will work.
+  if (available_length < braking_length && fp_ZERO(bp->exit_velocity))
+    braking_length = available_length;
+
+  // Replan mr to decelerate
+  mr.section = SECTION_TAIL;
+  mr.section_new = true;
+  mr.cruise_velocity = braking_velocity;
+  mr.hold_planned = true;
+
+  // Case 1: deceleration fits entirely into the length remaining in mr buffer
+  if (braking_length <= available_length) {
+    // set mr to a tail to perform the deceleration
+    mr.exit_velocity = 0;
+    mr.tail_length = braking_length;
+
+    // Re-use bp+0 to be the hold point and to run the remaining block length
+    bp->length = available_length - braking_length;
+    bp->delta_vmax = mp_get_target_velocity(0, bp->length, bp);
+    bp->entry_vmax = 0;        // set bp+0 as hold point
+    bp->move_state = MOVE_NEW; // tell _exec to re-use the bf buffer
+
+  } else { // Case 2: deceleration exceeds length remaining in mr buffer
+    // Replan mr to minimum (but non-zero) exit velocity
+    mr.tail_length = available_length;
+    mr.exit_velocity =
+      braking_velocity - mp_get_target_velocity(0, available_length, bp);
+  }
+}
+
 
 /// Initializes move runtime with a new planner buffer
 static stat_t _exec_aline_init(mpBuf_t *bf) {
-  // Stop here if holding
-  if (mp_get_hold_state() == FEEDHOLD_HOLD) return STAT_NOOP;
-
   // copy in the gcode model state
   memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
   bf->replannable = false;
@@ -375,6 +436,7 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
   mr.active = true;
   mr.section = SECTION_HEAD;
   mr.section_new = true;
+  mr.hold_planned = false;
 
   copy_vector(mr.unit, bf->unit);
   copy_vector(mr.final_target, bf->ms.target);
@@ -395,9 +457,7 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
     mr.waypoint[SECTION_BODY][axis] =
       mr.position[axis] + mr.unit[axis] * (mr.head_length + mr.body_length);
 
-    mr.waypoint[SECTION_TAIL][axis] =
-      mr.position[axis] + mr.unit[axis] *
-      (mr.head_length + mr.body_length + mr.tail_length);
+    mr.waypoint[SECTION_TAIL][axis] = mr.final_target[axis];
   }
 
   return STAT_OK;
@@ -469,7 +529,9 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  *  from _RUN to _OFF on final call or just remain _OFF
  */
 stat_t mp_exec_aline(mpBuf_t *bf) {
-  if (bf->move_state == MOVE_OFF) return STAT_NOOP;
+  // Stop here if no more moves or holding
+  if (bf->move_state == MOVE_OFF || mp_get_state() == STATE_HOLDING)
+    return STAT_NOOP;
 
   stat_t status = STAT_OK;
 
@@ -487,8 +549,6 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   case SECTION_TAIL: status = _exec_aline_tail(); break;
   }
 
-  mp_state_hold_callback(status == STAT_OK);
-
   // There are 3 things that can happen here depending on return conditions:
   //
   //   status        bf->move_state      Description
@@ -500,9 +560,16 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   if (status != STAT_EAGAIN) {
     mr.active = false;              // reset mr buffer
     bf->nx->replannable = false;    // prevent overplanning (Note 2)
+    if (fp_ZERO(mr.exit_velocity)) mr.segment_velocity = 0;
     // Note, feedhold.c may change bf->move_state to reuse this buffer so it
     // can plan the deceleration.
     if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
+  }
+
+  if (mp_get_state() == STATE_STOPPING &&
+      (status == STAT_OK || status == STAT_EAGAIN)) {
+    if (!mr.active && !mr.segment_velocity) mp_state_holding();
+    else if (mr.active && !mr.hold_planned) _plan_hold();
   }
 
   return status;
