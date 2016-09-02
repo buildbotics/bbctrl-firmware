@@ -104,6 +104,7 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
 uint8_t mp_get_planner_buffer_room();
 void mp_wait_for_buffer();
 void mp_init_buffers();
+bool mp_queue_empty();
 mpBuf_t *mp_get_write_buffer();
 void mp_commit_write_buffer(uint32_t line, moveType_t type);
 mpBuf_t *mp_get_run_buffer();

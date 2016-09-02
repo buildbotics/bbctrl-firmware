@@ -199,8 +199,7 @@ char *usart_readline() {
   bool eol = false;
 
   while (!rx_buf_empty()) {
-    char data = rx_buf_peek();
-    rx_buf_pop();
+    char data = usart_getc();
 
     if (usart_flags & USART_ECHO) usart_putc(data);
 

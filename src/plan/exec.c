@@ -350,6 +350,7 @@ static stat_t _exec_aline_head() {
   return status;
 }
 
+
 static float _compute_next_segment_velocity() {
   if (mr.section == SECTION_BODY) return mr.segment_velocity;
   return mr.segment_velocity + mr.forward_diff[4];
@@ -368,7 +369,7 @@ static float _compute_next_segment_velocity() {
  * this point the remaining buffers, if any, are replanned from zero up to
  * speed.
  */
-void _plan_hold() {
+static void _plan_hold() {
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
 
@@ -449,7 +450,8 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
   mr.exit_velocity = bf->exit_velocity;
   mr.jerk = bf->jerk;
 
-  // Generate waypoints for position correction at section ends
+  // Generate waypoints for position correction at section ends.  This helps
+  // negate floating point errors in the forward differencing code.
   for (int axis = 0; axis < AXES; axis++) {
     mr.waypoint[SECTION_HEAD][axis] =
       mr.position[axis] + mr.unit[axis] * mr.head_length;
@@ -480,7 +482,7 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  * Each call to _exec_aline() must execute and prep *one and only one*
  * segment.  If the segment is not the last segment in the bf buffer the
  * _aline() returns STAT_EAGAIN. If it's the last segment it returns
- * STAT_OK. If it encounters a fatal error that would terminate the move it
+ * STAT_OK.  If it encounters a fatal error that would terminate the move it
  * returns a valid error code.
  *
  * Notes:
@@ -500,10 +502,10 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  *   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
  *   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
  *
- * A full trapezoid is divided into 5 periods. Periods 1 and 2 are the
+ * A full trapezoid is divided into 5 periods.  Periods 1 and 2 are the
  * first and second halves of the acceleration ramp (the concave and convex
- * parts of the S curve in the "head"). Periods 3 and 4 are the first
- * and second parts of the deceleration ramp (the tail). There is also
+ * parts of the S curve in the "head").  Periods 3 and 4 are the first
+ * and second parts of the deceleration ramp (the tail).  There is also
  * a period for the constant-velocity plateau of the trapezoid (the body).
  * There are many possible degenerate trapezoids where any of the 5 periods
  * may be zero length but note that either none or both of a ramping pair can
@@ -529,9 +531,7 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  *  from _RUN to _OFF on final call or just remain _OFF
  */
 stat_t mp_exec_aline(mpBuf_t *bf) {
-  // Stop here if no more moves or holding
-  if (bf->move_state == MOVE_OFF || mp_get_state() == STATE_HOLDING)
-    return STAT_NOOP;
+  if (bf->move_state == MOVE_OFF) return STAT_NOOP; // No more moves
 
   stat_t status = STAT_OK;
 
@@ -561,7 +561,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     mr.active = false;              // reset mr buffer
     bf->nx->replannable = false;    // prevent overplanning (Note 2)
     if (fp_ZERO(mr.exit_velocity)) mr.segment_velocity = 0;
-    // Note, feedhold.c may change bf->move_state to reuse this buffer so it
+    // Note, _plan_hold() may change bf->move_state to reuse this buffer so it
     // can plan the deceleration.
     if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
   }
@@ -579,6 +579,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 /// Dequeues buffer and executes move callback
 stat_t mp_exec_move() {
   if (mp_get_state() == STATE_ESTOPPED) return STAT_MACHINE_ALARMED;
+  if (mp_get_state() == STATE_HOLDING) return STAT_NOOP;
 
   mpBuf_t *bf = mp_get_run_buffer();
   if (!bf) return STAT_NOOP; // nothing running

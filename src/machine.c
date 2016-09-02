@@ -535,8 +535,8 @@ void mach_set_model_target(float target[], float flag[]) {
     if (fp_FALSE(flag[axis]) || mach.a[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
-    else if (mach.a[axis].axis_mode == AXIS_STANDARD ||
-             mach.a[axis].axis_mode == AXIS_INHIBITED) {
+    if (mach.a[axis].axis_mode == AXIS_STANDARD ||
+        mach.a[axis].axis_mode == AXIS_INHIBITED) {
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
         mach.ms.target[axis] =
           mach_get_active_coord_offset(axis) + TO_MILLIMETERS(target[axis]);

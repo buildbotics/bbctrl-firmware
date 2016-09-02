@@ -59,7 +59,6 @@
 #include "planner.h"
 
 #include "buffer.h"
-#include "arc.h"
 #include "machine.h"
 #include "stepper.h"
 #include "motor.h"
@@ -78,15 +77,14 @@ void planner_init() {
 }
 
 
-/*** Flush all moves in the planner and all arcs
+/*** Flush all moves in the planner
  *
  * Does not affect the move currently running in mr.  Does not affect
  * mm or gm model positions.  This function is designed to be called
- * during a hold to reset the planner.  This function should not
- * generally be called; call mach_queue_flush() instead.
+ * during a hold to reset the planner.  This function should not usually
+ * be directly called.  Call mp_request_flush() instead.
  */
 void mp_flush_planner() {
-  mach_abort_arc();
   mp_init_buffers();
 }
 
@@ -761,8 +759,8 @@ float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf) {
   float x = pow(L, 0.66666666) * bf->cbrt_jerk + Vi; // First estimate
 
 #if (GET_VELOCITY_ITERATIONS > 0)
-  float L2 = L * L;
-  float Vi2 = Vi * Vi;
+  const float L2 = L * L;
+  const float Vi2 = Vi * Vi;
 
   for (int i = 0; i < GET_VELOCITY_ITERATIONS; i++)
     // x' = x - Z(x) / J'(x)

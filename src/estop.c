@@ -143,11 +143,11 @@ void set_estop(bool value) {
 
 PGM_P get_estop_reason() {
   switch (_get_reason()) {
-  case ESTOP_NONE:   return PSTR("NONE");
-  case ESTOP_USER:   return PSTR("USER");
-  case ESTOP_SWITCH: return PSTR("SWITCH");
-  case ESTOP_LIMIT:  return PSTR("LIMIT");
-  case ESTOP_ALARM:  return PSTR("ALARM");
-  default: return PSTR("INVALID");
+  case ESTOP_NONE:   return PSTR("none");
+  case ESTOP_USER:   return PSTR("user");
+  case ESTOP_SWITCH: return PSTR("switch");
+  case ESTOP_LIMIT:  return PSTR("limit");
+  case ESTOP_ALARM:  return PSTR("alarm");
+  default: return PSTR("invalid");
   }
 }

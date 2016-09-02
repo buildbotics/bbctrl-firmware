@@ -41,6 +41,7 @@ typedef enum {
   I2C_OPTIONAL_PAUSE,
   I2C_RUN,
   I2C_STEP,
+  I2C_FLUSH,
   I2C_REPORT,
   I2C_HOME,
   I2C_REBOOT,

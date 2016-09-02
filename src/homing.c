@@ -182,7 +182,7 @@ static int8_t _get_next_axis(int8_t axis) {
 static void _homing_finalize_exit() {
   mp_flush_planner(); // should be stopped, but in case of switch closure
 
-  // restore to work coordinate system
+  // Restore saved machine state
   mach_set_coord_system(hm.saved_coord_system);
   mach_set_units_mode(hm.saved_units_mode);
   mach_set_distance_mode(hm.saved_distance_mode);
@@ -199,7 +199,7 @@ static void _homing_error_exit(stat_t status) {
 }
 
 
-/// helper that actually executes the above moves
+/// Execute moves
 static void _homing_axis_move(int8_t axis, float target, float velocity) {
   float vect[AXES] = {0};
   float flags[AXES] = {0};

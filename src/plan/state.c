@@ -30,8 +30,10 @@
 #include "state.h"
 #include "machine.h"
 #include "planner.h"
-#include "report.h"
 #include "buffer.h"
+#include "arc.h"
+
+#include "report.h"
 
 #include <stdbool.h>
 
@@ -43,6 +45,7 @@ typedef struct {
   bool hold_requested;
   bool flush_requested;
   bool start_requested;
+  bool resume_requested;
 } planner_state_t;
 
 
@@ -58,8 +61,8 @@ PGM_P mp_get_state_pgmstr(plannerState_t state) {
   case STATE_READY:    return PSTR("ready");
   case STATE_ESTOPPED: return PSTR("estopped");
   case STATE_RUNNING:  return PSTR("running");
-  case STATE_STOPPING: return PSTR("stopping");
-  case STATE_HOLDING:  return PSTR("holding");
+  case STATE_STOPPING:  return PSTR("stopping");
+  case STATE_HOLDING:   return PSTR("holding");
   }
 
   return PSTR("invalid");
@@ -79,7 +82,7 @@ PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle) {
 }
 
 
-void mp_set_state(plannerState_t state) {
+static void _set_state(plannerState_t state) {
   if (ps.state == state) return; // No change
   if (ps.state == STATE_ESTOPPED) return; // Can't leave EStop state
   ps.state = state;
@@ -110,29 +113,34 @@ void mp_set_cycle(plannerCycle_t cycle) {
 }
 
 
-void mp_state_holding() {mp_set_state(STATE_HOLDING);}
+bool mp_is_flushing() {return ps.flush_requested && !ps.resume_requested;}
+bool mp_is_resuming() {return ps.resume_requested;}
+
+
+void mp_state_holding() {_set_state(STATE_HOLDING);}
 
 
 void mp_state_running() {
-  if (mp_get_state() == STATE_READY) mp_set_state(STATE_RUNNING);
+  if (mp_get_state() == STATE_READY) _set_state(STATE_RUNNING);
 }
 
 
 void mp_state_idle() {
-  if (mp_get_state() == STATE_RUNNING) mp_set_state(STATE_READY);
+  if (mp_get_state() == STATE_RUNNING) _set_state(STATE_READY);
 }
 
 
-void mp_state_estop() {mp_set_state(STATE_ESTOPPED);}
+void mp_state_estop() {_set_state(STATE_ESTOPPED);}
 
 
 void mp_request_hold() {ps.hold_requested = true;}
-void mp_request_flush() {ps.flush_requested = true;}
 void mp_request_start() {ps.start_requested = true;}
+void mp_request_flush() {ps.flush_requested = true;}
+void mp_request_resume() {if (ps.flush_requested) ps.resume_requested = true;}
 
 
-/*** Feedholds, queue flushes and starts are all related. The request functions
- * set flags. The callback interprets the flags according to these rules:
+/*** Feedholds, queue flushes and starts are all related.  Request functions
+ * set flags.  The callback interprets the flags according to these rules:
  *
  *   A hold request received:
  *     - during motion is honored
@@ -141,48 +149,60 @@ void mp_request_start() {ps.start_requested = true;}
  *
  *   A flush request received:
  *     - during motion is ignored but not reset
- *     - during a feedhold is deferred until the feedhold enters HOLD state.
+ *     - during a feedhold is deferred until the feedhold enters HOLDING state.
  *       I.e. until deceleration is complete.
  *     - when stopped or holding and the planner is not busy, is honored
  *
  *   A start request received:
  *     - during motion is ignored and reset
- *     - during a feedhold is deferred until the feedhold enters a HOLD state.
+ *     - during a feedhold is deferred until the feedhold enters HOLDING state.
  *       I.e. until deceleration is complete.  If a queue flush request is also
  *       present the queue flush is done first
  *     - when stopped is honored and starts to run anything in the planner queue
  */
 void mp_state_callback() {
-  if (ps.hold_requested) {
+  if (ps.hold_requested || ps.flush_requested) {
     ps.hold_requested = false;
 
-    if (mp_get_state() == STATE_RUNNING) mp_set_state(STATE_STOPPING);
+    if (mp_get_state() == STATE_RUNNING) _set_state(STATE_STOPPING);
   }
 
-  // Only flush queue when we are stopped or holding
+  // Only flush queue when idle or holding.
   if (ps.flush_requested &&
       (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
       !mp_get_runtime_busy()) {
-    ps.flush_requested = false;
 
-    mp_flush_planner();
+    mach_abort_arc();
 
-    // NOTE: The following uses low-level mp calls for absolute position
-    for (int axis = 0; axis < AXES; axis++)
-      mach_set_position(axis, mp_get_runtime_absolute_position(axis));
+    if (!mp_queue_empty()) {
+      mp_flush_planner();
+
+      // NOTE The following uses low-level mp calls for absolute position.
+      // Reset to actual machine position.  Otherwise machine is set to the
+      // position of the last queued move.
+      for (int axis = 0; axis < AXES; axis++)
+        mach_set_position(axis, mp_get_runtime_absolute_position(axis));
+    }
+
+    // Resume
+    if (ps.resume_requested) {
+      ps.flush_requested = ps.resume_requested = false;
+      _set_state(STATE_READY);
+    }
   }
 
-  // Don't start while stopping
-  if (ps.start_requested && mp_get_state() != STATE_STOPPING) {
+  // Don't start while flushing or stopping
+  if (ps.start_requested && !ps.flush_requested &&
+      mp_get_state() != STATE_STOPPING) {
     ps.start_requested = false;
 
     if (mp_get_state() == STATE_HOLDING) {
       // Check if any moves are buffered
       if (mp_get_run_buffer()) {
         mp_replan_blocks();
-        mp_set_state(STATE_RUNNING);
+        _set_state(STATE_RUNNING);
 
-      } else mp_set_state(STATE_READY);
+      } else _set_state(STATE_READY);
     }
   }
 }

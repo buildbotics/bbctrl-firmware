@@ -89,9 +89,7 @@ void mp_init_buffers() {
 
   memset(&mb, 0, sizeof(mb));      // clear all values, pointers and status
 
-  mb.w = &mb.bf[0];                // init write and read buffer pointers
-  mb.q = &mb.bf[0];
-  mb.r = &mb.bf[0];
+  mb.w = mb.q = mb.r = &mb.bf[0];  // init write and read buffer pointers
   pv = &mb.bf[PLANNER_BUFFER_POOL_SIZE - 1];
 
   // setup ring pointers
@@ -105,6 +103,9 @@ void mp_init_buffers() {
 
   mp_state_idle();
 }
+
+
+bool mp_queue_empty() {return mb.w == mb.r;}
 
 
 /// Get pointer to next available write buffer
@@ -176,7 +177,7 @@ void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
   mb.buffers_available++;
   report_request();
 
-  if (mb.w == mb.r) mp_state_idle(); // if queue empty
+  if (mp_queue_empty()) mp_state_idle();  // if queue empty
 }
 
 

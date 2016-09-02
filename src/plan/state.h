@@ -55,11 +55,13 @@ typedef enum {
 plannerState_t mp_get_state();
 plannerCycle_t mp_get_cycle();
 
-void mp_set_state(plannerState_t state);
 void mp_set_cycle(plannerCycle_t cycle);
 
 PGM_P mp_get_state_pgmstr(plannerState_t state);
 PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
+
+bool mp_is_flushing();
+bool mp_is_resuming();
 
 void mp_state_holding();
 void mp_state_running();
@@ -67,7 +69,8 @@ void mp_state_idle();
 void mp_state_estop();
 
 void mp_request_hold();
-void mp_request_flush();
 void mp_request_start();
+void mp_request_flush();
+void mp_request_resume();
 
 void mp_state_callback();

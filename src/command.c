@@ -61,6 +61,7 @@ static void _pause()      {mp_request_hold();}
 static void _opt_pause()  {} // TODO
 static void _run()        {mp_request_start();}
 static void _step()       {} // TODO
+static void _flush()      {mp_request_flush();}
 static void _report()     {report_request_full();}
 static void _home()       {} // TODO
 static void _reboot()     {hw_request_hard_reset();}
@@ -68,16 +69,17 @@ static void _reboot()     {hw_request_hard_reset();}
 
 static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   switch (cmd) {
+  case I2C_NULL:                         break;
   case I2C_ESTOP:          _estop();     break;
   case I2C_CLEAR:          _clear();     break;
   case I2C_PAUSE:          _pause();     break;
   case I2C_OPTIONAL_PAUSE: _opt_pause(); break;
   case I2C_RUN:            _run();       break;
   case I2C_STEP:           _step();      break;
+  case I2C_FLUSH:          _flush();     break;
   case I2C_REPORT:         _report();    break;
   case I2C_HOME:           _home();      break;
   case I2C_REBOOT:         _reboot();    break;
-  default: break;
   }
 }
 
@@ -217,9 +219,10 @@ void command_callback() {
   case '$': status = command_parser(_cmd); break;
 
   default:
-    if (estop_triggered()) status = STAT_MACHINE_ALARMED;
-
+    if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
+    else if (mp_is_flushing()) break; // Flush GCode command
     else if (!mp_get_planner_buffer_room() ||
+             mp_is_resuming() ||
              mach_arc_active() ||
              mach_is_homing() ||
              mach_is_probing() ||
@@ -314,5 +317,11 @@ uint8_t command_clear(int argc, char *argv[]) {
 
 uint8_t command_messages(int argc, char *argv[]) {
   status_help();
+  return 0;
+}
+
+
+uint8_t command_resume(int argc, char *argv[]) {
+  mp_request_resume();
   return 0;
 }
