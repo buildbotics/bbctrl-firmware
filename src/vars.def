@@ -92,6 +92,7 @@ VAR(huanyang_connected, "he", bool,     0,  0, 0, "Huanyang connected")
 VAR(switch_type,    "sw", uint8_t,  SWITCHES, 1, 1, "Normally open or closed")
 
 // System
+VAR(unit,            "u", pstring,  0,      0, 0, "Current unit of measure")
 VAR(velocity,        "v", float,    0,      0, 0, "Current velocity")
 VAR(speed,           "s", float,    0,      0, 0, "Current spindle speed")
 VAR(feed,            "f", float,    0,      0, 0, "Current feed rate")

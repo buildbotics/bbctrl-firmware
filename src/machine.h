@@ -32,6 +32,8 @@
 #include "config.h"
 #include "status.h"
 
+#include <avr/pgmspace.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -331,6 +333,8 @@ uint8_t mach_get_tool();
 machSpindleMode_t mach_get_spindle_mode();
 inline float mach_get_spindle_speed() {return mach.gm.spindle_speed;}
 float mach_get_feed_rate();
+
+PGM_P mp_get_units_mode_pgmstr(machUnitsMode_t mode);
 
 void mach_set_motion_mode(machMotionMode_t motion_mode);
 void mach_set_spindle_mode(machSpindleMode_t spindle_mode);

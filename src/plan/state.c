@@ -58,9 +58,9 @@ plannerCycle_t mp_get_cycle() {return ps.cycle;}
 
 PGM_P mp_get_state_pgmstr(plannerState_t state) {
   switch (state) {
-  case STATE_READY:    return PSTR("ready");
-  case STATE_ESTOPPED: return PSTR("estopped");
-  case STATE_RUNNING:  return PSTR("running");
+  case STATE_READY:     return PSTR("ready");
+  case STATE_ESTOPPED:  return PSTR("estopped");
+  case STATE_RUNNING:   return PSTR("running");
   case STATE_STOPPING:  return PSTR("stopping");
   case STATE_HOLDING:   return PSTR("holding");
   }

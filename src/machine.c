@@ -214,6 +214,17 @@ machSpindleMode_t mach_get_spindle_mode() {return mach.gm.spindle_mode;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 
+PGM_P mp_get_units_mode_pgmstr(machUnitsMode_t mode) {
+  switch (mode) {
+  case INCHES:      return PSTR("in");
+  case MILLIMETERS: return PSTR("mm");
+  case DEGREES:     return PSTR("deg");
+  }
+
+  return PSTR("invalid");
+}
+
+
 void mach_set_motion_mode(machMotionMode_t motion_mode) {
   mach.gm.motion_mode = motion_mode;
 }

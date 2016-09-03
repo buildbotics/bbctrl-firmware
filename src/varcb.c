@@ -44,3 +44,4 @@ uint16_t get_queue() {return mp_get_planner_buffer_room();}
 int32_t get_line() {return mp_get_line();}
 PGM_P get_state() {return mp_get_state_pgmstr(mp_get_state());}
 PGM_P get_cycle() {return mp_get_cycle_pgmstr(mp_get_cycle());}
+PGM_P get_unit() {return mp_get_units_mode_pgmstr(mach_get_units_mode());}
