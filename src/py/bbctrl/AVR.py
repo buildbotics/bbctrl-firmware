@@ -154,20 +154,23 @@ class AVR():
                 try:
                     msg = json.loads(line)
 
-                    if 'firmware' in msg:
-                        log.error('AVR rebooted')
-                        self._stop_sending_gcode()
-                        self.report()
-
-                    if 'x' in msg and msg['x'] == 'estopped':
-                        self._stop_sending_gcode()
-
-                    self.vars.update(msg)
-                    self.ctrl.web.broadcast(msg)
-                    log.debug(line)
-
                 except Exception as e:
                     log.error('%s, data: %s', e, line)
+
+                if 'firmware' in msg:
+                    log.error('AVR rebooted')
+                    self._stop_sending_gcode()
+                    self.report()
+
+                if 'x' in msg and msg['x'] == 'estopped':
+                    self._stop_sending_gcode()
+
+                self.vars.update(msg)
+                self.ctrl.lcd.update(msg)
+                self.ctrl.web.broadcast(msg)
+
+                log.debug(line)
+
 
 
     def queue_command(self, cmd):

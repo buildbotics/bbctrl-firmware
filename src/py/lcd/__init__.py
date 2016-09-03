@@ -141,7 +141,9 @@ class LCD:
         self.write(LCD_SET_DDRAM_ADDR | (0, 64, 20, 84)[y] + int(x))
 
 
-    def text(self, msg):
+    def text(self, msg, x = None, y = None):
+        if x is not None and y is not None: self.goto(x, y)
+
         for c in msg:
             self.write(ord(c), REG_SELECT_BIT)
 
@@ -153,8 +155,7 @@ class LCD:
 
         if x < 0: x = 0
 
-        self.goto(x, line)
-        self.text(msg)
+        self.text(msg, x, line)
 
 
     def shift(self, count = 1, right = True, display = True):

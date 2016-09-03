@@ -65,11 +65,16 @@ html(lang="en")
 
       #main
         .header
-          img(src="/images/buildbotics_logo.png")
-          .logo
-            span.left Build
-            span.right botics
-          h2 Machine Controller
+          .header-content
+            .estop(:class="{active: state.es}")
+              estop(@click="estop")
+
+            .banner
+              img(src="/images/buildbotics_logo.png")
+              .title
+                span.left Build
+                span.right botics
+              .subtitle Machine Controller
 
         .content(class="{{currentView}}-view")
           component(:is="currentView + '-view'", :index="index",

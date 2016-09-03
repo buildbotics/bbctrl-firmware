@@ -1,58 +1,12 @@
 script#control-view-template(type="text/x-template")
   #control
-    .jog
-      axis-control(axes="XY", :colors="['red', 'green']",
-        :enabled="[enabled('x'), enabled('y')]",
-        v-if="enabled('x') || enabled('y')")
-      axis-control(axes="AZ", :colors="['orange', 'blue']",
-        :enabled="[enabled('a'), enabled('z')]",
-        v-if="enabled('a') || enabled('z')")
-      axis-control(axes="BC", :colors="['cyan', 'purple']",
-        :enabled="[enabled('b'), enabled('c')]",
-        v-if="enabled('b') || enabled('c')")
-
-
-    .estop(:class="{active: state.es}")
-      estop(@click="estop")
-
-
-    table.info
-      tr
-        th Tool
-        td {{state.t || 0}}
-      tr
-        th Velocity
-        td {{state.v || 0 | fixed 0}} mm/min
-      tr
-        th Feed
-        td {{state.f || 0}} mm/min
-      tr
-        th Speed
-        td {{state.s || 0}} RPM
-      tr
-        th Direction
-        td {{state.sd || 'Clockwise'}}
-      tr
-        th Mist
-        td {{state.mist || 'Off'}}
-      tr
-        th Coolant
-        td {{state.coolant || 'Off'}}
-      tr
-        th State
-        td {{state.x || ''}}
-      tr
-        th Cycle
-        td {{state.c || ''}}
-
-
     table.axes
       tr
-        th Axis
-        th Position
-        th Offset
-        th Errors
-        th Actions
+        th.name Axis
+        th.position Position
+        th.offset Offset
+        th.errors Errors
+        th.actions Actions
 
       each axis in 'xyzabc'
         tr.axis(class="axis-#{axis}", v-if="enabled('#{axis}')")
@@ -63,35 +17,60 @@ script#control-view-template(type="text/x-template")
             .fa.fa-hot(v-if="state.#{axis}t", title="Driver overtemp.")
             .fa.fa-ban(v-if="state.#{axis}s", title="Motor stalled.")
           th.actions
-            button.pure-button(title="Zero #{axis} axis.",
+            button.pure-button(title="Zero {{'#{axis}' | upper}} axis.",
               @click="zero('#{axis}')")
               | &empty;
-            button.pure-button(title="Home #{axis} axis.",
+            button.pure-button(title="Home {{'#{axis}' | upper}} axis.",
               @click="home('#{axis}')")
               .fa.fa-home
 
+    table.info
+      tr
+        th State
+        td {{get_state()}}
+        td
+      tr
+        th Feed
+        td {{state.f || 0}}
+        td mm/min
+      tr
+        th Speed
+        td {{state.s || 0}}
+        td RPM
+      tr
+        th Direction
+        td {{state.sd || 'Clockwise'}}
+        td
 
-    .overrides
-      | Override:
-      .override
-        label Feed
-        input(title="Feed rate override.", type="range", min="0", max="2",
-          step="0.01", v-model="feed_override", @change="override_feed")
-        span.percent {{feed_override | percent 0}}
+    table.info
+      tr
+        th Velocity
+        td {{state.v || 0 | fixed 0}}
+        td mm/min
+      tr
+        th Tool
+        td {{state.t || 0}}
+        td
+      tr
+        th Mist
+        td {{state.mist || 'Off'}}
+        td
+      tr
+        th Coolant
+        td {{state.coolant || 'Off'}}
+        td
 
-      .override
-        label Speed
-        input(title="Speed override.", type="range", min="0", max="2",
-          step="0.01", v-model="speed_override", @change="override_speed")
-        span.percent {{speed_override | percent 0}}
+    .override(title="Feed rate override.")
+      label Feed
+      input(type="range", min="0", max="2", step="0.01",
+        v-model="feed_override", @change="override_feed")
+      span.percent {{feed_override | percent 0}}
 
-
-    .mdi.pure-form
-      fieldset
-        button.pure-button.pure-button-primary(
-          title="Manually execute instructions.", @click="submit_mdi",
-          :disabled="state.x != 'ready'") MDI
-        input(v-model="mdi", @keyup.enter="submit_mdi")
+    .override(title="Spindle speed override.")
+      label Speed
+      input(type="range", min="0", max="2", step="0.01",
+        v-model="speed_override", @change="override_speed")
+      span.percent {{speed_override | percent 0}}
 
 
     .toolbar
@@ -117,22 +96,56 @@ script#control-view-template(type="text/x-template")
         :disabled="(state.x != 'ready' && state.x != 'holding') || !file")
         .fa.fa-step-forward
 
-      .spacer
+    .tabs
+      input#tab1(type="radio", name="tabs" checked)
+      label(for="tab1") Auto
 
-      button.pure-button(title="Upload a new program file.", @click="open",
-        :disabled="state.x != 'ready'")
-        .fa.fa-folder-open
+      input#tab2(type="radio", name="tabs")
+      label(for="tab2") MDI
 
-      input.gcode-file-input(type="file", @change="upload",
-        style="display:none", accept=".nc,.gcode,.gc,.ngc")
+      input#tab3(type="radio", name="tabs")
+      label(for="tab3") Manual
 
-      button.pure-button(title="Delete current program file.", @click="delete",
-        :disabled="!file")
-        .fa.fa-trash
+      section#content1.tab-content
+        .toolbar
+          button.pure-button(title="Upload a new program file.", @click="open",
+            :disabled="state.x == 'running' || state.x == 'stopping'")
+            .fa.fa-folder-open
 
-      select(title="Select previously uploaded program files.", v-model="file",
-        @change="load", :disabled="state.x != 'ready'")
-        option(v-for="file in files", :value="file") {{file}}
+          input.gcode-file-input(type="file", @change="upload",
+            style="display:none", accept=".nc,.gcode,.gc,.ngc")
 
+          button.pure-button(title="Delete current program file.",
+            @click="delete", :disabled="!file")
+            .fa.fa-trash
 
-    .gcode {{gcode || 'GCode displays here.'}}
+          select(title="Select previously uploaded program files.",
+            v-model="file", @change="load",
+            :disabled="state.x == 'running' || state.x == 'stopping'")
+            option(v-for="file in files", :value="file") {{file}}
+
+        .gcode(:class="{placeholder: !gcode}")
+          {{gcode || 'GCode displays here.'}}
+
+      section#content2.tab-content
+        .mdi.pure-form
+          fieldset
+            button.pure-button.pure-button-primary(
+              title="Manually execute instructions.", @click="submit_mdi",
+              :disabled="state.x != 'ready'") MDI
+            input(v-model="mdi", @keyup.enter="submit_mdi")
+
+        .history(:class="{placeholder: !history}")
+          {{history || 'MDI history displays here.'}}
+
+      section#content3.tab-content
+        .jog
+          axis-control(axes="XY", :colors="['red', 'green']",
+            :enabled="[enabled('x'), enabled('y')]",
+            v-if="enabled('x') || enabled('y')")
+          axis-control(axes="AZ", :colors="['orange', 'blue']",
+            :enabled="[enabled('a'), enabled('z')]",
+            v-if="enabled('a') || enabled('z')")
+          axis-control(axes="BC", :colors="['cyan', 'purple']",
+            :enabled="[enabled('b'), enabled('c')]",
+            v-if="enabled('b') || enabled('c')")

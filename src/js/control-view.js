@@ -21,6 +21,7 @@ module.exports = {
       files: [],
       axes: 'xyzabc',
       gcode: '',
+      history: '',
       speed_override: 1,
       feed_override: 1
     }
@@ -28,12 +29,12 @@ module.exports = {
 
 
   components: {
-    'axis-control': require('./axis-control'),
-    'estop': {template: '#estop-template'}
+    'axis-control': require('./axis-control')
   },
 
 
   events: {
+    // TODO These should all be implemented via the API
     jog: function (axis, move) {this.send('g91 g0' + axis + move)},
     home: function (axis) {this.send('$home ' + axis)},
     zero: function (axis) {this.send('$zero ' + axis)}
@@ -46,6 +47,13 @@ module.exports = {
 
 
   methods: {
+    get_state: function () {
+      var state = this.state.x || '';
+      if (state == 'running' && this.state.c) state = this.state.c;
+      return state.toUpperCase();
+    },
+
+
     send: function (msg) {
       this.$dispatch('send', msg);
     },
@@ -55,12 +63,6 @@ module.exports = {
       var axis = axis.toLowerCase();
       return axis in this.config.axes &&
         this.config.axes[axis].mode != 'disabled';
-    },
-
-
-    estop: function () {
-      if (this.state.x == 'estopped') api.put('clear').done(this.update);
-      else api.put('estop').done(this.update);
     },
 
 
@@ -79,6 +81,7 @@ module.exports = {
 
     submit_mdi: function () {
       this.send(this.mdi);
+      this.history = this.mdi + '\n' + this.history;
     },
 
 
@@ -174,8 +177,7 @@ module.exports = {
     },
 
 
-    fixed: function (value, precision) {
-      return value.toFixed(precision);
-    }
+    fixed: function (value, precision) {return value.toFixed(precision)},
+    upper: function (value) {return value.toUpperCase()}
   }
 }

@@ -22,6 +22,7 @@ module.exports = new Vue({
 
 
   components: {
+    'estop': {template: '#estop-template'},
     'loading-view': {template: '<h1>Loading...</h1>'},
     'control-view': require('./control-view'),
     'axis-view': require('./axis-view'),
@@ -56,6 +57,12 @@ module.exports = new Vue({
 
 
   methods: {
+    estop: function () {
+      if (this.state.x == 'estopped') api.put('clear');
+      else api.put('estop');
+    },
+
+
     update: function () {
       $.get('/config-template.json', {cache: false})
         .success(function (data, status, xhr) {

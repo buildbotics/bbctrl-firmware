@@ -7,19 +7,44 @@ body
 .button-success:not([disabled])
   background rgb(28, 184, 65)
 
-.header img
-  vertical-align top
+.header, .content
+  padding 0
 
-.logo
-  font-size 30pt
-  font-family Audiowide
-  display inline
-  margin-right 0.5em
+.header
+  height 140px
+  padding 0
 
-  .left
-    color #444
-  .right
-    color #e5aa3d
+  .header-content
+    max-width 800px
+    margin auto
+    text-align left
+
+  .estop
+    float right
+    margin 5px
+
+  .banner
+    padding-top 40px
+    white-space nowrap
+
+    img
+      vertical-align top
+
+    .title
+      font-size 30pt
+      font-family Audiowide
+      display inline
+      margin-right 0.5em
+
+      .left
+        color #444
+      .right
+        color #e5aa3d
+
+    .subtitle
+      font-size 18pt
+      font-weight 100
+      color #aaa
 
 .error
   background red
@@ -101,6 +126,19 @@ body
   50%
     fill #ff9d00
 
+.estop
+  width 130px
+  transition 250ms
+
+  &.active .ring
+    animation blink 2s step-start 0s infinite
+
+  svg
+    cursor pointer
+
+    .button:hover
+      filter brightness(120%)
+
 .control-view
   table
     margin 0.5em 0
@@ -110,6 +148,8 @@ body
       border 1px solid #ddd
 
   .axes
+    width 100%
+
     .axis-x .name
       color #f00
 
@@ -130,6 +170,7 @@ body
 
     td, th
       padding 2px
+      white-space nowrap
 
     th
       text-align center
@@ -144,24 +185,17 @@ body
 
       .name, .position
         font-size 36pt
-        line-height 36pt
+        line-height 30pt
 
-  .estop
-    display inline-block
-    width 190px
-    transition 250ms
+      .position
+        width 99%
 
-    &.active .ring
-      animation blink 2s step-start 0s infinite
+      .offset
+        min-width 8em
 
-    svg
-      cursor pointer
-
-      .button:hover
-        filter brightness(120%)
-
-  .jog
-    float right
+      .errors
+        min-width 6em
+        white-space normal
 
   .jog svg
     text
@@ -199,57 +233,153 @@ body
           text-anchor middle
 
   .info
-    float right
-    clear right
+    empty-cells show
 
     th, td
       padding 3px
       text-align right
 
-    td
+    th
+      width 5.25em
+
+    td:nth-child(2)
       min-width 8em
 
-  .overrides
-    clear both
+    td:nth-child(3)
+      text-align left
 
-    .override
-      margin 0.5em
+  .info:nth-of-type(2)
+    float left
+    clear left
+
+  .info:nth-of-type(3)
+    float right
+    clear right
+
+  .override
+    margin 0.5em 0
+    white-space nowrap
+
+    label
+      font-weight bold
+      min-width 3.5em
       display inline-block
 
-      .percent
-        display inline-block
-        width 3em
+    .percent
+      display inline-block
+      width 3em
 
-      input
-        border-radius 0
-        margin -0.4em 0.5em
+    input
+      border-radius 0
+      margin -0.4em 0.5em
+
+  .override:nth-of-type(1)
+    clear left
+    float left
+
+  .override:nth-of-type(2)
+    clear right
+    float right
+
+  .toolbar
+    clear both
+
+    > *
+      margin 0.5em 0
+
+  .gcode, .history
+    clear both
+    overflow auto
+    width 100%
+    max-width 99%
+    min-width 99%
+    height 200px
+    padding 2px
+    white-space pre
+
+    &.placeholder
+      color #aaa
 
   .mdi
     clear both
     white-space nowrap
-    margin 0.5em 0
 
     input
       width 90%
 
-  .toolbar
-    clear both
-    margin 0.5em 0
+  .jog
+    text-align center
 
-    .spacer
-      display inline-block
-      width 1px
-      height 1px
-      margin 0 1em
+    > svg
+      margin 1em
 
-  .gcode
+
+.tabs
+  clear both
+
+  > input
+    display none
+
+  > label
+    display block
+    float left
+    width 5em
+    font-weight bold
+    cursor pointer
+    text-decoration none
+    text-align center
+    background #f6f6f6
+    border-top-left-radius 5px
+    border-top-right-radius 5px
+    border-top 2px solid #f6f6f6
+    border-left 1px solid #f6f6f6
+    border-right 1px solid #f6f6f6
+    margin-right 2px
+
+  > section
+    display none
     clear both
-    border 2px inset #ccc
-    border-radius 5px
-    overflow auto
-    width 100%
-    max-width 100%
-    min-width 100%
-    height 200px
-    padding 2px
-    white-space pre
+
+  > #tab1:checked ~ #content1,
+  > #tab2:checked ~ #content2,
+  > #tab3:checked ~ #content3
+    display block
+
+  [id^="tab"]:checked + label
+    background #fff
+    border-top 2px solid #ddd
+    border-left 1px solid #ddd
+    border-right 1px solid #ddd
+    border-bottom 1px solid #fff
+    margin-bottom -1px
+
+  .tab-content
+    border 1px solid #ddd
+    padding 0.5em
+
+
+@media only screen and (max-width 48em)
+  .header
+    height auto
+
+    .header-content > .banner
+      padding-top 0
+      clear both
+
+  .control-view #control
+    .axes
+      .axis
+        .name, .position
+          font-size 24pt
+          line-height 24pt
+
+      .offset, .errors
+        display none
+
+    > *:nth-of-type(n)
+      float none
+      clear both
+      width 99%
+
+  .tab_container
+    width 98%
