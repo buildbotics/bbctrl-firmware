@@ -25,7 +25,7 @@ class HomeHandler(bbctrl.APIHandler):
 
 
 class StartHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.start()
+    def put_ok(self, path): self.ctrl.avr.start(path)
 
 
 class EStopHandler(bbctrl.APIHandler):
@@ -42,6 +42,10 @@ class StopHandler(bbctrl.APIHandler):
 
 class PauseHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.avr.pause()
+
+
+class UnpauseHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.unpause()
 
 
 class OptionalPauseHandler(bbctrl.APIHandler):
@@ -98,11 +102,12 @@ class Web(tornado.web.Application):
             (r'/api/save', SaveHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
             (r'/api/home', HomeHandler),
-            (r'/api/start', StartHandler),
+            (r'/api/start(/.+)', StartHandler),
             (r'/api/estop', EStopHandler),
             (r'/api/clear', ClearHandler),
             (r'/api/stop', StopHandler),
             (r'/api/pause', PauseHandler),
+            (r'/api/unpause', UnpauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
             (r'/api/step', StepHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),

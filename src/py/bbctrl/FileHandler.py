@@ -21,15 +21,11 @@ class FileHandler(bbctrl.APIHandler):
         with open(path, 'wb') as f:
             f.write(gcode['body'])
 
-        self.ctrl.avr.open(path)
-
 
     def get(self, path):
         if path:
             with open('upload/' + path, 'r') as f:
                 self.write_json(f.read())
-
-            self.ctrl.avr.open(path)
             return
 
         files = []

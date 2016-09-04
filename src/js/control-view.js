@@ -133,29 +133,34 @@ module.exports = {
     },
 
 
-    home: function () {api.put('home').done(this.update)},
+    home: function () {api.put('home')},
 
 
     start_pause: function () {
       if (this.state.x == 'running') this.pause();
+
+      else if (this.state.x == 'stopping' || this.state.x == 'holding')
+        this.unpause();
+
       else this.start();
     },
 
 
-    start: function () {api.put('start').done(this.update)},
-    pause: function () {api.put('pause').done(this.update)},
-    optional_pause: function () {api.put('pause/optional').done(this.update)},
-    stop: function () {api.put('stop').done(this.update)},
-    step: function () {api.put('step').done(this.update)},
+    start: function () {api.put('start/' + this.file).done(this.update)},
+    pause: function () {api.put('pause')},
+    unpause: function () {api.put('unpause')},
+    optional_pause: function () {api.put('pause/optional')},
+    stop: function () {api.put('stop')},
+    step: function () {api.put('step')},
 
 
     override_feed: function () {
-      api.put('override/feed/' + this.feed_override).done(this.update)
+      api.put('override/feed/' + this.feed_override)
     },
 
 
     override_speed: function () {
-      api.put('override/speed/' + this.speed_override).done(this.update)
+      api.put('override/speed/' + this.speed_override)
     },
 
 

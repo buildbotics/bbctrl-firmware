@@ -32,7 +32,6 @@ class AVR():
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
-        self.state = 'init'
         self.vars = {}
         self.stream = None
         self.queue = deque()
@@ -61,16 +60,18 @@ class AVR():
         self.report()
 
 
-    def _start_sending_gcode(self):
-        if self.state == 'init': raise Exception('No file loaded')
-        self.state = 'streaming'
+    def _start_sending_gcode(self, path):
+        if self.stream is not None:
+            raise Exception('Busy, cannot start new GCode file')
+
+        self.stream = bbctrl.GCodeStream(path)
         self.set_write(True)
 
 
     def _stop_sending_gcode(self):
-        if self.state != 'streaming': return
-        if self.stream is not None: self.stream.reset()
-        self.state = 'idle'
+        if self.stream is not None:
+            self.stream.reset()
+            self.stream = None
 
 
     def _i2c_command(self, cmd, word = None):
@@ -122,12 +123,12 @@ class AVR():
         if len(self.queue): self.load_next_command(self.queue.pop())
 
         # Load next GCode command, if running or paused
-        elif self.state == 'streaming':
+        elif self.stream is not None:
             cmd = self.stream.next()
 
             if cmd is None:
                 self.set_write(False)
-                self.state = 'idle'
+                self.stream = None
 
             else: self.load_next_command(cmd)
 
@@ -178,23 +179,15 @@ class AVR():
         self.set_write(True)
 
 
-    def open(self, path):
-        if self.state not in ['idle', 'init']:
-            raise Exception('Busy, cannot open new file')
-
-        self.stream = bbctrl.GCodeStream(path)
-        self.state = 'idle'
-
-
     def mdi(self, cmd):
-        if self.state == 'streaming':
+        if self.stream is not None:
             raise Exception('Busy, cannot queue MDI command')
 
         self.queue_command(cmd)
 
 
     def jog(self, axes):
-        if self.state == 'streaming': raise Exception('Busy, cannot jog')
+        if self.stream is not None: raise Exception('Busy, cannot jog')
 
         # TODO jogging via I2C
 
@@ -211,9 +204,12 @@ class AVR():
     def clear(self): self._i2c_command(I2C_CLEAR)
 
 
-    def start(self):
-        if self.state == 'idle': self._start_sending_gcode()
-        self._i2c_command(I2C_RUN)
+    def start(self, path):
+        if self.stream is not None: raise Exception('Busy, cannot start file')
+
+        if path:
+            self._start_sending_gcode(path)
+            self._i2c_command(I2C_RUN)
 
 
     def stop(self):
@@ -223,5 +219,6 @@ class AVR():
         self.queue_command('$resume')
 
     def pause(self): self._i2c_command(I2C_PAUSE)
+    def unpause(self): self._i2c_command(I2C_RUN)
     def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
     def step(self): self._i2c_command(I2C_STEP)
