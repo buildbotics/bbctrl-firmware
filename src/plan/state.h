@@ -40,7 +40,7 @@ typedef enum {
   STATE_RUNNING,
   STATE_STOPPING,
   STATE_HOLDING,
-} plannerState_t;
+} mp_state_t;
 
 
 typedef enum {
@@ -49,16 +49,16 @@ typedef enum {
   CYCLE_PROBING,
   CYCLE_CALIBRATING,
   CYCLE_JOGGING,
-} plannerCycle_t;
+} mp_cycle_t;
 
 
-plannerState_t mp_get_state();
-plannerCycle_t mp_get_cycle();
+mp_state_t mp_get_state();
+mp_cycle_t mp_get_cycle();
 
-void mp_set_cycle(plannerCycle_t cycle);
+void mp_set_cycle(mp_cycle_t cycle);
 
-PGM_P mp_get_state_pgmstr(plannerState_t state);
-PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
+PGM_P mp_get_state_pgmstr(mp_state_t state);
+PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle);
 
 bool mp_is_flushing();
 bool mp_is_resuming();

@@ -53,7 +53,7 @@
 
 
 /// Callback to execute command
-static stat_t _exec_command(mpBuf_t *bf) {
+static stat_t _exec_command(mp_buffer_t *bf) {
   st_prep_command(bf);
   return STAT_OK;
 }
@@ -61,7 +61,7 @@ static stat_t _exec_command(mpBuf_t *bf) {
 
 /// Queue a synchronous Mcode, program control, or other command
 void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
-  mpBuf_t *bf = mp_get_write_buffer();
+  mp_buffer_t *bf = mp_get_write_buffer();
 
   if (!bf) {
     CM_ALARM(STAT_BUFFER_FULL_FATAL);
@@ -82,7 +82,7 @@ void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
 }
 
 
-void mp_command_callback(mpBuf_t *bf) {
+void mp_command_callback(mp_buffer_t *bf) {
   // Use values & flags stored in mp_queue_command()
   bf->mach_func(bf->ms.target, bf->unit);
 

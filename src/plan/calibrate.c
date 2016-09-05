@@ -76,11 +76,11 @@ typedef struct {
 static calibrate_t cal = {0};
 
 
-static stat_t _exec_calibrate(mpBuf_t *bf) {
-  if (bf->move_state == MOVE_NEW) bf->move_state = MOVE_RUN;
+static stat_t _exec_calibrate(mp_buffer_t *bf) {
+  if (bf->run_state == MOVE_NEW) bf->run_state = MOVE_RUN;
 
   const float time = MIN_SEGMENT_TIME; // In minutes
-  const float maxDeltaV = JOG_ACCELERATION * time;
+  const float max_delta_v = JOG_ACCELERATION * time;
 
   if (rtc_expired(cal.wait))
     switch (cal.state) {
@@ -102,7 +102,7 @@ static stat_t _exec_calibrate(mpBuf_t *bf) {
       if (CAL_MIN_VELOCITY < cal.velocity) cal.stall_valid = true;
 
       if (cal.velocity < CAL_MIN_VELOCITY || CAL_TARGET_SG < cal.stallguard)
-        cal.velocity += maxDeltaV;
+        cal.velocity += max_delta_v;
 
       if (cal.stalled) {
         if (cal.reverse) {
@@ -167,7 +167,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   if (mp_get_cycle() != CYCLE_MACHINING || mp_get_state() != STATE_READY)
     return 0;
 
-  mpBuf_t *bf = mp_get_write_buffer();
+  mp_buffer_t *bf = mp_get_write_buffer();
   if (!bf) {
     CM_ALARM(STAT_BUFFER_FULL_FATAL);
     return 0;

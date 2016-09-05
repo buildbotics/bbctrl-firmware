@@ -50,17 +50,17 @@ typedef enum {
   PROBE_FAILED,         // probe reached endpoint without triggering
   PROBE_SUCCEEDED,      // probe was triggered, pb.results has position
   PROBE_WAITING,        // probe is waiting to be started
-} probeState_t;
+} probe_state_t;
 
 
-struct pbProbingSingleton {       // persistent probing runtime variables
-  probeState_t state;
+typedef struct {
+  probe_state_t state;
   float results[AXES];            // probing results
 
   void (*func)();                 // binding for callback function state machine
 
   // state saved from gcode model
-  uint8_t saved_distance_mode;    // G90,G91 global setting
+  uint8_t saved_distance_mode;    // G90, G91 global setting
   uint8_t saved_coord_system;     // G54 - G59 setting
   float saved_jerk[AXES];         // saved and restored for each axis
 
@@ -68,10 +68,10 @@ struct pbProbingSingleton {       // persistent probing runtime variables
   float start_position[AXES];
   float target[AXES];
   float flags[AXES];
-};
+} probing_t;
 
 
-static struct pbProbingSingleton pb = {0};
+static probing_t pb = {0};
 
 
 /* Note: When coding a cycle (like this one) you get to perform one

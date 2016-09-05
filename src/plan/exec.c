@@ -59,7 +59,7 @@ typedef struct {
   float segment_time;           // actual time increment per aline segment
   float forward_diff[5];        // forward difference levels
   bool hold_planned;            // true when a feedhold has been planned
-  moveSection_t section;        // what section is the move in?
+  move_section_t section;       // what section is the move in?
   bool section_new;             // true if it's a new section
 } mp_exec_t;
 
@@ -246,7 +246,7 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
 
     // len / avg. velocity
     float move_time = 2 * length / (vin + vout);
-    ex.segments = ceil(uSec(move_time) / NOM_SEGMENT_USEC);
+    ex.segments = ceil(usec(move_time) / NOM_SEGMENT_USEC);
     ex.segment_time = move_time / ex.segments;
     ex.segment_count = (uint32_t)ex.segments;
 
@@ -348,7 +348,7 @@ static float _compute_next_segment_velocity() {
  * speed.
  */
 static void _plan_hold() {
-  mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
+  mp_buffer_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
 
   // Examine and process current buffer and compute length left for decel
@@ -384,7 +384,7 @@ static void _plan_hold() {
     bp->length = available_length - braking_length;
     bp->delta_vmax = mp_get_target_velocity(0, bp->length, bp);
     bp->entry_vmax = 0;        // set bp+0 as hold point
-    bp->move_state = MOVE_NEW; // tell _exec to re-use the bf buffer
+    bp->run_state = MOVE_NEW;  // tell _exec to re-use the bf buffer
 
   } else { // Case 2: deceleration exceeds length remaining in buffer
     // Replan to minimum (but non-zero) exit velocity
@@ -396,7 +396,7 @@ static void _plan_hold() {
 
 
 /// Initializes move runtime with a new planner buffer
-static stat_t _exec_aline_init(mpBuf_t *bf) {
+static stat_t _exec_aline_init(mp_buffer_t *bf) {
   // Remove zero length lines.  Short lines have already been removed.
   if (fp_ZERO(bf->length)) {
     mp_runtime_set_busy(false);
@@ -407,7 +407,7 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
   }
 
   // Take control of buffer
-  bf->move_state = MOVE_RUN;
+  bf->run_state = MOVE_RUN;
   bf->replannable = false;
 
   // Initialize move
@@ -504,13 +504,13 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  *
  * State transitions - hierarchical state machine:
  *
- * bf->move_state transitions:
+ * bf->run_state transitions:
  *
  *  from _NEW to _RUN on first call (sub_state set to _OFF)
  *  from _RUN to _OFF on final call or just remain _OFF
  */
-stat_t mp_exec_aline(mpBuf_t *bf) {
-  if (bf->move_state == MOVE_OFF) return STAT_NOOP; // No more moves
+stat_t mp_exec_aline(mp_buffer_t *bf) {
+  if (bf->run_state == MOVE_OFF) return STAT_NOOP; // No more moves
 
   stat_t status = STAT_OK;
 
@@ -530,7 +530,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   // There are 3 things that can happen here depending on return conditions:
   //
-  //   status        bf->move_state      Description
+  //   status        bf->run_state       Description
   //   -----------   --------------      ----------------------------------
   //   STAT_EAGAIN   <don't care>        buffer has more segments to run
   //   STAT_OK       MOVE_RUN            ex and bf buffers are done
@@ -540,9 +540,9 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
     mp_runtime_set_busy(false);
     bf->nx->replannable = false;    // prevent overplanning (Note 2)
     if (fp_ZERO(ex.exit_velocity)) ex.segment_velocity = 0;
-    // Note, _plan_hold() may change bf->move_state to reuse this buffer so it
+    // Note, _plan_hold() may change bf->run_state to reuse this buffer so it
     // can plan the deceleration.
-    if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
+    if (bf->run_state == MOVE_RUN) mp_free_run_buffer();
   }
 
   if (mp_get_state() == STATE_STOPPING &&
@@ -560,7 +560,7 @@ stat_t mp_exec_move() {
   if (mp_get_state() == STATE_ESTOPPED) return STAT_MACHINE_ALARMED;
   if (mp_get_state() == STATE_HOLDING) return STAT_NOOP;
 
-  mpBuf_t *bf = mp_get_run_buffer();
+  mp_buffer_t *bf = mp_get_run_buffer();
   if (!bf) return STAT_NOOP; // nothing running
   if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
 

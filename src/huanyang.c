@@ -114,7 +114,7 @@ typedef struct {
   bool connected;
   bool changed;
   bool estop;
-  machSpindleMode_t mode;
+  spindle_mode_t mode;
   float speed;
 
   float actual_freq;
@@ -450,7 +450,7 @@ void huanyang_init() {
 }
 
 
-void huanyang_set(machSpindleMode_t mode, float speed) {
+void huanyang_set(spindle_mode_t mode, float speed) {
   if ((ha.mode != mode || ha.speed != speed) && !ha.estop) {
     if (ha.debug) STATUS_DEBUG("huanyang: mode=%d, speed=%0.2f", mode, speed);
 
@@ -474,7 +474,7 @@ void huanyang_reset() {
 
   // Save settings
   uint8_t id = ha.id;
-  machSpindleMode_t mode = ha.mode;
+  spindle_mode_t mode = ha.mode;
   float speed = ha.speed;
   bool debug = ha.debug;
 

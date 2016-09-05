@@ -32,6 +32,6 @@
 
 
 void mach_spindle_init();
-void mach_set_spindle_speed(float speed);                     // S parameter
-void mach_spindle_control(machSpindleMode_t spindle_mode);    // M3, M4, M5
+void mach_set_spindle_speed(float speed);                  // S parameter
+void mach_spindle_control(spindle_mode_t spindle_mode);    // M3, M4, M5
 void mach_spindle_estop();

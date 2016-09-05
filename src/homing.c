@@ -51,12 +51,12 @@ typedef enum {
   HOMING_NOT_HOMED,     // machine is not homed
   HOMING_HOMED,         // machine is homed
   HOMING_WAITING,       // machine waiting to be homed
-} homingState_t;
+} homing_state_t;
 
 
 /// persistent homing runtime variables
-struct hmHomingSingleton {
-  homingState_t state;            // homing cycle sub-state machine
+typedef struct {
+  homing_state_t state;           // homing cycle sub-state machine
   bool homed[AXES];               // individual axis homing flags
 
   // controls for homing cycle
@@ -92,10 +92,10 @@ struct hmHomingSingleton {
   uint8_t saved_feed_rate_mode;   // G93,G94 global setting
   float saved_feed_rate;          // F setting
   float saved_jerk;               // saved and restored for each axis homed
-};
+} homing_t;
 
 
-static struct hmHomingSingleton hm = {0};
+static homing_t hm = {0};
 
 
 // G28.2 homing cycle

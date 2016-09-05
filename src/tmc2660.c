@@ -215,11 +215,11 @@ static bool _driver_read(int driver) {
 
 
 static void _spi_next() {
-  bool hasMore = _driver_read(spi.driver);
+  bool has_move = _driver_read(spi.driver);
 
-  //if (!hasMore) drivers[spi.driver].reg_valid = 0;
+  //if (!has_move) drivers[spi.driver].reg_valid = 0;
 
-  if (!hasMore && ++spi.driver == MOTORS) {
+  if (!has_move && ++spi.driver == MOTORS) {
     spi.driver = 0;
     TMC2660_TIMER.CTRLA = TMC2660_TIMER_ENABLE;
     return;

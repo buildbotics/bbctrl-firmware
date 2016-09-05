@@ -222,7 +222,7 @@ void mp_kinematics(const float travel[], float steps[]) {
  * of the tests, but it reduces execution time when you need it most - when
  * tons of pathologically short Gcode blocks are being thrown at you.
  */
-void mp_calculate_trapezoid(mpBuf_t *bf) {
+void mp_calculate_trapezoid(mp_buffer_t *bf) {
   // RULE #1 of mp_calculate_trapezoid(): Don't change bf->length
   //
   // F case: Block is too short - run time < minimum segment time
@@ -446,7 +446,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  * (effective) first block and the bf.  It sets entry, exit and
  * cruise v's from vmax's then calls trapezoid generation.
  *
- * Variables that must be provided in the mpBuffers that will be processed:
+ * Variables that must be provided in the mp_buffer_ts that will be processed:
  *
  *   bf (function arg)     - end of block list (last block in time)
  *   bf->replannable       - start of block list set by last FALSE value
@@ -476,7 +476,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *
  * Variables that are ignored but here's what you would expect them to be:
  *
- *   bf->move_state        - NEW for all blocks but the earliest
+ *   bf->run_state         - NEW for all blocks but the earliest
  *   bf->ms.target[]       - block target position
  *   bf->unit[]            - block unit vector
  *   bf->time              - gets set later
@@ -498,8 +498,8 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *     replannable so the list can be recomputed regardless of
  *     exact stops and previous replanning optimizations.
  */
-void mp_plan_block_list(mpBuf_t *bf) {
-  mpBuf_t *bp = bf;
+void mp_plan_block_list(mp_buffer_t *bf) {
+  mp_buffer_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
@@ -539,12 +539,12 @@ void mp_plan_block_list(mpBuf_t *bf) {
 
 
 void mp_replan_blocks() {
-  mpBuf_t *bf = mp_get_run_buffer();
-  mpBuf_t *bp = bf;
+  mp_buffer_t *bf = mp_get_run_buffer();
+  mp_buffer_t *bp = bf;
 
   // Mark all blocks replanable
   while (true) {
-    if (bp->move_state != MOVE_OFF || fp_ZERO(bp->exit_velocity)) break;
+    if (bp->run_state != MOVE_OFF || fp_ZERO(bp->exit_velocity)) break;
     bp->replannable = true;
 
     bp = mp_get_next_buffer(bp);
@@ -600,7 +600,8 @@ void mp_replan_blocks() {
  * [2] Cannot assume Vf >= Vi due to rounding errors and use of
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
-float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
+float mp_get_target_length(const float Vi, const float Vf,
+                           const mp_buffer_t *bf) {
   return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * bf->recip_jerk);
 }
 
@@ -671,7 +672,8 @@ float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf) {
  *
  *   J'(x) = (2 * Vi * x - Vi^2 + 3 * x^2) / L^2
  */
-float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf) {
+float mp_get_target_velocity(const float Vi, const float L,
+                             const mp_buffer_t *bf) {
   // 0 iterations (a reasonable estimate)
   float x = pow(L, 0.66666666) * bf->cbrt_jerk + Vi; // First estimate
 

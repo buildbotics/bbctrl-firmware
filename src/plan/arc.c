@@ -46,8 +46,8 @@
 
 // See planner.h for MM_PER_ARC_SEGMENT and other arc setting #defines
 
-typedef struct arArcSingleton {     // persistent planner and runtime variables
-  uint8_t run_state;                // runtime state machine sequence
+typedef struct {
+  run_state_t run_state;            // runtime state machine sequence
 
   float position[AXES];             // accumulating runtime position
   float offset[3];                  // IJK offsets
@@ -74,7 +74,7 @@ typedef struct arArcSingleton {     // persistent planner and runtime variables
   float center_0;           // center of circle at plane axis 0 (e.g. X for G17)
   float center_1;           // center of circle at plane axis 1 (e.g. Y for G17)
 
-  MoveState_t ms;
+  move_state_t ms;
 } arc_t;
 
 arc_t arc = {0};
@@ -437,15 +437,15 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
 
   // now get down to the rest of the work setting up the arc for execution
   mach.gm.motion_mode = motion_mode;
-  mach_set_work_offsets();                        // Update resolved offsets
-  mach.ms.line = mach.gm.line;                    // copy line number
-  memcpy(&arc.ms, &mach.ms, sizeof(MoveState_t)); // context to arc singleton
+  mach_set_work_offsets();                         // Update resolved offsets
+  mach.ms.line = mach.gm.line;                     // copy line number
+  memcpy(&arc.ms, &mach.ms, sizeof(move_state_t)); // context to arc singleton
 
-  copy_vector(arc.position, mach.position);       // arc pos from gcode model
+  copy_vector(arc.position, mach.position);        // arc pos from gcode model
 
-  arc.radius = TO_MILLIMETERS(radius);            // set arc radius or zero
+  arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
 
-  arc.offset[0] = TO_MILLIMETERS(i);              // offsets canonical form (mm)
+  arc.offset[0] = TO_MILLIMETERS(i);               // offsets in mm
   arc.offset[1] = TO_MILLIMETERS(j);
   arc.offset[2] = TO_MILLIMETERS(k);
 

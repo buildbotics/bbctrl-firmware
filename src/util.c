@@ -105,8 +105,8 @@ float *set_vector_by_axis(float value, uint8_t axis) {
  * Implementation tip: Order the min and max values from most to least likely
  * in the calling args
  *
- * (*) Macro min4 is about 20uSec, inline function version is closer to 10
- *     uSec (Xmega 32 MHz)
+ * (*) Macro min4 is about 20usec, inline function version is closer to 10
+ *     usec (Xmega 32 MHz)
  *    #define min3(a,b,c) (min(min(a,b),c))
  *    #define min4(a,b,c,d) (min(min(a,b),min(c,d)))
  *    #define max3(a,b,c) (max(max(a,b),c))

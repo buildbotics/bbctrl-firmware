@@ -38,8 +38,8 @@ typedef uint8_t (*command_cb_t)(int argc, char *argv[]);
 typedef struct {
   const char *name;
   command_cb_t cb;
-  uint8_t minArgs;
-  uint8_t maxArgs;
+  uint8_t min_args;
+  uint8_t max_args;
   const char *help;
 } command_t;
 

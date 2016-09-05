@@ -362,8 +362,8 @@ static stat_t _parse_gcode_block(char *buf) {
 
   // set initial state for new move
   memset(modals, 0, sizeof(modals));              // clear all parser values
-  memset(&mach.gf, 0, sizeof(GCodeState_t));      // clear all next-state flags
-  memset(&mach.gn, 0, sizeof(GCodeState_t));      // clear all next-state values
+  memset(&mach.gf, 0, sizeof(gcode_state_t));     // clear all next-state flags
+  memset(&mach.gn, 0, sizeof(gcode_state_t));     // clear all next-state values
 
   // get motion mode from previous block
   mach.gn.motion_mode = mach_get_motion_mode();

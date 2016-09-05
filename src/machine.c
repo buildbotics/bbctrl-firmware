@@ -194,19 +194,19 @@ machine_t mach = {
 
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
-machMotionMode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
-machCoordSystem_t mach_get_coord_system() {return mach.gm.coord_system;}
-machUnitsMode_t mach_get_units_mode() {return mach.gm.units_mode;}
-machPlane_t mach_get_select_plane() {return mach.gm.select_plane;}
-machPathControlMode_t mach_get_path_control() {return mach.gm.path_control;}
-machDistanceMode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
-machFeedRateMode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
+motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
+coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
+units_mode_t mach_get_units_mode() {return mach.gm.units_mode;}
+plane_t mach_get_select_plane() {return mach.gm.select_plane;}
+path_mode_t mach_get_path_control() {return mach.gm.path_control;}
+distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
+feed_rate_mode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
 uint8_t mach_get_tool() {return mach.gm.tool;}
-machSpindleMode_t mach_get_spindle_mode() {return mach.gm.spindle_mode;}
+spindle_mode_t mach_get_spindle_mode() {return mach.gm.spindle_mode;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 
-PGM_P mp_get_units_mode_pgmstr(machUnitsMode_t mode) {
+PGM_P mp_get_units_mode_pgmstr(units_mode_t mode) {
   switch (mode) {
   case INCHES:      return PSTR("IN");
   case MILLIMETERS: return PSTR("MM");
@@ -217,12 +217,12 @@ PGM_P mp_get_units_mode_pgmstr(machUnitsMode_t mode) {
 }
 
 
-void mach_set_motion_mode(machMotionMode_t motion_mode) {
+void mach_set_motion_mode(motion_mode_t motion_mode) {
   mach.gm.motion_mode = motion_mode;
 }
 
 
-void mach_set_spindle_mode(machSpindleMode_t spindle_mode) {
+void mach_set_spindle_mode(spindle_mode_t spindle_mode) {
   mach.gm.spindle_mode = spindle_mode;
 }
 
@@ -573,21 +573,19 @@ void mach_set_model_target(float target[], float flag[]) {
  * be tested w/the other disabled, should that requirement ever arise.
  */
 stat_t mach_test_soft_limits(float target[]) {
-#ifdef SOFT_LIMIT_ENABLE
-    for (int axis = 0; axis < AXES; axis++) {
-      if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
+  for (int axis = 0; axis < AXES; axis++) {
+    if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
 
-      if (fp_EQ(mach.a[axis].travel_min, mach.a[axis].travel_max)) continue;
+    if (fp_EQ(mach.a[axis].travel_min, mach.a[axis].travel_max)) continue;
 
-      if (mach.a[axis].travel_min > DISABLE_SOFT_LIMIT &&
-          target[axis] < mach.a[axis].travel_min)
-        return STAT_SOFT_LIMIT_EXCEEDED;
+    if (mach.a[axis].travel_min > DISABLE_SOFT_LIMIT &&
+        target[axis] < mach.a[axis].travel_min)
+      return STAT_SOFT_LIMIT_EXCEEDED;
 
-      if (mach.a[axis].travel_max > DISABLE_SOFT_LIMIT &&
-          target[axis] > mach.a[axis].travel_max)
-        return STAT_SOFT_LIMIT_EXCEEDED;
-    }
-#endif
+    if (mach.a[axis].travel_max > DISABLE_SOFT_LIMIT &&
+        target[axis] > mach.a[axis].travel_max)
+      return STAT_SOFT_LIMIT_EXCEEDED;
+  }
 
   return STAT_OK;
 }
@@ -636,15 +634,15 @@ stat_t mach_alarm(const char *location, stat_t code) {
 // These functions assume input validation occurred upstream.
 
 /// G17, G18, G19 select axis plane
-void mach_set_plane(machPlane_t plane) {mach.gm.select_plane = plane;}
+void mach_set_plane(plane_t plane) {mach.gm.select_plane = plane;}
 
 
 /// G20, G21
-void mach_set_units_mode(machUnitsMode_t mode) {mach.gm.units_mode = mode;}
+void mach_set_units_mode(units_mode_t mode) {mach.gm.units_mode = mode;}
 
 
 /// G90, G91
-void mach_set_distance_mode(machDistanceMode_t mode) {
+void mach_set_distance_mode(distance_mode_t mode) {
   mach.gm.distance_mode = mode;
 }
 
@@ -657,7 +655,7 @@ void mach_set_distance_mode(machDistanceMode_t mode) {
  * accomplished by calling mach_set_work_offsets() immediately
  * afterwards.
  */
-void mach_set_coord_offsets(machCoordSystem_t coord_system, float offset[],
+void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             float flag[]) {
   if (coord_system < G54 || MAX_COORDS <= coord_system) return;
 
@@ -668,7 +666,7 @@ void mach_set_coord_offsets(machCoordSystem_t coord_system, float offset[],
 
 
 /// G54-G59
-void mach_set_coord_system(machCoordSystem_t coord_system) {
+void mach_set_coord_system(coord_system_t coord_system) {
   mach.gm.coord_system = coord_system;
   mach_set_work_offsets(); // set work offsets in the Gcode model
 }
@@ -730,8 +728,8 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis])) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
-      mach.position[axis] = value[axis];         // set model position
-      mach.ms.target[axis] = value[axis];            // reset model target
+      mach.position[axis] = value[axis];           // set model position
+      mach.ms.target[axis] = value[axis];          // reset model target
       mp_set_planner_position(axis, value[axis]);  // set mm position
     }
 
@@ -854,14 +852,14 @@ void mach_set_feed_rate(float feed_rate) {
 }
 
 
-/// G93, G94 See machFeedRateMode
-void mach_set_feed_rate_mode(machFeedRateMode_t mode) {
+/// G93, G94
+void mach_set_feed_rate_mode(feed_rate_mode_t mode) {
   mach.gm.feed_rate_mode = mode;
 }
 
 
 /// G61, G61.1, G64
-void mach_set_path_control(machPathControlMode_t mode) {
+void mach_set_path_control(path_mode_t mode) {
   mach.gm.path_control = mode;
 }
 

@@ -117,7 +117,7 @@ uint16_t compute_checksum(char const *string, const uint16_t length);
 #define MM_PER_INCH 25.4
 #define INCHES_PER_MM (1 / 25.4)
 #define MICROSECONDS_PER_MINUTE 60000000.0
-#define uSec(a) ((a) * MICROSECONDS_PER_MINUTE)
+#define usec(a) ((a) * MICROSECONDS_PER_MINUTE)
 
 #define RADIAN 57.2957795
 #ifndef M_SQRT3

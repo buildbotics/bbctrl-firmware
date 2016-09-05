@@ -31,4 +31,4 @@
 
 
 stat_t mp_exec_move();
-stat_t mp_exec_aline(mpBuf_t *bf);
+stat_t mp_exec_aline(mp_buffer_t *bf);

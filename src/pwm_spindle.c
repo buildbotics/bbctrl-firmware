@@ -40,10 +40,10 @@ typedef struct {
   bool reverse;
   bool enable_invert;
   bool estop;
-} spindle_t;
+} pwm_spindle_t;
 
 
-static spindle_t spindle = {
+static pwm_spindle_t spindle = {
   .freq          = SPINDLE_PWM_FREQUENCY,
   .min_rpm       = SPINDLE_MIN_RPM,
   .max_rpm       = SPINDLE_MAX_RPM,
@@ -55,7 +55,7 @@ static spindle_t spindle = {
 };
 
 
-static void _spindle_set_pwm(machSpindleMode_t mode, float speed) {
+static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
   if (mode == SPINDLE_OFF || speed < spindle.min_rpm || spindle.estop) {
     TIMER_PWM.CTRLA = 0;
     return;
@@ -122,7 +122,7 @@ void pwm_spindle_init() {
 }
 
 
-void pwm_spindle_set(machSpindleMode_t mode, float speed) {
+void pwm_spindle_set(spindle_mode_t mode, float speed) {
   _spindle_set_dir(mode == SPINDLE_CW);
   _spindle_set_pwm(mode, speed);
   _spindle_set_enable(mode != SPINDLE_OFF && TIMER_PWM.CTRLA);

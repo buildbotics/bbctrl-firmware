@@ -51,11 +51,11 @@ typedef struct {
   uint16_t dwell;
 
   // Move prep
-  bool move_ready;      // prepped move ready for loader
-  moveType_t move_type;
+  bool move_ready;       // prepped move ready for loader
+  move_type_t move_type;
   uint16_t seg_period;
   uint32_t prep_dwell;
-  struct mpBuffer *bf;  // used for command moves
+  mp_buffer_t *bf;       // used for command moves
 } stepper_t;
 
 
@@ -147,8 +147,8 @@ ISR(STEP_TIMER_ISR) {
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
-  st.seg_period = 0; // clear timer
-  st.prep_dwell = 0; // clear dwell
+  st.seg_period = 0;      // clear timer
+  st.prep_dwell = 0;      // clear dwell
   st.move_ready = false;  // flip the flag back
 
   // Request next move if not currently in a dwell.  Requesting the next move
@@ -198,7 +198,7 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 
 
 /// Stage command to execution
-void st_prep_command(mpBuf_t *bf) {
+void st_prep_command(mp_buffer_t *bf) {
   if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_COMMAND;
   st.bf = bf;

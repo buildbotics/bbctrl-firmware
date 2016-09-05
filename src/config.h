@@ -157,7 +157,6 @@ typedef enum {
 
 // Machine settings
 #define CHORDAL_TOLERANCE        0.01   // chordal accuracy for arc drawing
-#define SOFT_LIMIT_ENABLE        false
 #define JERK_MAX                 50     // yes, that's km/min^3
 #define JUNCTION_DEVIATION       0.05   // default value, in mm
 #define JUNCTION_ACCELERATION    100000 // centripetal corner acceleration

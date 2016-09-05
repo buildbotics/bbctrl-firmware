@@ -38,41 +38,41 @@ typedef enum {
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
   MOVE_TYPE_COMMAND,       // general command
-} moveType_t;
+} move_type_t;
 
 
 typedef enum {
   MOVE_OFF,                // move inactive (MUST BE ZERO)
   MOVE_NEW,                // initial value
   MOVE_RUN,                // general run state (for non-acceleration moves)
-} moveState_t;
+} run_state_t;
 
 
 // All the enums that equal zero must be zero. Don't change this
-typedef enum {                    // bf->buffer_state values
+typedef enum {
   MP_BUFFER_EMPTY,                // struct is available for use (MUST BE 0)
   MP_BUFFER_LOADING,              // being written ("checked out")
   MP_BUFFER_QUEUED,               // in queue
-  MP_BUFFER_RUNNING               // current running buffer
-} bufferState_t;
+  MP_BUFFER_RUNNING,              // current running buffer
+} buffer_state_t;
 
 
 // Callbacks
 typedef void (*mach_exec_t)(float[], float[]);
-struct mpBuffer;
-typedef stat_t (*bf_func_t)(struct mpBuffer *bf);
+struct mp_buffer_t;
+typedef stat_t (*bf_func_t)(struct mp_buffer_t *bf);
 
 
-typedef struct mpBuffer {         // See Planning Velocity Notes
-  struct mpBuffer *pv;            // pointer to previous buffer
-  struct mpBuffer *nx;            // pointer to next buffer
+typedef struct mp_buffer_t {      // See Planning Velocity Notes
+  struct mp_buffer_t *pv;         // pointer to previous buffer
+  struct mp_buffer_t *nx;         // pointer to next buffer
 
   bf_func_t bf_func;              // callback to buffer exec function
   mach_exec_t mach_func;          // callback to machine
 
-  bufferState_t buffer_state;     // used to manage queuing/dequeuing
-  moveType_t move_type;           // used to dispatch to run routine
-  moveState_t move_state;         // move state machine sequence
+  buffer_state_t buffer_state;    // used to manage queuing/dequeuing
+  move_type_t move_type;          // used to dispatch to run routine
+  run_state_t run_state;          // run state machine sequence
   bool replannable;               // true if move can be re-planned
 
   float unit[AXES];               // unit vector for axis scaling & planning
@@ -97,22 +97,22 @@ typedef struct mpBuffer {         // See Planning Velocity Notes
   float recip_jerk;               // 1/Jm used for planning (computed & cached)
   float cbrt_jerk;                // cube root of Jm (computed & cached)
 
-  MoveState_t ms;
-} mpBuf_t;
+  move_state_t ms;
+} mp_buffer_t;
 
 
 uint8_t mp_get_planner_buffer_room();
 void mp_wait_for_buffer();
 void mp_init_buffers();
 bool mp_queue_empty();
-mpBuf_t *mp_get_write_buffer();
-void mp_commit_write_buffer(uint32_t line, moveType_t type);
-mpBuf_t *mp_get_run_buffer();
+mp_buffer_t *mp_get_write_buffer();
+void mp_commit_write_buffer(uint32_t line, move_type_t type);
+mp_buffer_t *mp_get_run_buffer();
 void mp_free_run_buffer();
-mpBuf_t *mp_get_last_buffer();
+mp_buffer_t *mp_get_last_buffer();
 /// Returns pointer to prev buffer in linked list
 #define mp_get_prev_buffer(b) (b->pv)
 /// Returns pointer to next buffer in linked list
 #define mp_get_next_buffer(b) (b->nx)
-void mp_clear_buffer(mpBuf_t *bf);
-void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp);
+void mp_clear_buffer(mp_buffer_t *bf);
+void mp_copy_buffer(mp_buffer_t *bf, const mp_buffer_t *bp);

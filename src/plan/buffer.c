@@ -56,16 +56,16 @@
 #include <string.h>
 
 
-typedef struct mpBufferPool {           // ring buffer for sub-moves
-  volatile uint8_t buffers_available;   // running count of available buffers
-  mpBuf_t *w;                           // get_write_buffer pointer
-  mpBuf_t *q;                           // queue_write_buffer pointer
-  mpBuf_t *r;                           // get/end_run_buffer pointer
-  mpBuf_t bf[PLANNER_BUFFER_POOL_SIZE]; // buffer storage
-} mpBufferPool_t;
+typedef struct {                            // ring buffer for sub-moves
+  volatile uint8_t buffers_available;       // count of available buffers
+  mp_buffer_t *w;                           // get_write_buffer pointer
+  mp_buffer_t *q;                           // queue_write_buffer pointer
+  mp_buffer_t *r;                           // get/end_run_buffer pointer
+  mp_buffer_t bf[PLANNER_BUFFER_POOL_SIZE]; // buffer storage
+} buffer_pool_t;
 
 
-mpBufferPool_t mb; // move buffer queue
+buffer_pool_t mb; // move buffer queue
 
 
 uint8_t mp_get_planner_buffer_room() {
@@ -85,7 +85,7 @@ void mp_wait_for_buffer() {
 
 /// Initializes or resets buffers
 void mp_init_buffers() {
-  mpBuf_t *pv;
+  mp_buffer_t *pv;
 
   memset(&mb, 0, sizeof(mb));      // clear all values, pointers and status
 
@@ -110,13 +110,13 @@ bool mp_queue_empty() {return mb.w == mb.r;}
 
 /// Get pointer to next available write buffer
 /// Returns pointer or 0 if no buffer available.
-mpBuf_t *mp_get_write_buffer() {
+mp_buffer_t *mp_get_write_buffer() {
   // get & clear a buffer
   if (mb.w->buffer_state == MP_BUFFER_EMPTY) {
-    mpBuf_t *w = mb.w;
-    mpBuf_t *nx = mb.w->nx;                   // save linked list pointers
-    mpBuf_t *pv = mb.w->pv;
-    memset(mb.w, 0, sizeof(mpBuf_t));         // clear all values
+    mp_buffer_t *w = mb.w;
+    mp_buffer_t *nx = mb.w->nx;               // save linked list pointers
+    mp_buffer_t *pv = mb.w->pv;
+    memset(mb.w, 0, sizeof(mp_buffer_t));     // clear all values
     w->nx = nx;                               // restore pointers
     w->pv = pv;
     w->buffer_state = MP_BUFFER_LOADING;
@@ -139,12 +139,12 @@ mpBuf_t *mp_get_write_buffer() {
  * buffer once it has been queued. Action may start on the buffer immediately,
  * invalidating its contents
  */
-void mp_commit_write_buffer(uint32_t line, moveType_t type) {
+void mp_commit_write_buffer(uint32_t line, move_type_t type) {
   mp_state_running();
 
   mb.q->ms.line = line;
   mb.q->move_type = type;
-  mb.q->move_state = MOVE_NEW;
+  mb.q->run_state = MOVE_NEW;
   mb.q->buffer_state = MP_BUFFER_QUEUED;
   mb.q = mb.q->nx; // advance the queued buffer pointer
 }
@@ -156,7 +156,7 @@ void mp_commit_write_buffer(uint32_t line, moveType_t type) {
  * Returns 0 if no buffer available
  * The behavior supports continuations (iteration)
  */
-mpBuf_t *mp_get_run_buffer() {
+mp_buffer_t *mp_get_run_buffer() {
   switch (mb.r->buffer_state) {
   case MP_BUFFER_QUEUED: // fresh buffer; becomes running if queued or pending
     mb.r->buffer_state = MP_BUFFER_RUNNING;
@@ -182,32 +182,32 @@ void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
 
 
 /// Returns pointer to last buffer, i.e. last block (zero)
-mpBuf_t *mp_get_last_buffer() {
-  mpBuf_t *bf = mp_get_run_buffer();
-  mpBuf_t *bp;
+mp_buffer_t *mp_get_last_buffer() {
+  mp_buffer_t *bf = mp_get_run_buffer();
+  mp_buffer_t *bp;
 
   for (bp = bf; bp && bp->nx != bf; bp = mp_get_next_buffer(bp))
-    if (bp->nx->move_state == MOVE_OFF) break;
+    if (bp->nx->run_state == MOVE_OFF) break;
 
   return bp;
 }
 
 
 /// Zeroes the contents of the buffer
-void mp_clear_buffer(mpBuf_t *bf) {
-  mpBuf_t *nx = bf->nx;            // save pointers
-  mpBuf_t *pv = bf->pv;
-  memset(bf, 0, sizeof(mpBuf_t));
-  bf->nx = nx;                     // restore pointers
+void mp_clear_buffer(mp_buffer_t *bf) {
+  mp_buffer_t *nx = bf->nx;            // save pointers
+  mp_buffer_t *pv = bf->pv;
+  memset(bf, 0, sizeof(mp_buffer_t));
+  bf->nx = nx;                         // restore pointers
   bf->pv = pv;
 }
 
 
 ///  Copies the contents of bp into bf - preserves links
-void mp_copy_buffer(mpBuf_t *bf, const mpBuf_t *bp) {
-  mpBuf_t *nx = bf->nx;            // save pointers
-  mpBuf_t *pv = bf->pv;
-  memcpy(bf, bp, sizeof(mpBuf_t));
-  bf->nx = nx;                     // restore pointers
+void mp_copy_buffer(mp_buffer_t *bf, const mp_buffer_t *bp) {
+  mp_buffer_t *nx = bf->nx;            // save pointers
+  mp_buffer_t *pv = bf->pv;
+  memcpy(bf, bp, sizeof(mp_buffer_t));
+  bf->nx = nx;                         // restore pointers
   bf->pv = pv;
 }

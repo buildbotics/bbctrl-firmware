@@ -133,11 +133,11 @@ int command_exec(int argc, char *argv[]) {
 
   int i = command_find(argv[0]);
   if (i != -1) {
-    uint8_t minArgs = pgm_read_byte(&commands[i].minArgs);
-    uint8_t maxArgs = pgm_read_byte(&commands[i].maxArgs);
+    uint8_t min_args = pgm_read_byte(&commands[i].min_args);
+    uint8_t max_args = pgm_read_byte(&commands[i].max_args);
 
-    if (argc <= minArgs) return STAT_TOO_FEW_ARGUMENTS;
-    else if (maxArgs < argc - 1) return STAT_TOO_MANY_ARGUMENTS;
+    if (argc <= min_args) return STAT_TOO_FEW_ARGUMENTS;
+    else if (max_args < argc - 1) return STAT_TOO_MANY_ARGUMENTS;
     else {
       command_cb_t cb = pgm_read_word(&commands[i].cb);
       return cb(argc, argv);

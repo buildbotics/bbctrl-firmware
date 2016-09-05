@@ -46,15 +46,15 @@ typedef struct {
   float next_velocity[AXES];
   float target_velocity[AXES];
   float current_velocity[AXES];
-} jogRuntime_t;
+} jog_runtime_t;
 
 
-static jogRuntime_t jr;
+static jog_runtime_t jr;
 
 
-static stat_t _exec_jog(mpBuf_t *bf) {
-  if (bf->move_state == MOVE_OFF) return STAT_NOOP;
-  if (bf->move_state == MOVE_NEW) bf->move_state = MOVE_RUN;
+static stat_t _exec_jog(mp_buffer_t *bf) {
+  if (bf->run_state == MOVE_OFF) return STAT_NOOP;
+  if (bf->run_state == MOVE_NEW) bf->run_state = MOVE_RUN;
 
   // Load next velocity
   if (!jr.writing)
@@ -64,18 +64,19 @@ static stat_t _exec_jog(mpBuf_t *bf) {
   // Compute next line segment
   float target[AXES];
   const float time = MIN_SEGMENT_TIME; // In minutes
-  const float maxDeltaV = JOG_ACCELERATION * time;
-  float velocitySqr = 0;
+  const float max_delta_v = JOG_ACCELERATION * time;
+  float velocity_sqr = 0;
   bool done = true;
 
   // Compute new axis velocities and target
   for (int axis = 0; axis < AXES; axis++) {
-    float targetV = jr.target_velocity[axis] * mach.a[axis].velocity_max;
-    float deltaV = targetV - jr.current_velocity[axis];
-    float sign = deltaV < 0 ? -1 : 1;
+    float target_v = jr.target_velocity[axis] * mach.a[axis].velocity_max;
+    float delta_v = target_v - jr.current_velocity[axis];
+    float sign = delta_v < 0 ? -1 : 1;
 
-    if (maxDeltaV < fabs(deltaV)) jr.current_velocity[axis] += maxDeltaV * sign;
-    else jr.current_velocity[axis] = targetV;
+    if (max_delta_v < fabs(delta_v))
+      jr.current_velocity[axis] += max_delta_v * sign;
+    else jr.current_velocity[axis] = target_v;
 
     if (!fp_ZERO(jr.current_velocity[axis])) done = false;
 
@@ -84,7 +85,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
       mp_runtime_get_position(axis) + time * jr.current_velocity[axis];
 
     // Accumulate velocities squared
-    velocitySqr += square(jr.current_velocity[axis]);
+    velocity_sqr += square(jr.current_velocity[axis]);
   }
 
   // Check if we are done
@@ -101,7 +102,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     return STAT_NOOP;
   }
 
-  return mp_runtime_move_to_target(target, sqrt(velocitySqr), time);
+  return mp_runtime_move_to_target(target, sqrt(velocity_sqr), time);
 }
 
 
@@ -129,7 +130,7 @@ uint8_t command_jog(int argc, char *argv[]) {
 
   if (!mp_jog_busy()) {
     // Should always be at least one free buffer
-    mpBuf_t *bf = mp_get_write_buffer();
+    mp_buffer_t *bf = mp_get_write_buffer();
     if (!bf) return STAT_BUFFER_FULL_FATAL;
 
     // Start

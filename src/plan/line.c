@@ -49,10 +49,10 @@ typedef struct {
   float jerk;                       // jerk values cached from previous block
   float recip_jerk;
   float cbrt_jerk;
-} mpMoveMaster_t;
+} move_master_t;
 
 
-mpMoveMaster_t mm = {{0}}; // context for line planning
+move_master_t mm = {{0}}; // context for line planning
 
 
 /// Set planner position for a single axis
@@ -178,7 +178,7 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  * accumulate and get executed once the accumulated error exceeds
  * the minimums.
  */
-stat_t mp_aline(MoveState_t *ms) {
+stat_t mp_aline(move_state_t *ms) {
   // Compute some reusable terms
   float axis_length[AXES];
   float axis_square[AXES];
@@ -220,7 +220,7 @@ stat_t mp_aline(MoveState_t *ms) {
     float delta_velocity = pow(length, 0.66666666) * mm.cbrt_jerk;
     float entry_velocity = 0; // pre-set as if no previous block
 
-    mpBuf_t *bf = mp_get_run_buffer();
+    mp_buffer_t *bf = mp_get_run_buffer();
     if (bf) {
       if (bf->replannable) // not optimally planned
         entry_velocity = bf->entry_velocity + bf->delta_vmax;
@@ -234,7 +234,7 @@ stat_t mp_aline(MoveState_t *ms) {
 
   // Get a *cleared* buffer and setup move variables
   // Note, mp_free_run_buffer() initializes all buffer variables to zero
-  mpBuf_t *bf = mp_get_write_buffer(); // current move pointer
+  mp_buffer_t *bf = mp_get_write_buffer(); // current move pointer
   if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 
   // Register callback to exec function
@@ -242,7 +242,7 @@ stat_t mp_aline(MoveState_t *ms) {
   bf->length = length;
 
   // Copy model state into planner buffer
-  memcpy(&bf->ms, ms, sizeof(MoveState_t));
+  memcpy(&bf->ms, ms, sizeof(move_state_t));
 
   // Compute the unit vector and find the right jerk to use (combined
   // operations) To determine the jerk value to use for the block we

@@ -38,12 +38,12 @@
 typedef enum {
   SPINDLE_TYPE_PWM,
   SPINDLE_TYPE_HUANYANG,
-} spindleType_t;
+} spindle_type_t;
 
-static spindleType_t spindle_type = SPINDLE_TYPE;
+static spindle_type_t spindle_type = SPINDLE_TYPE;
 
 
-static void _spindle_set(machSpindleMode_t mode, float speed) {
+static void _spindle_set(spindle_mode_t mode, float speed) {
   switch (spindle_type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
@@ -53,7 +53,7 @@ static void _spindle_set(machSpindleMode_t mode, float speed) {
 
 /// execute the spindle command (called from planner)
 static void _exec_spindle_control(float *value, float *flag) {
-  machSpindleMode_t mode = value[0];
+  spindle_mode_t mode = value[0];
   mach_set_spindle_mode(mode);
   _spindle_set(mode, mach.gm.spindle_speed);
 }
@@ -74,7 +74,7 @@ void mach_spindle_init() {
 
 
 /// Queue the spindle command to the planner buffer
-void mach_spindle_control(machSpindleMode_t mode) {
+void mach_spindle_control(spindle_mode_t mode) {
   float value[AXES] = {mode};
   mp_queue_command(_exec_spindle_control, value, value);
 }

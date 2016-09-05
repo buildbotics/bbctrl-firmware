@@ -49,18 +49,18 @@
 
 
 typedef enum {
-  MOTOR_IDLE,                   // motor stopped and may be partially energized
+  MOTOR_IDLE,                    // motor stopped and may be partially energized
   MOTOR_ENERGIZING,
   MOTOR_ACTIVE
-} motorPowerState_t;
+} motor_power_state_t;
 
 
 typedef struct {
   // Config
   uint8_t motor_map;             // map motor to axis
   uint16_t microsteps;           // microsteps per full step
-  machMotorPolarity_t polarity;
-  machMotorPowerMode_t power_mode;
+  motor_polarity_t polarity;
+  motor_power_mode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
   uint8_t step_pin;
@@ -71,9 +71,9 @@ typedef struct {
   uint8_t dma_trigger;
 
   // Runtime state
-  motorPowerState_t power_state; // state machine for managing motor power
+  motor_power_state_t power_state; // state machine for managing motor power
   uint32_t timeout;
-  machMotorFlags_t flags;
+  motor_flags_t flags;
   int32_t encoder;
   uint16_t steps;
   uint8_t last_clock;
@@ -82,7 +82,7 @@ typedef struct {
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
   bool positive;                 // step sign
-  machDirection_t direction;       // travel direction corrected for polarity
+  direction_t direction;         // travel direction corrected for polarity
 
   // Step error correction
   int32_t correction_holdoff;    // count down segments between corrections
@@ -311,7 +311,7 @@ stat_t motor_rtc_callback() { // called by controller
 void print_status_flags(uint8_t flags);
 
 
-void motor_error_callback(int motor, machMotorFlags_t errors) {
+void motor_error_callback(int motor, motor_flags_t errors) {
   if (motors[motor].power_state != MOTOR_ACTIVE) return;
 
   motors[motor].flags |= errors;

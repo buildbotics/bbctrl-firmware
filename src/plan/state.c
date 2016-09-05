@@ -41,8 +41,8 @@
 
 
 typedef struct {
-  plannerState_t state;
-  plannerCycle_t cycle;
+  mp_state_t state;
+  mp_cycle_t cycle;
 
   bool hold_requested;
   bool flush_requested;
@@ -54,11 +54,11 @@ typedef struct {
 static planner_state_t ps = {0};
 
 
-plannerState_t mp_get_state() {return ps.state;}
-plannerCycle_t mp_get_cycle() {return ps.cycle;}
+mp_state_t mp_get_state() {return ps.state;}
+mp_cycle_t mp_get_cycle() {return ps.cycle;}
 
 
-PGM_P mp_get_state_pgmstr(plannerState_t state) {
+PGM_P mp_get_state_pgmstr(mp_state_t state) {
   switch (state) {
   case STATE_READY:     return PSTR("READY");
   case STATE_ESTOPPED:  return PSTR("ESTOPPED");
@@ -71,7 +71,7 @@ PGM_P mp_get_state_pgmstr(plannerState_t state) {
 }
 
 
-PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle) {
+PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle) {
   switch (cycle) {
   case CYCLE_MACHINING:   return PSTR("MACHINING");
   case CYCLE_HOMING:      return PSTR("HOMING");
@@ -84,7 +84,7 @@ PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle) {
 }
 
 
-static void _set_state(plannerState_t state) {
+static void _set_state(mp_state_t state) {
   if (ps.state == state) return; // No change
   if (ps.state == STATE_ESTOPPED) return; // Can't leave EStop state
   ps.state = state;
@@ -92,7 +92,7 @@ static void _set_state(plannerState_t state) {
 }
 
 
-void mp_set_cycle(plannerCycle_t cycle) {
+void mp_set_cycle(mp_cycle_t cycle) {
   if (ps.cycle == cycle) return; // No change
 
   if (ps.state != STATE_READY) {

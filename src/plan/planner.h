@@ -30,7 +30,7 @@
 #pragma once
 
 
-#include "machine.h" // used for GCodeState_t
+#include "machine.h" // used for gcode_state_t
 #include "buffer.h"
 #include "util.h"
 
@@ -70,13 +70,15 @@ typedef enum {
   SECTION_HEAD,           // acceleration
   SECTION_BODY,           // cruise
   SECTION_TAIL,           // deceleration
-} moveSection_t;
+} move_section_t;
 
 
 void planner_init();
 void mp_flush_planner();
 void mp_kinematics(const float travel[], float steps[]);
-void mp_plan_block_list(mpBuf_t *bf);
+void mp_plan_block_list(mp_buffer_t *bf);
 void mp_replan_blocks();
-float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
-float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
+float mp_get_target_length(const float Vi, const float Vf,
+                           const mp_buffer_t *bf);
+float mp_get_target_velocity(const float Vi, const float L,
+                             const mp_buffer_t *bf);
