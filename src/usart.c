@@ -199,8 +199,7 @@ char *usart_readline() {
   bool eol = false;
 
   while (!rx_buf_empty()) {
-    char data = rx_buf_peek();
-    rx_buf_pop();
+    char data = usart_getc();
 
     if (usart_flags & USART_ECHO) usart_putc(data);
 
@@ -236,13 +235,10 @@ char *usart_readline() {
     if (eol) {
       line[i] = 0;
       i = 0;
-
-      _set_rxc_interrupt(true); // Enable read interrupt
       return line;
     }
   }
 
-  _set_rxc_interrupt(true); // Enable read interrupt
   return 0;
 }
 
