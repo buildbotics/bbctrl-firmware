@@ -60,11 +60,11 @@ plannerCycle_t mp_get_cycle() {return ps.cycle;}
 
 PGM_P mp_get_state_pgmstr(plannerState_t state) {
   switch (state) {
-  case STATE_READY:     return PSTR("ready");
-  case STATE_ESTOPPED:  return PSTR("estopped");
-  case STATE_RUNNING:   return PSTR("running");
-  case STATE_STOPPING:  return PSTR("stopping");
-  case STATE_HOLDING:   return PSTR("holding");
+  case STATE_READY:     return PSTR("READY");
+  case STATE_ESTOPPED:  return PSTR("ESTOPPED");
+  case STATE_RUNNING:   return PSTR("RUNNING");
+  case STATE_STOPPING:  return PSTR("STOPPING");
+  case STATE_HOLDING:   return PSTR("HOLDING");
   }
 
   return PSTR("invalid");
@@ -73,11 +73,11 @@ PGM_P mp_get_state_pgmstr(plannerState_t state) {
 
 PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle) {
   switch (cycle) {
-  case CYCLE_MACHINING:   return PSTR("machining");
-  case CYCLE_HOMING:      return PSTR("homing");
-  case CYCLE_PROBING:     return PSTR("probing");
-  case CYCLE_CALIBRATING: return PSTR("calibrating");
-  case CYCLE_JOGGING:     return PSTR("jogging");
+  case CYCLE_MACHINING:   return PSTR("MACHINING");
+  case CYCLE_HOMING:      return PSTR("HOMING");
+  case CYCLE_PROBING:     return PSTR("PROBING");
+  case CYCLE_CALIBRATING: return PSTR("CALIBRATING");
+  case CYCLE_JOGGING:     return PSTR("JOGGING");
   }
 
   return PSTR("invalid");

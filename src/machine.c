@@ -208,9 +208,9 @@ float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 PGM_P mp_get_units_mode_pgmstr(machUnitsMode_t mode) {
   switch (mode) {
-  case INCHES:      return PSTR("in");
-  case MILLIMETERS: return PSTR("mm");
-  case DEGREES:     return PSTR("deg");
+  case INCHES:      return PSTR("IN");
+  case MILLIMETERS: return PSTR("MM");
+  case DEGREES:     return PSTR("DEG");
   }
 
   return PSTR("invalid");
@@ -691,8 +691,7 @@ void mach_set_coord_system(machCoordSystem_t coord_system) {
  * the planner and that all motion has stopped.
  */
 void mach_set_position(int axis, float position) {
-  if (!mp_is_quiescent()) CM_ALARM(STAT_INTERNAL_ERROR);
-
+  //if (!mp_is_quiescent()) CM_ALARM(STAT_INTERNAL_ERROR);
   mach.position[axis] = position;
   mach.ms.target[axis] = position;
   mp_set_planner_position(axis, position);
