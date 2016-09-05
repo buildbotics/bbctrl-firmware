@@ -41,7 +41,7 @@
  *
  * One important concept is isolation of the three layers of the
  * data model - the Gcode model (gm), planner model (bf queue & mm),
- * and runtime model (mr).
+ * and runtime model (exec.c).
  *
  * The Gcode model is owned by the machine and should only be
  * accessed by mach_xxxx() functions. Data from the Gcode model is
@@ -69,9 +69,6 @@
 #include <stdio.h>
 
 
-mpMoveRuntimeSingleton_t mr = {0}; // context for line runtime
-
-
 void planner_init() {
   mp_init_buffers();
 }
@@ -79,93 +76,13 @@ void planner_init() {
 
 /*** Flush all moves in the planner
  *
- * Does not affect the move currently running in mr.  Does not affect
+ * Does not affect the move currently running.  Does not affect
  * mm or gm model positions.  This function is designed to be called
  * during a hold to reset the planner.  This function should not usually
  * be directly called.  Call mp_request_flush() instead.
  */
 void mp_flush_planner() {
   mp_init_buffers();
-}
-
-
-/* Since steps are in motor space you have to run the position vector
- * through inverse kinematics to get the right numbers. This means
- * that in a non-Cartesian robot changing any position can result in
- * changes to multiple step values. So this operation is provided as a
- * single function and always uses the new position vector as an
- * input.
- *
- * Keeping track of position is complicated by the fact that moves
- * exist in several reference frames. The scheme to keep this
- * straight is:
- *
- *   - mm.position    - start and end position for planning
- *   - mr.position    - current position of runtime segment
- *   - mr.ms.target   - target position of runtime segment
- *   - mr.endpoint    - final target position of runtime segment
- *
- * Note that position is set immediately when called and may not be
- * not an accurate representation of the tool position. The motors
- * are still processing the action and the real tool position is
- * still close to the starting point.
- */
-
-
-/// Set runtime position for a single axis
-void mp_set_runtime_position(uint8_t axis, const float position) {
-  mr.position[axis] = position;
-}
-
-
-/// Set encoder counts to the runtime position
-void mp_set_steps_to_runtime_position() {
-  float step_position[MOTORS];
-
-  // convert lengths to steps in floating point
-  mp_kinematics(mr.position, step_position);
-
-  for (int motor = 0; motor < MOTORS; motor++) {
-    mr.target_steps[motor] = step_position[motor];
-    mr.position_steps[motor] = step_position[motor];
-    mr.commanded_steps[motor] = step_position[motor];
-
-    // write steps to encoder register
-    motor_set_encoder(motor, step_position[motor]);
-
-    // must be zero
-    mr.following_error[motor] = 0;
-  }
-}
-
-
-/// Returns current velocity (aggregate)
-float mp_get_runtime_velocity() {return mr.segment_velocity;}
-
-
-/// Returns current axis position in machine coordinates
-float mp_get_runtime_absolute_position(uint8_t axis) {return mr.position[axis];}
-
-
-/// Set offsets in the MR struct
-void mp_set_runtime_work_offset(float offset[]) {
-  copy_vector(mr.ms.work_offset, offset);
-}
-
-
-/// Returns current axis position in work coordinates
-/// that were in effect at move planning time
-float mp_get_runtime_work_position(uint8_t axis) {
-  return mr.position[axis] - mr.ms.work_offset[axis];
-}
-
-
-/// Return TRUE if motion control busy (i.e. robot is moving)
-/// Use this function to sync to the queue. If you wait until it returns
-/// FALSE you know the queue is empty and the motors have stopped.
-uint8_t mp_get_runtime_busy() {
-  if (mp_get_state() == STATE_ESTOPPED) return false;
-  return st_runtime_isbusy() || mr.active;
 }
 
 
@@ -563,7 +480,7 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *   bf->ms.target[]       - block target position
  *   bf->unit[]            - block unit vector
  *   bf->time              - gets set later
- *   bf->jerk              - source of the other jerk variables. Used in mr.
+ *   bf->jerk              - source of the other jerk variables.
  *
  * Notes:
  *
@@ -574,8 +491,8 @@ void mp_calculate_trapezoid(mpBuf_t *bf) {
  *
  *     In normal operation the first block (currently running
  *     block) is not replanned, but may be for feedholds and feed
- *     overrides. In these cases the prep routines modify the
- *     contents of the mr buffer and re-shuffle the block list,
+ *     overrides.  In these cases the prep routines modify the
+ *     contents of the (ex) buffer and re-shuffle the block list,
  *     re-enlisting the current bf buffer with new parameters.
  *     These routines also set all blocks in the list to be
  *     replannable so the list can be recomputed regardless of

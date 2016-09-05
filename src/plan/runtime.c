@@ -42,6 +42,132 @@
 #include <stdio.h>
 
 
+typedef struct {
+  bool active;                  // True if a move is running
+  moveSection_t section;        // what section is the move in?
+  bool section_new;             // true if it's a new section
+
+  /// unit vector for axis scaling & planning
+  float unit[AXES];
+  /// final target for bf (used to correct rounding errors)
+  float final_target[AXES];
+  /// head/body/tail endpoints for correction
+  float waypoint[3][AXES];
+  /// current target (absolute target as steps)
+  float target_steps[MOTORS];
+  /// current position (target from previous segment)
+  float position_steps[MOTORS];
+  /// will align with next encoder sample (target 2nd previous segment)
+  float commanded_steps[MOTORS];
+  /// encoder position in steps - ideally the same as commanded_steps
+  float encoder_steps[MOTORS];
+  /// difference between encoder & commanded steps
+  float following_error[MOTORS];
+
+  /// copies of bf variables of same name
+  float head_length;
+  float body_length;
+  float tail_length;
+  float entry_velocity;
+  float cruise_velocity;
+  float exit_velocity;
+
+  float segments;               // number of segments in line or arc
+  uint32_t segment_count;       // count of running segments
+  float segment_velocity;       // computed velocity for aline segment
+  float segment_time;           // actual time increment per aline segment
+  float forward_diff[5];        // forward difference levels
+  bool hold_planned;            // true when a feedhold has been planned
+
+  float position[AXES];         // Current move position
+  MoveState_t ms;               // Current move state
+} mp_exec_t;
+
+
+mp_exec_t ex = {0};
+
+
+/// Return TRUE if motion control busy (i.e. robot is moving)
+/// Use this function to sync to the queue. If you wait until it returns
+/// FALSE you know the queue is empty and the motors have stopped.
+bool mp_runtime_is_busy() {
+  return mp_get_state() != STATE_ESTOPPED && (st_is_busy() || ex.active);
+}
+
+
+int32_t mp_runtime_get_line() {return ex.ms.line;}
+
+
+/// Returns current segment velocity
+float mp_runtime_get_velocity() {return ex.segment_velocity;}
+
+
+/// Set encoder counts to the runtime position
+void mp_runtime_set_steps_to_position() {
+  float step_position[MOTORS];
+
+  // Convert lengths to steps in floating point
+  mp_kinematics(ex.position, step_position);
+
+  for (int motor = 0; motor < MOTORS; motor++) {
+    ex.target_steps[motor] = ex.position_steps[motor] =
+      ex.commanded_steps[motor] = step_position[motor];
+
+    // Write steps to encoder register
+    motor_set_encoder(motor, step_position[motor]);
+
+    // Must be zero
+    ex.following_error[motor] = 0;
+  }
+}
+
+
+/* Since steps are in motor space you have to run the position vector
+ * through inverse kinematics to get the right numbers. This means
+ * that in a non-Cartesian robot changing any position can result in
+ * changes to multiple step values. So this operation is provided as a
+ * single function and always uses the new position vector as an
+ * input.
+ *
+ * Keeping track of position is complicated by the fact that moves
+ * exist in several reference frames. The scheme to keep this
+ * straight is:
+ *
+ *   - mm.position    - start and end position for planning
+ *   - ex.position    - current position of runtime segment
+ *   - ex.ms.target   - target position of runtime segment
+ *   - ex.*_steps
+ *
+ * Note that position is set immediately when called and may not be
+ * not an accurate representation of the tool position. The motors
+ * are still processing the action and the real tool position is
+ * still close to the starting point.
+ */
+
+
+/// Set runtime position for a single axis
+void mp_runtime_set_position(uint8_t axis, const float position) {
+  ex.position[axis] = position;
+}
+
+
+/// Returns current axis position in machine coordinates
+float mp_runtime_get_absolute_position(uint8_t axis) {return ex.position[axis];}
+
+
+/// Set offsets
+void mp_runtime_set_work_offset(float offset[]) {
+  copy_vector(ex.ms.work_offset, offset);
+}
+
+
+/// Returns current axis position in work coordinates
+/// that were in effect at move planning time
+float mp_runtime_get_work_position(uint8_t axis) {
+  return ex.position[axis] - ex.ms.work_offset[axis];
+}
+
+
 /*** Segment runner
  *
  * Notes on step error correction:
@@ -63,55 +189,52 @@
  *    -100     -90        -10    encoder is 10 steps behind commanded steps
  */
 static stat_t _exec_aline_segment() {
-  float travel_steps[MOTORS];
-
-  // Set target position for the segment
-  // If the segment ends on a section waypoint, synchronize to the
-  // head, body or tail end.  Otherwise, if not at a section waypoint
-  // compute target from segment time and velocity.  Don't do waypoint
-  // correction if you are going into a hold.
-  if (!--mr.segment_count && !mr.section_new && mp_get_state() == STATE_RUNNING)
-    copy_vector(mr.ms.target, mr.waypoint[mr.section]);
+  // Set target position for the segment.  If the segment ends on a section
+  // waypoint, synchronize to the head, body or tail end.  Otherwise, if not at
+  // a section waypoint compute target from segment time and velocity.  Don't
+  // do waypoint correction if you are going into a hold.
+  if (!--ex.segment_count && !ex.section_new && mp_get_state() == STATE_RUNNING)
+    copy_vector(ex.ms.target, ex.waypoint[ex.section]);
 
   else {
-    float segment_length = mr.segment_velocity * mr.segment_time;
+    float segment_length = ex.segment_velocity * ex.segment_time;
 
     for (int i = 0; i < AXES; i++)
-      mr.ms.target[i] = mr.position[i] + mr.unit[i] * segment_length;
+      ex.ms.target[i] = ex.position[i] + ex.unit[i] * segment_length;
   }
 
   // Convert target position to steps.  Bucket-brigade the old target
-  // down the chain before getting the new target from kinematics
+  // down the chain before getting the new target from kinematics.
+  for (int i = 0; i < MOTORS; i++) {
+    // previous segment's position, delayed by 1 segment
+    ex.commanded_steps[i] = ex.position_steps[i];
+    // previous segment's target becomes position
+    ex.position_steps[i] = ex.target_steps[i];
+    // current encoder position (aligns to commanded_steps)
+    ex.encoder_steps[i] = motor_get_encoder(i);
+    ex.following_error[i] = ex.encoder_steps[i] - ex.commanded_steps[i];
+  }
+
+  // Determine the target steps.
+  mp_kinematics(ex.ms.target, ex.target_steps);
+
+  // Compute distances in steps to be traveled.
   //
   // The direct manipulation of steps to compute travel_steps only
   // works for Cartesian kinematics.  Other kinematics may require
-  // transforming travel distance as opposed to simply subtracting
-  // steps.
-  for (int i = 0; i < MOTORS; i++) {
-    // previous segment's position, delayed by 1 segment
-    mr.commanded_steps[i] = mr.position_steps[i];
-    // previous segment's target becomes position
-    mr.position_steps[i] = mr.target_steps[i];
-    // current encoder position (aligns to commanded_steps)
-    mr.encoder_steps[i] = motor_get_encoder(i);
-    mr.following_error[i] = mr.encoder_steps[i] - mr.commanded_steps[i];
-  }
-
-  // now determine the target steps
-  mp_kinematics(mr.ms.target, mr.target_steps);
-
-  // and compute the distances, in steps, to be traveled
+  // transforming travel distance as opposed to simply subtracting steps.
+  float travel_steps[MOTORS];
   for (int i = 0; i < MOTORS; i++)
-    travel_steps[i] = mr.target_steps[i] - mr.position_steps[i];
+    travel_steps[i] = ex.target_steps[i] - ex.position_steps[i];
 
   // Call the stepper prep function
-  RITORNO(st_prep_line(travel_steps, mr.following_error, mr.segment_time));
+  RITORNO(st_prep_line(travel_steps, ex.following_error, ex.segment_time));
 
-  // update position from target
-  copy_vector(mr.position, mr.ms.target);
+  // Update position from target
+  copy_vector(ex.position, ex.ms.target);
 
-  if (!mr.segment_count) return STAT_OK; // this section has run all segments
-  return STAT_EAGAIN; // this section still has more segments to run
+  // Return EAGAIN to continue or OK if this segment is done
+  return ex.segment_count ? STAT_EAGAIN : STAT_OK;
 }
 
 
@@ -246,11 +369,11 @@ static float _init_forward_diffs(float Vi, float Vt, float segments) {
   float Bh_4 = B * h * h * h * h;
   float Ch_3 = C * h * h * h;
 
-  mr.forward_diff[4] = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
-  mr.forward_diff[3] = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
-  mr.forward_diff[2] = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
-  mr.forward_diff[1] = 300.0 * Ah_5 + 24.0 * Bh_4;
-  mr.forward_diff[0] = 120.0 * Ah_5;
+  ex.forward_diff[4] = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
+  ex.forward_diff[3] = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
+  ex.forward_diff[2] = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
+  ex.forward_diff[1] = 300.0 * Ah_5 + 24.0 * Bh_4;
+  ex.forward_diff[0] = 120.0 * Ah_5;
 
   // Calculate the initial velocity by calculating V(h / 2)
   float half_h = h / 2.0;
@@ -264,39 +387,39 @@ static float _init_forward_diffs(float Vi, float Vt, float segments) {
 
 /// Common code for head and tail sections
 static stat_t _exec_aline_section(float length, float vin, float vout) {
-  if (mr.section_new) {
+  if (ex.section_new) {
     if (fp_ZERO(length)) return STAT_OK; // end the move
 
     // len / avg. velocity
-    mr.ms.move_time = 2 * length / (vin + vout);
-    mr.segments = ceil(uSec(mr.ms.move_time) / NOM_SEGMENT_USEC);
-    mr.segment_time = mr.ms.move_time / mr.segments;
-    mr.segment_count = (uint32_t)mr.segments;
+    ex.ms.move_time = 2 * length / (vin + vout);
+    ex.segments = ceil(uSec(ex.ms.move_time) / NOM_SEGMENT_USEC);
+    ex.segment_time = ex.ms.move_time / ex.segments;
+    ex.segment_count = (uint32_t)ex.segments;
 
-    if (vin == vout) mr.segment_velocity = vin;
-    else mr.segment_velocity = _init_forward_diffs(vin, vout, mr.segments);
+    if (vin == vout) ex.segment_velocity = vin;
+    else ex.segment_velocity = _init_forward_diffs(vin, vout, ex.segments);
 
-    if (mr.segment_time < MIN_SEGMENT_TIME)
+    if (ex.segment_time < MIN_SEGMENT_TIME)
       return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
 
     // Do first segment
     if (_exec_aline_segment() == STAT_OK) {
-      mr.section_new = false;
+      ex.section_new = false;
       return STAT_OK;
     }
 
-    mr.section_new = false;
+    ex.section_new = false;
 
   } else { // Do subsequent segments
-    if (vin != vout) mr.segment_velocity += mr.forward_diff[4];
+    if (vin != vout) ex.segment_velocity += ex.forward_diff[4];
 
     if (_exec_aline_segment() == STAT_OK) return STAT_OK;
 
     if (vin != vout) {
-      mr.forward_diff[4] += mr.forward_diff[3];
-      mr.forward_diff[3] += mr.forward_diff[2];
-      mr.forward_diff[2] += mr.forward_diff[1];
-      mr.forward_diff[1] += mr.forward_diff[0];
+      ex.forward_diff[4] += ex.forward_diff[3];
+      ex.forward_diff[3] += ex.forward_diff[2];
+      ex.forward_diff[2] += ex.forward_diff[1];
+      ex.forward_diff[1] += ex.forward_diff[0];
     }
   }
 
@@ -306,24 +429,24 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
 
 /// Callback for tail section
 static stat_t _exec_aline_tail() {
-  mr.section = SECTION_TAIL;
+  ex.section = SECTION_TAIL;
   return
-    _exec_aline_section(mr.tail_length, mr.cruise_velocity, mr.exit_velocity);
+    _exec_aline_section(ex.tail_length, ex.cruise_velocity, ex.exit_velocity);
 }
 
 
 /// Callback for body section
 static stat_t _exec_aline_body() {
-  mr.section = SECTION_BODY;
+  ex.section = SECTION_BODY;
 
   stat_t status =
-    _exec_aline_section(mr.body_length, mr.cruise_velocity, mr.cruise_velocity);
+    _exec_aline_section(ex.body_length, ex.cruise_velocity, ex.cruise_velocity);
 
   if (status == STAT_OK) {
-    if (mr.section_new) return _exec_aline_tail();
+    if (ex.section_new) return _exec_aline_tail();
 
-    mr.section = SECTION_TAIL;
-    mr.section_new = true;
+    ex.section = SECTION_TAIL;
+    ex.section_new = true;
 
     return STAT_EAGAIN;
   }
@@ -334,15 +457,15 @@ static stat_t _exec_aline_body() {
 
 /// Callback for head section
 static stat_t _exec_aline_head() {
-  mr.section = SECTION_HEAD;
+  ex.section = SECTION_HEAD;
   stat_t status =
-    _exec_aline_section(mr.head_length, mr.entry_velocity, mr.cruise_velocity);
+    _exec_aline_section(ex.head_length, ex.entry_velocity, ex.cruise_velocity);
 
   if (status == STAT_OK) {
-    if (mr.section_new) return _exec_aline_body();
+    if (ex.section_new) return _exec_aline_body();
 
-    mr.section = SECTION_BODY;
-    mr.section_new = true;
+    ex.section = SECTION_BODY;
+    ex.section_new = true;
 
     return STAT_EAGAIN;
   }
@@ -352,8 +475,8 @@ static stat_t _exec_aline_head() {
 
 
 static float _compute_next_segment_velocity() {
-  if (mr.section == SECTION_BODY) return mr.segment_velocity;
-  return mr.segment_velocity + mr.forward_diff[4];
+  if (ex.section == SECTION_BODY) return ex.segment_velocity;
+  return ex.segment_velocity + ex.forward_diff[4];
 }
 
 
@@ -373,8 +496,8 @@ static void _plan_hold() {
   mpBuf_t *bp = mp_get_run_buffer(); // working buffer pointer
   if (!bp) return; // Oops! nothing's running
 
-  // Examine and process mr buffer and compute length left for decel
-  float available_length = get_axis_vector_length(mr.final_target, mr.position);
+  // Examine and process current buffer and compute length left for decel
+  float available_length = get_axis_vector_length(ex.final_target, ex.position);
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bp is OK to use here
@@ -382,24 +505,24 @@ static void _plan_hold() {
 
   // Hack to prevent Case 2 moves for perfect-fit decels.  Happens in
   // homing situations.  The real fix: The braking velocity cannot
-  // simply be the mr.segment_velocity as this is the velocity of the
+  // simply be the ex.segment_velocity as this is the velocity of the
   // last segment, not the one that's going to be executed next.  The
   // braking_velocity needs to be the velocity of the next segment
   // that has not yet been computed.  In the mean time, this hack will work.
   if (available_length < braking_length && fp_ZERO(bp->exit_velocity))
     braking_length = available_length;
 
-  // Replan mr to decelerate
-  mr.section = SECTION_TAIL;
-  mr.section_new = true;
-  mr.cruise_velocity = braking_velocity;
-  mr.hold_planned = true;
+  // Replan to decelerate
+  ex.section = SECTION_TAIL;
+  ex.section_new = true;
+  ex.cruise_velocity = braking_velocity;
+  ex.hold_planned = true;
 
-  // Case 1: deceleration fits entirely into the length remaining in mr buffer
+  // Case 1: deceleration fits entirely into the length remaining in buffer
   if (braking_length <= available_length) {
-    // set mr to a tail to perform the deceleration
-    mr.exit_velocity = 0;
-    mr.tail_length = braking_length;
+    // Set to a tail to perform the deceleration
+    ex.exit_velocity = 0;
+    ex.tail_length = braking_length;
 
     // Re-use bp+0 to be the hold point and to run the remaining block length
     bp->length = available_length - braking_length;
@@ -407,10 +530,10 @@ static void _plan_hold() {
     bp->entry_vmax = 0;        // set bp+0 as hold point
     bp->move_state = MOVE_NEW; // tell _exec to re-use the bf buffer
 
-  } else { // Case 2: deceleration exceeds length remaining in mr buffer
-    // Replan mr to minimum (but non-zero) exit velocity
-    mr.tail_length = available_length;
-    mr.exit_velocity =
+  } else { // Case 2: deceleration exceeds length remaining in buffer
+    // Replan to minimum (but non-zero) exit velocity
+    ex.tail_length = available_length;
+    ex.exit_velocity =
       braking_velocity - mp_get_target_velocity(0, available_length, bp);
   }
 }
@@ -419,13 +542,13 @@ static void _plan_hold() {
 /// Initializes move runtime with a new planner buffer
 static stat_t _exec_aline_init(mpBuf_t *bf) {
   // copy in the gcode model state
-  memcpy(&mr.ms, &bf->ms, sizeof(MoveState_t));
+  memcpy(&ex.ms, &bf->ms, sizeof(MoveState_t));
   bf->replannable = false;
   report_request(); // Executing line number has changed
 
   // Remove zero length lines.  Short lines have already been removed.
   if (fp_ZERO(bf->length)) {
-    mr.active = false; // reset mr buffer
+    ex.active = false; // reset buffer
     bf->nx->replannable = false; // prevent overplanning (Note 2)
     mp_free_run_buffer(); // free buffer
 
@@ -434,32 +557,31 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
 
   // Initialize move runtime
   bf->move_state = MOVE_RUN;
-  mr.active = true;
-  mr.section = SECTION_HEAD;
-  mr.section_new = true;
-  mr.hold_planned = false;
+  ex.active = true;
+  ex.section = SECTION_HEAD;
+  ex.section_new = true;
+  ex.hold_planned = false;
 
-  copy_vector(mr.unit, bf->unit);
-  copy_vector(mr.final_target, bf->ms.target);
+  copy_vector(ex.unit, bf->unit);
+  copy_vector(ex.final_target, bf->ms.target);
 
-  mr.head_length = bf->head_length;
-  mr.body_length = bf->body_length;
-  mr.tail_length = bf->tail_length;
-  mr.entry_velocity = bf->entry_velocity;
-  mr.cruise_velocity = bf->cruise_velocity;
-  mr.exit_velocity = bf->exit_velocity;
-  mr.jerk = bf->jerk;
+  ex.head_length = bf->head_length;
+  ex.body_length = bf->body_length;
+  ex.tail_length = bf->tail_length;
+  ex.entry_velocity = bf->entry_velocity;
+  ex.cruise_velocity = bf->cruise_velocity;
+  ex.exit_velocity = bf->exit_velocity;
 
   // Generate waypoints for position correction at section ends.  This helps
   // negate floating point errors in the forward differencing code.
   for (int axis = 0; axis < AXES; axis++) {
-    mr.waypoint[SECTION_HEAD][axis] =
-      mr.position[axis] + mr.unit[axis] * mr.head_length;
+    ex.waypoint[SECTION_HEAD][axis] =
+      ex.position[axis] + ex.unit[axis] * ex.head_length;
 
-    mr.waypoint[SECTION_BODY][axis] =
-      mr.position[axis] + mr.unit[axis] * (mr.head_length + mr.body_length);
+    ex.waypoint[SECTION_BODY][axis] =
+      ex.position[axis] + ex.unit[axis] * (ex.head_length + ex.body_length);
 
-    mr.waypoint[SECTION_TAIL][axis] = mr.final_target[axis];
+    ex.waypoint[SECTION_TAIL][axis] = ex.final_target[axis];
   }
 
   return STAT_OK;
@@ -530,20 +652,20 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
  *  from _NEW to _RUN on first call (sub_state set to _OFF)
  *  from _RUN to _OFF on final call or just remain _OFF
  */
-stat_t mp_exec_aline(mpBuf_t *bf) {
+stat_t mp_runtime_exec_aline(mpBuf_t *bf) {
   if (bf->move_state == MOVE_OFF) return STAT_NOOP; // No more moves
 
   stat_t status = STAT_OK;
 
   // Start a new move
-  if (!mr.active) {
+  if (!ex.active) {
     status = _exec_aline_init(bf);
     if (status != STAT_OK) return status;
   }
 
   // Main segment dispatch.  From this point on the contents of the bf buffer
   // do not affect execution.
-  switch (mr.section) {
+  switch (ex.section) {
   case SECTION_HEAD: status = _exec_aline_head(); break;
   case SECTION_BODY: status = _exec_aline_body(); break;
   case SECTION_TAIL: status = _exec_aline_tail(); break;
@@ -553,14 +675,14 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
   //
   //   status        bf->move_state      Description
   //   -----------   --------------      ----------------------------------
-  //   STAT_EAGAIN   <don't care>        mr buffer has more segments to run
-  //   STAT_OK       MOVE_RUN            mr and bf buffers are done
-  //   STAT_OK       MOVE_NEW            mr done; bf must be run again
+  //   STAT_EAGAIN   <don't care>        buffer has more segments to run
+  //   STAT_OK       MOVE_RUN            ex and bf buffers are done
+  //   STAT_OK       MOVE_NEW            ex done; bf must be run again
   //                                     (it's been reused)
   if (status != STAT_EAGAIN) {
-    mr.active = false;              // reset mr buffer
+    ex.active = false;              // reset buffer
     bf->nx->replannable = false;    // prevent overplanning (Note 2)
-    if (fp_ZERO(mr.exit_velocity)) mr.segment_velocity = 0;
+    if (fp_ZERO(ex.exit_velocity)) ex.segment_velocity = 0;
     // Note, _plan_hold() may change bf->move_state to reuse this buffer so it
     // can plan the deceleration.
     if (bf->move_state == MOVE_RUN) mp_free_run_buffer();
@@ -568,8 +690,8 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
   if (mp_get_state() == STATE_STOPPING &&
       (status == STAT_OK || status == STAT_EAGAIN)) {
-    if (!mr.active && !mr.segment_velocity) mp_state_holding();
-    else if (mr.active && !mr.hold_planned) _plan_hold();
+    if (!ex.active && !ex.segment_velocity) mp_state_holding();
+    else if (ex.active && !ex.hold_planned) _plan_hold();
   }
 
   return status;
@@ -577,7 +699,7 @@ stat_t mp_exec_aline(mpBuf_t *bf) {
 
 
 /// Dequeues buffer and executes move callback
-stat_t mp_exec_move() {
+stat_t mp_runtime_exec_move() {
   if (mp_get_state() == STATE_ESTOPPED) return STAT_MACHINE_ALARMED;
   if (mp_get_state() == STATE_HOLDING) return STAT_NOOP;
 

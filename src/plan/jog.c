@@ -81,7 +81,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     // Compute travel from velocity
     travel[axis] = time * jr.current_velocity[axis];
 
-    if (travel[axis]) done = false;
+    if (!fp_ZERO(travel[axis])) done = false;
   }
 
   // Check if we are done
@@ -138,10 +138,7 @@ uint8_t command_jog(int argc, char *argv[]) {
   if (!mp_jog_busy()) {
     // Should always be at least one free buffer
     mpBuf_t *bf = mp_get_write_buffer();
-    if (!bf) {
-      CM_ALARM(STAT_BUFFER_FULL_FATAL);
-      return 0;
-    }
+    if (!bf) return STAT_BUFFER_FULL_FATAL;
 
     // Start
     mp_set_cycle(CYCLE_JOGGING);
@@ -149,5 +146,5 @@ uint8_t command_jog(int argc, char *argv[]) {
     mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
   }
 
-  return 0;
+  return STAT_OK;
 }

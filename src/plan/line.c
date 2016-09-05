@@ -30,7 +30,7 @@
 #include "line.h"
 
 #include "planner.h"
-#include "exec.h"
+#include "runtime.h"
 #include "buffer.h"
 #include "machine.h"
 #include "stepper.h"
@@ -237,7 +237,7 @@ stat_t mp_aline(MoveState_t *ms) {
   if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 
   // Register callback to exec function
-  bf->bf_func = mp_exec_aline;
+  bf->bf_func = mp_runtime_exec_aline;
   bf->length = length;
 
   // Copy model state into planner buffer

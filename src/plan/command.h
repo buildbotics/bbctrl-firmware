@@ -30,4 +30,4 @@
 #include "plan/buffer.h"
 
 void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag);
-void mp_runtime_command(mpBuf_t *bf);
+void mp_command_callback(mpBuf_t *bf);

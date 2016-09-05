@@ -73,66 +73,10 @@ typedef enum {
 } moveSection_t;
 
 
-typedef struct mpMoveRuntimeSingleton { // persistent runtime variables
-  bool active;                  // True if a move is running
-  moveSection_t section;        // what section is the move in?
-  bool section_new;             // true if it's a new section
-
-  /// unit vector for axis scaling & planning
-  float unit[AXES];
-  /// final target for bf (used to correct rounding errors)
-  float final_target[AXES];
-  /// current move position
-  float position[AXES];
-  /// head/body/tail endpoints for correction
-  float waypoint[3][AXES];
-  /// current MR target (absolute target as steps)
-  float target_steps[MOTORS];
-  /// current MR position (target from previous segment)
-  float position_steps[MOTORS];
-  /// will align with next encoder sample (target 2nd previous segment)
-  float commanded_steps[MOTORS];
-  /// encoder position in steps - ideally the same as commanded_steps
-  float encoder_steps[MOTORS];
-  /// difference between encoder & commanded steps
-  float following_error[MOTORS];
-
-  /// copies of bf variables of same name
-  float head_length;
-  float body_length;
-  float tail_length;
-  float entry_velocity;
-  float cruise_velocity;
-  float exit_velocity;
-  float jerk;                       // max linear jerk
-
-  float segments;                   // number of segments in line or arc
-  uint32_t segment_count;           // count of running segments
-  float segment_velocity;           // computed velocity for aline segment
-  float segment_time;               // actual time increment per aline segment
-  float forward_diff[5];            // forward difference levels
-  bool hold_planned;                // true when a feedhold has been planned
-
-  MoveState_t ms;
-} mpMoveRuntimeSingleton_t;
-
-
-// Reference global scope structures
-extern mpMoveRuntimeSingleton_t mr; // context for line runtime
-
-
 void planner_init();
 void mp_flush_planner();
-void mp_set_runtime_position(uint8_t axis, const float position);
-void mp_set_steps_to_runtime_position();
-float mp_get_runtime_velocity();
-float mp_get_runtime_work_position(uint8_t axis);
-float mp_get_runtime_absolute_position(uint8_t axis);
-void mp_set_runtime_work_offset(float offset[]);
-uint8_t mp_get_runtime_busy();
 void mp_kinematics(const float travel[], float steps[]);
 void mp_plan_block_list(mpBuf_t *bf);
 void mp_replan_blocks();
 float mp_get_target_length(const float Vi, const float Vf, const mpBuf_t *bf);
 float mp_get_target_velocity(const float Vi, const float L, const mpBuf_t *bf);
-inline int32_t mp_get_line() {return mr.ms.line;}

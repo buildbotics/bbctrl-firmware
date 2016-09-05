@@ -80,6 +80,7 @@
 #include "homing.h"
 
 #include "plan/planner.h"
+#include "plan/runtime.h"
 #include "plan/dwell.h"
 #include "plan/command.h"
 #include "plan/arc.h"
@@ -698,7 +699,7 @@ static void _exec_offset(float *value, float *flag) {
     offsets[axis] = mach.offset[coord_system][axis] +
       mach.origin_offset[axis] * (mach.origin_offset_enable ? 1 : 0);
 
-  mp_set_runtime_work_offset(offsets);
+  mp_runtime_set_work_offset(offsets);
   mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
@@ -717,19 +718,16 @@ static void _exec_offset(float *value, float *flag) {
  * frame than the one you are now going to set. These functions should
  * only be called during initialization sequences and during cycles
  * (such as homing cycles) when you know there are no more moves in
- * the planner and that all motion has stopped.  Use
- * mp_get_runtime_busy() to be sure the system is quiescent.
+ * the planner and that all motion has stopped.
  */
 void mach_set_position(int axis, float position) {
-  if ((mp_get_state() != STATE_HOLDING && mp_get_state() != STATE_READY) ||
-      mp_get_runtime_busy())
-    CM_ALARM(STAT_INTERNAL_ERROR);
+  if (!mp_is_quiescent()) CM_ALARM(STAT_INTERNAL_ERROR);
 
   mach.position[axis] = position;
   mach.ms.target[axis] = position;
   mp_set_planner_position(axis, position);
-  mp_set_runtime_position(axis, position);
-  mp_set_steps_to_runtime_position();
+  mp_runtime_set_position(axis, position);
+  mp_runtime_set_steps_to_position();
 }
 
 
@@ -765,11 +763,11 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
 static void _exec_absolute_origin(float *value, float *flag) {
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis])) {
-      mp_set_runtime_position(axis, value[axis]);
+      mp_runtime_set_position(axis, value[axis]);
       mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
 
-  mp_set_steps_to_runtime_position();
+  mp_runtime_set_steps_to_position();
 }
 
 

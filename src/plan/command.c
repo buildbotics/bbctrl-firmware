@@ -36,9 +36,9 @@
  *   - When the planning queue gets to the function it calls _exec_command()
  *     which loads a pointer to the bf buffer in stepper.c's next move.
  *   - When the runtime gets to the end of the current activity (sending steps,
- *     counting a dwell) it executes mp_runtime_command which uses the callback
+ *     counting a dwell) it executes mp_command_callback which uses the callback
  *     function in the bf and the saved parameters in the vectors.
- *   - To finish up mp_runtime_command() frees the bf buffer.
+ *   - To finish up mp_command_callback() frees the bf buffer.
  *
  * Doing it this way instead of synchronizing on queue empty simplifies the
  * handling of feedholds, feed overrides, buffer flushes, and thread blocking,
@@ -82,7 +82,7 @@ void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
 }
 
 
-void mp_runtime_command(mpBuf_t *bf) {
+void mp_command_callback(mpBuf_t *bf) {
   // Use values & flags stored in mp_queue_command()
   bf->mach_func(bf->ms.target, bf->unit);
 

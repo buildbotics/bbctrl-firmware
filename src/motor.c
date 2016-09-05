@@ -34,8 +34,9 @@
 #include "stepper.h"
 #include "tmc2660.h"
 #include "estop.h"
+#include "util.h"
 
-#include "plan/planner.h"
+#include "plan/runtime.h"
 #include "plan/calibrate.h"
 
 #include <avr/interrupt.h>
@@ -158,7 +159,7 @@ ISR(TCE1_CCA_vect) {
 
 void motor_init() {
   // Reset position
-  mp_set_steps_to_runtime_position();
+  mp_runtime_set_steps_to_position();
 
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;

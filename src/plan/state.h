@@ -62,6 +62,7 @@ PGM_P mp_get_cycle_pgmstr(plannerCycle_t cycle);
 
 bool mp_is_flushing();
 bool mp_is_resuming();
+bool mp_is_quiescent();
 
 void mp_state_holding();
 void mp_state_running();

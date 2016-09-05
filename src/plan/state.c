@@ -30,6 +30,7 @@
 #include "state.h"
 #include "machine.h"
 #include "planner.h"
+#include "runtime.h"
 #include "buffer.h"
 #include "arc.h"
 
@@ -117,6 +118,12 @@ bool mp_is_flushing() {return ps.flush_requested && !ps.resume_requested;}
 bool mp_is_resuming() {return ps.resume_requested;}
 
 
+bool mp_is_quiescent() {
+  return (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
+    !mp_runtime_is_busy();
+}
+
+
 void mp_state_holding() {_set_state(STATE_HOLDING);}
 
 
@@ -168,10 +175,7 @@ void mp_state_callback() {
   }
 
   // Only flush queue when idle or holding.
-  if (ps.flush_requested &&
-      (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
-      !mp_get_runtime_busy()) {
-
+  if (ps.flush_requested && mp_is_quiescent()) {
     mach_abort_arc();
 
     if (!mp_queue_empty()) {
@@ -181,7 +185,7 @@ void mp_state_callback() {
       // Reset to actual machine position.  Otherwise machine is set to the
       // position of the last queued move.
       for (int axis = 0; axis < AXES; axis++)
-        mach_set_position(axis, mp_get_runtime_absolute_position(axis));
+        mach_set_position(axis, mp_runtime_get_absolute_position(axis));
     }
 
     // Resume

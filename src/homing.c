@@ -32,6 +32,7 @@
 #include "report.h"
 
 #include "plan/planner.h"
+#include "plan/runtime.h"
 #include "plan/state.h"
 
 #include <avr/pgmspace.h>
@@ -148,7 +149,7 @@ static struct hmHomingSingleton hm = {0};
  * the cycle to be done. Otherwise there is a nasty race condition
  * that will accept the next command before the position of
  * the final move has been recorded in the Gcode model. That's what the call
- * to mach_isbusy() is about.
+ * to mach_is_busy() is about.
  */
 
 
@@ -232,7 +233,7 @@ static void _homing_axis_set_zero(int8_t axis) {
     hm.homed[axis] = true;
 
   } else // do not set axis if in G28.4 cycle
-    mach_set_position(axis, mp_get_runtime_work_position(axis));
+    mach_set_position(axis, mp_runtime_get_work_position(axis));
 
   mach_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
 
@@ -406,6 +407,6 @@ void mach_homing_cycle_start_no_set() {
 
 /// Main loop callback for running the homing cycle
 void mach_homing_callback() {
-  if (mp_get_cycle() != CYCLE_HOMING || mp_get_runtime_busy()) return;
+  if (mp_get_cycle() != CYCLE_HOMING || mp_runtime_is_busy()) return;
   hm.func(hm.axis); // execute the current homing move
 }

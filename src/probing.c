@@ -32,6 +32,7 @@
 #include "util.h"
 
 #include "plan/planner.h"
+#include "plan/runtime.h"
 #include "plan/state.h"
 
 #include <avr/pgmspace.h>
@@ -81,7 +82,7 @@ static struct pbProbingSingleton pb = {0};
  * before declaring the cycle to be done. Otherwise there is a nasty
  * race condition in the tg_controller() that will accept the next
  * command before the position of the final move has been recorded in
- * the Gcode model. That's what the call to mp_get_runtime_busy() is
+ * the Gcode model. That's what the call to mp_runtime_is_busy() is
  * about.
  */
 
@@ -116,7 +117,7 @@ static void _probing_finish() {
 
   for (int axis = 0; axis < AXES; axis++) {
     // if we got here because of a feed hold keep the model position correct
-    mach_set_position(axis, mp_get_runtime_work_position(axis));
+    mach_set_position(axis, mp_runtime_get_work_position(axis));
 
     // store the probe results
     pb.results[axis] = mach_get_absolute_position(axis);
@@ -219,7 +220,7 @@ stat_t mach_straight_probe(float target[], float flags[]) {
 /// main loop callback for running the homing cycle
 void mach_probe_callback() {
   // sync to planner move ends
-  if (!mach_is_probing() || mp_get_runtime_busy()) return;
+  if (!mach_is_probing() || mp_runtime_is_busy()) return;
 
   pb.func(); // execute the current homing move
 }
