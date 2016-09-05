@@ -29,4 +29,4 @@
 
 #include "status.h"
 
-stat_t mp_dwell(float seconds);
+stat_t mp_dwell(float seconds, int32_t line);

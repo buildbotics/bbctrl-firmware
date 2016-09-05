@@ -29,10 +29,8 @@
 
 #include "planner.h"
 #include "buffer.h"
-#include "stepper.h"
-#include "motor.h"
+#include "runtime.h"
 #include "machine.h"
-#include "motor.h"
 #include "state.h"
 #include "config.h"
 
@@ -64,12 +62,13 @@ static stat_t _exec_jog(mpBuf_t *bf) {
       jr.target_velocity[axis] = jr.next_velocity[axis];
 
   // Compute next line segment
-  float travel[AXES]; // In mm
+  float target[AXES];
   const float time = MIN_SEGMENT_TIME; // In minutes
   const float maxDeltaV = JOG_ACCELERATION * time;
+  float velocitySqr = 0;
   bool done = true;
 
-  // Compute new velocities and travel
+  // Compute new axis velocities and target
   for (int axis = 0; axis < AXES; axis++) {
     float targetV = jr.target_velocity[axis] * mach.a[axis].velocity_max;
     float deltaV = targetV - jr.current_velocity[axis];
@@ -78,20 +77,21 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     if (maxDeltaV < fabs(deltaV)) jr.current_velocity[axis] += maxDeltaV * sign;
     else jr.current_velocity[axis] = targetV;
 
-    // Compute travel from velocity
-    travel[axis] = time * jr.current_velocity[axis];
+    if (!fp_ZERO(jr.current_velocity[axis])) done = false;
 
-    if (!fp_ZERO(travel[axis])) done = false;
+    // Compute target from axis velocity
+    target[axis] =
+      mp_runtime_get_position(axis) + time * jr.current_velocity[axis];
+
+    // Accumulate velocities squared
+    velocitySqr += square(jr.current_velocity[axis]);
   }
 
   // Check if we are done
   if (done) {
     // Update machine position
-    for (int motor = 0; motor < MOTORS; motor++) {
-      int axis = motor_get_axis(motor);
-      float steps = motor_get_encoder(axis);
-      mach_set_position(axis, steps / motor_get_steps_per_unit(motor));
-    }
+    for (int axis = 0; axis < AXES; axis++)
+      mach_set_position(axis, mp_runtime_get_work_position(axis));
 
     // Release buffer
     mp_free_run_buffer();
@@ -101,15 +101,7 @@ static stat_t _exec_jog(mpBuf_t *bf) {
     return STAT_NOOP;
   }
 
-  // Convert to steps
-  float steps[MOTORS] = {0};
-  mp_kinematics(travel, steps);
-
-  // Queue segment
-  float error[MOTORS] = {0};
-  st_prep_line(steps, error, time);
-
-  return STAT_OK;
+  return mp_runtime_move_to_target(target, sqrt(velocitySqr), time);
 }
 
 
@@ -128,7 +120,7 @@ uint8_t command_jog(int argc, char *argv[]) {
     else velocity[axis] = 0;
 
   // Reset
-  if (mp_jog_busy()) memset(&jr, 0, sizeof(jr));
+  if (!mp_jog_busy()) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)

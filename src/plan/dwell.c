@@ -49,7 +49,7 @@ static stat_t _exec_dwell(mpBuf_t *bf) {
 
 
 /// Queue a dwell
-stat_t mp_dwell(float seconds) {
+stat_t mp_dwell(float seconds, int32_t line) {
   mpBuf_t *bf = mp_get_write_buffer();
 
   // never supposed to fail
@@ -60,7 +60,7 @@ stat_t mp_dwell(float seconds) {
   bf->move_state = MOVE_NEW;
 
   // must be final operation before exit
-  mp_commit_write_buffer(mach_get_line(), MOVE_TYPE_DWELL);
+  mp_commit_write_buffer(line, MOVE_TYPE_DWELL);
 
   return STAT_OK;
 }

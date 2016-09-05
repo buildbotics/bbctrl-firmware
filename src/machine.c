@@ -38,9 +38,9 @@
  * Synchronizing command execution:
  *
  * "Synchronous commands" are commands that affect the runtime need
- * to be synchronized with movement. Examples include G4 dwells,
+ * to be synchronized with movement.  Examples include G4 dwells,
  * program stops and ends, and most M commands.  These are queued
- * into the planner queue and execute from the queue. Synchronous
+ * into the planner queue and execute from the queue.  Synchronous
  * commands work like this:
  *
  *   - Call the mach_xxx_xxx() function which will do any input
@@ -192,17 +192,8 @@ machine_t mach = {
 };
 
 
-// Command execution callbacks from planner queue
-static void _exec_offset(float *value, float *flag);
-static void _exec_change_tool(float *value, float *flag);
-static void _exec_select_tool(float *value, float *flag);
-static void _exec_mist_coolant_control(float *value, float *flag);
-static void _exec_flood_coolant_control(float *value, float *flag);
-static void _exec_absolute_origin(float *value, float *flag);
-
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
-
 machMotionMode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
 machCoordSystem_t mach_get_coord_system() {return mach.gm.coord_system;}
 machUnitsMode_t mach_get_units_mode() {return mach.gm.units_mode;}
@@ -676,30 +667,9 @@ void mach_set_coord_offsets(machCoordSystem_t coord_system, float offset[],
 }
 
 
-// Representation functions that affect gcode model and are queued to planner
-// (synchronous)
-
 /// G54-G59
 void mach_set_coord_system(machCoordSystem_t coord_system) {
   mach.gm.coord_system = coord_system;
-
-  // pass coordinate system in value[0] element
-  float value[AXES] = {coord_system};
-  // second vector (flags) is not used, so fake it
-  mp_queue_command(_exec_offset, value, value);
-}
-
-
-static void _exec_offset(float *value, float *flag) {
-  // coordinate system is passed in value[0] element
-  uint8_t coord_system = value[0];
-  float offsets[AXES];
-
-  for (int axis = 0; axis < AXES; axis++)
-    offsets[axis] = mach.offset[coord_system][axis] +
-      mach.origin_offset[axis] * (mach.origin_offset_enable ? 1 : 0);
-
-  mp_runtime_set_work_offsets(offsets);
   mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
@@ -732,6 +702,16 @@ void mach_set_position(int axis, float position) {
 
 
 // G28.3 functions and support
+static void _exec_absolute_origin(float *value, float *flag) {
+  for (int axis = 0; axis < AXES; axis++)
+    if (fp_TRUE(flag[axis])) {
+      mp_runtime_set_position(axis, value[axis]);
+      mach_set_homed(axis, true);  // G28.3 is not considered homed until here
+    }
+
+  mp_runtime_set_steps_from_position();
+}
+
 
 /* G28.3 - model, planner and queue to runtime
  *
@@ -739,10 +719,10 @@ void mach_set_position(int axis, float position) {
  * applies them to all axes where the corresponding position in the
  * flag vector is true (1).
  *
- * This is a 2 step process. The model and planner contexts are set
+ * This is a 2 step process.  The model and planner contexts are set
  * immediately, the runtime command is queued and synchronized with
- * the planner queue. This includes the runtime position and the step
- * recording done by the encoders. At that point any axis that is set
+ * the planner queue.  This includes the runtime position and the step
+ * recording done by the encoders.  At that point any axis that is set
  * is also marked as homed.
  */
 void mach_set_absolute_origin(float origin[], float flag[]) {
@@ -760,17 +740,6 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
 }
 
 
-static void _exec_absolute_origin(float *value, float *flag) {
-  for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis])) {
-      mp_runtime_set_position(axis, value[axis]);
-      mach_set_homed(axis, true);  // G28.3 is not considered homed until here
-    }
-
-  mp_runtime_set_steps_from_position();
-}
-
-
 /* G92's behave according to NIST 3.5.18 & LinuxCNC G92
  * http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G92-G92.1-G92.2-G92.3
  */
@@ -784,11 +753,7 @@ void mach_set_origin_offsets(float offset[], float flag[]) {
       mach.origin_offset[axis] = mach.position[axis] -
         mach.offset[mach.gm.coord_system][axis] - TO_MILLIMETERS(offset[axis]);
 
-  // now pass the offset to the callback - setting the coordinate system also
-  // applies the offsets
-  // pass coordinate system in value[0] element
-  float value[AXES] = {mach.gm.coord_system};
-  mp_queue_command(_exec_offset, value, value); // second vector is not used
+  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
@@ -798,24 +763,21 @@ void mach_reset_origin_offsets() {
   for (int axis = 0; axis < AXES; axis++)
     mach.origin_offset[axis] = 0;
 
-  float value[AXES] = {mach.gm.coord_system};
-  mp_queue_command(_exec_offset, value, value);
+  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
 /// G92.2
 void mach_suspend_origin_offsets() {
   mach.origin_offset_enable = false;
-  float value[AXES] = {mach.gm.coord_system};
-  mp_queue_command(_exec_offset, value, value);
+  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
 /// G92.3
 void mach_resume_origin_offsets() {
   mach.origin_offset_enable = true;
-  float value[AXES] = {mach.gm.coord_system};
-  mp_queue_command(_exec_offset, value, value);
+  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
@@ -833,10 +795,10 @@ stat_t mach_straight_traverse(float target[], float flags[]) {
   // prep and plan the move
   mach_set_work_offsets();         // capture fully resolved offsets to state
   mach.ms.line = mach.gm.line;     // copy line number
-  mp_aline(&mach.ms);              // send the move to the planner
+  status = mp_aline(&mach.ms);     // send the move to the planner
   mach_finalize_move();
 
-  return STAT_OK;
+  return status;
 }
 
 
@@ -909,7 +871,7 @@ void mach_set_path_control(machPathControlMode_t mode) {
 
 /// G4, P parameter (seconds)
 stat_t mach_dwell(float seconds) {
-  return mp_dwell(seconds);
+  return mp_dwell(seconds, mach.gm.line);
 }
 
 
@@ -938,61 +900,41 @@ stat_t mach_straight_feed(float target[], float flags[]) {
 
 // Spindle Functions (4.3.7) see spindle.c, spindle.h
 
-/* Tool Functions (4.3.8)
- *
- * Note: These functions don't actually do anything for now, and there's a bug
- *       where T and M in different blocks don't work correctly
- */
+// Tool Functions (4.3.8)
 
 /// T parameter
-void mach_select_tool(uint8_t tool_select) {
-  float value[AXES] = {tool_select};
-  mp_queue_command(_exec_select_tool, value, value);
-}
-
-
-static void _exec_select_tool(float *value, float *flag) {
-  mach.gm.tool_select = value[0];
-}
+void mach_select_tool(uint8_t tool_select) {mach.gm.tool_select = tool_select;}
 
 
 /// M6 This might become a complete tool change cycle
-void mach_change_tool(uint8_t tool_change) {
-  float value[AXES] = {mach.gm.tool_select};
-  mp_queue_command(_exec_change_tool, value, value);
-}
-
-
-static void _exec_change_tool(float *value, float *flag) {
-  mach.gm.tool = (uint8_t)value[0];
-}
+void mach_change_tool(uint8_t tool) {mach.gm.tool = tool;}
 
 
 // Miscellaneous Functions (4.3.9)
+static void _exec_mist_coolant_control(float *value, float *flag) {
+  coolant_set_mist(value[0]);
+}
+
+
 /// M7
 void mach_mist_coolant_control(bool mist_coolant) {
+  mach.gm.mist_coolant = mist_coolant;
   float value[AXES] = {mist_coolant};
   mp_queue_command(_exec_mist_coolant_control, value, value);
 }
 
 
-static void _exec_mist_coolant_control(float *value, float *flag) {
-  coolant_set_mist(mach.gm.mist_coolant = value[0]);
+static void _exec_flood_coolant_control(float *value, float *flag) {
+  coolant_set_flood(value[0]);
+  if (!value[0]) coolant_set_mist(false); // M9 special function
 }
 
 
 /// M8, M9
 void mach_flood_coolant_control(bool flood_coolant) {
+  mach.gm.flood_coolant = flood_coolant;
   float value[AXES] = {flood_coolant};
   mp_queue_command(_exec_flood_coolant_control, value, value);
-}
-
-
-static void _exec_flood_coolant_control(float *value, float *flag) {
-  mach.gm.flood_coolant = value[0];
-
-  coolant_set_flood(value[0]);
-  if (!value[0]) coolant_set_mist(false); // M9 special function
 }
 
 
@@ -1065,7 +1007,7 @@ void mach_message(const char *message) {
  * It is extended beyond the NIST spec to handle various situations.
  *
  * mach_program_stop and mach_optional_program_stop are synchronous Gcode
- * commands that are received through the interpreter. They cause all motion
+ * commands that are received through the interpreter.  They cause all motion
  * to stop at the end of the current command, including spindle motion.
  *
  * Note that the stop occurs at the end of the immediately preceding command
@@ -1075,49 +1017,9 @@ void mach_message(const char *message) {
  */
 
 
-/*** _exec_program_end() implements M2 and M30.  End behaviors are defined by
- * NIST 3.6.1 are:
- *
- *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set
- *       to the default (like G54)
- *    2. Selected plane is set to PLANE_XY (like G17)
- *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
- *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
- *    5. Feed and speed overrides are set to ON (like M48)
- *    6. Cutter compensation is turned off (like G40)
- *    7. The spindle is stopped (like M5)
- *    8. The current motion mode is set to G_1 (like G1)
- *    9. Coolant is turned off (like M9)
- *
- * _exec_program_end() implements things slightly differently:
- *
- *    1. Axis offsets are set to G92.1 CANCEL offsets
- *       (instead of using G92.2 SUSPEND Offsets)
- *       Set default coordinate system
- *    2. Selected plane is set to default plane
- *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
- *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
- *    5. Not implemented
- *    6. Not implemented
- *    7. The spindle is stopped (like M5)
- *    8. Motion mode is canceled like G80 (not set to G1)
- *    9. Coolant is turned off (like M9)
- *    +  Default INCHES or MM units mode is restored
- */
-static void _exec_program_end(float *value, float *flag) {
-  mach_reset_origin_offsets();      // G92.1 - we do G91.1 instead of G92.2
-  mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
-  mach_set_plane(GCODE_DEFAULT_PLANE);
-  mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
-  mach_spindle_control(SPINDLE_OFF);                 // M5
-  mach_flood_coolant_control(false);                 // M9
-  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);    // G94
-  mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-}
-
-
 static void _exec_program_stop(float *value, float *flag) {
-  // This is ok because we should be already stopped at this point
+  // Machine should be stopped at this point.  Go into hold so that a start is
+  // needed before executing further instructions.
   mp_state_holding();
 }
 
@@ -1143,10 +1045,47 @@ void mach_pallet_change_stop() {
 }
 
 
+/*** mach_program_end() implements M2 and M30.  End behaviors are defined by
+ * NIST 3.6.1 are:
+ *
+ *    1. Axis offsets are set to zero (like G92.2) and origin offsets are set
+ *       to the default (like G54)
+ *    2. Selected plane is set to PLANE_XY (like G17)
+ *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
+ *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
+ *    5. Feed and speed overrides are set to ON (like M48)
+ *    6. Cutter compensation is turned off (like G40)
+ *    7. The spindle is stopped (like M5)
+ *    8. The current motion mode is set to G_1 (like G1)
+ *    9. Coolant is turned off (like M9)
+ *
+ * mach_program_end() implements things slightly differently:
+ *
+ *    1. Axis offsets are set to G92.1 CANCEL offsets
+ *       (instead of using G92.2 SUSPEND Offsets)
+ *       Set default coordinate system
+ *    2. Selected plane is set to default plane
+ *    3. Distance mode is set to MODE_ABSOLUTE (like G90)
+ *    4. Feed rate mode is set to UNITS_PER_MINUTE (like G94)
+ *    5. Not implemented
+ *    6. Not implemented
+ *    7. The spindle is stopped (like M5)
+ *    8. Motion mode is canceled like G80 (not set to G1)
+ *    9. Coolant is turned off (like M9)
+ *    +  Default INCHES or MM units mode is restored
+ */
+
+
 /// M2, M30
 void mach_program_end() {
-  float value[AXES] = {0};
-  mp_queue_command(_exec_program_end, value, value);
+  mach_reset_origin_offsets();      // G92.1 - we do G91.1 instead of G92.2
+  mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
+  mach_set_plane(GCODE_DEFAULT_PLANE);
+  mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
+  mach_spindle_control(SPINDLE_OFF);                 // M5
+  mach_flood_coolant_control(false);                 // M9
+  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);    // G94
+  mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
 }
 
 

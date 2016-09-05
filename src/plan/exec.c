@@ -427,7 +427,6 @@ static stat_t _exec_aline_init(mpBuf_t *bf) {
 
   // Update runtime
   mp_runtime_set_busy(true);
-  mp_runtime_set_line(bf->ms.line);
   mp_runtime_set_work_offsets(bf->ms.work_offset);
 
   // Generate waypoints for position correction at section ends.  This helps
@@ -564,6 +563,9 @@ stat_t mp_exec_move() {
   mpBuf_t *bf = mp_get_run_buffer();
   if (!bf) return STAT_NOOP; // nothing running
   if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
+
+  // Update runtime
+  mp_runtime_set_line(bf->ms.line);
 
   return bf->bf_func(bf); // move callback
 }
