@@ -407,6 +407,6 @@ void mach_homing_cycle_start_no_set() {
 
 /// Main loop callback for running the homing cycle
 void mach_homing_callback() {
-  if (mp_get_cycle() != CYCLE_HOMING || mp_runtime_is_busy()) return;
+  if (mp_get_cycle() != CYCLE_HOMING || mp_get_state() != STATE_READY) return;
   hm.func(hm.axis); // execute the current homing move
 }

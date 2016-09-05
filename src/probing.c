@@ -79,11 +79,9 @@ static struct pbProbingSingleton pb = {0};
  *
  * Another Note: When coding a cycle (like this one) you must wait
  * until the last move has actually been queued (or has finished)
- * before declaring the cycle to be done. Otherwise there is a nasty
- * race condition in the tg_controller() that will accept the next
- * command before the position of the final move has been recorded in
- * the Gcode model. That's what the call to mp_runtime_is_busy() is
- * about.
+ * before declaring the cycle to be done.  Otherwise there is a nasty
+ * race condition that will accept the next command before the position
+ * of the final move has been recorded in the Gcode model.
  */
 
 
@@ -220,7 +218,7 @@ stat_t mach_straight_probe(float target[], float flags[]) {
 /// main loop callback for running the homing cycle
 void mach_probe_callback() {
   // sync to planner move ends
-  if (!mach_is_probing() || mp_runtime_is_busy()) return;
+  if (!mach_is_probing() || mp_get_state() != STATE_READY) return;
 
   pb.func(); // execute the current homing move
 }

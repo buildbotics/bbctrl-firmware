@@ -32,6 +32,7 @@
 #include "config.h"
 #include "machine.h"
 #include "plan/runtime.h"
+#include "plan/exec.h"
 #include "plan/command.h"
 #include "motor.h"
 #include "hardware.h"
@@ -86,7 +87,7 @@ uint8_t st_is_busy() {return st.busy;}
 /// Interrupt handler for calling move exec function.
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(ADCB_CH0_vect) {
-  mp_runtime_exec_move();
+  mp_exec_move();
   ADCB_CH0_INTCTRL = 0;
   st.requesting = false;
 }

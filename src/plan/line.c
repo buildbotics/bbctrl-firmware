@@ -30,6 +30,7 @@
 #include "line.h"
 
 #include "planner.h"
+#include "exec.h"
 #include "runtime.h"
 #include "buffer.h"
 #include "machine.h"
@@ -159,7 +160,7 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
 }
 
 
-/* Plan a line with acceleration / deceleration
+/*** Plan a line with acceleration / deceleration
  *
  * This function uses constant jerk motion equations to plan
  * acceleration and deceleration. Jerk is the rate of change of
@@ -237,7 +238,7 @@ stat_t mp_aline(MoveState_t *ms) {
   if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 
   // Register callback to exec function
-  bf->bf_func = mp_runtime_exec_aline;
+  bf->bf_func = mp_exec_aline;
   bf->length = length;
 
   // Copy model state into planner buffer

@@ -699,7 +699,7 @@ static void _exec_offset(float *value, float *flag) {
     offsets[axis] = mach.offset[coord_system][axis] +
       mach.origin_offset[axis] * (mach.origin_offset_enable ? 1 : 0);
 
-  mp_runtime_set_work_offset(offsets);
+  mp_runtime_set_work_offsets(offsets);
   mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
@@ -727,7 +727,7 @@ void mach_set_position(int axis, float position) {
   mach.ms.target[axis] = position;
   mp_set_planner_position(axis, position);
   mp_runtime_set_position(axis, position);
-  mp_runtime_set_steps_to_position();
+  mp_runtime_set_steps_from_position();
 }
 
 
@@ -767,7 +767,7 @@ static void _exec_absolute_origin(float *value, float *flag) {
       mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
 
-  mp_runtime_set_steps_to_position();
+  mp_runtime_set_steps_from_position();
 }
 
 
@@ -831,7 +831,7 @@ stat_t mach_straight_traverse(float target[], float flags[]) {
   if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
-  mach_set_work_offsets(&mach.gm); // capture fully resolved offsets to state
+  mach_set_work_offsets();         // capture fully resolved offsets to state
   mach.ms.line = mach.gm.line;     // copy line number
   mp_aline(&mach.ms);              // send the move to the planner
   mach_finalize_move();
@@ -927,7 +927,7 @@ stat_t mach_straight_feed(float target[], float flags[]) {
   if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
-  mach_set_work_offsets(&mach.gm); // capture fully resolved offsets to state
+  mach_set_work_offsets();         // capture fully resolved offsets to state
   mach.ms.line = mach.gm.line;     // copy line number
   status = mp_aline(&mach.ms);     // send the move to the planner
   mach_finalize_move();

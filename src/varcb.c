@@ -34,7 +34,7 @@
 #include "plan/buffer.h"
 
 
-float get_position(int index) {return mp_runtime_get_absolute_position(index);}
+float get_position(int index) {return mp_runtime_get_position(index);}
 float get_velocity() {return mp_runtime_get_velocity();}
 float get_speed() {return mach_get_spindle_speed();}
 float get_feed() {return mach_get_feed_rate();}

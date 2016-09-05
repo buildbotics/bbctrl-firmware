@@ -159,7 +159,7 @@ ISR(TCE1_CCA_vect) {
 
 void motor_init() {
   // Reset position
-  mp_runtime_set_steps_to_position();
+  mp_runtime_set_steps_from_position();
 
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;

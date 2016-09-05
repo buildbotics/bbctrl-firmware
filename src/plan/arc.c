@@ -437,7 +437,7 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
 
   // now get down to the rest of the work setting up the arc for execution
   mach.gm.motion_mode = motion_mode;
-  mach_set_work_offsets(&mach.gm);                // resolved offsets to gm
+  mach_set_work_offsets();                        // Update resolved offsets
   mach.ms.line = mach.gm.line;                    // copy line number
   memcpy(&arc.ms, &mach.ms, sizeof(MoveState_t)); // context to arc singleton
 

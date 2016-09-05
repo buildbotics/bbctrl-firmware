@@ -33,6 +33,7 @@
 #include "runtime.h"
 #include "buffer.h"
 #include "arc.h"
+#include "stepper.h"
 
 #include "report.h"
 
@@ -120,7 +121,7 @@ bool mp_is_resuming() {return ps.resume_requested;}
 
 bool mp_is_quiescent() {
   return (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
-    !mp_runtime_is_busy();
+    !st_is_busy() && !mp_runtime_is_busy();
 }
 
 
@@ -185,7 +186,7 @@ void mp_state_callback() {
       // Reset to actual machine position.  Otherwise machine is set to the
       // position of the last queued move.
       for (int axis = 0; axis < AXES; axis++)
-        mach_set_position(axis, mp_runtime_get_absolute_position(axis));
+        mach_set_position(axis, mp_runtime_get_position(axis));
     }
 
     // Resume

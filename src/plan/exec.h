@@ -27,20 +27,8 @@
 
 #pragma once
 
-#include "status.h"
-
-#include <stdbool.h>
+#include "buffer.h"
 
 
-bool mp_runtime_is_busy();
-void mp_runtime_set_busy(bool busy);
-int32_t mp_runtime_get_line();
-void mp_runtime_set_line(int32_t line);
-float mp_runtime_get_velocity();
-void mp_runtime_set_steps_from_position();
-void mp_runtime_set_position(uint8_t axis, const float position);
-float mp_runtime_get_position(uint8_t axis);
-float *mp_runtime_get_position_vector();
-float mp_runtime_get_work_position(uint8_t axis);
-void mp_runtime_set_work_offsets(float offset[]);
-stat_t mp_runtime_move_to_target(float target[], float velocity, float time);
+stat_t mp_exec_move();
+stat_t mp_exec_aline(mpBuf_t *bf);
