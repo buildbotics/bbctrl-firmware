@@ -721,7 +721,10 @@ static void _exec_offset(float *value, float *flag) {
  * mp_get_runtime_busy() to be sure the system is quiescent.
  */
 void mach_set_position(int axis, float position) {
-  // TODO: Interlock involving runtime_busy test
+  if ((mp_get_state() != STATE_HOLDING && mp_get_state() != STATE_READY) ||
+      mp_get_runtime_busy())
+    CM_ALARM(STAT_INTERNAL_ERROR);
+
   mach.position[axis] = position;
   mach.ms.target[axis] = position;
   mp_set_planner_position(axis, position);
