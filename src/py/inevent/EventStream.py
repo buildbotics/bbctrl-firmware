@@ -34,7 +34,6 @@ from inevent.Constants import *
 from inevent import ioctl
 from inevent.AbsAxisScaling import AbsAxisScaling
 from inevent import Event
-from inevent import Format
 from inevent.EventState import EventState
 
 
@@ -155,7 +154,7 @@ class EventStream(object):
     Read and return the next waiting event.
     """
     try:
-      s = os.read(self.filehandle, Format.EventSize)
+      s = os.read(self.filehandle, Event.size)
       if s:
         event = Event.Event(self)
         event.decode(s)

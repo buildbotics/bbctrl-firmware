@@ -137,9 +137,9 @@ module.exports = {
 
 
     start_pause: function () {
-      if (this.state.x == 'running') this.pause();
+      if (this.state.x == 'RUNNING') this.pause();
 
-      else if (this.state.x == 'stopping' || this.state.x == 'holding')
+      else if (this.state.x == 'STOPPING' || this.state.x == 'HOLDING')
         this.unpause();
 
       else this.start();

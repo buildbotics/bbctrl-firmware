@@ -1,6 +1,7 @@
 import re
 import serial
 import json
+import time
 import logging
 from collections import deque
 
@@ -44,10 +45,12 @@ class AVR():
             self.sp.nonblocking()
 
         except Exception as e:
+            self.sp = None
             log.warning('Failed to open serial port: %s', e)
-            return
 
-        ctrl.ioloop.add_handler(self.sp, self.serial_handler, ctrl.ioloop.READ)
+        if self.sp is not None:
+            ctrl.ioloop.add_handler(self.sp, self.serial_handler,
+                                    ctrl.ioloop.READ)
 
         try:
             self.i2c_bus = smbus.SMBus(ctrl.args.avr_port)
@@ -75,13 +78,29 @@ class AVR():
 
 
     def _i2c_command(self, cmd, word = None):
-        if not hasattr(self, 'i2c_bus'): return
+        if self.i2c_bus is None: return
 
         log.info('I2C: %d' % cmd)
+        retry = 5
 
-        if word is not None:
-            self.i2c_bus.write_word_data(self.i2c_addr, cmd, word)
-        self.i2c_bus.write_byte(self.i2c_addr, cmd)
+        while True:
+            try:
+                if word is not None:
+                    self.i2c_bus.write_word_data(self.i2c_addr, cmd, word)
+                self.i2c_bus.write_byte(self.i2c_addr, cmd)
+                break
+
+            except IOError as e:
+                retry -= 1
+
+                if retry:
+                    log.error('I2C communication failed, retrying: %s' % e)
+                    self.i2c_bus.close()
+                    time.sleep(0.1)
+                    self.i2c_bus = smbus.SMBus(self.ctrl.args.avr_port)
+                    continue
+
+                else: raise e
 
 
     def report(self): self._i2c_command(I2C_REPORT)
@@ -93,7 +112,7 @@ class AVR():
 
 
     def set_write(self, enable):
-        if not hasattr(self, 'sp'): return
+        if self.sp is None: return
 
         flags = self.ctrl.ioloop.READ
         if enable: flags |= self.ctrl.ioloop.WRITE
@@ -157,13 +176,14 @@ class AVR():
 
                 except Exception as e:
                     log.error('%s, data: %s', e, line)
+                    return
 
                 if 'firmware' in msg:
                     log.error('AVR rebooted')
                     self._stop_sending_gcode()
                     self.report()
 
-                if 'x' in msg and msg['x'] == 'estopped':
+                if 'x' in msg and msg['x'] == 'ESTOPPED':
                     self._stop_sending_gcode()
 
                 self.vars.update(msg)

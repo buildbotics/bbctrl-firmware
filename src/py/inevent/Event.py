@@ -28,9 +28,11 @@
 
 import struct
 
-from inevent import Format
 from inevent.Constants import *
 
+
+_format = 'llHHi'
+size = struct.calcsize(_format)
 
 
 class Event(object):
@@ -97,8 +99,7 @@ class Event(object):
     tint = long(self.time)
     tfrac = long((self.time - tint) * 1000000)
 
-    return \
-        struct.pack(Format.Event, tsec, tfrac, self.type, self.code, self.value)
+    return struct.pack(_format, tsec, tfrac, self.type, self.code, self.value)
 
 
   def decode(self, s):
@@ -109,7 +110,6 @@ class Event(object):
       *s*
         A binary structure packed into a string.
     """
-    tsec, tfrac, self.type, self.code, self.value = \
-        struct.unpack(Format.Event, s)
+    tsec, tfrac, self.type, self.code, self.value = struct.unpack(_format, s)
 
     self.time = tsec + tfrac / 1000000.0

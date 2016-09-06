@@ -58,7 +58,7 @@ module.exports = new Vue({
 
   methods: {
     estop: function () {
-      if (this.state.x == 'estopped') api.put('clear');
+      if (this.state.x == 'ESTOPPED') api.put('clear');
       else api.put('estop');
     },
 

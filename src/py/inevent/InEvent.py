@@ -157,7 +157,7 @@ class InEvent(object):
     for stream in self.streams:
       if stream.filehandle == fd:
         while True:
-          event = stream.read()
+          event = stream.next()
           if event: self.handler.event(event, self.cb)
           else: break
 

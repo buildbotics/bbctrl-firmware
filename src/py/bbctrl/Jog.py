@@ -19,15 +19,18 @@ class Jog(inevent.JogHandler):
 
         self.v = [0.0] * 4
         self.lastV = self.v
+        self.callback()
 
         self.processor = inevent.InEvent(ctrl.ioloop, self,
                                          types = "js kbd".split())
 
 
-    def processed_events(self):
+    def callback(self):
         if self.v != self.lastV:
             self.lastV = self.v
             self.ctrl.avr.jog(self.v)
+
+        self.ctrl.ioloop.call_later(0.25, self.callback)
 
 
     def changed(self):

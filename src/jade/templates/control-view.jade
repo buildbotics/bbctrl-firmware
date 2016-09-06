@@ -75,25 +75,25 @@ script#control-view-template(type="text/x-template")
 
     .toolbar
       button.pure-button(title="Home the machine.", @click="home",
-        :disabled="state.x != 'ready'")
+        :disabled="state.x != 'READY'")
         .fa.fa-home
 
       button.pure-button(
-        title="{{state.x == 'running' ? 'Pause' : 'Start'}} program.",
+        title="{{state.x == 'RUNNING' ? 'Pause' : 'Start'}} program.",
         @click="start_pause",
-        :disabled="state.c == 'homing'")
-        .fa(:class="state.x == 'running' ? 'fa-pause' : 'fa-play'")
+        :disabled="state.c == 'HOMING'")
+        .fa(:class="state.x == 'RUNNING' ? 'fa-pause' : 'fa-play'")
 
       button.pure-button(title="Stop program.", @click="stop",
-        :disabled="state.x == 'ready'")
+        :disabled="state.x == 'READY'")
         .fa.fa-stop
 
       button.pure-button(title="Pause program at next optional stop (M1).",
-        @click="optional_pause", :disabled="state.c == 'homing'")
+        @click="optional_pause", :disabled="state.c == 'HOMING'")
         .fa.fa-stop-circle-o
 
       button.pure-button(title="Execute one program step.", @click="step",
-        :disabled="(state.x != 'ready' && state.x != 'holding') || !file")
+        :disabled="(state.x != 'READY' && state.x != 'HOLDING') || !file")
         .fa.fa-step-forward
 
     .tabs
@@ -109,7 +109,7 @@ script#control-view-template(type="text/x-template")
       section#content1.tab-content
         .toolbar
           button.pure-button(title="Upload a new program file.", @click="open",
-            :disabled="state.x == 'running' || state.x == 'stopping'")
+            :disabled="state.x == 'RUNNING' || state.x == 'STOPPING'")
             .fa.fa-folder-open
 
           input.gcode-file-input(type="file", @change="upload",
@@ -121,7 +121,7 @@ script#control-view-template(type="text/x-template")
 
           select(title="Select previously uploaded program files.",
             v-model="file", @change="load",
-            :disabled="state.x == 'running' || state.x == 'stopping'")
+            :disabled="state.x == 'RUNNING' || state.x == 'STOPPING'")
             option(v-for="file in files", :value="file") {{file}}
 
         .gcode(:class="{placeholder: !gcode}")
@@ -132,7 +132,7 @@ script#control-view-template(type="text/x-template")
           fieldset
             button.pure-button.pure-button-primary(
               title="Manually execute instructions.", @click="submit_mdi",
-              :disabled="state.x != 'ready'") MDI
+              :disabled="state.x != 'READY'") MDI
             input(v-model="mdi", @keyup.enter="submit_mdi")
 
         .history(:class="{placeholder: !history}")
