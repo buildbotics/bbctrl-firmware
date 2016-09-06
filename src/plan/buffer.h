@@ -44,7 +44,9 @@ typedef enum {
 typedef enum {
   MOVE_OFF,                // move inactive (MUST BE ZERO)
   MOVE_NEW,                // initial value
+  MOVE_INIT,               // first run
   MOVE_RUN,                // general run state (for non-acceleration moves)
+  MOVE_RESTART,            // restart buffer when done
 } run_state_t;
 
 
@@ -58,7 +60,7 @@ typedef enum {
 
 
 // Callbacks
-typedef void (*mach_exec_t)(float[], float[]);
+typedef void (*mach_func_t)(float[], float[]);
 struct mp_buffer_t;
 typedef stat_t (*bf_func_t)(struct mp_buffer_t *bf);
 
@@ -68,7 +70,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   struct mp_buffer_t *nx;         // pointer to next buffer
 
   bf_func_t bf_func;              // callback to buffer exec function
-  mach_exec_t mach_func;          // callback to machine
+  mach_func_t mach_func;          // callback to machine
 
   buffer_state_t buffer_state;    // used to manage queuing/dequeuing
   move_type_t move_type;          // used to dispatch to run routine

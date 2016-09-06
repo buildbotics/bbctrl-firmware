@@ -693,7 +693,7 @@ void mach_set_position(int axis, float position) {
   mach.position[axis] = position;
   mach.ms.target[axis] = position;
   mp_set_planner_position(axis, position);
-  mp_runtime_set_position(axis, position);
+  mp_runtime_set_axis_position(axis, position);
   mp_runtime_set_steps_from_position();
 }
 
@@ -702,7 +702,7 @@ void mach_set_position(int axis, float position) {
 static void _exec_absolute_origin(float *value, float *flag) {
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis])) {
-      mp_runtime_set_position(axis, value[axis]);
+      mp_runtime_set_axis_position(axis, value[axis]);
       mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
 

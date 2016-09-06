@@ -78,6 +78,12 @@ void mp_runtime_set_line(int32_t line) {
 float mp_runtime_get_velocity() {return rt.velocity;}
 
 
+void mp_runtime_set_velocity(float velocity) {
+  rt.velocity = velocity;
+  report_request();
+}
+
+
 /// Set encoder counts to the runtime position
 void mp_runtime_set_steps_from_position() {
   // Convert lengths to steps in floating point
@@ -120,14 +126,21 @@ void mp_runtime_set_steps_from_position() {
 
 
 /// Set runtime position for a single axis
-void mp_runtime_set_position(uint8_t axis, const float position) {
+void mp_runtime_set_axis_position(uint8_t axis, const float position) {
   rt.position[axis] = position;
+  report_request();
 }
 
 
 /// Returns current axis position in machine coordinates
-float mp_runtime_get_position(uint8_t axis) {return rt.position[axis];}
-float *mp_runtime_get_position_vector() {return rt.position;}
+float mp_runtime_get_axis_position(uint8_t axis) {return rt.position[axis];}
+float *mp_runtime_get_position() {return rt.position;}
+
+
+void mp_runtime_set_position(float position[]) {
+  copy_vector(rt.position, position);
+  report_request();
+}
 
 
 /// Returns axis position in work coordinates that were in effect at plan time
@@ -162,16 +175,16 @@ void mp_runtime_set_work_offsets(float offset[]) {
  *      90     100        -10    encoder is 10 steps behind commanded steps
  *    -100     -90        -10    encoder is 10 steps behind commanded steps
  */
-stat_t mp_runtime_move_to_target(float target[], float velocity, float time) {
+stat_t mp_runtime_move_to_target(float target[], float time) {
   // Bucket-brigade old target down the chain before getting new target
-  for (int i = 0; i < MOTORS; i++) {
+  for (int motor = 0; motor < MOTORS; motor++) {
     // previous segment's position, delayed by 1 segment
-    rt.steps.commanded[i] = rt.steps.position[i];
+    rt.steps.commanded[motor] = rt.steps.position[motor];
     // previous segment's target becomes position
-    rt.steps.position[i] = rt.steps.target[i];
+    rt.steps.position[motor] = rt.steps.target[motor];
     // current encoder position (aligns to commanded_steps)
-    rt.steps.encoder[i] = motor_get_encoder(i);
-    rt.steps.error[i] = rt.steps.encoder[i] - rt.steps.commanded[i];
+    rt.steps.encoder[motor] = motor_get_encoder(motor);
+    rt.steps.error[motor] = rt.steps.encoder[motor] - rt.steps.commanded[motor];
   }
 
   // Convert target position to steps.
@@ -183,17 +196,14 @@ stat_t mp_runtime_move_to_target(float target[], float velocity, float time) {
   // works for Cartesian kinematics.  Other kinematics may require
   // transforming travel distance as opposed to simply subtracting steps.
   float travel_steps[MOTORS];
-  for (int i = 0; i < MOTORS; i++)
-    travel_steps[i] = rt.steps.target[i] - rt.steps.position[i];
+  for (int motor = 0; motor < MOTORS; motor++)
+    travel_steps[motor] = rt.steps.target[motor] - rt.steps.position[motor];
 
   // Call the stepper prep function
   RITORNO(st_prep_line(travel_steps, rt.steps.error, time));
 
-  // Update position and velocity
-  copy_vector(rt.position, target);
-  rt.velocity = velocity;
-
-  report_request(); // Position and possibly velocity have changed
+  // Update position
+  mp_runtime_set_position(target);
 
   return STAT_OK;
 }

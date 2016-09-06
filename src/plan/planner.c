@@ -69,9 +69,7 @@
 #include <stdio.h>
 
 
-void planner_init() {
-  mp_init_buffers();
-}
+void planner_init() {mp_init_buffers();}
 
 
 /*** Flush all moves in the planner
@@ -81,9 +79,7 @@ void planner_init() {
  * during a hold to reset the planner.  This function should not usually
  * be directly called.  Call mp_request_flush() instead.
  */
-void mp_flush_planner() {
-  mp_init_buffers();
-}
+void mp_flush_planner() {mp_init_buffers();}
 
 
 /* Performs axis mapping & conversion of length units to steps (and deals
@@ -432,7 +428,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 /*** Plans the entire block list
  *
  * The block list is the circular buffer of planner buffers
- * (bf's). The block currently being planned is the "bf" block. The
+ * (bf's). The block currently being planned is the "bf" block.  The
  * "first block" is the next block to execute; queued immediately
  * behind the currently executing block, aka the "running" block.
  * In some cases, there is no first block because the list is empty
@@ -540,15 +536,15 @@ void mp_plan_block_list(mp_buffer_t *bf) {
 
 void mp_replan_blocks() {
   mp_buffer_t *bf = mp_get_run_buffer();
+  if (!bf) return;
+
   mp_buffer_t *bp = bf;
 
   // Mark all blocks replanable
   while (true) {
-    if (bp->run_state != MOVE_OFF || fp_ZERO(bp->exit_velocity)) break;
     bp->replannable = true;
-
+    if (bp->nx->run_state == MOVE_OFF || bp->nx == bf) break;
     bp = mp_get_next_buffer(bp);
-    if (bp == bf) break; // Avoid wrap around
   }
 
   // Plan blocks

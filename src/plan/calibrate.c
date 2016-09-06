@@ -77,8 +77,6 @@ static calibrate_t cal = {0};
 
 
 static stat_t _exec_calibrate(mp_buffer_t *bf) {
-  if (bf->run_state == MOVE_NEW) bf->run_state = MOVE_RUN;
-
   const float time = MIN_SEGMENT_TIME; // In minutes
   const float max_delta_v = JOG_ACCELERATION * time;
 
@@ -111,9 +109,8 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
           STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
 
           tmc2660_set_stallguard_threshold(cal.motor, 63);
-          mp_free_run_buffer(); // Release buffer
-          mp_set_cycle(CYCLE_MACHINING);
-          return STAT_OK;
+
+          return STAT_OK; // Done
 
         } else {
           motor_set_encoder(cal.motor, 0);
@@ -127,7 +124,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
       break;
     }
 
-  if (!cal.velocity) return STAT_OK;
+  if (!cal.velocity) return STAT_EAGAIN;
 
   // Compute travel
   float travel[AXES] = {0}; // In mm
@@ -141,7 +138,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
   float error[MOTORS] = {0};
   st_prep_line(steps, error, time);
 
-  return STAT_OK;
+  return STAT_EAGAIN;
 }
 
 

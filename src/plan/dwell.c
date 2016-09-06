@@ -40,11 +40,7 @@
 /// Dwell execution
 static stat_t _exec_dwell(mp_buffer_t *bf) {
   st_prep_dwell(bf->ms.move_time); // in seconds
-
-  // free buffer & perform cycle_end if planner is empty
-  mp_free_run_buffer();
-
-  return STAT_OK;
+  return STAT_OK; // Done
 }
 
 
@@ -57,7 +53,6 @@ stat_t mp_dwell(float seconds, int32_t line) {
 
   bf->bf_func = _exec_dwell;  // register callback to dwell start
   bf->ms.move_time = seconds; // in seconds, not minutes
-  bf->run_state = MOVE_NEW;
 
   // must be final operation before exit
   mp_commit_write_buffer(line, MOVE_TYPE_DWELL);

@@ -232,8 +232,7 @@ stat_t mp_aline(move_state_t *ms) {
     if (move_time < MIN_BLOCK_TIME) return STAT_MINIMUM_TIME_MOVE;
   }
 
-  // Get a *cleared* buffer and setup move variables
-  // Note, mp_free_run_buffer() initializes all buffer variables to zero
+  // Get a buffer.  Note, new buffers are initialized to zero.
   mp_buffer_t *bf = mp_get_write_buffer(); // current move pointer
   if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // never fails
 

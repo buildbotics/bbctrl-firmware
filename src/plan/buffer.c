@@ -176,8 +176,6 @@ void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
   mb.r = mb.r->nx;                    // advance to next run buffer
   mb.buffers_available++;
   report_request();
-
-  if (mp_queue_empty()) mp_state_idle();  // if queue empty
 }
 
 

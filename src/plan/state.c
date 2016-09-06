@@ -95,7 +95,7 @@ static void _set_state(mp_state_t state) {
 void mp_set_cycle(mp_cycle_t cycle) {
   if (ps.cycle == cycle) return; // No change
 
-  if (ps.state != STATE_READY) {
+  if (ps.state != STATE_READY && cycle != CYCLE_MACHINING) {
     STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
                  mp_get_cycle_pgmstr(cycle),
                  mp_get_state_pgmstr(ps.state));
@@ -186,7 +186,7 @@ void mp_state_callback() {
       // Reset to actual machine position.  Otherwise machine is set to the
       // position of the last queued move.
       for (int axis = 0; axis < AXES; axis++)
-        mach_set_position(axis, mp_runtime_get_position(axis));
+        mach_set_position(axis, mp_runtime_get_axis_position(axis));
     }
 
     // Resume
@@ -203,7 +203,7 @@ void mp_state_callback() {
 
     if (mp_get_state() == STATE_HOLDING) {
       // Check if any moves are buffered
-      if (mp_get_run_buffer()) {
+      if (!mp_queue_empty()) {
         mp_replan_blocks();
         _set_state(STATE_RUNNING);
 

@@ -26,6 +26,7 @@
 
 \******************************************************************************/
 
+#include "homing.h"
 #include "machine.h"
 #include "switch.h"
 #include "util.h"
@@ -190,7 +191,6 @@ static void _homing_finalize_exit() {
   mach_set_feed_rate_mode(hm.saved_feed_rate_mode);
   mach.gm.feed_rate = hm.saved_feed_rate;
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-  mp_set_cycle(CYCLE_MACHINING);
 }
 
 
@@ -360,9 +360,8 @@ bool mach_is_homing() {
 
 
 void mach_set_not_homed() {
-  // TODO save homed to EEPROM
   for (int axis = 0; axis < AXES; axis++)
-    hm.homed[axis] = false;
+    mach_set_homed(axis, false);
 }
 
 
@@ -372,6 +371,7 @@ bool mach_get_homed(int axis) {
 
 
 void mach_set_homed(int axis, bool homed) {
+  // TODO save homed to EEPROM
   hm.homed[axis] = homed;
 }
 
@@ -388,7 +388,7 @@ void mach_homing_cycle_start() {
   // set working values
   mach_set_units_mode(MILLIMETERS);
   mach_set_distance_mode(INCREMENTAL_MODE);
-  mach_set_coord_system(ABSOLUTE_COORDS);    // in machine coordinates
+  mach_set_coord_system(ABSOLUTE_COORDS);  // in machine coordinates
   mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);
   hm.set_coordinates = true;
 

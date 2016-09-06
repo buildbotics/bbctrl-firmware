@@ -53,9 +53,6 @@ static jog_runtime_t jr;
 
 
 static stat_t _exec_jog(mp_buffer_t *bf) {
-  if (bf->run_state == MOVE_OFF) return STAT_NOOP;
-  if (bf->run_state == MOVE_NEW) bf->run_state = MOVE_RUN;
-
   // Load next velocity
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++)
@@ -82,7 +79,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
     // Compute target from axis velocity
     target[axis] =
-      mp_runtime_get_position(axis) + time * jr.current_velocity[axis];
+      mp_runtime_get_axis_position(axis) + time * jr.current_velocity[axis];
 
     // Accumulate velocities squared
     velocity_sqr += square(jr.current_velocity[axis]);
@@ -94,15 +91,14 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
     for (int axis = 0; axis < AXES; axis++)
       mach_set_position(axis, mp_runtime_get_work_position(axis));
 
-    // Release buffer
-    mp_free_run_buffer();
-
-    mp_set_cycle(CYCLE_MACHINING);
-
-    return STAT_NOOP;
+    return STAT_NOOP; // Done
   }
 
-  return mp_runtime_move_to_target(target, sqrt(velocity_sqr), time);
+  mp_runtime_set_velocity(sqrt(velocity_sqr));
+  stat_t status = mp_runtime_move_to_target(target, time);
+  if (status != STAT_OK) return status;
+
+  return STAT_EAGAIN;
 }
 
 

@@ -34,11 +34,10 @@
  *     (bf buffer) which sets some parameters and registers a callback to the
  *     execution function in the machine.
  *   - When the planning queue gets to the function it calls _exec_command()
- *     which loads a pointer to the bf buffer in stepper.c's next move.
+ *     which loads a pointer to the function and its args in stepper.c's next
+ *     move.
  *   - When the runtime gets to the end of the current activity (sending steps,
- *     counting a dwell) it executes mp_command_callback which uses the callback
- *     function in the bf and the saved parameters in the vectors.
- *   - To finish up mp_command_callback() frees the bf buffer.
+ *     counting a dwell) it executes the callback function passing the args.
  *
  * Doing it this way instead of synchronizing on queue empty simplifies the
  * handling of feedholds, feed overrides, buffer flushes, and thread blocking,
@@ -54,13 +53,13 @@
 
 /// Callback to execute command
 static stat_t _exec_command(mp_buffer_t *bf) {
-  st_prep_command(bf);
-  return STAT_OK;
+  st_prep_command(bf->mach_func, bf->ms.target, bf->unit);
+  return STAT_OK; // Done
 }
 
 
 /// Queue a synchronous Mcode, program control, or other command
-void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
+void mp_queue_command(mach_func_t mach_func, float values[], float flags[]) {
   mp_buffer_t *bf = mp_get_write_buffer();
 
   if (!bf) {
@@ -69,23 +68,14 @@ void mp_queue_command(mach_exec_t mach_exec, float *value, float *flag) {
   }
 
   bf->bf_func = _exec_command;    // callback to planner queue exec function
-  bf->mach_func = mach_exec;      // callback to machine exec function
+  bf->mach_func = mach_func;      // callback to machine exec function
 
   // Store values and flags in planner buffer
   for (int axis = 0; axis < AXES; axis++) {
-    bf->ms.target[axis] = value[axis];
-    bf->unit[axis] = flag[axis]; // flag vector in unit
+    bf->ms.target[axis] = values[axis];
+    bf->unit[axis] = flags[axis]; // flag vector in unit
   }
 
   // Must be final operation before exit
   mp_commit_write_buffer(mach_get_line(), MOVE_TYPE_COMMAND);
-}
-
-
-void mp_command_callback(mp_buffer_t *bf) {
-  // Use values & flags stored in mp_queue_command()
-  bf->mach_func(bf->ms.target, bf->unit);
-
-  // Free buffer & perform cycle_end if planner is empty
-  mp_free_run_buffer();
 }

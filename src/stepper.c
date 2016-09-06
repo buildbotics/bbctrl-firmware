@@ -55,7 +55,9 @@ typedef struct {
   move_type_t move_type;
   uint16_t seg_period;
   uint32_t prep_dwell;
-  mp_buffer_t *bf;       // used for command moves
+  mach_func_t mach_func; // used for command moves
+  float values[AXES];
+  float flags[AXES];
 } stepper_t;
 
 
@@ -81,13 +83,19 @@ void st_shutdown() {
 
 
 /// Return true if motors or dwell are running
-uint8_t st_is_busy() {return st.busy;}
+bool st_is_busy() {return st.busy;}
 
 
 /// Interrupt handler for calling move exec function.
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(ADCB_CH0_vect) {
-  mp_exec_move();
+  stat_t status = mp_exec_move();
+
+  switch (status) {
+  case STAT_OK: case STAT_NOOP: case STAT_EAGAIN: break; // Ok
+  default: CM_ALARM(status); break;
+  }
+
   ADCB_CH0_INTCTRL = 0;
   st.requesting = false;
 }
@@ -143,7 +151,7 @@ ISR(STEP_TIMER_ISR) {
     st.dwell = st.prep_dwell;
 
   } else if (st.move_type == MOVE_TYPE_COMMAND)
-    mp_command_callback(st.bf); // Execute command
+    st.mach_func(st.values, st.flags); // Execute command
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
@@ -198,10 +206,12 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 
 
 /// Stage command to execution
-void st_prep_command(mp_buffer_t *bf) {
+void st_prep_command(mach_func_t mach_func, float values[], float flags[]) {
   if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_COMMAND;
-  st.bf = bf;
+  st.mach_func = mach_func;
+  copy_vector(st.values, values);
+  copy_vector(st.flags, flags);
   st.move_ready = true; // signal prep buffer ready
 }
 

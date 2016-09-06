@@ -74,18 +74,18 @@ static stat_t _exec_aline_segment() {
   // waypoint, synchronize to the head, body or tail end.  Otherwise, if not at
   // a section waypoint compute target from segment time and velocity.  Don't
   // do waypoint correction if you are going into a hold.
-  if (!--ex.segment_count && !ex.section_new && mp_get_state() == STATE_RUNNING)
+  if (!--ex.segment_count && !ex.section_new && !ex.hold_planned)
     copy_vector(target, ex.waypoint[ex.section]);
 
   else {
     float segment_length = ex.segment_velocity * ex.segment_time;
 
     for (int i = 0; i < AXES; i++)
-      target[i] = mp_runtime_get_position(i) + ex.unit[i] * segment_length;
+      target[i] = mp_runtime_get_axis_position(i) + ex.unit[i] * segment_length;
   }
 
-  RITORNO(mp_runtime_move_to_target
-          (target, ex.segment_velocity, ex.segment_time));
+  mp_runtime_set_velocity(ex.segment_velocity);
+  RITORNO(mp_runtime_move_to_target(target, ex.segment_time));
 
   // Return EAGAIN to continue or OK if this segment is done
   return ex.segment_count ? STAT_EAGAIN : STAT_OK;
@@ -330,8 +330,13 @@ static stat_t _exec_aline_head() {
 
 
 static float _compute_next_segment_velocity() {
-  if (ex.section == SECTION_BODY) return ex.segment_velocity;
-  return ex.segment_velocity + ex.forward_diff[4];
+  if (ex.section_new) {
+    if (ex.section == SECTION_HEAD) return ex.entry_velocity;
+    else return ex.cruise_velocity;
+  }
+
+  return ex.segment_velocity +
+    (ex.section == SECTION_BODY ? 0 : ex.forward_diff[4]);
 }
 
 
@@ -348,24 +353,19 @@ static float _compute_next_segment_velocity() {
  * speed.
  */
 static void _plan_hold() {
-  mp_buffer_t *bp = mp_get_run_buffer(); // working buffer pointer
-  if (!bp) return; // Oops! nothing's running
+  mp_buffer_t *bf = mp_get_run_buffer(); // working buffer pointer
+  if (!bf) return; // Oops! nothing's running
 
   // Examine and process current buffer and compute length left for decel
   float available_length =
-    get_axis_vector_length(ex.final_target, mp_runtime_get_position_vector());
+    get_axis_vector_length(ex.final_target, mp_runtime_get_position());
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
-  // Distance to brake to zero from braking_velocity, bp is OK to use here
-  float braking_length = mp_get_target_length(braking_velocity, 0, bp);
+  // Distance to brake to zero from braking_velocity, bf is OK to use here
+  float braking_length = mp_get_target_length(braking_velocity, 0, bf);
 
-  // Hack to prevent Case 2 moves for perfect-fit decels.  Happens in
-  // homing situations.  The real fix: The braking velocity cannot
-  // simply be the ex.segment_velocity as this is the velocity of the
-  // last segment, not the one that's going to be executed next.  The
-  // braking_velocity needs to be the velocity of the next segment
-  // that has not yet been computed.  In the mean time, this hack will work.
-  if (available_length < braking_length && fp_ZERO(bp->exit_velocity))
+  // Hack to prevent Case 2 moves for perfect-fit decels.  Happens when homing.
+  if (available_length < braking_length && fp_ZERO(bf->exit_velocity))
     braking_length = available_length;
 
   // Replan to decelerate
@@ -380,17 +380,17 @@ static void _plan_hold() {
     ex.exit_velocity = 0;
     ex.tail_length = braking_length;
 
-    // Re-use bp+0 to be the hold point and to run the remaining block length
-    bp->length = available_length - braking_length;
-    bp->delta_vmax = mp_get_target_velocity(0, bp->length, bp);
-    bp->entry_vmax = 0;        // set bp+0 as hold point
-    bp->run_state = MOVE_NEW;  // tell _exec to re-use the bf buffer
+    // Re-use bf to run the remaining block length
+    bf->length = available_length - braking_length;
+    bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
+    bf->entry_vmax = 0;
+    bf->run_state = MOVE_RESTART; // Restart the buffer when done
 
   } else { // Case 2: deceleration exceeds length remaining in buffer
     // Replan to minimum (but non-zero) exit velocity
     ex.tail_length = available_length;
     ex.exit_velocity =
-      braking_velocity - mp_get_target_velocity(0, available_length, bp);
+      braking_velocity - mp_get_target_velocity(0, available_length, bf);
   }
 }
 
@@ -398,17 +398,7 @@ static void _plan_hold() {
 /// Initializes move runtime with a new planner buffer
 static stat_t _exec_aline_init(mp_buffer_t *bf) {
   // Remove zero length lines.  Short lines have already been removed.
-  if (fp_ZERO(bf->length)) {
-    mp_runtime_set_busy(false);
-    bf->nx->replannable = false; // prevent overplanning (Note 2)
-    mp_free_run_buffer();        // free buffer
-
-    return STAT_NOOP;
-  }
-
-  // Take control of buffer
-  bf->run_state = MOVE_RUN;
-  bf->replannable = false;
+  if (fp_ZERO(bf->length)) return STAT_NOOP;
 
   // Initialize move
   copy_vector(ex.unit, bf->unit);
@@ -426,16 +416,15 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
   ex.hold_planned = false;
 
   // Update runtime
-  mp_runtime_set_busy(true);
   mp_runtime_set_work_offsets(bf->ms.work_offset);
 
   // Generate waypoints for position correction at section ends.  This helps
   // negate floating point errors in the forward differencing code.
   for (int axis = 0; axis < AXES; axis++) {
     ex.waypoint[SECTION_HEAD][axis] =
-      mp_runtime_get_position(axis) + ex.unit[axis] * ex.head_length;
+      mp_runtime_get_axis_position(axis) + ex.unit[axis] * ex.head_length;
 
-    ex.waypoint[SECTION_BODY][axis] = mp_runtime_get_position(axis) +
+    ex.waypoint[SECTION_BODY][axis] = mp_runtime_get_axis_position(axis) +
       ex.unit[axis] * (ex.head_length + ex.body_length);
 
     ex.waypoint[SECTION_TAIL][axis] = ex.final_target[axis];
@@ -497,28 +486,21 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
  *   Period 3    V = Vi - Jm * (T^2) / 2
  *   Period 4    V = Vh + As * T + Jm * (T^2) / 2
  *
- * These routines play some games with the acceleration and move timing
- * to make sure this actually work out.  move_time is the actual time of
- * the move, accel_time is the time value needed to compute the velocity -
- * taking the initial velocity into account (move_time does not need to).
- *
- * State transitions - hierarchical state machine:
- *
- * bf->run_state transitions:
- *
- *  from _NEW to _RUN on first call (sub_state set to _OFF)
- *  from _RUN to _OFF on final call or just remain _OFF
+ * move_time is the actual time of the move, accel_time is the time value
+ * needed to compute the velocity taking the initial velocity into account.
+ * move_time does not need to.
  */
 stat_t mp_exec_aline(mp_buffer_t *bf) {
-  if (bf->run_state == MOVE_OFF) return STAT_NOOP; // No more moves
-
   stat_t status = STAT_OK;
 
   // Start a new move
-  if (!mp_runtime_is_busy()) {
+  if (bf->run_state == MOVE_INIT) {
+    bf->run_state = MOVE_RUN;
     status = _exec_aline_init(bf);
     if (status != STAT_OK) return status;
   }
+
+  if (mp_get_state() == STATE_STOPPING && !ex.hold_planned) _plan_hold();
 
   // Main segment dispatch.  From this point on the contents of the bf buffer
   // do not affect execution.
@@ -528,28 +510,7 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
   case SECTION_TAIL: status = _exec_aline_tail(); break;
   }
 
-  // There are 3 things that can happen here depending on return conditions:
-  //
-  //   status        bf->run_state       Description
-  //   -----------   --------------      ----------------------------------
-  //   STAT_EAGAIN   <don't care>        buffer has more segments to run
-  //   STAT_OK       MOVE_RUN            ex and bf buffers are done
-  //   STAT_OK       MOVE_NEW            ex done; bf must be run again
-  //                                     (it's been reused)
-  if (status != STAT_EAGAIN) {
-    mp_runtime_set_busy(false);
-    bf->nx->replannable = false;    // prevent overplanning (Note 2)
-    if (fp_ZERO(ex.exit_velocity)) ex.segment_velocity = 0;
-    // Note, _plan_hold() may change bf->run_state to reuse this buffer so it
-    // can plan the deceleration.
-    if (bf->run_state == MOVE_RUN) mp_free_run_buffer();
-  }
-
-  if (mp_get_state() == STATE_STOPPING &&
-      (status == STAT_OK || status == STAT_EAGAIN)) {
-    if (!mp_runtime_is_busy() && !ex.segment_velocity) mp_state_holding();
-    else if (mp_runtime_is_busy() && !ex.hold_planned) _plan_hold();
-  }
+  if (status != STAT_EAGAIN) mp_runtime_set_velocity(ex.exit_velocity);
 
   return status;
 }
@@ -561,11 +522,52 @@ stat_t mp_exec_move() {
   if (mp_get_state() == STATE_HOLDING) return STAT_NOOP;
 
   mp_buffer_t *bf = mp_get_run_buffer();
-  if (!bf) return STAT_NOOP; // nothing running
-  if (!bf->bf_func) return CM_ALARM(STAT_INTERNAL_ERROR);
+  if (!bf) return STAT_NOOP; // Nothing running
+  if (!bf->bf_func) return STAT_INTERNAL_ERROR; // Should never happen
 
-  // Update runtime
-  mp_runtime_set_line(bf->ms.line);
+  if (bf->run_state == MOVE_NEW) {
+    // Take control of buffer
+    bf->run_state = MOVE_INIT;
+    bf->replannable = false;
 
-  return bf->bf_func(bf); // move callback
+    // Update runtime
+    mp_runtime_set_busy(true);
+    mp_runtime_set_line(bf->ms.line);
+  }
+
+  stat_t status = bf->bf_func(bf); // Move callback
+
+  if (status != STAT_EAGAIN) {
+    bool idle = false;
+
+    // Enter HOLDING state
+    if (mp_get_state() == STATE_STOPPING &&
+        fp_ZERO(mp_runtime_get_velocity())) {
+      mp_state_holding();
+      idle = true;
+    }
+
+    // Handle buffer run state
+    if (bf->run_state == MOVE_RESTART) bf->run_state = MOVE_NEW;
+    else {
+      bf->nx->replannable = false;   // Prevent overplanning (Note 2)
+      mp_free_run_buffer();          // Free buffer
+
+      // Enter READY state
+      if (mp_queue_empty()) {
+        mp_state_idle();
+        idle = true;
+      }
+
+      mp_set_cycle(CYCLE_MACHINING); // Default cycle
+    }
+
+    // Queue idle
+    if (idle) {
+      mp_runtime_set_velocity(0);
+      mp_runtime_set_busy(false);
+    }
+  }
+
+  return status;
 }

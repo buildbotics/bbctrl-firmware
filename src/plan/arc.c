@@ -208,7 +208,7 @@ static stat_t _compute_arc_offsets_from_radius() {
   // issues.
   float disc = 4 * square(arc.radius) - (square(x) + square(y));
 
-  float h_x2_div_d = (disc > 0) ? -sqrt(disc) / hypotf(x, y) : 0;
+  float h_x2_div_d = disc > 0 ? -sqrt(disc) / hypotf(x, y) : 0;
 
   // Invert the sign of h_x2_div_d if circle is counter clockwise (see header
   // notes)
@@ -282,7 +282,7 @@ static stat_t _compute_arc() {
 
   // g18_correction is used to invert G18 XZ plane arcs for proper CW
   // orientation
-  float g18_correction = (mach.gm.select_plane == PLANE_XZ) ? -1 : 1;
+  float g18_correction = mach.gm.select_plane == PLANE_XZ ? -1 : 1;
 
   if (arc.full_circle) {
     // angular travel always starts as zero for full circles
@@ -314,8 +314,8 @@ static stat_t _compute_arc() {
 
   // Add in travel for rotations
   if (mach.gm.motion_mode == MOTION_MODE_CW_ARC)
-    arc.angular_travel += (2*M_PI * arc.rotations * g18_correction);
-  else arc.angular_travel -= (2*M_PI * arc.rotations * g18_correction);
+    arc.angular_travel += 2 * M_PI * arc.rotations * g18_correction;
+  else arc.angular_travel -= 2 * M_PI * arc.rotations * g18_correction;
 
   // Calculate travel in the depth axis of the helix and compute the time it
   // should take to perform the move arc.length is the total mm of travel of
