@@ -99,6 +99,7 @@ namespace cb {
       void open();
       void connect(const IPAddress &ip);
       void close();
+      using Socket::get;
 
       const Response &getResponse() const {return response;}
 

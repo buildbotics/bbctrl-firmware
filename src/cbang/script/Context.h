@@ -40,7 +40,8 @@ namespace cb {
   namespace Script {
     class Handler;
 
-    struct Context {
+    class Context {
+    public:
       Handler &handler;
       std::ostream &stream;
       const Arguments &args;

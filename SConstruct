@@ -51,7 +51,7 @@ if not env.GetOption('clean'):
     env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
 # Local includes
-env.Append(CPPPATH = ['#/src', '#/include'])
+env.Append(CPPPATH = ['#/include', '#/src'])
 
 # Build third-party libs
 force_local = env.get('force_local', '')

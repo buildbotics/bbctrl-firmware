@@ -191,10 +191,6 @@ def configure(conf, cstd = 'c99'):
     print "  Platform: " + env['PLATFORM']
     print "  Mode: " + compiler_mode
 
-    # User flags
-    if ccflags: env.Append(CCFLAGS = ccflags.split())
-    if linkflags: env.Append(LINKFLAGS = linkflags.split())
-
     # Exceptions
     if compiler_mode == 'msvc':
         env.AppendUnique(CCFLAGS = ['/EHa']) # Asynchronous
@@ -438,6 +434,10 @@ def configure(conf, cstd = 'c99'):
         env['LDMODULECOM'] = '$LDMODULE -o ${TARGET} $LDMODULEFLAGS ' + \
             '$SOURCES $_LIBDIRFLAGS $_LIBFLAGS $_FRAMEWORKPATH ' + \
             '$_FRAMEWORKS $FRAMEWORKSFLAGS'
+
+    # User flags (Must be last)
+    if ccflags: env.Append(CCFLAGS = ccflags.split())
+    if linkflags: env.Append(LINKFLAGS = linkflags.split())
 
 
 def get_lib_path_env(env):

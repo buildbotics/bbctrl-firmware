@@ -40,7 +40,8 @@
 
 
 namespace cb {
-  struct Resource {
+  class Resource {
+  public:
     const char *name;
 
     Resource(const char *name) : name(name) {}
@@ -62,7 +63,8 @@ namespace cb {
   };
 
 
-  struct FileResource : public Resource {
+  class FileResource : public Resource {
+  public:
     const char *data;
     const unsigned length;
 
@@ -74,7 +76,8 @@ namespace cb {
   };
 
 
-  struct DirectoryResource : public Resource {
+  class DirectoryResource : public Resource {
+  public:
     const Resource **children;
 
     DirectoryResource(const char *name, const Resource **children) :

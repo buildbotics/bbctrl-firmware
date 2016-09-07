@@ -42,7 +42,7 @@
 
 namespace cb {
   class Buffer;
-  struct Resource;
+  class Resource;
 
   class InputSource : public Named {
     cb::SmartPointer<std::istream> streamPtr;

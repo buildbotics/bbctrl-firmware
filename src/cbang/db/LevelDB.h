@@ -44,9 +44,9 @@ namespace leveldb {
   class Iterator;
   class WriteBatch;
   class Status;
-  class Options;
-  class ReadOptions;
-  class WriteOptions;
+  struct Options;
+  struct ReadOptions;
+  struct WriteOptions;
 }
 
 

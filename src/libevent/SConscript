@@ -319,6 +319,9 @@ if env['PLATFORM'] != 'win32':
     config = env.LibEventConfig('#/include/event2/event-config.h', [])
 
 
+# Warnings
+env.Append(CCFLAGS = ["-Wno-parentheses-equality", "-Wno-unused-function"])
+
 # Source
 src = Glob('src/*.c')
 inc = Glob('include/event2/*.h')

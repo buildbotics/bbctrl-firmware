@@ -55,6 +55,7 @@ namespace cb {
       PendingRequest(Client &client, const URI &uri, unsigned method,
                      const SmartPointer<HTTPHandler> &cb);
 
+      using Request::send;
       void send();
 
       void callback(evhttp_request *req);

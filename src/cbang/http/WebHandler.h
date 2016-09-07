@@ -80,6 +80,7 @@ namespace cb {
                       const cb::URI &uri);
 
       // From Handler
+      using Handler::allow;
       Context *createContext(Connection *con);
       void buildResponse(Context *ctx);
     };
