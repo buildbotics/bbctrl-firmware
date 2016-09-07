@@ -61,8 +61,6 @@ namespace io = boost::iostreams;
 using namespace std;
 using namespace cb;
 
-namespace cb {SINGLETON_DECL(Logger);}
-
 
 Logger::Logger(Inaccessible) :
   verbosity(DEFAULT_VERBOSITY), logCRLF(false),

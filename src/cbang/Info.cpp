@@ -45,8 +45,6 @@
 using namespace std;
 using namespace cb;
 
-namespace cb {SINGLETON_DECL(Info);}
-
 
 void Info::add(const string &category, const string &key, const string &value,
                bool prepend) {

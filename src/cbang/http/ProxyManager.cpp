@@ -53,8 +53,6 @@ using namespace std;
 using namespace cb;
 using namespace cb::HTTP;
 
-namespace cb {SINGLETON_DECL(ProxyManager);}
-
 
 ProxyManager::ProxyManager(Inaccessible) : enable(false), initialized(false) {
   uint64_t x = Random::instance().rand<uint64_t>();

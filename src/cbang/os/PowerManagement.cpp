@@ -72,8 +72,6 @@ typedef Window (*XDefaultRootWindow_t)(void *);
 using namespace cb;
 using namespace std;
 
-namespace cb {SINGLETON_DECL(PowerManagement);}
-
 
 struct PowerManagement::private_t {
 #if defined(__APPLE__)

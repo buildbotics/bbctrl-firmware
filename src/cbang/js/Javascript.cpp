@@ -37,9 +37,6 @@ using namespace cb;
 using namespace cb::js;
 
 
-namespace cb {SINGLETON_DECL(Javascript);}
-
-
 Javascript::Javascript(Inaccessible) {}
 
 

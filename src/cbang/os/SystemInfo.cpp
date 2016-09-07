@@ -77,9 +77,6 @@ using namespace std;
 namespace fs = boost::filesystem;
 
 
-namespace cb {SINGLETON_DECL(SystemInfo);}
-
-
 SystemInfo::SystemInfo(Inaccessible) {
   detectThreads();
 }

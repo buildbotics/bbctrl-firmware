@@ -40,8 +40,6 @@
 
 using namespace cb;
 
-namespace cb {SINGLETON_DECL(Random);}
-
 
 Random::Random(Inaccessible) {
   // On systems with /dev/urandom the generator is automatically seeded

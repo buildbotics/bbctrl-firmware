@@ -42,8 +42,6 @@
 using namespace std;
 using namespace cb;
 
-namespace cb {SINGLETON_DECL(ExitSignalHandler);}
-
 
 #ifdef _WIN32
 #define USE_WIN32_CONSOLE_CTRL_HANDLER

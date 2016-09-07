@@ -36,8 +36,6 @@ using namespace std;
 using namespace cb;
 using namespace cb::HTTP;
 
-namespace cb {SINGLETON_DECL(ContentTypes);}
-
 
 ContentTypes::ContentTypes(Inaccessible) {
   insert(value_type("png",  "image/png"));

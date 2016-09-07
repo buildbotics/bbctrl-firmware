@@ -105,13 +105,9 @@ namespace cb {
       return *ptr;
     }
   };
+
+
+  template <typename T> Singleton<T> *Singleton<T>::singleton = 0;
 }
-
-#define CBANG_SINGLETON_DECL(name)                          \
-  template <> Singleton<name> *Singleton<name>::singleton = 0
-
-#ifdef USING_CBANG
-#define SINGLETON_DECL(name) CBANG_SINGLETON_DECL(name)
-#endif // USING_CBANG
 
 #endif // CBANG_SINGLETON_H

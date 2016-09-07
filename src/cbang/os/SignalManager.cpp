@@ -47,8 +47,6 @@
 using namespace std;
 using namespace cb;
 
-namespace cb {SINGLETON_DECL(SignalManager);}
-
 
 namespace {
   void sig_handler(int sig) {SignalManager::instance().signal(sig);}
