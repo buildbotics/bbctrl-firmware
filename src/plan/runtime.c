@@ -52,12 +52,40 @@ typedef struct {
 
 
 typedef struct {
+  int32_t line;            // Current move GCode line number
+  uint8_t tool;
+
+  float feed;
+  feed_rate_mode_t feed_rate_mode;
+  float feed_override;
+
+  float speed;
+  spindle_mode_t spindle_mode;
+  float spindle_override;
+
+  motion_mode_t motion_mode;
+  plane_t plane;
+  units_mode_t units_mode;
+  coord_system_t coord_system;
+  bool absolute_mode;
+  path_mode_t path_control;
+  distance_mode_t distance_mode;
+  distance_mode_t arc_distance_mode;
+
+  bool mist_coolant;
+  bool flood_coolant;
+
+} mach_state_t;
+
+
+typedef struct {
   bool busy;               // True if a move is running
   int32_t line;            // Current move GCode line number
   float position[AXES];    // Current move position
   float work_offset[AXES]; // Current move work offset
   float velocity;          // Current move velocity
   mp_steps_t steps;
+  mach_state_t mach;
 } mp_runtime_t;
 
 static mp_runtime_t rt;

@@ -53,7 +53,7 @@
 
 /// Callback to execute command
 static stat_t _exec_command(mp_buffer_t *bf) {
-  st_prep_command(bf->mach_func, bf->ms.target, bf->unit);
+  st_prep_command(bf->mach_func, bf->target, bf->unit);
   return STAT_OK; // Done
 }
 
@@ -72,10 +72,10 @@ void mp_queue_command(mach_func_t mach_func, float values[], float flags[]) {
 
   // Store values and flags in planner buffer
   for (int axis = 0; axis < AXES; axis++) {
-    bf->ms.target[axis] = values[axis];
+    bf->target[axis] = values[axis];
     bf->unit[axis] = flags[axis]; // flag vector in unit
   }
 
   // Must be final operation before exit
-  mp_commit_write_buffer(mach_get_line(), MOVE_TYPE_COMMAND);
+  mp_commit_write_buffer(mach_get_line());
 }

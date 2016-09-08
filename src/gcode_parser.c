@@ -203,8 +203,7 @@ static stat_t _validate_gcode_block() {
  *   1. comment (includes message) [handled during block normalization]
  *   2. set feed rate mode (G93, G94 - inverse time or per minute)
  *   3. set feed rate (F)
- *   3a. set feed override rate (M50.1)
- *   3a. set traverse override rate (M50.2)
+ *   3a. set feed override rate (M50)
  *   4. set spindle speed (S)
  *   4a. set spindle override rate (M51.1)
  *   5. select tool (T)
@@ -236,24 +235,22 @@ static stat_t _execute_gcode_block() {
   mach_set_model_line(mach.gn.line);
   EXEC_FUNC(mach_set_feed_rate_mode, feed_rate_mode);
   EXEC_FUNC(mach_set_feed_rate, feed_rate);
-  EXEC_FUNC(mach_feed_rate_override_factor, feed_rate_override_factor);
-  EXEC_FUNC(mach_traverse_override_factor, traverse_override_factor);
+  EXEC_FUNC(mach_feed_override_factor, feed_override_factor);
   EXEC_FUNC(mach_set_spindle_speed, spindle_speed);
   EXEC_FUNC(mach_spindle_override_factor, spindle_override_factor);
   EXEC_FUNC(mach_select_tool, tool_select);
   EXEC_FUNC(mach_change_tool, tool_change);
-  EXEC_FUNC(mach_spindle_control, spindle_mode);
+  EXEC_FUNC(mach_set_spindle_mode, spindle_mode);
   EXEC_FUNC(mach_mist_coolant_control, mist_coolant);
   EXEC_FUNC(mach_flood_coolant_control, flood_coolant);
-  EXEC_FUNC(mach_feed_rate_override_enable, feed_rate_override_enable);
-  EXEC_FUNC(mach_traverse_override_enable, traverse_override_enable);
+  EXEC_FUNC(mach_feed_override_enable, feed_override_enable);
   EXEC_FUNC(mach_spindle_override_enable, spindle_override_enable);
   EXEC_FUNC(mach_override_enables, override_enables);
 
   if (mach.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
     RITORNO(mach_dwell(mach.gn.parameter));
 
-  EXEC_FUNC(mach_set_plane, select_plane);
+  EXEC_FUNC(mach_set_plane, plane);
   EXEC_FUNC(mach_set_units_mode, units_mode);
   //--> cutter radius compensation goes here
   //--> cutter length compensation goes here
@@ -285,7 +282,7 @@ static stat_t _execute_gcode_block() {
     mach_homing_cycle_start_no_set();
     break;
   case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
-    status = mach_straight_probe(mach.gn.target, mach.gf.target);
+    status = mach_probe(mach.gn.target, mach.gf.target);
     break;
   case NEXT_ACTION_SET_COORD_DATA:
     mach_set_coord_offsets(mach.gn.parameter, mach.gn.target, mach.gf.target);
@@ -306,17 +303,17 @@ static stat_t _execute_gcode_block() {
 
   case NEXT_ACTION_DEFAULT:
     // apply override setting to gm struct
-    mach_set_absolute_override(mach.gn.absolute_override);
+    mach_set_absolute_mode(mach.gn.absolute_mode);
 
     switch (mach.gn.motion_mode) {
     case MOTION_MODE_CANCEL_MOTION_MODE:
       mach.gm.motion_mode = mach.gn.motion_mode;
       break;
-    case MOTION_MODE_STRAIGHT_TRAVERSE:
-      status = mach_straight_traverse(mach.gn.target, mach.gf.target);
+    case MOTION_MODE_RAPID:
+      status = mach_rapid(mach.gn.target, mach.gf.target);
       break;
-    case MOTION_MODE_STRAIGHT_FEED:
-      status = mach_straight_feed(mach.gn.target, mach.gf.target);
+    case MOTION_MODE_FEED:
+      status = mach_feed(mach.gn.target, mach.gf.target);
       break;
     case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
       // gf.radius sets radius mode if radius was collected in gn
@@ -329,7 +326,7 @@ static stat_t _execute_gcode_block() {
     }
   }
   // un-set absolute override once the move is planned
-  mach_set_absolute_override(false);
+  mach_set_absolute_mode(false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
   if (mach.gf.program_flow)
@@ -374,17 +371,17 @@ static stat_t _parse_gcode_block(char *buf) {
     case 'G':
       switch ((uint8_t)value) {
       case 0:
-        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_TRAVERSE);
+        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_RAPID);
       case 1:
-        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_STRAIGHT_FEED);
+        SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_FEED);
       case 2: SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CW_ARC);
       case 3: SET_MODAL(MODAL_GROUP_G1, motion_mode, MOTION_MODE_CCW_ARC);
       case 4: SET_NON_MODAL(next_action, NEXT_ACTION_DWELL);
       case 10:
         SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_COORD_DATA);
-      case 17: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_XY);
-      case 18: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_XZ);
-      case 19: SET_MODAL(MODAL_GROUP_G2, select_plane, PLANE_YZ);
+      case 17: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_XY);
+      case 18: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_XZ);
+      case 19: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_YZ);
       case 20: SET_MODAL(MODAL_GROUP_G6, units_mode, INCHES);
       case 21: SET_MODAL(MODAL_GROUP_G6, units_mode, MILLIMETERS);
       case 28:
@@ -419,7 +416,7 @@ static stat_t _parse_gcode_block(char *buf) {
 
       case 40: break; // ignore cancel cutter radius compensation
       case 49: break; // ignore cancel tool length offset comp.
-      case 53: SET_NON_MODAL(absolute_override, true);
+      case 53: SET_NON_MODAL(absolute_mode, true);
       case 54: SET_MODAL(MODAL_GROUP_G12, coord_system, G54);
       case 55: SET_MODAL(MODAL_GROUP_G12, coord_system, G55);
       case 56: SET_MODAL(MODAL_GROUP_G12, coord_system, G56);
@@ -493,7 +490,7 @@ static stat_t _parse_gcode_block(char *buf) {
       case 9: SET_MODAL(MODAL_GROUP_M8, flood_coolant, false); // Also mist
       case 48: SET_MODAL(MODAL_GROUP_M9, override_enables, true);
       case 49: SET_MODAL(MODAL_GROUP_M9, override_enables, false);
-      case 50: SET_MODAL(MODAL_GROUP_M9, feed_rate_override_enable, true);
+      case 50: SET_MODAL(MODAL_GROUP_M9, feed_override_enable, true);
       case 51: SET_MODAL(MODAL_GROUP_M9, spindle_override_enable, true);
       default: status = STAT_MCODE_COMMAND_UNSUPPORTED;
       }

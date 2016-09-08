@@ -139,11 +139,10 @@ mp_buffer_t *mp_get_write_buffer() {
  * buffer once it has been queued. Action may start on the buffer immediately,
  * invalidating its contents
  */
-void mp_commit_write_buffer(uint32_t line, move_type_t type) {
+void mp_commit_write_buffer(uint32_t line) {
   mp_state_running();
 
-  mb.q->ms.line = line;
-  mb.q->move_type = type;
+  mb.q->line = line;
   mb.q->run_state = MOVE_NEW;
   mb.q->buffer_state = MP_BUFFER_QUEUED;
   mb.q = mb.q->nx; // advance the queued buffer pointer

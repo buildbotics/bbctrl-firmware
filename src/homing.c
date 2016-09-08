@@ -210,7 +210,7 @@ static void _homing_axis_move(int8_t axis, float target, float velocity) {
   mach.gm.feed_rate = velocity;
   mp_flush_planner(); // don't use mp_request_flush() here
 
-  stat_t status = mach_straight_feed(vect, flags);
+  stat_t status = mach_feed(vect, flags);
   if (status) _homing_error_exit(status);
 }
 
@@ -379,11 +379,11 @@ void mach_set_homed(int axis, bool homed) {
 /// G28.2 homing cycle using limit switches
 void mach_homing_cycle_start() {
   // save relevant non-axis parameters from Gcode model
-  hm.saved_units_mode = mach_get_units_mode(&mach.gm);
-  hm.saved_coord_system = mach_get_coord_system(&mach.gm);
-  hm.saved_distance_mode = mach_get_distance_mode(&mach.gm);
-  hm.saved_feed_rate_mode = mach_get_feed_rate_mode(&mach.gm);
-  hm.saved_feed_rate = mach_get_feed_rate(&mach.gm);
+  hm.saved_units_mode = mach_get_units_mode();
+  hm.saved_coord_system = mach_get_coord_system();
+  hm.saved_distance_mode = mach_get_distance_mode();
+  hm.saved_feed_rate_mode = mach_get_feed_rate_mode();
+  hm.saved_feed_rate = mach_get_feed_rate();
 
   // set working values
   mach_set_units_mode(MILLIMETERS);

@@ -93,7 +93,7 @@ void estop_trigger(estop_reason_t reason) {
 
   // Hard stop the motors and the spindle
   st_shutdown();
-  mach_spindle_estop();
+  spindle_estop();
 
   // Set machine state
   mp_state_estop();

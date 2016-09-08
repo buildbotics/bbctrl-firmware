@@ -197,7 +197,7 @@ uint32_t mach_get_line() {return mach.gm.line;}
 motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
 coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
 units_mode_t mach_get_units_mode() {return mach.gm.units_mode;}
-plane_t mach_get_select_plane() {return mach.gm.select_plane;}
+plane_t mach_get_plane() {return mach.gm.plane;}
 path_mode_t mach_get_path_control() {return mach.gm.path_control;}
 distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 feed_rate_mode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
@@ -213,7 +213,65 @@ PGM_P mp_get_units_mode_pgmstr(units_mode_t mode) {
   case DEGREES:     return PSTR("DEG");
   }
 
-  return PSTR("invalid");
+  return PSTR("INVALID");
+}
+
+
+PGM_P mp_get_feed_rate_mode_pgmstr(feed_rate_mode_t mode) {
+  switch (mode) {
+  case INVERSE_TIME_MODE:         return PSTR("INVERSE TIME");
+  case UNITS_PER_MINUTE_MODE:     return PSTR("PER MIN");
+  case UNITS_PER_REVOLUTION_MODE: return PSTR("PER REV");
+  }
+
+  return PSTR("INVALID");
+}
+
+
+PGM_P mp_get_plane_pgmstr(plane_t plane) {
+  switch (plane) {
+  case PLANE_XY: return PSTR("XY");
+  case PLANE_XZ: return PSTR("XZ");
+  case PLANE_YZ: return PSTR("YZ");
+  }
+
+  return PSTR("INVALID");
+}
+
+
+PGM_P mp_get_coord_system_pgmstr(coord_system_t cs) {
+  switch (cs) {
+  case ABSOLUTE_COORDS: return PSTR("ABS");
+  case G54: return PSTR("G54");
+  case G55: return PSTR("G55");
+  case G56: return PSTR("G56");
+  case G57: return PSTR("G57");
+  case G58: return PSTR("G58");
+  case G59: return PSTR("G59");
+  }
+
+  return PSTR("INVALID");
+}
+
+
+PGM_P mp_get_path_mode_pgmstr(path_mode_t mode) {
+  switch (mode) {
+  case PATH_EXACT_PATH: return PSTR("EXACT PATH");
+  case PATH_EXACT_STOP: return PSTR("EXACT STOP");
+  case PATH_CONTINUOUS: return PSTR("CONTINUOUS");
+  }
+
+  return PSTR("INVALID");
+}
+
+
+PGM_P mp_get_distance_mode_pgmstr(distance_mode_t mode) {
+  switch (mode) {
+  case ABSOLUTE_MODE:    return PSTR("ABSOLUTE");
+  case INCREMENTAL_MODE: return PSTR("INCREMENTAL");
+  }
+
+  return PSTR("INVALID");
 }
 
 
@@ -222,23 +280,41 @@ void mach_set_motion_mode(motion_mode_t motion_mode) {
 }
 
 
-void mach_set_spindle_mode(spindle_mode_t spindle_mode) {
-  mach.gm.spindle_mode = spindle_mode;
+/// Spindle speed callback from planner queue
+static void _exec_spindle_speed(float *value, float *flag) {
+  float speed = value[0];
+  mach.gm.spindle_speed = speed;
+  spindle_set(mach.gm.spindle_mode, speed);
 }
 
 
-void mach_set_spindle_speed_parameter(float speed) {
-  mach.gm.spindle_speed = speed;
+/// Queue the S parameter to the planner buffer
+void mach_set_spindle_speed(float speed) {
+  float value[AXES] = {speed};
+  mp_queue_command(_exec_spindle_speed, value, value);
+}
+
+
+/// execute the spindle command (called from planner)
+static void _exec_spindle_mode(float *value, float *flag) {
+  spindle_mode_t mode = value[0];
+  mach.gm.spindle_mode = mode;
+  spindle_set(mode, mach.gm.spindle_speed);
+}
+
+
+/// Queue the spindle command to the planner buffer
+void mach_set_spindle_mode(spindle_mode_t mode) {
+  float value[AXES] = {mode};
+  mp_queue_command(_exec_spindle_mode, value, value);
 }
 
 
 void mach_set_tool_number(uint8_t tool) {mach.gm.tool = tool;}
 
 
-void mach_set_absolute_override(bool absolute_override) {
-  mach.gm.absolute_override = absolute_override;
-  // must reset offsets if you change absolute override
-  mach_set_work_offsets();
+void mach_set_absolute_mode(bool absolute_mode) {
+  mach.gm.absolute_mode = absolute_mode;
 }
 
 
@@ -306,13 +382,11 @@ void mach_set_axis_jerk(uint8_t axis, float jerk) {
  * Takes G5x, G92 and absolute override into account to return the
  * active offset for this move
  *
- * This function is typically used to evaluate and set offsets, as
- * opposed to mach_get_work_offset() which merely returns what's in the
- * work_offset[] array.
+ * This function is typically used to evaluate and set offsets.
  */
 float mach_get_active_coord_offset(uint8_t axis) {
   // no offset in absolute override mode
-  if (mach.gm.absolute_override) return 0;
+  if (mach.gm.absolute_mode) return 0;
   float offset = mach.offset[mach.gm.coord_system][axis];
 
   if (mach.origin_offset_enable)
@@ -322,16 +396,37 @@ float mach_get_active_coord_offset(uint8_t axis) {
 }
 
 
-/// Return a coord offset
-float mach_get_work_offset(uint8_t axis) {
-  return mach.ms.work_offset[axis];
+static stat_t _exec_update_work_offsets(mp_buffer_t *bf) {
+  mp_runtime_set_work_offsets(bf->target);
+  return STAT_OK;
 }
 
 
 // Capture coord offsets from the model into absolute values
-void mach_set_work_offsets() {
-  for (int axis = 0; axis < AXES; axis++)
-    mach.ms.work_offset[axis] = mach_get_active_coord_offset(axis);
+void mach_update_work_offsets() {
+  static float work_offset[AXES] = {0};
+  bool same = true;
+
+  for (int axis = 0; axis < AXES; axis++) {
+    float offset = mach_get_active_coord_offset(axis);
+
+    if (offset != work_offset[axis]) {
+      work_offset[axis] = offset;
+      same = false;
+    }
+  }
+
+  if (!same) {
+    mp_buffer_t *bf = mp_get_write_buffer();
+
+    // never supposed to fail
+    if (!bf) {CM_ALARM(STAT_BUFFER_FULL_FATAL); return;}
+
+    bf->bf_func = _exec_update_work_offsets;
+    copy_vector(bf->target, work_offset);
+
+    mp_commit_write_buffer(mach.gm.line);
+  }
 }
 
 
@@ -366,7 +461,7 @@ float mach_get_work_position(uint8_t axis) {
  * These functions are not part of the NIST defined functions
  */
 
-/* Perform final operations for a traverse or feed
+/* Perform final operations for a rapid or feed
  *
  * These routines set the point position in the gcode model.
  *
@@ -378,12 +473,12 @@ float mach_get_work_position(uint8_t axis) {
  * close to the starting point.
  */
 void mach_finalize_move() {
-  copy_vector(mach.position, mach.ms.target);        // update model position
+  copy_vector(mach.position, mach.gm.target);        // update model position
 
   // if in inverse time mode reset feed rate so next block requires an
   // explicit feed rate setting
   if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE &&
-      mach.gm.motion_mode == MOTION_MODE_STRAIGHT_FEED)
+      mach.gm.motion_mode == MOTION_MODE_FEED)
     mach.gm.feed_rate = 0;
 }
 
@@ -399,7 +494,7 @@ void mach_finalize_move() {
  *
  * "Optimal time" is either the time resulting from the requested
  * feed rate or the minimum time if the requested feed rate is not
- * achievable. Optimal times for traverses are always the minimum
+ * achievable. Optimal times for rapids are always the minimum
  * time.
  *
  * The gcode state must have targets set prior by having
@@ -454,7 +549,8 @@ void mach_finalize_move() {
  *     from the start to the end of the motion is T plus any time
  *     required for acceleration or deceleration.
  */
-void mach_calc_move_time(const float axis_length[], const float axis_square[]) {
+float mach_calc_move_time(const float axis_length[],
+                          const float axis_square[]) {
   float inv_time = 0;           // inverse time if doing a feed in G93 mode
   float xyz_time = 0;           // linear coordinated move at requested feed
   float abc_time = 0;           // rotary coordinated move at requested feed
@@ -462,14 +558,14 @@ void mach_calc_move_time(const float axis_length[], const float axis_square[]) {
   float tmp_time = 0;           // used in computation
 
   // compute times for feed motion
-  if (mach.gm.motion_mode != MOTION_MODE_STRAIGHT_TRAVERSE) {
+  if (mach.gm.motion_mode != MOTION_MODE_RAPID) {
     if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE) {
       // feed rate was un-inverted to minutes by mach_set_feed_rate()
       inv_time = mach.gm.feed_rate;
       mach.gm.feed_rate_mode = UNITS_PER_MINUTE_MODE;
 
     } else {
-      // compute length of linear move in millimeters. Feed rate is provided as
+      // compute length of linear move in millimeters.  Feed rate is provided as
       // mm/min
       xyz_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
                       axis_square[AXIS_Z]) / mach.gm.feed_rate;
@@ -483,16 +579,16 @@ void mach_calc_move_time(const float axis_length[], const float axis_square[]) {
   }
 
   for (int axis = 0; axis < AXES; axis++) {
-    if (mach.gm.motion_mode == MOTION_MODE_STRAIGHT_TRAVERSE)
+    if (mach.gm.motion_mode == MOTION_MODE_RAPID)
       tmp_time = fabs(axis_length[axis]) / mach.a[axis].velocity_max;
 
-    else // MOTION_MODE_STRAIGHT_FEED
+    else // MOTION_MODE_FEED
       tmp_time = fabs(axis_length[axis]) / mach.a[axis].feedrate_max;
 
     max_time = max(max_time, tmp_time);
   }
 
-  mach.ms.move_time = max4(inv_time, max_time, xyz_time, abc_time);
+  return max4(inv_time, max_time, xyz_time, abc_time);
 }
 
 
@@ -541,9 +637,9 @@ void mach_set_model_target(float target[], float flag[]) {
     if (mach.a[axis].axis_mode == AXIS_STANDARD ||
         mach.a[axis].axis_mode == AXIS_INHIBITED) {
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
-        mach.ms.target[axis] =
+        mach.gm.target[axis] =
           mach_get_active_coord_offset(axis) + TO_MILLIMETERS(target[axis]);
-      else mach.ms.target[axis] += TO_MILLIMETERS(target[axis]);
+      else mach.gm.target[axis] += TO_MILLIMETERS(target[axis]);
     }
   }
 
@@ -555,8 +651,8 @@ void mach_set_model_target(float target[], float flag[]) {
 
     if (mach.gm.distance_mode == ABSOLUTE_MODE)
       // sacidu93's fix to Issue #22
-      mach.ms.target[axis] = tmp + mach_get_active_coord_offset(axis);
-    else mach.ms.target[axis] += tmp;
+      mach.gm.target[axis] = tmp + mach_get_active_coord_offset(axis);
+    else mach.gm.target[axis] += tmp;
   }
 }
 
@@ -615,7 +711,7 @@ void machine_init() {
   mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE); // always the default
 
   // Sub-system inits
-  mach_spindle_init();
+  spindle_init();
   coolant_init();
 }
 
@@ -634,7 +730,7 @@ stat_t mach_alarm(const char *location, stat_t code) {
 // These functions assume input validation occurred upstream.
 
 /// G17, G18, G19 select axis plane
-void mach_set_plane(plane_t plane) {mach.gm.select_plane = plane;}
+void mach_set_plane(plane_t plane) {mach.gm.plane = plane;}
 
 
 /// G20, G21
@@ -650,14 +746,10 @@ void mach_set_distance_mode(distance_mode_t mode) {
 /* G10 L2 Pn, delayed persistence
  *
  * This function applies the offset to the GM model.
- *
- * It also does not reset the work_offsets which may be
- * accomplished by calling mach_set_work_offsets() immediately
- * afterwards.
  */
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             float flag[]) {
-  if (coord_system < G54 || MAX_COORDS <= coord_system) return;
+  if (coord_system < G54 || G59 < coord_system) return;
 
   for (int axis = 0; axis < AXES; axis++)
     if (fp_TRUE(flag[axis]))
@@ -668,7 +760,6 @@ void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
 /// G54-G59
 void mach_set_coord_system(coord_system_t coord_system) {
   mach.gm.coord_system = coord_system;
-  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
@@ -693,7 +784,7 @@ void mach_set_axis_position(unsigned axis, float position) {
   if (AXES <= axis) return;
 
   mach.position[axis] = position;
-  mach.ms.target[axis] = position;
+  mach.gm.target[axis] = position;
   mp_set_axis_position(axis, position);
   mp_runtime_set_axis_position(axis, position);
   mp_runtime_set_steps_from_position();
@@ -751,8 +842,8 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
     if (fp_TRUE(flag[axis])) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
-      mach.ms.target[axis] = value[axis];          // reset model target
-      mp_set_axis_position(axis, value[axis]);  // set mm position
+      mach.gm.target[axis] = value[axis];          // reset model target
+      mp_set_axis_position(axis, value[axis]);     // set mm position
     }
 
   mp_queue_command(_exec_absolute_origin, value, flag);
@@ -771,8 +862,6 @@ void mach_set_origin_offsets(float offset[], float flag[]) {
     if (fp_TRUE(flag[axis]))
       mach.origin_offset[axis] = mach.position[axis] -
         mach.offset[mach.gm.coord_system][axis] - TO_MILLIMETERS(offset[axis]);
-
-  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
@@ -781,40 +870,35 @@ void mach_reset_origin_offsets() {
   mach.origin_offset_enable = false;
   for (int axis = 0; axis < AXES; axis++)
     mach.origin_offset[axis] = 0;
-
-  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
 /// G92.2
 void mach_suspend_origin_offsets() {
   mach.origin_offset_enable = false;
-  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
 /// G92.3
 void mach_resume_origin_offsets() {
   mach.origin_offset_enable = true;
-  mach_set_work_offsets(); // set work offsets in the Gcode model
 }
 
 
 // Free Space Motion (4.3.4)
 
 /// G0 linear rapid
-stat_t mach_straight_traverse(float target[], float flags[]) {
-  mach.gm.motion_mode = MOTION_MODE_STRAIGHT_TRAVERSE;
+stat_t mach_rapid(float target[], float flags[]) {
+  mach.gm.motion_mode = MOTION_MODE_RAPID;
   mach_set_model_target(target, flags);
 
   // test soft limits
-  stat_t status = mach_test_soft_limits(mach.ms.target);
+  stat_t status = mach_test_soft_limits(mach.gm.target);
   if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
-  mach_set_work_offsets();         // capture fully resolved offsets to state
-  mach.ms.line = mach.gm.line;     // copy line number
-  status = mp_aline(&mach.ms);     // send the move to the planner
+  mach_update_work_offsets();      // update fully resolved offsets to state
+  status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
   mach_finalize_move();
 
   return status;
@@ -827,17 +911,17 @@ void mach_set_g28_position() {copy_vector(mach.g28_position, mach.position);}
 
 /// G28
 stat_t mach_goto_g28_position(float target[], float flags[]) {
-  mach_set_absolute_override(true);
+  mach_set_absolute_mode(true);
 
   // move through intermediate point, or skip
-  mach_straight_traverse(target, flags);
+  mach_rapid(target, flags);
 
   // make sure you have an available buffer
   mp_wait_for_buffer();
 
   // execute actual stored move
   float f[] = {1, 1, 1, 1, 1, 1};
-  return mach_straight_traverse(mach.g28_position, f);
+  return mach_rapid(mach.g28_position, f);
 }
 
 
@@ -847,17 +931,17 @@ void mach_set_g30_position() {copy_vector(mach.g30_position, mach.position);}
 
 /// G30
 stat_t mach_goto_g30_position(float target[], float flags[]) {
-  mach_set_absolute_override(true);
+  mach_set_absolute_mode(true);
 
   // move through intermediate point, or skip
-  mach_straight_traverse(target, flags);
+  mach_rapid(target, flags);
 
   // make sure you have an available buffer
   mp_wait_for_buffer();
 
   // execute actual stored move
   float f[] = {1, 1, 1, 1, 1, 1};
-  return mach_straight_traverse(mach.g30_position, f);
+  return mach_rapid(mach.g30_position, f);
 }
 
 
@@ -895,22 +979,21 @@ stat_t mach_dwell(float seconds) {
 
 
 /// G1
-stat_t mach_straight_feed(float target[], float flags[]) {
+stat_t mach_feed(float target[], float flags[]) {
   // trap zero feed rate condition
   if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
-  mach.gm.motion_mode = MOTION_MODE_STRAIGHT_FEED;
+  mach.gm.motion_mode = MOTION_MODE_FEED;
   mach_set_model_target(target, flags);
 
   // test soft limits
-  stat_t status = mach_test_soft_limits(mach.ms.target);
+  stat_t status = mach_test_soft_limits(mach.gm.target);
   if (status != STAT_OK) return CM_ALARM(status);
 
   // prep and plan the move
-  mach_set_work_offsets();         // capture fully resolved offsets to state
-  mach.ms.line = mach.gm.line;     // copy line number
-  status = mp_aline(&mach.ms);     // send the move to the planner
+  mach_update_work_offsets();      // update fully resolved offsets to state
+  status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
   mach_finalize_move();
 
   return status;
@@ -964,43 +1047,27 @@ void mach_flood_coolant_control(bool flood_coolant) {
 
 /// M48, M49
 void mach_override_enables(bool flag) {
-  mach.gm.feed_rate_override_enable = flag;
-  mach.gm.traverse_override_enable = flag;
+  mach.gm.feed_override_enable = flag;
   mach.gm.spindle_override_enable = flag;
 }
 
 
 /// M50
-void mach_feed_rate_override_enable(bool flag) {
+void mach_feed_override_enable(bool flag) {
   if (fp_TRUE(mach.gf.parameter) && fp_ZERO(mach.gn.parameter))
-    mach.gm.feed_rate_override_enable = false;
-  else mach.gm.feed_rate_override_enable = true;
+    mach.gm.feed_override_enable = false;
+  else mach.gm.feed_override_enable = true;
 }
 
 
-/// M50.1
-void mach_feed_rate_override_factor(bool flag) {
-  mach.gm.feed_rate_override_enable = flag;
-  mach.gm.feed_rate_override_factor = mach.gn.parameter;
-}
-
-
-/// M50.2
-void mach_traverse_override_enable(bool flag) {
-  if (fp_TRUE(mach.gf.parameter) && fp_ZERO(mach.gn.parameter))
-    mach.gm.traverse_override_enable = false;
-  else mach.gm.traverse_override_enable = true;
+/// M50
+void mach_feed_override_factor(bool flag) {
+  mach.gm.feed_override_enable = flag;
+  mach.gm.feed_override_factor = mach.gn.parameter;
 }
 
 
 /// M51
-void mach_traverse_override_factor(bool flag) {
-  mach.gm.traverse_override_enable = flag;
-  mach.gm.traverse_override_factor = mach.gn.parameter;
-}
-
-
-/// M51.1
 void mach_spindle_override_enable(bool flag) {
   if (fp_TRUE(mach.gf.parameter) && fp_ZERO(mach.gn.parameter))
     mach.gm.spindle_override_enable = false;
@@ -1008,7 +1075,7 @@ void mach_spindle_override_enable(bool flag) {
 }
 
 
-/// M50.1
+/// M51
 void mach_spindle_override_factor(bool flag) {
   mach.gm.spindle_override_enable = flag;
   mach.gm.spindle_override_factor = mach.gn.parameter;
@@ -1101,7 +1168,8 @@ void mach_program_end() {
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
   mach_set_plane(GCODE_DEFAULT_PLANE);
   mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
-  mach_spindle_control(SPINDLE_OFF);                 // M5
+  mach.gm.spindle_mode = SPINDLE_OFF;
+  spindle_set(SPINDLE_OFF, 0);
   mach_flood_coolant_control(false);                 // M9
   mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);    // G94
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);

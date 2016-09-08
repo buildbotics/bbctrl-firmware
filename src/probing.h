@@ -33,5 +33,5 @@
 
 
 bool mach_is_probing();
-stat_t mach_straight_probe(float target[], float flags[]);
+stat_t mach_probe(float target[], float flags[]);
 void mach_probe_callback();

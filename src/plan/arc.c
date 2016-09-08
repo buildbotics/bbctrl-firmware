@@ -74,7 +74,8 @@ typedef struct {
   float center_0;           // center of circle at plane axis 0 (e.g. X for G17)
   float center_1;           // center of circle at plane axis 1 (e.g. Y for G17)
 
-  move_state_t ms;
+  int32_t line;                     // gcode block line number
+  float target[AXES];               // XYZABC where the move should go
 } arc_t;
 
 arc_t arc = {0};
@@ -192,8 +193,8 @@ static void _estimate_arc_time() {
  */
 static stat_t _compute_arc_offsets_from_radius() {
   // Calculate the change in position along each selected axis
-  float x = mach.ms.target[arc.plane_axis_0] - mach.position[arc.plane_axis_0];
-  float y = mach.ms.target[arc.plane_axis_1] - mach.position[arc.plane_axis_1];
+  float x = mach.gm.target[arc.plane_axis_0] - mach.position[arc.plane_axis_0];
+  float y = mach.gm.target[arc.plane_axis_1] - mach.position[arc.plane_axis_1];
 
   // *** From Forrest Green - Other Machine Co, 3/27/14
   // If the distance between endpoints is greater than the arc diameter, disc
@@ -263,9 +264,9 @@ static stat_t _compute_arc() {
   //  (.05 inch/.5 mm) OR ((.0005 inch/.005mm) AND .1% of radius)."
 
   // Compute end radius from the center of circle (offsets) to target endpoint
-  float end_0 = arc.ms.target[arc.plane_axis_0] -
+  float end_0 = arc.target[arc.plane_axis_0] -
     arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
-  float end_1 = arc.ms.target[arc.plane_axis_1] -
+  float end_1 = arc.target[arc.plane_axis_1] -
     arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
   // end radius - start radius
   float err = fabs(hypotf(end_0, end_1) - arc.radius);
@@ -282,7 +283,7 @@ static stat_t _compute_arc() {
 
   // g18_correction is used to invert G18 XZ plane arcs for proper CW
   // orientation
-  float g18_correction = mach.gm.select_plane == PLANE_XZ ? -1 : 1;
+  float g18_correction = mach.gm.plane == PLANE_XZ ? -1 : 1;
 
   if (arc.full_circle) {
     // angular travel always starts as zero for full circles
@@ -321,7 +322,7 @@ static stat_t _compute_arc() {
   // should take to perform the move arc.length is the total mm of travel of
   // the helix (or just a planar arc)
   arc.linear_travel =
-    arc.ms.target[arc.linear_axis] - arc.position[arc.linear_axis];
+    arc.target[arc.linear_axis] - arc.position[arc.linear_axis];
   arc.planar_travel = arc.angular_travel * arc.radius;
   // hypot is insensitive to +/- signs
   arc.length = hypotf(arc.planar_travel, arc.linear_travel);
@@ -342,15 +343,13 @@ static stat_t _compute_arc() {
                arc_segments_for_minimum_time));
 
   arc.arc_segments = max(arc.arc_segments, 1); // at least 1 arc_segment
-  // gcode state struct gets arc_segment_time, not arc time
-  arc.ms.move_time = arc.arc_time / arc.arc_segments;
   arc.arc_segment_count = (int32_t)arc.arc_segments;
   arc.arc_segment_theta = arc.angular_travel / arc.arc_segments;
   arc.arc_segment_linear_travel = arc.linear_travel / arc.arc_segments;
   arc.center_0 = arc.position[arc.plane_axis_0] - sin(arc.theta) * arc.radius;
   arc.center_1 = arc.position[arc.plane_axis_1] - cos(arc.theta) * arc.radius;
   // initialize the linear target
-  arc.ms.target[arc.linear_axis] = arc.position[arc.linear_axis];
+  arc.target[arc.linear_axis] = arc.position[arc.linear_axis];
 
   return STAT_OK;
 }
@@ -390,7 +389,8 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   // specification Plane axis 0 and 1 are the arc plane, the linear axis is
   // normal to the arc plane.
   // G17 - the vast majority of arcs are in the G17 (XY) plane
-  if (mach.gm.select_plane == PLANE_XY) {
+  switch (mach.gm.plane) {
+  case PLANE_XY:
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Y;
     arc.linear_axis  = AXIS_Z;
@@ -404,8 +404,9 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
       // center format arc tests, it's OK to be missing either or both i and j,
       // but error if k is present
       return STAT_ARC_SPECIFICATION_ERROR;
+    break;
 
-  } else if (mach.gm.select_plane == PLANE_XZ) { // G18
+  case PLANE_XZ: // G18
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_Y;
@@ -414,8 +415,9 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
       if (!(target_x || target_z))
         return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
     } else if (offset_j) return STAT_ARC_SPECIFICATION_ERROR;
+    break;
 
-  } else if (mach.gm.select_plane == PLANE_YZ) { // G19
+  case PLANE_YZ: // G19
     arc.plane_axis_0 = AXIS_Y;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_X;
@@ -424,22 +426,23 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
       if (!target_y && !target_z)
         return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
     } else if (offset_i) return STAT_ARC_SPECIFICATION_ERROR;
+    break;
   }
 
   // set values in Gcode model state & copy it (line was already captured)
   mach_set_model_target(target, flags);
 
   // in radius mode it's an error for start == end
-  if (radius_f && fp_EQ(mach.position[AXIS_X], mach.ms.target[AXIS_X]) &&
-      fp_EQ(mach.position[AXIS_Y], mach.ms.target[AXIS_Y]) &&
-      fp_EQ(mach.position[AXIS_Z], mach.ms.target[AXIS_Z]))
+  if (radius_f && fp_EQ(mach.position[AXIS_X], mach.gm.target[AXIS_X]) &&
+      fp_EQ(mach.position[AXIS_Y], mach.gm.target[AXIS_Y]) &&
+      fp_EQ(mach.position[AXIS_Z], mach.gm.target[AXIS_Z]))
     return STAT_ARC_ENDPOINT_IS_STARTING_POINT;
 
   // now get down to the rest of the work setting up the arc for execution
   mach.gm.motion_mode = motion_mode;
-  mach_set_work_offsets();                         // Update resolved offsets
-  mach.ms.line = mach.gm.line;                     // copy line number
-  memcpy(&arc.ms, &mach.ms, sizeof(move_state_t)); // context to arc singleton
+  mach_update_work_offsets();                      // Update resolved offsets
+  arc.line = mach.gm.line;                         // copy line number
+  copy_vector(arc.target, mach.gm.target);         // copy move target
 
   copy_vector(arc.position, mach.position);        // arc pos from gcode model
 
@@ -479,14 +482,14 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
 void mach_arc_callback() {
   while (arc.run_state != MOVE_OFF && mp_get_planner_buffer_room()) {
     arc.theta += arc.arc_segment_theta;
-    arc.ms.target[arc.plane_axis_0] =
+    arc.target[arc.plane_axis_0] =
       arc.center_0 + sin(arc.theta) * arc.radius;
-    arc.ms.target[arc.plane_axis_1] =
+    arc.target[arc.plane_axis_1] =
       arc.center_1 + cos(arc.theta) * arc.radius;
-    arc.ms.target[arc.linear_axis] += arc.arc_segment_linear_travel;
+    arc.target[arc.linear_axis] += arc.arc_segment_linear_travel;
 
-    mp_aline(&arc.ms);                            // run the line
-    copy_vector(arc.position, arc.ms.target);     // update arc current pos
+    mp_aline(arc.target, arc.line);            // run the line
+    copy_vector(arc.position, arc.target);     // update arc current pos
 
     if (!--arc.arc_segment_count) arc.run_state = MOVE_OFF;
   }

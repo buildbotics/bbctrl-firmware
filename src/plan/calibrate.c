@@ -176,7 +176,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   cal.motor = 1;
 
   bf->bf_func = _exec_calibrate; // register callback
-  mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
+  mp_commit_write_buffer(-1);
 
   return 0;
 }

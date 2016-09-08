@@ -178,14 +178,14 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  * accumulate and get executed once the accumulated error exceeds
  * the minimums.
  */
-stat_t mp_aline(move_state_t *ms) {
+stat_t mp_aline(const float target[], int32_t line) {
   // Compute some reusable terms
   float axis_length[AXES];
   float axis_square[AXES];
   float length_square = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
-    axis_length[axis] = ms->target[axis] - mm.position[axis];
+    axis_length[axis] = target[axis] - mm.position[axis];
     axis_square[axis] = square(axis_length[axis]);
     length_square += axis_square[axis];
   }
@@ -200,8 +200,8 @@ stat_t mp_aline(move_state_t *ms) {
   // minimum move time get a more accurate time estimate based on
   // starting velocity and acceleration.  The time of the move is
   // determined by its initial velocity (Vi) and how much acceleration
-  // will occur. For this we need to look at the exit velocity of
-  // the previous block. There are 3 possible cases:
+  // will occur.  For this we need to look at the exit velocity of
+  // the previous block.  There are 3 possible cases:
   //
   //    (1) There is no previous block.
   //        Vi = 0
@@ -213,9 +213,9 @@ stat_t mp_aline(move_state_t *ms) {
   //        Vi <= previous block's entry_velocity + delta_velocity
 
   // Set move time in state
-  mach_calc_move_time(axis_length, axis_square);
+  float move_time = mach_calc_move_time(axis_length, axis_square);
 
-  if (ms->move_time < MIN_BLOCK_TIME) {
+  if (move_time < MIN_BLOCK_TIME) {
     // Max velocity change for this move
     float delta_velocity = pow(length, 0.66666666) * mm.cbrt_jerk;
     float entry_velocity = 0; // pre-set as if no previous block
@@ -228,7 +228,7 @@ stat_t mp_aline(move_state_t *ms) {
     }
 
     // Compute execution time for this move
-    float move_time = 2 * length / (2 * entry_velocity + delta_velocity);
+    move_time = 2 * length / (2 * entry_velocity + delta_velocity);
     if (move_time < MIN_BLOCK_TIME) return STAT_MINIMUM_TIME_MOVE;
   }
 
@@ -241,7 +241,7 @@ stat_t mp_aline(move_state_t *ms) {
   bf->length = length;
 
   // Copy model state into planner buffer
-  memcpy(&bf->ms, ms, sizeof(move_state_t));
+  copy_vector(bf->target, target);
 
   // Compute the unit vector and find the right jerk to use (combined
   // operations) To determine the jerk value to use for the block we
@@ -361,7 +361,7 @@ stat_t mp_aline(move_state_t *ms) {
 
   // finish up the current block variables
   float junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
-  bf->cruise_vmax = bf->length / bf->ms.move_time; // target velocity requested
+  bf->cruise_vmax = bf->length / move_time; // target velocity requested
   bf->entry_vmax = min3(bf->cruise_vmax, junction_velocity, exact_stop);
   bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
   bf->exit_vmax =
@@ -371,10 +371,10 @@ stat_t mp_aline(move_state_t *ms) {
   // NOTE: these next lines must remain in exact order. Position must update
   // before committing the buffer.
   mp_plan_block_list(bf);                   // plan block list
-  copy_vector(mm.position, bf->ms.target);  // set the planner position
+  copy_vector(mm.position, target);         // set the planner position
 
   // commit current block (must follow the position update)
-  mp_commit_write_buffer(ms->line, MOVE_TYPE_ALINE);
+  mp_commit_write_buffer(line);
 
   return STAT_OK;
 }

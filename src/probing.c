@@ -129,7 +129,7 @@ static void _probing_start() {
   bool closed = switch_is_active(SW_PROBE);
 
   if (!closed) {
-    stat_t status = mach_straight_feed(pb.target, pb.flags);
+    stat_t status = mach_feed(pb.target, pb.flags);
     if (status) return _probing_error_exit(status);
   }
 
@@ -172,12 +172,12 @@ static void _probing_init() {
       _probing_error_exit(STAT_MOVE_DURING_PROBE);
 
   // probe in absolute machine coords
-  pb.saved_coord_system = mach_get_coord_system(&mach.gm);
-  pb.saved_distance_mode = mach_get_distance_mode(&mach.gm);
+  pb.saved_coord_system = mach_get_coord_system();
+  pb.saved_distance_mode = mach_get_distance_mode();
   mach_set_distance_mode(ABSOLUTE_MODE);
   mach_set_coord_system(ABSOLUTE_COORDS);
 
-  mach_spindle_control(SPINDLE_OFF);
+  mach_set_spindle_mode(SPINDLE_OFF);
 
   // start the move
   pb.func = _probing_start;
@@ -190,7 +190,7 @@ bool mach_is_probing() {
 
 
 /// G38.2 homing cycle using limit switches
-stat_t mach_straight_probe(float target[], float flags[]) {
+stat_t mach_probe(float target[], float flags[]) {
   // trap zero feed rate condition
   if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;

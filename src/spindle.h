@@ -31,7 +31,6 @@
 #include "machine.h"
 
 
-void mach_spindle_init();
-void mach_set_spindle_speed(float speed);                  // S parameter
-void mach_spindle_control(spindle_mode_t spindle_mode);    // M3, M4, M5
-void mach_spindle_estop();
+void spindle_init();
+void spindle_set(spindle_mode_t spindle_mode, float speed);
+void spindle_estop();

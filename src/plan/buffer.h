@@ -34,14 +34,6 @@
 
 
 typedef enum {
-  MOVE_TYPE_NULL,          // null move - does a no-op
-  MOVE_TYPE_ALINE,         // acceleration planned line
-  MOVE_TYPE_DWELL,         // delay with no movement
-  MOVE_TYPE_COMMAND,       // general command
-} move_type_t;
-
-
-typedef enum {
   MOVE_OFF,                // move inactive (MUST BE ZERO)
   MOVE_NEW,                // initial value
   MOVE_INIT,               // first run
@@ -73,10 +65,12 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   mach_func_t mach_func;          // callback to machine
 
   buffer_state_t buffer_state;    // used to manage queuing/dequeuing
-  move_type_t move_type;          // used to dispatch to run routine
   run_state_t run_state;          // run state machine sequence
   bool replannable;               // true if move can be re-planned
 
+  int32_t line;                   // gcode block line number
+
+  float target[AXES];             // XYZABC where the move should go
   float unit[AXES];               // unit vector for axis scaling & planning
 
   float length;                   // total length of line or helix in mm
@@ -99,7 +93,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   float recip_jerk;               // 1/Jm used for planning (computed & cached)
   float cbrt_jerk;                // cube root of Jm (computed & cached)
 
-  move_state_t ms;
+  float dwell;
 } mp_buffer_t;
 
 
@@ -108,7 +102,7 @@ void mp_wait_for_buffer();
 void mp_init_buffers();
 bool mp_queue_empty();
 mp_buffer_t *mp_get_write_buffer();
-void mp_commit_write_buffer(uint32_t line, move_type_t type);
+void mp_commit_write_buffer(uint32_t line);
 mp_buffer_t *mp_get_run_buffer();
 void mp_free_run_buffer();
 mp_buffer_t *mp_get_last_buffer();

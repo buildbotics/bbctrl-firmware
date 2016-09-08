@@ -473,7 +473,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  * Variables that are ignored but here's what you would expect them to be:
  *
  *   bf->run_state         - NEW for all blocks but the earliest
- *   bf->ms.target[]       - block target position
+ *   bf->target[]          - block target position
  *   bf->unit[]            - block unit vector
  *   bf->time              - gets set later
  *   bf->jerk              - source of the other jerk variables.

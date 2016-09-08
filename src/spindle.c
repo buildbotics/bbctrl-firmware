@@ -40,70 +40,38 @@ typedef enum {
   SPINDLE_TYPE_HUANYANG,
 } spindle_type_t;
 
-static spindle_type_t spindle_type = SPINDLE_TYPE;
+static spindle_type_t _type = SPINDLE_TYPE;
 
 
-static void _spindle_set(spindle_mode_t mode, float speed) {
-  switch (spindle_type) {
+void spindle_init() {
+  pwm_spindle_init();
+  huanyang_init();
+}
+
+
+void spindle_set(spindle_mode_t mode, float speed) {
+  switch (_type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
   }
 }
 
 
-/// execute the spindle command (called from planner)
-static void _exec_spindle_control(float *value, float *flag) {
-  spindle_mode_t mode = value[0];
-  mach_set_spindle_mode(mode);
-  _spindle_set(mode, mach.gm.spindle_speed);
-}
-
-
-/// Spindle speed callback from planner queue
-static void _exec_spindle_speed(float *value, float *flag) {
-  float speed = value[0];
-  mach_set_spindle_speed_parameter(speed);
-  _spindle_set(mach.gm.spindle_mode, speed);
-}
-
-
-void mach_spindle_init() {
-  pwm_spindle_init();
-  huanyang_init();
-}
-
-
-/// Queue the spindle command to the planner buffer
-void mach_spindle_control(spindle_mode_t mode) {
-  float value[AXES] = {mode};
-  mp_queue_command(_exec_spindle_control, value, value);
-}
-
-
-void mach_spindle_estop() {
-  switch (spindle_type) {
+void spindle_estop() {
+  switch (_type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_estop(); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_estop(); break;
   }
 }
 
 
-/// Queue the S parameter to the planner buffer
-void mach_set_spindle_speed(float speed) {
-  float value[AXES] = {speed};
-  mp_queue_command(_exec_spindle_speed, value, value);
-}
-
-
-uint8_t get_spindle_type(int index) {
-  return spindle_type;
-}
+uint8_t get_spindle_type(int index) {return _type;}
 
 
 void set_spindle_type(int index, uint8_t value) {
-  if (value != spindle_type) {
-    _spindle_set(SPINDLE_OFF, 0);
-    spindle_type = value;
-    _spindle_set(mach.gm.spindle_mode, mach.gm.spindle_speed);
+  if (value != _type) {
+    spindle_set(SPINDLE_OFF, 0);
+    _type = value;
+    spindle_set(mach.gm.spindle_mode, mach.gm.spindle_speed);
   }
 }

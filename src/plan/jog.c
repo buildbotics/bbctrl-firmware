@@ -132,7 +132,7 @@ uint8_t command_jog(int argc, char *argv[]) {
     // Start
     mp_set_cycle(CYCLE_JOGGING);
     bf->bf_func = _exec_jog; // register callback
-    mp_commit_write_buffer(-1, MOVE_TYPE_COMMAND);
+    mp_commit_write_buffer(-1);
   }
 
   return STAT_OK;

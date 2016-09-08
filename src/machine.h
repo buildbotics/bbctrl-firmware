@@ -67,8 +67,8 @@ typedef enum {
 
 
 typedef enum {                        // G Modal Group 1
-  MOTION_MODE_STRAIGHT_TRAVERSE,      // G0 - straight traverse
-  MOTION_MODE_STRAIGHT_FEED,          // G1 - straight feed
+  MOTION_MODE_RAPID,                  // G0 - rapid
+  MOTION_MODE_FEED,                   // G1 - straight feed
   MOTION_MODE_CW_ARC,                 // G2 - clockwise arc feed
   MOTION_MODE_CCW_ARC,                // G3 - counter-clockwise arc feed
   MOTION_MODE_CANCEL_MOTION_MODE,     // G80
@@ -127,7 +127,6 @@ typedef enum {
 typedef enum {
   ABSOLUTE_COORDS,                // machine coordinate system
   G54, G55, G56, G57, G58, G59,
-  MAX_COORDS,
 } coord_system_t;
 
 /// G Modal Group 13
@@ -223,14 +222,6 @@ typedef enum {
  */
 
 
-typedef struct {
-  int32_t line;              // gcode block line number
-  float target[AXES];        // XYZABC where the move should go
-  float work_offset[AXES];   // offset from work coordinate system
-  float move_time;           // optimal time for move given axis constraints
-} move_state_t;
-
-
 /// Gcode model state
 typedef struct {
   uint32_t line;                      // Gcode block line number
@@ -240,10 +231,8 @@ typedef struct {
 
   float feed_rate;                    // F - in mm/min or inverse time mode
   feed_rate_mode_t feed_rate_mode;
-  float feed_rate_override_factor;    // 1.0000 x F feed rate
-  bool feed_rate_override_enable;     // M48, M49
-  float traverse_override_factor;     // 1.0000 x traverse rate
-  bool traverse_override_enable;
+  float feed_override_factor;         // 1.0000 x F feed rate
+  bool feed_override_enable;          // M48, M49
 
   float spindle_speed;                // in RPM
   spindle_mode_t spindle_mode;
@@ -251,10 +240,10 @@ typedef struct {
   bool spindle_override_enable;       // true = override enabled
 
   motion_mode_t motion_mode;          // Group 1 modal motion
-  plane_t select_plane;               // G17, G18, G19
+  plane_t plane;                      // G17, G18, G19
   units_mode_t units_mode;            // G20, G21
   coord_system_t coord_system;        // G54-G59 - select coordinate system 1-9
-  bool absolute_override;             // G53 true = move in machine coordinates
+  bool absolute_mode;                 // G53 true = move in machine coordinates
   path_mode_t path_control;           // G61
   distance_mode_t distance_mode;      // G91
   distance_mode_t arc_distance_mode;  // G91.1
@@ -309,7 +298,6 @@ typedef struct { // struct to manage mach globals and cycles
   float g30_position[AXES];            // stored machine position for G30
 
   axis_config_t a[AXES];               // settings for axes
-  move_state_t ms;
   gcode_state_t gm;                    // core gcode model state
   gcode_state_t gn;                    // gcode input values
   gcode_state_t gf;                    // gcode input flags
@@ -324,7 +312,7 @@ uint32_t mach_get_line();
 motion_mode_t mach_get_motion_mode();
 coord_system_t mach_get_coord_system();
 units_mode_t mach_get_units_mode();
-plane_t mach_get_select_plane();
+plane_t mach_get_plane();
 path_mode_t mach_get_path_control();
 distance_mode_t mach_get_distance_mode();
 feed_rate_mode_t mach_get_feed_rate_mode();
@@ -334,12 +322,17 @@ inline float mach_get_spindle_speed() {return mach.gm.spindle_speed;}
 float mach_get_feed_rate();
 
 PGM_P mp_get_units_mode_pgmstr(units_mode_t mode);
+PGM_P mp_get_feed_rate_mode_pgmstr(feed_rate_mode_t mode);
+PGM_P mp_get_plane_pgmstr(plane_t plane);
+PGM_P mp_get_coord_system_pgmstr(coord_system_t cs);
+PGM_P mp_get_path_mode_pgmstr(path_mode_t mode);
+PGM_P mp_get_distance_mode_pgmstr(distance_mode_t mode);
 
 void mach_set_motion_mode(motion_mode_t motion_mode);
 void mach_set_spindle_mode(spindle_mode_t spindle_mode);
-void mach_set_spindle_speed_parameter(float speed);
+void mach_set_spindle_speed(float speed);
 void mach_set_tool_number(uint8_t tool);
-void mach_set_absolute_override(bool absolute_override);
+void mach_set_absolute_mode(bool absolute_mode);
 void mach_set_model_line(uint32_t line);
 
 float mach_get_axis_jerk(uint8_t axis);
@@ -347,13 +340,12 @@ void mach_set_axis_jerk(uint8_t axis, float jerk);
 
 // Coordinate systems and offsets
 float mach_get_active_coord_offset(uint8_t axis);
-float mach_get_work_offset(uint8_t axis);
-void mach_set_work_offsets();
+void mach_update_work_offsets();
 float mach_get_absolute_position(uint8_t axis);
 float mach_get_work_position(uint8_t axis);
 
 // Critical helpers
-void mach_calc_move_time(const float axis_length[], const float axis_square[]);
+float mach_calc_move_time(const float axis_length[], const float axis_square[]);
 void mach_finalize_move();
 stat_t mach_deferred_write_callback();
 void mach_set_model_target(float target[], float flag[]);
@@ -390,7 +382,7 @@ void mach_suspend_origin_offsets();
 void mach_resume_origin_offsets();
 
 // Free Space Motion (4.3.4)
-stat_t mach_straight_traverse(float target[], float flags[]);
+stat_t mach_rapid(float target[], float flags[]);
 void mach_set_g28_position();
 stat_t mach_goto_g28_position(float target[], float flags[]);
 void mach_set_g30_position();
@@ -402,7 +394,7 @@ void mach_set_feed_rate_mode(feed_rate_mode_t mode);
 void mach_set_path_control(path_mode_t mode);
 
 // Machining Functions (4.3.6)
-stat_t mach_straight_feed(float target[], float flags[]);
+stat_t mach_feed(float target[], float flags[]);
 stat_t mach_arc_feed(float target[], float flags[], float i, float j, float k,
                      float radius, uint8_t motion_mode);
 stat_t mach_dwell(float seconds);
@@ -418,10 +410,8 @@ void mach_mist_coolant_control(bool mist_coolant);
 void mach_flood_coolant_control(bool flood_coolant);
 
 void mach_override_enables(bool flag);
-void mach_feed_rate_override_enable(bool flag);
-void mach_feed_rate_override_factor(bool flag);
-void mach_traverse_override_enable(bool flag);
-void mach_traverse_override_factor(bool flag);
+void mach_feed_override_enable(bool flag);
+void mach_feed_override_factor(bool flag);
 void mach_spindle_override_enable(bool flag);
 void mach_spindle_override_factor(bool flag);
 

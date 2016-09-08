@@ -402,7 +402,7 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
 
   // Initialize move
   copy_vector(ex.unit, bf->unit);
-  copy_vector(ex.final_target, bf->ms.target);
+  copy_vector(ex.final_target, bf->target);
 
   ex.head_length = bf->head_length;
   ex.body_length = bf->body_length;
@@ -414,9 +414,6 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
   ex.section = SECTION_HEAD;
   ex.section_new = true;
   ex.hold_planned = false;
-
-  // Update runtime
-  mp_runtime_set_work_offsets(bf->ms.work_offset);
 
   // Generate waypoints for position correction at section ends.  This helps
   // negate floating point errors in the forward differencing code.
@@ -532,7 +529,7 @@ stat_t mp_exec_move() {
 
     // Update runtime
     mp_runtime_set_busy(true);
-    mp_runtime_set_line(bf->ms.line);
+    mp_runtime_set_line(bf->line);
   }
 
   stat_t status = bf->bf_func(bf); // Move callback
