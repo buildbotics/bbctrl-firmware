@@ -97,11 +97,16 @@ bool st_is_busy() {return st.busy;}
 /// Interrupt handler for calling move exec function.
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(ADCB_CH0_vect) {
-  stat_t status = mp_exec_move();
+  while (true) {
+    stat_t status = mp_exec_move();
 
-  switch (status) {
-  case STAT_OK: case STAT_NOOP: case STAT_EAGAIN: break; // Ok
-  default: CM_ALARM(status); break;
+    switch (status) {
+    case STAT_NOOP: continue; // No stepper command was executed try again
+    case STAT_OK: case STAT_EAGAIN: break; // Ok
+    default: CM_ALARM(status); break;
+    }
+
+    break;
   }
 
   ADCB_CH0_INTCTRL = 0;

@@ -91,7 +91,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
     for (int axis = 0; axis < AXES; axis++)
       mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
-    return STAT_NOOP; // Done
+    return STAT_NOOP; // Done, no move executed
   }
 
   mp_runtime_set_velocity(sqrt(velocity_sqr));

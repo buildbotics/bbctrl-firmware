@@ -398,7 +398,7 @@ float mach_get_active_coord_offset(uint8_t axis) {
 
 static stat_t _exec_update_work_offsets(mp_buffer_t *bf) {
   mp_runtime_set_work_offsets(bf->target);
-  return STAT_OK;
+  return STAT_NOOP;
 }
 
 

@@ -48,34 +48,22 @@
 
 typedef struct {
   run_state_t run_state;            // runtime state machine sequence
+  int32_t line;                     // gcode block line number
 
-  float position[AXES];             // accumulating runtime position
-  float offset[3];                  // IJK offsets
+  float target[AXES];               // XYZABC where the move should go
 
-  float length;                     // length of line or helix in mm
   float theta;                      // total angle specified by arc
-  float theta_end;
   float radius;                     // Raw R value, or computed via offsets
-  float angular_travel;             // travel along the arc
-  float linear_travel;              // travel along linear axis of arc
-  float planar_travel;
-  uint8_t full_circle;              // set true if full circle arcs specified
-  uint32_t rotations;               // Full rotations for full circles (P value)
 
   uint8_t plane_axis_0;             // arc plane axis 0 - e.g. X for G17
   uint8_t plane_axis_1;             // arc plane axis 1 - e.g. Y for G17
   uint8_t linear_axis;              // linear axis (normal to plane)
 
-  float arc_time;                   // total running time for arc (derived)
-  float arc_segments;               // number of segments in arc or blend
-  int32_t arc_segment_count;        // count of running segments
-  float arc_segment_theta;          // angular motion per segment
-  float arc_segment_linear_travel;  // linear motion per segment
-  float center_0;           // center of circle at plane axis 0 (e.g. X for G17)
-  float center_1;           // center of circle at plane axis 1 (e.g. Y for G17)
-
-  int32_t line;                     // gcode block line number
-  float target[AXES];               // XYZABC where the move should go
+  int32_t segments;                 // count of running segments
+  float segment_theta;              // angular motion per segment
+  float segment_linear_travel;      // linear motion per segment
+  float center_0;                   // center at axis 0 (e.g. X for G17)
+  float center_1;                   // center at axis 1 (e.g. Y for G17)
 } arc_t;
 
 arc_t arc = {0};
@@ -90,27 +78,29 @@ arc_t arc = {0};
  * any arbitrary arc, with the result that the time returned may be
  * less than optimal.
  */
-static void _estimate_arc_time() {
+static float _estimate_arc_time(float length, float linear_travel,
+                                float planar_travel) {
+  float t;
+
   // Determine move time at requested feed rate
   if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE) {
-    // inverse feed rate has been normalized to minutes
-    arc.arc_time = mach.gm.feed_rate;
-    // reset feed rate so next block requires an explicit feed rate setting
+    // Inverse feed rate has been normalized to minutes
+    t = mach.gm.feed_rate;
+
+    // Reset feed rate so next block requires an explicit feed rate setting
     mach.gm.feed_rate = 0;
     mach.gm.feed_rate_mode = UNITS_PER_MINUTE_MODE;
 
-  } else arc.arc_time = arc.length / mach.gm.feed_rate;
+  } else t = length / mach.gm.feed_rate;
 
   // Downgrade the time if there is a rate-limiting axis
-  arc.arc_time = max(arc.arc_time,
-                     arc.planar_travel / mach.a[arc.plane_axis_0].feedrate_max);
-  arc.arc_time = max(arc.arc_time,
-                     arc.planar_travel / mach.a[arc.plane_axis_1].feedrate_max);
+  t = max3(t, planar_travel / mach.a[arc.plane_axis_0].feedrate_max,
+           planar_travel / mach.a[arc.plane_axis_1].feedrate_max);
 
-  if (0 < fabs(arc.linear_travel))
-    arc.arc_time =
-      max(arc.arc_time,
-          fabs(arc.linear_travel / mach.a[arc.linear_axis].feedrate_max));
+  if (0 < fabs(linear_travel))
+    t = max(t, fabs(linear_travel / mach.a[arc.linear_axis].feedrate_max));
+
+  return t;
 }
 
 
@@ -191,7 +181,7 @@ static void _estimate_arc_time() {
  *    Assumes arc singleton has been pre-loaded with target and position.
  *    Parts of this routine were originally sourced from the grbl project.
  */
-static stat_t _compute_arc_offsets_from_radius() {
+static stat_t _compute_arc_offsets_from_radius(float offset[]) {
   // Calculate the change in position along each selected axis
   float x = mach.gm.target[arc.plane_axis_0] - mach.position[arc.plane_axis_0];
   float y = mach.gm.target[arc.plane_axis_1] - mach.position[arc.plane_axis_1];
@@ -199,10 +189,10 @@ static stat_t _compute_arc_offsets_from_radius() {
   // *** From Forrest Green - Other Machine Co, 3/27/14
   // If the distance between endpoints is greater than the arc diameter, disc
   // will be negative indicating that the arc is offset into the complex plane
-  // beyond the reach of any real CNC. However, numerical errors can flip the
+  // beyond the reach of any real CNC.  However, numerical errors can flip the
   // sign of disc as it approaches zero (which happens as the arc angle
-  // approaches 180 degrees). To avoid mishandling these arcs we use the
-  // closest real solution (which will be 0 when disc <= 0). This risks
+  // approaches 180 degrees).  To avoid mishandling these arcs we use the
+  // closest real solution (which will be 0 when disc <= 0).  This risks
   // obscuring g-code errors where the radius is actually too small (they will
   // be treated as half circles), but ensures that all valid arcs end up
   // reasonably close to their intended paths regardless of any numerical
@@ -223,9 +213,9 @@ static stat_t _compute_arc_offsets_from_radius() {
   if (arc.radius < 0) h_x2_div_d = -h_x2_div_d;
 
   // Complete the operation by calculating the actual center of the arc
-  arc.offset[arc.plane_axis_0] = (x - y * h_x2_div_d) / 2;
-  arc.offset[arc.plane_axis_1] = (y + x * h_x2_div_d) / 2;
-  arc.offset[arc.linear_axis] = 0;
+  offset[arc.plane_axis_0] = (x - y * h_x2_div_d) / 2;
+  offset[arc.plane_axis_1] = (y + x * h_x2_div_d) / 2;
+  offset[arc.linear_axis] = 0;
 
   return STAT_OK;
 }
@@ -248,13 +238,13 @@ static stat_t _compute_arc_offsets_from_radius() {
  *
  *  Parts of this routine were originally sourced from the grbl project.
  */
-static stat_t _compute_arc() {
+static stat_t _compute_arc(const float position[], float offset[],
+                           float rotations, bool full_circle) {
   // Compute radius. A non-zero radius value indicates a radius arc
   if (fp_NOT_ZERO(arc.radius))
-    _compute_arc_offsets_from_radius(); // indicates a radius arc
+    _compute_arc_offsets_from_radius(offset); // indicates a radius arc
   else // compute start radius
-    arc.radius =
-      hypotf(-arc.offset[arc.plane_axis_0], -arc.offset[arc.plane_axis_1]);
+    arc.radius = hypotf(-offset[arc.plane_axis_0], -offset[arc.plane_axis_1]);
 
   // Test arc specification for correctness according to:
   // http://linuxcnc.org/docs/html/gcode/gcode.html#sec:G2-G3-Arc
@@ -265,9 +255,9 @@ static stat_t _compute_arc() {
 
   // Compute end radius from the center of circle (offsets) to target endpoint
   float end_0 = arc.target[arc.plane_axis_0] -
-    arc.position[arc.plane_axis_0] - arc.offset[arc.plane_axis_0];
+    position[arc.plane_axis_0] - offset[arc.plane_axis_0];
   float end_1 = arc.target[arc.plane_axis_1] -
-    arc.position[arc.plane_axis_1] - arc.offset[arc.plane_axis_1];
+    position[arc.plane_axis_1] - offset[arc.plane_axis_1];
   // end radius - start radius
   float err = fabs(hypotf(end_0, end_1) - arc.radius);
 
@@ -278,100 +268,103 @@ static stat_t _compute_arc() {
   // Calculate the theta (angle) of the current point (position)
   // arc.theta is angular starting point for the arc (also needed later for
   // calculating center point)
-  arc.theta = atan2(-arc.offset[arc.plane_axis_0],
-                    -arc.offset[arc.plane_axis_1]);
+  arc.theta = atan2(-offset[arc.plane_axis_0], -offset[arc.plane_axis_1]);
 
   // g18_correction is used to invert G18 XZ plane arcs for proper CW
   // orientation
   float g18_correction = mach.gm.plane == PLANE_XZ ? -1 : 1;
 
-  if (arc.full_circle) {
+  float angular_travel = 0;
+
+  if (full_circle) {
     // angular travel always starts as zero for full circles
-    arc.angular_travel = 0;
+    angular_travel = 0;
     // handle the valid case of a full circle arc w/P=0
-    if (fp_ZERO(arc.rotations)) arc.rotations = 1.0;
+    if (fp_ZERO(rotations)) rotations = 1.0;
 
   } else {
-    arc.theta_end = atan2(end_0, end_1);
+    float theta_end = atan2(end_0, end_1);
 
     // Compute the angular travel
-    if (fp_EQ(arc.theta_end, arc.theta))
+    if (fp_EQ(theta_end, arc.theta))
       // very large radii arcs can have zero angular travel (thanks PartKam)
-      arc.angular_travel = 0;
+      angular_travel = 0;
 
     else {
       // make the difference positive so we have clockwise travel
-      if (arc.theta_end < arc.theta)
-        arc.theta_end += 2 * M_PI * g18_correction;
+      if (theta_end < arc.theta) theta_end += 2 * M_PI * g18_correction;
 
       // compute positive angular travel
-      arc.angular_travel = arc.theta_end - arc.theta;
+      angular_travel = theta_end - arc.theta;
 
       // reverse travel direction if it's CCW arc
       if (mach.gm.motion_mode == MOTION_MODE_CCW_ARC)
-        arc.angular_travel -= 2 * M_PI * g18_correction;
+        angular_travel -= 2 * M_PI * g18_correction;
     }
   }
 
   // Add in travel for rotations
   if (mach.gm.motion_mode == MOTION_MODE_CW_ARC)
-    arc.angular_travel += 2 * M_PI * arc.rotations * g18_correction;
-  else arc.angular_travel -= 2 * M_PI * arc.rotations * g18_correction;
+    angular_travel += 2 * M_PI * rotations * g18_correction;
+  else angular_travel -= 2 * M_PI * rotations * g18_correction;
 
   // Calculate travel in the depth axis of the helix and compute the time it
-  // should take to perform the move arc.length is the total mm of travel of
+  // should take to perform the move length is the total mm of travel of
   // the helix (or just a planar arc)
-  arc.linear_travel =
-    arc.target[arc.linear_axis] - arc.position[arc.linear_axis];
-  arc.planar_travel = arc.angular_travel * arc.radius;
+  float linear_travel =
+    arc.target[arc.linear_axis] - position[arc.linear_axis];
+  float planar_travel = angular_travel * arc.radius;
   // hypot is insensitive to +/- signs
-  arc.length = hypotf(arc.planar_travel, arc.linear_travel);
-  // get an estimate of execution time to inform arc_segment calculation
-  _estimate_arc_time();
+  float length = hypotf(planar_travel, linear_travel);
 
-  // Find the minimum number of arc_segments that meets these constraints...
-  float arc_segments_for_chordal_accuracy =
-    arc.length / sqrt(4 * CHORDAL_TOLERANCE *
-                      (2 * arc.radius - CHORDAL_TOLERANCE));
-  float arc_segments_for_minimum_distance = arc.length / ARC_SEGMENT_LENGTH;
-  float arc_segments_for_minimum_time =
-    arc.arc_time * MICROSECONDS_PER_MINUTE / MIN_ARC_SEGMENT_USEC;
+  // trap zero length arcs that _compute_arc can throw
+  if (fp_ZERO(length)) return STAT_MINIMUM_LENGTH_MOVE;
 
-  arc.arc_segments =
-    floor(min3(arc_segments_for_chordal_accuracy,
-               arc_segments_for_minimum_distance,
-               arc_segments_for_minimum_time));
+  // get an estimate of execution time to inform segment calculation
+  float arc_time = _estimate_arc_time(length, linear_travel, planar_travel);
 
-  arc.arc_segments = max(arc.arc_segments, 1); // at least 1 arc_segment
-  arc.arc_segment_count = (int32_t)arc.arc_segments;
-  arc.arc_segment_theta = arc.angular_travel / arc.arc_segments;
-  arc.arc_segment_linear_travel = arc.linear_travel / arc.arc_segments;
-  arc.center_0 = arc.position[arc.plane_axis_0] - sin(arc.theta) * arc.radius;
-  arc.center_1 = arc.position[arc.plane_axis_1] - cos(arc.theta) * arc.radius;
+  // Find the minimum number of segments that meets these constraints...
+  float segments_for_chordal_accuracy =
+    length / sqrt(4 * CHORDAL_TOLERANCE *
+                  (2 * arc.radius - CHORDAL_TOLERANCE));
+  float segments_for_minimum_distance = length / ARC_SEGMENT_LENGTH;
+  float segments_for_minimum_time =
+    arc_time * MICROSECONDS_PER_MINUTE / MIN_ARC_SEGMENT_USEC;
+
+  float segments =
+    floor(min3(segments_for_chordal_accuracy,
+               segments_for_minimum_distance,
+               segments_for_minimum_time));
+
+  segments = max(segments, 1); // at least 1 segment
+  arc.segments = (int32_t)segments;
+  arc.segment_theta = angular_travel / segments;
+  arc.segment_linear_travel = linear_travel / segments;
+  arc.center_0 = position[arc.plane_axis_0] - sin(arc.theta) * arc.radius;
+  arc.center_1 = position[arc.plane_axis_1] - cos(arc.theta) * arc.radius;
   // initialize the linear target
-  arc.target[arc.linear_axis] = arc.position[arc.linear_axis];
+  arc.target[arc.linear_axis] = position[arc.linear_axis];
 
   return STAT_OK;
 }
 
 
-/* machine entry point for arc
+/*** machine entry point for arc
  *
  * Generates an arc by queuing line segments to the move buffer. The arc is
- * approximated by generating a large number of tiny, linear arc_segments.
+ * approximated by generating a large number of tiny, linear segments.
  */
 stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
                      float i, float j, float k, // raw arc offsets
                      float radius,  // non-zero radius implies radius mode
                      uint8_t motion_mode) { // defined motion mode
-  // Set axis plane and trap arc specification errors
-
   // trap missing feed rate
   if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // set radius mode flag and do simple test(s)
   bool radius_f = fp_NOT_ZERO(mach.gf.arc_radius);  // set true if radius arc
+
   // radius value must be + and > minimum radius
   if (radius_f && mach.gn.arc_radius < MIN_ARC_RADIUS)
     return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
@@ -443,26 +436,17 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   mach_update_work_offsets();                      // Update resolved offsets
   arc.line = mach.gm.line;                         // copy line number
   copy_vector(arc.target, mach.gm.target);         // copy move target
-
-  copy_vector(arc.position, mach.position);        // arc pos from gcode model
-
   arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
 
-  arc.offset[0] = TO_MILLIMETERS(i);               // offsets in mm
-  arc.offset[1] = TO_MILLIMETERS(j);
-  arc.offset[2] = TO_MILLIMETERS(k);
-
-  arc.rotations = floor(fabs(mach.gn.parameter)); // P must be positive integer
+  float offset[3] = {TO_MILLIMETERS(i), TO_MILLIMETERS(j), TO_MILLIMETERS(k)};
+  float rotations = floor(fabs(mach.gn.parameter)); // P must be positive int
 
   // determine if this is a full circle arc. Evaluates true if no target is set
-  arc.full_circle =
+  bool full_circle =
     fp_ZERO(flags[arc.plane_axis_0]) & fp_ZERO(flags[arc.plane_axis_1]);
 
   // compute arc runtime values
-  RITORNO(_compute_arc());
-
-  // trap zero length arcs that _compute_arc can throw
-  if (fp_ZERO(arc.length)) return STAT_MINIMUM_LENGTH_MOVE;
+  RITORNO(_compute_arc(mach.position, offset, rotations, full_circle));
 
   arc.run_state = MOVE_RUN;                // enable arc run from the callback
   mach_arc_callback();                     // Queue initial arc moves
@@ -474,24 +458,20 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
 
 /* Generate an arc
  *
- *  Called from the controller main loop. Each time it's called it queues
+ *  Called from the controller main loop.  Each time it's called it queues
  *  as many arc segments (lines) as it can before it blocks, then returns.
- *
- *  Parts of this routine were originally sourced from the grbl project.
  */
 void mach_arc_callback() {
   while (arc.run_state != MOVE_OFF && mp_get_planner_buffer_room()) {
-    arc.theta += arc.arc_segment_theta;
-    arc.target[arc.plane_axis_0] =
-      arc.center_0 + sin(arc.theta) * arc.radius;
-    arc.target[arc.plane_axis_1] =
-      arc.center_1 + cos(arc.theta) * arc.radius;
-    arc.target[arc.linear_axis] += arc.arc_segment_linear_travel;
+    arc.theta += arc.segment_theta;
+
+    arc.target[arc.plane_axis_0] = arc.center_0 + sin(arc.theta) * arc.radius;
+    arc.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
+    arc.target[arc.linear_axis] += arc.segment_linear_travel;
 
     mp_aline(arc.target, arc.line);            // run the line
-    copy_vector(arc.position, arc.target);     // update arc current pos
 
-    if (!--arc.arc_segment_count) arc.run_state = MOVE_OFF;
+    if (!--arc.segments) arc.run_state = MOVE_OFF;
   }
 }
 

@@ -368,7 +368,7 @@ stat_t mp_aline(const float target[], int32_t line) {
     min3(bf->cruise_vmax, (bf->entry_vmax + bf->delta_vmax), exact_stop);
   bf->braking_velocity = bf->delta_vmax;
 
-  // NOTE: these next lines must remain in exact order. Position must update
+  // NOTE: these next lines must remain in exact order.  Position must update
   // before committing the buffer.
   mp_plan_block_list(bf);                   // plan block list
   copy_vector(mm.position, target);         // set the planner position

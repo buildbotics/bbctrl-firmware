@@ -80,7 +80,6 @@ typedef struct {
 
 typedef struct {
   bool busy;               // True if a move is running
-  int32_t line;            // Current move GCode line number
   float position[AXES];    // Current move position
   float work_offset[AXES]; // Current move work offset
   float velocity;          // Current move velocity
@@ -93,11 +92,11 @@ static mp_runtime_t rt;
 
 bool mp_runtime_is_busy() {return rt.busy;}
 void mp_runtime_set_busy(bool busy) {rt.busy = busy;}
-int32_t mp_runtime_get_line() {return rt.line;}
+int32_t mp_runtime_get_line() {return rt.mach.line;}
 
 
 void mp_runtime_set_line(int32_t line) {
-  rt.line = line;
+  rt.mach.line = line;
   report_request();
 }
 
