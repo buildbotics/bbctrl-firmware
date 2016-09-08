@@ -39,7 +39,7 @@ class GCodeStream():
 
     def next(self):
         line = self.f.readline()
-        if line is None: return
+        if line is None or line == '': return
 
         # Remove comments
         line = self.comment1RE.sub('', line)

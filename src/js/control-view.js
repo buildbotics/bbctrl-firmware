@@ -35,9 +35,7 @@ module.exports = {
 
   events: {
     // TODO These should all be implemented via the API
-    jog: function (axis, move) {this.send('g91 g0' + axis + move)},
-    home: function (axis) {this.send('$home ' + axis)},
-    zero: function (axis) {this.send('$zero ' + axis)}
+    jog: function (axis, move) {this.send('g91 g0' + axis + move)}
   },
 
 
@@ -134,6 +132,11 @@ module.exports = {
 
 
     home: function () {api.put('home')},
+
+
+    zero: function (axis) {
+      api.put('zero' + (typeof axis == 'undefined' ? '' : '/' + axis));
+    },
 
 
     start_pause: function () {

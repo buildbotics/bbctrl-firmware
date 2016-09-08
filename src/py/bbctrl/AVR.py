@@ -27,6 +27,7 @@ I2C_FLUSH          = 7
 I2C_REPORT         = 8
 I2C_HOME           = 9
 I2C_REBOOT         = 10
+I2C_ZERO           = 11
 
 
 class AVR():
@@ -60,6 +61,8 @@ class AVR():
             self.i2c_bus = None
             log.warning('Failed to open device: %s', e)
 
+        # Reset AVR communication
+        self.stop();
         self.report()
 
 
@@ -77,7 +80,7 @@ class AVR():
             self.stream = None
 
 
-    def _i2c_command(self, cmd, word = None):
+    def _i2c_command(self, cmd, byte = None, word = None):
         if self.i2c_bus is None: return
 
         log.info('I2C: %d' % cmd)
@@ -85,9 +88,13 @@ class AVR():
 
         while True:
             try:
-                if word is not None:
+                if byte is not None:
+                    self.i2c_bus.write_byte_data(self.i2c_addr, cmd, byte)
+
+                elif word is not None:
                     self.i2c_bus.write_word_data(self.i2c_addr, cmd, word)
-                self.i2c_bus.write_byte(self.i2c_addr, cmd)
+
+                else: self.i2c_bus.write_byte(self.i2c_addr, cmd)
                 break
 
             except IOError as e:
@@ -180,7 +187,7 @@ class AVR():
 
                 if 'firmware' in msg:
                     log.error('AVR rebooted')
-                    self._stop_sending_gcode()
+                    self.stop();
                     self.report()
 
                 if 'x' in msg and msg['x'] == 'ESTOPPED':
@@ -242,3 +249,4 @@ class AVR():
     def unpause(self): self._i2c_command(I2C_RUN)
     def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
     def step(self): self._i2c_command(I2C_STEP)
+    def zero(self, axis = None): self._i2c_command(I2C_ZERO, byte = axis)

@@ -56,6 +56,12 @@ class StepHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.avr.step()
 
 
+class ZeroHandler(bbctrl.APIHandler):
+    def put_ok(self, axis):
+        if axis is not None: axis = ord(axis[1:].lower())
+        self.ctrl.avr.zero(axis)
+
+
 class OverrideFeedHandler(bbctrl.APIHandler):
     def put_ok(self, value): self.ctrl.avr.override_feed(float(value))
 
@@ -110,6 +116,7 @@ class Web(tornado.web.Application):
             (r'/api/unpause', UnpauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
             (r'/api/step', StepHandler),
+            (r'/api/zero(/[xyzabcXYZABC])?', ZeroHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
             (r'/(.*)', tornado.web.StaticFileHandler,
