@@ -78,7 +78,5 @@ void mp_flush_planner();
 void mp_kinematics(const float travel[], float steps[]);
 void mp_plan_block_list(mp_buffer_t *bf);
 void mp_replan_blocks();
-float mp_get_target_length(const float Vi, const float Vf,
-                           const mp_buffer_t *bf);
-float mp_get_target_velocity(const float Vi, const float L,
-                             const mp_buffer_t *bf);
+float mp_get_target_length(float Vi, float Vf, const mp_buffer_t *bf);
+float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf);

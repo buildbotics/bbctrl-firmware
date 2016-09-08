@@ -688,13 +688,35 @@ void mach_set_coord_system(coord_system_t coord_system) {
  * (such as homing cycles) when you know there are no more moves in
  * the planner and that all motion has stopped.
  */
-void mach_set_position(int axis, float position) {
-  //if (!mp_is_quiescent()) CM_ALARM(STAT_INTERNAL_ERROR);
+void mach_set_axis_position(unsigned axis, float position) {
+  //if (!mp_is_quiescent()) CM_ALARM(STAT_MACH_NOT_QUIESCENT);
+  if (AXES <= axis) return;
+
   mach.position[axis] = position;
   mach.ms.target[axis] = position;
-  mp_set_planner_position(axis, position);
+  mp_set_axis_position(axis, position);
   mp_runtime_set_axis_position(axis, position);
   mp_runtime_set_steps_from_position();
+}
+
+
+stat_t mach_zero_all() {
+  for (unsigned axis = 0; axis < AXES; axis++) {
+    stat_t status = mach_zero_axis(axis);
+    if (status != STAT_OK) return status;
+  }
+
+  return STAT_OK;
+}
+
+
+stat_t mach_zero_axis(unsigned axis) {
+  if (!mp_is_quiescent()) return STAT_MACH_NOT_QUIESCENT;
+  if (AXES <= axis) return STAT_INVALID_AXIS;
+
+  mach_set_axis_position(axis, 0);
+
+  return STAT_OK;
 }
 
 
@@ -730,7 +752,7 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
       mach.ms.target[axis] = value[axis];          // reset model target
-      mp_set_planner_position(axis, value[axis]);  // set mm position
+      mp_set_axis_position(axis, value[axis]);  // set mm position
     }
 
   mp_queue_command(_exec_absolute_origin, value, flag);

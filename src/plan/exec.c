@@ -518,8 +518,8 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
 
 /// Dequeues buffer and executes move callback
 stat_t mp_exec_move() {
-  if (mp_get_state() == STATE_ESTOPPED) return STAT_MACHINE_ALARMED;
-  if (mp_get_state() == STATE_HOLDING) return STAT_NOOP;
+  if (mp_get_state() == STATE_ESTOPPED ||
+      mp_get_state() == STATE_HOLDING) return STAT_NOOP;
 
   mp_buffer_t *bf = mp_get_run_buffer();
   if (!bf) return STAT_NOOP; // Nothing running

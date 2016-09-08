@@ -596,8 +596,7 @@ void mp_replan_blocks() {
  * [2] Cannot assume Vf >= Vi due to rounding errors and use of
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
-float mp_get_target_length(const float Vi, const float Vf,
-                           const mp_buffer_t *bf) {
+float mp_get_target_length(float Vi, float Vf, const mp_buffer_t *bf) {
   return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * bf->recip_jerk);
 }
 
@@ -668,8 +667,7 @@ float mp_get_target_length(const float Vi, const float Vf,
  *
  *   J'(x) = (2 * Vi * x - Vi^2 + 3 * x^2) / L^2
  */
-float mp_get_target_velocity(const float Vi, const float L,
-                             const mp_buffer_t *bf) {
+float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf) {
   // 0 iterations (a reasonable estimate)
   float x = pow(L, 0.66666666) * bf->cbrt_jerk + Vi; // First estimate
 

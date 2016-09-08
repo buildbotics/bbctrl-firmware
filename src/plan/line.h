@@ -29,5 +29,5 @@
 
 #include "machine.h"
 
-void mp_set_planner_position(int axis, const float position);
+void mp_set_axis_position(int axis, float position);
 stat_t mp_aline(move_state_t *ms);

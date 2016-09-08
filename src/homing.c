@@ -229,11 +229,11 @@ static void _homing_abort(int8_t axis) {
 /// set zero and finish up
 static void _homing_axis_set_zero(int8_t axis) {
   if (hm.set_coordinates) {
-    mach_set_position(axis, 0);
+    mach_set_axis_position(axis, 0);
     hm.homed[axis] = true;
 
   } else // do not set axis if in G28.4 cycle
-    mach_set_position(axis, mp_runtime_get_work_position(axis));
+    mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
   mach_set_axis_jerk(axis, hm.saved_jerk); // restore the max jerk value
 

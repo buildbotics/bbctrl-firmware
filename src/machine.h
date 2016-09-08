@@ -377,8 +377,11 @@ void mach_set_distance_mode(distance_mode_t mode);
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             float flag[]);
 
-void mach_set_position(int axis, float position);
+void mach_set_axis_position(unsigned axis, float position);
 void mach_set_absolute_origin(float origin[], float flag[]);
+
+stat_t mach_zero_all();
+stat_t mach_zero_axis(unsigned axis);
 
 void mach_set_coord_system(coord_system_t coord_system);
 void mach_set_origin_offsets(float offset[], float flag[]);

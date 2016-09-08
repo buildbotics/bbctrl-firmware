@@ -37,6 +37,7 @@ STAT_MSG(BUFFER_FULL_FATAL, "Buffer full - fatal")
 STAT_MSG(EEPROM_DATA_INVALID, "EEPROM data invalid")
 STAT_MSG(MOTOR_ERROR, "Motor error")
 STAT_MSG(STEP_CHECK_FAILED, "Step check failed")
+STAT_MSG(MACH_NOT_QUIESCENT, "Cannot perform action while machine is active")
 STAT_MSG(INTERNAL_ERROR, "Internal error")
 
 STAT_MSG(PREP_LINE_MOVE_TIME_IS_INFINITE, "Move time is infinite")
@@ -72,6 +73,7 @@ STAT_MSG(MINIMUM_TIME_MOVE, "Move less than minimum time")
 STAT_MSG(MACHINE_ALARMED, "Machine is alarmed - Command not processed")
 STAT_MSG(LIMIT_SWITCH_HIT, "Limit switch hit - Shutdown occurred")
 STAT_MSG(SOFT_LIMIT_EXCEEDED, "Soft limit exceeded")
+STAT_MSG(INVALID_AXIS, "Invalid axis")
 
 // Homing
 STAT_MSG(HOMING_CYCLE_FAILED, "Homing cycle failed")

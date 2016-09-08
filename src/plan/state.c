@@ -51,7 +51,9 @@ typedef struct {
 } planner_state_t;
 
 
-static planner_state_t ps = {0};
+static planner_state_t ps = {
+  .flush_requested = true // Start out flushing
+};
 
 
 mp_state_t mp_get_state() {return ps.state;}
@@ -186,7 +188,7 @@ void mp_state_callback() {
       // Reset to actual machine position.  Otherwise machine is set to the
       // position of the last queued move.
       for (int axis = 0; axis < AXES; axis++)
-        mach_set_position(axis, mp_runtime_get_axis_position(axis));
+        mach_set_axis_position(axis, mp_runtime_get_axis_position(axis));
     }
 
     // Resume

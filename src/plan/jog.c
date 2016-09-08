@@ -89,7 +89,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   if (done) {
     // Update machine position
     for (int axis = 0; axis < AXES; axis++)
-      mach_set_position(axis, mp_runtime_get_work_position(axis));
+      mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
     return STAT_NOOP; // Done
   }

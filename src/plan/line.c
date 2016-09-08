@@ -56,7 +56,7 @@ move_master_t mm = {{0}}; // context for line planning
 
 
 /// Set planner position for a single axis
-void mp_set_planner_position(int axis, const float position) {
+void mp_set_axis_position(int axis, float position) {
   mm.position[axis] = position;
 }
 

@@ -114,7 +114,7 @@ static void _probing_finish() {
 
   for (int axis = 0; axis < AXES; axis++) {
     // if we got here because of a feed hold keep the model position correct
-    mach_set_position(axis, mp_runtime_get_work_position(axis));
+    mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
     // store the probe results
     pb.results[axis] = mach_get_absolute_position(axis);
