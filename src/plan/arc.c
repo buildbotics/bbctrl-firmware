@@ -44,10 +44,11 @@
 
 
 typedef struct {
-  run_state_t run_state;            // runtime state machine sequence
+  bool running;
   int32_t line;                     // gcode block line number
 
   float target[AXES];               // XYZABC where the move should go
+  float position[AXES];             // end point of the current segment
 
   float theta;                      // total angle specified by arc
   float radius;                     // Raw R value, or computed via offsets
@@ -317,7 +318,7 @@ static stat_t _compute_arc(const float position[], float offset[],
   float segments = floor(min3(segments_for_chordal_accuracy,
                               segments_for_minimum_distance,
                               segments_for_minimum_time));
-  segments = max(segments, 1); // at least 1 segment
+  if (segments < 1) segments = 1; // at least 1 segment
 
   arc.segments = (uint32_t)segments;
   arc.segment_theta = angular_travel / segments;
@@ -325,8 +326,8 @@ static stat_t _compute_arc(const float position[], float offset[],
   arc.center_0 = position[arc.plane_axis_0] - sin(arc.theta) * arc.radius;
   arc.center_1 = position[arc.plane_axis_1] - cos(arc.theta) * arc.radius;
 
-  // initialize the linear target
-  arc.target[arc.linear_axis] = position[arc.linear_axis];
+  // initialize the linear position
+  arc.position[arc.linear_axis] = position[arc.linear_axis];
 
   return STAT_OK;
 }
@@ -432,7 +433,7 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   // compute arc runtime values
   RITORNO(_compute_arc(mach.position, offset, rotations, full_circle));
 
-  arc.run_state = MOVE_RUN;                   // Enable arc run in callback
+  arc.running = true;                         // Enable arc run in callback
   mach_arc_callback();                        // Queue initial arc moves
   copy_vector(mach.position, mach.gm.target); // update model position
 
@@ -446,23 +447,32 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
  *  as many arc segments (lines) as it can before it blocks, then returns.
  */
 void mach_arc_callback() {
-  while (arc.run_state != MOVE_OFF && mp_get_planner_buffer_room()) {
-    arc.theta += arc.segment_theta;
+  while (arc.running && mp_get_planner_buffer_room()) {
+    if (arc.segments == 1) { // Final segment
+      arc.position[arc.plane_axis_0] = arc.target[arc.plane_axis_0];
+      arc.position[arc.plane_axis_1] = arc.target[arc.plane_axis_1];
+      arc.position[arc.linear_axis] = arc.target[arc.linear_axis];
 
-    arc.target[arc.plane_axis_0] = arc.center_0 + sin(arc.theta) * arc.radius;
-    arc.target[arc.plane_axis_1] = arc.center_1 + cos(arc.theta) * arc.radius;
-    arc.target[arc.linear_axis] += arc.segment_linear_travel;
+    } else {
+      arc.theta += arc.segment_theta;
 
-    mp_aline(arc.target, arc.line); // run the line
+      arc.position[arc.plane_axis_0] =
+        arc.center_0 + sin(arc.theta) * arc.radius;
+      arc.position[arc.plane_axis_1] =
+        arc.center_1 + cos(arc.theta) * arc.radius;
+      arc.position[arc.linear_axis] += arc.segment_linear_travel;
+    }
 
-    if (!--arc.segments) arc.run_state = MOVE_OFF;
+    mp_aline(arc.position, arc.line); // run the line
+
+    if (!--arc.segments) arc.running = false;
   }
 }
 
 
-bool mach_arc_active() {return arc.run_state != MOVE_OFF;}
+bool mach_arc_active() {return arc.running;}
 
 
 /// Stop arc movement without maintaining position
 /// OK to call if no arc is running
-void mach_abort_arc() {arc.run_state = MOVE_OFF;}
+void mach_abort_arc() {arc.running = false;}

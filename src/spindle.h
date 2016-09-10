@@ -33,4 +33,6 @@
 
 void spindle_init();
 void spindle_set(spindle_mode_t spindle_mode, float speed);
+spindle_mode_t spindle_get_mode();
+float spindle_get_speed();
 void spindle_estop();

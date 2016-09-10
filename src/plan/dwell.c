@@ -47,10 +47,6 @@ static stat_t _exec_dwell(mp_buffer_t *bf) {
 /// Queue a dwell
 stat_t mp_dwell(float seconds, int32_t line) {
   mp_buffer_t *bf = mp_get_write_buffer();
-
-  // never supposed to fail
-  if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL);
-
   bf->bf_func = _exec_dwell; // register callback to dwell start
   bf->dwell = seconds;       // in seconds, not minutes
 

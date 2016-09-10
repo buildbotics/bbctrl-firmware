@@ -62,11 +62,6 @@ static stat_t _exec_command(mp_buffer_t *bf) {
 void mp_queue_command(mach_func_t mach_func, float values[], float flags[]) {
   mp_buffer_t *bf = mp_get_write_buffer();
 
-  if (!bf) {
-    CM_ALARM(STAT_BUFFER_FULL_FATAL);
-    return; // Shouldn't happen, buffer availability was checked upstream.
-  }
-
   bf->bf_func = _exec_command;    // callback to planner queue exec function
   bf->mach_func = mach_func;      // callback to machine exec function
 

@@ -44,7 +44,7 @@
  *   - Call the mach_xxx_xxx() function which will do any input validation and
  *     return an error if it detects one.
  *
- *   - The mach_ function calls mp_queue_command(). Arguments are a callback to
+ *   - The mach_ function calls mp_queue_command().  Arguments are a callback to
  *     the _exec_...() function, which is the runtime execution routine, and any
  *     arguments that are needed by the runtime. See typedef for *exec in
  *     planner.h for details
@@ -197,7 +197,6 @@ path_mode_t mach_get_path_control() {return mach.gm.path_control;}
 distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 feed_rate_mode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
 uint8_t mach_get_tool() {return mach.gm.tool;}
-spindle_mode_t mach_get_spindle_mode() {return mach.gm.spindle_mode;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 
@@ -393,7 +392,7 @@ float mach_get_active_coord_offset(uint8_t axis) {
 
 static stat_t _exec_update_work_offsets(mp_buffer_t *bf) {
   mp_runtime_set_work_offsets(bf->target);
-  return STAT_NOOP;
+  return STAT_NOOP; // No move queued
 }
 
 
@@ -413,10 +412,6 @@ void mach_update_work_offsets() {
 
   if (!same) {
     mp_buffer_t *bf = mp_get_write_buffer();
-
-    // never supposed to fail
-    if (!bf) {CM_ALARM(STAT_BUFFER_FULL_FATAL); return;}
-
     bf->bf_func = _exec_update_work_offsets;
     copy_vector(bf->target, work_offset);
 
@@ -425,29 +420,12 @@ void mach_update_work_offsets() {
 }
 
 
-/* Get position of axis in absolute coordinates
+/*** Get position of axis in absolute coordinates
  *
- * NOTE: Machine position is always returned in mm mode. No units conversion
- * is performed
+ * NOTE: Machine position is always returned in mm mode.  No units conversion
+ * is performed.
  */
-float mach_get_absolute_position(uint8_t axis) {
-  return mach.position[axis];
-}
-
-
-/* Return work position in prevailing units (mm/inch) and with all offsets
- * applied.
- *
- * NOTE: This function only works after the gcode_state struct has had the
- * work_offsets setup by calling mach_get_model_coord_offset_vector() first.
- */
-float mach_get_work_position(uint8_t axis) {
-  float position = mach.position[axis] - mach_get_active_coord_offset(axis);
-
-  if (mach.gm.units_mode == INCHES) position /= MM_PER_INCH;
-
-  return position;
-}
+float mach_get_absolute_position(uint8_t axis) {return mach.position[axis];}
 
 
 /* Critical helpers
@@ -618,7 +596,7 @@ void mach_set_model_target(float target[], float flag[]) {
 
 /* Return error code if soft limit is exceeded
  *
- * Must be called with target properly set in GM struct. Best done
+ * Must be called with target properly set in GM struct.  Best done
  * after mach_set_model_target().
  *
  * Tests for soft limit for any homed axis if min and max are
@@ -875,9 +853,6 @@ stat_t mach_goto_g28_position(float target[], float flags[]) {
   // move through intermediate point, or skip
   mach_rapid(target, flags);
 
-  // make sure you have an available buffer
-  mp_wait_for_buffer();
-
   // execute actual stored move
   float f[] = {1, 1, 1, 1, 1, 1};
   return mach_rapid(mach.g28_position, f);
@@ -894,9 +869,6 @@ stat_t mach_goto_g30_position(float target[], float flags[]) {
 
   // move through intermediate point, or skip
   mach_rapid(target, flags);
-
-  // make sure you have an available buffer
-  mp_wait_for_buffer();
 
   // execute actual stored move
   float f[] = {1, 1, 1, 1, 1, 1};
@@ -1065,17 +1037,21 @@ void mach_message(const char *message) {
  */
 
 
-static void _exec_program_stop(float *value, float *flag) {
+static stat_t _exec_program_stop(mp_buffer_t *bf) {
   // Machine should be stopped at this point.  Go into hold so that a start is
   // needed before executing further instructions.
   mp_state_holding();
+  return STAT_NOOP; // No move queued
 }
 
 
 /// M0 Queue a program stop
 void mach_program_stop() {
-  float value[AXES] = {0};
-  mp_queue_command(_exec_program_stop, value, value);
+  mp_buffer_t *bf = mp_get_write_buffer();
+  if (!bf) {CM_ALARM(STAT_BUFFER_FULL_FATAL); return;} // Should not fail
+
+  bf->bf_func = _exec_program_stop;
+  mp_commit_write_buffer(mach.gm.line);
 }
 
 

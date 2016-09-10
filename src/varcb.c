@@ -28,6 +28,7 @@
 
 #include "usart.h"
 #include "machine.h"
+#include "spindle.h"
 #include "plan/runtime.h"
 #include "plan/state.h"
 
@@ -37,7 +38,7 @@ float get_position(int index) {return mp_runtime_get_axis_position(index);}
 // GCode
 int32_t get_line() {return mp_runtime_get_line();}
 PGM_P get_unit() {return mp_get_units_mode_pgmstr(mach_get_units_mode());}
-float get_speed() {return mach_get_spindle_speed();}
+float get_speed() {return spindle_get_speed();}
 float get_feed() {return mach_get_feed_rate();}
 uint8_t get_tool() {return mach_get_tool();}
 

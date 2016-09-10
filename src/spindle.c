@@ -40,7 +40,15 @@ typedef enum {
   SPINDLE_TYPE_HUANYANG,
 } spindle_type_t;
 
-static spindle_type_t _type = SPINDLE_TYPE;
+
+typedef struct {
+  spindle_type_t type;
+  spindle_mode_t mode;
+  float speed;
+} spindle_t;
+
+
+static spindle_t spindle = {.type = SPINDLE_TYPE};
 
 
 void spindle_init() {
@@ -50,28 +58,38 @@ void spindle_init() {
 
 
 void spindle_set(spindle_mode_t mode, float speed) {
-  switch (_type) {
+  spindle.mode = mode;
+  spindle.speed = speed;
+
+  switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
   }
 }
 
 
+spindle_mode_t spindle_get_mode() {return spindle.mode;}
+float spindle_get_speed() {return spindle.speed;}
+
+
 void spindle_estop() {
-  switch (_type) {
+  switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_estop(); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_estop(); break;
   }
 }
 
 
-uint8_t get_spindle_type(int index) {return _type;}
+uint8_t get_spindle_type(int index) {return spindle.type;}
 
 
 void set_spindle_type(int index, uint8_t value) {
-  if (value != _type) {
+  if (value != spindle.type) {
+    spindle_mode_t mode = spindle.mode;
+    float speed = spindle.speed;
+
     spindle_set(SPINDLE_OFF, 0);
-    _type = value;
-    spindle_set(mach.gm.spindle_mode, mach.gm.spindle_speed);
+    spindle.type = value;
+    spindle_set(mode, speed);
   }
 }

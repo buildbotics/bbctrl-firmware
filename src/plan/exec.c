@@ -457,10 +457,6 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
  *     Returning STAT_OK at does NOT advance position meaning
  *     any position error will be compensated by the next move.
  *
- * [2] Solves a potential race condition where the current move ends but
- *     the new move has not started because the previous move is still
- *     being run by the steppers.  Planning can overwrite the new move.
- *
  * Operation:
  *
  * Aline generates jerk-controlled S-curves as per Ed Red's course notes:
@@ -498,16 +494,17 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
     if (status != STAT_OK) return status;
   }
 
+  // Plan holds
   if (mp_get_state() == STATE_STOPPING && !ex.hold_planned) _plan_hold();
 
-  // Main segment dispatch.  From this point on the contents of the bf buffer
-  // do not affect execution.
+  // Main segment dispatch
   switch (ex.section) {
   case SECTION_HEAD: status = _exec_aline_head(); break;
   case SECTION_BODY: status = _exec_aline_body(); break;
   case SECTION_TAIL: status = _exec_aline_tail(); break;
   }
 
+  // Set runtime velocity on exit
   if (status != STAT_EAGAIN) mp_runtime_set_velocity(ex.exit_velocity);
 
   return status;
@@ -552,8 +549,12 @@ stat_t mp_exec_move() {
     // Handle buffer run state
     if (bf->run_state == MOVE_RESTART) bf->run_state = MOVE_NEW;
     else {
-      bf->nx->replannable = false;   // Prevent overplanning (Note 2)
-      mp_free_run_buffer();          // Free buffer
+      // Solves a potential race condition where the current move ends but
+      // the new move has not started because the current move is still
+      // being run by the steppers.  Planning can overwrite the new move.
+      mp_buffer_next(bf)->replannable = false;
+
+      mp_free_run_buffer(); // Free buffer
 
       // Enter READY state
       if (mp_queue_empty()) {

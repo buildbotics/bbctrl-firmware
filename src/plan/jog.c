@@ -125,12 +125,9 @@ uint8_t command_jog(int argc, char *argv[]) {
   jr.writing = false;
 
   if (!mp_jog_busy()) {
-    // Should always be at least one free buffer
-    mp_buffer_t *bf = mp_get_write_buffer();
-    if (!bf) return STAT_BUFFER_FULL_FATAL;
-
-    // Start
     mp_set_cycle(CYCLE_JOGGING);
+
+    mp_buffer_t *bf = mp_get_write_buffer();
     bf->bf_func = _exec_jog; // register callback
     mp_commit_write_buffer(-1);
   }

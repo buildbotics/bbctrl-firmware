@@ -108,7 +108,7 @@ void mp_commit_write_buffer(uint32_t line);
 mp_buffer_t *mp_get_run_buffer();
 void mp_free_run_buffer();
 mp_buffer_t *mp_get_last_buffer();
-#define mp_get_prev_buffer(b) (b->pv)
-#define mp_get_next_buffer(b) (b->nx)
+static inline mp_buffer_t *mp_buffer_prev(mp_buffer_t *bp) {return bp->pv;}
+static inline mp_buffer_t *mp_buffer_next(mp_buffer_t *bp) {return bp->nx;}
 void mp_clear_buffer(mp_buffer_t *bf);
 void mp_copy_buffer(mp_buffer_t *bf, const mp_buffer_t *bp);

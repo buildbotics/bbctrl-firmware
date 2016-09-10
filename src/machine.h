@@ -317,8 +317,6 @@ path_mode_t mach_get_path_control();
 distance_mode_t mach_get_distance_mode();
 feed_rate_mode_t mach_get_feed_rate_mode();
 uint8_t mach_get_tool();
-spindle_mode_t mach_get_spindle_mode();
-inline float mach_get_spindle_speed() {return mach.gm.spindle_speed;}
 float mach_get_feed_rate();
 
 PGM_P mp_get_units_mode_pgmstr(units_mode_t mode);
@@ -342,7 +340,6 @@ void mach_set_axis_jerk(uint8_t axis, float jerk);
 float mach_get_active_coord_offset(uint8_t axis);
 void mach_update_work_offsets();
 float mach_get_absolute_position(uint8_t axis);
-float mach_get_work_position(uint8_t axis);
 
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);

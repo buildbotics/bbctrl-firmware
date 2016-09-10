@@ -237,7 +237,8 @@ static void _calc_and_cache_jerk_values(mp_buffer_t *bf) {
 
 
 static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
-  float junction_velocity = _get_junction_vmax(bf->pv->unit, bf->unit);
+  float junction_velocity =
+    _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
 
   bf->cruise_vmax = bf->length / move_time; // target velocity requested
   bf->entry_vmax = min(bf->cruise_vmax, junction_velocity);
@@ -285,7 +286,6 @@ stat_t mp_aline(const float target[], int32_t line) {
 
   // Get a buffer.  Note, new buffers are initialized to zero.
   mp_buffer_t *bf = mp_get_write_buffer(); // current move pointer
-  if (!bf) return CM_ALARM(STAT_BUFFER_FULL_FATAL); // should never fail
 
   // Set buffer values
   bf->bf_func = mp_exec_aline;
@@ -304,7 +304,7 @@ stat_t mp_aline(const float target[], int32_t line) {
   float time = mach_calc_move_time(axis_length, axis_square);
   _calc_max_velocities(bf, time);
 
-  // Note, next the following lines must remain in order.
+  // Note, the following lines must remain in order.
   mp_plan_block_list(bf);       // Plan block list
   mp_set_position(target);      // Set planner position before committing buffer
   mp_commit_write_buffer(line); // Commit current block after position update

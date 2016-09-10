@@ -109,26 +109,24 @@ void mp_wait_for_buffer() {while (!mb.buffers_available) continue;}
 bool mp_queue_empty() {return mb.w == mb.r;}
 
 
-/// Get pointer to next available write buffer
-/// Returns pointer or 0 if no buffer available.
+/// Get pointer to next available write buffer.  Wait until one is available.
 mp_buffer_t *mp_get_write_buffer() {
-  // get & clear a buffer
-  if (mb.w->buffer_state == MP_BUFFER_EMPTY) {
-    mp_buffer_t *w = mb.w;
-    mp_buffer_t *nx = mb.w->nx;               // save linked list pointers
-    mp_buffer_t *pv = mb.w->pv;
-    memset(mb.w, 0, sizeof(mp_buffer_t));     // clear all values
-    w->nx = nx;                               // restore pointers
-    w->pv = pv;
-    w->buffer_state = MP_BUFFER_LOADING;
-    mb.w = w->nx;
+  // Wait for a buffer
+  while (!mb.buffers_available) continue;
 
-    mb.buffers_available--;
+  // Get & clear write buffer
+  mp_buffer_t *w = mb.w;
+  mp_buffer_t *nx = mb.w->nx;               // save linked list pointers
+  mp_buffer_t *pv = mb.w->pv;
+  memset(mb.w, 0, sizeof(mp_buffer_t));     // clear all values
+  w->nx = nx;                               // restore pointers
+  w->pv = pv;
+  w->buffer_state = MP_BUFFER_LOADING;
+  mb.w = w->nx;
 
-    return w;
-  }
+  mb.buffers_available--;
 
-  return 0;
+  return w;
 }
 
 
@@ -183,7 +181,7 @@ mp_buffer_t *mp_get_last_buffer() {
   mp_buffer_t *bf = mp_get_run_buffer();
   mp_buffer_t *bp;
 
-  for (bp = bf; bp && bp->nx != bf; bp = mp_get_next_buffer(bp))
+  for (bp = bf; bp && bp->nx != bf; bp = mp_buffer_next(bp))
     if (bp->nx->run_state == MOVE_OFF) break;
 
   return bp;

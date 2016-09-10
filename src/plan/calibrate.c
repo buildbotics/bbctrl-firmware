@@ -164,17 +164,12 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   if (mp_get_cycle() != CYCLE_MACHINING || mp_get_state() != STATE_READY)
     return 0;
 
-  mp_buffer_t *bf = mp_get_write_buffer();
-  if (!bf) {
-    CM_ALARM(STAT_BUFFER_FULL_FATAL);
-    return 0;
-  }
-
   // Start
   memset(&cal, 0, sizeof(cal));
   mp_set_cycle(CYCLE_CALIBRATING);
   cal.motor = 1;
 
+  mp_buffer_t *bf = mp_get_write_buffer();
   bf->bf_func = _exec_calibrate; // register callback
   mp_commit_write_buffer(-1);
 

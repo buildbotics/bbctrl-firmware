@@ -262,7 +262,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   // B" case: Block is short, but fits into a single body segment
   if (naive_move_time <= NOM_SEGMENT_TIME) {
-    bf->entry_velocity = bf->pv->exit_velocity;
+    bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
 
     if (fp_NOT_ZERO(bf->entry_velocity)) {
       bf->cruise_velocity = bf->entry_velocity;
@@ -444,20 +444,19 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
 /*** Plans the entire block list
  *
- * The block list is the circular buffer of planner buffers
- * (bf's). The block currently being planned is the "bf" block.  The
- * "first block" is the next block to execute; queued immediately
- * behind the currently executing block, aka the "running" block.
- * In some cases, there is no first block because the list is empty
- * or there is only one block and it is already running.
+ * The block list is the circular buffer of planner buffers (bf's). The block
+ * currently being planned is the "bf" block.  The "first block" is the next
+ * block to execute; queued immediately behind the currently executing block,
+ * aka the "running" block.  In some cases, there is no first block because the
+ * list is empty or there is only one block and it is already running.
  *
- * If blocks following the first block are already optimally
- * planned (non replannable) the first block that is not optimally
- * planned becomes the effective first block.
+ * If blocks following the first block are already optimally planned (non
+ * replannable) the first block that is not optimally planned becomes the
+ * effective first block.
  *
- * mp_plan_block_list() plans all blocks between and including the
- * (effective) first block and the bf.  It sets entry, exit and
- * cruise v's from vmax's then calls trapezoid generation.
+ * mp_plan_block_list() plans all blocks between and including the (effective)
+ * first block and the bf.  It sets entry, exit and cruise v's from vmax's then
+ * calls trapezoid generation.
  *
  * Variables that must be provided in the mp_buffer_ts that will be processed:
  *
@@ -497,53 +496,54 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  *
  * Notes:
  *
- * [1] Whether or not a block is planned is controlled by the
- *     bf->replannable setting (set TRUE if it should be). Replan flags
- *     are checked during the backwards pass and prune the replan list
- *     to include only the the latest blocks that require planning
+ * [1] Whether or not a block is planned is controlled by the bf->replannable
+ *     setting.  Replan flags are checked during the backwards pass.  They prune
+ *     the replan list to include only the the latest blocks that require
+ *     planning.
  *
- *     In normal operation the first block (currently running
- *     block) is not replanned, but may be for feedholds and feed
- *     overrides.  In these cases the prep routines modify the
- *     contents of the (ex) buffer and re-shuffle the block list,
- *     re-enlisting the current bf buffer with new parameters.
- *     These routines also set all blocks in the list to be
- *     replannable so the list can be recomputed regardless of
- *     exact stops and previous replanning optimizations.
+ *     In normal operation, the first block (currently running block) is not
+ *     replanned, but may be for feedholds and feed overrides.  In these cases,
+ *     the prep routines modify the contents of the (ex) buffer and re-shuffle
+ *     the block list, re-enlisting the current bf buffer with new parameters.
+ *     These routines also set all blocks in the list to be replannable so the
+ *     list can be recomputed regardless of exact stops and previous replanning
+ *     optimizations.
  */
 void mp_plan_block_list(mp_buffer_t *bf) {
   mp_buffer_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
-  while ((bp = mp_get_prev_buffer(bp)) != bf) {
+  while ((bp = mp_buffer_prev(bp)) != bf) {
     if (!bp->replannable) break;
     bp->braking_velocity =
-      min(bp->nx->entry_vmax, bp->nx->braking_velocity) + bp->delta_vmax;
+      min(mp_buffer_next(bp)->entry_vmax,
+          mp_buffer_next(bp)->braking_velocity) + bp->delta_vmax;
   }
 
   // Forward planning pass.  Recompute trapezoids from the first block to bf.
-  while ((bp = mp_get_next_buffer(bp)) != bf) {
-    if (bp->pv == bf) bp->entry_velocity = bp->entry_vmax; // first block
-    else bp->entry_velocity = bp->pv->exit_velocity; // other blocks
+  while ((bp = mp_buffer_next(bp)) != bf) {
+    if (mp_buffer_prev(bp) == bf)
+      bp->entry_velocity = bp->entry_vmax; // first block
+    else bp->entry_velocity = mp_buffer_prev(bp)->exit_velocity; // other blocks
 
     bp->cruise_velocity = bp->cruise_vmax;
-    bp->exit_velocity = min4(bp->exit_vmax, bp->nx->entry_vmax,
-                             bp->nx->braking_velocity,
+    bp->exit_velocity = min4(bp->exit_vmax, mp_buffer_next(bp)->entry_vmax,
+                             mp_buffer_next(bp)->braking_velocity,
                              bp->entry_velocity + bp->delta_vmax);
 
     mp_calculate_trapezoid(bp);
 
     // Test for optimally planned trapezoids by checking exit conditions
     if  ((fp_EQ(bp->exit_velocity, bp->exit_vmax) ||
-          fp_EQ(bp->exit_velocity, bp->nx->entry_vmax)) ||
-         (!bp->pv->replannable &&
+          fp_EQ(bp->exit_velocity, mp_buffer_next(bp)->entry_vmax)) ||
+         (!mp_buffer_prev(bp)->replannable &&
           fp_EQ(bp->exit_velocity, (bp->entry_velocity + bp->delta_vmax))))
       bp->replannable = false;
   }
 
   // Finish last block
-  bp->entry_velocity = bp->pv->exit_velocity;
+  bp->entry_velocity = mp_buffer_prev(bp)->exit_velocity;
   bp->cruise_velocity = bp->cruise_vmax;
   bp->exit_velocity = 0;
 
@@ -560,8 +560,9 @@ void mp_replan_blocks() {
   // Mark all blocks replanable
   while (true) {
     bp->replannable = true;
-    if (bp->nx->run_state == MOVE_OFF || bp->nx == bf) break;
-    bp = mp_get_next_buffer(bp);
+    if (mp_buffer_next(bp)->run_state == MOVE_OFF || mp_buffer_next(bp) == bf)
+      break;
+    bp = mp_buffer_next(bp);
   }
 
   // Plan blocks
