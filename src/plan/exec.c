@@ -32,6 +32,7 @@
 #include "util.h"
 #include "runtime.h"
 #include "state.h"
+#include "rtc.h"
 #include "config.h"
 
 #include <string.h>
@@ -242,7 +243,7 @@ static float _init_forward_diffs(float Vi, float Vt, float segments) {
 /// Common code for head and tail sections
 static stat_t _exec_aline_section(float length, float vin, float vout) {
   if (ex.section_new) {
-    if (fp_ZERO(length)) return STAT_OK; // end the move
+    if (fp_ZERO(length)) return STAT_NOOP; // end the move
 
     // len / avg. velocity
     float move_time = 2 * length / (vin + vout);
@@ -297,16 +298,16 @@ static stat_t _exec_aline_body() {
   stat_t status =
     _exec_aline_section(ex.body_length, ex.cruise_velocity, ex.cruise_velocity);
 
-  if (status == STAT_OK) {
-    if (ex.section_new) return _exec_aline_tail();
-
+  switch (status) {
+  case STAT_NOOP: return _exec_aline_tail();
+  case STAT_OK:
     ex.section = SECTION_TAIL;
     ex.section_new = true;
 
     return STAT_EAGAIN;
-  }
 
-  return status;
+  default: return status;
+  }
 }
 
 
@@ -316,16 +317,16 @@ static stat_t _exec_aline_head() {
   stat_t status =
     _exec_aline_section(ex.head_length, ex.entry_velocity, ex.cruise_velocity);
 
-  if (status == STAT_OK) {
-    if (ex.section_new) return _exec_aline_body();
-
+  switch (status) {
+  case STAT_NOOP: return _exec_aline_body();
+  case STAT_OK:
     ex.section = SECTION_BODY;
     ex.section_new = true;
 
     return STAT_EAGAIN;
-  }
 
-  return status;
+  default: return status;
+  }
 }
 
 
@@ -515,14 +516,18 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
 
 /// Dequeues buffer and executes move callback
 stat_t mp_exec_move() {
-  if (mp_get_state() == STATE_ESTOPPED ||
-      mp_get_state() == STATE_HOLDING) return STAT_OK;
+  if (mp_get_state() == STATE_ESTOPPED || mp_get_state() == STATE_HOLDING)
+    return STAT_NOOP;
 
   mp_buffer_t *bf = mp_get_run_buffer();
-  if (!bf) return STAT_OK; // Nothing running
+  if (!bf) return STAT_NOOP; // Nothing running
   if (!bf->bf_func) return STAT_INTERNAL_ERROR; // Should never happen
 
   if (bf->run_state == MOVE_NEW) {
+    // On restart wait a bit to give planner queue a chance to fill
+    if (!mp_runtime_is_busy() && mp_get_planner_buffer_fill() < 4 &&
+        !rtc_expired(bf->ts + 250)) return STAT_NOOP;
+
     // Take control of buffer
     bf->run_state = MOVE_INIT;
     bf->replannable = false;
@@ -566,5 +571,9 @@ stat_t mp_exec_move() {
     }
   }
 
-  return status;
+  switch (status) {
+  case STAT_NOOP: return STAT_EAGAIN; // Tell caller to call again
+  case STAT_EAGAIN: return STAT_OK;   // Move queued, call again later
+  default: return status;
+  }
 }

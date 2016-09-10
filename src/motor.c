@@ -164,14 +164,14 @@ void motor_init() {
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;
   DMA.CTRL = DMA_ENABLE_bm;
-  DMA.INTFLAGS = 0xff; // clear all interrups
+  DMA.INTFLAGS = 0xff; // clear all interrupts
 
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
 
     // IO pins
-    DIRSET_PIN(m->step_pin); // Output
-    DIRSET_PIN(m->dir_pin); // Output
+    DIRSET_PIN(m->step_pin);   // Output
+    DIRSET_PIN(m->dir_pin);    // Output
     OUTSET_PIN(m->enable_pin); // High (disabled)
     DIRSET_PIN(m->enable_pin); // Output
 

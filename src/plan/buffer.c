@@ -51,7 +51,7 @@
 
 #include "buffer.h"
 #include "state.h"
-#include "report.h"
+#include "rtc.h"
 
 #include <string.h>
 
@@ -66,17 +66,6 @@ typedef struct {                            // ring buffer for sub-moves
 
 
 buffer_pool_t mb; // move buffer queue
-
-
-uint8_t mp_get_planner_buffer_room() {
-  uint16_t n = mb.buffers_available;
-  return n < PLANNER_BUFFER_HEADROOM ? 0 : n - PLANNER_BUFFER_HEADROOM;
-}
-
-
-void mp_wait_for_buffer() {
-  while (!mb.buffers_available) continue;
-}
 
 
 /// buffer incr & wrap
@@ -105,6 +94,18 @@ void mp_init_buffers() {
 }
 
 
+uint8_t mp_get_planner_buffer_room() {
+  uint16_t n = mb.buffers_available;
+  return n < PLANNER_BUFFER_HEADROOM ? 0 : n - PLANNER_BUFFER_HEADROOM;
+}
+
+
+uint8_t mp_get_planner_buffer_fill() {
+  return PLANNER_BUFFER_POOL_SIZE - mb.buffers_available;
+}
+
+
+void mp_wait_for_buffer() {while (!mb.buffers_available) continue;}
 bool mp_queue_empty() {return mb.w == mb.r;}
 
 
@@ -123,7 +124,6 @@ mp_buffer_t *mp_get_write_buffer() {
     mb.w = w->nx;
 
     mb.buffers_available--;
-    report_request();
 
     return w;
   }
@@ -142,6 +142,7 @@ mp_buffer_t *mp_get_write_buffer() {
 void mp_commit_write_buffer(uint32_t line) {
   mp_state_running();
 
+  mb.q->ts = rtc_get_time();
   mb.q->line = line;
   mb.q->run_state = MOVE_NEW;
   mb.q->buffer_state = MP_BUFFER_QUEUED;
@@ -174,7 +175,6 @@ void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
   mp_clear_buffer(mb.r);              // clear it out (& reset replannable)
   mb.r = mb.r->nx;                    // advance to next run buffer
   mb.buffers_available++;
-  report_request();
 }
 
 

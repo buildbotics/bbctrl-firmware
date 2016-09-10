@@ -74,6 +74,7 @@ STAT_MSG(MACHINE_ALARMED, "Machine is alarmed - Command not processed")
 STAT_MSG(LIMIT_SWITCH_HIT, "Limit switch hit - Shutdown occurred")
 STAT_MSG(SOFT_LIMIT_EXCEEDED, "Soft limit exceeded")
 STAT_MSG(INVALID_AXIS, "Invalid axis")
+STAT_MSG(EXPECTED_MOVE, "A move was expected but none was queued")
 
 // Homing
 STAT_MSG(HOMING_CYCLE_FAILED, "Homing cycle failed")

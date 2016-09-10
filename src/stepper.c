@@ -101,8 +101,13 @@ ISR(ADCB_CH0_vect) {
     stat_t status = mp_exec_move();
 
     switch (status) {
-    case STAT_NOOP: continue; // No stepper command was executed try again
-    case STAT_OK: case STAT_EAGAIN: break; // Ok
+    case STAT_NOOP: break;      // No command executed
+    case STAT_EAGAIN: continue; // No command executed, try again
+
+    case STAT_OK:               // Move executed
+      if (!st.move_ready) CM_ALARM(STAT_EXPECTED_MOVE); // No move was queued
+      break;
+
     default: CM_ALARM(status); break;
     }
 

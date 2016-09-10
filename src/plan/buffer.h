@@ -34,7 +34,7 @@
 
 
 typedef enum {
-  MOVE_OFF,                // move inactive (MUST BE ZERO)
+  MOVE_OFF,                // move inactive (must be zero)
   MOVE_NEW,                // initial value
   MOVE_INIT,               // first run
   MOVE_RUN,                // general run state (for non-acceleration moves)
@@ -61,6 +61,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   struct mp_buffer_t *pv;         // pointer to previous buffer
   struct mp_buffer_t *nx;         // pointer to next buffer
 
+  uint32_t ts;                    // Time stamp
   bf_func_t bf_func;              // callback to buffer exec function
   mach_func_t mach_func;          // callback to machine
 
@@ -97,18 +98,17 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
 } mp_buffer_t;
 
 
-uint8_t mp_get_planner_buffer_room();
-void mp_wait_for_buffer();
 void mp_init_buffers();
+uint8_t mp_get_planner_buffer_room();
+uint8_t mp_get_planner_buffer_fill();
+void mp_wait_for_buffer();
 bool mp_queue_empty();
 mp_buffer_t *mp_get_write_buffer();
 void mp_commit_write_buffer(uint32_t line);
 mp_buffer_t *mp_get_run_buffer();
 void mp_free_run_buffer();
 mp_buffer_t *mp_get_last_buffer();
-/// Returns pointer to prev buffer in linked list
 #define mp_get_prev_buffer(b) (b->pv)
-/// Returns pointer to next buffer in linked list
 #define mp_get_next_buffer(b) (b->nx)
 void mp_clear_buffer(mp_buffer_t *bf);
 void mp_copy_buffer(mp_buffer_t *bf, const mp_buffer_t *bp);
