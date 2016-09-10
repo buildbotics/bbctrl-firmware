@@ -31,260 +31,16 @@
 
 #include "config.h"
 #include "status.h"
+#include "gcode_state.h"
 
 #include <avr/pgmspace.h>
-
-#include <stdint.h>
-#include <stdbool.h>
 
 
 #define TO_MILLIMETERS(a) (mach.gm.units == INCHES ? (a) * MM_PER_INCH : a)
 
 
-/* The difference between next_action_t and motion_mode_t is that
- * next_action_t is used by the current block, and may carry non-modal
- * commands, whereas motion_mode_t persists across blocks as G modal group 1
- */
-
-/// these are in order to optimized CASE statement
-typedef enum {
-  NEXT_ACTION_DEFAULT,                // Must be zero (invokes motion modes)
-  NEXT_ACTION_SEARCH_HOME,            // G28.2 homing cycle
-  NEXT_ACTION_SET_ABSOLUTE_ORIGIN,    // G28.3 origin set
-  NEXT_ACTION_HOMING_NO_SET,          // G28.4 homing cycle no coord setting
-  NEXT_ACTION_SET_G28_POSITION,       // G28.1 set position in abs coordinates
-  NEXT_ACTION_GOTO_G28_POSITION,      // G28 go to machine position
-  NEXT_ACTION_SET_G30_POSITION,       // G30.1
-  NEXT_ACTION_GOTO_G30_POSITION,      // G30
-  NEXT_ACTION_SET_COORD_DATA,         // G10
-  NEXT_ACTION_SET_ORIGIN_OFFSETS,     // G92
-  NEXT_ACTION_RESET_ORIGIN_OFFSETS,   // G92.1
-  NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS, // G92.2
-  NEXT_ACTION_RESUME_ORIGIN_OFFSETS,  // G92.3
-  NEXT_ACTION_DWELL,                  // G4
-  NEXT_ACTION_STRAIGHT_PROBE,         // G38.2
-} next_action_t;
-
-
-typedef enum {                        // G Modal Group 1
-  MOTION_MODE_RAPID,                  // G0 - rapid
-  MOTION_MODE_FEED,                   // G1 - straight feed
-  MOTION_MODE_CW_ARC,                 // G2 - clockwise arc feed
-  MOTION_MODE_CCW_ARC,                // G3 - counter-clockwise arc feed
-  MOTION_MODE_CANCEL_MOTION_MODE,     // G80
-  MOTION_MODE_STRAIGHT_PROBE,         // G38.2
-  MOTION_MODE_CANNED_CYCLE_81,        // G81 - drilling
-  MOTION_MODE_CANNED_CYCLE_82,        // G82 - drilling with dwell
-  MOTION_MODE_CANNED_CYCLE_83,        // G83 - peck drilling
-  MOTION_MODE_CANNED_CYCLE_84,        // G84 - right hand tapping
-  MOTION_MODE_CANNED_CYCLE_85,        // G85 - boring, no dwell, feed out
-  MOTION_MODE_CANNED_CYCLE_86,        // G86 - boring, spindle stop, rapid out
-  MOTION_MODE_CANNED_CYCLE_87,        // G87 - back boring
-  MOTION_MODE_CANNED_CYCLE_88,        // G88 - boring, spindle stop, manual out
-  MOTION_MODE_CANNED_CYCLE_89,        // G89 - boring, dwell, feed out
-} motion_mode_t;
-
-
-typedef enum {   // Used for detecting gcode errors. See NIST section 3.4
-  MODAL_GROUP_G0,     // {G10,G28,G28.1,G92}       non-modal axis commands
-  MODAL_GROUP_G1,     // {G0,G1,G2,G3,G80}         motion
-  MODAL_GROUP_G2,     // {G17,G18,G19}             plane selection
-  MODAL_GROUP_G3,     // {G90,G91}                 distance mode
-  MODAL_GROUP_G5,     // {G93,G94}                 feed rate mode
-  MODAL_GROUP_G6,     // {G20,G21}                 units
-  MODAL_GROUP_G7,     // {G40,G41,G42}             cutter radius compensation
-  MODAL_GROUP_G8,     // {G43,G49}                 tool length offset
-  MODAL_GROUP_G9,     // {G98,G99}                 return mode in canned cycles
-  MODAL_GROUP_G12,    // {G54,G55,G56,G57,G58,G59} coordinate system selection
-  MODAL_GROUP_G13,    // {G61,G61.1,G64}           path control mode
-  MODAL_GROUP_M4,     // {M0,M1,M2,M30,M60}        stopping
-  MODAL_GROUP_M6,     // {M6}                      tool change
-  MODAL_GROUP_M7,     // {M3,M4,M5}                spindle turning
-  MODAL_GROUP_M8,     // {M7,M8,M9}                coolant
-  MODAL_GROUP_M9,     // {M48,M49}                 speed/feed override switches
-} modal_group_t;
-
-#define MODAL_GROUP_COUNT (MODAL_GROUP_M9 + 1)
-
 // Note 1: Our G0 omits G4, G30, G53, G92.1, G92.2, G92.3 as these have no axis
 // components to error check
-
-typedef enum { // plane - translates to:
-  //                    axis_0    axis_1    axis_2
-  PLANE_XY,     // G17    X         Y         Z
-  PLANE_XZ,     // G18    X         Z         Y
-  PLANE_YZ,     // G19    Y         Z         X
-} plane_t;
-
-
-typedef enum {
-  INCHES,        // G20
-  MILLIMETERS,   // G21
-  DEGREES,       // ABC axes (this value used for displays only)
-} units_t;
-
-
-typedef enum {
-  ABSOLUTE_COORDS,                // machine coordinate system
-  G54, G55, G56, G57, G58, G59,
-} coord_system_t;
-
-/// G Modal Group 13
-typedef enum {
-  PATH_EXACT_PATH,                // G61 hits corners but stops only if needed
-  PATH_EXACT_STOP,                // G61.1 stops at all corners
-  PATH_CONTINUOUS,                // G64 and typically the default mode
-} path_mode_t;
-
-
-typedef enum {
-  ABSOLUTE_MODE,                  // G90
-  INCREMENTAL_MODE,               // G91
-} distance_mode_t;
-
-
-typedef enum {
-  INVERSE_TIME_MODE,              // G93
-  UNITS_PER_MINUTE_MODE,          // G94
-  UNITS_PER_REVOLUTION_MODE,      // G95 (unimplemented)
-} feed_mode_t;
-
-
-typedef enum {
-  ORIGIN_OFFSET_SET,      // G92 - set origin offsets
-  ORIGIN_OFFSET_CANCEL,   // G92.1 - zero out origin offsets
-  ORIGIN_OFFSET_SUSPEND,  // G92.2 - do not apply offsets, but preserve values
-  ORIGIN_OFFSET_RESUME,   // G92.3 - resume application of the suspended offsets
-} origin_offset_t;
-
-
-typedef enum {
-  PROGRAM_STOP,
-  PROGRAM_OPTIONAL_STOP,
-  PROGRAM_PALLET_CHANGE_STOP,
-  PROGRAM_END,
-} program_flow_t;
-
-
-/// spindle state settings
-typedef enum {
-  SPINDLE_OFF,
-  SPINDLE_CW,
-  SPINDLE_CCW,
-} spindle_mode_t;
-
-
-/// mist and flood coolant states
-typedef enum {
-  COOLANT_OFF,        // all coolant off
-  COOLANT_ON,         // request coolant on or indicate both coolants are on
-  COOLANT_MIST,       // indicates mist coolant on
-  COOLANT_FLOOD,      // indicates flood coolant on
-} coolant_state_t;
-
-
-/// used for spindle and arc dir
-typedef enum {
-  DIRECTION_CW,
-  DIRECTION_CCW,
-} direction_t;
-
-
-/// axis modes (ordered: see _mach_get_feed_time())
-typedef enum {
-  AXIS_DISABLED,              // kill axis
-  AXIS_STANDARD,              // axis in coordinated motion w/standard behaviors
-  AXIS_INHIBITED,             // axis is computed but not activated
-  AXIS_RADIUS,                // rotary axis calibrated to circumference
-  AXIS_MODE_MAX,
-} axis_mode_t; // ordering must be preserved.
-
-
-/* Gcode model - The following GCodeModel/GCodeInput structs are used:
- *
- * - gm is the core Gcode model state. It keeps the internal gcode
- *     state model in normalized, canonical form. All values are unit
- *     converted (to mm) and in the machine coordinate system
- *     (absolute coordinate system). Gm is owned by the machine layer and
- *     should be accessed only through mach_ routines.
- *
- * - gn is used by the gcode interpreter and is re-initialized for
- *     each gcode block.It accepts data in the new gcode block in the
- *     formats present in the block (pre-normalized forms). During
- *     initialization some state elements are necessarily restored
- *     from gm.
- *
- * - gf is used by the gcode parser interpreter to hold flags for any
- *     data that has changed in gn during the parse. parser.gf.target[]
- *     values are also used by the machine during
- *     set_target().
- */
-
-
-/// Gcode model state
-typedef struct {
-  uint32_t line;                      // Gcode block line number
-
-  uint8_t tool;                       // Tool after T and M6
-  uint8_t tool_select;                // T - sets this value
-
-  float feed_rate;                    // F - in mm/min or inverse time mode
-  feed_mode_t feed_mode;
-  float feed_override_factor;         // 1.0000 x F feed rate
-  bool feed_override_enable;          // M48, M49
-
-  float spindle_speed;                // in RPM
-  spindle_mode_t spindle_mode;
-  float spindle_override_factor;      // 1.0000 x S spindle speed
-  bool spindle_override_enable;       // true = override enabled
-
-  motion_mode_t motion_mode;          // Group 1 modal motion
-  plane_t plane;                      // G17, G18, G19
-  units_t units;                      // G20, G21
-  coord_system_t coord_system;        // G54-G59 - select coordinate system 1-9
-  bool absolute_mode;                 // G53 true = move in machine coordinates
-  path_mode_t path_mode;              // G61
-  distance_mode_t distance_mode;      // G91
-  distance_mode_t arc_distance_mode;  // G91.1
-
-  bool mist_coolant;                  // true = mist on (M7), false = off (M9)
-  bool flood_coolant;                 // true = mist on (M8), false = off (M9)
-
-  next_action_t next_action;          // handles G group 1 moves & non-modals
-  program_flow_t program_flow;        // used only by the gcode_parser
-
-  // TODO unimplemented gcode parameters
-  // float cutter_radius;           // D - cutter radius compensation (0 is off)
-  // float cutter_length;           // H - cutter length compensation (0 is off)
-
-  // Used for input only
-  float target[AXES];                 // XYZABC where the move should go
-  bool override_enables;              // feed and spindle enable
-  bool tool_change;                   // M6 tool change flag
-
-  float parameter;                    // P - dwell time in sec, G10 coord select
-  float arc_radius;                   // R - radius value in arc radius mode
-  float arc_offset[3];                // IJK - used by arc commands
-} gcode_state_t;
-
-
-typedef struct {
-  axis_mode_t axis_mode;
-  float feedrate_max;    // max velocity in mm/min or deg/min
-  float velocity_max;    // max velocity in mm/min or deg/min
-  float travel_max;      // max work envelope for soft limits
-  float travel_min;      // min work envelope for soft limits
-  float jerk_max;        // max jerk (Jm) in mm/min^3 divided by 1 million
-  float jerk_homing;     // homing jerk (Jh) in mm/min^3 divided by 1 million
-  float recip_jerk;      // reciprocal of current jerk value - with million
-  float junction_dev;    // aka cornering delta
-  float radius;          // radius in mm for rotary axis modes
-  float search_velocity; // homing search velocity
-  float latch_velocity;  // homing latch velocity
-  float latch_backoff;   // backoff from switches prior to homing latch movement
-  float zero_backoff;    // backoff from switches for machine zero
-} axis_config_t;
-
 
 typedef struct { // struct to manage mach globals and cycles
   float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
@@ -295,7 +51,6 @@ typedef struct { // struct to manage mach globals and cycles
   float g28_position[AXES];            // stored machine position for G28
   float g30_position[AXES];            // stored machine position for G30
 
-  axis_config_t a[AXES];               // settings for axes
   gcode_state_t gm;                    // core gcode model state
 } machine_t;
 
@@ -333,9 +88,6 @@ void mach_set_tool_number(uint8_t tool);
 void mach_set_absolute_mode(bool absolute_mode);
 void mach_set_model_line(uint32_t line);
 
-float mach_get_axis_jerk(uint8_t axis);
-void mach_set_axis_jerk(uint8_t axis, float jerk);
-
 // Coordinate systems and offsets
 float mach_get_active_coord_offset(uint8_t axis);
 void mach_update_work_offsets();
@@ -343,7 +95,6 @@ float mach_get_absolute_position(uint8_t axis);
 
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);
-stat_t mach_deferred_write_callback();
 void mach_set_model_target(float target[], float flag[]);
 stat_t mach_test_soft_limits(float target[]);
 

@@ -27,6 +27,7 @@
 \******************************************************************************/
 
 #include "machine.h"
+#include "axes.h"
 #include "spindle.h"
 #include "switch.h"
 #include "util.h"
@@ -91,7 +92,7 @@ static void _probe_restore_settings() {
 
   // restore axis jerk
   for (int axis = 0; axis < AXES; axis++ )
-    mach_set_axis_jerk(axis, pb.saved_jerk[axis]);
+    axes_set_jerk(axis, pb.saved_jerk[axis]);
 
   // restore coordinate system and distance mode
   mach_set_coord_system(pb.saved_coord_system);
@@ -155,9 +156,9 @@ static void _probing_init() {
   // initialize the axes - save the jerk settings & switch to the jerk_homing
   // settings
   for (int axis = 0; axis < AXES; axis++) {
-    pb.saved_jerk[axis] = mach_get_axis_jerk(axis);   // save the max jerk value
+    pb.saved_jerk[axis] = axes_get_jerk(axis);   // save the max jerk value
     // use homing jerk for probe
-    mach_set_axis_jerk(axis, mach.a[axis].jerk_homing);
+    axes_set_jerk(axis, axes[axis].jerk_homing);
     pb.start_position[axis] = mach_get_absolute_position(axis);
   }
 

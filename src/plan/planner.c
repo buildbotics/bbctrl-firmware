@@ -58,6 +58,7 @@
 
 #include "planner.h"
 
+#include "axes.h"
 #include "buffer.h"
 #include "machine.h"
 #include "stepper.h"
@@ -119,7 +120,7 @@ void mp_kinematics(const float travel[], float steps[]) {
   // account.
   for (int motor = 0; motor < MOTORS; motor++) {
     int axis = motor_get_axis(motor);
-    if (mach.a[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
+    if (axes[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
     else steps[motor] = travel[axis] * motor_get_steps_per_unit(motor);
   }
 }

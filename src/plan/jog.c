@@ -27,6 +27,7 @@
 
 #include "jog.h"
 
+#include "axes.h"
 #include "planner.h"
 #include "buffer.h"
 #include "runtime.h"
@@ -67,7 +68,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
   // Compute new axis velocities and target
   for (int axis = 0; axis < AXES; axis++) {
-    float target_v = jr.target_velocity[axis] * mach.a[axis].velocity_max;
+    float target_v = jr.target_velocity[axis] * axes[axis].velocity_max;
     float delta_v = target_v - jr.current_velocity[axis];
     float sign = delta_v < 0 ? -1 : 1;
 

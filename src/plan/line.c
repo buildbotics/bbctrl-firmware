@@ -29,6 +29,7 @@
 
 #include "line.h"
 
+#include "axes.h"
 #include "planner.h"
 #include "exec.h"
 #include "runtime.h"
@@ -125,8 +126,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float b_delta = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
-    a_delta += square(a_unit[axis] * mach.a[axis].junction_dev);
-    b_delta += square(b_unit[axis] * mach.a[axis].junction_dev);
+    a_delta += square(a_unit[axis] * axes[axis].junction_dev);
+    b_delta += square(b_unit[axis] * axes[axis].junction_dev);
   }
 
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
@@ -202,7 +203,7 @@ static float _calc_jerk(const float axis_square[], const float unit[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (axis_square[axis]) { // Do not use fp_ZERO here
       // Squaring axis_length ensures it's positive
-      C = axis_square[axis] * mach.a[axis].recip_jerk;
+      C = axis_square[axis] * axes[axis].recip_jerk;
 
       if (maxC < C) {
         maxC = C;
@@ -215,7 +216,7 @@ static float _calc_jerk(const float axis_square[], const float unit[]) {
   // vector term.  This way when the move is finally decomposed into
   // its constituent axes for execution the jerk for that axis will be
   // at it's maximum value.
-  return mach.a[jerk_axis].jerk_max * JERK_MULTIPLIER / fabs(unit[jerk_axis]);
+  return axes[jerk_axis].jerk_max * JERK_MULTIPLIER / fabs(unit[jerk_axis]);
 }
 
 

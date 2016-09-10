@@ -64,6 +64,7 @@
 #include "machine.h"
 
 #include "config.h"
+#include "axes.h"
 #include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
@@ -102,82 +103,6 @@ machine_t mach = {
     {0, 0, 0, 0, 0, 0}, // G57
     {0, 0, 0, 0, 0, 0}, // G58
     {0, 0, 0, 0, 0, 0}, // G59
-  },
-
-  // Axes
-  .a = {
-    {
-      .axis_mode =         X_AXIS_MODE,
-      .velocity_max =      X_VELOCITY_MAX,
-      .feedrate_max =      X_FEEDRATE_MAX,
-      .travel_min =        X_TRAVEL_MIN,
-      .travel_max =        X_TRAVEL_MAX,
-      .jerk_max =          X_JERK_MAX,
-      .jerk_homing =       X_JERK_HOMING,
-      .junction_dev =      X_JUNCTION_DEVIATION,
-      .search_velocity =   X_SEARCH_VELOCITY,
-      .latch_velocity =    X_LATCH_VELOCITY,
-      .latch_backoff =     X_LATCH_BACKOFF,
-      .zero_backoff =      X_ZERO_BACKOFF,
-    }, {
-      .axis_mode =         Y_AXIS_MODE,
-      .velocity_max =      Y_VELOCITY_MAX,
-      .feedrate_max =      Y_FEEDRATE_MAX,
-      .travel_min =        Y_TRAVEL_MIN,
-      .travel_max =        Y_TRAVEL_MAX,
-      .jerk_max =          Y_JERK_MAX,
-      .jerk_homing =       Y_JERK_HOMING,
-      .junction_dev =      Y_JUNCTION_DEVIATION,
-      .search_velocity =   Y_SEARCH_VELOCITY,
-      .latch_velocity =    Y_LATCH_VELOCITY,
-      .latch_backoff =     Y_LATCH_BACKOFF,
-      .zero_backoff =      Y_ZERO_BACKOFF,
-    }, {
-      .axis_mode =         Z_AXIS_MODE,
-      .velocity_max =      Z_VELOCITY_MAX,
-      .feedrate_max =      Z_FEEDRATE_MAX,
-      .travel_min =        Z_TRAVEL_MIN,
-      .travel_max =        Z_TRAVEL_MAX,
-      .jerk_max =          Z_JERK_MAX,
-      .jerk_homing =       Z_JERK_HOMING,
-      .junction_dev =      Z_JUNCTION_DEVIATION,
-      .search_velocity =   Z_SEARCH_VELOCITY,
-      .latch_velocity =    Z_LATCH_VELOCITY,
-      .latch_backoff =     Z_LATCH_BACKOFF,
-      .zero_backoff =      Z_ZERO_BACKOFF,
-    }, {
-      .axis_mode =         A_AXIS_MODE,
-      .velocity_max =      A_VELOCITY_MAX,
-      .feedrate_max =      A_FEEDRATE_MAX,
-      .travel_min =        A_TRAVEL_MIN,
-      .travel_max =        A_TRAVEL_MAX,
-      .jerk_max =          A_JERK_MAX,
-      .jerk_homing =       A_JERK_HOMING,
-      .junction_dev =      A_JUNCTION_DEVIATION,
-      .radius =            A_RADIUS,
-      .search_velocity =   A_SEARCH_VELOCITY,
-      .latch_velocity =    A_LATCH_VELOCITY,
-      .latch_backoff =     A_LATCH_BACKOFF,
-      .zero_backoff =      A_ZERO_BACKOFF,
-    }, {
-      .axis_mode =         B_AXIS_MODE,
-      .velocity_max =      B_VELOCITY_MAX,
-      .feedrate_max =      B_FEEDRATE_MAX,
-      .travel_min =        B_TRAVEL_MIN,
-      .travel_max =        B_TRAVEL_MAX,
-      .jerk_max =          B_JERK_MAX,
-      .junction_dev =      B_JUNCTION_DEVIATION,
-      .radius =            B_RADIUS,
-    }, {
-      .axis_mode =         C_AXIS_MODE,
-      .velocity_max =      C_VELOCITY_MAX,
-      .feedrate_max =      C_FEEDRATE_MAX,
-      .travel_min =        C_TRAVEL_MIN,
-      .travel_max =        C_TRAVEL_MAX,
-      .jerk_max =          C_JERK_MAX,
-      .junction_dev =      C_JUNCTION_DEVIATION,
-      .radius =            C_RADIUS,
-    }
   },
 
   // State
@@ -325,29 +250,6 @@ void mach_set_absolute_mode(bool absolute_mode) {
 
 
 void mach_set_model_line(uint32_t line) {mach.gm.line = line;}
-
-
-/* Jerk functions
- *
- * Jerk values can be rather large, often in the billions. This makes
- * for some pretty big numbers for people to deal with. Jerk values
- * are stored in the system in truncated format; values are divided by
- * 1,000,000 then reconstituted before use.
- *
- * The axis_jerk() functions expect the jerk in divided-by 1,000,000 form
- */
-
-/// returns jerk for an axis
-float mach_get_axis_jerk(uint8_t axis) {
-  return mach.a[axis].jerk_max;
-}
-
-
-/// sets the jerk for an axis, including recirpcal and cached values
-void mach_set_axis_jerk(uint8_t axis, float jerk) {
-  mach.a[axis].jerk_max = jerk;
-  mach.a[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
-}
 
 
 /* Coordinate systems and offsets
@@ -529,8 +431,8 @@ float mach_calc_move_time(const float axis_length[],
   // Compute time required for rate-limiting axis
   for (int axis = 0; axis < AXES; axis++) {
     float time = fabs(axis_length[axis]) /
-      (mach.gm.motion_mode == MOTION_MODE_RAPID ? mach.a[axis].velocity_max :
-       mach.a[axis].feedrate_max);
+      (mach.gm.motion_mode == MOTION_MODE_RAPID ? axes[axis].velocity_max :
+       axes[axis].feedrate_max);
 
     if (max_time < time) max_time = time;
   }
@@ -565,11 +467,14 @@ float mach_calc_move_time(const float axis_length[],
 // get a fresh stack push
 // ALDEN: This shows up in avr-gcc 4.7.0 and avr-libc 1.8.0
 static float _calc_ABC(uint8_t axis, float target[], float flag[]) {
-  if (mach.a[axis].axis_mode == AXIS_STANDARD ||
-      mach.a[axis].axis_mode == AXIS_INHIBITED)
-    return target[axis];    // no mm conversion - it's in degrees
+  switch (axes[axis].axis_mode) {
+  case AXIS_STANDARD:
+  case AXIS_INHIBITED:
+    return target[axis]; // no mm conversion - it's in degrees
 
-  return TO_MILLIMETERS(target[axis]) * 360 / (2 * M_PI * mach.a[axis].radius);
+  default:
+    return TO_MILLIMETERS(target[axis]) * 360 / (2 * M_PI * axes[axis].radius);
+  }
 }
 
 
@@ -578,11 +483,11 @@ void mach_set_model_target(float target[], float flag[]) {
 
   // process XYZABC for lower modes
   for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
-    if (fp_FALSE(flag[axis]) || mach.a[axis].axis_mode == AXIS_DISABLED)
+    if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
-    if (mach.a[axis].axis_mode == AXIS_STANDARD ||
-        mach.a[axis].axis_mode == AXIS_INHIBITED) {
+    if (axes[axis].axis_mode == AXIS_STANDARD ||
+        axes[axis].axis_mode == AXIS_INHIBITED) {
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
         mach.gm.target[axis] =
           mach_get_active_coord_offset(axis) + TO_MILLIMETERS(target[axis]);
@@ -592,9 +497,10 @@ void mach_set_model_target(float target[], float flag[]) {
 
   // NOTE: The ABC loop below relies on the XYZ loop having been run first
   for (int axis = AXIS_A; axis <= AXIS_C; axis++) {
-    if (fp_FALSE(flag[axis]) || mach.a[axis].axis_mode == AXIS_DISABLED)
+    if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
-    else tmp = _calc_ABC(axis, target, flag);
+
+    tmp = _calc_ABC(axis, target, flag);
 
     if (mach.gm.distance_mode == ABSOLUTE_MODE)
       // sacidu93's fix to Issue #22
@@ -604,7 +510,7 @@ void mach_set_model_target(float target[], float flag[]) {
 }
 
 
-/* Return error code if soft limit is exceeded
+/*** Return error code if soft limit is exceeded
  *
  * Must be called with target properly set in GM struct.  Best done
  * after mach_set_model_target().
@@ -619,14 +525,14 @@ stat_t mach_test_soft_limits(float target[]) {
   for (int axis = 0; axis < AXES; axis++) {
     if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
 
-    if (fp_EQ(mach.a[axis].travel_min, mach.a[axis].travel_max)) continue;
+    if (fp_EQ(axes[axis].travel_min, axes[axis].travel_max)) continue;
 
-    if (mach.a[axis].travel_min > DISABLE_SOFT_LIMIT &&
-        target[axis] < mach.a[axis].travel_min)
+    if (axes[axis].travel_min > DISABLE_SOFT_LIMIT &&
+        target[axis] < axes[axis].travel_min)
       return STAT_SOFT_LIMIT_EXCEEDED;
 
-    if (mach.a[axis].travel_max > DISABLE_SOFT_LIMIT &&
-        target[axis] > mach.a[axis].travel_max)
+    if (axes[axis].travel_max > DISABLE_SOFT_LIMIT &&
+        target[axis] > axes[axis].travel_max)
       return STAT_SOFT_LIMIT_EXCEEDED;
   }
 
@@ -647,7 +553,7 @@ stat_t mach_test_soft_limits(float target[]) {
 void machine_init() {
   // Init 1/jerk
   for (int axis = 0; axis < AXES; axis++)
-    mach_set_axis_jerk(axis, mach.a[axis].jerk_max);
+    axes_set_jerk(axis, axes[axis].jerk_max);
 
   // Set gcode defaults
   mach_set_units(GCODE_DEFAULT_UNITS);
