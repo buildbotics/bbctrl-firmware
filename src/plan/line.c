@@ -285,10 +285,9 @@ stat_t mp_aline(const float target[], int32_t line) {
   if (fp_ZERO(length)) return STAT_OK;
 
   // Get a buffer.  Note, new buffers are initialized to zero.
-  mp_buffer_t *bf = mp_get_write_buffer(); // current move pointer
+  mp_buffer_t *bf = mp_queue_get_tail(); // current move pointer
 
   // Set buffer values
-  bf->bf_func = mp_exec_aline;
   bf->length = length;
   copy_vector(bf->target, target);
 
@@ -307,7 +306,7 @@ stat_t mp_aline(const float target[], int32_t line) {
   // Note, the following lines must remain in order.
   mp_plan_block_list(bf);       // Plan block list
   mp_set_position(target);      // Set planner position before committing buffer
-  mp_commit_write_buffer(line); // Commit current block after position update
+  mp_queue_push(mp_exec_aline, line); // After position update
 
   return STAT_OK;
 }

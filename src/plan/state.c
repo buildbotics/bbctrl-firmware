@@ -181,7 +181,7 @@ void mp_state_callback() {
   if (ps.flush_requested && mp_is_quiescent()) {
     mach_abort_arc();
 
-    if (!mp_queue_empty()) {
+    if (!mp_queue_is_empty()) {
       mp_flush_planner();
 
       // NOTE The following uses low-level mp calls for absolute position.
@@ -205,7 +205,7 @@ void mp_state_callback() {
 
     if (mp_get_state() == STATE_HOLDING) {
       // Check if any moves are buffered
-      if (!mp_queue_empty()) {
+      if (!mp_queue_is_empty()) {
         mp_replan_blocks();
         _set_state(STATE_RUNNING);
 

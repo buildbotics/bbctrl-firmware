@@ -28,25 +28,8 @@
 \******************************************************************************/
 
 /* Planner buffers are used to queue and operate on Gcode blocks. Each
- * buffer contains one Gcode block which may be a move, and M code, or
+ * buffer contains one Gcode block which may be a move, M code or
  * other command that must be executed synchronously with movement.
- *
- * Buffers are in a circularly linked list managed by a WRITE pointer
- * and a RUN pointer.  New blocks are populated by (1) getting a write
- * buffer, (2) populating the buffer, then (3) placing it in the queue
- * (queue write buffer). If an exception occurs during population you
- * can unget the write buffer before queuing it, which returns it to
- * the pool of available buffers.
- *
- * The RUN buffer is the buffer currently executing. It may be
- * retrieved once for simple commands, or multiple times for
- * long-running commands like moves. When the command is complete the
- * run buffer is returned to the pool by freeing it.
- *
- * Notes:
- *    The write buffer pointer only moves forward on _queue_write_buffer, and
- *    the read buffer pointer only moves forward on free_read calls.
- *    (test, get and unget have no effect)
  */
 
 #include "buffer.h"
@@ -56,153 +39,115 @@
 #include <string.h>
 
 
-typedef struct {                            // ring buffer for sub-moves
-  volatile uint8_t buffers_available;       // count of available buffers
-  mp_buffer_t *w;                           // get_write_buffer pointer
-  mp_buffer_t *q;                           // queue_write_buffer pointer
-  mp_buffer_t *r;                           // get/end_run_buffer pointer
-  mp_buffer_t bf[PLANNER_BUFFER_POOL_SIZE]; // buffer storage
+typedef struct {
+  uint8_t space;
+  mp_buffer_t *tail;
+  mp_buffer_t *head;
+  mp_buffer_t bf[PLANNER_BUFFER_POOL_SIZE];
 } buffer_pool_t;
 
 
-buffer_pool_t mb; // move buffer queue
+buffer_pool_t mb;
 
 
-/// buffer incr & wrap
-#define _bump(a) ((a < PLANNER_BUFFER_POOL_SIZE - 1) ? a + 1 : 0)
+/// Zeroes the contents of a buffer
+static void _clear_buffer(mp_buffer_t *bf) {
+  mp_buffer_t *next = bf->next;            // save pointers
+  mp_buffer_t *prev = bf->prev;
+  memset(bf, 0, sizeof(mp_buffer_t));
+  bf->next = next;                         // restore pointers
+  bf->prev = prev;
+}
+
+
+static void _push() {
+  if (!mb.space) {
+    CM_ALARM(STAT_INTERNAL_ERROR);
+    return;
+  }
+
+  mb.tail = mb.tail->next;
+  mb.space--;
+}
+
+
+static void _pop() {
+  if (mb.space == PLANNER_BUFFER_POOL_SIZE) {
+    CM_ALARM(STAT_INTERNAL_ERROR);
+    return;
+  }
+
+  mb.head = mb.head->next;
+  mb.space++;
+}
 
 
 /// Initializes or resets buffers
-void mp_init_buffers() {
-  mp_buffer_t *pv;
+void mp_queue_init() {
+  memset(&mb, 0, sizeof(mb));     // clear all values
 
-  memset(&mb, 0, sizeof(mb));      // clear all values, pointers and status
+  mb.tail = mb.head = &mb.bf[0];  // init head and tail
+  mb.space = PLANNER_BUFFER_POOL_SIZE;
 
-  mb.w = mb.q = mb.r = &mb.bf[0];  // init write and read buffer pointers
-  pv = &mb.bf[PLANNER_BUFFER_POOL_SIZE - 1];
-
-  // setup ring pointers
-  for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
-    mb.bf[i].nx = &mb.bf[_bump(i)];
-    mb.bf[i].pv = pv;
-    pv = &mb.bf[i];
+  // Setup ring pointers
+  for (int i = 0; i < mb.space; i++) {
+    mb.bf[i].next = &mb.bf[i + 1];
+    mb.bf[i].prev = &mb.bf[i - 1];
   }
 
-  mb.buffers_available = PLANNER_BUFFER_POOL_SIZE;
+  mb.bf[0].prev = &mb.bf[mb.space -1];  // Fix first->prev
+  mb.bf[mb.space - 1].next = &mb.bf[0]; // Fix last->next
 
   mp_state_idle();
 }
 
 
-uint8_t mp_get_planner_buffer_room() {
-  uint16_t n = mb.buffers_available;
-  return n < PLANNER_BUFFER_HEADROOM ? 0 : n - PLANNER_BUFFER_HEADROOM;
+uint8_t mp_queue_get_room() {
+  return mb.space < PLANNER_BUFFER_HEADROOM ?
+    0 : mb.space - PLANNER_BUFFER_HEADROOM;
 }
 
 
-uint8_t mp_get_planner_buffer_fill() {
-  return PLANNER_BUFFER_POOL_SIZE - mb.buffers_available;
+uint8_t mp_queue_get_fill() {
+  return PLANNER_BUFFER_POOL_SIZE - mb.space;
 }
 
 
-void mp_wait_for_buffer() {while (!mb.buffers_available) continue;}
-bool mp_queue_empty() {return mb.w == mb.r;}
+bool mp_queue_is_empty() {return mb.tail == mb.head;}
 
 
-/// Get pointer to next available write buffer.  Wait until one is available.
-mp_buffer_t *mp_get_write_buffer() {
-  // Wait for a buffer
-  while (!mb.buffers_available) continue;
-
-  // Get & clear write buffer
-  mp_buffer_t *w = mb.w;
-  mp_buffer_t *nx = mb.w->nx;               // save linked list pointers
-  mp_buffer_t *pv = mb.w->pv;
-  memset(mb.w, 0, sizeof(mp_buffer_t));     // clear all values
-  w->nx = nx;                               // restore pointers
-  w->pv = pv;
-  w->buffer_state = MP_BUFFER_LOADING;
-  mb.w = w->nx;
-
-  mb.buffers_available--;
-
-  return w;
+/// Get pointer to next buffer, waiting until one is available.
+mp_buffer_t *mp_queue_get_tail() {
+  while (!mb.space) continue; // Wait for a buffer
+  return mb.tail;
 }
 
 
-/* Commit the next write buffer to the queue
- * Advances write pointer & changes buffer state
+/*** Commit the next buffer to the queue.
  *
- * WARNING: The routine calling mp_commit_write_buffer() must not use the write
- * buffer once it has been queued. Action may start on the buffer immediately,
+ * WARNING: The routine calling mp_queue_push() must not use the write
+ * buffer once it has been queued.  Action may start on the buffer immediately,
  * invalidating its contents
  */
-void mp_commit_write_buffer(uint32_t line) {
+void mp_queue_push(buffer_cb_t cb, uint32_t line) {
   mp_state_running();
 
-  mb.q->ts = rtc_get_time();
-  mb.q->line = line;
-  mb.q->run_state = MOVE_NEW;
-  mb.q->buffer_state = MP_BUFFER_QUEUED;
-  mb.q = mb.q->nx; // advance the queued buffer pointer
+  mb.tail->ts = rtc_get_time();
+  mb.tail->cb = cb;
+  mb.tail->line = line;
+  mb.tail->run_state = MOVE_NEW;
+
+  _push();
 }
 
 
-/* Get pointer to the next or current run buffer
- * Returns a new run buffer if prev buf was ENDed
- * Returns same buf if called again before ENDing
- * Returns 0 if no buffer available
- * The behavior supports continuations (iteration)
- */
-mp_buffer_t *mp_get_run_buffer() {
-  switch (mb.r->buffer_state) {
-  case MP_BUFFER_QUEUED: // fresh buffer; becomes running if queued or pending
-    mb.r->buffer_state = MP_BUFFER_RUNNING;
-    // Fall through
-
-  case MP_BUFFER_RUNNING: // asking for the same run buffer for the Nth time
-    return mb.r; // return same buffer
-
-  default: return 0; // no queued buffers
-  }
+mp_buffer_t *mp_queue_get_head() {
+  return mp_queue_is_empty() ? 0 : mb.head;
 }
 
 
-/// Release the run buffer & return to buffer pool.
-void mp_free_run_buffer() {           // EMPTY current run buf & adv to next
-  mp_clear_buffer(mb.r);              // clear it out (& reset replannable)
-  mb.r = mb.r->nx;                    // advance to next run buffer
-  mb.buffers_available++;
-}
-
-
-/// Returns pointer to last buffer, i.e. last block (zero)
-mp_buffer_t *mp_get_last_buffer() {
-  mp_buffer_t *bf = mp_get_run_buffer();
-  mp_buffer_t *bp;
-
-  for (bp = bf; bp && bp->nx != bf; bp = mp_buffer_next(bp))
-    if (bp->nx->run_state == MOVE_OFF) break;
-
-  return bp;
-}
-
-
-/// Zeroes the contents of the buffer
-void mp_clear_buffer(mp_buffer_t *bf) {
-  mp_buffer_t *nx = bf->nx;            // save pointers
-  mp_buffer_t *pv = bf->pv;
-  memset(bf, 0, sizeof(mp_buffer_t));
-  bf->nx = nx;                         // restore pointers
-  bf->pv = pv;
-}
-
-
-///  Copies the contents of bp into bf - preserves links
-void mp_copy_buffer(mp_buffer_t *bf, const mp_buffer_t *bp) {
-  mp_buffer_t *nx = bf->nx;            // save pointers
-  mp_buffer_t *pv = bf->pv;
-  memcpy(bf, bp, sizeof(mp_buffer_t));
-  bf->nx = nx;                         // restore pointers
-  bf->pv = pv;
+/// Clear and release buffer to pool
+void mp_queue_pop() {
+  _clear_buffer(mb.head);
+  _pop();
 }

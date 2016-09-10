@@ -46,12 +46,9 @@ static stat_t _exec_dwell(mp_buffer_t *bf) {
 
 /// Queue a dwell
 stat_t mp_dwell(float seconds, int32_t line) {
-  mp_buffer_t *bf = mp_get_write_buffer();
-  bf->bf_func = _exec_dwell; // register callback to dwell start
-  bf->dwell = seconds;       // in seconds, not minutes
-
-  // must be final operation before exit
-  mp_commit_write_buffer(line);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->dwell = seconds; // in seconds, not minutes
+  mp_queue_push(_exec_dwell, line);
 
   return STAT_OK;
 }

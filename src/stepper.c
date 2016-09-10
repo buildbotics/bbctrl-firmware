@@ -63,7 +63,7 @@ typedef struct {
   move_type_t move_type;
   uint16_t seg_period;
   uint32_t prep_dwell;
-  mach_func_t mach_func; // used for command moves
+  mach_cb_t mach_cb; // used for command moves
   float values[AXES];
   float flags[AXES];
 } stepper_t;
@@ -169,7 +169,7 @@ ISR(STEP_TIMER_ISR) {
     st.dwell = st.prep_dwell;
 
   } else if (st.move_type == MOVE_TYPE_COMMAND)
-    st.mach_func(st.values, st.flags); // Execute command
+    st.mach_cb(st.values, st.flags); // Execute command
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
@@ -224,10 +224,10 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 
 
 /// Stage command to execution
-void st_prep_command(mach_func_t mach_func, float values[], float flags[]) {
+void st_prep_command(mach_cb_t mach_cb, float values[], float flags[]) {
   if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_COMMAND;
-  st.mach_func = mach_func;
+  st.mach_cb = mach_cb;
   copy_vector(st.values, values);
   copy_vector(st.flags, flags);
   st.move_ready = true; // signal prep buffer ready

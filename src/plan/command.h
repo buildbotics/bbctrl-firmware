@@ -29,4 +29,4 @@
 
 #include "plan/buffer.h"
 
-void mp_queue_command(mach_func_t mach_exec, float *value, float *flag);
+void mp_queue__command(mach_cb_t mach_exec, float *value, float *flag);

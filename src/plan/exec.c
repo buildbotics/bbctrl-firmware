@@ -354,7 +354,7 @@ static float _compute_next_segment_velocity() {
  * speed.
  */
 static void _plan_hold() {
-  mp_buffer_t *bf = mp_get_run_buffer(); // working buffer pointer
+  mp_buffer_t *bf = mp_queue_get_head(); // working buffer pointer
   if (!bf) return; // Oops! nothing's running
 
   // Examine and process current buffer and compute length left for decel
@@ -516,13 +516,12 @@ stat_t mp_exec_move() {
   if (mp_get_state() == STATE_ESTOPPED || mp_get_state() == STATE_HOLDING)
     return STAT_NOOP;
 
-  mp_buffer_t *bf = mp_get_run_buffer();
+  mp_buffer_t *bf = mp_queue_get_head();
   if (!bf) return STAT_NOOP; // Nothing running
-  if (!bf->bf_func) return STAT_INTERNAL_ERROR; // Should never happen
 
   if (bf->run_state == MOVE_NEW) {
     // On restart wait a bit to give planner queue a chance to fill
-    if (!mp_runtime_is_busy() && mp_get_planner_buffer_fill() < 4 &&
+    if (!mp_runtime_is_busy() && mp_queue_get_fill() < 4 &&
         !rtc_expired(bf->ts + 250)) return STAT_NOOP;
 
     // Take control of buffer
@@ -534,7 +533,7 @@ stat_t mp_exec_move() {
     mp_runtime_set_line(bf->line);
   }
 
-  stat_t status = bf->bf_func(bf); // Move callback
+  stat_t status = bf->cb(bf); // Move callback
 
   if (status != STAT_EAGAIN) {
     bool idle = false;
@@ -554,10 +553,10 @@ stat_t mp_exec_move() {
       // being run by the steppers.  Planning can overwrite the new move.
       mp_buffer_next(bf)->replannable = false;
 
-      mp_free_run_buffer(); // Free buffer
+      mp_queue_pop(); // Free buffer
 
       // Enter READY state
-      if (mp_queue_empty()) {
+      if (mp_queue_is_empty()) {
         mp_state_idle();
         idle = true;
       }

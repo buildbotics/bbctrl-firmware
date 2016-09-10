@@ -126,10 +126,7 @@ uint8_t command_jog(int argc, char *argv[]) {
 
   if (!mp_jog_busy()) {
     mp_set_cycle(CYCLE_JOGGING);
-
-    mp_buffer_t *bf = mp_get_write_buffer();
-    bf->bf_func = _exec_jog; // register callback
-    mp_commit_write_buffer(-1);
+    mp_queue_push(_exec_jog, -1);
   }
 
   return STAT_OK;

@@ -72,7 +72,7 @@
 static float mp_position[AXES]; // final move position for planning purposes
 
 
-void planner_init() {mp_init_buffers();}
+void planner_init() {mp_queue_init();}
 
 
 /// Set planner position for a single axis
@@ -96,7 +96,7 @@ void mp_set_position(const float position[]) {
  * during a hold to reset the planner.  This function should not usually
  * be directly called.  Call mp_request_flush() instead.
  */
-void mp_flush_planner() {mp_init_buffers();}
+void mp_flush_planner() {mp_queue_init();}
 
 
 /* Performs axis mapping & conversion of length units to steps (and deals
@@ -458,7 +458,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  * first block and the bf.  It sets entry, exit and cruise v's from vmax's then
  * calls trapezoid generation.
  *
- * Variables that must be provided in the mp_buffer_ts that will be processed:
+ * Variables that must be provided in the mp_buffer_t that will be processed:
  *
  *   bf (function arg)     - end of block list (last block in time)
  *   bf->replannable       - start of block list set by last FALSE value
@@ -491,7 +491,6 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  *   bf->run_state         - NEW for all blocks but the earliest
  *   bf->target[]          - block target position
  *   bf->unit[]            - block unit vector
- *   bf->time              - gets set later
  *   bf->jerk              - source of the other jerk variables.
  *
  * Notes:
@@ -552,7 +551,7 @@ void mp_plan_block_list(mp_buffer_t *bf) {
 
 
 void mp_replan_blocks() {
-  mp_buffer_t *bf = mp_get_run_buffer();
+  mp_buffer_t *bf = mp_queue_get_head();
   if (!bf) return;
 
   mp_buffer_t *bp = bf;

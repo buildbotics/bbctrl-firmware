@@ -40,5 +40,5 @@ void st_shutdown();
 bool st_is_busy();
 stat_t st_prep_line(float travel_steps[], float following_error[],
                     float segment_time);
-void st_prep_command(mach_func_t mach_func, float values[], float flags[]);
+void st_prep_command(mach_cb_t mach_cb, float values[], float flags[]);
 void st_prep_dwell(float seconds);

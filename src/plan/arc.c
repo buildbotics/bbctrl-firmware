@@ -447,7 +447,7 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
  *  as many arc segments (lines) as it can before it blocks, then returns.
  */
 void mach_arc_callback() {
-  while (arc.running && mp_get_planner_buffer_room()) {
+  while (arc.running && mp_queue_get_room()) {
     if (arc.segments == 1) { // Final segment
       arc.position[arc.plane_axis_0] = arc.target[arc.plane_axis_0];
       arc.position[arc.plane_axis_1] = arc.target[arc.plane_axis_1];
