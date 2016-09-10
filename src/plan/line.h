@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "machine.h"
+#include "status.h"
 
-void mp_set_axis_position(int axis, float position);
+
 stat_t mp_aline(const float target[], int32_t line);

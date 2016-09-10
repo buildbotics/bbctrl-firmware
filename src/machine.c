@@ -30,40 +30,35 @@
 /* This code is a loose implementation of Kramer, Proctor and Messina's
  * machining functions as described in the NIST RS274/NGC v3
  *
- * The machine is the layer between the Gcode parser and
- * the motion control code for a specific robot. It keeps state and
- * executes commands - passing the stateless commands to the motion
- * planning layer.
+ * The machine is the layer between the Gcode parser and the motion control code
+ * for a specific robot. It keeps state and executes commands - passing the
+ * stateless commands to the motion planning layer.
  *
  * Synchronizing command execution:
  *
- * "Synchronous commands" are commands that affect the runtime need
- * to be synchronized with movement.  Examples include G4 dwells,
- * program stops and ends, and most M commands.  These are queued
- * into the planner queue and execute from the queue.  Synchronous
- * commands work like this:
+ * "Synchronous commands" are commands that affect the runtime need to be
+ * synchronized with movement.  Examples include G4 dwells, program stops and
+ * ends, and most M commands.  These are queued into the planner queue and
+ * execute from the queue.  Synchronous commands work like this:
  *
- *   - Call the mach_xxx_xxx() function which will do any input
- *     validation and return an error if it detects one.
+ *   - Call the mach_xxx_xxx() function which will do any input validation and
+ *     return an error if it detects one.
  *
- *   - The mach_ function calls mp_queue_command(). Arguments are a
- *     callback to the _exec_...() function, which is the runtime
- *     execution routine, and any arguments that are needed by the
- *     runtime. See typedef for *exec in planner.h for details
+ *   - The mach_ function calls mp_queue_command(). Arguments are a callback to
+ *     the _exec_...() function, which is the runtime execution routine, and any
+ *     arguments that are needed by the runtime. See typedef for *exec in
+ *     planner.h for details
  *
- *   - mp_queue_command() stores the callback and the args in a
- *     planner buffer.
+ *   - mp_queue_command() stores the callback and the args in a planner buffer.
  *
- *   - When planner execution reaches the buffer it executes the
- *     callback w/ the args.  Take careful note that the callback
- *     executes under an interrupt, so beware of variables that may
- *     need to be volatile.
+ *   - When planner execution reaches the buffer it executes the callback w/ the
+ *     args.  Take careful note that the callback executes under an interrupt,
+ *     so beware of variables that may need to be volatile.
  *
- * Note: The synchronous command execution mechanism uses 2
- * vectors in the bf buffer to store and return values for the
- * callback.  It's obvious, but impractical to pass the entire bf
- * buffer to the callback as some of these commands are actually
- * executed locally and have no buffer.
+ * Note: The synchronous command execution mechanism uses 2 vectors in the bf
+ * buffer to store and return values for the callback.  It's obvious, but
+ * impractical to pass the entire bf buffer to the callback as some of these
+ * commands are actually executed locally and have no buffer.
  */
 
 #include "machine.h"
@@ -485,110 +480,97 @@ void mach_finalize_move() {
 
 /* Compute optimal and minimum move times into the gcode_state
  *
- * "Minimum time" is the fastest the move can be performed given
- * the velocity constraints on each participating axis - regardless
- * of the feed rate requested. The minimum time is the time limited
- * by the rate-limiting axis. The minimum time is needed to compute
- * the optimal time and is recorded for possible feed override
- * computation.
+ * "Minimum time" is the fastest the move can be performed given the velocity
+ * constraints on each participating axis - regardless of the feed rate
+ * requested. The minimum time is the time limited by the rate-limiting
+ * axis. The minimum time is needed to compute the optimal time and is recorded
+ * for possible feed override computation.
  *
- * "Optimal time" is either the time resulting from the requested
- * feed rate or the minimum time if the requested feed rate is not
- * achievable. Optimal times for rapids are always the minimum
- * time.
+ * "Optimal time" is either the time resulting from the requested feed rate or
+ * the minimum time if the requested feed rate is not achievable. Optimal times
+ * for rapids are always the minimum time.
  *
- * The gcode state must have targets set prior by having
- * mach_set_target(). Axis modes are taken into account by this.
+ * The gcode state must have targets set prior by having mach_set_target(). Axis
+ * modes are taken into account by this.
  *
  * The following times are compared and the longest is returned:
  *   - G93 inverse time (if G93 is active)
  *   - time for coordinated move at requested feed rate
  *   - time that the slowest axis would require for the move
  *
- * Sets the following variables in the gcode_state struct
- *   - move_time is set to optimal time
+ * Sets the following variables in the gcode_state struct - move_time is set to
+ * optimal time
  *
  * NIST RS274NGC_v3 Guidance
  *
- * The following is verbatim text from NIST RS274NGC_v3. As I
- * interpret A for moves that combine both linear and rotational
- * movement, the feed rate should apply to the XYZ movement, with
- * the rotational axis (or axes) timed to start and end at the same
- * time the linear move is performed. It is possible under this
- * case for the rotational move to rate-limit the linear move.
+ * The following is verbatim text from NIST RS274NGC_v3. As I interpret A for
+ * moves that combine both linear and rotational movement, the feed rate should
+ * apply to the XYZ movement, with the rotational axis (or axes) timed to start
+ * and end at the same time the linear move is performed. It is possible under
+ * this case for the rotational move to rate-limit the linear move.
  *
  *  2.1.2.5 Feed Rate
  *
- * The rate at which the controlled point or the axes move is
- * nominally a steady rate which may be set by the user. In the
- * Interpreter, the interpretation of the feed rate is as follows
- * unless inverse time feed rate mode is being used in the
- * RS274/NGC view (see Section 3.5.19). The machining
- * functions view of feed rate, as described in Section 4.3.5.1,
- * has conditions under which the set feed rate is applied
- * differently, but none of these is used in the Interpreter.
+ * The rate at which the controlled point or the axes move is nominally a steady
+ * rate which may be set by the user. In the Interpreter, the interpretation of
+ * the feed rate is as follows unless inverse time feed rate mode is being used
+ * in the RS274/NGC view (see Section 3.5.19). The machining functions view of
+ * feed rate, as described in Section 4.3.5.1, has conditions under which the
+ * set feed rate is applied differently, but none of these is used in the
+ * Interpreter.
  *
- * A.  For motion involving one or more of the X, Y, and Z axes
- *     (with or without simultaneous rotational axis motion), the
- *     feed rate means length units per minute along the programmed
- *     XYZ path, as if the rotational axes were not moving.
+ * A.  For motion involving one or more of the X, Y, and Z axes (with or without
+ *     simultaneous rotational axis motion), the feed rate means length units
+ *     per minute along the programmed XYZ path, as if the rotational axes were
+ *     not moving.
  *
- * B.  For motion of one rotational axis with X, Y, and Z axes not
- *     moving, the feed rate means degrees per minute rotation of
- *     the rotational axis.
+ * B.  For motion of one rotational axis with X, Y, and Z axes not moving, the
+ *     feed rate means degrees per minute rotation of the rotational axis.
  *
- * C.  For motion of two or three rotational axes with X, Y, and Z
- *     axes not moving, the rate is applied as follows. Let dA, dB,
- *     and dC be the angles in degrees through which the A, B, and
- *     C axes, respectively, must move.  Let D = sqrt(dA^2 + dB^2 +
- *     dC^2). Conceptually, D is a measure of total angular motion,
- *     using the usual Euclidean metric. Let T be the amount of
- *     time required to move through D degrees at the current feed
- *     rate in degrees per minute. The rotational axes should be
- *     moved in coordinated linear motion so that the elapsed time
- *     from the start to the end of the motion is T plus any time
- *     required for acceleration or deceleration.
+ * C.  For motion of two or three rotational axes with X, Y, and Z axes not
+ *     moving, the rate is applied as follows. Let dA, dB, and dC be the angles
+ *     in degrees through which the A, B, and C axes, respectively, must move.
+ *     Let D = sqrt(dA^2 + dB^2 + dC^2). Conceptually, D is a measure of total
+ *     angular motion, using the usual Euclidean metric. Let T be the amount of
+ *     time required to move through D degrees at the current feed rate in
+ *     degrees per minute. The rotational axes should be moved in coordinated
+ *     linear motion so that the elapsed time from the start to the end of the
+ *     motion is T plus any time required for acceleration or deceleration.
  */
 float mach_calc_move_time(const float axis_length[],
                           const float axis_square[]) {
-  float inv_time = 0;           // inverse time if doing a feed in G93 mode
-  float xyz_time = 0;           // linear coordinated move at requested feed
-  float abc_time = 0;           // rotary coordinated move at requested feed
-  float max_time = 0;           // time required for the rate-limiting axis
-  float tmp_time = 0;           // used in computation
+  float max_time = 0;
 
-  // compute times for feed motion
+  // Compute times for feed motion
   if (mach.gm.motion_mode != MOTION_MODE_RAPID) {
     if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE) {
-      // feed rate was un-inverted to minutes by mach_set_feed_rate()
-      inv_time = mach.gm.feed_rate;
+      // Feed rate was un-inverted to minutes by mach_set_feed_rate()
+      max_time = mach.gm.feed_rate;
       mach.gm.feed_rate_mode = UNITS_PER_MINUTE_MODE;
 
     } else {
-      // compute length of linear move in millimeters.  Feed rate is provided as
-      // mm/min
-      xyz_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
+      // Compute length of linear move in millimeters.  Feed rate in mm/min.
+      max_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
                       axis_square[AXIS_Z]) / mach.gm.feed_rate;
 
-      // if no linear axes, compute length of multi-axis rotary move in degrees.
+      // If no linear axes, compute length of multi-axis rotary move in degrees.
       // Feed rate is provided as degrees/min
-      if (fp_ZERO(xyz_time))
-        abc_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
+      if (fp_ZERO(max_time))
+        max_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
                         axis_square[AXIS_C]) / mach.gm.feed_rate;
     }
   }
 
+  // Compute time required for rate-limiting axis
   for (int axis = 0; axis < AXES; axis++) {
-    if (mach.gm.motion_mode == MOTION_MODE_RAPID)
-      tmp_time = fabs(axis_length[axis]) / mach.a[axis].velocity_max;
+    float time = fabs(axis_length[axis]) /
+      (mach.gm.motion_mode == MOTION_MODE_RAPID ? mach.a[axis].velocity_max :
+       mach.a[axis].feedrate_max);
 
-    else // MOTION_MODE_FEED
-      tmp_time = fabs(axis_length[axis]) / mach.a[axis].feedrate_max;
-
-    max_time = max(max_time, tmp_time);
+    if (max_time < time) max_time = time;
   }
 
-  return max4(inv_time, max_time, xyz_time, abc_time);
+  return max_time < MIN_SEGMENT_TIME ? MIN_SEGMENT_TIME : max_time;
 }
 
 

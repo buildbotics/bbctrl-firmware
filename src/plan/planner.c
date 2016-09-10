@@ -69,7 +69,24 @@
 #include <stdio.h>
 
 
+static float mp_position[AXES]; // final move position for planning purposes
+
+
 void planner_init() {mp_init_buffers();}
+
+
+/// Set planner position for a single axis
+void mp_set_axis_position(int axis, float position) {
+  mp_position[axis] = position;
+}
+
+
+float mp_get_axis_position(int axis) {return mp_position[axis];}
+
+
+void mp_set_position(const float position[]) {
+  copy_vector(mp_position, position);
+}
 
 
 /*** Flush all moves in the planner

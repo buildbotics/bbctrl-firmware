@@ -47,7 +47,6 @@
 
 #define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 #define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-#define MIN_BLOCK_TIME          MIN_SEGMENT_TIME // minimum size Gcode block
 
 #define MIN_SEGMENT_TIME_PLUS_MARGIN \
   ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
@@ -74,6 +73,9 @@ typedef enum {
 
 
 void planner_init();
+void mp_set_axis_position(int axis, float position);
+float mp_get_axis_position(int axis);
+void mp_set_position(const float position[]);
 void mp_flush_planner();
 void mp_kinematics(const float travel[], float steps[]);
 void mp_plan_block_list(mp_buffer_t *bf);

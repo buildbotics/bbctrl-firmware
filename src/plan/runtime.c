@@ -141,7 +141,7 @@ void mp_runtime_set_steps_from_position() {
  * exist in several reference frames.  The scheme to keep this
  * straight is:
  *
- *   - mm.position    - start and end position for planning
+ *   - mp_position    - start and end position for planning
  *   - rt.position    - current position of runtime segment
  *   - rt.steps.*     - position in steps
  *
