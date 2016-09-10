@@ -42,5 +42,6 @@ extern PORT_t *pin_ports[];
 #define OUTCLR_PIN(PIN) PORT(PIN)->OUTCLR = BM(PIN)
 #define OUTSET_PIN(PIN) PORT(PIN)->OUTSET = BM(PIN)
 #define OUTTGL_PIN(PIN) PORT(PIN)->OUTTGL = BM(PIN)
+#define OUT_PIN(PIN) (!!(PORT(PIN)->OUT & BM(PIN)))
 #define IN_PIN(PIN) (!!(PORT(PIN)->IN & BM(PIN)))
 #define PINCTRL_PIN(PIN) ((&PORT(PIN)->PIN0CTRL)[PIN & 7])

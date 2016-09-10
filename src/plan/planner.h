@@ -72,7 +72,7 @@ typedef enum {
 } move_section_t;
 
 
-void planner_init();
+void mp_init();
 void mp_set_axis_position(int axis, float position);
 float mp_get_axis_position(int axis);
 void mp_set_position(const float position[]);

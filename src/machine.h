@@ -215,7 +215,7 @@ typedef enum {
  *     from gm.
  *
  * - gf is used by the gcode parser interpreter to hold flags for any
- *     data that has changed in gn during the parse. mach.gf.target[]
+ *     data that has changed in gn during the parse. parser.gf.target[]
  *     values are also used by the machine during
  *     set_target().
  */
@@ -248,7 +248,7 @@ typedef struct {
   distance_mode_t arc_distance_mode;  // G91.1
 
   bool mist_coolant;                  // true = mist on (M7), false = off (M9)
-  bool flood_coolant;                 // true = flood on (M8), false = off (M9)
+  bool flood_coolant;                 // true = mist on (M8), false = off (M9)
 
   next_action_t next_action;          // handles G group 1 moves & non-modals
   program_flow_t program_flow;        // used only by the gcode_parser
@@ -287,19 +287,16 @@ typedef struct {
 
 
 typedef struct { // struct to manage mach globals and cycles
-  // coordinate systems & offsets absolute (G53) + G54, G55, G56, G57, G58, G59
-  float offset[COORDS + 1][AXES];
+  float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
   float origin_offset[AXES];           // G92 offsets
-  bool origin_offset_enable;           // G92 offsets enabled/disabled
+  bool origin_offset_enable;           // G92 offsets enabled / disabled
 
-  float position[AXES];                // model position (not used in gn or gf)
+  float position[AXES];                // model position
   float g28_position[AXES];            // stored machine position for G28
   float g30_position[AXES];            // stored machine position for G30
 
   axis_config_t a[AXES];               // settings for axes
   gcode_state_t gm;                    // core gcode model state
-  gcode_state_t gn;                    // gcode input values
-  gcode_state_t gf;                    // gcode input flags
 } machine_t;
 
 
@@ -308,22 +305,26 @@ extern machine_t mach;                 // machine controller singleton
 
 // Model state getters and setters
 uint32_t mach_get_line();
-motion_mode_t mach_get_motion_mode();
-coord_system_t mach_get_coord_system();
-units_t mach_get_units();
-plane_t mach_get_plane();
-path_mode_t mach_get_path_mode();
-distance_mode_t mach_get_distance_mode();
-feed_mode_t mach_get_feed_mode();
 uint8_t mach_get_tool();
 float mach_get_feed_rate();
+feed_mode_t mach_get_feed_mode();
+float mach_get_feed_override();
+float mach_get_spindle_override();
+motion_mode_t mach_get_motion_mode();
+plane_t mach_get_plane();
+units_t mach_get_units();
+coord_system_t mach_get_coord_system();
+bool mach_get_absolute_mode();
+path_mode_t mach_get_path_mode();
+distance_mode_t mach_get_distance_mode();
+distance_mode_t mach_get_arc_distance_mode();
 
-PGM_P mp_get_units_pgmstr(units_t mode);
-PGM_P mp_get_feed_mode_pgmstr(feed_mode_t mode);
-PGM_P mp_get_plane_pgmstr(plane_t plane);
-PGM_P mp_get_coord_system_pgmstr(coord_system_t cs);
-PGM_P mp_get_path_mode_pgmstr(path_mode_t mode);
-PGM_P mp_get_distance_mode_pgmstr(distance_mode_t mode);
+PGM_P mach_get_units_pgmstr(units_t mode);
+PGM_P mach_get_feed_mode_pgmstr(feed_mode_t mode);
+PGM_P mach_get_plane_pgmstr(plane_t plane);
+PGM_P mach_get_coord_system_pgmstr(coord_system_t cs);
+PGM_P mach_get_path_mode_pgmstr(path_mode_t mode);
+PGM_P mach_get_distance_mode_pgmstr(distance_mode_t mode);
 
 void mach_set_motion_mode(motion_mode_t motion_mode);
 void mach_set_spindle_mode(spindle_mode_t spindle_mode);

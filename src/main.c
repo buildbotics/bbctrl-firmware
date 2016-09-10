@@ -67,7 +67,7 @@ int main() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  planner_init();                 // motion planning
+  mp_init();                 // motion planning
   machine_init();                 // gcode machine
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler

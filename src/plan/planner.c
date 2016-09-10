@@ -72,7 +72,7 @@
 static float mp_position[AXES]; // final move position for planning purposes
 
 
-void planner_init() {mp_queue_init();}
+void mp_init() {mp_queue_init();}
 
 
 /// Set planner position for a single axis

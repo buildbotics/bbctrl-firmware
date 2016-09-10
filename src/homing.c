@@ -29,6 +29,7 @@
 #include "homing.h"
 #include "machine.h"
 #include "switch.h"
+#include "gcode_parser.h"
 #include "util.h"
 #include "report.h"
 
@@ -168,12 +169,12 @@ static homing_t hm = {0};
  */
 static int8_t _get_next_axis(int8_t axis) {
   switch (axis) {
-  case     -1: if (fp_TRUE(mach.gf.target[AXIS_Z])) return AXIS_Z;
-  case AXIS_Z: if (fp_TRUE(mach.gf.target[AXIS_X])) return AXIS_X;
-  case AXIS_X: if (fp_TRUE(mach.gf.target[AXIS_Y])) return AXIS_Y;
-  case AXIS_Y: if (fp_TRUE(mach.gf.target[AXIS_A])) return AXIS_A;
-  case AXIS_A: if (fp_TRUE(mach.gf.target[AXIS_B])) return AXIS_B;
-  case AXIS_B: if (fp_TRUE(mach.gf.target[AXIS_C])) return AXIS_C;
+  case     -1: if (fp_TRUE(parser.gf.target[AXIS_Z])) return AXIS_Z;
+  case AXIS_Z: if (fp_TRUE(parser.gf.target[AXIS_X])) return AXIS_X;
+  case AXIS_X: if (fp_TRUE(parser.gf.target[AXIS_Y])) return AXIS_Y;
+  case AXIS_Y: if (fp_TRUE(parser.gf.target[AXIS_A])) return AXIS_A;
+  case AXIS_A: if (fp_TRUE(parser.gf.target[AXIS_B])) return AXIS_B;
+  case AXIS_B: if (fp_TRUE(parser.gf.target[AXIS_C])) return AXIS_C;
   }
 
   return axis == -1 ? -2 : -1; // error or done
@@ -189,7 +190,7 @@ static void _homing_finalize_exit() {
   mach_set_units(hm.saved_units);
   mach_set_distance_mode(hm.saved_distance_mode);
   mach_set_feed_mode(hm.saved_feed_mode);
-  mach.gm.feed_rate = hm.saved_feed_rate;
+  mach_set_feed_rate(hm.saved_feed_rate);
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
 }
 
@@ -207,7 +208,7 @@ static void _homing_axis_move(int8_t axis, float target, float velocity) {
 
   vect[axis] = target;
   flags[axis] = true;
-  mach.gm.feed_rate = velocity;
+  mach_set_feed_rate(velocity);
   mp_flush_planner(); // don't use mp_request_flush() here
 
   stat_t status = mach_feed(vect, flags);

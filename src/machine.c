@@ -64,7 +64,7 @@
 #include "machine.h"
 
 #include "config.h"
-#include "stepper.h"
+#include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
 #include "switch.h"
@@ -182,25 +182,37 @@ machine_t mach = {
 
   // State
   .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
-  .gn = {0},
-  .gf = {0},
 };
 
 
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
-motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
-coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
-units_t mach_get_units() {return mach.gm.units;}
-plane_t mach_get_plane() {return mach.gm.plane;}
-path_mode_t mach_get_path_mode() {return mach.gm.path_mode;}
-distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
-feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 uint8_t mach_get_tool() {return mach.gm.tool;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
+feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 
 
-PGM_P mp_get_units_pgmstr(units_t mode) {
+float mach_get_feed_override() {
+  return mach.gm.feed_override_enable ? mach.gm.feed_override_factor : 0;
+}
+
+
+float mach_get_spindle_override() {
+  return mach.gm.spindle_override_enable ? mach.gm.spindle_override_factor : 0;
+}
+
+
+motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
+plane_t mach_get_plane() {return mach.gm.plane;}
+units_t mach_get_units() {return mach.gm.units;}
+coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
+bool mach_get_absolute_mode() {return mach.gm.absolute_mode;}
+path_mode_t mach_get_path_mode() {return mach.gm.path_mode;}
+distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
+distance_mode_t mach_get_arc_distance_mode() {return mach.gm.arc_distance_mode;}
+
+
+PGM_P mach_get_units_pgmstr(units_t mode) {
   switch (mode) {
   case INCHES:      return PSTR("IN");
   case MILLIMETERS: return PSTR("MM");
@@ -211,7 +223,7 @@ PGM_P mp_get_units_pgmstr(units_t mode) {
 }
 
 
-PGM_P mp_get_feed_mode_pgmstr(feed_mode_t mode) {
+PGM_P mach_get_feed_mode_pgmstr(feed_mode_t mode) {
   switch (mode) {
   case INVERSE_TIME_MODE:         return PSTR("INVERSE TIME");
   case UNITS_PER_MINUTE_MODE:     return PSTR("PER MIN");
@@ -222,7 +234,7 @@ PGM_P mp_get_feed_mode_pgmstr(feed_mode_t mode) {
 }
 
 
-PGM_P mp_get_plane_pgmstr(plane_t plane) {
+PGM_P mach_get_plane_pgmstr(plane_t plane) {
   switch (plane) {
   case PLANE_XY: return PSTR("XY");
   case PLANE_XZ: return PSTR("XZ");
@@ -233,7 +245,7 @@ PGM_P mp_get_plane_pgmstr(plane_t plane) {
 }
 
 
-PGM_P mp_get_coord_system_pgmstr(coord_system_t cs) {
+PGM_P mach_get_coord_system_pgmstr(coord_system_t cs) {
   switch (cs) {
   case ABSOLUTE_COORDS: return PSTR("ABS");
   case G54: return PSTR("G54");
@@ -248,7 +260,7 @@ PGM_P mp_get_coord_system_pgmstr(coord_system_t cs) {
 }
 
 
-PGM_P mp_get_path_mode_pgmstr(path_mode_t mode) {
+PGM_P mach_get_path_mode_pgmstr(path_mode_t mode) {
   switch (mode) {
   case PATH_EXACT_PATH: return PSTR("EXACT PATH");
   case PATH_EXACT_STOP: return PSTR("EXACT STOP");
@@ -259,7 +271,7 @@ PGM_P mp_get_path_mode_pgmstr(path_mode_t mode) {
 }
 
 
-PGM_P mp_get_distance_mode_pgmstr(distance_mode_t mode) {
+PGM_P mach_get_distance_mode_pgmstr(distance_mode_t mode) {
   switch (mode) {
   case ABSOLUTE_MODE:    return PSTR("ABSOLUTE");
   case INCREMENTAL_MODE: return PSTR("INCREMENTAL");
@@ -913,7 +925,7 @@ stat_t mach_dwell(float seconds) {
 stat_t mach_feed(float target[], float flags[]) {
   // trap zero feed rate condition
   if (fp_ZERO(mach.gm.feed_rate) ||
-      (mach.gm.feed_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
+      (mach.gm.feed_mode == INVERSE_TIME_MODE && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   mach.gm.motion_mode = MOTION_MODE_FEED;
@@ -952,7 +964,6 @@ static void _exec_mist_coolant_control(float *value, float *flag) {
 
 /// M7
 void mach_mist_coolant_control(bool mist_coolant) {
-  mach.gm.mist_coolant = mist_coolant;
   float value[AXES] = {mist_coolant};
   mp_command_queue(_exec_mist_coolant_control, value, value);
 }
@@ -966,7 +977,6 @@ static void _exec_flood_coolant_control(float *value, float *flag) {
 
 /// M8, M9
 void mach_flood_coolant_control(bool flood_coolant) {
-  mach.gm.flood_coolant = flood_coolant;
   float value[AXES] = {flood_coolant};
   mp_command_queue(_exec_flood_coolant_control, value, value);
 }
@@ -986,7 +996,7 @@ void mach_override_enables(bool flag) {
 
 /// M50
 void mach_feed_override_enable(bool flag) {
-  if (fp_TRUE(mach.gf.parameter) && fp_ZERO(mach.gn.parameter))
+  if (fp_TRUE(parser.gf.parameter) && fp_ZERO(parser.gn.parameter))
     mach.gm.feed_override_enable = false;
   else mach.gm.feed_override_enable = true;
 }
@@ -995,13 +1005,13 @@ void mach_feed_override_enable(bool flag) {
 /// M50
 void mach_feed_override_factor(bool flag) {
   mach.gm.feed_override_enable = flag;
-  mach.gm.feed_override_factor = mach.gn.parameter;
+  mach.gm.feed_override_factor = parser.gn.parameter;
 }
 
 
 /// M51
 void mach_spindle_override_enable(bool flag) {
-  if (fp_TRUE(mach.gf.parameter) && fp_ZERO(mach.gn.parameter))
+  if (fp_TRUE(parser.gf.parameter) && fp_ZERO(parser.gn.parameter))
     mach.gm.spindle_override_enable = false;
   else mach.gm.spindle_override_enable = true;
 }
@@ -1010,7 +1020,7 @@ void mach_spindle_override_enable(bool flag) {
 /// M51
 void mach_spindle_override_factor(bool flag) {
   mach.gm.spindle_override_enable = flag;
-  mach.gm.spindle_override_factor = mach.gn.parameter;
+  mach.gm.spindle_override_factor = parser.gn.parameter;
 }
 
 

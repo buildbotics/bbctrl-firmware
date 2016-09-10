@@ -49,3 +49,7 @@ void coolant_set_flood(bool x) {
   if (x) OUTCLR_PIN(SWITCH_2_PIN);
   else OUTSET_PIN(SWITCH_2_PIN);
 }
+
+
+bool coolant_get_mist() {return OUT_PIN(SWITCH_1_PIN);}
+bool coolant_get_flood() {return OUT_PIN(SWITCH_2_PIN);}

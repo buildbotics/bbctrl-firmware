@@ -41,10 +41,14 @@
 #include <math.h>
 
 
+parser_t parser = {{0}};
+
+
 #define SET_MODAL(m, parm, val) \
-  {mach.gn.parm = val; mach.gf.parm = 1; modals[m] += 1; break;}
-#define SET_NON_MODAL(parm, val) {mach.gn.parm = val; mach.gf.parm = 1; break;}
-#define EXEC_FUNC(f, v) if ((uint8_t)mach.gf.v) f(mach.gn.v)
+  {parser.gn.parm = val; parser.gf.parm = 1; modals[m] += 1; break;}
+#define SET_NON_MODAL(parm, val) \
+  {parser.gn.parm = val; parser.gf.parm = 1; break;}
+#define EXEC_FUNC(f, v) if ((uint8_t)parser.gf.v) f(parser.gn.v)
 
 
 static uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
@@ -232,7 +236,7 @@ static stat_t _validate_gcode_block() {
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
 
-  mach_set_model_line(mach.gn.line);
+  mach_set_model_line(parser.gn.line);
   EXEC_FUNC(mach_set_feed_mode, feed_mode);
   EXEC_FUNC(mach_set_feed_rate, feed_rate);
   EXEC_FUNC(mach_feed_override_factor, feed_override_factor);
@@ -247,8 +251,8 @@ static stat_t _execute_gcode_block() {
   EXEC_FUNC(mach_spindle_override_enable, spindle_override_enable);
   EXEC_FUNC(mach_override_enables, override_enables);
 
-  if (mach.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
-    RITORNO(mach_dwell(mach.gn.parameter));
+  if (parser.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell
+    RITORNO(mach_dwell(parser.gn.parameter));
 
   EXEC_FUNC(mach_set_plane, plane);
   EXEC_FUNC(mach_set_units, units);
@@ -259,36 +263,37 @@ static stat_t _execute_gcode_block() {
   EXEC_FUNC(mach_set_distance_mode, distance_mode);
   //--> set retract mode goes here
 
-  switch (mach.gn.next_action) {
+  switch (parser.gn.next_action) {
   case NEXT_ACTION_SET_G28_POSITION: // G28.1
     mach_set_g28_position();
     break;
   case NEXT_ACTION_GOTO_G28_POSITION: // G28
-    status = mach_goto_g28_position(mach.gn.target, mach.gf.target);
+    status = mach_goto_g28_position(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_SET_G30_POSITION: // G30.1
     mach_set_g30_position();
     break;
   case NEXT_ACTION_GOTO_G30_POSITION: // G30
-    status = mach_goto_g30_position(mach.gn.target, mach.gf.target);
+    status = mach_goto_g30_position(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_SEARCH_HOME: // G28.2
     mach_homing_cycle_start();
     break;
   case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
-    mach_set_absolute_origin(mach.gn.target, mach.gf.target);
+    mach_set_absolute_origin(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_HOMING_NO_SET: // G28.4
     mach_homing_cycle_start_no_set();
     break;
   case NEXT_ACTION_STRAIGHT_PROBE: // G38.2
-    status = mach_probe(mach.gn.target, mach.gf.target);
+    status = mach_probe(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_SET_COORD_DATA:
-    mach_set_coord_offsets(mach.gn.parameter, mach.gn.target, mach.gf.target);
+    mach_set_coord_offsets(parser.gn.parameter, parser.gn.target,
+                           parser.gf.target);
     break;
   case NEXT_ACTION_SET_ORIGIN_OFFSETS:
-    mach_set_origin_offsets(mach.gn.target, mach.gf.target);
+    mach_set_origin_offsets(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_RESET_ORIGIN_OFFSETS:
     mach_reset_origin_offsets();
@@ -303,24 +308,24 @@ static stat_t _execute_gcode_block() {
 
   case NEXT_ACTION_DEFAULT:
     // apply override setting to gm struct
-    mach_set_absolute_mode(mach.gn.absolute_mode);
+    mach_set_absolute_mode(parser.gn.absolute_mode);
 
-    switch (mach.gn.motion_mode) {
+    switch (parser.gn.motion_mode) {
     case MOTION_MODE_CANCEL_MOTION_MODE:
-      mach.gm.motion_mode = mach.gn.motion_mode;
+      mach_set_motion_mode(parser.gn.motion_mode);
       break;
     case MOTION_MODE_RAPID:
-      status = mach_rapid(mach.gn.target, mach.gf.target);
+      status = mach_rapid(parser.gn.target, parser.gf.target);
       break;
     case MOTION_MODE_FEED:
-      status = mach_feed(mach.gn.target, mach.gf.target);
+      status = mach_feed(parser.gn.target, parser.gf.target);
       break;
     case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
       // gf.radius sets radius mode if radius was collected in gn
-      status = mach_arc_feed(mach.gn.target, mach.gf.target,
-                             mach.gn.arc_offset[0], mach.gn.arc_offset[1],
-                             mach.gn.arc_offset[2], mach.gn.arc_radius,
-                             mach.gn.motion_mode);
+      status = mach_arc_feed(parser.gn.target, parser.gf.target,
+                             parser.gn.arc_offset[0], parser.gn.arc_offset[1],
+                             parser.gn.arc_offset[2], parser.gn.arc_radius,
+                             parser.gn.motion_mode);
       break;
     default: break; // Should not get here
     }
@@ -329,8 +334,8 @@ static stat_t _execute_gcode_block() {
   mach_set_absolute_mode(false);
 
   // do the program stops and ends : M0, M1, M2, M30, M60
-  if (mach.gf.program_flow)
-    switch (mach.gn.program_flow) {
+  if (parser.gf.program_flow)
+    switch (parser.gn.program_flow) {
     case PROGRAM_STOP: mach_program_stop(); break;
     case PROGRAM_OPTIONAL_STOP: mach_optional_program_stop(); break;
     case PROGRAM_PALLET_CHANGE_STOP: mach_pallet_change_stop(); break;
@@ -359,11 +364,11 @@ static stat_t _parse_gcode_block(char *buf) {
 
   // set initial state for new move
   memset(modals, 0, sizeof(modals));              // clear all parser values
-  memset(&mach.gf, 0, sizeof(gcode_state_t));     // clear all next-state flags
-  memset(&mach.gn, 0, sizeof(gcode_state_t));     // clear all next-state values
+  memset(&parser.gf, 0, sizeof(gcode_state_t));   // clear all next-state flags
+  memset(&parser.gn, 0, sizeof(gcode_state_t));   // clear all next-state values
 
   // get motion mode from previous block
-  mach.gn.motion_mode = mach_get_motion_mode();
+  parser.gn.motion_mode = mach_get_motion_mode();
 
   // extract commands and parameters
   while ((status = _get_next_gcode_word(&pstr, &letter, &value)) == STAT_OK) {

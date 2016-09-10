@@ -30,5 +30,16 @@
 
 
 #include "status.h"
+#include "machine.h"
+
+
+typedef struct {
+  gcode_state_t gn;                    // gcode input values
+  gcode_state_t gf;                    // gcode input flags
+} parser_t;
+
+
+extern parser_t parser;
+
 
 stat_t gc_gcode_parser(char *block);

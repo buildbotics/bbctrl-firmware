@@ -35,6 +35,7 @@
 
 #include "buffer.h"
 #include "line.h"
+#include "gcode_parser.h"
 #include "config.h"
 #include "util.h"
 
@@ -80,8 +81,8 @@ static float _estimate_arc_time(float length, float linear_travel,
                                 float planar_travel) {
   // Determine move time at requested feed rate
   // Inverse feed rate is normalized to minutes
-  float time = mach.gm.feed_mode == INVERSE_TIME_MODE ?
-    mach.gm.feed_rate : length / mach.gm.feed_rate;
+  float time = mach_get_feed_mode() == INVERSE_TIME_MODE ?
+    mach_get_feed_rate() : length / mach_get_feed_rate();
 
   // Downgrade the time if there is a rate-limiting axis
   return max4(time, planar_travel / mach.a[arc.plane_axis_0].feedrate_max,
@@ -188,7 +189,7 @@ static stat_t _compute_arc_offsets_from_radius(float offset[]) {
   float h_x2_div_d = disc > 0 ? -sqrt(disc) / hypotf(x, y) : 0;
 
   // Invert sign of h_x2_div_d if circle is counter clockwise (see header notes)
-  if (mach.gm.motion_mode == MOTION_MODE_CCW_ARC) h_x2_div_d = -h_x2_div_d;
+  if (mach_get_motion_mode() == MOTION_MODE_CCW_ARC) h_x2_div_d = -h_x2_div_d;
 
   // Negative R is g-code-alese for "I want a circle with more than 180 degrees
   // of travel" (go figure!), even though it is advised against ever generating
@@ -258,7 +259,7 @@ static stat_t _compute_arc(const float position[], float offset[],
 
   // g18_correction is used to invert G18 XZ plane arcs for proper CW
   // orientation
-  float g18_correction = mach.gm.plane == PLANE_XZ ? -1 : 1;
+  float g18_correction = mach_get_plane() == PLANE_XZ ? -1 : 1;
   float angular_travel = 0;
 
   if (full_circle) {
@@ -284,13 +285,13 @@ static stat_t _compute_arc(const float position[], float offset[],
       angular_travel = theta_end - arc.theta;
 
       // reverse travel direction if it's CCW arc
-      if (mach.gm.motion_mode == MOTION_MODE_CCW_ARC)
+      if (mach_get_motion_mode() == MOTION_MODE_CCW_ARC)
         angular_travel -= 2 * M_PI * g18_correction;
     }
   }
 
   // Add in travel for rotations
-  if (mach.gm.motion_mode == MOTION_MODE_CW_ARC)
+  if (mach_get_motion_mode() == MOTION_MODE_CW_ARC)
     angular_travel += 2 * M_PI * rotations * g18_correction;
   else angular_travel -= 2 * M_PI * rotations * g18_correction;
 
@@ -343,15 +344,15 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
                      float radius,  // non-zero radius implies radius mode
                      uint8_t motion_mode) { // defined motion mode
   // trap missing feed rate
-  if (fp_ZERO(mach.gm.feed_rate) ||
-      (mach.gm.feed_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
+  if (fp_ZERO(mach_get_feed_rate()) ||
+      (mach_get_feed_mode() == INVERSE_TIME_MODE && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // set radius mode flag and do simple test(s)
-  bool radius_f = fp_NOT_ZERO(mach.gf.arc_radius);  // set true if radius arc
+  bool radius_f = fp_NOT_ZERO(parser.gf.arc_radius);  // set true if radius arc
 
   // radius value must be + and > minimum radius
-  if (radius_f && mach.gn.arc_radius < MIN_ARC_RADIUS)
+  if (radius_f && parser.gn.arc_radius < MIN_ARC_RADIUS)
     return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
 
   // setup some flags
@@ -359,15 +360,15 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   bool target_y = fp_NOT_ZERO(flags[AXIS_Y]);
   bool target_z = fp_NOT_ZERO(flags[AXIS_Z]);
 
-  bool offset_i = fp_NOT_ZERO(mach.gf.arc_offset[0]); // is offset I specified
-  bool offset_j = fp_NOT_ZERO(mach.gf.arc_offset[1]); // J
-  bool offset_k = fp_NOT_ZERO(mach.gf.arc_offset[2]); // K
+  bool offset_i = fp_NOT_ZERO(parser.gf.arc_offset[0]); // is offset I specified
+  bool offset_j = fp_NOT_ZERO(parser.gf.arc_offset[1]); // J
+  bool offset_k = fp_NOT_ZERO(parser.gf.arc_offset[2]); // K
 
   // Set the arc plane for the current G17/G18/G19 setting and test arc
   // specification Plane axis 0 and 1 are the arc plane, the linear axis is
   // normal to the arc plane.
   // G17 - the vast majority of arcs are in the G17 (XY) plane
-  switch (mach.gm.plane) {
+  switch (mach_get_plane()) {
   case PLANE_XY:
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Y;
@@ -417,14 +418,14 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
     return STAT_ARC_ENDPOINT_IS_STARTING_POINT;
 
   // now get down to the rest of the work setting up the arc for execution
-  mach.gm.motion_mode = motion_mode;
+  mach_set_motion_mode(motion_mode);
   mach_update_work_offsets();                      // Update resolved offsets
-  arc.line = mach.gm.line;                         // copy line number
+  arc.line = mach_get_line();                      // copy line number
   copy_vector(arc.target, mach.gm.target);         // copy move target
   arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
 
   float offset[3] = {TO_MILLIMETERS(i), TO_MILLIMETERS(j), TO_MILLIMETERS(k)};
-  float rotations = floor(fabs(mach.gn.parameter)); // P must be positive int
+  float rotations = floor(fabs(parser.gn.parameter)); // P must be positive int
 
   // determine if this is a full circle arc. Evaluates true if no target is set
   bool full_circle =
