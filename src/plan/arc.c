@@ -77,27 +77,15 @@ arc_t arc = {0};
  */
 static float _estimate_arc_time(float length, float linear_travel,
                                 float planar_travel) {
-  float t;
-
   // Determine move time at requested feed rate
-  if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE) {
-    // Inverse feed rate has been normalized to minutes
-    t = mach.gm.feed_rate;
-
-    // Reset feed rate so next block requires an explicit feed rate setting
-    mach.gm.feed_rate = 0;
-    mach.gm.feed_rate_mode = UNITS_PER_MINUTE_MODE;
-
-  } else t = length / mach.gm.feed_rate;
+  // Inverse feed rate is normalized to minutes
+  float time = mach.gm.feed_rate_mode == INVERSE_TIME_MODE ?
+    mach.gm.feed_rate : length / mach.gm.feed_rate;
 
   // Downgrade the time if there is a rate-limiting axis
-  t = max3(t, planar_travel / mach.a[arc.plane_axis_0].feedrate_max,
-           planar_travel / mach.a[arc.plane_axis_1].feedrate_max);
-
-  if (0 < fabs(linear_travel))
-    t = max(t, fabs(linear_travel / mach.a[arc.linear_axis].feedrate_max));
-
-  return t;
+  return max4(time, planar_travel / mach.a[arc.plane_axis_0].feedrate_max,
+              planar_travel / mach.a[arc.plane_axis_1].feedrate_max,
+              fabs(linear_travel) / mach.a[arc.linear_axis].feedrate_max);
 }
 
 
@@ -344,7 +332,7 @@ static stat_t _compute_arc(const float position[], float offset[],
 }
 
 
-/*** machine entry point for arc
+/*** Machine entry point for arc
  *
  * Generates an arc by queuing line segments to the move buffer. The arc is
  * approximated by generating a large number of tiny, linear segments.
@@ -354,7 +342,8 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
                      float radius,  // non-zero radius implies radius mode
                      uint8_t motion_mode) { // defined motion mode
   // trap missing feed rate
-  if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
+  if (fp_ZERO(mach.gm.feed_rate) ||
+      (mach.gm.feed_rate_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // set radius mode flag and do simple test(s)
@@ -443,15 +432,15 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   // compute arc runtime values
   RITORNO(_compute_arc(mach.position, offset, rotations, full_circle));
 
-  arc.run_state = MOVE_RUN;                // enable arc run from the callback
-  mach_arc_callback();                     // Queue initial arc moves
-  mach_finalize_move();
+  arc.run_state = MOVE_RUN;                   // Enable arc run in callback
+  mach_arc_callback();                        // Queue initial arc moves
+  copy_vector(mach.position, mach.gm.target); // update model position
 
   return STAT_OK;
 }
 
 
-/* Generate an arc
+/*** Generate an arc
  *
  *  Called from the controller main loop.  Each time it's called it queues
  *  as many arc segments (lines) as it can before it blocks, then returns.

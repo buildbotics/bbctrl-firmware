@@ -346,7 +346,6 @@ float mach_get_work_position(uint8_t axis);
 
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);
-void mach_finalize_move();
 stat_t mach_deferred_write_callback();
 void mach_set_model_target(float target[], float flag[]);
 stat_t mach_test_soft_limits(float target[]);

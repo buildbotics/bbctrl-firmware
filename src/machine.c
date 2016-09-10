@@ -456,28 +456,6 @@ float mach_get_work_position(uint8_t axis) {
  * These functions are not part of the NIST defined functions
  */
 
-/* Perform final operations for a rapid or feed
- *
- * These routines set the point position in the gcode model.
- *
- * Note: As far as the machine is concerned the final
- * position of a Gcode block (move) is achieved as soon as the move is
- * planned and the move target becomes the new model position.  In
- * reality the planner will (in all likelihood) have only just queued
- * the move for later execution, and the real tool position is still
- * close to the starting point.
- */
-void mach_finalize_move() {
-  copy_vector(mach.position, mach.gm.target);        // update model position
-
-  // if in inverse time mode reset feed rate so next block requires an
-  // explicit feed rate setting
-  if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE &&
-      mach.gm.motion_mode == MOTION_MODE_FEED)
-    mach.gm.feed_rate = 0;
-}
-
-
 /* Compute optimal and minimum move times into the gcode_state
  *
  * "Minimum time" is the fastest the move can be performed given the velocity
@@ -543,12 +521,11 @@ float mach_calc_move_time(const float axis_length[],
 
   // Compute times for feed motion
   if (mach.gm.motion_mode != MOTION_MODE_RAPID) {
-    if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE) {
+    if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE)
       // Feed rate was un-inverted to minutes by mach_set_feed_rate()
       max_time = mach.gm.feed_rate;
-      mach.gm.feed_rate_mode = UNITS_PER_MINUTE_MODE;
 
-    } else {
+    else {
       // Compute length of linear move in millimeters.  Feed rate in mm/min.
       max_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
                       axis_square[AXIS_Z]) / mach.gm.feed_rate;
@@ -881,7 +858,7 @@ stat_t mach_rapid(float target[], float flags[]) {
   // prep and plan the move
   mach_update_work_offsets();      // update fully resolved offsets to state
   status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
-  mach_finalize_move();
+  copy_vector(mach.position, mach.gm.target);      // update model position
 
   return status;
 }
@@ -934,7 +911,7 @@ stat_t mach_goto_g30_position(float target[], float flags[]) {
 void mach_set_feed_rate(float feed_rate) {
   if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE)
     // normalize to minutes (active for this gcode block only)
-    mach.gm.feed_rate = 1 / feed_rate;
+    mach.gm.feed_rate = feed_rate ? 1 / feed_rate : 0; // Avoid div by zero
 
   else mach.gm.feed_rate = TO_MILLIMETERS(feed_rate);
 }
@@ -942,6 +919,8 @@ void mach_set_feed_rate(float feed_rate) {
 
 /// G93, G94
 void mach_set_feed_rate_mode(feed_rate_mode_t mode) {
+  if (mach.gm.feed_rate_mode == mode) return;
+  mach.gm.feed_rate = 0; // Force setting feed rate after changing modes
   mach.gm.feed_rate_mode = mode;
 }
 
@@ -963,7 +942,8 @@ stat_t mach_dwell(float seconds) {
 /// G1
 stat_t mach_feed(float target[], float flags[]) {
   // trap zero feed rate condition
-  if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
+  if (fp_ZERO(mach.gm.feed_rate) ||
+      (mach.gm.feed_rate_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   mach.gm.motion_mode = MOTION_MODE_FEED;
@@ -976,7 +956,7 @@ stat_t mach_feed(float target[], float flags[]) {
   // prep and plan the move
   mach_update_work_offsets();      // update fully resolved offsets to state
   status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
-  mach_finalize_move();
+  copy_vector(mach.position, mach.gm.target);      // update model position
 
   return status;
 }

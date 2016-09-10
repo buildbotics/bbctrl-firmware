@@ -227,7 +227,7 @@ void command_callback() {
   default:
     if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
     else if (mp_is_flushing()) break; // Flush GCode command
-    else if (mp_get_planner_buffer_room() < 2 ||
+    else if (!mp_get_planner_buffer_room() ||
              mp_is_resuming() ||
              mach_arc_active() ||
              mach_is_homing() ||
