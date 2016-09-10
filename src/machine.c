@@ -44,12 +44,12 @@
  *   - Call the mach_xxx_xxx() function which will do any input validation and
  *     return an error if it detects one.
  *
- *   - The mach_ function calls mp_queue__command().  Arguments are a callback to
+ *   - The mach_ function calls mp_command_queue().  Arguments are a callback to
  *     the _exec_...() function, which is the runtime execution routine, and any
  *     arguments that are needed by the runtime. See typedef for *exec in
  *     planner.h for details
  *
- *   - mp_queue__command() stores the callback and the args in a planner buffer.
+ *   - mp_command_queue() stores the callback and the args in a planner buffer.
  *
  *   - When planner execution reaches the buffer it executes the callback w/ the
  *     args.  Take careful note that the callback executes under an interrupt,
@@ -285,7 +285,7 @@ static void _exec_spindle_speed(float *value, float *flag) {
 /// Queue the S parameter to the planner buffer
 void mach_set_spindle_speed(float speed) {
   float value[AXES] = {speed};
-  mp_queue__command(_exec_spindle_speed, value, value);
+  mp_command_queue(_exec_spindle_speed, value, value);
 }
 
 
@@ -300,7 +300,7 @@ static void _exec_spindle_mode(float *value, float *flag) {
 /// Queue the spindle command to the planner buffer
 void mach_set_spindle_mode(spindle_mode_t mode) {
   float value[AXES] = {mode};
-  mp_queue__command(_exec_spindle_mode, value, value);
+  mp_command_queue(_exec_spindle_mode, value, value);
 }
 
 
@@ -781,7 +781,7 @@ void mach_set_absolute_origin(float origin[], float flag[]) {
       mp_set_axis_position(axis, value[axis]);     // set mm position
     }
 
-  mp_queue__command(_exec_absolute_origin, value, flag);
+  mp_command_queue(_exec_absolute_origin, value, flag);
 }
 
 
@@ -954,7 +954,7 @@ static void _exec_mist_coolant_control(float *value, float *flag) {
 void mach_mist_coolant_control(bool mist_coolant) {
   mach.gm.mist_coolant = mist_coolant;
   float value[AXES] = {mist_coolant};
-  mp_queue__command(_exec_mist_coolant_control, value, value);
+  mp_command_queue(_exec_mist_coolant_control, value, value);
 }
 
 
@@ -968,7 +968,7 @@ static void _exec_flood_coolant_control(float *value, float *flag) {
 void mach_flood_coolant_control(bool flood_coolant) {
   mach.gm.flood_coolant = flood_coolant;
   float value[AXES] = {flood_coolant};
-  mp_queue__command(_exec_flood_coolant_control, value, value);
+  mp_command_queue(_exec_flood_coolant_control, value, value);
 }
 
 

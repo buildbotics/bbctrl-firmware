@@ -30,7 +30,7 @@
 /* How this works:
  *   - A command is called by the Gcode interpreter (mach_<command>,
  *     e.g. M code)
- *   - mach_ function calls mp_queue__command which puts it in the planning queue
+ *   - mach_ function calls mp_command_queue which puts it in the planning queue
  *     (bf buffer) which sets some parameters and registers a callback to the
  *     execution function in the machine.
  *   - When the planning queue gets to the function it calls _exec_command()
@@ -60,7 +60,7 @@ static stat_t _exec_command(mp_buffer_t *bf) {
 
 
 /// Queue a synchronous Mcode, program control, or other command
-void mp_queue__command(mach_cb_t mach_cb, float values[], float flags[]) {
+void mp_command_queue(mach_cb_t mach_cb, float values[], float flags[]) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->mach_cb = mach_cb;
   copy_vector(bf->target, values);
