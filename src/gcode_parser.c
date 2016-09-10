@@ -233,7 +233,7 @@ static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
 
   mach_set_model_line(mach.gn.line);
-  EXEC_FUNC(mach_set_feed_rate_mode, feed_rate_mode);
+  EXEC_FUNC(mach_set_feed_mode, feed_mode);
   EXEC_FUNC(mach_set_feed_rate, feed_rate);
   EXEC_FUNC(mach_feed_override_factor, feed_override_factor);
   EXEC_FUNC(mach_set_spindle_speed, spindle_speed);
@@ -251,11 +251,11 @@ static stat_t _execute_gcode_block() {
     RITORNO(mach_dwell(mach.gn.parameter));
 
   EXEC_FUNC(mach_set_plane, plane);
-  EXEC_FUNC(mach_set_units_mode, units_mode);
+  EXEC_FUNC(mach_set_units, units);
   //--> cutter radius compensation goes here
   //--> cutter length compensation goes here
   EXEC_FUNC(mach_set_coord_system, coord_system);
-  EXEC_FUNC(mach_set_path_control, path_control);
+  EXEC_FUNC(mach_set_path_mode, path_mode);
   EXEC_FUNC(mach_set_distance_mode, distance_mode);
   //--> set retract mode goes here
 
@@ -382,8 +382,8 @@ static stat_t _parse_gcode_block(char *buf) {
       case 17: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_XY);
       case 18: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_XZ);
       case 19: SET_MODAL(MODAL_GROUP_G2, plane, PLANE_YZ);
-      case 20: SET_MODAL(MODAL_GROUP_G6, units_mode, INCHES);
-      case 21: SET_MODAL(MODAL_GROUP_G6, units_mode, MILLIMETERS);
+      case 20: SET_MODAL(MODAL_GROUP_G6, units, INCHES);
+      case 21: SET_MODAL(MODAL_GROUP_G6, units, MILLIMETERS);
       case 28:
         switch (_point(value)) {
         case 0:
@@ -425,13 +425,13 @@ static stat_t _parse_gcode_block(char *buf) {
       case 59: SET_MODAL(MODAL_GROUP_G12, coord_system, G59);
       case 61:
         switch (_point(value)) {
-        case 0: SET_MODAL(MODAL_GROUP_G13, path_control, PATH_EXACT_PATH);
-        case 1: SET_MODAL(MODAL_GROUP_G13, path_control, PATH_EXACT_STOP);
+        case 0: SET_MODAL(MODAL_GROUP_G13, path_mode, PATH_EXACT_PATH);
+        case 1: SET_MODAL(MODAL_GROUP_G13, path_mode, PATH_EXACT_STOP);
         default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
         }
         break;
 
-      case 64: SET_MODAL(MODAL_GROUP_G13,path_control, PATH_CONTINUOUS);
+      case 64: SET_MODAL(MODAL_GROUP_G13,path_mode, PATH_CONTINUOUS);
       case 80: SET_MODAL(MODAL_GROUP_G1, motion_mode,
                          MOTION_MODE_CANCEL_MOTION_MODE);
         // case 90: SET_MODAL(MODAL_GROUP_G3, distance_mode, ABSOLUTE_MODE);
@@ -463,10 +463,10 @@ static stat_t _parse_gcode_block(char *buf) {
         }
         break;
 
-      case 93: SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, INVERSE_TIME_MODE);
-      case 94: SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, UNITS_PER_MINUTE_MODE);
+      case 93: SET_MODAL(MODAL_GROUP_G5, feed_mode, INVERSE_TIME_MODE);
+      case 94: SET_MODAL(MODAL_GROUP_G5, feed_mode, UNITS_PER_MINUTE_MODE);
         // case 95:
-        // SET_MODAL(MODAL_GROUP_G5, feed_rate_mode, UNITS_PER_REVOLUTION_MODE);
+        // SET_MODAL(MODAL_GROUP_G5, feed_mode, UNITS_PER_REVOLUTION_MODE);
       default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
       }
       break;

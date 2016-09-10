@@ -80,7 +80,7 @@ static float _estimate_arc_time(float length, float linear_travel,
                                 float planar_travel) {
   // Determine move time at requested feed rate
   // Inverse feed rate is normalized to minutes
-  float time = mach.gm.feed_rate_mode == INVERSE_TIME_MODE ?
+  float time = mach.gm.feed_mode == INVERSE_TIME_MODE ?
     mach.gm.feed_rate : length / mach.gm.feed_rate;
 
   // Downgrade the time if there is a rate-limiting axis
@@ -344,7 +344,7 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
                      uint8_t motion_mode) { // defined motion mode
   // trap missing feed rate
   if (fp_ZERO(mach.gm.feed_rate) ||
-      (mach.gm.feed_rate_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
+      (mach.gm.feed_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // set radius mode flag and do simple test(s)

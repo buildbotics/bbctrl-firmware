@@ -36,7 +36,7 @@
  *
  * Synchronizing command execution:
  *
- * "Synchronous commands" are commands that affect the runtime need to be
+ * "Synchronous commands" are commands that affect the runtime and need to be
  * synchronized with movement.  Examples include G4 dwells, program stops and
  * ends, and most M commands.  These are queued into the planner queue and
  * execute from the queue.  Synchronous commands work like this:
@@ -191,16 +191,16 @@ machine_t mach = {
 uint32_t mach_get_line() {return mach.gm.line;}
 motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
 coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
-units_mode_t mach_get_units_mode() {return mach.gm.units_mode;}
+units_t mach_get_units() {return mach.gm.units;}
 plane_t mach_get_plane() {return mach.gm.plane;}
-path_mode_t mach_get_path_control() {return mach.gm.path_control;}
+path_mode_t mach_get_path_mode() {return mach.gm.path_mode;}
 distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
-feed_rate_mode_t mach_get_feed_rate_mode() {return mach.gm.feed_rate_mode;}
+feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 uint8_t mach_get_tool() {return mach.gm.tool;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
 
 
-PGM_P mp_get_units_mode_pgmstr(units_mode_t mode) {
+PGM_P mp_get_units_pgmstr(units_t mode) {
   switch (mode) {
   case INCHES:      return PSTR("IN");
   case MILLIMETERS: return PSTR("MM");
@@ -211,7 +211,7 @@ PGM_P mp_get_units_mode_pgmstr(units_mode_t mode) {
 }
 
 
-PGM_P mp_get_feed_rate_mode_pgmstr(feed_rate_mode_t mode) {
+PGM_P mp_get_feed_mode_pgmstr(feed_mode_t mode) {
   switch (mode) {
   case INVERSE_TIME_MODE:         return PSTR("INVERSE TIME");
   case UNITS_PER_MINUTE_MODE:     return PSTR("PER MIN");
@@ -497,7 +497,7 @@ float mach_calc_move_time(const float axis_length[],
 
   // Compute times for feed motion
   if (mach.gm.motion_mode != MOTION_MODE_RAPID) {
-    if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE)
+    if (mach.gm.feed_mode == INVERSE_TIME_MODE)
       // Feed rate was un-inverted to minutes by mach_set_feed_rate()
       max_time = mach.gm.feed_rate;
 
@@ -638,12 +638,12 @@ void machine_init() {
     mach_set_axis_jerk(axis, mach.a[axis].jerk_max);
 
   // Set gcode defaults
-  mach_set_units_mode(GCODE_DEFAULT_UNITS);
+  mach_set_units(GCODE_DEFAULT_UNITS);
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
   mach_set_plane(GCODE_DEFAULT_PLANE);
-  mach_set_path_control(GCODE_DEFAULT_PATH_CONTROL);
+  mach_set_path_mode(GCODE_DEFAULT_PATH_CONTROL);
   mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
-  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE); // always the default
+  mach_set_feed_mode(UNITS_PER_MINUTE_MODE); // always the default
 
   // Sub-system inits
   spindle_init();
@@ -669,7 +669,7 @@ void mach_set_plane(plane_t plane) {mach.gm.plane = plane;}
 
 
 /// G20, G21
-void mach_set_units_mode(units_mode_t mode) {mach.gm.units_mode = mode;}
+void mach_set_units(units_t mode) {mach.gm.units = mode;}
 
 
 /// G90, G91
@@ -879,7 +879,7 @@ stat_t mach_goto_g30_position(float target[], float flags[]) {
 /// F parameter
 /// Normalize feed rate to mm/min or to minutes if in inverse time mode
 void mach_set_feed_rate(float feed_rate) {
-  if (mach.gm.feed_rate_mode == INVERSE_TIME_MODE)
+  if (mach.gm.feed_mode == INVERSE_TIME_MODE)
     // normalize to minutes (active for this gcode block only)
     mach.gm.feed_rate = feed_rate ? 1 / feed_rate : 0; // Avoid div by zero
 
@@ -888,16 +888,16 @@ void mach_set_feed_rate(float feed_rate) {
 
 
 /// G93, G94
-void mach_set_feed_rate_mode(feed_rate_mode_t mode) {
-  if (mach.gm.feed_rate_mode == mode) return;
+void mach_set_feed_mode(feed_mode_t mode) {
+  if (mach.gm.feed_mode == mode) return;
   mach.gm.feed_rate = 0; // Force setting feed rate after changing modes
-  mach.gm.feed_rate_mode = mode;
+  mach.gm.feed_mode = mode;
 }
 
 
 /// G61, G61.1, G64
-void mach_set_path_control(path_mode_t mode) {
-  mach.gm.path_control = mode;
+void mach_set_path_mode(path_mode_t mode) {
+  mach.gm.path_mode = mode;
 }
 
 
@@ -913,7 +913,7 @@ stat_t mach_dwell(float seconds) {
 stat_t mach_feed(float target[], float flags[]) {
   // trap zero feed rate condition
   if (fp_ZERO(mach.gm.feed_rate) ||
-      (mach.gm.feed_rate_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
+      (mach.gm.feed_mode == INVERSE_TIME_MODE && !mach.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   mach.gm.motion_mode = MOTION_MODE_FEED;
@@ -1103,7 +1103,7 @@ void mach_program_end() {
   mach.gm.spindle_mode = SPINDLE_OFF;
   spindle_set(SPINDLE_OFF, 0);
   mach_flood_coolant_control(false);                 // M9
-  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);    // G94
+  mach_set_feed_mode(UNITS_PER_MINUTE_MODE);    // G94
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
 }
 

@@ -247,7 +247,7 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
   bf->braking_velocity = bf->delta_vmax;
 
   // Zero out exact stop cases
-  if (mach_get_path_control() == PATH_EXACT_STOP)
+  if (mach_get_path_mode() == PATH_EXACT_STOP)
     bf->entry_vmax = bf->exit_vmax = 0;
   else bf->replannable = true;
 }

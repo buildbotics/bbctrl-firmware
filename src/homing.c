@@ -87,10 +87,10 @@ typedef struct {
   float max_clear_backoff;
 
   // state saved from gcode model
-  uint8_t saved_units_mode;       // G20,G21 global setting
+  uint8_t saved_units;       // G20,G21 global setting
   uint8_t saved_coord_system;     // G54 - G59 setting
   uint8_t saved_distance_mode;    // G90,G91 global setting
-  uint8_t saved_feed_rate_mode;   // G93,G94 global setting
+  uint8_t saved_feed_mode;   // G93,G94 global setting
   float saved_feed_rate;          // F setting
   float saved_jerk;               // saved and restored for each axis homed
 } homing_t;
@@ -186,9 +186,9 @@ static void _homing_finalize_exit() {
 
   // Restore saved machine state
   mach_set_coord_system(hm.saved_coord_system);
-  mach_set_units_mode(hm.saved_units_mode);
+  mach_set_units(hm.saved_units);
   mach_set_distance_mode(hm.saved_distance_mode);
-  mach_set_feed_rate_mode(hm.saved_feed_rate_mode);
+  mach_set_feed_mode(hm.saved_feed_mode);
   mach.gm.feed_rate = hm.saved_feed_rate;
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
 }
@@ -379,17 +379,17 @@ void mach_set_homed(int axis, bool homed) {
 /// G28.2 homing cycle using limit switches
 void mach_homing_cycle_start() {
   // save relevant non-axis parameters from Gcode model
-  hm.saved_units_mode = mach_get_units_mode();
+  hm.saved_units = mach_get_units();
   hm.saved_coord_system = mach_get_coord_system();
   hm.saved_distance_mode = mach_get_distance_mode();
-  hm.saved_feed_rate_mode = mach_get_feed_rate_mode();
+  hm.saved_feed_mode = mach_get_feed_mode();
   hm.saved_feed_rate = mach_get_feed_rate();
 
   // set working values
-  mach_set_units_mode(MILLIMETERS);
+  mach_set_units(MILLIMETERS);
   mach_set_distance_mode(INCREMENTAL_MODE);
   mach_set_coord_system(ABSOLUTE_COORDS);  // in machine coordinates
-  mach_set_feed_rate_mode(UNITS_PER_MINUTE_MODE);
+  mach_set_feed_mode(UNITS_PER_MINUTE_MODE);
   hm.set_coordinates = true;
 
   hm.axis = -1;                            // set to retrieve initial axis

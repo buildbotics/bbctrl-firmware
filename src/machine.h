@@ -38,7 +38,7 @@
 #include <stdbool.h>
 
 
-#define TO_MILLIMETERS(a) (mach.gm.units_mode == INCHES ? (a) * MM_PER_INCH : a)
+#define TO_MILLIMETERS(a) (mach.gm.units == INCHES ? (a) * MM_PER_INCH : a)
 
 
 /* The difference between next_action_t and motion_mode_t is that
@@ -121,7 +121,7 @@ typedef enum {
   INCHES,        // G20
   MILLIMETERS,   // G21
   DEGREES,       // ABC axes (this value used for displays only)
-} units_mode_t;
+} units_t;
 
 
 typedef enum {
@@ -131,9 +131,8 @@ typedef enum {
 
 /// G Modal Group 13
 typedef enum {
-  /// G61 - hits corners but does not stop if it does not need to.
-  PATH_EXACT_PATH,
-  PATH_EXACT_STOP,                // G61.1 - stops at all corners
+  PATH_EXACT_PATH,                // G61 hits corners but stops only if needed
+  PATH_EXACT_STOP,                // G61.1 stops at all corners
   PATH_CONTINUOUS,                // G64 and typically the default mode
 } path_mode_t;
 
@@ -148,7 +147,7 @@ typedef enum {
   INVERSE_TIME_MODE,              // G93
   UNITS_PER_MINUTE_MODE,          // G94
   UNITS_PER_REVOLUTION_MODE,      // G95 (unimplemented)
-} feed_rate_mode_t;
+} feed_mode_t;
 
 
 typedef enum {
@@ -230,7 +229,7 @@ typedef struct {
   uint8_t tool_select;                // T - sets this value
 
   float feed_rate;                    // F - in mm/min or inverse time mode
-  feed_rate_mode_t feed_rate_mode;
+  feed_mode_t feed_mode;
   float feed_override_factor;         // 1.0000 x F feed rate
   bool feed_override_enable;          // M48, M49
 
@@ -241,10 +240,10 @@ typedef struct {
 
   motion_mode_t motion_mode;          // Group 1 modal motion
   plane_t plane;                      // G17, G18, G19
-  units_mode_t units_mode;            // G20, G21
+  units_t units;                      // G20, G21
   coord_system_t coord_system;        // G54-G59 - select coordinate system 1-9
   bool absolute_mode;                 // G53 true = move in machine coordinates
-  path_mode_t path_control;           // G61
+  path_mode_t path_mode;              // G61
   distance_mode_t distance_mode;      // G91
   distance_mode_t arc_distance_mode;  // G91.1
 
@@ -311,16 +310,16 @@ extern machine_t mach;                 // machine controller singleton
 uint32_t mach_get_line();
 motion_mode_t mach_get_motion_mode();
 coord_system_t mach_get_coord_system();
-units_mode_t mach_get_units_mode();
+units_t mach_get_units();
 plane_t mach_get_plane();
-path_mode_t mach_get_path_control();
+path_mode_t mach_get_path_mode();
 distance_mode_t mach_get_distance_mode();
-feed_rate_mode_t mach_get_feed_rate_mode();
+feed_mode_t mach_get_feed_mode();
 uint8_t mach_get_tool();
 float mach_get_feed_rate();
 
-PGM_P mp_get_units_mode_pgmstr(units_mode_t mode);
-PGM_P mp_get_feed_rate_mode_pgmstr(feed_rate_mode_t mode);
+PGM_P mp_get_units_pgmstr(units_t mode);
+PGM_P mp_get_feed_mode_pgmstr(feed_mode_t mode);
 PGM_P mp_get_plane_pgmstr(plane_t plane);
 PGM_P mp_get_coord_system_pgmstr(coord_system_t cs);
 PGM_P mp_get_path_mode_pgmstr(path_mode_t mode);
@@ -360,7 +359,7 @@ stat_t mach_alarm(const char *location, stat_t status);
 
 // Representation (4.3.3)
 void mach_set_plane(plane_t plane);
-void mach_set_units_mode(units_mode_t mode);
+void mach_set_units(units_t mode);
 void mach_set_distance_mode(distance_mode_t mode);
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             float flag[]);
@@ -386,8 +385,8 @@ stat_t mach_goto_g30_position(float target[], float flags[]);
 
 // Machining Attributes (4.3.5)
 void mach_set_feed_rate(float feed_rate);
-void mach_set_feed_rate_mode(feed_rate_mode_t mode);
-void mach_set_path_control(path_mode_t mode);
+void mach_set_feed_mode(feed_mode_t mode);
+void mach_set_path_mode(path_mode_t mode);
 
 // Machining Functions (4.3.6)
 stat_t mach_feed(float target[], float flags[]);

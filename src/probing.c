@@ -192,7 +192,7 @@ bool mach_is_probing() {
 /// G38.2 homing cycle using limit switches
 stat_t mach_probe(float target[], float flags[]) {
   // trap zero feed rate condition
-  if (mach.gm.feed_rate_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
+  if (mach.gm.feed_mode != INVERSE_TIME_MODE && fp_ZERO(mach.gm.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // trap no axes specified
