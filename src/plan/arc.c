@@ -85,6 +85,10 @@ static float _estimate_arc_time(float length, float linear_travel,
   float time = mach_get_feed_mode() == INVERSE_TIME_MODE ?
     mach_get_feed_rate() : length / mach_get_feed_rate();
 
+
+  // Apply feed override
+  time /= mach_get_feed_override();
+
   // Downgrade the time if there is a rate-limiting axis
   return max4(time, planar_travel / axes[arc.plane_axis_0].feedrate_max,
               planar_travel / axes[arc.plane_axis_1].feedrate_max,

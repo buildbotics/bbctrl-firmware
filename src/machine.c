@@ -116,12 +116,12 @@ feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 
 
 float mach_get_feed_override() {
-  return mach.gm.feed_override_enable ? mach.gm.feed_override : 0;
+  return mach.gm.feed_override_enable ? mach.gm.feed_override : 1;
 }
 
 
 float mach_get_spindle_override() {
-  return mach.gm.spindle_override_enable ? mach.gm.spindle_override : 0;
+  return mach.gm.spindle_override_enable ? mach.gm.spindle_override : 1;
 }
 
 
@@ -150,7 +150,7 @@ static stat_t _exec_spindle_speed(mp_buffer_t *bf) {
 /// Queue the S parameter to the planner buffer
 void mach_set_spindle_speed(float speed) {
   mp_buffer_t *bf = mp_queue_get_tail();
-  bf->value = speed;
+  bf->value = speed * mach_get_spindle_override();
   mp_queue_push(_exec_spindle_speed, mach_get_line());
 }
 
@@ -361,6 +361,9 @@ float mach_calc_move_time(const float axis_length[],
                         axis_square[AXIS_C]) / mach.gm.feed_rate;
     }
   }
+
+  // Apply feed override
+  max_time /= mach_get_feed_override();
 
   // Compute time required for rate-limiting axis
   for (int axis = 0; axis < AXES; axis++) {
