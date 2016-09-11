@@ -87,8 +87,20 @@
 
 #define DISABLE_SOFT_LIMIT -1000000
 
+typedef struct { // struct to manage mach globals and cycles
+  float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
+  float origin_offset[AXES];           // G92 offsets
+  bool origin_offset_enable;           // G92 offsets enabled / disabled
 
-machine_t mach = {
+  float position[AXES];                // model position
+  float g28_position[AXES];            // stored machine position for G28
+  float g30_position[AXES];            // stored machine position for G30
+
+  gcode_state_t gm;                    // core gcode model state
+} machine_t;
+
+
+static machine_t mach = {
   // Offsets
   .offset = {
     {}, // ABSOLUTE_COORDS
@@ -108,7 +120,6 @@ machine_t mach = {
 
 // Machine State functions
 uint32_t mach_get_line() {return mach.gm.line;}
-uint8_t mach_get_tool() {return mach.gm.tool;}
 float mach_get_feed_rate() {return mach.gm.feed_rate;}
 feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 
@@ -325,12 +336,20 @@ void mach_update_work_offsets() {
 }
 
 
+const float *mach_get_position() {return mach.position;}
+
+
+void mach_set_position(const float position[]) {
+  copy_vector(mach.position, position);
+}
+
+
 /*** Get position of axis in absolute coordinates
  *
  * NOTE: Machine position is always returned in mm mode.  No units conversion
  * is performed.
  */
-float mach_get_absolute_position(uint8_t axis) {return mach.position[axis];}
+float mach_get_axis_position(uint8_t axis) {return mach.position[axis];}
 
 
 /* Critical helpers
@@ -455,48 +474,41 @@ float mach_calc_move_time(const float axis_length[],
  *    Axes that need processing are signaled in flag[]
  */
 
-// ESTEE: _calc_ABC is a fix to workaround a gcc compiler bug wherein it runs
-// out of spill registers we moved this block into its own function so that we
-// get a fresh stack push
-// ALDEN: This shows up in avr-gcc 4.7.0 and avr-libc 1.8.0
-static float _calc_ABC(uint8_t axis, float target[], float flag[]) {
-  switch (axes[axis].axis_mode) {
-  case AXIS_STANDARD:
-  case AXIS_INHIBITED:
-    return target[axis]; // no mm conversion - it's in degrees
-
-  default:
-    return TO_MILLIMETERS(target[axis]) * 360 / (2 * M_PI * axes[axis].radius);
-  }
-}
-
-
-void mach_set_model_target(float target[], float flag[]) {
+void mach_calc_model_target(float target[], const float values[],
+                            const float flags[]) {
   // process XYZABC for lower modes
   for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
-    if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
+    if (fp_FALSE(flags[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
     if (axes[axis].axis_mode == AXIS_STANDARD ||
         axes[axis].axis_mode == AXIS_INHIBITED) {
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
-        mach.gm.target[axis] =
-          mach_get_active_coord_offset(axis) + TO_MILLIMETERS(target[axis]);
-      else mach.gm.target[axis] += TO_MILLIMETERS(target[axis]);
+        target[axis] =
+          mach_get_active_coord_offset(axis) + TO_MILLIMETERS(values[axis]);
+      else target[axis] += TO_MILLIMETERS(values[axis]);
     }
   }
 
-  // NOTE: The ABC loop below relies on the XYZ loop having been run first
+  // Note: The ABC loop below relies on the XYZ loop having been run first
   for (int axis = AXIS_A; axis <= AXIS_C; axis++) {
-    if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
+    if (fp_FALSE(flags[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
-    float tmp = _calc_ABC(axis, target, flag);
+    float tmp;
+    switch (axes[axis].axis_mode) {
+    case AXIS_STANDARD:
+    case AXIS_INHIBITED:
+      tmp = values[axis]; // no mm conversion - it's in degrees
+
+    default:
+      tmp = TO_MILLIMETERS(values[axis]) * 360 / (2 * M_PI * axes[axis].radius);
+    }
 
     if (mach.gm.distance_mode == ABSOLUTE_MODE)
       // sacidu93's fix to Issue #22
-      mach.gm.target[axis] = tmp + mach_get_active_coord_offset(axis);
-    else mach.gm.target[axis] += tmp;
+      target[axis] = tmp + mach_get_active_coord_offset(axis);
+    else target[axis] += tmp;
   }
 }
 
@@ -504,7 +516,7 @@ void mach_set_model_target(float target[], float flag[]) {
 /*** Return error code if soft limit is exceeded
  *
  * Must be called with target properly set in GM struct.  Best done
- * after mach_set_model_target().
+ * after mach_calc_model_target().
  *
  * Tests for soft limit for any homed axis if min and max are
  * different values. You can set min and max to 0,0 to disable soft
@@ -627,7 +639,6 @@ void mach_set_axis_position(unsigned axis, float position) {
   if (AXES <= axis) return;
 
   mach.position[axis] = position;
-  mach.gm.target[axis] = position;
   mp_set_axis_position(axis, position);
   mp_runtime_set_axis_position(axis, position);
   mp_runtime_set_steps_from_position();
@@ -690,7 +701,6 @@ void mach_set_absolute_origin(float origin[], float flags[]) {
     if (fp_TRUE(flags[axis])) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
-      mach.gm.target[axis] = value[axis];          // reset model target
       mp_set_axis_position(axis, value[axis]);     // set mm position
     }
 
@@ -739,18 +749,20 @@ void mach_resume_origin_offsets() {
 // Free Space Motion (4.3.4)
 
 /// G0 linear rapid
-stat_t mach_rapid(float target[], float flags[]) {
+stat_t mach_rapid(float values[], float flags[]) {
   mach.gm.motion_mode = MOTION_MODE_RAPID;
-  mach_set_model_target(target, flags);
+
+  float target[AXES];
+  mach_calc_model_target(target, values, flags);
 
   // test soft limits
-  stat_t status = mach_test_soft_limits(mach.gm.target);
+  stat_t status = mach_test_soft_limits(target);
   if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
   mach_update_work_offsets();                         // update resolved offsets
-  status = mp_aline(mach.gm.target, mach_get_line()); // send move to planner
-  copy_vector(mach.position, mach.gm.target);         // update model position
+  status = mp_aline(target, mach_get_line()); // send move to planner
+  copy_vector(mach.position, target);         // update model position
 
   return status;
 }
@@ -826,23 +838,25 @@ stat_t mach_dwell(float seconds) {
 
 
 /// G1
-stat_t mach_feed(float target[], float flags[]) {
+stat_t mach_feed(float values[], float flags[]) {
   // trap zero feed rate condition
   if (fp_ZERO(mach.gm.feed_rate) ||
       (mach.gm.feed_mode == INVERSE_TIME_MODE && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   mach.gm.motion_mode = MOTION_MODE_FEED;
-  mach_set_model_target(target, flags);
+
+  float target[AXES];
+  mach_calc_model_target(target, values, flags);
 
   // test soft limits
-  stat_t status = mach_test_soft_limits(mach.gm.target);
+  stat_t status = mach_test_soft_limits(target);
   if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
-  mach_update_work_offsets();                         // update resolved offsets
-  status = mp_aline(mach.gm.target, mach_get_line()); // send move to planner
-  copy_vector(mach.position, mach.gm.target);         // update model position
+  mach_update_work_offsets();                 // update resolved offsets
+  status = mp_aline(target, mach_get_line()); // send move to planner
+  copy_vector(mach.position, target);         // update model position
 
   return status;
 }

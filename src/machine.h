@@ -36,31 +36,10 @@
 #include <avr/pgmspace.h>
 
 
-#define TO_MILLIMETERS(a) (mach.gm.units == INCHES ? (a) * MM_PER_INCH : a)
-
-
-// Note 1: Our G0 omits G4, G30, G53, G92.1, G92.2, G92.3 as these have no axis
-// components to error check
-
-typedef struct { // struct to manage mach globals and cycles
-  float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
-  float origin_offset[AXES];           // G92 offsets
-  bool origin_offset_enable;           // G92 offsets enabled / disabled
-
-  float position[AXES];                // model position
-  float g28_position[AXES];            // stored machine position for G28
-  float g30_position[AXES];            // stored machine position for G30
-
-  gcode_state_t gm;                    // core gcode model state
-} machine_t;
-
-
-extern machine_t mach;                 // machine controller singleton
-
+#define TO_MILLIMETERS(a) (mach_get_units() == INCHES ? (a) * MM_PER_INCH : a)
 
 // Model state getters and setters
 uint32_t mach_get_line();
-uint8_t mach_get_tool();
 float mach_get_feed_rate();
 feed_mode_t mach_get_feed_mode();
 float mach_get_feed_override();
@@ -90,11 +69,14 @@ void mach_set_model_line(uint32_t line);
 // Coordinate systems and offsets
 float mach_get_active_coord_offset(uint8_t axis);
 void mach_update_work_offsets();
-float mach_get_absolute_position(uint8_t axis);
+const float *mach_get_position();
+void mach_set_position(const float position[]);
+float mach_get_axis_position(uint8_t axis);
 
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);
-void mach_set_model_target(float target[], float flag[]);
+void mach_calc_model_target(float target[], const float values[],
+                            const float flags[]);
 stat_t mach_test_soft_limits(float target[]);
 
 // machining functions defined by NIST [organized by NIST Gcode doc]

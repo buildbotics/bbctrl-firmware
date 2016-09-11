@@ -118,7 +118,7 @@ static void _probing_finish() {
     mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
     // store the probe results
-    pb.results[axis] = mach_get_absolute_position(axis);
+    pb.results[axis] = mach_get_axis_position(axis);
   }
 
   _probe_restore_settings();
@@ -159,7 +159,7 @@ static void _probing_init() {
     pb.saved_jerk[axis] = axes_get_jerk(axis);   // save the max jerk value
     // use homing jerk for probe
     axes_set_jerk(axis, axes[axis].jerk_homing);
-    pb.start_position[axis] = mach_get_absolute_position(axis);
+    pb.start_position[axis] = mach_get_axis_position(axis);
   }
 
   // error if the probe target is too close to the current position

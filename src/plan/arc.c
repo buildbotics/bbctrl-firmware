@@ -171,8 +171,10 @@ static float _estimate_arc_time(float length, float linear_travel,
  */
 static stat_t _compute_arc_offsets_from_radius(float offset[]) {
   // Calculate the change in position along each selected axis
-  float x = mach.gm.target[arc.plane_axis_0] - mach.position[arc.plane_axis_0];
-  float y = mach.gm.target[arc.plane_axis_1] - mach.position[arc.plane_axis_1];
+  float x =
+    arc.target[arc.plane_axis_0] - mach_get_axis_position(arc.plane_axis_0);
+  float y =
+    arc.target[arc.plane_axis_1] - mach_get_axis_position(arc.plane_axis_1);
 
   // *** From Forrest Green - Other Machine Co, 3/27/14
   // If the distance between endpoints is greater than the arc diameter, disc
@@ -340,7 +342,7 @@ static stat_t _compute_arc(bool radius_f, const float position[],
  * Generates an arc by queuing line segments to the move buffer. The arc is
  * approximated by generating a large number of tiny, linear segments.
  */
-stat_t mach_arc_feed(float target[], float target_f[],   // arc endpoints
+stat_t mach_arc_feed(float values[], float values_f[],   // arc endpoints
                      float offsets[], float offsets_f[], // arc offsets
                      float radius,  bool radius_f,       // radius
                      float P, bool P_f,                  // parameter
@@ -397,7 +399,7 @@ stat_t mach_arc_feed(float target[], float target_f[],   // arc endpoints
 
   // Test if endpoints are specified in the selected plane
   bool full_circle = false;
-  if (!target_f[arc.plane_axis_0] && !target_f[arc.plane_axis_1]) {
+  if (!values_f[arc.plane_axis_0] && !values_f[arc.plane_axis_1]) {
     if (radius_f) // in radius mode arcs missing both endpoints is an error
       return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
     else full_circle = true; // in center format arc specifies full circle
@@ -425,40 +427,39 @@ stat_t mach_arc_feed(float target[], float target_f[],   // arc endpoints
 
   } else if (full_circle) rotations = 1; // default to 1 for full circles
 
-  // set values in Gcode model state & copy it (line was already captured)
-  mach_set_model_target(target, target_f);
+  // Set model target
+  mach_calc_model_target(arc.target, values, values_f);
+  const float *position = mach_get_position();
 
   // in radius mode it's an error for start == end
-  if (radius_f && fp_EQ(mach.position[AXIS_X], mach.gm.target[AXIS_X]) &&
-      fp_EQ(mach.position[AXIS_Y], mach.gm.target[AXIS_Y]) &&
-      fp_EQ(mach.position[AXIS_Z], mach.gm.target[AXIS_Z]))
+  if (radius_f && fp_EQ(position[AXIS_X], arc.target[AXIS_X]) &&
+      fp_EQ(position[AXIS_Y], arc.target[AXIS_Y]) &&
+      fp_EQ(position[AXIS_Z], arc.target[AXIS_Z]))
     return STAT_ARC_ENDPOINT_IS_STARTING_POINT;
 
   // now get down to the rest of the work setting up the arc for execution
   mach_set_motion_mode(motion_mode);
   mach_update_work_offsets();                      // Update resolved offsets
   arc.line = mach_get_line();                      // copy line number
-  copy_vector(arc.target, mach.gm.target);         // copy move target
   arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
 
   float offset[3];
   for (int i = 0; i < 3; i++) offset[i] = TO_MILLIMETERS(offsets[i]);
 
   if (mach_get_arc_distance_mode() == ABSOLUTE_MODE) {
-    if (offsets_f[0]) offset[0] -= mach.position[0];
-    if (offsets_f[1]) offset[1] -= mach.position[1];
-    if (offsets_f[2]) offset[2] -= mach.position[2];
+    if (offsets_f[0]) offset[0] -= position[0];
+    if (offsets_f[1]) offset[1] -= position[1];
+    if (offsets_f[2]) offset[2] -= position[2];
   }
 
   // compute arc runtime values
-  RITORNO(_compute_arc(radius_f, mach.position, offset, rotations,
-                       full_circle));
+  RITORNO(_compute_arc(radius_f, position, offset, rotations, full_circle));
 
   // Note, arc soft limits are not tested here
 
   arc.running = true;                         // Enable arc run in callback
   mach_arc_callback();                        // Queue initial arc moves
-  copy_vector(mach.position, mach.gm.target); // update model position
+  mach_set_position(arc.target);              // update model position
 
   return STAT_OK;
 }
