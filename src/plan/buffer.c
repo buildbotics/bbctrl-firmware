@@ -119,6 +119,7 @@ bool mp_queue_is_empty() {return mb.tail == mb.head;}
 /// Get pointer to next buffer, waiting until one is available.
 mp_buffer_t *mp_queue_get_tail() {
   while (!mb.space) continue; // Wait for a buffer
+  mb.tail->run_state = MOVE_NEW;
   return mb.tail;
 }
 
@@ -136,7 +137,6 @@ void mp_queue_push(buffer_cb_t cb, bool plan, uint32_t line) {
   mb.tail->plan = plan;
   mb.tail->cb = cb;
   mb.tail->line = line;
-  mb.tail->run_state = MOVE_NEW;
 
   _push();
 }
