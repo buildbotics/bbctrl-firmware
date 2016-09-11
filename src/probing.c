@@ -68,7 +68,7 @@ typedef struct {
   // probe destination
   float start_position[AXES];
   float target[AXES];
-  float flags[AXES];
+  bool flags[AXES];
 } probing_t;
 
 
@@ -191,15 +191,14 @@ bool mach_is_probing() {
 
 
 /// G38.2 homing cycle using limit switches
-stat_t mach_probe(float target[], float flags[]) {
+stat_t mach_probe(float target[], bool flags[]) {
   // trap zero feed rate condition
   if (mach_get_feed_mode() != INVERSE_TIME_MODE &&
       fp_ZERO(mach_get_feed_rate()))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // trap no axes specified
-  if (fp_NOT_ZERO(flags[AXIS_X]) && fp_NOT_ZERO(flags[AXIS_Y]) &&
-      fp_NOT_ZERO(flags[AXIS_Z]))
+  if (!flags[AXIS_X] && !flags[AXIS_Y] && !flags[AXIS_Z])
     return STAT_GCODE_AXIS_IS_MISSING;
 
   // set probe move endpoint

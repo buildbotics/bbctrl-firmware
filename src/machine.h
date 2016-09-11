@@ -33,8 +33,6 @@
 #include "status.h"
 #include "gcode_state.h"
 
-#include <avr/pgmspace.h>
-
 
 #define TO_MILLIMETERS(a) (mach_get_units() == INCHES ? (a) * MM_PER_INCH : a)
 
@@ -53,18 +51,11 @@ path_mode_t mach_get_path_mode();
 distance_mode_t mach_get_distance_mode();
 distance_mode_t mach_get_arc_distance_mode();
 
-PGM_P mach_get_units_pgmstr(units_t mode);
-PGM_P mach_get_feed_mode_pgmstr(feed_mode_t mode);
-PGM_P mach_get_plane_pgmstr(plane_t plane);
-PGM_P mach_get_coord_system_pgmstr(coord_system_t cs);
-PGM_P mach_get_path_mode_pgmstr(path_mode_t mode);
-PGM_P mach_get_distance_mode_pgmstr(distance_mode_t mode);
-
 void mach_set_motion_mode(motion_mode_t motion_mode);
 void mach_set_spindle_mode(spindle_mode_t spindle_mode);
 void mach_set_spindle_speed(float speed);
 void mach_set_absolute_mode(bool absolute_mode);
-void mach_set_model_line(uint32_t line);
+void mach_set_line(uint32_t line);
 
 // Coordinate systems and offsets
 float mach_get_active_coord_offset(uint8_t axis);
@@ -76,7 +67,7 @@ float mach_get_axis_position(uint8_t axis);
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);
 void mach_calc_model_target(float target[], const float values[],
-                            const float flags[]);
+                            const bool flags[]);
 stat_t mach_test_soft_limits(float target[]);
 
 // machining functions defined by NIST [organized by NIST Gcode doc]
@@ -90,26 +81,26 @@ void mach_set_units(units_t mode);
 void mach_set_distance_mode(distance_mode_t mode);
 void mach_set_arc_distance_mode(distance_mode_t mode);
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
-                            float flag[]);
+                            bool flags[]);
 
 void mach_set_axis_position(unsigned axis, float position);
-void mach_set_absolute_origin(float origin[], float flag[]);
+void mach_set_absolute_origin(float origin[], bool flags[]);
 
 stat_t mach_zero_all();
 stat_t mach_zero_axis(unsigned axis);
 
 void mach_set_coord_system(coord_system_t coord_system);
-void mach_set_origin_offsets(float offset[], float flag[]);
+void mach_set_origin_offsets(float offset[], bool flags[]);
 void mach_reset_origin_offsets();
 void mach_suspend_origin_offsets();
 void mach_resume_origin_offsets();
 
 // Free Space Motion (4.3.4)
-stat_t mach_rapid(float target[], float flags[]);
+stat_t mach_rapid(float target[], bool flags[]);
 void mach_set_g28_position();
-stat_t mach_goto_g28_position(float target[], float flags[]);
+stat_t mach_goto_g28_position(float target[], bool flags[]);
 void mach_set_g30_position();
-stat_t mach_goto_g30_position(float target[], float flags[]);
+stat_t mach_goto_g30_position(float target[], bool flags[]);
 
 // Machining Attributes (4.3.5)
 void mach_set_feed_rate(float feed_rate);
@@ -117,9 +108,9 @@ void mach_set_feed_mode(feed_mode_t mode);
 void mach_set_path_mode(path_mode_t mode);
 
 // Machining Functions (4.3.6)
-stat_t mach_feed(float target[], float flags[]);
-stat_t mach_arc_feed(float target[], float flags[], float offsets[],
-                     float offset_f[], float radius, bool radius_f,
+stat_t mach_feed(float target[], bool flags[]);
+stat_t mach_arc_feed(float target[], bool flags[], float offsets[],
+                     bool offset_f[], float radius, bool radius_f,
                      float P, bool P_f, bool modal_g1_f, uint8_t motion_mode);
 stat_t mach_dwell(float seconds);
 
@@ -146,5 +137,3 @@ void mach_program_stop();
 void mach_optional_program_stop();
 void mach_pallet_change_stop();
 void mach_program_end();
-
-char mach_get_axis_char(int8_t axis);

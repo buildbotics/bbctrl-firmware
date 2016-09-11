@@ -56,8 +56,8 @@ typedef enum {   // Used for detecting gcode errors. See NIST section 3.4
 
 
 typedef struct {
-  gcode_state_t gn;                    // gcode input values
-  gcode_state_t gf;                    // gcode input flags
+  gcode_state_t gn; // gcode input values
+  gcode_flags_t gf; // gcode input flags
 } parser_t;
 
 

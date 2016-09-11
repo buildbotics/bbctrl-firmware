@@ -342,10 +342,10 @@ static stat_t _compute_arc(bool radius_f, const float position[],
  * Generates an arc by queuing line segments to the move buffer. The arc is
  * approximated by generating a large number of tiny, linear segments.
  */
-stat_t mach_arc_feed(float values[], float values_f[],   // arc endpoints
-                     float offsets[], float offsets_f[], // arc offsets
-                     float radius,  bool radius_f,       // radius
-                     float P, bool P_f,                  // parameter
+stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
+                     float offsets[], bool offsets_f[], // arc offsets
+                     float radius,  bool radius_f,      // radius
+                     float P, bool P_f,                 // parameter
                      bool modal_g1_f,
                      uint8_t motion_mode) { // defined motion mode
 

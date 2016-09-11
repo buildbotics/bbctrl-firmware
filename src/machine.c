@@ -71,6 +71,7 @@
 #include "util.h"
 #include "report.h"
 #include "homing.h"
+#include "gcode_state.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
@@ -144,75 +145,6 @@ distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 distance_mode_t mach_get_arc_distance_mode() {return mach.gm.arc_distance_mode;}
 
 
-PGM_P mach_get_units_pgmstr(units_t mode) {
-  switch (mode) {
-  case INCHES:      return PSTR("IN");
-  case MILLIMETERS: return PSTR("MM");
-  case DEGREES:     return PSTR("DEG");
-  }
-
-  return PSTR("INVALID");
-}
-
-
-PGM_P mach_get_feed_mode_pgmstr(feed_mode_t mode) {
-  switch (mode) {
-  case INVERSE_TIME_MODE:         return PSTR("INVERSE TIME");
-  case UNITS_PER_MINUTE_MODE:     return PSTR("PER MIN");
-  case UNITS_PER_REVOLUTION_MODE: return PSTR("PER REV");
-  }
-
-  return PSTR("INVALID");
-}
-
-
-PGM_P mach_get_plane_pgmstr(plane_t plane) {
-  switch (plane) {
-  case PLANE_XY: return PSTR("XY");
-  case PLANE_XZ: return PSTR("XZ");
-  case PLANE_YZ: return PSTR("YZ");
-  }
-
-  return PSTR("INVALID");
-}
-
-
-PGM_P mach_get_coord_system_pgmstr(coord_system_t cs) {
-  switch (cs) {
-  case ABSOLUTE_COORDS: return PSTR("ABS");
-  case G54: return PSTR("G54");
-  case G55: return PSTR("G55");
-  case G56: return PSTR("G56");
-  case G57: return PSTR("G57");
-  case G58: return PSTR("G58");
-  case G59: return PSTR("G59");
-  }
-
-  return PSTR("INVALID");
-}
-
-
-PGM_P mach_get_path_mode_pgmstr(path_mode_t mode) {
-  switch (mode) {
-  case PATH_EXACT_PATH: return PSTR("EXACT PATH");
-  case PATH_EXACT_STOP: return PSTR("EXACT STOP");
-  case PATH_CONTINUOUS: return PSTR("CONTINUOUS");
-  }
-
-  return PSTR("INVALID");
-}
-
-
-PGM_P mach_get_distance_mode_pgmstr(distance_mode_t mode) {
-  switch (mode) {
-  case ABSOLUTE_MODE:    return PSTR("ABSOLUTE");
-  case INCREMENTAL_MODE: return PSTR("INCREMENTAL");
-  }
-
-  return PSTR("INVALID");
-}
-
-
 void mach_set_motion_mode(motion_mode_t motion_mode) {
   mach.gm.motion_mode = motion_mode;
 }
@@ -253,7 +185,7 @@ void mach_set_absolute_mode(bool absolute_mode) {
 }
 
 
-void mach_set_model_line(uint32_t line) {mach.gm.line = line;}
+void mach_set_line(uint32_t line) {mach.gm.line = line;}
 
 
 /* Coordinate systems and offsets
@@ -453,7 +385,7 @@ float mach_calc_move_time(const float axis_length[],
 }
 
 
-/* Set target vector in GM model
+/*** Calculate target vector
  *
  * This is a core routine. It handles:
  *    - conversion of linear units to internal canonical form (mm)
@@ -473,12 +405,11 @@ float mach_calc_move_time(const float axis_length[],
  *    Target coordinates are provided in target[]
  *    Axes that need processing are signaled in flag[]
  */
-
 void mach_calc_model_target(float target[], const float values[],
-                            const float flags[]) {
+                            const bool flags[]) {
   // process XYZABC for lower modes
   for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
-    if (fp_FALSE(flags[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
+    if (!flags[axis] || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
     if (axes[axis].axis_mode == AXIS_STANDARD ||
@@ -492,7 +423,7 @@ void mach_calc_model_target(float target[], const float values[],
 
   // Note: The ABC loop below relies on the XYZ loop having been run first
   for (int axis = AXIS_A; axis <= AXIS_C; axis++) {
-    if (fp_FALSE(flags[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
+    if (!flags[axis] || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
     float tmp;
@@ -603,11 +534,11 @@ void mach_set_arc_distance_mode(distance_mode_t mode) {
  * This function applies the offset to the GM model.
  */
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
-                            float flag[]) {
+                            bool flags[]) {
   if (coord_system < G54 || G59 < coord_system) return;
 
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis]))
+    if (flags[axis])
       mach.offset[coord_system][axis] = TO_MILLIMETERS(offset[axis]);
 }
 
@@ -671,7 +602,7 @@ static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
   const float *flags = bf->unit;
 
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flags[axis])) {
+    if (flags[axis]) {
       mp_runtime_set_axis_position(axis, origin[axis]);
       mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
@@ -694,11 +625,11 @@ static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
  * recording done by the encoders.  At that point any axis that is set
  * is also marked as homed.
  */
-void mach_set_absolute_origin(float origin[], float flags[]) {
+void mach_set_absolute_origin(float origin[], bool flags[]) {
   float value[AXES];
 
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flags[axis])) {
+    if (flags[axis]) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
       mp_set_axis_position(axis, value[axis]);     // set mm position
@@ -716,11 +647,11 @@ void mach_set_absolute_origin(float origin[], float flags[]) {
  */
 
 /// G92
-void mach_set_origin_offsets(float offset[], float flag[]) {
+void mach_set_origin_offsets(float offset[], bool flags[]) {
   // set offsets in the Gcode model extended context
   mach.origin_offset_enable = true;
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis]))
+    if (flags[axis])
       mach.origin_offset[axis] = mach.position[axis] -
         mach.offset[mach.gm.coord_system][axis] - TO_MILLIMETERS(offset[axis]);
 }
@@ -749,7 +680,7 @@ void mach_resume_origin_offsets() {
 // Free Space Motion (4.3.4)
 
 /// G0 linear rapid
-stat_t mach_rapid(float values[], float flags[]) {
+stat_t mach_rapid(float values[], bool flags[]) {
   mach.gm.motion_mode = MOTION_MODE_RAPID;
 
   float target[AXES];
@@ -773,14 +704,14 @@ void mach_set_g28_position() {copy_vector(mach.g28_position, mach.position);}
 
 
 /// G28
-stat_t mach_goto_g28_position(float target[], float flags[]) {
+stat_t mach_goto_g28_position(float target[], bool flags[]) {
   mach_set_absolute_mode(true);
 
   // move through intermediate point, or skip
   mach_rapid(target, flags);
 
   // execute actual stored move
-  float f[] = {1, 1, 1, 1, 1, 1};
+  bool f[] = {true, true, true, true, true, true};
   return mach_rapid(mach.g28_position, f);
 }
 
@@ -790,14 +721,14 @@ void mach_set_g30_position() {copy_vector(mach.g30_position, mach.position);}
 
 
 /// G30
-stat_t mach_goto_g30_position(float target[], float flags[]) {
+stat_t mach_goto_g30_position(float target[], bool flags[]) {
   mach_set_absolute_mode(true);
 
   // move through intermediate point, or skip
   mach_rapid(target, flags);
 
   // execute actual stored move
-  float f[] = {1, 1, 1, 1, 1, 1};
+  bool f[] = {true, true, true, true, true, true};
   return mach_rapid(mach.g30_position, f);
 }
 
@@ -838,7 +769,7 @@ stat_t mach_dwell(float seconds) {
 
 
 /// G1
-stat_t mach_feed(float values[], float flags[]) {
+stat_t mach_feed(float values[], bool flags[]) {
   // trap zero feed rate condition
   if (fp_ZERO(mach.gm.feed_rate) ||
       (mach.gm.feed_mode == INVERSE_TIME_MODE && !parser.gf.feed_rate))
@@ -867,7 +798,7 @@ stat_t mach_feed(float values[], float flags[]) {
 // Tool Functions (4.3.8)
 
 /// T parameter
-void mach_select_tool(uint8_t tool_select) {mach.gm.tool_select = tool_select;}
+void mach_select_tool(uint8_t tool) {mach.gm.tool = tool;}
 
 
 static stat_t _exec_change_tool(mp_buffer_t *bf) {
@@ -878,8 +809,6 @@ static stat_t _exec_change_tool(mp_buffer_t *bf) {
 
 /// M6 This might become a complete tool change cycle
 void mach_change_tool(bool x) {
-  mach.gm.tool = mach.gm.tool_select;
-
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mach.gm.tool;
   mp_queue_push(_exec_change_tool, mach_get_line());
@@ -930,7 +859,7 @@ void mach_override_enables(bool flag) {
 
 /// M50
 void mach_feed_override_enable(bool flag) {
-  if (fp_TRUE(parser.gf.parameter) && fp_ZERO(parser.gn.parameter))
+  if (parser.gf.parameter && fp_ZERO(parser.gn.parameter))
     mach.gm.feed_override_enable = false;
   else mach.gm.feed_override_enable = true;
 }
@@ -945,7 +874,7 @@ void mach_feed_override_factor(bool flag) {
 
 /// M51
 void mach_spindle_override_enable(bool flag) {
-  if (fp_TRUE(parser.gf.parameter) && fp_ZERO(parser.gn.parameter))
+  if (parser.gf.parameter && fp_ZERO(parser.gn.parameter))
     mach.gm.spindle_override_enable = false;
   else mach.gm.spindle_override_enable = true;
 }
@@ -1050,12 +979,4 @@ void mach_program_end() {
   mach_flood_coolant_control(false);                 // M9
   mach_set_feed_mode(UNITS_PER_MINUTE_MODE);    // G94
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
-}
-
-
-/// return ASCII char for axis given the axis number
-char mach_get_axis_char(int8_t axis) {
-  char axis_char[] = "XYZABC";
-  if (axis < 0 || axis > AXES) return ' ';
-  return axis_char[axis];
 }

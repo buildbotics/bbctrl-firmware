@@ -28,6 +28,10 @@
 
 #pragma once
 
+#include "config.h"
+
+#include <avr/pgmspace.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -180,46 +184,22 @@ typedef enum {
 
 /// Gcode model state
 typedef struct {
-  uint32_t line;                      // Gcode block line number
-
-  uint8_t tool;                       // Tool after T and M6
-  uint8_t tool_select;                // T - sets this value
-
-  float feed_rate;                    // F - in mm/min or inverse time mode
-  feed_mode_t feed_mode;
-  float feed_override_factor;         // 1.0000 x F feed rate
-  bool feed_override_enable;          // M48, M49
-
-  float spindle_speed;                // in RPM
-  spindle_mode_t spindle_mode;
-  float spindle_override_factor;      // 1.0000 x S spindle speed
-  bool spindle_override_enable;       // true = override enabled
-
-  motion_mode_t motion_mode;          // Group 1 modal motion
-  plane_t plane;                      // G17, G18, G19
-  units_t units;                      // G20, G21
-  coord_system_t coord_system;        // G54-G59 - select coordinate system 1-9
-  bool absolute_mode;                 // G53 true = move in machine coordinates
-  path_mode_t path_mode;              // G61
-  distance_mode_t distance_mode;      // G91
-  distance_mode_t arc_distance_mode;  // G91.1
-
-  bool mist_coolant;                  // true = mist on (M7), false = off (M9)
-  bool flood_coolant;                 // true = mist on (M8), false = off (M9)
-
-  next_action_t next_action;          // handles G group 1 moves & non-modals
-  program_flow_t program_flow;        // used only by the gcode_parser
-
-  // TODO unimplemented gcode parameters
-  // float cutter_radius;           // D - cutter radius compensation (0 is off)
-  // float cutter_length;           // H - cutter length compensation (0 is off)
-
-  // Used for input only
-  float target[AXES];                 // XYZABC where the move should go
-  bool override_enables;              // feed and spindle enable
-  bool tool_change;                   // M6 tool change flag
-
-  float parameter;                    // P - dwell time in sec, G10 coord select
-  float arc_radius;                   // R - radius value in arc radius mode
-  float arc_offset[3];                // IJK - used by arc commands
+#define MEMBER(TYPE, VAR) TYPE VAR;
+#include "gcode_state.def"
+#undef MEMBER
 } gcode_state_t;
+
+
+typedef struct {
+#define MEMBER(TYPE, VAR) bool VAR;
+#include "gcode_state.def"
+#undef MEMBER
+} gcode_flags_t;
+
+
+PGM_P gs_get_units_pgmstr(units_t mode);
+PGM_P gs_get_feed_mode_pgmstr(feed_mode_t mode);
+PGM_P gs_get_plane_pgmstr(plane_t plane);
+PGM_P gs_get_coord_system_pgmstr(coord_system_t cs);
+PGM_P gs_get_path_mode_pgmstr(path_mode_t mode);
+PGM_P gs_get_distance_mode_pgmstr(distance_mode_t mode);

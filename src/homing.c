@@ -171,12 +171,12 @@ static homing_t hm = {0};
  */
 static int8_t _get_next_axis(int8_t axis) {
   switch (axis) {
-  case     -1: if (fp_TRUE(parser.gf.target[AXIS_Z])) return AXIS_Z;
-  case AXIS_Z: if (fp_TRUE(parser.gf.target[AXIS_X])) return AXIS_X;
-  case AXIS_X: if (fp_TRUE(parser.gf.target[AXIS_Y])) return AXIS_Y;
-  case AXIS_Y: if (fp_TRUE(parser.gf.target[AXIS_A])) return AXIS_A;
-  case AXIS_A: if (fp_TRUE(parser.gf.target[AXIS_B])) return AXIS_B;
-  case AXIS_B: if (fp_TRUE(parser.gf.target[AXIS_C])) return AXIS_C;
+  case     -1: if (parser.gf.target[AXIS_Z]) return AXIS_Z;
+  case AXIS_Z: if (parser.gf.target[AXIS_X]) return AXIS_X;
+  case AXIS_X: if (parser.gf.target[AXIS_Y]) return AXIS_Y;
+  case AXIS_Y: if (parser.gf.target[AXIS_A]) return AXIS_A;
+  case AXIS_A: if (parser.gf.target[AXIS_B]) return AXIS_B;
+  case AXIS_B: if (parser.gf.target[AXIS_C]) return AXIS_C;
   }
 
   return axis == -1 ? -2 : -1; // error or done
@@ -206,7 +206,7 @@ static void _homing_error_exit(stat_t status) {
 /// Execute moves
 static void _homing_axis_move(int8_t axis, float target, float velocity) {
   float vect[AXES] = {0};
-  float flags[AXES] = {0};
+  bool flags[AXES] = {0};
 
   vect[axis] = target;
   flags[axis] = true;

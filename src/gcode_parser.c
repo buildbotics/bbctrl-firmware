@@ -45,10 +45,10 @@ parser_t parser = {{0}};
 
 
 #define SET_MODAL(m, parm, val) \
-  {parser.gn.parm = val; parser.gf.parm = 1; modals[m] += 1; break;}
+  {parser.gn.parm = val; parser.gf.parm = true; modals[m] += 1; break;}
 #define SET_NON_MODAL(parm, val) \
-  {parser.gn.parm = val; parser.gf.parm = 1; break;}
-#define EXEC_FUNC(f, parm) if ((uint8_t)parser.gf.parm) f(parser.gn.parm)
+  {parser.gn.parm = val; parser.gf.parm = true; break;}
+#define EXEC_FUNC(f, parm) if (parser.gf.parm) f(parser.gn.parm)
 
 
 static uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
@@ -241,13 +241,13 @@ static stat_t _validate_gcode_block() {
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
 
-  mach_set_model_line(parser.gn.line);
+  mach_set_line(parser.gn.line);
   EXEC_FUNC(mach_set_feed_mode, feed_mode);
   EXEC_FUNC(mach_set_feed_rate, feed_rate);
   EXEC_FUNC(mach_feed_override_factor, feed_override_factor);
   EXEC_FUNC(mach_set_spindle_speed, spindle_speed);
   EXEC_FUNC(mach_spindle_override_factor, spindle_override_factor);
-  EXEC_FUNC(mach_select_tool, tool_select);
+  EXEC_FUNC(mach_select_tool, tool);
   EXEC_FUNC(mach_change_tool, tool_change);
   EXEC_FUNC(mach_set_spindle_mode, spindle_mode);
   EXEC_FUNC(mach_mist_coolant_control, mist_coolant);
@@ -371,7 +371,7 @@ static stat_t _parse_gcode_block(char *buf) {
 
   // set initial state for new move
   memset(modals, 0, sizeof(modals));              // clear all parser values
-  memset(&parser.gf, 0, sizeof(gcode_state_t));   // clear all next-state flags
+  memset(&parser.gf, 0, sizeof(gcode_flags_t));   // clear all next-state flags
   memset(&parser.gn, 0, sizeof(gcode_state_t));   // clear all next-state values
 
   // get motion mode from previous block
@@ -508,7 +508,7 @@ static stat_t _parse_gcode_block(char *buf) {
       }
       break;
 
-    case 'T': SET_NON_MODAL(tool_select, (uint8_t)trunc(value));
+    case 'T': SET_NON_MODAL(tool, (uint8_t)trunc(value));
     case 'F': SET_NON_MODAL(feed_rate, value);
       // used for dwell time, G10 coord select, rotations
     case 'P': SET_NON_MODAL(parameter, value);
