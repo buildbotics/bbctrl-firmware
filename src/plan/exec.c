@@ -247,7 +247,7 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
 
     // len / avg. velocity
     float move_time = 2 * length / (vin + vout);
-    ex.segments = ceil(usec(move_time) / NOM_SEGMENT_USEC);
+    ex.segments = ceil(move_time * MICROSECONDS_PER_MINUTE / NOM_SEGMENT_USEC);
     ex.segment_time = move_time / ex.segments;
     ex.segment_count = (uint32_t)ex.segments;
 

@@ -410,7 +410,7 @@ void mach_calc_model_target(float target[], const float values[],
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
         target[axis] =
           mach_get_active_coord_offset(axis) + TO_MILLIMETERS(values[axis]);
-      else target[axis] += TO_MILLIMETERS(values[axis]);
+      else target[axis] = mach.position[axis] + TO_MILLIMETERS(values[axis]);
     }
   }
 
@@ -432,7 +432,7 @@ void mach_calc_model_target(float target[], const float values[],
     if (mach.gm.distance_mode == ABSOLUTE_MODE)
       // sacidu93's fix to Issue #22
       target[axis] = tmp + mach_get_active_coord_offset(axis);
-    else target[axis] += tmp;
+    else target[axis] = mach.position[axis] + tmp;
   }
 }
 
@@ -673,6 +673,7 @@ void mach_resume_origin_offsets() {
 // Free Space Motion (4.3.4)
 static stat_t _feed(float values[], bool flags[]) {
   float target[AXES];
+  copy_vector(target, mach.position);
   mach_calc_model_target(target, values, flags);
 
   // test soft limits
