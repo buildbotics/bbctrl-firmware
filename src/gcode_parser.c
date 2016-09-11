@@ -214,12 +214,12 @@ static stat_t _validate_gcode_block() {
  *   3. set feed rate (F)
  *   3a. set feed override rate (M50)
  *   4. set spindle speed (S)
- *   4a. set spindle override rate (M51.1)
+ *   4a. set spindle override rate (M51)
  *   5. select tool (T)
  *   6. change tool (M6)
  *   7. spindle on or off (M3, M4, M5)
  *   8. coolant on or off (M7, M8, M9)
- *   9. enable or disable overrides (M48, M49, M50, M51)
+ *   9. enable or disable overrides (M48, M49)
  *   10. dwell (G4)
  *   11. set active plane (G17, G18, G19)
  *   12. set length units (G20, G21)
@@ -236,7 +236,7 @@ static stat_t _validate_gcode_block() {
  *   21. stop and end (M0, M1, M2, M30, M60)
  *
  * Values in gn are in original units and should not be unit converted prior
- * to calling the machine functions (which do the unit conversions)
+ * to calling the machine functions (which does the unit conversions)
  */
 static stat_t _execute_gcode_block() {
   stat_t status = STAT_OK;
@@ -244,16 +244,14 @@ static stat_t _execute_gcode_block() {
   mach_set_line(parser.gn.line);
   EXEC_FUNC(mach_set_feed_mode, feed_mode);
   EXEC_FUNC(mach_set_feed_rate, feed_rate);
-  EXEC_FUNC(mach_feed_override_factor, feed_override_factor);
+  EXEC_FUNC(mach_feed_override_enable, feed_override_enable);
   EXEC_FUNC(mach_set_spindle_speed, spindle_speed);
-  EXEC_FUNC(mach_spindle_override_factor, spindle_override_factor);
+  EXEC_FUNC(mach_spindle_override_enable, spindle_override_enable);
   EXEC_FUNC(mach_select_tool, tool);
   EXEC_FUNC(mach_change_tool, tool_change);
   EXEC_FUNC(mach_set_spindle_mode, spindle_mode);
   EXEC_FUNC(mach_mist_coolant_control, mist_coolant);
   EXEC_FUNC(mach_flood_coolant_control, flood_coolant);
-  EXEC_FUNC(mach_feed_override_enable, feed_override_enable);
-  EXEC_FUNC(mach_spindle_override_enable, spindle_override_enable);
   EXEC_FUNC(mach_override_enables, override_enables);
 
   if (parser.gn.next_action == NEXT_ACTION_DWELL) // G4 - dwell

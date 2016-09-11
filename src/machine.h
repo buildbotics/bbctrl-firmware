@@ -123,9 +123,7 @@ void mach_flood_coolant_control(bool flood_coolant);
 
 void mach_override_enables(bool flag);
 void mach_feed_override_enable(bool flag);
-void mach_feed_override_factor(bool flag);
 void mach_spindle_override_enable(bool flag);
-void mach_spindle_override_factor(bool flag);
 
 void mach_message(const char *message);
 

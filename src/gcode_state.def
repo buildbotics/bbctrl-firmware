@@ -32,12 +32,12 @@ MEMBER(uint8_t, tool)                       // T - sets this value
 
 MEMBER(float, feed_rate)                    // F - mm/min or inverse time mode
 MEMBER(feed_mode_t, feed_mode)
-MEMBER(float, feed_override_factor)         // 1.0000 x F feed rate
+MEMBER(float, feed_override)                // 1.0000 x F feed rate
 MEMBER(bool, feed_override_enable)          // M48, M49
 
 MEMBER(float, spindle_speed)                // in RPM
 MEMBER(spindle_mode_t, spindle_mode)
-MEMBER(float, spindle_override_factor)      // 1.0000 x S spindle speed
+MEMBER(float, spindle_override)             // 1.0000 x S spindle speed
 MEMBER(bool, spindle_override_enable)       // true = override enabled
 
 MEMBER(motion_mode_t, motion_mode)          // Group 1 modal motion

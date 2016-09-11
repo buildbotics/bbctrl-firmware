@@ -116,12 +116,12 @@ feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 
 
 float mach_get_feed_override() {
-  return mach.gm.feed_override_enable ? mach.gm.feed_override_factor : 0;
+  return mach.gm.feed_override_enable ? mach.gm.feed_override : 0;
 }
 
 
 float mach_get_spindle_override() {
-  return mach.gm.spindle_override_enable ? mach.gm.spindle_override_factor : 0;
+  return mach.gm.spindle_override_enable ? mach.gm.spindle_override : 0;
 }
 
 
@@ -841,14 +841,10 @@ void mach_override_enables(bool flag) {
 void mach_feed_override_enable(bool flag) {
   if (parser.gf.parameter && fp_ZERO(parser.gn.parameter))
     mach.gm.feed_override_enable = false;
-  else mach.gm.feed_override_enable = true;
-}
-
-
-/// M50
-void mach_feed_override_factor(bool flag) {
-  mach.gm.feed_override_enable = flag;
-  mach.gm.feed_override_factor = parser.gn.parameter;
+  else {
+    if (parser.gf.parameter) mach.gm.feed_override = parser.gf.parameter;
+    mach.gm.feed_override_enable = true;
+  }
 }
 
 
@@ -856,14 +852,10 @@ void mach_feed_override_factor(bool flag) {
 void mach_spindle_override_enable(bool flag) {
   if (parser.gf.parameter && fp_ZERO(parser.gn.parameter))
     mach.gm.spindle_override_enable = false;
-  else mach.gm.spindle_override_enable = true;
-}
-
-
-/// M51
-void mach_spindle_override_factor(bool flag) {
-  mach.gm.spindle_override_enable = flag;
-  mach.gm.spindle_override_factor = parser.gn.parameter;
+  else {
+    if (parser.gf.parameter) mach.gm.spindle_override = parser.gf.parameter;
+    mach.gm.spindle_override_enable = true;
+  }
 }
 
 
