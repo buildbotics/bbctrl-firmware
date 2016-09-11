@@ -58,6 +58,7 @@ STAT_MSG(INPUT_EXCEEDS_MAX_VALUE, "Input exceeds maximum value")
 STAT_MSG(INPUT_VALUE_RANGE_ERROR, "Input value range error")
 
 // Gcode errors & warnings (Most originate from NIST)
+STAT_MSG(MODAL_GROUP_VIOLATION, "Modal group violation")
 STAT_MSG(GCODE_COMMAND_UNSUPPORTED, "Invalid or unsupported G-Code command")
 STAT_MSG(MCODE_COMMAND_UNSUPPORTED, "M code unsupported")
 STAT_MSG(GCODE_AXIS_IS_MISSING, "Axis word missing")
@@ -65,7 +66,9 @@ STAT_MSG(GCODE_FEEDRATE_NOT_SPECIFIED, "Feedrate not specified")
 STAT_MSG(ARC_SPECIFICATION_ERROR, "Arc specification error")
 STAT_MSG(ARC_AXIS_MISSING_FOR_SELECTED_PLANE, "Arc missing axis")
 STAT_MSG(ARC_RADIUS_OUT_OF_TOLERANCE, "Arc radius arc out of tolerance")
-STAT_MSG(ARC_ENDPOINT_IS_STARTING_POINT, "Arc endpoint is starting point")
+STAT_MSG(ARC_ENDPOINT_IS_STARTING_POINT, "Arc end point is starting point")
+STAT_MSG(ARC_OFFSETS_MISSING_FOR_PLANE, "arc offsets missing for plane")
+STAT_MSG(P_WORD_IS_NOT_A_POSITIVE_INTEGER, "P word is not a positive integer")
 
 // Errors and warnings
 STAT_MSG(MINIMUM_LENGTH_MOVE, "Move less than minimum length")

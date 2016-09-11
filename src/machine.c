@@ -237,9 +237,6 @@ void mach_set_spindle_mode(spindle_mode_t mode) {
 }
 
 
-void mach_set_tool_number(uint8_t tool) {mach.gm.tool = tool;}
-
-
 void mach_set_absolute_mode(bool absolute_mode) {
   mach.gm.absolute_mode = absolute_mode;
 }
@@ -555,6 +552,7 @@ void machine_init() {
   mach_set_plane(GCODE_DEFAULT_PLANE);
   mach_set_path_mode(GCODE_DEFAULT_PATH_CONTROL);
   mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
+  mach_set_arc_distance_mode(GCODE_DEFAULT_ARC_DISTANCE_MODE);
   mach_set_feed_mode(UNITS_PER_MINUTE_MODE); // always the default
 
   // Sub-system inits
@@ -579,6 +577,12 @@ void mach_set_units(units_t mode) {mach.gm.units = mode;}
 /// G90, G91
 void mach_set_distance_mode(distance_mode_t mode) {
   mach.gm.distance_mode = mode;
+}
+
+
+/// G90.1, G91.1
+void mach_set_arc_distance_mode(distance_mode_t mode) {
+  mach.gm.arc_distance_mode = mode;
 }
 
 
@@ -744,9 +748,9 @@ stat_t mach_rapid(float target[], float flags[]) {
   if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
-  mach_update_work_offsets();      // update fully resolved offsets to state
-  status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
-  copy_vector(mach.position, mach.gm.target);      // update model position
+  mach_update_work_offsets();                         // update resolved offsets
+  status = mp_aline(mach.gm.target, mach_get_line()); // send move to planner
+  copy_vector(mach.position, mach.gm.target);         // update model position
 
   return status;
 }
@@ -817,7 +821,7 @@ void mach_set_path_mode(path_mode_t mode) {
 
 /// G4, P parameter (seconds)
 stat_t mach_dwell(float seconds) {
-  return mp_dwell(seconds, mach.gm.line);
+  return mp_dwell(seconds, mach_get_line());
 }
 
 
@@ -836,9 +840,9 @@ stat_t mach_feed(float target[], float flags[]) {
   if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
-  mach_update_work_offsets();      // update fully resolved offsets to state
-  status = mp_aline(mach.gm.target, mach.gm.line); // send the move to planner
-  copy_vector(mach.position, mach.gm.target);      // update model position
+  mach_update_work_offsets();                         // update resolved offsets
+  status = mp_aline(mach.gm.target, mach_get_line()); // send move to planner
+  copy_vector(mach.position, mach.gm.target);         // update model position
 
   return status;
 }
@@ -852,8 +856,20 @@ stat_t mach_feed(float target[], float flags[]) {
 void mach_select_tool(uint8_t tool_select) {mach.gm.tool_select = tool_select;}
 
 
+static stat_t _exec_change_tool(mp_buffer_t *bf) {
+  mp_runtime_set_tool(bf->value);
+  return STAT_NOOP; // No move queued
+}
+
+
 /// M6 This might become a complete tool change cycle
-void mach_change_tool(uint8_t tool) {mach.gm.tool = tool;}
+void mach_change_tool(bool x) {
+  mach.gm.tool = mach.gm.tool_select;
+
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->value = mach.gm.tool;
+  mp_queue_push(_exec_change_tool, mach_get_line());
+}
 
 
 // Miscellaneous Functions (4.3.9)
@@ -959,7 +975,7 @@ static stat_t _exec_program_stop(mp_buffer_t *bf) {
 
 /// M0 Queue a program stop
 void mach_program_stop() {
-  mp_queue_push(_exec_program_stop, mach.gm.line);
+  mp_queue_push(_exec_program_stop, mach_get_line());
 }
 
 
@@ -1014,6 +1030,7 @@ void mach_program_end() {
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
   mach_set_plane(GCODE_DEFAULT_PLANE);
   mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
+  mach_set_arc_distance_mode(GCODE_DEFAULT_ARC_DISTANCE_MODE);
   mach.gm.spindle_mode = SPINDLE_OFF;
   spindle_set(SPINDLE_OFF, 0);
   mach_flood_coolant_control(false);                 // M9

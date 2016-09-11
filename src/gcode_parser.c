@@ -48,7 +48,7 @@ parser_t parser = {{0}};
   {parser.gn.parm = val; parser.gf.parm = 1; modals[m] += 1; break;}
 #define SET_NON_MODAL(parm, val) \
   {parser.gn.parm = val; parser.gf.parm = 1; break;}
-#define EXEC_FUNC(f, v) if ((uint8_t)parser.gf.v) f(parser.gn.v)
+#define EXEC_FUNC(f, parm) if ((uint8_t)parser.gf.parm) f(parser.gn.parm)
 
 
 static uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
@@ -170,8 +170,13 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
 
 
 /// Isolate the decimal point value as an integer
-static uint8_t _point(float value) {
-  return value * 10 - trunc(value) * 10;
+static uint8_t _point(float value) {return value * 10 - trunc(value) * 10;}
+
+
+static bool _axis_changed() {
+  for (int axis = 0; axis < AXES; axis++)
+    if (parser.gf.target[axis]) return true;
+  return false;
 }
 
 
@@ -186,12 +191,12 @@ static stat_t _validate_gcode_block() {
   // activity of the group 1 G-code is suspended for that line. The
   // axis word-using G-codes from group 0 are G10, G28, G30, and G92"
 
-  // if (modals[MODAL_GROUP_G0] && modals[MODAL_GROUP_G1])
-  //   return STAT_MODAL_GROUP_VIOLATION;
+  if (modals[MODAL_GROUP_G0] && modals[MODAL_GROUP_G1])
+    return STAT_MODAL_GROUP_VIOLATION;
 
   // look for commands that require an axis word to be present
-  // if (modals[MODAL_GROUP_G0] || modals[MODAL_GROUP_G1])
-  //   if (!_axis_changed()) return STAT_GCODE_AXIS_IS_MISSING;
+  if (modals[MODAL_GROUP_G0] || modals[MODAL_GROUP_G1])
+    if (!_axis_changed()) return STAT_GCODE_AXIS_IS_MISSING;
 
   return STAT_OK;
 }
@@ -222,7 +227,7 @@ static stat_t _validate_gcode_block() {
  *   14. cutter length compensation on or off (G43, G49)
  *   15. coordinate system selection (G54, G55, G56, G57, G58, G59)
  *   16. set path control mode (G61, G61.1, G64)
- *   17. set distance mode (G90, G91)
+ *   17. set distance mode (G90, G91, G90.1, G91.1)
  *   18. set retract mode (G98, G99)
  *   19a. homing functions (G28.2, G28.3, G28.1, G28, G30)
  *   19b. update system data (G10)
@@ -261,6 +266,7 @@ static stat_t _execute_gcode_block() {
   EXEC_FUNC(mach_set_coord_system, coord_system);
   EXEC_FUNC(mach_set_path_mode, path_mode);
   EXEC_FUNC(mach_set_distance_mode, distance_mode);
+  EXEC_FUNC(mach_set_arc_distance_mode, arc_distance_mode);
   //--> set retract mode goes here
 
   switch (parser.gn.next_action) {
@@ -323,9 +329,10 @@ static stat_t _execute_gcode_block() {
     case MOTION_MODE_CW_ARC: case MOTION_MODE_CCW_ARC:
       // gf.radius sets radius mode if radius was collected in gn
       status = mach_arc_feed(parser.gn.target, parser.gf.target,
-                             parser.gn.arc_offset[0], parser.gn.arc_offset[1],
-                             parser.gn.arc_offset[2], parser.gn.arc_radius,
-                             parser.gn.motion_mode);
+                             parser.gn.arc_offset, parser.gf.arc_offset,
+                             parser.gn.arc_radius, parser.gf.arc_radius,
+                             parser.gn.parameter, parser.gf.parameter,
+                             modals[MODAL_GROUP_G1], parser.gn.motion_mode);
       break;
     default: break; // Should not get here
     }

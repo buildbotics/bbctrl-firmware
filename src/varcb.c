@@ -40,8 +40,8 @@ float get_position(int index) {return mp_runtime_get_axis_position(index);}
 int32_t get_line() {return mp_runtime_get_line();}
 PGM_P get_unit() {return mach_get_units_pgmstr(mach_get_units());}
 float get_speed() {return spindle_get_speed();}
-float get_feed() {return mach_get_feed_rate();}
-uint8_t get_tool() {return mach_get_tool();}
+float get_feed() {return mach_get_feed_rate();} // TODO get runtime value
+uint8_t get_tool() {return mp_runtime_get_tool();}
 
 
 PGM_P get_feed_mode() {

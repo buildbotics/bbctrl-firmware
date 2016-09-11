@@ -225,10 +225,10 @@ static stat_t _compute_arc_offsets_from_radius(float offset[]) {
  *
  *  Parts of this routine were originally sourced from the grbl project.
  */
-static stat_t _compute_arc(const float position[], float offset[],
-                           float rotations, bool full_circle) {
+static stat_t _compute_arc(bool radius_f, const float position[],
+                           float offset[], float rotations, bool full_circle) {
   // Compute radius.  A non-zero radius value indicates a radius arc
-  if (fp_NOT_ZERO(arc.radius)) _compute_arc_offsets_from_radius(offset);
+  if (radius_f) _compute_arc_offsets_from_radius(offset);
   else // compute start radius
     arc.radius = hypotf(-offset[arc.plane_axis_0], -offset[arc.plane_axis_1]);
 
@@ -340,77 +340,93 @@ static stat_t _compute_arc(const float position[], float offset[],
  * Generates an arc by queuing line segments to the move buffer. The arc is
  * approximated by generating a large number of tiny, linear segments.
  */
-stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
-                     float i, float j, float k, // raw arc offsets
-                     float radius,  // non-zero radius implies radius mode
+stat_t mach_arc_feed(float target[], float target_f[],   // arc endpoints
+                     float offsets[], float offsets_f[], // arc offsets
+                     float radius,  bool radius_f,       // radius
+                     float P, bool P_f,                  // parameter
+                     bool modal_g1_f,
                      uint8_t motion_mode) { // defined motion mode
+
+  // Trap some precursor cases.  Since motion mode (MODAL_GROUP_G1) persists
+  // from the previous move it's possible for non-modal commands such as F or P
+  // to arrive here when no motion has actually been specified. It's also
+  // possible to run an arc as simple as "I25" if CW or CCW motion mode was
+  // already set by a previous block.  Here are 2 cases to handle if CW or CCW
+  // motion mode was set by a previous block:
+  //
+  // Case 1: F, P or other non modal is specified but no movement is specified
+  //         (no offsets or radius). This is OK: return STAT_OK
+  //
+  // Case 2: Movement is specified w/o a new G2 or G3 word in the (new) block.
+  //         This is OK: continue the move
+  //
+  if (!modal_g1_f && !offsets_f[0] && !offsets_f[1] && !offsets_f[2] &&
+      !radius_f) return STAT_OK;
+
   // trap missing feed rate
   if (fp_ZERO(mach_get_feed_rate()) ||
       (mach_get_feed_mode() == INVERSE_TIME_MODE && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
-  // set radius mode flag and do simple test(s)
-  bool radius_f = fp_NOT_ZERO(parser.gf.arc_radius);  // set true if radius arc
-
-  // radius value must be + and > minimum radius
-  if (radius_f && parser.gn.arc_radius < MIN_ARC_RADIUS)
+  // radius must be positive and > minimum
+  if (radius_f && radius < MIN_ARC_RADIUS)
     return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
-
-  // setup some flags
-  bool target_x = fp_NOT_ZERO(flags[AXIS_X]);       // is X axis specified
-  bool target_y = fp_NOT_ZERO(flags[AXIS_Y]);
-  bool target_z = fp_NOT_ZERO(flags[AXIS_Z]);
-
-  bool offset_i = fp_NOT_ZERO(parser.gf.arc_offset[0]); // is offset I specified
-  bool offset_j = fp_NOT_ZERO(parser.gf.arc_offset[1]); // J
-  bool offset_k = fp_NOT_ZERO(parser.gf.arc_offset[2]); // K
 
   // Set the arc plane for the current G17/G18/G19 setting and test arc
   // specification Plane axis 0 and 1 are the arc plane, the linear axis is
   // normal to the arc plane.
-  // G17 - the vast majority of arcs are in the G17 (XY) plane
   switch (mach_get_plane()) {
-  case PLANE_XY:
+  case PLANE_XY: // G17
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Y;
     arc.linear_axis  = AXIS_Z;
-
-    if (radius_f) {
-      // must have at least one endpoint specified
-      if (!(target_x || target_y))
-        return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
-
-    } else if (offset_k)
-      // center format arc tests, it's OK to be missing either or both i and j,
-      // but error if k is present
-      return STAT_ARC_SPECIFICATION_ERROR;
     break;
 
   case PLANE_XZ: // G18
     arc.plane_axis_0 = AXIS_X;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_Y;
-
-    if (radius_f) {
-      if (!(target_x || target_z))
-        return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
-    } else if (offset_j) return STAT_ARC_SPECIFICATION_ERROR;
     break;
 
   case PLANE_YZ: // G19
     arc.plane_axis_0 = AXIS_Y;
     arc.plane_axis_1 = AXIS_Z;
     arc.linear_axis  = AXIS_X;
-
-    if (radius_f) {
-      if (!target_y && !target_z)
-        return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
-    } else if (offset_i) return STAT_ARC_SPECIFICATION_ERROR;
     break;
   }
 
+  // Test if endpoints are specified in the selected plane
+  bool full_circle = false;
+  if (!target_f[arc.plane_axis_0] && !target_f[arc.plane_axis_1]) {
+    if (radius_f) // in radius mode arcs missing both endpoints is an error
+      return STAT_ARC_AXIS_MISSING_FOR_SELECTED_PLANE;
+    else full_circle = true; // in center format arc specifies full circle
+  }
+
+  // Test radius arcs for radius tolerance
+  if (radius_f) {
+    arc.radius = TO_MILLIMETERS(radius);    // set to internal format (mm)
+    if (fabs(arc.radius) < MIN_ARC_RADIUS)  // radius value must be > minimum
+      return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
+
+    // Test that center format absolute distance mode arcs have both offsets
+  } else if (mach_get_arc_distance_mode() == ABSOLUTE_MODE &&
+             !(offsets_f[arc.plane_axis_0] && offsets_f[arc.plane_axis_1]))
+    return STAT_ARC_OFFSETS_MISSING_FOR_PLANE;
+
+  // Set arc rotations
+  float rotations = 0;
+
+  if (P_f) {
+    // If P is present it must be a positive integer
+    if (P < 0 || 0 < floor(P) - P) return STAT_P_WORD_IS_NOT_A_POSITIVE_INTEGER;
+
+    rotations = P;
+
+  } else if (full_circle) rotations = 1; // default to 1 for full circles
+
   // set values in Gcode model state & copy it (line was already captured)
-  mach_set_model_target(target, flags);
+  mach_set_model_target(target, target_f);
 
   // in radius mode it's an error for start == end
   if (radius_f && fp_EQ(mach.position[AXIS_X], mach.gm.target[AXIS_X]) &&
@@ -425,15 +441,20 @@ stat_t mach_arc_feed(float target[], float flags[], // arc endpoints
   copy_vector(arc.target, mach.gm.target);         // copy move target
   arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
 
-  float offset[3] = {TO_MILLIMETERS(i), TO_MILLIMETERS(j), TO_MILLIMETERS(k)};
-  float rotations = floor(fabs(parser.gn.parameter)); // P must be positive int
+  float offset[3];
+  for (int i = 0; i < 3; i++) offset[i] = TO_MILLIMETERS(offsets[i]);
 
-  // determine if this is a full circle arc. Evaluates true if no target is set
-  bool full_circle =
-    fp_ZERO(flags[arc.plane_axis_0]) & fp_ZERO(flags[arc.plane_axis_1]);
+  if (mach_get_arc_distance_mode() == ABSOLUTE_MODE) {
+    if (offsets_f[0]) offset[0] -= mach.position[0];
+    if (offsets_f[1]) offset[1] -= mach.position[1];
+    if (offsets_f[2]) offset[2] -= mach.position[2];
+  }
 
   // compute arc runtime values
-  RITORNO(_compute_arc(mach.position, offset, rotations, full_circle));
+  RITORNO(_compute_arc(radius_f, mach.position, offset, rotations,
+                       full_circle));
+
+  // Note, arc soft limits are not tested here
 
   arc.running = true;                         // Enable arc run in callback
   mach_arc_callback();                        // Queue initial arc moves

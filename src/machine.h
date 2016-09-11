@@ -84,7 +84,6 @@ PGM_P mach_get_distance_mode_pgmstr(distance_mode_t mode);
 void mach_set_motion_mode(motion_mode_t motion_mode);
 void mach_set_spindle_mode(spindle_mode_t spindle_mode);
 void mach_set_spindle_speed(float speed);
-void mach_set_tool_number(uint8_t tool);
 void mach_set_absolute_mode(bool absolute_mode);
 void mach_set_model_line(uint32_t line);
 
@@ -107,6 +106,7 @@ void machine_init();
 void mach_set_plane(plane_t plane);
 void mach_set_units(units_t mode);
 void mach_set_distance_mode(distance_mode_t mode);
+void mach_set_arc_distance_mode(distance_mode_t mode);
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             float flag[]);
 
@@ -136,15 +136,16 @@ void mach_set_path_mode(path_mode_t mode);
 
 // Machining Functions (4.3.6)
 stat_t mach_feed(float target[], float flags[]);
-stat_t mach_arc_feed(float target[], float flags[], float i, float j, float k,
-                     float radius, uint8_t motion_mode);
+stat_t mach_arc_feed(float target[], float flags[], float offsets[],
+                     float offset_f[], float radius, bool radius_f,
+                     float P, bool P_f, bool modal_g1_f, uint8_t motion_mode);
 stat_t mach_dwell(float seconds);
 
 // Spindle Functions (4.3.7) see spindle.h
 
 // Tool Functions (4.3.8)
 void mach_select_tool(uint8_t tool);
-void mach_change_tool(uint8_t tool);
+void mach_change_tool(bool x);
 
 // Miscellaneous Functions (4.3.9)
 void mach_mist_coolant_control(bool mist_coolant);

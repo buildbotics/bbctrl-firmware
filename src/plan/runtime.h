@@ -38,6 +38,9 @@ void mp_runtime_set_busy(bool busy);
 int32_t mp_runtime_get_line();
 void mp_runtime_set_line(int32_t line);
 
+uint8_t mp_runtime_get_tool();
+void mp_runtime_set_tool(uint8_t tool);
+
 float mp_runtime_get_velocity();
 void mp_runtime_set_velocity(float velocity);
 

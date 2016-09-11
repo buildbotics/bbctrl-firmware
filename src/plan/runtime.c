@@ -52,9 +52,14 @@ typedef struct {
 
 
 typedef struct {
-  int32_t line;            // Current move GCode line number
+  bool busy;               // True if a move is running
+  float position[AXES];    // Current move position
+  float work_offset[AXES]; // Current move work offset
+  float velocity;          // Current move velocity
+  mp_steps_t steps;
 
-  uint8_t tool;
+  int32_t line;            // Current move GCode line number
+  uint8_t tool;            // Active tool
 
   float feed;
   feed_mode_t feed_mode;
@@ -68,17 +73,6 @@ typedef struct {
   path_mode_t path_mode;
   distance_mode_t distance_mode;
   distance_mode_t arc_distance_mode;
-
-} mach_state_t;
-
-
-typedef struct {
-  bool busy;               // True if a move is running
-  float position[AXES];    // Current move position
-  float work_offset[AXES]; // Current move work offset
-  float velocity;          // Current move velocity
-  mp_steps_t steps;
-  mach_state_t mach;
 } mp_runtime_t;
 
 static mp_runtime_t rt;
@@ -86,13 +80,10 @@ static mp_runtime_t rt;
 
 bool mp_runtime_is_busy() {return rt.busy;}
 void mp_runtime_set_busy(bool busy) {rt.busy = busy;}
-int32_t mp_runtime_get_line() {return rt.mach.line;}
-
-
-void mp_runtime_set_line(int32_t line) {
-  rt.mach.line = line;
-  report_request();
-}
+int32_t mp_runtime_get_line() {return rt.line;}
+void mp_runtime_set_line(int32_t line) {rt.line = line; report_request();}
+uint8_t mp_runtime_get_tool() {return rt.tool;}
+void mp_runtime_set_tool(uint8_t tool) {rt.tool = tool; report_request();}
 
 
 /// Returns current segment velocity
