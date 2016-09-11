@@ -433,8 +433,9 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
   } else if (full_circle) rotations = 1; // default to 1 for full circles
 
   // Set model target
-  mach_calc_model_target(arc.target, values, values_f);
   const float *position = mach_get_position();
+  copy_vector(arc.target, position);
+  mach_calc_model_target(arc.target, values, values_f);
 
   // in radius mode it's an error for start == end
   if (radius_f && fp_EQ(position[AXIS_X], arc.target[AXIS_X]) &&
