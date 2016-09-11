@@ -29,7 +29,7 @@
 #include "gcode_parser.h"
 
 #include "machine.h"
-#include "spindle.h"
+#include "plan/arc.h"
 #include "probing.h"
 #include "homing.h"
 #include "util.h"

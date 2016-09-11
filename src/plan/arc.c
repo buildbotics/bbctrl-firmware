@@ -169,7 +169,7 @@ static float _estimate_arc_time(float length, float linear_travel,
  *    Assumes arc singleton has been pre-loaded with target and position.
  *    Parts of this routine were originally sourced from the grbl project.
  */
-static stat_t _compute_arc_offsets_from_radius(float offset[]) {
+static stat_t _compute_arc_offsets_from_radius(float offset[], bool clockwise) {
   // Calculate the change in position along each selected axis
   float x =
     arc.target[arc.plane_axis_0] - mach_get_axis_position(arc.plane_axis_0);
@@ -192,7 +192,7 @@ static stat_t _compute_arc_offsets_from_radius(float offset[]) {
   float h_x2_div_d = disc > 0 ? -sqrt(disc) / hypotf(x, y) : 0;
 
   // Invert sign of h_x2_div_d if circle is counter clockwise (see header notes)
-  if (mach_get_motion_mode() == MOTION_MODE_CCW_ARC) h_x2_div_d = -h_x2_div_d;
+  if (!clockwise) h_x2_div_d = -h_x2_div_d;
 
   // Negative R is g-code-alese for "I want a circle with more than 180 degrees
   // of travel" (go figure!), even though it is advised against ever generating
@@ -228,9 +228,10 @@ static stat_t _compute_arc_offsets_from_radius(float offset[]) {
  *  Parts of this routine were originally sourced from the grbl project.
  */
 static stat_t _compute_arc(bool radius_f, const float position[],
-                           float offset[], float rotations, bool full_circle) {
+                           float offset[], float rotations, bool clockwise,
+                           bool full_circle) {
   // Compute radius.  A non-zero radius value indicates a radius arc
-  if (radius_f) _compute_arc_offsets_from_radius(offset);
+  if (radius_f) _compute_arc_offsets_from_radius(offset, clockwise);
   else // compute start radius
     arc.radius = hypotf(-offset[arc.plane_axis_0], -offset[arc.plane_axis_1]);
 
@@ -288,14 +289,12 @@ static stat_t _compute_arc(bool radius_f, const float position[],
       angular_travel = theta_end - arc.theta;
 
       // reverse travel direction if it's CCW arc
-      if (mach_get_motion_mode() == MOTION_MODE_CCW_ARC)
-        angular_travel -= 2 * M_PI * g18_correction;
+      if (!clockwise) angular_travel -= 2 * M_PI * g18_correction;
     }
   }
 
   // Add in travel for rotations
-  if (mach_get_motion_mode() == MOTION_MODE_CW_ARC)
-    angular_travel += 2 * M_PI * rotations * g18_correction;
+  if (clockwise) angular_travel += 2 * M_PI * rotations * g18_correction;
   else angular_travel -= 2 * M_PI * rotations * g18_correction;
 
   // Calculate travel in the depth axis of the helix and compute the time it
@@ -347,7 +346,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
                      float radius,  bool radius_f,      // radius
                      float P, bool P_f,                 // parameter
                      bool modal_g1_f,
-                     uint8_t motion_mode) { // defined motion mode
+                     motion_mode_t motion_mode) { // defined motion mode
 
   // Trap some precursor cases.  Since motion mode (MODAL_GROUP_G1) persists
   // from the previous move it's possible for non-modal commands such as F or P
@@ -396,6 +395,8 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
     arc.linear_axis  = AXIS_X;
     break;
   }
+
+  bool clockwise = motion_mode == MOTION_MODE_CW_ARC;
 
   // Test if endpoints are specified in the selected plane
   bool full_circle = false;
@@ -453,7 +454,8 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
   }
 
   // compute arc runtime values
-  RITORNO(_compute_arc(radius_f, position, offset, rotations, full_circle));
+  RITORNO(_compute_arc
+          (radius_f, position, offset, rotations, clockwise, full_circle));
 
   // Note, arc soft limits are not tested here
 

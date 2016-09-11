@@ -32,18 +32,11 @@
 #include "machine.h"
 #include "switch.h"
 #include "gcode_parser.h"
-#include "util.h"
 #include "report.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
 #include "plan/state.h"
-
-#include <avr/pgmspace.h>
-
-#include <stdbool.h>
-#include <math.h>
-#include <stdio.h>
 
 
 typedef void (*homing_func_t)(int8_t axis);
@@ -90,10 +83,10 @@ typedef struct {
   float max_clear_backoff;
 
   // state saved from gcode model
-  uint8_t saved_units;       // G20,G21 global setting
+  uint8_t saved_units;            // G20,G21 global setting
   uint8_t saved_coord_system;     // G54 - G59 setting
   uint8_t saved_distance_mode;    // G90,G91 global setting
-  uint8_t saved_feed_mode;   // G93,G94 global setting
+  uint8_t saved_feed_mode;        // G93,G94 global setting
   float saved_feed_rate;          // F setting
   float saved_jerk;               // saved and restored for each axis homed
 } homing_t;
@@ -142,22 +135,21 @@ static homing_t hm = {0};
  * When a homing cycle is initiated the homing state is set to HOMING_NOT_HOMED
  * When homing completes successfully this is set to HOMING_HOMED, otherwise it
  * remains HOMING_NOT_HOMED.
- */
-/* --- Some further details ---
  *
- * Note: When coding a cycle (like this one) you get to perform one queued
- * move per entry into the continuation, then you must exit.
+ * Notes:
  *
- * Another Note: When coding a cycle (like this one) you must wait until
- * the last move has actually been queued (or has finished) before declaring
- * the cycle to be done. Otherwise there is a nasty race condition
- * that will accept the next command before the position of
- * the final move has been recorded in the Gcode model. That's what the call
- * to mach_is_busy() is about.
+ *   1. When coding a cycle (like this one) you get to perform one queued
+ *      move per entry into the continuation, then you must exit.
+ *
+ *   2. When coding a cycle (like this one) you must wait until
+ *      the last move has actually been queued (or has finished) before
+ *      declaring the cycle to be done. Otherwise there is a nasty race
+ *      condition that will accept the next command before the position of
+ *      the final move has been recorded in the Gcode model.
  */
 
 
-/* Return next axis in sequence based on axis in arg
+/*** Return next axis in sequence based on axis in arg
  *
  * Accepts "axis" arg as the current axis; or -1 to retrieve the first axis
  * Returns next axis based on "axis" argument and if that axis is flagged for

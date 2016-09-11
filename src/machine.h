@@ -107,11 +107,8 @@ void mach_set_feed_rate(float feed_rate);
 void mach_set_feed_mode(feed_mode_t mode);
 void mach_set_path_mode(path_mode_t mode);
 
-// Machining Functions (4.3.6)
+// Machining Functions (4.3.6) see arc.h
 stat_t mach_feed(float target[], bool flags[]);
-stat_t mach_arc_feed(float target[], bool flags[], float offsets[],
-                     bool offset_f[], float radius, bool radius_f,
-                     float P, bool P_f, bool modal_g1_f, uint8_t motion_mode);
 stat_t mach_dwell(float seconds);
 
 // Spindle Functions (4.3.7) see spindle.h

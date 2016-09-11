@@ -66,12 +66,7 @@
 #include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
-#include "switch.h"
-#include "hardware.h"
-#include "util.h"
-#include "report.h"
 #include "homing.h"
-#include "gcode_state.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
@@ -79,11 +74,6 @@
 #include "plan/arc.h"
 #include "plan/line.h"
 #include "plan/state.h"
-
-#include <stdbool.h>
-#include <string.h>
-#include <math.h>
-#include <stdio.h>
 
 
 #define DISABLE_SOFT_LIMIT -1000000
@@ -678,11 +668,7 @@ void mach_resume_origin_offsets() {
 
 
 // Free Space Motion (4.3.4)
-
-/// G0 linear rapid
-stat_t mach_rapid(float values[], bool flags[]) {
-  mach.gm.motion_mode = MOTION_MODE_RAPID;
-
+static stat_t _feed(float values[], bool flags[]) {
   float target[AXES];
   mach_calc_model_target(target, values, flags);
 
@@ -691,11 +677,18 @@ stat_t mach_rapid(float values[], bool flags[]) {
   if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
-  mach_update_work_offsets();                         // update resolved offsets
+  mach_update_work_offsets();                 // update resolved offsets
   status = mp_aline(target, mach_get_line()); // send move to planner
   copy_vector(mach.position, target);         // update model position
 
   return status;
+}
+
+
+/// G0 linear rapid
+stat_t mach_rapid(float values[], bool flags[]) {
+  mach.gm.motion_mode = MOTION_MODE_RAPID;
+  return _feed(values, flags);
 }
 
 
@@ -776,20 +769,7 @@ stat_t mach_feed(float values[], bool flags[]) {
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   mach.gm.motion_mode = MOTION_MODE_FEED;
-
-  float target[AXES];
-  mach_calc_model_target(target, values, flags);
-
-  // test soft limits
-  stat_t status = mach_test_soft_limits(target);
-  if (status != STAT_OK) return ALARM(status);
-
-  // prep and plan the move
-  mach_update_work_offsets();                 // update resolved offsets
-  status = mp_aline(target, mach_get_line()); // send move to planner
-  copy_vector(mach.position, target);         // update model position
-
-  return status;
+  return _feed(values, flags);
 }
 
 

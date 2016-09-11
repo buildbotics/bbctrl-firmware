@@ -164,21 +164,20 @@ typedef enum {
 
 /* Gcode model
  *
- * - gm is the core Gcode model state. It keeps the internal gcode
+ * - mach.gm is the core Gcode model state. It keeps the internal gcode
  *     state model in normalized, canonical form.  All values are unit
  *     converted (to mm) and in the machine coordinate system
  *     (absolute coordinate system).  Gm is owned by the machine layer and
- *     should be accessed only through mach_ routines.
+ *     should be accessed only through mach_*() routines.
  *
- * - gn is used by the gcode parser and is re-initialized for
+ * - parser.gn is used by the gcode parser and is re-initialized for
  *     each gcode block.  It accepts data in the new gcode block in the
  *     formats present in the block (pre-normalized forms). During
  *     initialization some state elements are necessarily restored
  *     from gm.
  *
- * - gf is used by the gcode parser to hold flags for any data that has
- *     changed in gn during the parse.  parser.gf.target[]
- *     values are also used by the machine during set_target().
+ * - parser.gf is used by the gcode parser to hold flags for any data that has
+ *     changed in gn during the parse.
  */
 
 

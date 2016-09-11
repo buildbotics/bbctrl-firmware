@@ -28,7 +28,8 @@
 
 #pragma once
 
-#include <stdbool.h>
+#include "gcode_state.h"
+#include "status.h"
 
 
 #define ARC_SEGMENT_LENGTH      0.1 // mm
@@ -38,6 +39,10 @@
 #define MIN_ARC_SEGMENT_TIME    (MIN_ARC_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 
 
+stat_t mach_arc_feed(float target[], bool flags[], float offsets[],
+                     bool offset_f[], float radius, bool radius_f,
+                     float P, bool P_f, bool modal_g1_f,
+                     motion_mode_t motion_mode);
 void mach_arc_callback();
 bool mach_arc_active();
 void mach_abort_arc();
