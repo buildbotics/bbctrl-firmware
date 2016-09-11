@@ -45,7 +45,6 @@ typedef enum {
 // Callbacks
 struct mp_buffer_t;
 typedef stat_t (*buffer_cb_t)(struct mp_buffer_t *bf);
-typedef void (*mach_cb_t)(float[], float[]);
 
 
 typedef struct mp_buffer_t {      // See Planning Velocity Notes
@@ -59,8 +58,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   run_state_t run_state;          // run state machine sequence
   bool replannable;               // true if move can be re-planned
 
-  mach_cb_t mach_cb;              // callback to machine
-  float dwell;
+  float value;                    // used in dwell and other callbacks
 
   float target[AXES];             // XYZABC where the move should go
   float unit[AXES];               // unit vector for axis scaling & planning

@@ -102,12 +102,6 @@ stat_t mach_test_soft_limits(float target[]);
 
 // Initialization and termination (4.3.2)
 void machine_init();
-/// enter alarm state. returns same status code
-stat_t mach_alarm(const char *location, stat_t status);
-
-#define CM_ALARM(CODE) mach_alarm(STATUS_LOCATION, CODE)
-#define CM_ASSERT(COND) \
-  do {if (!(COND)) CM_ALARM(STAT_INTERNAL_ERROR);} while (0)
 
 // Representation (4.3.3)
 void mach_set_plane(plane_t plane);

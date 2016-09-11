@@ -62,7 +62,7 @@ static void _clear_buffer(mp_buffer_t *bf) {
 
 static void _push() {
   if (!mb.space) {
-    CM_ALARM(STAT_INTERNAL_ERROR);
+    ALARM(STAT_INTERNAL_ERROR);
     return;
   }
 
@@ -73,7 +73,7 @@ static void _push() {
 
 static void _pop() {
   if (mb.space == PLANNER_BUFFER_POOL_SIZE) {
-    CM_ALARM(STAT_INTERNAL_ERROR);
+    ALARM(STAT_INTERNAL_ERROR);
     return;
   }
 

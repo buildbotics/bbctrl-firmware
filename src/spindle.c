@@ -32,8 +32,6 @@
 #include "pwm_spindle.h"
 #include "huanyang.h"
 
-#include "plan/command.h"
-
 
 typedef enum {
   SPINDLE_TYPE_PWM,
@@ -64,6 +62,26 @@ void spindle_set(spindle_mode_t mode, float speed) {
   switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
+  }
+}
+
+
+void spindle_set_mode(spindle_mode_t mode) {
+  spindle.mode = mode;
+
+  switch (spindle.type) {
+  case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, spindle.speed); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, spindle.speed); break;
+  }
+}
+
+
+void spindle_set_speed(float speed) {
+  spindle.speed = speed;
+
+  switch (spindle.type) {
+  case SPINDLE_TYPE_PWM: pwm_spindle_set(spindle.mode, speed); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_set(spindle.mode, speed); break;
   }
 }
 

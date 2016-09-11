@@ -242,8 +242,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   // F case: Block is too short - run time < minimum segment time
   // Force block into a single segment body with limited velocities
   // Accept the entry velocity, limit the cruise, and go for the best exit
-  // velocity you can get given the delta_vmax (maximum velocity slew)
-  // supportable.
+  // velocity you can get given the delta_vmax (maximum velocity slew).
 
   float naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
@@ -256,8 +255,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     bf->head_length = 0;
     bf->tail_length = 0;
 
-    // We are violating the jerk value but since it's a single segment move we
-    // don't use it.
+    // Violating jerk but since it's a single segment move we don't use it.
     return;
   }
 
@@ -278,8 +276,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     bf->head_length = 0;
     bf->tail_length = 0;
 
-    // We are violating the jerk value but since it's a single segment move we
-    // don't use it.
+    // Violating jerk but since it's a single segment move we don't use it.
     return;
   }
 

@@ -60,6 +60,9 @@ stat_t status_message_P(const char *location, status_level_t level,
                         stat_t code, const char *msg, ...);
 void status_help();
 
+/// Enter alarm state. returns same status code
+stat_t status_alarm(const char *location, stat_t status);
+
 #define TO_STRING(x) _TO_STRING(x)
 #define _TO_STRING(x) #x
 
@@ -79,3 +82,6 @@ void status_help();
 
 #define STATUS_ERROR(CODE, MSG, ...)                            \
   STATUS_MESSAGE(STAT_LEVEL_ERROR, CODE, MSG, ##__VA_ARGS__)
+
+#define ALARM(CODE) status_alarm(STATUS_LOCATION, CODE)
+#define ASSERT(COND) do {if (!(COND)) ALARM(STAT_INTERNAL_ERROR);} while (0)

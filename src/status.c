@@ -26,6 +26,7 @@
 \******************************************************************************/
 
 #include "status.h"
+#include "estop.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -106,4 +107,12 @@ void status_help() {
   putchar('\n');
   putchar('}');
   putchar('\n');
+}
+
+
+/// Alarm state; send an exception report and stop processing input
+stat_t status_alarm(const char *location, stat_t code) {
+  status_message_P(location, STAT_LEVEL_ERROR, code, 0);
+  estop_trigger(ESTOP_ALARM);
+  return code;
 }

@@ -33,7 +33,6 @@
 #include "machine.h"
 #include "plan/runtime.h"
 #include "plan/exec.h"
-#include "plan/command.h"
 #include "motor.h"
 #include "hardware.h"
 #include "estop.h"
@@ -48,7 +47,6 @@ typedef enum {
   MOVE_TYPE_NULL,          // null move - does a no-op
   MOVE_TYPE_ALINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
-  MOVE_TYPE_COMMAND,       // general command
 } move_type_t;
 
 
@@ -63,9 +61,6 @@ typedef struct {
   move_type_t move_type;
   uint16_t seg_period;
   uint32_t prep_dwell;
-  mach_cb_t mach_cb; // used for command moves
-  float values[AXES];
-  float flags[AXES];
 } stepper_t;
 
 
@@ -105,10 +100,10 @@ ISR(ADCB_CH0_vect) {
     case STAT_EAGAIN: continue; // No command executed, try again
 
     case STAT_OK:               // Move executed
-      if (!st.move_ready) CM_ALARM(STAT_EXPECTED_MOVE); // No move was queued
+      if (!st.move_ready) ALARM(STAT_EXPECTED_MOVE); // No move was queued
       break;
 
-    default: CM_ALARM(status); break;
+    default: ALARM(status); break;
     }
 
     break;
@@ -167,9 +162,7 @@ ISR(STEP_TIMER_ISR) {
 
     // Start dwell
     st.dwell = st.prep_dwell;
-
-  } else if (st.move_type == MOVE_TYPE_COMMAND)
-    st.mach_cb(st.values, st.flags); // Execute command
+  }
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
@@ -202,10 +195,10 @@ ISR(STEP_TIMER_ISR) {
  */
 stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready) return CM_ALARM(STAT_INTERNAL_ERROR);
+  if (st.move_ready) return ALARM(STAT_INTERNAL_ERROR);
   if (isinf(seg_time))
-    return CM_ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  if (isnan(seg_time)) return CM_ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
+    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
+  if (isnan(seg_time)) return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
   if (seg_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
 
   // Setup segment parameters
@@ -223,20 +216,9 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
 }
 
 
-/// Stage command to execution
-void st_prep_command(mach_cb_t mach_cb, float values[], float flags[]) {
-  if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
-  st.move_type = MOVE_TYPE_COMMAND;
-  st.mach_cb = mach_cb;
-  copy_vector(st.values, values);
-  copy_vector(st.flags, flags);
-  st.move_ready = true; // signal prep buffer ready
-}
-
-
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  if (st.move_ready) CM_ALARM(STAT_INTERNAL_ERROR);
+  if (st.move_ready) ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_DWELL;
   st.seg_period = STEP_TIMER_FREQ * 0.001; // 1 ms
   st.prep_dwell = seconds * 1000; // convert to ms

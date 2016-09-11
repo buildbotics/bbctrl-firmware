@@ -44,16 +44,14 @@
  *   - Call the mach_xxx_xxx() function which will do any input validation and
  *     return an error if it detects one.
  *
- *   - The mach_ function calls mp_command_queue().  Arguments are a callback to
+ *   - The mach_ function calls mp_queue_push().  Arguments are a callback to
  *     the _exec_...() function, which is the runtime execution routine, and any
- *     arguments that are needed by the runtime. See typedef for *exec in
- *     planner.h for details
+ *     arguments that are needed by the runtime.
  *
- *   - mp_command_queue() stores the callback and the args in a planner buffer.
+ *   - mp_queue_push() stores the callback and the args in a planner buffer.
  *
  *   - When planner execution reaches the buffer it executes the callback w/ the
- *     args.  Take careful note that the callback executes under an interrupt,
- *     so beware of variables that may need to be volatile.
+ *     args.  Take careful note that the callback executes under an interrupt.
  *
  * Note: The synchronous command execution mechanism uses 2 vectors in the bf
  * buffer to store and return values for the callback.  It's obvious, but
@@ -71,14 +69,12 @@
 #include "switch.h"
 #include "hardware.h"
 #include "util.h"
-#include "estop.h"
 #include "report.h"
 #include "homing.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
 #include "plan/dwell.h"
-#include "plan/command.h"
 #include "plan/arc.h"
 #include "plan/line.h"
 #include "plan/state.h"
@@ -212,32 +208,32 @@ void mach_set_motion_mode(motion_mode_t motion_mode) {
 
 
 /// Spindle speed callback from planner queue
-static void _exec_spindle_speed(float *value, float *flag) {
-  float speed = value[0];
-  mach.gm.spindle_speed = speed;
-  spindle_set(mach.gm.spindle_mode, speed);
+static stat_t _exec_spindle_speed(mp_buffer_t *bf) {
+  spindle_set_speed(bf->value);
+  return STAT_NOOP; // No move queued
 }
 
 
 /// Queue the S parameter to the planner buffer
 void mach_set_spindle_speed(float speed) {
-  float value[AXES] = {speed};
-  mp_command_queue(_exec_spindle_speed, value, value);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->value = speed;
+  mp_queue_push(_exec_spindle_speed, mach_get_line());
 }
 
 
 /// execute the spindle command (called from planner)
-static void _exec_spindle_mode(float *value, float *flag) {
-  spindle_mode_t mode = value[0];
-  mach.gm.spindle_mode = mode;
-  spindle_set(mode, mach.gm.spindle_speed);
+static stat_t _exec_spindle_mode(mp_buffer_t *bf) {
+  spindle_set_mode(bf->value);
+  return STAT_NOOP; // No move queued
 }
 
 
 /// Queue the spindle command to the planner buffer
 void mach_set_spindle_mode(spindle_mode_t mode) {
-  float value[AXES] = {mode};
-  mp_command_queue(_exec_spindle_mode, value, value);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->value = mode;
+  mp_queue_push(_exec_spindle_mode, mach_get_line());
 }
 
 
@@ -327,7 +323,7 @@ void mach_update_work_offsets() {
   if (!same) {
     mp_buffer_t *bf = mp_queue_get_tail();
     copy_vector(bf->target, work_offset);
-    mp_queue_push(_exec_update_work_offsets, mach.gm.line);
+    mp_queue_push(_exec_update_work_offsets, mach_get_line());
   }
 }
 
@@ -479,8 +475,6 @@ static float _calc_ABC(uint8_t axis, float target[], float flag[]) {
 
 
 void mach_set_model_target(float target[], float flag[]) {
-  float tmp = 0;
-
   // process XYZABC for lower modes
   for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
     if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
@@ -500,7 +494,7 @@ void mach_set_model_target(float target[], float flag[]) {
     if (fp_FALSE(flag[axis]) || axes[axis].axis_mode == AXIS_DISABLED)
       continue; // skip axis if not flagged for update or its disabled
 
-    tmp = _calc_ABC(axis, target, flag);
+    float tmp = _calc_ABC(axis, target, flag);
 
     if (mach.gm.distance_mode == ABSOLUTE_MODE)
       // sacidu93's fix to Issue #22
@@ -569,14 +563,6 @@ void machine_init() {
 }
 
 
-/// Alarm state; send an exception report and stop processing input
-stat_t mach_alarm(const char *location, stat_t code) {
-  status_message_P(location, STAT_LEVEL_ERROR, code, 0);
-  estop_trigger(ESTOP_ALARM);
-  return code;
-}
-
-
 // Representation (4.3.3)
 //
 // Affect the Gcode model only (asynchronous)
@@ -633,7 +619,7 @@ void mach_set_coord_system(coord_system_t coord_system) {
  * the planner and that all motion has stopped.
  */
 void mach_set_axis_position(unsigned axis, float position) {
-  //if (!mp_is_quiescent()) CM_ALARM(STAT_MACH_NOT_QUIESCENT);
+  //if (!mp_is_quiescent()) ALARM(STAT_MACH_NOT_QUIESCENT);
   if (AXES <= axis) return;
 
   mach.position[axis] = position;
@@ -665,14 +651,19 @@ stat_t mach_zero_axis(unsigned axis) {
 
 
 // G28.3 functions and support
-static void _exec_absolute_origin(float *value, float *flag) {
+static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
+  const float *origin = bf->target;
+  const float *flags = bf->unit;
+
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis])) {
-      mp_runtime_set_axis_position(axis, value[axis]);
+    if (fp_TRUE(flags[axis])) {
+      mp_runtime_set_axis_position(axis, origin[axis]);
       mach_set_homed(axis, true);  // G28.3 is not considered homed until here
     }
 
   mp_runtime_set_steps_from_position();
+
+  return STAT_NOOP; // No move queued
 }
 
 
@@ -680,7 +671,7 @@ static void _exec_absolute_origin(float *value, float *flag) {
  *
  * Takes a vector of origins (presumably 0's, but not necessarily) and
  * applies them to all axes where the corresponding position in the
- * flag vector is true (1).
+ * flags vector is true (1).
  *
  * This is a 2 step process.  The model and planner contexts are set
  * immediately, the runtime command is queued and synchronized with
@@ -688,18 +679,21 @@ static void _exec_absolute_origin(float *value, float *flag) {
  * recording done by the encoders.  At that point any axis that is set
  * is also marked as homed.
  */
-void mach_set_absolute_origin(float origin[], float flag[]) {
+void mach_set_absolute_origin(float origin[], float flags[]) {
   float value[AXES];
 
   for (int axis = 0; axis < AXES; axis++)
-    if (fp_TRUE(flag[axis])) {
+    if (fp_TRUE(flags[axis])) {
       value[axis] = TO_MILLIMETERS(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
       mach.gm.target[axis] = value[axis];          // reset model target
       mp_set_axis_position(axis, value[axis]);     // set mm position
     }
 
-  mp_command_queue(_exec_absolute_origin, value, flag);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  copy_vector(bf->target, origin);
+  copy_vector(bf->unit, flags);
+  mp_queue_push(_exec_absolute_origin, mach_get_line());
 }
 
 
@@ -747,7 +741,7 @@ stat_t mach_rapid(float target[], float flags[]) {
 
   // test soft limits
   stat_t status = mach_test_soft_limits(mach.gm.target);
-  if (status != STAT_OK) return CM_ALARM(status);
+  if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
   mach_update_work_offsets();      // update fully resolved offsets to state
@@ -839,7 +833,7 @@ stat_t mach_feed(float target[], float flags[]) {
 
   // test soft limits
   stat_t status = mach_test_soft_limits(mach.gm.target);
-  if (status != STAT_OK) return CM_ALARM(status);
+  if (status != STAT_OK) return ALARM(status);
 
   // prep and plan the move
   mach_update_work_offsets();      // update fully resolved offsets to state
@@ -863,28 +857,32 @@ void mach_change_tool(uint8_t tool) {mach.gm.tool = tool;}
 
 
 // Miscellaneous Functions (4.3.9)
-static void _exec_mist_coolant_control(float *value, float *flag) {
-  coolant_set_mist(value[0]);
+static stat_t _exec_mist_coolant(mp_buffer_t *bf) {
+  coolant_set_mist(bf->value);
+  return STAT_NOOP; // No move queued
 }
 
 
 /// M7
 void mach_mist_coolant_control(bool mist_coolant) {
-  float value[AXES] = {mist_coolant};
-  mp_command_queue(_exec_mist_coolant_control, value, value);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->value = mist_coolant;
+  mp_queue_push(_exec_mist_coolant, mach_get_line());
 }
 
 
-static void _exec_flood_coolant_control(float *value, float *flag) {
-  coolant_set_flood(value[0]);
-  if (!value[0]) coolant_set_mist(false); // M9 special function
+static stat_t _exec_flood_coolant(mp_buffer_t *bf) {
+  coolant_set_flood(bf->value);
+  if (!bf->value) coolant_set_mist(false); // M9 special function
+  return STAT_NOOP; // No move queued
 }
 
 
 /// M8, M9
 void mach_flood_coolant_control(bool flood_coolant) {
-  float value[AXES] = {flood_coolant};
-  mp_command_queue(_exec_flood_coolant_control, value, value);
+  mp_buffer_t *bf = mp_queue_get_tail();
+  bf->value = flood_coolant;
+  mp_queue_push(_exec_flood_coolant, mach_get_line());
 }
 
 

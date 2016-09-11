@@ -39,7 +39,7 @@
 
 /// Dwell execution
 static stat_t _exec_dwell(mp_buffer_t *bf) {
-  st_prep_dwell(bf->dwell); // in seconds
+  st_prep_dwell(bf->value); // in seconds
   return STAT_OK; // Done
 }
 
@@ -47,7 +47,7 @@ static stat_t _exec_dwell(mp_buffer_t *bf) {
 /// Queue a dwell
 stat_t mp_dwell(float seconds, int32_t line) {
   mp_buffer_t *bf = mp_queue_get_tail();
-  bf->dwell = seconds; // in seconds, not minutes
+  bf->value = seconds; // in seconds, not minutes
   mp_queue_push(_exec_dwell, line);
 
   return STAT_OK;

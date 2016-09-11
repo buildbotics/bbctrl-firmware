@@ -51,22 +51,22 @@
  * (Sungeun K. Jeon's) explanation of what's going on:
  *
  * "First let's assume that at a junction we only look a centripetal
- * acceleration to simply things. At a junction of two lines, let's place a
- * circle such that both lines are tangent to the circle. The circular segment
- * joining the lines represents the path for constant centripetal
- * acceleration. This creates a deviation from the path (let's call this delta),
+ * acceleration to simplify things.  At a junction of two lines, let's place a
+ * circle such that both lines are tangent to the circle.  The circular segment
+ * joining the lines represents the path for constant centripetal acceleration.
+ * This creates a deviation from the path (let's call this delta),
  * which is the distance from the junction to the edge of the circular
- * segment. Delta needs to be defined, so let's replace the term max_jerk (see
- * note 1) with max_junction_deviation, or "delta". This indirectly sets the
+ * segment.  Delta needs to be defined, so let's replace the term max_jerk (see
+ * note 1) with max_junction_deviation, or "delta".  This indirectly sets the
  * radius of the circle, and hence limits the velocity by the centripetal
- * acceleration. Think of the this as widening the race track. If a race car is
+ * acceleration.  Think of the this as widening the race track. If a race car is
  * driving on a track only as wide as a car, it'll have to slow down a lot to
- * turn corners. If we widen the track a bit, the car can start to use the track
- * to go into the turn. The wider it is, the faster through the corner it can
- * go.
+ * turn corners.  If we widen the track a bit, the car can start to use the
+ * track to go into the turn.  The wider it is, the faster through the corner
+ * it can go.
  *
- * (Note 1: "max_jerk" refers to the old grbl/marlin max_jerk" approximation
- * term, not the TinyG jerk terms)
+ * Note 1: "max_jerk" refers to the old grbl/marlin "max_jerk" approximation
+ * term, not the TinyG jerk terms.
  *
  * If you do the geometry in terms of the known variables, you get:
  *
@@ -78,7 +78,7 @@
  *
  * Theta is the angle between line segments given by:
  *
- *     cos(theta) = dot(a, b) / (norm(a) * norm(b)).
+ *     cos(theta) = dot(a, b) / (norm(a) * norm(b))
  *
  * Most of these calculations are already done in the planner.
  * To remove the acos() and sin() computations, use the trig half
@@ -86,10 +86,12 @@
  *
  *     sin(theta/2) = +/-sqrt((1 - cos(theta)) / 2)
  *
- * For our applications, this should always be positive. Now just plug the
- * equations into the centripetal acceleration equation: v_c =
- * sqrt(a_max*R). You'll see that there are only two sqrt computations and no
- * sine/cosines."
+ * For our applications, this should always be positive.  Now just plug the
+ * equations into the centripetal acceleration equation:
+ *
+ *    v_c = sqrt(a_max * R)
+ *
+ * You'll see that there are only two sqrt computations and no sine/cosines.
  *
  * How to compute the radius using brute-force trig:
  *
@@ -97,17 +99,17 @@
  *    float radius = delta * sin(theta/2) / (1 - sin(theta/2));
  *
  * This version extends Chamnit's algorithm by computing a value for delta that
- * takes the contributions of the individual axes in the move into account. This
- * allows the control radius to vary by axis. This is necessary to support axes
- * that have different dynamics; such as a Z axis that doesn't move as fast as X
- * and Y (such as a screw driven Z axis on machine with a belt driven XY - like
- * a Shapeoko), or rotary axes ABC that have completely different dynamics than
- * their linear counterparts.
+ * takes the contributions of the individual axes in the move into account.
+ * This allows the control radius to vary by axis.  This is necessary to
+ * support axes that have different dynamics; such as a Z axis that doesn't
+ * move as fast as X and Y (such as a screw driven Z axis on machine with a belt
+ * driven XY - like a Shapeoko), or rotary axes ABC that have completely
+ * different dynamics than their linear counterparts.
  *
  * The function takes the absolute values of the sum of the unit vector
  * components as a measure of contribution to the move, then scales the delta
  * values from the non-zero axes into a composite delta to be used for the
- * move. Shown for an XY vector:
+ * move.  Shown for an XY vector:
  *
  *     U[i]    Unit sum of i'th axis    fabs(unit_a[i]) + fabs(unit_b[i])
  *     Usum    Length of sums           Ux + Uy

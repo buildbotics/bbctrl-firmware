@@ -34,6 +34,7 @@
 #include "stepper.h"
 #include "tmc2660.h"
 #include "estop.h"
+#include "gcode_state.h"
 #include "util.h"
 
 #include "plan/runtime.h"
@@ -317,7 +318,7 @@ void motor_error_callback(int motor, motor_flags_t errors) {
   motors[motor].flags |= errors;
   report_request();
 
-  if (motor_error(motor)) CM_ALARM(STAT_MOTOR_ERROR);
+  if (motor_error(motor)) ALARM(STAT_MOTOR_ERROR);
 }
 
 
@@ -439,7 +440,7 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     uint32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
     float steps = (float)clocks / m->timer_period;
     float diff = fabs(fabs(travel_steps) - steps);
-    if (10 < diff) CM_ALARM(STAT_STEP_CHECK_FAILED);
+    if (10 < diff) ALARM(STAT_STEP_CHECK_FAILED);
   }
 
   // Setup the direction, compensating for polarity.
