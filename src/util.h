@@ -34,6 +34,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 // Vector utilities
@@ -53,15 +54,14 @@ inline float max4(float a, float b, float c, float d)
 
 // Floating-point utilities
 #define EPSILON 0.00001 // allowable rounding error for floats
-#define fp_EQ(a, b) (fabs(a - b) < EPSILON)
-#define fp_NE(a, b) (fabs(a - b) > EPSILON)
-#define fp_ZERO(a) (fabs(a) < EPSILON)
-#define fp_NOT_ZERO(a) (fabs(a) > EPSILON)
-#define fp_FALSE(a) fp_ZERO(a)
-#define fp_TRUE(a) fp_NOT_ZERO(a)
+inline bool fp_EQ(float a, float b) {return fabs(a - b) < EPSILON;}
+inline bool fp_NE(float a, float b) {return fabs(a - b) > EPSILON;}
+inline bool fp_ZERO(float a) {return fabs(a) < EPSILON;}
+inline bool fp_NOT_ZERO(float a) {return !fp_ZERO(a);}
+inline bool fp_FALSE(float a) {return fp_ZERO(a);}
+inline bool fp_TRUE(float a) {return !fp_ZERO(a);}
 
 // Constants
 #define MM_PER_INCH 25.4
 #define INCHES_PER_MM (1 / 25.4)
 #define MICROSECONDS_PER_MINUTE 60000000.0
-#define usec(a) ((a) * MICROSECONDS_PER_MINUTE)
