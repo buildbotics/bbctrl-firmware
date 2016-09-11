@@ -261,7 +261,8 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   // B" case: Block is short, but fits into a single body segment
   if (naive_move_time <= NOM_SEGMENT_TIME) {
-    bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
+    mp_buffer_t *bp = mp_buffer_prev_plan(bf);
+    bf->entry_velocity = bp ? bp->exit_velocity : 0;
 
     if (fp_NOT_ZERO(bf->entry_velocity)) {
       bf->cruise_velocity = bf->entry_velocity;
@@ -495,8 +496,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  *
  * [1] Whether or not a block is planned is controlled by the bf->replannable
  *     setting.  Replan flags are checked during the backwards pass.  They prune
- *     the replan list to include only the the latest blocks that require
- *     planning.
+ *     the replan list to include only the latest blocks that require planning.
  *
  *     In normal operation, the first block (currently running block) is not
  *     replanned, but may be for feedholds and feed overrides.  In these cases,
@@ -507,40 +507,52 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  *     optimizations.
  */
 void mp_plan_block_list(mp_buffer_t *bf) {
+  ASSERT(bf->plan); // Must start with a plannable buffer
+
   mp_buffer_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
+  mp_buffer_t *next = bp;
   while ((bp = mp_buffer_prev(bp)) != bf) {
+    if (!bp->plan && bp->run_state != MOVE_OFF) continue;
     if (!bp->replannable) break;
     bp->braking_velocity =
-      min(mp_buffer_next(bp)->entry_vmax,
-          mp_buffer_next(bp)->braking_velocity) + bp->delta_vmax;
+      min(next->entry_vmax, next->braking_velocity) + bp->delta_vmax;
+    next = bp;
   }
 
   // Forward planning pass.  Recompute trapezoids from the first block to bf.
+  mp_buffer_t *prev = bp;
   while ((bp = mp_buffer_next(bp)) != bf) {
-    if (mp_buffer_prev(bp) == bf)
-      bp->entry_velocity = bp->entry_vmax; // first block
-    else bp->entry_velocity = mp_buffer_prev(bp)->exit_velocity; // other blocks
+    if (!bp->plan) continue;
+
+    if (prev == bf) bp->entry_velocity = bp->entry_vmax; // first block
+    else bp->entry_velocity = prev->exit_velocity;       // other blocks
+
+    // Note, next cannot be null.  Since bp != bf, bf is yet to come.
+    mp_buffer_t *next = mp_buffer_next_plan(bp);
+    ASSERT(next);
 
     bp->cruise_velocity = bp->cruise_vmax;
-    bp->exit_velocity = min4(bp->exit_vmax, mp_buffer_next(bp)->entry_vmax,
-                             mp_buffer_next(bp)->braking_velocity,
+    bp->exit_velocity = min4(bp->exit_vmax, next->entry_vmax,
+                             next->braking_velocity,
                              bp->entry_velocity + bp->delta_vmax);
 
     mp_calculate_trapezoid(bp);
 
     // Test for optimally planned trapezoids by checking exit conditions
     if  ((fp_EQ(bp->exit_velocity, bp->exit_vmax) ||
-          fp_EQ(bp->exit_velocity, mp_buffer_next(bp)->entry_vmax)) ||
-         (!mp_buffer_prev(bp)->replannable &&
+          fp_EQ(bp->exit_velocity, next->entry_vmax)) ||
+         (!prev->replannable &&
           fp_EQ(bp->exit_velocity, (bp->entry_velocity + bp->delta_vmax))))
       bp->replannable = false;
+
+    prev = bp;
   }
 
   // Finish last block
-  bp->entry_velocity = mp_buffer_prev(bp)->exit_velocity;
+  bp->entry_velocity = prev->exit_velocity;
   bp->cruise_velocity = bp->cruise_vmax;
   bp->exit_velocity = 0;
 
@@ -554,12 +566,18 @@ void mp_replan_blocks() {
 
   mp_buffer_t *bp = bf;
 
+  // Skip leading non-plannable blocks
+  while (!bp->plan) {
+    bp = mp_buffer_next(bp);
+    if (bp->run_state == MOVE_OFF || bp == bf) return; // Nothing to plan
+  }
+
   // Mark all blocks replanable
   while (true) {
     bp->replannable = true;
-    if (mp_buffer_next(bp)->run_state == MOVE_OFF || mp_buffer_next(bp) == bf)
-      break;
-    bp = mp_buffer_next(bp);
+    mp_buffer_t *next = mp_buffer_next(bp);
+    if (next->run_state == MOVE_OFF || next == bf) break;
+    bp = next;
   }
 
   // Plan blocks

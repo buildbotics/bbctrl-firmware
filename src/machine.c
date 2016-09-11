@@ -151,7 +151,7 @@ static stat_t _exec_spindle_speed(mp_buffer_t *bf) {
 void mach_set_spindle_speed(float speed) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = speed * mach_get_spindle_override();
-  mp_queue_push(_exec_spindle_speed, mach_get_line());
+  mp_queue_push(_exec_spindle_speed, false, mach_get_line());
 }
 
 
@@ -166,7 +166,7 @@ static stat_t _exec_spindle_mode(mp_buffer_t *bf) {
 void mach_set_spindle_mode(spindle_mode_t mode) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mode;
-  mp_queue_push(_exec_spindle_mode, mach_get_line());
+  mp_queue_push(_exec_spindle_mode, false, mach_get_line());
 }
 
 
@@ -253,7 +253,7 @@ void mach_update_work_offsets() {
   if (!same) {
     mp_buffer_t *bf = mp_queue_get_tail();
     copy_vector(bf->target, work_offset);
-    mp_queue_push(_exec_update_work_offsets, mach_get_line());
+    mp_queue_push(_exec_update_work_offsets, false, mach_get_line());
   }
 }
 
@@ -631,7 +631,7 @@ void mach_set_absolute_origin(float origin[], bool flags[]) {
   mp_buffer_t *bf = mp_queue_get_tail();
   copy_vector(bf->target, origin);
   copy_vector(bf->unit, flags);
-  mp_queue_push(_exec_absolute_origin, mach_get_line());
+  mp_queue_push(_exec_absolute_origin, false, mach_get_line());
 }
 
 
@@ -794,7 +794,7 @@ static stat_t _exec_change_tool(mp_buffer_t *bf) {
 void mach_change_tool(bool x) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mach.gm.tool;
-  mp_queue_push(_exec_change_tool, mach_get_line());
+  mp_queue_push(_exec_change_tool, false, mach_get_line());
 }
 
 
@@ -809,7 +809,7 @@ static stat_t _exec_mist_coolant(mp_buffer_t *bf) {
 void mach_mist_coolant_control(bool mist_coolant) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mist_coolant;
-  mp_queue_push(_exec_mist_coolant, mach_get_line());
+  mp_queue_push(_exec_mist_coolant, false, mach_get_line());
 }
 
 
@@ -824,7 +824,7 @@ static stat_t _exec_flood_coolant(mp_buffer_t *bf) {
 void mach_flood_coolant_control(bool flood_coolant) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = flood_coolant;
-  mp_queue_push(_exec_flood_coolant, mach_get_line());
+  mp_queue_push(_exec_flood_coolant, false, mach_get_line());
 }
 
 
@@ -893,7 +893,7 @@ static stat_t _exec_program_stop(mp_buffer_t *bf) {
 
 /// M0 Queue a program stop
 void mach_program_stop() {
-  mp_queue_push(_exec_program_stop, mach_get_line());
+  mp_queue_push(_exec_program_stop, true, mach_get_line());
 }
 
 

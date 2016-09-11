@@ -127,7 +127,7 @@ uint8_t command_jog(int argc, char *argv[]) {
 
   if (!mp_jog_busy()) {
     mp_set_cycle(CYCLE_JOGGING);
-    mp_queue_push(_exec_jog, -1);
+    mp_queue_push(_exec_jog, false, -1);
   }
 
   return STAT_OK;

@@ -56,6 +56,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   buffer_cb_t cb;                 // callback to buffer exec function
 
   run_state_t run_state;          // run state machine sequence
+  bool plan;                      // if false, ignored by the planner
   bool replannable;               // true if move can be re-planned
 
   float value;                    // used in dwell and other callbacks
@@ -93,10 +94,12 @@ uint8_t mp_queue_get_fill();
 bool mp_queue_is_empty();
 
 mp_buffer_t *mp_queue_get_tail();
-void mp_queue_push(buffer_cb_t func, uint32_t line);
+void mp_queue_push(buffer_cb_t func, bool plan, uint32_t line);
 
 mp_buffer_t *mp_queue_get_head();
 void mp_queue_pop();
 
 static inline mp_buffer_t *mp_buffer_prev(mp_buffer_t *bp) {return bp->prev;}
 static inline mp_buffer_t *mp_buffer_next(mp_buffer_t *bp) {return bp->next;}
+mp_buffer_t *mp_buffer_prev_plan(mp_buffer_t *bp);
+mp_buffer_t *mp_buffer_next_plan(mp_buffer_t *bp);
