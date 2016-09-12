@@ -173,11 +173,13 @@ static stat_t _get_next_gcode_word(char **pstr, char *letter, float *value) {
 static uint8_t _point(float value) {return value * 10 - trunc(value) * 10;}
 
 
+#if 0
 static bool _axis_changed() {
   for (int axis = 0; axis < AXES; axis++)
     if (parser.gf.target[axis]) return true;
   return false;
 }
+#endif
 
 
 /// Check for some gross Gcode block semantic violations
@@ -194,9 +196,11 @@ static stat_t _validate_gcode_block() {
   if (modals[MODAL_GROUP_G0] && modals[MODAL_GROUP_G1])
     return STAT_MODAL_GROUP_VIOLATION;
 
+#if 0 // This check fails for arcs which may have offsets but no axis word
   // look for commands that require an axis word to be present
   if (modals[MODAL_GROUP_G0] || modals[MODAL_GROUP_G1])
     if (!_axis_changed()) return STAT_GCODE_AXIS_IS_MISSING;
+#endif
 
   return STAT_OK;
 }
