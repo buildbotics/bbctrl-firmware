@@ -30,6 +30,10 @@ script#control-view-template(type="text/x-template")
         td {{get_state()}}
         td
       tr
+        th Reason
+        td {{state.pr}}
+        td
+      tr
         th Feed
         td {{state.f || 0}}
         td mm/min
@@ -47,6 +51,10 @@ script#control-view-template(type="text/x-template")
         th Velocity
         td {{state.v || 0 | fixed 0}}
         td mm/min
+      tr
+        th Line
+        td {{state.ln || ''}}
+        td
       tr
         th Tool
         td {{state.t || 0}}
@@ -125,7 +133,7 @@ script#control-view-template(type="text/x-template")
             option(v-for="file in files", :value="file") {{file}}
 
         .gcode(:class="{placeholder: !gcode}")
-          {{gcode || 'GCode displays here.'}}
+          {{{gcode || 'GCode displays here.'}}}
 
       section#content2.tab-content
         .mdi.pure-form

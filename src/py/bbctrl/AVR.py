@@ -107,7 +107,9 @@ class AVR():
                     self.i2c_bus = smbus.SMBus(self.ctrl.args.avr_port)
                     continue
 
-                else: raise e
+                else:
+                    log.error('I2C communication failed: %s' % e)
+                    return
 
 
     def report(self): self._i2c_command(I2C_REPORT)
@@ -170,6 +172,8 @@ class AVR():
         except Exception as e:
             log.warning('%s: %s', e, data)
 
+        update = {}
+
         # Parse incoming serial data into lines
         while True:
             i = self.in_buf.find('\n')
@@ -183,22 +187,25 @@ class AVR():
 
                 except Exception as e:
                     log.error('%s, data: %s', e, line)
-                    return
+                    continue
 
-                if 'firmware' in msg:
-                    log.error('AVR rebooted')
-                    self.stop();
-                    self.report()
-
-                if 'x' in msg and msg['x'] == 'ESTOPPED':
-                    self._stop_sending_gcode()
-
-                self.vars.update(msg)
-                self.ctrl.lcd.update(msg)
-                self.ctrl.web.broadcast(msg)
-
+                update.update(msg)
                 log.debug(line)
 
+                if 'msg' in update: break
+
+        if update:
+            if 'firmware' in msg:
+                log.error('AVR rebooted')
+                self.stop();
+                self.report()
+
+            if 'x' in msg and msg['x'] == 'ESTOPPED':
+                self._stop_sending_gcode()
+
+            self.vars.update(update)
+            self.ctrl.lcd.update(update)
+            self.ctrl.web.broadcast(update)
 
 
     def queue_command(self, cmd):

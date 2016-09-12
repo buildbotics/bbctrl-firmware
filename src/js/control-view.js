@@ -33,6 +33,11 @@ module.exports = {
   },
 
 
+  watch: {
+    'state.ln': function () {this.update_gcode_line();}
+  },
+
+
   events: {
     // TODO These should all be implemented via the API
     jog: function (axis, move) {this.send('g91 g0' + axis + move)}
@@ -61,6 +66,23 @@ module.exports = {
       var axis = axis.toLowerCase();
       return axis in this.config.axes &&
         this.config.axes[axis].mode != 'disabled';
+    },
+
+
+    update_gcode_line: function () {
+      if (typeof this.last_line != 'undefined') {
+        $('#gcode-line-' + this.last_line).removeClass('highlight');
+        this.last_line = undefined;
+      }
+
+      if (0 <= this.state.ln) {
+        var line = this.state.ln - 1;
+        $('#gcode-line-' + line)
+          .addClass('highlight')[0]
+          .scrollIntoView({behavior: 'smooth'});
+
+        this.last_line = line;
+      }
     },
 
 
@@ -119,8 +141,20 @@ module.exports = {
 
       api.get('file/' + file)
         .done(function (data) {
-          this.gcode = data;
+          var lines = data.split(/\r?\n/);
+          var html = '<ul>';
+
+          for (var i = 0; i < lines.length; i++)
+            // TODO escape HTML chars in lines
+            html += '<li id="gcode-line-' + i + '">' +
+            '<span>' + (i + 1) + '</span>' + lines[i] + '</li>';
+
+          html += '</ul>';
+
+          this.gcode = html;
           this.last_file = file;
+
+          Vue.nextTick(this.update_gcode_line);
         }.bind(this));
     },
 
