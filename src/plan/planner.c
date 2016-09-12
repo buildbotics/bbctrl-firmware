@@ -64,6 +64,7 @@
 #include "stepper.h"
 #include "motor.h"
 #include "state.h"
+#include "usart.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -100,8 +101,7 @@ void mp_set_position(const float position[]) {
 void mp_flush_planner() {mp_queue_init();}
 
 
-/* Performs axis mapping & conversion of length units to steps (and deals
- * with inhibited axes)
+/*** Performs axis mapping & conversion of length units to steps.
  *
  * The reason steps are returned as floats (as opposed to, say,
  * uint32_t) is to accommodate fractional steps. stepper.c deals
@@ -118,11 +118,9 @@ void mp_kinematics(const float travel[], float steps[]) {
   // Most of the conversion math has already been done during config in
   // steps_per_unit() which takes axis travel, step angle and microsteps into
   // account.
-  for (int motor = 0; motor < MOTORS; motor++) {
-    int axis = motor_get_axis(motor);
-    if (axes[axis].axis_mode == AXIS_INHIBITED) steps[motor] = 0;
-    else steps[motor] = travel[axis] * motor_get_steps_per_unit(motor);
-  }
+  for (int motor = 0; motor < MOTORS; motor++)
+    steps[motor] =
+      travel[motor_get_axis(motor)] * motor_get_steps_per_unit(motor);
 }
 
 
@@ -238,7 +236,9 @@ void mp_kinematics(const float travel[], float steps[]) {
  */
 void mp_calculate_trapezoid(mp_buffer_t *bf) {
   // RULE #1 of mp_calculate_trapezoid(): Don't change bf->length
-  //
+
+  if (!bf->length) return;
+
   // F case: Block is too short - run time < minimum segment time
   // Force block into a single segment body with limited velocities
   // Accept the entry velocity, limit the cruise, and go for the best exit
@@ -249,8 +249,8 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   if (naive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
     bf->cruise_velocity = bf->length / MIN_SEGMENT_TIME_PLUS_MARGIN;
-    bf->exit_velocity = max(0.0, min(bf->cruise_velocity,
-                                     (bf->entry_velocity - bf->delta_vmax)));
+    bf->exit_velocity =
+      max(0, min(bf->cruise_velocity, (bf->entry_velocity - bf->delta_vmax)));
     bf->body_length = bf->length;
     bf->head_length = 0;
     bf->tail_length = 0;
@@ -261,8 +261,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   // B" case: Block is short, but fits into a single body segment
   if (naive_move_time <= NOM_SEGMENT_TIME) {
-    mp_buffer_t *bp = mp_buffer_prev_plan(bf);
-    bf->entry_velocity = bp ? bp->exit_velocity : 0;
+    bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
 
     if (fp_NOT_ZERO(bf->entry_velocity)) {
       bf->cruise_velocity = bf->entry_velocity;
@@ -441,6 +440,33 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 }
 
 
+void mp_print_queue(mp_buffer_t *bf) {
+  printf_P(PSTR("{\"msg\":\",id,replannable,callback,"
+                "length,head_length,body_length,tail_length,"
+                "entry_velocity,cruise_velocity,exit_velocity,braking_velocity,"
+                "entry_vmax,cruise_vmax,exit_vmax,\"}\n"));
+
+  int i = 0;
+  mp_buffer_t *bp = bf;
+  while (bp) {
+    printf_P(PSTR("{\"msg\":\",%d,%d,0x%04x,"
+                  "%0.2f,%0.2f,%0.2f,%0.2f,"
+                  "%0.2f,%0.2f,%0.2f,%0.2f,"
+                  "%0.2f,%0.2f,%0.2f,\"}\n"),
+             i++, bp->replannable, bp->cb,
+             bp->length, bp->head_length, bp->body_length, bp->tail_length,
+             bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
+             bp->braking_velocity,
+             bp->entry_vmax, bp->cruise_vmax, bp->exit_vmax);
+
+    bp = mp_buffer_prev(bp);
+    if (bp == bf || bp->run_state == MOVE_OFF) break;
+  }
+
+  while (!usart_tx_empty()) continue;
+}
+
+
 /*** Plans the entire block list
  *
  * The block list is the circular buffer of planner buffers (bf's). The block
@@ -507,15 +533,12 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
  *     optimizations.
  */
 void mp_plan_block_list(mp_buffer_t *bf) {
-  ASSERT(bf->plan); // Must start with a plannable buffer
-
   mp_buffer_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
   mp_buffer_t *next = bp;
   while ((bp = mp_buffer_prev(bp)) != bf) {
-    if (!bp->plan && bp->run_state != MOVE_OFF) continue;
     if (!bp->replannable) break;
     bp->braking_velocity =
       min(next->entry_vmax, next->braking_velocity) + bp->delta_vmax;
@@ -525,15 +548,9 @@ void mp_plan_block_list(mp_buffer_t *bf) {
   // Forward planning pass.  Recompute trapezoids from the first block to bf.
   mp_buffer_t *prev = bp;
   while ((bp = mp_buffer_next(bp)) != bf) {
-    if (!bp->plan) continue;
+    mp_buffer_t *next = mp_buffer_next(bp);
 
-    if (prev == bf) bp->entry_velocity = bp->entry_vmax; // first block
-    else bp->entry_velocity = prev->exit_velocity;       // other blocks
-
-    // Note, next cannot be null.  Since bp != bf, bf is yet to come.
-    mp_buffer_t *next = mp_buffer_next_plan(bp);
-    ASSERT(next);
-
+    bp->entry_velocity = prev == bf ? bp->entry_vmax : prev->exit_velocity;
     bp->cruise_velocity = bp->cruise_vmax;
     bp->exit_velocity = min4(bp->exit_vmax, next->entry_vmax,
                              next->braking_velocity,
@@ -552,11 +569,13 @@ void mp_plan_block_list(mp_buffer_t *bf) {
   }
 
   // Finish last block
-  bp->entry_velocity = prev->exit_velocity;
-  bp->cruise_velocity = bp->cruise_vmax;
-  bp->exit_velocity = 0;
+  bf->entry_velocity = prev->exit_velocity;
+  bf->cruise_velocity = bf->cruise_vmax;
+  bf->exit_velocity = 0;
 
-  mp_calculate_trapezoid(bp);
+  mp_calculate_trapezoid(bf);
+
+  //mp_print_queue(bf);
 }
 
 
@@ -565,12 +584,6 @@ void mp_replan_blocks() {
   if (!bf) return;
 
   mp_buffer_t *bp = bf;
-
-  // Skip leading non-plannable blocks
-  while (!bp->plan) {
-    bp = mp_buffer_next(bp);
-    if (bp->run_state == MOVE_OFF || bp == bf) return; // Nothing to plan
-  }
 
   // Mark all blocks replanable
   while (true) {
@@ -582,6 +595,19 @@ void mp_replan_blocks() {
 
   // Plan blocks
   mp_plan_block_list(bp);
+}
+
+
+/// Push a non-stop command to the queue.  I.e. one that does not cause the
+/// planner to plan to zero.
+void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
+  mp_buffer_t *bp = mp_queue_get_tail();
+
+  bp->entry_vmax = bp->cruise_vmax = bp->exit_vmax = INFINITY;
+  copy_vector(bp->unit, bp->prev->unit);
+  bp->replannable = true;
+
+  mp_queue_push(cb, line);
 }
 
 

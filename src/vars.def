@@ -54,10 +54,8 @@ VAR(max_velocity,   "vm", float,    AXES,   1, 1, "Maxium velocity in mm/min")
 VAR(max_feedrate,   "fr", float,    AXES,   1, 1, "Maxium feedrate in mm/min")
 VAR(max_jerk,       "jm", float,    AXES,   1, 1, "Maxium jerk in mm/min^3")
 VAR(junction_dev,   "jd", float,    AXES,   1, 1, "Junction deviation")
-
 VAR(travel_min,     "tn", float,    AXES,   1, 1, "Minimum soft limit")
 VAR(travel_max,     "tm", float,    AXES,   1, 1, "Maximum soft limit")
-
 VAR(jerk_homing,    "jh", float,    AXES,   1, 1, "Maxium homing jerk")
 VAR(search_vel,     "sv", float,    AXES,   1, 1, "Homing search velocity")
 VAR(latch_vel,      "lv", float,    AXES,   1, 1, "Homing latch velocity")

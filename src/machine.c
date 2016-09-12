@@ -151,7 +151,7 @@ static stat_t _exec_spindle_speed(mp_buffer_t *bf) {
 void mach_set_spindle_speed(float speed) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = speed * mach_get_spindle_override();
-  mp_queue_push(_exec_spindle_speed, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_spindle_speed, mach_get_line());
 }
 
 
@@ -166,7 +166,7 @@ static stat_t _exec_spindle_mode(mp_buffer_t *bf) {
 void mach_set_spindle_mode(spindle_mode_t mode) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mode;
-  mp_queue_push(_exec_spindle_mode, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_spindle_mode, mach_get_line());
 }
 
 
@@ -253,7 +253,7 @@ void mach_update_work_offsets() {
   if (!same) {
     mp_buffer_t *bf = mp_queue_get_tail();
     copy_vector(bf->target, work_offset);
-    mp_queue_push(_exec_update_work_offsets, false, mach_get_line());
+    mp_queue_push_nonstop(_exec_update_work_offsets, mach_get_line());
   }
 }
 
@@ -385,54 +385,38 @@ float mach_calc_move_time(const float axis_length[],
  *    - conversion of relative mode to absolute (internal canonical form)
  *    - translation of work coordinates to machine coordinates (internal
  *      canonical form)
- *    - computation and application of axis modes as so:
+ *    - application of axis modes:
  *
- *    DISABLED  - Incoming value is ignored. Target value is not changed
- *    ENABLED   - Convert axis values to canonical format and store as target
- *    INHIBITED - Same processing as ENABLED, but axis will not actually be run
- *    RADIUS    - ABC axis value is provided in Gcode block in linear units
- *              - Target is set to degrees based on axis' Radius value
- *              - Radius mode is only processed for ABC axes. Application to
- *                XYZ is ignored.
+ *      DISABLED - Incoming value is ignored.
+ *      ENABLED  - Convert axis values to canonical format.
+ *      RADIUS   - ABC axis value is provided in Gcode block in linear units.
+ *               - Target is set to degrees based on axis' Radius value.
  *
- *    Target coordinates are provided in target[]
- *    Axes that need processing are signaled in flag[]
+ *  Target coordinates are provided in @param values.
+ *  Axes that need processing are signaled in @param flags.
  */
-void mach_calc_model_target(float target[], const float values[],
-                            const bool flags[]) {
-  // process XYZABC for lower modes
-  for (int axis = AXIS_X; axis <= AXIS_Z; axis++) {
-    if (!flags[axis] || axes[axis].axis_mode == AXIS_DISABLED)
-      continue; // skip axis if not flagged for update or its disabled
+void mach_calc_target(float target[], const float values[],
+                      const bool flags[]) {
+  for (int axis = 0; axis < AXES; axis++) {
+    target[axis] = mach.position[axis];
+    if (!flags[axis]) continue;
 
-    if (axes[axis].axis_mode == AXIS_STANDARD ||
-        axes[axis].axis_mode == AXIS_INHIBITED) {
-      if (mach.gm.distance_mode == ABSOLUTE_MODE)
-        target[axis] =
-          mach_get_active_coord_offset(axis) + TO_MILLIMETERS(values[axis]);
-      else target[axis] = mach.position[axis] + TO_MILLIMETERS(values[axis]);
-    }
-  }
+    const float offset = mach.gm.distance_mode == ABSOLUTE_MODE ?
+      mach_get_active_coord_offset(axis) : mach.position[axis];
 
-  // Note: The ABC loop below relies on the XYZ loop having been run first
-  for (int axis = AXIS_A; axis <= AXIS_C; axis++) {
-    if (!flags[axis] || axes[axis].axis_mode == AXIS_DISABLED)
-      continue; // skip axis if not flagged for update or its disabled
-
-    float tmp;
     switch (axes[axis].axis_mode) {
+    case AXIS_DISABLED: break;
     case AXIS_STANDARD:
-    case AXIS_INHIBITED:
-      tmp = values[axis]; // no mm conversion - it's in degrees
+      // For ABC axes no mm conversion - it's already in degrees
+      target[axis] =
+        offset + (AXIS_Z < axis ? values[axis] : TO_MM(values[axis]));
+      break;
 
-    default:
-      tmp = TO_MILLIMETERS(values[axis]) * 360 / (2 * M_PI * axes[axis].radius);
+    case AXIS_RADIUS:
+      target[axis] =
+        offset + TO_MM(values[axis]) * 360 / (2 * M_PI * axes[axis].radius);
+      break;
     }
-
-    if (mach.gm.distance_mode == ABSOLUTE_MODE)
-      // sacidu93's fix to Issue #22
-      target[axis] = tmp + mach_get_active_coord_offset(axis);
-    else target[axis] = mach.position[axis] + tmp;
   }
 }
 
@@ -440,7 +424,7 @@ void mach_calc_model_target(float target[], const float values[],
 /*** Return error code if soft limit is exceeded
  *
  * Must be called with target properly set in GM struct.  Best done
- * after mach_calc_model_target().
+ * after mach_calc_target().
  *
  * Tests for soft limit for any homed axis if min and max are
  * different values. You can set min and max to 0,0 to disable soft
@@ -532,7 +516,7 @@ void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
 
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis])
-      mach.offset[coord_system][axis] = TO_MILLIMETERS(offset[axis]);
+      mach.offset[coord_system][axis] = TO_MM(offset[axis]);
 }
 
 
@@ -623,7 +607,7 @@ void mach_set_absolute_origin(float origin[], bool flags[]) {
 
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis]) {
-      value[axis] = TO_MILLIMETERS(origin[axis]);
+      value[axis] = TO_MM(origin[axis]);
       mach.position[axis] = value[axis];           // set model position
       mp_set_axis_position(axis, value[axis]);     // set mm position
     }
@@ -631,7 +615,7 @@ void mach_set_absolute_origin(float origin[], bool flags[]) {
   mp_buffer_t *bf = mp_queue_get_tail();
   copy_vector(bf->target, origin);
   copy_vector(bf->unit, flags);
-  mp_queue_push(_exec_absolute_origin, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_absolute_origin, mach_get_line());
 }
 
 
@@ -646,7 +630,7 @@ void mach_set_origin_offsets(float offset[], bool flags[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis])
       mach.origin_offset[axis] = mach.position[axis] -
-        mach.offset[mach.gm.coord_system][axis] - TO_MILLIMETERS(offset[axis]);
+        mach.offset[mach.gm.coord_system][axis] - TO_MM(offset[axis]);
 }
 
 
@@ -673,8 +657,7 @@ void mach_resume_origin_offsets() {
 // Free Space Motion (4.3.4)
 static stat_t _feed(float values[], bool flags[]) {
   float target[AXES];
-  copy_vector(target, mach.position);
-  mach_calc_model_target(target, values, flags);
+  mach_calc_target(target, values, flags);
 
   // test soft limits
   stat_t status = mach_test_soft_limits(target);
@@ -739,7 +722,7 @@ void mach_set_feed_rate(float feed_rate) {
     // normalize to minutes (active for this gcode block only)
     mach.gm.feed_rate = feed_rate ? 1 / feed_rate : 0; // Avoid div by zero
 
-  else mach.gm.feed_rate = TO_MILLIMETERS(feed_rate);
+  else mach.gm.feed_rate = TO_MM(feed_rate);
 }
 
 
@@ -795,7 +778,7 @@ static stat_t _exec_change_tool(mp_buffer_t *bf) {
 void mach_change_tool(bool x) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mach.gm.tool;
-  mp_queue_push(_exec_change_tool, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_change_tool, mach_get_line());
 }
 
 
@@ -810,7 +793,7 @@ static stat_t _exec_mist_coolant(mp_buffer_t *bf) {
 void mach_mist_coolant_control(bool mist_coolant) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mist_coolant;
-  mp_queue_push(_exec_mist_coolant, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_mist_coolant, mach_get_line());
 }
 
 
@@ -825,7 +808,7 @@ static stat_t _exec_flood_coolant(mp_buffer_t *bf) {
 void mach_flood_coolant_control(bool flood_coolant) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = flood_coolant;
-  mp_queue_push(_exec_flood_coolant, false, mach_get_line());
+  mp_queue_push_nonstop(_exec_flood_coolant, mach_get_line());
 }
 
 
@@ -894,7 +877,7 @@ static stat_t _exec_program_stop(mp_buffer_t *bf) {
 
 /// M0 Queue a program stop
 void mach_program_stop() {
-  mp_queue_push(_exec_program_stop, true, mach_get_line());
+  mp_queue_push(_exec_program_stop, mach_get_line());
 }
 
 

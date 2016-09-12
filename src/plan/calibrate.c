@@ -169,7 +169,7 @@ uint8_t command_calibrate(int argc, char *argv[]) {
   mp_set_cycle(CYCLE_CALIBRATING);
   cal.motor = 1;
 
-  mp_queue_push(_exec_calibrate, false, -1);
+  mp_queue_push_nonstop(_exec_calibrate, -1);
 
   return 0;
 }

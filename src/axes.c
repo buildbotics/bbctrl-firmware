@@ -111,131 +111,50 @@ axis_config_t axes[AXES] = {
 
 /* Jerk functions
  *
- * Jerk values can be rather large, often in the billions. This makes
- * for some pretty big numbers for people to deal with. Jerk values
- * are stored in the system in truncated format; values are divided by
- * 1,000,000 then reconstituted before use.
+ * Jerk values can be rather large. Jerk values are stored in the system in
+ * truncated format; values are divided by 1,000,000 then multiplied before use.
  *
- * The axis_jerk() functions expect the jerk in divided-by 1,000,000 form
+ * The axis_jerk() functions expect the jerk in divided by 1,000,000 form.
  */
 
-/// returns jerk for an axis
-float axes_get_jerk(uint8_t axis) {
-  return axes[axis].jerk_max;
-}
+/// Returns axis jerk
+float axes_get_jerk(uint8_t axis) {return axes[axis].jerk_max;}
 
 
-/// sets the jerk for an axis, including recirpcal and cached values
+/// Sets jerk and its reciprocal for axis
 void axes_set_jerk(uint8_t axis, float jerk) {
   axes[axis].jerk_max = jerk;
   axes[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
 }
 
 
-uint8_t get_axis_mode(int axis) {
-  return axes[axis].axis_mode;
-}
+uint8_t get_axis_mode(int axis) {return axes[axis].axis_mode;}
 
 
 void set_axis_mode(int axis, uint8_t value) {
-  if (value < AXIS_MODE_MAX)
-    axes[axis].axis_mode = value;
+  if (value <= AXIS_RADIUS) axes[axis].axis_mode = value;
 }
 
 
-float get_max_velocity(int axis) {
-  return axes[axis].velocity_max;
-}
-
-
-void set_max_velocity(int axis, float value) {
-  axes[axis].velocity_max = value;
-}
-
-
-float get_max_feedrate(int axis) {
-  return axes[axis].feedrate_max;
-}
-
-
-void set_max_feedrate(int axis, float value) {
-  axes[axis].feedrate_max = value;
-}
-
-
-float get_max_jerk(int axis) {
-  return axes[axis].jerk_max;
-}
-
-
-void set_max_jerk(int axis, float value) {
-  axes[axis].jerk_max = value;
-}
-
-
-float get_junction_dev(int axis) {
-  return axes[axis].junction_dev;
-}
-
-
-void set_junction_dev(int axis, float value) {
-  axes[axis].junction_dev = value;
-}
-
-
-float get_travel_min(int axis) {
-  return axes[axis].travel_min;
-}
-
-
-void set_travel_min(int axis, float value) {
-  axes[axis].travel_min = value;
-}
-
-
-float get_travel_max(int axis) {
-  return axes[axis].travel_max;
-}
-
-
-void set_travel_max(int axis, float value) {
-  axes[axis].travel_max = value;
-}
-
-
-float get_jerk_homing(int axis) {
-  return axes[axis].jerk_homing;
-}
-
-
-void set_jerk_homing(int axis, float value) {
-  axes[axis].jerk_homing = value;
-}
-
-
-float get_search_vel(int axis) {
-  return axes[axis].search_velocity;
-}
-
-
-void set_search_vel(int axis, float value) {
-  axes[axis].search_velocity = value;
-}
-
-
-float get_latch_vel(int axis) {
-  return axes[axis].latch_velocity;
-}
-
-
-void set_latch_vel(int axis, float value) {
-  axes[axis].latch_velocity = value;
-}
-
-
-float get_latch_backoff(int axis) {
-  return axes[axis].latch_backoff;
-}
+float get_max_velocity(int axis) {return axes[axis].velocity_max;}
+void set_max_velocity(int axis, float value) {axes[axis].velocity_max = value;}
+float get_max_feedrate(int axis) {return axes[axis].feedrate_max;}
+void set_max_feedrate(int axis, float value) {axes[axis].feedrate_max = value;}
+float get_max_jerk(int axis) {return axes[axis].jerk_max;}
+void set_max_jerk(int axis, float value) {axes[axis].jerk_max = value;}
+float get_junction_dev(int axis) {return axes[axis].junction_dev;}
+void set_junction_dev(int axis, float value) {axes[axis].junction_dev = value;}
+float get_travel_min(int axis) {return axes[axis].travel_min;}
+void set_travel_min(int axis, float value) {axes[axis].travel_min = value;}
+float get_travel_max(int axis) {return axes[axis].travel_max;}
+void set_travel_max(int axis, float value) {axes[axis].travel_max = value;}
+float get_jerk_homing(int axis) {return axes[axis].jerk_homing;}
+void set_jerk_homing(int axis, float value) {axes[axis].jerk_homing = value;}
+float get_search_vel(int axis) {return axes[axis].search_velocity;}
+void set_search_vel(int axis, float value) {axes[axis].search_velocity = value;}
+float get_latch_vel(int axis) {return axes[axis].latch_velocity;}
+void set_latch_vel(int axis, float value) {axes[axis].latch_velocity = value;}
+float get_latch_backoff(int axis) {return axes[axis].latch_backoff;}
 
 
 void set_latch_backoff(int axis, float value) {
@@ -243,11 +162,5 @@ void set_latch_backoff(int axis, float value) {
 }
 
 
-float get_zero_backoff(int axis) {
-  return axes[axis].zero_backoff;
-}
-
-
-void set_zero_backoff(int axis, float value) {
-  axes[axis].zero_backoff = value;
-}
+float get_zero_backoff(int axis) {return axes[axis].zero_backoff;}
+void set_zero_backoff(int axis, float value) {axes[axis].zero_backoff = value;}

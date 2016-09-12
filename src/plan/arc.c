@@ -412,7 +412,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
 
   // Test radius arcs for radius tolerance
   if (radius_f) {
-    arc.radius = TO_MILLIMETERS(radius);    // set to internal format (mm)
+    arc.radius = TO_MM(radius);    // set to internal format (mm)
     if (fabs(arc.radius) < MIN_ARC_RADIUS)  // radius value must be > minimum
       return STAT_ARC_RADIUS_OUT_OF_TOLERANCE;
 
@@ -434,8 +434,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
 
   // Set model target
   const float *position = mach_get_position();
-  copy_vector(arc.target, position);
-  mach_calc_model_target(arc.target, values, values_f);
+  mach_calc_target(arc.target, values, values_f);
 
   // in radius mode it's an error for start == end
   if (radius_f && fp_EQ(position[AXIS_X], arc.target[AXIS_X]) &&
@@ -447,10 +446,10 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
   mach_set_motion_mode(motion_mode);
   mach_update_work_offsets();                      // Update resolved offsets
   arc.line = mach_get_line();                      // copy line number
-  arc.radius = TO_MILLIMETERS(radius);             // set arc radius or zero
+  arc.radius = TO_MM(radius);             // set arc radius or zero
 
   float offset[3];
-  for (int i = 0; i < 3; i++) offset[i] = TO_MILLIMETERS(offsets[i]);
+  for (int i = 0; i < 3; i++) offset[i] = TO_MM(offsets[i]);
 
   if (mach_get_arc_distance_mode() == ABSOLUTE_MODE) {
     if (offsets_f[0]) offset[0] -= position[0];

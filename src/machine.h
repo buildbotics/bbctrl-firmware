@@ -34,7 +34,7 @@
 #include "gcode_state.h"
 
 
-#define TO_MILLIMETERS(a) (mach_get_units() == INCHES ? (a) * MM_PER_INCH : a)
+#define TO_MM(a) (mach_get_units() == INCHES ? (a) * MM_PER_INCH : a)
 
 // Model state getters and setters
 uint32_t mach_get_line();
@@ -66,7 +66,7 @@ float mach_get_axis_position(uint8_t axis);
 
 // Critical helpers
 float mach_calc_move_time(const float axis_length[], const float axis_square[]);
-void mach_calc_model_target(float target[], const float values[],
+void mach_calc_target(float target[], const float values[],
                             const bool flags[]);
 stat_t mach_test_soft_limits(float target[]);
 

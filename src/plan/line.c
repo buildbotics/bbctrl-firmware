@@ -132,6 +132,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
     b_delta += square(b_unit[axis] * axes[axis].junction_dev);
   }
 
+  if (!a_delta || !b_delta) return 0; // One or both unit vectors are null
+
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
   float sintheta_over2 = sqrt((1 - costheta) / 2);
   float radius = delta * sintheta_over2 / (1 - sintheta_over2);
@@ -240,8 +242,8 @@ static void _calc_and_cache_jerk_values(mp_buffer_t *bf) {
 
 
 static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
-  mp_buffer_t *bp = mp_buffer_prev_plan(bf);
-  float junction_velocity = bp ? _get_junction_vmax(bp->unit, bf->unit) : 0;
+  float junction_velocity =
+    _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
 
   bf->cruise_vmax = bf->length / move_time; // target velocity requested
   bf->entry_vmax = min(bf->cruise_vmax, junction_velocity);
@@ -307,10 +309,9 @@ stat_t mp_aline(const float target[], int32_t line) {
   _calc_max_velocities(bf, time);
 
   // Note, the following lines must remain in order.
-  bf->plan = true;
   mp_plan_block_list(bf);       // Plan block list
   mp_set_position(target);      // Set planner position before committing buffer
-  mp_queue_push(mp_exec_aline, true, line); // After position update
+  mp_queue_push(mp_exec_aline, line); // After position update
 
   return STAT_OK;
 }

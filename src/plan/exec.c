@@ -33,6 +33,7 @@
 #include "runtime.h"
 #include "state.h"
 #include "rtc.h"
+#include "usart.h"
 #include "config.h"
 
 #include <string.h>
@@ -332,7 +333,7 @@ static stat_t _exec_aline_head() {
 
 static float _compute_next_segment_velocity() {
   if (ex.section_new) {
-    if (ex.section == SECTION_HEAD) return ex.entry_velocity;
+    if (ex.section == SECTION_HEAD) return mp_runtime_get_velocity();
     else return ex.cruise_velocity;
   }
 
@@ -375,9 +376,15 @@ static void _plan_hold() {
   ex.cruise_velocity = braking_velocity;
   ex.hold_planned = true;
 
-  // Case 1: deceleration fits entirely into the length remaining in buffer
-  if (braking_length <= available_length) {
-    // Set to a tail to perform the deceleration
+  // Avoid creating segments before or after the hold which are too small.
+  if (fabs(available_length - braking_length) < HOLD_DECELERATION_TOLERANCE) {
+    // Case 0: deceleration fits almost exactly
+    ex.exit_velocity = 0;
+    ex.tail_length = available_length;
+
+  } else if (braking_length <= available_length) {
+    // Case 1: deceleration fits entirely into the remaining length
+    // Setup tail to perform the deceleration
     ex.exit_velocity = 0;
     ex.tail_length = braking_length;
 
@@ -387,7 +394,8 @@ static void _plan_hold() {
     bf->entry_vmax = 0;
     bf->run_state = MOVE_RESTART; // Restart the buffer when done
 
-  } else { // Case 2: deceleration exceeds length remaining in buffer
+  } else {
+    // Case 2: deceleration exceeds length remaining in buffer
     // Replan to minimum (but non-zero) exit velocity
     ex.tail_length = available_length;
     ex.exit_velocity =
@@ -522,18 +530,20 @@ stat_t mp_exec_move() {
   if (bf->run_state == MOVE_NEW) {
     // On restart wait a bit to give planner queue a chance to fill
     if (!mp_runtime_is_busy() && mp_queue_get_fill() < 4 &&
-        !rtc_expired(bf->ts + 250)) return STAT_NOOP;
+      !rtc_expired(bf->ts + 250)) return STAT_NOOP;
 
     // Take control of buffer
     bf->run_state = MOVE_INIT;
     bf->replannable = false;
 
     // Update runtime
-    mp_runtime_set_busy(true);
     mp_runtime_set_line(bf->line);
   }
 
   stat_t status = bf->cb(bf); // Move callback
+
+  // Busy only if a move was queued
+  if (status == STAT_EAGAIN || status == STAT_OK) mp_runtime_set_busy(true);
 
   if (status != STAT_EAGAIN) {
     bool idle = false;
@@ -551,10 +561,9 @@ stat_t mp_exec_move() {
       // Solves a potential race condition where the current move ends but
       // the new move has not started because the current move is still
       // being run by the steppers.  Planning can overwrite the new move.
-      mp_buffer_t *bp = mp_buffer_next_plan(bf);
-      if (bp) bp->replannable = false;
+      mp_buffer_next(bf)->replannable = false;
 
-      mp_queue_pop(); // Free buffer
+      mp_queue_pop(); // Release buffer
 
       // Enter READY state
       if (mp_queue_is_empty()) {

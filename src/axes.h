@@ -32,11 +32,9 @@
 
 
 typedef enum {
-  AXIS_DISABLED,              // disable axis
-  AXIS_STANDARD,              // axis in coordinated motion w/standard behaviors
-  AXIS_INHIBITED,             // axis is computed but not activated
-  AXIS_RADIUS,                // rotary axis calibrated to circumference
-  AXIS_MODE_MAX,
+  AXIS_DISABLED,         // disabled axis
+  AXIS_STANDARD,         // axis in coordinated motion w/standard behaviors
+  AXIS_RADIUS,           // rotary axis calibrated to circumference
 } axis_mode_t;
 
 

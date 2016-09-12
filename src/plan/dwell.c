@@ -48,7 +48,7 @@ static stat_t _exec_dwell(mp_buffer_t *bf) {
 stat_t mp_dwell(float seconds, int32_t line) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = seconds; // in seconds, not minutes
-  mp_queue_push(_exec_dwell, true, line);
+  mp_queue_push(_exec_dwell, line);
 
   return STAT_OK;
 }

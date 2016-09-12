@@ -35,8 +35,11 @@
 #include "buffer.h"
 #include "state.h"
 #include "rtc.h"
+#include "util.h"
 
 #include <string.h>
+#include <math.h>
+#include <stdio.h>
 
 
 typedef struct {
@@ -119,7 +122,6 @@ bool mp_queue_is_empty() {return mb.tail == mb.head;}
 /// Get pointer to next buffer, waiting until one is available.
 mp_buffer_t *mp_queue_get_tail() {
   while (!mb.space) continue; // Wait for a buffer
-  mb.tail->run_state = MOVE_NEW;
   return mb.tail;
 }
 
@@ -130,13 +132,13 @@ mp_buffer_t *mp_queue_get_tail() {
  * buffer once it has been queued.  Action may start on the buffer immediately,
  * invalidating its contents
  */
-void mp_queue_push(buffer_cb_t cb, bool plan, uint32_t line) {
+void mp_queue_push(buffer_cb_t cb, uint32_t line) {
   mp_state_running();
 
   mb.tail->ts = rtc_get_time();
-  mb.tail->plan = plan;
   mb.tail->cb = cb;
   mb.tail->line = line;
+  mb.tail->run_state = MOVE_NEW;
 
   _push();
 }
@@ -151,26 +153,4 @@ mp_buffer_t *mp_queue_get_head() {
 void mp_queue_pop() {
   _clear_buffer(mb.head);
   _pop();
-}
-
-
-mp_buffer_t *mp_buffer_prev_plan(mp_buffer_t *bp) {
-  for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
-    bp = mp_buffer_prev(bp);
-    if (bp->run_state == MOVE_OFF) break;
-    if (bp->plan) return bp;
-  }
-
-  return 0;
-}
-
-
-mp_buffer_t *mp_buffer_next_plan(mp_buffer_t *bp) {
-  for (int i = 0; i < PLANNER_BUFFER_POOL_SIZE; i++) {
-    bp = mp_buffer_next(bp);
-    if (bp->run_state == MOVE_OFF) break;
-    if (bp->plan) return bp;
-  }
-
-  return 0;
 }
