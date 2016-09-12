@@ -770,15 +770,17 @@ void mach_select_tool(uint8_t tool) {mach.gm.tool = tool;}
 
 static stat_t _exec_change_tool(mp_buffer_t *bf) {
   mp_runtime_set_tool(bf->value);
+  mp_set_hold_reason(HOLD_REASON_TOOL_CHANGE);
+  mp_state_holding();
   return STAT_NOOP; // No move queued
 }
 
 
-/// M6 This might become a complete tool change cycle
+/// M6
 void mach_change_tool(bool x) {
   mp_buffer_t *bf = mp_queue_get_tail();
   bf->value = mach.gm.tool;
-  mp_queue_push_nonstop(_exec_change_tool, mach_get_line());
+  mp_queue_push(_exec_change_tool, mach_get_line());
 }
 
 
@@ -870,6 +872,7 @@ void mach_message(const char *message) {
 static stat_t _exec_program_stop(mp_buffer_t *bf) {
   // Machine should be stopped at this point.  Go into hold so that a start is
   // needed before executing further instructions.
+  mp_set_hold_reason(HOLD_REASON_PROGRAM_PAUSE);
   mp_state_holding();
   return STAT_NOOP; // No move queued
 }
@@ -881,17 +884,29 @@ void mach_program_stop() {
 }
 
 
+static stat_t _exec_optional_program_stop(mp_buffer_t *bf) {
+  mp_state_optional_pause(); // Pause here if it was requested by the user
+  return STAT_NOOP; // No move queued
+}
+
+
 /// M1
 void mach_optional_program_stop() {
-  // TODO Check for user stop signal
-  mach_program_stop();
+  mp_queue_push(_exec_optional_program_stop, mach_get_line());
+}
+
+
+static stat_t _exec_pallet_change_stop(mp_buffer_t *bf) {
+  // Emit pallet change signal
+  mp_set_hold_reason(HOLD_REASON_PALLET_CHANGE);
+  mp_state_holding();
+  return STAT_NOOP; // No move queued
 }
 
 
 /// M60
 void mach_pallet_change_stop() {
-  // TODO Emit pallet change signal
-  mach_program_stop();
+  mp_queue_push(_exec_pallet_change_stop, mach_get_line());
 }
 
 

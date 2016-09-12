@@ -71,17 +71,17 @@ static unsigned _parse_axis(uint8_t axis) {
 
 static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   switch (cmd) {
-  case I2C_NULL:                                      break;
-  case I2C_ESTOP:          estop_trigger(ESTOP_USER); break;
-  case I2C_CLEAR:          estop_clear();             break;
-  case I2C_PAUSE:          mp_request_hold();         break;
-  case I2C_OPTIONAL_PAUSE:                            break; // TODO
-  case I2C_RUN:            mp_request_start();        break;
-  case I2C_STEP:                                      break; // TODO
-  case I2C_FLUSH:          mp_request_flush();        break;
-  case I2C_REPORT:         report_request_full();     break;
-  case I2C_HOME:                                      break; // TODO
-  case I2C_REBOOT:         _reboot();                 break;
+  case I2C_NULL:                                        break;
+  case I2C_ESTOP:          estop_trigger(ESTOP_USER);   break;
+  case I2C_CLEAR:          estop_clear();               break;
+  case I2C_PAUSE:          mp_request_hold();           break;
+  case I2C_OPTIONAL_PAUSE: mp_request_optional_pause(); break;
+  case I2C_RUN:            mp_request_start();          break;
+  case I2C_STEP:                                        break; // TODO
+  case I2C_FLUSH:          mp_request_flush();          break;
+  case I2C_REPORT:         report_request_full();       break;
+  case I2C_HOME:                                        break; // TODO
+  case I2C_REBOOT:         _reboot();                   break;
   case I2C_ZERO:
     if (length == 0) mach_zero_all();
     else if (length == 1) mach_zero_axis(_parse_axis(*data));

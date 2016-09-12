@@ -135,56 +135,18 @@ void pwm_spindle_estop() {
 }
 
 
-// TODO implement these
-float get_max_spin(int index) {
-  return 0;
-}
-
-
-void set_max_spin(int axis, float value) {
-}
-
-
-float get_spin_min_pulse(int index) {
-  return 0;
-}
-
-
-void set_spin_min_pulse(int axis, float value) {
-}
-
-
-float get_spin_max_pulse(int index) {
-  return 0;
-}
-
-
-void set_spin_max_pulse(int axis, float value) {
-}
-
-
-uint8_t get_spin_polarity(int index) {
-  return 0;
-}
-
-
-void set_spin_polarity(int axis, uint8_t value) {
-}
-
-
-float get_spin_up(int index) {
-  return 0;
-}
-
-
-void set_spin_up(int axis, float value) {
-}
-
-
-float get_spin_down(int index) {
-  return 0;
-}
-
-
-void set_spin_down(int axis, float value) {
-}
+// TODO these need more effort and should work with the huanyang spindle too
+float get_max_spin(int index) {return spindle.max_rpm;}
+void set_max_spin(int axis, float value) {spindle.max_rpm = value;}
+float get_min_spin(int index) {return spindle.min_rpm;}
+void set_min_spin(int axis, float value) {spindle.min_rpm = value;}
+float get_spin_min_pulse(int index) {return spindle.min_duty;}
+void set_spin_min_pulse(int axis, float value) {spindle.min_duty = value;}
+float get_spin_max_pulse(int index) {return spindle.max_duty;}
+void set_spin_max_pulse(int axis, float value) {spindle.max_duty = value;}
+uint8_t get_spin_polarity(int index) {return spindle.reverse;}
+void set_spin_polarity(int axis, uint8_t value) {spindle.reverse = value;}
+float get_spin_up(int index) {return 0;}
+void set_spin_up(int axis, float value) {}
+float get_spin_down(int index) {return 0;}
+void set_spin_down(int axis, float value) {}

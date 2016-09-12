@@ -43,21 +43,19 @@
 typedef struct {
   mp_state_t state;
   mp_cycle_t cycle;
+  mp_hold_reason_t hold_reason;
 
   bool hold_requested;
   bool flush_requested;
   bool start_requested;
   bool resume_requested;
+  bool optional_pause_requested;
 } planner_state_t;
 
 
 static planner_state_t ps = {
   .flush_requested = true // Start out flushing
 };
-
-
-mp_state_t mp_get_state() {return ps.state;}
-mp_cycle_t mp_get_cycle() {return ps.cycle;}
 
 
 PGM_P mp_get_state_pgmstr(mp_state_t state) {
@@ -69,7 +67,7 @@ PGM_P mp_get_state_pgmstr(mp_state_t state) {
   case STATE_HOLDING:   return PSTR("HOLDING");
   }
 
-  return PSTR("invalid");
+  return PSTR("INVALID");
 }
 
 
@@ -82,8 +80,25 @@ PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle) {
   case CYCLE_JOGGING:     return PSTR("JOGGING");
   }
 
-  return PSTR("invalid");
+  return PSTR("INVALID");
 }
+
+
+PGM_P mp_get_hold_reason_pgmstr(mp_hold_reason_t reason) {
+  switch (reason) {
+  case HOLD_REASON_USER_PAUSE:    return PSTR("USER");
+  case HOLD_REASON_PROGRAM_PAUSE: return PSTR("PROGRAM");
+  case HOLD_REASON_PROGRAM_END:   return PSTR("END");
+  case HOLD_REASON_PALLET_CHANGE: return PSTR("PALLET");
+  case HOLD_REASON_TOOL_CHANGE:   return PSTR("TOOL");
+  }
+
+  return PSTR("INVALID");
+}
+
+
+mp_state_t mp_get_state() {return ps.state;}
+mp_cycle_t mp_get_cycle() {return ps.cycle;}
 
 
 static void _set_state(mp_state_t state) {
@@ -117,6 +132,16 @@ void mp_set_cycle(mp_cycle_t cycle) {
 }
 
 
+mp_hold_reason_t mp_get_hold_reason() {return ps.hold_reason;}
+
+
+void mp_set_hold_reason(mp_hold_reason_t reason) {
+  if (ps.hold_reason == reason) return; // No change
+  ps.hold_reason = reason;
+  report_request();
+}
+
+
 bool mp_is_flushing() {return ps.flush_requested && !ps.resume_requested;}
 bool mp_is_resuming() {return ps.resume_requested;}
 
@@ -124,6 +149,14 @@ bool mp_is_resuming() {return ps.resume_requested;}
 bool mp_is_quiescent() {
   return (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
     !st_is_busy() && !mp_runtime_is_busy();
+}
+
+
+void mp_state_optional_pause() {
+  if (ps.optional_pause_requested) {
+    mp_set_hold_reason(HOLD_REASON_USER_PAUSE);
+    mp_state_holding();
+  }
 }
 
 
@@ -147,6 +180,7 @@ void mp_request_hold() {ps.hold_requested = true;}
 void mp_request_start() {ps.start_requested = true;}
 void mp_request_flush() {ps.flush_requested = true;}
 void mp_request_resume() {if (ps.flush_requested) ps.resume_requested = true;}
+void mp_request_optional_pause() {ps.optional_pause_requested = true;}
 
 
 /*** Feedholds, queue flushes and starts are all related.  Request functions
@@ -173,6 +207,7 @@ void mp_request_resume() {if (ps.flush_requested) ps.resume_requested = true;}
 void mp_state_callback() {
   if (ps.hold_requested || ps.flush_requested) {
     ps.hold_requested = false;
+    mp_set_hold_reason(HOLD_REASON_USER_PAUSE);
 
     if (mp_get_state() == STATE_RUNNING) _set_state(STATE_STOPPING);
   }
@@ -202,6 +237,7 @@ void mp_state_callback() {
   if (ps.start_requested && !ps.flush_requested &&
       mp_get_state() != STATE_STOPPING) {
     ps.start_requested = false;
+    ps.optional_pause_requested = false;
 
     if (mp_get_state() == STATE_HOLDING) {
       // Check if any moves are buffered

@@ -52,18 +52,32 @@ typedef enum {
 } mp_cycle_t;
 
 
-mp_state_t mp_get_state();
-mp_cycle_t mp_get_cycle();
+typedef enum {
+  HOLD_REASON_USER_PAUSE,
+  HOLD_REASON_PROGRAM_PAUSE,
+  HOLD_REASON_PROGRAM_END,
+  HOLD_REASON_PALLET_CHANGE,
+  HOLD_REASON_TOOL_CHANGE,
+} mp_hold_reason_t;
 
-void mp_set_cycle(mp_cycle_t cycle);
 
 PGM_P mp_get_state_pgmstr(mp_state_t state);
 PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle);
+PGM_P mp_get_hold_reason_pgmstr(mp_hold_reason_t reason);
+
+mp_state_t mp_get_state();
+
+mp_cycle_t mp_get_cycle();
+void mp_set_cycle(mp_cycle_t cycle);
+
+mp_hold_reason_t mp_get_hold_reason();
+void mp_set_hold_reason(mp_hold_reason_t reason);
 
 bool mp_is_flushing();
 bool mp_is_resuming();
 bool mp_is_quiescent();
 
+void mp_state_optional_pause();
 void mp_state_holding();
 void mp_state_running();
 void mp_state_idle();
@@ -73,5 +87,6 @@ void mp_request_hold();
 void mp_request_start();
 void mp_request_flush();
 void mp_request_resume();
+void mp_request_optional_pause();
 
 void mp_state_callback();

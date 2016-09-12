@@ -534,74 +534,18 @@ bool huanyang_stopping() {
 }
 
 
-uint8_t get_huanyang_id(int index) {
-  return ha.id;
-}
-
-void set_huanyang_id(int index, uint8_t value) {
-  ha.id = value;
-}
-
-
-bool get_huanyang_debug(int index) {
-  return ha.debug;
-}
-
-void set_huanyang_debug(int index, uint8_t value) {
-  ha.debug = value;
-}
-
-
-bool get_huanyang_connected(int index) {
-  return ha.connected;
-}
-
-
-float get_huanyang_freq(int index) {
-  return ha.actual_freq;
-}
-
-
-float get_huanyang_current(int index) {
-  return ha.actual_current;
-}
-
-
-uint16_t get_huanyang_rpm(int index) {
-  return ha.actual_rpm;
-}
-
-
-uint16_t get_huanyang_dcv(int index) {
-  return ha.dc_voltage;
-}
-
-
-uint16_t get_huanyang_acv(int index) {
-  return ha.ac_voltage;
-}
-
-
-uint16_t get_huanyang_temp(int index) {
-  return ha.temperature;
-}
-
-
-float get_huanyang_max_freq(int index) {
-  return ha.max_freq;
-}
-
-
-float get_huanyang_min_freq(int index) {
-  return ha.min_freq;
-}
-
-
-uint16_t get_huanyang_rated_rpm(int index) {
-  return ha.rated_rpm;
-}
-
-
-float get_huanyang_status(int index) {
-  return ha.status;
-}
+uint8_t get_huanyang_id(int index) {return ha.id;}
+void set_huanyang_id(int index, uint8_t value) {ha.id = value;}
+bool get_huanyang_debug(int index) {return ha.debug;}
+void set_huanyang_debug(int index, uint8_t value) {ha.debug = value;}
+bool get_huanyang_connected(int index) {return ha.connected;}
+float get_huanyang_freq(int index) {return ha.actual_freq;}
+float get_huanyang_current(int index) {return ha.actual_current;}
+uint16_t get_huanyang_rpm(int index) {return ha.actual_rpm;}
+uint16_t get_huanyang_dcv(int index) {return ha.dc_voltage;}
+uint16_t get_huanyang_acv(int index) {return ha.ac_voltage;}
+uint16_t get_huanyang_temp(int index) {return ha.temperature;}
+float get_huanyang_max_freq(int index) {return ha.max_freq;}
+float get_huanyang_min_freq(int index) {return ha.min_freq;}
+uint16_t get_huanyang_rated_rpm(int index) {return ha.rated_rpm;}
+float get_huanyang_status(int index) {return ha.status;}

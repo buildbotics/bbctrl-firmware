@@ -521,11 +521,13 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
 
 /// Dequeues buffer and executes move callback
 stat_t mp_exec_move() {
-  if (mp_get_state() == STATE_ESTOPPED || mp_get_state() == STATE_HOLDING)
-    return STAT_NOOP;
-
   mp_buffer_t *bf = mp_queue_get_head();
-  if (!bf) return STAT_NOOP; // Nothing running
+  if (mp_get_state() == STATE_ESTOPPED || mp_get_state() == STATE_HOLDING ||
+      !bf) {
+    mp_runtime_set_velocity(0);
+    mp_runtime_set_busy(false);
+    return STAT_NOOP; // Nothing running
+  }
 
   if (bf->run_state == MOVE_NEW) {
     // On restart wait a bit to give planner queue a chance to fill
@@ -546,13 +548,10 @@ stat_t mp_exec_move() {
   if (status == STAT_EAGAIN || status == STAT_OK) mp_runtime_set_busy(true);
 
   if (status != STAT_EAGAIN) {
-    bool idle = false;
-
     // Enter HOLDING state
     if (mp_get_state() == STATE_STOPPING &&
         fp_ZERO(mp_runtime_get_velocity())) {
       mp_state_holding();
-      idle = true;
     }
 
     // Handle buffer run state
@@ -566,18 +565,9 @@ stat_t mp_exec_move() {
       mp_queue_pop(); // Release buffer
 
       // Enter READY state
-      if (mp_queue_is_empty()) {
-        mp_state_idle();
-        idle = true;
-      }
+      if (mp_queue_is_empty()) mp_state_idle();
 
       mp_set_cycle(CYCLE_MACHINING); // Default cycle
-    }
-
-    // Queue idle
-    if (idle) {
-      mp_runtime_set_velocity(0);
-      mp_runtime_set_busy(false);
     }
   }
 

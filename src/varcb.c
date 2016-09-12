@@ -82,3 +82,8 @@ bool get_echo() {return usart_is_set(USART_ECHO);}
 void set_echo(bool value) {return usart_set(USART_ECHO, value);}
 PGM_P get_state() {return mp_get_state_pgmstr(mp_get_state());}
 PGM_P get_cycle() {return mp_get_cycle_pgmstr(mp_get_cycle());}
+
+
+PGM_P get_hold_reason() {
+  return mp_get_hold_reason_pgmstr(mp_get_hold_reason());
+}
