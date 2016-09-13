@@ -460,7 +460,7 @@ void mp_print_queue(mp_buffer_t *bf) {
              bp->entry_vmax, bp->cruise_vmax, bp->exit_vmax);
 
     bp = mp_buffer_prev(bp);
-    if (bp == bf || bp->run_state == MOVE_OFF) break;
+    if (bp == bf || bp->state == BUFFER_OFF) break;
   }
 
   while (!usart_tx_empty()) continue;
@@ -513,7 +513,7 @@ void mp_print_queue(mp_buffer_t *bf) {
  *
  * Variables that are ignored but here's what you would expect them to be:
  *
- *   bf->run_state         - NEW for all blocks but the earliest
+ *   bf->state             - BUFFER_NEW for all blocks but the earliest
  *   bf->target[]          - block target position
  *   bf->unit[]            - block unit vector
  *   bf->jerk              - source of the other jerk variables.
@@ -589,7 +589,7 @@ void mp_replan_blocks() {
   while (true) {
     bp->replannable = true;
     mp_buffer_t *next = mp_buffer_next(bp);
-    if (next->run_state == MOVE_OFF || next == bf) break;
+    if (next->state == BUFFER_OFF || next == bf) break;
     bp = next;
   }
 

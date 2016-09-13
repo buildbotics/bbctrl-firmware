@@ -34,12 +34,12 @@
 
 
 typedef enum {
-  MOVE_OFF,                // move inactive
-  MOVE_NEW,                // initial value
-  MOVE_INIT,               // first run
-  MOVE_RUN,                // subsequent runs
-  MOVE_RESTART,            // restart buffer when done
-} run_state_t;
+  BUFFER_OFF,                // move inactive
+  BUFFER_NEW,                // initial value
+  BUFFER_INIT,               // first run
+  BUFFER_ACTIVE,             // subsequent runs
+  BUFFER_RESTART,            // restart buffer when done
+} buffer_state_t;
 
 
 // Callbacks
@@ -55,7 +55,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   int32_t line;                   // gcode block line number
   buffer_cb_t cb;                 // callback to buffer exec function
 
-  run_state_t run_state;          // run state machine sequence
+  buffer_state_t state;           // buffer state
   bool replannable;               // true if move can be re-planned
 
   float value;                    // used in dwell and other callbacks

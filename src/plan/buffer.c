@@ -138,7 +138,7 @@ void mp_queue_push(buffer_cb_t cb, uint32_t line) {
   mb.tail->ts = rtc_get_time();
   mb.tail->cb = cb;
   mb.tail->line = line;
-  mb.tail->run_state = MOVE_NEW;
+  mb.tail->state = BUFFER_NEW;
 
   _push();
 }

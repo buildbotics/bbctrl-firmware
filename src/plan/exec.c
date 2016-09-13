@@ -392,7 +392,7 @@ static void _plan_hold() {
     bf->length = available_length - braking_length;
     bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
     bf->entry_vmax = 0;
-    bf->run_state = MOVE_RESTART; // Restart the buffer when done
+    bf->state = BUFFER_RESTART; // Restart the buffer when done
 
   } else {
     // Case 2: deceleration exceeds length remaining in buffer
@@ -496,8 +496,8 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
   stat_t status = STAT_OK;
 
   // Start a new move
-  if (bf->run_state == MOVE_INIT) {
-    bf->run_state = MOVE_RUN;
+  if (bf->state == BUFFER_INIT) {
+    bf->state = BUFFER_ACTIVE;
     status = _exec_aline_init(bf);
     if (status != STAT_OK) return status;
   }
@@ -529,13 +529,13 @@ stat_t mp_exec_move() {
     return STAT_NOOP; // Nothing running
   }
 
-  if (bf->run_state == MOVE_NEW) {
+  if (bf->state == BUFFER_NEW) {
     // On restart wait a bit to give planner queue a chance to fill
     if (!mp_runtime_is_busy() && mp_queue_get_fill() < 4 &&
       !rtc_expired(bf->ts + 250)) return STAT_NOOP;
 
     // Take control of buffer
-    bf->run_state = MOVE_INIT;
+    bf->state = BUFFER_INIT;
     bf->replannable = false;
 
     // Update runtime
@@ -555,7 +555,7 @@ stat_t mp_exec_move() {
     }
 
     // Handle buffer run state
-    if (bf->run_state == MOVE_RESTART) bf->run_state = MOVE_NEW;
+    if (bf->state == BUFFER_RESTART) bf->state = BUFFER_NEW;
     else {
       // Solves a potential race condition where the current move ends but
       // the new move has not started because the current move is still
