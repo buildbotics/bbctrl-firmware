@@ -309,7 +309,8 @@ stat_t mp_aline(const float target[], int32_t line) {
   _calc_max_velocities(bf, time);
 
   // Note, the following lines must remain in order.
-  mp_plan_block_list(bf);       // Plan block list
+  bf->line = line;              // Planner needs then when planning steps
+  mp_plan(bf);                  // Plan block list
   mp_set_position(target);      // Set planner position before committing buffer
   mp_queue_push(mp_exec_aline, line); // After position update
 

@@ -80,51 +80,53 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
   const float time = MIN_SEGMENT_TIME; // In minutes
   const float max_delta_v = JOG_ACCELERATION * time;
 
-  if (rtc_expired(cal.wait))
-    switch (cal.state) {
-    case CAL_START: {
-      cal.axis = motor_get_axis(cal.motor);
-      cal.state = CAL_ACCEL;
-      cal.velocity = 0;
-      cal.stall_valid = false;
-      cal.stalled = false;
-      cal.reverse = false;
+  do {
+    if (rtc_expired(cal.wait))
+      switch (cal.state) {
+      case CAL_START: {
+        cal.axis = motor_get_axis(cal.motor);
+        cal.state = CAL_ACCEL;
+        cal.velocity = 0;
+        cal.stall_valid = false;
+        cal.stalled = false;
+        cal.reverse = false;
 
-      tmc2660_set_stallguard_threshold(cal.motor, 8);
-      cal.wait = rtc_get_time() + CAL_WAIT_TIME;
+        tmc2660_set_stallguard_threshold(cal.motor, 8);
+        cal.wait = rtc_get_time() + CAL_WAIT_TIME;
 
-      break;
-    }
-
-    case CAL_ACCEL:
-      if (CAL_MIN_VELOCITY < cal.velocity) cal.stall_valid = true;
-
-      if (cal.velocity < CAL_MIN_VELOCITY || CAL_TARGET_SG < cal.stallguard)
-        cal.velocity += max_delta_v;
-
-      if (cal.stalled) {
-        if (cal.reverse) {
-          int32_t steps = -motor_get_encoder(cal.motor);
-          float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
-          STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
-
-          tmc2660_set_stallguard_threshold(cal.motor, 63);
-
-          return STAT_OK; // Done
-
-        } else {
-          motor_set_encoder(cal.motor, 0);
-
-          cal.reverse = true;
-          cal.velocity = 0;
-          cal.stall_valid = false;
-          cal.stalled = false;
-        }
+        break;
       }
-      break;
-    }
 
-  if (!cal.velocity) return STAT_EAGAIN;
+      case CAL_ACCEL:
+        if (CAL_MIN_VELOCITY < cal.velocity) cal.stall_valid = true;
+
+        if (cal.velocity < CAL_MIN_VELOCITY || CAL_TARGET_SG < cal.stallguard)
+          cal.velocity += max_delta_v;
+
+        if (cal.stalled) {
+          if (cal.reverse) {
+            int32_t steps = -motor_get_encoder(cal.motor);
+            float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
+            STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
+
+            tmc2660_set_stallguard_threshold(cal.motor, 63);
+
+            mp_set_cycle(CYCLE_MACHINING); // Default cycle
+
+            return STAT_NOOP; // Done, no move queued
+
+          } else {
+            motor_set_encoder(cal.motor, 0);
+
+            cal.reverse = true;
+            cal.velocity = 0;
+            cal.stall_valid = false;
+            cal.stalled = false;
+          }
+        }
+        break;
+      }
+  } while (fp_ZERO(cal.velocity)); // Repeat if computed velocity was zero
 
   // Compute travel
   float travel[AXES] = {0}; // In mm

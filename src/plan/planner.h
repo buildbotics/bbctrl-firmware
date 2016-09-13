@@ -79,13 +79,19 @@ typedef enum {
 
 
 void mp_init();
+
 void mp_set_axis_position(int axis, float position);
 float mp_get_axis_position(int axis);
 void mp_set_position(const float position[]);
+void mp_set_plan_steps(bool plan_steps);
+
 void mp_flush_planner();
 void mp_kinematics(const float travel[], float steps[]);
-void mp_plan_block_list(mp_buffer_t *bf);
-void mp_replan_blocks();
+
+void mp_plan(mp_buffer_t *bf);
+void mp_replan_all();
+
 void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line);
+
 float mp_get_target_length(float Vi, float Vf, const mp_buffer_t *bf);
 float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf);

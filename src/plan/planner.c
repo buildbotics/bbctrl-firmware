@@ -71,7 +71,13 @@
 #include <stdio.h>
 
 
-static float mp_position[AXES]; // final move position for planning purposes
+typedef struct {
+  float position[AXES];  // final move position for planning purposes
+  bool plan_steps;       // if true plan one GCode line at a time
+} planner_t;
+
+
+static planner_t mp = {{0}};
 
 
 void mp_init() {mp_queue_init();}
@@ -79,16 +85,19 @@ void mp_init() {mp_queue_init();}
 
 /// Set planner position for a single axis
 void mp_set_axis_position(int axis, float position) {
-  mp_position[axis] = position;
+  mp.position[axis] = position;
 }
 
 
-float mp_get_axis_position(int axis) {return mp_position[axis];}
+float mp_get_axis_position(int axis) {return mp.position[axis];}
 
 
 void mp_set_position(const float position[]) {
-  copy_vector(mp_position, position);
+  copy_vector(mp.position, position);
 }
+
+
+void mp_set_plan_steps(bool plan_steps) {mp.plan_steps = plan_steps;}
 
 
 /*** Flush all moves in the planner
@@ -135,16 +144,17 @@ void mp_kinematics(const float travel[], float steps[]) {
 #define MIN_BODY_LENGTH (MIN_SEGMENT_TIME_PLUS_MARGIN * bf->cruise_velocity)
 
 
-/*** This rather brute-force and long-ish function sets section lengths
- * and velocities based on the line length and velocities requested.  It
- * modifies the incoming bf buffer and returns accurate head, body and
- * tail lengths, and accurate or reasonably approximate velocities.  We
- * care about accuracy on lengths, less so for velocity, as long as velocity
- * errs on the side of too slow.
+/*** Calculate move acceleration / deceleration
  *
- * Note: We need the velocities to be set even for zero-length
- * sections (Note: sections, not moves) so we can compute entry and
- * exits for adjacent sections.
+ * This rather brute-force and long-ish function sets section lengths and
+ * velocities based on the line length and velocities requested.  It modifies
+ * the incoming bf buffer and returns accurate head, body and tail lengths, and
+ * accurate or reasonably approximate velocities.  We care about accuracy on
+ * lengths, less so for velocity, as long as velocity errs on the side of too
+ * slow.
+ *
+ * Note: We need the velocities to be set even for zero-length sections (Note:
+ * sections, not moves) so we can compute entry and exits for adjacent sections.
  *
  * Inputs used are:
  *
@@ -171,29 +181,25 @@ void mp_kinematics(const float travel[], float steps[]) {
  *
  * Classes of moves:
  *
- *   Requested-Fit - The move has sufficient length to achieve the
- *     target velocity (cruise velocity).  I.e it will accommodate
- *     the acceleration / deceleration profile in the given length.
+ *   Requested-Fit - The move has sufficient length to achieve the target
+ *     velocity (cruise velocity).  I.e it will accommodate the acceleration /
+ *     deceleration profile in the given length.
  *
- *   Rate-Limited-Fit - The move does not have sufficient length to
- *     achieve target velocity.  In this case the cruise velocity
- *     will be set lower than the requested velocity (incoming
- *     bf->cruise_velocity).  The entry and exit velocities are
- *     satisfied.
+ *   Rate-Limited-Fit - The move does not have sufficient length to achieve
+ *     target velocity.  In this case the cruise velocity will be set lower than
+ *     the requested velocity (incoming bf->cruise_velocity).  The entry and
+ *     exit velocities are satisfied.
  *
- *   Degraded-Fit - The move does not have sufficient length to
- *     transition from the entry velocity to the exit velocity in
- *     the available length. These velocities are not negotiable,
- *     so a degraded solution is found.
+ *   Degraded-Fit - The move does not have sufficient length to transition from
+ *     the entry velocity to the exit velocity in the available length. These
+ *     velocities are not negotiable, so a degraded solution is found.
  *
- *     In worst cases, the move cannot be executed as the required
- *     execution time is less than the minimum segment time.  The
- *     first degradation is to reduce the move to a body-only
- *     segment with an average velocity.  If that still doesn't fit
- *     then the move velocity is reduced so it fits into a minimum
- *     segment.  This will reduce the velocities in that region of
- *     the planner buffer as the moves are replanned to that
- *     worst-case move.
+ *     In worst cases, the move cannot be executed as the required execution
+ *     time is less than the minimum segment time.  The first degradation is to
+ *     reduce the move to a body-only segment with an average velocity.  If that
+ *     still doesn't fit then the move velocity is reduced so it fits into a
+ *     minimum segment.  This will reduce the velocities in that region of the
+ *     planner buffer as the moves are replanned to that worst-case move.
  *
  * Various cases handled (H=head, B=body, T=tail)
  *
@@ -440,19 +446,22 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 }
 
 
+#if 0
+/// Prints the entire planning queue as comma separated values embedded in
+/// JSON ``msg`` entries.  Used for debugging.
 void mp_print_queue(mp_buffer_t *bf) {
-  printf_P(PSTR("{\"msg\":\",id,replannable,callback,"
+  printf_P(PSTR("{\"msg\":\"id,replannable,callback,"
                 "length,head_length,body_length,tail_length,"
                 "entry_velocity,cruise_velocity,exit_velocity,braking_velocity,"
-                "entry_vmax,cruise_vmax,exit_vmax,\"}\n"));
+                "entry_vmax,cruise_vmax,exit_vmax\"}\n"));
 
   int i = 0;
   mp_buffer_t *bp = bf;
   while (bp) {
-    printf_P(PSTR("{\"msg\":\",%d,%d,0x%04x,"
+    printf_P(PSTR("{\"msg\":\"%d,%d,0x%04x,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
-                  "%0.2f,%0.2f,%0.2f,\"}\n"),
+                  "%0.2f,%0.2f,%0.2f\"}\n"),
              i++, bp->replannable, bp->cb,
              bp->length, bp->head_length, bp->body_length, bp->tail_length,
              bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
@@ -465,12 +474,13 @@ void mp_print_queue(mp_buffer_t *bf) {
 
   while (!usart_tx_empty()) continue;
 }
+#endif
 
 
-/*** Plans the entire block list
+/*** Plans the entire queue
  *
- * The block list is the circular buffer of planner buffers (bf's). The block
- * currently being planned is the "bf" block.  The "first block" is the next
+ * The block list is the circular buffer of planner buffers (bl's). The block
+ * currently being planned is the "bl" block.  The "first block" is the next
  * block to execute; queued immediately behind the currently executing block,
  * aka the "running" block.  In some cases, there is no first block because the
  * list is empty or there is only one block and it is already running.
@@ -479,82 +489,90 @@ void mp_print_queue(mp_buffer_t *bf) {
  * replannable) the first block that is not optimally planned becomes the
  * effective first block.
  *
- * mp_plan_block_list() plans all blocks between and including the (effective)
- * first block and the bf.  It sets entry, exit and cruise v's from vmax's then
+ * mp_plan() plans all blocks between and including the (effective)
+ * first block and the bl.  It sets entry, exit and cruise v's from vmax's then
  * calls trapezoid generation.
  *
  * Variables that must be provided in the mp_buffer_t that will be processed:
  *
- *   bf (function arg)     - end of block list (last block in time)
- *   bf->replannable       - start of block list set by last FALSE value
+ *   bl (function arg)     - end of block list (last block in time)
+ *   bl->replannable       - start of block list set by last FALSE value
  *                           [Note 1]
- *   bf->move_type         - typically MOVE_TYPE_ALINE. Other move_types should
+ *   bl->move_type         - typically MOVE_TYPE_ALINE. Other move_types should
  *                           be set to length=0, entry_vmax=0 and exit_vmax=0
  *                           and are treated as a momentary stop (plan to zero
  *                           and from zero).
- *   bf->length            - provides block length
- *   bf->entry_vmax        - used during forward planning to set entry velocity
- *   bf->cruise_vmax       - used during forward planning to set cruise velocity
- *   bf->exit_vmax         - used during forward planning to set exit velocity
- *   bf->delta_vmax        - used during forward planning to set exit velocity
- *   bf->recip_jerk        - used during trapezoid generation
- *   bf->cbrt_jerk         - used during trapezoid generation
+ *   bl->length            - provides block length
+ *   bl->entry_vmax        - used during forward planning to set entry velocity
+ *   bl->cruise_vmax       - used during forward planning to set cruise velocity
+ *   bl->exit_vmax         - used during forward planning to set exit velocity
+ *   bl->delta_vmax        - used during forward planning to set exit velocity
+ *   bl->recip_jerk        - used during trapezoid generation
+ *   bl->cbrt_jerk         - used during trapezoid generation
  *
  * Variables that will be set during processing:
  *
- *   bf->replannable       - set if the block becomes optimally planned
- *   bf->braking_velocity  - set during backward planning
- *   bf->entry_velocity    - set during forward planning
- *   bf->cruise_velocity   - set during forward planning
- *   bf->exit_velocity     - set during forward planning
- *   bf->head_length       - set during trapezoid generation
- *   bf->body_length       - set during trapezoid generation
- *   bf->tail_length       - set during trapezoid generation
+ *   bl->replannable       - set if the block becomes optimally planned
+ *   bl->braking_velocity  - set during backward planning
+ *   bl->entry_velocity    - set during forward planning
+ *   bl->cruise_velocity   - set during forward planning
+ *   bl->exit_velocity     - set during forward planning
+ *   bl->head_length       - set during trapezoid generation
+ *   bl->body_length       - set during trapezoid generation
+ *   bl->tail_length       - set during trapezoid generation
  *
  * Variables that are ignored but here's what you would expect them to be:
  *
- *   bf->state             - BUFFER_NEW for all blocks but the earliest
- *   bf->target[]          - block target position
- *   bf->unit[]            - block unit vector
- *   bf->jerk              - source of the other jerk variables.
+ *   bl->state             - BUFFER_NEW for all blocks but the earliest
+ *   bl->target[]          - block target position
+ *   bl->unit[]            - block unit vector
+ *   bl->jerk              - source of the other jerk variables.
  *
  * Notes:
  *
- * [1] Whether or not a block is planned is controlled by the bf->replannable
+ * [1] Whether or not a block is planned is controlled by the bl->replannable
  *     setting.  Replan flags are checked during the backwards pass.  They prune
  *     the replan list to include only the latest blocks that require planning.
  *
  *     In normal operation, the first block (currently running block) is not
  *     replanned, but may be for feedholds and feed overrides.  In these cases,
  *     the prep routines modify the contents of the (ex) buffer and re-shuffle
- *     the block list, re-enlisting the current bf buffer with new parameters.
+ *     the block list, re-enlisting the current bl buffer with new parameters.
  *     These routines also set all blocks in the list to be replannable so the
  *     list can be recomputed regardless of exact stops and previous replanning
  *     optimizations.
  */
-void mp_plan_block_list(mp_buffer_t *bf) {
-  mp_buffer_t *bp = bf;
+void mp_plan(mp_buffer_t *bl) {
+  mp_buffer_t *bp = bl;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
   mp_buffer_t *next = bp;
-  while ((bp = mp_buffer_prev(bp)) != bf) {
+  while ((bp = mp_buffer_prev(bp)) != bl) {
     if (!bp->replannable) break;
+
     bp->braking_velocity =
       min(next->entry_vmax, next->braking_velocity) + bp->delta_vmax;
+
     next = bp;
   }
 
-  // Forward planning pass.  Recompute trapezoids from the first block to bf.
+  // Forward planning pass.  Recompute trapezoids from the first block to bl.
   mp_buffer_t *prev = bp;
-  while ((bp = mp_buffer_next(bp)) != bf) {
+  while ((bp = mp_buffer_next(bp)) != bl) {
     mp_buffer_t *next = mp_buffer_next(bp);
 
-    bp->entry_velocity = prev == bf ? bp->entry_vmax : prev->exit_velocity;
+    bp->entry_velocity = prev == bl ? bp->entry_vmax : prev->exit_velocity;
     bp->cruise_velocity = bp->cruise_vmax;
     bp->exit_velocity = min4(bp->exit_vmax, next->entry_vmax,
                              next->braking_velocity,
                              bp->entry_velocity + bp->delta_vmax);
+
+    if (mp.plan_steps && bp->line != next->line) {
+      bp->exit_velocity = 0;
+      bp->hold = true;
+
+    } else bp->hold = false;
 
     mp_calculate_trapezoid(bp);
 
@@ -569,17 +587,18 @@ void mp_plan_block_list(mp_buffer_t *bf) {
   }
 
   // Finish last block
-  bf->entry_velocity = prev->exit_velocity;
-  bf->cruise_velocity = bf->cruise_vmax;
-  bf->exit_velocity = 0;
+  bl->entry_velocity = prev->exit_velocity;
+  bl->cruise_velocity = bl->cruise_vmax;
+  bl->exit_velocity = 0;
 
-  mp_calculate_trapezoid(bf);
-
-  //mp_print_queue(bf);
+  mp_calculate_trapezoid(bl);
 }
 
 
-void mp_replan_blocks() {
+void mp_replan_all() {
+  ASSERT(mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING);
+
+  // Get next buffer
   mp_buffer_t *bf = mp_queue_get_head();
   if (!bf) return;
 
@@ -589,12 +608,12 @@ void mp_replan_blocks() {
   while (true) {
     bp->replannable = true;
     mp_buffer_t *next = mp_buffer_next(bp);
-    if (next->state == BUFFER_OFF || next == bf) break;
+    if (next->state == BUFFER_OFF || next == bf) break; // Avoid wrap around
     bp = next;
   }
 
   // Plan blocks
-  mp_plan_block_list(bp);
+  mp_plan(bp);
 }
 
 

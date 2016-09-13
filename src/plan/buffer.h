@@ -57,6 +57,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
 
   buffer_state_t state;           // buffer state
   bool replannable;               // true if move can be re-planned
+  bool hold;                      // hold at the start of this block
 
   float value;                    // used in dwell and other callbacks
 

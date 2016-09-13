@@ -55,14 +55,14 @@ typedef struct {
   float cruise_velocity;
   float exit_velocity;
 
-  float segments;               // number of segments in line or arc
-  uint32_t segment_count;       // count of running segments
-  float segment_velocity;       // computed velocity for aline segment
-  float segment_time;           // actual time increment per aline segment
-  float forward_diff[5];        // forward difference levels
-  bool hold_planned;            // true when a feedhold has been planned
-  move_section_t section;       // what section is the move in?
-  bool section_new;             // true if it's a new section
+  float segments;           // number of segments in line or arc
+  uint32_t segment_count;   // count of running segments
+  float segment_velocity;   // computed velocity for aline segment
+  float segment_time;       // actual time increment per aline segment
+  float forward_diff[5];    // forward difference levels
+  bool hold_planned;        // true when a feedhold has been planned
+  move_section_t section;   // what section is the move in?
+  bool section_new;         // true if it's a new section
 } mp_exec_t;
 
 
@@ -94,123 +94,120 @@ static stat_t _exec_aline_segment() {
 }
 
 
-/*** Forward difference math explained:
- *
- * We are using a quintic (fifth-degree) Bezier polynomial for the
- * velocity curve.  This gives us a "linear pop" velocity curve;
- * with pop being the sixth derivative of position: velocity - 1st,
- * acceleration - 2nd, jerk - 3rd, snap - 4th, crackle - 5th, pop - 6th
- *
- * The Bezier curve takes the form:
- *
- *   V(t) = P_0 * B_0(t) + P_1 * B_1(t) + P_2 * B_2(t) + P_3 * B_3(t) +
- *          P_4 * B_4(t) + P_5 * B_5(t)
- *
- * Where 0 <= t <= 1, and V(t) is the velocity. P_0 through P_5 are
- * the control points, and B_0(t) through B_5(t) are the Bernstein
- * basis as follows:
- *
- *   B_0(t) =   (1 - t)^5        =   -t^5 +  5t^4 - 10t^3 + 10t^2 -  5t + 1
- *   B_1(t) =  5(1 - t)^4 * t    =   5t^5 - 20t^4 + 30t^3 - 20t^2 +  5t
- *   B_2(t) = 10(1 - t)^3 * t^2  = -10t^5 + 30t^4 - 30t^3 + 10t^2
- *   B_3(t) = 10(1 - t)^2 * t^3  =  10t^5 - 20t^4 + 10t^3
- *   B_4(t) =  5(1 - t)   * t^4  =  -5t^5 +  5t^4
- *   B_5(t) =               t^5  =    t^5
- *
- *                                      ^       ^       ^       ^     ^   ^
- *                                      A       B       C       D     E   F
- *
- * We use forward-differencing to calculate each position through the curve.
- * This requires a formula of the form:
- *
- *   V_f(t) = A * t^5 + B * t^4 + C * t^3 + D * t^2 + E * t + F
- *
- * Looking at the above B_0(t) through B_5(t) expanded forms, if we
- * take the coefficients of t^5 through t of the Bezier form of V(t),
- * we can determine that:
- *
- *   A =      -P_0 +  5 * P_1 - 10 * P_2 + 10 * P_3 -  5 * P_4 +  P_5
- *   B =   5 * P_0 - 20 * P_1 + 30 * P_2 - 20 * P_3 +  5 * P_4
- *   C = -10 * P_0 + 30 * P_1 - 30 * P_2 + 10 * P_3
- *   D =  10 * P_0 - 20 * P_1 + 10 * P_2
- *   E = - 5 * P_0 +  5 * P_1
- *   F =       P_0
- *
- * Now, since we will (currently) *always* want the initial
- * acceleration and jerk values to be 0, We set P_i = P_0 = P_1 =
- * P_2 (initial velocity), and P_t = P_3 = P_4 = P_5 (target
- * velocity), which, after simplification, resolves to:
- *
- *   A = - 6 * P_i +  6 * P_t
- *   B =  15 * P_i - 15 * P_t
- *   C = -10 * P_i + 10 * P_t
- *   D = 0
- *   E = 0
- *   F = P_i
- *
- * Given an interval count of I to get from P_i to P_t, we get the
- * parametric "step" size of h = 1/I.  We need to calculate the
- * initial value of forward differences (F_0 - F_5) such that the
- * inital velocity V = P_i, then we iterate over the following I
- * times:
- *
- *   V   += F_5
- *   F_5 += F_4
- *   F_4 += F_3
- *   F_3 += F_2
- *   F_2 += F_1
- *
- * See
- * http://www.drdobbs.com/forward-difference-calculation-of-bezier/184403417
- * for an example of how to calculate F_0 - F_5 for a cubic bezier
- * curve. Since this is a quintic bezier curve, we need to extend
- * the formulas somewhat.  I'll not go into the long-winded
- * step-by-step here, but it gives the resulting formulas:
- *
- *   a = A, b = B, c = C, d = D, e = E, f = F
- *
- *   F_5(t + h) - F_5(t) = (5ah)t^4 + (10ah^2 + 4bh)t^3 +
- *     (10ah^3 + 6bh^2 + 3ch)t^2 + (5ah^4 + 4bh^3 + 3ch^2 + 2dh)t + ah^5 +
- *     bh^4 + ch^3 + dh^2 + eh
- *
- *   a = 5ah
- *   b = 10ah^2 + 4bh
- *   c = 10ah^3 + 6bh^2 + 3ch
- *   d = 5ah^4 + 4bh^3 + 3ch^2 + 2dh
- *
- * After substitution, simplification, and rearranging:
- *
- *   F_4(t + h) - F_4(t) = (20ah^2)t^3 + (60ah^3 + 12bh^2)t^2 +
- *     (70ah^4 + 24bh^3 + 6ch^2)t + 30ah^5 + 14bh^4 + 6ch^3 + 2dh^2
- *
- *   a = 20ah^2
- *   b = 60ah^3 + 12bh^2
- *   c = 70ah^4 + 24bh^3 + 6ch^2
- *
- * After substitution, simplification, and rearranging:
- *
- *   F_3(t + h) - F_3(t) = (60ah^3)t^2 + (180ah^4 + 24bh^3)t + 150ah^5 +
- *     36bh^4 + 6ch^3
- *
- * You get the picture...
- *
- *   F_2(t + h) - F_2(t) = (120ah^4)t + 240ah^5 + 24bh^4
- *   F_1(t + h) - F_1(t) = 120ah^5
- *
- * Normally, we could then assign t = 0, use the A-F values from
- * above, and get out initial F_* values.  However, for the sake of
- * "averaging" the velocity of each segment, we actually want to have
- * the initial V be be at t = h/2 and iterate I-1 times.  So, the
- * resulting F_* values are (steps not shown):
- *
- *   F_5 = 121Ah^5 / 16 + 5Bh^4 + 13Ch^3 / 4 + 2Dh^2 + Eh
- *   F_4 = 165Ah^5 / 2 + 29Bh^4 + 9Ch^3 + 2Dh^2
- *   F_3 = 255Ah^5 + 48Bh^4 + 6Ch^3
- *   F_2 = 300Ah^5 + 24Bh^4
- *   F_1 = 120Ah^5
- *
- * Note that with our current control points, D and E are actually 0.
- */
+/// Forward differencing math
+///
+/// We are using a quintic (fifth-degree) Bezier polynomial for the velocity
+/// curve.  This gives us a "linear pop" velocity curve; with pop being the
+/// sixth derivative of position: velocity - 1st, acceleration - 2nd, jerk -
+/// 3rd, snap - 4th, crackle - 5th, pop - 6th
+///
+/// The Bezier curve takes the form:
+///
+///   V(t) = P_0 * B_0(t) + P_1 * B_1(t) + P_2 * B_2(t) + P_3 * B_3(t) +
+///          P_4 * B_4(t) + P_5 * B_5(t)
+///
+/// Where 0 <= t <= 1, and V(t) is the velocity. P_0 through P_5 are
+/// the control points, and B_0(t) through B_5(t) are the Bernstein
+/// basis as follows:
+///
+///   B_0(t) =   (1 - t)^5        =   -t^5 +  5t^4 - 10t^3 + 10t^2 -  5t + 1
+///   B_1(t) =  5(1 - t)^4 * t    =   5t^5 - 20t^4 + 30t^3 - 20t^2 +  5t
+///   B_2(t) = 10(1 - t)^3 * t^2  = -10t^5 + 30t^4 - 30t^3 + 10t^2
+///   B_3(t) = 10(1 - t)^2 * t^3  =  10t^5 - 20t^4 + 10t^3
+///   B_4(t) =  5(1 - t)   * t^4  =  -5t^5 +  5t^4
+///   B_5(t) =               t^5  =    t^5
+///
+///                                      ^       ^       ^       ^     ^   ^
+///                                      A       B       C       D     E   F
+///
+/// We use forward-differencing to calculate each position through the curve.
+/// This requires a formula of the form:
+///
+///   V_f(t) = A * t^5 + B * t^4 + C * t^3 + D * t^2 + E * t + F
+///
+/// Looking at the above B_0(t) through B_5(t) expanded forms, if we take the
+/// coefficients of t^5 through t of the Bezier form of V(t), we can determine
+/// that:
+///
+///   A =      -P_0 +  5 * P_1 - 10 * P_2 + 10 * P_3 -  5 * P_4 +  P_5
+///   B =   5 * P_0 - 20 * P_1 + 30 * P_2 - 20 * P_3 +  5 * P_4
+///   C = -10 * P_0 + 30 * P_1 - 30 * P_2 + 10 * P_3
+///   D =  10 * P_0 - 20 * P_1 + 10 * P_2
+///   E = - 5 * P_0 +  5 * P_1
+///   F =       P_0
+///
+/// Now, since we will (currently) *always* want the initial acceleration and
+/// jerk values to be 0, We set P_i = P_0 = P_1 = P_2 (initial velocity), and
+/// P_t = P_3 = P_4 = P_5 (target velocity), which, after simplification,
+/// resolves to:
+///
+///   A = - 6 * P_i +  6 * P_t
+///   B =  15 * P_i - 15 * P_t
+///   C = -10 * P_i + 10 * P_t
+///   D = 0
+///   E = 0
+///   F = P_i
+///
+/// Given an interval count of I to get from P_i to P_t, we get the parametric
+/// "step" size of h = 1/I.  We need to calculate the initial value of forward
+/// differences (F_0 - F_5) such that the inital velocity V = P_i, then we
+/// iterate over the following I times:
+///
+///   V   += F_5
+///   F_5 += F_4
+///   F_4 += F_3
+///   F_3 += F_2
+///   F_2 += F_1
+///
+/// See
+/// http://www.drdobbs.com/forward-difference-calculation-of-bezier/184403417
+/// for an example of how to calculate F_0 - F_5 for a cubic bezier curve. Since
+/// this is a quintic bezier curve, we need to extend the formulas somewhat.
+/// I'll not go into the long-winded step-by-step here, but it gives the
+/// resulting formulas:
+///
+///   a = A, b = B, c = C, d = D, e = E, f = F
+///
+///   F_5(t + h) - F_5(t) = (5ah)t^4 + (10ah^2 + 4bh)t^3 +
+///     (10ah^3 + 6bh^2 + 3ch)t^2 + (5ah^4 + 4bh^3 + 3ch^2 + 2dh)t + ah^5 +
+///     bh^4 + ch^3 + dh^2 + eh
+///
+///   a = 5ah
+///   b = 10ah^2 + 4bh
+///   c = 10ah^3 + 6bh^2 + 3ch
+///   d = 5ah^4 + 4bh^3 + 3ch^2 + 2dh
+///
+/// After substitution, simplification, and rearranging:
+///
+///   F_4(t + h) - F_4(t) = (20ah^2)t^3 + (60ah^3 + 12bh^2)t^2 +
+///     (70ah^4 + 24bh^3 + 6ch^2)t + 30ah^5 + 14bh^4 + 6ch^3 + 2dh^2
+///
+///   a = 20ah^2
+///   b = 60ah^3 + 12bh^2
+///   c = 70ah^4 + 24bh^3 + 6ch^2
+///
+/// After substitution, simplification, and rearranging:
+///
+///   F_3(t + h) - F_3(t) = (60ah^3)t^2 + (180ah^4 + 24bh^3)t + 150ah^5 +
+///     36bh^4 + 6ch^3
+///
+/// You get the picture...
+///
+///   F_2(t + h) - F_2(t) = (120ah^4)t + 240ah^5 + 24bh^4
+///   F_1(t + h) - F_1(t) = 120ah^5
+///
+/// Normally, we could then assign t = 0, use the A-F values from above, and get
+/// out initial F_* values.  However, for the sake of "averaging" the velocity
+/// of each segment, we actually want to have the initial V be be at t = h/2 and
+/// iterate I-1 times.  So, the resulting F_* values are (steps not shown):
+///
+///   F_5 = 121Ah^5 / 16 + 5Bh^4 + 13Ch^3 / 4 + 2Dh^2 + Eh
+///   F_4 = 165Ah^5 / 2 + 29Bh^4 + 9Ch^3 + 2Dh^2
+///   F_3 = 255Ah^5 + 48Bh^4 + 6Ch^3
+///   F_2 = 300Ah^5 + 24Bh^4
+///   F_1 = 120Ah^5
+///
+/// Note that with our current control points, D and E are actually 0.
 static float _init_forward_diffs(float Vi, float Vt, float segments) {
   float A =  -6.0 * Vi +  6.0 * Vt;
   float B =  15.0 * Vi - 15.0 * Vt;
@@ -342,18 +339,17 @@ static float _compute_next_segment_velocity() {
 }
 
 
-/*** Replan current move to execute hold
- *
- * Holds are initiated by the planner entering STATE_STOPPING.  In which case
- * _plan_hold() is called to replan the current move towards zero.  If it is
- * unable to plan to zero in the remaining length of the current move it will
- * decelerate as much as possible and then wait for the next move.  Once it
- * is possible to plan to zero velocity in the current move the remaining length
- * is put into the run buffer, which is still allocated, and the run buffer
- * becomes the hold point.  The hold is left by a start request in state.c.  At
- * this point the remaining buffers, if any, are replanned from zero up to
- * speed.
- */
+/// Replan current move to execute hold
+///
+/// Holds are initiated by the planner entering STATE_STOPPING.  In which case
+/// _plan_hold() is called to replan the current move towards zero.  If it is
+/// unable to plan to zero in the remaining length of the current move it will
+/// decelerate as much as possible and then wait for the next move.  Once it is
+/// possible to plan to zero velocity in the current move the remaining length
+/// is put into the run buffer, which is still allocated, and the run buffer
+/// becomes the hold point.  The hold is left by a start request in state.c.  At
+/// this point the remaining buffers, if any, are replanned from zero up to
+/// speed.
 static void _plan_hold() {
   mp_buffer_t *bf = mp_queue_get_head(); // working buffer pointer
   if (!bf) return; // Oops! nothing's running
@@ -440,58 +436,57 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
 }
 
 
-/* Aline execution routines
- *
- * Everything here fires from interrupts and must be interrupt safe
- *
- * Returns:
- *
- *   STAT_OK        move is done
- *   STAT_EAGAIN    move is not finished - has more segments to run
- *   STAT_NOOP      cause no stepper operation - do not load the move
- *   STAT_xxxxx     fatal error.  Ends the move and frees the bf buffer
- *
- * This routine is called from the (LO) interrupt level.  The interrupt
- * sequencing relies on the correct behavior of these routines.
- * Each call to _exec_aline() must execute and prep *one and only one*
- * segment.  If the segment is not the last segment in the bf buffer the
- * _aline() returns STAT_EAGAIN. If it's the last segment it returns
- * STAT_OK.  If it encounters a fatal error that would terminate the move it
- * returns a valid error code.
- *
- * Notes:
- *
- * [1] Returning STAT_OK ends the move and frees the bf buffer.
- *     Returning STAT_OK at does NOT advance position meaning
- *     any position error will be compensated by the next move.
- *
- * Operation:
- *
- * Aline generates jerk-controlled S-curves as per Ed Red's course notes:
- *
- *   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
- *   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
- *
- * A full trapezoid is divided into 5 periods.  Periods 1 and 2 are the
- * first and second halves of the acceleration ramp (the concave and convex
- * parts of the S curve in the "head").  Periods 3 and 4 are the first
- * and second parts of the deceleration ramp (the tail).  There is also
- * a period for the constant-velocity plateau of the trapezoid (the body).
- * There are many possible degenerate trapezoids where any of the 5 periods
- * may be zero length but note that either none or both of a ramping pair can
- * be zero.
- *
- * The equations that govern the acceleration and deceleration ramps are:
- *
- *   Period 1    V = Vi + Jm * (T^2) / 2
- *   Period 2    V = Vh + As * T - Jm * (T^2) / 2
- *   Period 3    V = Vi - Jm * (T^2) / 2
- *   Period 4    V = Vh + As * T + Jm * (T^2) / 2
- *
- * move_time is the actual time of the move, accel_time is the time value
- * needed to compute the velocity taking the initial velocity into account.
- * move_time does not need to.
- */
+/// Aline execution routines
+///
+/// Everything here fires from interrupts and must be interrupt safe
+///
+/// Returns:
+///
+///   STAT_OK        move is done
+///   STAT_EAGAIN    move is not finished - has more segments to run
+///   STAT_NOOP      cause no stepper operation - do not load the move
+///   STAT_xxxxx     fatal error.  Ends the move and frees the bf buffer
+///
+/// This routine is called from the (LO) interrupt level.  The interrupt
+/// sequencing relies on the correct behavior of these routines.
+/// Each call to _exec_aline() must execute and prep *one and only one*
+/// segment.  If the segment is not the last segment in the bf buffer the
+/// _aline() returns STAT_EAGAIN. If it's the last segment it returns
+/// STAT_OK.  If it encounters a fatal error that would terminate the move it
+/// returns a valid error code.
+///
+/// Notes:
+///
+/// [1] Returning STAT_OK ends the move and frees the bf buffer.
+///     Returning STAT_OK at does NOT advance position meaning
+///     any position error will be compensated by the next move.
+///
+/// Operation:
+///
+/// Aline generates jerk-controlled S-curves as per Ed Red's course notes:
+///
+///   http://www.et.byu.edu/~ered/ME537/Notes/Ch5.pdf
+///   http://www.scribd.com/doc/63521608/Ed-Red-Ch5-537-Jerk-Equations
+///
+/// A full trapezoid is divided into 5 periods.  Periods 1 and 2 are the
+/// first and second halves of the acceleration ramp (the concave and convex
+/// parts of the S curve in the "head").  Periods 3 and 4 are the first
+/// and second parts of the deceleration ramp (the tail).  There is also
+/// a period for the constant-velocity plateau of the trapezoid (the body).
+/// There are many possible degenerate trapezoids where any of the 5 periods
+/// may be zero length but note that either none or both of a ramping pair can
+/// be zero.
+///
+/// The equations that govern the acceleration and deceleration ramps are:
+///
+///   Period 1    V = Vi + Jm * (T^2) / 2
+///   Period 2    V = Vh + As * T - Jm * (T^2) / 2
+///   Period 3    V = Vi - Jm * (T^2) / 2
+///   Period 4    V = Vh + As * T + Jm * (T^2) / 2
+///
+/// move_time is the actual time of the move, accel_time is the time value
+/// needed to compute the velocity taking the initial velocity into account.
+/// move_time does not need to.
 stat_t mp_exec_aline(mp_buffer_t *bf) {
   stat_t status = STAT_OK;
 
@@ -519,20 +514,26 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
 }
 
 
-/// Dequeues buffer and executes move callback
+/// Dequeues buffers, initializes them, executes their callbacks and cleans up.
+///
+/// This is the guts of the planner runtime execution.  Because this routine is
+/// run in an interrupt the state changes must be carefully ordered.
 stat_t mp_exec_move() {
+  // Check if we can run a buffer
   mp_buffer_t *bf = mp_queue_get_head();
   if (mp_get_state() == STATE_ESTOPPED || mp_get_state() == STATE_HOLDING ||
       !bf) {
     mp_runtime_set_velocity(0);
     mp_runtime_set_busy(false);
+
     return STAT_NOOP; // Nothing running
   }
 
+  // Process new buffers
   if (bf->state == BUFFER_NEW) {
     // On restart wait a bit to give planner queue a chance to fill
-    if (!mp_runtime_is_busy() && mp_queue_get_fill() < 4 &&
-      !rtc_expired(bf->ts + 250)) return STAT_NOOP;
+    if (!mp_runtime_is_busy() && mp_queue_get_fill() < PLANNER_EXEC_MIN_FILL &&
+      !rtc_expired(bf->ts + PLANNER_EXEC_DELAY)) return STAT_NOOP;
 
     // Take control of buffer
     bf->state = BUFFER_INIT;
@@ -542,38 +543,44 @@ stat_t mp_exec_move() {
     mp_runtime_set_line(bf->line);
   }
 
-  stat_t status = bf->cb(bf); // Move callback
+  // Execute the buffer
+  stat_t status = bf->cb(bf);
 
-  // Busy only if a move was queued
+  // Signal that we are busy only if a move was queued.  This means that
+  // nonstop buffers, i.e. non-plan-to-zero commands, will not cause the
+  // runtime to enter the busy state.  This causes mp_exec_move() to continue
+  // to wait above for the planner buffer to fill when a new stream starts
+  // with some nonstop buffers.  If this weren't so, the code below
+  // which marks the next buffer not replannable would lock the first move
+  // buffer and cause it to be unnecessarily planned to zero.
   if (status == STAT_EAGAIN || status == STAT_OK) mp_runtime_set_busy(true);
 
+  // Process finished buffers
   if (status != STAT_EAGAIN) {
-    // Enter HOLDING state
-    if (mp_get_state() == STATE_STOPPING &&
-        fp_ZERO(mp_runtime_get_velocity())) {
-      mp_state_holding();
-    }
+    // Signal that we've encountered a stopping point
+    if (fp_ZERO(mp_runtime_get_velocity()) &&
+        (mp_get_state() == STATE_STOPPING || bf->hold)) mp_state_holding();
 
-    // Handle buffer run state
+    // Handle buffer restarts and deallocation
     if (bf->state == BUFFER_RESTART) bf->state = BUFFER_NEW;
     else {
-      // Solves a potential race condition where the current move ends but
-      // the new move has not started because the current move is still
-      // being run by the steppers.  Planning can overwrite the new move.
+      // Solves a potential race condition where the current buffer ends but
+      // the new buffer has not started because the current one is still
+      // being run by the steppers.  Planning can overwrite the new buffer.
+      // See notes above.
       mp_buffer_next(bf)->replannable = false;
 
       mp_queue_pop(); // Release buffer
 
       // Enter READY state
       if (mp_queue_is_empty()) mp_state_idle();
-
-      mp_set_cycle(CYCLE_MACHINING); // Default cycle
     }
   }
 
+  // Convert return status for stepper.c
   switch (status) {
   case STAT_NOOP: return STAT_EAGAIN; // Tell caller to call again
-  case STAT_EAGAIN: return STAT_OK;   // Move queued, call again later
+  case STAT_EAGAIN: return STAT_OK;   // A move was queued, call again later
   default: return status;
   }
 }

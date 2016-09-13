@@ -186,6 +186,8 @@ static void _homing_finalize_exit() {
   mach_set_feed_mode(hm.saved_feed_mode);
   mach_set_feed_rate(hm.saved_feed_rate);
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
+
+  mp_set_cycle(CYCLE_MACHINING); // Default cycle
 }
 
 

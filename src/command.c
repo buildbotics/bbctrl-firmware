@@ -77,7 +77,7 @@ static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   case I2C_PAUSE:          mp_request_hold();           break;
   case I2C_OPTIONAL_PAUSE: mp_request_optional_pause(); break;
   case I2C_RUN:            mp_request_start();          break;
-  case I2C_STEP:                                        break; // TODO
+  case I2C_STEP:           mp_request_step();           break;
   case I2C_FLUSH:          mp_request_flush();          break;
   case I2C_REPORT:         report_request_full();       break;
   case I2C_HOME:                                        break; // TODO
@@ -223,6 +223,7 @@ void command_callback() {
   case 0: break; // Empty line
   case '{': status = vars_parser(_cmd); break;
   case '$': status = command_parser(_cmd); break;
+  case '%': break; // GCode program separator, ignore it
 
   default:
     if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}

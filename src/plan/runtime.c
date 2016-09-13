@@ -75,7 +75,7 @@ typedef struct {
   distance_mode_t arc_distance_mode;
 } mp_runtime_t;
 
-static mp_runtime_t rt;
+static mp_runtime_t rt = {0};
 
 
 bool mp_runtime_is_busy() {return rt.busy;}

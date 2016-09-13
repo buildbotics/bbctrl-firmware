@@ -100,6 +100,8 @@ static void _probe_restore_settings() {
 
   // update the model with actual position
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);
+
+  mp_set_cycle(CYCLE_MACHINING); // Default cycle
 }
 
 

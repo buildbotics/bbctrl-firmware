@@ -384,13 +384,21 @@ typedef enum {
 
 
 // Planner
-/// Should be at least the number of buffers requires to support optimal
-/// planning in the case of very short lines or arc segments.  Suggest 12 min.
-/// Limit is 255.
-#define PLANNER_BUFFER_POOL_SIZE 32
+/// Should be at least the number of buffers required to support optimal
+/// planning in the case of very short lines or arc segments.  Suggest no less
+/// than 12.  Maximum is 255 with out also changing the type of mb.space.  Must
+/// leave headroom for stack.
+#define PLANNER_BUFFER_POOL_SIZE 48
 
 /// Buffers to reserve in planner before processing new input line
 #define PLANNER_BUFFER_HEADROOM 4
+
+/// Minimum number of filled buffers before timeout until execution starts
+#define PLANNER_EXEC_MIN_FILL 4
+
+/// Delay before executing new buffers unless PLANNER_EXEC_MIN_FILL is met
+/// This gives the planner a chance to make a good plan before execution starts
+#define PLANNER_EXEC_DELAY 250 // In ms
 
 
 // I2C

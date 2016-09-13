@@ -88,5 +88,6 @@ void mp_request_start();
 void mp_request_flush();
 void mp_request_resume();
 void mp_request_optional_pause();
+void mp_request_step();
 
 void mp_state_callback();

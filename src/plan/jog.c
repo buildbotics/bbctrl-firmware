@@ -92,6 +92,8 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
     for (int axis = 0; axis < AXES; axis++)
       mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
+    mp_set_cycle(CYCLE_MACHINING); // Default cycle
+
     return STAT_NOOP; // Done, no move executed
   }
 

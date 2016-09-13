@@ -54,7 +54,7 @@ typedef struct {
 
 
 static planner_state_t ps = {
-  .flush_requested = true // Start out flushing
+  .flush_requested = true, // Start out flushing
 };
 
 
@@ -104,6 +104,7 @@ mp_cycle_t mp_get_cycle() {return ps.cycle;}
 static void _set_state(mp_state_t state) {
   if (ps.state == state) return; // No change
   if (ps.state == STATE_ESTOPPED) return; // Can't leave EStop state
+  if (state == STATE_READY) mp_runtime_set_line(0);
   ps.state = state;
   report_request();
 }
@@ -160,7 +161,10 @@ void mp_state_optional_pause() {
 }
 
 
-void mp_state_holding() {_set_state(STATE_HOLDING);}
+void mp_state_holding() {
+  _set_state(STATE_HOLDING);
+  mp_set_plan_steps(false);
+}
 
 
 void mp_state_running() {
@@ -181,6 +185,12 @@ void mp_request_start() {ps.start_requested = true;}
 void mp_request_flush() {ps.flush_requested = true;}
 void mp_request_resume() {if (ps.flush_requested) ps.resume_requested = true;}
 void mp_request_optional_pause() {ps.optional_pause_requested = true;}
+
+
+void mp_request_step() {
+  mp_set_plan_steps(true);
+  ps.start_requested = true;
+}
 
 
 /*** Feedholds, queue flushes and starts are all related.  Request functions
@@ -242,7 +252,8 @@ void mp_state_callback() {
     if (mp_get_state() == STATE_HOLDING) {
       // Check if any moves are buffered
       if (!mp_queue_is_empty()) {
-        mp_replan_blocks();
+        // Always replan when coming out of a hold
+        mp_replan_all();
         _set_state(STATE_RUNNING);
 
       } else _set_state(STATE_READY);
