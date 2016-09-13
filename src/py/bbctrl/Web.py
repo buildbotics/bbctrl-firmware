@@ -53,7 +53,7 @@ class OptionalPauseHandler(bbctrl.APIHandler):
 
 
 class StepHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.step()
+    def put_ok(self, path): self.ctrl.avr.step(path)
 
 
 class ZeroHandler(bbctrl.APIHandler):
@@ -115,7 +115,7 @@ class Web(tornado.web.Application):
             (r'/api/pause', PauseHandler),
             (r'/api/unpause', UnpauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
-            (r'/api/step', StepHandler),
+            (r'/api/step(/.+)', StepHandler),
             (r'/api/zero(/[xyzabcXYZABC])?', ZeroHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),

@@ -31,7 +31,7 @@ script#control-view-template(type="text/x-template")
         td
       tr
         th Reason
-        td {{state.pr}}
+        td {{get_reason()}}
         td
       tr
         th Feed
@@ -53,7 +53,7 @@ script#control-view-template(type="text/x-template")
         td mm/min
       tr
         th Line
-        td {{state.ln || ''}}
+        td {{0 <= state.ln ? state.ln : '-'}}
         td
       tr
         th Tool
@@ -89,7 +89,7 @@ script#control-view-template(type="text/x-template")
       button.pure-button(
         title="{{state.x == 'RUNNING' ? 'Pause' : 'Start'}} program.",
         @click="start_pause",
-        :disabled="state.c == 'HOMING'")
+        :disabled="state.c == 'HOMING' || !file")
         .fa(:class="state.x == 'RUNNING' ? 'fa-pause' : 'fa-play'")
 
       button.pure-button(title="Stop program.", @click="stop",

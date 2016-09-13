@@ -52,8 +52,13 @@ module.exports = {
   methods: {
     get_state: function () {
       var state = this.state.x || '';
-      if (state == 'running' && this.state.c) state = this.state.c;
-      return state.toUpperCase();
+      if (state == 'RUNNING' && this.state.c) state = this.state.c;
+      return state;
+    },
+
+
+    get_reason: function () {
+      return this.state.x == 'HOLDING' ? this.state.pr : '';
     },
 
 
@@ -77,8 +82,9 @@ module.exports = {
 
       if (0 <= this.state.ln) {
         var line = this.state.ln - 1;
-        $('#gcode-line-' + line)
-          .addClass('highlight')[0]
+        var e = $('#gcode-line-' + line);
+        if (e.length)
+          e.addClass('highlight')[0]
           .scrollIntoView({behavior: 'smooth'});
 
         this.last_line = line;
@@ -141,7 +147,7 @@ module.exports = {
 
       api.get('file/' + file)
         .done(function (data) {
-          var lines = data.split(/\r?\n/);
+          var lines = data.trimRight().split(/\r?\n/);
           var html = '<ul>';
 
           for (var i = 0; i < lines.length; i++)
@@ -188,7 +194,7 @@ module.exports = {
     unpause: function () {api.put('unpause')},
     optional_pause: function () {api.put('pause/optional')},
     stop: function () {api.put('stop')},
-    step: function () {api.put('step')},
+    step: function () {api.put('step/' + this.file).done(this.update)},
 
 
     override_feed: function () {

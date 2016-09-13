@@ -246,6 +246,12 @@ class AVR():
             self._i2c_command(I2C_RUN)
 
 
+    def step(self, path):
+        self._i2c_command(I2C_STEP)
+        if self.stream is None and path and self.vars.get('x', '') == 'READY':
+            self._start_sending_gcode(path)
+
+
     def stop(self):
         self._i2c_command(I2C_FLUSH)
         self._stop_sending_gcode()
@@ -255,5 +261,4 @@ class AVR():
     def pause(self): self._i2c_command(I2C_PAUSE)
     def unpause(self): self._i2c_command(I2C_RUN)
     def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
-    def step(self): self._i2c_command(I2C_STEP)
     def zero(self, axis = None): self._i2c_command(I2C_ZERO, byte = axis)
