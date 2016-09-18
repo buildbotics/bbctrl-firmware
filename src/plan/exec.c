@@ -208,33 +208,37 @@ static stat_t _exec_aline_segment() {
 ///   F_1 = 120Ah^5
 ///
 /// Note that with our current control points, D and E are actually 0.
-static float _init_forward_diffs(float Vi, float Vt, float segments) {
-  float A =  -6.0 * Vi +  6.0 * Vt;
-  float B =  15.0 * Vi - 15.0 * Vt;
-  float C = -10.0 * Vi + 10.0 * Vt;
-  // D = 0
-  // E = 0
-  // F = Vi
+///
+/// This can be simplified even further by subsituting Ah, Bh & Ch back in and
+/// reducing to:
+///
+///   F_5 = (32.5 * s^2 -  75 * s +   45.375)(Vt - Vi) * h^5
+///   F_4 = (90.0 * s^2 - 435 * s +  495.0  )(Vt - Vi) * h^5
+///   F_3 = (60.0 * s^2 - 720 * s + 1530.0  )(Vt - Vi) * h^5
+///   F_2 = (           - 360 * s + 1800.0  )(Vt - Vi) * h^5
+///   F_1 = (                        720.0  )(Vt - Vi) * h^5
+///
+static float _init_forward_diffs(float Vi, float Vt, float s) {
+  const float h = 1 / s;
+  const float s2 = square(s);
+  const float Vdxh5 = (Vt - Vi) * h * h * h * h * h;
 
-  float h = 1 / segments;
+  ex.forward_diff[4] = (32.5 * s2 -  75.0 * s +   45.375) * Vdxh5;
+  ex.forward_diff[3] = (90.0 * s2 - 435.0 * s +  495.0  ) * Vdxh5;
+  ex.forward_diff[2] = (60.0 * s2 - 720.0 * s + 1530.0  ) * Vdxh5;
+  ex.forward_diff[1] = (          - 360.0 * s + 1800.0  ) * Vdxh5;
+  ex.forward_diff[0] = (                         720.0  ) * Vdxh5;
 
-  float Ah_5 = A * h * h * h * h * h;
-  float Bh_4 = B * h * h * h * h;
-  float Ch_3 = C * h * h * h;
-
-  ex.forward_diff[4] = 121.0 / 16.0 * Ah_5 + 5.0 * Bh_4 + 13.0 / 4.0 * Ch_3;
-  ex.forward_diff[3] = 165.0 / 2.0 * Ah_5 + 29.0 * Bh_4 + 9.0 * Ch_3;
-  ex.forward_diff[2] = 255.0 * Ah_5 + 48.0 * Bh_4 + 6.0 * Ch_3;
-  ex.forward_diff[1] = 300.0 * Ah_5 + 24.0 * Bh_4;
-  ex.forward_diff[0] = 120.0 * Ah_5;
-
-  // Calculate the initial velocity by calculating V(h / 2)
-  float half_h = h / 2.0;
-  float half_Ch_3 = C * half_h * half_h * half_h;
-  float half_Bh_4 = B * half_h * half_h * half_h * half_h;
-  float half_Ah_5 = C * half_h * half_h * half_h * half_h * half_h;
-
-  return half_Ah_5 + half_Bh_4 + half_Ch_3 + Vi;
+  // Calculate the initial velocity by calculating:
+  //
+  //   V(h / 2) =
+  //
+  //   ( -6Vi +  6Vt) / (2^5 * s^8)  +
+  //   ( 15Vi - 15Vt) / (2^4 * s^8) +
+  //   (-10Vi + 10Vt) / (2^3 * s^8) + Vi =
+  //
+  //     (Vt - Vi) * 1/2 * h^8 + Vi
+  return (Vt - Vi) * 0.5 * square(square(square(h))) + Vi;
 }
 
 

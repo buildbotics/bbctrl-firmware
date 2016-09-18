@@ -82,5 +82,4 @@ void motor_error_callback(int motor, motor_flags_t errors);
 
 void motor_load_move(int motor);
 void motor_end_move(int motor);
-void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
-                     float error);
+void motor_prep_move(int motor, int32_t seg_clocks, float target);

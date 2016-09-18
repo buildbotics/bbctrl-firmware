@@ -76,18 +76,18 @@ typedef struct {
   uint32_t timeout;
   motor_flags_t flags;
   int32_t encoder;
-  uint16_t steps;
+  int32_t commanded;
+  uint16_t steps;                // Currently used by the x-axis only
   uint8_t last_clock;
+  bool wasEnabled;
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
   bool positive;                 // step sign
   direction_t direction;         // travel direction corrected for polarity
-
-  // Step error correction
-  int32_t correction_holdoff;    // count down segments between corrections
-  float corrected_steps;         // accumulated for cycle (diagnostic)
+  int32_t position;
+  int32_t error;
 } motor_t;
 
 
@@ -159,9 +159,6 @@ ISR(TCE1_CCA_vect) {
 
 
 void motor_init() {
-  // Reset position
-  mp_runtime_set_steps_from_position();
-
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;
   DMA.CTRL = DMA_ENABLE_bm;
@@ -215,9 +212,7 @@ void motor_enable(int motor, bool enable) {
 }
 
 
-int motor_get_axis(int motor) {
-  return motors[motor].motor_map;
-}
+int motor_get_axis(int motor) {return motors[motor].motor_map;}
 
 
 float motor_get_steps_per_unit(int motor) {
@@ -232,7 +227,9 @@ int32_t motor_get_encoder(int motor) {
 
 
 void motor_set_encoder(int motor, float encoder) {
-  motors[motor].encoder = round(encoder);
+  motor_t *m = &motors[motor];
+  m->encoder = m->position = m->commanded = round(encoder);
+  m->error = 0;
 }
 
 
@@ -309,9 +306,6 @@ stat_t motor_rtc_callback() { // called by controller
 }
 
 
-void print_status_flags(uint8_t flags);
-
-
 void motor_error_callback(int motor, motor_flags_t errors) {
   if (motors[motor].power_state != MOTOR_ACTIVE) return;
 
@@ -362,45 +356,35 @@ void motor_load_move(int motor) {
     steps = m->steps;
     m->steps = 0;
   }
+  if (!m->wasEnabled) steps = 0;
   m->encoder += m->positive ? steps : -(int32_t)steps;
+
+  // Compute error
+  m->error = m->commanded - m->encoder;
+  m->commanded = m->position;
 }
 
 
 void motor_end_move(int motor) {
-  motors[motor].dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  motors[motor].timer->CTRLA = 0; // Stop clock
+  motor_t *m = &motors[motor];
+  m->wasEnabled = m->dma->CTRLA & DMA_CH_ENABLE_bm;
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  m->timer->CTRLA = 0; // Stop clock
 }
 
 
-void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
-                     float error) {
+void motor_prep_move(int motor, int32_t seg_clocks, float target) {
   motor_t *m = &motors[motor];
 
-#ifdef __STEP_CORRECTION
-  // 'Nudge' correction strategy. Inject a single, scaled correction value
-  // then hold off
-  if (--m->correction_holdoff < 0 &&
-      STEP_CORRECTION_THRESHOLD < fabs(error)) {
-
-    m->correction_holdoff = STEP_CORRECTION_HOLDOFF;
-    float correction = error * STEP_CORRECTION_FACTOR;
-
-    if (0 < correction)
-      correction = min3(correction, fabs(travel_steps), STEP_CORRECTION_MAX);
-    else correction =
-           max3(correction, -fabs(travel_steps), -STEP_CORRECTION_MAX);
-
-    m->corrected_steps += correction;
-    travel_steps -= correction;
-  }
-#endif
+  int32_t travel = round(target) - m->position + m->error;
+  m->error = 0;
 
   // Power motor
-  switch (motors[motor].power_mode) {
+  switch (m->power_mode) {
   case MOTOR_DISABLED: return;
 
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (fp_ZERO(travel_steps)) return; // Not moving
+    if (!travel) return; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
@@ -413,7 +397,7 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
   // Compute motor timer clock and period. Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
-  uint32_t ticks_per_step = round(fabs(seg_clocks / travel_steps));
+  int32_t ticks_per_step = labs(seg_clocks / travel);
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step & 0xffff0000UL) {
@@ -431,48 +415,35 @@ void motor_prep_move(int motor, uint32_t seg_clocks, float travel_steps,
     } else m->timer_clock = TC_CLKSEL_DIV2_gc;
   } else m->timer_clock = TC_CLKSEL_DIV1_gc;
 
-  if (!ticks_per_step || fabs(travel_steps) < 0.001) m->timer_clock = 0;
+  if (!ticks_per_step) m->timer_clock = 0;
   m->timer_period = ticks_per_step;
-  m->positive = 0 <= travel_steps;
-
-  // Sanity check steps
-  if (m->timer_clock) {
-    uint32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
-    float steps = (float)clocks / m->timer_period;
-    float diff = fabs(fabs(travel_steps) - steps);
-    if (10 < diff) ALARM(STAT_STEP_CHECK_FAILED);
-  }
+  m->positive = 0 <= travel;
 
   // Setup the direction, compensating for polarity.
   if (m->positive) m->direction = DIRECTION_CW ^ m->polarity;
   else m->direction = DIRECTION_CCW ^ m->polarity;
+
+  // Compute actual steps
+  if (m->timer_clock) {
+    int32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
+    int32_t steps = clocks / m->timer_period;
+
+    // Update position
+    m->position += m->positive ? steps : -steps;
+
+    // Sanity check
+    int32_t diff = labs(labs(travel) - steps);
+    if (16 < diff) ALARM(STAT_STEP_CHECK_FAILED);
+  }
 }
 
 
 // Var callbacks
-float get_step_angle(int motor) {
-  return motors[motor].step_angle;
-}
-
-
-void set_step_angle(int motor, float value) {
-  motors[motor].step_angle = value;
-}
-
-
-float get_travel(int motor) {
-  return motors[motor].travel_rev;
-}
-
-
-void set_travel(int motor, float value) {
-  motors[motor].travel_rev = value;
-}
-
-
-uint16_t get_microstep(int motor) {
-  return motors[motor].microsteps;
-}
+float get_step_angle(int motor) {return motors[motor].step_angle;}
+void set_step_angle(int motor, float value) {motors[motor].step_angle = value;}
+float get_travel(int motor) {return motors[motor].travel_rev;}
+void set_travel(int motor, float value) {motors[motor].travel_rev = value;}
+uint16_t get_microstep(int motor) {return motors[motor].microsteps;}
 
 
 void set_microstep(int motor, uint16_t value) {
@@ -492,14 +463,8 @@ uint8_t get_polarity(int motor) {
 }
 
 
-void set_polarity(int motor, uint8_t value) {
-  motors[motor].polarity = value;
-}
-
-
-uint8_t get_motor_map(int motor) {
-  return motors[motor].motor_map;
-}
+void set_polarity(int motor, uint8_t value) {motors[motor].polarity = value;}
+uint8_t get_motor_map(int motor) {return motors[motor].motor_map;}
 
 
 void set_motor_map(int motor, uint16_t value) {
@@ -507,9 +472,7 @@ void set_motor_map(int motor, uint16_t value) {
 }
 
 
-uint8_t get_power_mode(int motor) {
-  return motors[motor].power_mode;
-}
+uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
 
 
 void set_power_mode(int motor, uint16_t value) {
@@ -518,10 +481,7 @@ void set_power_mode(int motor, uint16_t value) {
 }
 
 
-
-uint8_t get_status_flags(int motor) {
-  return motors[motor].flags;
-}
+uint8_t get_status_flags(int motor) {return motors[motor].flags;}
 
 
 void print_status_flags(uint8_t flags) {
@@ -568,9 +528,7 @@ void print_status_flags(uint8_t flags) {
 }
 
 
-uint8_t get_status_strings(int motor) {
-  return get_status_flags(motor);
-}
+uint8_t get_status_strings(int motor) {return get_status_flags(motor);}
 
 
 // Command callback

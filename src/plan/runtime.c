@@ -43,20 +43,10 @@
 
 
 typedef struct {
-  float target[MOTORS];    // Current absolute target in steps
-  float position[MOTORS];  // Current position, target from previous segment
-  float commanded[MOTORS]; // Should align with next encoder sample (2nd prev)
-  float encoder[MOTORS];   // Encoder steps, ideally the same as commanded steps
-  float error[MOTORS];     // Difference between encoder & commanded steps
-} mp_steps_t;
-
-
-typedef struct {
   bool busy;               // True if a move is running
   float position[AXES];    // Current move position
   float work_offset[AXES]; // Current move work offset
   float velocity;          // Current move velocity
-  mp_steps_t steps;
 
   int32_t line;            // Current move GCode line number
   uint8_t tool;            // Active tool
@@ -99,19 +89,12 @@ void mp_runtime_set_velocity(float velocity) {
 /// Set encoder counts to the runtime position
 void mp_runtime_set_steps_from_position() {
   // Convert lengths to steps in floating point
-  float step_position[MOTORS];
-  mp_kinematics(rt.position, step_position);
+  float steps[MOTORS];
+  mp_kinematics(rt.position, steps);
 
-  for (int motor = 0; motor < MOTORS; motor++) {
-    rt.steps.target[motor] = rt.steps.position[motor] =
-      rt.steps.commanded[motor] = step_position[motor];
-
+  for (int motor = 0; motor < MOTORS; motor++)
     // Write steps to encoder register
-    motor_set_encoder(motor, step_position[motor]);
-
-    // Must be zero
-    rt.steps.error[motor] = 0;
-  }
+    motor_set_encoder(motor, steps[motor]);
 }
 
 
@@ -167,54 +150,16 @@ void mp_runtime_set_work_offsets(float offset[]) {
 }
 
 
-/*** Segment runner
- *
- * Notes on step error correction:
- *
- * The commanded_steps are the target_steps delayed by one more
- * segment.  This lines them up in time with the encoder readings so a
- * following error can be generated
- *
- * The rt.steps.error term is positive if the encoder reading is
- * greater than (ahead of) the commanded steps, and negative (behind)
- * if the encoder reading is less than the commanded steps. The
- * following error is not affected by the direction of movement - it's
- * purely a statement of relative position. Examples:
- *
- *    Encoder Commanded   Following Err
- *     100      90        +10    encoder is 10 steps ahead of commanded steps
- *     -90    -100        +10    encoder is 10 steps ahead of commanded steps
- *      90     100        -10    encoder is 10 steps behind commanded steps
- *    -100     -90        -10    encoder is 10 steps behind commanded steps
- */
+/// Segment runner
 stat_t mp_runtime_move_to_target(float target[], float time) {
-  // Bucket-brigade old target down the chain before getting new target
-  for (int motor = 0; motor < MOTORS; motor++) {
-    // previous segment's position, delayed by 1 segment
-    rt.steps.commanded[motor] = rt.steps.position[motor];
-    // previous segment's target becomes position
-    rt.steps.position[motor] = rt.steps.target[motor];
-    // current encoder position (aligns to commanded_steps)
-    rt.steps.encoder[motor] = motor_get_encoder(motor);
-    rt.steps.error[motor] = rt.steps.encoder[motor] - rt.steps.commanded[motor];
-  }
-
   // Convert target position to steps.
-  mp_kinematics(target, rt.steps.target);
-
-  // Compute distances in steps to be traveled.
-  //
-  // The direct manipulation of steps to compute travel_steps only
-  // works for Cartesian kinematics.  Other kinematics may require
-  // transforming travel distance as opposed to simply subtracting steps.
-  float travel_steps[MOTORS];
-  for (int motor = 0; motor < MOTORS; motor++)
-    travel_steps[motor] = rt.steps.target[motor] - rt.steps.position[motor];
+  float steps[MOTORS];
+  mp_kinematics(target, steps);
 
   // Call the stepper prep function
-  RITORNO(st_prep_line(travel_steps, rt.steps.error, time));
+  RITORNO(st_prep_line(steps, time));
 
-  // Update position
+  // Update positions
   mp_runtime_set_position(target);
 
   return STAT_OK;

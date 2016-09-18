@@ -32,11 +32,11 @@
 #include "status.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 void stepper_init();
 void st_shutdown();
 bool st_is_busy();
-stat_t st_prep_line(float travel_steps[], float following_error[],
-                    float segment_time);
+stat_t st_prep_line(float target[], float segment_time);
 void st_prep_dwell(float seconds);

@@ -184,16 +184,14 @@ ISR(STEP_TIMER_ISR) {
  * to integer values.
  *
  * Args:
- *   @param travel_steps signed relative motion in steps for each motor.
+ *   @param target signed position in steps for each motor.
  *   Steps are fractional.  Their sign indicates direction.  Motors not in the
  *   move have 0 steps.
- *
- *   @param error is a vector of measured step errors used for correction.
  *
  *   @param seg_time is segment run time in minutes.  If timing is not 100%
  *   accurate this will affect the move velocity but not travel distance.
  */
-stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
+stat_t st_prep_line(float target[], float seg_time) {
   // Trap conditions that would prevent queueing the line
   if (st.move_ready) return ALARM(STAT_INTERNAL_ERROR);
   if (isinf(seg_time))
@@ -204,13 +202,13 @@ stat_t st_prep_line(float travel_steps[], float error[], float seg_time) {
   // Setup segment parameters
   st.move_type = MOVE_TYPE_ALINE;
   st.seg_period = seg_time * 60 * STEP_TIMER_FREQ; // Must fit 16-bit
-  uint32_t seg_clocks = (uint32_t)st.seg_period * STEP_TIMER_DIV;
+  int32_t seg_clocks = (int32_t)st.seg_period * STEP_TIMER_DIV;
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    motor_prep_move(motor, seg_clocks, travel_steps[motor], error[motor]);
+    motor_prep_move(motor, seg_clocks, target[motor]);
 
-  st.move_ready = true; // signal prep buffer ready(do this last)
+  st.move_ready = true; // signal prep buffer ready (do this last)
 
   return STAT_OK;
 }
