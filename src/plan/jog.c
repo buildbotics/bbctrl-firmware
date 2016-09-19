@@ -64,14 +64,17 @@ static jog_runtime_t jr;
 static stat_t _exec_jog(mp_buffer_t *bf) {
   // Load next velocity
   bool changed = false;
+  bool done = true;
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++) {
       float Vn = jr.next_velocity[axis] * axes[axis].velocity_max;
       float Vi = jr.velocity[axis];
       float Vt = jr.target_velocity[axis];
 
+      if (JOG_MIN_VELOCITY < fabs(Vn)) done = false;
+
       if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
-        Vn = 0; // Go zero on sign change
+        Vn = 0; // Plan to zero on sign change
 
       if (fabs(Vn) < JOG_MIN_VELOCITY) Vn = 0;
 
@@ -82,7 +85,6 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
       }
     }
 
-  bool done = true;
   float velocity_sqr = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
