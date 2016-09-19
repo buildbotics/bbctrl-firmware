@@ -31,3 +31,4 @@
 
 
 stat_t mp_aline(const float target[], int32_t line);
+int mp_find_jerk_axis(const float axis_square[]);

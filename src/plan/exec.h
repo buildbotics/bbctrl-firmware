@@ -32,3 +32,5 @@
 
 stat_t mp_exec_move();
 stat_t mp_exec_aline(mp_buffer_t *bf);
+float mp_init_forward_diffs(float fdifs[5], float Vi, float Vt, float s);
+float mp_next_forward_diff(float fdifs[5]);

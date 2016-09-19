@@ -78,7 +78,7 @@ static calibrate_t cal = {0};
 
 static stat_t _exec_calibrate(mp_buffer_t *bf) {
   const float time = MIN_SEGMENT_TIME; // In minutes
-  const float max_delta_v = JOG_ACCELERATION * time;
+  const float max_delta_v = CAL_ACCELERATION * time;
 
   do {
     if (rtc_expired(cal.wait))

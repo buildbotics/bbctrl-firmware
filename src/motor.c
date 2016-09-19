@@ -433,7 +433,7 @@ void motor_prep_move(int motor, int32_t seg_clocks, float target) {
 
     // Sanity check
     int32_t diff = labs(labs(travel) - steps);
-    if (16 < diff) ALARM(STAT_STEP_CHECK_FAILED);
+    if (20 < diff) ALARM(STAT_STEP_CHECK_FAILED);
   }
 }
 

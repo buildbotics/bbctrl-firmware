@@ -94,9 +94,9 @@ enum {
 
 
 // Compile-time settings
-//#define __STEP_CORRECTION
 #define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
 //#define __CLOCK_INTERNAL_32MHZ
+
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
@@ -113,11 +113,11 @@ typedef enum {
 } axis_t;
 
 
-// Motor settings
+// Motor settings.  See motor.c
 #define MOTOR_CURRENT            0.8   // 1.0 is full power
 #define MOTOR_IDLE_CURRENT       0.1   // 1.0 is full power
 #define MOTOR_MICROSTEPS         16
-#define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING // See stepper.c
+#define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING
 #define MOTOR_IDLE_TIMEOUT       2     // secs, motor off after this time
 
 #define M1_MOTOR_MAP             AXIS_X
@@ -156,14 +156,16 @@ typedef enum {
 
 
 // Machine settings
-#define CHORDAL_TOLERANCE        0.01   // chordal accuracy for arc drawing
-#define JERK_MAX                 50     // yes, that's km/min^3
-#define JUNCTION_DEVIATION       0.05   // default value, in mm
-#define JUNCTION_ACCELERATION    100000 // centripetal corner acceleration
-#define JOG_ACCELERATION         500000 // mm/min^2
+#define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
+#define JERK_MAX                 50            // yes, that's km/min^3
+#define JUNCTION_DEVIATION       0.05          // default value, in mm
+#define JUNCTION_ACCELERATION    100000        // centripetal corner accel
+#define JOG_JERK_MULT            4             // Jogging jerk multipler
+#define JOG_MIN_VELOCITY         10            // mm/min
+#define CAL_ACCELERATION         500000        // mm/min^2
 
 // Axis settings
-#define VELOCITY_MAX             13000  // mm/min
+#define VELOCITY_MAX             13000         // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 #define X_AXIS_MODE              AXIS_STANDARD // See machine.h
@@ -193,7 +195,7 @@ typedef enum {
 #define Y_ZERO_BACKOFF           1
 
 #define Z_AXIS_MODE              AXIS_STANDARD
-#define Z_VELOCITY_MAX           2000 //VELOCITY_MAX
+#define Z_VELOCITY_MAX           2000 // VELOCITY_MAX
 #define Z_FEEDRATE_MAX           FEEDRATE_MAX
 #define Z_TRAVEL_MIN             0
 #define Z_TRAVEL_MAX             75
@@ -262,8 +264,8 @@ typedef enum {
 
 // Gcode defaults
 #define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-#define GCODE_DEFAULT_PLANE         PLANE_XY   // See machine.h
-#define GCODE_DEFAULT_COORD_SYSTEM  G54        // G54, G55, G56, G57, G58 or G59
+#define GCODE_DEFAULT_PLANE         PLANE_XY    // See machine.h
+#define GCODE_DEFAULT_COORD_SYSTEM  G54         // G54, G55, G56, G57, G58, G59
 #define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
 #define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
 #define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE
@@ -291,24 +293,24 @@ typedef enum {
  */
 
 // Timer assignments - see specific modules for details
-#define TIMER_STEP      TCC0 // Step timer    (see stepper.h)
-#define TIMER_TMC2660   TCC1 // TMC2660 timer (see tmc2660.h)
-#define TIMER_PWM       TCD1 // PWM timer     (see pwm_spindle.c)
+#define TIMER_STEP           TCC0 // Step timer    (see stepper.h)
+#define TIMER_TMC2660        TCC1 // TMC2660 timer (see tmc2660.h)
+#define TIMER_PWM            TCD1 // PWM timer     (see pwm_spindle.c)
 
-#define M1_TIMER        TCE1
-#define M2_TIMER        TCF0
-#define M3_TIMER        TCE0
-#define M4_TIMER        TCD0
+#define M1_TIMER             TCE1
+#define M2_TIMER             TCF0
+#define M3_TIMER             TCE0
+#define M4_TIMER             TCD0
 
-#define M1_DMA_CH       DMA.CH0
-#define M2_DMA_CH       DMA.CH1
-#define M3_DMA_CH       DMA.CH2
-#define M4_DMA_CH       DMA.CH3
+#define M1_DMA_CH            DMA.CH0
+#define M2_DMA_CH            DMA.CH1
+#define M3_DMA_CH            DMA.CH2
+#define M4_DMA_CH            DMA.CH3
 
-#define M1_DMA_TRIGGER  DMA_CH_TRIGSRC_TCE1_CCA_gc
-#define M2_DMA_TRIGGER  DMA_CH_TRIGSRC_TCF0_CCA_gc
-#define M3_DMA_TRIGGER  DMA_CH_TRIGSRC_TCE0_CCA_gc
-#define M4_DMA_TRIGGER  DMA_CH_TRIGSRC_TCD0_CCA_gc
+#define M1_DMA_TRIGGER       DMA_CH_TRIGSRC_TCE1_CCA_gc
+#define M2_DMA_TRIGGER       DMA_CH_TRIGSRC_TCF0_CCA_gc
+#define M3_DMA_TRIGGER       DMA_CH_TRIGSRC_TCE0_CCA_gc
+#define M4_DMA_TRIGGER       DMA_CH_TRIGSRC_TCD0_CCA_gc
 
 
 // Timer setup for stepper and dwells
@@ -353,34 +355,34 @@ typedef enum {
 #define TMC2660_TIMER          TIMER_TMC2660
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
 #define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
-#define TMC2660_STABILIZE_TIME 0.01 // sec.  Must be at least 1ms
+#define TMC2660_STABILIZE_TIME 0.01  // sec.  Must be at least 1ms
 
 
 // Huanyang settings
-#define HUANYANG_PORT             USARTD1
-#define HUANYANG_DRE_vect         USARTD1_DRE_vect
-#define HUANYANG_TXC_vect         USARTD1_TXC_vect
-#define HUANYANG_RXC_vect         USARTD1_RXC_vect
-#define HUANYANG_TIMEOUT          50 // ms. response timeout
-#define HUANYANG_RETRIES           4 // Number of retries before failure
-#define HUANYANG_ID                1 // Default ID
+#define HUANYANG_PORT          USARTD1
+#define HUANYANG_DRE_vect      USARTD1_DRE_vect
+#define HUANYANG_TXC_vect      USARTD1_TXC_vect
+#define HUANYANG_RXC_vect      USARTD1_RXC_vect
+#define HUANYANG_TIMEOUT       50 // ms. response timeout
+#define HUANYANG_RETRIES        4 // Number of retries before failure
+#define HUANYANG_ID             1 // Default ID
 
 
 // Serial settings
-#define SERIAL_BAUD             USART_BAUD_115200
-#define SERIAL_PORT             USARTC0
-#define SERIAL_DRE_vect         USARTC0_DRE_vect
-#define SERIAL_RXC_vect         USARTC0_RXC_vect
+#define SERIAL_BAUD            USART_BAUD_115200
+#define SERIAL_PORT            USARTC0
+#define SERIAL_DRE_vect        USARTC0_DRE_vect
+#define SERIAL_RXC_vect        USARTC0_RXC_vect
 
 
 // Input
-#define INPUT_BUFFER_LEN         255 // text buffer size (255 max)
+#define INPUT_BUFFER_LEN       255 // text buffer size (255 max)
 
 
 // Arc
-#define ARC_RADIUS_ERROR_MAX 1.0   // max mm diff between start and end radius
-#define ARC_RADIUS_ERROR_MIN 0.005 // min mm where 1% rule applies
-#define ARC_RADIUS_TOLERANCE 0.001 // 0.1% radius variance test
+#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
+#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
+#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
 
 
 // Planner
@@ -391,18 +393,18 @@ typedef enum {
 #define PLANNER_BUFFER_POOL_SIZE 48
 
 /// Buffers to reserve in planner before processing new input line
-#define PLANNER_BUFFER_HEADROOM 4
+#define PLANNER_BUFFER_HEADROOM   4
 
 /// Minimum number of filled buffers before timeout until execution starts
-#define PLANNER_EXEC_MIN_FILL 4
+#define PLANNER_EXEC_MIN_FILL     4
 
 /// Delay before executing new buffers unless PLANNER_EXEC_MIN_FILL is met
 /// This gives the planner a chance to make a good plan before execution starts
-#define PLANNER_EXEC_DELAY 250 // In ms
+#define PLANNER_EXEC_DELAY      250 // In ms
 
 
 // I2C
-#define I2C_DEV TWIC
-#define I2C_ISR TWIC_TWIS_vect
-#define I2C_ADDR 0x2b
-#define I2C_MAX_DATA 8
+#define I2C_DEV                 TWIC
+#define I2C_ISR                 TWIC_TWIS_vect
+#define I2C_ADDR                0x2b
+#define I2C_MAX_DATA            8

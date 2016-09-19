@@ -143,63 +143,61 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
 }
 
 
-static float _calc_jerk(const float axis_square[], const float unit[]) {
-  /* Determine jerk value to use for the block.  First find the axis for which
-   * the jerk cannot be exceeded - the 'jerk_axis'.  This is the axis for which
-   * the time to decelerate from the target velocity to zero would be the
-   * longest.
-   *
-   * We can determine the "longest" deceleration in terms of time or distance.
-   *
-   * The math for time-to-decelerate T from speed S to speed E with constant
-   * jerk J is:
-   *
-   *   T = 2 * sqrt((S - E) / J)
-   *
-   * Since E is always zero in this calculation, we can simplify:
-   *
-   *   T = 2 * sqrt(S / J)
-   *
-   * The math for distance-to-decelerate l from speed S to speed E with
-   * constant jerk J is:
-   *
-   *   l = (S + E) * sqrt((S - E) / J)
-   *
-   * Since E is always zero in this calculation, we can simplify:
-   *
-   *   l = S * sqrt(S / J)
-   *
-   * The final value we want to know is which one is *longest*, compared to the
-   * others, so we don't need the actual value.  This means that the scale of
-   * the value doesn't matter, so for T we can remove the "2 *" and for L we can
-   * remove the "S *".  This leaves both to be simply "sqrt(S / J)".  Since we
-   * don't need the scale, it doesn't matter what speed we're coming from, so S
-   * can be replaced with 1.
-   *
-   * However, we *do* need to compensate for the fact that each axis contributes
-   * differently to the move, so we will scale each contribution C[n] by the
-   * proportion of the axis movement length D[n].  Using that, we construct the
-   * following, with these definitions:
-   *
-   *   J[n] = max_jerk for axis n
-   *   D[n] = distance traveled for this move for axis n
-   *   C[n] = "axis contribution" of axis n
-   *
-   * For each axis n:
-   *
-   *   C[n] = sqrt(1 / J[n]) * D[n]
-   *
-   * Keeping in mind that we only need a rank compared to the other axes, we can
-   * further optimize the calculations:
-   *
-   * Square the expression to remove the square root:
-   *
-   *   C[n]^2 = 1 / J[n] * D[n]^2
-   *
-   * We don't care that C is squared, so we'll use it that way.  Also note that
-   * we already have 1 / J[n] calculated for each axis.
-   */
-
+/* Find the axis for which the jerk cannot be exceeded - the 'jerk_axis'.
+ * This is the axis for which the time to decelerate from the target velocity
+ * to zero would be the longest.
+ *
+ * We can determine the "longest" deceleration in terms of time or distance.
+ *
+ * The math for time-to-decelerate T from speed S to speed E with constant
+ * jerk J is:
+ *
+ *   T = 2 * sqrt((S - E) / J)
+ *
+ * Since E is always zero in this calculation, we can simplify:
+ *
+ *   T = 2 * sqrt(S / J)
+ *
+ * The math for distance-to-decelerate l from speed S to speed E with
+ * constant jerk J is:
+ *
+ *   l = (S + E) * sqrt((S - E) / J)
+ *
+ * Since E is always zero in this calculation, we can simplify:
+ *
+ *   l = S * sqrt(S / J)
+ *
+ * The final value we want to know is which one is *longest*, compared to the
+ * others, so we don't need the actual value.  This means that the scale of
+ * the value doesn't matter, so for T we can remove the "2 *" and for L we can
+ * remove the "S *".  This leaves both to be simply "sqrt(S / J)".  Since we
+ * don't need the scale, it doesn't matter what speed we're coming from, so S
+ * can be replaced with 1.
+ *
+ * However, we *do* need to compensate for the fact that each axis contributes
+ * differently to the move, so we will scale each contribution C[n] by the
+ * proportion of the axis movement length D[n].  Using that, we construct the
+ * following, with these definitions:
+ *
+ *   J[n] = max_jerk for axis n
+ *   D[n] = distance traveled for this move for axis n
+ *   C[n] = "axis contribution" of axis n
+ *
+ * For each axis n:
+ *
+ *   C[n] = sqrt(1 / J[n]) * D[n]
+ *
+ * Keeping in mind that we only need a rank compared to the other axes, we can
+ * further optimize the calculations:
+ *
+ * Square the expression to remove the square root:
+ *
+ *   C[n]^2 = 1 / J[n] * D[n]^2
+ *
+ * We don't care that C is squared, so we'll use it that way.  Also note that
+ * we already have 1 / J[n] calculated for each axis.
+ */
+int mp_find_jerk_axis(const float axis_square[]) {
   float C;
   float maxC = 0;
   int jerk_axis = 0;
@@ -214,6 +212,14 @@ static float _calc_jerk(const float axis_square[], const float unit[]) {
         jerk_axis = axis;
       }
     }
+
+  return jerk_axis;
+}
+
+
+/// Determine jerk value to use for the block.
+static float _calc_jerk(const float axis_square[], const float unit[]) {
+  int jerk_axis = mp_find_jerk_axis(axis_square);
 
   // Finally, the selected jerk term needs to be scaled by the
   // reciprocal of the absolute value of the jerk_axis's unit

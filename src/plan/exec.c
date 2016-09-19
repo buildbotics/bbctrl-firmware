@@ -82,8 +82,9 @@ static stat_t _exec_aline_segment() {
   else {
     float segment_length = ex.segment_velocity * ex.segment_time;
 
-    for (int i = 0; i < AXES; i++)
-      target[i] = mp_runtime_get_axis_position(i) + ex.unit[i] * segment_length;
+    for (int axis = 0; axis < AXES; axis++)
+      target[axis] =
+        mp_runtime_get_axis_position(axis) + ex.unit[axis] * segment_length;
   }
 
   mp_runtime_set_velocity(ex.segment_velocity);
@@ -218,16 +219,16 @@ static stat_t _exec_aline_segment() {
 ///   F_2 = (           - 360 * s + 1800.0  )(Vt - Vi) * h^5
 ///   F_1 = (                        720.0  )(Vt - Vi) * h^5
 ///
-static float _init_forward_diffs(float Vi, float Vt, float s) {
+float mp_init_forward_diffs(float fdifs[5], float Vi, float Vt, float s) {
   const float h = 1 / s;
   const float s2 = square(s);
   const float Vdxh5 = (Vt - Vi) * h * h * h * h * h;
 
-  ex.forward_diff[4] = (32.5 * s2 -  75.0 * s +   45.375) * Vdxh5;
-  ex.forward_diff[3] = (90.0 * s2 - 435.0 * s +  495.0  ) * Vdxh5;
-  ex.forward_diff[2] = (60.0 * s2 - 720.0 * s + 1530.0  ) * Vdxh5;
-  ex.forward_diff[1] = (          - 360.0 * s + 1800.0  ) * Vdxh5;
-  ex.forward_diff[0] = (                         720.0  ) * Vdxh5;
+  fdifs[4] = (32.5 * s2 -  75.0 * s +   45.375) * Vdxh5;
+  fdifs[3] = (90.0 * s2 - 435.0 * s +  495.0  ) * Vdxh5;
+  fdifs[2] = (60.0 * s2 - 720.0 * s + 1530.0  ) * Vdxh5;
+  fdifs[1] = (          - 360.0 * s + 1800.0  ) * Vdxh5;
+  fdifs[0] = (                         720.0  ) * Vdxh5;
 
   // Calculate the initial velocity by calculating:
   //
@@ -239,6 +240,18 @@ static float _init_forward_diffs(float Vi, float Vt, float s) {
   //
   //     (Vt - Vi) * 1/2 * h^8 + Vi
   return (Vt - Vi) * 0.5 * square(square(square(h))) + Vi;
+}
+
+
+float mp_next_forward_diff(float fdifs[5]) {
+  float delta = fdifs[4];
+
+  fdifs[4] += fdifs[3];
+  fdifs[3] += fdifs[2];
+  fdifs[2] += fdifs[1];
+  fdifs[1] += fdifs[0];
+
+  return delta;
 }
 
 
@@ -254,7 +267,8 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
     ex.segment_count = (uint32_t)ex.segments;
 
     if (vin == vout) ex.segment_velocity = vin;
-    else ex.segment_velocity = _init_forward_diffs(vin, vout, ex.segments);
+    else ex.segment_velocity =
+           mp_init_forward_diffs(ex.forward_diff, vin, vout, ex.segments);
 
     if (ex.segment_time < MIN_SEGMENT_TIME)
       return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
@@ -268,17 +282,11 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
     ex.section_new = false;
 
   } else {
-    if (vin != vout) ex.segment_velocity += ex.forward_diff[4];
+    if (vin != vout)
+      ex.segment_velocity += mp_next_forward_diff(ex.forward_diff);
 
     // Subsequent segments
     if (_exec_aline_segment() == STAT_OK) return STAT_OK;
-
-    if (vin != vout) {
-      ex.forward_diff[4] += ex.forward_diff[3];
-      ex.forward_diff[3] += ex.forward_diff[2];
-      ex.forward_diff[2] += ex.forward_diff[1];
-      ex.forward_diff[1] += ex.forward_diff[0];
-    }
   }
 
   return STAT_EAGAIN;
@@ -339,7 +347,7 @@ static float _compute_next_segment_velocity() {
   }
 
   return ex.segment_velocity +
-    (ex.section == SECTION_BODY ? 0 : ex.forward_diff[4]);
+    (ex.section == SECTION_BODY ? 0 : mp_next_forward_diff(ex.forward_diff));
 }
 
 
@@ -364,7 +372,8 @@ static void _plan_hold() {
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bf is OK to use here
-  float braking_length = mp_get_target_length(braking_velocity, 0, bf);
+  float braking_length =
+    mp_get_target_length(braking_velocity, 0, bf->recip_jerk);
 
   // Hack to prevent Case 2 moves for perfect-fit decels.  Happens when homing.
   if (available_length < braking_length && fp_ZERO(bf->exit_velocity))
@@ -583,7 +592,9 @@ stat_t mp_exec_move() {
 
   // Convert return status for stepper.c
   switch (status) {
-  case STAT_NOOP: return STAT_EAGAIN; // Tell caller to call again
+  case STAT_NOOP:
+    // Tell caller to call again if there is more in the queue
+    return mp_queue_is_empty() ? STAT_NOOP : STAT_EAGAIN;
   case STAT_EAGAIN: return STAT_OK;   // A move was queued, call again later
   default: return status;
   }

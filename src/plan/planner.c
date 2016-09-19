@@ -306,7 +306,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   //   MIN_BODY_LENGTH
   bf->body_length = 0;
   float minimum_length =
-    mp_get_target_length(bf->entry_velocity, bf->exit_velocity, bf);
+    mp_get_target_length(bf->entry_velocity, bf->exit_velocity, bf->recip_jerk);
 
   // head-only & tail-only cases
   if (bf->length <= (minimum_length + MIN_BODY_LENGTH)) {
@@ -341,9 +341,11 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   // Set head and tail lengths for evaluating the next cases
   bf->head_length =
-    mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf);
+    mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
+                         bf->recip_jerk);
   bf->tail_length =
-    mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf);
+    mp_get_target_length(bf->exit_velocity, bf->cruise_velocity,
+                         bf->recip_jerk);
   if (bf->head_length < MIN_HEAD_LENGTH) { bf->head_length = 0;}
   if (bf->tail_length < MIN_TAIL_LENGTH) { bf->tail_length = 0;}
 
@@ -381,9 +383,11 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
       // initialize from previous iteration
       bf->cruise_velocity = computed_velocity;
       bf->head_length =
-        mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf);
+        mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
+                             bf->recip_jerk);
       bf->tail_length =
-        mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf);
+        mp_get_target_length(bf->exit_velocity, bf->cruise_velocity,
+                             bf->recip_jerk);
 
       if (bf->head_length > bf->tail_length) {
         bf->head_length =
@@ -404,7 +408,8 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     // set velocity and clean up any parts that are too short
     bf->cruise_velocity = computed_velocity;
     bf->head_length =
-      mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf);
+      mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
+                           bf->recip_jerk);
     bf->tail_length = bf->length - bf->head_length;
 
     if (bf->head_length < MIN_HEAD_LENGTH) {
@@ -674,8 +679,8 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
  * [2] Cannot assume Vf >= Vi due to rounding errors and use of
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
-float mp_get_target_length(float Vi, float Vf, const mp_buffer_t *bf) {
-  return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * bf->recip_jerk);
+float mp_get_target_length(float Vi, float Vf, float recip_jerk) {
+  return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * recip_jerk);
 }
 
 
