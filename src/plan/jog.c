@@ -121,7 +121,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
     } else Vi = Vt;
 
-    if (Vi < JOG_MIN_VELOCITY && Vt < JOG_MIN_VELOCITY) done = false;
+    if (JOG_MIN_VELOCITY < Vi || JOG_MIN_VELOCITY < Vt) done = false;
 
     velocity_sqr += square(Vi);
     jr.velocity[axis] = Vi * jr.sign[axis];
