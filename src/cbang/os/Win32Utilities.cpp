@@ -46,7 +46,7 @@ using namespace cb;
 namespace cb {
   namespace Win32Utilities {
     void setInherit(int fd, bool inherit) {
-      setInherit(_get_osfhandle(fd), inherit);
+      setInherit((void *)_get_osfhandle(fd), inherit);
     }
 
 
