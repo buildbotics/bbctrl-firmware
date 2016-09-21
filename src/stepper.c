@@ -204,7 +204,7 @@ stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_ALINE;
-  st.seg_period = time * 60 * STEP_TIMER_FREQ; // Must fit 16-bit
+  st.seg_period = round(time * 60 * STEP_TIMER_FREQ); // Must fit 16-bit
   int32_t seg_clocks = (int32_t)st.seg_period * STEP_TIMER_DIV;
 
   // Prepare motor moves

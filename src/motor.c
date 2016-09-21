@@ -403,21 +403,6 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
   if (isinf(target)) return ALARM(STAT_MOVE_TARGET_INFINITE);
   if (isnan(target)) return ALARM(STAT_MOVE_TARGET_NAN);
 
-  // Compute error correction
-#if 0
-  cli();
-  int32_t error = m->error;
-  int32_t actual_error = error;
-  if (error < -MAX_STEP_CORRECTION) error = -MAX_STEP_CORRECTION;
-  else if (MAX_STEP_CORRECTION < error) error = MAX_STEP_CORRECTION;
-  sei();
-
-  if (100 < labs(actual_error)) {
-    STATUS_DEBUG("Motor %d error is %ld", motor, actual_error);
-    return ALARM(STAT_EXCESSIVE_MOVE_ERROR);
-  }
-#endif
-
   // Compute motor timer clock and period. Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
