@@ -51,26 +51,26 @@ static estop_t estop = {0};
 static uint16_t estop_reason_eeprom EEMEM;
 
 
-static void _set_reason(estop_reason_t reason) {
+static void _set_reason(stat_t reason) {
   eeprom_update_word(&estop_reason_eeprom, reason);
 }
 
 
-static estop_reason_t _get_reason() {
+static stat_t _get_reason() {
   return eeprom_read_word(&estop_reason_eeprom);
 }
 
 
 static void _switch_callback(switch_id_t id, bool active) {
-  if (active) estop_trigger(ESTOP_SWITCH);
+  if (active) estop_trigger(STAT_ESTOP_SWITCH);
   else estop_clear();
 }
 
 
 void estop_init() {
-  if (switch_is_active(SW_ESTOP)) _set_reason(ESTOP_SWITCH);
-  if (ESTOP_MAX <= _get_reason()) _set_reason(ESTOP_NONE);
-  estop.triggered = _get_reason() != ESTOP_NONE;
+  if (switch_is_active(SW_ESTOP)) _set_reason(STAT_ESTOP_SWITCH);
+  if (STAT_MAX <= _get_reason()) _set_reason(STAT_OK);
+  estop.triggered = _get_reason() != STAT_OK;
 
   switch_set_callback(SW_ESTOP, _switch_callback);
 
@@ -88,7 +88,8 @@ bool estop_triggered() {
 }
 
 
-void estop_trigger(estop_reason_t reason) {
+void estop_trigger(stat_t reason) {
+  if (estop.triggered) return;
   estop.triggered = true;
 
   // Hard stop the motors and the spindle
@@ -111,7 +112,7 @@ void estop_trigger(estop_reason_t reason) {
 void estop_clear() {
   // Check if estop switch is set
   if (switch_is_active(SW_ESTOP)) {
-    if (_get_reason() != ESTOP_SWITCH) _set_reason(ESTOP_SWITCH);
+    if (_get_reason() != STAT_ESTOP_SWITCH) _set_reason(STAT_ESTOP_SWITCH);
     return; // Can't clear while estop switch is still active
   }
 
@@ -121,7 +122,7 @@ void estop_clear() {
   estop.triggered = false;
 
   // Clear reason
-  _set_reason(ESTOP_NONE);
+  _set_reason(STAT_OK);
 
   // Reboot
   // Note, hardware.c waits until any spindle stop command has been delivered
@@ -136,18 +137,11 @@ bool get_estop() {
 
 void set_estop(bool value) {
   if (value == estop_triggered()) return;
-  if (value) estop_trigger(ESTOP_USER);
+  if (value) estop_trigger(STAT_ESTOP_USER);
   else estop_clear();
 }
 
 
 PGM_P get_estop_reason() {
-  switch (_get_reason()) {
-  case ESTOP_NONE:   return PSTR("none");
-  case ESTOP_USER:   return PSTR("user");
-  case ESTOP_SWITCH: return PSTR("switch");
-  case ESTOP_LIMIT:  return PSTR("limit");
-  case ESTOP_ALARM:  return PSTR("alarm");
-  default: return PSTR("invalid");
-  }
+  return status_to_pgmstr(_get_reason());
 }

@@ -55,7 +55,7 @@ void spindle_init() {
 }
 
 
-void spindle_set(spindle_mode_t mode, float speed) {
+void _spindle_set(spindle_mode_t mode, float speed) {
   spindle.mode = mode;
   spindle.speed = speed;
 
@@ -98,16 +98,16 @@ void spindle_estop() {
 }
 
 
-uint8_t get_spindle_type(int index) {return spindle.type;}
+uint8_t get_spindle_type() {return spindle.type;}
 
 
-void set_spindle_type(int index, uint8_t value) {
+void set_spindle_type(uint8_t value) {
   if (value != spindle.type) {
     spindle_mode_t mode = spindle.mode;
     float speed = spindle.speed;
 
-    spindle_set(SPINDLE_OFF, 0);
+    _spindle_set(SPINDLE_OFF, 0);
     spindle.type = value;
-    spindle_set(mode, speed);
+    _spindle_set(mode, speed);
   }
 }

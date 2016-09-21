@@ -481,6 +481,8 @@ static stat_t _parse_gcode_block(char *buf) {
       case 94: SET_MODAL(MODAL_GROUP_G5, feed_mode, UNITS_PER_MINUTE_MODE);
         // case 95:
         // SET_MODAL(MODAL_GROUP_G5, feed_mode, UNITS_PER_REVOLUTION_MODE);
+        // case 96: // Spindle Constant Surface Speed (not currently supported)
+      case 97: break; // Spindle RPM mode (only mode curently supported)
       default: status = STAT_GCODE_COMMAND_UNSUPPORTED;
       }
       break;

@@ -77,17 +77,19 @@ typedef struct {
   motor_flags_t flags;
   int32_t encoder;
   int32_t commanded;
-  uint16_t steps;                // Currently used by the x-axis only
+  int32_t steps;                 // Currently used by the x-axis only
   uint8_t last_clock;
   bool wasEnabled;
+  int32_t error;
+  bool last_negative;            // Last step sign
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
-  bool positive;                 // step sign
+  bool negative;                 // step sign
   direction_t direction;         // travel direction corrected for polarity
   int32_t position;
-  int32_t error;
+  bool round_up;                 // toggle rounding direction
 } motor_t;
 
 
@@ -228,8 +230,10 @@ int32_t motor_get_encoder(int motor) {
 
 void motor_set_encoder(int motor, float encoder) {
   motor_t *m = &motors[motor];
+  cli();
   m->encoder = m->position = m->commanded = round(encoder);
   m->error = 0;
+  sei();
 }
 
 
@@ -307,12 +311,19 @@ stat_t motor_rtc_callback() { // called by controller
 
 
 void motor_error_callback(int motor, motor_flags_t errors) {
-  if (motors[motor].power_state != MOTOR_ACTIVE) return;
+  motor_t *m = &motors[motor];
 
-  motors[motor].flags |= errors;
+  if (m->power_state != MOTOR_ACTIVE) return;
+
+  m->flags |= errors;
   report_request();
 
-  if (motor_error(motor)) ALARM(STAT_MOTOR_ERROR);
+  if (false && motor_error(motor)) {
+    if (m->flags & MOTOR_FLAG_STALLED_bm) ALARM(STAT_MOTOR_STALLED);
+    if (m->flags & MOTOR_FLAG_OVERTEMP_WARN_bm) ALARM(STAT_MOTOR_OVERTEMP_WARN);
+    if (m->flags & MOTOR_FLAG_OVERTEMP_bm) ALARM(STAT_MOTOR_OVERTEMP);
+    if (m->flags & MOTOR_FLAG_SHORTED_bm) ALARM(STAT_MOTOR_SHORTED);
+  }
 }
 
 
@@ -357,7 +368,9 @@ void motor_load_move(int motor) {
     m->steps = 0;
   }
   if (!m->wasEnabled) steps = 0;
-  m->encoder += m->positive ? steps : -(int32_t)steps;
+
+  m->encoder += m->last_negative ? -(int32_t)steps : steps;
+  m->last_negative = m->negative;
 
   // Compute error
   m->error = m->commanded - m->encoder;
@@ -376,64 +389,78 @@ void motor_end_move(int motor) {
 void motor_prep_move(int motor, int32_t seg_clocks, float target) {
   motor_t *m = &motors[motor];
 
-  int32_t travel = round(target) - m->position + m->error;
-  m->error = 0;
+  // Validate input
+  if (motor < 0 || MOTORS < motor) {ALARM(STAT_INTERNAL_ERROR); return;}
+  if (seg_clocks < 0) {ALARM(STAT_INTERNAL_ERROR); return;}
+  if (isinf(target)) {ALARM(STAT_MOVE_TARGET_IS_INFINITE); return;}
+  if (isnan(target)) {ALARM(STAT_MOVE_TARGET_IS_NAN); return;}
+
+  // Compute error correction
+  cli();
+  int32_t error = m->error;
+  int32_t actual_error = error;
+  if (error < -MAX_STEP_CORRECTION) error = -MAX_STEP_CORRECTION;
+  else if (MAX_STEP_CORRECTION < error) error = MAX_STEP_CORRECTION;
+  sei();
+
+  if (100 < labs(actual_error)) {
+    STATUS_DEBUG("Motor %d error is %ld", motor, actual_error);
+    ALARM(STAT_EXCESSIVE_MOVE_ERROR);
+    return;
+  }
+
+  // Compute motor timer clock and period. Rounding is performed to eliminate
+  // a negative bias in the uint32_t conversion that results in long-term
+  // negative drift.
+  int32_t travel = round(target) - m->position + error;
+  uint32_t ticks_per_step = travel ? labs(seg_clocks / travel) : 0;
+
+  // Find the clock rate that will fit the required number of steps
+  if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
+  else if (ticks_per_step <= 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
+  else if (ticks_per_step <= 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;
+  else if (ticks_per_step <= 0x7ffff) m->timer_clock = TC_CLKSEL_DIV8_gc;
+  else m->timer_clock = 0; // Clock off, too slow
+
+  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
+  // equal 1, 2, 3 & 4 respectively.
+  m->timer_period = ticks_per_step >> (m->timer_clock - 1);
+
+  // Round up if DIV4 or DIV8 and the error is high enough
+  if (0xffff < ticks_per_step && m->timer_period < 0xffff) {
+    uint8_t step_error = ticks_per_step & ((1 << (m->timer_clock - 1)) - 1);
+    uint8_t half_error = 1 << (m->timer_clock - 2);
+
+    if (step_error == half_error) {
+      if (m->round_up) m->timer_period++;
+      m->round_up = !m->round_up;
+
+    } else if (half_error < step_error) m->timer_period++;
+  }
+
+  if (!m->timer_period) m->timer_clock = 0;
+  if (!m->timer_clock) m->timer_period = 0;
+
+  // Setup the direction, compensating for polarity.
+  m->negative = travel < 0;
+  if (m->negative) m->direction = DIRECTION_CCW ^ m->polarity;
+  else m->direction = DIRECTION_CW ^ m->polarity;
+
+  m->position = round(target);
 
   // Power motor
   switch (m->power_mode) {
-  case MOTOR_DISABLED: return;
+  case MOTOR_DISABLED: break;
 
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (!travel) return; // Not moving
+    if (!m->timer_clock) break; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
     _energize(motor); // TODO is ~5ms enough time to enable the motor?
     break;
 
-  case MOTOR_POWER_MODE_MAX_VALUE: break; // Shouldn't get here
-  }
-
-  // Compute motor timer clock and period. Rounding is performed to eliminate
-  // a negative bias in the uint32_t conversion that results in long-term
-  // negative drift.
-  int32_t ticks_per_step = labs(seg_clocks / travel);
-
-  // Find the clock rate that will fit the required number of steps
-  if (ticks_per_step & 0xffff0000UL) {
-    ticks_per_step /= 2;
-
-    if (ticks_per_step & 0xffff0000UL) {
-      ticks_per_step /= 2;
-
-      if (ticks_per_step & 0xffff0000UL) {
-        ticks_per_step /= 2;
-
-        if (ticks_per_step & 0xffff0000UL) m->timer_clock = 0; // Off, too slow
-        else m->timer_clock = TC_CLKSEL_DIV8_gc;
-      } else m->timer_clock = TC_CLKSEL_DIV4_gc;
-    } else m->timer_clock = TC_CLKSEL_DIV2_gc;
-  } else m->timer_clock = TC_CLKSEL_DIV1_gc;
-
-  if (!ticks_per_step) m->timer_clock = 0;
-  m->timer_period = ticks_per_step;
-  m->positive = 0 <= travel;
-
-  // Setup the direction, compensating for polarity.
-  if (m->positive) m->direction = DIRECTION_CW ^ m->polarity;
-  else m->direction = DIRECTION_CCW ^ m->polarity;
-
-  // Compute actual steps
-  if (m->timer_clock) {
-    int32_t clocks = seg_clocks >> (m->timer_clock - 1); // Motor timer clocks
-    int32_t steps = clocks / m->timer_period;
-
-    // Update position
-    m->position += m->positive ? steps : -steps;
-
-    // Sanity check
-    int32_t diff = labs(labs(travel) - steps);
-    if (20 < diff) ALARM(STAT_STEP_CHECK_FAILED);
+  default: break; // Shouldn't get here
   }
 }
 

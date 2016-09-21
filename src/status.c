@@ -27,6 +27,7 @@
 
 #include "status.h"
 #include "estop.h"
+#include "usart.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -70,7 +71,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   va_list args;
 
   // Type
-  printf_P(PSTR("\n{\"%S\": \""), status_level_pgmstr(level));
+  printf_P(PSTR("\n{\"level\":\"%S\",\"msg\":\""), status_level_pgmstr(level));
 
   // Message
   if (msg) {
@@ -86,7 +87,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   if (code) printf_P(PSTR(", \"code\": %d"), code);
 
   // Location
-  if (location) printf_P(PSTR(", \"location\": \"%S\""), location);
+  if (location) printf_P(PSTR(", \"where\": \"%S\""), location);
 
   putchar('}');
   putchar('\n');
@@ -113,6 +114,7 @@ void status_help() {
 /// Alarm state; send an exception report and stop processing input
 stat_t status_alarm(const char *location, stat_t code) {
   status_message_P(location, STAT_LEVEL_ERROR, code, 0);
-  estop_trigger(ESTOP_ALARM);
+  estop_trigger(code);
+  while (!usart_tx_empty()) continue;
   return code;
 }

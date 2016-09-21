@@ -156,6 +156,7 @@ typedef enum {
 
 
 // Machine settings
+#define MAX_STEP_CORRECTION      4             // In steps per segment
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
 #define JERK_MAX                 50            // yes, that's km/min^3
 #define JUNCTION_DEVIATION       0.05          // default value, in mm

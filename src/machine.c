@@ -948,8 +948,7 @@ void mach_program_end() {
   mach_set_plane(GCODE_DEFAULT_PLANE);
   mach_set_distance_mode(GCODE_DEFAULT_DISTANCE_MODE);
   mach_set_arc_distance_mode(GCODE_DEFAULT_ARC_DISTANCE_MODE);
-  mach.gm.spindle_mode = SPINDLE_OFF;
-  spindle_set(SPINDLE_OFF, 0);
+  mach_set_spindle_mode(SPINDLE_OFF);           // M5
   mach_flood_coolant_control(false);            // M9
   mach_set_feed_mode(UNITS_PER_MINUTE_MODE);    // G94
   mach_set_motion_mode(MOTION_MODE_CANCEL_MOTION_MODE);

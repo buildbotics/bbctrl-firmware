@@ -41,9 +41,9 @@ typedef enum {
   MOTOR_FLAG_SHORTED_bm       = 1 << 4,
   MOTOR_FLAG_OPEN_LOAD_bm     = 1 << 5,
   MOTOR_FLAG_ERROR_bm         = (//MOTOR_FLAG_STALLED_bm | TODO revisit this
+                                 MOTOR_FLAG_SHORTED_bm |
                                  MOTOR_FLAG_OVERTEMP_WARN_bm |
-                                 MOTOR_FLAG_OVERTEMP_bm |
-                                 MOTOR_FLAG_SHORTED_bm)
+                                 MOTOR_FLAG_OVERTEMP_bm)
 } motor_flags_t;
 
 
