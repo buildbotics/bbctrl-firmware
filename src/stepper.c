@@ -193,11 +193,10 @@ ISR(STEP_TIMER_ISR) {
  */
 stat_t st_prep_line(float target[], float seg_time) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready) return ALARM(STAT_INTERNAL_ERROR);
-  if (isinf(seg_time))
-    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  if (isnan(seg_time)) return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
-  if (seg_time < EPSILON) return STAT_MINIMUM_TIME_MOVE;
+  if (st.move_ready)      return ALARM(STAT_INTERNAL_ERROR);
+  if (isinf(seg_time))    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
+  if (isnan(seg_time))    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
+  if (seg_time < EPSILON) return ALARM(STAT_MINIMUM_TIME_MOVE);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_ALINE;
@@ -206,7 +205,7 @@ stat_t st_prep_line(float target[], float seg_time) {
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    motor_prep_move(motor, seg_clocks, target[motor]);
+    RITORNO(motor_prep_move(motor, seg_clocks, target[motor]));
 
   st.move_ready = true; // signal prep buffer ready (do this last)
 
@@ -221,4 +220,10 @@ void st_prep_dwell(float seconds) {
   st.seg_period = STEP_TIMER_FREQ * 0.001; // 1 ms
   st.prep_dwell = seconds * 1000; // convert to ms
   st.move_ready = true; // signal prep buffer ready
+}
+
+
+void st_get_error(int32_t error[]) {
+  for (int motor = 0; motor < MOTORS; motor++)
+    error[motor] = motor_get_error(motor);
 }

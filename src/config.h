@@ -156,7 +156,7 @@ typedef enum {
 
 
 // Machine settings
-#define MAX_STEP_CORRECTION      4             // In steps per segment
+#define MAX_STEP_CORRECTION      8             // In steps per segment
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
 #define JERK_MAX                 50            // yes, that's km/min^3
 #define JUNCTION_DEVIATION       0.05          // default value, in mm
@@ -324,27 +324,8 @@ typedef enum {
 #define STEP_TIMER_ISR       TCC0_OVF_vect
 #define STEP_TIMER_INTLVL    TC_OVFINTLVL_HI_gc
 
-
-/* Step correction settings
- *
- * Step correction settings determine how the encoder error is fed
- * back to correct position errors.  Since the following_error is
- * running 2 segments behind the current segment you have to be
- * careful not to overcompensate. The threshold determines if a
- * correction should be applied, and the factor is how much. The
- * holdoff is how many segments before applying another correction. If
- * threshold is too small and/or amount too large and/or holdoff is
- * too small you may get a runaway correction and error will grow
- * instead of shrink (or oscillate).
- */
-/// magnitude of forwarding error (in steps)
-#define STEP_CORRECTION_THRESHOLD 2.00
-/// apply to step correction for a single segment
-#define STEP_CORRECTION_FACTOR    0.25
-/// max step correction allowed in a single segment
-#define STEP_CORRECTION_MAX       0.60
-/// minimum wait between error correction
-#define STEP_CORRECTION_HOLDOFF   5
+#define SEG_MIN_TIME         EPSILON
+#define SEG_MAX_TIME         ((float)0xffff / 60.0 / STEP_TIMER_FREQ)
 
 
 // TMC2660 driver settings
@@ -391,7 +372,7 @@ typedef enum {
 /// planning in the case of very short lines or arc segments.  Suggest no less
 /// than 12.  Maximum is 255 with out also changing the type of mb.space.  Must
 /// leave headroom for stack.
-#define PLANNER_BUFFER_POOL_SIZE 48
+#define PLANNER_BUFFER_POOL_SIZE 32
 
 /// Buffers to reserve in planner before processing new input line
 #define PLANNER_BUFFER_HEADROOM   4

@@ -156,6 +156,45 @@ stat_t mp_runtime_move_to_target(float target[], float time) {
   float steps[MOTORS];
   mp_kinematics(target, steps);
 
+#if 0
+  int32_t error[MOTORS];
+  st_get_error(error);
+
+  float travel[MOTORS];
+  float new_length_sqr = 0;
+  float old_length_sqr = 0;
+
+  for (int motor = 0; motor < MOTORS; motor++) {
+    travel[motor] = steps[motor] - motor_get_position(motor);
+
+    if (fp_ZERO(travel[motor])) {
+      motor[travel] = 0;
+      motor[error] = 0;
+    }
+
+#if 1
+    if (error[motor] < -MAX_STEP_CORRECTION)
+      error[motor] = -MAX_STEP_CORRECTION;
+    else if (MAX_STEP_CORRECTION < error[motor])
+      error[motor] = MAX_STEP_CORRECTION;
+#endif
+
+    old_length_sqr += square(travel[motor]);
+    new_length_sqr += square(travel[motor] - error[motor]);
+  }
+
+  if (!fp_ZERO(old_length_sqr)) {
+    float new_time = time * sqrt(new_length_sqr / old_length_sqr);
+
+    if (false && SEG_MIN_TIME <= new_time && new_time <= SEG_MAX_TIME) {
+      time = new_time;
+
+      for (int motor = 0; motor < MOTORS; motor++)
+        steps[motor] -= error[motor];
+    }
+  }
+#endif
+
   // Call the stepper prep function
   RITORNO(st_prep_line(steps, time));
 

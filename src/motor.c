@@ -58,7 +58,7 @@ typedef enum {
 
 typedef struct {
   // Config
-  uint8_t motor_map;             // map motor to axis
+  uint8_t axis;                  // map motor to axis
   uint16_t microsteps;           // microsteps per full step
   motor_polarity_t polarity;
   motor_power_mode_t power_mode;
@@ -95,7 +95,7 @@ typedef struct {
 
 static motor_t motors[MOTORS] = {
   {
-    .motor_map   = M1_MOTOR_MAP,
+    .axis        = M1_MOTOR_MAP,
     .step_angle  = M1_STEP_ANGLE,
     .travel_rev  = M1_TRAVEL_PER_REV,
     .microsteps  = M1_MICROSTEPS,
@@ -108,7 +108,7 @@ static motor_t motors[MOTORS] = {
     .dma         = &M1_DMA_CH,
     .dma_trigger = M1_DMA_TRIGGER,
   }, {
-    .motor_map   = M2_MOTOR_MAP,
+    .axis        = M2_MOTOR_MAP,
     .step_angle  = M2_STEP_ANGLE,
     .travel_rev  = M2_TRAVEL_PER_REV,
     .microsteps  = M2_MICROSTEPS,
@@ -121,7 +121,7 @@ static motor_t motors[MOTORS] = {
     .dma         = &M2_DMA_CH,
     .dma_trigger = M2_DMA_TRIGGER,
   }, {
-    .motor_map   = M3_MOTOR_MAP,
+    .axis        = M3_MOTOR_MAP,
     .step_angle  = M3_STEP_ANGLE,
     .travel_rev  = M3_TRAVEL_PER_REV,
     .microsteps  = M3_MICROSTEPS,
@@ -134,7 +134,7 @@ static motor_t motors[MOTORS] = {
     .dma         = &M3_DMA_CH,
     .dma_trigger = M3_DMA_TRIGGER,
   }, {
-    .motor_map   = M4_MOTOR_MAP,
+    .axis        = M4_MOTOR_MAP,
     .step_angle  = M4_STEP_ANGLE,
     .travel_rev  = M4_TRAVEL_PER_REV,
     .microsteps  = M4_MICROSTEPS,
@@ -214,7 +214,7 @@ void motor_enable(int motor, bool enable) {
 }
 
 
-int motor_get_axis(int motor) {return motors[motor].motor_map;}
+int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
 float motor_get_steps_per_unit(int motor) {
@@ -223,9 +223,13 @@ float motor_get_steps_per_unit(int motor) {
 }
 
 
-int32_t motor_get_encoder(int motor) {
-  return motors[motor].encoder;
+float motor_get_units_per_step(int motor) {
+  return motors[motor].travel_rev * motors[motor].step_angle /
+    motors[motor].microsteps / 360;
 }
+
+
+int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
 
 
 void motor_set_encoder(int motor, float encoder) {
@@ -235,6 +239,10 @@ void motor_set_encoder(int motor, float encoder) {
   m->error = 0;
   sei();
 }
+
+
+int32_t motor_get_error(int motor) {return motors[motor].error;}
+int32_t motor_get_position(int motor) {return motors[motor].position;}
 
 
 /// returns true if motor is in an error state
@@ -386,16 +394,17 @@ void motor_end_move(int motor) {
 }
 
 
-void motor_prep_move(int motor, int32_t seg_clocks, float target) {
+stat_t motor_prep_move(int motor, int32_t seg_clocks, float target) {
   motor_t *m = &motors[motor];
 
   // Validate input
-  if (motor < 0 || MOTORS < motor) {ALARM(STAT_INTERNAL_ERROR); return;}
-  if (seg_clocks < 0) {ALARM(STAT_INTERNAL_ERROR); return;}
-  if (isinf(target)) {ALARM(STAT_MOVE_TARGET_IS_INFINITE); return;}
-  if (isnan(target)) {ALARM(STAT_MOVE_TARGET_IS_NAN); return;}
+  if (motor < 0 || MOTORS < motor) return ALARM(STAT_INTERNAL_ERROR);
+  if (seg_clocks < 0) return ALARM(STAT_INTERNAL_ERROR);
+  if (isinf(target)) return ALARM(STAT_MOVE_TARGET_IS_INFINITE);
+  if (isnan(target)) return ALARM(STAT_MOVE_TARGET_IS_NAN);
 
   // Compute error correction
+#if 0
   cli();
   int32_t error = m->error;
   int32_t actual_error = error;
@@ -408,12 +417,21 @@ void motor_prep_move(int motor, int32_t seg_clocks, float target) {
     ALARM(STAT_EXCESSIVE_MOVE_ERROR);
     return;
   }
+#else
+  int32_t error = 0;
+#endif
 
   // Compute motor timer clock and period. Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   int32_t travel = round(target) - m->position + error;
   uint32_t ticks_per_step = travel ? labs(seg_clocks / travel) : 0;
+  m->position = round(target);
+
+  // Setup the direction, compensating for polarity.
+  m->negative = travel < 0;
+  if (m->negative) m->direction = DIRECTION_CCW ^ m->polarity;
+  else m->direction = DIRECTION_CW ^ m->polarity;
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
@@ -428,25 +446,23 @@ void motor_prep_move(int motor, int32_t seg_clocks, float target) {
 
   // Round up if DIV4 or DIV8 and the error is high enough
   if (0xffff < ticks_per_step && m->timer_period < 0xffff) {
-    uint8_t step_error = ticks_per_step & ((1 << (m->timer_clock - 1)) - 1);
-    uint8_t half_error = 1 << (m->timer_clock - 2);
+    int8_t step_error = ticks_per_step & ((1 << (m->timer_clock - 1)) - 1);
+    int8_t half_error = 1 << (m->timer_clock - 2);
+    bool rounded = false;
 
     if (step_error == half_error) {
-      if (m->round_up) m->timer_period++;
+      if (m->round_up) {m->timer_period++; rounded = true;}
       m->round_up = !m->round_up;
 
-    } else if (half_error < step_error) m->timer_period++;
+    } else if (half_error < step_error) {m->timer_period++; rounded = true;}
+
+    if (rounded) step_error = -(((1 << (m->timer_clock - 1)) - 1) - step_error);
+
+    m->position += m->negative ? step_error : -step_error;
   }
 
   if (!m->timer_period) m->timer_clock = 0;
   if (!m->timer_clock) m->timer_period = 0;
-
-  // Setup the direction, compensating for polarity.
-  m->negative = travel < 0;
-  if (m->negative) m->direction = DIRECTION_CCW ^ m->polarity;
-  else m->direction = DIRECTION_CW ^ m->polarity;
-
-  m->position = round(target);
 
   // Power motor
   switch (m->power_mode) {
@@ -462,6 +478,8 @@ void motor_prep_move(int motor, int32_t seg_clocks, float target) {
 
   default: break; // Shouldn't get here
   }
+
+  return STAT_OK;
 }
 
 
@@ -491,11 +509,11 @@ uint8_t get_polarity(int motor) {
 
 
 void set_polarity(int motor, uint8_t value) {motors[motor].polarity = value;}
-uint8_t get_motor_map(int motor) {return motors[motor].motor_map;}
+uint8_t get_motor_map(int motor) {return motors[motor].axis;}
 
 
 void set_motor_map(int motor, uint16_t value) {
-  if (value < AXES) motors[motor].motor_map = value;
+  if (value < AXES) motors[motor].axis = value;
 }
 
 

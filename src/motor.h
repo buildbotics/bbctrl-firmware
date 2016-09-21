@@ -68,8 +68,11 @@ void motor_enable(int motor, bool enable);
 
 int motor_get_axis(int motor);
 float motor_get_steps_per_unit(int motor);
+float motor_get_units_per_step(int motor);
 int32_t motor_get_encoder(int motor);
 void motor_set_encoder(int motor, float encoder);
+int32_t motor_get_error(int motor);
+int32_t motor_get_position(int motor);
 bool motor_error(int motor);
 bool motor_stalled(int motor);
 void motor_reset(int motor);
@@ -82,4 +85,4 @@ void motor_error_callback(int motor, motor_flags_t errors);
 
 void motor_load_move(int motor);
 void motor_end_move(int motor);
-void motor_prep_move(int motor, int32_t seg_clocks, float target);
+stat_t motor_prep_move(int motor, int32_t seg_clocks, float target);
