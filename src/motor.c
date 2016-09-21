@@ -394,12 +394,12 @@ void motor_end_move(int motor) {
 }
 
 
-stat_t motor_prep_move(int motor, int32_t seg_clocks, float target) {
+stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
   motor_t *m = &motors[motor];
 
   // Validate input
   if (motor < 0 || MOTORS < motor) return ALARM(STAT_INTERNAL_ERROR);
-  if (seg_clocks < 0) return ALARM(STAT_INTERNAL_ERROR);
+  if (clocks < 0)    return ALARM(STAT_INTERNAL_ERROR);
   if (isinf(target)) return ALARM(STAT_MOVE_TARGET_IS_INFINITE);
   if (isnan(target)) return ALARM(STAT_MOVE_TARGET_IS_NAN);
 
@@ -414,18 +414,15 @@ stat_t motor_prep_move(int motor, int32_t seg_clocks, float target) {
 
   if (100 < labs(actual_error)) {
     STATUS_DEBUG("Motor %d error is %ld", motor, actual_error);
-    ALARM(STAT_EXCESSIVE_MOVE_ERROR);
-    return;
+    return ALARM(STAT_EXCESSIVE_MOVE_ERROR);
   }
-#else
-  int32_t error = 0;
 #endif
 
   // Compute motor timer clock and period. Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   int32_t travel = round(target) - m->position + error;
-  uint32_t ticks_per_step = travel ? labs(seg_clocks / travel) : 0;
+  uint32_t ticks_per_step = travel ? labs(clocks / travel) : 0;
   m->position = round(target);
 
   // Setup the direction, compensating for polarity.
@@ -448,17 +445,12 @@ stat_t motor_prep_move(int motor, int32_t seg_clocks, float target) {
   if (0xffff < ticks_per_step && m->timer_period < 0xffff) {
     int8_t step_error = ticks_per_step & ((1 << (m->timer_clock - 1)) - 1);
     int8_t half_error = 1 << (m->timer_clock - 2);
-    bool rounded = false;
 
     if (step_error == half_error) {
-      if (m->round_up) {m->timer_period++; rounded = true;}
+      if (m->round_up) m->timer_period++;
       m->round_up = !m->round_up;
 
-    } else if (half_error < step_error) {m->timer_period++; rounded = true;}
-
-    if (rounded) step_error = -(((1 << (m->timer_clock - 1)) - 1) - step_error);
-
-    m->position += m->negative ? step_error : -step_error;
+    } else if (half_error < step_error) m->timer_period++;
   }
 
   if (!m->timer_period) m->timer_clock = 0;

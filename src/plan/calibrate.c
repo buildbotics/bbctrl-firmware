@@ -137,7 +137,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
   mp_kinematics(travel, steps);
 
   // Queue segment
-  st_prep_line(steps, time);
+  st_prep_line(time, steps, 0);
 
   return STAT_EAGAIN;
 }

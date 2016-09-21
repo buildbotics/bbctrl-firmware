@@ -48,7 +48,6 @@ typedef struct {
   float unit[AXES];         // unit vector for axis scaling & planning
   float final_target[AXES]; // final target, used to correct rounding errors
   float waypoint[3][AXES];  // head/body/tail endpoints for correction
-  float position[AXES];
 
   // copies of bf variables of same name
   float head_length;
@@ -86,14 +85,12 @@ static stat_t _exec_aline_segment() {
     float segment_length = ex.segment_velocity * ex.segment_time;
 
     for (int axis = 0; axis < AXES; axis++)
-      target[axis] = ex.position[axis] + ex.unit[axis] * segment_length;
+      target[axis] =
+        mp_runtime_get_axis_position(axis) + ex.unit[axis] * segment_length;
   }
 
   mp_runtime_set_velocity(ex.segment_velocity);
   RITORNO(mp_runtime_move_to_target(target, ex.segment_time));
-
-  for (int axis = 0; axis < AXES; axis++)
-    ex.position[axis] = target[axis];
 
   // Return EAGAIN to continue or OK if this segment is done
   return ex.segment_count ? STAT_EAGAIN : STAT_OK;
@@ -372,7 +369,8 @@ static void _plan_hold() {
   if (!bf) return; // Oops! nothing's running
 
   // Examine and process current buffer and compute length left for decel
-  float available_length = get_axis_vector_length(ex.final_target, ex.position);
+  float available_length =
+    get_axis_vector_length(ex.final_target, mp_runtime_get_position());
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bf is OK to use here
@@ -437,73 +435,14 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
   ex.section_new = true;
   ex.hold_planned = false;
 
-  for (int axis = 0; axis < AXES; axis++)
-    ex.position[axis] = mp_runtime_get_axis_position(axis);
-
-#if 0
-  // Adjust for error
-  int32_t step_error[MOTORS];
-  st_get_error(step_error);
-
-  float position[AXES];
-  float axis_length[AXES];
-  float length_square = 0;
-  bool correct = true; //false;
-
-  for (int motor = 0; motor < MOTORS; motor++) {
-    int axis = motor_get_axis(motor);
-    float error = (float)step_error[motor] * motor_get_units_per_step(motor);
-    error = 0;
-
-    if (fp_ZERO(ex.unit[axis]) || fp_ZERO(error)) error = 0;
-
-#if 0
-    if (error < -MAX_STEP_CORRECTION) error = -MAX_STEP_CORRECTION;
-    else if (MAX_STEP_CORRECTION < error) error = MAX_STEP_CORRECTION;
-#endif
-
-    position[axis] = ex.position[axis] - error;
-    axis_length[axis] = ex.final_target[axis] - position[axis];
-    length_square += square(axis_length[axis]);
-
-    if (error) correct = true;
-  }
-
-  if (correct && !fp_ZERO(length_square)) {
-    float length = sqrt(length_square);
-
-
-
-    if (!fp_ZERO(length)) {
-      // Compute unit vector & adjust position
-      for (int axis = 0; axis < AXES; axis++) {
-        ex.unit[axis] = axis_length[axis] / length;
-        ex.position[axis] = position[axis];
-      }
-
-      // Adjust section lengths
-      float scale = length / bf->length;
-      ex.head_length *= scale;
-      ex.body_length *= scale;
-      ex.tail_length *= scale;
-    }
-  }
-
-  copy_vector(ex.unit, bf->unit);
-  ex.head_length = bf->head_length;
-  ex.body_length = bf->body_length;
-  ex.tail_length = bf->tail_length;
-#endif
-
   // Generate waypoints for position correction at section ends.  This helps
   // negate floating point errors in the forward differencing code.
   for (int axis = 0; axis < AXES; axis++) {
-    ex.waypoint[SECTION_HEAD][axis] =
-      ex.position[axis] + ex.unit[axis] * ex.head_length;
+    float position = mp_runtime_get_axis_position(axis);
 
-    ex.waypoint[SECTION_BODY][axis] = ex.position[axis] +
+    ex.waypoint[SECTION_HEAD][axis] = position + ex.unit[axis] * ex.head_length;
+    ex.waypoint[SECTION_BODY][axis] = position +
       ex.unit[axis] * (ex.head_length + ex.body_length);
-
     ex.waypoint[SECTION_TAIL][axis] = ex.final_target[axis];
   }
 
