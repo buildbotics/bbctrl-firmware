@@ -67,7 +67,7 @@ int main() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  mp_init();                 // motion planning
+  mp_init();                      // motion planning
   machine_init();                 // gcode machine
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
@@ -78,6 +78,9 @@ int main() {
   // Splash
   fprintf_P(stdout, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
                          "\"version\": \"" VERSION "\"}\n"));
+
+  // Nominal segment time cannot be longer than maximum
+  if (MAX_SEGMENT_TIME < NOM_SEGMENT_TIME) ALARM(STAT_INTERNAL_ERROR);
 
   // Main loop
   while (true) {

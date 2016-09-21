@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include "buffer.h"
 
+typedef float forward_dif_t[5];
 
-stat_t mp_exec_move();
-stat_t mp_exec_aline(mp_buffer_t *bf);
+float mp_init_forward_dif(forward_dif_t fdif, float Vi, float Vt, float s);
+float mp_next_forward_dif(forward_dif_t fdif);

@@ -81,9 +81,6 @@ static planner_t mp = {{0}};
 
 
 void mp_init() {
-  // Nominal segment time cannot be longer than maximum
-  if (MAX_SEGMENT_TIME < NOM_SEGMENT_USEC) ALARM(STAT_INTERNAL_ERROR);
-
   mp_queue_init();
 }
 

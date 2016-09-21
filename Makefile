@@ -5,7 +5,7 @@ CLOCK   = 32000000
 
 TARGET  = $(PROJECT).elf
 
-# Compile falgs
+# Compile flags
 CC = avr-gcc
 CPP = avr-g++
 
@@ -13,7 +13,7 @@ COMMON = -mmcu=$(MCU)
 
 CFLAGS += $(COMMON)
 CFLAGS += -Wall -Werror # -Wno-error=unused-function
-CFLAGS += -gdwarf-2 -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
+CFLAGS += -gdwarf-2 -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 -funroll-loops
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Isrc

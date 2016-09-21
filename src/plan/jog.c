@@ -31,7 +31,7 @@
 #include "planner.h"
 #include "buffer.h"
 #include "line.h"
-#include "exec.h"
+#include "forward_dif.h"
 #include "runtime.h"
 #include "machine.h"
 #include "state.h"
@@ -48,7 +48,7 @@ typedef struct {
   bool writing;
   float Vi;
   float Vt;
-  float fdifs[AXES][5];
+  forward_dif_t fdifs[AXES];
   unsigned segments[AXES];
 
   int sign[AXES];
@@ -112,13 +112,13 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
         } else {
           jr.segments[axis] = ceil(move_time / NOM_SEGMENT_TIME);
 
-          Vi = mp_init_forward_diffs(jr.fdifs[axis], Vi, Vt, jr.segments[axis]);
+          Vi = mp_init_forward_dif(jr.fdifs[axis], Vi, Vt, jr.segments[axis]);
           jr.segments[axis]--;
         }
       }
 
     } else if (jr.segments[axis]) {
-      Vi += mp_next_forward_diff(jr.fdifs[axis]);
+      Vi += mp_next_forward_dif(jr.fdifs[axis]);
       jr.segments[axis]--;
 
     } else Vi = Vt;
