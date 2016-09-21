@@ -233,16 +233,13 @@ static float _calc_jerk(const float axis_square[], const float unit[]) {
 /// Compute cached jerk terms used by planning
 static void _calc_and_cache_jerk_values(mp_buffer_t *bf) {
   static float jerk = 0;
-  static float recip_jerk = 0;
   static float cbrt_jerk = 0;
 
   if (JERK_MATCH_PRECISION < fabs(bf->jerk - jerk)) { // Tolerance comparison
     jerk = bf->jerk;
-    recip_jerk = 1 / bf->jerk;
     cbrt_jerk = cbrt(bf->jerk);
   }
 
-  bf->recip_jerk = recip_jerk;
   bf->cbrt_jerk = cbrt_jerk;
 }
 

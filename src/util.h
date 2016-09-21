@@ -52,6 +52,8 @@ inline float min4(float a, float b, float c, float d)
 inline float max4(float a, float b, float c, float d)
 {return max(max(a, b), max(c, d));}
 
+float invsqrt(float number);
+
 // Floating-point utilities
 #define EPSILON 0.00001 // allowable rounding error for floats
 inline bool fp_EQ(float a, float b) {return fabs(a - b) < EPSILON;}

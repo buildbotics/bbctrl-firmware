@@ -308,7 +308,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   //   MIN_BODY_LENGTH
   bf->body_length = 0;
   float minimum_length =
-    mp_get_target_length(bf->entry_velocity, bf->exit_velocity, bf->recip_jerk);
+    mp_get_target_length(bf->entry_velocity, bf->exit_velocity, bf->jerk);
 
   // head-only & tail-only cases
   if (bf->length <= (minimum_length + MIN_BODY_LENGTH)) {
@@ -343,11 +343,9 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
   // Set head and tail lengths for evaluating the next cases
   bf->head_length =
-    mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
-                         bf->recip_jerk);
+    mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf->jerk);
   bf->tail_length =
-    mp_get_target_length(bf->exit_velocity, bf->cruise_velocity,
-                         bf->recip_jerk);
+    mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf->jerk);
   if (bf->head_length < MIN_HEAD_LENGTH) { bf->head_length = 0;}
   if (bf->tail_length < MIN_TAIL_LENGTH) { bf->tail_length = 0;}
 
@@ -385,11 +383,9 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
       // initialize from previous iteration
       bf->cruise_velocity = computed_velocity;
       bf->head_length =
-        mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
-                             bf->recip_jerk);
+        mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf->jerk);
       bf->tail_length =
-        mp_get_target_length(bf->exit_velocity, bf->cruise_velocity,
-                             bf->recip_jerk);
+        mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf->jerk);
 
       if (bf->head_length > bf->tail_length) {
         bf->head_length =
@@ -410,8 +406,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     // set velocity and clean up any parts that are too short
     bf->cruise_velocity = computed_velocity;
     bf->head_length =
-      mp_get_target_length(bf->entry_velocity, bf->cruise_velocity,
-                           bf->recip_jerk);
+      mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf->jerk);
     bf->tail_length = bf->length - bf->head_length;
 
     if (bf->head_length < MIN_HEAD_LENGTH) {
@@ -514,7 +509,6 @@ void mp_print_queue(mp_buffer_t *bf) {
  *   bl->cruise_vmax       - used during forward planning to set cruise velocity
  *   bl->exit_vmax         - used during forward planning to set exit velocity
  *   bl->delta_vmax        - used during forward planning to set exit velocity
- *   bl->recip_jerk        - used during trapezoid generation
  *   bl->cbrt_jerk         - used during trapezoid generation
  *
  * Variables that will be set during processing:
@@ -681,8 +675,8 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
  * [2] Cannot assume Vf >= Vi due to rounding errors and use of
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
-float mp_get_target_length(float Vi, float Vf, float recip_jerk) {
-  return fabs(Vi - Vf) * sqrt(fabs(Vi - Vf) * recip_jerk);
+float mp_get_target_length(float Vi, float Vf, float jerk) {
+  return fabs(Vi - Vf) * invsqrt(jerk / fabs(Vi - Vf));
 }
 
 

@@ -13,6 +13,7 @@ COMMON = -mmcu=$(MCU)
 
 CFLAGS += $(COMMON)
 CFLAGS += -Wall -Werror # -Wno-error=unused-function
+CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
 CFLAGS += -gdwarf-2 -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 -funroll-loops
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d

@@ -34,3 +34,21 @@ float get_axis_vector_length(const float a[], const float b[]) {
               square(a[AXIS_Z] - b[AXIS_Z]) + square(a[AXIS_A] - b[AXIS_A]) +
               square(a[AXIS_B] - b[AXIS_B]) + square(a[AXIS_C] - b[AXIS_C]));
 }
+
+
+/// Fast inverse square root originally from Quake III Arena code.  Original
+/// comments left intact.
+/// See: https://en.wikipedia.org/wiki/Fast_inverse_square_root
+float invsqrt(float number) {
+  const float threehalfs = 1.5F;
+
+  float x2 = number * 0.5;
+  float y = number;
+  long i = *(long *)&y;                // evil floating point bit level hacking
+  i = 0x5f3759df - (i >> 1);           // what the fuck?
+  y = *(float *)&i;
+  y = y * (threehalfs - x2 * y * y);   // 1st iteration
+  y = y * (threehalfs - x2 * y * y);   // 2nd iteration, this can be removed
+
+  return y;
+}

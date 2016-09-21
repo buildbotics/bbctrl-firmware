@@ -85,5 +85,5 @@ void mp_replan_all();
 
 void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line);
 
-float mp_get_target_length(float Vi, float Vf, float recip_jerk);
+float mp_get_target_length(float Vi, float Vf, float jerk);
 float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf);

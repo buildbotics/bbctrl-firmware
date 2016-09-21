@@ -101,7 +101,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
         float jerk = axes[axis].jerk_max * JERK_MULTIPLIER;
 
         // Compute length to velocity given max jerk
-        float length = mp_get_target_length(Vi, Vt, 1 / (jerk * JOG_JERK_MULT));
+        float length = mp_get_target_length(Vi, Vt, jerk * JOG_JERK_MULT);
 
         // Compute move time
         float move_time = 2 * length / (Vi + Vt);

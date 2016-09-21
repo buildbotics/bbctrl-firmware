@@ -81,7 +81,6 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   float delta_vmax;               // max velocity difference for this move
 
   float jerk;                     // maximum linear jerk term for this move
-  float recip_jerk;               // 1/Jm used for planning (computed & cached)
   float cbrt_jerk;                // cube root of Jm (computed & cached)
 } mp_buffer_t;
 

@@ -58,13 +58,13 @@ typedef struct {
   float cruise_velocity;
   float exit_velocity;
 
-  float segments;           // number of segments in line or arc
+  float segments;           // number of segments in line
   uint32_t segment_count;   // count of running segments
-  float segment_velocity;   // computed velocity for aline segment
-  float segment_time;       // actual time increment per aline segment
+  float segment_velocity;   // computed velocity for segment
+  float segment_time;       // actual time increment per segment
   forward_dif_t fdif;       // forward difference levels
   bool hold_planned;        // true when a feedhold has been planned
-  move_section_t section;   // what section is the move in?
+  move_section_t section;   // current move section
   bool section_new;         // true if it's a new section
 } mp_exec_t;
 
@@ -214,8 +214,7 @@ static void _plan_hold() {
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bf is OK to use here
-  float braking_length =
-    mp_get_target_length(braking_velocity, 0, bf->recip_jerk);
+  float braking_length = mp_get_target_length(braking_velocity, 0, bf->jerk);
 
   // Hack to prevent Case 2 moves for perfect-fit decels.  Happens when homing.
   if (available_length < braking_length && fp_ZERO(bf->exit_velocity))

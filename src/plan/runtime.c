@@ -197,7 +197,7 @@ stat_t mp_runtime_move_to_target(float target[], float time) {
 
   bool use_error = false;
   if (!fp_ZERO(old_length_sqr)) {
-    float new_time = time * sqrt(new_length_sqr / old_length_sqr);
+    float new_time = time * invsqrt(old_length_sqr / new_length_sqr);
 
     if (EPSILON <= new_time && new_time <= MAX_SEGMENT_TIME) {
       time = new_time;
