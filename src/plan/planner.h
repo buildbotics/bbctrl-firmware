@@ -33,6 +33,7 @@
 #include "machine.h" // used for gcode_state_t
 #include "buffer.h"
 #include "util.h"
+#include "config.h"
 
 #include <stdbool.h>
 
@@ -42,24 +43,14 @@
 #define JERK_MULTIPLIER         1000000.0
 #define JERK_MATCH_PRECISION    1000.0 // jerk precision to be considered same
 
-#define NOM_SEGMENT_USEC        5000.0  // nominal segment time
-#define MIN_SEGMENT_USEC        2500.0  // minimum segment time
-
 #define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 #define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
 
 #define MIN_SEGMENT_TIME_PLUS_MARGIN \
   ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
 
-/// Max iterations for convergence in the HT asymmetric case.
-#define TRAPEZOID_ITERATION_MAX             10
-
 /// Error percentage for iteration convergence. As percent - 0.01 = 1%
 #define TRAPEZOID_ITERATION_ERROR_PERCENT   0.1
-
-/// Tolerance for "exact fit" for H and T cases
-/// allowable mm of error in planning phase
-#define TRAPEZOID_LENGTH_FIT_TOLERANCE      0.0001
 
 /// Adaptive velocity tolerance term
 #define TRAPEZOID_VELOCITY_TOLERANCE        (max(2, bf->entry_velocity / 100))
@@ -70,6 +61,7 @@
  * short to process correctly.
  */
 #define HOLD_DECELERATION_TOLERANCE 1 // In mm
+
 
 typedef enum {
   SECTION_HEAD,           // acceleration

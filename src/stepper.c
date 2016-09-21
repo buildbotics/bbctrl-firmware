@@ -196,10 +196,11 @@ ISR(STEP_TIMER_ISR) {
  */
 stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready)  return ALARM(STAT_INTERNAL_ERROR);
-  if (isinf(time))    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_INFINITE);
-  if (isnan(time))    return ALARM(STAT_PREP_LINE_MOVE_TIME_IS_NAN);
-  if (time < EPSILON) return ALARM(STAT_MINIMUM_TIME_MOVE);
+  if (st.move_ready)           return ALARM(STAT_INTERNAL_ERROR);
+  if (isinf(time))             return ALARM(STAT_PREP_LINE_MOVE_TIME_INFINITE);
+  if (isnan(time))             return ALARM(STAT_PREP_LINE_MOVE_TIME_NAN);
+  if (time < EPSILON)          return ALARM(STAT_MINIMUM_TIME_MOVE);
+  if (MAX_SEGMENT_TIME < time) return ALARM(STAT_MAXIMUM_TIME_MOVE);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_ALINE;

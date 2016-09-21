@@ -400,8 +400,8 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
   // Validate input
   if (motor < 0 || MOTORS < motor) return ALARM(STAT_INTERNAL_ERROR);
   if (clocks < 0)    return ALARM(STAT_INTERNAL_ERROR);
-  if (isinf(target)) return ALARM(STAT_MOVE_TARGET_IS_INFINITE);
-  if (isnan(target)) return ALARM(STAT_MOVE_TARGET_IS_NAN);
+  if (isinf(target)) return ALARM(STAT_MOVE_TARGET_INFINITE);
+  if (isnan(target)) return ALARM(STAT_MOVE_TARGET_NAN);
 
   // Compute error correction
 #if 0
