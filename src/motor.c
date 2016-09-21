@@ -82,6 +82,7 @@ typedef struct {
   bool wasEnabled;
   int32_t error;
   bool last_negative;            // Last step sign
+  bool reading;
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
@@ -233,15 +234,25 @@ int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
 
 
 void motor_set_encoder(int motor, float encoder) {
+  if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR);
+
   motor_t *m = &motors[motor];
-  cli();
   m->encoder = m->position = m->commanded = round(encoder);
   m->error = 0;
-  sei();
 }
 
 
-int32_t motor_get_error(int motor) {return motors[motor].error;}
+int32_t motor_get_error(int motor) {
+  motor_t *m = &motors[motor];
+
+  m->reading = true;
+  int32_t error = motors[motor].error;
+  m->reading = false;
+
+  return error;
+}
+
+
 int32_t motor_get_position(int motor) {return motors[motor].position;}
 
 
@@ -381,7 +392,7 @@ void motor_load_move(int motor) {
   m->last_negative = m->negative;
 
   // Compute error
-  m->error = m->commanded - m->encoder;
+  if (!m->reading) m->error = m->commanded - m->encoder;
   m->commanded = m->position;
 }
 

@@ -50,5 +50,5 @@ float invsqrt(float number) {
   y = y * (threehalfs - x2 * y * y);   // 1st iteration
   y = y * (threehalfs - x2 * y * y);   // 2nd iteration, this can be removed
 
-  return y;
+  return y; //isnan(y) ? 1.0 / sqrt(number) : y;
 }

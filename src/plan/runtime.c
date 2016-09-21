@@ -64,8 +64,7 @@ typedef struct {
   distance_mode_t distance_mode;
   distance_mode_t arc_distance_mode;
 
-  float previousP[MOTORS];
-  float previousI[MOTORS];
+  float previous_error[MOTORS];
 } mp_runtime_t;
 
 static mp_runtime_t rt = {0};
@@ -175,38 +174,33 @@ stat_t mp_runtime_move_to_target(float target[], float time) {
       motor[error] = 0;
     }
 
-    float P = error[motor] - rt.previousI[motor];
-    float I = error[motor];
-    float D = P - rt.previousP[motor];
+    error[motor] = 0.5 * (error[motor] - rt.previous_error[motor]);
+    rt.previous_error[motor] = error[motor];
 
-    rt.previousP[motor] = P;
-    rt.previousI[motor] = I;
-
-    error[motor] = 0.5 * P + 0.5 * I + 0.15 * D;
-
-#if 0
     if (error[motor] < -MAX_STEP_CORRECTION)
       error[motor] = -MAX_STEP_CORRECTION;
     else if (MAX_STEP_CORRECTION < error[motor])
       error[motor] = MAX_STEP_CORRECTION;
-#endif
 
     old_length_sqr += square(travel[motor]);
     new_length_sqr += square(travel[motor] - error[motor]);
   }
 
   bool use_error = false;
-  if (!fp_ZERO(old_length_sqr)) {
+  if (!fp_ZERO(new_length_sqr)) {
     float new_time = time * invsqrt(old_length_sqr / new_length_sqr);
 
-    if (EPSILON <= new_time && new_time <= MAX_SEGMENT_TIME) {
+    if (!isnan(new_time) && !isinf(new_time) &&
+        EPSILON <= new_time && new_time <= MAX_SEGMENT_TIME) {
       time = new_time;
       use_error = true;
     }
   }
 
-  if (!use_error)
-    for (int motor = 0; motor < MOTORS; motor++) error[motor] = 0;
+  if (!use_error) memset(error, 0, sizeof(error));
+
+#else
+  const int32_t error[MOTORS] = {0};
 #endif
 
   // Call the stepper prep function

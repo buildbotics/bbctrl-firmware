@@ -676,7 +676,7 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
 float mp_get_target_length(float Vi, float Vf, float jerk) {
-  return fabs(Vi - Vf) * invsqrt(jerk / fabs(Vi - Vf));
+  return fp_EQ(Vi, Vf) ? 0 : fabs(Vi - Vf) * invsqrt(jerk / fabs(Vi - Vf));
 }
 
 

@@ -58,7 +58,6 @@ typedef struct {
   float cruise_velocity;
   float exit_velocity;
 
-  float segments;           // number of segments in line
   uint32_t segment_count;   // count of running segments
   float segment_velocity;   // computed velocity for segment
   float segment_time;       // actual time increment per segment
@@ -105,13 +104,13 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
 
     // len / avg. velocity
     float move_time = 2 * length / (vin + vout);
-    ex.segments = ceil(move_time / NOM_SEGMENT_TIME);
-    ex.segment_time = move_time / ex.segments;
-    ex.segment_count = (uint32_t)ex.segments;
+    float segments = ceil(move_time / NOM_SEGMENT_TIME);
+    ex.segment_time = move_time / segments;
+    ex.segment_count = round(segments);
 
     if (vin == vout) ex.segment_velocity = vin;
     else ex.segment_velocity =
-           mp_init_forward_dif(ex.fdif, vin, vout, ex.segments);
+           mp_init_forward_dif(ex.fdif, vin, vout, segments);
 
     if (ex.segment_time < MIN_SEGMENT_TIME)
       return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
