@@ -278,9 +278,6 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
   // TODO this is kind of hackish
   signalGroup = flags & CREATE_PROCESS_GROUP;
 
-  // Close any open handles
-  closeHandles();
-
   try {
     // Create pipes
     if (flags & REDIR_STDIN) p->pipes[0].create();
