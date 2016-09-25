@@ -373,6 +373,12 @@ namespace cb {
     {return stream << '(' << rmin << ", " << rmax << ')';}
 
 
+    void read(const cb::JSON::Value &value) {
+      rmin.read(value.getList("min"));
+      rmax.read(value.getList("max"));
+    }
+
+
     void write(JSON::Sink &sink) const {
       sink.beginDict();
       sink.beginInsert("min");
