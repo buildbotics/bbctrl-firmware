@@ -1110,7 +1110,7 @@ namespace cb {
 #ifdef _WIN32
       THROW("clearenv() not supported in Windows");
 #else
-      clearenv();
+      ::clearenv();
 #endif
     }
 
