@@ -262,7 +262,7 @@ def Packager(env, name, **kwargs):
 
         app = env.App(app_name, [], **kwargs)
 
-        if not 'pkg_apps' in kwargs: kwargs['pkg_apps'] = name + '.app'
+        if not 'pkg_apps' in kwargs: kwargs['pkg_apps'] = [name + '.app']
         env = env.Clone()
         env.Replace(**kwargs)
         mpkg_name = env.GetPackageName(name, type = 'pkg')
