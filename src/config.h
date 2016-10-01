@@ -37,6 +37,64 @@
 
 // Pins
 enum {
+  ENABLE_X_PIN = PORT_A << 3,
+  ENABLE_Y_PIN,
+  ENABLE_Z_PIN,
+  ENABLE_A_PIN,
+  SPIN_DIR_PIN,
+  SPIN_ENABLE_PIN,
+  ANALOG_PIN,
+  PROBE_PIN,
+
+  MIN_X_PIN = PORT_B << 3,
+  MAX_X_PIN,
+  MIN_A_PIN,
+  MAX_A_PIN,
+  MIN_Y_PIN,
+  MAX_Y_PIN,
+  MIN_Z_PIN,
+  MAX_Z_PIN,
+
+  SDA_PIN = PORT_C << 3,
+  SCL_PIN,
+  SERIAL_RX_PIN,
+  SERIAL_TX_PIN,
+  SERIAL_CTS_PIN,
+  SPI_CLK_PIN,
+  SPI_MISO_PIN,
+  SPI_MOSI_PIN,
+
+  STEP_X_PIN = PORT_D << 3,
+  SPI_CS_X_PIN,
+  SPI_CS_A_PIN,
+  SPI_CS_Z_PIN,
+  SPIN_PWM_PIN,
+  SWITCH_1_PIN,
+  RS485_RO_PIN,
+  RS485_DI_PIN,
+
+  STEP_Y_PIN = PORT_E << 3,
+  SPI_CS_Y_PIN,
+  DIR_X_PIN,
+  DIR_Y_PIN,
+  STEP_A_PIN,
+  SWITCH_2_PIN,
+  DIR_Z_PIN,
+  DIR_A_PIN,
+
+  STEP_Z_PIN = PORT_F << 3,
+  RS485_RW_PIN,
+  FAULT_PIN,
+  ESTOP_PIN,
+  FAULT_X_PIN,
+  FAULT_Y_PIN,
+  FAULT_Z_PIN,
+  FAULT_A_PIN,
+};
+
+
+#if 0
+enum {
   STEP_X_PIN = PORT_A << 3,
   DIR_X_PIN,
   ENABLE_X_PIN,
@@ -91,6 +149,7 @@ enum {
   MIN_A_PIN,
   MAX_A_PIN,
 };
+#endif
 
 
 // Compile-time settings
@@ -299,20 +358,20 @@ typedef enum {
 #define TIMER_TMC2660          TCC1 // TMC2660 timer (see tmc2660.h)
 #define TIMER_PWM              TCD1 // PWM timer     (see pwm_spindle.c)
 
-#define M1_TIMER               TCE1
-#define M2_TIMER               TCF0
-#define M3_TIMER               TCE0
-#define M4_TIMER               TCD0
+#define M1_TIMER               TCD0
+#define M2_TIMER               TCE0
+#define M3_TIMER               TCF0
+#define M4_TIMER               TCE1
 
 #define M1_DMA_CH              DMA.CH0
 #define M2_DMA_CH              DMA.CH1
 #define M3_DMA_CH              DMA.CH2
 #define M4_DMA_CH              DMA.CH3
 
-#define M1_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE1_CCA_gc
-#define M2_DMA_TRIGGER         DMA_CH_TRIGSRC_TCF0_CCA_gc
-#define M3_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE0_CCA_gc
-#define M4_DMA_TRIGGER         DMA_CH_TRIGSRC_TCD0_CCA_gc
+#define M1_DMA_TRIGGER         DMA_CH_TRIGSRC_TCD0_CCA_gc
+#define M2_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE0_CCA_gc
+#define M3_DMA_TRIGGER         DMA_CH_TRIGSRC_TCF0_CCA_gc
+#define M4_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE1_CCA_gc
 
 
 // Timer setup for stepper and dwells
@@ -334,8 +393,8 @@ typedef enum {
 #define TMC2660_OVF_vect       TCC1_OVF_vect
 #define TMC2660_SPI_SS_PIN     SERIAL_CTS_PIN
 #define TMC2660_SPI_SCK_PIN    SPI_CLK_PIN
-#define TMC2660_SPI_MISO_PIN   SPI_MOSI_PIN
-#define TMC2660_SPI_MOSI_PIN   SPI_MISO_PIN
+#define TMC2660_SPI_MISO_PIN   SPI_MISO_PIN
+#define TMC2660_SPI_MOSI_PIN   SPI_MOSI_PIN
 #define TMC2660_TIMER          TIMER_TMC2660
 #define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
 #define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]

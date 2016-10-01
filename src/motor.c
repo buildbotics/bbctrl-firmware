@@ -105,7 +105,7 @@ static motor_t motors[MOTORS] = {
     .step_pin    = STEP_X_PIN,
     .dir_pin     = DIR_X_PIN,
     .enable_pin  = ENABLE_X_PIN,
-    .timer       = (TC0_t *)&M1_TIMER,
+    .timer       = &M1_TIMER,
     .dma         = &M1_DMA_CH,
     .dma_trigger = M1_DMA_TRIGGER,
   }, {
@@ -144,7 +144,7 @@ static motor_t motors[MOTORS] = {
     .step_pin    = STEP_A_PIN,
     .dir_pin     = DIR_A_PIN,
     .enable_pin  = ENABLE_A_PIN,
-    .timer       = &M4_TIMER,
+    .timer       = (TC0_t *)&M4_TIMER,
     .dma         = &M4_DMA_CH,
     .dma_trigger = M4_DMA_TRIGGER,
   }
@@ -152,13 +152,6 @@ static motor_t motors[MOTORS] = {
 
 
 static uint8_t _dummy;
-
-
-/// Special interrupt for X-axis
-ISR(TCE1_CCA_vect) {
-  OUTTGL_PIN(STEP_X_PIN);
-  motors[0].steps++;
-}
 
 
 void motor_init() {
@@ -179,8 +172,6 @@ void motor_init() {
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
 
-    if (!motor) continue; // Don't configure DMA for motor 0
-
     // Setup DMA channel as timer event counter
     m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
     m->dma->TRIGSRC = m->dma_trigger;
@@ -200,9 +191,6 @@ void motor_init() {
       DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
     m->dma->CTRLA |= DMA_CH_ENABLE_bm;
   }
-
-  // Setup special interrupt for X-axis mapping
-  M1_TIMER.INTCTRLB = TC_CCAINTLVL_HI_gc;
 }
 
 
@@ -234,7 +222,7 @@ int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
 
 
 void motor_set_encoder(int motor, float encoder) {
-  if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR);
+  //if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR); TODO
 
   motor_t *m = &motors[motor];
   m->encoder = m->position = m->commanded = round(encoder);
@@ -337,7 +325,7 @@ void motor_error_callback(int motor, motor_flags_t errors) {
   m->flags |= errors;
   report_request();
 
-  if (false && motor_error(motor)) {
+  if (motor_error(motor)) {
     if (m->flags & MOTOR_FLAG_STALLED_bm) ALARM(STAT_MOTOR_STALLED);
     if (m->flags & MOTOR_FLAG_OVERTEMP_WARN_bm) ALARM(STAT_MOTOR_OVERTEMP_WARN);
     if (m->flags & MOTOR_FLAG_OVERTEMP_bm) ALARM(STAT_MOTOR_OVERTEMP);
@@ -381,11 +369,6 @@ void motor_load_move(int motor) {
   else OUTSET_PIN(m->dir_pin);
 
   // Accumulate encoder
-  // TODO we currently accumulate the x-axis here
-  if (!motor) {
-    steps = m->steps;
-    m->steps = 0;
-  }
   if (!m->wasEnabled) steps = 0;
 
   m->encoder += m->last_negative ? -(int32_t)steps : steps;

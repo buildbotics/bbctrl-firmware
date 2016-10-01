@@ -156,14 +156,8 @@ static void _set_baud(uint16_t bsel, uint8_t bscale) {
 
 
 static void _set_write(bool x) {
-  if (x)  {
-    OUTSET_PIN(RS485_RE_PIN); // High
-    OUTSET_PIN(RS485_DE_PIN); // High
-
-  } else {
-    OUTCLR_PIN(RS485_RE_PIN); // Low
-    OUTCLR_PIN(RS485_DE_PIN); // Low
-  }
+  if (x) OUTSET_PIN(RS485_RW_PIN); // High
+  else OUTCLR_PIN(RS485_RW_PIN); // Low
 }
 
 
@@ -431,10 +425,8 @@ void huanyang_init() {
   DIRCLR_PIN(RS485_RO_PIN); // Input
   OUTSET_PIN(RS485_DI_PIN); // High
   DIRSET_PIN(RS485_DI_PIN); // Output
-  OUTSET_PIN(RS485_RE_PIN); // High
-  DIRSET_PIN(RS485_RE_PIN); // Output
-  OUTSET_PIN(RS485_DE_PIN); // High
-  DIRSET_PIN(RS485_DE_PIN); // Output
+  OUTSET_PIN(RS485_RW_PIN); // High
+  DIRSET_PIN(RS485_RW_PIN); // Output
 
   _set_baud(3325, 0b1101); // 9600 @ 32MHz with 2x USART
 
