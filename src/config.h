@@ -93,65 +93,6 @@ enum {
 };
 
 
-#if 0
-enum {
-  STEP_X_PIN = PORT_A << 3,
-  DIR_X_PIN,
-  ENABLE_X_PIN,
-  SPI_CS_X_PIN,
-  FAULT_X_PIN,
-  FAULT_PIN,
-  MIN_X_PIN,
-  MAX_X_PIN,
-
-  SPIN_PWM_PIN = PORT_B << 3,
-  SPIN_DIR_PIN,
-  MIN_Y_PIN,
-  MAX_Y_PIN,
-  RS485_RE_PIN,
-  RS485_DE_PIN,
-  SPIN_ENABLE_PIN,
-  BOOT_PIN,
-
-  SDA_PIN = PORT_C << 3,
-  SCL_PIN,
-  SERIAL_RX_PIN,
-  SERIAL_TX_PIN,
-  SERIAL_CTS_PIN,
-  SPI_CLK_PIN,
-  SPI_MOSI_PIN,
-  SPI_MISO_PIN,
-
-  STEP_A_PIN = PORT_D << 3,
-  DIR_A_PIN,
-  ENABLE_A_PIN,
-  SPI_CS_A_PIN,
-  FAULT_A_PIN,
-  ESTOP_PIN,
-  RS485_RO_PIN,
-  RS485_DI_PIN,
-
-  STEP_Z_PIN = PORT_E << 3,
-  DIR_Z_PIN,
-  ENABLE_Z_PIN,
-  SPI_CS_Z_PIN,
-  FAULT_Z_PIN,
-  SWITCH_1_PIN,
-  MIN_Z_PIN,
-  MAX_Z_PIN,
-
-  STEP_Y_PIN = PORT_F << 3,
-  DIR_Y_PIN,
-  ENABLE_Y_PIN,
-  SPI_CS_Y_PIN,
-  FAULT_Y_PIN,
-  SWITCH_2_PIN,
-  MIN_A_PIN,
-  MAX_A_PIN,
-};
-#endif
-
-
 // Compile-time settings
 #define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
 //#define __CLOCK_INTERNAL_32MHZ
