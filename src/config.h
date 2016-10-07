@@ -37,7 +37,7 @@
 
 // Pins
 enum {
-  ENABLE_X_PIN = PORT_A << 3,
+  RESERVED_0_PIN = PORT_A << 3,
   ENABLE_Y_PIN,
   ENABLE_Z_PIN,
   ENABLE_A_PIN,
@@ -65,7 +65,7 @@ enum {
   SPI_MOSI_PIN,
 
   STEP_X_PIN = PORT_D << 3,
-  SPI_CS_X_PIN,
+  RESERVED_1_PIN,
   SPI_CS_A_PIN,
   SPI_CS_Z_PIN,
   SPIN_PWM_PIN,
@@ -76,80 +76,23 @@ enum {
   STEP_Y_PIN = PORT_E << 3,
   SPI_CS_Y_PIN,
   DIR_X_PIN,
-  DIR_Y_PIN,
+  SPI_CS_X_PIN,
   STEP_A_PIN,
   SWITCH_2_PIN,
-  DIR_Z_PIN,
-  DIR_A_PIN,
+  ENABLE_X_PIN,
+  FAULT_X_PIN,
 
   STEP_Z_PIN = PORT_F << 3,
   RS485_RW_PIN,
   FAULT_PIN,
   ESTOP_PIN,
-  FAULT_X_PIN,
+  RESERVED_2_PIN,
   FAULT_Y_PIN,
   FAULT_Z_PIN,
   FAULT_A_PIN,
 };
 
-
-#if 0
-enum {
-  STEP_X_PIN = PORT_A << 3,
-  DIR_X_PIN,
-  ENABLE_X_PIN,
-  SPI_CS_X_PIN,
-  FAULT_X_PIN,
-  FAULT_PIN,
-  MIN_X_PIN,
-  MAX_X_PIN,
-
-  SPIN_PWM_PIN = PORT_B << 3,
-  SPIN_DIR_PIN,
-  MIN_Y_PIN,
-  MAX_Y_PIN,
-  RS485_RE_PIN,
-  RS485_DE_PIN,
-  SPIN_ENABLE_PIN,
-  BOOT_PIN,
-
-  SDA_PIN = PORT_C << 3,
-  SCL_PIN,
-  SERIAL_RX_PIN,
-  SERIAL_TX_PIN,
-  SERIAL_CTS_PIN,
-  SPI_CLK_PIN,
-  SPI_MOSI_PIN,
-  SPI_MISO_PIN,
-
-  STEP_A_PIN = PORT_D << 3,
-  DIR_A_PIN,
-  ENABLE_A_PIN,
-  SPI_CS_A_PIN,
-  FAULT_A_PIN,
-  ESTOP_PIN,
-  RS485_RO_PIN,
-  RS485_DI_PIN,
-
-  STEP_Z_PIN = PORT_E << 3,
-  DIR_Z_PIN,
-  ENABLE_Z_PIN,
-  SPI_CS_Z_PIN,
-  FAULT_Z_PIN,
-  SWITCH_1_PIN,
-  MIN_Z_PIN,
-  MAX_Z_PIN,
-
-  STEP_Y_PIN = PORT_F << 3,
-  DIR_Y_PIN,
-  ENABLE_Y_PIN,
-  SPI_CS_Y_PIN,
-  FAULT_Y_PIN,
-  SWITCH_2_PIN,
-  MIN_A_PIN,
-  MAX_A_PIN,
-};
-#endif
+#define SPI_SS_PIN SERIAL_CTS_PIN // Needed for SPI configuration
 
 
 // Compile-time settings
@@ -173,11 +116,12 @@ typedef enum {
 
 
 // Motor settings.  See motor.c
-#define MOTOR_CURRENT            0.8   // 1.0 is full power
-#define MOTOR_IDLE_CURRENT       0.1   // 1.0 is full power
+#define MOTOR_CURRENT            0.3   // 1.0 is full power
+#define MOTOR_IDLE_CURRENT       0.01  // 1.0 is full power
+#define MOTOR_STALL_THRESHOLD    0     // 0 -> 1 is least -> most sensitive
 #define MOTOR_MICROSTEPS         16
 #define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING
-#define MOTOR_IDLE_TIMEOUT       2     // secs, motor off after this time
+#define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
 
 #define M1_MOTOR_MAP             AXIS_X
 #define M1_STEP_ANGLE            1.8
@@ -354,8 +298,8 @@ typedef enum {
  */
 
 // Timer assignments - see specific modules for details
+// TCC1 free
 #define TIMER_STEP             TCC0 // Step timer    (see stepper.h)
-#define TIMER_TMC2660          TCC1 // TMC2660 timer (see tmc2660.h)
 #define TIMER_PWM              TCD1 // PWM timer     (see pwm_spindle.c)
 
 #define M1_TIMER               TCD0
@@ -387,18 +331,6 @@ typedef enum {
 #define MAX_SEGMENT_TIME       ((float)0xffff / 60.0 / STEP_TIMER_FREQ)
 #define NOM_SEGMENT_USEC       5000.0 // nominal segment time
 #define MIN_SEGMENT_USEC       2500.0 // minimum segment time
-
-
-// TMC2660 driver settings
-#define TMC2660_OVF_vect       TCC1_OVF_vect
-#define TMC2660_SPI_SS_PIN     SERIAL_CTS_PIN
-#define TMC2660_SPI_SCK_PIN    SPI_CLK_PIN
-#define TMC2660_SPI_MISO_PIN   SPI_MISO_PIN
-#define TMC2660_SPI_MOSI_PIN   SPI_MOSI_PIN
-#define TMC2660_TIMER          TIMER_TMC2660
-#define TMC2660_TIMER_ENABLE   TC_CLKSEL_DIV64_gc
-#define TMC2660_POLL_RATE      0.001 // sec.  Must be in (0, 1]
-#define TMC2660_STABILIZE_TIME 0.01  // sec.  Must be at least 1ms
 
 
 // Huanyang settings

@@ -33,7 +33,7 @@
 #include "motor.h"
 #include "switch.h"
 #include "usart.h"
-#include "tmc2660.h"
+#include "drv8711.h"
 #include "vars.h"
 #include "rtc.h"
 #include "report.h"
@@ -63,7 +63,7 @@ int main() {
   hardware_init();                // hardware setup - must be first
   usart_init();                   // serial port
   i2c_init();                     // i2c port
-  tmc2660_init();                 // motor drivers
+  drv8711_init();                 // motor drivers
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches

@@ -32,7 +32,7 @@
 #include "rtc.h"
 #include "report.h"
 #include "stepper.h"
-#include "tmc2660.h"
+#include "drv8711.h"
 #include "estop.h"
 #include "gcode_state.h"
 #include "util.h"
@@ -116,7 +116,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M2_POLARITY,
     .power_mode  = M2_POWER_MODE,
     .step_pin    = STEP_Y_PIN,
-    .dir_pin     = DIR_Y_PIN,
+    .dir_pin     = RESERVED_2_PIN, // TODO
     .enable_pin  = ENABLE_Y_PIN,
     .timer       = &M2_TIMER,
     .dma         = &M2_DMA_CH,
@@ -129,7 +129,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M3_POLARITY,
     .power_mode  = M3_POWER_MODE,
     .step_pin    = STEP_Z_PIN,
-    .dir_pin     = DIR_Z_PIN,
+    .dir_pin     = RESERVED_2_PIN, // TODO
     .enable_pin  = ENABLE_Z_PIN,
     .timer       = &M3_TIMER,
     .dma         = &M3_DMA_CH,
@@ -142,7 +142,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M4_POLARITY,
     .power_mode  = M4_POWER_MODE,
     .step_pin    = STEP_A_PIN,
-    .dir_pin     = DIR_A_PIN,
+    .dir_pin     = RESERVED_2_PIN, // TODO
     .enable_pin  = ENABLE_A_PIN,
     .timer       = (TC0_t *)&M4_TIMER,
     .dma         = &M4_DMA_CH,
@@ -166,7 +166,7 @@ void motor_init() {
     // IO pins
     DIRSET_PIN(m->step_pin);   // Output
     DIRSET_PIN(m->dir_pin);    // Output
-    OUTSET_PIN(m->enable_pin); // High (disabled)
+    OUTCLR_PIN(m->enable_pin); // Low (disabled)
     DIRSET_PIN(m->enable_pin); // Output
 
     // Setup motor timer
@@ -190,14 +190,16 @@ void motor_init() {
     m->dma->CTRLA =
       DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
     m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+
+    drv8711_set_microsteps(motor, m->microsteps);
   }
 }
 
 
 void motor_enable(int motor, bool enable) {
-  if (enable) OUTCLR_PIN(motors[motor].enable_pin); // Active low
+  if (enable) OUTSET_PIN(motors[motor].enable_pin); // Active high
   else {
-    OUTSET_PIN(motors[motor].enable_pin);
+    OUTCLR_PIN(motors[motor].enable_pin);
     motors[motor].power_state = MOTOR_IDLE;
   }
 }
@@ -218,6 +220,7 @@ float motor_get_units_per_step(int motor) {
 }
 
 
+int motor_get_microsteps(int motor) {return motors[motor].microsteps;}
 int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
 
 
@@ -259,7 +262,6 @@ bool motor_stalled(int motor) {
 
 void motor_reset(int motor) {
   motors[motor].flags = 0;
-  tmc2660_reset(motor);
 }
 
 
@@ -267,7 +269,7 @@ void motor_reset(int motor) {
 static void _deenergize(int motor) {
   if (motors[motor].power_state == MOTOR_ACTIVE) {
     motors[motor].power_state = MOTOR_IDLE;
-    tmc2660_disable(motor);
+    drv8711_disable(motor);
   }
 }
 
@@ -276,7 +278,7 @@ static void _deenergize(int motor) {
 static void _energize(int motor) {
   if (motors[motor].power_state == MOTOR_IDLE && !motor_error(motor)) {
     motors[motor].power_state = MOTOR_ENERGIZING;
-    tmc2660_enable(motor);
+    drv8711_enable(motor);
   }
 
   // Reset timeout, regardless
@@ -297,9 +299,10 @@ void motor_driver_callback(int motor) {
   motor_t *m = &motors[motor];
 
   if (m->power_state == MOTOR_IDLE) m->flags &= ~MOTOR_FLAG_ENABLED_bm;
-  else {
+  else if (!estop_triggered()) {
     m->power_state = MOTOR_ACTIVE;
     m->flags |= MOTOR_FLAG_ENABLED_bm;
+    motor_enable(motor, true);
   }
 
   report_request();
@@ -327,9 +330,10 @@ void motor_error_callback(int motor, motor_flags_t errors) {
 
   if (motor_error(motor)) {
     if (m->flags & MOTOR_FLAG_STALLED_bm) ALARM(STAT_MOTOR_STALLED);
-    if (m->flags & MOTOR_FLAG_OVERTEMP_WARN_bm) ALARM(STAT_MOTOR_OVERTEMP_WARN);
-    if (m->flags & MOTOR_FLAG_OVERTEMP_bm) ALARM(STAT_MOTOR_OVERTEMP);
-    if (m->flags & MOTOR_FLAG_SHORTED_bm) ALARM(STAT_MOTOR_SHORTED);
+    if (m->flags & MOTOR_FLAG_OVER_TEMP_bm) ALARM(STAT_MOTOR_OVER_TEMP);
+    if (m->flags & MOTOR_FLAG_OVER_CURRENT_bm) ALARM(STAT_MOTOR_OVER_CURRENT);
+    if (m->flags & MOTOR_FLAG_DRIVER_FAULT_bm) ALARM(STAT_MOTOR_DRIVER_FAULT);
+    if (m->flags & MOTOR_FLAG_UNDER_VOLTAGE_bm) ALARM(STAT_MOTOR_UNDER_VOLTAGE);
   }
 }
 
@@ -401,7 +405,7 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   int32_t travel = round(target) - m->position + error;
-  uint32_t ticks_per_step = travel ? labs(clocks / travel) : 0;
+  uint32_t ticks_per_step = travel ? labs(clocks / 2 / travel) : 0;
   m->position = round(target);
 
   // Setup the direction, compensating for polarity.
@@ -470,6 +474,7 @@ void set_microstep(int motor, uint16_t value) {
   }
 
   motors[motor].microsteps = value;
+  drv8711_set_microsteps(motor, value);
 }
 
 
@@ -516,27 +521,27 @@ void print_status_flags(uint8_t flags) {
     first = false;
   }
 
-  if (MOTOR_FLAG_OVERTEMP_WARN_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("temp warn"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_OVERTEMP_bm & flags) {
+  if (MOTOR_FLAG_OVER_TEMP_bm & flags) {
     if (!first) printf_P(PSTR(", "));
     printf_P(PSTR("over temp"));
     first = false;
   }
 
-  if (MOTOR_FLAG_SHORTED_bm & flags) {
+  if (MOTOR_FLAG_OVER_CURRENT_bm & flags) {
     if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("short"));
+    printf_P(PSTR("over current"));
     first = false;
   }
 
-  if (MOTOR_FLAG_OPEN_LOAD_bm & flags) {
+  if (MOTOR_FLAG_DRIVER_FAULT_bm & flags) {
     if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("open"));
+    printf_P(PSTR("fault"));
+    first = false;
+  }
+
+  if (MOTOR_FLAG_UNDER_VOLTAGE_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("uvlo"));
     first = false;
   }
 

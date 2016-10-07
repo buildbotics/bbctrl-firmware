@@ -57,7 +57,7 @@ static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, int8_t, uint8_t, uint16_t,
+MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, uint8_t, uint16_t,
     int32_t);
 
 
@@ -130,6 +130,7 @@ static void eeprom_update_bool(bool *addr, bool value) {
 
 
 // int8
+#if 0
 static void var_print_int8_t(int8_t x) {
   printf_P(PSTR("%"PRIi8), x);
 }
@@ -148,7 +149,7 @@ static int8_t eeprom_read_int8_t(int8_t *addr) {
 static void eeprom_update_int8_t(int8_t *addr, int8_t value) {
   eeprom_update_byte((uint8_t *)addr, value);
 }
-
+#endif
 
 // uint8
 static void var_print_uint8_t(uint8_t x) {
