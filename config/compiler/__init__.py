@@ -241,6 +241,8 @@ def configure(conf, cstd = 'c99'):
                     env.AppendUnique(LINKFLAGS = ['-rdynamic']) # for backtrace
             elif compiler == 'intel':
                 env.AppendUnique(CCFLAGS = ['-g', '-diag-enable', 'warn'])
+            else: # clang and others
+                env.AppendUnique(CCFLAGS = ['-g', '-Wall'])
 
             if strict: env.AppendUnique(CCFLAGS = ['-Werror'])
 
