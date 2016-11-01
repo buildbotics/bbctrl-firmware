@@ -227,7 +227,8 @@ void Signature::parseArgs(const string &args) {
       if (it != args.end() && isalpha(*it)) {value.append(1, *it); break;}
 
       if (value == "undefined") insert(name, Value());
-      else if (value == "null") insert(name, Value(v8::Null()));
+      else if (value == "null")
+        insert(name, Value(v8::Null(v8::Isolate::GetCurrent())));
       else if (value == "true") insert(name, Value(true));
       else if (value == "false") insert(name, Value(false));
       else THROWS("Invalid keyword '" << value << "' in signature");

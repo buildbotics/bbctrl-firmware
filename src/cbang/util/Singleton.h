@@ -83,31 +83,39 @@ namespace cb {
     static Singleton<T> *singleton;
 
     // Restrict access to constructor and destructor
-    Singleton() {
-      if (singleton)
-        CBANG_THROWS("There can be only one. . .instance of singleton "
-               << typeid(T).name());
-
-      singleton = this;
-      SingletonDealloc::instance().add(singleton);
-    }
-
-    virtual ~Singleton() {singleton = 0;}
+    Singleton();
+    virtual ~Singleton();
 
   public:
-    inline static T &instance() {
-      if (!singleton) new T(Inaccessible());
-
-      T *ptr = dynamic_cast<T *>(singleton);
-      if (!ptr) CBANG_THROWS("Invalid singleton, not of type "
-                             << typeid(T).name());
-
-      return *ptr;
-    }
+    static T &instance();
   };
 
 
   template <typename T> Singleton<T> *Singleton<T>::singleton = 0;
+
+
+  template <typename T> Singleton<T>::Singleton() {
+    if (singleton)
+      CBANG_THROWS("There can be only one. . .instance of singleton "
+                   << typeid(T).name());
+
+    singleton = this;
+    SingletonDealloc::instance().add(singleton);
+  }
+
+
+  template <typename T> Singleton<T>::~Singleton() {singleton = 0;}
+
+
+  template <typename T> T &Singleton<T>::instance() {
+    if (!singleton) new T(Inaccessible());
+
+    T *ptr = dynamic_cast<T *>(singleton);
+    if (!ptr) CBANG_THROWS("Invalid singleton, not of type "
+                           << typeid(T).name());
+
+    return *ptr;
+  }
 }
 
 #endif // CBANG_SINGLETON_H

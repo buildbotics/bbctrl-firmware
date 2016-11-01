@@ -37,5 +37,5 @@ using namespace cb::js;
 
 
 Context::Context(ObjectTemplate &tmpl) :
-  context(v8::Context::New(0, tmpl.getTemplate())) {
+  context(v8::Context::New(v8::Isolate::GetCurrent(), 0, tmpl.getTemplate())) {
 }

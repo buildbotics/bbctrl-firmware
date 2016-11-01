@@ -58,7 +58,9 @@ namespace cb {
       v8::Handle<v8::FunctionTemplate> getTemplate() const {return function;}
 
     protected:
-      static v8::Handle<v8::Value> callback(const v8::Arguments &args);
+      static void raise(const v8::FunctionCallbackInfo<v8::Value> &info,
+                        const std::string &msg);
+      static void callback(const v8::FunctionCallbackInfo<v8::Value> &info);
    };
   }
 }

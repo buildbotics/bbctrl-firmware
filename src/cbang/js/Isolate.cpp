@@ -45,7 +45,8 @@ namespace cb {
       v8::HandleScope handleScope;
 
     public:
-      Private(v8::Isolate *isolate) : locker(isolate), isolateScope(isolate) {}
+      Private(v8::Isolate *isolate) :
+        locker(isolate), isolateScope(isolate), handleScope(isolate) {}
     };
   }
 }
@@ -55,14 +56,16 @@ Isolate::Scope::Scope(Isolate &iso) : pri(new Private(iso.getIsolate())) {}
 Isolate::Scope::~Scope() {delete pri;}
 
 
-Isolate::Isolate() : isolate(v8::Isolate::New()), interrupted(false) {
-  isolate->SetData(this);
+Isolate::Isolate() : interrupted(false) {
+  v8::Isolate::CreateParams params;
+  params.array_buffer_allocator =
+    v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+  isolate = v8::Isolate::New(params);
+  isolate->SetData(0, this);
 }
 
 
-Isolate::~Isolate() {
-  isolate->Dispose();
-}
+Isolate::~Isolate() {isolate->Dispose();}
 
 
 void Isolate::interrupt() {
@@ -72,7 +75,7 @@ void Isolate::interrupt() {
 
 
 Isolate *Isolate::current() {
-  return (Isolate *)v8::Isolate::GetCurrent()->GetData();
+  return (Isolate *)v8::Isolate::GetCurrent()->GetData(0);
 }
 
 
