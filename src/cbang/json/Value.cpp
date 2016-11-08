@@ -32,6 +32,11 @@
 
 #include "Value.h"
 
+#include "Null.h"
+#include "Number.h"
+#include "Boolean.h"
+#include "String.h"
+
 #include <sstream>
 #include <limits>
 
@@ -62,7 +67,7 @@ uint32_t Value::getU32() const {
 
 
 int64_t Value::getS64() const {
-  if (isString()) return String::parseS64(getString());
+  if (isString()) return cb::String::parseS64(getString());
   else {
     double value = getNumber();
 
@@ -76,7 +81,7 @@ int64_t Value::getS64() const {
 
 
 uint64_t Value::getU64() const {
-  if (isString()) return String::parseU64(getString());
+  if (isString()) return cb::String::parseU64(getString());
   else {
     double value = getNumber();
 
@@ -96,4 +101,14 @@ string Value::toString(unsigned indent, bool compact) const {
   write(writer);
   str << flush;
   return str.str();
+}
+
+
+void Value::setNull(unsigned i) {set(i, Null::instancePtr());}
+void Value::setBoolean(unsigned i, bool value) {set(i, new Boolean(value));}
+void Value::set(unsigned i, double value) {set(i, new Number(value));}
+
+
+void Value::set(unsigned i, const std::string &value) {
+  set(i, new String(value));
 }

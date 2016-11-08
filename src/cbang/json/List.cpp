@@ -93,3 +93,9 @@ void List::write(Sink &sink) const {
 
   sink.endList();
 }
+
+
+void List::set(unsigned i, const ValuePtr &value) {
+  if (size() <= i) THROWS("Index " << i << " out of range " << size());
+  at(i) = value;
+}

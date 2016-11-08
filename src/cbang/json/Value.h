@@ -80,6 +80,19 @@ namespace cb {
       virtual Dict &getDict() {CBANG_THROW("Value is not a Dict");}
       virtual const Dict &getDict() const {CBANG_THROW("Value is not a Dict");}
 
+      virtual void setBoolean(bool value)
+      {CBANG_THROW("Value is not a Boolean");}
+      virtual void set(double value) {CBANG_THROW("Value is not a Number");}
+      virtual void set(int8_t value) {set((double)value);}
+      virtual void set(uint8_t value) {set((double)value);}
+      virtual void set(int16_t value) {set((double)value);}
+      virtual void set(uint16_t value) {set((double)value);}
+      virtual void set(int32_t value) {set((double)value);}
+      virtual void set(uint32_t value) {set((double)value);}
+      virtual void set(int64_t value) {set((double)value);}
+      virtual void set(uint64_t value) {set((double)value);}
+      virtual void set(const std::string &value) {CBANG_THROW("Not a String");}
+
       virtual unsigned size() const {CBANG_THROW("Not a List or Dict");}
 
       // List functions
@@ -113,6 +126,22 @@ namespace cb {
       const List &getList(unsigned i) const {return get(i)->getList();}
       Dict &getDict(unsigned i) {return get(i)->getDict();}
       const Dict &getDict(unsigned i) const {return get(i)->getDict();}
+
+      // List setters
+      virtual void set(unsigned i, const ValuePtr &value)
+      {CBANG_THROW("Not a List");}
+      void setNull(unsigned i);
+      void setBoolean(unsigned i, bool value);
+      void set(unsigned i, double value);
+      void set(unsigned i, int8_t value) {set(i, (double)value);}
+      void set(unsigned i, uint8_t value) {set(i, (double)value);}
+      void set(unsigned i, int16_t value) {set(i, (double)value);}
+      void set(unsigned i, uint16_t value) {set(i, (double)value);}
+      void set(unsigned i, int32_t value) {set(i, (double)value);}
+      void set(unsigned i, uint32_t value) {set(i, (double)value);}
+      void set(unsigned i, int64_t value) {set(i, (double)value);}
+      void set(unsigned i, uint64_t value) {set(i, (double)value);}
+      void set(unsigned i, const std::string &value);
 
       // Dict functions
       virtual const std::string &keyAt(unsigned i) const
