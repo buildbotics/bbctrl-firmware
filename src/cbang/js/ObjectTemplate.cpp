@@ -36,8 +36,7 @@ using namespace std;
 using namespace cb::js;
 
 
-ObjectTemplate::ObjectTemplate() :
-  tmpl(v8::ObjectTemplate::New(v8::Isolate::GetCurrent())) {}
+ObjectTemplate::ObjectTemplate() : tmpl(v8::ObjectTemplate::New()) {}
 
 
 Value ObjectTemplate::create() const {
@@ -46,24 +45,19 @@ Value ObjectTemplate::create() const {
 
 
 void ObjectTemplate::set(const string &name, const Value &value) {
-  tmpl->Set(v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), name.c_str(),
-                                    v8::String::kInternalizedString,
-                                    name.length()), value.getV8Value());
+  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
+            value.getV8Value());
 }
 
 
 void ObjectTemplate::set(const string &name, const ObjectTemplate &tmpl) {
-  this->tmpl->Set(v8::String::NewFromUtf8
-                  (v8::Isolate::GetCurrent(), name.c_str(),
-                   v8::String::kInternalizedString, name.length()),
+  this->tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
                   tmpl.getTemplate());
 }
 
 
 void ObjectTemplate::set(const string &name, const Callback &callback) {
-  tmpl->Set(v8::String::NewFromUtf8
-            (v8::Isolate::GetCurrent(), name.c_str(),
-             v8::String::kInternalizedString, name.length()),
+  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
             callback.getTemplate());
 }
 

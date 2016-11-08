@@ -55,19 +55,20 @@ Script::~Script() {}
 
 
 Value Script::eval() {
-  v8::EscapableHandleScope handleScope(v8::Isolate::GetCurrent());
+  v8::HandleScope handleScope;
+
   ContextScope contextScope(context);
 
   v8::TryCatch tryCatch;
   v8::Handle<v8::Value> ret = script->Run();
   if (tryCatch.HasCaught()) translateException(tryCatch, true);
 
-  return handleScope.Escape(ret);
+  return handleScope.Close(ret);
 }
 
 
 void Script::translateException(const v8::TryCatch &tryCatch, bool useStack) {
-  v8::HandleScope handleScope(v8::Isolate::GetCurrent());
+  v8::HandleScope handleScope;
 
   if (useStack && !tryCatch.StackTrace().IsEmpty())
     throw Exception(Value(tryCatch.StackTrace()).toString());
@@ -88,11 +89,12 @@ void Script::translateException(const v8::TryCatch &tryCatch, bool useStack) {
 
 
 void Script::load(const string &s, const string &filename) {
-  v8::EscapableHandleScope handleScope(v8::Isolate::GetCurrent());
-  v8::Local<v8::String> source = Value::makeString(s);
+  v8::HandleScope handleScope;
+  v8::Local<v8::String> source = v8::String::New(s.c_str(), s.length());
   v8::Local<v8::String> origin;
 
-  if (!filename.empty()) origin = Value::makeString(filename);
+  if (!filename.empty())
+    origin = v8::String::New(filename.c_str(), filename.length());
 
   ContextScope contextScope(context);
 
@@ -100,5 +102,5 @@ void Script::load(const string &s, const string &filename) {
   script = v8::Script::Compile(source, origin);
   if (tryCatch.HasCaught()) translateException(tryCatch, false);
 
-  script = handleScope.Escape(script);
+  script = handleScope.Close(script);
 }

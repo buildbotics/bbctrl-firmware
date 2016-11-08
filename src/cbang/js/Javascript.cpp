@@ -31,56 +31,22 @@
 \******************************************************************************/
 
 #include "Javascript.h"
-#include "Isolate.h"
-
-#include <cbang/os/SystemUtilities.h>
-
-#include <libplatform/libplatform.h>
 
 using namespace std;
 using namespace cb;
 using namespace cb::js;
 
 
-Javascript *Javascript::singleton = 0;
-
-
-Javascript::Javascript() {
-  v8::V8::InitializeICU();
-  v8::V8::InitializeExternalStartupData
-    (SystemUtilities::getExecutablePath().c_str());
-
-  platform = v8::platform::CreateDefaultPlatform();
-  v8::V8::InitializePlatform(platform.get());
-  v8::V8::Initialize();
-
-  isolate = new Isolate;
-  scope = isolate->getScope();
-}
-
-
-Javascript::~Javascript() {
-  scope.release();
-  isolate.release();
-
-  v8::V8::Dispose();
-  v8::V8::ShutdownPlatform();
-}
+Javascript::Javascript(Inaccessible) {}
 
 
 void Javascript::init(int *argc, char *argv[]) {
-  if (!singleton) singleton = new Javascript;
+  instance();
   if (argv) v8::V8::SetFlagsFromCommandLine(argc, argv, true);
-}
-
-
-void Javascript::deinit() {
-  if (singleton) delete singleton;
-  singleton = 0;
 }
 
 
 void Javascript::terminate() {
   // Terminate script execution
-  if (singleton) singleton->isolate->interrupt();
+  v8::V8::TerminateExecution();
 }

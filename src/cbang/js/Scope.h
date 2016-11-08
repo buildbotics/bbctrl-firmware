@@ -38,12 +38,10 @@
 
 namespace cb {
   namespace js {
-    class Scope : private v8::EscapableHandleScope {
+    class Scope : private v8::HandleScope {
     public:
-      Scope() : v8::EscapableHandleScope(v8::Isolate::GetCurrent()) {}
-
       Value close(Value value)
-      {return v8::EscapableHandleScope::Escape(value.getV8Value());}
+      {return v8::HandleScope::Close(value.getV8Value());}
     };
   }
 }

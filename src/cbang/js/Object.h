@@ -56,7 +56,7 @@ namespace cb {
     public:
       using ValueBase<T>::assertObject;
 
-      ObjectBase() : ValueBase<T>(v8::Object::New(v8::Isolate::GetCurrent())) {}
+      ObjectBase() : ValueBase<T>(v8::Object::New()) {}
       ObjectBase(const Value &value) : ValueBase<T>(value) {assertObject();}
       ObjectBase(const PersistentValue &value) :
       ValueBase<T>(value) {assertObject();}

@@ -54,12 +54,10 @@ namespace cb {
 
       Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
 
-      static Context current()
-      {return v8::Isolate::GetCurrent()->GetCurrentContext();}
-      static Context entered()
-      {return v8::Isolate::GetCurrent()->GetEnteredContext();}
-      static bool inContext()
-      {return v8::Isolate::GetCurrent()->InContext();}
+      static Context calling() {return v8::Context::GetCalling();}
+      static Context current() {return v8::Context::GetCurrent();}
+      static Context entered() {return v8::Context::GetEntered();}
+      static bool inContext() {return v8::Context::InContext();}
     };
   }
 }

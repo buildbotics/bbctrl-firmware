@@ -42,17 +42,16 @@ namespace cb {
     class Signature;
 
     class Arguments {
-      const v8::FunctionCallbackInfo<v8::Value> &info;
+      const v8::Arguments &args;
       const Signature &sig;
 
       unsigned positional;
       Value keyWord;
 
     public:
-      Arguments(const v8::FunctionCallbackInfo<v8::Value> &info,
-                const Signature &sig);
+      Arguments(const v8::Arguments &args, const Signature &sig);
 
-      Value getThis() const {return Value(info.This());}
+      Value getThis() const {return Value(args.This());}
       unsigned getCount() const;
 
       const Signature &getSignature() const {return sig;}

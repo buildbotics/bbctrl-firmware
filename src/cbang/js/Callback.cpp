@@ -41,40 +41,28 @@ using namespace cb::js;
 
 
 Callback::Callback(const Signature &sig) :
-  sig(sig), data(v8::External::New(v8::Isolate::GetCurrent(), this)),
-  function(v8::FunctionTemplate::New
-           (v8::Isolate::GetCurrent(), &Callback::callback, data)) {
+  sig(sig), data(v8::External::New(this)),
+  function(v8::FunctionTemplate::New(&Callback::callback, data)) {
 }
 
 
-void Callback::raise(const v8::FunctionCallbackInfo<v8::Value> &info,
-                     const std::string &_msg) {
-  v8::Local<v8::Value> msg =
-    v8::String::NewFromUtf8(info.GetIsolate(), _msg.c_str());
-  info.GetReturnValue().Set(info.GetIsolate()->ThrowException(msg));
-}
-
-
-void Callback::callback(const v8::FunctionCallbackInfo<v8::Value> &info) {
-  if (Isolate::shouldQuit()) {
-    raise(info, "Interrupted");
-    return;
-  }
+v8::Handle<v8::Value> Callback::callback(const v8::Arguments &args) {
+  if (Isolate::shouldQuit())
+    return v8::ThrowException(v8::String::New("Interrupted"));
 
   Callback *cb =
-    static_cast<Callback *>(v8::External::Cast(*info.Data())->Value());
+    static_cast<Callback *>(v8::External::Cast(*args.Data())->Value());
 
   try {
-    Value ret = (*cb)(Arguments(info, cb->sig));
-    info.GetReturnValue().Set(ret.getV8Value());
+    return (*cb)(Arguments(args, cb->sig)).getV8Value();
 
   } catch (const Exception &e) {
-    raise(info, SSTR(e));
+    return v8::ThrowException(v8::String::New(SSTR(e).c_str()));
 
   } catch (const std::exception &e) {
-    raise(info, e.what());
+    return v8::ThrowException(v8::String::New(e.what()));
 
   } catch (...) {
-    raise(info, "Unknown exception");
+    return v8::ThrowException(v8::String::New("Unknown exception"));
   }
 }

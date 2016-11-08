@@ -49,35 +49,8 @@ namespace cb {
     template <typename T> class ValueBase;
 
     // Type Definitions
-    template <typename S>
-    class Persistent :
-      public v8::Persistent<S, v8::CopyablePersistentTraits<S> > {
-    public:
-      typedef v8::Persistent<S, v8::CopyablePersistentTraits<S> > Super_T;
-
-      Persistent() {}
-      Persistent(const v8::Local<S> &handle) :
-        Super_T(v8::Isolate::GetCurrent(), handle) {}
-
-
-      using Super_T::Reset;
-      using Super_T::operator*;
-
-
-      Persistent &operator=(const v8::Local<S> &value) {
-        Reset(v8::Isolate::GetCurrent(), value);
-        return *this;
-      }
-
-
-      Persistent &operator=(const Persistent<S> &value) {
-        Reset(v8::Isolate::GetCurrent(), value);
-        return *this;
-      }
-    };
-
     typedef ValueBase<v8::Handle<v8::Value> > Value;
-    typedef ValueBase<Persistent<v8::Value> > PersistentValue;
+    typedef ValueBase<v8::Persistent<v8::Value> > PersistentValue;
 
 
     template <typename T = v8::Handle<v8::Value> >
@@ -86,62 +59,52 @@ namespace cb {
       T value;
 
     public:
-      ValueBase() {assign(T(v8::Undefined(v8::Isolate::GetCurrent())));}
+      ValueBase() {assign(T(v8::Undefined()));}
 
       ValueBase(const Value &value) {
-        if (value.getV8Value().IsEmpty())
-          assign(T(v8::Undefined(v8::Isolate::GetCurrent())));
+        if (value.getV8Value().IsEmpty()) assign(T(v8::Undefined()));
         else assign(value.getV8Value());
       }
 
       ValueBase(const PersistentValue &value) {
-        if (value.getV8Value().IsEmpty())
-          assign(T(v8::Undefined(v8::Isolate::GetCurrent())));
+        if (value.getV8Value().IsEmpty()) assign(T(v8::Undefined()));
         else assign(value.getV8Value());
       }
 
       ValueBase(const T &value) {
-        if(value.IsEmpty()) assign(T(v8::Undefined(v8::Isolate::GetCurrent())));
+        if(value.IsEmpty()) assign(T(v8::Undefined()));
         else assign(value);
       }
 
       explicit ValueBase(bool x) {
-        assign(T(x ? v8::True(v8::Isolate::GetCurrent()) :
-                 v8::False(v8::Isolate::GetCurrent())));
+        assign(T(x ? v8::True() : v8::False()));
       }
 
       ValueBase(double x) {
-        assign(v8::Number::New(v8::Isolate::GetCurrent(), x));
+        assign(v8::Number::New(x));
       }
 
       ValueBase(int32_t x) {
-        assign(v8::Int32::New(v8::Isolate::GetCurrent(), x));
+        assign(v8::Int32::New(x));
       }
 
       ValueBase(uint32_t x) {
-        assign(v8::Uint32::New(v8::Isolate::GetCurrent(), x));
+        assign(v8::Uint32::New(x));
       }
 
       ValueBase(const char *s, int length = -1) {
-        assign(v8::String::NewFromUtf8
-               (v8::Isolate::GetCurrent(), s, v8::NewStringType::kNormal,
-                length));
+        assign(v8::String::New(s, length));
       }
 
-      ValueBase(const std::string &s) {assign(makeString(s));}
+      ValueBase(const std::string &s) {
+        assign(v8::String::New(s.data(), s.length()));
+      }
 
       ~ValueBase() {}
 
     protected:
-      template <typename S>
-      void assign(const v8::MaybeLocal<S> &value) {
-        assign(maybeToLocal<S>(value));
-      }
       void assign(const v8::Handle<v8::Value> &value) {this->value = value;}
-      void assign(const Persistent<v8::Value> &value) {
-        this->value =
-          v8::Local<v8::Value>::New(v8::Isolate::GetCurrent(), value);
-      }
+      void assign(const v8::Persistent<v8::Value> &value) {this->value = value;}
 
     public:
       // Undefined
@@ -197,8 +160,7 @@ namespace cb {
       }
 
       // Object
-      static Value createObject()
-      {return T(v8::Object::New(v8::Isolate::GetCurrent()));}
+      static Value createObject() {return T(v8::Object::New());}
       void assertObject() const
       {if (!isObject()) THROW("Value is not a object");}
       bool isObject() const {return value->IsObject();}
@@ -206,14 +168,16 @@ namespace cb {
       {return value->ToObject()->Has(index);}
 
       bool has(const std::string &key) const {
-        return value->ToObject()->Has(makeSymbol(key));
+        return value->ToObject()->
+          Has(v8::String::NewSymbol(key.data(), key.length()));
       }
 
       Value get(uint32_t index) const
       {return value->ToObject()->Get(index);}
 
       Value get(const std::string &key) const {
-        return value->ToObject()->Get(makeSymbol(key));
+        return value->ToObject()->
+          Get(v8::String::NewSymbol(key.data(), key.length()));
       }
 
       Value get(uint32_t index, Value defaultValue) const
@@ -229,12 +193,14 @@ namespace cb {
       {this->value->ToObject()->Set(index, value.getV8Value());}
 
       void set(const std::string &key, Value value) {
-        this->value->ToObject()->Set(makeSymbol(key), value.getV8Value());
+      this->value->ToObject()->
+        Set(v8::String::NewSymbol(key.data(), key.length()),
+            value.getV8Value());
       }
 
       // Array
       static Value createArray(unsigned size = 0)
-      {return T(v8::Array::New(v8::Isolate::GetCurrent(), size));}
+      {return T(v8::Array::New(size));}
 
       void assertArray() const
       {if (!isArray()) THROW("Value is not a array");}
@@ -306,7 +272,8 @@ namespace cb {
 
       void setName(const std::string &name) {
         if (!isFunction()) THROWS("Value is not a function");
-        v8::Handle<v8::Function>::Cast(value)->SetName(makeSymbol(name));
+        v8::Handle<v8::Function>::Cast(value)->
+          SetName(v8::String::NewSymbol(name.c_str(), name.length()));
       }
 
       int getScriptLineNumber() const {
@@ -317,43 +284,19 @@ namespace cb {
       // Accessors
       const T &getV8Value() const {return value;}
       T &getV8Value() {return value;}
-
-
-      template <typename S>
-      inline static v8::Local<S> maybeToLocal(const v8::MaybeLocal<S> &value) {
-        v8::Local<S> handle;
-        if (value.ToLocal(&handle)) return handle;
-        return v8::Local<S>();
-      }
-
-
-      inline static v8::Local<v8::String> makeString(const std::string &s) {
-        return maybeToLocal
-          (v8::String::NewFromUtf8
-           (v8::Isolate::GetCurrent(), s.c_str(),
-            v8::NewStringType::kNormal, s.length()));
-      }
-
-
-      inline static v8::Local<v8::String> makeSymbol(const std::string &name) {
-        return v8::String::NewFromUtf8
-          (v8::Isolate::GetCurrent(), name.c_str(),
-           v8::String::kInternalizedString, name.length());
-      }
     };
 
 
     // Specializations
     template<> inline
-    void ValueBase<Persistent<v8::Value> >::
+    void ValueBase<v8::Persistent<v8::Value> >::
     assign(const v8::Handle<v8::Value> &value) {
-      this->value = Persistent<v8::Value>(value);
+      this->value = v8::Persistent<v8::Value>::New(value);
     }
 
     template<> inline
-    void ValueBase<Persistent<v8::Value> >::
-    assign(const Persistent<v8::Value> &value) {
-      this->value.Reset(v8::Isolate::GetCurrent(), value);
+    ValueBase<v8::Persistent<v8::Value> >::~ValueBase() {
+      if (value.IsNearDeath()) value.Dispose();
     }
 
 

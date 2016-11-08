@@ -41,12 +41,11 @@ using namespace cb::js;
 using namespace std;
 
 
-Arguments::Arguments(const v8::FunctionCallbackInfo<v8::Value> &info,
-                     const Signature &sig) :
-  info(info), sig(sig), positional(info.Length()) {
+Arguments::Arguments(const v8::Arguments &args, const Signature &sig) :
+  args(args), sig(sig), positional(args.Length()) {
 
-  if (sig.size() && positional && info[positional - 1]->IsObject()) {
-    keyWord = info[positional - 1];
+  if (sig.size() && positional && args[positional - 1]->IsObject()) {
+    keyWord = args[positional - 1];
     positional--;
 
     if (sig.isVariable()) return;
@@ -98,7 +97,7 @@ bool Arguments::has(const string &name) const {
 Value Arguments::get(unsigned index) const {
   if (!sig.isVariable() && sig.size() <= index)
     THROWS("Index " << index << " out of range");
-  if (index < positional) return info[index];
+  if (index < positional) return args[index];
   return keyWord.get(index - positional);
 }
 
@@ -107,7 +106,7 @@ Value Arguments::get(const string &name) const {
   unsigned index = sig.indexOf(name);
   Value defaultValue = sig.get(index);
 
-  if (index < positional) return info[index];
+  if (index < positional) return args[index];
   if (!keyWord.isUndefined()) return keyWord.get(name, defaultValue);
 
   return defaultValue;

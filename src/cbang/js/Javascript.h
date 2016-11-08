@@ -33,7 +33,6 @@
 #ifndef CBANG_JS_JAVASCRIPT_H
 #define CBANG_JS_JAVASCRIPT_H
 
-#include "Isolate.h"
 #include "Arguments.h"
 #include "Callback.h"
 #include "Context.h"
@@ -45,24 +44,19 @@
 #include "Script.h"
 #include "Value.h"
 
-#include <cbang/SmartPointer.h>
+#include <cbang/util/Singleton.h>
 
 
 namespace cb {
   namespace js {
-    class Javascript {
-      static Javascript *singleton;
+    class Javascript : public Singleton<Javascript> {
+    protected:
+      v8::HandleScope scope;
 
-      SmartPointer<v8::Platform> platform;
-      SmartPointer<Isolate> isolate;
-      SmartPointer<Isolate::Scope> scope;
-
-      Javascript();
-      ~Javascript();
     public:
+      Javascript(Inaccessible);
 
       static void init(int *argc = 0, char *argv[] = 0);
-      static void deinit();
       static void terminate();
     };
   }
