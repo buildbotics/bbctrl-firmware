@@ -68,7 +68,7 @@ void Environment::pushPath(const std::string &path) {
 
 
 void Environment::popPath() {
-  if (pathStack.size() == 1) THROW("No path top pop");
+  if (pathStack.size() == 1) THROW("No path to pop");
   pathStack.pop_back();
 }
 

@@ -263,8 +263,6 @@ void Thread::done() {
 
 #ifdef _WIN32
     CloseHandle(p->h);
-#else
-    pthread_detach(p->thread);
 #endif
 
     try {

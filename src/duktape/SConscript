@@ -1,0 +1,11 @@
+Import('*')
+env = env.Clone()
+
+# Install headers
+copy = env.Install(dir = '#/include', source = Glob('*.h'))
+
+# Bulid library
+lib = env.Library('#/lib/duktape', Glob('*.c'))
+Depends(lib, copy)
+
+Return('lib')

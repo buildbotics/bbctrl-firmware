@@ -59,7 +59,7 @@ if isinstance(force_local, str): force_local = force_local.split()
 disable_local = env.get('disable_local', '')
 if isinstance(disable_local, str): disable_local = disable_local.split()
 Export('env conf')
-for lib in 'zlib bzip2 sqlite3 expat boost libevent re2'.split():
+for lib in 'zlib bzip2 sqlite3 expat boost libevent re2 duktape'.split():
     if lib in disable_local: continue
     if not env.CBConfigEnabled(lib) or lib in force_local:
         Default(SConscript('src/%s/SConscript' % lib,
@@ -69,8 +69,8 @@ for lib in 'zlib bzip2 sqlite3 expat boost libevent re2'.split():
 subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
-    'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json',
-    'jsapi', 'db', 'auth']
+    'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json', 'jsapi', 'db',
+    'auth', 'duk']
 
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
 if env.CBConfigEnabled('v8'): subdirs.append('js')
