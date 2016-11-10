@@ -51,9 +51,15 @@ namespace cb {
     Socket &operator=(const Socket &o) {return *this;}
 
   public:
-    class EndOfStream : public Exception {
+    // NOTE Inheriting from std::exception instead of cb::Exception due to
+    // problems with matching the correct catch in SocketDevice::read() and
+    // perhaps elsewhere.  Presumably this is caused by a compiler bug.
+    class EndOfStream : public std::exception {
     public:
-      EndOfStream() : Exception("End of stream") {}
+      EndOfStream() {}
+
+      // From std::exception
+      virtual const char *what() const throw() {return "End of stream";}
     };
 
 

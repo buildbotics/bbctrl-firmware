@@ -417,7 +417,7 @@ void Server::processConnection(const SocketConnectionPtr &_con, bool ready) {
 
       return; // Done processing this connection
 
-    } catch (const Socket::EndOfStream &e) {
+    } catch (const Socket::EndOfStream &) {
       // This is normal
 
     } catch (const Exception &e) {

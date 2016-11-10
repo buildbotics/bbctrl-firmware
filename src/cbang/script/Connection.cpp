@@ -53,7 +53,7 @@ void Connection::run() {
   try {
     Processor::run(*server, *socket);
 
-  } catch (const Socket::EndOfStream &e) {
+  } catch (const Socket::EndOfStream &) {
     // Normal exit, do nothing
 
   } catch (const Exception &e) {

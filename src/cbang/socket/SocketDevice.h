@@ -57,7 +57,8 @@ namespace cb {
     std::streamsize read(char *s, std::streamsize n) try {
       return (std::streamsize)socket.read(s, n);
 
-    } catch (const Socket::EndOfStream &e) {
+    } catch (const Socket::EndOfStream &) {
+      CBANG_LOG_DEBUG(5, "SocketDevice::read() End of stream");
       return -1;
 
     } catch (const Exception &e) {
