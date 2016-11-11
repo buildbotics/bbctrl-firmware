@@ -59,9 +59,9 @@ int BIOSocketImpl::read(char *buf, int length) {
 
       return ret ? ret : -1;
 
+    } catch (const Socket::EndOfStream &) {
     } catch (const Exception &e) {
       exception = new Exception(e);
-      return -1;
     }
   } CBANG_CATCH_ERROR;
 
