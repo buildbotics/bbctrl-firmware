@@ -32,6 +32,7 @@
 
 #include "Context.h"
 #include "Object.h"
+#include "Array.h"
 #include "Arguments.h"
 #include "Module.h"
 #include "SmartPop.h"
@@ -61,8 +62,7 @@ namespace {
 
       // Make call
       Arguments args(ctx, cb->getSignature());
-      ctx.push((*cb)(args));
-      return 1;
+      return (*cb)(ctx, args);
 
     } catch (const Exception &e) {
       error = SSTR(e);
@@ -95,12 +95,13 @@ int Context::topIndex() const {return duk_get_top_index(ctx);}
 void Context::pop(unsigned n) const {duk_pop_n(ctx, n);}
 void Context::dup(int index) const {duk_dup(ctx, index);}
 
+int Context::getType(int index) const {return duk_get_type(ctx, index);}
 bool Context::isArray(int index) const {return duk_is_array(ctx, index);}
+bool Context::isObject(int index) const {return duk_is_object(ctx, index);}
 bool Context::isBoolean(int index) const {return duk_is_boolean(ctx, index);}
 bool Context::isError(int index) const {return duk_is_error(ctx, index);}
 bool Context::isNull(int index) const {return duk_is_null(ctx, index);}
 bool Context::isNumber(int index) const {return duk_is_number(ctx, index);}
-bool Context::isObject(int index) const {return duk_is_object(ctx, index);}
 bool Context::isPointer(int index) const {return duk_is_pointer(ctx, index);}
 bool Context::isString(int index) const {return duk_is_string(ctx, index);}
 
@@ -110,13 +111,25 @@ bool Context::isUndefined(int index) const {
 }
 
 
-bool Context::toBoolean(int index) const {return duk_to_boolean(ctx, index);}
-int Context::toInteger(int index) const {return duk_to_int(ctx, index);}
-double Context::toNumber(int index) const {return duk_to_number(ctx, index);}
-void *Context::toPointer(int index) const {return duk_to_pointer(ctx, index);}
+Array Context::toArray(int index) {
+  if (!isArray(index)) error(SSTR("Not an array at " << index));
+  return Array(*this, index);
+}
 
 
-std::string Context::toString(int index) const {
+Object Context::toObject(int index) {
+  duk_to_object(ctx, index);
+  return Object(*this, index);
+}
+
+
+bool Context::toBoolean(int index) {return duk_to_boolean(ctx, index);}
+int Context::toInteger(int index) {return duk_to_int(ctx, index);}
+double Context::toNumber(int index) {return duk_to_number(ctx, index);}
+void *Context::toPointer(int index) {return duk_to_pointer(ctx, index);}
+
+
+std::string Context::toString(int index) {
   return duk_to_string(ctx, index);
 }
 
@@ -133,11 +146,14 @@ Object Context::pushCurrentFunction() {
 }
 
 
+Array Context::pushArray() {return Array(*this, duk_push_array(ctx));}
 Object Context::pushObject() {return Object(*this, duk_push_object(ctx));}
 void Context::pushUndefined() {duk_push_undefined(ctx);}
 void Context::pushNull() {duk_push_null(ctx);}
 void Context::pushBoolean(bool x) {duk_push_boolean(ctx, x);}
+void Context::pushPointer(void *x) {duk_push_pointer(ctx, x);}
 void Context::push(int x) {duk_push_int(ctx, x);}
+void Context::push(unsigned x) {duk_push_uint(ctx, x);}
 void Context::push(double x) {duk_push_number(ctx, x);}
 void Context::push(const char *x) {duk_push_string(ctx, x);}
 
@@ -155,9 +171,7 @@ void Context::push(const std::string &x) {
 void Context::push(const SmartPointer<Callback> &cb) {
   callbacks.push_back(cb);
   duk_push_c_function(ctx, _callback, DUK_VARARGS);
-  push("__callback_pointer__");
-  duk_push_pointer(ctx, cb.get());
-  putProp(-3);
+  Object(*this, top() - 1).setPointer("__callback_pointer__", cb.get());
 }
 
 
@@ -170,21 +184,6 @@ void Context::push(const Variant &value) {
   default: pushUndefined(); break;
   }
 }
-
-
-bool Context::hasProp(int index, const string &key) {
-  push(key);
-  return duk_has_prop(ctx, index) == 1;
-}
-
-
-bool Context::getProp(int index, const string &key) {
-  push(key);
-  return duk_get_prop(ctx, index) == 1;
-}
-
-
-void Context::putProp(int index) {duk_put_prop(ctx, index);}
 
 
 void Context::defineGlobal(Module &module) {
@@ -210,4 +209,9 @@ void Context::eval(const InputSource &source) {
   push(source.toString());
   SmartPop pop(*this);
   if (duk_peval(ctx)) THROWS("Eval failed: " << duk_safe_to_string(ctx, -1));
+}
+
+
+void Context::error(const string &msg, int code) const {
+  duk_error(ctx, code, msg.c_str());
 }

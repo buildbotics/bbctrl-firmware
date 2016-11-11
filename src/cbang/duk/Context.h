@@ -49,6 +49,7 @@ typedef struct duk_hthread duk_context;
 namespace cb {
   namespace duk {
     class Object;
+    class Array;
     class Module;
 
     class Context {
@@ -71,29 +72,35 @@ namespace cb {
       void pop(unsigned n = 1) const;
       void dup(int index = -1) const;
 
+      int getType(int index = -1) const;
       bool isArray(int index = -1) const;
+      bool isObject(int index = -1) const;
       bool isBoolean(int index = -1) const;
       bool isError(int index = -1) const;
       bool isNull(int index = -1) const;
       bool isNumber(int index = -1) const;
-      bool isObject(int index = -1) const;
       bool isPointer(int index = -1) const;
       bool isString(int index = -1) const;
       bool isUndefined(int index = -1) const;
 
-      bool toBoolean(int index = -1) const;
-      int toInteger(int index = -1) const;
-      double toNumber(int index = -1) const;
-      void *toPointer(int index = -1) const;
-      std::string toString(int index = -1) const;
+      Array toArray(int index = -1);
+      Object toObject(int index = -1);
+      bool toBoolean(int index = -1);
+      int toInteger(int index = -1);
+      double toNumber(int index = -1);
+      void *toPointer(int index = -1);
+      std::string toString(int index = -1);
 
       Object pushGlobalObject();
       Object pushCurrentFunction();
+      Array pushArray();
       Object pushObject();
       void pushUndefined();
       void pushNull();
       void pushBoolean(bool x);
+      void pushPointer(void *x);
       void push(int x);
+      void push(unsigned x);
       void push(double x);
       void push(const char *x);
       void push(const std::string &x);
@@ -106,14 +113,11 @@ namespace cb {
         push(new MethodCallback<T>(sig, obj, member));
       }
 
-      bool hasProp(int index, const std::string &key);
-      bool getProp(int index, const std::string &key);
-      void putProp(int index);
-
       void defineGlobal(Module &module);
       void define(Module &module);
 
       void eval(const InputSource &source);
+      void error(const std::string &msg, int code = 0) const;
     };
   }
 }

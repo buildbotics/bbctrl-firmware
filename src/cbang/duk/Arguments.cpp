@@ -32,7 +32,8 @@
 
 #include "Arguments.h"
 
-#include "Signature.h"
+#include "Array.h"
+#include "Object.h"
 #include "Context.h"
 #include "SmartPop.h"
 
@@ -45,95 +46,45 @@ using namespace cb;
 using namespace std;
 
 
-Arguments::Arguments(Context &ctx, const Signature &sig) :
-  ctx(ctx), sig(sig), positional(ctx.top()), keyword(-1) {
-
-  if (sig.size() && positional && ctx.isObject(-1)) {
-    keyword = --positional;
-
-    if (sig.isVariable()) return;
-
-    // Validate keyword arguments
-    duk_enum(ctx.getContext(), -1, DUK_ENUM_OWN_PROPERTIES_ONLY);
-    SmartPop pop(ctx);
-
-    while (duk_next(ctx.getContext(), -1, false)) {
-      SmartPop pop(ctx);
-      string name = ctx.toString();
-
-      if (!sig.has(name))
-        THROWS("Invalid keyword argument '" << name << "' when calling "
-               << sig);
-    }
-  }
+Arguments::Arguments(Context &ctx, const Signature &sig) : ctx(ctx), sig(sig) {
+  // Push missing defaults
+  for (unsigned i = ctx.top(); i < sig.size(); i++)
+    ctx.push(sig[i]);
 }
 
 
-bool Arguments::has(unsigned index) const {
-  return index < positional ||
-    (0 <= keyword && ctx.hasProp(keyword, sig.keyAt(index)));
+bool Arguments::has(const string &key) {
+  return !ctx.isUndefined(sig.indexOf(key));
 }
 
 
-bool Arguments::has(const string &key) const {
-  unsigned index = sig.indexOf(key);
-  return index < positional || (0 <= keyword && ctx.hasProp(keyword, key));
+Array Arguments::toArray(const string &key) {
+  return Array(ctx, sig.indexOf(key));
+}
+
+
+Object Arguments::toObject(const string &key) {
+  return Object(ctx, sig.indexOf(key));
 }
 
 
 bool Arguments::toBoolean(const string &key) {
-  push(key);
-  SmartPop pop(ctx);
-  return ctx.toBoolean();
+  return ctx.toBoolean(sig.indexOf(key));
 }
 
 
 double Arguments::toNumber(const string &key) {
-  push(key);
-  SmartPop pop(ctx);
-  return ctx.toNumber();
+  return ctx.toNumber(sig.indexOf(key));
 }
 
 
 int Arguments::toInteger(const string &key) {
-  push(key);
-  SmartPop pop(ctx);
-  return ctx.toInteger();
+  return ctx.toInteger(sig.indexOf(key));
 }
 
 
 string Arguments::toString(const string &key) {
-  push(key);
-  SmartPop pop(ctx);
-  return ctx.toString();
-}
-
-
-bool Arguments::toBoolean(unsigned index) {
-  push(index);
-  SmartPop pop(ctx);
-  return ctx.toBoolean();
-}
-
-
-double Arguments::toNumber(unsigned index) {
-  push(index);
-  SmartPop pop(ctx);
-  return ctx.toNumber();
-}
-
-
-int Arguments::toInteger(unsigned index) {
-  push(index);
-  SmartPop pop(ctx);
-  return ctx.toInteger();
-}
-
-
-string Arguments::toString(unsigned index) {
-  push(index);
-  SmartPop pop(ctx);
-  return ctx.toString();
+  return ctx.toString(sig.indexOf(key));
 }
 
 
@@ -151,26 +102,4 @@ ostream &Arguments::write(ostream &stream, const string &separator) const {
   }
 
   return stream;
-}
-
-
-void Arguments::push(const std::string &key) {
-  unsigned index = sig.indexOf(key);
-
-  if (index < positional) ctx.dup(index);
-  else if (0 <= keyword && ctx.hasProp(keyword, key)) ctx.getProp(keyword, key);
-  else ctx.push(sig.get(index));
-}
-
-
-void Arguments::push(unsigned index) {
-  if (!sig.isVariable() && sig.size() <= index)
-    THROWS("Index " << index << " out of range");
-
-  if (index < positional) ctx.dup(index);
-  else {
-    string key = sig.keyAt(index);
-    if (0 <= keyword && ctx.hasProp(keyword, key)) ctx.getProp(keyword, key);
-    else ctx.push(sig.get(index));
-  }
 }

@@ -31,8 +31,11 @@
 \******************************************************************************/
 
 #include "Javascript.h"
-
 #include "SmartPop.h"
+
+#include <cbang/String.h>
+#include <cbang/log/Logger.h>
+#include <cbang/os/SystemUtilities.h>
 
 #include <duktape.h>
 
@@ -42,18 +45,95 @@ using namespace std;
 
 
 Javascript::Javascript() {
-  define(consoleMod);
-
   duk_get_global_string(ctx, "Duktape");
   SmartPop popString(*this);
-  push("modSearch");
-  push("modSearch(id, require, exports, module)", this, &Javascript::modSearch);
-  putProp(-3);
+
+  Object(*this, top() - 1).set("modSearch(id, require, exports, module)",
+                               this, &Javascript::modSearch);
+
+  pushPath(SystemUtilities::getcwd());
+  addSearchExtensions("/package.json .js .json");
+
+  define(consoleMod);
 }
 
 
-Variant Javascript::modSearch(Arguments &args) {
+void Javascript::pushPath(const std::string &path) {
+  pathStack.push_back(path);
+}
+
+
+void Javascript::popPath() {
+  if (pathStack.size() == 1) THROW("No path to pop");
+  pathStack.pop_back();
+}
+
+
+const string &Javascript::getCurrentPath() const {
+  return pathStack.back();
+}
+
+
+void Javascript::addSearchExtensions(const string &exts) {
+  String::tokenize(exts, searchExts);
+}
+
+
+void Javascript::appendSearchExtension(const string &ext) {
+  searchExts.push_back(ext);
+}
+
+
+string Javascript::searchExtensions(const string &path) const {
+  if (SystemUtilities::hasExtension(path) &&
+      SystemUtilities::isFile(path)) return path;
+
+  for (unsigned i = 0; i < searchExts.size(); i++) {
+    string candidate = path + searchExts[i];
+    LOG_DEBUG(5, "Searching " << candidate);
+    if (SystemUtilities::isFile(candidate)) return candidate;
+  }
+
+  return "";
+}
+
+
+void Javascript::addSearchPaths(const string &paths) {
+  String::tokenize(paths, searchPaths,
+                   string(1, SystemUtilities::path_delimiter));
+}
+
+
+string Javascript::searchPath(const string &path) const {
+  if (SystemUtilities::isAbsolute(path)) return searchExtensions(path);
+
+  else if (String::startsWith(path, "./") || String::startsWith(path, "../")) {
+    // Search relative to current file
+    string candidate = SystemUtilities::absolute(getCurrentPath(), path);
+    candidate = searchExtensions(candidate);
+    if (SystemUtilities::isFile(candidate)) return candidate;
+
+  } else {
+    // Search paths
+    for (unsigned i = 0; i < searchPaths.size(); i++) {
+      string dir = searchPaths[i];
+      if (!SystemUtilities::isAbsolute(dir))
+        dir = SystemUtilities::absolute(getCurrentPath(), dir);
+
+      string candidate = SystemUtilities::joinPath(dir, path);
+      candidate = searchExtensions(candidate);
+      if (!candidate.empty()) return candidate;
+    }
+  }
+
+  return "";
+}
+
+
+int Javascript::modSearch(Context &ctx, Arguments &args) {
   string id = args.toString("id");
 
-  return Variant();
+  LOG_DEBUG(1, "modSearch(" << id << ")");
+
+  return 0;
 }

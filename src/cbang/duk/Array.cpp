@@ -30,8 +30,8 @@
 
 \******************************************************************************/
 
-#include "Object.h"
 #include "Array.h"
+#include "Object.h"
 #include "Context.h"
 #include "SmartPop.h"
 
@@ -43,121 +43,148 @@ using namespace std;
 using namespace cb::duk;
 
 
-bool Object::has(const string &key) const {
-  ctx.push(key);
-  return duk_has_prop(ctx.getContext(), index) == 1;
+bool Array::has(int i) const {
+  return duk_has_prop_index(ctx.getContext(), index, i);
 }
 
 
-bool Object::get(const string &key) const {
-  ctx.push(key);
-  return duk_get_prop(ctx.getContext(), index);
+bool Array::get(int i) const {
+  return duk_get_prop_index(ctx.getContext(), index, i);
 }
 
 
-void Object::put(const string &key) {
-  ctx.push(key);
-  duk_insert(ctx.getContext(), -2);
-  duk_put_prop(ctx.getContext(), index);
+bool Array::put(int i) {
+  return duk_get_prop_index(ctx.getContext(), index, i);
 }
 
 
-Array Object::toArray(const string &key) {
-  get(key);
+unsigned Array::length() const {
+  return duk_get_length(ctx.getContext(), index);
+}
+
+
+int Array::getType(int i) const {
+  get(i);
+  SmartPop pop(ctx);
+  return ctx.getType();
+}
+
+
+bool Array::isArray(int i) const {
+  get(i);
+  SmartPop pop(ctx);
+  return ctx.isArray();
+}
+
+
+bool Array::isObject(int i) const {return getType(i) == DUK_TYPE_OBJECT;}
+bool Array::isBoolean(int i) const {return getType(i) == DUK_TYPE_BOOLEAN;}
+
+
+bool Array::isError(int i) const {
+  get(i);
+  SmartPop pop(ctx);
+  return ctx.isError();
+}
+
+
+bool Array::isNull(int i) const {return getType(i) == DUK_TYPE_NULL;}
+bool Array::isNumber(int i) const {return getType(i) == DUK_TYPE_NUMBER;}
+bool Array::isPointer(int i) const {return getType(i) == DUK_TYPE_POINTER;}
+bool Array::isString(int i) const {return getType(i) == DUK_TYPE_STRING;}
+bool Array::isUndefined(int i) const {return getType(i) == DUK_TYPE_UNDEFINED;}
+
+
+Array Array::toArray(int i) {
+  get(i);
   return Array(ctx, ctx.top() - 1);
 }
 
 
-Object Object::toObject(const string &key) {
-  get(key);
+Object Array::toObject(int i) {
+  get(i);
   return Object(ctx, ctx.top() - 1);
 }
 
 
-bool Object::toBoolean(const string &key) {
-  get(key);
+bool Array::toBoolean(int i) {
+  get(i);
   SmartPop pop(ctx);
   return ctx.toBoolean();
 }
 
 
-int Object::toInteger(const string &key) {
-  get(key);
+int Array::toInteger(int i) {
+  get(i);
   SmartPop pop(ctx);
   return ctx.toInteger();
 }
 
 
-double Object::toNumber(const string &key) {
-  get(key);
+double Array::toNumber(int i) {
+  get(i);
   SmartPop pop(ctx);
   return ctx.toNumber();
 }
 
 
-void *Object::toPointer(const string &key) {
-  get(key);
+void *Array::toPointer(int i) {
+  get(i);
   SmartPop pop(ctx);
   return ctx.toPointer();
 }
 
 
-string Object::toString(const string &key) {
-  get(key);
+string Array::toString(int i) {
+  get(i);
   SmartPop pop(ctx);
   return ctx.toString();
 }
 
 
-void Object::setNull(const string &key) {
+void Array::setNull(int i) {
   ctx.pushNull();
-  put(key);
+  put(i);
 }
 
 
-void Object::setBoolean(const string &key, bool x) {
+void Array::setBoolean(int i, bool x) {
   ctx.pushBoolean(x);
-  put(key);
+  put(i);
 }
 
 
-void Object::setPointer(const string &key, void *x) {
-  ctx.pushPointer(x);
-  put(key);
-}
-
-
-void Object::set(const string &key, int x) {
+void Array::set(int i, int x) {
   ctx.push(x);
-  put(key);
+  put(i);
 }
 
 
-void Object::set(const string &key, unsigned x) {
+void Array::set(int i, unsigned x) {
   ctx.push(x);
-  put(key);
+  put(i);
 }
 
 
-void Object::set(const string &key, double x) {
+void Array::set(int i, double x) {
   ctx.push(x);
-  put(key);
+  put(i);
 }
 
 
-void Object::set(const string &key, const string &x) {
+void Array::set(int i, const string &x) {
   ctx.push(x);
-  put(key);
+  put(i);
 }
 
 
-void Object::set(const string &key, Object &obj) {
+void Array::set(int i, Object &obj) {
   ctx.dup(obj.getIndex());
-  put(key);
+  put(i);
 }
 
 
-void Object::set(const string &key, Array &ary) {
+void Array::set(int i, Array &ary) {
   ctx.dup(ary.getIndex());
-  put(key);
+  put(i);
 }

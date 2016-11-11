@@ -30,24 +30,62 @@
 
 \******************************************************************************/
 
-#ifndef CB_DUK_MODULE_H
-#define CB_DUK_MODULE_H
+#ifndef CB_DUK_ARRAY_H
+#define CB_DUK_ARRAY_H
 
-#include "Object.h"
-#include "Arguments.h"
-#include "Array.h"
+#include "Context.h"
+
+#include <string>
 
 
 namespace cb {
   namespace duk {
-    class Module {
-    public:
-      virtual ~Module() {}
+    class Object;
 
-      virtual const char *getName() const = 0;
-      virtual void define(Object &exports) = 0;
+    class Array {
+      Context &ctx;
+      int index;
+
+    public:
+      Array(Context &ctx, int index) : ctx(ctx), index(index) {}
+
+      int getIndex() const {return index;}
+
+      bool has(int i) const;
+      bool get(int i) const;
+      bool put(int i);
+
+      unsigned length() const;
+
+      int getType(int i) const;
+      bool isArray(int i) const;
+      bool isObject(int i) const;
+      bool isBoolean(int i) const;
+      bool isError(int i) const;
+      bool isNull(int i) const;
+      bool isNumber(int i) const;
+      bool isPointer(int i) const;
+      bool isString(int i) const;
+      bool isUndefined(int i) const;
+
+      Array toArray(int i);
+      Object toObject(int i);
+      bool toBoolean(int i);
+      int toInteger(int i);
+      double toNumber(int i);
+      void *toPointer(int i);
+      std::string toString(int i);
+
+      void setNull(int i);
+      void setBoolean(int i, bool x);
+      void set(int i, int x);
+      void set(int i, unsigned x);
+      void set(int i, double x);
+      void set(int i, const std::string &x);
+      void set(int i, Object &obj);
+      void set(int i, Array &ary);
     };
   }
 }
 
-#endif // CB_DUK_MODULE_H
+#endif // CB_DUK_ARRAY_H

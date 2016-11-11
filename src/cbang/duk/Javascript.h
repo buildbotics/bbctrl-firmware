@@ -42,11 +42,31 @@ namespace cb {
     class Javascript : public Context {
       ConsoleModule consoleMod;
 
+      std::vector<std::string> pathStack;
+      std::vector<std::string> searchExts;
+      std::vector<std::string> searchPaths;
+
     public:
       Javascript();
+      virtual ~Javascript() {}
+
+      virtual void pushPath(const std::string &path);
+      virtual void popPath();
+      const std::string &getCurrentPath() const;
+
+      void addSearchExtensions(const std::string &exts);
+      void appendSearchExtension(const std::string &ext);
+      void clearSearchExtensions() {searchExts.clear();}
+      std::vector<std::string> &getSearchExts() {return searchExts;}
+      std::string searchExtensions(const std::string &path) const;
+
+      void addSearchPaths(const std::string &paths);
+      std::vector<std::string> &getSearchPaths() {return searchPaths;}
+      void clearSearchPaths() {searchPaths.clear();}
+      std::string searchPath(const std::string &path) const;
 
       // Callbacks
-      Variant modSearch(Arguments &args);
+      int modSearch(Context &ctx, Arguments &args);
     };
   }
 }

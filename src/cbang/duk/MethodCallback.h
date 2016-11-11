@@ -41,7 +41,7 @@ namespace cb {
     template <class T>
     class MethodCallback : public Callback {
     public:
-      typedef Variant (T::*member_t)(Arguments &args);
+      typedef int (T::*member_t)(Context &ctx, Arguments &args);
 
     protected:
       T *object;
@@ -52,8 +52,8 @@ namespace cb {
         Callback(sig), object(object), member(member) {}
 
       // From Callback
-      Variant operator()(Arguments &args) {
-        return (*object.*member)(args);
+      int operator()(Context &ctx, Arguments &args) {
+        return (*object.*member)(ctx, args);
       }
     };
   }

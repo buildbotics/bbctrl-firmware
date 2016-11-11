@@ -35,8 +35,6 @@
 
 #include "Signature.h"
 
-#include <cbang/util/Variant.h>
-
 
 namespace cb {
   namespace duk {
@@ -52,7 +50,7 @@ namespace cb {
 
       const Signature &getSignature() const {return sig;}
 
-      virtual Variant operator()(Arguments &args) = 0;
+      virtual int operator()(Context &ctx, Arguments &args) = 0;
     };
   }
 }

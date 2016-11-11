@@ -1,11 +1,13 @@
 Import('*')
 env = env.Clone()
 
+env.Append(CPPDEFINES = ['DUK_OPT_CPP_EXCEPTIONS'])
+
 # Install headers
 copy = env.Install(dir = '#/include', source = Glob('*.h'))
 
 # Bulid library
-lib = env.Library('#/lib/duktape', Glob('*.c'))
+lib = env.Library('#/lib/duktape', Glob('*.cpp'))
 Depends(lib, copy)
 
 Return('lib')

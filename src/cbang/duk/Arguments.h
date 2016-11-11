@@ -42,13 +42,12 @@
 namespace cb {
   namespace duk {
     class Context;
+    class Array;
+    class Object;
 
     class Arguments {
       Context &ctx;
       const Signature &sig;
-
-      unsigned positional;
-      int keyword;
 
     public:
       Arguments(Context &ctx, const Signature &sig);
@@ -56,26 +55,18 @@ namespace cb {
       Context &getContext() const {return ctx;}
       const Signature &getSignature() const {return sig;}
 
-      bool has(unsigned index) const;
-      bool has(const std::string &key) const;
+      bool has(const std::string &key);
 
+      Array toArray(const std::string &key);
+      Object toObject(const std::string &key);
       bool toBoolean(const std::string &key);
       double toNumber(const std::string &key);
       int toInteger(const std::string &key);
       std::string toString(const std::string &key);
 
-      bool toBoolean(unsigned index);
-      double toNumber(unsigned index);
-      int toInteger(unsigned index);
-      std::string toString(unsigned index);
-
       std::string toString() const;
       std::ostream &write(std::ostream &stream,
                           const std::string &separator = " ") const;
-
-    protected:
-      void push(const std::string &key);
-      void push(unsigned index);
     };
 
 

@@ -40,6 +40,8 @@
 
 namespace cb {
   namespace duk {
+    class Array;
+
     class Object {
       Context &ctx;
       int index;
@@ -47,27 +49,35 @@ namespace cb {
     public:
       Object(Context &ctx, int index) : ctx(ctx), index(index) {}
 
-      bool has(const std::string &key) const;
+      int getIndex() const {return index;}
 
-      bool toBoolean(const std::string &key) const;
-      int toInteger(const std::string &key) const;
-      double toNumber(const std::string &key) const;
-      void *toPointer(const std::string &key) const;
-      std::string toString(const std::string &key) const;
+      bool has(const std::string &key) const;
+      bool get(const std::string &key) const;
+      void put(const std::string &key);
+
+      Array toArray(const std::string &key);
+      Object toObject(const std::string &key);
+      bool toBoolean(const std::string &key);
+      int toInteger(const std::string &key);
+      double toNumber(const std::string &key);
+      void *toPointer(const std::string &key);
+      std::string toString(const std::string &key);
 
       void setNull(const std::string &key);
       void setBoolean(const std::string &key, bool x);
+      void setPointer(const std::string &key, void *x);
       void set(const std::string &key, int x);
+      void set(const std::string &key, unsigned x);
       void set(const std::string &key, double x);
       void set(const std::string &key, const std::string &x);
       void set(const std::string &key, Object &obj);
+      void set(const std::string &key, Array &ary);
 
       template <class T>
       void set(const Signature &sig, T *obj,
                typename MethodCallback<T>::member_t member) {
-        ctx.push(sig.getName());
         ctx.push(sig, obj, member);
-        ctx.putProp(index);
+        put(sig.getName());
       }
     };
   }

@@ -40,17 +40,15 @@ namespace cb {
   namespace duk {
     class ConsoleModule : public Module {
     public:
-      ConsoleModule();
-
       // From Module
       const char *getName() const {return "console";}
-      void define(Object &obj);
+      void define(Object &exports);
 
       // Callbacks
-      Variant log(Arguments &args);
-      Variant debug(Arguments &args);
-      Variant warn(Arguments &args);
-      Variant error(Arguments &args);
+      int log(Context &ctx, Arguments &args);
+      int debug(Context &ctx, Arguments &args);
+      int warn(Context &ctx, Arguments &args);
+      int error(Context &ctx, Arguments &args);
     };
   }
 }

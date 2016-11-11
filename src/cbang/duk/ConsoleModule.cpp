@@ -39,35 +39,35 @@ using namespace cb;
 using namespace std;
 
 
-void ConsoleModule::define(Object &obj) {
+void ConsoleModule::define(Object &exports) {
   // TODO Implement other console.* methods
   // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
-  obj.set("log(...)", this, &ConsoleModule::log);
-  obj.set("debug(...)", this, &ConsoleModule::debug);
-  obj.set("warn(...)", this, &ConsoleModule::warn);
-  obj.set("error(...)", this, &ConsoleModule::error);
+  exports.set("log(...)", this, &ConsoleModule::log);
+  exports.set("debug(...)", this, &ConsoleModule::debug);
+  exports.set("warn(...)", this, &ConsoleModule::warn);
+  exports.set("error(...)", this, &ConsoleModule::error);
 }
 
 
-Variant ConsoleModule::log(Arguments &args) {
+int ConsoleModule::log(Context &ctx, Arguments &args) {
   args.write(*CBANG_LOG_INFO_STREAM(1), " ");
-  return Variant();
+  return 0;
 }
 
 
-Variant ConsoleModule::debug(Arguments &args) {
+int ConsoleModule::debug(Context &ctx, Arguments &args) {
   args.write(*CBANG_LOG_DEBUG_STREAM(1), " ");
-  return Variant();
+  return 0;
 }
 
 
-Variant ConsoleModule::warn(Arguments &args) {
+int ConsoleModule::warn(Context &ctx, Arguments &args) {
   args.write(*CBANG_LOG_WARNING_STREAM(), " ");
-  return Variant();
+  return 0;
 }
 
 
-Variant ConsoleModule::error(Arguments &args) {
+int ConsoleModule::error(Context &ctx, Arguments &args) {
   args.write(*CBANG_LOG_ERROR_STREAM(), " ");
-  return Variant();
+  return 0;
 }
