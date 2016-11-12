@@ -54,7 +54,7 @@ bool Array::get(int i) const {
 
 
 bool Array::put(int i) {
-  return duk_get_prop_index(ctx.getContext(), index, i);
+  return duk_put_prop_index(ctx.getContext(), index, i);
 }
 
 

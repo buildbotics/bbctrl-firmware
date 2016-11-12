@@ -34,6 +34,7 @@
 #include "SmartPop.h"
 
 #include <cbang/String.h>
+#include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
 
@@ -132,8 +133,26 @@ string Javascript::searchPath(const string &path) const {
 
 int Javascript::modSearch(Context &ctx, Arguments &args) {
   string id = args.toString("id");
+  string path = searchPath(id);
 
-  LOG_DEBUG(1, "modSearch(" << id << ")");
+  if (path.empty()) THROWS("Module '" << id << "' not found");
+  LOG_DEBUG(3, "Loading module '" << id << "' from '" << path << "'");
 
-  return 0;
+  Object module = args.toObject("module");
+  module.set("filename", path);
+
+  // Load
+  if (String::endsWith(path, "/package.json")) {
+    JSON::ValuePtr package = JSON::Reader(path).parse();
+    path = SystemUtilities::absolute(path, package->getString("main"));
+
+  } else if (String::endsWith(path, ".json")) {
+    // Call JSON.parse()
+    THROWS("Loading .json not yet implemented");
+  }
+
+  // Read Javscript code and push on stack
+  ctx.push(SystemUtilities::read(path));
+
+  return 1;
 }

@@ -40204,6 +40204,9 @@ DUK_INTERNAL void duk_err_longjmp(duk_hthread *thr) {
 	                   (int) thr->heap->lj.type, (int) thr->heap->lj.iserror,
 	                   &thr->heap->lj.value1, &thr->heap->lj.value2));
 
+    extern void duk_error_callback(duk_context *);
+    duk_error_callback(thr);
+
 #if !defined(DUK_USE_CPP_EXCEPTIONS)
 	/* If we don't have a jmpbuf_ptr, there is little we can do
 	 * except panic.  The caller's expectation is that we never
@@ -40225,8 +40228,8 @@ DUK_INTERNAL void duk_err_longjmp(duk_hthread *thr) {
 #endif  /* DUK_USE_CPP_EXCEPTIONS */
 
 #if defined(DUK_USE_CPP_EXCEPTIONS)
-	{
-		duk_internal_exception exc;  /* dummy */
+    {
+        duk_internal_exception exc;  /* dummy */
 		throw exc;
 	}
 #else  /* DUK_USE_CPP_EXCEPTIONS */

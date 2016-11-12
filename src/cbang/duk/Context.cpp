@@ -39,12 +39,20 @@
 
 #include <cbang/Exception.h>
 #include <cbang/util/DefaultCatch.h>
+#include <cbang/log/Logger.h>
+#include <cbang/debug/Debugger.h>
 
 #include <duktape.h>
 
 using namespace cb;
 using namespace cb::duk;
 using namespace std;
+
+
+void duk_error_callback(duk_context *ctx) {
+  LOG_DEBUG(1, "Duk error: " << Debugger::getStackTrace());
+  duk_dump_context_stderr(ctx);
+}
 
 
 namespace {
@@ -64,19 +72,30 @@ namespace {
       Arguments args(ctx, cb->getSignature());
       return (*cb)(ctx, args);
 
-    } catch (const Exception &e) {
+    } catch (const cb::Exception &e) {
       error = SSTR(e);
       code = e.getCode();
 
     } catch (const std::exception &e) {
       error = e.what();
-
-    } catch (...) {
-      error = "unknown exception";
     }
+
+    // NOTE must allow duk_internal_exceptions to pass
 
     duk_error(_ctx, code, error.c_str());
     return 0;
+  }
+
+
+  extern "C" int _get_stack_raw(duk_context *ctx) {
+    if (!duk_is_object(ctx, -1)) return 1;
+    if (!duk_has_prop_string(ctx, -1, "stack")) return 1;
+    if (!duk_is_error(ctx, -1)) return 1;
+
+    duk_get_prop_string(ctx, -1, "stack");
+    duk_remove(ctx, -2);
+
+    return 1;
   }
 }
 
@@ -208,7 +227,13 @@ void Context::define(Module &module) {
 void Context::eval(const InputSource &source) {
   push(source.toString());
   SmartPop pop(*this);
-  if (duk_peval(ctx)) THROWS("Eval failed: " << duk_safe_to_string(ctx, -1));
+  if (duk_peval(ctx)) raise("Eval failed");
+}
+
+
+void Context::raise(const string &msg) const {
+  duk_safe_call(ctx, _get_stack_raw, 1, 1);
+  THROWS(msg << ": " << duk_safe_to_string(ctx, -1));
 }
 
 

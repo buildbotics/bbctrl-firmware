@@ -117,6 +117,7 @@ namespace cb {
       void define(Module &module);
 
       void eval(const InputSource &source);
+      void raise(const std::string &msg) const;
       void error(const std::string &msg, int code = 0) const;
     };
   }
