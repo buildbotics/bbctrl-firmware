@@ -47,7 +47,6 @@ namespace cb {
       Dict() : simple(true) {}
 
       // From OrderedDict<ValuePtr>
-      using OrderedDict<ValuePtr>::get;
       using OrderedDict<ValuePtr>::has;
       using OrderedDict<ValuePtr>::operator[];
 
