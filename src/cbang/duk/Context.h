@@ -161,7 +161,7 @@ namespace cb {
       void defineGlobal(Module &module);
       void define(Module &module);
 
-      void eval(const InputSource &source);
+      void exec(const InputSource &source);
       void raise(const std::string &msg);
       void error(const std::string &msg, int code = 0);
       std::string dump();

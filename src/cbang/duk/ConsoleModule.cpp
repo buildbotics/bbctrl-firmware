@@ -53,7 +53,7 @@ namespace {
   void print(ostream &stream, Arguments &args) {
     for (unsigned i = 0; i < args.size(); i++) {
       if (i) stream << ' ';
-      stream << *args.JSON::Value::get(i);
+      stream << *args.get(i);
     }
   }
 }

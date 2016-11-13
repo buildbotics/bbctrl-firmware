@@ -38,6 +38,7 @@
 #include <cbang/json/JSON.h>
 #include <cbang/log/Logger.h>
 #include <cbang/os/SystemUtilities.h>
+#include <cbang/util/SmartFunctor.h>
 
 #include <duktape.h>
 
@@ -53,9 +54,26 @@ Javascript::Javascript() {
   pushObject();
   putGlobal("modules");
 
+  pushPath(SystemUtilities::getcwd());
   addSearchExtensions("/package.json .js .json");
 
   define(consoleMod);
+}
+
+
+void Javascript::pushPath(const std::string &path) {
+  pathStack.push_back(path);
+}
+
+
+void Javascript::popPath() {
+  if (pathStack.size() == 1) THROW("No path to pop");
+  pathStack.pop_back();
+}
+
+
+const string &Javascript::getCurrentPath() const {
+  return pathStack.back();
 }
 
 
@@ -116,9 +134,18 @@ string Javascript::searchPath(const string &path,
 }
 
 
+void Javascript::exec(const InputSource &source) {
+  // Push path
+  SmartFunctor<Javascript>smartPopPath(this, &Javascript::popPath);
+  pushPath(source.getName());
+
+  Context::exec(source);
+}
+
+
 int Javascript::require(Context &ctx) {
   string id = ctx.getString(0);
-  string path = searchPath(id, ".");
+  string path = searchPath(id, getCurrentPath());
 
   if (path.empty()) THROWS("Module '" << id << "' not found");
   LOG_DEBUG(3, "Loading module '" << id << "' from '" << path << "'");
@@ -151,6 +178,10 @@ int Javascript::require(Context &ctx) {
     JSON::Reader(path).parse(sink);
 
   } else {
+    // Push path
+    SmartFunctor<Javascript>smartPopPath(this, &Javascript::popPath);
+    pushPath(path);
+
     // Read Javscript code
     string code = SystemUtilities::read(path);
 

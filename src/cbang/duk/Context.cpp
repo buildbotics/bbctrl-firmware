@@ -57,12 +57,6 @@ using namespace std;
 #endif
 
 
-void duk_error_callback(duk_context *ctx) {
-  LOG_DEBUG(1, "Duk error: " << Debugger::getStackTrace());
-  duk_dump_context_stderr(ctx);
-}
-
-
 namespace {
   extern "C" duk_ret_t _callback(duk_context *_ctx) {
     int code = 0;
@@ -95,15 +89,19 @@ namespace {
 
 
   extern "C" int _get_stack_raw(duk_context *ctx) {
-    if (!duk_is_object(ctx, -1)) return 1;
-    if (!duk_has_prop_string(ctx, -1, "stack")) return 1;
-    if (!duk_is_error(ctx, -1)) return 1;
-
-    duk_get_prop_string(ctx, -1, "stack");
-    duk_remove(ctx, -2);
+    if (duk_is_object(ctx, -1) && duk_has_prop_string(ctx, -1, "stack") &&
+        duk_is_error(ctx, -1)) {
+      duk_get_prop_string(ctx, -1, "stack");
+      duk_remove(ctx, -2);
+    }
 
     return 1;
   }
+}
+
+
+void duk_error_callback(duk_context *ctx) {
+  duk_safe_call(ctx, _get_stack_raw, 1, 1);
 }
 
 
@@ -351,10 +349,13 @@ void Context::define(Module &module) {
 }
 
 
-void Context::eval(const InputSource &source) {
+void Context::exec(const InputSource &source) {
   push(source.toString());
+  push(source.getName());
   SmartPop pop(*this);
-  if (duk_peval(ctx)) raise("Eval failed");
+
+  if (duk_pcompile(ctx, 0)) raise("Compile failed");
+  if (duk_pcall(ctx, 0)) raise("Exec failed");
 }
 
 
