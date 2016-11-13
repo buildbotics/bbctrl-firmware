@@ -36,9 +36,11 @@
 #include "Callback.h"
 #include "Signature.h"
 #include "MethodCallback.h"
+#include "RawMethodCallback.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/io/InputSource.h>
+#include <cbang/json/Sink.h>
 
 #include <string>
 #include <vector>
@@ -47,9 +49,12 @@ typedef struct duk_hthread duk_context;
 
 
 namespace cb {
+  namespace JSON {class Value;}
+
   namespace duk {
     class Object;
     class Array;
+    class Enum;
     class Module;
 
     class Context {
@@ -64,25 +69,53 @@ namespace cb {
       Context();
       ~Context();
 
-      duk_context *getContext() const {return ctx;}
+      duk_context *getContext() {return ctx;}
 
-      int top() const;
-      int topIndex() const;
+      int type(int index = -1);
 
-      void pop(unsigned n = 1) const;
-      void dup(int index = -1) const;
+      bool has(int index);
+      bool has(int index, int i);
+      bool has(int index, const std::string &key);
 
-      int getType(int index = -1) const;
-      bool isArray(int index = -1) const;
-      bool isObject(int index = -1) const;
-      bool isBoolean(int index = -1) const;
-      bool isError(int index = -1) const;
-      bool isNull(int index = -1) const;
-      bool isNumber(int index = -1) const;
-      bool isPointer(int index = -1) const;
-      bool isString(int index = -1) const;
-      bool isUndefined(int index = -1) const;
+      bool get(int index);
+      bool get(int index, int i);
+      bool get(int index, const std::string &key);
+      bool getGlobal(const std::string &key);
 
+      bool put(int index);
+      bool put(int index, int i);
+      bool put(int index, const std::string &key);
+      bool putGlobal(const std::string &key);
+
+      unsigned top();
+      unsigned topIndex();
+      unsigned normalize(int index);
+
+      void pop(unsigned n = 1);
+      void dup(int index = -1);
+
+      void compile(const std::string &filename);
+      void compile(const std::string &filename, const std::string &code);
+      void call(int nargs);
+      void callMethod(int nargs);
+
+      unsigned length(int index = -1);
+      Enum enumerate(int index = -1, int flags = 0);
+      bool next(int index = -1, bool getValue = true);
+      void write(int index, JSON::Sink &sink);
+
+      bool isJSON(int index = -1);
+      bool isArray(int index = -1);
+      bool isObject(int index = -1);
+      bool isBoolean(int index = -1);
+      bool isError(int index = -1);
+      bool isNull(int index = -1);
+      bool isNumber(int index = -1);
+      bool isPointer(int index = -1);
+      bool isString(int index = -1);
+      bool isUndefined(int index = -1);
+
+      SmartPointer<JSON::Value> toJSON(int index = -1);
       Array toArray(int index = -1);
       Object toObject(int index = -1);
       bool toBoolean(int index = -1);
@@ -90,6 +123,14 @@ namespace cb {
       double toNumber(int index = -1);
       void *toPointer(int index = -1);
       std::string toString(int index = -1);
+
+      Array getArray(int index = -1);
+      Object getObject(int index = -1);
+      bool getBoolean(int index = -1);
+      int getInteger(int index = -1);
+      double getNumber(int index = -1);
+      void *getPointer(int index = -1);
+      std::string getString(int index = -1);
 
       Object pushGlobalObject();
       Object pushCurrentFunction();
@@ -105,7 +146,6 @@ namespace cb {
       void push(const char *x);
       void push(const std::string &x);
       void push(const SmartPointer<Callback> &cb);
-      void push(const Variant &value);
 
       template <class T>
       void push(const Signature &sig, T *obj,
@@ -113,12 +153,18 @@ namespace cb {
         push(new MethodCallback<T>(sig, obj, member));
       }
 
+      template <class T>
+      void push(T *obj, typename RawMethodCallback<T>::member_t member) {
+        push(new RawMethodCallback<T>(obj, member));
+      }
+
       void defineGlobal(Module &module);
       void define(Module &module);
 
       void eval(const InputSource &source);
-      void raise(const std::string &msg) const;
-      void error(const std::string &msg, int code = 0) const;
+      void raise(const std::string &msg);
+      void error(const std::string &msg, int code = 0);
+      std::string dump();
     };
   }
 }

@@ -33,13 +33,14 @@
 #include "Context.h"
 #include "Object.h"
 #include "Array.h"
-#include "Arguments.h"
+#include "Enum.h"
 #include "Module.h"
 #include "SmartPop.h"
 
 #include <cbang/Exception.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/log/Logger.h>
+#include <cbang/json/Builder.h>
 #include <cbang/debug/Debugger.h>
 
 #include <duktape.h>
@@ -47,6 +48,13 @@
 using namespace cb;
 using namespace cb::duk;
 using namespace std;
+
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#define CPP_TO_C_STR(x) (x).c_str()
+#else
+#define CPP_TO_C_STR(x) (x).data()
+#endif
 
 
 void duk_error_callback(duk_context *ctx) {
@@ -69,8 +77,7 @@ namespace {
       ctx.pop();
 
       // Make call
-      Arguments args(ctx, cb->getSignature());
-      return (*cb)(ctx, args);
+      return cb->call(ctx);
 
     } catch (const cb::Exception &e) {
       error = SSTR(e);
@@ -108,32 +115,148 @@ Context::Context() : ctx(duk_create_heap_default()), deallocate(true) {
 Context::~Context() {if (ctx && deallocate) duk_destroy_heap(ctx);}
 
 
-int Context::top() const {return duk_get_top(ctx);}
-int Context::topIndex() const {return duk_get_top_index(ctx);}
-
-void Context::pop(unsigned n) const {duk_pop_n(ctx, n);}
-void Context::dup(int index) const {duk_dup(ctx, index);}
-
-int Context::getType(int index) const {return duk_get_type(ctx, index);}
-bool Context::isArray(int index) const {return duk_is_array(ctx, index);}
-bool Context::isObject(int index) const {return duk_is_object(ctx, index);}
-bool Context::isBoolean(int index) const {return duk_is_boolean(ctx, index);}
-bool Context::isError(int index) const {return duk_is_error(ctx, index);}
-bool Context::isNull(int index) const {return duk_is_null(ctx, index);}
-bool Context::isNumber(int index) const {return duk_is_number(ctx, index);}
-bool Context::isPointer(int index) const {return duk_is_pointer(ctx, index);}
-bool Context::isString(int index) const {return duk_is_string(ctx, index);}
+int Context::type(int index) {return duk_get_type(ctx, index);}
+bool Context::has(int index) {return duk_has_prop(ctx, index);}
 
 
-bool Context::isUndefined(int index) const {
-  return duk_is_undefined(ctx, index);
+bool Context::has(int index, int i) {
+  return duk_has_prop_index(ctx, index, i);
 }
 
 
-Array Context::toArray(int index) {
-  if (!isArray(index)) error(SSTR("Not an array at " << index));
-  return Array(*this, index);
+bool Context::has(int index, const string &key) {
+  return duk_has_prop_string(ctx, index, CPP_TO_C_STR(key));
 }
+
+
+bool Context::get(int index) {return duk_get_prop(ctx, index);}
+
+
+bool Context::get(int index, int i) {
+  return duk_get_prop_index(ctx, index, i);
+}
+
+
+bool Context::get(int index, const string &key) {
+  return duk_get_prop_string(ctx, index, CPP_TO_C_STR(key));
+}
+
+
+bool Context::getGlobal(const string &key) {
+  return duk_get_global_string(ctx, CPP_TO_C_STR(key));
+}
+
+
+bool Context::put(int index) {return duk_put_prop(ctx, index);}
+bool Context::put(int index, int i) {return duk_put_prop_index(ctx, index, i);}
+
+
+bool Context::put(int index, const std::string &key) {
+  return duk_put_prop_string(ctx, index, CPP_TO_C_STR(key));
+}
+
+
+bool Context::putGlobal(const std::string &key) {
+  return duk_put_global_string(ctx, CPP_TO_C_STR(key));
+}
+
+
+unsigned Context::top() {return (unsigned)duk_get_top(ctx);}
+
+
+unsigned Context::topIndex() {
+  int index = duk_get_top_index(ctx);
+  if (index == DUK_INVALID_INDEX) THROWS("Stack empty");
+  return (unsigned)index;
+}
+
+
+unsigned Context::normalize(int index) {
+  return (unsigned)duk_normalize_index(ctx, index);
+}
+
+
+void Context::pop(unsigned n) {duk_pop_n(ctx, n);}
+void Context::dup(int index) {duk_dup(ctx, index);}
+
+
+void Context::compile(const string &filename) {
+  push(filename);
+  duk_compile(ctx, DUK_COMPILE_FUNCTION);
+}
+
+
+void Context::compile(const string &filename, const string &code) {
+  push(code);
+  compile(filename);
+}
+
+
+void Context::call(int nargs) {duk_call(ctx, nargs);}
+void Context::callMethod(int nargs)  {duk_call_method(ctx, nargs);}
+unsigned Context::length(int index) {return duk_get_length(ctx, index);}
+
+
+Enum Context::enumerate(int index, int flags) {
+  duk_enum(ctx, index, flags);
+  return Enum(*this, -1);
+}
+
+
+bool Context::next(int index, bool getValue) {
+  return duk_next(ctx, index, getValue);
+}
+
+
+void Context::write(int index, JSON::Sink &sink) {
+  switch (type(index)) {
+  case DUK_TYPE_UNDEFINED: break;
+  case DUK_TYPE_BOOLEAN: sink.write(getBoolean(index)); break;
+  case DUK_TYPE_NUMBER: sink.write(getNumber(index)); break;
+  case DUK_TYPE_STRING: sink.write(getString(index)); break;
+  case DUK_TYPE_NULL: sink.writeNull(); break;
+
+  case DUK_TYPE_OBJECT:
+    if (isArray(index)) getArray(index).write(sink);
+    else getObject(index).write(sink);
+    break;
+
+  default: {
+    dup(index);
+    SmartPop pop(*this);
+    sink.write(toString());
+    break;
+  }
+  }
+}
+
+
+bool Context::isJSON(int index) {
+  return duk_check_type_mask(ctx, index, DUK_TYPE_MASK_BOOLEAN |
+                             DUK_TYPE_MASK_NUMBER | DUK_TYPE_MASK_STRING |
+                             DUK_TYPE_MASK_NULL | DUK_TYPE_MASK_OBJECT);
+}
+
+
+bool Context::isArray(int index) {return duk_is_array(ctx, index);}
+bool Context::isObject(int index) {return duk_is_object(ctx, index);}
+bool Context::isBoolean(int index) {return duk_is_boolean(ctx, index);}
+bool Context::isError(int index) {return duk_is_error(ctx, index);}
+bool Context::isNull(int index) {return duk_is_null(ctx, index);}
+bool Context::isNumber(int index) {return duk_is_number(ctx, index);}
+bool Context::isPointer(int index) {return duk_is_pointer(ctx, index);}
+bool Context::isString(int index) {return duk_is_string(ctx, index);}
+bool Context::isUndefined(int index) {return duk_is_undefined(ctx, index);}
+
+
+SmartPointer<JSON::Value> Context::toJSON(int index) {
+  JSON::Builder builder;
+  write(index, builder);
+  return builder.getRoot();
+}
+
+
+Array Context::toArray(int index) {return getArray(index);}
 
 
 Object Context::toObject(int index) {
@@ -146,22 +269,41 @@ bool Context::toBoolean(int index) {return duk_to_boolean(ctx, index);}
 int Context::toInteger(int index) {return duk_to_int(ctx, index);}
 double Context::toNumber(int index) {return duk_to_number(ctx, index);}
 void *Context::toPointer(int index) {return duk_to_pointer(ctx, index);}
+std::string Context::toString(int index) {return duk_to_string(ctx, index);}
 
 
-std::string Context::toString(int index) {
-  return duk_to_string(ctx, index);
+Array Context::getArray(int index) {
+  if (!isArray(index)) THROWS("Not an array at " << index);
+  return Array(*this, index);
+}
+
+
+Object Context::getObject(int index) {
+  if (!isObject(index)) THROWS("Not an object at " << index);
+  return Object(*this, index);
+}
+
+
+bool Context::getBoolean(int index) {return duk_get_boolean(ctx, index);}
+int Context::getInteger(int index) {return duk_get_int(ctx, index);}
+double Context::getNumber(int index) {return duk_get_number(ctx, index);}
+void *Context::getPointer(int index) {return duk_get_pointer(ctx, index);}
+
+
+std::string Context::getString(int index) {
+  return duk_get_string(ctx, index);
 }
 
 
 Object Context::pushGlobalObject() {
   duk_push_global_object(ctx);
-  return Object(*this, top() - 1);
+  return Object(*this, -1);
 }
 
 
 Object Context::pushCurrentFunction() {
   duk_push_current_function(ctx);
-  return Object(*this, top() - 1);
+  return Object(*this, -1);
 }
 
 
@@ -178,11 +320,7 @@ void Context::push(const char *x) {duk_push_string(ctx, x);}
 
 
 void Context::push(const std::string &x) {
-#if defined(_WIN32) && !defined(__MINGW32__)
-  duk_push_lstring(ctx, x.c_str(), x.length());
-#else
-  duk_push_lstring(ctx, x.data(), x.length());
-#endif
+  duk_push_lstring(ctx, CPP_TO_C_STR(x), x.length());
 }
 
 
@@ -190,18 +328,7 @@ void Context::push(const std::string &x) {
 void Context::push(const SmartPointer<Callback> &cb) {
   callbacks.push_back(cb);
   duk_push_c_function(ctx, _callback, DUK_VARARGS);
-  Object(*this, top() - 1).setPointer("__callback_pointer__", cb.get());
-}
-
-
-void Context::push(const Variant &value) {
-  switch (value.getType()) {
-  case Variant::BOOLEAN_TYPE: pushBoolean(value.toBoolean()); break;
-  case Variant::STRING_TYPE: push(value.toString()); break;
-  case Variant::INTEGER_TYPE: push((int)value.toInteger()); break;
-  case Variant::REAL_TYPE: push(value.toReal()); break;
-  default: pushUndefined(); break;
-  }
+  Object(*this, -1).setPointer("__callback_pointer__", cb.get());
 }
 
 
@@ -231,12 +358,19 @@ void Context::eval(const InputSource &source) {
 }
 
 
-void Context::raise(const string &msg) const {
+void Context::raise(const string &msg) {
   duk_safe_call(ctx, _get_stack_raw, 1, 1);
   THROWS(msg << ": " << duk_safe_to_string(ctx, -1));
 }
 
 
-void Context::error(const string &msg, int code) const {
+void Context::error(const string &msg, int code) {
   duk_error(ctx, code, msg.c_str());
+}
+
+
+string Context::dump() {
+  duk_push_context_dump(ctx);
+  SmartPop pop(*this);
+  return getString();
 }

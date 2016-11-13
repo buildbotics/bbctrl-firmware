@@ -35,8 +35,8 @@
 #include "Array.h"
 #include "Object.h"
 #include "Context.h"
-#include "SmartPop.h"
 
+#include <cbang/json/Builder.h>
 #include <cbang/log/Logger.h>
 
 #include <duktape.h>
@@ -47,59 +47,36 @@ using namespace std;
 
 
 Arguments::Arguments(Context &ctx, const Signature &sig) : ctx(ctx), sig(sig) {
-  // Push missing defaults
-  for (unsigned i = ctx.top(); i < sig.size(); i++)
-    ctx.push(sig[i]);
-}
+  JSON::Builder builder(SmartPointer<JSON::Value>::Phony(this));
 
+  // Load single Object as arguments
+  if (ctx.top() == 1 && ctx.isObject())
+    ctx.toObject().insertValues(builder);
 
-bool Arguments::has(const string &key) {
-  return !ctx.isUndefined(sig.indexOf(key));
-}
+  else { // Add positional arguments
+    int index = 0;
 
+    for (unsigned i = 0; i < ctx.top(); i++) {
+      // Begin insert
+      if (i < sig.size()) builder.beginInsert(sig.keyAt(i));
+      else {
+        while (has(String(index))) index++;
+        builder.beginInsert(String(index++));
+      }
 
-Array Arguments::toArray(const string &key) {
-  return Array(ctx, sig.indexOf(key));
-}
-
-
-Object Arguments::toObject(const string &key) {
-  return Object(ctx, sig.indexOf(key));
-}
-
-
-bool Arguments::toBoolean(const string &key) {
-  return ctx.toBoolean(sig.indexOf(key));
-}
-
-
-double Arguments::toNumber(const string &key) {
-  return ctx.toNumber(sig.indexOf(key));
-}
-
-
-int Arguments::toInteger(const string &key) {
-  return ctx.toInteger(sig.indexOf(key));
-}
-
-
-string Arguments::toString(const string &key) {
-  return ctx.toString(sig.indexOf(key));
-}
-
-
-string Arguments::toString() const {
-  ostringstream str;
-  str << "(" << *this << ")";
-  return str.str();
-}
-
-
-ostream &Arguments::write(ostream &stream, const string &separator) const {
-  for (int i = 0; i < ctx.top(); i++) {
-    if (i) stream << separator;
-    stream << ctx.toString(i);
+      // Write value
+      if (ctx.isUndefined(i) && i < sig.size()) builder.write(*sig.get(i));
+      else ctx.write(i, builder);
+    }
   }
 
-  return stream;
+  // Check for missing values and set defaults
+  for (unsigned i = 0; i < sig.size(); i++) {
+    const string &key = sig.keyAt(i);
+
+    if (!has(key)) {
+      JSON::ValuePtr value = sig.get(key);
+      if (!value->isUndefined()) insert(key, value);
+    }
+  }
 }

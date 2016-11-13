@@ -33,24 +33,20 @@
 #ifndef CB_DUK_CALLBACK_H
 #define CB_DUK_CALLBACK_H
 
-#include "Signature.h"
-
 
 namespace cb {
+  namespace JSON {class Sink;}
+
   namespace duk {
     class Context;
     class Arguments;
 
     class Callback {
-      Signature sig;
-
     public:
-      Callback(const Signature &sig) : sig(sig) {}
       virtual ~Callback() {}
 
-      const Signature &getSignature() const {return sig;}
-
-      virtual int operator()(Context &ctx, Arguments &args) = 0;
+      virtual int call(Context &ctx) {return 0;}
+      virtual void operator()(Arguments &args, JSON::Sink &sink) {}
     };
   }
 }

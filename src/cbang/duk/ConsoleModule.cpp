@@ -49,25 +49,31 @@ void ConsoleModule::define(Object &exports) {
 }
 
 
-int ConsoleModule::log(Context &ctx, Arguments &args) {
-  args.write(*CBANG_LOG_INFO_STREAM(1), " ");
-  return 0;
+namespace {
+  void print(ostream &stream, Arguments &args) {
+    for (unsigned i = 0; i < args.size(); i++) {
+      if (i) stream << ' ';
+      stream << *args.JSON::Value::get(i);
+    }
+  }
 }
 
 
-int ConsoleModule::debug(Context &ctx, Arguments &args) {
-  args.write(*CBANG_LOG_DEBUG_STREAM(1), " ");
-  return 0;
+void ConsoleModule::log(Arguments &args, JSON::Sink &sink) {
+  print(*CBANG_LOG_INFO_STREAM(1), args);
 }
 
 
-int ConsoleModule::warn(Context &ctx, Arguments &args) {
-  args.write(*CBANG_LOG_WARNING_STREAM(), " ");
-  return 0;
+void ConsoleModule::debug(Arguments &args, JSON::Sink &sink) {
+  print(*CBANG_LOG_DEBUG_STREAM(1), args);
 }
 
 
-int ConsoleModule::error(Context &ctx, Arguments &args) {
-  args.write(*CBANG_LOG_ERROR_STREAM(), " ");
-  return 0;
+void ConsoleModule::warn(Arguments &args, JSON::Sink &sink) {
+  print(*CBANG_LOG_WARNING_STREAM(), args);
+}
+
+
+void ConsoleModule::error(Arguments &args, JSON::Sink &sink) {
+  print(*CBANG_LOG_ERROR_STREAM(), args);
 }

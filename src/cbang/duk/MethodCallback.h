@@ -33,15 +33,15 @@
 #ifndef CB_DUK_METHOD_CALLBACK_H
 #define CB_DUK_METHOD_CALLBACK_H
 
-#include "Callback.h"
+#include "BakedCallback.h"
 
 
 namespace cb {
   namespace duk {
     template <class T>
-    class MethodCallback : public Callback {
+    class MethodCallback : public BakedCallback {
     public:
-      typedef int (T::*member_t)(Context &ctx, Arguments &args);
+      typedef void (T::*member_t)(Arguments &args, JSON::Sink &sink);
 
     protected:
       T *object;
@@ -49,11 +49,11 @@ namespace cb {
 
     public:
       MethodCallback(const Signature &sig, T *object, member_t member) :
-        Callback(sig), object(object), member(member) {}
+        BakedCallback(sig), object(object), member(member) {}
 
       // From Callback
-      int operator()(Context &ctx, Arguments &args) {
-        return (*object.*member)(ctx, args);
+      void operator()(Arguments &args, JSON::Sink &sink) {
+        (*object.*member)(args, sink);
       }
     };
   }

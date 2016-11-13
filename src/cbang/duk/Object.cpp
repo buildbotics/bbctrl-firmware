@@ -33,6 +33,7 @@
 #include "Object.h"
 #include "Array.h"
 #include "Context.h"
+#include "Enum.h"
 #include "SmartPop.h"
 
 #include <cbang/log/Logger.h>
@@ -43,34 +44,52 @@ using namespace std;
 using namespace cb::duk;
 
 
-bool Object::has(const string &key) const {
-  ctx.push(key);
-  return duk_has_prop(ctx.getContext(), index) == 1;
+Object::Object(Context &ctx, int index) :
+  ctx(ctx), index(ctx.normalize(index)) {
 }
 
 
-bool Object::get(const string &key) const {
-  ctx.push(key);
-  return duk_get_prop(ctx.getContext(), index);
+bool Object::has(const string &key) {return ctx.has(index, key);}
+bool Object::get(const string &key) {return ctx.get(index, key);}
+bool Object::put(const string &key) {return ctx.put(index, key);}
+
+
+Enum Object::enumerate(bool ownProps) {
+  return ctx.enumerate(index, ownProps ? DUK_ENUM_OWN_PROPERTIES_ONLY : 0);
 }
 
 
-void Object::put(const string &key) {
-  ctx.push(key);
-  duk_insert(ctx.getContext(), -2);
-  duk_put_prop(ctx.getContext(), index);
+void Object::write(JSON::Sink &sink) {
+  sink.beginDict();
+  insertValues(sink);
+  sink.endDict();
+}
+
+
+void Object::insertValues(JSON::Sink &sink) {
+    Enum it = enumerate();
+    SmartPop popEnum(ctx);
+
+    while (it.next(true)) {
+      SmartPop popKeyValue(ctx, 2);
+
+      if (!ctx.isJSON()) continue;
+
+      sink.beginInsert(ctx.toString(-2));
+      ctx.write(-1, sink);
+    }
 }
 
 
 Array Object::toArray(const string &key) {
   get(key);
-  return Array(ctx, ctx.top() - 1);
+  return Array(ctx, -1);
 }
 
 
 Object Object::toObject(const string &key) {
   get(key);
-  return Object(ctx, ctx.top() - 1);
+  return Object(ctx, -1);
 }
 
 
@@ -106,6 +125,24 @@ string Object::toString(const string &key) {
   get(key);
   SmartPop pop(ctx);
   return ctx.toString();
+}
+
+
+void Object::setArray(const string &key) {
+  ctx.pushArray();
+  put(key);
+}
+
+
+void Object::setObject(const string &key) {
+  ctx.pushObject();
+  put(key);
+}
+
+
+void Object::setUndefined(const string &key) {
+  ctx.pushUndefined();
+  put(key);
 }
 
 

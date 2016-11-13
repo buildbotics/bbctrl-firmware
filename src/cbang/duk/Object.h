@@ -40,20 +40,23 @@
 
 namespace cb {
   namespace duk {
-    class Array;
-
     class Object {
       Context &ctx;
-      int index;
+      unsigned index;
 
     public:
-      Object(Context &ctx, int index) : ctx(ctx), index(index) {}
+      Object(Context &ctx, int index);
 
-      int getIndex() const {return index;}
+      unsigned getIndex() const {return index;}
 
-      bool has(const std::string &key) const;
-      bool get(const std::string &key) const;
-      void put(const std::string &key);
+      bool has(const std::string &key);
+      bool get(const std::string &key);
+      bool put(const std::string &key);
+
+      Enum enumerate(bool ownProps = true);
+
+      void write(JSON::Sink &sink);
+      void insertValues(JSON::Sink &sink);
 
       Array toArray(const std::string &key);
       Object toObject(const std::string &key);
@@ -63,6 +66,9 @@ namespace cb {
       void *toPointer(const std::string &key);
       std::string toString(const std::string &key);
 
+      void setArray(const std::string &key);
+      void setObject(const std::string &key);
+      void setUndefined(const std::string &key);
       void setNull(const std::string &key);
       void setBoolean(const std::string &key, bool x);
       void setPointer(const std::string &key, void *x);
@@ -78,6 +84,13 @@ namespace cb {
                typename MethodCallback<T>::member_t member) {
         ctx.push(sig, obj, member);
         put(sig.getName());
+      }
+
+      template <class T>
+      void set(const std::string &key, T *obj,
+               typename RawMethodCallback<T>::member_t member) {
+        ctx.push(obj, member);
+        put(key);
       }
     };
   }

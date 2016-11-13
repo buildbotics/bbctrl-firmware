@@ -30,49 +30,11 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_SIGNATURE_H
-#define CB_JS_SIGNATURE_H
+#include "Enum.h"
+#include "Context.h"
 
-#include <cbang/json/Dict.h>
-
-
-namespace cb {
-  namespace duk {
-    class Signature : public JSON::Dict {
-      std::string name;
-      bool variable;
-
-    public:
-      Signature() : variable(false) {}
-      Signature(const std::string &name, const std::string &args) :
-        name(name) {parseArgs(args);}
-      Signature(const std::string &sig) {parse(sig);}
-      Signature(const char *sig) {parse(sig);}
-
-      const std::string &getName() const {return name;}
-      void setVariable(bool x) {variable = x;}
-      bool isVariable() const {return variable;}
-
-      std::string toString() const;
-
-      static bool isNameStartChar(char c);
-      static bool isNameChar(char c);
-
-      void parse(const std::string &sig);
-      void parseArgs(const std::string &sig);
-
-    protected:
-      static void invalidChar(char c, const std::string &expected);
-      static void invalidEnd(const std::string &expected);
-    };
+using namespace cb::duk;
 
 
-    inline static
-    std::ostream &operator<<(std::ostream &stream, const Signature &sig) {
-      stream << sig.toString();
-      return stream;
-    }
-  }
-}
-
-#endif // CB_JS_SIGNATURE_H
+Enum::Enum(Context &ctx, int index) : ctx(ctx), index(ctx.normalize(index)) {}
+bool Enum::next(bool getValue) {return ctx.next(index, getValue);}

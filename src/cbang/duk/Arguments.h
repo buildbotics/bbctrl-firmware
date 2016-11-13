@@ -35,17 +35,12 @@
 
 #include "Signature.h"
 
-#include <string>
-#include <ostream>
-
 
 namespace cb {
   namespace duk {
     class Context;
-    class Array;
-    class Object;
 
-    class Arguments {
+    class Arguments : public JSON::Dict {
       Context &ctx;
       const Signature &sig;
 
@@ -54,26 +49,7 @@ namespace cb {
 
       Context &getContext() const {return ctx;}
       const Signature &getSignature() const {return sig;}
-
-      bool has(const std::string &key);
-
-      Array toArray(const std::string &key);
-      Object toObject(const std::string &key);
-      bool toBoolean(const std::string &key);
-      double toNumber(const std::string &key);
-      int toInteger(const std::string &key);
-      std::string toString(const std::string &key);
-
-      std::string toString() const;
-      std::ostream &write(std::ostream &stream,
-                          const std::string &separator = " ") const;
     };
-
-
-    static inline
-    std::ostream &operator<<(std::ostream &stream, const Arguments &args) {
-      return args.write(stream);
-    }
   }
 }
 

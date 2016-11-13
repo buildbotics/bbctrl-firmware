@@ -44,29 +44,32 @@ namespace cb {
 
     class Array {
       Context &ctx;
-      int index;
+      unsigned index;
 
     public:
-      Array(Context &ctx, int index) : ctx(ctx), index(index) {}
+      Array(Context &ctx, int index);
 
-      int getIndex() const {return index;}
+      unsigned getIndex() const {return index;}
 
-      bool has(int i) const;
-      bool get(int i) const;
+      bool has(int i);
+      bool get(int i);
       bool put(int i);
 
-      unsigned length() const;
+      unsigned length();
 
-      int getType(int i) const;
-      bool isArray(int i) const;
-      bool isObject(int i) const;
-      bool isBoolean(int i) const;
-      bool isError(int i) const;
-      bool isNull(int i) const;
-      bool isNumber(int i) const;
-      bool isPointer(int i) const;
-      bool isString(int i) const;
-      bool isUndefined(int i) const;
+      void write(JSON::Sink &sink);
+      void appendValues(JSON::Sink &sink);
+
+      int type(int i);
+      bool isArray(int i);
+      bool isObject(int i);
+      bool isBoolean(int i);
+      bool isError(int i);
+      bool isNull(int i);
+      bool isNumber(int i);
+      bool isPointer(int i);
+      bool isString(int i);
+      bool isUndefined(int i);
 
       Array toArray(int i);
       Object toObject(int i);
@@ -76,6 +79,9 @@ namespace cb {
       void *toPointer(int i);
       std::string toString(int i);
 
+      void setArray(int i);
+      void setObject(int i);
+      void setUndefined(int i);
       void setNull(int i);
       void setBoolean(int i, bool x);
       void set(int i, int x);

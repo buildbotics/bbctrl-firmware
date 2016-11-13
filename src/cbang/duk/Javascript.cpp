@@ -31,6 +31,7 @@
 \******************************************************************************/
 
 #include "Javascript.h"
+#include "JSONSink.h"
 #include "SmartPop.h"
 
 #include <cbang/String.h>
@@ -46,32 +47,15 @@ using namespace std;
 
 
 Javascript::Javascript() {
-  duk_get_global_string(ctx, "Duktape");
-  SmartPop popString(*this);
+  push(this, &Javascript::require);
+  putGlobal("require");
 
-  Object(*this, top() - 1).set("modSearch(id, require, exports, module)",
-                               this, &Javascript::modSearch);
+  pushObject();
+  putGlobal("modules");
 
-  pushPath(SystemUtilities::getcwd());
   addSearchExtensions("/package.json .js .json");
 
   define(consoleMod);
-}
-
-
-void Javascript::pushPath(const std::string &path) {
-  pathStack.push_back(path);
-}
-
-
-void Javascript::popPath() {
-  if (pathStack.size() == 1) THROW("No path to pop");
-  pathStack.pop_back();
-}
-
-
-const string &Javascript::getCurrentPath() const {
-  return pathStack.back();
 }
 
 
@@ -105,12 +89,13 @@ void Javascript::addSearchPaths(const string &paths) {
 }
 
 
-string Javascript::searchPath(const string &path) const {
+string Javascript::searchPath(const string &path,
+                              const string &relative) const {
   if (SystemUtilities::isAbsolute(path)) return searchExtensions(path);
 
   else if (String::startsWith(path, "./") || String::startsWith(path, "../")) {
     // Search relative to current file
-    string candidate = SystemUtilities::absolute(getCurrentPath(), path);
+    string candidate = SystemUtilities::absolute(relative, path);
     candidate = searchExtensions(candidate);
     if (SystemUtilities::isFile(candidate)) return candidate;
 
@@ -119,7 +104,7 @@ string Javascript::searchPath(const string &path) const {
     for (unsigned i = 0; i < searchPaths.size(); i++) {
       string dir = searchPaths[i];
       if (!SystemUtilities::isAbsolute(dir))
-        dir = SystemUtilities::absolute(getCurrentPath(), dir);
+        dir = SystemUtilities::absolute(relative, dir);
 
       string candidate = SystemUtilities::joinPath(dir, path);
       candidate = searchExtensions(candidate);
@@ -131,28 +116,58 @@ string Javascript::searchPath(const string &path) const {
 }
 
 
-int Javascript::modSearch(Context &ctx, Arguments &args) {
-  string id = args.toString("id");
-  string path = searchPath(id);
+int Javascript::require(Context &ctx) {
+  string id = ctx.getString(0);
+  string path = searchPath(id, ".");
 
   if (path.empty()) THROWS("Module '" << id << "' not found");
   LOG_DEBUG(3, "Loading module '" << id << "' from '" << path << "'");
 
-  Object module = args.toObject("module");
-  module.set("filename", path);
+  ctx.getGlobal("modules");
+  Object modules = ctx.getObject();
 
-  // Load
+  if (modules.has(id)) {
+    modules.toObject(id).get("exports");
+    return 1;
+  }
+
+  // Handle package.json
   if (String::endsWith(path, "/package.json")) {
     JSON::ValuePtr package = JSON::Reader(path).parse();
     path = SystemUtilities::absolute(path, package->getString("main"));
-
-  } else if (String::endsWith(path, ".json")) {
-    // Call JSON.parse()
-    THROWS("Loading .json not yet implemented");
   }
 
-  // Read Javscript code and push on stack
-  ctx.push(SystemUtilities::read(path));
+  // Register module
+  Object module = ctx.pushObject();
+  module.set("id", id);
+  module.setObject("exports");
+  module.set("filename", path);
+  module.set("name", id);
+  modules.set(id, module);
+
+  if (String::endsWith(path, ".json")) {
+    // Write JSON data to stack
+    JSONSink sink(ctx);
+    JSON::Reader(path).parse(sink);
+
+  } else {
+    // Read Javscript code
+    string code = SystemUtilities::read(path);
+
+    // Compile
+    ctx.compile(path, "function (id, require, exports, module) {" + code + "}");
+
+    // Call
+    module.get("exports"); // Function "this"
+    ctx.push(id);
+    ctx.getGlobal("require");
+    module.get("exports");
+    ctx.dup(module.getIndex());
+    ctx.callMethod(4);
+
+    // Return exports
+    module.get("exports");
+  }
 
   return 1;
 }

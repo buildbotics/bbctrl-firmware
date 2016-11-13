@@ -45,10 +45,10 @@ namespace cb {
       void define(Object &exports);
 
       // Callbacks
-      int log(Context &ctx, Arguments &args);
-      int debug(Context &ctx, Arguments &args);
-      int warn(Context &ctx, Arguments &args);
-      int error(Context &ctx, Arguments &args);
+      void log(Arguments &args, JSON::Sink &sink);
+      void debug(Arguments &args, JSON::Sink &sink);
+      void warn(Arguments &args, JSON::Sink &sink);
+      void error(Arguments &args, JSON::Sink &sink);
     };
   }
 }

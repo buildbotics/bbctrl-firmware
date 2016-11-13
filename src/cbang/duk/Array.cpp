@@ -43,67 +43,76 @@ using namespace std;
 using namespace cb::duk;
 
 
-bool Array::has(int i) const {
-  return duk_has_prop_index(ctx.getContext(), index, i);
+Array::Array(Context &ctx, int index) : ctx(ctx), index(ctx.normalize(index)) {}
+
+
+bool Array::has(int i) {return ctx.has(index, i);}
+bool Array::get(int i) {return ctx.get(index, i);}
+bool Array::put(int i) {return ctx.put(index, i);}
+unsigned Array::length() {return ctx.length(index);}
+
+
+void Array::write(JSON::Sink &sink) {
+  sink.beginList();
+  appendValues(sink);
+  sink.endList();
 }
 
 
-bool Array::get(int i) const {
-  return duk_get_prop_index(ctx.getContext(), index, i);
+void Array::appendValues(JSON::Sink &sink) {
+  for (unsigned i = 0; i < length(); i++) {
+    get(i);
+    SmartPop pop(ctx);
+
+    if (!ctx.isJSON()) continue;
+
+    sink.beginAppend();
+    ctx.write(-1, sink);
+  }
 }
 
 
-bool Array::put(int i) {
-  return duk_put_prop_index(ctx.getContext(), index, i);
-}
-
-
-unsigned Array::length() const {
-  return duk_get_length(ctx.getContext(), index);
-}
-
-
-int Array::getType(int i) const {
+int Array::type(int i) {
   get(i);
   SmartPop pop(ctx);
-  return ctx.getType();
+  return ctx.type();
 }
 
 
-bool Array::isArray(int i) const {
+bool Array::isArray(int i) {
   get(i);
   SmartPop pop(ctx);
   return ctx.isArray();
 }
 
 
-bool Array::isObject(int i) const {return getType(i) == DUK_TYPE_OBJECT;}
-bool Array::isBoolean(int i) const {return getType(i) == DUK_TYPE_BOOLEAN;}
+bool Array::isObject(int i) {return type(i) == DUK_TYPE_OBJECT;}
+bool Array::isBoolean(int i) {return type(i) == DUK_TYPE_BOOLEAN;}
 
 
-bool Array::isError(int i) const {
+bool Array::isError(int i) {
   get(i);
   SmartPop pop(ctx);
   return ctx.isError();
 }
 
 
-bool Array::isNull(int i) const {return getType(i) == DUK_TYPE_NULL;}
-bool Array::isNumber(int i) const {return getType(i) == DUK_TYPE_NUMBER;}
-bool Array::isPointer(int i) const {return getType(i) == DUK_TYPE_POINTER;}
-bool Array::isString(int i) const {return getType(i) == DUK_TYPE_STRING;}
-bool Array::isUndefined(int i) const {return getType(i) == DUK_TYPE_UNDEFINED;}
+bool Array::isNull(int i) {return type(i) == DUK_TYPE_NULL;}
+bool Array::isNumber(int i) {return type(i) == DUK_TYPE_NUMBER;}
+bool Array::isPointer(int i) {return type(i) == DUK_TYPE_POINTER;}
+bool Array::isString(int i) {return type(i) == DUK_TYPE_STRING;}
+bool Array::isUndefined(int i) {return type(i) == DUK_TYPE_UNDEFINED;}
 
 
 Array Array::toArray(int i) {
   get(i);
-  return Array(ctx, ctx.top() - 1);
+  return Array(ctx, -1);
 }
 
 
 Object Array::toObject(int i) {
   get(i);
-  return Object(ctx, ctx.top() - 1);
+  return Object(ctx, -1);
 }
 
 
@@ -139,6 +148,24 @@ string Array::toString(int i) {
   get(i);
   SmartPop pop(ctx);
   return ctx.toString();
+}
+
+
+void Array::setArray(int i) {
+  ctx.pushArray();
+  put(i);
+}
+
+
+void Array::setObject(int i) {
+  ctx.pushObject();
+  put(i);
+}
+
+
+void Array::setUndefined(int i) {
+  ctx.pushUndefined();
+  put(i);
 }
 
 

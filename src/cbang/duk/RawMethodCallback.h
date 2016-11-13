@@ -30,49 +30,31 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_SIGNATURE_H
-#define CB_JS_SIGNATURE_H
+#ifndef CB_DUK_RAW_METHOD_CALLBACK_H
+#define CB_DUK_RAW_METHOD_CALLBACK_H
 
-#include <cbang/json/Dict.h>
+#include "Callback.h"
 
 
 namespace cb {
   namespace duk {
-    class Signature : public JSON::Dict {
-      std::string name;
-      bool variable;
-
+    template <class T>
+    class RawMethodCallback : public Callback {
     public:
-      Signature() : variable(false) {}
-      Signature(const std::string &name, const std::string &args) :
-        name(name) {parseArgs(args);}
-      Signature(const std::string &sig) {parse(sig);}
-      Signature(const char *sig) {parse(sig);}
-
-      const std::string &getName() const {return name;}
-      void setVariable(bool x) {variable = x;}
-      bool isVariable() const {return variable;}
-
-      std::string toString() const;
-
-      static bool isNameStartChar(char c);
-      static bool isNameChar(char c);
-
-      void parse(const std::string &sig);
-      void parseArgs(const std::string &sig);
+      typedef int (T::*member_t)(Context &ctx);
 
     protected:
-      static void invalidChar(char c, const std::string &expected);
-      static void invalidEnd(const std::string &expected);
+      T *object;
+      member_t member;
+
+    public:
+      RawMethodCallback(T *object, member_t member) :
+        object(object), member(member) {}
+
+      // From Callback
+      int call(Context &ctx) {return (*object.*member)(ctx);}
     };
-
-
-    inline static
-    std::ostream &operator<<(std::ostream &stream, const Signature &sig) {
-      stream << sig.toString();
-      return stream;
-    }
   }
 }
 
-#endif // CB_JS_SIGNATURE_H
+#endif // CB_DUK_RAW_METHOD_CALLBACK_H
