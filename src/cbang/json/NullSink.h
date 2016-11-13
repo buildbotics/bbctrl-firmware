@@ -53,6 +53,7 @@ namespace cb {
     public:
       NullSink() : canWrite(true) {}
 
+      unsigned getDepth() const;
       bool inList() const;
       bool inDict() const;
       void end();

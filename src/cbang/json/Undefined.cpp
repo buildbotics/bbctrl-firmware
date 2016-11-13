@@ -30,41 +30,9 @@
 
 \******************************************************************************/
 
-#include "Dict.h"
+#include "Undefined.h"
 
-#include <cbang/Exception.h>
-#include <cbang/String.h>
-
-#include <cctype>
-
-using namespace std;
 using namespace cb::JSON;
 
 
-ValuePtr Dict::copy(bool deep) const {
-  ValuePtr c = new Dict;
-
-  for (unsigned i = 0; i < size(); i++)
-    c->insert(keyAt(i), deep ? get(i)->copy(true) : get(i));
-
-  return c;
-}
-
-
-void Dict::insert(const string &key, const ValuePtr &value) {
-  if (value->isList() || value->isDict()) simple = false;
-  OrderedDict<ValuePtr>::insert(key, value);
-}
-
-
-void Dict::write(Sink &sink) const {
-  sink.beginDict(isSimple());
-
-  for (const_iterator it = begin(); it != end(); it++) {
-    if (it->second->isUndefined()) continue;
-    sink.beginInsert(it->first);
-    it->second->write(sink);
-  }
-
-  sink.endDict();
-}
+Undefined Undefined::undefined;

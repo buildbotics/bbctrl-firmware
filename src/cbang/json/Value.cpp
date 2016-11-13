@@ -32,6 +32,7 @@
 
 #include "Value.h"
 
+#include "Undefined.h"
 #include "Null.h"
 #include "Number.h"
 #include "Boolean.h"
@@ -42,6 +43,13 @@
 
 using namespace std;
 using namespace cb::JSON;
+
+
+void Value::appendUndefined() {append(Undefined::instancePtr());}
+void Value::appendNull() {append(Null::instancePtr());}
+void Value::appendBoolean(bool value) {append(new Boolean(value));}
+void Value::append(double value) {append(new Number(value));}
+void Value::append(const std::string &value) {append(new String(value));}
 
 
 int32_t Value::getS32() const {
@@ -94,6 +102,39 @@ uint64_t Value::getU64() const {
 }
 
 
+void Value::setUndefined(unsigned i) {set(i, Undefined::instancePtr());}
+void Value::setNull(unsigned i) {set(i, Null::instancePtr());}
+void Value::setBoolean(unsigned i, bool value) {set(i, new Boolean(value));}
+void Value::set(unsigned i, double value) {set(i, new Number(value));}
+
+
+void Value::set(unsigned i, const string &value) {
+  set(i, new String(value));
+}
+
+
+void Value::insertUndefined(const string &key) {
+  insert(key, Undefined::instancePtr());
+}
+
+
+void Value::insertNull(const string &key) {insert(key, Null::instancePtr());}
+
+
+void Value::insertBoolean(const string &key, bool value) {
+  insert(key, new Boolean(value));
+}
+
+
+void Value::insert(const string &key, double value) {
+  insert(key, new Number(value));
+}
+
+
+void Value::insert(const string &key, const string &value) {
+  insert(key, new String(value));
+}
+
 
 string Value::toString(unsigned indent, bool compact) const {
   ostringstream str;
@@ -101,14 +142,4 @@ string Value::toString(unsigned indent, bool compact) const {
   write(writer);
   str << flush;
   return str.str();
-}
-
-
-void Value::setNull(unsigned i) {set(i, Null::instancePtr());}
-void Value::setBoolean(unsigned i, bool value) {set(i, new Boolean(value));}
-void Value::set(unsigned i, double value) {set(i, new Number(value));}
-
-
-void Value::set(unsigned i, const std::string &value) {
-  set(i, new String(value));
 }

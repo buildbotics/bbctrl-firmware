@@ -66,11 +66,8 @@ namespace cb {
       {return OrderedDict<ValuePtr>::get(i);}
       const ValuePtr &get(const std::string &key) const
       {return OrderedDict<ValuePtr>::get(key);}
-      void insertNull(const std::string &key);
-      void insertBoolean(const std::string &key, bool value);
-      void insert(const std::string &key, double value);
-      void insert(const std::string &key, const std::string &value);
       void insert(const std::string &key, const ValuePtr &value);
+      using Value::insert;
       void write(Sink &sink) const;
     };
   }

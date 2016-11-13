@@ -30,41 +30,30 @@
 
 \******************************************************************************/
 
-#include "Dict.h"
+#ifndef CB_JSON_UNDEFINED_H
+#define CB_JSON_UNDEFINED_H
 
-#include <cbang/Exception.h>
-#include <cbang/String.h>
-
-#include <cctype>
-
-using namespace std;
-using namespace cb::JSON;
+#include "Value.h"
 
 
-ValuePtr Dict::copy(bool deep) const {
-  ValuePtr c = new Dict;
+namespace cb {
+  namespace JSON {
+    class Undefined : public Value {
+      static Undefined undefined;
 
-  for (unsigned i = 0; i < size(); i++)
-    c->insert(keyAt(i), deep ? get(i)->copy(true) : get(i));
+      Undefined() {}
+      ~Undefined() {}
 
-  return c;
-}
+    public:
+      inline static Undefined &instance() {return undefined;}
+      inline static ValuePtr instancePtr() {return ValuePtr::Phony(&undefined);}
 
-
-void Dict::insert(const string &key, const ValuePtr &value) {
-  if (value->isList() || value->isDict()) simple = false;
-  OrderedDict<ValuePtr>::insert(key, value);
-}
-
-
-void Dict::write(Sink &sink) const {
-  sink.beginDict(isSimple());
-
-  for (const_iterator it = begin(); it != end(); it++) {
-    if (it->second->isUndefined()) continue;
-    sink.beginInsert(it->first);
-    it->second->write(sink);
+      // From Value
+      ValueType getType() const {return JSON_UNDEFINED;}
+      ValuePtr copy(bool deep = false) const {return instancePtr();}
+      void write(Sink &sink) const {}
+    };
   }
-
-  sink.endDict();
 }
+
+#endif // CB_JSON_UNDEFINED_H

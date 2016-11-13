@@ -61,11 +61,8 @@ namespace cb {
       unsigned size() const {return std::vector<ValuePtr>::size();}
       const ValuePtr &get(unsigned i) const
       {return std::vector<ValuePtr>::at(i);}
-      void appendNull();
-      void appendBoolean(bool value);
-      void append(double value);
-      void append(const std::string &value);
       void append(const ValuePtr &value);
+      using Value::append;
       void set(unsigned i, const ValuePtr &value);
       void write(Sink &sink) const;
     };
