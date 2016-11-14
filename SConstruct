@@ -73,7 +73,7 @@ subdirs = [
     'auth', 'duk']
 
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
-if env.CBConfigEnabled('v8'): subdirs.append('js')
+if env.CBConfigEnabled('chakra'): subdirs.append('js')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
 if env.CBConfigEnabled('libevent') or lib not in disable_local:
     subdirs.append('event')
