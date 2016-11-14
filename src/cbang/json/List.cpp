@@ -62,7 +62,7 @@ void List::write(Sink &sink) const {
   sink.beginList(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
-    if ((*it)->isUndefined()) continue;
+    if (!(*it)->canWrite(sink)) continue;
     sink.beginAppend();
     (*it)->write(sink);
   }

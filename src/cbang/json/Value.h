@@ -48,6 +48,7 @@ namespace cb {
     class Dict;
     class Null;
     class Value;
+    class Sink;
 
     typedef SmartPointer<Value> ValuePtr;
 
@@ -57,6 +58,7 @@ namespace cb {
 
       virtual ValueType getType() const = 0;
       virtual ValuePtr copy(bool deep = false) const = 0;
+      virtual bool canWrite(Sink &sink) const {return true;}
 
       virtual bool isSimple() const {return true;}
       bool isUndefined() const {return getType() == JSON_UNDEFINED;}
@@ -66,6 +68,20 @@ namespace cb {
       bool isString() const {return getType() == JSON_STRING;}
       bool isList() const {return getType() == JSON_LIST;}
       bool isDict() const {return getType() == JSON_DICT;}
+
+      template <typename T> bool is() {return dynamic_cast<T *>(this);}
+
+      template <typename T> T &cast() {
+        T *ptr = dynamic_cast<T *>(this);
+        if (!ptr) THROW("Invalid cast");
+        return *ptr;
+      }
+
+      template <typename T> const T &cast() const {
+        const T *ptr = dynamic_cast<T *>(this);
+        if (!ptr) THROW("Invalid cast");
+        return *ptr;
+      }
 
       virtual bool getBoolean() const {CBANG_THROW("Value is not a Boolean");}
       virtual double getNumber() const {CBANG_THROW("Value is not a Number");}

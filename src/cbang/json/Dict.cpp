@@ -61,7 +61,7 @@ void Dict::write(Sink &sink) const {
   sink.beginDict(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
-    if (it->second->isUndefined()) continue;
+    if (!it->second->canWrite(sink)) continue;
     sink.beginInsert(it->first);
     it->second->write(sink);
   }
