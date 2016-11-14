@@ -33,33 +33,24 @@
 #ifndef CB_JS_CALLBACK_H
 #define CB_JS_CALLBACK_H
 
-#include "Value.h"
-#include "Arguments.h"
 #include "Signature.h"
-
-#include "V8.h"
 
 
 namespace cb {
   namespace js {
+    class Sink;
+    class Value;
+    class Context;
+
     class Callback {
       Signature sig;
-      v8::Handle<v8::Value> data;
-      v8::Handle<v8::FunctionTemplate> function;
 
     public:
-      Callback(const Signature &sig);
+      Callback(const Signature &sig) : sig(sig) {}
       virtual ~Callback() {}
 
-      const Signature getSignature() const {return sig;}
-
-      virtual Value operator()(const Arguments &args) = 0;
-
-      v8::Handle<v8::FunctionTemplate> getTemplate() const {return function;}
-
-    protected:
-      static v8::Handle<v8::Value> callback(const v8::Arguments &args);
-   };
+      virtual void operator()(const Value &args, Sink &sink) {}
+    };
   }
 }
 

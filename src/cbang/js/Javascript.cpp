@@ -32,21 +32,27 @@
 
 #include "Javascript.h"
 
-using namespace std;
-using namespace cb;
+#include <cbang/util/SmartFunctor.h>
+
 using namespace cb::js;
+using namespace cb;
+using namespace std;
 
 
-Javascript::Javascript(Inaccessible) {}
-
-
-void Javascript::init(int *argc, char *argv[]) {
-  instance();
-  if (argv) v8::V8::SetFlagsFromCommandLine(argc, argv, true);
+void Javascript::define(Module &mod) {
 }
 
 
-void Javascript::terminate() {
-  // Terminate script execution
-  v8::V8::TerminateExecution();
+void Javascript::importGlobal(const string &module) {
 }
+
+
+void Javascript::exec(const InputSource &source) {
+  pushPath(source.getName());
+  SmartFunctor<Javascript> popPath(this, &Javascript::popPath);
+
+  // TODO execute script
+}
+
+
+void Javascript::interrupt() {}

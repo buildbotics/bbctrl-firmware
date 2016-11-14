@@ -32,10 +32,28 @@
 
 #include "Context.h"
 
-using namespace cb;
+#include <Jsrt/ChakraCore.h>
+
 using namespace cb::js;
+using namespace cb;
 
 
-Context::Context(ObjectTemplate &tmpl) :
-  context(v8::Context::New(0, tmpl.getTemplate())) {
+struct Context::private_t {
+  JsRuntimeHandle runtime;
+  JsContextRef context;
+};
+
+
+Context::Context() : p(new Context::private_t) {
+  JsCreateRuntime(JsRuntimeAttributeNone, 0, &p->runtime);
+  JsCreateContext(p->runtime, &p->context);
+  JsSetCurrentContext(p->context);
+}
+
+
+Context::~Context() {
+  JsSetCurrentContext(JS_INVALID_REFERENCE);
+  JsDisposeRuntime(p->runtime);
+
+  delete p;
 }

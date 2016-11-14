@@ -30,36 +30,23 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CONTEXT_H
-#define CB_JS_CONTEXT_H
+#ifndef CB_CHAKRA_CONTEXT_H
+#define CB_CHAKRA_CONTEXT_H
 
-#include "ObjectTemplate.h"
-
-#include <cbang/SmartPointer.h>
-
-#include "V8.h"
+#include <cbang/io/InputSource.h>
 
 
 namespace cb {
   namespace js {
     class Context {
-      v8::Handle<v8::Context> context;
+      struct private_t;
+      private_t *p;
 
     public:
-      Context(const v8::Handle<v8::Context> &context) : context(context) {}
-      Context(ObjectTemplate &tmpl);
-
-      void enter() {context->Enter();}
-      void exit() {context->Exit();}
-
-      Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
-
-      static Context calling() {return v8::Context::GetCalling();}
-      static Context current() {return v8::Context::GetCurrent();}
-      static Context entered() {return v8::Context::GetEntered();}
-      static bool inContext() {return v8::Context::InContext();}
+      Context();
+      ~Context();
     };
   }
 }
 
-#endif // CB_JS_CONTEXT_H
+#endif // CB_CHAKRA_CONTEXT_H

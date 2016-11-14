@@ -33,22 +33,18 @@
 #ifndef CB_JS_SIGNATURE_H
 #define CB_JS_SIGNATURE_H
 
-#include "Value.h"
-
-#include <cbang/util/OrderedDict.h>
+#include <cbang/json/Dict.h>
 
 
 namespace cb {
   namespace js {
-    class Signature : public OrderedDict<Value> {
+    class Signature : public JSON::Dict {
       std::string name;
       bool variable;
 
     public:
       Signature() : variable(false) {}
       Signature(const std::string &name, const std::string &args) :
-        name(name) {parseArgs(args);}
-      Signature(const char *name, const char *args) :
         name(name) {parseArgs(args);}
       Signature(const std::string &sig) {parse(sig);}
       Signature(const char *sig) {parse(sig);}

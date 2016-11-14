@@ -30,36 +30,25 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_JS_JAVASCRIPT_H
-#define CBANG_JS_JAVASCRIPT_H
+#ifndef CB_CHAKRA_JAVASCRIPT_H
+#define CB_CHAKRA_JAVASCRIPT_H
 
-#include "Arguments.h"
-#include "Callback.h"
-#include "Context.h"
-#include "ContextScope.h"
-#include "ObjectTemplate.h"
-#include "FunctionCallback.h"
-#include "MethodCallback.h"
-#include "Scope.h"
-#include "Script.h"
-#include "Value.h"
+#include "PathResolver.h"
+#include "Module.h"
 
-#include <cbang/util/Singleton.h>
+#include <cbang/io/InputSource.h>
 
 
 namespace cb {
   namespace js {
-    class Javascript : public Singleton<Javascript> {
-    protected:
-      v8::HandleScope scope;
-
+    class Javascript : public PathResolver {
     public:
-      Javascript(Inaccessible);
-
-      static void init(int *argc = 0, char *argv[] = 0);
-      static void terminate();
+      void define(Module &mod);
+      void importGlobal(const std::string &module);
+      void exec(const InputSource &source);
+      void interrupt();
     };
   }
 }
 
-#endif // CBANG_JS_JAVASCRIPT_H
+#endif // CB_CHAKRA_JAVASCRIPT_H

@@ -38,6 +38,7 @@
 #include <cctype>
 
 using namespace cb::js;
+using namespace cb;
 using namespace std;
 
 
@@ -45,9 +46,12 @@ string Signature::toString() const {
   string s = name + "(";
 
   for (unsigned i = 0; i < size(); i++) {
+    const string &key = keyAt(i);
+    const Value &value = *get(i);
+
     if (i) s += ", ";
-    s += keyAt(i);
-    if (!get(i).isUndefined()) s += "=" + get(i).toString();
+    s += key;
+    if (!value.isUndefined()) s += "=" + value.toString();
   }
 
   if (variable) {
@@ -167,7 +171,7 @@ void Signature::parseArgs(const string &args) {
 
     case 2: // After name
       if (it == args.end() || *it == ',') {
-        insert(name, Value());
+        insertUndefined(name);
         state = 7;
         continue;
       }
@@ -194,7 +198,7 @@ void Signature::parseArgs(const string &args) {
 
       } else if (*it == '\\') escape = true;
       else { // *it == quote
-        insert(name, Value(value));
+        insert(name, value);
         state = 7;
       }
       break;
@@ -216,9 +220,9 @@ void Signature::parseArgs(const string &args) {
 
       if (!hasDigit) THROWS("Invalid number '" << value << "' in signature");
 
-      if (hasDot) insert(name, Value(String::parseDouble(value)));
-      else if (hasMinus) insert(name, Value(String::parseS32(value)));
-      else insert(name, Value(String::parseU32(value)));
+      if (hasDot) insert(name, String::parseDouble(value));
+      else if (hasMinus) insert(name, String::parseS32(value));
+      else insert(name, String::parseU32(value));
 
       state = 7;
       continue;
@@ -226,10 +230,10 @@ void Signature::parseArgs(const string &args) {
     case 6: // Keyword
       if (it != args.end() && isalpha(*it)) {value.append(1, *it); break;}
 
-      if (value == "undefined") insert(name, Value());
-      else if (value == "null") insert(name, Value(v8::Null()));
-      else if (value == "true") insert(name, Value(true));
-      else if (value == "false") insert(name, Value(false));
+      if (value == "undefined") insertUndefined(name);
+      else if (value == "null") insertNull(name);
+      else if (value == "true") insertBoolean(name, true);
+      else if (value == "false") insertBoolean(name, false);
       else THROWS("Invalid keyword '" << value << "' in signature");
 
       state = 7;

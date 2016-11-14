@@ -41,7 +41,7 @@ namespace cb {
     template <class T>
     class MethodCallback : public Callback {
     public:
-      typedef Value (T::*member_t)(const Arguments &args);
+      typedef void (T::*member_t)(const Value &args, Sink &sink);
 
     protected:
       T *object;
@@ -52,7 +52,9 @@ namespace cb {
         Callback(sig), object(object), member(member) {}
 
       // From Callback
-      Value operator()(const Arguments &args) {return (*object.*member)(args);}
+      void operator()(const Value &args, Sink &sink) {
+        (*object.*member)(args, sink);
+      }
     };
   }
 }
