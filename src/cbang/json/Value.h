@@ -73,13 +73,13 @@ namespace cb {
 
       template <typename T> T &cast() {
         T *ptr = dynamic_cast<T *>(this);
-        if (!ptr) THROW("Invalid cast");
+        if (!ptr) CBANG_THROW("Invalid cast");
         return *ptr;
       }
 
       template <typename T> const T &cast() const {
         const T *ptr = dynamic_cast<T *>(this);
-        if (!ptr) THROW("Invalid cast");
+        if (!ptr) CBANG_THROW("Invalid cast");
         return *ptr;
       }
 
