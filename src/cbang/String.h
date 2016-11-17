@@ -173,4 +173,15 @@ namespace cb {
   };
 }
 
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#define CBANG_CPP_TO_C_STR(x) (x).c_str()
+#else
+#define CBANG_CPP_TO_C_STR(x) (x).data()
+#endif
+
+#ifdef USING_CBANG
+#define CPP_TO_C_STR(x) CBANG_CPP_TO_C_STR(x)
+#endif
+
 #endif // CBANG_STRING_H

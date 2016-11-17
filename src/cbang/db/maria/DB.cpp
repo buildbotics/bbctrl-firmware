@@ -43,12 +43,6 @@
 
 #include <string.h>
 
-#ifdef WIN32
-#define STR_DATA(s) (s).c_str()
-#else
-#define STR_DATA(s) (s).data()
-#endif
-
 #define RAISE_ERROR(msg) raiseError(SSTR(msg), false)
 #define RAISE_DB_ERROR(msg) raiseError(SSTR(msg), true)
 
@@ -272,7 +266,7 @@ void DB::query(const string &s) {
   assertConnected();
   assertNotPending();
 
-  if (mysql_real_query(db, STR_DATA(s), s.length()))
+  if (mysql_real_query(db, CPP_TO_C_STR(s), s.length()))
     RAISE_DB_ERROR("Query failed");
 }
 
@@ -283,7 +277,7 @@ bool DB::queryNB(const string &s) {
   assertNonBlocking();
 
   int ret = 0;
-  status = mysql_real_query_start(&ret, db, STR_DATA(s), s.length());
+  status = mysql_real_query_start(&ret, db, CPP_TO_C_STR(s), s.length());
 
   LOG_DEBUG(5, __func__ << "() status=" << status << " ret=" << ret);
 
@@ -799,7 +793,7 @@ string DB::escape(const string &s) const {
   SmartPointer<char>::Array to = new char[s.length() * 2 + 1];
 
   unsigned len =
-    mysql_real_escape_string(db, to.get(), STR_DATA(s), s.length());
+    mysql_real_escape_string(db, to.get(), CPP_TO_C_STR(s), s.length());
 
   return string(to.get(), len);
 }
@@ -862,7 +856,7 @@ string DB::format(const string &s, const JSON::Dict &dict) const {
 string DB::toHex(const string &s) {
   SmartPointer<char>::Array to = new char[s.length() * 2 + 1];
 
-  unsigned len = mysql_hex_string(to.get(), STR_DATA(s), s.length());
+  unsigned len = mysql_hex_string(to.get(), CPP_TO_C_STR(s), s.length());
 
   return string(to.get(), len);
 }
