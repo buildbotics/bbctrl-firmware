@@ -30,42 +30,31 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_SCRIPT_H
-#define CB_JS_SCRIPT_H
+#ifndef CB_JSON_UNDEFINED_H
+#define CB_JSON_UNDEFINED_H
 
-#include "Context.h"
 #include "Value.h"
-
-#include <cbang/SmartPointer.h>
-
-#include <cbang/io/InputSource.h>
-
-#include "V8.h"
-
-#include <string>
 
 
 namespace cb {
-  namespace js {
-    class Script {
-      Context &context;
-      v8::Handle<v8::Script> script;
+  namespace JSON {
+    class Undefined : public Value {
+      static Undefined undefined;
+
+      Undefined() {}
+      ~Undefined() {}
 
     public:
-      Script(Context &context, const std::string &s,
-             const std::string &filename = std::string());
-      Script(Context &context, const InputSource &source);
-      ~Script();
+      inline static Undefined &instance() {return undefined;}
+      inline static ValuePtr instancePtr() {return ValuePtr::Phony(&undefined);}
 
-      Value eval();
-
-      static void translateException(const v8::TryCatch &tryCatch,
-                                     bool useStack);
-
-    protected:
-      void load(const std::string &s, const std::string &filename);
+      // From Value
+      ValueType getType() const {return JSON_UNDEFINED;}
+      ValuePtr copy(bool deep = false) const {return instancePtr();}
+      bool canWrite(Sink &sink) const {return false;}
+      void write(Sink &sink) const {}
     };
   }
 }
 
-#endif // CB_JS_SCRIPT_H
+#endif // CB_JSON_UNDEFINED_H

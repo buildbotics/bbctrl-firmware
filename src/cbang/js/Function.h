@@ -30,34 +30,32 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_VOID_METHOD_CALLBACK_H
-#define CB_JS_VOID_METHOD_CALLBACK_H
+#ifndef CB_JS_FUNCTION_H
+#define CB_JS_FUNCTION_H
 
 #include "Callback.h"
+
+#include <cbang/json/Value.h>
 
 
 namespace cb {
   namespace js {
-    template <class T>
-    class VoidMethodCallback : public Callback {
-    public:
-      typedef void (T::*member_t)(const Arguments &args);
-
-    protected:
-      T *object;
-      member_t member;
+    class Function : public JSON::Value {
+      SmartPointer<Callback> callback;
 
     public:
-      VoidMethodCallback(const Signature &sig, T *object, member_t member) :
-        Callback(sig), object(object), member(member) {}
+      Function(const SmartPointer<Callback> &callback) : callback(callback) {}
 
-      // From Callback
-      Value operator()(const Arguments &args) {
-        (*object.*member)(args);
-        return Value(); // Undefined
-      }
+      const std::string &getName() const {return callback->getName();}
+      const SmartPointer<Callback> &getCallback() const {return callback;}
+
+      // From JSON::Value
+      JSON::ValueType getType() const {return JSON_UNDEFINED;}
+      JSON::ValuePtr copy(bool deep = false) const;
+      bool canWrite(JSON::Sink &sink) const;
+      void write(JSON::Sink &sink) const;
     };
   }
 }
 
-#endif // CB_JS_VOID_METHOD_CALLBACK_H
+#endif // CB_JS_FUNCTION_H

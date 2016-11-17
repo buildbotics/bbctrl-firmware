@@ -30,40 +30,35 @@
 
 \******************************************************************************/
 
-#include "ObjectTemplate.h"
+#ifndef CB_CHAKRA_CONTEXT_H
+#define CB_CHAKRA_CONTEXT_H
 
-using namespace std;
-using namespace cb::js;
+#include "Value.h"
+
+#include <Jsrt/ChakraCore.h>
 
 
-ObjectTemplate::ObjectTemplate() : tmpl(v8::ObjectTemplate::New()) {}
+namespace cb {
+  namespace chakra {
+    class JSImpl;
 
+    class Context {
+      JSImpl &impl;
 
-Value ObjectTemplate::create() const {
-  return v8::Handle<v8::Value>(tmpl->NewInstance());
+      JsContextRef context;
+
+    public:
+      Context(JSImpl &impl);
+
+      static Context &current();
+      JSImpl &getImpl() {return impl;}
+
+      void enter();
+      void leave();
+
+      Value exec(const std::string &path, const std::string &code);
+    };
+  }
 }
 
-
-void ObjectTemplate::set(const string &name, const Value &value) {
-  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
-            value.getV8Value());
-}
-
-
-void ObjectTemplate::set(const string &name, const ObjectTemplate &tmpl) {
-  this->tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
-                  tmpl.getTemplate());
-}
-
-
-void ObjectTemplate::set(const string &name, const Callback &callback) {
-  tmpl->Set(v8::String::NewSymbol(name.c_str(), name.length()),
-            callback.getTemplate());
-}
-
-
-void ObjectTemplate::set(const Signature &sig, FunctionCallback::func_t func) {
-  SmartPointer<Callback> cb = new FunctionCallback(sig, func);
-  callbacks.push_back(cb);
-  set(sig.getName(), *cb);
-}
+#endif // CB_CHAKRA_CONTEXT_H

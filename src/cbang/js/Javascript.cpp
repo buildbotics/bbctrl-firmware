@@ -32,21 +32,45 @@
 
 #include "Javascript.h"
 
-using namespace std;
-using namespace cb;
+#ifdef HAVE_CHAKRA
+#include <cbang/chakra/JSImpl.h>
+#endif
+
+#include <cbang/util/SmartFunctor.h>
+
 using namespace cb::js;
+using namespace cb;
+using namespace std;
 
 
-Javascript::Javascript(Inaccessible) {}
+Javascript::Javascript() : impl(0), stdMod(*this) {
+#ifdef HAVE_CHAKRA
+  impl = new chakra::JSImpl(*this);
+#else
+  THROW("No Javscript implementation compiled in");
+#endif
 
+  define(stdMod);
+  define(consoleMod);
 
-void Javascript::init(int *argc, char *argv[]) {
-  instance();
-  if (argv) v8::V8::SetFlagsFromCommandLine(argc, argv, true);
+  import("std", ".");
+  import("console");
 }
 
 
-void Javascript::terminate() {
-  // Terminate script execution
-  v8::V8::TerminateExecution();
+void Javascript::define(Module &mod) {impl->define(mod);}
+
+
+void Javascript::import(const string &module, const string &as) {
+  impl->import(module, as);
 }
+
+
+void Javascript::exec(const InputSource &source) {
+  pushPath(source.getName());
+  SmartFunctor<Javascript> popPath(this, &Javascript::popPath);
+  impl->exec(source);
+}
+
+
+void Javascript::interrupt() {impl->interrupt();}

@@ -40,12 +40,15 @@ namespace cb {
   namespace js {
     class ConsoleModule : public Module {
     public:
-      ConsoleModule();
+      // From Module
+      const char *getName() const {return "console";}
+      void define(Sink &exports);
 
-      virtual void log(const Arguments &args);
-      virtual void debug(const Arguments &args);
-      virtual void warn(const Arguments &args);
-      virtual void error(const Arguments &args);
+      // Callbacks
+      void log(const Value &args, Sink &sink);
+      void debug(const Value &args, Sink &sink);
+      void warn(const Value &args, Sink &sink);
+      void error(const Value &args, Sink &sink);
     };
   }
 }

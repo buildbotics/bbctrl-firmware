@@ -30,59 +30,45 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_OBJECT_TEMPLATE_H
-#define CB_JS_OBJECT_TEMPLATE_H
+#include "Context.h"
+#include "JSImpl.h"
 
-#include "Value.h"
-#include "Callback.h"
-#include "FunctionCallback.h"
-#include "MethodCallback.h"
-#include "VoidMethodCallback.h"
+#include <string.h>
 
-#include <cbang/SmartPointer.h>
-
-#include "V8.h"
-
-#include <string>
-#include <vector>
+using namespace cb::chakra;
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  namespace js {
-    class ObjectTemplate {
-      v8::Handle<v8::ObjectTemplate> tmpl;
-      std::vector<SmartPointer<Callback> > callbacks;
-
-    public:
-      ObjectTemplate();
-
-      Value create() const;
-
-      void set(const std::string &name, const Value &value);
-      void set(const std::string &name, const ObjectTemplate &tmpl);
-      void set(const std::string &name, const Callback &callback);
-      void set(const Signature &sig, FunctionCallback::func_t func);
-
-      template <class T>
-      void set(const Signature &sig, T *object,
-               typename MethodCallback<T>::member_t member) {
-        SmartPointer<Callback> cb = new MethodCallback<T>(sig, object, member);
-        callbacks.push_back(cb);
-        set(sig.getName(), *cb);
-      }
-
-      template <class T>
-      void set(const Signature &sig, T *object,
-               typename VoidMethodCallback<T>::member_t member) {
-        SmartPointer<Callback> cb =
-          new VoidMethodCallback<T>(sig, object, member);
-        callbacks.push_back(cb);
-        set(sig.getName(), *cb);
-      }
-
-      v8::Handle<v8::ObjectTemplate> getTemplate() const {return tmpl;}
-    };
-  }
+Context::Context(JSImpl &impl) : impl(impl) {
+  CHAKRA_CHECK(JsCreateContext(impl.getRuntime(), &context));
+  CHAKRA_CHECK(JsSetContextData(context, this));
+  enter();
 }
 
-#endif // CB_JS_OBJECT_TEMPLATE_H
+
+Context &Context::current() {
+  JsContextRef ref;
+  CHAKRA_CHECK(JsGetCurrentContext(&ref));
+
+  Context *ctx;
+  CHAKRA_CHECK(JsGetContextData(ref, (void **)&ctx));
+
+  return *ctx;
+}
+
+
+void Context::enter() {CHAKRA_CHECK(JsSetCurrentContext(context));}
+void Context::leave() {JsSetCurrentContext(JS_INVALID_REFERENCE);}
+
+
+Value Context::exec(const string &path, const string &code) {
+  impl.enable();
+  enter();
+
+  JsValueRef result;
+  JsRun(Value::createArrayBuffer(code), 0, Value(path),
+        JsParseScriptAttributeNone, &result);
+
+  return result;
+}

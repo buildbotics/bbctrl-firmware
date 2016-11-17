@@ -30,56 +30,58 @@
 
 \******************************************************************************/
 
-#ifndef CB_JSON_NULL_SYNC_H
-#define CB_JSON_NULL_SYNC_H
+#ifndef CB_CHAKRA_JSIMPL_H
+#define CB_CHAKRA_JSIMPL_H
 
-#include "Sink.h"
-#include "ValueType.h"
+#include "ValueRef.h"
+#include "Context.h"
+
+#include <cbang/SmartPointer.h>
+#include <cbang/js/Impl.h>
+#include <cbang/js/Callback.h>
+
+#include <Jsrt/ChakraCore.h>
 
 #include <vector>
-#include <set>
+#include <map>
 
 
 namespace cb {
-  namespace JSON {
-    class NullSink : public Sink {
-    protected:
-      std::vector<ValueType> stack;
-      typedef std::set<std::string> keys_t;
-      std::vector<keys_t> keyStack;
+  namespace js {class Javascript;}
 
-      bool canWrite;
+  namespace chakra {
+    class Module;
+
+    class JSImpl : public js::Impl {
+      js::Javascript &js;
+
+      JsRuntimeHandle runtime;
+      SmartPointer<Context> ctx;
+      SmartPointer<ValueRef> common;
+
+      std::vector<SmartPointer<js::Callback> > callbacks;
+
+      typedef std::map<std::string, SmartPointer<Module> > modules_t;
+      modules_t modules;
 
     public:
-      NullSink() : canWrite(true) {}
+      JSImpl(js::Javascript &js);
+      ~JSImpl();
 
-      unsigned getDepth() const;
-      bool inList() const;
-      bool inDict() const;
-      void end();
+      const JsRuntimeHandle &getRuntime() const {return runtime;}
+      static JSImpl &current();
 
-      virtual void close();
-      virtual void reset();
+      void add(const SmartPointer<js::Callback> &cb) {callbacks.push_back(cb);}
+      Value require(const std::string &id);
+      void enable();
 
-      // From Sink
-      void writeNull();
-      void writeBoolean(bool value);
-      void write(double value);
-      void write(const std::string &value);
-      using Sink::write;
-      void beginList(bool simple = false);
-      void beginAppend();
-      void endList();
-      void beginDict(bool simple = false);
-      bool has(const std::string &key) const;
-      void beginInsert(const std::string &key);
-      void endDict();
-
-    protected:
-      void assertCanWrite();
-      void assertWriteNotPending();
+      // From js::Impl
+      void define(js::Module &mod);
+      void import(const std::string &module, const std::string &as);
+      void exec(const InputSource &source);
+      void interrupt();
     };
   }
 }
 
-#endif // CB_JSON_NULL_SYNC_H
+#endif // CB_CHAKRA_JSIMPL_H

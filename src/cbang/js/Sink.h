@@ -30,53 +30,34 @@
 
 \******************************************************************************/
 
-#include "Isolate.h"
+#ifndef CB_JS_SINK_H
+#define CB_JS_SINK_H
 
-#include "V8.h"
+#include "Function.h"
+#include "MethodCallback.h"
 
-using namespace cb::js;
+#include <cbang/SmartPointer.h>
+#include <cbang/json/NullSink.h>
 
 
 namespace cb {
   namespace js {
-    class Isolate::Scope::Private {
-      v8::Locker locker;
-      v8::Isolate::Scope isolateScope;
-      v8::HandleScope handleScope;
-
+    class Sink : public JSON::NullSink {
     public:
-      Private(v8::Isolate *isolate) : locker(isolate), isolateScope(isolate) {}
+      // From JSON::Sink
+      using JSON::NullSink::insert;
+      using JSON::NullSink::write;
+
+      virtual void write(const Function &func) = 0;
+
+      template <class T>
+      void insert(const Signature &sig, T *obj,
+                  typename MethodCallback<T>::member_t member) {
+        beginInsert(sig.getName());
+        write(Function(new MethodCallback<T>(sig, obj, member)));
+      }
     };
   }
 }
 
-
-Isolate::Scope::Scope(Isolate &iso) : pri(new Private(iso.getIsolate())) {}
-Isolate::Scope::~Scope() {delete pri;}
-
-
-Isolate::Isolate() : isolate(v8::Isolate::New()), interrupted(false) {
-  isolate->SetData(this);
-}
-
-
-Isolate::~Isolate() {
-  isolate->Dispose();
-}
-
-
-void Isolate::interrupt() {
-  interrupted = true;
-  v8::V8::TerminateExecution(isolate);
-}
-
-
-Isolate *Isolate::current() {
-  return (Isolate *)v8::Isolate::GetCurrent()->GetData();
-}
-
-
-bool Isolate::shouldQuit() {
-  Isolate *iso = current();
-  return iso && iso->wasInterrupted();
-}
+#endif // CB_JS_SINK_H

@@ -30,22 +30,54 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CONTEXT_SCOPE_H
-#define CB_JS_CONTEXT_SCOPE_H
+#ifndef CB_CHAKRA_SINK_H
+#define CB_CHAKRA_SINK_H
 
-#include "Context.h"
+#include "Value.h"
+
+#include <cbang/js/Sink.h>
 
 
 namespace cb {
-  namespace js {
-    class ContextScope {
-      Context &context;
+  namespace chakra {
+    class Sink : public js::Sink {
+      Value root;
+
+      bool closeList;
+      bool closeDict;
+
+      int index;
+      std::string key;
+      std::vector<Value> stack;
 
     public:
-      ContextScope(Context &context);
-      ~ContextScope();
-    };
+      Sink(const Value &root = Value::getUndefined());
+
+      Value getRoot() const {return root;}
+
+      // From JSON::NullSink
+      void close();
+      void reset();
+
+      // Element functions
+      void writeNull();
+      void writeBoolean(bool value);
+      void write(double value);
+      void write(const std::string &value);
+      void write(const js::Function &func);
+      void write(const Value &value);
+
+      // List functions
+      void beginList(bool simple = false);
+      void beginAppend();
+      void endList();
+
+      // Dict functions
+      void beginDict(bool simple = false);
+      void beginInsert(const std::string &key);
+      void endDict();
+   };
   }
 }
 
-#endif // CB_JS_CONTEXT_SCOPE_H
+#endif // CB_CHAKRA_SINK_H

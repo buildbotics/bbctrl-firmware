@@ -30,29 +30,24 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_FUNCTION_CALLBACK_H
-#define CB_JS_FUNCTION_CALLBACK_H
+#include "Function.h"
+#include "Sink.h"
 
-#include "Callback.h"
+using namespace cb::js;
+using namespace cb;
 
 
-namespace cb {
-  namespace js {
-    class FunctionCallback : public Callback {
-    public:
-      typedef Value (*func_t)(const Arguments &args);
-
-    protected:
-      func_t func;
-
-    public:
-      FunctionCallback(const Signature &sig, func_t func) :
-        Callback(sig), func(func) {}
-
-      // From Callback
-      Value operator()(const Arguments &args) {return func(args);}
-    };
-  }
+JSON::ValuePtr Function::copy(bool deep) const {
+  return new Function(callback);
 }
 
-#endif // CB_JS_FUNCTION_CALLBACK_H
+
+bool Function::canWrite(JSON::Sink &sink) const {
+  return dynamic_cast<Sink *>(&sink);
+}
+
+
+void Function::write(JSON::Sink &_sink) const {
+  Sink *sink = dynamic_cast<Sink *>(&_sink);
+  if (sink) sink->write(*this);
+}

@@ -32,11 +32,6 @@
 
 #include "List.h"
 
-#include "Null.h"
-#include "Boolean.h"
-#include "Number.h"
-#include "String.h"
-
 #include <cbang/Exception.h>
 #include <cbang/String.h>
 
@@ -57,26 +52,6 @@ ValuePtr List::copy(bool deep) const {
 }
 
 
-void List::appendNull() {
-  append(Null::instancePtr());
-}
-
-
-void List::appendBoolean(bool value) {
-  append(new Boolean(value));
-}
-
-
-void List::append(double value) {
-  append(new Number(value));
-}
-
-
-void List::append(const std::string &value) {
-  append(new String(value));
-}
-
-
 void List::append(const ValuePtr &value) {
   if (value->isList() || value->isDict()) simple = false;
   push_back(value);
@@ -87,6 +62,7 @@ void List::write(Sink &sink) const {
   sink.beginList(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
+    if (!(*it)->canWrite(sink)) continue;
     sink.beginAppend();
     (*it)->write(sink);
   }

@@ -32,11 +32,6 @@
 
 #include "Dict.h"
 
-#include "Null.h"
-#include "Boolean.h"
-#include "Number.h"
-#include "String.h"
-
 #include <cbang/Exception.h>
 #include <cbang/String.h>
 
@@ -56,26 +51,6 @@ ValuePtr Dict::copy(bool deep) const {
 }
 
 
-void Dict::insertNull(const string &key) {
-  insert(key, Null::instancePtr());
-}
-
-
-void Dict::insertBoolean(const string &key, bool value) {
-  insert(key, new Boolean(value));
-}
-
-
-void Dict::insert(const string &key, double value) {
-  insert(key, new Number(value));
-}
-
-
-void Dict::insert(const string &key, const string &value) {
-  insert(key, new String(value));
-}
-
-
 void Dict::insert(const string &key, const ValuePtr &value) {
   if (value->isList() || value->isDict()) simple = false;
   OrderedDict<ValuePtr>::insert(key, value);
@@ -86,6 +61,7 @@ void Dict::write(Sink &sink) const {
   sink.beginDict(isSimple());
 
   for (const_iterator it = begin(); it != end(); it++) {
+    if (!it->second->canWrite(sink)) continue;
     sink.beginInsert(it->first);
     it->second->write(sink);
   }

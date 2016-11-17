@@ -30,20 +30,20 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_SCOPE_H
-#define CB_JS_SCOPE_H
+#ifndef CB_CHAKRA_VALUE_REF_H
+#define CB_CHAKRA_VALUE_REF_H
 
 #include "Value.h"
 
 
 namespace cb {
-  namespace js {
-    class Scope : private v8::HandleScope {
+  namespace chakra {
+    class ValueRef : public Value {
     public:
-      Value close(Value value)
-      {return v8::HandleScope::Close(value.getV8Value());}
+      ValueRef(const Value &value);
+      ~ValueRef();
     };
   }
 }
 
-#endif // CB_JS_SCOPE_H
+#endif // CB_CHAKRA_VALUE_REF_H

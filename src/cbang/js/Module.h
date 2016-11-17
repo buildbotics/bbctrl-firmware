@@ -33,14 +33,18 @@
 #ifndef CB_JS_MODULE_H
 #define CB_JS_MODULE_H
 
-#include "ObjectTemplate.h"
+#include "Sink.h"
 
 
 namespace cb {
   namespace js {
-    class Module : public ObjectTemplate {
+    class Module {
     public:
-    };
+      virtual ~Module() {}
+
+      virtual const char *getName() const = 0;
+      virtual void define(Sink &exports) = 0;
+   };
   }
 }
 

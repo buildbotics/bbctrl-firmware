@@ -35,6 +35,9 @@
 using namespace cb::JSON;
 
 
+unsigned NullSink::getDepth() const {return stack.size();}
+
+
 bool NullSink::inList() const {
   return !stack.empty() && stack.back() == ValueType::JSON_LIST;
 }

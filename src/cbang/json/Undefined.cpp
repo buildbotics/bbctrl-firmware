@@ -30,44 +30,9 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_ISOLATE_H
-#define CB_JS_ISOLATE_H
+#include "Undefined.h"
 
-#include <cbang/SmartPointer.h>
+using namespace cb::JSON;
 
 
-namespace v8 {class Isolate;}
-
-namespace cb {
-  namespace js {
-    class Isolate {
-      v8::Isolate *isolate;
-      bool interrupted;
-
-    public:
-      class Scope {
-        class Private;
-        Private *pri;
-
-      public:
-        Scope(Isolate &iso);
-        ~Scope();
-      };
-
-      Isolate();
-      ~Isolate();
-
-      v8::Isolate *getIsolate() {return isolate;}
-      bool wasInterrupted() const {return interrupted;}
-      void interrupt();
-
-      typedef SmartPointer<Scope> ScopePtr;
-      ScopePtr getScope() {return new Scope(*this);}
-
-      static Isolate *current();
-      static bool shouldQuit();
-    };
-  }
-}
-
-#endif // CB_JS_ISOLATE_H
+Undefined Undefined::undefined;

@@ -57,6 +57,7 @@ namespace cb {
       void writeBoolean(bool value);
       void write(double value);
       void write(const std::string &value);
+      using Sink::write;
       void beginList(bool simple = false);
       void beginAppend();
       void endList();

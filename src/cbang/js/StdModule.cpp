@@ -30,12 +30,13 @@
 
 \******************************************************************************/
 
-#include "Context.h"
+#include "StdModule.h"
+#include "Javascript.h"
 
-using namespace cb;
 using namespace cb::js;
+using namespace cb;
+using namespace std;
 
 
-Context::Context(ObjectTemplate &tmpl) :
-  context(v8::Context::New(0, tmpl.getTemplate())) {
+void StdModule::define(Sink &exports) {
 }

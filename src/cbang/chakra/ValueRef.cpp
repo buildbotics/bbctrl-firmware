@@ -30,39 +30,12 @@
 
 \******************************************************************************/
 
-#include "Callback.h"
-#include "Isolate.h"
+#include "ValueRef.h"
 
-#include <cbang/Exception.h>
-#include <cbang/SStream.h>
+#include <Jsrt/ChakraCore.h>
 
-using namespace std;
-using namespace cb::js;
+using namespace cb::chakra;
 
 
-Callback::Callback(const Signature &sig) :
-  sig(sig), data(v8::External::New(this)),
-  function(v8::FunctionTemplate::New(&Callback::callback, data)) {
-}
-
-
-v8::Handle<v8::Value> Callback::callback(const v8::Arguments &args) {
-  if (Isolate::shouldQuit())
-    return v8::ThrowException(v8::String::New("Interrupted"));
-
-  Callback *cb =
-    static_cast<Callback *>(v8::External::Cast(*args.Data())->Value());
-
-  try {
-    return (*cb)(Arguments(args, cb->sig)).getV8Value();
-
-  } catch (const Exception &e) {
-    return v8::ThrowException(v8::String::New(SSTR(e).c_str()));
-
-  } catch (const std::exception &e) {
-    return v8::ThrowException(v8::String::New(e.what()));
-
-  } catch (...) {
-    return v8::ThrowException(v8::String::New("Unknown exception"));
-  }
-}
+ValueRef::ValueRef(const Value &value) : Value(value) {JsAddRef(ref, 0);}
+ValueRef::~ValueRef() {JsRelease(ref, 0);}

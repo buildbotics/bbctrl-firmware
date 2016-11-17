@@ -48,12 +48,13 @@
 #include <bfd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef HAVE_VALGRIND
 #include <valgrind/memcheck.h>
 #endif
 
-// NOTE Cannot throw cb::Exception here because of the dependency
+// NOTE Cannot throw cb::Exception here because of the dependency loop
 
 using namespace std;
 using namespace cb;
@@ -84,12 +85,11 @@ bool BacktraceDebugger::getStackTrace(StackTrace &trace) {
 
   void *stack[maxStack];
   int n = backtrace(stack, maxStack);
+  SmartPointer<char *>::Malloc symbols = backtrace_symbols(stack, n);
 
 #ifdef VALGRIND_MAKE_MEM_DEFINED
   (void)VALGRIND_MAKE_MEM_DEFINED(stack, n * sizeof(void *));
 #endif // VALGRIND_MAKE_MEM_DEFINED
-
-  //cerr << "backtrace() = " << n << endl;
 
   SmartLock lock(this);
 
@@ -125,6 +125,38 @@ bool BacktraceDebugger::getStackTrace(StackTrace &trace) {
 #endif // VALGRIND_MAKE_MEM_DEFINED
     }
 
+    // Fallback to backtrace symbols
+    if ((!function || !filename) && symbols.get()) {
+      char *sym = symbols[i];
+
+      // Parse symbol string
+      // Expected format: <module>(<function>+0x<offset>)
+      char *ptr = sym;
+      while (*ptr && *ptr != '(') ptr++;
+      if (*ptr == '(') {
+        *ptr++ = 0;
+        if (!filename) filename = sym; // Not really the source file
+
+        if (!function) {
+          function = ptr;
+          while (*ptr && *ptr != '+') ptr++;
+
+          if (*ptr) {
+            *ptr++ = 0;
+            char *offset = ptr;
+            while (*ptr && *ptr != ')') ptr++;
+            if (*ptr == ')') *ptr = 0;
+
+            int save_errno = errno;
+            errno = 0;
+            line = strtol(offset, 0, 0); // Byte offset not line number
+            if (errno) line = 0;
+            errno = save_errno;
+          }
+        }
+      }
+    }
+
     // Filename
     if (!filename) filename = "";
     else if (0 <= parents) {
@@ -157,8 +189,6 @@ bool BacktraceDebugger::getStackTrace(StackTrace &trace) {
 void BacktraceDebugger::init() {
   if (!enabled || initialized) return;
 
-  //cerr << "BacktraceDebugger::init()" << endl;
-
   try {
     bfd_init();
 
@@ -187,14 +217,6 @@ void BacktraceDebugger::init() {
 
     long count = bfd_canonicalize_symtab(p->abfd, p->syms);
     if (count < 0) throw runtime_error("Invalid symbol count");
-
-#if 0
-    asection *section;
-    for (section = p->abfd->sections; section; section = section->next)
-      cerr << bfd_get_section_name(p->abfd, section) << " "
-           << bfd_get_section_vma(p->abfd, section) << " "
-           << bfd_get_section_lma(p->abfd, section) << endl;
-#endif
 
   } catch (const std::exception &e) {
     cerr << "Failed to initialize BFD for stack traces: " << e.what() << endl;

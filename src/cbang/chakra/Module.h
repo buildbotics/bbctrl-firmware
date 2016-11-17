@@ -30,17 +30,25 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_V8_H
-#define CB_JS_V8_H
+#ifndef CB_CHAKRA_MODULE_H
+#define CB_CHAKRA_MODULE_H
 
-// Override v8stdint.h
-#include <cbang/StdTypes.h>
-#include <stddef.h>
-#include <stdio.h>
-#define V8STDINT_H_
+#include "Context.h"
+#include "ValueRef.h"
 
-#define V8_ENABLE_CHECKS
 
-#include <v8.h>
+namespace cb {
+  namespace chakra {
+    class Module : public Context {
+      ValueRef obj;
 
-#endif // CB_JS_V8_H
+    public:
+      Module(const std::string &id, const std::string &path, JSImpl &impl);
+
+      Value &getObject() {return obj;}
+      Value load(const std::string &source);
+    };
+  }
+}
+
+#endif // CB_CHAKRA_MODULE_H

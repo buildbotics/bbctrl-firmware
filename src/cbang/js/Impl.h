@@ -30,36 +30,26 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CONTEXT_H
-#define CB_JS_CONTEXT_H
+#ifndef CB_JS_IMPL_H
+#define CB_JS_IMPL_H
 
-#include "ObjectTemplate.h"
+#include "Module.h"
 
-#include <cbang/SmartPointer.h>
-
-#include "V8.h"
+#include <cbang/io/InputSource.h>
 
 
 namespace cb {
   namespace js {
-    class Context {
-      v8::Handle<v8::Context> context;
-
+    class Impl {
     public:
-      Context(const v8::Handle<v8::Context> &context) : context(context) {}
-      Context(ObjectTemplate &tmpl);
+      virtual ~Impl() {}
 
-      void enter() {context->Enter();}
-      void exit() {context->Exit();}
-
-      Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
-
-      static Context calling() {return v8::Context::GetCalling();}
-      static Context current() {return v8::Context::GetCurrent();}
-      static Context entered() {return v8::Context::GetEntered();}
-      static bool inContext() {return v8::Context::InContext();}
+      virtual void define(Module &mod) = 0;
+      virtual void import(const std::string &module, const std::string &as) = 0;
+      virtual void exec(const InputSource &source) = 0;
+      virtual void interrupt() = 0;
     };
   }
 }
 
-#endif // CB_JS_CONTEXT_H
+#endif // CB_JS_IMPL_H

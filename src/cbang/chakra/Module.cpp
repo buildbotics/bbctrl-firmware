@@ -30,56 +30,37 @@
 
 \******************************************************************************/
 
-#ifndef CB_JSON_NULL_SYNC_H
-#define CB_JSON_NULL_SYNC_H
+#include "Module.h"
 
-#include "Sink.h"
-#include "ValueType.h"
-
-#include <vector>
-#include <set>
+using namespace cb::chakra;
+using namespace std;
 
 
-namespace cb {
-  namespace JSON {
-    class NullSink : public Sink {
-    protected:
-      std::vector<ValueType> stack;
-      typedef std::set<std::string> keys_t;
-      std::vector<keys_t> keyStack;
-
-      bool canWrite;
-
-    public:
-      NullSink() : canWrite(true) {}
-
-      unsigned getDepth() const;
-      bool inList() const;
-      bool inDict() const;
-      void end();
-
-      virtual void close();
-      virtual void reset();
-
-      // From Sink
-      void writeNull();
-      void writeBoolean(bool value);
-      void write(double value);
-      void write(const std::string &value);
-      using Sink::write;
-      void beginList(bool simple = false);
-      void beginAppend();
-      void endList();
-      void beginDict(bool simple = false);
-      bool has(const std::string &key) const;
-      void beginInsert(const std::string &key);
-      void endDict();
-
-    protected:
-      void assertCanWrite();
-      void assertWriteNotPending();
-    };
-  }
+Module::Module(const string &id, const string &path, JSImpl &impl) :
+  Context(impl), obj(Value::createObject()) {
+  obj.set("id", id);
+  obj.setObject("exports");
+  obj.set("filename", path);
+  obj.set("name", id);
 }
 
-#endif // CB_JSON_NULL_SYNC_H
+
+Value Module::load(const string &code) {
+  enter();
+
+  string path = obj.getString("filename");
+  Value func =
+    exec(path, "(function (id, require, exports, module) {" + code + "})");
+
+  // Call
+  vector<Value> args;
+  args.push_back(obj.get("exports")); // Function "this"
+  args.push_back(obj.get("id"));
+  args.push_back(Value::getGlobal().get("require"));
+  args.push_back(obj.get("exports"));
+  args.push_back(obj);
+  func.call(args);
+
+  // Return exports
+  return obj.get("exports");
+}

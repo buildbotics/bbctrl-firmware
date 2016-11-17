@@ -30,45 +30,23 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_ENVIRONMENT_H
-#define CB_JS_ENVIRONMENT_H
+#ifndef CB_CHAKRA_PATH_RESOLVER_H
+#define CB_CHAKRA_PATH_RESOLVER_H
 
-#include "Value.h"
-#include "Context.h"
-#include "ObjectTemplate.h"
-#include "ConsoleModule.h"
-
-#include <cbang/SmartPointer.h>
-#include <cbang/io/InputSource.h>
-
-#include <ostream>
-#include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 
 namespace cb {
   namespace js {
-    class Module;
-
-
-    class Environment : public ObjectTemplate {
-      SmartPointer<Context> ctx;
-
-      typedef std::map<std::string, PersistentValue> modules_t;
-      modules_t modules;
-
-      ConsoleModule consoleMod;
-
+    class PathResolver {
       std::vector<std::string> pathStack;
       std::vector<std::string> searchExts;
       std::vector<std::string> searchPaths;
 
-      std::ostream &out;
-
     public:
-      Environment(std::ostream &out);
-      virtual ~Environment() {}
+      PathResolver();
+      virtual ~PathResolver() {}
 
       virtual void pushPath(const std::string &path);
       virtual void popPath();
@@ -84,21 +62,8 @@ namespace cb {
       std::vector<std::string> &getSearchPaths() {return searchPaths;}
       void clearSearchPaths() {searchPaths.clear();}
       std::string searchPath(const std::string &path) const;
-
-      virtual void addModule(const std::string &name, const Value &exports);
-      virtual void addModule(const std::string &name, Module &module);
-
-      virtual Value require(const std::string &path);
-      virtual Value load(Context &ctx, const std::string &path);
-      virtual Value load(const std::string &path);
-      virtual Value eval(Context &ctx, const InputSource &source);
-      virtual Value eval(const InputSource &source);
-
-      virtual Value require(const Arguments &args);
-      virtual void print(const Arguments &args);
-      virtual void alert(const Arguments &args);
     };
   }
 }
 
-#endif // CB_JS_ENVIRONMENT_H
+#endif // CB_CHAKRA_PATH_RESOLVER_H

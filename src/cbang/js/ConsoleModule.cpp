@@ -34,35 +34,46 @@
 
 #include <cbang/log/Logger.h>
 
-using namespace std;
 using namespace cb::js;
+using namespace cb;
+using namespace std;
 
 
-ConsoleModule::ConsoleModule() {
+void ConsoleModule::define(Sink &exports) {
   // TODO Implement other console.* methods
   // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
-  set("log(...)", this, &ConsoleModule::log);
-  set("debug(...)", this, &ConsoleModule::debug);
-  set("warn(...)", this, &ConsoleModule::warn);
-  set("error(...)", this, &ConsoleModule::error);
+  exports.insert("log(...)", this, &ConsoleModule::log);
+  exports.insert("debug(...)", this, &ConsoleModule::debug);
+  exports.insert("warn(...)", this, &ConsoleModule::warn);
+  exports.insert("error(...)", this, &ConsoleModule::error);
 }
 
 
-void ConsoleModule::log(const Arguments &args) {
-  args.write(*CBANG_LOG_INFO_STREAM(1), " ");
+namespace {
+  void print(ostream &stream, const Value &args) {
+    for (unsigned i = 0; i < args.length(); i++) {
+      if (i) stream << ' ';
+      stream << args.getString(i); // TODO Call JSON.stringify()
+    }
+  }
 }
 
 
-void ConsoleModule::debug(const Arguments &args) {
-  args.write(*CBANG_LOG_DEBUG_STREAM(1), " ");
+void ConsoleModule::log(const Value &args, Sink &sink) {
+  print(*CBANG_LOG_INFO_STREAM(1), args);
 }
 
 
-void ConsoleModule::warn(const Arguments &args) {
-  args.write(*CBANG_LOG_WARNING_STREAM(), " ");
+void ConsoleModule::debug(const Value &args, Sink &sink) {
+  print(*CBANG_LOG_DEBUG_STREAM(1), args);
 }
 
 
-void ConsoleModule::error(const Arguments &args) {
-  args.write(*CBANG_LOG_ERROR_STREAM(), " ");
+void ConsoleModule::warn(const Value &args, Sink &sink) {
+  print(*CBANG_LOG_WARNING_STREAM(), args);
+}
+
+
+void ConsoleModule::error(const Value &args, Sink &sink) {
+  print(*CBANG_LOG_ERROR_STREAM(), args);
 }
