@@ -47,7 +47,7 @@ Javascript::Javascript() : impl(0), stdMod(*this) {
 #ifdef HAVE_CHAKRA
   impl = new chakra::JSImpl(*this);
 #else
-  THROW("No Javscript implementation compiled in this library");
+  THROW("No Javscript implementation compiled in");
 #endif
 
   define(stdMod);

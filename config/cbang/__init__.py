@@ -33,7 +33,6 @@ def configure_deps(conf, local = True, with_openssl = True):
     conf.CBConfig('XML', not local)
     conf.CBConfig('sqlite3', not local)
     if conf.CBConfig('event', False): conf.CBConfig('re2', not local)
-    conf.CBConfig('duktape', not local)
 
     if conf.CBCheckLib('leveldb') and conf.CBCheckLib('snappy'):
         conf.CBCheckHome('leveldb')
@@ -115,7 +114,7 @@ def generate(env):
         ('debug_level', 'Set log debug level', 1))
 
     env.CBLoadTools('''sqlite3 boost openssl pthreads valgrind osx zlib bzip2
-        XML chakra event re2 duktape'''.split(), GetHome() + '/..')
+        XML chakra event re2'''.split(), GetHome() + '/..')
 
 
 def exists(env):
