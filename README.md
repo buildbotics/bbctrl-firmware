@@ -67,16 +67,16 @@ For licensing information please see the files LICENSE and COPYING.
 # Prerequisites
 ## General
   - A modern C++ compiler: GNU C++, Intel C++, MSVS
-  - SCons     http://scons.org/
-  - bzip2     http://bzip.org/ (built-in)
-  - zlib      http://zlib.net/ (built-in)
-  - expat     http://expat.sourceforge.net/ (built-in)
-  - sqlite    http://www.sqlite.org/ (built-in)
-  - boost     http://www.boost.org/
-  - openssl   http://www.openssl.org/ (optional)
-  - v8        http://code.google.com/p/v8/ (optional)
-  - libevent  http://libevent.org/ (optional)
-  - mariadb   https://mariadb.org/ (optional)
+  - SCons      http://scons.org/
+  - bzip2      http://bzip.org/ (built-in)
+  - zlib       http://zlib.net/ (built-in)
+  - expat      http://expat.sourceforge.net/ (built-in)
+  - sqlite     http://www.sqlite.org/ (built-in)
+  - boost      http://www.boost.org/
+  - openssl    http://www.openssl.org/ (optional)
+  - ChakraCore https://github.com/Microsoft/ChakraCore/(optional)
+  - libevent   http://libevent.org/ (optional)
+  - mariadb    https://mariadb.org/ (optional)
 
 ## Debug mode only
 
@@ -99,8 +99,11 @@ command line:
 
     sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
       libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev \
-      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev libv8-dev \
+      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev \
       binutils-dev libiberty-dev libmariadbclient-dev git
+
+Unfortunately, at this time, there is no ChakraCore package for Debian.  See
+the build instructions below.
 
 # Build
 
@@ -170,22 +173,33 @@ build system like this:
 Then rebuild C! as above.  Other versions of boost greater or equal to 1.40
 may also work.
 
-## Problems with V8
+## Building ChakraCore
+ChakraCore is the Javascript engine used by the Microsoft Edge browser.  It
+is fast and Open-Source.  It has a simpiler API than Google's v8 which is
+why we've switched to it.  Unfortunately there currently aren't any readily
+available Debian packages for ChakraCore so you will have to build it from
+source.
 
-C! does not work with the latest version of Google's Javascript engine because
-they have made incompatible changes to the API.  C! is known to work with V8
-version 3.14.  You can build from source like this:
+First download the source code:
 
-    svn co http://v8.googlecode.com/svn/branches/3.14 v8
-    cd v8
-    make dependencies
-    make release werror=no
-    mkdir lib
-    cp out/ia32.release/obj.target/tools/gyp/*.a lib
-    export V8_HOME=$PWD
+    git clone --depth=1 https://github.com/CauldronDevelopmentLLC/ChakraCore.git
 
-The build may emit a lot of warnings but *werror=no* prevents the compiler from
-treating them as errors. The last three commands copy the compiled libraries to
-a place where C! can find them and set the environment variable *V8_HOME* to
-point to the build directory.  You must then build C! in the same terminal or
-set *V8_HOME* to the correct value before running scons.
+Then build it:
+
+    cd ChakraCore
+    ./build.sh --static -j 8
+
+Next collect the various libraries it produces in to one:
+
+    mkdir tmp
+    cd tmp
+    for i in $(find ../Build* -name \*.a); do
+      ar x $i
+    done
+    ar rcs ../libChakraCore.a *.o
+    cd ..
+    rm -rf tmp
+
+Now setup the environment so that the C! build system can find ChakraCore:
+
+    export CHAKRA_CORE_HOME=$PWD
