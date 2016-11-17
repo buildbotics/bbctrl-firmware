@@ -23,6 +23,7 @@ def configure(conf):
 
     conf.env.CBDefine('HAVE_CHAKRA')
 
+
 def generate(env):
     env.CBAddConfigTest('chakra', configure)
 

@@ -46,6 +46,7 @@ namespace cb {
     public:
       Function(const SmartPointer<Callback> &callback) : callback(callback) {}
 
+      const std::string &getName() const {return callback->getName();}
       const SmartPointer<Callback> &getCallback() const {return callback;}
 
       // From JSON::Value

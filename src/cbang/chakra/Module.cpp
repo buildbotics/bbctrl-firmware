@@ -30,36 +30,37 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_JAVASCRIPT_H
-#define CB_CHAKRA_JAVASCRIPT_H
+#include "Module.h"
 
-#include "PathResolver.h"
-#include "ConsoleModule.h"
-#include "StdModule.h"
-#include "Impl.h"
-
-#include <cbang/io/InputSource.h>
+using namespace cb::chakra;
+using namespace std;
 
 
-namespace cb {
-  namespace js {
-    class Javascript : public PathResolver, public Impl {
-      SmartPointer<Impl> impl;
-
-      StdModule stdMod;
-      ConsoleModule consoleMod;
-
-    public:
-      Javascript();
-
-      // From Impl
-      void define(Module &mod);
-      void import(const std::string &module,
-                  const std::string &as = std::string());
-      void exec(const InputSource &source);
-      void interrupt();
-    };
-  }
+Module::Module(const string &id, const string &path, JSImpl &impl) :
+  Context(impl), obj(Value::createObject()) {
+  obj.set("id", id);
+  obj.setObject("exports");
+  obj.set("filename", path);
+  obj.set("name", id);
 }
 
-#endif // CB_CHAKRA_JAVASCRIPT_H
+
+Value Module::load(const string &code) {
+  enter();
+
+  string path = obj.getString("filename");
+  Value func =
+    exec(path, "(function (id, require, exports, module) {" + code + "})");
+
+  // Call
+  vector<Value> args;
+  args.push_back(obj.get("exports")); // Function "this"
+  args.push_back(obj.get("id"));
+  args.push_back(Value::getGlobal().get("require"));
+  args.push_back(obj.get("exports"));
+  args.push_back(obj);
+  func.call(args);
+
+  // Return exports
+  return obj.get("exports");
+}

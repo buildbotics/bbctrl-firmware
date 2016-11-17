@@ -30,36 +30,54 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_JAVASCRIPT_H
-#define CB_CHAKRA_JAVASCRIPT_H
+#ifndef CB_CHAKRA_SINK_H
+#define CB_CHAKRA_SINK_H
 
-#include "PathResolver.h"
-#include "ConsoleModule.h"
-#include "StdModule.h"
-#include "Impl.h"
+#include "Value.h"
 
-#include <cbang/io/InputSource.h>
+#include <cbang/js/Sink.h>
 
 
 namespace cb {
-  namespace js {
-    class Javascript : public PathResolver, public Impl {
-      SmartPointer<Impl> impl;
+  namespace chakra {
+    class Sink : public js::Sink {
+      Value root;
 
-      StdModule stdMod;
-      ConsoleModule consoleMod;
+      bool closeList;
+      bool closeDict;
+
+      int index;
+      std::string key;
+      std::vector<Value> stack;
 
     public:
-      Javascript();
+      Sink(const Value &root = Value::getUndefined());
 
-      // From Impl
-      void define(Module &mod);
-      void import(const std::string &module,
-                  const std::string &as = std::string());
-      void exec(const InputSource &source);
-      void interrupt();
-    };
+      Value getRoot() const {return root;}
+
+      // From JSON::NullSink
+      void close();
+      void reset();
+
+      // Element functions
+      void writeNull();
+      void writeBoolean(bool value);
+      void write(double value);
+      void write(const std::string &value);
+      void write(const js::Function &func);
+      void write(const Value &value);
+
+      // List functions
+      void beginList(bool simple = false);
+      void beginAppend();
+      void endList();
+
+      // Dict functions
+      void beginDict(bool simple = false);
+      void beginInsert(const std::string &key);
+      void endDict();
+   };
   }
 }
 
-#endif // CB_CHAKRA_JAVASCRIPT_H
+#endif // CB_CHAKRA_SINK_H

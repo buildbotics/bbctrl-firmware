@@ -34,6 +34,7 @@
 #define CB_JS_CALLBACK_H
 
 #include "Signature.h"
+#include "Value.h"
 
 
 namespace cb {
@@ -48,7 +49,10 @@ namespace cb {
       Callback(const Signature &sig) : sig(sig) {}
       virtual ~Callback() {}
 
-      virtual void operator()(const JSON::Value &args, Sink &sink) {}
+      const std::string &getName() const {return sig.getName();}
+      const Signature &getSignature() const {return sig;}
+
+      virtual void operator()(const Value &args, Sink &sink) {}
     };
   }
 }

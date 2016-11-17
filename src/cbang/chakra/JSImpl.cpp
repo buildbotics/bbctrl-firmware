@@ -32,61 +32,162 @@
 
 #include "JSImpl.h"
 #include "Value.h"
+#include "Sink.h"
+#include "Module.h"
 
+#include <cbang/js/Javascript.h>
 #include <cbang/log/Logger.h>
 #include <cbang/util/DefaultCatch.h>
+#include <cbang/util/SmartFunctor.h>
+#include <cbang/json/JSON.h>
+#include <cbang/os/SystemUtilities.h>
 
 using namespace cb::chakra;
 using namespace cb;
 using namespace std;
 
 
-JSImpl::JSImpl() {
-  JsCreateRuntime(JsRuntimeAttributeNone, 0, &runtime);
-  JsCreateContext(runtime, &context);
-  JsSetCurrentContext(context);
+namespace {
+  extern "C" JsValueRef _require(JsValueRef callee, bool constructor,
+                                 JsValueRef *argv, unsigned short argc,
+                                 void *data) {
+    try {
+      if (argc != 2) THROW("Invalid arguments");
+
+      return ((JSImpl *)data)->require(Value(argv[1]).toString());
+
+    } catch (const Exception &e) {
+      JsSetException(Value::createError(e.getMessage()));
+    }
+
+    return Value::getUndefined();
+  }
+
+
+  extern "C" void _collect(void *data) {LOG_INFO(1, "GC");}
+  extern "C" bool _alloc(void *data, JsMemoryEventType event, size_t size) {
+    LOG_INFO(1, "Alloc(" << event << ", " << size << ")");
+    return true;
+  }
+}
+
+
+JSImpl::JSImpl(js::Javascript &js) : js(js) {
+  CHAKRA_CHECK(JsCreateRuntime(JsRuntimeAttributeNone, 0, &runtime));
+  //JsSetRuntimeBeforeCollectCallback(runtime, 0, _collect);
+  //JsSetRuntimeMemoryAllocationCallback(runtime, 0, _alloc);
+
+  ctx = new Context(*this);
+  common = new ValueRef(Value::createObject());
+
+  common->set("require", Value("require", _require, this));
 }
 
 
 JSImpl::~JSImpl() {
+  common.release();
+  modules.clear();
+  ctx.release();
+  JsSetCurrentContext(JS_INVALID_REFERENCE);
+  JsDisposeRuntime(runtime);
+}
+
+
+JSImpl &JSImpl::current() {return Context::current().getImpl();}
+
+
+Value JSImpl::require(const string &id) {
+  modules_t::iterator it = modules.find(id);
+  if (it != modules.end()) return it->second->getObject().get("exports");
+
+  string path = js.searchPath(id);
+  if (path.empty()) THROWS("Module '" << id << "' not found");
+
+  // Handle package.json
+  if (String::endsWith(path, "/package.json")) {
+    JSON::ValuePtr package = JSON::Reader(path).parse();
+    path = SystemUtilities::absolute(path, package->getString("main"));
+  }
+
+  // Register module
+  SmartPointer<Module> module = new Module(id, path, *this);
+  modules.insert(modules_t::value_type(id, module));
+
+  if (String::endsWith(path, ".json")) {
+    // Read JSON data
+    Value exports = module->getObject().get("exports");
+    Sink sink(exports);
+    JSON::Reader(path).parse(sink);
+    sink.close();
+    return exports;
+
+  } else {
+    // Push path
+    SmartFunctor<js::Javascript>smartPopPath(&js, &js::Javascript::popPath);
+    js.pushPath(path);
+
+    // Read Javscript code
+    string code = SystemUtilities::read(path);
+
+    // Inject common properties
+    Value::getGlobal().copyProperties(*common);
+
+    // Compile & eval
+    return module->load(code);
+  }
+}
+
+
+void JSImpl::enable() {JsEnableRuntimeExecution(runtime);}
+
+
+void JSImpl::define(js::Module &mod) {
+  SmartPointer<Module> module = new Module(mod.getName(), "<native>", *this);
+  modules.insert(modules_t::value_type(mod.getName(), module));
+
   try {
-    JsSetCurrentContext(JS_INVALID_REFERENCE);
-    JsDisposeRuntime(runtime);
+    Sink sink(module->getObject().get("exports"));
+    mod.define(sink);
+    sink.close();
   } CATCH_ERROR;
 }
 
 
-void JSImpl::define(js::Module &mod) {
-}
-
-
 void JSImpl::import(const string &module, const string &as) {
+  modules_t::iterator it = modules.find(module);
+  if (it == modules.end()) return THROWS("Module '" << module << "' not found");
+
+  // Get target object
+  ctx->enter();
+  Value target;
+  if (as.empty()) target = common->setObject(module);
+  else if (as == ".") target = *common;
+  else target = common->setObject(as);
+
+  // Copy properties
+  target.copyProperties(it->second->getObject().get("exports"));
 }
 
 
 void JSImpl::exec(const InputSource &source) {
-  JsEnableRuntimeExecution(runtime);
+  // Inject common properties
+  ctx->enter();
+  Value::getGlobal().copyProperties(*common);
 
   // Execute script
-  Value name(source.getName());
-
-  string s = source.toString();
-  JsValueRef script;
-  CHAKRA_CHECK(JsCreateExternalArrayBuffer
-               ((void *)CPP_TO_C_STR(s), s.length(), 0, 0, &script));
-
-  JsRun(script, 0, name, JsParseScriptAttributeNone, 0);
+  ctx->exec(source.getName(), source.toString());
 
   // Check for errors
   if (Value::hasException()) {
     Value ex = Value::getException();
     ostringstream msg;
 
-    if (ex.has("stack")) msg << ex.get("stack").toString();
-    else if (ex.has("line"))
+    if (ex.isObject() && ex.has("stack")) msg << ex.getString("stack");
+    else if (ex.isObject() && ex.has("line"))
       msg << ex.toString() << "\n  at " << source.getName() << ':'
-          << ex.get("line").toInteger() << ':'
-          << ex.get("column").toInteger();
+          << ex.getInteger("line") << ':'
+          << ex.getInteger("column");
+    else msg << ex.toString();
 
     THROW(msg.str());
   }

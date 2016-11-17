@@ -32,7 +32,10 @@
 
 #include "Javascript.h"
 
+#ifdef HAVE_CHAKRA
 #include <cbang/chakra/JSImpl.h>
+#endif
+
 #include <cbang/util/SmartFunctor.h>
 
 using namespace cb::js;
@@ -40,14 +43,17 @@ using namespace cb;
 using namespace std;
 
 
-Javascript::Javascript() : impl(0) {
+Javascript::Javascript() : impl(0), stdMod(*this) {
 #ifdef HAVE_CHAKRA
-  impl = new chakra::JSImpl;
+  impl = new chakra::JSImpl(*this);
 #else
   THROW("No Javscript implementation compiled in this library");
 #endif
 
+  define(stdMod);
   define(consoleMod);
+
+  import("std", ".");
   import("console");
 }
 

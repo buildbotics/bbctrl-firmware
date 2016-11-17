@@ -30,36 +30,12 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_JAVASCRIPT_H
-#define CB_CHAKRA_JAVASCRIPT_H
+#include "ValueRef.h"
 
-#include "PathResolver.h"
-#include "ConsoleModule.h"
-#include "StdModule.h"
-#include "Impl.h"
+#include <Jsrt/ChakraCore.h>
 
-#include <cbang/io/InputSource.h>
+using namespace cb::chakra;
 
 
-namespace cb {
-  namespace js {
-    class Javascript : public PathResolver, public Impl {
-      SmartPointer<Impl> impl;
-
-      StdModule stdMod;
-      ConsoleModule consoleMod;
-
-    public:
-      Javascript();
-
-      // From Impl
-      void define(Module &mod);
-      void import(const std::string &module,
-                  const std::string &as = std::string());
-      void exec(const InputSource &source);
-      void interrupt();
-    };
-  }
-}
-
-#endif // CB_CHAKRA_JAVASCRIPT_H
+ValueRef::ValueRef(const Value &value) : Value(value) {JsAddRef(ref, 0);}
+ValueRef::~ValueRef() {JsRelease(ref, 0);}

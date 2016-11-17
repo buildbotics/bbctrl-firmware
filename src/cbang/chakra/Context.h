@@ -30,36 +30,35 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_JAVASCRIPT_H
-#define CB_CHAKRA_JAVASCRIPT_H
+#ifndef CB_CHAKRA_CONTEXT_H
+#define CB_CHAKRA_CONTEXT_H
 
-#include "PathResolver.h"
-#include "ConsoleModule.h"
-#include "StdModule.h"
-#include "Impl.h"
+#include "Value.h"
 
-#include <cbang/io/InputSource.h>
+#include <Jsrt/ChakraCore.h>
 
 
 namespace cb {
-  namespace js {
-    class Javascript : public PathResolver, public Impl {
-      SmartPointer<Impl> impl;
+  namespace chakra {
+    class JSImpl;
 
-      StdModule stdMod;
-      ConsoleModule consoleMod;
+    class Context {
+      JSImpl &impl;
+
+      JsContextRef context;
 
     public:
-      Javascript();
+      Context(JSImpl &impl);
 
-      // From Impl
-      void define(Module &mod);
-      void import(const std::string &module,
-                  const std::string &as = std::string());
-      void exec(const InputSource &source);
-      void interrupt();
+      static Context &current();
+      JSImpl &getImpl() {return impl;}
+
+      void enter();
+      void leave();
+
+      Value exec(const std::string &path, const std::string &code);
     };
   }
 }
 
-#endif // CB_CHAKRA_JAVASCRIPT_H
+#endif // CB_CHAKRA_CONTEXT_H

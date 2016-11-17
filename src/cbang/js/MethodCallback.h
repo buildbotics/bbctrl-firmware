@@ -41,7 +41,7 @@ namespace cb {
     template <class T>
     class MethodCallback : public Callback {
     public:
-      typedef void (T::*member_t)(const JSON::Value &args, Sink &sink);
+      typedef void (T::*member_t)(const Value &args, Sink &sink);
 
     protected:
       T *object;
@@ -52,7 +52,7 @@ namespace cb {
         Callback(sig), object(object), member(member) {}
 
       // From Callback
-      void operator()(const JSON::Value &args, Sink &sink) {
+      void operator()(const Value &args, Sink &sink) {
         (*object.*member)(args, sink);
       }
     };

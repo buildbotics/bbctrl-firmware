@@ -50,30 +50,30 @@ void ConsoleModule::define(Sink &exports) {
 
 
 namespace {
-  void print(ostream &stream, const JSON::Value &args) {
-    for (unsigned i = 0; i < args.size(); i++) {
+  void print(ostream &stream, const Value &args) {
+    for (unsigned i = 0; i < args.length(); i++) {
       if (i) stream << ' ';
-      stream << *args.get(i);
+      stream << args.getString(i); // TODO Call JSON.stringify()
     }
   }
 }
 
 
-void ConsoleModule::log(const JSON::Value &args, Sink &sink) {
+void ConsoleModule::log(const Value &args, Sink &sink) {
   print(*CBANG_LOG_INFO_STREAM(1), args);
 }
 
 
-void ConsoleModule::debug(const JSON::Value &args, Sink &sink) {
+void ConsoleModule::debug(const Value &args, Sink &sink) {
   print(*CBANG_LOG_DEBUG_STREAM(1), args);
 }
 
 
-void ConsoleModule::warn(const JSON::Value &args, Sink &sink) {
+void ConsoleModule::warn(const Value &args, Sink &sink) {
   print(*CBANG_LOG_WARNING_STREAM(), args);
 }
 
 
-void ConsoleModule::error(const JSON::Value &args, Sink &sink) {
+void ConsoleModule::error(const Value &args, Sink &sink) {
   print(*CBANG_LOG_ERROR_STREAM(), args);
 }

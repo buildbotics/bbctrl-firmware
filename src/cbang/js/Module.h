@@ -30,11 +30,10 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_MODULE_H
-#define CB_CHAKRA_MODULE_H
+#ifndef CB_JS_MODULE_H
+#define CB_JS_MODULE_H
 
 #include "Sink.h"
-#include <cbang/json/JSON.h>
 
 
 namespace cb {
@@ -49,4 +48,4 @@ namespace cb {
   }
 }
 
-#endif // CB_CHAKRA_MODULE_H
+#endif // CB_JS_MODULE_H

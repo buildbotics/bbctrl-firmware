@@ -45,10 +45,10 @@ namespace cb {
       void define(Sink &exports);
 
       // Callbacks
-      void log(const JSON::Value &args, Sink &sink);
-      void debug(const JSON::Value &args, Sink &sink);
-      void warn(const JSON::Value &args, Sink &sink);
-      void error(const JSON::Value &args, Sink &sink);
+      void log(const Value &args, Sink &sink);
+      void debug(const Value &args, Sink &sink);
+      void warn(const Value &args, Sink &sink);
+      void error(const Value &args, Sink &sink);
     };
   }
 }

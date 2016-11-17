@@ -30,34 +30,55 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_SINK_H
-#define CB_JS_SINK_H
-
-#include "Function.h"
-#include "MethodCallback.h"
+#ifndef CB_JS_VALUE_H
+#define CB_JS_VALUE_H
 
 #include <cbang/SmartPointer.h>
-#include <cbang/json/NullSink.h>
 
 
 namespace cb {
   namespace js {
-    class Sink : public JSON::NullSink {
+    class Value {
     public:
-      // From JSON::Sink
-      using JSON::NullSink::insert;
-      using JSON::NullSink::write;
+      virtual ~Value() {}
 
-      virtual void write(const Function &func) = 0;
+      virtual bool isArray() const {return false;}
+      virtual bool isBoolean() const {return false;}
+      virtual bool isFunction() const {return false;}
+      virtual bool isNull() const {return false;}
+      virtual bool isNumber() const {return false;}
+      virtual bool isObject() const {return false;}
+      virtual bool isString() const {return false;}
+      virtual bool isUndefined() const {return false;}
 
-      template <class T>
-      void insert(const Signature &sig, T *obj,
-                  typename MethodCallback<T>::member_t member) {
-        beginInsert(sig.getName());
-        write(Function(new MethodCallback<T>(sig, obj, member)));
-      }
+      virtual bool toBoolean() const = 0;
+      virtual int toInteger() const = 0;
+      virtual double toNumber() const = 0;
+      virtual std::string toString() const = 0;
+
+      virtual unsigned length() const = 0;
+      virtual SmartPointer<Value> get(int i) const = 0;
+
+      virtual bool has(const std::string &key) const = 0;
+      virtual SmartPointer<Value> get(const std::string &key) const = 0;
+
+      // Array accessors
+      bool getBoolean(int i) const {return get(i)->toBoolean();}
+      int getInteger(int i) const {return get(i)->toInteger();}
+      double getNumber(int i) const {return get(i)->toNumber();}
+      std::string getString(int i) const {return get(i)->toString();}
+
+      // Object accessors
+      bool getBoolean(const std::string &key) const
+      {return get(key)->toBoolean();}
+      int getInteger(const std::string &key) const
+      {return get(key)->toInteger();}
+      double getNumber(const std::string &key) const
+      {return get(key)->toNumber();}
+      std::string getString(const std::string &key) const
+      {return get(key)->toString();}
     };
   }
 }
 
-#endif // CB_JS_SINK_H
+#endif // CB_JS_VALUE_H

@@ -30,36 +30,45 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_JAVASCRIPT_H
-#define CB_CHAKRA_JAVASCRIPT_H
+#include "Context.h"
+#include "JSImpl.h"
 
-#include "PathResolver.h"
-#include "ConsoleModule.h"
-#include "StdModule.h"
-#include "Impl.h"
+#include <string.h>
 
-#include <cbang/io/InputSource.h>
+using namespace cb::chakra;
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  namespace js {
-    class Javascript : public PathResolver, public Impl {
-      SmartPointer<Impl> impl;
-
-      StdModule stdMod;
-      ConsoleModule consoleMod;
-
-    public:
-      Javascript();
-
-      // From Impl
-      void define(Module &mod);
-      void import(const std::string &module,
-                  const std::string &as = std::string());
-      void exec(const InputSource &source);
-      void interrupt();
-    };
-  }
+Context::Context(JSImpl &impl) : impl(impl) {
+  CHAKRA_CHECK(JsCreateContext(impl.getRuntime(), &context));
+  CHAKRA_CHECK(JsSetContextData(context, this));
+  enter();
 }
 
-#endif // CB_CHAKRA_JAVASCRIPT_H
+
+Context &Context::current() {
+  JsContextRef ref;
+  CHAKRA_CHECK(JsGetCurrentContext(&ref));
+
+  Context *ctx;
+  CHAKRA_CHECK(JsGetContextData(ref, (void **)&ctx));
+
+  return *ctx;
+}
+
+
+void Context::enter() {CHAKRA_CHECK(JsSetCurrentContext(context));}
+void Context::leave() {JsSetCurrentContext(JS_INVALID_REFERENCE);}
+
+
+Value Context::exec(const string &path, const string &code) {
+  impl.enable();
+  enter();
+
+  JsValueRef result;
+  JsRun(Value::createArrayBuffer(code), 0, Value(path),
+        JsParseScriptAttributeNone, &result);
+
+  return result;
+}
