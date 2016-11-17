@@ -30,6 +30,44 @@
 
 \******************************************************************************/
 
-#include "Value.h"
+#ifndef CB_CHAKRA_VALUE_H
+#define CB_CHAKRA_VALUE_H
 
-using namespace cb::js;
+#include <cbang/Exception.h>
+
+#include <string>
+
+
+namespace cb {
+  namespace chakra {
+    class Value {
+      void *ref;
+
+    public:
+      Value(void *ref) : ref(ref) {}
+      Value(const std::string &value);
+
+      std::string toString() const;
+      int toInteger() const;
+
+      bool has(const std::string &key) const;
+      Value get(const std::string &key) const;
+
+      operator void * () const {return ref;}
+
+      static bool hasException();
+      static Value getException();
+    };
+  }
+}
+
+
+#define CHAKRA_CHECK(CMD)                                           \
+  do {                                                              \
+    JsErrorCode err = CMD;                                          \
+    if (err != JsNoError)                                           \
+      THROWS(#CMD << " failed with 0x" << std::hex << err);         \
+  } while (0)
+
+
+#endif // CB_CHAKRA_VALUE_H

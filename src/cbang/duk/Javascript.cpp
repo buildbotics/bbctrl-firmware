@@ -56,8 +56,6 @@ Javascript::Javascript() {
 
   pushPath(SystemUtilities::getcwd());
   addSearchExtensions("/package.json .js .json");
-
-  define(consoleMod);
 }
 
 

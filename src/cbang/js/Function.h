@@ -33,13 +33,14 @@
 #ifndef CB_JS_FUNCTION_H
 #define CB_JS_FUNCTION_H
 
-#include "Value.h"
 #include "Callback.h"
+
+#include <cbang/json/Value.h>
 
 
 namespace cb {
   namespace js {
-    class Function : public Value {
+    class Function : public JSON::Value {
       SmartPointer<Callback> callback;
 
     public:
@@ -48,6 +49,7 @@ namespace cb {
       const SmartPointer<Callback> &getCallback() const {return callback;}
 
       // From JSON::Value
+      JSON::ValueType getType() const {return JSON_UNDEFINED;}
       JSON::ValuePtr copy(bool deep = false) const;
       bool canWrite(JSON::Sink &sink) const;
       void write(JSON::Sink &sink) const;

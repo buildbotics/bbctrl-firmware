@@ -47,7 +47,7 @@ string Signature::toString() const {
 
   for (unsigned i = 0; i < size(); i++) {
     const string &key = keyAt(i);
-    const Value &value = *get(i);
+    const JSON::Value &value = *get(i);
 
     if (i) s += ", ";
     s += key;

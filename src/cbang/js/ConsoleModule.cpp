@@ -30,20 +30,50 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_VALUE_H
-#define CB_JS_VALUE_H
+#include "ConsoleModule.h"
 
-#include <cbang/json/JSON.h>
+#include <cbang/log/Logger.h>
+
+using namespace cb::js;
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  namespace js {
-    class Value : public JSON::Value {
-    public:
-      // From JSON::Value
-      JSON::ValueType getType() const {return JSON_UNDEFINED;}
-    };
+void ConsoleModule::define(Sink &exports) {
+  // TODO Implement other console.* methods
+  // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
+  exports.insert("log(...)", this, &ConsoleModule::log);
+  exports.insert("debug(...)", this, &ConsoleModule::debug);
+  exports.insert("warn(...)", this, &ConsoleModule::warn);
+  exports.insert("error(...)", this, &ConsoleModule::error);
+}
+
+
+namespace {
+  void print(ostream &stream, const JSON::Value &args) {
+    for (unsigned i = 0; i < args.size(); i++) {
+      if (i) stream << ' ';
+      stream << *args.get(i);
+    }
   }
 }
 
-#endif // CB_JS_VALUE_H
+
+void ConsoleModule::log(const JSON::Value &args, Sink &sink) {
+  print(*CBANG_LOG_INFO_STREAM(1), args);
+}
+
+
+void ConsoleModule::debug(const JSON::Value &args, Sink &sink) {
+  print(*CBANG_LOG_DEBUG_STREAM(1), args);
+}
+
+
+void ConsoleModule::warn(const JSON::Value &args, Sink &sink) {
+  print(*CBANG_LOG_WARNING_STREAM(), args);
+}
+
+
+void ConsoleModule::error(const JSON::Value &args, Sink &sink) {
+  print(*CBANG_LOG_ERROR_STREAM(), args);
+}

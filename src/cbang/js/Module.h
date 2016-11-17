@@ -34,7 +34,7 @@
 #define CB_CHAKRA_MODULE_H
 
 #include "Sink.h"
-#include "Value.h"
+#include <cbang/json/JSON.h>
 
 
 namespace cb {

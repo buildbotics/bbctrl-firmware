@@ -44,7 +44,8 @@ namespace cb {
     public:
       virtual ~Impl() {}
 
-      virtual void importGlobal(const std::string &module) = 0;
+      virtual void define(Module &mod) = 0;
+      virtual void import(const std::string &module, const std::string &as) = 0;
       virtual void exec(const InputSource &source) = 0;
       virtual void interrupt() = 0;
     };

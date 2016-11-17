@@ -30,50 +30,27 @@
 
 \******************************************************************************/
 
-#include "ConsoleModule.h"
+#ifndef CB_JS_CONSOLE_MODULE_H
+#define CB_JS_CONSOLE_MODULE_H
 
-#include <cbang/log/Logger.h>
-
-using namespace cb::duk;
-using namespace cb;
-using namespace std;
+#include "Module.h"
 
 
-void ConsoleModule::define(Object &exports) {
-  // TODO Implement other console.* methods
-  // See: https://developer.mozilla.org/en-US/docs/Web/API/Console
-  exports.set("log(...)", this, &ConsoleModule::log);
-  exports.set("debug(...)", this, &ConsoleModule::debug);
-  exports.set("warn(...)", this, &ConsoleModule::warn);
-  exports.set("error(...)", this, &ConsoleModule::error);
-}
+namespace cb {
+  namespace js {
+    class ConsoleModule : public Module {
+    public:
+      // From Module
+      const char *getName() const {return "console";}
+      void define(Sink &exports);
 
-
-namespace {
-  void print(ostream &stream, Arguments &args) {
-    for (unsigned i = 0; i < args.size(); i++) {
-      if (i) stream << ' ';
-      stream << *args.get(i);
-    }
+      // Callbacks
+      void log(const JSON::Value &args, Sink &sink);
+      void debug(const JSON::Value &args, Sink &sink);
+      void warn(const JSON::Value &args, Sink &sink);
+      void error(const JSON::Value &args, Sink &sink);
+    };
   }
 }
 
-
-void ConsoleModule::log(Arguments &args, JSON::Sink &sink) {
-  print(*CBANG_LOG_INFO_STREAM(1), args);
-}
-
-
-void ConsoleModule::debug(Arguments &args, JSON::Sink &sink) {
-  print(*CBANG_LOG_DEBUG_STREAM(1), args);
-}
-
-
-void ConsoleModule::warn(Arguments &args, JSON::Sink &sink) {
-  print(*CBANG_LOG_WARNING_STREAM(), args);
-}
-
-
-void ConsoleModule::error(Arguments &args, JSON::Sink &sink) {
-  print(*CBANG_LOG_ERROR_STREAM(), args);
-}
+#endif // CB_JS_CONSOLE_MODULE_H

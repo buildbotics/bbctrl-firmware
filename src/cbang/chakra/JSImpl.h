@@ -30,27 +30,31 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CONSOLE_MODULE_H
-#define CB_JS_CONSOLE_MODULE_H
+#ifndef CB_CHAKRA_JSIMPL_H
+#define CB_CHAKRA_JSIMPL_H
 
-#include "Module.h"
+#include <cbang/js/Impl.h>
+
+#include <Jsrt/ChakraCore.h>
 
 
 namespace cb {
-  namespace duk {
-    class ConsoleModule : public Module {
-    public:
-      // From Module
-      const char *getName() const {return "console";}
-      void define(Object &exports);
+  namespace chakra {
+    class JSImpl : public js::Impl {
+      JsRuntimeHandle runtime;
+      JsContextRef context;
 
-      // Callbacks
-      void log(Arguments &args, JSON::Sink &sink);
-      void debug(Arguments &args, JSON::Sink &sink);
-      void warn(Arguments &args, JSON::Sink &sink);
-      void error(Arguments &args, JSON::Sink &sink);
+    public:
+      JSImpl();
+      ~JSImpl();
+
+      // From js::Impl
+      void define(js::Module &mod);
+      void import(const std::string &module, const std::string &as);
+      void exec(const InputSource &source);
+      void interrupt();
     };
   }
 }
 
-#endif // CB_JS_CONSOLE_MODULE_H
+#endif // CB_CHAKRA_JSIMPL_H

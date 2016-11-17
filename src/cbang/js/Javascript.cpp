@@ -32,6 +32,7 @@
 
 #include "Javascript.h"
 
+#include <cbang/chakra/JSImpl.h>
 #include <cbang/util/SmartFunctor.h>
 
 using namespace cb::js;
@@ -39,20 +40,31 @@ using namespace cb;
 using namespace std;
 
 
-void Javascript::define(Module &mod) {
+Javascript::Javascript() : impl(0) {
+#ifdef HAVE_CHAKRA
+  impl = new chakra::JSImpl;
+#else
+  THROW("No Javscript implementation compiled in this library");
+#endif
+
+  define(consoleMod);
+  import("console");
 }
 
 
-void Javascript::importGlobal(const string &module) {
+void Javascript::define(Module &mod) {impl->define(mod);}
+
+
+void Javascript::import(const string &module, const string &as) {
+  impl->import(module, as);
 }
 
 
 void Javascript::exec(const InputSource &source) {
   pushPath(source.getName());
   SmartFunctor<Javascript> popPath(this, &Javascript::popPath);
-
-  // TODO execute script
+  impl->exec(source);
 }
 
 
-void Javascript::interrupt() {}
+void Javascript::interrupt() {impl->interrupt();}

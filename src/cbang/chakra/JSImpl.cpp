@@ -30,23 +30,67 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_CONTEXT_H
-#define CB_CHAKRA_CONTEXT_H
+#include "JSImpl.h"
+#include "Value.h"
 
-#include <cbang/io/InputSource.h>
+#include <cbang/log/Logger.h>
+#include <cbang/util/DefaultCatch.h>
+
+using namespace cb::chakra;
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-  namespace js {
-    class Context {
-      struct private_t;
-      private_t *p;
+JSImpl::JSImpl() {
+  JsCreateRuntime(JsRuntimeAttributeNone, 0, &runtime);
+  JsCreateContext(runtime, &context);
+  JsSetCurrentContext(context);
+}
 
-    public:
-      Context();
-      ~Context();
-    };
+
+JSImpl::~JSImpl() {
+  try {
+    JsSetCurrentContext(JS_INVALID_REFERENCE);
+    JsDisposeRuntime(runtime);
+  } CATCH_ERROR;
+}
+
+
+void JSImpl::define(js::Module &mod) {
+}
+
+
+void JSImpl::import(const string &module, const string &as) {
+}
+
+
+void JSImpl::exec(const InputSource &source) {
+  JsEnableRuntimeExecution(runtime);
+
+  // Execute script
+  Value name(source.getName());
+
+  string s = source.toString();
+  JsValueRef script;
+  CHAKRA_CHECK(JsCreateExternalArrayBuffer
+               ((void *)CPP_TO_C_STR(s), s.length(), 0, 0, &script));
+
+  JsRun(script, 0, name, JsParseScriptAttributeNone, 0);
+
+  // Check for errors
+  if (Value::hasException()) {
+    Value ex = Value::getException();
+    ostringstream msg;
+
+    if (ex.has("stack")) msg << ex.get("stack").toString();
+    else if (ex.has("line"))
+      msg << ex.toString() << "\n  at " << source.getName() << ':'
+          << ex.get("line").toInteger() << ':'
+          << ex.get("column").toInteger();
+
+    THROW(msg.str());
   }
 }
 
-#endif // CB_CHAKRA_CONTEXT_H
+
+void JSImpl::interrupt() {JsDisableRuntimeExecution(runtime);}

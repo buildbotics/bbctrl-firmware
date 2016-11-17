@@ -34,17 +34,26 @@
 #define CB_CHAKRA_JAVASCRIPT_H
 
 #include "PathResolver.h"
-#include "Module.h"
+#include "ConsoleModule.h"
+#include "Impl.h"
 
 #include <cbang/io/InputSource.h>
 
 
 namespace cb {
   namespace js {
-    class Javascript : public PathResolver {
+    class Javascript : public PathResolver, public Impl {
+      SmartPointer<Impl> impl;
+
+      ConsoleModule consoleMod;
+
     public:
+      Javascript();
+
+      // From Impl
       void define(Module &mod);
-      void importGlobal(const std::string &module);
+      void import(const std::string &module,
+                  const std::string &as = std::string());
       void exec(const InputSource &source);
       void interrupt();
     };

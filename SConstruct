@@ -70,10 +70,10 @@ subdirs = [
     '', 'script', 'xml', 'util', 'debug', 'config', 'pyon', 'os', 'http',
     'macro', 'log', 'iostream', 'time', 'enum', 'packet', 'net', 'buffer',
     'socket', 'tar', 'io', 'geom', 'parse', 'task', 'json', 'jsapi', 'db',
-    'auth', 'duk']
+    'auth', 'js']
 
 if env.CBConfigEnabled('openssl'): subdirs.append('openssl')
-if env.CBConfigEnabled('chakra'): subdirs.append('js')
+if env.CBConfigEnabled('chakra'): subdirs.append('chakra')
 if env.CBConfigEnabled('mariadb'): subdirs.append('db/maria')
 if env.CBConfigEnabled('libevent') or lib not in disable_local:
     subdirs.append('event')

@@ -30,30 +30,75 @@
 
 \******************************************************************************/
 
-#include "Context.h"
+#include "Value.h"
+
+#include <cbang/String.h>
 
 #include <Jsrt/ChakraCore.h>
 
-using namespace cb::js;
-using namespace cb;
+using namespace cb::chakra;
+using namespace std;
 
 
-struct Context::private_t {
-  JsRuntimeHandle runtime;
-  JsContextRef context;
-};
-
-
-Context::Context() : p(new Context::private_t) {
-  JsCreateRuntime(JsRuntimeAttributeNone, 0, &p->runtime);
-  JsCreateContext(p->runtime, &p->context);
-  JsSetCurrentContext(p->context);
+namespace {
+  JsPropertyIdRef getPropID(const string &key) {
+    JsPropertyIdRef id;
+    CHAKRA_CHECK(JsCreatePropertyIdUtf8(CPP_TO_C_STR(key), key.length(), &id));
+    return id;
+  }
 }
 
 
-Context::~Context() {
-  JsSetCurrentContext(JS_INVALID_REFERENCE);
-  JsDisposeRuntime(p->runtime);
+Value::Value(const string &value) {
+  CHAKRA_CHECK(JsCreateStringUtf8
+               ((uint8_t *)CPP_TO_C_STR(value), value.length(), &ref));
+}
 
-  delete p;
+
+string Value::toString() const {
+  JsValueRef strRef;
+  CHAKRA_CHECK(JsConvertValueToString(ref, &strRef));
+
+  size_t size;
+  CHAKRA_CHECK(JsCopyStringUtf8(strRef, 0, 0, &size));
+
+  SmartPointer<char>::Array buffer = new char[size];
+  CHAKRA_CHECK(JsCopyStringUtf8(strRef, (uint8_t *)buffer.get(), size, 0));
+
+  return string(buffer.get(), size);
+}
+
+
+int Value::toInteger() const {
+  int x;
+  CHAKRA_CHECK(JsNumberToInt(ref, &x));
+  return x;
+}
+
+
+bool Value::has(const string &key) const {
+  bool x;
+  CHAKRA_CHECK(JsHasProperty(ref, getPropID(key), &x));
+  return x;
+}
+
+
+Value Value::get(const string &key) const {
+  JsValueRef propRef;
+  CHAKRA_CHECK(JsGetProperty(ref, getPropID(key), &propRef));
+  return Value(propRef);
+}
+
+
+bool Value::hasException() {
+  bool x = false;
+  CHAKRA_CHECK(JsHasException(&x));
+  return x;
+}
+
+
+Value Value::getException() {
+  JsValueRef ex;
+  CHAKRA_CHECK(JsGetAndClearException(&ex));
+  return Value(ex);
 }

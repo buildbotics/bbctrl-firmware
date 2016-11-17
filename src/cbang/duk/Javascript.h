@@ -34,14 +34,11 @@
 #define CB_DUK_JAVASCRIPT_H
 
 #include "Context.h"
-#include "ConsoleModule.h"
 
 
 namespace cb {
   namespace duk {
     class Javascript : public Context {
-      ConsoleModule consoleMod;
-
       std::vector<std::string> pathStack;
       std::vector<std::string> searchExts;
       std::vector<std::string> searchPaths;

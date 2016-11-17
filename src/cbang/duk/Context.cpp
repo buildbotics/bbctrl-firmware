@@ -38,6 +38,7 @@
 #include "SmartPop.h"
 
 #include <cbang/Exception.h>
+#include <cbang/String.h>
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/log/Logger.h>
 #include <cbang/json/Builder.h>
@@ -48,13 +49,6 @@
 using namespace cb;
 using namespace cb::duk;
 using namespace std;
-
-
-#if defined(_WIN32) && !defined(__MINGW32__)
-#define CPP_TO_C_STR(x) (x).c_str()
-#else
-#define CPP_TO_C_STR(x) (x).data()
-#endif
 
 
 namespace {

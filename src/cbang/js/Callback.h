@@ -39,7 +39,6 @@
 namespace cb {
   namespace js {
     class Sink;
-    class Value;
     class Context;
 
     class Callback {
@@ -49,7 +48,7 @@ namespace cb {
       Callback(const Signature &sig) : sig(sig) {}
       virtual ~Callback() {}
 
-      virtual void operator()(const Value &args, Sink &sink) {}
+      virtual void operator()(const JSON::Value &args, Sink &sink) {}
     };
   }
 }
