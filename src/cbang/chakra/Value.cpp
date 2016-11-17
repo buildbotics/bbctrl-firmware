@@ -371,6 +371,13 @@ Value Value::createError(const string &msg) {
 }
 
 
+Value Value::createSyntaxError(const string &msg) {
+  JsValueRef ref;
+  CHAKRA_CHECK(JsCreateSyntaxError(Value(msg), &ref));
+  return ref;
+}
+
+
 const char *Value::errorToString(int error) {
   switch (error) {
   case JsNoError: return "No error";

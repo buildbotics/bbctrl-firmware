@@ -117,3 +117,8 @@ string PathResolver::searchPath(const string &path) const {
 
   return "";
 }
+
+
+string PathResolver::relativePath(const string &path) const {
+  return SystemUtilities::absolute(getCurrentPath(), path);
+}

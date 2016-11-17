@@ -62,6 +62,7 @@ namespace cb {
       std::vector<std::string> &getSearchPaths() {return searchPaths;}
       void clearSearchPaths() {searchPaths.clear();}
       std::string searchPath(const std::string &path) const;
+      std::string relativePath(const std::string &path) const;
     };
   }
 }

@@ -110,6 +110,7 @@ namespace cb {
       static Value createArrayBuffer(const std::string &s);
       static Value createObject();
       static Value createError(const std::string &msg);
+      static Value createSyntaxError(const std::string &msg);
 
       static const char *errorToString(int error);
     };
