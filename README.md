@@ -68,14 +68,9 @@ For licensing information please see the files LICENSE and COPYING.
 ## General
   - A modern C++ compiler: GNU C++, Intel C++, MSVS
   - SCons      http://scons.org/
-  - bzip2      http://bzip.org/ (built-in)
-  - zlib       http://zlib.net/ (built-in)
-  - expat      http://expat.sourceforge.net/ (built-in)
-  - sqlite     http://www.sqlite.org/ (built-in)
   - boost      http://www.boost.org/
   - openssl    http://www.openssl.org/ (optional)
   - ChakraCore https://github.com/Microsoft/ChakraCore/ (optional)
-  - libevent   http://libevent.org/ (optional)
   - mariadb    https://mariadb.org/ (optional)
 
 ## Debug mode only
@@ -97,10 +92,9 @@ For licensing information please see the files LICENSE and COPYING.
 On Debian based systems the prerequisites can be installed with the following
 command line:
 
-    sudo apt-get install scons build-essential libbz2-dev zlib1g-dev \
-      libexpat1-dev libssl-dev libboost-iostreams-dev libboost-system-dev \
-      libboost-filesystem-dev libboost-regex-dev libsqlite3-dev \
-      binutils-dev libiberty-dev libmariadbclient-dev git
+    sudo apt-get install scons build-essential libssl-dev \
+      libboost-iostreams-dev libboost-system-dev libboost-filesystem-dev \
+      libboost-regex-dev binutils-dev libiberty-dev libmariadbclient-dev git
 
 Unfortunately, at this time, there is no ChakraCore package for Debian.  See
 the build instructions below.
@@ -173,7 +167,18 @@ build system like this:
 Then rebuild C! as above.  Other versions of boost greater or equal to 1.40
 may also work.
 
-## Building ChakraCore
+## ChakraCore
+
+You can either download a prebuilt ChakraCore or build it yourself.  Currently
+we require a fork of ChakraCore which includes some fixes.
+
+### Windows Binaries
+
+You can find windows binaries of ChakraCore here:
+https://github.com/CauldronDevelopmentLLC/ChakraCore/releases/tag/v2.0.0.1
+
+### Building ChakraCore
+
 ChakraCore is the Javascript engine used by the Microsoft Edge browser.  It
 is fast and Open-Source.  It has a simpiler API than Google's v8 which is
 why we've switched to it.  Unfortunately there currently aren't any readily
