@@ -32,7 +32,7 @@
 
 #include "ValueRef.h"
 
-#include <Jsrt/ChakraCore.h>
+#include <ChakraCore.h>
 
 using namespace cb::chakra;
 

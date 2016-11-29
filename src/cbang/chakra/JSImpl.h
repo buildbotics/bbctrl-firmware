@@ -40,7 +40,7 @@
 #include <cbang/js/Impl.h>
 #include <cbang/js/Callback.h>
 
-#include <Jsrt/ChakraCore.h>
+#include <ChakraCore.h>
 
 #include <vector>
 #include <map>

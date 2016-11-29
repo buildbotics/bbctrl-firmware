@@ -3,9 +3,10 @@ import platform
 
 
 def configure(conf):
-    conf.CBCheckHome('chakra_core', lib_suffix = ['/'], inc_suffix = '/lib')
+    conf.CBCheckHome('chakra_core', lib_suffix = ['/'],
+                     inc_suffix = ['/lib/Jsrt', '/include'])
 
-    conf.CBRequireCHeader('Jsrt/ChakraCore.h')
+    conf.CBRequireCHeader('ChakraCore.h')
 
     conf.CBRequireLib('stdc++')
     conf.CBRequireLib('m')

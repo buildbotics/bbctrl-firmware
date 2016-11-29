@@ -35,7 +35,7 @@
 
 #include "Value.h"
 
-#include <Jsrt/ChakraCore.h>
+#include <ChakraCore.h>
 
 
 namespace cb {

@@ -37,7 +37,7 @@
 #include <cbang/String.h>
 #include <cbang/log/Logger.h>
 
-#include <Jsrt/ChakraCore.h>
+#include <ChakraCore.h>
 
 #include <string.h>
 
