@@ -74,7 +74,7 @@ For licensing information please see the files LICENSE and COPYING.
   - sqlite     http://www.sqlite.org/ (built-in)
   - boost      http://www.boost.org/
   - openssl    http://www.openssl.org/ (optional)
-  - ChakraCore https://github.com/Microsoft/ChakraCore/(optional)
+  - ChakraCore https://github.com/Microsoft/ChakraCore/ (optional)
   - libevent   http://libevent.org/ (optional)
   - mariadb    https://mariadb.org/ (optional)
 
