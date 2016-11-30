@@ -42,7 +42,7 @@ namespace cb {
 
     class StdModule : public Module {
     public:
-      StdModule(Javascript &js) : js(js) {}
+      StdModule(Javascript &js) {}
 
       // From Module
       const char *getName() const {return "std";}
