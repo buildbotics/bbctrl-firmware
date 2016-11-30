@@ -38,5 +38,4 @@ using namespace cb;
 using namespace std;
 
 
-void StdModule::define(Sink &exports) {
-}
+void StdModule::define(Sink &exports) {}

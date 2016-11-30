@@ -41,8 +41,6 @@ namespace cb {
     class Javascript;
 
     class StdModule : public Module {
-      Javascript &js;
-
     public:
       StdModule(Javascript &js) : js(js) {}
 
