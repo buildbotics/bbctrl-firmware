@@ -185,6 +185,14 @@ why we've switched to it.  Unfortunately there currently aren't any readily
 available Debian packages for ChakraCore so you will have to build it from
 source.
 
+First make sure you have the prerequisites:
+
+    sudo apt-get install -y cmake clang libunwind-dev libicu-dev
+
+You need at least cmake 3.2 and clang 3.8.  If your system doesn't have these
+then you need to build them from source.
+
+
 First download the source code:
 
     git clone --depth=1 https://github.com/CauldronDevelopmentLLC/ChakraCore.git
