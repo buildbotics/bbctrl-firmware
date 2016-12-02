@@ -264,9 +264,12 @@ def on_config_finish(conf):
     env = conf.env
     for cb in env.cb_finish_cbs: cb(env)
     conf.OrigFinish()
+    if env.get('gen_ninja', False): env.GenerateNinja()
 
 
 def CBConfigure(env):
+    env.CBLoadTool('ninja')
+
     conf = Configure(env)
 
     for name, test in env.cb_tests.items():
