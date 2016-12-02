@@ -45,7 +45,13 @@ def configure_deps(conf, local = True, with_openssl = True):
         env.CBDefine('HAVE_MARIADB')
         env.cb_enabled.add('mariadb')
 
-    if not ConfigBoost(conf) and not local:
+    if ConfigBoost(conf):
+        disable_local = env.get('disable_local', [])
+        if isinstance(disable_local, str): disable_local = disable_local.split()
+        disable_local.append('boost')
+        env.Replace(disable_local = disable_local)
+
+    elif not local:
         env.ConfigLocalBoost()
         ConfigBoost(conf, True)
 
