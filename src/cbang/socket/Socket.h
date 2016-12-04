@@ -116,7 +116,7 @@ namespace cb {
     /// Close an open connection.
     virtual void close() {impl->close();}
 
-    virtual int get() const {return impl->get();}
+    virtual socket_t get() const {return impl->get();}
   };
 }
 
