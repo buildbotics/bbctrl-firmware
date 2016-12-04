@@ -46,15 +46,15 @@ def GenerateNinjaFile(env, dest_file):
 
   def CustomCommandPrinter(cmd, targets, source, env):
     if len(targets) != 1:
-        sys.stderr.write('Skipping multi-file target: %s from %s\n' % (
-                repr(map(str, targets)), repr(map(str, source))))
-        return
+      sys.stderr.write('Ninja build: Skipping multi-file target: '
+                       '%s from %s\n' % (
+          repr(map(str, targets)), repr(map(str, source))))
+      return
 
     node = targets[0]
     # There can sometimes be multiple commands per target (e.g. ar+ranlib).
     # We must collect these together to output a single Ninja rule.
-    if node not in node_map:
-      node_list.append(node)
+    if node not in node_map: node_list.append(node)
     node_map.setdefault(node, []).append(cmd)
 
   env.Append(PRINT_CMD_LINE_FUNC = CustomCommandPrinter)
@@ -91,7 +91,8 @@ rule install
                          % (dest_path, ' '.join(deps)))
           continue
         else:
-          sys.stderr.write('Unknown FunctionAction, %r: skipping target %r\n'
+          sys.stderr.write('Ninja build: Unknown FunctionAction, '
+                           '%r: skipping target %r\n'
                            % (funcname, dest_path))
           continue
 
