@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include <openssl/bio.h>
+#include <openssl/opensslv.h>
 
 using namespace cb;
 

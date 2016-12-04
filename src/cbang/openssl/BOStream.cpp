@@ -33,6 +33,7 @@
 #include "BOStream.h"
 
 #include <openssl/bio.h>
+#include <openssl/opensslv.h>
 
 using namespace cb;
 using namespace std;

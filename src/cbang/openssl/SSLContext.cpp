@@ -50,6 +50,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 #include <openssl/x509_vfy.h>
+#include <openssl/opensslv.h>
 
 using namespace std;
 using namespace cb;

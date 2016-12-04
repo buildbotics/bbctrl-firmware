@@ -36,6 +36,7 @@
 #include <cbang/log/Logger.h>
 
 #include <openssl/bio.h>
+#include <openssl/opensslv.h>
 
 #include <string.h>
 

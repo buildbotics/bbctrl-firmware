@@ -6,10 +6,12 @@ def configure(conf):
     conf.CBCheckHome('chakra_core', lib_suffix = ['/'],
                      inc_suffix = ['/lib/Jsrt', '/include'])
 
-    conf.CBRequireCHeader('ChakraCore.h')
+    conf.CBRequireCXXHeader('ChakraCore.h')
 
-    conf.CBRequireLib('stdc++')
-    conf.CBRequireLib('m')
+    if conf.env['PLATFORM'] != 'win32':
+        conf.CBRequireLib('stdc++')
+        conf.CBRequireLib('m')
+
     conf.CBCheckLib('icuuc')
     conf.CBCheckLib('unwind-x86_64')
 

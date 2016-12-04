@@ -50,6 +50,7 @@
 #include <openssl/dsa.h>
 #include <openssl/ec.h>
 #include <openssl/engine.h>
+#include <openssl/opensslv.h>
 
 #include <string.h>
 

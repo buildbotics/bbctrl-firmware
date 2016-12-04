@@ -35,6 +35,7 @@
 #include "Certificate.h"
 
 #include <openssl/x509_vfy.h>
+#include <openssl/opensslv.h>
 
 using namespace cb;
 
