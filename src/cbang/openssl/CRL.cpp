@@ -52,6 +52,11 @@ using namespace cb;
 using namespace std;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_EXTENSION_get_data(e) e->value
+#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
+
+
 CRL::CRL(X509_CRL *crl) : crl(crl) {
   SSL::init();
   if (!crl)
@@ -140,7 +145,7 @@ string CRL::getExtension(const string &name) {
   BOStream bio(stream);
 
   if (!X509V3_EXT_print(bio.getBIO(), ext, 0, 0))
-    M_ASN1_OCTET_STRING_print(bio.getBIO(), ext->value);
+    ASN1_STRING_print(bio.getBIO(), X509_EXTENSION_get_data(ext));
 
   return stream.str();
 }

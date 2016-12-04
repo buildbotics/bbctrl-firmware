@@ -50,6 +50,12 @@
 using namespace cb;
 using namespace std;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define X509_EXTENSION_get_object(e) (e)->object
+#define X509_EXTENSION_get_data(e) (e)->value
+#define ASN1_STRING_get0_data(e) M_ASN1_STRING_data(e)
+#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
+
 
 struct CSR::private_t {
   STACK_OF(X509_EXTENSION) *exts;
@@ -113,7 +119,7 @@ string CSR::getNameEntry(const string &name) const {
     int nid = OBJ_obj2nid(obj);
 
     if (OBJ_nid2sn(nid) == name)
-      return (char *)M_ASN1_STRING_data(X509_NAME_ENTRY_get_data(entry));
+      return (char *)ASN1_STRING_get0_data(X509_NAME_ENTRY_get_data(entry));
   }
 
   THROWS("Name entry '" << name << "' not found");
@@ -130,7 +136,10 @@ bool CSR::hasExtension(const string &name) {
   bool result = false;
   for (int i = 0; i < sk_X509_EXTENSION_num(exts); i++) {
     X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, i);
-    if (OBJ_cmp(ext->object, obj) == 0) {result = true; break;}
+    if (OBJ_cmp(X509_EXTENSION_get_object(ext), obj) == 0) {
+      result = true;
+      break;
+    }
   }
 
   sk_X509_EXTENSION_pop_free(exts, X509_EXTENSION_free);
@@ -151,14 +160,14 @@ string CSR::getExtension(const string &name) {
   if (exts) {
     for (int i = 0; i < sk_X509_EXTENSION_num(exts); i++) {
       X509_EXTENSION *ext = sk_X509_EXTENSION_value(exts, i);
-      if (OBJ_cmp(ext->object, obj) == 0) {
+      if (OBJ_cmp(X509_EXTENSION_get_object(ext), obj) == 0) {
         found = true;
 
         ostringstream stream;
         BOStream bio(stream);
 
         if (!X509V3_EXT_print(bio.getBIO(), ext, 0, 0))
-          M_ASN1_OCTET_STRING_print(bio.getBIO(), ext->value);
+          ASN1_STRING_print(bio.getBIO(), X509_EXTENSION_get_data(ext));
 
         value = stream.str();
 

@@ -43,75 +43,98 @@ using namespace cb;
 using namespace std;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+static BIO_METHOD *BIO_meth_new(int type, const char *name) {
+  BIO_METHOD *method = (BIO_METHOD *)calloc(1, sizeof(BIO_METHOD));
+
+  if (method) {
+    method->type = type;
+    method->name = name;
+  }
+
+  return method;
+}
+
+
+#define BIO_meth_set_write(b, f) b->bwrite = f
+#define BIO_meth_set_read(b, f) b->bread = f
+#define BIO_meth_set_puts(b, f) b->bputs = f
+#define BIO_meth_set_gets(b, f) b->bgets = f
+#define BIO_meth_set_ctrl(b, f) b->ctrl = f
+#define BIO_meth_set_create(b, f) b->create = f
+#define BIO_meth_set_destroy(b, f) b->destroy = f
+
+#define BIO_set_init(b, val) b->init = val
+#define BIO_set_data(b, val) b->ptr = val
+#define BIO_get_data(b) b->ptr
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
 #define BSTREAM_DEBUG() LOG_DEBUG(5, __FUNCTION__ << "()");
 
 
 static int bstream_write(BIO *bio, const char *buf, int length) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->write(buf, length);
+  return ((BStream *)BIO_get_data(bio))->write(buf, length);
 }
 
 
 static int bstream_read(BIO *bio, char *buf, int length) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->read(buf, length);
+  return ((BStream *)BIO_get_data(bio))->read(buf, length);
 }
 
 
 static int bstream_puts(BIO *bio, const char *buf) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->puts(buf);
+  return ((BStream *)BIO_get_data(bio))->puts(buf);
 }
 
 
 static int bstream_gets(BIO *bio, char *buf, int length) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->gets(buf, length);
+  return ((BStream *)BIO_get_data(bio))->gets(buf, length);
 }
 
 
 static long bstream_ctrl(BIO *bio, int cmd, long sub, void *arg) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->ctrl(cmd, sub, arg);
+  return ((BStream *)BIO_get_data(bio))->ctrl(cmd, sub, arg);
 }
 
 
 static int bstream_create(BIO *bio) {
   BSTREAM_DEBUG();
-
-  bio->init = 1;
-  bio->num = 0;
-  bio->ptr = 0;
-  bio->flags = 0;
-
+  BIO_set_init(bio, 1);
   return 1;
 }
 
 
 static int bstream_destroy(BIO *bio) {
   BSTREAM_DEBUG();
-  return ((BStream *)bio->ptr)->destroy();
+  return ((BStream *)BIO_get_data(bio))->destroy();
 }
 
 
-static BIO_METHOD BStreamMethods = {
-  BIO_TYPE_FD,
-  "iostream",
-  bstream_write,
-  bstream_read,
-  bstream_puts,
-  bstream_gets,
-  bstream_ctrl,
-  bstream_create,
-  bstream_destroy,
-  0,
-};
-
-
 BStream::BStream() {
-  bio = BIO_new(&BStreamMethods);
+  static BIO_METHOD *method = 0;
+
+  if (!method) {
+    method = BIO_meth_new(BIO_TYPE_FD, "iostream");
+    if (!method) THROW("Failed to create BIO_METHOD object");
+
+    BIO_meth_set_write(method, bstream_write);
+    BIO_meth_set_read(method, bstream_read);
+    BIO_meth_set_puts(method, bstream_puts);
+    BIO_meth_set_gets(method, bstream_gets);
+    BIO_meth_set_ctrl(method, bstream_ctrl);
+    BIO_meth_set_create(method, bstream_create);
+    BIO_meth_set_destroy(method, bstream_destroy);
+  }
+
+  bio = BIO_new(method);
   if (!bio) THROW("Failed to create BIO object");
-  bio->ptr = this;
+
+  BIO_set_data(bio, this);
 }
 
 

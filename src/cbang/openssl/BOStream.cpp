@@ -38,8 +38,13 @@ using namespace cb;
 using namespace std;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define BIO_set_flags(b, val) b->flags |= val
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+
 BOStream::BOStream(ostream &stream) : stream(stream) {
-  bio->flags |= BIO_FLAGS_WRITE;
+  BIO_set_flags(bio, BIO_FLAGS_WRITE);
 }
 
 

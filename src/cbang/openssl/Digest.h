@@ -39,8 +39,15 @@
 #include <istream>
 #include <vector>
 
+#include <openssl/opensslv.h>
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct env_md_st EVP_MD;
 typedef struct env_md_ctx_st EVP_MD_CTX;
+#else
+typedef struct evp_md_st EVP_MD;
+typedef struct evp_md_ctx_st EVP_MD_CTX;
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
 typedef struct engine_st ENGINE;
 
 namespace cb {

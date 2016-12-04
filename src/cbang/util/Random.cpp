@@ -62,7 +62,7 @@ void Random::addEntropy(const void *buffer, uint32_t bytes, double entropy) {
 
 void Random::bytes(void *buffer, uint32_t bytes) {
 #ifdef HAVE_OPENSSL
-  RAND_pseudo_bytes((unsigned char *)buffer, bytes);
+  RAND_bytes((unsigned char *)buffer, bytes);
 
 #else
   while (1 < bytes) {

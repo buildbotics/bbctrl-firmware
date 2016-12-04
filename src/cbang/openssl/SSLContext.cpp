@@ -55,10 +55,15 @@ using namespace std;
 using namespace cb;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define TLS_method TLSv1_method
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+
 SSLContext::SSLContext() : ctx(0) {
   cb::SSL::init();
 
-  ctx = SSL_CTX_new(TLSv1_method());
+  ctx = SSL_CTX_new(TLS_method());
   if (!ctx) THROWS("Failed to create SSL context: " << cb::SSL::getErrorStr());
 
   SSL_CTX_set_default_passwd_cb(ctx, cb::SSL::passwordCallback);

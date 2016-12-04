@@ -59,6 +59,12 @@ using namespace cb;
 using namespace std;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define EVP_PKEY_up_ref(KEY)                                \
+  CRYPTO_add(&(KEY)->references, 1, CRYPTO_LOCK_EVP_PKEY)
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+
 namespace {
   int password_cb(char *buf, int size, int rwflag, void *cb) {
     try {
@@ -75,9 +81,7 @@ namespace {
 }
 
 
-KeyPair::KeyPair(const KeyPair &o) : key(o.key) {
-  CRYPTO_add(&(key->references), 1, CRYPTO_LOCK_EVP_PKEY);
-}
+KeyPair::KeyPair(const KeyPair &o) : key(o.key) {EVP_PKEY_up_ref(key);}
 
 
 KeyPair::KeyPair() {
@@ -96,61 +100,65 @@ KeyPair::KeyPair(const string &key, mac_key_t type, ENGINE *e) {
 }
 
 
-KeyPair::~KeyPair() {
-  if (key) EVP_PKEY_free(key);
-}
+KeyPair::~KeyPair() {if (key) EVP_PKEY_free(key);}
 
 
-bool KeyPair::isValid() const {
-  return key->pkey.ptr;
-}
-
-
-bool KeyPair::isRSA() const {
-  return EVP_PKEY_type(key->type) == EVP_PKEY_RSA;
-}
-
-
-bool KeyPair::isDSA() const {
-  return EVP_PKEY_type(key->type) == EVP_PKEY_DSA;
-}
-
-
-bool KeyPair::isDH() const {
-  return EVP_PKEY_type(key->type) == EVP_PKEY_DH;
-}
-
-
-bool KeyPair::isEC() const {
-  return EVP_PKEY_type(key->type) == EVP_PKEY_EC;
-}
+bool KeyPair::isValid() const {return EVP_PKEY_get0(key);}
+bool KeyPair::isRSA() const {return EVP_PKEY_base_id(key) == EVP_PKEY_RSA;}
+bool KeyPair::isDSA() const {return EVP_PKEY_base_id(key) == EVP_PKEY_DSA;}
+bool KeyPair::isDH() const {return EVP_PKEY_base_id(key) == EVP_PKEY_DH;}
+bool KeyPair::isEC() const {return EVP_PKEY_base_id(key) == EVP_PKEY_EC;}
 
 
 bool KeyPair::hasPublic() const {
-  switch (EVP_PKEY_type(key->type)) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+  switch (EVP_PKEY_base_id(key)) {
   case EVP_PKEY_RSA: return key->pkey.rsa->e;
   case EVP_PKEY_DSA: return key->pkey.dsa->pub_key;
   case EVP_PKEY_DH: return key->pkey.dh->pub_key;
   case EVP_PKEY_EC: return EC_KEY_get0_public_key(key->pkey.ec);
-  default: THROW("Invalid key type");
   }
+
+#else // OPENSSL_VERSION_NUMBER < 0x10100000L
+  const BIGNUM *n = 0;
+
+  switch (EVP_PKEY_base_id(key)) {
+  case EVP_PKEY_RSA: RSA_get0_key(EVP_PKEY_get0_RSA(key), 0, &n, 0); return n;
+  case EVP_PKEY_DSA: DSA_get0_key(EVP_PKEY_get0_DSA(key), &n, 0); return n;
+  case EVP_PKEY_DH: DH_get0_key(EVP_PKEY_get0_DH(key), &n, 0); return n;
+  case EVP_PKEY_EC: return EC_KEY_get0_public_key(EVP_PKEY_get0_EC_KEY(key));
+  }
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+  THROW("Invalid key type");
 }
 
 
 bool KeyPair::hasPrivate() const {
-  switch (EVP_PKEY_type(key->type)) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+  switch (EVP_PKEY_base_id(key)) {
   case EVP_PKEY_RSA: return key->pkey.rsa->d;
   case EVP_PKEY_DSA: return key->pkey.dsa->priv_key;
   case EVP_PKEY_DH: return key->pkey.dh->priv_key;
   case EVP_PKEY_EC: return EC_KEY_get0_private_key(key->pkey.ec);
-  default: THROW("Invalid key type");
   }
+
+#else // OPENSSL_VERSION_NUMBER < 0x10100000L
+  const BIGNUM *n = 0;
+
+  switch (EVP_PKEY_base_id(key)) {
+  case EVP_PKEY_RSA: RSA_get0_key(EVP_PKEY_get0_RSA(key), 0, 0, &n); return n;
+  case EVP_PKEY_DSA: DSA_get0_key(EVP_PKEY_get0_DSA(key), 0, &n); return n;
+  case EVP_PKEY_DH: DH_get0_key(EVP_PKEY_get0_DH(key), 0, &n); return n;
+  case EVP_PKEY_EC: return EC_KEY_get0_private_key(EVP_PKEY_get0_EC_KEY(key));
+  }
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+  THROW("Invalid key type");
 }
 
 
-unsigned KeyPair::size() const {
-  return EVP_PKEY_size(key);
-}
+unsigned KeyPair::size() const {return EVP_PKEY_size(key);}
 
 
 bool KeyPair::match(const KeyPair &o) const {

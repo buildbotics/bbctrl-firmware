@@ -57,20 +57,15 @@ Digest::Digest(const string &digest) : md(0), ctx(0), initialized(false) {
 }
 
 
-Digest::~Digest() {
-  EVP_MD_CTX_destroy(ctx);
-}
+Digest::~Digest() {if (ctx) EVP_MD_CTX_destroy(ctx);}
 
 
-unsigned Digest::size() const {
-  return EVP_MD_CTX_size(ctx);
-}
+unsigned Digest::size() const {return EVP_MD_CTX_size(ctx);}
 
 
 void Digest::init(ENGINE *e) {
   if (initialized) THROW("Digest already initialized");
 
-  e = (e || !ctx) ? e : ctx->engine;
   if (!EVP_DigestInit_ex(ctx, md, e))
     THROWS("Error initializing digest context: " << SSL::getErrorStr());
 
@@ -114,7 +109,6 @@ SmartPointer<KeyContext> Digest::signInit(const KeyPair &key, ENGINE *e) {
 
   EVP_PKEY_CTX *pctx = 0;
 
-  e = (e || !ctx) ? e : ctx->engine;
   if (!EVP_DigestSignInit(ctx, &pctx, md, e, key.getEVP_PKEY()))
     THROWS("Error initializing digest sign context: " << SSL::getErrorStr());
 
@@ -154,7 +148,6 @@ SmartPointer<KeyContext> Digest::verifyInit(const KeyPair &key, ENGINE *e) {
 
   EVP_PKEY_CTX *pctx = 0;
 
-  e = (e || !ctx) ? e : ctx->engine;
   if (!EVP_DigestVerifyInit(ctx, &pctx, md, e, key.getEVP_PKEY()))
     THROWS("Error initializing digest verify context: " << SSL::getErrorStr());
 

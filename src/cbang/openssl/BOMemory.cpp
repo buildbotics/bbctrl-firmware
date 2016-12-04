@@ -39,9 +39,14 @@
 using namespace cb;
 
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#define BIO_set_flags(b, val) b->flags |= val
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+
+
 BOMemory::BOMemory(char *data, uint64_t length) :
   data(data), length(length), writePos(0) {
-  bio->flags |= BIO_FLAGS_WRITE;
+  BIO_set_flags(bio, BIO_FLAGS_WRITE);
 }
 
 

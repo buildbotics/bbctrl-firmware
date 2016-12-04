@@ -86,7 +86,6 @@ namespace cb {
     static void addExtensionAlias(const std::string &alias,
                                   const std::string &name);
 
-    bool hasAuthorityKeyIdentifer() const;
     bool issued(const Certificate &o) const;
 
     void sign(KeyPair &key, const std::string &digest = "sha256");
