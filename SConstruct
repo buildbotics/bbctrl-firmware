@@ -90,7 +90,7 @@ conf.Finish()
 
 # Build in 'build'
 import re
-VariantDir('build', 'src')
+VariantDir('build', 'src', duplicate = False)
 src = map(lambda path: re.sub(r'^src/', 'build/', str(path)), src)
 
 
