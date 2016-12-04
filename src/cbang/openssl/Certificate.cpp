@@ -55,7 +55,7 @@ using namespace std;
   CRYPTO_add(&(CERT)->references, 1, CRYPTO_LOCK_EVP_PKEY)
 #define X509_EXTENSION_get_data(e) (e)->value
 #define ASN1_STRING_get0_data(e) M_ASN1_STRING_data(e)
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
+#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
 
 
 Certificate::Certificate(const Certificate &o) : cert(o.cert) {
