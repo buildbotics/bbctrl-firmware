@@ -42,10 +42,10 @@
 
 using namespace cb;
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define BIO_set_flags(b, val) b->flags |= val
 #define BIO_clear_flags(b, val) b->flags &= ~(val)
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 
 BIOSocketImpl::BIOSocketImpl(Socket &socket) : socket(socket), ret(0) {

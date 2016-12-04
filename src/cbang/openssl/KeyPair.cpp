@@ -60,10 +60,10 @@ using namespace cb;
 using namespace std;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define EVP_PKEY_up_ref(KEY)                                \
   CRYPTO_add(&(KEY)->references, 1, CRYPTO_LOCK_EVP_PKEY)
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 
 namespace {
@@ -112,7 +112,7 @@ bool KeyPair::isEC() const {return EVP_PKEY_base_id(key) == EVP_PKEY_EC;}
 
 
 bool KeyPair::hasPublic() const {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
   switch (EVP_PKEY_base_id(key)) {
   case EVP_PKEY_RSA: return key->pkey.rsa->e;
   case EVP_PKEY_DSA: return key->pkey.dsa->pub_key;
@@ -120,7 +120,7 @@ bool KeyPair::hasPublic() const {
   case EVP_PKEY_EC: return EC_KEY_get0_public_key(key->pkey.ec);
   }
 
-#else // OPENSSL_VERSION_NUMBER < 0x10100000L
+#else // OPENSSL_VERSION_NUMBER < 0x1010000fL
   const BIGNUM *n = 0;
 
   switch (EVP_PKEY_base_id(key)) {
@@ -129,14 +129,14 @@ bool KeyPair::hasPublic() const {
   case EVP_PKEY_DH: DH_get0_key(EVP_PKEY_get0_DH(key), &n, 0); return n;
   case EVP_PKEY_EC: return EC_KEY_get0_public_key(EVP_PKEY_get0_EC_KEY(key));
   }
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
   THROW("Invalid key type");
 }
 
 
 bool KeyPair::hasPrivate() const {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
   switch (EVP_PKEY_base_id(key)) {
   case EVP_PKEY_RSA: return key->pkey.rsa->d;
   case EVP_PKEY_DSA: return key->pkey.dsa->priv_key;
@@ -144,7 +144,7 @@ bool KeyPair::hasPrivate() const {
   case EVP_PKEY_EC: return EC_KEY_get0_private_key(key->pkey.ec);
   }
 
-#else // OPENSSL_VERSION_NUMBER < 0x10100000L
+#else // OPENSSL_VERSION_NUMBER < 0x1010000fL
   const BIGNUM *n = 0;
 
   switch (EVP_PKEY_base_id(key)) {
@@ -153,7 +153,7 @@ bool KeyPair::hasPrivate() const {
   case EVP_PKEY_DH: DH_get0_key(EVP_PKEY_get0_DH(key), 0, &n); return n;
   case EVP_PKEY_EC: return EC_KEY_get0_private_key(EVP_PKEY_get0_EC_KEY(key));
   }
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
   THROW("Invalid key type");
 }

@@ -40,11 +40,11 @@
 using namespace cb;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define X509_up_ref(c) CRYPTO_add(&(c)->references, 1, CRYPTO_LOCK_EVP_PKEY)
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
-#if OPENSSL_VERSION_NUMBER < 0x10000200L
+#if OPENSSL_VERSION_NUMBER < 0x1000200fL
 X509_CHAIN *X509_chain_up_ref(X509_CHAIN *chain) {
   X509_CHAIN *copy = sk_X509_dup(chain);
 
@@ -53,7 +53,7 @@ X509_CHAIN *X509_chain_up_ref(X509_CHAIN *chain) {
 
   return copy;
 }
-#endif // OPENSSL_VERSION_NUMBER < 0x10000200L
+#endif // OPENSSL_VERSION_NUMBER < 0x1000200fL
 
 
 CertificateChain::CertificateChain(const CertificateChain &o) :

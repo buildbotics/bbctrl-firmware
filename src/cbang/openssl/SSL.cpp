@@ -348,7 +348,7 @@ void cb::SSL::deinit() {
   CRYPTO_set_id_callback(0);
   CRYPTO_set_locking_callback(0);
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
   ERR_remove_state(0);
 #endif
   ERR_free_strings();

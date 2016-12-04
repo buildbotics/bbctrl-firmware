@@ -43,9 +43,9 @@ using namespace std;
 using namespace cb;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define BIO_set_flags(b, val) b->flags |= val
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 
 BIMemory::BIMemory(const char *data, uint64_t length) :

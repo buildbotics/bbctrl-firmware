@@ -39,9 +39,9 @@ using namespace cb;
 using namespace std;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define BIO_set_flags(b, val) b->flags |= val
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 
 BOStream::BOStream(ostream &stream) : stream(stream) {

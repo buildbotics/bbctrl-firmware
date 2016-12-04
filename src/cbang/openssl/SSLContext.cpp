@@ -56,9 +56,9 @@ using namespace std;
 using namespace cb;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define TLS_method TLSv1_method
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 
 SSLContext::SSLContext() : ctx(0) {

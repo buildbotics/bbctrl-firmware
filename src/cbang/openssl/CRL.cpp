@@ -53,9 +53,9 @@ using namespace cb;
 using namespace std;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 #define X509_EXTENSION_get_data(e) e->value
-#endif /* OPENSSL_VERSION_NUMBER < 0x10100000L */
+#endif /* OPENSSL_VERSION_NUMBER < 0x1010000fL */
 
 
 CRL::CRL(X509_CRL *crl) : crl(crl) {

@@ -44,7 +44,7 @@ using namespace cb;
 using namespace std;
 
 
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL
 static BIO_METHOD *BIO_meth_new(int type, const char *name) {
   BIO_METHOD *method = (BIO_METHOD *)calloc(1, sizeof(BIO_METHOD));
 
@@ -68,7 +68,7 @@ static BIO_METHOD *BIO_meth_new(int type, const char *name) {
 #define BIO_set_init(b, val) b->init = val
 #define BIO_set_data(b, val) b->ptr = val
 #define BIO_get_data(b) b->ptr
-#endif // OPENSSL_VERSION_NUMBER < 0x10100000L
+#endif // OPENSSL_VERSION_NUMBER < 0x1010000fL
 
 #define BSTREAM_DEBUG() LOG_DEBUG(5, __FUNCTION__ << "()");
 
