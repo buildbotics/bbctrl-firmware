@@ -29,6 +29,10 @@
                         joseph@cauldrondevelopment.com
 
 \******************************************************************************/
+#ifdef _WIN32
+// Must come before anything else that could include winsock.h
+#include <winsock2.h>
+#endif
 
 #include <cbang/net/IPAddress.h>
 
@@ -42,9 +46,9 @@
 #include <cbang/os/SysError.h>
 
 #if _WIN32
-#include <winsock2.h>
 #include <ws2tcpip.h>
 #include <wspiapi.h>
+
 #else
 #include <sys/types.h>
 #include <sys/socket.h>

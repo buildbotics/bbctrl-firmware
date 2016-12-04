@@ -38,7 +38,8 @@
 
 namespace cb {
 #ifdef _MSC_VER
-  typedef void * socket_t;  // In windows a SOCKET is the same as a HANDLE
+#include <winsock2.h>
+  typedef SOCKET socket_t;
 
 #elif __MINGW32__
 

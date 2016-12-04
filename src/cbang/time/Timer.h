@@ -34,10 +34,14 @@
 #define CBANG_TIMER_H
 
 #ifdef _MSC_VER
+#if _MSC_VER < 1900
 struct timeval {
   long tv_sec;
   long tv_usec;
 };
+#else
+#include <winsock2.h>
+#endif
 
 #undef max
 #undef min
