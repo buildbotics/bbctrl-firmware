@@ -30,36 +30,59 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
-
-#include "Signature.h"
 #include "Value.h"
 
+#include <cbang/json/Writer.h>
 
-namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
+using namespace cb::js;
+using namespace cb;
+using namespace std;
 
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
 
-    public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
+void Value::copyProperties(const Value &value) {
+  SmartPointer<Value> props = value.getOwnPropertyNames();
+  unsigned length = props->length();
 
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
-    };
+  for (unsigned i = 0; i < length; i++) {
+    string key = props->getString(i);
+    set(key, value.get(key));
   }
 }
 
-#endif // CB_JS_CALLBACK_H
+
+void Value::write(JSON::Sink &sink) const {
+  if (isObject()) {
+    sink.beginDict();
+
+    SmartPointer<Value> props = getOwnPropertyNames();
+    for (unsigned i = 0; i < props->length(); i++) {
+      string key = props->get(i)->toString();
+      sink.beginInsert(key);
+      get(key)->write(sink);
+    }
+
+    sink.endDict();
+
+  } else if (isArray()) {
+    sink.beginList();
+
+    for (unsigned i = 0; i < length(); i++) {
+      sink.beginAppend();
+      get(i)->write(sink);
+    }
+
+    sink.endList();
+
+  } else if (isNull()) sink.writeNull();
+  else if (isNumber()) sink.write(toNumber());
+  else if (isBoolean()) sink.writeBoolean(toBoolean());
+  else if (isString()) sink.write(toString());
+  else if (isFunction()) sink.write("<function>");
+  else if (isUndefined()) sink.write("<undefined>");
+}
+
+
+void Value::write(ostream &stream) const {
+  JSON::Writer writer(stream, 2);
+  write(writer);
+}

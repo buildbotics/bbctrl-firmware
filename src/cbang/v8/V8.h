@@ -30,36 +30,14 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
+#pragma once
 
-#include "Signature.h"
-#include "Value.h"
+// Override v8stdint.h
+#include <cbang/StdTypes.h>
+#include <stddef.h>
+#include <stdio.h>
+#define V8STDINT_H_
 
+#define V8_ENABLE_CHECKS
 
-namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
-
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
-
-    public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
-
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
-    };
-  }
-}
-
-#endif // CB_JS_CALLBACK_H
+#include <v8.h>

@@ -63,6 +63,8 @@ namespace cb {
       int getType() const;
 
       // From js::Value
+      SmartPointer<js::Value> makePersistent() const;
+
       bool isArray() const;
       bool isBoolean() const;
       bool isFunction() const;
@@ -83,14 +85,15 @@ namespace cb {
       bool has(const std::string &key) const;
       SmartPointer<js::Value> get(const std::string &key) const;
 
+      void set(int i, const js::Value &value);
+      void set(const std::string &key, const js::Value &value);
 
       void set(int i, const Value &value);
       void append(const Value &value);
       void set(const std::string &key, const Value &value, bool strict = false);
       Value call(std::vector<Value> args) const;
 
-      Value getOwnPropertyNames() const;
-      void copyProperties(const Value &value);
+      SmartPointer<js::Value> getOwnPropertyNames() const;
 
       void setNull(const std::string &key);
       Value setObject(const std::string &key);

@@ -35,6 +35,9 @@
 
 #include "Function.h"
 #include "MethodCallback.h"
+#include "RawMethodCallback.h"
+#include "Factory.h"
+#include "Value.h"
 
 #include <cbang/SmartPointer.h>
 #include <cbang/json/NullSink.h>
@@ -43,20 +46,64 @@
 namespace cb {
   namespace js {
     class Sink : public JSON::NullSink {
-    public:
+      SmartPointer<Factory> factory;
+      SmartPointer<Value> root;
+
+      bool closeList;
+      bool closeDict;
+
+      int index;
+      std::string key;
+      std::vector<SmartPointer<Value> > stack;
+
+   public:
+      Sink(const SmartPointer<Factory> &factory,
+           const SmartPointer<Value> &root = 0);
+      Sink(const SmartPointer<Factory> &factory, Value &root);
+
+      const SmartPointer<Value> &getRoot() const {return root;}
+
       // From JSON::Sink
       using JSON::NullSink::insert;
       using JSON::NullSink::write;
 
-      virtual void write(const Function &func) = 0;
+      void close();
+      void reset(const SmartPointer<Value> &root = 0);
+
+      // Element functions
+      void writeNull();
+      void writeBoolean(bool value);
+      void write(double value);
+      void write(const std::string &value);
+      void write(const js::Function &func);
+      void write(const SmartPointer<Value> &value);
+
+      // List functions
+      void beginList(bool simple = false);
+      void beginAppend();
+      void endList();
+
+      // Dict functions
+      void beginDict(bool simple = false);
+      void beginInsert(const std::string &key);
+      void endDict();
+
 
       template <class T>
       void insert(const Signature &sig, T *obj,
                   typename MethodCallback<T>::member_t member) {
         beginInsert(sig.getName());
-        write(Function(new MethodCallback<T>(sig, obj, member)));
+        write(Function(new MethodCallback<T>(sig, factory, obj, member)));
       }
-    };
+
+
+      template <class T>
+      void insert(const Signature &sig, T *obj,
+                  typename RawMethodCallback<T>::member_t member) {
+        beginInsert(sig.getName());
+        write(Function(new RawMethodCallback<T>(sig, factory, obj, member)));
+      }
+   };
   }
 }
 

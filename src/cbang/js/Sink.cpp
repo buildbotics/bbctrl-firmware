@@ -32,18 +32,41 @@
 
 #include "Sink.h"
 
-using namespace cb::chakra;
+using namespace cb::js;
 using namespace std;
 
 
-Sink::Sink(const Value &root) : root(root), closeList(false), closeDict(false) {
-  if (root.isArray() || root.isObject()) {
-    if (root.isArray()) {
-      js::Sink::beginList();
+
+Sink::Sink(const SmartPointer<Factory> &factory,
+           const SmartPointer<Value> &root) : factory(factory) {reset(root);}
+
+Sink::Sink(const SmartPointer<Factory> &factory,
+           Value &root) : factory(factory) {
+  reset(SmartPointer<Value>::Phony(&root));
+}
+
+
+void Sink::close() {
+  if (root.isNull()) return;
+  if (closeList) endList();
+  else if (closeDict) endDict();
+  JSON::NullSink::close();
+}
+
+
+void Sink::reset(const SmartPointer<Value> &root) {
+  closeList = closeDict = false;
+  JSON::NullSink::reset();
+  stack.clear();
+  this->root = root;
+
+  if (!root.isNull() && (root->isArray() || root->isObject())) {
+    if (root->isArray()) {
+      JSON::NullSink::beginList();
       closeList = true;
 
     } else {
-      js::Sink::beginDict();
+      JSON::NullSink::beginDict();
       closeDict = true;
     }
 
@@ -52,92 +75,78 @@ Sink::Sink(const Value &root) : root(root), closeList(false), closeDict(false) {
 }
 
 
-void Sink::close() {
-  if (closeList) endList();
-  else if (closeDict) endDict();
-  js::Sink::close();
-}
-
-
-void Sink::reset() {
-  js::Sink::reset();
-  stack.clear();
-  root = Value::getUndefined();
-}
-
-
 void Sink::writeNull() {
-  js::Sink::writeNull();
-  write(Value::getNull());
+  JSON::NullSink::writeNull();
+  write(factory->createNull());
 }
 
 
 void Sink::writeBoolean(bool value) {
-  js::Sink::writeBoolean(value);
-  write(Value(value));
+  JSON::NullSink::writeBoolean(value);
+  write(factory->createBoolean(value));
 }
 
 
 void Sink::write(double value) {
-  js::Sink::write(value);
-  write(Value(value));
+  JSON::NullSink::write(value);
+  write(factory->create(value));
 }
 
 
 void Sink::write(const string &value) {
-  js::Sink::write(value);
-  write(Value(value));
+  JSON::NullSink::write(value);
+  write(factory->create(value));
 }
 
 
 void Sink::write(const js::Function &func) {
-  js::Sink::writeNull();
-  write(Value(func));
+  JSON::NullSink::writeNull();
+  write(factory->create(func));
 }
 
 
-void Sink::write(const Value &value) {
-  if (inList()) stack.back().set(index, value);
-  else if (inDict()) stack.back().set(key, value);
+void Sink::write(const SmartPointer<Value> &value) {
+  if (inList()) stack.back()->set(index, value);
+  else if (inDict()) stack.back()->set(key, value);
   else root = value;
 }
 
 
 void Sink::beginList(bool simple) {
-  Value value = Value::createArray();
+  SmartPointer<Value> value = factory->createArray();
   write(value);
   stack.push_back(value);
-  js::Sink::beginList(simple);
+  JSON::NullSink::beginList(simple);
 }
 
 
 void Sink::beginAppend() {
-  js::Sink::beginAppend();
-  index = stack.back().length();
+  JSON::NullSink::beginAppend();
+  index = stack.back()->length();
 }
 
 
 void Sink::endList() {
-  js::Sink::endList();
+  JSON::NullSink::endList();
   stack.pop_back();
 }
 
 
 void Sink::beginDict(bool simple) {
-  Value value = Value::createObject();
+  SmartPointer<Value> value = factory->createObject();
   write(value);
   stack.push_back(value);
-  js::Sink::beginDict(simple);
+  JSON::NullSink::beginDict(simple);
 }
 
 
 void Sink::beginInsert(const string &key) {
-  js::Sink::beginInsert(key);
+  JSON::NullSink::beginInsert(key);
   this->key = key;
 }
 
 
 void Sink::endDict() {
-  js::Sink::endDict();
+  JSON::NullSink::endDict();
   stack.pop_back();
 }

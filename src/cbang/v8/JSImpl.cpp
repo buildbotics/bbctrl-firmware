@@ -30,37 +30,34 @@
 
 \******************************************************************************/
 
-#include "Module.h"
+#include "JSImpl.h"
+#include "Context.h"
+#include "Factory.h"
 
-using namespace cb::chakra;
+#include <cbang/js/Javascript.h>
+#include <cbang/util/SmartFunctor.h>
+
+using namespace cb::gv8;
+using namespace cb;
 using namespace std;
 
 
-Module::Module(const string &id, const string &path, JSImpl &impl) :
-  Context(impl), obj(Value::createObject()) {
-  obj.set("id", id);
-  obj.setObject("exports");
-  obj.set("filename", path);
-  obj.set("name", id);
+JSImpl::JSImpl(js::Javascript &js) : ctx(*this) {}
+
+
+void JSImpl::init(int *argc, char *argv[]) {
+  if (argv) v8::V8::SetFlagsFromCommandLine(argc, argv, true);
 }
 
 
-Value Module::load(const string &code) {
-  enter();
+JSImpl &JSImpl::current() {return Context::current().getImpl();}
+SmartPointer<js::Factory> JSImpl::getFactory() {return new Factory;}
+SmartPointer<js::Scope> JSImpl::enterScope() {return new Context::Scope(ctx);}
 
-  string path = obj.getString("filename");
-  Value func =
-    exec(path, "(function (id, require, exports, module) {" + code + "})");
 
-  // Call
-  vector<Value> args;
-  args.push_back(obj.get("exports")); // Function "this"
-  args.push_back(obj.get("id"));
-  args.push_back(Value::getGlobal().get("require"));
-  args.push_back(obj.get("exports"));
-  args.push_back(obj);
-  func.call(args);
-
-  // Return exports
-  return obj.get("exports");
+SmartPointer<js::Scope> JSImpl::newScope() {
+  return new Context::Scope(new Context(*this));
 }
+
+
+void JSImpl::interrupt() {v8::V8::TerminateExecution();}

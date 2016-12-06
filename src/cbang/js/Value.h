@@ -35,13 +35,20 @@
 
 #include <cbang/SmartPointer.h>
 
+#include <ostream>
+
 
 namespace cb {
+  namespace JSON {class Sink;}
+
   namespace js {
     class Value {
     public:
       virtual ~Value() {}
 
+      virtual SmartPointer<Value> makePersistent() const = 0;
+
+      // Read interface
       virtual bool isArray() const {return false;}
       virtual bool isBoolean() const {return false;}
       virtual bool isFunction() const {return false;}
@@ -61,12 +68,14 @@ namespace cb {
 
       virtual bool has(const std::string &key) const = 0;
       virtual SmartPointer<Value> get(const std::string &key) const = 0;
+      virtual SmartPointer<Value> getOwnPropertyNames() const = 0;
 
       // Array accessors
       bool getBoolean(int i) const {return get(i)->toBoolean();}
       int getInteger(int i) const {return get(i)->toInteger();}
       double getNumber(int i) const {return get(i)->toNumber();}
       std::string getString(int i) const {return get(i)->toString();}
+      SmartPointer<Value> operator[](int i) const {return get(i);}
 
       // Object accessors
       bool getBoolean(const std::string &key) const
@@ -77,7 +86,28 @@ namespace cb {
       {return get(key)->toNumber();}
       std::string getString(const std::string &key) const
       {return get(key)->toString();}
+      SmartPointer<Value> operator[](const std::string &key) const
+      {return get(key);}
+
+      // Write interface
+      virtual void set(int i, const Value &value) = 0;
+      virtual void set(const std::string &key, const Value &value) = 0;
+      virtual void set(int i, const SmartPointer<Value> &value)
+      {set(i, *value);}
+      virtual void set(const std::string &key,
+                       const SmartPointer<Value> &value) {set(key, *value);}
+
+      void copyProperties(const Value &value);
+      void write(JSON::Sink &sink) const;
+      void write(std::ostream &stream) const;
     };
+
+
+    inline static
+    std::ostream &operator<<(std::ostream &stream, const Value &value) {
+      value.write(stream);
+      return stream;
+    }
   }
 }
 

@@ -30,36 +30,20 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
+#pragma once
 
-#include "Signature.h"
-#include "Value.h"
+#include "Module.h"
+#include "Sink.h"
 
 
 namespace cb {
   namespace js {
-    class Sink;
-    class Factory;
-
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
-
+    class NativeModule : public Module {
     public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
+      NativeModule(const std::string &id) : Module(id, "<native>") {}
+      virtual ~NativeModule() {}
 
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
+      virtual void define(Sink &exports) = 0;
     };
   }
 }
-
-#endif // CB_JS_CALLBACK_H

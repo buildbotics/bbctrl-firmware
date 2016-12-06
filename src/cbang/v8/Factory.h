@@ -30,54 +30,34 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_SINK_H
-#define CB_CHAKRA_SINK_H
+#pragma once
 
 #include "Value.h"
 
-#include <cbang/js/Sink.h>
+#include <cbang/js/Factory.h>
 
 
 namespace cb {
-  namespace chakra {
-    class Sink : public js::Sink {
-      Value root;
-
-      bool closeList;
-      bool closeDict;
-
-      int index;
-      std::string key;
-      std::vector<Value> stack;
+  namespace gv8 {
+    class Factory : public js::Factory {
+      Value trueValue;
+      Value falseValue;
+      Value undefinedValue;
+      Value nullValue;
 
     public:
-      Sink(const Value &root = Value::getUndefined());
+      Factory();
 
-      Value getRoot() const {return root;}
-
-      // From JSON::NullSink
-      void close();
-      void reset();
-
-      // Element functions
-      void writeNull();
-      void writeBoolean(bool value);
-      void write(double value);
-      void write(const std::string &value);
-      void write(const js::Function &func);
-      void write(const Value &value);
-
-      // List functions
-      void beginList(bool simple = false);
-      void beginAppend();
-      void endList();
-
-      // Dict functions
-      void beginDict(bool simple = false);
-      void beginInsert(const std::string &key);
-      void endDict();
-   };
+      // From js::Factory
+      SmartPointer<js::Value> create(const std::string &value);
+      SmartPointer<js::Value> create(double value);
+      SmartPointer<js::Value> create(int32_t value);
+      SmartPointer<js::Value> create(const js::Function &func);
+      SmartPointer<js::Value> createArray(unsigned size);
+      SmartPointer<js::Value> createObject();
+      SmartPointer<js::Value> createBoolean(bool value);
+      SmartPointer<js::Value> createUndefined();
+      SmartPointer<js::Value> createNull();
+    };
   }
 }
-
-#endif // CB_CHAKRA_SINK_H

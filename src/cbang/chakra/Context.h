@@ -35,6 +35,8 @@
 
 #include "Value.h"
 
+#include <cbang/js/Scope.h>
+
 #include <ChakraCore.h>
 
 
@@ -48,6 +50,25 @@ namespace cb {
       JsContextRef context;
 
     public:
+      class Scope : public js::Scope {
+        SmartPointer<Context> ctx;
+
+      public:
+        Scope(Context &ctx) :
+        ctx(SmartPointer<Context>::Phony(&ctx)) {ctx.enter();}
+        Scope(const SmartPointer<Context> &ctx) : ctx(ctx) {ctx->enter();}
+        ~Scope() {ctx->leave();}
+
+        // From js::Scope
+        SmartPointer<js::Value> getGlobalObject() {
+          return new Value(Value::getGlobal());
+        }
+
+        SmartPointer<js::Value> eval(const InputSource &source) {
+          return new Value(ctx->eval(source));
+        }
+      };
+
       Context(JSImpl &impl);
 
       static Context &current();
@@ -56,7 +77,8 @@ namespace cb {
       void enter();
       void leave();
 
-      Value exec(const std::string &path, const std::string &code);
+      Value eval(const std::string &path, const std::string &code);
+      Value eval(const InputSource &source);
     };
   }
 }

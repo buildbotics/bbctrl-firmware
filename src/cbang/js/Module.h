@@ -33,17 +33,27 @@
 #ifndef CB_JS_MODULE_H
 #define CB_JS_MODULE_H
 
-#include "Sink.h"
+#include "Scope.h"
 
 
 namespace cb {
   namespace js {
     class Module {
-    public:
-      virtual ~Module() {}
+      const std::string id;
+      const std::string path;
 
-      virtual const char *getName() const = 0;
-      virtual void define(Sink &exports) = 0;
+      SmartPointer<js::Value> exports;
+
+    public:
+      Module(const std::string &id, const std::string &path) :
+        id(id), path(path) {}
+
+      const std::string &getId() const {return id;}
+      const std::string &getPath() const {return path;}
+
+      const SmartPointer<Value> &getExports() const {return exports;}
+      void setExports(const SmartPointer<Value> &exports)
+      {this->exports = exports;}
    };
   }
 }

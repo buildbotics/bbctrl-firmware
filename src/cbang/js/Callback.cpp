@@ -30,36 +30,14 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
+#include "Callback.h"
+#include "Factory.h"
 
-#include "Signature.h"
-#include "Value.h"
+using namespace cb::js;
+using namespace cb;
 
 
-namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
-
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
-
-    public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
-
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
-    };
-  }
+SmartPointer<Value> Callback::call(Value &args) {
+  SmartPointer<Value> ret = call(*this, args);
+  return ret.isNull() ? factory->createUndefined() : ret;
 }
-
-#endif // CB_JS_CALLBACK_H

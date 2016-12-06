@@ -31,11 +31,13 @@
 \******************************************************************************/
 
 #include "Value.h"
+#include "ValueRef.h"
 #include "JSImpl.h"
-#include "Sink.h"
+#include "Factory.h"
 
 #include <cbang/String.h>
 #include <cbang/log/Logger.h>
+#include <cbang/js/Sink.h>
 
 #include <ChakraCore.h>
 
@@ -60,46 +62,14 @@ namespace {
     string msg;
 
     try {
-      // Process args
-      Value args;
-      int index = 0;
-      const js::Signature &sig = cb.getSignature();
-
-      if (argc == 2 && Value(argv[1]).isObject()) args = Value(argv[1]);
-      else {
-        args = Value::createObject();
-
-        for (unsigned i = 1; i < argc; i++)
-          if (i <= sig.size()) args.set(sig.keyAt(i - 1), argv[i]);
-          else {
-            while (args.has(String(index))) index++;
-            args.set(String(index), argv[i]);
-          }
-      }
-
-      // Fill in defaults
-      for (unsigned i = 0; i < sig.size(); i++) {
-        string key = sig.keyAt(i);
-
-        if (!args.has(key))
-          switch (sig.get(i)->getType()) {
-          case JSON::Value::JSON_NULL: args.setNull(key); break;
-          case JSON::Value::JSON_BOOLEAN:
-            args.set(key, sig.getBoolean(i)); break;
-          case JSON::Value::JSON_NUMBER: args.set(key, sig.getNumber(i)); break;
-          case JSON::Value::JSON_STRING: args.set(key, sig.getString(i)); break;
-          default: break; // Ignore
-          }
-      }
+      // Convert args
+      // Note, first arg is the `this` object
+      Value args = Value::createArray(argc - 1);
+      for (unsigned i = 1; i < argc; i++)
+        args.set(i - 1, Value(argv[i]));
 
       // Call function
-      Sink sink;
-      cb(args, sink);
-
-      // Make sure sink calls concluded correctly
-      if (!sink.getRoot().isUndefined()) sink.close();
-
-      return sink.getRoot();
+      return *cb.call(args).cast<Value>();
 
     } catch (const Exception &e) {msg = SSTR(e);
     } catch (const exception &e) {msg = e.what();
@@ -113,7 +83,7 @@ namespace {
 
 
 Value::Value(const SmartPointer<js::Value> &value) :
-  ref(value.cast<Value>()->ref) {}
+  ref(value.isNull() ? 0 : value.cast<Value>()->ref) {}
 
 
 Value::Value(const string &value) {
@@ -144,6 +114,11 @@ int Value::getType() const {
   JsValueType type;
   CHAKRA_CHECK(JsGetValueType(ref, &type));
   return type;
+}
+
+
+SmartPointer<js::Value> Value::makePersistent() const {
+  return new ValueRef(*this);
 }
 
 
@@ -214,7 +189,7 @@ string Value::toString() const {
 
 
 unsigned Value::length() const {
-  if (isObject()) return getOwnPropertyNames().length();
+  if (isObject()) return getOwnPropertyNames()->length();
   return getInteger("length");
 }
 
@@ -240,6 +215,20 @@ SmartPointer<js::Value> Value::get(const string &key) const {
 }
 
 
+void Value::set(int i, const js::Value &value) {
+  const Value *v = dynamic_cast<const Value *>(&value);
+  if (!v) THROW("Not a Chakra Value");
+  set(i, *v);
+}
+
+
+void Value::set(const string &key, const js::Value &value) {
+  const Value *v = dynamic_cast<const Value *>(&value);
+  if (!v) THROW("Not a Chakra Value");
+  set(key, *v);
+}
+
+
 void Value::set(int i, const Value &value) {
   CHAKRA_CHECK(JsSetIndexedProperty(ref, Value(i), value));
 }
@@ -261,21 +250,10 @@ Value Value::call(vector<Value> _args) const {
 }
 
 
-Value Value::getOwnPropertyNames() const {
+SmartPointer<js::Value> Value::getOwnPropertyNames() const {
   JsValueRef ref;
   CHAKRA_CHECK(JsGetOwnPropertyNames(this->ref, &ref));
-  return ref;
-}
-
-
-void Value::copyProperties(const Value &value) {
-  Value props = value.getOwnPropertyNames();
-  unsigned length = props.length();
-
-  for (unsigned i = 0; i < length; i++) {
-    string key = props.getString(i);
-    set(key, value.get(key));
-  }
+  return new Value(ref);
 }
 
 

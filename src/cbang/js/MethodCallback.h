@@ -33,13 +33,13 @@
 #ifndef CB_JS_METHOD_CALLBACK_H
 #define CB_JS_METHOD_CALLBACK_H
 
-#include "Callback.h"
+#include "BakedCallback.h"
 
 
 namespace cb {
   namespace js {
     template <class T>
-    class MethodCallback : public Callback {
+    class MethodCallback : public BakedCallback {
     public:
       typedef void (T::*member_t)(const Value &args, Sink &sink);
 
@@ -48,10 +48,11 @@ namespace cb {
       member_t member;
 
     public:
-      MethodCallback(const Signature &sig, T *object, member_t member) :
-        Callback(sig), object(object), member(member) {}
+      MethodCallback(const Signature &sig, const SmartPointer<Factory> &factory,
+                     T *object, member_t member) :
+        BakedCallback(sig, factory), object(object), member(member) {}
 
-      // From Callback
+      // From BakedCallback
       void operator()(const Value &args, Sink &sink) {
         (*object.*member)(args, sink);
       }

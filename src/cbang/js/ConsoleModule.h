@@ -33,15 +33,16 @@
 #ifndef CB_JS_CONSOLE_MODULE_H
 #define CB_JS_CONSOLE_MODULE_H
 
-#include "Module.h"
+#include "NativeModule.h"
 
 
 namespace cb {
   namespace js {
-    class ConsoleModule : public Module {
+    class ConsoleModule : public NativeModule {
     public:
-      // From Module
-      const char *getName() const {return "console";}
+      ConsoleModule() : NativeModule("console") {}
+
+      // From NativeModule
       void define(Sink &exports);
 
       // Callbacks

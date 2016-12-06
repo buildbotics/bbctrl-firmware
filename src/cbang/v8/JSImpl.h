@@ -30,36 +30,44 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
+#pragma once
 
-#include "Signature.h"
-#include "Value.h"
+#include "ValueRef.h"
+#include "Context.h"
+
+#include <cbang/SmartPointer.h>
+#include <cbang/js/Impl.h>
+#include <cbang/js/Callback.h>
+
+#include <vector>
+#include <map>
 
 
 namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
+  namespace js {class Javascript;}
 
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
+  namespace gv8 {
+    class Module;
+
+    class JSImpl : public js::Impl {
+      v8::HandleScope globalScope;
+      Context ctx;
+
+      std::vector<SmartPointer<js::Callback> > callbacks;
 
     public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
+      JSImpl(js::Javascript &js);
 
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
+      static void init(int *argc = 0, char *argv[] = 0);
+      static JSImpl &current();
 
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
+      void add(const SmartPointer<js::Callback> &cb) {callbacks.push_back(cb);}
+
+      // From js::Impl
+      SmartPointer<js::Factory> getFactory();
+      SmartPointer<js::Scope> enterScope();
+      SmartPointer<js::Scope> newScope();
+      void interrupt();
     };
   }
 }
-
-#endif // CB_JS_CALLBACK_H

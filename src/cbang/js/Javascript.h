@@ -43,21 +43,29 @@
 
 namespace cb {
   namespace js {
-    class Javascript : public PathResolver, public Impl {
+    class Javascript : public PathResolver {
       SmartPointer<Impl> impl;
 
       StdModule stdMod;
       ConsoleModule consoleMod;
 
-    public:
-      Javascript();
+      typedef std::map<std::string, SmartPointer<Module> > modules_t;
+      modules_t modules;
 
-      // From Impl
-      void define(Module &mod);
+      SmartPointer<Value> nativeProps;
+
+    public:
+      Javascript(const std::string &implName = std::string());
+
+      SmartPointer<js::Factory> getFactory();
+      void define(NativeModule &mod);
       void import(const std::string &module,
                   const std::string &as = std::string());
-      void exec(const InputSource &source);
+      SmartPointer<js::Value> eval(const InputSource &source);
       void interrupt();
+
+      // Callbacks
+      SmartPointer<Value> require(Callback &cb, Value &args);
     };
   }
 }

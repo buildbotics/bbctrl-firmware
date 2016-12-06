@@ -53,16 +53,10 @@ namespace cb {
     class Module;
 
     class JSImpl : public js::Impl {
-      js::Javascript &js;
-
       JsRuntimeHandle runtime;
       SmartPointer<Context> ctx;
-      SmartPointer<ValueRef> common;
 
       std::vector<SmartPointer<js::Callback> > callbacks;
-
-      typedef std::map<std::string, SmartPointer<Module> > modules_t;
-      modules_t modules;
 
     public:
       JSImpl(js::Javascript &js);
@@ -72,13 +66,12 @@ namespace cb {
       static JSImpl &current();
 
       void add(const SmartPointer<js::Callback> &cb) {callbacks.push_back(cb);}
-      Value require(const std::string &id);
       void enable();
 
       // From js::Impl
-      void define(js::Module &mod);
-      void import(const std::string &module, const std::string &as);
-      void exec(const InputSource &source);
+      SmartPointer<js::Factory> getFactory();
+      SmartPointer<js::Scope> enterScope();
+      SmartPointer<js::Scope> newScope();
       void interrupt();
     };
   }

@@ -30,36 +30,34 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
+#pragma once
 
-#include "Signature.h"
 #include "Value.h"
+
+#include <cbang/js/Factory.h>
 
 
 namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
-
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
+  namespace chakra {
+    class Factory : public js::Factory {
+      Value trueValue;
+      Value falseValue;
+      Value undefinedValue;
+      Value nullValue;
 
     public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
+      Factory();
 
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
+      // From js::Factory
+      SmartPointer<js::Value> create(const std::string &value);
+      SmartPointer<js::Value> create(double value);
+      SmartPointer<js::Value> create(int32_t value);
+      SmartPointer<js::Value> create(const js::Function &func);
+      SmartPointer<js::Value> createArray(unsigned size);
+      SmartPointer<js::Value> createObject();
+      SmartPointer<js::Value> createBoolean(bool value);
+      SmartPointer<js::Value> createUndefined();
+      SmartPointer<js::Value> createNull();
     };
   }
 }
-
-#endif // CB_JS_CALLBACK_H

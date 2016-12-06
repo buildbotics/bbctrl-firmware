@@ -30,36 +30,59 @@
 
 \******************************************************************************/
 
-#ifndef CB_JS_CALLBACK_H
-#define CB_JS_CALLBACK_H
-
-#include "Signature.h"
+#include "Factory.h"
 #include "Value.h"
 
+using namespace cb::gv8;
+using namespace cb;
+using namespace std;
 
-namespace cb {
-  namespace js {
-    class Sink;
-    class Factory;
 
-    class Callback {
-    protected:
-      Signature sig;
-      SmartPointer<Factory> factory;
+Factory::Factory() :
+  trueValue(true), falseValue(false), undefinedValue(),
+  nullValue(Value::createNull()) {}
 
-    public:
-      Callback(const Signature &sig, const SmartPointer<Factory> &factory) :
-        sig(sig), factory(factory) {}
-      virtual ~Callback() {}
 
-      const std::string &getName() const {return sig.getName();}
-      const Signature &getSignature() const {return sig;}
-      const SmartPointer<Factory> &getFactory() const {return factory;}
-
-      virtual SmartPointer<Value> call(Callback &cb, Value &args) = 0;
-      SmartPointer<Value> call(Value &args);
-    };
-  }
+SmartPointer<js::Value> Factory::create(const string &value) {
+  return new Value(value);
 }
 
-#endif // CB_JS_CALLBACK_H
+
+SmartPointer<js::Value> Factory::create(double value) {
+  return new Value(value);
+}
+
+
+SmartPointer<js::Value> Factory::create(int32_t value) {
+  return new Value(value);
+}
+
+
+SmartPointer<js::Value> Factory::create(const js::Function &func) {
+  return new Value(func);
+}
+
+
+SmartPointer<js::Value> Factory::createArray(unsigned size) {
+  return new Value(Value::createArray(size));
+}
+
+
+SmartPointer<js::Value> Factory::createObject() {
+  return new Value(Value::createObject());
+}
+
+
+SmartPointer<js::Value> Factory::createBoolean(bool value) {
+  return SmartPointer<js::Value>::Phony(&(value ? trueValue : falseValue));
+}
+
+
+SmartPointer<js::Value> Factory::createUndefined() {
+  return SmartPointer<js::Value>::Phony(&undefinedValue);
+}
+
+
+SmartPointer<js::Value> Factory::createNull() {
+  return SmartPointer<js::Value>::Phony(&nullValue);
+}

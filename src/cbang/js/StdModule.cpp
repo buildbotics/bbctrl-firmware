@@ -33,9 +33,27 @@
 #include "StdModule.h"
 #include "Javascript.h"
 
+#include <iostream>
+
 using namespace cb::js;
 using namespace cb;
 using namespace std;
 
 
-void StdModule::define(Sink &exports) {}
+void StdModule::define(Sink &exports) {
+  exports.insert("require(id)", this, &StdModule::require);
+  exports.insert("print(...)", this, &StdModule::print);
+}
+
+
+SmartPointer<Value> StdModule::require(Callback &cb, Value &args) {
+  return js.require(cb, args);
+}
+
+
+void StdModule::print(const Value &args, Sink &sink) {
+  for (unsigned i = 0; i < args.length(); i++) {
+    if (i) cout << ' ';
+    cout << args.get(i)->toString();
+  }
+}

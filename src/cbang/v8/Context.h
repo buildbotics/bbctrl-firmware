@@ -30,25 +30,56 @@
 
 \******************************************************************************/
 
-#ifndef CB_CHAKRA_MODULE_H
-#define CB_CHAKRA_MODULE_H
+#pragma once
 
-#include "Context.h"
-#include "ValueRef.h"
+#include "Value.h"
+
+#include <cbang/js/Scope.h>
+
+#include <cbang/io/InputSource.h>
 
 
 namespace cb {
-  namespace chakra {
-    class Module : public Context {
-      ValueRef obj;
+  namespace gv8 {
+    class JSImpl;
+
+    class Context {
+      JSImpl &impl;
+      v8::Handle<v8::Context> context;
 
     public:
-      Module(const std::string &id, const std::string &path, JSImpl &impl);
+      class Scope : public js::Scope {
+        SmartPointer<Context> ctx;
 
-      Value &getObject() {return obj;}
-      Value load(const std::string &source);
+      public:
+        Scope(Context &ctx) :
+        ctx(SmartPointer<Context>::Phony(&ctx)) {ctx.enter();}
+        Scope(const SmartPointer<Context> &ctx) : ctx(ctx) {ctx->enter();}
+        ~Scope() {ctx->exit();}
+
+        // From js::Scope
+        SmartPointer<js::Value> getGlobalObject() {
+          return new Value(ctx->getGlobal());
+        }
+
+        SmartPointer<js::Value> eval(const InputSource &source) {
+          return new Value(ctx->eval(source));
+        }
+      };
+
+      Context(JSImpl &impl);
+
+      JSImpl &getImpl() const {return impl;}
+      Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
+
+      void enter() {context->Enter();}
+      void exit() {context->Exit();}
+
+      Value eval(const InputSource &source);
+
+      static Context &current();
+      static void translateException(const v8::TryCatch &tryCatch,
+                                     bool useStack);
     };
   }
 }
-
-#endif // CB_CHAKRA_MODULE_H

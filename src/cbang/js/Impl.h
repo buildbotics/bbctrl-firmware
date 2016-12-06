@@ -34,6 +34,8 @@
 #define CB_JS_IMPL_H
 
 #include "Module.h"
+#include "Factory.h"
+#include "Scope.h"
 
 #include <cbang/io/InputSource.h>
 
@@ -44,9 +46,9 @@ namespace cb {
     public:
       virtual ~Impl() {}
 
-      virtual void define(Module &mod) = 0;
-      virtual void import(const std::string &module, const std::string &as) = 0;
-      virtual void exec(const InputSource &source) = 0;
+      virtual SmartPointer<Factory> getFactory() = 0;
+      virtual SmartPointer<Scope> enterScope() = 0;
+      virtual SmartPointer<Scope> newScope() = 0;
       virtual void interrupt() = 0;
     };
   }

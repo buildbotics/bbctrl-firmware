@@ -62,7 +62,7 @@ void Context::enter() {CHAKRA_CHECK(JsSetCurrentContext(context));}
 void Context::leave() {JsSetCurrentContext(JS_INVALID_REFERENCE);}
 
 
-Value Context::exec(const string &path, const string &code) {
+Value Context::eval(const string &path, const string &code) {
   impl.enable();
   enter();
 
@@ -70,5 +70,25 @@ Value Context::exec(const string &path, const string &code) {
   JsRun(Value::createArrayBuffer(code), 0, Value(path),
         JsParseScriptAttributeNone, &result);
 
+  // Check for errors
+  if (Value::hasException()) {
+    Value ex = Value::getException();
+    ostringstream msg;
+
+    if (ex.isObject() && ex.has("stack")) msg << ex.getString("stack");
+    else if (ex.isObject() && ex.has("line"))
+      msg << ex.toString() << "\n  at " << path << ':'
+          << ex.getInteger("line") << ':'
+          << ex.getInteger("column");
+    else msg << ex.toString();
+
+    THROW(msg.str());
+  }
+
   return result;
+}
+
+
+Value Context::eval(const InputSource &source) {
+  return eval(source.getName(), source.toString());
 }

@@ -33,23 +33,25 @@
 #ifndef CB_JS_STD_MODULE_H
 #define CB_JS_STD_MODULE_H
 
-#include "Module.h"
+#include "NativeModule.h"
 
 
 namespace cb {
   namespace js {
     class Javascript;
 
-    class StdModule : public Module {
-    public:
-      StdModule(Javascript &js) {}
+    class StdModule : public NativeModule {
+      Javascript &js;
 
-      // From Module
-      const char *getName() const {return "std";}
+    public:
+      StdModule(Javascript &js) : NativeModule("std"), js(js) {}
+
+      // From NativeModule
       void define(Sink &exports);
 
       // Callbacks
-      //void alert(const Value &args, Sink &sink);
+      SmartPointer<Value> require(Callback &cb, Value &args);
+      void print(const Value &args, Sink &sink);
     };
   }
 }
