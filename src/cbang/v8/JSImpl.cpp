@@ -42,7 +42,13 @@ using namespace cb;
 using namespace std;
 
 
-JSImpl::JSImpl(js::Javascript &js) : ctx(*this) {}
+JSImpl *JSImpl::singleton = 0;
+
+
+JSImpl::JSImpl(js::Javascript &js) {
+  if (singleton) THROW("There can be only one. . .");
+  singleton = this;
+}
 
 
 void JSImpl::init(int *argc, char *argv[]) {
@@ -50,13 +56,18 @@ void JSImpl::init(int *argc, char *argv[]) {
 }
 
 
-JSImpl &JSImpl::current() {return Context::current().getImpl();}
+JSImpl &JSImpl::current() {
+  if (!singleton) THROW("No instance created");
+  return *singleton;
+}
+
+
 SmartPointer<js::Factory> JSImpl::getFactory() {return new Factory;}
 SmartPointer<js::Scope> JSImpl::enterScope() {return new Context::Scope(ctx);}
 
 
 SmartPointer<js::Scope> JSImpl::newScope() {
-  return new Context::Scope(new Context(*this));
+  return new Context::Scope(new Context);
 }
 
 

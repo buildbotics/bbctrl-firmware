@@ -41,10 +41,7 @@
 
 namespace cb {
   namespace gv8 {
-    class JSImpl;
-
     class Context {
-      JSImpl &impl;
       v8::Handle<v8::Context> context;
 
     public:
@@ -67,9 +64,8 @@ namespace cb {
         }
       };
 
-      Context(JSImpl &impl);
+      Context();
 
-      JSImpl &getImpl() const {return impl;}
       Value getGlobal() {return v8::Handle<v8::Value>(context->Global());}
 
       void enter() {context->Enter();}
@@ -77,7 +73,6 @@ namespace cb {
 
       Value eval(const InputSource &source);
 
-      static Context &current();
       static void translateException(const v8::TryCatch &tryCatch,
                                      bool useStack);
     };

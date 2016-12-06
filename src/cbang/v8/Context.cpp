@@ -36,11 +36,7 @@ using namespace cb::gv8;
 using namespace std;
 
 
-Context::Context(JSImpl &impl) :
-  impl(impl), context(v8::Context::New(0, v8::ObjectTemplate::New())) {
-  v8::Handle<v8::Value> data = v8::External::New((void *)this);
-  context->SetData(data);
-}
+Context::Context() : context(v8::Context::New(0, v8::ObjectTemplate::New())) {}
 
 
 Value Context::eval(const InputSource &src) {
@@ -68,12 +64,6 @@ Value Context::eval(const InputSource &src) {
 
   // Return result
   return handleScope.Close(ret);
-}
-
-
-Context &Context::current() {
-  v8::Handle<v8::Context> ctx = v8::Context::GetCurrent();
-  return *static_cast<Context *>(v8::External::Cast(*ctx->GetData())->Value());
 }
 
 

@@ -55,6 +55,8 @@ namespace cb {
 
       std::vector<SmartPointer<js::Callback> > callbacks;
 
+      static JSImpl *singleton;
+
     public:
       JSImpl(js::Javascript &js);
 
