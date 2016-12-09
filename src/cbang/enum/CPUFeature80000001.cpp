@@ -30,51 +30,6 @@
 
 \******************************************************************************/
 
-#ifndef CPUID_H
-#define CPUID_H
-
-#include <cbang/StdTypes.h>
-
-#include <cbang/enum/CPUFeature.h>
-#include <cbang/enum/CPUExtendedFeature.h>
-#include <cbang/enum/CPUFeature80000001.h>
-
-#include <string>
-
-namespace cb {
-  class CPUID {
-    uint32_t regs[4];
-
-  public:
-    CPUID &cpuID(uint32_t eax, uint32_t ebx = 0, uint32_t ecx = 0,
-                 uint32_t edx = 0);
-
-    const uint32_t *getRegs() const {return regs;}
-
-    static uint32_t getBits(uint32_t x, unsigned start = 31, unsigned end = 0);
-    uint32_t EAX(unsigned start = 31, unsigned end = 0) const
-      {return getBits(regs[0], start, end);}
-    uint32_t EBX(unsigned start = 31, unsigned end = 0) const
-      {return getBits(regs[1], start, end);}
-    uint32_t ECX(unsigned start = 31, unsigned end = 0) const
-      {return getBits(regs[2], start, end);}
-    uint32_t EDX(unsigned start = 31, unsigned end = 0) const
-      {return getBits(regs[3], start, end);}
-
-    std::string getCPUBrand();
-    std::string getCPUVendor();
-    uint32_t getCPUSignature();
-    uint64_t getCPUFeatures();
-    uint64_t getCPUExtendedFeatures();
-    uint64_t getCPUFeatures80000001();
-    bool cpuHasFeature(CPUFeature feature);
-    bool cpuHasExtendedFeature(CPUExtendedFeature feature);
-    bool cpuHasFeature80000001(CPUFeature80000001 feature);
-    unsigned getCPUFamily();
-    unsigned getCPUModel();
-    unsigned getCPUStepping();
-    void getCPUCounts(uint32_t &logical, uint32_t &cores, uint32_t &threads);
-  };
-}
-
-#endif // CPUID_H
+#define CBANG_ENUM_IMPL
+#include "CPUFeature80000001.h"
+#include <cbang/enum/MakeEnumerationImpl.def>

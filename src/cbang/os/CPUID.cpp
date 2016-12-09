@@ -85,7 +85,7 @@ uint32_t CPUID::getBits(uint32_t x, unsigned start, unsigned end) {
 
 
 string CPUID::getCPUBrand() {
-  cpuID(0x80000000);
+  cpuID(0x80000000); // Get max extension function
 
   if (EAX() & 0x80000000 && EAX() >= 0x80000004) {
     string brand;
@@ -132,6 +132,12 @@ uint64_t CPUID::getCPUExtendedFeatures() {
 }
 
 
+uint64_t CPUID::getCPUFeatures80000001() {
+  cpuID(0x80000001);
+  return (uint64_t)ECX() << 32 | EDX();
+}
+
+
 bool CPUID::cpuHasFeature(CPUFeature feature) {
   return getCPUFeatures() & (1UL << (CPUFeature::enum_t)feature);
 }
@@ -140,6 +146,12 @@ bool CPUID::cpuHasFeature(CPUFeature feature) {
 bool CPUID::cpuHasExtendedFeature(CPUExtendedFeature feature) {
   return getCPUExtendedFeatures() &
     (1UL << (CPUExtendedFeature::enum_t)feature);
+}
+
+
+bool CPUID::cpuHasFeature80000001(CPUFeature80000001 feature) {
+  return getCPUFeatures80000001() &
+    (1UL << (CPUFeature80000001::enum_t)feature);
 }
 
 
