@@ -110,8 +110,8 @@ command line to scons or place in a configuration file named
 
   - debug                - Enable debugging
   - optimize             - Enable compiler optimizations
-  - static               - Build a static library
-  - shared               - Build a shared library
+  - staticlib            - Build a static library
+  - sharedlib            - Build a shared library
   - strict               - Enable strict checking
   - distcc               - Enable distcc distributed compile system
   - ccache               - Enable ccache caching compile system
