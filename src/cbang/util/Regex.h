@@ -57,9 +57,10 @@ namespace cb {
     class Match : public std::vector<std::string> {
       struct private_t;
       SmartPointer<private_t> pri;
+      type_t type;
 
     public:
-      Match();
+      Match(type_t type = TYPE_POSIX);
       std::string format(const std::string &fmt) const;
 
       unsigned position(unsigned i = 0) const;

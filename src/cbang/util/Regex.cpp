@@ -63,24 +63,22 @@ namespace {
 
 struct Regex::private_t {
   boost::regex re;
-  type_t type;
 
-  private_t(const string &pattern, type_t type) : re(pattern), type(type) {}
+  private_t(const string &pattern) : re(pattern) {}
 };
 
 
 struct Regex::Match::private_t {
   boost::smatch m;
-  type_t type;
 };
 
 
-Regex::Match::Match() : pri(new private_t) {}
+Regex::Match::Match(type_t type) : pri(new private_t), type(type) {}
 
 
 string Regex::Match::format(const std::string &fmt) const {
   try {
-    return pri->m.format(fmt, typeToFormatFlags(pri->type));
+    return pri->m.format(fmt, typeToFormatFlags(type));
 
   } catch (boost::regex_error &e) {
     THROWS("Format error: " << e.what());
@@ -95,7 +93,7 @@ unsigned Regex::Match::position(unsigned i) const {
 
 
 Regex::Regex(const string &pattern, type_t type) :
-  pri(new private_t(pattern, type)) {}
+  pri(new private_t(pattern)), type(type) {}
 
 
 bool Regex::match(const string &s) const {
@@ -119,8 +117,6 @@ bool Regex::match(const string &s, Match &m) const {
 
   for (unsigned i = 0; i < m.pri->m.size(); i++)
     m.push_back(string(m.pri->m[i].first, m.pri->m[i].second));
-
-  m.pri->type = pri->type;
 
   return true;
 }
@@ -147,8 +143,6 @@ bool Regex::search(const string &s, Match &m) const {
 
   for (unsigned i = 0; i < m.pri->m.size(); i++)
     m.push_back(string(m.pri->m[i].first, m.pri->m[i].second));
-
-  m.pri->type = pri->type;
 
   return true;
 }
