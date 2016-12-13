@@ -15,7 +15,7 @@ def configure(conf):
     conf.CBCheckLib('icuuc')
     conf.CBCheckLib('unwind-x86_64')
 
-    if int(conf.env.get('static')):
+    if int(conf.env.get('static')) or int(conf.env.get('mostly_static')):
         conf.CBCheckLib('icudata')
         conf.CBCheckLib('unwind')
         conf.CBCheckLib('lzma')

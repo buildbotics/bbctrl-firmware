@@ -163,11 +163,19 @@ def CBConfig(ctx, name, required = True, **kwargs):
     if name in env.cb_methods:
         ret = False
         try:
-            ret = env.cb_methods[name](conf, **kwargs)
+            conf.env = env.Clone()
+            ret = conf.env.cb_methods[name](conf, **kwargs)
             if ret is None: ret = True
+
+            # Commit changes
+            if ret: env.Replace(**conf.env.Dictionary())
+
         except Exception, e:
             if required: raise
             ctx.Message(str(e))
+
+        finally:
+            conf.env = env # Put back master env
 
         if ret: env.cb_enabled.add(name)
         elif required: raise Exception, 'Failed to configure ' + name
