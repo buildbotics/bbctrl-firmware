@@ -68,7 +68,8 @@ namespace cb {
       using JSON::NullSink::write;
 
       void close();
-      void reset(const SmartPointer<Value> &root = 0);
+      void reset(const SmartPointer<Value> &root);
+      void reset() {reset(0);}
 
       // Element functions
       void writeNull();

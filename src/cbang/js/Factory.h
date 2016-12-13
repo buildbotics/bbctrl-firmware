@@ -45,10 +45,9 @@ namespace cb {
       virtual ~Factory() {}
 
       virtual SmartPointer<Value> create(const std::string &value) = 0;
-      virtual SmartPointer<Value>
-      create(const char *value, unsigned length = -1) {
+      virtual SmartPointer<Value> create(const char *value, int length = -1) {
         return create(length < 0 ? std::string(value) :
-                               std::string(value, length));
+                      std::string(value, length));
       }
       virtual SmartPointer<Value> create(double value) = 0;
       virtual SmartPointer<Value> create(float value)
