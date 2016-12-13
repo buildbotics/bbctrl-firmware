@@ -114,10 +114,12 @@ bool Glob::isDir() const {
 
 string Glob::next() {
 #ifdef _WIN32
-  string path = SystemUtilities::joinPath(SystemUtilities::dirname(pattern),
-                                          data->FindFileData.cFileName);
+  string dir = SystemUtilities::dirname(pattern);
+  string path = data->FindFileData.cFileName;
+
   data->next = FindNextFile(data->f, &data->FindFileData);
-  return path;
+
+  return dir == "." ? path : SystemUtilities::joinPath(dir, path);
 
 #else
   return data->files.gl_pathv[data->i++];
