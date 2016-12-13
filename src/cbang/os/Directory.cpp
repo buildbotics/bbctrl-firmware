@@ -32,29 +32,11 @@
 
 #include "Directory.h"
 
-#include <cbang/Exception.h>
-#include <cbang/Zap.h>
-
-#include <cbang/os/SystemUtilities.h>
-
-#include <cbang/util/DefaultCatch.h>
-
 #define BOOST_SYSTEM_NO_DEPRECATED
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
-
-// TODO Why does non-boost method fail on 64-bit RedHat systems?
-#define USE_BOOST
-
-#if defined(_WIN32)
-#define USE_BOOST
-
-#elif !defined(USE_BOOST)
-#include <sys/types.h>
-#include <dirent.h>
-#endif
 
 using namespace std;
 using namespace cb;
@@ -64,94 +46,30 @@ struct Directory::private_t {
   fs::path path;
   fs::directory_iterator it;
 
-#ifndef USE_BOOST
-  DIR *dir;
-  struct dirent *entry;
-#endif
-
   private_t(const string &_path) :
     path(fs::system_complete(fs::path(_path))), it(path) {}
 };
 
 
 Directory::Directory(const string &path) : p(new private_t(path)) {
-  if (!fs::is_directory(p->path))
-    THROWS("Not a directory '" << p->path << "'");
-
-#ifndef USE_BOOST
-  p->dir = 0;
-  p->entry = 0;
-  rewind();
-  next();
-#endif
+  if (!fs::is_directory(p->path)) THROWS("Not a directory '" << p->path << "'");
 }
 
 
-Directory::~Directory() {
-  try {
-#ifndef USE_BOOST
-    if (p->dir) closedir(p->dir);
-#endif
-
-    zap(p);
-  } CBANG_CATCH_ERROR; // Cannot throw an exception during a stack unwind
-}
-
-
-void Directory::rewind() {
-#ifdef USE_BOOST
-  p->it = fs::directory_iterator(p->path);
-
-#else
-  if (p->dir) closedir(p->dir);
-
-  if (!(p->dir = opendir(p->path.string().c_str())))
-    THROWS("Failed to open directory '" << p->path << "'");
-#endif
-}
-
-
-Directory::operator bool() const {
-#ifdef USE_BOOST
-  return p->it != fs::directory_iterator();
-
-#else
-  return p->entry != 0;
-#endif
-}
-
-
-void Directory::next() {
-#ifdef USE_BOOST
-  p->it++;
-
-#else
-  p->entry = readdir(p->dir);
-#endif
-}
+void Directory::rewind() {p->it = fs::directory_iterator(p->path);}
+Directory::operator bool() const {return p->it != fs::directory_iterator();}
+void Directory::next() {p->it++;}
 
 
 const string Directory::getFilename() const {
-#ifdef USE_BOOST
 #if BOOST_FILESYSTEM_VERSION < 3
   return p->it->path().filename();
 #else
   return p->it->path().filename().string();
 #endif
-
-#else
-  if (!p->entry) THROWS("End of directory");
-  return p->entry->d_name;
-#endif
 }
 
 
 bool Directory::isSubdirectory() const {
-#ifdef USE_BOOST
   return fs::is_directory(p->it->status());
-
-#else
-  if (!p->entry) THROWS("End of directory");
-  return p->entry->d_type == DT_DIR;
-#endif
 }

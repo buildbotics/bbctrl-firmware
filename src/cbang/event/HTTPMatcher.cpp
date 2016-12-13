@@ -39,21 +39,20 @@ using namespace cb::Event;
 
 
 bool HTTPMatcher::operator()(Request &req) {
-  boost::smatch m;
+  Regex::Match m;
   const string &path = req.getURI().getPath();
 
-  if (!(methods & req.getMethod()) ||
-      (!matchAll && !boost::regex_match(path, m, search, flags)))
+  if (!(methods & req.getMethod()) || (!matchAll && !search.match(path, m)))
     return false;
 
   for (unsigned i = 1; i < m.size(); i++)
-    req.insertArg(string(m[i].first, m[i].second));
+    req.insertArg(m[1]);
 
   if (replace.empty()) return (*child)(req);
 
   RestoreURIPath restoreURIPath(req.getURI());
 
-  req.getURI().setPath(m.format(replace, flags)); // Modify path
+  req.getURI().setPath(m.format(replace)); // Modify path
 
   return (*child)(req);
 }

@@ -44,17 +44,16 @@
 
 #include <string.h>
 
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
-
 using namespace std;
 using namespace cb;
+
 
 #ifdef _WIN32
 string Glob::sep = "\\";
 #else
 string Glob::sep = "/";
 #endif
+
 
 namespace cb {
   struct glob_data_t {
@@ -69,6 +68,7 @@ namespace cb {
   };
 };
 
+
 Glob::Glob(const string &pattern) : pattern(pattern), data(new glob_data_t) {
 #ifdef _WIN32
   data->f = FindFirstFile(pattern.c_str(), &data->FindFileData);
@@ -79,6 +79,7 @@ Glob::Glob(const string &pattern) : pattern(pattern), data(new glob_data_t) {
   glob(pattern.c_str(), 0, 0, &data->files);
 #endif
 }
+
 
 Glob::~Glob() {
 #ifdef _WIN32
@@ -92,6 +93,7 @@ Glob::~Glob() {
   data = 0;
 }
 
+
 bool Glob::hasNext() const {
 #ifdef _WIN32
   return data->next;
@@ -99,6 +101,7 @@ bool Glob::hasNext() const {
   return data->i < data->files.gl_pathc;
 #endif
 }
+
 
 bool Glob::isDir() const {
 #ifdef _WIN32
@@ -108,10 +111,11 @@ bool Glob::isDir() const {
 #endif
 }
 
+
 string Glob::next() {
 #ifdef _WIN32
-  string path = (fs::path(pattern).parent_path() /
-                 fs::path(data->FindFileData.cFileName)).string();
+  string path = SystemUtilities::joinPath(SystemUtilities::dirname(pattern),
+                                          data->FindFileData.cFileName);
   data->next = FindNextFile(data->f, &data->FindFileData);
   return path;
 

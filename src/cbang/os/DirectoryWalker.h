@@ -37,14 +37,14 @@
 #include <string>
 
 #include <cbang/SmartPointer.h>
+#include <cbang/util/Regex.h>
 #include <cbang/os/Directory.h>
 
-#include <boost/regex.hpp>
 
 namespace cb {
   /// Walk a directory tree and return files that match pattern.
   class DirectoryWalker {
-    boost::regex re;
+    Regex re;
     std::string path;
     std::vector<SmartPointer<Directory> > dirStack;
     std::string nextFile;

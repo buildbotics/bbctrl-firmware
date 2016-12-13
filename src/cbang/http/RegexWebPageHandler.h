@@ -35,27 +35,24 @@
 
 #include "WebPageHandler.h"
 
-#include <boost/regex.hpp>
+#include <cbang/util/Regex.h>
 
 
 namespace cb {
   namespace HTTP {
     class RegexWebPageHandler : public WebPageHandler {
-      boost::regex regex;
+      Regex re;
       SmartPointer<WebPageHandler> child;
 
     public:
-      RegexWebPageHandler(const boost::regex &regex,
+      RegexWebPageHandler(const std::string &pattern,
                           const SmartPointer<WebPageHandler> &child) :
-        regex(regex), child(child) {}
-      RegexWebPageHandler(const std::string &regex,
-                          const SmartPointer<WebPageHandler> &child) :
-        regex(boost::regex(regex)), child(child) {}
+        re(pattern), child(child) {}
 
       // From WebPageHandler
       bool handlePage(WebContext &ctx, std::ostream &stream,
                       const cb::URI &uri) {
-        if (!boost::regex_match(uri.getPath(), regex)) return false;
+        if (!re.match(uri.getPath())) return false;
         return child->handlePage(ctx, stream, uri);
       }
     };

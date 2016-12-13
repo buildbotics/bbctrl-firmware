@@ -36,7 +36,6 @@
 #include "Context.h"
 
 using namespace cb::HTTP;
-using namespace boost;
 
 
 Context *Handler::createContext(Connection *con) {
@@ -45,5 +44,5 @@ Context *Handler::createContext(Connection *con) {
 
 
 bool Handler::match(Connection *con) const {
-  return matchAll || regex_match(con->getRequest().getURI().getPath(), re);
+  return matchAll || re.match(con->getRequest().getURI().getPath());
 }

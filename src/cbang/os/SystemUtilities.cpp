@@ -91,18 +91,14 @@
 
 #define BOOST_SYSTEM_NO_DEPRECATED
 
-#include <boost/system/error_code.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/iostreams/device/file_descriptor.hpp>
 
 using namespace std;
 using namespace cb;
 using namespace cb::SystemUtilities;
 
 namespace fs = boost::filesystem;
-namespace sys = boost::system;
-namespace io = boost::iostreams;
 
 
 namespace cb {

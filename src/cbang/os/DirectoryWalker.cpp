@@ -41,7 +41,6 @@
 
 using namespace std;
 using namespace cb;
-using namespace boost;
 
 
 DirectoryWalker::DirectoryWalker(const string &root, const string &pattern,
@@ -78,7 +77,7 @@ bool DirectoryWalker::hasNext() {
       if (isDir) {
         if (dirStack.size() < maxDepth) push(name);
 
-      } else if (regex_match(name, re)) {
+      } else if (re.match(name)) {
         nextFile = path + name;
         return true;
       }

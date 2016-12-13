@@ -33,16 +33,18 @@
 #ifndef CBANG_DIRECTORY_H
 #define CBANG_DIRECTORY_H
 
+#include <cbang/SmartPointer.h>
+
 #include <string>
+
 
 namespace cb {
   class Directory {
     struct private_t;
-    private_t *p;
+    SmartPointer<private_t> p;
 
   public:
     Directory(const std::string &path);
-    ~Directory();
 
     void rewind();
     operator bool () const;

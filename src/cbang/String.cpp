@@ -36,6 +36,8 @@
 #include "SStream.h"
 #include "Exception.h"
 
+#include <cbang/util/Regex.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -45,8 +47,6 @@
 #include <algorithm>
 #include <limits>
 #include <locale>
-
-#include <boost/regex.hpp>
 
 using namespace std;
 using namespace cb;
@@ -616,10 +616,9 @@ string String::hexEncode(const string &s) {
 
 
 string String::escapeRE(const string &s) {
-  using namespace boost;
-  static const regex esc("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
+  static const Regex re("[\\^\\.\\$\\|\\(\\)\\[\\]\\*\\+\\?\\/\\\\]");
   static const string rep("\\\\\\1&");
-  return regex_replace(s, esc, rep, match_default | format_sed);
+  return re.replace(s, rep);
 }
 
 
@@ -798,15 +797,13 @@ string String::ellipsis(const string &s, unsigned width) {
 
 size_t String::find(const string &s, const string &pattern,
                     vector<string> *groups) {
-  using namespace boost;
+  Regex e(pattern);
+  Regex::Match m;
 
-  regex e(pattern);
-  match_results<string::const_iterator> m;
-
-  if (regex_search(s, m, e)) {
+  if (e.search(s, m)) {
     if (groups)
       for (unsigned i = 0; i < m.size(); i++)
-        groups->push_back(string(m[i].first, m[i].second));
+        groups->push_back(m[i]);
 
     return m.position();
   }
@@ -827,15 +824,8 @@ string String::replace(const string &s, char search, char replace) {
 
 string String::replace(const string &s, const string &search,
                        const string &replace) {
-  using namespace boost;
-
-  try {
-    regex exp(search);
-    return regex_replace(s, exp, replace, match_default | format_sed);
-
-  } catch (boost::regex_error &e) {
-    THROWS("Replace failed: " << e.what());
-  }
+  Regex exp(search);
+  return exp.replace(s, replace);
 }
 
 

@@ -44,18 +44,17 @@
 using namespace std;
 using namespace cb;
 
-using namespace boost::posix_time;
-using namespace boost::gregorian;
+namespace pt = boost::posix_time;
+
+namespace {
+  const boost::gregorian::date epoch(1970, 1, 1);
+}
+
 
 const unsigned Time::SEC_PER_MIN  = 60;
 const unsigned Time::SEC_PER_HOUR = Time::SEC_PER_MIN  * 60;
 const unsigned Time::SEC_PER_DAY  = Time::SEC_PER_HOUR * 24;
 const unsigned Time::SEC_PER_YEAR = Time::SEC_PER_DAY  * 365;
-
-namespace {
-  const date epoch(1970, 1, 1);
-}
-
 
 const char *Time::defaultFormat = "%Y-%m-%dT%H:%M:%SZ"; // ISO 8601
 
@@ -72,10 +71,10 @@ string Time::toString() const {
   if (!time) return "<invalid>";
 
   try {
-    time_facet *facet = new time_facet();
+    pt::time_facet *facet = new pt::time_facet();
     facet->format(format.c_str());
 
-    ptime t(epoch, seconds(time));
+    pt::ptime t(epoch, pt::seconds(time));
     stringstream ss;
     ss.imbue(locale(ss.getloc(), facet));
     ss << t;
@@ -91,15 +90,15 @@ string Time::toString() const {
 
 Time Time::parse(const string &s, const string &format) {
   try {
-    time_input_facet *facet = new time_input_facet();
+    pt::time_input_facet *facet = new pt::time_input_facet();
     facet->format(format.c_str());
 
-    ptime t;
+    pt::ptime t;
     stringstream ss(s);
     ss.imbue(locale(ss.getloc(), facet));
     ss >> t;
 
-    time_duration diff = t - ptime(epoch);
+    pt::time_duration diff = t - pt::ptime(epoch);
 
     return Time(diff.total_seconds(), format);
 
@@ -111,12 +110,12 @@ Time Time::parse(const string &s, const string &format) {
 
 
 uint64_t Time::now() {
-  return (uint64_t)(second_clock::universal_time() -
-                    ptime(epoch)).total_seconds();
+  return (uint64_t)(pt::second_clock::universal_time() -
+                    pt::ptime(epoch)).total_seconds();
 }
 
 
 int32_t Time::offset() {
-  return (int32_t)(second_clock::local_time() -
-                   second_clock::universal_time()).total_seconds();
+  return (int32_t)(pt::second_clock::local_time() -
+                   pt::second_clock::universal_time()).total_seconds();
 }

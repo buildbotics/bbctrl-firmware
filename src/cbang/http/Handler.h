@@ -35,9 +35,9 @@
 
 #include <string>
 
-#include <boost/regex.hpp>
-
 #include <cbang/net/URI.h>
+#include <cbang/util/Regex.h>
+
 
 namespace cb {
   namespace HTTP {
@@ -46,7 +46,7 @@ namespace cb {
 
     class Handler {
       bool matchAll;
-      boost::regex re;
+      Regex re;
 
     public:
       Handler(const std::string &pattern = "") :

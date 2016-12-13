@@ -30,35 +30,52 @@
 
 \******************************************************************************/
 
-#ifndef CB_EVENT_HTTPMATCHER_H
-#define CB_EVENT_HTTPMATCHER_H
-
-#include "HTTPHandler.h"
+#pragma once
 
 #include <cbang/SmartPointer.h>
-#include <cbang/util/Regex.h>
+
+#include <vector>
+#include <string>
 
 
 namespace cb {
-  namespace Event {
-    class HTTPMatcher : public HTTPHandler {
-      unsigned methods;
-      bool matchAll;
-      Regex search;
-      std::string replace;
-      SmartPointer<HTTPHandler> child;
+  class Regex {
+    struct private_t;
+    SmartPointer<private_t> pri;
+
+  public:
+    typedef enum {
+      TYPE_POSIX,
+      TYPE_PERL,
+      TYPE_BOOST,
+    } type_t;
+
+  protected:
+    type_t type;
+
+  public:
+    class Match : public std::vector<std::string> {
+      struct private_t;
+      SmartPointer<private_t> pri;
 
     public:
-      HTTPMatcher(unsigned methods, const std::string &search,
-                  const std::string &replace,
-                  const SmartPointer<HTTPHandler> &child) :
-        methods(methods), matchAll(search.empty()),
-        search(search), replace(replace), child(child) {}
+      Match();
+      std::string format(const std::string &fmt) const;
 
-      // From HTTPHandler
-      bool operator()(Request &req);
+      unsigned position(unsigned i = 0) const;
+
+      friend class Regex;
     };
-  }
-}
 
-#endif // CB_EVENT_HTTPMATCHER_H
+
+    Regex(const std::string &pattern, type_t type = TYPE_POSIX);
+
+    bool match(const std::string &s) const;
+    bool match(const std::string &s, Match &m) const;
+
+    bool search(const std::string &s) const;
+    bool search(const std::string &s, Match &m) const;
+
+    std::string replace(const std::string &s, const std::string &r) const;
+  };
+}
