@@ -45,7 +45,6 @@
 #include <cbang/os/SysError.h>
 
 #ifdef _WIN32
-#define FD_SETSIZE 4096
 #include <winsock2.h>
 
 #else

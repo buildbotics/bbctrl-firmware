@@ -33,6 +33,7 @@
 #include "Sink.h"
 
 using namespace cb::js;
+using namespace cb;
 using namespace std;
 
 

@@ -38,6 +38,7 @@
 
 namespace cb {
 #ifdef _MSC_VER
+#define FD_SETSIZE 4096
 #include <winsock2.h>
   typedef SOCKET socket_t;
 

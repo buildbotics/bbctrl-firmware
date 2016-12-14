@@ -46,7 +46,6 @@
 #include <cbang/String.h>
 
 #ifdef _WIN32
-#define FD_SETSIZE 4096
 #include <winsock2.h>
 
 typedef int socklen_t;  // Unix socket length
