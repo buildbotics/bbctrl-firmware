@@ -191,13 +191,9 @@ def configure(conf, cstd = 'c99'):
     print "  Platform: " + env['PLATFORM']
     print "  Mode: " + compiler_mode
 
+    # Exceptions
     if compiler_mode == 'msvc':
-        # Exceptions
         env.AppendUnique(CCFLAGS = ['/EHa']) # Asynchronous
-
-        # MSVC can also handle lib<name>.a libraries
-        env.AppendUnique(LIBPREFIXES = ['lib'])
-        env.AppendUnique(LIBSUFFIXES = ['.a'])
 
 
     # Disable troublesome warnings
