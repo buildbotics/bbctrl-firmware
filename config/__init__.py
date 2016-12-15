@@ -276,6 +276,7 @@ def on_config_finish(conf):
 
 
 def CBConfigure(env):
+    env.CBLoadTool('test')
     env.CBLoadTool('ninja')
 
     conf = Configure(env)
