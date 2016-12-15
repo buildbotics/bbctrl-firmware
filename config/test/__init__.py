@@ -12,7 +12,8 @@ def run_tests(env):
 def generate(env):
     env.CBAddVariables(('TEST_COMMAND', 'Command to run for `test` target',
                         'tests/testHarness -C tests --no-color --diff-failed '
-                        '--view-failed --view-unfiltered --save-failed'))
+                        '--view-failed --view-unfiltered --save-failed '
+                        '--build'))
 
     if 'test' in COMMAND_LINE_TARGETS: env.CBAddConfigFinishCB(run_tests)
 
