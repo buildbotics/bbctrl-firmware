@@ -39,17 +39,19 @@ struct timeval {
   long tv_sec;
   long tv_usec;
 };
+
 #else
-#include <winsock2.h>
+struct timeval;
 #endif
 
 #undef max
 #undef min
 
-#else // _WIN32
+#else // _MSC_VER
 #include <time.h>
 #include <sys/time.h>
-#endif // _WIN32
+#endif // _MSC_VER
+
 
 namespace cb {
   /// Time events or access current system time

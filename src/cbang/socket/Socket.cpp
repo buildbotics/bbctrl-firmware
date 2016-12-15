@@ -32,6 +32,7 @@
 
 #include "Socket.h"
 
+#include "Winsock.h"
 #include "SocketDefaultImpl.h"
 #include "SocketSSLImpl.h"
 #include "SocketDebugImpl.h"
@@ -46,10 +47,6 @@
 
 #include <cbang/log/Logger.h>
 #include <cbang/time/Timer.h>
-
-#ifdef _WIN32
-#include <winsock2.h>
-#endif
 
 using namespace std;
 using namespace cb;

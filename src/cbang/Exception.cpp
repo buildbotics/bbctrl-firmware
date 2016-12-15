@@ -89,7 +89,7 @@ ostream &Exception::print(ostream &stream, unsigned level) const {
 }
 
 #if defined(_WIN32) && !defined(__MINGW32__)
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
 extern "C" void convert_win32_exception(unsigned x, EXCEPTION_POINTERS *e){

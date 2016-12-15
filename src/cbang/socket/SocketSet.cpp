@@ -32,6 +32,7 @@
 
 #include "SocketSet.h"
 
+#include "Winsock.h"
 #include "Socket.h"
 #include "SocketType.h"
 #include "SocketDebugger.h"
@@ -44,10 +45,7 @@
 
 #include <cbang/os/SysError.h>
 
-#ifdef _WIN32
-#include <winsock2.h>
-
-#else
+#ifndef _WIN32
 #include <sys/select.h>
 #include <sys/types.h>
 #endif

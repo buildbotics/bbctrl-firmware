@@ -38,9 +38,11 @@
 
 namespace cb {
 #ifdef _MSC_VER
-#define FD_SETSIZE 4096
-#include <winsock2.h>
-  typedef SOCKET socket_t;
+#ifdef _WIN64
+  typedef int64_t socket_t;
+#else
+  typedef int32_t socket_t;
+#endif
 
 #elif __MINGW32__
 

@@ -33,14 +33,14 @@
 #include <cbang/time/Timer.h>
 
 #ifdef _WIN32
+#include <cbang/socket/Winsock.h> // For timeval
+
 #include <time.h>
-#define WINDOWS_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
 #else
 #include <unistd.h>
-#include <sys/time.h>
-#include <time.h>
 #endif
 
 using namespace cb;

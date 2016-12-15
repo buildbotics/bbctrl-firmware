@@ -33,7 +33,6 @@
 #include "SocketDefaultImpl.h"
 
 #include "Socket.h"
-#include "SocketType.h"
 #include "SocketSet.h"
 #include "SocketDebugger.h"
 
@@ -46,7 +45,7 @@
 #include <cbang/String.h>
 
 #ifdef _WIN32
-#include <winsock2.h>
+#include "Winsock.h"
 
 typedef int socklen_t;  // Unix socket length
 #define MSG_DONTWAIT 0

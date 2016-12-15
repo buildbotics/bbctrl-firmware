@@ -48,7 +48,7 @@ using namespace cb;
 #endif
 
 #ifdef USE_WIN32_CONSOLE_CTRL_HANDLER
-#define WINDOWS_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 static BOOL WINAPI ConsoleCtrlHandler(DWORD dwCtrlType) {
   LOG_WARNING("Console control signal " << dwCtrlType << " on PID "

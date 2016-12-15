@@ -30,86 +30,21 @@
 
 \******************************************************************************/
 
-#include "DynamicLibrary.h"
-
-#include "SysError.h"
-
-#include <cbang/Exception.h>
-#include <cbang/Zap.h>
+#pragma once
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
-#include <windows.h>
 
-#else
-#include <dlfcn.h>
+#ifdef _WINSOCKAPI_
+#error winsock.h already included
 #endif
 
-using namespace std;
-using namespace cb;
-
-
-bool DynamicLibrary::enabled = true;
-
-
-struct DynamicLibrary::private_t {
-#ifdef _WIN32
-  HMODULE handle;
-#else
-  void *handle;
-#endif
-};
-
-
-DynamicLibrary::DynamicLibrary(const string &path) :
-  path(path), pri(new private_t) {
-
-  if (!enabled) THROW("DynamicLibrary disabled globally");
-
-#ifdef _WIN32
-  pri->handle = LoadLibrary(path.c_str());
-  if (!pri->handle)
-    THROWS("Failed to open dynamic library '" << path << "': " << SysError());
-
-#else
-  dlerror(); // Clear errors
-
-  pri->handle = dlopen(path.c_str(), RTLD_LAZY);
-  if (!pri->handle)
-    THROWS("Failed to open dynamic library '" << path << "': " << dlerror());
-#endif
-}
-
-
-DynamicLibrary::~DynamicLibrary() {
-#ifdef _WIN32
-  if (pri->handle) CloseHandle(pri->handle);
-
-#else
-  if (pri->handle) dlclose(pri->handle);
+#ifdef _WINSOCK2API_
+#error winsock2.h already included
 #endif
 
-  zap(pri);
-}
-
-
-void *DynamicLibrary::getSymbol(const string &name) {
-#ifdef _WIN32
-  void *symbol = (void *)GetProcAddress(pri->handle, name.c_str());
-  if (!symbol)
-    THROWS("Failed to load dynamic symbol '" << name << "' from library '"
-           << path << "': " << SysError());
-
-#else
-  dlerror(); // Clear errors
-
-  void *symbol = dlsym(pri->handle, name.c_str());
-
-  char *err = dlerror();
-  if (err)
-    THROWS("Failed to load dynamic symbol '" << name << "' from library '"
-           << path << "': " << err);
+#ifndef FS_SETSIZE
+#define FD_SETSIZE 4096
 #endif
 
-  return symbol;
-}
+#include <winsock2.h>
+#endif

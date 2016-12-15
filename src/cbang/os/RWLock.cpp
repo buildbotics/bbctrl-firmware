@@ -37,7 +37,7 @@
 #include <cbang/log/Logger.h>
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #ifdef __MINGW32__
 #include <synchapi.h>

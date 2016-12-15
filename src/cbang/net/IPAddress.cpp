@@ -29,12 +29,10 @@
                         joseph@cauldrondevelopment.com
 
 \******************************************************************************/
-#ifdef _WIN32
-// Must come before anything else that could include winsock.h
-#include <winsock2.h>
-#endif
 
-#include <cbang/net/IPAddress.h>
+#include "IPAddress.h"
+
+#include <cbang/socket/Winsock.h>
 
 #include <cbang/Exception.h>
 #include <cbang/String.h>

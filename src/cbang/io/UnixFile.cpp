@@ -39,7 +39,7 @@
 #include <fcntl.h>
 
 #ifdef _WIN32
-#define WINDOWS_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #include <io.h>
 

@@ -47,6 +47,7 @@
 #include <string.h> // For memset()
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
 #else // _WIN32
