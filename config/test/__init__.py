@@ -13,7 +13,7 @@ def run_tests(env):
 def generate(env):
     import os
 
-    cmd = 'tests/testHarness -C tests --diff-failed --view-failed ' \
+    cmd = 'python tests/testHarness -C tests --diff-failed --view-failed ' \
         '--view-unfiltered --save-failed --build'
 
     if 'DOCKBOT_MASTER_PORT' in os.environ: cmd += ' --no-color'
