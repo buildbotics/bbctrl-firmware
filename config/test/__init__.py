@@ -6,8 +6,7 @@ def run_tests(env):
     import subprocess
     import sys
 
-    subprocess.call(shlex.split(env.get('TEST_COMMAND')))
-    sys.exit(0)
+    sys.exit(subprocess.call(shlex.split(env.get('TEST_COMMAND'))))
 
 
 def generate(env):
