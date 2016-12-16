@@ -311,6 +311,8 @@ def CBConfigure(env):
     conf.OrigFinish = conf.Finish
     conf.Finish = types.MethodType(on_config_finish, conf)
 
+    for cb in env.cb_configure_cbs: cb(env)
+
     return conf
 
 
@@ -353,6 +355,10 @@ def CBAddConfigFinishCB(env, cb):
     env.cb_finish_cbs.append(cb)
 
 
+def CBAddConfigureCB(env, cb):
+    env.cb_configure_cbs.append(cb)
+
+
 def CBBuildSetRegex(env, pats):
     if isinstance(pats, basestring): pats = pats.split()
     return re.compile('^(' + ')|('.join(pats) + ')$')
@@ -368,6 +374,7 @@ def generate(env):
     env.cb_vars = []
     env.cb_paths = []
     env.cb_finish_cbs = []
+    env.cb_configure_cbs = []
 
     # Add methods
     env.AddMethod(CBTryLoadTool)
@@ -381,6 +388,7 @@ def generate(env):
     env.AddMethod(CBConfigure)
     env.AddMethod(CBDownload)
     env.AddMethod(CBAddConfigFinishCB)
+    env.AddMethod(CBAddConfigureCB)
     env.AddMethod(CBBuildSetRegex)
 
     # Add tests
