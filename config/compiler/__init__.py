@@ -366,6 +366,15 @@ def configure(conf, cstd = 'c99'):
     if compiler_mode == 'msvc' and not optimize:
         env.AppendUnique(LINKFLAGS = ['/INCREMENTAL'])
 
+    if compiler_mode == 'msvc' or int(env.get('cross_mingw', 0)):
+        if env.get('compiler_mode') == 'gnu':
+            env.Append(LINKFLAGS = ['-Wl,-subsystem,${subsystem}'])
+
+        elif env.get('compiler_mode') == 'msvc':
+            env.Append(LINKFLAGS = [
+                    '/subsystem:${subsystem},${subsystem_version}'])
+
+
     # static
     if static:
         if compiler_mode == 'gnu' and env['PLATFORM'] != 'darwin':
@@ -516,14 +525,12 @@ def prefer_static_libs(env):
                 '-Wl,--start-group ' + env['_LIBFLAGS'] + ' -Wl,--end-group'
 
 
-def CBConfConsole(env):
+def CBConfConsole(env, entry = 'mainCRTStartup'):
     if env['PLATFORM'] == 'win32' or int(env.get('cross_mingw', 0)):
-        if env.get('compiler_mode') == 'gnu':
-            env.Append(LINKFLAGS = ['-Wl,-subsystem,windows'])
+        env.Replace(subsystem = 'windows')
 
-        elif env.get('compiler_mode') == 'msvc':
-            env.Append(LINKFLAGS =
-                       ['/subsystem:windows,6', '/entry:mainCRTStartup'])
+        if env.get('compiler_mode') == 'msvc':
+            env.Append(LINKFLAGS = ['/entry:' + entry])
 
 
 def generate(env):
@@ -577,7 +584,11 @@ def generate(env):
         EnumVariable('win32_thread', 'Windows thread mode.', 'static',
                      allowed_values = ('static', 'dynamic')),
         BoolVariable('cross_mingw', 'Enable mingw cross compile mode', 0),
-        BoolVariable('cross_osx', 'Enable OSX cross compile mode', 0)
+        BoolVariable('cross_osx', 'Enable OSX cross compile mode', 0),
+        EnumVariable('subsystem', 'Windows subsystem', 'console',
+                     allowed_values = ('windows', 'console', 'posix',
+                                       'native')),
+        ('subsystem_version', 'Windows subsystem version', 6)
         )
 
 
