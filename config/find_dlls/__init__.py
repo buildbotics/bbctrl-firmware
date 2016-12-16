@@ -28,8 +28,15 @@ def find_in_path(filename):
 
 
 def find_dlls(env, path, exclude = set()):
-    prog = env.get('FIND_DLLS_OBJDUMP')
-    cmd = [prog, '-p', path]
+    if env['PLATFORM'] == 'win32':
+        prog = env.get('FIND_DLLS_DUMPBIN')
+        cmd = [prog, '/DEPENDENTS', '/NOLOGO', path]
+
+    else:
+        prog = env.get('FIND_DLLS_OBJDUMP')
+        cmd = [prog, '-p', path]
+
+
     p = subprocess.Popen(cmd, stdout = subprocess.PIPE)
     out, err = p.communicate()
 
@@ -37,9 +44,13 @@ def find_dlls(env, path, exclude = set()):
         raise Exception('Call to %s failed: %s' % (prog, err))
 
     for line in out.splitlines():
-        if line.startswith('\tDLL Name: '):
-            lib = line[11:].strip().lower()
-        else: continue
+        if line.startswith('\tDLL Name: '): lib = line[11:]
+        else:
+            m = re.match(r'^\s+([^\s.]+\.[dD][lL][lL])\s*$', line)
+            if m: lib = m.group(1)
+            else: continue
+
+        lib = lib.strip().lower()
 
         if not lib in exclude:
             exclude.add(lib)
@@ -68,6 +79,7 @@ def generate(env):
     env.SetDefault(FIND_DLLS_DEFAULT_EXCLUDES = True)
     env.SetDefault(FIND_DLLS_IGNORE_MISSING = True)
     env.SetDefault(FIND_DLLS_OBJDUMP = 'objdump')
+    env.SetDefault(FIND_DLLS_DUMPBIN = 'dumpbin')
 
     env.AddMethod(FindDLLs)
 
