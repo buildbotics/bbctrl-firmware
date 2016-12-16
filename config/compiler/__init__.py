@@ -523,7 +523,7 @@ def CBConfConsole(env):
 
         elif env.get('compiler_mode') == 'msvc':
             env.Append(LINKFLAGS =
-                       ['/subsystem:windows', '/entry:mainCRTStartup'])
+                       ['/subsystem:windows,6', '/entry:mainCRTStartup'])
 
 
 def generate(env):
