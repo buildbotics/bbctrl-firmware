@@ -60,8 +60,11 @@ namespace cb {
       filename(filename), prefix(prefix), logDomain(logDomain),
       logLevel(logLevel), fill(0) {}
 
+  protected:
     // From Thread
     void run();
+
+    void log();
   };
 }
 

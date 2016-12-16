@@ -54,31 +54,37 @@ void TailFileToLog::run() {
       while (!stream->fail() && !shouldShutdown()) {
         // Try to read some data
         stream->read(buffer + fill, bufferSize - fill);
+        fill += stream->gcount();
 
-        if (stream->gcount()) {
-          char *eol = 0;
-          fill += stream->gcount();
+        while (fill) {
+          // Find end of line
+          buffer[fill] = 0; // Terminate buffer
+          char *eol = strchr(buffer, '\n');
 
-          while (true) {
-            // Check for buffer overflow or end of line
-            if (fill == bufferSize) eol = buffer + bufferSize;
-            else {
-              buffer[fill] = 0; // Terminate buffer
-              eol = strchr(buffer, '\n');
-            }
-
-            if (!eol) break;
-
+          if (eol) {
+            // Terminate line
             char *ptr = eol;
-            *ptr-- = 0; // Terminate line
+            *ptr-- = 0;
             if (*ptr == '\r') *ptr = 0;
 
             // Log the line
-            LOG(logDomain, logLevel, prefix + buffer);
+            log();
 
             // Update buffer
             fill -= (eol - buffer) + 1;
-            if (fill) memmove(buffer, eol + 1, fill);
+            if (fill) {
+              memmove(buffer, eol + 1, fill);
+              continue;
+            }
+
+          } else { // EOL not found
+            if (fill == bufferSize) {
+              // Buffer is full so just log it as is
+              log();
+              fill = 0;
+            }
+
+            break;
           }
         }
 
@@ -92,4 +98,9 @@ void TailFileToLog::run() {
 
     timer.throttle(0.25);
   }
+}
+
+
+void TailFileToLog::log() {
+  LOG(logDomain, logLevel, prefix + buffer);
 }
