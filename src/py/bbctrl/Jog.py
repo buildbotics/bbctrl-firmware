@@ -40,3 +40,5 @@ class Jog(inevent.JogHandler):
         if self.speed == 4: scale = 1.0
 
         self.v = [x * scale for x in self.axes]
+        self.v[ABS_Y] = -self.v[ABS_Y]
+        self.v[ABS_Z] = -self.v[ABS_Z]

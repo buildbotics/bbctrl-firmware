@@ -80,7 +80,14 @@ class LCD:
 
 
     def reset(self):
-        self.clear()
+        time.sleep(0.050)
+        self.write_nibble(3 << 4) # Home
+        time.sleep(0.050)
+        self.write_nibble(3 << 4) # Home
+        time.sleep(0.050)
+        self.write_nibble(3 << 4) # Home
+        self.write_nibble(2 << 4) # 4-bit
+
         self.write(LCD_FUNCTION_SET | LCD_2_LINE | LCD_5x8_DOTS |
                    LCD_4_BIT_MODE)
         self.write(LCD_DISPLAY_CONTROL | LCD_DISPLAY_ON)

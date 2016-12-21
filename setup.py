@@ -21,6 +21,6 @@ setup(
             'bbctrl = bbctrl:run'
             ]
         },
-    install_requires = 'tornado sockjs-tornado pyserial smbus2'.split(),
+    install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
     zip_safe = False,
     )

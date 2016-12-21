@@ -3,8 +3,14 @@
 var api = require('./api');
 
 
-function is_array(x) {
+function _is_array(x) {
   return Object.prototype.toString.call(x) === '[object Array]';
+}
+
+
+function _msg_equal(a, b) {
+  return a.level == b.level && a.location == b.location && a.code == b.code &&
+    a.msg == b.msg;
 }
 
 
@@ -22,6 +28,7 @@ module.exports = {
       axes: 'xyzabc',
       gcode: '',
       history: '',
+      console: [],
       speed_override: 1,
       feed_override: 1
     }
@@ -40,7 +47,19 @@ module.exports = {
 
   events: {
     // TODO These should all be implemented via the API
-    jog: function (axis, move) {this.send('g91 g0' + axis + move)}
+    jog: function (axis, move) {this.send('g91 g0' + axis + move)},
+
+
+    message: function (msg) {
+      if (this.console.length &&
+          _msg_equal(msg, this.console[this.console.length - 1]))
+        this.console[this.console.length - 1].repeat++;
+
+      else {
+        msg.repeat = 1;
+        this.console.push(msg);
+      }
+    }
   },
 
 
@@ -214,7 +233,10 @@ module.exports = {
       var data = {};
       data[axis + 'pl'] = x;
       this.send(JSON.stringify(data));
-    }
+    },
+
+
+    clear_console: function () {this.console = [];}
   },
 
 

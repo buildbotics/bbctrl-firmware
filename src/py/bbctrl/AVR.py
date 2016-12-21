@@ -81,7 +81,8 @@ class AVR():
 
 
     def _i2c_command(self, cmd, byte = None, word = None):
-        if self.i2c_bus is None: return
+        if self.i2c_bus is None or not hasattr(self.i2c_bus, 'write_byte'):
+            return
 
         log.info('I2C: %d' % cmd)
         retry = 5

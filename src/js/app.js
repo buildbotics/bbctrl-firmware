@@ -82,9 +82,12 @@ module.exports = new Vue({
       this.sock.onmessage = function (e) {
         var msg = e.data;
 
-        if (typeof msg == 'object')
+        if (typeof msg == 'object') {
           for (var key in msg)
             this.$set('state.' + key, msg[key]);
+
+          if ('msg' in msg) this.$broadcast('message', msg);
+        }
       }.bind(this);
 
       this.sock.onopen = function (e) {

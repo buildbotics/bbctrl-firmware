@@ -285,7 +285,15 @@ body
     clear both
 
     > *
-      margin 0.5em 0
+      margin 0.25em
+
+
+  .tabs
+    section
+      max-height 260px
+      overflow auto
+      padding 0
+      margin 0
 
   .gcode, .history
     clear both
@@ -294,7 +302,7 @@ body
     max-width 99%
     min-width 99%
     height 200px
-    padding 2px
+    padding 0.25em
     white-space pre
 
     &.placeholder
@@ -330,6 +338,23 @@ body
     > svg
       margin 1em
 
+  .console
+    width 100%
+
+    tr
+      > td
+        margin 0 0.125em
+        background-color #fff
+
+      &.error td
+        color red
+
+      &.warning td
+        color orange
+
+      &.debug td
+        color green
+
 
 .tabs
   clear both
@@ -359,7 +384,8 @@ body
 
   > #tab1:checked ~ #content1,
   > #tab2:checked ~ #content2,
-  > #tab3:checked ~ #content3
+  > #tab3:checked ~ #content3,
+  > #tab4:checked ~ #content4
     display block
 
   [id^="tab"]:checked + label

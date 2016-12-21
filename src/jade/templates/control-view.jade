@@ -114,6 +114,9 @@ script#control-view-template(type="text/x-template")
       input#tab3(type="radio", name="tabs")
       label(for="tab3") Manual
 
+      input#tab4(type="radio", name="tabs")
+      label(for="tab4") Console
+
       section#content1.tab-content
         .toolbar
           button.pure-button(title="Upload a new program file.", @click="open",
@@ -157,3 +160,23 @@ script#control-view-template(type="text/x-template")
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[enabled('b'), enabled('c')]",
             v-if="enabled('b') || enabled('c')")
+
+      section#content4.tab-content
+        .toolbar
+          button.pure-button(title="Clear console.", @click="clear_console")
+            .fa.fa-trash
+
+        table.console
+          tr
+            th Level
+            th Location
+            th Code
+            th Repeat
+            th Message
+
+          tr(v-for="msg in console", :class="msg.level || 'info'")
+            td {{msg.level || 'info'}}
+            td {{msg.where || ''}}
+            td {{msg.code  || '0'}}
+            td {{msg.repeat}}
+            td {{msg.msg}}

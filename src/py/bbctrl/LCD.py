@@ -1,17 +1,34 @@
 import lcd
 import atexit
+import logging
+
+
+log = logging.getLogger('LCD')
 
 
 class LCD:
     def __init__(self, ctrl):
         self.ctrl = ctrl
-
-        self.lcd = lcd.LCD(ctrl.args.lcd_port, ctrl.args.lcd_addr)
+        self.force = False
         atexit.register(self.goodbye)
+        self.connect()
+
+
+    def connect(self):
+        try:
+            self.lcd = None
+            self.lcd = lcd.LCD(self.ctrl.args.lcd_port, self.ctrl.args.lcd_addr)
+            self.lcd.clear()
+            self.lcd.display(1, 'Loading', lcd.JUSTIFY_CENTER)
+            self.force = True
+
+        except IOError as e:
+            log.error('Connect failed, retrying: %s' % e)
+            self.ctrl.ioloop.call_later(1, self.connect)
 
 
     def update(self, msg, force = False):
-        def has(name): return force or name in msg
+        def has(name): return self.force or force or name in msg
 
         if has('x') or has('c'):
             v = self.ctrl.avr.vars
@@ -29,7 +46,15 @@ class LCD:
         if has('f'):  self.lcd.text('%8uF'     % msg['f'],  0, 2)
         if has('s'):  self.lcd.text('%8dS'     % msg['s'],  0, 3)
 
+        self.force = False
+
 
     def goodbye(self):
-        self.lcd.clear()
-        self.lcd.display(1, 'Goodbye', lcd.JUSTIFY_CENTER)
+        if self.lcd is None: return
+
+        try:
+            self.lcd.clear()
+            self.lcd.display(1, 'Goodbye', lcd.JUSTIFY_CENTER)
+
+        except IOError as e:
+            log.error('I2C communication failed: %s' % e)
