@@ -61,9 +61,7 @@ class AVR():
             self.i2c_bus = None
             log.warning('Failed to open device: %s', e)
 
-        # Reset AVR communication
-        self.stop();
-        self.report()
+        self._i2c_connect()
 
 
     def _start_sending_gcode(self, path):
@@ -78,6 +76,16 @@ class AVR():
         if self.stream is not None:
             self.stream.reset()
             self.stream = None
+
+
+    def _i2c_connect(self):
+        try:
+            # Reset AVR communication
+            self.stop();
+            self.report()
+
+        except:
+            self.ctrl.ioloop.call_later(1, self._i2c_connect)
 
 
     def _i2c_command(self, cmd, byte = None, word = None):
@@ -110,7 +118,7 @@ class AVR():
 
                 else:
                     log.error('I2C communication failed: %s' % e)
-                    return
+                    raise
 
 
     def report(self): self._i2c_command(I2C_REPORT)

@@ -78,6 +78,9 @@ echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 #sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
 sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
 
+# Disable i2c HAT ID probe
+echo -n " bcm2708.vc_i2c_override=1" >> /boot/cmdline.txt
+
 # Disable extra gettys
 sed -i 's/^\([23456]:.*\/sbin\/getty\)/#\1/' /etc/inittab
 
