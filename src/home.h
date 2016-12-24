@@ -25,17 +25,7 @@
 
 \******************************************************************************/
 
-//  Name        Min, Max args, Help
-CMD(help,         0, 1, "Print this help screen")
-CMD(reboot,       0, 0, "Reboot the controller")
-CMD(bootloader,   0, 0, "Load bootloader")
-CMD(save,         0, 0, "Save settings")
-CMD(valid,        0, 0, "Print 'true' if saved settings are valid")
-CMD(restore,      0, 0, "Restore settings")
-CMD(clear,        0, 0, "Clear saved settings")
-CMD(jog,          1, 4, "Jog")
-CMD(mreset,       0, 1, "Reset motor")
-CMD(calibrate,    0, 0, "Calibrate motors")
-CMD(messages,     0, 0, "Dump all possible status messages")
-CMD(resume,       0, 0, "Resume processing after a flush")
-CMD(home,         0, 0, "Home all axes")
+#pragma once
+
+void home_init();
+void home_callback();

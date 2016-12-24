@@ -64,13 +64,20 @@ typedef enum {
 } motor_polarity_t;
 
 
+typedef void (*stall_callback_t)(int motor);
+
+
 void motor_init();
 void motor_enable(int motor, bool enable);
 
+bool motor_is_enabled(int motor);
 int motor_get_axis(int motor);
+void motor_set_stall_callback(int motor, stall_callback_t cb);
+float motor_get_stall_homing_velocity(int motor);
 float motor_get_steps_per_unit(int motor);
 float motor_get_units_per_step(int motor);
-int motor_get_microsteps(int motor);
+uint16_t motor_get_microsteps(int motor);
+void motor_set_microsteps(int motor, uint16_t microsteps);
 int32_t motor_get_encoder(int motor);
 void motor_set_encoder(int motor, float encoder);
 int32_t motor_get_error(int motor);
@@ -87,4 +94,5 @@ void motor_error_callback(int motor, motor_flags_t errors);
 
 void motor_load_move(int motor);
 void motor_end_move(int motor);
-stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error);
+stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
+                       float time);

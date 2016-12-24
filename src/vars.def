@@ -32,7 +32,7 @@
 // VAR(name,        code, type,  index, settable, save, help)
 
 // Motor
-VAR(motor_map,      "ma", uint8_t,  MOTORS, 1, 1, "Motor to axis mapping")
+VAR(motor_axis,     "ma", uint8_t,  MOTORS, 1, 1, "Motor to axis mapping")
 VAR(step_angle,     "sa", float,    MOTORS, 1, 1, "In degrees per full step")
 VAR(travel,         "tr", float,    MOTORS, 1, 1, "Travel in mm per revolution")
 VAR(microstep,      "mi", uint16_t, MOTORS, 1, 1, "Microsteps per full step")
@@ -44,6 +44,7 @@ VAR(idle_power,     "ip", float,    MOTORS, 1, 1, "Motor idle power")
 VAR(current_power,  "cp", float,    MOTORS, 0, 0, "Motor power now")
 VAR(status_flags,   "mf", uint8_t,  MOTORS, 0, 0, "Motor status flags")
 VAR(status_strings, "ms", flags_t,  MOTORS, 0, 0, "Motor status strings")
+VAR(motor_fault,    "mf", bool,     0,      0, 0, "Motor fault status")
 
 // Axis
 VAR(position,        "p", float,    AXES,   0, 0, "Current axis position")

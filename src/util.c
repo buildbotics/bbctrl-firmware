@@ -29,11 +29,6 @@
 #include "util.h"
 
 
-float get_axis_vector_length(const float a[], const float b[]) {
-  return sqrt(square(a[AXIS_X] - b[AXIS_X]) + square(a[AXIS_Y] - b[AXIS_Y]) +
-              square(a[AXIS_Z] - b[AXIS_Z]) + square(a[AXIS_A] - b[AXIS_A]) +
-              square(a[AXIS_B] - b[AXIS_B]) + square(a[AXIS_C] - b[AXIS_C]));
-}
 
 
 /// Fast inverse square root originally from Quake III Arena code.  Original

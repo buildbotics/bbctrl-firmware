@@ -27,15 +27,15 @@
 
 
 #include "axes.h"
-
+#include "motor.h"
 #include "plan/planner.h"
 
 #include <math.h>
 
 
-axis_config_t axes[AXES] = {
+axis_t axes[AXES] = {
   {
-    .axis_mode =         X_AXIS_MODE,
+    .mode =              X_AXIS_MODE,
     .velocity_max =      X_VELOCITY_MAX,
     .feedrate_max =      X_FEEDRATE_MAX,
     .travel_min =        X_TRAVEL_MIN,
@@ -47,8 +47,9 @@ axis_config_t axes[AXES] = {
     .latch_velocity =    X_LATCH_VELOCITY,
     .latch_backoff =     X_LATCH_BACKOFF,
     .zero_backoff =      X_ZERO_BACKOFF,
+    .homing_mode =       X_HOMING_MODE,
   }, {
-    .axis_mode =         Y_AXIS_MODE,
+    .mode =              Y_AXIS_MODE,
     .velocity_max =      Y_VELOCITY_MAX,
     .feedrate_max =      Y_FEEDRATE_MAX,
     .travel_min =        Y_TRAVEL_MIN,
@@ -60,8 +61,9 @@ axis_config_t axes[AXES] = {
     .latch_velocity =    Y_LATCH_VELOCITY,
     .latch_backoff =     Y_LATCH_BACKOFF,
     .zero_backoff =      Y_ZERO_BACKOFF,
+    .homing_mode =       Y_HOMING_MODE,
   }, {
-    .axis_mode =         Z_AXIS_MODE,
+    .mode =              Z_AXIS_MODE,
     .velocity_max =      Z_VELOCITY_MAX,
     .feedrate_max =      Z_FEEDRATE_MAX,
     .travel_min =        Z_TRAVEL_MIN,
@@ -73,8 +75,9 @@ axis_config_t axes[AXES] = {
     .latch_velocity =    Z_LATCH_VELOCITY,
     .latch_backoff =     Z_LATCH_BACKOFF,
     .zero_backoff =      Z_ZERO_BACKOFF,
+    .homing_mode =       Z_HOMING_MODE,
   }, {
-    .axis_mode =         A_AXIS_MODE,
+    .mode =              A_AXIS_MODE,
     .velocity_max =      A_VELOCITY_MAX,
     .feedrate_max =      A_FEEDRATE_MAX,
     .travel_min =        A_TRAVEL_MIN,
@@ -87,8 +90,9 @@ axis_config_t axes[AXES] = {
     .latch_velocity =    A_LATCH_VELOCITY,
     .latch_backoff =     A_LATCH_BACKOFF,
     .zero_backoff =      A_ZERO_BACKOFF,
+    .homing_mode =       A_HOMING_MODE,
   }, {
-    .axis_mode =         B_AXIS_MODE,
+    .mode =              B_AXIS_MODE,
     .velocity_max =      B_VELOCITY_MAX,
     .feedrate_max =      B_FEEDRATE_MAX,
     .travel_min =        B_TRAVEL_MIN,
@@ -97,7 +101,7 @@ axis_config_t axes[AXES] = {
     .junction_dev =      B_JUNCTION_DEVIATION,
     .radius =            B_RADIUS,
   }, {
-    .axis_mode =         C_AXIS_MODE,
+    .mode =              C_AXIS_MODE,
     .velocity_max =      C_VELOCITY_MAX,
     .feedrate_max =      C_FEEDRATE_MAX,
     .travel_min =        C_TRAVEL_MIN,
@@ -109,6 +113,11 @@ axis_config_t axes[AXES] = {
 };
 
 
+char axis_get_char(int axis) {
+  return (axis < 0 || AXES <= axis) ? '?' : "XYZABCUVW"[axis];
+}
+
+
 /* Jerk functions
  *
  * Jerk values can be rather large. Jerk values are stored in the system in
@@ -118,21 +127,39 @@ axis_config_t axes[AXES] = {
  */
 
 /// Returns axis jerk
-float axes_get_jerk(uint8_t axis) {return axes[axis].jerk_max;}
+float axes_get_jerk(int axis) {return axes[axis].jerk_max;}
 
 
 /// Sets jerk and its reciprocal for axis
-void axes_set_jerk(uint8_t axis, float jerk) {
+void axes_set_jerk(int axis, float jerk) {
   axes[axis].jerk_max = jerk;
   axes[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
 }
 
 
-uint8_t get_axis_mode(int axis) {return axes[axis].axis_mode;}
+int axes_get_motor(int axis) {
+  for (int motor = 0; motor < MOTORS; motor++)
+    if (motor_get_axis(motor) == axis) return motor;
+  return -1;
+}
 
 
-void set_axis_mode(int axis, uint8_t value) {
-  if (value <= AXIS_RADIUS) axes[axis].axis_mode = value;
+float axes_get_vector_length(const float a[], const float b[]) {
+  return sqrt(square(a[AXIS_X] - b[AXIS_X]) + square(a[AXIS_Y] - b[AXIS_Y]) +
+              square(a[AXIS_Z] - b[AXIS_Z]) + square(a[AXIS_A] - b[AXIS_A]) +
+              square(a[AXIS_B] - b[AXIS_B]) + square(a[AXIS_C] - b[AXIS_C]));
+}
+
+
+bool axes_get_homed(int axis) {return axes[axis].homed;}
+void axes_set_homed(int axis, bool homed) {axes[axis].homed = homed;}
+
+
+int get_axis_mode(int axis) {return axes[axis].mode;}
+
+
+void set_axis_mode(int axis, int value) {
+  if (value <= AXIS_RADIUS) axes[axis].mode = value;
 }
 
 

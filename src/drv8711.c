@@ -37,12 +37,15 @@
 #include <stdio.h>
 
 
-#define DRIVERS 1
-#define COMMANDS 4
+#define DRIVERS MOTORS
+#define COMMANDS 10
 
 
 #define DRV8711_WORD_BYTE_PTR(WORD, LOW) \
   (((uint8_t *)&(WORD)) + ((LOW) ? 0 : 1))
+
+
+bool motor_fault = false;
 
 
 typedef struct {
@@ -52,19 +55,21 @@ typedef struct {
   float idle_current;
   float drive_current;
   float stall_threshold;
+  float power;
 
   uint8_t mode; // microstepping mode
+  stall_callback_t stall_cb;
 
   uint8_t cs_pin;
-  uint8_t fault_pin;
+  uint8_t stall_pin;
 } drv8711_driver_t;
 
 
-static drv8711_driver_t drivers[MOTORS] = {
-  {.cs_pin = SPI_CS_X_PIN, .fault_pin = FAULT_X_PIN},
-  {.cs_pin = SPI_CS_Y_PIN, .fault_pin = FAULT_Y_PIN},
-  {.cs_pin = SPI_CS_Z_PIN, .fault_pin = FAULT_Z_PIN},
-  {.cs_pin = SPI_CS_A_PIN, .fault_pin = FAULT_A_PIN},
+static drv8711_driver_t drivers[DRIVERS] = {
+  {.cs_pin = SPI_CS_X_PIN, .stall_pin = STALL_X_PIN},
+  {.cs_pin = SPI_CS_Y_PIN, .stall_pin = STALL_Y_PIN},
+  {.cs_pin = SPI_CS_Z_PIN, .stall_pin = STALL_Z_PIN},
+  {.cs_pin = SPI_CS_A_PIN, .stall_pin = STALL_A_PIN},
 };
 
 
@@ -98,13 +103,21 @@ static void _driver_check_status(int driver) {
   if (status & DRV8711_STATUS_STD_bm)    mflags |= MOTOR_FLAG_STALLED_bm;
   if (status & DRV8711_STATUS_STDLAT_bm) mflags |= MOTOR_FLAG_STALLED_bm;
 
-  if (mflags) motor_error_callback(driver, mflags);
+  //if (mflags) motor_error_callback(driver, mflags); TODO
 }
 
 
 static float _driver_get_current(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
+
+#if 1
+  if (!drv->active) return drv->idle_current;
+  return
+    MOTOR_MIN_CURRENT + (drv->drive_current - MOTOR_MIN_CURRENT) * drv->power;
+
+#else
   return drv->active ? drv->drive_current : drv->idle_current;
+#endif
 }
 
 
@@ -115,12 +128,8 @@ static uint8_t _spi_next_command(uint8_t cmd) {
 
     if (DRV8711_CMD_IS_READ(command) &&
         DRV8711_CMD_ADDR(command) == DRV8711_STATUS_REG) {
-      uint8_t status = spi.responses[driver];
-
-      if (status != drivers[driver].status) {
-        drivers[driver].status = status;
-        _driver_check_status(driver);
-      }
+      drivers[driver].status = spi.responses[driver];
+      _driver_check_status(driver);
     }
   }
 
@@ -137,6 +146,11 @@ static uint8_t _spi_next_command(uint8_t cmd) {
     uint16_t *command = &spi.commands[driver][cmd];
 
     switch (DRV8711_CMD_ADDR(*command)) {
+    case DRV8711_STATUS_REG:
+      if (!DRV8711_CMD_IS_READ(*command))
+        *command = (*command & 0xf000) | (0x0fff & ~(drivers[driver].status));
+      break;
+
     case DRV8711_TORQUE_REG: // Update motor current setting
       *command = (*command & 0xff00) |
         (uint8_t)round(0xff * _driver_get_current(driver));
@@ -207,19 +221,41 @@ static void _init_spi_commands() {
     uint16_t *commands = spi.commands[driver];
     spi.ncmds = 0;
 
-    // Enable motor
+    // Set OFF
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_OFF_REG, 12);
+
+    // Set BLANK
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_BLANK_REG, 0x80);
+
+    // Set DECAY
+    commands[spi.ncmds++] =
+      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_MIXED | 6);
+
+    // Set STALL
+    commands[spi.ncmds++] =
+      DRV8711_WRITE(DRV8711_STALL_REG,
+                    DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_16 | 133);
+
+    // Set DRIVE
+    commands[spi.ncmds++] =
+      DRV8711_WRITE(DRV8711_DRIVE_REG, DRV8711_DRIVE_IDRIVEP_50 |
+                    DRV8711_DRIVE_IDRIVEN_100 | DRV8711_DRIVE_TDRIVEP_500 |
+                    DRV8711_DRIVE_TDRIVEN_500 | DRV8711_DRIVE_OCPDEG_2 |
+                    DRV8711_DRIVE_OCPTH_500);
+
+    // Set TORQUE
+    commands[spi.ncmds++] =
+      DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE_SMPLTH_50);
+
+    // Set CTRL enable motor & set ISENSE gain
     commands[spi.ncmds++] =
       DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL_ENBL_bm |
-                    DRV8711_CTRL_EXSTALL_bm);
+                    DRV8711_CTRL_ISGAIN_5 | DRV8711_CTRL_DTIME_850);
 
-    // Set current
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE_SMPLTH_100);
-
-    // Read status
+    // Read STATUS
     commands[spi.ncmds++] = DRV8711_READ(DRV8711_STATUS_REG);
 
-    // Clear status
+    // Clear STATUS
     commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_STATUS_REG, 0);
   }
 
@@ -232,25 +268,25 @@ static void _init_spi_commands() {
 }
 
 
-ISR(SPIC_INT_vect) {
-  _spi_send();
+ISR(SPIC_INT_vect) {_spi_send();}
+
+
+ISR(STALL_ISR_vect) {
+  for (int i = 0; i < DRIVERS; i++) {
+    drv8711_driver_t *driver = &drivers[i];
+    if (driver->stall_cb) driver->stall_cb(i);
+  }
 }
 
 
-void _fault_isr(int motor) {}
-
-
-ISR(PORT_1_FAULT_ISR_vect) {_fault_isr(0);}
-ISR(PORT_2_FAULT_ISR_vect) {_fault_isr(1);}
-ISR(PORT_3_FAULT_ISR_vect) {_fault_isr(2);}
-ISR(PORT_4_FAULT_ISR_vect) {_fault_isr(3);}
+ISR(FAULT_ISR_vect) {motor_fault = !IN_PIN(MOTOR_FAULT_PIN);} // TODO
 
 
 void drv8711_init() {
-  // Configure motors
-  for (int i = 0; i < MOTORS; i++) {
+  // Configure drivers
+  for (int i = 0; i < DRIVERS; i++) {
     drivers[i].idle_current = MOTOR_IDLE_CURRENT;
-    drivers[i].drive_current = MOTOR_CURRENT;
+    drivers[i].drive_current = MOTOR_MAX_CURRENT;
     drivers[i].stall_threshold = MOTOR_STALL_THRESHOLD;
 
     drv8711_disable(i);
@@ -268,17 +304,23 @@ void drv8711_init() {
 
   for (int i = 0; i < DRIVERS; i++) {
     uint8_t cs_pin = drivers[i].cs_pin;
-    uint8_t fault_pin = drivers[i].fault_pin;
+    uint8_t stall_pin = drivers[i].stall_pin;
 
     OUTSET_PIN(cs_pin);     // High
     DIRSET_PIN(cs_pin);     // Output
-    OUTCLR_PIN(fault_pin);  // Input
+    DIRCLR_PIN(stall_pin);  // Input
 
-    // Fault interrupt
-    //PINCTRL_PIN(fault_pin) = PORT_ISC_RISING_gc;
-    //PORT(fault_pin)->INT1MASK = BM(fault_pin);      // INT1
-    //PORT(fault_pin)->INTCTRL |= PORT_INT1LVL_HI_gc;
+    // Stall interrupt
+    PINCTRL_PIN(stall_pin) = PORT_ISC_FALLING_gc;
+    PORT(stall_pin)->INT1MASK |= BM(stall_pin);
+    PORT(stall_pin)->INTCTRL |= PORT_INT1LVL_HI_gc;
   }
+
+  // Fault interrupt
+  DIRCLR_PIN(MOTOR_FAULT_PIN);
+  PINCTRL_PIN(MOTOR_FAULT_PIN) = PORT_ISC_RISING_gc;
+  PORT(MOTOR_FAULT_PIN)->INT1MASK |= BM(MOTOR_FAULT_PIN);
+  PORT(MOTOR_FAULT_PIN)->INTCTRL |= PORT_INT1LVL_HI_gc;
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
@@ -303,6 +345,12 @@ void drv8711_disable(int driver) {
 }
 
 
+void drv8711_set_power(int driver, float power) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drivers[driver].power = power < 0 ? 0 : (1 < power ? 1 : power);
+}
+
+
 void drv8711_set_microsteps(int driver, uint16_t msteps) {
   if (driver < 0 || DRIVERS <= driver) return;
   switch (msteps) {
@@ -312,6 +360,11 @@ void drv8711_set_microsteps(int driver, uint16_t msteps) {
   }
 
   drivers[driver].mode = round(logf(msteps) / logf(2));
+}
+
+
+void drv8711_set_stall_callback(int driver, stall_callback_t cb) {
+  drivers[driver].stall_cb = cb;
 }
 
 
@@ -343,3 +396,6 @@ float get_current_power(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
   return _driver_get_current(driver);
 }
+
+
+bool get_motor_fault() {return motor_fault;}

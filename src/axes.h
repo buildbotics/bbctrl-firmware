@@ -30,6 +30,15 @@
 
 #include "config.h"
 
+#include <stdbool.h>
+
+
+enum {
+  AXIS_X, AXIS_Y, AXIS_Z,
+  AXIS_A, AXIS_B, AXIS_C,
+  AXIS_U, AXIS_V, AXIS_W // reserved
+};
+
 
 typedef enum {
   AXIS_DISABLED,         // disabled axis
@@ -38,8 +47,17 @@ typedef enum {
 } axis_mode_t;
 
 
+typedef enum {
+  HOMING_DISABLED,
+  HOMING_STALL_MIN,
+  HOMING_STALL_MAX,
+  HOMING_SWITCH_MIN,
+  HOMING_SWITCH_MAX,
+} homing_mode_t;
+
+
 typedef struct {
-  axis_mode_t axis_mode;
+  axis_mode_t mode;
   float feedrate_max;    // max velocity in mm/min or deg/min
   float velocity_max;    // max velocity in mm/min or deg/min
   float travel_max;      // max work envelope for soft limits
@@ -53,10 +71,17 @@ typedef struct {
   float latch_velocity;  // homing latch velocity
   float latch_backoff;   // backoff from switches prior to homing latch movement
   float zero_backoff;    // backoff from switches for machine zero
-} axis_config_t;
+  homing_mode_t homing_mode;
+  bool homed;
+} axis_t;
 
 
-extern axis_config_t axes[AXES];
+extern axis_t axes[AXES];
 
-float axes_get_jerk(uint8_t axis);
-void axes_set_jerk(uint8_t axis, float jerk);
+char axis_get_char(int axis);
+float axes_get_jerk(int axis);
+void axes_set_jerk(int axis, float jerk);
+int axes_get_motor(int axis);
+float axes_get_vector_length(const float a[], const float b[]);
+bool axes_get_homed(int axis);
+void axes_set_homed(int axis, bool homed);

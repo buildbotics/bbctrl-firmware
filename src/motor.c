@@ -35,6 +35,7 @@
 #include "drv8711.h"
 #include "estop.h"
 #include "gcode_state.h"
+#include "axes.h"
 #include "util.h"
 
 #include "plan/runtime.h"
@@ -66,7 +67,6 @@ typedef struct {
   float travel_rev;              // mm or deg of travel per motor revolution
   uint8_t step_pin;
   uint8_t dir_pin;
-  uint8_t enable_pin;
   TC0_t *timer;
   DMA_CH_t *dma;
   uint8_t dma_trigger;
@@ -91,6 +91,7 @@ typedef struct {
   direction_t direction;         // travel direction corrected for polarity
   int32_t position;
   bool round_up;                 // toggle rounding direction
+  float power;
 } motor_t;
 
 
@@ -104,7 +105,6 @@ static motor_t motors[MOTORS] = {
     .power_mode  = M1_POWER_MODE,
     .step_pin    = STEP_X_PIN,
     .dir_pin     = DIR_X_PIN,
-    .enable_pin  = ENABLE_X_PIN,
     .timer       = &M1_TIMER,
     .dma         = &M1_DMA_CH,
     .dma_trigger = M1_DMA_TRIGGER,
@@ -116,8 +116,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M2_POLARITY,
     .power_mode  = M2_POWER_MODE,
     .step_pin    = STEP_Y_PIN,
-    .dir_pin     = RESERVED_2_PIN, // TODO
-    .enable_pin  = ENABLE_Y_PIN,
+    .dir_pin     = DIR_Y_PIN,
     .timer       = &M2_TIMER,
     .dma         = &M2_DMA_CH,
     .dma_trigger = M2_DMA_TRIGGER,
@@ -129,8 +128,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M3_POLARITY,
     .power_mode  = M3_POWER_MODE,
     .step_pin    = STEP_Z_PIN,
-    .dir_pin     = RESERVED_2_PIN, // TODO
-    .enable_pin  = ENABLE_Z_PIN,
+    .dir_pin     = DIR_Z_PIN,
     .timer       = &M3_TIMER,
     .dma         = &M3_DMA_CH,
     .dma_trigger = M3_DMA_TRIGGER,
@@ -142,8 +140,7 @@ static motor_t motors[MOTORS] = {
     .polarity    = M4_POLARITY,
     .power_mode  = M4_POWER_MODE,
     .step_pin    = STEP_A_PIN,
-    .dir_pin     = RESERVED_2_PIN, // TODO
-    .enable_pin  = ENABLE_A_PIN,
+    .dir_pin     = DIR_A_PIN,
     .timer       = (TC0_t *)&M4_TIMER,
     .dma         = &M4_DMA_CH,
     .dma_trigger = M4_DMA_TRIGGER,
@@ -160,14 +157,16 @@ void motor_init() {
   DMA.CTRL = DMA_ENABLE_bm;
   DMA.INTFLAGS = 0xff; // clear all interrupts
 
+  // Motor enable
+  OUTSET_PIN(MOTOR_ENABLE_PIN); // Low (disabled)
+  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
+
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
 
     // IO pins
     DIRSET_PIN(m->step_pin);   // Output
     DIRSET_PIN(m->dir_pin);    // Output
-    OUTCLR_PIN(m->enable_pin); // Low (disabled)
-    DIRSET_PIN(m->enable_pin); // Output
 
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
@@ -197,15 +196,36 @@ void motor_init() {
 
 
 void motor_enable(int motor, bool enable) {
-  if (enable) OUTSET_PIN(motors[motor].enable_pin); // Active high
+  if (enable) OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
   else {
-    OUTCLR_PIN(motors[motor].enable_pin);
+    OUTCLR_PIN(MOTOR_ENABLE_PIN);
     motors[motor].power_state = MOTOR_IDLE;
   }
 }
 
 
+bool motor_is_enabled(int motor) {
+  return motors[motor].power_mode != MOTOR_DISABLED;
+}
+
+
 int motor_get_axis(int motor) {return motors[motor].axis;}
+
+
+void motor_set_stall_callback(int motor, stall_callback_t cb) {
+  drv8711_set_stall_callback(motor, cb);
+}
+
+
+/// @return computed homing velocity
+float motor_get_stall_homing_velocity(int motor) {
+  // Compute velocity:
+  //   velocity = travel_rev * step_angle * 60 / (SMPLTH * mstep * 360 * 2)
+  //   SMPLTH = 50us = 0.00005s
+  //   mstep = 8
+  return motors[motor].travel_rev * motors[motor].step_angle * 1667 /
+    motors[motor].microsteps;
+}
 
 
 float motor_get_steps_per_unit(int motor) {
@@ -220,7 +240,27 @@ float motor_get_units_per_step(int motor) {
 }
 
 
-int motor_get_microsteps(int motor) {return motors[motor].microsteps;}
+float _get_max_velocity(int motor) {
+  return
+    axes[motors[motor].axis].velocity_max * motor_get_steps_per_unit(motor);
+}
+
+
+uint16_t motor_get_microsteps(int motor) {return motors[motor].microsteps;}
+
+
+void motor_set_microsteps(int motor, uint16_t microsteps) {
+  switch (microsteps) {
+  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
+    break;
+  default: return;
+  }
+
+  motors[motor].microsteps = microsteps;
+  drv8711_set_microsteps(motor, microsteps);
+}
+
+
 int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
 
 
@@ -279,6 +319,8 @@ static void _energize(int motor) {
   if (motors[motor].power_state == MOTOR_IDLE && !motor_error(motor)) {
     motors[motor].power_state = MOTOR_ENERGIZING;
     drv8711_enable(motor);
+
+    motor_driver_callback(motor); // TODO Shouldn't call this directly
   }
 
   // Reset timeout, regardless
@@ -325,7 +367,7 @@ void motor_error_callback(int motor, motor_flags_t errors) {
 
   if (m->power_state != MOTOR_ACTIVE) return;
 
-  m->flags |= errors;
+  m->flags |= errors & MOTOR_FLAG_ERROR_bm;
   report_request();
 
   if (motor_error(motor)) {
@@ -381,6 +423,9 @@ void motor_load_move(int motor) {
   // Compute error
   if (!m->reading) m->error = m->commanded - m->encoder;
   m->commanded = m->position;
+
+  // Set power
+  drv8711_set_power(motor, m->power);
 }
 
 
@@ -392,7 +437,8 @@ void motor_end_move(int motor) {
 }
 
 
-stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
+stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
+                       float time) {
   motor_t *m = &motors[motor];
 
   // Validate input
@@ -454,6 +500,9 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error) {
   default: break; // Shouldn't get here
   }
 
+  // Compute power from axis velocity
+  m->power = travel / (_get_max_velocity(motor) * time);
+
   return STAT_OK;
 }
 
@@ -467,14 +516,8 @@ uint16_t get_microstep(int motor) {return motors[motor].microsteps;}
 
 
 void set_microstep(int motor, uint16_t value) {
-  switch (value) {
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
-    break;
-  default: return;
-  }
-
-  motors[motor].microsteps = value;
-  drv8711_set_microsteps(motor, value);
+  if (motor < 0 || MOTORS <= motor) return;
+  motor_set_microsteps(motor, value);
 }
 
 
@@ -485,10 +528,10 @@ uint8_t get_polarity(int motor) {
 
 
 void set_polarity(int motor, uint8_t value) {motors[motor].polarity = value;}
-uint8_t get_motor_map(int motor) {return motors[motor].axis;}
+uint8_t get_motor_axis(int motor) {return motors[motor].axis;}
 
 
-void set_motor_map(int motor, uint16_t value) {
+void set_motor_axis(int motor, uint16_t value) {
   if (value < AXES) motors[motor].axis = value;
 }
 

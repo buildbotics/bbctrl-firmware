@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "status.h"
+#include "motor.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -163,4 +164,6 @@ enum {
 void drv8711_init();
 void drv8711_enable(int driver);
 void drv8711_disable(int driver);
+void drv8711_set_power(int driver, float power);
 void drv8711_set_microsteps(int driver, uint16_t msteps);
+void drv8711_set_stall_callback(int driver, stall_callback_t cb);

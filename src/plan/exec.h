@@ -31,4 +31,5 @@
 
 
 stat_t mp_exec_move();
+void mp_exec_abort();
 stat_t mp_exec_aline(mp_buffer_t *bf);

@@ -37,10 +37,10 @@
 
 // Pins
 enum {
-  RESERVED_0_PIN = PORT_A << 3,
-  ENABLE_Y_PIN,
-  ENABLE_Z_PIN,
-  ENABLE_A_PIN,
+  STALL_X_PIN = PORT_A << 3,
+  STALL_Y_PIN,
+  STALL_Z_PIN,
+  STALL_A_PIN,
   SPIN_DIR_PIN,
   SPIN_ENABLE_PIN,
   ANALOG_PIN,
@@ -65,7 +65,7 @@ enum {
   SPI_MOSI_PIN,
 
   STEP_X_PIN = PORT_D << 3,
-  RESERVED_1_PIN,
+  SPI_CS_X_PIN,
   SPI_CS_A_PIN,
   SPI_CS_Z_PIN,
   SPIN_PWM_PIN,
@@ -76,20 +76,20 @@ enum {
   STEP_Y_PIN = PORT_E << 3,
   SPI_CS_Y_PIN,
   DIR_X_PIN,
-  SPI_CS_X_PIN,
+  DIR_Y_PIN,
   STEP_A_PIN,
   SWITCH_2_PIN,
-  ENABLE_X_PIN,
-  FAULT_X_PIN,
+  DIR_Z_PIN,
+  DIR_A_PIN,
 
   STEP_Z_PIN = PORT_F << 3,
   RS485_RW_PIN,
   FAULT_PIN,
   ESTOP_PIN,
-  RESERVED_2_PIN,
-  FAULT_Y_PIN,
-  FAULT_Z_PIN,
-  FAULT_A_PIN,
+  MOTOR_FAULT_PIN,
+  MOTOR_ENABLE_PIN,
+  NC_0_PIN,
+  NC_1_PIN,
 };
 
 #define SPI_SS_PIN SERIAL_CTS_PIN // Needed for SPI configuration
@@ -107,19 +107,12 @@ enum {
 #define PWMS                     2 // number of supported PWM channels
 
 
-// Axes
-typedef enum {
-  AXIS_X, AXIS_Y, AXIS_Z,
-  AXIS_A, AXIS_B, AXIS_C,
-  AXIS_U, AXIS_V, AXIS_W // reserved
-} axis_t;
-
-
 // Motor settings.  See motor.c
-#define MOTOR_CURRENT            0.3   // 1.0 is full power
-#define MOTOR_IDLE_CURRENT       0.01  // 1.0 is full power
-#define MOTOR_STALL_THRESHOLD    0     // 0 -> 1 is least -> most sensitive
-#define MOTOR_MICROSTEPS         16
+#define MOTOR_MAX_CURRENT        1.0  // 1.0 is full power
+#define MOTOR_MIN_CURRENT        0.15 // 1.0 is full power
+#define MOTOR_IDLE_CURRENT       0.05 // 1.0 is full power
+#define MOTOR_STALL_THRESHOLD    0    // 0 -> 1 is least -> most sensitive
+#define MOTOR_MICROSTEPS         32
 #define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
 
@@ -159,7 +152,7 @@ typedef enum {
 
 
 // Machine settings
-#define STEP_CORRECTION                        // Enable step correction
+//#define STEP_CORRECTION                        // Enable step correction
 #define MAX_STEP_CORRECTION      4             // In steps per segment
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
 #define JERK_MAX                 50            // yes, that's km/min^3
@@ -170,34 +163,36 @@ typedef enum {
 #define CAL_ACCELERATION         500000        // mm/min^2
 
 // Axis settings
-#define VELOCITY_MAX             13000         // mm/min
+#define VELOCITY_MAX             10000         // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 #define X_AXIS_MODE              AXIS_STANDARD // See machine.h
 #define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
 #define X_FEEDRATE_MAX           FEEDRATE_MAX  // G1 max feed rate in mm/min
 #define X_TRAVEL_MIN             0             // minimum travel for soft limits
-#define X_TRAVEL_MAX             150           // between switches or crashes
+#define X_TRAVEL_MAX             300           // between switches or crashes
 #define X_JERK_MAX               JERK_MAX
 #define X_JERK_HOMING            (X_JERK_MAX * 2)
 #define X_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define X_SEARCH_VELOCITY        500           // move in negative direction
+#define X_SEARCH_VELOCITY        3000          // move in negative direction
 #define X_LATCH_VELOCITY         100           // mm/min
 #define X_LATCH_BACKOFF          5             // mm
 #define X_ZERO_BACKOFF           1             // mm
+#define X_HOMING_MODE            HOMING_STALL_MIN
 
 #define Y_AXIS_MODE              AXIS_STANDARD
 #define Y_VELOCITY_MAX           VELOCITY_MAX
 #define Y_FEEDRATE_MAX           FEEDRATE_MAX
 #define Y_TRAVEL_MIN             0
-#define Y_TRAVEL_MAX             150
+#define Y_TRAVEL_MAX             300
 #define Y_JERK_MAX               JERK_MAX
 #define Y_JERK_HOMING            (Y_JERK_MAX * 2)
 #define Y_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define Y_SEARCH_VELOCITY        500
+#define Y_SEARCH_VELOCITY        3000
 #define Y_LATCH_VELOCITY         100
 #define Y_LATCH_BACKOFF          5
 #define Y_ZERO_BACKOFF           1
+#define Y_HOMING_MODE            HOMING_STALL_MIN
 
 #define Z_AXIS_MODE              AXIS_STANDARD
 #define Z_VELOCITY_MAX           2000 // VELOCITY_MAX
@@ -207,10 +202,11 @@ typedef enum {
 #define Z_JERK_MAX               JERK_MAX
 #define Z_JERK_HOMING            (Z_JERK_MAX * 2)
 #define Z_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define Z_SEARCH_VELOCITY        400
+#define Z_SEARCH_VELOCITY        800
 #define Z_LATCH_VELOCITY         100
 #define Z_LATCH_BACKOFF          5
 #define Z_ZERO_BACKOFF           1
+#define Z_HOMING_MODE            HOMING_DISABLED //STALL_MAX
 
 // A values are chosen to make the A motor react the same as X for testing
 // set to the same speed as X axis
@@ -227,6 +223,7 @@ typedef enum {
 #define A_LATCH_VELOCITY         100
 #define A_LATCH_BACKOFF          5
 #define A_ZERO_BACKOFF           2
+#define A_HOMING_MODE            HOMING_DISABLED
 
 #define B_AXIS_MODE              AXIS_DISABLED
 #define B_VELOCITY_MAX           3600
@@ -276,11 +273,9 @@ typedef enum {
 #define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE
 
 
-// Motor fault ISRs
-#define PORT_1_FAULT_ISR_vect PORTA_INT1_vect
-#define PORT_2_FAULT_ISR_vect PORTD_INT1_vect
-#define PORT_3_FAULT_ISR_vect PORTE_INT1_vect
-#define PORT_4_FAULT_ISR_vect PORTF_INT1_vect
+// Motor ISRs
+#define STALL_ISR_vect PORTA_INT1_vect
+#define FAULT_ISR_vect PORTF_INT1_vect
 
 
 /* Interrupt usage:

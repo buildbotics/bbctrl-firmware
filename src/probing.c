@@ -165,7 +165,7 @@ static void _probing_init() {
   }
 
   // error if the probe target is too close to the current position
-  if (get_axis_vector_length(pb.start_position, pb.target) <
+  if (axes_get_vector_length(pb.start_position, pb.target) <
       MINIMUM_PROBE_TRAVEL)
     _probing_error_exit(STAT_PROBE_INVALID_DEST);
 
