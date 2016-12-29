@@ -47,17 +47,22 @@ void AsyncCopyStreamToLog::run() {
     Logger::LogStream log = Logger::instance().createStream
       (CBANG_LOG_DOMAIN, CBANG_LOG_INFO_LEVEL(1), prefix);
 
-    char buffer[4096];
+    const unsigned bufferSize = 4096;
+    char buffer[bufferSize];
+    int fill = 0;
+
     while (!in->fail() && !log->fail() && !shouldShutdown()) {
-      in->getline(buffer, 4095);
+      int c = in->get();
+      if (c == in->eof()) break;
 
-      if (in->fail()) break;
+      buffer[fill++] = c;
 
-      streamsize len = strlen(buffer);
-      buffer[len++] = '\n';
-
-      log->write(buffer, len);
-      log->flush();
+      if (c == '\n' || fill == bufferSize) {
+        log->write(buffer, fill);
+        fill = 0;
+      }
     }
+
+    if (fill) log->write(buffer, fill);
   } CATCH_ERROR;
 }
