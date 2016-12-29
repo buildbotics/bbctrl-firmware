@@ -42,12 +42,8 @@ JSON::ValuePtr Function::copy(bool deep) const {
 }
 
 
-bool Function::canWrite(JSON::Sink &sink) const {
-  return dynamic_cast<Sink *>(&sink);
-}
-
-
 void Function::write(JSON::Sink &_sink) const {
   Sink *sink = dynamic_cast<Sink *>(&_sink);
   if (sink) sink->write(*this);
+  else _sink.write("[function]");
 }

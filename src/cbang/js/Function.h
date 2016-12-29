@@ -52,7 +52,6 @@ namespace cb {
       // From JSON::Value
       JSON::ValueType getType() const {return JSON_UNDEFINED;}
       JSON::ValuePtr copy(bool deep = false) const;
-      bool canWrite(JSON::Sink &sink) const;
       void write(JSON::Sink &sink) const;
     };
   }

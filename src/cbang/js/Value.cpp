@@ -57,6 +57,7 @@ void Value::write(JSON::Sink &sink) const {
     SmartPointer<Value> props = getOwnPropertyNames();
     for (unsigned i = 0; i < props->length(); i++) {
       string key = props->get(i)->toString();
+      if (get(key)->isUndefined()) continue;
       sink.beginInsert(key);
       get(key)->write(sink);
     }
@@ -67,6 +68,7 @@ void Value::write(JSON::Sink &sink) const {
     sink.beginList();
 
     for (unsigned i = 0; i < length(); i++) {
+      if (get(i)->isUndefined()) continue;
       sink.beginAppend();
       get(i)->write(sink);
     }
@@ -77,8 +79,8 @@ void Value::write(JSON::Sink &sink) const {
   else if (isNumber()) sink.write(toNumber());
   else if (isBoolean()) sink.writeBoolean(toBoolean());
   else if (isString()) sink.write(toString());
-  else if (isFunction()) sink.write("<function>");
-  else if (isUndefined()) sink.write("<undefined>");
+  else if (isFunction()) sink.write("[function]");
+  else if (isUndefined()) sink.write("[undefined]");
 }
 
 
