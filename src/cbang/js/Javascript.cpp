@@ -161,9 +161,10 @@ SmartPointer<Value> Javascript::require(Callback &cb, Value &args) {
 
   if (String::endsWith(path, ".json")) {
     // Read JSON data
-    js::Sink sink(factory, *exports);
+    js::Sink sink(factory);
     JSON::Reader(path).parse(sink);
     sink.close();
+    exports = sink.getRoot();
 
   } else {
     // Push path
