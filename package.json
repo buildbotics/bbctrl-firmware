@@ -1,6 +1,8 @@
 {
   "name": "bbctrl",
-  "private": true,
+  "version": "0.1.5",
+  "homepage": "https://github.com/buildbotics/rpi-firmware",
+  "license": "GPL 3+",
 
   "dependencies": {
     "autoprefixer": ">=3.0.0",

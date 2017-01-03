@@ -1,12 +1,42 @@
 {
   "motors": {
     "general": {
-      "motor-map": {
+      "axis": {
         "type": "enum",
-        "values": ["x", "y", "z", "a", "b", "c"],
-        "default": "x",
-        "code": "ma"
+        "values": ["X", "Y", "Z", "A", "B", "C"],
+        "default": "X",
+        "code": "an"
+      }
+    },
+
+    "power": {
+      "power-mode": {
+        "type": "enum",
+        "values": ["disabled", "always-on", "in-cycle", "when-moving"],
+        "default": "in-cycle",
+        "code": "pm"
       },
+      "min-power": {
+        "type": "percent",
+        "unit": "%",
+        "default": 30,
+        "code": "pl"
+      },
+      "max-power": {
+        "type": "percent",
+        "unit": "%",
+        "default": 80,
+        "code": "th"
+      },
+      "idle-power": {
+        "type": "percent",
+        "unit": "%",
+        "default": 10,
+        "code": "ip"
+      }
+    },
+
+    "motion": {
       "step-angle": {
         "type": "float",
         "min": 0,
@@ -29,43 +59,10 @@
         "default": 16,
         "code": "mi"
       },
-      "polarity": {
-        "type": "enum",
-        "values": ["normal", "reversed"],
-        "default": "normal",
-        "code": "po"
-      }
-    },
-
-    "power": {
-      "power-mode": {
-        "type": "enum",
-        "values": ["disabled", "always-on", "in-cycle", "when-moving"],
-        "default": "in-cycle",
-        "code": "pm"
-      },
-      "power-level": {
-        "type": "percent",
-        "unit": "%",
-        "default": 80,
-        "code": "pl"
-      },
-      "stallguard": {
-        "type": "percent",
-        "unit": "%",
-        "default": 70,
-        "code": "th"
-      }
-    }
-  },
-
-  "axes": {
-    "motion": {
-      "mode": {
-        "type": "enum",
-        "values": ["disabled", "standard", "inhibited", "radius"],
-        "default": "disabled",
-        "code": "am"
+      "reverse": {
+        "type": "bool",
+        "default": false,
+        "code": "rv"
       },
       "max-velocity": {
         "type": "float",
@@ -76,8 +73,8 @@
       },
       "max-feedrate": {
         "type": "float",
-        "min": 0, "unit":
-        "mm/min",
+        "min": 0,
+        "unit": "mm/min",
         "default": 16000,
         "code": "fr"
       },
@@ -87,17 +84,18 @@
         "unit": "mm/min³",
         "default": 20,
         "code": "jm"
-      },
-      "junction-deviation": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm",
-        "default": 0.05,
-        "code": "jd"
       }
     },
 
-    "limits": {
+    "homing": {
+      "homing-mode": {
+        "type": "enum",
+        "values": [
+          "disabled", "stall", "min-normally-open", "min-normally-closed",
+          "max-normally-open", "max-normally-closed"],
+        "default": "disabled",
+        "code": "hm"
+      },
       "min-soft-limit": {
         "type": "float",
         "unit": "mm",
@@ -109,28 +107,6 @@
         "unit": "mm",
         "default": 150,
         "code": "tm"
-      },
-      "min-switch": {
-        "type": "enum",
-        "values": ["disabled", "normally-open", "normally-closed"],
-        "default": "disabled",
-        "code": "sn"
-      },
-      "max-switch": {
-        "type": "enum",
-        "values": ["disabled", "normally-open", "normally-closed"],
-        "default": "disabled",
-        "code": "sx"
-      }
-    },
-
-    "homing": {
-      "max-homing-jerk": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm/min³",
-        "default": 40,
-        "code": "jh"
       },
       "search-velocity": {
         "type": "float",
@@ -170,18 +146,24 @@
       "default": "PWM",
       "code": "st"
     },
-    "spin-polarity": {
-      "type": "enum",
-      "values": ["normal", "reversed"],
-      "default": "normal",
-        "code": "sp"
+    "spin-reversed": {
+      "type": "bool",
+      "default": "false",
+      "code": "sr"
     },
     "max-spin": {
       "type": "float",
       "unit": "RPM",
       "min": 0,
       "default": 10000,
-      "code": "ss"
+      "code": "sx"
+    },
+    "min-spin": {
+      "type": "float",
+      "unit": "RPM",
+      "min": 0,
+      "default": 0,
+      "code": "sm"
     },
     "spin-min-pulse": {
       "type": "float",

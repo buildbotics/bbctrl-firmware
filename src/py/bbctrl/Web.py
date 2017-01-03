@@ -4,6 +4,7 @@ import json
 import tornado
 import sockjs.tornado
 import logging
+import datetime
 
 import bbctrl
 
@@ -12,12 +13,33 @@ log = logging.getLogger('Web')
 
 
 
-class LoadHandler(bbctrl.APIHandler):
+class ConfigLoadHandler(bbctrl.APIHandler):
     def get(self): self.write_json(self.ctrl.config.load())
 
 
-class SaveHandler(bbctrl.APIHandler):
+class ConfigDownloadHandler(bbctrl.APIHandler):
+    def set_default_headers(self):
+        filename = datetime.date.today().strftime('bbctrl-%Y%m%d.json')
+        self.set_header('Content-Type', 'application/octet-stream')
+        self.set_header('Content-Disposition',
+                        'attachment; filename="%s"' % filename)
+
+    def get(self):
+        self.write_json(self.ctrl.config.load(), pretty = True)
+
+
+class ConfigSaveHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.config.save(self.json)
+
+
+class ConfigResetHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.config.reset()
+
+
+class UpgradeHandler(bbctrl.APIHandler):
+    def put_ok(self):
+        import subprocess
+        ret = subprocess.Popen(['upgrade-bbctrl'])
 
 
 class HomeHandler(bbctrl.APIHandler):
@@ -97,6 +119,11 @@ class Connection(sockjs.tornado.SockJSConnection):
         self.ctrl.avr.mdi(data)
 
 
+class StaticFileHandler(tornado.web.StaticFileHandler):
+    def set_extra_headers(self, path):
+        self.set_header('Cache-Control',
+                        'no-store, no-cache, must-revalidate, max-age=0')
+
 
 class Web(tornado.web.Application):
     def __init__(self, ctrl):
@@ -104,8 +131,11 @@ class Web(tornado.web.Application):
         self.clients = []
 
         handlers = [
-            (r'/api/load', LoadHandler),
-            (r'/api/save', SaveHandler),
+            (r'/api/config/load', ConfigLoadHandler),
+            (r'/api/config/download', ConfigDownloadHandler),
+            (r'/api/config/save', ConfigSaveHandler),
+            (r'/api/config/reset', ConfigResetHandler),
+            (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
             (r'/api/home', HomeHandler),
             (r'/api/start(/.+)', StartHandler),
@@ -119,7 +149,7 @@ class Web(tornado.web.Application):
             (r'/api/zero(/[xyzabcXYZABC])?', ZeroHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
-            (r'/(.*)', tornado.web.StaticFileHandler,
+            (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),
             ]

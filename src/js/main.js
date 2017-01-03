@@ -5,6 +5,7 @@ $(function() {
 
   // Register global components
   Vue.component('templated-input', require('./templated-input'));
+  Vue.component('message', require('./message'));
 
   // Vue app
   require('./app');

@@ -1,15 +1,28 @@
 import json
 import logging
+import pkg_resources
 
 import bbctrl
 
-
 log = logging.getLogger('Config')
+
+default_config = {
+    "motors": [
+        {"axis": "X"},
+        {"axis": "Y"},
+        {"axis": "Z"},
+        {"axis": "A"},
+        ],
+    "switches": {},
+    "spindle": {},
+    }
 
 
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.version = pkg_resources.require('bbctrl')[0].version
+        default_config['version'] = self.version
 
         # Load config template
         with open(bbctrl.get_resource('http/config-template.json'), 'r',
@@ -28,15 +41,16 @@ class Config(object):
 
         except Exception as e:
             log.warning('%s', e)
-            return self.load_path(
-                bbctrl.get_resource('http/default-config.json'))
+            return default_config
 
 
     def save(self, config):
+        self.update(config)
+
+        config['version'] = self.version
+
         with open('config.json', 'w') as f:
             json.dump(config, f)
-
-        self.update(config)
 
         log.info('Saved')
 
@@ -64,18 +78,12 @@ class Config(object):
         # Motors
         tmpl = self.template['motors']
         for index in range(len(config['motors'])):
-            self.encode(index + 1, config['motors'][index], tmpl)
-
-        # Axes
-        tmpl = self.template['axes']
-        for axis in 'xyzabc':
-            if not axis in config['axes']: continue
-            self.encode(axis, config['axes'][axis], tmpl)
+            self.encode(index, config['motors'][index], tmpl)
 
         # Switches
         tmpl = self.template['switches']
         for index in range(len(config['switches'])):
-            self.encode_category(index + 1, config['switches'][index], tmpl)
+            self.encode_category(index, config['switches'][index], tmpl)
 
         # Spindle
         tmpl = self.template['spindle']

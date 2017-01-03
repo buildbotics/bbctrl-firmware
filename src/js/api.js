@@ -5,7 +5,8 @@ function api_cb(method, url, data, config) {
   config = $.extend({
     type: method,
     url: '/api/' + url,
-    dataType: 'json'
+    dataType: 'json',
+    cache: false
   }, config);
 
   if (typeof data == 'object') {

@@ -47,5 +47,7 @@ class APIHandler(tornado.web.RequestHandler):
         self.write_json(e)
 
 
-    def write_json(self, data):
-        self.write(json.dumps(data))
+    def write_json(self, data, pretty = False):
+        if pretty: data = json.dumps(data, indent = 2, separators = (',', ': '))
+        else: data = json.dumps(data)
+        self.write(data)

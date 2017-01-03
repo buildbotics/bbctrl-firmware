@@ -1,0 +1,2 @@
+recursive-include src/py/bbctrl/http *
+include package.json README.md scripts/install.sh

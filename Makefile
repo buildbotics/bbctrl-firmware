@@ -19,7 +19,11 @@ TEMPLS    := $(wildcard src/jade/templates/*.jade)
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
-RSYNC_OPTS := $(RSYNC_EXCLUDE) -rLv --no-g --delete --force
+RSYNC_OPTS := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
+
+VERSION := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
+PKG_NAME := bbctrl-$(VERSION)
+PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
 
 ifndef DEST
 DEST=mnt
@@ -29,10 +33,15 @@ WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 
 all: html css js static
 
-copy: all
-	mkdir -p $(DEST)/bbctrl/src/py $(DEST)/bbctrl/build
-	rsync $(RSYNC_OPTS) src/py $(DEST)/bbctrl/src/
-	rsync $(RSYNC_OPTS) setup.py README.md $(DEST)/bbctrl
+copy: pkg
+	rsync $(RSYNC_OPTS) pkg/$(PKG_NAME)/ $(DEST)/bbctrl/
+
+pkg: all
+	./setup.py sdist
+
+publish: pkg
+	echo -n $(VERSION) > dist/latest.txt
+	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
 mount:
 	mkdir -p $(DEST)
@@ -102,9 +111,9 @@ tidy:
 	rm -f $(shell find "$(DIR)" -name \*~)
 
 clean: tidy
-	rm -rf build html
+	rm -rf build html pkg
 
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install html css static templates clean tidy copy mount umount
+.PHONY: all install html css static templates clean tidy copy mount umount pkg

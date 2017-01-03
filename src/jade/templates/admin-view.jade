@@ -1,16 +1,42 @@
 script#admin-view-template(type="text/x-template")
   #admin
-    h2 Backup configuration
+    h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
 
-    h2 Restore configuration
-    button.pure-button.pure-button-primary(@click="restore") Restore
+    label.pure-button.pure-button-primary.file-upload
+      input(type="file", accept=".json", @change="restore")
+      | Restore
+    message(:show.sync="configRestored")
+      h3(slot="header") Success
+      p(slot="body") Configuration restored.
 
-    h2 Reset to default configuration
-    button.pure-button.pure-button-primary(@click="reset") Reset
+    button.pure-button.pure-button-primary(@click="confirmReset = true")
+      | Reset
+    message(:show.sync="confirmReset")
+      h3(slot="header") Reset to default configuration?
+      p(slot="body") All configuration changes will be lost.
+      div(slot="footer")
+        button.pure-button.button-error(@click="confirmReset = false") Cancel
+        button.pure-button.button-success(@click="reset") OK
 
-    h2 Check for new firmware
+    message(:show.sync="configReset")
+      h3(slot="header") Success
+      p(slot="body") Configuration reset.
+
+    h2 Firmware
     button.pure-button.pure-button-primary(@click="check") Check
-
-    h2 Upgrade firmware
     button.pure-button.pure-button-primary(@click="upgrade") Upgrade
+
+    p
+    table.pure-table
+      tr
+        th Current version
+        td {{config.version}}
+
+      tr(v-if="latest")
+        th Latest version
+        td {{latest}}
+
+    message(:show.sync="firmwareUpgrading")
+      h3(slot="header") Firmware upgrading
+      p(slot="body") Please wait. . .

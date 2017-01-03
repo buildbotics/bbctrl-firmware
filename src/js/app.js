@@ -25,7 +25,6 @@ module.exports = new Vue({
     'estop': {template: '#estop-template'},
     'loading-view': {template: '<h1>Loading...</h1>'},
     'control-view': require('./control-view'),
-    'axis-view': require('./axis-view'),
     'motor-view': require('./motor-view'),
     'spindle-view': require('./spindle-view'),
     'switches-view': require('./switches-view'),
@@ -46,7 +45,8 @@ module.exports = new Vue({
     },
 
 
-    connected: function () {this.update()}
+    connected: function () {this.update()},
+    update: function () {this.update()}
   },
 
 
@@ -64,11 +64,11 @@ module.exports = new Vue({
 
 
     update: function () {
-      $.get('/config-template.json', {cache: false})
+      $.ajax({type: 'GET', url: '/config-template.json', cache: false})
         .success(function (data, status, xhr) {
           this.template = data;
 
-          api.get('load').done(function (data) {
+          api.get('config/load').done(function (data) {
             this.config = data;
             this.parse_hash();
           }.bind(this))
@@ -120,10 +120,10 @@ module.exports = new Vue({
 
 
     save: function () {
-      api.put('save', this.config).done(function (data) {
+      api.put('config/save', this.config).done(function (data) {
         this.modified = false;
-      }.bind(this)).fail(function (xhr, status) {
-        alert('Save failed: ' + status + ': ' + xhr.responseText);
+      }.bind(this)).fail(function (error) {
+        alert('Save failed: ' + error);
       });
     }
   }

@@ -136,7 +136,7 @@ script#control-view-template(type="text/x-template")
             option(v-for="file in files", :value="file") {{file}}
 
         .gcode(:class="{placeholder: !gcode}")
-          {{{gcode || 'GCode displays here.'}}}
+          | {{{gcode || 'GCode displays here.'}}}
 
       section#content2.tab-content
         .mdi.pure-form

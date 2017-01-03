@@ -46,12 +46,6 @@ html(lang="en")
               a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
 
             li.pure-menu-heading
-              a.pure-menu-link(href="#axis:x") Axes
-
-            li.pure-menu-item(v-for="axis in 'xyzabc'")
-              a.pure-menu-link(href="#axis:{{axis}}") {{axis | capitalize}} Axis
-
-            li.pure-menu-heading
               a.pure-menu-link(href="#spindle") Spindle
 
             li.pure-menu-heading
@@ -82,6 +76,8 @@ html(lang="en")
 
     #templates
       include ../../build/templates.jade
+
+    iframe#download-target(style="display:none")
 
     script(src="//code.jquery.com/jquery-1.11.3.min.js")
     script(src="//cdn.jsdelivr.net/vue/1.0.17/vue.js")

@@ -95,6 +95,9 @@ cp bbctrl.init.d /etc/init.d/bbctrl
 chmod +x /etc/init.d/bbctrl
 update-rc.d bbctrl defaults
 
+# Install upgrade script
+cp upgrade-bbctrl /usr/local/bin
+
 # Disable Pi 3 USART BlueTooth swap
 echo -e "\ndtoverlay=pi3-disable-bt" >> /boot/config.txt
 # sudo systemctl disable hciuart

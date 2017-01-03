@@ -88,8 +88,14 @@ module.exports = {
 
     enabled: function (axis) {
       var axis = axis.toLowerCase();
-      return axis in this.config.axes &&
-        this.config.axes[axis].mode != 'disabled';
+
+      for (var i = 0; i < this.config.motors.length; i++) {
+        var motor = this.config.motors[i];
+        if (motor.axis.toLowerCase() == axis &&
+            (motor.enabled || typeof motor.enabled == 'undefined')) return true;
+      }
+
+      return false;
     },
 
 

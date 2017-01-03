@@ -1,0 +1,29 @@
+#!/bin/bash -e
+
+(
+    flock -n 9
+
+    VERSION=$(curl -s https://buildbotics.com/bbctrl/latest.txt)
+    PKG_NAME=bbctrl-$VERSION
+    PKG=$PKG_NAME.tar.bz2
+    PKG_URL=https://buildbotics.com/bbctrl/$PKG
+
+    logger Installing bbctrl firmware $VERSION
+
+    echo Downloading $PKG_URL
+    curl -s $PKG_URL > $PKG
+
+    echo Unpacking $PKG
+    tar xf $PKG
+
+    echo Installing $PKG
+    (cd $PKG_NAME; ./scripts/install.sh)
+
+    echo Cleaning up
+    rm -rf $PKG_NAME $PKG
+
+    echo Success
+
+    logger bbctrl firmware $VERSION installed
+
+) 9> /var/lock/bbctrl.upgrade.lock
