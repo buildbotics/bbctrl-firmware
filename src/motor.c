@@ -35,7 +35,7 @@
 #include "drv8711.h"
 #include "estop.h"
 #include "gcode_state.h"
-#include "axes.h"
+#include "axis.h"
 #include "util.h"
 
 #include "plan/runtime.h"
@@ -61,7 +61,7 @@ typedef struct {
   // Config
   uint8_t axis;                  // map motor to axis
   uint16_t microsteps;           // microsteps per full step
-  motor_polarity_t polarity;
+  bool reverse;
   motor_power_mode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
@@ -97,54 +97,54 @@ typedef struct {
 
 static motor_t motors[MOTORS] = {
   {
-    .axis        = M1_MOTOR_MAP,
-    .step_angle  = M1_STEP_ANGLE,
-    .travel_rev  = M1_TRAVEL_PER_REV,
-    .microsteps  = M1_MICROSTEPS,
-    .polarity    = M1_POLARITY,
-    .power_mode  = M1_POWER_MODE,
-    .step_pin    = STEP_X_PIN,
-    .dir_pin     = DIR_X_PIN,
-    .timer       = &M1_TIMER,
-    .dma         = &M1_DMA_CH,
-    .dma_trigger = M1_DMA_TRIGGER,
+    .axis            = M1_AXIS,
+    .step_angle      = M1_STEP_ANGLE,
+    .travel_rev      = M1_TRAVEL_PER_REV,
+    .microsteps      = M1_MICROSTEPS,
+    .reverse         = M1_REVERSE,
+    .power_mode      = M1_POWER_MODE,
+    .step_pin        = STEP_X_PIN,
+    .dir_pin         = DIR_X_PIN,
+    .timer           = &M1_TIMER,
+    .dma             = &M1_DMA_CH,
+    .dma_trigger     = M1_DMA_TRIGGER,
   }, {
-    .axis        = M2_MOTOR_MAP,
-    .step_angle  = M2_STEP_ANGLE,
-    .travel_rev  = M2_TRAVEL_PER_REV,
-    .microsteps  = M2_MICROSTEPS,
-    .polarity    = M2_POLARITY,
-    .power_mode  = M2_POWER_MODE,
-    .step_pin    = STEP_Y_PIN,
-    .dir_pin     = DIR_Y_PIN,
-    .timer       = &M2_TIMER,
-    .dma         = &M2_DMA_CH,
-    .dma_trigger = M2_DMA_TRIGGER,
+    .axis            = M2_AXIS,
+    .step_angle      = M2_STEP_ANGLE,
+    .travel_rev      = M2_TRAVEL_PER_REV,
+    .microsteps      = M2_MICROSTEPS,
+    .reverse         = M2_REVERSE,
+    .power_mode      = M2_POWER_MODE,
+    .step_pin        = STEP_Y_PIN,
+    .dir_pin         = DIR_Y_PIN,
+    .timer           = &M2_TIMER,
+    .dma             = &M2_DMA_CH,
+    .dma_trigger     = M2_DMA_TRIGGER,
   }, {
-    .axis        = M3_MOTOR_MAP,
-    .step_angle  = M3_STEP_ANGLE,
-    .travel_rev  = M3_TRAVEL_PER_REV,
-    .microsteps  = M3_MICROSTEPS,
-    .polarity    = M3_POLARITY,
-    .power_mode  = M3_POWER_MODE,
-    .step_pin    = STEP_Z_PIN,
-    .dir_pin     = DIR_Z_PIN,
-    .timer       = &M3_TIMER,
-    .dma         = &M3_DMA_CH,
-    .dma_trigger = M3_DMA_TRIGGER,
+    .axis            = M3_AXIS,
+    .step_angle      = M3_STEP_ANGLE,
+    .travel_rev      = M3_TRAVEL_PER_REV,
+    .microsteps      = M3_MICROSTEPS,
+    .reverse         = M3_REVERSE,
+    .power_mode      = M3_POWER_MODE,
+    .step_pin        = STEP_Z_PIN,
+    .dir_pin         = DIR_Z_PIN,
+    .timer           = &M3_TIMER,
+    .dma             = &M3_DMA_CH,
+    .dma_trigger     = M3_DMA_TRIGGER,
   }, {
-    .axis        = M4_MOTOR_MAP,
-    .step_angle  = M4_STEP_ANGLE,
-    .travel_rev  = M4_TRAVEL_PER_REV,
-    .microsteps  = M4_MICROSTEPS,
-    .polarity    = M4_POLARITY,
-    .power_mode  = M4_POWER_MODE,
-    .step_pin    = STEP_A_PIN,
-    .dir_pin     = DIR_A_PIN,
-    .timer       = (TC0_t *)&M4_TIMER,
-    .dma         = &M4_DMA_CH,
-    .dma_trigger = M4_DMA_TRIGGER,
-  }
+    .axis            = M4_AXIS,
+    .step_angle      = M4_STEP_ANGLE,
+    .travel_rev      = M4_TRAVEL_PER_REV,
+    .microsteps      = M4_MICROSTEPS,
+    .reverse         = M4_REVERSE,
+    .power_mode      = M4_POWER_MODE,
+    .step_pin        = STEP_A_PIN,
+    .dir_pin         = DIR_A_PIN,
+    .timer           = (TC0_t *)&M4_TIMER,
+    .dma             = &M4_DMA_CH,
+    .dma_trigger     = M4_DMA_TRIGGER,
+    }
 };
 
 
@@ -163,6 +163,8 @@ void motor_init() {
 
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
+
+    axis_set_motor(m->axis, motor);
 
     // IO pins
     DIRSET_PIN(m->step_pin);   // Output
@@ -242,7 +244,7 @@ float motor_get_units_per_step(int motor) {
 
 float _get_max_velocity(int motor) {
   return
-    axes[motors[motor].axis].velocity_max * motor_get_steps_per_unit(motor);
+    axis_get_velocity_max(motors[motor].axis) * motor_get_steps_per_unit(motor);
 }
 
 
@@ -288,49 +290,49 @@ int32_t motor_get_position(int motor) {return motors[motor].position;}
 
 
 /// returns true if motor is in an error state
-bool motor_error(int motor) {
-  uint8_t flags = motors[motor].flags;
+bool motor_error(int m) {
+  uint8_t flags = motors[m].flags;
   if (calibrate_busy()) flags &= ~MOTOR_FLAG_STALLED_bm;
   return flags & MOTOR_FLAG_ERROR_bm;
 }
 
 
-bool motor_stalled(int motor) {
-  return motors[motor].flags & MOTOR_FLAG_STALLED_bm;
+bool motor_stalled(int m) {
+  return motors[m].flags & MOTOR_FLAG_STALLED_bm;
 }
 
 
-void motor_reset(int motor) {
-  motors[motor].flags = 0;
+void motor_reset(int m) {
+  motors[m].flags = 0;
 }
 
 
 /// Remove power from a motor
-static void _deenergize(int motor) {
-  if (motors[motor].power_state == MOTOR_ACTIVE) {
-    motors[motor].power_state = MOTOR_IDLE;
-    drv8711_disable(motor);
+static void _deenergize(int m) {
+  if (motors[m].power_state == MOTOR_ACTIVE) {
+    motors[m].power_state = MOTOR_IDLE;
+    drv8711_disable(m);
   }
 }
 
 
 /// Apply power to a motor
-static void _energize(int motor) {
-  if (motors[motor].power_state == MOTOR_IDLE && !motor_error(motor)) {
-    motors[motor].power_state = MOTOR_ENERGIZING;
-    drv8711_enable(motor);
+static void _energize(int m) {
+  if (motors[m].power_state == MOTOR_IDLE && !motor_error(m)) {
+    motors[m].power_state = MOTOR_ENERGIZING;
+    drv8711_enable(m);
 
-    motor_driver_callback(motor); // TODO Shouldn't call this directly
+    motor_driver_callback(m); // TODO Shouldn't call this directly
   }
 
   // Reset timeout, regardless
-  motors[motor].timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
+  motors[m].timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
 }
 
 
 bool motor_energizing() {
-  for (int motor = 0; motor < MOTORS; motor++)
-    if (motors[motor].power_state == MOTOR_ENERGIZING)
+  for (int m = 0; m < MOTORS; m++)
+    if (motors[m].power_state == MOTOR_ENERGIZING)
       return true;
 
   return false;
@@ -456,8 +458,8 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
 
   // Setup the direction, compensating for polarity.
   m->negative = travel < 0;
-  if (m->negative) m->direction = DIRECTION_CCW ^ m->polarity;
-  else m->direction = DIRECTION_CW ^ m->polarity;
+  if (m->negative) m->direction = DIRECTION_CCW ^ m->reverse;
+  else m->direction = DIRECTION_CW ^ m->reverse;
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
@@ -508,6 +510,15 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
 
 
 // Var callbacks
+char get_axis_name(int motor) {return axis_get_char(motors[motor].axis);}
+
+
+void set_axis_name(int motor, char axis) {
+  int id = axis_get_id(axis);
+  if (id != -1) motors[motor].axis = id;
+}
+
+
 float get_step_angle(int motor) {return motors[motor].step_angle;}
 void set_step_angle(int motor, float value) {motors[motor].step_angle = value;}
 float get_travel(int motor) {return motors[motor].travel_rev;}
@@ -521,25 +532,28 @@ void set_microstep(int motor, uint16_t value) {
 }
 
 
-uint8_t get_polarity(int motor) {
+bool get_reverse(int motor) {
   if (motor < 0 || MOTORS <= motor) return 0;
-  return motors[motor].polarity;
+  return motors[motor].reverse;
 }
 
 
-void set_polarity(int motor, uint8_t value) {motors[motor].polarity = value;}
+void set_reverse(int motor, bool value) {motors[motor].reverse = value;}
 uint8_t get_motor_axis(int motor) {return motors[motor].axis;}
 
 
-void set_motor_axis(int motor, uint16_t value) {
-  if (value < AXES) motors[motor].axis = value;
+void set_motor_axis(int motor, uint8_t value) {
+  if (MOTORS <= motor || AXES <= value || value == motors[motor].axis) return;
+  axis_set_motor(motors[motor].axis, -1);
+  motors[motor].axis = value;
+  axis_set_motor(value, motor);
 }
 
 
 uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
 
 
-void set_power_mode(int motor, uint16_t value) {
+void set_power_mode(int motor, uint8_t value) {
   if (value < MOTOR_POWER_MODE_MAX_VALUE)
     motors[motor].power_mode = value;
 }
@@ -592,18 +606,18 @@ void print_status_flags(uint8_t flags) {
 }
 
 
-uint8_t get_status_strings(int motor) {return get_status_flags(motor);}
+uint8_t get_status_strings(int m) {return get_status_flags(m);}
 
 
 // Command callback
 void command_mreset(int argc, char *argv[]) {
   if (argc == 1)
-    for (int motor = 0; motor < MOTORS; motor++)
-      motor_reset(motor);
+    for (int m = 0; m < MOTORS; m++)
+      motor_reset(m);
 
   else {
-    int motor = atoi(argv[1]);
-    if (motor < MOTORS) motor_reset(motor);
+    int m = atoi(argv[1]);
+    if (m < MOTORS) motor_reset(m);
   }
 
   report_request();

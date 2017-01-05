@@ -62,7 +62,7 @@
 #include "machine.h"
 
 #include "config.h"
-#include "axes.h"
+#include "axis.h"
 #include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
@@ -75,8 +75,6 @@
 #include "plan/line.h"
 #include "plan/state.h"
 
-
-#define DISABLE_SOFT_LIMIT -1000000
 
 typedef struct { // struct to manage mach globals and cycles
   float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
@@ -296,12 +294,7 @@ float mach_get_axis_position(uint8_t axis) {return mach.position[axis];}
  *    - conversion of relative mode to absolute (internal canonical form)
  *    - translation of work coordinates to machine coordinates (internal
  *      canonical form)
- *    - application of axis modes:
- *
- *      DISABLED - Incoming value is ignored.
- *      ENABLED  - Convert axis values to canonical format.
- *      RADIUS   - ABC axis value is provided in Gcode block in linear units.
- *               - Target is set to degrees based on axis' Radius value.
+ *    - application of axis radius mode
  *
  *  Target coordinates are provided in @param values.
  *  Axes that need processing are signaled in @param flags.
@@ -310,24 +303,17 @@ void mach_calc_target(float target[], const float values[],
                       const bool flags[]) {
   for (int axis = 0; axis < AXES; axis++) {
     target[axis] = mach.position[axis];
-    if (!flags[axis]) continue;
+    if (!flags[axis] || !axis_is_enabled(axis)) continue;
 
-    const float offset = mach.gm.distance_mode == ABSOLUTE_MODE ?
+    target[axis] = mach.gm.distance_mode == ABSOLUTE_MODE ?
       mach_get_active_coord_offset(axis) : mach.position[axis];
 
-    switch (axes[axis].mode) {
-    case AXIS_DISABLED: break;
-    case AXIS_STANDARD:
-      // For ABC axes no mm conversion - it's already in degrees
-      target[axis] =
-        offset + (AXIS_Z < axis ? values[axis] : TO_MM(values[axis]));
-      break;
-
-    case AXIS_RADIUS:
-      target[axis] =
-        offset + TO_MM(values[axis]) * 360 / (2 * M_PI * axes[axis].radius);
-      break;
-    }
+    float radius = axis_get_radius(axis);
+    if (radius) // Handle radius mode if radius is non-zero
+      target[axis] += TO_MM(values[axis]) * 360 / (2 * M_PI * radius);
+    // For ABC axes no mm conversion - it's already in degrees
+    else if (AXIS_Z < axis) target[axis] += values[axis];
+    else target[axis] += TO_MM(values[axis]);
   }
 }
 
@@ -345,16 +331,16 @@ void mach_calc_target(float target[], const float values[],
  */
 stat_t mach_test_soft_limits(float target[]) {
   for (int axis = 0; axis < AXES; axis++) {
-    if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
+    if (!axis_get_homed(axis)) continue; // don't test axes that arent homed
 
-    if (fp_EQ(axes[axis].travel_min, axes[axis].travel_max)) continue;
+    float min = axis_get_travel_min(axis);
+    float max = axis_get_travel_max(axis);
 
-    if (axes[axis].travel_min > DISABLE_SOFT_LIMIT &&
-        target[axis] < axes[axis].travel_min)
-      return STAT_SOFT_LIMIT_EXCEEDED;
+    // min == max means no soft limits
+    if (fp_EQ(min, max)) continue;
 
-    if (axes[axis].travel_max > DISABLE_SOFT_LIMIT &&
-        target[axis] > axes[axis].travel_max)
+    if ((min > DISABLE_SOFT_LIMIT && target[axis] < min) ||
+        (max > DISABLE_SOFT_LIMIT && target[axis] > max))
       return STAT_SOFT_LIMIT_EXCEEDED;
   }
 
@@ -373,10 +359,6 @@ stat_t mach_test_soft_limits(float target[]) {
 // Initialization and Termination (4.3.2)
 
 void machine_init() {
-  // Init 1/jerk
-  for (int axis = 0; axis < AXES; axis++)
-    axes_set_jerk(axis, axes[axis].jerk_max);
-
   // Set gcode defaults
   mach_set_units(GCODE_DEFAULT_UNITS);
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);

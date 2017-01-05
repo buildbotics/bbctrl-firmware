@@ -31,7 +31,7 @@
 #include "plan/line.h"
 #include "plan/state.h"
 #include "plan/exec.h"
-#include "axes.h"
+#include "axis.h"
 #include "motor.h"
 #include "util.h"
 #include "config.h"
@@ -82,15 +82,16 @@ void home_callback() {
       !mp_queue_is_empty()) return;
 
   while (true) {
-    axis_t *axis = &axes[home.axis];
-    int motor = axes_get_motor(home.axis);
-    int direction = (axis->homing_mode == HOMING_STALL_MIN ||
-                     axis->homing_mode == HOMING_SWITCH_MIN) ? -1 : 1;
+    int motor = axis_get_motor(home.axis);
+    homing_mode_t mode = axis_get_homing_mode(home.axis);
+    int direction =
+      (mode == HOMING_STALL_MIN || mode == HOMING_SWITCH_MIN) ? -1 : 1;
+    float min = axis_get_travel_min(home.axis);
+    float max = axis_get_travel_max(home.axis);
 
     switch (home.state) {
     case STATE_INIT: {
-      if (motor == -1 || axis->mode == AXIS_DISABLED ||
-          axis->homing_mode == HOMING_DISABLED || !motor_is_enabled(motor)) {
+      if (motor == -1 || mode == HOMING_DISABLED) {
         home.state = STATE_DONE;
         break;
       }
@@ -106,11 +107,11 @@ void home_callback() {
       home.microsteps = motor_get_microsteps(motor);
       motor_set_microsteps(motor, 8);
       motor_set_stall_callback(motor, _stall_callback);
-      //home.velocity = motor_get_stall_homing_velocity(motor);
-      home.velocity = axis->search_velocity;
+      //home.velocity = axis_get_stall_homing_velocity(home.axis);
+      home.velocity = axis_get_search_velocity(home.axis);
 
       // Move in home direction
-      float travel = axis->travel_max - axis->travel_min;
+      float travel = max - min; // TODO consider ramping distance
       _move_axis(travel * direction);
 
       home.state = STATE_HOMING;
@@ -130,9 +131,8 @@ void home_callback() {
 
       } else {
         STATUS_INFO("Backing off %c axis", axis_get_char(home.axis));
-        mach_set_axis_position(home.axis, direction < 0 ? axis->travel_min :
-                               axis->travel_max);
-        _move_axis(axis->zero_backoff * direction * -1);
+        mach_set_axis_position(home.axis, direction < 0 ? min : max);
+        _move_axis(axis_get_zero_backoff(home.axis) * direction * -1);
         home.state = STATE_BACKOFF;
       }
       return;
@@ -141,7 +141,7 @@ void home_callback() {
       STATUS_INFO("Homed %c axis", axis_get_char(home.axis));
 
       // Set axis position & homed
-      mach_set_axis_position(home.axis, axis->travel_min);
+      mach_set_axis_position(home.axis, min);
       home.homed[home.axis] = true;
       home.state = STATE_DONE;
       break;

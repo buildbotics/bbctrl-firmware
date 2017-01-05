@@ -33,7 +33,7 @@
 
 #include "arc.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "buffer.h"
 #include "line.h"
 #include "gcode_parser.h"
@@ -89,9 +89,9 @@ static float _estimate_arc_time(float length, float linear_travel,
   time /= mach_get_feed_override();
 
   // Downgrade the time if there is a rate-limiting axis
-  return max4(time, planar_travel / axes[arc.plane_axis_0].feedrate_max,
-              planar_travel / axes[arc.plane_axis_1].feedrate_max,
-              fabs(linear_travel) / axes[arc.linear_axis].feedrate_max);
+  return max4(time, planar_travel / axis_get_feedrate_max(arc.plane_axis_0),
+              planar_travel / axis_get_feedrate_max(arc.plane_axis_1),
+              fabs(linear_travel) / axis_get_feedrate_max(arc.linear_axis));
 }
 
 

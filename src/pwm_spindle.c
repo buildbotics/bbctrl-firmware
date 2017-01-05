@@ -49,7 +49,7 @@ static pwm_spindle_t spindle = {
   .max_rpm       = SPINDLE_MAX_RPM,
   .min_duty      = SPINDLE_MIN_DUTY,
   .max_duty      = SPINDLE_MAX_DUTY,
-  .reverse       = SPINDLE_POLARITY,
+  .reverse       = SPINDLE_REVERSE,
   .enable_invert = false,
   .estop         = false,
 };
@@ -144,8 +144,8 @@ float get_spin_min_pulse(int index) {return spindle.min_duty;}
 void set_spin_min_pulse(int axis, float value) {spindle.min_duty = value;}
 float get_spin_max_pulse(int index) {return spindle.max_duty;}
 void set_spin_max_pulse(int axis, float value) {spindle.max_duty = value;}
-uint8_t get_spin_polarity(int index) {return spindle.reverse;}
-void set_spin_polarity(int axis, uint8_t value) {spindle.reverse = value;}
+uint8_t get_spin_reverse(int index) {return spindle.reverse;}
+void set_spin_reverse(int axis, uint8_t value) {spindle.reverse = value;}
 float get_spin_up(int index) {return 0;}
 void set_spin_up(int axis, float value) {}
 float get_spin_down(int index) {return 0;}

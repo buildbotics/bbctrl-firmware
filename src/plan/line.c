@@ -29,7 +29,7 @@
 
 #include "line.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "planner.h"
 #include "exec.h"
 #include "buffer.h"
@@ -120,8 +120,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float b_delta = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
-    a_delta += square(a_unit[axis] * axes[axis].junction_dev);
-    b_delta += square(b_unit[axis] * axes[axis].junction_dev);
+    a_delta += square(a_unit[axis] * axis_get_junction_dev(axis));
+    b_delta += square(b_unit[axis] * axis_get_junction_dev(axis));
   }
 
   if (!a_delta || !b_delta) return 0; // One or both unit vectors are null
@@ -197,7 +197,7 @@ int mp_find_jerk_axis(const float axis_square[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (axis_square[axis]) { // Do not use fp_ZERO here
       // Squaring axis_length ensures it's positive
-      C = axis_square[axis] * axes[axis].recip_jerk;
+      C = axis_square[axis] * axis_get_recip_jerk(axis);
 
       if (maxC < C) {
         maxC = C;
@@ -211,14 +211,14 @@ int mp_find_jerk_axis(const float axis_square[]) {
 
 /// Determine jerk value to use for the block.
 static float _calc_jerk(const float axis_square[], const float unit[]) {
-  int jerk_axis = mp_find_jerk_axis(axis_square);
+  int axis = mp_find_jerk_axis(axis_square);
 
   // Finally, the selected jerk term needs to be scaled by the
-  // reciprocal of the absolute value of the jerk_axis's unit
+  // reciprocal of the absolute value of the axis's unit
   // vector term.  This way when the move is finally decomposed into
   // its constituent axes for execution the jerk for that axis will be
   // at it's maximum value.
-  return axes[jerk_axis].jerk_max * JERK_MULTIPLIER / fabs(unit[jerk_axis]);
+  return axis_get_jerk_max(axis) * JERK_MULTIPLIER / fabs(unit[axis]);
 }
 
 
@@ -334,7 +334,7 @@ static float _calc_move_time(const float axis_length[],
   // Compute time required for rate-limiting axis
   for (int axis = 0; axis < AXES; axis++) {
     float time = fabs(axis_length[axis]) /
-      (rapid ? axes[axis].velocity_max : axes[axis].feedrate_max);
+      (rapid ? axis_get_velocity_max(axis) : axis_get_feedrate_max(axis));
 
     if (max_time < time) max_time = time;
   }

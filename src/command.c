@@ -163,6 +163,7 @@ int command_exec(int argc, char *argv[]) {
     return STAT_OK;
   }
 
+  STATUS_ERROR(STAT_UNRECOGNIZED_NAME, "'%s'", argv[0]);
   return STAT_UNRECOGNIZED_NAME;
 }
 

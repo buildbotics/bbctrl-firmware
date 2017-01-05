@@ -29,7 +29,7 @@
 
 #include "planner.h"
 #include "buffer.h"
-#include "axes.h"
+#include "axis.h"
 #include "runtime.h"
 #include "state.h"
 #include "forward_dif.h"
@@ -210,7 +210,7 @@ static void _plan_hold() {
 
   // Examine and process current buffer and compute length left for decel
   float available_length =
-    axes_get_vector_length(ex.final_target, mp_runtime_get_position());
+    axis_get_vector_length(ex.final_target, mp_runtime_get_position());
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bf is OK to use here

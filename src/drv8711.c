@@ -234,7 +234,7 @@ static void _init_spi_commands() {
     // Set STALL
     commands[spi.ncmds++] =
       DRV8711_WRITE(DRV8711_STALL_REG,
-                    DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_16 | 133);
+                    DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_8 | 200);
 
     // Set DRIVE
     commands[spi.ncmds++] =

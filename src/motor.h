@@ -58,12 +58,6 @@ typedef enum {
 } motor_power_mode_t;
 
 
-typedef enum {
-  MOTOR_POLARITY_NORMAL,
-  MOTOR_POLARITY_REVERSED
-} motor_polarity_t;
-
-
 typedef void (*stall_callback_t)(int motor);
 
 
@@ -82,6 +76,7 @@ int32_t motor_get_encoder(int motor);
 void motor_set_encoder(int motor, float encoder);
 int32_t motor_get_error(int motor);
 int32_t motor_get_position(int motor);
+
 bool motor_error(int motor);
 bool motor_stalled(int motor);
 void motor_reset(int motor);

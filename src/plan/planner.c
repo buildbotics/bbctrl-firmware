@@ -58,7 +58,7 @@
 
 #include "planner.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "buffer.h"
 #include "machine.h"
 #include "stepper.h"

@@ -41,13 +41,6 @@ enum {
 
 
 typedef enum {
-  AXIS_DISABLED,         // disabled axis
-  AXIS_STANDARD,         // axis in coordinated motion w/standard behaviors
-  AXIS_RADIUS,           // rotary axis calibrated to circumference
-} axis_mode_t;
-
-
-typedef enum {
   HOMING_DISABLED,
   HOMING_STALL_MIN,
   HOMING_STALL_MAX,
@@ -56,32 +49,28 @@ typedef enum {
 } homing_mode_t;
 
 
-typedef struct {
-  axis_mode_t mode;
-  float feedrate_max;    // max velocity in mm/min or deg/min
-  float velocity_max;    // max velocity in mm/min or deg/min
-  float travel_max;      // max work envelope for soft limits
-  float travel_min;      // min work envelope for soft limits
-  float jerk_max;        // max jerk (Jm) in mm/min^3 divided by 1 million
-  float jerk_homing;     // homing jerk (Jh) in mm/min^3 divided by 1 million
-  float recip_jerk;      // reciprocal of current jerk value - with million
-  float junction_dev;    // aka cornering delta
-  float radius;          // radius in mm for rotary axis modes
-  float search_velocity; // homing search velocity
-  float latch_velocity;  // homing latch velocity
-  float latch_backoff;   // backoff from switches prior to homing latch movement
-  float zero_backoff;    // backoff from switches for machine zero
-  homing_mode_t homing_mode;
-  bool homed;
-} axis_t;
-
-
-extern axis_t axes[AXES];
-
+bool axis_is_enabled(int axis);
 char axis_get_char(int axis);
-float axes_get_jerk(int axis);
-void axes_set_jerk(int axis, float jerk);
-int axes_get_motor(int axis);
-float axes_get_vector_length(const float a[], const float b[]);
-bool axes_get_homed(int axis);
-void axes_set_homed(int axis, bool homed);
+int axis_get_id(char axis);
+int axis_get_motor(int axis);
+void axis_set_motor(int axis, int motor);
+float axis_get_vector_length(const float a[], const float b[]);
+
+float axis_get_velocity_max(int axis);
+float axis_get_feedrate_max(int axis);
+float axis_get_jerk_max(int axis);
+void axis_set_jerk_max(int axis, float jerk);
+bool axis_get_homed(int axis);
+void axis_set_homed(int axis, bool homed);
+homing_mode_t axis_get_homing_mode(int axis);
+void axis_set_homing_mode(int axis, homing_mode_t mode);
+float axis_get_radius(int axis);
+float axis_get_travel_min(int axis);
+float axis_get_travel_max(int axis);
+float axis_get_search_velocity(int axis);
+float axis_get_latch_velocity(int axis);
+float axis_get_zero_backoff(int axis);
+float axis_get_latch_backoff(int axis);
+float axis_get_junction_dev(int axis);
+float axis_get_recip_jerk(int axis);
+float axis_get_jerk_max(int axis);
