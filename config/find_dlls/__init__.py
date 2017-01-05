@@ -7,7 +7,7 @@ import glob
 from SCons.Script import *
 
 
-default_exclude = set(re.compile(r'^.*\\system32\\.*$'))
+default_exclude = set([re.compile(r'^.*\\system32\\.*$')])
 
 
 def find_in_path(filename):
@@ -54,9 +54,13 @@ def find_dlls(env, path, exclude = set()):
                 if env.get('FIND_DLLS_IGNORE_MISSING'): continue
                 raise Exception('Lib "%s" not found' % lib)
 
+            ok = True
             for pat in exclude:
                 if isinstance(re.compile(''), pat) and pat.match(path):
-                    continue
+                    ok = False
+                    break
+
+            if not ok: continue
 
             yield path
             for path in find_dlls(env, path, exclude):
