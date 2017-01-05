@@ -7,13 +7,7 @@ import glob
 from SCons.Script import *
 
 
-default_exclude = set('''
-  advapi32.dll kernel32.dll msvcrt.dll ole32.dll user32.dll ws2_32.dll
-  comdlg32.dll gdi32.dll imm32.dll oleaut32.dll shell32.dll winmm.dll
-  winspool.drv wldap32.dll ntdll.dll d3d9.dll mpr.dll crypt32.dll dnsapi.dll
-  shlwapi.dllversion.dll iphlpapi.dll msimg32.dll setupapi.dll
-  opengl32.dll glu32.dll wsock32.dll ws32.dll gdiplus.dll usp10.dll
-  comctl32.dll'''.split())
+default_exclude = set(re.compile(r'^.*\\system32\\.*$'))
 
 
 def find_in_path(filename):
@@ -59,6 +53,10 @@ def find_dlls(env, path, exclude = set()):
             if path is None:
                 if env.get('FIND_DLLS_IGNORE_MISSING'): continue
                 raise Exception('Lib "%s" not found' % lib)
+
+            for pat in exclude:
+                if isinstance(re.compile(''), pat) and pat.match(path):
+                    continue
 
             yield path
             for path in find_dlls(env, path, exclude):
