@@ -27,7 +27,7 @@
 \******************************************************************************/
 
 #include "machine.h"
-#include "axes.h"
+#include "axis.h"
 #include "spindle.h"
 #include "switch.h"
 #include "util.h"
@@ -63,7 +63,6 @@ typedef struct {
   // state saved from gcode model
   uint8_t saved_distance_mode;    // G90, G91 global setting
   uint8_t saved_coord_system;     // G54 - G59 setting
-  float saved_jerk[AXES];         // saved and restored for each axis
 
   // probe destination
   float start_position[AXES];
@@ -89,10 +88,6 @@ static probing_t pb = {0};
 static void _probe_restore_settings() {
   // we should be stopped now, but in case of switch closure
   mp_flush_planner();
-
-  // restore axis jerk
-  for (int axis = 0; axis < AXES; axis++ )
-    axes_set_jerk(axis, pb.saved_jerk[axis]);
 
   // restore coordinate system and distance mode
   mach_set_coord_system(pb.saved_coord_system);
@@ -155,17 +150,12 @@ static void _probing_init() {
   pb.state = PROBE_FAILED;
   mp_set_cycle(CYCLE_PROBING);
 
-  // initialize the axes - save the jerk settings & switch to the jerk_homing
-  // settings
-  for (int axis = 0; axis < AXES; axis++) {
-    pb.saved_jerk[axis] = axes_get_jerk(axis);   // save the max jerk value
-    // use homing jerk for probe
-    axes_set_jerk(axis, axes[axis].jerk_homing);
+  // initialize the axes
+  for (int axis = 0; axis < AXES; axis++)
     pb.start_position[axis] = mach_get_axis_position(axis);
-  }
 
   // error if the probe target is too close to the current position
-  if (get_axis_vector_length(pb.start_position, pb.target) <
+  if (axis_get_vector_length(pb.start_position, pb.target) <
       MINIMUM_PROBE_TRAVEL)
     _probing_error_exit(STAT_PROBE_INVALID_DEST);
 

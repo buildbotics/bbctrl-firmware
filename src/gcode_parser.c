@@ -32,6 +32,7 @@
 #include "plan/arc.h"
 #include "probing.h"
 #include "homing.h"
+#include "axis.h"
 #include "util.h"
 
 #include <stdbool.h>

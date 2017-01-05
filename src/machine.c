@@ -62,7 +62,7 @@
 #include "machine.h"
 
 #include "config.h"
-#include "axes.h"
+#include "axis.h"
 #include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
@@ -75,8 +75,6 @@
 #include "plan/line.h"
 #include "plan/state.h"
 
-
-#define DISABLE_SOFT_LIMIT -1000000
 
 typedef struct { // struct to manage mach globals and cycles
   float offset[COORDS + 1][AXES];      // coordinate systems & offsets G53-G59
@@ -115,6 +113,11 @@ float mach_get_feed_rate() {return mach.gm.feed_rate;}
 feed_mode_t mach_get_feed_mode() {return mach.gm.feed_mode;}
 
 
+bool mach_is_inverse_time_mode() {
+  return mach.gm.feed_mode == INVERSE_TIME_MODE;
+}
+
+
 float mach_get_feed_override() {
   return mach.gm.feed_override_enable ? mach.gm.feed_override : 1;
 }
@@ -126,11 +129,13 @@ float mach_get_spindle_override() {
 
 
 motion_mode_t mach_get_motion_mode() {return mach.gm.motion_mode;}
+bool mach_is_rapid() {return mach.gm.motion_mode == MOTION_MODE_RAPID;}
 plane_t mach_get_plane() {return mach.gm.plane;}
 units_t mach_get_units() {return mach.gm.units;}
 coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
 bool mach_get_absolute_mode() {return mach.gm.absolute_mode;}
 path_mode_t mach_get_path_mode() {return mach.gm.path_mode;}
+bool mach_is_exact_stop() {return mach.gm.path_mode == PATH_EXACT_STOP;}
 distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 distance_mode_t mach_get_arc_distance_mode() {return mach.gm.arc_distance_mode;}
 
@@ -280,102 +285,6 @@ float mach_get_axis_position(uint8_t axis) {return mach.position[axis];}
  * These functions are not part of the NIST defined functions
  */
 
-/* Compute optimal and minimum move times into the gcode_state
- *
- * "Minimum time" is the fastest the move can be performed given the velocity
- * constraints on each participating axis - regardless of the feed rate
- * requested. The minimum time is the time limited by the rate-limiting
- * axis. The minimum time is needed to compute the optimal time and is recorded
- * for possible feed override computation.
- *
- * "Optimal time" is either the time resulting from the requested feed rate or
- * the minimum time if the requested feed rate is not achievable. Optimal times
- * for rapids are always the minimum time.
- *
- * The gcode state must have targets set prior by having mach_set_target(). Axis
- * modes are taken into account by this.
- *
- * The following times are compared and the longest is returned:
- *   - G93 inverse time (if G93 is active)
- *   - time for coordinated move at requested feed rate
- *   - time that the slowest axis would require for the move
- *
- * Sets the following variables in the gcode_state struct - move_time is set to
- * optimal time
- *
- * NIST RS274NGC_v3 Guidance
- *
- * The following is verbatim text from NIST RS274NGC_v3. As I interpret A for
- * moves that combine both linear and rotational movement, the feed rate should
- * apply to the XYZ movement, with the rotational axis (or axes) timed to start
- * and end at the same time the linear move is performed. It is possible under
- * this case for the rotational move to rate-limit the linear move.
- *
- *  2.1.2.5 Feed Rate
- *
- * The rate at which the controlled point or the axes move is nominally a steady
- * rate which may be set by the user. In the Interpreter, the interpretation of
- * the feed rate is as follows unless inverse time feed rate mode is being used
- * in the RS274/NGC view (see Section 3.5.19). The machining functions view of
- * feed rate, as described in Section 4.3.5.1, has conditions under which the
- * set feed rate is applied differently, but none of these is used in the
- * Interpreter.
- *
- * A.  For motion involving one or more of the X, Y, and Z axes (with or without
- *     simultaneous rotational axis motion), the feed rate means length units
- *     per minute along the programmed XYZ path, as if the rotational axes were
- *     not moving.
- *
- * B.  For motion of one rotational axis with X, Y, and Z axes not moving, the
- *     feed rate means degrees per minute rotation of the rotational axis.
- *
- * C.  For motion of two or three rotational axes with X, Y, and Z axes not
- *     moving, the rate is applied as follows. Let dA, dB, and dC be the angles
- *     in degrees through which the A, B, and C axes, respectively, must move.
- *     Let D = sqrt(dA^2 + dB^2 + dC^2). Conceptually, D is a measure of total
- *     angular motion, using the usual Euclidean metric. Let T be the amount of
- *     time required to move through D degrees at the current feed rate in
- *     degrees per minute. The rotational axes should be moved in coordinated
- *     linear motion so that the elapsed time from the start to the end of the
- *     motion is T plus any time required for acceleration or deceleration.
- */
-float mach_calc_move_time(const float axis_length[],
-                          const float axis_square[]) {
-  float max_time = 0;
-
-  // Compute times for feed motion
-  if (mach.gm.motion_mode != MOTION_MODE_RAPID) {
-    if (mach.gm.feed_mode == INVERSE_TIME_MODE)
-      // Feed rate was un-inverted to minutes by mach_set_feed_rate()
-      max_time = mach.gm.feed_rate;
-
-    else {
-      // Compute length of linear move in millimeters.  Feed rate in mm/min.
-      max_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
-                      axis_square[AXIS_Z]) / mach.gm.feed_rate;
-
-      // If no linear axes, compute length of multi-axis rotary move in degrees.
-      // Feed rate is provided as degrees/min
-      if (fp_ZERO(max_time))
-        max_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
-                        axis_square[AXIS_C]) / mach.gm.feed_rate;
-    }
-  }
-
-  // Apply feed override
-  max_time /= mach_get_feed_override();
-
-  // Compute time required for rate-limiting axis
-  for (int axis = 0; axis < AXES; axis++) {
-    float time = fabs(axis_length[axis]) /
-      (mach.gm.motion_mode == MOTION_MODE_RAPID ? axes[axis].velocity_max :
-       axes[axis].feedrate_max);
-
-    if (max_time < time) max_time = time;
-  }
-
-  return max_time < MIN_SEGMENT_TIME ? MIN_SEGMENT_TIME : max_time;
-}
 
 
 /*** Calculate target vector
@@ -385,12 +294,7 @@ float mach_calc_move_time(const float axis_length[],
  *    - conversion of relative mode to absolute (internal canonical form)
  *    - translation of work coordinates to machine coordinates (internal
  *      canonical form)
- *    - application of axis modes:
- *
- *      DISABLED - Incoming value is ignored.
- *      ENABLED  - Convert axis values to canonical format.
- *      RADIUS   - ABC axis value is provided in Gcode block in linear units.
- *               - Target is set to degrees based on axis' Radius value.
+ *    - application of axis radius mode
  *
  *  Target coordinates are provided in @param values.
  *  Axes that need processing are signaled in @param flags.
@@ -399,24 +303,17 @@ void mach_calc_target(float target[], const float values[],
                       const bool flags[]) {
   for (int axis = 0; axis < AXES; axis++) {
     target[axis] = mach.position[axis];
-    if (!flags[axis]) continue;
+    if (!flags[axis] || !axis_is_enabled(axis)) continue;
 
-    const float offset = mach.gm.distance_mode == ABSOLUTE_MODE ?
+    target[axis] = mach.gm.distance_mode == ABSOLUTE_MODE ?
       mach_get_active_coord_offset(axis) : mach.position[axis];
 
-    switch (axes[axis].axis_mode) {
-    case AXIS_DISABLED: break;
-    case AXIS_STANDARD:
-      // For ABC axes no mm conversion - it's already in degrees
-      target[axis] =
-        offset + (AXIS_Z < axis ? values[axis] : TO_MM(values[axis]));
-      break;
-
-    case AXIS_RADIUS:
-      target[axis] =
-        offset + TO_MM(values[axis]) * 360 / (2 * M_PI * axes[axis].radius);
-      break;
-    }
+    float radius = axis_get_radius(axis);
+    if (radius) // Handle radius mode if radius is non-zero
+      target[axis] += TO_MM(values[axis]) * 360 / (2 * M_PI * radius);
+    // For ABC axes no mm conversion - it's already in degrees
+    else if (AXIS_Z < axis) target[axis] += values[axis];
+    else target[axis] += TO_MM(values[axis]);
   }
 }
 
@@ -434,16 +331,16 @@ void mach_calc_target(float target[], const float values[],
  */
 stat_t mach_test_soft_limits(float target[]) {
   for (int axis = 0; axis < AXES; axis++) {
-    if (!mach_get_homed(axis)) continue; // don't test axes that arent homed
+    if (!axis_get_homed(axis)) continue; // don't test axes that arent homed
 
-    if (fp_EQ(axes[axis].travel_min, axes[axis].travel_max)) continue;
+    float min = axis_get_travel_min(axis);
+    float max = axis_get_travel_max(axis);
 
-    if (axes[axis].travel_min > DISABLE_SOFT_LIMIT &&
-        target[axis] < axes[axis].travel_min)
-      return STAT_SOFT_LIMIT_EXCEEDED;
+    // min == max means no soft limits
+    if (fp_EQ(min, max)) continue;
 
-    if (axes[axis].travel_max > DISABLE_SOFT_LIMIT &&
-        target[axis] > axes[axis].travel_max)
+    if ((min > DISABLE_SOFT_LIMIT && target[axis] < min) ||
+        (max > DISABLE_SOFT_LIMIT && target[axis] > max))
       return STAT_SOFT_LIMIT_EXCEEDED;
   }
 
@@ -462,10 +359,6 @@ stat_t mach_test_soft_limits(float target[]) {
 // Initialization and Termination (4.3.2)
 
 void machine_init() {
-  // Init 1/jerk
-  for (int axis = 0; axis < AXES; axis++)
-    axes_set_jerk(axis, axes[axis].jerk_max);
-
   // Set gcode defaults
   mach_set_units(GCODE_DEFAULT_UNITS);
   mach_set_coord_system(GCODE_DEFAULT_COORD_SYSTEM);
@@ -654,6 +547,13 @@ void mach_resume_origin_offsets() {
 }
 
 
+stat_t mach_plan_line(float target[]) {
+  return mp_aline(target, mach_is_rapid(), mach_is_inverse_time_mode(),
+                  mach_is_exact_stop(), mach.gm.feed_rate,
+                  mach_get_feed_override(), mach_get_line());
+}
+
+
 // Free Space Motion (4.3.4)
 static stat_t _feed(float values[], bool flags[]) {
   float target[AXES];
@@ -665,7 +565,7 @@ static stat_t _feed(float values[], bool flags[]) {
 
   // prep and plan the move
   mach_update_work_offsets();                 // update resolved offsets
-  status = mp_aline(target, mach_get_line()); // send move to planner
+  mach_plan_line(target);
   copy_vector(mach.position, target);         // update model position
 
   return status;

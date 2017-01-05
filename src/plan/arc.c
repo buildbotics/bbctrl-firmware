@@ -33,7 +33,7 @@
 
 #include "arc.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "buffer.h"
 #include "line.h"
 #include "gcode_parser.h"
@@ -47,7 +47,6 @@
 
 typedef struct {
   bool running;
-  int32_t line;                     // gcode block line number
 
   float target[AXES];               // XYZABC where the move should go
   float position[AXES];             // end point of the current segment
@@ -82,7 +81,7 @@ static float _estimate_arc_time(float length, float linear_travel,
                                 float planar_travel) {
   // Determine move time at requested feed rate
   // Inverse feed rate is normalized to minutes
-  float time = mach_get_feed_mode() == INVERSE_TIME_MODE ?
+  float time = mach_is_inverse_time_mode() ?
     mach_get_feed_rate() : length / mach_get_feed_rate();
 
 
@@ -90,9 +89,9 @@ static float _estimate_arc_time(float length, float linear_travel,
   time /= mach_get_feed_override();
 
   // Downgrade the time if there is a rate-limiting axis
-  return max4(time, planar_travel / axes[arc.plane_axis_0].feedrate_max,
-              planar_travel / axes[arc.plane_axis_1].feedrate_max,
-              fabs(linear_travel) / axes[arc.linear_axis].feedrate_max);
+  return max4(time, planar_travel / axis_get_feedrate_max(arc.plane_axis_0),
+              planar_travel / axis_get_feedrate_max(arc.plane_axis_1),
+              fabs(linear_travel) / axis_get_feedrate_max(arc.linear_axis));
 }
 
 
@@ -370,7 +369,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
 
   // trap missing feed rate
   if (fp_ZERO(mach_get_feed_rate()) ||
-      (mach_get_feed_mode() == INVERSE_TIME_MODE && !parser.gf.feed_rate))
+      (mach_is_inverse_time_mode() && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
   // radius must be positive and > minimum
@@ -445,8 +444,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
   // now get down to the rest of the work setting up the arc for execution
   mach_set_motion_mode(motion_mode);
   mach_update_work_offsets();                      // Update resolved offsets
-  arc.line = mach_get_line();                      // copy line number
-  arc.radius = TO_MM(radius);             // set arc radius or zero
+  arc.radius = TO_MM(radius);                      // set arc radius or zero
 
   float offset[3];
   for (int i = 0; i < 3; i++) offset[i] = TO_MM(offsets[i]);
@@ -493,7 +491,8 @@ void mach_arc_callback() {
       arc.position[arc.linear_axis] += arc.segment_linear_travel;
     }
 
-    mp_aline(arc.position, arc.line); // run the line
+    // run the line
+    mach_plan_line(arc.position);
 
     if (!--arc.segments) arc.running = false;
   }

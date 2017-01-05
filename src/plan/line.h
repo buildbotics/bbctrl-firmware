@@ -29,6 +29,10 @@
 
 #include "status.h"
 
+#include <stdbool.h>
 
-stat_t mp_aline(const float target[], int32_t line);
+
+stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
+                bool exact_stop, float feed_rate, float feed_override,
+                int32_t line);
 int mp_find_jerk_axis(const float axis_square[]);

@@ -33,7 +33,7 @@
 #include "motor.h"
 #include "switch.h"
 #include "usart.h"
-#include "tmc2660.h"
+#include "drv8711.h"
 #include "vars.h"
 #include "rtc.h"
 #include "report.h"
@@ -41,6 +41,7 @@
 #include "estop.h"
 #include "probing.h"
 #include "homing.h"
+#include "home.h"
 #include "i2c.h"
 
 #include "plan/planner.h"
@@ -55,7 +56,7 @@
 
 
 int main() {
-  //wdt_enable(WDTO_250MS);
+  //wdt_enable(WDTO_250MS); TODO
 
   // Init
   cli();                          // disable interrupts
@@ -63,7 +64,7 @@ int main() {
   hardware_init();                // hardware setup - must be first
   usart_init();                   // serial port
   i2c_init();                     // i2c port
-  tmc2660_init();                 // motor drivers
+  drv8711_init();                 // motor drivers
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
@@ -88,7 +89,8 @@ int main() {
     if (!estop_triggered()) {
       mp_state_callback();
       mach_arc_callback();          // arc generation runs
-      mach_homing_callback();       // G28.2 continuation
+      home_callback();
+      //mach_homing_callback();       // G28.2 continuation
       mach_probe_callback();        // G38.2 continuation
     }
     command_callback();           // process next command

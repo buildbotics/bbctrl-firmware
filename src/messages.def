@@ -40,9 +40,10 @@ STAT_MSG(MACH_NOT_QUIESCENT, "Cannot perform action while machine active")
 STAT_MSG(INTERNAL_ERROR, "Internal error")
 
 STAT_MSG(MOTOR_STALLED, "Motor stalled")
-STAT_MSG(MOTOR_OVERTEMP_WARN, "Motor over temperature warning")
-STAT_MSG(MOTOR_OVERTEMP, "Motor over temperature")
-STAT_MSG(MOTOR_SHORTED, "Motor shorted")
+STAT_MSG(MOTOR_OVER_TEMP, "Motor over temperature")
+STAT_MSG(MOTOR_OVER_CURRENT, "Motor over temperature")
+STAT_MSG(MOTOR_DRIVER_FAULT, "Motor driver fault")
+STAT_MSG(MOTOR_UNDER_VOLTAGE, "Motor under voltage")
 
 STAT_MSG(PREP_LINE_MOVE_TIME_INFINITE, "Move time is infinite")
 STAT_MSG(PREP_LINE_MOVE_TIME_NAN, "Move time is NAN")

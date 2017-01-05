@@ -27,7 +27,7 @@
 
 #include "jog.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "planner.h"
 #include "buffer.h"
 #include "line.h"
@@ -67,7 +67,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   bool done = true;
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++) {
-      float Vn = jr.next_velocity[axis] * axes[axis].velocity_max;
+      float Vn = jr.next_velocity[axis] * axis_get_velocity_max(axis);
       float Vi = jr.velocity[axis];
       float Vt = jr.target_velocity[axis];
 
@@ -98,7 +98,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
       } else {
         // Compute axis max jerk
-        float jerk = axes[axis].jerk_max * JERK_MULTIPLIER;
+        float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
 
         // Compute length to velocity given max jerk
         float length = mp_get_target_length(Vi, Vt, jerk * JOG_JERK_MULT);

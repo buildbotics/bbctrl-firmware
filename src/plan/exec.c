@@ -29,7 +29,7 @@
 
 #include "planner.h"
 #include "buffer.h"
-#include "util.h"
+#include "axis.h"
 #include "runtime.h"
 #include "state.h"
 #include "forward_dif.h"
@@ -65,6 +65,7 @@ typedef struct {
   bool hold_planned;        // true when a feedhold has been planned
   move_section_t section;   // current move section
   bool section_new;         // true if it's a new section
+  bool abort;
 } mp_exec_t;
 
 
@@ -209,7 +210,7 @@ static void _plan_hold() {
 
   // Examine and process current buffer and compute length left for decel
   float available_length =
-    get_axis_vector_length(ex.final_target, mp_runtime_get_position());
+    axis_get_vector_length(ex.final_target, mp_runtime_get_position());
   // Compute next_segment velocity, velocity left to shed to brake to zero
   float braking_velocity = _compute_next_segment_velocity();
   // Distance to brake to zero from braking_velocity, bf is OK to use here
@@ -288,6 +289,9 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
 }
 
 
+void mp_exec_abort() {ex.abort = true;}
+
+
 /// Aline execution routines
 ///
 /// Everything here fires from interrupts and must be interrupt safe
@@ -341,6 +345,12 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
 /// move_time does not need to.
 stat_t mp_exec_aline(mp_buffer_t *bf) {
   stat_t status = STAT_OK;
+
+  if (ex.abort) {
+    ex.abort = false;
+    mp_runtime_set_velocity(0); // Assume a hard stop
+    return STAT_NOOP;
+  }
 
   // Start a new move
   if (bf->state == BUFFER_INIT) {

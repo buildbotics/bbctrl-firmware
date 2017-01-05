@@ -40,7 +40,6 @@
 // Vector utilities
 #define clear_vector(a) memset(a, 0, sizeof(a))
 #define copy_vector(d, s) memcpy(d, s, sizeof(d))
-float get_axis_vector_length(const float a[], const float b[]);
 
 // Math utilities
 inline float min(float a, float b) {return a < b ? a : b;}

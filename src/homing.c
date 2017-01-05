@@ -28,7 +28,7 @@
 
 #include "homing.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "machine.h"
 #include "switch.h"
 #include "gcode_parser.h"
@@ -214,7 +214,7 @@ static void _homing_axis_move(int8_t axis, float target, float velocity) {
 
 /// End homing cycle in progress
 static void _homing_abort(int8_t axis) {
-  axes_set_jerk(axis, hm.saved_jerk); // restore the max jerk value
+  axis_set_jerk_max(axis, hm.saved_jerk); // restore the max jerk value
 
   // homing state remains HOMING_NOT_HOMED
   _homing_error_exit(STAT_HOMING_CYCLE_FAILED);
@@ -232,7 +232,7 @@ static void _homing_axis_set_zero(int8_t axis) {
   } else // do not set axis if in G28.4 cycle
     mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
 
-  axes_set_jerk(axis, hm.saved_jerk); // restore the max jerk value
+  axis_set_jerk_max(axis, hm.saved_jerk); // restore the max jerk value
 
   hm.func = _homing_axis_start;
 }
@@ -261,7 +261,6 @@ static void _homing_axis_latch(int8_t axis) {
 /// Fast search for switch, closes switch
 static void _homing_axis_search(int8_t axis) {
   // use the homing jerk for search onward
-  axes_set_jerk(axis, axes[axis].jerk_homing);
   _homing_axis_move(axis, hm.search_travel, hm.search_velocity);
   hm.func = _homing_axis_latch;
 }
@@ -299,25 +298,25 @@ static void _homing_axis_start(int8_t axis) {
   hm.homed[axis] = false;
 
   // trap axis mis-configurations
-  if (fp_ZERO(axes[axis].search_velocity))
+  if (fp_ZERO(axis_get_search_velocity(axis)))
     return _homing_error_exit(STAT_HOMING_ERROR_ZERO_SEARCH_VELOCITY);
-  if (fp_ZERO(axes[axis].latch_velocity))
+  if (fp_ZERO(axis_get_latch_velocity(axis)))
     return _homing_error_exit(STAT_HOMING_ERROR_ZERO_LATCH_VELOCITY);
-  if (axes[axis].latch_backoff < 0)
+  if (axis_get_latch_backoff(axis) < 0)
     return _homing_error_exit(STAT_HOMING_ERROR_NEGATIVE_LATCH_BACKOFF);
 
   // calculate and test travel distance
   float travel_distance =
-    fabs(axes[axis].travel_max - axes[axis].travel_min) +
-    axes[axis].latch_backoff;
+    fabs(axis_get_travel_max(axis) - axis_get_travel_min(axis)) +
+    axis_get_latch_backoff(axis);
   if (fp_ZERO(travel_distance))
     return _homing_error_exit(STAT_HOMING_ERROR_TRAVEL_MIN_MAX_IDENTICAL);
 
   hm.axis = axis; // persist the axis
   // search velocity is always positive
-  hm.search_velocity = fabs(axes[axis].search_velocity);
+  hm.search_velocity = fabs(axis_get_search_velocity(axis));
   // latch velocity is always positive
-  hm.latch_velocity = fabs(axes[axis].latch_velocity);
+  hm.latch_velocity = fabs(axis_get_latch_velocity(axis));
 
   // determine which switch to use
   bool min_enabled = switch_is_enabled(MIN_SWITCH(axis));
@@ -328,16 +327,16 @@ static void _homing_axis_start(int8_t axis) {
     hm.homing_switch = MIN_SWITCH(axis);         // min is the homing switch
     hm.limit_switch = MAX_SWITCH(axis);          // max would be limit switch
     hm.search_travel = -travel_distance;         // in negative direction
-    hm.latch_backoff = axes[axis].latch_backoff; // in positive direction
-    hm.zero_backoff = axes[axis].zero_backoff;
+    hm.latch_backoff = axis_get_latch_backoff(axis); // in positive direction
+    hm.zero_backoff = axis_get_zero_backoff(axis);
 
   } else if (max_enabled) {
     // setup parameters for positive travel (homing to the maximum switch)
     hm.homing_switch = MAX_SWITCH(axis);          // max is homing switch
     hm.limit_switch = MIN_SWITCH(axis);           // min would be limit switch
     hm.search_travel = travel_distance;           // in positive direction
-    hm.latch_backoff = -axes[axis].latch_backoff; // in negative direction
-    hm.zero_backoff = -axes[axis].zero_backoff;
+    hm.latch_backoff = -axis_get_latch_backoff(axis); // in negative direction
+    hm.zero_backoff = -axis_get_zero_backoff(axis);
 
   } else {
     // if homing is disabled for the axis then skip to the next axis
@@ -346,7 +345,7 @@ static void _homing_axis_start(int8_t axis) {
     return;
   }
 
-  hm.saved_jerk = axes_get_jerk(axis); // save the max jerk value
+  hm.saved_jerk = axis_get_jerk_max(axis); // save the max jerk value
   hm.func = _homing_axis_clear; // start the clear
 }
 

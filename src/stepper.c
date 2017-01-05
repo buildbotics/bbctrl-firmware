@@ -97,10 +97,10 @@ ISR(ADCB_CH0_vect) {
     stat_t status = mp_exec_move();
 
     switch (status) {
-    case STAT_NOOP: break;      // No command executed
-    case STAT_EAGAIN: continue; // No command executed, try again
+    case STAT_NOOP: st.busy = false;  break; // No command executed
+    case STAT_EAGAIN: continue;              // No command executed, try again
 
-    case STAT_OK:               // Move executed
+    case STAT_OK:                            // Move executed
       if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued
       st.move_queued = false;
       st.move_ready = true;
@@ -134,7 +134,6 @@ ISR(STEP_TIMER_ISR) {
   if (st.dwell && --st.dwell) return;
 
   // End last move
-  st.busy = false;
   TIMER_STEP.PER = STEP_TIMER_POLL;
 
   DMA.INTFLAGS = 0xff; // clear all interrups
@@ -209,7 +208,8 @@ stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    RITORNO(motor_prep_move(motor, seg_clocks, target[motor], error[motor]));
+    RITORNO
+      (motor_prep_move(motor, seg_clocks, target[motor], error[motor], time));
 
   st.move_queued = true; // signal prep buffer ready (do this last)
 

@@ -34,7 +34,6 @@
 #include "planner.h"
 #include "stepper.h"
 #include "rtc.h"
-#include "tmc2660.h"
 #include "state.h"
 #include "config.h"
 
@@ -91,7 +90,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
         cal.stalled = false;
         cal.reverse = false;
 
-        tmc2660_set_stallguard_threshold(cal.motor, 8);
+        //tmc2660_set_stallguard_threshold(cal.motor, 8);
         cal.wait = rtc_get_time() + CAL_WAIT_TIME;
 
         break;
@@ -109,7 +108,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
             float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
             STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
 
-            tmc2660_set_stallguard_threshold(cal.motor, 63);
+            //tmc2660_set_stallguard_threshold(cal.motor, 63);
 
             mp_set_cycle(CYCLE_MACHINING); // Default cycle
 

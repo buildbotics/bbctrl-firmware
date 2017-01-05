@@ -74,7 +74,7 @@ void mp_init();
 
 void mp_set_axis_position(int axis, float position);
 float mp_get_axis_position(int axis);
-void mp_set_position(const float position[]);
+void mp_set_position(const float p[]);
 void mp_set_plan_steps(bool plan_steps);
 
 void mp_flush_planner();

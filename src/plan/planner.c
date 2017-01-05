@@ -58,7 +58,7 @@
 
 #include "planner.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "buffer.h"
 #include "machine.h"
 #include "stepper.h"
@@ -80,25 +80,13 @@ typedef struct {
 static planner_t mp = {{0}};
 
 
-void mp_init() {
-  mp_queue_init();
-}
+void mp_init() {mp_queue_init();}
 
 
 /// Set planner position for a single axis
-void mp_set_axis_position(int axis, float position) {
-  mp.position[axis] = position;
-}
-
-
+void mp_set_axis_position(int axis, float p) {mp.position[axis] = p;}
 float mp_get_axis_position(int axis) {return mp.position[axis];}
-
-
-void mp_set_position(const float position[]) {
-  copy_vector(mp.position, position);
-}
-
-
+void mp_set_position(const float p[]) {copy_vector(mp.position, p);}
 void mp_set_plan_steps(bool plan_steps) {mp.plan_steps = plan_steps;}
 
 

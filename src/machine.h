@@ -39,15 +39,18 @@
 // Model state getters and setters
 uint32_t mach_get_line();
 float mach_get_feed_rate();
+bool mach_is_inverse_time_mode();
 feed_mode_t mach_get_feed_mode();
 float mach_get_feed_override();
 float mach_get_spindle_override();
 motion_mode_t mach_get_motion_mode();
+bool mach_is_rapid();
 plane_t mach_get_plane();
 units_t mach_get_units();
 coord_system_t mach_get_coord_system();
 bool mach_get_absolute_mode();
 path_mode_t mach_get_path_mode();
+bool mach_is_exact_stop();
 distance_mode_t mach_get_distance_mode();
 distance_mode_t mach_get_arc_distance_mode();
 
@@ -65,9 +68,7 @@ void mach_set_position(const float position[]);
 float mach_get_axis_position(uint8_t axis);
 
 // Critical helpers
-float mach_calc_move_time(const float axis_length[], const float axis_square[]);
-void mach_calc_target(float target[], const float values[],
-                            const bool flags[]);
+void mach_calc_target(float target[], const float values[], const bool flags[]);
 stat_t mach_test_soft_limits(float target[]);
 
 // machining functions defined by NIST [organized by NIST Gcode doc]
@@ -96,6 +97,7 @@ void mach_suspend_origin_offsets();
 void mach_resume_origin_offsets();
 
 // Free Space Motion (4.3.4)
+stat_t mach_plan_line(float target[]);
 stat_t mach_rapid(float target[], bool flags[]);
 void mach_set_g28_position();
 stat_t mach_goto_g28_position(float target[], bool flags[]);

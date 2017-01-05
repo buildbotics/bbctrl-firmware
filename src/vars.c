@@ -57,8 +57,8 @@ static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 // Type names
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, int8_t, uint8_t, uint16_t,
-    int32_t);
+MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, uint8_t, uint16_t,
+    int32_t, char);
 
 
 // String
@@ -117,7 +117,6 @@ static bool var_parse_bool(const char *value) {
 }
 
 
-#if 0
 static uint8_t eeprom_read_bool(bool *addr) {
   return eeprom_read_byte((uint8_t *)addr);
 }
@@ -126,10 +125,25 @@ static uint8_t eeprom_read_bool(bool *addr) {
 static void eeprom_update_bool(bool *addr, bool value) {
   eeprom_update_byte((uint8_t *)addr, value);
 }
-#endif
+
+
+// Char
+static void var_print_char(char x) {putchar('"'); putchar(x); putchar('"');}
+static char var_parse_char(const char *value) {return value[0];}
+
+
+static uint8_t eeprom_read_char(char *addr) {
+  return eeprom_read_byte((uint8_t *)addr);
+}
+
+
+static void eeprom_update_char(char *addr, char value) {
+  eeprom_update_byte((uint8_t *)addr, value);
+}
 
 
 // int8
+#if 0
 static void var_print_int8_t(int8_t x) {
   printf_P(PSTR("%"PRIi8), x);
 }
@@ -148,7 +162,7 @@ static int8_t eeprom_read_int8_t(int8_t *addr) {
 static void eeprom_update_int8_t(int8_t *addr, int8_t value) {
   eeprom_update_byte((uint8_t *)addr, value);
 }
-
+#endif
 
 // uint8
 static void var_print_uint8_t(uint8_t x) {
@@ -268,7 +282,7 @@ void vars_report(bool full) {
                                                                 \
       printf_P                                                  \
         (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),            \
-         IF(INDEX)(INDEX##_LABEL[i],) CODE);                    \
+         IF(INDEX)(INDEX##_LABEL[i],) #CODE);                   \
                                                                 \
       var_print_##TYPE(value);                                  \
     }                                                           \
@@ -292,7 +306,7 @@ int vars_find(const char *name) {
   if (!len) return -1;
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
-  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {                  \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
     IF(INDEX)                                                           \
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
        if (INDEX <= i) return -1);                                      \
@@ -314,7 +328,7 @@ bool vars_print(const char *name) {
   if (!len) return false;
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
-  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {                  \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
     IF(INDEX)                                                           \
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
        if (INDEX <= i) return false);                                   \
@@ -322,7 +336,7 @@ bool vars_print(const char *name) {
     putchar('{');                                                       \
     printf_P                                                            \
       (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                      \
-       IF(INDEX)(INDEX##_LABEL[i],) CODE);                              \
+       IF(INDEX)(INDEX##_LABEL[i],) #CODE);                             \
     var_print_##TYPE(get_##NAME(IF(INDEX)(i)));                         \
     putchar('}');                                                       \
                                                                         \
@@ -344,7 +358,7 @@ bool vars_set(const char *name, const char *value) {
 
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
   IF(SET)                                                               \
-    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), CODE)) {               \
+    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {              \
       IF(INDEX)                                                         \
         (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
          if (INDEX <= i) return false);                                 \
@@ -403,7 +417,7 @@ void vars_print_help() {
   uint8_t wd_state = hw_disable_watchdog();
 
 #define VAR(NAME, CODE, TYPE, ...)                               \
-  printf_P(fmt, CODE, NAME##_name, TYPE##_name, NAME##_help);
+  printf_P(fmt, #CODE, NAME##_name, TYPE##_name, NAME##_help);
 #include "vars.def"
 #undef VAR
 

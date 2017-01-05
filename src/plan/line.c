@@ -29,18 +29,10 @@
 
 #include "line.h"
 
-#include "axes.h"
+#include "axis.h"
 #include "planner.h"
 #include "exec.h"
-#include "runtime.h"
 #include "buffer.h"
-#include "machine.h"
-#include "stepper.h"
-#include "util.h"
-
-#include <string.h>
-#include <stdbool.h>
-#include <math.h>
 
 
 /* Sonny's algorithm - simple
@@ -128,8 +120,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float b_delta = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
-    a_delta += square(a_unit[axis] * axes[axis].junction_dev);
-    b_delta += square(b_unit[axis] * axes[axis].junction_dev);
+    a_delta += square(a_unit[axis] * axis_get_junction_dev(axis));
+    b_delta += square(b_unit[axis] * axis_get_junction_dev(axis));
   }
 
   if (!a_delta || !b_delta) return 0; // One or both unit vectors are null
@@ -205,7 +197,7 @@ int mp_find_jerk_axis(const float axis_square[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (axis_square[axis]) { // Do not use fp_ZERO here
       // Squaring axis_length ensures it's positive
-      C = axis_square[axis] * axes[axis].recip_jerk;
+      C = axis_square[axis] * axis_get_recip_jerk(axis);
 
       if (maxC < C) {
         maxC = C;
@@ -219,14 +211,14 @@ int mp_find_jerk_axis(const float axis_square[]) {
 
 /// Determine jerk value to use for the block.
 static float _calc_jerk(const float axis_square[], const float unit[]) {
-  int jerk_axis = mp_find_jerk_axis(axis_square);
+  int axis = mp_find_jerk_axis(axis_square);
 
   // Finally, the selected jerk term needs to be scaled by the
-  // reciprocal of the absolute value of the jerk_axis's unit
+  // reciprocal of the absolute value of the axis's unit
   // vector term.  This way when the move is finally decomposed into
   // its constituent axes for execution the jerk for that axis will be
   // at it's maximum value.
-  return axes[jerk_axis].jerk_max * JERK_MULTIPLIER / fabs(unit[jerk_axis]);
+  return axis_get_jerk_max(axis) * JERK_MULTIPLIER / fabs(unit[axis]);
 }
 
 
@@ -244,7 +236,8 @@ static void _calc_and_cache_jerk_values(mp_buffer_t *bf) {
 }
 
 
-static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
+static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
+                                 bool exact_stop) {
   float junction_velocity =
     _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
 
@@ -255,9 +248,98 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
   bf->braking_velocity = bf->delta_vmax;
 
   // Zero out exact stop cases
-  if (mach_get_path_mode() == PATH_EXACT_STOP)
-    bf->entry_vmax = bf->exit_vmax = 0;
+  if (exact_stop) bf->entry_vmax = bf->exit_vmax = 0;
   else bf->replannable = true;
+}
+
+
+/* Compute optimal and minimum move times
+ *
+ * "Minimum time" is the fastest the move can be performed given the velocity
+ * constraints on each participating axis - regardless of the feed rate
+ * requested. The minimum time is the time limited by the rate-limiting
+ * axis. The minimum time is needed to compute the optimal time and is recorded
+ * for possible feed override computation.
+ *
+ * "Optimal time" is either the time resulting from the requested feed rate or
+ * the minimum time if the requested feed rate is not achievable. Optimal times
+ * for rapids are always the minimum time.
+ *
+ * The following times are compared and the longest is returned:
+ *   - G93 inverse time (if G93 is active)
+ *   - time for coordinated move at requested feed rate
+ *   - time that the slowest axis would require for the move
+ *
+ * NIST RS274NGC_v3 Guidance
+ *
+ * The following is verbatim text from NIST RS274NGC_v3. As I interpret A for
+ * moves that combine both linear and rotational movement, the feed rate should
+ * apply to the XYZ movement, with the rotational axis (or axes) timed to start
+ * and end at the same time the linear move is performed. It is possible under
+ * this case for the rotational move to rate-limit the linear move.
+ *
+ *  2.1.2.5 Feed Rate
+ *
+ * The rate at which the controlled point or the axes move is nominally a steady
+ * rate which may be set by the user. In the Interpreter, the interpretation of
+ * the feed rate is as follows unless inverse time feed rate mode is being used
+ * in the RS274/NGC view (see Section 3.5.19). The machining functions view of
+ * feed rate, as described in Section 4.3.5.1, has conditions under which the
+ * set feed rate is applied differently, but none of these is used in the
+ * Interpreter.
+ *
+ * A.  For motion involving one or more of the X, Y, and Z axes (with or without
+ *     simultaneous rotational axis motion), the feed rate means length units
+ *     per minute along the programmed XYZ path, as if the rotational axes were
+ *     not moving.
+ *
+ * B.  For motion of one rotational axis with X, Y, and Z axes not moving, the
+ *     feed rate means degrees per minute rotation of the rotational axis.
+ *
+ * C.  For motion of two or three rotational axes with X, Y, and Z axes not
+ *     moving, the rate is applied as follows. Let dA, dB, and dC be the angles
+ *     in degrees through which the A, B, and C axes, respectively, must move.
+ *     Let D = sqrt(dA^2 + dB^2 + dC^2). Conceptually, D is a measure of total
+ *     angular motion, using the usual Euclidean metric. Let T be the amount of
+ *     time required to move through D degrees at the current feed rate in
+ *     degrees per minute. The rotational axes should be moved in coordinated
+ *     linear motion so that the elapsed time from the start to the end of the
+ *     motion is T plus any time required for acceleration or deceleration.
+ */
+static float _calc_move_time(const float axis_length[],
+                             const float axis_square[], bool rapid,
+                             bool inverse_time, float feed_rate,
+                             float feed_override) {
+  float max_time = 0;
+
+  // Compute times for feed motion
+  if (!rapid) {
+    if (inverse_time) max_time = feed_rate;
+    else {
+      // Compute length of linear move in millimeters.  Feed rate in mm/min.
+      max_time = sqrt(axis_square[AXIS_X] + axis_square[AXIS_Y] +
+                      axis_square[AXIS_Z]) / feed_rate;
+
+      // If no linear axes, compute length of multi-axis rotary move in degrees.
+      // Feed rate is provided as degrees/min
+      if (fp_ZERO(max_time))
+        max_time = sqrt(axis_square[AXIS_A] + axis_square[AXIS_B] +
+                        axis_square[AXIS_C]) / feed_rate;
+    }
+  }
+
+  // Apply feed override
+  max_time /= feed_override;
+
+  // Compute time required for rate-limiting axis
+  for (int axis = 0; axis < AXES; axis++) {
+    float time = fabs(axis_length[axis]) /
+      (rapid ? axis_get_velocity_max(axis) : axis_get_feedrate_max(axis));
+
+    if (max_time < time) max_time = time;
+  }
+
+  return max_time < MIN_SEGMENT_TIME ? MIN_SEGMENT_TIME : max_time;
 }
 
 
@@ -276,8 +358,13 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time) {
  * [2] Returning a status that is not STAT_OK means the endpoint is NOT
  * advanced.  So lines that are too short to move will accumulate and get
  * executed once the accumulated error exceeds the minimums.
+ *
+ * @param reed_rate is in minutes when @param inverse_time is true.
+ * See mach_set_feed_rate()
  */
-stat_t mp_aline(const float target[], int32_t line) {
+stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
+                bool exact_stop, float feed_rate, float feed_override,
+                int32_t line) {
   // Compute axis and move lengths
   float axis_length[AXES];
   float axis_square[AXES];
@@ -308,8 +395,9 @@ stat_t mp_aline(const float target[], int32_t line) {
   _calc_and_cache_jerk_values(bf);
 
   // Compute move time and velocities
-  float time = mach_calc_move_time(axis_length, axis_square);
-  _calc_max_velocities(bf, time);
+  float time = _calc_move_time(axis_length, axis_square, rapid, inverse_time,
+                               feed_rate, feed_override);
+  _calc_max_velocities(bf, time, exact_stop);
 
   // Note, the following lines must remain in order.
   bf->line = line;              // Planner needs then when planning steps
