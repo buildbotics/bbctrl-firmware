@@ -49,7 +49,7 @@ void AsyncCopyStreamToLog::run() {
 
     const unsigned bufferSize = 4096;
     char buffer[bufferSize];
-    int fill = 0;
+    unsigned fill = 0;
 
     while (!in->fail() && !log->fail() && !shouldShutdown()) {
       int c = in->get();
