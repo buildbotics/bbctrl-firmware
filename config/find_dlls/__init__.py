@@ -56,7 +56,7 @@ def find_dlls(env, path, exclude = set()):
 
             ok = True
             for pat in exclude:
-                if isinstance(re.compile(''), pat) and pat.match(path):
+                if isinstance(pat, type(re.compile(''))) and pat.match(path):
                     ok = False
                     break
 
