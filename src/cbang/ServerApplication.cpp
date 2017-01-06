@@ -73,8 +73,9 @@ ServerApplication::ServerApplication(const string &name,
   options.add("fork", "Run in background.")->setDefault(false);
 #endif
 
-  options.add("respawn", "Run the application as a child process and respawn "
-              "if it is killed or exits.")->setDefault(false);
+  options.add("respawn", 0, this, &ServerApplication::respawnAction, "Run the "
+              "application as a child process and respawn if it is killed or "
+              "exits.")->setDefault(false);
   options.add("pid", "Create PID file.")->setDefault(false);
   options.add("pid-file", "Name of PID file.")->setDefault(name + ".pid");
   options.add("child", "Disable 'daemon', 'fork', 'pid' and 'respawn' options. "
@@ -219,6 +220,13 @@ bool ServerApplication::lostLifeline() const {
 
 int ServerApplication::chdirAction(Option &option) {
   SystemUtilities::chdir(option.toString());
+  return 0;
+}
+
+
+int ServerApplication::respawnAction() {
+  if (!options["child"].toBoolean() && options["respawn"].toBoolean())
+    options["log"].unset();
   return 0;
 }
 
