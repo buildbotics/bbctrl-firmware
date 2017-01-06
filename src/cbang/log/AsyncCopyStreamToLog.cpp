@@ -53,7 +53,7 @@ void AsyncCopyStreamToLog::run() {
 
     while (!in->fail() && !log->fail() && !shouldShutdown()) {
       int c = in->get();
-      if (c == char_traits<char>::eof()) break;
+      if (c == -1) break;
 
       buffer[fill++] = c;
 
