@@ -1,19 +1,24 @@
 language: cpp
 compiler: gcc
-sudo: false
+sudo: required
 
 env:
   - DEBUG_BUILD=1
   - DEBUG_BUILD=0
+
+install:
+  - echo deb http://ftp.osuosl.org/pub/mariadb/repo/10.0/ubuntu precise main |
+      sudo tee -a /etc/apt/sources.list
+  - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv 1BB943DB
+  - sudo apt-get update
+  - sudo apt-get install -y -o Dpkg::Options::="--force-confnew"
+      libmariadbclient-dev
 
 script:
   - scons debug=$DEBUG_BUILD -j 4
 
 addons:
   apt:
-    sources:
-      - mariadb-10.0
-
     packages:
       - scons
       - libbz2-dev
@@ -27,4 +32,3 @@ addons:
       - libsqlite3-dev
       - libv8-dev
       - binutils-dev
-      - libmariadbclient-dev
