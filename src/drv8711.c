@@ -229,7 +229,7 @@ static void _init_spi_commands() {
 
     // Set DECAY
     commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_MIXED | 6);
+      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_AUTO_OPT | 6);
 
     // Set STALL
     commands[spi.ncmds++] =
@@ -250,7 +250,7 @@ static void _init_spi_commands() {
     // Set CTRL enable motor & set ISENSE gain
     commands[spi.ncmds++] =
       DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL_ENBL_bm |
-                    DRV8711_CTRL_ISGAIN_5 | DRV8711_CTRL_DTIME_850);
+                    DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_850);
 
     // Read STATUS
     commands[spi.ncmds++] = DRV8711_READ(DRV8711_STATUS_REG);
