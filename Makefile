@@ -1,7 +1,7 @@
 # Makefile for the project Bulidbotics firmware
-PROJECT = buildbotics
-MCU     = atxmega192a3u
-CLOCK   = 32000000
+PROJECT         = buildbotics
+MCU             = atxmega192a3u
+CLOCK           = 32000000
 
 TARGET  = $(PROJECT).elf
 
@@ -14,13 +14,13 @@ COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
 CFLAGS += -Wall -Werror # -Wno-error=unused-function
 CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
-CFLAGS += -gdwarf-2 -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 -funroll-loops
+CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 #-funroll-loops
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Isrc
 
 # Linker flags
-LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm -Wl,-Map=$(PROJECT).map
+LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
 LIBS += -lm
 
 # EEPROM flags
@@ -29,14 +29,14 @@ EEFLAGS += --set-section-flags=.eeprom="alloc,load"
 EEFLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # Programming flags
-#PROGRAMMER = avrispmkII
-PROGRAMMER = jtag3pdi
-PDEV = usb 
+PROGRAMMER = avrispmkII
+#PROGRAMMER = jtag3pdi
+PDEV = usb
 AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
 
 FUSE0=0xff
 FUSE1=0x00
-FUSE2=0xfe
+FUSE2=0xbe
 FUSE4=0xff
 FUSE5=0xeb
 
@@ -45,26 +45,50 @@ SRC = $(wildcard src/*.c)
 SRC += $(wildcard src/plan/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
 
+# Boot SRC
+BOOT_SRC = $(wildcard src/xboot/*.S)
+BOOT_SRC += $(wildcard src/xboot/*.c)
+BOOT_OBJ = $(patsubst src/%.c,build/%.o,$(BOOT_SRC))
+BOOT_OBJ := $(patsubst src/%.S,build/%.o,$(BOOT_OBJ))
+
+BOOT_LDFLAGS = $(LDFLAGS) -Wl,--section-start=.text=0x030000
+
 # Build
-all: $(TARGET) $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss size
+all: $(TARGET) $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss xboot.hex \
+  boot-size size
 
 # Compile
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
+build/%.o: src/%.S
+	@mkdir -p $(shell dirname $@)
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
+
 # Link
 $(TARGET): $(OBJ)
-	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $(TARGET)
+	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $@
 
-%.hex: $(TARGET)
+xboot.elf: $(BOOT_OBJ)
+	$(CC) $(BOOT_LDFLAGS) $(BOOT_OBJ) -o $@
+
+%.hex: %.elf
 	avr-objcopy -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
-%.eep: $(TARGET)
+%.eep: %.elf
 	avr-objcopy $(EEFLAGS) -O ihex $< $@
 
-%.lss: $(TARGET)
+%.lss: %.elf
 	avr-objdump -h -S $< > $@
+
+boot-size: xboot.elf
+	@echo '********************************************************************'
+	@avr-size -A --mcu=$(MCU) xboot.elf
+	@echo '********************************************************************'
+	@avr-size -B --mcu=$(MCU) xboot.elf
+	@echo '********************************************************************'
+	@avr-size -C --mcu=$(MCU) xboot.elf
 
 size: $(TARGET)
 	@echo '********************************************************************'
@@ -75,6 +99,11 @@ size: $(TARGET)
 	@avr-size -C --mcu=$(MCU) $(TARGET)
 
 # Program
+init:
+	$(MAKE) fuses
+	$(MAKE) program-boot
+	$(MAKE) program
+
 reset:
 	avrdude $(AVRDUDE_OPTS)
 
@@ -86,6 +115,9 @@ program: $(PROJECT).hex
 
 verify: $(PROJECT).hex
 	avrdude $(AVRDUDE_OPTS) -U flash:v:$(PROJECT).hex:i
+
+program-boot: xboot.hex
+	avrdude $(AVRDUDE_OPTS) -U flash:w:xboot.hex:i
 
 fuses:
 	avrdude $(AVRDUDE_OPTS) -U fuse0:w:$(FUSE0):m -U fuse1:w:$(FUSE1):m \
@@ -110,7 +142,7 @@ tidy:
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
-	  $(PROJECT).map build
+	  $(PROJECT).map build xboot.hex xboot.elf
 
 .PHONY: tidy clean size all reset erase program fuses read_fuses prodsig
 .PHONY: signature usersig
