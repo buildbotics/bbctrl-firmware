@@ -101,7 +101,7 @@ size: $(TARGET)
 # Program
 init:
 	$(MAKE) erase
-	$(MAKE) fuses
+	-$(MAKE) fuses
 	$(MAKE) program-boot
 	$(MAKE) program
 
