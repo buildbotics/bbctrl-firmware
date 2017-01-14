@@ -36,8 +36,8 @@
 #define UART_DEVICE             USARTC0
 
 // Baud rate 115200 @ 32Mhz
-#define UART_BSEL_VALUE         1047
-#define UART_BSCALE_VALUE       -6
+#define UART_BSEL_VALUE         150
+#define UART_BSCALE_VALUE       -7
 
 
 // Protocol
