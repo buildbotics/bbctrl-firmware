@@ -1,7 +1,8 @@
 # Makefile for the project Bulidbotics firmware
-PROJECT         = buildbotics
+PROJECT         = bbctrl-avr-firmware
 MCU             = atxmega192a3u
 CLOCK           = 32000000
+VERSION         = 0.3.1
 
 TARGET  = $(PROJECT).elf
 
@@ -17,7 +18,7 @@ CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
 CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 #-funroll-loops
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
-CFLAGS += -Isrc
+CFLAGS += -Isrc -DVERSION=\"$(VERSION)\"
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
@@ -82,21 +83,17 @@ xboot.elf: $(BOOT_OBJ)
 %.lss: %.elf
 	avr-objdump -h -S $< > $@
 
+_size:
+	@for X in A B C; do\
+	  echo '****************************************************************' ;\
+	  avr-size -$$X --mcu=$(MCU) $(SIZE_TARGET) ;\
+	done
+
 boot-size: xboot.elf
-	@echo '********************************************************************'
-	@avr-size -A --mcu=$(MCU) xboot.elf
-	@echo '********************************************************************'
-	@avr-size -B --mcu=$(MCU) xboot.elf
-	@echo '********************************************************************'
-	@avr-size -C --mcu=$(MCU) xboot.elf
+	@$(MAKE) SIZE_TARGET=$< _size
 
 size: $(TARGET)
-	@echo '********************************************************************'
-	@avr-size -A --mcu=$(MCU) $(TARGET)
-	@echo '********************************************************************'
-	@avr-size -B --mcu=$(MCU) $(TARGET)
-	@echo '********************************************************************'
-	@avr-size -C --mcu=$(MCU) $(TARGET)
+	@$(MAKE) SIZE_TARGET=$< _size
 
 # Program
 init:

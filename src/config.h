@@ -32,9 +32,6 @@
 #include <avr/interrupt.h>
 
 
-#define VERSION "0.3.0"
-
-
 // Pins
 enum {
   STALL_X_PIN = PORT_A << 3,
@@ -111,7 +108,7 @@ enum {
 
 // Motor settings.  See motor.c
 #define MOTOR_MAX_CURRENT        1.0  // 1.0 is full power
-#define MOTOR_MIN_CURRENT        0.15 // 1.0 is full power
+#define MOTOR_MIN_CURRENT        0.25 // 1.0 is full power
 #define MOTOR_IDLE_CURRENT       0.05 // 1.0 is full power
 #define MOTOR_STALL_THRESHOLD    0    // 0 -> 1 is least -> most sensitive
 #define MOTOR_MICROSTEPS         32
@@ -157,7 +154,7 @@ enum {
 //#define STEP_CORRECTION                        // Enable step correction
 #define MAX_STEP_CORRECTION      4             // In steps per segment
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
-#define JERK_MAX                 50            // yes, that's km/min^3
+#define JERK_MAX                 5             // yes, that's km/min^3
 #define JUNCTION_DEVIATION       0.05          // default value, in mm
 #define JUNCTION_ACCELERATION    100000        // centripetal corner accel
 #define JOG_JERK_MULT            4             // Jogging jerk multipler
@@ -165,7 +162,7 @@ enum {
 #define CAL_ACCELERATION         500000        // mm/min^2
 
 // Axis settings
-#define VELOCITY_MAX             10000         // mm/min
+#define VELOCITY_MAX             13000         // mm/min
 #define FEEDRATE_MAX             VELOCITY_MAX
 
 #define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
