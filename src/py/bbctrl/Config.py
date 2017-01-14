@@ -37,7 +37,9 @@ class Config(object):
 
     def load(self):
         try:
-            return self.load_path('config.json')
+            config = self.load_path('config.json')
+            config['version'] = self.version
+            return config
 
         except Exception as e:
             log.warning('%s', e)
