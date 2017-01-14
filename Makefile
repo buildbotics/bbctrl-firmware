@@ -17,6 +17,8 @@ STATIC     := $(shell find src/resources -type f)
 STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
 TEMPLS     := $(wildcard src/jade/templates/*.jade)
 
+AVR_FIRMWARE := avr/bbctrl-avr-firmware.hex
+
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
 RSYNC_OPTS := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
@@ -36,8 +38,12 @@ all: html css js static
 copy: pkg
 	rsync $(RSYNC_OPTS) pkg/$(PKG_NAME)/ $(DEST)/bbctrl/
 
-pkg: all
+pkg: all $(AVR_FIRMWARE)
 	./setup.py sdist
+
+.PHONY: $(AVR_FIRMWARE)
+$(AVR_FIRMWARE):
+	$(MAKE) -C avr $(shell basename $@)
 
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
@@ -111,7 +117,7 @@ tidy:
 	rm -f $(shell find "$(DIR)" -name \*~)
 
 clean: tidy
-	rm -rf build html pkg
+	rm -rf build html dist
 
 dist-clean: clean
 	rm -rf node_modules

@@ -8,7 +8,7 @@ from subprocess import call
 
 
 dev = '/dev/ttyAMA0'
-baud = 115200
+baud = 921600
 boot_id = 'bbctrl '
 verbose = False
 
