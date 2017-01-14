@@ -2,7 +2,7 @@
 
                 This file is part of the Buildbotics firmware.
 
-                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                  Copyright (c) 2015 - 2017 Buildbotics LLC
                   Copyright (c) 2013 - 2015 Alden S. Hart, Jr.
                   Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
