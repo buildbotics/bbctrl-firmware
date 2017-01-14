@@ -1,0 +1,114 @@
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2016 Buildbotics LLC
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
+
+// OS, communications and low-level status
+STAT_MSG(OK, "OK")
+STAT_MSG(EAGAIN, "Run command again")
+STAT_MSG(NOOP, "No op")
+STAT_MSG(COMPLETE, "Complete")
+STAT_MSG(BUSY, "Busy")
+STAT_MSG(NO_SUCH_DEVICE, "No such device")
+STAT_MSG(BUFFER_FULL, "Buffer full")
+STAT_MSG(BUFFER_FULL_FATAL, "Buffer full - fatal")
+STAT_MSG(EEPROM_DATA_INVALID, "EEPROM data invalid")
+STAT_MSG(STEP_CHECK_FAILED, "Step check failed")
+STAT_MSG(MACH_NOT_QUIESCENT, "Cannot perform action while machine active")
+STAT_MSG(INTERNAL_ERROR, "Internal error")
+
+STAT_MSG(MOTOR_STALLED, "Motor stalled")
+STAT_MSG(MOTOR_OVER_TEMP, "Motor over temperature")
+STAT_MSG(MOTOR_OVER_CURRENT, "Motor over temperature")
+STAT_MSG(MOTOR_DRIVER_FAULT, "Motor driver fault")
+STAT_MSG(MOTOR_UNDER_VOLTAGE, "Motor under voltage")
+
+STAT_MSG(PREP_LINE_MOVE_TIME_INFINITE, "Move time is infinite")
+STAT_MSG(PREP_LINE_MOVE_TIME_NAN, "Move time is NAN")
+STAT_MSG(MOVE_TARGET_INFINITE, "Move target is infinite")
+STAT_MSG(MOVE_TARGET_NAN, "Move target is NAN")
+STAT_MSG(EXCESSIVE_MOVE_ERROR, "Excessive move error")
+
+STAT_MSG(ESTOP_USER, "User triggered EStop")
+STAT_MSG(ESTOP_SWITCH, "Switch triggered EStop")
+
+// Generic data input errors
+STAT_MSG(UNRECOGNIZED_NAME, "Unrecognized command or variable name")
+STAT_MSG(INVALID_OR_MALFORMED_COMMAND, "Invalid or malformed command")
+STAT_MSG(TOO_MANY_ARGUMENTS, "Too many arguments to command")
+STAT_MSG(TOO_FEW_ARGUMENTS, "Too few arguments to command")
+STAT_MSG(BAD_NUMBER_FORMAT, "Bad number format")
+STAT_MSG(PARAMETER_IS_READ_ONLY, "Parameter is read-only")
+STAT_MSG(PARAMETER_CANNOT_BE_READ, "Parameter cannot be read")
+STAT_MSG(COMMAND_NOT_ACCEPTED, "Command not accepted at this time")
+STAT_MSG(INPUT_EXCEEDS_MAX_LENGTH, "Input exceeds max length")
+STAT_MSG(INPUT_LESS_THAN_MIN_VALUE, "Input less than minimum value")
+STAT_MSG(INPUT_EXCEEDS_MAX_VALUE, "Input exceeds maximum value")
+STAT_MSG(INPUT_VALUE_RANGE_ERROR, "Input value range error")
+
+// Gcode errors & warnings (Most originate from NIST)
+STAT_MSG(MODAL_GROUP_VIOLATION, "Modal group violation")
+STAT_MSG(GCODE_COMMAND_UNSUPPORTED, "Invalid or unsupported G-Code command")
+STAT_MSG(MCODE_COMMAND_UNSUPPORTED, "M code unsupported")
+STAT_MSG(GCODE_AXIS_IS_MISSING, "Axis word missing")
+STAT_MSG(GCODE_FEEDRATE_NOT_SPECIFIED, "Feedrate not specified")
+STAT_MSG(ARC_SPECIFICATION_ERROR, "Arc specification error")
+STAT_MSG(ARC_AXIS_MISSING_FOR_SELECTED_PLANE, "Arc missing axis")
+STAT_MSG(ARC_RADIUS_OUT_OF_TOLERANCE, "Arc radius arc out of tolerance")
+STAT_MSG(ARC_ENDPOINT_IS_STARTING_POINT, "Arc end point is starting point")
+STAT_MSG(ARC_OFFSETS_MISSING_FOR_PLANE, "arc offsets missing for plane")
+STAT_MSG(P_WORD_IS_NOT_A_POSITIVE_INTEGER, "P word is not a positive integer")
+
+// Errors and warnings
+STAT_MSG(MINIMUM_LENGTH_MOVE, "Move less than minimum length")
+STAT_MSG(MINIMUM_TIME_MOVE, "Move less than minimum time")
+STAT_MSG(MAXIMUM_TIME_MOVE, "Move greater than maximum time")
+STAT_MSG(MACHINE_ALARMED, "Machine alarmed - Command not processed")
+STAT_MSG(LIMIT_SWITCH_HIT, "Limit switch hit - Shutdown occurred")
+STAT_MSG(SOFT_LIMIT_EXCEEDED, "Soft limit exceeded")
+STAT_MSG(INVALID_AXIS, "Invalid axis")
+STAT_MSG(EXPECTED_MOVE, "A move was expected but none was queued")
+
+// Homing
+STAT_MSG(HOMING_CYCLE_FAILED, "Homing cycle failed")
+STAT_MSG(HOMING_ERROR_BAD_OR_NO_AXIS, "Homing Error - Bad or no axis specified")
+STAT_MSG(HOMING_ERROR_AXIS_MISCONFIGURED, "Homing Error - Axis misconfigured")
+STAT_MSG(HOMING_ERROR_ZERO_SEARCH_VELOCITY,
+         "Homing Error - Search velocity is zero")
+STAT_MSG(HOMING_ERROR_ZERO_LATCH_VELOCITY,
+         "Homing Error - Latch velocity is zero")
+STAT_MSG(HOMING_ERROR_TRAVEL_MIN_MAX_IDENTICAL,
+         "Homing Error - Travel min & max are the same")
+STAT_MSG(HOMING_ERROR_NEGATIVE_LATCH_BACKOFF,
+         "Homing Error - Negative latch backoff")
+STAT_MSG(HOMING_ERROR_SWITCH_MISCONFIGURATION,
+         "Homing Error - Homing switches misconfigured")
+
+// Probing
+STAT_MSG(PROBE_INVALID_DEST, "Probing error - invalid destination")
+STAT_MSG(MOVE_DURING_PROBE, "Probing error - move during probe")
+
+// End of stats marker
+STAT_MSG(MAX, "")
