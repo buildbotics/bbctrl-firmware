@@ -6,16 +6,16 @@ STYLUS     := $(NODE_MODS)/stylus/bin/stylus
 AP         := $(NODE_MODS)/autoprefixer/autoprefixer
 BROWSERIFY := $(NODE_MODS)/browserify/bin/cmd.js
 
-TARGET    := build/http
-HTML      := index
-HTML      := $(patsubst %,$(TARGET)/%.html,$(HTML))
-CSS       := $(wildcard src/stylus/*.styl)
+TARGET     := build/http
+HTML       := index
+HTML       := $(patsubst %,$(TARGET)/%.html,$(HTML))
+CSS        := $(wildcard src/stylus/*.styl)
 CSS_ASSETS := build/css/style.css
-JS        := $(wildcard src/js/*.js)
-JS_ASSETS := $(TARGET)/js/assets.js
-STATIC    := $(shell find src/resources -type f)
-STATIC    := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
-TEMPLS    := $(wildcard src/jade/templates/*.jade)
+JS         := $(wildcard src/js/*.js)
+JS_ASSETS  := $(TARGET)/js/assets.js
+STATIC     := $(shell find src/resources -type f)
+STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
+TEMPLS     := $(wildcard src/jade/templates/*.jade)
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
