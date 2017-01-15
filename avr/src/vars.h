@@ -40,8 +40,3 @@ bool vars_print(const char *name);
 bool vars_set(const char *name, const char *value);
 int vars_parser(char *vars);
 void vars_print_help();
-
-void vars_save();
-bool vars_valid();
-stat_t vars_restore();
-void vars_clear();

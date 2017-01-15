@@ -51,7 +51,7 @@ bool motor_fault = false;
 typedef struct {
   uint8_t status;
 
-  bool active;
+  drv8711_state_t state;
   float idle_current;
   float max_current;
   float min_current;
@@ -111,8 +111,15 @@ static void _driver_check_status(int driver) {
 static float _driver_get_current(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
-  if (!drv->active) return drv->idle_current;
-  return drv->min_current + (drv->max_current - drv->min_current) * drv->power;
+  switch (drv->state) {
+  case DRV8711_IDLE: return drv->idle_current;
+
+  case DRV8711_ACTIVE:
+    return drv->min_current +
+      (drv->max_current - drv->min_current) * drv->power;
+
+  default: return 0;
+  }
 }
 
 
@@ -138,12 +145,13 @@ static uint8_t _spi_next_command(uint8_t cmd) {
 
   // Prep next command
   for (int driver = 0; driver < DRIVERS; driver++) {
+    drv8711_driver_t *drv = &drivers[driver];
     uint16_t *command = &spi.commands[driver][cmd];
 
     switch (DRV8711_CMD_ADDR(*command)) {
     case DRV8711_STATUS_REG:
       if (!DRV8711_CMD_IS_READ(*command))
-        *command = (*command & 0xf000) | (0x0fff & ~(drivers[driver].status));
+        *command = (*command & 0xf000) | (0x0fff & ~(drv->status));
       break;
 
     case DRV8711_TORQUE_REG: // Update motor current setting
@@ -152,7 +160,8 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       break;
 
     case DRV8711_CTRL_REG: // Set microsteps
-      *command = (*command & 0xff87) | (drivers[driver].mode << 3);
+      *command = (*command & 0xff86) | (drv->mode << 3) |
+        (_driver_get_current(driver) ? DRV8711_CTRL_ENBL_bm : 0);
       break;
 
     default: break;
@@ -224,7 +233,7 @@ static void _init_spi_commands() {
 
     // Set DECAY
     commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_AUTO_OPT | 6);
+      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_OPT | 6);
 
     // Set STALL
     commands[spi.ncmds++] =
@@ -242,9 +251,9 @@ static void _init_spi_commands() {
     commands[spi.ncmds++] =
       DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE_SMPLTH_50);
 
-    // Set CTRL enable motor & set ISENSE gain
+    // Set CTRL set ISENSE gain
     commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL_ENBL_bm |
+      DRV8711_WRITE(DRV8711_CTRL_REG,
                     DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_850);
 
     // Read STATUS
@@ -278,16 +287,6 @@ ISR(FAULT_ISR_vect) {motor_fault = !IN_PIN(MOTOR_FAULT_PIN);} // TODO
 
 
 void drv8711_init() {
-  // Configure drivers
-  for (int i = 0; i < DRIVERS; i++) {
-    drivers[i].idle_current = MOTOR_IDLE_CURRENT;
-    drivers[i].max_current = MOTOR_MAX_CURRENT;
-    drivers[i].min_current = MOTOR_MIN_CURRENT;
-    drivers[i].stall_threshold = MOTOR_STALL_THRESHOLD;
-
-    drv8711_disable(i);
-  }
-
   // Setup pins
   // Must set the SS pin either in/high or any/output for master mode to work
   // Note, this pin is also used by the USART as the CTS line
@@ -329,15 +328,15 @@ void drv8711_init() {
 }
 
 
-void drv8711_enable(int driver) {
-  if (driver < 0 || DRIVERS <= driver) return;
-  drivers[driver].active = true;
+drv8711_state_t drv8711_get_state(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return DRV8711_DISABLED;
+  return drivers[driver].state;
 }
 
 
-void drv8711_disable(int driver) {
+void drv8711_set_state(int driver, drv8711_state_t state) {
   if (driver < 0 || DRIVERS <= driver) return;
-  drivers[driver].active = false;
+  drivers[driver].state = state;
 }
 
 

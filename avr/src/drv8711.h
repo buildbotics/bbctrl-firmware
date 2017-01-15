@@ -161,9 +161,16 @@ enum {
 #define DRV8711_CMD_IS_READ(CMD) ((1 << 15) & (CMD))
 
 
+typedef enum {
+  DRV8711_DISABLED,
+  DRV8711_IDLE,
+  DRV8711_ACTIVE,
+} drv8711_state_t;
+
+
 void drv8711_init();
-void drv8711_enable(int driver);
-void drv8711_disable(int driver);
+drv8711_state_t drv8711_get_state(int driver);
+void drv8711_set_state(int driver, drv8711_state_t state);
 void drv8711_set_power(int driver, float power);
 void drv8711_set_microsteps(int driver, uint16_t msteps);
 void drv8711_set_stall_callback(int driver, stall_callback_t cb);

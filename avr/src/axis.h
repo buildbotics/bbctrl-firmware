@@ -57,7 +57,6 @@ void axis_set_motor(int axis, int motor);
 float axis_get_vector_length(const float a[], const float b[]);
 
 float axis_get_velocity_max(int axis);
-float axis_get_feedrate_max(int axis);
 float axis_get_jerk_max(int axis);
 void axis_set_jerk_max(int axis, float jerk);
 bool axis_get_homed(int axis);
@@ -71,6 +70,5 @@ float axis_get_search_velocity(int axis);
 float axis_get_latch_velocity(int axis);
 float axis_get_zero_backoff(int axis);
 float axis_get_latch_backoff(int axis);
-float axis_get_junction_dev(int axis);
 float axis_get_recip_jerk(int axis);
 float axis_get_jerk_max(int axis);

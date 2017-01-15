@@ -99,136 +99,6 @@ enum {
 #define PWMS                     2 // number of supported PWM channels
 
 
-// Motor settings.  See motor.c
-#define MOTOR_MAX_CURRENT        1.0  // 1.0 is full power
-#define MOTOR_MIN_CURRENT        0.25 // 1.0 is full power
-#define MOTOR_IDLE_CURRENT       0.05 // 1.0 is full power
-#define MOTOR_STALL_THRESHOLD    0    // 0 -> 1 is least -> most sensitive
-#define MOTOR_MICROSTEPS         32
-#define MOTOR_POWER_MODE         MOTOR_POWERED_ONLY_WHEN_MOVING
-#define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
-
-#define M1_AXIS                  AXIS_X
-#define M1_STEP_ANGLE            1.8
-#define M1_TRAVEL_PER_REV        6.35
-#define M1_MICROSTEPS            MOTOR_MICROSTEPS
-#define M1_REVERSE               false
-#define M1_POWER_MODE            MOTOR_POWER_MODE
-
-#define M2_AXIS                  AXIS_Y
-#define M2_STEP_ANGLE            1.8
-#define M2_TRAVEL_PER_REV        6.35
-#define M2_MICROSTEPS            MOTOR_MICROSTEPS
-#define M2_REVERSE               false
-#define M2_POWER_MODE            MOTOR_POWER_MODE
-
-#define M3_AXIS                  AXIS_Z
-#define M3_STEP_ANGLE            1.8
-#define M3_TRAVEL_PER_REV        (25.4 / 6.0)
-#define M3_MICROSTEPS            MOTOR_MICROSTEPS
-#define M3_REVERSE               false
-#define M3_POWER_MODE            MOTOR_POWER_MODE
-
-#define M4_AXIS                  AXIS_A
-#define M4_STEP_ANGLE            1.8
-#define M4_TRAVEL_PER_REV        360 // degrees per motor rev
-#define M4_MICROSTEPS            MOTOR_MICROSTEPS
-#define M4_REVERSE               false
-#define M4_POWER_MODE            MOTOR_POWER_MODE
-
-
-// Machine settings
-//#define STEP_CORRECTION                        // Enable step correction
-#define MAX_STEP_CORRECTION      4             // In steps per segment
-#define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
-#define JERK_MAX                 5             // yes, that's km/min^3
-#define JUNCTION_DEVIATION       0.05          // default value, in mm
-#define JUNCTION_ACCELERATION    100000        // centripetal corner accel
-#define JOG_JERK_MULT            4             // Jogging jerk multipler
-#define JOG_MIN_VELOCITY         10            // mm/min
-#define CAL_ACCELERATION         500000        // mm/min^2
-
-// Axis settings
-#define VELOCITY_MAX             13000         // mm/min
-#define FEEDRATE_MAX             VELOCITY_MAX
-
-#define X_VELOCITY_MAX           VELOCITY_MAX  // G0 max velocity in mm/min
-#define X_FEEDRATE_MAX           FEEDRATE_MAX  // G1 max feed rate in mm/min
-#define X_TRAVEL_MIN             0             // minimum travel for soft limits
-#define X_TRAVEL_MAX             350           // between switches or crashes
-#define X_JERK_MAX               JERK_MAX
-#define X_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define X_SEARCH_VELOCITY        2400          // move in negative direction
-#define X_LATCH_VELOCITY         100           // mm/min
-#define X_LATCH_BACKOFF          5             // mm
-#define X_ZERO_BACKOFF           1             // mm
-#define X_HOMING_MODE            HOMING_STALL_MAX
-
-#define Y_VELOCITY_MAX           VELOCITY_MAX
-#define Y_FEEDRATE_MAX           FEEDRATE_MAX
-#define Y_TRAVEL_MIN             0
-#define Y_TRAVEL_MAX             350
-#define Y_JERK_MAX               JERK_MAX
-#define Y_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define Y_SEARCH_VELOCITY        3000
-#define Y_LATCH_VELOCITY         100
-#define Y_LATCH_BACKOFF          5
-#define Y_ZERO_BACKOFF           1
-#define Y_HOMING_MODE            HOMING_STALL_MAX
-
-#define Z_VELOCITY_MAX           2000 // VELOCITY_MAX
-#define Z_FEEDRATE_MAX           FEEDRATE_MAX
-#define Z_TRAVEL_MIN             0
-#define Z_TRAVEL_MAX             75
-#define Z_JERK_MAX               JERK_MAX
-#define Z_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define Z_SEARCH_VELOCITY        400
-#define Z_LATCH_VELOCITY         100
-#define Z_LATCH_BACKOFF          5
-#define Z_ZERO_BACKOFF           1
-#define Z_HOMING_MODE            HOMING_STALL_MAX
-
-// A values are chosen to make the A motor react the same as X for testing
-// set to the same speed as X axis
-#define A_VELOCITY_MAX           (X_VELOCITY_MAX / M1_TRAVEL_PER_REV * 360)
-#define A_FEEDRATE_MAX           A_VELOCITY_MAX
-#define A_TRAVEL_MIN             -1
-#define A_TRAVEL_MAX             -1 // same value means infinite
-#define A_JERK_MAX               (X_JERK_MAX * 360 / M1_TRAVEL_PER_REV)
-#define A_JUNCTION_DEVIATION     JUNCTION_DEVIATION
-#define A_RADIUS                 (M1_TRAVEL_PER_REV / 2 / M_PI)
-#define A_SEARCH_VELOCITY        600
-#define A_LATCH_VELOCITY         100
-#define A_LATCH_BACKOFF          5
-#define A_ZERO_BACKOFF           2
-#define A_HOMING_MODE            HOMING_DISABLED
-
-
-// Spindle settings
-#define SPINDLE_TYPE             SPINDLE_TYPE_HUANYANG
-#define SPINDLE_PWM_FREQUENCY    100    // in Hz
-#define SPINDLE_MIN_RPM          1000
-#define SPINDLE_MAX_RPM          24000
-#define SPINDLE_MIN_DUTY         0.05
-#define SPINDLE_MAX_DUTY         0.99
-#define SPINDLE_REVERSE          false
-
-
-// Gcode defaults
-#define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-#define GCODE_DEFAULT_PLANE         PLANE_XY    // See machine.h
-#define GCODE_DEFAULT_COORD_SYSTEM  G54         // G54, G55, G56, G57, G58, G59
-#define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
-#define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
-#define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE
-
-
-// Arc
-#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
-#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
-#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
-
-
 // Switch settings.  See switch.c
 #define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
 #define SW_LOCKOUT_TICKS         250 // ms
@@ -334,3 +204,34 @@ enum {
 #define I2C_ISR                 TWIC_TWIS_vect
 #define I2C_ADDR                0x2b
 #define I2C_MAX_DATA            8
+
+
+// Settings ********************************************************************
+
+// Motor settings.  See motor.c
+#define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
+
+
+//#define STEP_CORRECTION                        // Enable step correction
+#define MAX_STEP_CORRECTION      4             // In steps per segment
+#define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
+#define JUNCTION_DEVIATION       0.05          // default value, in mm
+#define JUNCTION_ACCELERATION    100000        // centripetal corner accel
+#define JOG_JERK_MULT            1             // Jogging jerk multipler
+#define JOG_MIN_VELOCITY         10            // mm/min
+#define CAL_ACCELERATION         500000        // mm/min^2
+
+
+// Arc
+#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
+#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
+#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
+
+
+// Gcode defaults
+#define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
+#define GCODE_DEFAULT_PLANE         PLANE_XY    // See machine.h
+#define GCODE_DEFAULT_COORD_SYSTEM  G54         // G54, G55, G56, G57, G58, G59
+#define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
+#define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
+#define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE

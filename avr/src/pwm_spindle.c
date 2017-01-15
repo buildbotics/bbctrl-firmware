@@ -43,16 +43,7 @@ typedef struct {
 } pwm_spindle_t;
 
 
-static pwm_spindle_t spindle = {
-  .freq          = SPINDLE_PWM_FREQUENCY,
-  .min_rpm       = SPINDLE_MIN_RPM,
-  .max_rpm       = SPINDLE_MAX_RPM,
-  .min_duty      = SPINDLE_MIN_DUTY,
-  .max_duty      = SPINDLE_MAX_DUTY,
-  .reverse       = SPINDLE_REVERSE,
-  .enable_invert = false,
-  .estop         = false,
-};
+static pwm_spindle_t spindle = {0};
 
 
 static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
@@ -136,17 +127,19 @@ void pwm_spindle_estop() {
 
 
 // TODO these need more effort and should work with the huanyang spindle too
-float get_max_spin(int index) {return spindle.max_rpm;}
-void set_max_spin(int axis, float value) {spindle.max_rpm = value;}
-float get_min_spin(int index) {return spindle.min_rpm;}
-void set_min_spin(int axis, float value) {spindle.min_rpm = value;}
-float get_spin_min_pulse(int index) {return spindle.min_duty;}
-void set_spin_min_pulse(int axis, float value) {spindle.min_duty = value;}
-float get_spin_max_pulse(int index) {return spindle.max_duty;}
-void set_spin_max_pulse(int axis, float value) {spindle.max_duty = value;}
-uint8_t get_spin_reverse(int index) {return spindle.reverse;}
-void set_spin_reverse(int axis, uint8_t value) {spindle.reverse = value;}
-float get_spin_up(int index) {return 0;}
-void set_spin_up(int axis, float value) {}
-float get_spin_down(int index) {return 0;}
-void set_spin_down(int axis, float value) {}
+float get_max_spin() {return spindle.max_rpm;}
+void set_max_spin(float value) {spindle.max_rpm = value;}
+float get_min_spin() {return spindle.min_rpm;}
+void set_min_spin(float value) {spindle.min_rpm = value;}
+float get_spin_min_pulse() {return spindle.min_duty;}
+void set_spin_min_pulse(float value) {spindle.min_duty = value;}
+float get_spin_max_pulse() {return spindle.max_duty;}
+void set_spin_max_pulse(float value) {spindle.max_duty = value;}
+uint8_t get_spin_reverse() {return spindle.reverse;}
+void set_spin_reverse(uint8_t value) {spindle.reverse = value;}
+float get_spin_up() {return 0;}    // TODO
+void set_spin_up(float value) {}   // TODO
+float get_spin_down() {return 0;}  // TODO
+void set_spin_down(float value) {} // TODO
+uint16_t get_spin_freq() {return spindle.freq;}
+void set_spin_freq(uint16_t value) {spindle.freq = value;}

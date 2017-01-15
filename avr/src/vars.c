@@ -41,7 +41,6 @@
 #include <math.h>
 
 #include <avr/pgmspace.h>
-#include <avr/eeprom.h>
 
 
 typedef uint8_t flags_t;
@@ -117,29 +116,9 @@ static bool var_parse_bool(const char *value) {
 }
 
 
-static uint8_t eeprom_read_bool(bool *addr) {
-  return eeprom_read_byte((uint8_t *)addr);
-}
-
-
-static void eeprom_update_bool(bool *addr, bool value) {
-  eeprom_update_byte((uint8_t *)addr, value);
-}
-
-
 // Char
 static void var_print_char(char x) {putchar('"'); putchar(x); putchar('"');}
 static char var_parse_char(const char *value) {return value[0];}
-
-
-static uint8_t eeprom_read_char(char *addr) {
-  return eeprom_read_byte((uint8_t *)addr);
-}
-
-
-static void eeprom_update_char(char *addr, char value) {
-  eeprom_update_byte((uint8_t *)addr, value);
-}
 
 
 // int8
@@ -151,16 +130,6 @@ static void var_print_int8_t(int8_t x) {
 
 static int8_t var_parse_int8_t(const char *value) {
   return strtol(value, 0, 0);
-}
-
-
-static int8_t eeprom_read_int8_t(int8_t *addr) {
-  return eeprom_read_byte((uint8_t *)addr);
-}
-
-
-static void eeprom_update_int8_t(int8_t *addr, int8_t value) {
-  eeprom_update_byte((uint8_t *)addr, value);
 }
 #endif
 
@@ -175,16 +144,6 @@ static uint8_t var_parse_uint8_t(const char *value) {
 }
 
 
-static uint8_t eeprom_read_uint8_t(uint8_t *addr) {
-  return eeprom_read_byte(addr);
-}
-
-
-static void eeprom_update_uint8_t(uint8_t *addr, uint8_t value) {
-  eeprom_update_byte(addr, value);
-}
-
-
 // unit16
 static void var_print_uint16_t(uint16_t x) {
   printf_P(PSTR("%"PRIu16), x);
@@ -193,16 +152,6 @@ static void var_print_uint16_t(uint16_t x) {
 
 static uint16_t var_parse_uint16_t(const char *value) {
   return strtoul(value, 0, 0);
-}
-
-
-static uint16_t eeprom_read_uint16_t(uint16_t *addr) {
-  return eeprom_read_word(addr);
-}
-
-
-static void eeprom_update_uint16_t(uint16_t *addr, uint16_t value) {
-  eeprom_update_word(addr, value);
 }
 
 
@@ -229,22 +178,12 @@ enum {
 #undef VAR
 
 // Var names, count & help
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, HELP)       \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, HELP)             \
   static const char NAME##_name[] PROGMEM = #NAME;          \
   static const char NAME##_help[] PROGMEM = HELP;
 
 #include "vars.def"
 #undef VAR
-
-// EEPROM storage
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, HELP)       \
-  IF(SAVE)                                                  \
-  (static TYPE NAME##_eeprom IF(INDEX)([INDEX]) EEMEM;)
-
-#include "vars.def"
-#undef VAR
-
-static uint16_t eeprom_crc EEMEM;
 
 // Last value
 #define VAR(NAME, CODE, TYPE, INDEX, ...)       \
@@ -256,10 +195,8 @@ static uint16_t eeprom_crc EEMEM;
 
 
 void vars_init() {
-  vars_restore();
-
   // Initialize var state
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)            \
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                       \
   IF(INDEX)(for (int i = 0; i < INDEX; i++))                    \
     (NAME##_state)IF(INDEX)([i]) = get_##NAME(IF(INDEX)(i));
 
@@ -430,91 +367,4 @@ void vars_print_help() {
 
   // Restore watchdog
   hw_restore_watchdog(wd_state);
-}
-
-
-uint16_t vars_crc() {
-  // Save and disable watchdog
-  uint8_t wd_state = hw_disable_watchdog();
-
-  CRC.CTRL = CRC_RESET_RESET0_gc;
-  CRC.CTRL = CRC_SOURCE_IO_gc; // Must be after reset
-
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
-  IF(SAVE)                                                              \
-    ({                                                                  \
-      for (int j = 0; ; j++) {                                          \
-        char c = pgm_read_byte(&NAME##_name[j]);                        \
-        if (!c) break;                                                  \
-        CRC.DATAIN = c;                                                 \
-      }                                                                 \
-                                                                        \
-      CRC.DATAIN = INDEX;                                               \
-    })
-
-#include "vars.def"
-#undef VAR
-
-  // Restore watchdog
-  hw_restore_watchdog(wd_state);
-
-  CRC.STATUS = CRC_BUSY_bm; // Done
-  return CRC.CHECKSUM1 << 8 | CRC.CHECKSUM0;
-}
-
-
-void vars_save() {
-  // Save and disable watchdog
-  uint8_t wd_state = hw_disable_watchdog();
-
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
-  IF(SAVE)                                                              \
-    (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
-      TYPE value = get_##NAME(IF(INDEX)(i));                            \
-      eeprom_update_##TYPE(&NAME##_eeprom IF(INDEX)([i]), value);       \
-    })                                                                  \
-
-#include "vars.def"
-#undef VAR
-
-  // Restore watchdog
-  hw_restore_watchdog(wd_state);
-
-  // Save CRC
-  eeprom_update_word(&eeprom_crc, vars_crc());
-}
-
-
-
-bool vars_valid() {
-  return eeprom_read_word(&eeprom_crc) == vars_crc();
-}
-
-
-stat_t vars_restore() {
-  if (!vars_valid()) return STAT_EEPROM_DATA_INVALID;
-
-  // Save and disable watchdog
-  uint8_t wd_state = hw_disable_watchdog();
-
-#define VAR(NAME, CODE, TYPE, INDEX, SET, SAVE, ...)                    \
-  IF(SAVE)                                                              \
-    (IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {         \
-      TYPE value = eeprom_read_##TYPE(&NAME##_eeprom IF(INDEX)([i]));   \
-      set_##NAME(IF(INDEX)(i,) value);                                  \
-      NAME##_state IF(INDEX)([i]) = value;                              \
-    })                                                                  \
-
-#include "vars.def"
-#undef VAR
-
-  // Restore watchdog
-  hw_restore_watchdog(wd_state);
-
-  return STAT_OK;
-}
-
-
-void vars_clear() {
-  eeprom_update_word(&eeprom_crc, -1);
 }

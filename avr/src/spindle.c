@@ -34,8 +34,8 @@
 
 
 typedef enum {
-  SPINDLE_TYPE_PWM,
   SPINDLE_TYPE_HUANYANG,
+  SPINDLE_TYPE_PWM,
 } spindle_type_t;
 
 
@@ -46,7 +46,7 @@ typedef struct {
 } spindle_t;
 
 
-static spindle_t spindle = {.type = SPINDLE_TYPE};
+static spindle_t spindle = {0};
 
 
 void spindle_init() {

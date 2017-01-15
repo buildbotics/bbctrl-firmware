@@ -49,7 +49,7 @@
  * This creates a deviation from the path (let's call this delta),
  * which is the distance from the junction to the edge of the circular
  * segment.  Delta needs to be defined, so let's replace the term max_jerk (see
- * note 1) with max_junction_deviation, or "delta".  This indirectly sets the
+ * note 1) with max junction deviation, or "delta".  This indirectly sets the
  * radius of the circle, and hence limits the velocity by the centripetal
  * acceleration.  Think of the this as widening the race track. If a race car is
  * driving on a track only as wide as a car, it'll have to slow down a lot to
@@ -120,8 +120,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   float b_delta = 0;
 
   for (int axis = 0; axis < AXES; axis++) {
-    a_delta += square(a_unit[axis] * axis_get_junction_dev(axis));
-    b_delta += square(b_unit[axis] * axis_get_junction_dev(axis));
+    a_delta += square(a_unit[axis] * JUNCTION_DEVIATION);
+    b_delta += square(b_unit[axis] * JUNCTION_DEVIATION);
   }
 
   if (!a_delta || !b_delta) return 0; // One or both unit vectors are null
@@ -333,9 +333,7 @@ static float _calc_move_time(const float axis_length[],
 
   // Compute time required for rate-limiting axis
   for (int axis = 0; axis < AXES; axis++) {
-    float time = fabs(axis_length[axis]) /
-      (rapid ? axis_get_velocity_max(axis) : axis_get_feedrate_max(axis));
-
+    float time = fabs(axis_length[axis]) / axis_get_velocity_max(axis);
     if (max_time < time) max_time = time;
   }
 

@@ -68,8 +68,6 @@ enum {
   HUANYANG_ACTUAL_FREQ,
   HUANYANG_ACTUAL_CURRENT,
   HUANYANG_ACTUAL_RPM,
-  HUANYANG_DC_VOLTAGE,
-  HUANYANG_AC_VOLTAGE,
   HUANYANG_CONT,
   HUANYANG_TEMPERATURE,
 };
@@ -120,8 +118,6 @@ typedef struct {
   float actual_freq;
   float actual_current;
   uint16_t actual_rpm;
-  uint16_t dc_voltage;
-  uint16_t ac_voltage;
   uint16_t temperature;
 
   float max_freq;
@@ -280,9 +276,7 @@ static bool _query_status(int index) {
   case 1: ha.actual_freq = CTRL_STATUS_RESPONSE(ha.response) * 0.01; break;
   case 2: ha.actual_current = CTRL_STATUS_RESPONSE(ha.response) * 0.1; break;
   case 3: ha.actual_rpm = CTRL_STATUS_RESPONSE(ha.response); break;
-  case 4: ha.dc_voltage = CTRL_STATUS_RESPONSE(ha.response); break;
-  case 5: ha.ac_voltage = CTRL_STATUS_RESPONSE(ha.response); break;
-  case 6: ha.temperature = CTRL_STATUS_RESPONSE(ha.response); break;
+  case 4: ha.temperature = CTRL_STATUS_RESPONSE(ha.response); break;
   default: break;
   }
 
@@ -292,9 +286,7 @@ static bool _query_status(int index) {
   case 0: var = HUANYANG_ACTUAL_FREQ; break;
   case 1: var = HUANYANG_ACTUAL_CURRENT; break;
   case 2: var = HUANYANG_ACTUAL_RPM; break;
-  case 3: var = HUANYANG_DC_VOLTAGE; break;
-  case 4: var = HUANYANG_AC_VOLTAGE; break;
-  case 5: var = HUANYANG_TEMPERATURE; break;
+  case 3: var = HUANYANG_TEMPERATURE; break;
   default:
     report_request();
     return false;
@@ -534,8 +526,6 @@ bool get_huanyang_connected() {return ha.connected;}
 float get_huanyang_freq() {return ha.actual_freq;}
 float get_huanyang_current() {return ha.actual_current;}
 uint16_t get_huanyang_rpm() {return ha.actual_rpm;}
-uint16_t get_huanyang_dcv() {return ha.dc_voltage;}
-uint16_t get_huanyang_acv() {return ha.ac_voltage;}
 uint16_t get_huanyang_temp() {return ha.temperature;}
 float get_huanyang_max_freq() {return ha.max_freq;}
 float get_huanyang_min_freq() {return ha.min_freq;}

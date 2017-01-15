@@ -387,6 +387,7 @@ stat_t mp_exec_move() {
       !bf) {
     mp_runtime_set_velocity(0);
     mp_runtime_set_busy(false);
+    if (mp_get_state() == STATE_STOPPING) mp_state_holding();
 
     return STAT_NOOP; // Nothing running
   }

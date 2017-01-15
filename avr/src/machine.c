@@ -90,19 +90,6 @@ typedef struct { // struct to manage mach globals and cycles
 
 
 static machine_t mach = {
-  // Offsets
-  .offset = {
-    {}, // ABSOLUTE_COORDS
-
-    {0, 0, 0, 0, 0, 0}, // G54
-    {X_TRAVEL_MAX / 2, Y_TRAVEL_MAX / 2, 0, 0, 0, 0}, // G55
-    {0, 0, 0, 0, 0, 0}, // G56
-    {0, 0, 0, 0, 0, 0}, // G57
-    {0, 0, 0, 0, 0, 0}, // G58
-    {0, 0, 0, 0, 0, 0}, // G59
-  },
-
-  // State
   .gm = {.motion_mode = MOTION_MODE_CANCEL_MOTION_MODE},
 };
 

@@ -51,6 +51,7 @@
 
 
 typedef enum {
+  MOTOR_OFF,
   MOTOR_IDLE,                    // motor stopped and may be partially energized
   MOTOR_ENERGIZING,
   MOTOR_ACTIVE
@@ -97,48 +98,28 @@ typedef struct {
 
 static motor_t motors[MOTORS] = {
   {
-    .axis            = M1_AXIS,
-    .step_angle      = M1_STEP_ANGLE,
-    .travel_rev      = M1_TRAVEL_PER_REV,
-    .microsteps      = M1_MICROSTEPS,
-    .reverse         = M1_REVERSE,
-    .power_mode      = M1_POWER_MODE,
+    .axis            = AXIS_X,
     .step_pin        = STEP_X_PIN,
     .dir_pin         = DIR_X_PIN,
     .timer           = &M1_TIMER,
     .dma             = &M1_DMA_CH,
     .dma_trigger     = M1_DMA_TRIGGER,
   }, {
-    .axis            = M2_AXIS,
-    .step_angle      = M2_STEP_ANGLE,
-    .travel_rev      = M2_TRAVEL_PER_REV,
-    .microsteps      = M2_MICROSTEPS,
-    .reverse         = M2_REVERSE,
-    .power_mode      = M2_POWER_MODE,
+    .axis            = AXIS_Y,
     .step_pin        = STEP_Y_PIN,
     .dir_pin         = DIR_Y_PIN,
     .timer           = &M2_TIMER,
     .dma             = &M2_DMA_CH,
     .dma_trigger     = M2_DMA_TRIGGER,
   }, {
-    .axis            = M3_AXIS,
-    .step_angle      = M3_STEP_ANGLE,
-    .travel_rev      = M3_TRAVEL_PER_REV,
-    .microsteps      = M3_MICROSTEPS,
-    .reverse         = M3_REVERSE,
-    .power_mode      = M3_POWER_MODE,
+    .axis            = AXIS_Z,
     .step_pin        = STEP_Z_PIN,
     .dir_pin         = DIR_Z_PIN,
     .timer           = &M3_TIMER,
     .dma             = &M3_DMA_CH,
     .dma_trigger     = M3_DMA_TRIGGER,
   }, {
-    .axis            = M4_AXIS,
-    .step_angle      = M4_STEP_ANGLE,
-    .travel_rev      = M4_TRAVEL_PER_REV,
-    .microsteps      = M4_MICROSTEPS,
-    .reverse         = M4_REVERSE,
-    .power_mode      = M4_POWER_MODE,
+    .axis            = AXIS_A,
     .step_pin        = STEP_A_PIN,
     .dir_pin         = DIR_A_PIN,
     .timer           = (TC0_t *)&M4_TIMER,
@@ -201,7 +182,7 @@ void motor_enable(int motor, bool enable) {
   if (enable) OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
   else {
     OUTCLR_PIN(MOTOR_ENABLE_PIN);
-    motors[motor].power_state = MOTOR_IDLE;
+    motors[motor].power_state = MOTOR_DISABLED;
   }
 }
 
@@ -307,26 +288,44 @@ void motor_reset(int m) {
 }
 
 
-/// Remove power from a motor
-static void _deenergize(int m) {
-  if (motors[m].power_state == MOTOR_ACTIVE) {
-    motors[m].power_state = MOTOR_IDLE;
-    drv8711_disable(m);
-  }
+static void _set_power_state(int motor, motor_power_state_t state) {
+  motors[motor].power_state = state;
+  report_request();
 }
 
 
-/// Apply power to a motor
-static void _energize(int m) {
-  if (motors[m].power_state == MOTOR_IDLE && !motor_error(m)) {
-    motors[m].power_state = MOTOR_ENERGIZING;
-    drv8711_enable(m);
+static void _update_power(int motor) {
+  motor_t *m = &motors[motor];
 
-    motor_driver_callback(m); // TODO Shouldn't call this directly
+  switch (m->power_mode) {
+  case MOTOR_POWERED_ONLY_WHEN_MOVING:
+  case MOTOR_POWERED_IN_CYCLE:
+    if (rtc_expired(m->timeout)) {
+      if (m->power_state == MOTOR_ACTIVE) {
+        _set_power_state(motor, MOTOR_IDLE);
+        drv8711_set_state(motor, DRV8711_IDLE);
+      }
+      break;
+    }
+    // Fall through
+
+  case MOTOR_ALWAYS_POWERED:
+    if (m->power_state != MOTOR_ACTIVE && m->power_state != MOTOR_ENERGIZING &&
+        !motor_error(motor)) {
+      _set_power_state(motor, MOTOR_ENERGIZING);
+      // TODO is ~5ms enough time to enable the motor?
+      drv8711_set_state(motor, DRV8711_ACTIVE);
+
+      motor_driver_callback(motor); // TODO Shouldn't call this directly
+    }
+    break;
+
+  default: // Disabled
+    if (m->power_state != MOTOR_OFF) {
+      _set_power_state(motor, MOTOR_OFF);
+      drv8711_set_state(motor, DRV8711_DISABLED);
+    }
   }
-
-  // Reset timeout, regardless
-  motors[m].timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
 }
 
 
@@ -356,9 +355,7 @@ void motor_driver_callback(int motor) {
 /// Callback to manage motor power sequencing and power-down timing.
 stat_t motor_rtc_callback() { // called by controller
   for (int motor = 0; motor < MOTORS; motor++)
-    // Deenergize motor if disabled or timedout
-    if (motors[motor].power_mode == MOTOR_DISABLED ||
-        rtc_expired(motors[motor].timeout)) _deenergize(motor);
+    _update_power(motor);
 
   return STAT_OK;
 }
@@ -487,23 +484,23 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
   if (!m->timer_period) m->timer_clock = 0;
   if (!m->timer_clock) m->timer_period = 0;
 
+  // Compute power from axis velocity
+  m->power = travel / (_get_max_velocity(motor) * time);
+
   // Power motor
   switch (m->power_mode) {
-  case MOTOR_DISABLED: break;
-
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
     if (!m->timer_clock) break; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
-    _energize(motor); // TODO is ~5ms enough time to enable the motor?
+    // Reset timeout
+    m->timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
     break;
 
-  default: break; // Shouldn't get here
+  default: break;
   }
-
-  // Compute power from axis velocity
-  m->power = travel / (_get_max_velocity(motor) * time);
+  _update_power(motor);
 
   return STAT_OK;
 }

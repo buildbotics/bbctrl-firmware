@@ -39,12 +39,10 @@ int motor_map[AXES] = {-1, -1, -1, -1, -1, -1};
 
 typedef struct {
   float velocity_max;    // max velocity in mm/min or deg/min
-  float feedrate_max;    // max velocity in mm/min or deg/min
   float travel_max;      // max work envelope for soft limits
   float travel_min;      // min work envelope for soft limits
   float jerk_max;        // max jerk (Jm) in mm/min^3 divided by 1 million
   float recip_jerk;      // reciprocal of current jerk value - with million
-  float junction_dev;    // aka cornering delta
   float radius;          // radius in mm for rotary axes
   float search_velocity; // homing search velocity
   float latch_velocity;  // homing latch velocity
@@ -55,58 +53,7 @@ typedef struct {
 } axis_t;
 
 
-axis_t axes[MOTORS] = {
-  {
-    .velocity_max    = X_VELOCITY_MAX,
-    .feedrate_max    = X_FEEDRATE_MAX,
-    .travel_min      = X_TRAVEL_MIN,
-    .travel_max      = X_TRAVEL_MAX,
-    .jerk_max        = X_JERK_MAX,
-    .junction_dev    = X_JUNCTION_DEVIATION,
-    .search_velocity = X_SEARCH_VELOCITY,
-    .latch_velocity  = X_LATCH_VELOCITY,
-    .latch_backoff   = X_LATCH_BACKOFF,
-    .zero_backoff    = X_ZERO_BACKOFF,
-    .homing_mode     = X_HOMING_MODE,
-  }, {
-    .velocity_max    = Y_VELOCITY_MAX,
-    .feedrate_max    = Y_FEEDRATE_MAX,
-    .travel_min      = Y_TRAVEL_MIN,
-    .travel_max      = Y_TRAVEL_MAX,
-    .jerk_max        = Y_JERK_MAX,
-    .junction_dev    = Y_JUNCTION_DEVIATION,
-    .search_velocity = Y_SEARCH_VELOCITY,
-    .latch_velocity  = Y_LATCH_VELOCITY,
-    .latch_backoff   = Y_LATCH_BACKOFF,
-    .zero_backoff    = Y_ZERO_BACKOFF,
-    .homing_mode     = Y_HOMING_MODE,
-  }, {
-    .velocity_max    = Z_VELOCITY_MAX,
-    .feedrate_max    = Z_FEEDRATE_MAX,
-    .travel_min      = Z_TRAVEL_MIN,
-    .travel_max      = Z_TRAVEL_MAX,
-    .jerk_max        = Z_JERK_MAX,
-    .junction_dev    = Z_JUNCTION_DEVIATION,
-    .search_velocity = Z_SEARCH_VELOCITY,
-    .latch_velocity  = Z_LATCH_VELOCITY,
-    .latch_backoff   = Z_LATCH_BACKOFF,
-    .zero_backoff    = Z_ZERO_BACKOFF,
-    .homing_mode     = Z_HOMING_MODE,
-  }, {
-    .velocity_max    = A_VELOCITY_MAX,
-    .feedrate_max    = A_FEEDRATE_MAX,
-    .travel_min      = A_TRAVEL_MIN,
-    .travel_max      = A_TRAVEL_MAX,
-    .jerk_max        = A_JERK_MAX,
-    .junction_dev    = A_JUNCTION_DEVIATION,
-    .radius          = A_RADIUS,
-    .search_velocity = A_SEARCH_VELOCITY,
-    .latch_velocity  = A_LATCH_VELOCITY,
-    .latch_backoff   = A_LATCH_BACKOFF,
-    .zero_backoff    = A_ZERO_BACKOFF,
-    .homing_mode     = A_HOMING_MODE,
-  }
-};
+axis_t axes[MOTORS] = {{0}};
 
 
 bool axis_is_enabled(int axis) {
@@ -168,7 +115,6 @@ float axis_get_vector_length(const float a[], const float b[]) {
 
 
 AXIS_GET(velocity_max, float, 0)
-AXIS_GET(feedrate_max, float, 0)
 AXIS_GET(homed, bool, false)
 AXIS_SET(homed, bool)
 AXIS_GET(homing_mode, homing_mode_t, HOMING_DISABLED)
@@ -180,7 +126,6 @@ AXIS_GET(search_velocity, float, 0)
 AXIS_GET(latch_velocity, float, 0)
 AXIS_GET(zero_backoff, float, 0)
 AXIS_GET(latch_backoff, float, 0)
-AXIS_GET(junction_dev, float, 0)
 AXIS_GET(recip_jerk, float, 0)
 
 
@@ -202,7 +147,6 @@ void axis_set_jerk_max(int axis, float jerk) {
 
 
 AXIS_VAR_SET(velocity_max, float)
-AXIS_VAR_SET(feedrate_max, float)
 AXIS_VAR_SET(radius, float)
 AXIS_VAR_SET(travel_min, float)
 AXIS_VAR_SET(travel_max, float)
@@ -210,5 +154,4 @@ AXIS_VAR_SET(search_velocity, float)
 AXIS_VAR_SET(latch_velocity, float)
 AXIS_VAR_SET(zero_backoff, float)
 AXIS_VAR_SET(latch_backoff, float)
-AXIS_VAR_SET(junction_dev, float)
 AXIS_VAR_SET(jerk_max, float)

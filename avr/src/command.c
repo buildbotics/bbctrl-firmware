@@ -294,35 +294,6 @@ uint8_t command_reboot(int argc, char *argv[]) {
 }
 
 
-uint8_t command_bootloader(int argc, char *argv[]) {
-  hw_request_bootloader();
-  return 0;
-}
-
-
-uint8_t command_save(int argc, char *argv[]) {
-  vars_save();
-  return 0;
-}
-
-
-uint8_t command_valid(int argc, char *argv[]) {
-  printf_P(vars_valid() ? PSTR("true\n") : PSTR("false\n"));
-  return 0;
-}
-
-
-uint8_t command_restore(int argc, char *argv[]) {
-  return vars_restore();
-}
-
-
-uint8_t command_clear(int argc, char *argv[]) {
-  vars_clear();
-  return 0;
-}
-
-
 uint8_t command_messages(int argc, char *argv[]) {
   status_help();
   return 0;
