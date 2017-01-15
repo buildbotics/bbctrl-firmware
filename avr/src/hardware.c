@@ -54,25 +54,7 @@ static hw_t hw = {{0}};
 #define HEXNIB(x) "0123456789abcdef"[(x) & 0xf]
 
 
-/// This routine is lifted and modified from Boston Android and from
-/// http://www.avrfreaks.net/index.php?name=PNphpBB2&file=viewtopic&p=711659
 static void _init_clock()  {
-#if defined(__CLOCK_EXTERNAL_8MHZ) // external 8 Mhx Xtal w/ 4x PLL = 32 Mhz
-  // 2-9 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
-  OSC.XOSCCTRL = OSC_FRQRANGE_2TO9_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
-  OSC.CTRL = OSC_XOSCEN_bm;                // enable external crystal oscillator
-  while (!(OSC.STATUS & OSC_XOSCRDY_bm));  // wait for oscillator ready
-
-  OSC.PLLCTRL = OSC_PLLSRC_XOSC_gc | 4;    // PLL source, 4x (32 MHz sys clock)
-  OSC.CTRL = OSC_PLLEN_bm | OSC_XOSCEN_bm; // Enable PLL & External Oscillator
-  while (!(OSC.STATUS & OSC_PLLRDY_bm));   // wait for PLL ready
-
-  CCP = CCP_IOREG_gc;
-  CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
-
-  OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
-
-#elif defined(__CLOCK_EXTERNAL_16MHZ) // external 16Mhz Xtal w/ 2x PLL = 32 Mhz
   // 12-16 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
   OSC.XOSCCTRL = OSC_FRQRANGE_12TO16_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
   OSC.CTRL = OSC_XOSCEN_bm;                // enable external crystal oscillator
@@ -86,17 +68,6 @@ static void _init_clock()  {
   CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
 
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
-
-#elif defined(__CLOCK_INTERNAL_32MHZ) // 32 MHz internal clock
-  OSC.CTRL = OSC_RC32MEN_bm;               // enable internal 32MHz oscillator
-  while (!(OSC.STATUS & OSC_RC32MRDY_bm)); // wait for oscillator ready
-
-  CCP = CCP_IOREG_gc;                      // Security Signature to modify clk
-  CLK.CTRL = CLK_SCLKSEL_RC32M_gc;         // select sysclock 32MHz osc
-
-#else
-#error No clock defined
-#endif
 }
 
 
