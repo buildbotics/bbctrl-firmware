@@ -16,3 +16,5 @@ class Ctrl(object):
         self.avr = bbctrl.AVR(self)
         self.jog = bbctrl.Jog(self)
         self.lcd = bbctrl.LCD(self)
+
+        self.avr.connect()

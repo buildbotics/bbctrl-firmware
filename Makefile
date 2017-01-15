@@ -49,6 +49,9 @@ publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
+install: pkg
+	rsync dist/$(PKG_NAME).tar.bz2 bbmc@bbctrl.local:update.tar.bz2
+
 mount:
 	mkdir -p $(DEST)
 	sshfs bbmc@bbctrl.local: $(DEST)

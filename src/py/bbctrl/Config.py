@@ -62,6 +62,8 @@ class Config(object):
 
 
     def encode_cmd(self, index, value, spec):
+        if not 'code' in spec: return
+
         if spec['type'] == 'enum': value = spec['values'].index(value)
         elif spec['type'] == 'bool': value = 1 if value else 0
         elif spec['type'] == 'percent': value /= 100.0
@@ -69,28 +71,29 @@ class Config(object):
         self.ctrl.avr.set(index, spec['code'], value)
 
 
-    def encode_category(self, index, config, category):
+    def encode_category(self, index, config, category, with_defaults):
         for key, spec in category.items():
-            if key in config:
-                self.encode_cmd(index, config[key], spec)
+            if key in config: value = config[key]
+            elif with_defaults: value = spec['default']
+            else: continue
+
+            self.encode_cmd(index, value, spec)
 
 
-    def encode(self, index, config, tmpl):
+    def encode(self, index, config, tmpl, with_defaults):
         for category in tmpl.values():
-            self.encode_category(index, config, category)
+            self.encode_category(index, config, category, with_defaults)
 
 
-    def update(self, config):
-        # Motors
-        tmpl = self.template['motors']
-        for index in range(len(config['motors'])):
-            self.encode(index, config['motors'][index], tmpl)
+    def update(self, config, with_defaults = False):
+        for name, tmpl in self.template.items():
+            if name == 'motors':
+                for index in range(len(config['motors'])):
+                    self.encode(index, config['motors'][index], tmpl,
+                                with_defaults)
 
-        # Switches
-        tmpl = self.template['switches']
-        for index in range(len(config['switches'])):
-            self.encode_category(index, config['switches'][index], tmpl)
+            else: self.encode_category('', config.get(name, {}), tmpl,
+                                       with_defaults)
 
-        # Spindle
-        tmpl = self.template['spindle']
-        self.encode_category('', config['spindle'], tmpl)
+
+    def config_avr(self): self.update(self.load(), True)

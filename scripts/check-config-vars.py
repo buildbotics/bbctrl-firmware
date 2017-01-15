@@ -17,6 +17,9 @@ def check(section):
         if 'type' in entry:
             ok = False
 
+            # TODO check that defaults are valid
+            # TODO check that types match
+
             if 'code' in entry and not entry['code'] in vars:
                 print('"%s" with code "%s" not found' % (name, entry['code']))
 

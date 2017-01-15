@@ -13,7 +13,7 @@
       "power-mode": {
         "type": "enum",
         "values": ["disabled", "always-on", "in-cycle", "when-moving"],
-        "default": "in-cycle",
+        "default": "when-moving",
         "code": "pm"
       },
       "max-current": {
@@ -25,13 +25,13 @@
       "min-current": {
         "type": "percent",
         "unit": "%",
-        "default": 30,
+        "default": 20,
         "code": "lc"
       },
       "idle-current": {
         "type": "percent",
         "unit": "%",
-        "default": 10,
+        "default": 1,
         "code": "ic"
       }
     },
@@ -49,14 +49,14 @@
       "travel-per-rev": {
         "type": "float",
         "unit": "mm",
-        "default": 3.175,
+        "default": 5,
         "code": "tr"
       },
       "microsteps": {
         "type": "int",
-        "values": [1, 2, 4, 8, 16, 32, 64, 128, 256],
+        "values": [1, 2, 4, 8, 16, 32, 64, 128],
         "unit": "per full step",
-        "default": 16,
+        "default": 32,
         "code": "mi"
       },
       "reverse": {
@@ -68,21 +68,14 @@
         "type": "float",
         "min": 0,
         "unit": "mm/min",
-        "default": 16000,
+        "default": 5000,
         "code": "vm"
-      },
-      "max-feedrate": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm/min",
-        "default": 16000,
-        "code": "fr"
       },
       "max-jerk": {
         "type": "float",
         "min": 0,
         "unit": "mm/min³",
-        "default": 20,
+        "default": 10,
         "code": "jm"
       }
     },
@@ -97,7 +90,7 @@
       "max-soft-limit": {
         "type": "float",
         "unit": "mm",
-        "default": 150,
+        "default": 0,
         "code": "tm"
       },
       "min-switch": {
@@ -117,7 +110,9 @@
     "homing": {
       "homing-mode": {
         "type": "enum",
-        "values": ["disabled", "stall", "min-switch", "max-switch"],
+        "values": [
+          "disabled", "stall-min", "stall-max", "switch-min", "switch-max"
+        ],
         "default": "disabled",
         "code": "ho"
       },
@@ -155,8 +150,8 @@
   "spindle": {
     "spindle-type": {
       "type": "enum",
-      "values": ["PWM", "HUNAYANG"],
-      "default": "PWM",
+      "values": ["HUNAYANG", "PWM"],
+      "default": "HUNAYANG",
       "code": "st"
     },
     "spin-reversed": {
@@ -203,6 +198,14 @@
       "min": 0,
       "default": 48000,
       "code": "sd"
+    },
+    "pwm-freq": {
+      "type": "int",
+      "unit": "Hz",
+      "min": 0,
+      "max": 65535,
+      "default": 100,
+      "code": "sf"
     }
   },
 
