@@ -92,15 +92,10 @@ enum {
 #define SPI_SS_PIN SERIAL_CTS_PIN // Needed for SPI configuration
 
 
-// Compile-time settings
-#define __CLOCK_EXTERNAL_16MHZ   // uses PLL to provide 32 MHz system clock
-//#define __CLOCK_INTERNAL_32MHZ
-
-
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
 #define COORDS                   6 // number of supported coordinate systems
-#define SWITCHES                 9 // number of supported limit switches
+#define SWITCHES                10 // number of supported switches
 #define PWMS                     2 // number of supported PWM channels
 
 #define DISABLE_SOFT_LIMIT       -1000000

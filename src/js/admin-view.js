@@ -67,6 +67,7 @@ module.exports = {
     reset: function () {
       this.confirmReset = false;
       api.put('config/reset').done(function () {
+        this.$dispatch('update');
         this.configReset = true;
 
       }.bind(this)).fail(function (error) {

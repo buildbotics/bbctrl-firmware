@@ -212,6 +212,13 @@ static void var_print_int32_t(uint32_t x) {
 }
 
 
+// Ensure no code is used more than once
+enum {
+#define VAR(NAME, CODE, ...) var_code_##CODE##_reuse,
+#include "vars.def"
+#undef VAR
+};
+
 // Var forward declarations
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)          \
   TYPE get_##NAME(IF(INDEX)(int index));                \

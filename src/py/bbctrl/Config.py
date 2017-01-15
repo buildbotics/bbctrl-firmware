@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 import pkg_resources
@@ -55,6 +56,9 @@ class Config(object):
             json.dump(config, f)
 
         log.info('Saved')
+
+
+    def reset(self): os.unlink('config.json')
 
 
     def encode_cmd(self, index, value, spec):

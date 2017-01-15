@@ -16,23 +16,23 @@
         "default": "in-cycle",
         "code": "pm"
       },
-      "min-power": {
-        "type": "percent",
-        "unit": "%",
-        "default": 30,
-        "code": "pl"
-      },
-      "max-power": {
+      "max-current": {
         "type": "percent",
         "unit": "%",
         "default": 80,
-        "code": "th"
+        "code": "xc"
       },
-      "idle-power": {
+      "min-current": {
+        "type": "percent",
+        "unit": "%",
+        "default": 30,
+        "code": "lc"
+      },
+      "idle-current": {
         "type": "percent",
         "unit": "%",
         "default": 10,
-        "code": "ip"
+        "code": "ic"
       }
     },
 
@@ -87,15 +87,7 @@
       }
     },
 
-    "homing": {
-      "homing-mode": {
-        "type": "enum",
-        "values": [
-          "disabled", "stall", "min-normally-open", "min-normally-closed",
-          "max-normally-open", "max-normally-closed"],
-        "default": "disabled",
-        "code": "hm"
-      },
+    "limits": {
       "min-soft-limit": {
         "type": "float",
         "unit": "mm",
@@ -107,6 +99,27 @@
         "unit": "mm",
         "default": 150,
         "code": "tm"
+      },
+      "min-switch": {
+        "type": "enum",
+        "values": ["disabled", "normally-open", "normally-closed"],
+        "default": "disabled",
+        "code": "ls"
+      },
+      "max-switch": {
+        "type": "enum",
+        "values": ["disabled", "normally-open", "normally-closed"],
+        "default": "disabled",
+        "code": "xs"
+      }
+    },
+
+    "homing": {
+      "homing-mode": {
+        "type": "enum",
+        "values": ["disabled", "stall", "min-switch", "max-switch"],
+        "default": "disabled",
+        "code": "ho"
       },
       "search-velocity": {
         "type": "float",

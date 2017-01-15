@@ -69,18 +69,18 @@ typedef struct {
 } switch_t;
 
 
-
+// Order must match indices in var functions below
 static switch_t switches[SWITCHES] = {
-  {.pin = MIN_X_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MAX_X_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MIN_Y_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MAX_X_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MIN_Z_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MAX_Z_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MIN_A_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = MAX_A_PIN, .type = SW_NORMALLY_OPEN},
-  {.pin = ESTOP_PIN, .type = SW_NORMALLY_OPEN},
-  //  {.pin = PROBE_PIN, .type = SW_NORMALLY_OPEN},
+  {.pin = MIN_X_PIN, .type = SW_DISABLED},
+  {.pin = MAX_X_PIN, .type = SW_DISABLED},
+  {.pin = MIN_Y_PIN, .type = SW_DISABLED},
+  {.pin = MAX_X_PIN, .type = SW_DISABLED},
+  {.pin = MIN_Z_PIN, .type = SW_DISABLED},
+  {.pin = MAX_Z_PIN, .type = SW_DISABLED},
+  {.pin = MIN_A_PIN, .type = SW_DISABLED},
+  {.pin = MAX_A_PIN, .type = SW_DISABLED},
+  {.pin = ESTOP_PIN, .type = SW_DISABLED},
+  {.pin = PROBE_PIN, .type = SW_DISABLED},
 };
 
 
@@ -180,11 +180,12 @@ bool switch_is_enabled(int index) {
 
 
 switch_type_t switch_get_type(int index) {
-  return switches[index].type;
+  return (index < 0 || SWITCHES <= index) ? SW_DISABLED : switches[index].type;
 }
 
 
 void switch_set_type(int index, switch_type_t type) {
+  if (index < 0 || SWITCHES <= index) return;
   switch_t *s = &switches[index];
 
   if (s->type != type) {
@@ -200,5 +201,23 @@ void switch_set_callback(int index, switch_callback_t cb) {
 
 
 // Var callbacks
-uint8_t get_switch_type(int index) {return switch_get_type(index);}
-void set_switch_type(int index, uint8_t value) {switch_set_type(index, value);}
+uint8_t get_min_switch(int index) {return switch_get_type(MIN_SWITCH(index));}
+
+
+void set_min_switch(int index, uint8_t value) {
+  switch_set_type(MIN_SWITCH(index), value);
+}
+
+
+uint8_t get_max_switch(int index) {return switch_get_type(MAX_SWITCH(index));}
+
+
+void set_max_switch(int index, uint8_t value) {
+  switch_set_type(MAX_SWITCH(index), value);
+}
+
+
+uint8_t get_estop_switch() {return switch_get_type(8);}
+void set_estop_switch(uint8_t value) {switch_set_type(8, value);}
+uint8_t get_probe_switch() {return switch_get_type(9);}
+void set_probe_switch(uint8_t value) {switch_set_type(9, value);}

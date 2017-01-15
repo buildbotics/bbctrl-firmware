@@ -53,7 +53,8 @@ typedef struct {
 
   bool active;
   float idle_current;
-  float drive_current;
+  float max_current;
+  float min_current;
   float stall_threshold;
   float power;
 
@@ -110,14 +111,8 @@ static void _driver_check_status(int driver) {
 static float _driver_get_current(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
-#if 1
   if (!drv->active) return drv->idle_current;
-  return
-    MOTOR_MIN_CURRENT + (drv->drive_current - MOTOR_MIN_CURRENT) * drv->power;
-
-#else
-  return drv->active ? drv->drive_current : drv->idle_current;
-#endif
+  return drv->min_current + (drv->max_current - drv->min_current) * drv->power;
 }
 
 
@@ -286,7 +281,8 @@ void drv8711_init() {
   // Configure drivers
   for (int i = 0; i < DRIVERS; i++) {
     drivers[i].idle_current = MOTOR_IDLE_CURRENT;
-    drivers[i].drive_current = MOTOR_MAX_CURRENT;
+    drivers[i].max_current = MOTOR_MAX_CURRENT;
+    drivers[i].min_current = MOTOR_MIN_CURRENT;
     drivers[i].stall_threshold = MOTOR_STALL_THRESHOLD;
 
     drv8711_disable(i);
@@ -368,31 +364,43 @@ void drv8711_set_stall_callback(int driver, stall_callback_t cb) {
 }
 
 
-float get_drive_power(int driver) {
+float get_max_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
-  return drivers[driver].drive_current;
+  return drivers[driver].max_current;
 }
 
 
-void set_drive_power(int driver, float value) {
+void set_max_current(int driver, float value) {
   if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
-  drivers[driver].drive_current = value;
+  drivers[driver].max_current = value;
 }
 
 
-float get_idle_power(int driver) {
+float get_min_current(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+  return drivers[driver].min_current;
+}
+
+
+void set_min_current(int driver, float value) {
+  if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
+  drivers[driver].min_current = value;
+}
+
+
+float get_idle_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
   return drivers[driver].idle_current;
 }
 
 
-void set_idle_power(int driver, float value) {
+void set_idle_current(int driver, float value) {
   if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
   drivers[driver].idle_current = value;
 }
 
 
-float get_current_power(int driver) {
+float get_active_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
   return _driver_get_current(driver);
 }

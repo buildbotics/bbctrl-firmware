@@ -39,13 +39,14 @@ VAR(microstep,      mi, uint16_t, MOTORS, 1, 1, "Microsteps per full step")
 VAR(reverse,        rv, uint8_t,  MOTORS, 1, 1, "Reverse motor polarity")
 
 VAR(power_mode,     pm, uint8_t,  MOTORS, 1, 1, "Motor power mode")
-VAR(drive_power,    dp, float,    MOTORS, 1, 1, "Motor drive power")
-VAR(idle_power,     ip, float,    MOTORS, 1, 1, "Motor idle power")
-VAR(current_power,  cp, float,    MOTORS, 0, 0, "Motor power now")
+VAR(max_current,    xc, float,    MOTORS, 1, 1, "Max motor drive current")
+VAR(min_current,    lc, float,    MOTORS, 1, 1, "Min motor drive current")
+VAR(idle_current,   ic, float,    MOTORS, 1, 1, "Motor idle current")
+VAR(active_current, ac, float,    MOTORS, 0, 0, "Motor current now")
 VAR(status_flags,   mf, uint8_t,  MOTORS, 0, 0, "Motor status flags")
 VAR(status_strings, ms, flags_t,  MOTORS, 0, 0, "Motor status strings")
 
-VAR(motor_fault,    mf, bool,     0,      0, 0, "Motor fault status")
+VAR(motor_fault,    fa, bool,     0,      0, 0, "Motor fault status")
 
 VAR(velocity_max,   vm, float,    MOTORS, 1, 1, "Maxium velocity in mm/min")
 VAR(feedrate_max,   fr, float,    MOTORS, 1, 1, "Maxium feedrate in mm/min")
@@ -53,14 +54,20 @@ VAR(jerk_max,       jm, float,    MOTORS, 1, 1, "Maxium jerk in mm/min^3")
 VAR(junction_dev,   jd, float,    MOTORS, 1, 1, "Junction deviation")
 VAR(radius,         ra, float,    MOTORS, 1, 1, "Axis radius or zero")
 
-// Homing
-VAR(homing_mode,    hm, uint8_t,  MOTORS, 1, 1, "Homing type")
+// Switches
 VAR(travel_min,     tn, float,    MOTORS, 1, 1, "Minimum soft limit")
 VAR(travel_max,     tm, float,    MOTORS, 1, 1, "Maximum soft limit")
+VAR(min_switch,     ls, uint8_t,  MOTORS, 1, 1, "Minimum switch mode")
+VAR(max_switch,     xs, uint8_t,  MOTORS, 1, 1, "Maximum switch mode")
+VAR(estop_switch,   et, uint8_t,  0,      1, 1, "Estop switch mode")
+VAR(probe_switch,   pt, uint8_t,  0,      1, 1, "Probe switch mode")
+
+// Homing
+VAR(homing_mode,    ho, uint8_t,  MOTORS, 1, 1, "Homing type")
 VAR(search_velocity,sv, float,    MOTORS, 1, 1, "Homing search velocity")
 VAR(latch_velocity, lv, float,    MOTORS, 1, 1, "Homing latch velocity")
-VAR(latch_backoff,  lb, float,    MOTORS, 1, 1, "Homing latch backof")
-VAR(zero_backoff,   zb, float,    MOTORS, 1, 1, "Homing zero backof")
+VAR(latch_backoff,  lb, float,    MOTORS, 1, 1, "Homing latch backoff")
+VAR(zero_backoff,   zb, float,    MOTORS, 1, 1, "Homing zero backoff")
 
 // Axis
 VAR(position,        p, float,    AXES,   0, 0, "Current axis position")
@@ -89,9 +96,6 @@ VAR(huanyang_rated_rpm, hq, uint16_t, 0,  0, 0, "Huanyang rated RPM")
 VAR(huanyang_status,    hs, uint8_t,  0,  0, 0, "Huanyang status flags")
 VAR(huanyang_debug,     hb, bool,     0,  1, 0, "Huanyang debugging")
 VAR(huanyang_connected, he, bool,     0,  0, 0, "Huanyang connected")
-
-// Switches
-VAR(switch_type,    sw, uint8_t,  SWITCHES, 1, 1, "Normally open or closed")
 
 // GCode
 VAR(line,           ln, int32_t,  0,      0, 0, "Last GCode line executed")

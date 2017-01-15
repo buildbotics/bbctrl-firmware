@@ -55,10 +55,16 @@ BOOT_OBJ := $(patsubst src/%.S,build/%.o,$(BOOT_OBJ))
 BOOT_LDFLAGS = $(LDFLAGS) -Wl,--section-start=.text=0x030000
 
 # Build
-all: $(TARGET) $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss xboot.hex \
-  boot-size size
+all: $(PROJECT).hex build/vars.json boot size
+
+boot: xboot.hex boot-size
+
+build/vars.json: src/vars.def
 
 # Compile
+build/%.json: src/%.json.in
+	cpp -Isrc $< | sed '/^#.*$$/d' > $@
+
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
