@@ -339,8 +339,7 @@ stat_t mach_test_soft_limits(float target[]) {
     // min == max means no soft limits
     if (fp_EQ(min, max)) continue;
 
-    if ((min > DISABLE_SOFT_LIMIT && target[axis] < min) ||
-        (max > DISABLE_SOFT_LIMIT && target[axis] > max))
+    if (target[axis] < min || max < target[axis])
       return STAT_SOFT_LIMIT_EXCEEDED;
   }
 

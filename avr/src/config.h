@@ -98,8 +98,6 @@ enum {
 #define SWITCHES                10 // number of supported switches
 #define PWMS                     2 // number of supported PWM channels
 
-#define DISABLE_SOFT_LIMIT       -1000000
-
 
 // Motor settings.  See motor.c
 #define MOTOR_MAX_CURRENT        1.0  // 1.0 is full power
@@ -137,12 +135,6 @@ enum {
 #define M4_MICROSTEPS            MOTOR_MICROSTEPS
 #define M4_REVERSE               false
 #define M4_POWER_MODE            MOTOR_POWER_MODE
-
-
-// Switch settings.  See switch.c
-#define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
-#define SW_LOCKOUT_TICKS         250 // ms
-#define SW_DEGLITCH_TICKS        30  // ms
 
 
 // Machine settings
@@ -231,6 +223,18 @@ enum {
 #define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE
 
 
+// Arc
+#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
+#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
+#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
+
+
+// Switch settings.  See switch.c
+#define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
+#define SW_LOCKOUT_TICKS         250 // ms
+#define SW_DEGLITCH_TICKS        30  // ms
+
+
 // Motor ISRs
 #define STALL_ISR_vect PORTA_INT1_vect
 #define FAULT_ISR_vect PORTF_INT1_vect
@@ -305,12 +309,6 @@ enum {
 
 // Input
 #define INPUT_BUFFER_LEN       255 // text buffer size (255 max)
-
-
-// Arc
-#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
-#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
-#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
 
 
 // Planner
