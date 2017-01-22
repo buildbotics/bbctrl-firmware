@@ -455,8 +455,8 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
 
   // Setup the direction, compensating for polarity.
   m->negative = travel < 0;
-  if (m->negative) m->direction = DIRECTION_CCW ^ m->reverse;
-  else m->direction = DIRECTION_CW ^ m->reverse;
+  if (m->negative ^ m->reverse) m->direction = DIRECTION_CCW;
+  else m->direction = DIRECTION_CW;
 
   // Find the clock rate that will fit the required number of steps
   if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
