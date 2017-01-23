@@ -26,7 +26,7 @@
 
 \******************************************************************************/
 
-#include "xboot.h"
+#include "boot.h"
 #include "sp_driver.h"
 
 #include <util/delay.h>

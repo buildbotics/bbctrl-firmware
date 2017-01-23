@@ -47,8 +47,8 @@ SRC += $(wildcard src/plan/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
 
 # Boot SRC
-BOOT_SRC = $(wildcard src/xboot/*.S)
-BOOT_SRC += $(wildcard src/xboot/*.c)
+BOOT_SRC = $(wildcard src/boot/*.S)
+BOOT_SRC += $(wildcard src/boot/*.c)
 BOOT_OBJ = $(patsubst src/%.c,build/%.o,$(BOOT_SRC))
 BOOT_OBJ := $(patsubst src/%.S,build/%.o,$(BOOT_OBJ))
 
@@ -57,7 +57,7 @@ BOOT_LDFLAGS = $(LDFLAGS) -Wl,--section-start=.text=0x030000
 # Build
 all: $(PROJECT).hex build/vars.json boot size
 
-boot: xboot.hex boot-size
+boot: boot.hex boot-size
 
 build/vars.json: src/vars.def
 
@@ -77,7 +77,7 @@ build/%.o: src/%.S
 $(TARGET): $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $@
 
-xboot.elf: $(BOOT_OBJ)
+boot.elf: $(BOOT_OBJ)
 	$(CC) $(BOOT_LDFLAGS) $(BOOT_OBJ) -o $@
 
 %.hex: %.elf
@@ -95,7 +95,7 @@ _size:
 	  avr-size -$$X --mcu=$(MCU) $(SIZE_TARGET) ;\
 	done
 
-boot-size: xboot.elf
+boot-size: boot.elf
 	@$(MAKE) SIZE_TARGET=$< _size
 
 size: $(TARGET)
@@ -120,8 +120,8 @@ program: $(PROJECT).hex
 verify: $(PROJECT).hex
 	avrdude $(AVRDUDE_OPTS) -U flash:v:$(PROJECT).hex:i
 
-program-boot: xboot.hex
-	avrdude $(AVRDUDE_OPTS) -U flash:w:xboot.hex:i
+program-boot: boot.hex
+	avrdude $(AVRDUDE_OPTS) -U flash:w:boot.hex:i
 
 fuses:
 	avrdude $(AVRDUDE_OPTS) -U fuse0:w:$(FUSE0):m -U fuse1:w:$(FUSE1):m \
@@ -146,7 +146,7 @@ tidy:
 
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).eep $(PROJECT).lss \
-	  $(PROJECT).map build xboot.hex xboot.elf
+	  $(PROJECT).map build boot.hex boot.elf
 
 .PHONY: tidy clean size all reset erase program fuses read_fuses prodsig
 .PHONY: signature usersig
