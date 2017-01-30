@@ -32,33 +32,27 @@
 
 #include "CPUID.h"
 
+#if 1500 < _MSC_VER
+#include <intrin.h>
+#endif
+
 using namespace std;
 using namespace cb;
 
 
 CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
                     uint32_t _edx) {
-#ifdef _MSC_VER
-#if (!defined(_M_X64) || defined(__INTEL_COMPILER))
-  __asm {
-    mov eax, _eax
-    mov ebx, _ebx
-    mov ecx, _ecx
-    mov edx, _edx
-    cpuid
-    mov _eax, eax
-    mov _ebx, ebx
-    mov _ecx, ecx
-    mov _edx, edx
-  }
+  for (int i = 0; i < 4; i++) regs[i] = 0;
 
-  regs[0] = _eax;
-  regs[1] = _ebx;
-  regs[2] = _ecx;
-  regs[3] = _edx;
+#ifdef _MSC_VER
+#if 1500 < _MSC_VER && (defined(__i386__) || defined(__x86_64__))
+  // Note that 64-bit MSVC compiler does not support __asm()
+  int cpuInfo[4];
+  __cpuidex(cpuInfo, (int)_eax, (int)_ecx);
+  for (int i = 0; i < 4; i++) regs[i] = (uint32_t)cpuInfo[i];
 #endif
 
-#else
+#else // _MSC_VER
 
 #if defined(__i386__) && defined(__PIC__)
   asm volatile
@@ -68,12 +62,13 @@ CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
      : "=a" (regs[0]), "=r" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
      : "a" (_eax), "r" (_ebx), "c" (_ecx), "d" (_edx));
 
-#else
+#elif defined(__x86_64) || defined(__i386__)
   asm volatile
     ("cpuid" : "=a" (regs[0]), "=b" (regs[1]), "=c" (regs[2]), "=d" (regs[3])
      : "a" (_eax), "b" (_ebx), "c" (_ecx), "d" (_edx));
 #endif
-#endif
+
+#endif // _MSC_VER
 
   return *this;
 }
