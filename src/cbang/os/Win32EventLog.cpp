@@ -30,42 +30,33 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_APPLICATION_MAIN_H
-#define CBANG_APPLICATION_MAIN_H
+#ifdef _MSC_VER
+
+#include "Win32EventLog.h"
 
 #include <cbang/Exception.h>
 
-#include <cbang/util/DefaultCatch.h>
-#include <cbang/os/Win32EventLog.h>
+using namespace cb;
+using namespace std;
 
 
-namespace cb {
-#ifndef WINAPI
-#define WINAPI
-#endif
-
-  template <class T>
-  static int WINAPI doApplication(int argc, char *argv[]) {
-    try {
-
-      T app;
-      int i = app.init(argc, argv);
-      if (i < 0) return i;
-
-      app.run();
-
-      return 0;
-
-    } catch (const Exception &e) {
-      string msg = SSTR("Exception: " << e CBANG_CATCH_LOCATION);
-      CBANG_LOG_ERROR(msg);
-#ifdef _MSC_VER
-      Win32EventLog(argv[0]).log(msg);
-#endif // _MSC_VER
-      if (e.getCode()) return e.getCode();
-    }
-
-    return 1;
-  }
+Win32EventLog::Win32EventLog(const std::string &source, const string &server) :
+  source(source),
+  handle(RegisterEventSource(server.empty() ? 0 : server.c_str(),
+                             source.c_str())) {
+  if (!handle) THROW("Failed to register WIN32 event source");
 }
-#endif // CBANG_APPLICATION_MAIN_H
+
+
+Win32EventLog::~Win32EventLog() {
+  if (handle) DeregisterEventSource(handle);
+}
+
+
+void Win32EventLog::log(string &message, unsigned type, unsigned category,
+                        unsigned id) const {
+  LPCWSTR strs[2] = {source.c_str(), message.c_str()};
+  ReportEvent(handle, (WORD)type, (WORD)category, (DWORD)id, 0, 2, 0 strs, 0);
+}
+
+#endif // _MSC_VER

@@ -30,42 +30,25 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_APPLICATION_MAIN_H
-#define CBANG_APPLICATION_MAIN_H
+#pragma once
 
-#include <cbang/Exception.h>
-
-#include <cbang/util/DefaultCatch.h>
-#include <cbang/os/Win32EventLog.h>
+#ifdef _MSC_VER
+#include <string>
 
 
 namespace cb {
-#ifndef WINAPI
-#define WINAPI
-#endif
+  class Win32EventLog {
+    std::string source;
+    void *handle;
 
-  template <class T>
-  static int WINAPI doApplication(int argc, char *argv[]) {
-    try {
+  public:
+    Win32EventLog(const std::string &source,
+                  const std::string &server = std::string());
+    ~Win32EventLog();
 
-      T app;
-      int i = app.init(argc, argv);
-      if (i < 0) return i;
-
-      app.run();
-
-      return 0;
-
-    } catch (const Exception &e) {
-      string msg = SSTR("Exception: " << e CBANG_CATCH_LOCATION);
-      CBANG_LOG_ERROR(msg);
-#ifdef _MSC_VER
-      Win32EventLog(argv[0]).log(msg);
-#endif // _MSC_VER
-      if (e.getCode()) return e.getCode();
-    }
-
-    return 1;
-  }
+    void log(std::string &message, unsigned type = 1, unsigned category = 0,
+             unsigned id = 0) const;
+  };
 }
-#endif // CBANG_APPLICATION_MAIN_H
+
+#endif // _MSC_VER
