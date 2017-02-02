@@ -42,7 +42,7 @@
 #include <cbang/time/Timer.h>
 #include <cbang/log/Logger.h>
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <errno.h> // For ETIMEDOUT and EBUSY
 #endif
 
@@ -50,7 +50,7 @@ using namespace cb;
 
 
 Mutex::Mutex() : p(new Mutex::private_t), locked(0) {
-#ifdef _WIN32
+#ifdef _MSC_VER
   if (!(p->h = CreateMutex(0, false, 0)))
     THROW("Failed to initialize mutex");
 
@@ -69,7 +69,7 @@ Mutex::Mutex() : p(new Mutex::private_t), locked(0) {
 
 Mutex::~Mutex() {
   if (p) {
-#ifdef _WIN32
+#ifdef _MSC_VER
     CloseHandle(p->h);
 
 #else // pthreads
@@ -84,7 +84,7 @@ Mutex::~Mutex() {
 
 
 bool Mutex::lock(double timeout) const {
-#ifdef _WIN32
+#ifdef _MSC_VER
   DWORD t = timeout < 0 ? INFINITE : (DWORD)(timeout * 1000);
   DWORD ret = WaitForSingleObject(p->h, t);
   if (ret == WAIT_TIMEOUT) return false;
@@ -133,7 +133,7 @@ bool Mutex::lock(double timeout) const {
     if (ret) THROWS("Mutex " << ID((uint64_t)this) << " timedlock failed: "
                     << SysError(ret));
   }
-#endif // _WIN32
+#endif // _MSC_VER
 
   locked++;
   return true;
@@ -147,11 +147,11 @@ void Mutex::unlock() const {
 
   int ret = 0;
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   if (ReleaseMutex(p->h)) return;
 #else // pthreads
   if ((ret = pthread_mutex_unlock(&p->mutex)) == 0) return;
-#endif // _WIN32
+#endif // _MSC_VER
 
   locked++;
   THROWS("Mutex " << ID((uint64_t)this) << " unlock failed: " << SysError(ret));

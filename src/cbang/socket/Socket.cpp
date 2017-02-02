@@ -83,7 +83,7 @@ Socket::~Socket() {
 void Socket::initialize() {
   if (initialized) return;
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   WSADATA wsa;
 
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != NO_ERROR)

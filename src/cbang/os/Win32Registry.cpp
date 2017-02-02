@@ -30,7 +30,7 @@
 
 \******************************************************************************/
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include "Win32Registry.h"
 #include "SysError.h"
 
@@ -207,4 +207,4 @@ void Win32Registry::remove(const string &path) {
     THROWS("Failed to delete registry key '" << path << "': " << SysError(ret));
 }
 
-#endif // _WIN32
+#endif // _MSC_VER

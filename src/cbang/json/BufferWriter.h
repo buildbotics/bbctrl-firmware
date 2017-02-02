@@ -50,7 +50,7 @@ namespace cb {
                    output_mode_t mode = Writer::JSON_MODE) :
         Writer(stream, indent, compact, mode), stream(buffer) {}
 
-#ifdef _WIN32
+#ifdef _MSC_VER
       const char *data() const {return &buffer[0];}
 #else
       const char *data() const {return buffer.data();}

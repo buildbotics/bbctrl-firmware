@@ -36,7 +36,7 @@
 #include <cbang/Exception.h>
 #include <cbang/log/Logger.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #ifdef __MINGW32__
@@ -51,7 +51,7 @@ using namespace cb;
 
 namespace cb {
   struct RWLock::private_t {
-#ifdef _WIN32
+#ifdef _MSC_VER
     SRWLOCK lock;
     bool exclusive;
 
@@ -63,7 +63,7 @@ namespace cb {
 
 
 RWLock::RWLock() : p(new RWLock::private_t) {
-#ifdef _WIN32
+#ifdef _MSC_VER
   InitializeSRWLock(&p->lock);
 
 #else // pthreads
@@ -75,7 +75,7 @@ RWLock::RWLock() : p(new RWLock::private_t) {
 
 RWLock::~RWLock() {
   if (p) {
-#ifdef _WIN32
+#ifdef _MSC_VER
 
 #else // pthreads
     pthread_rwlock_destroy(&p->lock);
@@ -90,7 +90,7 @@ RWLock::~RWLock() {
 void RWLock::readLock() const {
   LOG_DEBUG(5, "readLock() " << Thread::self());
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   // TODO this only works in Vista+
   AcquireSRWLockShared(&p->lock);
   p->exclusive = false;
@@ -105,7 +105,7 @@ void RWLock::readLock() const {
 void RWLock::writeLock() const {
   LOG_DEBUG(5, "writeLock() " << Thread::self());
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   // TODO this only works in Vista+
   AcquireSRWLockExclusive(&p->lock);
   p->exclusive = true;
@@ -120,7 +120,7 @@ void RWLock::writeLock() const {
 void RWLock::unlock() const {
   LOG_DEBUG(5, "unlock() " << Thread::self());
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   // TODO this only works in Vista+
   if (p->exclusive) ReleaseSRWLockExclusive(&p->lock);
   else ReleaseSRWLockShared(&p->lock);
@@ -131,7 +131,7 @@ void RWLock::unlock() const {
 
 
 bool RWLock::tryReadLock() const {
-#ifdef _WIN32
+#ifdef _MSC_VER
   THROW("Not supported in Windows");
 #else // pthreads
   return pthread_rwlock_tryrdlock(&p->lock) == 0;
@@ -140,7 +140,7 @@ bool RWLock::tryReadLock() const {
 
 
 bool RWLock::tryWriteLock() const {
-#ifdef _WIN32
+#ifdef _MSC_VER
   THROW("Not supported in Windows");
 #else // pthreads
   return pthread_rwlock_trywrlock(&p->lock) == 0;

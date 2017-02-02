@@ -103,10 +103,10 @@ namespace cb {
 
     static double sleep(double t);
 
-#ifndef _WIN32
+#ifndef _MSC_VER
     static struct timespec toTimeSpec(double t);
     static double toDouble(struct timespec &t);
-#endif // _WIN32
+#endif // _MSC_VER
     static struct timeval toTimeVal(double t);
     static double toDouble(struct timeval &t);
   };

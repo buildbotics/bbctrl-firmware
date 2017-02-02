@@ -34,7 +34,7 @@
 
 #include <cbang/SmartPointer.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -53,7 +53,7 @@ SysError::SysError(int code) : code(code ? code : get()) {}
 string SysError::toString() const {
   if (!code) return "Success";
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   LPWSTR buffer = 0;
 
   if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER |
@@ -70,7 +70,7 @@ string SysError::toString() const {
     if (ok) return utf8.get();
   }
 
-#else // _WIN32
+#else // _MSC_VER
 #if _POSIX_C_SOURCE >= 200112L
   char buffer[4096];
 
@@ -85,14 +85,14 @@ string SysError::toString() const {
   return strerror(code);
 
 #endif // _POSIX_C_SOURCE < 200112L
-#endif // !_WIN32
+#endif // !_MSC_VER
 
   return "Unknown error";
 }
 
 
 void SysError::set(int code) {
-#ifdef _WIN32
+#ifdef _MSC_VER
   SetLastError((DWORD)code);
 #else
   errno = code;
@@ -101,7 +101,7 @@ void SysError::set(int code) {
 
 
 int SysError::get() {
-#ifdef _WIN32
+#ifdef _MSC_VER
   return (int)GetLastError();
 #else
   return errno;

@@ -33,7 +33,7 @@
 #include "Glob.h"
 #include <cbang/os/SystemUtilities.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #include <direct.h>
@@ -48,7 +48,7 @@ using namespace std;
 using namespace cb;
 
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 string Glob::sep = "\\";
 #else
 string Glob::sep = "/";
@@ -57,7 +57,7 @@ string Glob::sep = "/";
 
 namespace cb {
   struct glob_data_t {
-#ifdef _WIN32
+#ifdef _MSC_VER
     WIN32_FIND_DATA FindFileData;
     HANDLE f;
     bool next;
@@ -70,7 +70,7 @@ namespace cb {
 
 
 Glob::Glob(const string &pattern) : pattern(pattern), data(new glob_data_t) {
-#ifdef _WIN32
+#ifdef _MSC_VER
   data->f = FindFirstFile(pattern.c_str(), &data->FindFileData);
   data->next = data->f != INVALID_HANDLE_VALUE;
 
@@ -82,7 +82,7 @@ Glob::Glob(const string &pattern) : pattern(pattern), data(new glob_data_t) {
 
 
 Glob::~Glob() {
-#ifdef _WIN32
+#ifdef _MSC_VER
   FindClose(data->f);
 
 #else
@@ -95,7 +95,7 @@ Glob::~Glob() {
 
 
 bool Glob::hasNext() const {
-#ifdef _WIN32
+#ifdef _MSC_VER
   return data->next;
 #else
   return data->i < data->files.gl_pathc;
@@ -104,7 +104,7 @@ bool Glob::hasNext() const {
 
 
 bool Glob::isDir() const {
-#ifdef _WIN32
+#ifdef _MSC_VER
   return data->FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
 #else
   return SystemUtilities::isDirectory(data->files.gl_pathv[data->i]);
@@ -113,7 +113,7 @@ bool Glob::isDir() const {
 
 
 string Glob::next() {
-#ifdef _WIN32
+#ifdef _MSC_VER
   string dir = SystemUtilities::dirname(pattern);
   string path = data->FindFileData.cFileName;
 

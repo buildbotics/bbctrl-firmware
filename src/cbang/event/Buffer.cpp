@@ -42,7 +42,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include <io.h>
 #endif
 
@@ -200,11 +200,7 @@ void Buffer::add(const char *s) {
 
 
 void Buffer::add(const string &s) {
-#ifndef WIN32
-  add(s.data(), s.length());
-#else
-  add(s.c_str(), s.length());
-#endif
+  add(CBANG_CPP_TO_C_STR(s), s.length());
 }
 
 
@@ -237,9 +233,5 @@ void Buffer::prepend(const char *s) {
 
 
 void Buffer::prepend(const string &s) {
-#ifndef WIN32
-  prepend(s.data(), s.length());
-#else
-  prepend(s.c_str(), s.length());
-#endif
+  prepend(CBANG_CPP_TO_C_STR(s), s.length());
 }

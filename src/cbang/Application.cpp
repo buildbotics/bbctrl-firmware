@@ -65,7 +65,7 @@
 #include <sstream>
 #include <set>
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <sys/resource.h>
 #endif
 
@@ -89,14 +89,14 @@ Application::Application(const string &name, hasFeature_t hasFeature) :
   configured(false), quit(false), startTime(Timer::now()) {
 
   // Core dumps
-#if defined(DEBUG) && !defined(_WIN32)
+#if defined(DEBUG) && !defined(_MSC_VER)
   // Enable full core dumps in debug mode
   struct rlimit rlim;
   rlim.rlim_cur = rlim.rlim_max = RLIM_INFINITY;
   setrlimit(RLIMIT_CORE, &rlim);
 #endif
 
-#ifndef _WIN32
+#ifndef _MSC_VER
   // Ignore SIGPIPE by default
   if (hasFeature(FEATURE_SIGNAL_HANDLER))
     SignalManager::instance().ignoreSignal(SIGPIPE);

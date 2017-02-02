@@ -174,7 +174,7 @@ namespace cb {
 }
 
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_MSC_VER) && !defined(__MINGW32__)
 #define CBANG_CPP_TO_C_STR(x) (x).c_str()
 #else
 #define CBANG_CPP_TO_C_STR(x) (x).data()

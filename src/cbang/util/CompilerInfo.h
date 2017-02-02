@@ -39,7 +39,7 @@
 #ifdef __VERSION__
 #define COMPILER CBANG_SSTR(__VERSION__ << " " << __INTEL_COMPILER)
 
-#elif _WIN32
+#elif _MSC_VER
 #define COMPILER \
   CBANG_SSTR("Intel(R) C++ MSVC " << _MSC_VER << " mode " << __INTEL_COMPILER)
 #else

@@ -45,7 +45,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#if defined(_WIN32)
+#if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -62,12 +62,12 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 
-#else // !_WIN32 && !__APPLE__
+#else // !_MSC_VER && !__APPLE__
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #endif
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <unistd.h>
 #endif
 
@@ -83,7 +83,7 @@ SystemInfo::SystemInfo(Inaccessible) {
 
 
 uint32_t SystemInfo::getCPUCount() const {
-#if defined(WIN32)
+#if defined(_MSC_VER)
   SYSTEM_INFO sysinfo;
   GetSystemInfo(&sysinfo);
   return sysinfo.dwNumberOfProcessors;
@@ -111,7 +111,7 @@ uint32_t SystemInfo::getCPUCount() const {
 
 
 uint64_t SystemInfo::getMemoryInfo(memory_info_t type) const {
-#if defined(_WIN32)
+#if defined(_MSC_VER)
   MEMORYSTATUSEX info;
 
   info.dwLength = sizeof(MEMORYSTATUSEX);
@@ -179,7 +179,7 @@ uint64_t SystemInfo::getFreeDiskSpace(const string &path) {
 
 
 Version SystemInfo::getOSVersion() const {
-#if defined(_WIN32)
+#if defined(_MSC_VER)
   OSVERSIONINFO info;
   ZeroMemory(&info, sizeof(info));
   info.dwOSVersionInfoSize = sizeof(info);
@@ -239,7 +239,7 @@ void SystemInfo::add(Info &info) {
 
 void SystemInfo::detectThreads() {
   // Threads type
-#ifdef _WIN32
+#ifdef _MSC_VER
   threadsType = ThreadsType::WINDOWS_THREADS;
 
 #elif __linux__

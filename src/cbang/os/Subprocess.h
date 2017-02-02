@@ -80,7 +80,7 @@ namespace cb {
     bool getWasKilled() const {return wasKilled;}
     bool getDumpedCore() const {return dumpedCore;}
 
-#ifdef _WIN32
+#ifdef _MSC_VER
     typedef void *handle_t;
 #else
     typedef int handle_t;

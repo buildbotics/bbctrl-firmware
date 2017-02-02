@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #include <io.h>
@@ -66,7 +66,7 @@ void UnixFile::open(const string &path, ios::openmode mode, int perm) {
 
   if (is_open()) BOOST_IOS_THROWS("File already open");
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   perm &= 0600; // Windows only understands these permissions.
 #endif
 
@@ -186,7 +186,7 @@ int UnixFile::openModeToFlags(ios::openmode mode) {
     flags |= O_CREAT; // The default for ios::out
   }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   flags |= O_BINARY; // Always use binary mode
   flags |= O_NOINHERIT; // Don't inherit handles by default
 #endif

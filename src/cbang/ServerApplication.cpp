@@ -68,7 +68,7 @@ ServerApplication::ServerApplication(const string &name,
               )->setType(Option::STRING_TYPE);
 
   options.pushCategory("Process Control");
-#ifndef _WIN32
+#ifndef _MSC_VER
   options.add("run-as", "Run as specified user");
   options.add("fork", "Run in background.")->setDefault(false);
 #endif
@@ -84,7 +84,7 @@ ServerApplication::ServerApplication(const string &name,
 
   options.add("daemon", 0, this, &ServerApplication::daemonAction,
               "Short for --pid --service --respawn --log=''"
-#ifndef _WIN32
+#ifndef _MSC_VER
               " --fork"
 #endif
               )->setDefault(false);
@@ -105,7 +105,7 @@ int ServerApplication::init(int argc, char *argv[]) {
   if (!hasFeature(FEATURE_SERVER)) return ret;
 
   if (!options["child"].toBoolean()) {
-#ifndef _WIN32
+#ifndef _MSC_VER
     if (options["fork"].toBoolean()) {
       // Note, all threads must be stopped before daemonize() forks and
       // SignalManager runs in a thread.
@@ -124,7 +124,7 @@ int ServerApplication::init(int argc, char *argv[]) {
     }
   }
 
-#ifndef _WIN32
+#ifndef _MSC_VER
   try {
     if (options["run-as"].hasValue()) {
       LOG_INFO(1, "Switching to user " << options["run-as"]);
@@ -134,7 +134,7 @@ int ServerApplication::init(int argc, char *argv[]) {
 #endif
 
   if (!options["child"].toBoolean() && options["respawn"].toBoolean()) {
-#ifndef _WIN32
+#ifndef _MSC_VER
     // Child restart handler
     SignalManager::instance().addHandler(SIGUSR1, this);
 #endif
@@ -235,7 +235,7 @@ int ServerApplication::daemonAction() {
   if (!options["child"].toBoolean()) {
     if (options["daemon"].toBoolean()) {
       options["respawn"].set(true);
-#ifndef _WIN32
+#ifndef _MSC_VER
       options["fork"].set(true);
 #endif
       options["pid"].set(true);
@@ -251,7 +251,7 @@ int ServerApplication::daemonAction() {
 
 
 void ServerApplication::handleSignal(int sig) {
-#ifndef _WIN32
+#ifndef _MSC_VER
   // Restart child
   if (hasFeature(FEATURE_SERVER) && sig == SIGUSR1) {
     restartChild = true;

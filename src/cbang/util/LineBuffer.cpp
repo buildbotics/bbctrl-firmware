@@ -35,7 +35,7 @@
 #include <cbang/Exception.h>
 #include <cbang/os/SysError.h>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include <io.h>
 #define ssize_t int
 

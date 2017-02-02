@@ -46,7 +46,7 @@ using namespace cb;
 
 namespace cb {
   struct Condition::private_t {
-#ifdef _WIN32
+#ifdef _MSC_VER
     // Number of waiting threads.
     int waitersCount;
 
@@ -74,7 +74,7 @@ namespace cb {
 
 
 Condition::Condition() : p(new Condition::private_t) {
-#ifdef _WIN32
+#ifdef _MSC_VER
   p->sema = CreateSemaphore(0, 0, 0x7fffffff, 0);
   InitializeCriticalSection(&p->waitersCountLock);
   p->waitersDone = CreateEvent(0, FALSE, FALSE, 0);
@@ -87,7 +87,7 @@ Condition::Condition() : p(new Condition::private_t) {
 
 
 Condition::~Condition() {
-#ifndef _WIN32 // pthreads
+#ifndef _MSC_VER // pthreads
   if (p) pthread_cond_destroy(&p->cond);
 #endif
 
@@ -97,7 +97,7 @@ Condition::~Condition() {
 void Condition::wait() {
   if (!isLocked()) THROW("Condition not locked!");
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   timedWait(-1);
 
 #else // pthreads
@@ -110,7 +110,7 @@ void Condition::wait() {
 bool Condition::timedWait(double timeout) {
   if (!isLocked()) THROW("Condition not locked!");
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   // Windows Server 2003 and Windows XP/2000 and eariler do not support
   // condition variables.  This implementation uses an algorithm described
   // in the pthreads-win32 source.
@@ -169,7 +169,7 @@ bool Condition::timedWait(double timeout) {
 void Condition::signal(bool broadcast) {
   SmartLock lock(this);
 
-#ifdef _WIN32
+#ifdef _MSC_VER
   if (broadcast) {
     // This is needed to ensure that waitersCount and wasBroadcast are
     // consistent relative to each other.

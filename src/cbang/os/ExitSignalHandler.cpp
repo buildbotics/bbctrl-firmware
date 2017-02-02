@@ -43,11 +43,11 @@ using namespace std;
 using namespace cb;
 
 
-#ifdef _WIN32
-#define USE_WIN32_CONSOLE_CTRL_HANDLER
+#ifdef _MSC_VER
+#define USE_MSC_VER_CONSOLE_CTRL_HANDLER
 #endif
 
-#ifdef USE_WIN32_CONSOLE_CTRL_HANDLER
+#ifdef USE_MSC_VER_CONSOLE_CTRL_HANDLER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 static BOOL WINAPI ConsoleCtrlHandler(DWORD dwCtrlType) {
@@ -76,11 +76,11 @@ static BOOL WINAPI ConsoleCtrlHandler(DWORD dwCtrlType) {
 void ExitSignalHandler::catchExitSignals() {
   SignalManager &signalManager = SignalManager::instance();
 
-#ifdef USE_WIN32_CONSOLE_CTRL_HANDLER
+#ifdef USE_MSC_VER_CONSOLE_CTRL_HANDLER
   SetConsoleCtrlHandler(ConsoleCtrlHandler, true);
 
 #else
-#ifndef _WIN32
+#ifndef _MSC_VER
   signalManager.addHandler(SIGHUP, this);
   signalManager.addHandler(SIGQUIT, this);
 #endif
@@ -93,13 +93,13 @@ void ExitSignalHandler::catchExitSignals() {
 
 
 void ExitSignalHandler::ignoreExitSignals() {
-#ifdef USE_WIN32_CONSOLE_CTRL_HANDLER
+#ifdef USE_MSC_VER_CONSOLE_CTRL_HANDLER
   SetConsoleCtrlHandler(ConsoleCtrlHandler, false);
 
 #else
   SignalManager &signalManager = SignalManager::instance();
 
-#ifndef _WIN32
+#ifndef _MSC_VER
   signalManager.removeHandler(SIGHUP);
   signalManager.removeHandler(SIGQUIT);
 #endif

@@ -88,7 +88,7 @@ ostream &Exception::print(ostream &stream, unsigned level) const {
   return stream;
 }
 
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_MSC_VER) && !defined(__MINGW32__)
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -125,10 +125,10 @@ extern "C" void convert_win32_exception(unsigned x, EXCEPTION_POINTERS *e){
 
   THROWS("Win32: 0x" << hex << x << ": " << msg);
 }
-#endif // _WIN32
+#endif // _MSC_VER
 
 void Exception::init() {
-#if defined(_WIN32) && !defined(__MINGW32__)
+#if defined(_MSC_VER) && !defined(__MINGW32__)
   _set_se_translator(convert_win32_exception);
 #endif
 

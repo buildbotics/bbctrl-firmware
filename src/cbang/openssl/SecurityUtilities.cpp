@@ -37,13 +37,13 @@
 
 #include <iostream>
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
-#else // _WIN32
+#else // _MSC_VER
 #include <termios.h>
-#endif // _WIN32
+#endif // _MSC_VER
 
 #include <stdio.h>
 
@@ -55,7 +55,7 @@ namespace cb {
   namespace SecurityUtilities {
 
     string getpass(const string &msg) {
-#ifdef _WIN32
+#ifdef _MSC_VER
       HANDLE handle = GetStdHandle(STD_INPUT_HANDLE);
 
       DWORD mode;
@@ -92,7 +92,7 @@ namespace cb {
         }
       } CBANG_CATCH_ERROR;
 
-#ifdef _WIN32
+#ifdef _MSC_VER
       if (!SetConsoleMode(handle, mode))
         THROWS("Failed to restore echo after password entry: " << SysError());
 

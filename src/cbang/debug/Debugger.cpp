@@ -41,7 +41,7 @@
 
 #include <stdlib.h>
 
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
@@ -98,7 +98,7 @@ StackTrace Debugger::getStackTrace() {
 
 
 string Debugger::getExecutableName() {
-#ifndef _WIN32
+#ifndef _MSC_VER
   char path[4096];
   ssize_t end;
 
