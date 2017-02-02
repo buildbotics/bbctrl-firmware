@@ -2,6 +2,7 @@
 *.slo
 *.lo
 *.o
+*.obj
 
 # Compiled Dynamic libraries
 *.so
@@ -11,6 +12,11 @@
 *.lai
 *.la
 *.a
+*.lib
+
+# Windows Compiled files
+*.exe
+*.pdb
 
 # Compiled Python
 *.pyc
