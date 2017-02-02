@@ -32,6 +32,7 @@
 
 #include "Context.h"
 
+using namespace cb;
 using namespace cb::gv8;
 using namespace std;
 
