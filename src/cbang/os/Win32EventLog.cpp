@@ -58,7 +58,7 @@ Win32EventLog::~Win32EventLog() {
 
 void Win32EventLog::log(string &message, unsigned type, unsigned category,
                         unsigned id) const {
-  LPCWSTR strs[2] = {source.c_str(), message.c_str()};
+  LPCWSTR strs[2] = {(LPCWSTR)source.c_str(), (LPCWSTR)message.c_str()};
   ReportEvent(handle, (WORD)type, (WORD)category, (DWORD)id, 0, 2, 0 strs, 0);
 }
 
