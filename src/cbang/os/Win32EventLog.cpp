@@ -36,6 +36,9 @@
 
 #include <cbang/Exception.h>
 
+#define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
+#include <windows.h>
+
 using namespace cb;
 using namespace std;
 
