@@ -320,7 +320,8 @@ if env['PLATFORM'] != 'win32':
 
 
 # Warnings
-env.Append(CCFLAGS = ["-Wno-parentheses-equality", "-Wno-unused-function"])
+if env['compiler_mode'] == 'gcc':
+    env.Append(CCFLAGS = ["-Wno-parentheses-equality", "-Wno-unused-function"])
 
 # Source
 src = Glob('src/*.c')
