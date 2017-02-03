@@ -46,11 +46,11 @@
 
 #include <string.h> // For memset()
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
-#else // _MSC_VER
+#else // _WIN32
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -58,7 +58,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 #include <boost/version.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -77,7 +77,7 @@ using namespace std;
 
 
 namespace {
-#ifdef _MSC_VER
+#ifdef _WIN32
   HANDLE OpenNUL() {
     // Setup security attributes for pipe inheritance
     SECURITY_ATTRIBUTES sAttrs;
@@ -94,7 +94,7 @@ namespace {
   struct Pipe {
     bool toChild;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     HANDLE handles[2];
 #else
     int handles[2];
@@ -111,7 +111,7 @@ namespace {
 
 
     void create() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       // Setup security attributes for pipe inheritance
       SECURITY_ATTRIBUTES sAttrs;
       memset(&sAttrs, 0, sizeof(SECURITY_ATTRIBUTES));
@@ -135,7 +135,7 @@ namespace {
     }
 
 
-#ifndef _MSC_VER
+#ifndef _WIN32
     void inChildProc(int target = -1) {
       // Close parent end
       ::close(handles[toChild ? 1 : 0]);
@@ -150,7 +150,7 @@ namespace {
     void close() {
       for (unsigned i = 0; i < 2; i++)
         if (closeHandles[i]) {
-#ifdef _MSC_VER
+#ifdef _WIN32
           CloseHandle(handles[i]);
 #else
           ::close(handles[i]);
@@ -180,7 +180,7 @@ namespace {
 
 
 struct Subprocess::Private {
-#ifdef _MSC_VER
+#ifdef _WIN32
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
 #else
@@ -190,7 +190,7 @@ struct Subprocess::Private {
   vector<Pipe> pipes;
 
   Private() {
-#ifdef _MSC_VER
+#ifdef _WIN32
     memset(&pi, 0, sizeof(PROCESS_INFORMATION));
     memset(&si, 0, sizeof(STARTUPINFO));
 #else
@@ -224,12 +224,12 @@ bool Subprocess::isRunning() {
 
 
 uint64_t Subprocess::getPID() const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return p->pi.dwProcessId;
 
-#else // _MSC_VER
+#else // _WIN32
   return p->pid;
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
@@ -285,7 +285,7 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
     if (flags & REDIR_STDOUT) p->pipes[1].create();
     if (flags & REDIR_STDERR) p->pipes[2].create();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     // Clear PROCESS_INFORMATION
     memset(&p->pi, 0, sizeof(PROCESS_INFORMATION));
 
@@ -388,7 +388,7 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
       if (ret == (int)WAIT_FAILED) THROW("Wait failed");
     }
 
-#else // _MSC_VER
+#else // _WIN32
     // Convert args
     vector<char *> args;
     for (unsigned i = 0; i < _args.size(); i++)
@@ -450,7 +450,7 @@ void Subprocess::exec(const vector<string> &_args, unsigned flags,
 
     } else if (p->pid == -1)
       THROWS("Failed to spawn subprocess: " << SysError());
-#endif // _MSC_VER
+#endif // _WIN32
 
   } catch (...) {
     closeHandles();
@@ -482,11 +482,11 @@ void Subprocess::exec(const string &command, unsigned flags,
 void Subprocess::interrupt() {
   if (!running) THROW("Process not running!");
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, p->pi.dwProcessId)) return;
-#else // _MSC_VER
+#else // _WIN32
   if (!(signalGroup ? ::killpg : ::kill)((pid_t)getPID(), SIGINT)) return;
-#endif // _MSC_VER
+#endif // _WIN32
 
   THROWS("Failed to interrupt process " << getPID() << ": " << SysError());
 }
@@ -495,7 +495,7 @@ void Subprocess::interrupt() {
 bool Subprocess::kill(bool nonblocking) {
   if (!running) THROW("Process not running!");
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   HANDLE h = p->pi.hProcess;
   if (!h) h = OpenProcess(PROCESS_TERMINATE, false, getPID());
   if (!h || !TerminateProcess(h, -1)) return false;
@@ -524,7 +524,7 @@ int Subprocess::wait(bool nonblocking) {
     if (flags & SystemUtilities::PROCESS_DUMPED_CORE) dumpedCore = true;
 
   } catch (...) {
-#ifndef _MSC_VER
+#ifndef _WIN32
     // Linux Threads, used in 2.4 kernels, uses a different process for each
     // thread.  Because of this you cannot reap the child process from a
     // thread other than the one the child process was started from.  This
@@ -533,7 +533,7 @@ int Subprocess::wait(bool nonblocking) {
     // will reap the process later.
     if (SystemInfo::instance().getThreadsType() ==
         ThreadsType::LINUX_THREADS && errno == ECHILD) return 0;
-#endif // _MSC_VER
+#endif // _WIN32
 
     closeProcessHandles();
     running = false;
@@ -647,7 +647,7 @@ string Subprocess::assemble(const vector<string> &args) {
 
 
 void Subprocess::closeProcessHandles() {
-#ifdef _MSC_VER
+#ifdef _WIN32
   // Close process & thread handles
   if (p->pi.hProcess) {CloseHandle(p->pi.hProcess); p->pi.hProcess = 0;}
   if (p->pi.hThread) {CloseHandle(p->pi.hThread); p->pi.hThread = 0;}

@@ -33,7 +33,7 @@
 #ifndef CBANG_PACKED_H
 #define CBANG_PACKED_H
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #define PACK(DECL) __pragma(pack(push, 1)) DECL __pragma(pack(pop))
 #else
 #define PACK(DECL) DECL __attribute__((packed))

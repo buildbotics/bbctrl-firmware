@@ -78,7 +78,7 @@ Logger::Logger(Inaccessible) :
   threadPrefixStorage(new ThreadLocalStorage<string>), screenStream(&cout),
   idWidth(1), lastDate(Time::now()) {
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   logCRLF = true;
   logColor = false; // Windows does not handle ANSI color codes well
 #endif

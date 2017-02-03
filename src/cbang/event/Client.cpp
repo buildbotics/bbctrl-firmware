@@ -68,7 +68,7 @@ Client::call(const URI &uri, unsigned method, const char *data, unsigned length,
 SmartPointer<PendingRequest>
 Client::call(const URI &uri, unsigned method, const string &data,
              const SmartPointer<HTTPHandler> &cb) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return call(uri, method, data.c_str(), data.length(), cb);
 #else
   return call(uri, method, data.data(), data.length(), cb);

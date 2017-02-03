@@ -33,7 +33,7 @@
 #ifndef CBANG_TIMER_H
 #define CBANG_TIMER_H
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #if _MSC_VER < 1900
 struct timeval {
   long tv_sec;
@@ -47,10 +47,10 @@ struct timeval;
 #undef max
 #undef min
 
-#else // _MSC_VER
+#else // _WIN32
 #include <time.h>
 #include <sys/time.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 
 namespace cb {
@@ -103,10 +103,10 @@ namespace cb {
 
     static double sleep(double t);
 
-#ifndef _MSC_VER
+#ifndef _WIN32
     static struct timespec toTimeSpec(double t);
     static double toDouble(struct timespec &t);
-#endif // _MSC_VER
+#endif // _WIN32
     static struct timeval toTimeVal(double t);
     static double toDouble(struct timeval &t);
   };

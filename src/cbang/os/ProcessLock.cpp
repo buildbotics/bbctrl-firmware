@@ -41,7 +41,7 @@
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <io.h>
 #define O_CREAT _O_CREAT
 #define O_WRONLY _O_WRONLY

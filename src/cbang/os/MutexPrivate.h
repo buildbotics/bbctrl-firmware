@@ -35,7 +35,7 @@
 
 #include "Mutex.h"
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -45,7 +45,7 @@
 
 namespace cb {
   struct Mutex::private_t {
-#ifdef _MSC_VER
+#ifdef _WIN32
     HANDLE h;
 
 #else // pthreads

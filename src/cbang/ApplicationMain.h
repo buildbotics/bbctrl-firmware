@@ -59,9 +59,9 @@ namespace cb {
     } catch (const Exception &e) {
       std::string msg = SSTR("Exception: " << e CBANG_CATCH_LOCATION);
       CBANG_LOG_ERROR(msg);
-#ifdef _MSC_VER
+#ifdef _WIN32
       Win32EventLog(argv[0]).log(msg);
-#endif // _MSC_VER
+#endif // _WIN32
       if (e.getCode()) return e.getCode();
     }
 

@@ -44,7 +44,7 @@ CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
                     uint32_t _edx) {
   for (int i = 0; i < 4; i++) regs[i] = 0;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #if 1500 < _MSC_VER && (defined(__i386__) || defined(__x86_64__))
   // Note that 64-bit MSVC compiler does not support __asm()
   int cpuInfo[4];
@@ -52,7 +52,7 @@ CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
   for (int i = 0; i < 4; i++) regs[i] = (uint32_t)cpuInfo[i];
 #endif
 
-#else // _MSC_VER
+#else // _WIN32
 
 #if defined(__i386__) && defined(__PIC__)
   asm volatile
@@ -68,7 +68,7 @@ CPUID &CPUID::cpuID(uint32_t _eax, uint32_t _ebx, uint32_t _ecx,
      : "a" (_eax), "b" (_ebx), "c" (_ecx), "d" (_edx));
 #endif
 
-#endif // _MSC_VER
+#endif // _WIN32
 
   return *this;
 }

@@ -148,7 +148,7 @@ void XMLWriter::comment(const string &text) {
 
     switch (*it) {
     case '\r': break;
-#ifdef _MSC_VER
+#ifdef _WIN32
     case '\n': stream.put('\r');
 #endif
     default: stream.put(*it);
@@ -173,7 +173,7 @@ void XMLWriter::indent() {
 void XMLWriter::wrap() {
   if (pretty) {
     if (!startOfLine) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       stream << "\r\n";
 #else
       stream << '\n';
@@ -196,7 +196,7 @@ const string XMLWriter::escape(const string &name) {
     case '"': result += "&quot;"; break;
     case '\'': result += "&apos;"; break;
     case '\r': break;
-#ifdef _MSC_VER
+#ifdef _WIN32
     case '\n': result += "\r\n"; break;
 #endif
     default: result += *it; break;

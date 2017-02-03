@@ -44,7 +44,7 @@
 #include <cbang/Exception.h>
 #include <cbang/String.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include "Winsock.h"
 
 typedef int socklen_t;  // Unix socket length
@@ -55,7 +55,7 @@ typedef int socklen_t;  // Unix socket length
 #define EINPROGRESS WSAEWOULDBLOCK
 #endif
 
-#else // _MSC_VER
+#else // _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -103,7 +103,7 @@ void SocketDefaultImpl::open() {
 void SocketDefaultImpl::setReuseAddr(bool reuse) {
   if (!isOpen()) open();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   BOOL opt = reuse;
 #else
   int opt = reuse;
@@ -119,7 +119,7 @@ void SocketDefaultImpl::setReuseAddr(bool reuse) {
 void SocketDefaultImpl::setBlocking(bool blocking) {
   if (!isOpen()) open();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   u_long on = blocking ? 0 : 1;
   ioctlsocket((socket_t)socket, FIONBIO, &on);
 
@@ -140,7 +140,7 @@ void SocketDefaultImpl::setBlocking(bool blocking) {
 void SocketDefaultImpl::setKeepAlive(bool keepAlive) {
   if (!isOpen()) open();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   BOOL opt = keepAlive;
 #else
   int opt = keepAlive;
@@ -174,7 +174,7 @@ void SocketDefaultImpl::setReceiveBuffer(int size) {
 void SocketDefaultImpl::setSendTimeout(double timeout) {
   if (!isOpen()) open();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   DWORD t = 1000 * timeout; // ms
 #else
   struct timeval t = Timer::toTimeVal(timeout);
@@ -189,7 +189,7 @@ void SocketDefaultImpl::setSendTimeout(double timeout) {
 void SocketDefaultImpl::setReceiveTimeout(double timeout) {
   if (!isOpen()) open();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   DWORD t = 1000 * timeout; // ms
 #else
   struct timeval t = Timer::toTimeVal(timeout);
@@ -227,7 +227,7 @@ void SocketDefaultImpl::listen(int backlog) {
       SOCKET_ERROR)
     THROW("listen failed");
 
-#ifndef _MSC_VER
+#ifndef _WIN32
   fcntl(socket, F_SETFD, FD_CLOEXEC);
 #endif
 }
@@ -305,7 +305,7 @@ streamsize SocketDefaultImpl::write(const char *data, streamsize length,
   LOG_DEBUG(5, "send() = " << ret << " of " << length);
 
   if (ret < 0) {
-#ifdef _MSC_VER
+#ifdef _WIN32
     // NOTE: send() can return -1 even when there is no error
     if (!err || err == WSAEWOULDBLOCK || err == WSAENOBUFS) return 0;
 #else
@@ -338,7 +338,7 @@ streamsize SocketDefaultImpl::read(char *data, streamsize length,
 
   if (!ret) return -1; // Orderly shutdown
   if (ret < 0) {
-#ifdef _MSC_VER
+#ifdef _WIN32
     // NOTE: Windows can return -1 even when there is no error
     if (!err || err == WSAEWOULDBLOCK || err == WSAETIMEDOUT) return 0;
 #else
@@ -364,7 +364,7 @@ void SocketDefaultImpl::close() {
     connected = false;
   }
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   closesocket((SOCKET)socket);
 #else
   ::close(socket);
@@ -388,7 +388,7 @@ void SocketDefaultImpl::capture(const IPAddress &addr, bool incoming) {
   string prefix = dir + "/" + String(id) + "-" + (incoming ? "in" : "out") +
     "-" + addr.toString() + "-";
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   prefix = String::replace(prefix, ':', '-');
 #endif
 

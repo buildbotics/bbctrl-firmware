@@ -30,7 +30,7 @@
 
 \******************************************************************************/
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 
 #include "Win32EventLog.h"
 
@@ -64,4 +64,4 @@ void Win32EventLog::log(string &message, unsigned type, unsigned category,
   ReportEvent(handle, (WORD)type, (WORD)category, (DWORD)id, 0, 2, 0, strs, 0);
 }
 
-#endif // _MSC_VER
+#endif // _WIN32

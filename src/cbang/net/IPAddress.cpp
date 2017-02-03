@@ -43,7 +43,7 @@
 
 #include <cbang/os/SysError.h>
 
-#if _MSC_VER
+#ifdef _WIN32
 #include <ws2tcpip.h>
 #include <wspiapi.h>
 

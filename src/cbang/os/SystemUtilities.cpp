@@ -54,7 +54,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 #include <io.h>
@@ -62,7 +62,7 @@
 #include <process.h>
 #define getpid _getpid
 
-#else // _MSC_VER
+#else // _WIN32
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
@@ -70,7 +70,7 @@
 #include <sys/times.h>
 #include <sys/wait.h>
 #include <pwd.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 #ifdef __FreeBSD__
 #include <sys/sysctl.h>
@@ -103,7 +103,7 @@ namespace fs = boost::filesystem;
 
 namespace cb {
   namespace SystemUtilities {
-#ifdef _MSC_VER
+#ifdef _WIN32
     const string path_separators  = "/\\";
     const char path_separator  = '\\';
     const char path_delimiter  = ';';
@@ -253,18 +253,18 @@ namespace cb {
         for (i = 1; i < path.length() && path[i] != '/'; i++)
           name.append(1, path[i]);
 
-#ifdef _MSC_VER
+#ifdef _WIN32
         if (name.empty()) {
-#endif // _MSC_VER
+#endif // _WIN32
 
           string home = getUserHome(name);
           if (i < path.length())
             path = home + string(1, path_separator) + path.substr(i + 1);
           else path = home;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
         }
-#endif // _MSC_VER
+#endif // _WIN32
       }
 
       fs::path p = fs::system_complete(path);
@@ -353,7 +353,7 @@ namespace cb {
 
 
     string getExecutablePath() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       // Get module path
       TCHAR path[MAX_PATH];
       if (!GetModuleFileName(0, path, MAX_PATH))
@@ -477,7 +477,7 @@ namespace cb {
 
     string getcwd() {
       char buffer[4096];
-#ifdef _MSC_VER
+#ifdef _WIN32
       return _getcwd(buffer, 4096);
 #else
       return ::getcwd(buffer, 4096);
@@ -486,7 +486,7 @@ namespace cb {
 
 
     void chdir(const string &path) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       if (::_chdir(path.c_str()) < 0)
 #else
       if (::chdir(path.c_str()) < 0)
@@ -507,7 +507,7 @@ namespace cb {
       strcpy(buf.get(), parent.c_str());
       strcat(buf.get(), "/XXXXXX");
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       if (!_mktemp(buf.get()) || !fs::create_directory(buf.get()))
 #else
         if (!mkdtemp(buf.get()))
@@ -609,7 +609,7 @@ namespace cb {
     void rename(const string &src, const string &dst) {
       bool fail;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       fail = !MoveFileEx(src.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING);
 #else
       fail = ::rename(src.c_str(), dst.c_str());
@@ -680,7 +680,7 @@ namespace cb {
     }
 
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     class SmartWin32Handle {
       HANDLE h;
     public:
@@ -697,7 +697,7 @@ namespace cb {
         THROWS("Failed to open process " << pid << ": " << SysError());
       return h;
     }
-#endif // _MSC_VER
+#endif // _WIN32
 
 
 #define IS_SET(x, y) (((x) & (y)) == (y))
@@ -718,9 +718,9 @@ namespace cb {
         flags |= O_CREAT; // The default for ios::out
       }
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       if (IS_SET(mode, ios::binary)) flags |= O_BINARY;
-#endif // _MSC_VER
+#endif // _WIN32
 
       return flags;
     }
@@ -741,7 +741,7 @@ namespace cb {
     void setPriority(ProcessPriority priority, uint64_t pid) {
       if (priority == ProcessPriority::PRIORITY_INHERIT) return;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       if (!pid) pid = (uint64_t)GetCurrentProcessId();
 
       DWORD pclass = Win32Utilities::priorityToClass(priority);
@@ -783,7 +783,7 @@ namespace cb {
 
 
     bool pidAlive(uint64_t pid) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       try {
         SmartWin32Handle h = OpenProcess(PROCESS_QUERY_INFORMATION, pid);
 
@@ -801,7 +801,7 @@ namespace cb {
 
 
     double getCPUTime() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       FILETIME createTime, exitTime, kernelTime, userTime;
       if (!GetProcessTimes(GetCurrentProcess(), &createTime, &exitTime,
                            &kernelTime, &userTime))
@@ -831,7 +831,7 @@ namespace cb {
     bool waitPID(uint64_t pid, int *returnCode, bool nonblocking, int *flags) {
       if (flags) *flags = 0;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       SmartWin32Handle h =
         OpenProcess(PROCESS_QUERY_INFORMATION | SYNCHRONIZE, pid);
       if (!h) THROWS("Failed to access PID " << pid << ": " << SysError());
@@ -854,7 +854,7 @@ namespace cb {
       default: THROWS("Failed to wait for PID " << pid << ": " << SysError());
       }
 
-#else // _MSC_VER
+#else // _WIN32
       int status = 0;
       int retVal = waitpid((pid_t)pid, &status, nonblocking ? WNOHANG : 0);
 
@@ -876,24 +876,24 @@ namespace cb {
       } else return false; // Still running
 
       return true;
-#endif // _MSC_VER
+#endif // _WIN32
     }
 
 
     bool killPID(uint64_t pid, bool group) {
       try {
 
-#ifdef _MSC_VER
+#ifdef _WIN32
         SmartWin32Handle h = OpenProcess(PROCESS_TERMINATE, pid);
         if (TerminateProcess(h, -1)) return true;
 
-#else // _MSC_VER
+#else // _WIN32
         int err;
         if (group) err = ::killpg((pid_t)pid, SIGKILL);
         else err = ::kill((pid_t)pid, SIGKILL);
 
         if (!err) return true;
-#endif // _MSC_VER
+#endif // _WIN32
 
       } catch (const Exception &e) {} // Ignore
 
@@ -902,7 +902,7 @@ namespace cb {
 
 
     void setUser(const string &user) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       THROW("setUser() not supported on Windows systems.");
 #else
       unsigned uid;
@@ -927,7 +927,7 @@ namespace cb {
 
 
     void interruptProcessGroup() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, 0);
 #else
       ::kill(0, SIGINT);
@@ -936,9 +936,9 @@ namespace cb {
 
 
     void daemonize() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       THROW("Daemonize not supported in Windows");
-#else // _MSC_VER
+#else // _WIN32
 
       // Already a daemon
       if (::getppid() == 1) return;
@@ -961,7 +961,7 @@ namespace cb {
       (void)::freopen("/dev/null", "r", stdin);
       (void)::freopen("/dev/null", "w", stdout);
       (void)::freopen("/dev/null", "w", stderr);
-#endif // _MSC_VER
+#endif // _WIN32
     }
 
 
@@ -1023,7 +1023,7 @@ namespace cb {
     void truncate(const string &path, unsigned long length) {
       bool failed;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       int fd = ::open(path.c_str(), O_WRONLY);
 
       if (fd != -1) {
@@ -1045,7 +1045,7 @@ namespace cb {
     void chmod(const string &path, unsigned mode) {
       bool fail;
 
-      #ifdef _MSC_VER
+      #ifdef _WIN32
       if (isDirectory(path)) return;
       fail = _chmod(path.c_str(), mode & (_S_IWRITE | _S_IREAD)) != 0;
       #else
@@ -1061,11 +1061,11 @@ namespace cb {
     string getUserHome(const string &name) {
       if (name.empty()) return getenv("HOME") ? getenv("HOME") : "";
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       // TODO implement for Windows
       THROWS("function not yet implemented in Windows");
 
-#else // _MSC_VER
+#else // _WIN32
       struct passwd u;
       char buffer[4096];
       struct passwd *result;
@@ -1076,7 +1076,7 @@ namespace cb {
       if (!result) THROWS("User '" << name << "' does not exist");
 
       return u.pw_dir;
-#endif // _MSC_VER
+#endif // _WIN32
     }
 
 
@@ -1086,7 +1086,7 @@ namespace cb {
 
 
     void setenv(const string &name, const string &value) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       _putenv((name + "=" + value).c_str());
 #else
       ::setenv(name.c_str(), value.c_str(), true);
@@ -1095,7 +1095,7 @@ namespace cb {
 
 
     void unsetenv(const string &name) {
-#ifdef _MSC_VER
+#ifdef _WIN32
       _putenv((name + "=").c_str());
 #else
       ::unsetenv(name.c_str());
@@ -1104,7 +1104,7 @@ namespace cb {
 
 
     void clearenv() {
-#ifdef _MSC_VER
+#ifdef _WIN32
       THROW("clearenv() not supported in Windows");
 #elif __APPLE__
       THROW("clearenv() not supported in OSX");
@@ -1133,7 +1133,7 @@ namespace cb {
     void openURI(const URI &uri) {
       vector<string> cmd;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
       cmd.push_back("start");
 #elif __APPLE__
       cmd.push_back("open");

@@ -51,7 +51,7 @@
 using namespace std;
 using namespace cb;
 
-#if defined(_MSC_VER) && !defined(__MINGW32__)
+#if defined(_WIN32) && !defined(__MINGW32__)
 #define strtoll(p, e, b) _strtoi64(p, e, b)
 #define strtoull(p, e, b) _strtoui64(p, e, b)
 #define strtof(p, e) (float)strtod(p, e)
@@ -588,7 +588,7 @@ string String::hexdump(const char *data, unsigned size) {
 
 
 string String::hexdump(const string &s) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return hexdump(s.c_str(), s.length());
 #else
   return hexdump(s.data(), s.length());

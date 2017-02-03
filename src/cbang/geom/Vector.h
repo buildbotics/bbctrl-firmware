@@ -46,10 +46,10 @@
 #include <algorithm>
 #include <limits>
 
-#if defined(_MSC_VER) && defined(max)
+#if defined(_WIN32) && defined(max)
 #undef max
 #endif
-#if defined(_MSC_VER) && defined(min)
+#if defined(_WIN32) && defined(min)
 #undef min
 #endif
 

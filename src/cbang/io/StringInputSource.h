@@ -40,7 +40,7 @@ namespace cb {
   class StringInputSource : public InputSource {
   public:
     StringInputSource(const std::string &s) :
-#ifdef _MSC_VER
+#ifdef _WIN32
       InputSource(s.c_str(), s.length())
 #else
       InputSource(s.data(), s.length())

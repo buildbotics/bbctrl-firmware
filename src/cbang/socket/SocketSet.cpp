@@ -45,7 +45,7 @@
 
 #include <cbang/os/SysError.h>
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <sys/select.h>
 #include <sys/types.h>
 #endif

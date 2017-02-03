@@ -30,9 +30,9 @@
 
 \******************************************************************************/
 
-#ifdef _MSC_VER
-#ifndef CBANG_MSC_VER_UTILITIES_H
-#define CBANG_MSC_VER_UTILITIES_H
+#ifdef _WIN32
+#ifndef CBANG_WIN32_UTILITIES_H
+#define CBANG_WIN32_UTILITIES_H
 
 #include <cbang/enum/ProcessPriority.h>
 
@@ -46,5 +46,5 @@ namespace cb {
   };
 }
 
-#endif // CBANG_MSC_VER_UTILITIES_H
-#endif // _MSC_VER
+#endif // CBANG_WIN32_UTILITIES_H
+#endif // _WIN32

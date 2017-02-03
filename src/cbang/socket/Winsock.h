@@ -32,7 +32,7 @@
 
 #pragma once
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 
 #ifdef _WINSOCKAPI_
 #error winsock.h already included

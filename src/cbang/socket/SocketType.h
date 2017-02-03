@@ -37,7 +37,7 @@
 
 
 namespace cb {
-#ifdef _MSC_VER
+#ifdef _WIN32
 #ifdef _WIN64
   typedef int64_t socket_t;
 #else

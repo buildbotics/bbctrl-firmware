@@ -39,7 +39,7 @@
 #include <cbang/util/DefaultCatch.h>
 #include <cbang/time/Time.h>
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -77,7 +77,7 @@ struct PowerManagement::private_t {
 #if defined(__APPLE__)
   IOPMAssertionID displayAssertionID;
   IOPMAssertionID systemAssertionID;
-#elif defined(_MSC_VER)
+#elif defined(_WIN32)
 #else
   bool initialized;
   void *display;
@@ -117,7 +117,7 @@ unsigned PowerManagement::getIdleSeconds() {
 void PowerManagement::allowSystemSleep(bool x) {
   if (systemSleepAllowed == x) return;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   systemSleepAllowed = x;
   SetThreadExecutionState(ES_CONTINUOUS |
                           (systemSleepAllowed ? 0 :
@@ -149,7 +149,7 @@ void PowerManagement::allowSystemSleep(bool x) {
 void PowerManagement::allowDisplaySleep(bool x) {
   if (displaySleepAllowed == x) return;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   displaySleepAllowed = x;
   SetThreadExecutionState(ES_CONTINUOUS |
                           (systemSleepAllowed ? 0 :
@@ -185,7 +185,7 @@ void PowerManagement::updateIdleSeconds() {
 
   idleSeconds = 0;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   LASTINPUTINFO lif;
   lif.cbSize = sizeof(LASTINPUTINFO);
   GetLastInputInfo(&lif);
@@ -262,7 +262,7 @@ void PowerManagement::updateBatteryInfo() {
 
   systemOnBattery = systemHasBattery  = false;
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
   SYSTEM_POWER_STATUS status;
 
   if (GetSystemPowerStatus(&status)) {

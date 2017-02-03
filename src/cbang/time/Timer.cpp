@@ -32,7 +32,7 @@
 
 #include <cbang/time/Timer.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <cbang/socket/Winsock.h> // For timeval
 
 #include <time.h>
@@ -93,7 +93,7 @@ bool Timer::every(double secs) {
 
 
 double Timer::now() {
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define EPOCHFILETIME (116444736000000000LL)
   FILETIME ft;
   LARGE_INTEGER li;
@@ -120,7 +120,7 @@ double Timer::now() {
 double Timer::sleep(double t) {
   if (t <= 0) return 0;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   Sleep(1000 * t);
 
 #else
@@ -132,7 +132,7 @@ double Timer::sleep(double t) {
 }
 
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 struct timespec Timer::toTimeSpec(double t) {
   struct timespec tv;
 
@@ -146,7 +146,7 @@ struct timespec Timer::toTimeSpec(double t) {
 double Timer::toDouble(struct timespec &ts) {
   return (double)ts.tv_sec + (double)ts.tv_nsec / 1000000000;
 }
-#endif // ! _MSC_VER
+#endif // !_WIN32
 
 
 struct timeval Timer::toTimeVal(double t) {

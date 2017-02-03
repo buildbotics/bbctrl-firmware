@@ -44,7 +44,7 @@
 
 #include <limits>
 
-#if defined(_MSC_VER) && defined(max)
+#if defined(_WIN32) && defined(max)
 #undef max
 #endif
 

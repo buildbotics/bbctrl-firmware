@@ -44,7 +44,7 @@
 
 #include <exception>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -68,7 +68,7 @@ using namespace cb;
 
 namespace cb {
   struct Thread::private_t {
-#ifdef _MSC_VER
+#ifdef _WIN32
     HANDLE h;
     DWORD id;
 
@@ -79,7 +79,7 @@ namespace cb {
 };
 
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 static DWORD WINAPI start_func(LPVOID t) {
   ((Thread *)t)->starter();
   return 0;
@@ -134,7 +134,7 @@ void Thread::start() {
   exitStatus = 0;
   shutdown = false;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   p->h = CreateThread(0, 0, start_func, this, 0, &p->id);
   int error = !p->h;
 
@@ -147,7 +147,7 @@ void Thread::start() {
 
     string msg = "Unknown error";
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     msg = SysError().toString();
 
 #else
@@ -179,7 +179,7 @@ void Thread::join() {
 void Thread::wait() {
   if (state == THREAD_STOPPED) return;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   WaitForSingleObject(p->h, INFINITE);
   CloseHandle(p->h);
 
@@ -194,7 +194,7 @@ void Thread::wait() {
 void Thread::cancel() {
   stop();
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (TerminateThread(p->h, 0)) state = THREAD_DONE;
 
 #else // pthreads
@@ -204,7 +204,7 @@ void Thread::cancel() {
 
 
 void Thread::kill(int signal) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   TerminateThread(p->h, -1);
 #else
   pthread_kill(p->thread, signal);
@@ -213,7 +213,7 @@ void Thread::kill(int signal) {
 
 
 void Thread::yield() {
-#ifdef _MSC_VER
+#ifdef _WIN32
   SwitchToThread();
 #elif defined(__APPLE__)
   sched_yield();
@@ -224,7 +224,7 @@ void Thread::yield() {
 
 
 uint64_t Thread::self() {
-#ifdef _MSC_VER
+#ifdef _WIN32
   return (uint64_t)GetCurrentThreadId();
 #else
   return (uint64_t)pthread_self();
@@ -261,7 +261,7 @@ void Thread::done() {
   if (destroy) {
     state = THREAD_STOPPED;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
     CloseHandle(p->h);
 #else
     pthread_detach(p->thread);

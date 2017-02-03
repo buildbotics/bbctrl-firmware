@@ -37,7 +37,7 @@
 #include <cbang/Exception.h>
 #include <cbang/Zap.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
@@ -53,7 +53,7 @@ bool DynamicLibrary::enabled = true;
 
 
 struct DynamicLibrary::private_t {
-#ifdef _MSC_VER
+#ifdef _WIN32
   HMODULE handle;
 #else
   void *handle;
@@ -66,7 +66,7 @@ DynamicLibrary::DynamicLibrary(const string &path) :
 
   if (!enabled) THROW("DynamicLibrary disabled globally");
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   pri->handle = LoadLibrary(path.c_str());
   if (!pri->handle)
     THROWS("Failed to open dynamic library '" << path << "': " << SysError());
@@ -82,7 +82,7 @@ DynamicLibrary::DynamicLibrary(const string &path) :
 
 
 DynamicLibrary::~DynamicLibrary() {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (pri->handle) CloseHandle(pri->handle);
 
 #else
@@ -94,7 +94,7 @@ DynamicLibrary::~DynamicLibrary() {
 
 
 void *DynamicLibrary::getSymbol(const string &name) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   void *symbol = (void *)GetProcAddress(pri->handle, name.c_str());
   if (!symbol)
     THROWS("Failed to load dynamic symbol '" << name << "' from library '"

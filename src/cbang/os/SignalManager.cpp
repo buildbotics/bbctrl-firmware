@@ -52,24 +52,24 @@ namespace {
   void sig_handler(int sig) {SignalManager::instance().signal(sig);}
 }
 
-#ifndef _MSC_VER
+#ifndef _WIN32
 #include <unistd.h>
 #include <string.h>
 #endif
 
 struct SignalManager::private_t {
-#ifndef _MSC_VER
+#ifndef _WIN32
   sigset_t currentSet;
   sigset_t nextSet;
   bool linuxThreads;
   bool dirty;
-#endif // _MSC_VER
+#endif // _WIN32
 };
 
 
 SignalManager::SignalManager(Inaccessible) :
   pri(new private_t), enabled(false) {
-#ifndef _MSC_VER
+#ifndef _WIN32
   sigemptyset(&pri->currentSet);
   sigemptyset(&pri->nextSet);
 
@@ -77,7 +77,7 @@ SignalManager::SignalManager(Inaccessible) :
     SystemInfo::instance().getThreadsType() == ThreadsType::LINUX_THREADS;
 
   pri->dirty = false;
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
@@ -91,7 +91,7 @@ void SignalManager::setEnabled(bool x) {
   if (enabled == x) return;
   enabled = x;
 
-#ifndef _MSC_VER
+#ifndef _WIN32
   // Threaded implementation is safer with LinuxThreads, found in
   // kernels <= 2.4, as it guarantees that signals are received only once and
   // avoids some bugs.
@@ -115,7 +115,7 @@ void SignalManager::addHandler(int sig, SignalHandler *handler) {
       THROWS("Signal " << sig << " already has handler.");
   }
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   ::signal(sig, sig_handler);
 
 #else
@@ -134,7 +134,7 @@ void SignalManager::removeHandler(int sig) {
 
   handlers.erase(sig);
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   ::signal(sig, SIG_DFL);
 
 #else
@@ -158,7 +158,7 @@ void SignalManager::signal(int sig) {
 
 
 void SignalManager::run() {
-#ifndef _MSC_VER
+#ifndef _WIN32
   while (true) {
     update();
     {
@@ -169,12 +169,12 @@ void SignalManager::run() {
   }
 
   restore();
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
 void SignalManager::update() {
-#ifndef _MSC_VER
+#ifndef _WIN32
   sigset_t oldSet;
   {
     SmartLock lock(this);
@@ -215,12 +215,12 @@ void SignalManager::update() {
   // Make sure these signals are unblocked for this thread
   pthread_sigmask(SIG_UNBLOCK, &pri->currentSet, 0);
 
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
 void SignalManager::restore() {
-#ifndef _MSC_VER
+#ifndef _WIN32
   // Restore default handlers
   struct sigaction action;
 
@@ -229,12 +229,12 @@ void SignalManager::restore() {
 
   for (int sig = 1; sig < 32; sig++)
     if (sigismember(&pri->currentSet, sig)) sigaction(sig, &action, 0);
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
 void SignalManager::block(int sig) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   THROW("Not supported on Windows");
 
 #else
@@ -247,7 +247,7 @@ void SignalManager::block(int sig) {
 
 
 void SignalManager::unblock(int sig) {
-#ifdef _MSC_VER
+#ifdef _WIN32
   THROW("Not supported on Windows");
 
 #else
@@ -269,7 +269,7 @@ const char *SignalManager::signalString(int sig) {
   case SIGTERM: return "SIGTERM";
   case SIGHUP: return "SIGHUP";
   case SIGQUIT: return "SIGQUIT";
-#ifndef _MSC_VER
+#ifndef _WIN32
   case SIGKILL: return "SIGKILL";
   case SIGPIPE: return "SIGPIPE";
   case SIGALRM: return "SIGALRM";

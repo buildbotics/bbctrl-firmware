@@ -38,7 +38,7 @@
 
 namespace cb {
   namespace Math {
-#if defined(_MSC_VER) && !defined(__MINGW32__)
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <float.h>
 
     // Windows doesn't have round()

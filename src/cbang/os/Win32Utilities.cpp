@@ -30,7 +30,7 @@
 
 \******************************************************************************/
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 
 #include "Win32Utilities.h"
 #include "SysError.h"
@@ -74,4 +74,4 @@ namespace cb {
   };
 };
 
-#endif // _MSC_VER
+#endif // _WIN32

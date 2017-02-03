@@ -39,16 +39,16 @@
 
 #include <cbang/time/Timer.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
-#else // _MSC_VER
+#else // _WIN32
 // Posix semaphores
 #include <fcntl.h> // For O_* constants
 #include <semaphore.h>
 #include <errno.h>
-#endif // _MSC_VER
+#endif // _WIN32
 
 #ifdef __APPLE__
 #include <uuid/uuid.h>
@@ -60,14 +60,14 @@ using namespace cb;
 
 namespace cb {
   struct Semaphore::private_t {
-#ifdef _MSC_VER
+#ifdef _WIN32
     HANDLE sem;
-#else // _MSC_VER
+#else // _WIN32
     sem_t *sem;
 #ifdef __APPLE__
     char name2[39];
 #endif
-#endif // _MSC_VER
+#endif // _WIN32
   };
 }
 
@@ -75,14 +75,14 @@ namespace cb {
 Semaphore::Semaphore(const string &name, unsigned count, unsigned mode) :
   p(new private_t), name(name) {
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   // TODO use 'mode' to create SECURITY_ATTRIBUTES
   p->sem =
     CreateSemaphore(0, count, 1 << 30, isNamed() ? name.c_str(): 0);
   if (p->sem == 0)
     THROWS("Failed to create Semaphore: " << SysError());
 
-#else // _MSC_VER
+#else // _WIN32
   if (isNamed()) {
     p->sem = sem_open(name.c_str(), O_CREAT, (mode_t)mode, count);
     if (p->sem == SEM_FAILED)
@@ -106,15 +106,15 @@ Semaphore::Semaphore(const string &name, unsigned count, unsigned mode) :
       THROWS("Failed to initialize Semaphore: " << SysError());
 #endif // __APPLE__
   }
-#endif // _MSC_VER
+#endif // _WIN32
 }
 
 
 Semaphore::~Semaphore() {
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (p->sem) CloseHandle(p->sem);
 
-#else // _MSC_VER
+#else // _WIN32
 #ifdef __APPLE__
   if (p->sem) {
     sem_close(p->sem);
@@ -130,21 +130,21 @@ Semaphore::~Semaphore() {
     zap(p->sem);
   }
 #endif // __APPLE__
-#endif // _MSC_VER
+#endif // _WIN32
 
   zap(p);
 }
 
 
 bool Semaphore::wait(double timeout) const {
-#ifdef _MSC_VER
+#ifdef _WIN32
   DWORD t = timeout < 0 ? INFINITE : (DWORD)(timeout * 1000);
   DWORD ret = WaitForSingleObject(p->sem, t);
 
   if (ret == WAIT_OBJECT_0) return true;
   if (ret == WAIT_TIMEOUT) return false;
 
-#else // _MSC_VER
+#else // _WIN32
   int ret;
   if (timeout < 0) ret = sem_wait(p->sem);
   else if (timeout == 0) ret = sem_trywait(p->sem); // Can return EAGAIN
@@ -170,7 +170,7 @@ bool Semaphore::wait(double timeout) const {
 
   if (ret == ETIMEDOUT || ret == EAGAIN) return false;
   else if (!ret) return true;
-#endif // _MSC_VER
+#endif // _WIN32
 
   THROWS("Wait on Semaphore failed: " << SysError());
 }
@@ -179,13 +179,13 @@ bool Semaphore::wait(double timeout) const {
 void Semaphore::post(unsigned count) const {
   if (!count) return;
 
-#ifdef _MSC_VER
+#ifdef _WIN32
   if (!ReleaseSemaphore(p->sem, count, 0))
     THROWS("Semaphore post failed: " << SysError());
 
-#else // _MSC_VER
+#else // _WIN32
   while (count--)
     if (sem_post(p->sem))
       THROWS("Semaphore post failed: " << SysError());
-#endif // _MSC_VER
+#endif // _WIN32
 }

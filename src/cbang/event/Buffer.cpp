@@ -42,7 +42,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <io.h>
 #endif
 

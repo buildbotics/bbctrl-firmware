@@ -39,7 +39,7 @@ using namespace std;
 using namespace cb;
 
 SmartPointer<FileFactoryBase> FileDevice::factory =
-//#ifdef _MSC_VER
+//#ifdef _WIN32
 //  new FileFactory<Win32File>;
 //#else
   new FileFactory<UnixFile>;

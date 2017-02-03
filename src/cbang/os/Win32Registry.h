@@ -30,9 +30,9 @@
 
 \******************************************************************************/
 
-#ifndef CBANG_MSC_VER_REGISTRY_H
-#define CBANG_MSC_VER_REGISTRY_H
-#ifdef _MSC_VER
+#ifndef CBANG_WIN32_REGISTRY_H
+#define CBANG_WIN32_REGISTRY_H
+#ifdef _WIN32
 
 #include <cbang/StdTypes.h>
 
@@ -58,5 +58,5 @@ namespace cb {
   };
 }
 
-#endif // _MSC_VER
-#endif // CBANG_MSC_VER_REGISTRY_H
+#endif // _WIN32
+#endif // CBANG_WIN32_REGISTRY_H
