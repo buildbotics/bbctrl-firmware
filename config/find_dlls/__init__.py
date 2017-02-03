@@ -35,7 +35,7 @@ def find_dlls(env, path, exclude = set()):
     out, err = p.communicate()
 
     if p.returncode:
-        raise Exception('Call to %s failed: %s' % (prog, err))
+        raise Exception('Command failed: %s %s' % (cmd, err))
 
     for line in out.splitlines():
         if line.startswith('\tDLL Name: '): lib = line[11:]
