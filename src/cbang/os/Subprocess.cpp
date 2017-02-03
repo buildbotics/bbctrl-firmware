@@ -638,7 +638,7 @@ string Subprocess::assemble(const vector<string> &args) {
       if (isspace(*it2) || *it2 == '"') {quote = true; break;}
 
     if (quote) command += '"';
-    command += String::replace(arg, "\"", "\\\"");
+    command += String::replace(arg, "\"", "\\\\\"");
     if (quote) command += '"';
   }
 
