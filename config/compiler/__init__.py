@@ -59,8 +59,7 @@ def configure(conf, cstd = 'c99'):
     optimize = int(env.get('optimize'))
     if optimize == -1: optimize = not debug
     globalopt = int(env.get('globalopt'))
-    sse2 = int(env.get('sse2'))
-    sse3 = int(env.get('sse3'))
+    mach = env.get('mach')
     auto_dispatch = int(env.get('auto_dispatch'))
     strict = int(env.get('strict'))
     threaded = int(env.get('threaded'))
@@ -292,23 +291,28 @@ def configure(conf, cstd = 'c99'):
                 env.AppendUnique(ARFLAGS = ['/LTCG'])
 
         # Instruction set optimizations
-        if sse2: opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
-        elif sse3: opt_base, opt_auto = 'SSE3', 'SSSE3,SSE4.1,SSE4.2'
-        elif env['TARGET_ARCH'].lower() in ('64bit', 'x64', 'amd64'):
-            opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
-        else: opt_base, opt_auto = 'SSE', 'SSE2,SSE3,SSSE3,SSE4.1,SSE4.2'
+        if complier == 'intel':
+            if env['TARGET_ARCH'].lower() in ('64bit', 'x64', 'amd64'):
+                opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
+            else: opt_base, opt_auto = 'SSE', 'SSE2,SSE3,SSSE3,SSE4.1,SSE4.2'
 
-        if compiler_mode == 'gnu':
-            env.AppendUnique(CCFLAGS = ['-m' + opt_base.lower()])
+            if mach: opt_base = mach
 
-            if compiler == 'intel' and auto_dispatch:
-                env.AppendUnique(CCFLAGS = ['-ax' + opt_auto])
+            if compiler_mode == 'gnu':
+                env.AppendUnique(CCFLAGS = ['-m' + opt_base.lower()])
+                if auto_dispatch:
+                    env.AppendUnique(CCFLAGS = ['-ax' + opt_auto])
 
-        elif compiler_mode == 'msvc':
-            env.AppendUnique(CCFLAGS = ['/arch:' + opt_base])
+            elif compiler_mode == 'msvc':
+                env.AppendUnique(CCFLAGS = ['/arch:' + opt_base])
+                if auto_dispatch:
+                    env.AppendUnique(CCFLAGS = ['/Qax' + opt_auto])
 
-            if compiler == 'intel' and auto_dispatch:
-                env.AppendUnique(CCFLAGS = ['/Qax' + opt_auto])
+        elif compiler == 'msvc':
+            if mach: env.AppendUnique(CCFLAGS = ['/arch:' + mach])
+
+        elif mach: env.AppendUnique(CCFLAGS = ['-m' + mach.lower()])
+
 
         # Intel threading optimizations
         if compiler == 'intel':
@@ -551,8 +555,7 @@ def generate(env):
         ('ranlib', 'Set ranlib executable', ''),
         ('optimize', 'Enable or disable optimizations', -1),
         ('globalopt', 'Enable or disable global optimizations', 0),
-        ('sse2', 'Enable SSE2 instructions', 0),
-        ('sse3', 'Enable SSE3 instructions', 0),
+        ('mach', 'Set machine instruction set', ''),
         ('auto_dispatch', 'Enable auto-dispatch of optimized code paths', 1),
         BoolVariable('debug', 'Enable or disable debug options',
                      os.getenv('DEBUG_MODE', 0)),
