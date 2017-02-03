@@ -39,6 +39,8 @@
 #define WIN32_LEAN_AND_MEAN // Avoid including winsock.h
 #include <windows.h>
 
+#pragma comment(lib, "advapi32.lib")
+
 using namespace cb;
 using namespace std;
 
