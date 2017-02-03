@@ -291,7 +291,7 @@ def configure(conf, cstd = 'c99'):
                 env.AppendUnique(ARFLAGS = ['/LTCG'])
 
         # Instruction set optimizations
-        if complier == 'intel':
+        if compiler == 'intel':
             if env['TARGET_ARCH'].lower() in ('64bit', 'x64', 'amd64'):
                 opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
             else: opt_base, opt_auto = 'SSE', 'SSE2,SSE3,SSSE3,SSE4.1,SSE4.2'
