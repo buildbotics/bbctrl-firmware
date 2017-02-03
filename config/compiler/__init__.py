@@ -190,6 +190,7 @@ def configure(conf, cstd = 'c99'):
     print "  Compiler: " + env['CC'] + ' (%s)' % compiler
     print "  Platform: " + env['PLATFORM']
     print "  Mode: " + compiler_mode
+    print "  Arch: " + env['TARGET_ARCH']
 
     # Exceptions
     if compiler_mode == 'msvc':
@@ -248,7 +249,8 @@ def configure(conf, cstd = 'c99'):
 
         env.CBDefine('DEBUG')
 
-        if not optimize and compiler == 'intel':
+        if not optimize and compiler == 'intel' and \
+                env['TARGET_ARCH'] == 'x86':
             if compiler_mode == 'gnu':
                 env.AppendUnique(CCFLAGS = ['-mia32'])
             elif compiler_mode == 'msvc':
@@ -292,7 +294,7 @@ def configure(conf, cstd = 'c99'):
         # Instruction set optimizations
         if sse2: opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
         elif sse3: opt_base, opt_auto = 'SSE3', 'SSSE3,SSE4.1,SSE4.2'
-        elif architecture()[0] == '64bit':
+        elif env['TARGET_ARCH'].lower() in ('64bit', 'x64', 'amd64'):
             opt_base, opt_auto = 'SSE2', 'SSE3,SSSE3,SSE4.1,SSE4.2'
         else: opt_base, opt_auto = 'SSE', 'SSE2,SSE3,SSSE3,SSE4.1,SSE4.2'
 
@@ -303,7 +305,7 @@ def configure(conf, cstd = 'c99'):
                 env.AppendUnique(CCFLAGS = ['-ax' + opt_auto])
 
         elif compiler_mode == 'msvc':
-            env.AppendUnique(CCFLAGS = ['-arch:' + opt_base])
+            env.AppendUnique(CCFLAGS = ['/arch:' + opt_base])
 
             if compiler == 'intel' and auto_dispatch:
                 env.AppendUnique(CCFLAGS = ['/Qax' + opt_auto])
