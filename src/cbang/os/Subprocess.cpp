@@ -635,10 +635,10 @@ string Subprocess::assemble(const vector<string> &args) {
     // Check if we need to quote this arg
     bool quote = false;
     for (string::const_iterator it2 = arg.begin(); it2 != arg.end(); it2++)
-      if (isspace(*it2)) {quote = true; break;}
+      if (isspace(*it2) || *it2 == '"') {quote = true; break;}
 
     if (quote) command += '"';
-    command += arg;
+    command += String::replace(arg, "\"", "\\\"");
     if (quote) command += '"';
   }
 
