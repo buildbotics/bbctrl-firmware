@@ -15,6 +15,7 @@ def find_in_path(filename):
 
         candidate = os.path.join(path.strip('"'), filename)
         if os.path.isfile(candidate): return candidate
+        if not os.path.isdir(path): continue
 
         for name in os.listdir(path):
             if name.lower() == filename.lower():
