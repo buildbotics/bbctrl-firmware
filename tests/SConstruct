@@ -3,7 +3,7 @@ import os
 env = Environment(ENV = os.environ,
                   TARGET_ARCH = os.environ.get('TARGET_ARCH', 'x86'))
 env.Tool('config', toolpath = [Dir('#/..')])
-env.CBLoadTools('compiler cbang'.split(), paths = [str(Dir('#/..'))])
+env.CBLoadTools('compiler cbang', paths = [str(Dir('#/..'))])
 conf = env.CBConfigure()
 
 # Build Info
@@ -16,13 +16,19 @@ if not env.GetOption('clean'):
     conf.CBConfig('cbang')
     env.CBDefine('USING_CBANG') # Using CBANG macro namespace
 
-conf.Finish()
-
 # Test
 Export('env')
 tests = []
 for test in Glob('*Tests'):
-    tests.append(SConscript(str(test) + '/SConscript'))
+    if str(test) in ('cryptoTests', 'httpTests', 'iostreamTests', 'serverTests'
+                     ) and not env.CBConfigEnabled('openssl'):
+
+        for t in Glob('%s/*Test' % test):
+            open('%s/disable' % t, 'w').close()
+
+    else: tests.append(SConscript(str(test) + '/SConscript'))
+
+conf.Finish()
 
 test = Command('test', '', './testHarness')
 Depends(test, tests)

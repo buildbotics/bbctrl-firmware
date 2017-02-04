@@ -304,12 +304,12 @@ def configure(conf, cstd = 'c99'):
                     env.AppendUnique(CCFLAGS = ['-ax' + opt_auto])
 
             elif compiler_mode == 'msvc':
-                env.AppendUnique(CCFLAGS = ['/arch:' + opt_base])
+                env.AppendUnique(CCFLAGS = ['/arch:' + opt_base.upper()])
                 if auto_dispatch:
                     env.AppendUnique(CCFLAGS = ['/Qax' + opt_auto])
 
         elif compiler == 'msvc':
-            if mach: env.AppendUnique(CCFLAGS = ['/arch:' + mach])
+            if mach: env.AppendUnique(CCFLAGS = ['/arch:' + mach.upper()])
 
         elif mach: env.AppendUnique(CCFLAGS = ['-m' + mach.lower()])
 
