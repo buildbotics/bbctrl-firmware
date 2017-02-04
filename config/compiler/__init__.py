@@ -24,7 +24,7 @@ class decider_hack:
             if major < 2 or (major == 2 and minor < 4): dep.csig = csig
             dep.get_ninfo().csig = csig
 
-        #print dependency, csig, "?=", prev_ni.csig
+        #print dependency, csig, '?=', prev_ni.csig
         if prev_ni is None: return True
         try:
             return csig != prev_ni.csig
@@ -115,17 +115,17 @@ def configure(conf, cstd = 'c99'):
         if compiler == 'gnu':
             Tool('gcc')(env)
             Tool('g++')(env)
-            compiler_mode = "gnu"
+            compiler_mode = 'gnu'
 
         elif compiler == 'clang':
             env.Replace(CC = 'clang')
             env.Replace(CXX = 'clang++')
-            compiler_mode = "gnu"
+            compiler_mode = 'gnu'
 
         elif compiler == 'intel':
             Tool('intelc')(env)
             env['ENV']['INTEL_LICENSE_FILE'] = (
-                os.environ.get("INTEL_LICENSE_FILE", ''))
+                os.environ.get('INTEL_LICENSE_FILE', ''))
 
             if env['PLATFORM'] == 'win32': compiler_mode = 'msvc'
             else: compiler_mode = 'gnu'
@@ -144,7 +144,7 @@ def configure(conf, cstd = 'c99'):
             env.Replace(CXX = 'i586-mingw32msvc-g++')
             env.Replace(RANLIB = 'i586-mingw32msvc-ranlib')
             env.Replace(PROGSUFFIX = '.exe')
-            compiler_mode = "gnu"
+            compiler_mode = 'gnu'
 
         elif compiler == 'posix':
             Tool('cc')(env)
@@ -152,7 +152,7 @@ def configure(conf, cstd = 'c99'):
             Tool('link')(env)
             Tool('ar')(env)
             Tool('as')(env)
-            compiler_mode = "unknown"
+            compiler_mode = 'unknown'
 
         elif compiler in ['hp', 'sgi', 'sun', 'aix']:
             Tool(compiler + 'cc')(env)
@@ -162,7 +162,7 @@ def configure(conf, cstd = 'c99'):
             if compiler in ['sgi', 'sun']:
                 Tool(compiler + 'ar')(env)
 
-            compiler_mode = "unknown"
+            compiler_mode = 'unknown'
 
         elif compiler != 'default':
             Tool(compiler)(env)
@@ -186,10 +186,35 @@ def configure(conf, cstd = 'c99'):
     env.__setitem__('compiler', compiler)
     env.__setitem__('compiler_mode', compiler_mode)
 
-    print "  Compiler: " + env['CC'] + ' (%s)' % compiler
-    print "  Platform: " + env['PLATFORM']
-    print "  Mode: " + compiler_mode
-    print "  Arch: " + env['TARGET_ARCH']
+    print '  Compiler:', env['CC'], '(%s)' % compiler
+    print '  Platform:', env['PLATFORM']
+    print '      Mode:', compiler_mode
+    print '      Arch:', env['TARGET_ARCH']
+
+
+    # SCONS_JOBS environment variable
+    if num_jobs < 1 and os.environ.has_key('SCONS_JOBS'):
+        num_jobs = int(os.environ.get('SCONS_JOBS', num_jobs))
+
+    # Default num jobs
+    if num_jobs < 1:
+        import multiprocessing
+        num_jobs = multiprocessing.cpu_count()
+
+    SetOption('num_jobs', num_jobs)
+    print '      Jobs:', GetOption('num_jobs')
+
+
+    # distcc
+    if distcc and compiler == 'gnu':
+        env.Replace(CC = 'distcc ' + env['CC'])
+        env.Replace(CXX = 'distcc ' + env['CXX'])
+
+    # cccache
+    if ccache and compiler == 'gnu':
+        env.Replace(CC = 'ccache ' + env['CC'])
+        env.Replace(CXX = 'ccache ' + env['CXX'])
+
 
     # Exceptions
     if compiler_mode == 'msvc':
@@ -385,30 +410,6 @@ def configure(conf, cstd = 'c99'):
     if static:
         if compiler_mode == 'gnu' and env['PLATFORM'] != 'darwin':
             env.AppendUnique(LINKFLAGS = ['-static'])
-
-
-    # Num jobs default
-    default_num_jobs = 1
-
-    # distcc
-    if distcc and compiler == 'gnu':
-        default_num_jobs = 2
-        env.Replace(CC = 'distcc ' + env['CC'])
-        env.Replace(CXX = 'distcc ' + env['CXX'])
-
-    # cccache
-    if ccache and compiler == 'gnu':
-        env.Replace(CC = 'ccache ' + env['CC'])
-        env.Replace(CXX = 'ccache ' + env['CXX'])
-
-    # Num jobs
-    if num_jobs == -1:
-        if os.environ.has_key('SCONS_JOBS'):
-            num_jobs = int(os.environ.get('SCONS_JOBS', num_jobs))
-        else: num_jobs = default_num_jobs
-
-    SetOption('num_jobs', num_jobs)
-    print "running with -j", GetOption('num_jobs')
 
 
     # For darwin
