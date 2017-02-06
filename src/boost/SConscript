@@ -1,8 +1,66 @@
 import os
 import re
+from SCons.Script import *
+
 Import('*')
 
-boost_source = env.ConfigLocalBoost()
+if 'BOOST_SOURCE' in os.environ:
+    boost_source = env.ConfigLocalBoost()
+
+else:
+    version = '1.63.0'
+    name = 'boost_%s' % version.replace('.', '_')
+    pkg = name + '.tar.bz2'
+    url = 'https://sf.net/projects/boost/files/boost/%s/%s' % (version, pkg)
+    libs = ['iostreams', 'filesystem', 'system', 'regex']
+
+    boost_source = str(Dir('#/build/%s/' % name))
+    boost_inc = str(Dir('#/include/boost'))
+
+    if not os.path.exists(boost_source) or not os.path.exists(boost_inc):
+        pkg_file = str(File('#/build/' + pkg))
+
+        try:
+            env.CBDownload(pkg_file, url)
+
+            pats = map(lambda lib: re.compile(r'libs/%s/src/.*' % lib), libs)
+
+            def extract_to(path, entry):
+                entry.name = path
+                tar.extract(entry)
+
+            import tarfile
+            tar = tarfile.open(pkg_file, mode = 'r')
+
+            print 'Extracting ' + pkg,
+            sys.stdout.flush()
+
+            count = 0
+            for entry in tar.getmembers():
+                if count == 100:
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
+                    count = 0
+                else: count += 1
+
+                path = entry.name[len(name) + 1:]
+
+                for pat in pats:
+                    if pat.match(path):
+                        extract_to(boost_source + '/' + path, entry)
+                        continue
+
+                if path.startswith('boost/'):
+                    extract_to(str(Dir('#/include')) + '/' + path, entry)
+
+            print 'done'
+
+        except Exception as e:
+            raise SCons.Errors.StopError(e)
+
+        finally:
+            os.unlink(pkg_file)
+
 
 if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
 
@@ -15,14 +73,15 @@ env.Replace(CCFLAGS = flags)
 
 env.VariantDir('src', boost_source)
 
-libs = []
-for lib in ['iostreams', 'filesystem', 'system', 'regex']:
+# Build boost libs
+results = []
+for lib in libs:
     src = Glob(boost_source + '/libs/%s/src/*.cpp' % lib)
     src = map(lambda x: str(x).replace(boost_source, 'src/'), src)
 
     libname = 'boost_%s' % lib
     if env['PLATFORM'] == 'win32': libname = 'lib' + libname
 
-    libs.append(env.Library('#/lib/' + libname, src))
+    results.append(env.Library('#/lib/' + libname, src))
 
-Return('libs')
+Return('results')
