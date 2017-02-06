@@ -10,7 +10,10 @@ def GetHome():
 
 def ConfigLocalBoost(env):
     boost_source = os.environ.get('BOOST_SOURCE', None)
-    if not boost_source: raise Exception, 'BOOST_SOURCE not set'
+    if not boost_source: raise SCons.Errors.StopError('BOOST_SOURCE not set')
+    if not os.path.exists(boost_source):
+        raise SCons.Errors.StopError(
+            'BOOST_SOURCE=%s does not exist' % boost_source)
 
     env.Append(CPPPATH = [boost_source])
 
@@ -71,8 +74,8 @@ def configure_deps(conf, local = True, with_openssl = True):
         if not (conf.CheckOSXFramework('CoreServices') and
                 conf.CheckOSXFramework('IOKit') and
                 conf.CheckOSXFramework('CoreFoundation')):
-            raise Exception, \
-                'Need CoreServices, IOKit & CoreFoundation frameworks'
+            raise SCons.Errors.StopError(
+                'Need CoreServices, IOKit & CoreFoundation frameworks')
 
     conf.CBConfig('valgrind', False)
 
@@ -84,8 +87,8 @@ def configure_deps(conf, local = True, with_openssl = True):
             env.CBDefine('HAVE_CBANG_BACKTRACE')
 
         elif env.get('backtrace_debugger', 0):
-            raise Exception, \
-                'execinfo.h, bfd.h and libbfd needed for backtrace_debuger'
+            raise SCons.Errors.StopError(
+                'execinfo.h, bfd.h and libbfd needed for backtrace_debuger')
 
         env.CBDefine('DEBUG_LEVEL=' + str(env.get('debug_level', 1)))
 

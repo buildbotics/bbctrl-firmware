@@ -4,18 +4,20 @@ from SCons.Script import *
 
 Import('*')
 
-if 'BOOST_SOURCE' in os.environ:
+libs = ['iostreams', 'filesystem', 'system', 'regex']
+version = '1.63.0'
+boost_inc = str(Dir('#/include/boost'))
+
+
+if 'BOOST_SOURCE' in os.environ and not os.path.exists(boost_inc):
     boost_source = env.ConfigLocalBoost()
 
 else:
-    version = '1.63.0'
     name = 'boost_%s' % version.replace('.', '_')
     pkg = name + '.tar.bz2'
     url = 'https://sf.net/projects/boost/files/boost/%s/%s' % (version, pkg)
-    libs = ['iostreams', 'filesystem', 'system', 'regex']
 
     boost_source = str(Dir('#/build/%s/' % name))
-    boost_inc = str(Dir('#/include/boost'))
 
     if not os.path.exists(boost_source) or not os.path.exists(boost_inc):
         pkg_file = str(File('#/build/' + pkg))
