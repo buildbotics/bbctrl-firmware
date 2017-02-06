@@ -8,26 +8,6 @@ def GetHome():
     return os.path.dirname(os.path.abspath(path))
 
 
-def ConfigLocalBoost(env):
-    boost_source = os.environ.get('BOOST_SOURCE', None)
-    if not boost_source: raise SCons.Errors.StopError('BOOST_SOURCE not set')
-    if not os.path.exists(boost_source):
-        raise SCons.Errors.StopError(
-            'BOOST_SOURCE=%s does not exist' % boost_source)
-
-    env.Append(CPPPATH = [boost_source])
-
-    return boost_source
-
-
-def ConfigBoost(conf, require = False):
-    return conf.CBConfig('boost', require, version = '1.40',
-                         hdrs = ['version', 'iostreams/stream', 'ref',
-                                 'interprocess/sync/file_lock',
-                                 'date_time/posix_time/posix_time'],
-                         libs = ['iostreams', 'system', 'filesystem', 'regex'])
-
-
 def configure_deps(conf, local = True, with_openssl = True):
     env = conf.env
 
@@ -48,9 +28,8 @@ def configure_deps(conf, local = True, with_openssl = True):
         env.CBDefine('HAVE_MARIADB')
         env.cb_enabled.add('mariadb')
 
-    if not ConfigBoost(conf) and not local:
-        env.ConfigLocalBoost()
-        ConfigBoost(conf, True)
+    # Boost
+    env.AppendUnique(CPPPATH = [''])
 
     # clock_gettime() needed by boost iterprocess
     if env['PLATFORM'] == 'posix' and int(env.get('cross_osx', 0)) == 0 \
@@ -97,12 +76,14 @@ def configure(conf):
     env = conf.env
 
     home = GetHome() + '/../..'
-    env.AppendUnique(CPPPATH = [home + '/src', home + '/include'])
+    env.AppendUnique(CPPPATH = [home + '/src', home + '/include',
+                                home + '/src/boost'])
     env.AppendUnique(LIBPATH = [home + '/lib'])
 
     if not env.CBConfigEnabled('cbang-deps'):
         conf.CBConfig('cbang-deps', local = False)
 
+    conf.CBRequireLib('cbang-boost')
     conf.CBRequireLib('cbang')
     conf.CBRequireCXXHeader('cbang/Exception.h')
     env.CBDefine('HAVE_CBANG')
@@ -111,13 +92,12 @@ def configure(conf):
 def generate(env):
     env.CBAddConfigTest('cbang', configure)
     env.CBAddConfigTest('cbang-deps', configure_deps)
-    env.AddMethod(ConfigLocalBoost)
 
     env.CBAddVariables(
         BoolVariable('backtrace_debugger', 'Enable backtrace debugger', 0),
         ('debug_level', 'Set log debug level', 1))
 
-    env.CBLoadTools('''sqlite3 boost openssl pthreads valgrind osx zlib bzip2
+    env.CBLoadTools('''sqlite3 openssl pthreads valgrind osx zlib bzip2
         XML chakra v8 event re2'''.split(), GetHome() + '/..')
 
 
