@@ -29,7 +29,7 @@ def configure_deps(conf, local = True, with_openssl = True):
         env.cb_enabled.add('mariadb')
 
     # Boost
-    env.AppendUnique(CPPPATH = [''])
+    if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
 
     # clock_gettime() needed by boost iterprocess
     if env['PLATFORM'] == 'posix' and int(env.get('cross_osx', 0)) == 0 \

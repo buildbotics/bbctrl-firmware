@@ -4,8 +4,6 @@ from SCons.Script import *
 
 Import('*')
 
-if env['PLATFORM'] == 'win32': env.CBDefine('BOOST_ALL_NO_LIB')
-
 env = env.Clone()
 
 # Remove warnings
