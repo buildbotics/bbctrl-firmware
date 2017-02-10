@@ -18,7 +18,12 @@ def build_function(target, source, env):
     # Install files
     files = '\n'
     for path in install_files:
-        files += '  File "%s"\n' % path
+        if os.path.isdir(path):
+            files += '  SetOutPath "$INSTDIR\\%s"\n' % os.path.basename(path)
+            files += '  File /r "%s\\*.*"\n' % path
+            files += '  SetOutPath "$INSTDIR"\n'
+
+        else: files += '  File "%s"\n' % path
 
     env['NSIS_INSTALL_FILES'] = files
 
