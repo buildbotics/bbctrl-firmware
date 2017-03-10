@@ -104,6 +104,7 @@ def build_function(target, source, env):
             ['init_d', '/etc/init.d', '%config %attr(0775 root root)', None],
             ['config', '/etc/' + name, '%config', None],
             ['icons', '/usr/share/pixmaps', None, None],
+            ['mime', '/usr/share/mime/packages', None, None],
             ['platform_independent', '/usr/share/' + name, None, None],
             ]:
             install_files(f, env, files[0], build_dir, files[1], files[2],

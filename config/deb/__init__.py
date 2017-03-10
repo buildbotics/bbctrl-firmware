@@ -88,6 +88,7 @@ def build_function(target, source, env):
     install_files(env, 'init_d', build_dir + '/etc/init.d', 0755)
     install_files(env, 'config', build_dir + '/etc/' + name)
     install_files(env, 'icons', build_dir + '/usr/share/pixmaps')
+    install_files(env, 'mime', build_dir + '/usr/share/mime/packages')
     install_files(env, 'platform_independent', build_dir + '/usr/share/' + name)
 
     # Dirs
