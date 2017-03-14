@@ -958,9 +958,12 @@ namespace cb {
       if (sid < 0) THROWS("Failed to create new session ID: " << SysError());
 
       // Redirect standard files to /dev/null
-      (void)::freopen("/dev/null", "r", stdin);
-      (void)::freopen("/dev/null", "w", stdout);
-      (void)::freopen("/dev/null", "w", stderr);
+      if (!freopen("/dev/null", "r", stdin))
+        LOG_WARNING("Failed to redirect stdin to /dev/null");
+      if (!freopen("/dev/null", "w", stdout))
+        LOG_WARNING("Failed to redirect stdout to /dev/null");
+      if (!freopen("/dev/null", "w", stderr))
+        LOG_WARNING("Failed to redirect stderr to /dev/null");
 #endif // _WIN32
     }
 
