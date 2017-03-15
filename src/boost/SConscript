@@ -8,7 +8,7 @@ env = env.Clone()
 
 # Remove warnings
 flags = env.subst('${CCFLAGS}')
-flags = flags.replace('-Wall', '').replace('-Werror', '')
+flags = re.sub(r'-W((all)|(error))(\s|$)', '', flags)
 env.Replace(CCFLAGS = flags)
 
 # Build boost lib

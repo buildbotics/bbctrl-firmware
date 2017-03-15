@@ -6,8 +6,9 @@ env.CBDefine('XML_STATIC')
 env = env.Clone()
 
 # Remove warnings
+import re
 flags = env.subst('${CCFLAGS}')
-flags = flags.replace('-Wall', '').replace('-Werror', '')
+flags = re.sub(r'-W((all)|(error))(\s|$)', '', flags)
 env.Replace(CCFLAGS = flags)
 
 if not env.GetOption('clean'):
