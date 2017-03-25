@@ -42,9 +42,11 @@
 #include "plan/arc.h"
 #include "plan/state.h"
 #include "config.h"
+#include "pgmspace.h"
 
-#include <avr/pgmspace.h>
+#ifdef __AVR__
 #include <avr/wdt.h>
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -250,7 +252,7 @@ void command_callback() {
 
 // Command functions
 void static print_command_help(int i) {
-  static const char fmt[] PROGMEM = "  $%-12S  %S\n";
+  static const char fmt[] PROGMEM = "  $%-12"PRPSTR"  %"PRPSTR"\n";
   const char *name = pgm_read_word(&commands[i].name);
   const char *help = pgm_read_word(&commands[i].help);
 
@@ -278,7 +280,9 @@ uint8_t command_help(int argc, char *argv[]) {
     const char *name = pgm_read_word(&commands[i].name);
     if (!name) break;
     print_command_help(i);
+#ifdef __AVR__
     wdt_reset();
+#endif
   }
 
   puts_P(PSTR("\nVariables:"));

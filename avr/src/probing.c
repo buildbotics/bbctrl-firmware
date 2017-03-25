@@ -31,12 +31,11 @@
 #include "spindle.h"
 #include "switch.h"
 #include "util.h"
+#include "pgmspace.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
 #include "plan/state.h"
-
-#include <avr/pgmspace.h>
 
 #include <math.h>
 #include <string.h>

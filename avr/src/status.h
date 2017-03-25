@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <avr/pgmspace.h>
+#include "pgmspace.h"
 
 
 // RITORNO is a handy way to provide exception returns
@@ -61,7 +61,7 @@ stat_t status_message_P(const char *location, status_level_t level,
 void status_help();
 
 /// Enter alarm state. returns same status code
-stat_t status_alarm(const char *location, stat_t status);
+stat_t status_alarm(const char *location, stat_t status, const char *msg);
 
 #define TO_STRING(x) _TO_STRING(x)
 #define _TO_STRING(x) #x
@@ -83,5 +83,17 @@ stat_t status_alarm(const char *location, stat_t status);
 #define STATUS_ERROR(CODE, MSG, ...)                            \
   STATUS_MESSAGE(STAT_LEVEL_ERROR, CODE, MSG, ##__VA_ARGS__)
 
-#define ALARM(CODE) status_alarm(STATUS_LOCATION, CODE)
-#define ASSERT(COND) do {if (!(COND)) ALARM(STAT_INTERNAL_ERROR);} while (0)
+#define ALARM(CODE) status_alarm(STATUS_LOCATION, CODE, 0)
+#define ASSERT(COND)                                                    \
+  do {                                                                  \
+    if (!(COND))                                                        \
+      status_alarm(STATUS_LOCATION, STAT_INTERNAL_ERROR, PSTR(#COND)); \
+  } while (0)
+
+
+#ifdef DEBUG
+#define DEBUG_CALL(FMT, ...) \
+  printf("%s(" FMT ")\n", __FUNCTION__, ##__VA_ARGS__)
+#else // DEBUG
+#define DEBUG_CALL(...)
+#endif // DEBUG

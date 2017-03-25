@@ -41,8 +41,8 @@ typedef struct {
   float velocity_max;    // max velocity in mm/min or deg/min
   float travel_max;      // max work envelope for soft limits
   float travel_min;      // min work envelope for soft limits
-  float jerk_max;        // max jerk (Jm) in mm/min^3 divided by 1 million
-  float recip_jerk;      // reciprocal of current jerk value - with million
+  float jerk_max;        // max jerk (Jm) in km/min^3
+  float recip_jerk;      // reciprocal of current jerk in min^3/mm
   float radius;          // radius in mm for rotary axes
   float search_velocity; // homing search velocity
   float latch_velocity;  // homing latch velocity
@@ -58,7 +58,8 @@ axis_t axes[MOTORS] = {{0}};
 
 bool axis_is_enabled(int axis) {
   int motor = axis_get_motor(axis);
-  return motor != -1 && motor_is_enabled(motor);
+  return motor != -1 && motor_is_enabled(motor) &&
+    !fp_ZERO(axis_get_velocity_max(axis));
 }
 
 

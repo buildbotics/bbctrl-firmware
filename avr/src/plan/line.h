@@ -30,6 +30,7 @@
 #include "status.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 stat_t mp_aline(const float target[], bool rapid, bool inverse_time,

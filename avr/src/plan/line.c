@@ -34,6 +34,8 @@
 #include "exec.h"
 #include "buffer.h"
 
+#include <stdio.h>
+
 
 /* Sonny's algorithm - simple
  *
@@ -238,6 +240,8 @@ static void _calc_and_cache_jerk_values(mp_buffer_t *bf) {
 
 static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
                                  bool exact_stop) {
+  ASSERT(0 < move_time && isfinite(move_time));
+
   float junction_velocity =
     _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
 
@@ -310,6 +314,7 @@ static float _calc_move_time(const float axis_length[],
                              const float axis_square[], bool rapid,
                              bool inverse_time, float feed_rate,
                              float feed_override) {
+  ASSERT(0 < feed_override);
   float max_time = 0;
 
   // Compute times for feed motion
@@ -363,6 +368,11 @@ static float _calc_move_time(const float axis_length[],
 stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
                 bool exact_stop, float feed_rate, float feed_override,
                 int32_t line) {
+  DEBUG_CALL("(%f, %f, %f, %f), %s, %s, %s, %f, %f, %d", target[0], target[1],
+             target[2], target[3], rapid ? "true" : "false",
+             inverse_time ? "true" : "false", exact_stop ? "true" : "false",
+             feed_rate, feed_override, line);
+
   // Compute axis and move lengths
   float axis_length[AXES];
   float axis_square[AXES];

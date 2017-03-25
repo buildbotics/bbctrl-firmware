@@ -27,15 +27,15 @@
 
 #pragma once
 
-#include <avr/io.h>
-
-
 enum {PORT_A = 1, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F};
-
-extern PORT_t *pin_ports[];
 
 #define PORT(PIN) pin_ports[(PIN >> 3) - 1]
 #define BM(PIN) (1 << (PIN & 7))
+
+#ifdef __AVR__
+#include <avr/io.h>
+
+extern PORT_t *pin_ports[];
 
 #define DIRSET_PIN(PIN) PORT(PIN)->DIRSET = BM(PIN)
 #define DIRCLR_PIN(PIN) PORT(PIN)->DIRCLR = BM(PIN)
@@ -45,3 +45,5 @@ extern PORT_t *pin_ports[];
 #define OUT_PIN(PIN) (!!(PORT(PIN)->OUT & BM(PIN)))
 #define IN_PIN(PIN) (!!(PORT(PIN)->IN & BM(PIN)))
 #define PINCTRL_PIN(PIN) ((&PORT(PIN)->PIN0CTRL)[PIN & 7])
+
+#endif // __AVR__

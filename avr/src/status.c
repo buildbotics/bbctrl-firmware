@@ -35,9 +35,11 @@
 
 stat_t status_code; // allocate a variable for the RITORNO macro
 
+
 #define STAT_MSG(NAME, TEXT) static const char stat_##NAME[] PROGMEM = TEXT;
 #include "messages.def"
 #undef STAT_MSG
+
 
 static const char *const stat_msg[] PROGMEM = {
 #define STAT_MSG(NAME, TEXT) stat_##NAME,
@@ -71,7 +73,8 @@ stat_t status_message_P(const char *location, status_level_t level,
   va_list args;
 
   // Type
-  printf_P(PSTR("\n{\"level\":\"%S\",\"msg\":\""), status_level_pgmstr(level));
+  printf_P(PSTR("\n{\"level\":\"%"PRPSTR"\", \"msg\":\""),
+           status_level_pgmstr(level));
 
   // Message
   if (msg) {
@@ -87,7 +90,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   if (code) printf_P(PSTR(", \"code\": %d"), code);
 
   // Location
-  if (location) printf_P(PSTR(", \"where\": \"%S\""), location);
+  if (location) printf_P(PSTR(", \"where\": \"%"PRPSTR"\""), location);
 
   putchar('}');
   putchar('\n');
@@ -102,7 +105,7 @@ void status_help() {
   for (int i = 0; i < STAT_MAX; i++) {
     if (i) putchar(',');
     putchar('\n');
-    printf_P(PSTR("  \"%d\": \"%S\""), i, status_to_pgmstr(i));
+    printf_P(PSTR("  \"%d\": \"%"PRPSTR"\""), i, status_to_pgmstr(i));
   }
 
   putchar('\n');
@@ -112,8 +115,8 @@ void status_help() {
 
 
 /// Alarm state; send an exception report and stop processing input
-stat_t status_alarm(const char *location, stat_t code) {
-  status_message_P(location, STAT_LEVEL_ERROR, code, 0);
+stat_t status_alarm(const char *location, stat_t code, const char *msg) {
+  status_message_P(location, STAT_LEVEL_ERROR, code, msg);
   estop_trigger(code);
   while (!usart_tx_empty()) continue;
   return code;

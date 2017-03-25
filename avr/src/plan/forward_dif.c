@@ -29,15 +29,23 @@
 
 #include "forward_dif.h"
 
+#include "util.h"
+
 #include <math.h>
 
 
 /// Forward differencing math
 ///
 /// We are using a quintic (fifth-degree) Bezier polynomial for the velocity
-/// curve.  This gives us a "linear pop" velocity curve; with pop being the
-/// sixth derivative of position: velocity - 1st, acceleration - 2nd, jerk -
-/// 3rd, snap - 4th, crackle - 5th, pop - 6th
+/// curve.  This gives us a constant "pop"; with pop being the sixth derivative
+/// of position:
+///
+///   1st - velocity
+///   2nd - acceleration
+///   3rd - jerk
+///   4th - snap
+///   5th - crackle
+///   6th - pop
 ///
 /// The Bezier curve takes the form:
 ///
@@ -74,10 +82,12 @@
 ///   E = - 5 * P_0 +  5 * P_1
 ///   F =       P_0
 ///
-/// Now, since we will (currently) *always* want the initial acceleration and
-/// jerk values to be 0, We set P_i = P_0 = P_1 = P_2 (initial velocity), and
-/// P_t = P_3 = P_4 = P_5 (target velocity), which, after simplification,
-/// resolves to:
+/// Since we want the initial acceleration and jerk values to be 0, We set
+///
+///   P_i = P_0 = P_1 = P_2 (initial velocity)
+///   P_t = P_3 = P_4 = P_5 (target velocity)
+///
+/// which, after simplification, resolves to:
 ///
 ///   A = - 6 * P_i +  6 * P_t
 ///   B =  15 * P_i - 15 * P_t
@@ -86,10 +96,14 @@
 ///   E = 0
 ///   F = P_i
 ///
-/// Given an interval count of I to get from P_i to P_t, we get the parametric
-/// "step" size of h = 1/I.  We need to calculate the initial value of forward
-/// differences (F_0 - F_5) such that the inital velocity V = P_i, then we
-/// iterate over the following I times:
+/// Given an interval count of segments to get from P_i to P_t, we get the
+/// parametric "step" size:
+///
+///   h = 1 / segs
+///
+/// We need to calculate the initial value of forward differences (F_0 - F_5)
+/// such that the inital velocity V = P_i, then we iterate over the following
+/// segs times:
 ///
 ///   V   += F_5
 ///   F_5 += F_4
@@ -137,7 +151,7 @@
 /// Normally, we could then assign t = 0, use the A-F values from above, and get
 /// out initial F_* values.  However, for the sake of "averaging" the velocity
 /// of each segment, we actually want to have the initial V be be at t = h/2 and
-/// iterate I-1 times.  So, the resulting F_* values are (steps not shown):
+/// iterate segs-1 times.  So, the resulting F_* values are (steps not shown):
 ///
 ///   F_5 = 121Ah^5 / 16 + 5Bh^4 + 13Ch^3 / 4 + 2Dh^2 + Eh
 ///   F_4 = 165Ah^5 / 2 + 29Bh^4 + 9Ch^3 + 2Dh^2
@@ -156,22 +170,22 @@
 ///   F_2 = (           - 360 * s + 1800.0  )(Vt - Vi) * h^5
 ///   F_1 = (                        720.0  )(Vt - Vi) * h^5
 ///
-float mp_init_forward_dif(forward_dif_t fdif, float Vi, float Vt, float s) {
-  const float h = 1 / s;
-  const float s2 = square(s);
+float mp_init_forward_dif(forward_dif_t fdif, float Vi, float Vt, float segs) {
+  const float h = 1 / segs;
+  const float segs2 = square(segs);
   const float Vdxh5 = (Vt - Vi) * h * h * h * h * h;
 
-  fdif[4] = (32.5 * s2 -  75.0 * s +   45.375) * Vdxh5;
-  fdif[3] = (90.0 * s2 - 435.0 * s +  495.0  ) * Vdxh5;
-  fdif[2] = (60.0 * s2 - 720.0 * s + 1530.0  ) * Vdxh5;
-  fdif[1] = (          - 360.0 * s + 1800.0  ) * Vdxh5;
-  fdif[0] = (                         720.0  ) * Vdxh5;
+  fdif[4] = (32.5 * segs2 -  75.0 * segs +   45.375) * Vdxh5;
+  fdif[3] = (90.0 * segs2 - 435.0 * segs +  495.0  ) * Vdxh5;
+  fdif[2] = (60.0 * segs2 - 720.0 * segs + 1530.0  ) * Vdxh5;
+  fdif[1] = (             - 360.0 * segs + 1800.0  ) * Vdxh5;
+  fdif[0] = (                               720.0  ) * Vdxh5;
 
   // Calculate the initial velocity by calculating:
   //
   //   V(h / 2) =
   //
-  //   ( -6Vi +  6Vt) / (2^5 * s^8)  +
+  //   ( -6Vi +  6Vt) / (2^5 * s^8) +
   //   ( 15Vi - 15Vt) / (2^4 * s^8) +
   //   (-10Vi + 10Vt) / (2^3 * s^8) + Vi =
   //

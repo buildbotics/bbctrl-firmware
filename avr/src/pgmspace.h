@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -26,24 +25,26 @@
 
 \******************************************************************************/
 
-#include "util.h"
+#pragma once
 
-#include <stdint.h>
+#ifdef __AVR__
 
+#include <avr/pgmspace.h>
+#define PRPSTR "S"
 
-/// Fast inverse square root originally from Quake III Arena code.  Original
-/// comments left intact.
-/// See: https://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invsqrt(float number) {
-  const float threehalfs = 1.5F;
+#else // __AVR__
 
-  float x2 = number * 0.5F;
-  float y = number;
-  int32_t i = *(int32_t *)&y;          // evil floating point bit level hacking
-  i = 0x5f3759df - (i >> 1);           // what the fuck?
-  y = *(float *)&i;
-  y = y * (threehalfs - x2 * y * y);   // 1st iteration
-  y = y * (threehalfs - x2 * y * y);   // 2nd iteration, this can be removed
+#define PRPSTR "s"
+#define PROGMEM
+#define PGM_P char *
+#define PSTR(X) X
+#define vfprintf_P vfprintf
+#define printf_P printf
+#define puts_P puts
+#define sprintf_P sprintf
+#define strcmp_P strcmp
+#define pgm_read_ptr(x) *(x)
+#define pgm_read_word(x) *(x)
+#define pgm_read_byte(x) *(x)
 
-  return y;
-}
+#endif // __AVR__

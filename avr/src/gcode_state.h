@@ -29,8 +29,7 @@
 #pragma once
 
 #include "config.h"
-
-#include <avr/pgmspace.h>
+#include "pgmspace.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -116,8 +115,8 @@ typedef enum {
 
 
 typedef enum {
-  INVERSE_TIME_MODE,              // G93
   UNITS_PER_MINUTE_MODE,          // G94
+  INVERSE_TIME_MODE,              // G93
   UNITS_PER_REVOLUTION_MODE,      // G95 (unimplemented)
 } feed_mode_t;
 

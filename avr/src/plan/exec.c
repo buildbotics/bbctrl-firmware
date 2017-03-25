@@ -46,6 +46,14 @@
 
 
 typedef struct {
+  float a, b, c, d;
+  float delta;
+  float half_delta;
+  uint16_t count;
+} quintic_bezier_t;
+
+
+typedef struct {
   float unit[AXES];         // unit vector for axis scaling & planning
   float final_target[AXES]; // final target, used to correct rounding errors
   float waypoint[3][AXES];  // head/body/tail endpoints for correction
@@ -62,6 +70,7 @@ typedef struct {
   float segment_velocity;   // computed velocity for segment
   float segment_time;       // actual time increment per segment
   forward_dif_t fdif;       // forward difference levels
+  quintic_bezier_t qb;
   bool hold_planned;        // true when a feedhold has been planned
   move_section_t section;   // current move section
   bool section_new;         // true if it's a new section
@@ -70,6 +79,28 @@ typedef struct {
 
 
 static mp_exec_t ex = {{0}};
+
+
+static float _quintic_bezier_next() {
+  float t = ex.qb.half_delta + ex.qb.count++ * ex.qb.delta;
+  float t2 = t * t;
+  float t3 = t2 * t;
+
+  return (ex.qb.a * t2 + ex.qb.b * t + ex.qb.c) * t3 + ex.qb.d;
+}
+
+
+static float _quintic_bezier_init(float Vi, float Vt, float segs) {
+  ex.qb.a =   6 * (Vt - Vi);
+  ex.qb.b = -15 * (Vt - Vi);
+  ex.qb.c =  10 * (Vt - Vi);
+  ex.qb.d = Vi;
+  ex.qb.delta = 1 / segs;
+  ex.qb.half_delta = ex.qb.delta / 2;
+  ex.qb.count = 0;
+
+  return _quintic_bezier_next();
+}
 
 
 static stat_t _exec_aline_segment() {
@@ -101,7 +132,13 @@ static stat_t _exec_aline_segment() {
 /// Common code for head and tail sections
 static stat_t _exec_aline_section(float length, float vin, float vout) {
   if (ex.section_new) {
+    ASSERT(isfinite(length));
+
     if (fp_ZERO(length)) return STAT_NOOP; // end the section
+
+    ASSERT(isfinite(vin) && isfinite(vout));
+    ASSERT(0 <= vin && 0 <= vout);
+    ASSERT(vin || vout);
 
     // len / avg. velocity
     float move_time = 2 * length / (vin + vout);
@@ -110,8 +147,14 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
     ex.segment_count = round(segments);
 
     if (vin == vout) ex.segment_velocity = vin;
-    else ex.segment_velocity =
-           mp_init_forward_dif(ex.fdif, vin, vout, segments);
+    else {
+#if 0
+      ex.segment_velocity =
+        mp_init_forward_dif(ex.fdif, vin, vout, segments);
+#else
+      ex.segment_velocity = _quintic_bezier_init(vin, vout, segments);
+#endif
+    }
 
     if (ex.segment_time < MIN_SEGMENT_TIME)
       return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
@@ -125,7 +168,13 @@ static stat_t _exec_aline_section(float length, float vin, float vout) {
     ex.section_new = false;
 
   } else {
-    if (vin != vout) ex.segment_velocity += mp_next_forward_dif(ex.fdif);
+    if (vin != vout) {
+#if 0
+      ex.segment_velocity += mp_next_forward_dif(ex.fdif);
+#else
+      ex.segment_velocity = _quintic_bezier_next();
+#endif
+    }
 
     // Subsequent segments
     if (_exec_aline_segment() == STAT_OK) return STAT_OK;

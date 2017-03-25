@@ -29,10 +29,10 @@
 #include "config.h"
 #include "rtc.h"
 #include "report.h"
+#include "pgmspace.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
 #include <util/crc16.h>
 
 #include <stdio.h>

@@ -37,12 +37,10 @@
 #include "gcode_state.h"
 #include "axis.h"
 #include "util.h"
+#include "pgmspace.h"
 
 #include "plan/runtime.h"
 #include "plan/calibrate.h"
-
-#include <avr/interrupt.h>
-#include <avr/pgmspace.h>
 
 #include <string.h>
 #include <math.h>

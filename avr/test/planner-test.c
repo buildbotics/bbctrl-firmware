@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -26,24 +25,51 @@
 
 \******************************************************************************/
 
-#include "util.h"
+#include "axis.h"
+#include "machine.h"
+#include "command.h"
+#include "plan/planner.h"
+#include "plan/exec.h"
+#include "plan/state.h"
 
-#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 
-/// Fast inverse square root originally from Quake III Arena code.  Original
-/// comments left intact.
-/// See: https://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invsqrt(float number) {
-  const float threehalfs = 1.5F;
+int main(int argc, char *argv[]) {
+  mp_init();                      // motion planning
+  machine_init();                 // gcode machine
+  for (int i = 0; i < 4; i++) axis_set_motor(i, i);
 
-  float x2 = number * 0.5F;
-  float y = number;
-  int32_t i = *(int32_t *)&y;          // evil floating point bit level hacking
-  i = 0x5f3759df - (i >> 1);           // what the fuck?
-  y = *(float *)&i;
-  y = y * (threehalfs - x2 * y * y);   // 1st iteration
-  y = y * (threehalfs - x2 * y * y);   // 2nd iteration, this can be removed
+  stat_t status = STAT_OK;
 
-  return y;
+  while (!feof(stdin)) {
+    mp_state_callback();
+    command_callback();
+  }
+
+  while (true) {
+    status = mp_exec_move();
+    printf("EXEC: %s\n", status_to_pgmstr(status));
+
+    switch (status) {
+    case STAT_NOOP: break;       // No command executed
+    case STAT_EAGAIN: continue;  // No command executed, try again
+
+    case STAT_OK:                // Move executed
+      //if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued
+      //st.move_queued = false;
+      //st.move_ready = true;
+      continue;
+
+    default:
+      printf("ERROR: %s\n", status_to_pgmstr(status));
+    }
+
+    break;
+  }
+
+  printf("STATE: %s\n", mp_get_state_pgmstr(mp_get_state()));
+
+  return status;
 }

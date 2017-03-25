@@ -231,8 +231,6 @@ void mp_kinematics(const float travel[], float steps[]) {
  * tons of pathologically short Gcode blocks are being thrown at you.
  */
 void mp_calculate_trapezoid(mp_buffer_t *bf) {
-  // RULE #1 of mp_calculate_trapezoid(): Don't change bf->length
-
   if (!bf->length) return;
 
   // F case: Block is too short - run time < minimum segment time
@@ -259,7 +257,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   if (naive_move_time <= NOM_SEGMENT_TIME) {
     bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
 
-    if (fp_NOT_ZERO(bf->entry_velocity)) {
+    if (!fp_ZERO(bf->entry_velocity)) {
       bf->cruise_velocity = bf->entry_velocity;
       bf->exit_velocity = bf->entry_velocity;
 
@@ -334,8 +332,8 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     mp_get_target_length(bf->entry_velocity, bf->cruise_velocity, bf->jerk);
   bf->tail_length =
     mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf->jerk);
-  if (bf->head_length < MIN_HEAD_LENGTH) { bf->head_length = 0;}
-  if (bf->tail_length < MIN_TAIL_LENGTH) { bf->tail_length = 0;}
+  if (bf->head_length < MIN_HEAD_LENGTH) bf->head_length = 0;
+  if (bf->tail_length < MIN_TAIL_LENGTH) bf->tail_length = 0;
 
   // Rate-limited HT and HT' cases
   if (bf->length < (bf->head_length + bf->tail_length)) { // it's rate limited
@@ -343,7 +341,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
     // Symmetric rate-limited case (HT)
     if (fabs(bf->entry_velocity - bf->exit_velocity) <
         TRAPEZOID_VELOCITY_TOLERANCE) {
-      bf->head_length = bf->length/2;
+      bf->head_length = bf->length / 2;
       bf->tail_length = bf->head_length;
       bf->cruise_velocity =
         min(bf->cruise_vmax,
@@ -356,7 +354,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
         bf->tail_length = 0;
 
         // Average the entry speed and computed best cruise-speed
-        bf->cruise_velocity = (bf->entry_velocity + bf->cruise_velocity)/2;
+        bf->cruise_velocity = (bf->entry_velocity + bf->cruise_velocity) / 2;
         bf->entry_velocity = bf->cruise_velocity;
         bf->exit_velocity = bf->cruise_velocity;
       }
@@ -375,7 +373,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
       bf->tail_length =
         mp_get_target_length(bf->exit_velocity, bf->cruise_velocity, bf->jerk);
 
-      if (bf->head_length > bf->tail_length) {
+      if (bf->tail_length < bf->head_length) {
         bf->head_length =
           (bf->head_length / (bf->head_length + bf->tail_length)) * bf->length;
         computed_velocity =
@@ -415,23 +413,23 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   bf->body_length = bf->length - bf->head_length - bf->tail_length;
 
   // If a non-zero body is < minimum length distribute it to the head and/or
-  // tail. This will generate small (acceptable) velocity errors in runtime
+  // tail.  This will generate small (acceptable) velocity errors in runtime
   // execution but preserve correct distance, which is more important.
-  if ((bf->body_length < MIN_BODY_LENGTH) && (fp_NOT_ZERO(bf->body_length))) {
-    if (fp_NOT_ZERO(bf->head_length)) {
-      if (fp_NOT_ZERO(bf->tail_length)) {            // HBT reduces to HT
+  if (bf->body_length < MIN_BODY_LENGTH && !fp_ZERO(bf->body_length)) {
+    if (!fp_ZERO(bf->head_length)) {
+      if (!fp_ZERO(bf->tail_length)) {            // HBT reduces to HT
         bf->head_length += bf->body_length / 2;
         bf->tail_length += bf->body_length / 2;
 
-      } else bf->head_length += bf->body_length;     // HB reduces to H
-    } else bf->tail_length += bf->body_length;       // BT reduces to T
+      } else bf->head_length += bf->body_length;  // HB reduces to H
+    } else bf->tail_length += bf->body_length;    // BT reduces to T
 
     bf->body_length = 0;
 
     // If the body is a standalone make the cruise velocity match the entry
-    // velocity. This removes a potential velocity discontinuity at the expense
+    // velocity.  This removes a potential velocity discontinuity at the expense
     // of top speed
-  } else if ((fp_ZERO(bf->head_length)) && (fp_ZERO(bf->tail_length)))
+  } else if (fp_ZERO(bf->head_length) && fp_ZERO(bf->tail_length))
     bf->cruise_velocity = bf->entry_velocity;
 }
 
@@ -448,11 +446,11 @@ void mp_print_queue(mp_buffer_t *bf) {
   int i = 0;
   mp_buffer_t *bp = bf;
   while (bp) {
-    printf_P(PSTR("{\"msg\":\"%d,%d,0x%04x,"
+    printf_P(PSTR("{\"msg\":\"%d,%d,0x%04lx,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f\"}\n"),
-             i++, bp->replannable, bp->cb,
+             i++, bp->replannable, (intptr_t)bp->cb,
              bp->length, bp->head_length, bp->body_length, bp->tail_length,
              bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
              bp->braking_velocity,
@@ -664,6 +662,8 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
 float mp_get_target_length(float Vi, float Vf, float jerk) {
+  ASSERT(0 <= Vi && 0 <= Vf);
+  ASSERT(isfinite(jerk));
   return fp_EQ(Vi, Vf) ? 0 : fabs(Vi - Vf) * invsqrt(jerk / fabs(Vi - Vf));
 }
 
@@ -735,10 +735,15 @@ float mp_get_target_length(float Vi, float Vf, float jerk) {
  *   J'(x) = (2 * Vi * x - Vi^2 + 3 * x^2) / L^2
  */
 float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf) {
+  ASSERT(0 <= Vi && 0 <= L);
+  ASSERT(isfinite(bf->cbrt_jerk) && isfinite(bf->jerk));
+
+  if (!L) return Vi;
+
   // 0 iterations (a reasonable estimate)
   float x = pow(L, 0.66666666) * bf->cbrt_jerk + Vi; // First estimate
 
-#if (GET_VELOCITY_ITERATIONS > 0)
+#if GET_VELOCITY_ITERATIONS
   const float L2 = L * L;
   const float Vi2 = Vi * Vi;
 

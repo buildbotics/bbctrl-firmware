@@ -133,6 +133,7 @@ mp_buffer_t *mp_queue_get_tail() {
  * invalidating its contents
  */
 void mp_queue_push(buffer_cb_t cb, uint32_t line) {
+  mp_buffer_validate(mb.tail);
   mp_state_running();
 
   mb.tail->ts = rtc_get_time();
@@ -153,4 +154,88 @@ mp_buffer_t *mp_queue_get_head() {
 void mp_queue_pop() {
   _clear_buffer(mb.head);
   _pop();
+}
+
+
+#ifdef DEBUG
+void mp_queue_dump() {
+  mp_buffer_t *bf = mp_queue_get_head();
+  if (!bf) return;
+  mp_buffer_t *bp = bf;
+
+  do {
+    if (bp != bf) putchar(',');
+    mp_buffer_print(bp);
+    bp = mp_buffer_next(bp);
+  } while (bp != bf && bp->state != BUFFER_OFF);
+
+  if (bp != bf) mp_buffer_print(bp);
+
+  putchar('\n');
+}
+
+
+void mp_buffer_print(const mp_buffer_t *bf) {
+  printf("{\n"
+         "  ts:               %d,\n"
+         "  line:             %d,\n"
+         "  state:            %d,\n"
+         "  replannable:      %s,\n"
+         "  hold:             %s,\n"
+         "  value:            %0.2f,\n"
+         "  target:           [%0.2f, %0.2f, %0.2f, %0.2f],\n"
+         "  unit:             [%0.2f, %0.2f, %0.2f, %0.2f],\n"
+         "  length:           %0.2f,\n"
+         "  head_length:      %0.2f,\n"
+         "  body_length:      %0.2f,\n"
+         "  tail_length:      %0.2f,\n"
+         "  entry_velocity:   %0.2f,\n"
+         "  cruise_velocity:  %0.2f,\n"
+         "  exit_velocity:    %0.2f,\n"
+         "  braking_velocity: %0.2f,\n"
+         "  entry_vmax:       %0.2f,\n"
+         "  cruise_vmax:      %0.2f,\n"
+         "  exit_vmax:        %0.2f,\n"
+         "  delta_vmax:       %0.2f,\n"
+         "  jerk:             %0.2f,\n"
+         "  cbrt_jerk:        %0.2f\n"
+         "}", bf->ts, bf->line, bf->state, bf->replannable ? "true" : "false",
+         bf->hold ? "true" : "false", bf->value, bf->target[0], bf->target[1],
+         bf->target[2], bf->target[3], bf->unit[0], bf->unit[1], bf->unit[2],
+         bf->unit[3], bf->length, bf->head_length, bf->body_length,
+         bf->tail_length, bf->entry_velocity, bf->cruise_velocity,
+         bf->exit_velocity, bf->braking_velocity, bf->entry_vmax,
+         bf->cruise_vmax, bf->exit_vmax, bf->delta_vmax, bf->jerk,
+         bf->cbrt_jerk);
+}
+#endif // DEBUG
+
+
+void mp_buffer_validate(const mp_buffer_t *bp) {
+  ASSERT(bp);
+
+  ASSERT(isfinite(bp->value));
+
+  ASSERT(isfinite(bp->target[0]) && isfinite(bp->target[1]) &&
+         isfinite(bp->target[2]) && isfinite(bp->target[3]));
+  ASSERT(isfinite(bp->unit[0]) && isfinite(bp->unit[1]) &&
+         isfinite(bp->unit[2]) && isfinite(bp->unit[3]));
+
+  ASSERT(isfinite(bp->length));
+  ASSERT(isfinite(bp->head_length));
+  ASSERT(isfinite(bp->body_length));
+  ASSERT(isfinite(bp->tail_length));
+
+  ASSERT(isfinite(bp->entry_velocity));
+  ASSERT(isfinite(bp->cruise_velocity));
+  ASSERT(isfinite(bp->exit_velocity));
+  ASSERT(isfinite(bp->braking_velocity));
+
+  ASSERT(isfinite(bp->entry_vmax));
+  ASSERT(isfinite(bp->cruise_vmax));
+  ASSERT(isfinite(bp->exit_vmax));
+  ASSERT(isfinite(bp->delta_vmax));
+
+  ASSERT(isfinite(bp->jerk));
+  ASSERT(isfinite(bp->cbrt_jerk));
 }

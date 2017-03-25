@@ -72,7 +72,7 @@ After move initialization ``mp_exec_aline()`` calls ``_exec_aline_head()``,
 ``_exec_aline_body()`` and ``exec_aline_tail()`` on successive callbacks.
 These functions are called repeatedly until each section finishes.  If any
 sections have zero length they are skipped and execution is passed immediately
-to the next section.  During each section, forward differencing is used to map
+to the next section.  During each section, forward difference is used to map
 the trapezoid computed during the planning stage to a fifth-degree Bezier
 polynomial S-curve.  The curve is used to find the appropriate velocity at the
 next target position.
@@ -85,15 +85,15 @@ returns ``STAT_OK`` indicating the next segment should be loaded.  When all
 non-zero segments have been executed, the move is complete.
 
 ## Pulse generation
-Calls to ``st_prep_line()`` prepare short (~5ms) move fragements for pluse
+Calls to ``st_prep_line()`` prepare short (~5ms) move fragments for pulse
 generation by the stepper driver.  Move time in clock ticks is computed from
 travel in steps and move duration.  Then ``motor_prep_move()`` is called for
 each motor. ``motor_prep_move()`` may perform step correction and enable the
 motor.  It then computes the optimal step clock divisor, clock ticks and sets
 the move direction, taking the motor's configuration in to account.
 
-The stepper timer ISR, after ending the previous move, calls
+The stepper timer interrupt, after ending the previous move, calls
 ``motor_load_move()`` on each motor.  This sets up and starts the motor clocks,
 sets the motor direction lines and accumulates and resets the step encoders.
-After (re)starting the motor clocks the ISR signals a lower level interrupt to
-call ``mp_exec_move()`` and load the next move fragment.
+After (re)starting the motor clocks the interrupt signals a lower level
+interrupt to call ``mp_exec_move()`` and load the next move fragment.

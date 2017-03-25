@@ -31,9 +31,9 @@
 #include "usart.h"
 #include "huanyang.h"
 #include "config.h"
+#include "pgmspace.h"
 
 #include <avr/interrupt.h>
-#include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 #include <avr/wdt.h>
 

@@ -31,6 +31,7 @@
 #include "status.h"
 #include "hardware.h"
 #include "config.h"
+#include "pgmspace.h"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -39,8 +40,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
-
-#include <avr/pgmspace.h>
+#include <inttypes.h>
 
 
 typedef uint8_t flags_t;
@@ -67,7 +67,7 @@ static void var_print_string(string s) {
 
 // Program string
 static void var_print_pstring(pstring s) {
-  printf_P(PSTR("\"%S\""), s);
+  printf_P(PSTR("\"%"PRPSTR"\""), s);
 }
 
 
@@ -321,7 +321,8 @@ bool vars_set(const char *name, const char *value) {
 
 
 int vars_parser(char *vars) {
-  if (!*vars || !*vars++ == '{') return STAT_OK;
+  if (!*vars || *vars != '{') return STAT_OK;
+  vars++;
 
   while (*vars) {
     while (isspace(*vars)) vars++;
@@ -355,7 +356,8 @@ int vars_parser(char *vars) {
 
 
 void vars_print_help() {
-  static const char fmt[] PROGMEM = "  $%-5s %-20S %-16S  %S\n";
+  static const char fmt[] PROGMEM =
+    "  $%-5s %-20"PRPSTR" %-16"PRPSTR"  %"PRPSTR"\n";
 
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();

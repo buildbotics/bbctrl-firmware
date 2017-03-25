@@ -40,6 +40,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
 
 
 parser_t parser = {{0}};
@@ -561,6 +562,10 @@ stat_t gc_gcode_parser(char *block) {
   // Block delete omits the line if a / char is present in the first space
   // For now this is unconditional and will always delete
   if (block_delete_flag) return STAT_NOOP;
+
+#ifdef DEBUG
+  printf("GCODE: %s\n", block);
+#endif
 
   // queue a "(MSG" response
   if (*msg) mach_message(msg);            // queue the message

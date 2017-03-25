@@ -42,25 +42,28 @@
 #define copy_vector(d, s) memcpy(d, s, sizeof(d))
 
 // Math utilities
-inline float min(float a, float b) {return a < b ? a : b;}
-inline float max(float a, float b) {return a < b ? b : a;}
-inline float min3(float a, float b, float c) {return min(min(a, b), c);}
-inline float max3(float a, float b, float c) {return max(max(a, b), c);}
-inline float min4(float a, float b, float c, float d)
+inline static float min(float a, float b) {return a < b ? a : b;}
+inline static float max(float a, float b) {return a < b ? b : a;}
+inline static float min3(float a, float b, float c) {return min(min(a, b), c);}
+inline static float max3(float a, float b, float c) {return max(max(a, b), c);}
+inline static float min4(float a, float b, float c, float d)
 {return min(min(a, b), min(c, d));}
-inline float max4(float a, float b, float c, float d)
+inline static float max4(float a, float b, float c, float d)
 {return max(max(a, b), max(c, d));}
 
 float invsqrt(float number);
 
+#ifndef __AVR__
+inline static double square(double x) {return x * x;}
+#endif
+
 // Floating-point utilities
 #define EPSILON 0.00001 // allowable rounding error for floats
-inline bool fp_EQ(float a, float b) {return fabs(a - b) < EPSILON;}
-inline bool fp_NE(float a, float b) {return fabs(a - b) > EPSILON;}
-inline bool fp_ZERO(float a) {return fabs(a) < EPSILON;}
-inline bool fp_NOT_ZERO(float a) {return !fp_ZERO(a);}
-inline bool fp_FALSE(float a) {return fp_ZERO(a);}
-inline bool fp_TRUE(float a) {return !fp_ZERO(a);}
+inline static bool fp_EQ(float a, float b) {return fabs(a - b) < EPSILON;}
+inline static bool fp_NE(float a, float b) {return fabs(a - b) > EPSILON;}
+inline static bool fp_ZERO(float a) {return fabs(a) < EPSILON;}
+inline static bool fp_FALSE(float a) {return fp_ZERO(a);}
+inline static bool fp_TRUE(float a) {return !fp_ZERO(a);}
 
 // Constants
 #define MM_PER_INCH 25.4

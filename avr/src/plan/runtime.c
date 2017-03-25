@@ -154,6 +154,8 @@ void mp_runtime_set_work_offsets(float offset[]) {
 
 /// Segment runner
 stat_t mp_runtime_move_to_target(float target[], float time) {
+  ASSERT(isfinite(time));
+
   // Convert target position to steps.
   float steps[MOTORS];
   mp_kinematics(target, steps);

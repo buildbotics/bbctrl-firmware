@@ -43,12 +43,12 @@
 #include "homing.h"
 #include "home.h"
 #include "i2c.h"
+#include "pgmspace.h"
 
 #include "plan/planner.h"
 #include "plan/arc.h"
 #include "plan/state.h"
 
-#include <avr/pgmspace.h>
 #include <avr/wdt.h>
 
 #include <stdio.h>

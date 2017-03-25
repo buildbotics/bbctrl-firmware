@@ -61,7 +61,7 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
 
   float value;                    // used in dwell and other callbacks
 
-  float target[AXES];             // XYZABC where the move should go
+  float target[AXES];             // XYZABC where the move should go in mm
   float unit[AXES];               // unit vector for axis scaling & planning
 
   float length;                   // total length of line or helix in mm
@@ -98,5 +98,9 @@ void mp_queue_push(buffer_cb_t func, uint32_t line);
 mp_buffer_t *mp_queue_get_head();
 void mp_queue_pop();
 
+void mp_queue_dump();
+
+void mp_buffer_print(const mp_buffer_t *bp);
+void mp_buffer_validate(const mp_buffer_t *bp);
 static inline mp_buffer_t *mp_buffer_prev(mp_buffer_t *bp) {return bp->prev;}
 static inline mp_buffer_t *mp_buffer_next(mp_buffer_t *bp) {return bp->next;}

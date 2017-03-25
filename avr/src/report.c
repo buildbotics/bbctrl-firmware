@@ -30,8 +30,7 @@
 #include "usart.h"
 #include "rtc.h"
 #include "vars.h"
-
-#include <avr/pgmspace.h>
+#include "pgmspace.h"
 
 #include <stdio.h>
 #include <stdbool.h>
