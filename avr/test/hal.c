@@ -178,6 +178,9 @@ int motor_get_axis(int motor) {return motor;}
 #define STEP_ANGLE 1.8
 
 
+float motor_position[MOTORS] = {0};
+
+
 float motor_get_steps_per_unit(int motor) {
   return 360 * MICROSTEPS / TRAVEL_REV / STEP_ANGLE;
 }
@@ -194,6 +197,10 @@ void motor_end_move(int motor) {
 }
 
 
+int32_t motor_get_error(int motor) {return 0;}
+int32_t motor_get_position(int motor) {return motor_position[motor];}
+
+
 bool st_is_busy() {return false;}
 
 
@@ -205,19 +212,22 @@ stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
          time, target[0], target[1], target[2], target[3],
          error[0], error[1], error[2], error[3]);
 
-  static float position[4] = {0};
-  float dist = 0;
+  double dist = 0;
 
-  for (int i = 0; i < 4; i++) {
-    dist += square((target[i] - position[i]) / motor_get_steps_per_unit(i));
-    position[i] = target[i];
-  }
+  for (int i = 0; i < 4; i++)
+    dist +=
+      square((target[i] - motor_position[i]) / motor_get_steps_per_unit(i));
 
   dist = sqrt(dist);
 
-  float velocity = dist / time;
+  double velocity = dist / time;
 
-  printf("%0.10f, %0.10f, %0.10f\n", velocity, dist, time);
+  for (int i = 0; i < MOTORS; i++)
+    motor_position[i] = target[i];
+
+  printf("%0.10f, %0.10f, %0.10f, %0.10f, %0.10f, %0.10f\n",
+         velocity, dist, time,
+         motor_position[0], motor_position[1], motor_position[2]);
 
   return STAT_OK;
 }

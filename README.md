@@ -17,7 +17,6 @@ unzip 2015-05-05-raspbian-wheezy.zip
 ```
 
 Now copy the base system to an SD card.  You need a card with at least 4GiB.  After installing the RPi system all data on the SD card will be lost.  So make sure you back up the SD card if there's anything important on it
-
 In the command below, make sure you have the correct device or you can **destroy your Linux system** by overwriting the disk.  One way to do this is to run ``sudo tail -f /var/log/syslog`` before inserting the SD card.  After inserting the card look for log messages containing ``/dev/sdx`` where ``x`` is a letter.  This should be the device name of the SD card.  Hit ``CTRL-C`` to stop following the system log.
 
 ```
@@ -123,3 +122,39 @@ avrdude -c avrispmkII -p ATxmega128A3U -P usb -U flash:w:tinyg.hex:i
 
 
 ## Setup Python Development
+
+
+# Huanyang Spindle Setup
+
+Connections:
+
+ * pin 13 -> Rs+
+ * pin 14 -> Rs-
+
+Program the following settings:
+
+ * PD013 = 8 (reset to factory settings)
+ * PD005 = 400 (max frequency 400Hz)
+ * PD004 = 400 (base frequency 400Hz)
+ * PD003 = 400 (main frequency 400Hz)
+ * PD001 = 2 (set communication port as source of run commands)
+ * PD002 = 2 (set communication port as source of operating frequency)
+ * PD163 = 1 (slave address 1)
+ * PD164 = 1 (baud rate 9600 bps)
+ * PD165 = 3 (8N1 for RTU mode)
+
+For a 1.5KW spindle:
+
+ * PD006 = 2.5 (intermediate frequency 2.5Hz)
+ * PD008 = 220 (max voltage 220V)
+ * PD009 = 15 (intermediate voltage 15V)
+ * PD010 = 8 (min voltage 8V)
+ * PD011 = 120 (frequency lower limit 120Hz, to limit lower RPM settings)
+ * PD014 = 5.0 (acceleration time, 5 seconds)
+ * PD015 = 0.8 (deceleration time; any more trips the VFD)
+ * PD025 = 1 (starting mode: frequency track)
+ * PD142 = 7 (max current 7 A)
+ * PD143 = 2 (specific to my 1.5 KW spindle: number of poles - 2)
+ * PD144 = 3000 (multiplied by PD010 = 3000 * 8 = 24,000 RPM)
+
+See manual for settings for other spindles.

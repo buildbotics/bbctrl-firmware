@@ -448,15 +448,16 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   int32_t travel = round(target) - m->position + error;
-  uint32_t ticks_per_step = travel ? labs(clocks / 2 / travel) : 0;
   m->position = round(target);
 
   // Setup the direction, compensating for polarity.
   m->negative = travel < 0;
   if (m->negative ^ m->reverse) m->direction = DIRECTION_CCW;
   else m->direction = DIRECTION_CW;
+  if (m->negative) travel = -travel;
 
   // Find the clock rate that will fit the required number of steps
+  uint32_t ticks_per_step = travel ? clocks / 2 / travel : 0;
   if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
   else if (ticks_per_step <= 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
   else if (ticks_per_step <= 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;

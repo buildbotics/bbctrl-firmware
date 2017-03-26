@@ -10,12 +10,12 @@ TARGET  = $(PROJECT).elf
 CC = avr-gcc
 CPP = avr-g++
 
-COMMON = -mmcu=$(MCU)
+COMMON = -mmcu=$(MCU) -flto -fwhole-program
 
 CFLAGS += $(COMMON)
-CFLAGS += -Wall -Werror # -Wno-error=unused-function
+CFLAGS += -Wall -Werror
 CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
-CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3 #-funroll-loops
+CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -Isrc -DVERSION=\"$(VERSION)\"

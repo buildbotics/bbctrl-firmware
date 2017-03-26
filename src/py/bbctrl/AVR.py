@@ -81,6 +81,7 @@ class AVR():
             # Reset AVR communication
             self.stop();
             self.ctrl.config.config_avr()
+            self.report()
 
         except Exception as e:
             log.warning('Connect failed: %s', e)

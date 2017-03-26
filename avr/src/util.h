@@ -54,7 +54,7 @@ inline static float max4(float a, float b, float c, float d)
 float invsqrt(float number);
 
 #ifndef __AVR__
-inline static double square(double x) {return x * x;}
+inline static float square(float x) {return x * x;}
 #endif
 
 // Floating-point utilities

@@ -40,4 +40,3 @@ void st_shutdown();
 bool st_is_busy();
 stat_t st_prep_line(float time, const float target[], const int32_t error[]);
 void st_prep_dwell(float seconds);
-void st_get_error(int32_t error[]);

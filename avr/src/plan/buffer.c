@@ -231,11 +231,6 @@ void mp_buffer_validate(const mp_buffer_t *bp) {
   ASSERT(isfinite(bp->exit_velocity));
   ASSERT(isfinite(bp->braking_velocity));
 
-  ASSERT(isfinite(bp->entry_vmax));
-  ASSERT(isfinite(bp->cruise_vmax));
-  ASSERT(isfinite(bp->exit_vmax));
-  ASSERT(isfinite(bp->delta_vmax));
-
   ASSERT(isfinite(bp->jerk));
   ASSERT(isfinite(bp->cbrt_jerk));
 }

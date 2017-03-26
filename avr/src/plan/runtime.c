@@ -152,23 +152,15 @@ void mp_runtime_set_work_offsets(float offset[]) {
 }
 
 
-/// Segment runner
-stat_t mp_runtime_move_to_target(float target[], float time) {
-  ASSERT(isfinite(time));
-
-  // Convert target position to steps.
-  float steps[MOTORS];
-  mp_kinematics(target, steps);
-
+static void _step_correction(const float steps[], float time,
+                             int32_t error[]) {
 #ifdef STEP_CORRECTION
-  int32_t error[MOTORS];
-  st_get_error(error);
-
   float travel[MOTORS];
   float new_length_sqr = 0;
   float old_length_sqr = 0;
 
   for (int motor = 0; motor < MOTORS; motor++) {
+    error[motor] = motor_get_error(motor);
     travel[motor] = steps[motor] - motor_get_position(motor);
 
     if (fp_ZERO(travel[motor])) {
@@ -199,11 +191,24 @@ stat_t mp_runtime_move_to_target(float target[], float time) {
     }
   }
 
-  if (!use_error) memset(error, 0, sizeof(error));
+  if (!use_error)
+    for (int motor = 0; motor < MOTORS; motor++)
+      error[motor] = 0;
 
-#else
-  const int32_t error[MOTORS] = {0};
-#endif
+#endif // STEP_CORRECTION
+}
+
+
+/// Segment runner
+stat_t mp_runtime_move_to_target(float target[], float time) {
+  ASSERT(isfinite(time));
+
+  // Convert target position to steps.
+  float steps[MOTORS];
+  mp_kinematics(target, steps);
+
+  int32_t error[MOTORS] = {0};
+  _step_correction(steps, time, error);
 
   // Call the stepper prep function
   RITORNO(st_prep_line(time, steps, error));

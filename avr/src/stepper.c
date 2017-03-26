@@ -225,9 +225,3 @@ void st_prep_dwell(float seconds) {
   st.prep_dwell = seconds * 1000; // convert to ms
   st.move_queued = true; // signal prep buffer ready
 }
-
-
-void st_get_error(int32_t error[]) {
-  for (int motor = 0; motor < MOTORS; motor++)
-    error[motor] = motor_get_error(motor);
-}

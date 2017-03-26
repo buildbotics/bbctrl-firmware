@@ -45,10 +45,14 @@ def parse_args():
                         help = 'LCD I2C port')
     parser.add_argument('--lcd-addr', default = 0x27, type = int,
                         help = 'LCD I2C address')
-    parser.add_argument('--avr-port', default = 0, type = int,
+    parser.add_argument('--avr-port', default = 1, type = int,
                         help = 'AVR I2C port')
     parser.add_argument('--avr-addr', default = 0x2b, type = int,
                         help = 'AVR I2C address')
+    parser.add_argument('--pwr-port', default = 1, type = int,
+                        help = 'Power AVR I2C port')
+    parser.add_argument('--pwr-addr', default = 0x2c, type = int,
+                        help = 'Power AVR I2C address')
     parser.add_argument('-v', '--verbose', action = 'store_true',
                         help = 'Verbose output')
     parser.add_argument('-l', '--log', metavar = "FILE",

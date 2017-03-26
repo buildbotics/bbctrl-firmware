@@ -32,7 +32,6 @@
 #include "axis.h"
 #include "runtime.h"
 #include "state.h"
-#include "forward_dif.h"
 #include "stepper.h"
 #include "motor.h"
 #include "rtc.h"
@@ -45,12 +44,13 @@
 #include <stdio.h>
 
 
-typedef struct {
-  float a, b, c, d;
-  float delta;
-  float half_delta;
-  uint16_t count;
-} quintic_bezier_t;
+#ifdef __AVR__
+typedef __int24 int24_t;
+typedef __uint24 uint24_t;
+#else
+typedef int32_t int24_t;
+typedef uint32_t uint24_t;
+#endif
 
 
 typedef struct {
@@ -66,11 +66,13 @@ typedef struct {
   float cruise_velocity;
   float exit_velocity;
 
-  uint32_t segment_count;   // count of running segments
+  uint24_t segment_count;   // count of running segments
+  uint24_t segment;         // current segment
   float segment_velocity;   // computed velocity for segment
   float segment_time;       // actual time increment per segment
-  forward_dif_t fdif;       // forward difference levels
-  quintic_bezier_t qb;
+  float segment_start[AXES];
+  float segment_delta;
+  float segment_dist;
   bool hold_planned;        // true when a feedhold has been planned
   move_section_t section;   // current move section
   bool section_new;         // true if it's a new section
@@ -80,107 +82,104 @@ typedef struct {
 
 static mp_exec_t ex = {{0}};
 
+/// We are using a quintic (fifth-degree) Bezier polynomial for the velocity
+/// curve.  This yields a constant pop; with pop being the sixth derivative
+/// of position:
+///
+///   1st - velocity
+///   2nd - acceleration
+///   3rd - jerk
+///   4th - snap
+///   5th - crackle
+///   6th - pop
+///
+/// The Bezier curve takes the form:
+///
+///   f(t) = P_0(1 - t)^5 + 5P_1(1 - t)^4 t + 10P_2(1 - t)^3 t^2 +
+///          10P_3(1 - t)^2 t^3 + 5P_4(1 - t)t^4 + P_5t^5
+///
+/// Where 0 <= t <= 1, f(t) is the velocity and P_0 through P_5 are the control
+/// points.  In our case:
+///
+///   P_0 = P_1 = P2 = Vi
+///   P_3 = P_4 = P5 = Vt
+///
+/// Where Vi is the initial velocity and Vt is the target velocity.
+///
+/// After substitution, expanding the polynomial and collecting terms we have:
+///
+///    f(t) = (Vt - Vi)(6t^5 - 15t^4 + 10t^3) + Vi
+///
+/// Computing this directly using 32bit float-point on a 32MHz AtXMega processor
+/// takes about 60uS or about 1,920 clocks.  The code was compiled with avr-gcc
+/// v4.9.2 with -O3.
 
-static float _quintic_bezier_next() {
-  float t = ex.qb.half_delta + ex.qb.count++ * ex.qb.delta;
-  float t2 = t * t;
-  float t3 = t2 * t;
+/// Common code for head and tail sections
+static stat_t _exec_aline_section(float length, float Vi, float Vt) {
+  if (ex.section_new) {
+    ASSERT(isfinite(length));
 
-  return (ex.qb.a * t2 + ex.qb.b * t + ex.qb.c) * t3 + ex.qb.d;
-}
+    if (fp_ZERO(length)) return STAT_NOOP; // end the section
 
+    ASSERT(isfinite(Vi) && isfinite(Vt));
+    ASSERT(0 <= Vi && 0 <= Vt);
+    ASSERT(Vi || Vt);
 
-static float _quintic_bezier_init(float Vi, float Vt, float segs) {
-  ex.qb.a =   6 * (Vt - Vi);
-  ex.qb.b = -15 * (Vt - Vi);
-  ex.qb.c =  10 * (Vt - Vi);
-  ex.qb.d = Vi;
-  ex.qb.delta = 1 / segs;
-  ex.qb.half_delta = ex.qb.delta / 2;
-  ex.qb.count = 0;
+    // len / avg. velocity
+    float move_time = 2 * length / (Vi + Vt); // in mins
+    float segments = ceil(move_time / NOM_SEGMENT_TIME);
+    ex.segment_time = move_time / segments;
+    ex.segment_count = round(segments);
+    ex.segment = 0;
+    ex.segment_dist = 0;
 
-  return _quintic_bezier_next();
-}
+    for (int axis = 0; axis < AXES; axis++)
+      ex.segment_start[axis] = mp_runtime_get_axis_position(axis);
 
+    if (Vi == Vt) {
+      ex.segment_delta = length / segments;
+      ex.segment_velocity = Vi;
 
-static stat_t _exec_aline_segment() {
+    } else ex.segment_delta = 1 / (segments + 1);
+
+    if (ex.segment_time < MIN_SEGMENT_TIME)
+      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
+
+    ex.section_new = false;
+  }
+
   float target[AXES];
+  ex.segment++;
 
   // Set target position for the segment.  If the segment ends on a section
-  // waypoint, synchronize to the head, body or tail end.  Otherwise, if not at
-  // a section waypoint compute target from segment time and velocity.  Don't
-  // do waypoint correction if you are going into a hold.
-  if (!--ex.segment_count && !ex.section_new && !ex.hold_planned)
+  // waypoint, synchronize to the head, body or tail end.  Otherwise, if not
+  // at section waypoint compute target from segment time and velocity.  Don't
+  // do waypoint correction when going into a hold.
+  if (ex.segment == ex.segment_count && !ex.section_new && !ex.hold_planned)
     copy_vector(target, ex.waypoint[ex.section]);
 
   else {
-    float segment_length = ex.segment_velocity * ex.segment_time;
+    if (Vi == Vt) ex.segment_dist += ex.segment_delta;
+    else {
+      // Compute quintic Bezier curve
+      const float t = ex.segment * ex.segment_delta;
+      const float t2 = t * t;
+      const float t3 = t2 * t;
+
+      ex.segment_velocity =
+        (Vt - Vi) * (6 * t2 - 15 * t + 10) * t3 + Vi;
+      ex.segment_dist += ex.segment_velocity * ex.segment_time;
+    }
 
     for (int axis = 0; axis < AXES; axis++)
-      target[axis] =
-        mp_runtime_get_axis_position(axis) + ex.unit[axis] * segment_length;
+      target[axis] = ex.segment_start[axis] + ex.unit[axis] * ex.segment_dist;
   }
 
   mp_runtime_set_velocity(ex.segment_velocity);
   RITORNO(mp_runtime_move_to_target(target, ex.segment_time));
 
   // Return EAGAIN to continue or OK if this segment is done
-  return ex.segment_count ? STAT_EAGAIN : STAT_OK;
-}
-
-
-/// Common code for head and tail sections
-static stat_t _exec_aline_section(float length, float vin, float vout) {
-  if (ex.section_new) {
-    ASSERT(isfinite(length));
-
-    if (fp_ZERO(length)) return STAT_NOOP; // end the section
-
-    ASSERT(isfinite(vin) && isfinite(vout));
-    ASSERT(0 <= vin && 0 <= vout);
-    ASSERT(vin || vout);
-
-    // len / avg. velocity
-    float move_time = 2 * length / (vin + vout);
-    float segments = ceil(move_time / NOM_SEGMENT_TIME);
-    ex.segment_time = move_time / segments;
-    ex.segment_count = round(segments);
-
-    if (vin == vout) ex.segment_velocity = vin;
-    else {
-#if 0
-      ex.segment_velocity =
-        mp_init_forward_dif(ex.fdif, vin, vout, segments);
-#else
-      ex.segment_velocity = _quintic_bezier_init(vin, vout, segments);
-#endif
-    }
-
-    if (ex.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
-
-    // First segment
-    if (_exec_aline_segment() == STAT_OK) {
-      ex.section_new = false;
-      return STAT_OK;
-    }
-
-    ex.section_new = false;
-
-  } else {
-    if (vin != vout) {
-#if 0
-      ex.segment_velocity += mp_next_forward_dif(ex.fdif);
-#else
-      ex.segment_velocity = _quintic_bezier_next();
-#endif
-    }
-
-    // Subsequent segments
-    if (_exec_aline_segment() == STAT_OK) return STAT_OK;
-  }
-
-  return STAT_EAGAIN;
+  return ex.segment < ex.segment_count ? STAT_EAGAIN : STAT_OK;
 }
 
 
@@ -231,17 +230,6 @@ static stat_t _exec_aline_head() {
 }
 
 
-static float _compute_next_segment_velocity() {
-  if (ex.section_new) {
-    if (ex.section == SECTION_HEAD) return mp_runtime_get_velocity();
-    else return ex.cruise_velocity;
-  }
-
-  return ex.segment_velocity +
-    (ex.section == SECTION_BODY ? 0 : mp_next_forward_dif(ex.fdif));
-}
-
-
 /// Replan current move to execute hold
 ///
 /// Holds are initiated by the planner entering STATE_STOPPING.  In which case
@@ -260,8 +248,8 @@ static void _plan_hold() {
   // Examine and process current buffer and compute length left for decel
   float available_length =
     axis_get_vector_length(ex.final_target, mp_runtime_get_position());
-  // Compute next_segment velocity, velocity left to shed to brake to zero
-  float braking_velocity = _compute_next_segment_velocity();
+  // Velocity left to shed to brake to zero
+  float braking_velocity = ex.segment_velocity;
   // Distance to brake to zero from braking_velocity, bf is OK to use here
   float braking_length = mp_get_target_length(braking_velocity, 0, bf->jerk);
 
