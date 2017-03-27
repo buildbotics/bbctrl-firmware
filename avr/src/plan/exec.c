@@ -36,6 +36,7 @@
 #include "motor.h"
 #include "rtc.h"
 #include "usart.h"
+#include "velocity_curve.h"
 #include "config.h"
 
 #include <string.h>
@@ -81,38 +82,6 @@ typedef struct {
 
 
 static mp_exec_t ex = {{0}};
-
-/// We are using a quintic (fifth-degree) Bezier polynomial for the velocity
-/// curve.  This yields a constant pop; with pop being the sixth derivative
-/// of position:
-///
-///   1st - velocity
-///   2nd - acceleration
-///   3rd - jerk
-///   4th - snap
-///   5th - crackle
-///   6th - pop
-///
-/// The Bezier curve takes the form:
-///
-///   f(t) = P_0(1 - t)^5 + 5P_1(1 - t)^4 t + 10P_2(1 - t)^3 t^2 +
-///          10P_3(1 - t)^2 t^3 + 5P_4(1 - t)t^4 + P_5t^5
-///
-/// Where 0 <= t <= 1, f(t) is the velocity and P_0 through P_5 are the control
-/// points.  In our case:
-///
-///   P_0 = P_1 = P2 = Vi
-///   P_3 = P_4 = P5 = Vt
-///
-/// Where Vi is the initial velocity and Vt is the target velocity.
-///
-/// After substitution, expanding the polynomial and collecting terms we have:
-///
-///    f(t) = (Vt - Vi)(6t^5 - 15t^4 + 10t^3) + Vi
-///
-/// Computing this directly using 32bit float-point on a 32MHz AtXMega processor
-/// takes about 60uS or about 1,920 clocks.  The code was compiled with avr-gcc
-/// v4.9.2 with -O3.
 
 /// Common code for head and tail sections
 static stat_t _exec_aline_section(float length, float Vi, float Vt) {
@@ -162,12 +131,8 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
     if (Vi == Vt) ex.segment_dist += ex.segment_delta;
     else {
       // Compute quintic Bezier curve
-      const float t = ex.segment * ex.segment_delta;
-      const float t2 = t * t;
-      const float t3 = t2 * t;
-
       ex.segment_velocity =
-        (Vt - Vi) * (6 * t2 - 15 * t + 10) * t3 + Vi;
+        velocity_curve(Vi, Vt, ex.segment * ex.segment_delta);
       ex.segment_dist += ex.segment_velocity * ex.segment_time;
     }
 

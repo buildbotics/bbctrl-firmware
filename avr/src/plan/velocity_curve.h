@@ -3,6 +3,8 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
+                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
+                  Copyright (c) 2012 - 2015 Rob Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -27,8 +29,4 @@
 
 #pragma once
 
-
-typedef float forward_dif_t[5];
-
-float mp_init_forward_dif(forward_dif_t fdif, float Vi, float Vt, float s);
-float mp_next_forward_dif(forward_dif_t fdif);
+float velocity_curve(float Vi, float Vt, float t);

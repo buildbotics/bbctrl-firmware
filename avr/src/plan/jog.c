@@ -31,7 +31,7 @@
 #include "planner.h"
 #include "buffer.h"
 #include "line.h"
-#include "forward_dif.h"
+#include "velocity_curve.h"
 #include "runtime.h"
 #include "machine.h"
 #include "state.h"
@@ -48,12 +48,13 @@ typedef struct {
   bool writing;
   float Vi;
   float Vt;
-  forward_dif_t fdifs[AXES];
-  unsigned segments[AXES];
+  float velocity_delta[AXES];
+  float velocity_t[AXES];
 
   int sign[AXES];
   float velocity[AXES];
   float next_velocity[AXES];
+  float initial_velocity[AXES];
   float target_velocity[AXES];
 } jog_runtime_t;
 
@@ -87,46 +88,49 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
   float velocity_sqr = 0;
 
+  // Compute per axis velocities
   for (int axis = 0; axis < AXES; axis++) {
-    float Vi = fabs(jr.velocity[axis]);
+    float V = fabs(jr.velocity[axis]);
     float Vt = fabs(jr.target_velocity[axis]);
 
     if (changed) {
-      if (fp_EQ(Vi, Vt)) {
-        Vi = Vt;
-        jr.segments[axis] = 0;
+      if (fp_EQ(V, Vt)) {
+        V = Vt;
+        jr.velocity_t[axis] = 1;
 
       } else {
         // Compute axis max jerk
         float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
 
         // Compute length to velocity given max jerk
-        float length = mp_get_target_length(Vi, Vt, jerk * JOG_JERK_MULT);
+        float length = mp_get_target_length(V, Vt, jerk * JOG_JERK_MULT);
 
         // Compute move time
-        float move_time = 2 * length / (Vi + Vt);
+        float move_time = 2 * length / (V + Vt);
+
         if (move_time < MIN_SEGMENT_TIME) {
-          Vi = Vt;
-          jr.segments[axis] = 0;
+          V = Vt;
+          jr.velocity_t[axis] = 1;
 
         } else {
-          jr.segments[axis] = ceil(move_time / NOM_SEGMENT_TIME);
-
-          Vi = mp_init_forward_dif(jr.fdifs[axis], Vi, Vt, jr.segments[axis]);
-          jr.segments[axis]--;
+          jr.initial_velocity[axis] = V;
+          jr.velocity_t[axis] = jr.velocity_delta[axis] =
+            NOM_SEGMENT_TIME / move_time;
         }
       }
+    }
 
-    } else if (jr.segments[axis]) {
-      Vi += mp_next_forward_dif(jr.fdifs[axis]);
-      jr.segments[axis]--;
+    if (jr.velocity_t[axis] < 1) {
+      // Compute quintic Bezier curve
+      V = velocity_curve(jr.initial_velocity[axis], Vt, jr.velocity_t[axis]);
+      jr.velocity_t[axis] += jr.velocity_delta[axis];
 
-    } else Vi = Vt;
+    } else V = Vt;
 
-    if (JOG_MIN_VELOCITY < Vi || JOG_MIN_VELOCITY < Vt) done = false;
+    if (JOG_MIN_VELOCITY < V || JOG_MIN_VELOCITY < Vt) done = false;
 
-    velocity_sqr += square(Vi);
-    jr.velocity[axis] = Vi * jr.sign[axis];
+    velocity_sqr += square(V);
+    jr.velocity[axis] = V * jr.sign[axis];
   }
 
   // Check if we are done
