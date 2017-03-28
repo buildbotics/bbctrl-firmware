@@ -80,14 +80,13 @@ typedef struct {
   uint8_t last_clock;
   bool wasEnabled;
   int32_t error;
-  bool last_negative;            // Last step sign
   bool reading;
+  bool last_clockwise;
 
   // Move prep
   uint8_t timer_clock;           // clock divisor setting or zero for off
   uint16_t timer_period;         // clock period counter
-  bool negative;                 // step sign
-  direction_t direction;         // travel direction corrected for polarity
+  bool clockwise;                // travel direction corrected for polarity
   int32_t position;
   bool round_up;                 // toggle rounding direction
   float power;
@@ -127,7 +126,23 @@ static motor_t motors[MOTORS] = {
 };
 
 
-static uint8_t _dummy;
+static void _update_direction(motor_t *m) {
+  if (m->last_clockwise == m->clockwise) return;
+  m->last_clockwise = m->clockwise;
+
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm; // Disable channel
+
+  if (m->clockwise) {
+    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_INC_gc;
+    OUTCLR_PIN(m->dir_pin);
+
+  } else {
+    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_DEC_gc;
+    OUTSET_PIN(m->dir_pin);
+  }
+
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm; // Enable channel
+}
 
 
 void motor_init() {
@@ -153,7 +168,6 @@ void motor_init() {
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
 
     // Setup DMA channel as timer event counter
-    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
     m->dma->TRIGSRC = m->dma_trigger;
     m->dma->REPCNT = 0;
 
@@ -162,14 +176,16 @@ void motor_init() {
     m->dma->SRCADDR1 = (((uintptr_t)&m->timer->CCA) >> 8) & 0xff;
     m->dma->SRCADDR2 = 0;
 
-    m->dma->DESTADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
-    m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
-    m->dma->DESTADDR2 = 0;
+    m->dma->DESTADDR0 = 0;
+    m->dma->DESTADDR1 = 0;
+    m->dma->DESTADDR2 = 0xc0;
 
     m->dma->CTRLB = 0;
-    m->dma->CTRLA =
-      DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
-    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+    m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+
+    // Direction
+    m->last_clockwise = !m->clockwise; // Force update
+    _update_direction(m);
 
     drv8711_set_microsteps(motor, m->microsteps);
   }
@@ -381,10 +397,14 @@ void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
   // Get actual step count from DMA channel
-  uint16_t steps = 0xffff - m->dma->TRFCNT;
-  m->dma->TRFCNT = 0xffff; // Reset DMA channel counter
-  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+  int24_t encoder = m->dma->DESTADDR0;
+  encoder |= (int24_t)m->dma->DESTADDR1 << 8;
+  encoder |= (int24_t)(m->dma->DESTADDR2 & 0x7f) << 16;
+  // TODO account for potential 23bit over/underflow
+  m->encoder = encoder - 0x400000;
+
+  // Set direction
+  _update_direction(m);
 
   // Adjust clock count
   if (m->last_clock) {
@@ -402,20 +422,10 @@ void motor_load_move(int motor) {
   } else m->timer->CNT = m->timer_period / 2;
 
   // Set or zero runtime clock and period
-  m->timer->CCA = m->timer_period;     // Set frequency
-  m->timer->CTRLA = m->timer_clock;    // Start or stop
+  m->timer->CCA = m->timer_period;     // Set step pulse period
+  m->timer->CTRLA = m->timer_clock;    // Clock rate or stop
   m->last_clock = m->timer_clock;
   m->timer_clock = 0;                  // Clear clock
-
-  // Set direction
-  if (m->direction == DIRECTION_CW) OUTCLR_PIN(m->dir_pin);
-  else OUTSET_PIN(m->dir_pin);
-
-  // Accumulate encoder
-  if (!m->wasEnabled) steps = 0;
-
-  m->encoder += m->last_negative ? -(int32_t)steps : steps;
-  m->last_negative = m->negative;
 
   // Compute error
   if (!m->reading) m->error = m->commanded - m->encoder;
@@ -427,10 +437,7 @@ void motor_load_move(int motor) {
 
 
 void motor_end_move(int motor) {
-  motor_t *m = &motors[motor];
-  m->wasEnabled = m->dma->CTRLA & DMA_CH_ENABLE_bm;
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  m->timer->CTRLA = 0; // Stop clock
+  motors[motor].timer->CTRLA = 0; // Stop clock
 }
 
 
@@ -451,12 +458,11 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
   m->position = round(target);
 
   // Setup the direction, compensating for polarity.
-  m->negative = travel < 0;
-  if (m->negative ^ m->reverse) m->direction = DIRECTION_CCW;
-  else m->direction = DIRECTION_CW;
+  bool negative = travel < 0;
+  m->clockwise = !(negative ^ m->reverse);
 
   // Use positive travel from here on
-  if (m->negative) travel = -travel;
+  if (negative) travel = -travel;
 
   // Find the fastest clock rate that will fit the required number of steps
   uint32_t ticks_per_step = travel ? clocks / 2 / travel : 0;

@@ -69,3 +69,12 @@ inline static bool fp_TRUE(float a) {return !fp_ZERO(a);}
 #define MM_PER_INCH 25.4
 #define INCHES_PER_MM (1 / 25.4)
 #define MICROSECONDS_PER_MINUTE 60000000.0
+
+// 24bit integers
+#ifdef __AVR__
+typedef __int24 int24_t;
+typedef __uint24 uint24_t;
+#else
+typedef int32_t int24_t;
+typedef uint32_t uint24_t;
+#endif

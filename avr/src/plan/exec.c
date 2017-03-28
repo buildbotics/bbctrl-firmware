@@ -35,7 +35,7 @@
 #include "stepper.h"
 #include "motor.h"
 #include "rtc.h"
-#include "usart.h"
+#include "util.h"
 #include "velocity_curve.h"
 #include "config.h"
 
@@ -43,15 +43,6 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdio.h>
-
-
-#ifdef __AVR__
-typedef __int24 int24_t;
-typedef __uint24 uint24_t;
-#else
-typedef int32_t int24_t;
-typedef uint32_t uint24_t;
-#endif
 
 
 typedef struct {

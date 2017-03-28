@@ -154,13 +154,6 @@ typedef enum {
 } coolant_state_t;
 
 
-/// used for spindle and arc dir
-typedef enum {
-  DIRECTION_CW,
-  DIRECTION_CCW,
-} direction_t;
-
-
 /* Gcode model
  *
  * - mach.gm is the core Gcode model state. It keeps the internal gcode
