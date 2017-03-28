@@ -444,7 +444,7 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
   if (isinf(target)) return ALARM(STAT_MOVE_TARGET_INFINITE);
   if (isnan(target)) return ALARM(STAT_MOVE_TARGET_NAN);
 
-  // Compute motor timer clock and period. Rounding is performed to eliminate
+  // Compute motor timer clock and period.  Rounding is performed to eliminate
   // a negative bias in the uint32_t conversion that results in long-term
   // negative drift.
   int32_t travel = round(target) - m->position + error;
@@ -454,9 +454,11 @@ stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
   m->negative = travel < 0;
   if (m->negative ^ m->reverse) m->direction = DIRECTION_CCW;
   else m->direction = DIRECTION_CW;
+
+  // Use positive travel from here on
   if (m->negative) travel = -travel;
 
-  // Find the clock rate that will fit the required number of steps
+  // Find the fastest clock rate that will fit the required number of steps
   uint32_t ticks_per_step = travel ? clocks / 2 / travel : 0;
   if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
   else if (ticks_per_step <= 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;

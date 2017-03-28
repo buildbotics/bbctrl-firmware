@@ -152,8 +152,7 @@ void mp_runtime_set_work_offsets(float offset[]) {
 }
 
 
-static void _step_correction(const float steps[], float time,
-                             int32_t error[]) {
+static void _step_correction(const float steps[], float time, int32_t error[]) {
 #ifdef STEP_CORRECTION
   float travel[MOTORS];
   float new_length_sqr = 0;

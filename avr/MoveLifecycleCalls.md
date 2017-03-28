@@ -30,7 +30,7 @@
              * mp_init_forward_dif() || mp_next_forward_dif()
              * _exec_aline_segment()
                * mp_runtime_move_to_target()
-                 * mp_kinematics() - Converts target in mm to steps
+                 * mp_kinematics() - Converts target mm to steps and maps motors
                  * st_prep_line()
                    * motor_prep_move()
 
