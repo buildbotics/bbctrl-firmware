@@ -43,12 +43,6 @@
 #define JERK_MULTIPLIER         1000000.0
 #define JERK_MATCH_PRECISION    1000.0 // jerk precision to be considered same
 
-#define NOM_SEGMENT_TIME        (NOM_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-#define MIN_SEGMENT_TIME        (MIN_SEGMENT_USEC / MICROSECONDS_PER_MINUTE)
-
-#define MIN_SEGMENT_TIME_PLUS_MARGIN \
-  ((MIN_SEGMENT_USEC + 1) / MICROSECONDS_PER_MINUTE)
-
 /// Error percentage for iteration convergence. As percent - 0.01 = 1%
 #define TRAPEZOID_ITERATION_ERROR_PERCENT   0.1
 

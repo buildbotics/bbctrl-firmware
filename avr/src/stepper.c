@@ -45,7 +45,7 @@
 
 typedef enum {
   MOVE_TYPE_NULL,          // null move - does a no-op
-  MOVE_TYPE_ALINE,         // acceleration planned line
+  MOVE_TYPE_LINE,         // acceleration planned line
   MOVE_TYPE_DWELL,         // delay with no movement
 } move_type_t;
 
@@ -54,14 +54,13 @@ typedef struct {
   // Runtime
   bool busy;
   bool requesting;
-  uint16_t dwell;
+  float dwell;
 
   // Move prep
   bool move_ready;         // prepped move ready for loader
   bool move_queued;        // prepped move queued
   move_type_t move_type;
-  uint16_t seg_period;
-  uint32_t prep_dwell;
+  float prep_dwell;
 } stepper_t;
 
 
@@ -131,14 +130,13 @@ static void _request_exec_move() {
 /// Dequeue move and load into stepper struct
 ISR(STEP_TIMER_ISR) {
   // Dwell
-  if (st.dwell && --st.dwell) return;
+  if (0 < st.dwell) {
+    st.dwell -= SEGMENT_SEC;
+    return;
+  } else st.dwell = 0;
 
-  // End last move
+  // Default clock rate
   TIMER_STEP.PER = STEP_TIMER_POLL;
-
-  DMA.INTFLAGS = 0xff; // clear all interrups
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_end_move(motor);
 
   if (estop_triggered()) {
     st.move_type = MOVE_TYPE_NULL;
@@ -155,11 +153,12 @@ ISR(STEP_TIMER_ISR) {
   if (motor_energizing()) return;
 
   // Start move
-  if (st.seg_period) {
+  if (st.move_type == MOVE_TYPE_LINE)
     for (int motor = 0; motor < MOTORS; motor++)
       motor_load_move(motor);
 
-    TIMER_STEP.PER = st.seg_period;
+  if (st.move_type != MOVE_TYPE_NULL) {
+    TIMER_STEP.PER = SEGMENT_PERIOD;
     st.busy = true;
 
     // Start dwell
@@ -168,7 +167,6 @@ ISR(STEP_TIMER_ISR) {
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
-  st.seg_period = 0;      // clear timer
   st.prep_dwell = 0;      // clear dwell
   st.move_ready = false;  // flip the flag back
 
@@ -189,27 +187,17 @@ ISR(STEP_TIMER_ISR) {
  *   @param target signed position in steps for each motor.
  *   Steps are fractional.  Their sign indicates direction.  Motors not in the
  *   move have 0 steps.
- *
- *   @param time is segment run time in minutes.  If timing is not 100%
- *   accurate this will affect the move velocity but not travel distance.
  */
-stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
+stat_t st_prep_line(const float target[]) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready)           return ALARM(STAT_INTERNAL_ERROR);
-  if (isinf(time))             return ALARM(STAT_PREP_LINE_MOVE_TIME_INFINITE);
-  if (isnan(time))             return ALARM(STAT_PREP_LINE_MOVE_TIME_NAN);
-  if (time < EPSILON)          return ALARM(STAT_MINIMUM_TIME_MOVE);
-  if (MAX_SEGMENT_TIME < time) return ALARM(STAT_MAXIMUM_TIME_MOVE);
+  if (st.move_ready) return ALARM(STAT_INTERNAL_ERROR);
 
   // Setup segment parameters
-  st.move_type = MOVE_TYPE_ALINE;
-  st.seg_period = round(time * 60 * STEP_TIMER_FREQ); // Must fit 16-bit
-  int32_t seg_clocks = (int32_t)st.seg_period * STEP_TIMER_DIV;
+  st.move_type = MOVE_TYPE_LINE;
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    RITORNO
-      (motor_prep_move(motor, seg_clocks, target[motor], error[motor], time));
+    RITORNO(motor_prep_move(motor, round(target[motor])));
 
   st.move_queued = true; // signal prep buffer ready (do this last)
 
@@ -221,7 +209,6 @@ stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
 void st_prep_dwell(float seconds) {
   if (st.move_ready) ALARM(STAT_INTERNAL_ERROR);
   st.move_type = MOVE_TYPE_DWELL;
-  st.seg_period = STEP_TIMER_FREQ * 0.001; // 1 ms
-  st.prep_dwell = seconds * 1000; // convert to ms
+  st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
 }

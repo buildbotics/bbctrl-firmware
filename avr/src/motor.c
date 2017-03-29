@@ -72,23 +72,14 @@ typedef struct {
 
   // Runtime state
   motor_power_state_t power_state; // state machine for managing motor power
-  uint32_t timeout;
+  uint32_t power_timeout;
   motor_flags_t flags;
-  int32_t encoder;
-  int32_t commanded;
-  int32_t steps;                 // Currently used by the x-axis only
-  uint8_t last_clock;
-  bool wasEnabled;
-  int32_t error;
-  bool reading;
-  bool last_clockwise;
+  bool active;
 
   // Move prep
-  uint8_t timer_clock;           // clock divisor setting or zero for off
-  uint16_t timer_period;         // clock period counter
-  bool clockwise;                // travel direction corrected for polarity
+  uint16_t steps;
+  bool clockwise;
   int32_t position;
-  bool round_up;                 // toggle rounding direction
   float power;
 } motor_t;
 
@@ -154,7 +145,6 @@ void motor_init() {
     // Setup DMA channel as timer event counter
     m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
     m->dma->TRIGSRC = m->dma_trigger;
-    m->dma->REPCNT = 0;
 
     // Note, the DMA transfer must read CCA to clear the trigger
     m->dma->SRCADDR0 = (((uintptr_t)&m->timer->CCA) >> 0) & 0xff;
@@ -165,10 +155,9 @@ void motor_init() {
     m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
     m->dma->DESTADDR2 = 0;
 
-    m->dma->CTRLB = 0;
-    m->dma->CTRLA =
-      DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
-    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+    m->dma->REPCNT = 0;
+    m->dma->CTRLB = DMA_CH_TRNINTLVL_HI_gc;
+    m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
 
     drv8711_set_microsteps(motor, m->microsteps);
   }
@@ -241,27 +230,10 @@ void motor_set_microsteps(int motor, uint16_t microsteps) {
 }
 
 
-int32_t motor_get_encoder(int motor) {return motors[motor].encoder;}
-
-
-void motor_set_encoder(int motor, float encoder) {
+void motor_set_position(int motor, int32_t position) {
   //if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR); TODO
 
-  motor_t *m = &motors[motor];
-  //m->encoder = m->position = m->commanded = round(encoder);
-  m->position = m->commanded = round(encoder);
-  m->error = 0;
-}
-
-
-int32_t motor_get_error(int motor) {
-  motor_t *m = &motors[motor];
-
-  m->reading = true;
-  int32_t error = motors[motor].error;
-  m->reading = false;
-
-  return error;
+  motors[motor].position = position;
 }
 
 
@@ -276,14 +248,8 @@ bool motor_error(int m) {
 }
 
 
-bool motor_stalled(int m) {
-  return motors[m].flags & MOTOR_FLAG_STALLED_bm;
-}
-
-
-void motor_reset(int m) {
-  motors[m].flags = 0;
-}
+bool motor_stalled(int m) {return motors[m].flags & MOTOR_FLAG_STALLED_bm;}
+void motor_reset(int m) {motors[m].flags = 0;}
 
 
 static void _set_power_state(int motor, motor_power_state_t state) {
@@ -298,7 +264,7 @@ static void _update_power(int motor) {
   switch (m->power_mode) {
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
   case MOTOR_POWERED_IN_CYCLE:
-    if (rtc_expired(m->timeout)) {
+    if (rtc_expired(m->power_timeout)) {
       if (m->power_state == MOTOR_ACTIVE) {
         _set_power_state(motor, MOTOR_IDLE);
         drv8711_set_state(motor, DRV8711_IDLE);
@@ -377,118 +343,100 @@ void motor_error_callback(int motor, motor_flags_t errors) {
 }
 
 
-void motor_load_move(int motor) {
+static void _load_move(int motor) {
   motor_t *m = &motors[motor];
 
-  // Get actual step count from DMA channel
-  //uint16_t steps = 0xffff - m->dma->TRFCNT;
-  m->dma->TRFCNT = 0xffff; // Reset DMA channel counter
-  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+  // Stop clock & DMA
+  m->timer->CTRLA = 0;
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  m->dma->CTRLB |= DMA_CH_TRNIF_bm | DMA_CH_ERRIF_bm; // Clear interrupt flags
 
-  // Adjust clock count
-  if (m->last_clock) {
-    uint32_t count = m->timer->CNT;
-    int8_t freq_change = m->last_clock - m->timer_clock;
-
-    count <<= freq_change; // Adjust count
-
-    if (m->timer_period < count) count -= m->timer_period;
-    if (m->timer_period < count) count -= m->timer_period;
-    if (m->timer_period < count) count = m->timer_period / 2;
-
-    m->timer->CNT = count;
-
-  } else m->timer->CNT = m->timer_period / 2;
-
-  // Set or zero runtime clock and period
-  m->timer->CCA = m->timer_period;     // Set step pulse period
-  m->timer->CTRLA = m->timer_clock;    // Clock rate or stop
-  m->last_clock = m->timer_clock;
-  m->timer_clock = 0;                  // Clear clock
+  if (!m->steps) {
+    m->active = false;
+    return;
+  }
 
   // Set direction
   if (m->clockwise) OUTCLR_PIN(m->dir_pin);
   else OUTSET_PIN(m->dir_pin);
 
-  // Compute error
-  if (!m->reading) m->error = m->commanded - m->encoder;
-  m->commanded = m->position;
-
   // Set power
   drv8711_set_power(motor, m->power);
+
+  // Get clocks remaining in segment
+  uint32_t clocks =
+    (uint32_t)(SEGMENT_PERIOD - TIMER_STEP.CNT) * STEP_TIMER_DIV;
+
+  // Count steps with phony DMA transfer
+  m->dma->TRFCNT = m->steps;
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+
+  // Find the fastest clock rate that will fit the required number of steps
+  uint32_t ticks_per_step = clocks / m->steps;
+  uint8_t timer_clock;
+  if (ticks_per_step <= 0xffff) timer_clock = TC_CLKSEL_DIV1_gc;
+  else if (ticks_per_step <= 0x1ffff) timer_clock = TC_CLKSEL_DIV2_gc;
+  else if (ticks_per_step <= 0x3ffff) timer_clock = TC_CLKSEL_DIV4_gc;
+  else if (ticks_per_step <= 0x7ffff) timer_clock = TC_CLKSEL_DIV8_gc;
+  else timer_clock = 0; // Clock off, too slow
+
+  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
+  // equal 1, 2, 3 & 4 respectively.
+  uint16_t timer_period = ticks_per_step >> (timer_clock - 1);
+
+  // Set clock and period
+  if ((m->active = timer_period && timer_clock)) {
+    m->timer->CNT = 0;
+    m->timer->CCA = timer_period;     // Set step pulse period
+    m->timer->CTRLA = timer_clock;    // Set clock rate
+    m->steps = 0;
+  }
 }
 
 
-void motor_end_move(int motor) {
-  motor_t *m = &motors[motor];
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  m->timer->CTRLA = 0; // Stop clock
+ISR(M1_DMA_VECT) {_load_move(0);}
+ISR(M2_DMA_VECT) {_load_move(1);}
+ISR(M3_DMA_VECT) {_load_move(2);}
+ISR(M4_DMA_VECT) {_load_move(3);}
+
+
+void motor_load_move(int motor) {
+  if (!motors[motor].active) _load_move(motor);
 }
 
 
-stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
-                       float time) {
+stat_t motor_prep_move(int motor, int32_t target) {
   motor_t *m = &motors[motor];
 
   // Validate input
   if (motor < 0 || MOTORS < motor) return ALARM(STAT_INTERNAL_ERROR);
-  if (clocks < 0)    return ALARM(STAT_INTERNAL_ERROR);
   if (isinf(target)) return ALARM(STAT_MOVE_TARGET_INFINITE);
   if (isnan(target)) return ALARM(STAT_MOVE_TARGET_NAN);
 
-  // Compute motor timer clock and period.  Rounding is performed to eliminate
-  // a negative bias in the uint32_t conversion that results in long-term
-  // negative drift.
-  int32_t travel = round(target) - m->position + error;
-  m->position = round(target);
+  // Compute travel in steps
+  int32_t steps = target - m->position;
+  m->position = target;
 
-  // Setup the direction, compensating for polarity.
-  bool negative = travel < 0;
+  // Set direction, compensating for polarity
+  bool negative = steps < 0;
   m->clockwise = !(negative ^ m->reverse);
 
-  // Use positive travel from here on
-  if (negative) travel = -travel;
-
-  // Find the fastest clock rate that will fit the required number of steps
-  uint32_t ticks_per_step = travel ? clocks / 2 / travel : 0;
-  if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
-  else if (ticks_per_step <= 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
-  else if (ticks_per_step <= 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;
-  else if (ticks_per_step <= 0x7ffff) m->timer_clock = TC_CLKSEL_DIV8_gc;
-  else m->timer_clock = 0; // Clock off, too slow
-
-  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
-  // equal 1, 2, 3 & 4 respectively.
-  m->timer_period = ticks_per_step >> (m->timer_clock - 1);
-
-  // Round up if DIV4 or DIV8 and the error is high enough
-  if (0xffff < ticks_per_step && m->timer_period < 0xffff) {
-    int8_t step_error = ticks_per_step & ((1 << (m->timer_clock - 1)) - 1);
-    int8_t half_error = 1 << (m->timer_clock - 2);
-
-    if (step_error == half_error) {
-      if (m->round_up) m->timer_period++;
-      m->round_up = !m->round_up;
-
-    } else if (half_error < step_error) m->timer_period++;
-  }
-
-  if (!m->timer_period) m->timer_clock = 0;
-  if (!m->timer_clock) m->timer_period = 0;
+  // Positive steps from here on
+  if (negative) steps = -steps;
+  m->steps = steps;
 
   // Compute power from axis velocity
-  m->power = travel / (_get_max_velocity(motor) * time);
+  m->power = steps / (_get_max_velocity(motor) * SEGMENT_TIME);
 
   // Power motor
   switch (m->power_mode) {
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (!m->timer_clock) break; // Not moving
+    if (!steps) break; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
     // Reset timeout
-    m->timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
+    m->power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
     break;
 
   default: break;
@@ -597,7 +545,7 @@ void print_status_flags(uint8_t flags) {
 
 
 uint8_t get_status_strings(int m) {return get_status_flags(m);}
-int32_t get_encoder(int m) {return motor_get_encoder(m);}
+int32_t get_encoder(int m) {return 0;}
 
 
 // Command callback

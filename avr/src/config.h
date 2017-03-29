@@ -141,6 +141,11 @@ enum {
 #define M3_DMA_CH              DMA.CH2
 #define M4_DMA_CH              DMA.CH3
 
+#define M1_DMA_VECT            DMA_CH0_vect
+#define M2_DMA_VECT            DMA_CH1_vect
+#define M3_DMA_VECT            DMA_CH2_vect
+#define M4_DMA_VECT            DMA_CH3_vect
+
 #define M1_DMA_TRIGGER         DMA_CH_TRIGSRC_TCD0_CCA_gc
 #define M2_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE0_CCA_gc
 #define M3_DMA_TRIGGER         DMA_CH_TRIGSRC_TCF0_CCA_gc
@@ -157,10 +162,11 @@ enum {
 #define STEP_TIMER_ISR         TCC0_OVF_vect
 #define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
 
-#define MAX_SEGMENT_TIME       ((float)0xffff / 60.0 / STEP_TIMER_FREQ)
-#define NOM_SEGMENT_USEC       5000.0 // nominal segment time
-#define MIN_SEGMENT_USEC       2500.0 // minimum segment time
-
+#define SEGMENT_USEC           5000.0 // segment time
+#define SEGMENT_SEC            (SEGMENT_USEC / 1000000.0)
+#define SEGMENT_TIME           (SEGMENT_SEC / 60.0)
+#define SEGMENT_CLOCKS         (F_CPU * SEGMENT_SEC)
+#define SEGMENT_PERIOD         (STEP_TIMER_FREQ * SEGMENT_SEC)
 
 // Huanyang settings
 #define HUANYANG_PORT          USARTD1

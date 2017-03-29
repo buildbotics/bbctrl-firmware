@@ -80,9 +80,6 @@ int main() {
   fprintf_P(stdout, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
                          "\"version\": \"" VERSION "\"}\n"));
 
-  // Nominal segment time cannot be longer than maximum
-  if (MAX_SEGMENT_TIME < NOM_SEGMENT_TIME) ALARM(STAT_INTERNAL_ERROR);
-
   // Main loop
   while (true) {
     hw_reset_handler();           // handle hard reset requests

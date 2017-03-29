@@ -72,9 +72,7 @@ float motor_get_steps_per_unit(int motor);
 float motor_get_units_per_step(int motor);
 uint16_t motor_get_microsteps(int motor);
 void motor_set_microsteps(int motor, uint16_t microsteps);
-int32_t motor_get_encoder(int motor);
-void motor_set_encoder(int motor, float encoder);
-int32_t motor_get_error(int motor);
+void motor_set_position(int motor, int32_t position);
 int32_t motor_get_position(int motor);
 
 bool motor_error(int motor);
@@ -88,6 +86,4 @@ stat_t motor_rtc_callback();
 void motor_error_callback(int motor, motor_flags_t errors);
 
 void motor_load_move(int motor);
-void motor_end_move(int motor);
-stat_t motor_prep_move(int motor, int32_t clocks, float target, int32_t error,
-                       float time);
+stat_t motor_prep_move(int motor, int32_t target);

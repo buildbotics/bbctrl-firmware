@@ -27,12 +27,10 @@
          * _exec_aline_init()
          * _exec_aline_head() || _exec_aline_body() || _exec_aline_tail()
            * _exec_aline_section()
-             * mp_init_forward_dif() || mp_next_forward_dif()
-             * _exec_aline_segment()
-               * mp_runtime_move_to_target()
-                 * mp_kinematics() - Converts target mm to steps and maps motors
-                 * st_prep_line()
-                   * motor_prep_move()
+             * mp_runtime_move_to_target()
+               * mp_kinematics() - Converts target mm to steps and maps motors
+               * st_prep_line()
+                 * motor_prep_move()
 
 # Step Output
  * STEP_TIMER_ISR

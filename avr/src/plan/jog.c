@@ -108,14 +108,14 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
         // Compute move time
         float move_time = 2 * length / (V + Vt);
 
-        if (move_time < MIN_SEGMENT_TIME) {
+        if (move_time < SEGMENT_TIME) {
           V = Vt;
           jr.velocity_t[axis] = 1;
 
         } else {
           jr.initial_velocity[axis] = V;
           jr.velocity_t[axis] = jr.velocity_delta[axis] =
-            NOM_SEGMENT_TIME / move_time;
+            SEGMENT_TIME / move_time;
         }
       }
     }
@@ -148,11 +148,11 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   float target[AXES];
   for (int axis = 0; axis < AXES; axis++)
     target[axis] = mp_runtime_get_axis_position(axis) +
-      jr.velocity[axis] * NOM_SEGMENT_TIME;
+      jr.velocity[axis] * SEGMENT_TIME;
 
   // Set velocity and target
   mp_runtime_set_velocity(sqrt(velocity_sqr));
-  stat_t status = mp_runtime_move_to_target(target, NOM_SEGMENT_TIME);
+  stat_t status = mp_runtime_move_to_target(target);
   if (status != STAT_OK) return status;
 
   return STAT_EAGAIN;

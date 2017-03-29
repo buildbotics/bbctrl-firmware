@@ -127,11 +127,11 @@ void mp_kinematics(const float travel[], float steps[]) {
 // expressions evaluate to the minimum lengths for the current velocity
 // settings. Note: The head and tail lengths are 2 minimum segments, the body
 // is 1 min segment.
-#define MIN_HEAD_LENGTH \
-  (MIN_SEGMENT_TIME_PLUS_MARGIN * (bf->cruise_velocity + bf->entry_velocity))
-#define MIN_TAIL_LENGTH \
-  (MIN_SEGMENT_TIME_PLUS_MARGIN * (bf->cruise_velocity + bf->exit_velocity))
-#define MIN_BODY_LENGTH (MIN_SEGMENT_TIME_PLUS_MARGIN * bf->cruise_velocity)
+#define MIN_HEAD_LENGTH                                         \
+  (SEGMENT_TIME * (bf->cruise_velocity + bf->entry_velocity))
+#define MIN_TAIL_LENGTH                                         \
+  (SEGMENT_TIME * (bf->cruise_velocity + bf->exit_velocity))
+#define MIN_BODY_LENGTH (SEGMENT_TIME * bf->cruise_velocity)
 
 
 /*** Calculate move acceleration / deceleration
@@ -241,8 +241,8 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   float naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
 
-  if (naive_move_time < MIN_SEGMENT_TIME_PLUS_MARGIN) {
-    bf->cruise_velocity = bf->length / MIN_SEGMENT_TIME_PLUS_MARGIN;
+  if (naive_move_time < SEGMENT_TIME) {
+    bf->cruise_velocity = bf->length / SEGMENT_TIME;
     bf->exit_velocity =
       max(0, min(bf->cruise_velocity, (bf->entry_velocity - bf->delta_vmax)));
     bf->body_length = bf->length;
@@ -254,7 +254,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   }
 
   // B" case: Block is short, but fits into a single body segment
-  if (naive_move_time <= NOM_SEGMENT_TIME) {
+  if (naive_move_time <= SEGMENT_TIME) {
     bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
 
     if (!fp_ZERO(bf->entry_velocity)) {
@@ -486,10 +486,6 @@ void mp_print_queue(mp_buffer_t *bf) {
  *   bl (function arg)     - end of block list (last block in time)
  *   bl->replannable       - start of block list set by last FALSE value
  *                           [Note 1]
- *   bl->move_type         - typically MOVE_TYPE_ALINE. Other move_types should
- *                           be set to length=0, entry_vmax=0 and exit_vmax=0
- *                           and are treated as a momentary stop (plan to zero
- *                           and from zero).
  *   bl->length            - provides block length
  *   bl->entry_vmax        - used during forward planning to set entry velocity
  *   bl->cruise_vmax       - used during forward planning to set cruise velocity

@@ -342,7 +342,7 @@ static float _calc_move_time(const float axis_length[],
     if (max_time < time) max_time = time;
   }
 
-  return max_time < MIN_SEGMENT_TIME ? MIN_SEGMENT_TIME : max_time;
+  return max_time < SEGMENT_TIME ? SEGMENT_TIME : max_time;
 }
 
 

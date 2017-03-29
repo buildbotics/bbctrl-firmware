@@ -96,7 +96,7 @@ void mp_runtime_set_steps_from_position() {
 
   for (int motor = 0; motor < MOTORS; motor++)
     // Write steps to encoder register
-    motor_set_encoder(motor, steps[motor]);
+    motor_set_position(motor, steps[motor]);
 }
 
 
@@ -152,65 +152,17 @@ void mp_runtime_set_work_offsets(float offset[]) {
 }
 
 
-static void _step_correction(const float steps[], float time, int32_t error[]) {
-#ifdef STEP_CORRECTION
-  float travel[MOTORS];
-  float new_length_sqr = 0;
-  float old_length_sqr = 0;
-
-  for (int motor = 0; motor < MOTORS; motor++) {
-    error[motor] = motor_get_error(motor);
-    travel[motor] = steps[motor] - motor_get_position(motor);
-
-    if (fp_ZERO(travel[motor])) {
-      motor[travel] = 0;
-      motor[error] = 0;
-    }
-
-    error[motor] = 0.5 * (error[motor] - rt.previous_error[motor]);
-    rt.previous_error[motor] = error[motor];
-
-    if (error[motor] < -MAX_STEP_CORRECTION)
-      error[motor] = -MAX_STEP_CORRECTION;
-    else if (MAX_STEP_CORRECTION < error[motor])
-      error[motor] = MAX_STEP_CORRECTION;
-
-    old_length_sqr += square(travel[motor]);
-    new_length_sqr += square(travel[motor] - error[motor]);
-  }
-
-  bool use_error = false;
-  if (!fp_ZERO(new_length_sqr)) {
-    float new_time = time * invsqrt(old_length_sqr / new_length_sqr);
-
-    if (!isnan(new_time) && !isinf(new_time) &&
-        EPSILON <= new_time && new_time <= MAX_SEGMENT_TIME) {
-      time = new_time;
-      use_error = true;
-    }
-  }
-
-  if (!use_error)
-    for (int motor = 0; motor < MOTORS; motor++)
-      error[motor] = 0;
-
-#endif // STEP_CORRECTION
-}
-
-
 /// Segment runner
-stat_t mp_runtime_move_to_target(float target[], float time) {
-  ASSERT(isfinite(time));
+stat_t mp_runtime_move_to_target(float target[]) {
+  ASSERT(isfinite(target[0]) && isfinite(target[1]) &&
+         isfinite(target[2]) && isfinite(target[3]));
 
   // Convert target position to steps.
   float steps[MOTORS];
   mp_kinematics(target, steps);
 
-  int32_t error[MOTORS] = {0};
-  _step_correction(steps, time, error);
-
   // Call the stepper prep function
-  RITORNO(st_prep_line(time, steps, error));
+  RITORNO(st_prep_line(steps));
 
   // Update positions
   mp_runtime_set_position(target);

@@ -77,7 +77,7 @@ static calibrate_t cal = {0};
 
 
 static stat_t _exec_calibrate(mp_buffer_t *bf) {
-  const float time = MIN_SEGMENT_TIME; // In minutes
+  const float time = SEGMENT_TIME; // In minutes
   const float max_delta_v = CAL_ACCELERATION * time;
 
   do {
@@ -105,7 +105,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
 
         if (cal.stalled) {
           if (cal.reverse) {
-            int32_t steps = -motor_get_encoder(cal.motor);
+            int32_t steps = -motor_get_position(cal.motor);
             float mm = (float)steps / motor_get_steps_per_unit(cal.motor);
             STATUS_DEBUG("%"PRIi32" steps %0.2f mm", steps, mm);
 
@@ -116,7 +116,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
             return STAT_NOOP; // Done, no move queued
 
           } else {
-            motor_set_encoder(cal.motor, 0);
+            motor_set_position(cal.motor, 0);
 
             cal.reverse = true;
             cal.velocity = 0;
@@ -137,7 +137,7 @@ static stat_t _exec_calibrate(mp_buffer_t *bf) {
   mp_kinematics(travel, steps);
 
   // Queue segment
-  st_prep_line(time, steps, 0);
+  st_prep_line(steps);
 
   return STAT_EAGAIN;
 }
@@ -153,7 +153,7 @@ void calibrate_set_stallguard(int motor, uint16_t sg) {
     int16_t delta = sg - cal.stallguard;
     if (!sg || CAL_MAX_DELTA_SG < abs(delta)) {
       cal.stalled = true;
-      motor_end_move(cal.motor);
+      //motor_end_move(cal.motor);
     }
   }
 

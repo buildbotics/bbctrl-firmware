@@ -61,7 +61,6 @@ typedef struct {
   uint24_t segment_count;   // count of running segments
   uint24_t segment;         // current segment
   float segment_velocity;   // computed velocity for segment
-  float segment_time;       // actual time increment per segment
   float segment_start[AXES];
   float segment_delta;
   float segment_dist;
@@ -87,8 +86,7 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
 
     // len / avg. velocity
     float move_time = 2 * length / (Vi + Vt); // in mins
-    float segments = ceil(move_time / NOM_SEGMENT_TIME);
-    ex.segment_time = move_time / segments;
+    float segments = ceil(move_time / SEGMENT_TIME);
     ex.segment_count = round(segments);
     ex.segment = 0;
     ex.segment_dist = 0;
@@ -101,9 +99,6 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
       ex.segment_velocity = Vi;
 
     } else ex.segment_delta = 1 / (segments + 1);
-
-    if (ex.segment_time < MIN_SEGMENT_TIME)
-      return STAT_MINIMUM_TIME_MOVE; // exit /wo advancing position
 
     ex.section_new = false;
   }
@@ -124,7 +119,7 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
       // Compute quintic Bezier curve
       ex.segment_velocity =
         velocity_curve(Vi, Vt, ex.segment * ex.segment_delta);
-      ex.segment_dist += ex.segment_velocity * ex.segment_time;
+      ex.segment_dist += ex.segment_velocity * SEGMENT_TIME;
     }
 
     for (int axis = 0; axis < AXES; axis++)
@@ -132,7 +127,7 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
   }
 
   mp_runtime_set_velocity(ex.segment_velocity);
-  RITORNO(mp_runtime_move_to_target(target, ex.segment_time));
+  RITORNO(mp_runtime_move_to_target(target));
 
   // Return EAGAIN to continue or OK if this segment is done
   return ex.segment < ex.segment_count ? STAT_EAGAIN : STAT_OK;

@@ -55,4 +55,4 @@ void mp_runtime_set_position(float position[]);
 float mp_runtime_get_work_position(uint8_t axis);
 void mp_runtime_set_work_offsets(float offset[]);
 
-stat_t mp_runtime_move_to_target(float target[], float time);
+stat_t mp_runtime_move_to_target(float target[]);
