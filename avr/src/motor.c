@@ -77,6 +77,8 @@ typedef struct {
   bool active;
 
   // Move prep
+  uint8_t timer_clock;
+  uint16_t timer_period;
   uint16_t steps;
   bool clockwise;
   int32_t position;
@@ -351,11 +353,6 @@ static void _load_move(int motor) {
   m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
   m->dma->CTRLB |= DMA_CH_TRNIF_bm | DMA_CH_ERRIF_bm; // Clear interrupt flags
 
-  if (!m->steps) {
-    m->active = false;
-    return;
-  }
-
   // Set direction
   if (m->clockwise) OUTCLR_PIN(m->dir_pin);
   else OUTSET_PIN(m->dir_pin);
@@ -364,32 +361,18 @@ static void _load_move(int motor) {
   drv8711_set_power(motor, m->power);
 
   // Get clocks remaining in segment
-  uint32_t clocks =
-    (uint32_t)(SEGMENT_PERIOD - TIMER_STEP.CNT) * STEP_TIMER_DIV;
+  //uint32_t clocks =
+  //  (uint32_t)(SEGMENT_PERIOD - TIMER_STEP.CNT) * STEP_TIMER_DIV;
 
   // Count steps with phony DMA transfer
   m->dma->TRFCNT = m->steps;
   m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
-  // Find the fastest clock rate that will fit the required number of steps
-  uint32_t ticks_per_step = clocks / m->steps;
-  uint8_t timer_clock;
-  if (ticks_per_step <= 0xffff) timer_clock = TC_CLKSEL_DIV1_gc;
-  else if (ticks_per_step <= 0x1ffff) timer_clock = TC_CLKSEL_DIV2_gc;
-  else if (ticks_per_step <= 0x3ffff) timer_clock = TC_CLKSEL_DIV4_gc;
-  else if (ticks_per_step <= 0x7ffff) timer_clock = TC_CLKSEL_DIV8_gc;
-  else timer_clock = 0; // Clock off, too slow
-
-  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
-  // equal 1, 2, 3 & 4 respectively.
-  uint16_t timer_period = ticks_per_step >> (timer_clock - 1);
-
   // Set clock and period
-  if ((m->active = timer_period && timer_clock)) {
+  if ((m->active = m->timer_period && m->timer_clock)) {
     m->timer->CNT = 0;
-    m->timer->CCA = timer_period;     // Set step pulse period
-    m->timer->CTRLA = timer_clock;    // Set clock rate
-    m->steps = 0;
+    m->timer->CCA = m->timer_period;     // Set step pulse period
+    m->timer->CTRLA = m->timer_clock;    // Set clock rate
   }
 }
 
@@ -424,6 +407,18 @@ stat_t motor_prep_move(int motor, int32_t target) {
   // Positive steps from here on
   if (negative) steps = -steps;
   m->steps = steps;
+
+  // Find the fastest clock rate that will fit the required number of steps
+  uint32_t ticks_per_step = SEGMENT_CLOCKS / m->steps;
+  if (ticks_per_step <= 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
+  else if (ticks_per_step <= 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
+  else if (ticks_per_step <= 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;
+  else if (ticks_per_step <= 0x7ffff) m->timer_clock = TC_CLKSEL_DIV8_gc;
+  else m->timer_clock = 0; // Clock off, too slow
+
+  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
+  // equal 1, 2, 3 & 4 respectively.
+  m->timer_period = ticks_per_step >> (m->timer_clock - 1);
 
   // Compute power from axis velocity
   m->power = steps / (_get_max_velocity(motor) * SEGMENT_TIME);
