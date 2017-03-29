@@ -126,23 +126,7 @@ static motor_t motors[MOTORS] = {
 };
 
 
-static void _update_direction(motor_t *m) {
-  if (m->last_clockwise == m->clockwise) return;
-  m->last_clockwise = m->clockwise;
-
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm; // Disable channel
-
-  if (m->clockwise) {
-    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_INC_gc;
-    OUTCLR_PIN(m->dir_pin);
-
-  } else {
-    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_DEC_gc;
-    OUTSET_PIN(m->dir_pin);
-  }
-
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm; // Enable channel
-}
+static uint8_t _dummy;
 
 
 void motor_init() {
@@ -168,6 +152,7 @@ void motor_init() {
     m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
 
     // Setup DMA channel as timer event counter
+    m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
     m->dma->TRIGSRC = m->dma_trigger;
     m->dma->REPCNT = 0;
 
@@ -176,16 +161,14 @@ void motor_init() {
     m->dma->SRCADDR1 = (((uintptr_t)&m->timer->CCA) >> 8) & 0xff;
     m->dma->SRCADDR2 = 0;
 
-    m->dma->DESTADDR0 = 0;
-    m->dma->DESTADDR1 = 0;
-    m->dma->DESTADDR2 = 0xc0;
+    m->dma->DESTADDR0 = (((uintptr_t)&_dummy) >> 0) & 0xff;
+    m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
+    m->dma->DESTADDR2 = 0;
 
     m->dma->CTRLB = 0;
-    m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
-
-    // Direction
-    m->last_clockwise = !m->clockwise; // Force update
-    _update_direction(m);
+    m->dma->CTRLA =
+      DMA_CH_REPEAT_bm | DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
     drv8711_set_microsteps(motor, m->microsteps);
   }
@@ -265,7 +248,8 @@ void motor_set_encoder(int motor, float encoder) {
   //if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR); TODO
 
   motor_t *m = &motors[motor];
-  m->encoder = m->position = m->commanded = round(encoder);
+  //m->encoder = m->position = m->commanded = round(encoder);
+  m->position = m->commanded = round(encoder);
   m->error = 0;
 }
 
@@ -397,14 +381,10 @@ void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
   // Get actual step count from DMA channel
-  int24_t encoder = m->dma->DESTADDR0;
-  encoder |= (int24_t)m->dma->DESTADDR1 << 8;
-  encoder |= (int24_t)(m->dma->DESTADDR2 & 0x7f) << 16;
-  // TODO account for potential 23bit over/underflow
-  m->encoder = encoder - 0x400000;
-
-  // Set direction
-  _update_direction(m);
+  //uint16_t steps = 0xffff - m->dma->TRFCNT;
+  m->dma->TRFCNT = 0xffff; // Reset DMA channel counter
+  m->dma->CTRLB = DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm;
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
   // Adjust clock count
   if (m->last_clock) {
@@ -427,6 +407,10 @@ void motor_load_move(int motor) {
   m->last_clock = m->timer_clock;
   m->timer_clock = 0;                  // Clear clock
 
+  // Set direction
+  if (m->clockwise) OUTCLR_PIN(m->dir_pin);
+  else OUTSET_PIN(m->dir_pin);
+
   // Compute error
   if (!m->reading) m->error = m->commanded - m->encoder;
   m->commanded = m->position;
@@ -437,7 +421,9 @@ void motor_load_move(int motor) {
 
 
 void motor_end_move(int motor) {
-  motors[motor].timer->CTRLA = 0; // Stop clock
+  motor_t *m = &motors[motor];
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  m->timer->CTRLA = 0; // Stop clock
 }
 
 
@@ -611,6 +597,7 @@ void print_status_flags(uint8_t flags) {
 
 
 uint8_t get_status_strings(int m) {return get_status_flags(m);}
+int32_t get_encoder(int m) {return motor_get_encoder(m);}
 
 
 // Command callback
