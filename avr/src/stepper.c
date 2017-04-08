@@ -71,7 +71,7 @@ void stepper_init() {
   // Setup step timer
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
-  TIMER_STEP.PER = STEP_TIMER_POLL;        // timer idle rate
+  TIMER_STEP.PER = SEGMENT_PERIOD;         // timer rate
   TIMER_STEP.CTRLA = STEP_TIMER_ENABLE;    // start step timer
 }
 
@@ -91,7 +91,7 @@ bool st_is_busy() {return st.busy;}
 
 /// Interrupt handler for calling move exec function.
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
-ISR(ADCB_CH0_vect) {
+ISR(STEP_LOW_LEVEL_ISR) {
   while (true) {
     stat_t status = mp_exec_move();
 
@@ -120,45 +120,48 @@ static void _request_exec_move() {
   if (st.requesting) return;
   st.requesting = true;
 
-  // Use ADC as a "software" interrupt to trigger next move exec
-  ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc; // LO level interrupt
+  // Use ADC as "software" interrupt to trigger next move exec as low interrupt.
+  ADCB_CH0_INTCTRL = ADC_CH_INTLVL_LO_gc;
   ADCB_CTRLA = ADC_ENABLE_bm | ADC_CH0START_bm;
 }
 
 
-/// Step timer interrupt routine
-/// Dequeue move and load into stepper struct
-ISR(STEP_TIMER_ISR) {
+static void _end_move() {
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_end_move(motor);
+}
+
+
+/// Dwell or dequeue and load next move.
+static void _load_move() {
+  // Check EStop
+  if (estop_triggered()) {
+    st.move_type = MOVE_TYPE_NULL;
+    _end_move();
+    return;
+  }
+
   // Dwell
   if (0 < st.dwell) {
     st.dwell -= SEGMENT_SEC;
     return;
   } else st.dwell = 0;
 
-  // Default clock rate
-  TIMER_STEP.PER = STEP_TIMER_POLL;
-
-  if (estop_triggered()) {
-    st.move_type = MOVE_TYPE_NULL;
-    return;
-  }
-
   // If the next move is not ready try to load it
   if (!st.move_ready) {
     _request_exec_move();
+    _end_move();
     return;
   }
-
-  // Wait until all motors have energized
-  if (motor_energizing()) return;
 
   // Start move
   if (st.move_type == MOVE_TYPE_LINE)
     for (int motor = 0; motor < MOTORS; motor++)
       motor_load_move(motor);
 
+  else _end_move();
+
   if (st.move_type != MOVE_TYPE_NULL) {
-    TIMER_STEP.PER = SEGMENT_PERIOD;
     st.busy = true;
 
     // Start dwell
@@ -176,6 +179,12 @@ ISR(STEP_TIMER_ISR) {
 }
 
 
+/// Step timer interrupt routine.
+ISR(STEP_TIMER_ISR) {
+  _load_move();
+}
+
+
 /* Prepare the next move
  *
  * This function precomputes the next pulse segment (move) so it can
@@ -190,14 +199,16 @@ ISR(STEP_TIMER_ISR) {
  */
 stat_t st_prep_line(const float target[]) {
   // Trap conditions that would prevent queueing the line
-  if (st.move_ready) return ALARM(STAT_INTERNAL_ERROR);
+  ASSERT(!st.move_ready);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
 
   // Prepare motor moves
-  for (int motor = 0; motor < MOTORS; motor++)
-    RITORNO(motor_prep_move(motor, round(target[motor])));
+  for (int motor = 0; motor < MOTORS; motor++) {
+    ASSERT(isfinite(target[motor]));
+    motor_prep_move(motor, round(target[motor]));
+  }
 
   st.move_queued = true; // signal prep buffer ready (do this last)
 
@@ -207,7 +218,7 @@ stat_t st_prep_line(const float target[]) {
 
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  if (st.move_ready) ALARM(STAT_INTERNAL_ERROR);
+  ASSERT(!st.move_ready);
   st.move_type = MOVE_TYPE_DWELL;
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready

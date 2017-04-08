@@ -69,7 +69,6 @@ int motor_get_axis(int motor);
 void motor_set_stall_callback(int motor, stall_callback_t cb);
 float motor_get_stall_homing_velocity(int motor);
 float motor_get_steps_per_unit(int motor);
-float motor_get_units_per_step(int motor);
 uint16_t motor_get_microsteps(int motor);
 void motor_set_microsteps(int motor, uint16_t microsteps);
 void motor_set_position(int motor, int32_t position);
@@ -79,11 +78,10 @@ bool motor_error(int motor);
 bool motor_stalled(int motor);
 void motor_reset(int motor);
 
-bool motor_energizing();
-
 void motor_driver_callback(int motor);
 stat_t motor_rtc_callback();
 void motor_error_callback(int motor, motor_flags_t errors);
 
+void motor_end_move(int motor);
 void motor_load_move(int motor);
-stat_t motor_prep_move(int motor, int32_t target);
+void motor_prep_move(int motor, int32_t target);

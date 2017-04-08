@@ -45,6 +45,7 @@ VAR(active_current, ac, float,    MOTORS, 0, "Motor current now")
 VAR(status_flags,   mf, uint8_t,  MOTORS, 0, "Motor status flags")
 VAR(status_strings, ms, flags_t,  MOTORS, 0, "Motor status strings")
 VAR(encoder,        en, int32_t,  MOTORS, 0, "Motor encoder")
+VAR(error,          ee, int32_t,  MOTORS, 0, "Motor position error")
 
 VAR(motor_fault,    fa, bool,     0,      0, "Motor fault status")
 

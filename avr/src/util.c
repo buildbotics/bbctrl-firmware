@@ -34,16 +34,18 @@
 /// Fast inverse square root originally from Quake III Arena code.  Original
 /// comments left intact.
 /// See: https://en.wikipedia.org/wiki/Fast_inverse_square_root
-float invsqrt(float number) {
-  const float threehalfs = 1.5F;
+float invsqrt(float x) {
+  // evil floating point bit level hacking
+  union {
+    float f;
+    int32_t i;
+  } u;
 
-  float x2 = number * 0.5F;
-  float y = number;
-  int32_t i = *(int32_t *)&y;          // evil floating point bit level hacking
-  i = 0x5f3759df - (i >> 1);           // what the fuck?
-  y = *(float *)&i;
-  y = y * (threehalfs - x2 * y * y);   // 1st iteration
-  y = y * (threehalfs - x2 * y * y);   // 2nd iteration, this can be removed
+  const float xhalf = x * 0.5f;
+  u.f = x;
+  u.i = 0x5f3759df - (u.i >> 1);          // what the fuck?
+  u.f = u.f * (1.5f - xhalf * u.f * u.f); // 1st iteration
+  u.f = u.f * (1.5f - xhalf * u.f * u.f); // 2nd iteration, can be removed
 
-  return y;
+  return u.f;
 }

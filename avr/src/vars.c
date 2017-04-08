@@ -60,43 +60,55 @@ MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, uint8_t, uint16_t,
     int32_t, char);
 
 
+// Eq functions
+#define EQ_FUNC(TYPE) \
+  inline static bool var_eq_##TYPE(const TYPE a, const TYPE b) {return a == b;}
+MAP(EQ_FUNC, SEMI, flags_t, string, pstring, uint8_t, uint16_t, int32_t, char);
+
+
 // String
-static void var_print_string(string s) {
-  printf_P(PSTR("\"%s\""), s);
-}
+static void var_print_string(string s) {printf_P(PSTR("\"%s\""), s);}
+
 
 // Program string
-static void var_print_pstring(pstring s) {
-  printf_P(PSTR("\"%"PRPSTR"\""), s);
-}
+static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
 
 
 // Flags
-extern void print_status_flags(uint8_t x);
-
 static void var_print_flags_t(uint8_t x) {
+  extern void print_status_flags(uint8_t x);
   print_status_flags(x);
 }
 
 
 // Float
+static bool var_eq_float(float a, float b) {
+  return a == b || (isnan(a) && isnan(b));
+}
+
+
 static void var_print_float(float x) {
-  char buf[20];
+  if (isnan(x)) printf_P(PSTR("\"nan\""));
+  else if (isinf(x)) printf_P(PSTR("\"%cinf\""), x < 0 ? '-' : '+');
 
-  int len = sprintf_P(buf, PSTR("%.6f"), x);
+  else {
+    char buf[20];
 
-  // Remove trailing zeros
-  for (int i = len; 0 < i; i--) {
-    if (buf[i - 1] == '.') buf[i - 1] = 0;
-    else if (buf[i - 1] == '0') {
-      buf[i - 1] = 0;
-      continue;
+    int len = sprintf_P(buf, PSTR("%.6f"), x);
+
+    // Remove trailing zeros
+    for (int i = len; 0 < i; i--) {
+      if (buf[i - 1] == '.') buf[i - 1] = 0;
+      else if (buf[i - 1] == '0') {
+        buf[i - 1] = 0;
+        continue;
+      }
+
+      break;
     }
 
-    break;
+    printf(buf);
   }
-
-  printf(buf);
 }
 
 
@@ -106,9 +118,8 @@ static float var_parse_float(const char *value) {
 
 
 // Bool
-static void var_print_bool(bool x) {
-  printf_P(x ? PSTR("true") : PSTR("false"));
-}
+inline static bool var_eq_bool(float a, float b) {return a == b;}
+static void var_print_bool(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
 
 
 static bool var_parse_bool(const char *value) {
@@ -134,9 +145,7 @@ static int8_t var_parse_int8_t(const char *value) {
 #endif
 
 // uint8
-static void var_print_uint8_t(uint8_t x) {
-  printf_P(PSTR("%"PRIu8), x);
-}
+static void var_print_uint8_t(uint8_t x) {printf_P(PSTR("%"PRIu8), x);}
 
 
 static uint8_t var_parse_uint8_t(const char *value) {
@@ -211,25 +220,25 @@ void vars_report(bool full) {
 
   bool reported = false;
 
-#define VAR(NAME, CODE, TYPE, INDEX, ...)                       \
-  IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {    \
-    TYPE value = get_##NAME(IF(INDEX)(i));                      \
-    TYPE last = (NAME##_state)IF(INDEX)([i]);                   \
-                                                                \
-    if (value != last || full) {                                \
-      (NAME##_state)IF(INDEX)([i]) = value;                     \
-                                                                \
-      if (!reported) {                                          \
-        reported = true;                                        \
-        putchar('{');                                           \
-      } else putchar(',');                                      \
-                                                                \
-      printf_P                                                  \
-        (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),            \
-         IF(INDEX)(INDEX##_LABEL[i],) #CODE);                   \
-                                                                \
-      var_print_##TYPE(value);                                  \
-    }                                                           \
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {            \
+    TYPE value = get_##NAME(IF(INDEX)(i));                              \
+    TYPE last = (NAME##_state)IF(INDEX)([i]);                           \
+                                                                        \
+    if (!var_eq_##TYPE(value, last) || full) {                          \
+      (NAME##_state)IF(INDEX)([i]) = value;                             \
+                                                                        \
+      if (!reported) {                                                  \
+        reported = true;                                                \
+        putchar('{');                                                   \
+      } else putchar(',');                                              \
+                                                                        \
+      printf_P                                                          \
+        (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                    \
+         IF(INDEX)(INDEX##_LABEL[i],) #CODE);                           \
+                                                                        \
+      var_print_##TYPE(value);                                          \
+    }                                                                   \
   }
 
 #include "vars.def"

@@ -141,11 +141,6 @@ enum {
 #define M3_DMA_CH              DMA.CH2
 #define M4_DMA_CH              DMA.CH3
 
-#define M1_DMA_VECT            DMA_CH0_vect
-#define M2_DMA_VECT            DMA_CH1_vect
-#define M3_DMA_VECT            DMA_CH2_vect
-#define M4_DMA_VECT            DMA_CH3_vect
-
 #define M1_DMA_TRIGGER         DMA_CH_TRIGSRC_TCD0_CCA_gc
 #define M2_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE0_CCA_gc
 #define M3_DMA_TRIGGER         DMA_CH_TRIGSRC_TCF0_CCA_gc
@@ -161,12 +156,13 @@ enum {
 #define STEP_TIMER_WGMODE      TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR         TCC0_OVF_vect
 #define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
+#define STEP_LOW_LEVEL_ISR     ADCB_CH0_vect
 
 #define SEGMENT_USEC           5000.0 // segment time
 #define SEGMENT_SEC            (SEGMENT_USEC / 1000000.0)
 #define SEGMENT_TIME           (SEGMENT_SEC / 60.0)
-#define SEGMENT_CLOCKS         (F_CPU * SEGMENT_SEC)
-#define SEGMENT_PERIOD         (STEP_TIMER_FREQ * SEGMENT_SEC)
+#define SEGMENT_CLOCKS         ((uint24_t)(F_CPU * SEGMENT_SEC))
+#define SEGMENT_PERIOD         ((uint16_t)(STEP_TIMER_FREQ * SEGMENT_SEC))
 
 // Huanyang settings
 #define HUANYANG_PORT          USARTD1
@@ -220,8 +216,7 @@ enum {
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
 
 
-//#define STEP_CORRECTION                        // Enable step correction
-#define MAX_STEP_CORRECTION      4             // In steps per segment
+#define MIN_HALF_STEP_CORRECTION 4
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
 #define JUNCTION_DEVIATION       0.05          // default value, in mm
 #define JUNCTION_ACCELERATION    100000        // centripetal corner accel

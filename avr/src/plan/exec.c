@@ -122,6 +122,9 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
       ex.segment_dist += ex.segment_velocity * SEGMENT_TIME;
     }
 
+    // Avoid overshoot
+    if (length < ex.segment_dist) ex.segment_dist = length;
+
     for (int axis = 0; axis < AXES; axis++)
       target[axis] = ex.segment_start[axis] + ex.unit[axis] * ex.segment_dist;
   }

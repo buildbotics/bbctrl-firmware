@@ -87,7 +87,7 @@ int main() {
       mp_state_callback();
       mach_arc_callback();          // arc generation runs
       home_callback();
-      //mach_homing_callback();       // G28.2 continuation
+      //mach_homing_callback();     // G28.2 continuation TODO
       mach_probe_callback();        // G38.2 continuation
     }
     command_callback();           // process next command

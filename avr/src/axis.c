@@ -80,7 +80,7 @@ int axis_get_motor(int axis) {return motor_map[axis];}
 
 void axis_set_motor(int axis, int motor) {
   motor_map[axis] = motor;
-  axis_set_jerk_max(axis, axes[motor].jerk_max); // Init 1/jerk
+  axis_set_jerk_max(axis, axes[axis].jerk_max); // Init 1/jerk
 }
 
 

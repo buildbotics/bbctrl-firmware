@@ -1,24 +1,25 @@
 # Parsing, Queuing & Planning
- * command_callback()
-   * gc_gcode_parser(const char *block)
-     * _normalize_gcode_block(...)
-     * _parse_gcode_block(const char *block)
-       * _execute_gcode_block()
-         * mach_*()
-           * mach_straight_traverse() || mach_straight_feed() || mach_arc_feed()
-             * mp_aline(const float target[], float feed,. . .)
-               * _calc_jerk*()
-               * _calc_move_time()
-               * _calc_max_velocities()
-                 * _get_junction_vmax()
-               * mp_plan()
-                 * mp_calculate_trapezoid()
-                   * mp_get_target_length()
-                   * mp_get_target_velocity()
-               * mp_queue_push(buffer_cb_t cb, uint32_t time)
+ * main()
+   * command_callback()
+     * gc_gcode_parser(const char *block)
+       * _normalize_gcode_block(...)
+       * _parse_gcode_block(const char *block)
+         * _execute_gcode_block()
+           * mach_*()
+             * mach_straight_traverse/feed() || mach_arc_feed()
+               * mp_aline(const float target[], float feed,. . .)
+                 * _calc_jerk*()
+                 * _calc_move_time()
+                 * _calc_max_velocities()
+                   * _get_junction_vmax()
+                 * mp_plan()
+                   * mp_calculate_trapezoid()
+                     * mp_get_target_length()
+                     * mp_get_target_velocity()
+                 * mp_queue_push(buffer_cb_t cb, uint32_t time)
 
 # Execution
- * Stepper low-level ISR
+ * STEP_LOW_LEVEL_ISR
    * mp_exec_move()
      * mp_queue_get_head()
      * mp_buffer->cb()
@@ -34,10 +35,13 @@
 
 # Step Output
  * STEP_TIMER_ISR
-   * motor_end_move()
-   * _request_exec_move()
-     * Triggers Stepper low-level ISR
-   * motor_load_move()
+   * _load_move()
+     * _end_move()
+       * motor_end_move()
+     * _request_exec_move()
+       * Triggers STEP_LOW_LEVEL_ISR
+     * motor_load_move()
+       * motor_end_move()
 
 
 # Data flow
