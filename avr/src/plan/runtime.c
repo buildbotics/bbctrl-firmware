@@ -123,7 +123,7 @@ void mp_runtime_set_steps_from_position() {
 
 
 /// Set runtime position for a single axis
-void mp_runtime_set_axis_position(uint8_t axis, const float position) {
+void mp_runtime_set_axis_position(uint8_t axis, float position) {
   rt.position[axis] = position;
   report_request();
 }
@@ -134,7 +134,7 @@ float mp_runtime_get_axis_position(uint8_t axis) {return rt.position[axis];}
 float *mp_runtime_get_position() {return rt.position;}
 
 
-void mp_runtime_set_position(float position[]) {
+void mp_runtime_set_position(const float position[]) {
   copy_vector(rt.position, position);
   report_request();
 }
@@ -153,7 +153,7 @@ void mp_runtime_set_work_offsets(float offset[]) {
 
 
 /// Segment runner
-stat_t mp_runtime_move_to_target(float target[]) {
+stat_t mp_runtime_move_to_target(float time, const float target[]) {
   ASSERT(isfinite(target[0]) && isfinite(target[1]) &&
          isfinite(target[2]) && isfinite(target[3]));
 
@@ -162,7 +162,7 @@ stat_t mp_runtime_move_to_target(float target[]) {
   mp_kinematics(target, steps);
 
   // Call the stepper prep function
-  RITORNO(st_prep_line(steps));
+  RITORNO(st_prep_line(time, steps));
 
   // Update positions
   mp_runtime_set_position(target);

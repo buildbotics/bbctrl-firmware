@@ -71,5 +71,5 @@ int main(int argc, char *argv[]) {
 
   printf("STATE: %s\n", mp_get_state_pgmstr(mp_get_state()));
 
-  return status;
+  return 0;
 }

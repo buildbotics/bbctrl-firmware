@@ -46,13 +46,13 @@ void mp_runtime_set_velocity(float velocity);
 
 void mp_runtime_set_steps_from_position();
 
-void mp_runtime_set_axis_position(uint8_t axis, const float position);
+void mp_runtime_set_axis_position(uint8_t axis, float position);
 float mp_runtime_get_axis_position(uint8_t axis);
 
 float *mp_runtime_get_position();
-void mp_runtime_set_position(float position[]);
+void mp_runtime_set_position(const float position[]);
 
 float mp_runtime_get_work_position(uint8_t axis);
 void mp_runtime_set_work_offsets(float offset[]);
 
-stat_t mp_runtime_move_to_target(float target[]);
+stat_t mp_runtime_move_to_target(float time, const float target[]);

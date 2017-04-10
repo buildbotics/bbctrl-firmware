@@ -61,6 +61,7 @@ typedef struct {
   bool move_queued;        // prepped move queued
   move_type_t move_type;
   float prep_dwell;
+  uint16_t clock_period;
 } stepper_t;
 
 
@@ -71,8 +72,10 @@ void stepper_init() {
   // Setup step timer
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
-  TIMER_STEP.PER = SEGMENT_PERIOD;         // timer rate
+  TIMER_STEP.PER = STEP_TIMER_POLL;        // timer rate
   TIMER_STEP.CTRLA = STEP_TIMER_ENABLE;    // start step timer
+
+  st.clock_period = STEP_TIMER_POLL;
 }
 
 
@@ -141,9 +144,12 @@ static void _load_move() {
     return;
   }
 
+  // New clock period
+  TIMER_STEP.PER = st.clock_period;
+
   // Dwell
   if (0 < st.dwell) {
-    st.dwell -= SEGMENT_SEC;
+    st.dwell -= 0.001; // 1ms
     return;
   } else st.dwell = 0;
 
@@ -172,6 +178,7 @@ static void _load_move() {
   st.move_type = MOVE_TYPE_NULL;
   st.prep_dwell = 0;      // clear dwell
   st.move_ready = false;  // flip the flag back
+  st.clock_period = STEP_TIMER_POLL;
 
   // Request next move if not currently in a dwell.  Requesting the next move
   // may power up motors and the motors should not be powered up during a dwell.
@@ -197,17 +204,18 @@ ISR(STEP_TIMER_ISR) {
  *   Steps are fractional.  Their sign indicates direction.  Motors not in the
  *   move have 0 steps.
  */
-stat_t st_prep_line(const float target[]) {
+stat_t st_prep_line(float time, const float target[]) {
   // Trap conditions that would prevent queueing the line
   ASSERT(!st.move_ready);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
+  st.clock_period = round(time * STEP_TIMER_FREQ * 60);
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++) {
     ASSERT(isfinite(target[motor]));
-    motor_prep_move(motor, round(target[motor]));
+    motor_prep_move(motor, time, round(target[motor]));
   }
 
   st.move_queued = true; // signal prep buffer ready (do this last)

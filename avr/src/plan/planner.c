@@ -172,16 +172,15 @@ void mp_kinematics(const float travel[], float steps[]) {
  * Classes of moves:
  *
  *   Requested-Fit - The move has sufficient length to achieve the target
- *     velocity (cruise velocity).  I.e it will accommodate the acceleration /
- *     deceleration profile in the given length.
+ *     velocity.  I.e it will accommodate the acceleration / deceleration
+ *     profile in the given length.
  *
  *   Rate-Limited-Fit - The move does not have sufficient length to achieve
- *     target velocity.  In this case the cruise velocity will be set lower than
- *     the requested velocity (incoming bf->cruise_velocity).  The entry and
- *     exit velocities are satisfied.
+ *     target velocity.  In this case, the cruise velocity will be lowered.
+ *     The entry and exit velocities are satisfied.
  *
  *   Degraded-Fit - The move does not have sufficient length to transition from
- *     the entry velocity to the exit velocity in the available length. These
+ *     the entry velocity to the exit velocity in the available length.  These
  *     velocities are not negotiable, so a degraded solution is found.
  *
  *     In worst cases, the move cannot be executed as the required execution
@@ -209,21 +208,21 @@ void mp_kinematics(const float travel[], float steps[]) {
  *
  *   Rate-Limited cases - Ve and Vx can be satisfied but Vt cannot:
  *
- *       HT    (Ve=Vx)<Vt    symmetric case. Split the length and compute Vt.
- *       HT'   (Ve!=Vx)<Vt   asymmetric case. Find H and T by successive
+ *       HT    (Ve=Vx)<Vt    symmetric case.  Split the length and compute Vt.
+ *       HT'   (Ve!=Vx)<Vt   asymmetric case.  Find H and T by successive
  *                           approximation.
- *       HBT'  body length < min body length - treated as an HT case
- *       H'    body length < min body length - subsume body into head length
- *       T'    body length < min body length - subsume body into tail length
+ *       HBT'  body length < min body length   treated as an HT case
+ *       H'    body length < min body length   subsume body into head length
+ *       T'    body length < min body length   subsume body into tail length
  *
  *   Degraded fit cases - line is too short to satisfy both Ve and Vx:
  *
  *       H"    Ve<Vx        Ve is degraded (velocity step). Vx is met
  *       T"    Ve>Vx        Ve is degraded (velocity step). Vx is met
  *       B"    <short>      line is very short but drawable; is treated as a
- *                          body only
+ *                          body only.
  *       F     <too short>  force fit: This block is slowed down until it can
- *                          be executed
+ *                          be executed.
  *
  * Note: The order of the cases/tests in the code is important.  Start with
  * the shortest cases first and work up. Not only does this simplify the order
@@ -234,10 +233,9 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   if (!bf->length) return;
 
   // F case: Block is too short - run time < minimum segment time
-  // Force block into a single segment body with limited velocities
+  // Force block into a single segment body with limited velocities.
   // Accept the entry velocity, limit the cruise, and go for the best exit
   // velocity you can get given the delta_vmax (maximum velocity slew).
-
   float naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
 

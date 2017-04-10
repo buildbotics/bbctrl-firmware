@@ -152,7 +152,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
   // Set velocity and target
   mp_runtime_set_velocity(sqrt(velocity_sqr));
-  stat_t status = mp_runtime_move_to_target(target);
+  stat_t status = mp_runtime_move_to_target(SEGMENT_TIME, target);
   if (status != STAT_OK) return status;
 
   return STAT_EAGAIN;

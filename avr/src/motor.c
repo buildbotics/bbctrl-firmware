@@ -403,7 +403,7 @@ void motor_load_move(int motor) {
 }
 
 
-void motor_prep_move(int motor, int32_t target) {
+void motor_prep_move(int motor, float time, int32_t target) {
   motor_t *m = &motors[motor];
 
   // Validate input
@@ -437,8 +437,8 @@ void motor_prep_move(int motor, int32_t target) {
 
   // Find the fastest clock rate that will fit the required number of steps.
   // Note, clock toggles step line so we need two clocks per step.
-  uint24_t ticks_per_step = SEGMENT_CLOCKS / half_steps;
-  if (SEGMENT_CLOCKS % half_steps) ticks_per_step++; // Round up
+  uint24_t seg_clocks = time * F_CPU * 60;
+  uint24_t ticks_per_step = seg_clocks / half_steps + 1; // Round up
   if (ticks_per_step < 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
   else if (ticks_per_step < 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
   else if (ticks_per_step < 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;
@@ -447,15 +447,13 @@ void motor_prep_move(int motor, int32_t target) {
 
   // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
   // equal 1, 2, 3 & 4 respectively.
-  m->timer_period = ticks_per_step >> (m->timer_clock - 1);
-  if (ticks_per_step & ((1 << (m->timer_clock - 1)) - 1))
-    m->timer_period++; // Round up
+  m->timer_period = (ticks_per_step >> (m->timer_clock - 1)) + 1; // Round up
 
   if (!m->timer_period || !half_steps) m->timer_clock = 0;
 
   // Compute power from axis max velocity
   const float max_step_vel = m->steps_per_unit * axis_get_velocity_max(m->axis);
-  const float power = half_steps / (max_step_vel * SEGMENT_TIME * 2);
+  const float power = half_steps / (max_step_vel * time * 2);
   drv8711_set_power(motor, power);
 
   // Power motor

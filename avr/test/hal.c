@@ -140,8 +140,8 @@ void spindle_set_mode(spindle_mode_t mode) {
 }
 
 
-void motor_set_encoder(int motor, float encoder) {
-  DEBUG_CALL("%d, %f", motor, encoder);
+void motor_set_position(int motor, int32_t position) {
+  DEBUG_CALL("%d, %d", motor, position);
 }
 
 
@@ -207,27 +207,15 @@ bool st_is_busy() {return false;}
 float square(float x) {return x * x;}
 
 
-stat_t st_prep_line(float time, const float target[], const int32_t error[]) {
-  DEBUG_CALL("%f, (%f, %f, %f, %f), (%d, %d, %d, %d)",
-         time, target[0], target[1], target[2], target[3],
-         error[0], error[1], error[2], error[3]);
-
-  double dist = 0;
-
-  for (int i = 0; i < 4; i++)
-    dist +=
-      square((target[i] - motor_position[i]) / motor_get_steps_per_unit(i));
-
-  dist = sqrt(dist);
-
-  double velocity = dist / time;
+stat_t st_prep_line(float time, const float target[]) {
+  DEBUG_CALL("%f, (%f, %f, %f, %f)",
+             time, target[0], target[1], target[2], target[3]);
 
   for (int i = 0; i < MOTORS; i++)
     motor_position[i] = target[i];
 
-  printf("%0.10f, %0.10f, %0.10f, %0.10f, %0.10f, %0.10f\n",
-         velocity, dist, time,
-         motor_position[0], motor_position[1], motor_position[2]);
+  printf("%0.10f, %0.10f, %0.10f, %0.10f\n",
+         time, motor_position[0], motor_position[1], motor_position[2]);
 
   return STAT_OK;
 }

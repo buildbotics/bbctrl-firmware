@@ -84,4 +84,4 @@ void motor_error_callback(int motor, motor_flags_t errors);
 
 void motor_end_move(int motor);
 void motor_load_move(int motor);
-void motor_prep_move(int motor, int32_t target);
+void motor_prep_move(int motor, float time, int32_t target);
