@@ -50,13 +50,6 @@
 #include <stdlib.h>
 
 
-typedef enum {
-  MOTOR_OFF,
-  MOTOR_IDLE,                    // motor stopped and may be partially energized
-  MOTOR_ACTIVE
-} motor_power_state_t;
-
-
 typedef struct {
   // Config
   uint8_t axis;                  // map motor to axis
@@ -75,9 +68,7 @@ typedef struct {
   float steps_per_unit;
 
   // Runtime state
-  motor_power_state_t power_state; // state machine for managing motor power
   uint32_t power_timeout;
-  motor_flags_t flags;
   int32_t commanded;
   int32_t encoder;
   int16_t error;
@@ -140,11 +131,7 @@ void motor_init() {
   // Enable DMA
   DMA.CTRL = DMA_RESET_bm;
   DMA.CTRL = DMA_ENABLE_bm;
-  DMA.INTFLAGS = 0xff; // clear all interrupts
-
-  // Motor enable
-  OUTSET_PIN(MOTOR_ENABLE_PIN); // Low (disabled)
-  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
+  DMA.INTFLAGS = 0xff; // clear all pending interrupts
 
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
@@ -182,21 +169,20 @@ void motor_init() {
 }
 
 
-void motor_enable(int motor, bool enable) {
-  if (enable) OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
-  else {
-    OUTCLR_PIN(MOTOR_ENABLE_PIN);
-    motors[motor].power_state = MOTOR_DISABLED;
-  }
-}
-
-
 bool motor_is_enabled(int motor) {
   return motors[motor].power_mode != MOTOR_DISABLED;
 }
 
 
 int motor_get_axis(int motor) {return motors[motor].axis;}
+
+
+void motor_set_axis(int motor, uint8_t axis) {
+  if (MOTORS <= motor || AXES <= axis || axis == motors[motor].axis) return;
+  axis_set_motor(motors[motor].axis, -1);
+  motors[motor].axis = axis;
+  axis_set_motor(axis, motor);
+}
 
 
 void motor_set_stall_callback(int motor, stall_callback_t cb) {
@@ -247,24 +233,6 @@ int32_t motor_get_position(int motor) {
 }
 
 
-/// returns true if motor is in an error state
-bool motor_error(int m) {
-  uint8_t flags = motors[m].flags;
-  if (calibrate_busy()) flags &= ~MOTOR_FLAG_STALLED_bm;
-  return flags & MOTOR_FLAG_ERROR_bm;
-}
-
-
-bool motor_stalled(int m) {return motors[m].flags & MOTOR_FLAG_STALLED_bm;}
-void motor_reset(int m) {motors[m].flags = 0;}
-
-
-static void _set_power_state(int motor, motor_power_state_t state) {
-  motors[motor].power_state = state;
-  report_request();
-}
-
-
 static void _update_power(int motor) {
   motor_t *m = &motors[motor];
 
@@ -272,43 +240,19 @@ static void _update_power(int motor) {
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
   case MOTOR_POWERED_IN_CYCLE:
     if (rtc_expired(m->power_timeout)) {
-      if (m->power_state == MOTOR_ACTIVE) {
-        _set_power_state(motor, MOTOR_IDLE);
-        drv8711_set_state(motor, DRV8711_IDLE);
-      }
+      drv8711_set_state(motor, DRV8711_IDLE);
       break;
     }
     // Fall through
 
   case MOTOR_ALWAYS_POWERED:
-    if (m->power_state != MOTOR_ACTIVE && !motor_error(motor)) {
-      // TODO is ~5ms enough time to enable the motor?
-      drv8711_set_state(motor, DRV8711_ACTIVE);
-      m->power_state = MOTOR_ACTIVE;
-      motor_driver_callback(motor); // TODO Shouldn't call this directly
-    }
+    // TODO is ~5ms enough time to enable the motor?
+    drv8711_set_state(motor, DRV8711_ACTIVE);
     break;
 
   default: // Disabled
-    if (m->power_state != MOTOR_OFF) {
-      _set_power_state(motor, MOTOR_OFF);
-      drv8711_set_state(motor, DRV8711_DISABLED);
-    }
+    drv8711_set_state(motor, DRV8711_DISABLED);
   }
-}
-
-
-void motor_driver_callback(int motor) {
-  motor_t *m = &motors[motor];
-
-  if (m->power_state == MOTOR_IDLE) m->flags &= ~MOTOR_FLAG_ENABLED_bm;
-  else if (!estop_triggered()) {
-    m->power_state = MOTOR_ACTIVE;
-    m->flags |= MOTOR_FLAG_ENABLED_bm;
-    motor_enable(motor, true);
-  }
-
-  report_request();
 }
 
 
@@ -318,24 +262,6 @@ stat_t motor_rtc_callback() { // called by controller
     _update_power(motor);
 
   return STAT_OK;
-}
-
-
-void motor_error_callback(int motor, motor_flags_t errors) {
-  motor_t *m = &motors[motor];
-
-  if (m->power_state != MOTOR_ACTIVE) return;
-
-  m->flags |= errors & MOTOR_FLAG_ERROR_bm;
-  report_request();
-
-  if (motor_error(motor)) {
-    if (m->flags & MOTOR_FLAG_STALLED_bm) ALARM(STAT_MOTOR_STALLED);
-    if (m->flags & MOTOR_FLAG_OVER_TEMP_bm) ALARM(STAT_MOTOR_OVER_TEMP);
-    if (m->flags & MOTOR_FLAG_OVER_CURRENT_bm) ALARM(STAT_MOTOR_OVER_CURRENT);
-    if (m->flags & MOTOR_FLAG_DRIVER_FAULT_bm) ALARM(STAT_MOTOR_DRIVER_FAULT);
-    if (m->flags & MOTOR_FLAG_UNDER_VOLTAGE_bm) ALARM(STAT_MOTOR_UNDER_VOLTAGE);
-  }
 }
 
 
@@ -366,9 +292,8 @@ void motor_load_move(int motor) {
   motor_end_move(motor);
 
   // Set direction, compensating for polarity
-  const bool clockwise = !(m->negative ^ m->reverse);
-  if (clockwise) OUTCLR_PIN(m->dir_pin);
-  else OUTSET_PIN(m->dir_pin);
+  const bool counterclockwise = m->negative ^ m->reverse;
+  SET_PIN(m->dir_pin, counterclockwise);
 
   // Adjust clock count
   if (m->last_clock) {
@@ -511,98 +436,19 @@ bool get_reverse(int motor) {
 
 
 void set_reverse(int motor, bool value) {motors[motor].reverse = value;}
-uint8_t get_motor_axis(int motor) {return motors[motor].axis;}
-
-
-void set_motor_axis(int motor, uint8_t value) {
-  if (MOTORS <= motor || AXES <= value || value == motors[motor].axis) return;
-  axis_set_motor(motors[motor].axis, -1);
-  motors[motor].axis = value;
-  _update_config(motor);
-  axis_set_motor(value, motor);
-}
-
-
-char get_axis_name(int motor) {return axis_get_char(motors[motor].axis);}
-
-
-void set_axis_name(int motor, char axis) {
-  int id = axis_get_id(axis);
-  if (id != -1) set_motor_axis(motor, id);
-}
+char get_motor_axis(int motor) {return motors[motor].axis;}
+void set_motor_axis(int motor, uint8_t axis) {motor_set_axis(motor, axis);}
 
 
 uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
 
 
 void set_power_mode(int motor, uint8_t value) {
-  if (value < MOTOR_POWER_MODE_MAX_VALUE)
+  if (value <= MOTOR_POWERED_ONLY_WHEN_MOVING)
     motors[motor].power_mode = value;
+  else motors[motor].power_mode = MOTOR_DISABLED;
 }
 
 
-uint8_t get_status_flags(int motor) {return motors[motor].flags;}
-
-
-void print_status_flags(uint8_t flags) {
-  bool first = true;
-
-  putchar('"');
-
-  if (MOTOR_FLAG_ENABLED_bm & flags) {
-    printf_P(PSTR("enable"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_STALLED_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("stall"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_OVER_TEMP_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("over temp"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_OVER_CURRENT_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("over current"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_DRIVER_FAULT_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("fault"));
-    first = false;
-  }
-
-  if (MOTOR_FLAG_UNDER_VOLTAGE_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("uvlo"));
-    first = false;
-  }
-
-  putchar('"');
-}
-
-
-uint8_t get_status_strings(int m) {return get_status_flags(m);}
 int32_t get_encoder(int m) {return motors[m].encoder;}
 int32_t get_error(int m) {return motors[m].error;}
-
-
-// Command callback
-void command_mreset(int argc, char *argv[]) {
-  if (argc == 1)
-    for (int m = 0; m < MOTORS; m++)
-      motor_reset(m);
-
-  else {
-    int m = atoi(argv[1]);
-    if (m < MOTORS) motor_reset(m);
-  }
-
-  report_request();
-}

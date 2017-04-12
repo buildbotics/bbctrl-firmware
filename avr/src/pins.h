@@ -46,4 +46,7 @@ extern PORT_t *pin_ports[];
 #define IN_PIN(PIN) (!!(PORT(PIN)->IN & BM(PIN)))
 #define PINCTRL_PIN(PIN) ((&PORT(PIN)->PIN0CTRL)[PIN & 7])
 
+#define SET_PIN(PIN, X) \
+  do {if (X) OUTSET_PIN(PIN); else OUTCLR_PIN(PIN);} while (0);
+
 #endif // __AVR__

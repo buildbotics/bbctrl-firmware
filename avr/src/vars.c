@@ -43,7 +43,7 @@
 #include <inttypes.h>
 
 
-typedef uint8_t flags_t;
+typedef uint16_t flags_t;
 typedef const char *string;
 typedef PGM_P pstring;
 
@@ -75,8 +75,8 @@ static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
 
 
 // Flags
-static void var_print_flags_t(uint8_t x) {
-  extern void print_status_flags(uint8_t x);
+static void var_print_flags_t(uint16_t x) {
+  extern void print_status_flags(uint16_t x);
   print_status_flags(x);
 }
 
@@ -128,8 +128,10 @@ static bool var_parse_bool(const char *value) {
 
 
 // Char
+#if 0
 static void var_print_char(char x) {putchar('"'); putchar(x); putchar('"');}
-static char var_parse_char(const char *value) {return value[0];}
+static char var_parse_char(const char *value) {return value[1];}
+#endif
 
 
 // int8

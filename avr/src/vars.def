@@ -31,7 +31,7 @@
 // VAR(name,        code, type,  index, settable, help)
 
 // Motor
-VAR(axis_name,      an, char,     MOTORS, 1, "Maps motor to axis name")
+VAR(motor_axis,     an, uint8_t,  MOTORS, 1, "Maps motor to axis")
 VAR(step_angle,     sa, float,    MOTORS, 1, "In degrees per full step")
 VAR(travel,         tr, float,    MOTORS, 1, "Travel in mm per revolution")
 VAR(microstep,      mi, uint16_t, MOTORS, 1, "Microsteps per full step")
@@ -42,8 +42,8 @@ VAR(max_current,    xc, float,    MOTORS, 1, "Max motor drive current")
 VAR(min_current,    lc, float,    MOTORS, 1, "Min motor drive current")
 VAR(idle_current,   ic, float,    MOTORS, 1, "Motor idle current")
 VAR(active_current, ac, float,    MOTORS, 0, "Motor current now")
-VAR(status_flags,   mf, uint8_t,  MOTORS, 0, "Motor status flags")
-VAR(status_strings, ms, flags_t,  MOTORS, 0, "Motor status strings")
+VAR(driver_flags,   df, uint16_t, MOTORS, 0, "Motor driver status flags")
+VAR(status_strings, ds, flags_t,  MOTORS, 0, "Motor driver status strings")
 VAR(encoder,        en, int32_t,  MOTORS, 0, "Motor encoder")
 VAR(error,          ee, int32_t,  MOTORS, 0, "Motor position error")
 
@@ -76,11 +76,15 @@ VAR(spindle_type,   st, uint8_t,  0,      1, "PWM=0 or HUANYANG=1")
 VAR(spin_reverse,   sr, bool,     0,      1, "Reverse spin")
 VAR(max_spin,       sx, float,    0,      1, "Maximum spindle speed")
 VAR(min_spin,       sm, float,    0,      1, "Minimum spindle speed")
-VAR(spin_min_pulse, np, float,    0,      1, "Minimum pulse width")
-VAR(spin_max_pulse, mp, float,    0,      1, "Maximum pulse width")
+VAR(spin_min_duty,  nd, float,    0,      1, "Minimum PWM duty cycle")
+VAR(spin_max_duty,  md, float,    0,      1, "Maximum PWM duty cycle")
 VAR(spin_up,        su, float,    0,      1, "Spin up velocity")
 VAR(spin_down,      sd, float,    0,      1, "Spin down velocity")
 VAR(spin_freq,      sf, uint16_t, 0,      1, "Spindle PWM frequency")
+
+// PWM spindle
+VAR(pwm_invert,     pi, bool,     0,      1, "Inverted spindle PWM")
+VAR(enable_invert,  ei, bool,     0,      1, "Inverted spindle enable")
 
 // Huanyang spindle
 VAR(huanyang_id,        hi, uint8_t,  0,  1, "Huanyang ID")

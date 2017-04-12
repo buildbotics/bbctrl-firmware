@@ -151,10 +151,7 @@ static void _set_baud(uint16_t bsel, uint8_t bscale) {
 }
 
 
-static void _set_write(bool x) {
-  if (x) OUTSET_PIN(RS485_RW_PIN); // High
-  else OUTCLR_PIN(RS485_RW_PIN); // Low
-}
+static void _set_write(bool x) {SET_PIN(RS485_RW_PIN, x);}
 
 
 static void _set_dre_interrupt(bool enable) {

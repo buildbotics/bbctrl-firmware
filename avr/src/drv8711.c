@@ -27,7 +27,8 @@
 
 #include "drv8711.h"
 #include "status.h"
-#include "motor.h"
+#include "stepper.h"
+#include "report.h"
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -41,8 +42,7 @@
 #define COMMANDS 10
 
 
-#define DRV8711_WORD_BYTE_PTR(WORD, LOW) \
-  (((uint8_t *)&(WORD)) + ((LOW) ? 0 : 1))
+#define DRV8711_WORD_BYTE_PTR(WORD, LOW) (((uint8_t *)&(WORD)) + !(LOW))
 
 
 bool motor_fault = false;
@@ -50,6 +50,7 @@ bool motor_fault = false;
 
 typedef struct {
   uint8_t status;
+  uint16_t flags;
 
   drv8711_state_t state;
   float idle_current;
@@ -91,23 +92,6 @@ typedef struct {
 static spi_t spi = {0};
 
 
-static void _driver_check_status(int driver) {
-  uint8_t status = drivers[driver].status;
-  uint8_t mflags = 0;
-
-  if (status & DRV8711_STATUS_OTS_bm)    mflags |= MOTOR_FLAG_OVER_TEMP_bm;
-  if (status & DRV8711_STATUS_AOCP_bm)   mflags |= MOTOR_FLAG_OVER_CURRENT_bm;
-  if (status & DRV8711_STATUS_BOCP_bm)   mflags |= MOTOR_FLAG_OVER_CURRENT_bm;
-  if (status & DRV8711_STATUS_APDF_bm)   mflags |= MOTOR_FLAG_DRIVER_FAULT_bm;
-  if (status & DRV8711_STATUS_BPDF_bm)   mflags |= MOTOR_FLAG_DRIVER_FAULT_bm;
-  if (status & DRV8711_STATUS_UVLO_bm)   mflags |= MOTOR_FLAG_UNDER_VOLTAGE_bm;
-  if (status & DRV8711_STATUS_STD_bm)    mflags |= MOTOR_FLAG_STALLED_bm;
-  if (status & DRV8711_STATUS_STDLAT_bm) mflags |= MOTOR_FLAG_STALLED_bm;
-
-  //if (mflags) motor_error_callback(driver, mflags); TODO
-}
-
-
 static float _driver_get_current(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
@@ -118,29 +102,40 @@ static float _driver_get_current(int driver) {
     return drv->min_current +
       (drv->max_current - drv->min_current) * drv->power;
 
-  default: return 0;
+  default: return 0; // Off
   }
 }
 
 
 static uint8_t _spi_next_command(uint8_t cmd) {
-  // Process status responses
+  // Process command responses
   for (int driver = 0; driver < DRIVERS; driver++) {
+    drv8711_driver_t *drv = &drivers[driver];
     uint16_t command = spi.commands[driver][cmd];
 
-    if (DRV8711_CMD_IS_READ(command) &&
-        DRV8711_CMD_ADDR(command) == DRV8711_STATUS_REG) {
-      drivers[driver].status = spi.responses[driver];
-      _driver_check_status(driver);
-    }
+    if (DRV8711_CMD_IS_READ(command))
+      switch (DRV8711_CMD_ADDR(command)) {
+      case DRV8711_STATUS_REG:
+        drv->status = spi.responses[driver];
+
+        if ((drv->status & drv->flags) != drv->status) {
+          drv->flags |= drv->status;
+          report_request();
+        }
+        break;
+
+      case DRV8711_OFF_REG:
+        // We read back the OFF register to test for communication failure.
+        if ((spi.responses[driver] & 0x1ff) != DRV8711_OFF)
+          drv->flags |= DRV8711_COMM_ERROR_bm;
+        break;
+      }
   }
 
   // Next command
   if (++cmd == spi.ncmds) {
     cmd = 0; // Wrap around
-
-    for (int driver = 0; driver < DRIVERS; driver++)
-      motor_driver_callback(driver);
+    st_enable(); // Enable motors
   }
 
   // Prep next command
@@ -151,6 +146,7 @@ static uint8_t _spi_next_command(uint8_t cmd) {
     switch (DRV8711_CMD_ADDR(*command)) {
     case DRV8711_STATUS_REG:
       if (!DRV8711_CMD_IS_READ(*command))
+        // Clear STATUS flags
         *command = (*command & 0xf000) | (0x0fff & ~(drv->status));
       break;
 
@@ -225,41 +221,15 @@ static void _init_spi_commands() {
     uint16_t *commands = spi.commands[driver];
     spi.ncmds = 0;
 
-    // Set OFF
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_OFF_REG, 12);
-
-    // Set BLANK
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_BLANK_REG, 0x80);
-
-    // Set DECAY
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY_DECMOD_AUTO_OPT | 6);
-
-    // Set STALL
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_STALL_REG,
-                    DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_8 | 200);
-
-    // Set DRIVE
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_DRIVE_REG, DRV8711_DRIVE_IDRIVEP_50 |
-                    DRV8711_DRIVE_IDRIVEN_100 | DRV8711_DRIVE_TDRIVEP_500 |
-                    DRV8711_DRIVE_TDRIVEN_500 | DRV8711_DRIVE_OCPDEG_2 |
-                    DRV8711_DRIVE_OCPTH_500);
-
-    // Set TORQUE
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE_SMPLTH_50);
-
-    // Set CTRL set ISENSE gain
-    commands[spi.ncmds++] =
-      DRV8711_WRITE(DRV8711_CTRL_REG,
-                    DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_850);
-
-    // Read STATUS
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_OFF_REG,    DRV8711_OFF);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_BLANK_REG,  DRV8711_BLANK);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_DECAY_REG,  DRV8711_DECAY);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_STALL_REG,  DRV8711_STALL);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_DRIVE_REG,  DRV8711_DRIVE);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE);
+    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_CTRL_REG,   DRV8711_CTRL);
+    commands[spi.ncmds++] = DRV8711_READ(DRV8711_OFF_REG);
     commands[spi.ncmds++] = DRV8711_READ(DRV8711_STATUS_REG);
-
-    // Clear STATUS
     commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_STATUS_REG, 0);
   }
 
@@ -406,3 +376,81 @@ float get_active_current(int driver) {
 
 
 bool get_motor_fault() {return motor_fault;}
+
+
+uint16_t get_driver_flags(int driver) {return drivers[driver].flags;}
+
+
+void print_status_flags(uint16_t flags) {
+  bool first = true;
+
+  putchar('"');
+
+  if (DRV8711_STATUS_OTS_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("temp"));
+    first = false;
+  }
+
+  if (DRV8711_STATUS_AOCP_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("current a"));
+    first = false;
+  }
+
+  if (DRV8711_STATUS_BOCP_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("current b"));
+    first = false;
+  }
+
+  if (DRV8711_STATUS_APDF_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("fault a"));
+    first = false;
+  }
+
+  if (DRV8711_STATUS_BPDF_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("fault b"));
+    first = false;
+  }
+
+  if (DRV8711_STATUS_UVLO_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("uvlo"));
+    first = false;
+  }
+
+  if ((DRV8711_STATUS_STD_bm | DRV8711_STATUS_STDLAT_bm) & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("stall"));
+    first = false;
+  }
+
+  if (DRV8711_COMM_ERROR_bm & flags) {
+    if (!first) printf_P(PSTR(", "));
+    printf_P(PSTR("comm"));
+    first = false;
+  }
+
+  putchar('"');
+}
+
+
+uint16_t get_status_strings(int driver) {return get_driver_flags(driver);}
+
+
+// Command callback
+void command_mreset(int argc, char *argv[]) {
+  if (argc == 1)
+    for (int driver = 0; driver < DRIVERS; driver++)
+      drivers[driver].flags = 0;
+
+  else {
+    int driver = atoi(argv[1]);
+    if (driver < DRIVERS) drivers[driver].flags = 0;
+  }
+
+  report_request();
+}

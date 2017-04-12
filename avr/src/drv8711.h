@@ -152,6 +152,7 @@ enum {
   DRV8711_STATUS_UVLO_bm          = 1 << 5,
   DRV8711_STATUS_STD_bm           = 1 << 6,
   DRV8711_STATUS_STDLAT_bm        = 1 << 7,
+  DRV8711_COMM_ERROR_bm           = 1 << 8,
 };
 
 

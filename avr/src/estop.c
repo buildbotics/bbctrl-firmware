@@ -77,8 +77,7 @@ void estop_init() {
   if (estop.triggered) mp_state_estop();
 
   // Fault signal
-  if (estop.triggered) OUTSET_PIN(FAULT_PIN); // High
-  else OUTCLR_PIN(FAULT_PIN); // Low
+  SET_PIN(FAULT_PIN, estop.triggered);
   DIRSET_PIN(FAULT_PIN); // Output
 }
 

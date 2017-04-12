@@ -39,17 +39,7 @@ void coolant_init() {
 }
 
 
-void coolant_set_mist(bool x) {
-  if (x) OUTCLR_PIN(SWITCH_1_PIN);
-  else OUTSET_PIN(SWITCH_1_PIN);
-}
-
-
-void coolant_set_flood(bool x) {
-  if (x) OUTCLR_PIN(SWITCH_2_PIN);
-  else OUTSET_PIN(SWITCH_2_PIN);
-}
-
-
+void coolant_set_mist(bool x) {SET_PIN(SWITCH_1_PIN, !x);}
+void coolant_set_flood(bool x) {SET_PIN(SWITCH_2_PIN, !x);}
 bool coolant_get_mist() {return OUT_PIN(SWITCH_1_PIN);}
 bool coolant_get_flood() {return OUT_PIN(SWITCH_2_PIN);}

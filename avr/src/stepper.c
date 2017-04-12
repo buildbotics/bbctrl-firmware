@@ -38,6 +38,7 @@
 #include "estop.h"
 #include "util.h"
 #include "cpp_magic.h"
+#include "report.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -69,6 +70,10 @@ static stepper_t st = {0};
 
 
 void stepper_init() {
+  // Motor enable
+  OUTSET_PIN(MOTOR_ENABLE_PIN); // Low (disabled)
+  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
+
   // Setup step timer
   TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
@@ -80,11 +85,15 @@ void stepper_init() {
 
 
 void st_shutdown() {
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_enable(motor, false);
-
+  OUTCLR_PIN(MOTOR_ENABLE_PIN);
   st.dwell = 0;
   st.move_type = MOVE_TYPE_NULL;
+}
+
+
+void st_enable() {
+  if (!estop_triggered()) OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
+  report_request();
 }
 
 

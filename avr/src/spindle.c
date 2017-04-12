@@ -77,6 +77,7 @@ void spindle_set_mode(spindle_mode_t mode) {
 
 
 void spindle_set_speed(float speed) {
+  if (speed < 0) speed = 0;
   spindle.speed = speed;
 
   switch (spindle.type) {
