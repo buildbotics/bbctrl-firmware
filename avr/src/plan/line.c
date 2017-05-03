@@ -53,7 +53,7 @@
  * segment.  Delta needs to be defined, so let's replace the term max_jerk (see
  * note 1) with max junction deviation, or "delta".  This indirectly sets the
  * radius of the circle, and hence limits the velocity by the centripetal
- * acceleration.  Think of the this as widening the race track. If a race car is
+ * acceleration.  Think of this as widening the race track. If a race car is
  * driving on a track only as wide as a car, it'll have to slow down a lot to
  * turn corners.  If we widen the track a bit, the car can start to use the
  * track to go into the turn.  The wider it is, the faster through the corner
@@ -129,8 +129,8 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   if (!a_delta || !b_delta) return 0; // One or both unit vectors are null
 
   float delta = (sqrt(a_delta) + sqrt(b_delta)) / 2;
-  float sintheta_over2 = sqrt((1 - costheta) / 2);
-  float radius = delta * sintheta_over2 / (1 - sintheta_over2);
+  float sin_half_theta = sqrt((1 - costheta) / 2);
+  float radius = delta * sin_half_theta / (1 - sin_half_theta);
   float velocity = sqrt(radius * JUNCTION_ACCELERATION);
 
   return velocity;

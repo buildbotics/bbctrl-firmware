@@ -57,7 +57,7 @@ static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 static const char bool_name [] PROGMEM = "<bool>";
 #define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
 MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, uint8_t, uint16_t,
-    int32_t, char);
+    int32_t);
 
 
 // Eq functions
