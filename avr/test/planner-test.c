@@ -28,6 +28,7 @@
 #include "axis.h"
 #include "machine.h"
 #include "command.h"
+#include "plan/arc.h"
 #include "plan/planner.h"
 #include "plan/exec.h"
 #include "plan/state.h"
@@ -43,12 +44,18 @@ int main(int argc, char *argv[]) {
 
   stat_t status = STAT_OK;
 
-  while (!feof(stdin)) {
-    mp_state_callback();
-    command_callback();
-  }
-
   while (true) {
+    mach_arc_callback();          // arc generation runs
+
+    bool reading = !feof(stdin);
+
+    if (reading && mp_queue_get_room()) {
+      mp_state_callback();
+      command_callback();
+
+      if (mp_queue_get_room()) continue;
+    }
+
     status = mp_exec_move();
     printf("EXEC: %s\n", status_to_pgmstr(status));
 
@@ -66,7 +73,7 @@ int main(int argc, char *argv[]) {
       printf("ERROR: %s\n", status_to_pgmstr(status));
     }
 
-    break;
+    if (!reading) break;
   }
 
   printf("STATE: %s\n", mp_get_state_pgmstr(mp_get_state()));

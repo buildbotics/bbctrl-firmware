@@ -15,14 +15,14 @@ all: $(TESTS)
 planner-test: $(PLANNER_TEST_SRC)
 	gcc -o $@ $(PLANNER_TEST_SRC) $(CFLAGS) $(LDFLAGS)
 
-test: planner-test
-	./$< < test.gc
+%.csv: %.gc planner-test
+	./planner-test < $< | grep -E '^-?[0-9.]+,'
 
-csv: planner-test
-	@$(MAKE) -s test | grep -E '^-?[0-9.]+,'
+%-test: %.gc planner-test
+	./planner-test < $<
 
-plot: planner-test
-	@$(MAKE) -s csv | ./plot_velocity.py
+%-plot: %.gc planner-test
+	./planner-test < $< | grep -E '^-?[0-9.]+,' | ./plot.py
 
 # Clean
 tidy:
@@ -31,7 +31,7 @@ tidy:
 clean: tidy
 	rm -rf $(TESTS)
 
-.PHONY: tidy clean all test csv plot
+.PHONY: tidy clean all
 
 # Dependencies
 -include $(shell mkdir -p .dep) $(wildcard .dep/*)

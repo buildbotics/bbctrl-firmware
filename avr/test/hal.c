@@ -211,11 +211,14 @@ stat_t st_prep_line(float time, const float target[]) {
   DEBUG_CALL("%f, (%f, %f, %f, %f)",
              time, target[0], target[1], target[2], target[3]);
 
-  for (int i = 0; i < MOTORS; i++)
-    motor_position[i] = target[i];
+  float p[MOTORS] = {0, 0, 0, 0};
 
-  printf("%0.10f, %0.10f, %0.10f, %0.10f\n",
-         time, motor_position[0], motor_position[1], motor_position[2]);
+  for (int i = 0; i < MOTORS; i++) {
+    motor_position[i] = target[i];
+    p[i] = target[i] / motor_get_steps_per_unit(i);
+  }
+
+  printf("%0.10f, %0.10f, %0.10f, %0.10f\n", time, p[0], p[1], p[2]);
 
   return STAT_OK;
 }
