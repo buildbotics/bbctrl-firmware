@@ -92,7 +92,7 @@ void uart_deinit() {
 
 
 void watchdog_init() {
-  uint8_t temp = WDT_ENABLE_bm | WDT_CEN_bm | WDT_PER_1KCLK_gc;
+  uint8_t temp = WDT_ENABLE_bm | WDT_CEN_bm | WDT_PER_4KCLK_gc;
   CCP = CCP_IOREG_gc;
   WDT.CTRL = temp;
   while (WDT.STATUS & WDT_SYNCBUSY_bm) continue;
