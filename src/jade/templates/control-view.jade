@@ -147,7 +147,7 @@ script#control-view-template(type="text/x-template")
             input(v-model="mdi", @keyup.enter="submit_mdi")
 
         .history(:class="{placeholder: !history}")
-          {{history || 'MDI history displays here.'}}
+          | {{history || 'MDI history displays here.'}}
 
       section#content3.tab-content
         .jog

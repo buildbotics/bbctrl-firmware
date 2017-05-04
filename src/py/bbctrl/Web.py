@@ -171,5 +171,5 @@ class Web(tornado.web.Application):
 
 
     def broadcast(self, msg):
-        if self.clients:
+        if len(self.clients):
             self.clients[0].broadcast(self.clients, msg)

@@ -212,9 +212,16 @@ class AVR():
                 self._stop_sending_gcode()
 
             self.vars.update(update)
-            self.ctrl.lcd.update(update)
-            self.ctrl.web.broadcast(update)
 
+            try:
+                self.ctrl.lcd.update(update)
+            except Exception as e:
+                log.error('Updating LCD: %s', e)
+
+            try:
+                self.ctrl.web.broadcast(update)
+            except Exception as e:
+                log.error('Updating Web: %s', e)
 
     def queue_command(self, cmd):
         self.queue.append(cmd)

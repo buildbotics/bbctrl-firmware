@@ -16,22 +16,20 @@
         "default": "when-moving",
         "code": "pm"
       },
-      "max-current": {
-        "type": "percent",
-        "unit": "%",
-        "default": 80,
-        "code": "xc"
-      },
-      "min-current": {
-        "type": "percent",
-        "unit": "%",
-        "default": 20,
-        "code": "lc"
+      "drive-current": {
+        "type": "float",
+        "min": 0,
+        "max": 8,
+        "unit": "A",
+        "default": 2,
+        "code": "dc"
       },
       "idle-current": {
-        "type": "percent",
-        "unit": "%",
-        "default": 1,
+        "type": "float",
+        "min": 0,
+        "max": 8,
+        "unit": "A",
+        "default": 0,
         "code": "ic"
       }
     },

@@ -84,7 +84,7 @@ module.exports = new Vue({
 
         if (typeof msg == 'object') {
           for (var key in msg)
-            this.$set('state.' + key, msg[key]);
+            Vue.set(this.state, key, msg[key]);
 
           if ('msg' in msg) this.$broadcast('message', msg);
         }
@@ -100,6 +100,8 @@ module.exports = new Vue({
         this.status = 'disconnected';
         this.$broadcast(this.status);
       }.bind(this);
+
+      console.debug('Hello');
     },
 
 

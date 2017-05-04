@@ -77,7 +77,9 @@ module.exports = {
 
 
     get_reason: function () {
-      return this.state.x == 'HOLDING' ? this.state.pr : '';
+      if (this.state.x == 'ESTOPPED') return this.state.er;
+      if (this.state.x == 'HOLDING') return this.state.pr;
+      return '';
     },
 
 
