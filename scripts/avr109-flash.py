@@ -93,10 +93,12 @@ call(['gpio', '-g', 'write', '27', '1'])
 time.sleep(0.1)
 
 # Sync
-send('\x1b')
+for i in range(10): send('\x1b')
 
 # Flush serial
-recv(sp.in_waiting)
+try:
+    recv(sp.in_waiting)
+except: pass
 
 # Get bootloader ID
 send('S')
