@@ -238,7 +238,9 @@ enum {
 #define JOG_JERK_MULT            1             // Jogging jerk multipler
 #define JOG_MIN_VELOCITY         10            // mm/min
 #define CAL_ACCELERATION         500000        // mm/min^2
-
+#define CURRENT_SENSE_RESISTOR   0.05          // ohms
+#define CURRENT_SENSE_REF        2.75          // volts
+#define MAX_CURRENT              10            // amps
 
 // Arc
 #define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius

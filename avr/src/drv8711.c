@@ -49,15 +49,20 @@ bool motor_fault = false;
 
 
 typedef struct {
+  float current;
+  uint16_t isgain;
+  uint8_t torque;
+} current_t;
+
+
+typedef struct {
   uint8_t status;
   uint16_t flags;
 
   drv8711_state_t state;
-  float idle_current;
-  float max_current;
-  float min_current;
+  current_t drive;
+  current_t idle;
   float stall_threshold;
-  float power;
 
   uint8_t mode; // microstepping mode
   stall_callback_t stall_cb;
@@ -92,16 +97,67 @@ typedef struct {
 static spi_t spi = {0};
 
 
+static void _current_set(current_t *c, float current) {
+  c->current = current;
+
+  float torque_over_gain = current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF;
+
+  float gain = 0;
+  if (torque_over_gain < 1.0 / 40) {
+    c->isgain = DRV8711_CTRL_ISGAIN_40;
+    gain = 40;
+
+  } else if (torque_over_gain < 1.0 / 20) {
+    c->isgain = DRV8711_CTRL_ISGAIN_20;
+    gain = 20;
+
+  } else if (torque_over_gain < 1.0 / 10) {
+    c->isgain = DRV8711_CTRL_ISGAIN_10;
+    gain = 10;
+
+  } else if (torque_over_gain < 1.0 / 5) {
+    c->isgain = DRV8711_CTRL_ISGAIN_5;
+    gain = 5;
+  }
+
+  c->torque = round(torque_over_gain * gain * 256);
+}
+
+
+static bool _driver_get_enabled(int driver) {
+  drv8711_state_t state = drivers[driver].state;
+  return state == DRV8711_IDLE || state == DRV8711_ACTIVE;
+}
+
+
 static float _driver_get_current(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
   switch (drv->state) {
-  case DRV8711_IDLE: return drv->idle_current;
+  case DRV8711_IDLE: return drv->idle.current;
+  case DRV8711_ACTIVE: return drv->drive.current;
+  default: return 0; // Off
+  }
+}
 
-  case DRV8711_ACTIVE:
-    return drv->min_current +
-      (drv->max_current - drv->min_current) * drv->power;
 
+static uint16_t _driver_get_isgain(int driver) {
+  drv8711_driver_t *drv = &drivers[driver];
+
+  switch (drv->state) {
+  case DRV8711_IDLE: return drv->idle.isgain;
+  case DRV8711_ACTIVE: return drv->drive.isgain;
+  default: return 0; // Off
+  }
+}
+
+
+static uint8_t _driver_get_torque(int driver) {
+  drv8711_driver_t *drv = &drivers[driver];
+
+  switch (drv->state) {
+  case DRV8711_IDLE: return drv->idle.torque;
+  case DRV8711_ACTIVE: return drv->drive.torque;
   default: return 0; // Off
   }
 }
@@ -151,13 +207,13 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       break;
 
     case DRV8711_TORQUE_REG: // Update motor current setting
-      *command = (*command & 0xff00) |
-        (uint8_t)round(0xff * _driver_get_current(driver));
+      *command = (*command & 0xff00) | _driver_get_torque(driver);
       break;
 
     case DRV8711_CTRL_REG: // Set microsteps
-      *command = (*command & 0xff86) | (drv->mode << 3) |
-        (_driver_get_current(driver) ? DRV8711_CTRL_ENBL_bm : 0);
+      *command = (*command & 0xfc86) | _driver_get_isgain(driver) |
+        (drv->mode << 3) |
+        (_driver_get_enabled(driver) ? DRV8711_CTRL_ENBL_bm : 0);
       break;
 
     default: break;
@@ -310,12 +366,6 @@ void drv8711_set_state(int driver, drv8711_state_t state) {
 }
 
 
-void drv8711_set_power(int driver, float power) {
-  if (driver < 0 || DRIVERS <= driver) return;
-  drivers[driver].power = power < 0 ? 0 : (1 < power ? 1 : power);
-}
-
-
 void drv8711_set_microsteps(int driver, uint16_t msteps) {
   if (driver < 0 || DRIVERS <= driver) return;
   switch (msteps) {
@@ -333,39 +383,30 @@ void drv8711_set_stall_callback(int driver, stall_callback_t cb) {
 }
 
 
-float get_max_current(int driver) {
+float get_drive_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
-  return drivers[driver].max_current;
+  return drivers[driver].drive.current;
 }
 
 
-void set_max_current(int driver, float value) {
-  if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
-  drivers[driver].max_current = value;
-}
-
-
-float get_min_current(int driver) {
-  if (driver < 0 || DRIVERS <= driver) return 0;
-  return drivers[driver].min_current;
-}
-
-
-void set_min_current(int driver, float value) {
-  if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
-  drivers[driver].min_current = value;
+void set_drive_current(int driver, float value) {
+  if (driver < 0 || DRIVERS <= driver || value < 0 || MAX_CURRENT < value)
+    return;
+  _current_set(&drivers[driver].drive, value);
 }
 
 
 float get_idle_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
-  return drivers[driver].idle_current;
+  return drivers[driver].idle.current;
 }
 
 
 void set_idle_current(int driver, float value) {
-  if (driver < 0 || DRIVERS <= driver || value < 0 || 1 < value) return;
-  drivers[driver].idle_current = value;
+  if (driver < 0 || DRIVERS <= driver || value < 0 || MAX_CURRENT < value)
+    return;
+
+  _current_set(&drivers[driver].idle, value);
 }
 
 

@@ -376,11 +376,6 @@ void motor_prep_move(int motor, float time, int32_t target) {
 
   if (!m->timer_period || !half_steps) m->timer_clock = 0;
 
-  // Compute power from axis max velocity
-  const float max_step_vel = m->steps_per_unit * axis_get_velocity_max(m->axis);
-  const float power = half_steps / (max_step_vel * time * 2);
-  drv8711_set_power(motor, power);
-
   // Power motor
   switch (m->power_mode) {
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
