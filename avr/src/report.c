@@ -36,30 +36,22 @@
 #include <stdbool.h>
 
 
-static bool report_requested = false;
-static bool report_full = false;
-static uint32_t last_report = 0;
+static bool _requested = false;
+static bool _full = false;
+static uint32_t _last = 0;
 
 
-void report_request() {
-  report_requested = true;
-}
-
-
-void report_request_full() {
-  report_requested = report_full = true;
-}
+void report_request() {_requested = true;}
+void report_request_full() {_requested = _full = true;}
 
 
 void report_callback() {
-  if (usart_tx_full()) return; // Wait for buffer space
-
-  if (report_requested && usart_tx_empty()) {
+  if (_requested && usart_tx_empty()) {
     uint32_t now = rtc_get_time();
-    if (now - last_report < 100) return;
-    last_report = now;
+    if (now - _last < 250) return;
+    _last = now;
 
-    vars_report(report_full);
-    report_requested = report_full = false;
+    vars_report(_full);
+    _requested = _full = false;
   }
 }
