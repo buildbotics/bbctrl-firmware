@@ -27,6 +27,7 @@
 
 //  Name        Min, Max args, Help
 CMD(help,         0, 1, "Print this help screen")
+CMD(report,       1, 2, "[var] <enable>.  Enable or disable var reporting")
 CMD(reboot,       0, 0, "Reboot the controller")
 CMD(jog,          1, 4, "Jog")
 CMD(mreset,       0, 1, "Reset motor")

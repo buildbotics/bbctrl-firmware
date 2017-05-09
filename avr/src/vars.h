@@ -31,10 +31,13 @@
 
 #include <stdbool.h>
 
+bool var_parse_bool(const char *value);
 
 void vars_init();
 
 void vars_report(bool full);
+void vars_report_all(bool enable);
+void vars_report_var(const char *code, bool enable);
 int vars_find(const char *name);
 bool vars_print(const char *name);
 bool vars_set(const char *name, const char *value);

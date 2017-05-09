@@ -94,7 +94,7 @@ static void var_print_float(float x) {
   else {
     char buf[20];
 
-    int len = sprintf_P(buf, PSTR("%.6f"), x);
+    int len = sprintf_P(buf, PSTR("%.3f"), x);
 
     // Remove trailing zeros
     for (int i = len; 0 < i; i--) {
@@ -122,7 +122,7 @@ inline static bool var_eq_bool(float a, float b) {return a == b;}
 static void var_print_bool(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
 
 
-static bool var_parse_bool(const char *value) {
+bool var_parse_bool(const char *value) {
   return !strcasecmp(value, "true") || var_parse_float(value);
 }
 
@@ -174,9 +174,10 @@ static void var_print_int32_t(uint32_t x) {
 
 // Ensure no code is used more than once
 enum {
-#define VAR(NAME, CODE, ...) var_code_##CODE##_reuse,
+#define VAR(NAME, CODE, ...) var_code_##CODE,
 #include "vars.def"
 #undef VAR
+  var_code_count
 };
 
 // Var forward declarations
@@ -188,8 +189,8 @@ enum {
 #include "vars.def"
 #undef VAR
 
-// Var names, count & help
-#define VAR(NAME, CODE, TYPE, INDEX, SET, HELP)             \
+// Var names & help
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, HELP)      \
   static const char NAME##_name[] PROGMEM = #NAME;          \
   static const char NAME##_help[] PROGMEM = HELP;
 
@@ -203,6 +204,29 @@ enum {
 #include "vars.def"
 #undef VAR
 
+// Report
+static uint8_t _report_var[(var_code_count >> 3) + 1] = {0,};
+
+
+static bool _get_report_var(int index) {
+  return _report_var[index >> 3] & (1 << (index & 7));
+}
+
+
+static void _set_report_var(int index, bool enable) {
+  if (enable) _report_var[index >> 3] |= 1 << (index & 7);
+  else _report_var[index >> 3] &= ~(1 << (index & 7));
+}
+
+
+static int _find_code(const char *code) {
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  if (!strcmp(code, #CODE)) return var_code_##CODE;                     \
+
+#include "vars.def"
+#undef VAR
+  return -1;
+}
 
 
 void vars_init() {
@@ -210,6 +234,13 @@ void vars_init() {
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                       \
   IF(INDEX)(for (int i = 0; i < INDEX; i++))                    \
     (NAME##_state)IF(INDEX)([i]) = get_##NAME(IF(INDEX)(i));
+
+#include "vars.def"
+#undef VAR
+
+// Report
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, ...)  \
+  _set_report_var(var_code_##CODE, REPORT);
 
 #include "vars.def"
 #undef VAR
@@ -226,8 +257,9 @@ void vars_report(bool full) {
   IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {            \
     TYPE value = get_##NAME(IF(INDEX)(i));                              \
     TYPE last = (NAME##_state)IF(INDEX)([i]);                           \
+    bool report = _get_report_var(var_code_##CODE);                     \
                                                                         \
-    if (!var_eq_##TYPE(value, last) || full) {                          \
+    if ((report && !var_eq_##TYPE(value, last)) || full) {              \
       (NAME##_state)IF(INDEX)([i]) = value;                             \
                                                                         \
       if (!reported) {                                                  \
@@ -250,6 +282,21 @@ void vars_report(bool full) {
 
   // Restore watchdog
   hw_restore_watchdog(wd_state);
+}
+
+
+void vars_report_all(bool enable) {
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, ...)                  \
+  _set_report_var(var_code_##CODE, enable);
+
+#include "vars.def"
+#undef VAR
+}
+
+
+void vars_report_var(const char *code, bool enable) {
+  int index = _find_code(code);
+  if (index != -1) _set_report_var(index, enable);
 }
 
 

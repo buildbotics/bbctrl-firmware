@@ -292,6 +292,17 @@ uint8_t command_help(int argc, char *argv[]) {
 }
 
 
+uint8_t command_report(int argc, char *argv[]) {
+  if (argc == 2) {
+    vars_report_all(var_parse_bool(argv[1]));
+    return STAT_OK;
+  }
+
+  vars_report_var(argv[1], var_parse_bool(argv[2]));
+  return STAT_OK;
+}
+
+
 uint8_t command_reboot(int argc, char *argv[]) {
   _reboot();
   return 0;
