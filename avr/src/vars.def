@@ -68,7 +68,7 @@ VAR(latch_backoff,  lb, float,    MOTORS, 1, 1, "Homing latch backoff")
 VAR(zero_backoff,   zb, float,    MOTORS, 1, 1, "Homing zero backoff")
 
 // Axis
-VAR(position,        p, float,    AXES,   0, 1, "Current axis position")
+VAR(position,        p, float,    AXES,   1, 1, "Current axis position")
 
 // Spindle
 VAR(spindle_type,   st, uint8_t,  0,      1, 1, "PWM=0 or HUANYANG=1")

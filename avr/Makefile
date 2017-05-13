@@ -55,7 +55,11 @@ BOOT_OBJ := $(patsubst src/%.S,build/%.o,$(BOOT_OBJ))
 BOOT_LDFLAGS = $(LDFLAGS) -Wl,--section-start=.text=0x030000
 
 # Build
-all: $(PROJECT).hex build/vars.json boot size
+all:
+	@$(MAKE) $(PROJECT).hex
+	@$(MAKE) build/vars.json
+	@$(MAKE) boot
+	@$(MAKE) size
 
 boot: boot.hex boot-size
 
