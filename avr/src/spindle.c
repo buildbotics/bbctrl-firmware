@@ -91,10 +91,10 @@ spindle_mode_t spindle_get_mode() {return spindle.mode;}
 float spindle_get_speed() {return spindle.speed;}
 
 
-void spindle_estop() {
+void spindle_stop() {
   switch (spindle.type) {
-  case SPINDLE_TYPE_PWM: pwm_spindle_estop(); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_estop(); break;
+  case SPINDLE_TYPE_PWM: pwm_spindle_stop(); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_stop(); break;
   }
 }
 

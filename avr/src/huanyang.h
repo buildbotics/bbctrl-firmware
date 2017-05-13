@@ -34,5 +34,4 @@ void huanyang_init();
 void huanyang_set(spindle_mode_t mode, float speed);
 void huanyang_reset();
 void huanyang_rtc_callback();
-void huanyang_estop();
-bool huanyang_stopping();
+void huanyang_stop();

@@ -34,6 +34,7 @@
 #include "buffer.h"
 #include "arc.h"
 #include "stepper.h"
+#include "spindle.h"
 
 #include "report.h"
 
@@ -235,6 +236,9 @@ void mp_state_callback() {
       for (int axis = 0; axis < AXES; axis++)
         mach_set_axis_position(axis, mp_runtime_get_axis_position(axis));
     }
+
+    // Stop spindle
+    spindle_stop();
 
     // Resume
     if (ps.resume_requested) {

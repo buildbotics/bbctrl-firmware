@@ -201,14 +201,14 @@ class AVR():
                 update.update(msg)
                 log.debug(line)
 
-                if 'msg' in update: break
+                if 'msg' in msg: break
 
         if update:
-            if 'firmware' in msg:
+            if 'firmware' in update:
                 log.error('AVR rebooted')
                 self.connect()
 
-            if 'x' in msg and msg['x'] == 'ESTOPPED':
+            if 'x' in update and update['x'] == 'ESTOPPED':
                 self._stop_sending_gcode()
 
             self.vars.update(update)
@@ -222,6 +222,7 @@ class AVR():
                 self.ctrl.web.broadcast(update)
             except Exception as e:
                 log.error('Updating Web: %s', e)
+
 
     def queue_command(self, cmd):
         self.queue.append(cmd)

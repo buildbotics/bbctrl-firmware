@@ -130,7 +130,7 @@ void hw_hard_reset() {
 /// Controller's rest handler
 void hw_reset_handler() {
   if (hw.hard_reset) {
-    while (huanyang_stopping() || !usart_tx_empty() || !eeprom_is_ready())
+    while (!usart_tx_empty() || !eeprom_is_ready())
       continue;
 
     hw_hard_reset();

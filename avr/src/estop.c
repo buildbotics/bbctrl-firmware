@@ -82,9 +82,7 @@ void estop_init() {
 }
 
 
-bool estop_triggered() {
-  return estop.triggered || switch_is_active(SW_ESTOP);
-}
+bool estop_triggered() {return estop.triggered || switch_is_active(SW_ESTOP);}
 
 
 void estop_trigger(stat_t reason) {
@@ -93,7 +91,7 @@ void estop_trigger(stat_t reason) {
 
   // Hard stop the motors and the spindle
   st_shutdown();
-  spindle_estop();
+  spindle_stop();
 
   // Set machine state
   mp_state_estop();

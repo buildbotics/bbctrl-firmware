@@ -47,9 +47,21 @@ typedef struct {
 static pwm_spindle_t spindle = {0};
 
 
+static void _spindle_set_enable(bool enable) {
+  SET_PIN(SPIN_ENABLE_PIN, enable ^ spindle.enable_invert);
+}
+
+
+static void _spindle_set_dir(bool forward) {
+  SET_PIN(SPIN_DIR_PIN, !(forward ^ spindle.reverse));
+}
+
+
 static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
   if (mode == SPINDLE_OFF || speed < spindle.min_rpm || estop_triggered()) {
     TIMER_PWM.CTRLA = 0;
+    OUTCLR_PIN(SPIN_PWM_PIN);
+    _spindle_set_enable(false);
     return;
   }
 
@@ -102,16 +114,6 @@ static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
 }
 
 
-static void _spindle_set_enable(bool enable) {
-  SET_PIN(SPIN_ENABLE_PIN, enable ^ spindle.enable_invert);
-}
-
-
-static void _spindle_set_dir(bool forward) {
-  SET_PIN(SPIN_DIR_PIN, !(forward ^ spindle.reverse));
-}
-
-
 void pwm_spindle_init() {
   // Configure IO
   _spindle_set_dir(true);
@@ -130,7 +132,7 @@ void pwm_spindle_set(spindle_mode_t mode, float speed) {
 }
 
 
-void pwm_spindle_estop() {_spindle_set_pwm(SPINDLE_OFF, 0);}
+void pwm_spindle_stop() {_spindle_set_pwm(SPINDLE_OFF, 0);}
 
 
 // TODO these need more effort and should work with the huanyang spindle too
