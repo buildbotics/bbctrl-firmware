@@ -16,6 +16,7 @@ class LCD:
         self.lcd = None
         self.timeout = None
         self.clear_next_write = False
+        self.reset = False
 
         self.clear()
         self.text('Loading', 6, 1)
@@ -75,6 +76,11 @@ class LCD:
                                    self.ctrl.args.lcd_addr,
                                    self.height, self.width)
 
+            if self.reset:
+                self.lcd.reset()
+                self.redraw = True
+                self.reset = False
+
             cursorX, cursorY = -1, -1
 
             for y in range(self.height):
@@ -94,7 +100,7 @@ class LCD:
 
         except IOError as e:
             log.error('LCD communication failed, retrying: %s' % e)
-            self.redraw = True
+            self.reset = True
             self.timeout = self.ctrl.ioloop.call_later(1, self.update_screen)
 
 
