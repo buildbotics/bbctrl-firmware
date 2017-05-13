@@ -148,11 +148,14 @@ class LCD:
         self.write(LCD_SET_DDRAM_ADDR | (0, 64, 20, 84)[y] + int(x))
 
 
+    def put_char(self, c):
+        self.write(ord(c), REG_SELECT_BIT)
+
+
     def text(self, msg, x = None, y = None):
         if x is not None and y is not None: self.goto(x, y)
 
-        for c in msg:
-            self.write(ord(c), REG_SELECT_BIT)
+        for c in msg: self.put_char(c)
 
 
     def display(self, line, msg, justify = JUSTIFY_LEFT):
