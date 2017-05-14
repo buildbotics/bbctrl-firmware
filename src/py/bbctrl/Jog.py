@@ -28,7 +28,9 @@ class Jog(inevent.JogHandler):
     def callback(self):
         if self.v != self.lastV:
             self.lastV = self.v
-            self.ctrl.avr.jog(self.v)
+            try:
+                self.ctrl.avr.jog(self.v)
+            except: pass
 
         self.ctrl.ioloop.call_later(0.25, self.callback)
 
