@@ -92,7 +92,38 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
     def put_ok(self, value): self.ctrl.avr.override_speed(float(value))
 
 
-class Connection(sockjs.tornado.SockJSConnection):
+class WSConnection(tornado.websocket.WebSocketHandler):
+    def __init__(self, app, request, **kwargs):
+        super(WSConnection, self).__init__(app, request, **kwargs)
+        self.ctrl = app.ctrl
+        self.timer = None
+
+
+    def heartbeat(self):
+        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
+        self.write_message({'heartbeat': self.count})
+        self.count += 1
+
+
+    def open(self):
+        self.clients = self.ctrl.web.ws_clients
+
+        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
+        self.count = 0;
+
+        self.clients.append(self)
+        self.write_message(self.ctrl.avr.vars)
+
+
+    def on_close(self):
+        if self.timer is not None: self.ctrl.ioloop.remove_timeout(self.timer)
+        self.clients.remove(self)
+
+
+    def on_message(self, msg): pass
+
+
+class SockJSConnection(sockjs.tornado.SockJSConnection):
     def heartbeat(self):
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
@@ -101,7 +132,7 @@ class Connection(sockjs.tornado.SockJSConnection):
 
     def on_open(self, info):
         self.ctrl = self.session.server.ctrl
-        self.clients = self.ctrl.web.clients
+        self.clients = self.ctrl.web.sockjs_clients
 
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.count = 0;
@@ -128,9 +159,11 @@ class StaticFileHandler(tornado.web.StaticFileHandler):
 class Web(tornado.web.Application):
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.clients = []
+        self.ws_clients = []
+        self.sockjs_clients = []
 
         handlers = [
+            (r'/websocket', WSConnection),
             (r'/api/config/load', ConfigLoadHandler),
             (r'/api/config/download', ConfigDownloadHandler),
             (r'/api/config/save', ConfigSaveHandler),
@@ -154,7 +187,7 @@ class Web(tornado.web.Application):
               "default_filename": "index.html"}),
             ]
 
-        router = sockjs.tornado.SockJSRouter(Connection, '/ws')
+        router = sockjs.tornado.SockJSRouter(SockJSConnection, '/sockjs')
         router.ctrl = ctrl
 
         tornado.web.Application.__init__(self, router.urls + handlers)
@@ -171,5 +204,7 @@ class Web(tornado.web.Application):
 
 
     def broadcast(self, msg):
-        if len(self.clients):
-            self.clients[0].broadcast(self.clients, msg)
+        if len(self.sockjs_clients):
+            self.sockjs_clients[0].broadcast(self.sockjs_clients, msg)
+
+        for client in self.ws_clients: client.write_message(msg)

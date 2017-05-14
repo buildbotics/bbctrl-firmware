@@ -72,6 +72,7 @@ static void var_print_string(string s) {printf_P(PSTR("\"%s\""), s);}
 
 // Program string
 static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
+static const char *var_parse_pstring(const char *value) {return value;}
 
 
 // Flags

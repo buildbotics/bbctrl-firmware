@@ -170,6 +170,48 @@ int command_exec(int argc, char *argv[]) {
 }
 
 
+char *_parse_arg(char **p) {
+  char *start = *p;
+  char *next = *p;
+
+  bool inQuote = false;
+  bool escape = false;
+
+  while (**p) {
+    char c = *(*p)++;
+
+    switch (c) {
+    case '\\':
+      if (!escape) {
+        escape = true;
+        continue;
+      }
+      break;
+
+    case ' ': case '\t':
+      if (!inQuote && !escape) goto done;
+      break;
+
+    case '"':
+      if (!escape) {
+        inQuote = !inQuote;
+        continue;
+      }
+      break;
+
+    default: break;
+    }
+
+    *next++ = c;
+    escape = false;
+  }
+
+ done:
+  *next = 0;
+  return start;
+}
+
+
 int command_parser(char *cmd) {
   // Parse line
   char *p = cmd + 1; // Skip `$`
@@ -186,10 +228,8 @@ int command_parser(char *cmd) {
     while (*p && isspace(*p)) *p++ = 0;
 
     // Start of token
-    if (*p) argv[argc++] = p;
-
-    // Find end
-    while (*p && !isspace(*p)) p++;
+    char *arg = _parse_arg(&p);
+    if (*arg) argv[argc++] = arg;
   }
 
   // Exec command

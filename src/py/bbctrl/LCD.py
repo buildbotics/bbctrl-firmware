@@ -112,12 +112,12 @@ class LCD:
 
             self.text('%-9s' % state, 0, 0)
 
-        if 'xp' in msg: self.text('% 10.4fX' % msg['xp'], 9, 0)
-        if 'yp' in msg: self.text('% 10.4fY' % msg['yp'], 9, 1)
-        if 'zp' in msg: self.text('% 10.4fZ' % msg['zp'], 9, 2)
-        if 'ap' in msg: self.text('% 10.4fA' % msg['ap'], 9, 3)
+        if 'xp' in msg: self.text('% 10.3fX' % msg['xp'], 9, 0)
+        if 'yp' in msg: self.text('% 10.3fY' % msg['yp'], 9, 1)
+        if 'zp' in msg: self.text('% 10.3fZ' % msg['zp'], 9, 2)
+        if 'ap' in msg: self.text('% 10.3fA' % msg['ap'], 9, 3)
         if 't' in msg:  self.text('%2uT'     % msg['t'],  6, 1)
-        if 'u' in msg:  self.text('%s'       % msg['u'],  0, 1)
+        if 'u' in msg:  self.text('%-6s'     % msg['u'],  0, 1)
         if 'f' in msg:  self.text('%8uF'     % msg['f'],  0, 2)
         if 's' in msg:  self.text('%8dS'     % msg['s'],  0, 3)
 

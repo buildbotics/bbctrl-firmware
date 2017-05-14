@@ -30,6 +30,11 @@ I2C_REBOOT         = 10
 I2C_ZERO           = 11
 
 
+machine_state_vars = '''
+  xp yp zp ap bp cp u s f t fm pa cs ao pc dm ad fo so mc fc
+'''.split()
+
+
 class AVR():
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -81,6 +86,7 @@ class AVR():
             # Reset AVR communication
             self.stop();
             self.ctrl.config.config_avr()
+            self._restore_machine_state()
             self.report()
 
         except Exception as e:
@@ -121,6 +127,16 @@ class AVR():
                     raise
 
 
+    def _restore_machine_state(self):
+        for var in machine_state_vars:
+            if var in self.vars:
+                value = self.vars[var]
+                if isinstance(value, str): value = '"' + value + '"'
+                if isinstance(value, bool): value = int(value)
+
+                self.queue_command('${}={}'.format(var, value))
+
+
     def report(self): self._i2c_command(I2C_REPORT)
 
 
@@ -157,7 +173,7 @@ class AVR():
             self.command = None
 
         # Load next command from queue
-        if len(self.queue): self.load_next_command(self.queue.pop())
+        if len(self.queue): self.load_next_command(self.queue.popleft())
 
         # Load next GCode command, if running or paused
         elif self.stream is not None:

@@ -366,22 +366,26 @@ void machine_init() {
 // These functions assume input validation occurred upstream.
 
 /// G17, G18, G19 select axis plane
-void mach_set_plane(plane_t plane) {mach.gm.plane = plane;}
+void mach_set_plane(plane_t plane) {
+  if (plane != (plane_t)-1) mach.gm.plane = plane;
+}
 
 
 /// G20, G21
-void mach_set_units(units_t mode) {mach.gm.units = mode;}
+void mach_set_units(units_t mode) {
+  if (mode != (units_t)-1) mach.gm.units = mode;
+}
 
 
 /// G90, G91
 void mach_set_distance_mode(distance_mode_t mode) {
-  mach.gm.distance_mode = mode;
+  if (mode != (distance_mode_t)-1) mach.gm.distance_mode = mode;
 }
 
 
 /// G90.1, G91.1
 void mach_set_arc_distance_mode(distance_mode_t mode) {
-  mach.gm.arc_distance_mode = mode;
+  if (mode != (distance_mode_t)-1) mach.gm.arc_distance_mode = mode;
 }
 
 
@@ -400,8 +404,8 @@ void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
 
 
 /// G54-G59
-void mach_set_coord_system(coord_system_t coord_system) {
-  mach.gm.coord_system = coord_system;
+void mach_set_coord_system(coord_system_t cs) {
+  if (cs != (coord_system_t)-1) mach.gm.coord_system = cs;
 }
 
 
@@ -614,7 +618,7 @@ void mach_set_feed_rate(float feed_rate) {
 
 /// G93, G94
 void mach_set_feed_mode(feed_mode_t mode) {
-  if (mach.gm.feed_mode == mode) return;
+  if (mode == (feed_mode_t)-1 || mach.gm.feed_mode == mode) return;
   mach.gm.feed_rate = 0; // Force setting feed rate after changing modes
   mach.gm.feed_mode = mode;
 }
@@ -622,7 +626,7 @@ void mach_set_feed_mode(feed_mode_t mode) {
 
 /// G61, G61.1, G64
 void mach_set_path_mode(path_mode_t mode) {
-  mach.gm.path_mode = mode;
+  if (mode != (path_mode_t)-1) mach.gm.path_mode = mode;
 }
 
 
@@ -704,6 +708,18 @@ void mach_flood_coolant_control(bool flood_coolant) {
  * them out.  See
  * http://www.linuxcnc.org/docs/2.4/html/gcode_main.html#sec:M50:-Feed-Override
  */
+
+void mach_set_feed_override(float value) {
+  mach.gm.feed_override = value;
+  mach.gm.feed_override_enable = !fp_ZERO(value);
+}
+
+
+void mach_set_spindle_override(float value) {
+  mach.gm.spindle_override = value;
+  mach.gm.spindle_override_enable = !fp_ZERO(value);
+}
+
 
 /// M48, M49
 void mach_override_enables(bool flag) {

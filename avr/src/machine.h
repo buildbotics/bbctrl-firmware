@@ -123,6 +123,8 @@ void mach_change_tool(bool x);
 void mach_mist_coolant_control(bool mist_coolant);
 void mach_flood_coolant_control(bool flood_coolant);
 
+void mach_set_feed_override(float override);
+void mach_set_spindle_override(float override);
 void mach_override_enables(bool flag);
 void mach_feed_override_enable(bool flag);
 void mach_spindle_override_enable(bool flag);

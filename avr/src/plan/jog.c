@@ -68,6 +68,8 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   bool done = true;
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++) {
+      if (!axis_is_enabled(axis)) continue;
+
       float Vn = jr.next_velocity[axis] * axis_get_velocity_max(axis);
       float Vi = jr.velocity[axis];
       float Vt = jr.target_velocity[axis];
@@ -90,6 +92,8 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
   // Compute per axis velocities
   for (int axis = 0; axis < AXES; axis++) {
+    if (!axis_is_enabled(axis)) continue;
+
     float V = fabs(jr.velocity[axis]);
     float Vt = fabs(jr.target_velocity[axis]);
 

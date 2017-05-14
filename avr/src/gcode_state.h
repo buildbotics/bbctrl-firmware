@@ -189,8 +189,14 @@ typedef struct {
 
 
 PGM_P gs_get_units_pgmstr(units_t mode);
+units_t gs_parse_units(const char *units);
 PGM_P gs_get_feed_mode_pgmstr(feed_mode_t mode);
+feed_mode_t gs_parse_feed_mode(const char *mode);
 PGM_P gs_get_plane_pgmstr(plane_t plane);
+plane_t gs_parse_plane(const char *plane);
 PGM_P gs_get_coord_system_pgmstr(coord_system_t cs);
+coord_system_t gs_parse_coord_system(const char *cs);
 PGM_P gs_get_path_mode_pgmstr(path_mode_t mode);
+path_mode_t gs_parse_path_mode(const char *mode);
 PGM_P gs_get_distance_mode_pgmstr(distance_mode_t mode);
+distance_mode_t gs_parse_distance_mode(const char *mode);

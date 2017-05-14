@@ -77,7 +77,7 @@ module.exports = new Vue({
 
 
     connect: function () {
-      this.sock = new Sock('//' + window.location.host + '/ws');
+      this.sock = new Sock('//' + window.location.host + '/sockjs');
 
       this.sock.onmessage = function (e) {
         var msg = e.data;
