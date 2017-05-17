@@ -35,7 +35,7 @@
 #define UART_PORT               PORTC
 #define UART_DEVICE             USARTC0
 
-// Baud rate 115200 @ 32Mhz
+// Baud rate 921600 @ 32Mhz
 #define UART_BSEL_VALUE         150
 #define UART_BSCALE_VALUE       -7
 
