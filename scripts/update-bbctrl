@@ -1,0 +1,19 @@
+#!/bin/bash
+
+UPDATE=$(pwd)/update.tar.bz2
+
+if [ ! -e "$UPDATE" ]; then
+  echo "Missing $UPDATE"
+  exit 1
+fi
+
+rm -rf /tmp/update
+mkdir /tmp/update
+cd /tmp/update
+
+tar xf "$UPDATE"
+cd *
+./scripts/install.sh
+
+cd -
+rm -rf /tmp/update
