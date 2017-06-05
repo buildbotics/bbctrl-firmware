@@ -45,7 +45,7 @@
 
 typedef uint16_t flags_t;
 typedef const char *string;
-typedef PGM_P pstring;
+typedef const PGM_P pstring;
 
 
 // Format strings
