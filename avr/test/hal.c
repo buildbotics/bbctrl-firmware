@@ -140,6 +140,9 @@ void spindle_set_mode(spindle_mode_t mode) {
 }
 
 
+void spindle_stop() {}
+
+
 void motor_set_position(int motor, int32_t position) {
   DEBUG_CALL("%d, %d", motor, position);
 }
