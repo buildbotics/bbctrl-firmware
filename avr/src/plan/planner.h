@@ -55,6 +55,7 @@
  * short to process correctly.
  */
 #define HOLD_DECELERATION_TOLERANCE 1 // In mm
+#define HOLD_VELOCITY_TOLERANCE 60 // In mm/min
 
 
 typedef enum {

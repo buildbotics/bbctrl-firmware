@@ -237,12 +237,16 @@ static void _plan_hold() {
     bf->entry_vmax = 0;
     bf->state = BUFFER_RESTART; // Restart the buffer when done
 
-  } else {
+  } else if (HOLD_VELOCITY_TOLERANCE < braking_velocity) {
     // Case 2: deceleration exceeds length remaining in buffer
     // Replan to minimum (but non-zero) exit velocity
     ex.tail_length = available_length;
     ex.exit_velocity =
       braking_velocity - mp_get_target_velocity(0, available_length, bf);
+
+  } else { // Were're close enough
+    ex.tail_length = available_length;
+    ex.exit_velocity = 0;
   }
 }
 

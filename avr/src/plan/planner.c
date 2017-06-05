@@ -377,12 +377,13 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
         computed_velocity =
           mp_get_target_velocity(bf->entry_velocity, bf->head_length, bf);
 
-      } else {
+      } else if (bf->head_length + bf->tail_length) {
         bf->tail_length =
           (bf->tail_length / (bf->head_length + bf->tail_length)) * bf->length;
         computed_velocity =
           mp_get_target_velocity(bf->exit_velocity, bf->tail_length, bf);
-      }
+
+      } else break;
 
     } while ((fabs(bf->cruise_velocity - computed_velocity) /
               computed_velocity) > TRAPEZOID_ITERATION_ERROR_PERCENT);
@@ -656,7 +657,8 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
  *     PLANNER_VELOCITY_TOLERANCE necessitating the introduction of fabs()
  */
 float mp_get_target_length(float Vi, float Vf, float jerk) {
-  ASSERT(0 <= Vi && 0 <= Vf);
+  ASSERT(0 <= Vi);
+  ASSERT(0 <= Vf);
   ASSERT(isfinite(jerk));
   return fp_EQ(Vi, Vf) ? 0 : fabs(Vi - Vf) * invsqrt(jerk / fabs(Vi - Vf));
 }
@@ -729,8 +731,10 @@ float mp_get_target_length(float Vi, float Vf, float jerk) {
  *   J'(x) = (2 * Vi * x - Vi^2 + 3 * x^2) / L^2
  */
 float mp_get_target_velocity(float Vi, float L, const mp_buffer_t *bf) {
-  ASSERT(0 <= Vi && 0 <= L);
-  ASSERT(isfinite(bf->cbrt_jerk) && isfinite(bf->jerk));
+  ASSERT(0 <= Vi);
+  ASSERT(0 <= L);
+  ASSERT(isfinite(bf->jerk));
+  ASSERT(isfinite(bf->cbrt_jerk));
 
   if (!L) return Vi;
 
