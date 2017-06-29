@@ -13,7 +13,7 @@ cd /tmp/update
 
 tar xf "$UPDATE"
 cd *
-./scripts/install.sh
+./scripts/install.sh "$*"
 
 cd -
 rm -rf /tmp/update

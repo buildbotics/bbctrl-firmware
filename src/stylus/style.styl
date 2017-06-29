@@ -290,8 +290,9 @@ body
 
   .tabs
     section
-      max-height 260px
-      overflow auto
+      max-height 610px
+      overflow-x hidden
+      overflow-y auto
       padding 0
       margin 0
 
@@ -385,7 +386,8 @@ body
   > #tab1:checked ~ #content1,
   > #tab2:checked ~ #content2,
   > #tab3:checked ~ #content3,
-  > #tab4:checked ~ #content4
+  > #tab4:checked ~ #content4,
+  > #tab5:checked ~ #content5
     display block
 
   [id^="tab"]:checked + label

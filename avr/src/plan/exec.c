@@ -253,6 +253,12 @@ static void _plan_hold() {
 
 /// Initializes move runtime with a new planner buffer
 static stat_t _exec_aline_init(mp_buffer_t *bf) {
+#ifdef DEBUG
+  printf("buffer:");
+  mp_buffer_print(bf);
+  putchar('\n');
+#endif
+
   // Remove zero length lines.  Short lines have already been removed.
   if (fp_ZERO(bf->length)) return STAT_NOOP;
 

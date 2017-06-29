@@ -43,7 +43,7 @@
 
 
 typedef struct {
-  uint8_t space;
+  uint16_t space;
   mp_buffer_t *tail;
   mp_buffer_t *head;
   mp_buffer_t bf[PLANNER_BUFFER_POOL_SIZE];
@@ -176,29 +176,29 @@ void mp_queue_dump() {
 
 
 void mp_buffer_print(const mp_buffer_t *bf) {
-  printf("{\n"
-         "  ts:               %d,\n"
-         "  line:             %d,\n"
-         "  state:            %d,\n"
-         "  replannable:      %s,\n"
-         "  hold:             %s,\n"
-         "  value:            %0.2f,\n"
-         "  target:           [%0.2f, %0.2f, %0.2f, %0.2f],\n"
-         "  unit:             [%0.2f, %0.2f, %0.2f, %0.2f],\n"
-         "  length:           %0.2f,\n"
-         "  head_length:      %0.2f,\n"
-         "  body_length:      %0.2f,\n"
-         "  tail_length:      %0.2f,\n"
-         "  entry_velocity:   %0.2f,\n"
-         "  cruise_velocity:  %0.2f,\n"
-         "  exit_velocity:    %0.2f,\n"
-         "  braking_velocity: %0.2f,\n"
-         "  entry_vmax:       %0.2f,\n"
-         "  cruise_vmax:      %0.2f,\n"
-         "  exit_vmax:        %0.2f,\n"
-         "  delta_vmax:       %0.2f,\n"
-         "  jerk:             %0.2f,\n"
-         "  cbrt_jerk:        %0.2f\n"
+  printf("{"
+         "\"ts\":%d,"
+         "\"line\":%d,"
+         "\"state\":%d,"
+         "\"replannable\":%s,"
+         "\"hold\":%s,"
+         "\"value\":%0.2f,"
+         "\"target\":[%0.2f, %0.2f, %0.2f, %0.2f],"
+         "\"unit\":[%0.2f, %0.2f, %0.2f, %0.2f],"
+         "\"length\":%0.2f,"
+         "\"head_length\":%0.2f,"
+         "\"body_length\":%0.2f,"
+         "\"tail_length\":%0.2f,"
+         "\"entry_velocity\":%0.2f,"
+         "\"cruise_velocity\":%0.2f,"
+         "\"exit_velocity\":%0.2f,"
+         "\"braking_velocity\":%0.2f,"
+         "\"entry_vmax\":%0.2f,"
+         "\"cruise_vmax\":%0.2f,"
+         "\"exit_vmax\":%0.2f,"
+         "\"delta_vmax\":%0.2f,"
+         "\"jerk\":%0.2f,"
+         "\"cbrt_jerk\":%0.2f"
          "}", bf->ts, bf->line, bf->state, bf->replannable ? "true" : "false",
          bf->hold ? "true" : "false", bf->value, bf->target[0], bf->target[1],
          bf->target[2], bf->target[3], bf->unit[0], bf->unit[1], bf->unit[2],

@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-try:
-    import smbus
-except:
-    import smbus2 as smbus
-
 import time
 import logging
 
@@ -63,17 +58,11 @@ JUSTIFY_CENTER          = 2
 
 
 class LCD:
-    def __init__(self, port, addr, height = 4, width = 20):
+    def __init__(self, i2c, addr, height = 4, width = 20):
         self.addr = addr
         self.height = height
         self.width = width
-
-        try:
-            self.bus = smbus.SMBus(port)
-        except FileNotFoundError as e:
-            self.bus = None
-            log.warning('Failed to open device: %s', e)
-
+        self.i2c = i2c
         self.backlight = True
 
         self.reset()
@@ -95,11 +84,9 @@ class LCD:
 
 
     def write_i2c(self, data):
-        if self.bus is None: return
-
         if self.backlight: data |= BACKLIGHT_BIT
 
-        self.bus.write_byte(self.addr, data)
+        self.i2c.write(self.addr, data)
         time.sleep(0.0001)
 
 

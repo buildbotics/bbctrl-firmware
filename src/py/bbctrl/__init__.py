@@ -18,6 +18,8 @@ from bbctrl.AVR import AVR
 from bbctrl.Web import Web
 from bbctrl.Jog import Jog
 from bbctrl.Ctrl import Ctrl
+from bbctrl.Pwr import Pwr
+from bbctrl.I2C import I2C
 
 
 def get_resource(path):
@@ -41,17 +43,13 @@ def parse_args():
                         help = 'Serial device')
     parser.add_argument('-b', '--baud', default = 115200, type = int,
                         help = 'Serial baud rate')
-    parser.add_argument('--lcd-port', default = 1, type = int,
-                        help = 'LCD I2C port')
+    parser.add_argument('--i2c-port', default = 1, type = int,
+                        help = 'I2C port')
     parser.add_argument('--lcd-addr', default = 0x27, type = int,
                         help = 'LCD I2C address')
-    parser.add_argument('--avr-port', default = 1, type = int,
-                        help = 'AVR I2C port')
     parser.add_argument('--avr-addr', default = 0x2b, type = int,
                         help = 'AVR I2C address')
-    parser.add_argument('--pwr-port', default = 1, type = int,
-                        help = 'Power AVR I2C port')
-    parser.add_argument('--pwr-addr', default = 0x2c, type = int,
+    parser.add_argument('--pwr-addr', default = 0x60, type = int,
                         help = 'Power AVR I2C address')
     parser.add_argument('-v', '--verbose', action = 'store_true',
                         help = 'Verbose output')

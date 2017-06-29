@@ -117,6 +117,9 @@ script#control-view-template(type="text/x-template")
       input#tab4(type="radio", name="tabs")
       label(for="tab4") Console
 
+      input#tab5(type="radio", name="tabs")
+      label(for="tab5") Video
+
       section#content1.tab-content
         .toolbar
           button.pure-button(title="Upload a new program file.", @click="open",
@@ -180,3 +183,7 @@ script#control-view-template(type="text/x-template")
             td {{msg.code  || '0'}}
             td {{msg.repeat}}
             td {{msg.msg}}
+
+      section#content5.tab-content
+        .video
+          img.mjpeg(src="http://bbctrl.local:8000/stream/0")

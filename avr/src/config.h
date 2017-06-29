@@ -166,13 +166,21 @@ enum {
 
 
 // DRV8711 settings
-#define DRV8711_OFF   24
+#if 0 // Doug's settings
+#define DRV8711_OFF   48
+#define DRV8711_BLANK (0x80 | DRV8711_BLANK_ABT_bm)
+#define DRV8711_DECAY (DRV8711_DECAY_DECMOD_AUTO_OPT | 6)
+
+#else
+#define DRV8711_OFF   12
 #define DRV8711_BLANK (0x32 | DRV8711_BLANK_ABT_bm)
 #define DRV8711_DECAY (DRV8711_DECAY_DECMOD_MIXED | 16)
+#endif
+
 #define DRV8711_STALL (DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_4 | 200)
 #define DRV8711_DRIVE (DRV8711_DRIVE_IDRIVEP_50 |                       \
-                       DRV8711_DRIVE_IDRIVEN_100 | DRV8711_DRIVE_TDRIVEP_500 | \
-                       DRV8711_DRIVE_TDRIVEN_500 | DRV8711_DRIVE_OCPDEG_2 | \
+                       DRV8711_DRIVE_IDRIVEN_100 | DRV8711_DRIVE_TDRIVEP_250 | \
+                       DRV8711_DRIVE_TDRIVEN_250 | DRV8711_DRIVE_OCPDEG_2 | \
                        DRV8711_DRIVE_OCPTH_500)
 #define DRV8711_TORQUE DRV8711_TORQUE_SMPLTH_200
 #define DRV8711_CTRL   (DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_450 | \
@@ -203,8 +211,7 @@ enum {
 // Planner
 /// Should be at least the number of buffers required to support optimal
 /// planning in the case of very short lines or arc segments.  Suggest no less
-/// than 12.  Maximum is 255 with out also changing the type of mb.space.  Must
-/// leave headroom for stack.
+/// than 12.  Must leave headroom for stack.
 #define PLANNER_BUFFER_POOL_SIZE 32
 
 /// Buffers to reserve in planner before processing new input line

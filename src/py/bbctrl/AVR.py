@@ -5,11 +5,6 @@ import time
 import logging
 from collections import deque
 
-try:
-    import smbus
-except:
-    import smbus2 as smbus
-
 import bbctrl
 
 
@@ -44,6 +39,8 @@ class AVR():
         self.queue = deque()
         self.in_buf = ''
         self.command = None
+        self.lcd_page = ctrl.lcd.add_new_page()
+        self.install_page = True
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -58,13 +55,7 @@ class AVR():
             ctrl.ioloop.add_handler(self.sp, self.serial_handler,
                                     ctrl.ioloop.READ)
 
-        try:
-            self.i2c_bus = smbus.SMBus(ctrl.args.avr_port)
-            self.i2c_addr = ctrl.args.avr_addr
-
-        except FileNotFoundError as e:
-            self.i2c_bus = None
-            log.warning('Failed to open device: %s', e)
+        self.i2c_addr = ctrl.args.avr_addr
 
 
     def _start_sending_gcode(self, path):
@@ -95,35 +86,24 @@ class AVR():
 
 
     def _i2c_command(self, cmd, byte = None, word = None):
-        if self.i2c_bus is None or not hasattr(self.i2c_bus, 'write_byte'):
-            return
-
         log.info('I2C: %d' % cmd)
         retry = 5
 
         while True:
             try:
-                if byte is not None:
-                    self.i2c_bus.write_byte_data(self.i2c_addr, cmd, byte)
-
-                elif word is not None:
-                    self.i2c_bus.write_word_data(self.i2c_addr, cmd, word)
-
-                else: self.i2c_bus.write_byte(self.i2c_addr, cmd)
+                self.ctrl.i2c.write(self.i2c_addr, cmd, byte, word)
                 break
 
-            except IOError as e:
+            except Exception as e:
                 retry -= 1
 
                 if retry:
-                    log.error('I2C communication failed, retrying: %s' % e)
-                    self.i2c_bus.close()
+                    log.error('AVR I2C communication failed, retrying: %s' % e)
                     time.sleep(0.1)
-                    self.i2c_bus = smbus.SMBus(self.ctrl.args.avr_port)
                     continue
 
                 else:
-                    log.error('I2C communication failed: %s' % e)
+                    log.error('AVR I2C communication failed: %s' % e)
                     raise
 
 
@@ -230,7 +210,12 @@ class AVR():
             self.vars.update(update)
 
             try:
-                self.ctrl.lcd.update(update)
+                self._update_lcd(update)
+
+                if self.install_page:
+                    self.install_page = False
+                    self.ctrl.lcd.set_current_page(self.lcd_page.id)
+
             except Exception as e:
                 log.error('Updating LCD: %s', e)
 
@@ -238,6 +223,24 @@ class AVR():
                 self.ctrl.web.broadcast(update)
             except Exception as e:
                 log.error('Updating Web: %s', e)
+
+
+    def _update_lcd(self, msg):
+        if 'x' in msg or 'c' in msg:
+            v = self.ctrl.avr.vars
+            state = v.get('x', 'INIT')
+            if 'c' in v and state == 'RUNNING': state = v['c']
+
+            self.lcd_page.text('%-9s' % state, 0, 0)
+
+        if 'xp' in msg: self.lcd_page.text('% 10.3fX' % msg['xp'], 9, 0)
+        if 'yp' in msg: self.lcd_page.text('% 10.3fY' % msg['yp'], 9, 1)
+        if 'zp' in msg: self.lcd_page.text('% 10.3fZ' % msg['zp'], 9, 2)
+        if 'ap' in msg: self.lcd_page.text('% 10.3fA' % msg['ap'], 9, 3)
+        if 't' in msg:  self.lcd_page.text('%2uT'     % msg['t'],  6, 1)
+        if 'u' in msg:  self.lcd_page.text('%-6s'     % msg['u'],  0, 1)
+        if 'f' in msg:  self.lcd_page.text('%8uF'     % msg['f'],  0, 2)
+        if 's' in msg:  self.lcd_page.text('%8dS'     % msg['s'],  0, 3)
 
 
     def queue_command(self, cmd):

@@ -275,9 +275,9 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   // B case:  Velocities all match (or close enough)
   // This occurs frequently in normal gcode files with lots of short lines.
   // This case is not really necessary, but saves lots of processing time.
-  if (((bf->cruise_velocity - bf->entry_velocity) <
+  if ((fabs(bf->cruise_velocity - bf->entry_velocity) <
        TRAPEZOID_VELOCITY_TOLERANCE) &&
-      ((bf->cruise_velocity - bf->exit_velocity) <
+      (fabs(bf->cruise_velocity - bf->exit_velocity) <
        TRAPEZOID_VELOCITY_TOLERANCE)) {
     bf->body_length = bf->length;
     bf->head_length = 0;

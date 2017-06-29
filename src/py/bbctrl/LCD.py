@@ -7,6 +7,36 @@ import tornado.ioloop
 log = logging.getLogger('LCD')
 
 
+class Page:
+    def __init__(self, lcd, text = None):
+        self.lcd = lcd
+        self.data = lcd.new_screen()
+
+        if text is not None:
+            self.text(text, (lcd.width - len(text)) // 2, 1)
+
+
+    def put(self, c, x, y):
+        y += x // self.lcd.width
+        x %= self.lcd.width
+        y %= self.lcd.height
+
+        if self.data[x][y] != c:
+            self.data[x][y] = c
+            if self == self.lcd.page: self.lcd.update()
+
+
+    def text(self, s, x, y):
+        for c in s:
+            self.put(c, x, y)
+            x += 1
+
+    def shift_left(self): pass
+    def shift_right(self): pass
+    def shift_up(self): pass
+    def shift_down(self): pass
+
+
 class LCD:
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -15,13 +45,13 @@ class LCD:
         self.height = 4
         self.lcd = None
         self.timeout = None
-        self.clear_next_write = False
         self.reset = False
+        self.page = None
+        self.pages = []
+        self.current_page = 0
+        self.screen = self.new_screen()
 
-        self.clear()
-        self.text('Loading', 6, 1)
-        self.clear_next_write = True
-        self.update_screen()
+        self.set_message('Loading')
 
         # Redraw screen every 5 seconds
         self.redraw_timer = tornado.ioloop.PeriodicCallback(self._redraw, 5000,
@@ -31,49 +61,63 @@ class LCD:
         atexit.register(self.goodbye)
 
 
-    def clear(self):
-        self.screen = [[[' ', False] for x in range(self.width)]
-                       for y in range(self.height)]
-        self.redraw = True
+    def set_message(self, msg):
+        try:
+            self.load_page(Page(self, msg))
+            self._update()
+        except IOError as e:
+            log.error('LCD communication failed: %s' % e)
 
 
-    def _trigger_update(self):
+    def new_screen(self):
+        return [[' ' for y in range(self.height)] for x in range(self.width)]
+
+
+    def new_page(self): return Page(self)
+    def add_page(self, page): self.pages.append(page)
+
+
+    def add_new_page(self):
+        page = self.new_page()
+        page.id = len(self.pages)
+        self.add_page(page)
+        return page
+
+
+    def load_page(self, page):
+        if self.page != page:
+            self.page = page
+            self.redraw = True
+            self.update()
+
+
+    def set_current_page(self, current_page):
+        self.current_page = current_page % len(self.pages)
+        self.load_page(self.pages[self.current_page])
+
+
+    def page_up(self): pass
+    def page_down(self): pass
+    def page_right(self): self.set_current_page(self.current_page + 1)
+    def page_left(self): self.set_current_page(self.current_page - 1)
+
+
+    def update(self):
         if self.timeout is None:
-            self.timeout = self.ctrl.ioloop.call_later(0.25, self.update_screen)
+            self.timeout = self.ctrl.ioloop.call_later(0.25, self._update)
 
 
     def _redraw(self):
         self.redraw = True
-        self._trigger_update()
+        self.update()
 
 
-    def put(self, c, x, y):
-        if self.clear_next_write:
-            self.clear_next_write = False
-            self.clear()
-
-        y += x // self.width
-        x %= self.width
-        y %= self.height
-
-        if self.screen[y][x][0] != c:
-            self.screen[y][x] = [c, True]
-            self._trigger_update()
-
-
-    def text(self, s, x, y):
-        for c in s:
-            self.put(c, x, y)
-            x += 1
-
-
-    def update_screen(self):
+    def _update(self):
         self.timeout = None
 
         try:
             if self.lcd is None:
-                self.lcd = lcd.LCD(self.ctrl.args.lcd_port,
-                                   self.ctrl.args.lcd_addr,
+                self.lcd = lcd.LCD(self.ctrl.i2c, self.ctrl.args.lcd_addr,
                                    self.height, self.width)
 
             if self.reset:
@@ -85,41 +129,23 @@ class LCD:
 
             for y in range(self.height):
                 for x in range(self.width):
-                    cell = self.screen[y][x]
+                    c = self.page.data[x][y]
 
-                    if self.redraw or cell[1]:
+                    if self.redraw or self.screen[x][y] != c:
                         if cursorX != x or cursorY != y:
                             self.lcd.goto(x, y)
                             cursorX, cursorY = x, y
 
-                        self.lcd.put_char(cell[0])
+                        self.lcd.put_char(c)
                         cursorX += 1
-                        cell[1] = False
+                        self.screen[x][y] = c
 
             self.redraw = False
 
         except IOError as e:
             log.error('LCD communication failed, retrying: %s' % e)
             self.reset = True
-            self.timeout = self.ctrl.ioloop.call_later(1, self.update_screen)
-
-
-    def update(self, msg):
-        if 'x' in msg or 'c' in msg:
-            v = self.ctrl.avr.vars
-            state = v.get('x', 'INIT')
-            if 'c' in v and state == 'RUNNING': state = v['c']
-
-            self.text('%-9s' % state, 0, 0)
-
-        if 'xp' in msg: self.text('% 10.3fX' % msg['xp'], 9, 0)
-        if 'yp' in msg: self.text('% 10.3fY' % msg['yp'], 9, 1)
-        if 'zp' in msg: self.text('% 10.3fZ' % msg['zp'], 9, 2)
-        if 'ap' in msg: self.text('% 10.3fA' % msg['ap'], 9, 3)
-        if 't' in msg:  self.text('%2uT'     % msg['t'],  6, 1)
-        if 'u' in msg:  self.text('%-6s'     % msg['u'],  0, 1)
-        if 'f' in msg:  self.text('%8uF'     % msg['f'],  0, 2)
-        if 's' in msg:  self.text('%8dS'     % msg['s'],  0, 3)
+            self.timeout = self.ctrl.ioloop.call_later(1, self._update)
 
 
     def goodbye(self):
@@ -131,10 +157,4 @@ class LCD:
             self.redraw_timer.stop()
             self.redraw_timer = None
 
-        if self.lcd is not None:
-            try:
-                self.lcd.clear()
-                self.lcd.display(1, 'Goodbye', lcd.JUSTIFY_CENTER)
-
-            except IOError as e:
-                log.error('LCD communication failed: %s' % e)
+        if self.lcd is not None: self.set_message('Goodbye')

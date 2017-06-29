@@ -29,6 +29,8 @@
 
 #include "velocity_curve.h"
 
+#include <math.h>
+
 
 /// We are using a quintic (fifth-degree) Bezier polynomial for the velocity
 /// curve.  This yields a constant pop; with pop being the sixth derivative
@@ -62,6 +64,8 @@
 /// takes about 60uS or about 1,920 clocks.  The code was compiled with avr-gcc
 /// v4.9.2 with -O3.
 float velocity_curve(float Vi, float Vt, float t) {
+  if (fabs(Vt - Vi) < 200) return Vi + (Vt - Vi) * t;
+
   const float t2 = t * t;
   const float t3 = t2 * t;
 

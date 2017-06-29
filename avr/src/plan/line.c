@@ -89,7 +89,7 @@
  *
  * How to compute the radius using brute-force trig:
  *
- *    float theta = acos(costheta);
+ *    float theta = acos(dot(a, b) / (norm(a) * norm(b)));
  *    float radius = delta * sin(theta/2) / (1 - sin(theta/2));
  *
  * This version extends Chamnit's algorithm by computing a value for delta that
@@ -242,10 +242,11 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
                                  bool exact_stop) {
   ASSERT(0 < move_time && isfinite(move_time));
 
+  bf->cruise_vmax = bf->length / move_time; // target velocity requested
+
   float junction_velocity =
     _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
 
-  bf->cruise_vmax = bf->length / move_time; // target velocity requested
   bf->entry_vmax = min(bf->cruise_vmax, junction_velocity);
   bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
   bf->exit_vmax = min(bf->cruise_vmax, (bf->entry_vmax + bf->delta_vmax));
