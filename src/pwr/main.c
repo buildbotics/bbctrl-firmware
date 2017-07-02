@@ -36,19 +36,19 @@
 
 #define TEMP_ADC 14
 
-#define CS_PORT PORTA
-#define CS1_PIN 3
-#define CS2_PIN 5
-#define CS3_PIN 6
-#define CS1_ADC 0
-#define CS2_ADC 2
-#define CS3_ADC 3
+// Port A
+#define MOTOR_PIN 3
+#define LOAD1_PIN 5
+#define LOAD2_PIN 6
+#define MOTOR_ADC 0
+#define LOAD1_ADC 2
+#define LOAD2_ADC 3
 
-#define VIN_PORT PORTB
+// Port B
 #define VIN_PIN 0
 #define VIN_ADC 5
 
-#define VOUT_PORT PORTC
+// Port C
 #define VOUT_PIN 2
 #define VOUT_ADC 11
 
@@ -72,9 +72,9 @@ typedef enum {
   TEMP_REG,
   VIN_REG,
   VOUT_REG,
-  CS1_REG,
-  CS2_REG,
-  CS3_REG,
+  MOTOR_REG,
+  LOAD1_REG,
+  LOAD2_REG,
   NUM_REGS
 } regs_t;
 
@@ -130,10 +130,19 @@ ISR(TWI_SLAVE_vect) {
 
 inline static uint16_t convert_voltage(uint16_t sample) {
 #define VREF 1.1
-#define R1 34800
-#define R2 1000
+#define VR1 34800
+#define VR2 1000
 
-  return sample * (VREF / 1024.0 * (R1 + R2) / R2 * 100);
+  return sample * (VREF / 1024.0 * (VR1 + VR2) / VR2 * 100);
+}
+
+
+inline static uint16_t convert_current(uint16_t sample) {
+#define CR1 1000
+#define CR2 137
+
+  // TODO This isn't correct
+  return sample * (VREF / 1024.0 * (CR1 + CR2) / CR2 * 100);
 }
 
 
@@ -143,7 +152,7 @@ void adc_conversion() {
 
   switch (ch) {
   case TEMP_ADC:
-    regs[TEMP_REG] = data;
+    regs[TEMP_REG] = data; // Temp in Kelvin
     ch = VIN_ADC;
     break;
 
@@ -154,21 +163,21 @@ void adc_conversion() {
 
   case VOUT_ADC:
     regs[VOUT_REG] = convert_voltage(data);
-    ch = CS1_ADC;
+    ch = MOTOR_ADC;
     break;
 
-  case CS1_ADC:
-    regs[CS1_REG] = data;
-    ch = CS2_ADC;
+  case MOTOR_ADC:
+    regs[MOTOR_REG] = convert_current(data);
+    ch = LOAD1_ADC;
     break;
 
-  case CS2_ADC:
-    regs[CS2_REG] = data;
-    ch = CS3_ADC;
+  case LOAD1_ADC:
+    regs[LOAD1_REG] = convert_current(data);
+    ch = LOAD2_ADC;
     break;
 
-  case CS3_ADC:
-    regs[CS3_REG] = data;
+  case LOAD2_ADC:
+    regs[LOAD2_REG] = convert_current(data);
     ch = TEMP_ADC;
     break;
 
@@ -248,6 +257,7 @@ int main() {
   // Start ADC
   adc_conversion();
 
+  // Delayed start
   _delay_ms(100);
 
   // Enable timer with clk/64

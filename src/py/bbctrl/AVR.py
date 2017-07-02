@@ -20,9 +20,8 @@ I2C_RUN            = 5
 I2C_STEP           = 6
 I2C_FLUSH          = 7
 I2C_REPORT         = 8
-I2C_HOME           = 9
-I2C_REBOOT         = 10
-I2C_ZERO           = 11
+I2C_REBOOT         = 9
+I2C_ZERO           = 10
 
 
 machine_state_vars = '''
@@ -268,7 +267,7 @@ class AVR():
         self.queue_command('${}{}={}'.format(index, code, value))
 
 
-    def home(self): self._i2c_command(I2C_HOME)
+    def home(self): log.debug('NYI')
     def estop(self): self._i2c_command(I2C_ESTOP)
     def clear(self): self._i2c_command(I2C_CLEAR)
 
