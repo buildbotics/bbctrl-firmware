@@ -55,9 +55,29 @@ typedef enum {   // Used for detecting gcode errors. See NIST section 3.4
 #define MODAL_GROUP_COUNT (MODAL_GROUP_M9 + 1)
 
 
+typedef enum {
+  OP_INVALID,
+  OP_MINUS,
+  OP_EXP,
+  OP_MUL, OP_DIV, OP_MOD,
+  OP_ADD, OP_SUB,
+  OP_EQ, OP_NE, OP_GT,OP_GE, OP_LT, OP_LE,
+  OP_AND, OP_OR, OP_XOR,
+} op_t;
+
+
 typedef struct {
   gcode_state_t gn; // gcode input values
   gcode_flags_t gf; // gcode input flags
+
+  uint8_t modals[MODAL_GROUP_COUNT]; // collects modal groups in a block
+
+  op_t ops[GCODE_MAX_OPERATOR_DEPTH];
+  float vals[GCODE_MAX_VALUE_DEPTH];
+  int opPtr;
+  int valPtr;
+
+  stat_t error;
 } parser_t;
 
 

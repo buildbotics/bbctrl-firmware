@@ -147,7 +147,7 @@ void switch_rtc_callback() {
 
     // state is either lockout or deglitching
     if (++s->count == SW_LOCKOUT_TICKS) {
-      PORT(s->pin)->INT0MASK |= BM(s->pin); // Renable INT0
+      PORT(s->pin)->INT0MASK |= BM(s->pin); // Reenable INT0
       bool state = _read_state(s);
       s->debounce = SW_IDLE;
 
@@ -201,23 +201,28 @@ void switch_set_callback(int index, switch_callback_t cb) {
 
 
 // Var callbacks
-uint8_t get_min_switch(int index) {return switch_get_type(MIN_SWITCH(index));}
+uint8_t get_min_sw_mode(int index) {return switch_get_type(MIN_SWITCH(index));}
 
 
-void set_min_switch(int index, uint8_t value) {
+void set_min_sw_mode(int index, uint8_t value) {
   switch_set_type(MIN_SWITCH(index), value);
 }
 
 
-uint8_t get_max_switch(int index) {return switch_get_type(MAX_SWITCH(index));}
+uint8_t get_max_sw_mode(int index) {return switch_get_type(MAX_SWITCH(index));}
 
 
-void set_max_switch(int index, uint8_t value) {
+void set_max_sw_mode(int index, uint8_t value) {
   switch_set_type(MAX_SWITCH(index), value);
 }
 
 
-uint8_t get_estop_switch() {return switch_get_type(8);}
-void set_estop_switch(uint8_t value) {switch_set_type(8, value);}
-uint8_t get_probe_switch() {return switch_get_type(9);}
-void set_probe_switch(uint8_t value) {switch_set_type(9, value);}
+uint8_t get_estop_mode() {return switch_get_type(SW_ESTOP);}
+void set_estop_mode(uint8_t value) {switch_set_type(SW_ESTOP, value);}
+uint8_t get_probe_mode() {return switch_get_type(SW_PROBE);}
+void set_probe_mode(uint8_t value) {switch_set_type(SW_PROBE, value);}
+
+bool get_min_switch(int index) {return switch_is_active(MIN_SWITCH(index));}
+bool get_max_switch(int index) {return switch_is_active(MAX_SWITCH(index));}
+bool get_estop_switch() {return switch_is_active(SW_ESTOP);}
+bool get_probe_switch() {return switch_is_active(SW_PROBE);}

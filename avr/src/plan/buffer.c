@@ -199,8 +199,10 @@ void mp_buffer_print(const mp_buffer_t *bf) {
          "\"delta_vmax\":%0.2f,"
          "\"jerk\":%0.2f,"
          "\"cbrt_jerk\":%0.2f"
-         "}", bf->ts, bf->line, bf->state, bf->replannable ? "true" : "false",
-         bf->hold ? "true" : "false", bf->value, bf->target[0], bf->target[1],
+         "}", bf->ts, bf->line, bf->state,
+         (bf->flags & BUFFER_REPLANNABLE)  ? "true" : "false",
+         (bf->flags & BUFFER_HOLD) ? "true" : "false",
+         bf->value, bf->target[0], bf->target[1],
          bf->target[2], bf->target[3], bf->unit[0], bf->unit[1], bf->unit[2],
          bf->unit[3], bf->length, bf->head_length, bf->body_length,
          bf->tail_length, bf->entry_velocity, bf->cruise_velocity,

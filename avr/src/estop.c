@@ -32,7 +32,6 @@
 #include "switch.h"
 #include "report.h"
 #include "hardware.h"
-#include "homing.h"
 #include "config.h"
 
 #include "plan/planner.h"
@@ -95,9 +94,6 @@ void estop_trigger(stat_t reason) {
 
   // Set machine state
   mp_state_estop();
-
-  // Set axes not homed
-  mach_set_not_homed();
 
   // Save reason
   _set_reason(reason);

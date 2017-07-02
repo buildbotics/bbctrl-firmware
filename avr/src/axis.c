@@ -32,6 +32,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 
 
 int motor_map[AXES] = {-1, -1, -1, -1, -1, -1};
@@ -70,7 +71,7 @@ char axis_get_char(int axis) {
 
 int axis_get_id(char axis) {
   const char *axes = "XYZABCUVW";
-  char *ptr = strchr(axes, axis);
+  char *ptr = strchr(axes, toupper(axis));
   return ptr == 0 ? -1 : (ptr - axes);
 }
 

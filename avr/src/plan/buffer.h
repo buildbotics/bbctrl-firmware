@@ -42,6 +42,18 @@ typedef enum {
 } buffer_state_t;
 
 
+typedef enum {
+  BUFFER_REPLANNABLE  = 1 << 0,
+  BUFFER_HOLD         = 1 << 1,
+  BUFFER_SEEK_CLOSE   = 1 << 2,
+  BUFFER_SEEK_OPEN    = 1 << 3,
+  BUFFER_SEEK_ERROR   = 1 << 4,
+  BUFFER_RAPID        = 1 << 5,
+  BUFFER_INVERSE_TIME = 1 << 6,
+  BUFFER_EXACT_STOP   = 1 << 7,
+} buffer_flags_t;
+
+
 // Callbacks
 struct mp_buffer_t;
 typedef stat_t (*buffer_cb_t)(struct mp_buffer_t *bf);
@@ -56,8 +68,8 @@ typedef struct mp_buffer_t {      // See Planning Velocity Notes
   buffer_cb_t cb;                 // callback to buffer exec function
 
   buffer_state_t state;           // buffer state
-  bool replannable;               // true if move can be re-planned
-  bool hold;                      // hold at the start of this block
+  buffer_flags_t flags;           // buffer flags
+  switch_id_t sw;                 // Switch to seek
 
   float value;                    // used in dwell and other callbacks
 

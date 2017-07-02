@@ -254,7 +254,7 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
 
   // Zero out exact stop cases
   if (exact_stop) bf->entry_vmax = bf->exit_vmax = 0;
-  else bf->replannable = true;
+  else bf->flags |= BUFFER_REPLANNABLE;
 }
 
 
@@ -366,12 +366,13 @@ static float _calc_move_time(const float axis_length[],
  * @param reed_rate is in minutes when @param inverse_time is true.
  * See mach_set_feed_rate()
  */
-stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
-                bool exact_stop, float feed_rate, float feed_override,
-                int32_t line) {
+stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
+                float feed_rate, float feed_override, int32_t line) {
   DEBUG_CALL("(%f, %f, %f, %f), %s, %s, %s, %f, %f, %d", target[0], target[1],
-             target[2], target[3], rapid ? "true" : "false",
-             inverse_time ? "true" : "false", exact_stop ? "true" : "false",
+             target[2], target[3],
+             (flags & BUFFER_RAPID) ? "true" : "false",
+             (flags & BUFFER_INVERSE_TIME) ? "true" : "false",
+             (flags & BUFFER_EXACT_STOP) ? "true" : "false",
              feed_rate, feed_override, line);
 
   // Compute axis and move lengths
@@ -404,12 +405,15 @@ stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
   _calc_and_cache_jerk_values(bf);
 
   // Compute move time and velocities
-  float time = _calc_move_time(axis_length, axis_square, rapid, inverse_time,
-                               feed_rate, feed_override);
-  _calc_max_velocities(bf, time, exact_stop);
+  float time = _calc_move_time(axis_length, axis_square, flags & BUFFER_RAPID,
+                               flags & BUFFER_INVERSE_TIME, feed_rate,
+                               feed_override);
+  _calc_max_velocities(bf, time, flags & BUFFER_EXACT_STOP);
 
   // Note, the following lines must remain in order.
-  bf->line = line;              // Planner needs then when planning steps
+  bf->line = line;              // Planner needs this when planning steps
+  bf->flags = flags;            // Move flags
+  bf->sw = sw;                  // Seek switche
   mp_plan(bf);                  // Plan block list
   mp_set_position(target);      // Set planner position before committing buffer
   mp_queue_push(mp_exec_aline, line); // After position update

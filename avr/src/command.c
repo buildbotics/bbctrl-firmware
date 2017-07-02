@@ -33,8 +33,6 @@
 #include "report.h"
 #include "vars.h"
 #include "estop.h"
-#include "homing.h"
-#include "probing.h"
 #include "i2c.h"
 #include "plan/jog.h"
 #include "plan/calibrate.h"
@@ -82,7 +80,6 @@ static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   case I2C_STEP:           mp_request_step();              break;
   case I2C_FLUSH:          mp_request_flush();             break;
   case I2C_REPORT:         report_request_full();          break;
-  case I2C_HOME:                                           break; // TODO
   case I2C_REBOOT:         _reboot();                      break;
   case I2C_ZERO:
     if (length == 0) mach_zero_all();
@@ -274,8 +271,6 @@ void command_callback() {
     else if (!mp_queue_get_room() ||
              mp_is_resuming() ||
              mach_arc_active() ||
-             mach_is_homing() ||
-             mach_is_probing() ||
              calibrate_busy() ||
              mp_jog_busy()) return; // Wait
 

@@ -28,12 +28,12 @@
 #pragma once
 
 #include "status.h"
+#include "buffer.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 
 
-stat_t mp_aline(const float target[], bool rapid, bool inverse_time,
-                bool exact_stop, float feed_rate, float feed_override,
-                int32_t line);
+stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
+                float feed_rate, float feed_override, int32_t line);
 int mp_find_jerk_axis(const float axis_square[]);

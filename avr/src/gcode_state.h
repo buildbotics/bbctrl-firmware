@@ -40,42 +40,45 @@
  * commands, whereas motion_mode_t persists across blocks as G modal group 1
  */
 
-/// these are in order to optimized CASE statement
 typedef enum {
-  NEXT_ACTION_DEFAULT,                // Must be zero (invokes motion modes)
-  NEXT_ACTION_SEARCH_HOME,            // G28.2 homing cycle
-  NEXT_ACTION_SET_ABSOLUTE_ORIGIN,    // G28.3 origin set
-  NEXT_ACTION_HOMING_NO_SET,          // G28.4 homing cycle no coord setting
-  NEXT_ACTION_SET_G28_POSITION,       // G28.1 set position in abs coordinates
-  NEXT_ACTION_GOTO_G28_POSITION,      // G28 go to machine position
-  NEXT_ACTION_SET_G30_POSITION,       // G30.1
-  NEXT_ACTION_GOTO_G30_POSITION,      // G30
-  NEXT_ACTION_SET_COORD_DATA,         // G10
-  NEXT_ACTION_SET_ORIGIN_OFFSETS,     // G92
-  NEXT_ACTION_RESET_ORIGIN_OFFSETS,   // G92.1
-  NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS, // G92.2
-  NEXT_ACTION_RESUME_ORIGIN_OFFSETS,  // G92.3
-  NEXT_ACTION_DWELL,                  // G4
-  NEXT_ACTION_STRAIGHT_PROBE,         // G38.2
+  NEXT_ACTION_DEFAULT,                  // Must be zero (invokes motion modes)
+  NEXT_ACTION_DWELL,                    // G4
+  NEXT_ACTION_SET_COORD_DATA,           // G10
+  NEXT_ACTION_GOTO_G28_POSITION,        // G28 go to machine position
+  NEXT_ACTION_SET_G28_POSITION,         // G28.1 set position in abs coordinates
+  NEXT_ACTION_SET_ABSOLUTE_ORIGIN,      // G28.3 origin set
+  NEXT_ACTION_GOTO_G30_POSITION,        // G30
+  NEXT_ACTION_SET_G30_POSITION,         // G30.1
+  NEXT_ACTION_SET_ORIGIN_OFFSETS,       // G92
+  NEXT_ACTION_RESET_ORIGIN_OFFSETS,     // G92.1
+  NEXT_ACTION_SUSPEND_ORIGIN_OFFSETS,   // G92.2
+  NEXT_ACTION_RESUME_ORIGIN_OFFSETS,    // G92.3
 } next_action_t;
 
 
-typedef enum {                        // G Modal Group 1
-  MOTION_MODE_RAPID,                  // G0 - rapid
-  MOTION_MODE_FEED,                   // G1 - straight feed
-  MOTION_MODE_CW_ARC,                 // G2 - clockwise arc feed
-  MOTION_MODE_CCW_ARC,                // G3 - counter-clockwise arc feed
-  MOTION_MODE_CANCEL_MOTION_MODE,     // G80
-  MOTION_MODE_STRAIGHT_PROBE,         // G38.2
-  MOTION_MODE_CANNED_CYCLE_81,        // G81 - drilling
-  MOTION_MODE_CANNED_CYCLE_82,        // G82 - drilling with dwell
-  MOTION_MODE_CANNED_CYCLE_83,        // G83 - peck drilling
-  MOTION_MODE_CANNED_CYCLE_84,        // G84 - right hand tapping
-  MOTION_MODE_CANNED_CYCLE_85,        // G85 - boring, no dwell, feed out
-  MOTION_MODE_CANNED_CYCLE_86,        // G86 - boring, spindle stop, rapid out
-  MOTION_MODE_CANNED_CYCLE_87,        // G87 - back boring
-  MOTION_MODE_CANNED_CYCLE_88,        // G88 - boring, spindle stop, manual out
-  MOTION_MODE_CANNED_CYCLE_89,        // G89 - boring, dwell, feed out
+typedef enum {                          // G Modal Group 1
+  MOTION_MODE_RAPID,                    // G0 - rapid
+  MOTION_MODE_FEED,                     // G1 - straight feed
+  MOTION_MODE_CW_ARC,                   // G2 - clockwise arc feed
+  MOTION_MODE_CCW_ARC,                  // G3 - counter-clockwise arc feed
+  MOTION_MODE_STRAIGHT_PROBE_CLOSE_ERR, // G38.2
+  MOTION_MODE_STRAIGHT_PROBE_CLOSE,     // G38.3
+  MOTION_MODE_STRAIGHT_PROBE_OPEN_ERR,  // G38.4
+  MOTION_MODE_STRAIGHT_PROBE_OPEN,      // G38.5
+  MOTION_MODE_SEEK_CLOSE_ERR,           // G38.6
+  MOTION_MODE_SEEK_CLOSE,               // G38.7
+  MOTION_MODE_SEEK_OPEN_ERR,            // G38.8
+  MOTION_MODE_SEEK_OPEN,                // G38.9
+  MOTION_MODE_CANCEL_MOTION_MODE,       // G80
+  MOTION_MODE_CANNED_CYCLE_81,          // G81 - drilling
+  MOTION_MODE_CANNED_CYCLE_82,          // G82 - drilling with dwell
+  MOTION_MODE_CANNED_CYCLE_83,          // G83 - peck drilling
+  MOTION_MODE_CANNED_CYCLE_84,          // G84 - right hand tapping
+  MOTION_MODE_CANNED_CYCLE_85,          // G85 - boring, no dwell, feed out
+  MOTION_MODE_CANNED_CYCLE_86,          // G86 - boring, spindle stop, rapid out
+  MOTION_MODE_CANNED_CYCLE_87,          // G87 - back boring
+  MOTION_MODE_CANNED_CYCLE_88,          // G88 - boring, spindle stop, man out
+  MOTION_MODE_CANNED_CYCLE_89,          // G89 - boring, dwell, feed out
 } motion_mode_t;
 
 

@@ -55,10 +55,15 @@ VAR(radius,         ra, float,    MOTORS, 1, 1, "Axis radius or zero")
 // Switches
 VAR(travel_min,     tn, float,    MOTORS, 1, 1, "Minimum soft limit")
 VAR(travel_max,     tm, float,    MOTORS, 1, 1, "Maximum soft limit")
-VAR(min_switch,     ls, uint8_t,  MOTORS, 1, 1, "Minimum switch mode")
-VAR(max_switch,     xs, uint8_t,  MOTORS, 1, 1, "Maximum switch mode")
-VAR(estop_switch,   et, uint8_t,  0,      1, 1, "Estop switch mode")
-VAR(probe_switch,   pt, uint8_t,  0,      1, 1, "Probe switch mode")
+VAR(min_sw_mode,    ls, uint8_t,  MOTORS, 1, 1, "Minimum switch mode")
+VAR(max_sw_mode,    xs, uint8_t,  MOTORS, 1, 1, "Maximum switch mode")
+VAR(estop_mode,     et, uint8_t,  0,      1, 1, "Estop switch mode")
+VAR(probe_mode,     pt, uint8_t,  0,      1, 1, "Probe switch mode")
+
+VAR(min_switch,     lw, bool,     MOTORS, 0, 1, "Minimum switch state")
+VAR(max_switch,     xw, bool,     MOTORS, 0, 1, "Maximum switch state")
+VAR(estop_switch,   ew, bool,     0,      0, 1, "Estop switch state")
+VAR(probe_switch,   pw, bool,     0,      0, 1, "Probe switch state")
 
 // Homing
 VAR(homing_mode,    ho, uint8_t,  MOTORS, 1, 1, "Homing type")

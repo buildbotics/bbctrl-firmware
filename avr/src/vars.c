@@ -31,6 +31,7 @@
 #include "status.h"
 #include "hardware.h"
 #include "config.h"
+#include "axis.h"
 #include "pgmspace.h"
 
 #include <stdint.h>
@@ -73,11 +74,12 @@ static void var_print_string(string s) {printf_P(PSTR("\"%s\""), s);}
 // Program string
 static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
 static const char *var_parse_pstring(const char *value) {return value;}
+static float var_pstring_to_float(pstring s) {return 0;}
 
 
 // Flags
-static void var_print_flags_t(uint16_t x) {
-  extern void print_status_flags(uint16_t x);
+static void var_print_flags_t(flags_t x) {
+  extern void print_status_flags(flags_t x);
   print_status_flags(x);
 }
 
@@ -113,9 +115,8 @@ static void var_print_float(float x) {
 }
 
 
-static float var_parse_float(const char *value) {
-  return strtod(value, 0);
-}
+static float var_parse_float(const char *value) {return strtod(value, 0);}
+static float var_float_to_float(float x) {return x;}
 
 
 // Bool
@@ -127,11 +128,14 @@ bool var_parse_bool(const char *value) {
   return !strcasecmp(value, "true") || var_parse_float(value);
 }
 
+static float var_bool_to_float(bool x) {return x;}
+
 
 // Char
 #if 0
 static void var_print_char(char x) {putchar('"'); putchar(x); putchar('"');}
 static char var_parse_char(const char *value) {return value[1];}
+static float var_char_to_float(char x) {return x;}
 #endif
 
 
@@ -142,9 +146,8 @@ static void var_print_int8_t(int8_t x) {
 }
 
 
-static int8_t var_parse_int8_t(const char *value) {
-  return strtol(value, 0, 0);
-}
+static int8_t var_parse_int8_t(const char *value) {return strtol(value, 0, 0);}
+static float var_int8_t_to_float(int8_t x) {return x;}
 #endif
 
 // uint8
@@ -154,6 +157,8 @@ static void var_print_uint8_t(uint8_t x) {printf_P(PSTR("%"PRIu8), x);}
 static uint8_t var_parse_uint8_t(const char *value) {
   return strtol(value, 0, 0);
 }
+
+static float var_uint8_t_to_float(uint8_t x) {return x;}
 
 
 // unit16
@@ -167,10 +172,11 @@ static uint16_t var_parse_uint16_t(const char *value) {
 }
 
 
+static float var_uint16_t_to_float(uint16_t x) {return x;}
+
+
 // int32
-static void var_print_int32_t(uint32_t x) {
-  printf_P(PSTR("%"PRIi32), x);
-}
+static void var_print_int32_t(int32_t x) {printf_P(PSTR("%"PRIi32), x);}
 
 
 // Ensure no code is used more than once
@@ -301,45 +307,42 @@ void vars_report_var(const char *code, bool enable) {
 }
 
 
-int vars_find(const char *name) {
-  uint8_t i = 0;
-  uint8_t n = 0;
-  unsigned len = strlen(name);
+static char *_resolve_name(const char *_name) {
+  unsigned len = strlen(_name);
 
-  if (!len) return -1;
+  if (!len || 4 < len) return 0;
 
-#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
-  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
-    IF(INDEX)                                                           \
-      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
-       if (INDEX <= i) return -1);                                      \
-    return n;                                                           \
-  }                                                                     \
-  n++;
+  static char name[4];
+  strcpy(name, _name);
 
-#include "vars.def"
-#undef VAR
+  // Handle axis to motor mapping
+  if (2 < len && name[1] == '.') {
+    int axis = axis_get_id(name[0]);
+    if (axis < 0) return 0;
+    int motor = axis_get_motor(axis);
+    if (motor < 0) return 0;
 
-  return -1;
+    name[0] = MOTORS_LABEL[motor];
+    for (int i = 1; _name[i]; i++)
+      name[i] = _name[i + 1];
+  }
+
+  return name;
 }
 
 
-bool vars_print(const char *name) {
-  uint8_t i;
-  unsigned len = strlen(name);
+bool vars_print(const char *_name) {
+  char *name = _resolve_name(_name);
+  if (!name) return false;
 
-  if (!len) return false;
-
+  int i;
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
   if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
     IF(INDEX)                                                           \
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
        if (INDEX <= i) return false);                                   \
                                                                         \
-    putchar('{');                                                       \
-    printf_P                                                            \
-      (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                      \
-       IF(INDEX)(INDEX##_LABEL[i],) #CODE);                             \
+    printf("{\"%s\":", _name);                                          \
     var_print_##TYPE(get_##NAME(IF(INDEX)(i)));                         \
     putchar('}');                                                       \
                                                                         \
@@ -353,12 +356,11 @@ bool vars_print(const char *name) {
 }
 
 
-bool vars_set(const char *name, const char *value) {
-  uint8_t i;
-  unsigned len = strlen(name);
+bool vars_set(const char *_name, const char *value) {
+  char *name = _resolve_name(_name);
+  if (!name) return false;
 
-  if (!len) return false;
-
+  int i;
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
   IF(SET)                                                               \
     (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {              \
@@ -376,6 +378,29 @@ bool vars_set(const char *name, const char *value) {
 #undef VAR
 
   return false;
+}
+
+
+float vars_get_number(const char *_name) {
+  char *name = _resolve_name(_name);
+  if (!name) return 0;
+
+  int i;
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
+  IF(SET)                                                               \
+    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {              \
+      IF(INDEX)                                                         \
+        (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
+         if (INDEX <= i) return 0);                                     \
+                                                                        \
+      TYPE x = get_##NAME(IF(INDEX)(i));                                \
+      return var_##TYPE##_to_float(x);                                  \
+    })                                                                  \
+
+#include "vars.def"
+#undef VAR
+
+  return 0;
 }
 
 

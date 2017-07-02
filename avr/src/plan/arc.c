@@ -492,7 +492,7 @@ void mach_arc_callback() {
     }
 
     // run the line
-    mach_plan_line(arc.position);
+    mach_plan_line(arc.position, 0);
 
     if (!--arc.segments) arc.running = false;
   }

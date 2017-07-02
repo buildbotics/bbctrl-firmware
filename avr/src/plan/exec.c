@@ -209,7 +209,7 @@ static void _plan_hold() {
   // Distance to brake to zero from braking_velocity, bf is OK to use here
   float braking_length = mp_get_target_length(braking_velocity, 0, bf->jerk);
 
-  // Hack to prevent Case 2 moves for perfect-fit decels.  Happens when homing.
+  // Hack to prevent Case 2 moves for perfect-fit decels.
   if (available_length < braking_length && fp_ZERO(bf->exit_velocity))
     braking_length = available_length;
 
@@ -362,6 +362,13 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
     if (status != STAT_OK) return status;
   }
 
+  // If seeking, end move when switch is in target state.
+  if ((bf->flags & BUFFER_SEEK_CLOSE && !switch_is_active(bf->sw)) ||
+      (bf->flags & BUFFER_SEEK_OPEN && switch_is_active(bf->sw))) {
+    mp_runtime_set_velocity(0);
+    return STAT_NOOP;
+  }
+
   // Plan holds
   if (mp_get_state() == STATE_STOPPING && !ex.hold_planned) _plan_hold();
 
@@ -372,8 +379,16 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
   case SECTION_TAIL: status = _exec_aline_tail(); break;
   }
 
-  // Set runtime velocity on exit
-  if (status != STAT_EAGAIN) mp_runtime_set_velocity(ex.exit_velocity);
+  // Exiting
+  if (status != STAT_EAGAIN) {
+    // Set runtime velocity on exit
+    mp_runtime_set_velocity(ex.exit_velocity);
+
+    // If seeking, switch was not found.  Signal error if necessary.
+    if ((bf->flags & (BUFFER_SEEK_CLOSE | BUFFER_SEEK_OPEN)) &&
+        (bf->flags & BUFFER_SEEK_ERROR))
+      return STAT_SEEK_SWTICH_NOT_FOUND;
+  }
 
   return status;
 }
@@ -403,7 +418,7 @@ stat_t mp_exec_move() {
 
     // Take control of buffer
     bf->state = BUFFER_INIT;
-    bf->replannable = false;
+    bf->flags &= ~BUFFER_REPLANNABLE;
 
     // Update runtime
     mp_runtime_set_line(bf->line);
@@ -425,7 +440,8 @@ stat_t mp_exec_move() {
   if (status != STAT_EAGAIN) {
     // Signal that we've encountered a stopping point
     if (fp_ZERO(mp_runtime_get_velocity()) &&
-        (mp_get_state() == STATE_STOPPING || bf->hold)) mp_state_holding();
+        (mp_get_state() == STATE_STOPPING || (bf->flags & BUFFER_HOLD)))
+      mp_state_holding();
 
     // Handle buffer restarts and deallocation
     if (bf->state == BUFFER_RESTART) bf->state = BUFFER_NEW;
@@ -434,7 +450,7 @@ stat_t mp_exec_move() {
       // the new buffer has not started because the current one is still
       // being run by the steppers.  Planning can overwrite the new buffer.
       // See notes above.
-      mp_buffer_next(bf)->replannable = false;
+      mp_buffer_next(bf)->flags &= ~BUFFER_REPLANNABLE;
 
       mp_queue_pop(); // Release buffer
 

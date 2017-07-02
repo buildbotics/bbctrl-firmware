@@ -185,22 +185,6 @@ void motor_set_axis(int motor, uint8_t axis) {
 }
 
 
-void motor_set_stall_callback(int motor, stall_callback_t cb) {
-  drv8711_set_stall_callback(motor, cb);
-}
-
-
-/// @return computed homing velocity
-float motor_get_stall_homing_velocity(int motor) {
-  // Compute velocity:
-  //   velocity = travel_rev * step_angle * 60 / (SMPLTH * mstep * 360 * 2)
-  //   SMPLTH = 50us = 0.00005s
-  //   mstep = 8
-  return motors[motor].travel_rev * motors[motor].step_angle * 1667 /
-    motors[motor].microsteps;
-}
-
-
 float motor_get_steps_per_unit(int motor) {return motors[motor].steps_per_unit;}
 uint16_t motor_get_microsteps(int motor) {return motors[motor].microsteps;}
 

@@ -66,7 +66,6 @@
 #include "gcode_parser.h"
 #include "spindle.h"
 #include "coolant.h"
-#include "homing.h"
 
 #include "plan/planner.h"
 #include "plan/runtime.h"
@@ -298,7 +297,9 @@ void mach_calc_target(float target[], const float values[],
     float radius = axis_get_radius(axis);
     if (radius) // Handle radius mode if radius is non-zero
       target[axis] += TO_MM(values[axis]) * 360 / (2 * M_PI * radius);
+
     // For ABC axes no mm conversion - it's already in degrees
+    // TODO This should depend on the axis mode
     else if (AXIS_Z < axis) target[axis] += values[axis];
     else target[axis] += TO_MM(values[axis]);
   }
@@ -310,7 +311,7 @@ void mach_calc_target(float target[], const float values[],
  * Must be called with target properly set in GM struct.  Best done
  * after mach_calc_target().
  *
- * Tests for soft limit for any homed axis if min and max are
+ * Tests for soft limit for any axis if min and max are
  * different values. You can set min and max to 0,0 to disable soft
  * limits for an axis. Also will not test a min or a max if the value
  * is < -1000000 (negative one million). This allows a single end to
@@ -318,8 +319,6 @@ void mach_calc_target(float target[], const float values[],
  */
 stat_t mach_test_soft_limits(float target[]) {
   for (int axis = 0; axis < AXES; axis++) {
-    if (!axis_get_homed(axis)) continue; // don't test axes that arent homed
-
     float min = axis_get_travel_min(axis);
     float max = axis_get_travel_max(axis);
 
@@ -412,7 +411,7 @@ void mach_set_coord_system(coord_system_t cs) {
 /* Set the position of a single axis in the model, planner and runtime
  *
  * This command sets an axis/axes to a position provided as an argument.
- * This is useful for setting origins for homing, probing, and other operations.
+ * This is useful for setting origins for probing, and other operations.
  *
  *  !!!!! DO NOT CALL THIS FUNCTION WHILE IN A MACHINING CYCLE !!!!!
  *
@@ -422,8 +421,8 @@ void mach_set_coord_system(coord_system_t cs) {
  * because the planned / running moves have a different reference
  * frame than the one you are now going to set. These functions should
  * only be called during initialization sequences and during cycles
- * (such as homing cycles) when you know there are no more moves in
- * the planner and that all motion has stopped.
+ * when you know there are no more moves in the planner and that all motion
+ * has stopped.
  */
 void mach_set_axis_position(unsigned axis, float position) {
   //if (!mp_is_quiescent()) ALARM(STAT_MACH_NOT_QUIESCENT);
@@ -462,10 +461,7 @@ static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
   const float *flags = bf->unit;
 
   for (int axis = 0; axis < AXES; axis++)
-    if (flags[axis]) {
-      mp_runtime_set_axis_position(axis, origin[axis]);
-      mach_set_homed(axis, true);  // G28.3 is not considered homed until here
-    }
+    if (flags[axis]) mp_runtime_set_axis_position(axis, origin[axis]);
 
   mp_runtime_set_steps_from_position();
 
@@ -482,8 +478,7 @@ static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
  * This is a 2 step process.  The model and planner contexts are set
  * immediately, the runtime command is queued and synchronized with
  * the planner queue.  This includes the runtime position and the step
- * recording done by the encoders.  At that point any axis that is set
- * is also marked as homed.
+ * recording done by the encoders.
  */
 void mach_set_absolute_origin(float origin[], bool flags[]) {
   float value[AXES];
@@ -526,26 +521,51 @@ void mach_reset_origin_offsets() {
 
 
 /// G92.2
-void mach_suspend_origin_offsets() {
-  mach.origin_offset_enable = false;
-}
+void mach_suspend_origin_offsets() {mach.origin_offset_enable = false;}
 
 
 /// G92.3
-void mach_resume_origin_offsets() {
-  mach.origin_offset_enable = true;
-}
+void mach_resume_origin_offsets() {mach.origin_offset_enable = true;}
 
 
-stat_t mach_plan_line(float target[]) {
-  return mp_aline(target, mach_is_rapid(), mach_is_inverse_time_mode(),
-                  mach_is_exact_stop(), mach.gm.feed_rate,
+stat_t mach_plan_line(float target[], switch_id_t sw) {
+  buffer_flags_t flags = 0;
+
+  switch (mach_get_motion_mode()) {
+  case MOTION_MODE_STRAIGHT_PROBE_CLOSE_ERR:
+  case MOTION_MODE_SEEK_CLOSE_ERR:
+    flags |= BUFFER_SEEK_CLOSE | BUFFER_SEEK_ERROR | BUFFER_EXACT_STOP;
+    break;
+
+  case MOTION_MODE_STRAIGHT_PROBE_CLOSE:
+  case MOTION_MODE_SEEK_CLOSE:
+    flags |= BUFFER_SEEK_CLOSE | BUFFER_EXACT_STOP;
+    break;
+
+  case MOTION_MODE_STRAIGHT_PROBE_OPEN_ERR:
+  case MOTION_MODE_SEEK_OPEN_ERR:
+    flags |= BUFFER_SEEK_OPEN | BUFFER_SEEK_ERROR | BUFFER_EXACT_STOP;
+    break;
+
+  case MOTION_MODE_STRAIGHT_PROBE_OPEN:
+  case MOTION_MODE_SEEK_OPEN:
+    flags |= BUFFER_SEEK_OPEN | BUFFER_EXACT_STOP;
+    break;
+
+  default: break;
+  }
+
+  if (mach_is_rapid()) flags |= BUFFER_RAPID;
+  if (mach_is_inverse_time_mode()) flags |= BUFFER_INVERSE_TIME;
+  if (mach_is_exact_stop()) flags |= BUFFER_EXACT_STOP;
+
+  return mp_aline(target, flags, sw, mach.gm.feed_rate,
                   mach_get_feed_override(), mach_get_line());
 }
 
 
 // Free Space Motion (4.3.4)
-static stat_t _feed(float values[], bool flags[]) {
+static stat_t _feed(float values[], bool flags[], switch_id_t sw) {
   float target[AXES];
   mach_calc_target(target, values, flags);
 
@@ -555,7 +575,7 @@ static stat_t _feed(float values[], bool flags[]) {
 
   // prep and plan the move
   mach_update_work_offsets();                 // update resolved offsets
-  mach_plan_line(target);
+  mach_plan_line(target, sw);
   copy_vector(mach.position, target);         // update model position
 
   return status;
@@ -564,8 +584,8 @@ static stat_t _feed(float values[], bool flags[]) {
 
 /// G0 linear rapid
 stat_t mach_rapid(float values[], bool flags[]) {
-  mach.gm.motion_mode = MOTION_MODE_RAPID;
-  return _feed(values, flags);
+  mach_set_motion_mode(MOTION_MODE_RAPID);
+  return _feed(values, flags, 0);
 }
 
 
@@ -603,6 +623,41 @@ stat_t mach_goto_g30_position(float target[], bool flags[]) {
 }
 
 
+stat_t mach_probe(float values[], bool flags[], motion_mode_t mode) {
+  mach_set_motion_mode(mode);
+  return _feed(values, flags, SW_PROBE);
+}
+
+
+stat_t mach_seek(float values[], bool flags[], motion_mode_t mode) {
+  mach_set_motion_mode(mode);
+
+  float target[AXES];
+  mach_calc_target(target, values, flags);
+
+  switch_id_t sw = SW_PROBE;
+
+  for (int axis = 0; axis < AXES; axis++)
+    if (flags[axis]) {
+      if (!axis_is_enabled(axis)) return STAT_SEEK_AXIS_DISABLED;
+      if (sw != SW_PROBE) return STAT_SEEK_MULTIPLE_AXES;
+      if (fp_EQ(target[axis], mach.position[axis])) return STAT_SEEK_ZERO_MOVE;
+
+      bool min = target[axis] < mach.position[axis];
+      switch (axis) {
+      case AXIS_X: sw = min ? SW_MIN_X : SW_MAX_X; break;
+      case AXIS_Y: sw = min ? SW_MIN_Y : SW_MAX_Y; break;
+      case AXIS_Z: sw = min ? SW_MIN_Z : SW_MAX_Z; break;
+      case AXIS_A: sw = min ? SW_MIN_A : SW_MAX_A; break;
+      }
+    }
+
+  if (sw == SW_PROBE) return STAT_SEEK_MISSING_AXIS;
+
+  return _feed(values, flags, sw);
+}
+
+
 // Machining Attributes (4.3.5)
 
 /// F parameter
@@ -630,13 +685,7 @@ void mach_set_path_mode(path_mode_t mode) {
 }
 
 
-// Machining Functions (4.3.6) See arc.c
-
-/// G4, P parameter (seconds)
-stat_t mach_dwell(float seconds) {
-  return mp_dwell(seconds, mach_get_line());
-}
-
+// Machining Functions (4.3.6) see also arc.c
 
 /// G1
 stat_t mach_feed(float values[], bool flags[]) {
@@ -645,9 +694,13 @@ stat_t mach_feed(float values[], bool flags[]) {
       (mach.gm.feed_mode == INVERSE_TIME_MODE && !parser.gf.feed_rate))
     return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
 
-  mach.gm.motion_mode = MOTION_MODE_FEED;
-  return _feed(values, flags);
+  mach_set_motion_mode(MOTION_MODE_FEED);
+  return _feed(values, flags, 0);
 }
+
+
+/// G4, P parameter (seconds)
+stat_t mach_dwell(float seconds) {return mp_dwell(seconds, mach_get_line());}
 
 
 // Spindle Functions (4.3.7) see spindle.c, spindle.h

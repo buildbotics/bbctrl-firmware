@@ -449,7 +449,7 @@ void mp_print_queue(mp_buffer_t *bf) {
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f\"}\n"),
-             i++, bp->replannable, (intptr_t)bp->cb,
+             i++, bp->flags & BUFFER_REPLANNABLE, (intptr_t)bp->cb,
              bp->length, bp->head_length, bp->body_length, bp->tail_length,
              bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
              bp->braking_velocity,
@@ -483,8 +483,7 @@ void mp_print_queue(mp_buffer_t *bf) {
  * Variables that must be provided in the mp_buffer_t that will be processed:
  *
  *   bl (function arg)     - end of block list (last block in time)
- *   bl->replannable       - start of block list set by last FALSE value
- *                           [Note 1]
+ *   bl->flags             - replanable, hold, probe, etc [Note 1]
  *   bl->length            - provides block length
  *   bl->entry_vmax        - used during forward planning to set entry velocity
  *   bl->cruise_vmax       - used during forward planning to set cruise velocity
@@ -494,7 +493,7 @@ void mp_print_queue(mp_buffer_t *bf) {
  *
  * Variables that will be set during processing:
  *
- *   bl->replannable       - set if the block becomes optimally planned
+ *   bl->flags             - replanable
  *   bl->braking_velocity  - set during backward planning
  *   bl->entry_velocity    - set during forward planning
  *   bl->cruise_velocity   - set during forward planning
@@ -512,9 +511,10 @@ void mp_print_queue(mp_buffer_t *bf) {
  *
  * Notes:
  *
- * [1] Whether or not a block is planned is controlled by the bl->replannable
- *     setting.  Replan flags are checked during the backwards pass.  They prune
- *     the replan list to include only the latest blocks that require planning.
+ * [1] Whether or not a block is planned is controlled by the bl->flags
+ *     BUFFER_REPLANNABLE bit.  Replan flags are checked during the backwards
+ *     pass.  They prune the replan list to include only the latest blocks that
+ *     require planning.
  *
  *     In normal operation, the first block (currently running block) is not
  *     replanned, but may be for feedholds and feed overrides.  In these cases,
@@ -531,7 +531,7 @@ void mp_plan(mp_buffer_t *bl) {
   // By the end bp points to the buffer before the first block.
   mp_buffer_t *next = bp;
   while ((bp = mp_buffer_prev(bp)) != bl) {
-    if (!bp->replannable) break;
+    if (!(bp->flags & BUFFER_REPLANNABLE)) break;
 
     bp->braking_velocity =
       min(next->entry_vmax, next->braking_velocity) + bp->delta_vmax;
@@ -552,18 +552,18 @@ void mp_plan(mp_buffer_t *bl) {
 
     if (mp.plan_steps && bp->line != next->line) {
       bp->exit_velocity = 0;
-      bp->hold = true;
+      bp->flags |= BUFFER_HOLD;
 
-    } else bp->hold = false;
+    } else bp->flags &= ~BUFFER_HOLD;
 
     mp_calculate_trapezoid(bp);
 
     // Test for optimally planned trapezoids by checking exit conditions
     if  ((fp_EQ(bp->exit_velocity, bp->exit_vmax) ||
           fp_EQ(bp->exit_velocity, next->entry_vmax)) ||
-         (!prev->replannable &&
+         (!(prev->flags & BUFFER_REPLANNABLE) &&
           fp_EQ(bp->exit_velocity, (bp->entry_velocity + bp->delta_vmax))))
-      bp->replannable = false;
+      bp->flags &= ~BUFFER_REPLANNABLE;
 
     prev = bp;
   }
@@ -588,7 +588,7 @@ void mp_replan_all() {
 
   // Mark all blocks replanable
   while (true) {
-    bp->replannable = true;
+    bp->flags |= BUFFER_REPLANNABLE;
     mp_buffer_t *next = mp_buffer_next(bp);
     if (next->state == BUFFER_OFF || next == bf) break; // Avoid wrap around
     bp = next;
@@ -606,7 +606,7 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
 
   bp->entry_vmax = bp->cruise_vmax = bp->exit_vmax = INFINITY;
   copy_vector(bp->unit, bp->prev->unit);
-  bp->replannable = true;
+  bp->flags |= BUFFER_REPLANNABLE;
 
   mp_queue_push(cb, line);
 }

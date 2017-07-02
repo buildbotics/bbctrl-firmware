@@ -169,6 +169,9 @@ typedef enum {
 } drv8711_state_t;
 
 
+typedef void (*stall_callback_t)(int driver);
+
+
 void drv8711_init();
 drv8711_state_t drv8711_get_state(int driver);
 void drv8711_set_state(int driver, drv8711_state_t state);

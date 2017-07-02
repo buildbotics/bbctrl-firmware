@@ -42,15 +42,10 @@ typedef enum {
 } motor_power_mode_t;
 
 
-typedef void (*stall_callback_t)(int motor);
-
-
 void motor_init();
 
 bool motor_is_enabled(int motor);
 int motor_get_axis(int motor);
-void motor_set_stall_callback(int motor, stall_callback_t cb);
-float motor_get_stall_homing_velocity(int motor);
 float motor_get_steps_per_unit(int motor);
 uint16_t motor_get_microsteps(int motor);
 void motor_set_microsteps(int motor, uint16_t microsteps);

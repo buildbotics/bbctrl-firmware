@@ -39,9 +39,6 @@
 #include "report.h"
 #include "command.h"
 #include "estop.h"
-#include "probing.h"
-#include "homing.h"
-#include "home.h"
 #include "i2c.h"
 #include "pgmspace.h"
 
@@ -86,9 +83,6 @@ int main() {
     if (!estop_triggered()) {
       mp_state_callback();
       mach_arc_callback();          // arc generation runs
-      home_callback();
-      //mach_homing_callback();     // G28.2 continuation TODO
-      mach_probe_callback();        // G38.2 continuation
     }
     command_callback();           // process next command
     report_callback();            // report changes

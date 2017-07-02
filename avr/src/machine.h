@@ -32,6 +32,7 @@
 #include "config.h"
 #include "status.h"
 #include "gcode_state.h"
+#include "switch.h"
 
 
 #define TO_MM(a) (mach_get_units() == INCHES ? (a) * MM_PER_INCH : a)
@@ -97,12 +98,14 @@ void mach_suspend_origin_offsets();
 void mach_resume_origin_offsets();
 
 // Free Space Motion (4.3.4)
-stat_t mach_plan_line(float target[]);
+stat_t mach_plan_line(float target[], switch_id_t sw);
 stat_t mach_rapid(float target[], bool flags[]);
 void mach_set_g28_position();
 stat_t mach_goto_g28_position(float target[], bool flags[]);
 void mach_set_g30_position();
 stat_t mach_goto_g30_position(float target[], bool flags[]);
+stat_t mach_probe(float target[], bool flags[], motion_mode_t mode);
+stat_t mach_seek(float target[], bool flags[], motion_mode_t mode);
 
 // Machining Attributes (4.3.5)
 void mach_set_feed_rate(float feed_rate);
