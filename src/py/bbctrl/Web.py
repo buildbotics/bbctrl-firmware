@@ -5,6 +5,8 @@ import tornado
 import sockjs.tornado
 import logging
 import datetime
+import shutil
+import tarfile
 
 import bbctrl
 
@@ -34,6 +36,29 @@ class ConfigSaveHandler(bbctrl.APIHandler):
 
 class ConfigResetHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.config.reset()
+
+
+class FirmwareUpdateHandler(bbctrl.APIHandler):
+    def prepare(self): pass
+
+
+    def put(self):
+        # Only allow this function in dev mode
+        if not os.path.exists('/etc/bbctrl-dev-mode'):
+            self.send_error(403, message = 'Not in dev mode')
+            return
+
+        firmware = self.request.files['firmware'][0]
+
+        if not os.path.exists('firmware'): os.mkdir('firmware')
+
+        with open('firmware/update.tar.bz2', 'wb') as f:
+            f.write(firmware['body'])
+
+        import subprocess
+        ret = subprocess.Popen(['update-bbctrl'])
+
+        self.write_json('ok')
 
 
 class UpgradeHandler(bbctrl.APIHandler):
@@ -168,6 +193,7 @@ class Web(tornado.web.Application):
             (r'/api/config/download', ConfigDownloadHandler),
             (r'/api/config/save', ConfigSaveHandler),
             (r'/api/config/reset', ConfigResetHandler),
+            (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
             (r'/api/home', HomeHandler),

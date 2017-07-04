@@ -76,6 +76,8 @@ void mp_set_hold_reason(mp_hold_reason_t reason);
 bool mp_is_flushing();
 bool mp_is_resuming();
 bool mp_is_quiescent();
+bool mp_is_ready();
+void mp_pause_queue(bool x);
 
 void mp_state_optional_pause();
 void mp_state_holding();

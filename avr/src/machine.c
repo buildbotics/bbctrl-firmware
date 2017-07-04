@@ -259,18 +259,48 @@ void mach_set_position(const float position[]) {
 
 /*** Get position of axis in absolute coordinates
  *
- * NOTE: Machine position is always returned in mm mode.  No units conversion
+ * NOTE: Machine position is always returned in mm mode.  No unit conversion
  * is performed.
  */
 float mach_get_axis_position(uint8_t axis) {return mach.position[axis];}
 
 
-/* Critical helpers
+/* Set the position of a single axis in the model, planner and runtime
  *
- * Core functions supporting the machining functions
- * These functions are not part of the NIST defined functions
+ * This command sets an axis/axes to a position provided as an argument.
+ * This is useful for setting origins for probing, and other operations.
+ *
+ *  !!!!! DO NOT CALL THIS FUNCTION WHILE IN A MACHINING CYCLE !!!!!
+ *
+ * More specifically, do not call this function if there are any moves
+ * in the planner or if the runtime is moving. The system must be
+ * quiescent or you will introduce positional errors. This is true
+ * because the planned / running moves have a different reference
+ * frame than the one you are now going to set. These functions should
+ * only be called during initialization sequences and during cycles
+ * when you know there are no more moves in the planner and that all motion
+ * has stopped.
  */
+void mach_set_axis_position(unsigned axis, float position) {
+  //if (!mp_is_quiescent()) ALARM(STAT_MACH_NOT_QUIESCENT);
+  if (AXES <= axis) return;
 
+  // TODO should set work position, accounting for offsets
+
+  mach.position[axis] = position;
+  mp_set_axis_position(axis, position);
+  mp_runtime_set_axis_position(axis, position);
+  mp_runtime_set_steps_from_position();
+}
+
+
+/// Do not call this function while machine is moving or queue is not empty
+void mach_set_position_from_runtime() {
+  for (int axis = 0; axis < AXES; axis++) {
+    mach.position[axis] = mp_runtime_get_work_position(axis);
+    mp_set_axis_position(axis, mach.position[axis]);
+  }
+}
 
 
 /*** Calculate target vector
@@ -308,17 +338,13 @@ void mach_calc_target(float target[], const float values[],
 
 /*** Return error code if soft limit is exceeded
  *
- * Must be called with target properly set in GM struct.  Best done
- * after mach_calc_target().
- *
- * Tests for soft limit for any axis if min and max are
- * different values. You can set min and max to 0,0 to disable soft
- * limits for an axis. Also will not test a min or a max if the value
- * is < -1000000 (negative one million). This allows a single end to
- * be tested w/the other disabled, should that requirement ever arise.
+ * Tests for soft limit for any axis if min and max are different values.  You
+ * can set min and max to 0 to disable soft limits for an axis.
  */
 stat_t mach_test_soft_limits(float target[]) {
   for (int axis = 0; axis < AXES; axis++) {
+    if (!axis_is_enabled(axis) || !axis_get_homed(axis)) continue;
+
     float min = axis_get_travel_min(axis);
     float max = axis_get_travel_max(axis);
 
@@ -333,9 +359,10 @@ stat_t mach_test_soft_limits(float target[]) {
 }
 
 
-/* machining functions
- *    Values are passed in pre-unit_converted state (from gn structure)
- *    All operations occur on gm (current model state)
+/* Machining functions
+ *
+ * Values are passed in pre-unit_converted state (from gn structure)
+ * All operations occur on gm (current model state)
  *
  * These are organized by section number (x.x.x) in the order they are
  * found in NIST RS274 NGCv3
@@ -408,33 +435,6 @@ void mach_set_coord_system(coord_system_t cs) {
 }
 
 
-/* Set the position of a single axis in the model, planner and runtime
- *
- * This command sets an axis/axes to a position provided as an argument.
- * This is useful for setting origins for probing, and other operations.
- *
- *  !!!!! DO NOT CALL THIS FUNCTION WHILE IN A MACHINING CYCLE !!!!!
- *
- * More specifically, do not call this function if there are any moves
- * in the planner or if the runtime is moving. The system must be
- * quiescent or you will introduce positional errors. This is true
- * because the planned / running moves have a different reference
- * frame than the one you are now going to set. These functions should
- * only be called during initialization sequences and during cycles
- * when you know there are no more moves in the planner and that all motion
- * has stopped.
- */
-void mach_set_axis_position(unsigned axis, float position) {
-  //if (!mp_is_quiescent()) ALARM(STAT_MACH_NOT_QUIESCENT);
-  if (AXES <= axis) return;
-
-  mach.position[axis] = position;
-  mp_set_axis_position(axis, position);
-  mp_runtime_set_axis_position(axis, position);
-  mp_runtime_set_steps_from_position();
-}
-
-
 stat_t mach_zero_all() {
   for (unsigned axis = 0; axis < AXES; axis++) {
     stat_t status = mach_zero_axis(axis);
@@ -456,7 +456,7 @@ stat_t mach_zero_axis(unsigned axis) {
 
 
 // G28.3 functions and support
-static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
+static stat_t _exec_home(mp_buffer_t *bf) {
   const float *origin = bf->target;
   const float *flags = bf->unit;
 
@@ -480,20 +480,28 @@ static stat_t _exec_absolute_origin(mp_buffer_t *bf) {
  * the planner queue.  This includes the runtime position and the step
  * recording done by the encoders.
  */
-void mach_set_absolute_origin(float origin[], bool flags[]) {
-  float value[AXES];
+void mach_set_home(float origin[], bool flags[]) {
+  mp_buffer_t *bf = mp_queue_get_tail();
 
   for (int axis = 0; axis < AXES; axis++)
-    if (flags[axis]) {
-      value[axis] = TO_MM(origin[axis]);
-      mach.position[axis] = value[axis];           // set model position
-      mp_set_axis_position(axis, value[axis]);     // set mm position
+    if (flags[axis] && isfinite(origin[axis])) {
+      // TODO What about work offsets?
+      mach.position[axis] = TO_MM(origin[axis]);       // set model position
+      mp_set_axis_position(axis, mach.position[axis]); // set mm position
+      axis_set_homed(axis, true);
+
+      bf->target[axis] = origin[axis];
+      bf->unit[axis] = flags[axis];
     }
 
-  mp_buffer_t *bf = mp_queue_get_tail();
-  copy_vector(bf->target, origin);
-  copy_vector(bf->unit, flags);
-  mp_queue_push_nonstop(_exec_absolute_origin, mach_get_line());
+  // Synchronized update of runtime position
+  mp_queue_push_nonstop(_exec_home, mach_get_line());
+}
+
+
+void mach_clear_home(bool flags[]) {
+  for (int axis = 0; axis < AXES; axis++)
+    if (flags[axis]) axis_set_homed(axis, false);
 }
 
 
@@ -503,8 +511,8 @@ void mach_set_absolute_origin(float origin[], bool flags[]) {
 
 /// G92
 void mach_set_origin_offsets(float offset[], bool flags[]) {
-  // set offsets in the Gcode model extended context
   mach.origin_offset_enable = true;
+
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis])
       mach.origin_offset[axis] = mach.position[axis] -
@@ -515,6 +523,7 @@ void mach_set_origin_offsets(float offset[], bool flags[]) {
 /// G92.1
 void mach_reset_origin_offsets() {
   mach.origin_offset_enable = false;
+
   for (int axis = 0; axis < AXES; axis++)
     mach.origin_offset[axis] = 0;
 }
@@ -566,6 +575,12 @@ stat_t mach_plan_line(float target[], switch_id_t sw) {
 
 // Free Space Motion (4.3.4)
 static stat_t _feed(float values[], bool flags[], switch_id_t sw) {
+  // Trap inverse time mode wo/ feed rate
+  if (!mach_is_rapid() && mach.gm.feed_mode == INVERSE_TIME_MODE &&
+      !parser.gf.feed_rate)
+    return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
+
+  // Compute target position
   float target[AXES];
   mach_calc_target(target, values, flags);
 
@@ -575,10 +590,10 @@ static stat_t _feed(float values[], bool flags[], switch_id_t sw) {
 
   // prep and plan the move
   mach_update_work_offsets();                 // update resolved offsets
-  mach_plan_line(target, sw);
+  RITORNO(mach_plan_line(target, sw));
   copy_vector(mach.position, target);         // update model position
 
-  return status;
+  return STAT_OK;
 }
 
 
@@ -629,32 +644,56 @@ stat_t mach_probe(float values[], bool flags[], motion_mode_t mode) {
 }
 
 
-stat_t mach_seek(float values[], bool flags[], motion_mode_t mode) {
-  mach_set_motion_mode(mode);
+stat_t _exec_set_seek_position(mp_buffer_t *bf) {
+  mach_set_position_from_runtime();
+  mp_pause_queue(false);
+  return STAT_NOOP; // No move queued
+}
 
-  float target[AXES];
-  mach_calc_target(target, values, flags);
+
+stat_t mach_seek(float target[], bool flags[], motion_mode_t mode) {
+  mach_set_motion_mode(mode);
 
   switch_id_t sw = SW_PROBE;
 
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis]) {
+      // Convert to incremental move
+      if (mach.gm.distance_mode == ABSOLUTE_MODE)
+        target[axis] += mach.position[axis];
+
       if (!axis_is_enabled(axis)) return STAT_SEEK_AXIS_DISABLED;
       if (sw != SW_PROBE) return STAT_SEEK_MULTIPLE_AXES;
       if (fp_EQ(target[axis], mach.position[axis])) return STAT_SEEK_ZERO_MOVE;
 
       bool min = target[axis] < mach.position[axis];
+
+      if (mode == MOTION_MODE_SEEK_OPEN_ERR ||
+          mode == MOTION_MODE_SEEK_OPEN) min = !min;
+
       switch (axis) {
       case AXIS_X: sw = min ? SW_MIN_X : SW_MAX_X; break;
       case AXIS_Y: sw = min ? SW_MIN_Y : SW_MAX_Y; break;
       case AXIS_Z: sw = min ? SW_MIN_Z : SW_MAX_Z; break;
       case AXIS_A: sw = min ? SW_MIN_A : SW_MAX_A; break;
       }
+
+      if (!switch_is_enabled(sw)) return STAT_SEEK_SWITCH_DISABLED;
+
+      STATUS_DEBUG("Axis target %f, position %f, planner %f, runtime %f",
+                   target[axis], mach.position[axis],
+                   mp_get_axis_position(axis),
+                   mp_runtime_get_axis_position(axis));
     }
 
   if (sw == SW_PROBE) return STAT_SEEK_MISSING_AXIS;
 
-  return _feed(values, flags, sw);
+  RITORNO(_feed(target, flags, sw));
+
+  mp_pause_queue(true);
+  mp_queue_push_nonstop(_exec_set_seek_position, mach_get_line());
+
+  return STAT_OK;
 }
 
 
@@ -689,11 +728,6 @@ void mach_set_path_mode(path_mode_t mode) {
 
 /// G1
 stat_t mach_feed(float values[], bool flags[]) {
-  // trap zero feed rate condition
-  if (fp_ZERO(mach.gm.feed_rate) ||
-      (mach.gm.feed_mode == INVERSE_TIME_MODE && !parser.gf.feed_rate))
-    return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
-
   mach_set_motion_mode(MOTION_MODE_FEED);
   return _feed(values, flags, 0);
 }

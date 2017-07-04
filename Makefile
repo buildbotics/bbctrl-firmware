@@ -49,8 +49,10 @@ publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
-install: pkg
-	rsync dist/$(PKG_NAME).tar.bz2 bbmc@bbctrl.local:update.tar.bz2
+update: pkg
+	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
+	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" \
+	  http://bbctrl.local/api/firmware/update
 
 mount:
 	mkdir -p $(DEST)

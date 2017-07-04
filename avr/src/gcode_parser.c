@@ -81,7 +81,11 @@ static char *_parse_gcode_comment(char *p) {
 
 
 static stat_t _parse_gcode_value(char **p, float *value) {
-  *value = parse_gcode_expression(p);
+  while (isspace(**p)) (*p)++; // skip whitespace
+
+  if (**p == '[') *value = parse_gcode_expression(p);
+  else *value = parse_gcode_number(p);
+
   return parser.error;
 }
 
@@ -201,8 +205,11 @@ static stat_t _execute_gcode_block() {
   case NEXT_ACTION_GOTO_G30_POSITION: // G30
     status = mach_goto_g30_position(parser.gn.target, parser.gf.target);
     break;
-  case NEXT_ACTION_SET_ABSOLUTE_ORIGIN: // G28.3
-    mach_set_absolute_origin(parser.gn.target, parser.gf.target);
+  case NEXT_ACTION_CLEAR_HOME: // G28.2
+    mach_clear_home(parser.gf.target);
+    break;
+  case NEXT_ACTION_SET_HOME: // G28.3
+    mach_set_home(parser.gn.target, parser.gf.target);
     break;
   case NEXT_ACTION_SET_COORD_DATA:
     mach_set_coord_offsets(parser.gn.parameter, parser.gn.target,
@@ -261,25 +268,26 @@ static stat_t _execute_gcode_block() {
       status = mach_probe(parser.gn.target, parser.gf.target,
                           parser.gn.motion_mode);
       break;
-    case MOTION_MODE_SEEK_CLOSE_ERR: // G38.6
+    case MOTION_MODE_SEEK_CLOSE_ERR:           // G38.6
       status = mach_seek(parser.gn.target, parser.gf.target,
                          parser.gn.motion_mode);
       break;
-    case MOTION_MODE_SEEK_CLOSE:     // G38.7
+    case MOTION_MODE_SEEK_CLOSE:               // G38.7
       status = mach_seek(parser.gn.target, parser.gf.target,
                          parser.gn.motion_mode);
       break;
-    case MOTION_MODE_SEEK_OPEN_ERR:  // G38.8
+    case MOTION_MODE_SEEK_OPEN_ERR:            // G38.8
       status = mach_seek(parser.gn.target, parser.gf.target,
                          parser.gn.motion_mode);
       break;
-    case MOTION_MODE_SEEK_OPEN:      // G38.9
+    case MOTION_MODE_SEEK_OPEN:                // G38.9
       status = mach_seek(parser.gn.target, parser.gf.target,
                          parser.gn.motion_mode);
       break;
     default: break; // Should not get here
     }
   }
+
   // un-set absolute override once the move is planned
   mach_set_absolute_mode(false);
 
@@ -322,7 +330,8 @@ static stat_t _process_gcode_word(char letter, float value) {
         SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_GOTO_G28_POSITION);
       case 1:
         SET_MODAL(MODAL_GROUP_G0, next_action, NEXT_ACTION_SET_G28_POSITION);
-      case 3: SET_NON_MODAL(next_action, NEXT_ACTION_SET_ABSOLUTE_ORIGIN);
+      case 2: SET_NON_MODAL(next_action, NEXT_ACTION_CLEAR_HOME);
+      case 3: SET_NON_MODAL(next_action, NEXT_ACTION_SET_HOME);
       default: return STAT_GCODE_COMMAND_UNSUPPORTED;
       }
       break;
@@ -374,11 +383,9 @@ static stat_t _process_gcode_word(char letter, float value) {
       }
       break;
 
-    case 64: SET_MODAL(MODAL_GROUP_G13,path_mode, PATH_CONTINUOUS);
+    case 64: SET_MODAL(MODAL_GROUP_G13, path_mode, PATH_CONTINUOUS);
     case 80: SET_MODAL(MODAL_GROUP_G1, motion_mode,
                        MOTION_MODE_CANCEL_MOTION_MODE);
-      // case 90: SET_MODAL(MODAL_GROUP_G3, distance_mode, ABSOLUTE_MODE);
-      // case 91: SET_MODAL(MODAL_GROUP_G3, distance_mode, INCREMENTAL_MODE);
     case 90:
       switch (_point(value)) {
       case 0: SET_MODAL(MODAL_GROUP_G3, distance_mode, ABSOLUTE_MODE);

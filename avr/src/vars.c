@@ -69,6 +69,7 @@ MAP(EQ_FUNC, SEMI, flags_t, string, pstring, uint8_t, uint16_t, int32_t, char);
 
 // String
 static void var_print_string(string s) {printf_P(PSTR("\"%s\""), s);}
+static float var_string_to_float(string s) {return 0;}
 
 
 // Program string
@@ -82,6 +83,8 @@ static void var_print_flags_t(flags_t x) {
   extern void print_status_flags(flags_t x);
   print_status_flags(x);
 }
+
+static float var_flags_t_to_float(flags_t x) {return x;}
 
 
 // Float
@@ -141,11 +144,7 @@ static float var_char_to_float(char x) {return x;}
 
 // int8
 #if 0
-static void var_print_int8_t(int8_t x) {
-  printf_P(PSTR("%"PRIi8), x);
-}
-
-
+static void var_print_int8_t(int8_t x) {printf_P(PSTR("%"PRIi8), x);}
 static int8_t var_parse_int8_t(const char *value) {return strtol(value, 0, 0);}
 static float var_int8_t_to_float(int8_t x) {return x;}
 #endif
@@ -177,6 +176,7 @@ static float var_uint16_t_to_float(uint16_t x) {return x;}
 
 // int32
 static void var_print_int32_t(int32_t x) {printf_P(PSTR("%"PRIi32), x);}
+static float var_int32_t_to_float(int32_t x) {return x;}
 
 
 // Ensure no code is used more than once
@@ -387,15 +387,14 @@ float vars_get_number(const char *_name) {
 
   int i;
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  IF(SET)                                                               \
-    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {              \
-      IF(INDEX)                                                         \
-        (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
-         if (INDEX <= i) return 0);                                     \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
+    IF(INDEX)                                                           \
+      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
+       if (INDEX <= i) return 0);                                       \
                                                                         \
-      TYPE x = get_##NAME(IF(INDEX)(i));                                \
-      return var_##TYPE##_to_float(x);                                  \
-    })                                                                  \
+    TYPE x = get_##NAME(IF(INDEX)(i));                                  \
+    return var_##TYPE##_to_float(x);                                    \
+  }                                                                     \
 
 #include "vars.def"
 #undef VAR

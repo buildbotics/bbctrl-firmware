@@ -14,6 +14,12 @@ function _msg_equal(a, b) {
 }
 
 
+function escapeHTML(s) {
+  var entityMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;'};
+  return String(s).replace(/[&<>]/g, function (s) {return entityMap[s];});
+}
+
+
 module.exports = {
   template: '#control-view-template',
   props: ['config', 'state'],
@@ -26,8 +32,8 @@ module.exports = {
       last_file: '',
       files: [],
       axes: 'xyzabc',
-      gcode: '',
-      history: '',
+      gcode: [],
+      history: [],
       console: [],
       speed_override: 1,
       feed_override: 1
@@ -134,8 +140,13 @@ module.exports = {
 
     submit_mdi: function () {
       this.send(this.mdi);
-      this.history = this.mdi + '\n' + this.history;
+      if (!this.history.length || this.history[0] != this.mdi)
+        this.history.unshift(this.mdi);
+      this.mdi = '';
     },
+
+
+    load_history: function (index) {this.mdi = this.history[index];},
 
 
     open: function (e) {
@@ -166,7 +177,7 @@ module.exports = {
 
       if (!file || this.files.indexOf(file) == -1) {
         this.file = '';
-        this.gcode = '';
+        this.gcode = [];
         return;
       }
 
@@ -174,17 +185,7 @@ module.exports = {
 
       api.get('file/' + file)
         .done(function (data) {
-          var lines = data.trimRight().split(/\r?\n/);
-          var html = '<ul>';
-
-          for (var i = 0; i < lines.length; i++)
-            // TODO escape HTML chars in lines
-            html += '<li id="gcode-line-' + i + '">' +
-            '<span>' + (i + 1) + '</span>' + lines[i] + '</li>';
-
-          html += '</ul>';
-
-          this.gcode = html;
+          this.gcode = data.trimRight().split(/\r?\n/);
           this.last_file = file;
 
           Vue.nextTick(this.update_gcode_line);

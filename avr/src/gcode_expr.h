@@ -29,4 +29,5 @@
 #pragma once
 
 
+float parse_gcode_number(char **p);
 float parse_gcode_expression(char **p);

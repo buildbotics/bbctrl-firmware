@@ -130,7 +130,6 @@ AXIS_GET(zero_backoff, float, 0)
 AXIS_GET(latch_backoff, float, 0)
 AXIS_GET(recip_jerk, float, 0)
 
-
 /* Note on jerk functions
  *
  * Jerk values can be rather large. Jerk values are stored in the system in
@@ -157,3 +156,23 @@ AXIS_VAR_SET(latch_velocity, float)
 AXIS_VAR_SET(zero_backoff, float)
 AXIS_VAR_SET(latch_backoff, float)
 AXIS_VAR_SET(jerk_max, float)
+
+
+float get_homing_dir(int axis) {
+  switch (axes[axis].homing_mode) {
+  case HOMING_DISABLED: break;
+  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return -1;
+  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return 1;
+  }
+  return 0;
+}
+
+
+float get_home(int axis) {
+  switch (axes[axis].homing_mode) {
+  case HOMING_DISABLED: break;
+  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return get_travel_min(axis);
+  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return get_travel_max(axis);
+  }
+  return NAN;
+}

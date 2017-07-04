@@ -40,6 +40,8 @@
 #include "config.h"
 #include "util.h"
 
+#include <plan/state.h>
+
 #include <math.h>
 #include <stdbool.h>
 #include <string.h>
@@ -462,6 +464,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
   // Note, arc soft limits are not tested here
 
   arc.running = true;                         // Enable arc run in callback
+  mp_pause_queue(true);                       // Hold queue until arc is done
   mach_arc_callback();                        // Queue initial arc moves
   mach_set_position(arc.target);              // update model position
 
@@ -494,14 +497,14 @@ void mach_arc_callback() {
     // run the line
     mach_plan_line(arc.position, 0);
 
-    if (!--arc.segments) arc.running = false;
+    if (!--arc.segments) mach_abort_arc();
   }
 }
 
 
-bool mach_arc_active() {return arc.running;}
-
-
 /// Stop arc movement without maintaining position
 /// OK to call if no arc is running
-void mach_abort_arc() {arc.running = false;}
+void mach_abort_arc() {
+  arc.running = false;
+  mp_pause_queue(false);
+}

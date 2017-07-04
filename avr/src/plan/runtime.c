@@ -51,6 +51,7 @@ typedef struct {
   int32_t line;            // Current move GCode line number
   uint8_t tool;            // Active tool
 
+#if 0 // TODO These are not currently being set
   float feed;
   feed_mode_t feed_mode;
   float feed_override;
@@ -63,8 +64,7 @@ typedef struct {
   path_mode_t path_mode;
   distance_mode_t distance_mode;
   distance_mode_t arc_distance_mode;
-
-  float previous_error[MOTORS];
+#endif
 } mp_runtime_t;
 
 static mp_runtime_t rt = {0};

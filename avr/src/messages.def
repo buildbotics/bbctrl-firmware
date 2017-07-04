@@ -121,6 +121,7 @@ STAT_MSG(MOVE_DURING_PROBE, "Probing error - move during probe")
 STAT_MSG(SEEK_MULTIPLE_AXES, "Seek error - multiple axes specified")
 STAT_MSG(SEEK_MISSING_AXIS, "Seek error - no axis specified")
 STAT_MSG(SEEK_AXIS_DISABLED, "Seek error - specified axis is disabled")
+STAT_MSG(SEEK_SWITCH_DISABLED, "Seek error - target switch is disabled")
 STAT_MSG(SEEK_ZERO_MOVE, "Seek error - axis move too short or zero")
 STAT_MSG(SEEK_SWTICH_NOT_FOUND, "Seek error - move end before switch change")
 

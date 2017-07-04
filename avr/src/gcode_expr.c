@@ -35,7 +35,7 @@
 #include <stdlib.h>
 
 
-static float _parse_gcode_number(char **p) {
+float parse_gcode_number(char **p) {
   // Avoid parsing G0X10 as a hexadecimal number
   if (**p == '0' && toupper(*(*p + 1)) == 'X') {
     (*p)++; // pointer points to X
@@ -246,8 +246,6 @@ float parse_gcode_expression(char **p) {
   bool unary = true; // Used to detect unary minus
 
   while (!parser.error && **p) {
-    if (_op_empty() && parser.valPtr == 1) break; // We're done
-
     switch (**p) {
     case ' ': case '\n': case '\r': case '\t': (*p)++; break;
     case '#': _val_push(_parse_gcode_var(p)); unary = false; break;
@@ -260,12 +258,13 @@ float parse_gcode_expression(char **p) {
         _op_apply();
 
       _op_pop(); // Pop opening bracket
+      if (_op_empty() && parser.valPtr == 1) return _val_pop();
       unary = false;
       break;
 
     default:
       if (isdigit(**p) || **p == '.') {
-        _val_push(_parse_gcode_number(p));
+        _val_push(parse_gcode_number(p));
         unary = false;
 
       } else if (isalpha(**p)) {

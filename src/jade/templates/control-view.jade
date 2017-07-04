@@ -139,7 +139,12 @@ script#control-view-template(type="text/x-template")
             option(v-for="file in files", :value="file") {{file}}
 
         .gcode(:class="{placeholder: !gcode}")
-          | {{{gcode || 'GCode displays here.'}}}
+          span(v-if="!gcode.length") GCode displays here.
+          ul
+            li(v-for="item in gcode", id="gcode-line-{{$index}}",
+               track-by="$index")
+              span {{$index + 1}}
+              | {{item}}
 
       section#content2.tab-content
         .mdi.pure-form
@@ -150,7 +155,11 @@ script#control-view-template(type="text/x-template")
             input(v-model="mdi", @keyup.enter="submit_mdi")
 
         .history(:class="{placeholder: !history}")
-          | {{history || 'MDI history displays here.'}}
+          span(v-if="!history.length") MDI history displays here.
+          ul
+            li(v-for="item in history", @click="load_history($index)",
+               track-by="$index")
+              | {{item}}
 
       section#content3.tab-content
         .jog

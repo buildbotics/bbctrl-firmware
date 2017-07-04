@@ -34,10 +34,7 @@
 #include "vars.h"
 #include "estop.h"
 #include "i2c.h"
-#include "plan/jog.h"
-#include "plan/calibrate.h"
 #include "plan/buffer.h"
-#include "plan/arc.h"
 #include "plan/state.h"
 #include "config.h"
 #include "pgmspace.h"
@@ -268,11 +265,7 @@ void command_callback() {
   default:
     if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
     else if (mp_is_flushing()) break; // Flush GCode command
-    else if (!mp_queue_get_room() ||
-             mp_is_resuming() ||
-             mach_arc_active() ||
-             calibrate_busy() ||
-             mp_jog_busy()) return; // Wait
+    else if (!mp_is_ready()) return;  // Wait for motion planner
 
     // Parse and execute GCode command
     status = gc_gcode_parser(_cmd);

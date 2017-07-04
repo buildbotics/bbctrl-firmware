@@ -670,7 +670,8 @@ float mp_get_target_length(float Vi, float Vf, float jerk) {
  *
  * A convenient function for determining Vf target velocity for a given
  * initial velocity (Vi), length (L), and maximum jerk (Jm).  Equation e) is
- * b) solved for Vf.  Equation f) is c) solved for Vf.  Use f) (obviously)
+ * b) solved for Vf.  Equation f) is equation c) solved for Vf.  We use f) since
+ * it is more simple.
  *
  *   e)  Vf = (sqrt(L) * (L / sqrt(1 / Jm))^(1/6) +
  *            (1 / Jm)^(1/4) * Vi) / (1 / Jm)^(1/4)

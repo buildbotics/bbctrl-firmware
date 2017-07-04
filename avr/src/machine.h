@@ -67,6 +67,8 @@ void mach_update_work_offsets();
 const float *mach_get_position();
 void mach_set_position(const float position[]);
 float mach_get_axis_position(uint8_t axis);
+void mach_set_axis_position(unsigned axis, float position);
+void mach_set_position_from_runtime();
 
 // Critical helpers
 void mach_calc_target(float target[], const float values[], const bool flags[]);
@@ -84,14 +86,14 @@ void mach_set_distance_mode(distance_mode_t mode);
 void mach_set_arc_distance_mode(distance_mode_t mode);
 void mach_set_coord_offsets(coord_system_t coord_system, float offset[],
                             bool flags[]);
+void mach_set_coord_system(coord_system_t coord_system);
 
-void mach_set_axis_position(unsigned axis, float position);
-void mach_set_absolute_origin(float origin[], bool flags[]);
+void mach_set_home(float origin[], bool flags[]);
+void mach_clear_home(bool flags[]);
 
 stat_t mach_zero_all();
 stat_t mach_zero_axis(unsigned axis);
 
-void mach_set_coord_system(coord_system_t coord_system);
 void mach_set_origin_offsets(float offset[], bool flags[]);
 void mach_reset_origin_offsets();
 void mach_suspend_origin_offsets();

@@ -67,6 +67,8 @@ VAR(probe_switch,   pw, bool,     0,      0, 1, "Probe switch state")
 
 // Homing
 VAR(homing_mode,    ho, uint8_t,  MOTORS, 1, 1, "Homing type")
+VAR(homing_dir,     hd, float,    MOTORS, 0, 1, "Homing direction")
+VAR(home,            h, float,    MOTORS, 0, 1, "Home position")
 VAR(search_velocity,sv, float,    MOTORS, 1, 1, "Homing search velocity")
 VAR(latch_velocity, lv, float,    MOTORS, 1, 1, "Homing latch velocity")
 VAR(latch_backoff,  lb, float,    MOTORS, 1, 1, "Homing latch backoff")

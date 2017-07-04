@@ -34,7 +34,7 @@
 #include "plan/state.h"
 
 // Axis
-float get_position(int axis) {return mp_runtime_get_axis_position(axis);}
+float get_position(int axis) {return mp_runtime_get_work_position(axis);}
 
 
 void set_position(int axis, float position) {

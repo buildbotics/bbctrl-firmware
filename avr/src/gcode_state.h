@@ -46,7 +46,8 @@ typedef enum {
   NEXT_ACTION_SET_COORD_DATA,           // G10
   NEXT_ACTION_GOTO_G28_POSITION,        // G28 go to machine position
   NEXT_ACTION_SET_G28_POSITION,         // G28.1 set position in abs coordinates
-  NEXT_ACTION_SET_ABSOLUTE_ORIGIN,      // G28.3 origin set
+  NEXT_ACTION_CLEAR_HOME,               // G28.3 clear axis home
+  NEXT_ACTION_SET_HOME,                 // G28.3 set axis home position
   NEXT_ACTION_GOTO_G30_POSITION,        // G30
   NEXT_ACTION_SET_G30_POSITION,         // G30.1
   NEXT_ACTION_SET_ORIGIN_OFFSETS,       // G92

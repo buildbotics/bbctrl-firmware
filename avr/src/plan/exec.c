@@ -248,6 +248,9 @@ static void _plan_hold() {
     ex.tail_length = available_length;
     ex.exit_velocity = 0;
   }
+
+  // Don't error if seek was stopped
+  bf->flags &= ~BUFFER_SEEK_ERROR;
 }
 
 
@@ -272,6 +275,10 @@ static stat_t _exec_aline_init(mp_buffer_t *bf) {
   ex.entry_velocity = bf->entry_velocity;
   ex.cruise_velocity = bf->cruise_velocity;
   ex.exit_velocity = bf->exit_velocity;
+
+  // Enforce min cruise velocity
+  // TODO How does cruise_velocity ever end up zero when length is non-zero?
+  if (ex.cruise_velocity < 10) ex.cruise_velocity = 10;
 
   ex.section = SECTION_HEAD;
   ex.section_new = true;
@@ -363,10 +370,15 @@ stat_t mp_exec_aline(mp_buffer_t *bf) {
   }
 
   // If seeking, end move when switch is in target state.
-  if ((bf->flags & BUFFER_SEEK_CLOSE && !switch_is_active(bf->sw)) ||
-      (bf->flags & BUFFER_SEEK_OPEN && switch_is_active(bf->sw))) {
-    mp_runtime_set_velocity(0);
-    return STAT_NOOP;
+  if ((((bf->flags & BUFFER_SEEK_CLOSE) && switch_is_active(bf->sw)) ||
+       ((bf->flags & BUFFER_SEEK_OPEN) && !switch_is_active(bf->sw))) &&
+      !ex.hold_planned) {
+    if (!fp_ZERO(mp_runtime_get_velocity())) _plan_hold();
+    else {
+      mp_runtime_set_velocity(0);
+      bf->flags &= ~BUFFER_SEEK_ERROR;
+      return STAT_NOOP;
+    }
   }
 
   // Plan holds

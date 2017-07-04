@@ -375,6 +375,10 @@ stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
              (flags & BUFFER_EXACT_STOP) ? "true" : "false",
              feed_rate, feed_override, line);
 
+  // Trap zero feed rate condition
+  if (!(flags & BUFFER_RAPID) && fp_ZERO(feed_rate))
+    return STAT_GCODE_FEEDRATE_NOT_SPECIFIED;
+
   // Compute axis and move lengths
   float axis_length[AXES];
   float axis_square[AXES];

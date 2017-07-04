@@ -140,10 +140,9 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   // Check if we are done
   if (done) {
     // Update machine position
-    for (int axis = 0; axis < AXES; axis++)
-      mach_set_axis_position(axis, mp_runtime_get_work_position(axis));
-
+    mach_set_position_from_runtime();
     mp_set_cycle(CYCLE_MACHINING); // Default cycle
+    mp_pause_queue(false);
 
     return STAT_NOOP; // Done, no move executed
   }
@@ -163,11 +162,8 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 }
 
 
-bool mp_jog_busy() {return mp_get_cycle() == CYCLE_JOGGING;}
-
-
 uint8_t command_jog(int argc, char *argv[]) {
-  if (!mp_jog_busy() &&
+  if (mp_get_cycle() != CYCLE_JOGGING &&
       (mp_get_state() != STATE_READY || mp_get_cycle() != CYCLE_MACHINING))
     return STAT_NOOP;
 
@@ -178,15 +174,16 @@ uint8_t command_jog(int argc, char *argv[]) {
     else velocity[axis] = 0;
 
   // Reset
-  if (!mp_jog_busy()) memset(&jr, 0, sizeof(jr));
+  if (mp_get_cycle() != CYCLE_JOGGING) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.next_velocity[axis] = velocity[axis];
   jr.writing = false;
 
-  if (!mp_jog_busy()) {
+  if (mp_get_cycle() != CYCLE_JOGGING) {
     mp_set_cycle(CYCLE_JOGGING);
+    mp_pause_queue(true);
     mp_queue_push_nonstop(_exec_jog, -1);
   }
 

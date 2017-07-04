@@ -45,6 +45,7 @@ typedef struct {
   mp_state_t state;
   mp_cycle_t cycle;
   mp_hold_reason_t hold_reason;
+  bool pause;
 
   bool hold_requested;
   bool flush_requested;
@@ -154,6 +155,14 @@ bool mp_is_quiescent() {
 }
 
 
+bool mp_is_ready() {
+  return mp_queue_get_room() && !mp_is_resuming() && !ps.pause;
+}
+
+
+void mp_pause_queue(bool x) {ps.pause = x;}
+
+
 void mp_state_optional_pause() {
   if (ps.optional_pause_requested) {
     mp_set_hold_reason(HOLD_REASON_USER_PAUSE);
@@ -178,7 +187,10 @@ void mp_state_idle() {
 }
 
 
-void mp_state_estop() {_set_state(STATE_ESTOPPED);}
+void mp_state_estop() {
+  _set_state(STATE_ESTOPPED);
+  mp_pause_queue(false);
+}
 
 
 void mp_request_hold() {ps.hold_requested = true;}
@@ -233,8 +245,7 @@ void mp_state_callback() {
       // NOTE The following uses low-level mp calls for absolute position.
       // Reset to actual machine position.  Otherwise machine is set to the
       // position of the last queued move.
-      for (int axis = 0; axis < AXES; axis++)
-        mach_set_axis_position(axis, mp_runtime_get_axis_position(axis));
+      mach_set_position_from_runtime();
     }
 
     // Stop spindle

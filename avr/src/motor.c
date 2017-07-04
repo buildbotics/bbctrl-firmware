@@ -40,7 +40,6 @@
 #include "pgmspace.h"
 
 #include "plan/runtime.h"
-#include "plan/calibrate.h"
 
 #include <util/delay.h>
 

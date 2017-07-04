@@ -44,5 +44,4 @@ stat_t mach_arc_feed(float target[], bool flags[], float offsets[],
                      float P, bool P_f, bool modal_g1_f,
                      motion_mode_t motion_mode);
 void mach_arc_callback();
-bool mach_arc_active();
 void mach_abort_arc();

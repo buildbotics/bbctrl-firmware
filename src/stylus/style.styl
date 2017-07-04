@@ -297,6 +297,7 @@ body
       margin 0
 
   .gcode, .history
+    font-family courier
     clear both
     overflow auto
     width 100%
@@ -304,12 +305,12 @@ body
     min-width 99%
     height 200px
     padding 0.25em
-    white-space pre
+    white-space nowrap
 
     &.placeholder
       color #aaa
 
-  .gcode ul
+  .gcode ul, .history ul
     margin 0
     padding 0
     list-style none
@@ -325,6 +326,9 @@ body
 
       &.highlight
         background-color #eaeaea
+
+  .history ul li
+    cursor pointer
 
   .mdi
     clear both

@@ -17,10 +17,10 @@
         "code": "pm"
       },
       "drive-current": {
-        "type": "float",
+        "type": "aloat",
         "min": 0,
         "max": 8,
-        "unit": "A",
+        "unit": "amps",
         "default": 2,
         "code": "dc"
       },
@@ -28,7 +28,7 @@
         "type": "float",
         "min": 0,
         "max": 8,
-        "unit": "A",
+        "unit": "Amps",
         "default": 0,
         "code": "ic"
       }

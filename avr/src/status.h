@@ -75,7 +75,7 @@ stat_t status_alarm(const char *location, stat_t status, const char *msg);
   STATUS_MESSAGE(STAT_LEVEL_INFO, STAT_OK, MSG, ##__VA_ARGS__)
 
 #define STATUS_DEBUG(MSG, ...)                                  \
-  STATUS_MESSAGE(STAT_LEVEL_WARNING, STAT_OK, MSG, ##__VA_ARGS__)
+  STATUS_MESSAGE(STAT_LEVEL_DEBUG, STAT_OK, MSG, ##__VA_ARGS__)
 
 #define STATUS_WARNING(MSG, ...)                                \
   STATUS_MESSAGE(STAT_LEVEL_WARNING, STAT_OK, MSG, ##__VA_ARGS__)

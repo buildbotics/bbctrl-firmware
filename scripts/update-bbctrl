@@ -1,6 +1,6 @@
 #!/bin/bash
 
-UPDATE=$(pwd)/update.tar.bz2
+UPDATE=/var/lib/bbctrl/firmware/update.tar.bz2
 
 if [ ! -e "$UPDATE" ]; then
   echo "Missing $UPDATE"
@@ -16,4 +16,4 @@ cd *
 ./scripts/install.sh "$*"
 
 cd -
-rm -rf /tmp/update
+rm -rf /tmp/update $UPDATE
