@@ -1,0 +1,158 @@
+/******************************************************************************\
+
+                This file is part of the Buildbotics firmware.
+
+                  Copyright (c) 2015 - 2017 Buildbotics LLC
+                            All rights reserved.
+
+     This file ("the software") is free software: you can redistribute it
+     and/or modify it under the terms of the GNU General Public License,
+      version 2 as published by the Free Software Foundation. You should
+      have received a copy of the GNU General Public License, version 2
+     along with the software. If not, see <http://www.gnu.org/licenses/>.
+
+     The software is distributed in the hope that it will be useful, but
+          WITHOUT ANY WARRANTY; without even the implied warranty of
+      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+               Lesser General Public License for more details.
+
+       You should have received a copy of the GNU Lesser General Public
+                License along with the software.  If not, see
+                       <http://www.gnu.org/licenses/>.
+
+                For information regarding this software email:
+                  "Joseph Coffland" <joseph@buildbotics.com>
+
+\******************************************************************************/
+
+/* This file defines an X-Macro ring buffer.  It can be used like this:
+ *
+ *   #define RING_BUF_NAME tx_buf
+ *   #define RING_BUF_SIZE 256
+ *   #include "ringbuf.def"
+ *
+ * This will define the following functions:
+ *
+ *   void <name>_init();
+ *   int <name>_empty();
+ *   int <name>_full();
+ *   <type> <name>_peek();
+ *   void <name>_pop();
+ *   void <name>_push(<type> data);
+ *
+ * Where <name> is defined by RING_BUF_NAME and <type> by RING_BUF_TYPE.
+ * RING_BUF_SIZE defines the length of the ring buffer and must be a power of 2.
+ *
+ * The data type and index type both default to uint8_t but can be changed by
+ * defining RING_BUF_TYPE and RING_BUF_INDEX_TYPE respectively.
+ *
+ * By default these functions are declared static inline but this can be changed
+ * by defining RING_BUF_FUNC.
+ */
+
+#include <stdint.h>
+
+#ifndef RING_BUF_NAME
+#error Must define RING_BUF_NAME
+#endif
+
+#ifndef RING_BUF_SIZE
+#error Must define RING_BUF_SIZE
+#endif
+
+#ifndef RING_BUF_TYPE
+#define RING_BUF_TYPE uint8_t
+#endif
+
+#ifndef RING_BUF_INDEX_TYPE
+#define RING_BUF_INDEX_TYPE uint8_t
+#endif
+
+#ifndef RING_BUF_FUNC
+#define RING_BUF_FUNC static inline
+#endif
+
+#define RING_BUF_MASK (RING_BUF_SIZE - 1)
+#if (RING_BUF_SIZE & RING_BUF_MASK)
+#error RING_BUF_SIZE is not a power of 2
+#endif
+
+#ifndef CONCAT
+#define _CONCAT(prefix, name) prefix##name
+#define CONCAT(prefix, name) _CONCAT(prefix, name)
+#endif
+
+#define RING_BUF_STRUCT CONCAT(RING_BUF_NAME, _ring_buf_t)
+#define RING_BUF CONCAT(RING_BUF_NAME, _ring_buf)
+
+typedef struct {
+  RING_BUF_TYPE buf[RING_BUF_SIZE];
+  volatile RING_BUF_INDEX_TYPE head;
+  volatile RING_BUF_INDEX_TYPE tail;
+} RING_BUF_STRUCT;
+
+static RING_BUF_STRUCT RING_BUF;
+
+
+RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _init)() {
+  RING_BUF.head = RING_BUF.tail = 0;
+}
+
+
+#define RING_BUF_INC CONCAT(RING_BUF_NAME, _inc)
+RING_BUF_FUNC RING_BUF_INDEX_TYPE RING_BUF_INC(RING_BUF_INDEX_TYPE x) {
+  return (x + 1) & RING_BUF_MASK;
+}
+
+
+RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _empty)() {
+  return RING_BUF.head == RING_BUF.tail;
+}
+
+
+RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _full)() {
+  return RING_BUF.head == RING_BUF_INC(RING_BUF.tail);
+}
+
+
+RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _fill)() {
+  return (RING_BUF.tail - RING_BUF.head) & RING_BUF_MASK;
+}
+
+
+RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _space)() {
+  return RING_BUF_SIZE - CONCAT(RING_BUF_NAME, _fill)();
+}
+
+
+RING_BUF_FUNC RING_BUF_TYPE CONCAT(RING_BUF_NAME, _peek)() {
+  return RING_BUF.buf[RING_BUF.head];
+}
+
+
+RING_BUF_FUNC RING_BUF_TYPE CONCAT(RING_BUF_NAME, _get)(int offset) {
+  return RING_BUF.buf[(RING_BUF.head + offset) & RING_BUF_MASK];
+}
+
+
+RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _pop)() {
+  RING_BUF.head = RING_BUF_INC(RING_BUF.head);
+}
+
+
+RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _push)(RING_BUF_TYPE data) {
+  RING_BUF.buf[RING_BUF.tail] = data;
+  RING_BUF.tail = RING_BUF_INC(RING_BUF.tail);
+}
+
+
+#undef RING_BUF
+#undef RING_BUF_STRUCT
+#undef RING_BUF_INC
+#undef RING_BUF_MASK
+
+#undef RING_BUF_NAME
+#undef RING_BUF_SIZE
+#undef RING_BUF_TYPE
+#undef RING_BUF_INDEX_TYPE
+#undef RING_BUF_FUNC
