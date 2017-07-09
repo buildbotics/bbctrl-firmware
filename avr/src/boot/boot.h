@@ -53,13 +53,16 @@ enum {
   CMD_VERSION             = 'V',
   CMD_HW_VERSION          = 'v', // Unsupported extension
   CMD_READ_SIGNATURE      = 's',
+  CMD_READ_CHECKSUM       = 'X',
+  CMD_FLASH_LENGTH        = 'n',
 
   // Addressing
   CMD_SET_ADDRESS         = 'A',
   CMD_SET_EXT_ADDRESS     = 'H',
 
   // Erase
-  CMD_CHIP_ERASE          = 'e',
+  CMD_FLASH_ERASE         = 'e',
+  CMD_EEPROM_ERASE        = '_',
 
   // Block Access
   CMD_BLOCK_LOAD          = 'B',

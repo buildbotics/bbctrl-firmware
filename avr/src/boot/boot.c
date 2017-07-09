@@ -258,17 +258,15 @@ int main() {
       break;
     }
 
-    case CMD_CHIP_ERASE:
-      // Erase the application section
+    case CMD_FLASH_ERASE:
       SP_EraseApplicationSection();
-
-      // Wait for completion
       nvm_wait();
+      send_char(REPLY_ACK);
+      break;
 
-      // Erase EEPROM
+    case CMD_EEPROM_ERASE:
       NVM.CMD = NVM_CMD_ERASE_EEPROM_gc;
       nvm_exec();
-
       send_char(REPLY_ACK);
       break;
 
@@ -371,13 +369,55 @@ int main() {
 
     case CMD_VERSION:
       send_char('0');
-      send_char('1');
+      send_char('2');
       break;
 
     case CMD_READ_SIGNATURE:
       send_char(SIGNATURE_2);
       send_char(SIGNATURE_1);
       send_char(SIGNATURE_0);
+      break;
+
+    case CMD_READ_CHECKSUM:
+      // Setup
+      nvm_wait();
+
+      // Reset CRC
+      CRC_CTRL |= CRC_RESET_RESET1_gc;
+      CRC.CHECKSUM0 = CRC.CHECKSUM1 = CRC.CHECKSUM2 = CRC.CHECKSUM3 = 0xff;
+
+      // 32-bit mode, flash source
+      CRC_CTRL = CRC_CRC32_bm | CRC_SOURCE_FLASH_gc;
+
+      // Start address
+      NVM.ADDR0 = (uint8_t)(APP_SECTION_START >> 0);
+      NVM.ADDR1 = (uint8_t)(APP_SECTION_START >> 8);
+      NVM.ADDR2 = 0;
+
+      // End address
+      NVM.DATA0 = (uint8_t)(APP_SECTION_END >> 0);
+      NVM.DATA1 = (uint8_t)(APP_SECTION_END >> 8);
+      NVM.DATA2 = (uint8_t)(APP_SECTION_END >> 16);
+
+      NVM.CMD = NVM_CMD_FLASH_RANGE_CRC_gc;
+      CCP = CCP_IOREG_gc;
+      NVM.CTRLA = NVM_CMDEX_bm;
+
+      // Compute
+      nvm_wait();
+      while (CRC.STATUS & CRC_BUSY_bm) continue;
+
+      // Send 32-bit checksum
+      send_char(CRC.CHECKSUM3);
+      send_char(CRC.CHECKSUM2);
+      send_char(CRC.CHECKSUM1);
+      send_char(CRC.CHECKSUM0);
+      break;
+
+    case CMD_FLASH_LENGTH:
+      send_char((uint8_t)(APP_SECTION_SIZE >> 16));
+      send_char((uint8_t)(APP_SECTION_SIZE >> 8));
+      send_char((uint8_t)(APP_SECTION_SIZE >> 0));
       break;
 
     case CMD_BLOCK_CRC:

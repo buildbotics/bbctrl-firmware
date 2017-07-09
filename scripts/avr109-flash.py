@@ -25,6 +25,17 @@ def crc16(data):
     return crc
 
 
+def avr_crc32(data, length):
+    mem = [0xff] * length
+
+    for addr, chunk in data:
+        for x in chunk:
+            mem[addr] = x
+            addr += 1
+
+    return binascii.crc32(bytes(mem))
+
+
 def read_intel_hex(f):
     base = 0
     pos = 0
@@ -82,7 +93,7 @@ def recv_int(size):
 
 
 # Read firmware hex file
-data = read_intel_hex(open(sys.argv[1], 'r'))
+data = list(read_intel_hex(open(sys.argv[1], 'r')))
 
 # Open serial  port
 sp = serial.Serial(dev, baud, timeout = 10)
@@ -105,11 +116,38 @@ send('S')
 if boot_id != recv(len(boot_id)):
     raise Exception('Failed to communicate with bootloader')
 
+# Get version
+send('V')
+major = int(recv(1))
+minor = int(recv(1))
+print('Bootloader version: %d.%d' % (major, minor))
+
+# If bootloader is new enough compare checksums
+if 0 < major or 1 < minor:
+    # Get flash length
+    send('n')
+    flash_len = recv_int(3)
+
+    # Get current flash CRC
+    send('X')
+    new_crc = avr_crc32(data, flash_len)
+    old_crc = recv_int(4)
+    if old_crc == new_crc:
+        print('Flash already up to date')
+        sys.exit(0)
+
+    print('CRC: old=0x%08x new=0x%08x' % (old_crc, new_crc))
+
+    # Erase
+    send('e')
+    if recv(1) != '\r': raise Exception('Flash erase failed')
+
 # Get page size
 send('b')
 if recv(1) != 'Y': raise Exception('Cannot get page size')
 page_size = recv_int(2)
 print('Page size:', page_size)
+
 
 # Program
 print('Programming', end = '')
