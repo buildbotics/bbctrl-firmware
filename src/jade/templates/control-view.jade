@@ -16,17 +16,18 @@ script#control-view-template(type="text/x-template")
           td.absolute {{state.#{axis}p || 0 | fixed 3}}
           td.offset {{(state.#{axis}w - state.#{axis}p) || 0 | fixed 3}}
           th.actions
-            button.pure-button(
+            button.pure-button(:disabled="state.x != 'READY'",
               title="Set {{'#{axis}' | upper}} axis position.",
               @click="show_set_position('#{axis}')")
               .fa.fa-cog
 
-            button.pure-button(
+            button.pure-button(:disabled="state.x != 'READY'",
               title="Zero {{'#{axis}' | upper}} axis offset.",
               @click="set_position('#{axis}', state['#{axis}p'])")
               | &empty;
 
-            button.pure-button(title="Home {{'#{axis}' | upper}} axis.",
+            button.pure-button(:disabled="state.x != 'READY'",
+              title="Home {{'#{axis}' | upper}} axis.",
               @click="home('#{axis}')")
               .fa.fa-home
 
@@ -77,7 +78,7 @@ script#control-view-template(type="text/x-template")
         td
       tr
         th Reason
-        td {{get_reason()}}
+        td.reason {{get_reason()}}
         td
       tr
         th Feed
@@ -128,7 +129,7 @@ script#control-view-template(type="text/x-template")
 
 
     .toolbar
-      button.pure-button(title="Home the machine.", @click="home",
+      button.pure-button(title="Home the machine.", @click="home()",
         :disabled="state.x != 'READY'")
         .fa.fa-home
 

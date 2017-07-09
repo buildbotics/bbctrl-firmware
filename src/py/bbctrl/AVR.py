@@ -35,12 +35,12 @@ machine_state_vars = '''
 #   - Backoff to machine zero
 #   - Set axis home position
 axis_homing_procedure = '''
-  G28.2 %(axis)c0 F[#<%(axis)c.sv>]
-  G38.6 %(axis)c[#<%(axis)c.hd> * [#<%(axis)c.tm> - #<%(axis)c.tn>]]
-  G38.8 %(axis)c[#<%(axis)c.hd> * -#<%(axis)c.lb>] F[#<%(axis)c.lv>]
-  G38.6 %(axis)c[#<%(axis)c.hd> * #<%(axis)c.lb> * 1.5]
-  G0 %(axis)c[#<%(axis)c.hd> * -#<%(axis)c.zb> + #<%(axis)cp>]
-  G28.3 %(axis)c[#<%(axis)c.hp>]
+  G28.2 %(axis)s0 F[#<%(axis)s.sv>]
+  G38.6 %(axis)s[#<%(axis)s.hd> * [#<%(axis)s.tm> - #<%(axis)s.tn>]]
+  G38.8 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.lb>] F[#<%(axis)s.lv>]
+  G38.6 %(axis)s[#<%(axis)s.hd> * #<%(axis)s.lb> * 1.5]
+  G0 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.zb> + #<%(axis)sp>]
+  G28.3 %(axis)s[#<%(axis)s.hp>]
 '''
 
 class AVR():
@@ -240,7 +240,7 @@ class AVR():
 
     def _update_lcd(self, msg):
         if 'x' in msg or 'c' in msg:
-            v = self.ctrl.avr.vars
+            v = self.vars
             state = v.get('x', 'INIT')
             if 'c' in v and state == 'RUNNING': state = v['c']
 
@@ -288,9 +288,15 @@ class AVR():
             self.queue_command('G28.3 %c%f' % (axis, position))
 
         else:
-            gcode = axis_homing_procedure % {'axis': axis}
-            for line in gcode.splitlines():
-                self.queue_command(line.strip())
+            if axis is None: axes = 'zxyabc' # TODO This should be configurable
+            else: axes = '%c' % axis
+
+            for axis in axes:
+                if not self.vars.get('%sch' % axis, 0): continue
+
+                gcode = axis_homing_procedure % {'axis': axis}
+                for line in gcode.splitlines():
+                    self.queue_command(line.strip())
 
 
     def estop(self): self._i2c_command(I2C_ESTOP)

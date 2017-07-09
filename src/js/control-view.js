@@ -221,12 +221,17 @@ module.exports = {
 
 
     home: function (axis) {
-      var motor = this.get_axis_motor(axis);
-      if (motor['homing-mode'] == 'manual') {
-        this.axis_position = this.state[axis + 'w'];
-        this.manual_home[axis] = true;
+      if (typeof axis == 'undefined') api.put('home');
 
-      } else api.put('home' + (typeof axis == 'undefined' ? '' : ('/' + axis)));
+      else {
+        var motor = this.get_axis_motor(axis);
+
+        if (motor['homing-mode'] == 'manual') {
+          this.axis_position = this.state[axis + 'w'];
+          this.manual_home[axis] = true;
+
+        } else api.put('home/' + axis);
+      }
     },
 
 

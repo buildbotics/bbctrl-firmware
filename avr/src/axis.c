@@ -176,3 +176,36 @@ float get_home(int axis) {
   }
   return NAN;
 }
+
+
+static int _get_homing_switch(int axis) {
+  switch (axes[axis].homing_mode) {
+  case HOMING_MANUAL: break;
+
+  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN:
+    switch (axis) {
+    case AXIS_X: return SW_MIN_X;
+    case AXIS_Y: return SW_MIN_Y;
+    case AXIS_Z: return SW_MIN_Z;
+    case AXIS_A: return SW_MIN_A;
+    }
+    break;
+
+  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX:
+    switch (axis) {
+    case AXIS_X: return SW_MAX_X;
+    case AXIS_Y: return SW_MAX_Y;
+    case AXIS_Z: return SW_MAX_Z;
+    case AXIS_A: return SW_MAX_A;
+    }
+    break;
+  }
+
+  return -1;
+}
+
+
+bool get_axis_can_home(int axis) {
+  return axis_is_enabled(axis) && axes[axis].homing_mode != HOMING_MANUAL &&
+    switch_is_enabled(_get_homing_switch(axis));
+}

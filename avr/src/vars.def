@@ -78,6 +78,7 @@ VAR(zero_backoff,   zb, float,    MOTORS, 1, 1, "Homing zero backoff")
 // Axis
 VAR(axis_mach_coord, p, float,    AXES,   1, 1, "Axis machine coordinate")
 VAR(axis_work_coord, w, float,    AXES,   0, 1, "Axis work coordinate")
+VAR(axis_can_home,  ch, bool,     AXES,   0, 1, "Is axis configured for homing")
 
 // Spindle
 VAR(spindle_type,   st, uint8_t,  0,      1, 1, "PWM=0 or HUANYANG=1")
