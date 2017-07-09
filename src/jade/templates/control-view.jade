@@ -4,27 +4,73 @@ script#control-view-template(type="text/x-template")
       tr
         th.name Axis
         th.position Position
+        th.absolute Absolute
         th.offset Offset
-        th.errors Errors
         th.actions Actions
 
       each axis in 'xyzabc'
-        tr.axis(class="axis-#{axis}", v-if="enabled('#{axis}')")
+        tr.axis(:class="{'homed': is_homed('#{axis}'), 'axis-#{axis}': true}",
+          v-if="enabled('#{axis}')")
           th.name #{axis}
-          td.position {{state.#{axis}p || 0 | fixed 3}}
-          td.offset {{state.#{axis}o || 0 | fixed 3}}
-          td.errors
-            .fa.fa-hot(v-if="state.#{axis}t", title="Driver overtemp.")
-            .fa.fa-ban(v-if="state.#{axis}s", title="Motor stalled.")
+          td.position {{state.#{axis}w || 0 | fixed 3}}
+          td.absolute {{state.#{axis}p || 0 | fixed 3}}
+          td.offset {{(state.#{axis}w - state.#{axis}p) || 0 | fixed 3}}
           th.actions
-            button.pure-button(title="Zero {{'#{axis}' | upper}} axis.",
-              @click="zero('#{axis}')")
+            button.pure-button(
+              title="Set {{'#{axis}' | upper}} axis position.",
+              @click="show_set_position('#{axis}')")
+              .fa.fa-cog
+
+            button.pure-button(
+              title="Zero {{'#{axis}' | upper}} axis offset.",
+              @click="set_position('#{axis}', state['#{axis}p'])")
               | &empty;
+
             button.pure-button(title="Home {{'#{axis}' | upper}} axis.",
               @click="home('#{axis}')")
               .fa.fa-home
 
-    table.info
+            message(:show.sync="position_msg['#{axis}']")
+              h3(slot="header") Set {{'#{axis}' | upper}} axis position
+
+              div(slot="body")
+                .pure-form
+                  .pure-control-group
+                    label Position
+                    input(v-model="axis_position",
+                      @keyup.enter="set_position('#{axis}', axis_position)")
+                p
+
+              div(slot="footer")
+                button.pure-button(@click="position_msg['#{axis}'] = false")
+                  | Cancel
+
+                button.pure-button.button-success(
+                  @click="set_position('#{axis}', axis_position)") Set
+
+            message(:show.sync="manual_home['#{axis}']")
+              h3(slot="header") Manually home {{'#{axis}' | upper}} axis
+
+              div(slot="body")
+                p Set axis absolute position.
+
+                .pure-form
+                  .pure-control-group
+                    label Absolute
+                    input(v-model="axis_position",
+                      @keyup.enter="set_home('#{axis}', axis_position)")
+
+                p
+
+              div(slot="footer")
+                button.pure-button(@click="manual_home['#{axis}'] = false")
+                  | Cancel
+
+                button.pure-button.button-success(
+                  title="Home {{'#{axis}' | upper}} axis.",
+                  @click="set_home('#{axis}', axis_position)") Set
+
+     table.info
       tr
         th State
         td {{get_state()}}

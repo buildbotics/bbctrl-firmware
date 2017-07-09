@@ -15,7 +15,15 @@ module.exports = {
       confirmReset: false,
       configReset: false,
       firmwareUpgrading: false,
+      hostnameSet: false,
+      usernameSet: false,
+      passwordSet: false,
       latest: '',
+      hostname: '',
+      username: '',
+      current: '',
+      password: '',
+      password2: ''
     }
   },
 
@@ -27,10 +35,57 @@ module.exports = {
   },
 
 
-  ready: function () {},
+  ready: function () {
+    api.get('hostname').done(function (hostname) {
+      this.hostname = hostname;
+    }.bind(this));
+    api.get('remote/username').done(function (username) {
+      this.username = username;
+    }.bind(this));
+  },
 
 
   methods: {
+    set_hostname: function () {
+      api.put('hostname', {hostname: this.hostname}).done(function () {
+        this.hostnameSet = true;
+      }.bind(this)).fail(function (error) {
+        alert('Set hostname failed: ' + JSON.stringify(error));
+      })
+    },
+
+
+    set_username: function () {
+      api.put('remote/username', {username: this.username}).done(function () {
+        this.usernameSet = true;
+      }.bind(this)).fail(function (error) {
+        alert('Set username failed: ' + JSON.stringify(error));
+      })
+    },
+
+
+    set_password: function () {
+      if (this.password != this.password2) {
+        alert('Passwords to not match');
+        return;
+      }
+
+      if (this.password.length < 6) {
+        alert('Password too short');
+        return;
+      }
+
+      api.put('remote/password', {
+        current: this.current,
+        password: this.password
+      }).done(function () {
+        this.passwordSet = true;
+      }.bind(this)).fail(function (error) {
+        alert('Set password failed: ' + JSON.stringify(error));
+      })
+    },
+
+
     backup: function () {
       document.getElementById('download-target').src = '/api/config/download';
     },

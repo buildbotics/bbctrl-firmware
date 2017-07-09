@@ -51,6 +51,7 @@ typedef enum {
   BUFFER_RAPID        = 1 << 5,
   BUFFER_INVERSE_TIME = 1 << 6,
   BUFFER_EXACT_STOP   = 1 << 7,
+  BUFFER_LINE         = 1 << 8,
 } buffer_flags_t;
 
 

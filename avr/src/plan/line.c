@@ -35,6 +35,7 @@
 #include "buffer.h"
 
 #include <stdio.h>
+#include <float.h>
 
 
 /* Sonny's algorithm - simple
@@ -114,7 +115,7 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
   for (int axis = 0; axis < AXES; axis++)
     costheta -= a_unit[axis] * b_unit[axis];
 
-  if (costheta < -0.99) return 10000000;  // straight line cases
+  if (costheta < -0.99) return FLT_MAX;   // straight line cases
   if (0.99 < costheta)  return 0;         // reversal cases
 
   // Fuse the junction deviations into a vector sum
@@ -244,8 +245,15 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
 
   bf->cruise_vmax = bf->length / move_time; // target velocity requested
 
-  float junction_velocity =
-    _get_junction_vmax(mp_buffer_prev(bf)->unit, bf->unit);
+  float junction_velocity = FLT_MAX;
+
+  mp_buffer_t *prev = mp_buffer_prev(bf);
+  while (prev->state != BUFFER_OFF)
+    if (prev->flags & BUFFER_LINE) {
+      _get_junction_vmax(prev->unit, bf->unit);
+      break;
+
+    } else prev = mp_buffer_prev(prev);
 
   bf->entry_vmax = min(bf->cruise_vmax, junction_velocity);
   bf->delta_vmax = mp_get_target_velocity(0, bf->length, bf);
@@ -416,6 +424,7 @@ stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
 
   // Note, the following lines must remain in order.
   bf->line = line;              // Planner needs this when planning steps
+  flags |= BUFFER_LINE;
   bf->flags = flags;            // Move flags
   bf->sw = sw;                  // Seek switche
   mp_plan(bf);                  // Plan block list

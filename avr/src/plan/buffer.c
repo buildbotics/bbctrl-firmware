@@ -216,6 +216,8 @@ void mp_buffer_print(const mp_buffer_t *bf) {
 void mp_buffer_validate(const mp_buffer_t *bp) {
   ASSERT(bp);
 
+  if (!(bp->flags & BUFFER_LINE)) return; // Only check line buffers
+
   ASSERT(isfinite(bp->value));
 
   ASSERT(isfinite(bp->target[0]) && isfinite(bp->target[1]) &&

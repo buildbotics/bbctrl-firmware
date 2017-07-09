@@ -5,7 +5,7 @@ import bbctrl
 log = logging.getLogger('PWR')
 
 
-# Must match regs in pwr firmare
+# Must match regs in pwr firmware
 TEMP_REG        = 0
 VIN_REG         = 1
 VOUT_REG        = 2

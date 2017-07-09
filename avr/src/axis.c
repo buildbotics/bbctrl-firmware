@@ -119,7 +119,7 @@ float axis_get_vector_length(const float a[], const float b[]) {
 AXIS_GET(velocity_max, float, 0)
 AXIS_GET(homed, bool, false)
 AXIS_SET(homed, bool)
-AXIS_GET(homing_mode, homing_mode_t, HOMING_DISABLED)
+AXIS_GET(homing_mode, homing_mode_t, HOMING_MANUAL)
 AXIS_SET(homing_mode, homing_mode_t)
 AXIS_GET(radius, float, 0)
 AXIS_GET(travel_min, float, 0)
@@ -160,7 +160,7 @@ AXIS_VAR_SET(jerk_max, float)
 
 float get_homing_dir(int axis) {
   switch (axes[axis].homing_mode) {
-  case HOMING_DISABLED: break;
+  case HOMING_MANUAL: break;
   case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return -1;
   case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return 1;
   }
@@ -170,7 +170,7 @@ float get_homing_dir(int axis) {
 
 float get_home(int axis) {
   switch (axes[axis].homing_mode) {
-  case HOMING_DISABLED: break;
+  case HOMING_MANUAL: break;
   case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return get_travel_min(axis);
   case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return get_travel_max(axis);
   }

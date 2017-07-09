@@ -13,7 +13,7 @@ from bbctrl.APIHandler import APIHandler
 from bbctrl.FileHandler import FileHandler
 from bbctrl.GCodeStream import GCodeStream
 from bbctrl.Config import Config
-from bbctrl.LCD import LCD
+from bbctrl.LCD import LCD, LCDPage
 from bbctrl.AVR import AVR
 from bbctrl.Web import Web
 from bbctrl.Jog import Jog

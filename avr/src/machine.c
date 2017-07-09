@@ -122,6 +122,7 @@ coord_system_t mach_get_coord_system() {return mach.gm.coord_system;}
 bool mach_get_absolute_mode() {return mach.gm.absolute_mode;}
 path_mode_t mach_get_path_mode() {return mach.gm.path_mode;}
 bool mach_is_exact_stop() {return mach.gm.path_mode == PATH_EXACT_STOP;}
+bool mach_in_absolute_mode() {return mach.gm.distance_mode == ABSOLUTE_MODE;}
 distance_mode_t mach_get_distance_mode() {return mach.gm.distance_mode;}
 distance_mode_t mach_get_arc_distance_mode() {return mach.gm.arc_distance_mode;}
 
@@ -316,13 +317,13 @@ void mach_set_position_from_runtime() {
  *  Axes that need processing are signaled in @param flags.
  */
 void mach_calc_target(float target[], const float values[],
-                      const bool flags[]) {
+                      const bool flags[], bool absolute) {
   for (int axis = 0; axis < AXES; axis++) {
     target[axis] = mach.position[axis];
     if (!flags[axis] || !axis_is_enabled(axis)) continue;
 
-    target[axis] = mach.gm.distance_mode == ABSOLUTE_MODE ?
-      mach_get_active_coord_offset(axis) : mach.position[axis];
+    target[axis] = absolute ? mach_get_active_coord_offset(axis) :
+      mach.position[axis];
 
     float radius = axis_get_radius(axis);
     if (radius) // Handle radius mode if radius is non-zero
@@ -435,33 +436,16 @@ void mach_set_coord_system(coord_system_t cs) {
 }
 
 
-stat_t mach_zero_all() {
-  for (unsigned axis = 0; axis < AXES; axis++) {
-    stat_t status = mach_zero_axis(axis);
-    if (status != STAT_OK) return status;
-  }
-
-  return STAT_OK;
-}
-
-
-stat_t mach_zero_axis(unsigned axis) {
-  if (!mp_is_quiescent()) return STAT_MACH_NOT_QUIESCENT;
-  if (AXES <= axis) return STAT_INVALID_AXIS;
-
-  mach_set_axis_position(axis, 0);
-
-  return STAT_OK;
-}
-
-
 // G28.3 functions and support
 static stat_t _exec_home(mp_buffer_t *bf) {
-  const float *origin = bf->target;
+  const float *target = bf->target;
   const float *flags = bf->unit;
 
   for (int axis = 0; axis < AXES; axis++)
-    if (flags[axis]) mp_runtime_set_axis_position(axis, origin[axis]);
+    if (flags[axis]) {
+      mp_runtime_set_axis_position(axis, target[axis]);
+      axis_set_homed(axis, true);
+    }
 
   mp_runtime_set_steps_from_position();
 
@@ -483,16 +467,17 @@ static stat_t _exec_home(mp_buffer_t *bf) {
 void mach_set_home(float origin[], bool flags[]) {
   mp_buffer_t *bf = mp_queue_get_tail();
 
+  // Compute target position
+  mach_calc_target(bf->target, origin, flags, true);
+
   for (int axis = 0; axis < AXES; axis++)
     if (flags[axis] && isfinite(origin[axis])) {
-      // TODO What about work offsets?
-      mach.position[axis] = TO_MM(origin[axis]);       // set model position
-      mp_set_axis_position(axis, mach.position[axis]); // set mm position
-      axis_set_homed(axis, true);
+      bf->target[axis] -= mach_get_active_coord_offset(axis);
+      mach.position[axis] = bf->target[axis];
+      mp_set_axis_position(axis, bf->target[axis]); // set mm position
+      bf->unit[axis] = true;
 
-      bf->target[axis] = origin[axis];
-      bf->unit[axis] = flags[axis];
-    }
+    } else bf->unit[axis] = false;
 
   // Synchronized update of runtime position
   mp_queue_push_nonstop(_exec_home, mach_get_line());
@@ -517,6 +502,8 @@ void mach_set_origin_offsets(float offset[], bool flags[]) {
     if (flags[axis])
       mach.origin_offset[axis] = mach.position[axis] -
         mach.offset[mach.gm.coord_system][axis] - TO_MM(offset[axis]);
+
+  mach_update_work_offsets();                 // update resolved offsets
 }
 
 
@@ -526,15 +513,23 @@ void mach_reset_origin_offsets() {
 
   for (int axis = 0; axis < AXES; axis++)
     mach.origin_offset[axis] = 0;
+
+  mach_update_work_offsets();                 // update resolved offsets
 }
 
 
 /// G92.2
-void mach_suspend_origin_offsets() {mach.origin_offset_enable = false;}
+void mach_suspend_origin_offsets() {
+  mach.origin_offset_enable = false;
+  mach_update_work_offsets();                 // update resolved offsets
+}
 
 
 /// G92.3
-void mach_resume_origin_offsets() {mach.origin_offset_enable = true;}
+void mach_resume_origin_offsets() {
+  mach.origin_offset_enable = true;
+  mach_update_work_offsets();                 // update resolved offsets
+}
 
 
 stat_t mach_plan_line(float target[], switch_id_t sw) {
@@ -582,7 +577,7 @@ static stat_t _feed(float values[], bool flags[], switch_id_t sw) {
 
   // Compute target position
   float target[AXES];
-  mach_calc_target(target, values, flags);
+  mach_calc_target(target, values, flags, mach_in_absolute_mode());
 
   // test soft limits
   stat_t status = mach_test_soft_limits(target);
@@ -657,7 +652,7 @@ stat_t mach_seek(float target[], bool flags[], motion_mode_t mode) {
   switch_id_t sw = SW_PROBE;
 
   for (int axis = 0; axis < AXES; axis++)
-    if (flags[axis]) {
+    if (flags[axis] && isfinite(target[axis])) {
       // Convert to incremental move
       if (mach.gm.distance_mode == ABSOLUTE_MODE)
         target[axis] += mach.position[axis];

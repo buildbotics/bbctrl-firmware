@@ -68,14 +68,16 @@ VAR(probe_switch,   pw, bool,     0,      0, 1, "Probe switch state")
 // Homing
 VAR(homing_mode,    ho, uint8_t,  MOTORS, 1, 1, "Homing type")
 VAR(homing_dir,     hd, float,    MOTORS, 0, 1, "Homing direction")
-VAR(home,            h, float,    MOTORS, 0, 1, "Home position")
+VAR(home,           hp, float,    MOTORS, 0, 1, "Home position")
+VAR(homed,           h, bool,     MOTORS, 0, 1, "True if axis is homed")
 VAR(search_velocity,sv, float,    MOTORS, 1, 1, "Homing search velocity")
 VAR(latch_velocity, lv, float,    MOTORS, 1, 1, "Homing latch velocity")
 VAR(latch_backoff,  lb, float,    MOTORS, 1, 1, "Homing latch backoff")
 VAR(zero_backoff,   zb, float,    MOTORS, 1, 1, "Homing zero backoff")
 
 // Axis
-VAR(position,        p, float,    AXES,   1, 1, "Current axis position")
+VAR(axis_mach_coord, p, float,    AXES,   1, 1, "Axis machine coordinate")
+VAR(axis_work_coord, w, float,    AXES,   0, 1, "Axis work coordinate")
 
 // Spindle
 VAR(spindle_type,   st, uint8_t,  0,      1, 1, "PWM=0 or HUANYANG=1")

@@ -24,7 +24,11 @@ setup(
             'bbctrl = bbctrl:run'
             ]
         },
-    scripts = ['scripts/update-bbctrl', 'scripts/upgrade-bbctrl'],
+    scripts = [
+        'scripts/update-bbctrl',
+        'scripts/upgrade-bbctrl',
+        'scripts/sethostname',
+        ],
     install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
     zip_safe = False,
     )

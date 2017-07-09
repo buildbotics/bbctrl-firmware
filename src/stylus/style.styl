@@ -180,6 +180,10 @@ body
       font-family Courier
 
     .axis
+      &.homed
+        background-color #ccffcc
+        color #000
+
       .name
         text-transform capitalize
 
@@ -190,12 +194,8 @@ body
       .position
         width 99%
 
-      .offset
-        min-width 8em
-
-      .errors
+      .absolute, .offset
         min-width 6em
-        white-space normal
 
   .jog svg
     text
@@ -432,12 +432,20 @@ body
       font-family Helvetica, Arial, sans-serif
 
 
+.modal-header
+  text-decoration underline
+
+.modal-footer
+  text-align right
+
 .modal-enter, .modal-leave
   opacity 0
 
-.modal-enter .modal-container, .modal-leave .modal-container
+.modal-enter .modal-container
   transform scale(1.1)
 
+.modal-leave .modal-container
+  transform scale(0.9)
 
 label.file-upload
   display inline-block
@@ -461,7 +469,7 @@ label.file-upload
           font-size 24pt
           line-height 24pt
 
-      .offset, .errors
+      .absolute, .offset
         display none
 
     > *:nth-of-type(n)

@@ -34,12 +34,15 @@
 #include "plan/state.h"
 
 // Axis
-float get_position(int axis) {return mp_runtime_get_work_position(axis);}
+float get_axis_mach_coord(int axis) {return mp_runtime_get_axis_position(axis);}
 
 
-void set_position(int axis, float position) {
+void set_axis_mach_coord(int axis, float position) {
   mach_set_axis_position(axis, position);
 }
+
+
+float get_axis_work_coord(int axis) {return mp_runtime_get_work_position(axis);}
 
 
 // GCode getters

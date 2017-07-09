@@ -1,5 +1,31 @@
 script#admin-view-template(type="text/x-template")
   #admin
+    h2 Hostname
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="hostname") Hostname
+        input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
+        button.pure-button.pure-button-primary(@click="set_hostname") Set
+
+    h2 Remote SSH User
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="username") Username
+        input(name="username", v-model="username", @keyup.enter="set_username")
+        button.pure-button.pure-button-primary(@click="set_username") Set
+
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="current") Current Password
+        input(name="current", v-model="current", type="password")
+      .pure-control-group
+        label(for="pass1") New Password
+        input(name="pass1", v-model="password", type="password")
+      .pure-control-group
+        label(for="pass2") New Password
+        input(name="pass2", v-model="password2", type="password")
+        button.pure-button.pure-button-primary(@click="set_password") Set
+
     h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
 
@@ -40,3 +66,17 @@ script#admin-view-template(type="text/x-template")
     message(:show.sync="firmwareUpgrading")
       h3(slot="header") Firmware upgrading
       p(slot="body") Please wait. . .
+
+    message(:show.sync="hostnameSet")
+      h3(slot="header") Hostname Set
+      p(slot="body")
+        | Hostname was successfuly set to {{hostname}}.
+        | Poweroff and restart the controller for this change to take effect.
+
+    message(:show.sync="passwordSet")
+      h3(slot="header") Password Set
+      p(slot="body")
+
+    message(:show.sync="usernameSet")
+      h3(slot="header") Username Set
+      p(slot="body")

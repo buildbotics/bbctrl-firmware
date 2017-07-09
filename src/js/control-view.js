@@ -36,7 +36,11 @@ module.exports = {
       history: [],
       console: [],
       speed_override: 1,
-      feed_override: 1
+      feed_override: 1,
+      manual_home: {x: false, y: false, z: false, a: false, b: false, c: false},
+      position_msg:
+      {x: false, y: false, z: false, a: false, b: false, c: false},
+      axis_position: 0
     }
   },
 
@@ -94,16 +98,33 @@ module.exports = {
     },
 
 
-    enabled: function (axis) {
+    get_axis_motor_id: function (axis) {
       var axis = axis.toLowerCase();
 
       for (var i = 0; i < this.config.motors.length; i++) {
         var motor = this.config.motors[i];
-        if (motor.axis.toLowerCase() == axis &&
-            (motor.enabled || typeof motor.enabled == 'undefined')) return true;
+        if (motor.axis.toLowerCase() == axis) return i;
       }
 
-      return false;
+      return -1;
+    },
+
+
+    get_axis_motor: function (axis) {
+      var motor = this.get_axis_motor_id(axis);
+      if (motor != -1) return this.config.motors[motor];
+    },
+
+
+    enabled: function (axis) {
+      var motor = this.get_axis_motor(axis);
+      return typeof motor != 'undefined' && motor['power-mode'] != 'disabled';
+    },
+
+
+    is_homed: function (axis) {
+      var motor = this.get_axis_motor_id(axis);
+      return motor != -1 && this.state[motor + 'h'];
     },
 
 
@@ -199,11 +220,36 @@ module.exports = {
     },
 
 
-    home: function () {api.put('home')},
+    home: function (axis) {
+      var motor = this.get_axis_motor(axis);
+      if (motor['homing-mode'] == 'manual') {
+        this.axis_position = this.state[axis + 'w'];
+        this.manual_home[axis] = true;
+
+      } else api.put('home' + (typeof axis == 'undefined' ? '' : ('/' + axis)));
+    },
 
 
-    zero: function (axis) {
-      api.put('zero' + (typeof axis == 'undefined' ? '' : '/' + axis));
+    set_home: function (axis, position) {
+      this.manual_home[axis] = false;
+      api.put('home/' + axis + '/set', {position: parseFloat(position)});
+    },
+
+
+    show_set_position: function (axis) {
+      this.axis_position = 0;
+      this.position_msg[axis] = true;
+    },
+
+
+    get_offset: function (axis) {
+      return this.state[axis + 'w'] - this.state[axis + 'p'];
+    },
+
+
+    set_position: function (axis, position) {
+      this.position_msg[axis] = false;
+      api.put('position/' + axis, {position: parseFloat(position)});
     },
 
 
@@ -225,9 +271,7 @@ module.exports = {
     step: function () {api.put('step/' + this.file).done(this.update)},
 
 
-    override_feed: function () {
-      api.put('override/feed/' + this.feed_override)
-    },
+    override_feed: function () {api.put('override/feed/' + this.feed_override)},
 
 
     override_speed: function () {

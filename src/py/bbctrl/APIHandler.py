@@ -41,7 +41,12 @@ class APIHandler(tornado.web.RequestHandler):
 
     def write_error(self, status_code, **kwargs):
         e = {}
-        e['message'] = str(kwargs['exc_info'][1])
+
+        if 'message' in kwargs: e['message'] = kwargs['message']
+        elif 'exc_info' in kwargs:
+            e['message'] = str(kwargs['exc_info'][1])
+        else: e['message'] = 'Unknown error'
+
         e['code'] = status_code
 
         self.write_json(e)

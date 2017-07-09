@@ -7,13 +7,17 @@ import tornado.ioloop
 log = logging.getLogger('LCD')
 
 
-class Page:
+class LCDPage:
     def __init__(self, lcd, text = None):
         self.lcd = lcd
         self.data = lcd.new_screen()
 
         if text is not None:
             self.text(text, (lcd.width - len(text)) // 2, 1)
+
+
+    def activate(self): pass
+    def deactivate(self): pass
 
 
     def put(self, c, x, y):
@@ -30,6 +34,12 @@ class Page:
         for c in s:
             self.put(c, x, y)
             x += 1
+
+
+    def clear(self):
+        self.data = self.lcd.new_screen()
+        self.lcd.redraw = True
+
 
     def shift_left(self): pass
     def shift_right(self): pass
@@ -63,7 +73,7 @@ class LCD:
 
     def set_message(self, msg):
         try:
-            self.load_page(Page(self, msg))
+            self.load_page(LCDPage(self, msg))
             self._update()
         except IOError as e:
             log.error('LCD communication failed: %s' % e)
@@ -73,12 +83,12 @@ class LCD:
         return [[' ' for y in range(self.height)] for x in range(self.width)]
 
 
-    def new_page(self): return Page(self)
+    def new_page(self): return LCDPage(self)
     def add_page(self, page): self.pages.append(page)
 
 
-    def add_new_page(self):
-        page = self.new_page()
+    def add_new_page(self, page = None):
+        if page is None: page = self.new_page()
         page.id = len(self.pages)
         self.add_page(page)
         return page
@@ -86,6 +96,8 @@ class LCD:
 
     def load_page(self, page):
         if self.page != page:
+            if self.page is not None: self.page.deactivate()
+            page.activate()
             self.page = page
             self.redraw = True
             self.update()

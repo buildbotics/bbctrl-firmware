@@ -24,6 +24,6 @@ fi
 
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
-    ./setup.py install
+    ./setup.py install --force
     service bbctrl start
 fi

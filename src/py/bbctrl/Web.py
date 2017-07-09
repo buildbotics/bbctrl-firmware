@@ -7,12 +7,96 @@ import logging
 import datetime
 import shutil
 import tarfile
+import subprocess
 
 import bbctrl
 
 
 log = logging.getLogger('Web')
 
+
+def call_get_output(cmd):
+    p = subprocess.Popen(cmd, stdout = subprocess.PIPE)
+    s = p.communicate()[0].decode('utf-8')
+    if p.returncode: raise Exception('Command failed')
+    return s
+
+
+class HostnameHandler(bbctrl.APIHandler):
+    def get(self):
+        p = subprocess.Popen(['hostname'], stdout = subprocess.PIPE)
+        hostname = p.communicate()[0].decode('utf-8').strip()
+        self.write_json(hostname)
+
+
+    def put(self):
+        if 'hostname' in self.json:
+            if subprocess.call(['/usr/local/bin/sethostname',
+                                self.json['hostname']]) == 0:
+                self.write_json('ok')
+                return
+
+        self.send_error(400, message = 'Failed to set hostname: %s' % self.json)
+
+
+def get_username():
+    return call_get_output(['getent', 'passwd', '1001']).split(':')[0]
+
+
+class UsernameHandler(bbctrl.APIHandler):
+    def get(self): self.write_json(get_username())
+
+
+    def put(self):
+        if 'username' in self.json:
+            username = get_username()
+
+            if subprocess.call(['usermod', '-l', self.json['username'],
+                                username]) == 0:
+                self.write_json('ok')
+                return
+
+        self.send_error(400, message = 'Failed to set username: %s' % self.json)
+
+
+class PasswordHandler(bbctrl.APIHandler):
+    def put(self):
+        if 'current' in self.json and 'password' in self.json:
+            # Get current user name
+            username = get_username()
+
+            # Get current password
+            s = call_get_output(['getent', 'shadow', username])
+            password = s.split(':')[1].split('$')
+
+            # Check password type
+            if password[1] != '1':
+                self.send_error(400, message =
+                                "Don't know how to update non-MD5 password")
+                return
+
+            # Check current password
+            cmd = ['openssl', 'passwd', '-salt', password[2], '-1',
+                   self.json['current']]
+            s = call_get_output(cmd).strip()
+            if s.split('$') != password:
+                print('%s != %s' % (s.split('$'), password))
+                self.send_error(401, message = 'Wrong password')
+                return
+
+            # Set password
+            s = '%s:%s' % (username, self.json['password'])
+            s = s.encode('utf-8')
+
+            p = subprocess.Popen(['chpasswd', '-c', 'MD5'],
+                                 stdin = subprocess.PIPE)
+            p.communicate(input = s)
+
+            if p.returncode == 0:
+                self.write_json('ok')
+                return
+
+        self.send_error(400, message = 'Failed to set password')
 
 
 class ConfigLoadHandler(bbctrl.APIHandler):
@@ -55,20 +139,26 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
         with open('firmware/update.tar.bz2', 'wb') as f:
             f.write(firmware['body'])
 
-        import subprocess
-        ret = subprocess.Popen(['update-bbctrl'])
+        subprocess.Popen(['/usr/local/bin/update-bbctrl'])
 
         self.write_json('ok')
 
 
 class UpgradeHandler(bbctrl.APIHandler):
-    def put_ok(self):
-        import subprocess
-        ret = subprocess.Popen(['upgrade-bbctrl'])
+    def put_ok(self): subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
 class HomeHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.home()
+    def put_ok(self, axis, set_home):
+        if axis is not None: axis = ord(axis[1:2].lower())
+
+        if set_home:
+            if not 'position' in self.json:
+                raise Exception('Missing "position"')
+
+            self.ctrl.avr.home(axis, self.json['position'])
+
+        else: self.ctrl.avr.home(axis)
 
 
 class StartHandler(bbctrl.APIHandler):
@@ -103,10 +193,9 @@ class StepHandler(bbctrl.APIHandler):
     def put_ok(self, path): self.ctrl.avr.step(path)
 
 
-class ZeroHandler(bbctrl.APIHandler):
+class PositionHandler(bbctrl.APIHandler):
     def put_ok(self, axis):
-        if axis is not None: axis = ord(axis[1:].lower())
-        self.ctrl.avr.zero(axis)
+        self.ctrl.avr.set_position(ord(axis.lower()), self.json['position'])
 
 
 class OverrideFeedHandler(bbctrl.APIHandler):
@@ -189,6 +278,9 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket', WSConnection),
+            (r'/api/hostname', HostnameHandler),
+            (r'/api/remote/username', UsernameHandler),
+            (r'/api/remote/password', PasswordHandler),
             (r'/api/config/load', ConfigLoadHandler),
             (r'/api/config/download', ConfigDownloadHandler),
             (r'/api/config/save', ConfigSaveHandler),
@@ -196,7 +288,7 @@ class Web(tornado.web.Application):
             (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
-            (r'/api/home', HomeHandler),
+            (r'/api/home(/[xyzabcXYZABC](/set)?)?', HomeHandler),
             (r'/api/start(/.+)', StartHandler),
             (r'/api/estop', EStopHandler),
             (r'/api/clear', ClearHandler),
@@ -205,7 +297,7 @@ class Web(tornado.web.Application):
             (r'/api/unpause', UnpauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
             (r'/api/step(/.+)', StepHandler),
-            (r'/api/zero(/[xyzabcXYZABC])?', ZeroHandler),
+            (r'/api/position/([xyzabcXYZABC])', PositionHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
             (r'/(.*)', StaticFileHandler,

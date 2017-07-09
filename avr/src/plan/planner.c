@@ -605,7 +605,6 @@ void mp_queue_push_nonstop(buffer_cb_t cb, uint32_t line) {
   mp_buffer_t *bp = mp_queue_get_tail();
 
   bp->entry_vmax = bp->cruise_vmax = bp->exit_vmax = INFINITY;
-  copy_vector(bp->unit, bp->prev->unit);
   bp->flags |= BUFFER_REPLANNABLE;
 
   mp_queue_push(cb, line);

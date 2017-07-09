@@ -52,6 +52,7 @@ coord_system_t mach_get_coord_system();
 bool mach_get_absolute_mode();
 path_mode_t mach_get_path_mode();
 bool mach_is_exact_stop();
+bool mach_in_absolute_mode();
 distance_mode_t mach_get_distance_mode();
 distance_mode_t mach_get_arc_distance_mode();
 
@@ -71,7 +72,8 @@ void mach_set_axis_position(unsigned axis, float position);
 void mach_set_position_from_runtime();
 
 // Critical helpers
-void mach_calc_target(float target[], const float values[], const bool flags[]);
+void mach_calc_target(float target[], const float values[], const bool flags[],
+                      bool absolute);
 stat_t mach_test_soft_limits(float target[]);
 
 // machining functions defined by NIST [organized by NIST Gcode doc]
@@ -90,9 +92,6 @@ void mach_set_coord_system(coord_system_t coord_system);
 
 void mach_set_home(float origin[], bool flags[]);
 void mach_clear_home(bool flags[]);
-
-stat_t mach_zero_all();
-stat_t mach_zero_axis(unsigned axis);
 
 void mach_set_origin_offsets(float offset[], bool flags[]);
 void mach_reset_origin_offsets();

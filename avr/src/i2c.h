@@ -44,7 +44,6 @@ typedef enum {
   I2C_FLUSH,
   I2C_REPORT,
   I2C_REBOOT,
-  I2C_ZERO,
 } i2c_cmd_t;
 
 

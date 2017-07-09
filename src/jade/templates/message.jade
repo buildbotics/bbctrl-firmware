@@ -4,8 +4,10 @@ script#message-template(type="text/x-template")
       .modal-container
         .modal-header
           slot(name="header") default header
+
         .modal-body
           slot(name="body") default body
+
         .modal-footer
           slot(name="footer")
             button.pure-button.button-success(@click="show = false") OK

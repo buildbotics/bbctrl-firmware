@@ -52,20 +52,6 @@
 static char *_cmd = 0;
 
 
-static void _reboot()     {hw_request_hard_reset();}
-
-
-static unsigned _parse_axis(uint8_t axis) {
-  switch (axis) {
-  case 'x': return 0; case 'y': return 1; case 'z': return 2;
-  case 'a': return 3; case 'b': return 4; case 'c': return 5;
-  case 'X': return 0; case 'Y': return 1; case 'Z': return 2;
-  case 'A': return 3; case 'B': return 4; case 'C': return 5;
-  default: return axis;
-  }
-}
-
-
 static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   switch (cmd) {
   case I2C_NULL:                                           break;
@@ -77,11 +63,7 @@ static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   case I2C_STEP:           mp_request_step();              break;
   case I2C_FLUSH:          mp_request_flush();             break;
   case I2C_REPORT:         report_request_full();          break;
-  case I2C_REBOOT:         _reboot();                      break;
-  case I2C_ZERO:
-    if (length == 0) mach_zero_all();
-    else if (length == 1) mach_zero_axis(_parse_axis(*data));
-    break;
+  case I2C_REBOOT:         hw_request_hard_reset();        break;
   }
 }
 
@@ -332,7 +314,7 @@ uint8_t command_report(int argc, char *argv[]) {
 
 
 uint8_t command_reboot(int argc, char *argv[]) {
-  _reboot();
+  hw_request_hard_reset();
   return 0;
 }
 

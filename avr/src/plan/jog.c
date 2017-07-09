@@ -45,47 +45,100 @@
 
 
 typedef struct {
+  float delta;
+  float t;
+  bool changed;
+
+  int sign;
+  float velocity;
+  float next;
+  float initial;
+  float target;
+} jog_axis_t;
+
+
+typedef struct {
   bool writing;
+  bool done;
+
   float Vi;
   float Vt;
-  float velocity_delta[AXES];
-  float velocity_t[AXES];
 
-  int sign[AXES];
-  float velocity[AXES];
-  float next_velocity[AXES];
-  float initial_velocity[AXES];
-  float target_velocity[AXES];
+  jog_axis_t axes[AXES];
 } jog_runtime_t;
 
 
 static jog_runtime_t jr;
 
 
+static bool _next_axis_velocity(int axis) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  float Vn = a->next * axis_get_velocity_max(axis);
+  float Vi = a->velocity;
+  float Vt = a->target;
+
+  if (JOG_MIN_VELOCITY < fabs(Vn)) jr.done = false;
+
+  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
+    Vn = 0; // Plan to zero on sign change
+
+  if (fabs(Vn) < JOG_MIN_VELOCITY) Vn = 0;
+
+  if (Vt == Vn) return false; // No change
+
+  a->target = Vn;
+  if (Vn) a->sign = Vn < 0 ? -1 : 1;
+
+  return true;
+}
+
+
+static float _compute_axis_velocity(int axis) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  float V = fabs(a->velocity);
+  float Vt = fabs(a->target);
+
+  if (JOG_MIN_VELOCITY < Vt) jr.done = false;
+
+  if (fp_EQ(V, Vt)) return Vt;
+
+  if (a->changed) {
+    // Compute axis max jerk
+    float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+
+    // Compute length to velocity given max jerk
+    float length = mp_get_target_length(V, Vt, jerk * JOG_JERK_MULT);
+
+    // Compute move time
+    float move_time = 2 * length / (V + Vt);
+
+    if (move_time <= SEGMENT_TIME) return Vt;
+
+    a->initial = V;
+    a->t = a->delta = SEGMENT_TIME / move_time;
+  }
+
+  if (a->t <= 0) return V;
+  if (1 <= a->t) return Vt;
+
+  // Compute quintic Bezier curve
+  V = velocity_curve(a->initial, Vt, a->t);
+  a->t += a->delta;
+
+  return V;
+}
+
+
 static stat_t _exec_jog(mp_buffer_t *bf) {
   // Load next velocity
-  bool changed = false;
-  bool done = true;
+  jr.done = true;
+
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++) {
       if (!axis_is_enabled(axis)) continue;
-
-      float Vn = jr.next_velocity[axis] * axis_get_velocity_max(axis);
-      float Vi = jr.velocity[axis];
-      float Vt = jr.target_velocity[axis];
-
-      if (JOG_MIN_VELOCITY < fabs(Vn)) done = false;
-
-      if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
-        Vn = 0; // Plan to zero on sign change
-
-      if (fabs(Vn) < JOG_MIN_VELOCITY) Vn = 0;
-
-      if (Vt != Vn) {
-        jr.target_velocity[axis] = Vn;
-        if (Vn) jr.sign[axis] = Vn < 0 ? -1 : 1;
-        changed = true;
-      }
+      jr.axes[axis].changed = _next_axis_velocity(axis);
     }
 
   float velocity_sqr = 0;
@@ -93,52 +146,14 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   // Compute per axis velocities
   for (int axis = 0; axis < AXES; axis++) {
     if (!axis_is_enabled(axis)) continue;
-
-    float V = fabs(jr.velocity[axis]);
-    float Vt = fabs(jr.target_velocity[axis]);
-
-    if (changed) {
-      if (fp_EQ(V, Vt)) {
-        V = Vt;
-        jr.velocity_t[axis] = 1;
-
-      } else {
-        // Compute axis max jerk
-        float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
-
-        // Compute length to velocity given max jerk
-        float length = mp_get_target_length(V, Vt, jerk * JOG_JERK_MULT);
-
-        // Compute move time
-        float move_time = 2 * length / (V + Vt);
-
-        if (move_time < SEGMENT_TIME) {
-          V = Vt;
-          jr.velocity_t[axis] = 1;
-
-        } else {
-          jr.initial_velocity[axis] = V;
-          jr.velocity_t[axis] = jr.velocity_delta[axis] =
-            SEGMENT_TIME / move_time;
-        }
-      }
-    }
-
-    if (jr.velocity_t[axis] < 1) {
-      // Compute quintic Bezier curve
-      V = velocity_curve(jr.initial_velocity[axis], Vt, jr.velocity_t[axis]);
-      jr.velocity_t[axis] += jr.velocity_delta[axis];
-
-    } else V = Vt;
-
-    if (JOG_MIN_VELOCITY < V || JOG_MIN_VELOCITY < Vt) done = false;
-
+    float V = _compute_axis_velocity(axis);
     velocity_sqr += square(V);
-    jr.velocity[axis] = V * jr.sign[axis];
+    jr.axes[axis].velocity = V * jr.axes[axis].sign;
+    if (JOG_MIN_VELOCITY < V) jr.done = false;
   }
 
   // Check if we are done
-  if (done) {
+  if (jr.done) {
     // Update machine position
     mach_set_position_from_runtime();
     mp_set_cycle(CYCLE_MACHINING); // Default cycle
@@ -151,7 +166,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   float target[AXES];
   for (int axis = 0; axis < AXES; axis++)
     target[axis] = mp_runtime_get_axis_position(axis) +
-      jr.velocity[axis] * SEGMENT_TIME;
+      jr.axes[axis].velocity * SEGMENT_TIME;
 
   // Set velocity and target
   mp_runtime_set_velocity(sqrt(velocity_sqr));
@@ -178,7 +193,7 @@ uint8_t command_jog(int argc, char *argv[]) {
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
-    jr.next_velocity[axis] = velocity[axis];
+    jr.axes[axis].next = velocity[axis];
   jr.writing = false;
 
   if (mp_get_cycle() != CYCLE_JOGGING) {

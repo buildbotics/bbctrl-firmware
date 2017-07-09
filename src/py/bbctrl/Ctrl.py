@@ -1,9 +1,29 @@
 import logging
+import subprocess
 
 import bbctrl
 
 
 log = logging.getLogger('Ctrl')
+
+
+class IPPage(bbctrl.LCDPage):
+    def update(self):
+        p = subprocess.Popen(['hostname', '-I'], stdout = subprocess.PIPE)
+        ips = p.communicate()[0].decode('utf-8').split()
+
+        p = subprocess.Popen(['hostname'], stdout = subprocess.PIPE)
+        hostname = p.communicate()[0].decode('utf-8').strip()
+
+        self.clear()
+
+        self.text('Host: %s' % hostname[0:14], 0, 0)
+
+        for i in range(min(3, len(ips))):
+            self.text('IP: %s' % ips[i], 0, i + 1)
+
+
+    def activate(self): self.update()
 
 
 class Ctrl(object):
@@ -20,3 +40,5 @@ class Ctrl(object):
         self.pwr = bbctrl.Pwr(self)
 
         self.avr.connect()
+
+        self.lcd.add_new_page(IPPage(self.lcd))

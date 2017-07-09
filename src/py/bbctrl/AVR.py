@@ -21,13 +21,27 @@ I2C_STEP           = 6
 I2C_FLUSH          = 7
 I2C_REPORT         = 8
 I2C_REBOOT         = 9
-I2C_ZERO           = 10
 
 
 machine_state_vars = '''
   xp yp zp ap bp cp u s f t fm pa cs ao pc dm ad fo so mc fc
 '''.split()
 
+# Axis homing procedure
+#   - Set axis unhomed
+#   - Find switch
+#   - Backoff switch
+#   - Find switch more accurately
+#   - Backoff to machine zero
+#   - Set axis home position
+axis_homing_procedure = '''
+  G28.2 %(axis)c0 F[#<%(axis)c.sv>]
+  G38.6 %(axis)c[#<%(axis)c.hd> * [#<%(axis)c.tm> - #<%(axis)c.tn>]]
+  G38.8 %(axis)c[#<%(axis)c.hd> * -#<%(axis)c.lb>] F[#<%(axis)c.lv>]
+  G38.6 %(axis)c[#<%(axis)c.hd> * #<%(axis)c.lb> * 1.5]
+  G0 %(axis)c[#<%(axis)c.hd> * -#<%(axis)c.zb> + #<%(axis)cp>]
+  G28.3 %(axis)c[#<%(axis)c.hp>]
+'''
 
 class AVR():
     def __init__(self, ctrl):
@@ -267,7 +281,18 @@ class AVR():
         self.queue_command('${}{}={}'.format(index, code, value))
 
 
-    def home(self): log.debug('NYI')
+    def home(self, axis, position = None):
+        if self.stream is not None: raise Exception('Busy, cannot home')
+
+        if position is not None:
+            self.queue_command('G28.3 %c%f' % (axis, position))
+
+        else:
+            gcode = axis_homing_procedure % {'axis': axis}
+            for line in gcode.splitlines():
+                self.queue_command(line.strip())
+
+
     def estop(self): self._i2c_command(I2C_ESTOP)
     def clear(self): self._i2c_command(I2C_CLEAR)
 
@@ -292,7 +317,12 @@ class AVR():
         # Resume processing once current queue of GCode commands has flushed
         self.queue_command('$resume')
 
+
     def pause(self): self._i2c_command(I2C_PAUSE)
     def unpause(self): self._i2c_command(I2C_RUN)
     def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
-    def zero(self, axis = None): self._i2c_command(I2C_ZERO, byte = axis)
+
+
+    def set_position(self, axis, position):
+        if self.stream is not None: raise Exception('Busy, cannot set position')
+        self.queue_command('G92 %c%f' % (axis, position))

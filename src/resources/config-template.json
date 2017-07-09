@@ -17,7 +17,7 @@
         "code": "pm"
       },
       "drive-current": {
-        "type": "aloat",
+        "type": "float",
         "min": 0,
         "max": 8,
         "unit": "amps",
@@ -28,7 +28,7 @@
         "type": "float",
         "min": 0,
         "max": 8,
-        "unit": "Amps",
+        "unit": "amps",
         "default": 0,
         "code": "ic"
       }
@@ -109,9 +109,9 @@
       "homing-mode": {
         "type": "enum",
         "values": [
-          "disabled", "stall-min", "stall-max", "switch-min", "switch-max"
+          "manual", "stall-min", "stall-max", "switch-min", "switch-max"
         ],
-        "default": "disabled",
+        "default": "manual",
         "code": "ho"
       },
       "search-velocity": {

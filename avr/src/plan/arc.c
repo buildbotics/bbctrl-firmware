@@ -435,7 +435,7 @@ stat_t mach_arc_feed(float values[], bool values_f[],   // arc endpoints
 
   // Set model target
   const float *position = mach_get_position();
-  mach_calc_target(arc.target, values, values_f);
+  mach_calc_target(arc.target, values, values_f, mach_in_absolute_mode());
 
   // in radius mode it's an error for start == end
   if (radius_f && fp_EQ(position[AXIS_X], arc.target[AXIS_X]) &&

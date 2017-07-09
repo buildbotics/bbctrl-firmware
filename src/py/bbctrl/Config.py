@@ -64,7 +64,11 @@ class Config(object):
     def encode_cmd(self, index, value, spec):
         if not 'code' in spec: return
 
-        if spec['type'] == 'enum': value = spec['values'].index(value)
+        if spec['type'] == 'enum':
+            if value in spec['values']:
+                value = spec['values'].index(value)
+            else: value = spec['default']
+
         elif spec['type'] == 'bool': value = 1 if value else 0
         elif spec['type'] == 'percent': value /= 100.0
 
