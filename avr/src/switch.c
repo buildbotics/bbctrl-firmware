@@ -74,7 +74,7 @@ static switch_t switches[SWITCHES] = {
   {.pin = MIN_X_PIN, .type = SW_DISABLED},
   {.pin = MAX_X_PIN, .type = SW_DISABLED},
   {.pin = MIN_Y_PIN, .type = SW_DISABLED},
-  {.pin = MAX_X_PIN, .type = SW_DISABLED},
+  {.pin = MAX_Y_PIN, .type = SW_DISABLED},
   {.pin = MIN_Z_PIN, .type = SW_DISABLED},
   {.pin = MAX_Z_PIN, .type = SW_DISABLED},
   {.pin = MIN_A_PIN, .type = SW_DISABLED},
