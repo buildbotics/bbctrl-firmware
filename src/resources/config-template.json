@@ -232,14 +232,38 @@
     "estop": {
       "type": "enum",
       "values": ["disabled", "normally-open", "normally-closed"],
-      "default": "disabled",
+      "default": "normally-open",
       "code": "et"
     },
     "probe": {
       "type": "enum",
       "values": ["disabled", "normally-open", "normally-closed"],
-      "default": "disabled",
+      "default": "normally-open",
       "code": "pt"
+    }
+  },
+
+  "outputs": {
+    "load-1": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "1om"
+    },
+    "load-2": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "2om"
+    },
+    "fault": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "fom"
     }
   },
 

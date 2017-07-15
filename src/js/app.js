@@ -27,7 +27,7 @@ module.exports = new Vue({
     'control-view': require('./control-view'),
     'motor-view': require('./motor-view'),
     'spindle-view': require('./spindle-view'),
-    'switches-view': require('./switches-view'),
+    'io-view': require('./io-view'),
     'gcode-view': require('./gcode-view'),
     'admin-view': require('./admin-view')
   },

@@ -16,7 +16,9 @@ default_config = {
         {"axis": "A"},
         ],
     "switches": {},
+    "outputs": {},
     "spindle": {},
+    "gcode": {},
     }
 
 
@@ -41,6 +43,11 @@ class Config(object):
         try:
             config = self.load_path('config.json')
             config['version'] = self.version
+
+            # Add missing sections
+            for key, value in default_config.items():
+                if not key in config: config[key] = value
+
             return config
 
         except Exception as e:

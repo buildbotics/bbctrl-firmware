@@ -1,0 +1,15 @@
+script#io-view-template(type="text/x-template")
+  #io
+    h1 I/O Configuration
+
+    h2 Switches
+    form.pure-form.pure-form-aligned
+      fieldset
+        templated-input(v-for="templ in template.switches", :name="$key",
+          :model.sync="switches[$key]", :template="templ")
+
+    h2 Outputs
+    form.pure-form.pure-form-aligned
+      fieldset
+        templated-input(v-for="templ in template.outputs", :name="$key",
+          :model.sync="outputs[$key]", :template="templ")
