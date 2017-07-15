@@ -1,0 +1,23 @@
+#!/bin/bash -e
+
+HOSTNAME="$1"
+
+if [ "$HOSTNAME" == "" ]; then
+    echo "Usage: $0 <hostname>"
+    exit 1
+fi
+
+if [ $(echo "$HOSTNAME" | tr '[:upper:]' '[:lower:]') == "localhost" ]; then
+    echo "Cannot set hostname to 'localhost'"
+    exit 1
+fi
+
+if [[ ! "$HOSTNAME" =~ ^[a-zA-Z0-9-]{1,63}$ ]]; then
+    echo "Invalid hostname '$HOSTNAME'"
+    exit 1
+fi
+
+sed -i "s/^127.0.1.1\([[:space:]]*\).*$/127.0.1.1\1$HOSTNAME/" /etc/hosts
+echo "$HOSTNAME" > /etc/hostname
+/etc/init.d/hostname.sh
+sync

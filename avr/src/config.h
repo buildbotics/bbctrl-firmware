@@ -40,8 +40,8 @@ enum {
   STALL_Y_PIN,
   STALL_Z_PIN,
   STALL_A_PIN,
-  SPIN_DIR_PIN,
-  SPIN_ENABLE_PIN,
+  TOOL_DIR_PIN,
+  TOOL_ENABLE_PIN,
   ANALOG_PIN,
   PROBE_PIN,
 
@@ -98,7 +98,7 @@ enum {
 #define MOTORS                   4 // number of motors on the board
 #define COORDS                   6 // number of supported coordinate systems
 #define SWITCHES                10 // number of supported switches
-#define PWMS                     2 // number of supported PWM channels
+#define OUTS                     5 // number of supported pin outputs
 
 
 // Switch settings.  See switch.c

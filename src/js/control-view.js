@@ -40,7 +40,8 @@ module.exports = {
       manual_home: {x: false, y: false, z: false, a: false, b: false, c: false},
       position_msg:
       {x: false, y: false, z: false, a: false, b: false, c: false},
-      axis_position: 0
+      axis_position: 0,
+      video_url: ''
     }
   },
 
@@ -294,18 +295,11 @@ module.exports = {
     },
 
 
-    clear_console: function () {this.console = [];}
-  },
+    clear_console: function () {this.console = [];},
 
 
-  filters: {
-    percent: function (value, precision) {
-      if (typeof precision == 'undefined') precision = 2;
-      return (value * 100.0).toFixed(precision) + '%';
-    },
-
-
-    fixed: function (value, precision) {return value.toFixed(precision)},
-    upper: function (value) {return value.toUpperCase()}
+    load_video: function () {
+      this.video_url = '//' + document.location.hostname + ':8000/stream/0';
+    }
   }
 }

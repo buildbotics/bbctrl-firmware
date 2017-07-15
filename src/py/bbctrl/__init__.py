@@ -45,7 +45,7 @@ def parse_args():
                         help = 'Serial baud rate')
     parser.add_argument('--i2c-port', default = 1, type = int,
                         help = 'I2C port')
-    parser.add_argument('--lcd-addr', default = 0x27, type = int,
+    parser.add_argument('--lcd-addr', default = [0x27, 0x3f], type = int,
                         help = 'LCD I2C address')
     parser.add_argument('--avr-addr', default = 0x2b, type = int,
                         help = 'AVR I2C address')

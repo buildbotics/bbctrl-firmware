@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -28,13 +27,31 @@
 
 #pragma once
 
-#include "machine.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 
-void spindle_init();
-void spindle_set_mode(spindle_mode_t mode);
-void spindle_set_speed(float speed);
-spindle_mode_t spindle_get_mode();
-float spindle_get_speed();
-void spindle_stop();
-bool spindle_is_reversed();
+typedef enum {
+  OUT_LO,
+  OUT_HI,
+  OUT_TRI,
+} output_state_t;
+
+
+// OUT_inactive_active
+typedef enum {
+  OUT_DISABLED,
+  OUT_LO_HI,
+  OUT_HI_LO,
+  OUT_TRI_LO,
+  OUT_TRI_HI,
+  OUT_LO_TRI,
+  OUT_HI_TRI,
+} output_mode_t;
+
+
+void outputs_init();
+bool outputs_is_active(uint8_t pin);
+void outputs_set_active(uint8_t pin, bool active);
+void outputs_set_mode(uint8_t pin, output_mode_t mode);
+output_state_t outputs_get_state(uint8_t pin);

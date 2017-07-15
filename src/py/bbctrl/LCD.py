@@ -51,6 +51,10 @@ class LCD:
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
+        self.addrs = self.ctrl.args.lcd_addr
+        self.addr = self.addrs[0]
+        self.addr_num = 0
+
         self.width = 20
         self.height = 4
         self.lcd = None
@@ -129,8 +133,8 @@ class LCD:
 
         try:
             if self.lcd is None:
-                self.lcd = lcd.LCD(self.ctrl.i2c, self.ctrl.args.lcd_addr,
-                                   self.height, self.width)
+                self.lcd = lcd.LCD(self.ctrl.i2c, self.addr, self.height,
+                                   self.width)
 
             if self.reset:
                 self.lcd.reset()
@@ -155,7 +159,15 @@ class LCD:
             self.redraw = False
 
         except IOError as e:
-            log.error('LCD communication failed, retrying: %s' % e)
+            # Try next address
+            self.addr_num += 1
+            if len(self.addrs) <= self.addr_num: self.addr_num = 0
+            self.addr = self.addrs[self.addr_num]
+            self.lcd = None
+
+            log.error('LCD communication failed, ' +
+                      'retrying on address 0x%02x: %s' % (self.addr, e))
+
             self.reset = True
             self.timeout = self.ctrl.ioloop.call_later(1, self._update)
 

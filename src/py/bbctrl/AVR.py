@@ -238,6 +238,14 @@ class AVR():
                 log.error('Updating Web: %s', e)
 
 
+    def _find_motor(self, axis):
+        for motor in range(6):
+            if not ('%dan' % motor) in self.vars: continue
+            motor_axis = 'xyzabc'[self.vars['%dan' % motor]]
+            if motor_axis == axis.lower() and self.vars['%dpm' % motor]:
+                return motor
+
+
     def _update_lcd(self, msg):
         if 'x' in msg or 'c' in msg:
             v = self.vars
@@ -246,10 +254,17 @@ class AVR():
 
             self.lcd_page.text('%-9s' % state, 0, 0)
 
-        if 'xp' in msg: self.lcd_page.text('% 10.3fX' % msg['xp'], 9, 0)
-        if 'yp' in msg: self.lcd_page.text('% 10.3fY' % msg['yp'], 9, 1)
-        if 'zp' in msg: self.lcd_page.text('% 10.3fZ' % msg['zp'], 9, 2)
-        if 'ap' in msg: self.lcd_page.text('% 10.3fA' % msg['ap'], 9, 3)
+        # Show enabled axes
+        row = 0
+        for axis in 'xyzabc':
+            motor = self._find_motor(axis)
+            if motor is not None:
+                if (axis + 'p') in msg:
+                    self.lcd_page.text('% 10.3f%s' % (
+                            msg[axis + 'p'], axis.upper()), 9, row)
+
+                row += 1
+
         if 't' in msg:  self.lcd_page.text('%2uT'     % msg['t'],  6, 1)
         if 'u' in msg:  self.lcd_page.text('%-6s'     % msg['u'],  0, 1)
         if 'f' in msg:  self.lcd_page.text('%8uF'     % msg['f'],  0, 2)

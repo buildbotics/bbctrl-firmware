@@ -362,6 +362,30 @@ body
       &.debug td
         color green
 
+  .indicators
+    table
+      display inline-block
+      vertical-align top
+      margin 0.5em
+      empty-cells show
+
+      td, th
+        padding 4px
+
+    .logic-lo
+      color black
+
+    .logic-hi
+      color green
+
+    .warn
+      background-color transparent
+      color orange
+
+  .video
+    text-align center
+    line-height 0
+
 
 .tabs
   clear both
@@ -372,7 +396,7 @@ body
   > label
     display block
     float left
-    width 5em
+    width 6em
     font-weight bold
     cursor pointer
     text-decoration none
@@ -393,7 +417,11 @@ body
   > #tab2:checked ~ #content2,
   > #tab3:checked ~ #content3,
   > #tab4:checked ~ #content4,
-  > #tab5:checked ~ #content5
+  > #tab5:checked ~ #content5,
+  > #tab6:checked ~ #content6,
+  > #tab7:checked ~ #content7,
+  > #tab8:checked ~ #content8,
+  > #tab9:checked ~ #content9
     display block
 
   [id^="tab"]:checked + label

@@ -27,6 +27,10 @@ VERSION := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
 PKG_NAME := bbctrl-$(VERSION)
 PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
 
+ifndef HOST
+HOST=bbctrl.local
+endif
+
 ifndef DEST
 DEST=mnt
 endif
@@ -52,11 +56,11 @@ publish: pkg
 update: pkg
 	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
 	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" \
-	  http://bbctrl.local/api/firmware/update
+	  http://$(HOST)/api/firmware/update
 
 mount:
 	mkdir -p $(DEST)
-	sshfs bbmc@bbctrl.local: $(DEST)
+	sshfs bbmc@$(HOST): $(DEST)
 
 umount:
 	fusermount -u $(DEST)

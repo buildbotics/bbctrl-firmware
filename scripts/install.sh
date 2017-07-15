@@ -27,3 +27,5 @@ if $UPDATE_PY; then
     ./setup.py install --force
     service bbctrl start
 fi
+
+sync

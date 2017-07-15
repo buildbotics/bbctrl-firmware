@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import pkg_resources
+import subprocess
 
 import bbctrl
 
@@ -54,6 +55,8 @@ class Config(object):
 
         with open('config.json', 'w') as f:
             json.dump(config, f)
+
+        subprocess.check_call(['sync'])
 
         log.info('Saved')
 

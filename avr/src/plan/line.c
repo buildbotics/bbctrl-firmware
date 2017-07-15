@@ -250,7 +250,7 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
   mp_buffer_t *prev = mp_buffer_prev(bf);
   while (prev->state != BUFFER_OFF)
     if (prev->flags & BUFFER_LINE) {
-      _get_junction_vmax(prev->unit, bf->unit);
+      junction_velocity = _get_junction_vmax(prev->unit, bf->unit);
       break;
 
     } else prev = mp_buffer_prev(prev);
@@ -262,7 +262,6 @@ static void _calc_max_velocities(mp_buffer_t *bf, float move_time,
 
   // Zero out exact stop cases
   if (exact_stop) bf->entry_vmax = bf->exit_vmax = 0;
-  else bf->flags |= BUFFER_REPLANNABLE;
 }
 
 
@@ -376,11 +375,11 @@ static float _calc_move_time(const float axis_length[],
  */
 stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
                 float feed_rate, float feed_override, int32_t line) {
-  DEBUG_CALL("(%f, %f, %f, %f), %s, %s, %s, %f, %f, %d", target[0], target[1],
-             target[2], target[3],
-             (flags & BUFFER_RAPID) ? "true" : "false",
-             (flags & BUFFER_INVERSE_TIME) ? "true" : "false",
-             (flags & BUFFER_EXACT_STOP) ? "true" : "false",
+  DEBUG_CALL("(%f, %f, %f, %f), %s%s%s, %f, %f, %d",
+             target[0], target[1], target[2], target[3],
+             (flags & BUFFER_RAPID) ? "rapid|" : "",
+             (flags & BUFFER_INVERSE_TIME) ? "inverse_time|" : "",
+             (flags & BUFFER_EXACT_STOP) ? "exact_stop|" : "",
              feed_rate, feed_override, line);
 
   // Trap zero feed rate condition
@@ -422,13 +421,15 @@ stat_t mp_aline(const float target[], buffer_flags_t flags, switch_id_t sw,
                                feed_override);
   _calc_max_velocities(bf, time, flags & BUFFER_EXACT_STOP);
 
-  // Note, the following lines must remain in order.
-  bf->line = line;              // Planner needs this when planning steps
   flags |= BUFFER_LINE;
-  bf->flags = flags;            // Move flags
-  bf->sw = sw;                  // Seek switche
-  mp_plan(bf);                  // Plan block list
-  mp_set_position(target);      // Set planner position before committing buffer
+  if (!(flags & BUFFER_EXACT_STOP)) flags |= BUFFER_REPLANNABLE;
+
+  // Note, the following lines must remain in order.
+  bf->line = line;                 // Planner needs this when planning steps
+  bf->flags = flags;               // Move flags
+  bf->sw = sw;                     // Seek switch, if any
+  mp_plan(bf);                     // Plan block list
+  mp_set_position(target);         // Set planner position before pushing buffer
   mp_queue_push(mp_exec_aline, line); // After position update
 
   return STAT_OK;

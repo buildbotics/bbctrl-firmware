@@ -41,6 +41,7 @@
 #include "estop.h"
 #include "i2c.h"
 #include "pgmspace.h"
+#include "outputs.h"
 
 #include "plan/planner.h"
 #include "plan/arc.h"
@@ -59,6 +60,7 @@ int main() {
   cli();                          // disable interrupts
 
   hardware_init();                // hardware setup - must be first
+  outputs_init();                 // output pins
   usart_init();                   // serial port
   i2c_init();                     // i2c port
   drv8711_init();                 // motor drivers

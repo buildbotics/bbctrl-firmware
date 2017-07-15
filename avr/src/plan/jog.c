@@ -131,6 +131,33 @@ static float _compute_axis_velocity(int axis) {
 }
 
 
+#if 0
+static float _axis_velocity_at_limits(int axis) {
+  float V = jr.axes[axis].velocity;
+
+  if (axis_get_homed(axis)) {
+    float min = axis_get_travel_min(axis);
+    float max = axis_get_travel_max(axis);
+
+    if (position <= min) return 0;
+    if (max <= position) return 0;
+
+    float position = mp_runtime_get_axis_position(axis);
+    float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+    float decelDist = mp_get_target_length(V, 0, jerk * JOG_JERK_MULT);
+
+    if (position < min + decelDist) {
+    }
+
+    if (max - decelDist < position) {
+    }
+  }
+
+  return V;
+}
+#endif
+
+
 static stat_t _exec_jog(mp_buffer_t *bf) {
   // Load next velocity
   jr.done = true;

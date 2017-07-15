@@ -169,9 +169,7 @@ void switch_rtc_callback() {
 }
 
 
-bool switch_is_active(int index) {
-  return switches[index].state;
-}
+bool switch_is_active(int index) {return switches[index].state;}
 
 
 bool switch_is_enabled(int index) {
@@ -222,7 +220,14 @@ void set_estop_mode(uint8_t value) {switch_set_type(SW_ESTOP, value);}
 uint8_t get_probe_mode() {return switch_get_type(SW_PROBE);}
 void set_probe_mode(uint8_t value) {switch_set_type(SW_PROBE, value);}
 
-bool get_min_switch(int index) {return switch_is_active(MIN_SWITCH(index));}
-bool get_max_switch(int index) {return switch_is_active(MAX_SWITCH(index));}
-bool get_estop_switch() {return switch_is_active(SW_ESTOP);}
-bool get_probe_switch() {return switch_is_active(SW_PROBE);}
+
+static uint8_t _get_state(int index) {
+  if (!switch_is_enabled(index)) return 2; // Disabled
+  return switch_is_active(index);
+}
+
+
+uint8_t get_min_switch(int index) {return _get_state(MIN_SWITCH(index));}
+uint8_t get_max_switch(int index) {return _get_state(MAX_SWITCH(index));}
+uint8_t get_estop_switch() {return _get_state(SW_ESTOP);}
+uint8_t get_probe_switch() {return _get_state(SW_PROBE);}

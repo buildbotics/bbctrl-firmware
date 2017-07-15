@@ -30,6 +30,7 @@
 
 #include "config.h"
 #include "estop.h"
+#include "outputs.h"
 
 
 typedef struct {
@@ -38,8 +39,6 @@ typedef struct {
   float max_rpm;
   float min_duty;
   float max_duty;
-  bool reverse;
-  bool enable_invert;
   bool pwm_invert;
 } pwm_spindle_t;
 
@@ -47,21 +46,21 @@ typedef struct {
 static pwm_spindle_t spindle = {0};
 
 
-static void _spindle_set_enable(bool enable) {
-  SET_PIN(SPIN_ENABLE_PIN, enable ^ spindle.enable_invert);
+static void _set_enable(bool enable) {
+  outputs_set_active(TOOL_ENABLE_PIN, enable);
 }
 
 
-static void _spindle_set_dir(bool forward) {
-  SET_PIN(SPIN_DIR_PIN, !(forward ^ spindle.reverse));
+static void _set_dir(bool clockwise) {
+  outputs_set_active(TOOL_DIR_PIN, !clockwise);
 }
 
 
-static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
+static void _set_pwm(spindle_mode_t mode, float speed) {
   if (mode == SPINDLE_OFF || speed < spindle.min_rpm || estop_triggered()) {
     TIMER_PWM.CTRLA = 0;
     OUTCLR_PIN(SPIN_PWM_PIN);
-    _spindle_set_enable(false);
+    _set_enable(false);
     return;
   }
 
@@ -116,23 +115,21 @@ static void _spindle_set_pwm(spindle_mode_t mode, float speed) {
 
 void pwm_spindle_init() {
   // Configure IO
-  _spindle_set_dir(true);
-  _spindle_set_enable(false);
+  _set_dir(true);
+  _set_enable(false);
 
   DIRSET_PIN(SPIN_PWM_PIN);    // Output
-  DIRSET_PIN(SPIN_DIR_PIN);    // Output
-  DIRSET_PIN(SPIN_ENABLE_PIN); // Output
 }
 
 
 void pwm_spindle_set(spindle_mode_t mode, float speed) {
-  _spindle_set_dir(mode == SPINDLE_CW);
-  _spindle_set_pwm(mode, speed);
-  _spindle_set_enable(mode != SPINDLE_OFF && TIMER_PWM.CTRLA);
+  if (mode != SPINDLE_OFF) _set_dir(mode == SPINDLE_CW);
+  _set_pwm(mode, speed);
+  _set_enable(mode != SPINDLE_OFF);
 }
 
 
-void pwm_spindle_stop() {_spindle_set_pwm(SPINDLE_OFF, 0);}
+void pwm_spindle_stop() {pwm_spindle_set(SPINDLE_OFF, 0);}
 
 
 // TODO these need more effort and should work with the huanyang spindle too
@@ -144,15 +141,11 @@ float get_spin_min_duty() {return spindle.min_duty * 100;}
 void set_spin_min_duty(float value) {spindle.min_duty = value / 100;}
 float get_spin_max_duty() {return spindle.max_duty * 100;}
 void set_spin_max_duty(float value) {spindle.max_duty = value / 100;}
-uint8_t get_spin_reverse() {return spindle.reverse;}
-void set_spin_reverse(uint8_t value) {spindle.reverse = value;}
 float get_spin_up() {return 0;}    // TODO
 void set_spin_up(float value) {}   // TODO
 float get_spin_down() {return 0;}  // TODO
 void set_spin_down(float value) {} // TODO
 uint16_t get_spin_freq() {return spindle.freq;}
 void set_spin_freq(uint16_t value) {spindle.freq = value;}
-bool get_enable_invert() {return spindle.enable_invert;}
-void set_enable_invert(bool value) {spindle.enable_invert = value;}
 bool get_pwm_invert() {return spindle.pwm_invert;}
 void set_pwm_invert(bool value) {spindle.pwm_invert = value;}

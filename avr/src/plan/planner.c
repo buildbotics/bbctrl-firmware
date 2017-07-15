@@ -434,32 +434,35 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
 
 #if 0
-/// Prints the entire planning queue as comma separated values embedded in
-/// JSON ``msg`` entries.  Used for debugging.
-void mp_print_queue(mp_buffer_t *bf) {
-  printf_P(PSTR("{\"msg\":\"id,replannable,callback,"
-                "length,head_length,body_length,tail_length,"
-                "entry_velocity,cruise_velocity,exit_velocity,braking_velocity,"
-                "entry_vmax,cruise_vmax,exit_vmax\"}\n"));
-
-  int i = 0;
-  mp_buffer_t *bp = bf;
-  while (bp) {
-    printf_P(PSTR("{\"msg\":\"%d,%d,0x%04lx,"
+void mp_print_buffer(mp_buffer_t *bp) {
+    printf_P(PSTR("{\"msg\":\"%d,0x%04lx,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f,%0.2f,"
                   "%0.2f,%0.2f,%0.2f\"}\n"),
-             i++, bp->flags & BUFFER_REPLANNABLE, (intptr_t)bp->cb,
+             bp->flags & BUFFER_REPLANNABLE, (intptr_t)bp->cb,
              bp->length, bp->head_length, bp->body_length, bp->tail_length,
              bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
              bp->braking_velocity,
              bp->entry_vmax, bp->cruise_vmax, bp->exit_vmax);
 
+  while (!usart_tx_empty()) continue;
+}
+
+
+/// Prints the entire planning queue as comma separated values embedded in
+/// JSON ``msg`` entries.  Used for debugging.
+void mp_print_queue(mp_buffer_t *bf) {
+  printf_P(PSTR("{\"msg\":\"replannable,callback,"
+                "length,head_length,body_length,tail_length,"
+                "entry_velocity,cruise_velocity,exit_velocity,braking_velocity,"
+                "entry_vmax,cruise_vmax,exit_vmax\"}\n"));
+
+  mp_buffer_t *bp = bf;
+  while (bp) {
+    mp_print_buffer(bp);
     bp = mp_buffer_prev(bp);
     if (bp == bf || bp->state == BUFFER_OFF) break;
   }
-
-  while (!usart_tx_empty()) continue;
 }
 #endif
 
@@ -524,27 +527,28 @@ void mp_print_queue(mp_buffer_t *bf) {
  *     list can be recomputed regardless of exact stops and previous replanning
  *     optimizations.
  */
-void mp_plan(mp_buffer_t *bl) {
-  mp_buffer_t *bp = bl;
+void mp_plan(mp_buffer_t *bf) {
+  mp_buffer_t *bp = bf;
 
   // Backward planning pass.  Find first block and update braking velocities.
   // By the end bp points to the buffer before the first block.
   mp_buffer_t *next = bp;
-  while ((bp = mp_buffer_prev(bp)) != bl) {
+  while ((bp = mp_buffer_prev(bp)) != bf) {
     if (!(bp->flags & BUFFER_REPLANNABLE)) break;
 
+    // TODO what about non-move buffers?
     bp->braking_velocity =
       min(next->entry_vmax, next->braking_velocity) + bp->delta_vmax;
 
     next = bp;
   }
 
-  // Forward planning pass.  Recompute trapezoids from the first block to bl.
+  // Forward planning pass.  Recompute trapezoids from the first block to bf.
   mp_buffer_t *prev = bp;
-  while ((bp = mp_buffer_next(bp)) != bl) {
+  while ((bp = mp_buffer_next(bp)) != bf) {
     mp_buffer_t *next = mp_buffer_next(bp);
 
-    bp->entry_velocity = prev == bl ? bp->entry_vmax : prev->exit_velocity;
+    bp->entry_velocity = prev == bf ? bp->entry_vmax : prev->exit_velocity;
     bp->cruise_velocity = bp->cruise_vmax;
     bp->exit_velocity = min4(bp->exit_vmax, next->entry_vmax,
                              next->braking_velocity,
@@ -569,11 +573,11 @@ void mp_plan(mp_buffer_t *bl) {
   }
 
   // Finish last block
-  bl->entry_velocity = prev->exit_velocity;
-  bl->cruise_velocity = bl->cruise_vmax;
-  bl->exit_velocity = 0;
+  bf->entry_velocity = prev->exit_velocity;
+  bf->cruise_velocity = bf->cruise_vmax;
+  bf->exit_velocity = 0;
 
-  mp_calculate_trapezoid(bl);
+  mp_calculate_trapezoid(bf);
 }
 
 

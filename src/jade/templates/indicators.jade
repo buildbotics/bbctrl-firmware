@@ -1,0 +1,114 @@
+script#indicators-template(type="text/x-template")
+  .indicators
+    table
+      tr
+        th(colspan=4) Switch Inputs
+
+      each motor in '01234'
+        tr(v-if="is_motor_enabled(#{motor})")
+          td
+            .fa(:class="get_class('#{motor}lw')")
+          th #{motor} Min
+
+          td
+            .fa(:class="get_class('#{motor}xw')")
+          th #{motor} Max
+
+      tr
+        td
+          .fa(:class="get_class('ew')")
+        th Estop
+
+        td
+          .fa(:class="get_class('pw')")
+        th Probe
+
+    table
+      tr
+        th(colspan=4) Outputs
+
+      tr
+        td
+          .fa(:class="get_class('eos')")
+        th Tool Enable
+
+        td
+          .fa(:class="get_class('dos')")
+        th Tool Direction
+
+      tr
+        td
+          .fa(:class="get_class('1os')")
+        th Load 1
+
+        td
+          .fa(:class="get_class('2os')")
+        th Load 2
+
+      tr
+        td
+          .fa(:class="get_class('fos')")
+        th(colspan=3) Fault
+
+    table
+      tr
+        th(colspan=4) Measurements
+
+      tr
+        td {{state['vin'] | fixed 1}} V
+        th Input
+
+        td {{state['vout'] | fixed 1}} V
+        th Output
+
+      tr
+        td {{state['motor'] | fixed 2}} A
+        th Motor
+
+        td {{state['temp'] | fixed 0}} ℃
+        th Temp
+
+      tr
+        td {{state['load1'] | fixed 2}} A
+        th Load 1
+
+        td {{state['load2'] | fixed 2}} A
+        th Load 2
+
+    table
+      tr
+        th(colspan=4) RS485 Spindle
+
+      tr
+        th(colspan=4) {{state['he'] ? "" : "Not "}}Connected
+
+      tr
+        td {{state['hz']}} Hz
+        th Frequency
+
+        td {{state['hc']}} A
+        th Current
+
+      tr
+        td {{state['hr']}} RPM
+        th Speed
+
+        td {{state['ht']}} ℃
+        th Temp
+
+    table
+      tr
+        th(colspan=10) Legend
+
+      tr
+        td
+         .fa.fa-circle.logic-hi
+        th Logic Hi
+
+        td
+         .fa.fa-circle.logic-lo
+        th Logic Lo
+
+        td
+         .fa.fa-circle-o.logic-tri
+        th Tristated

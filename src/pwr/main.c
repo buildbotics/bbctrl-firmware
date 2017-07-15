@@ -254,8 +254,6 @@ int main() {
   GATE_DDR = (1 << GATE1_PIN) | (1 << 2);
   GATE_PORT = (1 << GATE1_PIN) | (1 << 2);
 
-  while (true) continue;
-
   // Start ADC
   adc_conversion();
 

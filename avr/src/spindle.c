@@ -43,6 +43,7 @@ typedef struct {
   spindle_type_t type;
   spindle_mode_t mode;
   float speed;
+  bool reversed;
 } spindle_t;
 
 
@@ -56,8 +57,16 @@ void spindle_init() {
 
 
 void _spindle_set(spindle_mode_t mode, float speed) {
+  if (speed < 0) speed = 0;
+  if (mode != SPINDLE_CW && mode != SPINDLE_CCW) mode = SPINDLE_OFF;
+
   spindle.mode = mode;
   spindle.speed = speed;
+
+  if (spindle.reversed) {
+    if (mode == SPINDLE_CW) mode = SPINDLE_CCW;
+    else if (mode == SPINDLE_CCW) mode = SPINDLE_CW;
+  }
 
   switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
@@ -66,27 +75,8 @@ void _spindle_set(spindle_mode_t mode, float speed) {
 }
 
 
-void spindle_set_mode(spindle_mode_t mode) {
-  spindle.mode = mode;
-
-  switch (spindle.type) {
-  case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, spindle.speed); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, spindle.speed); break;
-  }
-}
-
-
-void spindle_set_speed(float speed) {
-  if (speed < 0) speed = 0;
-  spindle.speed = speed;
-
-  switch (spindle.type) {
-  case SPINDLE_TYPE_PWM: pwm_spindle_set(spindle.mode, speed); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_set(spindle.mode, speed); break;
-  }
-}
-
-
+void spindle_set_mode(spindle_mode_t mode) {_spindle_set(mode, spindle.speed);}
+void spindle_set_speed(float speed) {_spindle_set(spindle.mode, speed);}
 spindle_mode_t spindle_get_mode() {return spindle.mode;}
 float spindle_get_speed() {return spindle.speed;}
 
@@ -111,4 +101,24 @@ void set_spindle_type(uint8_t value) {
     spindle.type = value;
     _spindle_set(mode, speed);
   }
+}
+
+
+bool spindle_is_reversed() {return spindle.reversed;}
+bool get_spin_reversed() {return spindle.reversed;}
+
+
+void set_spin_reversed(bool reversed) {
+  spindle.reversed = reversed;
+  _spindle_set(spindle.mode, spindle.speed);
+}
+
+
+PGM_P get_spin_mode() {
+  switch (spindle.mode) {
+  case SPINDLE_CW: return PSTR("Clockwise");
+  case SPINDLE_CCW: return PSTR("Counterclockwise");
+  default: break;
+  }
+  return PSTR("Off");
 }

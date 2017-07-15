@@ -90,7 +90,7 @@ script#control-view-template(type="text/x-template")
         td RPM
       tr
         th Direction
-        td {{state.sd || 'Clockwise'}}
+        td {{state.ss || 'Off'}}
         td
 
     table.info
@@ -165,7 +165,10 @@ script#control-view-template(type="text/x-template")
       label(for="tab4") Console
 
       input#tab5(type="radio", name="tabs")
-      label(for="tab5") Video
+      label(for="tab5") Indicators
+
+      input#tab6(type="radio", name="tabs", @click="load_video")
+      label(for="tab6") Video
 
       section#content1.tab-content
         .toolbar
@@ -241,5 +244,8 @@ script#control-view-template(type="text/x-template")
             td {{msg.msg}}
 
       section#content5.tab-content
+        component(is="indicators", :state="state")
+
+      section#content6.tab-content
         .video
-          img.mjpeg(src="http://bbctrl.local:8000/stream/0")
+          img.mjpeg(:src="video_url")

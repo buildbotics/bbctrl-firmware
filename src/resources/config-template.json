@@ -108,9 +108,7 @@
     "homing": {
       "homing-mode": {
         "type": "enum",
-        "values": [
-          "manual", "stall-min", "stall-max", "switch-min", "switch-max"
-        ],
+        "values": ["manual", "switch-min", "switch-max"],
         "default": "manual",
         "code": "ho"
       },
@@ -214,10 +212,19 @@
       "default": "false",
       "code": "pi"
     },
-    "enable-inverted": {
-      "type": "bool",
-      "default": "false",
-      "code": "ei"
+    "tool-enable-mode": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "eom"
+    },
+    "tool-direction-mode": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "dom"
     }
   },
 

@@ -19,7 +19,7 @@ class Pwr():
         self.ctrl = ctrl
 
         self.i2c_addr = ctrl.args.pwr_addr
-        self.regs = [0] * 6
+        self.regs = [-1] * 6
         self.lcd_page = ctrl.lcd.add_new_page()
 
         self._update()
@@ -29,12 +29,19 @@ class Pwr():
 
 
     def _update(self):
+        update = {}
+
         try:
             for i in range(len(self.regs)):
                 value = self.ctrl.i2c.read_word(self.i2c_addr + i)
 
-                if i == TEMP_REG: self.regs[TEMP_REG] = value - 273
-                else: self.regs[i] = value / 100.0
+                if i == TEMP_REG: value -= 273
+                else: value /= 100.0
+
+                if self.regs[i] != value:
+                    key = ['temp', 'vin', 'vout', 'motor', 'load1', 'load2'][i]
+                    update[key] = value
+                    self.regs[i] = value
 
         except Exception as e:
             log.warning('Pwr communication failed: %s' % e)
@@ -48,5 +55,7 @@ class Pwr():
         self.lcd_page.text('%5.1fA Mot' % self.regs[MOTOR_REG], 10, 0)
         self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
         self.lcd_page.text('%5.1fA Ld2' % self.regs[LOAD2_REG], 10, 2)
+
+        if len(update): self.ctrl.web.broadcast(update)
 
         self.ctrl.ioloop.call_later(0.25, self._update)
