@@ -85,8 +85,7 @@ static switch_t switches[SWITCHES] = {
 
 
 static bool _read_state(const switch_t *s) {
-  // A normally open switch drives the pin low when thrown
-  return (s->type == SW_NORMALLY_OPEN) ^ IN_PIN(s->pin);
+  return IN_PIN(s->pin);
 }
 
 
@@ -163,13 +162,16 @@ void switch_rtc_callback() {
 
     if (!s->count) { // switch triggered
       s->debounce = SW_LOCKOUT;
-      if (s->cb) s->cb(i, s->state);
+      if (s->cb) s->cb(i, switch_is_active(i));
     }
   }
 }
 
 
-bool switch_is_active(int index) {return switches[index].state;}
+bool switch_is_active(int index) {
+  // A normally open switch drives the pin low when thrown
+  return (switches[index].type == SW_NORMALLY_OPEN) ^ switches[index].state;
+}
 
 
 bool switch_is_enabled(int index) {
@@ -223,7 +225,7 @@ void set_probe_mode(uint8_t value) {switch_set_type(SW_PROBE, value);}
 
 static uint8_t _get_state(int index) {
   if (!switch_is_enabled(index)) return 2; // Disabled
-  return switch_is_active(index);
+  return switches[index].state;
 }
 
 
