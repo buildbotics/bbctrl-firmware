@@ -36,7 +36,7 @@ machine_state_vars = '''
 #   - Set axis home position
 axis_homing_procedure = '''
   G28.2 %(axis)s0 F[#<%(axis)s.sv>]
-  G38.6 %(axis)s[#<%(axis)s.hd> * [#<%(axis)s.tm> - #<%(axis)s.tn>]]
+  G38.6 %(axis)s[#<%(axis)s.hd> * [#<%(axis)s.tm> - #<%(axis)s.tn>] * 1.5]
   G38.8 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.lb>] F[#<%(axis)s.lv>]
   G38.6 %(axis)s[#<%(axis)s.hd> * #<%(axis)s.lb> * 1.5]
   G0 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.zb> + #<%(axis)sp>]
