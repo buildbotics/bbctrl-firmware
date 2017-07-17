@@ -51,6 +51,7 @@ typedef struct {
 
   int sign;
   float velocity;
+  float accel;
   float next;
   float initial;
   float target;
@@ -104,30 +105,26 @@ static float _compute_axis_velocity(int axis) {
 
   if (fp_EQ(V, Vt)) return Vt;
 
-  if (a->changed) {
-    // Compute axis max jerk
-    float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+  // Compute axis max jerk
+  float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
 
-    // Compute length to velocity given max jerk
-    float length = mp_get_target_length(V, Vt, jerk * JOG_JERK_MULT);
+  // Compute target accel
+  float accel = sqrt(jerk * fabs(Vt - V)) * (Vt < V ? -1 : 1);
 
-    // Compute move time
-    float move_time = 2 * length / (V + Vt);
+  // Compute max delta accel
+  float deltaAccel = jerk * SEGMENT_TIME;
 
-    if (move_time <= SEGMENT_TIME) return Vt;
+  // Update accel
+  if (a->accel < accel) {
+    if (accel < a->accel + deltaAccel) a->accel = accel;
+    else a->accel += deltaAccel;
 
-    a->initial = V;
-    a->t = a->delta = SEGMENT_TIME / move_time;
+  } else if (accel < a->accel) {
+    if (a->accel - deltaAccel < accel) a->accel = accel;
+    else a->accel -= deltaAccel;
   }
 
-  if (a->t <= 0) return V;
-  if (1 <= a->t) return Vt;
-
-  // Compute quintic Bezier curve
-  V = velocity_curve(a->initial, Vt, a->t);
-  a->t += a->delta;
-
-  return V;
+  return V + a->accel * SEGMENT_TIME;
 }
 
 
@@ -144,7 +141,7 @@ static float _axis_velocity_at_limits(int axis) {
 
     float position = mp_runtime_get_axis_position(axis);
     float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
-    float decelDist = mp_get_target_length(V, 0, jerk * JOG_JERK_MULT);
+    float decelDist = mp_get_target_length(V, 0, jerk);
 
     if (position < min + decelDist) {
     }

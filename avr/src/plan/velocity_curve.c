@@ -64,6 +64,8 @@
 /// takes about 60uS or about 1,920 clocks.  The code was compiled with avr-gcc
 /// v4.9.2 with -O3.
 float velocity_curve(float Vi, float Vt, float t) {
+  // If the change is small enough just do a linear velocity transition.
+  // TODO revisit this.
   if (fabs(Vt - Vi) < 200) return Vi + (Vt - Vi) * t;
 
   const float t2 = t * t;
