@@ -125,8 +125,12 @@ void switch_rtc_callback() {
 
 
 bool switch_is_active(int index) {
-  // A normally open switch drives the pin low when thrown
-  return (switches[index].type == SW_NORMALLY_OPEN) ^ switches[index].state;
+  switch (switches[index].type) {
+  case SW_DISABLED: break; // A disabled switch cannot be active
+  case SW_NORMALLY_OPEN: return !switches[index].state;
+  case SW_NORMALLY_CLOSED: return switches[index].state;
+  }
+  return false;
 }
 
 

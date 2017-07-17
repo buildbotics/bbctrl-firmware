@@ -111,6 +111,8 @@ static float _compute_axis_velocity(int axis) {
   // Compute target accel
   float accel = sqrt(jerk * fabs(Vt - V)) * (Vt < V ? -1 : 1);
 
+  // TODO apply max accel here
+
   // Compute max delta accel
   float deltaAccel = jerk * SEGMENT_TIME;
 
