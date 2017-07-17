@@ -674,11 +674,6 @@ stat_t mach_seek(float target[], bool flags[], motion_mode_t mode) {
       }
 
       if (!switch_is_enabled(sw)) return STAT_SEEK_SWITCH_DISABLED;
-
-      STATUS_DEBUG("Axis target %f, position %f, planner %f, runtime %f",
-                   target[axis], mach.position[axis],
-                   mp_get_axis_position(axis),
-                   mp_runtime_get_axis_position(axis));
     }
 
   if (sw == SW_PROBE) return STAT_SEEK_MISSING_AXIS;
