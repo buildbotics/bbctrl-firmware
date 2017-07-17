@@ -200,8 +200,7 @@ script#control-view-template(type="text/x-template")
         .mdi.pure-form
           fieldset
             button.pure-button.pure-button-primary(
-              title="Manually execute instructions.", @click="submit_mdi",
-              :disabled="state.x != 'READY'") MDI
+              title="Manually execute instructions.", @click="submit_mdi") MDI
             input(v-model="mdi", @keyup.enter="submit_mdi")
 
         .history(:class="{placeholder: !history}")
