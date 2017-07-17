@@ -103,8 +103,6 @@ enum {
 
 // Switch settings.  See switch.c
 #define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
-#define SW_LOCKOUT_TICKS         250 // ms
-#define SW_DEGLITCH_TICKS        30  // ms
 
 
 // Motor ISRs
@@ -242,7 +240,6 @@ enum {
 #define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
 #define JUNCTION_DEVIATION       0.05          // default value, in mm
 #define JUNCTION_ACCELERATION    100000        // centripetal corner accel
-#define JOG_JERK_MULT            1             // Jogging jerk multipler
 #define JOG_MIN_VELOCITY         10            // mm/min
 #define CAL_ACCELERATION         500000        // mm/min^2
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms
