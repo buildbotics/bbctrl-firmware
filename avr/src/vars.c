@@ -312,8 +312,9 @@ static char *_resolve_name(const char *_name) {
 
   if (!len || 4 < len) return 0;
 
-  static char name[4];
-  strcpy(name, _name);
+  static char name[5];
+  strncpy(name, _name, 4);
+  name[4] = 0;
 
   // Handle axis to motor mapping
   if (2 < len && name[1] == '.') {

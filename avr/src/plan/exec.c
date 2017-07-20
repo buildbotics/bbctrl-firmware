@@ -87,7 +87,7 @@ static stat_t _exec_aline_section(float length, float Vi, float Vt) {
 
     // len / avg. velocity
     const float move_time = 2 * length / (Vi + Vt); // in mins
-    const float segments = round(move_time / SEGMENT_TIME);
+    const float segments = ceil(move_time / SEGMENT_TIME);
     ex.segment_count = segments;
     ex.segment_time = move_time / segments; // in mins
     ex.segment = 0;

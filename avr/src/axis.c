@@ -43,7 +43,7 @@ typedef struct {
   float travel_max;      // max work envelope for soft limits
   float travel_min;      // min work envelope for soft limits
   float jerk_max;        // max jerk (Jm) in km/min^3
-  float recip_jerk;      // reciprocal of current jerk in min^3/mm
+  float recip_jerk;      // reciprocal of current jerk in min^3/km
   float radius;          // radius in mm for rotary axes
   float search_velocity; // homing search velocity
   float latch_velocity;  // homing latch velocity
@@ -143,7 +143,7 @@ AXIS_GET(jerk_max, float, 0)
 /// Sets jerk and its reciprocal for axis
 void axis_set_jerk_max(int axis, float jerk) {
   axes[axis].jerk_max = jerk;
-  axes[axis].recip_jerk = 1 / (jerk * JERK_MULTIPLIER);
+  axes[axis].recip_jerk = 1.0 / jerk;
 }
 
 

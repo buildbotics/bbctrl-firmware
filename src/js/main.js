@@ -15,7 +15,7 @@ $(function() {
 
   Vue.filter('fixed', function (value, precision) {
     if (typeof value == 'undefined') return '';
-    return value.toFixed(precision)
+    return parseFloat(value).toFixed(precision)
   });
 
   Vue.filter('upper', function (value) {

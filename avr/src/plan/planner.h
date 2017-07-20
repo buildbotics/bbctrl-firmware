@@ -75,6 +75,8 @@ void mp_set_plan_steps(bool plan_steps);
 void mp_flush_planner();
 void mp_kinematics(const float travel[], float steps[]);
 
+void mp_print_buffer(mp_buffer_t *bp);
+
 void mp_plan(mp_buffer_t *bf);
 void mp_replan_all();
 

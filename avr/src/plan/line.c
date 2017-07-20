@@ -200,7 +200,7 @@ int mp_find_jerk_axis(const float axis_square[]) {
   for (int axis = 0; axis < AXES; axis++)
     if (axis_square[axis]) { // Do not use fp_ZERO here
       // Squaring axis_length ensures it's positive
-      C = axis_square[axis] * axis_get_recip_jerk(axis);
+      C = axis_square[axis] / axis_get_jerk_max(axis);
 
       if (maxC < C) {
         maxC = C;
@@ -215,6 +215,8 @@ int mp_find_jerk_axis(const float axis_square[]) {
 /// Determine jerk value to use for the block.
 static float _calc_jerk(const float axis_square[], const float unit[]) {
   int axis = mp_find_jerk_axis(axis_square);
+
+  ASSERT(isfinite(unit[axis]) && unit[axis]);
 
   // Finally, the selected jerk term needs to be scaled by the
   // reciprocal of the absolute value of the axis's unit

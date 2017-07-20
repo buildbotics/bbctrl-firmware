@@ -239,7 +239,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   float naive_move_time =
     2 * bf->length / (bf->entry_velocity + bf->exit_velocity); // average
 
-  if (naive_move_time < SEGMENT_TIME) {
+  if (isfinite(naive_move_time) && naive_move_time < SEGMENT_TIME) {
     bf->cruise_velocity = bf->length / SEGMENT_TIME;
     bf->exit_velocity =
       max(0, min(bf->cruise_velocity, (bf->entry_velocity - bf->delta_vmax)));
@@ -252,7 +252,7 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
   }
 
   // B" case: Block is short, but fits into a single body segment
-  if (naive_move_time <= SEGMENT_TIME) {
+  if (isfinite(naive_move_time) && naive_move_time <= SEGMENT_TIME) {
     bf->entry_velocity = mp_buffer_prev(bf)->exit_velocity;
 
     if (!fp_ZERO(bf->entry_velocity)) {
@@ -385,8 +385,9 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
       } else break;
 
-    } while ((fabs(bf->cruise_velocity - computed_velocity) /
-              computed_velocity) > TRAPEZOID_ITERATION_ERROR_PERCENT);
+    } while (TRAPEZOID_ITERATION_ERROR_PERCENT <
+             (fabs(bf->cruise_velocity - computed_velocity) /
+              computed_velocity));
 
     // set velocity and clean up any parts that are too short
     bf->cruise_velocity = computed_velocity;
@@ -435,15 +436,21 @@ void mp_calculate_trapezoid(mp_buffer_t *bf) {
 
 #if 0
 void mp_print_buffer(mp_buffer_t *bp) {
-    printf_P(PSTR("{\"msg\":\"%d,0x%04lx,"
-                  "%0.2f,%0.2f,%0.2f,%0.2f,"
-                  "%0.2f,%0.2f,%0.2f,%0.2f,"
-                  "%0.2f,%0.2f,%0.2f\"}\n"),
-             bp->flags & BUFFER_REPLANNABLE, (intptr_t)bp->cb,
-             bp->length, bp->head_length, bp->body_length, bp->tail_length,
-             bp->entry_velocity, bp->cruise_velocity, bp->exit_velocity,
-             bp->braking_velocity,
-             bp->entry_vmax, bp->cruise_vmax, bp->exit_vmax);
+  printf_P(PSTR("{\"msg\":\""));
+  printf_P(PSTR("%d,"), bp->flags & BUFFER_REPLANNABLE);
+  printf_P(PSTR("0x%04lx,"), (intptr_t)bp->cb);
+  printf_P(PSTR("%0.2f,"), bp->length);
+  printf_P(PSTR("%0.2f,"), bp->head_length);
+  printf_P(PSTR("%0.2f,"), bp->body_length);
+  printf_P(PSTR("%0.2f,"), bp->tail_length);
+  printf_P(PSTR("%0.2f,"), bp->entry_velocity);
+  printf_P(PSTR("%0.2f,"), bp->cruise_velocity);
+  printf_P(PSTR("%0.2f,"), bp->exit_velocity);
+  printf_P(PSTR("%0.2f,"), bp->braking_velocity);
+  printf_P(PSTR("%0.2f,"), bp->entry_vmax);
+  printf_P(PSTR("%0.2f,"), bp->cruise_vmax);
+  printf_P(PSTR("%0.2f"), bp->exit_vmax);
+  printf_P(PSTR("\"}\n"));
 
   while (!usart_tx_empty()) continue;
 }
