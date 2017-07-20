@@ -43,7 +43,6 @@ typedef struct {
   float travel_max;      // max work envelope for soft limits
   float travel_min;      // min work envelope for soft limits
   float jerk_max;        // max jerk (Jm) in km/min^3
-  float recip_jerk;      // reciprocal of current jerk in min^3/km
   float radius;          // radius in mm for rotary axes
   float search_velocity; // homing search velocity
   float latch_velocity;  // homing latch velocity
@@ -77,12 +76,7 @@ int axis_get_id(char axis) {
 
 
 int axis_get_motor(int axis) {return motor_map[axis];}
-
-
-void axis_set_motor(int axis, int motor) {
-  motor_map[axis] = motor;
-  axis_set_jerk_max(axis, axes[axis].jerk_max); // Init 1/jerk
-}
+void axis_set_motor(int axis, int motor) {motor_map[axis] = motor;}
 
 
 float axis_get_vector_length(const float a[], const float b[]) {
@@ -128,23 +122,15 @@ AXIS_GET(search_velocity, float, 0)
 AXIS_GET(latch_velocity, float, 0)
 AXIS_GET(zero_backoff, float, 0)
 AXIS_GET(latch_backoff, float, 0)
-AXIS_GET(recip_jerk, float, 0)
 
 /* Note on jerk functions
  *
- * Jerk values can be rather large. Jerk values are stored in the system in
+ * Jerk values can be rather large.  Jerk values are stored in the system in
  * truncated format; values are divided by 1,000,000 then multiplied before use.
  *
  * The axis_jerk() functions expect the jerk in divided by 1,000,000 form.
  */
 AXIS_GET(jerk_max, float, 0)
-
-
-/// Sets jerk and its reciprocal for axis
-void axis_set_jerk_max(int axis, float jerk) {
-  axes[axis].jerk_max = jerk;
-  axes[axis].recip_jerk = 1.0 / jerk;
-}
 
 
 AXIS_VAR_SET(velocity_max, float)

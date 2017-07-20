@@ -189,8 +189,7 @@ static float _get_junction_vmax(const float a_unit[], const float b_unit[]) {
  *
  *   C[n]^2 = 1 / J[n] * D[n]^2
  *
- * We don't care that C is squared, so we'll use it that way.  Also note that
- * we already have 1 / J[n] calculated for each axis.
+ * We don't care that C is squared, so we'll use it that way.
  */
 int mp_find_jerk_axis(const float axis_square[]) {
   float C;
