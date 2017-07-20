@@ -227,11 +227,9 @@ module.exports = {
       else {
         var motor = this.get_axis_motor(axis);
 
-        if (motor['homing-mode'] == 'manual') {
-          this.axis_position = this.state[axis + 'w'];
+        if (motor['homing-mode'] == 'manual')
           this.manual_home[axis] = true;
-
-        } else api.put('home/' + axis);
+        else api.put('home/' + axis);
       }
     },
 
@@ -255,7 +253,7 @@ module.exports = {
 
     set_position: function (axis, position) {
       this.position_msg[axis] = false;
-      api.put('position/' + axis, {position: parseFloat(position)});
+      api.put('position/' + axis, {position: 0});
     },
 
 
