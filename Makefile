@@ -17,7 +17,7 @@ STATIC     := $(shell find src/resources -type f)
 STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
 TEMPLS     := $(wildcard src/jade/templates/*.jade)
 
-AVR_FIRMWARE := avr/bbctrl-avr-firmware.hex
+AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
@@ -47,7 +47,7 @@ pkg: all $(AVR_FIRMWARE)
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):
-	$(MAKE) -C avr $(shell basename $@)
+	$(MAKE) -C src/avr $(shell basename $@)
 
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
