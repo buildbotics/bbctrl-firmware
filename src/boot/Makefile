@@ -1,8 +1,7 @@
-# Makefile for the project Bulidbotics firmware
-PROJECT         = bbctrl-avr-firmware
+# Makefile for the project Bulidbotics bootloader
+PROJECT         = bbctrl-avr-boot
 MCU             = atxmega192a3u
 CLOCK           = 32000000
-VERSION         = 0.4.0
 
 TARGET  = $(PROJECT).elf
 
@@ -12,26 +11,19 @@ CPP = avr-g++
 
 COMMON = -mmcu=$(MCU) -flto -fwhole-program
 
-CFLAGS += $(COMMON)
-CFLAGS += -Wall -Werror
-CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
+CFLAGS += $(COMMON) -Wall -Werror
 CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
-CFLAGS += -Isrc -DVERSION=\"$(VERSION)\"
+CFLAGS += -Isrc
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
+LDFLAGS += -Wl,--section-start=.text=0x030000
 LIBS += -lm
-
-# EEPROM flags
-EEFLAGS += -j .eeprom
-EEFLAGS += --set-section-flags=.eeprom="alloc,load"
-EEFLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # Programming flags
 PROGRAMMER = avrispmkII
-#PROGRAMMER = jtag3pdi
 PDEV = usb
 AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
 
@@ -42,18 +34,16 @@ FUSE4=0xff
 FUSE5=0xeb
 
 # SRC
-SRC = $(wildcard src/*.c) $(wildcard src/plan/*.c)
+SRC = $(wildcard src/*.S)
+SRC += $(wildcard src/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
+OBJ := $(patsubst src/%.S,build/%.o,$(OBJ))
+
 
 # Build
-all: $(PROJECT).hex build/vars.json size
-
-build/vars.json: src/vars.def
+all: $(TARGET) size
 
 # Compile
-build/%.json: src/%.json.in
-	cpp -Isrc $< | sed '/^#.*$$/d' > $@
-
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
@@ -69,12 +59,6 @@ $(TARGET): $(OBJ)
 %.hex: %.elf
 	avr-objcopy -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
-%.eep: %.elf
-	avr-objcopy $(EEFLAGS) -O ihex $< $@
-
-%.lss: %.elf
-	avr-objdump -h -S $< > $@
-
 size: $(TARGET)
 	@for X in A B C; do\
 	  echo '****************************************************************' ;\
@@ -86,7 +70,6 @@ init:
 	$(MAKE) erase
 	-$(MAKE) fuses
 	$(MAKE) fuses
-	$(MAKE) program-boot
 	$(MAKE) program
 
 reset:
@@ -100,9 +83,6 @@ program: $(PROJECT).hex
 
 verify: $(PROJECT).hex
 	avrdude $(AVRDUDE_OPTS) -U flash:v:$(PROJECT).hex:i
-
-program-boot:
-	$(MAKE) -C ../boot program
 
 fuses:
 	avrdude $(AVRDUDE_OPTS) -U fuse0:w:$(FUSE0):m -U fuse1:w:$(FUSE1):m \
