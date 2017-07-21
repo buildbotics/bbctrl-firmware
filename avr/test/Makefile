@@ -26,7 +26,7 @@ planner-test: $(PLANNER_TEST_SRC)
 
 # Clean
 tidy:
-	rm -f $(shell find -name \*~ -o -name \#\*)
+	rm -f $(shell find -name \*~ -o -name \#\*) .dep
 
 clean: tidy
 	rm -rf $(TESTS)
