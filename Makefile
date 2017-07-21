@@ -37,7 +37,16 @@ endif
 
 WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 
-all: html css js static
+all: html css js static avr boot pwr
+
+avr:
+	$(MAKE) -C src/avr
+
+boot:
+	$(MAKE) -C src/boot
+
+pwr:
+	$(MAKE) -C src/pwr
 
 copy: pkg
 	rsync $(RSYNC_OPTS) pkg/$(PKG_NAME)/ $(DEST)/bbctrl/
@@ -127,6 +136,9 @@ tidy:
 
 clean: tidy
 	rm -rf build html dist
+	@$(MAKE) -C src/avr clean
+	@$(MAKE) -C src/boot clean
+	@$(MAKE) -C src/pwr clean
 
 dist-clean: clean
 	rm -rf node_modules
