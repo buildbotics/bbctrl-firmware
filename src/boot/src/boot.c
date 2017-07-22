@@ -28,6 +28,7 @@
 
 #include "boot.h"
 #include "sp_driver.h"
+#include "lcd.h"
 
 #include <util/delay.h>
 #include <util/crc16.h>
@@ -56,6 +57,15 @@ void clock_init() {
   CCP = CCP_IOREG_gc;
   CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
+}
+
+
+void lcd_splash(uint8_t addr) {
+  lcd_init(addr);
+  lcd_goto(addr, 1, 1);
+  lcd_pgmstr(addr, "Controller booting");
+  lcd_goto(addr, 3, 2);
+  lcd_pgmstr(addr, "Please wait...");
 }
 
 
@@ -219,26 +229,11 @@ void BlockRead(unsigned size, uint8_t mem, uint32_t *address) {
 }
 
 
-int main() {
-  // Init
-  clock_init();
-  uart_init();
-  watchdog_init();
-
-  // Check for trigger
-  bool in_bootloader = false;
-  uint16_t j = INITIAL_WAIT;
-  while (!in_bootloader && 0 < j--) {
-    if (uart_has_char()) in_bootloader = uart_recv_char() == CMD_SYNC;
-    watchdog_reset();
-    _delay_ms(1);
-  }
-
-  // Main bootloader
+void bootloader() {
   uint32_t address = 0;
   uint16_t i = 0;
 
-  while (in_bootloader) {
+  while (true) {
     uint8_t val = get_char();
     watchdog_reset();
 
@@ -341,8 +336,8 @@ int main() {
       break;
 
     case CMD_EXIT_BOOTLOADER:
-      in_bootloader = false;
       send_char(REPLY_ACK);
+      return;
       break;
 
     case CMD_PROGRAMMER_TYPE: send_char('S'); break; // serial
@@ -435,6 +430,26 @@ int main() {
     // Wait for any lingering SPM instructions to finish
     nvm_wait();
   }
+}
+
+
+int main() {
+  // Init
+  clock_init();
+  uart_init();
+  watchdog_init();
+
+  // Check for trigger
+  uint16_t j = INITIAL_WAIT;
+  while (0 < j--) {
+    if (uart_has_char() && uart_recv_char() == CMD_SYNC) {
+      bootloader();
+      break;
+    }
+
+    watchdog_reset();
+    _delay_ms(1);
+  }
 
   // Deinit
   uart_deinit();
@@ -442,6 +457,9 @@ int main() {
 
   // Disable further self programming until next reset
   SP_LockSPM();
+
+  lcd_splash(0x27);
+  lcd_splash(0x3f);
 
   // Jump to application code
   asm("jmp 0");
