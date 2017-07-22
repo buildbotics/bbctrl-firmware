@@ -50,6 +50,7 @@
 
 
 static char *_cmd = 0;
+static bool _active = false;
 
 
 static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
@@ -254,10 +255,14 @@ void command_callback() {
   }
 
   _cmd = 0; // Command consumed
+  _active = true;
   report_request();
 
   if (status) status_error(status);
 }
+
+
+bool command_is_active() {return _active;}
 
 
 // Command functions

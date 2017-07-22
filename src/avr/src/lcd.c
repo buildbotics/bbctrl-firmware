@@ -27,6 +27,8 @@
 \******************************************************************************/
 
 #include "lcd.h"
+#include "rtc.h"
+#include "command.h"
 
 #include <avr/io.h>
 #include <util/delay.h>
@@ -101,5 +103,30 @@ void lcd_putchar(uint8_t addr, uint8_t c) {
 
 
 void lcd_pgmstr(uint8_t addr, const char *s) {
-  while (*s) lcd_putchar(addr, *s++);
+  while (true) {
+    char c = pgm_read_byte(s++);
+    if (!c) break;
+    lcd_putchar(addr, c);
+  }
+}
+
+
+void _splash(uint8_t addr) {
+  lcd_init(addr);
+  lcd_goto(addr, 1, 1);
+  lcd_pgmstr(addr, PSTR("Controller booting"));
+  lcd_goto(addr, 3, 2);
+  lcd_pgmstr(addr, PSTR("Please wait..."));
+}
+
+
+void lcd_splash() {
+  _splash(0x27);
+  _splash(0x3f);
+}
+
+
+void lcd_rtc_callback() {
+  if (!command_is_active() && rtc_get_time() == 1000)
+    lcd_splash();
 }

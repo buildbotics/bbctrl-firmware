@@ -100,3 +100,5 @@ void lcd_write(uint8_t addr, uint8_t cmd, uint8_t flags);
 void lcd_goto(uint8_t addr, uint8_t x, uint8_t y);
 void lcd_putchar(uint8_t addr, uint8_t c);
 void lcd_pgmstr(uint8_t addr, const char *s);
+void lcd_splash();
+void lcd_rtc_callback();

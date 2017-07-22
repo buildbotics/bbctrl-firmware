@@ -29,6 +29,7 @@
 
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 #define MAX_ARGS 16
@@ -48,3 +49,4 @@ void command_init();
 int command_find(const char *name);
 int command_exec(int argc, char *argv[]);
 void command_callback();
+bool command_is_active();

@@ -42,6 +42,7 @@
 #include "i2c.h"
 #include "pgmspace.h"
 #include "outputs.h"
+#include "lcd.h"
 
 #include "plan/planner.h"
 #include "plan/arc.h"

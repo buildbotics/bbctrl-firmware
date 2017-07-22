@@ -31,6 +31,7 @@
 #include "switch.h"
 #include "huanyang.h"
 #include "motor.h"
+#include "lcd.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -47,6 +48,7 @@ ISR(RTC_OVF_vect) {
   switch_rtc_callback();
   huanyang_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
+  lcd_rtc_callback();
 }
 
 

@@ -19,7 +19,7 @@ if $UPDATE_PY; then
 fi
 
 if $UPDATE_AVR; then
-    ./scripts/avr109-flash.py avr/bbctrl-avr-firmware.hex
+    ./scripts/avr109-flash.py src/avr/bbctrl-avr-firmware.hex
 fi
 
 if $UPDATE_PY; then

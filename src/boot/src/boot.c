@@ -28,7 +28,6 @@
 
 #include "boot.h"
 #include "sp_driver.h"
-#include "lcd.h"
 
 #include <util/delay.h>
 #include <util/crc16.h>
@@ -57,15 +56,6 @@ void clock_init() {
   CCP = CCP_IOREG_gc;
   CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
-}
-
-
-void lcd_splash(uint8_t addr) {
-  lcd_init(addr);
-  lcd_goto(addr, 1, 1);
-  lcd_pgmstr(addr, "Controller booting");
-  lcd_goto(addr, 3, 2);
-  lcd_pgmstr(addr, "Please wait...");
 }
 
 
@@ -457,9 +447,6 @@ int main() {
 
   // Disable further self programming until next reset
   SP_LockSPM();
-
-  lcd_splash(0x27);
-  lcd_splash(0x3f);
 
   // Jump to application code
   asm("jmp 0");

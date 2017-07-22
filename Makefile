@@ -40,9 +40,10 @@ endif
 WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
 
 all: html css js static
-	@for SUB in $(SUBPROJECTS); do \
-	  $(MAKE) -C src/$$SUB; \
-	done
+	@$(MAKE) -C src/avr
+	@$(MAKE) -C src/boot
+	@$(MAKE) -C src/pwr
+	@$(MAKE) -C src/jig
 
 copy: pkg
 	rsync $(RSYNC_OPTS) pkg/$(PKG_NAME)/ $(DEST)/bbctrl/

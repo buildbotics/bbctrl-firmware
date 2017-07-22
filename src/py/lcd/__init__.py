@@ -69,6 +69,7 @@ class LCD:
 
 
     def reset(self):
+        self.clear()
         time.sleep(0.050)
         self.write_nibble(3 << 4) # Home
         time.sleep(0.050)
