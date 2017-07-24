@@ -72,14 +72,14 @@ typedef struct {
 static jog_runtime_t jr;
 
 
-static bool _next_axis_velocity(int axis) {
+static bool _axis_velocity_target(int axis) {
   jog_axis_t *a = &jr.axes[axis];
 
   float Vn = a->next * axis_get_velocity_max(axis);
   float Vi = a->velocity;
   float Vt = a->target;
 
-  if (JOG_MIN_VELOCITY < fabs(Vn)) jr.done = false;
+  if (JOG_MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
 
   if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
     Vn = 0; // Plan to zero on sign change
@@ -91,7 +91,97 @@ static bool _next_axis_velocity(int axis) {
   a->target = Vn;
   if (Vn) a->sign = Vn < 0 ? -1 : 1;
 
-  return true;
+  return true; // Velocity changed
+}
+
+
+static float _compute_deccel_dist(float vel, float accel, float jerk) {
+  float dist = 0;
+
+  // Compute distance to decrease accel to zero
+  if (0 < accel) {
+    // s(a/j) = v * a / j + 2 * a^3 / (3 * j^2)
+    dist += vel * accel / jerk + 2 * accel * accel * accel / (3 * jerk * jerk);
+    // v(a/j) = a^2 / 2j + v
+    vel += accel * accel / (2 * jerk);
+    accel = 0;
+  }
+
+  // Compute max deccel given accel, vel and jerk
+  float maxDeccel = -sqrt(0.5 * accel * accel + vel * jerk);
+
+  // Compute distance to max deccel
+  if (maxDeccel < accel) {
+    float t = (maxDeccel - accel) / -jerk;
+    dist += vel * t + accel * t * t / 2 - jerk * t * t * t / 6;
+    vel += accel * t - jerk * t * t / 2;
+    accel = maxDeccel;
+  }
+
+  // Compute distance to zero vel
+  float t = -accel / jerk;
+  dist += vel * t + accel * t * t / 2 + jerk * t * t * t / 6;
+
+  return dist;
+}
+
+
+static float _limit_position(int axis, float p) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  // Check if axis is homed
+  if (!axis_get_homed(axis)) return p;
+
+  // Check if limits are enabled
+  float min = axis_get_travel_min(axis);
+  float max = axis_get_travel_max(axis);
+  if (min == max) return p;
+
+  if (a->velocity < 0 && p < min) {
+    a->velocity = 0;
+    return min;
+  }
+
+  if (0 < a->velocity && max < p) {
+    a->velocity = 0;
+    return max;
+  }
+
+  return p;
+}
+
+
+static bool _soft_limit(int axis, float V, float A) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  // Check if axis is homed
+  if (!axis_get_homed(axis)) return false;
+
+  // Check if limits are enabled
+  float min = axis_get_travel_min(axis);
+  float max = axis_get_travel_max(axis);
+  if (min == max) return false;
+
+  // Check if we need to stop to avoid exceeding a limit
+  float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+  float deccelDist = _compute_deccel_dist(V, A, jerk);
+
+  float position = mp_runtime_get_axis_position(axis);
+  if (a->velocity < 0 && position <= min + deccelDist) return true;
+  if (0 < a->velocity && max - deccelDist <= position) return true;
+
+  return false;
+}
+
+
+static float _next_accel(float Vi, float Vt, float Ai, float jerk) {
+  float At = sqrt(jerk * fabs(Vt - Vi)) * (Vt < Vi ? -1 : 1); // Target accel
+  float Ad = jerk * SEGMENT_TIME; // Delta accel
+
+  if (Ai < At) return (Ai < At + Ad) ? At : (Ai + Ad);
+  if (At < Ai) return (Ai - Ad < At) ? At : (Ai - Ad);
+
+  return Ai;
 }
 
 
@@ -101,60 +191,23 @@ static float _compute_axis_velocity(int axis) {
   float V = fabs(a->velocity);
   float Vt = fabs(a->target);
 
-  if (JOG_MIN_VELOCITY < Vt) jr.done = false;
+  // Apply soft limits
+  if (_soft_limit(axis, V, a->accel)) Vt = JOG_MIN_VELOCITY;
 
-  if (fp_EQ(V, Vt)) return Vt;
+  // Check if velocity has reached its target
+  if (fp_EQ(V, Vt)) {
+    a->accel = 0;
+    return Vt;
+  }
 
   // Compute axis max jerk
   float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
 
-  // Compute target accel
-  float accel = sqrt(jerk * fabs(Vt - V)) * (Vt < V ? -1 : 1);
-
-  // TODO apply max accel here
-
-  // Compute max delta accel
-  float deltaAccel = jerk * SEGMENT_TIME;
-
-  // Update accel
-  if (a->accel < accel) {
-    if (accel < a->accel + deltaAccel) a->accel = accel;
-    else a->accel += deltaAccel;
-
-  } else if (accel < a->accel) {
-    if (a->accel - deltaAccel < accel) a->accel = accel;
-    else a->accel -= deltaAccel;
-  }
+  // Compute next accel
+  a->accel = _next_accel(V, Vt, a->accel, jerk);
 
   return V + a->accel * SEGMENT_TIME;
 }
-
-
-#if 0
-static float _axis_velocity_at_limits(int axis) {
-  float V = jr.axes[axis].velocity;
-
-  if (axis_get_homed(axis)) {
-    float min = axis_get_travel_min(axis);
-    float max = axis_get_travel_max(axis);
-
-    if (position <= min) return 0;
-    if (max <= position) return 0;
-
-    float position = mp_runtime_get_axis_position(axis);
-    float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
-    float decelDist = mp_get_target_length(V, 0, jerk);
-
-    if (position < min + decelDist) {
-    }
-
-    if (max - decelDist < position) {
-    }
-  }
-
-  return V;
-}
-#endif
 
 
 static stat_t _exec_jog(mp_buffer_t *bf) {
@@ -164,7 +217,7 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   if (!jr.writing)
     for (int axis = 0; axis < AXES; axis++) {
       if (!axis_is_enabled(axis)) continue;
-      jr.axes[axis].changed = _next_axis_velocity(axis);
+      jr.axes[axis].changed = _axis_velocity_target(axis);
     }
 
   float velocity_sqr = 0;
@@ -173,9 +226,9 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   for (int axis = 0; axis < AXES; axis++) {
     if (!axis_is_enabled(axis)) continue;
     float V = _compute_axis_velocity(axis);
+    if (JOG_MIN_VELOCITY < V) jr.done = false;
     velocity_sqr += square(V);
     jr.axes[axis].velocity = V * jr.axes[axis].sign;
-    if (JOG_MIN_VELOCITY < V) jr.done = false;
   }
 
   // Check if we are done
@@ -190,9 +243,12 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
   // Compute target from velocity
   float target[AXES];
-  for (int axis = 0; axis < AXES; axis++)
+  for (int axis = 0; axis < AXES; axis++) {
     target[axis] = mp_runtime_get_axis_position(axis) +
       jr.axes[axis].velocity * SEGMENT_TIME;
+
+    target[axis] = _limit_position(axis, target[axis]);
+  }
 
   // Set velocity and target
   mp_runtime_set_velocity(sqrt(velocity_sqr));
