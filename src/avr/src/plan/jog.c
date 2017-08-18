@@ -95,6 +95,29 @@ static bool _axis_velocity_target(int axis) {
 }
 
 
+#if 0
+static float _compute_deccel_dist(float vel, float accel, float jerk) {
+  float dist = 0;
+  float Ad = jerk * SEGMENT_TIME; // Delta accel
+
+  while (true) {
+    // Compute next accel
+    float At2 = -jerk * vel;
+    if (accel * accel < At2) accel += Ad;
+    else accel -= Ad;
+
+    // Compute next velocity
+    vel += accel * SEGMENT_TIME;
+    if (vel <= 0) break;
+
+    // Compute distance traveled
+    dist += vel * SEGMENT_TIME;
+  }
+
+  return dist;
+}
+
+#else
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
   float dist = 0;
 
@@ -124,6 +147,7 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
 
   return dist;
 }
+#endif
 
 
 static float _limit_position(int axis, float p) {
