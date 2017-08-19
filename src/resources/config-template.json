@@ -146,8 +146,8 @@
   "spindle": {
     "spindle-type": {
       "type": "enum",
-      "values": ["HUNAYANG", "PWM"],
-      "default": "HUNAYANG",
+      "values": ["HUANYANG", "PWM"],
+      "default": "HUANYANG",
       "code": "st"
     },
     "spin-reversed": {
