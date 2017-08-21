@@ -137,6 +137,7 @@ class InEvent(object):
 
   def process_udev_event(self):
     action, device = self.udevMon.receive_device()
+    if device is None: return
 
     match = re.search(r"/dev/input/event([0-9]+)", str(device.device_node))
     devIndex = match and match.group(1)
@@ -177,9 +178,7 @@ class InEvent(object):
       log.info('Added %s[%d]', devType, devIndex)
 
     except OSError as e:
-      if e.errno in [errno.EPERM, errno.EACCES]:
-        log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
-      else: raise e
+      log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
 
 
   def remove_stream(self, devIndex):
@@ -187,6 +186,7 @@ class InEvent(object):
       if stream.devIndex == devIndex:
         self.streams.remove(stream)
         self.ioloop.remove_handler(stream.filehandle)
+        stream.release()
 
         log.info('Removed %s[%d]', stream.devType, devIndex)
 

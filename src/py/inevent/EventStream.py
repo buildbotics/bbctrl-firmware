@@ -29,6 +29,7 @@
 import fcntl
 import os
 import select
+import logging
 
 from inevent.Constants import *
 from inevent import ioctl
@@ -36,6 +37,8 @@ from inevent.AbsAxisScaling import AbsAxisScaling
 from inevent import Event
 from inevent.EventState import EventState
 
+
+log = logging.getLogger('inevent')
 
 EVIOCGRAB = ioctl._IOW(ord('E'), 0x90, "i") # Grab/Release device
 
@@ -160,7 +163,8 @@ class EventStream(object):
         event.decode(s)
         return event
 
-    except: pass
+    except Exception as e:
+      log.warning('Reading event: %s' % e)
 
 
   def __enter__(self): return self
