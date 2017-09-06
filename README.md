@@ -1,4 +1,5 @@
-[![Now on Kickstarter](https://buildbotics.com/images/buildbotics_now_on_kickstarter.png)](Now on Kickstarter)
+![Now on Kickstarter](https://buildbotics.com/images/buildbotics_now_on_kickstarter.png)
+[http://buildbotics.com/kickstarter](http://buildbotics.com/kickstarter)
 
 # Buildbotics Machine Controller Setup
 
