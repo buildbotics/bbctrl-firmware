@@ -107,21 +107,10 @@ Install the following tools for programming the AVR:
 sudo apt-get install -y avrdude gcc-avr
 ```
 
-## Connect to Motion Controller
-
-From RPi terminal
-
-```
-minicom -b 115200 -o -D /dev/ttyAMA0
-```
-
-You should see a prompt.
-
-
 ## Program Motion Controller
 
 ```
-avrdude -c avrispmkII -p ATxmega128A3U -P usb -U flash:w:tinyg.hex:i
+make program
 ```
 
 
