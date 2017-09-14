@@ -32,7 +32,7 @@
 
 #include <stdbool.h>
 
-
+// Must be kept in sync with AVR.py
 typedef enum {
   I2C_NULL,
   I2C_ESTOP,
