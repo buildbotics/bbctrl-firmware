@@ -2,13 +2,13 @@
 
 
 module.exports = {
-  template: '#spindle-view-template',
+  template: '#tool-view-template',
   props: ['config', 'template'],
 
 
   data: function () {
     return {
-      spindle: {}
+      tool: {}
     }
   },
 
@@ -29,13 +29,13 @@ module.exports = {
   methods: {
     update: function () {
       Vue.nextTick(function () {
-        if (this.config.hasOwnProperty('spindle'))
-          this.spindle = this.config.spindle;
+        if (this.config.hasOwnProperty('tool'))
+          this.tool = this.config.tool;
 
-        var template = this.template.spindle;
+        var template = this.template.tool;
         for (var key in template)
-          if (!this.spindle.hasOwnProperty(key))
-            this.$set('spindle["' + key + '"]', template[key].default);
+          if (!this.tool.hasOwnProperty(key))
+            this.$set('tool["' + key + '"]', template[key].default);
       }.bind(this));
     }
   }

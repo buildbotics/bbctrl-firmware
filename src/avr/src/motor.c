@@ -52,6 +52,7 @@
 typedef struct {
   // Config
   uint8_t axis;                  // map motor to axis
+  bool slave;
   uint16_t microsteps;           // microsteps per full step
   bool reverse;
   motor_power_mode_t power_mode;
@@ -136,7 +137,6 @@ void motor_init() {
     motor_t *m = &motors[motor];
 
     _update_config(motor);
-    axis_set_motor(m->axis, motor);
 
     // IO pins
     DIRSET_PIN(m->step_pin); // Output
@@ -162,9 +162,9 @@ void motor_init() {
     m->dma->REPCNT = 0;
     m->dma->CTRLB = 0;
     m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
-
-    drv8711_set_microsteps(motor, m->microsteps);
   }
+
+  axis_map_motors();
 }
 
 
@@ -176,29 +176,7 @@ bool motor_is_enabled(int motor) {
 int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
-void motor_set_axis(int motor, uint8_t axis) {
-  if (MOTORS <= motor || AXES <= axis || axis == motors[motor].axis) return;
-  axis_set_motor(motors[motor].axis, -1);
-  motors[motor].axis = axis;
-  axis_set_motor(axis, motor);
-}
-
-
 float motor_get_steps_per_unit(int motor) {return motors[motor].steps_per_unit;}
-uint16_t motor_get_microsteps(int motor) {return motors[motor].microsteps;}
-
-
-void motor_set_microsteps(int motor, uint16_t microsteps) {
-  switch (microsteps) {
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
-    break;
-  default: return;
-  }
-
-  motors[motor].microsteps = microsteps;
-  _update_config(motor);
-  drv8711_set_microsteps(motor, microsteps);
-}
 
 
 void motor_set_position(int motor, int32_t position) {
@@ -384,8 +362,13 @@ float get_step_angle(int motor) {return motors[motor].step_angle;}
 
 
 void set_step_angle(int motor, float value) {
-  motors[motor].step_angle = value;
-  _update_config(motor);
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      motors[m].step_angle = value;
+      _update_config(m);
+    }
 }
 
 
@@ -393,8 +376,13 @@ float get_travel(int motor) {return motors[motor].travel_rev;}
 
 
 void set_travel(int motor, float value) {
-  motors[motor].travel_rev = value;
-  _update_config(motor);
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      motors[m].travel_rev = value;
+      _update_config(m);
+    }
 }
 
 
@@ -403,7 +391,21 @@ uint16_t get_microstep(int motor) {return motors[motor].microsteps;}
 
 void set_microstep(int motor, uint16_t value) {
   if (motor < 0 || MOTORS <= motor) return;
-  motor_set_microsteps(motor, value);
+
+  switch (value) {
+  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
+    break;
+  default: return;
+  }
+
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      motors[m].microsteps = value;
+      _update_config(m);
+      drv8711_set_microsteps(m, value);
+    }
 }
 
 
@@ -414,17 +416,41 @@ bool get_reverse(int motor) {
 
 
 void set_reverse(int motor, bool value) {motors[motor].reverse = value;}
-char get_motor_axis(int motor) {return motors[motor].axis;}
-void set_motor_axis(int motor, uint8_t axis) {motor_set_axis(motor, axis);}
 
 
 uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
 
 
 void set_power_mode(int motor, uint8_t value) {
-  if (value <= MOTOR_POWERED_ONLY_WHEN_MOVING)
-    motors[motor].power_mode = value;
-  else motors[motor].power_mode = MOTOR_DISABLED;
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis)
+      motors[m].power_mode =
+        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ? value : MOTOR_DISABLED;
+}
+
+
+char get_motor_axis(int motor) {return motors[motor].axis;}
+
+void set_motor_axis(int motor, uint8_t axis) {
+  if (MOTORS <= motor || AXES <= axis || axis == motors[motor].axis) return;
+  motors[motor].axis = axis;
+  axis_map_motors();
+  mp_runtime_set_steps_from_position(); // Reset encoder counts
+
+  // Check if this is now a slave motor
+  motors[motor].slave = false;
+  for (int m = 0; m < motor; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      // Sync with master
+      set_step_angle(motor, motors[m].step_angle);
+      set_travel(motor, motors[m].travel_rev);
+      set_microstep(motor, motors[m].microsteps);
+      set_power_mode(motor, motors[m].power_mode);
+      motors[motor].slave = true;
+      break;
+    }
 }
 
 

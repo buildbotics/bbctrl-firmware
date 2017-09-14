@@ -102,6 +102,10 @@ cp upgrade-bbctrl /usr/local/bin
 echo -e "\ndtoverlay=pi3-disable-bt" >> /boot/config.txt
 # sudo systemctl disable hciuart
 
+# Install hawkeye
+dpkg -i hawkeye_0.5_armhf.deb
+echo 'ACTION=="add", KERNEL=="video0", RUN+="/usr/sbin/service hawkeye restart"' > /etc/udev/rules.d/50-hawkeye.rules
+
 # TODO setup input and serial device permissions in udev & forward 80 -> 8080
 
 reboot

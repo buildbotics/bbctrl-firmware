@@ -8,11 +8,23 @@ class Jog(inevent.JogHandler):
         self.ctrl = ctrl
 
         config = {
-            "deadband": 0.1,
-            "axes": [ABS_X, ABS_Y, ABS_RZ, ABS_Z],
-            "arrows": [ABS_HAT0X, ABS_HAT0Y],
-            "speed": [0x120, 0x121, 0x122, 0x123],
-            "activate": [0x124, 0x126, 0x125, 0x127],
+            "Logitech Logitech RumblePad 2 USB": {
+                "deadband": 0.1,
+                "axes": [ABS_X, ABS_Y, ABS_RZ, ABS_Z],
+                "dir":  [1, -1, -1, 1],
+                "arrows": [ABS_HAT0X, ABS_HAT0Y],
+                "speed": [0x120, 0x121, 0x122, 0x123],
+                "lock": [0x124, 0x125],
+                },
+
+            "default": {
+                "deadband": 0.1,
+                "axes": [ABS_X, ABS_Y, ABS_RY, ABS_RX],
+                "dir":  [1, -1, -1, 1],
+                "arrows": [ABS_HAT0X, ABS_HAT0Y],
+                "speed": [0x133, 0x130, 0x131, 0x134],
+                "lock": [0x136, 0x137],
+                }
             }
 
         super().__init__(config)
@@ -48,5 +60,3 @@ class Jog(inevent.JogHandler):
         if self.speed == 4: scale = 1.0
 
         self.v = [x * scale for x in self.axes]
-        self.v[ABS_Y] = -self.v[ABS_Y]
-        self.v[ABS_Z] = -self.v[ABS_Z]

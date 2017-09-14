@@ -76,7 +76,17 @@ int axis_get_id(char axis) {
 
 
 int axis_get_motor(int axis) {return motor_map[axis];}
-void axis_set_motor(int axis, int motor) {motor_map[axis] = motor;}
+
+
+// Map axes to first matching motor
+void axis_map_motors() {
+  for (int axis = 0; axis < AXES; axis++)
+    for (int motor = 0; motor < MOTORS; motor++)
+      if (motor_get_axis(motor) == axis) {
+        motor_map[axis] = motor;
+        break;
+      }
+}
 
 
 float axis_get_vector_length(const float a[], const float b[]) {
@@ -110,11 +120,11 @@ float axis_get_vector_length(const float a[], const float b[]) {
   AXIS_VAR_SET(NAME, TYPE)
 
 
+AXIS_SET(homed, bool)
+
 AXIS_GET(velocity_max, float, 0)
 AXIS_GET(homed, bool, false)
-AXIS_SET(homed, bool)
 AXIS_GET(homing_mode, homing_mode_t, HOMING_MANUAL)
-AXIS_SET(homing_mode, homing_mode_t)
 AXIS_GET(radius, float, 0)
 AXIS_GET(travel_min, float, 0)
 AXIS_GET(travel_max, float, 0)
@@ -137,6 +147,7 @@ AXIS_VAR_SET(velocity_max, float)
 AXIS_VAR_SET(radius, float)
 AXIS_VAR_SET(travel_min, float)
 AXIS_VAR_SET(travel_max, float)
+AXIS_VAR_SET(homing_mode, homing_mode_t)
 AXIS_VAR_SET(search_velocity, float)
 AXIS_VAR_SET(latch_velocity, float)
 AXIS_VAR_SET(zero_backoff, float)

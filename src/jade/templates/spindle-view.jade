@@ -1,8 +1,0 @@
-script#spindle-view-template(type="text/x-template")
-  #spindle
-    h1 Spindle Configuration
-
-    form.pure-form.pure-form-aligned
-      fieldset
-        templated-input(v-for="templ in template.spindle", :name="$key",
-          :model.sync="spindle[$key]", :template="templ")

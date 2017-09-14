@@ -40,7 +40,7 @@
 int main(int argc, char *argv[]) {
   mp_init();                      // motion planning
   machine_init();                 // gcode machine
-  for (int i = 0; i < 4; i++) axis_set_motor(i, i);
+  axis_map_motors();
 
   stat_t status = STAT_OK;
 

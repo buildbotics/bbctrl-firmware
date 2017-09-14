@@ -23,8 +23,7 @@ script#control-view-template(type="text/x-template")
 
             button.pure-button(:disabled="state.x != 'READY'",
               title="Zero {{'#{axis}' | upper}} axis offset.",
-              @click="set_position('#{axis}', state['#{axis}p'])")
-              | &empty;
+              @click="zero_axis('#{axis}')") &empty;
 
             button.pure-button(:disabled="state.x != 'READY'",
               title="Home {{'#{axis}' | upper}} axis.",
@@ -74,11 +73,11 @@ script#control-view-template(type="text/x-template")
      table.info
       tr
         th State
-        td {{get_state()}}
+        td(:class="{attention: highlight_reason()}") {{get_state()}}
         td
       tr
         th Reason
-        td.reason {{get_reason()}}
+        td.reason(:class="{attention: highlight_reason()}") {{get_reason()}}
         td
       tr
         th Feed
@@ -172,18 +171,30 @@ script#control-view-template(type="text/x-template")
 
       section#content1.tab-content
         .toolbar
-          button.pure-button(title="Upload a new program file.", @click="open",
+          button.pure-button(title="Upload a new GCode program.", @click="open",
             :disabled="state.x == 'RUNNING' || state.x == 'STOPPING'")
             .fa.fa-folder-open
 
           input.gcode-file-input(type="file", @change="upload",
             style="display:none", accept=".nc,.gcode,.gc,.ngc")
 
-          button.pure-button(title="Delete current program file.",
-            @click="delete", :disabled="!file")
+          button.pure-button(title="Delete current GCode program.",
+            @click="deleteGCode = true", :disabled="!file")
             .fa.fa-trash
 
-          select(title="Select previously uploaded program files.",
+          message(:show.sync="deleteGCode")
+            h3(slot="header") Delete GCode?
+            p(slot="body")
+            div(slot="footer")
+              button.pure-button(@click="deleteGCode = false") Cancel
+              button.pure-button.button-error(@click="deleteAll")
+                .fa.fa-trash
+                | &nbsp;all
+              button.pure-button.button-success(@click="deleteCurrent")
+                .fa.fa-trash
+                | &nbsp;selected
+
+          select(title="Select previously uploaded GCode programs.",
             v-model="file", @change="load",
             :disabled="state.x == 'RUNNING' || state.x == 'STOPPING'")
             option(v-for="file in files", :value="file") {{file}}

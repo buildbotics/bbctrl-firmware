@@ -21,7 +21,7 @@
         "min": 0,
         "max": 8,
         "unit": "amps",
-        "default": 2,
+        "default": 1.5,
         "code": "dc"
       },
       "idle-current": {
@@ -35,6 +35,32 @@
     },
 
     "motion": {
+      "reverse": {
+        "type": "bool",
+        "default": false,
+        "code": "rv"
+      },
+      "microsteps": {
+        "type": "int",
+        "values": [1, 2, 4, 8, 16, 32, 64, 128],
+        "unit": "per full step",
+        "default": 32,
+        "code": "mi"
+      },
+      "max-velocity": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm/min",
+        "default": 6000,
+        "code": "vm"
+      },
+      "max-jerk": {
+        "type": "float",
+        "min": 0,
+        "unit": "mm/min³",
+        "default": 50,
+        "code": "jm"
+      },
       "step-angle": {
         "type": "float",
         "min": 0,
@@ -49,32 +75,6 @@
         "unit": "mm",
         "default": 5,
         "code": "tr"
-      },
-      "microsteps": {
-        "type": "int",
-        "values": [1, 2, 4, 8, 16, 32, 64, 128],
-        "unit": "per full step",
-        "default": 32,
-        "code": "mi"
-      },
-      "reverse": {
-        "type": "bool",
-        "default": false,
-        "code": "rv"
-      },
-      "max-velocity": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm/min",
-        "default": 5000,
-        "code": "vm"
-      },
-      "max-jerk": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm/min³",
-        "default": 10,
-        "code": "jm"
       }
     },
 
@@ -143,7 +143,7 @@
     }
   },
 
-  "spindle": {
+  "tool": {
     "spindle-type": {
       "type": "enum",
       "values": ["HUANYANG", "PWM"],

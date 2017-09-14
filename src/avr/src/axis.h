@@ -53,7 +53,7 @@ bool axis_is_enabled(int axis);
 char axis_get_char(int axis);
 int axis_get_id(char axis);
 int axis_get_motor(int axis);
-void axis_set_motor(int axis, int motor);
+void axis_map_motors();
 float axis_get_vector_length(const float a[], const float b[]);
 
 float axis_get_velocity_max(int axis);
@@ -61,7 +61,6 @@ float axis_get_jerk_max(int axis);
 bool axis_get_homed(int axis);
 void axis_set_homed(int axis, bool homed);
 homing_mode_t axis_get_homing_mode(int axis);
-void axis_set_homing_mode(int axis, homing_mode_t mode);
 float axis_get_radius(int axis);
 float axis_get_travel_min(int axis);
 float axis_get_travel_max(int axis);

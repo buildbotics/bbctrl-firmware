@@ -26,7 +26,7 @@ module.exports = new Vue({
     'loading-view': {template: '<h1>Loading...</h1>'},
     'control-view': require('./control-view'),
     'motor-view': require('./motor-view'),
-    'spindle-view': require('./spindle-view'),
+    'tool-view': require('./tool-view'),
     'io-view': require('./io-view'),
     'gcode-view': require('./gcode-view'),
     'admin-view': require('./admin-view')

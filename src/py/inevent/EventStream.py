@@ -89,7 +89,7 @@ class EventStream(object):
     ABS_DISTANCE, ABS_TILT_X, ABS_TILT_Y, ABS_TOOL_WIDTH]
 
 
-  def __init__(self, devIndex, devType):
+  def __init__(self, devIndex, devType, devName):
     """
     Opens the given /dev/input/event file and grabs it.
 
@@ -97,6 +97,7 @@ class EventStream(object):
     """
     self.devIndex = devIndex
     self.devType = devType
+    self.devName = devName
     self.filename = "/dev/input/event" + str(devIndex)
     self.filehandle = os.open(self.filename, os.O_RDWR)
     self.state = EventState()

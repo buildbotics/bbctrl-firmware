@@ -21,6 +21,7 @@ module.exports = {
 
   events: {
     'input-changed': function() {
+      this.slave_update();
       this.$dispatch('config-changed');
       return false;
     }
@@ -32,6 +33,28 @@ module.exports = {
 
 
   methods: {
+    slave_update: function () {
+      var slave = false;
+      for (var i = 0; i < this.index; i++)
+        if (this.motor['axis'] == this.config.motors[i]['axis'])
+          slave = true;
+
+      var el = $(this.$el);
+
+      if (slave) {
+        el.find('.axis .units').text('(slave motor)');
+        el.find('.limits, .homing, .motion').find('input, select')
+          .attr('disabled', 1);
+        el.find('.power-mode select').attr('disabled', 1);
+        el.find('.motion .reverse input').removeAttr('disabled');
+
+      } else {
+        el.find('.axis .units').text('');
+        el.find('input,select').removeAttr('disabled');
+      }
+    },
+
+
     update: function () {
       if (!this.active) return;
 
@@ -46,6 +69,8 @@ module.exports = {
             if (!this.motor.hasOwnProperty(key))
               this.$set('motor["' + key + '"]',
                         template[category][key].default);
+
+        this.slave_update();
       }.bind(this));
     }
   }

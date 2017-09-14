@@ -13,11 +13,11 @@ default_config = {
         {"axis": "X"},
         {"axis": "Y"},
         {"axis": "Z"},
-        {"axis": "A"},
+        {"axis": "A", "power-mode" : "disabled"},
         ],
     "switches": {},
     "outputs": {},
-    "spindle": {},
+    "tool": {},
     "gcode": {},
     }
 

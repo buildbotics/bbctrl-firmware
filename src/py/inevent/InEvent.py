@@ -55,33 +55,6 @@ def key_to_code(key):
 def code_to_key(code): return CODE_KEY.get(code, '')
 
 
-def find_devices(types):
-  """Finds the event indices of all devices of the specified types.
-
-  A type is a string on the handlers line of /proc/bus/input/devices.
-  Keyboards use "kbd", mice use "mouse" and joysticks (and gamepads) use "js".
-
-  Returns a list of integer indexes N, where /dev/input/eventN is the event
-  stream for each device.
-
-  If butNot is given it holds a list of tuples which the returned values should
-  not match.
-
-  All devices of each type are returned; if you have two mice, they will both
-  be used.
-  """
-  with open("/proc/bus/input/devices", "r") as filehandle:
-    for line in filehandle:
-      if line[0] == "H":
-        for type in types:
-          if type in line:
-            match = re.search("event([0-9]+)", line)
-            index = match and match.group(1)
-            if index: yield int(index), type
-            break
-
-
-
 class InEvent(object):
   """Encapsulates the entire InEvent subsystem.
 
@@ -124,15 +97,52 @@ class InEvent(object):
     self.handler = EventHandler()
     self.types = types
 
-    devs = list(find_devices(types))
-    for index, type in devs:
-      self.add_stream(index, type)
-
     self.udevCtx = pyudev.Context()
     self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
     self.udevMon.filter_by(subsystem = 'input')
+
+    devs = list(self.find_devices(types))
+    for index, type, name in devs:
+      self.add_stream(index, type, name)
+
     self.udevMon.start()
     ioloop.add_handler(self.udevMon.fileno(), self.udev_handler, ioloop.READ)
+
+
+  def get_dev(self, index):
+    return pyudev.Device.from_name(self.udevCtx, 'input', 'event%s' % index)
+
+  def get_dev_name(self, index):
+    dev = self.get_dev(index)
+    for name, value in dev.parent.attributes.items():
+      if name == 'name': return value.decode('utf-8')
+
+
+  def find_devices(self, types):
+    """Finds the event indices of all devices of the specified types.
+
+    A type is a string on the handlers line of /proc/bus/input/devices.
+    Keyboards use "kbd", mice use "mouse" and joysticks (and gamepads) use "js".
+
+    Returns a list of integer indexes N, where /dev/input/eventN is the event
+    stream for each device.
+
+    If butNot is given it holds a list of tuples which the returned values
+    should not match.
+
+    All devices of each type are returned; if you have two mice, they will both
+    be used.
+    """
+    with open("/proc/bus/input/devices", "r") as filehandle:
+      for line in filehandle:
+        if line[0] == "H":
+          for type in types:
+            if type in line:
+              match = re.search("event([0-9]+)", line)
+              index = match and match.group(1)
+              if index:
+                yield int(index), type, self.get_dev_name(index)
+              break
 
 
   def process_udev_event(self):
@@ -145,9 +155,13 @@ class InEvent(object):
     devIndex = int(devIndex)
 
     if action == 'add':
-      for index, devType in find_devices(self.types):
+      devName = None
+      for name, value in device.attributes.items():
+        if name == 'name': devName = value
+
+      for index, devType, devName in self.find_devices(self.types):
         if index == devIndex:
-          self.add_stream(devIndex, devType)
+          self.add_stream(devIndex, devType, devName)
           break
 
     if action == 'remove':
@@ -159,7 +173,7 @@ class InEvent(object):
       if stream.filehandle == fd:
         while True:
           event = stream.next()
-          if event: self.handler.event(event, self.cb)
+          if event: self.handler.event(event, self.cb, stream.devName)
           else: break
 
 
@@ -167,15 +181,15 @@ class InEvent(object):
     self.process_udev_event()
 
 
-  def add_stream(self, devIndex, devType):
+  def add_stream(self, devIndex, devType, devName):
     try:
-      stream = EventStream(devIndex, devType)
+      stream = EventStream(devIndex, devType, devName)
       self.streams.append(stream)
 
       self.ioloop.add_handler(stream.filehandle, self.stream_handler,
                               self.ioloop.READ)
 
-      log.info('Added %s[%d]', devType, devIndex)
+      log.info('Added %s[%d] %s', devType, devIndex, devName)
 
     except OSError as e:
       log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
@@ -187,6 +201,7 @@ class InEvent(object):
         self.streams.remove(stream)
         self.ioloop.remove_handler(stream.filehandle)
         stream.release()
+        self.cb.clear()
 
         log.info('Removed %s[%d]', stream.devType, devIndex)
 

@@ -138,11 +138,7 @@ inline static uint16_t convert_voltage(uint16_t sample) {
 
 
 inline static uint16_t convert_current(uint16_t sample) {
-#define CR1 1000
-#define CR2 137
-
-  // TODO This isn't correct
-  return sample * (VREF / 1024.0 * (CR1 + CR2) / CR2 * 100);
+  return sample * (VREF / 1024.0 * 1970);
 }
 
 
@@ -271,6 +267,13 @@ int main() {
     if (get_reg(VIN_REG) < 11) {
       OCR0A = 0; // 0% duty cycle
       _delay_ms(3000);
+    }
+
+    if (10 < get_reg(MOTOR_REG)) {
+      OCR0A = 0; // 0% duty cycle
+      TCCR0A = 0;
+      GATE_DDR = 0;
+      _delay_ms(1000);
     }
   }
 

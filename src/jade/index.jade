@@ -29,7 +29,7 @@ html(lang="en")
       a#menuLink.menu-link(href="#menu"): span
 
       #menu
-        button.save(:disabled="!modified", class="pure-button button-success"
+        button.save.pure-button.button-success(:disabled="!modified",
           @click="save") Save
 
         .pure-menu
@@ -44,12 +44,12 @@ html(lang="en")
               a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
 
             li.pure-menu-heading
-              a.pure-menu-link(href="#spindle") Spindle
+              a.pure-menu-link(href="#tool") Tool
 
             li.pure-menu-heading
               a.pure-menu-link(href="#io") I/O
 
-            li.pure-menu-heading
+            li.pure-menu-heading(style="display:none")
               a.pure-menu-link(href="#gcode") Gcode
 
             li.pure-menu-heading

@@ -22,7 +22,7 @@ function escapeHTML(s) {
 
 module.exports = {
   template: '#control-view-template',
-  props: ['config', 'state'],
+  props: ['config', 'template', 'state'],
 
 
   data: function () {
@@ -41,7 +41,8 @@ module.exports = {
       position_msg:
       {x: false, y: false, z: false, a: false, b: false, c: false},
       axis_position: 0,
-      video_url: ''
+      video_url: '',
+      deleteGCode: false
     }
   },
 
@@ -94,9 +95,8 @@ module.exports = {
     },
 
 
-    send: function (msg) {
-      this.$dispatch('send', msg);
-    },
+    highlight_reason: function () {return this.get_reason() != ''},
+    send: function (msg) {this.$dispatch('send', msg)},
 
 
     get_axis_motor_id: function (axis) {
@@ -117,9 +117,21 @@ module.exports = {
     },
 
 
-    enabled: function (axis) {
+    get_axis_motor_param: function (axis, name) {
       var motor = this.get_axis_motor(axis);
-      return typeof motor != 'undefined' && motor['power-mode'] != 'disabled';
+      if (typeof motor == 'undefined') return;
+      if (typeof motor[name] != 'undefined') return motor[name];
+
+      for (var section in this.template['motors']) {
+        var sec = this.template['motors'][section];
+        if (typeof sec[name] != 'undefined') return sec[name]['default'];
+      }
+    },
+
+
+    enabled: function (axis) {
+      var pm = this.get_axis_motor_param(axis, 'power-mode')
+      return typeof pm != 'undefined' && pm != 'disabled';
     },
 
 
@@ -148,6 +160,7 @@ module.exports = {
 
 
     update: function () {
+      // Update file list
       api.get('file')
         .done(function (files) {
           var index = files.indexOf(this.file);
@@ -215,9 +228,15 @@ module.exports = {
     },
 
 
-    delete: function () {
-      if (!this.file) return;
-      api.delete('file/' + this.file).done(this.update);
+    deleteCurrent: function () {
+      if (this.file) api.delete('file/' + this.file).done(this.update);
+      this.deleteGCode = false;
+    },
+
+
+    deleteAll: function () {
+      api.delete('file').done(this.update);
+      this.deleteGCode = false;
     },
 
 
@@ -225,11 +244,9 @@ module.exports = {
       if (typeof axis == 'undefined') api.put('home');
 
       else {
-        var motor = this.get_axis_motor(axis);
-
-        if (motor['homing-mode'] == 'manual')
-          this.manual_home[axis] = true;
-        else api.put('home/' + axis);
+        if (this.get_axis_motor_param(axis, 'homing-mode') != 'manual')
+          api.put('home/' + axis);
+        else this.manual_home[axis] = true;
       }
     },
 
@@ -253,8 +270,11 @@ module.exports = {
 
     set_position: function (axis, position) {
       this.position_msg[axis] = false;
-      api.put('position/' + axis, {position: 0});
+      api.put('position/' + axis, {'position': parseFloat(position)});
     },
+
+
+    zero_axis: function (axis) {this.set_position(axis, 0)},
 
 
     start_pause: function () {
@@ -297,7 +317,8 @@ module.exports = {
 
 
     load_video: function () {
-      this.video_url = '//' + document.location.hostname + ':8000/stream/0';
+      this.video_url = '//' + document.location.hostname + ':8000/stream/0?=' +
+        Math.random();
     }
   }
 }

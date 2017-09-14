@@ -42,7 +42,7 @@ script#admin-view-template(type="text/x-template")
       h3(slot="header") Reset to default configuration?
       p(slot="body") All configuration changes will be lost.
       div(slot="footer")
-        button.pure-button.button-error(@click="confirmReset = false") Cancel
+        button.pure-button(@click="confirmReset = false") Cancel
         button.pure-button.button-success(@click="reset") OK
 
     message(:show.sync="configReset")

@@ -91,7 +91,6 @@ class AVR():
             self.stop();
             self.ctrl.config.config_avr()
             self._restore_machine_state()
-            self.report()
 
         except Exception as e:
             log.warning('Connect failed: %s', e)
@@ -128,6 +127,8 @@ class AVR():
                 if isinstance(value, bool): value = int(value)
 
                 self.queue_command('${}={}'.format(var, value))
+
+        self.queue_command('$$') # Refresh all vars, must come after above
 
 
     def report(self): self._i2c_command(I2C_REPORT)
@@ -246,6 +247,12 @@ class AVR():
                 return motor
 
 
+    def _is_axis_homed(self, axis):
+        motor = self._find_motor(axis)
+        if axis is None: return False
+        return self.vars['%dh' % motor]
+
+
     def _update_lcd(self, msg):
         if 'x' in msg or 'c' in msg:
             v = self.vars
@@ -346,4 +353,6 @@ class AVR():
 
     def set_position(self, axis, position):
         if self.stream is not None: raise Exception('Busy, cannot set position')
-        self.queue_command('G92 %c%f' % (axis, position))
+        if self._is_axis_homed('%c' % axis):
+            self.queue_command('G92 %c%f' % (axis, position))
+        else: self.queue_command('$%cp=%f' % (axis, position))

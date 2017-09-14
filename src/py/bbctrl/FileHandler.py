@@ -7,8 +7,14 @@ class FileHandler(bbctrl.APIHandler):
 
 
     def delete_ok(self, path):
-        path = 'upload' + path
-        if os.path.exists(path): os.unlink(path)
+        if not path:
+            if os.path.exists('upload'):
+                for path in os.listdir('upload'):
+                    if os.path.isfile('upload/' + path):
+                        os.unlink('upload/' + path)
+        else:
+            path = 'upload' + path
+            if os.path.exists(path): os.unlink(path)
 
 
     def put_ok(self, path):

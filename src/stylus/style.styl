@@ -5,7 +5,16 @@ body
   display none
 
 .button-success:not([disabled])
-  background rgb(28, 184, 65)
+  background-color #1cb841
+
+.button-error:not([disabled])
+  background-color #ca3c3c
+
+.button-warning:not([disabled])
+  background-color #df7514
+
+.button-secondary:not([disabled])
+  background-color #42b8dd
 
 .header, .content
   padding 0
@@ -54,6 +63,15 @@ body
 
 .success
   background green
+
+@keyframes attention
+  50%
+    opacity 0.5
+
+.attention
+    background-color #f5e138
+    color #000
+    animation attention 2s step-start 0s infinite
 
 .status
   color #eee
@@ -259,6 +277,7 @@ body
     clear right
 
   .override
+    display none /* Hidden for now */
     margin 0.5em 0
     white-space nowrap
 

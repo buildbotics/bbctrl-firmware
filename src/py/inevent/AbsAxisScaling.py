@@ -77,4 +77,3 @@ class AbsAxisScaling(object):
     """
     return (float(value) - float(self.minimum)) / \
         float(self.maximum - self.minimum) * 2.0 - 1.0
-

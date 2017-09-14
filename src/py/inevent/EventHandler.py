@@ -42,7 +42,7 @@ class EventHandler(object):
     self.buttons = dict()
 
 
-  def event(self, event, handler):
+  def event(self, event, handler, name):
     """
     Handles the given event.
 
@@ -80,7 +80,7 @@ class EventHandler(object):
     elif event.type == EV_ABS:
       state.abs[event.code] = event.stream.scale(event.code, event.value)
 
-    if handler: handler(event, state)
+    if handler: handler.event(event, state, name)
 
 
   def key_state(self, code):
