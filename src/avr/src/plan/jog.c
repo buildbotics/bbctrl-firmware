@@ -96,6 +96,7 @@ static bool _axis_velocity_target(int axis) {
 
 
 #if 0
+// Numeric version
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
   float dist = 0;
   float Ad = jerk * SEGMENT_TIME; // Delta accel
@@ -117,7 +118,9 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
   return dist;
 }
 
+
 #else
+// Analytical version
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
   float dist = 0;
 
