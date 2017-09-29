@@ -67,6 +67,9 @@ pip-3.2 install --upgrade tornado sockjs-tornado pyserial smbus
 # Clean
 apt-get autoclean
 
+# Mount VFAT boot partition read only to avoid corruption
+sed -i 's/\(vfat[[:space:]]\+defaults\)[^[:space:]]*/\1,ro/' /etc/fstab
+
 # Change hostname
 sed -i "s/raspberrypi/bbctrl$ID/" /etc/hosts /etc/hostname
 
