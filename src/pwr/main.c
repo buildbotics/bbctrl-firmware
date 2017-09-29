@@ -256,8 +256,8 @@ int main() {
   // Delayed start
   _delay_ms(100);
 
-  // Enable timer with clk/64
-  TCCR0B = (CS02 << 0) | (CS01 << 1) | (CS00 << 1);
+  // Enable timer with clk/8
+  TCCR0B = (0 << CS02) | (1 << CS01) | (0 << CS00);
 
   _delay_ms(200);
 
