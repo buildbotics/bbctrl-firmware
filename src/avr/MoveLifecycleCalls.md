@@ -8,6 +8,7 @@
            * mach_*()
              * mach_straight_traverse/feed() || mach_arc_feed()
                * mp_aline(const float target[], float feed,. . .)
+                 * mp_queue_get_tail()
                  * _calc_jerk*()
                  * _calc_move_time()
                  * _calc_max_velocities()
