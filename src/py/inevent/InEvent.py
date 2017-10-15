@@ -112,10 +112,12 @@ class InEvent(object):
   def get_dev(self, index):
     return pyudev.Device.from_name(self.udevCtx, 'input', 'event%s' % index)
 
+
   def get_dev_name(self, index):
-    dev = self.get_dev(index)
-    for name, value in dev.parent.attributes.items():
-      if name == 'name': return value.decode('utf-8')
+    try:
+      dev = self.get_dev(index)
+      return dev.parent.attributes.asstring('name').decode('utf-8')
+    except: pass
 
 
   def find_devices(self, types):
@@ -155,17 +157,12 @@ class InEvent(object):
     devIndex = int(devIndex)
 
     if action == 'add':
-      devName = None
-      for name, value in device.attributes.items():
-        if name == 'name': devName = value
-
       for index, devType, devName in self.find_devices(self.types):
         if index == devIndex:
           self.add_stream(devIndex, devType, devName)
           break
 
-    if action == 'remove':
-      self.remove_stream(devIndex)
+    if action == 'remove': self.remove_stream(devIndex)
 
 
   def stream_handler(self, fd, events):
