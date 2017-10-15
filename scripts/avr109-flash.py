@@ -4,7 +4,6 @@ import sys
 import time
 import serial
 import binascii
-from subprocess import call
 
 
 dev = '/dev/ttyAMA0'
@@ -99,8 +98,12 @@ data = list(read_intel_hex(open(sys.argv[1], 'r')))
 sp = serial.Serial(dev, baud, timeout = 10)
 
 # Reset AVR
-call(['gpio', '-g', 'write', '27', '0'])
-call(['gpio', '-g', 'write', '27', '1'])
+import RPi.GPIO as gpio
+gpio.setwarnings(False)
+gpio.setmode(gpio.BCM)
+gpio.setup(27, gpio.OUT)
+gpio.output(27, 0)
+gpio.output(27, 1)
 time.sleep(0.1)
 
 # Sync
