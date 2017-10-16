@@ -1,7 +1,3 @@
-# [http://buildbotics.com/kickstarter](http://buildbotics.com/kickstarter)
-![Now on Kickstarter](https://buildbotics.com/images/buildbotics_now_on_kickstarter.png)
-
-
 # Buildbotics Machine Controller Setup
 
 These instructions are for a Debian *testing* development system targeting the RaspberryPi.
