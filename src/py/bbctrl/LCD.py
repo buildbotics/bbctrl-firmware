@@ -64,6 +64,7 @@ class LCD:
         self.pages = []
         self.current_page = 0
         self.screen = self.new_screen()
+        self.set_message('Loading...')
 
         # Redraw screen every 5 seconds
         self.redraw_timer = tornado.ioloop.PeriodicCallback(self._redraw, 5000,
