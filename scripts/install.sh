@@ -3,7 +3,7 @@
 UPDATE_AVR=true
 UPDATE_PY=true
 
-while [[ $# -gt 1 ]]; do
+while [ $# -gt 0 ]; do
     case "$1" in
         --no-avr) UPDATE_AVR=false ;;
         --no-py) UPDATE_PY=false ;;
