@@ -1,95 +1,40 @@
-#!/bin/bash
+#!/bin/bash -e
 
-ID=2
+export LC_ALL=C
+cd /mnt/host
 
 # Update the system
-apt-get update && apt-get dist-upgrade -y || exit 1
-
-# Resize FS
-# TODO no /dev/root in Jessie
-ROOT_PART=$(readlink /dev/root)
-PART_NUM=${ROOT_PART#mmcblk0p}
-
-if [ "$PART_NUM" != "$ROOT_PART" ]; then
-    # Get the starting offset of the root partition
-    PART_START=$(
-        parted /dev/mmcblk0 -ms unit s p | grep "^${PART_NUM}" | cut -f 2 -d:)
-    [ "$PART_START" ] &&
-
-    fdisk /dev/mmcblk0 <<EOF &&
-p
-d
-$PART_NUM
-n
-p
-$PART_NUM
-$PART_START
-p
-w
-EOF
-
-  # Now set up an init.d script to do the resize
-    cat <<\EOF >/etc/init.d/resize2fs_once &&
-#!/bin/sh
-### BEGIN INIT INFO
-# Provides:          resize2fs_once
-# Required-Start:
-# Required-Stop:
-# Default-Start: 2 3 4 5 S
-# Default-Stop:
-# Short-Description: Resize the root filesystem to fill partition
-# Description:
-### END INIT INFO
-. /lib/lsb/init-functions
-case "$1" in
-  start)
-    log_daemon_msg "Starting resize2fs_once" &&
-    resize2fs /dev/root &&
-    rm /etc/init.d/resize2fs_once &&
-    update-rc.d resize2fs_once remove &&
-    log_end_msg $?
-    ;;
-  *)
-    echo "Usage: $0 start" >&2
-    exit 3
-    ;;
-esac
-EOF
-
-    chmod +x /etc/init.d/resize2fs_once &&
-    update-rc.d resize2fs_once defaults
-fi
+apt-get update
+apt-get dist-upgrade -y
 
 # Install packages
-apt-get install -y avahi-daemon avrdude minicom python3-pip i2c-tools
-pip-3.2 install --upgrade tornado sockjs-tornado pyserial smbus
+apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
+  i2c-tools python3-rpi.gpio libjpeg8
+pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
 apt-get autoclean
 
-# Mount VFAT boot partition read only to avoid corruption
-sed -i 's/\(vfat[[:space:]]\+defaults\)[^[:space:]]*/\1,ro/' /etc/fstab
+# Enable avahi
+update-rc.d avahi-daemon defaults
 
 # Change hostname
-sed -i "s/raspberrypi/bbctrl$ID/" /etc/hosts /etc/hostname
+sed -i "s/raspberrypi/bbctrl/" /etc/hosts /etc/hostname
 
-# Create user
+# Create bbmc user
 useradd -m -p $(openssl passwd -1 buildbotics) -s /bin/bash bbmc
-echo "bbmc ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+sed -i 's/pi$/pi,bbmc/g' /etc/group
+passwd -l pi
 
 # Disable console on serial port
-#sed -i 's/^\(.*ttyAMA0.*\)$/# \1/' /etc/inittab
-sed -i 's/console=ttyAMA0,115200 //' /boot/cmdline.txt
+sed -i 's/console=[a-zA-Z0-9]*,115200 \?//' /boot/cmdline.txt
 
 # Disable i2c HAT ID probe
 echo -n " bcm2708.vc_i2c_override=1" >> /boot/cmdline.txt
 
-# Disable extra gettys
-sed -i 's/^\([23456]:.*\/sbin\/getty\)/#\1/' /etc/inittab
-
 # Enable I2C
 sed -i 's/#dtparam=i2c/dtparam=i2c/' /boot/config.txt
-echo 'dtparam=i2c_vc=on' >> /boot/config.txt
+#echo 'dtparam=i2c_vc=on' >> /boot/config.txt
 echo i2c-bcm2708 >> /etc/modules
 echo i2c-dev >> /etc/modules
 
@@ -98,17 +43,34 @@ cp bbctrl.init.d /etc/init.d/bbctrl
 chmod +x /etc/init.d/bbctrl
 update-rc.d bbctrl defaults
 
-# Install upgrade script
-cp upgrade-bbctrl /usr/local/bin
-
 # Disable Pi 3 USART BlueTooth swap
 echo -e "\ndtoverlay=pi3-disable-bt" >> /boot/config.txt
-# sudo systemctl disable hciuart
+rm -f /etc/systemd/system/multi-user.target.wants/hciuart.service
 
 # Install hawkeye
-dpkg -i hawkeye_0.5_armhf.deb
+dpkg -i hawkeye_0.6_armhf.deb
+sed -i 's/localhost/0.0.0.0/' /etc/hawkeye/hawkeye.conf
 echo 'ACTION=="add", KERNEL=="video0", RUN+="/usr/sbin/service hawkeye restart"' > /etc/udev/rules.d/50-hawkeye.rules
+adduser hawkeye video
 
-# TODO setup input and serial device permissions in udev & forward 80 -> 8080
+# Disable HDMI to save power and remount /boot read-only
+sed -i 's/^exit 0$//' /etc/rc.local
+echo "/usr/bin/tvservice -o" >> /etc/rc.local
+echo "mount -o remount,ro /boot" >> /etc/rc.local
+echo "exit 0" >> /etc/rc.local
 
-reboot
+# Dynamic clock to save power
+echo -e "\n# Dynamic clock\nnohz=on" >> /boot/config.txt
+
+# Shave 2 sec off of boot time
+echo -e "\n# Faster boot\ndtparam=sd_overclock=100" >> /boot/config.txt
+
+# TODO Forward 80 -> 8080 and moving bbctrl Web port
+
+# Enable ssh
+touch /boot/ssh
+
+# Install bbctrl
+tar xf bbctrl-*.tar.bz2
+cd $(basename bbctrl-*.tar.bz2 .tar.bz2)
+./setup.py install
