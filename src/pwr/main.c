@@ -28,6 +28,7 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <avr/io.h>
+#include <avr/wdt.h>
 
 #include <util/delay.h>
 
@@ -38,10 +39,12 @@
 
 // Port A
 #define MOTOR_PIN 3
-#define LOAD1_PIN 5
+//#define LOAD1_PIN 5
+#define VOUT_PIN 5
 #define LOAD2_PIN 6
 #define MOTOR_ADC 0
-#define LOAD1_ADC 2
+//#define LOAD1_ADC 2
+#define VOUT_ADC 2
 #define LOAD2_ADC 3
 
 // Port B
@@ -49,13 +52,14 @@
 #define VIN_ADC 5
 
 // Port C
-#define VOUT_PIN 2
-#define VOUT_ADC 11
+//#define VOUT_PIN 2
+//#define VOUT_ADC 11
 
 #define GATE_PORT PORTC
 #define GATE_DDR DDRC
 #define GATE1_PIN 0
-#define GATE2_PIN 4
+//#define GATE2_PIN 4
+#define SHUNT_PIN 4
 #define GATE3_PIN 5
 
 #define I2C_ADDR 0x60
@@ -143,6 +147,13 @@ inline static uint16_t convert_current(uint16_t sample) {
 
 
 void adc_conversion() {
+  regs[VOUT_REG] = convert_voltage(ADC);
+
+  // Start next conversion
+  ADMUX = (ADMUX & 0xf0) | VOUT_ADC;
+  ADCSRA |= 1 << ADSC;
+
+#if 0
   uint16_t data = ADC;
   uint8_t ch = ADMUX & 0xf;
 
@@ -164,6 +175,10 @@ void adc_conversion() {
 
   case MOTOR_ADC:
     regs[MOTOR_REG] = convert_current(data);
+    ch = LOAD2_ADC;
+    break;
+
+#if 0
     ch = LOAD1_ADC;
     break;
 
@@ -171,6 +186,7 @@ void adc_conversion() {
     regs[LOAD1_REG] = convert_current(data);
     ch = LOAD2_ADC;
     break;
+#endif
 
   case LOAD2_ADC:
     regs[LOAD2_REG] = convert_current(data);
@@ -185,6 +201,7 @@ void adc_conversion() {
   // Start next conversion
   ADMUX = (ADMUX & 0xf0) | ch;
   ADCSRA |= 1 << ADSC;
+#endif
 }
 
 
@@ -206,7 +223,7 @@ void init() {
     (0 << PRTIM0) | (1 << PRTIM1) | (0 << PRTWI);
 
   // IO
-  GATE_DDR = (1 << GATE1_PIN) | (1 << GATE2_PIN) | (1 << GATE3_PIN); // Out
+  GATE_DDR = (1 << GATE1_PIN) | (1 << SHUNT_PIN) | (1 << GATE3_PIN); // Out
   PUEC = 1 << 3; // Pull up reset line
 
   // Disable digital IO on ADC lines
@@ -225,7 +242,7 @@ void init() {
   TCCR0B = 0 << WGM02;
   OCR0A = 255 * 0.2; // Initial duty cycle
 
-  // SPI, enable, enable address/stop interrupt
+  // I2C, enable, enable address/stop interrupt
   TWSCRA = (1 << TWEN) | (1 << TWASIE) | (1 << TWDIE);
   TWSA = I2C_ADDR << 1;
   TWSAM = I2C_MASK << 1;
@@ -244,11 +261,9 @@ float get_reg(int reg) {
 
 
 int main() {
-  init();
+  wdt_enable(WDTO_8S);
 
-  TCCR0A = TCCR0B = 0;
-  GATE_DDR = (1 << GATE1_PIN) | (1 << 2);
-  GATE_PORT = (1 << GATE1_PIN) | (1 << 2);
+  init();
 
   // Start ADC
   adc_conversion();
@@ -257,15 +272,30 @@ int main() {
   _delay_ms(100);
 
   // Enable timer with clk/8
-  TCCR0B = (0 << CS02) | (1 << CS01) | (0 << CS00);
+  TCCR0B |= (0 << CS02) | (1 << CS01) | (0 << CS00);
 
   _delay_ms(200);
 
+  bool shunt = false;
+  float vNom = get_reg(VOUT_REG);
+
   while (true) {
+    wdt_reset();
     OCR0A = 0xff; // 100% duty cycle
 
-    if (get_reg(VIN_REG) < 11) {
+    if (!shunt && vNom + 3 < get_reg(VOUT_REG)) {
+      shunt = true;
+      PORTC |= (1 << SHUNT_PIN);
+
+    } else if (shunt && get_reg(VOUT_REG) < vNom + 1) {
+      PORTC &= ~(1 << SHUNT_PIN);
+      shunt = false;
+    }
+    continue;
+
+    if (30 < get_reg(VIN_REG) || get_reg(VIN_REG) < 11) {
       OCR0A = 0; // 0% duty cycle
+      GATE_PORT &= ~(1 << GATE1_PIN);
       _delay_ms(3000);
     }
 
