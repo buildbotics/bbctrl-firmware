@@ -27,9 +27,30 @@
 
 #pragma once
 
-#include "buffer.h"
+#include "config.h"
+#include "action.h"
+
+#include <stdint.h>
+#include <stdbool.h>
 
 
-stat_t mp_exec_move();
-void mp_exec_abort();
-stat_t mp_exec_aline(mp_buffer_t *bf);
+// Called by state.c
+void queue_flush();
+bool queue_is_empty();
+int queue_get_room();
+int queue_get_fill();
+
+void queue_push(action_t action);
+void queue_push_float(action_t action, float value);
+void queue_push_int(action_t action, int32_t value);
+void queue_push_bool(action_t action, bool value);
+void queue_push_pair(action_t action, int16_t left, int16_t right);
+
+void queue_pop();
+
+action_t queue_head();
+float queue_head_float();
+int32_t queue_head_int();
+bool queue_head_bool();
+int16_t queue_head_left();
+int16_t queue_head_right();

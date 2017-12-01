@@ -28,7 +28,8 @@
 
 #include "axis.h"
 #include "motor.h"
-#include "plan/planner.h"
+#include "switch.h"
+#include "util.h"
 
 #include <math.h>
 #include <string.h>
@@ -140,7 +141,11 @@ AXIS_GET(latch_backoff, float, 0)
  *
  * The axis_jerk() functions expect the jerk in divided by 1,000,000 form.
  */
-AXIS_GET(jerk_max, float, 0)
+float axis_get_jerk_max(int axis) {
+  int motor = axis_get_motor(axis);
+  return motor == -1 ? 0 : axes[motor].jerk_max * JERK_MULTIPLIER;
+}
+AXIS_VAR_GET(jerk_max, float)
 
 
 AXIS_VAR_SET(velocity_max, float)

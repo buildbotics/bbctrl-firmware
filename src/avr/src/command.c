@@ -27,17 +27,17 @@
 
 #include "command.h"
 
-#include "gcode_parser.h"
 #include "usart.h"
 #include "hardware.h"
 #include "report.h"
 #include "vars.h"
 #include "estop.h"
 #include "i2c.h"
-#include "plan/buffer.h"
-#include "plan/state.h"
 #include "config.h"
 #include "pgmspace.h"
+#include "state.h"
+#include "exec.h"
+#include "action.h"
 
 #ifdef __AVR__
 #include <avr/wdt.h>
@@ -58,11 +58,11 @@ static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
   case I2C_NULL:                                           break;
   case I2C_ESTOP:          estop_trigger(STAT_ESTOP_USER); break;
   case I2C_CLEAR:          estop_clear();                  break;
-  case I2C_PAUSE:          mp_request_hold();              break;
-  case I2C_OPTIONAL_PAUSE: mp_request_optional_pause();    break;
-  case I2C_RUN:            mp_request_start();             break;
-  case I2C_STEP:           mp_request_step();              break;
-  case I2C_FLUSH:          mp_request_flush();             break;
+  case I2C_PAUSE:          state_request_hold();              break;
+  case I2C_OPTIONAL_PAUSE: state_request_optional_pause();    break;
+  case I2C_RUN:            state_request_start();             break;
+  case I2C_STEP:           state_request_step();              break;
+  case I2C_FLUSH:          state_request_flush();             break;
   case I2C_REPORT:         report_request_full();          break;
   case I2C_REBOOT:         hw_request_hard_reset();        break;
   }
@@ -128,8 +128,7 @@ int command_exec(int argc, char *argv[]) {
       return cb(argc, argv);
     }
 
-  } else if (argc != 1)
-    return STAT_INVALID_OR_MALFORMED_COMMAND;
+  } else if (argc != 1) return STAT_INVALID_COMMAND;
 
   // Get or set variable
   char *value = strchr(argv[0], '=');
@@ -241,17 +240,17 @@ void command_callback() {
 
   switch (*_cmd) {
   case 0: break; // Empty line
-  case '{': status = vars_parser(_cmd); break;
+  case '{': status = vars_parser(_cmd); break; // TODO is this necessary?
   case '$': status = command_parser(_cmd); break;
-  case '%': break; // GCode program separator, ignore it
 
   default:
     if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
-    else if (mp_is_flushing()) break; // Flush GCode command
-    else if (!mp_is_ready()) return;  // Wait for motion planner
+    else if (state_is_flushing()) break; // Flush command
+    else if (!state_is_ready()) return;  // Wait for exec queue
 
-    // Parse and execute GCode command
-    status = gc_gcode_parser(_cmd);
+    // Parse and execute action
+    status = action_parse(_cmd);
+    if (status == STAT_QUEUE_FULL) return; // Try again later
   }
 
   _cmd = 0; // Command consumed
@@ -331,6 +330,6 @@ uint8_t command_messages(int argc, char *argv[]) {
 
 
 uint8_t command_resume(int argc, char *argv[]) {
-  mp_request_resume();
+  state_request_resume();
   return 0;
 }

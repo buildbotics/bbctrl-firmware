@@ -74,7 +74,7 @@ static float var_string_to_float(string s) {return 0;}
 
 // Program string
 static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
-static const char *var_parse_pstring(const char *value) {return value;}
+//static const char *var_parse_pstring(const char *value) {return value;}
 static float var_pstring_to_float(pstring s) {return 0;}
 
 

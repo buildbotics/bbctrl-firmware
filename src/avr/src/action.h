@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2012 - 2015 Rob Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -27,28 +25,35 @@
 
 \******************************************************************************/
 
-#include "dwell.h"
+#pragma once
 
-#include "buffer.h"
-#include "machine.h"
-#include "stepper.h"
+#include "status.h"
 
 
-// Dwells are performed by passing a dwell move to the stepper drivers.
+typedef enum {
+  ACTION_SCURVE   = 's',
+  ACTION_DATA     = 'd',
+  ACTION_VELOCITY = 'v',
+
+  ACTION_X        = 'X',
+  ACTION_Y        = 'Y',
+  ACTION_Z        = 'Z',
+  ACTION_A        = 'A',
+  ACTION_B        = 'B',
+  ACTION_C        = 'C',
+
+  ACTION_SEEK     = 'K',
+  ACTION_OUTPUT   = 'O',
+
+  ACTION_DWELL    = 'D',
+  ACTION_PAUSE    = 'P',
+  ACTION_TOOL     = 'T',
+  ACTION_SPEED    = 'S',
+  ACTION_JOG      = 'J',
+  ACTION_LINE_NUM = 'N',
+
+  ACTION_SET_HOME = 'H',
+} action_t;
 
 
-/// Dwell execution
-static stat_t _exec_dwell(mp_buffer_t *bf) {
-  st_prep_dwell(bf->value); // in seconds
-  return STAT_OK; // Done
-}
-
-
-/// Queue a dwell
-stat_t mp_dwell(float seconds, int32_t line) {
-  mp_buffer_t *bf = mp_queue_get_tail();
-  bf->value = seconds; // in seconds, not minutes
-  mp_queue_push(_exec_dwell, line);
-
-  return STAT_OK;
-}
+stat_t action_parse(const char *block);

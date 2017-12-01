@@ -33,9 +33,8 @@
 #include "report.h"
 #include "hardware.h"
 #include "config.h"
-
-#include "plan/planner.h"
-#include "plan/state.h"
+#include "state.h"
+#include "exec.h"
 
 #include <avr/eeprom.h>
 
@@ -73,7 +72,7 @@ void estop_init() {
 
   switch_set_callback(SW_ESTOP, _switch_callback);
 
-  if (estop.triggered) mp_state_estop();
+  if (estop.triggered) state_estop();
 
   // Fault signal
   SET_PIN(FAULT_PIN, estop.triggered);
@@ -93,7 +92,7 @@ void estop_trigger(stat_t reason) {
   spindle_stop();
 
   // Set machine state
-  mp_state_estop();
+  state_estop();
 
   // Save reason
   _set_reason(reason);

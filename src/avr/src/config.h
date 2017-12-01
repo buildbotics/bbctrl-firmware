@@ -96,13 +96,12 @@ enum {
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
-#define COORDS                   6 // number of supported coordinate systems
 #define SWITCHES                10 // number of supported switches
 #define OUTS                     5 // number of supported pin outputs
 
 
 // Switch settings.  See switch.c
-#define SWITCH_INTLVL            PORT_INT0LVL_MED_gc
+#define SWITCH_INTLVL  PORT_INT0LVL_MED_gc
 
 
 // Motor ISRs
@@ -114,10 +113,9 @@ enum {
  *
  *    HI    Stepper timers                       (set in stepper.h)
  *    LO    Segment execution SW interrupt       (set in stepper.h)
- *   MED    GPIO1 switch port                    (set in gpio.h)
  *   MED    Serial RX                            (set in usart.c)
  *   MED    Serial TX                            (set in usart.c) (* see note)
- *    LO    Real time clock interrupt            (set in xmega_rtc.h)
+ *    LO    Real time clock interrupt            (set in rtc.h)
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
  *        called from a LO interrupt (as in prep_line()) will kill the system
@@ -146,7 +144,6 @@ enum {
 
 
 // Timer setup for stepper and dwells
-#define STEP_TIMER_DISABLE     0
 #define STEP_TIMER_ENABLE      TC_CLKSEL_DIV4_gc
 #define STEP_TIMER_DIV         4
 #define STEP_TIMER_FREQ        (F_CPU / STEP_TIMER_DIV)
@@ -156,11 +153,7 @@ enum {
 #define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
 #define STEP_LOW_LEVEL_ISR     ADCB_CH0_vect
 
-#define SEGMENT_USEC           5000.0 // segment time
-#define SEGMENT_SEC            (SEGMENT_USEC / 1000000.0)
-#define SEGMENT_TIME           (SEGMENT_SEC / 60.0)
-#define SEGMENT_CLOCKS         ((uint24_t)(F_CPU * SEGMENT_SEC))
-#define SEGMENT_PERIOD         ((uint16_t)(STEP_TIMER_FREQ * SEGMENT_SEC))
+#define SEGMENT_TIME           (0.005 / 60.0) // mins
 
 
 // DRV8711 settings
@@ -199,23 +192,6 @@ enum {
 #define INPUT_BUFFER_LEN       255 // text buffer size (255 max)
 
 
-// Planner
-/// Should be at least the number of buffers required to support optimal
-/// planning in the case of very short lines or arc segments.  Suggest no less
-/// than 12.  Must leave headroom for stack.
-#define PLANNER_BUFFER_POOL_SIZE 32
-
-/// Buffers to reserve in planner before processing new input line
-#define PLANNER_BUFFER_HEADROOM   4
-
-/// Minimum number of filled buffers before timeout until execution starts
-#define PLANNER_EXEC_MIN_FILL     4
-
-/// Delay before executing new buffers unless PLANNER_EXEC_MIN_FILL is met
-/// This gives the planner a chance to make a good plan before execution starts
-#define PLANNER_EXEC_DELAY      250 // In ms
-
-
 // I2C
 #define I2C_DEV                 TWIC
 #define I2C_ISR                 TWIC_TWIS_vect
@@ -227,30 +203,13 @@ enum {
 
 // Motor settings.  See motor.c
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
-
-
 #define MIN_HALF_STEP_CORRECTION 4
-#define CHORDAL_TOLERANCE        0.01          // chordal accuracy for arcs
-#define JUNCTION_DEVIATION       0.05          // default value, in mm
-#define JUNCTION_ACCELERATION    100000        // centripetal corner accel
+
 #define JOG_MIN_VELOCITY         10            // mm/min
-#define CAL_ACCELERATION         500000        // mm/min^2
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms
 #define CURRENT_SENSE_REF        2.75          // volts
 #define MAX_CURRENT              10            // amps
-
-// Arc
-#define ARC_RADIUS_ERROR_MAX   1.0   // max mm diff between start and end radius
-#define ARC_RADIUS_ERROR_MIN   0.005 // min mm where 1% rule applies
-#define ARC_RADIUS_TOLERANCE   0.001 // 0.1% radius variance test
-
-
-// Gcode defaults
-#define GCODE_DEFAULT_UNITS         MILLIMETERS // MILLIMETERS or INCHES
-#define GCODE_DEFAULT_PLANE         PLANE_XY    // See machine.h
-#define GCODE_DEFAULT_COORD_SYSTEM  G54         // G54, G55, G56, G57, G58, G59
-#define GCODE_DEFAULT_PATH_CONTROL  PATH_CONTINUOUS
-#define GCODE_DEFAULT_DISTANCE_MODE ABSOLUTE_MODE
-#define GCODE_DEFAULT_ARC_DISTANCE_MODE INCREMENTAL_MODE
-#define GCODE_MAX_OPERATOR_DEPTH    16
-#define GCODE_MAX_VALUE_DEPTH       32
+#define JERK_MULTIPLIER          1000000.0
+#define QUEUE_SIZE               256
+#define EXEC_FILL_TARGET         64
+#define EXEC_DELAY               250 // ms

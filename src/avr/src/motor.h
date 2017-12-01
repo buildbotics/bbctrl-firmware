@@ -46,12 +46,10 @@ void motor_init();
 
 bool motor_is_enabled(int motor);
 int motor_get_axis(int motor);
-float motor_get_steps_per_unit(int motor);
-void motor_set_position(int motor, int32_t position);
-int32_t motor_get_position(int motor);
+void motor_set_position(int motor, float position);
 
 stat_t motor_rtc_callback();
 
 void motor_end_move(int motor);
 void motor_load_move(int motor);
-void motor_prep_move(int motor, float time, int32_t target);
+void motor_prep_move(int motor, float time, float target);

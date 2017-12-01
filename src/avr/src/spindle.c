@@ -31,6 +31,7 @@
 #include "config.h"
 #include "pwm_spindle.h"
 #include "huanyang.h"
+#include "pgmspace.h"
 
 
 typedef enum {
@@ -41,7 +42,6 @@ typedef enum {
 
 typedef struct {
   spindle_type_t type;
-  spindle_mode_t mode;
   float speed;
   bool reversed;
 } spindle_t;
@@ -56,29 +56,19 @@ void spindle_init() {
 }
 
 
-void _spindle_set(spindle_mode_t mode, float speed) {
-  if (speed < 0) speed = 0;
-  if (mode != SPINDLE_CW && mode != SPINDLE_CCW) mode = SPINDLE_OFF;
-
-  spindle.mode = mode;
+void spindle_set_speed(float speed) {
   spindle.speed = speed;
 
-  if (spindle.reversed) {
-    if (mode == SPINDLE_CW) mode = SPINDLE_CCW;
-    else if (mode == SPINDLE_CCW) mode = SPINDLE_CW;
-  }
-
   switch (spindle.type) {
-  case SPINDLE_TYPE_PWM: pwm_spindle_set(mode, speed); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_set(mode, speed); break;
+  case SPINDLE_TYPE_PWM: pwm_spindle_set(spindle_get_speed()); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_set(spindle_get_speed()); break;
   }
 }
 
 
-void spindle_set_mode(spindle_mode_t mode) {_spindle_set(mode, spindle.speed);}
-void spindle_set_speed(float speed) {_spindle_set(spindle.mode, speed);}
-spindle_mode_t spindle_get_mode() {return spindle.mode;}
-float spindle_get_speed() {return spindle.speed;}
+float spindle_get_speed() {
+  return spindle.reversed ? -spindle.speed : spindle.speed;
+}
 
 
 void spindle_stop() {
@@ -94,12 +84,11 @@ uint8_t get_spindle_type() {return spindle.type;}
 
 void set_spindle_type(uint8_t value) {
   if (value != spindle.type) {
-    spindle_mode_t mode = spindle.mode;
     float speed = spindle.speed;
 
-    _spindle_set(SPINDLE_OFF, 0);
+    spindle_set_speed(0);
     spindle.type = value;
-    _spindle_set(mode, speed);
+    spindle_set_speed(speed);
   }
 }
 
@@ -109,16 +98,13 @@ bool get_spin_reversed() {return spindle.reversed;}
 
 
 void set_spin_reversed(bool reversed) {
-  spindle.reversed = reversed;
-  _spindle_set(spindle.mode, spindle.speed);
-}
-
-
-PGM_P get_spin_mode() {
-  switch (spindle.mode) {
-  case SPINDLE_CW: return PSTR("Clockwise");
-  case SPINDLE_CCW: return PSTR("Counterclockwise");
-  default: break;
+  if (spindle.reversed != reversed) {
+    spindle.reversed = reversed;
+    spindle_set_speed(-spindle.speed);
   }
-  return PSTR("Off");
 }
+
+
+// Var callbacks
+void set_speed(float speed) {spindle_set_speed(speed);}
+float get_speed() {return spindle_get_speed();}

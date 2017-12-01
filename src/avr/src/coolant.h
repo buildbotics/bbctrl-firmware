@@ -33,5 +33,3 @@
 void coolant_init();
 void coolant_set_mist(bool x);
 void coolant_set_flood(bool x);
-bool coolant_get_mist();
-bool coolant_get_flood();

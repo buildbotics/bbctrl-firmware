@@ -34,12 +34,10 @@
 #include "stepper.h"
 #include "drv8711.h"
 #include "estop.h"
-#include "gcode_state.h"
 #include "axis.h"
 #include "util.h"
 #include "pgmspace.h"
-
-#include "plan/runtime.h"
+#include "exec.h"
 
 #include <util/delay.h>
 
@@ -176,21 +174,16 @@ bool motor_is_enabled(int motor) {
 int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
-float motor_get_steps_per_unit(int motor) {return motors[motor].steps_per_unit;}
-
-
-void motor_set_position(int motor, int32_t position) {
-  //if (st_is_busy()) ALARM(STAT_INTERNAL_ERROR); TODO
-
-  motor_t *m = &motors[motor];
-
-  m->commanded = m->encoder = m->position = position << 1; // We use half steps
-  m->error = 0;
+static int32_t _position_to_steps(int motor, float position) {
+  // We use half steps
+  return ((int32_t)round(position * motors[motor].steps_per_unit)) << 1;
 }
 
 
-int32_t motor_get_position(int motor) {
-  return motors[motor].position >> 1; // Convert from half to full steps
+void motor_set_position(int motor, float position) {
+  motor_t *m = &motors[motor];
+  m->commanded = m->encoder = m->position = _position_to_steps(motor, position);
+  m->error = 0;
 }
 
 
@@ -289,19 +282,19 @@ void motor_load_move(int motor) {
 }
 
 
-void motor_prep_move(int motor, float time, int32_t target) {
+void motor_prep_move(int motor, float time, float target) {
+  ASSERT(isfinite(target));
+  int32_t position = _position_to_steps(motor, target);
+
   motor_t *m = &motors[motor];
 
   // Validate input
   ASSERT(0 <= motor && motor < MOTORS);
   ASSERT(!m->prepped);
 
-  // We count in half steps
-  target = target << 1;
-
-  // Compute travel in steps
-  int24_t half_steps = target - m->position;
-  m->position = target;
+  // Travel in half steps
+  int24_t half_steps = position - m->position;
+  m->position = position;
 
   // Error correction
   int16_t correction = abs(m->error);
@@ -437,7 +430,7 @@ void set_motor_axis(int motor, uint8_t axis) {
   if (MOTORS <= motor || AXES <= axis || axis == motors[motor].axis) return;
   motors[motor].axis = axis;
   axis_map_motors();
-  mp_runtime_set_steps_from_position(); // Reset encoder counts
+  exec_reset_encoder_counts(); // Reset encoder counts
 
   // Check if this is now a slave motor
   motors[motor].slave = false;

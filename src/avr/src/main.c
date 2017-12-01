@@ -28,7 +28,6 @@
 \******************************************************************************/
 
 #include "hardware.h"
-#include "machine.h"
 #include "stepper.h"
 #include "motor.h"
 #include "switch.h"
@@ -43,10 +42,8 @@
 #include "pgmspace.h"
 #include "outputs.h"
 #include "lcd.h"
-
-#include "plan/planner.h"
-#include "plan/arc.h"
-#include "plan/state.h"
+#include "exec.h"
+#include "state.h"
 
 #include <avr/wdt.h>
 
@@ -68,8 +65,7 @@ int main() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  mp_init();                      // motion planning
-  machine_init();                 // gcode machine
+  exec_init();                      // motion exec
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
   command_init();
@@ -83,10 +79,7 @@ int main() {
   // Main loop
   while (true) {
     hw_reset_handler();           // handle hard reset requests
-    if (!estop_triggered()) {
-      mp_state_callback();
-      mach_arc_callback();          // arc generation runs
-    }
+    if (!estop_triggered()) state_callback();
     command_callback();           // process next command
     report_callback();            // report changes
     wdt_reset();

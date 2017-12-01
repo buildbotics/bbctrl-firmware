@@ -27,9 +27,23 @@
 
 #pragma once
 
+
+#include "pgmspace.h"
 #include "status.h"
 
-#include <stdint.h>
+#include <stdbool.h>
 
 
-stat_t mp_dwell(float seconds, int32_t line);
+void exec_init();
+
+bool exec_is_busy();
+
+float exec_get_axis_position(int axis); // jog.c
+void exec_set_axis_position(int axis, float position);
+
+void exec_set_velocity(float v); // jog.c
+void exec_set_line(int line);
+
+stat_t exec_move_to_target(float time, const float target[]);
+void exec_reset_encoder_counts();
+stat_t exec_next_action();

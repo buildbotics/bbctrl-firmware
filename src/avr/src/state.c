@@ -28,23 +28,20 @@
 \******************************************************************************/
 
 #include "state.h"
-#include "machine.h"
-#include "planner.h"
-#include "runtime.h"
-#include "buffer.h"
-#include "arc.h"
+
+#include "exec.h"
+#include "queue.h"
 #include "stepper.h"
 #include "spindle.h"
-
 #include "report.h"
 
 #include <stdbool.h>
 
 
-typedef struct {
-  mp_state_t state;
-  mp_cycle_t cycle;
-  mp_hold_reason_t hold_reason;
+static struct {
+  state_t state;
+  cycle_t cycle;
+  hold_reason_t hold_reason;
   bool pause;
 
   bool hold_requested;
@@ -52,15 +49,13 @@ typedef struct {
   bool start_requested;
   bool resume_requested;
   bool optional_pause_requested;
-} planner_state_t;
 
-
-static planner_state_t ps = {
+} s = {
   .flush_requested = true, // Start out flushing
 };
 
 
-PGM_P mp_get_state_pgmstr(mp_state_t state) {
+PGM_P state_get_pgmstr(state_t state) {
   switch (state) {
   case STATE_READY:     return PSTR("READY");
   case STATE_ESTOPPED:  return PSTR("ESTOPPED");
@@ -73,12 +68,11 @@ PGM_P mp_get_state_pgmstr(mp_state_t state) {
 }
 
 
-PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle) {
+PGM_P state_get_cycle_pgmstr(cycle_t cycle) {
   switch (cycle) {
   case CYCLE_MACHINING:   return PSTR("MACHINING");
   case CYCLE_HOMING:      return PSTR("HOMING");
   case CYCLE_PROBING:     return PSTR("PROBING");
-  case CYCLE_CALIBRATING: return PSTR("CALIBRATING");
   case CYCLE_JOGGING:     return PSTR("JOGGING");
   }
 
@@ -86,7 +80,7 @@ PGM_P mp_get_cycle_pgmstr(mp_cycle_t cycle) {
 }
 
 
-PGM_P mp_get_hold_reason_pgmstr(mp_hold_reason_t reason) {
+PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
   case HOLD_REASON_USER_PAUSE:    return PSTR("USER");
   case HOLD_REASON_PROGRAM_PAUSE: return PSTR("PROGRAM");
@@ -99,110 +93,116 @@ PGM_P mp_get_hold_reason_pgmstr(mp_hold_reason_t reason) {
 }
 
 
-mp_state_t mp_get_state() {return ps.state;}
-mp_cycle_t mp_get_cycle() {return ps.cycle;}
+state_t state_get() {return s.state;}
+cycle_t state_get_cycle() {return s.cycle;}
 
 
-static void _set_state(mp_state_t state) {
-  if (ps.state == state) return; // No change
-  if (ps.state == STATE_ESTOPPED) return; // Can't leave EStop state
-  if (state == STATE_READY) mp_runtime_set_line(0);
-  ps.state = state;
+static void _set_state(state_t state) {
+  if (s.state == state) return; // No change
+  if (s.state == STATE_ESTOPPED) return; // Can't leave EStop state
+  if (state == STATE_READY) exec_set_line(0);
+  s.state = state;
   report_request();
 }
 
 
-void mp_set_cycle(mp_cycle_t cycle) {
-  if (ps.cycle == cycle) return; // No change
+void state_set_cycle(cycle_t cycle) {
+  if (s.cycle == cycle) return; // No change
 
-  if (ps.state != STATE_READY && cycle != CYCLE_MACHINING) {
+  if (s.state != STATE_READY && cycle != CYCLE_MACHINING) {
     STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
-                 mp_get_cycle_pgmstr(cycle),
-                 mp_get_state_pgmstr(ps.state));
+                 state_get_cycle_pgmstr(cycle),
+                 state_get_pgmstr(s.state));
     return;
   }
 
-  if (ps.cycle != CYCLE_MACHINING && cycle != CYCLE_MACHINING) {
+  if (s.cycle != CYCLE_MACHINING && cycle != CYCLE_MACHINING) {
     STATUS_ERROR(STAT_INTERNAL_ERROR,
                  "Cannot transition to cycle %S while in %S",
-                 mp_get_cycle_pgmstr(cycle),
-                 mp_get_cycle_pgmstr(ps.cycle));
+                 state_get_cycle_pgmstr(cycle),
+                 state_get_cycle_pgmstr(s.cycle));
     return;
   }
 
-  ps.cycle = cycle;
+  s.cycle = cycle;
   report_request();
 }
 
 
-mp_hold_reason_t mp_get_hold_reason() {return ps.hold_reason;}
-
-
-void mp_set_hold_reason(mp_hold_reason_t reason) {
-  if (ps.hold_reason == reason) return; // No change
-  ps.hold_reason = reason;
+void state_set_hold_reason(hold_reason_t reason) {
+  if (s.hold_reason == reason) return; // No change
+  s.hold_reason = reason;
   report_request();
 }
 
 
-bool mp_is_flushing() {return ps.flush_requested && !ps.resume_requested;}
-bool mp_is_resuming() {return ps.resume_requested;}
+bool state_is_flushing() {return s.flush_requested && !s.resume_requested;}
+bool state_is_resuming() {return s.resume_requested;}
 
 
-bool mp_is_quiescent() {
-  return (mp_get_state() == STATE_READY || mp_get_state() == STATE_HOLDING) &&
-    !st_is_busy() && !mp_runtime_is_busy();
+bool state_is_quiescent() {
+  return (state_get() == STATE_READY || state_get() == STATE_HOLDING) &&
+    !st_is_busy() && !exec_is_busy();
 }
 
 
-bool mp_is_ready() {
-  return mp_queue_get_room() && !mp_is_resuming() && !ps.pause;
+bool state_is_ready() {
+  return queue_get_room() && !state_is_resuming() && !s.pause;
 }
 
 
-void mp_pause_queue(bool x) {ps.pause = x;}
+void state_pause_queue(bool x) {s.pause = x;}
 
 
-void mp_state_optional_pause() {
-  if (ps.optional_pause_requested) {
-    mp_set_hold_reason(HOLD_REASON_USER_PAUSE);
-    mp_state_holding();
+void state_optional_pause() {
+  if (s.optional_pause_requested) {
+    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
+    state_holding();
   }
 }
 
 
-void mp_state_holding() {
+static void _set_plan_steps(bool plan_steps) {} // TODO
+
+
+void state_holding() {
   _set_state(STATE_HOLDING);
-  mp_set_plan_steps(false);
+  _set_plan_steps(false);
 }
 
 
-void mp_state_running() {
-  if (mp_get_state() == STATE_READY) _set_state(STATE_RUNNING);
+void state_running() {
+  if (state_get() == STATE_READY) _set_state(STATE_RUNNING);
 }
 
 
-void mp_state_idle() {
-  if (mp_get_state() == STATE_RUNNING) _set_state(STATE_READY);
+void state_idle() {
+  if (state_get() == STATE_RUNNING) _set_state(STATE_READY);
 }
 
 
-void mp_state_estop() {
+void state_estop() {
   _set_state(STATE_ESTOPPED);
-  mp_pause_queue(false);
+  state_pause_queue(false);
 }
 
 
-void mp_request_hold() {ps.hold_requested = true;}
-void mp_request_start() {ps.start_requested = true;}
-void mp_request_flush() {ps.flush_requested = true;}
-void mp_request_resume() {if (ps.flush_requested) ps.resume_requested = true;}
-void mp_request_optional_pause() {ps.optional_pause_requested = true;}
+void state_request_hold() {s.hold_requested = true;}
+void state_request_start() {s.start_requested = true;}
+void state_request_flush() {s.flush_requested = true;}
 
 
-void mp_request_step() {
-  mp_set_plan_steps(true);
-  ps.start_requested = true;
+void state_request_resume() {
+  if (s.flush_requested) s.resume_requested = true;
+}
+
+
+void state_request_optional_pause() {s.optional_pause_requested = true;}
+
+
+void state_request_step() {
+  _set_plan_steps(true);
+  s.start_requested = true;
 }
 
 
@@ -218,60 +218,54 @@ void mp_request_step() {
  *     - during motion is ignored but not reset
  *     - during a feedhold is deferred until the feedhold enters HOLDING state.
  *       I.e. until deceleration is complete.
- *     - when stopped or holding and the planner is not busy, is honored
+ *     - when stopped or holding and the exec is not busy, is honored
  *
  *   A start request received:
  *     - during motion is ignored and reset
  *     - during a feedhold is deferred until the feedhold enters HOLDING state.
  *       I.e. until deceleration is complete.  If a queue flush request is also
  *       present the queue flush is done first
- *     - when stopped is honored and starts to run anything in the planner queue
+ *     - when stopped is honored and starts to run anything in the queue
  */
-void mp_state_callback() {
-  if (ps.hold_requested || ps.flush_requested) {
-    ps.hold_requested = false;
-    mp_set_hold_reason(HOLD_REASON_USER_PAUSE);
+void state_callback() {
+  if (s.hold_requested || s.flush_requested) {
+    s.hold_requested = false;
+    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
 
-    if (mp_get_state() == STATE_RUNNING) _set_state(STATE_STOPPING);
+    if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
   }
 
   // Only flush queue when idle or holding.
-  if (ps.flush_requested && mp_is_quiescent()) {
-    mach_abort_arc();
+  if (s.flush_requested && state_is_quiescent()) {
 
-    if (!mp_queue_is_empty()) {
-      mp_flush_planner();
-
-      // NOTE The following uses low-level mp calls for absolute position.
-      // Reset to actual machine position.  Otherwise machine is set to the
-      // position of the last queued move.
-      mach_set_position_from_runtime();
-    }
+    if (!queue_is_empty()) queue_flush();
 
     // Stop spindle
     spindle_stop();
 
     // Resume
-    if (ps.resume_requested) {
-      ps.flush_requested = ps.resume_requested = false;
+    if (s.resume_requested) {
+      s.flush_requested = s.resume_requested = false;
       _set_state(STATE_READY);
     }
   }
 
   // Don't start while flushing or stopping
-  if (ps.start_requested && !ps.flush_requested &&
-      mp_get_state() != STATE_STOPPING) {
-    ps.start_requested = false;
-    ps.optional_pause_requested = false;
+  if (s.start_requested && !s.flush_requested &&
+      state_get() != STATE_STOPPING) {
+    s.start_requested = false;
+    s.optional_pause_requested = false;
 
-    if (mp_get_state() == STATE_HOLDING) {
+    if (state_get() == STATE_HOLDING) {
       // Check if any moves are buffered
-      if (!mp_queue_is_empty()) {
-        // Always replan when coming out of a hold
-        mp_replan_all();
-        _set_state(STATE_RUNNING);
-
-      } else _set_state(STATE_READY);
+      if (!queue_is_empty()) _set_state(STATE_RUNNING);
+      else _set_state(STATE_READY);
     }
   }
 }
+
+
+// Var callbacks
+PGM_P get_state() {return state_get_pgmstr(state_get());}
+PGM_P get_cycle() {return state_get_cycle_pgmstr(state_get_cycle());}
+PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}

@@ -32,6 +32,8 @@
 #include "estop.h"
 #include "outputs.h"
 
+#include <math.h>
+
 
 typedef struct {
   uint16_t freq;    // base frequency for PWM driver, in Hz
@@ -56,13 +58,14 @@ static void _set_dir(bool clockwise) {
 }
 
 
-static void _set_pwm(spindle_mode_t mode, float speed) {
-  if (mode == SPINDLE_OFF || speed < spindle.min_rpm || estop_triggered()) {
+static void _set_pwm(float speed) {
+  if (speed < spindle.min_rpm || estop_triggered()) {
     TIMER_PWM.CTRLA = 0;
     OUTCLR_PIN(SPIN_PWM_PIN);
     _set_enable(false);
     return;
   }
+  _set_enable(true);
 
   // Invert PWM
   if (spindle.pwm_invert) PINCTRL_PIN(SPIN_PWM_PIN) |= PORT_INVEN_bm;
@@ -122,14 +125,13 @@ void pwm_spindle_init() {
 }
 
 
-void pwm_spindle_set(spindle_mode_t mode, float speed) {
-  if (mode != SPINDLE_OFF) _set_dir(mode == SPINDLE_CW);
-  _set_pwm(mode, speed);
-  _set_enable(mode != SPINDLE_OFF);
+void pwm_spindle_set(float speed) {
+  if (speed) _set_dir(0 < speed);
+  _set_pwm(fabs(speed));
 }
 
 
-void pwm_spindle_stop() {pwm_spindle_set(SPINDLE_OFF, 0);}
+void pwm_spindle_stop() {pwm_spindle_set(0);}
 
 
 // TODO these need more effort and should work with the huanyang spindle too

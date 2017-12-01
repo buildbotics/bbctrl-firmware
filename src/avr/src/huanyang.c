@@ -111,7 +111,6 @@ typedef struct {
 
   bool connected;
   bool changed;
-  spindle_mode_t mode;
   float speed;
 
   float actual_freq;
@@ -223,13 +222,10 @@ static bool _update(int index) {
   // Setup next command
   uint8_t var;
   switch (index) {
-  case 0: { // Update mode
-    uint8_t state;
-    switch (ha.mode) {
-    case SPINDLE_CW: state = HUANYANG_FORWARD; break;
-    case SPINDLE_CCW: state = HUANYANG_REVERSE; break;
-    default: state = HUANYANG_STOP; break;
-    }
+  case 0: { // Update direction
+    uint8_t state = HUANYANG_STOP;
+    if (0 < ha.speed) state = HUANYANG_FORWARD;
+    else if (ha.speed < 0) state = HUANYANG_REVERSE;
 
     _set_command1(HUANYANG_CTRL_WRITE, state);
 
@@ -430,11 +426,9 @@ void huanyang_init() {
 }
 
 
-void huanyang_set(spindle_mode_t mode, float speed) {
-  if (ha.mode != mode || ha.speed != speed) {
-    if (ha.debug) STATUS_DEBUG("huanyang: mode=%d, speed=%0.2f", mode, speed);
-
-    ha.mode = mode;
+void huanyang_set(float speed) {
+  if (ha.speed != speed) {
+    if (ha.debug) STATUS_DEBUG("huanyang: speed=%0.2f", speed);
     ha.speed = speed;
     ha.changed = true;
   }
@@ -454,7 +448,6 @@ void huanyang_reset() {
 
   // Save settings
   uint8_t id = ha.id;
-  spindle_mode_t mode = ha.mode;
   float speed = ha.speed;
   bool debug = ha.debug;
 
@@ -463,7 +456,6 @@ void huanyang_reset() {
 
   // Restore settings
   ha.id = id;
-  ha.mode = mode;
   ha.speed = speed;
   ha.debug = debug;
   ha.changed = true;
@@ -503,7 +495,7 @@ void huanyang_rtc_callback() {
 
 
 void huanyang_stop() {
-  huanyang_set(SPINDLE_OFF, 0);
+  huanyang_set(0);
   huanyang_reset();
 }
 

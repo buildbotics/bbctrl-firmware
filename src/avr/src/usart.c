@@ -160,9 +160,7 @@ void usart_set(int flag, bool enable) {
 }
 
 
-bool usart_is_set(int flags) {
-  return (usart_flags & flags) == flags;
-}
+bool usart_is_set(int flags) {return (usart_flags & flags) == flags;}
 
 
 void usart_putc(char c) {
@@ -176,9 +174,7 @@ void usart_putc(char c) {
 }
 
 
-void usart_puts(const char *s) {
-  while (*s) usart_putc(*s++);
-}
+void usart_puts(const char *s) {while (*s) usart_putc(*s++);}
 
 
 int8_t usart_getc() {
@@ -243,9 +239,7 @@ char *usart_readline() {
 }
 
 
-int16_t usart_peek() {
-  return rx_buf_empty() ? -1 : rx_buf_peek();
-}
+int16_t usart_peek() {return rx_buf_empty() ? -1 : rx_buf_peek();}
 
 
 void usart_flush() {
@@ -257,26 +251,13 @@ void usart_flush() {
 }
 
 
-void usart_rx_flush() {
-  rx_buf_init();
-}
+void usart_rx_flush() {rx_buf_init();}
+int16_t usart_rx_space() {return rx_buf_space();}
+int16_t usart_rx_fill() {return rx_buf_fill();}
+int16_t usart_tx_space() {return tx_buf_space();}
+int16_t usart_tx_fill() {return tx_buf_fill();}
 
 
-int16_t usart_rx_space() {
-  return rx_buf_space();
-}
-
-
-int16_t usart_rx_fill() {
-  return rx_buf_fill();
-}
-
-
-int16_t usart_tx_space() {
-  return tx_buf_space();
-}
-
-
-int16_t usart_tx_fill() {
-  return tx_buf_fill();
-}
+// Var callbacks
+bool get_echo() {return usart_is_set(USART_ECHO);}
+void set_echo(bool value) {return usart_set(USART_ECHO, value);}

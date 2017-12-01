@@ -89,13 +89,15 @@ typedef struct {
   RING_BUF_TYPE buf[RING_BUF_SIZE];
   volatile RING_BUF_INDEX_TYPE head;
   volatile RING_BUF_INDEX_TYPE tail;
+  volatile RING_BUF_INDEX_TYPE tran_tail;
+  volatile bool transaction;
 } RING_BUF_STRUCT;
 
 static RING_BUF_STRUCT RING_BUF;
 
 
 RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _init)() {
-  RING_BUF.head = RING_BUF.tail = 0;
+  RING_BUF.head = RING_BUF.tail = RING_BUF.tran_tail = RING_BUF.transaction = 0;
 }
 
 

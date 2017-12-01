@@ -36,7 +36,6 @@
 enum {
   AXIS_X, AXIS_Y, AXIS_Z,
   AXIS_A, AXIS_B, AXIS_C,
-  AXIS_U, AXIS_V, AXIS_W // reserved
 };
 
 

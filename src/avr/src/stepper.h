@@ -29,15 +29,14 @@
 
 #pragma once
 
-#include "status.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 
 
 void stepper_init();
+void st_set_position(const float position[]);
 void st_shutdown();
 void st_enable();
 bool st_is_busy();
-stat_t st_prep_line(float time, const float target[]);
+void st_prep_line(float time, const float target[]);
 void st_prep_dwell(float seconds);

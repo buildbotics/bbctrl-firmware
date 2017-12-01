@@ -30,15 +30,13 @@
 #include "stepper.h"
 
 #include "config.h"
-#include "machine.h"
-#include "plan/runtime.h"
-#include "plan/exec.h"
 #include "motor.h"
 #include "hardware.h"
 #include "estop.h"
 #include "util.h"
 #include "cpp_magic.h"
 #include "report.h"
+#include "exec.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -46,7 +44,7 @@
 
 typedef enum {
   MOVE_TYPE_NULL,          // null move - does a no-op
-  MOVE_TYPE_LINE,         // acceleration planned line
+  MOVE_TYPE_LINE,          // linear move
   MOVE_TYPE_DWELL,         // delay with no movement
 } move_type_t;
 
@@ -84,6 +82,12 @@ void stepper_init() {
 }
 
 
+void st_set_position(const float position[]) {
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_set_position(motor, position[motor_get_axis(motor)]);
+}
+
+
 void st_shutdown() {
   OUTCLR_PIN(MOTOR_ENABLE_PIN);
   st.dwell = 0;
@@ -105,7 +109,7 @@ bool st_is_busy() {return st.busy;}
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(STEP_LOW_LEVEL_ISR) {
   while (true) {
-    stat_t status = mp_exec_move();
+    stat_t status = exec_next_action();
 
     switch (status) {
     case STAT_NOOP: st.busy = false;  break; // No command executed
@@ -196,40 +200,23 @@ static void _load_move() {
 
 
 /// Step timer interrupt routine.
-ISR(STEP_TIMER_ISR) {
-  _load_move();
-}
+ISR(STEP_TIMER_ISR) {_load_move();}
 
 
-/* Prepare the next move
- *
- * This function precomputes the next pulse segment (move) so it can
- * be executed quickly in the ISR.  It works in steps, rather than
- * length units.  All args are provided as floats which converted here
- * to integer values.
- *
- * Args:
- *   @param target signed position in steps for each motor.
- *   Steps are fractional.  Their sign indicates direction.  Motors not in the
- *   move have 0 steps.
- */
-stat_t st_prep_line(float time, const float target[]) {
+void st_prep_line(float time, const float target[]) {
   // Trap conditions that would prevent queueing the line
   ASSERT(!st.move_ready);
+  ASSERT(isfinite(time));
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
   st.clock_period = round(time * STEP_TIMER_FREQ * 60);
 
   // Prepare motor moves
-  for (int motor = 0; motor < MOTORS; motor++) {
-    ASSERT(isfinite(target[motor]));
-    motor_prep_move(motor, time, round(target[motor]));
-  }
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_prep_move(motor, time, target[motor_get_axis(motor)]);
 
   st.move_queued = true; // signal prep buffer ready (do this last)
-
-  return STAT_OK;
 }
 
 

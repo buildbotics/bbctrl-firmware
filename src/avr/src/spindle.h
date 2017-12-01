@@ -28,13 +28,10 @@
 
 #pragma once
 
-#include "machine.h"
-
+#include <stdbool.h>
 
 void spindle_init();
-void spindle_set_mode(spindle_mode_t mode);
 void spindle_set_speed(float speed);
-spindle_mode_t spindle_get_mode();
 float spindle_get_speed();
 void spindle_stop();
 bool spindle_is_reversed();

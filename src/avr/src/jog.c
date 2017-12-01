@@ -28,13 +28,10 @@
 #include "jog.h"
 
 #include "axis.h"
-#include "planner.h"
-#include "buffer.h"
-#include "line.h"
-#include "velocity_curve.h"
-#include "runtime.h"
-#include "machine.h"
+#include "util.h"
+#include "exec.h"
 #include "state.h"
+#include "queue.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -190,10 +187,10 @@ static bool _soft_limit(int axis, float V, float A) {
   if (min == max) return false;
 
   // Check if we need to stop to avoid exceeding a limit
-  float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+  float jerk = axis_get_jerk_max(axis);
   float deccelDist = _compute_deccel_dist(V, A, jerk);
 
-  float position = mp_runtime_get_axis_position(axis);
+  float position = exec_get_axis_position(axis);
   if (a->velocity < 0 && position <= min + deccelDist) return true;
   if (0 < a->velocity && max - deccelDist <= position) return true;
 
@@ -228,7 +225,7 @@ static float _compute_axis_velocity(int axis) {
   }
 
   // Compute axis max jerk
-  float jerk = axis_get_jerk_max(axis) * JERK_MULTIPLIER;
+  float jerk = axis_get_jerk_max(axis);
 
   // Compute next accel
   a->accel = _next_accel(V, Vt, a->accel, jerk);
@@ -237,7 +234,7 @@ static float _compute_axis_velocity(int axis) {
 }
 
 
-static stat_t _exec_jog(mp_buffer_t *bf) {
+stat_t jog_exec() {
   // Load next velocity
   jr.done = true;
 
@@ -261,9 +258,9 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   // Check if we are done
   if (jr.done) {
     // Update machine position
-    mach_set_position_from_runtime();
-    mp_set_cycle(CYCLE_MACHINING); // Default cycle
-    mp_pause_queue(false);
+    //mach_set_position_from_runtime();
+    state_set_cycle(CYCLE_MACHINING); // Default cycle
+    state_pause_queue(false);
 
     return STAT_NOOP; // Done, no move executed
   }
@@ -271,15 +268,15 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
   // Compute target from velocity
   float target[AXES];
   for (int axis = 0; axis < AXES; axis++) {
-    target[axis] = mp_runtime_get_axis_position(axis) +
+    target[axis] = exec_get_axis_position(axis) +
       jr.axes[axis].velocity * SEGMENT_TIME;
 
     target[axis] = _limit_position(axis, target[axis]);
   }
 
   // Set velocity and target
-  mp_runtime_set_velocity(sqrt(velocity_sqr));
-  stat_t status = mp_runtime_move_to_target(SEGMENT_TIME, target);
+  exec_set_velocity(sqrt(velocity_sqr));
+  stat_t status = exec_move_to_target(SEGMENT_TIME, target);
   if (status != STAT_OK) return status;
 
   return STAT_EAGAIN;
@@ -287,8 +284,8 @@ static stat_t _exec_jog(mp_buffer_t *bf) {
 
 
 uint8_t command_jog(int argc, char *argv[]) {
-  if (mp_get_cycle() != CYCLE_JOGGING &&
-      (mp_get_state() != STATE_READY || mp_get_cycle() != CYCLE_MACHINING))
+  if (state_get_cycle() != CYCLE_JOGGING &&
+      (state_get() != STATE_READY || state_get_cycle() != CYCLE_MACHINING))
     return STAT_NOOP;
 
   float velocity[AXES];
@@ -298,17 +295,17 @@ uint8_t command_jog(int argc, char *argv[]) {
     else velocity[axis] = 0;
 
   // Reset
-  if (mp_get_cycle() != CYCLE_JOGGING) memset(&jr, 0, sizeof(jr));
+  if (state_get_cycle() != CYCLE_JOGGING) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.axes[axis].next = velocity[axis];
   jr.writing = false;
 
-  if (mp_get_cycle() != CYCLE_JOGGING) {
-    mp_set_cycle(CYCLE_JOGGING);
-    mp_pause_queue(true);
-    mp_queue_push_nonstop(_exec_jog, -1);
+  if (state_get_cycle() != CYCLE_JOGGING) {
+    state_set_cycle(CYCLE_JOGGING);
+    state_pause_queue(true);
+    queue_push(ACTION_JOG);
   }
 
   return STAT_OK;
