@@ -25,6 +25,8 @@
 
 \******************************************************************************/
 
+#include "pins.h"
+
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <avr/io.h>
@@ -35,32 +37,49 @@
 #include <stdbool.h>
 
 
-#define TEMP_ADC 14
+// Pins
+enum {
+  AREF_PIN = PORT_A << 3,
+  PA1_PIN, // NC
+  PA2_PIN, // NC
+  CS1_PIN,
+  CS2_PIN,
+  CS3_PIN,
+  CS4_PIN,
+  VOUT_REF_PIN,
 
-// Port A
-#define MOTOR_PIN 3
-//#define LOAD1_PIN 5
-#define VOUT_PIN 5
-#define LOAD2_PIN 6
-#define MOTOR_ADC 0
-//#define LOAD1_ADC 2
-#define VOUT_ADC 2
-#define LOAD2_ADC 3
+  VIN_REF_PIN = PORT_B << 3,
+  PWR_MOSI_PIN,
+  PWR_MISO_PIN,
+  SHUNT_PIN,
 
-// Port B
-#define VIN_PIN 0
-#define VIN_ADC 5
+  MOTOR_PIN = PORT_C << 3, // IN1
+  PWR_SCK_PIN,
+  PC2_PIN,                 // NC
+  PWR_RESET,
+  LOAD1_PIN,               // IN3
+  LOAD2_PIN,               // IN4
+};
 
-// Port C
-//#define VOUT_PIN 2
-//#define VOUT_ADC 11
 
-#define GATE_PORT PORTC
-#define GATE_DDR DDRC
-#define GATE1_PIN 0
-//#define GATE2_PIN 4
-#define SHUNT_PIN 4
-#define GATE3_PIN 5
+// ADC
+enum {
+  CS1_ADC,  // Motor current
+  CS2_ADC,  // Vdd current
+  CS3_ADC,  // Load 1 current
+  CS4_ADC,  // Load 2 current
+  VOUT_ADC, // Motor voltage
+  VIN_ADC,  // Input voltage
+  NC6_ADC,
+  NC7_ADC,
+  NC8_ADC,
+  NC9_ADC,
+  NC10_ADC,
+  NC11_ADC,
+  NC12_ADC,
+  NC13_ADC,
+  TEMP_ADC, // Temperature
+};
 
 #define I2C_ADDR 0x60
 #define I2C_MASK 0b00000111
@@ -79,9 +98,20 @@ typedef enum {
   MOTOR_REG,
   LOAD1_REG,
   LOAD2_REG,
+  VDD_REG,
   NUM_REGS
 } regs_t;
 
+
+static const uint8_t ch_schedule[] = {
+  TEMP_ADC, VOUT_ADC,
+  VIN_ADC,  VOUT_ADC,
+  CS1_ADC,  VOUT_ADC,
+  CS2_ADC,  VOUT_ADC,
+  CS3_ADC,  VOUT_ADC,
+  CS4_ADC,  VOUT_ADC,
+  0
+};
 
 volatile uint16_t regs[NUM_REGS] = {0};
 
@@ -134,7 +164,7 @@ ISR(TWI_SLAVE_vect) {
 
 inline static uint16_t convert_voltage(uint16_t sample) {
 #define VREF 1.1
-#define VR1 34800
+#define VR1 34800 // TODO v10 will have 37.4k
 #define VR2 1000
 
   return sample * (VREF / 1024.0 * (VR1 + VR2) / VR2 * 100);
@@ -146,62 +176,30 @@ inline static uint16_t convert_current(uint16_t sample) {
 }
 
 
-void adc_conversion() {
-  regs[VOUT_REG] = convert_voltage(ADC);
-
-  // Start next conversion
-  ADMUX = (ADMUX & 0xf0) | VOUT_ADC;
-  ADCSRA |= 1 << ADSC;
-
-#if 0
+static void read_conversion(uint8_t ch) {
   uint16_t data = ADC;
-  uint8_t ch = ADMUX & 0xf;
 
   switch (ch) {
-  case TEMP_ADC:
-    regs[TEMP_REG] = data; // Temp in Kelvin
-    ch = VIN_ADC;
-    break;
-
-  case VIN_ADC:
-    regs[VIN_REG] = convert_voltage(data);
-    ch = VOUT_ADC;
-    break;
-
-  case VOUT_ADC:
-    regs[VOUT_REG] = convert_voltage(data);
-    ch = MOTOR_ADC;
-    break;
-
-  case MOTOR_ADC:
-    regs[MOTOR_REG] = convert_current(data);
-    ch = LOAD2_ADC;
-    break;
-
-#if 0
-    ch = LOAD1_ADC;
-    break;
-
-  case LOAD1_ADC:
-    regs[LOAD1_REG] = convert_current(data);
-    ch = LOAD2_ADC;
-    break;
-#endif
-
-  case LOAD2_ADC:
-    regs[LOAD2_REG] = convert_current(data);
-    ch = TEMP_ADC;
-    break;
-
-  default:
-    ch = TEMP_ADC;
-    break;
+  case TEMP_ADC: regs[TEMP_REG]  = data; break; // in Kelvin
+  case VIN_ADC:  regs[VIN_REG]   = convert_voltage(data); break;
+  case VOUT_ADC: regs[VOUT_REG]  = convert_voltage(data); break;
+  case CS1_ADC:  regs[MOTOR_REG] = convert_current(data); break;
+  case CS2_ADC:  regs[VDD_REG]   = convert_current(data); break;
+  case CS3_ADC:  regs[LOAD1_REG] = convert_current(data); break;
+  case CS4_ADC:  regs[LOAD2_REG] = convert_current(data); break;
   }
+}
+
+
+void adc_conversion() {
+  static int8_t i = 0;
+
+  read_conversion(ch_schedule[i]);
+  if (!ch_schedule[++i]) i = 0;
 
   // Start next conversion
-  ADMUX = (ADMUX & 0xf0) | ch;
+  ADMUX = (ADMUX & 0xf0) | ch_schedule[i];
   ADCSRA |= 1 << ADSC;
-#endif
 }
 
 
@@ -220,16 +218,18 @@ void init() {
 
   // Power reduction
   PRR = (0 << PRADC) | (1 << PRUSART0) | (1 << PRUSART1) | (1 << PRUSI) |
-    (0 << PRTIM0) | (1 << PRTIM1) | (0 << PRTWI);
+    (0 << PRTIM0) | (0 << PRTIM1) | (0 << PRTWI);
 
   // IO
-  GATE_DDR = (1 << GATE1_PIN) | (1 << SHUNT_PIN) | (1 << GATE3_PIN); // Out
-  PUEC = 1 << 3; // Pull up reset line
+  IO_DDR_SET(MOTOR_PIN);  // Output
+  IO_DDR_SET(LOAD1_PIN);  // Output
+  IO_DDR_SET(LOAD2_PIN);  // Output
+  IO_PUE_SET(PWR_RESET);  // Pull up reset line
 
   // Disable digital IO on ADC lines
-  DIDR0 = (1 << ADC3D) | (1 << ADC2D) | (1 << ADC0D);
+  DIDR0 = (1 << ADC4D) | (1 << ADC3D) | (1 << ADC2D)| (1 << ADC1D) |
+    (1 << ADC0D) | (1 << AREFD);
   DIDR1 = (1 << ADC5D);
-  DIDR2 = (1 << ADC11D);
 
   // ADC internal 1.1v, enable, with interrupt, prescale 128
   ADMUX = (1 << REFS1) | (0 << REFS0);
@@ -237,10 +237,15 @@ void init() {
     (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
   ADCSRB = 0;
 
-  // Timer (Clear output A on compare match, Fast PWM, disabled)
+  // Timer 0 (Clear output A on compare match, Fast PWM, disabled)
   TCCR0A = (1 << COM0A1) | (0 << COM0A0) | (1 << WGM01) | (1 << WGM00);
   TCCR0B = 0 << WGM02;
-  OCR0A = 255 * 0.2; // Initial duty cycle
+
+  // Timer 1 (Set output A on compare match, Fast PWM, 8-bit, no prescale)
+  OCR1A = 0; // Off
+  TCCR1A = (1 << COM1A1) | (1 << COM1A0) | (0 << WGM11) | (1 << WGM10);
+  TCCR1B =
+    (0 << WGM13) | (1 << WGM12) | (0 << CS12) | (0 << CS11) | (1 << CS10);
 
   // I2C, enable, enable address/stop interrupt
   TWSCRA = (1 << TWEN) | (1 << TWASIE) | (1 << TWDIE);
@@ -268,42 +273,87 @@ int main() {
   // Start ADC
   adc_conversion();
 
-  // Delayed start
-  _delay_ms(100);
+  // Validate input voltage
+  int settle = 0;
+  float vlast = 0;
 
-  // Enable timer with clk/8
-  TCCR0B |= (0 << CS02) | (1 << CS01) | (0 << CS00);
+  while (settle < 5) {
+    wdt_reset();
+    _delay_ms(20);
 
+    float vin = get_reg(VIN_REG);
+
+    // Check that voltage is with in range and settled
+    if (11 < vin && vin < 39 && vlast * 0.98 < vin && vin < vlast * 1.02)
+      settle++;
+    else settle = 0;
+
+    vlast = vin;
+  }
+
+  // Charge caps
+  OCR0A = 255 * 0.2; // Cap charging duty cycle
+  TCCR0B |= (0 << CS02) | (1 << CS01) | (0 << CS00); // Enable timer with clk/8
   _delay_ms(200);
+  TCCR0A = 0; // Clock off
+  IO_PORT_SET(MOTOR_PIN); // Motor voltage on
+
+  _delay_ms(50); // Wait for final charge
+
+  // Measure nominal voltage
+  float vnom = 0;
+  settle = 0;
+  while (settle < 5) {
+    wdt_reset();
+    _delay_ms(20);
+
+    float vout = get_reg(VOUT_REG);
+
+    // Check that voltages are with in range and vout has settled
+    if (11 < vout && vout < 39 && vout * 0.98 < vnom && vnom < vout * 1.02)
+      settle++;
+    else settle = 0;
+
+    vnom = vout;
+  }
+
+  if (36 < vnom) vnom = 36; // TODO remove this when R27 is updated
 
   bool shunt = false;
-  float vNom = get_reg(VOUT_REG);
 
   while (true) {
     wdt_reset();
-    OCR0A = 0xff; // 100% duty cycle
+    float vout = get_reg(VOUT_REG);
 
-    if (!shunt && vNom + 3 < get_reg(VOUT_REG)) {
+    if (!shunt && vnom + 2 < vout) {
       shunt = true;
-      PORTC |= (1 << SHUNT_PIN);
+      IO_DDR_SET(SHUNT_PIN); // Enable output
 
-    } else if (shunt && get_reg(VOUT_REG) < vNom + 1) {
-      PORTC &= ~(1 << SHUNT_PIN);
+    } else if (shunt && vout < vnom + 1) {
+      IO_DDR_CLR(SHUNT_PIN); // Disable output
       shunt = false;
     }
+
+    if (shunt) {
+      float duty = (vout - vnom - 1) / 4;
+      if (1 < duty) OCR1A = 0xff;
+      else OCR1A = 0xff * duty;
+    }
+
     continue;
 
-    if (30 < get_reg(VIN_REG) || get_reg(VIN_REG) < 11) {
-      OCR0A = 0; // 0% duty cycle
-      GATE_PORT &= ~(1 << GATE1_PIN);
+    if (39 < get_reg(VIN_REG) || get_reg(VIN_REG) < 11) {
+      IO_PORT_CLR(MOTOR_PIN);
       _delay_ms(3000);
+      IO_PORT_SET(MOTOR_PIN); // Motor voltage on
     }
 
     if (10 < get_reg(MOTOR_REG)) {
-      OCR0A = 0; // 0% duty cycle
-      TCCR0A = 0;
-      GATE_DDR = 0;
+      IO_PORT_CLR(MOTOR_PIN);
+      IO_PORT_CLR(LOAD1_PIN);
+      IO_PORT_CLR(LOAD2_PIN);
       _delay_ms(1000);
+      IO_PORT_SET(MOTOR_PIN); // Motor voltage on
     }
   }
 
