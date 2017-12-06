@@ -120,11 +120,11 @@ static float get_reg(int reg) {
 
 
 static void update_shunt() {
-  static float watts = SHUNT_WATTS_PER_SEC;
+  static float watts = SHUNT_WATTS;
 
   // Add power dissipation credit
-  watts += SHUNT_WATTS_PER_SEC / 1000.0;
-  if (SHUNT_WATTS_PER_SEC < watts) watts = SHUNT_WATTS_PER_SEC;
+  watts += SHUNT_WATTS / 1000.0;
+  if (SHUNT_WATTS < watts) watts = SHUNT_WATTS;
 
   // Remove power dissipation credit
   watts -= shunt_ms_power;
@@ -177,8 +177,8 @@ ISR(TIMER0_OVF_vect) {
     time++;
     tick = 0;
 
-    update_shunt();
-    if (!(time & 7)) measure_nominal_voltage();
+    update_shunt(); // Every 1ms
+    if (!(time & 7)) measure_nominal_voltage(); // Every 8ms
   }
 }
 

@@ -84,7 +84,7 @@ enum {
 #define VOLTAGE_EXP 0.01
 #define FAULT_TIMEOUT 5000 // ms
 
-#define SHUNT_WATTS_PER_SEC 5
+#define SHUNT_WATTS 5
 #define SHUNT_OHMS 10
 #define SHUNT_MIN_V 1
 #define SHUNT_MAX_V 3
