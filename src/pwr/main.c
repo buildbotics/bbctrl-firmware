@@ -352,7 +352,7 @@ static void validate_input_voltage() {
 
 static void charge_caps() {
   TCCR0A |= (1 << COM0A1) | (0 << COM0A0); // Clear on compare match
-  IO_PORT_CLR(MOTOR_PIN); // Motor voltage on
+  IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
   IO_DDR_SET(MOTOR_PIN); // Output
 
   uint64_t now = time;
@@ -364,22 +364,6 @@ static void charge_caps() {
 
   TCCR0A &= ~((1 << COM0A1) | (1 << COM0A0));
   IO_PORT_SET(MOTOR_PIN); // Motor voltage on
-}
-
-
-static void disable_outputs() {
-  IO_PORT_CLR(MOTOR_PIN);
-  IO_PORT_CLR(LOAD1_PIN);
-  IO_PORT_CLR(LOAD2_PIN);
-  IO_DDR_SET(LOAD1_PIN);
-  IO_DDR_SET(LOAD2_PIN);
-}
-
-
-static void enable_outputs() {
-  IO_PORT_SET(MOTOR_PIN);
-  IO_DDR_CLR(LOAD1_PIN);
-  IO_DDR_CLR(LOAD2_PIN);
 }
 
 
@@ -450,6 +434,7 @@ int main() {
 
     update_shunt_power(vout, vnom);
 
+    // Check fault conditions
     uint16_t flags = 0;
     if (vin < VOLTAGE_MIN) flags |= UNDER_VOLTAGE_FLAG;
     if (VOLTAGE_MAX < vin) flags |= OVER_VOLTAGE_FLAG;
@@ -457,9 +442,19 @@ int main() {
     regs[FLAGS_REG] = flags;
 
     if (flags) {
-      disable_outputs();
+      // Disable
+      IO_PORT_CLR(MOTOR_PIN);
+      IO_PORT_CLR(LOAD1_PIN);
+      IO_PORT_CLR(LOAD2_PIN);
+      IO_DDR_SET(LOAD1_PIN);
+      IO_DDR_SET(LOAD2_PIN);
+
       delay_ms(FAULT_TIMEOUT);
-      enable_outputs();
+
+      // Reenable
+      charge_caps();
+      IO_DDR_CLR(LOAD1_PIN);
+      IO_DDR_CLR(LOAD2_PIN);
     }
   }
 
