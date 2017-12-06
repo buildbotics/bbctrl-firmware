@@ -36,7 +36,6 @@
 
 #include <stdbool.h>
 
-
 // Pins
 enum {
   AREF_PIN = PORT_A << 3,
@@ -81,6 +80,23 @@ enum {
   TEMP_ADC, // Temperature
 };
 
+
+#define CAP_CHARGE_TIME 100 // ms
+#define CAP_CHARGE_MAX_DUTY 0.5
+#define VOLTAGE_MIN 11
+#define VOLTAGE_MAX 39
+#define CURRENT_MAX 25
+#define VOLTAGE_SETTLE_COUNT 5
+#define VOLTAGE_SETTLE_PERIOD 20 // ms
+#define VOLTAGE_SETTLE_TOLERANCE 0.01
+#define VOLTAGE_EXP 0.01
+#define FAULT_TIMEOUT 5000 // ms
+
+#define SHUNT_WATTS_PER_SEC 5
+#define SHUNT_OHMS 10
+#define SHUNT_MIN_V 1
+#define SHUNT_MAX_V 3
+
 #define I2C_ADDR 0x60
 #define I2C_MASK 0b00000111
 
@@ -99,8 +115,16 @@ typedef enum {
   LOAD1_REG,
   LOAD2_REG,
   VDD_REG,
+  FLAGS_REG,
   NUM_REGS
 } regs_t;
+
+
+enum {
+  UNDER_VOLTAGE_FLAG = 1 << 0,
+  OVER_VOLTAGE_FLAG  = 1 << 1,
+  OVER_CURRENT_FLAG  = 1 << 2,
+};
 
 
 static const uint8_t ch_schedule[] = {
@@ -126,7 +150,7 @@ ISR(TWI_SLAVE_vect) {
 
   // Stretch clock longer to work around RPi bug
   // See https://github.com/raspberrypi/linux/issues/254
-  _delay_us(10);
+  _delay_us(10); // Must use software delay while in interrupt
 
   uint8_t status = TWSSRA;
 
@@ -162,6 +186,101 @@ ISR(TWI_SLAVE_vect) {
 }
 
 
+static float get_total_current() {
+  cli();
+  float current =
+    regs[MOTOR_REG] + regs[VDD_REG] + regs[LOAD1_REG] + regs[LOAD2_REG];
+  sei();
+
+  return current / 100;
+}
+
+
+static float get_reg(int reg) {
+  cli();
+  float value = regs[reg];
+  sei();
+
+  return value / 100;
+}
+
+
+static volatile uint64_t time = 0; // ms
+static volatile float shunt_ms_power = 0;
+
+
+static void update_shunt() {
+  static float watts = SHUNT_WATTS_PER_SEC;
+
+  // Add power dissipation credit
+  watts += SHUNT_WATTS_PER_SEC / 1000.0;
+  if (SHUNT_WATTS_PER_SEC < watts) watts = SHUNT_WATTS_PER_SEC;
+
+  // Remove power dissipation credit
+  watts -= shunt_ms_power;
+  if (watts < 0) watts = 0;
+
+  // Enable shunt output when requested if allowed
+  if (shunt_ms_power) {
+    IO_DDR_SET(SHUNT_PIN); // Enable shunt output
+
+    if (watts) IO_DDR_SET(MOTOR_PIN); // Enable motor output
+    else IO_DDR_CLR(MOTOR_PIN); // Disable motor output
+
+  } else {
+    IO_DDR_CLR(SHUNT_PIN); // Disable output
+    IO_DDR_SET(MOTOR_PIN); // Enable motor output
+  }
+}
+
+
+static void update_shunt_power(float vout, float vnom) {
+  if (vnom + SHUNT_MIN_V < vout) {
+    float duty = (vout - vnom - SHUNT_MIN_V) / SHUNT_MAX_V;
+    if (duty < 0) duty = 0;
+    if (1 < duty) duty = 1;
+
+    // Compute the power credits used per ms
+    shunt_ms_power = vout * vout * duty * (1.0 / SHUNT_OHMS / 1000.0);
+    OCR1A = 0xff * duty;
+
+  } else shunt_ms_power = 0;
+}
+
+
+static volatile float vnom = 0;
+
+static void measure_nominal_voltage() {
+  float vin = get_reg(VIN_REG);
+  float v;
+
+  if (vnom < VOLTAGE_MIN) v = vin;
+  else v = vnom * (1 - VOLTAGE_EXP) + vin * VOLTAGE_EXP;
+
+  if (36 < v) v = 36; // TODO remove this when R27 is updated
+
+  vnom = v;
+}
+
+
+ISR(TIMER0_OVF_vect) {
+  static uint8_t tick = 0;
+  if (++tick == 31) {
+    time++;
+    tick = 0;
+
+    update_shunt();
+    if (!(time & 7)) measure_nominal_voltage();
+  }
+}
+
+
+static void delay_ms(uint16_t ms) {
+  uint64_t start = time;
+  while (time < start + ms) continue;
+}
+
+
 inline static uint16_t convert_voltage(uint16_t sample) {
 #define VREF 1.1
 #define VR1 34800 // TODO v10 will have 37.4k
@@ -191,7 +310,7 @@ static void read_conversion(uint8_t ch) {
 }
 
 
-void adc_conversion() {
+static void adc_conversion() {
   static int8_t i = 0;
 
   read_conversion(ch_schedule[i]);
@@ -204,6 +323,64 @@ void adc_conversion() {
 
 
 ISR(ADC_vect) {adc_conversion();}
+
+
+static bool is_within(float a, float b, float tolerance) {
+  return a * (1 - tolerance) < b && b < a * (1 + tolerance);
+}
+
+
+static void validate_input_voltage() {
+  int settle = 0;
+  float vlast = 0;
+
+  while (settle < VOLTAGE_SETTLE_COUNT) {
+    wdt_reset();
+    delay_ms(VOLTAGE_SETTLE_PERIOD);
+
+    float vin = get_reg(VIN_REG);
+
+    // Check that voltage is with in range and settled
+    if (VOLTAGE_MIN < vin && vin < VOLTAGE_MAX &&
+        is_within(vlast, vin, VOLTAGE_SETTLE_TOLERANCE)) settle++;
+    else settle = 0;
+
+    vlast = vin;
+  }
+}
+
+
+static void charge_caps() {
+  TCCR0A |= (1 << COM0A1) | (0 << COM0A0); // Clear on compare match
+  IO_PORT_CLR(MOTOR_PIN); // Motor voltage on
+  IO_DDR_SET(MOTOR_PIN); // Output
+
+  uint64_t now = time;
+  for (int i = 0; i < CAP_CHARGE_TIME; i++) {
+    OCR0A = 0xff * CAP_CHARGE_MAX_DUTY / CAP_CHARGE_TIME * (i + 1);
+    while (time == now) continue;
+    now++;
+  }
+
+  TCCR0A &= ~((1 << COM0A1) | (1 << COM0A0));
+  IO_PORT_SET(MOTOR_PIN); // Motor voltage on
+}
+
+
+static void disable_outputs() {
+  IO_PORT_CLR(MOTOR_PIN);
+  IO_PORT_CLR(LOAD1_PIN);
+  IO_PORT_CLR(LOAD2_PIN);
+  IO_DDR_SET(LOAD1_PIN);
+  IO_DDR_SET(LOAD2_PIN);
+}
+
+
+static void enable_outputs() {
+  IO_PORT_SET(MOTOR_PIN);
+  IO_DDR_CLR(LOAD1_PIN);
+  IO_DDR_CLR(LOAD2_PIN);
+}
 
 
 void init() {
@@ -221,7 +398,7 @@ void init() {
     (0 << PRTIM0) | (0 << PRTIM1) | (0 << PRTWI);
 
   // IO
-  IO_DDR_SET(MOTOR_PIN);  // Output
+  IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
   IO_DDR_SET(LOAD1_PIN);  // Output
   IO_DDR_SET(LOAD2_PIN);  // Output
   IO_PUE_SET(PWR_RESET);  // Pull up reset line
@@ -237,9 +414,10 @@ void init() {
     (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
   ADCSRB = 0;
 
-  // Timer 0 (Clear output A on compare match, Fast PWM, disabled)
-  TCCR0A = (1 << COM0A1) | (0 << COM0A0) | (1 << WGM01) | (1 << WGM00);
-  TCCR0B = 0 << WGM02;
+  // Timer 0 (Fast PWM, clk/1)
+  TCCR0A = (1 << WGM01) | (1 << WGM00);
+  TCCR0B = (0 << WGM02) | (0 << CS02) | (0 << CS01) | (1 << CS00);
+  TIMSK = 1 << TOIE0; // Enable overflow interrupt
 
   // Timer 1 (Set output A on compare match, Fast PWM, 8-bit, no prescale)
   OCR1A = 0; // Off
@@ -256,104 +434,32 @@ void init() {
 }
 
 
-float get_reg(int reg) {
-  cli();
-  float value = regs[reg];
-  sei();
-
-  return value / 100;
-}
-
-
 int main() {
   wdt_enable(WDTO_8S);
 
   init();
-
-  // Start ADC
-  adc_conversion();
-
-  // Validate input voltage
-  int settle = 0;
-  float vlast = 0;
-
-  while (settle < 5) {
-    wdt_reset();
-    _delay_ms(20);
-
-    float vin = get_reg(VIN_REG);
-
-    // Check that voltage is with in range and settled
-    if (11 < vin && vin < 39 && vlast * 0.98 < vin && vin < vlast * 1.02)
-      settle++;
-    else settle = 0;
-
-    vlast = vin;
-  }
-
-  // Charge caps
-  OCR0A = 255 * 0.2; // Cap charging duty cycle
-  TCCR0B |= (0 << CS02) | (1 << CS01) | (0 << CS00); // Enable timer with clk/8
-  _delay_ms(200);
-  TCCR0A = 0; // Clock off
-  IO_PORT_SET(MOTOR_PIN); // Motor voltage on
-
-  _delay_ms(50); // Wait for final charge
-
-  // Measure nominal voltage
-  float vnom = 0;
-  settle = 0;
-  while (settle < 5) {
-    wdt_reset();
-    _delay_ms(20);
-
-    float vout = get_reg(VOUT_REG);
-
-    // Check that voltages are with in range and vout has settled
-    if (11 < vout && vout < 39 && vout * 0.98 < vnom && vnom < vout * 1.02)
-      settle++;
-    else settle = 0;
-
-    vnom = vout;
-  }
-
-  if (36 < vnom) vnom = 36; // TODO remove this when R27 is updated
-
-  bool shunt = false;
+  adc_conversion(); // Start ADC
+  validate_input_voltage();
+  charge_caps();
 
   while (true) {
     wdt_reset();
+
+    float vin = get_reg(VIN_REG);
     float vout = get_reg(VOUT_REG);
 
-    if (!shunt && vnom + 2 < vout) {
-      shunt = true;
-      IO_DDR_SET(SHUNT_PIN); // Enable output
+    update_shunt_power(vout, vnom);
 
-    } else if (shunt && vout < vnom + 1) {
-      IO_DDR_CLR(SHUNT_PIN); // Disable output
-      shunt = false;
-    }
+    uint16_t flags = 0;
+    if (vin < VOLTAGE_MIN) flags |= UNDER_VOLTAGE_FLAG;
+    if (VOLTAGE_MAX < vin) flags |= OVER_VOLTAGE_FLAG;
+    if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
+    regs[FLAGS_REG] = flags;
 
-    if (shunt) {
-      float duty = (vout - vnom - 1) / 4;
-      if (1 < duty) OCR1A = 0xff;
-      else OCR1A = 0xff * duty;
-    }
-
-    continue;
-
-    if (39 < get_reg(VIN_REG) || get_reg(VIN_REG) < 11) {
-      IO_PORT_CLR(MOTOR_PIN);
-      _delay_ms(3000);
-      IO_PORT_SET(MOTOR_PIN); // Motor voltage on
-    }
-
-    if (10 < get_reg(MOTOR_REG)) {
-      IO_PORT_CLR(MOTOR_PIN);
-      IO_PORT_CLR(LOAD1_PIN);
-      IO_PORT_CLR(LOAD2_PIN);
-      _delay_ms(1000);
-      IO_PORT_SET(MOTOR_PIN); // Motor voltage on
+    if (flags) {
+      disable_outputs();
+      delay_ms(FAULT_TIMEOUT);
+      enable_outputs();
     }
   }
 
