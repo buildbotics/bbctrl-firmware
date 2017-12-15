@@ -82,7 +82,7 @@ stat_t status_message_P(const char *location, status_level_t level,
     vfprintf_P(stdout, msg, args);
     va_end(args);
 
-  } else printf_P("%"PRPSTR, status_to_pgmstr(code));
+  } else printf_P("%" PRPSTR, status_to_pgmstr(code));
 
   putchar('"');
 
