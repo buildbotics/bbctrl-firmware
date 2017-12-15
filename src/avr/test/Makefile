@@ -1,7 +1,7 @@
 TESTS=planner-test
 
-PLANNER_TEST_SRC = gcode_parser.c machine.c status.c util.c axis.c report.c \
-  homing.c probing.c command.c vars.c
+PLANNER_TEST_SRC = gcode_parser.c gcode_expr.c machine.c status.c util.c axis.c report.c \
+  command.c vars.c
 PLANNER_TEST_SRC := $(patsubst %,../src/%,$(PLANNER_TEST_SRC))
 PLANNER_TEST_SRC += $(wildcard ../src/plan/*.c) planner-test.c hal.c
 
