@@ -113,7 +113,7 @@ static void var_print_float(float x) {
       break;
     }
 
-    printf(buf);
+    printf("%s", buf);
   }
 }
 
