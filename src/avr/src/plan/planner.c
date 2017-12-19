@@ -118,8 +118,10 @@ void mp_kinematics(const float travel[], float steps[]) {
   // steps_per_unit() which takes axis travel, step angle and microsteps into
   // account.
   for (int motor = 0; motor < MOTORS; motor++)
-    steps[motor] =
-      travel[motor_get_axis(motor)] * motor_get_steps_per_unit(motor);
+    if (motor_is_enabled(motor))
+      steps[motor] =
+        travel[motor_get_axis(motor)] * motor_get_steps_per_unit(motor);
+    else steps[motor] = 0;
 }
 
 
