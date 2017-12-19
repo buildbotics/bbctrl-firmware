@@ -18,6 +18,9 @@ STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
 TEMPLS     := $(wildcard src/jade/templates/*.jade)
 
 AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
+GPLAN_MOD := rpi-share/camotics/gplan.so
+GPLAN_TARGET := src/py/camotics/gplan.so
+GPLAN_IMG := gplan-dev.img
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
@@ -50,6 +53,21 @@ copy: pkg
 
 pkg: all $(AVR_FIRMWARE)
 	./setup.py sdist
+
+gplan: $(GPLAN_TARGET)
+
+$(GPLAN_TARGET): $(GPLAN_MOD)
+	cp $< $@
+
+$(GPLAN_MOD): $(GPLAN_IMG)
+	./scripts/gplan-init-build.sh
+	git -C rpi-share/cbang pull
+	git -C rpi-share/camotics pull
+	cp ./scripts/gplan-build.sh rpi-share/
+	sudo ./scripts/rpi-chroot.sh $(GPLAN_IMG) /mnt/host/gplan-build.sh
+
+$(GPLAN_IMG):
+	./scripts/gplan-init-build.sh
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):
@@ -141,3 +159,4 @@ dist-clean: clean
 	rm -rf node_modules
 
 .PHONY: all install html css static templates clean tidy copy mount umount pkg
+.PHONY: gplan

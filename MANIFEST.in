@@ -2,3 +2,5 @@ recursive-include src/py/bbctrl/http *
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
 include scripts/avr109-flash.py
+recursive-include src/py/camotics *
+global-exclude .gitignore

@@ -1,7 +1,7 @@
 {
   "name": "bbctrl",
   "version": "0.2.2",
-  "homepage": "https://github.com/buildbotics/rpi-firmware",
+  "homepage": "https://github.com/buildbotics/bbctrl-firmware",
   "license": "GPL 3+",
 
   "dependencies": {

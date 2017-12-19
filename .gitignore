@@ -11,3 +11,8 @@ node_modules
 __pycache__
 *.egg-info
 /upload
+/*.img
+*.so
+*.deb
+*.zip
+/rpi-share
