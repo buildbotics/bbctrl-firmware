@@ -9,7 +9,7 @@ apt-get dist-upgrade -y
 
 # Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
-  i2c-tools python3-rpi.gpio libjpeg8
+  i2c-tools python3-rpi.gpio libjpeg8 wiringpi
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
@@ -57,6 +57,7 @@ adduser hawkeye video
 sed -i 's/^exit 0$//' /etc/rc.local
 echo "/usr/bin/tvservice -o" >> /etc/rc.local
 echo "mount -o remount,ro /boot" >> /etc/rc.local
+echo "gpio mode 27 alt3" >> /etc/rc.local # Enable serial CTS on pin 27
 echo "exit 0" >> /etc/rc.local
 
 # Dynamic clock to save power
