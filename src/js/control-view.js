@@ -81,11 +81,7 @@ module.exports = {
 
 
   methods: {
-    get_state: function () {
-      var state = this.state.x || '';
-      if (state == 'RUNNING' && this.state.c) state = this.state.c;
-      return state;
-    },
+    get_state: function () {return this.state.x || ''},
 
 
     get_reason: function () {

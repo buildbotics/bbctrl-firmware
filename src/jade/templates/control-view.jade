@@ -76,7 +76,7 @@ script#control-view-template(type="text/x-template")
         td(:class="{attention: highlight_reason()}") {{get_state()}}
         td
       tr
-        th Reason
+        th Message
         td.reason(:class="{attention: highlight_reason()}") {{get_reason()}}
         td
       tr
@@ -134,8 +134,7 @@ script#control-view-template(type="text/x-template")
 
       button.pure-button(
         title="{{state.x == 'RUNNING' ? 'Pause' : 'Start'}} program.",
-        @click="start_pause",
-        :disabled="state.c == 'HOMING' || !file")
+        @click="start_pause", :disabled="!file")
         .fa(:class="state.x == 'RUNNING' ? 'fa-pause' : 'fa-play'")
 
       button.pure-button(title="Stop program.", @click="stop",
@@ -143,7 +142,7 @@ script#control-view-template(type="text/x-template")
         .fa.fa-stop
 
       button.pure-button(title="Pause program at next optional stop (M1).",
-        @click="optional_pause", :disabled="state.c == 'HOMING'")
+        @click="optional_pause")
         .fa.fa-stop-circle-o
 
       button.pure-button(title="Execute one program step.", @click="step",

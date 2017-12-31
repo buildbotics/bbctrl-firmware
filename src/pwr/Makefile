@@ -20,8 +20,10 @@ LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
 LIBS += -lm
 
 # Programming flags
+ifndef (PROGRAMMER)
 PROGRAMMER = avrispmkII
 #PROGRAMMER = jtag3pdi
+endif
 PDEV = usb
 AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
 

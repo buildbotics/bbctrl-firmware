@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                            All rights reserved.
 
      This file ("the software") is free software: you can redistribute it

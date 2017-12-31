@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2013 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -44,14 +42,6 @@ typedef enum {
 
 
 typedef enum {
-  CYCLE_MACHINING,
-  CYCLE_HOMING,
-  CYCLE_PROBING,
-  CYCLE_JOGGING,
-} cycle_t;
-
-
-typedef enum {
   HOLD_REASON_USER_PAUSE,
   HOLD_REASON_PROGRAM_PAUSE,
   HOLD_REASON_PROGRAM_END,
@@ -61,19 +51,14 @@ typedef enum {
 
 
 PGM_P state_get_pgmstr(state_t state);
-PGM_P state_get_cycle_pgmstr(cycle_t cycle);
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason);
 
 state_t state_get();
-cycle_t state_get_cycle();
-void state_set_cycle(cycle_t cycle);
 void state_set_hold_reason(hold_reason_t reason);
 
 bool state_is_flushing();
 bool state_is_resuming();
 bool state_is_quiescent();
-bool state_is_ready();
-void state_pause_queue(bool x);
 
 void state_optional_pause();
 void state_holding();

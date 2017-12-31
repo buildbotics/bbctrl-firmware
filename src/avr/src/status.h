@@ -39,6 +39,7 @@ typedef enum {
 #include "messages.def"
 #undef STAT_MSG
 
+  STAT_MAX,
   STAT_DO_NOT_EXCEED = 255 // Do not exceed 255
 } stat_t;
 
@@ -58,7 +59,6 @@ const char *status_level_pgmstr(status_level_t level);
 stat_t status_error(stat_t code);
 stat_t status_message_P(const char *location, status_level_t level,
                         stat_t code, const char *msg, ...);
-void status_help();
 
 /// Enter alarm state. returns same status code
 stat_t status_alarm(const char *location, stat_t status, const char *msg);

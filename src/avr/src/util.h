@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2014 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -30,6 +29,7 @@
 
 
 #include "config.h"
+#include "status.h"
 
 #include <stdint.h>
 #include <math.h>
@@ -64,6 +64,9 @@ inline static bool fp_NE(float a, float b) {return fabs(a - b) > EPSILON;}
 inline static bool fp_ZERO(float a) {return fabs(a) < EPSILON;}
 inline static bool fp_FALSE(float a) {return fp_ZERO(a);}
 inline static bool fp_TRUE(float a) {return !fp_ZERO(a);}
+
+bool decode_float(char **s, float *f);
+stat_t decode_axes(char **cmd, float axes[AXES]);
 
 // Constants
 #define MM_PER_INCH 25.4

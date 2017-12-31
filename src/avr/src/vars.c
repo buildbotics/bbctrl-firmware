@@ -27,165 +27,31 @@
 
 #include "vars.h"
 
-#include "cpp_magic.h"
+#include "type.h"
 #include "status.h"
 #include "hardware.h"
 #include "config.h"
 #include "axis.h"
-#include "pgmspace.h"
+#include "cpp_magic.h"
+#include "report.h"
+#include "command.h"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <math.h>
-#include <inttypes.h>
-
-
-typedef uint16_t flags_t;
-typedef const char *string;
-typedef const PGM_P pstring;
-
+#include <stdio.h>
 
 // Format strings
 static const char code_fmt[] PROGMEM = "\"%s\":";
 static const char indexed_code_fmt[] PROGMEM = "\"%c%s\":";
 
 
-// Type names
-static const char bool_name [] PROGMEM = "<bool>";
-#define TYPE_NAME(TYPE) static const char TYPE##_name [] PROGMEM = "<" #TYPE ">"
-MAP(TYPE_NAME, SEMI, flags_t, string, pstring, float, uint8_t, uint16_t,
-    int32_t);
-
-
-// Eq functions
-#define EQ_FUNC(TYPE) \
-  inline static bool var_eq_##TYPE(const TYPE a, const TYPE b) {return a == b;}
-MAP(EQ_FUNC, SEMI, flags_t, string, pstring, uint8_t, uint16_t, int32_t, char);
-
-
-// String
-static void var_print_string(string s) {printf_P(PSTR("\"%s\""), s);}
-static float var_string_to_float(string s) {return 0;}
-
-
-// Program string
-static void var_print_pstring(pstring s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
-//static const char *var_parse_pstring(const char *value) {return value;}
-static float var_pstring_to_float(pstring s) {return 0;}
-
-
-// Flags
-static void var_print_flags_t(flags_t x) {
-  extern void print_status_flags(flags_t x);
-  print_status_flags(x);
-}
-
-static float var_flags_t_to_float(flags_t x) {return x;}
-
-
-// Float
-static bool var_eq_float(float a, float b) {
-  return a == b || (isnan(a) && isnan(b));
-}
-
-
-static void var_print_float(float x) {
-  if (isnan(x)) printf_P(PSTR("\"nan\""));
-  else if (isinf(x)) printf_P(PSTR("\"%cinf\""), x < 0 ? '-' : '+');
-
-  else {
-    char buf[20];
-
-    int len = sprintf_P(buf, PSTR("%.3f"), x);
-
-    // Remove trailing zeros
-    for (int i = len; 0 < i; i--) {
-      if (buf[i - 1] == '.') buf[i - 1] = 0;
-      else if (buf[i - 1] == '0') {
-        buf[i - 1] = 0;
-        continue;
-      }
-
-      break;
-    }
-
-    printf("%s", buf);
-  }
-}
-
-
-static float var_parse_float(const char *value) {return strtod(value, 0);}
-static float var_float_to_float(float x) {return x;}
-
-
-// Bool
-inline static bool var_eq_bool(float a, float b) {return a == b;}
-static void var_print_bool(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
-
-
-bool var_parse_bool(const char *value) {
-  return !strcasecmp(value, "true") || var_parse_float(value);
-}
-
-static float var_bool_to_float(bool x) {return x;}
-
-
-// Char
-#if 0
-static void var_print_char(char x) {putchar('"'); putchar(x); putchar('"');}
-static char var_parse_char(const char *value) {return value[1];}
-static float var_char_to_float(char x) {return x;}
-#endif
-
-
-// int8
-#if 0
-static void var_print_int8_t(int8_t x) {printf_P(PSTR("%"PRIi8), x);}
-static int8_t var_parse_int8_t(const char *value) {return strtol(value, 0, 0);}
-static float var_int8_t_to_float(int8_t x) {return x;}
-#endif
-
-// uint8
-static void var_print_uint8_t(uint8_t x) {printf_P(PSTR("%"PRIu8), x);}
-
-
-static uint8_t var_parse_uint8_t(const char *value) {
-  return strtol(value, 0, 0);
-}
-
-static float var_uint8_t_to_float(uint8_t x) {return x;}
-
-
-// unit16
-static void var_print_uint16_t(uint16_t x) {
-  printf_P(PSTR("%"PRIu16), x);
-}
-
-
-static uint16_t var_parse_uint16_t(const char *value) {
-  return strtoul(value, 0, 0);
-}
-
-
-static float var_uint16_t_to_float(uint16_t x) {return x;}
-
-
-// int32
-static void var_print_int32_t(int32_t x) {printf_P(PSTR("%"PRIi32), x);}
-static float var_int32_t_to_float(int32_t x) {return x;}
-
-
-// Ensure no code is used more than once
+// Ensure no var code is used more than once
 enum {
 #define VAR(NAME, CODE, ...) var_code_##CODE,
 #include "vars.def"
 #undef VAR
   var_code_count
 };
+
 
 // Var forward declarations
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)          \
@@ -196,6 +62,40 @@ enum {
 #include "vars.def"
 #undef VAR
 
+
+// Set callback union
+typedef union {
+#define TYPEDEF(TYPE, ...) void (*set_##TYPE)(TYPE);
+#include "type.def"
+#undef TYPEDEF
+
+#define TYPEDEF(TYPE, ...) void (*set_##TYPE##_index)(int i, TYPE);
+#include "type.def"
+#undef TYPEDEF
+} set_cb_u;
+
+
+// Get callback union
+typedef union {
+#define TYPEDEF(TYPE, ...) TYPE (*get_##TYPE)();
+#include "type.def"
+#undef TYPEDEF
+
+#define TYPEDEF(TYPE, ...) TYPE (*get_##TYPE##_index)(int i);
+#include "type.def"
+#undef TYPEDEF
+} get_cb_u;
+
+
+typedef struct {
+  type_t type;
+  char name[5];
+  int8_t index;
+  get_cb_u get;
+  set_cb_u set;
+} var_info_t;
+
+
 // Var names & help
 #define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, HELP)      \
   static const char NAME##_name[] PROGMEM = #NAME;          \
@@ -204,12 +104,14 @@ enum {
 #include "vars.def"
 #undef VAR
 
+
 // Last value
 #define VAR(NAME, CODE, TYPE, INDEX, ...)       \
   static TYPE NAME##_state IF(INDEX)([INDEX]);
 
 #include "vars.def"
 #undef VAR
+
 
 // Report
 static uint8_t _report_var[(var_code_count >> 3) + 1] = {0,};
@@ -266,7 +168,7 @@ void vars_report(bool full) {
     TYPE last = (NAME##_state)IF(INDEX)([i]);                           \
     bool report = _get_report_var(var_code_##CODE);                     \
                                                                         \
-    if ((report && !var_eq_##TYPE(value, last)) || full) {              \
+    if ((report && !type_eq_##TYPE(value, last)) || full) {             \
       (NAME##_state)IF(INDEX)([i]) = value;                             \
                                                                         \
       if (!reported) {                                                  \
@@ -278,7 +180,7 @@ void vars_report(bool full) {
         (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                    \
          IF(INDEX)(INDEX##_LABEL[i],) #CODE);                           \
                                                                         \
-      var_print_##TYPE(value);                                          \
+      type_print_##TYPE(value);                                         \
     }                                                                   \
   }
 
@@ -290,7 +192,6 @@ void vars_report(bool full) {
   // Restore watchdog
   hw_restore_watchdog(wd_state);
 }
-
 
 void vars_report_all(bool enable) {
 #define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, ...)                  \
@@ -332,48 +233,29 @@ static char *_resolve_name(const char *_name) {
 }
 
 
-bool vars_print(const char *_name) {
+static bool _find_var(const char *_name, var_info_t *info) {
   char *name = _resolve_name(_name);
   if (!name) return false;
 
-  int i;
-#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  int i = -1;
+  memset(info, 0, sizeof(var_info_t));
+  strcpy(info->name, name);
+
+#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
   if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
     IF(INDEX)                                                           \
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
        if (INDEX <= i) return false);                                   \
                                                                         \
-    printf("{\"%s\":", _name);                                          \
-    var_print_##TYPE(get_##NAME(IF(INDEX)(i)));                         \
-    putchar('}');                                                       \
+    info->type = TYPE_##TYPE;                                           \
+    info->index = i;                                                    \
+    info->get.IF_ELSE(INDEX)(get_##TYPE##_index, get_##TYPE) = get_##NAME; \
                                                                         \
-    return true;                                                        \
-  }
-
-#include "vars.def"
-#undef VAR
-
-  return false;
-}
-
-
-bool vars_set(const char *_name, const char *value) {
-  char *name = _resolve_name(_name);
-  if (!name) return false;
-
-  int i;
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  IF(SET)                                                               \
-    (if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {              \
-      IF(INDEX)                                                         \
-        (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;            \
-         if (INDEX <= i) return false);                                 \
-                                                                        \
-      TYPE x = var_parse_##TYPE(value);                                 \
-      set_##NAME(IF(INDEX)(i,) x);                                      \
+    IF(SET)(info->set.IF_ELSE(INDEX)                                    \
+            (set_##TYPE##_index, set_##TYPE) = set_##NAME;)             \
                                                                         \
       return true;                                                      \
-    })                                                                  \
+  }
 
 #include "vars.def"
 #undef VAR
@@ -382,60 +264,63 @@ bool vars_set(const char *_name, const char *value) {
 }
 
 
-float vars_get_number(const char *_name) {
-  char *name = _resolve_name(_name);
-  if (!name) return 0;
+static type_u _get(type_t type, int8_t index, get_cb_u cb) {
+  type_u value;
 
-  int i;
-#define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
-    IF(INDEX)                                                           \
-      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
-       if (INDEX <= i) return 0);                                       \
-                                                                        \
-    TYPE x = get_##NAME(IF(INDEX)(i));                                  \
-    return var_##TYPE##_to_float(x);                                    \
-  }                                                                     \
+  switch (type) {
+#define TYPEDEF(TYPE, ...)                                              \
+    case TYPE_##TYPE:                                                   \
+      if (index == -1) value._##TYPE = cb.get_##TYPE();                 \
+      value._##TYPE = cb.get_##TYPE##_index(index);                     \
+      break;
+#include "type.def"
+#undef TYPEDEF
+  }
 
-#include "vars.def"
-#undef VAR
-
-  return 0;
+  return value;
 }
 
 
-int vars_parser(char *vars) {
-  if (!*vars || *vars != '{') return STAT_OK;
-  vars++;
-
-  while (*vars) {
-    while (isspace(*vars)) vars++;
-    if (*vars == '}') return STAT_OK;
-    if (*vars != '"') return STAT_COMMAND_NOT_ACCEPTED;
-
-    // Parse name
-    vars++; // Skip "
-    const char *name = vars;
-    while (*vars && *vars != '"') vars++;
-    *vars++ = 0;
-
-    while (isspace(*vars)) vars++;
-    if (*vars != ':') return STAT_COMMAND_NOT_ACCEPTED;
-    vars++;
-    while (isspace(*vars)) vars++;
-
-    // Parse value
-    const char *value = vars;
-    while (*vars && *vars != ',' && *vars != '}') vars++;
-    if (*vars) {
-      char c = *vars;
-      *vars++ = 0;
-      vars_set(name, value);
-      if (c == '}') break;
-    }
+static void _set(type_t type, int8_t index, set_cb_u cb, type_u value) {
+  switch (type) {
+#define TYPEDEF(TYPE, ...)                                              \
+    case TYPE_##TYPE:                                                   \
+      if (index == -1) cb.set_##TYPE(value._##TYPE);                    \
+      else cb.set_##TYPE##_index(index, value._##TYPE);                 \
+      break;
+#include "type.def"
+#undef TYPEDEF
   }
+}
 
-  return STAT_OK;
+
+bool vars_print(const char *name) {
+  var_info_t info;
+  if (!_find_var(name, &info)) return false;
+
+  printf("{\"%s\":", info.name);
+  type_print(info.type, _get(info.type, info.index, info.get));
+  putchar('}');
+  putchar('\n');
+
+  return true;
+}
+
+
+bool vars_set(const char *name, const char *value) {
+  var_info_t info;
+  if (!_find_var(name, &info)) return false;
+
+  _set(info.type, info.index, info.set, type_parse(info.type, value));
+
+  return true;
+}
+
+
+float vars_get_number(const char *name) {
+  var_info_t info;
+  if (!_find_var(name, &info)) return 0;
+  return type_to_float(info.type, _get(info.type, info.index, info.get));
 }
 
 
@@ -446,11 +331,82 @@ void vars_print_help() {
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();
 
-#define VAR(NAME, CODE, TYPE, ...)                               \
-  printf_P(fmt, #CODE, NAME##_name, TYPE##_name, NAME##_help);
+#define VAR(NAME, CODE, TYPE, ...)                                      \
+  printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm(), NAME##_help);
 #include "vars.def"
 #undef VAR
 
   // Restore watchdog
   hw_restore_watchdog(wd_state);
+}
+
+
+// Command callbacks
+stat_t command_var(char *cmd) {
+  cmd++; // Skip command code
+
+  if (*cmd == '$' && !cmd[1]) {
+    report_request_full();
+    return STAT_OK;
+  }
+
+  // Get or set variable
+  char *value = strchr(cmd, '=');
+  if (value) {
+    *value++ = 0;
+    if (vars_set(cmd, value)) return STAT_OK;
+
+  } else if (vars_print(cmd)) return STAT_OK;
+
+  STATUS_ERROR(STAT_UNRECOGNIZED_NAME, "'%s'", cmd);
+  return STAT_UNRECOGNIZED_NAME;
+}
+
+
+typedef struct {
+  type_t type;
+  int8_t index;
+  set_cb_u set;
+  type_u value;
+} var_cmd_t;
+
+
+stat_t command_sync_var(char *cmd) {
+  // Get value
+  char *value = strchr(cmd + 1, '=');
+  if (!value) return STAT_INVALID_COMMAND;
+  *value++ = 0;
+
+  var_info_t info;
+  if (!_find_var(cmd + 1, &info)) return STAT_UNRECOGNIZED_NAME;
+
+  var_cmd_t buffer;
+
+  buffer.type = info.type;
+  buffer.index = info.index;
+  buffer.set = info.set;
+  buffer.value = type_parse(info.type, value);
+
+  command_push(*cmd, &buffer);
+
+  return STAT_OK;
+}
+
+
+unsigned command_sync_var_size() {return sizeof(var_cmd_t);}
+
+
+void command_sync_var_exec(char *data) {
+  var_cmd_t *buffer = (var_cmd_t *)data;
+  _set(buffer->type, buffer->index, buffer->set, buffer->value);
+}
+
+
+stat_t command_report(char *cmd) {
+  bool enable = cmd[1] != '0';
+
+  if (cmd[2]) vars_report_var(cmd + 2, enable);
+  else vars_report_all(enable);
+
+  return STAT_OK;
 }

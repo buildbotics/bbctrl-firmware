@@ -6,22 +6,9 @@ import logging
 from collections import deque
 
 import bbctrl
-
+import bbctrl.Cmd as Cmd
 
 log = logging.getLogger('AVR')
-
-# These constants must be kept in sync with i2c.h from the AVR code
-I2C_NULL           = 0
-I2C_ESTOP          = 1
-I2C_CLEAR          = 2
-I2C_PAUSE          = 3
-I2C_OPTIONAL_PAUSE = 4
-I2C_RUN            = 5
-I2C_STEP           = 6
-I2C_FLUSH          = 7
-I2C_REPORT         = 8
-I2C_REBOOT         = 9
-
 
 machine_state_vars = '''
   xp yp zp ap bp cp u s f t fm pa cs ao pc dm ad fo so mc fc
@@ -42,6 +29,7 @@ axis_homing_procedure = '''
   G0 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.zb> + #<%(axis)sp>]
   G28.3 %(axis)s[#<%(axis)s.hp>]
 '''
+
 
 class AVR():
     def __init__(self, ctrl):
@@ -75,7 +63,8 @@ class AVR():
         if self.stream is not None:
             raise Exception('Busy, cannot start new GCode file')
 
-        self.stream = bbctrl.GCodeStream(path)
+        log.info('Running ' + path)
+        self.stream = bbctrl.Planner(self.ctrl, path)
         self.set_write(True)
 
 
@@ -98,8 +87,9 @@ class AVR():
 
 
     def _i2c_command(self, cmd, byte = None, word = None):
-        log.info('I2C: %d' % cmd)
+        log.info('I2C: ' + cmd)
         retry = 5
+        cmd = ord(cmd[0])
 
         while True:
             try:
@@ -131,11 +121,11 @@ class AVR():
         self.queue_command('$$') # Refresh all vars, must come after above
 
 
-    def report(self): self._i2c_command(I2C_REPORT)
+    def report(self): self._i2c_command(Cmd.REPORT)
 
 
     def load_next_command(self, cmd):
-        log.info('Serial: ' + cmd)
+        log.info('< ' + cmd)
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
 
 
@@ -148,8 +138,11 @@ class AVR():
 
 
     def serial_handler(self, fd, events):
-        if self.ctrl.ioloop.READ & events: self.serial_read()
-        if self.ctrl.ioloop.WRITE & events: self.serial_write()
+        try:
+            if self.ctrl.ioloop.READ & events: self.serial_read()
+            if self.ctrl.ioloop.WRITE & events: self.serial_write()
+        except Exception as e:
+            log.error('Serial handler error:', e)
 
 
     def serial_write(self):
@@ -201,6 +194,8 @@ class AVR():
             self.in_buf = self.in_buf[i + 1:]
 
             if line:
+                log.info('> ' + line)
+
                 try:
                     msg = json.loads(line)
 
@@ -254,12 +249,7 @@ class AVR():
 
 
     def _update_lcd(self, msg):
-        if 'x' in msg or 'c' in msg:
-            v = self.vars
-            state = v.get('x', 'INIT')
-            if 'c' in v and state == 'RUNNING': state = v['c']
-
-            self.lcd_page.text('%-9s' % state, 0, 0)
+        if 'x' in msg: self.lcd_page.text('%-9s' % self.vars['x'], 0, 0)
 
         # Show enabled axes
         row = 0
@@ -293,10 +283,10 @@ class AVR():
     def jog(self, axes):
         if self.stream is not None: raise Exception('Busy, cannot jog')
 
-        # TODO jogging via I2C
+        _axes = {}
+        for i in range(len(axes)): _axes["xyzabc"[i]] = axes[i]
 
-        axes = ["{:6.5f}".format(x) for x in axes]
-        self.queue_command('$jog ' + ' '.join(axes))
+        self.queue_command(Cmd.jog(_axes))
 
 
     def set(self, index, code, value):
@@ -321,8 +311,8 @@ class AVR():
                     self.queue_command(line.strip())
 
 
-    def estop(self): self._i2c_command(I2C_ESTOP)
-    def clear(self): self._i2c_command(I2C_CLEAR)
+    def estop(self): self._i2c_command(Cmd.ESTOP)
+    def clear(self): self._i2c_command(Cmd.CLEAR)
 
 
     def start(self, path):
@@ -330,25 +320,25 @@ class AVR():
 
         if path:
             self._start_sending_gcode(path)
-            self._i2c_command(I2C_RUN)
+            self._i2c_command(Cmd.RUN)
 
 
     def step(self, path):
-        self._i2c_command(I2C_STEP)
+        self._i2c_command(Cmd.STEP)
         if self.stream is None and path and self.vars.get('x', '') == 'READY':
             self._start_sending_gcode(path)
 
 
     def stop(self):
-        self._i2c_command(I2C_FLUSH)
+        self._i2c_command(Cmd.FLUSH)
         self._stop_sending_gcode()
         # Resume processing once current queue of GCode commands has flushed
-        self.queue_command('$resume')
+        self.queue_command('c')
 
 
-    def pause(self): self._i2c_command(I2C_PAUSE)
-    def unpause(self): self._i2c_command(I2C_RUN)
-    def optional_pause(self): self._i2c_command(I2C_OPTIONAL_PAUSE)
+    def pause(self): self._i2c_command(Cmd.PAUSE, byte = 0)
+    def unpause(self): self._i2c_command(Cmd.RUN)
+    def optional_pause(self): self._i2c_command(Cmd.PAUSE, byte = 1)
 
 
     def set_position(self, axis, position):

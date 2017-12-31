@@ -55,8 +55,10 @@ static void _set_dre_interrupt(bool enable) {
 
 static void _set_rxc_interrupt(bool enable) {
   if (enable) {
+    if (SERIAL_CTS_THRESH <= rx_buf_space())
+      OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
+
     SERIAL_PORT.CTRLA |= USART_RXCINTLVL_HI_gc;
-    if (4 <= rx_buf_space()) OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
 
   } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_HI_gc;
 }
@@ -78,9 +80,9 @@ ISR(SERIAL_RXC_vect) {
   if (rx_buf_full()) _set_rxc_interrupt(false); // Disable interrupt
 
   else {
-    uint8_t data = SERIAL_PORT.DATA;
-    rx_buf_push(data);
-    if (rx_buf_space() < 4) OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
+    rx_buf_push(SERIAL_PORT.DATA);
+    if (rx_buf_space() < SERIAL_CTS_THRESH)
+      OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
   }
 }
 
@@ -89,6 +91,7 @@ static int _usart_putchar(char c, FILE *f) {
   usart_putc(c);
   return 0;
 }
+
 
 static FILE _stdout = FDEV_SETUP_STREAM(_usart_putchar, 0, _FDEV_SETUP_WRITE);
 
@@ -180,8 +183,7 @@ void usart_puts(const char *s) {while (*s) usart_putc(*s++);}
 int8_t usart_getc() {
   while (rx_buf_empty()) continue;
 
-  uint8_t data = rx_buf_peek();
-  rx_buf_pop();
+  uint8_t data = rx_buf_next();
 
   _set_rxc_interrupt(true); // Enable interrupt
 

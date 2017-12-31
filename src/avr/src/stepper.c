@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -109,7 +107,7 @@ bool st_is_busy() {return st.busy;}
 /// ADC channel 0 triggered by load ISR as a "software" interrupt.
 ISR(STEP_LOW_LEVEL_ISR) {
   while (true) {
-    stat_t status = exec_next_action();
+    stat_t status = exec_next();
 
     switch (status) {
     case STAT_NOOP: st.busy = false;  break; // No command executed
@@ -204,7 +202,7 @@ ISR(STEP_TIMER_ISR) {_load_move();}
 
 
 void st_prep_line(float time, const float target[]) {
-  // Trap conditions that would prevent queueing the line
+  // Trap conditions that would prevent queuing the line
   ASSERT(!st.move_ready);
   ASSERT(isfinite(time));
 
@@ -214,7 +212,8 @@ void st_prep_line(float time, const float target[]) {
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    motor_prep_move(motor, time, target[motor_get_axis(motor)]);
+    //if (motor_is_enabled(motor))
+      motor_prep_move(motor, time, target[motor_get_axis(motor)]);
 
   st.move_queued = true; // signal prep buffer ready (do this last)
 }

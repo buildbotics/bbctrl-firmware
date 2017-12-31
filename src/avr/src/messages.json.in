@@ -1,0 +1,7 @@
+#include "cpp_magic.h"
+[
+#define STAT_MSG(NAME, MSG) [#NAME, MSG],
+#include "messages.def"
+#undef CMD
+  []
+]

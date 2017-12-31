@@ -51,6 +51,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifndef RING_BUF_NAME
 #error Must define RING_BUF_NAME
@@ -65,7 +66,7 @@
 #endif
 
 #ifndef RING_BUF_INDEX_TYPE
-#define RING_BUF_INDEX_TYPE uint8_t
+#define RING_BUF_INDEX_TYPE volatile uint8_t
 #endif
 
 #ifndef RING_BUF_FUNC
@@ -83,68 +84,108 @@
 #endif
 
 #define RING_BUF_STRUCT CONCAT(RING_BUF_NAME, _ring_buf_t)
-#define RING_BUF CONCAT(RING_BUF_NAME, _ring_buf)
+#define RING_BUF RING_BUF_NAME
 
 typedef struct {
   RING_BUF_TYPE buf[RING_BUF_SIZE];
-  volatile RING_BUF_INDEX_TYPE head;
-  volatile RING_BUF_INDEX_TYPE tail;
-  volatile RING_BUF_INDEX_TYPE tran_tail;
-  volatile bool transaction;
+  RING_BUF_INDEX_TYPE head;
+  RING_BUF_INDEX_TYPE tail;
 } RING_BUF_STRUCT;
 
 static RING_BUF_STRUCT RING_BUF;
 
 
 RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _init)() {
-  RING_BUF.head = RING_BUF.tail = RING_BUF.tran_tail = RING_BUF.transaction = 0;
+  RING_BUF.head = RING_BUF.tail = 0;
 }
 
 
-#define RING_BUF_INC CONCAT(RING_BUF_NAME, _inc)
-RING_BUF_FUNC RING_BUF_INDEX_TYPE RING_BUF_INC(RING_BUF_INDEX_TYPE x) {
-  return (x + 1) & RING_BUF_MASK;
+#define RING_BUF_INC(x) (((x) + 1) & RING_BUF_MASK)
+
+
+#ifdef RING_BUF_ATOMIC_COPY
+
+#define RING_BUF_ATOMIC_READ_INDEX(INDEX)                               \
+  RING_BUF_FUNC RING_BUF_INDEX_TYPE CONCAT(RING_BUF_NAME, _read_##INDEX)() { \
+    RING_BUF_INDEX_TYPE index;                                          \
+    RING_BUF_ATOMIC_COPY(index, RING_BUF.INDEX);                        \
+    return index;                                                       \
+  }
+
+
+#define _RING_BUF_ATOMIC_WRITE_INDEX(INDEX, TARGET)                     \
+  RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _write_##INDEX)              \
+  (RING_BUF_INDEX_TYPE value) {                                         \
+    RING_BUF_ATOMIC_COPY(TARGET, value);                                \
+  }
+
+
+#define RING_BUF_ATOMIC_WRITE_INDEX(INDEX)                              \
+  _RING_BUF_ATOMIC_WRITE_INDEX(INDEX, RING_BUF.INDEX)
+
+
+RING_BUF_ATOMIC_READ_INDEX(head);
+RING_BUF_ATOMIC_READ_INDEX(tail);
+RING_BUF_ATOMIC_WRITE_INDEX(head);
+RING_BUF_ATOMIC_WRITE_INDEX(tail);
+
+#define RING_BUF_READ_INDEX(INDEX) CONCAT(RING_BUF_NAME, _read_##INDEX)()
+#define RING_BUF_WRITE_INDEX(INDEX, VALUE) \
+  CONCAT(RING_BUF_NAME, _write_##INDEX)(VALUE)
+
+
+#else // RING_BUF_ATOMIC_COPY
+#define RING_BUF_READ_INDEX(INDEX) RING_BUF.INDEX
+#define RING_BUF_WRITE_INDEX(INDEX, VALUE) RING_BUF.INDEX = VALUE
+#endif // RING_BUF_ATOMIC_COPY
+
+
+RING_BUF_FUNC bool CONCAT(RING_BUF_NAME, _empty)() {
+  return RING_BUF_READ_INDEX(head) == RING_BUF_READ_INDEX(tail);
 }
 
 
-RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _empty)() {
-  return RING_BUF.head == RING_BUF.tail;
+RING_BUF_FUNC bool CONCAT(RING_BUF_NAME, _full)() {
+  return RING_BUF_READ_INDEX(head) == RING_BUF_INC(RING_BUF_READ_INDEX(tail));
 }
 
 
-RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _full)() {
-  return RING_BUF.head == RING_BUF_INC(RING_BUF.tail);
+RING_BUF_FUNC RING_BUF_INDEX_TYPE CONCAT(RING_BUF_NAME, _fill)() {
+  return
+    (RING_BUF_READ_INDEX(tail) - RING_BUF_READ_INDEX(head)) & RING_BUF_MASK;
 }
 
 
-RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _fill)() {
-  return (RING_BUF.tail - RING_BUF.head) & RING_BUF_MASK;
-}
-
-
-RING_BUF_FUNC int CONCAT(RING_BUF_NAME, _space)() {
-  return RING_BUF_SIZE - CONCAT(RING_BUF_NAME, _fill)();
+RING_BUF_FUNC RING_BUF_INDEX_TYPE CONCAT(RING_BUF_NAME, _space)() {
+  return (RING_BUF_SIZE - 1) - CONCAT(RING_BUF_NAME, _fill)();
 }
 
 
 RING_BUF_FUNC RING_BUF_TYPE CONCAT(RING_BUF_NAME, _peek)() {
-  return RING_BUF.buf[RING_BUF.head];
+  return RING_BUF.buf[RING_BUF_READ_INDEX(head)];
 }
 
 
 RING_BUF_FUNC RING_BUF_TYPE CONCAT(RING_BUF_NAME, _get)(int offset) {
-  return RING_BUF.buf[(RING_BUF.head + offset) & RING_BUF_MASK];
+  return RING_BUF.buf[(RING_BUF_READ_INDEX(head) + offset) & RING_BUF_MASK];
 }
 
 
 RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _pop)() {
-  RING_BUF.head = RING_BUF_INC(RING_BUF.head);
+  RING_BUF_WRITE_INDEX(head, RING_BUF_INC(RING_BUF_READ_INDEX(head)));
+}
+
+
+RING_BUF_FUNC RING_BUF_TYPE CONCAT(RING_BUF_NAME, _next)() {
+  RING_BUF_TYPE x = CONCAT(RING_BUF_NAME, _peek)();
+  CONCAT(RING_BUF_NAME, _pop)();
+  return x;
 }
 
 
 RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _push)(RING_BUF_TYPE data) {
-  RING_BUF.buf[RING_BUF.tail] = data;
-  RING_BUF.tail = RING_BUF_INC(RING_BUF.tail);
+  RING_BUF.buf[RING_BUF_READ_INDEX(tail)] = data;
+  RING_BUF_WRITE_INDEX(tail, RING_BUF_INC(RING_BUF_READ_INDEX(tail)));
 }
 
 
@@ -158,3 +199,12 @@ RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _push)(RING_BUF_TYPE data) {
 #undef RING_BUF_TYPE
 #undef RING_BUF_INDEX_TYPE
 #undef RING_BUF_FUNC
+
+#undef RING_BUF_READ_INDEX
+#undef RING_BUF_WRITE_INDEX
+
+#ifdef RING_BUF_ATOMIC_COPY
+#undef RING_BUF_ATOMIC_COPY
+#undef RING_BUF_ATOMIC_READ_INDEX
+#undef RING_BUF_ATOMIC_WRITE_INDEX
+#endif // RING_BUF_ATOMIC_COPY

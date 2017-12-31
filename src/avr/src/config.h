@@ -186,10 +186,11 @@ enum {
 #define SERIAL_PORT            USARTC0
 #define SERIAL_DRE_vect        USARTC0_DRE_vect
 #define SERIAL_RXC_vect        USARTC0_RXC_vect
+#define SERIAL_CTS_THRESH      4
 
 
 // Input
-#define INPUT_BUFFER_LEN       255 // text buffer size (255 max)
+#define INPUT_BUFFER_LEN       128 // text buffer size (255 max)
 
 
 // I2C
@@ -210,6 +211,6 @@ enum {
 #define CURRENT_SENSE_REF        2.75          // volts
 #define MAX_CURRENT              10            // amps
 #define JERK_MULTIPLIER          1000000.0
-#define QUEUE_SIZE               256
-#define EXEC_FILL_TARGET         64
+#define SYNC_QUEUE_SIZE          4096
+#define EXEC_FILL_TARGET         8
 #define EXEC_DELAY               250 // ms

@@ -73,7 +73,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   va_list args;
 
   // Type
-  printf_P(PSTR("\n{\"level\":\"%"PRPSTR"\", \"msg\":\""),
+  printf_P(PSTR("\n{\"level\":\"%"PRPSTR"\",\"msg\":\""),
            status_level_pgmstr(level));
 
   // Message
@@ -82,35 +82,20 @@ stat_t status_message_P(const char *location, status_level_t level,
     vfprintf_P(stdout, msg, args);
     va_end(args);
 
-  } else printf_P("%" PRPSTR, status_to_pgmstr(code));
+  } else printf_P(PSTR("%" PRPSTR), status_to_pgmstr(code));
 
   putchar('"');
 
   // Code
-  if (code) printf_P(PSTR(", \"code\": %d"), code);
+  if (code) printf_P(PSTR(",\"code\":%d"), code);
 
   // Location
-  if (location) printf_P(PSTR(", \"where\": \"%"PRPSTR"\""), location);
+  if (location) printf_P(PSTR(",\"where\":\"%"PRPSTR"\""), location);
 
   putchar('}');
   putchar('\n');
 
   return code;
-}
-
-
-void status_help() {
-  putchar('{');
-
-  for (int i = 0; i < STAT_MAX; i++) {
-    if (i) putchar(',');
-    putchar('\n');
-    printf_P(PSTR("  \"%d\": \"%"PRPSTR"\""), i, status_to_pgmstr(i));
-  }
-
-  putchar('\n');
-  putchar('}');
-  putchar('\n');
 }
 
 

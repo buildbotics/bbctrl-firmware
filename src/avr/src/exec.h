@@ -28,22 +28,27 @@
 #pragma once
 
 
-#include "pgmspace.h"
+#include "config.h"
 #include "status.h"
 
 #include <stdbool.h>
 
 
+typedef stat_t (*exec_cb_t)();
+
+
 void exec_init();
 
-bool exec_is_busy();
-
-float exec_get_axis_position(int axis); // jog.c
-void exec_set_axis_position(int axis, float position);
-
-void exec_set_velocity(float v); // jog.c
+void exec_get_position(float p[AXES]);
+float exec_get_axis_position(int axis);
+void exec_set_velocity(float v);
+float exec_get_velocity();
+void exec_set_acceleration(float a);
+void exec_set_jerk(float j);
 void exec_set_line(int line);
+
+void exec_set_cb(exec_cb_t cb);
 
 stat_t exec_move_to_target(float time, const float target[]);
 void exec_reset_encoder_counts();
-stat_t exec_next_action();
+stat_t exec_next();

@@ -20,6 +20,8 @@ from bbctrl.Jog import Jog
 from bbctrl.Ctrl import Ctrl
 from bbctrl.Pwr import Pwr
 from bbctrl.I2C import I2C
+from bbctrl.Planner import Planner
+import bbctrl.Cmd as Cmd
 
 
 def get_resource(path):

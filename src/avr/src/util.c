@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -28,7 +27,11 @@
 
 #include "util.h"
 
+#include "base64.h"
+
 #include <stdint.h>
+#include <string.h>
+#include <math.h>
 
 
 /// Fast inverse square root originally from Quake III Arena code.  Original
@@ -48,4 +51,25 @@ float invsqrt(float x) {
   u.f = u.f * (1.5f - xhalf * u.f * u.f); // 2nd iteration, can be removed
 
   return u.f;
+}
+
+
+bool decode_float(char **s, float *f) {
+  bool ok = b64_decode_float(*s, f) && isfinite(*f);
+  *s += 6;
+  return ok;
+}
+
+
+stat_t decode_axes(char **cmd, float axes[AXES]) {
+  while (**cmd) {
+    const char *names = "xyzabc";
+    const char *match = strchr(names, **cmd);
+    if (!match) break;
+    char *s = *cmd + 1;
+    if (!decode_float(&s, &axes[match - names])) return STAT_BAD_FLOAT;
+    *cmd = s;
+  }
+
+  return STAT_OK;
 }

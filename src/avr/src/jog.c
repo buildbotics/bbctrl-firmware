@@ -31,7 +31,6 @@
 #include "util.h"
 #include "exec.h"
 #include "state.h"
-#include "queue.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -56,6 +55,7 @@ typedef struct {
 
 
 typedef struct {
+  bool active;
   bool writing;
   bool done;
 
@@ -257,20 +257,17 @@ stat_t jog_exec() {
 
   // Check if we are done
   if (jr.done) {
-    // Update machine position
-    //mach_set_position_from_runtime();
-    state_set_cycle(CYCLE_MACHINING); // Default cycle
-    state_pause_queue(false);
+    exec_set_cb(0);
+    jr.active = false;
 
     return STAT_NOOP; // Done, no move executed
   }
 
   // Compute target from velocity
   float target[AXES];
+  exec_get_position(target);
   for (int axis = 0; axis < AXES; axis++) {
-    target[axis] = exec_get_axis_position(axis) +
-      jr.axes[axis].velocity * SEGMENT_TIME;
-
+    target[axis] += jr.axes[axis].velocity * SEGMENT_TIME;
     target[axis] = _limit_position(axis, target[axis]);
   }
 
@@ -279,33 +276,37 @@ stat_t jog_exec() {
   stat_t status = exec_move_to_target(SEGMENT_TIME, target);
   if (status != STAT_OK) return status;
 
-  return STAT_EAGAIN;
+  return STAT_OK;
 }
 
 
-uint8_t command_jog(int argc, char *argv[]) {
-  if (state_get_cycle() != CYCLE_JOGGING &&
-      (state_get() != STATE_READY || state_get_cycle() != CYCLE_MACHINING))
-    return STAT_NOOP;
 
-  float velocity[AXES];
+stat_t command_jog(char *cmd) {
+  // Ignore jog commands when not already idle
+  if (!jr.active && state_get() != STATE_READY) return STAT_NOOP;
 
-  for (int axis = 0; axis < AXES; axis++)
-    if (axis < argc - 1) velocity[axis] = atof(argv[axis + 1]);
-    else velocity[axis] = 0;
+  // Skip command code
+  cmd++;
+
+  // Get velocities
+  float velocity[AXES] = {0,};
+  stat_t status = decode_axes(&cmd, velocity);
+  if (status) return status;
+
+  // Check for end of command
+  if (*cmd) return STAT_INVALID_ARGUMENTS;
 
   // Reset
-  if (state_get_cycle() != CYCLE_JOGGING) memset(&jr, 0, sizeof(jr));
+  if (!jr.active) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.axes[axis].next = velocity[axis];
   jr.writing = false;
 
-  if (state_get_cycle() != CYCLE_JOGGING) {
-    state_set_cycle(CYCLE_JOGGING);
-    state_pause_queue(true);
-    queue_push(ACTION_JOG);
+  if (!jr.active) {
+    jr.active = true;
+    exec_set_cb(jog_exec);
   }
 
   return STAT_OK;

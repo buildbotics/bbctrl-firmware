@@ -1,5 +1,8 @@
 import inevent
 from inevent.Constants import *
+import logging
+
+log = logging.getLogger('Jog')
 
 
 # Listen for input events
@@ -48,7 +51,7 @@ class Jog(inevent.JogHandler):
             self.lastV = self.v
             try:
                 self.ctrl.avr.jog(self.v)
-            except: pass
+            except Exception as e: log.error('Jog: %s', e)
 
         self.ctrl.ioloop.call_later(0.25, self.callback)
 

@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2013 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -30,7 +28,7 @@
 #include "state.h"
 
 #include "exec.h"
-#include "queue.h"
+#include "command.h"
 #include "stepper.h"
 #include "spindle.h"
 #include "report.h"
@@ -40,9 +38,7 @@
 
 static struct {
   state_t state;
-  cycle_t cycle;
   hold_reason_t hold_reason;
-  bool pause;
 
   bool hold_requested;
   bool flush_requested;
@@ -68,18 +64,6 @@ PGM_P state_get_pgmstr(state_t state) {
 }
 
 
-PGM_P state_get_cycle_pgmstr(cycle_t cycle) {
-  switch (cycle) {
-  case CYCLE_MACHINING:   return PSTR("MACHINING");
-  case CYCLE_HOMING:      return PSTR("HOMING");
-  case CYCLE_PROBING:     return PSTR("PROBING");
-  case CYCLE_JOGGING:     return PSTR("JOGGING");
-  }
-
-  return PSTR("INVALID");
-}
-
-
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
   case HOLD_REASON_USER_PAUSE:    return PSTR("USER");
@@ -94,7 +78,6 @@ PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
 
 
 state_t state_get() {return s.state;}
-cycle_t state_get_cycle() {return s.cycle;}
 
 
 static void _set_state(state_t state) {
@@ -102,29 +85,6 @@ static void _set_state(state_t state) {
   if (s.state == STATE_ESTOPPED) return; // Can't leave EStop state
   if (state == STATE_READY) exec_set_line(0);
   s.state = state;
-  report_request();
-}
-
-
-void state_set_cycle(cycle_t cycle) {
-  if (s.cycle == cycle) return; // No change
-
-  if (s.state != STATE_READY && cycle != CYCLE_MACHINING) {
-    STATUS_ERROR(STAT_INTERNAL_ERROR, "Cannot transition to %S while %S",
-                 state_get_cycle_pgmstr(cycle),
-                 state_get_pgmstr(s.state));
-    return;
-  }
-
-  if (s.cycle != CYCLE_MACHINING && cycle != CYCLE_MACHINING) {
-    STATUS_ERROR(STAT_INTERNAL_ERROR,
-                 "Cannot transition to cycle %S while in %S",
-                 state_get_cycle_pgmstr(cycle),
-                 state_get_cycle_pgmstr(s.cycle));
-    return;
-  }
-
-  s.cycle = cycle;
   report_request();
 }
 
@@ -142,16 +102,8 @@ bool state_is_resuming() {return s.resume_requested;}
 
 bool state_is_quiescent() {
   return (state_get() == STATE_READY || state_get() == STATE_HOLDING) &&
-    !st_is_busy() && !exec_is_busy();
+    !st_is_busy() && !command_is_busy();
 }
-
-
-bool state_is_ready() {
-  return queue_get_room() && !state_is_resuming() && !s.pause;
-}
-
-
-void state_pause_queue(bool x) {s.pause = x;}
 
 
 void state_optional_pause() {
@@ -176,27 +128,12 @@ void state_running() {
 }
 
 
-void state_idle() {
-  if (state_get() == STATE_RUNNING) _set_state(STATE_READY);
-}
-
-
-void state_estop() {
-  _set_state(STATE_ESTOPPED);
-  state_pause_queue(false);
-}
-
-
+void state_idle() {if (state_get() == STATE_RUNNING) _set_state(STATE_READY);}
+void state_estop() {_set_state(STATE_ESTOPPED);}
 void state_request_hold() {s.hold_requested = true;}
 void state_request_start() {s.start_requested = true;}
 void state_request_flush() {s.flush_requested = true;}
-
-
-void state_request_resume() {
-  if (s.flush_requested) s.resume_requested = true;
-}
-
-
+void state_request_resume() {if (s.flush_requested) s.resume_requested = true;}
 void state_request_optional_pause() {s.optional_pause_requested = true;}
 
 
@@ -237,8 +174,7 @@ void state_callback() {
 
   // Only flush queue when idle or holding.
   if (s.flush_requested && state_is_quiescent()) {
-
-    if (!queue_is_empty()) queue_flush();
+    command_flush_queue();
 
     // Stop spindle
     spindle_stop();
@@ -258,7 +194,7 @@ void state_callback() {
 
     if (state_get() == STATE_HOLDING) {
       // Check if any moves are buffered
-      if (!queue_is_empty()) _set_state(STATE_RUNNING);
+      if (command_get_count()) _set_state(STATE_RUNNING);
       else _set_state(STATE_READY);
     }
   }
@@ -267,5 +203,4 @@ void state_callback() {
 
 // Var callbacks
 PGM_P get_state() {return state_get_pgmstr(state_get());}
-PGM_P get_cycle() {return state_get_cycle_pgmstr(state_get_cycle());}
 PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}

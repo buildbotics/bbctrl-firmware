@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2013 Alden S. Hart Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -36,7 +35,7 @@
 typedef struct {
   i2c_read_cb_t read_cb;
   i2c_write_cb_t write_cb;
-  uint8_t data[I2C_MAX_DATA];
+  uint8_t data[I2C_MAX_DATA + 1];
   uint8_t length;
   bool done;
   bool write;
@@ -53,8 +52,10 @@ static void _i2c_reset_command() {
 
 
 static void _i2c_end_command() {
-  if (i2c.length && !i2c.write && i2c.read_cb)
-    i2c.read_cb(*i2c.data, i2c.data + 1, i2c.length - 1);
+  if (i2c.length && !i2c.write && i2c.read_cb) {
+    i2c.data[i2c.length] = 0; // Null terminate
+    i2c.read_cb(i2c.data, i2c.length);
+  }
 
   _i2c_reset_command();
 }

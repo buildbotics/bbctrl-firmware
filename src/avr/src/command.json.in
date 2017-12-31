@@ -1,0 +1,12 @@
+#include "cpp_magic.h"
+{
+#define CMD(CODE, NAME, SYNC, HELP) \
+  #NAME: {                                      \
+    "code": CODE,                               \
+    "sync": IF_ELSE(SYNC)(true, false),         \
+    "help": HELP                                \
+  },
+#include "command.def"
+#undef CMD
+  "_": {}
+}

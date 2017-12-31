@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2013 Alden S. Hart Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -46,7 +45,7 @@ ISR(RTC_OVF_vect) {
   ticks++;
 
   switch_rtc_callback();
-  huanyang_rtc_callback();
+  hy_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
   lcd_rtc_callback();
 }

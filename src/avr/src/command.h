@@ -27,26 +27,25 @@
 
 #pragma once
 
+#include "status.h"
 
-#include <stdint.h>
 #include <stdbool.h>
 
 
-#define MAX_ARGS 16
-
-typedef uint8_t (*command_cb_t)(int argc, char *argv[]);
-
-typedef struct {
-  const char *name;
-  command_cb_t cb;
-  uint8_t min_args;
-  uint8_t max_args;
-  const char *help;
+// Commands
+typedef enum {
+#define CMD(CODE, NAME, ...) COMMAND_##NAME = CODE,
+#include "command.def"
+#undef CMD
 } command_t;
 
 
 void command_init();
-int command_find(const char *name);
-int command_exec(int argc, char *argv[]);
-void command_callback();
+bool command_is_busy();
 bool command_is_active();
+unsigned command_get_count();
+void command_print_help();
+void command_flush_queue();
+void command_push(char code, void *data);
+void command_callback();
+bool command_exec();

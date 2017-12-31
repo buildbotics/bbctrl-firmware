@@ -27,30 +27,41 @@
 
 #pragma once
 
-#include "config.h"
-#include "action.h"
+#include "pgmspace.h"
 
 #include <stdint.h>
-#include <stdbool.h>
 
 
-// Called by state.c
-void queue_flush();
-bool queue_is_empty();
-int queue_get_room();
-int queue_get_fill();
+// Define types
+#define TYPEDEF(TYPE, DEF) typedef DEF TYPE;
+#include "type.def"
+#undef TYPEDEF
 
-void queue_push(action_t action);
-void queue_push_float(action_t action, float value);
-void queue_push_int(action_t action, int32_t value);
-void queue_push_bool(action_t action, bool value);
-void queue_push_pair(action_t action, int16_t left, int16_t right);
+typedef enum {
+#define TYPEDEF(TYPE, ...) TYPE_##TYPE,
+#include "type.def"
+#undef TYPEDEF
+} type_t;
 
-void queue_pop();
 
-action_t queue_head();
-float queue_head_float();
-int32_t queue_head_int();
-bool queue_head_bool();
-int16_t queue_head_left();
-int16_t queue_head_right();
+typedef union {
+#define TYPEDEF(TYPE, ...) TYPE _##TYPE;
+#include "type.def"
+#undef TYPEDEF
+} type_u;
+
+
+// Define functions
+#define TYPEDEF(TYPE, DEF)                           \
+  pstr type_get_##TYPE##_name_pgm();                 \
+  bool type_eq_##TYPE(TYPE a, TYPE b);               \
+  TYPE type_parse_##TYPE(const char *s);             \
+  void type_print_##TYPE(TYPE x);                    \
+  float type_##TYPE##_to_float(TYPE x);
+#include "type.def"
+#undef TYPEDEF
+
+
+type_u type_parse(type_t type, const char *s);
+void type_print(type_t type, type_u value);
+float type_to_float(type_t type, type_u value);

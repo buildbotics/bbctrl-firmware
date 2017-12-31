@@ -2,7 +2,7 @@
 PROJECT         = bbctrl-avr-firmware
 MCU             = atxmega192a3u
 CLOCK           = 32000000
-VERSION         = 0.4.0
+VERSION         = 0.5.0
 
 TARGET  = $(PROJECT).elf
 
@@ -30,8 +30,10 @@ EEFLAGS += --set-section-flags=.eeprom="alloc,load"
 EEFLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # Programming flags
+ifndef (PROGRAMMER)
 PROGRAMMER = avrispmkII
 #PROGRAMMER = jtag3pdi
+endif
 PDEV = usb
 AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
 
@@ -44,16 +46,17 @@ FUSE5=0xeb
 # SRC
 SRC = $(wildcard src/*.c) $(wildcard src/plan/*.c)
 OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
+JSON = vars command messages
+JSON := $(patsubst %,build/%.json,$(JSON))
 
 # Build
-all: $(PROJECT).hex build/vars.json size
+all: $(PROJECT).hex $(JSON) size
 
-build/vars.json: src/vars.def
+# JSON
+build/%.json: src/%.json.in src/%.def
+	cpp -Isrc $< | sed "/^#.*$$/d;s/'\(.\)'/\"\1\"/g" > $@
 
 # Compile
-build/%.json: src/%.json.in
-	cpp -Isrc $< | sed '/^#.*$$/d' > $@
-
 build/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<

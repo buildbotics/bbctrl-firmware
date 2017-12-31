@@ -3,8 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-                  Copyright (c) 2013 - 2015 Robert Giseburt
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -65,7 +63,7 @@ int main() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  exec_init();                      // motion exec
+  exec_init();                    // motion exec
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
   command_init();
@@ -73,8 +71,8 @@ int main() {
   sei();                          // enable interrupts
 
   // Splash
-  fprintf_P(stdout, PSTR("\n{\"firmware\": \"Buildbotics AVR\", "
-                         "\"version\": \"" VERSION "\"}\n"));
+  fprintf_P(stdout, PSTR("\n{\"firmware\":\"Buildbotics AVR\","
+                         "\"version\":\"" VERSION "\"}\n"));
 
   // Main loop
   while (true) {

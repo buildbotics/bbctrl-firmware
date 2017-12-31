@@ -10,3 +10,5 @@ build
 /*.elf
 /*.lss
 /*.map
+
+*.o

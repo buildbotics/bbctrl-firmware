@@ -25,35 +25,17 @@
 
 \******************************************************************************/
 
-#pragma once
+#ifdef bool
+#undef bool
+#endif
 
-#include "status.h"
-
-
-typedef enum {
-  ACTION_SCURVE   = 's',
-  ACTION_DATA     = 'd',
-  ACTION_VELOCITY = 'v',
-
-  ACTION_X        = 'X',
-  ACTION_Y        = 'Y',
-  ACTION_Z        = 'Z',
-  ACTION_A        = 'A',
-  ACTION_B        = 'B',
-  ACTION_C        = 'C',
-
-  ACTION_SEEK     = 'K',
-  ACTION_OUTPUT   = 'O',
-
-  ACTION_DWELL    = 'D',
-  ACTION_PAUSE    = 'P',
-  ACTION_TOOL     = 'T',
-  ACTION_SPEED    = 'S',
-  ACTION_JOG      = 'J',
-  ACTION_LINE_NUM = 'N',
-
-  ACTION_SET_HOME = 'H',
-} action_t;
-
-
-stat_t action_parse(const char *block);
+//      TYPE   DEF
+TYPEDEF(flags, uint16_t)
+TYPEDEF(str,   const char *)
+TYPEDEF(pstr,  PGM_P)
+TYPEDEF(f32,   float)
+TYPEDEF(u8,    uint8_t)
+TYPEDEF(s8,    int8_t)
+TYPEDEF(u16,   uint16_t)
+TYPEDEF(s32,   int32_t)
+TYPEDEF(bool,  _Bool)

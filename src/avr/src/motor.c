@@ -283,16 +283,15 @@ void motor_load_move(int motor) {
 
 
 void motor_prep_move(int motor, float time, float target) {
-  ASSERT(isfinite(target));
-  int32_t position = _position_to_steps(motor, target);
-
-  motor_t *m = &motors[motor];
-
   // Validate input
   ASSERT(0 <= motor && motor < MOTORS);
+  ASSERT(isfinite(target));
+
+  motor_t *m = &motors[motor];
   ASSERT(!m->prepped);
 
   // Travel in half steps
+  int32_t position = _position_to_steps(motor, target);
   int24_t half_steps = position - m->position;
   m->position = position;
 

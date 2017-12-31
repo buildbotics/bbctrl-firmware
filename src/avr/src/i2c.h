@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2013 Alden S. Hart Jr.
                             All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -32,22 +31,7 @@
 
 #include <stdbool.h>
 
-// Must be kept in sync with AVR.py
-typedef enum {
-  I2C_NULL,
-  I2C_ESTOP,
-  I2C_CLEAR,
-  I2C_PAUSE,
-  I2C_OPTIONAL_PAUSE,
-  I2C_RUN,
-  I2C_STEP,
-  I2C_FLUSH,
-  I2C_REPORT,
-  I2C_REBOOT,
-} i2c_cmd_t;
-
-
-typedef void (*i2c_read_cb_t)(i2c_cmd_t cmd, uint8_t *data, uint8_t length);
+typedef void (*i2c_read_cb_t)(uint8_t *data, uint8_t length);
 typedef uint8_t (*i2c_write_cb_t)(uint8_t offset, bool *done);
 
 

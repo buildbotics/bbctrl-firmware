@@ -3,7 +3,6 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
                            All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
@@ -52,7 +51,7 @@ static spindle_t spindle = {0};
 
 void spindle_init() {
   pwm_spindle_init();
-  huanyang_init();
+  hy_init();
 }
 
 
@@ -61,7 +60,7 @@ void spindle_set_speed(float speed) {
 
   switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_set(spindle_get_speed()); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_set(spindle_get_speed()); break;
+  case SPINDLE_TYPE_HUANYANG: hy_set(spindle_get_speed()); break;
   }
 }
 
@@ -74,7 +73,7 @@ float spindle_get_speed() {
 void spindle_stop() {
   switch (spindle.type) {
   case SPINDLE_TYPE_PWM: pwm_spindle_stop(); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_stop(); break;
+  case SPINDLE_TYPE_HUANYANG: hy_stop(); break;
   }
 }
 

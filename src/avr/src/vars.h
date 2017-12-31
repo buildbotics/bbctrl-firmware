@@ -31,6 +31,8 @@
 
 #include <stdbool.h>
 
+
+float var_decode_float(const char *value);
 bool var_parse_bool(const char *value);
 
 void vars_init();
@@ -41,5 +43,4 @@ void vars_report_var(const char *code, bool enable);
 bool vars_print(const char *name);
 bool vars_set(const char *name, const char *value);
 float vars_get_number(const char *name);
-int vars_parser(char *vars);
 void vars_print_help();

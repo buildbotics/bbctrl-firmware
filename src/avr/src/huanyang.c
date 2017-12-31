@@ -123,10 +123,10 @@ typedef struct {
   uint16_t rated_rpm;
 
   uint8_t status;
-} huanyang_t;
+} hy_t;
 
 
-static huanyang_t ha = {0};
+static hy_t ha = {0};
 
 
 #define CTRL_STATUS_RESPONSE(R) ((uint16_t)R[4] << 8 | R[5])
@@ -403,7 +403,7 @@ ISR(HUANYANG_RXC_vect) {
 }
 
 
-void huanyang_init() {
+void hy_init() {
   PR.PRPD &= ~PR_USART1_bm; // Disable power reduction
 
   DIRCLR_PIN(RS485_RO_PIN); // Input
@@ -422,11 +422,11 @@ void huanyang_init() {
   USARTD1.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 
   ha.id = HUANYANG_ID;
-  huanyang_reset();
+  hy_reset();
 }
 
 
-void huanyang_set(float speed) {
+void hy_set(float speed) {
   if (ha.speed != speed) {
     if (ha.debug) STATUS_DEBUG("huanyang: speed=%0.2f", speed);
     ha.speed = speed;
@@ -435,7 +435,7 @@ void huanyang_set(float speed) {
 }
 
 
-void huanyang_reset() {
+void hy_reset() {
   _set_dre_interrupt(false);
   _set_txc_interrupt(false);
   _set_rxc_interrupt(false);
@@ -464,7 +464,7 @@ void huanyang_reset() {
 }
 
 
-void huanyang_rtc_callback() {
+void hy_rtc_callback() {
   if (ha.last && rtc_expired(ha.last + HUANYANG_TIMEOUT)) {
     if (ha.retry < HUANYANG_RETRIES) _retry_command();
     else {
@@ -488,28 +488,28 @@ void huanyang_rtc_callback() {
                      sent, received, ha.response_length);
       }
 
-      huanyang_reset();
+      hy_reset();
     }
   }
 }
 
 
-void huanyang_stop() {
-  huanyang_set(0);
-  huanyang_reset();
+void hy_stop() {
+  hy_set(0);
+  hy_reset();
 }
 
 
-uint8_t get_huanyang_id() {return ha.id;}
-void set_huanyang_id(uint8_t value) {ha.id = value;}
-bool get_huanyang_debug() {return ha.debug;}
-void set_huanyang_debug(bool value) {ha.debug = value;}
-bool get_huanyang_connected() {return ha.connected;}
-float get_huanyang_freq() {return ha.actual_freq;}
-float get_huanyang_current() {return ha.actual_current;}
-uint16_t get_huanyang_rpm() {return ha.actual_rpm;}
-uint16_t get_huanyang_temp() {return ha.temperature;}
-float get_huanyang_max_freq() {return ha.max_freq;}
-float get_huanyang_min_freq() {return ha.min_freq;}
-uint16_t get_huanyang_rated_rpm() {return ha.rated_rpm;}
-float get_huanyang_status() {return ha.status;}
+uint8_t get_hy_id() {return ha.id;}
+void set_hy_id(uint8_t value) {ha.id = value;}
+bool get_hy_debug() {return ha.debug;}
+void set_hy_debug(bool value) {ha.debug = value;}
+bool get_hy_connected() {return ha.connected;}
+float get_hy_freq() {return ha.actual_freq;}
+float get_hy_current() {return ha.actual_current;}
+uint16_t get_hy_rpm() {return ha.actual_rpm;}
+uint16_t get_hy_temp() {return ha.temperature;}
+float get_hy_max_freq() {return ha.max_freq;}
+float get_hy_min_freq() {return ha.min_freq;}
+uint16_t get_hy_rated_rpm() {return ha.rated_rpm;}
+float get_hy_status() {return ha.status;}

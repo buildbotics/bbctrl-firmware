@@ -30,8 +30,8 @@
 #include "spindle.h"
 
 
-void huanyang_init();
-void huanyang_set(float speed);
-void huanyang_reset();
-void huanyang_rtc_callback();
-void huanyang_stop();
+void hy_init();
+void hy_set(float speed);
+void hy_reset();
+void hy_rtc_callback();
+void hy_stop();
