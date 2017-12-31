@@ -104,6 +104,7 @@ gpio.setmode(gpio.BCM)
 gpio.setup(27, gpio.OUT)
 gpio.output(27, 0)
 gpio.output(27, 1)
+gpio.setup(27, gpio.IN, pull_up_down = gpio.PUD_UP)
 time.sleep(0.1)
 
 # Sync
