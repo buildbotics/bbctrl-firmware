@@ -125,7 +125,7 @@ class AVR():
 
 
     def load_next_command(self, cmd):
-        log.info('< ' + cmd)
+        log.info('< ' + json.dumps(cmd).strip('"'))
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
 
 

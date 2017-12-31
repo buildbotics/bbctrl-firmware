@@ -65,6 +65,7 @@ enum {
 
 // Set callback union
 typedef union {
+  void *ptr;
 #define TYPEDEF(TYPE, ...) void (*set_##TYPE)(TYPE);
 #include "type.def"
 #undef TYPEDEF
@@ -77,6 +78,7 @@ typedef union {
 
 // Get callback union
 typedef union {
+  void *ptr;
 #define TYPEDEF(TYPE, ...) TYPE (*get_##TYPE)();
 #include "type.def"
 #undef TYPEDEF
@@ -294,26 +296,27 @@ static void _set(type_t type, int8_t index, set_cb_u cb, type_u value) {
 }
 
 
-bool vars_print(const char *name) {
+stat_t vars_print(const char *name) {
   var_info_t info;
-  if (!_find_var(name, &info)) return false;
+  if (!_find_var(name, &info)) return STAT_UNRECOGNIZED_NAME;
 
   printf("{\"%s\":", info.name);
   type_print(info.type, _get(info.type, info.index, info.get));
   putchar('}');
   putchar('\n');
 
-  return true;
+  return STAT_OK;
 }
 
 
-bool vars_set(const char *name, const char *value) {
+stat_t vars_set(const char *name, const char *value) {
   var_info_t info;
-  if (!_find_var(name, &info)) return false;
+  if (!_find_var(name, &info)) return STAT_UNRECOGNIZED_NAME;
+  if (!info.set.ptr) return STAT_READ_ONLY;
 
   _set(info.type, info.index, info.set, type_parse(info.type, value));
 
-  return true;
+  return STAT_OK;
 }
 
 
@@ -354,12 +357,10 @@ stat_t command_var(char *cmd) {
   char *value = strchr(cmd, '=');
   if (value) {
     *value++ = 0;
-    if (vars_set(cmd, value)) return STAT_OK;
+    return vars_set(cmd, value);
+  }
 
-  } else if (vars_print(cmd)) return STAT_OK;
-
-  STATUS_ERROR(STAT_UNRECOGNIZED_NAME, "'%s'", cmd);
-  return STAT_UNRECOGNIZED_NAME;
+  return vars_print(cmd);
 }
 
 
@@ -379,6 +380,7 @@ stat_t command_sync_var(char *cmd) {
 
   var_info_t info;
   if (!_find_var(cmd + 1, &info)) return STAT_UNRECOGNIZED_NAME;
+  if (!info.set.ptr) return STAT_READ_ONLY;
 
   var_cmd_t buffer;
 
@@ -397,8 +399,8 @@ unsigned command_sync_var_size() {return sizeof(var_cmd_t);}
 
 
 void command_sync_var_exec(char *data) {
-  var_cmd_t *buffer = (var_cmd_t *)data;
-  _set(buffer->type, buffer->index, buffer->set, buffer->value);
+  var_cmd_t *cmd = (var_cmd_t *)data;
+  _set(cmd->type, cmd->index, cmd->set, cmd->value);
 }
 
 

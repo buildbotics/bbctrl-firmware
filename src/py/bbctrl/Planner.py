@@ -57,12 +57,12 @@ class Planner():
 
     def encode(self, block):
         type = block['type']
-        line = block.get('line', None)
 
         if type == 'line':
-            return Cmd.line(block['target'], block['exit-vel'],
+            return Cmd.line(block['id'], block['target'], block['exit-vel'],
                             block['max-jerk'], block['times'])
 
+        if type == 'ln': return Cmd.line_number(block['line'])
         if type == 'tool': return Cmd.tool(block['tool'])
         if type == 'speed': return Cmd.speed(block['speed'])
         if type == 'dwell': return Cmd.dwell(block['seconds'])

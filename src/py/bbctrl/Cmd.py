@@ -34,19 +34,19 @@ def encode_axes(axes):
 def line_number(line): return '#ln=%d' % line
 
 
-def line(target, exitVel, maxJerk, times):
-    data = 'l'
+def line(id, target, exitVel, maxJerk, times):
+    cmd = '#id=%u\nl' % id
 
-    data += encode_float(exitVel)
-    data += encode_float(maxJerk)
-    data += encode_axes(target)
+    cmd += encode_float(exitVel)
+    cmd += encode_float(maxJerk)
+    cmd += encode_axes(target)
 
     # S-Curve time parameters
     for i in range(7):
         if times[i]:
-            data += str(i) + encode_float(times[i] / 60000) # to mins
+            cmd += str(i) + encode_float(times[i] / 60000) # to mins
 
-    return data
+    return cmd
 
 
 def tool(tool): return '#t=%d' % tool

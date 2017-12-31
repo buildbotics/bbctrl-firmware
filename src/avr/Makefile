@@ -84,6 +84,13 @@ size: $(TARGET)
 	  avr-size -$$X --mcu=$(MCU) $(TARGET) ;\
 	done
 
+data-usage: $(TARGET)
+	avr-nm -S --size-sort -t decimal $(TARGET) | grep ' [BbDd] '
+
+
+prog-usage: $(TARGET)
+	avr-nm -S --size-sort -t decimal $(TARGET) | grep -v ' [BbDd] '
+
 # Program
 init:
 	$(MAKE) erase
@@ -133,7 +140,7 @@ clean: tidy
 	  $(PROJECT).map build
 
 .PHONY: tidy clean size all reset erase program fuses read_fuses prodsig
-.PHONY: signature usersig
+.PHONY: signature usersig data-usage prog-usage
 
 # Dependencies
 -include $(shell mkdir -p build/dep) $(wildcard build/dep/*)

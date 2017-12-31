@@ -153,6 +153,13 @@ void type_print_s32(s32 x) {printf_P(PSTR("%"PRIi32), x);}
 s32 type_parse_s32(const char *value) {return strtol(value, 0, 0);}
 
 
+// u32
+bool type_eq_u32(u32 a, u32 b) {return a == b;}
+float type_u32_to_float(u32 x) {return x;}
+void type_print_u32(u32 x) {printf_P(PSTR("%"PRIu32), x);}
+u32 type_parse_u32(const char *value) {return strtol(value, 0, 0);}
+
+
 type_u type_parse(type_t type, const char *s) {
   type_u value;
 

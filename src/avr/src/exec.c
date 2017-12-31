@@ -132,6 +132,7 @@ float get_feed_override() {return ex.feed_override;}
 float get_speed_override() {return ex.spindle_override;}
 float get_axis_position(int axis) {return ex.position[axis];}
 
+void set_line(int32_t line) {ex.line = line;}
 void set_tool(uint8_t tool) {ex.tool = tool;}
 void set_feed_override(float value) {ex.feed_override = value;}
 void set_speed_override(float value) {ex.spindle_override = value;}
