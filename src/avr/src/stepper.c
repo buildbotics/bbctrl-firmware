@@ -59,6 +59,8 @@ typedef struct {
   move_type_t move_type;
   float prep_dwell;
   uint16_t clock_period;
+
+  uint32_t underflow;
 } stepper_t;
 
 
@@ -166,6 +168,7 @@ static void _load_move() {
 
   // If the next move is not ready try to load it
   if (!st.move_ready) {
+    if (exec_get_velocity()) st.underflow++;
     _request_exec_move();
     _end_move();
     return;
@@ -205,6 +208,7 @@ void st_prep_line(float time, const float target[]) {
   // Trap conditions that would prevent queuing the line
   ASSERT(!st.move_ready);
   ASSERT(isfinite(time));
+  ASSERT(time * STEP_TIMER_FREQ * 60 <= 0xffff);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
@@ -212,8 +216,7 @@ void st_prep_line(float time, const float target[]) {
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
-    //if (motor_is_enabled(motor))
-      motor_prep_move(motor, time, target[motor_get_axis(motor)]);
+    motor_prep_move(motor, time, target[motor_get_axis(motor)]);
 
   st.move_queued = true; // signal prep buffer ready (do this last)
 }
@@ -226,3 +229,7 @@ void st_prep_dwell(float seconds) {
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
 }
+
+
+// Var callbacks
+uint32_t get_underflow() {return st.underflow;}

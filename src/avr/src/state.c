@@ -40,7 +40,7 @@ static struct {
   state_t state;
   hold_reason_t hold_reason;
 
-  bool hold_requested;
+  bool pause_requested;
   bool flush_requested;
   bool start_requested;
   bool resume_requested;
@@ -106,20 +106,20 @@ bool state_is_quiescent() {
 }
 
 
-void state_optional_pause() {
-  if (s.optional_pause_requested) {
-    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
-    state_holding();
-  }
-}
-
-
 static void _set_plan_steps(bool plan_steps) {} // TODO
 
 
 void state_holding() {
   _set_state(STATE_HOLDING);
   _set_plan_steps(false);
+}
+
+
+void state_optional_pause() {
+  if (s.optional_pause_requested) {
+    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
+    state_holding();
+  }
 }
 
 
@@ -130,7 +130,7 @@ void state_running() {
 
 void state_idle() {if (state_get() == STATE_RUNNING) _set_state(STATE_READY);}
 void state_estop() {_set_state(STATE_ESTOPPED);}
-void state_request_hold() {s.hold_requested = true;}
+void state_request_pause() {s.pause_requested = true;}
 void state_request_start() {s.start_requested = true;}
 void state_request_flush() {s.flush_requested = true;}
 void state_request_resume() {if (s.flush_requested) s.resume_requested = true;}
@@ -143,30 +143,30 @@ void state_request_step() {
 }
 
 
-/*** Feedholds, queue flushes and starts are all related.  Request functions
+/*** Pauses, queue flushes and starts are all related.  Request functions
  * set flags.  The callback interprets the flags according to these rules:
  *
- *   A hold request received:
+ *   A pause request received:
  *     - during motion is honored
- *     - during a feedhold is ignored and reset
+ *     - during a pause is ignored and reset
  *     - when already stopped is ignored and reset
  *
  *   A flush request received:
  *     - during motion is ignored but not reset
- *     - during a feedhold is deferred until the feedhold enters HOLDING state.
+ *     - during a pause is deferred until the feedpause enters HOLDING state.
  *       I.e. until deceleration is complete.
  *     - when stopped or holding and the exec is not busy, is honored
  *
  *   A start request received:
  *     - during motion is ignored and reset
- *     - during a feedhold is deferred until the feedhold enters HOLDING state.
+ *     - during a pause is deferred until the feedpause enters HOLDING state.
  *       I.e. until deceleration is complete.  If a queue flush request is also
  *       present the queue flush is done first
  *     - when stopped is honored and starts to run anything in the queue
  */
 void state_callback() {
-  if (s.hold_requested || s.flush_requested) {
-    s.hold_requested = false;
+  if (s.pause_requested || s.flush_requested) {
+    s.pause_requested = false;
     state_set_hold_reason(HOLD_REASON_USER_PAUSE);
 
     if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);

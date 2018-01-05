@@ -33,6 +33,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 
 #define TYPEDEF(TYPE, DEF)                                              \

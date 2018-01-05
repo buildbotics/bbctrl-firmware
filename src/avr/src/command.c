@@ -233,15 +233,22 @@ static char *_command_next() {
 }
 
 
-void command_callback() {
-  if (!_command_next()) return;
+bool command_callback() {
+  static char *block = 0;
 
+  if (!block) block = usart_readline();
+  if (!block) return false; // No command
+
+  cmd.active = true; // Disables LCD booting message
   stat_t status = STAT_OK;
 
-  switch (*_cmd) {
-  case 0: break; // Empty line
-  case '{': status = vars_parser(_cmd); break; // TODO is this necessary?
-  case '$': status = command_parser(_cmd); break;
+  // Special processing for synchronous commands
+  if (_is_synchronous(*block)) {
+    if (estop_triggered()) status = STAT_MACHINE_ALARMED;
+    else if (state_is_flushing()) status = STAT_NOOP; // Flush
+    else if (state_is_resuming() || _space() < _size(*block))
+      return false; // Wait
+  }
 
   default:
     if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
@@ -256,8 +263,9 @@ void command_callback() {
   _cmd = 0; // Command consumed
   _active = true;
   report_request();
+  if (status && status != STAT_NOOP) status_error(status);
 
-  if (status) status_error(status);
+  return true;
 }
 
 

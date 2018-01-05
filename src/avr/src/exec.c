@@ -66,7 +66,7 @@ void exec_init() {
   ex.spindle_override = 1;
   ex.seek_switch = -1;
   // TODO implement seek
-  // TODO implement feedhold
+  // TODO implement pause
   // TODO implement move stepping
   // TODO implement overrides
   // TODO implement optional pause
@@ -83,7 +83,8 @@ void exec_set_velocity(float v) {ex.velocity = v;}
 float exec_get_velocity() {return ex.velocity;}
 void exec_set_acceleration(float a) {ex.accel = a;}
 void exec_set_jerk(float j) {ex.jerk = j;}
-void exec_set_line(int line) {ex.line = line;}
+void exec_set_line(int32_t line) {ex.line = line;}
+int32_t exec_get_line() {return ex.line;}
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 

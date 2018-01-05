@@ -60,13 +60,13 @@ bool state_is_flushing();
 bool state_is_resuming();
 bool state_is_quiescent();
 
-void state_optional_pause();
 void state_holding();
+void state_optional_pause();
 void state_running();
 void state_idle();
 void state_estop();
 
-void state_request_hold();
+void state_request_pause();
 void state_request_start();
 void state_request_flush();
 void state_request_resume();

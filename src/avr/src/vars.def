@@ -76,8 +76,8 @@ VAR(latch_backoff,   lb, f32,   MOTORS, 1, 1, "Homing latch backoff")
 VAR(zero_backoff,    zb, f32,   MOTORS, 1, 1, "Homing zero backoff")
 
 // Axis
-VAR(axis_position,    p,  f32,   AXES,   1, 1, "Axis position")
-VAR(axis_can_home,    ch, bool,  AXES,   0, 1, "Axis can home")
+VAR(axis_position,    p,  f32,   AXES,  1, 1, "Axis position")
+VAR(axis_can_home,    ch, bool,  AXES,  0, 1, "Axis can home")
 
 // Outputs
 VAR(output_state,    os, u8,    OUTS,   0, 1, "Output pin state")
@@ -130,3 +130,4 @@ VAR(estop,           es, bool,  0,      1, 1, "Emergency stop")
 VAR(estop_reason,    er, pstr,  0,      0, 1, "Emergency stop reason")
 VAR(state,           x,  pstr,  0,      0, 1, "Machine state")
 VAR(hold_reason,     pr, pstr,  0,      0, 1, "Machine pause reason")
+VAR(underflow,       un, u32,   0,      0, 1, "Stepper underflow count")

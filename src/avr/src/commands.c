@@ -65,7 +65,7 @@ void command_out_exec(void *data) {}
 
 stat_t command_pause(char *cmd) {
   if (cmd[1] == '1') state_request_optional_pause();
-  else state_request_hold();
+  else state_request_pause();
   return STAT_OK;
 }
 

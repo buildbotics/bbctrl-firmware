@@ -48,21 +48,17 @@ typedef struct {
 
 
 static struct {
-  float next_start[AXES];
-
   line_t line;
 
-  bool new;
   int seg;
-  uint16_t steps;
-  uint16_t step;
-  float delta;
+  bool stop_seg;
+  float current_t;
 
   float dist;
   float vel;
   float accel;
   float jerk;
-} l = {};
+} l = {.current_t = SEGMENT_TIME};
 
 
 static float _compute_distance(float t, float v, float a, float j) {
@@ -78,71 +74,89 @@ static float _compute_velocity(float t, float a, float j) {
 
 
 static bool _segment_next() {
-  while (++l.seg < 7)
-    if (l.line.times[l.seg]) return (l.new = true);
+  while (++l.seg < 7) {
+    float seg_t = l.line.times[l.seg];
+    if (!seg_t) continue;
+
+    // Check if last seg
+    bool last_seg = true;
+    for (int i = l.seg + 1; i < 7; i++)
+      if (l.line.times[i]) last_seg = false;
+
+    // Check if stop seg
+    l.stop_seg = last_seg && !l.line.target_vel;
+
+    // Jerk
+    switch (l.seg) {
+    case 0: case 6: l.jerk = l.line.max_jerk; break;
+    case 2: case 4: l.jerk = -l.line.max_jerk; break;
+    default: l.jerk = 0;
+    }
+    exec_set_jerk(l.jerk);
+
+    // Acceleration
+    switch (l.seg) {
+    case 1: case 2: l.accel = l.line.max_jerk * l.line.times[0]; break;
+    case 5: case 6: l.accel = -l.line.max_jerk * l.line.times[4]; break;
+    default: l.accel = 0;
+    }
+    exec_set_acceleration(l.accel);
+
+    // Skip segs which do not land on a SEGMENT_TIME
+    if (seg_t < l.current_t && !l.stop_seg) {
+      l.current_t -= l.line.times[l.seg];
+      l.dist += _compute_distance(seg_t, l.vel, l.accel, l.jerk);
+      l.vel += _compute_velocity(seg_t, l.accel, l.jerk);
+      continue;
+    }
+
+    return true;
+  }
+
   return false;
 }
 
 
-static void _segment_init() {
-  l.new = false;
-
-  // Jerk
-  switch (l.seg) {
-  case 0: case 6: l.jerk = l.line.max_jerk; break;
-  case 2: case 4: l.jerk = -l.line.max_jerk; break;
-  default: l.jerk = 0;
-  }
-  exec_set_jerk(l.jerk);
-
-  // Acceleration
-  switch (l.seg) {
-  case 1: case 2: l.accel = l.line.max_jerk * l.line.times[0]; break;
-  case 5: case 6: l.accel = -l.line.max_jerk * l.line.times[4]; break;
-  default: l.accel = 0;
-  }
-  exec_set_acceleration(l.accel);
-
-  // Compute interpolation steps
-  l.step = 0;
-  float time = l.line.times[l.seg];
-  l.steps = round(time / SEGMENT_TIME);
-  if (!l.steps) {l.steps = 1; l.delta = time;}
-  else l.delta = time / l.steps;
-}
-
-
 static stat_t _line_exec() {
-  if (l.new) _segment_init();
+  float seg_t = l.line.times[l.seg];
 
-  bool lastStep = l.step == l.steps - 1;
+  // Adjust time if near a stopping point
+  float delta = SEGMENT_TIME;
+  if (l.stop_seg && seg_t - l.current_t < SEGMENT_TIME) {
+    delta += seg_t - l.current_t;
+    l.current_t = seg_t;
+  }
 
-  // Compute time, distance and velocity offsets
-  float t = lastStep ? l.line.times[l.seg] : (l.delta * (l.step + 1));
-  float d = l.dist + _compute_distance(t, l.vel, l.accel, l.jerk);
-  float v = l.vel + _compute_velocity(t, l.accel, l.jerk);
+  // Compute distance and velocity offsets
+  float d = l.dist + _compute_distance(l.current_t, l.vel, l.accel, l.jerk);
+  float v = l.vel + _compute_velocity(l.current_t, l.accel, l.jerk);
 
   // Compute target position from distance
   float target[AXES];
   for (int i = 0; i < AXES; i++)
     target[i] = l.line.start[i] + l.line.unit[i] * d;
 
-  // Update dist and vel for next seg
-  if (lastStep) {
-    l.dist = d;
-    l.vel = v;
+  // Advance time
+  l.current_t += SEGMENT_TIME;
 
-  } else l.step++;
+  // Check if segment complete
+  bool lastSeg = false;
+  if (seg_t < l.current_t) {
+    l.current_t -= seg_t;
+    l.dist += _compute_distance(seg_t, l.vel, l.accel, l.jerk);
+    l.vel += _compute_velocity(seg_t, l.accel, l.jerk);
 
-  // Advance curve
-  bool lastCurve = lastStep && !_segment_next();
+    // Next segment
+    lastSeg = !_segment_next();
+  }
 
   // Do move
-  stat_t status =
-    exec_move_to_target(l.delta, lastCurve ? l.line.target : target);
+  // Stop exactly on target to correct for floating-point errors
+  stat_t status = exec_move_to_target
+    (delta, (lastSeg && l.stop_seg) ? l.line.target : target);
 
   // Check if we're done
-  if (lastCurve) {
+  if (lastSeg) {
     exec_set_velocity(l.vel = l.line.target_vel);
     exec_set_cb(0);
 
@@ -158,12 +172,13 @@ void _print_vector(const char *name, float v[AXES]) {
 
 
 stat_t command_line(char *cmd) {
+  static float next_start[AXES];
   line_t line = {};
 
   cmd++; // Skip command code
 
   // Get start position
-  copy_vector(line.start, l.next_start);
+  copy_vector(line.start, next_start);
 
   // Get target velocity
   if (!decode_float(&cmd, &line.target_vel)) return STAT_BAD_FLOAT;
@@ -177,6 +192,10 @@ stat_t command_line(char *cmd) {
   copy_vector(line.target, line.start);
   stat_t status = decode_axes(&cmd, line.target);
   if (status) return status;
+
+  // Zero disabled axes (TODO should moving a disable axis cause an error?)
+  for (int i = 0; i < AXES; i++)
+    if (!axis_is_enabled(i)) line.target[i] = 0;
 
   // Get times
   bool has_time = false;
@@ -199,7 +218,7 @@ stat_t command_line(char *cmd) {
   if (*cmd) return STAT_INVALID_ARGUMENTS;
 
   // Set next start position
-  copy_vector(l.next_start, line.target);
+  copy_vector(next_start, line.target);
 
   // Compute direction vector
   float length = 0;
@@ -233,7 +252,7 @@ void command_line_exec(void *data) {
 
   // Find first segment
   l.seg = -1;
-  _segment_next();
+  if (!_segment_next()) return;
 
   // Set callback
   exec_set_cb(_line_exec);

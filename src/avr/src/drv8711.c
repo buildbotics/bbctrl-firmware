@@ -62,7 +62,7 @@ typedef struct {
   drv8711_state_t state;
   current_t drive;
   current_t idle;
-  float stall_threshold;
+  float stall_threspause;
 
   uint8_t mode; // microstepping mode
   stall_callback_t stall_cb;

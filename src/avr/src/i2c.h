@@ -29,6 +29,7 @@
 
 #include "config.h"
 
+#include <stdint.h>
 #include <stdbool.h>
 
 typedef void (*i2c_read_cb_t)(uint8_t *data, uint8_t length);

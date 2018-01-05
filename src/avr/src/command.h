@@ -47,5 +47,5 @@ unsigned command_get_count();
 void command_print_help();
 void command_flush_queue();
 void command_push(char code, void *data);
-void command_callback();
+bool command_callback();
 bool command_exec();

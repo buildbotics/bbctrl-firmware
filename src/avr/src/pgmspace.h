@@ -36,7 +36,7 @@
 
 #define PRPSTR "s"
 #define PROGMEM
-#define PGM_P char *
+#define PGM_P const char *
 #define PSTR(X) X
 #define vfprintf_P vfprintf
 #define printf_P printf

@@ -32,6 +32,7 @@
 #include "status.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 typedef stat_t (*exec_cb_t)();
@@ -45,7 +46,8 @@ void exec_set_velocity(float v);
 float exec_get_velocity();
 void exec_set_acceleration(float a);
 void exec_set_jerk(float j);
-void exec_set_line(int line);
+void exec_set_line(int32_t line);
+int32_t exec_get_line();
 
 void exec_set_cb(exec_cb_t cb);
 
