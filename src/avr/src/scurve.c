@@ -25,33 +25,32 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "scurve.h"
+
+#include <math.h>
 
 
-#include "config.h"
-#include "status.h"
-
-#include <stdbool.h>
-#include <stdint.h>
-
-
-typedef stat_t (*exec_cb_t)();
+float scurve_distance(float t, float v, float a, float j) {
+  // v * t + 1/2 * a * t^2 + 1/6 * j * t^3
+  return t * (v + t * (0.5 * a + 1.0 / 6.0 * j * t));
+}
 
 
-void exec_init();
+float scurve_velocity(float t, float a, float j) {
+  // a * t + 1/2 * j * t^2
+  return t * (a + 0.5 * j * t);
+}
 
-void exec_get_position(float p[AXES]);
-float exec_get_axis_position(int axis);
-void exec_set_velocity(float v);
-float exec_get_velocity();
-void exec_set_acceleration(float a);
-float exec_get_acceleration();
-void exec_set_jerk(float j);
-void exec_set_line(int32_t line);
-int32_t exec_get_line();
 
-void exec_set_cb(exec_cb_t cb);
+float scurve_acceleration(float t, float j) {return j * t;}
 
-stat_t exec_move_to_target(float time, const float target[]);
-void exec_reset_encoder_counts();
-stat_t exec_next();
+
+float scurve_next_accel(float dT, float iV, float tV, float iA, float jerk) {
+  float tA = sqrt(jerk * fabs(tV - iV)) * (tV < iV ? -1 : 1); // Target accel
+  float dA = jerk * dT; // Delta accel
+
+  if (iA < tA) return (iA < tA + dA) ? tA : (iA + dA);
+  if (tA < iA) return (iA - dA < tA) ? tA : (iA - dA);
+
+  return iA;
+}

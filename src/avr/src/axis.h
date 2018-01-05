@@ -55,6 +55,7 @@ void axis_map_motors();
 float axis_get_vector_length(const float a[], const float b[]);
 
 float axis_get_velocity_max(int axis);
+float axis_get_accel_max(int axis);
 float axis_get_jerk_max(int axis);
 bool axis_get_homed(int axis);
 void axis_set_homed(int axis, bool homed);

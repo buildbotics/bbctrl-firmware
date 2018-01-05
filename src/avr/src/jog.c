@@ -31,6 +31,7 @@
 #include "util.h"
 #include "exec.h"
 #include "state.h"
+#include "scurve.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -76,12 +77,12 @@ static bool _axis_velocity_target(int axis) {
   float Vi = a->velocity;
   float Vt = a->target;
 
-  if (JOG_MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
+  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
 
   if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
     Vn = 0; // Plan to zero on sign change
 
-  if (fabs(Vn) < JOG_MIN_VELOCITY) Vn = 0;
+  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
 
   if (Vt == Vn) return false; // No change
 
@@ -198,17 +199,6 @@ static bool _soft_limit(int axis, float V, float A) {
 }
 
 
-static float _next_accel(float Vi, float Vt, float Ai, float jerk) {
-  float At = sqrt(jerk * fabs(Vt - Vi)) * (Vt < Vi ? -1 : 1); // Target accel
-  float Ad = jerk * SEGMENT_TIME; // Delta accel
-
-  if (Ai < At) return (Ai < At + Ad) ? At : (Ai + Ad);
-  if (At < Ai) return (Ai - Ad < At) ? At : (Ai - Ad);
-
-  return Ai;
-}
-
-
 static float _compute_axis_velocity(int axis) {
   jog_axis_t *a = &jr.axes[axis];
 
@@ -216,7 +206,7 @@ static float _compute_axis_velocity(int axis) {
   float Vt = fabs(a->target);
 
   // Apply soft limits
-  if (_soft_limit(axis, V, a->accel)) Vt = JOG_MIN_VELOCITY;
+  if (_soft_limit(axis, V, a->accel)) Vt = MIN_VELOCITY;
 
   // Check if velocity has reached its target
   if (fp_EQ(V, Vt)) {
@@ -228,7 +218,9 @@ static float _compute_axis_velocity(int axis) {
   float jerk = axis_get_jerk_max(axis);
 
   // Compute next accel
-  a->accel = _next_accel(V, Vt, a->accel, jerk);
+  a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, jerk);
+
+  // TODO limit acceleration
 
   return V + a->accel * SEGMENT_TIME;
 }
@@ -250,7 +242,7 @@ stat_t jog_exec() {
   for (int axis = 0; axis < AXES; axis++) {
     if (!axis_is_enabled(axis)) continue;
     float V = _compute_axis_velocity(axis);
-    if (JOG_MIN_VELOCITY < V) jr.done = false;
+    if (MIN_VELOCITY < V) jr.done = false;
     velocity_sqr += square(V);
     jr.axes[axis].velocity = V * jr.axes[axis].sign;
   }
@@ -260,7 +252,7 @@ stat_t jog_exec() {
     exec_set_cb(0);
     jr.active = false;
 
-    return STAT_NOOP; // Done, no move executed
+    return STAT_NOP; // Done, no move executed
   }
 
   // Compute target from velocity
@@ -283,7 +275,7 @@ stat_t jog_exec() {
 
 stat_t command_jog(char *cmd) {
   // Ignore jog commands when not already idle
-  if (!jr.active && state_get() != STATE_READY) return STAT_NOOP;
+  if (!jr.active && state_get() != STATE_READY) return STAT_NOP;
 
   // Skip command code
   cmd++;

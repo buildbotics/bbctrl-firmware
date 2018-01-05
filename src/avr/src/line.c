@@ -29,6 +29,8 @@
 #include "exec.h"
 #include "axis.h"
 #include "command.h"
+#include "scurve.h"
+#include "state.h"
 #include "util.h"
 
 #include <math.h>
@@ -41,9 +43,11 @@ typedef struct {
   float target[AXES];
   float times[7];
   float target_vel;
+  float max_accel;
   float max_jerk;
 
   float unit[AXES];
+  float length;
 } line_t;
 
 
@@ -54,22 +58,32 @@ static struct {
   bool stop_seg;
   float current_t;
 
-  float dist;
-  float vel;
-  float accel;
+  float iD; // Initial segment distance
+  float iV; // Initial segment velocity
+  float iA; // Initial segment acceleration
   float jerk;
+  float dist;
 } l = {.current_t = SEGMENT_TIME};
 
 
-static float _compute_distance(float t, float v, float a, float j) {
-  // v * t + 1/2 * a * t^2 + 1/6 * j * t^3
-  return t * (v + t * (0.5 * a + 1.0 / 6.0 * j * t));
+static void _segment_target(float target[AXES], float d) {
+  for (int i = 0; i < AXES; i++)
+    target[i] = l.line.start[i] + l.line.unit[i] * d;
 }
 
 
-static float _compute_velocity(float t, float a, float j) {
-  // a * t + 1/2 * j * t^2
-  return t * (a + 0.5 * j * t);
+static float _segment_distance(float t) {
+  return l.iD + scurve_distance(t, l.iV, l.iA, l.jerk);
+}
+
+
+static float _segment_velocity(float t) {
+  return l.iV + scurve_velocity(t, l.iA, l.jerk);
+}
+
+
+static float _segment_accel(float t) {
+  return l.iA + scurve_acceleration(t, l.jerk);
 }
 
 
@@ -96,17 +110,17 @@ static bool _segment_next() {
 
     // Acceleration
     switch (l.seg) {
-    case 1: case 2: l.accel = l.line.max_jerk * l.line.times[0]; break;
-    case 5: case 6: l.accel = -l.line.max_jerk * l.line.times[4]; break;
-    default: l.accel = 0;
+    case 1: case 2: l.iA = l.line.max_jerk * l.line.times[0]; break;
+    case 5: case 6: l.iA = -l.line.max_jerk * l.line.times[4]; break;
+    default: l.iA = 0;
     }
-    exec_set_acceleration(l.accel);
+    exec_set_acceleration(l.iA);
 
     // Skip segs which do not land on a SEGMENT_TIME
     if (seg_t < l.current_t && !l.stop_seg) {
       l.current_t -= l.line.times[l.seg];
-      l.dist += _compute_distance(seg_t, l.vel, l.accel, l.jerk);
-      l.vel += _compute_velocity(seg_t, l.accel, l.jerk);
+      l.iD = _segment_distance(seg_t);
+      l.iV = _segment_velocity(seg_t);
       continue;
     }
 
@@ -117,7 +131,73 @@ static bool _segment_next() {
 }
 
 
+static stat_t _hold() {
+  if (state_get() != STATE_HOLDING) {
+    exec_set_cb(0);
+    return STAT_AGAIN;
+  }
+
+  return STAT_NOP;
+}
+
+
+static stat_t _pause() {
+  float t = SEGMENT_TIME - l.current_t;
+  float v = exec_get_velocity();
+  float a = exec_get_acceleration();
+  float j = l.line.max_jerk;
+
+  if (v < MIN_VELOCITY) {
+    exec_set_velocity(0);
+    exec_set_acceleration(0);
+    exec_set_jerk(0);
+    state_holding();
+    exec_set_cb(_hold);
+    return _hold();
+  }
+
+  // Compute new velocity and acceleration
+  a = scurve_next_accel(t, v, 0, a, j);
+  if (l.line.max_accel < a) a = l.line.max_accel;
+  v += a * t;
+
+  // Compute distance that will be traveled
+  l.dist += v * t;
+
+  if (l.line.length < l.dist) {
+    // Compute time left in current segment
+    l.current_t = t - (l.dist - l.line.length) / v;
+
+    exec_set_velocity(l.line.target_vel);
+    exec_set_acceleration(0);
+    exec_set_jerk(0);
+    exec_set_cb(0);
+
+    return STAT_AGAIN;
+  }
+
+  // Compute target position from distance
+  float target[AXES];
+  _segment_target(target, l.dist);
+
+  stat_t status = exec_move_to_target(SEGMENT_TIME, target);
+
+  l.current_t = 0;
+  exec_set_velocity(v);
+  exec_set_acceleration(a);
+  exec_set_jerk(j);
+
+  return status;
+}
+
+
 static stat_t _line_exec() {
+  if (state_get() == STATE_STOPPING && (l.seg < 4 || l.line.target_vel)) {
+    if (SEGMENT_TIME < l.current_t) l.current_t = 0;
+    exec_set_cb(_pause);
+    return _pause();
+  }
+
   float seg_t = l.line.times[l.seg];
 
   // Adjust time if near a stopping point
@@ -127,14 +207,10 @@ static stat_t _line_exec() {
     l.current_t = seg_t;
   }
 
-  // Compute distance and velocity offsets
-  float d = l.dist + _compute_distance(l.current_t, l.vel, l.accel, l.jerk);
-  float v = l.vel + _compute_velocity(l.current_t, l.accel, l.jerk);
-
-  // Compute target position from distance
-  float target[AXES];
-  for (int i = 0; i < AXES; i++)
-    target[i] = l.line.start[i] + l.line.unit[i] * d;
+  // Compute distance and velocity (Must be computed before changing time)
+  float d = _segment_distance(l.current_t);
+  float v = _segment_velocity(l.current_t);
+  float a = _segment_accel(l.current_t);
 
   // Advance time
   l.current_t += SEGMENT_TIME;
@@ -143,24 +219,35 @@ static stat_t _line_exec() {
   bool lastSeg = false;
   if (seg_t < l.current_t) {
     l.current_t -= seg_t;
-    l.dist += _compute_distance(seg_t, l.vel, l.accel, l.jerk);
-    l.vel += _compute_velocity(seg_t, l.accel, l.jerk);
+    l.iD = _segment_distance(seg_t);
+    l.iV = _segment_velocity(seg_t);
 
     // Next segment
     lastSeg = !_segment_next();
   }
 
-  // Do move
-  // Stop exactly on target to correct for floating-point errors
-  stat_t status = exec_move_to_target
-    (delta, (lastSeg && l.stop_seg) ? l.line.target : target);
+  // Do move & update exec
+  stat_t status;
 
-  // Check if we're done
-  if (lastSeg) {
-    exec_set_velocity(l.vel = l.line.target_vel);
-    exec_set_cb(0);
+  if (lastSeg && l.stop_seg) {
+    // Stop exactly on target to correct for floating-point errors
+    status = exec_move_to_target(delta, l.line.target);
+    exec_set_velocity(0);
+    exec_set_acceleration(0);
 
-  } else exec_set_velocity(v);
+  } else {
+    // Compute target position from distance
+    float target[AXES];
+    _segment_target(target, d);
+
+    status = exec_move_to_target(delta, target);
+    l.dist = d;
+    exec_set_velocity(v);
+    exec_set_acceleration(a);
+  }
+
+  // Release exec if we are done
+  if (lastSeg) exec_set_cb(0);
 
   return status;
 }
@@ -183,6 +270,10 @@ stat_t command_line(char *cmd) {
   // Get target velocity
   if (!decode_float(&cmd, &line.target_vel)) return STAT_BAD_FLOAT;
   if (line.target_vel < 0) return STAT_INVALID_ARGUMENTS;
+
+  // Get max accel
+  if (!decode_float(&cmd, &line.max_accel)) return STAT_BAD_FLOAT;
+  if (line.max_accel < 0) return STAT_INVALID_ARGUMENTS;
 
   // Get max jerk
   if (!decode_float(&cmd, &line.max_jerk)) return STAT_BAD_FLOAT;
@@ -221,17 +312,16 @@ stat_t command_line(char *cmd) {
   copy_vector(next_start, line.target);
 
   // Compute direction vector
-  float length = 0;
   for (int i = 0; i < AXES; i++)
     if (axis_is_enabled(i)) {
       line.unit[i] = line.target[i] - line.start[i];
-      length += line.unit[i] * line.unit[i];
+      line.length += line.unit[i] * line.unit[i];
 
     } else line.unit[i] = 0;
 
-  length = sqrt(length);
+  line.length = sqrt(line.length);
   for (int i = 0; i < AXES; i++)
-    if (line.unit[i]) line.unit[i] /= length;
+    if (line.unit[i]) line.unit[i] /= line.length;
 
   // Queue
   command_push(COMMAND_line, &line);
@@ -247,8 +337,8 @@ void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
   // Init dist & velocity
-  l.dist = 0;
-  l.vel = exec_get_velocity();
+  l.iD = l.dist = 0;
+  l.iV = exec_get_velocity();
 
   // Find first segment
   l.seg = -1;

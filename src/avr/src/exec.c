@@ -82,6 +82,7 @@ float exec_get_axis_position(int axis) {return ex.position[axis];}
 void exec_set_velocity(float v) {ex.velocity = v;}
 float exec_get_velocity() {return ex.velocity;}
 void exec_set_acceleration(float a) {ex.accel = a;}
+float exec_get_acceleration() {return ex.accel;}
 void exec_set_jerk(float j) {ex.jerk = j;}
 void exec_set_line(int32_t line) {ex.line = line;}
 int32_t exec_get_line() {return ex.line;}
@@ -100,7 +101,7 @@ stat_t exec_move_to_target(float time, const float target[]) {
   // No move if time is too short
   if (time < 0.5 * SEGMENT_TIME) {
     ex.leftover_time += time;
-    return STAT_NOOP;
+    return STAT_NOP;
   }
 
   time += ex.leftover_time;
@@ -117,8 +118,8 @@ void exec_reset_encoder_counts() {st_set_position(ex.position);}
 
 
 stat_t exec_next() {
-  if (!ex.cb && !command_exec()) return STAT_NOOP; // Queue empty
-  if (!ex.cb) return STAT_EAGAIN; // Non-exec command
+  if (!ex.cb && !command_exec()) return STAT_NOP; // Queue empty
+  if (!ex.cb) return STAT_AGAIN; // Non-exec command
   return ex.cb(); // Exec
 }
 

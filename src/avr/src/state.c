@@ -204,3 +204,11 @@ void state_callback() {
 // Var callbacks
 PGM_P get_state() {return state_get_pgmstr(state_get());}
 PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}
+
+
+// Command callbacks
+stat_t command_pause(char *cmd) {
+  if (cmd[1] == '1') state_request_optional_pause();
+  else state_request_pause();
+  return STAT_OK;
+}

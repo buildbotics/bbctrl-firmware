@@ -167,8 +167,8 @@ enum {
                        DRV8711_DRIVE_TDRIVEN_250 | DRV8711_DRIVE_OCPDEG_1 | \
                        DRV8711_DRIVE_OCPTH_250)
 #define DRV8711_TORQUE DRV8711_TORQUE_SMPLTH_200
-#define DRV8711_CTRL   (DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_450 | \
-                        DRV8711_CTRL_EXSTALL_bm)
+#define DRV8711_CTRL  (DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_450 | \
+                       DRV8711_CTRL_EXSTALL_bm)
 
 
 // Huanyang settings
@@ -206,7 +206,7 @@ enum {
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
 #define MIN_HALF_STEP_CORRECTION 4
 
-#define JOG_MIN_VELOCITY         10            // mm/min
+#define MIN_VELOCITY             10            // mm/min
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms
 #define CURRENT_SENSE_REF        2.75          // volts
 #define MAX_CURRENT              10            // amps

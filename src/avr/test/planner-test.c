@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
     printf("EXEC: %s\n", status_to_pgmstr(status));
 
     switch (status) {
-    case STAT_NOOP: break;       // No command executed
-    case STAT_EAGAIN: continue;  // No command executed, try again
+    case STAT_NOP: break;       // No command executed
+    case STAT_AGAIN: continue;  // No command executed, try again
 
     case STAT_OK:                // Move executed
       //if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued

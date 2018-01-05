@@ -41,6 +41,7 @@ int motor_map[AXES] = {-1, -1, -1, -1, -1, -1};
 
 typedef struct {
   float velocity_max;    // max velocity in mm/min or deg/min
+  float accel_max;       // max acceleration in mm/min^2
   float travel_max;      // max work envelope for soft limits
   float travel_min;      // min work envelope for soft limits
   float jerk_max;        // max jerk (Jm) in km/min^3
@@ -54,7 +55,7 @@ typedef struct {
 } axis_t;
 
 
-axis_t axes[MOTORS] = {{0}};
+axis_t axes[MOTORS] = {};
 
 
 bool axis_is_enabled(int axis) {
@@ -124,6 +125,7 @@ float axis_get_vector_length(const float a[], const float b[]) {
 AXIS_SET(homed, bool)
 
 AXIS_GET(velocity_max, float, 0)
+AXIS_GET(accel_max, float, 0)
 AXIS_GET(homed, bool, false)
 AXIS_GET(homing_mode, homing_mode_t, HOMING_MANUAL)
 AXIS_GET(radius, float, 0)
@@ -149,6 +151,7 @@ AXIS_VAR_GET(jerk_max, float)
 
 
 AXIS_VAR_SET(velocity_max, float)
+AXIS_VAR_SET(accel_max, float)
 AXIS_VAR_SET(radius, float)
 AXIS_VAR_SET(travel_min, float)
 AXIS_VAR_SET(travel_max, float)

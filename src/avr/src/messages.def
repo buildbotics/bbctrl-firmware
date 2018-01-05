@@ -26,8 +26,8 @@
 \******************************************************************************/
 
 STAT_MSG(OK,                   "OK")
-STAT_MSG(EAGAIN,               "Run command again")
-STAT_MSG(NOOP,                 "No op")
+STAT_MSG(AGAIN,               "Run command again")
+STAT_MSG(NOP,                 "No op")
 STAT_MSG(PAUSE,                "Pause")
 STAT_MSG(INTERNAL_ERROR,       "Internal error")
 STAT_MSG(ESTOP_USER,           "User triggered EStop")

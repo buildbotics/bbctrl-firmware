@@ -50,6 +50,7 @@ VAR(error,           ee, s32,   MOTORS, 0, 0, "Motor position error")
 VAR(motor_fault,     fa, bool,  0,      0, 1, "Motor fault status")
 
 VAR(velocity_max,    vm, f32,   MOTORS, 1, 1, "Maxium vel in mm/min")
+VAR(accel_max,       am, f32,   MOTORS, 1, 1, "Maxium accel in mm/min^2")
 VAR(jerk_max,        jm, f32,   MOTORS, 1, 1, "Maxium jerk in mm/min^3")
 VAR(radius,          ra, f32,   MOTORS, 1, 1, "Axis radius or zero")
 
