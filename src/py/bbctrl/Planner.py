@@ -21,7 +21,7 @@ class Planner():
                 axis = 'xyzabc'[int(vars.get('%dan' % i))]
                 axis2motor[axis] = i
 
-        def get_vector(name, scale):
+        def get_vector(name, scale = 1):
             v = {}
             for axis in 'xyzabc':
                 if axis in axis2motor:
@@ -41,9 +41,10 @@ class Planner():
         # Planner config
         self.config = {
             "start": start,
-            "max-vel": get_vector('vm', 1),
+            "max-vel": get_vector('vm'),
+            "max-accel": get_vector('am'),
             "max-jerk": get_vector('jm', 1000000),
-            # TODO max-accel and junction deviation & accel
+            # TODO junction deviation & accel
             }
         log.info('Planner config: ' + json.dumps(self.config))
 
@@ -60,7 +61,8 @@ class Planner():
 
         if type == 'line':
             return Cmd.line(block['id'], block['target'], block['exit-vel'],
-                            block['max-jerk'], block['times'])
+                            block['max-accel'], block['max-jerk'],
+                            block['times'])
 
         if type == 'ln': return Cmd.line_number(block['line'])
         if type == 'tool': return Cmd.tool(block['tool'])

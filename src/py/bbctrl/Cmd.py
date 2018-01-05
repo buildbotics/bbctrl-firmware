@@ -34,10 +34,11 @@ def encode_axes(axes):
 def line_number(line): return '#ln=%d' % line
 
 
-def line(id, target, exitVel, maxJerk, times):
+def line(id, target, exitVel, maxAccel, maxJerk, times):
     cmd = '#id=%u\nl' % id
 
     cmd += encode_float(exitVel)
+    cmd += encode_float(maxAccel)
     cmd += encode_float(maxJerk)
     cmd += encode_axes(target)
 
