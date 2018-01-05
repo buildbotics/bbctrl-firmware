@@ -26,37 +26,35 @@
 \******************************************************************************/
 
 #include "axis.h"
-#include "machine.h"
 #include "command.h"
-#include "plan/arc.h"
-#include "plan/planner.h"
-#include "plan/exec.h"
-#include "plan/state.h"
+#include "exec.h"
+#include "state.h"
+#include "vars.h"
+#include "report.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 
 int main(int argc, char *argv[]) {
-  mp_init();                      // motion planning
-  machine_init();                 // gcode machine
   axis_map_motors();
+  exec_init();                    // motion exec
+  vars_init();                    // configuration variables
+  command_init();
 
   stat_t status = STAT_OK;
 
   while (true) {
-    mach_arc_callback();          // arc generation runs
-
     bool reading = !feof(stdin);
 
-    if (reading && mp_queue_get_room()) {
-      mp_state_callback();
-      command_callback();
+    report_callback();
 
-      if (mp_queue_get_room()) continue;
+    if (reading) {
+      state_callback();
+      if (command_callback()) continue;
     }
 
-    status = mp_exec_move();
+    status = exec_next();
     printf("EXEC: %s\n", status_to_pgmstr(status));
 
     switch (status) {
@@ -76,7 +74,7 @@ int main(int argc, char *argv[]) {
     if (!reading) break;
   }
 
-  printf("STATE: %s\n", mp_get_state_pgmstr(mp_get_state()));
+  printf("STATE: %s\n", state_get_pgmstr(state_get()));
 
   return 0;
 }

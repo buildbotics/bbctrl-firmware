@@ -28,13 +28,16 @@
 #include "status.h"
 #include "spindle.h"
 #include "i2c.h"
+#include "type.h"
+#include "exec.h"
 #include "cpp_magic.h"
-#include "plan/buffer.h"
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctype.h>
+#include <string.h>
 
 
 typedef uint8_t flags_t;
@@ -58,8 +61,7 @@ typedef const char *pstring;
 #undef VAR
 
 
-void command_mreset(int argc, char *argv[]) {}
-void command_home(int argc, char *argv[]) {}
+float square(float x) {return x * x;}
 void i2c_set_read_callback(i2c_read_cb_t cb) {}
 void print_status_flags(uint8_t flags) {DEBUG_CALL();}
 uint8_t hw_disable_watchdog() {return 0;}
@@ -71,29 +73,19 @@ bool estop = false;
 
 void estop_trigger(stat_t reason) {
   DEBUG_CALL("%s", status_to_pgmstr(reason));
-  mp_queue_dump();
   estop = true;
   abort();
 }
 
 
-void estop_clear() {
-  DEBUG_CALL();
-  estop = false;
-}
-
-
+void estop_clear() {DEBUG_CALL(); estop = false;}
 bool estop_triggered() {return estop;}
 
 
-void hw_request_hard_reset() {
-  DEBUG_CALL();
-  exit(0);
-}
+void hw_request_hard_reset() {DEBUG_CALL(); exit(0);}
 
 
 bool usart_tx_empty() {return true;}
-bool usart_tx_full() {return false;}
 
 
 char *usart_readline() {
@@ -107,69 +99,35 @@ char *usart_readline() {
   size_t n = 0;
   if (getline(&cmd, &n, stdin) == -1) {
     free(cmd);
-    cmd = 0;
+    return 0;
   }
+
+  n = strlen(cmd);
+  while (n && isspace(cmd[n - 1])) cmd[--n] = 0;
 
   return cmd;
 }
 
 
-void coolant_init() {}
-
-
-void coolant_set_mist(bool x) {
-  DEBUG_CALL("%s", x ? "true" : "false");
-}
-
-
-void coolant_set_flood(bool x) {
-  DEBUG_CALL("%s", x ? "true" : "false");
-}
-
-
-void spindle_init() {}
-
-
-void spindle_set_speed(float speed) {
-  DEBUG_CALL("%f", speed);
-}
-
-
-void spindle_set_mode(spindle_mode_t mode) {
-  DEBUG_CALL("%d", mode);
-}
-
-
+void coolant_set_mist(bool x) {DEBUG_CALL("%s", x ? "true" : "false");}
+void coolant_set_flood(bool x) {DEBUG_CALL("%s", x ? "true" : "false");}
+void spindle_set_speed(float speed) {DEBUG_CALL("%f", speed);}
 void spindle_stop() {}
 
 
-void motor_set_position(int motor, int32_t position) {
-  DEBUG_CALL("%d, %d", motor, position);
+void st_set_position(int32_t position[AXES]) {
+  DEBUG_CALL("%d, %d, %d, %d",
+             position[0], position[1], position[2], position[3]);
 }
 
 
-bool switch_is_active(int index) {
-  DEBUG_CALL("%d", index);
-  return false;
-}
-
-
-bool switch_is_enabled(int index) {
-  DEBUG_CALL("%d", index);
-  return false;
-}
+bool switch_is_active(int index) {DEBUG_CALL("%d", index); return false;}
+bool switch_is_enabled(int index) {DEBUG_CALL("%d", index); return false;}
 
 
 static uint32_t ticks = 0;
-
-
 uint32_t rtc_get_time() {return ticks;}
-
-
-bool rtc_expired(uint32_t t) {
-  return true;
-  return 0 <= (int32_t)(ticks - t);
-}
+bool rtc_expired(uint32_t t) {return true;}
 
 
 bool motor_is_enabled(int motor) {return true;}
@@ -181,52 +139,40 @@ int motor_get_axis(int motor) {return motor;}
 #define STEP_ANGLE 1.8
 
 
-float motor_position[MOTORS] = {0};
-
-
-float motor_get_steps_per_unit(int motor) {
-  return 360 * MICROSTEPS / TRAVEL_REV / STEP_ANGLE;
-}
-
-
-int32_t motor_get_encoder(int motor) {
-  DEBUG_CALL("%d", motor);
-  return 0;
-}
-
-
-void motor_end_move(int motor) {
-  DEBUG_CALL("%d", motor);
-}
-
-
+int32_t motor_get_encoder(int motor) {DEBUG_CALL("%d", motor); return 0;}
+void motor_end_move(int motor) {DEBUG_CALL("%d", motor);}
 int32_t motor_get_error(int motor) {return 0;}
-int32_t motor_get_position(int motor) {return motor_position[motor];}
 
 
 bool st_is_busy() {return false;}
 
 
-float square(float x) {return x * x;}
-
-
 stat_t st_prep_line(float time, const float target[]) {
-  DEBUG_CALL("%f, (%f, %f, %f, %f)",
-             time, target[0], target[1], target[2], target[3]);
+  ASSERT(isfinite(time));
 
-  float p[MOTORS] = {0, 0, 0, 0};
-
-  for (int i = 0; i < MOTORS; i++) {
-    motor_position[i] = target[i];
-    p[i] = target[i] / motor_get_steps_per_unit(i);
+  const float maxTarget = 1000;
+  for (int i = 0; i < 3; i++) {
+    ASSERT(isfinite(target[i]));
+    ASSERT(-maxTarget < target[i] && target[i] < maxTarget);
   }
 
-  printf("%0.10f, %0.10f, %0.10f, %0.10f\n", time, p[0], p[1], p[2]);
+  static int32_t line = -1;
+  if (exec_get_line() != line) {
+    line = exec_get_line();
+    printf("line=%d\n", line);
+  }
+
+  printf("%0.10f, %0.10f, %0.10f, %0.10f\n",
+         time, target[0], target[1], target[2]);
 
   return STAT_OK;
 }
 
 
-void st_prep_dwell(float seconds) {
-  DEBUG_CALL("%f", seconds);
-}
+void st_prep_dwell(float seconds) {DEBUG_CALL("%f", seconds);}
+
+
+// Command callbacks
+stat_t command_estop(char *cmd) {DEBUG_CALL(); return STAT_OK;}
+stat_t command_clear(char *cmd) {DEBUG_CALL(); return STAT_OK;}
+stat_t command_jog(char *cmd) {DEBUG_CALL(); return STAT_OK;}
