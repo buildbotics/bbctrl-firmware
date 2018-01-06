@@ -47,6 +47,7 @@ typedef enum {
   HOLD_REASON_PROGRAM_END,
   HOLD_REASON_PALLET_CHANGE,
   HOLD_REASON_TOOL_CHANGE,
+  HOLD_REASON_STEPPING,
 } hold_reason_t;
 
 
@@ -65,12 +66,5 @@ void state_optional_pause();
 void state_running();
 void state_idle();
 void state_estop();
-
-void state_request_pause();
-void state_request_start();
-void state_request_flush();
-void state_request_resume();
-void state_request_optional_pause();
-void state_request_step();
 
 void state_callback();

@@ -5,13 +5,14 @@ import logging
 log = logging.getLogger('Cmd')
 
 # TODO, sync this up with AVR code
-REPORT = 'r'
-PAUSE  = 'P'
-ESTOP  = 'E'
-CLEAR  = 'C'
-FLUSH  = 'F'
-STEP   = 'S'
-RUN    = 'p'
+REPORT  = 'r'
+PAUSE   = 'P'
+UNPAUSE = 'U'
+ESTOP   = 'E'
+CLEAR   = 'C'
+FLUSH   = 'F'
+STEP    = 'S'
+RESUME  = 'c'
 
 
 def encode_float(x):

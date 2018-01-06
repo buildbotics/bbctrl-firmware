@@ -116,7 +116,7 @@ class AVR():
                 if isinstance(value, str): value = '"' + value + '"'
                 if isinstance(value, bool): value = int(value)
 
-                self.queue_command('${}={}'.format(var, value))
+                self.set('', var, value)
 
         self.queue_command('$$') # Refresh all vars, must come after above
 
@@ -142,7 +142,7 @@ class AVR():
             if self.ctrl.ioloop.READ & events: self.serial_read()
             if self.ctrl.ioloop.WRITE & events: self.serial_write()
         except Exception as e:
-            log.error('Serial handler error:', e)
+            log.error('Serial handler error: %s', e)
 
 
     def serial_write(self):
@@ -166,10 +166,7 @@ class AVR():
         elif self.stream is not None:
             cmd = self.stream.next()
 
-            if cmd is None:
-                self.set_write(False)
-                self.stream = None
-
+            if cmd is None: self.set_write(False)
             else: self.load_next_command(cmd)
 
         # Else stop writing
@@ -206,6 +203,7 @@ class AVR():
                 update.update(msg)
                 log.debug(line)
 
+                # Don't overwrite duplicate `msg`
                 if 'msg' in msg: break
 
         if update:
@@ -217,6 +215,11 @@ class AVR():
                 self._stop_sending_gcode()
 
             self.vars.update(update)
+
+            if self.stream is not None:
+                self.stream.update(update)
+                if not self.stream.is_running():
+                    self.stream = None
 
             try:
                 self._update_lcd(update)
@@ -295,6 +298,7 @@ class AVR():
 
     def home(self, axis, position = None):
         if self.stream is not None: raise Exception('Busy, cannot home')
+        raise Exception('NYI') # TODO
 
         if position is not None:
             self.queue_command('G28.3 %c%f' % (axis, position))
@@ -317,10 +321,7 @@ class AVR():
 
     def start(self, path):
         if self.stream is not None: raise Exception('Busy, cannot start file')
-
-        if path:
-            self._start_sending_gcode(path)
-            self._i2c_command(Cmd.RUN)
+        if path: self._start_sending_gcode(path)
 
 
     def step(self, path):
@@ -333,16 +334,28 @@ class AVR():
         self._i2c_command(Cmd.FLUSH)
         self._stop_sending_gcode()
         # Resume processing once current queue of GCode commands has flushed
-        self.queue_command('c')
+        self.queue_command(Cmd.RESUME)
 
 
     def pause(self): self._i2c_command(Cmd.PAUSE, byte = 0)
-    def unpause(self): self._i2c_command(Cmd.RUN)
+
+
+    def unpause(self):
+        if self.vars.get('x', '') != 'HOLDING' or self.stream is None: return
+
+        self._i2c_command(Cmd.FLUSH)
+        self.queue_command(Cmd.RESUME)
+        self.stream.restart()
+        self.set_write(True)
+        self._i2c_command(Cmd.UNPAUSE)
+
+
     def optional_pause(self): self._i2c_command(Cmd.PAUSE, byte = 1)
 
 
     def set_position(self, axis, position):
         if self.stream is not None: raise Exception('Busy, cannot set position')
         if self._is_axis_homed('%c' % axis):
+            raise Exception('NYI') # TODO
             self.queue_command('G92 %c%f' % (axis, position))
         else: self.queue_command('$%cp=%f' % (axis, position))

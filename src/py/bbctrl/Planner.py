@@ -11,6 +11,8 @@ class Planner():
     def __init__(self, ctrl, path):
         self.ctrl = ctrl
         self.path = path
+        self.lastID = -1
+        self.done = False
 
         vars = ctrl.avr.vars
 
@@ -51,9 +53,32 @@ class Planner():
         self.reset()
 
 
+    def is_running(self): return self.planner.is_running()
+
+
+    def update(self, update):
+        if 'id' in update:
+            id = update['id']
+            if id: self.planner.release(id - 1)
+
+
+    def restart(self):
+        vars = self.ctrl.avr.vars
+        id = vars['id']
+
+        position = {}
+        for axis in 'xyzabc':
+            if (axis + 'p') in vars:
+                position[axis] = vars[axis + 'p']
+
+        self.planner.restart(id, position)
+        self.done = False
+
+
     def reset(self):
         self.planner = gplan.Planner(self.config)
         self.planner.load('upload' + self.path)
+        self.done = False
 
 
     def encode(self, block):
@@ -75,4 +100,13 @@ class Planner():
 
     def next(self):
         if self.planner.has_more():
-            return self.encode(self.planner.next())
+            cmd = self.planner.next()
+            self.lastID = cmd['id']
+            return self.encode(cmd)
+
+        if not self.done:
+            self.done = True
+
+            # Cause last cmd to flush when complete
+            if 0 <= self.lastID:
+                return '#id=%d' % (self.lastID + 1)

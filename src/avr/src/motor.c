@@ -200,7 +200,7 @@ static void _update_power(int motor) {
     // Fall through
 
   case MOTOR_ALWAYS_POWERED:
-    // TODO is ~5ms enough time to enable the motor?
+    // NOTE, we have ~5ms to enable the motor
     drv8711_set_state(motor, DRV8711_ACTIVE);
     break;
 

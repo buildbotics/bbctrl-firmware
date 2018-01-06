@@ -85,24 +85,6 @@ stat_t command_reboot(char *cmd) {
 }
 
 
-stat_t command_resume(char *cmd) {
-  state_request_resume();
-  return STAT_OK;
-}
-
-
-stat_t command_step(char *cmd) {
-  state_request_step();
-  return STAT_OK;
-}
-
-
-stat_t command_flush(char *cmd) {
-  state_request_flush();
-  return STAT_OK;
-}
-
-
 stat_t command_dump(char *cmd) {
   report_request_full();
   return STAT_OK;

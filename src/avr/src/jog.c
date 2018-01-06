@@ -220,7 +220,9 @@ static float _compute_axis_velocity(int axis) {
   // Compute next accel
   a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, jerk);
 
-  // TODO limit acceleration
+  // Limit acceleration
+  if (axis_get_accel_max(axis) < fabs(a->accel))
+    a->accel = (a->accel < 0 ? -1 : 1) * axis_get_accel_max(axis);
 
   return V + a->accel * SEGMENT_TIME;
 }

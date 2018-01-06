@@ -43,7 +43,6 @@
 typedef struct {
   char id[26];
   bool hard_reset;         // flag to perform a hard reset
-  bool bootloader;         // flag to enter the bootloader
 } hw_t;
 
 static hw_t hw = {{0}};
@@ -146,16 +145,7 @@ void hw_reset_handler() {
 
     hw_hard_reset();
   }
-
-  if (hw.bootloader) {
-    // TODO enable bootloader interrupt vectors and jump to BOOT_SECTION_START
-    hw.bootloader = false;
-  }
 }
-
-
-/// Executes a software reset using CCPWrite
-void hw_request_bootloader() {hw.bootloader = true;}
 
 
 uint8_t hw_disable_watchdog() {

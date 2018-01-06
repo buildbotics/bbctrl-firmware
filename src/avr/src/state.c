@@ -33,7 +33,7 @@
 #include "spindle.h"
 #include "report.h"
 
-#include <stdbool.h>
+#include <stdio.h>
 
 
 static struct {
@@ -66,11 +66,12 @@ PGM_P state_get_pgmstr(state_t state) {
 
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
-  case HOLD_REASON_USER_PAUSE:    return PSTR("USER");
-  case HOLD_REASON_PROGRAM_PAUSE: return PSTR("PROGRAM");
-  case HOLD_REASON_PROGRAM_END:   return PSTR("END");
-  case HOLD_REASON_PALLET_CHANGE: return PSTR("PALLET");
-  case HOLD_REASON_TOOL_CHANGE:   return PSTR("TOOL");
+  case HOLD_REASON_USER_PAUSE:    return PSTR("User paused");
+  case HOLD_REASON_PROGRAM_PAUSE: return PSTR("Program paused");
+  case HOLD_REASON_PROGRAM_END:   return PSTR("Program end");
+  case HOLD_REASON_PALLET_CHANGE: return PSTR("Pallet change");
+  case HOLD_REASON_TOOL_CHANGE:   return PSTR("Tool change");
+  case HOLD_REASON_STEPPING:      return PSTR("Stepping");
   }
 
   return PSTR("INVALID");
@@ -102,17 +103,11 @@ bool state_is_resuming() {return s.resume_requested;}
 
 bool state_is_quiescent() {
   return (state_get() == STATE_READY || state_get() == STATE_HOLDING) &&
-    !st_is_busy() && !command_is_busy();
+    !st_is_busy();
 }
 
 
-static void _set_plan_steps(bool plan_steps) {} // TODO
-
-
-void state_holding() {
-  _set_state(STATE_HOLDING);
-  _set_plan_steps(false);
-}
+void state_holding() {_set_state(STATE_HOLDING);}
 
 
 void state_optional_pause() {
@@ -130,17 +125,6 @@ void state_running() {
 
 void state_idle() {if (state_get() == STATE_RUNNING) _set_state(STATE_READY);}
 void state_estop() {_set_state(STATE_ESTOPPED);}
-void state_request_pause() {s.pause_requested = true;}
-void state_request_start() {s.start_requested = true;}
-void state_request_flush() {s.flush_requested = true;}
-void state_request_resume() {if (s.flush_requested) s.resume_requested = true;}
-void state_request_optional_pause() {s.optional_pause_requested = true;}
-
-
-void state_request_step() {
-  _set_plan_steps(true);
-  s.start_requested = true;
-}
 
 
 /*** Pauses, queue flushes and starts are all related.  Request functions
@@ -172,11 +156,12 @@ void state_callback() {
     if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
   }
 
-  // Only flush queue when idle or holding.
+  // Only flush queue when idle or holding
   if (s.flush_requested && state_is_quiescent()) {
     command_flush_queue();
 
     // Stop spindle
+    // TODO Spindle should not be stopped when pausing
     spindle_stop();
 
     // Resume
@@ -208,7 +193,31 @@ PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}
 
 // Command callbacks
 stat_t command_pause(char *cmd) {
-  if (cmd[1] == '1') state_request_optional_pause();
-  else state_request_pause();
+  if (cmd[1] == '1') s.optional_pause_requested = true;
+  else s.pause_requested = true;
+  return STAT_OK;
+}
+
+
+stat_t command_unpause(char *cmd) {
+  s.start_requested = true;
+  return STAT_OK;
+}
+
+
+stat_t command_resume(char *cmd) {
+  if (s.flush_requested) s.resume_requested = true;
+  return STAT_OK;
+}
+
+
+stat_t command_step(char *cmd) {
+  // TODO
+  return STAT_OK;
+}
+
+
+stat_t command_flush(char *cmd) {
+  s.flush_requested = true;
   return STAT_OK;
 }

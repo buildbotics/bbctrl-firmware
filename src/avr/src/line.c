@@ -131,16 +131,6 @@ static bool _segment_next() {
 }
 
 
-static stat_t _hold() {
-  if (state_get() != STATE_HOLDING) {
-    exec_set_cb(0);
-    return STAT_AGAIN;
-  }
-
-  return STAT_NOP;
-}
-
-
 static stat_t _pause() {
   float t = SEGMENT_TIME - l.current_t;
   float v = exec_get_velocity();
@@ -152,13 +142,17 @@ static stat_t _pause() {
     exec_set_acceleration(0);
     exec_set_jerk(0);
     state_holding();
-    exec_set_cb(_hold);
-    return _hold();
+    exec_set_cb(0);
+
+    return STAT_NOP;
   }
 
   // Compute new velocity and acceleration
   a = scurve_next_accel(t, v, 0, a, j);
-  if (l.line.max_accel < a) a = l.line.max_accel;
+  if (l.line.max_accel < fabs(a)) {
+    a = (a < 0 ? -1 : 1) * l.line.max_accel;
+    j = 0;
+  } else if (0 < a) j = -j;
   v += a * t;
 
   // Compute distance that will be traveled
@@ -259,13 +253,12 @@ void _print_vector(const char *name, float v[AXES]) {
 
 
 stat_t command_line(char *cmd) {
-  static float next_start[AXES];
   line_t line = {};
 
   cmd++; // Skip command code
 
   // Get start position
-  copy_vector(line.start, next_start);
+  command_get_position(line.start);
 
   // Get target velocity
   if (!decode_float(&cmd, &line.target_vel)) return STAT_BAD_FLOAT;
@@ -309,7 +302,7 @@ stat_t command_line(char *cmd) {
   if (*cmd) return STAT_INVALID_ARGUMENTS;
 
   // Set next start position
-  copy_vector(next_start, line.target);
+  command_set_position(line.target);
 
   // Compute direction vector
   for (int i = 0; i < AXES; i++)
