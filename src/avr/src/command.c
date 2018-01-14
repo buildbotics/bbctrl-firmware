@@ -103,7 +103,7 @@ static const command_t commands[] PROGMEM = {
 
 int command_find(const char *match) {
   for (int i = 0; ; i++) {
-    const char *name = pgm_read_word(&commands[i].name);
+    const char *name = (const char *)pgm_read_word(&commands[i].name);
     if (!name) break;
 
     if (strcmp_P(match, name) == 0) return i;
@@ -124,7 +124,7 @@ int command_exec(int argc, char *argv[]) {
     if (argc <= min_args) return STAT_TOO_FEW_ARGUMENTS;
     else if (max_args < argc - 1) return STAT_TOO_MANY_ARGUMENTS;
     else {
-      command_cb_t cb = pgm_read_word(&commands[i].cb);
+      command_cb_t cb = (command_cb_t)pgm_read_word(&commands[i].cb);
       return cb(argc, argv);
     }
 
@@ -268,8 +268,8 @@ bool command_is_active() {return _active;}
 // Command functions
 void static print_command_help(int i) {
   static const char fmt[] PROGMEM = "  $%-12"PRPSTR"  %"PRPSTR"\n";
-  const char *name = pgm_read_word(&commands[i].name);
-  const char *help = pgm_read_word(&commands[i].help);
+  const char *name = (const char *)pgm_read_word(&commands[i].name);
+  const char *help = (const char *)pgm_read_word(&commands[i].help);
 
   printf_P(fmt, name, help);
 }
@@ -292,7 +292,7 @@ uint8_t command_help(int argc, char *argv[]) {
 
   puts_P(PSTR("\nCommands:"));
   for (int i = 0; ; i++) {
-    const char *name = pgm_read_word(&commands[i].name);
+    const char *name = (const char *)pgm_read_word(&commands[i].name);
     if (!name) break;
     print_command_help(i);
 #ifdef __AVR__
