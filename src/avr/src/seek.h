@@ -3,7 +3,7 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                           All rights reserved.
+                            All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
      and/or modify it under the terms of the GNU General Public License,
@@ -27,42 +27,8 @@
 
 #pragma once
 
-
-#include "config.h"
-
-#include <stdint.h>
 #include <stdbool.h>
 
 
-// macros for finding the index into the switch table give the axis number
-#define MIN_SWITCH(axis) (2 + axis * 2)
-#define MAX_SWITCH(axis) (2 + axis * 2 + 1)
-
-
-typedef enum {
-  SW_DISABLED,
-  SW_NORMALLY_OPEN,
-  SW_NORMALLY_CLOSED,
-} switch_type_t;
-
-
-/// Switch IDs
-typedef enum {
-  SW_ESTOP, SW_PROBE,
-  SW_MIN_X, SW_MAX_X,
-  SW_MIN_Y, SW_MAX_Y,
-  SW_MIN_Z, SW_MAX_Z,
-  SW_MIN_A, SW_MAX_A,
-} switch_id_t;
-
-
-typedef void (*switch_callback_t)(switch_id_t sw, bool active);
-
-
-void switch_init();
-void switch_rtc_callback();
-bool switch_is_active(int index);
-bool switch_is_enabled(int index);
-switch_type_t switch_get_type(int index);
-void switch_set_type(int index, switch_type_t type);
-void switch_set_callback(int index, switch_callback_t cb);
+bool seek_switch_found();
+void seek_end();

@@ -54,6 +54,14 @@ float invsqrt(float x) {
 }
 
 
+int8_t decode_hex_nibble(char c) {
+  if ('0' <= c && c <= '9') return c - '0';
+  if ('a' <= c && c <= 'f') return c - 'a' + 10;
+  if ('A' <= c && c <= 'F') return c - 'A' + 10;
+  return -1;
+}
+
+
 bool decode_float(char **s, float *f) {
   bool ok = b64_decode_float(*s, f) && isfinite(*f);
   *s += 6;

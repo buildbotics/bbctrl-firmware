@@ -30,6 +30,13 @@ axis_homing_procedure = '''
   G28.3 %(axis)s[#<%(axis)s.hp>]
 '''
 
+# Set axis unhomed
+# Seek closed (home_dir * (travel_max - travel_min) * 1.5) at search_vel
+# Seek open (home_dir * -latch_backoff) at latch_vel
+# Seek closed (home_dir * latch_backoff * 1.5) at latch_vel
+# Rapid to (home_dir * -(zero_backoff + switched_position))
+# Set axis homed and home_position
+
 
 class AVR():
     def __init__(self, ctrl):

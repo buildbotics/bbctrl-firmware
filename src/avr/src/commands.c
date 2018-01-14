@@ -34,15 +34,10 @@
 #include "hardware.h"
 #include "report.h"
 #include "state.h"
+#include "util.h"
 
 #include <string.h>
 #include <stdio.h>
-
-
-// TODO
-stat_t command_seek(char *cmd) {return STAT_OK;}
-unsigned command_seek_size() {return 0;}
-void command_seek_exec(void *data) {}
 
 
 stat_t command_dwell(char *cmd) {

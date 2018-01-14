@@ -5,14 +5,21 @@ import logging
 log = logging.getLogger('Cmd')
 
 # TODO, sync this up with AVR code
-REPORT  = 'r'
-PAUSE   = 'P'
-UNPAUSE = 'U'
-ESTOP   = 'E'
-CLEAR   = 'C'
-FLUSH   = 'F'
-STEP    = 'S'
-RESUME  = 'c'
+SET      = '$'
+SET_SYNC = '#'
+SEEK     = 's'
+LINE     = 'l'
+REPORT   = 'r'
+PAUSE    = 'P'
+UNPAUSE  = 'U'
+ESTOP    = 'E'
+CLEAR    = 'C'
+FLUSH    = 'F'
+STEP     = 'S'
+RESUME   = 'c'
+
+SEEK_OPEN  = 1 << 0
+SEEK_ERROR = 1 << 1
 
 
 def encode_float(x):
@@ -32,11 +39,16 @@ def encode_axes(axes):
     return data
 
 
+def seek(switch, open, error):
+    flags = (SEEK_OPEN if open else 0) | (SEEK_ERROR if error else 0)
+    return '%c%x%x' % (SEEK, switch, flags)
+
+
 def line_number(line): return '#ln=%d' % line
 
 
 def line(id, target, exitVel, maxAccel, maxJerk, times):
-    cmd = '#id=%u\nl' % id
+    cmd = '#id=%u\n%c' % (id, LINE)
 
     cmd += encode_float(exitVel)
     cmd += encode_float(maxAccel)

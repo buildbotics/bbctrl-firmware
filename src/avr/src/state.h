@@ -48,6 +48,7 @@ typedef enum {
   HOLD_REASON_PALLET_CHANGE,
   HOLD_REASON_TOOL_CHANGE,
   HOLD_REASON_STEPPING,
+  HOLD_REASON_SEEK,
 } hold_reason_t;
 
 
@@ -61,6 +62,7 @@ bool state_is_flushing();
 bool state_is_resuming();
 bool state_is_quiescent();
 
+void state_seek_hold();
 void state_holding();
 void state_optional_pause();
 void state_running();

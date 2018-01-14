@@ -3,7 +3,7 @@
                 This file is part of the Buildbotics firmware.
 
                   Copyright (c) 2015 - 2017 Buildbotics LLC
-                           All rights reserved.
+                            All rights reserved.
 
      This file ("the software") is free software: you can redistribute it
      and/or modify it under the terms of the GNU General Public License,
@@ -25,44 +25,73 @@
 
 \******************************************************************************/
 
-#pragma once
+#include "seek.h"
 
-
-#include "config.h"
+#include "command.h"
+#include "switch.h"
+#include "estop.h"
+#include "util.h"
 
 #include <stdint.h>
-#include <stdbool.h>
 
 
-// macros for finding the index into the switch table give the axis number
-#define MIN_SWITCH(axis) (2 + axis * 2)
-#define MAX_SWITCH(axis) (2 + axis * 2 + 1)
+enum {
+  SEEK_ACTIVE = 1 << 0,
+  SEEK_ERROR  = 1 << 1,
+  SEEK_FOUND  = 1 << 2,
+};
 
 
-typedef enum {
-  SW_DISABLED,
-  SW_NORMALLY_OPEN,
-  SW_NORMALLY_CLOSED,
-} switch_type_t;
+typedef struct {
+  int8_t sw;
+  uint8_t flags;
+} seek_t;
 
 
-/// Switch IDs
-typedef enum {
-  SW_ESTOP, SW_PROBE,
-  SW_MIN_X, SW_MAX_X,
-  SW_MIN_Y, SW_MAX_Y,
-  SW_MIN_Z, SW_MAX_Z,
-  SW_MIN_A, SW_MAX_A,
-} switch_id_t;
+static seek_t seek = {-1, 0};
 
 
-typedef void (*switch_callback_t)(switch_id_t sw, bool active);
+bool seek_switch_found() {
+  if (seek.sw <= 0) return false;
+
+  bool inactive = !(seek.flags & SEEK_ACTIVE);
+
+  if (switch_is_active(seek.sw) ^ inactive) {
+    seek.flags |= SEEK_FOUND;
+    return true;
+  }
+
+  return false;
+}
 
 
-void switch_init();
-void switch_rtc_callback();
-bool switch_is_active(int index);
-bool switch_is_enabled(int index);
-switch_type_t switch_get_type(int index);
-void switch_set_type(int index, switch_type_t type);
-void switch_set_callback(int index, switch_callback_t cb);
+void seek_end() {
+  if (seek.sw <= 0) return;
+
+  if (!(SEEK_FOUND & seek.flags) && (SEEK_ERROR & seek.flags))
+    estop_trigger(STAT_SEEK_NOT_FOUND);
+
+  seek.sw = -1;
+}
+
+
+// Command callbacks
+stat_t command_seek(char *cmd) {
+  int8_t sw = decode_hex_nibble(cmd[1]);
+  if (sw <= 0) return STAT_INVALID_ARGUMENTS; // Don't allow seek to ESTOP
+  if (!switch_is_enabled(sw)) return STAT_SEEK_NOT_ENABLED;
+
+  int8_t flags = decode_hex_nibble(cmd[2]);
+  if (flags & 0xfc) return STAT_INVALID_ARGUMENTS;
+
+  seek_t seek = {sw, flags};
+  command_push(*cmd, &seek);
+
+  return STAT_OK;
+}
+
+
+unsigned command_seek_size() {return sizeof(seek_t);}
+
+
+void command_seek_exec(void *data) {seek = *(seek_t *)data;}

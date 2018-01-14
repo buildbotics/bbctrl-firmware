@@ -45,6 +45,8 @@ typedef struct {
 
 // Order must match indices in var functions below
 static switch_t switches[SWITCHES] = {
+  {.pin = ESTOP_PIN, .type = SW_DISABLED},
+  {.pin = PROBE_PIN, .type = SW_DISABLED},
   {.pin = MIN_X_PIN, .type = SW_DISABLED},
   {.pin = MAX_X_PIN, .type = SW_DISABLED},
   {.pin = MIN_Y_PIN, .type = SW_DISABLED},
@@ -53,8 +55,6 @@ static switch_t switches[SWITCHES] = {
   {.pin = MAX_Z_PIN, .type = SW_DISABLED},
   {.pin = MIN_A_PIN, .type = SW_DISABLED},
   {.pin = MAX_A_PIN, .type = SW_DISABLED},
-  {.pin = ESTOP_PIN, .type = SW_DISABLED},
-  {.pin = PROBE_PIN, .type = SW_DISABLED},
 };
 
 

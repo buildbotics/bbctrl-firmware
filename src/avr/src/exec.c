@@ -51,12 +51,6 @@ static struct {
 
   float feed_override;
   float spindle_override;
-
-  float leftover_time;
-
-  bool seek_error;
-  bool seek_open;
-  int seek_switch;
 } ex;
 
 
@@ -64,8 +58,6 @@ void exec_init() {
   memset(&ex, 0, sizeof(ex));
   ex.feed_override = 1;
   ex.spindle_override = 1;
-  ex.seek_switch = -1;
-  // TODO implement seek
   // TODO implement pause
   // TODO implement move stepping
   // TODO implement overrides
@@ -97,15 +89,6 @@ stat_t exec_move_to_target(float time, const float target[]) {
 
   // Update position
   copy_vector(ex.position, target);
-
-  // No move if time is too short
-  if (time < 0.5 * SEGMENT_TIME) {
-    ex.leftover_time += time;
-    return STAT_NOP;
-  }
-
-  time += ex.leftover_time;
-  ex.leftover_time = 0;
 
   // Call the stepper prep function
   st_prep_line(time, target);

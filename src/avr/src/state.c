@@ -72,6 +72,7 @@ PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   case HOLD_REASON_PALLET_CHANGE: return PSTR("Pallet change");
   case HOLD_REASON_TOOL_CHANGE:   return PSTR("Tool change");
   case HOLD_REASON_STEPPING:      return PSTR("Stepping");
+  case HOLD_REASON_SEEK:          return PSTR("Switch found");
   }
 
   return PSTR("INVALID");
@@ -104,6 +105,14 @@ bool state_is_resuming() {return s.resume_requested;}
 bool state_is_quiescent() {
   return (state_get() == STATE_READY || state_get() == STATE_HOLDING) &&
     !st_is_busy();
+}
+
+
+void state_seek_hold() {
+  if (state_get() == STATE_RUNNING) {
+    state_set_hold_reason(HOLD_REASON_SEEK);
+    _set_state(STATE_STOPPING);
+  }
 }
 
 

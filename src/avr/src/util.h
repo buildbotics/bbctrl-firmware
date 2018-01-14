@@ -65,6 +65,7 @@ inline static bool fp_ZERO(float a) {return fabs(a) < EPSILON;}
 inline static bool fp_FALSE(float a) {return fp_ZERO(a);}
 inline static bool fp_TRUE(float a) {return !fp_ZERO(a);}
 
+int8_t decode_hex_nibble(char c);
 bool decode_float(char **s, float *f);
 stat_t decode_axes(char **cmd, float axes[AXES]);
 

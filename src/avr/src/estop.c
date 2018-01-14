@@ -123,9 +123,7 @@ void estop_clear() {
 
 
 // Var callbacks
-bool get_estop() {
-  return estop_triggered();
-}
+bool get_estop() {return estop_triggered();}
 
 
 void set_estop(bool value) {
@@ -135,9 +133,7 @@ void set_estop(bool value) {
 }
 
 
-PGM_P get_estop_reason() {
-  return status_to_pgmstr(_get_reason());
-}
+PGM_P get_estop_reason() {return status_to_pgmstr(_get_reason());}
 
 
 // Command callbacks
@@ -147,7 +143,4 @@ stat_t command_estop(char *cmd) {
 }
 
 
-stat_t command_clear(char *cmd) {
-  estop_clear();
-  return STAT_OK;
-}
+stat_t command_clear(char *cmd) {estop_clear(); return STAT_OK;}

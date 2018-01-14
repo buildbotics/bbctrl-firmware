@@ -31,6 +31,7 @@
 #include "command.h"
 #include "scurve.h"
 #include "state.h"
+#include "seek.h"
 #include "util.h"
 
 #include <math.h>
@@ -131,6 +132,22 @@ static bool _segment_next() {
 }
 
 
+static void _done() {
+  seek_end();
+  exec_set_cb(0);
+}
+
+
+static stat_t _move(float t, float target[AXES], float v, float a) {
+  exec_set_velocity(v);
+  exec_set_acceleration(a);
+
+  if (seek_switch_found()) state_seek_hold();
+
+  return exec_move_to_target(t, target);
+}
+
+
 static stat_t _pause() {
   float t = SEGMENT_TIME - l.current_t;
   float v = exec_get_velocity();
@@ -142,7 +159,7 @@ static stat_t _pause() {
     exec_set_acceleration(0);
     exec_set_jerk(0);
     state_holding();
-    exec_set_cb(0);
+    _done();
 
     return STAT_NOP;
   }
@@ -165,7 +182,7 @@ static stat_t _pause() {
     exec_set_velocity(l.line.target_vel);
     exec_set_acceleration(0);
     exec_set_jerk(0);
-    exec_set_cb(0);
+    _done();
 
     return STAT_AGAIN;
   }
@@ -174,14 +191,10 @@ static stat_t _pause() {
   float target[AXES];
   _segment_target(target, l.dist);
 
-  stat_t status = exec_move_to_target(SEGMENT_TIME, target);
-
   l.current_t = 0;
-  exec_set_velocity(v);
-  exec_set_acceleration(a);
   exec_set_jerk(j);
 
-  return status;
+  return _move(SEGMENT_TIME, target, v, a);
 }
 
 
@@ -223,25 +236,21 @@ static stat_t _line_exec() {
   // Do move & update exec
   stat_t status;
 
-  if (lastSeg && l.stop_seg) {
+  if (lastSeg && l.stop_seg)
     // Stop exactly on target to correct for floating-point errors
-    status = exec_move_to_target(delta, l.line.target);
-    exec_set_velocity(0);
-    exec_set_acceleration(0);
+    status = _move(delta, l.line.target, 0, 0);
 
-  } else {
+  else {
     // Compute target position from distance
     float target[AXES];
     _segment_target(target, d);
 
-    status = exec_move_to_target(delta, target);
+    status = _move(delta, target, v, a);
     l.dist = d;
-    exec_set_velocity(v);
-    exec_set_acceleration(a);
   }
 
   // Release exec if we are done
-  if (lastSeg) exec_set_cb(0);
+  if (lastSeg) _done();
 
   return status;
 }
