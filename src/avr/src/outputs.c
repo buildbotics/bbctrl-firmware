@@ -102,6 +102,7 @@ void outputs_set_mode(uint8_t pin, output_mode_t mode) {
   output_t *output = _get_output(pin);
   if (!output) return;
   output->mode = mode;
+  _update_state(output);
 }
 
 
