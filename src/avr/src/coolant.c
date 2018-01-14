@@ -26,20 +26,15 @@
 \******************************************************************************/
 
 #include "coolant.h"
+
 #include "config.h"
-
-#include <avr/io.h>
-
-
-void coolant_init() {
-  OUTSET_PIN(SWITCH_1_PIN); // High
-  DIRSET_PIN(SWITCH_1_PIN); // Output
-  OUTSET_PIN(SWITCH_2_PIN); // High
-  DIRSET_PIN(SWITCH_2_PIN); // Output
-}
+#include "outputs.h"
 
 
-void coolant_set_mist(bool x) {SET_PIN(SWITCH_1_PIN, !x);}
-void coolant_set_flood(bool x) {SET_PIN(SWITCH_2_PIN, !x);}
-bool coolant_get_mist() {return OUT_PIN(SWITCH_1_PIN);}
-bool coolant_get_flood() {return OUT_PIN(SWITCH_2_PIN);}
+void coolant_init() {}
+
+
+void coolant_set_mist(bool x) {outputs_set_active(SWITCH_1_PIN, x);}
+void coolant_set_flood(bool x) {outputs_set_active(SWITCH_2_PIN, x);}
+bool coolant_get_mist() {return outputs_is_active(SWITCH_1_PIN);}
+bool coolant_get_flood() {return outputs_is_active(SWITCH_2_PIN);}
