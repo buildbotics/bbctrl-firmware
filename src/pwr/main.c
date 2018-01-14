@@ -288,12 +288,12 @@ void init() {
 
   // IO
   IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
-  IO_DDR_SET(LOAD1_PIN);  // Output
-  IO_DDR_SET(LOAD2_PIN);  // Output
+  IO_DDR_CLR(LOAD1_PIN);  // Tri-state
+  IO_DDR_CLR(LOAD2_PIN);  // Tri-state
   IO_PUE_SET(PWR_RESET);  // Pull up reset line
 
   // Disable digital IO on ADC lines
-  DIDR0 = (1 << ADC4D) | (1 << ADC3D) | (1 << ADC2D)| (1 << ADC1D) |
+  DIDR0 = (1 << ADC4D) | (1 << ADC3D) | (1 << ADC2D) | (1 << ADC1D) |
     (1 << ADC0D) | (1 << AREFD);
   DIDR1 = (1 << ADC5D);
 
