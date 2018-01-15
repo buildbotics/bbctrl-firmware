@@ -37,10 +37,17 @@
 #include "pgmspace.h"
 #include "state.h"
 #include "exec.h"
-#include "action.h"
+#include "base64.h"
+#include "rtc.h"
+#include "stepper.h"
+#include "cpp_magic.h"
 
 #ifdef __AVR__
 #include <avr/wdt.h>
+#include <util/atomic.h>
+#else
+#define ATOMIC_BLOCK(x)
+#define ATOMIC_RESTORESTATE
 #endif
 
 #include <stdio.h>
@@ -49,187 +56,128 @@
 #include <stdlib.h>
 
 
-static char *_cmd = 0;
-static bool _active = false;
+#ifdef __AVR__
+#define RING_BUF_ATOMIC_COPY(TO, FROM)          \
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) TO = FROM
+#endif
+
+#define RING_BUF_NAME sync_q
+#define RING_BUF_TYPE uint8_t
+#define RING_BUF_INDEX_TYPE volatile uint16_t
+#define RING_BUF_SIZE SYNC_QUEUE_SIZE
+#include "ringbuf.def"
 
 
-static void command_i2c_cb(i2c_cmd_t cmd, uint8_t *data, uint8_t length) {
-  switch (cmd) {
-  case I2C_NULL:                                           break;
-  case I2C_ESTOP:          estop_trigger(STAT_ESTOP_USER); break;
-  case I2C_CLEAR:          estop_clear();                  break;
-  case I2C_PAUSE:          state_request_hold();              break;
-  case I2C_OPTIONAL_PAUSE: state_request_optional_pause();    break;
-  case I2C_RUN:            state_request_start();             break;
-  case I2C_STEP:           state_request_step();              break;
-  case I2C_FLUSH:          state_request_flush();             break;
-  case I2C_REPORT:         report_request_full();          break;
-  case I2C_REBOOT:         hw_request_hard_reset();        break;
-  }
-}
+static struct {
+  bool active;
+  uint32_t id;
+  uint32_t last_empty;
+  unsigned count;
+  stat_t parse_error;
+  int col;
+  float position[AXES];
+} cmd = {0,};
 
 
-void command_init() {
-  i2c_set_read_callback(command_i2c_cb);
-}
-
-
-// Command forward declarations
-// (Don't be afraid, X-Macros rock!)
-#define CMD(NAME, ...)                          \
-  uint8_t command_##NAME(int, char *[]);
-
+// Define command callbacks
+#define CMD(CODE, NAME, SYNC, ...)              \
+  stat_t command_##NAME();                      \
+  IF(SYNC)(unsigned command_##NAME##_size();)   \
+  IF(SYNC)(void command_##NAME##_exec(void *);)
 #include "command.def"
 #undef CMD
 
-// Command names & help
-#define CMD(NAME, MINARGS, MAXARGS, HELP)      \
-  static const char pstr_##NAME[] PROGMEM = #NAME;   \
-  static const char NAME##_help[] PROGMEM = HELP;
 
+// Help & name
+#define CMD(CODE, NAME, SYNC, HELP)                          \
+  static const char command_##NAME##_name[] PROGMEM = #NAME; \
+  static const char command_##NAME##_help[] PROGMEM = #HELP;
 #include "command.def"
 #undef CMD
 
-// Command table
-#define CMD(NAME, MINARGS, MAXARGS, HELP)                       \
-  {pstr_##NAME, command_##NAME, MINARGS, MAXARGS, NAME##_help},
 
-static const command_t commands[] PROGMEM = {
+static uint16_t _space() {return sync_q_space();}
+
+
+static bool _is_synchronous(char code) {
+  switch (code) {
+#define CMD(CODE, NAME, SYNC, ...) case COMMAND_##NAME: return SYNC;
 #include "command.def"
 #undef CMD
-  {}, // Sentinel
-};
-
-
-int command_find(const char *match) {
-  for (int i = 0; ; i++) {
-    const char *name = (const char *)pgm_read_word(&commands[i].name);
-    if (!name) break;
-
-    if (strcmp_P(match, name) == 0) return i;
   }
-
-  return -1;
+  return false;
 }
 
 
-int command_exec(int argc, char *argv[]) {
-  putchar('\n');
-
-  int i = command_find(argv[0]);
-  if (i != -1) {
-    uint8_t min_args = pgm_read_byte(&commands[i].min_args);
-    uint8_t max_args = pgm_read_byte(&commands[i].max_args);
-
-    if (argc <= min_args) return STAT_TOO_FEW_ARGUMENTS;
-    else if (max_args < argc - 1) return STAT_TOO_MANY_ARGUMENTS;
-    else {
-      command_cb_t cb = (command_cb_t)pgm_read_word(&commands[i].cb);
-      return cb(argc, argv);
-    }
-
-  } else if (argc != 1) return STAT_INVALID_COMMAND;
-
-  // Get or set variable
-  char *value = strchr(argv[0], '=');
-  if (value) {
-    *value++ = 0;
-    if (vars_set(argv[0], value)) return STAT_OK;
-
-  } else if (vars_print(argv[0])) {
-    putchar('\n');
-    return STAT_OK;
+static stat_t _dispatch(char *s) {
+  switch (*s) {
+#define CMD(CODE, NAME, SYNC, ...)              \
+    case COMMAND_##NAME: return command_##NAME(s);
+#include "command.def"
+#undef CMD
   }
 
-  STATUS_ERROR(STAT_UNRECOGNIZED_NAME, "'%s'", argv[0]);
-  return STAT_UNRECOGNIZED_NAME;
+  return STAT_INVALID_COMMAND;
 }
 
 
-char *_parse_arg(char **p) {
-  char *start = *p;
-  char *next = *p;
-
-  bool inQuote = false;
-  bool escape = false;
-
-  while (**p) {
-    char c = *(*p)++;
-
-    switch (c) {
-    case '\\':
-      if (!escape) {
-        escape = true;
-        continue;
-      }
-      break;
-
-    case ' ': case '\t':
-      if (!inQuote && !escape) goto done;
-      break;
-
-    case '"':
-      if (!escape) {
-        inQuote = !inQuote;
-        continue;
-      }
-      break;
-
-    default: break;
-    }
-
-    *next++ = c;
-    escape = false;
+static unsigned _size(char code) {
+  switch (code) {
+#define CMD(CODE, NAME, SYNC, ...)                                  \
+    IF(SYNC)(case COMMAND_##NAME: return command_##NAME##_size();)
+#include "command.def"
+#undef CMD
+  default: break;
   }
 
- done:
-  *next = 0;
-  return start;
+  return 0;
 }
 
 
-int command_parser(char *cmd) {
-  // Parse line
-  char *p = cmd + 1; // Skip `$`
-  int argc = 0;
-  char *argv[MAX_ARGS] = {0};
-
-  if (cmd[1] == '$' && !cmd[2]) {
-    report_request_full(); // Full report
-    return STAT_OK;
+static void _exec_cb(char code, uint8_t *data) {
+  switch (code) {
+#define CMD(CODE, NAME, SYNC, ...)                                      \
+    IF(SYNC)(case COMMAND_##NAME: command_##NAME##_exec(data); break;)
+#include "command.def"
+#undef CMD
+  default: break;
   }
-
-  while (argc < MAX_ARGS && *p) {
-    // Skip space
-    while (*p && isspace(*p)) *p++ = 0;
-
-    // Start of token
-    char *arg = _parse_arg(&p);
-    if (*arg) argv[argc++] = arg;
-  }
-
-  // Exec command
-  if (argc) return command_exec(argc, argv);
-
-  return STAT_OK;
 }
 
 
-static char *_command_next() {
-  if (_cmd) return _cmd;
+static void _i2c_cb(uint8_t *data, uint8_t length) {_dispatch((char *)data);}
 
-  // Get next command
-  _cmd = usart_readline();
-  if (!_cmd) return 0;
 
-  // Remove leading whitespace
-  while (*_cmd && isspace(*_cmd)) _cmd++;
+void command_init() {i2c_set_read_callback(_i2c_cb);}
+bool command_is_active() {return cmd.active;}
+unsigned command_get_count() {return cmd.count;}
 
-  // Remove trailing whitespace
-  for (size_t len = strlen(_cmd); len && isspace(_cmd[len - 1]); len--)
-    _cmd[len - 1] = 0;
 
-  return _cmd;
+void command_print_help() {
+  static const char fmt[] PROGMEM = "  %c  %-12"PRPSTR"  %"PRPSTR"\n";
+
+#define CMD(CODE, NAME, SYNC, HELP)                     \
+  printf_P(fmt, CODE, command_##NAME##_name, command_##NAME##_help);
+
+#include "command.def"
+#undef CMD
+}
+
+
+void command_flush_queue() {
+  sync_q_init();
+  cmd.count = 0;
+}
+
+
+void command_push(char code, void *_data) {
+  uint8_t *data = (uint8_t *)_data;
+  unsigned size = _size(code);
+
+  sync_q_push(code);
+  for (unsigned i = 0; i < size; i++) sync_q_push(*data++);
+
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) cmd.count++;
 }
 
 
@@ -245,99 +193,76 @@ bool command_callback() {
   // Special processing for synchronous commands
   if (_is_synchronous(*block)) {
     if (estop_triggered()) status = STAT_MACHINE_ALARMED;
-    else if (state_is_flushing()) status = STAT_NOOP; // Flush
+    else if (state_is_flushing()) status = STAT_NOP; // Flush
     else if (state_is_resuming() || _space() < _size(*block))
       return false; // Wait
   }
 
-  default:
-    if (estop_triggered()) {status = STAT_MACHINE_ALARMED; break;}
-    else if (state_is_flushing()) break; // Flush command
-    else if (!state_is_ready()) return;  // Wait for exec queue
-
-    // Parse and execute action
-    status = action_parse(_cmd);
-    if (status == STAT_QUEUE_FULL) return; // Try again later
+  // Dispatch non-empty commands
+  if (*block && status == STAT_OK) {
+    if (sync_q_empty()) command_reset_position();
+    status = _dispatch(block);
   }
 
-  _cmd = 0; // Command consumed
-  _active = true;
+  block = 0; // Command consumed
+
+  // Reporting
   report_request();
-  if (status && status != STAT_NOOP) status_error(status);
+  if (status && status != STAT_NOP) status_error(status);
 
   return true;
 }
 
 
-bool command_is_active() {return _active;}
-
-
-// Command functions
-void static print_command_help(int i) {
-  static const char fmt[] PROGMEM = "  $%-12"PRPSTR"  %"PRPSTR"\n";
-  const char *name = (const char *)pgm_read_word(&commands[i].name);
-  const char *help = (const char *)pgm_read_word(&commands[i].help);
-
-  printf_P(fmt, name, help);
+void command_set_position(const float position[AXES]) {
+  memcpy(cmd.position, position, sizeof(cmd.position));
 }
 
 
-uint8_t command_help(int argc, char *argv[]) {
-  if (argc == 2) {
-    int i = command_find(argv[1]);
+void command_get_position(float position[AXES]) {
+  memcpy(position, cmd.position, sizeof(cmd.position));
+}
 
-    if (i == -1) return STAT_UNRECOGNIZED_NAME;
-    else print_command_help(i);
 
-    return STAT_OK;
+void command_reset_position() {
+  float position[AXES];
+  exec_get_position(position);
+  command_set_position(position);
+}
+
+
+// Returns true if command queued
+// Called from interrupt
+bool command_exec() {
+  if (!cmd.count) {
+    cmd.last_empty = rtc_get_time();
+    state_idle();
+    return false;
   }
 
-  puts_P(PSTR("\nLine editing:\n"
-              "  ENTER     Submit current command line.\n"
-              "  BS        Backspace, delete last character.\n"
-              "  CTRL-X    Cancel current line entry."));
+  // On restart wait a bit to give queue a chance to fill
+  if (!exec_get_velocity() && cmd.count < EXEC_FILL_TARGET &&
+      !rtc_expired(cmd.last_empty + EXEC_DELAY)) return false;
 
-  puts_P(PSTR("\nCommands:"));
-  for (int i = 0; ; i++) {
-    const char *name = (const char *)pgm_read_word(&commands[i].name);
-    if (!name) break;
-    print_command_help(i);
-#ifdef __AVR__
-    wdt_reset();
-#endif
-  }
+  if (state_get() == STATE_HOLDING) return false;
 
-  puts_P(PSTR("\nVariables:"));
-  vars_print_help();
+  char code = (char)sync_q_next();
+  unsigned size = _size(code);
 
-  return STAT_OK;
+  static uint8_t data[INPUT_BUFFER_LEN];
+  for (int i = 0; i < size; i++)
+    data[i] = sync_q_next();
+
+  cmd.count--;
+  state_running();
+
+  _exec_cb(code, data);
+  report_request();
+
+  return true;
 }
 
 
-uint8_t command_report(int argc, char *argv[]) {
-  if (argc == 2) {
-    vars_report_all(var_parse_bool(argv[1]));
-    return STAT_OK;
-  }
-
-  vars_report_var(argv[1], var_parse_bool(argv[2]));
-  return STAT_OK;
-}
-
-
-uint8_t command_reboot(int argc, char *argv[]) {
-  hw_request_hard_reset();
-  return 0;
-}
-
-
-uint8_t command_messages(int argc, char *argv[]) {
-  status_help();
-  return 0;
-}
-
-
-uint8_t command_resume(int argc, char *argv[]) {
-  state_request_resume();
-  return 0;
-}
+// Var callbacks
+uint32_t get_id() {return cmd.id;}
+void set_id(uint32_t id) {cmd.id = id;}
