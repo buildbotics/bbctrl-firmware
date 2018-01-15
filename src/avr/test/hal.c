@@ -109,8 +109,6 @@ char *usart_readline() {
 }
 
 
-void coolant_set_mist(bool x) {DEBUG_CALL("%s", x ? "true" : "false");}
-void coolant_set_flood(bool x) {DEBUG_CALL("%s", x ? "true" : "false");}
 void spindle_set_speed(float speed) {DEBUG_CALL("%f", speed);}
 void spindle_stop() {}
 

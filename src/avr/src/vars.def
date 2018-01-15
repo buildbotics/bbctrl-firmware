@@ -118,8 +118,6 @@ VAR(speed,           s,  f32,   0,      1, 1, "Current spindle speed")
 VAR(tool,            t,  u8,    0,      1, 1, "Current tool")
 VAR(feed_override,   fo, f32,   0,      1, 1, "Feed rate override")
 VAR(speed_override,  so, f32,   0,      1, 1, "Spindle speed override")
-VAR(mist_coolant,    mc, bool,  0,      1, 1, "Mist coolant enabled")
-VAR(flood_coolant,   fc, bool,  0,      1, 1, "Flood coolant enabled")
 
 // System
 VAR(velocity,        v,  f32,   0,      0, 1, "Current velocity")
