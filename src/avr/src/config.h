@@ -68,7 +68,7 @@ enum {
   SPI_CS_A_PIN,
   SPI_CS_Z_PIN,
   SPIN_PWM_PIN,
-  SWITCH_1_PIN,
+  SWITCH_2_PIN,
   RS485_RO_PIN,
   RS485_DI_PIN,
 
@@ -77,7 +77,7 @@ enum {
   DIR_X_PIN,
   DIR_Y_PIN,
   STEP_A_PIN,
-  SWITCH_2_PIN,
+  SWITCH_1_PIN,
   DIR_Z_PIN,
   DIR_A_PIN,
 
