@@ -209,8 +209,8 @@ static void read_conversion(uint8_t ch) {
   case VOUT_ADC: regs[VOUT_REG]  = convert_voltage(data); break;
   case CS1_ADC:  regs[MOTOR_REG] = convert_current(data); break;
   case CS2_ADC:  regs[VDD_REG]   = convert_current(data); break;
-  case CS3_ADC:  regs[LOAD1_REG] = convert_current(data); break;
-  case CS4_ADC:  regs[LOAD2_REG] = convert_current(data); break;
+  case CS3_ADC:  regs[LOAD2_REG] = convert_current(data); break;
+  case CS4_ADC:  regs[LOAD1_REG] = convert_current(data); break;
   }
 }
 

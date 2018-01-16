@@ -29,6 +29,7 @@
 
 #include "pins.h"
 
+
 // Pins
 enum {
   AREF_PIN = PORT_A << 3,
@@ -49,16 +50,17 @@ enum {
   PWR_SCK_PIN,
   PC2_PIN,                 // NC
   PWR_RESET,
-  LOAD1_PIN,               // IN3
-  LOAD2_PIN,               // IN4
+  LOAD2_PIN,               // IN3
+  LOAD1_PIN,               // IN4
 };
+
 
 // ADC
 enum {
   CS1_ADC,  // Motor current
   CS2_ADC,  // Vdd current
-  CS3_ADC,  // Load 1 current
-  CS4_ADC,  // Load 2 current
+  CS3_ADC,  // Load 2 current
+  CS4_ADC,  // Load 1 current
   VOUT_ADC, // Motor voltage
   VIN_ADC,  // Input voltage
   NC6_ADC,
