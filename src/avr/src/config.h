@@ -210,6 +210,8 @@ enum {
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms
 #define CURRENT_SENSE_REF        2.75          // volts
 #define MAX_CURRENT              10            // amps
+#define VELOCITY_MULTIPLIER      1000.0
+#define ACCEL_MULTIPLIER         1000.0
 #define JERK_MULTIPLIER          1000000.0
 #define SYNC_QUEUE_SIZE          4096
 #define EXEC_FILL_TARGET         8

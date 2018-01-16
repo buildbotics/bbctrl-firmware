@@ -50,14 +50,21 @@
       "max-velocity": {
         "type": "float",
         "min": 0,
-        "unit": "mm/min",
-        "default": 6000,
+        "unit": "m/min",
+        "default": 5,
         "code": "vm"
+      },
+      "max-accel": {
+        "type": "float",
+        "min": 0,
+        "unit": "m/min²",
+        "default": 100,
+        "code": "am"
       },
       "max-jerk": {
         "type": "float",
         "min": 0,
-        "unit": "mm/min³",
+        "unit": "km/min³",
         "default": 50,
         "code": "jm"
       },

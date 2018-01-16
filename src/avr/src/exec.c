@@ -110,9 +110,9 @@ stat_t exec_next() {
 // Variable callbacks
 int32_t get_line() {return ex.line;}
 uint8_t get_tool() {return ex.tool;}
-float get_velocity() {return ex.velocity;}
-float get_acceleration() {return ex.accel;}
-float get_jerk() {return ex.jerk;}
+float get_velocity() {return ex.velocity / VELOCITY_MULTIPLIER;}
+float get_acceleration() {return ex.accel / ACCEL_MULTIPLIER;}
+float get_jerk() {return ex.jerk / JERK_MULTIPLIER;}
 float get_feed_override() {return ex.feed_override;}
 float get_speed_override() {return ex.spindle_override;}
 float get_axis_position(int axis) {return ex.position[axis];}

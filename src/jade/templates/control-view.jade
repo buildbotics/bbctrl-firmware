@@ -95,8 +95,8 @@ script#control-view-template(type="text/x-template")
     table.info
       tr
         th Velocity
-        td {{state.v || 0 | fixed 0}}
-        td mm/min
+        td {{state.v || 0 | fixed 2}}
+        td m/min
       tr
         th Line
         td {{0 <= state.ln ? state.ln : '-'}}

@@ -3,6 +3,7 @@ import serial
 import json
 import time
 import logging
+import traceback
 from collections import deque
 
 import bbctrl
@@ -149,7 +150,7 @@ class AVR():
             if self.ctrl.ioloop.READ & events: self.serial_read()
             if self.ctrl.ioloop.WRITE & events: self.serial_write()
         except Exception as e:
-            log.error('Serial handler error: %s', e)
+            log.error('Serial handler error: %s', traceback.format_exc())
 
 
     def serial_write(self):

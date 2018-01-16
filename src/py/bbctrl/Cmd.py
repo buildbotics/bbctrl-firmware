@@ -18,8 +18,8 @@ FLUSH    = 'F'
 STEP     = 'S'
 RESUME   = 'c'
 
-SEEK_OPEN  = 1 << 0
-SEEK_ERROR = 1 << 1
+SEEK_ACTIVE = 1 << 0
+SEEK_ERROR  = 1 << 1
 
 
 def encode_float(x):
@@ -68,3 +68,25 @@ def speed(speed): return '#s=:' + encode_float(speed)
 def dwell(seconds): return 'd' + encode_float(seconds)
 def pause(optional = False): 'P' + ('1' if optional else '0')
 def jog(axes): return 'j' + encode_axes(axes)
+
+
+def seek(switch, active, error):
+    cmd = SEEK
+
+    if switch == 'probe': cmd += '1'
+    elif switch == 'x-min': cmd += '2'
+    elif switch == 'x-max': cmd += '3'
+    elif switch == 'y-min': cmd += '4'
+    elif switch == 'y-max': cmd += '5'
+    elif switch == 'z-min': cmd += '6'
+    elif switch == 'z-max': cmd += '7'
+    elif switch == 'a-min': cmd += '8'
+    elif switch == 'a-max': cmd += '9'
+    else: raise Exception('Unsupported switch "%s"' % switch)
+
+    flags = 0
+    if active: flags |= SEEK_ACTIVE
+    if error:  flags |= SEEK_ERROR
+    cmd += chr(flags + ord('0'))
+
+    return cmd

@@ -124,8 +124,6 @@ float axis_get_vector_length(const float a[], const float b[]) {
 
 AXIS_SET(homed, bool)
 
-AXIS_GET(velocity_max, float, 0)
-AXIS_GET(accel_max, float, 0)
 AXIS_GET(homed, bool, false)
 AXIS_GET(homing_mode, homing_mode_t, HOMING_MANUAL)
 AXIS_GET(radius, float, 0)
@@ -136,13 +134,24 @@ AXIS_GET(latch_velocity, float, 0)
 AXIS_GET(zero_backoff, float, 0)
 AXIS_GET(latch_backoff, float, 0)
 
-/* Note on jerk functions
- *
- * Jerk values can be rather large.  Jerk values are stored in the system in
- * truncated format; values are divided by 1,000,000 then multiplied before use.
- *
- * The axis_jerk() functions expect the jerk in divided by 1,000,000 form.
- */
+
+/// Velocity is scaled by 1,000.
+float axis_get_velocity_max(int axis) {
+  int motor = axis_get_motor(axis);
+  return motor == -1 ? 0 : axes[motor].velocity_max * VELOCITY_MULTIPLIER;
+}
+AXIS_VAR_GET(velocity_max, float)
+
+
+/// Acceleration is scaled by 1,000.
+float axis_get_accel_max(int axis) {
+  int motor = axis_get_motor(axis);
+  return motor == -1 ? 0 : axes[motor].accel_max * ACCEL_MULTIPLIER;
+}
+AXIS_VAR_GET(accel_max, float)
+
+
+/// Jerk is scaled by 1,000,000.
 float axis_get_jerk_max(int axis) {
   int motor = axis_get_motor(axis);
   return motor == -1 ? 0 : axes[motor].jerk_max * JERK_MULTIPLIER;
@@ -152,6 +161,7 @@ AXIS_VAR_GET(jerk_max, float)
 
 AXIS_VAR_SET(velocity_max, float)
 AXIS_VAR_SET(accel_max, float)
+AXIS_VAR_SET(jerk_max, float)
 AXIS_VAR_SET(radius, float)
 AXIS_VAR_SET(travel_min, float)
 AXIS_VAR_SET(travel_max, float)
@@ -160,7 +170,6 @@ AXIS_VAR_SET(search_velocity, float)
 AXIS_VAR_SET(latch_velocity, float)
 AXIS_VAR_SET(zero_backoff, float)
 AXIS_VAR_SET(latch_backoff, float)
-AXIS_VAR_SET(jerk_max, float)
 
 
 float get_homing_dir(int axis) {

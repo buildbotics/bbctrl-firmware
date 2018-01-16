@@ -42,10 +42,10 @@ class Planner():
 
         # Planner config
         self.config = {
-            "start": start,
-            "max-vel": get_vector('vm'),
-            "max-accel": get_vector('am'),
-            "max-jerk": get_vector('jm', 1000000),
+            "start":     start,
+            "max-vel":   get_vector('vm', 1000),
+            "max-accel": get_vector('am', 1000),
+            "max-jerk":  get_vector('jm', 1000000),
             # TODO junction deviation & accel
             }
         log.info('Planner config: ' + json.dumps(self.config))
@@ -94,6 +94,8 @@ class Planner():
         if type == 'speed': return Cmd.speed(block['speed'])
         if type == 'dwell': return Cmd.dwell(block['seconds'])
         if type == 'pause': return Cmd.pause(block['optional'])
+        if type == 'seek':
+            return Cmd.seek(block['switch'], block['active'], block['error'])
 
         raise Exception('Unknown planner type "%s"' % type)
 

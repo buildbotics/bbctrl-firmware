@@ -124,6 +124,7 @@ void switch_rtc_callback() {
 
 
 bool switch_is_active(int index) {
+  // NOTE, switch inputs are active lo
   switch (switches[index].type) {
   case SW_DISABLED: break; // A disabled switch cannot be active
   case SW_NORMALLY_OPEN: return !switches[index].state;

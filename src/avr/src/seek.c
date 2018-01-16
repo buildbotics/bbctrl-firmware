@@ -31,6 +31,7 @@
 #include "switch.h"
 #include "estop.h"
 #include "util.h"
+#include "state.h"
 
 #include <stdint.h>
 
@@ -92,6 +93,4 @@ stat_t command_seek(char *cmd) {
 
 
 unsigned command_seek_size() {return sizeof(seek_t);}
-
-
 void command_seek_exec(void *data) {seek = *(seek_t *)data;}
