@@ -113,8 +113,21 @@ output_state_t outputs_get_state(uint8_t pin) {
 }
 
 
+// Var callbacks
 uint8_t get_output_state(uint8_t id) {
   return OUTS <= id ? OUT_TRI : outputs[id].state;
+}
+
+
+bool get_output_active(uint8_t id) {
+  return OUTS <= id ? false : outputs[id].active;
+}
+
+
+void set_output_active(uint8_t id, bool active) {
+  if (OUTS <= id) return;
+  outputs[id].active = active;
+  _update_state(&outputs[id]);
 }
 
 

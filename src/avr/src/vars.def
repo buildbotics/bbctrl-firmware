@@ -81,6 +81,7 @@ VAR(axis_position,    p,  f32,   AXES,  1, 1, "Axis position")
 VAR(axis_can_home,    ch, bool,  AXES,  0, 1, "Axis can home")
 
 // Outputs
+VAR(output_active,   oa, bool,  OUTS,   1, 1, "Output pin active")
 VAR(output_state,    os, u8,    OUTS,   0, 1, "Output pin state")
 VAR(output_mode,     om, u8,    OUTS,   1, 1, "Output pin mode")
 
