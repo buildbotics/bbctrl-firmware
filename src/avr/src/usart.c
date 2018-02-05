@@ -191,6 +191,12 @@ int8_t usart_getc() {
 }
 
 
+/*** Line editing features:
+ *
+ *   ENTER     Submit current command line.
+ *   BS        Backspace, delete last character.
+ *   CTRL-X    Cancel current line entry.
+ */
 char *usart_readline() {
   static char line[INPUT_BUFFER_LEN];
   static int i = 0;

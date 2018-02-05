@@ -91,7 +91,7 @@ static struct {
 // Help & name
 #define CMD(CODE, NAME, SYNC, HELP)                          \
   static const char command_##NAME##_name[] PROGMEM = #NAME; \
-  static const char command_##NAME##_help[] PROGMEM = #HELP;
+  static const char command_##NAME##_help[] PROGMEM = HELP;
 #include "command.def"
 #undef CMD
 
@@ -153,10 +153,13 @@ bool command_is_active() {return cmd.active;}
 unsigned command_get_count() {return cmd.count;}
 
 
-void command_print_help() {
-  static const char fmt[] PROGMEM = "  %c  %-12"PRPSTR"  %"PRPSTR"\n";
+void command_print_json() {
+  bool first = true;
+  static const char fmt[] PROGMEM =
+    "\"%c\":{\"name\":\"%"PRPSTR"\",\"help\":\"%"PRPSTR"\"}";
 
-#define CMD(CODE, NAME, SYNC, HELP)                     \
+#define CMD(CODE, NAME, SYNC, HELP)                                     \
+  if (first) first = false; else putchar(',');                          \
   printf_P(fmt, CODE, command_##NAME##_name, command_##NAME##_help);
 
 #include "command.def"

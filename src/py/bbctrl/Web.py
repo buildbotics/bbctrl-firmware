@@ -206,6 +206,7 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
     def put_ok(self, value): self.ctrl.avr.override_speed(float(value))
 
 
+# Used by CAMotics
 class WSConnection(tornado.websocket.WebSocketHandler):
     def __init__(self, app, request, **kwargs):
         super(WSConnection, self).__init__(app, request, **kwargs)
@@ -220,23 +221,20 @@ class WSConnection(tornado.websocket.WebSocketHandler):
 
 
     def open(self):
-        self.clients = self.ctrl.web.ws_clients
-
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.count = 0;
-
-        self.clients.append(self)
-        self.write_message(self.ctrl.avr.vars)
+        self.sid = self.ctrl.state.add_listener(lambda x: self.write_message(x))
 
 
     def on_close(self):
         if self.timer is not None: self.ctrl.ioloop.remove_timeout(self.timer)
-        self.clients.remove(self)
+        self.ctrl.state.remove_listener(self.sid)
 
 
     def on_message(self, msg): pass
 
 
+# Used by Web frontend
 class SockJSConnection(sockjs.tornado.SockJSConnection):
     def heartbeat(self):
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
@@ -246,18 +244,16 @@ class SockJSConnection(sockjs.tornado.SockJSConnection):
 
     def on_open(self, info):
         self.ctrl = self.session.server.ctrl
-        self.clients = self.ctrl.web.sockjs_clients
 
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.count = 0;
 
-        self.clients.append(self)
-        self.send(self.ctrl.avr.vars)
+        self.sid = self.ctrl.state.add_listener(lambda x: self.send(x))
 
 
     def on_close(self):
         self.ctrl.ioloop.remove_timeout(self.timer)
-        self.clients.remove(self)
+        self.ctrl.state.remove_listener(self.sid)
 
 
     def on_message(self, data):
@@ -273,8 +269,6 @@ class StaticFileHandler(tornado.web.StaticFileHandler):
 class Web(tornado.web.Application):
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.ws_clients = []
-        self.sockjs_clients = []
 
         handlers = [
             (r'/websocket', WSConnection),
@@ -319,10 +313,3 @@ class Web(tornado.web.Application):
             sys.exit(1)
 
         log.info('Listening on http://%s:%d/', ctrl.args.addr, ctrl.args.port)
-
-
-    def broadcast(self, msg):
-        if len(self.sockjs_clients):
-            self.sockjs_clients[0].broadcast(self.sockjs_clients, msg)
-
-        for client in self.ws_clients: client.write_message(msg)

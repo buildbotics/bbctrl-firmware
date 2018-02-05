@@ -91,7 +91,7 @@ static void _set_state(state_t state) {
 }
 
 
-void state_set_hold_reason(hold_reason_t reason) {
+static void _set_hold_reason(hold_reason_t reason) {
   if (s.hold_reason == reason) return; // No change
   s.hold_reason = reason;
   report_request();
@@ -110,7 +110,7 @@ bool state_is_quiescent() {
 
 void state_seek_hold() {
   if (state_get() == STATE_RUNNING) {
-    state_set_hold_reason(HOLD_REASON_SEEK);
+    _set_hold_reason(HOLD_REASON_SEEK);
     _set_state(STATE_STOPPING);
   }
 }
@@ -121,7 +121,7 @@ void state_holding() {_set_state(STATE_HOLDING);}
 
 void state_optional_pause() {
   if (s.optional_pause_requested) {
-    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
+    _set_hold_reason(HOLD_REASON_USER_PAUSE);
     state_holding();
   }
 }
@@ -146,21 +146,21 @@ void state_estop() {_set_state(STATE_ESTOPPED);}
  *
  *   A flush request received:
  *     - during motion is ignored but not reset
- *     - during a pause is deferred until the feedpause enters HOLDING state.
+ *     - during a hold is deferred until HOLDING state is entered.
  *       I.e. until deceleration is complete.
  *     - when stopped or holding and the exec is not busy, is honored
  *
  *   A start request received:
  *     - during motion is ignored and reset
- *     - during a pause is deferred until the feedpause enters HOLDING state.
+ *     - during a hold is deferred until HOLDING state is entered.
  *       I.e. until deceleration is complete.  If a queue flush request is also
  *       present the queue flush is done first
  *     - when stopped is honored and starts to run anything in the queue
  */
 void state_callback() {
   if (s.pause_requested || s.flush_requested) {
+    if (s.pause_requested) _set_hold_reason(HOLD_REASON_USER_PAUSE);
     s.pause_requested = false;
-    state_set_hold_reason(HOLD_REASON_USER_PAUSE);
 
     if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
   }

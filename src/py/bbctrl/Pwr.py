@@ -38,8 +38,10 @@ class Pwr():
                 if i == TEMP_REG: value -= 273
                 else: value /= 100.0
 
+                key = ['temp', 'vin', 'vout', 'motor', 'load1', 'load2'][i]
+                self.ctrl.state.set(key, value)
+
                 if self.regs[i] != value:
-                    key = ['temp', 'vin', 'vout', 'motor', 'load1', 'load2'][i]
                     update[key] = value
                     self.regs[i] = value
 
@@ -56,6 +58,6 @@ class Pwr():
         self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
         self.lcd_page.text('%5.1fA Ld2' % self.regs[LOAD2_REG], 10, 2)
 
-        if len(update): self.ctrl.web.broadcast(update)
+        if len(update): self.ctrl.state.update(update)
 
         self.ctrl.ioloop.call_later(0.25, self._update)

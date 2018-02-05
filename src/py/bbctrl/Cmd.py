@@ -65,6 +65,13 @@ def line(id, target, exitVel, maxAccel, maxJerk, times):
 
 def tool(tool): return '#t=%d' % tool
 def speed(speed): return '#s=:' + encode_float(speed)
+
+def output(port, value):
+    if port == 'mist':  return '#1oa=' + ('1' if value else '0')
+    if port == 'flood': return '#2oa=' + ('1' if value else '0')
+    raise Exception('Unsupported output "%s"' % port)
+
+
 def dwell(seconds): return 'd' + encode_float(seconds)
 def pause(optional = False): 'P' + ('1' if optional else '0')
 def jog(axes): return 'j' + encode_axes(axes)

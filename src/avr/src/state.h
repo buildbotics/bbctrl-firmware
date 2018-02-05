@@ -56,7 +56,6 @@ PGM_P state_get_pgmstr(state_t state);
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason);
 
 state_t state_get();
-void state_set_hold_reason(hold_reason_t reason);
 
 bool state_is_flushing();
 bool state_is_resuming();

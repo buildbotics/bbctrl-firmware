@@ -43,4 +43,4 @@ void vars_report_var(const char *code, bool enable);
 stat_t vars_print(const char *name);
 stat_t vars_set(const char *name, const char *value);
 float vars_get_number(const char *name);
-void vars_print_help();
+void vars_print_json();

@@ -101,8 +101,8 @@ static void _current_set(current_t *c, float current) {
   c->current = current;
 
   float torque_over_gain = current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF;
-
   float gain = 0;
+
   if (torque_over_gain < 1.0 / 40) {
     c->isgain = DRV8711_CTRL_ISGAIN_40;
     gain = 40;
@@ -211,9 +211,12 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       break;
 
     case DRV8711_CTRL_REG: // Set microsteps
+      // NOTE, we disable the driver if it's not active.  Otherwise, the chip
+      // gets hot if when idling with the driver enabled.
       *command = (*command & 0xfc86) | _driver_get_isgain(driver) |
         (drv->mode << 3) |
-        (_driver_get_enabled(driver) ? DRV8711_CTRL_ENBL_bm : 0);
+        ((_driver_get_enabled(driver) && _driver_get_torque(driver)) ?
+         DRV8711_CTRL_ENBL_bm : 0);
       break;
 
     default: break;

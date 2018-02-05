@@ -117,7 +117,6 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
 }
 
 
-#else
 // Analytical version
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
   float dist = 0;
@@ -151,31 +150,7 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
 #endif
 
 
-static float _limit_position(int axis, float p) {
-  jog_axis_t *a = &jr.axes[axis];
-
-  // Check if axis is homed
-  if (!axis_get_homed(axis)) return p;
-
-  // Check if limits are enabled
-  float min = axis_get_travel_min(axis);
-  float max = axis_get_travel_max(axis);
-  if (min == max) return p;
-
-  if (a->velocity < 0 && p < min) {
-    a->velocity = 0;
-    return min;
-  }
-
-  if (0 < a->velocity && max < p) {
-    a->velocity = 0;
-    return max;
-  }
-
-  return p;
-}
-
-
+#if 0
 static bool _soft_limit(int axis, float V, float A) {
   jog_axis_t *a = &jr.axes[axis];
 
@@ -197,6 +172,7 @@ static bool _soft_limit(int axis, float V, float A) {
 
   return false;
 }
+#endif
 
 
 static float _compute_axis_velocity(int axis) {
@@ -206,7 +182,7 @@ static float _compute_axis_velocity(int axis) {
   float Vt = fabs(a->target);
 
   // Apply soft limits
-  if (_soft_limit(axis, V, a->accel)) Vt = MIN_VELOCITY;
+  //if (_soft_limit(axis, V, a->accel)) Vt = MIN_VELOCITY;
 
   // Check if velocity has reached its target
   if (fp_EQ(V, Vt)) {
@@ -251,6 +227,7 @@ stat_t jog_exec() {
 
   // Check if we are done
   if (jr.done) {
+    exec_set_velocity(0);
     exec_set_cb(0);
     jr.active = false;
 
@@ -260,10 +237,8 @@ stat_t jog_exec() {
   // Compute target from velocity
   float target[AXES];
   exec_get_position(target);
-  for (int axis = 0; axis < AXES; axis++) {
+  for (int axis = 0; axis < AXES; axis++)
     target[axis] += jr.axes[axis].velocity * SEGMENT_TIME;
-    target[axis] = _limit_position(axis, target[axis]);
-  }
 
   // Set velocity and target
   exec_set_velocity(sqrt(velocity_sqr));

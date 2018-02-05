@@ -327,15 +327,22 @@ float vars_get_number(const char *name) {
 }
 
 
-void vars_print_help() {
+void vars_print_json() {
+  bool first = true;
   static const char fmt[] PROGMEM =
-    "  $%-5s %-20"PRPSTR" %-16"PRPSTR"  %"PRPSTR"\n";
+    "\"%s\":{\"name\":\"%"PRPSTR"\",\"type\":\"%"PRPSTR"\","
+    "\"help\":\"%"PRPSTR"\"";
+  static const char index_fmt[] PROGMEM = ",\"index\":\"%s\"";
 
   // Save and disable watchdog
   uint8_t wd_state = hw_disable_watchdog();
 
-#define VAR(NAME, CODE, TYPE, ...)                                      \
-  printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm(), NAME##_help);
+#define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
+  if (first) first = false; else putchar(',');                          \
+  printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm(),       \
+           NAME##_help);                                                \
+  IF(INDEX)(printf_P(index_fmt, INDEX##_LABEL));                        \
+  putchar('}');
 #include "vars.def"
 #undef VAR
 

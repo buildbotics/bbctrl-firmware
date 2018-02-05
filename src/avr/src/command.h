@@ -44,7 +44,7 @@ typedef enum {
 void command_init();
 bool command_is_active();
 unsigned command_get_count();
-void command_print_help();
+void command_print_json();
 void command_flush_queue();
 void command_push(char code, void *data);
 bool command_callback();

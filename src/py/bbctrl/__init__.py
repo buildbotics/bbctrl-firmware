@@ -21,6 +21,7 @@ from bbctrl.Ctrl import Ctrl
 from bbctrl.Pwr import Pwr
 from bbctrl.I2C import I2C
 from bbctrl.Planner import Planner
+from bbctrl.State import State
 import bbctrl.Cmd as Cmd
 
 
@@ -65,9 +66,17 @@ def run():
     args = parse_args()
 
     # Init logging
-    log = logging.getLogger()
-    log.setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    if args.log: log.addHandler(logging.FileHandler(args.log, mode = 'w'))
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    f = logging.Formatter('{levelname[0]}:{name}:{message}', style = '{')
+    h = logging.StreamHandler()
+    h.setFormatter(f)
+    root.addHandler(h)
+
+    if args.log:
+        h = logging.FileHandler(args.log)
+        h.setFormatter(f)
+        root.addHandler(h)
 
     # Set signal handler
     signal.signal(signal.SIGTERM, on_exit)

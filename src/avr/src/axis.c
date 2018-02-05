@@ -42,16 +42,7 @@ int motor_map[AXES] = {-1, -1, -1, -1, -1, -1};
 typedef struct {
   float velocity_max;    // max velocity in mm/min or deg/min
   float accel_max;       // max acceleration in mm/min^2
-  float travel_max;      // max work envelope for soft limits
-  float travel_min;      // min work envelope for soft limits
   float jerk_max;        // max jerk (Jm) in km/min^3
-  float radius;          // radius in mm for rotary axes
-  float search_velocity; // homing search velocity
-  float latch_velocity;  // homing latch velocity
-  float latch_backoff;   // backoff from switches prior to homing latch movement
-  float zero_backoff;    // backoff from switches for machine zero
-  homing_mode_t homing_mode;
-  bool homed;
 } axis_t;
 
 
@@ -122,19 +113,6 @@ float axis_get_vector_length(const float a[], const float b[]) {
   AXIS_VAR_SET(NAME, TYPE)
 
 
-AXIS_SET(homed, bool)
-
-AXIS_GET(homed, bool, false)
-AXIS_GET(homing_mode, homing_mode_t, HOMING_MANUAL)
-AXIS_GET(radius, float, 0)
-AXIS_GET(travel_min, float, 0)
-AXIS_GET(travel_max, float, 0)
-AXIS_GET(search_velocity, float, 0)
-AXIS_GET(latch_velocity, float, 0)
-AXIS_GET(zero_backoff, float, 0)
-AXIS_GET(latch_backoff, float, 0)
-
-
 /// Velocity is scaled by 1,000.
 float axis_get_velocity_max(int axis) {
   int motor = axis_get_motor(axis);
@@ -162,64 +140,3 @@ AXIS_VAR_GET(jerk_max, float)
 AXIS_VAR_SET(velocity_max, float)
 AXIS_VAR_SET(accel_max, float)
 AXIS_VAR_SET(jerk_max, float)
-AXIS_VAR_SET(radius, float)
-AXIS_VAR_SET(travel_min, float)
-AXIS_VAR_SET(travel_max, float)
-AXIS_VAR_SET(homing_mode, homing_mode_t)
-AXIS_VAR_SET(search_velocity, float)
-AXIS_VAR_SET(latch_velocity, float)
-AXIS_VAR_SET(zero_backoff, float)
-AXIS_VAR_SET(latch_backoff, float)
-
-
-float get_homing_dir(int axis) {
-  switch (axes[axis].homing_mode) {
-  case HOMING_MANUAL: break;
-  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return -1;
-  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return 1;
-  }
-  return 0;
-}
-
-
-float get_home(int axis) {
-  switch (axes[axis].homing_mode) {
-  case HOMING_MANUAL: break;
-  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN: return get_travel_min(axis);
-  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX: return get_travel_max(axis);
-  }
-  return NAN;
-}
-
-
-static int _get_homing_switch(int axis) {
-  switch (axes[axis].homing_mode) {
-  case HOMING_MANUAL: break;
-
-  case HOMING_STALL_MIN: case HOMING_SWITCH_MIN:
-    switch (axis) {
-    case AXIS_X: return SW_MIN_X;
-    case AXIS_Y: return SW_MIN_Y;
-    case AXIS_Z: return SW_MIN_Z;
-    case AXIS_A: return SW_MIN_A;
-    }
-    break;
-
-  case HOMING_STALL_MAX: case HOMING_SWITCH_MAX:
-    switch (axis) {
-    case AXIS_X: return SW_MAX_X;
-    case AXIS_Y: return SW_MAX_Y;
-    case AXIS_Z: return SW_MAX_Z;
-    case AXIS_A: return SW_MAX_A;
-    }
-    break;
-  }
-
-  return -1;
-}
-
-
-bool get_axis_can_home(int axis) {
-  return axis_is_enabled(axis) && axes[axis].homing_mode != HOMING_MANUAL &&
-    switch_is_enabled(_get_homing_switch(axis));
-}

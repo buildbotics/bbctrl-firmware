@@ -82,7 +82,7 @@ class Config(object):
         elif spec['type'] == 'bool': value = 1 if value else 0
         elif spec['type'] == 'percent': value /= 100.0
 
-        self.ctrl.avr.set(index, spec['code'], value)
+        self.ctrl.state.config(str(index) + spec['code'], value)
 
 
     def encode_category(self, index, config, category, with_defaults):
@@ -110,4 +110,4 @@ class Config(object):
                                        with_defaults)
 
 
-    def config_avr(self): self.update(self.load(), True)
+    def reload(self): self.update(self.load(), True)

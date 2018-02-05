@@ -59,16 +59,11 @@ void command_out_exec(void *data) {}
 
 
 stat_t command_help(char *cmd) {
-  puts_P(PSTR("\nLine editing:\n"
-              "  ENTER     Submit current command line.\n"
-              "  BS        Backspace, delete last character.\n"
-              "  CTRL-X    Cancel current line entry."));
-
-  puts_P(PSTR("\nCommands:"));
-  command_print_help();
-
-  puts_P(PSTR("\nVariables:"));
-  vars_print_help();
+  printf_P(PSTR("\n{\"commands\":{"));
+  command_print_json();
+  printf_P(PSTR("},\"variables\":{"));
+  vars_print_json();
+  printf_P(PSTR("}}\n"));
 
   return STAT_OK;
 }

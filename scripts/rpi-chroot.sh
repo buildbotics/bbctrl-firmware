@@ -33,9 +33,7 @@ trap cleanup EXIT
 
 # set up image as loop device
 losetup $LOOP_DEV "$IMAGE"
-if [ ! -e ${LOOP_DEV}p1 ]; then
-    partprobe $LOOP_DEV
-fi
+partprobe $LOOP_DEV
 
 # check and fix filesystems
 fsck -f ${LOOP_DEV}p1

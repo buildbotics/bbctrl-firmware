@@ -12,9 +12,10 @@ script#control-view-template(type="text/x-template")
         tr.axis(:class="{'homed': is_homed('#{axis}'), 'axis-#{axis}': true}",
           v-if="enabled('#{axis}')")
           th.name #{axis}
-          td.position {{state.#{axis}w || 0 | fixed 3}}
+          td.position
+            | {{(state.#{axis}p + get_offset('#{axis}')) || 0 | fixed 3}}
           td.absolute {{state.#{axis}p || 0 | fixed 3}}
-          td.offset {{(state.#{axis}w - state.#{axis}p) || 0 | fixed 3}}
+          td.offset {{get_offset('#{axis}') | fixed 3}}
           th.actions
             button.pure-button(:disabled="state.x != 'READY'",
               title="Set {{'#{axis}' | upper}} axis position.",
@@ -157,7 +158,7 @@ script#control-view-template(type="text/x-template")
       label(for="tab2") MDI
 
       input#tab3(type="radio", name="tabs")
-      label(for="tab3") Manual
+      label(for="tab3") Jog
 
       input#tab4(type="radio", name="tabs")
       label(for="tab4") Console

@@ -259,9 +259,7 @@ module.exports = {
     },
 
 
-    get_offset: function (axis) {
-      return this.state[axis + 'w'] - this.state[axis + 'p'];
-    },
+    get_offset: function (axis) {return this.state['offset_' + axis] || 0},
 
 
     set_position: function (axis, position) {

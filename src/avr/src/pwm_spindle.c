@@ -143,10 +143,6 @@ float get_spin_min_duty() {return spindle.min_duty * 100;}
 void set_spin_min_duty(float value) {spindle.min_duty = value / 100;}
 float get_spin_max_duty() {return spindle.max_duty * 100;}
 void set_spin_max_duty(float value) {spindle.max_duty = value / 100;}
-float get_spin_up() {return 0;}    // TODO
-void set_spin_up(float value) {}   // TODO
-float get_spin_down() {return 0;}  // TODO
-void set_spin_down(float value) {} // TODO
 uint16_t get_spin_freq() {return spindle.freq;}
 void set_spin_freq(uint16_t value) {spindle.freq = value;}
 bool get_pwm_invert() {return spindle.pwm_invert;}

@@ -11,45 +11,39 @@ import bbctrl.Cmd as Cmd
 
 log = logging.getLogger('AVR')
 
-machine_state_vars = '''
-  xp yp zp ap bp cp u s f t fm pa cs ao pc dm ad fo so mc fc
-'''.split()
 
-# Axis homing procedure
-#   - Set axis unhomed
-#   - Find switch
-#   - Backoff switch
-#   - Find switch more accurately
-#   - Backoff to machine zero
-#   - Set axis home position
+# Axis homing procedure:
+#
+#   Set axis unhomed
+#   Seek closed (home_dir * (travel_max - travel_min) * 1.5) at search_velocity
+#   Seek open (home_dir * -latch_backoff) at latch_vel
+#   Seek closed (home_dir * latch_backoff * 1.5) at latch_vel
+#   Rapid to (home_dir * -zero_backoff + seek_position)
+#   Set axis homed and home position
+
 axis_homing_procedure = '''
-  G28.2 %(axis)s0 F[#<%(axis)s.sv>]
-  G38.6 %(axis)s[#<%(axis)s.hd> * [#<%(axis)s.tm> - #<%(axis)s.tn>] * 1.5]
-  G38.8 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.lb>] F[#<%(axis)s.lv>]
-  G38.6 %(axis)s[#<%(axis)s.hd> * #<%(axis)s.lb> * 1.5]
-  G0 %(axis)s[#<%(axis)s.hd> * -#<%(axis)s.zb> + #<%(axis)sp>]
-  G28.3 %(axis)s[#<%(axis)s.hp>]
+  G28.2 %(axis)s0 F[#<_%(axis)s_sv>]
+  G38.6 %(axis)s[#<_%(axis)s_hd> * [#<_%(axis)s_tm> - #<_%(axis)s_tn>] * 1.5]
+  G38.8 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_lb>] F[#<_%(axis)s_lv>]
+  G38.6 %(axis)s[#<_%(axis)s_hd> * #<_%(axis)s_lb> * 1.5]
+  G0 G53 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_zb> + #<_%(axis)s_sp>]
+  G28.3 %(axis)s[#<_%(axis)s_hp>]
 '''
 
-# Set axis unhomed
-# Seek closed (home_dir * (travel_max - travel_min) * 1.5) at search_vel
-# Seek open (home_dir * -latch_backoff) at latch_vel
-# Seek closed (home_dir * latch_backoff * 1.5) at latch_vel
-# Rapid to (home_dir * -(zero_backoff + switched_position))
-# Set axis homed and home_position
 
 
 class AVR():
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
-        self.vars = {}
-        self.stream = None
         self.queue = deque()
         self.in_buf = ''
         self.command = None
+
         self.lcd_page = ctrl.lcd.add_new_page()
         self.install_page = True
+
+        ctrl.state.add_listener(lambda x: self._update_state(x))
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -61,38 +55,13 @@ class AVR():
             log.warning('Failed to open serial port: %s', e)
 
         if self.sp is not None:
-            ctrl.ioloop.add_handler(self.sp, self.serial_handler,
+            ctrl.ioloop.add_handler(self.sp, self._serial_handler,
                                     ctrl.ioloop.READ)
 
         self.i2c_addr = ctrl.args.avr_addr
 
 
-    def _start_sending_gcode(self, path):
-        if self.stream is not None:
-            raise Exception('Busy, cannot start new GCode file')
-
-        log.info('Running ' + path)
-        self.stream = bbctrl.Planner(self.ctrl, path)
-        self.set_write(True)
-
-
-    def _stop_sending_gcode(self):
-        if self.stream is not None:
-            self.stream.reset()
-            self.stream = None
-
-
-    def connect(self):
-        try:
-            # Reset AVR communication
-            self.stop();
-            self.ctrl.config.config_avr()
-            self._restore_machine_state()
-
-        except Exception as e:
-            log.warning('Connect failed: %s', e)
-            self.ctrl.ioloop.call_later(1, self.connect)
-
+    def _is_busy(self): return self.ctrl.planner.is_running()
 
     def _i2c_command(self, cmd, byte = None, word = None):
         log.info('I2C: ' + cmd)
@@ -117,27 +86,18 @@ class AVR():
                     raise
 
 
-    def _restore_machine_state(self):
-        for var in machine_state_vars:
-            if var in self.vars:
-                value = self.vars[var]
-                if isinstance(value, str): value = '"' + value + '"'
-                if isinstance(value, bool): value = int(value)
+    def _start_sending_gcode(self, path):
+        if self._is_busy(): raise Exception('Busy, cannot start new GCode file')
 
-                self.set('', var, value)
-
-        self.queue_command('$$') # Refresh all vars, must come after above
+        log.info('Running ' + path)
+        self.ctrl.planner.load(path)
+        self._set_write(True)
 
 
-    def report(self): self._i2c_command(Cmd.REPORT)
+    def _stop_sending_gcode(self): self.ctrl.planner.reset()
 
 
-    def load_next_command(self, cmd):
-        log.info('< ' + json.dumps(cmd).strip('"'))
-        self.command = bytes(cmd.strip() + '\n', 'utf-8')
-
-
-    def set_write(self, enable):
+    def _set_write(self, enable):
         if self.sp is None: return
 
         flags = self.ctrl.ioloop.READ
@@ -145,22 +105,32 @@ class AVR():
         self.ctrl.ioloop.update_handler(self.sp, flags)
 
 
-    def serial_handler(self, fd, events):
+    def _load_next_command(self, cmd):
+        log.info('< ' + json.dumps(cmd).strip('"'))
+        self.command = bytes(cmd.strip() + '\n', 'utf-8')
+
+
+    def _queue_command(self, cmd):
+        self.queue.append(cmd)
+        self._set_write(True)
+
+
+    def _serial_handler(self, fd, events):
         try:
-            if self.ctrl.ioloop.READ & events: self.serial_read()
-            if self.ctrl.ioloop.WRITE & events: self.serial_write()
+            if self.ctrl.ioloop.READ & events: self._serial_read()
+            if self.ctrl.ioloop.WRITE & events: self._serial_write()
         except Exception as e:
             log.error('Serial handler error: %s', traceback.format_exc())
 
 
-    def serial_write(self):
+    def _serial_write(self):
         # Finish writing current command
         if self.command is not None:
             try:
                 count = self.sp.write(self.command)
 
             except Exception as e:
-                self.set_write(False)
+                self._set_write(False)
                 raise e
 
             self.command = self.command[count:]
@@ -168,20 +138,20 @@ class AVR():
             self.command = None
 
         # Load next command from queue
-        if len(self.queue): self.load_next_command(self.queue.popleft())
+        if len(self.queue): self._load_next_command(self.queue.popleft())
 
         # Load next GCode command, if running or paused
-        elif self.stream is not None:
-            cmd = self.stream.next()
+        elif self._is_busy():
+            cmd = self.ctrl.planner.next()
 
-            if cmd is None: self.set_write(False)
-            else: self.load_next_command(cmd)
+            if cmd is None: self._set_write(False)
+            else: self._load_next_command(cmd)
 
         # Else stop writing
-        else: self.set_write(False)
+        else: self._set_write(False)
 
 
-    def serial_read(self):
+    def _serial_read(self):
         try:
             data = self.sp.read(self.sp.in_waiting)
             self.in_buf += data.decode('utf-8')
@@ -208,119 +178,121 @@ class AVR():
                     log.error('%s, data: %s', e, line)
                     continue
 
-                update.update(msg)
-                log.debug(line)
+                if 'variables' in msg:
+                    try:
+                        self.ctrl.state.machine_cmds_and_vars(msg)
+                        self._queue_command('D') # Refresh all vars
 
-                # Don't overwrite duplicate `msg`
-                if 'msg' in msg: break
+                    except Exception as e:
+                        log.warning('AVR reload failed: %s',
+                                    traceback.format_exc())
+                        self.ctrl.ioloop.call_later(1, self.connect)
+
+                    continue
+
+                update.update(msg)
 
         if update:
             if 'firmware' in update:
                 log.error('AVR rebooted')
                 self.connect()
 
-            if 'x' in update and update['x'] == 'ESTOPPED':
-                self._stop_sending_gcode()
+            self.ctrl.state.update(update)
 
-            self.vars.update(update)
-
-            if self.stream is not None:
-                self.stream.update(update)
-                if not self.stream.is_running():
-                    self.stream = None
-
-            try:
-                self._update_lcd(update)
-
-                if self.install_page:
-                    self.install_page = False
-                    self.ctrl.lcd.set_current_page(self.lcd_page.id)
-
-            except Exception as e:
-                log.error('Updating LCD: %s', e)
-
-            try:
-                self.ctrl.web.broadcast(update)
-            except Exception as e:
-                log.error('Updating Web: %s', e)
+            # Must be after AVR vars have loaded
+            if self.install_page:
+                self.install_page = False
+                self.ctrl.lcd.set_current_page(self.lcd_page.id)
 
 
-    def _find_motor(self, axis):
-        for motor in range(6):
-            if not ('%dan' % motor) in self.vars: continue
-            motor_axis = 'xyzabc'[self.vars['%dan' % motor]]
-            if motor_axis == axis.lower() and self.vars['%dpm' % motor]:
-                return motor
+    def _update_state(self, update):
+        if 'x' in update and update['x'] == 'ESTOPPED':
+            self._stop_sending_gcode()
+
+        self._update_lcd(update)
 
 
-    def _is_axis_homed(self, axis):
-        motor = self._find_motor(axis)
-        if axis is None: return False
-        return self.vars['%dh' % motor]
-
-
-    def _update_lcd(self, msg):
-        if 'x' in msg: self.lcd_page.text('%-9s' % self.vars['x'], 0, 0)
+    def _update_lcd(self, update):
+        if 'x' in update:
+            self.lcd_page.text('%-9s' % self.ctrl.state.get('x'), 0, 0)
 
         # Show enabled axes
         row = 0
         for axis in 'xyzabc':
-            motor = self._find_motor(axis)
+            motor = self.ctrl.state.find_motor(axis)
             if motor is not None:
-                if (axis + 'p') in msg:
+                if (axis + 'p') in update:
                     self.lcd_page.text('% 10.3f%s' % (
-                            msg[axis + 'p'], axis.upper()), 9, row)
+                            update[axis + 'p'], axis.upper()), 9, row)
 
                 row += 1
 
-        if 't' in msg:  self.lcd_page.text('%2uT'     % msg['t'],  6, 1)
-        if 'u' in msg:  self.lcd_page.text('%-6s'     % msg['u'],  0, 1)
-        if 'f' in msg:  self.lcd_page.text('%8uF'     % msg['f'],  0, 2)
-        if 's' in msg:  self.lcd_page.text('%8dS'     % msg['s'],  0, 3)
+        # Show tool, units, feed and speed
+        # TODO Units not in state
+        if 't' in update: self.lcd_page.text('%2uT' % update['t'], 6, 1)
+        if 'u' in update: self.lcd_page.text('%-6s' % update['u'], 0, 1)
+        if 'f' in update: self.lcd_page.text('%8uF' % update['f'], 0, 2)
+        if 's' in update: self.lcd_page.text('%8dS' % update['s'], 0, 3)
 
 
-    def queue_command(self, cmd):
-        self.queue.append(cmd)
-        self.set_write(True)
+    def connect(self):
+        try:
+            # Reset AVR communication
+            self.stop();
+            self._queue_command('h') # Load AVR commands and variables
+
+        except Exception as e:
+            log.warning('Connect failed: %s', e)
+            self.ctrl.ioloop.call_later(1, self.connect)
+
+
+    def set(self, code, value):
+        self._queue_command('${}={}'.format(code, value))
 
 
     def mdi(self, cmd):
-        if self.stream is not None:
-            raise Exception('Busy, cannot queue MDI command')
+        if self._is_busy(): raise Exception('Busy, cannot queue MDI command')
 
-        self.queue_command(cmd)
+        if len(cmd) and cmd[0] == '$':
+            equal = cmd.find('=')
+            if equal == -1:
+                log.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
+
+            else: self._queue_command(cmd)
+
+        elif len(cmd) and cmd[0] == '\\': self._queue_command(cmd[1:])
+
+        else:
+            self.ctrl.planner.mdi(cmd)
+            self._set_write(True)
 
 
     def jog(self, axes):
-        if self.stream is not None: raise Exception('Busy, cannot jog')
+        if self._is_busy(): raise Exception('Busy, cannot jog')
 
         _axes = {}
         for i in range(len(axes)): _axes["xyzabc"[i]] = axes[i]
 
-        self.queue_command(Cmd.jog(_axes))
-
-
-    def set(self, index, code, value):
-        self.queue_command('${}{}={}'.format(index, code, value))
+        self._queue_command(Cmd.jog(_axes))
 
 
     def home(self, axis, position = None):
-        if self.stream is not None: raise Exception('Busy, cannot home')
-        raise Exception('NYI') # TODO
+        if self._is_busy(): raise Exception('Busy, cannot home')
 
         if position is not None:
-            self.queue_command('G28.3 %c%f' % (axis, position))
+            self.ctrl.planner.mdi('G28.3 %c%f' % (axis, position))
 
         else:
             if axis is None: axes = 'zxyabc' # TODO This should be configurable
             else: axes = '%c' % axis
 
             for axis in axes:
-                if not self.vars.get('%sch' % axis, 0): continue
+                if not self.ctrl.state.axis_can_home(axis): continue
 
+                log.info('Homing %s axis' % axis)
                 gcode = axis_homing_procedure % {'axis': axis}
-                for line in gcode.splitlines():
-                    self.queue_command(line.strip())
+                self.ctrl.planner.mdi(gcode)
+                self._set_write(True)
 
 
     def estop(self): self._i2c_command(Cmd.ESTOP)
@@ -328,13 +300,14 @@ class AVR():
 
 
     def start(self, path):
-        if self.stream is not None: raise Exception('Busy, cannot start file')
+        if self._is_busy(): raise Exception('Busy, cannot start file')
         if path: self._start_sending_gcode(path)
 
 
     def step(self, path):
         self._i2c_command(Cmd.STEP)
-        if self.stream is None and path and self.vars.get('x', '') == 'READY':
+        if not self._is_busy() and path and \
+                self.ctrl.state.get('x', '') == 'READY':
             self._start_sending_gcode(path)
 
 
@@ -342,19 +315,20 @@ class AVR():
         self._i2c_command(Cmd.FLUSH)
         self._stop_sending_gcode()
         # Resume processing once current queue of GCode commands has flushed
-        self.queue_command(Cmd.RESUME)
+        self._queue_command(Cmd.RESUME)
 
 
     def pause(self): self._i2c_command(Cmd.PAUSE, byte = 0)
 
 
     def unpause(self):
-        if self.vars.get('x', '') != 'HOLDING' or self.stream is None: return
+        if self.ctrl.state.get('x', '') != 'HOLDING' or not self._is_busy():
+            return
 
         self._i2c_command(Cmd.FLUSH)
-        self.queue_command(Cmd.RESUME)
-        self.stream.restart()
-        self.set_write(True)
+        self._queue_command(Cmd.RESUME)
+        self.ctrl.planner.restart()
+        self._set_write(True)
         self._i2c_command(Cmd.UNPAUSE)
 
 
@@ -362,8 +336,9 @@ class AVR():
 
 
     def set_position(self, axis, position):
-        if self.stream is not None: raise Exception('Busy, cannot set position')
-        if self._is_axis_homed('%c' % axis):
+        if self._is_busy(): raise Exception('Busy, cannot set position')
+
+        if self.ctrl.state.is_axis_homed('%c' % axis):
             raise Exception('NYI') # TODO
-            self.queue_command('G92 %c%f' % (axis, position))
-        else: self.queue_command('$%cp=%f' % (axis, position))
+            self._queue_command('G92 %c%f' % (axis, position))
+        else: self._queue_command('$%cp=%f' % (axis, position))

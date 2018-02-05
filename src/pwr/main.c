@@ -165,8 +165,6 @@ static void measure_nominal_voltage() {
   if (vnom < VOLTAGE_MIN) v = vin;
   else v = vnom * (1 - VOLTAGE_EXP) + vin * VOLTAGE_EXP;
 
-  if (36 < v) v = 36; // TODO remove this when R27 is updated
-
   vnom = v;
 }
 

@@ -92,7 +92,7 @@ enum {
 #define SHUNT_MAX_V 3
 
 #define VOLTAGE_REF 1.1
-#define VOLTAGE_REF_R1 34800 // TODO v10 will have 37.4k
+#define VOLTAGE_REF_R1 37400
 #define VOLTAGE_REF_R2 1000
 #define CURRENT_REF_MUL 1970
 

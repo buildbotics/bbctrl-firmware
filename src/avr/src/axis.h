@@ -38,15 +38,6 @@ enum {
 };
 
 
-typedef enum {
-  HOMING_MANUAL,
-  HOMING_STALL_MIN,
-  HOMING_STALL_MAX,
-  HOMING_SWITCH_MIN,
-  HOMING_SWITCH_MAX,
-} homing_mode_t;
-
-
 bool axis_is_enabled(int axis);
 char axis_get_char(int axis);
 int axis_get_id(char axis);
@@ -57,13 +48,3 @@ float axis_get_vector_length(const float a[], const float b[]);
 float axis_get_velocity_max(int axis);
 float axis_get_accel_max(int axis);
 float axis_get_jerk_max(int axis);
-bool axis_get_homed(int axis);
-void axis_set_homed(int axis, bool homed);
-homing_mode_t axis_get_homing_mode(int axis);
-float axis_get_radius(int axis);
-float axis_get_travel_min(int axis);
-float axis_get_travel_max(int axis);
-float axis_get_search_velocity(int axis);
-float axis_get_latch_velocity(int axis);
-float axis_get_zero_backoff(int axis);
-float axis_get_latch_backoff(int axis);

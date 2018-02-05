@@ -25,7 +25,7 @@
 
 \******************************************************************************/
 
-#define AXES_LABEL "xyzabcuvw"
+#define AXES_LABEL "xyzabc"
 #define MOTORS_LABEL "0123"
 #define OUTS_LABEL "ed12f"
 
@@ -47,16 +47,13 @@ VAR(status_strings,  ds, flags, MOTORS, 0, 1, "Motor driver status")
 VAR(encoder,         en, s32,   MOTORS, 0, 0, "Motor encoder")
 VAR(error,           ee, s32,   MOTORS, 0, 0, "Motor position error")
 
-VAR(motor_fault,     fa, bool,  0,      0, 1, "Motor fault status")
-
 VAR(velocity_max,    vm, f32,   MOTORS, 1, 1, "Maxium vel in mm/min")
 VAR(accel_max,       am, f32,   MOTORS, 1, 1, "Maxium accel in mm/min^2")
 VAR(jerk_max,        jm, f32,   MOTORS, 1, 1, "Maxium jerk in mm/min^3")
-VAR(radius,          ra, f32,   MOTORS, 1, 1, "Axis radius or zero")
+
+VAR(motor_fault,     fa, bool,  0,      0, 1, "Motor fault status")
 
 // Switches
-VAR(travel_min,      tn, f32,   MOTORS, 1, 1, "Minimum soft limit")
-VAR(travel_max,      tm, f32,   MOTORS, 1, 1, "Maximum soft limit")
 VAR(min_sw_mode,     ls, u8,    MOTORS, 1, 1, "Minimum switch mode")
 VAR(max_sw_mode,     xs, u8,    MOTORS, 1, 1, "Maximum switch mode")
 VAR(estop_mode,      et, u8,    0,      1, 1, "Estop switch mode")
@@ -66,19 +63,8 @@ VAR(max_switch,      xw, u8,    MOTORS, 0, 1, "Maximum switch state")
 VAR(estop_switch,    ew, u8,    0,      0, 1, "Estop switch state")
 VAR(probe_switch,    pw, u8,    0,      0, 1, "Probe switch state")
 
-// Homing
-VAR(homing_mode,     ho, u8,    MOTORS, 1, 1, "Homing type")
-VAR(homing_dir,      hd, f32,   MOTORS, 0, 1, "Homing direction")
-VAR(home,            hp, f32,   MOTORS, 0, 1, "Home position")
-VAR(homed,           h,  bool,  MOTORS, 1, 1, "True if axis is homed")
-VAR(search_velocity, sv, f32,   MOTORS, 1, 1, "Homing search velocity")
-VAR(latch_velocity,  lv, f32,   MOTORS, 1, 1, "Homing latch velocity")
-VAR(latch_backoff,   lb, f32,   MOTORS, 1, 1, "Homing latch backoff")
-VAR(zero_backoff,    zb, f32,   MOTORS, 1, 1, "Homing zero backoff")
-
 // Axis
-VAR(axis_position,    p,  f32,   AXES,  1, 1, "Axis position")
-VAR(axis_can_home,    ch, bool,  AXES,  0, 1, "Axis can home")
+VAR(axis_position,    p, f32,   AXES,   1, 1, "Axis position")
 
 // Outputs
 VAR(output_active,   oa, bool,  OUTS,   1, 1, "Output pin active")
@@ -92,8 +78,6 @@ VAR(max_spin,        sx, f32,   0,      1, 1, "Maximum spindle speed")
 VAR(min_spin,        sm, f32,   0,      1, 1, "Minimum spindle speed")
 VAR(spin_min_duty,   nd, f32,   0,      1, 1, "Minimum PWM duty cycle")
 VAR(spin_max_duty,   md, f32,   0,      1, 1, "Maximum PWM duty cycle")
-VAR(spin_up,         su, f32,   0,      1, 1, "Spin up velocity")
-VAR(spin_down,       sd, f32,   0,      1, 1, "Spin down velocity")
 VAR(spin_freq,       sf, u16,   0,      1, 1, "Spindle PWM frequency")
 
 // PWM spindle
