@@ -36,12 +36,13 @@
 
 
 typedef struct {
-  uint16_t freq;    // base frequency for PWM driver, in Hz
+  uint16_t freq; // base frequency for PWM driver, in Hz
   float min_rpm;
   float max_rpm;
   float min_duty;
   float max_duty;
-  bool pwm_invert;
+  float duty;
+  float speed;
 } pwm_spindle_t;
 
 
@@ -58,18 +59,17 @@ static void _set_dir(bool clockwise) {
 }
 
 
-static void _set_pwm(float speed) {
-  if (speed < spindle.min_rpm || estop_triggered()) {
+static void _update_pwm() {
+  float speed = spindle.speed;
+
+  // Disable
+  if (speed <= spindle.min_rpm || estop_triggered()) {
     TIMER_PWM.CTRLA = 0;
     OUTCLR_PIN(SPIN_PWM_PIN);
     _set_enable(false);
     return;
   }
   _set_enable(true);
-
-  // Invert PWM
-  if (spindle.pwm_invert) PINCTRL_PIN(SPIN_PWM_PIN) |= PORT_INVEN_bm;
-  else PINCTRL_PIN(SPIN_PWM_PIN) &= ~PORT_INVEN_bm;
 
   // 100% duty
   if (spindle.max_rpm <= speed && spindle.max_duty == 1) {
@@ -80,7 +80,6 @@ static void _set_pwm(float speed) {
 
   // Clamp speed
   if (spindle.max_rpm < speed) speed = spindle.max_rpm;
-  if (speed < spindle.min_rpm) speed = 0;
 
   // Set clock period and optimal prescaler value
   float prescale = (float)(F_CPU >> 16) / spindle.freq;
@@ -107,12 +106,13 @@ static void _set_pwm(float speed) {
   } else TIMER_PWM.CTRLA = 0;
 
   // Map RPM to duty cycle
-  float duty = (speed - spindle.min_rpm) / (spindle.max_rpm - spindle.min_rpm) *
+  spindle.duty =
+    (speed - spindle.min_rpm) / (spindle.max_rpm - spindle.min_rpm) *
     (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
 
   // Configure clock
   TIMER_PWM.CTRLB = TC1_CCAEN_bm | TC_WGMODE_SINGLESLOPE_gc;
-  TIMER_PWM.CCA = TIMER_PWM.PER * duty;
+  TIMER_PWM.CCA = TIMER_PWM.PER * spindle.duty;
 }
 
 
@@ -121,13 +121,16 @@ void pwm_spindle_init() {
   _set_dir(true);
   _set_enable(false);
 
-  DIRSET_PIN(SPIN_PWM_PIN);    // Output
+  // PWM output
+  OUTCLR_PIN(SPIN_PWM_PIN);
+  DIRSET_PIN(SPIN_PWM_PIN);
 }
 
 
 void pwm_spindle_set(float speed) {
   if (speed) _set_dir(0 < speed);
-  _set_pwm(fabs(speed));
+  spindle.speed = fabs(speed);
+  _update_pwm();
 }
 
 
@@ -136,14 +139,34 @@ void pwm_spindle_stop() {pwm_spindle_set(0);}
 
 // TODO these need more effort and should work with the huanyang spindle too
 float get_max_spin() {return spindle.max_rpm;}
-void set_max_spin(float value) {spindle.max_rpm = value;}
+void set_max_spin(float value) {spindle.max_rpm = value; _update_pwm();}
 float get_min_spin() {return spindle.min_rpm;}
-void set_min_spin(float value) {spindle.min_rpm = value;}
-float get_spin_min_duty() {return spindle.min_duty * 100;}
-void set_spin_min_duty(float value) {spindle.min_duty = value / 100;}
-float get_spin_max_duty() {return spindle.max_duty * 100;}
-void set_spin_max_duty(float value) {spindle.max_duty = value / 100;}
-uint16_t get_spin_freq() {return spindle.freq;}
-void set_spin_freq(uint16_t value) {spindle.freq = value;}
-bool get_pwm_invert() {return spindle.pwm_invert;}
-void set_pwm_invert(bool value) {spindle.pwm_invert = value;}
+void set_min_spin(float value) {spindle.min_rpm = value; _update_pwm();}
+float get_pwm_min_duty() {return spindle.min_duty * 100;}
+
+
+void set_pwm_min_duty(float value) {
+  spindle.min_duty = value / 100;
+  _update_pwm();
+}
+
+
+float get_pwm_max_duty() {return spindle.max_duty * 100;}
+
+
+void set_pwm_max_duty(float value) {
+  spindle.max_duty = value / 100;
+  _update_pwm();
+}
+
+
+float get_pwm_duty() {return spindle.duty;}
+uint16_t get_pwm_freq() {return spindle.freq;}
+void set_pwm_freq(uint16_t value) {spindle.freq = value; _update_pwm();}
+bool get_pwm_invert() {return PINCTRL_PIN(SPIN_PWM_PIN) & PORT_INVEN_bm;}
+
+
+void set_pwm_invert(bool invert) {
+  if (invert) PINCTRL_PIN(SPIN_PWM_PIN) |= PORT_INVEN_bm;
+  else PINCTRL_PIN(SPIN_PWM_PIN) &= ~PORT_INVEN_bm;
+}

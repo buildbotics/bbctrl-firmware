@@ -13,6 +13,26 @@ module.exports = {
     },
 
 
+    get_min_pin: function (motor) {
+      switch (motor) {
+      case 0: return 3;
+      case 1: return 5;
+      case 2: return 9;
+      case 3: return 11;
+      }
+    },
+
+
+    get_max_pin: function (motor) {
+      switch (motor) {
+      case 0: return 4;
+      case 1: return 8;
+      case 2: return 10;
+      case 3: return 12;
+      }
+    },
+
+
     get_class: function (code) {
       if (typeof this.state[code] != 'undefined') {
         var state = this.state[code];

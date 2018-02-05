@@ -391,6 +391,25 @@ body
       td, th
         padding 4px
 
+      tr:nth-child(odd)
+        background #f7f7f7
+
+      td:nth-child(1), td:nth-child(3)
+        text-align center
+
+      th:nth-child(2), th:nth-child(4)
+        text-align left
+
+      &.inputs, &.outputs
+        td:nth-child(1), td:nth-child(4)
+          text-align center
+
+        th:nth-child(2), th:nth-child(5)
+          text-align right
+
+        th:nth-child(3), th:nth-child(6)
+          text-align left
+
     .logic-lo
       color black
 

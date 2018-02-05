@@ -58,16 +58,16 @@ void spindle_init() {
 void spindle_set_speed(float speed) {
   spindle.speed = speed;
 
+  if (spindle.reversed) speed = -speed;
+
   switch (spindle.type) {
-  case SPINDLE_TYPE_PWM: pwm_spindle_set(spindle_get_speed()); break;
-  case SPINDLE_TYPE_HUANYANG: hy_set(spindle_get_speed()); break;
+  case SPINDLE_TYPE_PWM: pwm_spindle_set(speed); break;
+  case SPINDLE_TYPE_HUANYANG: hy_set(speed); break;
   }
 }
 
 
-float spindle_get_speed() {
-  return spindle.reversed ? -spindle.speed : spindle.speed;
-}
+float spindle_get_speed() {return spindle.speed;}
 
 
 void spindle_stop() {
@@ -99,7 +99,7 @@ bool get_spin_reversed() {return spindle.reversed;}
 void set_spin_reversed(bool reversed) {
   if (spindle.reversed != reversed) {
     spindle.reversed = reversed;
-    spindle_set_speed(-spindle.speed);
+    spindle_set_speed(spindle.speed);
   }
 }
 

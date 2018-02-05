@@ -1,56 +1,84 @@
 script#indicators-template(type="text/x-template")
   .indicators
-    table
+    table.inputs
       tr
-        th(colspan=4) Switch Inputs
+        th(colspan=6) Switch Inputs
+      tr
+        th
+        th Pin
+        th Name
+        th
+        th Pin
+        th Name
 
       each motor in '01234'
         tr(v-if="is_motor_enabled(#{motor})")
           td
             .fa(:class="get_class('#{motor}lw')")
+          th {{get_min_pin(#{motor})}}
           th #{motor} Min
 
           td
             .fa(:class="get_class('#{motor}xw')")
+          th {{get_max_pin(#{motor})}}
           th #{motor} Max
 
       tr
         td
           .fa(:class="get_class('ew')")
-        th Estop
+        th 23
+        th EStop
 
         td
           .fa(:class="get_class('pw')")
+        th 22
         th Probe
 
-    table
+    table.outputs
       tr
-        th(colspan=4) Outputs
+        th(colspan=6) Outputs
+
+      tr
+        th
+        th Pin
+        th Name
+        th
+        th Pin
+        th Name
 
       tr
         td
           .fa(:class="get_class('eos')")
+        th 15
         th Tool Enable
 
         td
-          .fa(:class="get_class('dos')")
-        th Tool Direction
+          .fa(:class="get_class('1os')")
+        th 2
+        th Load 1
 
       tr
         td
-          .fa(:class="get_class('1os')")
-        th Load 1
+          .fa(:class="get_class('dos')")
+        th 16
+        th Tool Direction
 
         td
           .fa(:class="get_class('2os')")
+        th 1
         th Load 2
 
       tr
+        td {{state['pd'] | percent 0}}
+        th 17
+        th Tool PWM
+
         td
           .fa(:class="get_class('fos')")
-        th(colspan=3) Fault
+        th 21
+        th Fault
 
-    table
+    table.measurements
       tr
         th(colspan=4) Measurements
 
@@ -75,7 +103,7 @@ script#indicators-template(type="text/x-template")
         td {{state['load2'] | fixed 2}} A
         th Load 2
 
-    table
+    table.rs485
       tr
         th(colspan=4) RS485 Spindle
 
@@ -96,7 +124,7 @@ script#indicators-template(type="text/x-template")
         td {{state['ht']}} ℃
         th Temp
 
-    table
+    table.legend
       tr
         th(colspan=10) Legend
 
@@ -105,10 +133,15 @@ script#indicators-template(type="text/x-template")
          .fa.fa-circle.logic-hi
         th Logic Hi
 
+      tr
         td
          .fa.fa-circle.logic-lo
         th Logic Lo
 
+      tr
         td
          .fa.fa-circle-o.logic-tri
         th Tristated / Disabled
+
+    h2 DB25-M2 breakout
+    center: img(width=400, src="/images/DB25-M2_breakout.png")
