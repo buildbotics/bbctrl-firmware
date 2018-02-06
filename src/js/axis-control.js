@@ -7,8 +7,7 @@ module.exports = {
 
 
   methods: {
-    jog: function (axis, move) {
-      this.$dispatch('jog', this.axes[axis], move)
-    }
+    jog: function (axis, power) {this.$dispatch('jog', this.axes[axis], power)},
+    release: function (axis) {this.$dispatch('jog', this.axes[axis], 0)}
   }
 }

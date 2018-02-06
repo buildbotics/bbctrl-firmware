@@ -50,7 +50,9 @@ class Jog(inevent.JogHandler):
         if self.v != self.lastV:
             self.lastV = self.v
             try:
-                self.ctrl.avr.jog(self.v)
+                axes = {}
+                for i in range(len(self.v)): axes["xyzabc"[i]] = self.v[i]
+                self.ctrl.avr.jog(axes)
             except Exception as e: log.error('Jog: %s', e)
 
         self.ctrl.ioloop.call_later(0.25, self.callback)

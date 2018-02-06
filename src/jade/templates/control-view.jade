@@ -226,12 +226,19 @@ script#control-view-template(type="text/x-template")
           axis-control(axes="XY", :colors="['red', 'green']",
             :enabled="[enabled('x'), enabled('y')]",
             v-if="enabled('x') || enabled('y')")
+
           axis-control(axes="AZ", :colors="['orange', 'blue']",
             :enabled="[enabled('a'), enabled('z')]",
             v-if="enabled('a') || enabled('z')")
+
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[enabled('b'), enabled('c')]",
             v-if="enabled('b') || enabled('c')")
+
+        center
+          | Left click the axes above holding down the mouse button to jog the
+          | machine.
+        center Jogging speed is set by the ring that is clicked.
 
       section#content4.tab-content
         .toolbar

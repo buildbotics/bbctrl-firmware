@@ -1,6 +1,6 @@
 {
   "name": "bbctrl",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "homepage": "https://github.com/buildbotics/bbctrl-firmware",
   "license": "GPL 3+",
   "dependencies": {

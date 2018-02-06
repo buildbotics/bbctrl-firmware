@@ -206,6 +206,10 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
     def put_ok(self, value): self.ctrl.avr.override_speed(float(value))
 
 
+class JogHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.avr.jog(self.json)
+
+
 # Used by CAMotics
 class WSConnection(tornado.websocket.WebSocketHandler):
     def __init__(self, app, request, **kwargs):
@@ -294,6 +298,7 @@ class Web(tornado.web.Application):
             (r'/api/position/([xyzabcXYZABC])', PositionHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
+            (r'/api/jog', JogHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),

@@ -58,8 +58,11 @@ module.exports = {
 
 
   events: {
-    // TODO These should all be implemented via the API
-    jog: function (axis, move) {this.send('g91 g0' + axis + move)},
+    jog: function (axis, power) {
+      var data = {};
+      data[axis] = power;
+      api.put('jog', data);
+    },
 
 
     message: function (msg) {

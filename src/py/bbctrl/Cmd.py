@@ -39,6 +39,9 @@ def encode_axes(axes):
         if axis in axes:
             data += axis + encode_float(axes[axis])
 
+        elif axis.upper() in axes:
+            data += axis + encode_float(axes[axis.upper()])
+
     return data
 
 

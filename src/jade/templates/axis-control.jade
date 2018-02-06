@@ -55,107 +55,107 @@ script#axis-control-template(type="text/x-template")
 
 
     g(transform="scale(0.8, 0.8)")
-      // 100 ring
+      // 100% ring
       g.ring(fill="#9f9f9f", filter="url(#shadow)")
         use.button(xlink:href="#pie-1", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @click="jog(0, 100)", title="Jog +100 {{axes[0]}}")
+          @mousedown="jog(0, 1)", @mouseup="release(0)")
 
         use.button(xlink:href="#pie-1", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @click="jog(0, -100)", title="Jog -100 {{axes[0]}}")
+          @mousedown="jog(0, -1)", @mouseup="release(0)")
 
-        g.button(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
+        g.button(@mousedown="jog(1, 1)", @mouseup="release(1)",
           v-if="enabled[1]")
           use.button(xlink:href="#pie-1",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="24", transform="rotate(20 125 125)") 100
-          text(x="125", y="24", transform="rotate(-20 125 125)") 100
+          text(x="125", y="24", transform="rotate(22 125 125)") 100%
+          text(x="125", y="24", transform="rotate(-22 125 125)") 100%
           use.button(xlink:href="#pie-1", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-1", v-if="enabled[1]",
-          transform="translate(124 130) rotate(45)",
-          @click="jog(1, -100)", title="Jog -100 {{axes[1]}}")
+          transform="translate(124 130) rotate(45)", @mousedown="jog(1, -1)",
+          @mouseup="release(1)")
 
-      // 10 ring
+      // 50% ring
       g.ring(fill="#c5c5c5", filter="url(#shadow)")
         use.button(xlink:href="#pie-2", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @click="jog(0, 10)", title="Jog +10 {{axes[0]}}")
+          @mousedown="jog(0, 0.5)", @mouseup="release(0)")
 
         use.button(xlink:href="#pie-2", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @click="jog(0, -10)", title="Jog -10 {{axes[0]}}")
+          @mousedown="jog(0, -0.5)", @mouseup="release(0)")
 
-        g.button(@click="jog(1, 10)", title="Jog +10 {{axes[1]}}",
+        g.button(@mousedown="jog(1, 0.5)", @mouseup="release(1)",
           v-if="enabled[1]")
           use.button(xlink:href="#pie-2",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="50") 10
+          text(x="125", y="48") 50%
           use.button(xlink:href="#pie-2", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-2", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @click="jog(1, -10)", title="Jog -10 {{axes[1]}}")
+          @mousedown="jog(1, -0.5)", @mouseup="release(1)")
 
 
-      // 1 ring
+      // 25% ring
       g.ring(fill="#e2e2e2", filter="url(#shadow)")
         use.button(xlink:href="#pie-3", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @click="jog(0, 1)", title="Jog +1 {{axes[0]}}")
+          @mousedown="jog(0, 0.25)", @mouseup="release(0)")
 
         use.button(xlink:href="#pie-3", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @click="jog(0, -1)", title="Jog -1 {{axes[0]}}")
+          @mousedown="jog(0, -0.25)", @mouseup="release(0)")
 
-        g.button(@click="jog(1, 1)", title="Jog +1 {{axes[1]}}",
+        g.button(@mousedown="jog(1, 0.25)", @mouseup="release(1)",
           v-if="enabled[1]")
           use.button(xlink:href="#pie-3",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="75") 1
+          text(x="125", y="73") 25%
           use.button(xlink:href="#pie-3", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-3", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @click="jog(1, -1)", title="Jog -1 {{axes[1]}}")
+          @mousedown="jog(1, -0.25)", @mouseup="release(1)")
 
 
-      // 0.1 ring
+      // 10% ring
       g.ring(fill="#f7f7f7", filter="url(#shadow)")
         use.button(xlink:href="#pie-4", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @click="jog(0, 0.1)", title="Jog +0.1 {{axes[0]}}")
+          @mousedown="jog(0, 0.1)", @mouseup="release(0)")
 
         use.button(xlink:href="#pie-4", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @click="jog(0, -0.1)", title="Jog -0.1 {{axes[0]}}")
+          @mousedown="jog(0, -0.1)", @mouseup="release(0)")
 
-        g.button(@click="jog(1, 0.1)", title="Jog +0.1 {{axes[1]}}",
+        g.button(@mousedown="jog(1, 0.1)", @mouseup="release(1)",
           v-if="enabled[1]")
           use.button(xlink:href="#pie-4",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="95") 0.1
+          text(x="125", y="95") 10%
           use.button(xlink:href="#pie-4", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-4", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @click="jog(1, -0.1)", title="Jog -0.1 {{axes[1]}}")
+          @mousedown="jog(1, -0.1)", @mouseup="release(1)")
 
 
       // +A
-      g.button.arrow(@click="jog(0, 100)", title="Jog +100 {{axes[0]}}",
+      g.button.arrow(@mousedown="jog(0, 1)", @mouseup="release(0)",
         transform="translate(230 120)", v-if="enabled[0]")
         use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)")
         text(x="-12", y="5", font-size="14", textLength="21") +{{axes[0]}}
 
 
       // -A
-      g.button.arrow(@click="jog(0, -100)", title="Jog -100 {{axes[0]}}",
+      g.button.arrow(@mousedown="jog(0, -1)", @mouseup="release(0)",
         transform="translate(20 120)", v-if="enabled[0]")
         use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)",
           transform="rotate(180)")
@@ -163,7 +163,7 @@ script#axis-control-template(type="text/x-template")
 
 
       // +B
-      g.button.arrow(@click="jog(1, 100)", title="Jog +100 {{axes[1]}}",
+      g.button.arrow(@mousedown="jog(1, 1)", @mouseup="release(1)",
         transform="translate(125, 18)", v-if="enabled[1]")
         use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
           transform="rotate(-90)")
@@ -171,7 +171,7 @@ script#axis-control-template(type="text/x-template")
 
 
       // -B
-      g.button.arrow(@click="jog(1, -100)", title="Jog -100 {{axes[1]}}",
+      g.button.arrow(@mousedown="jog(1, -1)", @mouseup="release(1)",
         transform="translate(125, 225)", v-if="enabled[1]")
         use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
           transform="rotate(90)")

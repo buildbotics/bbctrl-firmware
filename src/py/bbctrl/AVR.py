@@ -275,11 +275,7 @@ class AVR():
 
     def jog(self, axes):
         if self._is_busy(): raise Exception('Busy, cannot jog')
-
-        _axes = {}
-        for i in range(len(axes)): _axes["xyzabc"[i]] = axes[i]
-
-        self._queue_command(Cmd.jog(_axes))
+        self._queue_command(Cmd.jog(axes))
 
 
     def home(self, axis, position = None):
