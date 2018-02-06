@@ -217,6 +217,11 @@ bool command_callback() {
 }
 
 
+void command_set_axis_position(int axis, const float p) {
+  cmd.position[axis] = p;
+}
+
+
 void command_set_position(const float position[AXES]) {
   memcpy(cmd.position, position, sizeof(cmd.position));
 }

@@ -286,10 +286,6 @@ stat_t command_line(char *cmd) {
   stat_t status = decode_axes(&cmd, line.target);
   if (status) return status;
 
-  // Zero disabled axes (TODO should moving a disable axis cause an error?)
-  for (int i = 0; i < AXES; i++)
-    if (!axis_is_enabled(i)) line.target[i] = 0;
-
   // Get times
   bool has_time = false;
   while (*cmd) {
@@ -300,7 +296,7 @@ stat_t command_line(char *cmd) {
     float time;
     if (!decode_float(&cmd, &time)) return STAT_BAD_FLOAT;
 
-    if (time < 0 || 0x10000 * SEGMENT_TIME <= time) return STAT_BAD_SEG_TIME;
+    if (time < 0) return STAT_BAD_SEG_TIME;
     line.times[seg] = time;
     if (time) has_time = true;
    }

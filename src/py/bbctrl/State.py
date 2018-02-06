@@ -26,6 +26,13 @@ class State(object):
             self.set_callback(str(i) + 'hd',
                      lambda name, i = i: self.motor_home_direction(i))
 
+            # Add home position callbacks
+            self.set_callback(str(i) + 'hp',
+                     lambda name, i = i: self.motor_home_position(i))
+
+            # Set not homed
+            self.set('%dhomed' % i, False)
+
 
     def _notify(self):
         if not self.changes: return
@@ -82,7 +89,7 @@ class State(object):
 
     def config(self, code, value):
         if code in self.machine_var_set: self.ctrl.avr.set(code, value)
-        else: self.vars[code] = value
+        else: self.set(code, value)
 
 
     def add_listener(self, listener):
@@ -155,4 +162,11 @@ class State(object):
         homing_mode = self.motor_homing_mode(motor)
         if homing_mode == 1: return -1 # Switch min
         if homing_mode == 2: return 1  # Switch max
+        return 0 # Disabled
+
+
+    def motor_home_position(self, motor):
+        homing_mode = self.motor_homing_mode(motor)
+        if homing_mode == 1: return self.vars['%dtn' % motor] # Min soft limit
+        if homing_mode == 2: return self.vars['%dtm' % motor] # Max soft limit
         return 0 # Disabled

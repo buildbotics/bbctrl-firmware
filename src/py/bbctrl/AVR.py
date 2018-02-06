@@ -14,20 +14,20 @@ log = logging.getLogger('AVR')
 
 # Axis homing procedure:
 #
-#   Set axis unhomed
+#   Mark axis unhomed
 #   Seek closed (home_dir * (travel_max - travel_min) * 1.5) at search_velocity
 #   Seek open (home_dir * -latch_backoff) at latch_vel
 #   Seek closed (home_dir * latch_backoff * 1.5) at latch_vel
-#   Rapid to (home_dir * -zero_backoff + seek_position)
-#   Set axis homed and home position
+#   Rapid to (home_dir * -zero_backoff + position)
+#   Mark axis homed and set absolute position
 
 axis_homing_procedure = '''
   G28.2 %(axis)s0 F[#<_%(axis)s_sv>]
   G38.6 %(axis)s[#<_%(axis)s_hd> * [#<_%(axis)s_tm> - #<_%(axis)s_tn>] * 1.5]
   G38.8 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_lb>] F[#<_%(axis)s_lv>]
   G38.6 %(axis)s[#<_%(axis)s_hd> * #<_%(axis)s_lb> * 1.5]
-  G0 G53 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_zb> + #<_%(axis)s_sp>]
-  G28.3 %(axis)s[#<_%(axis)s_hp>]
+  G91 G0 G53 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_zb>]
+  G90 G28.3 %(axis)s[#<_%(axis)s_hp>]
 '''
 
 
@@ -63,6 +63,7 @@ class AVR():
 
     def _is_busy(self): return self.ctrl.planner.is_running()
 
+
     def _i2c_command(self, cmd, byte = None, word = None):
         log.info('I2C: ' + cmd)
         retry = 5
@@ -87,9 +88,6 @@ class AVR():
 
 
     def _start_sending_gcode(self, path):
-        if self._is_busy(): raise Exception('Busy, cannot start new GCode file')
-
-        log.info('Running ' + path)
         self.ctrl.planner.load(path)
         self._set_write(True)
 
@@ -251,14 +249,22 @@ class AVR():
 
 
     def mdi(self, cmd):
-        if self._is_busy(): raise Exception('Busy, cannot queue MDI command')
-
         if len(cmd) and cmd[0] == '$':
             equal = cmd.find('=')
             if equal == -1:
                 log.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
 
-            else: self._queue_command(cmd)
+            else:
+                name, value = cmd[1:equal], cmd[equal + 1:]
+
+                if value.lower() == 'true': value = True
+                elif value.lower() == 'false': value = False
+                else:
+                    try:
+                        value = float(value)
+                    except: pass
+
+                self.ctrl.state.config(name, value)
 
         elif len(cmd) and cmd[0] == '\\': self._queue_command(cmd[1:])
 
@@ -300,7 +306,6 @@ class AVR():
 
 
     def start(self, path):
-        if self._is_busy(): raise Exception('Busy, cannot start file')
         if path: self._start_sending_gcode(path)
 
 
@@ -339,6 +344,5 @@ class AVR():
         if self._is_busy(): raise Exception('Busy, cannot set position')
 
         if self.ctrl.state.is_axis_homed('%c' % axis):
-            raise Exception('NYI') # TODO
-            self._queue_command('G92 %c%f' % (axis, position))
+            self.ctrl.planner.mdi('G92 %c%f' % (axis, position))
         else: self._queue_command('$%cp=%f' % (axis, position))

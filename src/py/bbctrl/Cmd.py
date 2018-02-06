@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+
 import struct
 import base64
+import json
 import logging
 
 log = logging.getLogger('Cmd')
@@ -65,6 +68,7 @@ def line(id, target, exitVel, maxAccel, maxJerk, times):
 
 def tool(tool): return '#t=%d' % tool
 def speed(speed): return '#s=:' + encode_float(speed)
+def set_position(axis, value): return '#%sp=:%s' % (axis, encode_float(value))
 
 def output(port, value):
     if port == 'mist':  return '#1oa=' + ('1' if value else '0')
@@ -97,3 +101,78 @@ def seek(switch, active, error):
     cmd += chr(flags + ord('0'))
 
     return cmd
+
+
+def decode_command(cmd):
+    if not len(cmd): return
+
+    data = {}
+
+    if cmd[0] == SET or cmd[0] == SET_SYNC:
+        data['type'] = 'set'
+        if cmd[0] == SET_SYNC: data['sync'] = True
+
+        equal = cmd.find('=')
+        data['name'] = cmd[1:equal]
+
+        value = cmd[equal + 1:]
+
+        if value.lower() == 'true': value = True
+        elif value.lower() == 'false': value = False
+        elif value.find('.') == -1: data['value'] = int(value)
+        else: data['value'] = float(value)
+
+    elif cmd[0] == SEEK:
+        data['type'] = 'seek'
+
+        data['port'] = int(cmd[2], 16)
+        flags = int(cmd[2], 16)
+
+        data['active'] = bool(flags & SEEK_ACTIVE)
+        data['error'] = bool(flags & SEEK_ERROR)
+
+    elif cmd[0] == LINE:
+        data['type'] = 'line'
+        data['exit-vel']  = decode_float(cmd[1:7])
+        data['max-accel'] = decode_float(cmd[7:13])
+        data['max-jerk']  = decode_float(cmd[13:19])
+
+        data['target'] = {}
+        data['times'] = [0] * 7
+        cmd = cmd[19:]
+
+        while len(cmd):
+            name = cmd[0]
+            value = decode_float(cmd[1:7])
+            cmd = cmd[7:]
+
+            if name in 'xyzabcuvw': data['target'][name] = value
+            else: data['times'][int(name)] = value
+
+    elif cmd[0] == REPORT:  data['type'] = 'report'
+    elif cmd[0] == PAUSE:   data['type'] = 'pause'
+    elif cmd[0] == UNPAUSE: data['type'] = 'unpause'
+    elif cmd[0] == ESTOP:   data['type'] = 'estop'
+    elif cmd[0] == CLEAR:   data['type'] = 'clear'
+    elif cmd[0] == FLUSH:   data['type'] = 'flush'
+    elif cmd[0] == STEP:    data['type'] = 'step'
+    elif cmd[0] == RESUME:  data['type'] = 'resume'
+
+    print(json.dumps(data))
+
+
+def decode(cmd):
+    for line in cmd.split('\n'):
+        decode_command(line.strip())
+
+
+if __name__ == "__main__":
+    import sys
+
+    if 1 < len(sys.argv):
+        for arg in sys.argv[1:]:
+            decode(arg)
+
+    else:
+        for line in sys.stdin:
+            decode(line)

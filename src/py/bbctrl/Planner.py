@@ -11,7 +11,7 @@ class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.lastID = -1
-        self.done = False
+        self.mode = 'idle'
 
         ctrl.state.add_listener(lambda x: self.update(x))
 
@@ -58,12 +58,11 @@ class Planner():
 
 
     def update(self, update):
-        if 'id' in update:
-            id = update['id']
-            if id: self.planner.release(id - 1)
+        if 'id' in update: self.planner.set_active(update['id'])
 
-        if update.get('x', '') == 'HOLDING' and \
-                self.ctrl.state.get('pr', '') == 'Switch found':
+        if self.ctrl.state.get('x', '') == 'HOLDING' and \
+                self.ctrl.state.get('pr', '') == 'Switch found' and \
+                self.planner.is_synchronizing():
             self.ctrl.avr.unpause()
 
 
@@ -78,7 +77,6 @@ class Planner():
 
         log.info('Planner restart: %d %s' % (id, json.dumps(position)))
         self.planner.restart(id, position)
-        self.done = False
 
 
     def get_var(self, name):
@@ -95,28 +93,35 @@ class Planner():
         if len(line) < 3: return
 
         if line[0] == 'I': log.info(line[3:])
-        if line[0] == 'D': log.debug(line[3:])
-        if line[0] == 'W': log.warning(line[3:])
-        if line[0] == 'E': log.error(line[3:])
-        if line[0] == 'C': log.critical(line[3:])
+        elif line[0] == 'D': log.debug(line[3:])
+        # TODO send these to the LCD and Web
+        elif line[0] == 'W': log.warning(line[3:])
+        elif line[0] == 'E': log.error(line[3:])
+        elif line[0] == 'C': log.critical(line[3:])
+        else: raise Exception('Could not parse planner log line: ' + line)
 
 
     def mdi(self, cmd):
-        self.planner.set_config(self.get_config())
-        self.planner.mdi(cmd)
-        self.done = False
+        if self.mode == 'gcode':
+            raise Exception('Cannot issue MDI command while GCode running')
+
+        log.info('MDI:' + cmd)
+        self.planner.load_string(cmd)
+        self.mode = 'mdi'
 
 
     def load(self, path):
-        self.planner.set_config(self.get_config())
+        if self.mode != 'idle':
+            raise Exception('Busy, cannot start new GCode program')
+
+        log.info('GCode:' + path)
         self.planner.load('upload' + path)
-        self.done = False
 
 
     def reset(self):
         self.planner = gplan.Planner(self.get_config())
         self.planner.set_resolver(self.get_var)
-        self.planner.set_logger(self.log)
+        self.planner.set_logger(self.log, 1, 'LinePlanner:3')
 
 
     def encode(self, block):
@@ -133,6 +138,9 @@ class Planner():
             if name == 'line': return Cmd.line_number(value)
             if name == 'tool': return Cmd.tool(value)
             if name == 'speed': return Cmd.speed(value)
+            if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
+                    name[2:] == '_home':
+                return Cmd.set_position(name[1], value)
 
             if len(name) and name[0] == '_':
                 self.ctrl.state.set(name[1:], value)
@@ -154,15 +162,15 @@ class Planner():
 
 
     def next(self):
+        if not self.is_running():
+            config = self.get_config()
+            log.info('Planner config:' + json.dumps(config))
+            self.planner.set_config(config)
+
         while self.planner.has_more():
             cmd = self.planner.next()
             self.lastID = cmd['id']
             cmd = self.encode(cmd)
             if cmd is not None: return cmd
 
-        if not self.done:
-            self.done = True
-
-            # Cause last cmd to flush when complete
-            if 0 <= self.lastID:
-                return '#id=%d' % (self.lastID + 1)
+        if not self.is_running(): self.mode = 'idle'

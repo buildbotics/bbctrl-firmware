@@ -133,7 +133,7 @@ module.exports = {
 
     is_homed: function (axis) {
       var motor = this.get_axis_motor_id(axis);
-      return motor != -1 && this.state[motor + 'h'];
+      return motor != -1 && this.state[motor + 'homed'];
     },
 
 
