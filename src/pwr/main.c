@@ -70,7 +70,7 @@ ISR(TWI_SLAVE_vect) {
 
   if (status & I2C_DATA_INT_BM) {
     if (status & I2C_READ_BM) {
-      // send response
+      // Send response
       if (byte < 2) {
         switch (byte++) {
         case 0: TWSD = reg; break;
@@ -85,7 +85,7 @@ ISR(TWI_SLAVE_vect) {
 
   } else if (status & I2C_ADDRESS_STOP_INT_BM) {
     if (status & I2C_ADDRESS_MATCH_BM) {
-      // read address
+      // Read address
       uint8_t addr = (TWSD >> 1) & I2C_MASK;
 
       if (addr < NUM_REGS) {

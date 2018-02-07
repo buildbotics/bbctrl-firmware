@@ -22,6 +22,10 @@ def call_get_output(cmd):
     return s
 
 
+class RebootHandler(bbctrl.APIHandler):
+    def put_ok(self): subprocess.Popen('reboot')
+
+
 class HostnameHandler(bbctrl.APIHandler):
     def get(self):
         p = subprocess.Popen(['hostname'], stdout = subprocess.PIPE)
@@ -32,7 +36,7 @@ class HostnameHandler(bbctrl.APIHandler):
     def put(self):
         if 'hostname' in self.json:
             if subprocess.call(['/usr/local/bin/sethostname',
-                                self.json['hostname']]) == 0:
+                                self.json['hostname'].strip()]) == 0:
                 self.write_json('ok')
                 return
 
@@ -276,6 +280,7 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket', WSConnection),
+            (r'/api/reboot', RebootHandler),
             (r'/api/hostname', HostnameHandler),
             (r'/api/remote/username', UsernameHandler),
             (r'/api/remote/password', PasswordHandler),

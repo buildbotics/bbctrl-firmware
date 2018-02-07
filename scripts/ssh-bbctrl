@@ -1,0 +1,16 @@
+#!/bin/bash
+
+USER=bbmc
+HOST=bbctrl.local
+
+if [ $# -eq 1 ]; then
+    if [[ "$1" = *@ ]]; then
+        LOGIN="$1"
+    else
+        LOGIN=$USER@"$1"
+    fi
+else
+    LOGIN=$USER@$HOST
+fi
+
+ssh -o UserKnownHostsFile=/dev/null  -o StrictHostKeyChecking=no "$LOGIN"

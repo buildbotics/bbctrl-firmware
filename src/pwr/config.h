@@ -55,7 +55,7 @@ enum {
 };
 
 
-// ADC
+// ADC channels
 enum {
   CS1_ADC,  // Motor current
   CS2_ADC,  // Vdd current
@@ -96,6 +96,7 @@ enum {
 #define VOLTAGE_REF_R2 1000
 #define CURRENT_REF_MUL 1970
 
+ // Addresses 0x60 to 0x67
 #define I2C_ADDR 0x60
 #define I2C_MASK 0b00000111
 

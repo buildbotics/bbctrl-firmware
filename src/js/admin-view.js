@@ -18,6 +18,7 @@ module.exports = {
       hostnameSet: false,
       usernameSet: false,
       passwordSet: false,
+      redirectTimeout: 0,
       latest: '',
       hostname: '',
       username: '',
@@ -39,6 +40,7 @@ module.exports = {
     api.get('hostname').done(function (hostname) {
       this.hostname = hostname;
     }.bind(this));
+
     api.get('remote/username').done(function (username) {
       this.username = username;
     }.bind(this));
@@ -46,9 +48,30 @@ module.exports = {
 
 
   methods: {
+    redirect: function (hostname) {
+      if (0 < this.redirectTimeout) {
+        this.redirectTimeout -= 1;
+        setTimeout(function () {this.redirect(hostname)}.bind(this), 1000);
+
+      } else {
+        location.hostname = hostname;
+        this.hostnameSet = false;
+      }
+    },
+
+
     set_hostname: function () {
       api.put('hostname', {hostname: this.hostname}).done(function () {
+        this.redirectTimeout = 45;
         this.hostnameSet = true;
+
+        api.put('reboot').always(function () {
+          var hostname = this.hostname;
+          if (String(location.hostname).endsWith('.local'))
+            hostname += '.local';
+          this.redirect(hostname);
+        }.bind(this));
+
       }.bind(this)).fail(function (error) {
         alert('Set hostname failed: ' + JSON.stringify(error));
       })

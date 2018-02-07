@@ -1,14 +1,19 @@
 #!/bin/bash -e
 
-HOSTNAME="$1"
+HOSTNAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
 
 if [ "$HOSTNAME" == "" ]; then
     echo "Usage: $0 <hostname>"
     exit 1
 fi
 
-if [ $(echo "$HOSTNAME" | tr '[:upper:]' '[:lower:]') == "localhost" ]; then
+if [ "$HOSTNAME" == "localhost" ]; then
     echo "Cannot set hostname to 'localhost'"
+    exit 1
+fi
+
+if [ "$HOSTNAME" =~ ^.*\.local$ ]; then
+    echo "Hostname cannot end with '.local'"
     exit 1
 fi
 
@@ -19,5 +24,3 @@ fi
 
 sed -i "s/^127.0.1.1\([[:space:]]*\).*$/127.0.1.1\1$HOSTNAME/" /etc/hosts
 echo "$HOSTNAME" > /etc/hostname
-/etc/init.d/hostname.sh
-sync

@@ -65,13 +65,15 @@ script#admin-view-template(type="text/x-template")
 
     message(:show.sync="firmwareUpgrading")
       h3(slot="header") Firmware upgrading
-      p(slot="body") Please wait. . .
+      p(slot="body") Please wait...
 
     message(:show.sync="hostnameSet")
       h3(slot="header") Hostname Set
-      p(slot="body")
-        | Hostname was successfuly set to {{hostname}}.
-        | Poweroff and restart the controller for this change to take effect.
+      div(slot="body")
+        p Hostname was successfuly set to <strong>{{hostname}}</strong>.
+        p Rebooting.  Please wait...
+        p Redirecting in {{redirectTimeout}} seconds.
+      div(slot="footer")
 
     message(:show.sync="passwordSet")
       h3(slot="header") Password Set
