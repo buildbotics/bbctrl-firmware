@@ -8,6 +8,7 @@ import datetime
 import shutil
 import tarfile
 import subprocess
+import socket
 
 import bbctrl
 
@@ -27,11 +28,7 @@ class RebootHandler(bbctrl.APIHandler):
 
 
 class HostnameHandler(bbctrl.APIHandler):
-    def get(self):
-        p = subprocess.Popen(['hostname'], stdout = subprocess.PIPE)
-        hostname = p.communicate()[0].decode('utf-8').strip()
-        self.write_json(hostname)
-
+    def get(self): self.write_json(socket.gethostname())
 
     def put(self):
         if 'hostname' in self.json:
@@ -109,7 +106,8 @@ class ConfigLoadHandler(bbctrl.APIHandler):
 
 class ConfigDownloadHandler(bbctrl.APIHandler):
     def set_default_headers(self):
-        filename = datetime.date.today().strftime('bbctrl-%Y%m%d.json')
+        fmt = socket.gethostname() + '-%Y%m%d.json'
+        filename = datetime.date.today().strftime(fmt)
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition',
                         'attachment; filename="%s"' % filename)

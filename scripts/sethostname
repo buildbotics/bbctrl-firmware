@@ -17,7 +17,7 @@ if [ "$HOSTNAME" =~ ^.*\.local$ ]; then
     exit 1
 fi
 
-if [[ ! "$HOSTNAME" =~ ^[a-zA-Z0-9-]{1,63}$ ]]; then
+if [[ ! "$HOSTNAME" =~ ^[a-zA-Z][a-zA-Z0-9-]{0,62}$ ]]; then
     echo "Invalid hostname '$HOSTNAME'"
     exit 1
 fi
