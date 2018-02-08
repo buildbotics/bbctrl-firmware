@@ -58,7 +58,7 @@
         "type": "float",
         "min": 0,
         "unit": "m/min²",
-        "default": 100,
+        "default": 1000,
         "code": "am"
       },
       "max-jerk": {

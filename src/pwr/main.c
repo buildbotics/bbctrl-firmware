@@ -44,12 +44,12 @@ static const uint8_t ch_schedule[] = {
   CS2_ADC,  VOUT_ADC,
   CS3_ADC,  VOUT_ADC,
   CS4_ADC,  VOUT_ADC,
-  0
 };
 
 
 static volatile uint16_t regs[NUM_REGS] = {0};
 static volatile uint64_t time = 0; // ms
+static volatile bool shunt_overload = false;
 static volatile float shunt_ms_power = 0;
 static volatile float vnom = 0;
 
@@ -128,19 +128,11 @@ static void update_shunt() {
 
   // Remove power dissipation credit
   watts -= shunt_ms_power;
-  if (watts < 0) watts = 0;
+  if (watts < 0) shunt_overload = true;
 
-  // Enable shunt output when requested if allowed
-  if (shunt_ms_power) {
-    IO_DDR_SET(SHUNT_PIN); // Enable shunt output
-
-    if (watts) IO_DDR_SET(MOTOR_PIN); // Enable motor output
-    else IO_DDR_CLR(MOTOR_PIN); // Disable motor output
-
-  } else {
-    IO_DDR_CLR(SHUNT_PIN); // Disable output
-    IO_DDR_SET(MOTOR_PIN); // Enable motor output
-  }
+  // Enable shunt when requested
+  if (shunt_ms_power) IO_DDR_SET(SHUNT_PIN); // Enable
+  else IO_DDR_CLR(SHUNT_PIN);                // Disable
 }
 
 
@@ -217,7 +209,7 @@ static void adc_conversion() {
   static int i = 0;
 
   read_conversion(ch_schedule[i]);
-  if (!ch_schedule[++i]) i = 0;
+  if (++i == sizeof(ch_schedule)) i = 0;
 
   // Start next conversion
   ADMUX = (ADMUX & 0xf0) | ch_schedule[i];
@@ -256,7 +248,7 @@ static void validate_input_voltage() {
 static void charge_caps() {
   TCCR0A |= (1 << COM0A1) | (0 << COM0A0); // Clear on compare match
   IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
-  IO_DDR_SET(MOTOR_PIN); // Output
+  IO_DDR_SET(MOTOR_PIN);  // Output
 
   uint64_t now = time;
   for (int i = 0; i < CAP_CHARGE_TIME; i++) {
@@ -321,6 +313,37 @@ void init() {
 }
 
 
+static void shutdown(uint16_t flags) {
+  regs[FLAGS_REG] = flags;
+
+  // Disable timers
+  TCCR0B = TCCR1B = 0;
+
+  // Disable outputs
+  IO_DDR_CLR(SHUNT_PIN);
+  IO_DDR_CLR(MOTOR_PIN);
+  IO_PORT_CLR(LOAD1_PIN);
+  IO_PORT_CLR(LOAD2_PIN);
+  IO_DDR_SET(LOAD1_PIN);
+  IO_DDR_SET(LOAD2_PIN);
+
+  while (true) continue;
+}
+
+
+static void validate_measurements() {
+  const float max_voltage = 0.99 * convert_voltage(0x3ff);
+  const float max_current = 0.99 * convert_current(0x3ff);
+
+  if (max_voltage < regs[VOUT_REG]  ||
+      max_current < regs[MOTOR_REG] ||
+      max_current < regs[LOAD1_REG] ||
+      max_current < regs[LOAD2_REG] ||
+      max_current < regs[VDD_REG])
+    shutdown(MEASUREMENT_ERROR_FLAG);
+}
+
+
 int main() {
   wdt_enable(WDTO_8S);
 
@@ -328,6 +351,7 @@ int main() {
   adc_conversion(); // Start ADC
   validate_input_voltage();
   charge_caps();
+  validate_measurements();
 
   while (true) {
     wdt_reset();
@@ -340,25 +364,11 @@ int main() {
     // Check fault conditions
     uint16_t flags = 0;
     if (vin < VOLTAGE_MIN) flags |= UNDER_VOLTAGE_FLAG;
-    if (VOLTAGE_MAX < vin) flags |= OVER_VOLTAGE_FLAG;
+    if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) flags |= OVER_VOLTAGE_FLAG;
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
-    regs[FLAGS_REG] = flags;
+    if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
 
-    if (flags) {
-      // Disable
-      IO_PORT_CLR(MOTOR_PIN);
-      IO_PORT_CLR(LOAD1_PIN);
-      IO_PORT_CLR(LOAD2_PIN);
-      IO_DDR_SET(LOAD1_PIN);
-      IO_DDR_SET(LOAD2_PIN);
-
-      delay_ms(FAULT_TIMEOUT);
-
-      // Reenable
-      charge_caps();
-      IO_DDR_CLR(LOAD1_PIN);
-      IO_DDR_CLR(LOAD2_PIN);
-    }
+    if (flags) shutdown(flags);
   }
 
   return 0;

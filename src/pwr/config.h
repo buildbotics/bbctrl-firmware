@@ -84,7 +84,6 @@ enum {
 #define VOLTAGE_SETTLE_PERIOD 20 // ms
 #define VOLTAGE_SETTLE_TOLERANCE 0.01
 #define VOLTAGE_EXP 0.01
-#define FAULT_TIMEOUT 5000 // ms
 
 #define SHUNT_WATTS 5
 #define SHUNT_OHMS 10
@@ -121,7 +120,9 @@ typedef enum {
 
 
 enum {
-  UNDER_VOLTAGE_FLAG = 1 << 0,
-  OVER_VOLTAGE_FLAG  = 1 << 1,
-  OVER_CURRENT_FLAG  = 1 << 2,
+  UNDER_VOLTAGE_FLAG     = 1 << 0,
+  OVER_VOLTAGE_FLAG      = 1 << 1,
+  OVER_CURRENT_FLAG      = 1 << 2,
+  MEASUREMENT_ERROR_FLAG = 1 << 3,
+  SHUNT_OVERLOAD_FLAG    = 1 << 4,
 };
