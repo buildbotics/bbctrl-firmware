@@ -31,6 +31,7 @@ class Ctrl(object):
         self.args = args
         self.ioloop = ioloop
 
+        self.msgs = bbctrl.Messages(self)
         self.state = bbctrl.State(self)
         self.planner = bbctrl.Planner(self)
         self.i2c = bbctrl.I2C(args.i2c_port)

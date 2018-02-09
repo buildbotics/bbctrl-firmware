@@ -1,12 +1,16 @@
+'use strict';
+
+
 $(function() {
   // Vue debugging
   Vue.config.debug = true;
-  Vue.util.warn = function (msg) {console.debug('[Vue warn]: ' + msg)}
+  //Vue.util.warn = function (msg) {console.debug('[Vue warn]: ' + msg)}
 
   // Register global components
   Vue.component('templated-input', require('./templated-input'));
   Vue.component('message', require('./message'));
   Vue.component('indicators', require('./indicators'));
+  Vue.component('console', require('./console'));
 
   Vue.filter('percent', function (value, precision) {
     if (typeof precision == 'undefined') precision = 2;

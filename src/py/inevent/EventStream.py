@@ -143,7 +143,7 @@ class EventStream(object):
     return self
 
 
-  def next(self):
+  def __next__(self):
     """
     Returns the next waiting event.
 

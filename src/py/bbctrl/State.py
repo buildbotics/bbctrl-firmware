@@ -1,4 +1,5 @@
 import logging
+import traceback
 import bbctrl
 
 
@@ -14,8 +15,7 @@ class State(object):
         self.vars = {}
         self.callbacks = {}
         self.changes = {}
-        self.next_id = 1
-        self.listeners = {}
+        self.listeners = []
         self.timeout = None
         self.machine_vars = {}
         self.machine_var_set = set()
@@ -37,12 +37,13 @@ class State(object):
     def _notify(self):
         if not self.changes: return
 
-        for listener in self.listeners.values():
+        for listener in self.listeners:
             try:
                 listener(self.changes)
 
             except Exception as e:
-                log.error('Updating listener: %s', traceback.format_exc())
+                log.warning('Updating state listener: %s',
+                            traceback.format_exc())
 
         self.changes = {}
         self.timeout = None
@@ -83,7 +84,7 @@ class State(object):
 
         if name in self.vars: return self.vars[name]
         if name in self.callbacks: return self.callbacks[name](name)
-        if default is None: log.error('State variable "%s" not found' % name)
+        if default is None: log.warning('State variable "%s" not found' % name)
         return default
 
 
@@ -93,16 +94,11 @@ class State(object):
 
 
     def add_listener(self, listener):
-        sid = self.next_id
-        self.next_id += 1
-
-        self.listeners[sid] = listener
+        self.listeners.append(listener)
         if self.vars: listener(self.vars)
 
-        return sid
 
-
-    def remove_listener(self, sid): del self.listeners[sid]
+    def remove_listener(self, listener): self.listeners.remove(listener)
 
 
     def machine_cmds_and_vars(self, data):

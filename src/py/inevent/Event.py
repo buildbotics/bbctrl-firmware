@@ -96,8 +96,8 @@ class Event(object):
     The output is packed into a string. It is unlikely that this function
     will be required, but it might as well be here.
     """
-    tint = long(self.time)
-    tfrac = long((self.time - tint) * 1000000)
+    tsec = int(self.time)
+    tfrac = int((self.time - tsec) * 1000000)
 
     return struct.pack(_format, tsec, tfrac, self.type, self.code, self.value)
 

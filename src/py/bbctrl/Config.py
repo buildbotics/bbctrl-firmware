@@ -19,6 +19,7 @@ default_config = {
     "outputs": {},
     "tool": {},
     "gcode": {},
+    "admin": {},
     }
 
 

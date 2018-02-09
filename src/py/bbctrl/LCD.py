@@ -79,7 +79,7 @@ class LCD:
             self.load_page(LCDPage(self, msg))
             self._update()
         except IOError as e:
-            log.error('LCD communication failed: %s' % e)
+            log.warning('LCD communication failed: %s' % e)
 
 
     def new_screen(self):
@@ -164,8 +164,8 @@ class LCD:
             self.addr = self.addrs[self.addr_num]
             self.lcd = None
 
-            log.error('LCD communication failed, ' +
-                      'retrying on address 0x%02x: %s' % (self.addr, e))
+            log.warning('LCD communication failed, ' +
+                        'retrying on address 0x%02x: %s' % (self.addr, e))
 
             self.reset = True
             self.timeout = self.ctrl.ioloop.call_later(1, self._update)

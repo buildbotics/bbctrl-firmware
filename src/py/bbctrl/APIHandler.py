@@ -1,9 +1,9 @@
 import json
-import tornado.web
+from tornado.web import RequestHandler, HTTPError
 import tornado.httpclient
 
 
-class APIHandler(tornado.web.RequestHandler):
+class APIHandler(RequestHandler):
     def __init__(self, app, request, **kwargs):
         super(APIHandler, self).__init__(app, request, **kwargs)
         self.ctrl = app.ctrl
@@ -14,7 +14,7 @@ class APIHandler(tornado.web.RequestHandler):
         self.write_json('ok')
 
 
-    def delete_ok(self): raise tornado.httpclient.HTTPError(405)
+    def delete_ok(self): raise HTTPError(405)
 
 
     def put(self, *args, **kwargs):
@@ -22,7 +22,7 @@ class APIHandler(tornado.web.RequestHandler):
         self.write_json('ok')
 
 
-    def put_ok(self): raise tornado.httpclient.HTTPError(405)
+    def put_ok(self): raise HTTPError(405)
 
 
     def prepare(self):
@@ -32,7 +32,7 @@ class APIHandler(tornado.web.RequestHandler):
             try:
                 self.json = tornado.escape.json_decode(self.request.body)
             except ValueError:
-                self.send_error(400, message = 'Unable to parse JSON.')
+                raise HTTPError(400, 'Unable to parse JSON.')
 
 
     def set_default_headers(self):

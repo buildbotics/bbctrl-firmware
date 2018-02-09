@@ -1,10 +1,13 @@
 import json
+import re
 import logging
-import camotics.gplan as gplan
+import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
 
 log = logging.getLogger('Planner')
 
+reLogLine = re.compile(
+    r'^(?P<level>[A-Z])[0-9 ]:((?P<where>[^:]+:\d+:\d+):)?(?P<msg>.*)$')
 
 
 class Planner():
@@ -13,7 +16,7 @@ class Planner():
         self.lastID = -1
         self.mode = 'idle'
 
-        ctrl.state.add_listener(lambda x: self.update(x))
+        ctrl.state.add_listener(self.update)
 
         self.reset()
 
@@ -90,15 +93,22 @@ class Planner():
 
     def log(self, line):
         line = line.strip()
-        if len(line) < 3: return
+        m = reLogLine.match(line)
+        if not m: return
 
-        if line[0] == 'I': log.info(line[3:])
-        elif line[0] == 'D': log.debug(line[3:])
-        # TODO send these to the LCD and Web
-        elif line[0] == 'W': log.warning(line[3:])
-        elif line[0] == 'E': log.error(line[3:])
-        elif line[0] == 'C': log.critical(line[3:])
-        else: raise Exception('Could not parse planner log line: ' + line)
+        level = m.group('level')
+        msg = m.group('msg')
+        where = m.group('where')
+
+        if where is not None: extra = dict(where = where)
+        else: extra = None
+
+        if   level == 'I': log.info    (msg, extra = extra)
+        elif level == 'D': log.debug   (msg, extra = extra)
+        elif level == 'W': log.warning (msg, extra = extra)
+        elif level == 'E': log.error   (msg, extra = extra)
+        elif level == 'C': log.critical(msg, extra = extra)
+        else: log.error('Could not parse planner log line: ' + line)
 
 
     def mdi(self, cmd):

@@ -9,6 +9,7 @@ import shutil
 import tarfile
 import subprocess
 import socket
+from tornado.web import HTTPError
 
 import bbctrl
 
@@ -19,8 +20,34 @@ log = logging.getLogger('Web')
 def call_get_output(cmd):
     p = subprocess.Popen(cmd, stdout = subprocess.PIPE)
     s = p.communicate()[0].decode('utf-8')
-    if p.returncode: raise Exception('Command failed')
+    if p.returncode: raise HTTPError(400, 'Command failed')
     return s
+
+
+def get_username():
+    return call_get_output(['getent', 'passwd', '1001']).split(':')[0]
+
+
+def set_username(username):
+    if subprocess.call(['usermod', '-l', username, get_username()]):
+        raise HTTPError(400, 'Failed to set username to "%s"' % username)
+
+
+def check_password(password):
+    # Get current password
+    s = call_get_output(['getent', 'shadow', get_username()])
+    current = s.split(':')[1].split('$')
+
+    # Check password type
+    if current[1] != '1':
+        raise HTTPError(400, "Don't know how to update non-MD5 password")
+
+    # Check current password
+    cmd = ['openssl', 'passwd', '-salt', current[2], '-1', password]
+    s = call_get_output(cmd).strip()
+
+    if s.split('$') != current: raise HTTPError(401, 'Wrong password')
+
 
 
 class RebootHandler(bbctrl.APIHandler):
@@ -37,53 +64,22 @@ class HostnameHandler(bbctrl.APIHandler):
                 self.write_json('ok')
                 return
 
-        self.send_error(400, message = 'Failed to set hostname: %s' % self.json)
-
-
-def get_username():
-    return call_get_output(['getent', 'passwd', '1001']).split(':')[0]
+        raise HTTPError(400, 'Failed to set hostname')
 
 
 class UsernameHandler(bbctrl.APIHandler):
     def get(self): self.write_json(get_username())
 
 
-    def put(self):
-        if 'username' in self.json:
-            username = get_username()
-
-            if subprocess.call(['usermod', '-l', self.json['username'],
-                                username]) == 0:
-                self.write_json('ok')
-                return
-
-        self.send_error(400, message = 'Failed to set username: %s' % self.json)
+    def put_ok(self):
+        if 'username' in self.json: set_username(self.json['username'])
+        else: raise HTTPError(400, 'Missing "username"')
 
 
 class PasswordHandler(bbctrl.APIHandler):
     def put(self):
         if 'current' in self.json and 'password' in self.json:
-            # Get current user name
-            username = get_username()
-
-            # Get current password
-            s = call_get_output(['getent', 'shadow', username])
-            password = s.split(':')[1].split('$')
-
-            # Check password type
-            if password[1] != '1':
-                self.send_error(400, message =
-                                "Don't know how to update non-MD5 password")
-                return
-
-            # Check current password
-            cmd = ['openssl', 'passwd', '-salt', password[2], '-1',
-                   self.json['current']]
-            s = call_get_output(cmd).strip()
-            if s.split('$') != password:
-                print('%s != %s' % (s.split('$'), password))
-                self.send_error(401, message = 'Wrong password')
-                return
+            check_password(self.json['current'])
 
             # Set password
             s = '%s:%s' % (username, self.json['password'])
@@ -97,7 +93,7 @@ class PasswordHandler(bbctrl.APIHandler):
                 self.write_json('ok')
                 return
 
-        self.send_error(400, message = 'Failed to set password')
+        raise HTTPError(401, 'Failed to set password')
 
 
 class ConfigLoadHandler(bbctrl.APIHandler):
@@ -128,11 +124,10 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
     def prepare(self): pass
 
 
-    def put(self):
+    def put_ok(self):
         # Only allow this function in dev mode
         if not os.path.exists('/etc/bbctrl-dev-mode'):
-            self.send_error(403, message = 'Not in dev mode')
-            return
+            raise HTTPError(403, 'Not in dev mode')
 
         firmware = self.request.files['firmware'][0]
 
@@ -143,11 +138,11 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
 
         subprocess.Popen(['/usr/local/bin/update-bbctrl'])
 
-        self.write_json('ok')
-
 
 class UpgradeHandler(bbctrl.APIHandler):
-    def put_ok(self): subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
+    def put_ok(self):
+        check_password(self.json['password'])
+        subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
 class HomeHandler(bbctrl.APIHandler):
@@ -156,7 +151,7 @@ class HomeHandler(bbctrl.APIHandler):
 
         if set_home:
             if not 'position' in self.json:
-                raise Exception('Missing "position"')
+                raise HTTPError(400, 'Missing "position"')
 
             self.ctrl.avr.home(axis, self.json['position'])
 
@@ -212,58 +207,59 @@ class JogHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.avr.jog(self.json)
 
 
-# Used by CAMotics
-class WSConnection(tornado.websocket.WebSocketHandler):
-    def __init__(self, app, request, **kwargs):
-        super(WSConnection, self).__init__(app, request, **kwargs)
-        self.ctrl = app.ctrl
-        self.timer = None
+# Base class for Web Socket connections
+class ClientConnection(object):
+    def __init__(self, ctrl):
+        self.ctrl = ctrl
+        self.count = 0
 
 
     def heartbeat(self):
-        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
-        self.write_message({'heartbeat': self.count})
-        self.count += 1
-
-
-    def open(self):
-        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
-        self.count = 0;
-        self.sid = self.ctrl.state.add_listener(lambda x: self.write_message(x))
-
-
-    def on_close(self):
-        if self.timer is not None: self.ctrl.ioloop.remove_timeout(self.timer)
-        self.ctrl.state.remove_listener(self.sid)
-
-
-    def on_message(self, msg): pass
-
-
-# Used by Web frontend
-class SockJSConnection(sockjs.tornado.SockJSConnection):
-    def heartbeat(self):
-        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
+        self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
         self.count += 1
 
 
-    def on_open(self, info):
-        self.ctrl = self.session.server.ctrl
+    def notify(self, msg): self.send(dict(msg = msg))
+    def send(self, msg): raise HTTPError(400, 'Not implemented')
 
+
+    def on_open(self, *args, **kwargs):
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
-        self.count = 0;
-
-        self.sid = self.ctrl.state.add_listener(lambda x: self.send(x))
+        self.ctrl.state.add_listener(self.send)
+        self.ctrl.msgs.add_listener(self.notify)
+        self.is_open = True
 
 
     def on_close(self):
         self.ctrl.ioloop.remove_timeout(self.timer)
-        self.ctrl.state.remove_listener(self.sid)
+        self.ctrl.state.remove_listener(self.send)
+        self.ctrl.msgs.remove_listener(self.notify)
 
 
-    def on_message(self, data):
-        self.ctrl.avr.mdi(data)
+    def on_message(self, data): self.ctrl.avr.mdi(data)
+
+
+# Used by CAMotics
+class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
+    def __init__(self, app, request, **kwargs):
+        ClientConnection.__init__(self, app.ctrl)
+        tornado.websocket.WebSocketHandler.__init__(
+            self, app, request, **kwargs)
+
+
+    def send(self, msg): self.write_message(msg)
+    def open(self): self.on_open()
+
+
+# Used by Web frontend
+class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
+    def __init__(self, session):
+        ClientConnection.__init__(self, session.server.ctrl)
+        sockjs.tornado.SockJSConnection.__init__(self, session)
+
+
+    def send(self, msg): sockjs.tornado.SockJSConnection.send(self, msg)
 
 
 class StaticFileHandler(tornado.web.StaticFileHandler):

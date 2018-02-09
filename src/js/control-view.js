@@ -8,12 +8,6 @@ function _is_array(x) {
 }
 
 
-function _msg_equal(a, b) {
-  return a.level == b.level && a.location == b.location && a.code == b.code &&
-    a.msg == b.msg;
-}
-
-
 function escapeHTML(s) {
   var entityMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;'};
   return String(s).replace(/[&<>]/g, function (s) {return entityMap[s];});
@@ -34,7 +28,6 @@ module.exports = {
       axes: 'xyzabc',
       gcode: [],
       history: [],
-      console: [],
       speed_override: 1,
       feed_override: 1,
       manual_home: {x: false, y: false, z: false, a: false, b: false, c: false},
@@ -62,25 +55,11 @@ module.exports = {
       var data = {};
       data[axis] = power;
       api.put('jog', data);
-    },
-
-
-    message: function (msg) {
-      if (this.console.length &&
-          _msg_equal(msg, this.console[this.console.length - 1]))
-        this.console[this.console.length - 1].repeat++;
-
-      else {
-        msg.repeat = 1;
-        this.console.push(msg);
-      }
     }
   },
 
 
-  ready: function () {
-    this.update();
-  },
+  ready: function () {this.update()},
 
 
   methods: {
@@ -99,7 +78,7 @@ module.exports = {
 
 
     get_axis_motor_id: function (axis) {
-      var axis = axis.toLowerCase();
+      axis = axis.toLowerCase();
 
       for (var i = 0; i < this.config.motors.length; i++) {
         var motor = this.config.motors[i];
@@ -121,8 +100,8 @@ module.exports = {
       if (typeof motor == 'undefined') return;
       if (typeof motor[name] != 'undefined') return motor[name];
 
-      for (var section in this.template['motors']) {
-        var sec = this.template['motors'][section];
+      for (var section in this.template.motors) {
+        var sec = this.template.motors[section];
         if (typeof sec[name] != 'undefined') return sec[name]['default'];
       }
     },
@@ -308,9 +287,6 @@ module.exports = {
       data[axis + 'pl'] = x;
       this.send(JSON.stringify(data));
     },
-
-
-    clear_console: function () {this.console = [];},
 
 
     load_video: function () {

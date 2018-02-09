@@ -53,7 +53,7 @@ class Jog(inevent.JogHandler):
                 axes = {}
                 for i in range(len(self.v)): axes["xyzabc"[i]] = self.v[i]
                 self.ctrl.avr.jog(axes)
-            except Exception as e: log.error('Jog: %s', e)
+            except Exception as e: log.warning('Jog: %s', e)
 
         self.ctrl.ioloop.call_later(0.25, self.callback)
 

@@ -136,6 +136,14 @@ build/css/%.css: src/stylus/%.styl node_modules
 	mkdir -p $(shell dirname $@)
 	$(STYLUS) < $< > $@ || (rm -f $@; exit 1)
 
+pylint:
+	pylint3 -E $(shell find src/py -name \*.py)
+
+jshint:
+	./node_modules/jshint/bin/jshint --config jshint.json src/js/*.js
+
+lint: pylint jshint
+
 watch:
 	@clear
 	$(MAKE)
@@ -159,4 +167,4 @@ dist-clean: clean
 	rm -rf node_modules
 
 .PHONY: all install html css static templates clean tidy copy mount umount pkg
-.PHONY: gplan
+.PHONY: gplan lint pylint jshint

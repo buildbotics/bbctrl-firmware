@@ -6,7 +6,7 @@ var api = require('./api');
 
 module.exports = {
   template: '#admin-view-template',
-  props: ['config'],
+  props: ['config', 'state'],
 
 
   data: function () {
@@ -14,7 +14,6 @@ module.exports = {
       configRestored: false,
       confirmReset: false,
       configReset: false,
-      firmwareUpgrading: false,
       hostnameSet: false,
       usernameSet: false,
       passwordSet: false,
@@ -24,7 +23,8 @@ module.exports = {
       username: '',
       current: '',
       password: '',
-      password2: ''
+      password2: '',
+      autoCheckUpgrade: true,
     }
   },
 
@@ -32,11 +32,15 @@ module.exports = {
   events: {
     connected: function () {
       if (this.firmwareUpgrading) location.reload(true);
-    }
+    },
+
+    latest_version: function (version) {this.latest = version}
   },
 
 
   ready: function () {
+    this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
+
     api.get('hostname').done(function (hostname) {
       this.hostname = hostname;
     }.bind(this));
@@ -124,7 +128,7 @@ module.exports = {
 
         try {
           config = JSON.parse(e.target.result);
-        } catch (e) {
+        } catch (ex) {
           alert("Invalid config file");
           return;
         }
@@ -154,24 +158,13 @@ module.exports = {
     },
 
 
-    check: function () {
-      $.ajax({
-        type: 'GET',
-        url: 'https://buildbotics.com/bbctrl/latest.txt',
-        cache: false
-
-      }).done(function (data) {
-        this.latest = data;
-
-      }.bind(this)).fail(function (error) {
-        alert('Failed to get latest version information');
-      });
-    },
+    check: function () {this.$dispatch('check')},
+    upgrade: function () {this.$dispatch('upgrade')},
 
 
-    upgrade: function () {
-      this.firmwareUpgrading = true;
-      api.put('upgrade');
+    change_auto_check_upgrade: function () {
+      this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade;
+      this.$dispatch('config-changed');
     }
   }
 }

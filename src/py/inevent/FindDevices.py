@@ -77,7 +77,7 @@ class DeviceCapabilities(object):
                       firstLine)
 
     if not match:
-      log.warning("Do not understand device ID:", line)
+      log.warning("Do not understand device ID: %s", firstLine)
       self.bus = 0
       self.vendor = 0
       self.product = 0
@@ -173,15 +173,15 @@ class DeviceCapabilities(object):
 
   def __str__(self):
     return (
-      "%s\n"
-      "Bus: %s Vendor: %s Product: %s Version: %s\n"
-      "Phys: %s\n"
-      "Sysfs: %s\n"
-      "Uniq: %s\n"
-      "Handlers: %s Event Index: %s\n"
-      "Keyboard: %s Mouse: %s Joystick: %s\n"
-      "Events: %s" % (
-        self.name, self.bus. self.vendor, self.product, self.version, self.phys,
+      ("%s\n"
+       "Bus: %s Vendor: %s Product: %s Version: %s\n"
+       "Phys: %s\n"
+       "Sysfs: %s\n"
+       "Uniq: %s\n"
+       "Handlers: %s Event Index: %s\n"
+       "Keyboard: %s Mouse: %s Joystick: %s\n"
+       "Events: %s") % (
+        self.name, self.bus, self.vendor, self.product, self.version, self.phys,
         self.sysfs, self.uniq, self.handlers, self.eventIndex, self.isKeyboard,
         self.isMouse, self.isJoystick, EvToStr(self.eventTypes)))
 

@@ -287,5 +287,12 @@
       "type": "text",
       "default": "M2 (End program)\n"
     }
+  },
+
+  "admin": {
+    "auto-check-upgrade": {
+      "type": "bool",
+      "default": true
+    }
   }
 }

@@ -66,11 +66,44 @@ html(lang="en")
               .title
                 span.left Build
                 span.right botics
-              .subtitle Machine Controller
+              .subtitle
+                | Machine Controller v{{config.version}}
+                a.upgrade-version(v-if="show_upgrade()", href="#admin")
+                  | Upgrade to v{{latestVersion}}
+                .fa.fa-check(v-if="!show_upgrade() && latestVersion",
+                  title="Firmware up to date")
 
         .content(class="{{currentView}}-view")
           component(:is="currentView + '-view'", :index="index",
             :config="config", :template="template", :state="state", keep-alive)
+
+    message.error-message(:show.sync="errorShow")
+      div(slot="header")
+        .estop(:class="{active: state.es}"): estop(@click="estop")
+        h3 ERROR: {{errorMessage}}
+
+      div(slot="body")
+        console
+
+    message(:show.sync="confirmUpgrade")
+      h3(slot="header") Upgrade Firmware?
+      div(slot="body")
+        p
+          | Are you sure you want to upgrade the firmware to version
+          | {{latestVersion}}?
+
+        p.pure-control-group
+          label(for="pass") Password
+          input(name="pass", v-model="password", type="password")
+
+      div(slot="footer")
+        button.pure-button(@click="confirmUpgrade=false") Cancel
+        button.pure-button.pure-button-primary(@click="upgrade_confirmed")
+          | Upgrade
+
+    message(:show.sync="firmwareUpgrading")
+      h3(slot="header") Firmware upgrading
+      p(slot="body") Please wait...
 
     #templates
       include ../../build/templates.jade

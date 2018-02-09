@@ -43,8 +43,8 @@ module.exports = {
           this.outputs = this.config.outputs;
         else this.outputs = {};
 
-        var template = this.template.outputs;
-        for (var key in template)
+        template = this.template.outputs;
+        for (key in template)
           if (!this.outputs.hasOwnProperty(key))
             this.$set('outputs["' + key + '"]', template[key].default);
       }.bind(this));

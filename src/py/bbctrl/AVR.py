@@ -43,7 +43,7 @@ class AVR():
         self.lcd_page = ctrl.lcd.add_new_page()
         self.install_page = True
 
-        ctrl.state.add_listener(lambda x: self._update_state(x))
+        ctrl.state.add_listener(self._update_state)
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -78,12 +78,12 @@ class AVR():
                 retry -= 1
 
                 if retry:
-                    log.error('AVR I2C communication failed, retrying: %s' % e)
+                    log.warning('AVR I2C failed, retrying: %s' % e)
                     time.sleep(0.1)
                     continue
 
                 else:
-                    log.error('AVR I2C communication failed: %s' % e)
+                    log.error('AVR I2C failed: %s' % e)
                     raise
 
 
@@ -118,7 +118,7 @@ class AVR():
             if self.ctrl.ioloop.READ & events: self._serial_read()
             if self.ctrl.ioloop.WRITE & events: self._serial_write()
         except Exception as e:
-            log.error('Serial handler error: %s', traceback.format_exc())
+            log.warning('Serial handler error: %s', traceback.format_exc())
 
 
     def _serial_write(self):
@@ -173,7 +173,7 @@ class AVR():
                     msg = json.loads(line)
 
                 except Exception as e:
-                    log.error('%s, data: %s', e, line)
+                    log.warning('%s, data: %s', e, line)
                     continue
 
                 if 'variables' in msg:
@@ -192,7 +192,7 @@ class AVR():
 
         if update:
             if 'firmware' in update:
-                log.error('AVR rebooted')
+                log.warning('firmware rebooted')
                 self.connect()
 
             self.ctrl.state.update(update)

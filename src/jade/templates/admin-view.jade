@@ -54,18 +54,9 @@ script#admin-view-template(type="text/x-template")
     button.pure-button.pure-button-primary(@click="upgrade") Upgrade
 
     p
-    table.pure-table
-      tr
-        th Current version
-        td {{config.version}}
-
-      tr(v-if="latest")
-        th Latest version
-        td {{latest}}
-
-    message(:show.sync="firmwareUpgrading")
-      h3(slot="header") Firmware upgrading
-      p(slot="body") Please wait...
+      input(type="checkbox", v-model="autoCheckUpgrade",
+        @change="change_auto_check_upgrade")
+      label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
 
     message(:show.sync="hostnameSet")
       h3(slot="header") Hostname Set

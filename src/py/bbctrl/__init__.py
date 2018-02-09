@@ -22,6 +22,7 @@ from bbctrl.Pwr import Pwr
 from bbctrl.I2C import I2C
 from bbctrl.Planner import Planner
 from bbctrl.State import State
+from bbctrl.Messages import Messages
 import bbctrl.Cmd as Cmd
 
 
@@ -90,10 +91,9 @@ def run():
     try:
         ioloop.start()
 
-    except KeyboardInterrupt:
-        on_exit()
-
-    except: log.exception('')
+    except KeyboardInterrupt: on_exit()
+    except SystemExit: raise
+    except: logging.getLogger().exception('')
 
 
 if __name__ == "__main__": run()

@@ -241,27 +241,10 @@ script#control-view-template(type="text/x-template")
         center Jogging speed is set by the ring that is clicked.
 
       section#content4.tab-content
-        .toolbar
-          button.pure-button(title="Clear console.", @click="clear_console")
-            .fa.fa-trash
-
-        table.console
-          tr
-            th Level
-            th Location
-            th Code
-            th Repeat
-            th Message
-
-          tr(v-for="msg in console", :class="msg.level || 'info'")
-            td {{msg.level || 'info'}}
-            td {{msg.where || ''}}
-            td {{msg.code  || '0'}}
-            td {{msg.repeat}}
-            td {{msg.msg}}
+        console
 
       section#content5.tab-content
-        component(is="indicators", :state="state")
+        indicators(:state="state")
 
       section#content6.tab-content
         .video

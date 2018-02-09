@@ -45,11 +45,6 @@ def encode_axes(axes):
     return data
 
 
-def seek(switch, open, error):
-    flags = (SEEK_OPEN if open else 0) | (SEEK_ERROR if error else 0)
-    return '%c%x%x' % (SEEK, switch, flags)
-
-
 def line_number(line): return '#ln=%d' % line
 
 

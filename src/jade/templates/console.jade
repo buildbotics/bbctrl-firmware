@@ -1,0 +1,20 @@
+script#console-template(type="text/x-template")
+  .console
+    .toolbar
+      button.pure-button(title="Clear console.", @click="clear")
+        .fa.fa-trash
+
+    table
+      tr
+        th Level
+        th Source
+        th Location
+        th Repeat
+        th Message
+
+      tr(v-for="msg in messages.reverse()", :class="msg.level || 'info'")
+        td {{msg.level  || 'info'}}
+        td {{msg.source || ''}}
+        td {{msg.where  || ''}}
+        td {{msg.repeat}}
+        td {{msg.msg}}

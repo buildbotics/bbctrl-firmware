@@ -42,14 +42,15 @@ class Pwr():
         flags = self.regs[FLAGS_REG]
         errors = []
 
-        if flags & UNDER_VOLTAGE_FLAG:     errors.push('under voltage')
-        if flags & OVER_VOLTAGE_FLAG:      errors.push('over voltage')
-        if flags & OVER_CURRENT_FLAG:      errors.push('over current')
-        if flags & MEASUREMENT_ERROR_FLAG: errors.push('measurement error')
-        if flags & SHUNT_OVERLOAD_FLAG:    errors.push('shunt overload')
+        # Decode error flags
+        if flags & UNDER_VOLTAGE_FLAG:     errors.append('under voltage')
+        if flags & OVER_VOLTAGE_FLAG:      errors.append('over voltage')
+        if flags & OVER_CURRENT_FLAG:      errors.append('over current')
+        if flags & MEASUREMENT_ERROR_FLAG: errors.append('measurement error')
+        if flags & SHUNT_OVERLOAD_FLAG:    errors.append('shunt overload')
 
         # Report errors
-        self.ctrl.state.set('pwr_errors', errors)
+        if errors: log.error('Power fault: ' + ', '.join(errors))
 
 
     def _update(self):

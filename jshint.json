@@ -1,0 +1,14 @@
+{
+  "asi": true,
+  "browser": true,
+  "devel": true,
+  "strict": "global",
+  "globals": {
+    "$": false,
+    "require": false,
+    "module": false,
+    "Vue": false,
+    "SockJS": false,
+    "Gauge": false
+  }
+}

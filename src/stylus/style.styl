@@ -144,7 +144,7 @@ body
   50%
     fill #ff9d00
 
-.header-content .estop
+.estop
   width 130px
   transition 250ms
 
@@ -369,8 +369,14 @@ body
     > svg
       margin 1em
 
-  .console
+.console
+  table
     width 100%
+    margin 0.5em 0
+    border-collapse collapse
+
+    td, th
+      border 1px solid #ddd
 
     tr
       > td
@@ -386,48 +392,48 @@ body
       &.debug td
         color green
 
-  .indicators
-    table
-      display inline-block
-      vertical-align top
-      margin 0.5em
-      empty-cells show
+.indicators
+  table
+    display inline-block
+    vertical-align top
+    margin 0.5em
+    empty-cells show
 
-      td, th
-        padding 4px
+    td, th
+      padding 4px
 
-      tr:nth-child(odd)
-        background #f7f7f7
+    tr:nth-child(odd)
+      background #f7f7f7
 
-      td:nth-child(1), td:nth-child(3)
+    td:nth-child(1), td:nth-child(3)
+      text-align center
+
+    th:nth-child(2), th:nth-child(4)
+      text-align left
+
+    &.inputs, &.outputs
+      td:nth-child(1), td:nth-child(4)
         text-align center
 
-      th:nth-child(2), th:nth-child(4)
+      th:nth-child(2), th:nth-child(5)
+        text-align right
+
+      th:nth-child(3), th:nth-child(6)
         text-align left
 
-      &.inputs, &.outputs
-        td:nth-child(1), td:nth-child(4)
-          text-align center
+  .logic-lo
+    color black
 
-        th:nth-child(2), th:nth-child(5)
-          text-align right
+  .logic-hi
+    color green
 
-        th:nth-child(3), th:nth-child(6)
-          text-align left
+  .warn
+    background-color transparent
+    color orange
 
-    .logic-lo
-      color black
-
-    .logic-hi
-      color green
-
-    .warn
-      background-color transparent
-      color orange
-
-  .video
-    text-align center
-    line-height 0
+.video
+  text-align center
+  line-height 0
 
 
 .tabs
@@ -479,6 +485,19 @@ body
     border 1px solid #ddd
     padding 0.5em
 
+
+.upgrade-version
+  display inline-block
+  border-radius 4px
+  padding 2px
+  margin-left 0.5em
+  color #555
+  background-color #e5aa3d
+  text-decoration none
+
+  &:hover
+    color #fff
+
 .modal-mask
   position fixed
   z-index 9998
@@ -526,6 +545,22 @@ label.file-upload
   input[type="file"]
     position fixed
     top -1000px
+
+.error-message
+  &.modal-mask .modal-wrapper .modal-container
+    width auto
+    max-width 800px
+
+  .modal-header h3
+    white-space nowrap
+    overflow hidden
+    text-overflow ellipsis
+
+  .estop
+    float right
+    transform scale(0.75)
+    margin-top -30px
+
 
 @media only screen and (max-width 48em)
   .header

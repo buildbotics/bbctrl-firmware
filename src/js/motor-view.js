@@ -36,7 +36,7 @@ module.exports = {
     slave_update: function () {
       var slave = false;
       for (var i = 0; i < this.index; i++)
-        if (this.motor['axis'] == this.config.motors[i]['axis'])
+        if (this.motor.axis == this.config.motors[i].axis)
           slave = true;
 
       var el = $(this.$el);

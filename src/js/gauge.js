@@ -1,3 +1,6 @@
+'use strict';
+
+
 module.exports = Vue.extend({
   template: '<div class="gauge"><canvas></canvas><span></span></div>',
 
