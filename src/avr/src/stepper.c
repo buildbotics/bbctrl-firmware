@@ -64,7 +64,7 @@ typedef struct {
 } stepper_t;
 
 
-static stepper_t st = {0};
+static volatile stepper_t st = {0};
 
 
 void stepper_init() {
@@ -233,3 +233,12 @@ void st_prep_dwell(float seconds) {
 
 // Var callbacks
 uint32_t get_underflow() {return st.underflow;}
+
+
+float get_dwell_time() {
+  float dwell;
+  cli();
+  dwell = st.dwell;
+  sei();
+  return dwell;
+}

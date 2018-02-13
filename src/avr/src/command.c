@@ -258,7 +258,7 @@ bool command_exec() {
   unsigned size = _size(code);
 
   static uint8_t data[INPUT_BUFFER_LEN];
-  for (int i = 0; i < size; i++)
+  for (unsigned i = 0; i < size; i++)
     data[i] = sync_q_next();
 
   cmd.count--;

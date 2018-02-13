@@ -34,6 +34,7 @@
 #include "hardware.h"
 #include "report.h"
 #include "state.h"
+#include "exec.h"
 #include "util.h"
 
 #include <string.h>
@@ -48,8 +49,19 @@ stat_t command_dwell(char *cmd) {
 }
 
 
+static stat_t _dwell_exec() {
+  exec_set_cb(0);
+  return STAT_OK;
+}
+
+
 unsigned command_dwell_size() {return sizeof(float);}
-void command_dwell_exec(float *seconds) {st_prep_dwell(*seconds);}
+
+
+void command_dwell_exec(float *seconds) {
+  st_prep_dwell(*seconds);
+  exec_set_cb(_dwell_exec); // Necessary evil
+}
 
 
 // TODO
