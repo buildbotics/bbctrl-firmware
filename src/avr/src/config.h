@@ -42,8 +42,8 @@ enum {
   STALL_A_PIN,
   TOOL_DIR_PIN,
   TOOL_ENABLE_PIN,
-  ANALOG_PIN,
-  PROBE_PIN,
+  ANALOG_1_PIN,
+  ANALOG_2_PIN,
 
   MIN_X_PIN = PORT_B << 3,
   MAX_X_PIN,
@@ -88,7 +88,7 @@ enum {
   MOTOR_FAULT_PIN,
   MOTOR_ENABLE_PIN,
   NC_0_PIN,
-  NC_1_PIN,
+  PROBE_PIN,
 };
 
 #define SPI_SS_PIN SERIAL_CTS_PIN // Needed for SPI configuration
