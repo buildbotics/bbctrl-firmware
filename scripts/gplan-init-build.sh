@@ -31,11 +31,18 @@ if [ ! -e $GPLAN_IMG ]; then
 fi
 
 # Get repos
+function fetch_local_repo() {
+    mkdir -p $1
+    git -C $1 init
+    git -C $1 fetch -t "$2" $3
+    git -C $1 reset --hard FETCH_HEAD
+}
+
 mkdir -p rpi-share || true
 
 if [ ! -e rpi-share/cbang ]; then
     if [ "$CBANG_HOME" != "" ]; then
-        git clone $CBANG_HOME rpi-share/cbang
+        fetch_local_repo rpi-share/cbang "$CBANG_HOME" master
     else
         git clone https://github.com/CauldronDevelopmentLLC/cbang \
             rpi-share/cbang
@@ -44,7 +51,7 @@ fi
 
 if [ ! -e rpi-share/camotics ]; then
     if [ "$CAMOTICS_HOME" != "" ]; then
-        git clone $CAMOTICS_HOME rpi-share/camotics
+        fetch_local_repo rpi-share/camotics "$CAMOTICS_HOME" master
     else
         git clone https://github.com/CauldronDevelopmentLLC/camotics \
             rpi-share/camotics

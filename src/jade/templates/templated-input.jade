@@ -1,5 +1,6 @@
 script#templated-input-template(type="text/x-template")
-  .pure-control-group(:class="name")
+  .pure-control-group(class="tmpl-input-{{name}}",
+    title="Default {{template.default}} {{template.unit}}")
     label(:for="name") {{name}}
 
     select(v-if="template.type == 'enum' || template.values", v-model="model",
@@ -29,3 +30,5 @@ script#templated-input-template(type="text/x-template")
       | {{model}}
 
     label.units {{template.unit}}
+
+    slot(name="extra")

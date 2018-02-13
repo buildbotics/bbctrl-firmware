@@ -57,8 +57,8 @@
       "max-accel": {
         "type": "float",
         "min": 0,
-        "unit": "m/min²",
-        "default": 1000,
+        "unit": "km/min²",
+        "default": 10,
         "code": "am"
       },
       "max-jerk": {
@@ -122,15 +122,15 @@
       "search-velocity": {
         "type": "float",
         "min": 0,
-        "unit": "mm/min",
-        "default": 500,
+        "unit": "m/min",
+        "default": 0.5,
         "code": "sv"
       },
       "latch-velocity": {
         "type": "float",
         "min": 0,
-        "unit": "mm/min",
-        "default": 100,
+        "unit": "m/min",
+        "default": 0.1,
         "code": "lv"
       },
       "latch-backoff": {

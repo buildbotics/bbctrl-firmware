@@ -8,3 +8,24 @@ script#motor-view-template(type="text/x-template")
 
         templated-input(v-for="templ in category", :name="$key",
           :model.sync="motor[$key]", :template="templ")
+
+          label.extra(v-if="$key == 'max-velocity'", slot="extra",
+            title="Revolutions Per Minute")
+            | ({{1000 * motor[$key] / motor['travel-per-rev'] | fixed 0}} RPM)
+
+          label.extra(v-if="$key == 'max-accel'", slot="extra",
+            title="G-force")
+            | ({{motor[$key] * 0.0283254504 | fixed 3}} g)
+
+          label.extra(v-if="$key == 'max-jerk'", slot="extra",
+            title="G-force per minute")
+            | ({{motor[$key] * 0.0283254504 | fixed 2}} g/min)
+
+          label.extra(v-if="$key == 'step-angle'", slot="extra",
+            title="Steps per revolution")
+            | ({{360 / motor[$key] | fixed 0}} steps/rev)
+
+          label.extra(v-if="$key == 'travel-per-rev'", slot="extra",
+            title="Micrometers per step")
+            | ({{motor[$key] * motor['step-angle'] / 0.36 | fixed 1}}
+            | &nbsp;µm/step)

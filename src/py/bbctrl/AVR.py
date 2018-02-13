@@ -22,9 +22,9 @@ log = logging.getLogger('AVR')
 #   Mark axis homed and set absolute position
 
 axis_homing_procedure = '''
-  G28.2 %(axis)s0 F[#<_%(axis)s_sv>]
+  G28.2 %(axis)s0 F[#<_%(axis)s_sv> * 1000]
   G38.6 %(axis)s[#<_%(axis)s_hd> * [#<_%(axis)s_tm> - #<_%(axis)s_tn>] * 1.5]
-  G38.8 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_lb>] F[#<_%(axis)s_lv>]
+  G38.8 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_lb>] F[#<_%(axis)s_lv> * 1000]
   G38.6 %(axis)s[#<_%(axis)s_hd> * #<_%(axis)s_lb> * 1.5]
   G91 G0 G53 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_zb>]
   G90 G28.3 %(axis)s[#<_%(axis)s_hp>]

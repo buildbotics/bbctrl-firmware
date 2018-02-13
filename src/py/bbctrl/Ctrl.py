@@ -33,15 +33,19 @@ class Ctrl(object):
 
         self.msgs = bbctrl.Messages(self)
         self.state = bbctrl.State(self)
-        self.planner = bbctrl.Planner(self)
-        self.i2c = bbctrl.I2C(args.i2c_port)
         self.config = bbctrl.Config(self)
-        self.lcd = bbctrl.LCD(self)
         self.web = bbctrl.Web(self)
-        self.avr = bbctrl.AVR(self)
-        self.jog = bbctrl.Jog(self)
-        self.pwr = bbctrl.Pwr(self)
 
-        self.avr.connect()
+        try:
+            self.planner = bbctrl.Planner(self)
+            self.i2c = bbctrl.I2C(args.i2c_port)
+            self.lcd = bbctrl.LCD(self)
+            self.avr = bbctrl.AVR(self)
+            self.jog = bbctrl.Jog(self)
+            self.pwr = bbctrl.Pwr(self)
 
-        self.lcd.add_new_page(IPPage(self.lcd))
+            self.avr.connect()
+
+            self.lcd.add_new_page(IPPage(self.lcd))
+
+        except Exception as e: log.exception(e)

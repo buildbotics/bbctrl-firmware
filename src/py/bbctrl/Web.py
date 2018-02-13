@@ -82,7 +82,7 @@ class PasswordHandler(bbctrl.APIHandler):
             check_password(self.json['current'])
 
             # Set password
-            s = '%s:%s' % (username, self.json['password'])
+            s = '%s:%s' % (get_username(), self.json['password'])
             s = s.encode('utf-8')
 
             p = subprocess.Popen(['chpasswd', '-c', 'MD5'],

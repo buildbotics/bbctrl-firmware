@@ -26,13 +26,17 @@ default_config = {
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.version = pkg_resources.require('bbctrl')[0].version
-        default_config['version'] = self.version
 
-        # Load config template
-        with open(bbctrl.get_resource('http/config-template.json'), 'r',
-                  encoding = 'utf-8') as f:
-            self.template = json.load(f)
+        try:
+            self.version = pkg_resources.require('bbctrl')[0].version
+            default_config['version'] = self.version
+
+            # Load config template
+            with open(bbctrl.get_resource('http/config-template.json'), 'r',
+                      encoding = 'utf-8') as f:
+                self.template = json.load(f)
+
+        except Exception as e: log.exception(e)
 
 
     def load_path(self, path):
@@ -43,7 +47,10 @@ class Config(object):
     def load(self):
         try:
             config = self.load_path('config.json')
-            config['version'] = self.version
+
+            try:
+                self.upgrade(config)
+            except Exception as e: log.exception(e)
 
             # Add missing sections
             for key, value in default_config.items():
@@ -56,10 +63,25 @@ class Config(object):
             return default_config
 
 
-    def save(self, config):
-        self.update(config)
+    def upgrade(self, config):
+        version = tuple(map(int, config['version'].split('.')))
+
+        if version < (0, 2, 4):
+            for motor in config['motors']:
+                for key in 'max-jerk max-velocity'.split():
+                    if key in motor: motor[key] /= 1000
+
+        if version < (0, 3, 4):
+            for motor in config['motors']:
+                for key in 'max-accel latch-velocity search-velocity'.split():
+                    if key in motor: motor[key] /= 1000
 
         config['version'] = self.version
+
+
+    def save(self, config):
+        self.upgrade(config)
+        self.update(config)
 
         with open('config.json', 'w') as f:
             json.dump(config, f)

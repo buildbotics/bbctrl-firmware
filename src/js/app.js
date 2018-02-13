@@ -63,7 +63,7 @@ module.exports = new Vue({
     send: function (msg) {
       if (this.status == 'connected') {
         console.debug('>', msg);
-        this.sock.send(msg)
+        this.sock.send(msg);
       }
     },
 
@@ -122,7 +122,7 @@ module.exports = new Vue({
 
       }.bind(this)).fail(function () {
         alert('Invalid password');
-      }.bind(this));
+      }.bind(this))
     },
 
 
@@ -164,18 +164,18 @@ module.exports = new Vue({
             if (key == 'msg') this.$broadcast('message', msg.msg);
             else Vue.set(this.state, key, msg[key]);
           }
-      }.bind(this);
+      }.bind(this)
 
       this.sock.onopen = function (e) {
         this.status = 'connected';
         this.$emit(this.status);
         this.$broadcast(this.status);
-      }.bind(this);
+      }.bind(this)
 
       this.sock.onclose = function (e) {
         this.status = 'disconnected';
         this.$broadcast(this.status);
-      }.bind(this);
+      }.bind(this)
     },
 
 

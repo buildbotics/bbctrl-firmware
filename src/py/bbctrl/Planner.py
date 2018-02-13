@@ -51,13 +51,17 @@ class Planner():
             value = state.get(axis + 'p', None)
             if value is not None: start[axis] = value
 
-        return {
+        config = {
             "start":     start,
             "max-vel":   get_vector('vm', 1000),
-            "max-accel": get_vector('am', 1000),
+            "max-accel": get_vector('am', 1000000),
             "max-jerk":  get_vector('jm', 1000000),
             # TODO junction deviation & accel
             }
+
+        log.info('Config:' + json.dumps(config))
+
+        return config
 
 
     def update(self, update):
@@ -116,7 +120,7 @@ class Planner():
             raise Exception('Cannot issue MDI command while GCode running')
 
         log.info('MDI:' + cmd)
-        self.planner.load_string(cmd)
+        self.planner.load_string(cmd, self.get_config())
         self.mode = 'mdi'
 
 
@@ -125,11 +129,11 @@ class Planner():
             raise Exception('Busy, cannot start new GCode program')
 
         log.info('GCode:' + path)
-        self.planner.load('upload' + path)
+        self.planner.load('upload' + path, self.get_config())
 
 
     def reset(self):
-        self.planner = gplan.Planner(self.get_config())
+        self.planner = gplan.Planner()
         self.planner.set_resolver(self.get_var)
         self.planner.set_logger(self.log, 1, 'LinePlanner:3')
 
@@ -172,11 +176,6 @@ class Planner():
 
 
     def next(self):
-        if not self.is_running():
-            config = self.get_config()
-            log.info('Planner config:' + json.dumps(config))
-            self.planner.set_config(config)
-
         while self.planner.has_more():
             cmd = self.planner.next()
             self.lastID = cmd['id']

@@ -61,8 +61,10 @@ $(GPLAN_TARGET): $(GPLAN_MOD)
 
 $(GPLAN_MOD): $(GPLAN_IMG)
 	./scripts/gplan-init-build.sh
-	git -C rpi-share/cbang pull
-	git -C rpi-share/camotics pull
+	git -C rpi-share/cbang fetch
+	git -C rpi-share/cbang reset --hard FETCH_HEAD
+	git -C rpi-share/camotics fetch
+	git -C rpi-share/camotics reset --hard FETCH_HEAD
 	cp ./scripts/gplan-build.sh rpi-share/
 	sudo ./scripts/rpi-chroot.sh $(GPLAN_IMG) /mnt/host/gplan-build.sh
 

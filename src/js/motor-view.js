@@ -15,7 +15,7 @@ module.exports = {
 
 
   watch: {
-    index: function() {this.update();}
+    index: function() {this.update()}
   },
 
 
