@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.6
+ - Set max_usb_current=1 in /boot/config.txt from installer #103
+
 ## v0.3.5
  - Fixed dwell (G4)
  - Always show limit switch indicators regardless of motor enable
