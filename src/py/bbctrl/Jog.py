@@ -37,7 +37,7 @@ class Jog(inevent.JogHandler):
         self.callback()
 
         self.processor = inevent.InEvent(ctrl.ioloop, self,
-                                         types = "js kbd".split())
+                                         types = 'js kbd'.split())
 
 
     def up(self): self.ctrl.lcd.page_up()

@@ -392,11 +392,15 @@ body
         color green
 
 .indicators
+  padding 1em
+  text-align center
+
   table
     display inline-block
     vertical-align top
     margin 0.5em
     empty-cells show
+    border 3px solid #bbb
 
     td, th
       padding 4px
@@ -420,6 +424,15 @@ body
       th:nth-child(3), th:nth-child(6)
         text-align left
 
+    th.header
+      height 2.5em
+      border-bottom 3px solid #ccc
+
+    th.separator
+      background #ccc
+      border 1px solid #ccc
+      padding 1px
+
   .logic-lo
     color black
 
@@ -433,7 +446,14 @@ body
 .video
   text-align center
   line-height 0
+  min-height 200px
 
+  .reload
+    float left
+    margin-right -48px
+
+    &:hover
+      opacity 0.5
 
 .tabs
   clear both

@@ -47,8 +47,6 @@ float exec_get_velocity();
 void exec_set_acceleration(float a);
 float exec_get_acceleration();
 void exec_set_jerk(float j);
-void exec_set_line(int32_t line);
-int32_t exec_get_line();
 
 void exec_set_cb(exec_cb_t cb);
 

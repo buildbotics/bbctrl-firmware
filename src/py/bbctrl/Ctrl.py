@@ -20,7 +20,8 @@ class IPPage(bbctrl.LCDPage):
         self.text('Host: %s' % hostname[0:14], 0, 0)
 
         for i in range(min(3, len(ips))):
-            self.text('IP: %s' % ips[i], 0, i + 1)
+            if len(ips[i]) <= 16:
+                self.text('IP: %s' % ips[i], 0, i + 1)
 
 
     def activate(self): self.update()

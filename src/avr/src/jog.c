@@ -60,9 +60,6 @@ typedef struct {
   bool writing;
   bool done;
 
-  float Vi;
-  float Vt;
-
   jog_axis_t axes[AXES];
 } jog_runtime_t;
 

@@ -31,12 +31,11 @@ module.exports = {
       msg.level = msg.level || 'info';
 
       // Add to message log and count and collapse repeats
-      if (messages.length && _msg_equal(msg, messages[messages.length - 1]))
-        messages[messages.length - 1].repeat++;
-
+      var repeat = messages.length && _msg_equal(msg, messages[0]);
+      if (repeat) messages[0].repeat++;
       else {
         msg.repeat = 1;
-        messages.push(msg);
+        messages.unshift(msg);
       }
 
       // Write message to browser console for debugging
@@ -47,7 +46,7 @@ module.exports = {
       else console.log(text);
 
       // Event on errors
-      if (msg.level == 'error' || msg.level == 'critical')
+      if (!repeat && (msg.level == 'error' || msg.level == 'critical'))
         this.$dispatch('error', msg);
     }
   },

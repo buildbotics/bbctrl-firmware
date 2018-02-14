@@ -39,6 +39,7 @@ class AVR():
         self.queue = deque()
         self.in_buf = ''
         self.command = None
+        self.stopping = False
 
         self.lcd_page = ctrl.lcd.add_new_page()
         self.install_page = True
@@ -195,6 +196,13 @@ class AVR():
                 log.warning('firmware rebooted')
                 self.connect()
 
+            if self.stopping and 'xx' in update and update['xx'] == 'HOLDING':
+                self._stop_sending_gcode()
+                # Resume once current queue of GCode commands has flushed
+                self._i2c_command(Cmd.FLUSH)
+                self._queue_command(Cmd.RESUME)
+                self.stopping = False
+
             self.ctrl.state.update(update)
 
             # Must be after AVR vars have loaded
@@ -204,15 +212,15 @@ class AVR():
 
 
     def _update_state(self, update):
-        if 'x' in update and update['x'] == 'ESTOPPED':
+        if 'xx' in update and update['xx'] == 'ESTOPPED':
             self._stop_sending_gcode()
 
         self._update_lcd(update)
 
 
     def _update_lcd(self, update):
-        if 'x' in update:
-            self.lcd_page.text('%-9s' % self.ctrl.state.get('x'), 0, 0)
+        if 'xx' in update:
+            self.lcd_page.text('%-9s' % self.ctrl.state.get('xx'), 0, 0)
 
         # Show enabled axes
         row = 0
@@ -236,7 +244,9 @@ class AVR():
     def connect(self):
         try:
             # Reset AVR communication
-            self.stop();
+            self._stop_sending_gcode()
+            # Resume once current queue of GCode commands has flushed
+            self._queue_command(Cmd.RESUME)
             self._queue_command('h') # Load AVR commands and variables
 
         except Exception as e:
@@ -282,19 +292,19 @@ class AVR():
         if self._is_busy(): raise Exception('Busy, cannot home')
 
         if position is not None:
-            self.ctrl.planner.mdi('G28.3 %c%f' % (axis, position))
+            self.mdi('G28.3 %c%f' % (axis, position))
 
         else:
             if axis is None: axes = 'zxyabc' # TODO This should be configurable
             else: axes = '%c' % axis
 
             for axis in axes:
-                if not self.ctrl.state.axis_can_home(axis): continue
+                if not self.ctrl.state.axis_can_home(axis):
+                    log.info('Cannot home ' + axis)
+                    continue
 
                 log.info('Homing %s axis' % axis)
-                gcode = axis_homing_procedure % {'axis': axis}
-                self.ctrl.planner.mdi(gcode)
-                self._set_write(True)
+                self.mdi(axis_homing_procedure % {'axis': axis})
 
 
     def estop(self): self._i2c_command(Cmd.ESTOP)
@@ -308,22 +318,20 @@ class AVR():
     def step(self, path):
         self._i2c_command(Cmd.STEP)
         if not self._is_busy() and path and \
-                self.ctrl.state.get('x', '') == 'READY':
+                self.ctrl.state.get('xx', '') == 'READY':
             self._start_sending_gcode(path)
 
 
     def stop(self):
-        self._i2c_command(Cmd.FLUSH)
-        self._stop_sending_gcode()
-        # Resume processing once current queue of GCode commands has flushed
-        self._queue_command(Cmd.RESUME)
+        self.pause()
+        self.stopping = True
 
 
     def pause(self): self._i2c_command(Cmd.PAUSE, byte = 0)
 
 
     def unpause(self):
-        if self.ctrl.state.get('x', '') != 'HOLDING' or not self._is_busy():
+        if self.ctrl.state.get('xx', '') != 'HOLDING' or not self._is_busy():
             return
 
         self._i2c_command(Cmd.FLUSH)
@@ -340,5 +348,5 @@ class AVR():
         if self._is_busy(): raise Exception('Busy, cannot set position')
 
         if self.ctrl.state.is_axis_homed('%c' % axis):
-            self.ctrl.planner.mdi('G92 %c%f' % (axis, position))
+            self.mdi('G92 %c%f' % (axis, position))
         else: self._queue_command('$%cp=%f' % (axis, position))

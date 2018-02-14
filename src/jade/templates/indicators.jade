@@ -2,33 +2,34 @@ script#indicators-template(type="text/x-template")
   .indicators
     table.inputs
       tr
-        th(colspan=6) Switch Inputs
+        th.header(colspan=7) Inputs
       tr
         th
         th Pin
         th Name
+        th.separator
         th
         th Pin
         th Name
 
-      each motor in '01234'
-        tr(v-if="is_motor_enabled(#{motor})")
+      each motor in '0123'
+        tr
           td
             .fa(:class="get_class('#{motor}lw')")
           th {{get_min_pin(#{motor})}}
-          th #{motor} Min
-
+          th Motor #{motor} Min
+          th.separator
           td
             .fa(:class="get_class('#{motor}xw')")
           th {{get_max_pin(#{motor})}}
-          th #{motor} Max
+          th Motor #{motor} Max
 
       tr
         td
           .fa(:class="get_class('ew')")
         th 23
         th EStop
-
+        th.separator
         td
           .fa(:class="get_class('pw')")
         th 22
@@ -36,12 +37,13 @@ script#indicators-template(type="text/x-template")
 
     table.outputs
       tr
-        th(colspan=6) Outputs
+        th.header(colspan=7) Outputs
 
       tr
         th
         th Pin
         th Name
+        th.separator
         th
         th Pin
         th Name
@@ -51,7 +53,7 @@ script#indicators-template(type="text/x-template")
           .fa(:class="get_class('eos')")
         th 15
         th Tool Enable
-
+        th.separator
         td
           .fa(:class="get_class('1os')")
         th 2
@@ -62,7 +64,7 @@ script#indicators-template(type="text/x-template")
           .fa(:class="get_class('dos')")
         th 16
         th Tool Direction
-
+        th.separator
         td
           .fa(:class="get_class('2os')")
         th 1
@@ -72,7 +74,7 @@ script#indicators-template(type="text/x-template")
         td {{state['pd'] | percent 0}}
         th 17
         th Tool PWM
-
+        th.separator
         td
           .fa(:class="get_class('fos')")
         th 21
@@ -80,68 +82,69 @@ script#indicators-template(type="text/x-template")
 
     table.measurements
       tr
-        th(colspan=4) Measurements
+        th.header(colspan=5) Measurements
 
       tr
         td {{state['vin'] | fixed 1}} V
         th Input
-
+        th.separator
         td {{state['vout'] | fixed 1}} V
         th Output
 
       tr
         td {{state['motor'] | fixed 2}} A
         th Motor
-
+        th.separator
         td {{state['temp'] | fixed 0}} ℃
         th Temp
 
       tr
         td {{state['load1'] | fixed 2}} A
         th Load 1
-
+        th.separator
         td {{state['load2'] | fixed 2}} A
         th Load 2
 
     table.rs485
       tr
-        th(colspan=4) RS485 Spindle
+        th.header(colspan=5) RS485 Spindle
 
       tr
-        th(colspan=4) {{state['he'] ? "" : "Not "}}Connected
+        th(colspan=5) {{state['he'] ? "" : "Not "}}Connected
 
       tr
         td {{state['hz']}} Hz
         th Frequency
-
+        th.separator
         td {{state['hc']}} A
         th Current
 
       tr
         td {{state['hr']}} RPM
         th Speed
-
+        th.separator
         td {{state['ht']}} ℃
         th Temp
 
     table.legend
       tr
-        th(colspan=10) Legend
+        th.header(colspan=10) Legend
 
       tr
         td
          .fa.fa-circle.logic-hi
         th Logic Hi
 
-      tr
         td
          .fa.fa-circle.logic-lo
         th Logic Lo
 
-      tr
         td
          .fa.fa-circle-o.logic-tri
         th Tristated / Disabled
 
+    h2 DB25 breakout box
+    img(width=700, src="/images/DB25_breakout_box.png")
+
     h2 DB25-M2 breakout
-    center: img(width=400, src="/images/DB25-M2_breakout.png")
+    img(width=400, src="/images/DB25-M2_breakout.png")

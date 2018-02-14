@@ -85,7 +85,6 @@ state_t state_get() {return s.state;}
 static void _set_state(state_t state) {
   if (s.state == state) return; // No change
   if (s.state == STATE_ESTOPPED) return; // Can't leave EStop state
-  if (state == STATE_READY) exec_set_line(0);
   s.state = state;
   report_request();
 }

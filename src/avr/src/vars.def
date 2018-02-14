@@ -99,7 +99,6 @@ VAR(hy_connected,    he, bool,  0,      0, 1, "Huanyang connected")
 
 // Machine state
 VAR(id,              id, u32,   0,      1, 1, "Last executed command ID")
-VAR(line,            ln, s32,   0,      1, 1, "Last line executed")
 VAR(speed,           s,  f32,   0,      1, 1, "Current spindle speed")
 VAR(tool,            t,  u8,    0,      1, 1, "Current tool")
 VAR(feed_override,   fo, f32,   0,      1, 1, "Feed rate override")

@@ -115,7 +115,7 @@ ISR(STEP_LOW_LEVEL_ISR) {
     case STAT_NOP: st.busy = false;  break; // No command executed
     case STAT_AGAIN: continue;              // No command executed, try again
 
-    case STAT_OK:                            // Move executed
+    case STAT_OK:                           // Move executed
       if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued
       st.move_queued = false;
       st.move_ready = true;

@@ -90,7 +90,7 @@ class InEvent(object):
   The keys are listed in inevent.Constants.py or /usr/include/linux/input.h
   Note that the key names refer to a US keyboard.
   """
-  def __init__(self, ioloop, cb, types = ["kbd", "mouse", "js"]):
+  def __init__(self, ioloop, cb, types = 'kbd mouse js'.split()):
     self.ioloop = ioloop
     self.cb = cb
     self.streams = []

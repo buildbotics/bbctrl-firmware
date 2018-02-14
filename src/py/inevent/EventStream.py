@@ -168,7 +168,7 @@ class EventStream(object):
         return event
 
     except Exception as e:
-      log.warning('Reading event: %s' % e)
+      log.info('Reading event: %s' % e)
 
 
   def __enter__(self): return self

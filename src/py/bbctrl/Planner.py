@@ -1,6 +1,7 @@
 import json
 import re
 import logging
+from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
 
@@ -15,6 +16,7 @@ class Planner():
         self.ctrl = ctrl
         self.lastID = -1
         self.mode = 'idle'
+        self.setq = deque()
 
         ctrl.state.add_listener(self.update)
 
@@ -65,12 +67,34 @@ class Planner():
 
 
     def update(self, update):
-        if 'id' in update: self.planner.set_active(update['id'])
+        if 'id' in update:
+            id = update['id']
+            self.planner.set_active(id)
 
-        if self.ctrl.state.get('x', '') == 'HOLDING' and \
+            # Syncronize planner variables with execution id
+            self.release_set_cmds(id)
+
+        # Automatically unpause on seek hold
+        if self.ctrl.state.get('xx', '') == 'HOLDING' and \
                 self.ctrl.state.get('pr', '') == 'Switch found' and \
                 self.planner.is_synchronizing():
             self.ctrl.avr.unpause()
+
+
+    def release_set_cmds(self, id):
+        self.lastID = id
+
+        # Apply all set commands <= to ID and those that follow consecutively
+        while len(self.setq) and self.setq[0][0] - 1 <= self.lastID:
+            id, name, value = self.setq.popleft()
+            self.ctrl.state.set(name, value)
+            if id == self.lastID + 1: self.lastID = id
+
+
+    def queue_set_cmd(self, id, name, value):
+        log.info('Planner set(#%d, %s, %s)', id, name, value)
+        self.setq.append((id, name, value))
+        self.release_set_cmds(self.lastID)
 
 
     def restart(self):
@@ -136,20 +160,21 @@ class Planner():
         self.planner = gplan.Planner()
         self.planner.set_resolver(self.get_var)
         self.planner.set_logger(self.log, 1, 'LinePlanner:3')
+        self.setq.clear()
 
 
-    def encode(self, block):
+    def _encode(self, block):
         type = block['type']
 
         if type == 'line':
-            return Cmd.line(block['id'], block['target'], block['exit-vel'],
+            return Cmd.line(block['target'], block['exit-vel'],
                             block['max-accel'], block['max-jerk'],
                             block['times'])
 
         if type == 'set':
             name, value = block['name'], block['value']
 
-            if name == 'line': return Cmd.line_number(value)
+            if name == 'line': self.queue_set_cmd(block['id'], name, value)
             if name == 'tool': return Cmd.tool(value)
             if name == 'speed': return Cmd.speed(value)
             if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
@@ -157,7 +182,7 @@ class Planner():
                 return Cmd.set_position(name[1], value)
 
             if len(name) and name[0] == '_':
-                self.ctrl.state.set(name[1:], value)
+                self.queue_set_cmd(block['id'], name[1:], value)
 
             return
 
@@ -172,13 +197,17 @@ class Planner():
         raise Exception('Unknown planner type "%s"' % type)
 
 
+    def encode(self, block):
+        cmd = self._encode(block)
+        if cmd is not None: return Cmd.set('id', block['id']) + '\n' + cmd
+
+
     def has_move(self): return self.planner.has_more()
 
 
     def next(self):
         while self.planner.has_more():
             cmd = self.planner.next()
-            self.lastID = cmd['id']
             cmd = self.encode(cmd)
             if cmd is not None: return cmd
 

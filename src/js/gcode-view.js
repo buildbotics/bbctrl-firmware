@@ -21,9 +21,7 @@ module.exports = {
   },
 
 
-  ready: function () {
-    this.update();
-  },
+  ready: function () {this.update()},
 
 
   methods: {

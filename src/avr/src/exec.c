@@ -47,7 +47,6 @@ static struct {
   float jerk;
 
   int tool;
-  int line;
 
   float feed_override;
   float spindle_override;
@@ -75,8 +74,6 @@ float exec_get_velocity() {return ex.velocity;}
 void exec_set_acceleration(float a) {ex.accel = a;}
 float exec_get_acceleration() {return ex.accel;}
 void exec_set_jerk(float j) {ex.jerk = j;}
-void exec_set_line(int32_t line) {ex.line = line;}
-int32_t exec_get_line() {return ex.line;}
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 
@@ -107,7 +104,6 @@ stat_t exec_next() {
 
 
 // Variable callbacks
-int32_t get_line() {return ex.line;}
 uint8_t get_tool() {return ex.tool;}
 float get_velocity() {return ex.velocity / VELOCITY_MULTIPLIER;}
 float get_acceleration() {return ex.accel / ACCEL_MULTIPLIER;}
@@ -116,7 +112,6 @@ float get_feed_override() {return ex.feed_override;}
 float get_speed_override() {return ex.spindle_override;}
 float get_axis_position(int axis) {return ex.position[axis];}
 
-void set_line(int32_t line) {ex.line = line;}
 void set_tool(uint8_t tool) {ex.tool = tool;}
 void set_feed_override(float value) {ex.feed_override = value;}
 void set_speed_override(float value) {ex.spindle_override = value;}

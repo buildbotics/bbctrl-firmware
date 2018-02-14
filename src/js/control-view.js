@@ -2,6 +2,9 @@
 
 var api = require('./api');
 
+var maxLines = 1000;
+var pageSize = Math.round(maxLines / 10);
+
 
 function _is_array(x) {
   return Object.prototype.toString.call(x) === '[object Array]';
@@ -26,7 +29,9 @@ module.exports = {
       last_file: '',
       files: [],
       axes: 'xyzabc',
+      all_gcode: [],
       gcode: [],
+      gcode_offset: 0,
       history: [],
       speed_override: 1,
       feed_override: 1,
@@ -46,7 +51,7 @@ module.exports = {
 
 
   watch: {
-    'state.ln': function () {this.update_gcode_line();}
+    'state.line': function () {this.update_gcode_line();}
   },
 
 
@@ -63,12 +68,12 @@ module.exports = {
 
 
   methods: {
-    get_state: function () {return this.state.x || ''},
+    get_state: function () {return this.state.xx || ''},
 
 
     get_reason: function () {
-      if (this.state.x == 'ESTOPPED') return this.state.er;
-      if (this.state.x == 'HOLDING') return this.state.pr;
+      if (this.state.xx == 'ESTOPPED') return this.state.er;
+      if (this.state.xx == 'HOLDING') return this.state.pr;
       return '';
     },
 
@@ -119,20 +124,80 @@ module.exports = {
     },
 
 
+    gcode_move_up: function (count) {
+      var lines = 0;
+
+      for (var i = 0; i < count; i++) {
+        if (!this.gcode_offset) break;
+
+        this.gcode.unshift(this.all_gcode[this.gcode_offset - 1])
+        this.gcode.pop();
+        this.gcode_offset--;
+        lines++;
+      }
+
+      return lines;
+    },
+
+
+    gcode_move_down: function (count) {
+      var lines = 0;
+
+      for (var i = 0; i < count; i++) {
+        if (this.all_gcode.length <= this.gcode_offset + this.gcode.length)
+          break;
+
+        this.gcode.push(this.all_gcode[this.gcode_offset + this.gcode.length])
+        this.gcode.shift();
+        this.gcode_offset++;
+        lines++
+      }
+
+      return lines;
+    },
+
+
+    gcode_scroll: function (e) {
+      if (this.gcode.length == this.all_gcode.length) return;
+
+      var t = e.target;
+      var percentScroll = t.scrollTop / (t.scrollHeight - t.clientHeight);
+
+      var lines = 0;
+      if (percentScroll < 0.2) lines = this.gcode_move_up(pageSize);
+      else if (0.8 < percentScroll) lines = -this.gcode_move_down(pageSize);
+      else return;
+
+      if (lines) t.scrollTop += t.scrollHeight * lines / maxLines;
+    },
+
+
     update_gcode_line: function () {
       if (typeof this.last_line != 'undefined') {
         $('#gcode-line-' + this.last_line).removeClass('highlight');
         this.last_line = undefined;
       }
 
-      if (0 <= this.state.ln) {
-        var line = this.state.ln - 1;
-        var e = $('#gcode-line-' + line);
-        if (e.length)
-          e.addClass('highlight')[0]
-          .scrollIntoView({behavior: 'smooth'});
+      if (0 <= this.state.line) {
+        var line = this.state.line - 1;
 
-        this.last_line = line;
+        // Make sure the current GCode is loaded
+        if (line < this.gcode_offset ||
+            this.gcode_offset + this.gcode.length <= line) {
+          this.gcode_offset = line - pageSize;
+          if (this.gcode_offset < 0) this.gcode_offset = 0;
+
+          this.gcode = this.all_gcode.slice(this.gcode_offset, maxLines);
+        }
+
+        Vue.nextTick(function () {
+          var e = $('#gcode-line-' + line);
+          if (e.length)
+            e.addClass('highlight')[0]
+            .scrollIntoView({behavior: 'smooth'});
+
+          this.last_line = line;
+        }.bind(this));
       }
     },
 
@@ -190,6 +255,7 @@ module.exports = {
 
       if (!file || this.files.indexOf(file) == -1) {
         this.file = '';
+        this.all_gcode = [];
         this.gcode = [];
         return;
       }
@@ -198,7 +264,9 @@ module.exports = {
 
       api.get('file/' + file)
         .done(function (data) {
-          this.gcode = data.trimRight().split(/\r?\n/);
+          this.all_gcode = data.trimRight().split(/\r?\n/);
+          this.gcode = this.all_gcode.slice(0, maxLines);
+          this.gcode_offset = 0;
           this.last_file = file;
 
           Vue.nextTick(this.update_gcode_line);
@@ -254,9 +322,9 @@ module.exports = {
 
 
     start_pause: function () {
-      if (this.state.x == 'RUNNING') this.pause();
+      if (this.state.xx == 'RUNNING') this.pause();
 
-      else if (this.state.x == 'STOPPING' || this.state.x == 'HOLDING')
+      else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
         this.unpause();
 
       else this.start();

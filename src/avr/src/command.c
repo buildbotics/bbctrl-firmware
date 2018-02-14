@@ -244,6 +244,7 @@ void command_reset_position() {
 bool command_exec() {
   if (!cmd.count) {
     cmd.last_empty = rtc_get_time();
+    exec_set_velocity(0);
     state_idle();
     return false;
   }

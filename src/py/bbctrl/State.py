@@ -6,7 +6,7 @@ import bbctrl
 log = logging.getLogger('State')
 
 
-machine_state_vars = 'xp yp zp ap bp cp t fo so'.split()
+machine_state_vars = '''xp yp zp ap bp cp t fo so'''.split()
 
 
 class State(object):
@@ -32,6 +32,12 @@ class State(object):
 
             # Set not homed
             self.set('%dhomed' % i, False)
+
+        # Zero offsets
+        for axis in 'xyzabc': self.vars['offset_' + axis] = 0
+
+        # No line
+        self.vars['line'] = -1
 
 
     def _notify(self):

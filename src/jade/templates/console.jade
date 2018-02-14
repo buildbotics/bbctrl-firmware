@@ -12,7 +12,7 @@ script#console-template(type="text/x-template")
         th Repeat
         th Message
 
-      tr(v-for="msg in messages.reverse()", :class="msg.level || 'info'")
+      tr(v-for="msg in messages", :class="msg.level || 'info'")
         td {{msg.level  || 'info'}}
         td {{msg.source || ''}}
         td {{msg.where  || ''}}
