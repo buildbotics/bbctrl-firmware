@@ -16,9 +16,6 @@ Portions of this software are copyrighted by the following entities:
 
   Copyright (c) 2015 - 2016 Buildbotics LLC
   Copyright (c) 2014 Thomas Nixon, Jonathan Heathcote (cpp_magic.h)
-  Copyright (c) 2013 - 2015 Robert Giseburt
-  Copyright (c) 2010 - 2015 Alden S. Hart, Jr.
-  Copyright (c) 2008 Atmel Corporation (part of clock.c)
   All rights reserved.
 
 Each source code file lists the entities which claim copyright to

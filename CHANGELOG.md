@@ -1,6 +1,15 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.7
+ - Allow blocking error dialog for a period of time
+ - Show actual error message on planner errors
+ - Reset planner on serious error
+ - Fixed console clear
+ - Added helful info to Video tab
+ - Changed "Console" tab to "Messages"
+ - Removed spin up/down velocity options, they don't do anything
+
 ## v0.3.6
  - Set max_usb_current=1 in /boot/config.txt from installer #103
 

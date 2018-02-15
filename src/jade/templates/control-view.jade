@@ -161,7 +161,7 @@ script#control-view-template(type="text/x-template")
       label(for="tab3") Jog
 
       input#tab4(type="radio", name="tabs")
-      label(for="tab4") Console
+      label(for="tab4") Messages
 
       input#tab5(type="radio", name="tabs")
       label(for="tab5") Indicators
@@ -251,3 +251,10 @@ script#control-view-template(type="text/x-template")
           img.reload(src="/images/reload.png", @click="load_video",
             title="Reload video")
           img.mjpeg(:src="video_url")
+
+        p(style="padding:0 1em")
+          | Plug in a USB video camera to monitor your machine remotely.
+          | If it's not working, try clicking the reload button or unplugging
+          | and replugging the the camera.
+          | <a href="https://elinux.org/RPi_USB_Webcams" target="_blank">Here
+          | is a list</a> of USB cameras that should work.

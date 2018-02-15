@@ -33,6 +33,8 @@ module.exports = new Vue({
       config: {motors: [{}]},
       state: {},
       messages: [],
+      errorTimeout: 30,
+      errorTimeoutStart: 0,
       errorShow: false,
       errorMessage: '',
       confirmUpgrade: false,
@@ -95,6 +97,14 @@ module.exports = new Vue({
 
 
     error: function (msg) {
+      // Honor user error blocking
+      if (Date.now() - this.errorTimeoutStart < this.errorTimeout * 1000)
+        return;
+
+      // Wait at least 1 sec to pop up repeated errors
+      if (1 < msg.repeat && Date.now() - msg.ts < 1000) return;
+
+      // Popup error dialog
       this.errorShow = true;
       this.errorMessage = msg.msg;
     }
@@ -108,6 +118,12 @@ module.exports = new Vue({
 
 
   methods: {
+    block_error_dialog: function () {
+      this.errorTimeoutStart = Date.now();
+      this.errorShow = false;
+    },
+
+
     estop: function () {
       if (this.state.xx == 'ESTOPPED') api.put('clear');
       else api.put('estop');

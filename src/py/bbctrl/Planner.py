@@ -206,9 +206,14 @@ class Planner():
 
 
     def next(self):
-        while self.planner.has_more():
-            cmd = self.planner.next()
-            cmd = self.encode(cmd)
-            if cmd is not None: return cmd
+        try:
+            while self.planner.has_more():
+                cmd = self.planner.next()
+                cmd = self.encode(cmd)
+                if cmd is not None: return cmd
 
-        if not self.is_running(): self.mode = 'idle'
+            if not self.is_running(): self.mode = 'idle'
+
+        except Exception as e:
+            self.reset()
+            log.exception(e)

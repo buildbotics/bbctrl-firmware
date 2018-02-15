@@ -85,6 +85,16 @@ html(lang="en")
       div(slot="body")
         console
 
+        button.pure-button(@click="block_error_dialog")
+          .fa.fa-ban
+          | &nbsp;Stop
+        label showing errors for
+        input(style="width: 50px", v-model="errorTimeout", number)
+        label seconds.
+
+      div(slot="footer")
+        button.pure-button.pure-button-primary(@click="errorShow = false") Ok
+
     message(:show.sync="confirmUpgrade")
       h3(slot="header") Upgrade Firmware?
       div(slot="body")

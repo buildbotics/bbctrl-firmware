@@ -37,6 +37,7 @@ module.exports = {
         msg.repeat = 1;
         messages.unshift(msg);
       }
+      msg.ts = Date.now();
 
       // Write message to browser console for debugging
       var text = JSON.stringify(msg);
@@ -46,13 +47,13 @@ module.exports = {
       else console.log(text);
 
       // Event on errors
-      if (!repeat && (msg.level == 'error' || msg.level == 'critical'))
+      if (msg.level == 'error' || msg.level == 'critical')
         this.$dispatch('error', msg);
     }
   },
 
 
   methods: {
-    clear: function () {messages.length = 0;},
+    clear: function () {messages.splice(0, messages.length);},
   }
 }

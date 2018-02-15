@@ -192,20 +192,6 @@
       "default": 99.99,
       "code": "md"
     },
-    "spin-up-velocity": {
-      "type": "float",
-      "unit": "rev/min²",
-      "min": 0,
-      "default": 48000,
-      "code": "su"
-    },
-    "spin-down-velocity": {
-      "type": "float",
-      "unit": "rev/min²",
-      "min": 0,
-      "default": 48000,
-      "code": "sd"
-    },
     "pwm-freq": {
       "type": "int",
       "unit": "Hz",
