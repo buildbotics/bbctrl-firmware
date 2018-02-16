@@ -107,6 +107,40 @@ script#indicators-template(type="text/x-template")
         th 21
         th Fault
 
+    table.pwr_fault
+      tr
+        th.header(colspan=5) Power Faults
+      tr
+        th Under voltage
+        td {{state['under_voltage'] ? 'True' : 'False'}}
+        th.separator
+        th Over voltage
+        td {{state['over_voltage'] ? 'True' : 'False'}}
+      tr
+        th Over current
+        td {{state['over_current'] ? 'True' : 'False'}}
+        th.separator
+        th Measurement error
+        td {{state['measurement_error'] ? 'True' : 'False'}}
+      tr
+        th Shunt overload
+        td {{state['shunt_overload'] ? 'True' : 'False'}}
+        th.separator
+        th Motor overload
+        td {{state['motor_overload'] ? 'True' : 'False'}}
+      tr
+        th Load 1 over temp
+        td {{state['load1_overtemp'] ? 'True' : 'False'}}
+        th.separator
+        th Load 2 over temp
+        td {{state['load2_overtemp'] ? 'True' : 'False'}}
+      tr
+        th Load 1 limiting
+        td {{state['load1_limiting'] ? 'True' : 'False'}}
+        th.separator
+        th Load 2 limiting
+        td {{state['load2_limiting'] ? 'True' : 'False'}}
+
     table.measurements
       tr
         th.header(colspan=5) Measurements

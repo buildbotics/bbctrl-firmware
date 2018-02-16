@@ -81,7 +81,7 @@ enum {
 #define VOLTAGE_MAX 39
 #define CURRENT_MAX 25
 #define LOAD_CURRENT_MAX 10.5
-#define CURRENT_OVERTEMP 14 // Should read ~21A but over 11.86A is faulty
+#define CURRENT_OVERTEMP 19 // Should read ~21A but over 11.86A is faulty
 #define LOAD_LIMIT_TICKS 10
 #define VOLTAGE_SETTLE_COUNT 5
 #define VOLTAGE_SETTLE_PERIOD 20 // ms

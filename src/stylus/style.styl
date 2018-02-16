@@ -316,7 +316,6 @@ body
   .tabs
     section
       min-height 250px
-      max-height 610px
       overflow-x hidden
       overflow-y auto
       padding 0
@@ -434,6 +433,12 @@ body
       background #ccc
       border 1px solid #ccc
       padding 1px
+
+    &.pwr_fault th:nth-child(1)
+      text-align left
+
+    &.pwr_fault tr:nth-child(1) th
+      text-align center
 
   .logic-lo
     color black
