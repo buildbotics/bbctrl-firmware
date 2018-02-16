@@ -38,16 +38,17 @@
 
 
 typedef struct {
-  regs_t reg;
-  uint8_t pin;
-  uint8_t limit;
-  uint8_t count;
-  bool shutdown;
+  const regs_t reg;
+  const uint8_t pin;
+  volatile uint8_t limit;
+  volatile uint8_t count;
+  volatile uint8_t shutdown;
 } load_t;
 
+
 load_t loads[2] = {
-  {LOAD1_REG, LOAD1_PIN, 0, 0, false},
-  {LOAD2_REG, LOAD2_PIN, 0, 0, false},
+  {LOAD1_REG, LOAD1_PIN, 0, 0, 0},
+  {LOAD2_REG, LOAD2_PIN, 0, 0, 0},
 };
 
 
@@ -63,7 +64,7 @@ static const uint8_t ch_schedule[] = {
 
 static volatile uint16_t regs[NUM_REGS] = {0};
 static volatile uint64_t time = 0; // ms
-static volatile bool motor_overload = false;
+static volatile uint8_t motor_overload = 0;
 static volatile bool shunt_overload = false;
 static volatile float shunt_ms_power = 0;
 static volatile float vnom = 0;
@@ -112,6 +113,15 @@ ISR(TWI_SLAVE_vect) {
 
     } else TWSCRB = (1 << TWCMD1) | (0 << TWCMD0);  // Stop
   }
+}
+
+
+static bool limited_counter(volatile uint8_t *counter, bool up, uint8_t max) {
+  if (up) {
+    if (*counter < max) (*counter)++;
+  } else if (0 < *counter) (*counter)--;
+
+  return *counter == max;
 }
 
 
@@ -177,24 +187,23 @@ static void measure_nominal_voltage() {
 
 
 static void check_load(load_t *load) {
-  if (load->shutdown) return;
+  if (LOAD_SHUTDOWN_THRESH <= load->shutdown) return;
 
   // Check overtemp
-  if (CURRENT_OVERTEMP * 100 < regs[load->reg]) {
+  bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
+  if (limited_counter(&load->shutdown, overtemp, LOAD_SHUTDOWN_THRESH)) {
     IO_PORT_CLR(load->pin); // Lo
     IO_DDR_SET(load->pin);  // Output
-    load->shutdown = true;
   }
 
   // Check and adjust limit
-  if (LOAD_CURRENT_MAX * 100 < regs[load->reg]) {
-    if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
-  } else if (load->limit) load->limit--;
+  bool overcurrent = LOAD_CURRENT_MAX * 100 < regs[load->reg];
+  limited_counter(&load->limit, overcurrent, LOAD_LIMIT_TICKS);
 }
 
 
 void limit_load(load_t *load) {
-  if (load->shutdown) return;
+  if (LOAD_SHUTDOWN_THRESH <= load->shutdown) return;
 
   // Limit
   if (load->count < load->limit) {
@@ -249,10 +258,12 @@ static void read_conversion(uint8_t ch) {
   case VIN_ADC:  regs[VIN_REG]  = convert_voltage(data); break;
   case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
 
-  case CS1_ADC:
+  case CS1_ADC: {
     regs[MOTOR_REG] = convert_current(data);
-    if (CURRENT_OVERTEMP * 100 < regs[MOTOR_REG]) motor_overload = true;
+    bool overtemp = CURRENT_OVERTEMP * 100 < regs[MOTOR_REG];
+    limited_counter(&motor_overload, overtemp, MOTOR_SHUTDOWN_THRESH);
     break;
+  }
 
   case CS2_ADC: regs[VDD_REG] = convert_current(data); break;
 
@@ -429,9 +440,9 @@ int main() {
     if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) flags |= OVER_VOLTAGE_FLAG;
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
     if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
-    if (motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
-    if (loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
-    if (loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
+    if (MOTOR_SHUTDOWN_THRESH <= motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
+    if (LOAD_SHUTDOWN_THRESH <= loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
+    if (LOAD_SHUTDOWN_THRESH <= loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
     if (loads[0].limit) flags |= LOAD1_LIMITING_FLAG;
     if (loads[1].limit) flags |= LOAD2_LIMITING_FLAG;
 
