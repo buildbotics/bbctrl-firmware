@@ -51,8 +51,6 @@ SHUNT_OVERLOAD_FLAG    = 1 << 4
 MOTOR_OVERLOAD_FLAG    = 1 << 5
 LOAD1_OVERTEMP_FLAG    = 1 << 6
 LOAD2_OVERTEMP_FLAG    = 1 << 7
-LOAD1_LIMITING_FLAG    = 1 << 8
-LOAD2_LIMITING_FLAG    = 1 << 9
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags'.split()
 
@@ -81,7 +79,7 @@ class Pwr():
         return False
 
 
-    def error(self):
+    def check_faults(self):
         flags = self.regs[FLAGS_REG]
 
         if self.check_fault('under_voltage', flags & UNDER_VOLTAGE_FLAG):
@@ -109,12 +107,6 @@ class Pwr():
         if self.check_fault('load2_overtemp', flags & LOAD2_OVERTEMP_FLAG):
             log.error('Load 2 over temperature shutdown')
 
-        if self.check_fault('load1_limiting', flags & LOAD1_LIMITING_FLAG):
-            log.warning('Load 1 limiting active')
-
-        if self.check_fault('load2_limiting', flags & LOAD2_LIMITING_FLAG):
-            log.warning('Load 2 limiting active')
-
 
     def _update(self):
         update = {}
@@ -134,7 +126,7 @@ class Pwr():
                     update[key] = value
                     self.regs[i] = value
 
-                    if i == FLAGS_REG and value: self.error()
+                if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
             log.warning('Pwr communication failed: %s' % e)

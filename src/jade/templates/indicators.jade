@@ -134,12 +134,6 @@ script#indicators-template(type="text/x-template")
         th.separator
         th Load 2 over temp
         td {{state['load2_overtemp'] ? 'True' : 'False'}}
-      tr
-        th Load 1 limiting
-        td {{state['load1_limiting'] ? 'True' : 'False'}}
-        th.separator
-        th Load 2 limiting
-        td {{state['load2_limiting'] ? 'True' : 'False'}}
 
     table.measurements
       tr
