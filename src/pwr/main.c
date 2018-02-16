@@ -180,7 +180,7 @@ static void measure_nominal_voltage() {
 static void check_load(load_t *load) {
   bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
   if (overtemp && !load->lockout) {
-    load->lockout = 42; // About 200 ms
+    load->lockout = 210; // About 1s
     if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
   }
 
