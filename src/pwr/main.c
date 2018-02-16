@@ -40,15 +40,14 @@
 typedef struct {
   const regs_t reg;
   const uint8_t pin;
-  volatile uint8_t limit;
-  volatile uint8_t count;
-  volatile uint8_t lockout;
+  volatile uint8_t overtemp;
+  volatile bool shutdown;
 } load_t;
 
 
 load_t loads[2] = {
-  {LOAD1_REG, LOAD1_PIN, 5, 0, 0},
-  {LOAD2_REG, LOAD2_PIN, 5, 0, 0},
+  {LOAD1_REG, LOAD1_PIN, 0, false},
+  {LOAD2_REG, LOAD2_PIN, 0, false},
 };
 
 
@@ -178,33 +177,21 @@ static void measure_nominal_voltage() {
 
 
 static void check_load(load_t *load) {
+  if (load->shutdown) return;
+
   bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
-  if (overtemp && !load->lockout) {
-    load->lockout = true;
-    if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
-  }
-
-  if (!overtemp) load->lockout = false;
-}
-
-
-void limit_load(load_t *load) {
-  if (load->count < load->limit || load->lockout) {
-    IO_PORT_CLR(load->pin); // Lo
-    IO_DDR_SET(load->pin);  // Output
-
-  } else IO_DDR_CLR(load->pin); // Float
-
-  if (++load->count == LOAD_LIMIT_TICKS) load->count = 0;
+  if (overtemp) {
+    if (++load->overtemp == LOAD_OVERTEMP_MAX) {
+      load->shutdown = true;
+      IO_PORT_CLR(load->pin); // Lo
+      IO_DDR_SET(load->pin);  // Output
+    }
+  } else if (load->overtemp) load->overtemp--;
 }
 
 
 ISR(TIMER0_OVF_vect) {
   static uint8_t tick = 0;
-
-  // Calling these too fast disrupts the I2C bus
-  if ((tick & 3) == 0) limit_load(&loads[0]);
-  if ((tick & 3) == 2) limit_load(&loads[1]);
 
   if (++tick == 31) {
     time++;
@@ -426,10 +413,8 @@ int main() {
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
     if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
     if (MOTOR_SHUTDOWN_THRESH <= motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
-    if (loads[0].limit == LOAD_LIMIT_TICKS) flags |= LOAD1_OVERTEMP_FLAG;
-    if (loads[1].limit == LOAD_LIMIT_TICKS) flags |= LOAD2_OVERTEMP_FLAG;
-    if (loads[0].limit) flags |= LOAD1_LIMITING_FLAG;
-    if (loads[1].limit) flags |= LOAD2_LIMITING_FLAG;
+    if (loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
+    if (loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
 
     regs[FLAGS_REG] = flags;
     if (flags & FATAL_FLAG_MASK) shutdown(flags);
