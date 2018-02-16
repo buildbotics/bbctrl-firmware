@@ -385,7 +385,7 @@ static void validate_measurements() {
       max_current < regs[LOAD1_REG] ||
       max_current < regs[LOAD2_REG] ||
       max_current < regs[VDD_REG])
-    shutdown(MEASUREMENT_ERROR_FLAG);
+    shutdown(SENSE_ERROR_FLAG);
 }
 
 
@@ -413,8 +413,8 @@ int main() {
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
     if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
     if (MOTOR_SHUTDOWN_THRESH <= motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
-    if (loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
-    if (loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
+    if (loads[0].shutdown) flags |= LOAD1_SHUTDOWN_FLAG;
+    if (loads[1].shutdown) flags |= LOAD2_SHUTDOWN_FLAG;
 
     regs[FLAGS_REG] = flags;
     if (flags & FATAL_FLAG_MASK) shutdown(flags);

@@ -43,14 +43,14 @@ VDD_REG         = 6
 FLAGS_REG       = 7
 
 # Must be kept in sync with pwr firmware
-UNDER_VOLTAGE_FLAG     = 1 << 0
-OVER_VOLTAGE_FLAG      = 1 << 1
-OVER_CURRENT_FLAG      = 1 << 2
-MEASUREMENT_ERROR_FLAG = 1 << 3
-SHUNT_OVERLOAD_FLAG    = 1 << 4
-MOTOR_OVERLOAD_FLAG    = 1 << 5
-LOAD1_OVERTEMP_FLAG    = 1 << 6
-LOAD2_OVERTEMP_FLAG    = 1 << 7
+UNDER_VOLTAGE_FLAG  = 1 << 0
+OVER_VOLTAGE_FLAG   = 1 << 1
+OVER_CURRENT_FLAG   = 1 << 2
+SENSE_ERROR_FLAG    = 1 << 3
+SHUNT_OVERLOAD_FLAG = 1 << 4
+MOTOR_OVERLOAD_FLAG = 1 << 5
+LOAD1_SHUTDOWN_FLAG = 1 << 6
+LOAD2_SHUTDOWN_FLAG = 1 << 7
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags'.split()
 
@@ -72,7 +72,7 @@ class Pwr():
     def check_fault(self, var, status):
         status = bool(status)
 
-        if status != self.ctrl.state.get(var, False):
+        if not self.ctrl.state.has(var) or status != self.ctrl.state.get(var):
             self.ctrl.state.set(var, status)
             if status: return True
 
@@ -91,9 +91,8 @@ class Pwr():
         if self.check_fault('over_current', flags & OVER_CURRENT_FLAG):
             log.error('Device total current limit exceeded')
 
-        if self.check_fault('measurement_error',
-                            flags & MEASUREMENT_ERROR_FLAG):
-            log.error('Power measurement error')
+        if self.check_fault('sense_error', flags & SENSE_ERROR_FLAG):
+            log.error('Power sense error')
 
         if self.check_fault('shunt_overload', flags & SHUNT_OVERLOAD_FLAG):
             log.error('Power shunt overload')
@@ -101,10 +100,10 @@ class Pwr():
         if self.check_fault('motor_overload', flags & MOTOR_OVERLOAD_FLAG):
             log.error('Motor power overload')
 
-        if self.check_fault('load1_overtemp', flags & LOAD1_OVERTEMP_FLAG):
+        if self.check_fault('load1_shutdown', flags & LOAD1_SHUTDOWN_FLAG):
             log.error('Load 1 over temperature shutdown')
 
-        if self.check_fault('load2_overtemp', flags & LOAD2_OVERTEMP_FLAG):
+        if self.check_fault('load2_shutdown', flags & LOAD2_SHUTDOWN_FLAG):
             log.error('Load 2 over temperature shutdown')
 
 

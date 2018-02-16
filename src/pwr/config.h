@@ -123,16 +123,16 @@ typedef enum {
 
 
 enum {
-  UNDER_VOLTAGE_FLAG     = 1 << 0,
-  OVER_VOLTAGE_FLAG      = 1 << 1,
-  OVER_CURRENT_FLAG      = 1 << 2,
-  MEASUREMENT_ERROR_FLAG = 1 << 3,
-  SHUNT_OVERLOAD_FLAG    = 1 << 4,
-  MOTOR_OVERLOAD_FLAG    = 1 << 5,
+  UNDER_VOLTAGE_FLAG  = 1 << 0,
+  OVER_VOLTAGE_FLAG   = 1 << 1,
+  OVER_CURRENT_FLAG   = 1 << 2,
+  SENSE_ERROR_FLAG    = 1 << 3,
+  SHUNT_OVERLOAD_FLAG = 1 << 4,
+  MOTOR_OVERLOAD_FLAG = 1 << 5,
 
   // Non fatal
-  LOAD1_OVERTEMP_FLAG    = 1 << 6,
-  LOAD2_OVERTEMP_FLAG    = 1 << 7,
+  LOAD1_SHUTDOWN_FLAG = 1 << 6,
+  LOAD2_SHUTDOWN_FLAG = 1 << 7,
 };
 
 

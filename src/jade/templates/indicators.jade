@@ -120,8 +120,8 @@ script#indicators-template(type="text/x-template")
         th Over current
         td {{state['over_current'] ? 'True' : 'False'}}
         th.separator
-        th Measurement error
-        td {{state['measurement_error'] ? 'True' : 'False'}}
+        th Sense error
+        td {{state['sense_error'] ? 'True' : 'False'}}
       tr
         th Shunt overload
         td {{state['shunt_overload'] ? 'True' : 'False'}}
@@ -129,11 +129,11 @@ script#indicators-template(type="text/x-template")
         th Motor overload
         td {{state['motor_overload'] ? 'True' : 'False'}}
       tr
-        th Load 1 over temp
-        td {{state['load1_overtemp'] ? 'True' : 'False'}}
+        th Load 1 shutdown
+        td {{state['load1_shutdown'] ? 'True' : 'False'}}
         th.separator
-        th Load 2 over temp
-        td {{state['load2_overtemp'] ? 'True' : 'False'}}
+        th Load 2 shutdown
+        td {{state['load2_shutdown'] ? 'True' : 'False'}}
 
     table.measurements
       tr
