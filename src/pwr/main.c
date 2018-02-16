@@ -47,8 +47,8 @@ typedef struct {
 
 
 load_t loads[2] = {
-  {LOAD1_REG, LOAD1_PIN, 0, 0, 0},
-  {LOAD2_REG, LOAD2_PIN, 0, 0, 0},
+  {LOAD1_REG, LOAD1_PIN, 5, 0, 0},
+  {LOAD2_REG, LOAD2_PIN, 5, 0, 0},
 };
 
 
