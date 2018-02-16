@@ -180,7 +180,7 @@ static void measure_nominal_voltage() {
 static void check_load(load_t *load) {
   bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
   if (overtemp && !load->lockout) {
-    load->lockout = 32;
+    load->lockout = 16;
     if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
   }
 
@@ -189,7 +189,7 @@ static void check_load(load_t *load) {
 
 
 void limit_load(load_t *load) {
-  if (load->count < load->limit) {
+  if (load->count < load->limit || load->lockout) {
     IO_PORT_CLR(load->pin); // Lo
     IO_DDR_SET(load->pin);  // Output
 
