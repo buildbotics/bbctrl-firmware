@@ -116,15 +116,6 @@ ISR(TWI_SLAVE_vect) {
 }
 
 
-static bool limited_counter(volatile uint8_t *counter, bool up, uint8_t max) {
-  if (up) {
-    if (*counter < max) (*counter)++;
-  } else if (0 < *counter) (*counter)--;
-
-  return *counter == max;
-}
-
-
 static float get_total_current() {
   cli();
   float current =
@@ -187,10 +178,9 @@ static void measure_nominal_voltage() {
 
 
 static void check_load(load_t *load) {
-  // Check overtemp
   bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
   if (overtemp && !load->lockout) {
-    load->lockout = 64;
+    load->lockout = 32;
     if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
   }
 
@@ -199,7 +189,6 @@ static void check_load(load_t *load) {
 
 
 void limit_load(load_t *load) {
-  // Limit
   if (load->count < load->limit) {
     IO_PORT_CLR(load->pin); // Lo
     IO_DDR_SET(load->pin);  // Output
@@ -255,7 +244,9 @@ static void read_conversion(uint8_t ch) {
   case CS1_ADC: {
     regs[MOTOR_REG] = convert_current(data);
     bool overtemp = CURRENT_OVERTEMP * 100 < regs[MOTOR_REG];
-    limited_counter(&motor_overload, overtemp, MOTOR_SHUTDOWN_THRESH);
+    if (overtemp) {
+      if (motor_overload < MOTOR_SHUTDOWN_THRESH) motor_overload++;
+    } else if (motor_overload) motor_overload--;
     break;
   }
 
