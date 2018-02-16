@@ -491,6 +491,10 @@ void hy_rtc_callback() {
                      sent, received, ha.response_length);
       }
 
+      // Try changing pin polarity
+      PINCTRL_PIN(RS485_RO_PIN) ^= PORT_INVEN_bm;
+      PINCTRL_PIN(RS485_DI_PIN) ^= PORT_INVEN_bm;
+
       hy_reset();
     }
   }

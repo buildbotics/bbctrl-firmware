@@ -36,6 +36,10 @@ ifndef HOST
 HOST=bbctrl.local
 endif
 
+ifndef PASSWORD
+PASSWORD=buildbotics
+endif
+
 ifndef DEST
 DEST=mnt
 endif
@@ -81,7 +85,7 @@ publish: pkg
 
 update: pkg
 	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
-	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" \
+	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" -F "password=$(PASSWORD)" \
 	  http://$(HOST)/api/firmware/update
 
 mount:

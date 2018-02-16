@@ -1,29 +1,29 @@
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-//               This file is part of the Buildbotics firmware.               //
-//                                                                            //
-//                 Copyright (c) 2015 - 2018, Buildbotics LLC                 //
-//                            All rights reserved.                            //
-//                                                                            //
-//    This file ("the software") is free software: you can redistribute it    //
-//    and/or modify it under the terms of the GNU General Public License,     //
-//     version 2 as published by the Free Software Foundation. You should     //
-//     have received a copy of the GNU General Public License, version 2      //
-//    along with the software. If not, see <http://www.gnu.org/licenses/>.    //
-//                                                                            //
-//    The software is distributed in the hope that it will be useful, but     //
-//         WITHOUT ANY WARRANTY; without even the implied warranty of         //
-//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU      //
-//              Lesser General Public License for more details.               //
-//                                                                            //
-//      You should have received a copy of the GNU Lesser General Public      //
-//               License along with the software.  If not, see                //
-//                      <http://www.gnu.org/licenses/>.                       //
-//                                                                            //
-//               For information regarding this software email:               //
-//                 "Joseph Coffland" <joseph@buildbotics.com>                 //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-              This file is part of the Buildbotics firmware.               //
+//-                                                                           //
+//-                Copyright (c) 2015 - 2018, Buildbotics LLC                 //
+//-                           All rights reserved.                            //
+//-                                                                           //
+//-   This file ("the software") is free software: you can redistribute it    //
+//-   and/or modify it under the terms of the GNU General Public License,     //
+//-    version 2 as published by the Free Software Foundation. You should     //
+//-    have received a copy of the GNU General Public License, version 2      //
+//-   along with the software. If not, see <http://www.gnu.org/licenses/>.    //
+//-                                                                           //
+//-   The software is distributed in the hope that it will be useful, but     //
+//-        WITHOUT ANY WARRANTY; without even the implied warranty of         //
+//-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU      //
+//-             Lesser General Public License for more details.               //
+//-                                                                           //
+//-     You should have received a copy of the GNU Lesser General Public      //
+//-              License along with the software.  If not, see                //
+//-                     <http://www.gnu.org/licenses/>.                       //
+//-                                                                           //
+//-              For information regarding this software email:               //
+//-                "Joseph Coffland" <joseph@buildbotics.com>                 //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
 
 include ../../build/hashes.jade
 
@@ -82,6 +82,9 @@ html(lang="en")
             li.pure-menu-heading
               a.pure-menu-link(href="#admin") Admin
 
+            li.pure-menu-heading
+              a.pure-menu-link(href="#help") Help
+
       #main
         .header
           .header-content
@@ -137,6 +140,20 @@ html(lang="en")
         button.pure-button(@click="confirmUpgrade=false") Cancel
         button.pure-button.pure-button-primary(@click="upgrade_confirmed")
           | Upgrade
+
+    message(:show.sync="confirmUpload")
+      h3(slot="header") Upload Firmware?
+      div(slot="body")
+        p Are you sure you want to upload firmware <em>{{firmwareName}}</em>?
+
+        p.pure-control-group
+          label(for="pass") Password
+          input(name="pass", v-model="password", type="password")
+
+      div(slot="footer")
+        button.pure-button(@click="confirmUpload=false") Cancel
+        button.pure-button.pure-button-primary(@click="upload_confirmed")
+          | Upload
 
     message(:show.sync="firmwareUpgrading")
       h3(slot="header") Firmware upgrading

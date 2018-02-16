@@ -37,6 +37,20 @@
 #include <stdbool.h>
 
 
+typedef struct {
+  regs_t reg;
+  uint8_t pin;
+  uint8_t limit;
+  uint8_t count;
+  bool shutdown;
+} load_t;
+
+load_t loads[2] = {
+  {LOAD1_REG, LOAD1_PIN, 0, 0, false},
+  {LOAD2_REG, LOAD2_PIN, 0, 0, false},
+};
+
+
 static const uint8_t ch_schedule[] = {
   TEMP_ADC, VOUT_ADC,
   VIN_ADC,  VOUT_ADC,
@@ -49,6 +63,7 @@ static const uint8_t ch_schedule[] = {
 
 static volatile uint16_t regs[NUM_REGS] = {0};
 static volatile uint64_t time = 0; // ms
+static volatile bool motor_overload = false;
 static volatile bool shunt_overload = false;
 static volatile float shunt_ms_power = 0;
 static volatile float vnom = 0;
@@ -161,8 +176,44 @@ static void measure_nominal_voltage() {
 }
 
 
+static void check_load(load_t *load) {
+  if (load->shutdown) return;
+
+  // Check overtemp
+  if (CURRENT_OVERTEMP * 100 < regs[load->reg]) {
+    IO_PORT_CLR(load->pin); // Lo
+    IO_DDR_SET(load->pin);  // Output
+    load->shutdown = true;
+  }
+
+  // Check and adjust limit
+  if (LOAD_CURRENT_MAX * 100 < regs[load->reg]) {
+    if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
+  } else if (load->limit) load->limit--;
+}
+
+
+void limit_load(load_t *load) {
+  if (load->shutdown) return;
+
+  // Limit
+  if (load->count < load->limit) {
+    IO_PORT_CLR(load->pin); // Lo
+    IO_DDR_SET(load->pin);  // Output
+
+  } else IO_DDR_CLR(load->pin); // Float
+
+  if (++load->count == LOAD_LIMIT_TICKS) load->count = 0;
+}
+
+
 ISR(TIMER0_OVF_vect) {
   static uint8_t tick = 0;
+
+  // Calling these too fast disrupts the I2C bus
+  if ((tick & 3) == 0) limit_load(&loads[0]);
+  if ((tick & 3) == 2) limit_load(&loads[1]);
+
   if (++tick == 31) {
     time++;
     tick = 0;
@@ -197,10 +248,23 @@ static void read_conversion(uint8_t ch) {
   case TEMP_ADC: regs[TEMP_REG]  = data; break; // in Kelvin
   case VIN_ADC:  regs[VIN_REG]   = convert_voltage(data); break;
   case VOUT_ADC: regs[VOUT_REG]  = convert_voltage(data); break;
-  case CS1_ADC:  regs[MOTOR_REG] = convert_current(data); break;
-  case CS2_ADC:  regs[VDD_REG]   = convert_current(data); break;
-  case CS3_ADC:  regs[LOAD2_REG] = convert_current(data); break;
-  case CS4_ADC:  regs[LOAD1_REG] = convert_current(data); break;
+
+  case CS1_ADC:
+    regs[MOTOR_REG] = convert_current(data);
+    if (CURRENT_OVERTEMP * 100 < regs[MOTOR_REG]) motor_overload = true;
+    break;
+
+  case CS2_ADC: regs[VDD_REG] = convert_current(data); break;
+
+  case CS3_ADC:
+    regs[LOAD2_REG] = convert_current(data);
+    check_load(&loads[1]);
+    break;
+
+  case CS4_ADC:
+    regs[LOAD1_REG] = convert_current(data);
+    check_load(&loads[0]);
+    break;
   }
 }
 
@@ -320,12 +384,12 @@ static void shutdown(uint16_t flags) {
   TCCR0B = TCCR1B = 0;
 
   // Disable outputs
-  IO_DDR_CLR(SHUNT_PIN);
-  IO_DDR_CLR(MOTOR_PIN);
-  IO_PORT_CLR(LOAD1_PIN);
-  IO_PORT_CLR(LOAD2_PIN);
-  IO_DDR_SET(LOAD1_PIN);
-  IO_DDR_SET(LOAD2_PIN);
+  IO_DDR_CLR(SHUNT_PIN);  // Input
+  IO_DDR_CLR(MOTOR_PIN);  // Input
+  IO_PORT_CLR(LOAD1_PIN); // Lo
+  IO_PORT_CLR(LOAD2_PIN); // Lo
+  IO_DDR_SET(LOAD1_PIN);  // Output
+  IO_DDR_SET(LOAD2_PIN);  // Output
 
   while (true) continue;
 }
@@ -367,8 +431,13 @@ int main() {
     if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) flags |= OVER_VOLTAGE_FLAG;
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
     if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
+    if (motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
+    if (loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
+    if (loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
+    if (loads[0].limit) flags |= LOAD1_LIMITING_FLAG;
+    if (loads[1].limit) flags |= LOAD2_LIMITING_FLAG;
 
-    if (flags) shutdown(flags);
+    if (flags & FATAL_FLAG_MASK) shutdown(flags);
   }
 
   return 0;

@@ -189,6 +189,13 @@ module.exports = {
     upgrade: function () {this.$dispatch('upgrade')},
 
 
+    upload: function (e) {
+      var files = e.target.files || e.dataTransfer.files;
+      if (!files.length) return;
+      this.$dispatch('upload', files[0]);
+    },
+
+
     change_auto_check_upgrade: function () {
       this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade;
       this.$dispatch('config-changed');

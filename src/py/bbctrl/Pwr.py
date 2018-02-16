@@ -42,11 +42,17 @@ LOAD2_REG       = 5
 VDD_REG         = 6
 FLAGS_REG       = 7
 
+# Must be kept in sync with pwr firmware
 UNDER_VOLTAGE_FLAG     = 1 << 0
 OVER_VOLTAGE_FLAG      = 1 << 1
 OVER_CURRENT_FLAG      = 1 << 2
 MEASUREMENT_ERROR_FLAG = 1 << 3
 SHUNT_OVERLOAD_FLAG    = 1 << 4
+MOTOR_OVERLOAD_FLAG    = 1 << 5
+LOAD1_OVERTEMP_FLAG    = 1 << 6
+LOAD2_OVERTEMP_FLAG    = 1 << 7
+LOAD1_LIMITING_FLAG    = 1 << 8
+LOAD2_LIMITING_FLAG    = 1 << 9
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags'.split()
 
@@ -65,19 +71,49 @@ class Pwr():
     def get_reg(self, i): return self.regs[i]
 
 
+    def check_fault(self, var, status):
+        status = bool(status)
+
+        if status != self.ctrl.state.get(var, False):
+            self.ctrl.state.set(var, status)
+            if status: return True
+
+        return False
+
+
     def error(self):
         flags = self.regs[FLAGS_REG]
-        errors = []
 
-        # Decode error flags
-        if flags & UNDER_VOLTAGE_FLAG:     errors.append('under voltage')
-        if flags & OVER_VOLTAGE_FLAG:      errors.append('over voltage')
-        if flags & OVER_CURRENT_FLAG:      errors.append('over current')
-        if flags & MEASUREMENT_ERROR_FLAG: errors.append('measurement error')
-        if flags & SHUNT_OVERLOAD_FLAG:    errors.append('shunt overload')
+        if self.check_fault('under_voltage', flags & UNDER_VOLTAGE_FLAG):
+            log.error('Device under voltage')
 
-        # Report errors
-        if errors: log.error('Power fault: ' + ', '.join(errors))
+        if self.check_fault('over_voltage', flags & OVER_VOLTAGE_FLAG):
+            log.error('Device over voltage')
+
+        if self.check_fault('over_current', flags & OVER_CURRENT_FLAG):
+            log.error('Device total current limit exceeded')
+
+        if self.check_fault('measurement_error',
+                            flags & MEASUREMENT_ERROR_FLAG):
+            log.error('Power measurement error')
+
+        if self.check_fault('shunt_overload', flags & SHUNT_OVERLOAD_FLAG):
+            log.error('Power shunt overload')
+
+        if self.check_fault('motor_overload', flags & MOTOR_OVERLOAD_FLAG):
+            log.error('Motor power overload')
+
+        if self.check_fault('load1_overtemp', flags & LOAD1_OVERTEMP_FLAG):
+            log.error('Load 1 over temperature shutdown')
+
+        if self.check_fault('load2_overtemp', flags & LOAD2_OVERTEMP_FLAG):
+            log.error('Load 2 over temperature shutdown')
+
+        if self.check_fault('load1_limiting', flags & LOAD1_LIMITING_FLAG):
+            log.warning('Load 1 limiting active')
+
+        if self.check_fault('load2_limiting', flags & LOAD2_LIMITING_FLAG):
+            log.warning('Load 2 limiting active')
 
 
     def _update(self):

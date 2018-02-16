@@ -65,8 +65,10 @@ module.exports = new Vue({
       errorShow: false,
       errorMessage: '',
       confirmUpgrade: false,
+      confirmUpload: false,
       firmwareUpgrading: false,
       checkedUpgrade: false,
+      firmwareName: '',
       latestVersion: '',
       password: ''
     }
@@ -81,7 +83,8 @@ module.exports = new Vue({
     'tool-view': require('./tool-view'),
     'io-view': require('./io-view'),
     'gcode-view': require('./gcode-view'),
-    'admin-view': require('./admin-view')
+    'admin-view': require('./admin-view'),
+    'help-view': {template: '#help-view-template'}
   },
 
 
@@ -120,6 +123,14 @@ module.exports = new Vue({
     upgrade: function () {
       this.password = '';
       this.confirmUpgrade = true;
+    },
+
+
+    upload: function (firmware) {
+      this.firmware = firmware;
+      this.firmwareName = firmware.name;
+      this.password = '';
+      this.confirmUpload = true;
     },
 
 
@@ -165,6 +176,30 @@ module.exports = new Vue({
 
       }.bind(this)).fail(function () {
         alert('Invalid password');
+      }.bind(this))
+    },
+
+
+    upload_confirmed: function () {
+      this.confirmUpload = false;
+
+      var form = new FormData();
+      form.append('firmware', this.firmware);
+      if (this.password) form.append('password', this.password);
+
+      $.ajax({
+        url: '/api/firmware/update',
+        type: 'PUT',
+        data: form,
+        cache: false,
+        contentType: false,
+        processData: false
+
+      }).success(function () {
+        this.firmwareUpgrading = true;
+
+      }.bind(this)).error(function () {
+        alert('Invalid password or bad firmware');
       }.bind(this))
     },
 

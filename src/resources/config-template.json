@@ -162,6 +162,31 @@
       "default": "false",
       "code": "sr"
     },
+    "tool-enable-mode": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "eom"
+    },
+    "tool-direction-mode": {
+      "type": "enum",
+      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
+                 "hi-tri"],
+      "default": "lo-hi",
+      "code": "dom"
+    }
+  },
+
+  "huanyang-spindle": {
+    "bus-id": {
+      "type": "int",
+      "default": "1",
+      "code": "hi"
+    }
+  },
+
+  "pwm-spindle": {
     "max-spin": {
       "type": "float",
       "unit": "RPM",
@@ -176,7 +201,12 @@
       "default": 0,
       "code": "sm"
     },
-    "spin-min-duty": {
+    "pwm-inverted": {
+      "type": "bool",
+      "default": "false",
+      "code": "pi"
+    },
+    "pwm-min-duty": {
       "type": "float",
       "unit": "%",
       "min": 0,
@@ -184,7 +214,7 @@
       "default": 1,
       "code": "nd"
     },
-    "spin-max-duty": {
+    "pwm-max-duty": {
       "type": "float",
       "unit": "%",
       "min": 0,
@@ -199,25 +229,6 @@
       "max": 65535,
       "default": 1000,
       "code": "sf"
-    },
-    "pwm-inverted": {
-      "type": "bool",
-      "default": "false",
-      "code": "pi"
-    },
-    "tool-enable-mode": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "eom"
-    },
-    "tool-direction-mode": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "dom"
     }
   },
 

@@ -35,7 +35,9 @@ module.exports = {
 
   data: function () {
     return {
-      tool: {}
+      tool: {},
+      pwmSpindle: {},
+      huanyangSpindle: {}
     }
   },
 
@@ -48,14 +50,13 @@ module.exports = {
   },
 
 
-  ready: function () {
-    this.update();
-  },
+  ready: function () {this.update()},
 
 
   methods: {
     update: function () {
       Vue.nextTick(function () {
+        // Tool
         if (this.config.hasOwnProperty('tool'))
           this.tool = this.config.tool;
 
@@ -63,6 +64,24 @@ module.exports = {
         for (var key in template)
           if (!this.tool.hasOwnProperty(key))
             this.$set('tool["' + key + '"]', template[key].default);
+
+        // PWM
+        if (this.config.hasOwnProperty('pwm-spindle'))
+          this.pwmSpindle = this.config['pwm-spindle'];
+
+        template = this.template['pwm-spindle'];
+        for (key in template)
+          if (!this.pwmSpindle.hasOwnProperty(key))
+            this.$set('pwmSpindle["' + key + '"]', template[key].default);
+
+        // Huanyang
+        if (this.config.hasOwnProperty('huanyang-spindle'))
+          this.huanyangSpindle = this.config['huanyang-spindle'];
+
+        template = this.template['huanyang-spindle'];
+        for (key in template)
+          if (!this.huanyangSpindle.hasOwnProperty(key))
+            this.$set('huanyangSpindle["' + key + '"]', template[key].default);
       }.bind(this));
     }
   }

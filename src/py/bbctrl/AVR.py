@@ -87,6 +87,7 @@ class AVR():
                                     ctrl.ioloop.READ)
 
         self.i2c_addr = ctrl.args.avr_addr
+        self._queue_command(Cmd.REBOOT)
 
 
     def _is_busy(self): return self.ctrl.planner.is_running()
@@ -216,6 +217,20 @@ class AVR():
 
                     continue
 
+                # AVR logging
+                if 'msg' in msg:
+                    level = msg.get('level', 'info')
+                    if 'where' in msg: extra = {'where': msg}
+                    else: extra = None
+                    msg = msg['msg']
+
+                    if level == 'info': log.info(msg, extra)
+                    elif level == 'debug': log.debug(msg, extra)
+                    elif level == 'warning': log.warning(msg, extra)
+                    elif level == 'error': log.error(msg, extra)
+
+                    continue
+
                 update.update(msg)
 
         if update:
@@ -261,11 +276,10 @@ class AVR():
                 row += 1
 
         # Show tool, units, feed and speed
-        # TODO Units not in state
-        if 't' in update: self.lcd_page.text('%2uT' % update['t'], 6, 1)
-        if 'u' in update: self.lcd_page.text('%-6s' % update['u'], 0, 1)
-        if 'f' in update: self.lcd_page.text('%8uF' % update['f'], 0, 2)
-        if 's' in update: self.lcd_page.text('%8dS' % update['s'], 0, 3)
+        if 'tool'  in update: self.lcd_page.text('%2uT' % update['tool'],  6, 1)
+        if 'units' in update: self.lcd_page.text('%-6s' % update['units'], 0, 1)
+        if 'feed'  in update: self.lcd_page.text('%8uF' % update['feed'],  0, 2)
+        if 'speed' in update: self.lcd_page.text('%8dS' % update['speed'], 0, 3)
 
 
     def connect(self):

@@ -80,6 +80,9 @@ enum {
 #define VOLTAGE_MIN 11
 #define VOLTAGE_MAX 39
 #define CURRENT_MAX 25
+#define LOAD_CURRENT_MAX 10.5
+#define CURRENT_OVERTEMP 14 // Should read ~21A but over 11.86A is faulty
+#define LOAD_LIMIT_TICKS 10
 #define VOLTAGE_SETTLE_COUNT 5
 #define VOLTAGE_SETTLE_PERIOD 20 // ms
 #define VOLTAGE_SETTLE_TOLERANCE 0.01
@@ -125,4 +128,14 @@ enum {
   OVER_CURRENT_FLAG      = 1 << 2,
   MEASUREMENT_ERROR_FLAG = 1 << 3,
   SHUNT_OVERLOAD_FLAG    = 1 << 4,
+  MOTOR_OVERLOAD_FLAG    = 1 << 5,
+
+  // Non fatal
+  LOAD1_OVERTEMP_FLAG    = 1 << 6,
+  LOAD2_OVERTEMP_FLAG    = 1 << 7,
+  LOAD1_LIMITING_FLAG    = 1 << 8,
+  LOAD2_LIMITING_FLAG    = 1 << 9,
 };
+
+
+#define FATAL_FLAG_MASK ((1 << 6) - 1)

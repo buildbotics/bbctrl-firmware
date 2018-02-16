@@ -9,6 +9,14 @@ Buildbotics CNC Controller Firmware Change Log
  - Added helful info to Video tab
  - Changed "Console" tab to "Messages"
  - Removed spin up/down velocity options, they don't do anything
+ - Allow RS485 to work when wires are swapped
+ - Allow setting VFD ID
+ - Only show relavant spindle config items
+ - More robust video camera reset
+ - Added help page
+ - Allow upgrade with out Internet
+ - Limit power fault reporting
+ - Added load over temp, load limiting and motor overload power faults
 
 ## v0.3.6
  - Set max_usb_current=1 in /boot/config.txt from installer #103

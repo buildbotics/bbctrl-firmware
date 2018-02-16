@@ -34,19 +34,26 @@ import logging
 
 log = logging.getLogger('Cmd')
 
-# TODO, sync this up with AVR code
-SET      = '$'
-SET_SYNC = '#'
-SEEK     = 's'
-LINE     = 'l'
-REPORT   = 'r'
-PAUSE    = 'P'
-UNPAUSE  = 'U'
-ESTOP    = 'E'
-CLEAR    = 'C'
-FLUSH    = 'F'
-STEP     = 'S'
-RESUME   = 'c'
+# Keep this in sync with AVR code command.def
+SET       = '$'
+SET_SYNC  = '#'
+SEEK      = 's'
+LINE      = 'l'
+DWELL     = 'd'
+OUTPUT    = 'o'
+OPT_PAUSE = 'p'
+PAUSE     = 'P'
+UNPAUSE   = 'U'
+JOG       = 'j'
+REPORT    = 'r'
+REBOOT    = 'R'
+RESUME    = 'c'
+ESTOP     = 'E'
+CLEAR     = 'C'
+STEP      = 'S'
+FLUSH     = 'F'
+DUMP      = 'D'
+HELP      = 'h'
 
 SEEK_ACTIVE = 1 << 0
 SEEK_ERROR  = 1 << 1

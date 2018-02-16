@@ -36,6 +36,7 @@ import shutil
 import tarfile
 import subprocess
 import socket
+import time
 from tornado.web import HTTPError
 
 import bbctrl
@@ -152,9 +153,13 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
 
 
     def put_ok(self):
-        # Only allow this function in dev mode
-        if not os.path.exists('/etc/bbctrl-dev-mode'):
-            raise HTTPError(403, 'Not in dev mode')
+        if not 'password' in self.request.arguments:
+            raise HTTPError(401, 'Missing "password"')
+
+        if not 'firmware' in self.request.files:
+            raise HTTPError(401, 'Missing "firmware"')
+
+        check_password(self.request.arguments['password'][0])
 
         firmware = self.request.files['firmware'][0]
 
@@ -232,6 +237,10 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
 
 class JogHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.avr.jog(self.json)
+
+
+class VideoReloadHandler(bbctrl.APIHandler):
+    def put_ok(self): subprocess.Popen('reset-video').wait()
 
 
 # Base class for Web Socket connections
@@ -325,6 +334,7 @@ class Web(tornado.web.Application):
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
             (r'/api/jog', JogHandler),
+            (r'/api/video/reload', VideoReloadHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),

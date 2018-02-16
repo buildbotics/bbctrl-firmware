@@ -387,6 +387,16 @@ module.exports = {
     load_video: function () {
       this.video_url = '//' + document.location.hostname + ':8000/stream/0?=' +
         Math.random();
+    },
+
+
+    reload_video: function () {
+      if (typeof this.lastVideoReset != 'undefined' &&
+          Date.now() - this.lastVideoReset < 15000) return;
+
+      this.lastVideoReset = Date.now();
+      api.put('video/reload');
+      setTimeout(this.load_video, 4000);
     }
   }
 }
