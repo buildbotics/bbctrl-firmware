@@ -42,7 +42,7 @@ typedef struct {
   const uint8_t pin;
   volatile uint8_t limit;
   volatile uint8_t count;
-  volatile uint8_t shutdown;
+  volatile uint8_t lockout;
 } load_t;
 
 
@@ -187,24 +187,18 @@ static void measure_nominal_voltage() {
 
 
 static void check_load(load_t *load) {
-  if (LOAD_SHUTDOWN_THRESH <= load->shutdown) return;
-
   // Check overtemp
   bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
-  if (limited_counter(&load->shutdown, overtemp, LOAD_SHUTDOWN_THRESH)) {
-    IO_PORT_CLR(load->pin); // Lo
-    IO_DDR_SET(load->pin);  // Output
+  if (overtemp && !load->lockout) {
+    load->lockout = 64;
+    if (load->limit < LOAD_LIMIT_TICKS) load->limit++;
   }
 
-  // Check and adjust limit
-  bool overcurrent = LOAD_CURRENT_MAX * 100 < regs[load->reg];
-  limited_counter(&load->limit, overcurrent, LOAD_LIMIT_TICKS);
+  if (load->lockout) load->lockout--;
 }
 
 
 void limit_load(load_t *load) {
-  if (LOAD_SHUTDOWN_THRESH <= load->shutdown) return;
-
   // Limit
   if (load->count < load->limit) {
     IO_PORT_CLR(load->pin); // Lo
@@ -441,8 +435,8 @@ int main() {
     if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
     if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
     if (MOTOR_SHUTDOWN_THRESH <= motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
-    if (LOAD_SHUTDOWN_THRESH <= loads[0].shutdown) flags |= LOAD1_OVERTEMP_FLAG;
-    if (LOAD_SHUTDOWN_THRESH <= loads[1].shutdown) flags |= LOAD2_OVERTEMP_FLAG;
+    if (loads[0].limit == LOAD_LIMIT_TICKS) flags |= LOAD1_OVERTEMP_FLAG;
+    if (loads[1].limit == LOAD_LIMIT_TICKS) flags |= LOAD2_OVERTEMP_FLAG;
     if (loads[0].limit) flags |= LOAD1_LIMITING_FLAG;
     if (loads[1].limit) flags |= LOAD2_LIMITING_FLAG;
 

@@ -83,7 +83,6 @@ enum {
 #define LOAD_CURRENT_MAX 8
 #define CURRENT_OVERTEMP 16 // Should read ~21A but over 11.86A is faulty
 #define LOAD_LIMIT_TICKS 10
-#define LOAD_SHUTDOWN_THRESH 10
 #define MOTOR_SHUTDOWN_THRESH 10
 #define VOLTAGE_SETTLE_COUNT 5
 #define VOLTAGE_SETTLE_PERIOD 20 // ms
