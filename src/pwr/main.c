@@ -245,9 +245,9 @@ static void read_conversion(uint8_t ch) {
   uint16_t data = ADC;
 
   switch (ch) {
-  case TEMP_ADC: regs[TEMP_REG]  = data; break; // in Kelvin
-  case VIN_ADC:  regs[VIN_REG]   = convert_voltage(data); break;
-  case VOUT_ADC: regs[VOUT_REG]  = convert_voltage(data); break;
+  case TEMP_ADC: regs[TEMP_REG] = data; break; // in Kelvin
+  case VIN_ADC:  regs[VIN_REG]  = convert_voltage(data); break;
+  case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
 
   case CS1_ADC:
     regs[MOTOR_REG] = convert_current(data);

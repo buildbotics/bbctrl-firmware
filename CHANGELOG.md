@@ -2,7 +2,7 @@ Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
 ## v0.3.8
- -
+ - Fixed pwr flags display
 
 ## v0.3.7
  - Allow blocking error dialog for a period of time

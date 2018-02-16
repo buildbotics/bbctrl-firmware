@@ -124,6 +124,7 @@ class Pwr():
                 value = self.ctrl.i2c.read_word(self.i2c_addr + i)
 
                 if i == TEMP_REG: value -= 273
+                elif i == FLAGS_REG: pass
                 else: value /= 100.0
 
                 key = reg_names[i]
@@ -140,10 +141,10 @@ class Pwr():
             self.ctrl.ioloop.call_later(1, self._update)
             return
 
-        self.lcd_page.text('%3dC   Tmp'   % self.regs[TEMP_REG], 0, 0)
-        self.lcd_page.text('%5.1fV  In'   % self.regs[VIN_REG],  0, 1)
-        self.lcd_page.text('%5.1fV Out'   % self.regs[VOUT_REG], 0, 2)
-        self.lcd_page.text(' %02d    Flg' % self.regs[FLAGS_REG], 0, 3)
+        self.lcd_page.text('%3dC   Tmp' % self.regs[TEMP_REG],  0, 0)
+        self.lcd_page.text('%5.1fV  In' % self.regs[VIN_REG],   0, 1)
+        self.lcd_page.text('%5.1fV Out' % self.regs[VOUT_REG],  0, 2)
+        self.lcd_page.text(' %04x  Flg' % self.regs[FLAGS_REG], 0, 3)
 
         self.lcd_page.text('%5.1fA Mot' % self.regs[MOTOR_REG], 10, 0)
         self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
