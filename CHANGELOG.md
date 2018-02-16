@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.8
+ -
+
 ## v0.3.7
  - Allow blocking error dialog for a period of time
  - Show actual error message on planner errors
@@ -47,3 +50,6 @@ Buildbotics CNC Controller Firmware Change Log
  - Search and latch velocity mm/min -> m/min
  - Fixed password update (broken in last version)
  - Start Web server eariler in case of Python coding errors
+
+
+Change log not maintained in previous versions.  See git commit log.

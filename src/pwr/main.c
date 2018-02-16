@@ -378,8 +378,6 @@ void init() {
 
 
 static void shutdown(uint16_t flags) {
-  regs[FLAGS_REG] = flags;
-
   // Disable timers
   TCCR0B = TCCR1B = 0;
 
@@ -437,6 +435,7 @@ int main() {
     if (loads[0].limit) flags |= LOAD1_LIMITING_FLAG;
     if (loads[1].limit) flags |= LOAD2_LIMITING_FLAG;
 
+    regs[FLAGS_REG] = flags;
     if (flags & FATAL_FLAG_MASK) shutdown(flags);
   }
 
