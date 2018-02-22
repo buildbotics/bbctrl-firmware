@@ -170,11 +170,12 @@ script#control-view-template(type="text/x-template")
         .fa.fa-stop
 
       button.pure-button(title="Pause program at next optional stop (M1).",
-        @click="optional_pause")
+        @click="optional_pause", v-if="false")
         .fa.fa-stop-circle-o
 
       button.pure-button(title="Execute one program step.", @click="step",
-        :disabled="(state.xx != 'READY' && state.xx != 'HOLDING') || !file")
+        :disabled="(state.xx != 'READY' && state.xx != 'HOLDING') || !file",
+        v-if="false")
         .fa.fa-step-forward
 
     .tabs

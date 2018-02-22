@@ -369,6 +369,10 @@ body
       margin 1em
 
 .console
+  .console-wrapper
+    max-height 400px
+    overflow-y auto
+
   table
     width 100%
     margin 0.5em 0
@@ -383,13 +387,13 @@ body
         margin 0 0.125em
         background-color #fff
 
-      &.error td
+      &.log-error td
         color red
 
-      &.warning td
+      &.log-warning td
         color orange
 
-      &.debug td
+      &.log-debug td
         color green
 
 .indicators
@@ -586,6 +590,10 @@ label.file-upload
     float right
     transform scale(0.75)
     margin-top -30px
+
+  .console
+    margin-bottom 1em
+    clear both
 
 
 @media only screen and (max-width 48em)

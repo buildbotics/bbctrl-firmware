@@ -1,8 +1,7 @@
 # Makefile for the project Bulidbotics firmware
-PROJECT         = bbctrl-avr-firmware
-MCU             = atxmega192a3u
-CLOCK           = 32000000
-VERSION         = 0.5.0
+PROJECT  = bbctrl-avr-firmware
+MCU      = atxmega192a3u
+CLOCK    = 32000000
 
 TARGET  = $(PROJECT).elf
 
@@ -18,7 +17,7 @@ CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
 CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
-CFLAGS += -Isrc -DVERSION=\"$(VERSION)\"
+CFLAGS += -Isrc
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm

@@ -60,12 +60,7 @@ int main(int argc, char *argv[]) {
     switch (status) {
     case STAT_NOP: break;       // No command executed
     case STAT_AGAIN: continue;  // No command executed, try again
-
-    case STAT_OK:                // Move executed
-      //if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued
-      //st.move_queued = false;
-      //st.move_ready = true;
-      continue;
+    case STAT_OK: continue;     // Move executed
 
     default:
       printf("ERROR: %s\n", status_to_pgmstr(status));

@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <avr/pgmspace.h>
+#include "pgmspace.h"
 
 #include <stdint.h>
 

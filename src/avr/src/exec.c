@@ -93,9 +93,6 @@ stat_t exec_move_to_target(float time, const float target[]) {
 }
 
 
-void exec_reset_encoder_counts() {st_set_position(ex.position);}
-
-
 stat_t exec_next() {
   if (!ex.cb && !command_exec()) return STAT_NOP; // Queue empty
   if (!ex.cb) return STAT_AGAIN; // Non-exec command

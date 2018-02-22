@@ -35,10 +35,13 @@ log = logging.getLogger('Msgs')
 
 class Messages(logging.Handler):
     def __init__(self, ctrl):
-        logging.Handler.__init__(self, logging.WARNING)
+        logging.Handler.__init__(self)
 
         self.ctrl = ctrl
         self.listeners = []
+
+        debug = os.path.exists('/etc/bbctrl-dev-mode')
+        self.setLevel(logging.DEBUG if debug else logging.WARNING)
 
         logging.getLogger().addHandler(self)
 
@@ -49,10 +52,11 @@ class Messages(logging.Handler):
 
     # From logging.Handler
     def emit(self, record):
-        msg = dict(
-            level = record.levelname.lower(),
-            source = record.name,
-            msg = record.getMessage())
+        if record.levelno == logging.INFO: return
+
+        msg = dict(level = record.levelname.lower(),
+                   source = record.name,
+                   msg = record.getMessage())
 
         if hasattr(record, 'where'): msg['where'] = record.where
         else: msg['where'] = '%s:%d' % (record.filename, record.lineno)

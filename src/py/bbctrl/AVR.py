@@ -220,14 +220,14 @@ class AVR():
                 # AVR logging
                 if 'msg' in msg:
                     level = msg.get('level', 'info')
-                    if 'where' in msg: extra = {'where': msg}
+                    if 'where' in msg: extra = {'where': msg['where']}
                     else: extra = None
                     msg = msg['msg']
 
-                    if level == 'info': log.info(msg, extra)
-                    elif level == 'debug': log.debug(msg, extra)
-                    elif level == 'warning': log.warning(msg, extra)
-                    elif level == 'error': log.error(msg, extra)
+                    if   level == 'info':    log.info(msg,    extra = extra)
+                    elif level == 'debug':   log.debug(msg,   extra = extra)
+                    elif level == 'warning': log.warning(msg, extra = extra)
+                    elif level == 'error':   log.error(msg,   extra = extra)
 
                     continue
 
@@ -372,8 +372,7 @@ class AVR():
 
 
     def unpause(self):
-        if self.ctrl.state.get('xx', '') != 'HOLDING' or not self._is_busy():
-            return
+        if self.ctrl.state.get('xx', '') != 'HOLDING': return
 
         self._i2c_command(Cmd.FLUSH)
         self._queue_command(Cmd.RESUME)

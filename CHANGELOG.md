@@ -1,6 +1,17 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.9
+ - Fixed bug in move exec that was causing bumping between moves.
+ - Fixed planner bug which could create negative s-curve times.
+ - Hide step and optional pause buttons until they are implemented.
+ - Fixed pausing problems.
+ - Limit number of console messages.
+ - Scrollbar on console view.
+ - Log debug messages to console in developer mode.
+ - Fixed AVR log message source.
+ - Fixed step correction.
+
 ## v0.3.8
  - Fixed pwr flags display
  - Added pwr fault flags to indicators

@@ -29,7 +29,6 @@
 #include "spindle.h"
 #include "i2c.h"
 #include "type.h"
-#include "exec.h"
 #include "cpp_magic.h"
 
 #include <stdint.h>
@@ -152,12 +151,6 @@ stat_t st_prep_line(float time, const float target[]) {
   for (int i = 0; i < 3; i++) {
     ASSERT(isfinite(target[i]));
     ASSERT(-maxTarget < target[i] && target[i] < maxTarget);
-  }
-
-  static int32_t line = -1;
-  if (exec_get_line() != line) {
-    line = exec_get_line();
-    printf("line=%d\n", line);
   }
 
   printf("%0.10f, %0.10f, %0.10f, %0.10f\n",

@@ -63,6 +63,7 @@ module.exports = {
       else {
         msg.repeat = 1;
         messages.unshift(msg);
+        while (256 < messages.length) messages.pop();
       }
       msg.ts = Date.now();
 

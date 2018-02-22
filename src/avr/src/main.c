@@ -73,13 +73,12 @@ int main() {
   sei();                          // enable interrupts
 
   // Splash
-  fprintf_P(stdout, PSTR("\n{\"firmware\":\"Buildbotics AVR\","
-                         "\"version\":\"" VERSION "\"}\n"));
+  fprintf_P(stdout, PSTR("\n{\"firmware\":\"Buildbotics AVR\"}\n"));
 
   // Main loop
   while (true) {
     hw_reset_handler();           // handle hard reset requests
-    if (!estop_triggered()) state_callback();
+    state_callback();             // manage state
     command_callback();           // process next command
     report_callback();            // report changes
     wdt_reset();

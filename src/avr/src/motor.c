@@ -298,15 +298,12 @@ void motor_prep_move(int motor, float time, float target) {
   // Error correction
   int16_t correction = abs(m->error);
   if (MIN_HALF_STEP_CORRECTION <= correction) {
-    // Allowed step correction is proportional to velocity
-    int24_t positive_half_steps = half_steps < 0 ? -half_steps : half_steps;
-    int16_t max_correction = (positive_half_steps >> 5) + 1;
-    if (max_correction < correction) correction = max_correction;
+    // Dampen correction oscillation
+    correction >>= 2;
 
+    // Make correction
     if (m->error < 0) correction = -correction;
-
     half_steps += correction;
-    m->error -= correction;
   }
 
   // Positive steps from here on
@@ -425,11 +422,14 @@ void set_power_mode(int motor, uint8_t value) {
 
 char get_motor_axis(int motor) {return motors[motor].axis;}
 
+
 void set_motor_axis(int motor, uint8_t axis) {
   if (MOTORS <= motor || AXES <= axis || axis == motors[motor].axis) return;
   motors[motor].axis = axis;
   axis_map_motors();
-  exec_reset_encoder_counts(); // Reset encoder counts
+
+  // Reset encoder
+  motor_set_position(motor, exec_get_axis_position(axis));
 
   // Check if this is now a slave motor
   motors[motor].slave = false;

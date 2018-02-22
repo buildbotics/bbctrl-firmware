@@ -31,6 +31,7 @@
 #include "command.h"
 #include "stepper.h"
 #include "spindle.h"
+#include "estop.h"
 #include "report.h"
 
 #include <stdio.h>
@@ -157,6 +158,8 @@ void state_estop() {_set_state(STATE_ESTOPPED);}
  *     - when stopped is honored and starts to run anything in the queue
  */
 void state_callback() {
+  if (estop_triggered()) return;
+
   if (s.pause_requested || s.flush_requested) {
     if (s.pause_requested) _set_hold_reason(HOLD_REASON_USER_PAUSE);
     s.pause_requested = false;

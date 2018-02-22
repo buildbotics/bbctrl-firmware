@@ -1,7 +1,7 @@
 TESTS=planner-test
 
 PLANNER_TEST_SRC = status.c util.c axis.c report.c type.c exec.c base64.c \
-  command.c commands.c vars.c state.c line.c
+  command.c commands.c vars.c state.c line.c scurve.c seek.c
 PLANNER_TEST_SRC := $(patsubst %,../src/%,$(PLANNER_TEST_SRC))
 PLANNER_TEST_SRC += $(wildcard ../src/plan/*.c) planner-test.c hal.c
 

@@ -95,14 +95,17 @@ def run():
 
     # Init logging
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    level = logging.DEBUG if args.verbose else logging.INFO
+    root.setLevel(logging.NOTSET)
     f = logging.Formatter('{levelname[0]}:{name}:{message}', style = '{')
-    h = logging.StreamHandler()
+    h = logging.StreamHandler(level)
+    h.setLevel(level)
     h.setFormatter(f)
     root.addHandler(h)
 
     if args.log:
         h = logging.FileHandler(args.log)
+        h.setLevel(level)
         h.setFormatter(f)
         root.addHandler(h)
 

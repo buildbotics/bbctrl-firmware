@@ -58,7 +58,7 @@ class Planner():
 
         # Axis mapping for enabled motors
         axis2motor = {}
-        for i in range(3):
+        for i in range(4):
             if state.get('%dpm' % i, False):
                 axis = 'xyzabc'[int(state.get('%dan' % i))]
                 axis2motor[axis] = i

@@ -51,5 +51,4 @@ void exec_set_jerk(float j);
 void exec_set_cb(exec_cb_t cb);
 
 stat_t exec_move_to_target(float time, const float target[]);
-void exec_reset_encoder_counts();
 stat_t exec_next();

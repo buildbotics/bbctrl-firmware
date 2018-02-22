@@ -39,32 +39,38 @@
 #include <string.h>
 #include <math.h>
 
+/*
+  Huanyang supposedly is not quite Modbus compliant.
 
-enum {
-  HUANYANG_FUNC_READ = 1,
-  HUANYANG_FUNC_WRITE,
-  HUANYANG_CTRL_WRITE,
-  HUANYANG_CTRL_READ,
-  HUANYANG_FREQ_WRITE,
+  Message format is:
+
+    [id][cmd][length][data][checksum]
+
+  Where:
+
+     id       - 1-byte Peer ID
+     cmd      - 1-byte One of hy_cmd_t
+     length   - 1-byte Length data in bytes
+     data     - length bytes - Command arguments
+     checksum - 16-bit CRC: x^16 + x^15 + x^2 + 1 (0xa001) initial: 0xffff
+*/
+
+
+// See VFD manual pg56 3.1.3
+typedef enum {
+  HUANYANG_FUNC_READ = 1, // Use hy_func_addr_t
+  HUANYANG_FUNC_WRITE,    // ?
+  HUANYANG_CTRL_WRITE,    // Use hy_ctrl_state_t
+  HUANYANG_CTRL_READ,     // Use hy_ctrl_addr_t
+  HUANYANG_FREQ_WRITE,    // Write frequency as uint16_t
   HUANYANG_RESERVED_1,
   HUANYANG_RESERVED_2,
-  HUANYANG_LOOP_TEST
-};
-
-
-enum {
-  HUANYANG_BASE_FREQ = 4,
-  HUANYANG_MAX_FREQ = 5,
-  HUANYANG_MIN_FREQ = 11,
-  HUANYANG_RATED_MOTOR_VOLTAGE = 141,
-  HUANYANG_RATED_MOTOR_CURRENT = 142,
-  HUANYANG_MOTOR_POLE = 143,
-  HUANYANG_RATED_RPM = 144,
-};
+  HUANYANG_LOOP_TEST,
+} hy_cmd_t;
 
 
 // See VFD manual pg57 3.1.3.d
-enum {
+typedef enum {
   HUANYANG_TARGET_FREQ,
   HUANYANG_ACTUAL_FREQ,
   HUANYANG_ACTUAL_CURRENT,
@@ -73,26 +79,31 @@ enum {
   HUANYANG_ACV,
   HUANYANG_CONT,
   HUANYANG_TEMPERATURE,
-};
+} hy_ctrl_addr_t;
 
 
-enum {
-  HUANYANG_FORWARD = 1,
-  HUANYANG_STOP = 8,
-  HUANYANG_REVERSE = 17,
-};
-
-
-enum {
+typedef enum {
   HUANYANG_RUN         = 1 << 0,
-  HUANYANG_JOG         = 1 << 1,
-  HUANYANG_COMMAND_RF  = 1 << 2,
-  HUANYANG_RUNNING     = 1 << 3,
-  HUANYANG_JOGGING     = 1 << 4,
-  HUANYANG_RUNNING_RF  = 1 << 5,
-  HUANYANG_BRACKING    = 1 << 6,
-  HUANYANG_TRACK_START = 1 << 7,
-};
+  HUANYANG_FORWARD     = 1 << 1,
+  HUANYANG_REVERSE     = 1 << 2,
+  HUANYANG_STOP        = 1 << 3,
+  HUANYANG_REV_FWD     = 1 << 4,
+  HUANYANG_JOG         = 1 << 5,
+  HUANYANG_JOG_FORWARD = 1 << 6,
+  HUANYANG_JOG_REVERSE = 1 << 1,
+} hy_ctrl_state_t;
+
+
+typedef enum {
+  HUANYANG_STATUS_RUN         = 1 << 0,
+  HUANYANG_STATUS_JOG         = 1 << 1,
+  HUANYANG_STATUS_COMMAND_REV = 1 << 2,
+  HUANYANG_STATUS_RUNNING     = 1 << 3,
+  HUANYANG_STATUS_JOGGING     = 1 << 4,
+  HUANYANG_STATUS_JOGGING_REV = 1 << 5,
+  HUANYANG_STATUS_BRAKING     = 1 << 6,
+  HUANYANG_STATUS_TRACK_START = 1 << 7,
+} hy_ctrl_status_t;
 
 
 typedef bool (*next_command_cb_t)(int index);
@@ -227,17 +238,17 @@ static bool _update(int index) {
   switch (index) {
   case 0: { // Update direction
     uint8_t state = HUANYANG_STOP;
-    if (0 < ha.speed) state = HUANYANG_FORWARD;
-    else if (ha.speed < 0) state = HUANYANG_REVERSE;
+    if (0 < ha.speed) state = HUANYANG_RUN;
+    else if (ha.speed < 0) state = HUANYANG_RUN | HUANYANG_REV_FWD;
 
     _set_command1(HUANYANG_CTRL_WRITE, state);
 
     return true;
   }
 
-  case 1: var = HUANYANG_MAX_FREQ; break;
-  case 2: var = HUANYANG_MIN_FREQ; break;
-  case 3: var = HUANYANG_RATED_RPM; break;
+  case 1: var = HY_PD005_MAX_FREQUENCY; break;
+  case 2: var = HY_PD011_FREQUENCY_LOWER_LIMIT; break;
+  case 3: var = HY_PD144_RATED_MOTOR_RPM; break;
 
   case 4: { // Update freqency
     // Compute frequency in Hz
@@ -319,7 +330,7 @@ static bool _check_response() {
     return false;
   }
 
-  // Check return function code matches sent
+  // Check if response code matches the code we sent
   if (ha.command[1] != ha.response[1]) {
     STATUS_WARNING("huanyang: invalid function code, expected=%u got=%u",
                    ha.command[2], ha.response[2]);
