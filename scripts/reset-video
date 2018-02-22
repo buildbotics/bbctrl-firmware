@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+import sys
+import subprocess
+import os.path
+import time
+
+if not os.path.exists('/dev/video0'):
+    print('/dev/video0 not found')
+    sys.exit(1)
+
+p = subprocess.Popen('udevadm info -q path /dev/video0'.split(),
+                     stdout = subprocess.PIPE)
+s = p.communicate()[0].decode('utf-8')
+dev = s.split('/')[7]
+
+with open('/sys/bus/usb/drivers/usb/unbind', 'w') as f:
+    f.write(dev)
+
+time.sleep(1)
+
+with open('/sys/bus/usb/drivers/usb/bind', 'w') as f:
+    f.write(dev)
