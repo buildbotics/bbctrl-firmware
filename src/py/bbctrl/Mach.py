@@ -63,10 +63,6 @@ class Mach():
 
         self.comm.add_listener(self._comm_update)
         self.comm.add_listener(self.ctrl.state.update)
-        ctrl.state.add_listener(self._update_lcd)
-
-        self.lcd_page = ctrl.lcd.add_new_page()
-        self.install_page = True
 
         self.comm.queue_command(Cmd.REBOOT)
 
@@ -82,38 +78,11 @@ class Mach():
             self.comm.queue_command(Cmd.RESUME)
             self.stopping = False
 
-        # Must be after machine vars have loaded
-        if self.install_page:
-            self.install_page = False
-            self.ctrl.lcd.set_current_page(self.lcd_page.id)
-
-
-    def _update_lcd(self, update):
-        if 'xx' in update:
-            self.lcd_page.text('%-9s' % self.ctrl.state.get('xx'), 0, 0)
-
-         # Automatically unpause on seek hold
+        # Automatically unpause on seek hold
         if self.ctrl.state.get('xx', '') == 'HOLDING' and \
                 self.ctrl.state.get('pr', '') == 'Switch found' and \
                 self.ctrl.planner.is_synchronizing():
             self.ctrl.mach.unpause()
-
-       # Show enabled axes
-        row = 0
-        for axis in 'xyzabc':
-            motor = self.ctrl.state.find_motor(axis)
-            if motor is not None:
-                if (axis + 'p') in update:
-                    self.lcd_page.text('% 10.3f%s' % (
-                            update[axis + 'p'], axis.upper()), 9, row)
-
-                row += 1
-
-        # Show tool, units, feed and speed
-        if 'tool'  in update: self.lcd_page.text('%2uT' % update['tool'],  6, 1)
-        if 'units' in update: self.lcd_page.text('%-6s' % update['units'], 0, 1)
-        if 'feed'  in update: self.lcd_page.text('%8uF' % update['feed'],  0, 2)
-        if 'speed' in update: self.lcd_page.text('%8dS' % update['speed'], 0, 3)
 
 
     def set(self, code, value):

@@ -25,36 +25,24 @@
 #                                                                              #
 ################################################################################
 
-import logging
+import subprocess
 
 import bbctrl
 
 
-log = logging.getLogger('Ctrl')
+class IPLCDPage(bbctrl.LCDPage):
+    # From bbctrl.LCDPage
+    def activate(self):
+        p = subprocess.Popen(['hostname', '-I'], stdout = subprocess.PIPE)
+        ips = p.communicate()[0].decode('utf-8').split()
 
+        p = subprocess.Popen(['hostname'], stdout = subprocess.PIPE)
+        hostname = p.communicate()[0].decode('utf-8').strip()
 
+        self.clear()
 
-class Ctrl(object):
-    def __init__(self, args, ioloop):
-        self.args = args
-        self.ioloop = ioloop
+        self.text('Host: %s' % hostname[0:14], 0, 0)
 
-        self.msgs = bbctrl.Messages(self)
-        self.state = bbctrl.State(self)
-        self.config = bbctrl.Config(self)
-        self.web = bbctrl.Web(self)
-
-        try:
-            self.planner = bbctrl.Planner(self)
-            self.i2c = bbctrl.I2C(args.i2c_port)
-            self.lcd = bbctrl.LCD(self)
-            self.mach = bbctrl.Mach(self)
-            self.jog = bbctrl.Jog(self)
-            self.pwr = bbctrl.Pwr(self)
-
-            self.mach.comm.connect()
-
-            self.lcd.add_new_page(bbctrl.MainLCDPage(self))
-            self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
-
-        except Exception as e: log.exception(e)
+        for i in range(min(3, len(ips))):
+            if len(ips[i]) <= 16:
+                self.text('IP: %s' % ips[i], 0, i + 1)

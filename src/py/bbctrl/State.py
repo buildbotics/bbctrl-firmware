@@ -39,7 +39,6 @@ machine_state_vars = '''xp yp zp ap bp cp t fo so'''.split()
 class State(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.vars = {}
         self.callbacks = {}
         self.changes = {}
         self.listeners = []
@@ -47,6 +46,15 @@ class State(object):
         self.machine_vars = {}
         self.machine_var_set = set()
         self.machine_cmds = {}
+
+        # Defaults
+        self.vars = {
+            'line': -1,
+            'tool': 0,
+            'units': 'METRIC',
+            'feed': 0,
+            'speed': 0,
+        }
 
         for i in range(4):
             # Add home direction callbacks
@@ -62,9 +70,6 @@ class State(object):
 
         # Zero offsets
         for axis in 'xyzabc': self.vars['offset_' + axis] = 0
-
-        # No line
-        self.vars['line'] = -1
 
 
     def _notify(self):

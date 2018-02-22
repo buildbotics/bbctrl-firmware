@@ -25,36 +25,41 @@
 #                                                                              #
 ################################################################################
 
-import logging
-
 import bbctrl
 
 
-log = logging.getLogger('Ctrl')
+class MainLCDPage(bbctrl.LCDPage):
+    def __init__(self, ctrl):
+        bbctrl.LCDPage.__init__(self, ctrl.lcd)
+
+        self.ctrl = ctrl
+        self.install = True
+
+        ctrl.state.add_listener(self.update)
 
 
+    def update(self, update):
+        # Must be after machine vars have loaded
+        if self.install and hasattr(self, 'id'):
+            self.install = False
+            self.ctrl.lcd.set_current_page(self.id)
 
-class Ctrl(object):
-    def __init__(self, args, ioloop):
-        self.args = args
-        self.ioloop = ioloop
+        if 'xx' in update:
+            self.text('%-9s' % self.ctrl.state.get('xx'), 0, 0)
 
-        self.msgs = bbctrl.Messages(self)
-        self.state = bbctrl.State(self)
-        self.config = bbctrl.Config(self)
-        self.web = bbctrl.Web(self)
+       # Show enabled axes
+        row = 0
+        for axis in 'xyzabc':
+            motor = self.ctrl.state.find_motor(axis)
+            if motor is not None:
+                if (axis + 'p') in update:
+                    self.text('% 10.3f%s' % (update[axis + 'p'], axis.upper()),
+                              9, row)
 
-        try:
-            self.planner = bbctrl.Planner(self)
-            self.i2c = bbctrl.I2C(args.i2c_port)
-            self.lcd = bbctrl.LCD(self)
-            self.mach = bbctrl.Mach(self)
-            self.jog = bbctrl.Jog(self)
-            self.pwr = bbctrl.Pwr(self)
+                row += 1
 
-            self.mach.comm.connect()
-
-            self.lcd.add_new_page(bbctrl.MainLCDPage(self))
-            self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
-
-        except Exception as e: log.exception(e)
+        # Show tool, units, feed and speed
+        if 'tool'  in update: self.text('%2uT' % update['tool'],  6, 1)
+        if 'units' in update: self.text('%-6s' % update['units'], 0, 1)
+        if 'feed'  in update: self.text('%8uF' % update['feed'],  0, 2)
+        if 'speed' in update: self.text('%8dS' % update['speed'], 0, 3)

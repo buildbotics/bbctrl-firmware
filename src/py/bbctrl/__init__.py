@@ -51,6 +51,8 @@ from bbctrl.Planner import Planner
 from bbctrl.State import State
 from bbctrl.Messages import Messages
 from bbctrl.Comm import Comm
+from bbctrl.MainLCDPage import MainLCDPage
+from bbctrl.IPLCDPage import IPLCDPage
 import bbctrl.Cmd as Cmd
 
 
