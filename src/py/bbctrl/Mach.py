@@ -58,11 +58,9 @@ class Mach():
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.comm = bbctrl.Comm(ctrl)
-
         self.stopping = False
 
-        self.comm.add_listener(self._comm_update)
-        self.comm.add_listener(self.ctrl.state.update)
+        ctrl.state.add_listener(self._update)
 
         self.comm.queue_command(Cmd.REBOOT)
 
@@ -70,7 +68,7 @@ class Mach():
     def _is_busy(self): return self.ctrl.planner.is_running()
 
 
-    def _comm_update(self, update):
+    def _update(self, update):
         if self.stopping and 'xx' in update and update['xx'] == 'HOLDING':
             self.comm.stop_sending_gcode()
             # Resume once current queue of GCode commands has flushed
@@ -140,10 +138,7 @@ class Mach():
 
     def estop(self): self.comm.i2c_command(Cmd.ESTOP)
     def clear(self): self.comm.i2c_command(Cmd.CLEAR)
-
-
-    def start(self, path):
-        if path: self.comm.start_sending_gcode(path)
+    def start(self, path): self.comm.start_sending_gcode(path)
 
 
     def step(self, path):

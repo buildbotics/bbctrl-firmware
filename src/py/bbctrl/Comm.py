@@ -42,12 +42,11 @@ class Comm():
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
-        self.listeners = []
         self.queue = deque()
         self.in_buf = ''
         self.command = None
 
-        ctrl.state.add_listener(self._update_state)
+        ctrl.state.add_listener(self._update)
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -63,10 +62,6 @@ class Comm():
                                     ctrl.ioloop.READ)
 
         self.i2c_addr = ctrl.args.avr_addr
-
-
-    def add_listener(self, listener):
-        self.listeners.append(listener)
 
 
     def start_sending_gcode(self, path):
@@ -108,7 +103,7 @@ class Comm():
         self.ctrl.ioloop.update_handler(self.sp, flags)
 
 
-    def _update_state(self, update):
+    def _update(self, update):
         if 'xx' in update and update['xx'] == 'ESTOPPED':
             self.stop_sending_gcode()
 
@@ -181,8 +176,6 @@ class Comm():
         except Exception as e:
             log.warning('%s: %s', e, data)
 
-        update = {}
-
         # Parse incoming serial data into lines
         while True:
             i = self.in_buf.find('\n')
@@ -202,20 +195,15 @@ class Comm():
 
                 if 'variables' in msg:
                     self._update_vars(msg)
-                    continue
 
-                if 'msg' in msg:
+                elif 'msg' in msg:
                     self._log_msg(msg)
-                    continue
 
-                if 'firmware' in msg:
+                elif 'firmware' in msg:
                     log.warning('firmware rebooted')
                     self.connect()
 
-                update.update(msg)
-
-        if update:
-            for listener in self.listeners: listener(update)
+                else: self.ctrl.state.update(msg)
 
 
     def _serial_handler(self, fd, events):
