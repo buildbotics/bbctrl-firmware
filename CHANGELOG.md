@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.10
+ - Fixed "Flood" display, changed to "Load 1" and "Load 2".  #108
+
 ## v0.3.9
  - Fixed bug in move exec that was causing bumping between moves.
  - Fixed planner bug which could create negative s-curve times.

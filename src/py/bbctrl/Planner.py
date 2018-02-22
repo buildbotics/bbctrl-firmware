@@ -160,6 +160,10 @@ class Planner():
             if name == 'line': self._queue_set_cmd(block['id'], name, value)
             if name == 'tool': return Cmd.tool(value)
             if name == 'speed': return Cmd.speed(value)
+            if name == '_mist':
+                self._queue_set_cmd(block['id'], 'load1state', value)
+            if name == '_flood':
+                self._queue_set_cmd(block['id'], 'load2state', value)
             if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
                     name[2:] == '_home':
                 return Cmd.set_position(name[1], value)

@@ -102,6 +102,7 @@ def tool(tool): return '#t=%d' % tool
 def speed(speed): return '#s=:' + encode_float(speed)
 def set_position(axis, value): return '#%sp=:%s' % (axis, encode_float(value))
 
+
 def output(port, value):
     if port == 'mist':  return '#1oa=' + ('1' if value else '0')
     if port == 'flood': return '#2oa=' + ('1' if value else '0')

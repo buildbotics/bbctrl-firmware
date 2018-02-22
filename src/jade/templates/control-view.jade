@@ -134,12 +134,14 @@ script#control-view-template(type="text/x-template")
         td {{state.tool || 0}}
         td
       tr
-        th Mist
-        td {{state.mist ? 'On' : 'Off'}}
+        th Load 1
+        td(:class="state.load1state ? 'load-on' : ''")
+          | {{state.load1state ? 'On' : 'Off'}}
         td
       tr
-        th Coolant
-        td {{state.coolant ? 'On' : 'Off'}}
+        th Load 2
+        td(:class="state.load2state ? 'load-on' : ''")
+          | {{state.load2state ? 'On' : 'Off'}}
         td
 
     .override(title="Feed rate override.")
