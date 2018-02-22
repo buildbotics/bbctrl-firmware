@@ -202,10 +202,7 @@ bool command_callback() {
   }
 
   // Dispatch non-empty commands
-  if (*block && status == STAT_OK) {
-    if (sync_q_empty()) command_reset_position();
-    status = _dispatch(block);
-  }
+  if (*block && status == STAT_OK) status = _dispatch(block);
 
   block = 0; // Command consumed
 

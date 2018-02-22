@@ -161,6 +161,7 @@ static stat_t _pause() {
   float j = l.line.max_jerk;
 
   if (v < MIN_VELOCITY) {
+    command_reset_position();
     exec_set_velocity(0);
     exec_set_acceleration(0);
     exec_set_jerk(0);

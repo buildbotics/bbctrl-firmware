@@ -42,50 +42,48 @@ class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.lastID = -1
-        self.mode = 'idle'
         self.setq = deque()
 
-        ctrl.state.add_listener(self.update)
+        ctrl.state.add_listener(self._update)
 
         self.reset()
 
 
+    def is_busy(self): return self.is_running() or len(self.setq)
     def is_running(self): return self.planner.is_running()
     def is_synchronizing(self): return self.planner.is_synchronizing()
 
 
-    def get_config(self):
-        state = self.ctrl.state
+    def update_position(self):
+        position = {}
 
-        # Axis mapping for enabled motors
-        axis2motor = {}
-        for i in range(4):
-            if state.get('%dpm' % i, False):
-                axis = 'xyzabc'[int(state.get('%dan' % i))]
-                axis2motor[axis] = i
-
-        def get_vector(name, scale = 1):
-            v = {}
-            for axis in 'xyzabc':
-                if axis in axis2motor:
-                    motor = axis2motor[axis]
-                    value = state.get(str(motor) + name, None)
-                    if value is not None:
-                        v[axis] = value * scale
-            return v
-
-        # Starting position
-        start = {}
         for axis in 'xyzabc':
-            if not axis in axis2motor: continue
-            value = state.get(axis + 'p', None)
-            if value is not None: start[axis] = value
+            if not self.ctrl.state.is_axis_enabled(axis): continue
+            value = self.ctrl.state.get(axis + 'p', None)
+            if value is not None: position[axis] = value
 
+        self.planner.set_position(position)
+
+
+    def _get_config_vector(self, name, scale):
+        state = self.ctrl.state
+        v = {}
+
+        for axis in 'xyzabc':
+            motor = state.find_motor(axis)
+
+            if motor is not None and state.motor_enabled(motor):
+                value = state.get(str(motor) + name, None)
+                if value is not None: v[axis] = value * scale
+
+        return v
+
+
+    def _get_config(self):
         config = {
-            "start":     start,
-            "max-vel":   get_vector('vm', 1000),
-            "max-accel": get_vector('am', 1000000),
-            "max-jerk":  get_vector('jm', 1000000),
+            "max-vel":   self._get_config_vector('vm', 1000),
+            "max-accel": self._get_config_vector('am', 1000000),
+            "max-jerk":  self._get_config_vector('jm', 1000000),
             # TODO junction deviation & accel
             }
 
@@ -94,16 +92,16 @@ class Planner():
         return config
 
 
-    def update(self, update):
+    def _update(self, update):
         if 'id' in update:
             id = update['id']
             self.planner.set_active(id)
 
             # Syncronize planner variables with execution id
-            self.release_set_cmds(id)
+            self._release_set_cmds(id)
 
 
-    def release_set_cmds(self, id):
+    def _release_set_cmds(self, id):
         self.lastID = id
 
         # Apply all set commands <= to ID and those that follow consecutively
@@ -113,26 +111,13 @@ class Planner():
             if id == self.lastID + 1: self.lastID = id
 
 
-    def queue_set_cmd(self, id, name, value):
+    def _queue_set_cmd(self, id, name, value):
         log.info('Planner set(#%d, %s, %s)', id, name, value)
         self.setq.append((id, name, value))
-        self.release_set_cmds(self.lastID)
+        self._release_set_cmds(self.lastID)
 
 
-    def restart(self):
-        state = self.ctrl.state
-        id = state.get('id')
-
-        position = {}
-        for axis in 'xyzabc':
-            if state.has(axis + 'p'):
-                position[axis] = state.get(axis + 'p')
-
-        log.info('Planner restart: %d %s' % (id, json.dumps(position)))
-        self.planner.restart(id, position)
-
-
-    def get_var(self, name):
+    def _get_var(self, name):
         value = 0
         if len(name) and name[0] == '_':
             value = self.ctrl.state.get(name[1:], 0)
@@ -141,7 +126,7 @@ class Planner():
         return value
 
 
-    def log(self, line):
+    def _log(self, line):
         line = line.strip()
         m = reLogLine.match(line)
         if not m: return
@@ -161,32 +146,7 @@ class Planner():
         else: log.error('Could not parse planner log line: ' + line)
 
 
-    def mdi(self, cmd):
-        if self.mode == 'gcode':
-            raise Exception('Cannot issue MDI command while GCode running')
-
-        log.info('MDI:' + cmd)
-        self.planner.load_string(cmd, self.get_config())
-        self.mode = 'mdi'
-
-
-    def load(self, path):
-        if self.mode != 'idle':
-            raise Exception('Busy, cannot start new GCode program')
-
-        log.info('GCode:' + path)
-        self.planner.load('upload' + path, self.get_config())
-        self.mode = 'gcode'
-
-
-    def reset(self):
-        self.planner = gplan.Planner()
-        self.planner.set_resolver(self.get_var)
-        self.planner.set_logger(self.log, 1, 'LinePlanner:3')
-        self.setq.clear()
-
-
-    def _encode(self, block):
+    def __encode(self, block):
         type = block['type']
 
         if type == 'line':
@@ -197,7 +157,7 @@ class Planner():
         if type == 'set':
             name, value = block['name'], block['value']
 
-            if name == 'line': self.queue_set_cmd(block['id'], name, value)
+            if name == 'line': self._queue_set_cmd(block['id'], name, value)
             if name == 'tool': return Cmd.tool(value)
             if name == 'speed': return Cmd.speed(value)
             if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
@@ -205,7 +165,7 @@ class Planner():
                 return Cmd.set_position(name[1], value)
 
             if len(name) and name[0] == '_':
-                self.queue_set_cmd(block['id'], name[1:], value)
+                self._queue_set_cmd(block['id'], name[1:], value)
 
             return
 
@@ -220,9 +180,39 @@ class Planner():
         raise Exception('Unknown planner type "%s"' % type)
 
 
-    def encode(self, block):
-        cmd = self._encode(block)
+    def _encode(self, block):
+        cmd = self.__encode(block)
         if cmd is not None: return Cmd.set('id', block['id']) + '\n' + cmd
+
+
+    def reset(self):
+        self.planner = gplan.Planner()
+        self.planner.set_resolver(self._get_var)
+        self.planner.set_logger(self._log, 1, 'LinePlanner:3')
+        self.setq.clear()
+
+
+    def restart(self):
+        state = self.ctrl.state
+        id = state.get('id')
+
+        position = {}
+        for axis in 'xyzabc':
+            if state.has(axis + 'p'):
+                position[axis] = state.get(axis + 'p')
+
+        log.info('Planner restart: %d %s' % (id, json.dumps(position)))
+        self.planner.restart(id, position)
+
+
+    def mdi(self, cmd):
+        log.info('MDI:' + cmd)
+        self.planner.load_string(cmd, self._get_config())
+
+
+    def load(self, path):
+        log.info('GCode:' + path)
+        self.planner.load('upload' + path, self._get_config())
 
 
     def has_move(self): return self.planner.has_more()
@@ -232,10 +222,8 @@ class Planner():
         try:
             while self.planner.has_more():
                 cmd = self.planner.next()
-                cmd = self.encode(cmd)
+                cmd = self._encode(cmd)
                 if cmd is not None: return cmd
-
-            if not self.is_running(): self.mode = 'idle'
 
         except Exception as e:
             self.reset()

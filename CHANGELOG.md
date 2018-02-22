@@ -11,6 +11,8 @@ Buildbotics CNC Controller Firmware Change Log
  - Log debug messages to console in developer mode.
  - Fixed AVR log message source.
  - Fixed step correction.
+ - JOGGING, HOMMING and MDI states.
+ - Fixed position problem with rapid MDI entry.
 
 ## v0.3.8
  - Fixed pwr flags display

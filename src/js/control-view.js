@@ -95,7 +95,12 @@ module.exports = {
 
 
   methods: {
-    get_state: function () {return this.state.xx || ''},
+    get_state: function () {
+      if (typeof this.state.cycle != 'undefined' &&
+          this.state.cycle != 'idle' && this.state.xx == 'RUNNING')
+        return this.state.cycle.toUpperCase();
+      return this.state.xx || ''
+    },
 
 
     get_reason: function () {

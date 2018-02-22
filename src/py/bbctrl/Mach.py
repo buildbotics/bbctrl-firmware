@@ -57,68 +57,113 @@ axis_homing_procedure = '''
 class Mach():
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.comm = bbctrl.Comm(ctrl)
+        self.planner = bbctrl.Planner(ctrl)
+        self.comm = bbctrl.Comm(ctrl, self._comm_next, self._comm_connect)
         self.stopping = False
 
+        ctrl.state.set('cycle', 'idle')
         ctrl.state.add_listener(self._update)
 
         self.comm.queue_command(Cmd.REBOOT)
 
 
-    def _is_busy(self): return self.ctrl.planner.is_running()
+    def _get_cycle(self): return self.ctrl.state.get('cycle')
+
+
+    def _begin_cycle(self, cycle):
+        current = self._get_cycle()
+
+        if current == 'idle':
+            self.planner.update_position()
+            self.ctrl.state.set('cycle', cycle)
+
+        elif current == 'homing' and cycle == 'mdi': pass
+        elif current != cycle:
+            raise Exception('Cannot enter %s cycle during %s' %
+                            (cycle, current))
 
 
     def _update(self, update):
-        if self.stopping and 'xx' in update and update['xx'] == 'HOLDING':
-            self.comm.stop_sending_gcode()
+        state = self.ctrl.state.get('xx', '')
+
+        # Handle EStop
+        if 'xx' in update and state == 'ESTOPPED':
+            self._stop_sending_gcode()
+
+        # Handle stop
+        if self.stopping and 'xx' in update and state == 'HOLDING':
+            self._stop_sending_gcode()
             # Resume once current queue of GCode commands has flushed
             self.comm.i2c_command(Cmd.FLUSH)
             self.comm.queue_command(Cmd.RESUME)
             self.stopping = False
 
+        # Update cycle
+        if (self._get_cycle() != 'idle' and not self.planner.is_busy() and
+            not self.comm.is_active() and state == 'READY'):
+            self.ctrl.state.set('cycle', 'idle')
+
         # Automatically unpause on seek hold
-        if self.ctrl.state.get('xx', '') == 'HOLDING' and \
-                self.ctrl.state.get('pr', '') == 'Switch found' and \
-                self.ctrl.planner.is_synchronizing():
+        if (state == 'HOLDING' and
+            self.ctrl.state.get('pr', '') == 'Switch found' and
+            self.planner.is_synchronizing()):
             self.ctrl.mach.unpause()
+
+
+    def _comm_next(self):
+        if self.planner.is_running(): return self.planner.next()
+
+
+    def _comm_connect(self): self._stop_sending_gcode()
+
+
+    def _start_sending_gcode(self, path):
+        self.planner.load(path)
+        self.comm.set_write(True)
+
+
+    def _stop_sending_gcode(self): self.planner.reset()
+
+
+    def _query_var(self, cmd):
+        equal = cmd.find('=')
+        if equal == -1:
+            log.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
+
+        else:
+            name, value = cmd[1:equal], cmd[equal + 1:]
+
+            if value.lower() == 'true': value = True
+            elif value.lower() == 'false': value = False
+            else:
+                try:
+                    value = float(value)
+                except: pass
+
+            self.ctrl.state.config(name, value)
+
+
+    def mdi(self, cmd):
+        if not len(cmd): return
+        if   cmd[0] == '$':  self._query_var(cmd)
+        elif cmd[0] == '\\': self.comm.queue_command(cmd[1:])
+        else:
+            self._begin_cycle('mdi')
+            self.planner.mdi(cmd)
+            self.comm.set_write(True)
 
 
     def set(self, code, value):
         self.comm.queue_command('${}={}'.format(code, value))
 
 
-    def mdi(self, cmd):
-        if len(cmd) and cmd[0] == '$':
-            equal = cmd.find('=')
-            if equal == -1:
-                log.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
-
-            else:
-                name, value = cmd[1:equal], cmd[equal + 1:]
-
-                if value.lower() == 'true': value = True
-                elif value.lower() == 'false': value = False
-                else:
-                    try:
-                        value = float(value)
-                    except: pass
-
-                self.ctrl.state.config(name, value)
-
-        elif len(cmd) and cmd[0] == '\\': self.comm.queue_command(cmd[1:])
-
-        else:
-            self.ctrl.planner.mdi(cmd)
-            self.comm.set_write(True)
-
-
     def jog(self, axes):
-        if self._is_busy(): raise Exception('Busy, cannot jog')
+        self._begin_cycle('jogging')
         self.comm.queue_command(Cmd.jog(axes))
 
 
     def home(self, axis, position = None):
-        if self._is_busy(): raise Exception('Busy, cannot home')
+        self._begin_cycle('homing')
 
         if position is not None:
             self.mdi('G28.3 %c%f' % (axis, position))
@@ -138,14 +183,17 @@ class Mach():
 
     def estop(self): self.comm.i2c_command(Cmd.ESTOP)
     def clear(self): self.comm.i2c_command(Cmd.CLEAR)
-    def start(self, path): self.comm.start_sending_gcode(path)
+
+
+    def start(self, path):
+        self._begin_cycle('running')
+        self._start_sending_gcode(path)
 
 
     def step(self, path):
+        raise Exception('NYI') # TODO
         self.comm.i2c_command(Cmd.STEP)
-        if not self._is_busy() and path and \
-                self.ctrl.state.get('xx', '') == 'READY':
-            self.comm.start_sending_gcode(path)
+        if self._get_cycle() != 'running': self.start(path)
 
 
     def stop(self):
@@ -161,17 +209,17 @@ class Mach():
 
         self.comm.i2c_command(Cmd.FLUSH)
         self.comm.queue_command(Cmd.RESUME)
-        self.ctrl.planner.restart()
+        self.planner.restart()
         self.comm.set_write(True)
         self.comm.i2c_command(Cmd.UNPAUSE)
 
 
-    def optional_pause(self): self.comm.i2c_command(Cmd.PAUSE, byte = 1)
+    def optional_pause(self):
+        if self._get_cycle() == 'running':
+            self.comm.i2c_command(Cmd.PAUSE, byte = 1)
 
 
     def set_position(self, axis, position):
-        if self._is_busy(): raise Exception('Busy, cannot set position')
-
         if self.ctrl.state.is_axis_homed('%c' % axis):
             self.mdi('G92 %c%f' % (axis, position))
         else: self.comm.queue_command('$%cp=%f' % (axis, position))

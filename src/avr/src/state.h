@@ -36,6 +36,7 @@ typedef enum {
   STATE_READY,
   STATE_ESTOPPED,
   STATE_RUNNING,
+  STATE_JOGGING,
   STATE_STOPPING,
   STATE_HOLDING,
 } state_t;
@@ -65,6 +66,7 @@ void state_seek_hold();
 void state_holding();
 void state_optional_pause();
 void state_running();
+void state_jogging();
 void state_idle();
 void state_estop();
 

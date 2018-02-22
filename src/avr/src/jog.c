@@ -32,6 +32,7 @@
 #include "exec.h"
 #include "state.h"
 #include "scurve.h"
+#include "command.h"
 #include "config.h"
 
 #include <stdbool.h>
@@ -56,7 +57,6 @@ typedef struct {
 
 
 typedef struct {
-  bool active;
   bool writing;
   bool done;
 
@@ -224,9 +224,10 @@ stat_t jog_exec() {
 
   // Check if we are done
   if (jr.done) {
+    command_reset_position();
     exec_set_velocity(0);
     exec_set_cb(0);
-    jr.active = false;
+    state_idle();
 
     return STAT_NOP; // Done, no move executed
   }
@@ -249,7 +250,8 @@ stat_t jog_exec() {
 
 stat_t command_jog(char *cmd) {
   // Ignore jog commands when not already idle
-  if (!jr.active && state_get() != STATE_READY) return STAT_NOP;
+  if (state_get() != STATE_READY && state_get() != STATE_JOGGING)
+    return STAT_NOP;
 
   // Skip command code
   cmd++;
@@ -263,15 +265,15 @@ stat_t command_jog(char *cmd) {
   if (*cmd) return STAT_INVALID_ARGUMENTS;
 
   // Reset
-  if (!jr.active) memset(&jr, 0, sizeof(jr));
+  if (state_get() != STATE_JOGGING) memset(&jr, 0, sizeof(jr));
 
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.axes[axis].next = velocity[axis];
   jr.writing = false;
 
-  if (!jr.active) {
-    jr.active = true;
+  if (state_get() != STATE_JOGGING) {
+    state_jogging();
     exec_set_cb(jog_exec);
   }
 

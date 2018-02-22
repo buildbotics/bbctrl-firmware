@@ -39,14 +39,14 @@ log = logging.getLogger('Comm')
 
 
 class Comm():
-    def __init__(self, ctrl):
+    def __init__(self, ctrl, next_cb, connect_cb):
         self.ctrl = ctrl
+        self.next_cb = next_cb
+        self.connect_cb = connect_cb
 
         self.queue = deque()
         self.in_buf = ''
         self.command = None
-
-        ctrl.state.add_listener(self._update)
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -64,12 +64,8 @@ class Comm():
         self.i2c_addr = ctrl.args.avr_addr
 
 
-    def start_sending_gcode(self, path):
-        self.ctrl.planner.load(path)
-        self.set_write(True)
-
-
-    def stop_sending_gcode(self): self.ctrl.planner.reset()
+    def is_active(self):
+        return len(self.queue) or self.command is not None
 
 
     def i2c_command(self, cmd, byte = None, word = None):
@@ -103,11 +99,6 @@ class Comm():
         self.ctrl.ioloop.update_handler(self.sp, flags)
 
 
-    def _update(self, update):
-        if 'xx' in update and update['xx'] == 'ESTOPPED':
-            self.stop_sending_gcode()
-
-
     def _load_next_command(self, cmd):
         log.info('< ' + json.dumps(cmd).strip('"'))
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
@@ -135,15 +126,12 @@ class Comm():
         # Load next command from queue
         if len(self.queue): self._load_next_command(self.queue.popleft())
 
-        # Load next GCode command, if running or paused
-        elif self.ctrl.planner.is_running():
-            cmd = self.ctrl.planner.next()
+        # Load next command from callback
+        else:
+            cmd = self.next_cb()
 
-            if cmd is None: self.set_write(False)
+            if cmd is None: self.set_write(False) # Stop writing
             else: self._load_next_command(cmd)
-
-        # Else stop writing
-        else: self.set_write(False)
 
 
     def _update_vars(self, msg):
@@ -216,8 +204,8 @@ class Comm():
 
     def connect(self):
         try:
-            # Reset AVR communication
-            self.stop_sending_gcode()
+            # Call connect callback
+            self.connect_cb()
 
             # Resume once current queue of GCode commands has flushed
             self.queue_command(Cmd.RESUME)

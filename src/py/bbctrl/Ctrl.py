@@ -45,7 +45,6 @@ class Ctrl(object):
         self.web = bbctrl.Web(self)
 
         try:
-            self.planner = bbctrl.Planner(self)
             self.i2c = bbctrl.I2C(args.i2c_port)
             self.lcd = bbctrl.LCD(self)
             self.mach = bbctrl.Mach(self)

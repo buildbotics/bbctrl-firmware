@@ -177,6 +177,11 @@ class State(object):
         return self.get('%s_homed' % axis, False)
 
 
+    def is_axis_enabled(self, axis):
+        motor = self.find_motor(axis)
+        return False if motor is None else self.motor_enabled(motor)
+
+
     def axis_can_home(self, axis):
         motor = self.find_motor(axis)
         if motor is None: return False
@@ -188,7 +193,10 @@ class State(object):
         return False
 
 
-    def motor_enabled(self, motor): return bool(int(self.vars['%dpm' % motor]))
+    def motor_enabled(self, motor):
+        return bool(int(self.vars.get('%dpm' % motor, 0)))
+
+
     def motor_homing_mode(self, motor): return int(self.vars['%dho' % motor])
 
 

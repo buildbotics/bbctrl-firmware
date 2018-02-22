@@ -57,6 +57,7 @@ PGM_P state_get_pgmstr(state_t state) {
   case STATE_READY:     return PSTR("READY");
   case STATE_ESTOPPED:  return PSTR("ESTOPPED");
   case STATE_RUNNING:   return PSTR("RUNNING");
+  case STATE_JOGGING:   return PSTR("JOGGING");
   case STATE_STOPPING:  return PSTR("STOPPING");
   case STATE_HOLDING:   return PSTR("HOLDING");
   }
@@ -132,7 +133,17 @@ void state_running() {
 }
 
 
-void state_idle() {if (state_get() == STATE_RUNNING) _set_state(STATE_READY);}
+void state_jogging() {
+  if (state_get() == STATE_READY) _set_state(STATE_JOGGING);
+}
+
+
+void state_idle() {
+  if (state_get() == STATE_RUNNING || state_get() == STATE_JOGGING)
+    _set_state(STATE_READY);
+}
+
+
 void state_estop() {_set_state(STATE_ESTOPPED);}
 
 
