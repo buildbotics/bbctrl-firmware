@@ -180,13 +180,13 @@ script#control-view-template(type="text/x-template")
 
     .tabs
       input#tab1(type="radio", name="tabs" checked)
-      label(for="tab1") Auto
+      label(for="tab1", title="Run GCode programs") Auto
 
       input#tab2(type="radio", name="tabs")
-      label(for="tab2") MDI
+      label(for="tab2", title="Manual GCode entry") MDI
 
       input#tab3(type="radio", name="tabs")
-      label(for="tab3") Jog
+      label(for="tab3", "Jog the axes manually") Jog
 
       input#tab4(type="radio", name="tabs")
       label(for="tab4") Messages
