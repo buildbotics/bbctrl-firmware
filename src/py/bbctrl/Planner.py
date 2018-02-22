@@ -51,6 +51,7 @@ class Planner():
 
 
     def is_running(self): return self.planner.is_running()
+    def is_synchronizing(self): return self.planner.is_synchronizing()
 
 
     def get_config(self):
@@ -100,12 +101,6 @@ class Planner():
 
             # Syncronize planner variables with execution id
             self.release_set_cmds(id)
-
-        # Automatically unpause on seek hold
-        if self.ctrl.state.get('xx', '') == 'HOLDING' and \
-                self.ctrl.state.get('pr', '') == 'Switch found' and \
-                self.planner.is_synchronizing():
-            self.ctrl.avr.unpause()
 
 
     def release_set_cmds(self, id):
@@ -181,6 +176,7 @@ class Planner():
 
         log.info('GCode:' + path)
         self.planner.load('upload' + path, self.get_config())
+        self.mode = 'gcode'
 
 
     def reset(self):

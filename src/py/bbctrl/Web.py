@@ -185,58 +185,58 @@ class HomeHandler(bbctrl.APIHandler):
             if not 'position' in self.json:
                 raise HTTPError(400, 'Missing "position"')
 
-            self.ctrl.avr.home(axis, self.json['position'])
+            self.ctrl.mach.home(axis, self.json['position'])
 
-        else: self.ctrl.avr.home(axis)
+        else: self.ctrl.mach.home(axis)
 
 
 class StartHandler(bbctrl.APIHandler):
-    def put_ok(self, path): self.ctrl.avr.start(path)
+    def put_ok(self, path): self.ctrl.mach.start(path)
 
 
 class EStopHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.estop()
+    def put_ok(self): self.ctrl.mach.estop()
 
 
 class ClearHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.clear()
+    def put_ok(self): self.ctrl.mach.clear()
 
 
 class StopHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.stop()
+    def put_ok(self): self.ctrl.mach.stop()
 
 
 class PauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.pause()
+    def put_ok(self): self.ctrl.mach.pause()
 
 
 class UnpauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.unpause()
+    def put_ok(self): self.ctrl.mach.unpause()
 
 
 class OptionalPauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.optional_pause()
+    def put_ok(self): self.ctrl.mach.optional_pause()
 
 
 class StepHandler(bbctrl.APIHandler):
-    def put_ok(self, path): self.ctrl.avr.step(path)
+    def put_ok(self, path): self.ctrl.mach.step(path)
 
 
 class PositionHandler(bbctrl.APIHandler):
     def put_ok(self, axis):
-        self.ctrl.avr.set_position(ord(axis.lower()), self.json['position'])
+        self.ctrl.mach.set_position(ord(axis.lower()), self.json['position'])
 
 
 class OverrideFeedHandler(bbctrl.APIHandler):
-    def put_ok(self, value): self.ctrl.avr.override_feed(float(value))
+    def put_ok(self, value): self.ctrl.mach.override_feed(float(value))
 
 
 class OverrideSpeedHandler(bbctrl.APIHandler):
-    def put_ok(self, value): self.ctrl.avr.override_speed(float(value))
+    def put_ok(self, value): self.ctrl.mach.override_speed(float(value))
 
 
 class JogHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.avr.jog(self.json)
+    def put_ok(self): self.ctrl.mach.jog(self.json)
 
 
 class VideoReloadHandler(bbctrl.APIHandler):
@@ -273,7 +273,7 @@ class ClientConnection(object):
         self.ctrl.msgs.remove_listener(self.notify)
 
 
-    def on_message(self, data): self.ctrl.avr.mdi(data)
+    def on_message(self, data): self.ctrl.mach.mdi(data)
 
 
 # Used by CAMotics

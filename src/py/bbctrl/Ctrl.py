@@ -68,11 +68,11 @@ class Ctrl(object):
             self.planner = bbctrl.Planner(self)
             self.i2c = bbctrl.I2C(args.i2c_port)
             self.lcd = bbctrl.LCD(self)
-            self.avr = bbctrl.AVR(self)
+            self.mach = bbctrl.Mach(self)
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
-            self.avr.connect()
+            self.mach.comm.connect()
 
             self.lcd.add_new_page(IPPage(self.lcd))
 

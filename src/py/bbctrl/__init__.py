@@ -41,7 +41,7 @@ from bbctrl.FileHandler import FileHandler
 from bbctrl.GCodeStream import GCodeStream
 from bbctrl.Config import Config
 from bbctrl.LCD import LCD, LCDPage
-from bbctrl.AVR import AVR
+from bbctrl.Mach import Mach
 from bbctrl.Web import Web
 from bbctrl.Jog import Jog
 from bbctrl.Ctrl import Ctrl
@@ -50,6 +50,7 @@ from bbctrl.I2C import I2C
 from bbctrl.Planner import Planner
 from bbctrl.State import State
 from bbctrl.Messages import Messages
+from bbctrl.Comm import Comm
 import bbctrl.Cmd as Cmd
 
 

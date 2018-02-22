@@ -122,7 +122,7 @@ class State(object):
 
 
     def config(self, code, value):
-        if code in self.machine_var_set: self.ctrl.avr.set(code, value)
+        if code in self.machine_var_set: self.ctrl.mach.set(code, value)
         else: self.set(code, value)
 
 
@@ -157,7 +157,7 @@ class State(object):
                 if isinstance(value, str): value = '"' + value + '"'
                 if isinstance(value, bool): value = int(value)
 
-                self.ctrl.avr.set(name, value)
+                self.ctrl.mach.set(name, value)
 
 
     def find_motor(self, axis):
