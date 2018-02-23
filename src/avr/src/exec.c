@@ -26,16 +26,14 @@
 \******************************************************************************/
 
 #include "exec.h"
-#include "jog.h"
+
 #include "stepper.h"
+#include "motor.h"
 #include "axis.h"
-#include "spindle.h"
 #include "util.h"
 #include "command.h"
+#include "report.h"
 #include "config.h"
-
-#include <string.h>
-#include <float.h>
 
 
 static struct {
@@ -112,10 +110,58 @@ float get_axis_position(int axis) {return ex.position[axis];}
 void set_tool(uint8_t tool) {ex.tool = tool;}
 void set_feed_override(float value) {ex.feed_override = value;}
 void set_speed_override(float value) {ex.spindle_override = value;}
-void set_axis_position(int axis, float p) {ex.position[axis] = p;}
 
 
 // Command callbacks
+typedef struct {
+  uint8_t axis;
+  float position;
+} set_axis_t;
+
+
+stat_t command_set_axis(char *cmd) {
+  cmd++; // Skip command name
+
+  // Decode axis
+  int axis = axis_get_id(*cmd++);
+  if (axis < 0) return STAT_INVALID_ARGUMENTS;
+
+  // Decode position
+  float position;
+  if (!decode_float(&cmd, &position)) return STAT_BAD_FLOAT;
+
+  // Check for end of command
+  if (*cmd) return STAT_INVALID_ARGUMENTS;
+
+  // Update command
+  command_set_axis_position(axis, position);
+
+  // Queue
+  set_axis_t set_axis = {axis, position};
+  command_push(COMMAND_set_axis, &set_axis);
+
+  return STAT_OK;
+}
+
+
+unsigned command_set_axis_size() {return sizeof(set_axis_t);}
+
+
+void command_set_axis_exec(void *data) {
+  set_axis_t *cmd = (set_axis_t *)data;
+
+  // Update exec
+  ex.position[cmd->axis] = cmd->position;
+
+  // Update motors
+  int motor = axis_get_motor(cmd->axis);
+  if (0 <= motor) motor_set_position(motor, cmd->position);
+
+  // Report
+  report_request();
+}
+
+
 stat_t command_opt_pause(char *cmd) {command_push(*cmd, 0); return STAT_OK;}
 unsigned command_opt_pause_size() {return 0;}
 void command_opt_pause_exec(void *data) {} // TODO pause if requested

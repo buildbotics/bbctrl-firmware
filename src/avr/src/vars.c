@@ -398,10 +398,6 @@ stat_t command_sync_var(char *cmd) {
 
   command_push(*cmd, &buffer);
 
-  // Special case for synchronizing axis position in command queue
-  if (info.set.set_f32_index == set_axis_position)
-    command_set_axis_position(buffer.index, buffer.value._f32);
-
   return STAT_OK;
 }
 

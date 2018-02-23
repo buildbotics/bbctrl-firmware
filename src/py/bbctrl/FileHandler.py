@@ -57,6 +57,9 @@ class FileHandler(bbctrl.APIHandler):
 
     def get(self, path):
         if path:
+            path = path[1:]
+            self.ctrl.mach.select(path)
+
             with open('upload/' + path, 'r') as f:
                 self.write_json(f.read())
             return
@@ -67,5 +70,9 @@ class FileHandler(bbctrl.APIHandler):
             for path in os.listdir('upload'):
                 if os.path.isfile('upload/' + path):
                     files.append(path)
+
+        selected = self.ctrl.state.get('selected', '')
+        if not selected in files:
+            if len(files): self.ctrl.state.set('selected', files[0])
 
         self.write_json(files)

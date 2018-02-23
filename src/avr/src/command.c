@@ -196,7 +196,7 @@ bool command_callback() {
   // Special processing for synchronous commands
   if (_is_synchronous(*block)) {
     if (estop_triggered()) status = STAT_MACHINE_ALARMED;
-    else if (state_is_flushing()) status = STAT_NOP; // Flush
+    else if (state_is_flushing()) status = STAT_NOP; // Flush command
     else if (state_is_resuming() || _space() < _size(*block))
       return false; // Wait
   }
@@ -208,7 +208,7 @@ bool command_callback() {
 
   // Reporting
   report_request();
-  if (status && status != STAT_NOP) status_error(status);
+  if (status && status != STAT_NOP) STATUS_ERROR(status, "");
 
   return true;
 }

@@ -82,6 +82,24 @@ class RebootHandler(bbctrl.APIHandler):
     def put_ok(self): subprocess.Popen('reboot')
 
 
+class LogHandler(tornado.web.RequestHandler):
+    def __init__(self, app, request, **kwargs):
+        super(LogHandler, self).__init__(app, request, **kwargs)
+        self.filename = app.ctrl.args.log
+
+
+    def get(self):
+        with open(self.filename, 'r') as f:
+            self.write(f.read())
+
+
+    def set_default_headers(self):
+        fmt = socket.gethostname() + '-%Y%m%d.log'
+        filename = datetime.date.today().strftime(fmt)
+        self.set_header('Content-Disposition', 'filename="%s"' % filename)
+        self.set_header('Content-Type', 'text/plain')
+
+
 class HostnameHandler(bbctrl.APIHandler):
     def get(self): self.write_json(socket.gethostname())
 
@@ -191,7 +209,7 @@ class HomeHandler(bbctrl.APIHandler):
 
 
 class StartHandler(bbctrl.APIHandler):
-    def put_ok(self, path): self.ctrl.mach.start(path)
+    def put_ok(self): self.ctrl.mach.start()
 
 
 class EStopHandler(bbctrl.APIHandler):
@@ -219,12 +237,12 @@ class OptionalPauseHandler(bbctrl.APIHandler):
 
 
 class StepHandler(bbctrl.APIHandler):
-    def put_ok(self, path): self.ctrl.mach.step(path)
+    def put_ok(self): self.ctrl.mach.step()
 
 
 class PositionHandler(bbctrl.APIHandler):
     def put_ok(self, axis):
-        self.ctrl.mach.set_position(ord(axis.lower()), self.json['position'])
+        self.ctrl.mach.set_position(axis, float(self.json['position']))
 
 
 class OverrideFeedHandler(bbctrl.APIHandler):
@@ -310,6 +328,7 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket', WSConnection),
+            (r'/api/log', LogHandler),
             (r'/api/reboot', RebootHandler),
             (r'/api/hostname', HostnameHandler),
             (r'/api/remote/username', UsernameHandler),
@@ -322,14 +341,14 @@ class Web(tornado.web.Application):
             (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
             (r'/api/home(/[xyzabcXYZABC](/set)?)?', HomeHandler),
-            (r'/api/start(/.+)', StartHandler),
+            (r'/api/start', StartHandler),
             (r'/api/estop', EStopHandler),
             (r'/api/clear', ClearHandler),
             (r'/api/stop', StopHandler),
             (r'/api/pause', PauseHandler),
             (r'/api/unpause', UnpauseHandler),
             (r'/api/pause/optional', OptionalPauseHandler),
-            (r'/api/step(/.+)', StepHandler),
+            (r'/api/step', StepHandler),
             (r'/api/position/([xyzabcXYZABC])', PositionHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
@@ -354,3 +373,8 @@ class Web(tornado.web.Application):
             sys.exit(1)
 
         log.info('Listening on http://%s:%d/', ctrl.args.addr, ctrl.args.port)
+
+
+    # Override default logger
+    def log_request(self, handler):
+        log.info("%d %s", handler.get_status(), handler._request_summary())

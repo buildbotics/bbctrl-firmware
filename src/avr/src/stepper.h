@@ -32,7 +32,6 @@
 
 
 void stepper_init();
-void st_set_position(const float position[]);
 void st_shutdown();
 void st_enable();
 bool st_is_busy();

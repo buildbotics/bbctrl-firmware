@@ -3,6 +3,13 @@ Buildbotics CNC Controller Firmware Change Log
 
 ## v0.3.10
  - Fixed "Flood" display, changed to "Load 1" and "Load 2".  #108
+ - Highlight loads when on.
+ - Fixed axis zeroing.
+ - Fixed bug in home position set after successful home.  #109
+ - Fixed ugly Web error dumps.
+ - Allow access to log file from Web.
+ - Rotate log so it does not grow too big.
+ - Keep same GCode file through browser reload.  #20
 
 ## v0.3.9
  - Fixed bug in move exec that was causing bumping between moves.

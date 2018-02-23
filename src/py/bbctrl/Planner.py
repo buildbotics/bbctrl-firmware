@@ -54,6 +54,10 @@ class Planner():
     def is_synchronizing(self): return self.planner.is_synchronizing()
 
 
+    def set_position(self, position):
+        self.planner.set_position(position)
+
+
     def update_position(self):
         position = {}
 
@@ -62,7 +66,7 @@ class Planner():
             value = self.ctrl.state.get(axis + 'p', None)
             if value is not None: position[axis] = value
 
-        self.planner.set_position(position)
+        self.set_position(position)
 
 
     def _get_config_vector(self, name, scale):
@@ -166,7 +170,7 @@ class Planner():
                 self._queue_set_cmd(block['id'], 'load2state', value)
             if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
                     name[2:] == '_home':
-                return Cmd.set_position(name[1], value)
+                return Cmd.set_axis(name[1], value)
 
             if len(name) and name[0] == '_':
                 self._queue_set_cmd(block['id'], name[1:], value)
@@ -216,7 +220,7 @@ class Planner():
 
     def load(self, path):
         log.info('GCode:' + path)
-        self.planner.load('upload' + path, self._get_config())
+        self.planner.load(path, self._get_config())
 
 
     def has_move(self): return self.planner.has_more()

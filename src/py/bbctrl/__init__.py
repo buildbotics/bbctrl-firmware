@@ -33,6 +33,7 @@ import signal
 import tornado
 import argparse
 import logging
+import datetime
 
 from pkg_resources import Requirement, resource_filename
 
@@ -107,10 +108,15 @@ def run():
     root.addHandler(h)
 
     if args.log:
-        h = logging.FileHandler(args.log)
+        h = logging.handlers.RotatingFileHandler(args.log, maxBytes = 1000000,
+                                                 backupCount = 5)
         h.setLevel(level)
         h.setFormatter(f)
         root.addHandler(h)
+
+    # Log header
+    now = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+    root.info('Log started ' + now)
 
     # Set signal handler
     signal.signal(signal.SIGTERM, on_exit)

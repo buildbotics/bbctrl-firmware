@@ -52,7 +52,6 @@ module.exports = {
   data: function () {
     return {
       mdi: '',
-      file: '',
       last_file: '',
       files: [],
       axes: 'xyzabc',
@@ -78,7 +77,8 @@ module.exports = {
 
 
   watch: {
-    'state.line': function () {this.update_gcode_line();}
+    'state.line': function () {this.update_gcode_line()},
+    'state.selected': function () {this.load()}
   },
 
 
@@ -87,11 +87,16 @@ module.exports = {
       var data = {};
       data[axis] = power;
       api.put('jog', data);
-    }
+    },
+
+    connected: function () {this.update()}
   },
 
 
-  ready: function () {this.update()},
+  ready: function () {
+    this.update();
+    this.load();
+  },
 
 
   methods: {
@@ -236,15 +241,7 @@ module.exports = {
 
     update: function () {
       // Update file list
-      api.get('file')
-        .done(function (files) {
-          var index = files.indexOf(this.file);
-          if (index == -1 && files.length) this.file = files[0];
-
-          this.files = files;
-
-          this.load()
-        }.bind(this))
+      api.get('file').done(function (files) {this.files = files}.bind(this))
     },
 
 
@@ -275,7 +272,7 @@ module.exports = {
 
       api.upload('file', fd)
         .done(function () {
-          this.file = file.name;
+          file.name;
           if (file.name == this.last_file) this.last_file = '';
           this.update();
         }.bind(this));
@@ -283,15 +280,7 @@ module.exports = {
 
 
     load: function () {
-      var file = this.file;
-
-      if (!file || this.files.indexOf(file) == -1) {
-        this.file = '';
-        this.all_gcode = [];
-        this.gcode = [];
-        return;
-      }
-
+      var file = this.state.selected;
       if (file == this.last_file) return;
 
       api.get('file/' + file)
@@ -307,7 +296,8 @@ module.exports = {
 
 
     deleteCurrent: function () {
-      if (this.file) api.delete('file/' + this.file).done(this.update);
+      if (this.state.selected)
+        api.delete('file/' + this.state.selected).done(this.update);
       this.deleteGCode = false;
     },
 
@@ -363,12 +353,12 @@ module.exports = {
     },
 
 
-    start: function () {api.put('start/' + this.file).done(this.update)},
+    start: function () {api.put('start')},
     pause: function () {api.put('pause')},
     unpause: function () {api.put('unpause')},
     optional_pause: function () {api.put('pause/optional')},
     stop: function () {api.put('stop')},
-    step: function () {api.put('step/' + this.file).done(this.update)},
+    step: function () {api.put('step')},
 
 
     override_feed: function () {api.put('override/feed/' + this.feed_override)},

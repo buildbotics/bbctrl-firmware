@@ -53,6 +53,10 @@ script#admin-view-template(type="text/x-template")
         input(name="pass2", v-model="password2", type="password")
         button.pure-button.pure-button-primary(@click="set_password") Set
 
+    h2 Debugging
+    a(href="/api/log", target="_blank")
+      button.pure-button.pure-button-primary View Log
+
     h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
 

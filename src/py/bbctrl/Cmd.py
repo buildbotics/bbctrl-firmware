@@ -38,6 +38,7 @@ log = logging.getLogger('Cmd')
 SET       = '$'
 SET_SYNC  = '#'
 SEEK      = 's'
+SET_AXIS  = 'a'
 LINE      = 'l'
 DWELL     = 'd'
 OUTPUT    = 'o'
@@ -80,6 +81,7 @@ def encode_axes(axes):
 
 
 def set(name, value): return '#%s=%s' % (name, value)
+def set_axis(axis, position): return SET_AXIS + axis + encode_float(position)
 
 
 def line(target, exitVel, maxAccel, maxJerk, times):
@@ -100,7 +102,6 @@ def line(target, exitVel, maxAccel, maxJerk, times):
 
 def tool(tool): return '#t=%d' % tool
 def speed(speed): return '#s=:' + encode_float(speed)
-def set_position(axis, value): return '#%sp=:%s' % (axis, encode_float(value))
 
 
 def output(port, value):

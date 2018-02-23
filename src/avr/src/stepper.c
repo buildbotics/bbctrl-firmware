@@ -82,12 +82,6 @@ void stepper_init() {
 }
 
 
-void st_set_position(const float position[]) {
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_set_position(motor, position[motor_get_axis(motor)]);
-}
-
-
 void st_shutdown() {
   OUTCLR_PIN(MOTOR_ENABLE_PIN);
   st.dwell = 0;

@@ -164,7 +164,7 @@ script#control-view-template(type="text/x-template")
 
       button.pure-button(
         title="{{state.xx == 'RUNNING' ? 'Pause' : 'Start'}} program.",
-        @click="start_pause", :disabled="!file")
+        @click="start_pause", :disabled="!state.selected")
         .fa(:class="state.xx == 'RUNNING' ? 'fa-pause' : 'fa-play'")
 
       button.pure-button(title="Stop program.", @click="stop",
@@ -176,8 +176,8 @@ script#control-view-template(type="text/x-template")
         .fa.fa-stop-circle-o
 
       button.pure-button(title="Execute one program step.", @click="step",
-        :disabled="(state.xx != 'READY' && state.xx != 'HOLDING') || !file",
-        v-if="false")
+        :disabled="(state.xx != 'READY' && state.xx != 'HOLDING') || " +
+          "!state.selected", v-if="false")
         .fa.fa-step-forward
 
     .tabs
@@ -209,7 +209,7 @@ script#control-view-template(type="text/x-template")
             style="display:none", accept=".nc,.gcode,.gc,.ngc")
 
           button.pure-button(title="Delete current GCode program.",
-            @click="deleteGCode = true", :disabled="!file")
+            @click="deleteGCode = true", :disabled="!state.selected")
             .fa.fa-trash
 
           message(:show.sync="deleteGCode")
@@ -225,7 +225,7 @@ script#control-view-template(type="text/x-template")
                 | &nbsp;selected
 
           select(title="Select previously uploaded GCode programs.",
-            v-model="file", @change="load",
+            v-model="state.selected", @change="load",
             :disabled="state.xx == 'RUNNING' || state.xx == 'STOPPING'")
             option(v-for="file in files", :value="file") {{file}}
 

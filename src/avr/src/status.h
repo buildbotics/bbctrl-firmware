@@ -56,7 +56,6 @@ extern stat_t status_code;
 
 const char *status_to_pgmstr(stat_t code);
 const char *status_level_pgmstr(status_level_t level);
-stat_t status_error(stat_t code);
 stat_t status_message_P(const char *location, status_level_t level,
                         stat_t code, const char *msg, ...);
 

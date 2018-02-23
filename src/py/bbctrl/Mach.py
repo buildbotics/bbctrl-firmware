@@ -77,7 +77,6 @@ class Mach():
             self.planner.update_position()
             self.ctrl.state.set('cycle', cycle)
 
-        elif current == 'homing' and cycle == 'mdi': pass
         elif current != cycle:
             raise Exception('Cannot enter %s cycle during %s' %
                             (cycle, current))
@@ -96,6 +95,7 @@ class Mach():
             # Resume once current queue of GCode commands has flushed
             self.comm.i2c_command(Cmd.FLUSH)
             self.comm.queue_command(Cmd.RESUME)
+            self.ctrl.state.set('line', 0)
             self.stopping = False
 
         # Update cycle
@@ -107,7 +107,7 @@ class Mach():
         if (state == 'HOLDING' and
             self.ctrl.state.get('pr', '') == 'Switch found' and
             self.planner.is_synchronizing()):
-            self.ctrl.mach.unpause()
+            self.unpause()
 
 
     def _comm_next(self):
@@ -118,7 +118,7 @@ class Mach():
 
 
     def _start_sending_gcode(self, path):
-        self.planner.load(path)
+        self.planner.load('upload/' + path)
         self.comm.set_write(True)
 
 
@@ -163,37 +163,47 @@ class Mach():
 
 
     def home(self, axis, position = None):
-        self._begin_cycle('homing')
-
         if position is not None:
             self.mdi('G28.3 %c%f' % (axis, position))
 
         else:
+            self._begin_cycle('homing')
+
             if axis is None: axes = 'zxyabc' # TODO This should be configurable
             else: axes = '%c' % axis
 
             for axis in axes:
                 if not self.ctrl.state.axis_can_home(axis):
-                    log.info('Cannot home ' + axis)
+                    log.warning('Cannot home ' + axis)
                     continue
 
                 log.info('Homing %s axis' % axis)
-                self.mdi(axis_homing_procedure % {'axis': axis})
+                self.planner.mdi(axis_homing_procedure % {'axis': axis})
+                self.comm.set_write(True)
 
 
     def estop(self): self.comm.i2c_command(Cmd.ESTOP)
     def clear(self): self.comm.i2c_command(Cmd.CLEAR)
 
 
-    def start(self, path):
+    def select(self, path):
+        if self.ctrl.state.get('selected', '') == path: return
+
+        if self._get_cycle() != 'idle':
+            raise Exception('Cannot select file during ' + self._get_cycle())
+
+        self.ctrl.state.set('selected', path)
+
+
+    def start(self):
         self._begin_cycle('running')
-        self._start_sending_gcode(path)
+        self._start_sending_gcode(self.ctrl.state.get('selected'))
 
 
-    def step(self, path):
+    def step(self):
         raise Exception('NYI') # TODO
         self.comm.i2c_command(Cmd.STEP)
-        if self._get_cycle() != 'running': self.start(path)
+        if self._get_cycle() != 'running': self.start()
 
 
     def stop(self):
@@ -220,6 +230,16 @@ class Mach():
 
 
     def set_position(self, axis, position):
-        if self.ctrl.state.is_axis_homed('%c' % axis):
-            self.mdi('G92 %c%f' % (axis, position))
-        else: self.comm.queue_command('$%cp=%f' % (axis, position))
+        axis = axis.lower()
+
+        if self.ctrl.state.is_axis_homed(axis):
+            self.mdi('G92 %s%f' % (axis, position))
+
+        else:
+            if self._get_cycle() != 'idle':
+                raise Exception('Cannot zero position during ' +
+                                self._get_cycle())
+
+            self._begin_cycle('mdi')
+            self.planner.set_position({axis: position})
+            self.comm.queue_command(Cmd.set_axis(axis, position))

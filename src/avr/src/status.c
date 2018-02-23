@@ -63,11 +63,6 @@ const char *status_level_pgmstr(status_level_t level) {
 }
 
 
-stat_t status_error(stat_t code) {
-  return status_message_P(0, STAT_LEVEL_ERROR, code, 0);
-}
-
-
 stat_t status_message_P(const char *location, status_level_t level,
                         stat_t code, const char *msg, ...) {
   va_list args;
@@ -77,7 +72,7 @@ stat_t status_message_P(const char *location, status_level_t level,
            status_level_pgmstr(level));
 
   // Message
-  if (msg) {
+  if (msg && pgm_read_byte(msg)) {
     va_start(args, msg);
     vfprintf_P(stdout, msg, args);
     va_end(args);

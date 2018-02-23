@@ -26,14 +26,27 @@
 ################################################################################
 
 import json
+import traceback
+import logging
+
 from tornado.web import RequestHandler, HTTPError
 import tornado.httpclient
+
+
+log = logging.getLogger('API')
 
 
 class APIHandler(RequestHandler):
     def __init__(self, app, request, **kwargs):
         super(APIHandler, self).__init__(app, request, **kwargs)
         self.ctrl = app.ctrl
+
+
+    # Override exception logging
+    def log_exception(self, typ, value, tb):
+        log.error(str(value))
+        trace = ''.join(traceback.format_exception(typ, value, tb))
+        log.debug(trace)
 
 
     def delete(self, *args, **kwargs):

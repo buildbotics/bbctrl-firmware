@@ -64,7 +64,7 @@ VAR(estop_switch,    ew, u8,    0,      0, 1, "Estop switch state")
 VAR(probe_switch,    pw, u8,    0,      0, 1, "Probe switch state")
 
 // Axis
-VAR(axis_position,    p, f32,   AXES,   1, 1, "Axis position")
+VAR(axis_position,    p, f32,   AXES,   0, 1, "Axis position")
 
 // Outputs
 VAR(output_active,   oa, bool,  OUTS,   1, 1, "Output pin active")
