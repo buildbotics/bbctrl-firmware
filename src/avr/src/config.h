@@ -96,7 +96,6 @@ enum {
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
-#define SWITCHES                10 // number of supported switches
 #define OUTS                     5 // number of supported pin outputs
 
 

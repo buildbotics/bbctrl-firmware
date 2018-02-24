@@ -34,6 +34,7 @@
 #include "hardware.h"
 #include "config.h"
 #include "state.h"
+#include "outputs.h"
 #include "exec.h"
 
 #include <avr/eeprom.h>
@@ -75,8 +76,7 @@ void estop_init() {
   if (estop.triggered) state_estop();
 
   // Fault signal
-  SET_PIN(FAULT_PIN, estop.triggered);
-  DIRSET_PIN(FAULT_PIN); // Output
+  outputs_set_active(FAULT_PIN, estop.triggered);
 }
 
 
@@ -86,6 +86,9 @@ bool estop_triggered() {return estop.triggered || switch_is_active(SW_ESTOP);}
 void estop_trigger(stat_t reason) {
   if (estop.triggered) return;
   estop.triggered = true;
+
+  // Set fault signal
+  outputs_set_active(FAULT_PIN, true);
 
   // Hard stop the motors and the spindle
   st_shutdown();
@@ -109,7 +112,7 @@ void estop_clear() {
   }
 
   // Clear fault signal
-  OUTCLR_PIN(FAULT_PIN); // Low
+  outputs_set_active(FAULT_PIN, false);
 
   estop.triggered = false;
 

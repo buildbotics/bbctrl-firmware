@@ -64,7 +64,7 @@ class Mach():
         ctrl.state.set('cycle', 'idle')
         ctrl.state.add_listener(self._update)
 
-        self.comm.queue_command(Cmd.REBOOT)
+        self.comm.reboot()
 
 
     def _get_cycle(self): return self.ctrl.state.get('cycle')

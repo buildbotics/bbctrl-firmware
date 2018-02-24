@@ -47,6 +47,7 @@ class Comm():
         self.queue = deque()
         self.in_buf = ''
         self.command = None
+        self.reboot_expected = False
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -139,6 +140,11 @@ class Comm():
             self.ctrl.state.machine_cmds_and_vars(msg)
             self.queue_command(Cmd.DUMP) # Refresh all vars
 
+            # Set axis positions
+            for axis in 'xyzabc':
+                position = self.ctrl.state.get(axis + 'p', 0)
+                self.queue_command(Cmd.set_axis(axis, position))
+
         except Exception as e:
             log.warning('AVR reload failed: %s', traceback.format_exc())
             self.ctrl.ioloop.call_later(1, self.connect)
@@ -188,7 +194,9 @@ class Comm():
                     self._log_msg(msg)
 
                 elif 'firmware' in msg:
-                    log.warning('firmware rebooted')
+                    if self.reboot_expected: log.info('AVR firmware rebooted')
+                    else: log.error('Unexpected AVR firmware reboot')
+                    self.reboot_expected = False
                     self.connect()
 
                 else: self.ctrl.state.update(msg)
@@ -200,6 +208,11 @@ class Comm():
             if self.ctrl.ioloop.WRITE & events: self._serial_write()
         except Exception as e:
             log.warning('Serial handler error: %s', traceback.format_exc())
+
+
+    def reboot(self):
+        self.queue_command(Cmd.REBOOT)
+        self.reboot_expected = True
 
 
     def connect(self):

@@ -44,6 +44,7 @@ VAR(idle_current,    ic, f32,   MOTORS, 1, 1, "Motor idle current")
 VAR(active_current,  ac, f32,   MOTORS, 0, 1, "Motor current now")
 VAR(driver_flags,    df, u16,   MOTORS, 0, 1, "Motor driver flags")
 VAR(status_strings,  ds, flags, MOTORS, 0, 1, "Motor driver status")
+VAR(driver_stalled,  sl, bool,  MOTORS, 0, 1, "Motor driver status")
 VAR(encoder,         en, s32,   MOTORS, 0, 0, "Motor encoder")
 VAR(error,           ee, s32,   MOTORS, 0, 0, "Motor position error")
 
@@ -106,7 +107,7 @@ VAR(speed_override,  so, f32,   0,      1, 1, "Spindle speed override")
 
 // System
 VAR(velocity,        v,  f32,   0,      0, 1, "Current velocity")
-VAR(acceleration,    a,  f32,   0,      0, 1, "Current acceleration")
+VAR(acceleration,   ax,  f32,   0,      0, 1, "Current acceleration")
 VAR(jerk,            j,  f32,   0,      0, 1, "Current jerk")
 VAR(hw_id,          hid, str,   0,      0, 1, "Hardware ID")
 VAR(echo,            ec, bool,  0,      1, 1, "Enable or disable echo")

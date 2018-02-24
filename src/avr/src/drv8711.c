@@ -28,6 +28,7 @@
 #include "drv8711.h"
 #include "status.h"
 #include "stepper.h"
+#include "switch.h"
 #include "report.h"
 
 #include <avr/interrupt.h>
@@ -58,6 +59,7 @@ typedef struct {
 typedef struct {
   uint8_t status;
   uint16_t flags;
+  bool stalled;
 
   drv8711_state_t state;
   current_t drive;
@@ -68,15 +70,15 @@ typedef struct {
   stall_callback_t stall_cb;
 
   uint8_t cs_pin;
-  uint8_t stall_pin;
+  switch_id_t stall_sw;
 } drv8711_driver_t;
 
 
 static drv8711_driver_t drivers[DRIVERS] = {
-  {.cs_pin = SPI_CS_X_PIN, .stall_pin = STALL_X_PIN},
-  {.cs_pin = SPI_CS_Y_PIN, .stall_pin = STALL_Y_PIN},
-  {.cs_pin = SPI_CS_Z_PIN, .stall_pin = STALL_Z_PIN},
-  {.cs_pin = SPI_CS_A_PIN, .stall_pin = STALL_A_PIN},
+  {.cs_pin = SPI_CS_X_PIN, .stall_sw = SW_STALL_X},
+  {.cs_pin = SPI_CS_Y_PIN, .stall_sw = SW_STALL_Y},
+  {.cs_pin = SPI_CS_Z_PIN, .stall_sw = SW_STALL_Z},
+  {.cs_pin = SPI_CS_A_PIN, .stall_sw = SW_STALL_A},
 };
 
 
@@ -304,15 +306,29 @@ static void _init_spi_commands() {
 ISR(SPIC_INT_vect) {_spi_send();}
 
 
-ISR(STALL_ISR_vect) {
-  for (int i = 0; i < DRIVERS; i++) {
-    drv8711_driver_t *driver = &drivers[i];
-    if (driver->stall_cb) driver->stall_cb(i);
+static void _stall_change(int driver, bool stalled) {
+  drivers[driver].stalled = stalled;
+
+  // Call stall callback
+  if (stalled && drivers[driver].stall_cb)
+    drivers[driver].stall_cb(driver);
+}
+
+
+static void _stall_switch_cb(switch_id_t sw, bool active) {
+  switch (sw) {
+  case SW_STALL_X: _stall_change(0, active); break;
+  case SW_STALL_Y: _stall_change(1, active); break;
+  case SW_STALL_Z: _stall_change(2, active); break;
+  case SW_STALL_A: _stall_change(3, active); break;
+  default: break;
   }
 }
 
 
-ISR(FAULT_ISR_vect) {motor_fault = !IN_PIN(MOTOR_FAULT_PIN);} // TODO
+static void _motor_fault_switch_cb(switch_id_t sw, bool active) {
+  motor_fault = active; // TODO
+}
 
 
 void drv8711_init() {
@@ -328,23 +344,16 @@ void drv8711_init() {
 
   for (int i = 0; i < DRIVERS; i++) {
     uint8_t cs_pin = drivers[i].cs_pin;
-    uint8_t stall_pin = drivers[i].stall_pin;
-
     OUTSET_PIN(cs_pin);     // High
     DIRSET_PIN(cs_pin);     // Output
-    DIRCLR_PIN(stall_pin);  // Input
 
-    // Stall interrupt
-    PINCTRL_PIN(stall_pin) = PORT_ISC_FALLING_gc;
-    PORT(stall_pin)->INT1MASK |= BM(stall_pin);
-    PORT(stall_pin)->INTCTRL |= PORT_INT1LVL_HI_gc;
+    switch_id_t stall_sw = drivers[i].stall_sw;
+    switch_set_type(stall_sw, SW_NORMALLY_OPEN);
+    switch_set_callback(stall_sw, _stall_switch_cb);
   }
 
-  // Fault interrupt
-  DIRCLR_PIN(MOTOR_FAULT_PIN);
-  PINCTRL_PIN(MOTOR_FAULT_PIN) = PORT_ISC_RISING_gc;
-  PORT(MOTOR_FAULT_PIN)->INT1MASK |= BM(MOTOR_FAULT_PIN);
-  PORT(MOTOR_FAULT_PIN)->INTCTRL |= PORT_INT1LVL_HI_gc;
+  switch_set_type(SW_MOTOR_FAULT, SW_NORMALLY_OPEN);
+  switch_set_callback(SW_MOTOR_FAULT, _motor_fault_switch_cb);
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
@@ -483,6 +492,7 @@ void print_status_flags(uint16_t flags) {
 
 
 uint16_t get_status_strings(int driver) {return get_driver_flags(driver);}
+bool get_driver_stalled(int driver) {return drivers[driver].stalled;}
 
 
 // Command callback

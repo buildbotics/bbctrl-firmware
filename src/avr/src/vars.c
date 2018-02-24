@@ -247,7 +247,7 @@ static bool _find_var(const char *_name, var_info_t *info) {
   if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
     IF(INDEX)                                                           \
       (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
-       if (INDEX <= i) return false);                                   \
+       if (i < 0) return false);                                        \
                                                                         \
     info->type = TYPE_##TYPE;                                           \
     info->index = i;                                                    \

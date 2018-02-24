@@ -44,25 +44,33 @@ typedef struct {
 
 
 // Order must match indices in var functions below
-static switch_t switches[SWITCHES] = {
-  {.pin = ESTOP_PIN, .type = SW_DISABLED},
-  {.pin = PROBE_PIN, .type = SW_DISABLED},
-  {.pin = MIN_X_PIN, .type = SW_DISABLED},
-  {.pin = MAX_X_PIN, .type = SW_DISABLED},
-  {.pin = MIN_Y_PIN, .type = SW_DISABLED},
-  {.pin = MAX_Y_PIN, .type = SW_DISABLED},
-  {.pin = MIN_Z_PIN, .type = SW_DISABLED},
-  {.pin = MAX_Z_PIN, .type = SW_DISABLED},
-  {.pin = MIN_A_PIN, .type = SW_DISABLED},
-  {.pin = MAX_A_PIN, .type = SW_DISABLED},
+static switch_t switches[] = {
+  {.pin = ESTOP_PIN,       .type = SW_DISABLED},
+  {.pin = PROBE_PIN,       .type = SW_DISABLED},
+  {.pin = MIN_X_PIN,       .type = SW_DISABLED},
+  {.pin = MAX_X_PIN,       .type = SW_DISABLED},
+  {.pin = MIN_Y_PIN,       .type = SW_DISABLED},
+  {.pin = MAX_Y_PIN,       .type = SW_DISABLED},
+  {.pin = MIN_Z_PIN,       .type = SW_DISABLED},
+  {.pin = MAX_Z_PIN,       .type = SW_DISABLED},
+  {.pin = MIN_A_PIN,       .type = SW_DISABLED},
+  {.pin = MAX_A_PIN,       .type = SW_DISABLED},
+  {.pin = STALL_X_PIN,     .type = SW_DISABLED},
+  {.pin = STALL_Y_PIN,     .type = SW_DISABLED},
+  {.pin = STALL_Z_PIN,     .type = SW_DISABLED},
+  {.pin = STALL_A_PIN,     .type = SW_DISABLED},
+  {.pin = MOTOR_FAULT_PIN, .type = SW_DISABLED},
 };
+
+
+const int num_switches = sizeof(switches) / sizeof (switch_t);
 
 
 static bool _read_state(const switch_t *s) {return IN_PIN(s->pin);}
 
 
 static void _switch_isr() {
-  for (int i = 0; i < SWITCHES; i++) {
+  for (int i = 0; i < num_switches; i++) {
     switch_t *s = &switches[i];
     if (s->type == SW_DISABLED || s->triggered) continue;
     s->triggered = _read_state(s) != s->state;
@@ -91,11 +99,12 @@ void _switch_enable(switch_t *s, bool enable) {
 
 
 void switch_init() {
-  for (int i = 0; i < SWITCHES; i++) {
+  for (int i = 0; i < num_switches; i++) {
     switch_t *s = &switches[i];
 
-    // Pull up and trigger on both edges
-    PINCTRL_PIN(s->pin) = PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;
+    // Pull up, trigger on both edges and enable slew rate limiting
+    PINCTRL_PIN(s->pin) =
+      PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;// | PORT_SRLEN_bm;
     DIRCLR_PIN(s->pin); // Input
     PORT(s->pin)->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
 
@@ -106,7 +115,7 @@ void switch_init() {
 
 /// Called from RTC on each tick
 void switch_rtc_callback() {
-  for (int i = 0; i < SWITCHES; i++) {
+  for (int i = 0; i < num_switches; i++) {
     switch_t *s = &switches[i];
 
     if (s->type == SW_DISABLED || !s->triggered) continue;
@@ -140,12 +149,13 @@ bool switch_is_enabled(int index) {
 
 
 switch_type_t switch_get_type(int index) {
-  return (index < 0 || SWITCHES <= index) ? SW_DISABLED : switches[index].type;
+  return
+    (index < 0 || num_switches <= index) ? SW_DISABLED : switches[index].type;
 }
 
 
 void switch_set_type(int index, switch_type_t type) {
-  if (index < 0 || SWITCHES <= index) return;
+  if (index < 0 || num_switches <= index) return;
   switch_t *s = &switches[index];
 
   if (s->type != type) {

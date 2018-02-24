@@ -33,9 +33,6 @@ import bbctrl
 log = logging.getLogger('State')
 
 
-machine_state_vars = '''xp yp zp ap bp cp t fo so'''.split()
-
-
 class State(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -152,17 +149,6 @@ class State(object):
             else: self.machine_var_set.add(code)
 
         self.ctrl.config.reload() # Indirectly configures AVR
-        self.restore_machine_state()
-
-
-    def restore_machine_state(self):
-        for name in machine_state_vars:
-            if name in self.vars:
-                value = self.vars[name]
-                if isinstance(value, str): value = '"' + value + '"'
-                if isinstance(value, bool): value = int(value)
-
-                self.ctrl.mach.set(name, value)
 
 
     def find_motor(self, axis):

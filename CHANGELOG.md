@@ -1,6 +1,11 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.11
+ - Supressed ``firmware rebooted`` warning.
+ - Error on unexpected AVR reboot.
+ - Enabled switch input slew rate limiting.
+
 ## v0.3.10
  - Fixed "Flood" display, changed to "Load 1" and "Load 2".  #108
  - Highlight loads when on.

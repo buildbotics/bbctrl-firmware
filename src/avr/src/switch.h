@@ -53,6 +53,9 @@ typedef enum {
   SW_MIN_Y, SW_MAX_Y,
   SW_MIN_Z, SW_MAX_Z,
   SW_MIN_A, SW_MAX_A,
+  SW_STALL_X, SW_STALL_Y,
+  SW_STALL_Z, SW_STALL_A,
+  SW_MOTOR_FAULT,
 } switch_id_t;
 
 
