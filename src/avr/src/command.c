@@ -43,7 +43,6 @@
 #include "cpp_magic.h"
 
 #ifdef __AVR__
-#include <avr/wdt.h>
 #include <util/atomic.h>
 #else
 #define ATOMIC_BLOCK(x)

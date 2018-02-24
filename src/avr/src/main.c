@@ -51,7 +51,7 @@
 
 
 int main() {
-  //wdt_enable(WDTO_250MS); TODO
+  wdt_enable(WDTO_250MS);
 
   // Init
   cli();                          // disable interrupts
@@ -81,7 +81,6 @@ int main() {
     state_callback();             // manage state
     command_callback();           // process next command
     report_callback();            // report changes
-    wdt_reset();
   }
 
   return 0;

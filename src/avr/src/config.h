@@ -100,7 +100,7 @@ enum {
 
 
 // Switch settings.  See switch.c
-#define SWITCH_INTLVL  PORT_INT0LVL_MED_gc
+#define SWITCH_DEBOUNCE 5 // ms
 
 
 // Motor ISRs

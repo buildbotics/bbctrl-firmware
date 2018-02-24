@@ -127,8 +127,6 @@ void hardware_init() {
 void hw_request_hard_reset() {hw.hard_reset = true;}
 
 
-/// Hard reset using watchdog timer
-/// software hard reset using the watchdog timer
 void hw_hard_reset() {
   usart_flush();
   cli();
@@ -148,21 +146,4 @@ void hw_reset_handler() {
 }
 
 
-uint8_t hw_disable_watchdog() {
-  uint8_t state = WDT.CTRL;
-  wdt_disable();
-  return state;
-}
-
-
-void hw_restore_watchdog(uint8_t state) {
-  cli();
-  CCP = CCP_IOREG_gc;
-  WDT.CTRL = state | WDT_CEN_bm;
-  sei();
-}
-
-
-const char *get_hw_id() {
-  return hw.id;
-}
+const char *get_hw_id() {return hw.id;}

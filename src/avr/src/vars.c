@@ -159,9 +159,6 @@ void vars_init() {
 
 
 void vars_report(bool full) {
-  // Save and disable watchdog
-  uint8_t wd_state = hw_disable_watchdog();
-
   bool reported = false;
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
@@ -190,9 +187,6 @@ void vars_report(bool full) {
 #undef VAR
 
   if (reported) printf("}\n");
-
-  // Restore watchdog
-  hw_restore_watchdog(wd_state);
 }
 
 void vars_report_all(bool enable) {
@@ -334,9 +328,6 @@ void vars_print_json() {
     "\"help\":\"%"PRPSTR"\"";
   static const char index_fmt[] PROGMEM = ",\"index\":\"%s\"";
 
-  // Save and disable watchdog
-  uint8_t wd_state = hw_disable_watchdog();
-
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
   if (first) first = false; else putchar(',');                          \
   printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm(),       \
@@ -345,9 +336,6 @@ void vars_print_json() {
   putchar('}');
 #include "vars.def"
 #undef VAR
-
-  // Restore watchdog
-  hw_restore_watchdog(wd_state);
 }
 
 

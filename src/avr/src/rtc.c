@@ -34,6 +34,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
 
 #include <string.h>
 
@@ -48,6 +49,7 @@ ISR(RTC_OVF_vect) {
   hy_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
   lcd_rtc_callback();
+  wdt_reset();
 }
 
 

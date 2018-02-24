@@ -39,7 +39,7 @@ typedef struct {
 
   switch_callback_t cb;
   bool state;
-  bool triggered;
+  int8_t debounce;
 } switch_t;
 
 
@@ -66,49 +66,11 @@ static switch_t switches[] = {
 const int num_switches = sizeof(switches) / sizeof (switch_t);
 
 
-static bool _read_state(const switch_t *s) {return IN_PIN(s->pin);}
-
-
-static void _switch_isr() {
-  for (int i = 0; i < num_switches; i++) {
-    switch_t *s = &switches[i];
-    if (s->type == SW_DISABLED || s->triggered) continue;
-    s->triggered = _read_state(s) != s->state;
-    if (s->triggered) PORT(s->pin)->INT0MASK &= ~BM(s->pin); // Disable INT0
-  }
-}
-
-
-// Switch interrupt handler vectors
-ISR(PORTA_INT0_vect) {_switch_isr();}
-ISR(PORTB_INT0_vect) {_switch_isr();}
-ISR(PORTC_INT0_vect) {_switch_isr();}
-ISR(PORTD_INT0_vect) {_switch_isr();}
-ISR(PORTE_INT0_vect) {_switch_isr();}
-ISR(PORTF_INT0_vect) {_switch_isr();}
-
-
-void _switch_enable(switch_t *s, bool enable) {
-  if (enable) {
-    s->triggered = false;
-    s->state = _read_state(s);                  // Initialize state
-    PORT(s->pin)->INT0MASK |= BM(s->pin);       // Enable INT0
-
-  } else PORT(s->pin)->INT0MASK &= ~BM(s->pin); // Disable INT0
-}
-
-
 void switch_init() {
   for (int i = 0; i < num_switches; i++) {
     switch_t *s = &switches[i];
-
-    // Pull up, trigger on both edges and enable slew rate limiting
-    PINCTRL_PIN(s->pin) =
-      PORT_OPC_PULLUP_gc | PORT_ISC_BOTHEDGES_gc;// | PORT_SRLEN_bm;
+    PINCTRL_PIN(s->pin) = PORT_OPC_PULLUP_gc; // Pull up
     DIRCLR_PIN(s->pin); // Input
-    PORT(s->pin)->INTCTRL |= SWITCH_INTLVL; // Set interrupt level
-
-    _switch_enable(s, s->type != SW_DISABLED);
   }
 }
 
@@ -118,14 +80,14 @@ void switch_rtc_callback() {
   for (int i = 0; i < num_switches; i++) {
     switch_t *s = &switches[i];
 
-    if (s->type == SW_DISABLED || !s->triggered) continue;
+    if (s->type == SW_DISABLED) continue;
 
-    bool state = _read_state(s);
-    s->triggered = false;
-    PORT(s->pin)->INT0MASK |= BM(s->pin); // Reenable INT0
-
-    if (state != s->state) {
+    // Debounce switch
+    bool state = IN_PIN(s->pin);
+    if (state == s->state) s->debounce = 0;
+    else if (++s->debounce == SWITCH_DEBOUNCE) {
       s->state = state;
+      s->debounce = 0;
       if (s->cb) s->cb(i, switch_is_active(i));
     }
   }
@@ -159,8 +121,10 @@ void switch_set_type(int index, switch_type_t type) {
   switch_t *s = &switches[index];
 
   if (s->type != type) {
+    bool wasActive = switch_is_active(index);
     s->type = type;
-    _switch_enable(s, type != SW_DISABLED);
+    bool isActive = switch_is_active(index);
+    if (wasActive != isActive && s->cb) s->cb(index, isActive);
   }
 }
 

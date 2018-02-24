@@ -63,8 +63,6 @@ typedef const char *pstring;
 float square(float x) {return x * x;}
 void i2c_set_read_callback(i2c_read_cb_t cb) {}
 void print_status_flags(uint8_t flags) {DEBUG_CALL();}
-uint8_t hw_disable_watchdog() {return 0;}
-void hw_restore_watchdog(uint8_t state) {}
 
 
 bool estop = false;
