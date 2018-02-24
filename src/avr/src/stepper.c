@@ -35,6 +35,7 @@
 #include "cpp_magic.h"
 #include "report.h"
 #include "exec.h"
+#include "drv8711.h"
 
 #include <string.h>
 #include <stdio.h>
@@ -82,10 +83,18 @@ void stepper_init() {
 }
 
 
+static void _end_move() {
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_end_move(motor);
+}
+
+
 void st_shutdown() {
-  OUTCLR_PIN(MOTOR_ENABLE_PIN);
-  st.dwell = 0;
-  st.move_type = MOVE_TYPE_NULL;
+  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Disable motors
+  TIMER_STEP.CTRLA = 0;         // Stop stepper clock
+  _end_move();                  // Stop motor clocks
+  ADCB_CH0_INTCTRL = 0;         // Disable next move interrupt
+  drv8711_shutdown();           // Disable drivers
 }
 
 
@@ -136,21 +145,8 @@ static void _request_exec_move() {
 }
 
 
-static void _end_move() {
-  for (int motor = 0; motor < MOTORS; motor++)
-    motor_end_move(motor);
-}
-
-
 /// Dwell or dequeue and load next move.
 static void _load_move() {
-  // Check EStop
-  if (estop_triggered()) {
-    st.move_type = MOVE_TYPE_NULL;
-    _end_move();
-    return;
-  }
-
   // New clock period
   TIMER_STEP.PER = st.clock_period;
 

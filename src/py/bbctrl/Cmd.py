@@ -41,7 +41,6 @@ SEEK      = 's'
 SET_AXIS  = 'a'
 LINE      = 'l'
 DWELL     = 'd'
-OUTPUT    = 'o'
 OPT_PAUSE = 'p'
 PAUSE     = 'P'
 UNPAUSE   = 'U'
@@ -100,7 +99,6 @@ def line(target, exitVel, maxAccel, maxJerk, times):
     return cmd
 
 
-def tool(tool): return '#t=%d' % tool
 def speed(speed): return '#s=:' + encode_float(speed)
 
 
@@ -111,7 +109,17 @@ def output(port, value):
 
 
 def dwell(seconds): return 'd' + encode_float(seconds)
-def pause(optional = False): 'P' + ('1' if optional else '0')
+
+
+def pause(type):
+    if type == 'program': type = 2
+    elif type == 'optional': type = 3
+    elif type == 'pallet-change': type = 2
+    else: raise Exception('Unknown pause type "%s"' % type)
+
+    return 'P%d' % type
+
+
 def jog(axes): return 'j' + encode_axes(axes)
 
 

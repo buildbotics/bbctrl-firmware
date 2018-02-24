@@ -264,8 +264,3 @@ int16_t usart_rx_space() {return rx_buf_space();}
 int16_t usart_rx_fill() {return rx_buf_fill();}
 int16_t usart_tx_space() {return tx_buf_space();}
 int16_t usart_tx_fill() {return tx_buf_fill();}
-
-
-// Var callbacks
-bool get_echo() {return usart_is_set(USART_ECHO);}
-void set_echo(bool value) {return usart_set(USART_ECHO, value);}

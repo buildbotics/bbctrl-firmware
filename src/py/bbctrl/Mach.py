@@ -88,22 +88,27 @@ class Mach():
         # Handle EStop
         if 'xx' in update and state == 'ESTOPPED':
             self._stop_sending_gcode()
+            self.stopping = False
 
         # Handle stop
-        if self.stopping and 'xx' in update and state == 'HOLDING':
-            self._stop_sending_gcode()
-            # Resume once current queue of GCode commands has flushed
-            self.comm.i2c_command(Cmd.FLUSH)
-            self.comm.queue_command(Cmd.RESUME)
-            self.ctrl.state.set('line', 0)
-            self.stopping = False
+        if self.stopping:
+            if state == 'READY' and not self.planner.is_running():
+                self.stopping = False
+
+            if state == 'HOLDING':
+                self._stop_sending_gcode()
+                # Resume once current queue of GCode commands has flushed
+                self.comm.i2c_command(Cmd.FLUSH)
+                self.comm.queue_command(Cmd.RESUME)
+                self.ctrl.state.set('line', 0)
+                self.stopping = False
 
         # Update cycle
         if (self._get_cycle() != 'idle' and not self.planner.is_busy() and
             not self.comm.is_active() and state == 'READY'):
             self.ctrl.state.set('cycle', 'idle')
 
-        # Automatically unpause on seek hold
+        # Continue after seek hold
         if (state == 'HOLDING' and
             self.ctrl.state.get('pr', '') == 'Switch found' and
             self.planner.is_synchronizing()):
@@ -163,6 +168,8 @@ class Mach():
 
 
     def home(self, axis, position = None):
+        state = self.ctrl.state
+
         if position is not None:
             self.mdi('G28.3 %c%f' % (axis, position))
 
@@ -173,17 +180,29 @@ class Mach():
             else: axes = '%c' % axis
 
             for axis in axes:
-                if not self.ctrl.state.axis_can_home(axis):
-                    log.warning('Cannot home ' + axis)
+                # If this is not a request to home a specific axis and the
+                # axis is disabled or in manual homing mode, don't show any
+                # warnings
+                if 1 < len(axes) and (
+                        not state.is_axis_enabled(axis) or
+                        state.axis_homing_mode(axis) == 'manual'):
                     continue
 
+                # Error when axes cannot be homed
+                reason = state.axis_home_fail_reason(axis)
+                if reason is not None:
+                    log.error('Cannot home %s axis: %s' % (
+                        axis.upper(), reason))
+                    continue
+
+                # Home axis
                 log.info('Homing %s axis' % axis)
                 self.planner.mdi(axis_homing_procedure % {'axis': axis})
                 self.comm.set_write(True)
 
 
-    def estop(self): self.comm.i2c_command(Cmd.ESTOP)
-    def clear(self): self.comm.i2c_command(Cmd.CLEAR)
+    def estop(self): self.comm.estop()
+    def clear(self): self.comm.clear()
 
 
     def select(self, path):
@@ -211,22 +230,24 @@ class Mach():
         self.stopping = True
 
 
-    def pause(self): self.comm.i2c_command(Cmd.PAUSE, byte = 0)
+    def pause(self): self.comm.pause()
 
 
     def unpause(self):
         if self.ctrl.state.get('xx', '') != 'HOLDING': return
 
-        self.comm.i2c_command(Cmd.FLUSH)
-        self.comm.queue_command(Cmd.RESUME)
-        self.planner.restart()
-        self.comm.set_write(True)
+        pause_reason = self.ctrl.state.get('pr', '')
+        if pause_reason in ['User paused', 'Switch found']:
+            self.comm.i2c_command(Cmd.FLUSH)
+            self.comm.queue_command(Cmd.RESUME)
+            self.planner.restart()
+            self.comm.set_write(True)
+
         self.comm.i2c_command(Cmd.UNPAUSE)
 
 
     def optional_pause(self):
-        if self._get_cycle() == 'running':
-            self.comm.i2c_command(Cmd.PAUSE, byte = 1)
+        if self._get_cycle() == 'running': self.comm.pause(True)
 
 
     def set_position(self, axis, position):

@@ -48,7 +48,7 @@ module.exports = {
 
 
   events: {
-    message: function (msg) {
+    log: function (msg) {
       // There may be multiple instances of this module so ignore messages
       // that have already been processed.
       if (msg.logged) return;

@@ -44,8 +44,6 @@ static struct {
   float accel;
   float jerk;
 
-  int tool;
-
   float feed_override;
   float spindle_override;
 } ex;
@@ -99,16 +97,13 @@ stat_t exec_next() {
 
 
 // Variable callbacks
-uint8_t get_tool() {return ex.tool;}
+float get_axis_position(int axis) {return ex.position[axis];}
 float get_velocity() {return ex.velocity / VELOCITY_MULTIPLIER;}
 float get_acceleration() {return ex.accel / ACCEL_MULTIPLIER;}
 float get_jerk() {return ex.jerk / JERK_MULTIPLIER;}
 float get_feed_override() {return ex.feed_override;}
-float get_speed_override() {return ex.spindle_override;}
-float get_axis_position(int axis) {return ex.position[axis];}
-
-void set_tool(uint8_t tool) {ex.tool = tool;}
 void set_feed_override(float value) {ex.feed_override = value;}
+float get_speed_override() {return ex.spindle_override;}
 void set_speed_override(float value) {ex.spindle_override = value;}
 
 
@@ -160,8 +155,3 @@ void command_set_axis_exec(void *data) {
   // Report
   report_request();
 }
-
-
-stat_t command_opt_pause(char *cmd) {command_push(*cmd, 0); return STAT_OK;}
-unsigned command_opt_pause_size() {return 0;}
-void command_opt_pause_exec(void *data) {} // TODO pause if requested

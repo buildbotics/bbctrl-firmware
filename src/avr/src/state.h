@@ -45,12 +45,17 @@ typedef enum {
 typedef enum {
   HOLD_REASON_USER_PAUSE,
   HOLD_REASON_PROGRAM_PAUSE,
-  HOLD_REASON_PROGRAM_END,
-  HOLD_REASON_PALLET_CHANGE,
-  HOLD_REASON_TOOL_CHANGE,
   HOLD_REASON_STEPPING,
   HOLD_REASON_SEEK,
 } hold_reason_t;
+
+
+typedef enum {
+  PAUSE_USER,
+  PAUSE_OPTIONAL,
+  PAUSE_PROGRAM,
+  PAUSE_PROGRAM_OPTIONAL,
+} pause_t;
 
 
 PGM_P state_get_pgmstr(state_t state);
@@ -64,7 +69,6 @@ bool state_is_quiescent();
 
 void state_seek_hold();
 void state_holding();
-void state_optional_pause();
 void state_running();
 void state_jogging();
 void state_idle();

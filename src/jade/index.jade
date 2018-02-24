@@ -159,6 +159,16 @@ html(lang="en")
       h3(slot="header") Firmware upgrading
       p(slot="body") Please wait...
 
+    message(:show.sync="showMessages")
+      h3(slot="header") GCode message
+
+      div(slot="body")
+        ul
+          li(v-for="msg in messages") {{msg}}
+
+      div(slot="footer")
+        button.pure-button.button-success(@click="close_messages") OK
+
     #templates
       include ../../build/templates.jade
 

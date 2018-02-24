@@ -210,6 +210,22 @@ class Comm():
             log.warning('Serial handler error: %s', traceback.format_exc())
 
 
+    def estop(self):
+        if self.ctrl.state.get('xx', '') != 'ESTOPPED':
+            self.i2c_command(Cmd.ESTOP)
+
+
+    def clear(self):
+        if self.ctrl.state.get('xx', '') == 'ESTOPPED':
+            self.i2c_command(Cmd.CLEAR)
+            self.reboot_expected = True
+
+
+    def pause(self, optional = False):
+        data = ord('1' if optional else '0')
+        self.i2c_command(Cmd.PAUSE, byte = data)
+
+
     def reboot(self):
         self.queue_command(Cmd.REBOOT)
         self.reboot_expected = True

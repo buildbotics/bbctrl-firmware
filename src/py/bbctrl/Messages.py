@@ -50,6 +50,11 @@ class Messages(logging.Handler):
     def remove_listener(self, listener): self.listeners.remove(listener)
 
 
+    def broadcast(self, msg):
+        for listener in self.listeners:
+            listener(msg)
+
+
     # From logging.Handler
     def emit(self, record):
         if record.levelno == logging.INFO: return
@@ -61,5 +66,4 @@ class Messages(logging.Handler):
         if hasattr(record, 'where'): msg['where'] = record.where
         else: msg['where'] = '%s:%d' % (record.filename, record.lineno)
 
-        for listener in self.listeners:
-            listener(msg)
+        self.broadcast({'log': msg})

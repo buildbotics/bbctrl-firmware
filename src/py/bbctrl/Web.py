@@ -274,21 +274,20 @@ class ClientConnection(object):
         self.count += 1
 
 
-    def notify(self, msg): self.send(dict(msg = msg))
     def send(self, msg): raise HTTPError(400, 'Not implemented')
 
 
     def on_open(self, *args, **kwargs):
         self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.ctrl.state.add_listener(self.send)
-        self.ctrl.msgs.add_listener(self.notify)
+        self.ctrl.msgs.add_listener(self.send)
         self.is_open = True
 
 
     def on_close(self):
         self.ctrl.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
-        self.ctrl.msgs.remove_listener(self.notify)
+        self.ctrl.msgs.remove_listener(self.send)
 
 
     def on_message(self, data): self.ctrl.mach.mdi(data)

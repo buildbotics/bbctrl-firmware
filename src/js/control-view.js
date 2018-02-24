@@ -241,7 +241,10 @@ module.exports = {
 
     update: function () {
       // Update file list
-      api.get('file').done(function (files) {this.files = files}.bind(this))
+      api.get('file').done(function (files) {
+        this.files = files;
+        this.load();
+      }.bind(this))
     },
 
 
@@ -281,7 +284,7 @@ module.exports = {
 
     load: function () {
       var file = this.state.selected;
-      if (file == this.last_file) return;
+      if (typeof file == 'undefined' || file == this.last_file) return;
 
       api.get('file/' + file)
         .done(function (data) {

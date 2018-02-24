@@ -159,8 +159,7 @@ class State(object):
                 return motor
 
 
-    def is_axis_homed(self, axis):
-        return self.get('%s_homed' % axis, False)
+    def is_axis_homed(self, axis): return self.get('%s_homed' % axis, False)
 
 
     def is_axis_enabled(self, axis):
@@ -168,33 +167,50 @@ class State(object):
         return False if motor is None else self.motor_enabled(motor)
 
 
-    def axis_can_home(self, axis):
+    def axis_homing_mode(self, axis):
         motor = self.find_motor(axis)
-        if motor is None: return False
-        if not self.motor_enabled(motor): return False
+        if motor is None: return 'disabled'
+        return self.motor_homing_mode(motor)
 
-        homing_mode = self.motor_homing_mode(motor)
-        if homing_mode == 1: return bool(int(self.get(axis + '_ls'))) # min sw
-        if homing_mode == 2: return bool(int(self.get(axis + '_xs'))) # max sw
-        return False
+
+    def axis_home_fail_reason(self, axis):
+        motor = self.find_motor(axis)
+        if motor is None: return 'Not mapped to motor'
+        if not self.motor_enabled(motor): return 'Motor disabled'
+
+        mode = self.motor_homing_mode(motor)
+
+        if mode == 'manual': return 'Configured for manual homing'
+
+        if mode == 'switch-min' and not int(self.get(axis + '_ls')):
+            return 'Configured for min switch but switch is disabled'
+
+        if mode == 'switch-max' and not int(self.get(axis + '_xs')):
+            return 'Configured for max switch but switch is disabled'
 
 
     def motor_enabled(self, motor):
         return bool(int(self.vars.get('%dpm' % motor, 0)))
 
 
-    def motor_homing_mode(self, motor): return int(self.vars['%dho' % motor])
+    def motor_homing_mode(self, motor):
+        mode = str(self.vars.get('%dho' % motor, 0))
+        if mode == '0': return 'manual'
+        if mode == '1': return 'switch-min'
+        if mode == '2': return 'switch-max'
+        raise Exception('Unrecognized homing mode "%s"' % mode)
 
 
     def motor_home_direction(self, motor):
-        homing_mode = self.motor_homing_mode(motor)
-        if homing_mode == 1: return -1 # Switch min
-        if homing_mode == 2: return 1  # Switch max
+        mode = self.motor_homing_mode(motor)
+        if mode == 'switch-min': return -1
+        if mode == 'switch-max': return 1
         return 0 # Disabled
 
 
     def motor_home_position(self, motor):
-        homing_mode = self.motor_homing_mode(motor)
-        if homing_mode == 1: return self.vars['%dtn' % motor] # Min soft limit
-        if homing_mode == 2: return self.vars['%dtm' % motor] # Max soft limit
+        mode = self.motor_homing_mode(motor)
+        # Return soft limit positions
+        if mode == 'switch-min': return self.vars['%dtn' % motor]
+        if mode == 'switch-max': return self.vars['%dtm' % motor]
         return 0 # Disabled

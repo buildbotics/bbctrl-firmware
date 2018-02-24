@@ -207,7 +207,13 @@ bool command_callback() {
 
   // Reporting
   report_request();
-  if (status && status != STAT_NOP) STATUS_ERROR(status, "");
+
+  switch (status) {
+  case STAT_OK: break;
+  case STAT_NOP: break;
+  case STAT_MACHINE_ALARMED: STATUS_WARNING(status, ""); break;
+  default: STATUS_ERROR(status, ""); break;
+  }
 
   return true;
 }

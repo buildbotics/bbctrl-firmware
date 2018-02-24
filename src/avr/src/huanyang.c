@@ -325,14 +325,15 @@ static bool _check_response() {
     ha.response[ha.response_length - 2];
 
   if (computed != expected) {
-    STATUS_WARNING("huanyang: invalid CRC, expected=0x%04u got=0x%04u",
+    STATUS_WARNING(STAT_OK, "huanyang: invalid CRC, expected=0x%04u got=0x%04u",
                    expected, computed);
     return false;
   }
 
   // Check if response code matches the code we sent
   if (ha.command[1] != ha.response[1]) {
-    STATUS_WARNING("huanyang: invalid function code, expected=%u got=%u",
+    STATUS_WARNING(STAT_OK,
+                   "huanyang: invalid function code, expected=%u got=%u",
                    ha.command[2], ha.response[2]);
     return false;
   }

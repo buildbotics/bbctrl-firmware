@@ -54,14 +54,17 @@ class FileHandler(bbctrl.APIHandler):
         with open(path, 'wb') as f:
             f.write(gcode['body'])
 
+        self.ctrl.state.set('selected', gcode['filename'])
+
 
     def get(self, path):
         if path:
             path = path[1:]
-            self.ctrl.mach.select(path)
 
             with open('upload/' + path, 'r') as f:
                 self.write_json(f.read())
+
+            self.ctrl.mach.select(path)
             return
 
         files = []

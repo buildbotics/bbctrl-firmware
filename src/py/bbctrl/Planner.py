@@ -111,7 +111,10 @@ class Planner():
         # Apply all set commands <= to ID and those that follow consecutively
         while len(self.setq) and self.setq[0][0] - 1 <= self.lastID:
             id, name, value = self.setq.popleft()
-            self.ctrl.state.set(name, value)
+
+            if name == 'message': self.ctrl.msgs.broadcast({'message': value})
+            else: self.ctrl.state.set(name, value)
+
             if id == self.lastID + 1: self.lastID = id
 
 
@@ -161,16 +164,19 @@ class Planner():
         if type == 'set':
             name, value = block['name'], block['value']
 
-            if name == 'line': self._queue_set_cmd(block['id'], name, value)
-            if name == 'tool': return Cmd.tool(value)
+            if name in ['message', 'line', 'tool']:
+                self._queue_set_cmd(block['id'], name, value)
+
             if name == 'speed': return Cmd.speed(value)
+
             if name == '_mist':
                 self._queue_set_cmd(block['id'], 'load1state', value)
+
             if name == '_flood':
                 self._queue_set_cmd(block['id'], 'load2state', value)
-            if name[0:1] == '_' and name[1:2] in 'xyzabc' and \
-                    name[2:] == '_home':
-                return Cmd.set_axis(name[1], value)
+
+            if (name[0:1] == '_' and name[1:2] in 'xyzabc' and
+                name[2:] == '_home'): return Cmd.set_axis(name[1], value)
 
             if len(name) and name[0] == '_':
                 self._queue_set_cmd(block['id'], name[1:], value)
@@ -181,7 +187,7 @@ class Planner():
             return Cmd.output(block['port'], int(float(block['value'])))
 
         if type == 'dwell': return Cmd.dwell(block['seconds'])
-        if type == 'pause': return Cmd.pause(block['optional'])
+        if type == 'pause': return Cmd.pause(block['pause-type'])
         if type == 'seek':
             return Cmd.seek(block['switch'], block['active'], block['error'])
 

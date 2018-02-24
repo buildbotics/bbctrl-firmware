@@ -26,18 +26,14 @@
 \******************************************************************************/
 
 #include "config.h"
-#include "rtc.h"
 #include "stepper.h"
 #include "command.h"
 #include "vars.h"
 #include "base64.h"
 #include "hardware.h"
 #include "report.h"
-#include "state.h"
 #include "exec.h"
-#include "util.h"
 
-#include <string.h>
 #include <stdio.h>
 
 
@@ -62,12 +58,6 @@ void command_dwell_exec(float *seconds) {
   st_prep_dwell(*seconds);
   exec_set_cb(_dwell_exec); // Necessary evil
 }
-
-
-// TODO
-stat_t command_out(char *cmd) {return STAT_OK;}
-unsigned command_out_size() {return 0;}
-void command_out_exec(void *data) {}
 
 
 stat_t command_help(char *cmd) {

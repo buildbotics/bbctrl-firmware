@@ -41,13 +41,7 @@ default_config = {
         {"axis": "Y"},
         {"axis": "Z"},
         {"axis": "A", "power-mode" : "disabled"},
-        ],
-    "switches": {},
-    "outputs": {},
-    "tool": {},
-    "gcode": {},
-    "planner": {},
-    "admin": {},
+        ]
     }
 
 
@@ -63,6 +57,11 @@ class Config(object):
             with open(bbctrl.get_resource('http/config-template.json'), 'r',
                       encoding = 'utf-8') as f:
                 self.template = json.load(f)
+
+            # Add all sections from template to default config
+            for section in self.template:
+                if not section in default_config:
+                    default_config[section] = {}
 
         except Exception as e: log.exception(e)
 

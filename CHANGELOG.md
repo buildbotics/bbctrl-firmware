@@ -4,6 +4,15 @@ Buildbotics CNC Controller Firmware Change Log
 ## v0.3.12
  - Updated DB25 M2 breakout diagram.
  - Enabled AVR watchdog.
+ - Fixed problem with selecting newly uploaded file.
+ - More thorough shutdown of stepper driver in estop.
+ - Fixed spindle type specific options.
+ - No more ``Unexpected AVR firmware reboot`` errors on estop clear.
+ - Downgraded ``Machine alarmed - Command not processed`` errors to warnings.
+ - Suppress unnecessary axis homing warnings.
+ - More details for axis homing errors.
+ - Support GCode messages e.g. (MSG, Hello World!)
+ - Support programmed pauses.  i.e. M0
 
 ## v0.3.11
  - Supressed ``firmware rebooted`` warning.

@@ -190,6 +190,10 @@ static stat_t _pause() {
     exec_set_jerk(0);
     _done();
 
+    // TODO it's possible to exit here and have no more moves
+    // Apparently this pause method can take longer to pause than the
+    // actual move.  FIX ME!!!
+
     return STAT_AGAIN;
   }
 

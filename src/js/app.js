@@ -70,7 +70,8 @@ module.exports = new Vue({
       checkedUpgrade: false,
       firmwareName: '',
       latestVersion: '',
-      password: ''
+      password: '',
+      showMessages: false
     }
   },
 
@@ -237,11 +238,13 @@ module.exports = new Vue({
       this.sock.onmessage = function (e) {
         var msg = e.data;
 
-        if (typeof msg == 'object')
+        if (typeof msg == 'object') {
           for (var key in msg) {
-            if (key == 'msg') this.$broadcast('message', msg.msg);
+            if (key == 'log') this.$broadcast('log', msg.log);
+            else if (key == 'message') this.add_message(msg.message);
             else Vue.set(this.state, key, msg[key]);
           }
+        }
       }.bind(this)
 
       this.sock.onopen = function (e) {
@@ -279,6 +282,18 @@ module.exports = new Vue({
       }.bind(this)).fail(function (error) {
         alert('Save failed: ' + error);
       });
+    },
+
+
+    add_message: function (msg) {
+      this.messages.unshift(msg);
+      this.showMessages = true;
+    },
+
+
+    close_messages: function () {
+      this.showMessages = false;
+      this.messages.splice(0, this.messages.length);
     }
   }
 })

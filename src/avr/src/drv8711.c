@@ -366,6 +366,11 @@ void drv8711_init() {
 }
 
 
+void drv8711_shutdown() {
+  SPIC.INTCTRL = 0; // Disable SPI interrupts
+}
+
+
 drv8711_state_t drv8711_get_state(int driver) {
   if (driver < 0 || DRIVERS <= driver) return DRV8711_DISABLED;
   return drivers[driver].state;
