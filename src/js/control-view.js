@@ -275,7 +275,6 @@ module.exports = {
 
       api.upload('file', fd)
         .done(function () {
-          file.name;
           if (file.name == this.last_file) this.last_file = '';
           this.update();
         }.bind(this));

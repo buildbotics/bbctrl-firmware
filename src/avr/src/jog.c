@@ -247,9 +247,16 @@ stat_t jog_exec() {
 }
 
 
+void jog_stop() {
+  jr.writing = true;
+  for (int axis = 0; axis < AXES; axis++)
+    jr.axes[axis].next = 0;
+  jr.writing = false;
+}
+
 
 stat_t command_jog(char *cmd) {
-  // Ignore jog commands when not already idle
+  // Ignore jog commands when not READY or JOGGING
   if (state_get() != STATE_READY && state_get() != STATE_JOGGING)
     return STAT_NOP;
 

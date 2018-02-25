@@ -113,6 +113,12 @@ output_state_t outputs_get_state(uint8_t pin) {
 }
 
 
+void outputs_stop() {
+  outputs_set_active(SWITCH_1_PIN, false);
+  outputs_set_active(SWITCH_2_PIN, false);
+}
+
+
 // Var callbacks
 uint8_t get_output_state(uint8_t id) {
   return OUTS <= id ? OUT_TRI : outputs[id].state;

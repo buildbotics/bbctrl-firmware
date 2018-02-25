@@ -59,7 +59,7 @@ class Mach():
         self.ctrl = ctrl
         self.planner = bbctrl.Planner(ctrl)
         self.comm = bbctrl.Comm(ctrl, self._comm_next, self._comm_connect)
-        self.stopping = False
+        self.update_timer = None
 
         ctrl.state.set('cycle', 'idle')
         ctrl.state.add_listener(self._update)
@@ -67,6 +67,7 @@ class Mach():
         self.comm.reboot()
 
 
+    def _get_state(self): return self.ctrl.state.get('xx', '')
     def _get_cycle(self): return self.ctrl.state.get('cycle')
 
 
@@ -82,36 +83,33 @@ class Mach():
                             (cycle, current))
 
 
+    def _update_cycle(self):
+        # Cancel timer if set
+        if self.update_timer is not None:
+            self.ctrl.ioloop.remove_timeout(self.update_timer)
+            self.update_timer = None
+
+        # Check for idle state
+        if self._get_cycle() != 'idle' and self._get_state() == 'READY':
+            # Check again later if busy
+            if self.planner.is_busy() or self.comm.is_active():
+                self.ctrl.ioloop.call_later(0.5, self._update_cycle)
+
+            else: self.ctrl.state.set('cycle', 'idle')
+
+
     def _update(self, update):
-        state = self.ctrl.state.get('xx', '')
+        state = self._get_state()
 
         # Handle EStop
-        if 'xx' in update and state == 'ESTOPPED':
-            self._stop_sending_gcode()
-            self.stopping = False
-
-        # Handle stop
-        if self.stopping:
-            if state == 'READY' and not self.planner.is_running():
-                self.stopping = False
-
-            if state == 'HOLDING':
-                self._stop_sending_gcode()
-                # Resume once current queue of GCode commands has flushed
-                self.comm.i2c_command(Cmd.FLUSH)
-                self.comm.queue_command(Cmd.RESUME)
-                self.ctrl.state.set('line', 0)
-                self.stopping = False
+        if 'xx' in update and state == 'ESTOPPED': self.planner.reset()
 
         # Update cycle
-        if (self._get_cycle() != 'idle' and not self.planner.is_busy() and
-            not self.comm.is_active() and state == 'READY'):
-            self.ctrl.state.set('cycle', 'idle')
+        self._update_cycle()
 
         # Continue after seek hold
-        if (state == 'HOLDING' and
-            self.ctrl.state.get('pr', '') == 'Switch found' and
-            self.planner.is_synchronizing()):
+        if (state == 'HOLDING' and self.planner.is_synchronizing() and
+            self.ctrl.state.get('pr', '') == 'Switch found'):
             self.unpause()
 
 
@@ -119,15 +117,9 @@ class Mach():
         if self.planner.is_running(): return self.planner.next()
 
 
-    def _comm_connect(self): self._stop_sending_gcode()
-
-
-    def _start_sending_gcode(self, path):
-        self.planner.load('upload/' + path)
-        self.comm.set_write(True)
-
-
-    def _stop_sending_gcode(self): self.planner.reset()
+    def _comm_connect(self):
+        self.ctrl.state.reset()
+        self.planner.reset()
 
 
     def _query_var(self, cmd):
@@ -155,7 +147,7 @@ class Mach():
         else:
             self._begin_cycle('mdi')
             self.planner.mdi(cmd)
-            self.comm.set_write(True)
+            self.comm.resume()
 
 
     def set(self, code, value):
@@ -198,11 +190,16 @@ class Mach():
                 # Home axis
                 log.info('Homing %s axis' % axis)
                 self.planner.mdi(axis_homing_procedure % {'axis': axis})
-                self.comm.set_write(True)
+                self.comm.resume()
 
 
     def estop(self): self.comm.estop()
-    def clear(self): self.comm.clear()
+
+
+    def clear(self):
+        if self._get_state() == 'ESTOPPED':
+            self.ctrl.state.reset()
+            self.comm.clear()
 
 
     def select(self, path):
@@ -216,37 +213,39 @@ class Mach():
 
     def start(self):
         self._begin_cycle('running')
-        self._start_sending_gcode(self.ctrl.state.get('selected'))
+        self.planner.load('upload/' + self.ctrl.state.get('selected'))
+        self.comm.resume()
 
 
     def step(self):
         raise Exception('NYI') # TODO
-        self.comm.i2c_command(Cmd.STEP)
         if self._get_cycle() != 'running': self.start()
+        else: self.comm.i2c_command(Cmd.UNPAUSE)
 
 
     def stop(self):
-        self.pause()
-        self.stopping = True
+        if self._get_cycle() == 'idle': self._begin_cycle('running')
+        self.comm.i2c_command(Cmd.STOP)
+        self.planner.stop()
+        self.ctrl.state.set('line', 0)
 
 
     def pause(self): self.comm.pause()
 
 
     def unpause(self):
-        if self.ctrl.state.get('xx', '') != 'HOLDING': return
+        if self._get_state() != 'HOLDING': return
 
         pause_reason = self.ctrl.state.get('pr', '')
         if pause_reason in ['User paused', 'Switch found']:
-            self.comm.i2c_command(Cmd.FLUSH)
-            self.comm.queue_command(Cmd.RESUME)
             self.planner.restart()
-            self.comm.set_write(True)
+            self.comm.resume()
 
         self.comm.i2c_command(Cmd.UNPAUSE)
 
 
     def optional_pause(self):
+        # TODO this could work better as a variable, i.e. $op=1
         if self._get_cycle() == 'running': self.comm.pause(True)
 
 

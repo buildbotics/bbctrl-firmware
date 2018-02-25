@@ -1,6 +1,10 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.13
+ - Disable spindle and loads on stop.
+ - Fixed several state transition (stop, pause, estop, etc.) problems.
+
 ## v0.3.12
  - Updated DB25 M2 breakout diagram.
  - Enabled AVR watchdog.

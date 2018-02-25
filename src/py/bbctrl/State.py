@@ -62,11 +62,17 @@ class State(object):
             self.set_callback(str(i) + 'hp',
                      lambda name, i = i: self.motor_home_position(i))
 
-            # Set not homed
-            self.set('%dhomed' % i, False)
+        self.reset()
 
-        # Zero offsets
-        for axis in 'xyzabc': self.vars['offset_' + axis] = 0
+
+    def reset(self):
+        # Unhome all motors
+        for i in range(4): self.set('%dhomed' % i, False)
+
+        # Zero offsets and positions
+        for axis in 'xyzabc':
+            self.set(axis + 'p', 0)
+            self.set('offset_' + axis, 0)
 
 
     def _notify(self):

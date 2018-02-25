@@ -47,7 +47,7 @@ class Comm():
         self.queue = deque()
         self.in_buf = ''
         self.command = None
-        self.reboot_expected = False
+        self.reboot_expected = True
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -92,7 +92,7 @@ class Comm():
                     raise
 
 
-    def set_write(self, enable):
+    def _set_write(self, enable):
         if self.sp is None: return
 
         flags = self.ctrl.ioloop.READ
@@ -105,9 +105,12 @@ class Comm():
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
 
 
+    def resume(self): self.queue_command(Cmd.RESUME)
+
+
     def queue_command(self, cmd):
         self.queue.append(cmd)
-        self.set_write(True)
+        self._set_write(True)
 
 
     def _serial_write(self):
@@ -117,7 +120,7 @@ class Comm():
                 count = self.sp.write(self.command)
 
             except Exception as e:
-                self.set_write(False)
+                self.command = None
                 raise e
 
             self.command = self.command[count:]
@@ -131,7 +134,7 @@ class Comm():
         else:
             cmd = self.next_cb()
 
-            if cmd is None: self.set_write(False) # Stop writing
+            if cmd is None: self._set_write(False) # Stop writing
             else: self._load_next_command(cmd)
 
 
@@ -189,14 +192,13 @@ class Comm():
 
                 if 'variables' in msg:
                     self._update_vars(msg)
+                    self.reboot_expected = False
 
-                elif 'msg' in msg:
-                    self._log_msg(msg)
+                elif 'msg' in msg: self._log_msg(msg)
 
                 elif 'firmware' in msg:
                     if self.reboot_expected: log.info('AVR firmware rebooted')
                     else: log.error('Unexpected AVR firmware reboot')
-                    self.reboot_expected = False
                     self.connect()
 
                 else: self.ctrl.state.update(msg)

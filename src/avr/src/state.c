@@ -31,6 +31,8 @@
 #include "command.h"
 #include "stepper.h"
 #include "spindle.h"
+#include "outputs.h"
+#include "jog.h"
 #include "estop.h"
 #include "report.h"
 
@@ -41,11 +43,12 @@ static struct {
   state_t state;
   hold_reason_t hold_reason;
 
+  bool stop_requested;
   bool pause_requested;
-  bool flush_requested;
-  bool start_requested;
-  bool resume_requested;
   bool optional_pause_requested;
+  bool unpause_requested;
+  bool flush_requested;
+  bool resume_requested;
 
 } s = {
   .flush_requested = true, // Start out flushing
@@ -69,9 +72,9 @@ PGM_P state_get_pgmstr(state_t state) {
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
   case HOLD_REASON_USER_PAUSE:    return PSTR("User paused");
+  case HOLD_REASON_USER_STOP:     return PSTR("User stop");
   case HOLD_REASON_PROGRAM_PAUSE: return PSTR("Program paused");
-  case HOLD_REASON_STEPPING:      return PSTR("Stepping");
-  case HOLD_REASON_SEEK:          return PSTR("Switch found");
+  case HOLD_REASON_SWITCH_FOUND:  return PSTR("Switch found");
   }
 
   return PSTR("INVALID");
@@ -108,13 +111,54 @@ bool state_is_quiescent() {
 
 void state_seek_hold() {
   if (state_get() == STATE_RUNNING) {
-    _set_hold_reason(HOLD_REASON_SEEK);
+    _set_hold_reason(HOLD_REASON_SWITCH_FOUND);
     _set_state(STATE_STOPPING);
   }
 }
 
 
-void state_holding() {_set_state(STATE_HOLDING);}
+static void _stop() {
+  switch (state_get()) {
+  case STATE_STOPPING:
+  case STATE_RUNNING:
+    _set_hold_reason(HOLD_REASON_USER_STOP);
+    _set_state(STATE_STOPPING);
+    break;
+
+  case STATE_JOGGING:
+    jog_stop();
+    // Fall through
+
+  case STATE_READY:
+  case STATE_HOLDING:
+    s.flush_requested = true;
+    spindle_stop();
+    outputs_stop();
+    _set_state(STATE_READY);
+    break;
+
+  case STATE_ESTOPPED:
+    break; // Ignore
+  }
+}
+
+
+void state_holding() {
+  _set_state(STATE_HOLDING);
+
+  switch (s.hold_reason) {
+  case HOLD_REASON_PROGRAM_PAUSE: break;
+
+  case HOLD_REASON_USER_PAUSE:
+  case HOLD_REASON_SWITCH_FOUND:
+    s.flush_requested = true;
+    break;
+
+  case HOLD_REASON_USER_STOP:
+    _stop();
+    break;
+  }
+}
 
 
 void state_pause(bool optional) {
@@ -168,20 +212,25 @@ void state_estop() {_set_state(STATE_ESTOPPED);}
 void state_callback() {
   if (estop_triggered()) return;
 
+  // Pause
   if (s.pause_requested || s.flush_requested) {
-    if (s.pause_requested) _set_hold_reason(HOLD_REASON_USER_PAUSE);
-    s.pause_requested = false;
+    if (state_get() == STATE_RUNNING) {
+      if (s.pause_requested) _set_hold_reason(HOLD_REASON_USER_PAUSE);
+      _set_state(STATE_STOPPING);
+    }
 
-    if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
+    s.pause_requested = false;
+  }
+
+  // Stop
+  if (s.stop_requested) {
+    _stop();
+    s.stop_requested = false;
   }
 
   // Only flush queue when idle or holding
   if (s.flush_requested && state_is_quiescent()) {
     command_flush_queue();
-
-    // Stop spindle
-    // TODO Spindle should not be stopped when pausing
-    spindle_stop();
 
     // Resume
     if (s.resume_requested) {
@@ -191,9 +240,9 @@ void state_callback() {
   }
 
   // Don't start while flushing or stopping
-  if (s.start_requested && !s.flush_requested &&
+  if (s.unpause_requested && !s.flush_requested &&
       state_get() != STATE_STOPPING) {
-    s.start_requested = false;
+    s.unpause_requested = false;
     s.optional_pause_requested = false;
 
     if (state_get() == STATE_HOLDING) {
@@ -236,20 +285,20 @@ void command_pause_exec(void *data) {
 }
 
 
+stat_t command_stop(char *cmd) {
+  s.stop_requested = true;
+  return STAT_OK;
+}
+
+
 stat_t command_unpause(char *cmd) {
-  s.start_requested = true;
+  s.unpause_requested = true;
   return STAT_OK;
 }
 
 
 stat_t command_resume(char *cmd) {
   if (s.flush_requested) s.resume_requested = true;
-  return STAT_OK;
-}
-
-
-stat_t command_step(char *cmd) {
-  // TODO
   return STAT_OK;
 }
 

@@ -53,9 +53,7 @@ void exec_init() {
   memset(&ex, 0, sizeof(ex));
   ex.feed_override = 1;
   ex.spindle_override = 1;
-  // TODO implement move stepping
   // TODO implement overrides
-  // TODO implement optional pause
 }
 
 

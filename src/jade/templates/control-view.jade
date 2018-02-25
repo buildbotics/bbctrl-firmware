@@ -135,13 +135,13 @@ script#control-view-template(type="text/x-template")
         td
       tr
         th Load 1
-        td(:class="state.load1state ? 'load-on' : ''")
-          | {{state.load1state ? 'On' : 'Off'}}
+        td(:class="state['1oa'] ? 'load-on' : ''")
+          | {{state['1oa'] ? 'On' : 'Off'}}
         td
       tr
         th Load 2
-        td(:class="state.load2state ? 'load-on' : ''")
-          | {{state.load2state ? 'On' : 'Off'}}
+        td(:class="state['2oa'] ? 'load-on' : ''")
+          | {{state['2oa'] ? 'On' : 'Off'}}
         td
 
     .override(title="Feed rate override.")
@@ -167,8 +167,7 @@ script#control-view-template(type="text/x-template")
         @click="start_pause", :disabled="!state.selected")
         .fa(:class="state.xx == 'RUNNING' ? 'fa-pause' : 'fa-play'")
 
-      button.pure-button(title="Stop program.", @click="stop",
-        :disabled="state.xx == 'READY'")
+      button.pure-button(title="Stop program.", @click="stop")
         .fa.fa-stop
 
       button.pure-button(title="Pause program at next optional stop (M1).",
