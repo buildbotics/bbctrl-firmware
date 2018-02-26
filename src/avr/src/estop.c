@@ -45,7 +45,7 @@ typedef struct {
 } estop_t;
 
 
-static estop_t estop = {0};
+static estop_t estop = {false};
 
 static uint16_t estop_reason_eeprom EEMEM;
 
@@ -105,6 +105,10 @@ void estop_trigger(stat_t reason) {
 
 
 void estop_clear() {
+  // It is important that we don't clear the estop if it's not set because
+  // it can cause a reboot loop.
+  if (!estop.triggered) return;
+
   // Check if estop switch is set
   if (switch_is_active(SW_ESTOP)) {
     if (_get_reason() != STAT_ESTOP_SWITCH) _set_reason(STAT_ESTOP_SWITCH);

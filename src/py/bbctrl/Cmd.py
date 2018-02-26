@@ -103,19 +103,19 @@ def speed(speed): return '#s=:' + encode_float(speed)
 
 
 def input(port, mode, timeout):
-    type = 'd'
-    index = 0
-    m = 0
+    type, index, m = 'd', 0, 0
 
-    if port == 'digital-in-0': digital, index = 'd', 0
-    if port == 'digital-in-1': digital, index = 'd', 1
-    if port == 'digital-in-2': digital, index = 'd', 2
-    if port == 'digital-in-3': digital, index = 'd', 3
-    if port == 'analog-in-0':  digital, index = 'a', 0
-    if port == 'analog-in-1':  digital, index = 'a', 1
-    if port == 'analog-in-2':  digital, index = 'a', 2
-    if port == 'analog-in-3':  digital, index = 'a', 3
+    # Analog/digital & port index
+    if port == 'digital-in-0': type, index = 'd', 0
+    if port == 'digital-in-1': type, index = 'd', 1
+    if port == 'digital-in-2': type, index = 'd', 2
+    if port == 'digital-in-3': type, index = 'd', 3
+    if port == 'analog-in-0':  type, index = 'a', 0
+    if port == 'analog-in-1':  type, index = 'a', 1
+    if port == 'analog-in-2':  type, index = 'a', 2
+    if port == 'analog-in-3':  type, index = 'a', 3
 
+    # Mode
     if mode == 'immediate': m = 0
     if mode == 'rise':      m = 1
     if mode == 'fall':      m = 2

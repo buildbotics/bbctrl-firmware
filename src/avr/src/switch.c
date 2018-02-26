@@ -38,6 +38,7 @@ typedef struct {
   switch_callback_t cb;
   bool state;
   int8_t debounce;
+  bool initialized;
 } switch_t;
 
 
@@ -83,9 +84,11 @@ void switch_rtc_callback() {
     // Debounce switch
     bool state = IN_PIN(s->pin);
     if (state == s->state) s->debounce = 0;
-    else if (++s->debounce == SWITCH_DEBOUNCE) {
+    else if ((state && ++s->debounce == SWITCH_DEBOUNCE) ||
+             (!state && --s->debounce == -SWITCH_DEBOUNCE)) {
       s->state = state;
       s->debounce = 0;
+      s->initialized = true;
       if (s->cb) s->cb(i, switch_is_active(i));
     }
   }
@@ -94,6 +97,8 @@ void switch_rtc_callback() {
 
 bool switch_is_active(switch_id_t sw) {
   if (sw < 0 || num_switches <= sw) return false;
+
+  if (!switches[sw].initialized) return false;
 
   // NOTE, switch inputs are active lo
   switch (switches[sw].type) {

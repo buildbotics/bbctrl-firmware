@@ -84,19 +84,19 @@ stat_t command_input(char *cmd) {
   cmd++; // Skip command
 
   // Analog or digital
-  if (cmd[0] == 'd') input_cmd.digital = true;
-  else if (cmd[0] == 'a') input_cmd.digital = false;
+  if (*cmd == 'd') input_cmd.digital = true;
+  else if (*cmd == 'a') input_cmd.digital = false;
   else return STAT_INVALID_ARGUMENTS;
   cmd++;
 
   // Port index
-  if (!isdigit(cmd[1])) return STAT_INVALID_ARGUMENTS;
-  input_cmd.port = cmd[1] - '0';
+  if (!isdigit(*cmd)) return STAT_INVALID_ARGUMENTS;
+  input_cmd.port = *cmd - '0';
   cmd++;
 
   // Mode
-  if (!isdigit(cmd[2])) return STAT_INVALID_ARGUMENTS;
-  input_cmd.mode = cmd[2] - '0';
+  if (!isdigit(*cmd)) return STAT_INVALID_ARGUMENTS;
+  input_cmd.mode = *cmd - '0';
   if (INPUT_LOW < input_cmd.mode) return STAT_INVALID_ARGUMENTS;
   cmd++;
 

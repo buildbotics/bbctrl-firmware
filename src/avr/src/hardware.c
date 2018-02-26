@@ -127,7 +127,7 @@ void hardware_init() {
 void hw_request_hard_reset() {hw.hard_reset = true;}
 
 
-void hw_hard_reset() {
+static void _hard_reset() {
   usart_flush();
   cli();
   CCP = CCP_IOREG_gc;
@@ -137,12 +137,13 @@ void hw_hard_reset() {
 
 /// Controller's rest handler
 void hw_reset_handler() {
-  if (hw.hard_reset) {
-    while (!usart_tx_empty() || !eeprom_is_ready())
-      continue;
+  if (!hw.hard_reset) return;
 
-    hw_hard_reset();
-  }
+  // Flush serial port and wait for EEPROM writes to finish
+  while (!usart_tx_empty() || !eeprom_is_ready())
+    continue;
+
+  _hard_reset();
 }
 
 

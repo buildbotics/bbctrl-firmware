@@ -30,6 +30,7 @@ import json
 import logging
 import pkg_resources
 import subprocess
+import copy
 
 import bbctrl
 
@@ -82,7 +83,9 @@ class Config(object):
 
     def load(self):
         try:
-            config = self.load_path('config.json')
+            if os.path.exists('config.json'):
+                config = self.load_path('config.json')
+            else: config = copy.deepcopy(default_config)
 
             try:
                 self.upgrade(config)

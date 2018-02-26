@@ -1,6 +1,11 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.15
+ - Suppress warning missing config.json warning after config reset.
+ - Fixed EStop reboot loop.
+ - Removed AVR unexpected reboot error.
+
 ## v0.3.14
  - Fixed: Config fails silently after web disconnect #112
  - Always reload the page after a disconnect.

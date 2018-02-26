@@ -47,7 +47,6 @@ class Comm():
         self.queue = deque()
         self.in_buf = ''
         self.command = None
-        self.reboot_expected = True
 
         try:
             self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
@@ -192,13 +191,11 @@ class Comm():
 
                 if 'variables' in msg:
                     self._update_vars(msg)
-                    self.reboot_expected = False
 
                 elif 'msg' in msg: self._log_msg(msg)
 
                 elif 'firmware' in msg:
-                    if self.reboot_expected: log.info('AVR firmware rebooted')
-                    else: log.error('Unexpected AVR firmware reboot')
+                    log.info('AVR firmware rebooted')
                     self.connect()
 
                 else: self.ctrl.state.update(msg)
@@ -220,7 +217,6 @@ class Comm():
     def clear(self):
         if self.ctrl.state.get('xx', '') == 'ESTOPPED':
             self.i2c_command(Cmd.CLEAR)
-            self.reboot_expected = True
 
 
     def pause(self, optional = False):
@@ -228,9 +224,7 @@ class Comm():
         self.i2c_command(Cmd.PAUSE, byte = data)
 
 
-    def reboot(self):
-        self.queue_command(Cmd.REBOOT)
-        self.reboot_expected = True
+    def reboot(self): self.queue_command(Cmd.REBOOT)
 
 
     def connect(self):

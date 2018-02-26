@@ -182,6 +182,8 @@ class Planner():
 
 
     def __encode(self, block):
+        log.info('Cmd:' + json.dumps(block))
+
         type = block['type']
 
         if type == 'line':
@@ -237,27 +239,6 @@ class Planner():
         self.setq.clear()
 
 
-    def stop(self):
-        self.planner.stop()
-        self.lastID = 0
-        self.setq.clear()
-
-
-    def restart(self):
-        state = self.ctrl.state
-        id = state.get('id')
-
-        position = {}
-        for axis in 'xyzabc':
-            if state.has(axis + 'p'):
-                position[axis] = state.get(axis + 'p')
-
-        log.info('Planner restart: %d %s' % (id, json.dumps(position)))
-        self.planner.restart(id, position)
-        if self.planner.is_synchronizing(): self.planner.synchronize(1)
-        # TODO if these calls fail we get stuck in a loop
-
-
     def mdi(self, cmd):
         log.info('MDI:' + cmd)
         self.planner.load_string(cmd, self._get_config(True))
@@ -266,6 +247,36 @@ class Planner():
     def load(self, path):
         log.info('GCode:' + path)
         self.planner.load(path, self._get_config(False))
+
+
+    def stop(self):
+        try:
+            self.planner.stop()
+            self.lastID = 0
+            self.setq.clear()
+
+        except Exception as e:
+            log.exception(e)
+            self.reset()
+
+
+    def restart(self):
+        try:
+            state = self.ctrl.state
+            id = state.get('id')
+
+            position = {}
+            for axis in 'xyzabc':
+                if state.has(axis + 'p'):
+                    position[axis] = state.get(axis + 'p')
+
+            log.info('Planner restart: %d %s' % (id, json.dumps(position)))
+            self.planner.restart(id, position)
+            if self.planner.is_synchronizing(): self.planner.synchronize(1)
+
+        except Exception as e:
+            log.exception(e)
+            self.reset()
 
 
     def has_move(self): return self.planner.has_more()
@@ -279,5 +290,5 @@ class Planner():
                 if cmd is not None: return cmd
 
         except Exception as e:
-            self.reset()
             log.exception(e)
+            self.reset()
