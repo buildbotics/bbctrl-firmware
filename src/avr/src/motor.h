@@ -47,6 +47,8 @@ void motor_init();
 bool motor_is_enabled(int motor);
 int motor_get_axis(int motor);
 void motor_set_position(int motor, float position);
+float motor_get_soft_limit(int motor, bool min);
+bool motor_get_homed(int motor);
 
 stat_t motor_rtc_callback();
 

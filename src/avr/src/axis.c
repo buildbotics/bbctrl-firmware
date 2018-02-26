@@ -70,6 +70,17 @@ int axis_get_id(char axis) {
 int axis_get_motor(int axis) {return motor_map[axis];}
 
 
+bool axis_get_homed(int axis) {
+  return axis_is_enabled(axis) ? motor_get_homed(axis_get_motor(axis)) : false;
+}
+
+
+float axis_get_soft_limit(int axis, bool min) {
+  if (!axis_is_enabled(axis)) return min ? -INFINITY : INFINITY;
+  return motor_get_soft_limit(axis_get_motor(axis), min);
+}
+
+
 // Map axes to first matching motor
 void axis_map_motors() {
   for (int axis = 0; axis < AXES; axis++)

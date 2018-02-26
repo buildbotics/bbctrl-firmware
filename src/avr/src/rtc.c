@@ -28,6 +28,8 @@
 #include "rtc.h"
 
 #include "switch.h"
+#include "analog.h"
+#include "io.h"
 #include "huanyang.h"
 #include "motor.h"
 #include "lcd.h"
@@ -45,10 +47,12 @@ static uint32_t ticks;
 ISR(RTC_OVF_vect) {
   ticks++;
 
+  lcd_rtc_callback();
   switch_rtc_callback();
+  analog_rtc_callback();
+  io_rtc_callback();
   hy_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
-  lcd_rtc_callback();
   wdt_reset();
 }
 

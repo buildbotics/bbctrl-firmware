@@ -140,7 +140,7 @@ class Comm():
 
     def _update_vars(self, msg):
         try:
-            self.ctrl.state.machine_cmds_and_vars(msg)
+            self.ctrl.state.machine_vars(msg['variables'])
             self.queue_command(Cmd.DUMP) # Refresh all vars
 
             # Set axis positions

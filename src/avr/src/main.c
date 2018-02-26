@@ -40,7 +40,7 @@
 #include "i2c.h"
 #include "pgmspace.h"
 #include "outputs.h"
-#include "lcd.h"
+#include "analog.h"
 #include "exec.h"
 #include "state.h"
 
@@ -58,6 +58,7 @@ int main() {
 
   hardware_init();                // hardware setup - must be first
   outputs_init();                 // output pins
+  analog_init();                  // analog input pins
   usart_init();                   // serial port
   i2c_init();                     // i2c port
   drv8711_init();                 // motor drivers
@@ -68,7 +69,7 @@ int main() {
   exec_init();                    // motion exec
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
-  command_init();
+  command_init();                 // command queue
 
   sei();                          // enable interrupts
 

@@ -28,8 +28,6 @@
 #include "switch.h"
 #include "config.h"
 
-#include <avr/interrupt.h>
-
 #include <stdbool.h>
 
 
@@ -63,7 +61,7 @@ static switch_t switches[] = {
 };
 
 
-const int num_switches = sizeof(switches) / sizeof (switch_t);
+static const int num_switches = sizeof(switches) / sizeof (switch_t);
 
 
 void switch_init() {
@@ -94,43 +92,44 @@ void switch_rtc_callback() {
 }
 
 
-bool switch_is_active(int index) {
+bool switch_is_active(switch_id_t sw) {
+  if (sw < 0 || num_switches <= sw) return false;
+
   // NOTE, switch inputs are active lo
-  switch (switches[index].type) {
+  switch (switches[sw].type) {
   case SW_DISABLED: break; // A disabled switch cannot be active
-  case SW_NORMALLY_OPEN: return !switches[index].state;
-  case SW_NORMALLY_CLOSED: return switches[index].state;
+  case SW_NORMALLY_OPEN: return !switches[sw].state;
+  case SW_NORMALLY_CLOSED: return switches[sw].state;
   }
   return false;
 }
 
 
-bool switch_is_enabled(int index) {
-  return switch_get_type(index) != SW_DISABLED;
+bool switch_is_enabled(switch_id_t sw) {
+  return switch_get_type(sw) != SW_DISABLED;
 }
 
 
-switch_type_t switch_get_type(int index) {
-  return
-    (index < 0 || num_switches <= index) ? SW_DISABLED : switches[index].type;
+switch_type_t switch_get_type(switch_id_t sw) {
+  return (sw < 0 || num_switches <= sw) ? SW_DISABLED : switches[sw].type;
 }
 
 
-void switch_set_type(int index, switch_type_t type) {
-  if (index < 0 || num_switches <= index) return;
-  switch_t *s = &switches[index];
+void switch_set_type(switch_id_t sw, switch_type_t type) {
+  if (sw < 0 || num_switches <= sw) return;
+  switch_t *s = &switches[sw];
 
   if (s->type != type) {
-    bool wasActive = switch_is_active(index);
+    bool wasActive = switch_is_active(sw);
     s->type = type;
-    bool isActive = switch_is_active(index);
-    if (wasActive != isActive && s->cb) s->cb(index, isActive);
+    bool isActive = switch_is_active(sw);
+    if (wasActive != isActive && s->cb) s->cb(sw, isActive);
   }
 }
 
 
-void switch_set_callback(int index, switch_callback_t cb) {
-  switches[index].cb = cb;
+void switch_set_callback(switch_id_t sw, switch_callback_t cb) {
+  switches[sw].cb = cb;
 }
 
 

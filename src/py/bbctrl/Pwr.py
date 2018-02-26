@@ -128,7 +128,7 @@ class Pwr():
                 if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
-            log.warning('Pwr communication failed: %s' % e)
+            log.info('Pwr communication failed: %s' % e)
             self.ctrl.ioloop.call_later(1, self._update)
             return
 

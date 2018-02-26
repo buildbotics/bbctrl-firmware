@@ -146,4 +146,22 @@ void hw_reset_handler() {
 }
 
 
+uint8_t hw_disable_watchdog() {
+  uint8_t state = WDT.CTRL;
+  cli();
+  CCP = CCP_IOREG_gc;
+  WDT.CTRL = WDT_CEN_bm;
+  sei();
+  return state;
+}
+
+
+void hw_restore_watchdog(uint8_t state) {
+  cli();
+  CCP = CCP_IOREG_gc;
+  WDT.CTRL = state | WDT_CEN_bm;
+  sei();
+}
+
+
 const char *get_hw_id() {return hw.id;}

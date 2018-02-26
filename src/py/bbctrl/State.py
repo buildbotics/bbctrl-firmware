@@ -40,9 +40,7 @@ class State(object):
         self.changes = {}
         self.listeners = []
         self.timeout = None
-        self.machine_vars = {}
         self.machine_var_set = set()
-        self.machine_cmds = {}
 
         # Defaults
         self.vars = {
@@ -130,6 +128,7 @@ class State(object):
 
 
     def config(self, code, value):
+        # Set machine variables via mach, others directly
         if code in self.machine_var_set: self.ctrl.mach.set(code, value)
         else: self.set(code, value)
 
@@ -142,19 +141,17 @@ class State(object):
     def remove_listener(self, listener): self.listeners.remove(listener)
 
 
-    def machine_cmds_and_vars(self, data):
-        self.machine_cmds = data['commands']
-        self.machine_vars = data['variables']
-
-        # Record all machine vars, indexed or not
+    def machine_vars(self, vars):
+        # Record all machine vars, indexed or otherwise
         self.machine_var_set = set()
-        for code, spec in self.machine_vars.items():
+        for code, spec in vars.items():
             if 'index' in spec:
                 for index in spec['index']:
                     self.machine_var_set.add(index + code)
             else: self.machine_var_set.add(code)
 
-        self.ctrl.config.reload() # Indirectly configures AVR
+        # Indirectly configure mach via calls to config()
+        self.ctrl.config.reload()
 
 
     def find_motor(self, axis):
@@ -170,7 +167,17 @@ class State(object):
 
     def is_axis_enabled(self, axis):
         motor = self.find_motor(axis)
-        return False if motor is None else self.motor_enabled(motor)
+        return motor is not None and self.motor_enabled(motor)
+
+
+    def get_enabled_axes(self):
+        axes = []
+
+        for axis in 'xyzabc':
+            if self.is_axis_enabled(axis):
+                axes.append(axis)
+
+        return axes
 
 
     def axis_homing_mode(self, axis):

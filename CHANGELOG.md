@@ -1,6 +1,18 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.14
+ - Fixed: Config fails silently after web disconnect #112
+ - Always reload the page after a disconnect.
+ - Honor soft limits #111 (but not when jogging)
+ - Limit switch going active while moving causes estop. #54
+ - Added more links to help page.
+ - Fixed axis display on LCD. #122
+ - Added GCode cheat sheet.
+ - Fixed LCD boot splash screen. #121
+ - Implemented tool change procedures and pause message box. #81
+ - Implemented program start and end procedures.
+
 ## v0.3.13
  - Disable spindle and loads on stop.
  - Fixed several state transition (stop, pause, estop, etc.) problems.

@@ -160,6 +160,13 @@ script#indicators-template(type="text/x-template")
         td {{state['load2'] | fixed 2}} A
         th Load 2
 
+      tr
+        td {{state['1ai'] | percent 0}} A
+        th Analog 1
+        th.separator
+        td {{state['2ai'] | percent 0}} A
+        th Analog 2
+
     table.rs485
       tr
         th.header(colspan=5) RS485 Spindle

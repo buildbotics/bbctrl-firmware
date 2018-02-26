@@ -57,10 +57,6 @@ module.exports = {
 
 
   events: {
-    connected: function () {
-      if (this.firmwareUpgrading) location.reload(true);
-    },
-
     latest_version: function (version) {this.latest = version}
   },
 

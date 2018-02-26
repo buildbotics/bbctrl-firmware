@@ -112,64 +112,79 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
 
   return dist;
 }
+#else
 
 
 // Analytical version
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
+  // TODO Fix this function
+
   float dist = 0;
+  float t = accel / jerk;
 
   // Compute distance to decrease accel to zero
   if (0 < accel) {
-    // s(a/j) = v * a / j + 2 * a^3 / (3 * j^2)
-    dist += vel * accel / jerk + 2 * accel * accel * accel / (3 * jerk * jerk);
-    // v(a/j) = a^2 / 2j + v
-    vel += accel * accel / (2 * jerk);
+    // s(t) = v * t + 2/3 * a * t^2
+    dist += vel * t + 2.0 / 3.0 * accel * t * t;
+
+    // v(t) = a * t / 2 + v
+    vel += accel * t / 2;
     accel = 0;
   }
 
   // Compute max deccel given accel, vel and jerk
-  float maxDeccel = -sqrt(0.5 * accel * accel + vel * jerk);
+  float maxDeccel = -sqrt(0.5 * square(accel) + vel * jerk);
 
   // Compute distance to max deccel
   if (maxDeccel < accel) {
     float t = (maxDeccel - accel) / -jerk;
-    dist += vel * t + accel * t * t / 2 - jerk * t * t * t / 6;
-    vel += accel * t - jerk * t * t / 2;
+    dist += scurve_distance(t, vel, accel, -jerk);
+    vel += scurve_velocity(t, accel, -jerk);
     accel = maxDeccel;
   }
 
   // Compute distance to zero vel
-  float t = -accel / jerk;
-  dist += vel * t + accel * t * t / 2 + jerk * t * t * t / 6;
+  dist += scurve_distance(t, vel, accel, jerk);
 
   return dist;
 }
 #endif
 
 
-#if 0
-static bool _soft_limit(int axis, float V, float A) {
-  jog_axis_t *a = &jr.axes[axis];
+static float _soft_limit(int axis, float V, float Vt, float A) {
+  // Get travel direction
+  float dir = jr.axes[axis].velocity;
+  if (!dir) dir = jr.axes[axis].target;
+  if (!dir) return 0;
 
   // Check if axis is homed
-  if (!axis_get_homed(axis)) return false;
+  if (!axis_get_homed(axis)) return Vt;
 
   // Check if limits are enabled
-  float min = axis_get_travel_min(axis);
-  float max = axis_get_travel_max(axis);
-  if (min == max) return false;
+  float min = axis_get_soft_limit(axis, true);
+  float max = axis_get_soft_limit(axis, false);
+  if (min == max) return Vt;
 
-  // Check if we need to stop to avoid exceeding a limit
+  // Move allowed if at or past limit but headed out
+  // Move not allowed if at or past limit and heading further in
+  float position = exec_get_axis_position(axis);
+  if (position <= min) return 0 < dir ? Vt : 0;
+  if (max <= position) return dir < 0 ? Vt : 0;
+
+  // Compute dist to decel
   float jerk = axis_get_jerk_max(axis);
   float deccelDist = _compute_deccel_dist(V, A, jerk);
 
-  float position = exec_get_axis_position(axis);
-  if (a->velocity < 0 && position <= min + deccelDist) return true;
-  if (0 < a->velocity && max - deccelDist <= position) return true;
+  // Check if decell distance will lead to exceeding a limit
+  if (0 < dir && position <= min + deccelDist) return 0;
+  if (dir < 0 && max - deccelDist <= position) return 0;
 
-  return false;
+  // Check if decell distance will lead near limit
+  if (0 < dir && position <= min + deccelDist + 5) return MIN_VELOCITY;
+  if (dir < 0 && max - deccelDist - 5 <= position) return MIN_VELOCITY;
+
+  return Vt;
 }
-#endif
 
 
 static float _compute_axis_velocity(int axis) {
@@ -179,7 +194,7 @@ static float _compute_axis_velocity(int axis) {
   float Vt = fabs(a->target);
 
   // Apply soft limits
-  //if (_soft_limit(axis, V, a->accel)) Vt = MIN_VELOCITY;
+  Vt = _soft_limit(axis, V, Vt, a->accel);
 
   // Check if velocity has reached its target
   if (fp_EQ(V, Vt)) {

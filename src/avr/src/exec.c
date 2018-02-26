@@ -33,6 +33,9 @@
 #include "util.h"
 #include "command.h"
 #include "report.h"
+#include "switch.h"
+#include "seek.h"
+#include "estop.h"
 #include "config.h"
 
 
@@ -49,11 +52,21 @@ static struct {
 } ex;
 
 
+static void _limit_switch_cb(switch_id_t sw, bool active) {
+  if (sw == seek_get_switch()) return;
+  if (ex.velocity && active) estop_trigger(STAT_ESTOP_SWITCH);
+}
+
+
 void exec_init() {
   memset(&ex, 0, sizeof(ex));
   ex.feed_override = 1;
   ex.spindle_override = 1;
   // TODO implement overrides
+
+  // Set callback for limit switches
+  for (switch_id_t sw = SW_MIN_X; sw <= SW_MAX_A; sw++)
+    switch_set_callback(sw, _limit_switch_cb);
 }
 
 

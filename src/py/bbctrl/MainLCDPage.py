@@ -39,27 +39,30 @@ class MainLCDPage(bbctrl.LCDPage):
 
 
     def update(self, update):
+        state = self.ctrl.state
+
         # Must be after machine vars have loaded
         if self.install and hasattr(self, 'id'):
             self.install = False
             self.ctrl.lcd.set_current_page(self.id)
 
-        if 'xx' in update:
-            self.text('%-9s' % self.ctrl.state.get('xx'), 0, 0)
+        self.text('%-9s' % state.get('xx', ''), 0, 0)
 
-       # Show enabled axes
+        # Show enabled axes
         row = 0
         for axis in 'xyzabc':
-            motor = self.ctrl.state.find_motor(axis)
-            if motor is not None:
-                if (axis + 'p') in update:
-                    self.text('% 10.3f%s' % (update[axis + 'p'], axis.upper()),
-                              9, row)
-
+            if state.is_axis_enabled(axis):
+                position = state.get(axis + 'p', 0)
+                self.text('% 10.3f%s' % (position, axis.upper()), 9, row)
                 row += 1
 
+        while row < 4:
+            self.text(' ' * 11, 9, row)
+            row += 1
+
         # Show tool, units, feed and speed
-        if 'tool'  in update: self.text('%2uT' % update['tool'],  6, 1)
-        if 'units' in update: self.text('%-6s' % update['units'], 0, 1)
-        if 'feed'  in update: self.text('%8uF' % update['feed'],  0, 2)
-        if 'speed' in update: self.text('%8dS' % update['speed'], 0, 3)
+        units = 'INCH' if state.get('imperial', False) else 'MM'
+        self.text('%2uT' % state.get('tool', 0), 6, 1)
+        self.text('%-6s' % units,                0, 1)
+        self.text('%8uF' % state.get('feed', 0), 0, 2)
+        self.text('%8dS' % state.get('speed',0), 0, 3)

@@ -1,10 +1,6 @@
 The Buildbotics firmware is a 4 axis motion control system designed for
-high-performance on small to mid-sized machines.  It was originally
-derived from the [TinyG firmware](https://github.com/synthetos/TinyG).
-
-# Features
- * 4 axis motion
- * jerk controlled motion for acceleration planning (3rd order motion planning)
+high-performance on small to mid-sized machines.  It operates in conjunction
+with the Buildbotics RaspberryPi firmware.
 
 # Build Instructions
 To build in Linux run:

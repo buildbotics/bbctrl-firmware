@@ -27,9 +27,11 @@
 
 #include "lcd.h"
 #include "rtc.h"
+#include "hardware.h"
 #include "command.h"
 
 #include <avr/io.h>
+#include <avr/wdt.h>
 #include <util/delay.h>
 
 #include <stdbool.h>
@@ -37,10 +39,10 @@
 
 void lcd_init(uint8_t addr) {
   // Enable I2C master
-  TWIC.MASTER.BAUD = 0x9b; // 100 KHz with 32MHz clock
+  TWIC.MASTER.BAUD = F_CPU / 2 / 100000 - 5; // 100 KHz
   TWIC.MASTER.CTRLA = TWI_MASTER_ENABLE_bm;
   TWIC.MASTER.CTRLB = TWI_MASTER_TIMEOUT_DISABLED_gc;
-  TWIC.MASTER.STATUS |= 1; // Force idle
+  TWIC.MASTER.STATUS = TWI_MASTER_BUSSTATE_IDLE_gc;
 
   _delay_ms(50);
   lcd_nibble(addr, 3 << 4); // Home
@@ -120,12 +122,15 @@ void _splash(uint8_t addr) {
 
 
 void lcd_splash() {
+  wdt_disable();
   _splash(0x27);
   _splash(0x3f);
+  wdt_enable(WDTO_250MS);
 }
 
 
 void lcd_rtc_callback() {
+  // Display the splash if we haven't gotten any commands in 1sec since boot
   if (!command_is_active() && rtc_get_time() == 1000)
     lcd_splash();
 }

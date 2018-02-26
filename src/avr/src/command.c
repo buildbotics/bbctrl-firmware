@@ -189,7 +189,6 @@ bool command_callback() {
   if (!block) block = usart_readline();
   if (!block) return false; // No command
 
-  cmd.active = true; // Disables LCD booting message
   stat_t status = STAT_OK;
 
   // Special processing for synchronous commands
@@ -201,7 +200,10 @@ bool command_callback() {
   }
 
   // Dispatch non-empty commands
-  if (*block && status == STAT_OK) status = _dispatch(block);
+  if (*block && status == STAT_OK) {
+    status = _dispatch(block);
+    if (status == STAT_OK) cmd.active = true; // Disables LCD booting message
+  }
 
   block = 0; // Command consumed
 

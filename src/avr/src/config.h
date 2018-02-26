@@ -97,6 +97,7 @@ enum {
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
 #define OUTS                     5 // number of supported pin outputs
+#define ANALOG                   2 // number of supported analog inputs
 
 
 // Switch settings.  See switch.c

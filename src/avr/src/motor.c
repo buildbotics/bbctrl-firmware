@@ -56,6 +56,9 @@ typedef struct {
   motor_power_mode_t power_mode;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
+  float min_soft_limit;
+  float max_soft_limit;
+  bool homed;
   uint8_t step_pin;
   uint8_t dir_pin;
   TC0_t *timer;
@@ -134,6 +137,10 @@ void motor_init() {
   for (int motor = 0; motor < MOTORS; motor++) {
     motor_t *m = &motors[motor];
 
+    // Default soft limits
+    m->min_soft_limit = -INFINITY;
+    m->max_soft_limit = INFINITY;
+
     _update_config(motor);
 
     // IO pins
@@ -185,6 +192,14 @@ void motor_set_position(int motor, float position) {
   m->commanded = m->encoder = m->position = _position_to_steps(motor, position);
   m->error = 0;
 }
+
+
+float motor_get_soft_limit(int motor, bool min) {
+  return min ? motors[motor].min_soft_limit : motors[motor].max_soft_limit;
+}
+
+
+bool motor_get_homed(int motor) {return motors[motor].homed;}
 
 
 static void _update_power(int motor) {
@@ -347,6 +362,19 @@ void motor_prep_move(int motor, float time, float target) {
 
 
 // Var callbacks
+uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
+
+
+void set_power_mode(int motor, uint8_t value) {
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis)
+      motors[m].power_mode =
+        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ? value : MOTOR_DISABLED;
+}
+
+
 float get_step_angle(int motor) {return motors[motor].step_angle;}
 
 
@@ -379,8 +407,6 @@ uint16_t get_microstep(int motor) {return motors[motor].microsteps;}
 
 
 void set_microstep(int motor, uint16_t value) {
-  if (motor < 0 || MOTORS <= motor) return;
-
   switch (value) {
   case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
     break;
@@ -395,28 +421,6 @@ void set_microstep(int motor, uint16_t value) {
       _update_config(m);
       drv8711_set_microsteps(m, value);
     }
-}
-
-
-bool get_reverse(int motor) {
-  if (motor < 0 || MOTORS <= motor) return 0;
-  return motors[motor].reverse;
-}
-
-
-void set_reverse(int motor, bool value) {motors[motor].reverse = value;}
-
-
-uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
-
-
-void set_power_mode(int motor, uint8_t value) {
-  if (motors[motor].slave) return;
-
-  for (int m = motor; m < MOTORS; m++)
-    if (motors[m].axis == motors[motor].axis)
-      motors[m].power_mode =
-        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ? value : MOTOR_DISABLED;
 }
 
 
@@ -444,6 +448,28 @@ void set_motor_axis(int motor, uint8_t axis) {
       break;
     }
 }
+
+
+bool get_reverse(int motor) {return motors[motor].reverse;}
+void set_reverse(int motor, bool value) {motors[motor].reverse = value;}
+
+
+float get_min_soft_limit(int motor) {return motors[motor].min_soft_limit;}
+float get_max_soft_limit(int motor) {return motors[motor].max_soft_limit;}
+
+
+void set_min_soft_limit(int motor, float limit) {
+  motors[motor].min_soft_limit = limit;
+}
+
+
+void set_max_soft_limit(int motor, float limit) {
+  motors[motor].max_soft_limit = limit;
+}
+
+
+bool get_homed(int motor) {return motors[motor].homed;}
+void set_homed(int motor, bool homed) {motors[motor].homed = homed;}
 
 
 int32_t get_encoder(int m) {return motors[m].encoder;}

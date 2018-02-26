@@ -44,16 +44,20 @@ enum {
 
 
 typedef struct {
-  int8_t sw;
+  bool active;
+  switch_id_t sw;
   uint8_t flags;
 } seek_t;
 
 
-static seek_t seek = {-1, 0};
+static seek_t seek = {false, -1, 0};
+
+
+switch_id_t seek_get_switch() {return seek.active ? seek.sw : -1;}
 
 
 bool seek_switch_found() {
-  if (seek.sw <= 0) return false;
+  if (!seek.active) return false;
 
   bool inactive = !(seek.flags & SEEK_ACTIVE);
 
@@ -67,12 +71,12 @@ bool seek_switch_found() {
 
 
 void seek_end() {
-  if (seek.sw <= 0) return;
+  if (!seek.active) return;
 
   if (!(SEEK_FOUND & seek.flags) && (SEEK_ERROR & seek.flags))
     estop_trigger(STAT_SEEK_NOT_FOUND);
 
-  seek.sw = -1;
+  seek.active = false;
 }
 
 
@@ -85,7 +89,7 @@ stat_t command_seek(char *cmd) {
   int8_t flags = decode_hex_nibble(cmd[2]);
   if (flags & 0xfc) return STAT_INVALID_ARGUMENTS;
 
-  seek_t seek = {sw, flags};
+  seek_t seek = {true, sw, flags};
   command_push(*cmd, &seek);
 
   return STAT_OK;

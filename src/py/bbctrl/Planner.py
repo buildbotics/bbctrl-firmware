@@ -26,6 +26,7 @@
 ################################################################################
 
 import json
+import math
 import re
 import logging
 from collections import deque
@@ -41,7 +42,7 @@ reLogLine = re.compile(
 class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.lastID = -1
+        self.lastID = 0
         self.setq = deque()
 
         ctrl.state.add_listener(self._update)
@@ -83,13 +84,40 @@ class Planner():
         return v
 
 
-    def _get_config(self):
+    def _get_soft_limit(self, var, default):
+        limit = self._get_config_vector(var, 1)
+
+        for axis in 'xyzabc':
+            if not axis in limit or not self.ctrl.state.is_axis_homed(axis):
+                limit[axis] = default
+
+        return limit
+
+
+    def _get_config(self, mdi):
         config = {
+            "min-soft-limit": self._get_soft_limit('tn', -math.inf),
+            "max-soft-limit": self._get_soft_limit('tm', math.inf),
             "max-vel":   self._get_config_vector('vm', 1000),
             "max-accel": self._get_config_vector('am', 1000000),
             "max-jerk":  self._get_config_vector('jm', 1000000),
             # TODO junction deviation & accel
             }
+
+        if not mdi:
+            program_start = self.ctrl.config.get('program-start')
+            if program_start: config['program-start'] = program_start
+
+
+        overrides = {}
+
+        tool_change = self.ctrl.config.get('tool-change')
+        if tool_change: overrides['M6'] = tool_change
+
+        program_end = self.ctrl.config.get('program-end')
+        if program_end: overrides['M2'] = program_end
+
+        if overrides: config['overrides'] = overrides
 
         log.info('Config:' + json.dumps(config))
 
@@ -101,7 +129,7 @@ class Planner():
             id = update['id']
             self.planner.set_active(id)
 
-            # Syncronize planner variables with execution id
+            # Synchronize planner variables with execution id
             self._release_set_cmds(id)
 
 
@@ -169,13 +197,22 @@ class Planner():
 
             if name == 'speed': return Cmd.speed(value)
 
-            if (name[0:1] == '_' and name[1:2] in 'xyzabc' and
-                name[2:] == '_home'): return Cmd.set_axis(name[1], value)
-
             if len(name) and name[0] == '_':
                 self._queue_set_cmd(block['id'], name[1:], value)
 
+            if name[0:1] == '_' and name[1:2] in 'xyzabc':
+                if name[2:] == '_home': return Cmd.set_axis(name[1], value)
+
+                if name[2:] == '_homed':
+                    motor = self.ctrl.state.find_motor(name[1])
+                    if motor is not None: return Cmd.set('%dh' % motor, value)
+
             return
+
+        if type == 'input':
+            # TODO handle timeout
+            self.planner.synchronize(0) # TODO Fix this
+            return Cmd.input(block['port'], block['mode'], block['timeout'])
 
         if type == 'output':
             return Cmd.output(block['port'], int(float(block['value'])))
@@ -185,7 +222,7 @@ class Planner():
         if type == 'seek':
             return Cmd.seek(block['switch'], block['active'], block['error'])
 
-        raise Exception('Unknown planner type "%s"' % type)
+        raise Exception('Unknown planner command "%s"' % type)
 
 
     def _encode(self, block):
@@ -202,7 +239,7 @@ class Planner():
 
     def stop(self):
         self.planner.stop()
-        self.lastID = -1
+        self.lastID = 0
         self.setq.clear()
 
 
@@ -217,16 +254,18 @@ class Planner():
 
         log.info('Planner restart: %d %s' % (id, json.dumps(position)))
         self.planner.restart(id, position)
+        if self.planner.is_synchronizing(): self.planner.synchronize(1)
+        # TODO if these calls fail we get stuck in a loop
 
 
     def mdi(self, cmd):
         log.info('MDI:' + cmd)
-        self.planner.load_string(cmd, self._get_config())
+        self.planner.load_string(cmd, self._get_config(True))
 
 
     def load(self, path):
         log.info('GCode:' + path)
-        self.planner.load(path, self._get_config())
+        self.planner.load(path, self._get_config(False))
 
 
     def has_move(self): return self.planner.has_more()

@@ -46,6 +46,35 @@ function compare_versions(a, b) {
 }
 
 
+function is_object(o) {return o !== null && typeof o == 'object'}
+
+
+function update_object(dst, src, remove) {
+  var props, index, key, value;
+
+  if (remove) {
+    props = Object.getOwnPropertyNames(dst);
+
+    for (index in props) {
+      key = props[index];
+      if (!src.hasOwnProperty(key))
+        Vue.delete(dst, key);
+    }
+  }
+
+  props = Object.getOwnPropertyNames(src);
+  for (index in props) {
+    key = props[index];
+    value = src[key];
+
+    if (is_object(value) && dst.hasOwnProperty(key) && is_object(dst[key]))
+      update_object(dst[key], value, remove);
+
+    else Vue.set(dst, key, value);
+  }
+}
+
+
 module.exports = new Vue({
   el: 'body',
 
@@ -57,13 +86,14 @@ module.exports = new Vue({
       index: -1,
       modified: false,
       template: {motors: {}, axes: {}},
-      config: {motors: [{}]},
+      config: {motors: [{}, {}, {}, {}], admin: {}, version: '<loading>'},
       state: {},
       messages: [],
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorShow: false,
       errorMessage: '',
+      reloadOnConnect: false,
       confirmUpgrade: false,
       confirmUpload: false,
       firmwareUpgrading: false,
@@ -85,7 +115,11 @@ module.exports = new Vue({
     'io-view': require('./io-view'),
     'gcode-view': require('./gcode-view'),
     'admin-view': require('./admin-view'),
-    'help-view': {template: '#help-view-template'}
+    'help-view': {template: '#help-view-template'},
+    'cheat-sheet-view': {
+      template: '#cheat-sheet-view-template',
+      data: function () {return {showUnimplemented: false}}
+    }
   },
 
 
@@ -101,7 +135,13 @@ module.exports = new Vue({
     },
 
 
-    connected: function () {this.update()},
+    connected: function () {
+      if (this.reloadOnConnect) location.reload(true);
+      else this.update();
+    },
+
+
+    disconnected: function () {this.reloadOnConnect = true},
     update: function () {this.update()},
 
 
@@ -216,8 +256,8 @@ module.exports = new Vue({
         .success(function (data, status, xhr) {
           this.template = data;
 
-          api.get('config/load').done(function (data) {
-            this.config = data;
+          api.get('config/load').done(function (config) {
+            update_object(this.config, config, true);
             this.parse_hash();
 
             if (!this.checkedUpgrade) {
@@ -236,15 +276,20 @@ module.exports = new Vue({
       this.sock = new Sock('//' + window.location.host + '/sockjs');
 
       this.sock.onmessage = function (e) {
-        var msg = e.data;
+        if (typeof e.data != 'object') return;
 
-        if (typeof msg == 'object') {
-          for (var key in msg) {
-            if (key == 'log') this.$broadcast('log', msg.log);
-            else if (key == 'message') this.add_message(msg.message);
-            else Vue.set(this.state, key, msg[key]);
-          }
+        if ('log' in e.data) {
+          this.$broadcast('log', e.data.log);
+          delete e.data.log;
         }
+
+        if ('message' in e.data) {
+          this.add_message(e.data.message);
+          delete e.data.message;
+        }
+
+        update_object(this.state, e.data, false);
+
       }.bind(this)
 
       this.sock.onopen = function (e) {
@@ -255,6 +300,7 @@ module.exports = new Vue({
 
       this.sock.onclose = function (e) {
         this.status = 'disconnected';
+        this.$emit(this.status);
         this.$broadcast(this.status);
       }.bind(this)
     },
@@ -291,9 +337,12 @@ module.exports = new Vue({
     },
 
 
-    close_messages: function () {
+    close_messages: function (action) {
       this.showMessages = false;
       this.messages.splice(0, this.messages.length);
+
+      if (action == 'stop') api.put('stop');
+      if (action == 'continue') api.put('unpause');
     }
   }
 })

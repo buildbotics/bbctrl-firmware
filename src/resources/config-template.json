@@ -272,17 +272,17 @@
   },
 
   "gcode": {
-    "preamble": {
+    "program-start": {
       "type": "text",
-      "default": "G21 (Operate in millimeters)\nG90 (Absolute distance mode)\nG17 (Select XY plane)\nG40 (Radius compensation off)\nG49 (Tool length compensation off)\nG61 (Exact path mode)\n"
+      "default": "(Runs at program start)\nG21 (Metric units)\nG90 (Absolute distance mode)\nG17 (Select XY plane)\n"
     },
     "tool-change": {
       "type": "text",
-      "default": "M6 (Tool change)\n"
+      "default": "(Runs on M6, tool change)\nM0 M6 (MSG, Change tool)"
     },
-    "epilogue": {
+    "program-end": {
       "type": "text",
-      "default": "M2 (End program)\n"
+      "default": "(Runs on M2, program end)\nM2"
     }
   },
 

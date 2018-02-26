@@ -48,6 +48,7 @@ default_config = {
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.config_vars = {}
 
         try:
             self.version = pkg_resources.require('bbctrl')[0].version
@@ -64,6 +65,14 @@ class Config(object):
                     default_config[section] = {}
 
         except Exception as e: log.exception(e)
+
+
+    def get(self, name, default = None):
+        return self.config_vars.get(name, default)
+
+
+    def get_index(self, name, index, default = None):
+        return self.config_vars.get(name, {}).get(str(index), None)
 
 
     def load_path(self, path):
@@ -121,7 +130,13 @@ class Config(object):
     def reset(self): os.unlink('config.json')
 
 
-    def encode_cmd(self, index, value, spec):
+    def _encode_cmd(self, name, index, value, spec):
+        if str(index):
+            if not name in self.config_vars: self.config_vars[name] = {}
+            self.config_vars[name][str(index)] = value
+
+        else: self.config_vars[name] = value
+
         if not 'code' in spec: return
 
         if spec['type'] == 'enum':
@@ -135,29 +150,29 @@ class Config(object):
         self.ctrl.state.config(str(index) + spec['code'], value)
 
 
-    def encode_category(self, index, config, category, with_defaults):
+    def _encode_category(self, index, config, category, with_defaults):
         for key, spec in category.items():
             if key in config: value = config[key]
             elif with_defaults: value = spec['default']
             else: continue
 
-            self.encode_cmd(index, value, spec)
+            self._encode_cmd(key, index, value, spec)
 
 
-    def encode(self, index, config, tmpl, with_defaults):
+    def _encode(self, index, config, tmpl, with_defaults):
         for category in tmpl.values():
-            self.encode_category(index, config, category, with_defaults)
+            self._encode_category(index, config, category, with_defaults)
 
 
     def update(self, config, with_defaults = False):
         for name, tmpl in self.template.items():
             if name == 'motors':
                 for index in range(len(config['motors'])):
-                    self.encode(index, config['motors'][index], tmpl,
-                                with_defaults)
+                    self._encode(index, config['motors'][index], tmpl,
+                                 with_defaults)
 
-            else: self.encode_category('', config.get(name, {}), tmpl,
-                                       with_defaults)
+            else: self._encode_category('', config.get(name, {}), tmpl,
+                                        with_defaults)
 
 
     def reload(self): self.update(self.load(), True)

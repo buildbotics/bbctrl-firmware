@@ -42,6 +42,8 @@ bool axis_is_enabled(int axis);
 char axis_get_char(int axis);
 int axis_get_id(char axis);
 int axis_get_motor(int axis);
+bool axis_get_homed(int axis);
+float axis_get_soft_limit(int axis, bool min);
 void axis_map_motors();
 float axis_get_vector_length(const float a[], const float b[]);
 

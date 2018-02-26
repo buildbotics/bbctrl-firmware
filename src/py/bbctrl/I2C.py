@@ -48,7 +48,7 @@ class I2C(object):
 
             except OSError as e:
                 self.i2c_bus = None
-                log.warning('Failed to open device: %s', e)
+                log.info('Failed to open device: %s', e)
                 raise e
 
 
@@ -59,7 +59,7 @@ class I2C(object):
             return self.i2c_bus.read_word_data(addr, 0)
 
         except IOError as e:
-            log.warning('I2C read word failed: %s' % e)
+            log.info('I2C read word failed: %s' % e)
             self.i2c_bus.close()
             self.i2c_bus = None
             raise e
@@ -78,7 +78,7 @@ class I2C(object):
             else: self.i2c_bus.write_byte(addr, cmd)
 
         except IOError as e:
-            log.warning('I2C write failed: %s' % e)
+            log.info('I2C write failed: %s' % e)
             self.i2c_bus.close()
             self.i2c_bus = None
             raise e

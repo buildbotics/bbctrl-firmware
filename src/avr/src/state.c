@@ -120,6 +120,12 @@ void state_seek_hold() {
 static void _stop() {
   switch (state_get()) {
   case STATE_STOPPING:
+    if (!exec_get_velocity()) {
+      _set_state(STATE_READY);
+      _stop();
+      return;
+    }
+
   case STATE_RUNNING:
     _set_hold_reason(HOLD_REASON_USER_STOP);
     _set_state(STATE_STOPPING);

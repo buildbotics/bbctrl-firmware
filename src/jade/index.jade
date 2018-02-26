@@ -76,11 +76,14 @@ html(lang="en")
             li.pure-menu-heading
               a.pure-menu-link(href="#io") I/O
 
-            li.pure-menu-heading(style="display:none")
+            li.pure-menu-heading
               a.pure-menu-link(href="#gcode") Gcode
 
             li.pure-menu-heading
               a.pure-menu-link(href="#admin") Admin
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#cheat-sheet") Cheat Sheet
 
             li.pure-menu-heading
               a.pure-menu-link(href="#help") Help
@@ -134,7 +137,8 @@ html(lang="en")
 
         p.pure-control-group
           label(for="pass") Password
-          input(name="pass", v-model="password", type="password")
+          input(name="pass", v-model="password", type="password",
+            @keyup.enter="upgrade_confirmed")
 
       div(slot="footer")
         button.pure-button(@click="confirmUpgrade=false") Cancel
@@ -148,7 +152,8 @@ html(lang="en")
 
         p.pure-control-group
           label(for="pass") Password
-          input(name="pass", v-model="password", type="password")
+          input(name="pass", v-model="password", type="password",
+            @keyup.enter="upload_confirmed")
 
       div(slot="footer")
         button.pure-button(@click="confirmUpload=false") Cancel
@@ -158,16 +163,27 @@ html(lang="en")
     message(:show.sync="firmwareUpgrading")
       h3(slot="header") Firmware upgrading
       p(slot="body") Please wait...
+      div(slot="footer")
 
     message(:show.sync="showMessages")
       h3(slot="header") GCode message
 
       div(slot="body")
         ul
-          li(v-for="msg in messages") {{msg}}
+          li(v-for="msg in messages", track-by="$index") {{msg}}
 
       div(slot="footer")
-        button.pure-button.button-success(@click="close_messages") OK
+        button.pure-button.button-success(v-if="state.xx != 'HOLDING'",
+          @click="close_messages('ok')") OK
+
+        div(v-if="state.xx == 'HOLDING'")
+          button.pure-button(@click="close_messages('stop')")
+            | Stop
+            .fa.fa-stop
+
+          button.pure-button(@click="close_messages('continue')")
+            | Continue
+            .fa.fa-play
 
     #templates
       include ../../build/templates.jade

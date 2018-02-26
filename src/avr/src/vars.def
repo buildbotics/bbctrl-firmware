@@ -25,32 +25,38 @@
 
 \******************************************************************************/
 
-#define AXES_LABEL "xyzabc"
+#define AXES_LABEL   "xyzabc"
 #define MOTORS_LABEL "0123"
-#define OUTS_LABEL "ed12f"
+#define OUTS_LABEL   "ed12f"
+#define ANALOG_LABEL "12"
 
 // VAR(name, code, type, index, settable, report, help)
 
 // Motor
 VAR(motor_axis,      an, u8,    MOTORS, 1, 1, "Maps motor to axis")
-VAR(step_angle,      sa, f32,   MOTORS, 1, 1, "In degrees per full step")
-VAR(travel,          tr, f32,   MOTORS, 1, 1, "Travel in mm/rev")
-VAR(microstep,       mi, u16,   MOTORS, 1, 1, "Microsteps per full step")
-VAR(reverse,         rv, u8,    MOTORS, 1, 1, "Reverse motor polarity")
 
 VAR(power_mode,      pm, u8,    MOTORS, 1, 1, "Motor power mode")
 VAR(drive_current,   dc, f32,   MOTORS, 1, 1, "Max motor drive current")
 VAR(idle_current,    ic, f32,   MOTORS, 1, 1, "Motor idle current")
+
+VAR(reverse,         rv, u8,    MOTORS, 1, 1, "Reverse motor polarity")
+VAR(microstep,       mi, u16,   MOTORS, 1, 1, "Microsteps per full step")
+VAR(velocity_max,    vm, f32,   MOTORS, 1, 1, "Maxium vel in mm/min")
+VAR(accel_max,       am, f32,   MOTORS, 1, 1, "Maxium accel in mm/min^2")
+VAR(jerk_max,        jm, f32,   MOTORS, 1, 1, "Maxium jerk in mm/min^3")
+VAR(step_angle,      sa, f32,   MOTORS, 1, 1, "In degrees per full step")
+VAR(travel,          tr, f32,   MOTORS, 1, 1, "Travel in mm/rev")
+
+VAR(min_soft_limit,  tn, f32,   MOTORS, 1, 1, "Min soft limit")
+VAR(max_soft_limit,  tm, f32,   MOTORS, 1, 1, "Max soft limit")
+VAR(homed,            h, bool,  MOTORS, 1, 1, "Motor homed status")
+
 VAR(active_current,  ac, f32,   MOTORS, 0, 1, "Motor current now")
 VAR(driver_flags,    df, u16,   MOTORS, 0, 1, "Motor driver flags")
 VAR(status_strings,  ds, flags, MOTORS, 0, 1, "Motor driver status")
 VAR(driver_stalled,  sl, bool,  MOTORS, 0, 1, "Motor driver status")
 VAR(encoder,         en, s32,   MOTORS, 0, 0, "Motor encoder")
 VAR(error,           ee, s32,   MOTORS, 0, 0, "Motor position error")
-
-VAR(velocity_max,    vm, f32,   MOTORS, 1, 1, "Maxium vel in mm/min")
-VAR(accel_max,       am, f32,   MOTORS, 1, 1, "Maxium accel in mm/min^2")
-VAR(jerk_max,        jm, f32,   MOTORS, 1, 1, "Maxium jerk in mm/min^3")
 
 VAR(motor_fault,     fa, bool,  0,      0, 1, "Motor fault status")
 
@@ -71,6 +77,9 @@ VAR(axis_position,    p, f32,   AXES,   0, 1, "Axis position")
 VAR(output_active,   oa, bool,  OUTS,   1, 1, "Output pin active")
 VAR(output_state,    os, u8,    OUTS,   0, 1, "Output pin state")
 VAR(output_mode,     om, u8,    OUTS,   1, 1, "Output pin mode")
+
+// Analog
+VAR(analog_input,    ai, f32,   ANALOG, 0, 0, "Analog input pins")
 
 // Spindle
 VAR(spindle_type,    st, u8,    0,      1, 1, "PWM=0 or HUANYANG=1")

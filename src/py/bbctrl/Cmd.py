@@ -40,6 +40,7 @@ SET_SYNC  = '#'
 SEEK      = 's'
 SET_AXIS  = 'a'
 LINE      = 'l'
+INPUT     = 'I'
 DWELL     = 'd'
 PAUSE     = 'P'
 STOP      = 'S'
@@ -101,13 +102,36 @@ def line(target, exitVel, maxAccel, maxJerk, times):
 def speed(speed): return '#s=:' + encode_float(speed)
 
 
+def input(port, mode, timeout):
+    type = 'd'
+    index = 0
+    m = 0
+
+    if port == 'digital-in-0': digital, index = 'd', 0
+    if port == 'digital-in-1': digital, index = 'd', 1
+    if port == 'digital-in-2': digital, index = 'd', 2
+    if port == 'digital-in-3': digital, index = 'd', 3
+    if port == 'analog-in-0':  digital, index = 'a', 0
+    if port == 'analog-in-1':  digital, index = 'a', 1
+    if port == 'analog-in-2':  digital, index = 'a', 2
+    if port == 'analog-in-3':  digital, index = 'a', 3
+
+    if mode == 'immediate': m = 0
+    if mode == 'rise':      m = 1
+    if mode == 'fall':      m = 2
+    if mode == 'high':      m = 3
+    if mode == 'low':       m = 4
+
+    return '%s%s%d%d%s' % (INPUT, type, index, m, encode_float(timeout))
+
+
 def output(port, value):
     if port == 'mist':  return '#1oa=' + ('1' if value else '0')
     if port == 'flood': return '#2oa=' + ('1' if value else '0')
     raise Exception('Unsupported output "%s"' % port)
 
 
-def dwell(seconds): return 'd' + encode_float(seconds)
+def dwell(seconds): return DWELL + encode_float(seconds)
 
 
 def pause(type):
@@ -116,7 +140,7 @@ def pause(type):
     elif type == 'pallet-change': type = 2
     else: raise Exception('Unknown pause type "%s"' % type)
 
-    return 'P%d' % type
+    return '%s%d' % (PAUSE, type)
 
 
 def jog(axes): return 'j' + encode_axes(axes)

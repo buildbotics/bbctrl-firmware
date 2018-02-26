@@ -102,7 +102,7 @@ def run():
     level = logging.DEBUG if args.verbose else logging.INFO
     root.setLevel(logging.NOTSET)
     f = logging.Formatter('{levelname[0]}:{name}:{message}', style = '{')
-    h = logging.StreamHandler(level)
+    h = logging.StreamHandler()
     h.setLevel(level)
     h.setFormatter(f)
     root.addHandler(h)
