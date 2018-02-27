@@ -158,7 +158,7 @@ class State(object):
         for motor in range(6):
             if not ('%dan' % motor) in self.vars: continue
             motor_axis = 'xyzabc'[self.vars['%dan' % motor]]
-            if motor_axis == axis.lower() and self.vars['%dpm' % motor]:
+            if motor_axis == axis.lower() and self.vars.get('%dpm' % motor, 0):
                 return motor
 
 

@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include <stdbool.h>
+#include <stdio.h>
 
 
 typedef struct {
@@ -83,7 +84,7 @@ void switch_rtc_callback() {
 
     // Debounce switch
     bool state = IN_PIN(s->pin);
-    if (state == s->state) s->debounce = 0;
+    if (state == s->state && s->initialized) s->debounce = 0;
     else if ((state && ++s->debounce == SWITCH_DEBOUNCE) ||
              (!state && --s->debounce == -SWITCH_DEBOUNCE)) {
       s->state = state;
@@ -96,16 +97,15 @@ void switch_rtc_callback() {
 
 
 bool switch_is_active(switch_id_t sw) {
-  if (sw < 0 || num_switches <= sw) return false;
-
-  if (!switches[sw].initialized) return false;
+  if (sw < 0 || num_switches <= sw || !switches[sw].initialized) return false;
 
   // NOTE, switch inputs are active lo
   switch (switches[sw].type) {
-  case SW_DISABLED: break; // A disabled switch cannot be active
-  case SW_NORMALLY_OPEN: return !switches[sw].state;
+  case SW_DISABLED:        break; // A disabled switch cannot be active
+  case SW_NORMALLY_OPEN:   return !switches[sw].state;
   case SW_NORMALLY_CLOSED: return switches[sw].state;
   }
+
   return false;
 }
 

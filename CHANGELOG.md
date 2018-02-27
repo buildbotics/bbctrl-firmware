@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.16
+ - Fixed switch debounce bug.
+
 ## v0.3.15
  - Suppress warning missing config.json warning after config reset.
  - Fixed EStop reboot loop.
