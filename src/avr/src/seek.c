@@ -80,6 +80,9 @@ void seek_end() {
 }
 
 
+void seek_cancel() {seek.active = false;}
+
+
 // Command callbacks
 stat_t command_seek(char *cmd) {
   int8_t sw = decode_hex_nibble(cmd[1]);

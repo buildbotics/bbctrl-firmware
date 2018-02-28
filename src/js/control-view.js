@@ -82,6 +82,39 @@ module.exports = {
   },
 
 
+  computed: {
+    mach_state: function () {
+      var cycle = this.state.cycle;
+      var state = this.state.xx;
+
+      if (typeof cycle != 'undefined' && state != 'ESTOPPED' &&
+          (cycle == 'jogging' || cycle == 'homing'))
+        return cycle.toUpperCase();
+      return state || ''
+    },
+
+
+    is_running: function () {
+      return this.mach_state == 'RUNNING' || this.mach_state == 'HOMING';
+    },
+
+
+    is_stopping: function() {return this.mach_state == 'STOPPING'},
+    is_holding: function() {return this.mach_state == 'HOLDING'},
+    is_ready: function() {return this.mach_state == 'READY'},
+
+
+    reason: function () {
+      if (this.mach_state == 'ESTOPPED') return this.state.er;
+      if (this.mach_state == 'HOLDING') return this.state.pr;
+      return '';
+    },
+
+
+    highlight_reason: function () {return this.reason != ''}
+  },
+
+
   events: {
     jog: function (axis, power) {
       var data = {};
@@ -89,7 +122,9 @@ module.exports = {
       api.put('jog', data);
     },
 
-    connected: function () {this.update()}
+    connected: function () {this.update()},
+
+    update: function () {console.log(this.state.xx, this.state.cycle)}
   },
 
 
@@ -100,22 +135,6 @@ module.exports = {
 
 
   methods: {
-    get_state: function () {
-      if (typeof this.state.cycle != 'undefined' &&
-          this.state.cycle != 'idle' && this.state.xx == 'RUNNING')
-        return this.state.cycle.toUpperCase();
-      return this.state.xx || ''
-    },
-
-
-    get_reason: function () {
-      if (this.state.xx == 'ESTOPPED') return this.state.er;
-      if (this.state.xx == 'HOLDING') return this.state.pr;
-      return '';
-    },
-
-
-    highlight_reason: function () {return this.get_reason() != ''},
     send: function (msg) {this.$dispatch('send', msg)},
 
 
@@ -156,8 +175,23 @@ module.exports = {
 
 
     is_homed: function (axis) {
-      var motor = this.get_axis_motor_id(axis);
-      return motor != -1 && this.state[motor + 'homed'];
+      if (typeof axis == 'undefined') {
+        var enabled = false;
+        var axes = 'xyzabc';
+
+        for (var i in axes) {
+          if (this.enabled(axes.charAt(i))) {
+            if (!this.is_homed(axes.charAt(i))) return false;
+            else enabled = true;
+          }
+        }
+
+        return enabled;
+
+      } else {
+        var motor = this.get_axis_motor_id(axis);
+        return motor != -1 && this.state[motor + 'homed'];
+      }
     },
 
 
@@ -210,6 +244,8 @@ module.exports = {
 
 
     update_gcode_line: function () {
+      if (this.mach_state == 'HOMING') return;
+
       if (typeof this.last_line != 'undefined') {
         $('#gcode-line-' + this.last_line).removeClass('highlight');
         this.last_line = undefined;
@@ -253,6 +289,16 @@ module.exports = {
       if (!this.history.length || this.history[0] != this.mdi)
         this.history.unshift(this.mdi);
       this.mdi = '';
+    },
+
+
+    mdi_start_pause: function () {
+      if (this.state.xx == 'RUNNING') this.pause();
+
+      else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
+        this.unpause();
+
+      else this.submit_mdi();
     },
 
 
@@ -342,7 +388,15 @@ module.exports = {
     },
 
 
-    zero_axis: function (axis) {this.set_position(axis, 0)},
+    zero: function (axis) {
+      if (typeof axis == 'undefined') {
+        var axes = 'xyzabc';
+        for (var i in axes)
+          if (this.enabled(axes.charAt(i)))
+            this.zero(axes.charAt(i));
+
+      } else this.set_position(axis, 0);
+    },
 
 
     start_pause: function () {

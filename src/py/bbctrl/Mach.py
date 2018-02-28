@@ -28,8 +28,9 @@
 import logging
 
 import bbctrl
+from bbctrl.Comm import Comm
 import bbctrl.Cmd as Cmd
-import bbctrl.Comm
+from tornado.ioloop import PeriodicCallback
 
 log = logging.getLogger('Mach')
 
@@ -53,18 +54,30 @@ axis_homing_procedure = '''
 '''
 
 
+def overrides(interface_class):
+    def overrider(method):
+        if not method.__name__ in dir(interface_class):
+            log.warning('%s does not override %s' % (
+                method.__name__, interface_class.__name__))
 
-class Mach():
+        return method
+
+    return overrider
+
+
+class Mach(Comm):
     def __init__(self, ctrl):
+        super().__init__(ctrl)
+
         self.ctrl = ctrl
         self.planner = bbctrl.Planner(ctrl)
-        self.comm = bbctrl.Comm(ctrl, self._comm_next, self._comm_connect)
-        self.update_timer = None
 
         ctrl.state.set('cycle', 'idle')
+        PeriodicCallback(self._update_cycle, 1000, ctrl.ioloop).start()
+
         ctrl.state.add_listener(self._update)
 
-        self.comm.reboot()
+        super().reboot()
 
 
     def _get_state(self): return self.ctrl.state.get('xx', '')
@@ -73,29 +86,21 @@ class Mach():
 
     def _begin_cycle(self, cycle):
         current = self._get_cycle()
+        if current == cycle: return # No change
 
         if current == 'idle':
             self.planner.update_position()
             self.ctrl.state.set('cycle', cycle)
 
-        elif current != cycle:
+        else:
             raise Exception('Cannot enter %s cycle during %s' %
                             (cycle, current))
 
 
     def _update_cycle(self):
-        # Cancel timer if set
-        if self.update_timer is not None:
-            self.ctrl.ioloop.remove_timeout(self.update_timer)
-            self.update_timer = None
-
-        # Check for idle state
-        if self._get_cycle() != 'idle' and self._get_state() == 'READY':
-            # Check again later if busy
-            if self.planner.is_busy() or self.comm.is_active():
-                self.ctrl.ioloop.call_later(0.5, self._update_cycle)
-
-            else: self.ctrl.state.set('cycle', 'idle')
+        if (self._get_cycle() != 'idle' and self._get_state() == 'READY' and
+            not self.planner.is_busy() and not super().is_active()):
+            self.ctrl.state.set('cycle', 'idle')
 
 
     def _update(self, update):
@@ -104,7 +109,7 @@ class Mach():
         # Handle EStop
         if 'xx' in update and state == 'ESTOPPED': self.planner.reset()
 
-        # Update cycle
+        # Update cycle now, if it has changed
         self._update_cycle()
 
         # Continue after seek hold
@@ -113,13 +118,20 @@ class Mach():
             self.unpause()
 
 
-    def _comm_next(self):
+    @overrides(Comm)
+    def comm_next(self):
         if self.planner.is_running(): return self.planner.next()
 
 
-    def _comm_connect(self):
+    @overrides(Comm)
+    def comm_error(self): self.planner.reset()
+
+
+    @overrides(Comm)
+    def connect(self):
         self.ctrl.state.reset()
         self.planner.reset()
+        super().connect()
 
 
     def _query_var(self, cmd):
@@ -140,23 +152,23 @@ class Mach():
             self.ctrl.state.config(name, value)
 
 
-    def mdi(self, cmd):
+    def mdi(self, cmd, with_limits = True):
         if not len(cmd): return
         if   cmd[0] == '$':  self._query_var(cmd)
-        elif cmd[0] == '\\': self.comm.queue_command(cmd[1:])
+        elif cmd[0] == '\\': super().queue_command(cmd[1:])
         else:
             self._begin_cycle('mdi')
-            self.planner.mdi(cmd)
-            self.comm.resume()
+            self.planner.mdi(cmd, with_limits)
+            super().resume()
 
 
     def set(self, code, value):
-        self.comm.queue_command('${}={}'.format(code, value))
+        super().queue_command('${}={}'.format(code, value))
 
 
     def jog(self, axes):
         self._begin_cycle('jogging')
-        self.comm.queue_command(Cmd.jog(axes))
+        super().queue_command(Cmd.jog(axes))
 
 
     def home(self, axis, position = None):
@@ -189,17 +201,17 @@ class Mach():
 
                 # Home axis
                 log.info('Homing %s axis' % axis)
-                self.planner.mdi(axis_homing_procedure % {'axis': axis})
-                self.comm.resume()
+                self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
+                super().resume()
 
 
-    def estop(self): self.comm.estop()
+    def estop(self): super().estop()
 
 
     def clear(self):
         if self._get_state() == 'ESTOPPED':
             self.ctrl.state.reset()
-            self.comm.clear()
+            super().clear()
 
 
     def select(self, path):
@@ -214,23 +226,23 @@ class Mach():
     def start(self):
         self._begin_cycle('running')
         self.planner.load('upload/' + self.ctrl.state.get('selected'))
-        self.comm.resume()
+        super().resume()
 
 
     def step(self):
         raise Exception('NYI') # TODO
         if self._get_cycle() != 'running': self.start()
-        else: self.comm.i2c_command(Cmd.UNPAUSE)
+        else: super().i2c_command(Cmd.UNPAUSE)
 
 
     def stop(self):
         if self._get_cycle() == 'idle': self._begin_cycle('running')
-        self.comm.i2c_command(Cmd.STOP)
+        super().i2c_command(Cmd.STOP)
         self.planner.stop()
         self.ctrl.state.set('line', 0)
 
 
-    def pause(self): self.comm.pause()
+    def pause(self): super().pause()
 
 
     def unpause(self):
@@ -239,14 +251,14 @@ class Mach():
         pause_reason = self.ctrl.state.get('pr', '')
         if pause_reason in ['User paused', 'Switch found']:
             self.planner.restart()
-            self.comm.resume()
+            super().resume()
 
-        self.comm.i2c_command(Cmd.UNPAUSE)
+        super().i2c_command(Cmd.UNPAUSE)
 
 
     def optional_pause(self):
         # TODO this could work better as a variable, i.e. $op=1
-        if self._get_cycle() == 'running': self.comm.pause(True)
+        if self._get_cycle() == 'running': super().pause(True)
 
 
     def set_position(self, axis, position):
@@ -256,10 +268,10 @@ class Mach():
             self.mdi('G92 %s%f' % (axis, position))
 
         else:
-            if self._get_cycle() != 'idle':
+            if self._get_cycle() not in ['idle', 'mdi']:
                 raise Exception('Cannot zero position during ' +
                                 self._get_cycle())
 
             self._begin_cycle('mdi')
             self.planner.set_position({axis: position})
-            self.comm.queue_command(Cmd.set_axis(axis, position))
+            super().queue_command(Cmd.set_axis(axis, position))

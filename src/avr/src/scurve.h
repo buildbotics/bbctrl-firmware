@@ -31,4 +31,5 @@
 float scurve_distance(float time, float vel, float accel, float jerk);
 float scurve_velocity(float time, float accel, float jerk);
 float scurve_acceleration(float time, float jerk);
-float scurve_next_accel(float dT, float iV, float tV, float iA, float jerk);
+float scurve_next_accel(float time, float Vi, float Vt, float accel, float aMax,
+                        float jerk);

@@ -162,7 +162,9 @@ html(lang="en")
 
     message(:show.sync="firmwareUpgrading")
       h3(slot="header") Firmware upgrading
-      p(slot="body") Please wait...
+      div(slot="body")
+        h3 Please wait...
+        p Loss of power during an upgrade may damage the controller.
       div(slot="footer")
 
     message(:show.sync="showMessages")

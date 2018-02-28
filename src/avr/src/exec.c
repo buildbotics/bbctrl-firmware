@@ -36,6 +36,7 @@
 #include "switch.h"
 #include "seek.h"
 #include "estop.h"
+#include "state.h"
 #include "config.h"
 
 
@@ -101,6 +102,10 @@ stat_t exec_move_to_target(float time, const float target[]) {
 
 
 stat_t exec_next() {
+  // Hold if we've reached zero velocity between commands an stopping
+  if (!ex.cb && !exec_get_velocity() && state_get() == STATE_STOPPING)
+    state_holding();
+
   if (!ex.cb && !command_exec()) return STAT_NOP; // Queue empty
   if (!ex.cb) return STAT_AGAIN; // Non-exec command
   return ex.cb(); // Exec

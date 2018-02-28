@@ -31,6 +31,7 @@ from inevent.Constants import *
 
 
 log = logging.getLogger('inevent')
+log.setLevel(logging.INFO)
 
 
 def axes_to_string(axes):

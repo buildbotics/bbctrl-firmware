@@ -67,29 +67,6 @@ typedef struct {
 static jog_runtime_t jr;
 
 
-static bool _axis_velocity_target(int axis) {
-  jog_axis_t *a = &jr.axes[axis];
-
-  float Vn = a->next * axis_get_velocity_max(axis);
-  float Vi = a->velocity;
-  float Vt = a->target;
-
-  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
-
-  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
-    Vn = 0; // Plan to zero on sign change
-
-  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
-
-  if (Vt == Vn) return false; // No change
-
-  a->target = Vn;
-  if (Vn) a->sign = Vn < 0 ? -1 : 1;
-
-  return true; // Velocity changed
-}
-
-
 #if 0
 // Numeric version
 static float _compute_deccel_dist(float vel, float accel, float jerk) {
@@ -116,31 +93,55 @@ static float _compute_deccel_dist(float vel, float accel, float jerk) {
 
 
 // Analytical version
-static float _compute_deccel_dist(float vel, float accel, float jerk) {
+static float _compute_deccel_dist(float vel, float accel, float maxA,
+                                  float jerk) {
   // TODO Fix this function
 
   float dist = 0;
-  float t = accel / jerk;
 
   // Compute distance to decrease accel to zero
   if (0 < accel) {
-    // s(t) = v * t + 2/3 * a * t^2
-    dist += vel * t + 2.0 / 3.0 * accel * t * t;
+    float t = accel / jerk;
+
+    // s(t) = v * t + 1/3 * a * t^2
+    dist += vel * t + 1.0 / 3.0 * accel * t * t;
 
     // v(t) = a * t / 2 + v
     vel += accel * t / 2;
     accel = 0;
+    t = 0;
   }
 
-  // Compute max deccel given accel, vel and jerk
-  float maxDeccel = -sqrt(0.5 * square(accel) + vel * jerk);
+  // At this point accel <= 0, aka a deccelleration
 
-  // Compute distance to max deccel
+  // Compute max deccel by applying the quadratic formula.
+  //   (1 / j) * Am^2 + ((1 - a) / j) * Am + (a^2 - 0.5 * a) / j + v = 0
+  float t = accel / jerk;
+  float a = 1 / jerk;
+  float b = a - t;
+  float c = t * (accel - 0.5) + vel;
+  float maxDeccel = (-b - sqrt(b * b - 4 * a * c)) / a * 0.5;
+
+  // Limit decceleration
+  if (maxDeccel < -maxA) maxDeccel = -maxA;
+
+  // Compute distance and velocity change to max deccel
   if (maxDeccel < accel) {
-    float t = (maxDeccel - accel) / -jerk;
+    float t = (accel - maxDeccel) / jerk;
     dist += scurve_distance(t, vel, accel, -jerk);
     vel += scurve_velocity(t, accel, -jerk);
     accel = maxDeccel;
+  }
+
+  // Compute max deltaV for remaining deccel
+  t = -accel / jerk; // Time to shed remaining accel
+  float deltaV = -scurve_velocity(t, accel, jerk);
+
+  // Compute constant deccel period
+  if (deltaV < vel) {
+    float t = -(vel - deltaV) / accel;
+    dist += scurve_distance(t, vel, accel, 0);
+    vel += scurve_velocity(t, accel, 0);
   }
 
   // Compute distance to zero vel
@@ -156,6 +157,7 @@ static float _soft_limit(int axis, float V, float Vt, float A) {
   float dir = jr.axes[axis].velocity;
   if (!dir) dir = jr.axes[axis].target;
   if (!dir) return 0;
+  bool positive = 0 < dir;
 
   // Check if axis is homed
   if (!axis_get_homed(axis)) return Vt;
@@ -168,22 +170,48 @@ static float _soft_limit(int axis, float V, float Vt, float A) {
   // Move allowed if at or past limit but headed out
   // Move not allowed if at or past limit and heading further in
   float position = exec_get_axis_position(axis);
-  if (position <= min) return 0 < dir ? Vt : 0;
-  if (max <= position) return dir < 0 ? Vt : 0;
+  if (position <= min) return positive ? Vt : 0;
+  if (max <= position) return !positive ? Vt : 0;
 
-  // Compute dist to decel
+  // Min velocity near limits
+  if (positive && max < position + 5) return MIN_VELOCITY;
+  if (!positive && position - 5 < min) return MIN_VELOCITY;
+
+  return Vt; // TODO compute deccel dist
+
+  // Compute dist to deccel
   float jerk = axis_get_jerk_max(axis);
-  float deccelDist = _compute_deccel_dist(V, A, jerk);
+  float maxA = axis_get_accel_max(axis);
+  float deccelDist = _compute_deccel_dist(V, A, maxA, jerk);
 
-  // Check if decell distance will lead to exceeding a limit
-  if (0 < dir && position <= min + deccelDist) return 0;
-  if (dir < 0 && max - deccelDist <= position) return 0;
-
-  // Check if decell distance will lead near limit
-  if (0 < dir && position <= min + deccelDist + 5) return MIN_VELOCITY;
-  if (dir < 0 && max - deccelDist - 5 <= position) return MIN_VELOCITY;
+  // Check if deccel distance will lead to exceeding a limit
+  if (positive && max <= position + deccelDist) return 0;
+  if (!positive && position - deccelDist <= min) return 0;
 
   return Vt;
+}
+
+
+static bool _axis_velocity_target(int axis) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  float Vn = a->next * axis_get_velocity_max(axis);
+  float Vi = a->velocity;
+  float Vt = a->target;
+
+  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
+
+  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
+    Vn = 0; // Plan to zero on sign change
+
+  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
+
+  if (Vt == Vn) return false; // No change
+
+  a->target = Vn;
+  if (Vn) a->sign = Vn < 0 ? -1 : 1;
+
+  return true; // Velocity changed
 }
 
 
@@ -202,15 +230,12 @@ static float _compute_axis_velocity(int axis) {
     return Vt;
   }
 
-  // Compute axis max jerk
+  // Compute axis max accel and jerk
   float jerk = axis_get_jerk_max(axis);
+  float maxA = axis_get_accel_max(axis);
 
   // Compute next accel
-  a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, jerk);
-
-  // Limit acceleration
-  if (axis_get_accel_max(axis) < fabs(a->accel))
-    a->accel = (a->accel < 0 ? -1 : 1) * axis_get_accel_max(axis);
+  a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, maxA, jerk);
 
   return V + a->accel * SEGMENT_TIME;
 }

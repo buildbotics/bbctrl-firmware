@@ -289,6 +289,7 @@ module.exports = new Vue({
         }
 
         update_object(this.state, e.data, false);
+        this.$broadcast('update');
 
       }.bind(this)
 

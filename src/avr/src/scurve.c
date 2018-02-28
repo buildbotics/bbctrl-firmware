@@ -28,6 +28,7 @@
 #include "scurve.h"
 
 #include <math.h>
+#include <stdbool.h>
 
 
 float scurve_distance(float t, float v, float a, float j) {
@@ -45,12 +46,27 @@ float scurve_velocity(float t, float a, float j) {
 float scurve_acceleration(float t, float j) {return j * t;}
 
 
-float scurve_next_accel(float dT, float iV, float tV, float iA, float jerk) {
-  float tA = sqrt(jerk * fabs(tV - iV)) * (tV < iV ? -1 : 1); // Target accel
-  float dA = jerk * dT; // Delta accel
+float scurve_next_accel(float time, float Vi, float Vt, float accel, float aMax,
+                        float jerk) {
+  bool increasing = Vi < Vt;
+  float deltaA = time * jerk;
 
-  if (iA < tA) return (iA < tA + dA) ? tA : (iA + dA);
-  if (tA < iA) return (iA - dA < tA) ? tA : (iA - dA);
+  if (increasing && accel < -deltaA)
+    return accel + deltaA; // negative accel, increasing speed
 
-  return iA;
+  if (!increasing && deltaA < accel)
+    return accel - deltaA; // positive accel, decreasing speed
+
+  float deltaV = fabs(Vt - Vi);
+  float targetA = sqrt(2 * deltaV * jerk);
+  if (aMax < targetA) targetA = aMax;
+
+  if (increasing) {
+    if (targetA < accel + deltaA) return targetA;
+    return accel + deltaA;
+
+  } else {
+    if (accel - deltaA < -targetA) return -targetA;
+    return accel - deltaA;
+  }
 }

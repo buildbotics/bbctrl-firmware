@@ -25,45 +25,53 @@
 #                                                                              #
 ################################################################################
 
-import bbctrl
+import logging
+from collections import deque
+
+log = logging.getLogger('CmdQ')
+log.setLevel(logging.WARNING)
 
 
-class MainLCDPage(bbctrl.LCDPage):
-    def __init__(self, ctrl):
-        bbctrl.LCDPage.__init__(self, ctrl.lcd)
-
-        self.ctrl = ctrl
-        self.install = True
-
-        ctrl.state.add_listener(self.update)
+class CommandQueue():
+    def __init__(self):
+        self.releaseID = 0
+        self.q = deque()
 
 
-    def update(self, update):
-        state = self.ctrl.state
+    def is_active(self): return len(self.q)
 
-        # Must be after machine vars have loaded
-        if self.install and hasattr(self, 'id'):
-            self.install = False
-            self.ctrl.lcd.set_current_page(self.id)
 
-        self.text('%-9s' % state.get('xx', ''), 0, 0)
+    def clear(self):
+        self.releaseID = 0
+        self.q.clear()
 
-        # Show enabled axes
-        row = 0
-        for axis in 'xyzabc':
-            if state.is_axis_enabled(axis):
-                position = state.get(axis + 'p', 0)
-                position += state.get('offset_' + axis, 0)
-                self.text('% 10.3f%s' % (position, axis.upper()), 9, row)
-                row += 1
 
-        while row < 4:
-            self.text(' ' * 11, 9, row)
-            row += 1
+    def enqueue(self, id, immediate, cb, *args, **kwargs):
+        log.info('add(#%d, %s) releaseID=%d', id, immediate, self.releaseID)
+        self.q.append((id, immediate, cb, args, kwargs))
+        self._release()
 
-        # Show tool, units, feed and speed
-        units = 'INCH' if state.get('imperial', False) else 'MM'
-        self.text('%2uT' % state.get('tool', 0), 6, 1)
-        self.text('%-6s' % units,                0, 1)
-        self.text('%8uF' % state.get('feed', 0), 0, 2)
-        self.text('%8dS' % state.get('speed',0), 0, 3)
+
+    def _release(self):
+        while len(self.q):
+            id, immediate, cb, args, kwargs = self.q[0]
+
+            # Execute commands <= releaseID and consecutive immediate commands
+            if not immediate and self.releaseID < id: return
+
+            log.info('releasing id=%d' % id)
+            self.q.popleft()
+
+            try:
+                if cb is not None: cb(*args, **kwargs)
+            except Exception as e:
+                log.exception('During command queue callback')
+
+
+
+    def release(self, id):
+        if id and id <= self.releaseID:
+            log.warning('id out of order %d <= %d' % (id, self.releaseID))
+        self.releaseID = id
+
+        self._release()

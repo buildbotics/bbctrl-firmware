@@ -51,7 +51,7 @@ class Ctrl(object):
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
-            self.mach.comm.connect()
+            self.mach.connect()
 
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))

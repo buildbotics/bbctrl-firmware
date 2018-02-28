@@ -28,7 +28,7 @@
 import lcd
 import atexit
 import logging
-import tornado.ioloop
+from tornado.ioloop import PeriodicCallback
 
 
 log = logging.getLogger('LCD')
@@ -94,8 +94,7 @@ class LCD:
         self.set_message('Loading...')
 
         # Redraw screen every 5 seconds
-        self.redraw_timer = tornado.ioloop.PeriodicCallback(self._redraw, 5000,
-                                                            self.ctrl.ioloop)
+        self.redraw_timer = PeriodicCallback(self._redraw, 5000, ctrl.ioloop)
         self.redraw_timer.start()
 
         atexit.register(self.goodbye)
@@ -198,7 +197,7 @@ class LCD:
             self.timeout = self.ctrl.ioloop.call_later(1, self._update)
 
 
-    def goodbye(self):
+    def goodbye(self, message = ''):
         if self.timeout:
             self.ctrl.ioloop.remove_timeout(self.timeout)
             self.timeout = None
@@ -207,4 +206,4 @@ class LCD:
             self.redraw_timer.stop()
             self.redraw_timer = None
 
-        if self.lcd is not None: self.set_message('')
+        if self.lcd is not None: self.set_message(message)

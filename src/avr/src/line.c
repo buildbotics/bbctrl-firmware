@@ -171,28 +171,19 @@ static stat_t _pause() {
     return STAT_NOP;
   }
 
-  // Compute new velocity and acceleration
-  a = scurve_next_accel(t, v, 0, a, j);
-  if (l.line.max_accel < fabs(a)) {
-    a = (a < 0 ? -1 : 1) * l.line.max_accel;
-    j = 0;
-  } else if (0 < a) j = -j;
+  // Compute new velocity, acceleration and travel distance
+  a = scurve_next_accel(t, v, 0, a, l.line.max_accel, j);
   v += a * t;
-
-  // Compute distance that will be traveled
   l.dist += v * t;
+
+  // Target end of line exactly if we are close
+  if (l.dist - 0.001 < l.line.length && l.line.length < l.dist + 0.001)
+    l.dist = l.line.length;
 
   if (l.line.length < l.dist) {
     // Compute time left in current section
     l.current_time = t - (l.dist - l.line.length) / v;
-
-    exec_set_acceleration(0);
-    exec_set_jerk(0);
     _done();
-
-    // TODO it's possible to exit here and have no more moves
-    // Apparently this pause method can take longer to pause than the
-    // actual move.  FIX ME!!!
 
     return STAT_AGAIN;
   }
@@ -202,15 +193,18 @@ static stat_t _pause() {
   _segment_target(target, l.dist);
 
   l.current_time = 0;
-  exec_set_jerk(j);
+
+  // Compute jerk
+  float oldAccel = exec_get_acceleration();
+  exec_set_jerk(oldAccel == a ? 0 : (oldAccel < a ? j : -j));
 
   return _move(SEGMENT_TIME, target, v, a);
 }
 
 
 static stat_t _line_exec() {
-  // Pause if requested.  If we are already stopping, just continue.
-  if (state_get() == STATE_STOPPING && (l.section < 4 || l.line.target_vel)) {
+  // Pause if requested.
+  if (state_get() == STATE_STOPPING) {
     if (SEGMENT_TIME < l.current_time) l.current_time = 0;
     exec_set_cb(_pause);
     return _pause();
@@ -263,7 +257,6 @@ static stat_t _line_exec() {
 
   // Release exec if we are done
   if (lastSection) {
-    if (state_get() == STATE_STOPPING) state_holding();
     exec_set_velocity(l.line.target_vel);
     _done();
   }
@@ -358,6 +351,7 @@ void command_line_exec(void *data) {
   l.section = -1;
   if (!_section_next()) return;
 
+#if 0
   // Compare start position to actual position
   float diff[AXES];
   bool report = false;
@@ -370,6 +364,7 @@ void command_line_exec(void *data) {
   if (report)
     STATUS_DEBUG("diff: %.4f %.4f %.4f %.4f",
                  diff[0], diff[1], diff[2], diff[3]);
+#endif
 
   // Set callback
   exec_set_cb(_line_exec);

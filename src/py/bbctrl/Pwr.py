@@ -26,6 +26,7 @@
 ################################################################################
 
 import logging
+from tornado.ioloop import PeriodicCallback
 
 import bbctrl
 
@@ -62,8 +63,9 @@ class Pwr():
         self.i2c_addr = ctrl.args.pwr_addr
         self.regs = [-1] * 8
         self.lcd_page = ctrl.lcd.add_new_page()
+        self.failures = 0
 
-        self._update()
+        PeriodicCallback(self._update, 1000, ctrl.ioloop).start()
 
 
     def get_reg(self, i): return self.regs[i]
@@ -128,8 +130,12 @@ class Pwr():
                 if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
-            log.info('Pwr communication failed: %s' % e)
-            self.ctrl.ioloop.call_later(1, self._update)
+            self.failures += 1
+            msg = 'Pwr communication failed: %s' % e
+            if self.failures != 5: log.info(msg)
+            else:
+                log.warning(msg)
+                self.failures = 0
             return
 
         self.lcd_page.text('%3dC   Tmp' % self.regs[TEMP_REG],  0, 0)
@@ -144,4 +150,4 @@ class Pwr():
 
         if len(update): self.ctrl.state.update(update)
 
-        self.ctrl.ioloop.call_later(0.25, self._update)
+        self.failures = 0

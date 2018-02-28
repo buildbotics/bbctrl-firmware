@@ -32,6 +32,7 @@ import logging
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
+from bbctrl.CommandQueue import CommandQueue
 
 log = logging.getLogger('Planner')
 
@@ -42,15 +43,14 @@ reLogLine = re.compile(
 class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.lastID = 0
-        self.setq = deque()
+        self.cmdq = CommandQueue()
 
         ctrl.state.add_listener(self._update)
 
         self.reset()
 
 
-    def is_busy(self): return self.is_running() or len(self.setq)
+    def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
     def is_synchronizing(self): return self.planner.is_synchronizing()
 
@@ -94,15 +94,17 @@ class Planner():
         return limit
 
 
-    def _get_config(self, mdi):
+    def _get_config(self, mdi, with_limits):
         config = {
-            "min-soft-limit": self._get_soft_limit('tn', -math.inf),
-            "max-soft-limit": self._get_soft_limit('tm', math.inf),
-            "max-vel":   self._get_config_vector('vm', 1000),
-            "max-accel": self._get_config_vector('am', 1000000),
-            "max-jerk":  self._get_config_vector('jm', 1000000),
+            'max-vel':   self._get_config_vector('vm', 1000),
+            'max-accel': self._get_config_vector('am', 1000000),
+            'max-jerk':  self._get_config_vector('jm', 1000000),
             # TODO junction deviation & accel
             }
+
+        if with_limits:
+            config['min-soft-limit'] = self._get_soft_limit('tn', -math.inf)
+            config['max-soft-limit'] = self._get_soft_limit('tm', math.inf)
 
         if not mdi:
             program_start = self.ctrl.config.get('program-start')
@@ -130,29 +132,10 @@ class Planner():
             self.planner.set_active(id)
 
             # Synchronize planner variables with execution id
-            self._release_set_cmds(id)
+            self.cmdq.release(id)
 
 
-    def _release_set_cmds(self, id):
-        self.lastID = id
-
-        # Apply all set commands <= to ID and those that follow consecutively
-        while len(self.setq) and self.setq[0][0] - 1 <= self.lastID:
-            id, name, value = self.setq.popleft()
-
-            if name == 'message': self.ctrl.msgs.broadcast({'message': value})
-            else: self.ctrl.state.set(name, value)
-
-            if id == self.lastID + 1: self.lastID = id
-
-
-    def _queue_set_cmd(self, id, name, value):
-        log.info('Planner set(#%d, %s, %s)', id, name, value)
-        self.setq.append((id, name, value))
-        self._release_set_cmds(self.lastID)
-
-
-    def _get_var(self, name):
+    def _get_var_cb(self, name):
         value = 0
         if len(name) and name[0] == '_':
             value = self.ctrl.state.get(name[1:], 0)
@@ -161,7 +144,7 @@ class Planner():
         return value
 
 
-    def _log(self, line):
+    def _log_cb(self, line):
         line = line.strip()
         m = reLogLine.match(line)
         if not m: return
@@ -181,10 +164,16 @@ class Planner():
         else: log.error('Could not parse planner log line: ' + line)
 
 
+
+    def _enqueue_set_cmd(self, id, name, value):
+        log.info('set(#%d, %s, %s)', id, name, value)
+        self.cmdq.enqueue(id, True, self.ctrl.state.set, name, value)
+
+
     def __encode(self, block):
         log.info('Cmd:' + json.dumps(block))
 
-        type = block['type']
+        type, id = block['type'], block['id']
 
         if type == 'line':
             return Cmd.line(block['target'], block['exit-vel'],
@@ -194,13 +183,17 @@ class Planner():
         if type == 'set':
             name, value = block['name'], block['value']
 
-            if name in ['message', 'line', 'tool']:
-                self._queue_set_cmd(block['id'], name, value)
+            if name == 'message':
+                self.cmdq.enqueue(
+                    id, True, self.ctrl.msgs.broadcast, {'message': value})
+
+            if name in ['line', 'tool']:
+                self._enqueue_set_cmd(id, name, value)
 
             if name == 'speed': return Cmd.speed(value)
 
             if len(name) and name[0] == '_':
-                self._queue_set_cmd(block['id'], name[1:], value)
+                self._enqueue_set_cmd(id, name[1:], value)
 
             if name[0:1] == '_' and name[1:2] in 'xyzabc':
                 if name[2:] == '_home': return Cmd.set_axis(name[1], value)
@@ -229,31 +222,33 @@ class Planner():
 
     def _encode(self, block):
         cmd = self.__encode(block)
-        if cmd is not None: return Cmd.set('id', block['id']) + '\n' + cmd
+
+        if cmd is not None:
+            self.cmdq.enqueue(block['id'], False, None)
+            return Cmd.set('id', block['id']) + '\n' + cmd
 
 
     def reset(self):
         self.planner = gplan.Planner()
-        self.planner.set_resolver(self._get_var)
-        self.planner.set_logger(self._log, 1, 'LinePlanner:3')
-        self.setq.clear()
+        self.planner.set_resolver(self._get_var_cb)
+        self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
+        self.cmdq.clear()
 
 
-    def mdi(self, cmd):
+    def mdi(self, cmd, with_limits = True):
         log.info('MDI:' + cmd)
-        self.planner.load_string(cmd, self._get_config(True))
+        self.planner.load_string(cmd, self._get_config(True, with_limits))
 
 
     def load(self, path):
         log.info('GCode:' + path)
-        self.planner.load(path, self._get_config(False))
+        self.planner.load(path, self._get_config(False, True))
 
 
     def stop(self):
         try:
             self.planner.stop()
-            self.lastID = 0
-            self.setq.clear()
+            self.cmdq.clear()
 
         except Exception as e:
             log.exception(e)

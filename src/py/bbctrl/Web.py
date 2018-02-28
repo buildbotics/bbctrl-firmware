@@ -79,7 +79,9 @@ def check_password(password):
 
 
 class RebootHandler(bbctrl.APIHandler):
-    def put_ok(self): subprocess.Popen('reboot')
+    def put_ok(self):
+        self.ctrl.lcd.goodbye('Rebooting...')
+        subprocess.Popen('reboot')
 
 
 class LogHandler(tornado.web.RequestHandler):
@@ -186,12 +188,14 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
         with open('firmware/update.tar.bz2', 'wb') as f:
             f.write(firmware['body'])
 
+        self.ctrl.lcd.goodbye('Upgrading firmware')
         subprocess.Popen(['/usr/local/bin/update-bbctrl'])
 
 
 class UpgradeHandler(bbctrl.APIHandler):
     def put_ok(self):
         check_password(self.json['password'])
+        self.ctrl.lcd.goodbye('Upgrading firmware')
         subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
@@ -269,7 +273,7 @@ class ClientConnection(object):
 
 
     def heartbeat(self):
-        self.ctrl.ioloop.call_later(3, self.heartbeat)
+        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
         self.count += 1
 
@@ -278,16 +282,17 @@ class ClientConnection(object):
 
 
     def on_open(self, *args, **kwargs):
-        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
         self.ctrl.state.add_listener(self.send)
         self.ctrl.msgs.add_listener(self.send)
         self.is_open = True
+        self.heartbeat()
 
 
     def on_close(self):
         self.ctrl.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.msgs.remove_listener(self.send)
+        self.is_open = False
 
 
     def on_message(self, data): self.ctrl.mach.mdi(data)
@@ -299,7 +304,6 @@ class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
         ClientConnection.__init__(self, app.ctrl)
         tornado.websocket.WebSocketHandler.__init__(
             self, app, request, **kwargs)
-
 
     def send(self, msg): self.write_message(msg)
     def open(self): self.on_open()

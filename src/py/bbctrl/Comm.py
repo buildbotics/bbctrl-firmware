@@ -38,12 +38,9 @@ import bbctrl.Cmd as Cmd
 log = logging.getLogger('Comm')
 
 
-class Comm():
-    def __init__(self, ctrl, next_cb, connect_cb):
+class Comm(object):
+    def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.next_cb = next_cb
-        self.connect_cb = connect_cb
-
         self.queue = deque()
         self.in_buf = ''
         self.command = None
@@ -62,6 +59,10 @@ class Comm():
                                     ctrl.ioloop.READ)
 
         self.i2c_addr = ctrl.args.avr_addr
+
+
+    def comm_next(self): raise Exception('Not implemented')
+    def comm_error(self): raise Exception('Not implemented')
 
 
     def is_active(self):
@@ -131,7 +132,7 @@ class Comm():
 
         # Load next command from callback
         else:
-            cmd = self.next_cb()
+            cmd = self.comm_next()
 
             if cmd is None: self._set_write(False) # Stop writing
             else: self._load_next_command(cmd)
@@ -162,6 +163,8 @@ class Comm():
         elif level == 'debug':   log.debug(msg,   extra = extra)
         elif level == 'warning': log.warning(msg, extra = extra)
         elif level == 'error':   log.error(msg,   extra = extra)
+
+        if level == 'error': self.comm_error()
 
 
     def _serial_read(self):
@@ -229,9 +232,6 @@ class Comm():
 
     def connect(self):
         try:
-            # Call connect callback
-            self.connect_cb()
-
             # Resume once current queue of GCode commands has flushed
             self.queue_command(Cmd.RESUME)
             self.queue_command(Cmd.HELP) # Load AVR commands and variables

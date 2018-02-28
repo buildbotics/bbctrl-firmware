@@ -1,6 +1,28 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.17
+ - Fixed pausing fail near end of run bug.
+ - Show "Upgrading firmware" when upgrading.
+ - Log excessive pwr communcation failures as errors.
+ - Ensure we can still get out of non-idle cycles when there are errors.
+ - Less frequent pwr variable updates.
+ - Stop cancels seek and subsequent estop.
+ - Fixed bug in AVR/Planner command synchronization.
+ - Consistently display HOMMING state during homing operation.
+ - Homing zeros axis global offset.
+ - Added zero all button. #126
+ - Separate "Auto" and "MDI" play/pause & stop buttons. #126
+ - Moved home all button. #126
+ - Display "Video camera not found." instead of broken image icon.
+ - Show offset positions not absolute on LCD.
+ - Don't change gcode lines while homing.
+ - Don't change button states while homing.
+ - Adding warning about power cyclying during an upgrade.
+ - Reset planner on AVR errors.
+ - Fixed pausing with short moves.
+ - Corrected s-curve accel increasing jogging velocities.
+
 ## v0.3.16
  - Fixed switch debounce bug.
 

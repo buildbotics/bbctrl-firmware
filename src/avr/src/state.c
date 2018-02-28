@@ -34,6 +34,7 @@
 #include "outputs.h"
 #include "jog.h"
 #include "estop.h"
+#include "seek.h"
 #include "report.h"
 
 #include <stdio.h>
@@ -140,6 +141,7 @@ static void _stop() {
     s.flush_requested = true;
     spindle_stop();
     outputs_stop();
+    seek_cancel();
     _set_state(STATE_READY);
     break;
 
