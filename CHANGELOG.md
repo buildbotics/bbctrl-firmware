@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.18
+ - Don't enable any tool by default.
+
 ## v0.3.17
  - Fixed pausing fail near end of run bug.
  - Show "Upgrading firmware" when upgrading.

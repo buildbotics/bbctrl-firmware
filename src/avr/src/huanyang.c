@@ -123,6 +123,7 @@ typedef struct {
   uint32_t last;
   uint8_t retry;
 
+  uint8_t shutdown;
   bool connected;
   bool changed;
   float speed;
@@ -238,8 +239,10 @@ static bool _update(int index) {
   switch (index) {
   case 0: { // Update direction
     uint8_t state = HUANYANG_STOP;
-    if (0 < ha.speed) state = HUANYANG_RUN;
-    else if (ha.speed < 0) state = HUANYANG_RUN | HUANYANG_REV_FWD;
+    if (!ha.shutdown) {
+      if (0 < ha.speed) state = HUANYANG_RUN;
+      else if (ha.speed < 0) state = HUANYANG_RUN | HUANYANG_REV_FWD;
+    }
 
     _set_command1(HUANYANG_CTRL_WRITE, state);
 
@@ -257,10 +260,13 @@ static bool _update(int index) {
     // Clamp frequency
     if (ha.max_freq < freq) freq = ha.max_freq;
     if (freq < ha.min_freq) freq = ha.min_freq;
+    if (ha.shutdown) freq = 0;
 
     // Frequency write command
     uint16_t f = freq * 100;
     _set_command2(HUANYANG_FREQ_WRITE, f >> 8, f);
+
+    if (1 < ha.shutdown) ha.shutdown--;
 
     return true;
   }
@@ -308,7 +314,7 @@ static void _next_command();
 
 
 static void _next_state() {
-  if (ha.changed) {
+  if (ha.changed || ha.shutdown) {
     ha.next_command_cb = _update;
     ha.changed = false;
 
@@ -342,7 +348,51 @@ static bool _check_response() {
 }
 
 
+static void _reset(bool halt) {
+  _set_dre_interrupt(false);
+  _set_txc_interrupt(false);
+  _set_rxc_interrupt(false);
+  _set_write(true); // RS485 write mode
+
+  // Flush USART
+  uint8_t x = HUANYANG_PORT.DATA;
+  x = HUANYANG_PORT.STATUS;
+  x = x;
+
+  // Save settings
+  uint8_t id = ha.id;
+  float speed = ha.speed;
+  bool debug = ha.debug;
+
+  // Clear state
+  memset(&ha, 0, sizeof(ha));
+
+  // Restore settings
+  ha.id = id;
+  ha.speed = speed;
+  ha.debug = debug;
+  ha.changed = true;
+
+  if (!halt) _next_state();
+}
+
+
 static void _next_command() {
+  if (ha.shutdown == 1) {
+    _reset(true);
+
+    // Disable USART
+    HUANYANG_PORT.CTRLA = 0;
+    HUANYANG_PORT.CTRLC = 0;
+    HUANYANG_PORT.CTRLB = 0;
+
+    // Float write pins
+    DIRCLR_PIN(RS485_DI_PIN);
+    DIRCLR_PIN(RS485_RW_PIN);
+
+    return;
+  }
+
   if (ha.next_command_cb && ha.next_command_cb(ha.command_index++)) {
     ha.response_length = _response_length(ha.command[1]);
 
@@ -400,7 +450,7 @@ ISR(HUANYANG_TXC_vect) {
 
 // Data received interrupt
 ISR(HUANYANG_RXC_vect) {
-  ha.response[ha.current_offset++] = USARTD1.DATA;
+  ha.response[ha.current_offset++] = HUANYANG_PORT.DATA;
 
   if (ha.current_offset == ha.response_length) {
     _set_rxc_interrupt(false);
@@ -430,15 +480,18 @@ void hy_init() {
   _set_baud(3325, 0b1101); // 9600 @ 32MHz with 2x USART
 
   // No parity, 8 data bits, 1 stop bit
-  USARTD1.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
+  HUANYANG_PORT.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
     USART_CHSIZE_8BIT_gc;
 
   // Configure receiver and transmitter
-  USARTD1.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
+  HUANYANG_PORT.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
 
   ha.id = HUANYANG_ID;
   hy_reset();
 }
+
+
+void hy_deinit() {ha.shutdown = 5;}
 
 
 void hy_set(float speed) {
@@ -450,33 +503,7 @@ void hy_set(float speed) {
 }
 
 
-void hy_reset() {
-  _set_dre_interrupt(false);
-  _set_txc_interrupt(false);
-  _set_rxc_interrupt(false);
-  _set_write(true); // RS485 write mode
-
-  // Flush USART
-  uint8_t x = USARTD1.DATA;
-  x = USARTD1.STATUS;
-  x = x;
-
-  // Save settings
-  uint8_t id = ha.id;
-  float speed = ha.speed;
-  bool debug = ha.debug;
-
-  // Clear state
-  memset(&ha, 0, sizeof(ha));
-
-  // Restore settings
-  ha.id = id;
-  ha.speed = speed;
-  ha.debug = debug;
-  ha.changed = true;
-
-  _next_state();
-}
+void hy_reset() {_reset(false);}
 
 
 void hy_rtc_callback() {

@@ -31,6 +31,7 @@
 
 
 void hy_init();
+void hy_deinit();
 void hy_set(float speed);
 void hy_reset();
 void hy_rtc_callback();

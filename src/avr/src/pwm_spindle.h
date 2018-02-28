@@ -31,5 +31,6 @@
 
 
 void pwm_spindle_init();
+void pwm_spindle_deinit();
 void pwm_spindle_set(float speed);
 void pwm_spindle_stop();

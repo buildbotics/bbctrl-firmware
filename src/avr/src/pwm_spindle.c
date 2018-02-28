@@ -126,6 +126,17 @@ void pwm_spindle_init() {
 }
 
 
+void pwm_spindle_deinit() {
+  _set_enable(false);
+
+  // Float PWM output pin
+  DIRCLR_PIN(SPIN_PWM_PIN);
+
+  // Disable clock
+  TIMER_PWM.CTRLA = 0;
+}
+
+
 void pwm_spindle_set(float speed) {
   if (speed) _set_dir(0 < speed);
   spindle.speed = fabs(speed);

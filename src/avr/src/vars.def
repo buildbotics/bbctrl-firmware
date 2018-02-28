@@ -82,7 +82,7 @@ VAR(output_mode,     om, u8,    OUTS,   1, 1, "Output pin mode")
 VAR(analog_input,    ai, f32,   ANALOG, 0, 0, "Analog input pins")
 
 // Spindle
-VAR(spindle_type,    st, u8,    0,      1, 1, "PWM=0 or HUANYANG=1")
+VAR(spindle_type,    st, u8,    0,      1, 1, "DISABLED=0, PWM=1 or HUANYANG=2")
 VAR(spin_reversed,   sr, bool,  0,      1, 1, "Reverse spin")
 VAR(max_spin,        sx, f32,   0,      1, 1, "Maximum spindle speed")
 VAR(min_spin,        sm, f32,   0,      1, 1, "Minimum spindle speed")
