@@ -31,9 +31,9 @@
 #include "util.h"
 #include "exec.h"
 #include "state.h"
-#include "scurve.h"
 #include "command.h"
 #include "config.h"
+#include "SCurve.h"
 
 #include <stdbool.h>
 #include <math.h>
@@ -42,220 +42,62 @@
 #include <stdlib.h>
 
 
-typedef struct {
-  float delta;
-  float t;
-  bool changed;
-
-  int sign;
-  float velocity;
-  float accel;
-  float next;
-  float initial;
-  float target;
-} jog_axis_t;
-
-
-typedef struct {
+static struct {
   bool writing;
-  bool done;
 
-  jog_axis_t axes[AXES];
-} jog_runtime_t;
-
-
-static jog_runtime_t jr;
-
-
-#if 0
-// Numeric version
-static float _compute_deccel_dist(float vel, float accel, float jerk) {
-  float dist = 0;
-  float Ad = jerk * SEGMENT_TIME; // Delta accel
-
-  while (true) {
-    // Compute next accel
-    float At2 = -jerk * vel;
-    if (accel * accel < At2) accel += Ad;
-    else accel -= Ad;
-
-    // Compute next velocity
-    vel += accel * SEGMENT_TIME;
-    if (vel <= 0) break;
-
-    // Compute distance traveled
-    dist += vel * SEGMENT_TIME;
-  }
-
-  return dist;
-}
-#else
-
-
-// Analytical version
-static float _compute_deccel_dist(float vel, float accel, float maxA,
-                                  float jerk) {
-  // TODO Fix this function
-
-  float dist = 0;
-
-  // Compute distance to decrease accel to zero
-  if (0 < accel) {
-    float t = accel / jerk;
-    dist += scurve_distance(t, vel, accel, -jerk);
-    vel += scurve_velocity(t, accel, -jerk);
-    accel = 0;
-  }
-
-  // At this point accel <= 0, aka a decceleration
-
-  // Compute max deccel by applying the quadratic formula.
-  float t = accel / jerk;
-  float a = -1 / jerk;
-  float b = 2 * t;
-  float c = vel - 1.5 * t * accel;
-  float maxDeccel = (-b + sqrt(b * b - 4 * a * c)) / a * 0.5;
-
-  // Limit decceleration
-  if (maxDeccel < -maxA) maxDeccel = -maxA;
-
-  // Compute distance and velocity change to max deccel
-  if (maxDeccel < accel) {
-    float t = (maxDeccel - accel) / jerk;
-    dist += scurve_distance(t, vel, accel, -jerk);
-    vel += scurve_velocity(t, accel, -jerk);
-    accel = maxDeccel;
-  }
-
-  // Compute max deltaV for remaining deccel
-  t = -accel / jerk; // Time to shed remaining accel
-  float deltaV = -scurve_velocity(t, accel, jerk);
-
-  // Compute constant deccel period
-  if (deltaV < vel) {
-    float t = -(vel - deltaV) / accel;
-    dist += scurve_distance(t, vel, accel, 0);
-    vel += scurve_velocity(t, accel, 0);
-  }
-
-  // Compute distance to zero vel
-  dist += scurve_distance(t, vel, accel, jerk);
-
-  return dist;
-}
-#endif
-
-
-static float _soft_limit(int axis, float V, float Vt, float A) {
-  // Get travel direction
-  float dir = jr.axes[axis].velocity;
-  if (!dir) dir = jr.axes[axis].target;
-  if (!dir) return 0;
-  bool positive = 0 < dir;
-
-  // Check if axis is homed
-  if (!axis_get_homed(axis)) return Vt;
-
-  // Check if limits are enabled
-  float min = axis_get_soft_limit(axis, true);
-  float max = axis_get_soft_limit(axis, false);
-  if (min == max) return Vt;
-
-  // Move allowed if at or past limit but headed out
-  // Move not allowed if at or past limit and heading further in
-  float position = exec_get_axis_position(axis);
-  if (position <= min) return positive ? Vt : 0;
-  if (max <= position) return !positive ? Vt : 0;
-
-  // Min velocity near limits
-  if (positive && max < position + 1) return MIN_VELOCITY;
-  if (!positive && position - 1 < min) return MIN_VELOCITY;
-
-  // Compute dist to deccel
-  float jerk = axis_get_jerk_max(axis);
-  float maxA = axis_get_accel_max(axis);
-  float deccelDist = _compute_deccel_dist(V, A, maxA, jerk);
-
-  // Check if deccel distance will lead to exceeding a limit
-  if (positive && max <= position + deccelDist) return 0;
-  if (!positive && position - deccelDist <= min) return 0;
-
-  return Vt;
-}
-
-
-static float _compute_axis_velocity(int axis) {
-  jog_axis_t *a = &jr.axes[axis];
-
-  float V = fabs(a->velocity);
-  float Vt = fabs(a->target);
-
-  // Apply soft limits
-  Vt = _soft_limit(axis, V, Vt, a->accel);
-
-  // Check if velocity has reached its target
-  if (fp_EQ(V, Vt)) {
-    a->accel = 0;
-    return Vt;
-  }
-
-  // Compute axis max accel and jerk
-  float jerk = axis_get_jerk_max(axis);
-  float maxA = axis_get_accel_max(axis);
-
-  // Compute next accel
-  a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, maxA, jerk);
-
-  return V + a->accel * SEGMENT_TIME;
-}
-
-
-static bool _axis_velocity_target(int axis) {
-  jog_axis_t *a = &jr.axes[axis];
-
-  float Vn = a->next * axis_get_velocity_max(axis);
-  float Vi = a->velocity;
-  float Vt = a->target;
-
-  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
-
-  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
-    Vn = 0; // Plan to zero on sign change
-
-  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
-
-  if (Vt == Vn) return false; // No change
-
-  a->target = Vn;
-  if (Vn) a->sign = Vn < 0 ? -1 : 1;
-
-  return true; // Velocity changed
-}
+  SCurve scurves[AXES];
+  float next[AXES];
+  float targetV[AXES];
+} jr;
 
 
 stat_t jog_exec() {
-  // Load next velocity
-  jr.done = true;
+  bool done = true;
 
-  if (!jr.writing)
-    for (int axis = 0; axis < AXES; axis++) {
-      if (!axis_is_enabled(axis)) continue;
-      jr.axes[axis].changed = _axis_velocity_target(axis);
-    }
-
+  // Compute per axis velocities and target positions
+  float target[AXES] = {0,};
   float velocity_sqr = 0;
 
-  // Compute per axis velocities
   for (int axis = 0; axis < AXES; axis++) {
     if (!axis_is_enabled(axis)) continue;
-    float V = _compute_axis_velocity(axis);
-    if (MIN_VELOCITY < V) jr.done = false;
-    velocity_sqr += square(V);
-    jr.axes[axis].velocity = V * jr.axes[axis].sign;
+
+    // Load next velocity
+    if (!jr.writing)
+      jr.targetV[axis] = jr.next[axis] * axis_get_velocity_max(axis);
+
+    float p = exec_get_axis_position(axis);
+    float vel = jr.scurves[axis].getVelocity();
+    float targetV = jr.targetV[axis];
+    float min = axis_get_soft_limit(axis, true);
+    float max = axis_get_soft_limit(axis, false);
+    bool softLimited = min != max && axis_get_homed(axis);
+
+    // Apply soft limits, if enabled and homed
+    if (softLimited && MIN_VELOCITY < fabs(targetV)) {
+      float dist = jr.scurves[axis].getStoppingDist() * 1.01;
+
+      if (vel < 0 && p - dist <= min) targetV = -MIN_VELOCITY;
+      if (0 < vel && max <= p + dist) targetV = MIN_VELOCITY;
+    }
+
+    // Compute next velocity
+    float v = jr.scurves[axis].next(SEGMENT_TIME, targetV);
+
+    // Don't overshoot soft limits
+    float deltaP = v * SEGMENT_TIME;
+    if (softLimited && 0 < deltaP && max < p + deltaP) p = max;
+    else if (softLimited && deltaP < 0 && p + deltaP < min) p = min;
+    else p += deltaP;
+
+    // Not done jogging if still moving
+    if (MIN_VELOCITY < fabs(v) || MIN_VELOCITY < fabs(targetV)) done = false;
+
+    velocity_sqr += square(v);
+    target[axis] = p;
   }
 
   // Check if we are done
-  if (jr.done) {
+  if (done) {
     command_reset_position();
     exec_set_velocity(0);
     exec_set_cb(0);
@@ -264,26 +106,16 @@ stat_t jog_exec() {
     return STAT_NOP; // Done, no move executed
   }
 
-  // Compute target from velocity
-  float target[AXES];
-  exec_get_position(target);
-  for (int axis = 0; axis < AXES; axis++)
-    target[axis] += jr.axes[axis].velocity * SEGMENT_TIME;
-
   // Set velocity and target
   exec_set_velocity(sqrt(velocity_sqr));
-  stat_t status = exec_move_to_target(SEGMENT_TIME, target);
-  if (status != STAT_OK) return status;
-
-  return STAT_OK;
+  return exec_move_to_target(SEGMENT_TIME, target);
 }
 
 
 void jog_stop() {
   if (state_get() != STATE_JOGGING) return;
   jr.writing = true;
-  for (int axis = 0; axis < AXES; axis++)
-    jr.axes[axis].next = 0;
+  for (int axis = 0; axis < AXES; axis++) jr.next[axis] = 0;
   jr.writing = false;
 }
 
@@ -293,7 +125,7 @@ stat_t command_jog(char *cmd) {
   if (state_get() != STATE_READY && state_get() != STATE_JOGGING)
     return STAT_NOP;
 
-  // Skip command code
+  // Skip over command code
   cmd++;
 
   // Get velocities
@@ -304,18 +136,24 @@ stat_t command_jog(char *cmd) {
   // Check for end of command
   if (*cmd) return STAT_INVALID_ARGUMENTS;
 
-  // Reset
-  if (state_get() != STATE_JOGGING) memset(&jr, 0, sizeof(jr));
-
-  jr.writing = true;
-  for (int axis = 0; axis < AXES; axis++)
-    jr.axes[axis].next = velocity[axis];
-  jr.writing = false;
-
+  // Start jogging
   if (state_get() != STATE_JOGGING) {
+    memset(&jr, 0, sizeof(jr));
+
+    for (int axis = 0; axis < AXES; axis++)
+      if (axis_is_enabled(axis))
+        jr.scurves[axis] =
+          SCurve(axis_get_velocity_max(axis), axis_get_accel_max(axis),
+                 axis_get_jerk_max(axis));
+
     state_jogging();
     exec_set_cb(jog_exec);
   }
+
+  // Set next velocities
+  jr.writing = true;
+  for (int axis = 0; axis < AXES; axis++) jr.next[axis] = velocity[axis];
+  jr.writing = false;
 
   return STAT_OK;
 }

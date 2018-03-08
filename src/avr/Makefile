@@ -43,8 +43,8 @@ FUSE4=0xff
 FUSE5=0xeb
 
 # SRC
-SRC = $(wildcard src/*.c) $(wildcard src/plan/*.c)
-OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
+SRC = $(wildcard src/*.c) $(wildcard src/*.cpp)
+OBJ = $(patsubst src/%.cpp,build/%.o,$(patsubst src/%.c,build/%.o,$(SRC)))
 JSON = vars command messages
 JSON := $(patsubst %,build/%.json,$(JSON))
 
@@ -57,6 +57,10 @@ build/%.json: src/%.json.in src/%.def
 
 # Compile
 build/%.o: src/%.c
+	@mkdir -p $(shell dirname $@)
+	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
+
+build/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 

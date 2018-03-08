@@ -62,7 +62,7 @@ char axis_get_char(int axis) {
 
 int axis_get_id(char axis) {
   const char *axes = "XYZABCUVW";
-  char *ptr = strchr(axes, toupper(axis));
+  const char *ptr = strchr(axes, toupper(axis));
   return ptr == 0 ? -1 : (ptr - axes);
 }
 

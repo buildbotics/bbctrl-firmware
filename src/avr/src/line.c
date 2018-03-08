@@ -29,10 +29,10 @@
 #include "exec.h"
 #include "axis.h"
 #include "command.h"
-#include "scurve.h"
 #include "state.h"
 #include "seek.h"
 #include "util.h"
+#include "SCurve.h"
 
 #include <math.h>
 #include <string.h>
@@ -76,17 +76,17 @@ static void _segment_target(float target[AXES], float d) {
 
 
 static float _segment_distance(float t) {
-  return l.iD + scurve_distance(t, l.iV, l.iA, l.jerk);
+  return l.iD + SCurve::distance(t, l.iV, l.iA, l.jerk);
 }
 
 
 static float _segment_velocity(float t) {
-  return l.iV + scurve_velocity(t, l.iA, l.jerk);
+  return l.iV + SCurve::velocity(t, l.iA, l.jerk);
 }
 
 
 static float _segment_accel(float t) {
-  return l.iA + scurve_acceleration(t, l.jerk);
+  return l.iA + SCurve::acceleration(t, l.jerk);
 }
 
 
@@ -172,7 +172,7 @@ static stat_t _pause() {
   }
 
   // Compute new velocity, acceleration and travel distance
-  a = scurve_next_accel(t, v, 0, a, l.line.max_accel, j);
+  a = SCurve::nextAccel(t, 0, v, a, l.line.max_accel, j);
   v += a * t;
   l.dist += v * t;
 

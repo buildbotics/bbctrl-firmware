@@ -1,19 +1,24 @@
-TARGET=firmware-test
+TARGETS = firmware-test jogsim
 
 FIRMWARE_TEST_SRC = status.c util.c axis.c report.c type.c exec.c base64.c \
-  command.c commands.c vars.c state.c line.c scurve.c seek.c
+  command.c commands.c vars.c state.c line.c seek.c SCurve.cpp
 FIRMWARE_TEST_SRC := $(patsubst %,../src/%,$(FIRMWARE_TEST_SRC))
-FIRMWARE_TEST_SRC += $(wildcard ../src/plan/*.c) firmware-test.c hal.c
+FIRMWARE_TEST_SRC += firmware-test.c hal.c
 
-CFLAGS = -I../src -Wall -Werror -DDEBUG -g -std=gnu99
+JOGSIM_SRC = ../src/SCurve.cpp jogsim.cpp
+
+CFLAGS = -I../src -Wall -Werror -DDEBUG -g -std=gnu++98
 CFLAGS += -MD -MP -MT $@ -MF .dep/$(@F).d
 CFLAGS += -DF_CPU=320000000
 LDFLAGS = -lm
 
-all: $(TARGET)
+all: $(TARGETS)
 
-$(TARGET): $(FIRMWARE_TEST_SRC)
-	gcc -o $@ $(FIRMWARE_TEST_SRC) $(CFLAGS) $(LDFLAGS)
+firmware-test: $(FIRMWARE_TEST_SRC)
+	g++ -o $@ $(FIRMWARE_TEST_SRC) $(CFLAGS) $(LDFLAGS)
+
+jogsim: $(JOGSIM_SRC)
+	g++ -o $@ $(JOGSIM_SRC) $(CFLAGS) $(LDFLAGS)
 
 %.csv: %.gc firmware-test
 	./firmware-test < $< | grep -E '^-?[0-9.]+,'

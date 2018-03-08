@@ -29,6 +29,7 @@
 #include "spindle.h"
 #include "i2c.h"
 #include "type.h"
+#include "switch.h"
 #include "cpp_magic.h"
 
 #include <stdint.h>
@@ -62,7 +63,7 @@ typedef const char *pstring;
 
 float square(float x) {return x * x;}
 void i2c_set_read_callback(i2c_read_cb_t cb) {}
-void print_status_flags(uint8_t flags) {DEBUG_CALL();}
+void print_status_flags(uint16_t flags) {DEBUG_CALL();}
 
 
 bool estop = false;
@@ -82,7 +83,7 @@ bool estop_triggered() {return estop;}
 void hw_request_hard_reset() {DEBUG_CALL(); exit(0);}
 
 
-bool usart_tx_empty() {return true;}
+bool usart_tx_fill() {return 0;}
 
 
 char *usart_readline() {
@@ -116,8 +117,9 @@ void st_set_position(int32_t position[AXES]) {
 }
 
 
-bool switch_is_active(int index) {DEBUG_CALL("%d", index); return false;}
-bool switch_is_enabled(int index) {DEBUG_CALL("%d", index); return false;}
+bool switch_is_active(switch_id_t sw) {DEBUG_CALL("%d", sw); return false;}
+bool switch_is_enabled(switch_id_t sw) {DEBUG_CALL("%d", sw); return false;}
+void switch_set_callback(switch_id_t sw, switch_callback_t cb) {}
 
 
 static uint32_t ticks = 0;
@@ -127,7 +129,9 @@ bool rtc_expired(uint32_t t) {return true;}
 
 bool motor_is_enabled(int motor) {return true;}
 int motor_get_axis(int motor) {return motor;}
-
+bool motor_get_homed(int motor) {return false;}
+float motor_get_soft_limit(int motor, bool min) {return 0;}
+void motor_set_position(int motor, float position) {}
 
 #define MICROSTEPS 32
 #define TRAVEL_REV 5
@@ -161,7 +165,14 @@ stat_t st_prep_line(float time, const float target[]) {
 void st_prep_dwell(float seconds) {DEBUG_CALL("%f", seconds);}
 
 
+void outputs_stop() {}
+void jog_stop() {}
+
+
 // Command callbacks
 stat_t command_estop(char *cmd) {DEBUG_CALL(); return STAT_OK;}
 stat_t command_clear(char *cmd) {DEBUG_CALL(); return STAT_OK;}
 stat_t command_jog(char *cmd) {DEBUG_CALL(); return STAT_OK;}
+stat_t command_input(char *cmd) {DEBUG_CALL(); return STAT_OK;}
+unsigned command_input_size() {return 0;}
+void command_input_exec(void *data) {}
