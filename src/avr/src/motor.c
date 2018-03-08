@@ -50,6 +50,11 @@
 typedef struct {
   // Config
   uint8_t axis;                  // map motor to axis
+  uint8_t step_pin;
+  uint8_t dir_pin;
+  TC0_t *timer;
+  DMA_CH_t *dma;
+  uint8_t dma_trigger;
   bool slave;
   uint16_t microsteps;           // microsteps per full step
   bool reverse;
@@ -59,11 +64,6 @@ typedef struct {
   float min_soft_limit;
   float max_soft_limit;
   bool homed;
-  uint8_t step_pin;
-  uint8_t dir_pin;
-  TC0_t *timer;
-  DMA_CH_t *dma;
-  uint8_t dma_trigger;
 
   // Computed
   float steps_per_unit;
@@ -371,7 +371,8 @@ void set_power_mode(int motor, uint8_t value) {
   for (int m = motor; m < MOTORS; m++)
     if (motors[m].axis == motors[motor].axis)
       motors[m].power_mode =
-        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ? value : MOTOR_DISABLED;
+        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ?
+        (motor_power_mode_t)value : MOTOR_DISABLED;
 }
 
 

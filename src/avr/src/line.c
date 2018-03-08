@@ -53,13 +53,13 @@ typedef struct {
 
 
 static struct {
-  line_t line;
-
+  float current_time;
   int section;
   bool stop_section;
-  float current_time;
   float offset_time;
   int seg;
+
+  line_t line;
 
   float iD; // Initial section distance
   float iV; // Initial section velocity
@@ -266,7 +266,8 @@ static stat_t _line_exec() {
 
 
 void _print_vector(const char *name, float v[4]) {
-  printf("%s %f %f %f %f\n", name, v[0], v[1], v[2], v[3]);
+  printf("%s %f %f %f %f\n",
+         name, (double)v[0], (double)v[1], (double)v[2], (double)v[3]);
 }
 
 

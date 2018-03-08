@@ -66,8 +66,8 @@ void exec_init() {
   // TODO implement overrides
 
   // Set callback for limit switches
-  for (switch_id_t sw = SW_MIN_X; sw <= SW_MAX_A; sw++)
-    switch_set_callback(sw, _limit_switch_cb);
+  for (int sw = SW_MIN_X; sw <= SW_MAX_A; sw++)
+    switch_set_callback((switch_id_t)sw, _limit_switch_cb);
 }
 
 
@@ -145,10 +145,10 @@ stat_t command_set_axis(char *cmd) {
   if (*cmd) return STAT_INVALID_ARGUMENTS;
 
   // Update command
-  command_set_axis_position(axis, position);
+  command_set_axis_position((uint8_t)axis, position);
 
   // Queue
-  set_axis_t set_axis = {axis, position};
+  set_axis_t set_axis = {(uint8_t)axis, position};
   command_push(COMMAND_set_axis, &set_axis);
 
   return STAT_OK;

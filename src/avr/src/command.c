@@ -80,7 +80,7 @@ static struct {
 
 // Define command callbacks
 #define CMD(CODE, NAME, SYNC, ...)              \
-  stat_t command_##NAME();                      \
+  stat_t command_##NAME(char *);                \
   IF(SYNC)(unsigned command_##NAME##_size();)   \
   IF(SYNC)(void command_##NAME##_exec(void *);)
 #include "command.def"
@@ -155,7 +155,7 @@ unsigned command_get_count() {return cmd.count;}
 void command_print_json() {
   bool first = true;
   static const char fmt[] PROGMEM =
-    "\"%c\":{\"name\":\"%"PRPSTR"\",\"help\":\"%"PRPSTR"\"}";
+    "\"%c\":{\"name\":\"%" PRPSTR "\",\"help\":\"%" PRPSTR "\"}";
 
 #define CMD(CODE, NAME, SYNC, HELP)                                     \
   if (first) first = false; else putchar(',');                          \

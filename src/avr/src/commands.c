@@ -54,8 +54,8 @@ static stat_t _dwell_exec() {
 unsigned command_dwell_size() {return sizeof(float);}
 
 
-void command_dwell_exec(float *seconds) {
-  st_prep_dwell(*seconds);
+void command_dwell_exec(void *seconds) {
+  st_prep_dwell(*(float *)seconds);
   exec_set_cb(_dwell_exec); // Necessary evil
 }
 

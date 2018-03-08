@@ -49,7 +49,7 @@ static const char *const stat_msg[] PROGMEM = {
 
 
 const char *status_to_pgmstr(stat_t code) {
-  return pgm_read_ptr(&stat_msg[code]);
+  return (const char *)pgm_read_ptr(&stat_msg[code]);
 }
 
 
@@ -68,7 +68,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   va_list args;
 
   // Type
-  printf_P(PSTR("\n{\"level\":\"%"PRPSTR"\",\"msg\":\""),
+  printf_P(PSTR("\n{\"level\":\"%" PRPSTR "\",\"msg\":\""),
            status_level_pgmstr(level));
 
   // Message
@@ -85,7 +85,7 @@ stat_t status_message_P(const char *location, status_level_t level,
   if (code) printf_P(PSTR(",\"code\":%d"), code);
 
   // Location
-  if (location) printf_P(PSTR(",\"where\":\"%"PRPSTR"\""), location);
+  if (location) printf_P(PSTR(",\"where\":\"%" PRPSTR "\""), location);
 
   putchar('}');
   putchar('\n');

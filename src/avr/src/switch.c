@@ -90,7 +90,7 @@ void switch_rtc_callback() {
       s->state = state;
       s->debounce = 0;
       s->initialized = true;
-      if (s->cb) s->cb(i, switch_is_active(i));
+      if (s->cb) s->cb((switch_id_t)i, switch_is_active((switch_id_t)i));
     }
   }
 }
@@ -143,7 +143,7 @@ uint8_t get_min_sw_mode(int index) {return switch_get_type(MIN_SWITCH(index));}
 
 
 void set_min_sw_mode(int index, uint8_t value) {
-  switch_set_type(MIN_SWITCH(index), value);
+  switch_set_type(MIN_SWITCH(index), (switch_type_t)value);
 }
 
 
@@ -151,18 +151,28 @@ uint8_t get_max_sw_mode(int index) {return switch_get_type(MAX_SWITCH(index));}
 
 
 void set_max_sw_mode(int index, uint8_t value) {
-  switch_set_type(MAX_SWITCH(index), value);
+  switch_set_type(MAX_SWITCH(index), (switch_type_t)value);
 }
 
 
 uint8_t get_estop_mode() {return switch_get_type(SW_ESTOP);}
-void set_estop_mode(uint8_t value) {switch_set_type(SW_ESTOP, value);}
+
+
+void set_estop_mode(uint8_t value) {
+  switch_set_type(SW_ESTOP, (switch_type_t)value);
+}
+
+
 uint8_t get_probe_mode() {return switch_get_type(SW_PROBE);}
-void set_probe_mode(uint8_t value) {switch_set_type(SW_PROBE, value);}
+
+
+void set_probe_mode(uint8_t value) {
+  switch_set_type(SW_PROBE, (switch_type_t)value);
+}
 
 
 static uint8_t _get_state(int index) {
-  if (!switch_is_enabled(index)) return 2; // Disabled
+  if (!switch_is_enabled((switch_id_t)index)) return 2; // Disabled
   return switches[index].state;
 }
 

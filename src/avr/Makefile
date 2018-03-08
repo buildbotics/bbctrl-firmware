@@ -6,16 +6,17 @@ CLOCK    = 32000000
 TARGET  = $(PROJECT).elf
 
 # Compile flags
-CC = avr-gcc
+CC = avr-g++
 
 COMMON = -mmcu=$(MCU) -flto -fwhole-program
 
 CFLAGS += $(COMMON)
 CFLAGS += -Wall -Werror
 CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
-CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
+CFLAGS += -std=gnu++98 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
+CFLAGS += -D__STDC_LIMIT_MACROS
 CFLAGS += -Isrc
 
 # Linker flags

@@ -34,6 +34,8 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+
 
 // Ring buffers
 #define RING_BUF_NAME tx_buf
@@ -93,9 +95,6 @@ static int _usart_putchar(char c, FILE *f) {
 }
 
 
-static FILE _stdout = FDEV_SETUP_STREAM(_usart_putchar, 0, _FDEV_SETUP_WRITE);
-
-
 void usart_init(void) {
   // Setup ring buffer
   tx_buf_init();
@@ -123,6 +122,11 @@ void usart_init(void) {
   PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
 
   // Connect IO
+  static FILE _stdout;
+  memset(&_stdout, 0, sizeof(FILE));
+  _stdout.put = _usart_putchar;
+  _stdout.flags = _FDEV_SETUP_WRITE;
+
   stdout = &_stdout;
   stderr = &_stdout;
 

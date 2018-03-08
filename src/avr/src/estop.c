@@ -56,7 +56,7 @@ static void _set_reason(stat_t reason) {
 
 
 static stat_t _get_reason() {
-  return eeprom_read_word(&estop_reason_eeprom);
+  return (stat_t)eeprom_read_word(&estop_reason_eeprom);
 }
 
 

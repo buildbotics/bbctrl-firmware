@@ -120,30 +120,30 @@ void outputs_stop() {
 
 
 // Var callbacks
-uint8_t get_output_state(uint8_t id) {
+uint8_t get_output_state(int id) {
   return OUTS <= id ? OUT_TRI : outputs[id].state;
 }
 
 
-bool get_output_active(uint8_t id) {
+bool get_output_active(int id) {
   return OUTS <= id ? false : outputs[id].active;
 }
 
 
-void set_output_active(uint8_t id, bool active) {
+void set_output_active(int id, bool active) {
   if (OUTS <= id) return;
   outputs[id].active = active;
   _update_state(&outputs[id]);
 }
 
 
-uint8_t get_output_mode(uint8_t id) {
+uint8_t get_output_mode(int id) {
   return OUTS <= id ? OUT_DISABLED : outputs[id].mode;
 }
 
 
-void set_output_mode(uint8_t id, uint8_t mode) {
+void set_output_mode(int id, uint8_t mode) {
   if (OUTS <= id) return;
-  outputs[id].mode = mode;
+  outputs[id].mode = (output_mode_t)mode;
   _update_state(&outputs[id]);
 }

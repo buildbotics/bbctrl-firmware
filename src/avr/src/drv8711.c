@@ -57,6 +57,9 @@ typedef struct {
 
 
 typedef struct {
+  uint8_t cs_pin;
+  switch_id_t stall_sw;
+
   uint8_t status;
   uint16_t flags;
   bool stalled;
@@ -68,9 +71,6 @@ typedef struct {
 
   uint8_t mode; // microstepping mode
   stall_callback_t stall_cb;
-
-  uint8_t cs_pin;
-  switch_id_t stall_sw;
 } drv8711_driver_t;
 
 

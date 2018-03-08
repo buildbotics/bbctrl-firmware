@@ -91,7 +91,7 @@ void set_spindle_type(uint8_t value) {
     case SPINDLE_TYPE_HUANYANG: hy_deinit(); break;
     }
 
-    spindle.type = value;
+    spindle.type = (spindle_type_t)value;
 
     switch (spindle.type) {
     case SPINDLE_TYPE_DISABLED: break;

@@ -35,8 +35,8 @@
 
 
 // macros for finding the index into the switch table give the axis number
-#define MIN_SWITCH(axis) (2 + axis * 2)
-#define MAX_SWITCH(axis) (2 + axis * 2 + 1)
+#define MIN_SWITCH(axis) ((switch_id_t)(2 + axis * 2))
+#define MAX_SWITCH(axis) ((switch_id_t)(2 + axis * 2 + 1))
 
 
 typedef enum {
@@ -48,6 +48,7 @@ typedef enum {
 
 /// Switch IDs
 typedef enum {
+  SW_INVALID = -1,
   SW_ESTOP, SW_PROBE,
   SW_MIN_X, SW_MAX_X,
   SW_MIN_Y, SW_MAX_Y,

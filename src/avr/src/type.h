@@ -30,6 +30,7 @@
 #include "pgmspace.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 
 // Define types

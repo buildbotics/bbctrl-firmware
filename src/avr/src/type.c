@@ -52,7 +52,7 @@ str type_parse_str(const char *s) {return s;}
 
 // Program string
 bool type_eq_pstr(pstr a, pstr b) {return a == b;}
-void type_print_pstr(pstr s) {printf_P(PSTR("\"%"PRPSTR"\""), s);}
+void type_print_pstr(pstr s) {printf_P(PSTR("\"%" PRPSTR "\""), s);}
 const char *type_parse_pstr(const char *value) {return value;}
 float type_pstr_to_float(pstr s) {return 0;}
 
@@ -116,12 +116,12 @@ float type_parse_f32(const char *value) {
 
 
 // bool
-bool type_eq_bool(bool a, bool b) {return a == b;}
-float type_bool_to_float(bool x) {return x;}
-void type_print_bool(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
+bool type_eq_b8(bool a, bool b) {return a == b;}
+float type_b8_to_float(bool x) {return x;}
+void type_print_b8(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
 
 
-bool type_parse_bool(const char *value) {
+bool type_parse_b8(const char *value) {
   return !strcasecmp(value, "true") || type_parse_f32(value);
 }
 
@@ -129,35 +129,35 @@ bool type_parse_bool(const char *value) {
 // s8
 bool type_eq_s8(s8 a, s8 b) {return a == b;}
 float type_s8_to_float(s8 x) {return x;}
-void type_print_s8(s8 x) {printf_P(PSTR("%"PRIi8), x);}
+void type_print_s8(s8 x) {printf_P(PSTR("%" PRIi8), x);}
 s8 type_parse_s8(const char *value) {return strtol(value, 0, 0);}
 
 
 // u8
 bool type_eq_u8(u8 a, u8 b) {return a == b;}
 float type_u8_to_float(u8 x) {return x;}
-void type_print_u8(u8 x) {printf_P(PSTR("%"PRIu8), x);}
+void type_print_u8(u8 x) {printf_P(PSTR("%" PRIu8), x);}
 u8 type_parse_u8(const char *value) {return strtol(value, 0, 0);}
 
 
 // u16
 bool type_eq_u16(u16 a, u16 b) {return a == b;}
 float type_u16_to_float(u16 x) {return x;}
-void type_print_u16(u16 x) {printf_P(PSTR("%"PRIu16), x);}
+void type_print_u16(u16 x) {printf_P(PSTR("%" PRIu16), x);}
 u16 type_parse_u16(const char *value) {return strtoul(value, 0, 0);}
 
 
 // s32
 bool type_eq_s32(s32 a, s32 b) {return a == b;}
 float type_s32_to_float(s32 x) {return x;}
-void type_print_s32(s32 x) {printf_P(PSTR("%"PRIi32), x);}
+void type_print_s32(s32 x) {printf_P(PSTR("%" PRIi32), x);}
 s32 type_parse_s32(const char *value) {return strtol(value, 0, 0);}
 
 
 // u32
 bool type_eq_u32(u32 a, u32 b) {return a == b;}
 float type_u32_to_float(u32 x) {return x;}
-void type_print_u32(u32 x) {printf_P(PSTR("%"PRIu32), x);}
+void type_print_u32(u32 x) {printf_P(PSTR("%" PRIu32), x);}
 u32 type_parse_u32(const char *value) {return strtol(value, 0, 0);}
 
 

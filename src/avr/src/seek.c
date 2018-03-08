@@ -50,10 +50,10 @@ typedef struct {
 } seek_t;
 
 
-static seek_t seek = {false, -1, 0};
+static seek_t seek = {false, SW_INVALID, 0};
 
 
-switch_id_t seek_get_switch() {return seek.active ? seek.sw : -1;}
+switch_id_t seek_get_switch() {return seek.active ? seek.sw : SW_INVALID;}
 
 
 bool seek_switch_found() {
@@ -85,11 +85,11 @@ void seek_cancel() {seek.active = false;}
 
 // Command callbacks
 stat_t command_seek(char *cmd) {
-  int8_t sw = decode_hex_nibble(cmd[1]);
+  switch_id_t sw = (switch_id_t)decode_hex_nibble(cmd[1]);
   if (sw <= 0) return STAT_INVALID_ARGUMENTS; // Don't allow seek to ESTOP
   if (!switch_is_enabled(sw)) return STAT_SEEK_NOT_ENABLED;
 
-  int8_t flags = decode_hex_nibble(cmd[2]);
+  uint8_t flags = decode_hex_nibble(cmd[2]);
   if (flags & 0xfc) return STAT_INVALID_ARGUMENTS;
 
   seek_t seek = {true, sw, flags};

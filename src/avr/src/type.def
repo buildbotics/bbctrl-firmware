@@ -25,10 +25,6 @@
 
 \******************************************************************************/
 
-#ifdef bool
-#undef bool
-#endif
-
 //      TYPE   DEF
 TYPEDEF(flags, uint16_t)
 TYPEDEF(str,   const char *)
@@ -39,4 +35,4 @@ TYPEDEF(s8,    int8_t)
 TYPEDEF(u16,   uint16_t)
 TYPEDEF(s32,   int32_t)
 TYPEDEF(u32,   uint32_t)
-TYPEDEF(bool,  _Bool)
+TYPEDEF(b8,    bool)

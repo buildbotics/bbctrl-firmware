@@ -324,8 +324,8 @@ float vars_get_number(const char *name) {
 void vars_print_json() {
   bool first = true;
   static const char fmt[] PROGMEM =
-    "\"%s\":{\"name\":\"%"PRPSTR"\",\"type\":\"%"PRPSTR"\","
-    "\"help\":\"%"PRPSTR"\"";
+    "\"%s\":{\"name\":\"%" PRPSTR "\",\"type\":\"%" PRPSTR "\","
+    "\"help\":\"%" PRPSTR "\"";
   static const char index_fmt[] PROGMEM = ",\"index\":\"%s\"";
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
@@ -393,7 +393,7 @@ stat_t command_sync_var(char *cmd) {
 unsigned command_sync_var_size() {return sizeof(var_cmd_t);}
 
 
-void command_sync_var_exec(char *data) {
+void command_sync_var_exec(void *data) {
   var_cmd_t *cmd = (var_cmd_t *)data;
   _set(cmd->type, cmd->index, cmd->set, cmd->value);
 }

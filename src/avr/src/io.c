@@ -66,7 +66,7 @@ void io_rtc_callback() {
     } else result = analog_get(active_cmd.port);
 
     // TODO find a better way to send this
-    printf("{\"result\": %f}\n", result);
+    printf("{\"result\": %f}\n", (double)result);
     active_cmd.port = -1;
   }
 }
@@ -96,7 +96,7 @@ stat_t command_input(char *cmd) {
 
   // Mode
   if (!isdigit(*cmd)) return STAT_INVALID_ARGUMENTS;
-  input_cmd.mode = *cmd - '0';
+  input_cmd.mode = (input_mode_t)(*cmd - '0');
   if (INPUT_LOW < input_cmd.mode) return STAT_INVALID_ARGUMENTS;
   cmd++;
 

@@ -41,16 +41,15 @@
 
 
 static struct {
-  state_t state;
-  hold_reason_t hold_reason;
-
+  bool flushing;
+  bool resuming;
   bool stop_requested;
   bool pause_requested;
   bool optional_pause_requested;
   bool unpause_requested;
-  bool flushing;
-  bool resuming;
 
+  state_t state;
+  hold_reason_t hold_reason;
 } s = {
   .flushing = true, // Start out flushing
 };
