@@ -58,6 +58,9 @@ copy: pkg
 pkg: all $(AVR_FIRMWARE)
 	./setup.py sdist
 
+beta-pkg: pkg
+	cp dist/$(PKG_NAME).tar.bz2 dist/$(PKG_NAME)-beta.tar.bz2
+
 gplan: $(GPLAN_TARGET)
 
 $(GPLAN_TARGET): $(GPLAN_MOD)
@@ -82,6 +85,11 @@ $(AVR_FIRMWARE):
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
+
+publish-beta: beta-pkg
+	echo -n $(VERSION)-beta > dist/latest-beta.txt
+	rsync $(RSYNC_OPTS) dist/$(PKG_NAME)-beta.tar.bz2 dist/latest-beta.txt \
+	  $(PUB_PATH)/
 
 update: pkg
 	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
