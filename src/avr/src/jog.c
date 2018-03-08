@@ -102,32 +102,26 @@ static float _compute_deccel_dist(float vel, float accel, float maxA,
   // Compute distance to decrease accel to zero
   if (0 < accel) {
     float t = accel / jerk;
-
-    // s(t) = v * t + 1/3 * a * t^2
-    dist += vel * t + 1.0 / 3.0 * accel * t * t;
-
-    // v(t) = a * t / 2 + v
-    vel += accel * t / 2;
+    dist += scurve_distance(t, vel, accel, -jerk);
+    vel += scurve_velocity(t, accel, -jerk);
     accel = 0;
-    t = 0;
   }
 
-  // At this point accel <= 0, aka a deccelleration
+  // At this point accel <= 0, aka a decceleration
 
   // Compute max deccel by applying the quadratic formula.
-  //   (1 / j) * Am^2 + ((1 - a) / j) * Am + (a^2 - 0.5 * a) / j + v = 0
   float t = accel / jerk;
-  float a = 1 / jerk;
-  float b = a - t;
-  float c = t * (accel - 0.5) + vel;
-  float maxDeccel = (-b - sqrt(b * b - 4 * a * c)) / a * 0.5;
+  float a = -1 / jerk;
+  float b = 2 * t;
+  float c = vel - 1.5 * t * accel;
+  float maxDeccel = (-b + sqrt(b * b - 4 * a * c)) / a * 0.5;
 
   // Limit decceleration
   if (maxDeccel < -maxA) maxDeccel = -maxA;
 
   // Compute distance and velocity change to max deccel
   if (maxDeccel < accel) {
-    float t = (accel - maxDeccel) / jerk;
+    float t = (maxDeccel - accel) / jerk;
     dist += scurve_distance(t, vel, accel, -jerk);
     vel += scurve_velocity(t, accel, -jerk);
     accel = maxDeccel;
@@ -174,10 +168,8 @@ static float _soft_limit(int axis, float V, float Vt, float A) {
   if (max <= position) return !positive ? Vt : 0;
 
   // Min velocity near limits
-  if (positive && max < position + 5) return MIN_VELOCITY;
-  if (!positive && position - 5 < min) return MIN_VELOCITY;
-
-  return Vt; // TODO compute deccel dist
+  if (positive && max < position + 1) return MIN_VELOCITY;
+  if (!positive && position - 1 < min) return MIN_VELOCITY;
 
   // Compute dist to deccel
   float jerk = axis_get_jerk_max(axis);
@@ -189,29 +181,6 @@ static float _soft_limit(int axis, float V, float Vt, float A) {
   if (!positive && position - deccelDist <= min) return 0;
 
   return Vt;
-}
-
-
-static bool _axis_velocity_target(int axis) {
-  jog_axis_t *a = &jr.axes[axis];
-
-  float Vn = a->next * axis_get_velocity_max(axis);
-  float Vi = a->velocity;
-  float Vt = a->target;
-
-  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
-
-  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
-    Vn = 0; // Plan to zero on sign change
-
-  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
-
-  if (Vt == Vn) return false; // No change
-
-  a->target = Vn;
-  if (Vn) a->sign = Vn < 0 ? -1 : 1;
-
-  return true; // Velocity changed
 }
 
 
@@ -238,6 +207,29 @@ static float _compute_axis_velocity(int axis) {
   a->accel = scurve_next_accel(SEGMENT_TIME, V, Vt, a->accel, maxA, jerk);
 
   return V + a->accel * SEGMENT_TIME;
+}
+
+
+static bool _axis_velocity_target(int axis) {
+  jog_axis_t *a = &jr.axes[axis];
+
+  float Vn = a->next * axis_get_velocity_max(axis);
+  float Vi = a->velocity;
+  float Vt = a->target;
+
+  if (MIN_VELOCITY < fabs(Vn)) jr.done = false; // Still jogging
+
+  if (!fp_ZERO(Vi) && (Vn < 0) != (Vi < 0))
+    Vn = 0; // Plan to zero on sign change
+
+  if (fabs(Vn) < MIN_VELOCITY) Vn = 0;
+
+  if (Vt == Vn) return false; // No change
+
+  a->target = Vn;
+  if (Vn) a->sign = Vn < 0 ? -1 : 1;
+
+  return true; // Velocity changed
 }
 
 
@@ -288,6 +280,7 @@ stat_t jog_exec() {
 
 
 void jog_stop() {
+  if (state_get() != STATE_JOGGING) return;
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++)
     jr.axes[axis].next = 0;

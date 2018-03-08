@@ -112,6 +112,7 @@ VAR(id,              id, u32,   0,      1, 1, "Last executed command ID")
 VAR(speed,           s,  f32,   0,      1, 1, "Current spindle speed")
 VAR(feed_override,   fo, f32,   0,      1, 1, "Feed rate override")
 VAR(speed_override,  so, f32,   0,      1, 1, "Spindle speed override")
+VAR(optional_pause,  op, bool,  0,      1, 1, "Optional pause state")
 
 // System
 VAR(velocity,        v,  f32,   0,      0, 1, "Current velocity")

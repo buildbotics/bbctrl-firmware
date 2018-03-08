@@ -52,7 +52,6 @@ typedef enum {
 
 typedef enum {
   PAUSE_USER,
-  PAUSE_OPTIONAL,
   PAUSE_PROGRAM,
   PAUSE_PROGRAM_OPTIONAL,
 } pause_t;

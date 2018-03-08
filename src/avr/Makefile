@@ -7,7 +7,6 @@ TARGET  = $(PROJECT).elf
 
 # Compile flags
 CC = avr-gcc
-CPP = avr-g++
 
 COMMON = -mmcu=$(MCU) -flto -fwhole-program
 
