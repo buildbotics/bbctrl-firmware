@@ -249,6 +249,7 @@ class Planner():
         try:
             self.planner.stop()
             self.cmdq.clear()
+            self.update_position()
 
         except Exception as e:
             log.exception(e)

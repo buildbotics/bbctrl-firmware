@@ -66,8 +66,8 @@ class EventState:
     return ("({:6.3f}, {:6.3f}, {:6.3f}) ".format(*self.get_joystick3d()) +
             "({:6.3f}, {:6.3f}, {:6.3f}) ".format(*self.get_joystickR3d()) +
             "({:2.0f}, {:2.0f}) ".format(*self.get_hat()) +
-            "({:d}, {:d}) ".format(*self.get_mouse()) +
-            "({:d}, {:d})".format(*self.get_wheel()))
+            "({:0.2f}, {:0.2f}) ".format(*self.get_mouse()) +
+            "({:0.2f}, {:0.2f})".format(*self.get_wheel()))
 
 
   def get_joystick(self):

@@ -35,7 +35,12 @@ log.setLevel(logging.INFO)
 
 
 def axes_to_string(axes):
-    return '({:6.3f}, {:6.3f}, {:6.3f})'.format(*axes)
+    s = ''
+    for axis in axes:
+        if s: s += ', '
+        else: s = '('
+        s += '{:6.3f}'.format(axis)
+    return s + ')'
 
 
 def event_to_string(event, state):
@@ -64,7 +69,7 @@ class JogHandler:
 
 
     def changed(self):
-        log.debug(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
+        log.info(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
 
 
     def up(self): log.debug('up')

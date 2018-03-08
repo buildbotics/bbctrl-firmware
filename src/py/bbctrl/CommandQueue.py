@@ -34,6 +34,7 @@ log.setLevel(logging.WARNING)
 
 class CommandQueue():
     def __init__(self):
+        self.lastEnqueueID = 0
         self.releaseID = 0
         self.q = deque()
 
@@ -42,12 +43,25 @@ class CommandQueue():
 
 
     def clear(self):
+        self.lastEnqueueID = 0
         self.releaseID = 0
         self.q.clear()
 
 
+    def _flush_cb(self, cb, *args, **kwargs):
+        self.clear()
+        cb(*args, **kwargs)
+
+
+    def flush(self, cb, *args, **kwargs):
+        id = self.lastEnqueueID + 1
+        self.enqueue(id, False, self._flush_cb, cb, args, kwargs)
+        return id
+
+
     def enqueue(self, id, immediate, cb, *args, **kwargs):
         log.info('add(#%d, %s) releaseID=%d', id, immediate, self.releaseID)
+        self.lastEnqueueID = id
         self.q.append((id, immediate, cb, args, kwargs))
         self._release()
 

@@ -135,9 +135,9 @@ def dwell(seconds): return DWELL + encode_float(seconds)
 
 
 def pause(type):
-    if type == 'program': type = 2
-    elif type == 'optional': type = 3
-    elif type == 'pallet-change': type = 2
+    if type == 'program': type = 1
+    elif type == 'optional': type = 2
+    elif type == 'pallet-change': type = 1
     else: raise Exception('Unknown pause type "%s"' % type)
 
     return '%s%d' % (PAUSE, type)
@@ -186,6 +186,18 @@ def decode_command(cmd):
         elif value.lower() == 'false': value = False
         elif value.find('.') == -1: data['value'] = int(value)
         else: data['value'] = float(value)
+
+    elif cmd[0] == JOG:
+        data['type'] = 'jog'
+
+        cmd = cmd[1:]
+        while len(cmd):
+            name = cmd[0]
+            value = decode_float(cmd[1:7])
+            cmd = cmd[7:]
+
+            if name in 'xyzabcuvw': data[name] = value
+
 
     elif cmd[0] == SEEK:
         data['type'] = 'seek'

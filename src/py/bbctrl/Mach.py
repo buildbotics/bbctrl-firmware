@@ -104,18 +104,38 @@ class Mach(Comm):
 
 
     def _update(self, update):
-        state = self._get_state()
-
         # Handle EStop
-        if 'xx' in update and state == 'ESTOPPED': self.planner.reset()
+        if update.get('xx', '') == 'ESTOPPED': self.planner.reset()
 
         # Update cycle now, if it has changed
         self._update_cycle()
 
-        # Continue after seek hold
-        if (state == 'HOLDING' and self.planner.is_synchronizing() and
-            self.ctrl.state.get('pr', '') == 'Switch found'):
-            self.unpause()
+        if (('xx' in update or 'pr' in update) and
+            self.ctrl.state.get('xx', '') == 'HOLDING'):
+            # Continue after seek hold
+            if (self.ctrl.state.get('pr', '') == 'Switch found' and
+                self.planner.is_synchronizing()):
+                self.unpause()
+
+            # Continue after stop hold
+            if self.ctrl.state.get('pr', '') == 'User stop':
+                self.planner.stop()
+                self.planner.update_position()
+                self.ctrl.state.set('line', 0)
+                self._unpause()
+
+
+    def _unpause(self):
+        pause_reason = self.ctrl.state.get('pr', '')
+        if pause_reason in ['User pause', 'Switch found']:
+            self.planner.restart()
+
+        if pause_reason in ['User pause', 'User stop', 'Switch found']:
+            super().i2c_command(Cmd.FLUSH)
+            super().resume()
+
+
+        super().i2c_command(Cmd.UNPAUSE)
 
 
     @overrides(Comm)
@@ -176,6 +196,7 @@ class Mach(Comm):
 
         if position is not None:
             self.mdi('G28.3 %c%f' % (axis, position))
+            super().resume()
 
         else:
             self._begin_cycle('homing')
@@ -238,8 +259,6 @@ class Mach(Comm):
     def stop(self):
         if self._get_cycle() == 'idle': self._begin_cycle('running')
         super().i2c_command(Cmd.STOP)
-        self.planner.stop()
-        self.ctrl.state.set('line', 0)
 
 
     def pause(self): super().pause()
@@ -249,16 +268,12 @@ class Mach(Comm):
         if self._get_state() != 'HOLDING': return
 
         pause_reason = self.ctrl.state.get('pr', '')
-        if pause_reason in ['User paused', 'Switch found']:
-            self.planner.restart()
-            super().resume()
-
-        super().i2c_command(Cmd.UNPAUSE)
+        if pause_reason in ['User pause', 'Program pause']:
+            self._unpause()
 
 
-    def optional_pause(self):
-        # TODO this could work better as a variable, i.e. $op=1
-        if self._get_cycle() == 'running': super().pause(True)
+    def optional_pause(self, enable = True):
+        super().queue_command('$op=%d' % enable)
 
 
     def set_position(self, axis, position):

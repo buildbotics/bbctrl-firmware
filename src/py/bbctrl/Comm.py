@@ -222,9 +222,8 @@ class Comm(object):
             self.i2c_command(Cmd.CLEAR)
 
 
-    def pause(self, optional = False):
-        data = ord('1' if optional else '0')
-        self.i2c_command(Cmd.PAUSE, byte = data)
+    def pause(self):
+        self.i2c_command(Cmd.PAUSE, byte = ord('0')) # User pause
 
 
     def reboot(self): self.queue_command(Cmd.REBOOT)
