@@ -36,6 +36,9 @@
 #include <stdio.h>
 
 
+#define RESET_PIN SPI_MOSI_PIN
+
+
 void rtc_init() {}
 
 
@@ -51,6 +54,12 @@ static struct {
   {STEP_Z_PIN, DIR_Z_PIN, &TCE0, 0},
   {STEP_A_PIN, DIR_A_PIN, &TCF0, 0},
 };
+
+
+static int reset = 0;
+
+
+void channel_reset(int i) {channel[i].timer->CNT = channel[i].high = 0;}
 
 
 #define EVSYS_CHMUX(CH) (&EVSYS_CH0MUX)[CH]
@@ -75,9 +84,7 @@ void channel_update_dir(int i) {
 }
 
 
-ISR(PORTE_INT0_vect) {
-  for (int i = 0; i < 4; i++) channel_update_dir(i);
-}
+ISR(PORTE_INT0_vect) {for (int i = 0; i < 4; i++) channel_update_dir(i);}
 
 
 int32_t channel_read(int i) {
@@ -89,6 +96,9 @@ int32_t channel_read(int i) {
 }
 
 
+ISR(PORTC_INT0_vect) {reset = 32;}
+
+
 void channel_init(int i) {
   uint8_t step_pin = channel[i].step_pin;
   uint8_t dir_pin = channel[i].dir_pin;
@@ -96,7 +106,7 @@ void channel_init(int i) {
   // Configure I/O
   DIRCLR_PIN(step_pin);
   DIRCLR_PIN(dir_pin);
-  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_RISING_gc;
+  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
   PINCTRL_PIN(dir_pin)  = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
 
   // Dir change interrupt
@@ -117,8 +127,25 @@ void channel_init(int i) {
 
 
 ISR(TCC1_OVF_vect) {
-  printf("%ld,%ld,%ld,%ld\n",
-         channel_read(0), channel_read(1), channel_read(2), channel_read(3));
+  if (reset) reset--;
+
+  // Report measured steps
+  int32_t counts[4];
+  bool zero = true;
+  for (int i = 0; i < 4; i++) {
+    counts[i] = channel_read(i);
+    if (counts[i]) zero = false;
+  }
+
+  if (!zero) {
+    if (reset) {
+      for (int i = 0; i < 4; i++) channel_reset(i);
+      printf("RESET\n");
+      return;
+    }
+
+    printf("%ld,%ld,%ld,%ld\n", counts[0], counts[1], counts[2], counts[3]);
+  }
 }
 
 
@@ -136,10 +163,19 @@ static void init() {
   usart_init();
   for (int i = 0; i < 4; i++) channel_init(i);
 
-  // Configure clock
+  // Configure report clock
   TCC1.INTCTRLA = TC_OVFINTLVL_LO_gc;
   TCC1.PER = F_CPU / 256 * 0.01; // 10ms
   TCC1.CTRLA = TC_CLKSEL_DIV256_gc;
+
+  // Reset switch
+  DIRCLR_PIN(RESET_PIN);
+  PINCTRL_PIN(RESET_PIN) =
+    PORT_SRLEN_bm | PORT_ISC_RISING_gc | PORT_OPC_PULLUP_gc;
+  PIN_PORT(RESET_PIN)->INTCTRL  |= PORT_INT0LVL_LO_gc;
+  PIN_PORT(RESET_PIN)->INT0MASK |= PIN_BM(RESET_PIN);
+
+  printf("RESET\n");
 
   sei();
 }
