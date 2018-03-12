@@ -74,11 +74,9 @@ typedef struct {
   int32_t encoder;
   int16_t error;
   bool last_negative;
-  uint8_t last_clock;
 
   // Move prep
   bool prepped;
-  uint8_t timer_clock;
   uint16_t timer_period;
   bool negative;
   int32_t position;
@@ -248,10 +246,11 @@ void motor_end_move(int motor) {
   // Get actual step count from DMA channel
   const int24_t half_steps = 0xffff - m->dma->TRFCNT;
 
-  // Accumulate encoder
-  m->encoder += m->last_negative ? -half_steps : half_steps;
+  // Disable DMA step counter
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
 
-  // Compute error
+  // Accumulate encoder & compute error
+  m->encoder += m->last_negative ? -half_steps : half_steps;
   m->error = m->commanded - m->encoder;
 }
 
@@ -267,33 +266,20 @@ void motor_load_move(int motor) {
   const bool counterclockwise = m->negative ^ m->reverse;
   SET_PIN(m->dir_pin, counterclockwise);
 
-  // Adjust clock count
-  if (m->last_clock) {
-    uint24_t count = m->timer->CNT;
-    int8_t freq_change = m->last_clock - m->timer_clock;
+  if (m->timer_period) {
+    // Setup DMA step counter
+    m->dma->TRFCNT = 0xffff;
+    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
-    count <<= freq_change; // Adjust count
+    // Set clock and period
+    m->timer->CCABUF = m->timer_period;  // Set next frequency
+    if (m->timer_period < m->timer->CNT) m->timer->CNT = m->timer_period - 1;
+    m->timer->CTRLA = TC_CLKSEL_DIV1_gc; // Start clock
+    m->last_negative = m->negative;
+    m->commanded = m->position;
 
-    if (m->timer_period <= count) count -= m->timer_period;
-    if (m->timer_period <= count) count -= m->timer_period;
-    if (m->timer_period <= count) count = m->timer_period >> 1;
+  } else m->timer->CTRLA = 0;
 
-    m->timer->CNT = count;
-
-  } else m->timer->CNT = m->timer_period >> 1;
-
-  // Reset DMA channel counter
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  m->dma->TRFCNT = 0xffff;
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
-
-  // Set clock and period
-  m->timer->CCA = m->timer_period;     // Set frequency
-  m->timer->CTRLA = m->timer_clock;    // Start or stop
-  m->last_clock = m->timer_clock;      // Save clock value
-  m->timer_clock = 0;                  // Clear clock
-  m->last_negative = m->negative;
-  m->commanded = m->position;
 
   // Clear move
   m->prepped = false;
@@ -320,35 +306,26 @@ void motor_prep_move(int motor, float time, float target) {
     correction >>= 2;
 
     // Make correction
-    if (m->error < 0) correction = -correction;
-    half_steps += correction;
+    half_steps += m->error < 0 ? -correction : correction;
   }
 
   // Positive steps from here on
   m->negative = half_steps < 0;
   if (m->negative) half_steps = -half_steps;
 
-  // Find the fastest clock rate that will fit the required number of steps.
   // Note, clock toggles step line so we need two clocks per step.
-  // TODO Always use DIV2 clock
-  uint24_t seg_clocks = time * F_CPU * 60;
-  uint24_t ticks_per_step = seg_clocks / half_steps + 1; // Round up
-  if (ticks_per_step < 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;
-  else if (ticks_per_step < 0x1ffff) m->timer_clock = TC_CLKSEL_DIV2_gc;
-  else if (ticks_per_step < 0x3ffff) m->timer_clock = TC_CLKSEL_DIV4_gc;
-  else if (ticks_per_step < 0x7ffff) m->timer_clock = TC_CLKSEL_DIV8_gc;
-  else m->timer_clock = 0; // Clock off, too slow
+  float seg_clocks = time * F_CPU * 60;
+  float ticks_per_step = seg_clocks / half_steps;
 
-  // Note, we rely on the fact that TC_CLKSEL_DIV1_gc through TC_CLKSEL_DIV8_gc
-  // equal 1, 2, 3 & 4 respectively.
-  m->timer_period = (ticks_per_step >> (m->timer_clock - 1)) + 1; // Round up
+  if (0xffff <= ticks_per_step) m->timer_period = 0; // Clock off, too slow
+  else m->timer_period = round(ticks_per_step);
 
-  if (!m->timer_period || !half_steps) m->timer_clock = 0;
+  if (!half_steps) m->timer_period = 0;
 
   // Power motor
   switch (m->power_mode) {
   case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (!m->timer_clock) break; // Not moving
+    if (!m->timer_period) break; // Not moving
     // Fall through
 
   case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:

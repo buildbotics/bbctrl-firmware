@@ -153,7 +153,7 @@ enum {
 #define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
 #define STEP_LOW_LEVEL_ISR     ADCB_CH0_vect
 
-#define SEGMENT_TIME           (0.005 / 60.0) // mins
+#define SEGMENT_TIME           (0.004 / 60.0) // mins
 
 
 // DRV8711 settings
