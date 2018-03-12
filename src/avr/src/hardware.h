@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 
-void hardware_init();
+void hw_init();
 void hw_request_hard_reset();
 void hw_reset_handler();
 

@@ -56,7 +56,7 @@ int main() {
   // Init
   cli();                          // disable interrupts
 
-  hardware_init();                // hardware setup - must be first
+  hw_init();                      // hardware setup - must be first
   outputs_init();                 // output pins
   analog_init();                  // analog input pins
   usart_init();                   // serial port

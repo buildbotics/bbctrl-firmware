@@ -36,7 +36,7 @@
 #include <stdlib.h>
 
 
-int main(int argc, char *argv[]) {
+int main() {
   axis_map_motors();
   exec_init();                    // motion exec
   vars_init();                    // configuration variables

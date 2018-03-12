@@ -36,7 +36,7 @@
 
 // Pins
 enum {
-  STALL_X_PIN = PORT_A << 3,
+  STALL_X_PIN = PIN_ID(PORT_A, 0),
   STALL_Y_PIN,
   STALL_Z_PIN,
   STALL_A_PIN,
@@ -45,7 +45,7 @@ enum {
   ANALOG_1_PIN,
   ANALOG_2_PIN,
 
-  MIN_X_PIN = PORT_B << 3,
+  MIN_X_PIN = PIN_ID(PORT_B, 0),
   MAX_X_PIN,
   MIN_A_PIN,
   MAX_A_PIN,
@@ -54,7 +54,7 @@ enum {
   MIN_Z_PIN,
   MAX_Z_PIN,
 
-  SDA_PIN = PORT_C << 3,
+  SDA_PIN = PIN_ID(PORT_C, 0),
   SCL_PIN,
   SERIAL_RX_PIN,
   SERIAL_TX_PIN,
@@ -63,7 +63,7 @@ enum {
   SPI_MISO_PIN,
   SPI_MOSI_PIN,
 
-  STEP_X_PIN = PORT_D << 3,
+  STEP_X_PIN = PIN_ID(PORT_D, 0),
   SPI_CS_X_PIN,
   SPI_CS_A_PIN,
   SPI_CS_Z_PIN,
@@ -72,7 +72,7 @@ enum {
   RS485_RO_PIN,
   RS485_DI_PIN,
 
-  STEP_Y_PIN = PORT_E << 3,
+  STEP_Y_PIN = PIN_ID(PORT_E, 0),
   SPI_CS_Y_PIN,
   DIR_X_PIN,
   DIR_Y_PIN,
@@ -81,7 +81,7 @@ enum {
   DIR_Z_PIN,
   DIR_A_PIN,
 
-  STEP_Z_PIN = PORT_F << 3,
+  STEP_Z_PIN = PIN_ID(PORT_F, 0),
   RS485_RW_PIN,
   FAULT_PIN,
   ESTOP_PIN,

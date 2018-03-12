@@ -115,7 +115,7 @@ class Mach(Comm):
             # Continue after seek hold
             if (self.ctrl.state.get('pr', '') == 'Switch found' and
                 self.planner.is_synchronizing()):
-                self.unpause()
+                self._unpause()
 
             # Continue after stop hold
             if self.ctrl.state.get('pr', '') == 'User stop':

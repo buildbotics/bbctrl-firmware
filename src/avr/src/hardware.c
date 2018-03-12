@@ -28,7 +28,6 @@
 #include "hardware.h"
 #include "rtc.h"
 #include "usart.h"
-#include "huanyang.h"
 #include "config.h"
 #include "pgmspace.h"
 
@@ -112,7 +111,7 @@ static void _read_hw_id() {
 
 
 /// Lowest level hardware init
-void hardware_init() {
+void hw_init() {
   _init_clock();                           // set system clock
   rtc_init();                              // real time counter
   _read_hw_id();

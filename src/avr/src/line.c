@@ -215,6 +215,9 @@ static stat_t _line_exec() {
   // Adjust segment time if near a stopping point
   float seg_time = SEGMENT_TIME;
   if (l.stop_section && section_time - l.current_time < SEGMENT_TIME) {
+    // TODO Instead of adjusting seg_time either absorb the next partial segment
+    // or expand it to a full segment so that we only have SEGMENT_TIME length
+    // segments.
     seg_time += section_time - l.current_time;
     l.offset_time += section_time - l.current_time;
     l.current_time = section_time;

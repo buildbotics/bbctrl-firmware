@@ -5,6 +5,9 @@ Buildbotics CNC Controller Firmware Change Log
  - Fixed stopping problems. #127
  - Fixed ``Negative s-curve time`` error.
  - Improved jogging with soft limits.
+ - Added site favicon.
+ - Fixed problems with offsets and imperial units.
+ - Fixed ``All zero s-curve times`` caused by extreemly short, non-zero moves.
 
 ## v0.3.18
  - Don't enable any tool by default.

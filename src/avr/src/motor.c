@@ -242,6 +242,9 @@ void motor_end_move(int motor) {
   // Stop clock
   m->timer->CTRLA = 0;
 
+  // TODO Wait for pending DMA transfers
+  //while (m->dma->CTRLB & (DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm)) continue;
+
   // Get actual step count from DMA channel
   const int24_t half_steps = 0xffff - m->dma->TRFCNT;
 
@@ -327,6 +330,7 @@ void motor_prep_move(int motor, float time, float target) {
 
   // Find the fastest clock rate that will fit the required number of steps.
   // Note, clock toggles step line so we need two clocks per step.
+  // TODO Always use DIV2 clock
   uint24_t seg_clocks = time * F_CPU * 60;
   uint24_t ticks_per_step = seg_clocks / half_steps + 1; // Round up
   if (ticks_per_step < 0xffff) m->timer_clock = TC_CLKSEL_DIV1_gc;

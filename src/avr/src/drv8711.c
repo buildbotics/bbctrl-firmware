@@ -359,7 +359,7 @@ void drv8711_init() {
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
   SPIC.CTRL = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_MODE_0_gc |
     SPI_PRESCALER_DIV16_gc; // enable, big endian, master, mode, clock div
-  PORT(SPI_CLK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
+  PIN_PORT(SPI_CLK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
   SPIC.INTCTRL = SPI_INTLVL_LO_gc; // interupt level
 
   _init_spi_commands();

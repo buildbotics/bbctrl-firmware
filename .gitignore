@@ -16,3 +16,6 @@ __pycache__
 *.deb
 *.zip
 /rpi-share
+
+*.elf
+*.hex
