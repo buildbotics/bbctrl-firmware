@@ -242,8 +242,8 @@ void motor_end_move(int motor) {
   // Stop clock
   m->timer->CTRLA = 0;
 
-  // TODO Wait for pending DMA transfers
-  //while (m->dma->CTRLB & (DMA_CH_CHBUSY_bm | DMA_CH_CHPEND_bm)) continue;
+  // Wait for pending DMA transfers
+  while (m->dma->CTRLB & DMA_CH_CHPEND_bm) continue;
 
   // Get actual step count from DMA channel
   const int24_t half_steps = 0xffff - m->dma->TRFCNT;

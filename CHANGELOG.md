@@ -8,6 +8,7 @@ Buildbotics CNC Controller Firmware Change Log
  - Added site favicon.
  - Fixed problems with offsets and imperial units.
  - Fixed ``All zero s-curve times`` caused by extreemly short, non-zero moves.
+ - Fixed position drift.
 
 ## v0.3.18
  - Don't enable any tool by default.
