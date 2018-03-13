@@ -99,33 +99,6 @@ int32_t channel_read(int i) {
 ISR(PORTC_INT0_vect) {reset = 32;}
 
 
-void channel_init(int i) {
-  uint8_t step_pin = channel[i].step_pin;
-  uint8_t dir_pin = channel[i].dir_pin;
-
-  // Configure I/O
-  DIRCLR_PIN(step_pin);
-  DIRCLR_PIN(dir_pin);
-  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
-  PINCTRL_PIN(dir_pin)  = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
-
-  // Dir change interrupt
-  PIN_PORT(dir_pin)->INTCTRL  |= PORT_INT0LVL_MED_gc;
-  PIN_PORT(dir_pin)->INT0MASK |= PIN_BM(dir_pin);
-
-  // Events
-  EVSYS_CHMUX(i) = PIN_EVSYS_CHMUX(step_pin);
-  EVSYS_CHCTRL(i) = EVSYS_DIGFILT_8SAMPLES_gc;
-
-  // Clock
-  channel[i].timer->CTRLA = TC_CLKSEL_EVCH0_gc + i;
-  channel[i].timer->INTCTRLA = TC_OVFINTLVL_HI_gc;
-
-  // Set initial clock direction
-  channel_update_dir(i);
-}
-
-
 ISR(TCC1_OVF_vect) {
   if (reset) reset--;
 
@@ -153,6 +126,33 @@ static void _splash(uint8_t addr) {
   lcd_init(addr);
   lcd_goto(addr, 5, 1);
   lcd_pgmstr(addr, PSTR("Step Test"));
+}
+
+
+void channel_init(int i) {
+  uint8_t step_pin = channel[i].step_pin;
+  uint8_t dir_pin = channel[i].dir_pin;
+
+  // Configure I/O
+  DIRCLR_PIN(step_pin);
+  DIRCLR_PIN(dir_pin);
+  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
+  PINCTRL_PIN(dir_pin)  = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
+
+  // Dir change interrupt
+  PIN_PORT(dir_pin)->INTCTRL  |= PORT_INT0LVL_MED_gc;
+  PIN_PORT(dir_pin)->INT0MASK |= PIN_BM(dir_pin);
+
+  // Events
+  EVSYS_CHMUX(i) = PIN_EVSYS_CHMUX(step_pin);
+  EVSYS_CHCTRL(i) = EVSYS_DIGFILT_8SAMPLES_gc;
+
+  // Clock
+  channel[i].timer->CTRLA = TC_CLKSEL_EVCH0_gc + i;
+  channel[i].timer->INTCTRLA = TC_OVFINTLVL_HI_gc;
+
+  // Set initial clock direction
+  channel_update_dir(i);
 }
 
 

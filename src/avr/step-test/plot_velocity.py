@@ -121,9 +121,6 @@ if __name__ == '__main__':
   axes = []
   axes_text = []
 
-  for i in range(5):
-    axes.append(ax.plot([], [])[0])
-
   font = dict(fontsize = 14, family = 'monospace')
 
   axes_text.append(plt.text(0,    11700, '', **font))
@@ -131,6 +128,10 @@ if __name__ == '__main__':
   axes_text.append(plt.text(0,    10500, '', **font))
   axes_text.append(plt.text(800,  10500, '', **font))
   axes_text.append(plt.text(1500, 11700, '', **font))
+
+  for i in range(5):
+    axes.append(ax.plot([], [])[0])
+    axes_text[i].set_color(axes[i].get_color())
 
   plot.update_text(axes_text, 0, [0] * 4)
 
