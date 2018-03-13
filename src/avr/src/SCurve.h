@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include <math.h>
+
 
 class SCurve {
   float maxV;
@@ -53,7 +55,8 @@ public:
 
   unsigned getPhase() const;
   float getStoppingDist() const;
-  float next(float t, float targetV);
+  float next(float t, float targetV, float overrideJ = NAN);
+  float adjustedJerkForStoppingDist(float d) const;
 
   static float stoppingDist(float v, float a, float maxA, float maxJ);
   static float nextAccel(float t, float targetV, float v, float a, float maxA,
