@@ -204,7 +204,7 @@ enum {
 
 // Motor settings.  See motor.c
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
-#define MIN_HALF_STEP_CORRECTION 4
+#define MIN_STEP_CORRECTION      2
 
 #define MIN_VELOCITY             10            // mm/min
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms

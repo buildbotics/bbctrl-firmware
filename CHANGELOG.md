@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.20
+ - Eliminated drift caused by miscounting half microsteps.
+
 ## v0.3.19
  - Fixed stopping problems. #127
  - Fixed ``Negative s-curve time`` error.

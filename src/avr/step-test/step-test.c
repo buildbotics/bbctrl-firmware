@@ -103,22 +103,24 @@ ISR(TCC1_OVF_vect) {
   if (reset) reset--;
 
   // Report measured steps
-  int32_t counts[4];
+  static int32_t counts[4] = {0, 0, 0, 0};
+  bool moving = false;
   bool zero = true;
   for (int i = 0; i < 4; i++) {
-    counts[i] = channel_read(i);
-    if (counts[i]) zero = false;
+    int32_t count = channel_read(i);
+    if (count != counts[i]) moving = true;
+    if (count) zero = false;
+    counts[i] = count;
   }
 
-  if (!zero) {
-    if (reset) {
-      for (int i = 0; i < 4; i++) channel_reset(i);
-      printf("RESET\n");
-      return;
-    }
+  if (reset && !zero) {
+    for (int i = 0; i < 4; i++) channel_reset(i);
+    printf("RESET\n");
+    return;
+  }
 
+  if (moving)
     printf("%ld,%ld,%ld,%ld\n", counts[0], counts[1], counts[2], counts[3]);
-  }
 }
 
 
@@ -136,7 +138,7 @@ void channel_init(int i) {
   // Configure I/O
   DIRCLR_PIN(step_pin);
   DIRCLR_PIN(dir_pin);
-  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
+  PINCTRL_PIN(step_pin) = PORT_SRLEN_bm | PORT_ISC_RISING_gc;
   PINCTRL_PIN(dir_pin)  = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
 
   // Dir change interrupt

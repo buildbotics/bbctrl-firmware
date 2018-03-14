@@ -142,11 +142,13 @@ void motor_init() {
     _update_config(motor);
 
     // IO pins
+    PINCTRL_PIN(m->step_pin) = PORT_INVEN_bm; // Inverted output
     DIRSET_PIN(m->step_pin); // Output
     DIRSET_PIN(m->dir_pin);  // Output
 
     // Setup motor timer
-    m->timer->CTRLB = TC_WGMODE_FRQ_gc | TC1_CCAEN_bm;
+    m->timer->CTRLB = TC_WGMODE_SINGLESLOPE_gc | TC1_CCAEN_bm;
+    m->timer->CCA = F_CPU * 0.000002 / 2; // Step pulse width, 2uS w/ clk/2
 
     // Setup DMA channel as timer event counter
     m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
@@ -180,8 +182,7 @@ int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
 static int32_t _position_to_steps(int motor, float position) {
-  // We use half steps
-  return ((int32_t)round(position * motors[motor].steps_per_unit)) << 1;
+  return (int32_t)round(position * motors[motor].steps_per_unit);
 }
 
 
@@ -244,13 +245,13 @@ void motor_end_move(int motor) {
   while (m->dma->CTRLB & DMA_CH_CHPEND_bm) continue;
 
   // Get actual step count from DMA channel
-  const int24_t half_steps = 0xffff - m->dma->TRFCNT;
+  const int24_t steps = 0xffff - m->dma->TRFCNT;
 
   // Disable DMA step counter
   m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
 
   // Accumulate encoder & compute error
-  m->encoder += m->last_negative ? -half_steps : half_steps;
+  m->encoder += m->last_negative ? -steps : steps;
   m->error = m->commanded - m->encoder;
 }
 
@@ -263,8 +264,7 @@ void motor_load_move(int motor) {
   motor_end_move(motor);
 
   // Set direction, compensating for polarity
-  const bool counterclockwise = m->negative ^ m->reverse;
-  SET_PIN(m->dir_pin, counterclockwise);
+  SET_PIN(m->dir_pin, m->negative ^ m->reverse);
 
   if (m->timer_period) {
     // Setup DMA step counter
@@ -272,14 +272,13 @@ void motor_load_move(int motor) {
     m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
     // Set clock and period
-    m->timer->CCABUF = m->timer_period;  // Set next frequency
+    m->timer->PERBUF = m->timer_period;  // Set next frequency
     if (m->timer_period < m->timer->CNT) m->timer->CNT = m->timer_period - 1;
-    m->timer->CTRLA = TC_CLKSEL_DIV1_gc; // Start clock
+    m->timer->CTRLA = TC_CLKSEL_DIV2_gc; // Start clock
     m->last_negative = m->negative;
     m->commanded = m->position;
 
   } else m->timer->CTRLA = 0;
-
 
   // Clear move
   m->prepped = false;
@@ -294,33 +293,36 @@ void motor_prep_move(int motor, float time, float target) {
   motor_t *m = &motors[motor];
   ASSERT(!m->prepped);
 
-  // Travel in half steps
+  // Travel in steps
   int32_t position = _position_to_steps(motor, target);
-  int24_t half_steps = position - m->position;
+  int24_t steps = position - m->position;
   m->position = position;
 
   // Error correction
   int16_t correction = abs(m->error);
-  if (MIN_HALF_STEP_CORRECTION <= correction) {
+  if (MIN_STEP_CORRECTION <= correction) {
     // Dampen correction oscillation
-    correction >>= 2;
+    correction >>= 1;
 
     // Make correction
-    half_steps += m->error < 0 ? -correction : correction;
+    steps += m->error < 0 ? -correction : correction;
   }
 
   // Positive steps from here on
-  m->negative = half_steps < 0;
-  if (m->negative) half_steps = -half_steps;
+  m->negative = steps < 0;
+  if (m->negative) steps = -steps;
 
-  // Note, clock toggles step line so we need two clocks per step.
-  float seg_clocks = time * F_CPU * 60;
-  float ticks_per_step = seg_clocks / half_steps;
+  // We use clock / 2
+  float seg_clocks = time * (F_CPU * 60 / 2);
+  float ticks_per_step = round(seg_clocks / steps);
 
-  if (0xffff <= ticks_per_step) m->timer_period = 0; // Clock off, too slow
-  else m->timer_period = round(ticks_per_step);
+  // Disable clock if step rate is too fast or too slow
+  if (ticks_per_step < m->timer->CCA * 2 || // Too fast
+      0xffff <= ticks_per_step)             // Too slow
+    m->timer_period = 0;
+  else m->timer_period = ticks_per_step;
 
-  if (!half_steps) m->timer_period = 0;
+  if (!steps) m->timer_period = 0;
 
   // Power motor
   switch (m->power_mode) {
