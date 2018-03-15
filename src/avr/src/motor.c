@@ -141,11 +141,6 @@ void motor_init() {
 
     _update_config(motor);
 
-    // IO pins
-    PINCTRL_PIN(m->step_pin) = PORT_INVEN_bm; // Inverted output
-    DIRSET_PIN(m->step_pin); // Output
-    DIRSET_PIN(m->dir_pin);  // Output
-
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_SINGLESLOPE_gc | TC1_CCAEN_bm;
     m->timer->CCA = F_CPU * 0.000002 / 2; // Step pulse width, 2uS w/ clk/2
@@ -167,6 +162,11 @@ void motor_init() {
     m->dma->REPCNT = 0;
     m->dma->CTRLB = 0;
     m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
+
+    // IO pins
+    PINCTRL_PIN(m->step_pin) = PORT_INVEN_bm; // Inverted output
+    DIRSET_PIN(m->step_pin); // Output
+    DIRSET_PIN(m->dir_pin);  // Output
   }
 
   axis_map_motors();
