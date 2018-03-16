@@ -143,7 +143,7 @@ void motor_init() {
 
     // Setup motor timer
     m->timer->CTRLB = TC_WGMODE_SINGLESLOPE_gc | TC1_CCAEN_bm;
-    m->timer->CCA = F_CPU * 0.000002 / 2; // Step pulse width, 2uS w/ clk/2
+    m->timer->CCA = STEP_PULSE_WIDTH;
 
     // Setup DMA channel as timer event counter
     m->dma->ADDRCTRL = DMA_CH_SRCDIR_FIXED_gc | DMA_CH_DESTDIR_FIXED_gc;
@@ -245,7 +245,7 @@ void motor_end_move(int motor) {
   while (m->dma->CTRLB & DMA_CH_CHPEND_bm) continue;
 
   // Get actual step count from DMA channel
-  const int24_t steps = 0xffff - m->dma->TRFCNT;
+  const int32_t steps = 0xffff - m->dma->TRFCNT;
 
   // Disable DMA step counter
   m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
@@ -316,11 +316,11 @@ void motor_prep_move(int motor, float time, float target) {
   float seg_clocks = time * (F_CPU * 60 / 2);
   float ticks_per_step = round(seg_clocks / steps);
 
-  // Disable clock if step rate is too fast or too slow
-  if (ticks_per_step < m->timer->CCA * 2 || // Too fast
-      0xffff <= ticks_per_step)             // Too slow
-    m->timer_period = 0;
-  else m->timer_period = ticks_per_step;
+  // Limit clock if step rate is too fast, disable if too slow
+  if (ticks_per_step < STEP_PULSE_WIDTH * 2)
+    ticks_per_step = STEP_PULSE_WIDTH * 2;           // Too fast
+  if (0xffff <= ticks_per_step) m->timer_period = 0; // Too slow
+  else m->timer_period = ticks_per_step;             // Just right
 
   if (!steps) m->timer_period = 0;
 

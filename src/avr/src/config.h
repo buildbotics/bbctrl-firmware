@@ -152,6 +152,7 @@ enum {
 #define STEP_TIMER_ISR         TCC0_OVF_vect
 #define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
 #define STEP_LOW_LEVEL_ISR     ADCB_CH0_vect
+#define STEP_PULSE_WIDTH       (F_CPU * 0.000002 / 2) // 2uS w/ clk/2
 
 #define SEGMENT_TIME           (0.004 / 60.0) // mins
 
