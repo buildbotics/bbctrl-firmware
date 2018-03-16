@@ -348,17 +348,18 @@ body
     padding 0
     list-style none
 
-    li
-      span
-        display inline-block
-        min-width 3em
-        margin-right 1em
-        padding 0 0.25em
-        font-family courier
-        color #e5aa3d
+  .gcode ul
+    li:nth-child(even)
+      background-color #fafafa
 
-      &.highlight
-        background-color #eaeaea
+    li.highlight
+      background-color #eaeaea
+
+    span.gcode-line
+      display inline-block
+      padding 0 0.25em
+      color #e5aa3d
+      min-width 4em
 
   .history ul li
     cursor pointer

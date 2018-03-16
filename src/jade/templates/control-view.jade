@@ -229,13 +229,7 @@ script#control-view-template(type="text/x-template")
             :disabled="is_running || is_stopping")
             option(v-for="file in files", :value="file") {{file}}
 
-        .gcode(:class="{placeholder: !gcode}", @scroll="gcode_scroll")
-          span(v-if="!gcode.length") GCode displays here.
-          ul
-            li(v-for="item in gcode", id="gcode-line-{{$index}}",
-               track-by="$index")
-              span {{$index + 1 + gcode_offset}}
-              | {{item}}
+        gcode-viewer
 
       section#content2.tab-content
         .mdi.pure-form(title="Manual GCode entry.")

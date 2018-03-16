@@ -3,6 +3,8 @@ Buildbotics CNC Controller Firmware Change Log
 
 ## v0.3.20
  - Eliminated drift caused by miscounting half microsteps.
+ - Fixed disappearing GCode in Web.
+ - More efficient GCode scrolling with very large files.
 
 ## v0.3.19
  - Fixed stopping problems. #127
