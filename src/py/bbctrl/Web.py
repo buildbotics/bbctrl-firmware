@@ -115,6 +115,24 @@ class HostnameHandler(bbctrl.APIHandler):
         raise HTTPError(400, 'Failed to set hostname')
 
 
+class WifiHandler(bbctrl.APIHandler):
+    def get(self):
+        ssid = ''
+        try:
+            ssid = call_get_output(['config-wifi', '-g'])
+        except: pass
+        self.write_json({'ssid': ssid})
+
+    def put(self):
+        if 'ssid' in self.json and 'pass' in self.json:
+            if subprocess.call(['config-wifi', '-s', self.json['ssid'],
+                                '-p', self.json['pass']]) == 0:
+                self.write_json('ok')
+                return
+
+        raise HTTPError(400, 'Failed to configure wifi')
+
+
 class UsernameHandler(bbctrl.APIHandler):
     def get(self): self.write_json(get_username())
 
@@ -334,6 +352,7 @@ class Web(tornado.web.Application):
             (r'/api/log', LogHandler),
             (r'/api/reboot', RebootHandler),
             (r'/api/hostname', HostnameHandler),
+            (r'/api/wifi', WifiHandler),
             (r'/api/remote/username', UsernameHandler),
             (r'/api/remote/password', PasswordHandler),
             (r'/api/config/load', ConfigLoadHandler),

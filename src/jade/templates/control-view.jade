@@ -209,7 +209,8 @@ script#control-view-template(type="text/x-template")
             style="display:none", accept=".nc,.gcode,.gc,.ngc")
 
           button.pure-button(title="Delete current GCode program.",
-            @click="deleteGCode = true", :disabled="!state.selected")
+            @click="deleteGCode = true",
+            :disabled="!state.selected || is_running || is_stopping")
             .fa.fa-trash
 
           message(:show.sync="deleteGCode")

@@ -25,37 +25,19 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#admin-view-template(type="text/x-template")
-  #admin
-    h2 Hostname
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="hostname") Hostname
-        input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
-        button.pure-button.pure-button-primary(@click="set_hostname") Set
+script#admin-general-view-template(type="text/x-template")
+  #admin-general
+    h2 Firmware
+    button.pure-button.pure-button-primary(@click="check") Check
+    button.pure-button.pure-button-primary(@click="upgrade") Upgrade
+    label.pure-button.pure-button-primary.file-upload
+      input(type="file", accept=".tar.bz2", @change="upload")
+      | Upload
 
-    h2 Remote SSH User
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="username") Username
-        input(name="username", v-model="username", @keyup.enter="set_username")
-        button.pure-button.pure-button-primary(@click="set_username") Set
-
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="current") Current Password
-        input(name="current", v-model="current", type="password")
-      .pure-control-group
-        label(for="pass1") New Password
-        input(name="pass1", v-model="password", type="password")
-      .pure-control-group
-        label(for="pass2") New Password
-        input(name="pass2", v-model="password2", type="password")
-        button.pure-button.pure-button-primary(@click="set_password") Set
-
-    h2 Debugging
-    a(href="/api/log", target="_blank")
-      button.pure-button.pure-button-primary View Log
+    p
+      input(type="checkbox", v-model="autoCheckUpgrade",
+        @change="change_auto_check_upgrade")
+      label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
 
     h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
@@ -80,30 +62,6 @@ script#admin-view-template(type="text/x-template")
       h3(slot="header") Success
       p(slot="body") Configuration reset.
 
-    h2 Firmware
-    button.pure-button.pure-button-primary(@click="check") Check
-    button.pure-button.pure-button-primary(@click="upgrade") Upgrade
-    label.pure-button.pure-button-primary.file-upload
-      input(type="file", accept=".tar.bz2", @change="upload")
-      | Upload
-
-    p
-      input(type="checkbox", v-model="autoCheckUpgrade",
-        @change="change_auto_check_upgrade")
-      label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
-
-    message(:show.sync="hostnameSet")
-      h3(slot="header") Hostname Set
-      div(slot="body")
-        p Hostname was successfuly set to <strong>{{hostname}}</strong>.
-        p Rebooting to apply changes.
-        p Redirecting to new hostname in {{redirectTimeout}} seconds.
-      div(slot="footer")
-
-    message(:show.sync="passwordSet")
-      h3(slot="header") Password Set
-      p(slot="body")
-
-    message(:show.sync="usernameSet")
-      h3(slot="header") Username Set
-      p(slot="body")
+    h2 Debugging
+    a(href="/api/log", target="_blank")
+      button.pure-button.pure-button-primary View Log

@@ -5,6 +5,10 @@ Buildbotics CNC Controller Firmware Change Log
  - Eliminated drift caused by miscounting half microsteps.
  - Fixed disappearing GCode in Web.
  - More efficient GCode scrolling with very large files.
+ - Fully functional soft-limited jogging.
+ - Added basic Wifi configuration to admin tab.
+ - Fixed broken hostname change redirect.
+ - Split admin page.
 
 ## v0.3.19
  - Fixed stopping problems. #127

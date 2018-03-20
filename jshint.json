@@ -9,6 +9,7 @@
     "module": false,
     "Vue": false,
     "SockJS": false,
-    "Gauge": false
+    "Gauge": false,
+    "Clusterize": false
   }
 }

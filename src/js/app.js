@@ -114,7 +114,8 @@ module.exports = new Vue({
     'tool-view': require('./tool-view'),
     'io-view': require('./io-view'),
     'gcode-view': require('./gcode-view'),
-    'admin-view': require('./admin-view'),
+    'admin-general-view': require('./admin-general-view'),
+    'admin-network-view': require('./admin-network-view'),
     'help-view': {template: '#help-view-template'},
     'cheat-sheet-view': {
       template: '#cheat-sheet-view-template',
@@ -125,7 +126,7 @@ module.exports = new Vue({
 
   events: {
     'config-changed': function () {this.modified = true;},
-
+    'hostname-changed': function (hostname) {this.hostname = hostname},
 
     send: function (msg) {
       if (this.status == 'connected') {
@@ -136,8 +137,11 @@ module.exports = new Vue({
 
 
     connected: function () {
-      if (this.reloadOnConnect) location.reload(true);
-      else this.update();
+      if (this.reloadOnConnect) {
+        if (typeof this.hostname != 'undefined')
+          location.hostname = this.hostname;
+        location.reload(true);
+      } else this.update();
     },
 
 

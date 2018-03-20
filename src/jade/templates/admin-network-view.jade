@@ -1,0 +1,103 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-              This file is part of the Buildbotics firmware.               //
+//-                                                                           //
+//-                Copyright (c) 2015 - 2018, Buildbotics LLC                 //
+//-                           All rights reserved.                            //
+//-                                                                           //
+//-   This file ("the software") is free software: you can redistribute it    //
+//-   and/or modify it under the terms of the GNU General Public License,     //
+//-    version 2 as published by the Free Software Foundation. You should     //
+//-    have received a copy of the GNU General Public License, version 2      //
+//-   along with the software. If not, see <http://www.gnu.org/licenses/>.    //
+//-                                                                           //
+//-   The software is distributed in the hope that it will be useful, but     //
+//-        WITHOUT ANY WARRANTY; without even the implied warranty of         //
+//-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU      //
+//-             Lesser General Public License for more details.               //
+//-                                                                           //
+//-     You should have received a copy of the GNU Lesser General Public      //
+//-              License along with the software.  If not, see                //
+//-                     <http://www.gnu.org/licenses/>.                       //
+//-                                                                           //
+//-              For information regarding this software email:               //
+//-                "Joseph Coffland" <joseph@buildbotics.com>                 //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#admin-network-view-template(type="text/x-template")
+  #admin-network
+    h2 Hostname
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="hostname") Hostname
+        input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
+        button.pure-button.pure-button-primary(@click="set_hostname") Set
+
+    message(:show.sync="hostnameSet")
+      h3(slot="header") Hostname Set
+      div(slot="body")
+        p Hostname was successfuly set to <strong>{{hostname}}</strong>.
+        p Rebooting to apply changes.
+        p Redirecting to new hostname in {{redirectTimeout}} seconds.
+      div(slot="footer")
+
+    h2 Remote SSH User
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="username") Username
+        input(name="username", v-model="username", @keyup.enter="set_username")
+        button.pure-button.pure-button-primary(@click="set_username") Set
+
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="current") Current Password
+        input(name="current", v-model="current", type="password")
+      .pure-control-group
+        label(for="pass1") New Password
+        input(name="pass1", v-model="password", type="password")
+      .pure-control-group
+        label(for="pass2") New Password
+        input(name="pass2", v-model="password2", type="password")
+        button.pure-button.pure-button-primary(@click="set_password") Set
+
+    message(:show.sync="passwordSet")
+      h3(slot="header") Password Set
+      p(slot="body")
+
+    message(:show.sync="usernameSet")
+      h3(slot="header") Username Set
+      p(slot="body")
+
+    h2 Wifi Setup
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="ssid") SSID
+        input(name="ssid", v-model="wifi_ssid")
+      .pure-control-group
+        label(for="wifi_pass") Password
+        input(name="wifi_pass", v-model="wifi_pass", type="password")
+        button.pure-button.pure-button-primary(@click="wifiConfirm = true") Set
+
+    message(:show.sync="wifiConfirm")
+      h3(slot="header") Configure Wifi and reboot?
+      div(slot="body")
+        p
+          | After configuring the Wifi settings the controller will
+          | automatically reboot.
+        table
+          tr
+            th SSID
+            td &nbsp;{{wifi_ssid}}
+          tr
+            th Auth
+            td &nbsp;{{wifi_pass ? 'Password' : 'Open'}}
+
+      div(slot="footer")
+        button.pure-button(@click="wifiConfirm = false") Cancel
+        button.pure-button.button-success(@click="config_wifi") OK
+
+    message(:show.sync="rebooting")
+      h3(slot="header") Rebooting
+      p(slot="body") Please wait...
+      div(slot="footer")

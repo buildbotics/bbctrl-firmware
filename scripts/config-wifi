@@ -1,0 +1,240 @@
+#!/bin/bash -e
+
+AP=false
+SSID=
+PASS=
+CHANNEL=7
+REBOOT=false
+
+WLAN0_CFG=/etc/network/interfaces.d/wlan0
+HOSTAPD_CFG=/etc/hostapd/hostapd.conf
+DNSMASQ_CFG=/etc/dnsmasq.conf
+DHCPCD_CFG=/etc/dhcpcd.conf
+WPA_CFG=/etc/wpa_supplicant/wpa_supplicant.conf
+
+
+function query_ssid() {
+    if [ -e $WLAN0_CFG ]; then
+        grep wpa-ssid $WLAN0_CFG | sed 's/^[[:space:]]*wpa-ssid "\([^"]*\)"/\1/'
+    else
+        if [ -e $HOSTAPD_CFG ]; then
+            grep ^ssid $HOSTAPD_CFG | sed 's/^ssid="\(.*\)$"/\1/'
+        fi
+    fi
+}
+
+
+function configure_wlan0() {
+    echo "auto wlan0"
+    echo "allow-hotplug wlan0"
+    echo "iface wlan0 inet dhcp"
+    echo "  wpa-scan-ssid 1"
+    echo "  wpa-ap-scan 1"
+    echo "  wpa-key-mgmt WPA-PSK"
+    echo "  wpa-proto RSN WPA"
+    echo "  wpa-pairwise CCMP TKIP"
+    echo "  wpa-group CCMP TKIP"
+    echo "  wpa-ssid \"$SSID\""
+    if [ ${#PASS} -ne 0 ]; then
+        echo "  wpa-psk \"$PASS\""
+    fi
+}
+
+
+function configure_wpa() {
+    echo "country=US"
+    echo "ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev"
+    echo "update_config=1"
+
+    if [ ${#PASS} -eq 0 ]; then
+        echo "network={"
+        echo "  ssid=\"$SSID\""
+        echo "  key_mgmt=NONE"
+        echo "}"
+    fi
+}
+
+
+function configure_dhcpcd() {
+    echo "hostname"
+    echo "clientid"
+    echo "persistent"
+    echo "option rapid_commit"
+    echo "option domain_name_servers, domain_name, domain_search, host_name"
+    echo "option classless_static_routes"
+    echo "option ntp_servers"
+    echo "option interface_mtu"
+    echo "require dhcp_server_identifier"
+    echo "slaac private"
+
+    if $AP; then
+        echo
+        echo "interface wlan0"
+        echo "  static ip_address=192.168.43.1/24"
+    fi
+}
+
+
+function configure_wifi() {
+    # Disable AP
+    service hostapd stop || true
+    rm -f /etc/default/hostapd
+
+    configure_wlan0 > $WLAN0_CFG
+    configure_wpa > $WPA_CFG
+    configure_dhcpcd  > $DHCPCD_CFG
+    service dhcpcd restart
+}
+
+
+function configure_dnsmasq() {
+    echo "interface=wlan0"
+    echo "domain-needed"
+    echo "bogus-priv"
+    echo "dhcp-range=192.168.43.2,192.168.43.20,255.255.255.0,12h"
+}
+
+
+function configure_hostapd() {
+    echo "interface=wlan0"
+    echo "driver=nl80211"
+    echo "ssid=$SSID"
+    echo "hw_mode=g"
+    echo "channel=$CHANNEL"
+    echo "wmm_enabled=0"
+    echo "macaddr_acl=0"
+    echo "auth_algs=1"
+    echo "ignore_broadcast_ssid=0"
+    echo "wpa=2"
+    echo "wpa_passphrase=$PASS"
+    echo "wpa_key_mgmt=WPA-PSK"
+    echo "wpa_pairwise=TKIP"
+    echo "rsn_pairwise=CCMP"
+}
+
+
+function is_installed() {
+    dpkg-query -W --showformat='${Status}' $1 |
+        grep "install ok installed" >/dev/null
+    if [ $? -eq 0 ]; then echo true; else echo false; fi
+}
+
+
+function configure_ap() {
+    # Disable wifi config
+    rm -f $WLAN0_CFG
+
+    # Install packages
+    (
+        $(is_installed dnsmasq) &&
+        $(is_installed hostapd) &&
+        $(is_installed iptables-persistent)
+
+    ) || (
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -yq dnsmasq hostapd iptables-persistent
+    )
+
+    configure_dhcpcd  > $DHCPCD_CFG
+    configure_dnsmasq > $DNSMASQ_CFG
+    configure_hostapd > $HOSTAPD_CFG
+
+    echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" > /etc/default/hostapd
+
+    # Enable IP forwarding
+    sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+
+    # Enable IP masquerading
+    iptables -t nat -A  POSTROUTING -o eth0 -j MASQUERADE
+    iptables-save > /etc/iptables/rules.v4
+
+    # Start services
+    service dhcpcd restart
+    service dnsmasq restart
+    service hostapd restart
+}
+
+
+function usage() {
+    echo "Usage: config-wifi [OPTIONS]"
+    echo
+    echo "Configure wifi as either a client or access point."
+    echo
+    echo "OPTIONS:"
+    echo
+    echo "  -a             Configure access point."
+    echo "  -r             Reboot when done."
+    echo "  -s <SSID>      Set SSID."
+    echo "  -p <PASS>      Set password."
+    echo "  -c <CHANNEL>   Set wifi channel."
+    echo "  -g             Report SSID and exit."
+    echo
+}
+
+
+# Parse args
+while [ $# -ne 0 ]; do
+    case "$1" in
+        -a) AP=true ;;
+        -r) REBOOT=true; ;;
+        -s) SSID="$2"; shift ;;
+        -p) PASS="$2"; shift ;;
+        -c) CHANNEL="$2"; shift ;;
+        -g) query_ssid; exit 0 ;;
+
+        -h)
+            usage
+            exit 0
+            ;;
+
+        *)
+            usage
+            echo "Unknown argument '$1'"
+            exit 1
+    esac
+
+    shift
+done
+
+
+# Check args
+function clean_str() {
+    echo "$1" | tr -d '\n\r"'
+}
+
+SSID=$(clean_str "$SSID")
+PASS=$(clean_str "$PASS")
+
+LANG=C LC_ALL=C # For correct string byte length
+
+if [ ${#SSID} -eq 0 -o 32 -lt ${#SSID} ]; then
+    echo "Invalid or missing SSID '$SSID'"
+    exit 1
+fi
+
+if [ ${#PASS} -lt 8 -o 128 -lt ${#PASS} ]; then
+    echo "Invalid passsword"
+    exit 1
+fi
+
+echo "$CHANNEL" | grep '^[0-9]\{1,2\}' > /dev/null
+if [ $? -ne 0 ]; then
+    echo "Invalid channel '$CHANNEL'"
+    exit 1
+fi
+
+
+# Execute
+if $AP; then
+    echo "Configuring Wifi access point"
+    configure_ap
+
+else
+    echo "Configuring Wifi"
+    configure_wifi
+fi
+
+
+if $REBOOT; then nohup reboot & fi
