@@ -63,10 +63,9 @@ unsigned SCurve::getPhase() const {
 float SCurve::getStoppingDist() const {return stoppingDist(v, a, maxA, maxJ);}
 
 
-float SCurve::next(float t, float targetV, float overrideJ) {
+float SCurve::next(float t, float targetV) {
   // Compute next acceleration
-  float nextA =
-    nextAccel(t, targetV, v, a, maxA, isfinite(overrideJ) ? overrideJ : maxJ);
+  float nextA = nextAccel(t, targetV, v, a, maxA, maxJ);
 
   // Compute next velocity
   float deltaV = nextA * t;
@@ -82,43 +81,6 @@ float SCurve::next(float t, float targetV, float overrideJ) {
   a = nextA;
 
   return v;
-}
-
-
-float SCurve::adjustedJerkForStoppingDist(float d) const {
-  // Only make adjustments in phase 7
-  if (getPhase() != 7) return NAN;
-
-  // Handle negative velocity
-  float v = this->v;
-  float a = this->a;
-  if (v < 0) {
-    v = -v;
-    a = -a;
-  }
-
-  // Compute distance to zero vel
-  float actualD = distance(-a / maxJ, v, 0, maxJ);
-  const float fudge = 0.05;
-  if (actualD < d) return maxJ * (1 + fudge);
-  else if (d < actualD) return maxJ * (1 - fudge);
-  return maxJ;
-
-  // Compute jerk to hit distance exactly
-  //
-  // S-curve distance formula
-  // d = vt + 1/2 at^2 + 1/6 jt^3
-  //
-  // t = -a/j when a < 0
-  //
-  // Substitute and simplify
-  // (d = -va/j + (a^3)/(2j^2) - (a^3)/(6j^2)) * j^2
-  // dj^2 = -jva + 1/2 a^3 - 1/6 a^3
-  // dj^2 + vaj - 1/3 a^3 = 0
-  //
-  // Apply quadratic formula
-  // j = (-va - sqrt((va)^2 + 4/3 da^3)) / (2d)
-  return -a * (v + sqrt(v * v + 1.333333 * d * a)) / (2 * d);
 }
 
 
@@ -140,33 +102,33 @@ float SCurve::stoppingDist(float v, float a, float maxA, float maxJ) {
     float t = a / maxJ;
     d += distance(t, v, a, -maxJ);
     v += velocity(t, a, -maxJ);
-
-  } else if (a < 0) {
-    // Compute distance to increase accel to zero
-    float t = a / -maxJ;
-    d -= distance(t, v, a, maxJ);
-    v -= velocity(t, a, maxJ);
+    a = 0;
   }
 
-  // Compute max deccel from zero accel
-  float maxDeccel = -sqrt(v * maxJ);
+  // Compute max deccel
+  float maxDeccel = -sqrt(v * maxJ + 0.5 * a * a);
   if (maxDeccel < -maxA) maxDeccel = -maxA;
 
   // Compute distance and velocity change to max deccel
-  float t = maxDeccel / -maxJ;
-  d += distance(t, v, 0, -maxJ);
-  float deltaV = velocity(t, 0, -maxJ);
-  v += deltaV;
+  if (maxDeccel < a) {
+    float t = (a - maxDeccel) / maxJ;
+    d += distance(t, v, a, -maxJ);
+    v += velocity(t, a, -maxJ);
+    a = maxDeccel;
+  }
+
+  // Compute velocity change over remaining accel
+  float deltaV = 0.5 * a * a / maxJ;
 
   // Compute constant deccel period
-  if (-deltaV < v) {
-    float t = (v + deltaV) / -maxDeccel;
-    d += distance(t, v, maxDeccel, 0);
-    v += velocity(t, maxDeccel, 0);
+  if (deltaV < v) {
+    float t = (v - deltaV) / -a;
+    d += distance(t, v, a, 0);
+    v += velocity(t, a, 0);
   }
 
   // Compute distance to zero vel
-  d += distance(t, v, maxDeccel, maxJ);
+  d += distance(-a / maxJ, v, a, maxJ);
 
   return d;
 }

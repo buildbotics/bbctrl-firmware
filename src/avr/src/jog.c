@@ -73,30 +73,16 @@ stat_t jog_exec() {
     bool softLimited = min != max && axis_get_homed(axis);
 
     // Apply soft limits, if enabled and homed
-    float jerk = jr.scurves[axis].getMaxJerk();
     if (softLimited && MIN_VELOCITY < fabs(targetV)) {
-      float dist = jr.scurves[axis].getStoppingDist();
+      float dist = jr.scurves[axis].getStoppingDist() *
+        (1 + (JOG_STOPPING_UNDERSHOOT / 100.0));
 
-      float targetDist = 0;
-      if (vel < 0 && p - dist <= min) {
-        targetV = -MIN_VELOCITY;
-        targetDist = p - min;
-      }
-
-      if (0 < vel && max <= p + dist) {
-        targetV = MIN_VELOCITY;
-        targetDist = max - p;
-      }
-
-      if (targetDist) {
-        float adjustedJ =
-          jr.scurves[axis].adjustedJerkForStoppingDist(targetDist);
-        if (isfinite(adjustedJ)) jerk = adjustedJ;
-      }
+      if (vel < 0 && p - dist <= min) targetV = -MIN_VELOCITY;
+      if (0 < vel && max <= p + dist) targetV = MIN_VELOCITY;
     }
 
     // Compute next velocity
-    float v = jr.scurves[axis].next(SEGMENT_TIME, targetV, jerk);
+    float v = jr.scurves[axis].next(SEGMENT_TIME, targetV);
 
     // Don't overshoot soft limits
     float deltaP = v * SEGMENT_TIME;

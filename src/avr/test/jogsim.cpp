@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
       float targetVel = targetV[axis];
 
       if (coastV < fabs(targetVel)) {
-        float dist = scurves[axis].getStoppingDist();
+        float dist = scurves[axis].getStoppingDist() * 1.01;
 
         if (vel < 0 && p[axis] - dist <= min) targetVel = -coastV;
         if (0 < vel && max <= p[axis] + dist) targetVel = coastV;

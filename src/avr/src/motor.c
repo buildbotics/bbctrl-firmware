@@ -158,9 +158,6 @@ void motor_init() {
     m->dma->DESTADDR1 = (((uintptr_t)&_dummy) >> 8) & 0xff;
     m->dma->DESTADDR2 = 0;
 
-    m->dma->TRFCNT = 0xffff;
-    m->dma->REPCNT = 0;
-    m->dma->CTRLB = 0;
     m->dma->CTRLA = DMA_CH_SINGLE_bm | DMA_CH_BURSTLEN_1BYTE_gc;
 
     // IO pins
@@ -247,9 +244,6 @@ void motor_end_move(int motor) {
   // Get actual step count from DMA channel
   const int32_t steps = 0xffff - m->dma->TRFCNT;
 
-  // Disable DMA step counter
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-
   // Accumulate encoder & compute error
   m->encoder += m->last_negative ? -steps : steps;
   m->error = m->commanded - m->encoder;
@@ -259,29 +253,36 @@ void motor_end_move(int motor) {
 void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
+  // Clear move
   ASSERT(m->prepped);
+  m->prepped = false;
 
   motor_end_move(motor);
 
   // Set direction, compensating for polarity
-  SET_PIN(m->dir_pin, m->negative ^ m->reverse);
+  const bool dir = m->negative ^ m->reverse;
+  if (dir != IN_PIN(m->dir_pin)) {
+    SET_PIN(m->dir_pin, dir);
+    // Make sure there is plenty of time between direction change and next step.
+    if (m->timer->CCA < m->timer->CNT) m->timer->CNT = m->timer->CCA + 1;
+  }
 
-  if (m->timer_period) {
-    // Setup DMA step counter
-    m->dma->TRFCNT = 0xffff;
-    m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+  if (!m->timer_period) return; // Leave clock stopped
 
-    // Set clock and period
-    m->timer->PERBUF = m->timer_period;  // Set next frequency
-    if (m->timer_period < m->timer->CNT) m->timer->CNT = m->timer_period - 1;
-    m->timer->CTRLA = TC_CLKSEL_DIV2_gc; // Start clock
-    m->last_negative = m->negative;
-    m->commanded = m->position;
+  // Reset DMA step counter
+  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  m->dma->TRFCNT = 0xffff;
+  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
-  } else m->timer->CTRLA = 0;
+  // Note, it is important to start the clock, if it is stopped, before
+  // setting PERBUF so that PER is not updated immediately possibly
+  // interrupting the clock mid step or causing counter wrap around.
 
-  // Clear move
-  m->prepped = false;
+  // Set clock and period
+  m->timer->CTRLA = TC_CLKSEL_DIV2_gc; // Start clock
+  m->timer->PERBUF = m->timer_period;  // Set next frequency
+  m->last_negative = m->negative;
+  m->commanded = m->position;
 }
 
 

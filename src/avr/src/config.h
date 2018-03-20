@@ -217,3 +217,4 @@ enum {
 #define SYNC_QUEUE_SIZE          4096
 #define EXEC_FILL_TARGET         8
 #define EXEC_DELAY               250 // ms
+#define JOG_STOPPING_UNDERSHOOT  1   // % of stopping distance
