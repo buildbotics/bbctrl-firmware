@@ -47,6 +47,8 @@ static struct {
   float velocity;
   float accel;
   float jerk;
+  float peak_vel;
+  float peak_accel;
 
   float feed_override;
   float spindle_override;
@@ -77,9 +79,23 @@ void exec_get_position(float p[AXES]) {
 
 
 float exec_get_axis_position(int axis) {return ex.position[axis];}
-void exec_set_velocity(float v) {ex.velocity = v;}
+
+
+void exec_set_velocity(float v) {
+  ex.velocity = v;
+  if (ex.peak_vel < v) ex.peak_vel = v;
+}
+
+
 float exec_get_velocity() {return ex.velocity;}
-void exec_set_acceleration(float a) {ex.accel = a;}
+
+
+void exec_set_acceleration(float a) {
+  ex.accel = a;
+  if (ex.peak_accel < a) ex.peak_accel = a;
+}
+
+
 float exec_get_acceleration() {return ex.accel;}
 void exec_set_jerk(float j) {ex.jerk = j;}
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
@@ -117,6 +133,10 @@ float get_axis_position(int axis) {return ex.position[axis];}
 float get_velocity() {return ex.velocity / VELOCITY_MULTIPLIER;}
 float get_acceleration() {return ex.accel / ACCEL_MULTIPLIER;}
 float get_jerk() {return ex.jerk / JERK_MULTIPLIER;}
+float get_peak_vel() {return ex.peak_vel / VELOCITY_MULTIPLIER;}
+void set_peak_vel(float x) {ex.peak_vel = 0;}
+float get_peak_accel() {return ex.peak_accel / ACCEL_MULTIPLIER;}
+void set_peak_accel(float x) {ex.peak_accel = 0;}
 float get_feed_override() {return ex.feed_override;}
 void set_feed_override(float value) {ex.feed_override = value;}
 float get_speed_override() {return ex.spindle_override;}
