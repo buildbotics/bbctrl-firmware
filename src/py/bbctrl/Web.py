@@ -117,16 +117,30 @@ class HostnameHandler(bbctrl.APIHandler):
 
 class WifiHandler(bbctrl.APIHandler):
     def get(self):
-        ssid = ''
+        data = {'ssid': '', 'channel': 0}
         try:
-            ssid = call_get_output(['config-wifi', '-g'])
+            data = json.loads(call_get_output(['config-wifi', '-j']))
         except: pass
-        self.write_json({'ssid': ssid})
+        self.write_json(data)
 
     def put(self):
-        if 'ssid' in self.json and 'pass' in self.json:
-            if subprocess.call(['config-wifi', '-s', self.json['ssid'],
-                                '-p', self.json['pass']]) == 0:
+        if 'mode' in self.json:
+            cmd = ['config-wifi', '-r']
+            mode = self.json['mode']
+
+            if mode == 'disabled': cmd += ['-d']
+            elif 'ssid' in self.json:
+                cmd += ['-s', self.json['ssid']]
+
+                if mode == 'ap':
+                    cmd += ['-a']
+                    if 'channel' in self.json:
+                        cmd += ['-c', self.json['channel']]
+
+                if 'pass' in self.json:
+                    cmd += ['-p', self.json['pass']]
+
+            if subprocess.call(cmd) == 0:
                 self.write_json('ok')
                 return
 

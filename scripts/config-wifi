@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 AP=false
+DISABLE=false
 SSID=
 PASS=
 CHANNEL=7
@@ -13,14 +14,31 @@ DHCPCD_CFG=/etc/dhcpcd.conf
 WPA_CFG=/etc/wpa_supplicant/wpa_supplicant.conf
 
 
-function query_ssid() {
+function query_config() {
     if [ -e $WLAN0_CFG ]; then
-        grep wpa-ssid $WLAN0_CFG | sed 's/^[[:space:]]*wpa-ssid "\([^"]*\)"/\1/'
+        SSID=$(grep wpa-ssid $WLAN0_CFG |
+                   sed 's/^[[:space:]]*wpa-ssid "\([^"]*\)"/\1/')
+        echo "{\"ssid\": \"$SSID\", \"mode\": \"client\"}"
+
     else
-        if [ -e $HOSTAPD_CFG ]; then
-            grep ^ssid $HOSTAPD_CFG | sed 's/^ssid="\(.*\)$"/\1/'
+        if [ -e $HOSTAPD_CFG -a -e /etc/default/hostapd ]; then
+            SSID=$(grep ^ssid= $HOSTAPD_CFG | sed 's/^ssid=\(.*\)$/\1/')
+            CHANNEL=$(grep ^channel= $HOSTAPD_CFG |
+                          sed 's/^channel=\(.*\)$/\1/')
+
+            echo -n "{\"ssid\": \"$SSID\", "
+            echo "\"channel\": $CHANNEL, \"mode\": \"ap\"}"
+
+        else
+            echo "{\"mode\": \"disabled\"}"
         fi
     fi
+
+}
+
+
+function disable_wifi() {
+    rm -f $WLAN0_CFG $HOSTAPD_CFG /etc/default/hostapd
 }
 
 
@@ -76,14 +94,10 @@ function configure_dhcpcd() {
 
 
 function configure_wifi() {
-    # Disable AP
-    service hostapd stop || true
-    rm -f /etc/default/hostapd
-
-    configure_wlan0 > $WLAN0_CFG
-    configure_wpa > $WPA_CFG
-    configure_dhcpcd  > $DHCPCD_CFG
-    service dhcpcd restart
+    disable_wifi
+    configure_wlan0  > $WLAN0_CFG
+    configure_wpa    > $WPA_CFG
+    configure_dhcpcd > $DHCPCD_CFG
 }
 
 
@@ -121,8 +135,7 @@ function is_installed() {
 
 
 function configure_ap() {
-    # Disable wifi config
-    rm -f $WLAN0_CFG
+    disable_wifi
 
     # Install packages
     (
@@ -147,13 +160,9 @@ function configure_ap() {
     echo 1 > /proc/sys/net/ipv4/ip_forward
 
     # Enable IP masquerading
-    iptables -t nat -A  POSTROUTING -o eth0 -j MASQUERADE
+    iptables -t nat -F
+    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
     iptables-save > /etc/iptables/rules.v4
-
-    # Start services
-    service dhcpcd restart
-    service dnsmasq restart
-    service hostapd restart
 }
 
 
@@ -165,11 +174,12 @@ function usage() {
     echo "OPTIONS:"
     echo
     echo "  -a             Configure access point."
+    echo "  -d             Disable wifi."
     echo "  -r             Reboot when done."
     echo "  -s <SSID>      Set SSID."
     echo "  -p <PASS>      Set password."
     echo "  -c <CHANNEL>   Set wifi channel."
-    echo "  -g             Report SSID and exit."
+    echo "  -j             Report wifi config as JSON data."
     echo
 }
 
@@ -178,11 +188,12 @@ function usage() {
 while [ $# -ne 0 ]; do
     case "$1" in
         -a) AP=true ;;
+        -d) DISABLE=true ;;
         -r) REBOOT=true; ;;
         -s) SSID="$2"; shift ;;
         -p) PASS="$2"; shift ;;
         -c) CHANNEL="$2"; shift ;;
-        -g) query_ssid; exit 0 ;;
+        -j) query_config; exit 0 ;;
 
         -h)
             usage
@@ -199,41 +210,46 @@ while [ $# -ne 0 ]; do
 done
 
 
-# Check args
-function clean_str() {
-    echo "$1" | tr -d '\n\r"'
-}
-
-SSID=$(clean_str "$SSID")
-PASS=$(clean_str "$PASS")
-
-LANG=C LC_ALL=C # For correct string byte length
-
-if [ ${#SSID} -eq 0 -o 32 -lt ${#SSID} ]; then
-    echo "Invalid or missing SSID '$SSID'"
-    exit 1
-fi
-
-if [ ${#PASS} -lt 8 -o 128 -lt ${#PASS} ]; then
-    echo "Invalid passsword"
-    exit 1
-fi
-
-echo "$CHANNEL" | grep '^[0-9]\{1,2\}' > /dev/null
-if [ $? -ne 0 ]; then
-    echo "Invalid channel '$CHANNEL'"
-    exit 1
-fi
-
-
-# Execute
-if $AP; then
-    echo "Configuring Wifi access point"
-    configure_ap
+if $DISABLE; then
+    disable_wifi
 
 else
-    echo "Configuring Wifi"
-    configure_wifi
+    # Check args
+    function clean_str() {
+        echo "$1" | tr -d '\n\r"'
+    }
+
+    SSID=$(clean_str "$SSID")
+    PASS=$(clean_str "$PASS")
+
+    LANG=C LC_ALL=C # For correct string byte length
+
+    if [ ${#SSID} -eq 0 -o 32 -lt ${#SSID} ]; then
+        echo "Invalid or missing SSID '$SSID'"
+        exit 1
+    fi
+
+    if [ ${#PASS} -lt 8 -o 128 -lt ${#PASS} ]; then
+        echo "Invalid passsword"
+        exit 1
+    fi
+
+    echo "$CHANNEL" | grep '^[0-9]\{1,2\}' > /dev/null
+    if [ $? -ne 0 ]; then
+        echo "Invalid channel '$CHANNEL'"
+        exit 1
+    fi
+
+
+    # Execute
+    if $AP; then
+        echo "Configuring Wifi access point"
+        configure_ap
+
+    else
+        echo "Configuring Wifi"
+        configure_wifi
+    fi
 fi
 
 

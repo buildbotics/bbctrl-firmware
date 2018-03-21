@@ -47,7 +47,9 @@ module.exports = {
       current: '',
       password: '',
       password2: '',
+      wifi_mode: 'client',
       wifi_ssid: '',
+      wifi_ch: undefined,
       wifi_pass: '',
       wifiConfirm: false,
       rebooting: false
@@ -65,7 +67,9 @@ module.exports = {
     }.bind(this));
 
     api.get('wifi').done(function (config) {
+      this.wifi_mode = config.mode;
       this.wifi_ssid = config.ssid;
+      this.wifi_ch = config.channel;
     }.bind(this));
   },
 
@@ -134,11 +138,14 @@ module.exports = {
       this.wifiConfirm = false;
       this.rebooting = true;
 
-      api.put('wifi', {
+      var config = {
+        mode: this.wifi_mode,
+        channel: this.wifi_ch,
         ssid: this.wifi_ssid,
         pass: this.wifi_pass
+      }
 
-      }).fail(function (error) {
+      api.put('wifi', config).fail(function (error) {
         alert('Failed to configure WiFi: ' + JSON.stringify(error));
       })
     }
