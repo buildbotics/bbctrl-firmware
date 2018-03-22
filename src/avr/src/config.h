@@ -172,14 +172,17 @@ enum {
                        DRV8711_CTRL_EXSTALL_bm)
 
 
-// Huanyang settings
-#define HUANYANG_PORT          USARTD1
-#define HUANYANG_DRE_vect      USARTD1_DRE_vect
-#define HUANYANG_TXC_vect      USARTD1_TXC_vect
-#define HUANYANG_RXC_vect      USARTD1_RXC_vect
-#define HUANYANG_TIMEOUT       50 // ms. response timeout
-#define HUANYANG_RETRIES        4 // Number of retries before failure
-#define HUANYANG_ID             1 // Default ID
+// RS485 settings
+#define RS485_PORT             USARTD1
+#define RS485_DRE_vect         USARTD1_DRE_vect
+#define RS485_TXC_vect         USARTD1_TXC_vect
+#define RS485_RXC_vect         USARTD1_RXC_vect
+
+
+// Modbus settings
+#define MODBUS_TIMEOUT         50 // ms. response timeout
+#define MODBUS_RETRIES          4 // Number of retries before failure
+#define MODBUS_BUF_SIZE        64 // Max bytes in rx/tx buffers
 
 
 // Serial settings

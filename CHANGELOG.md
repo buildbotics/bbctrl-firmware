@@ -1,8 +1,9 @@
-Buildbotics CNC Controller Firmware Change Log
+Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
 ## v0.3.21
  - Implemented M70-M73 modal state save/restore.
+ - Added support for modbus VFDs.
 
 ## v0.3.20
  - Eliminated drift caused by miscounting half microsteps.
@@ -166,4 +167,4 @@ Buildbotics CNC Controller Firmware Change Log
  - Start Web server eariler in case of Python coding errors
 
 
-Change log not maintained in previous versions.  See git commit log.
+Changelog not maintained in previous versions.  See git commit log.

@@ -33,9 +33,8 @@
 void hy_init();
 void hy_deinit();
 void hy_set(float speed);
-void hy_reset();
-void hy_rtc_callback();
 void hy_stop();
+
 
 /// See Huanyang VFD user manual
 typedef enum {
@@ -223,4 +222,4 @@ typedef enum {
   HY_PD181_SOFTWARE_VERSION,
   HY_PD182_MANUFACTURE_DATE,
   HY_PD183_SERIAL_NO,
-} hy_func_addr_t;
+} hy_addr_t;

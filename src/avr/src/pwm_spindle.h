@@ -27,8 +27,6 @@
 
 #pragma once
 
-#include "spindle.h"
-
 
 void pwm_spindle_init();
 void pwm_spindle_deinit();

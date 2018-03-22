@@ -153,8 +153,8 @@
   "tool": {
     "spindle-type": {
       "type": "enum",
-      "values": ["DISABLED", "PWM", "HUANYANG"],
-      "default": "DISABLED",
+      "values": ["Disabled", "PWM", "Huanyang", "Modbus"],
+      "default": "Disabled",
       "code": "st"
     },
     "spin-reversed": {
@@ -183,6 +183,14 @@
       "type": "int",
       "default": "1",
       "code": "hi"
+    }
+  },
+
+  "modbus-spindle": {
+    "modbus-id": {
+      "type": "int",
+      "default": "1",
+      "code": "bi"
     }
   },
 

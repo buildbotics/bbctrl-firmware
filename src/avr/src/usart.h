@@ -27,9 +27,11 @@
 
 #pragma once
 
+#include <avr/io.h>
 
 #include <stdint.h>
 #include <stdbool.h>
+
 
 #define USART_TX_RING_BUF_SIZE 256
 #define USART_RX_RING_BUF_SIZE 256
@@ -56,6 +58,7 @@ enum {
 };
 
 void usart_init();
+void usart_set_port_baud(USART_t *port, int baud);
 void usart_set_baud(int baud);
 void usart_set(int flag, bool enable);
 bool usart_is_set(int flags);

@@ -34,17 +34,25 @@ script#tool-view-template(type="text/x-template")
         templated-input(v-for="templ in template.tool", :name="$key",
           :model.sync="tool[$key]", :template="templ")
 
-    div(v-if="tool['spindle-type'] == 'PWM'")
+    div(v-if="get_type() == 'PWM'")
       h2 PWM Spindle
       form.pure-form.pure-form-aligned
         fieldset
           templated-input(v-for="templ in template['pwm-spindle']",
             :name="$key", :model.sync="pwmSpindle[$key]", :template="templ")
 
-    div(v-if="tool['spindle-type'] == 'HUANYANG'")
-      h2 Huanyang VFD Spindle
+    div(v-if="get_type() == 'HUANYANG'")
+      h2 Huanyang VFD
       form.pure-form.pure-form-aligned
         fieldset
           templated-input(v-for="templ in template['huanyang-spindle']",
             :name="$key", :model.sync="huanyangSpindle[$key]",
+            :template="templ")
+
+    div(v-if="get_type() == 'MODBUS'")
+      h2 Modbus Compatiable VFD
+      form.pure-form.pure-form-aligned
+        fieldset
+          templated-input(v-for="templ in template['modbus-spindle']",
+            :name="$key", :model.sync="modbusSpindle[$key]",
             :template="templ")

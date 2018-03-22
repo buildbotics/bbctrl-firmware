@@ -117,7 +117,7 @@ void usart_init(void) {
     USART_CHSIZE_8BIT_gc;
 
   // Configure receiver and transmitter
-  SERIAL_PORT.CTRLB = USART_RXEN_bm | USART_TXEN_bm | USART_CLK2X_bm;
+  SERIAL_PORT.CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
 
   PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
 
@@ -135,29 +135,35 @@ void usart_init(void) {
 }
 
 
-static void _set_baud(uint16_t bsel, uint8_t bscale) {
-  SERIAL_PORT.BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
-  SERIAL_PORT.BAUDCTRLA = bsel;
+static void _set_baud(USART_t *port, uint16_t bsel, uint8_t bscale) {
+  port->BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
+  port->BAUDCTRLA = bsel;
+  port->CTRLB |= USART_CLK2X_bm;
+}
+
+
+void usart_set_port_baud(USART_t *port, int baud) {
+  // The BSEL / BSCALE values provided below assume a 32 Mhz clock
+  // With CTRLB CLK2X is set
+  // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
+
+  switch (baud) {
+  case USART_BAUD_9600:    _set_baud(port, 3325, 0b1101); break;
+  case USART_BAUD_19200:   _set_baud(port, 3317, 0b1100); break;
+  case USART_BAUD_38400:   _set_baud(port, 3301, 0b1011); break;
+  case USART_BAUD_57600:   _set_baud(port, 1095, 0b1100); break;
+  case USART_BAUD_115200:  _set_baud(port, 1079, 0b1011); break;
+  case USART_BAUD_230400:  _set_baud(port, 1047, 0b1010); break;
+  case USART_BAUD_460800:  _set_baud(port, 983,  0b1001); break;
+  case USART_BAUD_921600:  _set_baud(port, 107,  0b1011); break;
+  case USART_BAUD_500000:  _set_baud(port, 1,    0b0010); break;
+  case USART_BAUD_1000000: _set_baud(port, 1,    0b0001); break;
+  }
 }
 
 
 void usart_set_baud(int baud) {
-  // The BSEL / BSCALE values provided below assume a 32 Mhz clock
-  // Assumes CTRLB CLK2X bit (0x04) is set
-  // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
-
-  switch (baud) {
-  case USART_BAUD_9600:    _set_baud(3325, 0b1101); break;
-  case USART_BAUD_19200:   _set_baud(3317, 0b1100); break;
-  case USART_BAUD_38400:   _set_baud(3301, 0b1011); break;
-  case USART_BAUD_57600:   _set_baud(1095, 0b1100); break;
-  case USART_BAUD_115200:  _set_baud(1079, 0b1011); break;
-  case USART_BAUD_230400:  _set_baud(1047, 0b1010); break;
-  case USART_BAUD_460800:  _set_baud(983,  0b1001); break;
-  case USART_BAUD_921600:  _set_baud(107,  0b1011); break;
-  case USART_BAUD_500000:  _set_baud(1,    0b0010); break;
-  case USART_BAUD_1000000: _set_baud(1,    0b0001); break;
-  }
+  usart_set_port_baud(&SERIAL_PORT, baud);
 }
 
 

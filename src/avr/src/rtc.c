@@ -30,7 +30,7 @@
 #include "switch.h"
 #include "analog.h"
 #include "io.h"
-#include "huanyang.h"
+#include "modbus.h"
 #include "motor.h"
 #include "lcd.h"
 
@@ -51,7 +51,7 @@ ISR(RTC_OVF_vect) {
   switch_rtc_callback();
   analog_rtc_callback();
   io_rtc_callback();
-  hy_rtc_callback();
+  modbus_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
   wdt_reset();
 }

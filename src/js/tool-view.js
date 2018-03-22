@@ -37,7 +37,8 @@ module.exports = {
     return {
       tool: {},
       pwmSpindle: {},
-      huanyangSpindle: {}
+      huanyangSpindle: {},
+      modbusSpindle: {}
     }
   },
 
@@ -54,9 +55,24 @@ module.exports = {
 
 
   methods: {
+    get_type: function () {
+      return (this.tool['spindle-type'] || 'Disabled').toUpperCase();
+    },
+
+
+    update_tool: function (type) {
+      if (this.config.hasOwnProperty(type + '-spindle'))
+        this[type + 'Spindle'] = this.config[type + '-spindle'];
+
+      var template = this.template[type + '-spindle'];
+      for (var key in template)
+        if (!this[type + 'Spindle'].hasOwnProperty(key))
+          this.$set(type + 'Spindle["' + key + '"]', template[key].default);
+    },
+
+
     update: function () {
       Vue.nextTick(function () {
-        // Tool
         if (this.config.hasOwnProperty('tool'))
           this.tool = this.config.tool;
 
@@ -65,24 +81,10 @@ module.exports = {
           if (!this.tool.hasOwnProperty(key))
             this.$set('tool["' + key + '"]', template[key].default);
 
-        // PWM
-        if (this.config.hasOwnProperty('pwm-spindle'))
-          this.pwmSpindle = this.config['pwm-spindle'];
-
-        template = this.template['pwm-spindle'];
-        for (key in template)
-          if (!this.pwmSpindle.hasOwnProperty(key))
-            this.$set('pwmSpindle["' + key + '"]', template[key].default);
-
-        // Huanyang
-        if (this.config.hasOwnProperty('huanyang-spindle'))
-          this.huanyangSpindle = this.config['huanyang-spindle'];
-
-        template = this.template['huanyang-spindle'];
-        for (key in template)
-          if (!this.huanyangSpindle.hasOwnProperty(key))
-            this.$set('huanyangSpindle["' + key + '"]', template[key].default);
-      }.bind(this));
+        this.update_tool('pwm');
+        this.update_tool('huanyang');
+        this.update_tool('modbus');
+       }.bind(this));
     }
   }
 }
