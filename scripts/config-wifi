@@ -95,6 +95,7 @@ function configure_dhcpcd() {
 
 function configure_wifi() {
     disable_wifi
+    echo "source-directory /etc/network/interfaces.d" > /etc/network/interfaces
     configure_wlan0  > $WLAN0_CFG
     configure_wpa    > $WPA_CFG
     configure_dhcpcd > $DHCPCD_CFG
