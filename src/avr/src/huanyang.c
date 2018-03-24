@@ -53,30 +53,19 @@
 
 // See VFD manual pg56 3.1.3
 typedef enum {
-  HUANYANG_FUNC_READ = 1, // Use hy_addr_t
-  HUANYANG_FUNC_WRITE,    // ?
-  HUANYANG_CTRL_WRITE,    // Use hy_ctrl_state_t
-  HUANYANG_CTRL_READ,     // Use hy_ctrl_addr_t
-  HUANYANG_FREQ_WRITE,    // Write frequency as uint16_t
+  HUANYANG_FUNC_READ = 1, // [len=1][hy_addr_t]
+  HUANYANG_FUNC_WRITE,    // [len=3][hy_addr_t][data]
+  HUANYANG_CTRL_WRITE,    // [len=1][hy_ctrl_state_t]
+  HUANYANG_CTRL_READ,     // [len=1][hy_ctrl_addr_t]
+  HUANYANG_FREQ_WRITE,    // [len=2][freq]
   HUANYANG_RESERVED_1,
   HUANYANG_RESERVED_2,
   HUANYANG_LOOP_TEST,
 } hy_func_t;
 
 
-// See VFD manual pg57 3.1.3.d
-typedef enum {
-  HUANYANG_TARGET_FREQ,
-  HUANYANG_ACTUAL_FREQ,
-  HUANYANG_ACTUAL_CURRENT,
-  HUANYANG_ACTUAL_RPM,
-  HUANYANG_DCV,
-  HUANYANG_ACV,
-  HUANYANG_CONT,
-  HUANYANG_TEMPERATURE,
-} hy_ctrl_addr_t;
-
-
+// Sent in HUANYANG_CTRL_WRITE
+// See VFD manual pg57 3.1.3.c
 typedef enum {
   HUANYANG_RUN         = 1 << 0,
   HUANYANG_FORWARD     = 1 << 1,
@@ -85,10 +74,12 @@ typedef enum {
   HUANYANG_REV_FWD     = 1 << 4,
   HUANYANG_JOG         = 1 << 5,
   HUANYANG_JOG_FORWARD = 1 << 6,
-  HUANYANG_JOG_REVERSE = 1 << 1,
+  HUANYANG_JOG_REVERSE = 1 << 7,
 } hy_ctrl_state_t;
 
 
+// Returned by HUANYANG_CTRL_WRITE
+// See VFD manual pg57 3.1.3.c
 typedef enum {
   HUANYANG_STATUS_RUN         = 1 << 0,
   HUANYANG_STATUS_JOG         = 1 << 1,
@@ -99,6 +90,20 @@ typedef enum {
   HUANYANG_STATUS_BRAKING     = 1 << 6,
   HUANYANG_STATUS_TRACK_START = 1 << 7,
 } hy_ctrl_status_t;
+
+
+// Sent in HUANYANG_CTRL_READ
+// See VFD manual pg57 3.1.3.d
+typedef enum {
+  HUANYANG_TARGET_FREQ,
+  HUANYANG_ACTUAL_FREQ,
+  HUANYANG_ACTUAL_CURRENT,
+  HUANYANG_ACTUAL_RPM,
+  HUANYANG_DCV,
+  HUANYANG_ACV,
+  HUANYANG_COUNTER,
+  HUANYANG_TEMPERATURE,
+} hy_ctrl_addr_t;
 
 
 static struct {
@@ -127,6 +132,15 @@ static struct {
 } hy = {1}; // Default ID
 
 
+static void _func_read(hy_addr_t addr) {
+  hy.func     = HUANYANG_FUNC_READ;
+  hy.bytes    = 2;
+  hy.response = 4;
+  hy.data[0]  = 1;
+  hy.data[1]  = addr;
+}
+
+
 static void _ctrl_write(hy_ctrl_state_t state) {
   hy.func     = HUANYANG_CTRL_WRITE;
   hy.bytes    = 2;
@@ -148,21 +162,10 @@ static void _ctrl_read(hy_ctrl_addr_t addr) {
 static void _freq_write(uint16_t freq) {
   hy.func     = HUANYANG_FREQ_WRITE;
   hy.bytes    = 3;
-  hy.response = 2;
+  hy.response = 3;
   hy.data[0]  = 2;
   hy.data[1]  = freq >> 8;
   hy.data[2]  = freq;
-}
-
-
-static void _func_read(uint16_t addr) {
-  hy.func     = HUANYANG_FUNC_READ;
-  hy.bytes    = 4;
-  hy.response = 4;
-  hy.data[0]  = 3;
-  hy.data[1]  = addr;
-  hy.data[2]  = addr >> 8;
-  hy.data[3]  = 0;
 }
 
 
@@ -194,18 +197,16 @@ static uint16_t _read_word(const uint8_t *data) {
 
 static void _handle_response(hy_func_t func, const uint8_t *data) {
   switch (func) {
-  case HUANYANG_FUNC_READ: {
-    _func_read_response((hy_addr_t)_read_word(data), _read_word(data + 2));
+  case HUANYANG_FUNC_READ:
+    _func_read_response((hy_addr_t)*data, _read_word(data + 1));
     break;
-  }
 
   case HUANYANG_FUNC_WRITE: break;
-  case HUANYANG_CTRL_WRITE: hy.status = _read_word(data); break;
+  case HUANYANG_CTRL_WRITE: hy.status = *data; break;
 
-  case HUANYANG_CTRL_READ: {
-    _ctrl_read_response((hy_ctrl_addr_t)_read_word(data), _read_word(data + 2));
+  case HUANYANG_CTRL_READ:
+    _ctrl_read_response((hy_ctrl_addr_t)*data, _read_word(data + 1));
     break;
-  }
 
   case HUANYANG_FREQ_WRITE: break;
   default: break;
@@ -235,7 +236,9 @@ static void _reset(bool halt) {
 
 static void _modbus_cb(uint8_t slave, uint8_t func, uint8_t bytes,
                        const uint8_t *data) {
-  if (data && bytes == *data + 1) {
+  if (!data) _reset(true);
+
+  else if (bytes == *data + 1) {
     _handle_response((hy_func_t)func, data + 1);
 
     if (func == HUANYANG_CTRL_WRITE && hy.shutdown) {

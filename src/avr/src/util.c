@@ -29,6 +29,7 @@
 
 #include "base64.h"
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
@@ -80,4 +81,15 @@ stat_t decode_axes(char **cmd, float axes[AXES]) {
   }
 
   return STAT_OK;
+}
+
+
+// Assumes the caller provide format buffer length is @param len * 2 + 1.
+void format_hex_buf(char *buf, const uint8_t *data, unsigned len) {
+  uint8_t i;
+
+  for (i = 0; i < len; i++)
+    sprintf(buf + i * 2, "%02x", data[i]);
+
+  buf[i * 2] = 0;
 }

@@ -29,6 +29,7 @@
 #include "usart.h"
 #include "status.h"
 #include "rtc.h"
+#include "util.h"
 #include "config.h"
 
 #include <avr/io.h>
@@ -55,7 +56,7 @@ static struct {
   uint8_t retry;
   bool connected;
   bool busy;
-} mb = {true, USART_BAUD_9600};
+} mb = {false, USART_BAUD_9600};
 
 
 static uint16_t _crc16(const uint8_t *buffer, unsigned length) {
@@ -103,8 +104,14 @@ static bool _check_response() {
     mb.response[mb.response_length - 2];
 
   if (computed != expected) {
-    STATUS_WARNING(STAT_OK, "modbus: invalid CRC, expected=0x%04u got=0x%04u",
-                   expected, computed);
+    char sent[mb.command_length * 2 + 1];
+    char response[mb.response_length * 2 + 1];
+    format_hex_buf(sent, mb.command, mb.command_length);
+    format_hex_buf(response, mb.response, mb.response_length);
+
+    STATUS_WARNING(STAT_OK, "modbus: invalid CRC, expected=0x%04x got=0x%04x "
+                   "sent=0x%s received=0x%s",
+                   expected, computed, sent, response);
     return false;
   }
 
@@ -210,6 +217,12 @@ static void _retry() {
   _set_rxc_interrupt(false);
   _set_dre_interrupt(true);
 
+  // Try changing pin polarity
+  if (mb.retry == MODBUS_RETRIES) {
+    PINCTRL_PIN(RS485_RO_PIN) ^= PORT_INVEN_bm;
+    PINCTRL_PIN(RS485_DI_PIN) ^= PORT_INVEN_bm;
+  }
+
   if (mb.debug) STATUS_DEBUG("modbus: retry %d", mb.retry);
 }
 
@@ -217,12 +230,14 @@ static void _retry() {
 static void _timeout() {
   if (mb.debug) STATUS_DEBUG("modbus: timedout");
 
-  // Try changing pin polarity
-  PINCTRL_PIN(RS485_RO_PIN) ^= PORT_INVEN_bm;
-  PINCTRL_PIN(RS485_DI_PIN) ^= PORT_INVEN_bm;
+  modbus_cb_t cb = mb.receive_cb;
+  uint8_t id = mb.command[0];
+  uint8_t func = mb.command[1];
 
-  mb.retry = -1;
-  _retry();
+  _reset();
+
+  // Notify caller
+  if (cb) cb(id, func, 0, 0);
 }
 
 
@@ -290,28 +305,22 @@ void modbus_func(uint8_t slave, uint8_t func, uint8_t send, const uint8_t *data,
 
 
 void modbus_rtc_callback() {
-  if (mb.last && rtc_expired(mb.last + MODBUS_TIMEOUT)) {
-    if (mb.debug && mb.bytes) {
-      const uint8_t buf_len = 8 * 2 + 1;
-      char sent[buf_len];
-      char received[buf_len];
+  if (!mb.last || !rtc_expired(mb.last + MODBUS_TIMEOUT)) return;
 
-      uint8_t i;
-      for (i = 0; i < mb.command_length; i++)
-        sprintf(sent + i * 2, "%02x", mb.command[i]);
-      sent[i * 2] = 0;
+  if (mb.debug && mb.bytes) {
+    const uint8_t buf_len = 8 * 2 + 1;
+    char sent[buf_len];
+    char received[buf_len];
 
-      for (i = 0; i < mb.bytes; i++)
-        sprintf(received + i * 2, "%02x", mb.response[i]);
-      received[i * 2] = 0;
+    format_hex_buf(sent, mb.command, mb.command_length);
+    format_hex_buf(received, mb.response, mb.bytes);
 
-      STATUS_DEBUG("modbus: sent 0x%s received 0x%s expected %u bytes",
-                   sent, received, mb.response_length);
-    }
-
-    if (mb.retry < MODBUS_RETRIES) _retry();
-    else _timeout();
+    STATUS_DEBUG("modbus: sent 0x%s received 0x%s expected %u bytes",
+                 sent, received, mb.response_length);
   }
+
+  if (mb.retry < 2 * MODBUS_RETRIES) _retry();
+  else _timeout();
 }
 
 
