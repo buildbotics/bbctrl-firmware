@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Change Log
 ==============================================
 
+## v0.3.21
+ - Implemented M70-M73 modal state save/restore.
+
 ## v0.3.20
  - Eliminated drift caused by miscounting half microsteps.
  - Fixed disappearing GCode in Web.
