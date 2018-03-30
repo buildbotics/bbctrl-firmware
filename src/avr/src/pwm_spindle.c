@@ -36,8 +36,6 @@
 
 typedef struct {
   uint16_t freq; // base frequency for PWM driver, in Hz
-  float min_rpm;
-  float max_rpm;
   float min_duty;
   float max_duty;
   float duty;
@@ -62,7 +60,7 @@ static void _update_pwm() {
   float speed = spindle.speed;
 
   // Disable
-  if (speed <= spindle.min_rpm || estop_triggered()) {
+  if (!speed || estop_triggered()) {
     TIMER_PWM.CTRLA = 0;
     OUTCLR_PIN(SPIN_PWM_PIN);
     _set_enable(false);
@@ -71,14 +69,11 @@ static void _update_pwm() {
   _set_enable(true);
 
   // 100% duty
-  if (spindle.max_rpm <= speed && spindle.max_duty == 1) {
+  if (speed == 1 && spindle.max_duty == 1) {
     TIMER_PWM.CTRLB = 0;
     OUTSET_PIN(SPIN_PWM_PIN);
     return;
   }
-
-  // Clamp speed
-  if (spindle.max_rpm < speed) speed = spindle.max_rpm;
 
   // Set clock period and optimal prescaler value
   float prescale = (float)(F_CPU >> 16) / spindle.freq;
@@ -104,10 +99,9 @@ static void _update_pwm() {
 
   } else TIMER_PWM.CTRLA = 0;
 
-  // Map RPM to duty cycle
+  // Compute duty cycle
   spindle.duty =
-    (speed - spindle.min_rpm) / (spindle.max_rpm - spindle.min_rpm) *
-    (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
+    speed * (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
 
   // Configure clock
   TIMER_PWM.CTRLB = TC1_CCAEN_bm | TC_WGMODE_SINGLESLOPE_gc;
@@ -144,14 +138,11 @@ void pwm_spindle_set(float speed) {
 }
 
 
+float pwm_spindle_get() {return spindle.speed;}
 void pwm_spindle_stop() {pwm_spindle_set(0);}
 
 
-// TODO these need more effort and should work with the huanyang spindle too
-float get_max_spin() {return spindle.max_rpm;}
-void set_max_spin(float value) {spindle.max_rpm = value; _update_pwm();}
-float get_min_spin() {return spindle.min_rpm;}
-void set_min_spin(float value) {spindle.min_rpm = value; _update_pwm();}
+// Var callbacks
 float get_pwm_min_duty() {return spindle.min_duty * 100;}
 
 

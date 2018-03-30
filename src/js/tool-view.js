@@ -37,7 +37,6 @@ module.exports = {
     return {
       tool: {},
       pwmSpindle: {},
-      huanyangSpindle: {},
       modbusSpindle: {}
     }
   },
@@ -82,7 +81,6 @@ module.exports = {
             this.$set('tool["' + key + '"]', template[key].default);
 
         this.update_tool('pwm');
-        this.update_tool('huanyang');
         this.update_tool('modbus');
        }.bind(this));
     }

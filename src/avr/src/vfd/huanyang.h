@@ -27,13 +27,12 @@
 
 #pragma once
 
-#include "spindle.h"
 
-
-void hy_init();
-void hy_deinit();
-void hy_set(float speed);
-void hy_stop();
+void huanyang_init();
+void huanyang_deinit();
+void huanyang_set(float speed);
+float huanyang_get();
+void huanyang_stop();
 
 
 /// See Huanyang VFD user manual

@@ -107,8 +107,6 @@ typedef enum {
 
 
 static struct {
-  uint8_t id;
-
   uint8_t state;
   hy_func_t func;
   uint8_t data[4];
@@ -129,7 +127,7 @@ static struct {
   uint16_t rated_rpm;
 
   uint8_t status;
-} hy = {1}; // Default ID
+} hy = {0};
 
 
 static void _func_read(hy_addr_t addr) {
@@ -219,14 +217,12 @@ static void _next_command();
 
 static void _reset(bool halt) {
   // Save settings
-  uint8_t id = hy.id;
   float speed = hy.speed;
 
   // Clear state
   memset(&hy, 0, sizeof(hy));
 
   // Restore settings
-  hy.id = id;
   hy.speed = speed;
   hy.changed = true;
 
@@ -234,8 +230,7 @@ static void _reset(bool halt) {
 }
 
 
-static void _modbus_cb(uint8_t slave, uint8_t func, uint8_t bytes,
-                       const uint8_t *data) {
+static void _modbus_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
   if (!data) _reset(true);
 
   else if (bytes == *data + 1) {
@@ -266,7 +261,8 @@ static void _next_command() {
   case 0: { // Update direction
     hy_ctrl_state_t state = HUANYANG_STOP;
     if (!hy.shutdown) {
-      if (0 < hy.speed) state = HUANYANG_RUN;
+      if (0 < hy.speed)
+        state = (hy_ctrl_state_t)(HUANYANG_RUN | HUANYANG_FORWARD);
       else if (hy.speed < 0)
         state = (hy_ctrl_state_t)(HUANYANG_RUN | HUANYANG_REV_FWD);
     }
@@ -281,11 +277,7 @@ static void _next_command() {
 
   case 4: { // Update freqency
     // Compute frequency in Hz
-    float freq = fabs(hy.speed * 50 / hy.rated_rpm);
-
-    // Clamp frequency
-    if (hy.max_freq < freq) freq = hy.max_freq;
-    if (freq < hy.min_freq) freq = hy.min_freq;
+    float freq = fabs(hy.speed * hy.max_freq);
 
     // Frequency write command
     _freq_write(freq * 100);
@@ -300,20 +292,20 @@ static void _next_command() {
   }
 
   // Send command
-  modbus_func(hy.id, hy.func, hy.bytes, hy.data, hy.response, _modbus_cb);
+  modbus_func(hy.func, hy.bytes, hy.data, hy.response, _modbus_cb);
 }
 
 
-void hy_init() {
+void huanyang_init() {
   modbus_init();
   _reset(false);
 }
 
 
-void hy_deinit() {hy.shutdown = true;}
+void huanyang_deinit() {hy.shutdown = true;}
 
 
-void hy_set(float speed) {
+void huanyang_set(float speed) {
   if (hy.speed != speed) {
     hy.speed = speed;
     hy.changed = true;
@@ -321,17 +313,17 @@ void hy_set(float speed) {
 }
 
 
-void hy_stop() {
-  hy_set(0);
+float huanyang_get() {return hy.actual_freq / hy.max_freq;}
+
+
+void huanyang_stop() {
+  huanyang_set(0);
   _reset(false);
 }
 
 
-uint8_t get_hy_id() {return hy.id;}
-void set_hy_id(uint8_t value) {hy.id = value;}
 float get_hy_freq() {return hy.actual_freq;}
 float get_hy_current() {return hy.actual_current;}
-uint16_t get_hy_rpm() {return hy.actual_rpm;}
 uint16_t get_hy_temp() {return hy.temperature;}
 float get_hy_max_freq() {return hy.max_freq;}
 float get_hy_min_freq() {return hy.min_freq;}

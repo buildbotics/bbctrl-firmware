@@ -29,7 +29,6 @@
 #include "stepper.h"
 #include "motor.h"
 #include "switch.h"
-#include "spindle.h"
 #include "usart.h"
 #include "drv8711.h"
 #include "vars.h"
@@ -65,7 +64,6 @@ int main() {
   stepper_init();                 // steppers
   motor_init();                   // motors
   switch_init();                  // switches
-  spindle_init();                 // spindles
   exec_init();                    // motion exec
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler

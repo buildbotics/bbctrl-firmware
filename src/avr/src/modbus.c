@@ -42,7 +42,10 @@
 
 static struct {
   bool debug;
-  uint8_t baud;
+  uint8_t id;
+  baud_t baud;
+  parity_t parity;
+  stop_t stop;
 
   uint8_t bytes;
   uint8_t command[MODBUS_BUF_SIZE];
@@ -52,11 +55,15 @@ static struct {
 
   modbus_cb_t receive_cb;
 
+  uint16_t addr;
+  modbus_read_cb_t read_cb;
+  modbus_write_cb_t write_cb;
+
   uint32_t last;
   uint8_t retry;
   bool connected;
   bool busy;
-} mb = {false, USART_BAUD_9600};
+} mb = {false, 1, USART_BAUD_9600, USART_NONE, USART_1STOP};
 
 
 static uint16_t _crc16(const uint8_t *buffer, unsigned length) {
@@ -138,13 +145,11 @@ static void _handle_response() {
 
   mb.last = 0;  // Clear timeout timer
   mb.retry = 0; // Reset retry counter
-
-  if (mb.receive_cb)
-    mb.receive_cb(mb.response[0], mb.response[1], mb.response_length - 4,
-                  mb.response + 2);
-
   mb.connected = true;
   mb.busy = false;
+
+  if (mb.receive_cb)
+    mb.receive_cb(mb.response[1], mb.response_length - 4, mb.response + 2);
 }
 
 
@@ -182,6 +187,31 @@ ISR(RS485_RXC_vect) {
 }
 
 
+void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
+  if (func == MODBUS_READ_OUTPUT_REG && bytes == 3 && data[0] == 2) {
+    uint16_t value = (uint16_t)data[1] << 8 | data[2];
+    if (mb.read_cb) mb.read_cb(true, mb.addr, value);
+    return;
+  }
+
+  if (mb.read_cb) mb.read_cb(false, mb.addr, 0);
+}
+
+
+void _write_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
+  if (func == MODBUS_WRITE_OUTPUT_REG && bytes == 4) {
+    uint16_t addr = (uint16_t)data[0] << 8 | data[1];
+
+    if (addr == mb.addr) {
+      if (mb.write_cb) mb.write_cb(true, mb.addr);
+      return;
+    }
+  }
+
+  if (mb.write_cb) mb.write_cb(false, mb.addr);
+}
+
+
 static void _reset() {
   _set_dre_interrupt(false);
   _set_txc_interrupt(false);
@@ -195,14 +225,20 @@ static void _reset() {
 
   // Save settings
   bool debug = mb.debug;
-  uint8_t baud = mb.baud;
+  uint8_t id = mb.id;
+  baud_t baud = mb.baud;
+  parity_t parity = mb.parity;
+  stop_t stop = mb.stop;
 
   // Clear state
   memset(&mb, 0, sizeof(mb));
 
   // Restore settings
   mb.debug = debug;
+  mb.id = id;
   mb.baud = baud;
+  mb.parity = parity;
+  mb.stop = stop;
 }
 
 
@@ -231,13 +267,12 @@ static void _timeout() {
   if (mb.debug) STATUS_DEBUG("modbus: timedout");
 
   modbus_cb_t cb = mb.receive_cb;
-  uint8_t id = mb.command[0];
   uint8_t func = mb.command[1];
 
   _reset();
 
   // Notify caller
-  if (cb) cb(id, func, 0, 0);
+  if (cb) cb(func, 0, 0);
 }
 
 
@@ -250,18 +285,7 @@ void modbus_init() {
   OUTSET_PIN(RS485_RW_PIN); // High
   DIRSET_PIN(RS485_RW_PIN); // Output
 
-  usart_set_port_baud(&RS485_PORT, mb.baud);
-
-  // No parity, 8 data bits, 1 stop bit
-  RS485_PORT.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
-    USART_CHSIZE_8BIT_gc;
-
-  // Enable receiver and transmitter
-  RS485_PORT.CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
-
-  // TODO remove this
-  PINCTRL_PIN(RS485_RO_PIN) ^= PORT_INVEN_bm;
-  PINCTRL_PIN(RS485_DI_PIN) ^= PORT_INVEN_bm;
+  usart_init_port(&RS485_PORT, mb.baud, mb.parity, USART_8BITS, mb.stop);
 
   _reset();
 }
@@ -282,25 +306,43 @@ void modbus_deinit() {
 bool modbus_busy() {return mb.busy;}
 
 
-void modbus_func(uint8_t slave, uint8_t func, uint8_t send, const uint8_t *data,
+void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
                  uint8_t receive, modbus_cb_t receive_cb) {
   ASSERT(send + 4 <= MODBUS_BUF_SIZE);
   ASSERT(receive + 4 <= MODBUS_BUF_SIZE);
 
-  _reset();
-
-  mb.command[0] = slave;
+  mb.command[0] = mb.id;
   mb.command[1] = func;
   memcpy(mb.command + 2, data, send);
   uint16_t crc = _crc16(mb.command, send + 2);
   mb.command[send + 2] = crc;
   mb.command[send + 3] = crc >> 8;
 
+  mb.bytes = 0;
   mb.command_length = send + 4;
   mb.response_length = receive + 4;
   mb.receive_cb = receive_cb;
+  mb.last = 0;
+  mb.retry = 0;
 
   _set_dre_interrupt(true);
+}
+
+
+void modbus_read(uint16_t addr, modbus_read_cb_t cb) {
+  mb.read_cb = cb;
+  mb.addr = addr;
+  uint8_t cmd[4] = {(uint8_t)(addr >> 8), (uint8_t)addr, 0, 1};
+  modbus_func(MODBUS_READ_OUTPUT_REG, 4, cmd, 3, _read_cb);
+}
+
+
+void modbus_write(uint16_t addr, uint16_t value, modbus_write_cb_t cb) {
+  mb.write_cb = cb;
+  mb.addr = addr;
+  uint8_t cmd[4] = {(uint8_t)(addr >> 8), (uint8_t)addr, (uint8_t)(value >> 8),
+                    (uint8_t)value};
+  modbus_func(MODBUS_WRITE_OUTPUT_REG, 4, cmd, 4, _write_cb);
 }
 
 
@@ -327,12 +369,32 @@ void modbus_rtc_callback() {
 // Variable callbacks
 bool get_modbus_debug() {return mb.debug;}
 void set_modbus_debug(bool value) {mb.debug = value;}
+uint8_t get_modbus_id() {return mb.id;}
+void set_modbus_id(uint8_t id) {mb.id = id;}
 uint8_t get_modbus_baud() {return mb.baud;}
 
 
 void set_modbus_baud(uint8_t baud) {
-  mb.baud = baud;
-  usart_set_port_baud(&RS485_PORT, baud);
+  mb.baud = (baud_t)baud;
+  usart_set_baud(&RS485_PORT, mb.baud);
+}
+
+
+uint8_t get_modbus_parity() {return mb.parity;}
+
+
+void set_modbus_parity(uint8_t parity) {
+  mb.parity = (parity_t)parity;
+  usart_set_parity(&RS485_PORT, mb.parity);
+}
+
+
+uint8_t get_modbus_stop() {return mb.stop;}
+
+
+void set_modbus_stop(uint8_t stop) {
+  mb.stop = (stop_t)stop;
+  usart_set_stop(&RS485_PORT, mb.stop);
 }
 
 

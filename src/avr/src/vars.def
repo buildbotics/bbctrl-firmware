@@ -83,36 +83,37 @@ VAR(analog_input,    ai, f32,   ANALOG, 0, 0, "Analog input pins")
 
 // Spindle
 VAR(spindle_type,    st, u8,    0,      1, 1, "DISABLED=0, PWM=1 or HUANYANG=2")
+VAR(speed,            s, f32,   0,      1, 1, "Current spindle speed")
 VAR(spin_reversed,   sr, b8,    0,      1, 1, "Reverse spin")
 VAR(max_spin,        sx, f32,   0,      1, 1, "Maximum spindle speed")
 VAR(min_spin,        sm, f32,   0,      1, 1, "Minimum spindle speed")
+
+// PWM spindle
+VAR(pwm_invert,      pi, b8,    0,      1, 1, "Inverted spindle PWM")
 VAR(pwm_min_duty,    nd, f32,   0,      1, 1, "Minimum PWM duty cycle")
 VAR(pwm_max_duty,    md, f32,   0,      1, 1, "Maximum PWM duty cycle")
 VAR(pwm_duty,        pd, f32,   0,      0, 1, "Current PWM duty cycle")
 VAR(pwm_freq,        sf, u16,   0,      1, 1, "Spindle PWM frequency in Hz")
 
-// PWM spindle
-VAR(pwm_invert,      pi, b8,    0,      1, 1, "Inverted spindle PWM")
-
 // Modbus spindle
 VAR(modbus_debug,     hb, b8,    0,      1, 1, "Modbus debugging")
+VAR(modbus_id,        hi, u8,    0,      1, 1, "Modbus ID")
 VAR(modbus_baud,      mb, u8,    0,      1, 1, "Modbus BAUD rate")
+VAR(modbus_parity,    ma, u8,    0,      1, 1, "Modbus parity")
+VAR(modbus_stop,      ms, u8,    0,      1, 1, "Modbus stop bits")
 VAR(modbus_connected, he, b8,    0,      0, 1, "Modbus connected")
 
 // Huanyang spindle
-VAR(hy_id,        hi, u8,    0,      1, 1, "Modbus ID")
-VAR(hy_freq,      hz, f32,   0,      0, 1, "Modbus actual freq")
-VAR(hy_current,   hc, f32,   0,      0, 1, "Modbus actual current")
-VAR(hy_rpm,       hr, u16,   0,      0, 1, "Modbus actual RPM")
-VAR(hy_temp,      ht, u16,   0,      0, 1, "Modbus temperature")
-VAR(hy_max_freq,  hx, f32,   0,      0, 1, "Modbus max freq")
-VAR(hy_min_freq,  hm, f32,   0,      0, 1, "Modbus min freq")
-VAR(hy_rated_rpm, hq, u16,   0,      0, 1, "Modbus rated RPM")
-VAR(hy_status,    hs, u8,    0,      0, 1, "Modbus status flags")
+VAR(hy_freq,         hz, f32,   0,      0, 1, "Huanyang actual freq")
+VAR(hy_current,      hc, f32,   0,      0, 1, "Huanyang actual current")
+VAR(hy_temp,         ht, u16,   0,      0, 1, "Huanyang temperature")
+VAR(hy_max_freq,     hx, f32,   0,      0, 1, "Huanyang max freq")
+VAR(hy_min_freq,     hm, f32,   0,      0, 1, "Huanyang min freq")
+VAR(hy_rated_rpm,    hq, u16,   0,      0, 1, "Huanyang rated RPM")
+VAR(hy_status,       hs, u8,    0,      0, 1, "Huanyang status flags")
 
 // Machine state
 VAR(id,              id, u32,   0,      1, 1, "Last executed command ID")
-VAR(speed,            s, f32,   0,      1, 1, "Current spindle speed")
 VAR(feed_override,   fo, f32,   0,      1, 1, "Feed rate override")
 VAR(speed_override,  so, f32,   0,      1, 1, "Spindle speed override")
 VAR(optional_pause,  op, b8,    0,      1, 1, "Optional pause state")

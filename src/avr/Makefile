@@ -4,8 +4,10 @@ MCU      = atxmega192a3u
 CLOCK    = 32000000
 
 # SRC
-SRC = $(wildcard src/*.c) $(wildcard src/*.cpp)
-OBJ = $(patsubst src/%.cpp,build/%.o,$(patsubst src/%.c,build/%.o,$(SRC)))
+SRC = $(wildcard src/*.c) $(wildcard src/*.cpp) $(wildcard src/vfd/*.c)
+OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
+OBJ := $(patsubst src/%.cpp,build/%.o,$(OBJ))
+OBJ := $(patsubst src/vfd/%.c,build/vfd/%.o,$(OBJ))
 JSON = vars command messages
 JSON := $(patsubst %,build/%.json,$(JSON))
 

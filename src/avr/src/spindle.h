@@ -29,7 +29,7 @@
 
 #include <stdbool.h>
 
-void spindle_init();
+
 void spindle_set_speed(float speed);
 float spindle_get_speed();
 void spindle_stop();

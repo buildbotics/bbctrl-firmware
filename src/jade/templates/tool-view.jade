@@ -41,16 +41,8 @@ script#tool-view-template(type="text/x-template")
           templated-input(v-for="templ in template['pwm-spindle']",
             :name="$key", :model.sync="pwmSpindle[$key]", :template="templ")
 
-    div(v-if="get_type() == 'HUANYANG'")
-      h2 Huanyang VFD
-      form.pure-form.pure-form-aligned
-        fieldset
-          templated-input(v-for="templ in template['huanyang-spindle']",
-            :name="$key", :model.sync="huanyangSpindle[$key]",
-            :template="templ")
-
-    div(v-if="get_type() == 'MODBUS'")
-      h2 Modbus Compatiable VFD
+    div(v-if="get_type() != 'DISABLED' && get_type() != 'PWM'")
+      h2 Modbus Configuration
       form.pure-form.pure-form-aligned
         fieldset
           templated-input(v-for="templ in template['modbus-spindle']",

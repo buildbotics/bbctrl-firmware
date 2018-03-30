@@ -95,46 +95,6 @@ static int _usart_putchar(char c, FILE *f) {
 }
 
 
-void usart_init(void) {
-  // Setup ring buffer
-  tx_buf_init();
-  rx_buf_init();
-
-  PR.PRPC &= ~PR_USART0_bm; // Disable power reduction
-
-  // Setup pins
-  OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
-  DIRSET_PIN(SERIAL_CTS_PIN); // CTS Output
-  OUTSET_PIN(SERIAL_TX_PIN);  // Tx High
-  DIRSET_PIN(SERIAL_TX_PIN);  // Tx Output
-  DIRCLR_PIN(SERIAL_RX_PIN);  // Rx Input
-
-  // Set baud rate
-  usart_set_baud(SERIAL_BAUD);
-
-  // No parity, 8 data bits, 1 stop bit
-  SERIAL_PORT.CTRLC = USART_CMODE_ASYNCHRONOUS_gc | USART_PMODE_DISABLED_gc |
-    USART_CHSIZE_8BIT_gc;
-
-  // Configure receiver and transmitter
-  SERIAL_PORT.CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
-
-  PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
-
-  // Connect IO
-  static FILE _stdout;
-  memset(&_stdout, 0, sizeof(FILE));
-  _stdout.put = _usart_putchar;
-  _stdout.flags = _FDEV_SETUP_WRITE;
-
-  stdout = &_stdout;
-  stderr = &_stdout;
-
-  // Enable Rx
-  _set_rxc_interrupt(true);
-}
-
-
 static void _set_baud(USART_t *port, uint16_t bsel, uint8_t bscale) {
   port->BAUDCTRLB = (uint8_t)((bscale << 4) | (bsel >> 8));
   port->BAUDCTRLA = bsel;
@@ -142,7 +102,7 @@ static void _set_baud(USART_t *port, uint16_t bsel, uint8_t bscale) {
 }
 
 
-void usart_set_port_baud(USART_t *port, int baud) {
+void usart_set_baud(USART_t *port, baud_t baud) {
   // The BSEL / BSCALE values provided below assume a 32 Mhz clock
   // With CTRLB CLK2X is set
   // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
@@ -162,9 +122,91 @@ void usart_set_port_baud(USART_t *port, int baud) {
 }
 
 
-void usart_set_baud(int baud) {
-  usart_set_port_baud(&SERIAL_PORT, baud);
+void usart_set_parity(USART_t *port, parity_t parity) {
+  uint8_t reg = port->CTRLC & ~USART_PMODE_gm;
+
+  switch (parity) {
+  case USART_NONE: reg |= USART_PMODE_DISABLED_gc; break;
+  case USART_EVEN: reg |= USART_PMODE_EVEN_gc; break;
+  case USART_ODD:  reg |= USART_PMODE_ODD_gc; break;
+  }
+
+  port->CTRLC = reg;
 }
+
+
+void usart_set_stop(USART_t *port, stop_t stop) {
+  switch (stop) {
+  case USART_1STOP: port->CTRLC &= ~USART_SBMODE_bm; break;
+  case USART_2STOP: port->CTRLC |= USART_SBMODE_bm;  break;
+  }
+}
+
+
+void usart_set_bits(USART_t *port, bits_t bits) {
+  uint8_t reg = port->CTRLC & ~USART_CHSIZE_gm;
+
+  switch (bits) {
+  case USART_5BITS: reg |= USART_CHSIZE_5BIT_gc; break;
+  case USART_6BITS: reg |= USART_CHSIZE_6BIT_gc; break;
+  case USART_7BITS: reg |= USART_CHSIZE_7BIT_gc; break;
+  case USART_8BITS: reg |= USART_CHSIZE_8BIT_gc; break;
+  case USART_9BITS: reg |= USART_CHSIZE_9BIT_gc; break;
+  }
+
+  port->CTRLC = reg;
+}
+
+
+void usart_init_port(USART_t *port, baud_t baud, parity_t parity, bits_t bits,
+                     stop_t stop) {
+  // Set baud rate
+  usart_set_baud(port, baud);
+
+  // Async, no parity, 8 data bits, 1 stop bit
+  port->CTRLC = USART_CMODE_ASYNCHRONOUS_gc;
+  usart_set_parity(port, parity);
+  usart_set_bits(port, bits);
+  usart_set_stop(port, stop);
+
+  // Configure receiver and transmitter
+  port->CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
+}
+
+
+void usart_init() {
+  // Setup ring buffer
+  tx_buf_init();
+  rx_buf_init();
+
+  PR.PRPC &= ~PR_USART0_bm; // Disable power reduction
+
+  // Setup pins
+  OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
+  DIRSET_PIN(SERIAL_CTS_PIN); // CTS Output
+  OUTSET_PIN(SERIAL_TX_PIN);  // Tx High
+  DIRSET_PIN(SERIAL_TX_PIN);  // Tx Output
+  DIRCLR_PIN(SERIAL_RX_PIN);  // Rx Input
+
+  // Configure port
+  usart_init_port(&SERIAL_PORT, SERIAL_BAUD, USART_NONE, USART_8BITS,
+                  USART_1STOP);
+
+  PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
+
+  // Connect IO
+  static FILE _stdout;
+  memset(&_stdout, 0, sizeof(FILE));
+  _stdout.put = _usart_putchar;
+  _stdout.flags = _FDEV_SETUP_WRITE;
+
+  stdout = &_stdout;
+  stderr = &_stdout;
+
+  // Enable Rx
+  _set_rxc_interrupt(true);
+}
+
 
 
 void usart_set(int flag, bool enable) {

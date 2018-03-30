@@ -98,12 +98,15 @@ typedef enum {
 } modbus_base_addrs_t;
 
 
-typedef void (*modbus_cb_t)(uint8_t slave, uint8_t func, uint8_t bytes,
-                            const uint8_t *data);
+typedef void (*modbus_cb_t)(uint8_t func, uint8_t bytes, const uint8_t *data);
+typedef void (*modbus_read_cb_t)(bool ok, uint16_t addr, uint16_t value);
+typedef void (*modbus_write_cb_t)(bool ok, uint16_t addr);
 
 void modbus_init();
 void modbus_deinit();
 bool modbus_busy();
-void modbus_func(uint8_t slave, uint8_t func, uint8_t send, const uint8_t *data,
-                 uint8_t receive, modbus_cb_t receive_cb);
+void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
+                 uint8_t receive, modbus_cb_t cb);
+void modbus_read(uint16_t addr, modbus_read_cb_t cb);
+void modbus_write(uint16_t addr, uint16_t value, modbus_write_cb_t cb);
 void modbus_rtc_callback();

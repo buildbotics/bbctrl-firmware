@@ -153,7 +153,7 @@
   "tool": {
     "spindle-type": {
       "type": "enum",
-      "values": ["Disabled", "PWM", "Huanyang", "Modbus"],
+      "values": ["Disabled", "PWM", "Huanyang", "YL600"],
       "default": "Disabled",
       "code": "st"
     },
@@ -161,6 +161,20 @@
       "type": "bool",
       "default": "false",
       "code": "sr"
+    },
+    "max-spin": {
+      "type": "float",
+      "unit": "RPM",
+      "min": 0,
+      "default": 10000,
+      "code": "sx"
+    },
+    "min-spin": {
+      "type": "float",
+      "unit": "RPM",
+      "min": 0,
+      "default": 0,
+      "code": "sm"
     },
     "tool-enable-mode": {
       "type": "enum",
@@ -178,37 +192,33 @@
     }
   },
 
-  "huanyang-spindle": {
+  "modbus-spindle": {
     "bus-id": {
       "type": "int",
       "default": "1",
       "code": "hi"
-    }
-  },
-
-  "modbus-spindle": {
-    "modbus-id": {
-      "type": "int",
+    },
+    "baud": {
+      "type": "enum",
+      "values": ["9600", "19200", "38400", "57600", "115200"],
+      "default": "9600",
+      "code": "mb"
+    },
+    "parity": {
+      "type": "enum",
+      "values": ["None", "Even", "Odd"],
+      "default": "None",
+      "code": "ma"
+    },
+    "stop-bits": {
+      "type": "enum",
+      "values": ["1", "2"],
       "default": "1",
-      "code": "bi"
+      "code": "ms"
     }
   },
 
   "pwm-spindle": {
-    "max-spin": {
-      "type": "float",
-      "unit": "RPM",
-      "min": 0,
-      "default": 10000,
-      "code": "sx"
-    },
-    "min-spin": {
-      "type": "float",
-      "unit": "RPM",
-      "min": 0,
-      "default": 0,
-      "code": "sm"
-    },
     "pwm-inverted": {
       "type": "bool",
       "default": "false",
