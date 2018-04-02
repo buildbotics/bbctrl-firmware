@@ -5,6 +5,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Implemented M70-M73 modal state save/restore.
  - Added support for modbus VFDs.
  - Start Huanyang spindle with out first pressing Start button on VFD.
+ - Faster switching of large GCode files in Web.
+ - Fixed reported gcode line off by one.
+ - Disable MDI while running.
+ - Stablized direction pin output during slow moves.
 
 ## v0.3.20
  - Eliminated drift caused by miscounting half microsteps.

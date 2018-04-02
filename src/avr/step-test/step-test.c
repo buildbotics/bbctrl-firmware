@@ -47,6 +47,7 @@ static struct {
   uint8_t dir_pin;
   TC0_t *timer;
   volatile int16_t high;
+  volatile bool reading;
 
 } channel[4] = {
   {STEP_X_PIN, DIR_X_PIN, &TCC0, 0},
@@ -69,6 +70,7 @@ void channel_reset(int i) {channel[i].timer->CNT = channel[i].high = 0;}
 void channel_overflow(int i) {
   if (IN_PIN(channel[i].dir_pin)) channel[i].high--;
   else channel[i].high++;
+  channel[i].reading = false;
 }
 
 
@@ -87,12 +89,36 @@ void channel_update_dir(int i) {
 ISR(PORTE_INT0_vect) {for (int i = 0; i < 4; i++) channel_update_dir(i);}
 
 
+int32_t __attribute__ ((noinline)) _channel_read(int i) {
+  return (int32_t)channel[i].high << 16 | channel[i].timer->CNT;
+}
+
+
 int32_t channel_read(int i) {
   while (true) {
-    int32_t x = (int32_t)channel[i].high << 16 | channel[i].timer->CNT;
-    int32_t y = (int32_t)channel[i].high << 16 | channel[i].timer->CNT;
-    if (x == y) return x;
+    channel[i].reading = true;
+
+    int32_t x = _channel_read(i);
+    int32_t y = _channel_read(i);
+
+    if (x != y || !channel[i].reading) continue;
+
+    channel[i].reading = false;
+    return x;
   }
+}
+
+
+void channel_update_enable(int i) {
+  if (IN_PIN(MOTOR_ENABLE_PIN))
+    channel[i].timer->CTRLA = TC_CLKSEL_EVCH0_gc + i;
+  else channel[i].timer->CTRLA = 0;
+}
+
+
+ISR(PORTF_INT0_vect) {
+  for (int i = 0; i < 4; i++) channel_update_enable(i);
+  if (!IN_PIN(MOTOR_ENABLE_PIN)) reset = 2;
 }
 
 
@@ -142,7 +168,7 @@ void channel_init(int i) {
   PINCTRL_PIN(dir_pin)  = PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc;
 
   // Dir change interrupt
-  PIN_PORT(dir_pin)->INTCTRL  |= PORT_INT0LVL_MED_gc;
+  PIN_PORT(dir_pin)->INTCTRL  |= PORT_INT0LVL_HI_gc;
   PIN_PORT(dir_pin)->INT0MASK |= PIN_BM(dir_pin);
 
   // Events
@@ -150,7 +176,7 @@ void channel_init(int i) {
   EVSYS_CHCTRL(i) = EVSYS_DIGFILT_8SAMPLES_gc;
 
   // Clock
-  channel[i].timer->CTRLA = TC_CLKSEL_EVCH0_gc + i;
+  channel_update_enable(i);
   channel[i].timer->INTCTRLA = TC_OVFINTLVL_HI_gc;
 
   // Set initial clock direction
@@ -163,7 +189,16 @@ static void init() {
 
   hw_init();
   usart_init();
+
+  // Motor channels
   for (int i = 0; i < 4; i++) channel_init(i);
+
+  // Motor enable
+  DIRCLR_PIN(MOTOR_ENABLE_PIN);
+  PINCTRL_PIN(MOTOR_ENABLE_PIN) =
+    PORT_SRLEN_bm | PORT_ISC_BOTHEDGES_gc | PORT_OPC_PULLUP_gc;
+  PIN_PORT(MOTOR_ENABLE_PIN)->INTCTRL  |= PORT_INT0LVL_HI_gc;
+  PIN_PORT(MOTOR_ENABLE_PIN)->INT0MASK |= PIN_BM(MOTOR_ENABLE_PIN);
 
   // Configure report clock
   TCC1.INTCTRLA = TC_OVFINTLVL_LO_gc;

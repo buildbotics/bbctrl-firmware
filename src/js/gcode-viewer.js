@@ -55,6 +55,22 @@ module.exports = {
   },
 
 
+  ready: function () {
+    this.clusterize = new Clusterize({
+      rows: [],
+      scrollElem: $(this.$el).find('.clusterize-scroll')[0],
+      contentElem: $(this.$el).find('.clusterize-content')[0],
+      callbacks: {clusterChanged: this.highlight}
+    });
+  },
+
+
+  attached: function () {
+    if (typeof this.clusterize != 'undefined')
+      this.clusterize.refresh(true);
+  },
+
+
   methods: {
     load: function (file) {
       if (file == this.file) return;
@@ -71,13 +87,7 @@ module.exports = {
               lines[i] + '</li>';
           }
 
-          this.clusterize = new Clusterize({
-            rows: lines,
-            scrollElem: $(this.$el).find('.clusterize-scroll')[0],
-            contentElem: $(this.$el).find('.clusterize-content')[0],
-            callbacks: {clusterChanged: this.highlight}
-          });
-
+          this.clusterize.update(lines);
           this.empty = false;
 
           Vue.nextTick(this.update_line);
@@ -89,9 +99,7 @@ module.exports = {
       this.empty = true;
       this.file = '';
       this.line = -1;
-
-      if (typeof this.clusterize != 'undefined')
-        this.clusterize.destroy();
+      this.clusterize.clear();
     },
 
 
@@ -117,8 +125,6 @@ module.exports = {
         this.line = line;
 
       } else line = this.line;
-
-      if (typeof this.clusterize == 'undefined') return;
 
       var totalLines = this.clusterize.getRowsAmount();
 

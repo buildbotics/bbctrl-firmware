@@ -98,9 +98,14 @@ module.exports = {
     },
 
 
-    is_stopping: function() {return this.mach_state == 'STOPPING'},
-    is_holding: function() {return this.mach_state == 'HOLDING'},
-    is_ready: function() {return this.mach_state == 'READY'},
+    is_stopping: function () {return this.mach_state == 'STOPPING'},
+    is_holding: function () {return this.mach_state == 'HOLDING'},
+    is_ready: function () {return this.mach_state == 'READY'},
+
+
+    can_mdi: function () {
+      return this.state.cycle == 'idle' || this.state.cycle == 'mdi';
+    },
 
 
     reason: function () {

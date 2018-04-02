@@ -64,11 +64,11 @@ size: $(PROJECT).elf
 	done
 
 data-usage: $(PROJECT).elf
-	avr-nm -S --size-sort -t decimal $(PROJECT).elf | grep ' [BbDd] '
+	avr-nm -CS --size-sort -t decimal $(PROJECT).elf | grep ' [BbDd] '
 
 
 prog-usage: $(PROJECT).elf
-	avr-nm -S --size-sort -t decimal $(PROJECT).elf | grep -v ' [BbDd] '
+	avr-nm -CS --size-sort -t decimal $(PROJECT).elf | grep -v ' [BbDd] '
 
 # Program
 reset:

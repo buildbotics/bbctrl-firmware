@@ -70,7 +70,7 @@ static volatile stepper_t st = {0};
 
 void stepper_init() {
   // Motor enable
-  OUTSET_PIN(MOTOR_ENABLE_PIN); // Low (disabled)
+  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Lo (disabled)
   DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
 
   // Setup step timer

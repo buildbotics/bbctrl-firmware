@@ -95,7 +95,7 @@ void type_print_f32(float x) {
       break;
     }
 
-    printf("%s", buf);
+    printf(buf);
   }
 }
 

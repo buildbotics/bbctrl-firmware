@@ -294,7 +294,7 @@ stat_t vars_print(const char *name) {
   var_info_t info;
   if (!_find_var(name, &info)) return STAT_UNRECOGNIZED_NAME;
 
-  printf("{\"%s\":", info.name);
+  printf_P(PSTR("{\"%s\":"), info.name);
   type_print(info.type, _get(info.type, info.index, info.get));
   putchar('}');
   putchar('\n');

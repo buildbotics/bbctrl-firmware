@@ -66,7 +66,7 @@ void io_rtc_callback() {
     } else result = analog_get(active_cmd.port);
 
     // TODO find a better way to send this
-    printf("{\"result\": %f}\n", (double)result);
+    printf_P(PSTR("{\"result\": %f}\n"), (double)result);
     active_cmd.port = -1;
   }
 }

@@ -54,11 +54,11 @@ class State(object):
         for i in range(4):
             # Add home direction callbacks
             self.set_callback(str(i) + 'hd',
-                     lambda name, i = i: self.motor_home_direction(i))
+                              lambda name, i = i: self.motor_home_direction(i))
 
             # Add home position callbacks
             self.set_callback(str(i) + 'hp',
-                     lambda name, i = i: self.motor_home_position(i))
+                              lambda name, i = i: self.motor_home_position(i))
 
         self.reset()
 

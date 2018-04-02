@@ -167,7 +167,7 @@ class Planner():
 
     def _enqueue_set_cmd(self, id, name, value):
         log.info('set(#%d, %s, %s)', id, name, value)
-        self.cmdq.enqueue(id, True, self.ctrl.state.set, name, value)
+        self.cmdq.enqueue(id, False, self.ctrl.state.set, name, value)
 
 
     def __encode(self, block):
@@ -185,7 +185,7 @@ class Planner():
 
             if name == 'message':
                 self.cmdq.enqueue(
-                    id, True, self.ctrl.msgs.broadcast, {'message': value})
+                    id, False, self.ctrl.msgs.broadcast, {'message': value})
 
             if name in ['line', 'tool']:
                 self._enqueue_set_cmd(id, name, value)
@@ -224,7 +224,7 @@ class Planner():
         cmd = self.__encode(block)
 
         if cmd is not None:
-            self.cmdq.enqueue(block['id'], False, None)
+            self.cmdq.enqueue(block['id'], True, None)
             return Cmd.set('id', block['id']) + '\n' + cmd
 
 
@@ -275,15 +275,15 @@ class Planner():
             self.reset()
 
 
-    def has_move(self): return self.planner.has_more()
-
-
     def next(self):
         try:
             while self.planner.has_more():
                 cmd = self.planner.next()
                 cmd = self._encode(cmd)
+                if not self.planner.is_running(): self.cmdq.finalize()
                 if cmd is not None: return cmd
+
+            self.cmdq.finalize()
 
         except Exception as e:
             log.exception(e)

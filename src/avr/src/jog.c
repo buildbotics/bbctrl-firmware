@@ -109,7 +109,9 @@ stat_t jog_exec() {
 
   // Set velocity and target
   exec_set_velocity(sqrt(velocity_sqr));
-  return exec_move_to_target(SEGMENT_TIME, target);
+  exec_move_to_target(SEGMENT_TIME, target);
+
+  return STAT_OK;
 }
 
 
@@ -122,7 +124,7 @@ void jog_stop() {
 
 
 stat_t command_jog(char *cmd) {
-  // Ignore jog commands when not READY or JOGGING
+  // Ignore jog commands when not READY and not JOGGING
   if (state_get() != STATE_READY && state_get() != STATE_JOGGING)
     return STAT_NOP;
 

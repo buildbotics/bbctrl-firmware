@@ -92,7 +92,7 @@ stat_t status_alarm(const char *location, stat_t status, const char *msg);
 
 #ifdef DEBUG
 #define DEBUG_CALL(FMT, ...) \
-  printf("%s(" FMT ")\n", __FUNCTION__, ##__VA_ARGS__)
+  printf_P(PSTR("%s(" FMT ")\n"), __FUNCTION__, ##__VA_ARGS__)
 #else // DEBUG
 #define DEBUG_CALL(...)
 #endif // DEBUG

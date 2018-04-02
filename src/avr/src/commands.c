@@ -46,7 +46,7 @@ stat_t command_dwell(char *cmd) {
 
 
 static stat_t _dwell_exec() {
-  exec_set_cb(0);
+  exec_set_cb(0); // Immediately clear the callback
   return STAT_OK;
 }
 
@@ -56,7 +56,7 @@ unsigned command_dwell_size() {return sizeof(float);}
 
 void command_dwell_exec(void *seconds) {
   st_prep_dwell(*(float *)seconds);
-  exec_set_cb(_dwell_exec); // Necessary evil
+  exec_set_cb(_dwell_exec); // Command must set an exec callback
 }
 
 

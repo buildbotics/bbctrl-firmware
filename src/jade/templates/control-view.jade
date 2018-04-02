@@ -234,7 +234,7 @@ script#control-view-template(type="text/x-template")
 
       section#content2.tab-content
         .mdi.pure-form(title="Manual GCode entry.")
-          button.pure-button(
+          button.pure-button(:disabled="!can_mdi",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
             @click="mdi_start_pause")
             .fa(:class="is_running ? 'fa-pause' : 'fa-play'")
@@ -242,7 +242,7 @@ script#control-view-template(type="text/x-template")
           button.pure-button(title="Stop command.", @click="stop")
             .fa.fa-stop
 
-          input(v-model="mdi", @keyup.enter="submit_mdi")
+          input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
 
         .history(:class="{placeholder: !history}")
           span(v-if="!history.length") MDI history displays here.

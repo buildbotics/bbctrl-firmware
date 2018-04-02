@@ -138,19 +138,23 @@ class Mach(Comm):
         super().i2c_command(Cmd.UNPAUSE)
 
 
+    def _reset(self):
+        self.planner.reset()
+        self.ctrl.state.reset()
+
+
     @overrides(Comm)
     def comm_next(self):
         if self.planner.is_running(): return self.planner.next()
 
 
     @overrides(Comm)
-    def comm_error(self): self.planner.reset()
+    def comm_error(self): self._reset()
 
 
     @overrides(Comm)
     def connect(self):
-        self.ctrl.state.reset()
-        self.planner.reset()
+        self._reset()
         super().connect()
 
 
@@ -231,7 +235,7 @@ class Mach(Comm):
 
     def clear(self):
         if self._get_state() == 'ESTOPPED':
-            self.ctrl.state.reset()
+            self._reset()
             super().clear()
 
 

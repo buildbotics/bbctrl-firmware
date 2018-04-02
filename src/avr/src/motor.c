@@ -259,15 +259,15 @@ void motor_load_move(int motor) {
 
   motor_end_move(motor);
 
-  // Set direction, compensating for polarity
+  if (!m->timer_period) return; // Leave clock stopped
+
+  // Set direction, compensating for polarity but only when moving
   const bool dir = m->negative ^ m->reverse;
   if (dir != IN_PIN(m->dir_pin)) {
     SET_PIN(m->dir_pin, dir);
-    // Make sure there is plenty of time between direction change and next step.
+    // Need at least 200ns between direction change and next step.
     if (m->timer->CCA < m->timer->CNT) m->timer->CNT = m->timer->CCA + 1;
   }
-
-  if (!m->timer_period) return; // Leave clock stopped
 
   // Reset DMA step counter
   m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;

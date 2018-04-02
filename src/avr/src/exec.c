@@ -101,7 +101,7 @@ void exec_set_jerk(float j) {ex.jerk = j;}
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 
-stat_t exec_move_to_target(float time, const float target[]) {
+void exec_move_to_target(float time, const float target[]) {
   ASSERT(isfinite(time));
   ASSERT(isfinite(target[AXIS_X]) && isfinite(target[AXIS_Y]) &&
          isfinite(target[AXIS_Z]) && isfinite(target[AXIS_A]) &&
@@ -112,8 +112,6 @@ stat_t exec_move_to_target(float time, const float target[]) {
 
   // Call the stepper prep function
   st_prep_line(time, target);
-
-  return STAT_OK;
 }
 
 

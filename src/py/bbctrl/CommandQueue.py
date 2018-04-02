@@ -59,16 +59,16 @@ class CommandQueue():
         return id
 
 
-    def enqueue(self, id, immediate, cb, *args, **kwargs):
-        log.info('add(#%d, %s) releaseID=%d', id, immediate, self.releaseID)
+    def enqueue(self, id, synchronized, cb, *args, **kwargs):
+        log.info('add(#%d, %s) releaseID=%d', id, synchronized, self.releaseID)
         self.lastEnqueueID = id
-        self.q.append((id, immediate, cb, args, kwargs))
+        self.q.append([id, synchronized, False, cb, args, kwargs])
         self._release()
 
 
     def _release(self):
         while len(self.q):
-            id, immediate, cb, args, kwargs = self.q[0]
+            id, synchronized, immediate, cb, args, kwargs = self.q[0]
 
             # Execute commands <= releaseID and consecutive immediate commands
             if not immediate and self.releaseID < id: return
@@ -87,5 +87,18 @@ class CommandQueue():
         if id and id <= self.releaseID:
             log.warning('id out of order %d <= %d' % (id, self.releaseID))
         self.releaseID = id
+
+        self._release()
+
+
+    def finalize(self):
+        # Mark trailing non-synchronized commands immediate
+        i = len(self.q)
+
+        while i:
+            i -= 1
+            id, synchronized, immediate, cb, args, kwargs = self.q[i]
+            if synchronized: break
+            self.q[i][2] = True
 
         self._release()

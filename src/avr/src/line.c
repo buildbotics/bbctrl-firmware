@@ -144,13 +144,13 @@ static void _done() {
 }
 
 
-static stat_t _move(float t, float target[AXES], float v, float a) {
+static void _move(float t, float target[AXES], float v, float a) {
   exec_set_velocity(v);
   exec_set_acceleration(a);
 
   if (seek_switch_found()) state_seek_hold();
 
-  return exec_move_to_target(t, target);
+  exec_move_to_target(t, target);
 }
 
 
@@ -198,7 +198,8 @@ static stat_t _pause() {
   float oldAccel = exec_get_acceleration();
   exec_set_jerk(oldAccel == a ? 0 : (oldAccel < a ? j : -j));
 
-  return _move(SEGMENT_TIME, target, v, a);
+  _move(SEGMENT_TIME, target, v, a);
+  return STAT_OK;
 }
 
 
@@ -243,18 +244,16 @@ static stat_t _line_exec() {
   }
 
   // Do move & update exec
-  stat_t status;
-
   if (lastSection && l.stop_section)
     // Stop exactly on target to correct for floating-point errors
-    status = _move(seg_time, l.line.target, 0, 0);
+    _move(seg_time, l.line.target, 0, 0);
 
   else {
     // Compute target position from distance
     float target[AXES];
     _segment_target(target, d);
 
-    status = _move(seg_time, target, v, a);
+    _move(seg_time, target, v, a);
     l.dist = d;
   }
 
@@ -264,13 +263,13 @@ static stat_t _line_exec() {
     _done();
   }
 
-  return status;
+  return STAT_OK;
 }
 
 
 void _print_vector(const char *name, float v[4]) {
-  printf("%s %f %f %f %f\n",
-         name, (double)v[0], (double)v[1], (double)v[2], (double)v[3]);
+  printf_P(PSTR("%s %f %f %f %f\n"),
+           name, (double)v[0], (double)v[1], (double)v[2], (double)v[3]);
 }
 
 

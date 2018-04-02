@@ -72,7 +72,7 @@ int main() {
   sei();                          // enable interrupts
 
   // Splash
-  fprintf_P(stdout, PSTR("\n{\"firmware\":\"Buildbotics AVR\"}\n"));
+  printf_P(PSTR("\n{\"firmware\":\"Buildbotics AVR\"}\n"));
 
   // Main loop
   while (true) {
