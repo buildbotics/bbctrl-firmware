@@ -25,28 +25,21 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#motor-view-template(type="text/x-template")
-  .motor(:class="{slave: is_slave}")
-    h1 Motor {{index}} Configuration
+script#modbus-reg-view-template(type="text/x-template")
+  tr.modbus-reg
+    td.reg-index {{index}}
+    td.reg-type
+      select(v-model="model['reg-type']", @change="change")
+        option(v-for="opt in template['reg-type']['values']", :value="opt")
+          | {{opt}}
 
-    form.pure-form.pure-form-aligned
-      fieldset(v-for="category in template.motors.template", :class="$key")
-        h2 {{$key}}
+    td.reg-addr
+      input(v-model="model['reg-addr']", @change="change", type="text",
+        :min="template['reg-addr'].min", :max="template['reg-addr'].max",
+        pattern="[0-9]*", :disabled="model['reg-type'] == 'disabled'",
+        number)
 
-        templated-input(v-for="templ in category", :name="$key",
-          :model.sync="motor[$key]", :template="templ")
-
-          label.extra(v-if="$key == 'max-velocity'", slot="extra",
-            title="Revolutions Per Minute") ({{rpm | fixed 0}} RPM)
-
-          label.extra(v-if="$key == 'max-accel'", slot="extra",
-            title="G-force") ({{gForce | fixed 3}} g)
-
-          label.extra(v-if="$key == 'max-jerk'", slot="extra",
-            title="G-force per minute") ({{gForcePerMin | fixed 2}} g/min)
-
-          label.extra(v-if="$key == 'step-angle'", slot="extra",
-            title="Steps per revolution") ({{stepsPerRev | fixed 0}} steps/rev)
-
-          label.extra(v-if="$key == 'travel-per-rev'", slot="extra",
-            title="Micrometers per step") ({{umPerStep | fixed 1}} µm/step)
+    td.reg-value
+      input(v-model="model['reg-value']", @change="change", type="text",
+        :min="template['reg-value'].min", :max="template['reg-value'].max",
+        pattern="[0-9]*", :disabled="!has_user_value", number)

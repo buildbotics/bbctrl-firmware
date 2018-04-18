@@ -27,10 +27,17 @@
 
 'use strict'
 
+var modbus = require('./modbus.js');
+
 
 module.exports = {
   template: '#indicators-template',
   props: ['state'],
+
+
+  computed: {
+    modbus_status: function () {return modbus.status_to_string(this.state.mx)}
+  },
 
 
   methods: {

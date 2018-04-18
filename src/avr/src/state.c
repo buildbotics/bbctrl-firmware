@@ -35,7 +35,6 @@
 #include "jog.h"
 #include "estop.h"
 #include "seek.h"
-#include "report.h"
 
 #include <stdio.h>
 
@@ -88,14 +87,12 @@ static void _set_state(state_t state) {
   if (s.state == state) return; // No change
   if (s.state == STATE_ESTOPPED) return; // Can't leave EStop state
   s.state = state;
-  report_request();
 }
 
 
 static void _set_hold_reason(hold_reason_t reason) {
   if (s.hold_reason == reason) return; // No change
   s.hold_reason = reason;
-  report_request();
 }
 
 

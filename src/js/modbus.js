@@ -25,33 +25,27 @@
 
 \******************************************************************************/
 
-#pragma once
-
-#include "status.h"
-
-#include <stdint.h>
-#include <stdbool.h>
+'use strict'
 
 
-typedef enum {
-  MOTOR_DISABLED,                 // motor enable is deactivated
-  MOTOR_ALWAYS_POWERED,           // motor is always powered while machine is ON
-  MOTOR_POWERED_IN_CYCLE,         // motor fully powered during cycles,
-                                  // de-powered out of cycle
-  MOTOR_POWERED_ONLY_WHEN_MOVING, // idles shortly after stopped, even in cycle
-} motor_power_mode_t;
+// Must match modbus.c
+var exports = {
+  DISCONNECTED: 0,
+  OK:           1,
+  CRC:          2,
+  INVALID:      3,
+  TIMEDOUT:     4
+};
 
 
-void motor_init();
+exports.status_to_string =
+  function (status) {
+    if (status == exports.OK)       return 'Ok';
+    if (status == exports.CRC)      return 'CRC error';
+    if (status == exports.INVALID)  return 'Invalid response';
+    if (status == exports.TIMEDOUT) return 'Timedout';
+    return 'Disconnected';
+  }
 
-bool motor_is_enabled(int motor);
-int motor_get_axis(int motor);
-void motor_set_position(int motor, float position);
-float motor_get_soft_limit(int motor, bool min);
-bool motor_get_homed(int motor);
 
-stat_t motor_rtc_callback();
-
-void motor_end_move(int motor);
-void motor_load_move(int motor);
-void motor_prep_move(int motor, float target);
+module.exports = exports;

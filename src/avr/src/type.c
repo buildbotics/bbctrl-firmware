@@ -47,19 +47,16 @@
 // String
 bool type_eq_str(str a, str b) {return a == b;}
 void type_print_str(str s) {printf_P(PSTR("\"%s\""), s);}
-float type_str_to_float(str s) {return 0;}
-str type_parse_str(const char *s) {return s;}
+str type_parse_str(const char *s, stat_t *) {return s;}
 
 // Program string
 bool type_eq_pstr(pstr a, pstr b) {return a == b;}
 void type_print_pstr(pstr s) {printf_P(PSTR("\"%" PRPSTR "\""), s);}
-const char *type_parse_pstr(const char *value) {return value;}
-float type_pstr_to_float(pstr s) {return 0;}
+const char *type_parse_pstr(const char *value, stat_t *) {return value;}
 
 
 // Flags
 bool type_eq_flags(flags a, flags b) {return a == b;}
-float type_flags_to_float(flags x) {return x;}
 
 
 void type_print_flags(flags x) {
@@ -67,12 +64,11 @@ void type_print_flags(flags x) {
   print_status_flags(x);
 }
 
-flags type_parse_flags(const char *s) {return 0;} // Not used
+flags type_parse_flags(const char *s, stat_t *) {return 0;} // Not used
 
 
 // Float
 bool type_eq_f32(float a, float b) {return a == b || (isnan(a) && isnan(b));}
-float type_f32_to_float(float x) {return x;}
 
 
 void type_print_f32(float x) {
@@ -100,75 +96,122 @@ void type_print_f32(float x) {
 }
 
 
-float type_parse_f32(const char *value) {
+float type_parse_f32(const char *value, stat_t *status) {
   while (*value && isspace(*value)) value++;
 
   if (*value == ':') {
     value++;
-    if (strnlen(value, 6) != 6) return NAN;
+    if (strnlen(value, 6) != 6) {
+      if (status) *status = STAT_INVALID_VALUE;
+      return NAN;
+    }
 
     float f;
-    return b64_decode_float(value, &f) ? f : NAN;
+    if (b64_decode_float(value, &f)) return f;
+    else {
+      if (status) *status = STAT_BAD_FLOAT;
+      return NAN;
+    }
   }
 
-  return strtod(value, 0);
+  char *endptr = 0;
+  float x = strtod(value, &endptr);
+
+  if (endptr == value) {
+    if (status) *status = STAT_BAD_FLOAT;
+    return NAN;
+  }
+
+  return x;
 }
 
 
 // bool
 bool type_eq_b8(bool a, bool b) {return a == b;}
-float type_b8_to_float(bool x) {return x;}
 void type_print_b8(bool x) {printf_P(x ? PSTR("true") : PSTR("false"));}
 
 
-bool type_parse_b8(const char *value) {
-  return !strcasecmp(value, "true") || type_parse_f32(value);
+bool type_parse_b8(const char *value, stat_t *status) {
+  return !strcasecmp(value, "true") || type_parse_f32(value, status);
 }
 
 
 // s8
 bool type_eq_s8(s8 a, s8 b) {return a == b;}
-float type_s8_to_float(s8 x) {return x;}
 void type_print_s8(s8 x) {printf_P(PSTR("%" PRIi8), x);}
-s8 type_parse_s8(const char *value) {return strtol(value, 0, 0);}
+
+
+s8 type_parse_s8(const char *value, stat_t *status) {
+  char *endptr = 0;
+  s8 x = strtol(value, &endptr, 0);
+  if (endptr == value && status) *status = STAT_BAD_INT;
+  return x;
+}
 
 
 // u8
 bool type_eq_u8(u8 a, u8 b) {return a == b;}
-float type_u8_to_float(u8 x) {return x;}
 void type_print_u8(u8 x) {printf_P(PSTR("%" PRIu8), x);}
-u8 type_parse_u8(const char *value) {return strtol(value, 0, 0);}
+
+
+u8 type_parse_u8(const char *value, stat_t *status) {
+  char *endptr = 0;
+  u8 x = strtoul(value, &endptr, 0);
+  if (endptr == value && status) *status = STAT_BAD_INT;
+  return x;
+}
 
 
 // u16
 bool type_eq_u16(u16 a, u16 b) {return a == b;}
-float type_u16_to_float(u16 x) {return x;}
 void type_print_u16(u16 x) {printf_P(PSTR("%" PRIu16), x);}
-u16 type_parse_u16(const char *value) {return strtoul(value, 0, 0);}
+
+
+u16 type_parse_u16(const char *value, stat_t *status) {
+  char *endptr = 0;
+  u16 x = strtoul(value, &endptr, 0);
+  if (endptr == value && status) *status = STAT_BAD_INT;
+  return x;
+}
 
 
 // s32
 bool type_eq_s32(s32 a, s32 b) {return a == b;}
-float type_s32_to_float(s32 x) {return x;}
 void type_print_s32(s32 x) {printf_P(PSTR("%" PRIi32), x);}
-s32 type_parse_s32(const char *value) {return strtol(value, 0, 0);}
+
+
+s32 type_parse_s32(const char *value, stat_t *status) {
+  char *endptr = 0;
+  s32 x = strtol(value, &endptr, 0);
+  if (endptr == value && status) *status = STAT_BAD_INT;
+  return x;
+}
 
 
 // u32
 bool type_eq_u32(u32 a, u32 b) {return a == b;}
-float type_u32_to_float(u32 x) {return x;}
 void type_print_u32(u32 x) {printf_P(PSTR("%" PRIu32), x);}
-u32 type_parse_u32(const char *value) {return strtol(value, 0, 0);}
 
 
-type_u type_parse(type_t type, const char *s) {
+u32 type_parse_u32(const char *value, stat_t *status) {
+  char *endptr = 0;
+  u32 x = strtoul(value, &endptr, 0);
+  if (endptr == value && status) *status = STAT_BAD_INT;
+  return x;
+}
+
+
+type_u type_parse(type_t type, const char *s, stat_t *status) {
   type_u value;
+
+  if (status) *status = STAT_OK;
 
   switch (type) {
 #define TYPEDEF(TYPE, ...)                                              \
-    case TYPE_##TYPE: value._##TYPE = type_parse_##TYPE(s); break;
+    case TYPE_##TYPE: value._##TYPE = type_parse_##TYPE(s, status); break;
 #include "type.def"
 #undef TYPEDEF
+    default: if (status) *status = STAT_INVALID_TYPE;
   }
 
   return value;
@@ -182,15 +225,4 @@ void type_print(type_t type, type_u value) {
 #include "type.def"
 #undef TYPEDEF
   }
-}
-
-
-float type_to_float(type_t type, type_u value) {
-  switch (type) {
-#define TYPEDEF(TYPE, ...)                                          \
-    case TYPE_##TYPE: return type_##TYPE##_to_float(value._##TYPE);
-#include "type.def"
-#undef TYPEDEF
-  }
-  return 0;
 }

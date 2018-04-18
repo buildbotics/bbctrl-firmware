@@ -31,49 +31,37 @@ import logging
 import pkg_resources
 import subprocess
 import copy
-
-import bbctrl
+from pkg_resources import Requirement, resource_filename
 
 log = logging.getLogger('Config')
 
-default_config = {
-    "motors": [
-        {"axis": "X"},
-        {"axis": "Y"},
-        {"axis": "Z"},
-        {"axis": "A", "power-mode" : "disabled"},
-        ]
-    }
+
+def get_resource(path):
+    return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
 
 
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.config_vars = {}
+        self.values = {}
 
         try:
             self.version = pkg_resources.require('bbctrl')[0].version
-            default_config['version'] = self.version
 
             # Load config template
-            with open(bbctrl.get_resource('http/config-template.json'), 'r',
+            with open(get_resource('http/config-template.json'), 'r',
                       encoding = 'utf-8') as f:
                 self.template = json.load(f)
-
-            # Add all sections from template to default config
-            for section in self.template:
-                if not section in default_config:
-                    default_config[section] = {}
 
         except Exception as e: log.exception(e)
 
 
     def get(self, name, default = None):
-        return self.config_vars.get(name, default)
+        return self.values.get(name, default)
 
 
     def get_index(self, name, index, default = None):
-        return self.config_vars.get(name, {}).get(str(index), None)
+        return self.values.get(name, {}).get(str(index), None)
 
 
     def load_path(self, path):
@@ -81,25 +69,70 @@ class Config(object):
             return json.load(f)
 
 
-    def load(self):
+    def load(self, path = 'config.json'):
         try:
-            if os.path.exists('config.json'):
-                config = self.load_path('config.json')
-            else: config = copy.deepcopy(default_config)
+            if os.path.exists(path): config = self.load_path(path)
+            else: config = {'version': self.version}
 
             try:
                 self.upgrade(config)
             except Exception as e: log.exception(e)
 
-            # Add missing sections
-            for key, value in default_config.items():
-                if not key in config: config[key] = value
-
-            return config
-
         except Exception as e:
             log.warning('%s', e)
-            return default_config
+            config = {'version': self.version}
+
+        self._defaults(config)
+        return config
+
+
+    def _valid_value(self, template, value):
+        type = template['type']
+
+        try:
+            if type == 'int':   value = int(value)
+            if type == 'float': value = float(value)
+            if type == 'text':  value = str(value)
+            if type == 'bool':  value = bool(value)
+        except:
+            return False
+
+        if (('min' in template and value < template['min']) or
+            ('max' in template and template['max'] < value) or
+            ('values' in template and value not in template['values'])):
+            return False
+
+        return True
+
+
+    def __defaults(self, config, name, template):
+        if 'type' in template:
+            if (not name in config or
+                not self._valid_value(template, config[name])):
+                config[name] = template['default']
+
+            if template['type'] == 'list':
+                config = config[name]
+
+                for i in range(len(template['index'])):
+                    if len(config) <= i: config.append({})
+
+                    for name, tmpl in template['template'].items():
+                        self.__defaults(config[i], name, tmpl)
+
+        else:
+            for name, tmpl in template.items():
+                self.__defaults(config, name, tmpl)
+
+
+    def _defaults(self, config):
+        for name, tmpl in self.template.items():
+            if not 'type' in tmpl:
+                if not name in config: config[name] = {}
+                conf = config[name]
+            else: conf = config
+
+            self.__defaults(conf, name, tmpl)
 
 
     def upgrade(self, config):
@@ -115,12 +148,26 @@ class Config(object):
                 for key in 'max-accel latch-velocity search-velocity'.split():
                     if key in motor: motor[key] /= 1000
 
+        if version <= (0, 3, 22):
+            if 'tool' in config:
+                if 'spindle-type' in config['tool']:
+                    type = config['tool']['spindle-type']
+                    if type == 'PWM': type = 'PWM Spindle'
+                    if type == 'Huanyang': type = 'Huanyang VFD'
+                    config['tool']['tool-type'] = type
+                    del config['tool']['spindle-type']
+
+                if 'spin-reversed' in config['tool']:
+                    reversed = config['tool']['spin-reversed']
+                    config['tool']['tool-reversed'] = reversed
+                    del config['tool']['spin-reversed']
+
         config['version'] = self.version
 
 
     def save(self, config):
         self.upgrade(config)
-        self.update(config)
+        self._update(config, False)
 
         with open('config.json', 'w') as f:
             json.dump(config, f)
@@ -133,49 +180,89 @@ class Config(object):
     def reset(self): os.unlink('config.json')
 
 
-    def _encode_cmd(self, name, index, value, spec):
-        if str(index):
-            if not name in self.config_vars: self.config_vars[name] = {}
-            self.config_vars[name][str(index)] = value
+    def _encode(self, name, index, config, tmpl, with_defaults):
+        # Handle category
+        if not 'type' in tmpl:
+            for name, entry in tmpl.items():
+                if 'type' in entry and config is not None:
+                    conf = config.get(name, None)
+                else: conf = config
+                self._encode(name, index, conf, entry, with_defaults)
+            return
 
-        else: self.config_vars[name] = value
+        # Handle defaults
+        if config is not None: value = config
+        elif with_defaults: value = tmpl['default']
+        else: return
 
-        if not 'code' in spec: return
+        # Handle list
+        if tmpl['type'] == 'list':
+            for i in range(len(tmpl['index'])):
+                if config is not None and i < len(config): conf = config[i]
+                else: conf = None
+                self._encode(name, index + tmpl['index'][i], conf,
+                             tmpl['template'], with_defaults)
+            return
 
-        if spec['type'] == 'enum':
-            if value in spec['values']:
-                value = spec['values'].index(value)
-            else: value = spec['default']
+        # Update config values
+        if index:
+            if not name in self.values: self.values[name] = {}
+            self.values[name][index] = value
 
-        elif spec['type'] == 'bool': value = 1 if value else 0
-        elif spec['type'] == 'percent': value /= 100.0
+        else: self.values[name] = value
 
-        self.ctrl.state.config(str(index) + spec['code'], value)
+        # Update state variable
+        if not 'code' in tmpl: return
 
+        if tmpl['type'] == 'enum':
+            if value in tmpl['values']:
+                value = tmpl['values'].index(value)
+            else: value = tmpl['default']
 
-    def _encode_category(self, index, config, category, with_defaults):
-        for key, spec in category.items():
-            if key in config: value = config[key]
-            elif with_defaults: value = spec['default']
-            else: continue
+        elif tmpl['type'] == 'bool': value = 1 if value else 0
+        elif tmpl['type'] == 'percent': value /= 100.0
 
-            self._encode_cmd(key, index, value, spec)
-
-
-    def _encode(self, index, config, tmpl, with_defaults):
-        for category in tmpl.values():
-            self._encode_category(index, config, category, with_defaults)
+        self.ctrl.state.config(index + tmpl['code'], value)
 
 
-    def update(self, config, with_defaults = False):
+    def _update(self, config, with_defaults):
         for name, tmpl in self.template.items():
-            if name == 'motors':
-                for index in range(len(config['motors'])):
-                    self._encode(index, config['motors'][index], tmpl,
-                                 with_defaults)
-
-            else: self._encode_category('', config.get(name, {}), tmpl,
-                                        with_defaults)
+            conf = config.get(name, None)
+            self._encode(name, '', conf, tmpl, with_defaults)
 
 
-    def reload(self): self.update(self.load(), True)
+    def reload(self): self._update(self.load(), True)
+
+
+
+if __name__ == "__main__":
+    import sys
+    import argparse
+
+    class State(object):
+        def config(self, name, value): print('config(%s, %s)' % (name, value))
+
+
+    class Ctrl(object):
+        def __init__(self):
+            self.state = State()
+
+    parser = argparse.ArgumentParser(description = 'Buildbotics Config Test')
+
+    parser.add_argument('configs', metavar = 'CONFIG', nargs = '*',
+                        help = 'Configuration file')
+    parser.add_argument('-u', '--update', action = 'store_true',
+                        help = 'Update config')
+    args = parser.parse_args()
+
+    config = Config(Ctrl())
+
+    def do_cfg(path):
+        cfg = config.load(path)
+        if args.update: config._update(cfg, True)
+        else: print(json.dumps(cfg, sort_keys = True, indent = 2))
+
+    if len(args.configs):
+        for path in args.configs: do_cfg(path)
+
+    else: do_cfg('')

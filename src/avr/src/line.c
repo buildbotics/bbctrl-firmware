@@ -29,14 +29,12 @@
 #include "exec.h"
 #include "axis.h"
 #include "command.h"
-#include "state.h"
-#include "seek.h"
 #include "util.h"
 #include "SCurve.h"
 
 #include <math.h>
+#include <float.h>
 #include <string.h>
-#include <stdio.h>
 
 
 typedef struct {
@@ -44,6 +42,7 @@ typedef struct {
   float target[AXES];
   float times[7];
   float target_vel;
+  float max_vel;
   float max_accel;
   float max_jerk;
 
@@ -53,25 +52,22 @@ typedef struct {
 
 
 static struct {
-  float current_time;
-  int section;
-  bool stop_section;
-  float offset_time;
-  int seg;
-
   line_t line;
+
+  int section;
+  int seg;
 
   float iD; // Initial section distance
   float iV; // Initial section velocity
   float iA; // Initial section acceleration
   float jerk;
-  float dist;
-} l = {.current_time = SEGMENT_TIME};
+  float lV; // Last velocity
+} l;
 
 
 static void _segment_target(float target[AXES], float d) {
-  for (int i = 0; i < AXES; i++)
-    target[i] = l.line.start[i] + l.line.unit[i] * d;
+  for (int axis = 0; axis < AXES; axis++)
+    target[axis] = l.line.start[axis] + l.line.unit[axis] * d;
 }
 
 
@@ -92,16 +88,7 @@ static float _segment_accel(float t) {
 
 static bool _section_next() {
   while (++l.section < 7) {
-    float section_time = l.line.times[l.section];
-    if (!section_time) continue;
-
-    // Check if last section
-    bool last_section = true;
-    for (int i = l.section + 1; i < 7; i++)
-      if (l.line.times[i]) last_section = false;
-
-    // Check if stop section
-    l.stop_section = last_section && !l.line.target_vel;
+    if (!l.line.times[l.section]) continue;
 
     // Jerk
     switch (l.section) {
@@ -117,19 +104,6 @@ static bool _section_next() {
     case 5: case 6: l.iA = -l.line.max_jerk * l.line.times[4]; break;
     default: l.iA = 0;
     }
-    exec_set_acceleration(l.iA);
-
-    // Skip sections which do not land on a SEGMENT_TIME
-    if (section_time < l.current_time && !l.stop_section) {
-      l.current_time -= l.line.times[l.section];
-      l.iD = _segment_distance(section_time);
-      l.iV = _segment_velocity(section_time);
-      continue;
-    }
-
-    // Setup section time offset and segment counter
-    l.offset_time = l.current_time;
-    l.seg = 0;
 
     return true;
   }
@@ -138,138 +112,51 @@ static bool _section_next() {
 }
 
 
-static void _done() {
-  seek_end();
-  exec_set_cb(0);
-}
+static stat_t _line_exec() {
+  // Compute times
+  float section_time = l.line.times[l.section];
+  float seg_time = SEGMENT_TIME;
+  float t = ++l.seg * SEGMENT_TIME;
 
-
-static void _move(float t, float target[AXES], float v, float a) {
-  exec_set_velocity(v);
-  exec_set_acceleration(a);
-
-  if (seek_switch_found()) state_seek_hold();
-
-  exec_move_to_target(t, target);
-}
-
-
-static stat_t _pause() {
-  float t = SEGMENT_TIME - l.current_time;
-  float v = exec_get_velocity();
-  float a = exec_get_acceleration();
-  float j = l.line.max_jerk;
-
-  if (v < MIN_VELOCITY) {
-    command_reset_position();
-    exec_set_velocity(0);
-    exec_set_acceleration(0);
-    exec_set_jerk(0);
-    state_holding();
-    _done();
-
-    return STAT_NOP;
+  // Don't exceed section time
+  if (section_time < t) {
+    seg_time = section_time - (l.seg - 1) * SEGMENT_TIME;
+    t = section_time;
   }
 
-  // Compute new velocity, acceleration and travel distance
-  a = SCurve::nextAccel(t, 0, v, a, l.line.max_accel, j);
-  v += a * t;
-  l.dist += v * t;
+  // Compute distance and velocity
+  float d = _segment_distance(t);
+  float v = _segment_velocity(t);
+  float a = _segment_accel(t);
 
-  // Target end of line exactly if we are close
-  if (l.dist - 0.001 < l.line.length && l.line.length < l.dist + 0.001)
-    l.dist = l.line.length;
+  // Don't allow overshoot
+  if (l.line.length < d) d = l.line.length;
 
-  if (l.line.length < l.dist) {
-    // Compute time left in current section
-    l.current_time = t - (l.dist - l.line.length) / v;
-    _done();
+  // Check if section complete
+  if (t == section_time) {
+    if (_section_next()) {
+      // Setup next section
+      l.seg = 0;
+      l.iD = d;
+      l.iV = v;
 
-    return STAT_AGAIN;
+    } else {
+      exec_set_cb(0);
+
+      // Last segment of last section
+      // Use exact target values to correct for floating-point errors
+      return exec_segment(seg_time, l.line.target, l.line.target_vel, a,
+                          l.line.max_vel, l.line.max_accel, l.line.max_jerk);
+    }
   }
 
   // Compute target position from distance
   float target[AXES];
-  _segment_target(target, l.dist);
+  _segment_target(target, d);
 
-  l.current_time = 0;
-
-  // Compute jerk
-  float oldAccel = exec_get_acceleration();
-  exec_set_jerk(oldAccel == a ? 0 : (oldAccel < a ? j : -j));
-
-  _move(SEGMENT_TIME, target, v, a);
-  return STAT_OK;
-}
-
-
-static stat_t _line_exec() {
-  // Pause if requested.
-  if (state_get() == STATE_STOPPING) {
-    if (SEGMENT_TIME < l.current_time) l.current_time = 0;
-    exec_set_cb(_pause);
-    return _pause();
-  }
-
-  float section_time = l.line.times[l.section];
-
-  // Adjust segment time if near a stopping point
-  float seg_time = SEGMENT_TIME;
-  if (l.stop_section && section_time - l.current_time < SEGMENT_TIME) {
-    // TODO Instead of adjusting seg_time either absorb the next partial segment
-    // or expand it to a full segment so that we only have SEGMENT_TIME length
-    // segments.
-    seg_time += section_time - l.current_time;
-    l.offset_time += section_time - l.current_time;
-    l.current_time = section_time;
-  }
-
-  // Compute distance and velocity.  Must be computed before advancing time.
-  float d = _segment_distance(l.current_time);
-  float v = _segment_velocity(l.current_time);
-  float a = _segment_accel(l.current_time);
-
-  // Advance time.  This is the start time for the next segment.
-  l.current_time = l.offset_time + ++l.seg * SEGMENT_TIME;
-
-  // Check if section complete
-  bool lastSection = false;
-  if (section_time < l.current_time) {
-    l.current_time -= section_time;
-    l.iD = _segment_distance(section_time);
-    l.iV = _segment_velocity(section_time);
-
-    // Next section
-    lastSection = !_section_next();
-  }
-
-  // Do move & update exec
-  if (lastSection && l.stop_section)
-    // Stop exactly on target to correct for floating-point errors
-    _move(seg_time, l.line.target, 0, 0);
-
-  else {
-    // Compute target position from distance
-    float target[AXES];
-    _segment_target(target, d);
-
-    _move(seg_time, target, v, a);
-    l.dist = d;
-  }
-
-  // Release exec if we are done
-  if (lastSection) {
-    exec_set_velocity(l.line.target_vel);
-    _done();
-  }
-
-  return STAT_OK;
-}
-
-
-void _print_vector(const char *name, float v[4]) {
-  printf_P(PSTR("%s %f %f %f %f\n"),
-           name, (double)v[0], (double)v[1], (double)v[2], (double)v[3]);
+  // Segment move
+  return exec_segment
+    (seg_time, target, v, a, l.line.max_vel, l.line.max_accel, l.line.max_jerk);
 }
 
 
@@ -322,16 +209,22 @@ stat_t command_line(char *cmd) {
   command_set_position(line.target);
 
   // Compute direction vector
-  for (int i = 0; i < AXES; i++)
-    if (axis_is_enabled(i)) {
-      line.unit[i] = line.target[i] - line.start[i];
-      line.length += line.unit[i] * line.unit[i];
-
-    } else line.unit[i] = 0;
+  for (int axis = 0; axis < AXES; axis++) {
+    line.unit[axis] = line.target[axis] - line.start[axis];
+    line.length += line.unit[axis] * line.unit[axis];
+  }
 
   line.length = sqrt(line.length);
-  for (int i = 0; i < AXES; i++)
-    if (line.unit[i]) line.unit[i] /= line.length;
+  for (int axis = 0; axis < AXES; axis++)
+    if (line.unit[axis]) line.unit[axis] /= line.length;
+
+  // Compute max velocity
+  line.max_vel = FLT_MAX;
+  for (int axis = 0; axis < AXES; axis++)
+    if (line.unit[axis]) {
+      float axis_max_vel = axis_get_velocity_max(axis) / fabs(line.unit[axis]);
+      if (axis_max_vel < line.max_vel) line.max_vel = axis_max_vel;
+    }
 
   // Queue
   command_push(COMMAND_line, &line);
@@ -346,9 +239,12 @@ unsigned command_line_size() {return sizeof(line_t);}
 void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
-  // Init dist & velocity
-  l.iD = l.dist = 0;
-  l.iV = exec_get_velocity();
+  // Setup first section
+  l.seg = 0;
+  l.iD = 0;
+  // If current velocity is non-zero use last target velocity
+  l.iV = exec_get_velocity() ? l.lV : 0;
+  l.lV = l.line.target_vel;
 
   // Find first section
   l.section = -1;

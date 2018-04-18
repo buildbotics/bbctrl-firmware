@@ -53,10 +53,7 @@ class Planner():
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
     def is_synchronizing(self): return self.planner.is_synchronizing()
-
-
-    def set_position(self, position):
-        self.planner.set_position(position)
+    def set_position(self, position): self.planner.set_position(position)
 
 
     def update_position(self):
@@ -167,7 +164,7 @@ class Planner():
 
     def _enqueue_set_cmd(self, id, name, value):
         log.info('set(#%d, %s, %s)', id, name, value)
-        self.cmdq.enqueue(id, False, self.ctrl.state.set, name, value)
+        self.cmdq.enqueue(id, self.ctrl.state.set, name, value)
 
 
     def __encode(self, block):
@@ -185,7 +182,7 @@ class Planner():
 
             if name == 'message':
                 self.cmdq.enqueue(
-                    id, False, self.ctrl.msgs.broadcast, {'message': value})
+                    id, self.ctrl.msgs.broadcast, {'message': value})
 
             if name in ['line', 'tool']:
                 self._enqueue_set_cmd(id, name, value)
@@ -193,14 +190,17 @@ class Planner():
             if name == 'speed': return Cmd.speed(value)
 
             if len(name) and name[0] == '_':
-                self._enqueue_set_cmd(id, name[1:], value)
+                # Don't queue axis positions, can be triggered by set_position()
+                if len(name) != 2 or name[1] not in 'xyzabc':
+                    self._enqueue_set_cmd(id, name[1:], value)
 
             if name[0:1] == '_' and name[1:2] in 'xyzabc':
                 if name[2:] == '_home': return Cmd.set_axis(name[1], value)
 
                 if name[2:] == '_homed':
                     motor = self.ctrl.state.find_motor(name[1])
-                    if motor is not None: return Cmd.set('%dh' % motor, value)
+                    if motor is not None:
+                        return Cmd.set_sync('%dh' % motor, value)
 
             return
 
@@ -216,6 +216,7 @@ class Planner():
         if type == 'pause': return Cmd.pause(block['pause-type'])
         if type == 'seek':
             return Cmd.seek(block['switch'], block['active'], block['error'])
+        if type == 'end': return '' # Sends id
 
         raise Exception('Unknown planner command "%s"' % type)
 
@@ -224,8 +225,8 @@ class Planner():
         cmd = self.__encode(block)
 
         if cmd is not None:
-            self.cmdq.enqueue(block['id'], True, None)
-            return Cmd.set('id', block['id']) + '\n' + cmd
+            self.cmdq.enqueue(block['id'], None)
+            return Cmd.set_sync('id', block['id']) + '\n' + cmd
 
 
     def reset(self):
@@ -268,7 +269,10 @@ class Planner():
 
             log.info('Planner restart: %d %s' % (id, json.dumps(position)))
             self.planner.restart(id, position)
-            if self.planner.is_synchronizing(): self.planner.synchronize(1)
+
+            if self.planner.is_synchronizing():
+                # TODO pass actual probed position
+                self.planner.synchronize(1) # Indicate successful probe
 
         except Exception as e:
             log.exception(e)
@@ -280,10 +284,7 @@ class Planner():
             while self.planner.has_more():
                 cmd = self.planner.next()
                 cmd = self._encode(cmd)
-                if not self.planner.is_running(): self.cmdq.finalize()
                 if cmd is not None: return cmd
-
-            self.cmdq.finalize()
 
         except Exception as e:
             log.exception(e)

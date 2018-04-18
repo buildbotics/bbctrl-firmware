@@ -29,7 +29,6 @@
 
 #include "usart.h"
 #include "hardware.h"
-#include "report.h"
 #include "vars.h"
 #include "estop.h"
 #include "i2c.h"
@@ -79,7 +78,7 @@ static struct {
 
 
 // Define command callbacks
-#define CMD(CODE, NAME, SYNC, ...)              \
+#define CMD(CODE, NAME, SYNC)                   \
   stat_t command_##NAME(char *);                \
   IF(SYNC)(unsigned command_##NAME##_size();)   \
   IF(SYNC)(void command_##NAME##_exec(void *);)
@@ -87,10 +86,9 @@ static struct {
 #undef CMD
 
 
-// Help & name
-#define CMD(CODE, NAME, SYNC, HELP)                          \
-  static const char command_##NAME##_name[] PROGMEM = #NAME; \
-  static const char command_##NAME##_help[] PROGMEM = HELP;
+// Name
+#define CMD(CODE, NAME, SYNC)                                   \
+  static const char command_##NAME##_name[] PROGMEM = #NAME;
 #include "command.def"
 #undef CMD
 
@@ -144,7 +142,10 @@ static void _exec_cb(char code, uint8_t *data) {
 }
 
 
-static void _i2c_cb(uint8_t *data, uint8_t length) {_dispatch((char *)data);}
+static void _i2c_cb(uint8_t *data, uint8_t length) {
+  stat_t status = _dispatch((char *)data);
+  if (status) STATUS_ERROR(status, "i2c: %s", data);
+}
 
 
 void command_init() {i2c_set_read_callback(_i2c_cb);}
@@ -154,12 +155,11 @@ unsigned command_get_count() {return cmd.count;}
 
 void command_print_json() {
   bool first = true;
-  static const char fmt[] PROGMEM =
-    "\"%c\":{\"name\":\"%" PRPSTR "\",\"help\":\"%" PRPSTR "\"}";
+  static const char fmt[] PROGMEM = "\"%c\":{\"name\":\"%" PRPSTR "\"}";
 
-#define CMD(CODE, NAME, SYNC, HELP)                                     \
+#define CMD(CODE, NAME, SYNC)                                           \
   if (first) first = false; else putchar(',');                          \
-  printf_P(fmt, CODE, command_##NAME##_name, command_##NAME##_help);
+  printf_P(fmt, CODE, command_##NAME##_name);
 
 #include "command.def"
 #undef CMD
@@ -206,9 +206,6 @@ bool command_callback() {
   }
 
   block = 0; // Command consumed
-
-  // Reporting
-  report_request();
 
   switch (status) {
   case STAT_OK: break;
@@ -257,8 +254,6 @@ bool command_exec() {
   if (!exec_get_velocity() && cmd.count < EXEC_FILL_TARGET &&
       !rtc_expired(cmd.last_empty + EXEC_DELAY)) return false;
 
-  if (state_get() == STATE_HOLDING) return false;
-
   char code = (char)sync_q_next();
   unsigned size = _size(code);
 
@@ -270,7 +265,6 @@ bool command_exec() {
   state_running();
 
   _exec_cb(code, data);
-  report_request();
 
   return true;
 }

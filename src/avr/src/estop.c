@@ -30,7 +30,6 @@
 #include "stepper.h"
 #include "spindle.h"
 #include "switch.h"
-#include "report.h"
 #include "hardware.h"
 #include "config.h"
 #include "state.h"
@@ -99,8 +98,6 @@ void estop_trigger(stat_t reason) {
 
   // Save reason
   _set_reason(reason);
-
-  report_request();
 }
 
 

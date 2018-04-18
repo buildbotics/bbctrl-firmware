@@ -27,9 +27,11 @@
 
 #pragma once
 
+#include "spindle.h"
+
 
 void pwm_spindle_init();
-void pwm_spindle_deinit();
+void pwm_spindle_deinit(deinit_cb_t cb);
 void pwm_spindle_set(float speed);
 float pwm_spindle_get();
 void pwm_spindle_stop();

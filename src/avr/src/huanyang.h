@@ -27,9 +27,11 @@
 
 #pragma once
 
+#include "spindle.h"
+
 
 void huanyang_init();
-void huanyang_deinit();
+void huanyang_deinit(deinit_cb_t cb);
 void huanyang_set(float speed);
 float huanyang_get();
 void huanyang_stop();

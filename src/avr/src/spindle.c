@@ -26,46 +26,35 @@
 \******************************************************************************/
 
 #include "spindle.h"
-
+#include "pwm_spindle.h"
+#include "huanyang.h"
+#include "vfd_spindle.h"
+#include "vfd_test.h"
 #include "config.h"
 #include "pgmspace.h"
 
 #include <math.h>
 
 
-typedef enum {
-  SPINDLE_TYPE_DISABLED,
-#define SPINDLE(NAME) SPINDLE_TYPE_##NAME,
-#include "spindle.def"
-#undef SPINDLE
-} spindle_type_t;
-
-
-// Function decls
-#define SPINDLE(NAME)                         \
-  void NAME##_init();                         \
-  void NAME##_deinit();                       \
-  void NAME##_set(float speed);               \
-  float NAME##_get();                         \
-  void NAME##_stop();
-#include "spindle.def"
-#undef SPINDLE
-
-
-typedef struct {
+static struct {
   spindle_type_t type;
+  float override;
   float speed;
   bool reversed;
   float min_rpm;
   float max_rpm;
-} spindle_t;
+
+  spindle_type_t next_type;
+} spindle = {SPINDLE_TYPE_DISABLED, 1};
 
 
-static spindle_t spindle = {SPINDLE_TYPE_DISABLED,};
+spindle_type_t spindle_get_type() {return spindle.type;}
 
 
 void spindle_set_speed(float speed) {
   spindle.speed = speed;
+
+  speed *= spindle.override;
 
   bool negative = speed < 0;
   if (spindle.max_rpm <= fabs(speed)) speed = negative ? -1 : 1;
@@ -76,9 +65,10 @@ void spindle_set_speed(float speed) {
 
   switch (spindle.type) {
   case SPINDLE_TYPE_DISABLED: break;
-#define SPINDLE(NAME) case SPINDLE_TYPE_##NAME: NAME##_set(speed); break;
-#include "spindle.def"
-#undef SPINDLE
+  case SPINDLE_TYPE_PWM: pwm_spindle_set(speed); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_set(speed); break;
+  case SPINDLE_TYPE_TEST: vfd_test_set(speed); break;
+  default: vfd_spindle_set(speed); break;
   }
 }
 
@@ -88,9 +78,10 @@ float spindle_get_speed() {
 
   switch (spindle.type) {
   case SPINDLE_TYPE_DISABLED: break;
-#define SPINDLE(NAME) case SPINDLE_TYPE_##NAME: speed = NAME##_get(); break;
-#include "spindle.def"
-#undef SPINDLE
+  case SPINDLE_TYPE_PWM: speed = pwm_spindle_get(); break;
+  case SPINDLE_TYPE_HUANYANG: speed = huanyang_get(); break;
+  case SPINDLE_TYPE_TEST: speed = vfd_test_get(); break;
+  default: speed = vfd_spindle_get(); break;
   }
 
   return speed * spindle.max_rpm;
@@ -100,9 +91,10 @@ float spindle_get_speed() {
 void spindle_stop() {
   switch (spindle.type) {
   case SPINDLE_TYPE_DISABLED: break;
-#define SPINDLE(NAME) case SPINDLE_TYPE_##NAME: NAME##_stop(); break;
-#include "spindle.def"
-#undef SPINDLE
+  case SPINDLE_TYPE_PWM: pwm_spindle_stop(); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_stop(); break;
+  case SPINDLE_TYPE_TEST: vfd_test_stop(); break;
+  default: vfd_spindle_stop(); break;
   }
 }
 
@@ -112,43 +104,51 @@ static void _update_speed() {spindle_set_speed(spindle.speed);}
 
 
 // Var callbacks
-uint8_t get_spindle_type() {return spindle.type;}
+uint8_t get_tool_type() {return spindle.type;}
 
 
-void set_spindle_type(uint8_t value) {
-  if (value != spindle.type) {
-    float speed = spindle.speed;
+static void _deinit_cb() {
+  spindle.type = spindle.next_type;
+  spindle.next_type = SPINDLE_TYPE_DISABLED;
 
-    switch (spindle.type) {
-    case SPINDLE_TYPE_DISABLED: break;
-#define SPINDLE(NAME) case SPINDLE_TYPE_##NAME: NAME##_deinit(); break;
-#include "spindle.def"
-#undef SPINDLE
-    }
+  switch (spindle.type) {
+  case SPINDLE_TYPE_DISABLED: break;
+  case SPINDLE_TYPE_PWM: pwm_spindle_init(); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_init(); break;
+  case SPINDLE_TYPE_TEST: vfd_test_init(); break;
+  default: vfd_spindle_init(); break;
+  }
 
-    spindle.type = (spindle_type_t)value;
+  spindle_set_speed(spindle.speed);
+}
 
-    switch (spindle.type) {
-    case SPINDLE_TYPE_DISABLED: break;
-#define SPINDLE(NAME) case SPINDLE_TYPE_##NAME: NAME##_init(); break;
-#include "spindle.def"
-#undef SPINDLE
-    }
 
-    spindle_set_speed(speed);
+void set_tool_type(uint8_t value) {
+  if (value == spindle.type) return;
+
+  spindle_type_t old_type = spindle.type;
+  spindle.next_type = (spindle_type_t)value;
+  spindle.type = SPINDLE_TYPE_DISABLED;
+
+  switch (old_type) {
+  case SPINDLE_TYPE_DISABLED: _deinit_cb(); break;
+  case SPINDLE_TYPE_PWM: pwm_spindle_deinit(_deinit_cb); break;
+  case SPINDLE_TYPE_HUANYANG: huanyang_deinit(_deinit_cb); break;
+  case SPINDLE_TYPE_TEST: vfd_test_deinit(_deinit_cb); break;
+  default: vfd_spindle_deinit(_deinit_cb); break;
   }
 }
 
 
 void set_speed(float speed) {spindle_set_speed(speed);}
 float get_speed() {return spindle_get_speed();}
-bool get_spin_reversed() {return spindle.reversed;}
+bool get_tool_reversed() {return spindle.reversed;}
 
 
-void set_spin_reversed(bool reversed) {
+void set_tool_reversed(bool reversed) {
   if (spindle.reversed != reversed) {
     spindle.reversed = reversed;
-    spindle_set_speed(spindle.speed);
+    _update_speed();
   }
 }
 
@@ -157,3 +157,10 @@ float get_max_spin() {return spindle.max_rpm;}
 void set_max_spin(float value) {spindle.max_rpm = value; _update_speed();}
 float get_min_spin() {return spindle.min_rpm;}
 void set_min_spin(float value) {spindle.min_rpm = value; _update_speed();}
+uint16_t get_speed_override() {return spindle.override * 1000;}
+
+
+void set_speed_override(uint16_t value) {
+  spindle.override = value / 1000.0;
+  _update_speed();
+}

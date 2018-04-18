@@ -28,7 +28,6 @@
 #include "huanyang.h"
 #include "config.h"
 #include "modbus.h"
-#include "report.h"
 
 #include <string.h>
 #include <math.h>
@@ -108,11 +107,8 @@ typedef enum {
 
 static struct {
   uint8_t state;
-  hy_func_t func;
-  uint8_t data[4];
-  uint8_t bytes;
-  uint8_t response;
 
+  deinit_cb_t deinit_cb;
   bool shutdown;
   bool changed;
   float speed;
@@ -127,44 +123,7 @@ static struct {
   uint16_t rated_rpm;
 
   uint8_t status;
-} hy = {0};
-
-
-static void _func_read(hy_addr_t addr) {
-  hy.func     = HUANYANG_FUNC_READ;
-  hy.bytes    = 2;
-  hy.response = 4;
-  hy.data[0]  = 1;
-  hy.data[1]  = addr;
-}
-
-
-static void _ctrl_write(hy_ctrl_state_t state) {
-  hy.func     = HUANYANG_CTRL_WRITE;
-  hy.bytes    = 2;
-  hy.response = 2;
-  hy.data[0]  = 1;
-  hy.data[1]  = state;
-}
-
-
-static void _ctrl_read(hy_ctrl_addr_t addr) {
-  hy.func     = HUANYANG_CTRL_READ;
-  hy.bytes    = 2;
-  hy.response = 4;
-  hy.data[0]  = 1;
-  hy.data[1]  = addr;
-}
-
-
-static void _freq_write(uint16_t freq) {
-  hy.func     = HUANYANG_FREQ_WRITE;
-  hy.bytes    = 3;
-  hy.response = 3;
-  hy.data[0]  = 2;
-  hy.data[1]  = freq >> 8;
-  hy.data[2]  = freq;
-}
+} hy;
 
 
 static void _func_read_response(hy_addr_t addr, uint16_t value) {
@@ -215,44 +174,57 @@ static void _handle_response(hy_func_t func, const uint8_t *data) {
 static void _next_command();
 
 
-static void _reset(bool halt) {
-  // Save settings
-  float speed = hy.speed;
-
-  // Clear state
-  memset(&hy, 0, sizeof(hy));
-
-  // Restore settings
-  hy.speed = speed;
-  hy.changed = true;
-
-  if (!halt) _next_command();
+static bool _shutdown() {
+  if (!hy.shutdown) return false;
+  modbus_deinit();
+  if (hy.deinit_cb) hy.deinit_cb();
+  return true;
 }
 
 
 static void _modbus_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
-  if (!data) _reset(true);
+  if (!data) { // Modbus command failed
+    if (_shutdown()) return;
+    hy.state = 0;
 
-  else if (bytes == *data + 1) {
+  } else if (bytes == *data + 1) {
     _handle_response((hy_func_t)func, data + 1);
 
-    if (func == HUANYANG_CTRL_WRITE && hy.shutdown) {
-      _reset(true);
-      modbus_deinit();
-      return;
-    }
+    if (func == HUANYANG_CTRL_WRITE && _shutdown()) return;
 
     // Next command
     if (++hy.state == 9) {
-      hy.state = 5;
-      report_request();
+      if (hy.shutdown || hy.changed) hy.state = 0;
+      else hy.state = 5;
+      hy.changed = false;
     }
-
-    // Update freq
-    if (hy.shutdown || (hy.changed && 4 < hy.state)) hy.state = 0;
-  }
+ }
 
   _next_command();
+}
+
+
+static void _func_read(hy_addr_t addr) {
+  uint8_t data[2] = {1, addr};
+  modbus_func(HUANYANG_FUNC_READ, 2, data, 4, _modbus_cb);
+}
+
+
+static void _ctrl_write(hy_ctrl_state_t state) {
+  uint8_t data[2] = {1, state};
+  modbus_func(HUANYANG_CTRL_WRITE, 2, data, 2, _modbus_cb);
+}
+
+
+static void _ctrl_read(hy_ctrl_addr_t addr) {
+  uint8_t data[2] = {1, addr};
+  modbus_func(HUANYANG_CTRL_READ, 2, data, 4, _modbus_cb);
+}
+
+
+static void _freq_write(uint16_t freq) {
+  uint8_t data[3] = {2, (uint8_t)(freq >> 8), (uint8_t)freq};
+  modbus_func(HUANYANG_FREQ_WRITE, 3, data, 3, _modbus_cb);
 }
 
 
@@ -281,7 +253,6 @@ static void _next_command() {
 
     // Frequency write command
     _freq_write(freq * 100);
-    hy.changed = false;
     break;
   }
 
@@ -290,23 +261,24 @@ static void _next_command() {
   case 7: _ctrl_read(HUANYANG_ACTUAL_RPM);     break;
   case 8: _ctrl_read(HUANYANG_TEMPERATURE);    break;
   }
-
-  // Send command
-  modbus_func(hy.func, hy.bytes, hy.data, hy.response, _modbus_cb);
 }
 
 
 void huanyang_init() {
   modbus_init();
-  _reset(false);
+  memset(&hy, 0, sizeof(hy));
+  _next_command();
 }
 
 
-void huanyang_deinit() {hy.shutdown = true;}
+void huanyang_deinit(deinit_cb_t cb) {
+  hy.deinit_cb = cb;
+  hy.shutdown = true;
+}
 
 
 void huanyang_set(float speed) {
-  if (hy.speed != speed) {
+  if (hy.speed != speed && !hy.shutdown) {
     hy.speed = speed;
     hy.changed = true;
   }
@@ -318,7 +290,7 @@ float huanyang_get() {return hy.actual_freq / hy.max_freq;}
 
 void huanyang_stop() {
   huanyang_set(0);
-  _reset(false);
+  hy.shutdown = true;
 }
 
 

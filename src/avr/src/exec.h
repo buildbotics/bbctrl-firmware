@@ -50,5 +50,7 @@ void exec_set_jerk(float j);
 
 void exec_set_cb(exec_cb_t cb);
 
-void exec_move_to_target(float time, const float target[]);
+void exec_move_to_target(const float target[]);
+stat_t exec_segment(float time, const float target[], float vel, float accel,
+                    float maxVel, float maxAccel, float maxJerk);
 stat_t exec_next();

@@ -40,30 +40,41 @@
 #include <stdio.h>
 
 
+typedef enum {
+  MODBUS_DISCONNECTED,
+  MODBUS_OK,
+  MODBUS_CRC,
+  MODBUS_INVALID,
+  MODBUS_TIMEDOUT,
+} modbus_status_t;
+
+
 static struct {
   bool debug;
   uint8_t id;
   baud_t baud;
   parity_t parity;
-  stop_t stop;
+} cfg = {false, 1, USART_BAUD_9600, USART_NONE};
 
+
+static struct {
   uint8_t bytes;
   uint8_t command[MODBUS_BUF_SIZE];
   uint8_t command_length;
   uint8_t response[MODBUS_BUF_SIZE];
   uint8_t response_length;
 
+  uint16_t addr;
+  modbus_rw_cb_t rw_cb;
   modbus_cb_t receive_cb;
 
-  uint16_t addr;
-  modbus_read_cb_t read_cb;
-  modbus_write_cb_t write_cb;
-
-  uint32_t last;
+  uint32_t last_write;
+  uint32_t last_read;
   uint8_t retry;
-  bool connected;
+  uint8_t status;
+  bool write_ready;
   bool busy;
-} mb = {false, 1, USART_BAUD_9600, USART_NONE, USART_1STOP};
+} state = {0};
 
 
 static uint16_t _crc16(const uint8_t *buffer, unsigned length) {
@@ -104,35 +115,49 @@ static void _set_rxc_interrupt(bool enable) {
 }
 
 
+static void _write_word(uint8_t *dst, uint16_t value, bool little_endian) {
+  dst[!little_endian]  = value;
+  dst[little_endian] = value >> 8;
+}
+
+
+static uint16_t _read_word(const uint8_t *data, bool little_endian) {
+  return (uint16_t)data[little_endian] << 8 | data[!little_endian];
+}
+
+
 static bool _check_response() {
   // Check CRC
-  uint16_t computed = _crc16(mb.response, mb.response_length - 2);
-  uint16_t expected = (mb.response[mb.response_length - 1] << 8) |
-    mb.response[mb.response_length - 2];
+  uint16_t computed = _crc16(state.response, state.response_length - 2);
+  uint16_t expected =
+    _read_word(state.response + state.response_length - 2, true);
 
   if (computed != expected) {
-    char sent[mb.command_length * 2 + 1];
-    char response[mb.response_length * 2 + 1];
-    format_hex_buf(sent, mb.command, mb.command_length);
-    format_hex_buf(response, mb.response, mb.response_length);
+    char sent[state.command_length * 2 + 1];
+    char response[state.response_length * 2 + 1];
+    format_hex_buf(sent, state.command, state.command_length);
+    format_hex_buf(response, state.response, state.response_length);
 
-    STATUS_WARNING(STAT_OK, "modbus: invalid CRC, expected=0x%04x got=0x%04x "
-                   "sent=0x%s received=0x%s",
+    STATUS_WARNING(STAT_OK, "modbus: invalid CRC, received=0x%04x "
+                   "computed=0x%04x sent=0x%s received=0x%s",
                    expected, computed, sent, response);
+    state.status = MODBUS_CRC;
     return false;
   }
 
   // Check that slave id matches
-  if (mb.command[0] != mb.response[0]) {
+  if (state.command[0] != state.response[0]) {
     STATUS_WARNING(STAT_OK, "modbus: unexpected slave id, expected=%u got=%u",
-                   mb.command[0], mb.response[0]);
+                   state.command[0], state.response[0]);
+    state.status = MODBUS_INVALID;
     return false;
   }
 
   // Check that function code matches
-  if (mb.command[1] != mb.response[1]) {
+  if (state.command[1] != state.response[1]) {
     STATUS_WARNING(STAT_OK, "modbus: invalid function code, expected=%u got=%u",
-                   mb.command[1], mb.response[1]);
+                   state.command[1], state.response[1]);
+    state.status = MODBUS_INVALID;
     return false;
   }
 
@@ -140,27 +165,37 @@ static bool _check_response() {
 }
 
 
+static void _notify(uint8_t func, uint8_t bytes, const uint8_t *data) {
+  if (!state.receive_cb) return;
+
+  modbus_cb_t cb = state.receive_cb;
+  state.receive_cb = 0; // May be set in callback
+
+  cb(func, bytes, data);
+}
+
+
 static void _handle_response() {
   if (!_check_response()) return;
 
-  mb.last = 0;  // Clear timeout timer
-  mb.retry = 0; // Reset retry counter
-  mb.connected = true;
-  mb.busy = false;
+  state.last_write = 0;             // Clear timeout timer
+  state.last_read = rtc_get_time(); // Set delay timer
+  state.retry = 0;                  // Reset retry counter
+  state.status = MODBUS_OK;
+  state.busy = false;
 
-  if (mb.receive_cb)
-    mb.receive_cb(mb.response[1], mb.response_length - 4, mb.response + 2);
+  _notify(state.response[1], state.response_length - 4, state.response + 2);
 }
 
 
 /// Data register empty interrupt
 ISR(RS485_DRE_vect) {
-  RS485_PORT.DATA = mb.command[mb.bytes++];
+  RS485_PORT.DATA = state.command[state.bytes++];
 
-  if (mb.bytes == mb.command_length) {
+  if (state.bytes == state.command_length) {
     _set_dre_interrupt(false);
     _set_txc_interrupt(true);
-    mb.bytes = 0;
+    state.bytes = 0;
   }
 }
 
@@ -169,46 +204,43 @@ ISR(RS485_DRE_vect) {
 ISR(RS485_TXC_vect) {
   _set_txc_interrupt(false);
   _set_rxc_interrupt(true);
-  _set_write(false);        // Switch to read mode
-  mb.last = rtc_get_time(); // Set timeout timer
+  _set_write(false);              // Switch to read mode
+  state.last_write = rtc_get_time(); // Set timeout timer
 }
 
 
 /// Data received interrupt
 ISR(RS485_RXC_vect) {
-  mb.response[mb.bytes++] = RS485_PORT.DATA;
+  state.response[state.bytes++] = RS485_PORT.DATA;
 
-  if (mb.bytes == mb.response_length) {
+  if (state.bytes == state.response_length) {
     _set_rxc_interrupt(false);
     _set_write(true); // Back to write mode
-    mb.bytes = 0;
+    state.bytes = 0;
     _handle_response();
   }
 }
 
 
-void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
+static void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
   if (func == MODBUS_READ_OUTPUT_REG && bytes == 3 && data[0] == 2) {
-    uint16_t value = (uint16_t)data[1] << 8 | data[2];
-    if (mb.read_cb) mb.read_cb(true, mb.addr, value);
+    if (state.rw_cb) state.rw_cb(true, state.addr, _read_word(data, false));
     return;
   }
 
-  if (mb.read_cb) mb.read_cb(false, mb.addr, 0);
+  if (state.rw_cb) state.rw_cb(false, state.addr, 0);
 }
 
 
-void _write_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
-  if (func == MODBUS_WRITE_OUTPUT_REG && bytes == 4) {
-    uint16_t addr = (uint16_t)data[0] << 8 | data[1];
-
-    if (addr == mb.addr) {
-      if (mb.write_cb) mb.write_cb(true, mb.addr);
-      return;
-    }
+static void _write_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
+  if (func == MODBUS_WRITE_OUTPUT_REG && bytes == 4 &&
+      _read_word(data, false) == state.addr) {
+    if (state.rw_cb)
+      state.rw_cb(true, state.addr, _read_word(state.command + 4, false));
+    return;
   }
 
-  if (mb.write_cb) mb.write_cb(false, mb.addr);
+  if (state.rw_cb) state.rw_cb(false, state.addr, 0);
 }
 
 
@@ -223,29 +255,16 @@ static void _reset() {
   x = RS485_PORT.STATUS;
   x = x;
 
-  // Save settings
-  bool debug = mb.debug;
-  uint8_t id = mb.id;
-  baud_t baud = mb.baud;
-  parity_t parity = mb.parity;
-  stop_t stop = mb.stop;
-
   // Clear state
-  memset(&mb, 0, sizeof(mb));
-
-  // Restore settings
-  mb.debug = debug;
-  mb.id = id;
-  mb.baud = baud;
-  mb.parity = parity;
-  mb.stop = stop;
+  state.write_ready = false;
+  state.busy = false;
 }
 
 
 static void _retry() {
-  mb.last = 0;
-  mb.bytes = 0;
-  mb.retry++;
+  state.last_write = 0;
+  state.bytes = 0;
+  state.retry++;
 
   _set_write(true); // RS485 write mode
 
@@ -254,25 +273,29 @@ static void _retry() {
   _set_dre_interrupt(true);
 
   // Try changing pin polarity
-  if (mb.retry == MODBUS_RETRIES) {
+  if (state.retry == MODBUS_RETRIES) {
     PINCTRL_PIN(RS485_RO_PIN) ^= PORT_INVEN_bm;
     PINCTRL_PIN(RS485_DI_PIN) ^= PORT_INVEN_bm;
   }
 
-  if (mb.debug) STATUS_DEBUG("modbus: retry %d", mb.retry);
+  if (cfg.debug) STATUS_DEBUG("modbus: retry %d", state.retry);
 }
 
 
 static void _timeout() {
-  if (mb.debug) STATUS_DEBUG("modbus: timedout");
+  if (cfg.debug) STATUS_DEBUG("modbus: timedout");
 
-  modbus_cb_t cb = mb.receive_cb;
-  uint8_t func = mb.command[1];
+  if (state.status == MODBUS_OK || state.status == MODBUS_DISCONNECTED)
+    state.status = MODBUS_TIMEDOUT;
 
   _reset();
+  _notify(state.command[1], 0, 0);
+}
 
-  // Notify caller
-  if (cb) cb(func, 0, 0);
+
+static stop_t _get_stop() {
+  // RTU mode characters must always be 11-bits long
+  return cfg.parity == USART_NONE ? USART_2STOP : USART_1STOP;
 }
 
 
@@ -285,14 +308,18 @@ void modbus_init() {
   OUTSET_PIN(RS485_RW_PIN); // High
   DIRSET_PIN(RS485_RW_PIN); // Output
 
-  usart_init_port(&RS485_PORT, mb.baud, mb.parity, USART_8BITS, mb.stop);
-
   _reset();
+  memset(&state, 0, sizeof(state));
+  state.status = MODBUS_DISCONNECTED;
+
+  usart_init_port(&RS485_PORT, cfg.baud, cfg.parity, USART_8BITS, _get_stop());
 }
 
 
 void modbus_deinit() {
   _reset();
+  memset(&state, 0, sizeof(state));
+  state.status = MODBUS_DISCONNECTED;
 
   // Disable USART
   RS485_PORT.CTRLB &= ~(USART_RXEN_bm | USART_TXEN_bm);
@@ -303,99 +330,119 @@ void modbus_deinit() {
 }
 
 
-bool modbus_busy() {return mb.busy;}
+bool modbus_busy() {return state.busy;}
 
 
-void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
-                 uint8_t receive, modbus_cb_t receive_cb) {
-  ASSERT(send + 4 <= MODBUS_BUF_SIZE);
-  ASSERT(receive + 4 <= MODBUS_BUF_SIZE);
+static void _start_write() {
+  if (!state.write_ready) return;
 
-  mb.command[0] = mb.id;
-  mb.command[1] = func;
-  memcpy(mb.command + 2, data, send);
-  uint16_t crc = _crc16(mb.command, send + 2);
-  mb.command[send + 2] = crc;
-  mb.command[send + 3] = crc >> 8;
+  // The minimum delay between modbus messages is 3.5 characters.  There are
+  // 11-bits per character in RTU mode.  Character time is calculated as
+  // follows:
+  //
+  //     char time = 11-bits / baud * 3.5
+  //
+  // At 9600 baud the minimum delay is 4.01ms.  At 19200 it's 2.005ms.  All
+  // supported higher baud rates require the 1.75ms minimum delay.  We round up
+  // and add 1ms to ensure the delay is never less than the required minimum
+  // using our 1ms RTC clock callback.
+  if (state.last_read &&
+      !rtc_expired(state.last_read + (cfg.baud == USART_BAUD_9600 ? 5 : 3)))
+    return;
+  state.last_read = 0;
 
-  mb.bytes = 0;
-  mb.command_length = send + 4;
-  mb.response_length = receive + 4;
-  mb.receive_cb = receive_cb;
-  mb.last = 0;
-  mb.retry = 0;
-
+  state.write_ready = false;
   _set_dre_interrupt(true);
 }
 
 
-void modbus_read(uint16_t addr, modbus_read_cb_t cb) {
-  mb.read_cb = cb;
-  mb.addr = addr;
-  uint8_t cmd[4] = {(uint8_t)(addr >> 8), (uint8_t)addr, 0, 1};
+void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
+                 uint8_t receive, modbus_cb_t receive_cb) {
+  state.bytes = 0;
+  state.command_length = send + 4;
+  state.response_length = receive + 4;
+  state.receive_cb = receive_cb;
+  state.last_write = 0;
+  state.retry = 0;
+
+  ASSERT(state.command_length <= MODBUS_BUF_SIZE);
+  ASSERT(state.response_length <= MODBUS_BUF_SIZE);
+
+  state.command[0] = cfg.id;
+  state.command[1] = func;
+  memcpy(state.command + 2, data, send);
+  _write_word(state.command + send + 2, _crc16(state.command, send + 2), true);
+
+  state.busy = true;
+  state.write_ready = true;
+  _start_write();
+}
+
+
+void modbus_read(uint16_t addr, modbus_rw_cb_t cb) {
+  state.rw_cb = cb;
+  state.addr = addr;
+  uint8_t cmd[4] = {0, 0, 0, 1};
+  _write_word(cmd, addr, false);
   modbus_func(MODBUS_READ_OUTPUT_REG, 4, cmd, 3, _read_cb);
 }
 
 
-void modbus_write(uint16_t addr, uint16_t value, modbus_write_cb_t cb) {
-  mb.write_cb = cb;
-  mb.addr = addr;
-  uint8_t cmd[4] = {(uint8_t)(addr >> 8), (uint8_t)addr, (uint8_t)(value >> 8),
-                    (uint8_t)value};
+void modbus_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb) {
+  state.rw_cb = cb;
+  state.addr = addr;
+  uint8_t cmd[4];
+  _write_word(cmd, addr, false);
+  _write_word(cmd + 2, value, false);
   modbus_func(MODBUS_WRITE_OUTPUT_REG, 4, cmd, 4, _write_cb);
 }
 
 
 void modbus_rtc_callback() {
-  if (!mb.last || !rtc_expired(mb.last + MODBUS_TIMEOUT)) return;
+  _start_write();
+  if (!state.last_write || !rtc_expired(state.last_write + MODBUS_TIMEOUT))
+    return;
+  state.last_write = 0;
 
-  if (mb.debug && mb.bytes) {
+  if (cfg.debug && state.bytes) {
     const uint8_t buf_len = 8 * 2 + 1;
     char sent[buf_len];
     char received[buf_len];
 
-    format_hex_buf(sent, mb.command, mb.command_length);
-    format_hex_buf(received, mb.response, mb.bytes);
+    format_hex_buf(sent, state.command, state.command_length);
+    format_hex_buf(received, state.response, state.bytes);
 
     STATUS_DEBUG("modbus: sent 0x%s received 0x%s expected %u bytes",
-                 sent, received, mb.response_length);
+                 sent, received, state.response_length);
   }
 
-  if (mb.retry < 2 * MODBUS_RETRIES) _retry();
+  if (state.retry < 2 * MODBUS_RETRIES) _retry();
   else _timeout();
 }
 
 
 // Variable callbacks
-bool get_modbus_debug() {return mb.debug;}
-void set_modbus_debug(bool value) {mb.debug = value;}
-uint8_t get_modbus_id() {return mb.id;}
-void set_modbus_id(uint8_t id) {mb.id = id;}
-uint8_t get_modbus_baud() {return mb.baud;}
+bool get_modbus_debug() {return cfg.debug;}
+void set_modbus_debug(bool value) {cfg.debug = value;}
+uint8_t get_modbus_id() {return cfg.id;}
+void set_modbus_id(uint8_t id) {cfg.id = id;}
+uint8_t get_modbus_baud() {return cfg.baud;}
 
 
 void set_modbus_baud(uint8_t baud) {
-  mb.baud = (baud_t)baud;
-  usart_set_baud(&RS485_PORT, mb.baud);
+  cfg.baud = (baud_t)baud;
+  usart_set_baud(&RS485_PORT, cfg.baud);
 }
 
 
-uint8_t get_modbus_parity() {return mb.parity;}
+uint8_t get_modbus_parity() {return cfg.parity;}
 
 
 void set_modbus_parity(uint8_t parity) {
-  mb.parity = (parity_t)parity;
-  usart_set_parity(&RS485_PORT, mb.parity);
+  cfg.parity = (parity_t)parity;
+  usart_set_parity(&RS485_PORT, cfg.parity);
+  usart_set_stop(&RS485_PORT, _get_stop());
 }
 
 
-uint8_t get_modbus_stop() {return mb.stop;}
-
-
-void set_modbus_stop(uint8_t stop) {
-  mb.stop = (stop_t)stop;
-  usart_set_stop(&RS485_PORT, mb.stop);
-}
-
-
-bool get_modbus_connected() {return mb.connected;}
+uint8_t get_modbus_status() {return state.status;}

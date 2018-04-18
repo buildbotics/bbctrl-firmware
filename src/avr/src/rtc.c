@@ -33,6 +33,7 @@
 #include "modbus.h"
 #include "motor.h"
 #include "lcd.h"
+#include "vfd_spindle.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -52,6 +53,7 @@ ISR(RTC_OVF_vect) {
   analog_rtc_callback();
   io_rtc_callback();
   modbus_rtc_callback();
+  vfd_spindle_rtc_callback();
   if (!(ticks & 255)) motor_rtc_callback();
   wdt_reset();
 }

@@ -112,13 +112,15 @@ class Mach(Comm):
 
         if (('xx' in update or 'pr' in update) and
             self.ctrl.state.get('xx', '') == 'HOLDING'):
+            pause_reason = self.ctrl.state.get('pr', '')
+
             # Continue after seek hold
-            if (self.ctrl.state.get('pr', '') == 'Switch found' and
+            if (pause_reason == 'Switch found' and
                 self.planner.is_synchronizing()):
                 self._unpause()
 
             # Continue after stop hold
-            if self.ctrl.state.get('pr', '') == 'User stop':
+            if pause_reason == 'User stop':
                 self.planner.stop()
                 self.planner.update_position()
                 self.ctrl.state.set('line', 0)
@@ -127,6 +129,8 @@ class Mach(Comm):
 
     def _unpause(self):
         pause_reason = self.ctrl.state.get('pr', '')
+        log.info('Unpause: ' + pause_reason)
+
         if pause_reason in ['User pause', 'Switch found']:
             self.planner.restart()
 
@@ -141,6 +145,13 @@ class Mach(Comm):
     def _reset(self):
         self.planner.reset()
         self.ctrl.state.reset()
+
+
+    def _i2c_block(self, block):
+        super().i2c_command(block[0], block = block[1:])
+
+
+    def _i2c_set(self, name, value): self._i2c_block(Cmd.set(name, value))
 
 
     @overrides(Comm)
@@ -294,3 +305,18 @@ class Mach(Comm):
             self._begin_cycle('mdi')
             self.planner.set_position({axis: position})
             super().queue_command(Cmd.set_axis(axis, position))
+
+
+    def override_feed(self, override):
+        self._i2c_set('fo', int(1000 * override))
+
+
+    def override_speed(self, override):
+        self._i2c_set('so', int(1000 * override))
+
+
+    def modbus_read(self, addr): self._i2c_block(Cmd.modbus_read(addr))
+
+
+    def modbus_write(self, addr, value):
+        self._i2c_block(Cmd.modbus_write(addr, value))

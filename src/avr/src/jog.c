@@ -109,7 +109,7 @@ stat_t jog_exec() {
 
   // Set velocity and target
   exec_set_velocity(sqrt(velocity_sqr));
-  exec_move_to_target(SEGMENT_TIME, target);
+  exec_move_to_target(target);
 
   return STAT_OK;
 }

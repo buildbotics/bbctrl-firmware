@@ -11,13 +11,13 @@ OBJ := $(patsubst src/vfd/%.c,build/vfd/%.o,$(OBJ))
 JSON = vars command messages
 JSON := $(patsubst %,build/%.json,$(JSON))
 
+all: $(PROJECT).hex $(JSON) size
+
 include Makefile.common
 
 CFLAGS += -Isrc
 
 # Build
-all: $(PROJECT).hex $(JSON) size
-
 $(PROJECT).elf: $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $@
 

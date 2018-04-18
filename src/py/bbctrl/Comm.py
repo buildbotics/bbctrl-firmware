@@ -69,14 +69,14 @@ class Comm(object):
         return len(self.queue) or self.command is not None
 
 
-    def i2c_command(self, cmd, byte = None, word = None):
-        log.info('I2C: ' + cmd)
+    def i2c_command(self, cmd, byte = None, word = None, block = None):
+        log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
         retry = 5
         cmd = ord(cmd[0])
 
         while True:
             try:
-                self.ctrl.i2c.write(self.i2c_addr, cmd, byte, word)
+                self.ctrl.i2c.write(self.i2c_addr, cmd, byte, word, block)
                 break
 
             except Exception as e:

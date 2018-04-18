@@ -172,7 +172,7 @@ script#indicators-template(type="text/x-template")
         th.header(colspan=5) RS485 Spindle
 
       tr
-        th(colspan=5) {{state['he'] ? "" : "Not "}}Connected
+        th(colspan=5) {{modbus_status}}
 
       tr
         td {{state['hz']}} Hz

@@ -32,19 +32,74 @@ script#tool-view-template(type="text/x-template")
     form.pure-form.pure-form-aligned
       fieldset
         templated-input(v-for="templ in template.tool", :name="$key",
-          :model.sync="tool[$key]", :template="templ")
+          :model.sync="config.tool[$key]", :template="templ",
+          v-if="tool_type != 'DISABLED' || $key == 'tool-type'")
 
-    div(v-if="get_type() == 'PWM'")
+    div(v-if="tool_type == 'PWM SPINDLE'")
       h2 PWM Spindle
       form.pure-form.pure-form-aligned
         fieldset
           templated-input(v-for="templ in template['pwm-spindle']",
-            :name="$key", :model.sync="pwmSpindle[$key]", :template="templ")
+            :name="$key", :model.sync="config['pwm-spindle'][$key]",
+            :template="templ")
 
-    div(v-if="get_type() != 'DISABLED' && get_type() != 'PWM'")
+    div(v-if="is_modbus")
       h2 Modbus Configuration
       form.pure-form.pure-form-aligned
         fieldset
           templated-input(v-for="templ in template['modbus-spindle']",
-            :name="$key", :model.sync="modbusSpindle[$key]",
-            :template="templ")
+            :name="$key", :model.sync="config['modbus-spindle'][$key]",
+            :template="templ", v-if="$key != 'regs'")
+
+    div(v-if="tool_type == 'VFD TEST'")
+      h2 Modbus Test
+      form.pure-form
+        table.modbus-regs
+          tr
+            th Address
+            th Value
+            th Action
+            th Status
+          tr
+            td: input(name="address", type="text", v-model="address", number)
+            td: input(name="value", type="text", v-model="value", number)
+            td
+              button.pure-button(@click="read") Read
+              button.pure-button(@click="write") Write
+            td.modbus-status {{modbus_status}}
+
+    div.modbus-program(v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
+      h2 Active Modbus Program
+      form.pure-form
+        table.modbus-regs.fixed-regs
+          tr
+            th Index
+            th Command
+            th Address
+            th Value
+
+          tr(v-for="(index, reg) in regs_tmpl.index", v-if="state[reg + 'vt']")
+            td.reg-index {{index}}
+            td.reg-type {{get_reg_type(reg)}}
+            td.reg-addr {{get_reg_addr(reg)}}
+            td.reg-value {{get_reg_value(reg)}}
+
+      button.pure-button-secondary(@click="customize") Customize
+      button.pure-button-secondary(@click="clear") Clear
+
+    div(v-if="tool_type == 'CUSTOM MODBUS VFD'")
+      h2 Edit Modbus Program
+      form.pure-form
+        table.modbus-regs
+          tr
+            th Index
+            th Command
+            th Address
+            th Value
+
+          tr(v-for="(index, reg) in config['modbus-spindle'].regs",
+            is="modbus-reg", :index="index", :model.sync="reg",
+            :template="template['modbus-spindle'].regs.template",
+            v-if="!index || reg['reg-type'] != 'disabled' || " +
+            "config['modbus-spindle'].regs[index - 1]['reg-type'] != " +
+            "'disabled'")

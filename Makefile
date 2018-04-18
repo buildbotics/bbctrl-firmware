@@ -80,7 +80,7 @@ $(GPLAN_IMG):
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):
-	$(MAKE) -C src/avr $(shell basename $@)
+	$(MAKE) -C src/avr
 
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt

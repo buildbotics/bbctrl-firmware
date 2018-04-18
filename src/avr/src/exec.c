@@ -32,12 +32,12 @@
 #include "axis.h"
 #include "util.h"
 #include "command.h"
-#include "report.h"
 #include "switch.h"
 #include "seek.h"
 #include "estop.h"
 #include "state.h"
 #include "config.h"
+#include "SCurve.h"
 
 
 static struct {
@@ -51,7 +51,17 @@ static struct {
   float peak_accel;
 
   float feed_override;
-  float spindle_override;
+
+  struct {
+    float target[AXES];
+    float time;
+    float vel;
+    float accel;
+    float max_vel;
+    float max_accel;
+    float max_jerk;
+    exec_cb_t cb;
+  } seg;
 } ex;
 
 
@@ -63,9 +73,7 @@ static void _limit_switch_cb(switch_id_t sw, bool active) {
 
 void exec_init() {
   memset(&ex, 0, sizeof(ex));
-  ex.feed_override = 1;
-  ex.spindle_override = 1;
-  // TODO implement overrides
+  ex.feed_override = 1; // TODO implement feed override
 
   // Set callback for limit switches
   for (int sw = SW_MIN_X; sw <= SW_MAX_A; sw++)
@@ -101,8 +109,7 @@ void exec_set_jerk(float j) {ex.jerk = j;}
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 
-void exec_move_to_target(float time, const float target[]) {
-  ASSERT(isfinite(time));
+void exec_move_to_target(const float target[]) {
   ASSERT(isfinite(target[AXIS_X]) && isfinite(target[AXIS_Y]) &&
          isfinite(target[AXIS_Z]) && isfinite(target[AXIS_A]) &&
          isfinite(target[AXIS_B]) && isfinite(target[AXIS_C]));
@@ -111,15 +118,98 @@ void exec_move_to_target(float time, const float target[]) {
   copy_vector(ex.position, target);
 
   // Call the stepper prep function
-  st_prep_line(time, target);
+  st_prep_line(target);
+}
+
+
+stat_t _segment_exec() {
+  float t = ex.seg.time;
+  float v = ex.seg.vel;
+  float a = ex.seg.accel;
+
+  // Handle pause
+  if (state_get() == STATE_STOPPING) {
+    a = SCurve::nextAccel(SEGMENT_TIME, 0, ex.velocity, ex.accel,
+                          ex.seg.max_accel, ex.seg.max_jerk);
+    v = ex.velocity + SEGMENT_TIME * a;
+    t *= ex.seg.vel / v;
+    if (v <= 0) t = v = 0;
+
+    if (v < MIN_VELOCITY) {
+      t = v = 0;
+      ex.seg.cb = 0;
+      command_reset_position();
+      state_holding();
+      seek_end();
+    }
+  }
+
+  // Wait for next seg if time is too short and we are still moving
+  if (t < SEGMENT_TIME && (!t || v)) {
+    if (!v) ex.velocity = ex.accel = ex.jerk = 0;
+    ex.cb = ex.seg.cb;
+    return STAT_AGAIN;
+  }
+
+  // Update velocity and accel
+  ex.velocity = v;
+  ex.accel = a;
+
+  if (t <= SEGMENT_TIME) {
+    // Move
+    exec_move_to_target(ex.seg.target);
+    ex.seg.time = 0;
+
+  } else {
+    // Compute next target
+    float ratio = SEGMENT_TIME / t;
+    float target[AXES];
+    for (int axis = 0; axis < AXES; axis++) {
+      float diff = ex.seg.target[axis] - ex.position[axis];
+      target[axis] = ex.position[axis] + ratio * diff;
+    }
+
+    // Move
+    exec_move_to_target(target);
+
+    // Update time
+    if (t == ex.seg.time) ex.seg.time -= SEGMENT_TIME;
+    else ex.seg.time -= SEGMENT_TIME * v / ex.seg.vel;
+  }
+
+  // Check switch
+  if (seek_switch_found()) state_seek_hold();
+
+  return STAT_OK;
+}
+
+
+stat_t exec_segment(float time, const float target[], float vel, float accel,
+                    float maxVel, float maxAccel, float maxJerk) {
+  ASSERT(time <= SEGMENT_TIME);
+
+  copy_vector(ex.seg.target, target);
+  ex.seg.time += time;
+  ex.seg.vel = vel;
+  ex.seg.accel = accel;
+  ex.seg.max_vel = maxVel;
+  ex.seg.max_accel = maxAccel;
+  ex.seg.max_jerk = maxJerk;
+  ex.seg.cb = ex.cb;
+  ex.cb = _segment_exec;
+
+  if (!ex.seg.cb) seek_end();
+
+  return _segment_exec();
 }
 
 
 stat_t exec_next() {
-  // Hold if we've reached zero velocity between commands an stopping
+  // Hold if we've reached zero velocity between commands and stopping
   if (!ex.cb && !exec_get_velocity() && state_get() == STATE_STOPPING)
     state_holding();
 
+  if (state_get() == STATE_HOLDING) return STAT_NOP;
   if (!ex.cb && !command_exec()) return STAT_NOP; // Queue empty
   if (!ex.cb) return STAT_AGAIN; // Non-exec command
   return ex.cb(); // Exec
@@ -135,10 +225,8 @@ float get_peak_vel() {return ex.peak_vel / VELOCITY_MULTIPLIER;}
 void set_peak_vel(float x) {ex.peak_vel = 0;}
 float get_peak_accel() {return ex.peak_accel / ACCEL_MULTIPLIER;}
 void set_peak_accel(float x) {ex.peak_accel = 0;}
-float get_feed_override() {return ex.feed_override;}
-void set_feed_override(float value) {ex.feed_override = value;}
-float get_speed_override() {return ex.spindle_override;}
-void set_speed_override(float value) {ex.spindle_override = value;}
+uint16_t get_feed_override() {return ex.feed_override * 1000;}
+void set_feed_override(uint16_t value) {ex.feed_override = value / 1000.0;}
 
 
 // Command callbacks
@@ -185,7 +273,4 @@ void command_set_axis_exec(void *data) {
   // Update motors
   int motor = axis_get_motor(cmd->axis);
   if (0 <= motor) motor_set_position(motor, cmd->position);
-
-  // Report
-  report_request();
 }

@@ -160,13 +160,7 @@ module.exports = {
 
     get_axis_motor_param: function (axis, name) {
       var motor = this.get_axis_motor(axis);
-      if (typeof motor == 'undefined') return;
-      if (typeof motor[name] != 'undefined') return motor[name];
-
-      for (var section in this.template.motors) {
-        var sec = this.template.motors[section];
-        if (typeof sec[name] != 'undefined') return sec[name]['default'];
-      }
+      if (typeof motor != 'undefined') return motor[name];
     },
 
 

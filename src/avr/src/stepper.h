@@ -35,5 +35,5 @@ void stepper_init();
 void st_shutdown();
 void st_enable();
 bool st_is_busy();
-void st_prep_line(float time, const float target[]);
+void st_prep_line(const float target[]);
 void st_prep_dwell(float seconds);

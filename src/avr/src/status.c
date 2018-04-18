@@ -73,6 +73,7 @@ stat_t status_message_P(const char *location, status_level_t level,
 
   // Message
   if (msg && pgm_read_byte(msg)) {
+    // TODO escape invalid chars
     va_start(args, msg);
     vfprintf_P(stdout, msg, args);
     va_end(args);

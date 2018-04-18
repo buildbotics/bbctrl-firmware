@@ -32,4 +32,4 @@ script#gcode-view-template(type="text/x-template")
     form.pure-form.pure-form-aligned
       fieldset
         templated-input(v-for="templ in template.gcode", :name="$key",
-          :model.sync="gcode[$key]", :template="templ")
+          :model.sync="config.gcode[$key]", :template="templ")

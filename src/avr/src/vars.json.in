@@ -1,13 +1,12 @@
 #include "cpp_magic.h"
 {
-#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, HELP) \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT) \
 #CODE: {                                        \
     "name": #NAME,                              \
     "type": #TYPE,                              \
     "index": IF_ELSE(INDEX)(true, false),       \
     "setable": IF_ELSE(SET)(true, false),       \
-    "report": IF_ELSE(REPORT)(true, false),     \
-    "help": HELP                                \
+    "report": IF_ELSE(REPORT)(true, false)      \
   },
 #include "vars.def"
 #undef VAR

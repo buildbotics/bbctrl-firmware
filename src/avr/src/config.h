@@ -91,22 +91,22 @@ enum {
   PROBE_PIN,
 };
 
-#define SPI_SS_PIN SERIAL_CTS_PIN // Needed for SPI configuration
+#define SPI_SS_PIN               SERIAL_CTS_PIN // Needed for SPI configuration
 
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
 #define OUTS                     5 // number of supported pin outputs
 #define ANALOG                   2 // number of supported analog inputs
-
+#define VFDREG                  32 // number of supported VFD modbus registers
 
 // Switch settings.  See switch.c
-#define SWITCH_DEBOUNCE 5 // ms
+#define SWITCH_DEBOUNCE          5 // ms
 
 
 // Motor ISRs
-#define STALL_ISR_vect PORTA_INT1_vect
-#define FAULT_ISR_vect PORTF_INT1_vect
+#define STALL_ISR_vect           PORTA_INT1_vect
+#define FAULT_ISR_vect           PORTF_INT1_vect
 
 
 /* Interrupt usage:
@@ -122,91 +122,95 @@ enum {
  *        in a permanent loop call in usart_putc() (usart.c).
  */
 
-// Timer assignments - see specific modules for details
-// TCC1 free
-#define TIMER_STEP             TCC0 // Step timer    (see stepper.h)
-#define TIMER_PWM              TCD1 // PWM timer     (see pwm_spindle.c)
+// Timer assignments
+// NOTE, TCC1 free
+#define TIMER_STEP               TCC0 // Step timer (see stepper.h)
+#define TIMER_PWM                TCD1 // PWM timer  (see pwm_spindle.c)
 
-#define M1_TIMER               TCD0
-#define M2_TIMER               TCE0
-#define M3_TIMER               TCF0
-#define M4_TIMER               TCE1
+#define M1_TIMER                 TCD0
+#define M2_TIMER                 TCE0
+#define M3_TIMER                 TCF0
+#define M4_TIMER                 TCE1
 
-#define M1_DMA_CH              DMA.CH0
-#define M2_DMA_CH              DMA.CH1
-#define M3_DMA_CH              DMA.CH2
-#define M4_DMA_CH              DMA.CH3
+#define M1_DMA_CH                DMA.CH0
+#define M2_DMA_CH                DMA.CH1
+#define M3_DMA_CH                DMA.CH2
+#define M4_DMA_CH                DMA.CH3
 
-#define M1_DMA_TRIGGER         DMA_CH_TRIGSRC_TCD0_CCA_gc
-#define M2_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE0_CCA_gc
-#define M3_DMA_TRIGGER         DMA_CH_TRIGSRC_TCF0_CCA_gc
-#define M4_DMA_TRIGGER         DMA_CH_TRIGSRC_TCE1_CCA_gc
+#define M1_DMA_TRIGGER           DMA_CH_TRIGSRC_TCD0_CCA_gc
+#define M2_DMA_TRIGGER           DMA_CH_TRIGSRC_TCE0_CCA_gc
+#define M3_DMA_TRIGGER           DMA_CH_TRIGSRC_TCF0_CCA_gc
+#define M4_DMA_TRIGGER           DMA_CH_TRIGSRC_TCE1_CCA_gc
 
 
 // Timer setup for stepper and dwells
-#define STEP_TIMER_ENABLE      TC_CLKSEL_DIV8_gc
-#define STEP_TIMER_DIV         8
-#define STEP_TIMER_FREQ        (F_CPU / STEP_TIMER_DIV)
-#define STEP_TIMER_POLL        ((uint16_t)(STEP_TIMER_FREQ * 0.001)) // 1ms
-#define STEP_TIMER_WGMODE      TC_WGMODE_NORMAL_gc // count to TOP & rollover
-#define STEP_TIMER_ISR         TCC0_OVF_vect
-#define STEP_TIMER_INTLVL      TC_OVFINTLVL_HI_gc
-#define STEP_LOW_LEVEL_ISR     ADCB_CH0_vect
-#define STEP_PULSE_WIDTH       (F_CPU * 0.000002 / 2) // 2uS w/ clk/2
-
-#define SEGMENT_TIME           (0.004 / 60.0) // mins
+#define STEP_TIMER_ENABLE        TC_CLKSEL_DIV8_gc
+#define STEP_TIMER_DIV           8
+#define STEP_TIMER_FREQ          (F_CPU / STEP_TIMER_DIV)
+#define STEP_TIMER_POLL          ((uint16_t)(STEP_TIMER_FREQ * 0.001)) // 1ms
+#define STEP_TIMER_WGMODE        TC_WGMODE_NORMAL_gc // count to TOP & rollover
+#define STEP_TIMER_ISR           TCC0_OVF_vect
+#define STEP_TIMER_INTLVL        TC_OVFINTLVL_HI_gc
+#define STEP_LOW_LEVEL_ISR       ADCB_CH0_vect
+#define STEP_PULSE_WIDTH         (F_CPU * 0.000002 / 2) // 2uS w/ clk/2
+#define SEGMENT_TIME             (0.004 / 60.0) // mins
 
 
 // DRV8711 settings
-#define DRV8711_OFF   12
-#define DRV8711_BLANK (0x32 | DRV8711_BLANK_ABT_bm)
-#define DRV8711_DECAY (DRV8711_DECAY_DECMOD_MIXED | 16)
+#define DRV8711_OFF              12
+#define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
+#define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
 
-#define DRV8711_STALL (DRV8711_STALL_SDCNT_2 | DRV8711_STALL_VDIV_4 | 200)
-#define DRV8711_DRIVE (DRV8711_DRIVE_IDRIVEP_50 |                       \
-                       DRV8711_DRIVE_IDRIVEN_100 | DRV8711_DRIVE_TDRIVEP_250 | \
-                       DRV8711_DRIVE_TDRIVEN_250 | DRV8711_DRIVE_OCPDEG_1 | \
-                       DRV8711_DRIVE_OCPTH_250)
-#define DRV8711_TORQUE DRV8711_TORQUE_SMPLTH_200
-#define DRV8711_CTRL  (DRV8711_CTRL_ISGAIN_10 | DRV8711_CTRL_DTIME_450 | \
-                       DRV8711_CTRL_EXSTALL_bm)
+#define DRV8711_STALL            (DRV8711_STALL_SDCNT_2 |      \
+                                  DRV8711_STALL_VDIV_4 | 200)
+#define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_50  | \
+                                  DRV8711_DRIVE_IDRIVEN_100 | \
+                                  DRV8711_DRIVE_TDRIVEP_250 | \
+                                  DRV8711_DRIVE_TDRIVEN_250 | \
+                                  DRV8711_DRIVE_OCPDEG_1    | \
+                                  DRV8711_DRIVE_OCPTH_250)
+#define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_200
+#define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_10 | \
+                                  DRV8711_CTRL_DTIME_450 | \
+                                  DRV8711_CTRL_EXSTALL_bm)
 
 
 // RS485 settings
-#define RS485_PORT             USARTD1
-#define RS485_DRE_vect         USARTD1_DRE_vect
-#define RS485_TXC_vect         USARTD1_TXC_vect
-#define RS485_RXC_vect         USARTD1_RXC_vect
+#define RS485_PORT               USARTD1
+#define RS485_DRE_vect           USARTD1_DRE_vect
+#define RS485_TXC_vect           USARTD1_TXC_vect
+#define RS485_RXC_vect           USARTD1_RXC_vect
 
 
 // Modbus settings
-#define MODBUS_TIMEOUT         50 // ms. response timeout
-#define MODBUS_RETRIES          4 // Number of retries before failure
-#define MODBUS_BUF_SIZE        64 // Max bytes in rx/tx buffers
-
+#define MODBUS_TIMEOUT           50  // ms. response timeout
+#define MODBUS_RETRIES           4   // Number of retries before failure
+#define MODBUS_BUF_SIZE          8   // Max bytes in rx/tx buffers
+#define VFD_QUERY_DELAY          100 // ms
 
 // Serial settings
-#define SERIAL_BAUD            USART_BAUD_115200
-#define SERIAL_PORT            USARTC0
-#define SERIAL_DRE_vect        USARTC0_DRE_vect
-#define SERIAL_RXC_vect        USARTC0_RXC_vect
-#define SERIAL_CTS_THRESH      4
+#define SERIAL_BAUD              USART_BAUD_115200
+#define SERIAL_PORT              USARTC0
+#define SERIAL_DRE_vect          USARTC0_DRE_vect
+#define SERIAL_RXC_vect          USARTC0_RXC_vect
+#define SERIAL_CTS_THRESH        4
 
 
 // Input
-#define INPUT_BUFFER_LEN       128 // text buffer size (255 max)
+#define INPUT_BUFFER_LEN         128 // text buffer size (255 max)
 
+
+// Report
+#define REPORT_RATE              250 // ms
 
 // I2C
-#define I2C_DEV                 TWIC
-#define I2C_ISR                 TWIC_TWIS_vect
-#define I2C_ADDR                0x2b
-#define I2C_MAX_DATA            8
+#define I2C_DEV                  TWIC
+#define I2C_ISR                  TWIC_TWIS_vect
+#define I2C_ADDR                 0x2b
+#define I2C_MAX_DATA             8
 
 
-// Settings ********************************************************************
-
-// Motor settings.  See motor.c
+// Motor
 #define MOTOR_IDLE_TIMEOUT       0.25  // secs, motor off after this time
 #define MIN_STEP_CORRECTION      2
 

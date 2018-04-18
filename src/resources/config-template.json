@@ -1,165 +1,176 @@
 {
   "motors": {
-    "general": {
-      "axis": {
-        "type": "enum",
-        "values": ["X", "Y", "Z", "A", "B", "C"],
-        "default": "X",
-        "code": "an"
-      }
-    },
+    "type": "list",
+    "index": "0123",
+    "default": [
+      {"axis": "X"},
+      {"axis": "Y"},
+      {"axis": "Z"},
+      {"axis": "A", "power-mode" : "disabled"}
+    ],
+    "template": {
+      "general": {
+        "axis": {
+          "type": "enum",
+          "values": ["X", "Y", "Z", "A", "B", "C"],
+          "default": "X",
+          "code": "an"
+        }
+      },
 
-    "power": {
-      "power-mode": {
-        "type": "enum",
-        "values": ["disabled", "always-on", "in-cycle", "when-moving"],
-        "default": "when-moving",
-        "code": "pm"
+      "power": {
+        "power-mode": {
+          "type": "enum",
+          "values": ["disabled", "always-on", "in-cycle", "when-moving"],
+          "default": "when-moving",
+          "code": "pm"
+        },
+        "drive-current": {
+          "type": "float",
+          "min": 0,
+          "max": 8,
+          "unit": "amps",
+          "default": 1.5,
+          "code": "dc"
+        },
+        "idle-current": {
+          "type": "float",
+          "min": 0,
+          "max": 8,
+          "unit": "amps",
+          "default": 0,
+          "code": "ic"
+        }
       },
-      "drive-current": {
-        "type": "float",
-        "min": 0,
-        "max": 8,
-        "unit": "amps",
-        "default": 1.5,
-        "code": "dc"
-      },
-      "idle-current": {
-        "type": "float",
-        "min": 0,
-        "max": 8,
-        "unit": "amps",
-        "default": 0,
-        "code": "ic"
-      }
-    },
 
-    "motion": {
-      "reverse": {
-        "type": "bool",
-        "default": false,
-        "code": "rv"
+      "motion": {
+        "reverse": {
+          "type": "bool",
+          "default": false,
+          "code": "rv"
+        },
+        "microsteps": {
+          "type": "int",
+          "values": [1, 2, 4, 8, 16, 32, 64, 128],
+          "unit": "per full step",
+          "default": 32,
+          "code": "mi"
+        },
+        "max-velocity": {
+          "type": "float",
+          "min": 0,
+          "unit": "m/min",
+          "default": 5,
+          "code": "vm"
+        },
+        "max-accel": {
+          "type": "float",
+          "min": 0,
+          "unit": "km/min²",
+          "default": 10,
+          "code": "am"
+        },
+        "max-jerk": {
+          "type": "float",
+          "min": 0,
+          "unit": "km/min³",
+          "default": 50,
+          "code": "jm"
+        },
+        "step-angle": {
+          "type": "float",
+          "min": 0,
+          "max": 360,
+          "step": 0.1,
+          "unit": "degrees",
+          "default": 1.8,
+          "code": "sa"
+        },
+        "travel-per-rev": {
+          "type": "float",
+          "unit": "mm",
+          "default": 5,
+          "code": "tr"
+        }
       },
-      "microsteps": {
-        "type": "int",
-        "values": [1, 2, 4, 8, 16, 32, 64, 128],
-        "unit": "per full step",
-        "default": 32,
-        "code": "mi"
-      },
-      "max-velocity": {
-        "type": "float",
-        "min": 0,
-        "unit": "m/min",
-        "default": 5,
-        "code": "vm"
-      },
-      "max-accel": {
-        "type": "float",
-        "min": 0,
-        "unit": "km/min²",
-        "default": 10,
-        "code": "am"
-      },
-      "max-jerk": {
-        "type": "float",
-        "min": 0,
-        "unit": "km/min³",
-        "default": 50,
-        "code": "jm"
-      },
-      "step-angle": {
-        "type": "float",
-        "min": 0,
-        "max": 360,
-        "step": 0.1,
-        "unit": "degrees",
-        "default": 1.8,
-        "code": "sa"
-      },
-      "travel-per-rev": {
-        "type": "float",
-        "unit": "mm",
-        "default": 5,
-        "code": "tr"
-      }
-    },
 
-    "limits": {
-      "min-soft-limit": {
-        "type": "float",
-        "unit": "mm",
-        "default": 0,
-        "code": "tn"
+      "limits": {
+        "min-soft-limit": {
+          "type": "float",
+          "unit": "mm",
+          "default": 0,
+          "code": "tn"
+        },
+        "max-soft-limit": {
+          "type": "float",
+          "unit": "mm",
+          "default": 0,
+          "code": "tm"
+        },
+        "min-switch": {
+          "type": "enum",
+          "values": ["disabled", "normally-open", "normally-closed"],
+          "default": "disabled",
+          "code": "ls"
+        },
+        "max-switch": {
+          "type": "enum",
+          "values": ["disabled", "normally-open", "normally-closed"],
+          "default": "disabled",
+          "code": "xs"
+        }
       },
-      "max-soft-limit": {
-        "type": "float",
-        "unit": "mm",
-        "default": 0,
-        "code": "tm"
-      },
-      "min-switch": {
-        "type": "enum",
-        "values": ["disabled", "normally-open", "normally-closed"],
-        "default": "disabled",
-        "code": "ls"
-      },
-      "max-switch": {
-        "type": "enum",
-        "values": ["disabled", "normally-open", "normally-closed"],
-        "default": "disabled",
-        "code": "xs"
-      }
-    },
 
-    "homing": {
-      "homing-mode": {
-        "type": "enum",
-        "values": ["manual", "switch-min", "switch-max"],
-        "default": "manual",
-        "code": "ho"
-      },
-      "search-velocity": {
-        "type": "float",
-        "min": 0,
-        "unit": "m/min",
-        "default": 0.5,
-        "code": "sv"
-      },
-      "latch-velocity": {
-        "type": "float",
-        "min": 0,
-        "unit": "m/min",
-        "default": 0.1,
-        "code": "lv"
-      },
-      "latch-backoff": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm",
-        "default": 5,
-        "code": "lb"
-      },
-      "zero-backoff": {
-        "type": "float",
-        "min": 0,
-        "unit": "mm",
-        "default": 1,
-        "code": "zb"
+      "homing": {
+        "homing-mode": {
+          "type": "enum",
+          "values": ["manual", "switch-min", "switch-max"],
+          "default": "manual",
+          "code": "ho"
+        },
+        "search-velocity": {
+          "type": "float",
+          "min": 0,
+          "unit": "m/min",
+          "default": 0.5,
+          "code": "sv"
+        },
+        "latch-velocity": {
+          "type": "float",
+          "min": 0,
+          "unit": "m/min",
+          "default": 0.1,
+          "code": "lv"
+        },
+        "latch-backoff": {
+          "type": "float",
+          "min": 0,
+          "unit": "mm",
+          "default": 5,
+          "code": "lb"
+        },
+        "zero-backoff": {
+          "type": "float",
+          "min": 0,
+          "unit": "mm",
+          "default": 1,
+          "code": "zb"
+        }
       }
     }
   },
 
   "tool": {
-    "spindle-type": {
+    "tool-type": {
       "type": "enum",
-      "values": ["Disabled", "PWM", "Huanyang", "YL600"],
+      "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "VFD Test",
+                 "Custom Modbus VFD", "YL600 VFD", "AC-Tech VFD"],
       "default": "Disabled",
       "code": "st"
     },
-    "spin-reversed": {
+    "tool-reversed": {
       "type": "bool",
-      "default": "false",
+      "default": false,
       "code": "sr"
     },
     "max-spin": {
@@ -210,18 +221,46 @@
       "default": "None",
       "code": "ma"
     },
-    "stop-bits": {
-      "type": "enum",
-      "values": ["1", "2"],
-      "default": "1",
-      "code": "ms"
+    "regs": {
+      "type": "list",
+      "index": "0123456789abcdefghijklmnopqrstuv",
+      "default": [],
+      "template": {
+        "reg-type": {
+          "type": "enum",
+          "values": [
+            "disabled",
+            "connect-write",
+            "max-freq-read", "max-freq-fixed",
+            "freq-set", "freq-signed-set",
+            "stop-write", "forward-write", "reverse-write",
+            "freq-read", "freq-signed-read",
+            "disconnect-write"],
+          "default": "disabled",
+          "code": "vt"
+        },
+        "reg-addr": {
+          "type": "int",
+          "min": 0,
+          "max": 65535,
+          "default": 0,
+          "code": "va"
+        },
+        "reg-value": {
+          "type": "int",
+          "min": 0,
+          "max": 65535,
+          "default": 0,
+          "code": "vv"
+        }
+      }
     }
   },
 
   "pwm-spindle": {
     "pwm-inverted": {
       "type": "bool",
-      "default": "false",
+      "default": false,
       "code": "pi"
     },
     "pwm-min-duty": {
@@ -254,7 +293,7 @@
     "estop": {
       "type": "enum",
       "values": ["disabled", "normally-open", "normally-closed"],
-      "default": "normally-open",
+      "default": "disabled",
       "code": "et"
     },
     "probe": {

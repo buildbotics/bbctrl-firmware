@@ -98,10 +98,9 @@ typedef struct {
 } var_info_t;
 
 
-// Var names & help
-#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, HELP)      \
-  static const char NAME##_name[] PROGMEM = #NAME;          \
-  static const char NAME##_help[] PROGMEM = HELP;
+// Var names
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT)           \
+  static const char NAME##_name[] PROGMEM = #NAME;
 
 #include "vars.def"
 #undef VAR
@@ -308,30 +307,23 @@ stat_t vars_set(const char *name, const char *value) {
   if (!_find_var(name, &info)) return STAT_UNRECOGNIZED_NAME;
   if (!info.set.ptr) return STAT_READ_ONLY;
 
-  _set(info.type, info.index, info.set, type_parse(info.type, value));
+  stat_t status;
+  type_u x = type_parse(info.type, value, &status);
+  if (status == STAT_OK) _set(info.type, info.index, info.set, x);
 
-  return STAT_OK;
-}
-
-
-float vars_get_number(const char *name) {
-  var_info_t info;
-  if (!_find_var(name, &info)) return 0;
-  return type_to_float(info.type, _get(info.type, info.index, info.get));
+  return status;
 }
 
 
 void vars_print_json() {
   bool first = true;
   static const char fmt[] PROGMEM =
-    "\"%s\":{\"name\":\"%" PRPSTR "\",\"type\":\"%" PRPSTR "\","
-    "\"help\":\"%" PRPSTR "\"";
+    "\"%s\":{\"name\":\"%" PRPSTR "\",\"type\":\"%" PRPSTR "\"";
   static const char index_fmt[] PROGMEM = ",\"index\":\"%s\"";
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
   if (first) first = false; else putchar(',');                          \
-  printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm(),       \
-           NAME##_help);                                                \
+  printf_P(fmt, #CODE, NAME##_name, type_get_##TYPE##_name_pgm());      \
   IF(INDEX)(printf_P(index_fmt, INDEX##_LABEL));                        \
   putchar('}');
 #include "vars.def"
@@ -352,7 +344,9 @@ stat_t command_var(char *cmd) {
   char *value = strchr(cmd, '=');
   if (value) {
     *value++ = 0;
-    return vars_set(cmd, value);
+    stat_t status = vars_set(cmd, value);
+    value[-1] = '='; // For error reporting
+    return status;
   }
 
   return vars_print(cmd);
@@ -377,16 +371,17 @@ stat_t command_sync_var(char *cmd) {
   if (!_find_var(cmd + 1, &info)) return STAT_UNRECOGNIZED_NAME;
   if (!info.set.ptr) return STAT_READ_ONLY;
 
+  stat_t status;
   var_cmd_t buffer;
 
   buffer.type = info.type;
   buffer.index = info.index;
   buffer.set = info.set;
-  buffer.value = type_parse(info.type, value);
+  buffer.value = type_parse(info.type, value, &status);
 
-  command_push(*cmd, &buffer);
+  if (status == STAT_OK) command_push(*cmd, &buffer);
 
-  return STAT_OK;
+  return status;
 }
 
 

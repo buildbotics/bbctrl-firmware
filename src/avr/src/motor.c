@@ -55,6 +55,7 @@ typedef struct {
   TC0_t *timer;
   DMA_CH_t *dma;
   uint8_t dma_trigger;
+
   bool slave;
   uint16_t microsteps;           // microsteps per full step
   bool reverse;
@@ -286,7 +287,7 @@ void motor_load_move(int motor) {
 }
 
 
-void motor_prep_move(int motor, float time, float target) {
+void motor_prep_move(int motor, float target) {
   // Validate input
   ASSERT(0 <= motor && motor < MOTORS);
   ASSERT(isfinite(target));
@@ -314,7 +315,7 @@ void motor_prep_move(int motor, float time, float target) {
   if (m->negative) steps = -steps;
 
   // We use clock / 2
-  float seg_clocks = time * (F_CPU * 60 / 2);
+  float seg_clocks = SEGMENT_TIME * (F_CPU * 60 / 2);
   float ticks_per_step = round(seg_clocks / steps);
 
   // Limit clock if step rate is too fast, disable if too slow
@@ -336,7 +337,11 @@ void motor_prep_move(int motor, float time, float target) {
     m->power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
     break;
 
-  default: break;
+  default: // Disabled
+    m->timer_period = 0;
+    m->encoder = m->commanded = m->position;
+    m->error = 0;
+    break;
   }
   _update_power(motor);
 

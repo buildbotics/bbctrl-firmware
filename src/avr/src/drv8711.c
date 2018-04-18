@@ -29,7 +29,6 @@
 #include "status.h"
 #include "stepper.h"
 #include "switch.h"
-#include "report.h"
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -176,10 +175,8 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       case DRV8711_STATUS_REG:
         drv->status = spi.responses[driver];
 
-        if ((drv->status & drv->flags) != drv->status) {
+        if ((drv->status & drv->flags) != drv->status)
           drv->flags |= drv->status;
-          report_request();
-        }
         break;
 
       case DRV8711_OFF_REG:
@@ -510,6 +507,4 @@ void command_mreset(int argc, char *argv[]) {
     int driver = atoi(argv[1]);
     if (driver < DRIVERS) drivers[driver].flags = 0;
   }
-
-  report_request();
 }

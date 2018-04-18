@@ -25,22 +25,25 @@
 
 \******************************************************************************/
 
-CMD('$', var,       0, "Set or get variable")
-CMD('#', sync_var,  1, "Set variable synchronous")
-CMD('s', seek,      1, "[switch][flags:active|error]")
-CMD('a', set_axis,  1, "[axis][position] Set axis position")
-CMD('l', line,      1, "[targetVel][maxJerk][axes][times]")
-CMD('I', input,     1, "[a|d][port][mode][timeout] Read input")
-CMD('d', dwell,     1, "[seconds]")
-CMD('P', pause,     1, "[type] Pause control")
-CMD('S', stop,      0, "Stop move, spindle and load outputs")
-CMD('U', unpause,   0, "Unpause")
-CMD('j', jog,       0, "[axes]")
-CMD('r', report,    0, "<0|1>[var] Enable or disable var reporting")
-CMD('R', reboot,    0, "Reboot the controller")
-CMD('c', resume,    0, "Continue processing after a flush")
-CMD('E', estop,     0, "Emergency stop")
-CMD('C', clear,     0, "Clear estop")
-CMD('F', flush,     0, "Flush command queue")
-CMD('D', dump,      0, "Report all variables")
-CMD('h', help,      0, "Print this help screen")
+//(CODE, NAME,      SYNC)
+CMD('$', var,          0) // Set or get variable
+CMD('#', sync_var,     1) // Set variable synchronous
+CMD('m', modbus_read,  1) // [addr]
+CMD('M', modbus_write, 1) // [addr][value]
+CMD('s', seek,         1) // [switch][flags:active|error]
+CMD('a', set_axis,     1) // [axis][position] Set axis position
+CMD('l', line,         1) // [targetVel][maxJerk][axes][times]
+CMD('I', input,        1) // [a|d][port][mode][timeout] Read input
+CMD('d', dwell,        1) // [seconds]
+CMD('P', pause,        1) // [type] Pause control
+CMD('S', stop,         0) // Stop move, spindle and load outputs
+CMD('U', unpause,      0) // Unpause
+CMD('j', jog,          0) // [axes]
+CMD('r', report,       0) // <0|1>[var] Enable or disable var reporting
+CMD('R', reboot,       0) // Reboot the controller
+CMD('c', resume,       0) // Continue processing after a flush
+CMD('E', estop,        0) // Emergency stop
+CMD('C', clear,        0) // Clear estop
+CMD('F', flush,        0) // Flush command queue
+CMD('D', dump,         0) // Report all variables
+CMD('h', help,         0) // Print this help screen

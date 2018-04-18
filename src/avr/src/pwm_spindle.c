@@ -120,7 +120,7 @@ void pwm_spindle_init() {
 }
 
 
-void pwm_spindle_deinit() {
+void pwm_spindle_deinit(deinit_cb_t cb) {
   _set_enable(false);
 
   // Float PWM output pin
@@ -128,6 +128,8 @@ void pwm_spindle_deinit() {
 
   // Disable clock
   TIMER_PWM.CTRLA = 0;
+
+  cb();
 }
 
 

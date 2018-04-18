@@ -30,6 +30,21 @@
 #include <stdbool.h>
 
 
+typedef enum {
+  SPINDLE_TYPE_DISABLED,
+  SPINDLE_TYPE_PWM,
+  SPINDLE_TYPE_HUANYANG,
+  SPINDLE_TYPE_TEST,
+  SPINDLE_TYPE_CUSTOM,
+  SPINDLE_TYPE_YL600,
+  SPINDLE_TYPE_AC_TECH,
+} spindle_type_t;
+
+
+typedef void (*deinit_cb_t)();
+
+
+spindle_type_t spindle_get_type();
 void spindle_set_speed(float speed);
 float spindle_get_speed();
 void spindle_stop();

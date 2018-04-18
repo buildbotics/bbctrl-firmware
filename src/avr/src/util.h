@@ -69,6 +69,7 @@ int8_t decode_hex_nibble(char c);
 bool decode_float(char **s, float *f);
 stat_t decode_axes(char **cmd, float axes[AXES]);
 void format_hex_buf(char *buf, const uint8_t *data, unsigned len);
+void print_vector(float v[4]);
 
 // Constants
 #define MM_PER_INCH 25.4

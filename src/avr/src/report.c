@@ -30,28 +30,25 @@
 #include "usart.h"
 #include "rtc.h"
 #include "vars.h"
-#include "pgmspace.h"
-
-#include <stdio.h>
-#include <stdbool.h>
 
 
-static bool _requested = false;
 static bool _full = false;
 static uint32_t _last = 0;
 
 
-void report_request() {_requested = true;}
-void report_request_full() {_requested = _full = true;}
+void report_request_full() {_full = true;}
 
 
 void report_callback() {
-  if (_requested && usart_tx_empty()) {
-    uint32_t now = rtc_get_time();
-    if (now - _last < 250) return;
-    _last = now;
+  // Wait until output buffer is empty
+  if (!usart_tx_empty()) return;
 
-    vars_report(_full);
-    _requested = _full = false;
-  }
+  // Limit frequency
+  uint32_t now = rtc_get_time();
+  if (now - _last < REPORT_RATE) return;
+  _last = now;
+
+  // Report vars
+  vars_report(_full);
+  _full = false;
 }

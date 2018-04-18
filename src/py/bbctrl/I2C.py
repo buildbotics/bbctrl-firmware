@@ -65,7 +65,7 @@ class I2C(object):
             raise e
 
 
-    def write(self, addr, cmd, byte = None, word = None):
+    def write(self, addr, cmd, byte = None, word = None, block = None):
         self.connect()
 
         try:
@@ -74,6 +74,10 @@ class I2C(object):
 
             elif word is not None:
                 self.i2c_bus.write_word_data(addr, cmd, word)
+
+            elif block is not None:
+                if isinstance(block, str): block = list(map(ord, block))
+                self.i2c_bus.write_i2c_block_data(addr, cmd, block)
 
             else: self.i2c_bus.write_byte(addr, cmd)
 

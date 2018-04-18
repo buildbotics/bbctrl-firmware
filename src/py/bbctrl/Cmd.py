@@ -35,25 +35,27 @@ import logging
 log = logging.getLogger('Cmd')
 
 # Keep this in sync with AVR code command.def
-SET       = '$'
-SET_SYNC  = '#'
-SEEK      = 's'
-SET_AXIS  = 'a'
-LINE      = 'l'
-INPUT     = 'I'
-DWELL     = 'd'
-PAUSE     = 'P'
-STOP      = 'S'
-UNPAUSE   = 'U'
-JOG       = 'j'
-REPORT    = 'r'
-REBOOT    = 'R'
-RESUME    = 'c'
-ESTOP     = 'E'
-CLEAR     = 'C'
-FLUSH     = 'F'
-DUMP      = 'D'
-HELP      = 'h'
+SET          = '$'
+SET_SYNC     = '#'
+MODBUS_READ  = 'm'
+MODBUS_WRITE = 'M'
+SEEK         = 's'
+SET_AXIS     = 'a'
+LINE         = 'l'
+INPUT        = 'I'
+DWELL        = 'd'
+PAUSE        = 'P'
+STOP         = 'S'
+UNPAUSE      = 'U'
+JOG          = 'j'
+REPORT       = 'r'
+REBOOT       = 'R'
+RESUME       = 'c'
+ESTOP        = 'E'
+CLEAR        = 'C'
+FLUSH        = 'F'
+DUMP         = 'D'
+HELP         = 'h'
 
 SEEK_ACTIVE = 1 << 0
 SEEK_ERROR  = 1 << 1
@@ -79,7 +81,22 @@ def encode_axes(axes):
     return data
 
 
-def set(name, value): return '#%s=%s' % (name, value)
+def set_sync(name, value):
+    if isinstance(value, float): return set_float(name, value)
+    else: return SET_SYNC + '%s=%s' % (name, value)
+
+
+def set(name, value):
+    if isinstance(value, float): return set_float(name, value)
+    else: return SET + '%s=%s' % (name, value)
+
+
+def set_float(name, value):
+    return SET_SYNC + '%s=:%s' % (name, encode_float(value))
+
+
+def modbus_read(addr): return MODBUS_READ + '%d' % addr
+def modbus_write(addr, value): return MODBUS_WRITE + '%d=%d' % (addr, value)
 def set_axis(axis, position): return SET_AXIS + axis + encode_float(position)
 
 

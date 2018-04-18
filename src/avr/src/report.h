@@ -30,6 +30,5 @@
 
 #include "status.h"
 
-void report_request();
 void report_request_full();
 void report_callback();

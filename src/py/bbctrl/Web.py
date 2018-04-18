@@ -289,6 +289,16 @@ class OverrideSpeedHandler(bbctrl.APIHandler):
     def put_ok(self, value): self.ctrl.mach.override_speed(float(value))
 
 
+class ModbusReadHandler(bbctrl.APIHandler):
+    def put_ok(self): self.ctrl.mach.modbus_read(int(self.json['address']))
+
+
+class ModbusWriteHandler(bbctrl.APIHandler):
+    def put_ok(self):
+        self.ctrl.mach.modbus_write(int(self.json['address']),
+                                    int(self.json['value']))
+
+
 class JogHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.mach.jog(self.json)
 
@@ -388,6 +398,8 @@ class Web(tornado.web.Application):
             (r'/api/position/([xyzabcXYZABC])', PositionHandler),
             (r'/api/override/feed/([\d.]+)', OverrideFeedHandler),
             (r'/api/override/speed/([\d.]+)', OverrideSpeedHandler),
+            (r'/api/modbus/read', ModbusReadHandler),
+            (r'/api/modbus/write', ModbusWriteHandler),
             (r'/api/jog', JogHandler),
             (r'/api/video/reload', VideoReloadHandler),
             (r'/(.*)', StaticFileHandler,
