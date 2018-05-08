@@ -183,9 +183,9 @@ enum {
 
 
 // Modbus settings
-#define MODBUS_TIMEOUT           50  // ms. response timeout
+#define MODBUS_TIMEOUT           100 // ms. response timeout
 #define MODBUS_RETRIES           4   // Number of retries before failure
-#define MODBUS_BUF_SIZE          8   // Max bytes in rx/tx buffers
+#define MODBUS_BUF_SIZE          18  // Max bytes in rx/tx buffers
 #define VFD_QUERY_DELAY          100 // ms
 
 // Serial settings

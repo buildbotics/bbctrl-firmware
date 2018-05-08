@@ -211,7 +211,10 @@ ISR(RS485_TXC_vect) {
 
 /// Data received interrupt
 ISR(RS485_RXC_vect) {
-  state.response[state.bytes++] = RS485_PORT.DATA;
+  state.response[state.bytes] = RS485_PORT.DATA;
+
+  // Ignore leading zeros
+  if (state.bytes || state.response[0]) state.bytes++;
 
   if (state.bytes == state.response_length) {
     _set_rxc_interrupt(false);
@@ -223,8 +226,10 @@ ISR(RS485_RXC_vect) {
 
 
 static void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
-  if (func == MODBUS_READ_OUTPUT_REG && bytes == 3 && data[0] == 2) {
-    if (state.rw_cb) state.rw_cb(true, state.addr, _read_word(data, false));
+  if (func == MODBUS_READ_OUTPUT_REG && data[0] == bytes - 1) {
+    if (state.rw_cb)
+      for (uint8_t i = 0; i < bytes >> 1; i++)
+        state.rw_cb(true, state.addr + i, _read_word(data + i * 2 + 1, false));
     return;
   }
 
@@ -379,12 +384,13 @@ void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
 }
 
 
-void modbus_read(uint16_t addr, modbus_rw_cb_t cb) {
+void modbus_read(uint16_t addr, uint16_t count, modbus_rw_cb_t cb) {
   state.rw_cb = cb;
   state.addr = addr;
-  uint8_t cmd[4] = {0, 0, 0, 1};
+  uint8_t cmd[4];
   _write_word(cmd, addr, false);
-  modbus_func(MODBUS_READ_OUTPUT_REG, 4, cmd, 3, _read_cb);
+  _write_word(cmd + 2, count, false);
+  modbus_func(MODBUS_READ_OUTPUT_REG, 4, cmd, 2 * count + 1, _read_cb);
 }
 
 

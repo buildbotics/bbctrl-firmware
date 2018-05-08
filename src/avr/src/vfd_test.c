@@ -106,7 +106,7 @@ void command_modbus_read_exec(void *data) {
   uint16_t addr = *(uint16_t *)data;
 
   vt.waiting = true;
-  modbus_read(addr, _modbus_rw_cb);
+  modbus_read(addr, 1, _modbus_rw_cb);
   exec_set_cb(_modbus_cmd_exec);
 }
 

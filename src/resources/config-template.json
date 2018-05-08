@@ -164,7 +164,7 @@
     "tool-type": {
       "type": "enum",
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "VFD Test",
-                 "Custom Modbus VFD", "YL600 VFD", "AC-Tech VFD"],
+                 "Custom Modbus VFD", "YL600 VFD", "AC-Tech VFD", "FR-D700"],
       "default": "Disabled",
       "code": "st"
     },
@@ -234,7 +234,7 @@
             "max-freq-read", "max-freq-fixed",
             "freq-set", "freq-signed-set",
             "stop-write", "forward-write", "reverse-write",
-            "freq-read", "freq-signed-read",
+            "freq-read", "freq-signed-read", "freq-actech-read",
             "disconnect-write"],
           "default": "disabled",
           "code": "vt"

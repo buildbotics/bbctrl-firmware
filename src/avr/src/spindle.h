@@ -38,6 +38,7 @@ typedef enum {
   SPINDLE_TYPE_CUSTOM,
   SPINDLE_TYPE_YL600,
   SPINDLE_TYPE_AC_TECH,
+  SPINDLE_TYPE_FR_D700,
 } spindle_type_t;
 
 
