@@ -25,14 +25,10 @@
 #                                                                              #
 ################################################################################
 
-import logging
-
 try:
     import smbus
 except:
     import smbus2 as smbus
-
-log = logging.getLogger('I2C')
 
 
 class I2C(object):
@@ -48,8 +44,7 @@ class I2C(object):
 
             except OSError as e:
                 self.i2c_bus = None
-                log.info('Failed to open device: %s', e)
-                raise e
+                raise type(e)('I2C failed to open device: %s' % e)
 
 
     def read_word(self, addr):
@@ -59,10 +54,9 @@ class I2C(object):
             return self.i2c_bus.read_word_data(addr, 0)
 
         except IOError as e:
-            log.info('I2C read word failed: %s' % e)
             self.i2c_bus.close()
             self.i2c_bus = None
-            raise e
+            raise type(e)('I2C read word failed: %s' % e)
 
 
     def write(self, addr, cmd, byte = None, word = None, block = None):
@@ -82,7 +76,6 @@ class I2C(object):
             else: self.i2c_bus.write_byte(addr, cmd)
 
         except IOError as e:
-            log.info('I2C write failed: %s' % e)
             self.i2c_bus.close()
             self.i2c_bus = None
-            raise e
+            raise type(e)('I2C write failed: %s' % e)

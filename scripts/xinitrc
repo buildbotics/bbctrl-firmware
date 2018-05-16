@@ -1,0 +1,10 @@
+ratpoison &
+
+xset -dpms
+xset s off
+xset s noblank
+
+while true; do
+  chromium-browser http://localhost/ \
+    --user-data-dir=/tmp/browse --no-first-run
+done

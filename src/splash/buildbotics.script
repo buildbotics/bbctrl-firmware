@@ -1,0 +1,32 @@
+screenW = Window.GetWidth();
+screenH = Window.GetHeight();
+
+image = Image("splash.png");
+imageW = image.GetWidth();
+imageH = image.GetHeight();
+
+scaleX = imageW / screenW;
+scaleY = imageH / screenH;
+
+flag = 1;
+
+if (scaleX > 1 || scaleY > 1) {
+  if (scaleX > scaleY) {
+    resized = image.Scale(screenW, imageH / scaleX);
+    imageX = 0;
+    imageY = (screenH - ((imageH  * screenW) / imageW)) / 2;
+
+  } else {
+    resized = image.Scale(imageW / scaleY, screenH);
+    imageX = (screenW - ((imageW  * screenH) / imageH)) / 2;
+    imageY = 0;
+  }
+
+} else {
+  resized = image.Scale(imageW, imageH);
+  imageX = (screenW - imageW) / 2;
+  imageY = (screenH - imageH) / 2;
+}
+
+sprite = Sprite(resized);
+sprite.SetPosition(imageX, imageY, -100);

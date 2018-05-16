@@ -130,13 +130,14 @@ class Pwr():
                 if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
-            self.failures += 1
-            msg = 'Pwr communication failed: %s' % e
-            if self.failures != 5: log.info(msg)
-            else:
-                log.warning(msg)
-                self.failures = 0
-            return
+            if i < 6: # Older pwr firmware does not have regs > 5
+                self.failures += 1
+                msg = 'Pwr communication failed: %s' % e
+                if self.failures != 5: log.info(msg)
+                else:
+                    log.warning(msg)
+                    self.failures = 0
+                return
 
         self.lcd_page.text('%3dC   Tmp' % self.regs[TEMP_REG],  0, 0)
         self.lcd_page.text('%5.1fV  In' % self.regs[VIN_REG],   0, 1)

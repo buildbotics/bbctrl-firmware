@@ -93,7 +93,7 @@ class Mach(Comm):
             self.ctrl.state.set('cycle', cycle)
 
         else:
-            raise Exception('Cannot enter %s cycle during %s' %
+            raise Exception('Cannot enter %s cycle while in %s cycle' %
                             (cycle, current))
 
 

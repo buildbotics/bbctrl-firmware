@@ -9,7 +9,8 @@ apt-get dist-upgrade -y
 
 # Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
-  i2c-tools python3-rpi.gpio libjpeg8 wiringpi
+  i2c-tools python3-rpi.gpio libjpeg8 wiringpi dnsmasq hostapd \
+  iptables-persistent chromium-browser xorg rpd-plym-splash
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
@@ -55,10 +56,8 @@ adduser hawkeye video
 
 # Disable HDMI to save power and remount /boot read-only
 sed -i 's/^exit 0$//' /etc/rc.local
-echo "/usr/bin/tvservice -o" >> /etc/rc.local
 echo "mount -o remount,ro /boot" >> /etc/rc.local
 echo "gpio mode 27 alt3" >> /etc/rc.local # Enable serial CTS on pin 27
-echo "exit 0" >> /etc/rc.local
 
 # Dynamic clock to save power
 echo -e "\n# Dynamic clock\nnohz=on" >> /boot/config.txt
@@ -66,12 +65,37 @@ echo -e "\n# Dynamic clock\nnohz=on" >> /boot/config.txt
 # Shave 2 sec off of boot time
 echo -e "\n# Faster boot\ndtparam=sd_overclock=100" >> /boot/config.txt
 
-# TODO Forward 80 -> 8080 and moving bbctrl Web port
-
 # Enable ssh
 touch /boot/ssh
 
+# Fix boot
+sed -i 's/ root=[^ ]* / root=\/dev\/mmcblk0p2/' /boot/cmdline.txt
+sed -i 's/^PARTUUID=.*\/boot/\/dev\/mmcblk0p1 \/boot/' /etc/fstab
+sed -i 's/^PARTUUID=.*\//\/dev\/mmcblk0p2 \//' /etc/fstab
+
+# Enable browser in xorg
+sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
+echo "sudo -u pi startx" >> /etc/rc.local
+cp /mnt/host/xinitrc /home/pi/.xinitrc
+
+# Set screen resolution
+sed -i 's/^#disable_overscan/disable_overscan/' /boot/config.txt
+sed -i 's/^#framebuffer_/framebuffer_/' /boot/config.txt
+
+# Boot splash
+mkdir -p /usr/share/plymouth/themes/buildbotics/
+cp -av /mnt/host/splash/* /usr/share/plymouth/themes/buildbotics/
+echo -n " quiet splash logo.nologo plymouth.ignore-serial-consoles" >> /boot/cmdline.txt
+plymouth-set-default-theme -R buildbotics
+
 # Install bbctrl
-tar xf bbctrl-*.tar.bz2
+tar xf /mnt/host/bbctrl-*.tar.bz2
 cd $(basename bbctrl-*.tar.bz2 .tar.bz2)
 ./setup.py install
+cd ..
+rm -rf $(basename bbctrl-*.tar.bz2 .tar.bz2)
+
+
+# Clean up
+apt-get autoremove -y
+apt-get autoclean -y

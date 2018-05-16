@@ -1,10 +1,15 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.3.24
+ -
+
 ## v0.3.23
  - Fix for modbus read operation.
  - Finalized AC-Tech VFD support.
  - Preliminary FR-D700 VFD support.
+ - Ignore leading zeros in modbus messages.
+ - Handle older PWR firmwares.
 
 ## v0.3.22
  - Fix position loss after program pause.  #130
