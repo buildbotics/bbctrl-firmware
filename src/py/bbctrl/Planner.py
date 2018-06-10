@@ -100,8 +100,16 @@ class Planner():
             }
 
         if with_limits:
-            config['min-soft-limit'] = self._get_soft_limit('tn', -math.inf)
-            config['max-soft-limit'] = self._get_soft_limit('tm', math.inf)
+            minLimit = self._get_soft_limit('tn', -math.inf)
+            maxLimit = self._get_soft_limit('tm', math.inf)
+
+            # If max <= min then no limit
+            for axis in 'xyzabc':
+                if maxLimit[axis] <= minLimit[axis]:
+                    minLimit[axis], maxLimit[axis] = -math.inf, math.inf
+
+            config['min-soft-limit'] = minLimit
+            config['max-soft-limit'] = maxLimit
 
         if not mdi:
             program_start = self.ctrl.config.get('program-start')

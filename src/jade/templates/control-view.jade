@@ -79,8 +79,12 @@ script#control-view-template(type="text/x-template")
                 button.pure-button(@click="position_msg['#{axis}'] = false")
                   | Cancel
 
+                button.pure-button(v-if="is_homed('#{axis}')",
+                  @click="unhome('#{axis}')") Unhome
+
                 button.pure-button.button-success(
                   @click="set_position('#{axis}', axis_position)") Set
+
 
             message(:show.sync="manual_home['#{axis}']")
               h3(slot="header") Manually home {{'#{axis}' | upper}} axis

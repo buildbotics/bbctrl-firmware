@@ -209,9 +209,7 @@ class Mach(Comm):
     def home(self, axis, position = None):
         state = self.ctrl.state
 
-        if position is not None:
-            self.mdi('G28.3 %c%f' % (axis, position))
-            super().resume()
+        if position is not None: self.mdi('G28.3 %c%f' % (axis, position))
 
         else:
             self._begin_cycle('homing')
@@ -238,7 +236,9 @@ class Mach(Comm):
                 # Home axis
                 log.info('Homing %s axis' % axis)
                 self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
-                super().resume()
+
+
+    def unhome(self, axis): self.mdi('G28.2 %c0' % axis)
 
 
     def estop(self): super().estop()

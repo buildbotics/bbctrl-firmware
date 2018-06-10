@@ -77,6 +77,8 @@ sed -i 's/^PARTUUID=.*\//\/dev\/mmcblk0p2 \//' /etc/fstab
 sed -i 's/allowed_users=console/allowed_users=anybody/' /etc/X11/Xwrapper.config
 echo "sudo -u pi startx" >> /etc/rc.local
 cp /mnt/host/xinitrc /home/pi/.xinitrc
+cp /mnt/host/ratpoisonrc /home/pi/.ratpoisonrc
+cp /mnt/host/xorg.conf /etc/X11/
 
 # Set screen resolution
 sed -i 's/^#disable_overscan/disable_overscan/' /boot/config.txt
@@ -95,6 +97,9 @@ cd $(basename bbctrl-*.tar.bz2 .tar.bz2)
 cd ..
 rm -rf $(basename bbctrl-*.tar.bz2 .tar.bz2)
 
+
+# Allow any user to shutdown
+chmod +s /sbin/{halt,reboot,shutdown,poweroff}
 
 # Clean up
 apt-get autoremove -y

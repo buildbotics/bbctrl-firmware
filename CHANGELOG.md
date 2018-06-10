@@ -2,7 +2,9 @@ Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
 ## v0.3.24
- -
+ - Added unhome button on axis position popup.
+ - Ignore soft limits of max <= min.
+ - Fixed problem with restarting program in imperial units mode.
 
 ## v0.3.23
  - Fix for modbus read operation.

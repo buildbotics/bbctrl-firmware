@@ -232,15 +232,16 @@ class UpgradeHandler(bbctrl.APIHandler):
 
 
 class HomeHandler(bbctrl.APIHandler):
-    def put_ok(self, axis, set_home):
+    def put_ok(self, axis, action, *args):
         if axis is not None: axis = ord(axis[1:2].lower())
 
-        if set_home:
+        if action == '/set':
             if not 'position' in self.json:
                 raise HTTPError(400, 'Missing "position"')
 
             self.ctrl.mach.home(axis, self.json['position'])
 
+        elif action == '/clear': self.ctrl.mach.unhome(axis)
         else: self.ctrl.mach.home(axis)
 
 
@@ -386,7 +387,7 @@ class Web(tornado.web.Application):
             (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/.+)?', bbctrl.FileHandler),
-            (r'/api/home(/[xyzabcXYZABC](/set)?)?', HomeHandler),
+            (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
             (r'/api/start', StartHandler),
             (r'/api/estop', EStopHandler),
             (r'/api/clear', ClearHandler),

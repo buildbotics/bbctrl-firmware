@@ -280,6 +280,12 @@ module.exports = {
     },
 
 
+    unhome: function (axis) {
+      this.position_msg[axis] = false;
+      api.put('home/' + axis + '/clear');
+    },
+
+
     show_set_position: function (axis) {
       this.axis_position = 0;
       this.position_msg[axis] = true;
