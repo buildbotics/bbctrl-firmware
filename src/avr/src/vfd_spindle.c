@@ -29,6 +29,7 @@
 #include "modbus.h"
 #include "rtc.h"
 #include "config.h"
+#include "estop.h"
 #include "pgmspace.h"
 
 #include <string.h>
@@ -156,7 +157,7 @@ static bool _next_state() {
     break;
 
   case REG_FREQ_ACTECH_READ:
-    if (vfd.shutdown) vfd.state = REG_DISCONNECT_WRITE;
+    if (vfd.shutdown || estop_triggered()) vfd.state = REG_DISCONNECT_WRITE;
 
     else if (vfd.changed) {
       // Update frequency and state
@@ -210,7 +211,7 @@ static void _connect() {
 static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
   // Handle error
   if (!ok) {
-    if (vfd.shutdown) _disconnected();
+    if (vfd.shutdown || estop_triggered()) _disconnected();
     else _connect();
     return;
   }

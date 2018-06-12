@@ -6,6 +6,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Ignore soft limits of max <= min.
  - Fixed problem with restarting program in imperial units mode.
  - Handle GCode with infinite or very long loops correctly.
+ - Fixed Huanyang spindle restart after stop.
 
 ## v0.3.23
  - Fix for modbus read operation.

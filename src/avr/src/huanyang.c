@@ -28,6 +28,7 @@
 #include "huanyang.h"
 #include "config.h"
 #include "modbus.h"
+#include "estop.h"
 
 #include <string.h>
 #include <math.h>
@@ -175,7 +176,7 @@ static void _next_command();
 
 
 static bool _shutdown() {
-  if (!hy.shutdown) return false;
+  if (!hy.shutdown && !estop_triggered()) return false;
   modbus_deinit();
   if (hy.deinit_cb) hy.deinit_cb();
   return true;
@@ -232,7 +233,7 @@ static void _next_command() {
   switch (hy.state) {
   case 0: { // Update direction
     hy_ctrl_state_t state = HUANYANG_STOP;
-    if (!hy.shutdown) {
+    if (!hy.shutdown && !estop_triggered()) {
       if (0 < hy.speed)
         state = (hy_ctrl_state_t)(HUANYANG_RUN | HUANYANG_FORWARD);
       else if (hy.speed < 0)
@@ -286,12 +287,7 @@ void huanyang_set(float speed) {
 
 
 float huanyang_get() {return hy.actual_freq / hy.max_freq;}
-
-
-void huanyang_stop() {
-  huanyang_set(0);
-  hy.shutdown = true;
-}
+void huanyang_stop() {huanyang_set(0);}
 
 
 float get_hy_freq() {return hy.actual_freq;}
