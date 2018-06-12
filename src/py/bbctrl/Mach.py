@@ -236,6 +236,7 @@ class Mach(Comm):
                 # Home axis
                 log.info('Homing %s axis' % axis)
                 self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
+                super().resume()
 
 
     def unhome(self, axis): self.mdi('G28.2 %c0' % axis)
