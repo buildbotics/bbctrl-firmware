@@ -201,6 +201,12 @@ class State(object):
         if mode == 'switch-max' and not int(self.get(axis + '_xs')):
             return 'Configured for max switch but switch is disabled'
 
+        softMin = int(self.get(axis + '_tn'))
+        softMax = int(self.get(axis + '_tm'))
+        if softMax <= softMin + 1:
+            return 'max-soft-limit must be at least 1mm greater ' \
+                'than min-soft-limit'
+
 
     def motor_enabled(self, motor):
         return bool(int(self.vars.get('%dpm' % motor, 0)))

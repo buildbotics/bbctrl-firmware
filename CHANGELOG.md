@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.3.25
+ - Error on home if max-soft-limit <= min-soft-limit + 1. #139
+
 ## v0.3.24
  - Added unhome button on axis position popup.
  - Ignore soft limits of max <= min.
