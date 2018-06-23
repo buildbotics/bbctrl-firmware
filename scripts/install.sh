@@ -30,6 +30,10 @@ if [ $? -ne 0 ]; then
     mount -o remount,ro /boot
 fi
 
+# Decrease boot delay
+sed -i 's/^TimeoutStartSec=.*$/TimeoutStartSec=1/' \
+    /etc/systemd/system/network-online.target.wants/networking.service
+
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force
