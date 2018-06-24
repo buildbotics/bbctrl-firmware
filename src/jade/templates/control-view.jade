@@ -121,7 +121,10 @@ script#control-view-template(type="text/x-template")
         td
       tr(title="Currently active machine units")
         th Units
-        td {{state.imperial ? 'IMPERIAL' : 'METRIC'}}
+        td.mach_units
+          select(v-model="mach_units", :disabled="!can_mdi")
+            option(value="METRIC") METRIC
+            option(value="IMPERIAL") IMPERIAL
         td
       tr
         th Feed
@@ -191,8 +194,8 @@ script#control-view-template(type="text/x-template")
       input#tab6(type="radio", name="tabs", @click="load_video")
       label(for="tab6") Video
 
-      section#content1.tab-content
-        .toolbar
+      section#content1.tab-content.pure-form
+        .toolbar.pure-control-group
           button.pure-button(
             title="{{is_running ? 'Pause' : 'Start'}} program.",
             @click="start_pause", :disabled="!state.selected")

@@ -1,8 +1,3 @@
-//-/////////////////////////////////////////////////////////////////////////////
-//-                                                                           //
-//-              This file is part of the Buildbotics firmware.               //
-//-                                                                           //
-//-                Copyright (c) 2015 - 2018, Buildbotics LLC                 //
 //-                           All rights reserved.                            //
 //-                                                                           //
 //-   This file ("the software") is free software: you can redistribute it    //
@@ -25,11 +20,22 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#gcode-view-template(type="text/x-template")
-  #gcode
-    h1 GCode Configuration
+script#settings-view-template(type="text/x-template")
+  #settings
+    h1 Settings
 
-    form.pure-form.pure-form-aligned
+    .pure-form.pure-form-aligned
       fieldset
+        h2 Units
+        templated-input(name="units", :model.sync="config.settings.units",
+          :template="template.settings.units")
+
+        p
+          | Note, <tt>units</tt> sets both the machine default units and the
+          | units used in motor configuration.  GCode <tt>program-start</tt>,
+          | set below, may also change the default machine units.
+
+      fieldset
+        h2 GCode
         templated-input(v-for="templ in template.gcode", :name="$key",
           :model.sync="config.gcode[$key]", :template="templ")

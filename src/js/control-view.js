@@ -48,6 +48,7 @@ module.exports = {
 
   data: function () {
     return {
+      mach_units: 'METRIC',
       mdi: '',
       files: [],
       axes: 'xyzabc',
@@ -71,6 +72,17 @@ module.exports = {
 
 
   watch: {
+    'state.imperial': function (imperial) {
+      this.mach_units = imperial ? 'IMPERIAL' : 'METRIC';
+    },
+
+
+    mach_units: function (units) {
+      if ((units == 'METRIC') != this.metric)
+        this.send(units == 'METRIC' ? 'G21' : 'G20');
+    },
+
+
     'state.line': function () {
       if (this.mach_state != 'HOMING')
         this.$broadcast('gcode-line', this.state.line);
@@ -82,7 +94,7 @@ module.exports = {
 
 
   computed: {
-    metric: function () {return this.$root.metric()},
+    metric: function () {return !this.state.imperial},
 
 
     mach_state: function () {

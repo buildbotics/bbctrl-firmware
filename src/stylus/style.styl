@@ -4,6 +4,11 @@ body
 [v-cloak]
   display none
 
+tt
+  color #000
+  background #eee
+  padding 2px
+
 .button-success:not([disabled])
   background-color #1cb841
 
@@ -114,7 +119,7 @@ span.unit
     top 50%
 
 #menu
-  .save, .units
+  .save
     display block
     margin 0.25em 0.6em
 
@@ -282,6 +287,17 @@ span.unit
 
     td:nth-child(3)
       text-align left
+
+    .mach_units
+      padding 0
+
+      select
+        width 100%
+        height 1.9em
+        background-color transparent
+        border 0
+        padding 3px
+        text-align right
 
   .info:nth-of-type(2)
     float left

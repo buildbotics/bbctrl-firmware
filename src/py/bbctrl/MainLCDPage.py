@@ -48,12 +48,16 @@ class MainLCDPage(bbctrl.LCDPage):
 
         self.text('%-9s' % state.get('xx', ''), 0, 0)
 
+        metric = not state.get('imperial', False)
+        scale = 1 if metric else 25.4
+
         # Show enabled axes
         row = 0
         for axis in 'xyzabc':
             if state.is_axis_enabled(axis):
                 position = state.get(axis + 'p', 0)
                 position += state.get('offset_' + axis, 0)
+                position /= scale
                 self.text('% 10.3f%s' % (position, axis.upper()), 9, row)
                 row += 1
 
@@ -62,8 +66,7 @@ class MainLCDPage(bbctrl.LCDPage):
             row += 1
 
         # Show tool, units, feed and speed
-        units = 'INCH' if state.get('imperial', False) else 'MM'
-        self.text('%2uT' % state.get('tool', 0), 6, 1)
-        self.text('%-6s' % units,                0, 1)
-        self.text('%8uF' % state.get('feed', 0), 0, 2)
-        self.text('%8dS' % state.get('speed',0), 0, 3)
+        self.text('%2uT' % state.get('tool',  0),           6, 1)
+        self.text('%-6s' % 'MM' if metric else 'INCH',      0, 1)
+        self.text('%8uF' % (state.get('feed',  0) / scale), 0, 2)
+        self.text('%8dS' % state.get('speed', 0),           0, 3)

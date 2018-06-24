@@ -29,7 +29,7 @@ script#motor-view-template(type="text/x-template")
   .motor(:class="{slave: is_slave}")
     h1 Motor {{index}} Configuration
 
-    form.pure-form.pure-form-aligned
+    .pure-form.pure-form-aligned
       fieldset(v-for="category in template.motors.template", :class="$key")
         h2 {{$key}}
 

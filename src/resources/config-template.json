@@ -358,7 +358,7 @@
   "gcode": {
     "program-start": {
       "type": "text",
-      "default": "(Runs at program start)\nG21 (Metric units)\nG90 (Absolute distance mode)\nG17 (Select XY plane)\n"
+      "default": "(Runs at program start)\nG90 (Absolute distance mode)\nG17 (Select XY plane)\n"
     },
     "tool-change": {
       "type": "text",

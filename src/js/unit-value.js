@@ -35,7 +35,7 @@ module.exports = {
 
 
   computed: {
-    metric: function () {return this.$root.metric()},
+    metric: function () {return !this.$root.state.imperial},
 
 
     text: function () {

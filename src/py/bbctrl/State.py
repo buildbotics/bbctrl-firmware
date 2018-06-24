@@ -46,7 +46,6 @@ class State(object):
         self.vars = {
             'line': -1,
             'tool': 0,
-            'units': 'METRIC',
             'feed': 0,
             'speed': 0,
         }
@@ -152,6 +151,11 @@ class State(object):
 
         # Indirectly configure mach via calls to config()
         self.ctrl.config.reload()
+
+        # Configure units
+        metric = self.ctrl.config.get('units') == 'METRIC'
+        self.set('metric', 1 if metric else 0)
+        self.set('imperial', 0 if metric else 1)
 
 
     def find_motor(self, axis):

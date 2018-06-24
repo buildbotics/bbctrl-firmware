@@ -29,7 +29,7 @@
 
 
 module.exports = {
-  template: '#gcode-view-template',
+  template: '#settings-view-template',
   props: ['config', 'template'],
 
 

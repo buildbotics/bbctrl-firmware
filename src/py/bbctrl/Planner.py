@@ -92,7 +92,9 @@ class Planner():
 
 
     def _get_config(self, mdi, with_limits):
+        metric = self.ctrl.state.get('metric', True)
         config = {
+            'default-units': 'METRIC' if metric else 'IMPERIAL',
             'max-vel':   self._get_config_vector('vm', 1000),
             'max-accel': self._get_config_vector('am', 1000000),
             'max-jerk':  self._get_config_vector('jm', 1000000),

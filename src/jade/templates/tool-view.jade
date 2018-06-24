@@ -29,31 +29,26 @@ script#tool-view-template(type="text/x-template")
   #tool
     h1 Tool Configuration
 
-    form.pure-form.pure-form-aligned
+    .pure-form.pure-form-aligned
       fieldset
         templated-input(v-for="templ in template.tool", :name="$key",
           :model.sync="config.tool[$key]", :template="templ",
           v-if="tool_type != 'DISABLED' || $key == 'tool-type'")
 
-    div(v-if="tool_type == 'PWM SPINDLE'")
-      h2 PWM Spindle
-      form.pure-form.pure-form-aligned
-        fieldset
-          templated-input(v-for="templ in template['pwm-spindle']",
-            :name="$key", :model.sync="config['pwm-spindle'][$key]",
-            :template="templ")
+      fieldset(v-if="tool_type == 'PWM SPINDLE'")
+        h2 PWM Spindle
+        templated-input(v-for="templ in template['pwm-spindle']",
+          :name="$key", :model.sync="config['pwm-spindle'][$key]",
+          :template="templ")
 
-    div(v-if="is_modbus")
-      h2 Modbus Configuration
-      form.pure-form.pure-form-aligned
-        fieldset
-          templated-input(v-for="templ in template['modbus-spindle']",
-            :name="$key", :model.sync="config['modbus-spindle'][$key]",
-            :template="templ", v-if="$key != 'regs'")
+      fieldset(v-if="is_modbus")
+        h2 Modbus Configuration
+        templated-input(v-for="templ in template['modbus-spindle']",
+          :name="$key", :model.sync="config['modbus-spindle'][$key]",
+          :template="templ", v-if="$key != 'regs'")
 
-    div(v-if="tool_type == 'VFD TEST'")
-      h2 Modbus Test
-      form.pure-form
+      fieldset(v-if="tool_type == 'VFD TEST'")
+        h2 Modbus Test
         table.modbus-regs
           tr
             th Address
@@ -68,9 +63,9 @@ script#tool-view-template(type="text/x-template")
               button.pure-button(@click="write") Write
             td.modbus-status {{modbus_status}}
 
-    div.modbus-program(v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
-      h2 Active Modbus Program
-      form.pure-form
+      fieldset.modbus-program(
+        v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
+        h2 Active Modbus Program
         table.modbus-regs.fixed-regs
           tr
             th Index
@@ -84,12 +79,11 @@ script#tool-view-template(type="text/x-template")
             td.reg-addr {{get_reg_addr(reg)}}
             td.reg-value {{get_reg_value(reg)}}
 
-      button.pure-button-secondary(@click="customize") Customize
-      button.pure-button-secondary(@click="clear") Clear
+        button.pure-button-secondary(@click="customize") Customize
+        button.pure-button-secondary(@click="clear") Clear
 
-    div(v-if="tool_type == 'CUSTOM MODBUS VFD'")
-      h2 Edit Modbus Program
-      form.pure-form
+      fieldset(v-if="tool_type == 'CUSTOM MODBUS VFD'")
+        h2 Edit Modbus Program
         table.modbus-regs
           tr
             th Index

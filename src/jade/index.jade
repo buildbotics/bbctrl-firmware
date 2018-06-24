@@ -60,14 +60,13 @@ html(lang="en")
         button.save.pure-button.button-success(:disabled="!modified",
           @click="save") Save
 
-        select.units(v-model="config.settings.units", @change="modified = true")
-          option(value="METRIC") Metric
-          option(value="IMPERIAL") Imperial
-
         .pure-menu
           ul.pure-menu-list
             li.pure-menu-heading
               a.pure-menu-link(href="#control") Control
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#settings") Settings
 
             li.pure-menu-heading
               a.pure-menu-link(href="#motor:0") Motors
@@ -80,9 +79,6 @@ html(lang="en")
 
             li.pure-menu-heading
               a.pure-menu-link(href="#io") I/O
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#gcode") Gcode
 
             li.pure-menu-heading
               a.pure-menu-link(href="#admin-general") Admin
