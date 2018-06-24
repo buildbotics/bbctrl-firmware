@@ -72,8 +72,11 @@ module.exports = {
 
 
   watch: {
-    'state.imperial': function (imperial) {
-      this.mach_units = imperial ? 'IMPERIAL' : 'METRIC';
+    'state.imperial': {
+      handler: function (imperial) {
+        this.mach_units = imperial ? 'IMPERIAL' : 'METRIC';
+      },
+      immediate: true
     },
 
 
