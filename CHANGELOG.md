@@ -5,6 +5,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Error on home if max-soft-limit <= min-soft-limit + 1. #139
  - Decrease boot time networking delay.
  - Default to US keyboard layout. #145
+ - Added configuration option to show metric or imperial units in browser. #74
 
 ## v0.3.24
  - Added unhome button on axis position popup.
