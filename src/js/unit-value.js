@@ -25,36 +25,34 @@
 
 \******************************************************************************/
 
-'use strict';
+'use strict'
 
 
-$(function() {
-  // Vue debugging
-  Vue.config.debug = true;
-  //Vue.util.warn = function (msg) {console.debug('[Vue warn]: ' + msg)}
+module.exports = {
+  replace: true,
+  template: '{{text}}<span class="unit">{{metric ? unit : iunit}}</span>',
+  props: ['value', 'precision', 'unit', 'iunit', 'scale'],
 
-  // Register global components
-  Vue.component('templated-input', require('./templated-input'));
-  Vue.component('message', require('./message'));
-  Vue.component('indicators', require('./indicators'));
-  Vue.component('console', require('./console'));
-  Vue.component('unit-value', require('./unit-value'));
 
-  Vue.filter('percent', function (value, precision) {
-    if (typeof precision == 'undefined') precision = 2;
-    return (value * 100.0).toFixed(precision) + '%';
-  });
+  computed: {
+    metric: function () {return this.$root.metric()},
 
-  Vue.filter('fixed', function (value, precision) {
-    if (typeof value == 'undefined') return '';
-    return parseFloat(value).toFixed(precision)
-  });
 
-  Vue.filter('upper', function (value) {
-    if (typeof value == 'undefined') return '';
-    return value.toUpperCase()
-  });
+    text: function () {
+      var value = this.value;
+      if (typeof value == 'undefined') return '';
 
-  // Vue app
-  require('./app');
-});
+      if (!this.metric) value /= this.scale;
+
+      return (1 * value.toFixed(this.precision)).toLocaleString();
+    }
+  },
+
+
+  ready: function () {
+    if (typeof this.precision == 'undefined') this.precision = 0;
+    if (typeof this.unit == 'undefined') this.unit = 'mm';
+    if (typeof this.iunit == 'undefined') this.iunit = 'in';
+    if (typeof this.scale == 'undefined') this.scale = 25.4;
+  }
+}

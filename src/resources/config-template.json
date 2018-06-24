@@ -1,4 +1,11 @@
 {
+  "settings": {
+    "units": {
+      "type": "enum",
+      "values": ["METRIC", "IMPERIAL"],
+      "default": "METRIC"
+    }
+  },
   "motors": {
     "type": "list",
     "index": "0123",
@@ -60,6 +67,8 @@
           "type": "float",
           "min": 0,
           "unit": "m/min",
+          "iunit": "IPM",
+          "scale": 0.0254,
           "default": 5,
           "code": "vm"
         },
@@ -67,6 +76,8 @@
           "type": "float",
           "min": 0,
           "unit": "km/min²",
+          "iunit": "g-force",
+          "scale": 35.304,
           "default": 10,
           "code": "am"
         },
@@ -74,6 +85,8 @@
           "type": "float",
           "min": 0,
           "unit": "km/min³",
+          "iunit": "g/min",
+          "scale": 35.304,
           "default": 50,
           "code": "jm"
         },
@@ -89,6 +102,8 @@
         "travel-per-rev": {
           "type": "float",
           "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
           "default": 5,
           "code": "tr"
         }
@@ -98,12 +113,16 @@
         "min-soft-limit": {
           "type": "float",
           "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
           "default": 0,
           "code": "tn"
         },
         "max-soft-limit": {
           "type": "float",
           "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
           "default": 0,
           "code": "tm"
         },
@@ -132,6 +151,8 @@
           "type": "float",
           "min": 0,
           "unit": "m/min",
+          "iunit": "IPM",
+          "scale": 0.0254,
           "default": 0.5,
           "code": "sv"
         },
@@ -139,6 +160,8 @@
           "type": "float",
           "min": 0,
           "unit": "m/min",
+          "iunit": "IPM",
+          "scale": 0.0254,
           "default": 0.1,
           "code": "lv"
         },
@@ -146,6 +169,8 @@
           "type": "float",
           "min": 0,
           "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
           "default": 5,
           "code": "lb"
         },
@@ -153,6 +178,8 @@
           "type": "float",
           "min": 0,
           "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
           "default": 1,
           "code": "zb"
         }

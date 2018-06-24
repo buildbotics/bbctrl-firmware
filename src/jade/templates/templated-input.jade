@@ -30,32 +30,32 @@ script#templated-input-template(type="text/x-template")
     title="Default {{template.default}} {{template.unit || ''}}")
     label(:for="name") {{name}}
 
-    select(v-if="template.type == 'enum' || template.values", v-model="model",
+    select(v-if="template.type == 'enum' || template.values", v-model="view",
       :name="name", @change="change")
       option(v-for="opt in template.values", :value="opt") {{opt}}
 
-    input(v-if="template.type == 'bool'", type="checkbox",
-      v-model="model", :name="name", @change="change")
+    input(v-if="template.type == 'bool'", type="checkbox", v-model="view",
+      :name="name", @change="change")
 
-    input(v-if="template.type == 'float'", v-model="model", number,
+    input(v-if="template.type == 'float'", v-model="view", number,
       :min="template.min", :max="template.max", :step="template.step || 'any'",
         type="number", :name="name", @change="change")
 
-    input(v-if="template.type == 'int' && !template.values", v-model="model",
+    input(v-if="template.type == 'int' && !template.values", v-model="view",
       number, :min="template.min", :max="template.max", type="number",
       :name="name", @change="change")
 
-    input(v-if="template.type == 'string'", v-model="model",
-      type="text", :name="name", @change="change")
-
-    textarea(v-if="template.type == 'text'", v-model="model",
+    input(v-if="template.type == 'string'", v-model="view", type="text",
       :name="name", @change="change")
 
-    span.range(v-if="template.type == 'percent'")
-      input(type="range", v-model="model", :name="name", number, min="0",
-        max="100", step="1", @change="change")
-      | {{model}}
+    textarea(v-if="template.type == 'text'", v-model="view", :name="name",
+      @change="change")
 
-    label.units {{template.unit}}
+    span.range(v-if="template.type == 'percent'")
+      input(type="range", v-model="view", :name="name", number, min="0",
+        max="100", step="1", @change="change")
+      | {{view}}
+
+    label.units {{units}}
 
     slot(name="extra")

@@ -34,6 +34,9 @@ module.exports = {
 
 
   computed: {
+    metric: function () {return this.$root.metric()},
+
+
     is_slave: function () {
       for (var i = 0; i < this.index; i++)
         if (this.motor.axis == this.config.motors[i].axis)
@@ -58,7 +61,10 @@ module.exports = {
 
     umPerStep: function () {
       return this.motor['travel-per-rev'] * this.motor['step-angle'] / 0.36
-    }
+    },
+
+
+    milPerStep: function () {return this.umPerStep / 25.4}
   },
 
 

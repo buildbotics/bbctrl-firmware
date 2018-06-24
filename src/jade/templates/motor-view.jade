@@ -39,14 +39,18 @@ script#motor-view-template(type="text/x-template")
           label.extra(v-if="$key == 'max-velocity'", slot="extra",
             title="Revolutions Per Minute") ({{rpm | fixed 0}} RPM)
 
-          label.extra(v-if="$key == 'max-accel'", slot="extra",
+          label.extra(v-if="$key == 'max-accel' && metric", slot="extra",
             title="G-force") ({{gForce | fixed 3}} g)
 
-          label.extra(v-if="$key == 'max-jerk'", slot="extra",
+          label.extra(v-if="$key == 'max-jerk' && metric", slot="extra",
             title="G-force per minute") ({{gForcePerMin | fixed 2}} g/min)
 
           label.extra(v-if="$key == 'step-angle'", slot="extra",
             title="Steps per revolution") ({{stepsPerRev | fixed 0}} steps/rev)
 
-          label.extra(v-if="$key == 'travel-per-rev'", slot="extra",
+          label.extra(v-if="$key == 'travel-per-rev' && metric", slot="extra",
             title="Micrometers per step") ({{umPerStep | fixed 1}} µm/step)
+
+          label.extra(v-if="$key == 'travel-per-rev' && !metric", slot="extra",
+            title="Thousandths of an inch per step")
+            | ({{milPerStep | fixed 2}} mil/step)

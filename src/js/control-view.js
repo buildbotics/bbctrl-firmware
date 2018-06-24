@@ -82,6 +82,9 @@ module.exports = {
 
 
   computed: {
+    metric: function () {return this.$root.metric()},
+
+
     mach_state: function () {
       var cycle = this.state.cycle;
       var state = this.state.xx;

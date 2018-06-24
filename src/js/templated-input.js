@@ -34,8 +34,42 @@ module.exports = {
   props: ['name', 'model', 'template'],
 
 
+  data: function () {return {view: ''}},
+
+
+  computed: {
+    metric: function () {return this.$root.metric()},
+
+
+    units: function () {
+      return (this.metric || !this.template.iunit) ?
+        this.template.unit : this.template.iunit;
+    }
+  },
+
+
+  watch: {
+    metric: function () {this.set_view()},
+    model: function () {this.set_view()}
+  },
+
+
+  ready: function () {this.set_view()},
+
+
   methods: {
+    set_view: function () {
+      if (this.template.scale && !this.metric)
+        this.view = (this.model / this.template.scale).toFixed(2);
+      else this.view = this.model;
+    },
+
+
     change: function () {
+      if (this.template.scale && !this.metric)
+        this.model = 1 * (this.view * this.template.scale).toFixed(3);
+      else this.model = this.view;
+
       this.$dispatch('input-changed');
     }
   }

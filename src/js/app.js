@@ -86,7 +86,11 @@ module.exports = new Vue({
       index: -1,
       modified: false,
       template: {motors: {template: {}}},
-      config: {motors: [{}, {}, {}, {}], version: '<loading>'},
+      config: {
+        settings: {units: 'METRIC'},
+        motors: [{}, {}, {}, {}],
+        version: '<loading>'
+      },
       state: {},
       messages: [],
       errorTimeout: 30,
@@ -127,6 +131,7 @@ module.exports = new Vue({
   events: {
     'config-changed': function () {this.modified = true;},
     'hostname-changed': function (hostname) {this.hostname = hostname},
+
 
     send: function (msg) {
       if (this.status == 'connected') {
@@ -201,6 +206,9 @@ module.exports = new Vue({
 
 
   methods: {
+    metric: function () {return this.config.settings.units != 'IMPERIAL'},
+
+
     block_error_dialog: function () {
       this.errorTimeoutStart = Date.now();
       this.errorShow = false;

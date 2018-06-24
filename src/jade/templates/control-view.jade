@@ -46,9 +46,10 @@ script#control-view-template(type="text/x-template")
           v-if="enabled('#{axis}')")
           th.name #{axis}
           td.position
-            | {{(state.#{axis}p + get_offset('#{axis}')) || 0 | fixed 3}}
-          td.absolute {{state.#{axis}p || 0 | fixed 3}}
-          td.offset {{get_offset('#{axis}') | fixed 3}}
+            unit-value(:value="state.#{axis}p + get_offset('#{axis}')",
+              precision="3")
+          td.absolute: unit-value(:value="state.#{axis}p", precision="3")
+          td.offset: unit-value(:value="get_offset('#{axis}')", precision="3")
           th.actions
             button.pure-button(:disabled="!is_ready",
               title="Set {{'#{axis}' | upper}} axis position.",
@@ -118,24 +119,28 @@ script#control-view-template(type="text/x-template")
         th Message
         td.reason(:class="{attention: highlight_reason}") {{reason}}
         td
-      tr
+      tr(title="Currently active machine units")
         th Units
         td {{state.imperial ? 'IMPERIAL' : 'METRIC'}}
         td
       tr
         th Feed
-        td {{state.feed || 0 | fixed 0}}
-        td mm/min
+        td: unit-value(:value="state.feed", precision="2", unit="", iunit="")
+        td {{metric ? 'mm/min' : 'IPM'}}
       tr
         th Speed
-        td {{state.speed || 0 | fixed 0}} ({{state.s || 0 | fixed 0}})
+        td
+          | {{state.speed || 0 | fixed 0}}
+          span(v-if="!isNaN(state.s)") ({{state.s | fixed 0}})
         td RPM
 
     table.info
-      tr
+      tr(
+        title="Current velocity in {{metric ? 'meters' : 'inches'}} per minute")
         th Velocity
-        td {{state.v || 0 | fixed 2}}
-        td m/min
+        td: unit-value(:value="state.v", precision="2", unit="", iunit="",
+          scale="0.0254")
+        td {{metric ? 'm/min' : 'IPM'}}
       tr
         th Line
         td {{0 <= state.line ? state.line : '-'}}
