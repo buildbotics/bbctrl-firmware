@@ -34,6 +34,10 @@ fi
 sed -i 's/^TimeoutStartSec=.*$/TimeoutStartSec=1/' \
     /etc/systemd/system/network-online.target.wants/networking.service
 
+# Change to US keyboard layout
+sed -i 's/^XKBLAYOUT="gb"$/XKBLAYOUT="us" # Comment stops change on upgrade/' \
+    /etc/default/keyboard
+
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force
