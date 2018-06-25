@@ -30,11 +30,15 @@
 
 module.exports = {
   template: '#axis-control-template',
-  props: ['axes', 'colors', 'enabled'],
+  props: ['axes', 'colors', 'enabled', 'adjust'],
 
 
   methods: {
-    jog: function (axis, power) {this.$dispatch('jog', this.axes[axis], power)},
+    jog: function (axis, power) {
+      this.$dispatch('jog', this.axes[axis], power * this.adjust / 100.0)
+    },
+
+
     release: function (axis) {this.$dispatch('jog', this.axes[axis], 0)}
   }
 }

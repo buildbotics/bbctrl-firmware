@@ -267,15 +267,19 @@ script#control-view-template(type="text/x-template")
         .jog
           axis-control(axes="XY", :colors="['red', 'green']",
             :enabled="[enabled('x'), enabled('y')]",
-            v-if="enabled('x') || enabled('y')")
+            v-if="enabled('x') || enabled('y')", :adjust="jog_adjust")
 
           axis-control(axes="AZ", :colors="['orange', 'blue']",
             :enabled="[enabled('a'), enabled('z')]",
-            v-if="enabled('a') || enabled('z')")
+            v-if="enabled('a') || enabled('z')", :adjust="jog_adjust")
 
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[enabled('b'), enabled('c')]",
-            v-if="enabled('b') || enabled('c')")
+            v-if="enabled('b') || enabled('c')", :adjust="jog_adjust")
+
+        .jog-adjust
+          | Fine adjust
+          input(type="range", v-model="jog_adjust", min=1, max=100, step=1)
 
         center
           | Left click the axes above holding down the mouse button to jog the

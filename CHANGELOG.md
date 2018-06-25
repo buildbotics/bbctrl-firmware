@@ -6,6 +6,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Decrease boot time networking delay.
  - Default to US keyboard layout. #145
  - Added configuration option to show metric or imperial units in browser. #74
+ - Implemented fine jogging control in Web interface. #147
 
 ## v0.3.24
  - Added unhome button on axis position popup.

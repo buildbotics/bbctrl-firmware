@@ -96,8 +96,10 @@ script#axis-control-template(type="text/x-template")
           v-if="enabled[1]")
           use.button(xlink:href="#pie-1",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="24", transform="rotate(22 125 125)") 100%
-          text(x="125", y="24", transform="rotate(-22 125 125)") 100%
+          text(x="125", y="24", transform="rotate(22 125 125)")
+            | {{adjust | fixed 0}}%
+          text(x="125", y="24", transform="rotate(-22 125 125)")
+            | {{adjust | fixed 0}}%
           use.button(xlink:href="#pie-1", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
@@ -119,7 +121,7 @@ script#axis-control-template(type="text/x-template")
           v-if="enabled[1]")
           use.button(xlink:href="#pie-2",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="48") 50%
+          text(x="125", y="48") {{0.5 * adjust | fixed 1}}%
           use.button(xlink:href="#pie-2", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
@@ -142,7 +144,7 @@ script#axis-control-template(type="text/x-template")
           v-if="enabled[1]")
           use.button(xlink:href="#pie-3",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="73") 25%
+          text(x="125", y="73") {{0.25 * adjust | fixed 1}}%
           use.button(xlink:href="#pie-3", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
@@ -165,7 +167,7 @@ script#axis-control-template(type="text/x-template")
           v-if="enabled[1]")
           use.button(xlink:href="#pie-4",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="95") 10%
+          text(x="125", y="95") {{0.1 * adjust | fixed 1}}%
           use.button(xlink:href="#pie-4", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
