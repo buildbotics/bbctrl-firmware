@@ -133,6 +133,14 @@ module.exports = {
       }
 
       this.$dispatch('config-changed');
+    },
+
+
+    reset_failures: function (e) {
+      e.preventDefault();
+      var regs = this.config['modbus-spindle'].regs;
+      for (var reg = 0; reg < regs.length; reg++)
+        this.$dispatch('send', '\$' + reg + 'vr=0');
     }
   }
 }

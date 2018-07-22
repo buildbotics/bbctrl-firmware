@@ -73,7 +73,9 @@ script#tool-view-template(type="text/x-template")
             td.reg-fails {{get_reg_fails(reg)}}
 
         button.pure-button-secondary(@click="customize") Customize
-        button.pure-button-secondary(@click="clear") Clear
+        button.pure-button-secondary(@click="clear",
+          v-if="tool_type == 'CUSTOM MODBUS VFD'") Clear
+        button.pure-button-secondary(@click="reset_failures") Reset Failures
 
       fieldset(v-if="tool_type == 'CUSTOM MODBUS VFD'")
         h2 Edit Modbus Program

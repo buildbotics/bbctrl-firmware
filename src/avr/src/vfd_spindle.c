@@ -402,3 +402,8 @@ void set_vfd_reg_val(int reg, uint16_t value) {
 
 
 uint8_t get_vfd_reg_fails(int reg) {return regs[reg].fails;}
+
+
+void set_vfd_reg_fails(int reg, uint8_t value) {
+  regs[reg].fails = value;
+}

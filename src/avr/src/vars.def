@@ -109,7 +109,7 @@ VAR(vfd_status,      vs, u16,   0,      0, 1) // VFD status
 VAR(vfd_reg_type,    vt, u8,    VFDREG, 1, 1) // VFD register type
 VAR(vfd_reg_addr,    va, u16,   VFDREG, 1, 1) // VFD register address
 VAR(vfd_reg_val,     vv, u16,   VFDREG, 1, 1) // VFD register value
-VAR(vfd_reg_fails,   vr, u8,    VFDREG, 0, 1) // VFD register fail count
+VAR(vfd_reg_fails,   vr, u8,    VFDREG, 1, 1) // VFD register fail count
 
 // Huanyang spindle
 VAR(hy_freq,         hz, f32,   0,      0, 1) // Huanyang actual freq
