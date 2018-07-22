@@ -102,13 +102,14 @@ VAR(modbus_id,       hi, u8,    0,      1, 1) // Modbus ID
 VAR(modbus_baud,     mb, u8,    0,      1, 1) // Modbus BAUD rate
 VAR(modbus_parity,   ma, u8,    0,      1, 1) // Modbus parity
 VAR(modbus_status,   mx, u8,    0,      0, 1) // Modbus status
-VAR(modbus_response, mr, u16,   0,      0, 1) // Modbus read response
 
 // VFD spindle
 VAR(vfd_max_freq,    vf, u16,   0,      1, 1) // VFD maximum frequency
+VAR(vfd_status,      vs, u16,   0,      0, 1) // VFD status
 VAR(vfd_reg_type,    vt, u8,    VFDREG, 1, 1) // VFD register type
 VAR(vfd_reg_addr,    va, u16,   VFDREG, 1, 1) // VFD register address
 VAR(vfd_reg_val,     vv, u16,   VFDREG, 1, 1) // VFD register value
+VAR(vfd_reg_fails,   vr, u8,    VFDREG, 0, 1) // VFD register fail count
 
 // Huanyang spindle
 VAR(hy_freq,         hz, f32,   0,      0, 1) // Huanyang actual freq

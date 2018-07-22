@@ -29,7 +29,6 @@
 #include "pwm_spindle.h"
 #include "huanyang.h"
 #include "vfd_spindle.h"
-#include "vfd_test.h"
 #include "config.h"
 #include "pgmspace.h"
 
@@ -67,7 +66,6 @@ void spindle_set_speed(float speed) {
   case SPINDLE_TYPE_DISABLED: break;
   case SPINDLE_TYPE_PWM: pwm_spindle_set(speed); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_set(speed); break;
-  case SPINDLE_TYPE_TEST: vfd_test_set(speed); break;
   default: vfd_spindle_set(speed); break;
   }
 }
@@ -80,7 +78,6 @@ float spindle_get_speed() {
   case SPINDLE_TYPE_DISABLED: break;
   case SPINDLE_TYPE_PWM: speed = pwm_spindle_get(); break;
   case SPINDLE_TYPE_HUANYANG: speed = huanyang_get(); break;
-  case SPINDLE_TYPE_TEST: speed = vfd_test_get(); break;
   default: speed = vfd_spindle_get(); break;
   }
 
@@ -93,7 +90,6 @@ void spindle_stop() {
   case SPINDLE_TYPE_DISABLED: break;
   case SPINDLE_TYPE_PWM: pwm_spindle_stop(); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_stop(); break;
-  case SPINDLE_TYPE_TEST: vfd_test_stop(); break;
   default: vfd_spindle_stop(); break;
   }
 }
@@ -115,7 +111,6 @@ static void _deinit_cb() {
   case SPINDLE_TYPE_DISABLED: break;
   case SPINDLE_TYPE_PWM: pwm_spindle_init(); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_init(); break;
-  case SPINDLE_TYPE_TEST: vfd_test_init(); break;
   default: vfd_spindle_init(); break;
   }
 
@@ -134,7 +129,6 @@ void set_tool_type(uint8_t value) {
   case SPINDLE_TYPE_DISABLED: _deinit_cb(); break;
   case SPINDLE_TYPE_PWM: pwm_spindle_deinit(_deinit_cb); break;
   case SPINDLE_TYPE_HUANYANG: huanyang_deinit(_deinit_cb); break;
-  case SPINDLE_TYPE_TEST: vfd_test_deinit(_deinit_cb); break;
   default: vfd_spindle_deinit(_deinit_cb); break;
   }
 }

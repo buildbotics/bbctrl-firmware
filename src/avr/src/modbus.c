@@ -411,9 +411,8 @@ void modbus_rtc_callback() {
   state.last_write = 0;
 
   if (cfg.debug && state.bytes) {
-    const uint8_t buf_len = 8 * 2 + 1;
-    char sent[buf_len];
-    char received[buf_len];
+    char sent[state.command_length * 2 + 1];
+    char received[state.bytes * 2 + 1];
 
     format_hex_buf(sent, state.command, state.command_length);
     format_hex_buf(received, state.response, state.bytes);

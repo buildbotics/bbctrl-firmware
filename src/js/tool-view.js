@@ -87,6 +87,12 @@ module.exports = {
     get_reg_value: function (reg) {return this.state[reg + 'vv']},
 
 
+    get_reg_fails: function (reg) {
+      var fails = this.state[reg + 'vr']
+      return fails == 255 ? 'Max' : fails;
+    },
+
+
     read: function (e) {
       e.preventDefault();
       api.put('modbus/read', {address: this.address});

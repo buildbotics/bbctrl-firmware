@@ -43,41 +43,34 @@ script#tool-view-template(type="text/x-template")
 
       fieldset(v-if="is_modbus")
         h2 Modbus Configuration
+        .pure-control-group
+          label status
+          tt {{modbus_status}}
         templated-input(v-for="templ in template['modbus-spindle']",
           :name="$key", :model.sync="config['modbus-spindle'][$key]",
           :template="templ", v-if="$key != 'regs'")
 
-      fieldset(v-if="tool_type == 'VFD TEST'")
-        h2 Modbus Test
-        table.modbus-regs
-          tr
-            th Address
-            th Value
-            th Action
-            th Status
-          tr
-            td: input(name="address", type="text", v-model="address", number)
-            td: input(name="value", type="text", v-model="value", number)
-            td
-              button.pure-button(@click="read") Read
-              button.pure-button(@click="write") Write
-            td.modbus-status {{modbus_status}}
-
       fieldset.modbus-program(
         v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
         h2 Active Modbus Program
+        p
+          | (Click <tt class="save">Save</tt> to activate the selected
+          | <b>tool-type</b>.)
         table.modbus-regs.fixed-regs
           tr
             th Index
             th Command
             th Address
             th Value
+            th Failures
 
-          tr(v-for="(index, reg) in regs_tmpl.index", v-if="state[reg + 'vt']")
+          tr(v-for="(index, reg) in regs_tmpl.index", v-if="state[reg + 'vt']",
+            :class="{warn: get_reg_fails(reg)}")
             td.reg-index {{index}}
             td.reg-type {{get_reg_type(reg)}}
             td.reg-addr {{get_reg_addr(reg)}}
             td.reg-value {{get_reg_value(reg)}}
+            td.reg-fails {{get_reg_fails(reg)}}
 
         button.pure-button-secondary(@click="customize") Customize
         button.pure-button-secondary(@click="clear") Clear
@@ -97,3 +90,93 @@ script#tool-view-template(type="text/x-template")
             v-if="!index || reg['reg-type'] != 'disabled' || " +
             "config['modbus-spindle'].regs[index - 1]['reg-type'] != " +
             "'disabled'")
+
+      .notes(v-if="tool_type == 'HUANYANG VFD'")
+        h2 Notes
+        p Set the following using the VFD's frontpanel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            td Meaning
+            th Description
+          tr
+            td.reg-addr PD000
+            td.reg-value 0
+            td Unlock
+            td Unlock parameters
+          tr
+            td.reg-addr PD001
+            td.reg-value 2
+            td RS485
+            td Command source
+          tr
+            td.reg-addr PD002
+            td.reg-value 2
+            td RS485
+            td Speed/frequency source
+          tr
+            td.reg-addr PD163
+            td.reg-value 1
+            td Modbus ID
+            td Must match <tt>bus-id</tt> above.
+          tr
+            td.reg-addr PD164
+            td.reg-value 1
+            td 9600 baud
+            td Must match <tt>baud</tt> above.
+          tr
+            td.reg-addr PD166
+            td.reg-value 3
+            td 8 bit, no parity, RTU mode
+            td Must match <tt>parity</tt> above.
+
+        p
+          | Other settings according to the <a
+          | href="https://buildbotics.com/upload/vfd/Huanyang-VFD-manual.pdf"
+          | target="_blank">Huanyang VFD manual</a> and spindle type.
+
+      .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
+        h2 Notes
+        p Set the following using the VFD's frontpanel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr Pr.00
+            td.reg-value 3
+            td RS-485
+            td Source of frequency command
+          tr
+            td.reg-addr Pr.01
+            td.reg-value 3
+            td RS-485 with STOP
+            td Source of operation command
+          tr
+            td.reg-addr Pr.88
+            td.reg-value 1
+            td Modbus ID
+            td Must match <tt>bus-id</tt> above
+          tr
+            td.reg-addr Pr.89
+            td.reg-value 1
+            td 9600 baud
+            td Must match <tt>baud</tt> above
+          tr
+            td.reg-addr Pr.92
+            td.reg-value 3
+            td 8 bit, no parity, RTU mode
+            td Must match <tt>parity</tt> above
+          tr
+            td.reg-addr Pr.157
+            td.reg-value 1
+            td Modbus mode
+            td Communication mode
+
+        p
+          | Other settings according to the <a
+          | href="https://buildbotics.com/upload/vfd/Delta_VFD015M21A.pdf"
+          | target="_blank">Delta VFD015M21A VFD manual</a> and spindle type.

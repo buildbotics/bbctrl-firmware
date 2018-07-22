@@ -151,6 +151,15 @@ span.unit
         width 24em
         height 12em
 
+      > select, > input:not([type=checkbox])
+        min-width 13em
+
+      > tt
+        min-width 15.25em
+        padding 0.7em 1em
+        border-radius 3px
+        display inline-block
+
 @keyframes blink
   50%
     fill #ff9d00
@@ -508,6 +517,14 @@ span.unit
     &:hover
       opacity 0.5
 
+tt.save
+  display inline-block
+  border-radius 2px
+  background #1cb841
+  color rgba(0, 0, 0, 0.8)
+  padding 0.25em
+  line-height initial
+
 .modbus-program button
   margin 0.25em 0
 
@@ -541,7 +558,7 @@ span.unit
   td.reg-index, td.reg-addr, td.reg-value
     text-align right
 
-  tr:nth-child(even)
+  tr:nth-child(even):not(.warn)
     background-color #f3f3f3
 
 

@@ -56,6 +56,8 @@ typedef enum {
   REG_FREQ_SIGN_READ,
   REG_FREQ_ACTECH_READ,
 
+  REG_STATUS_READ,
+
   REG_DISCONNECT_WRITE,
 } vfd_reg_type_t;
 
@@ -64,25 +66,11 @@ typedef struct {
   vfd_reg_type_t type;
   uint16_t addr;
   uint16_t value;
+  uint8_t fails;
 } vfd_reg_t;
 
 
 #define P(H, L) ((H) << 8 | (L))
-
-
-const vfd_reg_t yl600_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE,    P(7, 8), 1}, // P07_08_FREQ_SOURCE_1
-  {REG_CONNECT_WRITE,    P(0, 1), 1}, // P00_01_START_STOP_SOURCE
-  {REG_MAX_FREQ_READ,    P(0, 4), 0}, // P00_04_HIGEST_OUTPUT_FREQ
-  {REG_FREQ_SET,         P(7, 0), 0}, // P07_00_FREQ_1
-//  {REG_STOP_WRITE,       P(?, ?), ?}, //
-//  {REG_FWD_WRITE,        P(1, 0), ?}, // P01_00_DIRECTION
-//  {REG_REV_WRITE,        P(?, ?), ?}, //
-  {REG_FREQ_READ,        P(0, 0), 0}, // P00_00_MAIN_FREQ
-  {REG_DISCONNECT_WRITE, P(0, 1), 0}, // P00_01_START_STOP_SOURCE
-  {REG_DISCONNECT_WRITE, P(7, 8), 0}, // P07_08_FREQ_SOURCE_1
-  {REG_DISABLED},
-};
 
 
 // NOTE, Modbus reg = AC Tech reg + 1
@@ -98,6 +86,34 @@ const vfd_reg_t ac_tech_regs[] PROGMEM = {
   {REG_REV_WRITE,         1,    8}, // Start drive
   {REG_FREQ_ACTECH_READ, 24,    0}, // Actual speed
   {REG_DISCONNECT_WRITE,  1,    2}, // Lock controls and parameters
+  {REG_DISABLED},
+};
+
+
+const vfd_reg_t delta_vfd015m21a_regs[] PROGMEM = {
+  {REG_CONNECT_WRITE, 0x2002,  2}, // Reset fault
+  {REG_MAX_FREQ_READ,      3,  0}, // Max frequency
+  {REG_FREQ_SET,      0x2001,  0}, // Frequency
+  {REG_STOP_WRITE,    0x2000,  1}, // Stop drive
+  {REG_FWD_WRITE,     0x2000, 18}, // Forward
+  {REG_REV_WRITE,     0x2000, 34}, // Reverse
+  {REG_FREQ_READ,     0x2103,  0}, // Output freq
+  {REG_STATUS_READ,   0x2100,  0}, // Status
+  {REG_DISABLED},
+};
+
+
+const vfd_reg_t yl600_regs[] PROGMEM = {
+  {REG_CONNECT_WRITE,    P(7, 8), 1}, // P07_08_FREQ_SOURCE_1
+  {REG_CONNECT_WRITE,    P(0, 1), 1}, // P00_01_START_STOP_SOURCE
+  {REG_MAX_FREQ_READ,    P(0, 4), 0}, // P00_04_HIGEST_OUTPUT_FREQ
+  {REG_FREQ_SET,         P(7, 0), 0}, // P07_00_FREQ_1
+//  {REG_STOP_WRITE,       P(?, ?), ?}, //
+//  {REG_FWD_WRITE,        P(1, 0), ?}, // P01_00_DIRECTION
+//  {REG_REV_WRITE,        P(?, ?), ?}, //
+  {REG_FREQ_READ,        P(0, 0), 0}, // P00_00_MAIN_FREQ
+  {REG_DISCONNECT_WRITE, P(0, 1), 0}, // P00_01_START_STOP_SOURCE
+  {REG_DISCONNECT_WRITE, P(7, 8), 0}, // P07_08_FREQ_SOURCE_1
   {REG_DISABLED},
 };
 
@@ -126,6 +142,7 @@ static struct {
   float speed;
   uint16_t max_freq;
   float actual_speed;
+  uint16_t status;
 
   uint32_t wait;
   deinit_cb_t deinit_cb;
@@ -156,7 +173,7 @@ static bool _next_state() {
     vfd.state = REG_FREQ_READ;
     break;
 
-  case REG_FREQ_ACTECH_READ:
+  case REG_STATUS_READ:
     if (vfd.shutdown || estop_triggered()) vfd.state = REG_DISCONNECT_WRITE;
 
     else if (vfd.changed) {
@@ -211,6 +228,7 @@ static void _connect() {
 static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
   // Handle error
   if (!ok) {
+    if (regs[vfd.reg].fails < 255) regs[vfd.reg].fails++;
     if (vfd.shutdown || estop_triggered()) _disconnected();
     else _connect();
     return;
@@ -231,6 +249,8 @@ static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
     if (vfd.read_count == 2) vfd.actual_speed = value / (float)vfd.max_freq;
     if (vfd.read_count < 6) return;
     break;
+
+  case REG_STATUS_READ: vfd.status = value; break;
 
   default: break;
   }
@@ -277,6 +297,7 @@ static bool _exec_command() {
   case REG_FREQ_READ:
   case REG_FREQ_SIGN_READ:
   case REG_MAX_FREQ_READ:
+  case REG_STATUS_READ:
     read = true;
     break;
   }
@@ -307,9 +328,10 @@ void vfd_spindle_init() {
 
   switch (spindle_get_type()) {
   case SPINDLE_TYPE_CUSTOM:  memcpy(regs, custom_regs, sizeof(regs)); break;
-  case SPINDLE_TYPE_YL600:   _load(yl600_regs);   break;
-  case SPINDLE_TYPE_AC_TECH: _load(ac_tech_regs); break;
-  case SPINDLE_TYPE_FR_D700: _load(fr_d700_regs); break;
+  case SPINDLE_TYPE_AC_TECH:          _load(ac_tech_regs); break;
+  case SPINDLE_TYPE_DELTA_VFD015M21A: _load(delta_vfd015m21a_regs); break;
+  case SPINDLE_TYPE_YL600:            _load(yl600_regs);   break;
+  case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs); break;
   default: break;
   }
 
@@ -345,6 +367,7 @@ void vfd_spindle_rtc_callback() {
 // Variable callbacks
 uint16_t get_vfd_max_freq() {return vfd.max_freq;}
 void set_vfd_max_freq(uint16_t max_freq) {vfd.max_freq = max_freq;}
+uint16_t get_vfd_status() {return vfd.status;}
 uint8_t get_vfd_reg_type(int reg) {return regs[reg].type;}
 
 
@@ -376,3 +399,6 @@ void set_vfd_reg_val(int reg, uint16_t value) {
     regs[reg].value = custom_regs[reg].value;
   vfd.changed = true;
 }
+
+
+uint8_t get_vfd_reg_fails(int reg) {return regs[reg].fails;}

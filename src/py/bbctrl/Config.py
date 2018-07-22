@@ -215,8 +215,7 @@ class Config(object):
         if not 'code' in tmpl: return
 
         if tmpl['type'] == 'enum':
-            if value in tmpl['values']:
-                value = tmpl['values'].index(value)
+            if value in tmpl['values']: value = tmpl['values'].index(value)
             else: value = tmpl['default']
 
         elif tmpl['type'] == 'bool': value = 1 if value else 0
