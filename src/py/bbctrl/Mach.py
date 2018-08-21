@@ -38,19 +38,21 @@ log = logging.getLogger('Mach')
 # Axis homing procedure:
 #
 #   Mark axis unhomed
-#   Seek closed (home_dir * (travel_max - travel_min) * 1.5) at search_velocity
-#   Seek open (home_dir * -latch_backoff) at latch_vel
-#   Seek closed (home_dir * latch_backoff * 1.5) at latch_vel
-#   Rapid to (home_dir * -zero_backoff + position)
+#   Set feed rate to search_vel
+#   Seek closed by search_dist
+#   Set feed rate to latch_vel
+#   Seek open latch_backoff
+#   Seek closed latch_backoff * -1.5
+#   Rapid to zero_backoff
 #   Mark axis homed and set absolute position
 
 axis_homing_procedure = '''
-  G28.2 %(axis)s0 F[#<_%(axis)s_sv> * 1000]
-  G38.6 %(axis)s[#<_%(axis)s_hd> * [#<_%(axis)s_tm> - #<_%(axis)s_tn>] * 1.5]
-  G38.8 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_lb>] F[#<_%(axis)s_lv> * 1000]
-  G38.6 %(axis)s[#<_%(axis)s_hd> * #<_%(axis)s_lb> * 1.5]
-  G91 G0 G53 %(axis)s[#<_%(axis)s_hd> * -#<_%(axis)s_zb>]
-  G90 G28.3 %(axis)s[#<_%(axis)s_hp>]
+  G28.2 %(axis)s0 F[#<_%(axis)s_search_velocity>]
+  G38.6 %(axis)s[#<_%(axis)s_home_travel>]
+  G38.8 %(axis)s[#<_%(axis)s_latch_backoff>] F[#<_%(axis)s_latch_velocity>]
+  G38.6 %(axis)s[#<_%(axis)s_latch_backoff> * -1.5]
+  G91 G0 G53 %(axis)s[#<_%(axis)s_zero_backoff>]
+  G90 G28.3 %(axis)s[#<_%(axis)s_home_position>]
 '''
 
 

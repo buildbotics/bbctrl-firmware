@@ -36,6 +36,11 @@ script#motor-view-template(type="text/x-template")
         templated-input(v-for="templ in category", :name="$key",
           :model.sync="motor[$key]", :template="templ")
 
+          label.extra(v-if="$key == 'microsteps'", slot="extra",
+            :class="{error: invalidMaxVelocity}",
+            title="Microsteps per second")
+            | ({{ustepPerSec / 1000 | fixed 1}}k µstep/sec)
+
           label.extra(v-if="$key == 'max-velocity'", slot="extra",
             title="Revolutions Per Minute") ({{rpm | fixed 0}} RPM)
 

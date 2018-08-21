@@ -1,6 +1,20 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.3.28
+ - Show step rate on motor configuration page.
+ - Limit motor max-velocity such that step rate cannot exceed 250k.
+ - Fixed deceleration bug at full 250k step rate.
+
+## v0.3.27
+ - Fixed homing in imperial mode.
+
+## v0.3.26
+ - Removed VFD test.
+ - Show VFD status on configuration page.
+ - Show VFD commands fail counts.
+ - Marked some VFD types as beta.
+
 ## v0.3.25
  - Error on home if max-soft-limit <= min-soft-limit + 1. #139
  - Decrease boot time networking delay.

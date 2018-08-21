@@ -50,14 +50,23 @@ class State(object):
             'speed': 0,
         }
 
+        # Add computed variable callbacks for each motor.
+        #
+        # NOTE, variable callbacks must return metric values only because
+        # the planner will scale returned values when in imperial mode.
         for i in range(4):
-            # Add home direction callbacks
-            self.set_callback(str(i) + 'hd',
-                              lambda name, i = i: self.motor_home_direction(i))
-
-            # Add home position callbacks
-            self.set_callback(str(i) + 'hp',
+            self.set_callback(str(i) + 'home_position',
                               lambda name, i = i: self.motor_home_position(i))
+            self.set_callback(str(i) + 'home_travel',
+                              lambda name, i = i: self.motor_home_travel(i))
+            self.set_callback(str(i) + 'latch_backoff',
+                              lambda name, i = i: self.motor_latch_backoff(i))
+            self.set_callback(str(i) + 'zero_backoff',
+                              lambda name, i = i: self.motor_zero_backoff(i))
+            self.set_callback(str(i) + 'search_velocity',
+                              lambda name, i = i: self.motor_search_velocity(i))
+            self.set_callback(str(i) + 'latch_velocity',
+                              lambda name, i = i: self.motor_latch_velocity(i))
 
         self.reset()
 
@@ -237,3 +246,32 @@ class State(object):
         if mode == 'switch-min': return self.vars['%dtn' % motor]
         if mode == 'switch-max': return self.vars['%dtm' % motor]
         return 0 # Disabled
+
+
+    def motor_home_travel(self, motor):
+        tmin = self.get(str(motor) + 'tm')
+        tmax = self.get(str(motor) + 'tn')
+        hdir = self.motor_home_direction(motor)
+
+        # (travel_max - travel_min) * 1.5 * home_dir
+        return (tmin - tmax) * 1.5 * hdir
+
+
+    def motor_latch_backoff(self, motor):
+        lb = self.get(str(motor) + 'lb')
+        hdir = self.motor_home_direction(motor)
+        return -(lb * hdir) # -latch_backoff * home_dir
+
+
+    def motor_zero_backoff(self, motor):
+        zb = self.get(str(motor) + 'zb')
+        hdir = self.motor_home_direction(motor)
+        return -(zb * hdir) # -zero_backoff * home_dir
+
+
+    def motor_search_velocity(self, motor):
+        return 1000 * self.get(str(motor) + 'sv')
+
+
+    def motor_latch_velocity(self, motor):
+        return 1000 * self.get(str(motor) + 'lv')

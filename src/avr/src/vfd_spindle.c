@@ -324,6 +324,7 @@ static void _load(const vfd_reg_t *_regs) {
 
 void vfd_spindle_init() {
   memset(&vfd, 0, sizeof(vfd));
+  for (int i = 0; i < VFDREG; i++) regs[i].fails = 0;
   modbus_init();
 
   switch (spindle_get_type()) {

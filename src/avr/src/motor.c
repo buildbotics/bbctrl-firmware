@@ -319,10 +319,13 @@ void motor_prep_move(int motor, float target) {
   float ticks_per_step = round(seg_clocks / steps);
 
   // Limit clock if step rate is too fast, disable if too slow
-  if (ticks_per_step < STEP_PULSE_WIDTH * 2)
-    ticks_per_step = STEP_PULSE_WIDTH * 2;           // Too fast
-  if (0xffff <= ticks_per_step) m->timer_period = 0; // Too slow
-  else m->timer_period = ticks_per_step;             // Just right
+  // We allow a slight fudge here (i.e. 1.9 instead 2) because the motor driver
+  // seems to be able to handle it and otherwise we could not actually hit
+  // an average rate of 250k usteps/sec.
+  if (ticks_per_step < STEP_PULSE_WIDTH * 1.9)
+    m->timer_period = STEP_PULSE_WIDTH * 1.9;             // Too fast
+  else if (0xffff <= ticks_per_step) m->timer_period = 0; // Too slow
+  else m->timer_period = ticks_per_step;                  // Just right
 
   if (!steps) m->timer_period = 0;
 

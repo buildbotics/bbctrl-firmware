@@ -49,6 +49,21 @@ module.exports = {
     motor: function () {return this.config.motors[this.index]},
 
 
+    invalidMaxVelocity: function () {
+      return this.maxMaxVelocity < this.motor['max-velocity'];
+    },
+
+
+    maxMaxVelocity: function () {
+      return 15 * this.umPerStep / this.motor['microsteps'];
+    },
+
+
+    ustepPerSec: function () {
+      return this.rpm * this.stepsPerRev * this.motor['microsteps'] / 60;
+    },
+
+
     rpm: function () {
       return 1000 * this.motor['max-velocity'] / this.motor['travel-per-rev'];
     },
@@ -70,6 +85,10 @@ module.exports = {
 
   events: {
     'input-changed': function() {
+      // Limit max-velocity
+      if (this.invalidMaxVelocity)
+        this.motor['max-velocity'] = this.maxMaxVelocity;
+
       this.$dispatch('config-changed');
       return false;
     }

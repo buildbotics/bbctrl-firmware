@@ -142,12 +142,14 @@ class Planner():
             self.cmdq.release(id)
 
 
-    def _get_var_cb(self, name):
+    def _get_var_cb(self, name, units):
         value = 0
         if len(name) and name[0] == '_':
             value = self.ctrl.state.get(name[1:], 0)
+            if units == 'IMPERIAL': value /= 25.4 # Assume metric
 
-        log.info('Get: %s=%s' % (name, value))
+        log.info('Get: %s=%s (units=%s)' % (name, value, units))
+
         return value
 
 
