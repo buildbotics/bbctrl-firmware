@@ -60,14 +60,14 @@ module.exports = {
   methods: {
     set_view: function () {
       if (this.template.scale && !this.metric)
-        this.view = (this.model / this.template.scale).toFixed(2);
+        this.view = (this.model / this.template.scale).toFixed(3);
       else this.view = this.model;
     },
 
 
     change: function () {
       if (this.template.scale && !this.metric)
-        this.model = 1 * (this.view * this.template.scale).toFixed(3);
+        this.model = 1 * (this.view * this.template.scale).toFixed(4);
       else this.model = this.view;
 
       this.$dispatch('input-changed');

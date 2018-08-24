@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.3.29
+ - Increased display precision of position and motor config.
+
 ## v0.3.28
  - Show step rate on motor configuration page.
  - Limit motor max-velocity such that step rate cannot exceed 250k.

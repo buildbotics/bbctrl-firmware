@@ -47,7 +47,7 @@ script#control-view-template(type="text/x-template")
           th.name #{axis}
           td.position
             unit-value(:value="state.#{axis}p + get_offset('#{axis}')",
-              precision="3")
+              precision="4")
           td.absolute: unit-value(:value="state.#{axis}p", precision="3")
           td.offset: unit-value(:value="get_offset('#{axis}')", precision="3")
           th.actions
