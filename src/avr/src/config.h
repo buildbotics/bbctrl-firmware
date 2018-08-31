@@ -161,7 +161,7 @@ enum {
 #define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
 #define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
 
-#define DRV8711_STALL            (DRV8711_STALL_SDCNT_2 |      \
+#define DRV8711_STALL            (DRV8711_STALL_SDCNT_2 | \
                                   DRV8711_STALL_VDIV_4 | 200)
 #define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_50  | \
                                   DRV8711_DRIVE_IDRIVEN_100 | \
@@ -188,6 +188,7 @@ enum {
 #define MODBUS_BUF_SIZE          18  // Max bytes in rx/tx buffers
 #define VFD_QUERY_DELAY          100 // ms
 
+
 // Serial settings
 #define SERIAL_BAUD              USART_BAUD_115200
 #define SERIAL_PORT              USARTC0
@@ -202,6 +203,7 @@ enum {
 
 // Report
 #define REPORT_RATE              250 // ms
+
 
 // I2C
 #define I2C_DEV                  TWIC
