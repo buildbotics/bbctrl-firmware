@@ -104,24 +104,26 @@ static void _current_set(current_t *c, float current) {
   float torque_over_gain = current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF;
   float gain = 0;
 
-  if (torque_over_gain < 1.0 / 40) {
+  if (torque_over_gain <= 1.0 / 40) {
     c->isgain = DRV8711_CTRL_ISGAIN_40;
     gain = 40;
 
-  } else if (torque_over_gain < 1.0 / 20) {
+  } else if (torque_over_gain <= 1.0 / 20) {
     c->isgain = DRV8711_CTRL_ISGAIN_20;
     gain = 20;
 
-  } else if (torque_over_gain < 1.0 / 10) {
+  } else if (torque_over_gain <= 1.0 / 10) {
     c->isgain = DRV8711_CTRL_ISGAIN_10;
     gain = 10;
 
-  } else if (torque_over_gain < 1.0 / 5) {
+  } else {
+    // Max configurable current is 11A
+    if (1.0 / 5 < torque_over_gain) torque_over_gain = 1.0 / 5;
     c->isgain = DRV8711_CTRL_ISGAIN_5;
     gain = 5;
   }
 
-  c->torque = round(torque_over_gain * gain * 256);
+  c->torque = round(torque_over_gain * gain * 255);
 }
 
 
