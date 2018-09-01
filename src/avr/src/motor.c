@@ -78,6 +78,7 @@ typedef struct {
 
   // Move prep
   bool prepped;
+  uint8_t clock;
   uint16_t timer_period;
   bool negative;
   int32_t position;
@@ -280,10 +281,10 @@ void motor_load_move(int motor) {
   // interrupting the clock mid step or causing counter wrap around.
 
   // Set clock and period
-  m->timer->CTRLA = TC_CLKSEL_DIV2_gc; // Start clock
+  m->timer->CTRLA  = m->clock;         // Start clock
   m->timer->PERBUF = m->timer_period;  // Set next frequency
   m->last_negative = m->negative;
-  m->commanded = m->position;
+  m->commanded     = m->position;
 }
 
 
@@ -314,20 +315,28 @@ void motor_prep_move(int motor, float target) {
   m->negative = steps < 0;
   if (m->negative) steps = -steps;
 
-  // We use clock / 2
-  float seg_clocks = SEGMENT_TIME * (F_CPU * 60 / 2);
-  float ticks_per_step = round(seg_clocks / steps);
+  // Start with clock / 2
+  const float seg_clocks = SEGMENT_TIME * (F_CPU * 60 / 2);
+  float ticks_per_step = seg_clocks / steps;
 
-  // Limit clock if step rate is too fast, disable if too slow
+  // Limit clock if step rate is too fast
   // We allow a slight fudge here (i.e. 1.9 instead 2) because the motor driver
   // seems to be able to handle it and otherwise we could not actually hit
   // an average rate of 250k usteps/sec.
   if (ticks_per_step < STEP_PULSE_WIDTH * 1.9)
-    m->timer_period = STEP_PULSE_WIDTH * 1.9;             // Too fast
-  else if (0xffff <= ticks_per_step) m->timer_period = 0; // Too slow
-  else m->timer_period = ticks_per_step;                  // Just right
+    ticks_per_step = STEP_PULSE_WIDTH * 1.9; // Too fast
 
-  if (!steps) m->timer_period = 0;
+  // Use faster clock with faster step rates for increased resolution.
+  if (ticks_per_step < 0x7fff) {
+    ticks_per_step *= 2;
+    m->clock = TC_CLKSEL_DIV1_gc;
+
+  } else m->clock = TC_CLKSEL_DIV2_gc;
+
+  // Disable clock if too slow
+  if (0xffff <= ticks_per_step) ticks_per_step = 0;
+
+  m->timer_period = steps ? round(ticks_per_step) : 0;
 
   // Power motor
   switch (m->power_mode) {

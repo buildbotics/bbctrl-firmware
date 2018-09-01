@@ -169,7 +169,7 @@ enum {
                                   DRV8711_DRIVE_TDRIVEN_250 | \
                                   DRV8711_DRIVE_OCPDEG_1    | \
                                   DRV8711_DRIVE_OCPTH_250)
-#define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_200
+#define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_50
 #define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_10 | \
                                   DRV8711_CTRL_DTIME_450 | \
                                   DRV8711_CTRL_EXSTALL_bm)

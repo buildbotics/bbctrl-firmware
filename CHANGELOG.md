@@ -3,6 +3,8 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.3.29
  - Increased display precision of position and motor config.
+ - Added support for 256 microstepping.
+ - Smoother operation at 250k step rate by doubling clock as needed.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

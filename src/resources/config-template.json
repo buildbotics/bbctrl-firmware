@@ -58,7 +58,7 @@
         },
         "microsteps": {
           "type": "int",
-          "values": [1, 2, 4, 8, 16, 32, 64, 128],
+          "values": [1, 2, 4, 8, 16, 32, 64, 128, 256],
           "unit": "per full step",
           "default": 32,
           "code": "mi"
