@@ -62,10 +62,12 @@ static const uint8_t ch_schedule[] = {
 
 
 static volatile uint16_t regs[NUM_REGS] = {0};
+static volatile uint16_t reg_avg[NUM_REGS][BUCKETS] = {{0}};
+static volatile uint16_t reg_index[NUM_REGS] = {0};
 static volatile uint64_t time = 0; // ms
 static volatile uint8_t motor_overload = 0;
 static volatile bool shunt_overload = false;
-static volatile float shunt_ms_power = 0;
+static volatile float shunt_joules = 0;
 static volatile float vnom = 0;
 
 
@@ -135,19 +137,20 @@ static float get_reg(int reg) {
 
 
 static void update_shunt() {
-  static float watts = SHUNT_WATTS;
+  static float joules = SHUNT_JOULES; // Power disipation budget
 
-  // Add power dissipation credit
-  watts += SHUNT_WATTS / 1000.0;
-  if (SHUNT_WATTS < watts) watts = SHUNT_WATTS;
+  // Add power dissipation credit for the 1ms that elapsed
+  joules += SHUNT_JOULES_PER_MS;
+  if (SHUNT_JOULES < joules) joules = SHUNT_JOULES; // Max
 
-  // Remove power dissipation credit
-  watts -= shunt_ms_power;
-  if (watts < 0) shunt_overload = true;
+  if (joules < shunt_joules) shunt_overload = true;
+  else if (shunt_joules) {
+    joules -= shunt_joules; // Subtract power dissipated
+    IO_DDR_SET(SHUNT_PIN);  // Enable
+    return;
+  }
 
-  // Enable shunt when requested
-  if (shunt_ms_power) IO_DDR_SET(SHUNT_PIN); // Enable
-  else IO_DDR_CLR(SHUNT_PIN);                // Disable
+  IO_DDR_CLR(SHUNT_PIN); // Disable
 }
 
 
@@ -156,12 +159,13 @@ static void update_shunt_power(float vout, float vnom) {
     float duty = (vout - vnom - SHUNT_MIN_V) / SHUNT_MAX_V;
     if (duty < 0) duty = 0;
     if (1 < duty) duty = 1;
+    if (VOLTAGE_MAX <= vout) duty = 1; // Full shunt at max voltage
 
-    // Compute the power credits used per ms
-    shunt_ms_power = vout * vout * duty * (1.0 / SHUNT_OHMS / 1000.0);
+    // Compute joules shunted this cycle: J = V^2 / RT
+    shunt_joules = duty * vout * vout / (SHUNT_OHMS * 1000.0);
     OCR1A = 0xff * duty;
 
-  } else shunt_ms_power = 0;
+  } else shunt_joules = 0;
 }
 
 
@@ -220,6 +224,18 @@ inline static uint16_t convert_current(uint16_t sample) {
 }
 
 
+inline static uint16_t update_current(int reg, uint16_t sample) {
+  reg_avg[reg][reg_index[reg]] = convert_current(sample);
+  if (++reg_index[reg] == BUCKETS) reg_index[reg] = 0;
+
+  uint32_t sum = 0;
+  for (int i = 0; i < BUCKETS; i++)
+    sum += reg_avg[reg][i];
+
+  return regs[reg] = sum >> AVG_SCALE;
+}
+
+
 static void read_conversion(uint8_t ch) {
   uint16_t data = ADC;
 
@@ -229,23 +245,23 @@ static void read_conversion(uint8_t ch) {
   case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
 
   case CS1_ADC: {
-    regs[MOTOR_REG] = convert_current(data);
-    bool overtemp = CURRENT_OVERTEMP * 100 < regs[MOTOR_REG];
+    uint16_t current = update_current(MOTOR_REG, data);
+    bool overtemp = CURRENT_OVERTEMP * 100 < current;
     if (overtemp) {
       if (motor_overload < MOTOR_SHUTDOWN_THRESH) motor_overload++;
     } else if (motor_overload) motor_overload--;
     break;
   }
 
-  case CS2_ADC: regs[VDD_REG] = convert_current(data); break;
+  case CS2_ADC: update_current(VDD_REG, data); break;
 
   case CS3_ADC:
-    regs[LOAD2_REG] = convert_current(data);
+    update_current(LOAD2_REG, data);
     check_load(&loads[1]);
     break;
 
   case CS4_ADC:
-    regs[LOAD1_REG] = convert_current(data);
+    update_current(LOAD1_REG, data);
     check_load(&loads[0]);
     break;
   }
@@ -360,19 +376,13 @@ void init() {
 }
 
 
-static void shutdown(uint16_t flags) {
-  // Disable timers
-  TCCR0B = TCCR1B = 0;
-
+static void shutdown() {
   // Disable outputs
-  IO_DDR_CLR(SHUNT_PIN);  // Input
   IO_DDR_CLR(MOTOR_PIN);  // Input
   IO_PORT_CLR(LOAD1_PIN); // Lo
   IO_PORT_CLR(LOAD2_PIN); // Lo
   IO_DDR_SET(LOAD1_PIN);  // Output
   IO_DDR_SET(LOAD2_PIN);  // Output
-
-  while (true) continue;
 }
 
 
@@ -384,8 +394,10 @@ static void validate_measurements() {
       max_current < regs[MOTOR_REG] ||
       max_current < regs[LOAD1_REG] ||
       max_current < regs[LOAD2_REG] ||
-      max_current < regs[VDD_REG])
-    shutdown(SENSE_ERROR_FLAG);
+      max_current < regs[VDD_REG]) {
+    regs[FLAGS_REG] |= SENSE_ERROR_FLAG;
+    shutdown();
+  }
 }
 
 
@@ -417,7 +429,7 @@ int main() {
     if (loads[1].shutdown) flags |= LOAD2_SHUTDOWN_FLAG;
 
     regs[FLAGS_REG] = flags;
-    if (flags & FATAL_FLAG_MASK) shutdown(flags);
+    if (flags & FATAL_FLAG_MASK) shutdown();
   }
 
   return 0;

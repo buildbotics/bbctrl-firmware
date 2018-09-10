@@ -89,14 +89,21 @@ enum {
 #define VOLTAGE_EXP 0.01
 
 #define SHUNT_WATTS 5
-#define SHUNT_OHMS 10
+#define SHUNT_OHMS  5.1
+#define SHUNT_PERIOD 65000 // ms
+#define SHUNT_JOULES 50    // Power per shunt period
+#define SHUNT_JOULES_PER_MS ((float)SHUNT_JOULES / SHUNT_PERIOD)
 #define SHUNT_MIN_V 1
 #define SHUNT_MAX_V 3
 
 #define VOLTAGE_REF 1.1
 #define VOLTAGE_REF_R1 37400
 #define VOLTAGE_REF_R2 1000
-#define CURRENT_REF_MUL 1970
+#define CURRENT_REF_R2 137
+#define CURRENT_REF_MUL (100.0 * 2700 / CURRENT_REF_R2) // 2700 from datasheet
+
+#define AVG_SCALE 2
+#define BUCKETS (1 << AVG_SCALE)
 
 // Addresses 0x60 to 0x67
 #define I2C_ADDR 0x60
