@@ -445,7 +445,7 @@ span.unit
         color green
 
 .indicators
-  padding 1em
+  padding 1em 0.75em
   text-align center
 
   table
@@ -461,42 +461,31 @@ span.unit
     tr:nth-child(odd)
       background #f7f7f7
 
-    td:nth-child(1), td:nth-child(3)
-      text-align center
-
-    th:nth-child(2), th:nth-child(4)
+    th
       text-align left
 
+    td
+      text-align right
+
     &.inputs, &.outputs
-      td:nth-child(1), td:nth-child(4)
+      td:nth-child(1), td:nth-child(5)
         text-align center
-
-      th:nth-child(2), th:nth-child(5)
-        text-align right
-
-      th:nth-child(3), th:nth-child(6)
-        text-align left
 
     th.header
       height 2.5em
       border-bottom 3px solid #ccc
+      text-align center
 
     th.separator
       background #ccc
       border 1px solid #ccc
       padding 1px
 
-    &.pwr_fault th:nth-child(1)
-      text-align left
-
-    &.pwr_fault tr:nth-child(1) th
-      text-align center
-
-  .logic-lo
-    color black
-
-  .logic-hi
+  .io.active
     color green
+
+  .io.inactive
+    color black
 
   .warn
     background-color transparent

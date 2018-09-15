@@ -27,39 +27,69 @@
 
 script#indicators-template(type="text/x-template")
   .indicators
+    table.legend
+      tr
+        th.header(colspan=100) Legend
+
+      tr
+        td
+         .fa.fa-plus-circle.io
+        th Hi/+3.3v
+        th.separator
+        td
+         .fa.fa-minus-circle.io
+        th Lo/Gnd
+        th.separator
+        td
+         .fa.fa-circle.io.active
+        th Active
+        th.separator
+        td
+         .fa.fa-circle.io.inactive
+        th Inactive
+        th.separator
+        td
+         .fa.fa-circle-o.io
+        th Tristated/Disabled
+
     table.inputs
       tr
         th.header(colspan=7) Inputs
+
       tr
-        th
+        th State
         th Pin
         th Name
         th.separator
-        th
+        th State
         th Pin
         th Name
 
       each motor in '0123'
         tr
           td
-            .fa(:class="get_class('#{motor}lw')")
-          th {{get_min_pin(#{motor})}}
+            .fa.io(:class="get_input_class('#{motor}lw', '#{motor}ls')",
+              :title="get_input_tooltip('#{motor}lw', '#{motor}ls')")
+          td {{get_min_pin(#{motor})}}
           th Motor #{motor} Min
           th.separator
           td
-            .fa(:class="get_class('#{motor}xw')")
-          th {{get_max_pin(#{motor})}}
+            .fa.io(:class="get_input_class('#{motor}xw', '#{motor}xs')",
+              :title="get_input_tooltip('#{motor}xw', '#{motor}xs')")
+          td {{get_max_pin(#{motor})}}
           th Motor #{motor} Max
 
       tr
         td
-          .fa(:class="get_class('ew')")
-        th 23
+          .fa.io(:class="get_input_class('ew', 'et')",
+            :title="get_input_tooltip('ew', 'et')")
+        td 23
         th EStop
         th.separator
         td
-          .fa(:class="get_class('pw')")
-        th 22
+          .fa.io(:class="get_input_class('pw', 'pt')",
+            :title="get_input_tooltip('pw', 'pt')")
+        td 22
         th Probe
 
     table.outputs
@@ -67,73 +97,86 @@ script#indicators-template(type="text/x-template")
         th.header(colspan=7) Outputs
 
       tr
-        th
+        th State
         th Pin
         th Name
         th.separator
-        th
+        th State
         th Pin
         th Name
 
       tr
         td
-          .fa(:class="get_class('eos')")
-        th 15
+          .fa.io(:class="get_output_class('e')",
+            :title="get_output_tooltip('e')")
+        td 15
         th Tool Enable
         th.separator
         td
-          .fa(:class="get_class('1os')")
-        th 2
+          .fa.io(:class="get_output_class('1')",
+            :title="get_output_tooltip('1')")
+        td 2
         th Load 1
 
       tr
         td
-          .fa(:class="get_class('dos')")
-        th 16
+          .fa.io(:class="get_output_class('d')",
+            :title="get_output_tooltip('d')")
+        td 16
         th Tool Direction
         th.separator
         td
-          .fa(:class="get_class('2os')")
-        th 1
+          .fa.io(:class="get_output_class('2')",
+            :title="get_output_tooltip('2')")
+        td 1
         th Load 2
 
       tr
         td {{state['pd'] | percent 0}}
-        th 17
+        td 17
         th Tool PWM
         th.separator
         td
-          .fa(:class="get_class('fos')")
-        th 21
+          .fa.io(:class="get_output_class('f')",
+            :title="get_output_tooltip('f')")
+        td 21
         th Fault
 
     table.pwr_fault
       tr
         th.header(colspan=5) Power Faults
       tr
-        th Under voltage
-        td {{state['under_voltage'] ? 'True' : 'False'}}
+        th(:class="{error: state['under_voltage']}") Under voltage
+        td(:class="{error: state['under_voltage']}")
+          | {{state['under_voltage'] ? 'True' : 'False'}}
         th.separator
-        th Over voltage
-        td {{state['over_voltage'] ? 'True' : 'False'}}
+        th(:class="{error: state['over_voltage']}") Over voltage
+        td(:class="{error: state['over_voltage']}")
+          | {{state['over_voltage'] ? 'True' : 'False'}}
       tr
-        th Over current
-        td {{state['over_current'] ? 'True' : 'False'}}
+        th(:class="{error: state['over_current']}") Over current
+        td(:class="{error: state['over_current']}")
+          | {{state['over_current'] ? 'True' : 'False'}}
         th.separator
-        th Sense error
-        td {{state['sense_error'] ? 'True' : 'False'}}
+        th(:class="{error: state['sense_error']}") Sense error
+        td(:class="{error: state['sense_error']}")
+          | {{state['sense_error'] ? 'True' : 'False'}}
       tr
-        th Shunt overload
-        td {{state['shunt_overload'] ? 'True' : 'False'}}
+        th(:class="{error: state['shunt_overload']}") Shunt overload
+        td(:class="{error: state['shunt_overload']}")
+          | {{state['shunt_overload'] ? 'True' : 'False'}}
         th.separator
-        th Motor overload
-        td {{state['motor_overload'] ? 'True' : 'False'}}
+        th(:class="{error: state['motor_overload']}") Motor overload
+        td(:class="{error: state['motor_overload']}")
+          | {{state['motor_overload'] ? 'True' : 'False'}}
       tr
-        th Load 1 shutdown
-        td {{state['load1_shutdown'] ? 'True' : 'False'}}
+        th(:class="{error: state['load1_shutdown']}") Load 1 shutdown
+        td(:class="{error: state['load1_shutdown']}")
+          | {{state['load1_shutdown'] ? 'True' : 'False'}}
         th.separator
-        th Load 2 shutdown
-        td {{state['load2_shutdown'] ? 'True' : 'False'}}
+        th(:class="{error: state['load2_shutdown']}") Load 2 shutdown
+        td(:class="{error: state['load2_shutdown']}")
+          | {{state['load2_shutdown'] ? 'True' : 'False'}}
 
     table.measurements
       tr
@@ -172,38 +215,18 @@ script#indicators-template(type="text/x-template")
         th.header(colspan=5) Modbus VFD
 
       tr
-        th(colspan=5) {{modbus_status}}
-
-      tr
+        td {{modbus_status}}
+        th Status
+        th.separator
         td {{state['hz']}} Hz
         th Frequency
-        th.separator
-        td {{state['hc']}} A
-        th Current
 
       tr
         td {{state['s']}} RPM
         th Speed
         th.separator
-        td
-        th
-
-    table.legend
-      tr
-        th.header(colspan=10) Legend
-
-      tr
-        td
-         .fa.fa-circle.logic-hi
-        th Logic Hi
-
-        td
-         .fa.fa-circle.logic-lo
-        th Logic Lo
-
-        td
-         .fa.fa-circle-o.logic-tri
-        th Tristated / Disabled
+        td {{state['hc']}} A
+        th Current
 
     h2 DB25 breakout box
     img(width=700, src="/images/DB25_breakout_box.png")
