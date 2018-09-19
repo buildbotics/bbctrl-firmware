@@ -191,7 +191,7 @@ script#control-view-template(type="text/x-template")
       input#tab5(type="radio", name="tabs")
       label(for="tab5") Indicators
 
-      input#tab6(type="radio", name="tabs", @click="load_video")
+      input#tab6(type="radio", name="tabs")
       label(for="tab6") Video
 
       section#content1.tab-content.pure-form
@@ -294,13 +294,11 @@ script#control-view-template(type="text/x-template")
 
       section#content6.tab-content
         .video
-          img.reload(src="/images/reload.png", @click="reload_video",
-            title="Reload video")
-          img.mjpeg(:src="video_url", alt="Video camera not found.")
+          img(:src="video_url", alt="Video camera not found.")
 
-        p(style="padding:0 1em")
-          | Plug in a USB video camera to monitor your machine remotely.
-          | If it's not working, try clicking the reload button or unplugging
-          | and replugging the the camera.
-          | <a href="https://elinux.org/RPi_USB_Webcams" target="_blank">Here
-          | is a list</a> of USB cameras that should work.
+          p
+            | Plug in a USB video camera to monitor your machine remotely.
+
+          p
+            | <a href="https://elinux.org/RPi_USB_Webcams" target="_blank">Here
+            | is a list</a> of USB cameras that should work.

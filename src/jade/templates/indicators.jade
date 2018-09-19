@@ -132,7 +132,7 @@ script#indicators-template(type="text/x-template")
         th Load 2
 
       tr
-        td {{state['pd'] | percent 0}}
+        td {{state.pd | percent 0}}
         td 17
         th Tool PWM
         th.separator
@@ -144,63 +144,73 @@ script#indicators-template(type="text/x-template")
 
     table.pwr_fault
       tr
-        th.header(colspan=5) Power Faults
+        th.header(colspan=5)
+          | Power Faults
+          span(v-if="state.pwr_version") &nbsp(Version {{state.pwr_version}})
       tr
-        th(:class="{error: state['under_voltage']}") Under voltage
-        td(:class="{error: state['under_voltage']}")
-          | {{state['under_voltage'] ? 'True' : 'False'}}
+        th(:class="{error: state.under_voltage}") Under voltage
+        td(:class="{error: state.under_voltage}")
+          | {{state.under_voltage ? 'True' : 'False'}}
         th.separator
-        th(:class="{error: state['over_voltage']}") Over voltage
-        td(:class="{error: state['over_voltage']}")
-          | {{state['over_voltage'] ? 'True' : 'False'}}
+        th(:class="{error: state.over_voltage}") Over voltage
+        td(:class="{error: state.over_voltage}")
+          | {{state.over_voltage ? 'True' : 'False'}}
       tr
-        th(:class="{error: state['over_current']}") Over current
-        td(:class="{error: state['over_current']}")
-          | {{state['over_current'] ? 'True' : 'False'}}
+        th(:class="{error: state.over_current}") Over current
+        td(:class="{error: state.over_current}")
+          | {{state.over_current ? 'True' : 'False'}}
         th.separator
-        th(:class="{error: state['sense_error']}") Sense error
-        td(:class="{error: state['sense_error']}")
-          | {{state['sense_error'] ? 'True' : 'False'}}
+        th(:class="{error: state.sense_error}", :title="sense_error")
+          | Sense error
+        td(:class="{error: state.sense_error}")
+          | {{state.sense_error ? 'True' : 'False'}}
       tr
-        th(:class="{error: state['shunt_overload']}") Shunt overload
-        td(:class="{error: state['shunt_overload']}")
-          | {{state['shunt_overload'] ? 'True' : 'False'}}
+        th(:class="{error: state.shunt_overload}") Shunt overload
+        td(:class="{error: state.shunt_overload}")
+          | {{state.shunt_overload ? 'True' : 'False'}}
         th.separator
-        th(:class="{error: state['motor_overload']}") Motor overload
-        td(:class="{error: state['motor_overload']}")
-          | {{state['motor_overload'] ? 'True' : 'False'}}
+        th(:class="{error: state.motor_overload}") Motor overload
+        td(:class="{error: state.motor_overload}")
+          | {{state.motor_overload ? 'True' : 'False'}}
       tr
-        th(:class="{error: state['load1_shutdown']}") Load 1 shutdown
-        td(:class="{error: state['load1_shutdown']}")
-          | {{state['load1_shutdown'] ? 'True' : 'False'}}
+        th(:class="{error: state.load1_shutdown}") Load 1 shutdown
+        td(:class="{error: state.load1_shutdown}")
+          | {{state.load1_shutdown ? 'True' : 'False'}}
         th.separator
-        th(:class="{error: state['load2_shutdown']}") Load 2 shutdown
-        td(:class="{error: state['load2_shutdown']}")
-          | {{state['load2_shutdown'] ? 'True' : 'False'}}
+        th(:class="{error: state.load2_shutdown}") Load 2 shutdown
+        td(:class="{error: state.load2_shutdown}")
+          | {{state.load2_shutdown ? 'True' : 'False'}}
+      tr
+        th(:class="{error: state.motor_under_voltage}") Motor under volt
+        td(:class="{error: state.motor_under_voltage}")
+          | {{state.motor_under_voltage ? 'True' : 'False'}}
+        th.separator
+        th
+        td
 
     table.measurements
       tr
         th.header(colspan=5) Measurements
 
       tr
-        td {{state['vin'] | fixed 1}} V
+        td {{state.vin | fixed 1}} V
         th Input
         th.separator
-        td {{state['vout'] | fixed 1}} V
+        td {{state.vout | fixed 1}} V
         th Output
 
       tr
-        td {{state['motor'] | fixed 2}} A
+        td {{state.motor | fixed 2}} A
         th Motor
         th.separator
-        td {{state['temp'] | fixed 0}} ℃
+        td {{state.temp | fixed 0}} ℃
         th Temp
 
       tr
-        td {{state['load1'] | fixed 2}} A
+        td {{state.load1 | fixed 2}} A
         th Load 1
         th.separator
-        td {{state['load2'] | fixed 2}} A
+        td {{state.load2 | fixed 2}} A
         th Load 2
 
       tr
@@ -218,14 +228,14 @@ script#indicators-template(type="text/x-template")
         td {{modbus_status}}
         th Status
         th.separator
-        td {{state['hz']}} Hz
+        td {{state.hz}} Hz
         th Frequency
 
       tr
-        td {{state['s']}} RPM
+        td {{state.s}} RPM
         th Speed
         th.separator
-        td {{state['hc']}} A
+        td {{state.hc}} A
         th Current
 
     h2 DB25 breakout box

@@ -6,6 +6,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Added support for 256 microstepping.
  - Smoother operation at 250k step rate by doubling clock as needed.
  - Indicators tab improvements.
+ - Much improved camera support.
+ - Camera hotpluging.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

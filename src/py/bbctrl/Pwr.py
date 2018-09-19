@@ -42,18 +42,25 @@ LOAD1_REG       = 4
 LOAD2_REG       = 5
 VDD_REG         = 6
 FLAGS_REG       = 7
+VERSION_REG     = 8
 
 # Must be kept in sync with pwr firmware
-UNDER_VOLTAGE_FLAG  = 1 << 0
-OVER_VOLTAGE_FLAG   = 1 << 1
-OVER_CURRENT_FLAG   = 1 << 2
-SENSE_ERROR_FLAG    = 1 << 3
-SHUNT_OVERLOAD_FLAG = 1 << 4
-MOTOR_OVERLOAD_FLAG = 1 << 5
-LOAD1_SHUTDOWN_FLAG = 1 << 6
-LOAD2_SHUTDOWN_FLAG = 1 << 7
+UNDER_VOLTAGE_FLAG       = 1 << 0
+OVER_VOLTAGE_FLAG        = 1 << 1
+OVER_CURRENT_FLAG        = 1 << 2
+SENSE_ERROR_FLAG         = 1 << 3
+SHUNT_OVERLOAD_FLAG      = 1 << 4
+MOTOR_OVERLOAD_FLAG      = 1 << 5
+LOAD1_SHUTDOWN_FLAG      = 1 << 6
+LOAD2_SHUTDOWN_FLAG      = 1 << 7
+MOTOR_UNDER_VOLTAGE_FLAG = 1 << 8
+MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9
+MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10
+LOAD1_SENSE_ERROR_FLAG         = 1 << 11
+LOAD2_SENSE_ERROR_FLAG         = 1 << 12
+VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13
 
-reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags'.split()
+reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
 
 
 class Pwr():
@@ -61,14 +68,11 @@ class Pwr():
         self.ctrl = ctrl
 
         self.i2c_addr = ctrl.args.pwr_addr
-        self.regs = [-1] * 8
+        self.regs = [-1] * 9
         self.lcd_page = ctrl.lcd.add_new_page()
         self.failures = 0
 
         PeriodicCallback(self._update, 1000, ctrl.ioloop).start()
-
-
-    def get_reg(self, i): return self.regs[i]
 
 
     def check_fault(self, var, status):
@@ -108,6 +112,30 @@ class Pwr():
         if self.check_fault('load2_shutdown', flags & LOAD2_SHUTDOWN_FLAG):
             log.error('Load 2 over temperature shutdown')
 
+        if self.check_fault('motor_under_voltage',
+                            flags & MOTOR_UNDER_VOLTAGE_FLAG):
+            log.error('Motor under voltage')
+
+        if self.check_fault('motor_voltage_sense_error',
+                            flags & MOTOR_VOLTAGE_SENSE_ERROR_FLAG):
+            log.error('Motor voltage sense error')
+
+        if self.check_fault('motor_current_sense_error',
+                            flags & MOTOR_CURRENT_SENSE_ERROR_FLAG):
+            log.error('Motor current sense error')
+
+        if self.check_fault('load1_sense_error',
+                            flags & LOAD1_SENSE_ERROR_FLAG):
+            log.error('Load1 sense error')
+
+        if self.check_fault('load2_sense_error',
+                            flags & LOAD2_SENSE_ERROR_FLAG):
+            log.error('Load2 sense error')
+
+        if self.check_fault('vdd_current_sense_error',
+                            flags & VDD_CURRENT_SENSE_ERROR_FLAG):
+            log.error('Vdd current sense error')
+
 
     def _update(self):
         update = {}
@@ -117,7 +145,7 @@ class Pwr():
                 value = self.ctrl.i2c.read_word(self.i2c_addr + i)
 
                 if i == TEMP_REG: value -= 273
-                elif i == FLAGS_REG: pass
+                elif i == FLAGS_REG or i == VERSION_REG: pass
                 else: value /= 100.0
 
                 key = reg_names[i]
@@ -132,7 +160,7 @@ class Pwr():
         except Exception as e:
             if i < 6: # Older pwr firmware does not have regs > 5
                 self.failures += 1
-                msg = 'Pwr communication failed: %s' % e
+                msg = 'Pwr communication failed at reg %d: %s' % (i, e)
                 if self.failures != 5: log.info(msg)
                 else:
                     log.warning(msg)

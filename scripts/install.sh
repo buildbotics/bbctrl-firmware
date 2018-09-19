@@ -2,6 +2,7 @@
 
 UPDATE_AVR=true
 UPDATE_PY=true
+REBOOT=false
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -30,6 +31,21 @@ if [ $? -ne 0 ]; then
     mount -o remount,ro /boot
 fi
 
+
+# Fix camera
+grep dwc_otg.fiq_fsm_mask /boot/cmdline.txt >/dev/null
+if [ $? -ne 0 ]; then
+    mount -o remount,rw /boot &&
+    sed -i 's/\(.*\)/\1 dwc_otg.fiq_fsm_mask=0x3/' /boot/cmdline.txt
+    mount -o remount,ro /boot
+    REBOOT=true
+fi
+
+# Remove Hawkeye
+if [ -e /etc/init.d/hawkeye ]; then
+    apt-get remove --purge -y hawkeye
+fi
+
 # Decrease boot delay
 sed -i 's/^TimeoutStartSec=.*$/TimeoutStartSec=1/' \
     /etc/systemd/system/network-online.target.wants/networking.service
@@ -45,3 +61,7 @@ if $UPDATE_PY; then
 fi
 
 sync
+
+if $REBOOT; then
+    reboot
+fi

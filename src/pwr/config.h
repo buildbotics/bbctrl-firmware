@@ -30,6 +30,9 @@
 #include "pins.h"
 
 
+#define VERSION 1
+
+
 // Pins
 enum {
   AREF_PIN = PORT_A << 3,
@@ -107,7 +110,7 @@ enum {
 
 // Addresses 0x60 to 0x67
 #define I2C_ADDR 0x60
-#define I2C_MASK 0b00000111
+#define I2C_MASK 0b00001111
 
 #define I2C_ERROR_BM (1 << TWBE)
 #define I2C_DATA_INT_BM (1 << TWDIF)
@@ -125,11 +128,13 @@ typedef enum {
   LOAD2_REG,
   VDD_REG,
   FLAGS_REG,
+  VERSION_REG,
   NUM_REGS
 } regs_t;
 
 
 enum {
+  // Fatal
   UNDER_VOLTAGE_FLAG  = 1 << 0,
   OVER_VOLTAGE_FLAG   = 1 << 1,
   OVER_CURRENT_FLAG   = 1 << 2,
@@ -138,8 +143,16 @@ enum {
   MOTOR_OVERLOAD_FLAG = 1 << 5,
 
   // Non fatal
-  LOAD1_SHUTDOWN_FLAG = 1 << 6,
-  LOAD2_SHUTDOWN_FLAG = 1 << 7,
+  LOAD1_SHUTDOWN_FLAG      = 1 << 6,
+  LOAD2_SHUTDOWN_FLAG      = 1 << 7,
+  MOTOR_UNDER_VOLTAGE_FLAG = 1 << 8,
+
+  // Sense errors
+  MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9,
+  MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10,
+  LOAD1_SENSE_ERROR_FLAG         = 1 << 11,
+  LOAD2_SENSE_ERROR_FLAG         = 1 << 12,
+  VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13,
 };
 
 

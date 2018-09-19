@@ -386,29 +386,31 @@ static void shutdown() {
 }
 
 
-static void validate_measurements() {
+static uint16_t validate_measurements() {
   const float max_voltage = 0.99 * convert_voltage(0x3ff);
   const float max_current = 0.99 * convert_current(0x3ff);
+  uint16_t flags = 0;
 
-  if (max_voltage < regs[VOUT_REG]  ||
-      max_current < regs[MOTOR_REG] ||
-      max_current < regs[LOAD1_REG] ||
-      max_current < regs[LOAD2_REG] ||
-      max_current < regs[VDD_REG]) {
-    regs[FLAGS_REG] |= SENSE_ERROR_FLAG;
-    shutdown();
-  }
+  if (max_voltage < regs[VOUT_REG])  flags |= MOTOR_VOLTAGE_SENSE_ERROR_FLAG;
+  if (max_current < regs[MOTOR_REG]) flags |= MOTOR_CURRENT_SENSE_ERROR_FLAG;
+  if (max_current < regs[LOAD1_REG]) flags |= LOAD1_SENSE_ERROR_FLAG;
+  if (max_current < regs[LOAD2_REG]) flags |= LOAD2_SENSE_ERROR_FLAG;
+  if (max_current < regs[VDD_REG])   flags |= VDD_CURRENT_SENSE_ERROR_FLAG;
+
+  return flags ? SENSE_ERROR_FLAG | flags : 0;
 }
 
 
 int main() {
   wdt_enable(WDTO_8S);
 
+  regs[VERSION_REG] = VERSION;
+
   init();
   adc_conversion(); // Start ADC
   validate_input_voltage();
   charge_caps();
-  validate_measurements();
+  uint16_t fatal = validate_measurements();
 
   while (true) {
     wdt_reset();
@@ -418,18 +420,22 @@ int main() {
 
     update_shunt_power(vout, vnom);
 
-    // Check fault conditions
-    uint16_t flags = 0;
-    if (vin < VOLTAGE_MIN) flags |= UNDER_VOLTAGE_FLAG;
-    if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) flags |= OVER_VOLTAGE_FLAG;
-    if (CURRENT_MAX < get_total_current()) flags |= OVER_CURRENT_FLAG;
-    if (shunt_overload) flags |= SHUNT_OVERLOAD_FLAG;
-    if (MOTOR_SHUTDOWN_THRESH <= motor_overload) flags |= MOTOR_OVERLOAD_FLAG;
-    if (loads[0].shutdown) flags |= LOAD1_SHUTDOWN_FLAG;
-    if (loads[1].shutdown) flags |= LOAD2_SHUTDOWN_FLAG;
+    // Fatal conditions
+    if (vin < VOLTAGE_MIN) fatal |= UNDER_VOLTAGE_FLAG;
+    if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) fatal |= OVER_VOLTAGE_FLAG;
+    if (CURRENT_MAX < get_total_current()) fatal |= OVER_CURRENT_FLAG;
+    if (shunt_overload) fatal |= SHUNT_OVERLOAD_FLAG;
+    if (MOTOR_SHUTDOWN_THRESH <= motor_overload) fatal |= MOTOR_OVERLOAD_FLAG;
+    if (fatal) shutdown();
 
-    regs[FLAGS_REG] = flags;
-    if (flags & FATAL_FLAG_MASK) shutdown();
+    // Nonfatal conditions
+    uint16_t nonfatal = 0;
+    if (loads[0].shutdown) nonfatal |= LOAD1_SHUTDOWN_FLAG;
+    if (loads[1].shutdown) nonfatal |= LOAD2_SHUTDOWN_FLAG;
+    if (vout < VOLTAGE_MIN) nonfatal |= MOTOR_UNDER_VOLTAGE_FLAG;
+
+    // Update flags
+    regs[FLAGS_REG] = fatal | nonfatal;
   }
 
   return 0;

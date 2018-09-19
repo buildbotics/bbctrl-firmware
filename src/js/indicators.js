@@ -36,7 +36,20 @@ module.exports = {
 
 
   computed: {
-    modbus_status: function () {return modbus.status_to_string(this.state.mx)}
+    modbus_status: function () {return modbus.status_to_string(this.state.mx)},
+
+
+    sense_error: function () {
+      var error = '';
+
+      if (this.state.motor_voltage_sense_error) error += 'Motor voltage\n';
+      if (this.state.motor_current_sense_error) error += 'Motor current\n';
+      if (this.state.load1_sense_error) error += 'Load 1\n';
+      if (this.state.load2_sense_error) error += 'Load 2\n';
+      if (this.state.vdd_current_sense_error) error += 'Vdd current\n';
+
+      return error;
+    }
   },
 
 
@@ -143,6 +156,6 @@ module.exports = {
       var state = this.state[output + 'os'];
 
       return this.get_tooltip(mode, active, state);
-    },
+    }
   }
 }

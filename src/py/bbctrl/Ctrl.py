@@ -55,4 +55,10 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
+            self.camera = bbctrl.Camera(self)
+
         except Exception as e: log.exception(e)
+
+
+    def close(self):
+        self.camera.close()

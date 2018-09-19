@@ -2,7 +2,6 @@
 PROJECT = bbctrl-pwr-firmware
 MCU     = attiny1634
 CLOCK   = 8000000
-VERSION = 0.0.1
 
 # Compile flags
 CC = avr-gcc
@@ -13,7 +12,7 @@ CFLAGS += -Wall -Werror
 CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
-CFLAGS += -I. -DVERSION=\"$(VERSION)\"
+CFLAGS += -I.
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm

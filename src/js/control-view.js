@@ -60,8 +60,8 @@ module.exports = {
       {x: false, y: false, z: false, a: false, b: false, c: false},
       axis_position: 0,
       jog_adjust: 100,
-      video_url: '',
-      deleteGCode: false
+      video_url: '/api/video?nocache=' + Math.random(),
+      deleteGCode: false,
     }
   },
 
@@ -364,22 +364,6 @@ module.exports = {
       var data = {};
       data[axis + 'pl'] = x;
       this.send(JSON.stringify(data));
-    },
-
-
-    load_video: function () {
-      this.video_url = '//' + document.location.hostname + ':8000/stream/0?=' +
-        Math.random();
-    },
-
-
-    reload_video: function () {
-      if (typeof this.lastVideoReset != 'undefined' &&
-          Date.now() - this.lastVideoReset < 15000) return;
-
-      this.lastVideoReset = Date.now();
-      api.put('video/reload');
-      setTimeout(this.load_video, 4000);
     }
   }
 }

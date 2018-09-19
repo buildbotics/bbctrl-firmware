@@ -38,6 +38,7 @@ import subprocess
 import socket
 import time
 from tornado.web import HTTPError
+from tornado import web, gen
 
 import bbctrl
 
@@ -305,7 +306,7 @@ class JogHandler(bbctrl.APIHandler):
 
 
 class VideoReloadHandler(bbctrl.APIHandler):
-    def put_ok(self): subprocess.Popen('reset-video').wait()
+    def put_ok(self): pass #subprocess.Popen('reset-video').wait()
 
 
 # Base class for Web Socket connections
@@ -402,6 +403,7 @@ class Web(tornado.web.Application):
             (r'/api/modbus/read', ModbusReadHandler),
             (r'/api/modbus/write', ModbusWriteHandler),
             (r'/api/jog', JogHandler),
+            (r'/api/video', bbctrl.VideoHandler),
             (r'/api/video/reload', VideoReloadHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),

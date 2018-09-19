@@ -55,7 +55,12 @@ from bbctrl.Comm import Comm
 from bbctrl.CommandQueue import CommandQueue
 from bbctrl.MainLCDPage import MainLCDPage
 from bbctrl.IPLCDPage import IPLCDPage
+from bbctrl.Camera import Camera, VideoHandler
 import bbctrl.Cmd as Cmd
+import bbctrl.v4l2 as v4l2
+
+
+ctrl = None
 
 
 def get_resource(path):
@@ -63,7 +68,14 @@ def get_resource(path):
 
 
 def on_exit(sig = 0, func = None):
+    global ctrl
+
     logging.info('Exit handler triggered: signal = %d', sig)
+
+    if ctrl is not None:
+        ctrl.close()
+        ctrl = None
+
     sys.exit(1)
 
 
@@ -96,6 +108,8 @@ def parse_args():
 
 
 def run():
+    global ctrl
+
     args = parse_args()
 
     # Init logging
