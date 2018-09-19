@@ -307,6 +307,14 @@ class VideoDevice(object):
         return caps
 
 
+    def set_fps(self, fps):
+        setfps = v4l2.v4l2_streamparm()
+        setfps.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        setfps.parm.capture.timeperframe.numerator = 1
+        setfps.parm.capture.timeperframe.denominator = fps
+        fcntl.ioctl(self, v4l2.VIDIOC_S_PARM, setfps)
+
+
     def start(self):
         buf_type = v4l2.v4l2_buf_type(v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE)
         fcntl.ioctl(self, v4l2.VIDIOC_STREAMON, buf_type)
@@ -368,6 +376,7 @@ class Camera(object):
                 raise Exception('Video capture not supported.')
 
             self.dev.set_format(640, 480, fourcc = v4l2.V4L2_PIX_FMT_MJPEG)
+            self.dev.set_fps(15)
             self.dev.create_buffers(30)
             self.dev.start()
 
