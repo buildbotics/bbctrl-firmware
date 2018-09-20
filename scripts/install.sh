@@ -65,6 +65,30 @@ sed -i 's/^TimeoutStartSec=.*$/TimeoutStartSec=1/' \
 sed -i 's/^XKBLAYOUT="gb"$/XKBLAYOUT="us" # Comment stops change on upgrade/' \
     /etc/default/keyboard
 
+# Setup USB stick automount
+if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
+    (
+        echo 'KERNEL!="sd[a-z]*", GOTO="automount_end"'
+        echo 'IMPORT{program}="/sbin/blkid -o udev -p %N"'
+        echo 'ENV{ID_FS_TYPE}=="", GOTO="automount_end"'
+        echo 'ENV{ID_FS_LABEL}!="", ENV{dir_name}="%E{ID_FS_LABEL}"'
+        echo 'ENV{ID_FS_LABEL}=="", ENV{dir_name}="usb-%k"'
+        echo 'ACTION=="add", ENV{mount_options}="relatime"'
+        echo 'ACTION=="add", ENV{ID_FS_TYPE}=="vfat|ntfs", ENV{mount_options}="$env{mount_options},utf8,gid=100,umask=002,sync"'
+        echo 'ACTION=="add", RUN+="/bin/mkdir -p /media/%E{dir_name}", RUN+="/bin/mount -o $env{mount_options} /dev/%k /media/%E{dir_name}"'
+        echo 'ACTION=="remove", ENV{dir_name}!="", RUN+="/bin/umount -l /media/%E{dir_name}", RUN+="/bin/rmdir /media/%E{dir_name}"'
+        echo 'LABEL="automount_end"'
+    ) > /etc/udev/rules.d/11-automount.rules
+
+    grep "/etc/init.d/udev restart" /etc/rc.local >/dev/null
+    if [ $? -ne 0 ]; then
+        echo "/etc/init.d/udev restart" >> /etc/rc.local
+    fi
+
+    sed -i 's/^\(MountFlags=slave\)/#\1/' /lib/systemd/system/systemd-udevd.service
+    REBOOT=true
+fi
+
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force

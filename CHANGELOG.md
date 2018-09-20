@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Camera hotpluging.
  - Move camera video to header.
  - Click to switch through three video sizes.
+ - Automount/unmount USB drives.
 
 ## v0.3.28
  - Show step rate on motor configuration page.
