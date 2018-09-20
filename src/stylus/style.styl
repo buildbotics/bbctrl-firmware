@@ -24,6 +24,10 @@ tt
 .header, .content
   padding 0
 
+.clear
+  clear left
+  clear right
+
 .header
   height 140px
   padding 0
@@ -37,7 +41,28 @@ tt
     float right
     margin 5px
 
+  .video img
+    float right
+    width 174px
+    height 130px
+    margin 2px 5px
+    border 2px solid #fff
+    border-radius 5px
+
+    &:hover
+      border-color #aaa
+
+    &.medium
+      width inherit
+      height 240px
+
+    &.large
+      width 794px
+      margin 5px 0
+      height inherit
+
   .banner
+    float left
     padding-top 40px
     white-space nowrap
 
@@ -491,12 +516,9 @@ span.unit
     background-color transparent
     color orange
 
-.video
+.tab-content .video
   text-align center
   min-height 300px
-
-  .mjpeg
-    margin-bottom 1em
 
 tt.save
   display inline-block
@@ -733,8 +755,9 @@ label.file-upload
     height auto
 
     .header-content > .banner
+      margin-left 70px
       padding-top 0
-      clear both
+      float none
 
   .control-view #control
     .axes

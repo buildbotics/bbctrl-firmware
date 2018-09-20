@@ -98,9 +98,6 @@ html(lang="en")
       #main
         .header
           .header-content
-            .estop(:class="{active: state.es}")
-              estop(@click="estop")
-
             .banner
               img(src="/images/buildbotics_logo.png")
               .title
@@ -112,6 +109,14 @@ html(lang="en")
                   | Upgrade to v{{latestVersion}}
                 .fa.fa-check(v-if="!show_upgrade() && latestVersion",
                   title="Firmware up to date")
+
+            .estop(:class="{active: state.es}")
+              estop(@click="estop")
+
+            .video(title="Plug camera into USB.\nClick to change video size.")
+              img(src="/api/video", @click="toggle_video", :class="video_size")
+
+        .clear
 
         .content(class="{{currentView}}-view")
           component(:is="currentView + '-view'", :index="index",

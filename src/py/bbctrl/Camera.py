@@ -34,6 +34,7 @@ import struct
 import mmap
 import pyudev
 import base64
+import socket
 from tornado import gen, web
 
 try:
@@ -48,8 +49,8 @@ offline_jpg = '''
 /9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsN
 DhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQU
 FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wgARCAHgAoADASEAAhEBAxEB/8QA
-HQABAAMAAwEBAQAAAAAAAAAAAAYHCAMEBQkCAf/EABQBAQAAAAAAAAAAAAAAAAAAAAD/2gAMAwEAAhAD
-EAAAAcqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+HAABAAIDAQEBAAAAAAAAAAAAAAYHBAUIAwIB/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEAMQ
+AAAB6pAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -57,16 +58,15 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-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
+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
@@ -75,103 +75,86 @@ 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
-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
+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
+ssytuNTmhEkXMNfXiIBy6RQlDMuDgg7pG9tbNU4NvZ78qJlDHbXk8rVotUan4rv9Zn+KBmaXh+vjclSo
+PDbA+B7Qu+BrQAVpcR7+WDALrHREqRg4u+21DbZUmTonEomCJFozTvET0oHCQBrxd2kkXVuhL3BKnjZp
+sjHrhQWJWlycvklSnWpfMY8F6UcQ0AQBUj8IHB323q8guw/wnsV73dVwZxmo06qFB6mBwDlg3mxrrnhZ
+5Mi7K64RTemUtCcnfy+DNdO0KhYgPHAYo6XRdj90xpT2D+17Pd8AkPR7vgDlxB4oHYC0p124Q+KAAEBo
+UgsCbWFJ5R5paZuTa1Fk1AaanQFod8OMqEq5Sd6iCi8wCLtxNyJq0sIbDYd47v4qAFxXOR9UlVfxwYH2
+/EpZy3Kn0msprinhdMBr2jRkUBhdiyJ9a2H1u/AGQmSfJRcPCHdeJsnXG4c5myCAWJZpXvd1BuIHhg7Q
+CVdKcIza+Mcz2aAlPMfwFFwBCSOFfa7vwc0geyn2NKfI54OY74u5sE5UogWW81aez3fAJD0e74A5cQeK
+H3NHDP8ATPBnuJS85f7TOYxAZWcnhhcJ1KmA2aQJDLtL1Nn8WziN92Zd7nWmZTKLk2hwv3oEuSEhgm14
+M3Ya0xHN1A1FAIPKGV5ZVnRwyNxvoildlycYfip9dth9bvwAmFMA3aDuVC5w7YzNtmlTJh3YDJvFe93V
+4vAFd6JnM6WUGS1uKHGP3gUpgItyZVziO+1e93fCNVozN39H7aj2zlgvn33ObwwMEaVIApXWc4z8/oH+
+1MYHLX6EHevZ7vgEh6Pd8AcuIPFPW7OGf6Z4M7RkgzQk8FelBrvYsxh6oIxgBBHdzfjLxwXh237+6FLv
+9w/0VyjJj5Rrm7ipwB+0rM4DSwUZAd9kam9CV2yAOCVXHT3obBaoZRspF8Wu2whG/wASxJZlo4zhIZlk
+hYlrhe5ZUSmBUvBrjSoubOGnD113nR+6Ll2xD5ZK0MXV8iKXWyIK8yqrmXxCVZnUPl77vMcAZEqyNWOW
+EC7ceCUNAMpJd/7U4rPiEzdietSEkN+i7n4AwCWR1pM84MB7ZPej71oIE5MUilzMDqWfVXnEEubm7xwv
+rT0JTAvWuoEeB1OE+whsTmFSXD6osuKYbhGAQTZlpgL9MGcxs1EDhEhc5ltal2AgSgrdYqCkpuQOJw5R
+H8J1RUp1riwpudms6fOfJwHj/TRSwgyDrFM1JssRQ2K1NIcXPP8A4Pf/2gAMAwEAAgADAAAAEMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
@@ -180,9 +163,9 @@ zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
-zMzMzMzMzMzMzMzMzMzMzMzMzMxMzMzMzMzMzMhMSEzMzMzMzMzMyMjMzMzMzMzMiMCEyMzMzMzMzMzM
-zITMyMAMxExMBAxMjEzMzMzMzMjMSIjAAMCMTMwAzEAMSEzMzMzMxMwAzMiExEBMzADMQEgATMzMzMzE
-xECMSITMDMzIwMxACATMzMzMzMxEhMzEyAwAzIBEhMAIRIzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
+zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMxMxMzMzMzMzMzMwIjM
+zMzMzMzMAECMwMzMzMzMzMzMzASICIRMBMwMTIzIzMAMzMzMzMTMSMSMjACMTExAzMQIxMzMzMzMwMxE
+zMwEBMhMjMDMxEzEDMzMzMzITMSMQEwECMzMwMzETIzMzMzMzMgIiIzEzIQAzMjExMiMQAzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
@@ -191,45 +174,61 @@ zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
 zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzM
-zMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzP/EABQRAQAAAAAAAAAAAAAAAAAAALD/
-2gAIAQMBAT8QFg//xAAUEQEAAAAAAAAAAAAAAAAAAACw/9oACAECAQE/EBYP/8QAJxABAQABBAIBBAMB
-AQEAAAAAAREhADFBURBhcSBAgaEwkfCxsNH/2gAIAQEAAT8Q/wDAsP8AcRp7cb2LpQBmH9ob+JqqmIB7
-MAPafv8A0tsUcJV9BohH0Pyc9+TQYx7HpUAduNOQRFER8ujwZQMcqQ0UgiLcaKIGawFQ23Hejc5TLMAG
-VXENBPtZttTPpE5PHRNNDCkC+BYqV+V+kz2bkuYvkCmHW4h3Gb9+49CiqAMqqAGqRf0QoG6BVtEkHQXZ
-a4JyKzhT+2q5Rl0OpOhcrDqbAQAnYFYCrNOn9JQgVVgYy/ekEuAd+UbBntYFUGhlTgFB3yiqAFMaTx+H
-AoB49GO3fRuWq2WKC5HIBhMaC5IlIUjjgFnloOlpehhhuERH41lN3gyI+NKHbtKRsMEHFCiCJ94zRREu
-ez3dCDMICTXGCPCDJqjzYtYIlvyVZh492Km22G5hsCyufHHyP+D3rO1x+u0znlstm84v394hi1AofIHj
-SdT04LDe0qd/Rqlypd2rl0hsP65mkOJlV/LU+YFtNsnGfWkPUhkXEwPQ3s1FyFoGYg5UguUmUU1HtisF
-wVLFNWJqDY5VqNizerkmhKn3jAoR57nW/ccJzgCItCrCDQProFFUEnQP20hhxnFYkJyhTwm+hyJGg05O
-wxE4CsvhpkaqqgWAERxXAREm9ZvtyM3jR+bJoxaPRzgtmzSmhLVb4vZH5EEQUBD4WmBCxUenVLwxrxMI
-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
+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
+qhJEhSpcEm7f+h7/AP/Z
 '''
 
 offline_jpg = base64.b64decode(offline_jpg)
+
+
+def array_to_string(a): return ''.join([chr(i) for i in a])
+
+
+def fourcc_to_string(i):
+    return \
+        chr((i >>  0) & 0xff) + \
+        chr((i >>  8) & 0xff) + \
+        chr((i >> 16) & 0xff) + \
+        chr((i >> 24) & 0xff)
+
+
+def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
 
 
 class VideoDevice(object):
@@ -241,8 +240,72 @@ class VideoDevice(object):
     def fileno(self): return self.fd
 
 
-    def set_format(self, width = 640, height = 480,
-                   fourcc = v4l2.V4L2_PIX_FMT_MJPEG):
+    def get_audio(self):
+        b = v4l2.v4l2_audio()
+        b.index = 0
+
+        l = []
+
+        while True:
+            try:
+                fcntl.ioctl(self, v4l2.VIDIOC_ENUMAUDIO, b)
+                l.append((array_to_string(b.name), b.capability, b.mode))
+                b.index += 1
+
+            except OSError: break
+
+        return l
+
+
+    def get_formats(self):
+        b = v4l2.v4l2_fmtdesc()
+        b.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
+        b.index = 0
+
+        l = []
+
+        while True:
+            try:
+                fcntl.ioctl(self, v4l2.VIDIOC_ENUM_FMT, b)
+
+                l.append((fourcc_to_string(b.pixelformat),
+                          array_to_string(b.description)))
+
+                b.index += 1
+
+            except OSError: break
+
+        return l
+
+
+    def get_frame_sizes(self, fourcc):
+        b = v4l2.v4l2_frmsizeenum()
+        b.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
+        b.pixel_format = fourcc
+
+        sizes = []
+
+        while True:
+            try:
+                fcntl.ioctl(self, v4l2.VIDIOC_ENUM_FRAMESIZES, b)
+
+                if b.type == v4l2.V4L2_FRMSIZE_TYPE_DISCRETE:
+                    sizes.append((b.discrete.width, b.discrete.height))
+
+                else:
+                    sizes.append((b.stepwise.min_width, b.stepwise.max_width,
+                                  b.stepwise.step_width, b.stepwise.min_height,
+                                  b.stepwise.max_height,
+                                  b.stepwise.step_height))
+
+                b.index += 1
+
+            except OSError: break
+
+        return sizes
+
+
+    def set_format(self, width, height, fourcc):
         fmt = v4l2.v4l2_format()
         fmt.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
         fcntl.ioctl(self, v4l2.VIDIOC_G_FMT, fmt)
@@ -255,6 +318,7 @@ class VideoDevice(object):
 
 
     def create_buffers(self, count):
+        # Create buffers
         rbuf = v4l2.v4l2_requestbuffers()
         rbuf.count = count;
         rbuf.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -263,12 +327,14 @@ class VideoDevice(object):
         fcntl.ioctl(self, v4l2.VIDIOC_REQBUFS, rbuf)
 
         for i in range(rbuf.count):
+            # Get buffer
             buf = v4l2.v4l2_buffer()
             buf.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
             buf.memory = v4l2.V4L2_MEMORY_MMAP
             buf.index = i
             fcntl.ioctl(self, v4l2.VIDIOC_QUERYBUF, buf)
 
+            # Mem map buffer
             mm = mmap.mmap(self.fileno(), buf.length, mmap.MAP_SHARED,
                            mmap.PROT_READ | mmap.PROT_WRITE,
                            offset = buf.m.offset)
@@ -278,31 +344,64 @@ class VideoDevice(object):
             fcntl.ioctl(self, v4l2.VIDIOC_QBUF, buf)
 
 
-    def read(self):
-        if not len(self.buffers):
-            raise Exception('Buffers have not been created.')
-
+    def _dqbuf(self):
         buf = v4l2.v4l2_buffer()
         buf.type = v4l2.V4L2_BUF_TYPE_VIDEO_CAPTURE
         buf.memory = v4l2.V4L2_MEMORY_MMAP
         fcntl.ioctl(self, v4l2.VIDIOC_DQBUF, buf)
 
+        return buf
+
+
+    def _qbuf(self, buf):
+        fcntl.ioctl(self, v4l2.VIDIOC_QBUF, buf)
+
+
+    def read_frame(self):
+        buf = self._dqbuf()
+
         mm = self.buffers[buf.index]
         frame = mm.read()
         mm.seek(0)
 
-        fcntl.ioctl(self, v4l2.VIDIOC_QBUF, buf)
+        self._qbuf(buf)
 
         return frame
+
+
+    def flush_frame(self): self._qbuf(self._dqbuf())
 
 
     def get_info(self):
         caps = v4l2.v4l2_capability()
         fcntl.ioctl(self, v4l2.VIDIOC_QUERYCAP, caps)
 
-        caps._driver   = ''.join([chr(i) for i in caps.driver])
-        caps._card     = ''.join([chr(i) for i in caps.card])
-        caps._bus_info = ''.join([chr(i) for i in caps.bus_info])
+        caps._driver   = array_to_string(caps.driver)
+        caps._card     = array_to_string(caps.card)
+        caps._bus_info = array_to_string(caps.bus_info)
+
+        l = []
+        c = caps.capabilities
+        if c & v4l2.V4L2_CAP_VIDEO_CAPTURE: l.append('video_capture')
+        if c & v4l2.V4L2_CAP_VIDEO_OUTPUT: l.append('video_output')
+        if c & v4l2.V4L2_CAP_VIDEO_OVERLAY: l.append('video_overlay')
+        if c & v4l2.V4L2_CAP_VBI_CAPTURE: l.append('vbi_capture')
+        if c & v4l2.V4L2_CAP_VBI_OUTPUT: l.append('vbi_output')
+        if c & v4l2.V4L2_CAP_SLICED_VBI_CAPTURE: l.append('sliced_vbi_capture')
+        if c & v4l2.V4L2_CAP_SLICED_VBI_OUTPUT: l.append('sliced_vbi_output')
+        if c & v4l2.V4L2_CAP_RDS_CAPTURE: l.append('rds_capture')
+        if c & v4l2.V4L2_CAP_VIDEO_OUTPUT_OVERLAY:
+            l.append('video_output_overlay')
+        if c & v4l2.V4L2_CAP_HW_FREQ_SEEK: l.append('hw_freq_seek')
+        if c & v4l2.V4L2_CAP_RDS_OUTPUT: l.append('rds_output')
+        if c & v4l2.V4L2_CAP_TUNER: l.append('tuner')
+        if c & v4l2.V4L2_CAP_AUDIO: l.append('audio')
+        if c & v4l2.V4L2_CAP_RADIO: l.append('radio')
+        if c & v4l2.V4L2_CAP_MODULATOR: l.append('modulator')
+        if c & v4l2.V4L2_CAP_READWRITE: l.append('readwrite')
+        if c & v4l2.V4L2_CAP_ASYNCIO: l.append('asyncio')
+        if c & v4l2.V4L2_CAP_STREAMING: l.append('streaming')
+        caps._caps = l
 
         return caps
 
@@ -327,24 +426,32 @@ class VideoDevice(object):
 
     def close(self):
         if self.fd is None: return
-        os.close(self.fd)
-        self.fd = None
+        try:
+            os.close(self.fd)
+        except Exception as e: log.warning('While closing camera: %s', e)
+        finally: self.fd = None
 
 
 class Camera(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.width = ctrl.args.width
+        self.height = ctrl.args.height
+        self.fps = ctrl.args.fps
+        self.fourcc = string_to_fourcc(ctrl.args.fourcc)
+
         self.dev = None
         self.clients = []
         self.path = None
-        self.frames = 0
 
+        # Find connected cameras
         for i in range(4):
             path = '/dev/video%d' % i
             if os.path.exists(path):
                 self.open(path)
                 break
 
+        # Get notifications of camera (un)plug events
         self.udevCtx = pyudev.Context()
         self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
         self.udevMon.filter_by(subsystem = 'video4linux')
@@ -363,20 +470,41 @@ class Camera(object):
         if action == 'remove' and path == self.path: self.close()
 
 
-    def open(self, path):
-        self.path = path
-
+    def _handler(self, fd, events):
         try:
+            frame = None
+            if len(self.clients): frame = self.dev.read_frame()
+            else: self.dev.flush_frame()
+
+        except:
+            log.warning('Failed to read from camera.')
+            self.ctrl.ioloop.remove_handler(fd)
+            self.close()
+            return
+
+        if frame is not None:
+            for client in self.clients:
+                client.write_frame(frame)
+
+
+    def open(self, path):
+        try:
+            self.path = path
             self.dev = VideoDevice(path)
 
             caps = self.dev.get_info()
-            log.info('%s, %s, %s', caps._driver, caps._card, caps._bus_info)
+            log.info('%s, %s, %s, %s', caps._driver, caps._card, caps._bus_info,
+                     caps._caps)
 
             if caps.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE == 0:
                 raise Exception('Video capture not supported.')
 
-            self.dev.set_format(640, 480, fourcc = v4l2.V4L2_PIX_FMT_MJPEG)
-            self.dev.set_fps(15)
+            log.info('Formats: %s', self.dev.get_formats())
+            log.info('Sizes: %s', self.dev.get_frame_sizes(self.fourcc))
+            log.info('Audio: %s', self.dev.get_audio())
+
+            self.dev.set_format(self.width, self.height, fourcc = self.fourcc)
+            self.dev.set_fps(self.fps)
             self.dev.create_buffers(30)
             self.dev.start()
 
@@ -410,27 +538,6 @@ class Camera(object):
 
         except: log.warning('Closing camera')
         finally: self.dev = None
-
-
-    def _handler(self, fd, events):
-        try:
-            frame = self.dev.read()
-
-        except:
-            log.warning('Failed to read from camera.')
-            self.ctrl.ioloop.remove_handler(fd)
-            self.close()
-            return
-
-        if frame is not None:
-            if self.frames < 10:
-                with open('frame%d.jpg' % self.frames, 'wb') as f:
-                    f.write(frame)
-
-            self.frames += 1
-
-            for client in self.clients:
-                client.write_frame(frame)
 
 
     def add_client(self, client):
@@ -472,6 +579,9 @@ class VideoHandler(web.RequestHandler):
 
 
     def write_frame(self, frame):
+        # Drop frame if client is slow
+        if self.request.connection.stream.writing(): return
+
         self.write("Content-type: image/jpeg\r\n")
         self.write("Content-length: %s\r\n\r\n" % len(frame))
         self.write(frame)
@@ -509,12 +619,19 @@ if __name__ == '__main__':
             web.Application.__init__(self, handlers)
             self.listen(9000, address = '127.0.0.1')
 
+    import argparse
+    parser = argparse.ArgumentParser(description = 'Camera Server Test')
+    parser.add_argument('--width', default = 640, type = int)
+    parser.add_argument('--height', default = 480, type = int)
+    parser.add_argument('--fps', default = 15, type = int)
+    parser.add_argument('--fourcc', default = 'MJPG')
+    args = parser.parse_args()
 
 
-    root = logging.getLogger()
-    root.setLevel(logging.INFO)
+    logging.basicConfig(level = logging.INFO)
 
     ctrl = Ctrl()
+    ctrl.args = args
     ctrl.camera = Camera(ctrl)
     server = Web(ctrl)
     ctrl.ioloop.start()

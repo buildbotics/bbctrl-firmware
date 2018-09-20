@@ -46,6 +46,17 @@ if [ -e /etc/init.d/hawkeye ]; then
     apt-get remove --purge -y hawkeye
 fi
 
+# Enable USB audio
+if [ ! -e /etc/asound.conf ]; then
+    (
+        echo "pcm.!default {"
+        echo "  type asym"
+        echo "  playback.pcm \"plug:hw:0\""
+        echo "  capture.pcm \"plug:dsnoop:1\""
+        echo "}"
+    ) > etc/asound.conf
+fi
+
 # Decrease boot delay
 sed -i 's/^TimeoutStartSec=.*$/TimeoutStartSec=1/' \
     /etc/systemd/system/network-online.target.wants/networking.service

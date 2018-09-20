@@ -90,6 +90,8 @@ module.exports = {
         this.hostnameSet = true;
 
         api.put('reboot').always(function () {
+          if (String(location.hostname) == 'localhost') return;
+
           var hostname = this.hostname;
           if (String(location.hostname).endsWith('.local'))
             hostname += '.local'

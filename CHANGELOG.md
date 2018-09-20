@@ -8,6 +8,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Indicators tab improvements.
  - Much improved camera support.
  - Camera hotpluging.
+ - Move camera video to header.
+ - Click to switch through three video sizes.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

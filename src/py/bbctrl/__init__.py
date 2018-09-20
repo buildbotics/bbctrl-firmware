@@ -103,6 +103,14 @@ def parse_args():
                         help = 'Verbose output')
     parser.add_argument('-l', '--log', metavar = "FILE",
                         help = 'Set a log file')
+    parser.add_argument('--width', default = 640, type = int,
+                        help = 'Camera width')
+    parser.add_argument('--height', default = 480, type = int,
+                        help = 'Camera height')
+    parser.add_argument('--fps', default = 15, type = int,
+                        help = 'Camera frames per second')
+    parser.add_argument('--fourcc', default = 'MJPG',
+                        help = 'Camera frame format')
 
     return parser.parse_args()
 

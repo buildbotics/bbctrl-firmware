@@ -62,6 +62,7 @@ module.exports = {
       jog_adjust: 100,
       video_url: '/api/video?nocache=' + Math.random(),
       deleteGCode: false,
+      tab: 'auto'
     }
   },
 

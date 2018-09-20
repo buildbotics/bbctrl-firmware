@@ -93,6 +93,7 @@ module.exports = new Vue({
       },
       state: {},
       messages: [],
+      video_size: 'small',
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorShow: false,
@@ -143,7 +144,8 @@ module.exports = new Vue({
 
     connected: function () {
       if (this.reloadOnConnect) {
-        if (typeof this.hostname != 'undefined')
+        if (typeof this.hostname != 'undefined' &&
+            String(location.hostname) != 'localhost')
           location.hostname = this.hostname;
         location.reload(true);
       } else this.update();
@@ -212,6 +214,13 @@ module.exports = new Vue({
     block_error_dialog: function () {
       this.errorTimeoutStart = Date.now();
       this.errorShow = false;
+    },
+
+
+    toggle_video: function () {
+      if      (this.video_size == 'small')  this.video_size = 'medium';
+      else if (this.video_size == 'medium') this.video_size = 'large';
+      else if (this.video_size == 'large')  this.video_size = 'small';
     },
 
 
