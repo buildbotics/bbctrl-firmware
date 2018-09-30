@@ -79,6 +79,8 @@ module.exports = {
 
       api.get('file/' + file)
         .done(function (data) {
+          if (this.file != file) return;
+
           var lines = data.trimRight().split(/\r?\n/);
 
           for (var i = 0; i < lines.length; i++) {

@@ -13,4 +13,4 @@ else
     LOGIN=$USER@$HOST
 fi
 
-ssh -o UserKnownHostsFile=/dev/null  -o StrictHostKeyChecking=no "$LOGIN"
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "$LOGIN"

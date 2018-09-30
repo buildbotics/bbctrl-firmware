@@ -89,6 +89,11 @@ if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
     REBOOT=true
 fi
 
+# Install default GCode
+if [ -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
+    cp scripts/buildbotics.gc /var/lib/bbctrl/upload/
+fi
+
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force

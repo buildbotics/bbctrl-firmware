@@ -35,7 +35,7 @@ import mmap
 import pyudev
 import base64
 import socket
-from tornado import gen, web
+from tornado import gen, web, iostream
 
 try:
     import v4l2
@@ -214,8 +214,6 @@ fbNqIGgc9ldbOcdoit0COH30pqj7OYQijJxjE6Ct9PvDV4rJmYu9+dhTZFYDhd9bTFCzBEIC5db02KUC
 qhJEhSpcEm7f+h7/AP/Z
 '''
 
-offline_jpg = base64.b64decode(offline_jpg)
-
 
 def array_to_string(a): return ''.join([chr(i) for i in a])
 
@@ -359,11 +357,10 @@ class VideoDevice(object):
 
     def read_frame(self):
         buf = self._dqbuf()
-
         mm = self.buffers[buf.index]
+
         frame = mm.read()
         mm.seek(0)
-
         self._qbuf(buf)
 
         return frame
@@ -440,6 +437,7 @@ class Camera(object):
         self.fps = ctrl.args.fps
         self.fourcc = string_to_fourcc(ctrl.args.fourcc)
 
+        self.offline_jpg = self._format_frame(base64.b64decode(offline_jpg))
         self.dev = None
         self.clients = []
         self.path = None
@@ -470,21 +468,41 @@ class Camera(object):
         if action == 'remove' and path == self.path: self.close()
 
 
-    def _handler(self, fd, events):
+    def _format_frame(self, frame):
+        frame = [
+            b'Content-type: image/jpeg\r\n',
+            b'Content-length: ', str(len(frame)).encode('utf8'), b'\r\n\r\n',
+            frame, VideoHandler.boundary.encode('utf8'), b'\n']
+
+        return b''.join(frame)
+
+
+    def _send_frame(self, frame):
+        frame = self._format_frame(frame)
+
+        for client in self.clients:
+            try:
+                client.write_frame(frame)
+            except Exception as e:
+                log.warning('Failed to write frame to client: %s' % e)
+
+
+    def _fd_handler(self, fd, events):
         try:
-            frame = None
-            if len(self.clients): frame = self.dev.read_frame()
+            if len(self.clients):
+                frame = self.dev.read_frame()
+                self._send_frame(frame)
+
             else: self.dev.flush_frame()
 
-        except:
+        except Exception as e:
+            if isinstance(e, BlockingIOError): return
+
             log.warning('Failed to read from camera.')
             self.ctrl.ioloop.remove_handler(fd)
             self.close()
             return
 
-        if frame is not None:
-            for client in self.clients:
-                client.write_frame(frame)
 
 
     def open(self, path):
@@ -505,10 +523,10 @@ class Camera(object):
 
             self.dev.set_format(self.width, self.height, fourcc = self.fourcc)
             self.dev.set_fps(self.fps)
-            self.dev.create_buffers(30)
+            self.dev.create_buffers(4)
             self.dev.start()
 
-            self.ctrl.ioloop.add_handler(self.dev, self._handler,
+            self.ctrl.ioloop.add_handler(self.dev, self._fd_handler,
                                          self.ctrl.ioloop.READ)
 
             log.info('Opened camera ' + path)
@@ -531,8 +549,8 @@ class Camera(object):
             self.dev.close()
 
             for client in self.clients:
-                client.write_frame(offline_jpg)
-                client.write_frame(offline_jpg)
+                client.write_frame(self.offline_jpg)
+                client.write_frame(self.offline_jpg)
 
             log.info('Closed camera %s' % self.path)
 
@@ -543,9 +561,10 @@ class Camera(object):
     def add_client(self, client):
         log.info('Adding camera client: %d' % len(self.clients))
         self.clients.append(client)
+
         if self.dev is None:
-            client.write_frame(offline_jpg)
-            client.write_frame(offline_jpg)
+            client.write_frame(self.offline_jpg)
+            client.write_frame(self.offline_jpg)
 
 
     def remove_client(self, client):
@@ -557,20 +576,23 @@ class Camera(object):
 
 
 class VideoHandler(web.RequestHandler):
+    boundary = '---boundary---'
+
+
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
         self.camera = app.ctrl.camera
-        self.boundary = '---boundary---'
 
 
     @web.asynchronous
     def get(self):
+        self.request.connection.stream.max_write_buffer_size = 10000
+
         self.set_header('Cache-Control', 'no-store, no-cache, ' +
                         'must-revalidate, pre-check=0, post-check=0, ' +
                         'max-age=0')
         self.set_header('Connection', 'close')
-        self.set_header('Content-Type',
-                        'multipart/x-mixed-replace;boundary=' +
+        self.set_header('Content-Type', 'multipart/x-mixed-replace;boundary=' +
                         self.boundary)
         self.set_header('Expires', 'Mon, 3 Jan 2000 12:34:56 GMT')
         self.set_header('Pragma', 'no-cache')
@@ -579,14 +601,17 @@ class VideoHandler(web.RequestHandler):
 
 
     def write_frame(self, frame):
-        # Drop frame if client is slow
-        if self.request.connection.stream.writing(): return
+        # Don't allow too many frames to queue up
+        size = len(frame)
+        if self.request.connection.stream.max_write_buffer_size < size:
+            self.request.connection.stream.max_write_buffer_size = size * 2
 
-        self.write("Content-type: image/jpeg\r\n")
-        self.write("Content-length: %s\r\n\r\n" % len(frame))
-        self.write(frame)
-        self.write(self.boundary + '\n')
-        self.flush()
+        try:
+            self.write(frame)
+            self.flush()
+
+        except iostream.StreamBufferFullError:
+            pass # Drop frame if buffer is full
 
 
     def on_connection_close(self):

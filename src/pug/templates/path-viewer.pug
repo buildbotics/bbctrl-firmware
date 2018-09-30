@@ -1,0 +1,70 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-              This file is part of the Buildbotics firmware.               //
+//-                                                                           //
+//-                Copyright (c) 2015 - 2018, Buildbotics LLC                 //
+//-                           All rights reserved.                            //
+//-                                                                           //
+//-   This file ("the software") is free software: you can redistribute it    //
+//-   and/or modify it under the terms of the GNU General Public License,     //
+//-    version 2 as published by the Free Software Foundation. You should     //
+//-    have received a copy of the GNU General Public License, version 2      //
+//-   along with the software. If not, see <http://www.gnu.org/licenses/>.    //
+//-                                                                           //
+//-   The software is distributed in the hope that it will be useful, but     //
+//-        WITHOUT ANY WARRANTY; without even the implied warranty of         //
+//-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU      //
+//-             Lesser General Public License for more details.               //
+//-                                                                           //
+//-     You should have received a copy of the GNU Lesser General Public      //
+//-              License along with the software.  If not, see                //
+//-                     <http://www.gnu.org/licenses/>.                       //
+//-                                                                           //
+//-              For information regarding this software email:               //
+//-                "Joseph Coffland" <joseph@buildbotics.com>                 //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#path-viewer-template(type="text/x-template")
+  .path-viewer
+    .path-viewer-toolbar
+      .tool-button(title="Toggle path view size.",
+        @click="small = !small", :class="{active: !small}")
+        .fa.fa-arrows-alt
+
+      tool-button(name="tool", :active="showTool",
+        @click="showTool = !showTool", title="Show/hide tool.")
+      tool-button(name="bbox", :active="showBBox",
+        @click="showBBox = !showBBox", title="Show/hide bounding box.")
+      tool-button(name="axes", :active="showAxes",
+        @click="showAxes = !showAxes", title="Show/hide axes.")
+
+      tool-button(name="isometric", @click="snap('isometric')",
+        title="Snap to isometric view.")
+      tool-button(name="top",       @click="snap('top')",
+        title="Snap to top view.")
+      tool-button(name="front",     @click="snap('front')",
+        title="Snap to front view.")
+
+    .path-viewer-content(:class="{small: small}")
+      .path-viewer-message(:class="{error: error}")
+        template(v-if="loading")
+          div(v-if="progress && progress < 1")
+            | Simulating run {{progress | non_zero_percent 0}}. . .
+          div(v-if="!progress || progress == 1") Loading. . .
+        | {{message}}
+
+    table.path-viewer-messages(
+      v-if="typeof toolpath.messages != 'undefined' && " +
+        "toolpath.messages.length")
+      tr
+        th Level
+        th Location
+        th Message
+
+      tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
+        td {{msg.level}}
+        td
+          | {{msg.line}}
+          span(v-if="msg.column") :{{msg.column}}
+        td {{msg.msg}}

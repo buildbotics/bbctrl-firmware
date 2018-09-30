@@ -47,6 +47,7 @@ class Ctrl(object):
             self.i2c = bbctrl.I2C(args.i2c_port)
             self.lcd = bbctrl.LCD(self)
             self.mach = bbctrl.Mach(self)
+            self.preplanner = bbctrl.Preplanner(self)
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
@@ -60,5 +61,14 @@ class Ctrl(object):
         except Exception as e: log.exception(e)
 
 
-    def close(self):
-        self.camera.close()
+    def configure(self):
+        # Indirectly configures state via calls to config() and the AVR
+        self.config.reload()
+
+
+    def ready(self):
+        # This is used to synchronize the start of the preplanner
+        self.preplanner.start()
+
+
+    def close(self): self.camera.close()

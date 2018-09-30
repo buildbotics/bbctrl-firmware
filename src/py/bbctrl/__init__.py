@@ -49,6 +49,7 @@ from bbctrl.Ctrl import Ctrl
 from bbctrl.Pwr import Pwr
 from bbctrl.I2C import I2C
 from bbctrl.Planner import Planner
+from bbctrl.Preplanner import Preplanner
 from bbctrl.State import State
 from bbctrl.Messages import Messages
 from bbctrl.Comm import Comm

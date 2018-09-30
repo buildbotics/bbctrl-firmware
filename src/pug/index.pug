@@ -25,7 +25,7 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-include ../../build/hashes.jade
+include ../../build/hashes.pug
 
 
 doctype html
@@ -200,7 +200,7 @@ html(lang="en")
             .fa.fa-play
 
     #templates
-      include ../../build/templates.jade
+      include ../../build/templates.pug
 
     iframe#download-target(style="display:none")
 
@@ -208,5 +208,6 @@ html(lang="en")
     script(src="js/vue.js")
     script(src="js/sockjs.min.js")
     script(src="js/clusterize.min.js")
-    script(src='/js/assets-' + js_hash + '.js')
+    script(src="js/three.min.js")
+    script(src="/js/assets-" + js_hash + ".js")
     script(src="js/ui.js")

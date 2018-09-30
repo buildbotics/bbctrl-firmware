@@ -51,6 +51,9 @@ module.exports = {
       mach_units: 'METRIC',
       mdi: '',
       files: [],
+      last_file: undefined,
+      toolpath: {},
+      progress: 0,
       axes: 'xyzabc',
       history: [],
       speed_override: 1,
@@ -69,6 +72,7 @@ module.exports = {
 
   components: {
     'axis-control': require('./axis-control'),
+    'path-viewer': require('./path-viewer'),
     'gcode-viewer': require('./gcode-viewer')
   },
 
@@ -222,8 +226,30 @@ module.exports = {
 
     load: function () {
       var file = this.state.selected;
+      if (this.last_file == file) return;
+      this.last_file = file;
+
       if (typeof file != 'undefined') this.$broadcast('gcode-load', file);
       this.$broadcast('gcode-line', this.state.line);
+      this.progress = 0;
+      this.load_toolpath(file);
+    },
+
+
+    load_toolpath: function (file) {
+      this.toolpath = {};
+
+      if (typeof file == 'undefined') return;
+
+      api.get('path/' + file).done(function (toolpath) {
+        if (this.last_file != file) return;
+
+        if (typeof toolpath.progress == 'undefined') this.toolpath = toolpath;
+        else {
+          this.progress = toolpath.progress;
+          this.load_toolpath(file); // Try again
+        }
+      }.bind(this));
     },
 
 
@@ -309,6 +335,11 @@ module.exports = {
     show_set_position: function (axis) {
       this.axis_position = 0;
       this.position_msg[axis] = true;
+    },
+
+
+    get_position: function (axis) {
+      return this.state[axis + 'p'] + this.get_offset(axis);
     },
 
 

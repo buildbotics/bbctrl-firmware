@@ -34,6 +34,7 @@ import tornado.httpclient
 
 
 log = logging.getLogger('API')
+log.setLevel(logging.DEBUG)
 
 
 class APIHandler(RequestHandler):
@@ -44,6 +45,9 @@ class APIHandler(RequestHandler):
 
     # Override exception logging
     def log_exception(self, typ, value, tb):
+        if isinstance(value, HTTPError) and value.status_code == 408:
+            return
+
         log.error(str(value))
         trace = ''.join(traceback.format_exception(typ, value, tb))
         log.debug(trace)
@@ -94,5 +98,5 @@ class APIHandler(RequestHandler):
 
     def write_json(self, data, pretty = False):
         if pretty: data = json.dumps(data, indent = 2, separators = (',', ': '))
-        else: data = json.dumps(data)
+        else: data = json.dumps(data, separators = (',', ':'))
         self.write(data)

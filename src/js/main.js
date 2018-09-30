@@ -40,7 +40,18 @@ $(function() {
   Vue.component('console', require('./console'));
   Vue.component('unit-value', require('./unit-value'));
 
+  Vue.filter('number', function (value) {
+    if (isNaN(value)) return 'NaN';
+    return value.toLocaleString();
+  });
+
   Vue.filter('percent', function (value, precision) {
+    if (typeof precision == 'undefined') precision = 2;
+    return (value * 100.0).toFixed(precision) + '%';
+  });
+
+  Vue.filter('non_zero_percent', function (value, precision) {
+    if (!value) return '';
     if (typeof precision == 'undefined') precision = 2;
     return (value * 100.0).toFixed(precision) + '%';
   });
@@ -53,6 +64,40 @@ $(function() {
   Vue.filter('upper', function (value) {
     if (typeof value == 'undefined') return '';
     return value.toUpperCase()
+  });
+
+  Vue.filter('time', function (value, precision) {
+    if (isNaN(value)) return '';
+    if (isNaN(precision)) precision = 0;
+
+    var MIN = 60;
+    var HR  = MIN * 60;
+    var DAY = HR * 24;
+    var parts = [];
+
+    if (DAY <= value) {
+      parts.push(value / DAY);
+      value %= DAY;
+    }
+
+    if (HR <= value) {
+      parts.push(value / HR);
+      value %= HR;
+    }
+
+    if (MIN <= value) {
+      parts.push(value / MIN);
+      value %= MIN;
+    }
+
+    parts.push(value.toFixed(precision));
+
+    for (var i = 0; i < parts.length - 1; i++) {
+      parts[i] = parts[i].toFixed(0);
+      if (i && parts[i] < 10) parts[i] = '0' + parts[i];
+    }
+
+    return parts.join(':');
   });
 
   // Vue app

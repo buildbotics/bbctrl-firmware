@@ -140,7 +140,8 @@ class Comm(object):
 
     def _update_vars(self, msg):
         try:
-            self.ctrl.state.machine_vars(msg['variables'])
+            self.ctrl.state.set_machine_vars(msg['variables'])
+            self.ctrl.configure()
             self.queue_command(Cmd.DUMP) # Refresh all vars
 
             # Set axis positions
@@ -192,16 +193,16 @@ class Comm(object):
                     log.warning('%s, data: %s', e, line)
                     continue
 
-                if 'variables' in msg:
-                    self._update_vars(msg)
-
+                if 'variables' in msg: self._update_vars(msg)
                 elif 'msg' in msg: self._log_msg(msg)
 
                 elif 'firmware' in msg:
                     log.info('AVR firmware rebooted')
                     self.connect()
 
-                else: self.ctrl.state.update(msg)
+                else:
+                    self.ctrl.state.update(msg)
+                    if 'xx' in msg: self.ctrl.ready()
 
 
     def _serial_handler(self, fd, events):

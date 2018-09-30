@@ -37,6 +37,8 @@ var Sock = function (url, retry, timeout) {
   this.url = url;
   this.retry = retry;
   this.timeout = timeout;
+  this.divisions = 4;
+  this.count = 0;
 
   this.connect();
 }
@@ -55,14 +57,14 @@ Sock.prototype.connect = function () {
 
   this._sock.onmessage = function (e) {
     console.debug('msg:', e.data);
-    this._set_timeout();
+    this.heartbeat('msg');
     this.onmessage(e);
   }.bind(this);
 
 
   this._sock.onopen = function () {
     console.debug('connected');
-    this._set_timeout();
+    this.heartbeat('open');
     this.onopen();
   }.bind(this);
 
@@ -78,22 +80,35 @@ Sock.prototype.connect = function () {
 }
 
 
-Sock.prototype._set_timeout = function () {
-  this._cancel_timeout();
-  this._timeout = setTimeout(this._timedout.bind(this), this.timeout);
-}
-
-
 Sock.prototype._timedout = function () {
-  console.debug('connection timedout');
-  this._timeout = undefined;
-  this._sock.close();
+  // Divide timeout so slow browser doesn't trigger timeouts when the
+  // connection is good.
+  if (this.divisions <= ++this.count) {
+    console.debug('connection timedout');
+    this._timeout = undefined;
+    this._sock.close();
+
+  } else this._set_timeout();
 }
 
 
 Sock.prototype._cancel_timeout = function () {
   clearTimeout(this._timeout);
   this._timeout = undefined;
+  this.count = 0;
+}
+
+
+Sock.prototype._set_timeout = function () {
+  this._timeout = setTimeout(this._timedout.bind(this),
+                             this.timeout / this.divisions);
+}
+
+
+Sock.prototype.heartbeat = function (msg) {
+  //console.debug('heartbeat ' + new Date().toLocaleTimeString() + ' ' + msg);
+  this._cancel_timeout();
+  this._set_timeout();
 }
 
 
@@ -106,9 +121,7 @@ Sock.prototype.close = function () {
 }
 
 
-Sock.prototype.send = function (msg) {
-  this._sock.send(msg);
-}
+Sock.prototype.send = function (msg) {this._sock.send(msg)}
 
 
 module.exports = Sock

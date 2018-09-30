@@ -46,8 +46,7 @@ script#control-view-template(type="text/x-template")
           v-if="enabled('#{axis}')")
           th.name #{axis}
           td.position
-            unit-value(:value="state.#{axis}p + get_offset('#{axis}')",
-              precision="4")
+            unit-value(:value="get_position('#{axis}')", precision="4")
           td.absolute: unit-value(:value="state.#{axis}p", precision="3")
           td.offset: unit-value(:value="get_offset('#{axis}')", precision="3")
           th.actions
@@ -109,59 +108,70 @@ script#control-view-template(type="text/x-template")
                   title="Home {{'#{axis}' | upper}} axis.",
                   @click="set_home('#{axis}', axis_position)") Set
 
-
-     table.info
+    table.info
       tr
         th State
         td(:class="{attention: highlight_reason}") {{mach_state}}
-        td
       tr
         th Message
         td.reason(:class="{attention: highlight_reason}") {{reason}}
-        td
       tr(title="Currently active machine units")
         th Units
         td.mach_units
           select(v-model="mach_units", :disabled="!can_mdi")
             option(value="METRIC") METRIC
             option(value="IMPERIAL") IMPERIAL
-        td
       tr
-        th Feed
-        td: unit-value(:value="state.feed", precision="2", unit="", iunit="")
-        td {{metric ? 'mm/min' : 'IPM'}}
-      tr
-        th Speed
-        td
-          | {{state.speed || 0 | fixed 0}}
-          span(v-if="!isNaN(state.s)") ({{state.s | fixed 0}})
-        td RPM
+        th Tool
+        td {{state.tool || 0}}
 
     table.info
       tr(
         title="Current velocity in {{metric ? 'meters' : 'inches'}} per minute")
         th Velocity
-        td: unit-value(:value="state.v", precision="2", unit="", iunit="",
-          scale="0.0254")
-        td {{metric ? 'm/min' : 'IPM'}}
+        td
+          unit-value(:value="state.v", precision="2", unit="", iunit="",
+            scale="0.0254")
+          | {{metric ? ' m/min' : ' IPM'}}
+      tr
+        th Feed
+        td
+          unit-value(:value="state.feed", precision="2", unit="", iunit="")
+          | {{metric ? ' mm/min' : ' IPM'}}
+      tr
+        th Speed
+        td
+          | {{state.speed || 0 | fixed 0}}
+          span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
+          = ' RPM'
+      tr
+        th Loads
+        td
+          span(:class="state['1oa'] ? 'load-on' : ''")
+            | 1:{{state['1oa'] ? 'On' : 'Off'}}
+          | &nbsp;
+          span(:class="state['2oa'] ? 'load-on' : ''")
+            | 2:{{state['2oa'] ? 'On' : 'Off'}}
+
+    table.info
+      tr
+        th Time
+        td(title="Total run time (days:hours:mins:secs)")
+          |  {{toolpath.time / 1000 | time}}
+      tr
+        th ETA
+        td
       tr
         th Line
-        td {{0 <= state.line ? state.line : '-'}}
         td
+          | {{0 <= state.line ? state.line : '0'}}
+          span(v-if="toolpath.lines")
+            | &nbsp;of {{toolpath.lines | number}}
       tr
-        th Tool
-        td {{state.tool || 0}}
-        td
-      tr
-        th Load 1
-        td(:class="state['1oa'] ? 'load-on' : ''")
-          | {{state['1oa'] ? 'On' : 'Off'}}
-        td
-      tr
-        th Load 2
-        td(:class="state['2oa'] ? 'load-on' : ''")
-          | {{state['2oa'] ? 'On' : 'Off'}}
-        td
+        th Progress
+        td.progress
+          label {{(state.progress || 0) | percent}}
+          .bar(:style="'width:' + (state.progress || 0.01) * 100 + '%'")
 
     .override(title="Feed rate override.")
       label Feed
@@ -239,6 +249,9 @@ script#control-view-template(type="text/x-template")
             :disabled="is_running || is_stopping")
             option(v-for="file in files", :value="file") {{file}}
 
+        path-viewer(:toolpath="toolpath", :progress="progress",
+          :x="get_position('x')", :y="get_position('y')",
+          :z="get_position('z')")
         gcode-viewer
 
       section#content2.tab-content

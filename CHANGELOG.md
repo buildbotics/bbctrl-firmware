@@ -11,6 +11,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Move camera video to header.
  - Click to switch through three video sizes.
  - Automount/unmount USB drives.
+ - Automatically install ``buildbotics.gc`` when no other GCode exists.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

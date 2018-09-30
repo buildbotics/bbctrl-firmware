@@ -29,6 +29,7 @@ import json
 import math
 import re
 import logging
+import threading
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
@@ -44,6 +45,9 @@ class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.cmdq = CommandQueue()
+        self.logLock = threading.Lock()
+        self.logIntercept = {}
+        self.time = 0
 
         ctrl.state.add_listener(self._update)
 
@@ -56,7 +60,7 @@ class Planner():
     def set_position(self, position): self.planner.set_position(position)
 
 
-    def update_position(self):
+    def get_position(self):
         position = {}
 
         for axis in 'xyzabc':
@@ -64,7 +68,11 @@ class Planner():
             value = self.ctrl.state.get(axis + 'p', None)
             if value is not None: position[axis] = value
 
-        self.set_position(position)
+        return position
+
+
+    def update_position(self):
+        self.set_position(self.get_position())
 
 
     def _get_config_vector(self, name, scale):
@@ -91,7 +99,7 @@ class Planner():
         return limit
 
 
-    def _get_config(self, mdi, with_limits):
+    def get_config(self, mdi, with_limits):
         metric = self.ctrl.state.get('metric', True)
         config = {
             'default-units': 'METRIC' if metric else 'IMPERIAL',
@@ -153,6 +161,11 @@ class Planner():
         return value
 
 
+    def log_intercept(self, cb):
+        with self.logLock:
+            self.logIntercept[threading.get_ident()] = cb
+
+
     def _log_cb(self, line):
         line = line.strip()
         m = reLogLine.match(line)
@@ -161,6 +174,16 @@ class Planner():
         level = m.group('level')
         msg = m.group('msg')
         where = m.group('where')
+
+        if where is not None: filename, line, column = where.split(':')
+        else: filename, line, column = None, None, None
+
+        # Per thread log intercept
+        with self.logLock:
+            tid = threading.get_ident()
+            if tid in self.logIntercept:
+                self.logIntercept[tid](level, msg, filename, line, column)
+                return
 
         if where is not None: extra = dict(where = where)
         else: extra = None
@@ -171,7 +194,6 @@ class Planner():
         elif level == 'E': log.error   (msg, extra = extra)
         elif level == 'C': log.critical(msg, extra = extra)
         else: log.error('Could not parse planner log line: ' + line)
-
 
 
     def _enqueue_set_cmd(self, id, name, value):
@@ -250,12 +272,12 @@ class Planner():
 
     def mdi(self, cmd, with_limits = True):
         log.info('MDI:' + cmd)
-        self.planner.load_string(cmd, self._get_config(True, with_limits))
+        self.planner.load_string(cmd, self.get_config(True, with_limits))
 
 
     def load(self, path):
         log.info('GCode:' + path)
-        self.planner.load(path, self._get_config(False, True))
+        self.planner.load(path, self.get_config(False, True))
 
 
     def stop(self):

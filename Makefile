@@ -1,10 +1,9 @@
 DIR := $(shell dirname $(lastword $(MAKEFILE_LIST)))
 
 NODE_MODS  := $(DIR)/node_modules
-JADE       := $(NODE_MODS)/jade/bin/jade.js
-STYLUS     := $(NODE_MODS)/stylus/bin/stylus
-AP         := $(NODE_MODS)/autoprefixer/autoprefixer
-BROWSERIFY := $(NODE_MODS)/browserify/bin/cmd.js
+PUG        := $(NODE_MODS)/.bin/pug
+STYLUS     := $(NODE_MODS)/.bin/stylus
+BROWSERIFY := $(NODE_MODS)/.bin/browserify
 
 TARGET     := build/http
 HTML       := index
@@ -12,10 +11,10 @@ HTML       := $(patsubst %,$(TARGET)/%.html,$(HTML))
 CSS        := $(wildcard src/stylus/*.styl)
 CSS_ASSETS := build/css/style.css
 JS         := $(wildcard src/js/*.js)
-JS_ASSETS  := $(TARGET)/js/assets.js
+JS_ASSETS  := build/js/assets.js
 STATIC     := $(shell find src/resources -type f)
 STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
-TEMPLS     := $(wildcard src/jade/templates/*.jade)
+TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
 AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
 GPLAN_MOD := rpi-share/camotics/gplan.so
@@ -44,7 +43,7 @@ ifndef DEST
 DEST=mnt
 endif
 
-WATCH := src/jade src/jade/templates src/stylus src/js src/resources Makefile
+WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
 
 all: html css js static
 	@$(MAKE) -C src/avr
@@ -95,6 +94,7 @@ update: pkg
 	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
 	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" -F "password=$(PASSWORD)" \
 	  http://$(HOST)/api/firmware/update
+	@-tput sgr0 && echo # Fix terminal output
 
 mount:
 	mkdir -p $(DEST)
@@ -115,22 +115,21 @@ js: $(JS_ASSETS) $(JS_ASSETS).sha256
 
 static: $(STATIC)
 
-templates: build/templates.jade
+templates: build/templates.pug
 
-build/templates.jade: $(TEMPLS)
+build/templates.pug: $(TEMPLS)
 	mkdir -p build
 	cat $(TEMPLS) >$@
 
-build/hashes.jade: $(CSS_ASSETS).sha256 $(JS_ASSETS).sha256
+build/hashes.pug: $(CSS_ASSETS).sha256 $(JS_ASSETS).sha256
 	echo "- var css_hash = '$(shell cat $(CSS_ASSETS).sha256)'" > $@
 	echo "- var js_hash = '$(shell cat $(JS_ASSETS).sha256)'" >> $@
 
-$(TARGET)/index.html: build/templates.jade build/hashes.jade
+$(TARGET)/index.html: build/templates.pug build/hashes.pug
 
 $(JS_ASSETS): $(JS) node_modules
 	@mkdir -p $(shell dirname $@)
-	$(BROWSERIFY) src/js/main.js -s main -o $@ || \
-	(rm -f $@; exit 1)
+	$(BROWSERIFY) src/js/main.js -s main -o $@ || (rm -f $@; exit 1)
 
 node_modules:
 	npm install
@@ -142,11 +141,11 @@ node_modules:
 $(TARGET)/%: src/resources/%
 	install -D $< $@
 
-$(TARGET)/%.html: src/jade/%.jade $(wildcard src/jade/*.jade) node_modules
+$(TARGET)/%.html: src/pug/%.pug $(wildcard src/pug/*.pug) node_modules
 	@mkdir -p $(shell dirname $@)
-	$(JADE) -P $< -o $(TARGET) || (rm -f $@; exit 1)
+	$(PUG) -P $< -o $(TARGET) || (rm -f $@; exit 1)
 
-build/css/%.css: src/stylus/%.styl node_modules
+$(CSS_ASSETS): src/stylus/style.styl node_modules
 	mkdir -p $(shell dirname $@)
 	$(STYLUS) < $< > $@ || (rm -f $@; exit 1)
 

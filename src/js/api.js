@@ -51,7 +51,7 @@ function api_cb(method, url, data, config) {
     try {text = $.parseJSON(xhr.responseText)} catch(e) {}
     d.reject(text, xhr, status, error);
     console.debug('API Error: ' + url + ': ' + xhr.responseText);
-  })
+  });
 
   return d.promise();
 }

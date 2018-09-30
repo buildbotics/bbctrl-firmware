@@ -232,6 +232,33 @@ class UpgradeHandler(bbctrl.APIHandler):
         subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
+class PathHandler(bbctrl.APIHandler):
+    @gen.coroutine
+    def get(self, filename):
+        if not os.path.exists('upload/' + filename):
+            raise HTTPError(404, 'File not found')
+        future = self.ctrl.preplanner.get_plan(filename)
+
+        try:
+            delta = datetime.timedelta(seconds = 1)
+            data = yield gen.with_timeout(delta, future)
+
+        except gen.TimeoutError:
+            progress = self.ctrl.preplanner.get_plan_progress(filename)
+            self.write_json(dict(progress = progress))
+            return
+
+        if data is not None:
+            self.set_header('Content-Encoding', 'gzip')
+
+            # Respond with chunks to avoid long delays
+            SIZE = 102400
+            chunks = [data[i:i + SIZE] for i in range(0, len(data), SIZE)]
+            for chunk in chunks:
+                self.write(chunk)
+                yield self.flush()
+
+
 class HomeHandler(bbctrl.APIHandler):
     def put_ok(self, axis, action, *args):
         if axis is not None: axis = ord(axis[1:2].lower())
@@ -303,10 +330,6 @@ class ModbusWriteHandler(bbctrl.APIHandler):
 
 class JogHandler(bbctrl.APIHandler):
     def put_ok(self): self.ctrl.mach.jog(self.json)
-
-
-class VideoReloadHandler(bbctrl.APIHandler):
-    def put_ok(self): pass #subprocess.Popen('reset-video').wait()
 
 
 # Base class for Web Socket connections
@@ -387,7 +410,8 @@ class Web(tornado.web.Application):
             (r'/api/config/reset', ConfigResetHandler),
             (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
-            (r'/api/file(/.+)?', bbctrl.FileHandler),
+            (r'/api/file(/[^/]+)?', bbctrl.FileHandler),
+            (r'/api/path/([^/]+)', PathHandler),
             (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
             (r'/api/start', StartHandler),
             (r'/api/estop', EStopHandler),
@@ -404,7 +428,6 @@ class Web(tornado.web.Application):
             (r'/api/modbus/write', ModbusWriteHandler),
             (r'/api/jog', JogHandler),
             (r'/api/video', bbctrl.VideoHandler),
-            (r'/api/video/reload', VideoReloadHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               "default_filename": "index.html"}),

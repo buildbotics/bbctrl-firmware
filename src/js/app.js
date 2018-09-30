@@ -218,8 +218,7 @@ module.exports = new Vue({
 
 
     toggle_video: function () {
-      if      (this.video_size == 'small')  this.video_size = 'medium';
-      else if (this.video_size == 'medium') this.video_size = 'large';
+      if      (this.video_size == 'small')  this.video_size = 'large';
       else if (this.video_size == 'large')  this.video_size = 'small';
     },
 

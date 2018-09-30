@@ -174,10 +174,14 @@ class Config(object):
 
         subprocess.check_call(['sync'])
 
+        self.ctrl.preplanner.invalidate_all()
         log.info('Saved')
 
 
-    def reset(self): os.unlink('config.json')
+    def reset(self):
+        os.unlink('config.json')
+        self.reload()
+        self.ctrl.preplanner.invalidate_all()
 
 
     def _encode(self, name, index, config, tmpl, with_defaults):

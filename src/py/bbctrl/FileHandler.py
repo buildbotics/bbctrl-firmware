@@ -27,21 +27,29 @@
 
 import os
 import bbctrl
+import glob
+
+
+def safe_remove(path):
+    try:
+        os.unlink(path)
+    except OSError: pass
 
 
 class FileHandler(bbctrl.APIHandler):
     def prepare(self): pass
 
 
-    def delete_ok(self, path):
-        if not path:
-            if os.path.exists('upload'):
-                for path in os.listdir('upload'):
-                    if os.path.isfile('upload/' + path):
-                        os.unlink('upload/' + path)
+    def delete_ok(self, filename):
+        if not filename:
+            # Delete everything
+            for path in glob.glob('upload/*'): safe_remove(path)
+            self.ctrl.preplanner.delete_all_plans()
+
         else:
-            path = 'upload' + path
-            if os.path.exists(path): os.unlink(path)
+            # Delete a single file
+            safe_remove('upload' + filename)
+            self.ctrl.preplanner.delete_plans(filename)
 
 
     def put_ok(self, path):
@@ -54,6 +62,7 @@ class FileHandler(bbctrl.APIHandler):
         with open(path, 'wb') as f:
             f.write(gcode['body'])
 
+        self.ctrl.preplanner.invalidate(gcode['filename'])
         self.ctrl.state.set('selected', gcode['filename'])
 
 
