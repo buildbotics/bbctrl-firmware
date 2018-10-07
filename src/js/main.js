@@ -88,12 +88,13 @@ $(function() {
     if (MIN <= value) {
       parts.push(value / MIN);
       value %= MIN;
-    }
 
-    parts.push(value.toFixed(precision));
+    } else parts.push(0);
 
-    for (var i = 0; i < parts.length - 1; i++) {
-      parts[i] = parts[i].toFixed(0);
+    parts.push(value);
+
+    for (var i = 0; i < parts.length; i++) {
+      parts[i] = parts[i].toFixed(i == parts.length - 1 ? precision : 0);
       if (i && parts[i] < 10) parts[i] = '0' + parts[i];
     }
 

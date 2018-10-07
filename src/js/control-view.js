@@ -139,7 +139,24 @@ module.exports = {
     },
 
 
-    highlight_reason: function () {return this.reason != ''}
+    highlight_reason: function () {return this.reason != ''},
+    plan_time: function () {return this.state.plan_time},
+
+
+    eta: function () {
+      if (this.mach_state != 'RUNNING') return '';
+      var remaining = this.toolpath.time - this.plan_time;
+      var d = new Date();
+      d.setSeconds(d.getSeconds() + remaining);
+      return d.toLocaleString();
+    },
+
+
+    progress: function () {
+      if (!this.toolpath.time) return 0;
+      var p = this.plan_time / this.toolpath.time;
+      return p < 1 ? p : 1;
+    }
   },
 
 

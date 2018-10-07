@@ -249,6 +249,7 @@ class PathHandler(bbctrl.APIHandler):
             return
 
         if data is not None:
+            data = data[0]
             self.set_header('Content-Encoding', 'gzip')
 
             # Respond with chunks to avoid long delays

@@ -42,29 +42,29 @@ script#control-view-template(type="text/x-template")
             .fa.fa-home
 
       each axis in 'xyzabc'
-        tr.axis(:class="{'homed': is_homed('#{axis}'), 'axis-#{axis}': true}",
-          v-if="enabled('#{axis}')")
-          th.name #{axis}
+        tr.axis(:class=`{'homed': is_homed('${axis}'), 'axis-${axis}': true}`,
+          v-if=`enabled('${axis}')`)
+          th.name= axis
           td.position
-            unit-value(:value="get_position('#{axis}')", precision="4")
-          td.absolute: unit-value(:value="state.#{axis}p", precision="3")
-          td.offset: unit-value(:value="get_offset('#{axis}')", precision="3")
+            unit-value(:value=`get_position('${axis}')`, precision="4")
+          td.absolute: unit-value(:value="state." + axis + "p", precision="3")
+          td.offset: unit-value(:value=`get_offset('${axis}')`, precision="3")
           th.actions
             button.pure-button(:disabled="!is_ready",
-              title="Set {{'#{axis}' | upper}} axis position.",
-              @click="show_set_position('#{axis}')")
+              title=`Set {{'${axis}' | upper}} axis position.`,
+              @click=`show_set_position('${axis}')`)
               .fa.fa-cog
 
             button.pure-button(:disabled="!is_ready",
-              title="Zero {{'#{axis}' | upper}} axis offset.",
-              @click="zero('#{axis}')") &empty;
+              title=`Zero {{'${axis}' | upper}} axis offset.`,
+              @click=`zero('${axis}')`) &empty;
 
             button.pure-button(:disabled="!is_ready",
-              title="Home {{'#{axis}' | upper}} axis.",
-              @click="home('#{axis}')")
+              title=`Home {{'${axis}' | upper}} axis.`,
+              @click=`home('${axis}')`)
               .fa.fa-home
 
-            message(:show.sync="position_msg['#{axis}']")
+            message(:show.sync=`position_msg['${axis}']`)
               h3(slot="header") Set {{'#{axis}' | upper}} axis position
 
               div(slot="body")
@@ -72,21 +72,21 @@ script#control-view-template(type="text/x-template")
                   .pure-control-group
                     label Position
                     input(v-model="axis_position",
-                      @keyup.enter="set_position('#{axis}', axis_position)")
+                      @keyup.enter=`set_position('${axis}', axis_position)`)
                 p
 
               div(slot="footer")
-                button.pure-button(@click="position_msg['#{axis}'] = false")
+                button.pure-button(@click=`position_msg['${axis}'] = false`)
                   | Cancel
 
-                button.pure-button(v-if="is_homed('#{axis}')",
-                  @click="unhome('#{axis}')") Unhome
+                button.pure-button(v-if="is_homed('" + axis + "')",
+                  @click=`unhome('${axis}')`) Unhome
 
                 button.pure-button.button-success(
-                  @click="set_position('#{axis}', axis_position)") Set
+                  @click=`set_position('${axis}', axis_position)`) Set
 
 
-            message(:show.sync="manual_home['#{axis}']")
+            message(:show.sync=`manual_home['${axis}']`)
               h3(slot="header") Manually home {{'#{axis}' | upper}} axis
 
               div(slot="body")
@@ -96,17 +96,17 @@ script#control-view-template(type="text/x-template")
                   .pure-control-group
                     label Absolute
                     input(v-model="axis_position",
-                      @keyup.enter="set_home('#{axis}', axis_position)")
+                      @keyup.enter=`set_home('${axis}', axis_position)`)
 
                 p
 
               div(slot="footer")
-                button.pure-button(@click="manual_home['#{axis}'] = false")
+                button.pure-button(@click=`manual_home['${axis}'] = false`)
                   | Cancel
 
                 button.pure-button.button-success(
-                  title="Home {{'#{axis}' | upper}} axis.",
-                  @click="set_home('#{axis}', axis_position)") Set
+                  title=`Home {{'${axis}' | upper}} axis.`,
+                  @click=`set_home('${axis}', axis_position)`) Set
 
     table.info
       tr
@@ -157,21 +157,22 @@ script#control-view-template(type="text/x-template")
       tr
         th Time
         td(title="Total run time (days:hours:mins:secs)")
-          |  {{toolpath.time / 1000 | time}}
+          span(v-if="plan_time") {{plan_time | time}} of&nbsp;
+          | {{toolpath.time | time}}
       tr
         th ETA
-        td
+        td {{eta}}
       tr
         th Line
         td
-          | {{0 <= state.line ? state.line : '0'}}
+          | {{0 <= state.line ? state.line : 0 | number}}
           span(v-if="toolpath.lines")
             | &nbsp;of {{toolpath.lines | number}}
       tr
         th Progress
         td.progress
-          label {{(state.progress || 0) | percent}}
-          .bar(:style="'width:' + (state.progress || 0.01) * 100 + '%'")
+          label {{(progress || 0) | percent}}
+          .bar(:style="'width:' + (progress || 0) * 100 + '%'")
 
     .override(title="Feed rate override.")
       label Feed
@@ -221,15 +222,16 @@ script#control-view-template(type="text/x-template")
             .fa.fa-step-forward
 
           button.pure-button(title="Upload a new GCode program.", @click="open",
-            :disabled="is_running || is_stopping")
+            :disabled="!is_ready")
             .fa.fa-folder-open
 
           input.gcode-file-input(type="file", @change="upload",
-            style="display:none", accept=".nc,.gcode,.gc,.ngc")
+            style="display:none", accept=".nc,.gcode,.gc,.ngc",
+            :disabled="!is_ready")
 
           button.pure-button(title="Delete current GCode program.",
             @click="deleteGCode = true",
-            :disabled="!state.selected || is_running || is_stopping")
+            :disabled="!state.selected || !is_ready")
             .fa.fa-trash
 
           message(:show.sync="deleteGCode")
@@ -245,8 +247,7 @@ script#control-view-template(type="text/x-template")
                 | &nbsp;selected
 
           select(title="Select previously uploaded GCode programs.",
-            v-model="state.selected", @change="load",
-            :disabled="is_running || is_stopping")
+            v-model="state.selected", @change="load", :disabled="!is_ready")
             option(v-for="file in files", :value="file") {{file}}
 
         path-viewer(:toolpath="toolpath", :progress="progress",

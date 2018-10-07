@@ -32,19 +32,21 @@ script#path-viewer-template(type="text/x-template")
         @click="small = !small", :class="{active: !small}")
         .fa.fa-arrows-alt
 
-      tool-button(name="tool", :active="showTool",
-        @click="showTool = !showTool", title="Show/hide tool.")
-      tool-button(name="bbox", :active="showBBox",
-        @click="showBBox = !showBBox", title="Show/hide bounding box.")
-      tool-button(name="axes", :active="showAxes",
-        @click="showAxes = !showAxes", title="Show/hide axes.")
+      .tool-button(@click="showTool = !showTool", :active="showTool",
+        title="Show/hide tool.")
+        img(src="images/tool.png")
 
-      tool-button(name="isometric", @click="snap('isometric')",
-        title="Snap to isometric view.")
-      tool-button(name="top",       @click="snap('top')",
-        title="Snap to top view.")
-      tool-button(name="front",     @click="snap('front')",
-        title="Snap to front view.")
+      .tool-button(@click="showBBox = !showBBox", :active="showBBox",
+        title="Show/hide bounding box.")
+        img(src="images/bbox.png")
+
+      .tool-button(@click="showAxes = !showAxes", :active="showAxes",
+        title="Show/hide axes.")
+        img(src="images/axes.png")
+
+      each view in "isometric top front".split(" ")
+        .tool-button(@click=`snap('${view}')`, title=`Snap to ${view} view.`)
+          img(src=`images/${view}.png`)
 
     .path-viewer-content(:class="{small: small}")
       .path-viewer-message(:class="{error: error}")
@@ -63,8 +65,8 @@ script#path-viewer-template(type="text/x-template")
         th Message
 
       tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
-        td {{msg.level}}
-        td
+        td.level {{msg.level}}
+        td.location
           | {{msg.line}}
           span(v-if="msg.column") :{{msg.column}}
-        td {{msg.msg}}
+        td.message {{msg.msg}}

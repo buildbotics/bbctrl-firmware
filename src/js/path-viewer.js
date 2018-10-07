@@ -62,11 +62,6 @@ module.exports = {
   },
 
 
-  components: {
-    'tool-button': require('./tool-button')
-  },
-
-
   computed: {
     hasPath: function () {return typeof this.toolpath.path != 'undefined'}
   },
@@ -385,7 +380,8 @@ module.exports = {
         var step = this.toolpath.path[i];
         var newColor = step.rapid ? rapid : cutting;
 
-        if (!i) {
+        // Handle color change
+        if (!i || newColor != color) {
           color = newColor;
           positions.push(x, y, z);
           colors.push.apply(colors, color);
@@ -397,13 +393,6 @@ module.exports = {
 
         positions.push(x, y, z);
         colors.push.apply(colors, color);
-
-        // Handle type change
-        if (newColor != color) {
-          color = newColor;
-          positions.push(x, y, z);
-          colors.push.apply(colors, color);
-        }
       }
 
       var geometry = new THREE.BufferGeometry();

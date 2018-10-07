@@ -38,7 +38,11 @@ from bbctrl.CommandQueue import CommandQueue
 log = logging.getLogger('Planner')
 
 reLogLine = re.compile(
-    r'^(?P<level>[A-Z])[0-9 ]:((?P<where>[^:]+:\d+:\d+):)?(?P<msg>.*)$')
+    r'^(?P<level>[A-Z])[0-9 ]:'
+    r'((?P<file>[^:]+):)?'
+    r'((?P<line>\d+):)?'
+    r'((?P<column>\d+):)?'
+    r'(?P<msg>.*)$')
 
 
 class Planner():
@@ -47,7 +51,6 @@ class Planner():
         self.cmdq = CommandQueue()
         self.logLock = threading.Lock()
         self.logIntercept = {}
-        self.time = 0
 
         ctrl.state.add_listener(self._update)
 
@@ -173,10 +176,14 @@ class Planner():
 
         level = m.group('level')
         msg = m.group('msg')
-        where = m.group('where')
+        filename = m.group('file')
+        line = m.group('line')
+        column = m.group('column')
 
-        if where is not None: filename, line, column = where.split(':')
-        else: filename, line, column = None, None, None
+        where = ':'.join(filter(None.__ne__, [filename, line, column]))
+
+        if line is not None: line = int(line)
+        if column is not None: column = int(column)
 
         # Per thread log intercept
         with self.logLock:
@@ -185,7 +192,7 @@ class Planner():
                 self.logIntercept[tid](level, msg, filename, line, column)
                 return
 
-        if where is not None: extra = dict(where = where)
+        if where: extra = dict(where = where)
         else: extra = None
 
         if   level == 'I': log.info    (msg, extra = extra)
@@ -202,9 +209,9 @@ class Planner():
 
 
     def __encode(self, block):
-        log.info('Cmd:' + json.dumps(block))
-
         type, id = block['type'], block['id']
+
+        if type != 'set': log.info('Cmd:' + json.dumps(block))
 
         if type == 'line':
             return Cmd.line(block['target'], block['exit-vel'],

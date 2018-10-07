@@ -68,14 +68,14 @@ script#indicators-template(type="text/x-template")
       each motor in '0123'
         tr
           td
-            .fa.io(:class="get_input_class('#{motor}lw', '#{motor}ls')",
-              :title="get_input_tooltip('#{motor}lw', '#{motor}ls')")
+            .fa.io(:class=`get_input_class('${motor}lw', '${motor}ls')`,
+              :title=`get_input_tooltip('${motor}lw', '${motor}ls')`)
           td {{get_min_pin(#{motor})}}
           th Motor #{motor} Min
           th.separator
           td
-            .fa.io(:class="get_input_class('#{motor}xw', '#{motor}xs')",
-              :title="get_input_tooltip('#{motor}xw', '#{motor}xs')")
+            .fa.io(:class=`get_input_class('${motor}xw', '${motor}xs')`,
+              :title=`get_input_tooltip('${motor}xw', '${motor}xs')`)
           td {{get_max_pin(#{motor})}}
           th Motor #{motor} Max
 
@@ -239,7 +239,7 @@ script#indicators-template(type="text/x-template")
         th Current
 
     h2 DB25 breakout box
-    img(width=700, src="/images/DB25_breakout_box.png")
+    img(width=700, src="images/DB25_breakout_box.png")
 
     h2 DB25-M2 breakout
-    img(width=400, src="/images/DB25-M2_breakout.png")
+    img(width=400, src="images/DB25-M2_breakout.png")

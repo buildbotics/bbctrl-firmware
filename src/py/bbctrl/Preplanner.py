@@ -103,7 +103,8 @@ class Preplanner(object):
         self.max_plan_time = max_plan_time
         self.max_loop_time = max_loop_time
 
-        if not os.path.exists('plans'): os.mkdir('plans')
+        for dir in ['plans', 'times']:
+            if not os.path.exists(dir): os.mkdir(dir)
 
         self.started = Future()
 
@@ -168,7 +169,8 @@ class Preplanner(object):
 
         # Copy state for thread
         state = self.ctrl.state.snapshot()
-        config = self.ctrl.mach.planner.get_config(False, True)
+        config = self.ctrl.mach.planner.get_config(False, False)
+        del config['default-units']
 
         # Start planner thread
         plan = yield self.pool.submit(self._exec_plan, filename, state, config)
@@ -200,8 +202,16 @@ class Preplanner(object):
         # Check if this plan was already run
         hid = plan_hash(filename, config)
         plan_path = 'plans/' + filename + '.' + hid + '.gz'
-        if os.path.exists(plan_path):
-            with open(plan_path, 'rb') as f: return f.read()
+        times_path = 'times/' + filename + '.' + hid + '.gz'
+
+        try:
+            if os.path.exists(plan_path) and os.path.exists(times_path):
+                with open(plan_path, 'rb') as f: data = f.read()
+                with open(times_path, 'rb') as f: times = f.read()
+                return (data, json.loads(gzip.decompress(times).decode('utf8')))
+
+        except Exception as e: log.error(e)
+
 
         # Clean up old plans
         self._clean_plans(filename)
@@ -227,6 +237,7 @@ class Preplanner(object):
         position = dict(x = 0, y = 0, z = 0)
         rapid = False
         moves = []
+        times = []
         messages = []
         count = 0
 
@@ -247,12 +258,15 @@ class Preplanner(object):
         try:
             while planner.has_more():
                 cmd = planner.next()
-                planner.set_active(cmd['id'])
+                planner.set_active(cmd['id']) # Release plan
+
                 # Cannot synchronize with actual machine so fake it
                 if planner.is_synchronizing(): planner.synchronize(0)
 
                 if cmd['type'] == 'line':
-                    totalTime += sum(cmd['times'])
+                    if not 'first' in cmd:
+                        totalTime += sum(cmd['times']) / 1000
+                        times.append((cmd['id'], totalTime))
 
                     target = cmd['target']
                     move = {}
@@ -272,7 +286,9 @@ class Preplanner(object):
                         maxLine = line
                         maxLineTime = time.time()
 
-                elif cmd['type'] == 'dwell': totalTime += cmd['seconds']
+                elif cmd['type'] == 'dwell':
+                    totalTime += cmd['seconds']
+                    times.append((cmd['id'], totalTime))
 
                 if not self._progress(filename, maxLine / totalLines):
                     raise Exception('Plan canceled.')
@@ -298,7 +314,9 @@ class Preplanner(object):
                     messages = messages)
         data = gzip.compress(dump_json(data).encode('utf8'))
 
-        # Save plan
+        # Save plan & times
         with open(plan_path, 'wb') as f: f.write(data)
+        with open(times_path, 'wb') as f:
+            f.write(gzip.compress(dump_json(times).encode('utf8')))
 
-        return data
+        return (data, times)

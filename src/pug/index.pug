@@ -160,7 +160,7 @@ html(lang="en")
     message(:show.sync="confirmUpload")
       h3(slot="header") Upload Firmware?
       div(slot="body")
-        p Are you sure you want to upload firmware <em>{{firmwareName}}</em>?
+        p Are you sure you want to upload firmware #[em {{firmwareName}}]?
 
         p.pure-control-group
           label(for="pass") Password

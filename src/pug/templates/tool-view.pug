@@ -54,8 +54,8 @@ script#tool-view-template(type="text/x-template")
         v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
         h2 Active Modbus Program
         p
-          | (Click <tt class="save">Save</tt> to activate the selected
-          | <b>tool-type</b>.)
+          | (Click #[tt(class="save") Save] to activate the selected
+          | #[b tool-type].)
         table.modbus-regs.fixed-regs
           tr
             th Index
@@ -121,22 +121,25 @@ script#tool-view-template(type="text/x-template")
             td.reg-addr PD163
             td.reg-value 1
             td Modbus ID
-            td Must match <tt>bus-id</tt> above.
+            td Must match #[tt bus-id] above.
           tr
             td.reg-addr PD164
             td.reg-value 1
             td 9600 baud
-            td Must match <tt>baud</tt> above.
+            td Must match #[tt baud] above.
           tr
             td.reg-addr PD166
             td.reg-value 3
             td 8 bit, no parity, RTU mode
-            td Must match <tt>parity</tt> above.
+            td Must match #[tt parity] above.
 
         p
-          | Other settings according to the <a
-          | href="https://buildbotics.com/upload/vfd/Huanyang-VFD-manual.pdf"
-          | target="_blank">Huanyang VFD manual</a> and spindle type.
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Huanyang-VFD-manual.pdf",
+            target="_blank") Huanyang VFD manual
+          |
+          | and spindle type.
 
       .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
         h2 Notes
@@ -161,17 +164,17 @@ script#tool-view-template(type="text/x-template")
             td.reg-addr Pr.88
             td.reg-value 1
             td Modbus ID
-            td Must match <tt>bus-id</tt> above
+            td Must match #[tt bus-id] above
           tr
             td.reg-addr Pr.89
             td.reg-value 1
             td 9600 baud
-            td Must match <tt>baud</tt> above
+            td Must match #[tt baud] above
           tr
             td.reg-addr Pr.92
             td.reg-value 3
             td 8 bit, no parity, RTU mode
-            td Must match <tt>parity</tt> above
+            td Must match #[tt parity] above
           tr
             td.reg-addr Pr.157
             td.reg-value 1
@@ -179,6 +182,9 @@ script#tool-view-template(type="text/x-template")
             td Communication mode
 
         p
-          | Other settings according to the <a
-          | href="https://buildbotics.com/upload/vfd/Delta_VFD015M21A.pdf"
-          | target="_blank">Delta VFD015M21A VFD manual</a> and spindle type.
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Delta_VFD015M21A.pdf",
+            target="_blank") Delta VFD015M21A VFD manual
+          |
+          | and spindle type.

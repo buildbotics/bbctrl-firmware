@@ -48,6 +48,7 @@ class Ctrl(object):
             self.lcd = bbctrl.LCD(self)
             self.mach = bbctrl.Mach(self)
             self.preplanner = bbctrl.Preplanner(self)
+            self.planTimer = bbctrl.PlanTimer(self)
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
