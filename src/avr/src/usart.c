@@ -46,12 +46,12 @@
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
 #include "ringbuf.def"
 
-static int usart_flags = USART_CRLF;
+static bool _flush = false;
 
 
 static void _set_dre_interrupt(bool enable) {
-  if (enable) SERIAL_PORT.CTRLA |= USART_DREINTLVL_HI_gc;
-  else SERIAL_PORT.CTRLA &= ~USART_DREINTLVL_HI_gc;
+  if (enable) SERIAL_PORT.CTRLA |= USART_DREINTLVL_MED_gc;
+  else SERIAL_PORT.CTRLA &= ~USART_DREINTLVL_MED_gc;
 }
 
 
@@ -60,9 +60,9 @@ static void _set_rxc_interrupt(bool enable) {
     if (SERIAL_CTS_THRESH <= rx_buf_space())
       OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
 
-    SERIAL_PORT.CTRLA |= USART_RXCINTLVL_HI_gc;
+    SERIAL_PORT.CTRLA |= USART_RXCINTLVL_MED_gc;
 
-  } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_HI_gc;
+  } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_MED_gc;
 }
 
 
@@ -209,23 +209,10 @@ void usart_init() {
 
 
 
-void usart_set(int flag, bool enable) {
-  if (enable) usart_flags |= flag;
-  else usart_flags &= ~flag;
-}
-
-
-bool usart_is_set(int flags) {return (usart_flags & flags) == flags;}
-
-
 void usart_putc(char c) {
-  while (tx_buf_full() || (usart_flags & USART_FLUSH)) continue;
-
+  while (tx_buf_full() || _flush) continue;
   tx_buf_push(c);
-
   _set_dre_interrupt(true); // Enable interrupt
-
-  if ((usart_flags & USART_CRLF) && c == '\n') usart_putc('\r');
 }
 
 
@@ -234,11 +221,8 @@ void usart_puts(const char *s) {while (*s) usart_putc(*s++);}
 
 int8_t usart_getc() {
   while (rx_buf_empty()) continue;
-
   uint8_t data = rx_buf_next();
-
   _set_rxc_interrupt(true); // Enable interrupt
-
   return data;
 }
 
@@ -257,34 +241,14 @@ char *usart_readline() {
   while (!rx_buf_empty()) {
     char data = usart_getc();
 
-    if (usart_flags & USART_ECHO) usart_putc(data);
-
     switch (data) {
     case '\r': case '\n': eol = true; break;
-
-    case '\b': // BS - backspace
-      if (usart_flags & USART_ECHO) {
-        usart_putc(' ');
-        usart_putc('\b');
-      }
-      if (i) i--;
-      break;
-
-    case 0x18: // CAN - Cancel or CTRL-X
-      if (usart_flags & USART_ECHO)
-        while (i) {
-          usart_putc('\b');
-          usart_putc(' ');
-          usart_putc('\b');
-          i--;
-        }
-
-      i = 0;
-      break;
+    case '\b': if (i) i--; break; // BS - backspace
+    case 0x18: i = 0; break;      // CAN - Cancel or CTRL-X
 
     default:
       line[i++] = data;
-      if (i == INPUT_BUFFER_LEN - 1) eol = true;
+      if (i == INPUT_BUFFER_LEN - 1) eol = true; // Line buffer full
       break;
     }
 
@@ -299,11 +263,8 @@ char *usart_readline() {
 }
 
 
-int16_t usart_peek() {return rx_buf_empty() ? -1 : rx_buf_peek();}
-
-
 void usart_flush() {
-  usart_set(USART_FLUSH, true);
+  _flush = true;
 
   while (!tx_buf_empty() || !(SERIAL_PORT.STATUS & USART_DREIF_bm) ||
          !(SERIAL_PORT.STATUS & USART_TXCIF_bm))

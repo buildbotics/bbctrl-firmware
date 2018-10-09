@@ -51,14 +51,6 @@ typedef enum {
 } baud_t;
 
 
-enum {
-  USART_CRLF  = 1 << 0,
-  USART_ECHO  = 1 << 1,
-  USART_XOFF  = 1 << 2,
-  USART_FLUSH = 1 << 3,
-};
-
-
 typedef enum {
   USART_NONE,
   USART_EVEN,
@@ -89,13 +81,10 @@ void usart_init_port(USART_t *port, baud_t baud, parity_t parity, bits_t bits,
                      stop_t stop);
 
 void usart_init();
-void usart_set(int flag, bool enable);
-bool usart_is_set(int flags);
 void usart_putc(char c);
 void usart_puts(const char *s);
 int8_t usart_getc();
 char *usart_readline();
-int16_t usart_peek();
 void usart_flush();
 
 void usart_rx_flush();
