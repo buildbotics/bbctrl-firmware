@@ -161,24 +161,25 @@ void vars_report(bool full) {
   bool reported = false;
 
 #define VAR(NAME, CODE, TYPE, INDEX, ...)                               \
-  IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {            \
-    TYPE value = get_##NAME(IF(INDEX)(i));                              \
-    TYPE last = (NAME##_state)IF(INDEX)([i]);                           \
-    bool report = _get_report_var(var_code_##CODE);                     \
+  if (_get_report_var(var_code_##CODE)) {                               \
+    IF(INDEX)(for (int i = 0; i < (INDEX ? INDEX : 1); i++)) {          \
+      TYPE value = get_##NAME(IF(INDEX)(i));                            \
+      TYPE last = (NAME##_state)IF(INDEX)([i]);                         \
                                                                         \
-    if ((report && !type_eq_##TYPE(value, last)) || full) {             \
-      (NAME##_state)IF(INDEX)([i]) = value;                             \
+      if (full || (!type_eq_##TYPE(value, last))) {                     \
+        (NAME##_state)IF(INDEX)([i]) = value;                           \
                                                                         \
-      if (!reported) {                                                  \
-        reported = true;                                                \
-        putchar('{');                                                   \
-      } else putchar(',');                                              \
+        if (!reported) {                                                \
+          reported = true;                                              \
+          putchar('{');                                                 \
+        } else putchar(',');                                            \
                                                                         \
-      printf_P                                                          \
-        (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                    \
-         IF(INDEX)(INDEX##_LABEL[i],) #CODE);                           \
+        printf_P                                                        \
+          (IF_ELSE(INDEX)(indexed_code_fmt, code_fmt),                  \
+           IF(INDEX)(INDEX##_LABEL[i],) #CODE);                         \
                                                                         \
-      type_print_##TYPE(value);                                         \
+        type_print_##TYPE(value);                                       \
+      }                                                                 \
     }                                                                   \
   }
 
