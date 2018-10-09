@@ -53,6 +53,7 @@ typedef enum {
 void outputs_init();
 bool outputs_is_active(uint8_t pin);
 void outputs_set_active(uint8_t pin, bool active);
+bool outputs_toggle(uint8_t pin);
 void outputs_set_mode(uint8_t pin, output_mode_t mode);
 output_state_t outputs_get_state(uint8_t pin);
 void outputs_stop();

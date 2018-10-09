@@ -87,7 +87,7 @@ enum {
   ESTOP_PIN,
   MOTOR_FAULT_PIN,
   MOTOR_ENABLE_PIN,
-  NC_0_PIN,
+  TEST_PIN,
   PROBE_PIN,
 };
 
@@ -96,7 +96,7 @@ enum {
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
-#define OUTS                     5 // number of supported pin outputs
+#define OUTS                     6 // number of supported pin outputs
 #define ANALOG                   2 // number of supported analog inputs
 #define VFDREG                  32 // number of supported VFD modbus registers
 
@@ -115,6 +115,7 @@ enum {
  *    LO    Segment execution SW interrupt       (set in stepper.h)
  *   MED    Serial RX                            (set in usart.c)
  *   MED    Serial TX                            (set in usart.c) (* see note)
+ *   MED    I2C Slave                            (set in i2c.c)
  *    LO    Real time clock interrupt            (set in rtc.h)
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints

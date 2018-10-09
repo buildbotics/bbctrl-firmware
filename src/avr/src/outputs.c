@@ -43,6 +43,7 @@ output_t outputs[OUTS] = {
   {SWITCH_1_PIN},
   {SWITCH_2_PIN},
   {FAULT_PIN},
+  {TEST_PIN},
 };
 
 
@@ -53,6 +54,7 @@ static output_t *_get_output(uint8_t pin) {
   case SWITCH_1_PIN:    return &outputs[2];
   case SWITCH_2_PIN:    return &outputs[3];
   case FAULT_PIN:       return &outputs[4];
+  case TEST_PIN:        return &outputs[5];
   }
 
   return 0;
@@ -62,18 +64,18 @@ static output_t *_get_output(uint8_t pin) {
 static void _update_state(output_t *output) {
   switch (output->mode) {
   case OUT_DISABLED: output->state = OUT_TRI; break;
-  case OUT_LO_HI: output->state = output->active ? OUT_HI : OUT_LO; break;
-  case OUT_HI_LO: output->state = output->active ? OUT_LO : OUT_HI; break;
-  case OUT_TRI_LO: output->state = output->active ? OUT_LO : OUT_TRI; break;
-  case OUT_TRI_HI: output->state = output->active ? OUT_HI : OUT_TRI; break;
-  case OUT_LO_TRI: output->state = output->active ? OUT_TRI : OUT_LO; break;
-  case OUT_HI_TRI: output->state = output->active ? OUT_TRI : OUT_HI; break;
+  case OUT_LO_HI:  output->state = output->active ? OUT_HI  : OUT_LO;  break;
+  case OUT_HI_LO:  output->state = output->active ? OUT_LO  : OUT_HI;  break;
+  case OUT_TRI_LO: output->state = output->active ? OUT_LO  : OUT_TRI; break;
+  case OUT_TRI_HI: output->state = output->active ? OUT_HI  : OUT_TRI; break;
+  case OUT_LO_TRI: output->state = output->active ? OUT_TRI : OUT_LO;  break;
+  case OUT_HI_TRI: output->state = output->active ? OUT_TRI : OUT_HI;  break;
   }
 
   switch (output->state) {
   case OUT_TRI: DIRCLR_PIN(output->pin); break;
-  case OUT_HI: OUTSET_PIN(output->pin); DIRSET_PIN(output->pin); break;
-  case OUT_LO: OUTCLR_PIN(output->pin); DIRSET_PIN(output->pin); break;
+  case OUT_HI:  OUTSET_PIN(output->pin); DIRSET_PIN(output->pin); break;
+  case OUT_LO:  OUTCLR_PIN(output->pin); DIRSET_PIN(output->pin); break;
   }
 }
 
@@ -95,6 +97,16 @@ void outputs_set_active(uint8_t pin, bool active) {
 
   output->active = active;
   _update_state(output);
+}
+
+
+bool outputs_toggle(uint8_t pin) {
+  output_t *output = _get_output(pin);
+  if (!output) return false;
+
+  output->active = !output->active;
+  _update_state(output);
+  return output->active;
 }
 
 
