@@ -602,20 +602,20 @@ class VideoHandler(web.RequestHandler):
 
     def write_frame(self, frame):
         # Don't allow too many frames to queue up
-        size = len(frame)
-        if self.request.connection.stream.max_write_buffer_size < size:
-            self.request.connection.stream.max_write_buffer_size = size * 2
+        min_size = len(frame) * 2
+        if self.request.connection.stream.max_write_buffer_size < min_size:
+            self.request.connection.stream.max_write_buffer_size = min_size
 
         try:
             self.write(frame)
             self.flush()
 
         except iostream.StreamBufferFullError:
+            log.info('Camera buffer full')
             pass # Drop frame if buffer is full
 
 
-    def on_connection_close(self):
-        self.camera.remove_client(self)
+    def on_connection_close(self): self.camera.remove_client(self)
 
 
 
