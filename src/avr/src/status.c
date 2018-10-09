@@ -93,12 +93,3 @@ stat_t status_message_P(const char *location, status_level_t level,
 
   return code;
 }
-
-
-/// Alarm state; send an exception report and stop processing input
-stat_t status_alarm(const char *location, stat_t code, const char *msg) {
-  status_message_P(location, STAT_LEVEL_ERROR, code, msg);
-  estop_trigger(code);
-  while (!usart_tx_empty()) continue;
-  return code;
-}

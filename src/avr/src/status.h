@@ -59,9 +59,6 @@ const char *status_level_pgmstr(status_level_t level);
 stat_t status_message_P(const char *location, status_level_t level,
                         stat_t code, const char *msg, ...);
 
-/// Enter alarm state. returns same status code
-stat_t status_alarm(const char *location, stat_t status, const char *msg);
-
 #define TO_STRING(x) _TO_STRING(x)
 #define _TO_STRING(x) #x
 
@@ -81,13 +78,6 @@ stat_t status_alarm(const char *location, stat_t status, const char *msg);
 
 #define STATUS_ERROR(CODE, MSG, ...)                            \
   STATUS_MESSAGE(STAT_LEVEL_ERROR, CODE, MSG, ##__VA_ARGS__)
-
-#define ALARM(CODE) status_alarm(STATUS_LOCATION, CODE, 0)
-#define ASSERT(COND)                                                    \
-  do {                                                                  \
-    if (!(COND))                                                        \
-      status_alarm(STATUS_LOCATION, STAT_INTERNAL_ERROR, PSTR(#COND)); \
-  } while (0)
 
 
 #ifdef DEBUG

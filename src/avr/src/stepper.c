@@ -117,12 +117,13 @@ ISR(STEP_LOW_LEVEL_ISR) {
     case STAT_AGAIN: continue;              // No command executed, try again
 
     case STAT_OK:                           // Move executed
-      if (!st.move_queued) ALARM(STAT_EXPECTED_MOVE); // No move was queued
+      if (!st.move_queued)
+        estop_trigger(STAT_EXPECTED_MOVE); // No move was queued
       st.move_queued = false;
       st.move_ready = true;
       break;
 
-    default: ALARM(status); break;
+    default: estop_trigger(status); break;
     }
 
     break;
@@ -169,12 +170,11 @@ static void _load_move() {
 
   else _end_move();
 
-  if (st.move_type != MOVE_TYPE_NULL) {
-    st.busy = true;
+  ESTOP_ASSERT(st.move_type != MOVE_TYPE_NULL, STAT_STEPPER_NULL_MOVE);
+  st.busy = true;
 
-    // Start dwell
-    st.dwell = st.prep_dwell;
-  }
+  // Start dwell
+  st.dwell = st.prep_dwell;
 
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
@@ -194,7 +194,7 @@ ISR(STEP_TIMER_ISR) {_load_move();}
 
 void st_prep_line(const float target[]) {
   // Trap conditions that would prevent queuing the line
-  ASSERT(!st.move_ready);
+  ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
@@ -210,7 +210,7 @@ void st_prep_line(const float target[]) {
 
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
-  ASSERT(!st.move_ready);
+  ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
   st.move_type = MOVE_TYPE_DWELL;
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready

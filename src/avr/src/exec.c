@@ -110,9 +110,10 @@ void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 
 void exec_move_to_target(const float target[]) {
-  ASSERT(isfinite(target[AXIS_X]) && isfinite(target[AXIS_Y]) &&
-         isfinite(target[AXIS_Z]) && isfinite(target[AXIS_A]) &&
-         isfinite(target[AXIS_B]) && isfinite(target[AXIS_C]));
+  ESTOP_ASSERT(isfinite(target[AXIS_X]) && isfinite(target[AXIS_Y]) &&
+               isfinite(target[AXIS_Z]) && isfinite(target[AXIS_A]) &&
+               isfinite(target[AXIS_B]) && isfinite(target[AXIS_C]),
+               STAT_BAD_FLOAT);
 
   // Update position
   copy_vector(ex.position, target);
@@ -186,7 +187,7 @@ stat_t _segment_exec() {
 
 stat_t exec_segment(float time, const float target[], float vel, float accel,
                     float maxVel, float maxAccel, float maxJerk) {
-  ASSERT(time <= SEGMENT_TIME);
+  ESTOP_ASSERT(time <= SEGMENT_TIME, STAT_SHORT_SEG_TIME);
 
   copy_vector(ex.seg.target, target);
   ex.seg.time += time;
@@ -204,6 +205,7 @@ stat_t exec_segment(float time, const float target[], float vel, float accel,
 }
 
 
+// Called by stepper.c from low-level interrupt
 stat_t exec_next() {
   // Hold if we've reached zero velocity between commands and stopping
   if (!ex.cb && !exec_get_velocity() && state_get() == STATE_STOPPING)

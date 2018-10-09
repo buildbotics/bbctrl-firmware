@@ -30,6 +30,7 @@
 #include "status.h"
 #include "rtc.h"
 #include "util.h"
+#include "estop.h"
 #include "config.h"
 
 #include <avr/io.h>
@@ -370,8 +371,9 @@ void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
   state.last_write = 0;
   state.retry = 0;
 
-  ASSERT(state.command_length <= MODBUS_BUF_SIZE);
-  ASSERT(state.response_length <= MODBUS_BUF_SIZE);
+  ESTOP_ASSERT(state.command_length <= MODBUS_BUF_SIZE, STAT_MODBUS_BUF_LENGTH);
+  ESTOP_ASSERT(state.response_length <= MODBUS_BUF_SIZE,
+               STAT_MODBUS_BUF_LENGTH);
 
   state.command[0] = cfg.id;
   state.command[1] = func;

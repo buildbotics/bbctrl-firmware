@@ -241,7 +241,7 @@ void command_reset_position() {
 
 
 // Returns true if command queued
-// Called from interrupt
+// Called by exec.c from low-level interrupt
 bool command_exec() {
   if (!cmd.count) {
     cmd.last_empty = rtc_get_time();

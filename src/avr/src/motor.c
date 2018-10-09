@@ -256,7 +256,7 @@ void motor_load_move(int motor) {
   motor_t *m = &motors[motor];
 
   // Clear move
-  ASSERT(m->prepped);
+  ESTOP_ASSERT(m->prepped, STAT_MOTOR_NOT_PREPPED);
   m->prepped = false;
 
   motor_end_move(motor);
@@ -290,11 +290,11 @@ void motor_load_move(int motor) {
 
 void motor_prep_move(int motor, float target) {
   // Validate input
-  ASSERT(0 <= motor && motor < MOTORS);
-  ASSERT(isfinite(target));
+  ESTOP_ASSERT(0 <= motor && motor < MOTORS, STAT_MOTOR_ID_INVALID);
+  ESTOP_ASSERT(isfinite(target), STAT_BAD_FLOAT);
 
   motor_t *m = &motors[motor];
-  ASSERT(!m->prepped);
+  ESTOP_ASSERT(!m->prepped, STAT_MOTOR_NOT_READY);
 
   // Travel in steps
   int32_t position = _position_to_steps(motor, target);
