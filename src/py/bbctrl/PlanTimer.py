@@ -79,7 +79,8 @@ class PlanTimer(object):
                 self.reset()
 
             elif state == 'HOLDING': self.hold_start = time.time()
-            elif state == 'RUNNING' and self.hold_start is not None:
+            elif (state == 'RUNNING' and self.hold_start is not None and
+                  self.move_start is not None):
                 self.move_start += time.time() - self.hold_start
                 self.hold_start = None
 

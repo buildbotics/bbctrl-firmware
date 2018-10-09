@@ -12,6 +12,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Click to switch through three video sizes.
  - Automount/unmount USB drives.
  - Automatically install ``buildbotics.gc`` when no other GCode exists.
+ - Preplan GCode and check for errors.
+ - Display 3D view of program tool paths in browser.
+ - Display accurate time remaining, ETA and progress during run.
+ - Automatically collapase moves in planner which are too short in time.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

@@ -161,7 +161,7 @@ script#control-view-template(type="text/x-template")
           | {{toolpath.time | time}}
       tr
         th ETA
-        td {{eta}}
+        td.eta {{eta}}
       tr
         th Line
         td
@@ -250,7 +250,7 @@ script#control-view-template(type="text/x-template")
             v-model="state.selected", @change="load", :disabled="!is_ready")
             option(v-for="file in files", :value="file") {{file}}
 
-        path-viewer(:toolpath="toolpath", :progress="progress",
+        path-viewer(:toolpath="toolpath", :progress="toolpath_progress",
           :x="get_position('x')", :y="get_position('y')",
           :z="get_position('z')")
         gcode-viewer

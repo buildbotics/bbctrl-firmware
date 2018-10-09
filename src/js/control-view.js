@@ -53,7 +53,7 @@ module.exports = {
       files: [],
       last_file: undefined,
       toolpath: {},
-      progress: 0,
+      toolpath_progress: 0,
       axes: 'xyzabc',
       history: [],
       speed_override: 1,
@@ -248,7 +248,7 @@ module.exports = {
 
       if (typeof file != 'undefined') this.$broadcast('gcode-load', file);
       this.$broadcast('gcode-line', this.state.line);
-      this.progress = 0;
+      this.toolpath_progress = 0;
       this.load_toolpath(file);
     },
 
@@ -263,7 +263,7 @@ module.exports = {
 
         if (typeof toolpath.progress == 'undefined') this.toolpath = toolpath;
         else {
-          this.progress = toolpath.progress;
+          this.toolpath_progress = toolpath.progress;
           this.load_toolpath(file); // Try again
         }
       }.bind(this));
