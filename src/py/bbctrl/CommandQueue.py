@@ -29,7 +29,7 @@ import logging
 from collections import deque
 
 log = logging.getLogger('CmdQ')
-log.setLevel(logging.WARNING)
+log.setLevel(logging.INFO)
 
 
 class CommandQueue():

@@ -271,6 +271,7 @@ class Planner():
 
 
     def reset(self):
+        if (hasattr(self.ctrl, 'mach')): self.ctrl.mach.stop()
         self.planner = gplan.Planner()
         self.planner.set_resolver(self._get_var_cb)
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
@@ -330,3 +331,6 @@ class Planner():
         except Exception as e:
             log.exception(e)
             self.reset()
+
+            log.info('running: %s active %s' % (self.is_running(),
+                                                self.cmdq.is_active()))

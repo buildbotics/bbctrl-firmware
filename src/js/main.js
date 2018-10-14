@@ -37,6 +37,7 @@ $(function() {
   Vue.component('templated-input', require('./templated-input'));
   Vue.component('message', require('./message'));
   Vue.component('indicators', require('./indicators'));
+  Vue.component('io-indicator', require('./io-indicator'));
   Vue.component('console', require('./console'));
   Vue.component('unit-value', require('./unit-value'));
 

@@ -93,10 +93,7 @@ class LCD:
         self.screen = self.new_screen()
         self.set_message('Loading...')
 
-        # Redraw screen every 5 seconds
-        self.redraw_timer = PeriodicCallback(self._redraw, 5000, ctrl.ioloop)
-        self.redraw_timer.start()
-
+        self._redraw(False)
         atexit.register(self.goodbye)
 
 
@@ -148,9 +145,11 @@ class LCD:
             self.timeout = self.ctrl.ioloop.call_later(0.25, self._update)
 
 
-    def _redraw(self):
-        self.redraw = True
-        self.update()
+    def _redraw(self, now = True):
+        if now:
+            self.redraw = True
+            self.update()
+        self.redraw_timer = self.ctrl.ioloop.call_later(5, self._redraw)
 
 
     def _update(self):
@@ -203,7 +202,7 @@ class LCD:
             self.timeout = None
 
         if self.redraw_timer:
-            self.redraw_timer.stop()
+            self.ctrl.ioloop.remove_timeout(self.redraw_timer)
             self.redraw_timer = None
 
         if self.lcd is not None: self.set_message(message)

@@ -45,11 +45,15 @@ class FileHandler(bbctrl.APIHandler):
             # Delete everything
             for path in glob.glob('upload/*'): safe_remove(path)
             self.ctrl.preplanner.delete_all_plans()
+            self.ctrl.state.set('selected', '')
 
         else:
             # Delete a single file
             safe_remove('upload' + filename)
             self.ctrl.preplanner.delete_plans(filename)
+
+            if self.ctrl.state.get('selected') == filename:
+                self.ctrl.state.set('selected', '')
 
 
     def put_ok(self, path):

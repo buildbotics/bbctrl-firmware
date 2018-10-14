@@ -130,13 +130,15 @@
           "type": "enum",
           "values": ["disabled", "normally-open", "normally-closed"],
           "default": "disabled",
-          "code": "ls"
+          "code": "ls",
+          "pins": [3, 5, 9, 11]
         },
         "max-switch": {
           "type": "enum",
           "values": ["disabled", "normally-open", "normally-closed"],
           "default": "disabled",
-          "code": "xs"
+          "code": "xs",
+          "pins": [4, 8, 10, 12]
         }
       },
 
@@ -220,14 +222,16 @@
       "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
                  "hi-tri"],
       "default": "lo-hi",
-      "code": "eom"
+      "code": "eom",
+      "pin": 15
     },
     "tool-direction-mode": {
       "type": "enum",
       "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
                  "hi-tri"],
       "default": "lo-hi",
-      "code": "dom"
+      "code": "dom",
+      "pin": 16
     }
   },
 
@@ -323,13 +327,15 @@
       "type": "enum",
       "values": ["disabled", "normally-open", "normally-closed"],
       "default": "disabled",
-      "code": "et"
+      "code": "et",
+      "pin": 23
     },
     "probe": {
       "type": "enum",
       "values": ["disabled", "normally-open", "normally-closed"],
       "default": "normally-open",
-      "code": "pt"
+      "code": "pt",
+      "pin": 22
     }
   },
 
@@ -339,21 +345,24 @@
       "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
                  "hi-tri"],
       "default": "lo-hi",
-      "code": "1om"
+      "code": "1om",
+      "pin": 2
     },
     "load-2": {
       "type": "enum",
       "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
                  "hi-tri"],
       "default": "lo-hi",
-      "code": "2om"
+      "code": "2om",
+      "pin": 1
     },
     "fault": {
       "type": "enum",
       "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
                  "hi-tri"],
       "default": "lo-hi",
-      "code": "fom"
+      "code": "fom",
+      "pin": 21
     }
   },
 

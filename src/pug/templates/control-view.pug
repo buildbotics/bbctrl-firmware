@@ -34,11 +34,11 @@ script#control-view-template(type="text/x-template")
         th.absolute Absolute
         th.offset Offset
         th.actions
-          button.pure-button(:disabled="!is_ready",
+          button.pure-button(:disabled="!can_mdi",
             title="Zero all axis offsets.", @click="zero()") &empty;
 
           button.pure-button(title="Home all axes.", @click="home()",
-            :disabled="!is_ready")
+            :disabled="!can_mdi")
             .fa.fa-home
 
       each axis in 'xyzabc'
@@ -50,16 +50,16 @@ script#control-view-template(type="text/x-template")
           td.absolute: unit-value(:value="state." + axis + "p", precision="3")
           td.offset: unit-value(:value=`get_offset('${axis}')`, precision="3")
           th.actions
-            button.pure-button(:disabled="!is_ready",
+            button.pure-button(:disabled="!can_mdi",
               title=`Set {{'${axis}' | upper}} axis position.`,
               @click=`show_set_position('${axis}')`)
               .fa.fa-cog
 
-            button.pure-button(:disabled="!is_ready",
+            button.pure-button(:disabled="!can_mdi",
               title=`Zero {{'${axis}' | upper}} axis offset.`,
               @click=`zero('${axis}')`) &empty;
 
-            button.pure-button(:disabled="!is_ready",
+            button.pure-button(:disabled="!can_mdi",
               title=`Home {{'${axis}' | upper}} axis.`,
               @click=`home('${axis}')`)
               .fa.fa-home
@@ -251,8 +251,7 @@ script#control-view-template(type="text/x-template")
             option(v-for="file in files", :value="file") {{file}}
 
         path-viewer(:toolpath="toolpath", :progress="toolpath_progress",
-          :x="get_position('x')", :y="get_position('y')",
-          :z="get_position('z')")
+          :state="state")
         gcode-viewer
 
       section#content2.tab-content
@@ -301,4 +300,4 @@ script#control-view-template(type="text/x-template")
         console
 
       section#content5.tab-content
-        indicators(:state="state")
+        indicators(:state="state", :template="template")

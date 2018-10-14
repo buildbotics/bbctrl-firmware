@@ -85,7 +85,7 @@ module.exports = new Vue({
       currentView: 'loading',
       index: -1,
       modified: false,
-      template: {motors: {template: {}}},
+      template: require('../resources/config-template.json'),
       config: {
         settings: {units: 'METRIC'},
         motors: [{}, {}, {}, {}],
@@ -272,23 +272,18 @@ module.exports = new Vue({
 
 
     update: function () {
-      $.ajax({type: 'GET', url: '/config-template.json', cache: false})
-        .success(function (data, status, xhr) {
-          this.template = data;
+      api.get('config/load').done(function (config) {
+        update_object(this.config, config, true);
+        this.parse_hash();
 
-          api.get('config/load').done(function (config) {
-            update_object(this.config, config, true);
-            this.parse_hash();
+        if (!this.checkedUpgrade) {
+          this.checkedUpgrade = true;
 
-            if (!this.checkedUpgrade) {
-              this.checkedUpgrade = true;
-
-              var check = this.config.admin['auto-check-upgrade'];
-              if (typeof check == 'undefined' || check)
-                this.$emit('check');
-            }
-          }.bind(this))
-        }.bind(this))
+          var check = this.config.admin['auto-check-upgrade'];
+          if (typeof check == 'undefined' || check)
+            this.$emit('check');
+        }
+      }.bind(this))
     },
 
 

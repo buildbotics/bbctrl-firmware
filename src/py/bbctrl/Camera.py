@@ -296,7 +296,7 @@ class VideoDevice(object):
                                   b.stepwise.max_height,
                                   b.stepwise.step_height))
 
-                b.index += 1
+                b.index += 1 # pylint: disable=no-member
 
             except OSError: break
 

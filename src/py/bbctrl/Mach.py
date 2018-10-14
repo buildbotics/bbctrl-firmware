@@ -75,7 +75,7 @@ class Mach(Comm):
         self.planner = bbctrl.Planner(ctrl)
 
         ctrl.state.set('cycle', 'idle')
-        PeriodicCallback(self._update_cycle, 1000, ctrl.ioloop).start()
+        self._update_cycle_cb(False)
 
         ctrl.state.add_listener(self._update)
 
@@ -97,6 +97,11 @@ class Mach(Comm):
         else:
             raise Exception('Cannot enter %s cycle while in %s cycle' %
                             (cycle, current))
+
+
+    def _update_cycle_cb(self, now = True):
+        if now: self._update_cycle()
+        self.ctrl.ioloop.call_later(1, self._update_cycle_cb)
 
 
     def _update_cycle(self):
@@ -274,11 +279,7 @@ class Mach(Comm):
         else: super().i2c_command(Cmd.UNPAUSE)
 
 
-    def stop(self):
-        if self._get_cycle() == 'idle': self._begin_cycle('running')
-        super().i2c_command(Cmd.STOP)
-
-
+    def stop(self): super().i2c_command(Cmd.STOP)
     def pause(self): super().pause()
 
 

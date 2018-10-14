@@ -72,7 +72,7 @@ class Pwr():
         self.lcd_page = ctrl.lcd.add_new_page()
         self.failures = 0
 
-        PeriodicCallback(self._update, 1000, ctrl.ioloop).start()
+        self._update_cb(False)
 
 
     def check_fault(self, var, status):
@@ -135,6 +135,11 @@ class Pwr():
         if self.check_fault('vdd_current_sense_error',
                             flags & VDD_CURRENT_SENSE_ERROR_FLAG):
             log.error('Vdd current sense error')
+
+
+    def _update_cb(self, now = True):
+        if now: self._update()
+        self.ctrl.ioloop.call_later(1, self._update_cb)
 
 
     def _update(self):

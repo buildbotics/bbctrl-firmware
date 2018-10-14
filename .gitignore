@@ -2,6 +2,7 @@
 .sconsign.dblite
 /build
 /dist
+/crap
 /pkg
 /mnt
 node_modules

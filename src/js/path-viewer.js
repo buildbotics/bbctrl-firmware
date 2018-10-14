@@ -43,7 +43,7 @@ var surfaceModes = ['cut', 'wire', 'solid', 'off'];
 
 module.exports = {
   template: '#path-viewer-template',
-  props: ['toolpath', 'progress', 'x', 'y', 'z'],
+  props: ['toolpath', 'progress', 'state'],
 
 
   data: function () {
@@ -63,7 +63,28 @@ module.exports = {
 
 
   computed: {
-    hasPath: function () {return typeof this.toolpath.path != 'undefined'}
+    x: function () {return this.xAbs + this.xOff},
+    y: function () {return this.yAbs + this.yOff},
+    z: function () {return this.zAbs + this.zOff},
+
+    xAbs: function () {return this.state.xp || 0},
+    yAbs: function () {return this.state.xy || 0},
+    zAbs: function () {return this.state.xz || 0},
+
+    xOff: function () {return this.state.offset_x || 0},
+    yOff: function () {return this.state.offset_y || 0},
+    zOff: function () {return this.state.offset_z || 0},
+
+    xMin: function () {return this.state.xtn},
+    yMin: function () {return this.state.ytn},
+    zMin: function () {return this.state.ztn},
+
+    xMax: function () {return this.state.xtm},
+    yMax: function () {return this.state.ytm},
+    zMax: function () {return this.state.ztm},
+
+    hasPath: function () {return typeof this.toolpath.path != 'undefined'},
+    target: function () {return $(this.$el).find('.path-viewer-content')[0]}
   },
 
 
@@ -138,13 +159,8 @@ module.exports = {
     },
 
 
-    getTarget: function () {
-      return this.$el.querySelector('.path-viewer-content');
-    },
-
-
     getDims: function () {
-      var t = $(this.getTarget());
+      var t = $(this.target);
       var width = t.innerWidth();
       var height = t.innerHeight();
       return {width: width, height: height};
@@ -178,9 +194,10 @@ module.exports = {
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0, 0);
 
-        this.getTarget().appendChild(this.renderer.domElement);
+        this.target.appendChild(this.renderer.domElement);
 
       } catch (e) {
+        console.log(e);
         this.error = true;
         this.message = 'WebGL not supported';
         this.enabled = false;

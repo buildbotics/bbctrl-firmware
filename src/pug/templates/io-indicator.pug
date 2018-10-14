@@ -25,48 +25,5 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#path-viewer-template(type="text/x-template")
-  .path-viewer(:class="{small: small, error: error}")
-    .path-viewer-toolbar
-      .tool-button(title="Toggle path view size.",
-        @click="small = !small", :class="{active: !small}")
-        .fa.fa-arrows-alt
-
-      .tool-button(@click="showTool = !showTool", :active="showTool",
-        title="Show/hide tool.")
-        img(src="images/tool.png")
-
-      .tool-button(@click="showBBox = !showBBox", :active="showBBox",
-        title="Show/hide bounding box.")
-        img(src="images/bbox.png")
-
-      .tool-button(@click="showAxes = !showAxes", :active="showAxes",
-        title="Show/hide axes.")
-        img(src="images/axes.png")
-
-      each view in "isometric top front".split(" ")
-        .tool-button(@click=`snap('${view}')`, title=`Snap to ${view} view.`)
-          img(src=`images/${view}.png`)
-
-    .path-viewer-content
-      .path-viewer-message
-        template(v-if="loading")
-          div(v-if="progress && progress < 1")
-            | Simulating run {{progress | non_zero_percent 0}}. . .
-          div(v-if="!progress || progress == 1") Loading. . .
-        | {{message}}
-
-    table.path-viewer-messages(
-      v-if="typeof toolpath.messages != 'undefined' && " +
-        "toolpath.messages.length")
-      tr
-        th Level
-        th Location
-        th Message
-
-      tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
-        td.level {{msg.level}}
-        td.location
-          | {{msg.line}}
-          span(v-if="msg.column") :{{msg.column}}
-        td.message {{msg.msg}}
+script#io-indicator-template(type="text/x-template")
+  .fa.io(:class="klass", :title="tooltip")

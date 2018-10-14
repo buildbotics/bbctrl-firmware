@@ -67,28 +67,20 @@ script#indicators-template(type="text/x-template")
 
       each motor in '0123'
         tr
-          td
-            .fa.io(:class=`get_input_class('${motor}lw', '${motor}ls')`,
-              :title=`get_input_tooltip('${motor}lw', '${motor}ls')`)
+          td: io-indicator(name=`min-switch-${motor}`, :state="state")
           td {{get_min_pin(#{motor})}}
           th Motor #{motor} Min
           th.separator
-          td
-            .fa.io(:class=`get_input_class('${motor}xw', '${motor}xs')`,
-              :title=`get_input_tooltip('${motor}xw', '${motor}xs')`)
+          td: io-indicator(name=`max-switch-${motor}`, :state="state")
           td {{get_max_pin(#{motor})}}
           th Motor #{motor} Max
 
       tr
-        td
-          .fa.io(:class="get_input_class('ew', 'et')",
-            :title="get_input_tooltip('ew', 'et')")
+        td: io-indicator(name="estop", :state="state")
         td 23
         th EStop
         th.separator
-        td
-          .fa.io(:class="get_input_class('pw', 'pt')",
-            :title="get_input_tooltip('pw', 'pt')")
+        td: io-indicator(name="probe", :state="state")
         td 22
         th Probe
 
@@ -106,28 +98,20 @@ script#indicators-template(type="text/x-template")
         th Name
 
       tr
-        td
-          .fa.io(:class="get_output_class('e')",
-            :title="get_output_tooltip('e')")
+        td: io-indicator(name="tool-enable-mode", :state="state")
         td 15
         th Tool Enable
         th.separator
-        td
-          .fa.io(:class="get_output_class('1')",
-            :title="get_output_tooltip('1')")
+        td: io-indicator(name="load-1", :state="state")
         td 2
         th Load 1
 
       tr
-        td
-          .fa.io(:class="get_output_class('d')",
-            :title="get_output_tooltip('d')")
+        td: io-indicator(name="tool-direction-mode", :state="state")
         td 16
         th Tool Direction
         th.separator
-        td
-          .fa.io(:class="get_output_class('2')",
-            :title="get_output_tooltip('2')")
+        td: io-indicator(name="load-2", :state="state")
         td 1
         th Load 2
 
@@ -136,9 +120,7 @@ script#indicators-template(type="text/x-template")
         td 17
         th Tool PWM
         th.separator
-        td
-          .fa.io(:class="get_output_class('f')",
-            :title="get_output_tooltip('f')")
+        td: io-indicator(name="fault", :state="state")
         td 21
         th Fault
 

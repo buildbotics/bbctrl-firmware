@@ -3,33 +3,30 @@ DIR := $(shell dirname $(lastword $(MAKEFILE_LIST)))
 NODE_MODS  := $(DIR)/node_modules
 PUG        := $(NODE_MODS)/.bin/pug
 STYLUS     := $(NODE_MODS)/.bin/stylus
-BROWSERIFY := $(NODE_MODS)/.bin/browserify
 
-TARGET     := build/http
+TARGET_DIR := build/http
 HTML       := index
-HTML       := $(patsubst %,$(TARGET)/%.html,$(HTML))
-CSS        := $(wildcard src/stylus/*.styl)
-CSS_ASSETS := build/css/style.css
-JS         := $(wildcard src/js/*.js)
-JS_ASSETS  := build/js/assets.js
-STATIC     := $(shell find src/resources -type f)
-STATIC     := $(patsubst src/resources/%,$(TARGET)/%,$(STATIC))
+HTML       := $(patsubst %,$(TARGET_DIR)/%.html,$(HTML))
+RESOURCES  := $(shell find src/resources -type f)
+RESOURCES  := $(patsubst src/resources/%,$(TARGET_DIR)/%,$(RESOURCES))
 TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
 AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
-GPLAN_MOD := rpi-share/camotics/gplan.so
+GPLAN_MOD    := rpi-share/camotics/gplan.so
 GPLAN_TARGET := src/py/camotics/gplan.so
-GPLAN_IMG := gplan-dev.img
+GPLAN_IMG    := gplan-dev.img
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
-RSYNC_OPTS := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
+RSYNC_OPTS    := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
 
-VERSION := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
+VERSION  := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
 PKG_NAME := bbctrl-$(VERSION)
 PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
 
 SUBPROJECTS := avr boot pwr jig
+WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
+WATCH += src/static
 
 ifndef HOST
 HOST=bbctrl.local
@@ -39,20 +36,9 @@ ifndef PASSWORD
 PASSWORD=buildbotics
 endif
 
-ifndef DEST
-DEST=mnt
-endif
 
-WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
-
-all: html css js static
-	@$(MAKE) -C src/avr
-	@$(MAKE) -C src/boot
-	@$(MAKE) -C src/pwr
-	@$(MAKE) -C src/jig
-
-copy: pkg
-	rsync $(RSYNC_OPTS) pkg/$(PKG_NAME)/ $(DEST)/bbctrl/
+all: $(HTML) $(RESOURCES)
+	@for SUB in $(SUBPROJECTS); do $(MAKE) -C src/$$SUB; done
 
 pkg: all $(AVR_FIRMWARE)
 	./setup.py sdist
@@ -96,61 +82,29 @@ update: pkg
 	  http://$(HOST)/api/firmware/update
 	@-tput sgr0 && echo # Fix terminal output
 
-mount:
-	mkdir -p $(DEST)
-	sshfs bbmc@$(HOST): $(DEST)
-
-umount:
-	fusermount -u $(DEST)
-
-html: templates $(HTML)
-
-css: $(CSS_ASSETS) $(CSS_ASSETS).sha256
-	rm -f $(TARGET)/css/style-*.css
-	install -D $< $(TARGET)/css/style-$(shell cat $(CSS_ASSETS).sha256).css
-
-js: $(JS_ASSETS) $(JS_ASSETS).sha256
-	rm -f $(TARGET)/js/assets-*.js
-	install -D $< $(TARGET)/js/assets-$(shell cat $(JS_ASSETS).sha256).js
-
-static: $(STATIC)
-
-templates: build/templates.pug
-
 build/templates.pug: $(TEMPLS)
 	mkdir -p build
 	cat $(TEMPLS) >$@
 
-build/hashes.pug: $(CSS_ASSETS).sha256 $(JS_ASSETS).sha256
-	echo "- var css_hash = '$(shell cat $(CSS_ASSETS).sha256)'" > $@
-	echo "- var js_hash = '$(shell cat $(JS_ASSETS).sha256)'" >> $@
+node_modules: package.json
+	npm install && touch node_modules
 
-$(TARGET)/index.html: build/templates.pug build/hashes.pug
-
-$(JS_ASSETS): $(JS) node_modules
-	@mkdir -p $(shell dirname $@)
-	$(BROWSERIFY) src/js/main.js -s main -o $@ || (rm -f $@; exit 1)
-
-node_modules:
-	npm install
-
-%.sha256: %
-	mkdir -p $(shell dirname $@)
-	sha256sum $< | sed 's/^\([a-f0-9]\+\) .*$$/\1/' > $@
-
-$(TARGET)/%: src/resources/%
+$(TARGET_DIR)/%: src/resources/%
 	install -D $< $@
 
-$(TARGET)/%.html: src/pug/%.pug $(wildcard src/pug/*.pug) node_modules
-	@mkdir -p $(shell dirname $@)
-	$(PUG) -P $< -o $(TARGET) || (rm -f $@; exit 1)
+$(TARGET_DIR)/index.html: build/templates.pug
+$(TARGET_DIR)/index.html: $(wildcard src/static/js/*)
+$(TARGET_DIR)/index.html: $(wildcard src/static/css/*)
+$(TARGET_DIR)/index.html: $(wildcard src/pug/templates/*)
+$(TARGET_DIR)/index.html: $(wildcard src/js/*)
+$(TARGET_DIR)/index.html: $(wildcard src/stylus/*)
 
-$(CSS_ASSETS): src/stylus/style.styl node_modules
-	mkdir -p $(shell dirname $@)
-	$(STYLUS) < $< > $@ || (rm -f $@; exit 1)
+$(TARGET_DIR)/%.html: src/pug/%.pug node_modules
+	@mkdir -p $(shell dirname $@)
+	$(PUG) -O pug-opts.js -P $< -o $(TARGET_DIR) || (rm -f $@; exit 1)
 
 pylint:
-	pylint3 -E $(shell find src/py -name \*.py)
+	pylint3 -E $(shell find src/py -name \*.py | grep -v flycheck_)
 
 jshint:
 	./node_modules/jshint/bin/jshint --config jshint.json src/js/*.js
@@ -179,5 +133,4 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install html css static templates clean tidy copy mount umount pkg
-.PHONY: gplan lint pylint jshint
+.PHONY: all install clean tidy pkg gplan lint pylint jshint

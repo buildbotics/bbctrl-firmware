@@ -30,7 +30,7 @@
 
 module.exports = {
   template: '#motor-view-template',
-  props: ['index', 'config', 'template'],
+  props: ['index', 'config', 'template', 'state'],
 
 
   computed: {

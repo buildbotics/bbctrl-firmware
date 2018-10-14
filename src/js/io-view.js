@@ -30,7 +30,7 @@
 
 module.exports = {
   template: '#io-view-template',
-  props: ['config', 'template'],
+  props: ['config', 'template', 'state'],
 
 
   events: {

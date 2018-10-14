@@ -59,3 +59,8 @@ script#motor-view-template(type="text/x-template")
           label.extra(v-if="$key == 'travel-per-rev' && !metric", slot="extra",
             title="Thousandths of an inch per step")
             | ({{milPerStep | fixed 2}} mil/step)
+
+          label.extra(v-if="$key == 'min-switch' || $key == 'max-switch'",
+            slot="extra")
+            | Pin {{templ.pins[index]}}
+            io-indicator(:name="$key + '-' + index", :state="state")

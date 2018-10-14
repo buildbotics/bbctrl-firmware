@@ -35,7 +35,15 @@ script#io-view-template(type="text/x-template")
         templated-input(v-for="templ in template.switches", :name="$key",
           :model.sync="config.switches[$key]", :template="templ")
 
+          label.extra(slot="extra")
+            | Pin {{templ.pin}}
+            io-indicator(:name="$key", :state="state")
+
       fieldset
         h2 Outputs
         templated-input(v-for="templ in template.outputs", :name="$key",
           :model.sync="config.outputs[$key]", :template="templ")
+
+          label.extra(slot="extra")
+            | Pin {{templ.pin}}
+            io-indicator(:name="$key", :state="state")

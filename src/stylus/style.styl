@@ -512,7 +512,8 @@ span.unit
     background-color #333
     background linear-gradient(to bottom, #666 0%, #222 100%);
 
-    &.small
+  &.small, &.error
+    .path-viewer-content
       width 335px
       height 150px
       float right
@@ -522,6 +523,18 @@ span.unit
       .path-viewer-message
         font-size 100%
         max-width 335px
+
+  &.error
+    .path-viewer-toolbar
+      display none
+
+    .path-viewer-content
+      margin-top -2.5em
+      height 1.5em
+      background transparent
+
+    .path-viewer-message
+        color red
 
 .console
   .console-wrapper
@@ -591,13 +604,14 @@ tr.log-debug td
       border 1px solid #ccc
       padding 1px
 
-  .io.active
+.io
+  &.active
     color green
 
-  .io.inactive
+  &.inactive
     color black
 
-  .warn
+  &.warn
     background-color transparent
     color orange
 
@@ -859,9 +873,11 @@ label.file-upload
       clear both
       width 99%
 
-    .path-viewer-content.small
-      margin-top inherit
-      float inherit
+    .path-viewer
+      &.small, &.error
+        .path-viewer-content
+          margin-top inherit
+          float inherit
 
   .tab_container
     width 98%

@@ -25,9 +25,6 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-include ../../build/hashes.pug
-
-
 doctype html
 html(lang="en")
   head
@@ -36,18 +33,13 @@ html(lang="en")
 
     title Buildbotics Controller - Web interface
 
-    link(rel="stylesheet", href="/css/pure-min.css")
-    //if lte IE 8
-      link(rel="stylesheet", href="css/side-menu-old-ie.css")
-    // [if gt IE 8] <!
-    link(rel="stylesheet", href="css/side-menu.css")
-    // <![endif]
+    style: include ../static/css/pure-min.css
+    style: include ../static/css/side-menu.css
 
-    link(rel="stylesheet" href="css/font-awesome.min.css")
-    link(href="css/Audiowide.css" rel="stylesheet" type="text/css")
-    link(href="css/clusterize.css" rel="stylesheet" type="text/css")
-
-    link(rel="stylesheet" href="/css/style-" + css_hash + ".css")
+    style: include ../static/css/font-awesome.min.css
+    style: include ../static/css/Audiowide.css
+    style: include ../static/css/clusterize.css
+    style: include:stylus ../stylus/style.styl
 
 
   body(v-cloak)
@@ -192,22 +184,20 @@ html(lang="en")
 
         div(v-if="state.xx == 'HOLDING'")
           button.pure-button(@click="close_messages('stop')")
-            | Stop
+            | Stpo
             .fa.fa-stop
 
           button.pure-button(@click="close_messages('continue')")
             | Continue
             .fa.fa-play
 
-    #templates
-      include ../../build/templates.pug
-
+    #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")
 
-    script(src="js/jquery-1.11.3.min.js")
-    script(src="js/vue.js")
-    script(src="js/sockjs.min.js")
-    script(src="js/clusterize.min.js")
-    script(src="js/three.min.js")
-    script(src="/js/assets-" + js_hash + ".js")
-    script(src="js/ui.js")
+    script: include ../static/js/jquery-1.11.3.min.js
+    script: include ../static/js/vue.js
+    script: include ../static/js/sockjs.min.js
+    script: include ../static/js/clusterize.min.js
+    script: include ../static/js/three.min.js
+    script: include:browserify ../js/main.js
+    script: include ../static/js/ui.js
