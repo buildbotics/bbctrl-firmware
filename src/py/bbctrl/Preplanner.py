@@ -32,6 +32,7 @@ import json
 import hashlib
 import gzip
 import glob
+import math
 import threading
 from concurrent.futures import Future, ThreadPoolExecutor, TimeoutError
 from tornado import gen
@@ -103,7 +104,9 @@ class Preplanner(object):
         self.max_plan_time = max_plan_time
         self.max_loop_time = max_loop_time
 
-        for dir in ['plans', 'times']:
+        ctrl.state.add_listener(self._update)
+
+        for dir in ['plans', 'meta']:
             if not os.path.exists(dir): os.mkdir(dir)
 
         self.started = Future()
@@ -111,6 +114,30 @@ class Preplanner(object):
         self.plans = {}
         self.pool = ThreadPoolExecutor(threads)
         self.lock = threading.Lock()
+
+
+    def _update(self, update):
+        if not 'selected' in update: return
+        filename = update['selected']
+        future = self.get_plan(filename)
+
+        def set_bounds(type, bounds):
+            for axis in 'xyzabc':
+                if axis in bounds[type]:
+                    self.ctrl.state.set('path_%s_%s' % (type, axis),
+                                        bounds[type][axis])
+
+        def cb(future):
+            if (filename != self.ctrl.state.get('selected') or
+                future.cancelled()): return
+
+            path, meta = future.result()
+            bounds = meta['bounds']
+
+            set_bounds('min', bounds)
+            set_bounds('max', bounds)
+
+        self.ctrl.ioloop.add_future(future, cb)
 
 
     def start(self):
@@ -202,13 +229,14 @@ class Preplanner(object):
         # Check if this plan was already run
         hid = plan_hash(filename, config)
         plan_path = 'plans/' + filename + '.' + hid + '.gz'
-        times_path = 'times/' + filename + '.' + hid + '.gz'
+        meta_path = 'meta/' + filename + '.' + hid + '.gz'
 
         try:
-            if os.path.exists(plan_path) and os.path.exists(times_path):
+            if os.path.exists(plan_path) and os.path.exists(meta_path):
                 with open(plan_path, 'rb') as f: data = f.read()
-                with open(times_path, 'rb') as f: times = f.read()
-                return (data, json.loads(gzip.decompress(times).decode('utf8')))
+                with open(meta_path, 'rb') as f: meta = f.read()
+                meta = json.loads(gzip.decompress(meta).decode('utf8'))
+                return (data, meta)
 
         except Exception as e: log.error(e)
 
@@ -234,12 +262,24 @@ class Preplanner(object):
         maxLine = 0
         maxLineTime = time.time()
         totalTime = 0
-        position = dict(x = 0, y = 0, z = 0)
+        position = {}
         rapid = False
         moves = []
         times = []
+        bounds = dict(min = {}, max = {})
         messages = []
         count = 0
+        cancelled = False
+
+        for axis in 'xyzabc':
+            position[axis] = 0
+            bounds['min'][axis] = math.inf
+            bounds['max'][axis] = -math.inf
+
+        def add_to_bounds(axis, value):
+            if value < bounds['min'][axis]: bounds['min'][axis] = value
+            if bounds['max'][axis] < value: bounds['max'][axis] = value
+
 
         levels = dict(I = 'info', D = 'debug', W = 'warning', E = 'error',
                       C = 'critical')
@@ -264,17 +304,18 @@ class Preplanner(object):
                 if planner.is_synchronizing(): planner.synchronize(0)
 
                 if cmd['type'] == 'line':
-                    if not 'first' in cmd:
-                        totalTime += sum(cmd['times']) / 1000
-                        times.append((cmd['id'], totalTime))
+                    if 'first' in cmd: continue
 
+                    totalTime += sum(cmd['times']) / 1000
+                    times.append((cmd['id'], totalTime))
                     target = cmd['target']
                     move = {}
 
-                    for axis in 'xyz':
+                    for axis in 'xyzabc':
                         if axis in target:
                             position[axis] = target[axis]
                             move[axis] = target[axis]
+                            add_to_bounds(axis, move[axis])
 
                     if 'rapid' in cmd: move['rapid'] = cmd['rapid']
 
@@ -291,6 +332,7 @@ class Preplanner(object):
                     times.append((cmd['id'], totalTime))
 
                 if not self._progress(filename, maxLine / totalLines):
+                    cancelled = True
                     raise Exception('Plan canceled.')
 
                 if self.max_plan_time < time.time() - start:
@@ -309,14 +351,23 @@ class Preplanner(object):
 
         self._progress(filename, 1)
 
+        # Remove infinity from bounds
+        for axis in 'xyzabc':
+            if bounds['min'][axis] == math.inf: del bounds['min'][axis]
+            if bounds['max'][axis] == -math.inf: del bounds['max'][axis]
+
         # Encode data as string
         data = dict(time = totalTime, lines = totalLines, path = moves,
                     messages = messages)
         data = gzip.compress(dump_json(data).encode('utf8'))
 
-        # Save plan & times
-        with open(plan_path, 'wb') as f: f.write(data)
-        with open(times_path, 'wb') as f:
-            f.write(gzip.compress(dump_json(times).encode('utf8')))
+        # Meta data
+        meta = dict(times = times, bounds = bounds)
+        meta_comp = gzip.compress(dump_json(meta).encode('utf8'))
 
-        return (data, times)
+        # Save plan & meta data
+        if not cancelled:
+            with open(plan_path, 'wb') as f: f.write(data)
+            with open(meta_path, 'wb') as f: f.write(meta_comp)
+
+        return (data, meta)

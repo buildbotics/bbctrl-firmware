@@ -5,7 +5,7 @@
 
                   For information regarding this software email:
                                  Joseph Coffland
-                          joseph@buildbotics.com
+                              joseph@buildbotics.com
 
         This software is free software: you clan redistribute it and/or
         modify it under the terms of the GNU Lesser General Public License
@@ -43,7 +43,7 @@ var surfaceModes = ['cut', 'wire', 'solid', 'off'];
 
 module.exports = {
   template: '#path-viewer-template',
-  props: ['toolpath', 'progress', 'state'],
+  props: ['toolpath', 'progress'],
 
 
   data: function () {
@@ -63,26 +63,6 @@ module.exports = {
 
 
   computed: {
-    x: function () {return this.xAbs + this.xOff},
-    y: function () {return this.yAbs + this.yOff},
-    z: function () {return this.zAbs + this.zOff},
-
-    xAbs: function () {return this.state.xp || 0},
-    yAbs: function () {return this.state.xy || 0},
-    zAbs: function () {return this.state.xz || 0},
-
-    xOff: function () {return this.state.offset_x || 0},
-    yOff: function () {return this.state.offset_y || 0},
-    zOff: function () {return this.state.offset_z || 0},
-
-    xMin: function () {return this.state.xtn},
-    yMin: function () {return this.state.ytn},
-    zMin: function () {return this.state.ztn},
-
-    xMax: function () {return this.state.xtm},
-    yMax: function () {return this.state.ytm},
-    zMax: function () {return this.state.ztm},
-
     hasPath: function () {return typeof this.toolpath.path != 'undefined'},
     target: function () {return $(this.$el).find('.path-viewer-content')[0]}
   },
@@ -90,15 +70,22 @@ module.exports = {
 
   watch: {
     toolpath: function () {Vue.nextTick(this.update)},
-    surfaceMode: function (mode) {this.updateSurfaceMode(mode)},
+    surfaceMode: function (mode) {this.update_surface_mode(mode)},
     small: function () {Vue.nextTick(this.update_view)},
     showPath: function (enable) {set_visible(this.path, enable)},
     showTool: function (enable) {set_visible(this.tool, enable)},
-    showBBox: function (enable) {set_visible(this.bbox, enable)},
     showAxes: function (enable) {set_visible(this.axes, enable)},
-    x: function () {this.update_tool()},
-    y: function () {this.update_tool()},
-    z: function () {this.update_tool()}
+
+
+    showBBox: function (enable) {
+      set_visible(this.bbox, enable);
+      set_visible(this.envelope, enable);
+    },
+
+
+    x: function () {this.axis_changed()},
+    y: function () {this.axis_changed()},
+    z: function () {this.axis_changed()}
   },
 
 
@@ -128,7 +115,7 @@ module.exports = {
     },
 
 
-    updateSurfaceMode: function (mode) {
+    update_surface_mode: function (mode) {
       if (!this.enabled) return;
 
       if (typeof this.surfaceMaterial != 'undefined') {
@@ -159,7 +146,7 @@ module.exports = {
     },
 
 
-    getDims: function () {
+    get_dims: function () {
       var t = $(this.target);
       var width = t.innerWidth();
       var height = t.innerHeight();
@@ -169,7 +156,7 @@ module.exports = {
 
     update_view: function () {
       if (!this.enabled) return;
-      var dims = this.getDims();
+      var dims = this.get_dims();
 
       this.camera.aspect = dims.width / dims.height;
       this.camera.updateProjectionMatrix();
@@ -181,9 +168,34 @@ module.exports = {
       if (!this.enabled) return;
       if (typeof tool == 'undefined') tool = this.tool;
       if (typeof tool == 'undefined') return;
-      tool.position.x = this.x;
-      tool.position.y = this.y;
-      tool.position.z = this.z;
+      tool.position.x = this.x.pos;
+      tool.position.y = this.y.pos;
+      tool.position.z = this.z.pos;
+    },
+
+
+    update_envelope: function (envelope) {
+      if (!this.enabled || !this.axes.homed) return;
+      if (typeof envelope == 'undefined') envelope = this.envelope;
+      if (typeof envelope == 'undefined') return;
+
+      var min = new THREE.Vector3();
+      var max = new THREE.Vector3();
+
+      for (var axis of 'xyz') {
+        min[axis] = this[axis].min + this[axis].off;
+        max[axis] = this[axis].max + this[axis].off;
+      }
+
+      var bounds = new THREE.Box3(min, max);
+      if (bounds.isEmpty()) envelope.geometry = this.create_empty_geom();
+      else envelope.geometry = this.create_bbox_geom(bounds);
+    },
+
+
+    axis_changed: function () {
+      this.update_tool();
+      this.update_envelope();
     },
 
 
@@ -227,7 +239,7 @@ module.exports = {
       this.lights.add(backLight);
 
       // Surface material
-      this.surfaceMaterial = this.createSurfaceMaterial();
+      this.surfaceMaterial = this.create_surface_material();
 
       // Controls
       this.controls = new orbit(this.camera, this.renderer.domElement);
@@ -257,7 +269,7 @@ module.exports = {
     },
 
 
-    createSurfaceMaterial: function () {
+    create_surface_material: function () {
       return new THREE.MeshPhongMaterial({
         specular: 0x111111,
         shininess: 10,
@@ -267,7 +279,7 @@ module.exports = {
     },
 
 
-    drawWorkpiece: function (scene, material) {
+    draw_workpiece: function (scene, material) {
       if (typeof this.workpiece == 'undefined') return;
 
       var min = this.workpiece.min;
@@ -294,7 +306,7 @@ module.exports = {
     },
 
 
-    drawSurface: function (scene, material) {
+    draw_surface: function (scene, material) {
       if (typeof this.vertices == 'undefined') return;
 
       var geometry = new THREE.BufferGeometry();
@@ -311,7 +323,7 @@ module.exports = {
     },
 
 
-    drawTool: function (scene, bbox) {
+    draw_tool: function (scene, bbox) {
       // Tool size is relative to bounds
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 24;
@@ -335,7 +347,7 @@ module.exports = {
     },
 
 
-    drawAxis: function (axis, up, length, radius) {
+    draw_axis: function (axis, up, length, radius) {
       var color;
 
       if (axis == 0)      color = 0xff0000; // Red
@@ -362,7 +374,7 @@ module.exports = {
     },
 
 
-    drawAxes: function (scene, bbox) {
+    draw_axes: function (scene, bbox) {
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 3;
       length /= 10;
@@ -372,7 +384,7 @@ module.exports = {
 
       for (var axis = 0; axis < 3; axis++)
         for (var up = 0; up < 2; up++)
-          group.add(this.drawAxis(axis, up, length, radius));
+          group.add(this.draw_axis(axis, up, length, radius));
 
       group.visible = this.showAxes;
       scene.add(group);
@@ -381,13 +393,13 @@ module.exports = {
     },
 
 
-    drawPath: function (scene) {
+    draw_path: function (scene) {
       var cutting = [0, 1, 0];
       var rapid = [1, 0, 0];
 
-      var x = this.x;
-      var y = this.y;
-      var z = this.z;
+      var x = this.x.pos;
+      var y = this.y.pos;
+      var z = this.z.pos;
       var color = undefined;
 
       var positions = [];
@@ -436,52 +448,80 @@ module.exports = {
     },
 
 
-    drawBBox: function (scene, bbox) {
-      if (bbox.isEmpty()) return;
+    create_empty_geom: function () {
+      var geometry = new THREE.BufferGeometry();
+      geometry.addAttribute('position',
+                            new THREE.Float32BufferAttribute([], 3));
+      return geometry;
+    },
 
+
+    create_bbox_geom: function (bbox) {
       var vertices = [];
 
-      // Top
-      vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
+      if (!bbox.isEmpty()) {
+        // Top
+        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
 
-      // Bottom
-      vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
+        // Bottom
+        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
 
-      // Sides
-      vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
-      vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-      vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-      vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
+        // Sides
+        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
+        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
+        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
+        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
+      }
 
       var geometry = new THREE.BufferGeometry();
-      var material = new THREE.LineBasicMaterial({color: 0xffffff});
 
       geometry.addAttribute('position',
                             new THREE.Float32BufferAttribute(vertices, 3));
 
-      var line = new THREE.LineSegments(geometry, material)
+      return geometry;
+    },
+
+
+    draw_bbox: function (scene, bbox) {
+      var geometry = this.create_bbox_geom(bbox);
+      var material = new THREE.LineBasicMaterial({color: 0xffffff});
+      var line = new THREE.LineSegments(geometry, material);
 
       line.visible = this.showBBox;
 
       scene.add(line);
+
+      return line;
+    },
+
+
+    draw_envelope: function (scene) {
+      var geometry = this.create_empty_geom();
+      var material = new THREE.LineBasicMaterial({color: 0x00f7ff});
+      var line = new THREE.LineSegments(geometry, material);
+
+      line.visible = this.showBBox;
+
+      scene.add(line);
+      this.update_envelope(line);
 
       return line;
     },
@@ -493,18 +533,19 @@ module.exports = {
       scene.add(this.lights);
 
       // Model
-      this.path = this.drawPath(scene);
-      this.surfaceMesh = this.drawSurface(scene, this.surfaceMaterial);
-      this.workpieceMesh = this.drawWorkpiece(scene, this.surfaceMaterial);
-      this.updateSurfaceMode(this.surfaceMode);
+      this.path = this.draw_path(scene);
+      this.surfaceMesh = this.draw_surface(scene, this.surfaceMaterial);
+      this.workpieceMesh = this.draw_workpiece(scene, this.surfaceMaterial);
+      this.update_surface_mode(this.surfaceMode);
 
       // Compute bounding box
       var bbox = this.get_model_bounds();
 
       // Tool, axes & bounds
-      this.tool = this.drawTool(scene, bbox);
-      this.axes = this.drawAxes(scene, bbox);
-      this.bbox = this.drawBBox(scene, bbox);
+      this.tool = this.draw_tool(scene, bbox);
+      this.axes = this.draw_axes(scene, bbox);
+      this.bbox = this.draw_bbox(scene, bbox);
+      this.envelope = this.draw_envelope(scene);
     },
 
 
@@ -614,5 +655,8 @@ module.exports = {
 
       this.camera.position.copy(offset.multiplyScalar(dist * 1.2).add(center));
     }
-  }
+  },
+
+
+  mixins: [require('./axis-vars')]
 }

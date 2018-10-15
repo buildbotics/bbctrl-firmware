@@ -28,6 +28,10 @@
 import os
 import bbctrl
 import glob
+import logging
+
+
+log = logging.getLogger('FileHandler')
 
 
 def safe_remove(path):
@@ -68,6 +72,8 @@ class FileHandler(bbctrl.APIHandler):
 
         self.ctrl.preplanner.invalidate(gcode['filename'])
         self.ctrl.state.set('selected', gcode['filename'])
+
+        log.info('GCode updated: ' + gcode['filename'])
 
 
     def get(self, path):

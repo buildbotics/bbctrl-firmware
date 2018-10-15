@@ -17,6 +17,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Display accurate time remaining, ETA and progress during run.
  - Automatically collapase moves in planner which are too short in time.
  - Show IO status indicators on configuration pages.
+ - Check that axis dimensions fit path plan dimensions.
+ - Show machine working envelope in path plan viewer.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

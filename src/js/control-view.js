@@ -181,57 +181,6 @@ module.exports = {
     send: function (msg) {this.$dispatch('send', msg)},
 
 
-    get_axis_motor_id: function (axis) {
-      axis = axis.toLowerCase();
-
-      for (var i = 0; i < this.config.motors.length; i++) {
-        var motor = this.config.motors[i];
-        if (motor.axis.toLowerCase() == axis) return i;
-      }
-
-      return -1;
-    },
-
-
-    get_axis_motor: function (axis) {
-      var motor = this.get_axis_motor_id(axis);
-      if (motor != -1) return this.config.motors[motor];
-    },
-
-
-    get_axis_motor_param: function (axis, name) {
-      var motor = this.get_axis_motor(axis);
-      if (typeof motor != 'undefined') return motor[name];
-    },
-
-
-    enabled: function (axis) {
-      var pm = this.get_axis_motor_param(axis, 'power-mode')
-      return typeof pm != 'undefined' && pm != 'disabled';
-    },
-
-
-    is_homed: function (axis) {
-      if (typeof axis == 'undefined') {
-        var enabled = false;
-        var axes = 'xyzabc';
-
-        for (var i in axes) {
-          if (this.enabled(axes.charAt(i))) {
-            if (!this.is_homed(axes.charAt(i))) return false;
-            else enabled = true;
-          }
-        }
-
-        return enabled;
-
-      } else {
-        var motor = this.get_axis_motor_id(axis);
-        return motor != -1 && this.state[motor + 'homed'];
-      }
-    },
-
-
     update: function () {
       // Update file list
       api.get('file').done(function (files) {
@@ -289,11 +238,7 @@ module.exports = {
 
 
     load_history: function (index) {this.mdi = this.history[index];},
-
-
-    open: function (e) {
-      $('.gcode-file-input').click();
-    },
+    open: function (e) {$('.gcode-file-input').click()},
 
 
     upload: function (e) {
@@ -313,14 +258,14 @@ module.exports = {
     },
 
 
-    deleteCurrent: function () {
+    delete_current: function () {
       if (this.state.selected)
         api.delete('file/' + this.state.selected).done(this.update);
       this.deleteGCode = false;
     },
 
 
-    deleteAll: function () {
+    delete_all: function () {
       api.delete('file').done(this.update);
       this.deleteGCode = false;
     },
@@ -330,8 +275,7 @@ module.exports = {
       if (typeof axis == 'undefined') api.put('home');
 
       else {
-        if (this.get_axis_motor_param(axis, 'homing-mode') != 'manual')
-          api.put('home/' + axis);
+        if (this[axis].homingMode != 'manual') api.put('home/' + axis);
         else this.manual_home[axis] = true;
       }
     },
@@ -355,28 +299,21 @@ module.exports = {
     },
 
 
-    get_position: function (axis) {
-      return this.state[axis + 'p'] + this.get_offset(axis);
-    },
-
-
-    get_offset: function (axis) {return this.state['offset_' + axis] || 0},
-
-
     set_position: function (axis, position) {
       this.position_msg[axis] = false;
       api.put('position/' + axis, {'position': parseFloat(position)});
     },
 
 
-    zero: function (axis) {
-      if (typeof axis == 'undefined') {
-        var axes = 'xyzabc';
-        for (var i in axes)
-          if (this.enabled(axes.charAt(i)))
-            this.zero(axes.charAt(i));
+    zero_all: function () {
+      for (var axis of 'xyzabc')
+        if (this[axis].enabled) this.zero(axis);
+    },
 
-      } else this.set_position(axis, 0);
+
+    zero: function (axis) {
+      if (typeof axis == 'undefined') this.zero_all();
+      else this.set_position(axis, 0);
     },
 
 
@@ -414,5 +351,8 @@ module.exports = {
       data[axis + 'pl'] = x;
       this.send(JSON.stringify(data));
     }
-  }
+  },
+
+
+  mixins: [require('./axis-vars')]
 }

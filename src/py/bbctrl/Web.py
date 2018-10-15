@@ -237,6 +237,7 @@ class PathHandler(bbctrl.APIHandler):
     def get(self, filename):
         if not os.path.exists('upload/' + filename):
             raise HTTPError(404, 'File not found')
+
         future = self.ctrl.preplanner.get_plan(filename)
 
         try:
@@ -249,7 +250,7 @@ class PathHandler(bbctrl.APIHandler):
             return
 
         if data is not None:
-            data = data[0]
+            data = data[0] # We only want the compressed path
             self.set_header('Content-Encoding', 'gzip')
 
             # Respond with chunks to avoid long delays

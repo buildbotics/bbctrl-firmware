@@ -186,8 +186,9 @@ class State(object):
 
 
     def add_listener(self, listener):
+        log.info(self.vars)
         self.listeners.append(listener)
-        if self.vars: listener(self.vars)
+        listener(self.vars)
 
 
     def remove_listener(self, listener): self.listeners.remove(listener)

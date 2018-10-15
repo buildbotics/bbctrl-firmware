@@ -28,11 +28,12 @@
 script#control-view-template(type="text/x-template")
   #control
     table.axes
-      tr(:class="{'homed': is_homed()}")
+      tr(:class="axes.klass")
         th.name Axis
         th.position Position
         th.absolute Absolute
         th.offset Offset
+        th.state State
         th.actions
           button.pure-button(:disabled="!can_mdi",
             title="Zero all axis offsets.", @click="zero()") &empty;
@@ -42,13 +43,16 @@ script#control-view-template(type="text/x-template")
             .fa.fa-home
 
       each axis in 'xyzabc'
-        tr.axis(:class=`{'homed': is_homed('${axis}'), 'axis-${axis}': true}`,
-          v-if=`enabled('${axis}')`)
+        tr.axis(:class=`${axis}.klass`, v-if=`${axis}.enabled`,
+          :title=`${axis}.title`)
           th.name= axis
-          td.position
-            unit-value(:value=`get_position('${axis}')`, precision="4")
-          td.absolute: unit-value(:value="state." + axis + "p", precision="3")
-          td.offset: unit-value(:value=`get_offset('${axis}')`, precision="3")
+          td.position: unit-value(:value=`${axis}.pos`, precision=4)
+          td.absolute: unit-value(:value=`${axis}.abs`, precision=3)
+          td.offset: unit-value(:value=`${axis}.off`, precision=3)
+          td.state
+            .fa(:class=`'fa-' + ${axis}.icon`)
+            | {{#{axis}.state}}
+
           th.actions
             button.pure-button(:disabled="!can_mdi",
               title=`Set {{'${axis}' | upper}} axis position.`,
@@ -59,9 +63,8 @@ script#control-view-template(type="text/x-template")
               title=`Zero {{'${axis}' | upper}} axis offset.`,
               @click=`zero('${axis}')`) &empty;
 
-            button.pure-button(:disabled="!can_mdi",
-              title=`Home {{'${axis}' | upper}} axis.`,
-              @click=`home('${axis}')`)
+            button.pure-button(:disabled="!can_mdi", @click=`home('${axis}')`,
+              title=`Home {{'${axis}' | upper}} axis.`)
               .fa.fa-home
 
             message(:show.sync=`position_msg['${axis}']`)
@@ -79,7 +82,7 @@ script#control-view-template(type="text/x-template")
                 button.pure-button(@click=`position_msg['${axis}'] = false`)
                   | Cancel
 
-                button.pure-button(v-if="is_homed('" + axis + "')",
+                button.pure-button(v-if=`${axis}.homed`,
                   @click=`unhome('${axis}')`) Unhome
 
                 button.pure-button.button-success(
@@ -239,10 +242,10 @@ script#control-view-template(type="text/x-template")
             p(slot="body")
             div(slot="footer")
               button.pure-button(@click="deleteGCode = false") Cancel
-              button.pure-button.button-error(@click="deleteAll")
+              button.pure-button.button-error(@click="delete_all")
                 .fa.fa-trash
                 | &nbsp;all
-              button.pure-button.button-success(@click="deleteCurrent")
+              button.pure-button.button-success(@click="delete_current")
                 .fa.fa-trash
                 | &nbsp;selected
 
@@ -251,7 +254,7 @@ script#control-view-template(type="text/x-template")
             option(v-for="file in files", :value="file") {{file}}
 
         path-viewer(:toolpath="toolpath", :progress="toolpath_progress",
-          :state="state")
+          :state="state", :config="config")
         gcode-viewer
 
       section#content2.tab-content
@@ -276,16 +279,16 @@ script#control-view-template(type="text/x-template")
       section#content3.tab-content
         .jog
           axis-control(axes="XY", :colors="['red', 'green']",
-            :enabled="[enabled('x'), enabled('y')]",
-            v-if="enabled('x') || enabled('y')", :adjust="jog_adjust")
+            :enabled="[x.enabled, y.enabled]",
+            v-if="x.enabled || y.enabled", :adjust="jog_adjust")
 
           axis-control(axes="AZ", :colors="['orange', 'blue']",
-            :enabled="[enabled('a'), enabled('z')]",
-            v-if="enabled('a') || enabled('z')", :adjust="jog_adjust")
+            :enabled="[a.enabled, z.enabled]",
+            v-if="a.enabled || z.enabled", :adjust="jog_adjust")
 
           axis-control(axes="BC", :colors="['cyan', 'purple']",
-            :enabled="[enabled('b'), enabled('c')]",
-            v-if="enabled('b') || enabled('c')", :adjust="jog_adjust")
+            :enabled="[b.enabled, c.enabled]",
+            v-if="b.enabled || c.enabled", :adjust="jog_adjust")
 
         .jog-adjust
           | Fine adjust
