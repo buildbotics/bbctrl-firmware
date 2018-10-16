@@ -19,6 +19,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Show IO status indicators on configuration pages.
  - Check that axis dimensions fit path plan dimensions.
  - Show machine working envelope in path plan viewer.
+ - Don't reload browser view on reconnect unless controller has reloaded.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

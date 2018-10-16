@@ -98,7 +98,6 @@ module.exports = new Vue({
       errorTimeoutStart: 0,
       errorShow: false,
       errorMessage: '',
-      reloadOnConnect: false,
       confirmUpgrade: false,
       confirmUpload: false,
       firmwareUpgrading: false,
@@ -142,17 +141,7 @@ module.exports = new Vue({
     },
 
 
-    connected: function () {
-      if (this.reloadOnConnect) {
-        if (typeof this.hostname != 'undefined' &&
-            String(location.hostname) != 'localhost')
-          location.hostname = this.hostname;
-        location.reload(true);
-      } else this.update();
-    },
-
-
-    disconnected: function () {this.reloadOnConnect = true},
+    connected: function () {this.update()},
     update: function () {this.update()},
 
 
@@ -301,6 +290,18 @@ module.exports = new Vue({
         if ('message' in e.data) {
           this.add_message(e.data.message);
           delete e.data.message;
+        }
+
+        // Check for session ID change on controller
+        if ('sid' in e.data) {
+          if (typeof this.sid == 'undefined') this.sid = e.data.sid;
+
+          else if (this.sid != e.data.sid) {
+            if (typeof this.hostname != 'undefined' &&
+                String(location.hostname) != 'localhost')
+              location.hostname = this.hostname;
+            location.reload(true);
+          }
         }
 
         update_object(this.state, e.data, false);
