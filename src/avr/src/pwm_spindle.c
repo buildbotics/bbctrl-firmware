@@ -141,7 +141,6 @@ void pwm_spindle_set(float speed) {
 
 
 float pwm_spindle_get() {return spindle.speed;}
-void pwm_spindle_stop() {pwm_spindle_set(0);}
 
 
 // Var callbacks

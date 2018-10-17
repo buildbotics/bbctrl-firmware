@@ -355,7 +355,6 @@ void vfd_spindle_set(float speed) {
 
 
 float vfd_spindle_get() {return vfd.actual_speed;}
-void vfd_spindle_stop() {vfd_spindle_set(0);}
 
 
 void vfd_spindle_rtc_callback() {

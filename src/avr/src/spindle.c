@@ -85,14 +85,7 @@ float spindle_get_speed() {
 }
 
 
-void spindle_stop() {
-  switch (spindle.type) {
-  case SPINDLE_TYPE_DISABLED: break;
-  case SPINDLE_TYPE_PWM: pwm_spindle_stop(); break;
-  case SPINDLE_TYPE_HUANYANG: huanyang_stop(); break;
-  default: vfd_spindle_stop(); break;
-  }
-}
+void spindle_stop() {spindle_set_speed(0);}
 
 
 bool spindle_is_reversed() {return spindle.reversed;}

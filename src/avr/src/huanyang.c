@@ -287,7 +287,6 @@ void huanyang_set(float speed) {
 
 
 float huanyang_get() {return hy.actual_freq / hy.max_freq;}
-void huanyang_stop() {huanyang_set(0);}
 
 
 float get_hy_freq() {return hy.actual_freq;}

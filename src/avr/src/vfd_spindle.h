@@ -34,5 +34,4 @@ void vfd_spindle_init();
 void vfd_spindle_deinit(deinit_cb_t cb);
 void vfd_spindle_set(float speed);
 float vfd_spindle_get();
-void vfd_spindle_stop();
 void vfd_spindle_rtc_callback();
