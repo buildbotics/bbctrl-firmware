@@ -191,7 +191,7 @@ enum {
 
 
 // Serial settings
-#define SERIAL_BAUD              USART_BAUD_115200
+#define SERIAL_BAUD              USART_BAUD_230400
 #define SERIAL_PORT              USARTC0
 #define SERIAL_DRE_vect          USARTC0_DRE_vect
 #define SERIAL_RXC_vect          USARTC0_RXC_vect

@@ -42,6 +42,7 @@ MODBUS_WRITE = 'M'
 SEEK         = 's'
 SET_AXIS     = 'a'
 LINE         = 'l'
+SYNC_SPEED   = '%'
 INPUT        = 'I'
 DWELL        = 'd'
 PAUSE        = 'P'
@@ -100,7 +101,7 @@ def modbus_write(addr, value): return MODBUS_WRITE + '%d=%d' % (addr, value)
 def set_axis(axis, position): return SET_AXIS + axis + encode_float(position)
 
 
-def line(target, exitVel, maxAccel, maxJerk, times):
+def line(target, exitVel, maxAccel, maxJerk, times, speeds):
     cmd = LINE
 
     cmd += encode_float(exitVel)
@@ -113,10 +114,18 @@ def line(target, exitVel, maxAccel, maxJerk, times):
         if times[i]:
             cmd += str(i) + encode_float(times[i] / 60000) # to mins
 
+    # Speeds
+    for speed in speeds:
+        cmd += '\n' + sync_speed(speed[0], speed[1])
+
     return cmd
 
 
-def speed(speed): return '#s=:' + encode_float(speed)
+def speed(speed): return set_float('s', speed)
+
+
+def sync_speed(offset, speed):
+    return SYNC_SPEED + encode_float(offset) + encode_float(speed)
 
 
 def input(port, mode, timeout):

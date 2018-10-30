@@ -50,7 +50,7 @@ axis_homing_procedure = '''
   G28.2 %(axis)s0 F[#<_%(axis)s_search_velocity>]
   G38.6 %(axis)s[#<_%(axis)s_home_travel>]
   G38.8 %(axis)s[#<_%(axis)s_latch_backoff>] F[#<_%(axis)s_latch_velocity>]
-  G38.6 %(axis)s[#<_%(axis)s_latch_backoff> * -1.5]
+  G38.6 %(axis)s[#<_%(axis)s_latch_backoff> * -8]
   G91 G0 G53 %(axis)s[#<_%(axis)s_zero_backoff>]
   G90 G28.3 %(axis)s[#<_%(axis)s_home_position>]
 '''

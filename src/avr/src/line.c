@@ -29,6 +29,7 @@
 #include "exec.h"
 #include "axis.h"
 #include "command.h"
+#include "spindle.h"
 #include "util.h"
 #include "SCurve.h"
 
@@ -51,6 +52,12 @@ typedef struct {
 } line_t;
 
 
+typedef struct {
+  float offset;
+  float speed;
+} speed_t;
+
+
 static struct {
   line_t line;
 
@@ -62,6 +69,8 @@ static struct {
   float iA; // Initial section acceleration
   float jerk;
   float lV; // Last velocity
+
+  speed_t speed;
 } l;
 
 
@@ -131,6 +140,15 @@ static stat_t _line_exec() {
 
   // Don't allow overshoot
   if (l.line.length < d) d = l.line.length;
+
+  // Handle syncronous speeds
+  if (l.speed.offset < 0 && command_peek() == COMMAND_sync_speed)
+    l.speed = *(speed_t *)(command_next() + 1);
+
+  if (0 <= l.speed.offset && l.speed.offset <= d) {
+    spindle_set_speed(l.speed.speed);
+    l.speed.offset = -1;
+  }
 
   // Check if section complete
   if (t == section_time) {
@@ -239,6 +257,8 @@ unsigned command_line_size() {return sizeof(line_t);}
 void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
+  l.speed.offset = -1;
+
   // Setup first section
   l.seg = 0;
   l.iD = 0;
@@ -268,3 +288,23 @@ void command_line_exec(void *data) {
   // Set callback
   exec_set_cb(_line_exec);
 }
+
+
+stat_t command_sync_speed(char *cmd) {
+  speed_t s;
+
+  cmd++; // Skip command code
+
+  // Get target velocity
+  if (!decode_float(&cmd, &s.offset)) return STAT_BAD_FLOAT;
+  if (!decode_float(&cmd, &s.speed)) return STAT_BAD_FLOAT;
+
+  // Queue
+  command_push(COMMAND_sync_speed, &s);
+
+  return STAT_OK;
+}
+
+
+unsigned command_sync_speed_size() {return sizeof(speed_t);}
+void command_sync_speed_exec(void *data) {} // Should not get here

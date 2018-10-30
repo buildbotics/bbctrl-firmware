@@ -70,9 +70,7 @@ static struct {
   bool active;
   uint32_t id;
   uint32_t last_empty;
-  unsigned count;
-  stat_t parse_error;
-  int col;
+  volatile uint16_t count;
   float position[AXES];
 } cmd = {0,};
 
@@ -91,9 +89,6 @@ static struct {
   static const char command_##NAME##_name[] PROGMEM = #NAME;
 #include "command.def"
 #undef CMD
-
-
-static uint16_t _space() {return sync_q_space();}
 
 
 static bool _is_synchronous(char code) {
@@ -124,7 +119,6 @@ static unsigned _size(char code) {
     IF(SYNC)(case COMMAND_##NAME: return command_##NAME##_size();)
 #include "command.def"
 #undef CMD
-  default: break;
   }
 
   return 0;
@@ -137,7 +131,6 @@ static void _exec_cb(char code, uint8_t *data) {
     IF(SYNC)(case COMMAND_##NAME: command_##NAME##_exec(data); break;)
 #include "command.def"
 #undef CMD
-  default: break;
   }
 }
 
@@ -176,6 +169,9 @@ void command_push(char code, void *_data) {
   uint8_t *data = (uint8_t *)_data;
   unsigned size = _size(code);
 
+  if (!_is_synchronous(code)) estop_trigger(STAT_Q_INVALID_PUSH);
+  if (sync_q_space() <= size) estop_trigger(STAT_Q_OVERRUN);
+
   sync_q_push(code);
   for (unsigned i = 0; i < size; i++) sync_q_push(*data++);
 
@@ -195,7 +191,7 @@ bool command_callback() {
   if (_is_synchronous(*block)) {
     if (estop_triggered()) status = STAT_MACHINE_ALARMED;
     else if (state_is_flushing()) status = STAT_NOP; // Flush command
-    else if (state_is_resuming() || _space() < _size(*block))
+    else if (state_is_resuming() || sync_q_space() <= _size(*block))
       return false; // Wait
   }
 
@@ -240,6 +236,29 @@ void command_reset_position() {
 }
 
 
+char command_peek() {return (char)(cmd.count ? sync_q_peek() : 0);}
+
+
+uint8_t *command_next() {
+  if (!cmd.count) return 0;
+  cmd.count--;
+
+  if (sync_q_empty()) estop_trigger(STAT_Q_UNDERRUN);
+
+  static uint8_t data[INPUT_BUFFER_LEN];
+
+  data[0] = sync_q_next();
+
+  if (!_is_synchronous((char)data[0])) estop_trigger(STAT_INVALID_QCMD);
+
+  unsigned size = _size((char)data[0]);
+  for (unsigned i = 0; i < size; i++)
+    data[i + 1] = sync_q_next();
+
+  return data;
+}
+
+
 // Returns true if command queued
 // Called by exec.c from low-level interrupt
 bool command_exec() {
@@ -254,17 +273,10 @@ bool command_exec() {
   if (!exec_get_velocity() && cmd.count < EXEC_FILL_TARGET &&
       !rtc_expired(cmd.last_empty + EXEC_DELAY)) return false;
 
-  char code = (char)sync_q_next();
-  unsigned size = _size(code);
-
-  static uint8_t data[INPUT_BUFFER_LEN];
-  for (unsigned i = 0; i < size; i++)
-    data[i] = sync_q_next();
-
-  cmd.count--;
+  uint8_t *data = command_next();
   state_running();
 
-  _exec_cb(code, data);
+  _exec_cb((char)*data, data + 1);
 
   return true;
 }

@@ -216,7 +216,7 @@ class Planner():
         if type == 'line':
             return Cmd.line(block['target'], block['exit-vel'],
                             block['max-accel'], block['max-jerk'],
-                            block['times'])
+                            block['times'], block.get('speeds', []))
 
         if type == 'set':
             name, value = block['name'], block['value']
