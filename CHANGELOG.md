@@ -9,7 +9,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Much improved camera support.
  - Camera hotpluging.
  - Move camera video to header.
- - Click to switch through three video sizes.
+ - Click to switch video size.
  - Automount/unmount USB drives.
  - Automatically install ``buildbotics.gc`` when no other GCode exists.
  - Preplan GCode and check for errors.
@@ -21,8 +21,11 @@ Buildbotics CNC Controller Firmware Changelog
  - Show machine working envelope in path plan viewer.
  - Don't reload browser view on reconnect unless controller has reloaded.
  - Increased max switch backoff search distance.
- - Improvements for LASER raster GCodes.
+ - Major improvements for LASER raster GCodes.
  - Fixed major bug in command queuing.
+ - Ignore Program Number O-Codes.
+ - Improved planning of colinear line segments.
+ - Allow PWM output up to 320kHz and no slower than 8Hz.
 
 ## v0.3.28
  - Show step rate on motor configuration page.

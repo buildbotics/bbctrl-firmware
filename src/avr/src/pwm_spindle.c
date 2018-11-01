@@ -35,7 +35,7 @@
 
 
 typedef struct {
-  uint16_t freq; // base frequency for PWM driver, in Hz
+  float freq; // base frequency for PWM driver, in Hz
   float min_duty;
   float max_duty;
   float duty;
@@ -75,8 +75,20 @@ static void _update_pwm() {
     return;
   }
 
+  // Compute duty cycle
+  spindle.duty =
+    speed * (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
+
+  // Configure clock
+  TIMER_PWM.CTRLB = TC1_CCAEN_bm | TC_WGMODE_SINGLESLOPE_gc;
+  TIMER_PWM.CCA = TIMER_PWM.PER * spindle.duty;
+}
+
+
+static void _update_freq() {
   // Set clock period and optimal prescaler value
-  float prescale = (float)(F_CPU >> 16) / spindle.freq;
+  float prescale = (F_CPU >> 16) / spindle.freq;
+
   if (prescale <= 1) {
     TIMER_PWM.PER = F_CPU / spindle.freq;
     TIMER_PWM.CTRLA = TC_CLKSEL_DIV1_gc;
@@ -99,13 +111,7 @@ static void _update_pwm() {
 
   } else TIMER_PWM.CTRLA = 0;
 
-  // Compute duty cycle
-  spindle.duty =
-    speed * (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
-
-  // Configure clock
-  TIMER_PWM.CTRLB = TC1_CCAEN_bm | TC_WGMODE_SINGLESLOPE_gc;
-  TIMER_PWM.CCA = TIMER_PWM.PER * spindle.duty;
+  _update_pwm();
 }
 
 
@@ -113,6 +119,7 @@ void pwm_spindle_init() {
   // Configure IO
   _set_dir(true);
   _set_enable(false);
+  _update_freq();
 
   // PWM output
   OUTCLR_PIN(SPIN_PWM_PIN);
@@ -163,8 +170,16 @@ void set_pwm_max_duty(float value) {
 
 
 float get_pwm_duty() {return spindle.duty;}
-uint16_t get_pwm_freq() {return spindle.freq;}
-void set_pwm_freq(uint16_t value) {spindle.freq = value; _update_pwm();}
+float get_pwm_freq() {return spindle.freq;}
+
+
+void set_pwm_freq(float value) {
+  if (value < 8) value = 8;
+  if (320000 < value) value = 320000;
+  spindle.freq = value; _update_freq();
+}
+
+
 bool get_pwm_invert() {return PINCTRL_PIN(SPIN_PWM_PIN) & PORT_INVEN_bm;}
 
 

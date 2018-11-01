@@ -94,7 +94,7 @@ VAR(pwm_invert,      pi, b8,    0,      1, 1) // Inverted spindle PWM
 VAR(pwm_min_duty,    nd, f32,   0,      1, 1) // Minimum PWM duty cycle
 VAR(pwm_max_duty,    md, f32,   0,      1, 1) // Maximum PWM duty cycle
 VAR(pwm_duty,        pd, f32,   0,      0, 1) // Current PWM duty cycle
-VAR(pwm_freq,        sf, u16,   0,      1, 1) // Spindle PWM frequency in Hz
+VAR(pwm_freq,        sf, f32,   0,      1, 1) // Spindle PWM frequency in Hz
 
 // Modbus spindle
 VAR(modbus_debug,    hb, b8,    0,      1, 1) // Modbus debugging

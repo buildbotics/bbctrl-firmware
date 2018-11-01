@@ -315,8 +315,8 @@
     "pwm-freq": {
       "type": "int",
       "unit": "Hz",
-      "min": 0,
-      "max": 65535,
+      "min": 8,
+      "max": 320000,
       "default": 1000,
       "code": "sf"
     }

@@ -134,7 +134,6 @@ stat_t _segment_exec() {
                           ex.seg.max_accel, ex.seg.max_jerk);
     v = ex.velocity + SEGMENT_TIME * a;
     t *= ex.seg.vel / v;
-    if (v <= 0) t = v = 0;
 
     if (v < MIN_VELOCITY) {
       t = v = 0;

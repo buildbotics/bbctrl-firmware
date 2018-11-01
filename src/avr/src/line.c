@@ -121,6 +121,26 @@ static bool _section_next() {
 }
 
 
+static void _set_sync_speeds(float d) {
+  float speed = FLT_MAX;
+
+  while (true) {
+    // Load new sync speed if needed and available
+    if (l.speed.offset < 0 && command_peek() == COMMAND_sync_speed)
+      l.speed = *(speed_t *)(command_next() + 1);
+
+    // Exit if we don't have a speed or it's not ready to be set
+    if (l.speed.offset < 0 || d < l.speed.offset) break;
+
+    // Set speed
+    speed = l.speed.speed;
+    l.speed.offset = -1; // Mark done
+  }
+
+  if (speed != FLT_MAX) spindle_set_speed(speed);
+}
+
+
 static stat_t _line_exec() {
   // Compute times
   float section_time = l.line.times[l.section];
@@ -142,13 +162,7 @@ static stat_t _line_exec() {
   if (l.line.length < d) d = l.line.length;
 
   // Handle syncronous speeds
-  if (l.speed.offset < 0 && command_peek() == COMMAND_sync_speed)
-    l.speed = *(speed_t *)(command_next() + 1);
-
-  if (0 <= l.speed.offset && l.speed.offset <= d) {
-    spindle_set_speed(l.speed.speed);
-    l.speed.offset = -1;
-  }
+  _set_sync_speeds(d);
 
   // Check if section complete
   if (t == section_time) {
@@ -258,6 +272,7 @@ void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
   l.speed.offset = -1;
+  _set_sync_speeds(0);
 
   // Setup first section
   l.seg = 0;
@@ -307,4 +322,9 @@ stat_t command_sync_speed(char *cmd) {
 
 
 unsigned command_sync_speed_size() {return sizeof(speed_t);}
-void command_sync_speed_exec(void *data) {} // Should not get here
+
+
+void command_sync_speed_exec(void *data) {
+  speed_t s = *(speed_t *)data;
+  spindle_set_speed(s.speed);
+}
