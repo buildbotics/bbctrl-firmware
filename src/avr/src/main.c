@@ -42,6 +42,7 @@
 #include "analog.h"
 #include "exec.h"
 #include "state.h"
+#include "spindle.h"
 
 #include <avr/wdt.h>
 
@@ -68,6 +69,7 @@ int main() {
   vars_init();                    // configuration variables
   estop_init();                   // emergency stop handler
   command_init();                 // command queue
+  spindle_init();                 // spindle
 
   sei();                          // enable interrupts
 

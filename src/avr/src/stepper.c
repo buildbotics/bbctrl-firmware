@@ -34,6 +34,7 @@
 #include "util.h"
 #include "cpp_magic.h"
 #include "exec.h"
+#include "spindle.h"
 #include "drv8711.h"
 
 #include <string.h>
@@ -58,7 +59,6 @@ typedef struct {
   bool move_queued;        // prepped move queued
   move_type_t move_type;
   float prep_dwell;
-  uint16_t clock_period;
 
   uint32_t underflow;
 } stepper_t;
@@ -77,8 +77,6 @@ void stepper_init() {
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
   TIMER_STEP.PER = STEP_TIMER_POLL;        // timer rate
   TIMER_STEP.CTRLA = STEP_TIMER_ENABLE;    // start step timer
-
-  st.clock_period = STEP_TIMER_POLL;
 }
 
 
@@ -146,8 +144,9 @@ static void _request_exec_move() {
 
 /// Dwell or dequeue and load next move.
 static void _load_move() {
-  // New clock period
-  TIMER_STEP.PER = st.clock_period;
+  static uint8_t tick = 0;
+
+  spindle_update();
 
   // Dwell
   if (0 < st.dwell) {
@@ -155,13 +154,18 @@ static void _load_move() {
     return;
   } else st.dwell = 0;
 
+  if (tick++ & 3) return;
+
   // If the next move is not ready try to load it
   if (!st.move_ready) {
     if (exec_get_velocity()) st.underflow++;
     _request_exec_move();
     _end_move();
+    tick = 0;
     return;
   }
+
+  spindle_next_segment();
 
   // Start move
   if (st.move_type == MOVE_TYPE_LINE)
@@ -180,7 +184,6 @@ static void _load_move() {
   st.move_type = MOVE_TYPE_NULL;
   st.prep_dwell = 0;      // clear dwell
   st.move_ready = false;  // flip the flag back
-  st.clock_period = STEP_TIMER_POLL;
 
   // Request next move if not currently in a dwell.  Requesting the next move
   // may power up motors and the motors should not be powered up during a dwell.
@@ -198,7 +201,6 @@ void st_prep_line(const float target[]) {
 
   // Setup segment parameters
   st.move_type = MOVE_TYPE_LINE;
-  st.clock_period = SEGMENT_TIME * 60 * STEP_TIMER_FREQ;
 
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)

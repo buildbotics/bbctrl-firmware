@@ -35,6 +35,21 @@
 #include <math.h>
 
 
+#define SPEED_QUEUE_SIZE 32
+
+typedef struct {
+  int8_t time;
+  float speed;
+} speed_t;
+
+
+#define RING_BUF_NAME speed_q
+#define RING_BUF_TYPE speed_t
+#define RING_BUF_INDEX_TYPE volatile uint8_t
+#define RING_BUF_SIZE SPEED_QUEUE_SIZE
+#include "ringbuf.def"
+
+
 static struct {
   spindle_type_t type;
   float override;
@@ -43,14 +58,25 @@ static struct {
   float min_rpm;
   float max_rpm;
 
+  int8_t time;
   spindle_type_t next_type;
-} spindle = {SPINDLE_TYPE_DISABLED, 1};
+
+} spindle = {
+  .type = SPINDLE_TYPE_DISABLED,
+  .override = 1
+};
+
+
+void spindle_init() {
+  speed_q_init();
+  spindle_new_segment();
+}
 
 
 spindle_type_t spindle_get_type() {return spindle.type;}
 
 
-void spindle_set_speed(float speed) {
+void _set_speed(float speed) {
   spindle.speed = speed;
 
   speed *= spindle.override;
@@ -71,7 +97,7 @@ void spindle_set_speed(float speed) {
 }
 
 
-float spindle_get_speed() {
+float _get_speed() {
   float speed = 0;
 
   switch (spindle.type) {
@@ -85,15 +111,61 @@ float spindle_get_speed() {
 }
 
 
-void spindle_stop() {spindle_set_speed(0);}
+void spindle_stop() {_set_speed(0);}
 
 
 bool spindle_is_reversed() {return spindle.reversed;}
-static void _update_speed() {spindle_set_speed(spindle.speed);}
 
 
-// Var callbacks
-uint8_t get_tool_type() {return spindle.type;}
+void spindle_update() {
+  while (!speed_q_empty()) {
+    speed_t s = speed_q_peek();
+    if (s.time == -1 || spindle.time < s.time) break;
+    speed_q_pop();
+    _set_speed(s.speed);
+  }
+
+  spindle.time++;
+}
+
+
+void spindle_next_segment() {
+  while (!speed_q_empty()) {
+    speed_t s = speed_q_next();
+    if (s.time == -1) break;
+    _set_speed(s.speed);
+  }
+
+  spindle.time = 0;
+  spindle_update();
+}
+
+
+void spindle_new_segment() {
+  speed_t s = {-1, 0};
+  if (!speed_q_full()) speed_q_push(s);
+}
+
+
+void spindle_queue_speed(int8_t time, float speed) {
+  if (speed_q_empty()) spindle_new_segment();
+
+  speed_t s = {time, speed};
+
+#if 1
+  if (!speed_q_full()) speed_q_push(s);
+
+#else
+  speed_t *last = speed_q_back();
+
+  if ((speed_q_empty() || last->time != time) && !speed_q_full())
+    speed_q_push(s);
+  else if (last->time == time) last->speed = speed;
+#endif
+}
+
+
+static void _update_speed() {_set_speed(spindle.speed);}
 
 
 static void _deinit_cb() {
@@ -107,8 +179,12 @@ static void _deinit_cb() {
   default: vfd_spindle_init(); break;
   }
 
-  spindle_set_speed(spindle.speed);
+  _set_speed(spindle.speed);
 }
+
+
+// Var callbacks
+uint8_t get_tool_type() {return spindle.type;}
 
 
 void set_tool_type(uint8_t value) {
@@ -127,8 +203,8 @@ void set_tool_type(uint8_t value) {
 }
 
 
-void set_speed(float speed) {spindle_set_speed(speed);}
-float get_speed() {return spindle_get_speed();}
+float get_speed() {return _get_speed();}
+void set_speed(float speed) {spindle_queue_speed(0, speed);}
 bool get_tool_reversed() {return spindle.reversed;}
 
 

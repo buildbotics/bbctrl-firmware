@@ -53,7 +53,7 @@ typedef struct {
 
 
 typedef struct {
-  float offset;
+  float time;
   float speed;
 } speed_t;
 
@@ -70,6 +70,7 @@ static struct {
   float jerk;
   float lV; // Last velocity
 
+  float lineT;
   speed_t speed;
 } l;
 
@@ -121,23 +122,30 @@ static bool _section_next() {
 }
 
 
-static void _set_sync_speeds(float d) {
-  float speed = FLT_MAX;
+static void _load_sync_speeds(float startT, float endT) {
+  // Convert from mins to ms
+  startT *= 60000;
+  endT *= 60000;
 
   while (true) {
     // Load new sync speed if needed and available
-    if (l.speed.offset < 0 && command_peek() == COMMAND_sync_speed)
+    if (l.speed.time < 0 && command_peek() == COMMAND_sync_speed)
       l.speed = *(speed_t *)(command_next() + 1);
 
     // Exit if we don't have a speed or it's not ready to be set
-    if (l.speed.offset < 0 || d < l.speed.offset) break;
+    if (l.speed.time < 0 || endT < l.speed.time) break;
 
-    // Set speed
-    speed = l.speed.speed;
-    l.speed.offset = -1; // Mark done
+    // Queue speed
+    spindle_queue_speed(round(l.speed.time - startT), l.speed.speed);
+    l.speed.time = -1; // Mark done
   }
+}
 
-  if (speed != FLT_MAX) spindle_set_speed(speed);
+
+static stat_t _exec_segment(float time, const float target[], float vel,
+                            float accel) {
+  return exec_segment(time, target, vel, accel, l.line.max_vel,
+                      l.line.max_accel, l.line.max_jerk);
 }
 
 
@@ -153,6 +161,9 @@ static stat_t _line_exec() {
     t = section_time;
   }
 
+  // Handle synchronous speeds
+  _load_sync_speeds(l.lineT + t - seg_time, l.lineT + t);
+
   // Compute distance and velocity
   float d = _segment_distance(t);
   float v = _segment_velocity(t);
@@ -161,9 +172,6 @@ static stat_t _line_exec() {
   // Don't allow overshoot
   if (l.line.length < d) d = l.line.length;
 
-  // Handle syncronous speeds
-  _set_sync_speeds(d);
-
   // Check if section complete
   if (t == section_time) {
     if (_section_next()) {
@@ -171,14 +179,15 @@ static stat_t _line_exec() {
       l.seg = 0;
       l.iD = d;
       l.iV = v;
+      l.lineT += t;
 
     } else {
+      spindle_new_segment();
       exec_set_cb(0);
 
       // Last segment of last section
       // Use exact target values to correct for floating-point errors
-      return exec_segment(seg_time, l.line.target, l.line.target_vel, a,
-                          l.line.max_vel, l.line.max_accel, l.line.max_jerk);
+      return _exec_segment(seg_time, l.line.target, l.line.target_vel, a);
     }
   }
 
@@ -187,8 +196,7 @@ static stat_t _line_exec() {
   _segment_target(target, d);
 
   // Segment move
-  return exec_segment
-    (seg_time, target, v, a, l.line.max_vel, l.line.max_accel, l.line.max_jerk);
+  return _exec_segment(seg_time, target, v, a);
 }
 
 
@@ -271,8 +279,8 @@ unsigned command_line_size() {return sizeof(line_t);}
 void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
-  l.speed.offset = -1;
-  _set_sync_speeds(0);
+  l.lineT = 0;
+  l.speed.time = -1;
 
   // Setup first section
   l.seg = 0;
@@ -311,7 +319,7 @@ stat_t command_sync_speed(char *cmd) {
   cmd++; // Skip command code
 
   // Get target velocity
-  if (!decode_float(&cmd, &s.offset)) return STAT_BAD_FLOAT;
+  if (!decode_float(&cmd, &s.time)) return STAT_BAD_FLOAT;
   if (!decode_float(&cmd, &s.speed)) return STAT_BAD_FLOAT;
 
   // Queue
@@ -326,5 +334,5 @@ unsigned command_sync_speed_size() {return sizeof(speed_t);}
 
 void command_sync_speed_exec(void *data) {
   speed_t s = *(speed_t *)data;
-  spindle_set_speed(s.speed);
+  spindle_queue_speed(0, s.speed);
 }

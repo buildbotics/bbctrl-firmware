@@ -91,7 +91,7 @@ def parse_args():
                         help = 'HTTP address to bind')
     parser.add_argument('-s', '--serial', default = '/dev/ttyAMA0',
                         help = 'Serial device')
-    parser.add_argument('-b', '--baud', default = 230400, type = int,
+    parser.add_argument('-b', '--baud', default = 115200, type = int,
                         help = 'Serial baud rate')
     parser.add_argument('--i2c-port', default = 1, type = int,
                         help = 'I2C port')

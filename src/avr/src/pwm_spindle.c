@@ -61,6 +61,7 @@ static void _update_pwm() {
 
   // Disable
   if (!speed || estop_triggered()) {
+    spindle.duty = 0;
     TIMER_PWM.CTRLB = 0; // Disable clock control of pin
     OUTCLR_PIN(SPIN_PWM_PIN);
     _set_enable(false);
@@ -70,6 +71,7 @@ static void _update_pwm() {
 
   // 100% duty
   if (speed == 1 && spindle.max_duty == 1) {
+    spindle.duty = 1;
     TIMER_PWM.CTRLB = 0; // Disable clock control of pin
     OUTSET_PIN(SPIN_PWM_PIN);
     return;

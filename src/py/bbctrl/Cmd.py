@@ -124,8 +124,8 @@ def line(target, exitVel, maxAccel, maxJerk, times, speeds):
 def speed(speed): return set_float('s', speed)
 
 
-def sync_speed(offset, speed):
-    return SYNC_SPEED + encode_float(offset) + encode_float(speed)
+def sync_speed(time, speed):
+    return SYNC_SPEED + encode_float(time) + encode_float(speed)
 
 
 def input(port, mode, timeout):
