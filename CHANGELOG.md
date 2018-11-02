@@ -1,7 +1,7 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
-## v0.3.29
+## v0.4.0
  - Increased display precision of position and motor config.
  - Added support for 256 microstepping.
  - Smoother operation at 250k step rate by doubling clock as needed.
@@ -24,7 +24,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Major improvements for LASER raster GCodes.
  - Fixed major bug in command queuing.
  - Ignore Program Number O-Codes.
- - Improved planning of colinear line segments.
+ - Improved planning of collinear line segments.
  - Allow PWM output up to 320kHz and no slower than 8Hz.
 
 ## v0.3.28

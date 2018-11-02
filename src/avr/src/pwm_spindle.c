@@ -35,11 +35,26 @@
 
 
 typedef struct {
+  uint8_t time;
+  uint16_t period;
+  bool clockwise;
+} update_t;
+
+
+#define RING_BUF_NAME update_q
+#define RING_BUF_TYPE update_t
+#define RING_BUF_INDEX_TYPE volatile uint8_t
+#define RING_BUF_SIZE SPEED_QUEUE_SIZE
+#include "ringbuf.def"
+
+
+typedef struct {
   float freq; // base frequency for PWM driver, in Hz
   float min_duty;
   float max_duty;
   float duty;
   float speed;
+  uint8_t time;
 } pwm_spindle_t;
 
 
@@ -56,12 +71,11 @@ static void _set_dir(bool clockwise) {
 }
 
 
-static void _update_pwm() {
-  float speed = spindle.speed;
+static void _update_clock(uint16_t period) {
+  if (estop_triggered()) period = 0;
 
   // Disable
-  if (!speed || estop_triggered()) {
-    spindle.duty = 0;
+  if (!period) {
     TIMER_PWM.CTRLB = 0; // Disable clock control of pin
     OUTCLR_PIN(SPIN_PWM_PIN);
     _set_enable(false);
@@ -70,21 +84,36 @@ static void _update_pwm() {
   _set_enable(true);
 
   // 100% duty
-  if (speed == 1 && spindle.max_duty == 1) {
-    spindle.duty = 1;
+  if (period == 0xffff) {
     TIMER_PWM.CTRLB = 0; // Disable clock control of pin
     OUTSET_PIN(SPIN_PWM_PIN);
     return;
   }
 
-  // Compute duty cycle
-  spindle.duty =
-    speed * (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
-
   // Configure clock
   TIMER_PWM.CTRLB = TC1_CCAEN_bm | TC_WGMODE_SINGLESLOPE_gc;
-  TIMER_PWM.CCA = TIMER_PWM.PER * spindle.duty;
+  TIMER_PWM.CCA = period;
 }
+
+
+static float _compute_duty(float speed) {
+  if (!speed) return 0; // 0% duty
+  if (speed == 1 && spindle.max_duty == 1) return 1; // 100% duty
+  return speed * (spindle.max_duty - spindle.min_duty) + spindle.min_duty;
+}
+
+
+static uint16_t _compute_period(float speed) {
+  spindle.speed = speed;
+  spindle.duty = _compute_duty(speed);
+
+  if (!spindle.duty) return 0;
+  if (spindle.duty == 1) return 0xffff;
+  return TIMER_PWM.PER * spindle.duty;
+}
+
+
+static void _update_pwm() {_update_clock(_compute_period(spindle.speed));}
 
 
 static void _update_freq() {
@@ -118,6 +147,8 @@ static void _update_freq() {
 
 
 void pwm_spindle_init() {
+  update_q_init();
+
   // Configure IO
   _set_dir(true);
   _set_enable(false);
@@ -142,14 +173,43 @@ void pwm_spindle_deinit(deinit_cb_t cb) {
 }
 
 
-void pwm_spindle_set(float speed) {
-  if (speed) _set_dir(0 < speed);
-  spindle.speed = fabs(speed);
-  _update_pwm();
+void pwm_spindle_set(uint8_t time, float speed) {
+  if (update_q_full()) update_q_init();
+
+  update_t d = {
+    (uint8_t)(spindle.time + time + SPEED_OFFSET),
+    _compute_period(fabsf(speed)),
+    0 < speed
+  };
+
+  update_q_push(d);
 }
 
 
 float pwm_spindle_get() {return spindle.speed;}
+
+
+void pwm_spindle_update() {
+  bool set = false;
+  uint16_t period;
+  bool clockwise;
+
+  while (!update_q_empty()) {
+    update_t d = update_q_peek();
+    if (spindle.time != d.time) break;
+    update_q_pop();
+    set = true;
+    period = d.period;
+    clockwise = d.clockwise;
+  }
+
+  if (set) {
+    _update_clock(period);
+    if (period) _set_dir(clockwise);
+  }
+
+  spindle.time++;
+}
 
 
 // Var callbacks

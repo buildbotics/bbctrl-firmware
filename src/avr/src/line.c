@@ -136,7 +136,7 @@ static void _load_sync_speeds(float startT, float endT) {
     if (l.speed.time < 0 || endT < l.speed.time) break;
 
     // Queue speed
-    spindle_queue_speed(round(l.speed.time - startT), l.speed.speed);
+    spindle_set_speed(round(l.speed.time - startT), l.speed.speed);
     l.speed.time = -1; // Mark done
   }
 }
@@ -182,7 +182,6 @@ static stat_t _line_exec() {
       l.lineT += t;
 
     } else {
-      spindle_new_segment();
       exec_set_cb(0);
 
       // Last segment of last section
@@ -334,5 +333,5 @@ unsigned command_sync_speed_size() {return sizeof(speed_t);}
 
 void command_sync_speed_exec(void *data) {
   speed_t s = *(speed_t *)data;
-  spindle_queue_speed(0, s.speed);
+  spindle_set_speed(0, s.speed);
 }

@@ -46,11 +46,8 @@ typedef enum {
 typedef void (*deinit_cb_t)();
 
 
-void spindle_init();
 spindle_type_t spindle_get_type();
 void spindle_stop();
 bool spindle_is_reversed();
 void spindle_update();
-void spindle_next_segment();
-void spindle_new_segment();
-void spindle_queue_speed(int8_t time, float speed);
+void spindle_set_speed(uint8_t time, float speed);

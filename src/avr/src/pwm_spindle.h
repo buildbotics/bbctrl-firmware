@@ -32,5 +32,6 @@
 
 void pwm_spindle_init();
 void pwm_spindle_deinit(deinit_cb_t cb);
-void pwm_spindle_set(float speed);
+void pwm_spindle_set(uint8_t time, float speed);
 float pwm_spindle_get();
+void pwm_spindle_update();

@@ -165,8 +165,6 @@ static void _load_move() {
     return;
   }
 
-  spindle_next_segment();
-
   // Start move
   if (st.move_type == MOVE_TYPE_LINE)
     for (int motor = 0; motor < MOTORS; motor++)

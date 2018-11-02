@@ -191,12 +191,16 @@ enum {
 
 
 // Serial settings
-#define SERIAL_BAUD              USART_BAUD_115200
+#define SERIAL_BAUD              USART_BAUD_230400 // 115200
 #define SERIAL_PORT              USARTC0
 #define SERIAL_DRE_vect          USARTC0_DRE_vect
 #define SERIAL_RXC_vect          USARTC0_RXC_vect
 #define SERIAL_CTS_THRESH        4
 
+
+// Spindle settings
+#define SPEED_QUEUE_SIZE         64
+#define SPEED_OFFSET             6 // ms
 
 // Input
 #define INPUT_BUFFER_LEN         128 // text buffer size (255 max)
