@@ -91,20 +91,53 @@ def hash_dump(o):
 
 
 def plan_hash(path, config):
+    path = 'upload/' + path
     h = hashlib.sha256()
+    h.update('v2'.encode('utf8'))
     h.update(hash_dump(config))
-    with open('upload/' + path, 'rb') as f: h.update(f.read())
+
+    with open(path, 'rb') as f:
+        while True:
+            buf = f.read(1024 * 1024)
+            if not buf: break
+            h.update(buf)
+
     return h.hexdigest()
 
 
+def compute_unit(a, b):
+    unit = dict()
+    length = 0
+
+    for axis in 'xyzabc':
+        if axis in a and axis in b:
+            unit[axis] = b[axis] - a[axis]
+            length += unit[axis] * unit[axis]
+
+    length = math.sqrt(length)
+
+    for axis in 'xyzabc':
+        if axis in unit: unit[axis] /= length
+
+    return unit
+
+
+def compute_move(start, unit, dist):
+    move = dict()
+
+    for axis in 'xyzabc':
+        if axis in unit and axis in start:
+            move[axis] = start[axis] + unit[axis] * dist
+
+    return move
+
+
 class Preplanner(object):
-    def __init__(self, ctrl, threads = 4, max_plan_time = 600,
+    def __init__(self, ctrl, threads = 4, max_preplan_time = 600,
                  max_loop_time = 30):
         self.ctrl = ctrl
-        self.max_plan_time = max_plan_time
+        self.max_preplan_time = max_preplan_time
         self.max_loop_time = max_loop_time
-
-        ctrl.state.add_listener(self._update)
 
         for dir in ['plans', 'meta']:
             if not os.path.exists(dir): os.mkdir(dir)
@@ -115,10 +148,14 @@ class Preplanner(object):
         self.pool = ThreadPoolExecutor(threads)
         self.lock = threading.Lock()
 
+        # Must be last
+        ctrl.state.add_listener(self._update)
+
 
     def _update(self, update):
         if not 'selected' in update: return
         filename = update['selected']
+        if filename is None: return
         future = self.get_plan(filename)
 
         def set_bounds(type, bounds):
@@ -128,7 +165,7 @@ class Preplanner(object):
                                         bounds[type][axis])
 
         def cb(future):
-            if (filename != self.ctrl.state.get('selected') or
+            if (filename != self.ctrl.state.get('selected', '') or
                 future.cancelled()): return
 
             path, meta = future.result()
@@ -156,7 +193,10 @@ class Preplanner(object):
 
 
     def delete_all_plans(self):
-        for path in glob.glob('plans/*'):
+        files = glob.glob('plans/*')
+        files += glob.glob('meta/*')
+
+        for path in files:
             try:
                 os.unlink(path)
             except OSError: pass
@@ -165,7 +205,10 @@ class Preplanner(object):
 
 
     def delete_plans(self, filename):
-        for path in glob.glob('plans/' + filename + '.*'):
+        files = glob.glob('plans/' + filename + '.*')
+        files += glob.glob('meta/' + filename + '.*')
+
+        for path in files:
             try:
                 os.unlink(path)
             except OSError: pass
@@ -174,6 +217,8 @@ class Preplanner(object):
 
 
     def get_plan(self, filename):
+        if filename is None: raise Exception('Filename cannot be None')
+
         with self.lock:
             if filename in self.plans: plan = self.plans[filename]
             else:
@@ -263,14 +308,16 @@ class Preplanner(object):
         maxLineTime = time.time()
         totalTime = 0
         position = {}
+        maxSpeed = 0
+        currentSpeed = None
         rapid = False
         moves = []
-        times = []
         bounds = dict(min = {}, max = {})
         messages = []
         count = 0
         cancelled = False
 
+        # Initialized axis states and bounds
         for axis in 'xyzabc':
             position[axis] = 0
             bounds['min'][axis] = math.inf
@@ -281,20 +328,37 @@ class Preplanner(object):
             if bounds['max'][axis] < value: bounds['max'][axis] = value
 
 
+        def update_speed(s):
+            nonlocal currentSpeed, maxSpeed
+            if currentSpeed == s: return False
+            currentSpeed = s
+            if maxSpeed < s: maxSpeed = s
+            return True
+
+
+        # Capture planner log messages
         levels = dict(I = 'info', D = 'debug', W = 'warning', E = 'error',
                       C = 'critical')
 
         def log_cb(level, msg, filename, line, column):
             if level in levels: level = levels[level]
+
+            # Ignore missing tool warning
+            if (level == 'warning' and
+                msg.startswith('Auto-creating missing tool')):
+                return
+
             messages.append(dict(level = level, msg = msg, filename = filename,
                                  line = line, column = column))
 
 
+        # Initialize planner
         self.ctrl.mach.planner.log_intercept(log_cb)
         planner = gplan.Planner()
         planner.set_resolver(get_var_cb)
         planner.load('upload/' + filename, config)
 
+        # Execute plan
         try:
             while planner.has_more():
                 cmd = planner.next()
@@ -304,40 +368,57 @@ class Preplanner(object):
                 if planner.is_synchronizing(): planner.synchronize(0)
 
                 if cmd['type'] == 'line':
-                    if 'first' in cmd: continue
+                    if not (cmd.get('first', False) or
+                            cmd.get('seeking', False)):
+                        totalTime += sum(cmd['times']) / 1000
 
-                    totalTime += sum(cmd['times']) / 1000
-                    times.append((cmd['id'], totalTime))
                     target = cmd['target']
                     move = {}
+                    startPos = dict()
 
                     for axis in 'xyzabc':
                         if axis in target:
+                            startPos[axis] = position[axis]
                             position[axis] = target[axis]
                             move[axis] = target[axis]
                             add_to_bounds(axis, move[axis])
 
                     if 'rapid' in cmd: move['rapid'] = cmd['rapid']
 
+                    if 'speeds' in cmd:
+                        unit = compute_unit(startPos, target)
+
+                        for d, s in cmd['speeds']:
+                            cur = currentSpeed
+
+                            if update_speed(s):
+                                m = compute_move(startPos, unit, d)
+                                m['s'] = cur
+                                moves.append(m)
+                                move['s'] = s
+
                     moves.append(move)
 
-                elif cmd['type'] == 'set' and cmd['name'] == 'line':
-                    line = cmd['value']
-                    if maxLine < line:
-                        maxLine = line
-                        maxLineTime = time.time()
+                elif cmd['type'] == 'set':
+                    if cmd['name'] == 'line':
+                        line = cmd['value']
+                        if maxLine < line:
+                            maxLine = line
+                            maxLineTime = time.time()
 
-                elif cmd['type'] == 'dwell':
-                    totalTime += cmd['seconds']
-                    times.append((cmd['id'], totalTime))
+                    elif cmd['name'] == 'speed':
+                        s = cmd['value']
+                        if update_speed(s): moves.append({'s': s})
+
+                elif cmd['type'] == 'dwell': totalTime += cmd['seconds']
 
                 if not self._progress(filename, maxLine / totalLines):
                     cancelled = True
                     raise Exception('Plan canceled.')
 
-                if self.max_plan_time < time.time() - start:
+                if self.max_preplan_time < time.time() - start:
                     raise Exception('Max planning time (%d sec) exceeded.' %
-                                    self.max_plan_time)
+                                    self.max_preplan_time)
 
                 if self.max_loop_time < time.time() - maxLineTime:
                     raise Exception('Max loop time (%d sec) exceeded.' %
@@ -358,11 +439,11 @@ class Preplanner(object):
 
         # Encode data as string
         data = dict(time = totalTime, lines = totalLines, path = moves,
-                    messages = messages)
+                    maxSpeed = maxSpeed, messages = messages)
         data = gzip.compress(dump_json(data).encode('utf8'))
 
         # Meta data
-        meta = dict(times = times, bounds = bounds)
+        meta = dict(bounds = bounds)
         meta_comp = gzip.compress(dump_json(meta).encode('utf8'))
 
         # Save plan & meta data

@@ -57,7 +57,6 @@ from bbctrl.CommandQueue import CommandQueue
 from bbctrl.MainLCDPage import MainLCDPage
 from bbctrl.IPLCDPage import IPLCDPage
 from bbctrl.Camera import Camera, VideoHandler
-from bbctrl.PlanTimer import PlanTimer
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
 

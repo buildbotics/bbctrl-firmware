@@ -32,6 +32,20 @@
 
 
 typedef enum {
+  POWER_IGNORE,
+  POWER_FORWARD,
+  POWER_REVERSE
+} power_state_t;
+
+
+typedef struct {
+  power_state_t state;
+  float power;
+  uint16_t period; // Used by PWM
+} power_update_t;
+
+
+typedef enum {
   SPINDLE_TYPE_DISABLED,
   SPINDLE_TYPE_PWM,
   SPINDLE_TYPE_HUANYANG,
@@ -47,7 +61,11 @@ typedef void (*deinit_cb_t)();
 
 
 spindle_type_t spindle_get_type();
+float spindle_get_speed();
 void spindle_stop();
+void spindle_estop();
 bool spindle_is_reversed();
-void spindle_update();
-void spindle_set_speed(uint8_t time, float speed);
+void spindle_load_power_updates(power_update_t updates[], float minD,
+                                float maxD);
+void spindle_update(power_update_t update);
+void spindle_idle();

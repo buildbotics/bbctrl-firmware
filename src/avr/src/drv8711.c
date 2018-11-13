@@ -61,6 +61,7 @@ typedef struct {
 
   uint8_t status;
   uint16_t flags;
+  bool reset_flags;
   bool stalled;
 
   drv8711_state_t state;
@@ -133,7 +134,12 @@ static bool _driver_get_enabled(int driver) {
 }
 
 
+static bool _driver_fault(int driver) {return drivers[driver].flags & 0x1f;}
+
+
 static float _driver_get_current(int driver) {
+  if (_driver_fault(driver)) return 0;
+
   drv8711_driver_t *drv = &drivers[driver];
 
   switch (drv->state) {
@@ -176,15 +182,14 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       switch (DRV8711_CMD_ADDR(command)) {
       case DRV8711_STATUS_REG:
         drv->status = spi.responses[driver];
-
-        if ((drv->status & drv->flags) != drv->status)
-          drv->flags |= drv->status;
+        drv->flags |= drv->status;
         break;
 
       case DRV8711_OFF_REG:
         // We read back the OFF register to test for communication failure.
         if ((spi.responses[driver] & 0x1ff) != DRV8711_OFF)
           drv->flags |= DRV8711_COMM_ERROR_bm;
+        else drv->flags &= ~DRV8711_COMM_ERROR_bm;
         break;
       }
   }
@@ -202,9 +207,14 @@ static uint8_t _spi_next_command(uint8_t cmd) {
 
     switch (DRV8711_CMD_ADDR(*command)) {
     case DRV8711_STATUS_REG:
-      if (!DRV8711_CMD_IS_READ(*command))
-        // Clear STATUS flags
-        *command = (*command & 0xf000) | (0x0fff & ~(drv->status));
+      if (!DRV8711_CMD_IS_READ(*command)) {
+        if (drv->reset_flags) { // Clear STATUS flags
+          *command = (*command & 0xf000) | (0x0fff & ~drv->status);
+          drv->reset_flags = false;
+          drv->flags = 0;
+
+        } else *command = (*command & 0xf000) | 0x0fff; // Don't clear flags
+      }
       break;
 
     case DRV8711_TORQUE_REG: // Update motor current setting
@@ -349,6 +359,8 @@ void drv8711_init() {
     switch_id_t stall_sw = drivers[i].stall_sw;
     switch_set_type(stall_sw, SW_NORMALLY_OPEN);
     switch_set_callback(stall_sw, _stall_switch_cb);
+
+    drivers[i].reset_flags = true; // Reset flags once on startup
   }
 
   switch_set_type(SW_MOTOR_FAULT, SW_NORMALLY_OPEN);
@@ -435,6 +447,11 @@ float get_active_current(int driver) {
 bool get_motor_fault() {return motor_fault;}
 
 
+void set_driver_flags(int driver, uint16_t flags) {
+  drivers[driver].reset_flags = true;
+}
+
+
 uint16_t get_driver_flags(int driver) {return drivers[driver].flags;}
 
 
@@ -497,16 +514,3 @@ void print_status_flags(uint16_t flags) {
 
 uint16_t get_status_strings(int driver) {return get_driver_flags(driver);}
 bool get_driver_stalled(int driver) {return drivers[driver].stalled;}
-
-
-// Command callback
-void command_mreset(int argc, char *argv[]) {
-  if (argc == 1)
-    for (int driver = 0; driver < DRIVERS; driver++)
-      drivers[driver].flags = 0;
-
-  else {
-    int driver = atoi(argv[1]);
-    if (driver < DRIVERS) drivers[driver].flags = 0;
-  }
-}

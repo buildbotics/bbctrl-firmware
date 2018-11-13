@@ -67,7 +67,7 @@ enum {
   SPI_CS_X_PIN,
   SPI_CS_A_PIN,
   SPI_CS_Z_PIN,
-  SPIN_PWM_PIN,
+  PWM_PIN,
   SWITCH_2_PIN,
   RS485_RO_PIN,
   RS485_DI_PIN,
@@ -126,7 +126,7 @@ enum {
 // Timer assignments
 // NOTE, TCC1 free
 #define TIMER_STEP               TCC0 // Step timer (see stepper.h)
-#define TIMER_PWM                TCD1 // PWM timer  (see pwm_spindle.c)
+#define TIMER_PWM                TCD1 // PWM timer  (see pwm.c)
 
 #define M1_TIMER                 TCD0
 #define M2_TIMER                 TCE0
@@ -154,10 +154,13 @@ enum {
 #define STEP_TIMER_INTLVL        TC_OVFINTLVL_HI_gc
 #define STEP_LOW_LEVEL_ISR       ADCB_CH0_vect
 #define STEP_PULSE_WIDTH         (F_CPU * 0.000002 / 2) // 2uS w/ clk/2
-#define SEGMENT_TIME             (0.004 / 60.0) // mins
+#define SEGMENT_MS               4
+#define SEGMENT_TIME             (SEGMENT_MS / 60000.0) // mins
 
 
 // DRV8711 settings
+// NOTE, PWM frequency = 1 / (2 * DTIME + TBLANK + TOFF)
+// We have PWM frequency = 1 / (2 * 850nS + 1uS + 6.5uS) ~= 110kHz
 #define DRV8711_OFF              12
 #define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
 #define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
@@ -166,13 +169,15 @@ enum {
                                   DRV8711_STALL_VDIV_4 | 200)
 #define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_50  | \
                                   DRV8711_DRIVE_IDRIVEN_100 | \
-                                  DRV8711_DRIVE_TDRIVEP_250 | \
-                                  DRV8711_DRIVE_TDRIVEN_250 | \
+                                  DRV8711_DRIVE_TDRIVEP_500 | \
+                                  DRV8711_DRIVE_TDRIVEN_500 | \
                                   DRV8711_DRIVE_OCPDEG_1    | \
-                                  DRV8711_DRIVE_OCPTH_250)
+                                  DRV8711_DRIVE_OCPTH_500)
 #define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_50
+// NOTE, Datasheet suggests 850ns DTIME with the optional gate resistor
+// installed.  See page 30 section 8.1.2 of DRV8711 datasheet.
 #define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_10 | \
-                                  DRV8711_CTRL_DTIME_450 | \
+                                  DRV8711_CTRL_DTIME_850 | \
                                   DRV8711_CTRL_EXSTALL_bm)
 
 
@@ -198,9 +203,8 @@ enum {
 #define SERIAL_CTS_THRESH        4
 
 
-// Spindle settings
-#define SPEED_QUEUE_SIZE         64
-#define SPEED_OFFSET             6 // ms
+// PWM settings
+#define POWER_MAX_UPDATES        SEGMENT_MS
 
 // Input
 #define INPUT_BUFFER_LEN         128 // text buffer size (255 max)

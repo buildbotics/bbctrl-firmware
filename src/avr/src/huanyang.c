@@ -112,7 +112,7 @@ static struct {
   deinit_cb_t deinit_cb;
   bool shutdown;
   bool changed;
-  float speed;
+  float power;
 
   float actual_freq;
   float actual_current;
@@ -234,9 +234,9 @@ static void _next_command() {
   case 0: { // Update direction
     hy_ctrl_state_t state = HUANYANG_STOP;
     if (!hy.shutdown && !estop_triggered()) {
-      if (0 < hy.speed)
+      if (0 < hy.power)
         state = (hy_ctrl_state_t)(HUANYANG_RUN | HUANYANG_FORWARD);
-      else if (hy.speed < 0)
+      else if (hy.power < 0)
         state = (hy_ctrl_state_t)(HUANYANG_RUN | HUANYANG_REV_FWD);
     }
 
@@ -250,7 +250,7 @@ static void _next_command() {
 
   case 4: { // Update freqency
     // Compute frequency in Hz
-    float freq = fabs(hy.speed * hy.max_freq);
+    float freq = fabs(hy.power * hy.max_freq);
 
     // Frequency write command
     _freq_write(freq * 100);
@@ -278,9 +278,9 @@ void huanyang_deinit(deinit_cb_t cb) {
 }
 
 
-void huanyang_set(float speed) {
-  if (hy.speed != speed && !hy.shutdown) {
-    hy.speed = speed;
+void huanyang_set(float power) {
+  if (hy.power != power && !hy.shutdown) {
+    hy.power = power;
     hy.changed = true;
   }
 }

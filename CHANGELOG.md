@@ -1,6 +1,24 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.4.2
+ - Suppress ``Auto-creating missing tool`` warning.
+ - Prevent ``Stream is closed`` error.
+ - Suppress ``WebGL not supported`` warning.
+
+## v0.4.1
+ - Fix toolpath view axes bug.
+ - Added LASER intensity view.
+ - Fixed reverse path planner bug.
+ - Video size and path view controls persistent over browser reload.
+ - Fixed time and progress bugs.
+ - Added PWM rapid auto off feature for LASER/Plasma.
+ - Added dynamic PWM for LASER/Plasma.
+ - Added motor faults table to indicators page.
+ - Emit error and indicate FAULT on axis for motor driver faults.
+ - Display axis motor FAULT on LCD.
+ - Fixed bug with rapid repeated unpause.
+
 ## v0.4.0
  - Increased display precision of position and motor config.
  - Added support for 256 microstepping.

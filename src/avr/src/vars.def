@@ -53,7 +53,7 @@ VAR(max_soft_limit,  tm, f32,   MOTORS, 1, 1) // Max soft limit
 VAR(homed,            h, b8,    MOTORS, 1, 1) // Motor homed status
 
 VAR(active_current,  ac, f32,   MOTORS, 0, 1) // Motor current now
-VAR(driver_flags,    df, u16,   MOTORS, 0, 1) // Motor driver flags
+VAR(driver_flags,    df, u16,   MOTORS, 1, 1) // Motor driver flags
 VAR(status_strings,  ds, flags, MOTORS, 0, 1) // Motor driver status
 VAR(driver_stalled,  sl, b8,    MOTORS, 0, 1) // Motor driver status
 VAR(encoder,         en, s32,   MOTORS, 0, 0) // Motor encoder
@@ -84,7 +84,7 @@ VAR(analog_input,    ai, f32,   ANALOG, 0, 0) // Analog input pins
 
 // Spindle
 VAR(tool_type,       st, u8,    0,      1, 1) // See spindle.c
-VAR(speed,            s, f32,   0,      1, 1) // Current spindle speed
+VAR(speed,            s, f32,   0,      0, 1) // Current spindle speed
 VAR(tool_reversed,   sr, b8,    0,      1, 1) // Reverse tool
 VAR(max_spin,        sx, f32,   0,      1, 1) // Maximum spindle speed
 VAR(min_spin,        sm, f32,   0,      1, 1) // Minimum spindle speed
@@ -132,6 +132,8 @@ VAR(acceleration,    ax, f32,   0,      0, 1) // Current acceleration
 VAR(jerk,             j, f32,   0,      0, 1) // Current jerk
 VAR(peak_vel,        pv, f32,   0,      1, 1) // Peak velocity, set to clear
 VAR(peak_accel,      pa, f32,   0,      1, 1) // Peak accel, set to clear
+VAR(dynamic_power,   dp, b8,    0,      1, 1) // Dynamic power
+VAR(inverse_feed,    if, f32,   0,      1, 1) // Inverse feed rate
 VAR(hw_id,          hid, str,   0,      0, 1) // Hardware ID
 VAR(estop,           es, b8,    0,      1, 1) // Emergency stop
 VAR(estop_reason,    er, pstr,  0,      0, 1) // Emergency stop reason

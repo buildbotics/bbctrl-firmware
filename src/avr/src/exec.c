@@ -57,9 +57,9 @@ static struct {
     float time;
     float vel;
     float accel;
-    float max_vel;
     float max_accel;
     float max_jerk;
+    power_update_t power_updates[2 * POWER_MAX_UPDATES];
     exec_cb_t cb;
   } seg;
 } ex;
@@ -106,6 +106,8 @@ void exec_set_acceleration(float a) {
 
 float exec_get_acceleration() {return ex.accel;}
 void exec_set_jerk(float j) {ex.jerk = j;}
+
+
 void exec_set_cb(exec_cb_t cb) {ex.cb = cb;}
 
 
@@ -114,6 +116,15 @@ void exec_move_to_target(const float target[]) {
                isfinite(target[AXIS_Z]) && isfinite(target[AXIS_A]) &&
                isfinite(target[AXIS_B]) && isfinite(target[AXIS_C]),
                STAT_BAD_FLOAT);
+
+  // Prep power updates
+  st_prep_power(ex.seg.power_updates);
+
+  // Shift power updates
+  for (unsigned i = 0; i < POWER_MAX_UPDATES; i++) {
+    ex.seg.power_updates[i] = ex.seg.power_updates[i + POWER_MAX_UPDATES];
+    ex.seg.power_updates[i + POWER_MAX_UPDATES].state = POWER_IGNORE;
+  }
 
   // Update position
   copy_vector(ex.position, target);
@@ -146,14 +157,19 @@ stat_t _segment_exec() {
 
   // Wait for next seg if time is too short and we are still moving
   if (t < SEGMENT_TIME && (!t || v)) {
-    if (!v) ex.velocity = ex.accel = ex.jerk = 0;
+    if (!v) {
+      exec_set_velocity(0);
+      exec_set_acceleration(0);
+      exec_set_jerk(0);
+      ex.seg.time = 0;
+    }
     ex.cb = ex.seg.cb;
     return STAT_AGAIN;
   }
 
   // Update velocity and accel
-  ex.velocity = v;
-  ex.accel = a;
+  exec_set_velocity(v);
+  exec_set_acceleration(a);
 
   if (t <= SEGMENT_TIME) {
     // Move
@@ -185,14 +201,24 @@ stat_t _segment_exec() {
 
 
 stat_t exec_segment(float time, const float target[], float vel, float accel,
-                    float maxVel, float maxAccel, float maxJerk) {
+                    float maxAccel, float maxJerk,
+                    const power_update_t power_updates[]) {
   ESTOP_ASSERT(time <= SEGMENT_TIME, STAT_SHORT_SEG_TIME);
 
+  // Copy power updates in to the correct position given the time offset
+  float nextT = ex.seg.time + time;
+  const float stepT = 1.0 / 60000; // 1ms in mins
+  float t = 0.5 / 60000; // 0.5ms in mins
+  unsigned j = 0;
+  for (unsigned i = 0; t < nextT && j < POWER_MAX_UPDATES; i++) {
+    if (ex.seg.time < t) ex.seg.power_updates[i] = power_updates[j++];
+    t += stepT;
+  }
+
   copy_vector(ex.seg.target, target);
-  ex.seg.time += time;
+  ex.seg.time = nextT;
   ex.seg.vel = vel;
   ex.seg.accel = accel;
-  ex.seg.max_vel = maxVel;
   ex.seg.max_accel = maxAccel;
   ex.seg.max_jerk = maxJerk;
   ex.seg.cb = ex.cb;

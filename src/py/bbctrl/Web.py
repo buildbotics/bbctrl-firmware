@@ -249,16 +249,19 @@ class PathHandler(bbctrl.APIHandler):
             self.write_json(dict(progress = progress))
             return
 
-        if data is not None:
-            data = data[0] # We only want the compressed path
-            self.set_header('Content-Encoding', 'gzip')
+        try:
+            if data is not None:
+                data = data[0] # We only want the compressed path
+                self.set_header('Content-Encoding', 'gzip')
 
-            # Respond with chunks to avoid long delays
-            SIZE = 102400
-            chunks = [data[i:i + SIZE] for i in range(0, len(data), SIZE)]
-            for chunk in chunks:
-                self.write(chunk)
-                yield self.flush()
+                # Respond with chunks to avoid long delays
+                SIZE = 102400
+                chunks = [data[i:i + SIZE] for i in range(0, len(data), SIZE)]
+                for chunk in chunks:
+                    self.write(chunk)
+                    yield self.flush()
+
+        except tornado.iostream.StreamClosedError as e: pass
 
 
 class HomeHandler(bbctrl.APIHandler):

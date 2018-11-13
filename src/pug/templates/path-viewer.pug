@@ -26,23 +26,27 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#path-viewer-template(type="text/x-template")
-  .path-viewer(:class="{small: small, error: error}")
+  .path-viewer(v-show="enabled", :class="{small: small}")
     .path-viewer-toolbar
       .tool-button(title="Toggle path view size.",
         @click="small = !small", :class="{active: !small}")
         .fa.fa-arrows-alt
 
-      .tool-button(@click="showTool = !showTool", :active="showTool",
+      .tool-button(@click="showTool = !showTool", :class="{active: showTool}",
         title="Show/hide tool.")
         img(src="images/tool.png")
 
-      .tool-button(@click="showBBox = !showBBox", :active="showBBox",
+      .tool-button(@click="showBBox = !showBBox", :class="{active: showBBox}",
         title="Show/hide bounding box.")
         img(src="images/bbox.png")
 
-      .tool-button(@click="showAxes = !showAxes", :active="showAxes",
+      .tool-button(@click="showAxes = !showAxes", :class="{active: showAxes}",
         title="Show/hide axes.")
         img(src="images/axes.png")
+
+      .tool-button(@click="showIntensity = !showIntensity",
+        :class="{active: showIntensity}", title="Show/hide LASER intensity.")
+        img(src="images/intensity.png")
 
       each view in "isometric top front".split(" ")
         .tool-button(@click=`snap('${view}')`, title=`Snap to ${view} view.`)
@@ -54,7 +58,6 @@ script#path-viewer-template(type="text/x-template")
           div(v-if="progress && progress < 1")
             | Simulating run {{progress | non_zero_percent 0}}. . .
           div(v-if="!progress || progress == 1") Loading. . .
-        | {{message}}
 
     table.path-viewer-messages(
       v-if="typeof toolpath.messages != 'undefined' && " +

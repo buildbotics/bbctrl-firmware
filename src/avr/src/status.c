@@ -72,13 +72,17 @@ stat_t status_message_P(const char *location, status_level_t level,
            status_level_pgmstr(level));
 
   // Message
+  printf_P(PSTR("%" PRPSTR), status_to_pgmstr(code));
+
   if (msg && pgm_read_byte(msg)) {
+    putchar(':');
+    putchar(' ');
+
     // TODO escape invalid chars
     va_start(args, msg);
     vfprintf_P(stdout, msg, args);
     va_end(args);
-
-  } else printf_P(PSTR("%" PRPSTR), status_to_pgmstr(code));
+  }
 
   putchar('"');
 

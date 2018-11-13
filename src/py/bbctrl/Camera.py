@@ -533,7 +533,7 @@ class Camera(object):
 
 
         except Exception as e:
-            log.warning('While loading camera')
+            log.warning('While loading camera: %s' % e)
             if not self.dev is None:
                 self.dev.close()
                 self.dev = None

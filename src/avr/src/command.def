@@ -31,7 +31,8 @@ CMD('#', sync_var,     1) // Set variable synchronous
 CMD('s', seek,         1) // [switch][flags:active|error]
 CMD('a', set_axis,     1) // [axis][position] Set axis position
 CMD('l', line,         1) // [targetVel][maxJerk][axes][times]
-CMD('%', sync_speed,   1) // [offset][speed]
+CMD('%', sync_speed,   1) // [offset][speed] Command synchronized speed
+CMD('p', speed,        1) // [speed] Spindle speed
 CMD('I', input,        1) // [a|d][port][mode][timeout] Read input
 CMD('d', dwell,        1) // [seconds]
 CMD('P', pause,        1) // [type] Pause control

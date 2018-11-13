@@ -26,6 +26,7 @@
 'use strict'
 
 var orbit = require('./orbit');
+var cookie = require('./cookie')('bbctrl-');
 
 
 function get(obj, name, defaultValue) {
@@ -48,16 +49,16 @@ module.exports = {
 
   data: function () {
     return {
-      enabled: true,
+      enabled: false,
       loading: false,
-      small: true,
+      snapView: cookie.get('snap-view', 'isometric'),
+      small: cookie.get_bool('small-path-view', true),
       surfaceMode: 'cut',
-      showPath: true,
-      showTool: true,
-      showBBox: true,
-      showAxes: true,
-      error: false,
-      message: ''
+      showPath: cookie.get_bool('show-path', true),
+      showTool: cookie.get_bool('show-tool', true),
+      showBBox: cookie.get_bool('show-bbox', true),
+      showAxes: cookie.get_bool('show-axes', true),
+      showIntensity: cookie.get_bool('show-intensity', false)
     }
   },
 
@@ -71,15 +72,42 @@ module.exports = {
   watch: {
     toolpath: function () {Vue.nextTick(this.update)},
     surfaceMode: function (mode) {this.update_surface_mode(mode)},
-    small: function () {Vue.nextTick(this.update_view)},
-    showPath: function (enable) {set_visible(this.path, enable)},
-    showTool: function (enable) {set_visible(this.tool, enable)},
-    showAxes: function (enable) {set_visible(this.axes, enable)},
+
+
+    small: function (enable) {
+      cookie.set_bool('small-path-view', enable);
+      Vue.nextTick(this.update_view)
+    },
+
+
+    showPath: function (enable) {
+      cookie.set_bool('show-path', enable);
+      set_visible(this.pathView, enable)
+    },
+
+
+    showTool: function (enable) {
+      cookie.set_bool('show-tool', enable);
+      set_visible(this.toolView, enable)
+    },
+
+
+    showAxes: function (enable) {
+      cookie.set_bool('show-axes', enable);
+      set_visible(this.axesView, enable)
+    },
+
+
+    showIntensity: function (enable) {
+      cookie.set_bool('show-intensity', enable);
+      Vue.nextTick(this.update)
+    },
 
 
     showBBox: function (enable) {
-      set_visible(this.bbox, enable);
-      set_visible(this.envelope, enable);
+      cookie.set_bool('show-bbox', enable);
+      set_visible(this.bboxView, enable);
+      set_visible(this.envelopeView, enable);
     },
 
 
@@ -100,15 +128,13 @@ module.exports = {
       if (!this.enabled) return;
 
       // Reset message
-      this.message = ''
-      this.error = false;
       this.loading = !this.hasPath;
 
       // Update scene
       this.scene = new THREE.Scene();
       if (this.hasPath) {
         this.draw(this.scene);
-        this.snap('isometric');
+        this.snap(this.snapView);
       }
 
       this.update_view();
@@ -166,7 +192,7 @@ module.exports = {
 
     update_tool: function (tool) {
       if (!this.enabled) return;
-      if (typeof tool == 'undefined') tool = this.tool;
+      if (typeof tool == 'undefined') tool = this.toolView;
       if (typeof tool == 'undefined') return;
       tool.position.x = this.x.pos;
       tool.position.y = this.y.pos;
@@ -176,7 +202,7 @@ module.exports = {
 
     update_envelope: function (envelope) {
       if (!this.enabled || !this.axes.homed) return;
-      if (typeof envelope == 'undefined') envelope = this.envelope;
+      if (typeof envelope == 'undefined') envelope = this.envelopeView;
       if (typeof envelope == 'undefined') return;
 
       var min = new THREE.Vector3();
@@ -209,12 +235,10 @@ module.exports = {
         this.target.appendChild(this.renderer.domElement);
 
       } catch (e) {
-        console.log(e);
-        this.error = true;
-        this.message = 'WebGL not supported';
-        this.enabled = false;
+        console.log('WebGL not supported: ', e);
         return;
       }
+      this.enabled = true;
 
       // Camera
       this.camera = new THREE.PerspectiveCamera(45, 4 / 3, 1, 1000);
@@ -247,7 +271,6 @@ module.exports = {
       this.controls.dampingFactor = 0.2;
       this.controls.rotateSpeed = 0.25;
       this.controls.enableZoom = true;
-      //this.controls.enablePan = false;
 
       // Move lights with scene
       this.controls.addEventListener('change', function (scope) {
@@ -342,6 +365,7 @@ module.exports = {
 
       var mesh = new THREE.Mesh(geometry, material);
       this.update_tool(mesh);
+      mesh.visible = this.showTool;
       scene.add(mesh);
       return mesh;
     },
@@ -393,10 +417,17 @@ module.exports = {
     },
 
 
-    draw_path: function (scene) {
-      var cutting = [0, 1, 0];
-      var rapid = [1, 0, 0];
+    get_color: function (rapid, speed) {
+      if (rapid) return [1, 0, 0];
 
+      var intensity = speed / this.toolpath.maxSpeed;
+      if (typeof speed == 'undefined' || !this.showIntensity) intensity = 1;
+      return [0, intensity, 0.5 * (1 - intensity)];
+    },
+
+
+    draw_path: function (scene) {
+      var s = undefined;
       var x = this.x.pos;
       var y = this.y.pos;
       var z = this.z.pos;
@@ -407,7 +438,9 @@ module.exports = {
 
       for (var i = 0; i < this.toolpath.path.length; i++) {
         var step = this.toolpath.path[i];
-        var newColor = step.rapid ? rapid : cutting;
+
+        s = get(step, 's', s);
+        var newColor = this.get_color(step.rapid, s);
 
         // Handle color change
         if (!i || newColor != color) {
@@ -416,6 +449,7 @@ module.exports = {
           colors.push.apply(colors, color);
         }
 
+        // Draw to move target
         x = get(step, 'x', x);
         y = get(step, 'y', y);
         z = get(step, 'z', z);
@@ -533,7 +567,7 @@ module.exports = {
       scene.add(this.lights);
 
       // Model
-      this.path = this.draw_path(scene);
+      this.pathView = this.draw_path(scene);
       this.surfaceMesh = this.draw_surface(scene, this.surfaceMaterial);
       this.workpieceMesh = this.draw_workpiece(scene, this.surfaceMaterial);
       this.update_surface_mode(this.surfaceMode);
@@ -542,10 +576,10 @@ module.exports = {
       var bbox = this.get_model_bounds();
 
       // Tool, axes & bounds
-      this.tool = this.draw_tool(scene, bbox);
-      this.axes = this.draw_axes(scene, bbox);
-      this.bbox = this.draw_bbox(scene, bbox);
-      this.envelope = this.draw_envelope(scene);
+      this.toolView = this.draw_tool(scene, bbox);
+      this.axesView = this.draw_axes(scene, bbox);
+      this.bboxView = this.draw_bbox(scene, bbox);
+      this.envelopeView = this.draw_envelope(scene);
     },
 
 
@@ -564,7 +598,7 @@ module.exports = {
         if (typeof o != 'undefined') bbox.union(o.geometry.boundingBox);
       }
 
-      add(this.path);
+      add(this.pathView);
       add(this.surfaceMesh);
       add(this.workpieceMesh);
 
@@ -573,6 +607,11 @@ module.exports = {
 
 
     snap: function (view) {
+      if (view != this.snapView) {
+        this.snapView = view;
+        cookie.set('snap-view', view);
+      }
+
       var bbox = this.get_model_bounds();
       this.controls.reset();
       bbox.getCenter(this.controls.target);

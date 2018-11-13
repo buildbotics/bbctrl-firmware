@@ -143,9 +143,15 @@ module.exports = {
     plan_time: function () {return this.state.plan_time},
 
 
+    plan_time_remaining: function () {
+      if (!(this.is_stopping || this.is_running || this.is_holding)) return 0;
+      return this.toolpath.time - this.plan_time
+    },
+
+
     eta: function () {
       if (this.mach_state != 'RUNNING') return '';
-      var remaining = this.toolpath.time - this.plan_time;
+      var remaining = this.plan_time_remaining;
       var d = new Date();
       d.setSeconds(d.getSeconds() + remaining);
       return d.toLocaleString();
@@ -153,7 +159,7 @@ module.exports = {
 
 
     progress: function () {
-      if (!this.toolpath.time) return 0;
+      if (!this.toolpath.time || this.is_ready) return 0;
       var p = this.plan_time / this.toolpath.time;
       return p < 1 ? p : 1;
     }
@@ -192,7 +198,8 @@ module.exports = {
 
     load: function () {
       var file = this.state.selected;
-      if (this.last_file == file) return;
+      if (this.last_file == file || typeof file == 'undefined' ||
+          typeof file == 'null') return;
       this.last_file = file;
 
       if (typeof file != 'undefined') this.$broadcast('gcode-load', file);
@@ -205,7 +212,7 @@ module.exports = {
     load_toolpath: function (file) {
       this.toolpath = {};
 
-      if (typeof file == 'undefined') return;
+      if (typeof file == 'undefined' || typeof file == 'null') return;
 
       api.get('path/' + file).done(function (toolpath) {
         if (this.last_file != file) return;
@@ -238,7 +245,12 @@ module.exports = {
 
 
     load_history: function (index) {this.mdi = this.history[index];},
-    open: function (e) {$('.gcode-file-input').click()},
+
+
+    open: function (e) {
+      // TODO browser caches file if name is same even if contents changed
+      $('.gcode-file-input').click();
+    },
 
 
     upload: function (e) {
@@ -252,6 +264,7 @@ module.exports = {
 
       api.upload('file', fd)
         .done(function () {
+          this.last_file = undefined; // Force reload
           this.$broadcast('gcode-reload', file.name);
           this.update();
         }.bind(this));

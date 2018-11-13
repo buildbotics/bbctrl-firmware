@@ -229,6 +229,12 @@ static char *_resolve_name(const char *_name) {
 }
 
 
+static int _index(char c, const char *s) {
+  char *index = strchr(s, c);
+  return index ? index - s : -1;
+}
+
+
 static bool _find_var(const char *_name, var_info_t *info) {
   char *name = _resolve_name(_name);
   if (!name) return false;
@@ -238,14 +244,14 @@ static bool _find_var(const char *_name, var_info_t *info) {
   strcpy(info->name, name);
 
 #define VAR(NAME, CODE, TYPE, INDEX, SET, ...)                          \
-  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)) {                 \
-    IF(INDEX)                                                           \
-      (i = strchr(INDEX##_LABEL, name[0]) - INDEX##_LABEL;              \
-       if (i < 0) return false);                                        \
+  if (!strcmp(IF_ELSE(INDEX)(name + 1, name), #CODE)                    \
+      IF(INDEX)(&& (i = _index(name[0], INDEX##_LABEL)) != -1)          \
+      ) {                                                               \
                                                                         \
     info->type = TYPE_##TYPE;                                           \
     info->index = i;                                                    \
-    info->get.IF_ELSE(INDEX)(get_##TYPE##_index, get_##TYPE) = get_##NAME; \
+    info->get.IF_ELSE(INDEX)(get_##TYPE##_index, get_##TYPE) =          \
+      get_##NAME;                                                       \
                                                                         \
     IF(SET)(info->set.IF_ELSE(INDEX)                                    \
             (set_##TYPE##_index, set_##TYPE) = set_##NAME;)             \

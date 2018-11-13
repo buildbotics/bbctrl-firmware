@@ -77,17 +77,17 @@ $(function() {
     var parts = [];
 
     if (DAY <= value) {
-      parts.push(value / DAY);
+      parts.push(Math.floor(value / DAY));
       value %= DAY;
     }
 
     if (HR <= value) {
-      parts.push(value / HR);
+      parts.push(Math.floor(value / HR));
       value %= HR;
     }
 
     if (MIN <= value) {
-      parts.push(value / MIN);
+      parts.push(Math.floor(value / MIN));
       value %= MIN;
 
     } else parts.push(0);

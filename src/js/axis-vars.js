@@ -78,9 +78,15 @@ module.exports = {
       var klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis;
       var state      = 'UNHOMED';
       var icon       = 'question-circle';
+      var fault      = this.state[motor_id + 'df'] & 0x1f;
       var title;
 
-      if (0 < dim && dim < pathDim) {
+      if (fault) {
+        state = 'FAULT';
+        klass += ' error';
+        icon = 'exclamation-circle';
+
+      } else if (0 < dim && dim < pathDim) {
         state = 'NO FIT';
         klass += ' error';
         icon = 'ban';
@@ -113,6 +119,14 @@ module.exports = {
       case 'NO FIT':
         title = 'Tool path dimensions exceed axis dimensions by ' +
           this._length_str(pathDim - dim) + '.';
+        break;
+
+      case 'FAULT':
+        title = 'Motor driver fault.  A potentially damaging electrical ' +
+          'condition was detected and the motor driver was shutdown.  ' +
+          'Please power down the controller and check your motor cabling.  ' +
+          'See the "Motor Faults" table on the "Indicators" for more ' +
+          'information.';
         break;
       }
 

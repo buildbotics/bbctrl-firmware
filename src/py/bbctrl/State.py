@@ -233,6 +233,15 @@ class State(object):
         return axes
 
 
+    def is_motor_faulted(self, motor):
+        return self.get('%ddf' % motor, 0) & 0x1f
+
+
+    def is_axis_faulted(self, axis):
+        motor = self.find_motor(axis)
+        return motor is not None and self.is_motor_faulted(motor)
+
+
     def axis_homing_mode(self, axis):
         motor = self.find_motor(axis)
         if motor is None: return 'disabled'

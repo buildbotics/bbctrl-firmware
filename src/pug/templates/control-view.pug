@@ -158,10 +158,10 @@ script#control-view-template(type="text/x-template")
 
     table.info
       tr
-        th Time
-        td(title="Total run time (days:hours:mins:secs)")
-          span(v-if="plan_time") {{plan_time | time}} of&nbsp;
-          | {{toolpath.time | time}}
+        th Remaining
+        td(title="Total run time (days:hours:mins:secs)").
+          #[span(v-if="plan_time_remaining") {{plan_time_remaining | time}} of]
+          {{toolpath.time | time}}
       tr
         th ETA
         td.eta {{eta}}

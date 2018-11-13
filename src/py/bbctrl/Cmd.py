@@ -43,6 +43,7 @@ SEEK         = 's'
 SET_AXIS     = 'a'
 LINE         = 'l'
 SYNC_SPEED   = '%'
+SPEED        = 'p'
 INPUT        = 'I'
 DWELL        = 'd'
 PAUSE        = 'P'
@@ -115,17 +116,17 @@ def line(target, exitVel, maxAccel, maxJerk, times, speeds):
             cmd += str(i) + encode_float(times[i] / 60000) # to mins
 
     # Speeds
-    for speed in speeds:
-        cmd += '\n' + sync_speed(speed[0], speed[1])
+    for dist, speed in speeds:
+        cmd += '\n' + sync_speed(dist, speed)
 
     return cmd
 
 
-def speed(speed): return set_float('s', speed)
+def speed(value): return SPEED + encode_float(value)
 
 
-def sync_speed(time, speed):
-    return SYNC_SPEED + encode_float(time) + encode_float(speed)
+def sync_speed(dist, speed):
+    return SYNC_SPEED + encode_float(dist) + encode_float(speed)
 
 
 def input(port, mode, timeout):

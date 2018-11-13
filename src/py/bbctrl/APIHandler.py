@@ -50,6 +50,7 @@ class APIHandler(RequestHandler):
 
         log.error(str(value))
         trace = ''.join(traceback.format_exception(typ, value, tb))
+        log.error(trace)
         log.debug(trace)
 
 

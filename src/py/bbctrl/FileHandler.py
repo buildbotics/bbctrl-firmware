@@ -56,7 +56,7 @@ class FileHandler(bbctrl.APIHandler):
             safe_remove('upload' + filename)
             self.ctrl.preplanner.delete_plans(filename)
 
-            if self.ctrl.state.get('selected') == filename:
+            if self.ctrl.state.get('selected', '') == filename:
                 self.ctrl.state.set('selected', '')
 
 

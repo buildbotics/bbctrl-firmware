@@ -28,6 +28,7 @@
 'use strict'
 
 var api = require('./api');
+var cookie = require('./cookie')('bbctrl-');
 var Sock = require('./sock');
 
 
@@ -93,7 +94,7 @@ module.exports = new Vue({
       },
       state: {},
       messages: [],
-      video_size: 'small',
+      video_size: cookie.get('video-size', 'small'),
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorShow: false,
@@ -209,6 +210,7 @@ module.exports = new Vue({
     toggle_video: function () {
       if      (this.video_size == 'small')  this.video_size = 'large';
       else if (this.video_size == 'large')  this.video_size = 'small';
+      cookie.set('video-size', this.video_size);
     },
 
 

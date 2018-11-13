@@ -94,6 +94,18 @@ tt
 .success
   background green
 
+.fa.error
+  background inherit
+  color red
+
+.fa.warn
+  background inherit
+  color orange
+
+.fa.success
+  background inherit
+  color green
+
 .load-on
   background-color #ccffcc
   color #000
@@ -511,10 +523,6 @@ span.unit
     position absolute
     color #fff
 
-    &.error
-      background-color inherit
-      color #ff3a3a
-
   .path-viewer-messages
     margin 0.125em 0
 
@@ -528,7 +536,7 @@ span.unit
     background-color #333
     background linear-gradient(to bottom, #666 0%, #222 100%);
 
-  &.small, &.error
+  &.small
     .path-viewer-content
       width 335px
       height 150px
@@ -539,18 +547,6 @@ span.unit
       .path-viewer-message
         font-size 100%
         max-width 335px
-
-  &.error
-    .path-viewer-toolbar
-      display none
-
-    .path-viewer-content
-      margin-top -2.5em
-      height 1.5em
-      background transparent
-
-    .path-viewer-message
-        color red
 
 .console
   .console-wrapper
@@ -619,6 +615,17 @@ tr.log-debug td
       background #ccc
       border 1px solid #ccc
       padding 1px
+
+    &.motor_fault
+      td, th
+        text-align center
+        min-width 1.75em
+
+      .fa-eraser
+        cursor pointer
+
+        &:hover
+          opacity 0.5
 
 .io
   &.active
@@ -890,7 +897,7 @@ label.file-upload
       width 99%
 
     .path-viewer
-      &.small, &.error
+      &.small
         .path-viewer-content
           margin-top inherit
           float inherit

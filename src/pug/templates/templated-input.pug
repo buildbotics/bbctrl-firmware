@@ -26,8 +26,7 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#templated-input-template(type="text/x-template")
-  .pure-control-group(class="tmpl-input-{{name}}",
-    title="Default {{template.default}} {{template.unit || ''}}")
+  .pure-control-group(class="tmpl-input-{{name}}", :title="title")
     label(:for="name") {{name}}
 
     select(v-if="template.type == 'enum' || template.values", v-model="view",

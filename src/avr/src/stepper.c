@@ -34,7 +34,6 @@
 #include "util.h"
 #include "cpp_magic.h"
 #include "exec.h"
-#include "spindle.h"
 #include "drv8711.h"
 
 #include <string.h>
@@ -53,6 +52,8 @@ typedef struct {
   bool busy;
   bool requesting;
   float dwell;
+  uint8_t power_index;
+  power_update_t powers[POWER_MAX_UPDATES];
 
   // Move prep
   bool move_ready;         // prepped move ready for loader
@@ -60,11 +61,13 @@ typedef struct {
   move_type_t move_type;
   float prep_dwell;
 
+  power_update_t prep_powers[POWER_MAX_UPDATES];
+
   uint32_t underflow;
 } stepper_t;
 
 
-static volatile stepper_t st = {0};
+static stepper_t st = {0};
 
 
 void stepper_init() {
@@ -111,7 +114,11 @@ ISR(STEP_LOW_LEVEL_ISR) {
     stat_t status = exec_next();
 
     switch (status) {
-    case STAT_NOP: st.busy = false;  break; // No command executed
+    case STAT_NOP:                          // No move executed, idle
+      spindle_idle();
+      st.busy = false;
+      break;
+
     case STAT_AGAIN: continue;              // No command executed, try again
 
     case STAT_OK:                           // Move executed
@@ -142,11 +149,18 @@ static void _request_exec_move() {
 }
 
 
+static void _update_power() {
+  if (st.power_index < POWER_MAX_UPDATES)
+    spindle_update(st.powers[st.power_index++]);
+}
+
+
 /// Dwell or dequeue and load next move.
 static void _load_move() {
   static uint8_t tick = 0;
 
-  spindle_update();
+  // Update spindle power on every tick
+  _update_power();
 
   // Dwell
   if (0 < st.dwell) {
@@ -161,7 +175,7 @@ static void _load_move() {
     if (exec_get_velocity()) st.underflow++;
     _request_exec_move();
     _end_move();
-    tick = 0;
+    tick = 0; // Try again in 1ms
     return;
   }
 
@@ -178,6 +192,11 @@ static void _load_move() {
   // Start dwell
   st.dwell = st.prep_dwell;
 
+  // Copy power updates
+  st.power_index = 0;
+  memcpy(st.powers, st.prep_powers, sizeof(st.powers));
+  _update_power();
+
   // We are done with this move
   st.move_type = MOVE_TYPE_NULL;
   st.prep_dwell = 0;      // clear dwell
@@ -191,6 +210,12 @@ static void _load_move() {
 
 /// Step timer interrupt routine.
 ISR(STEP_TIMER_ISR) {_load_move();}
+
+
+void st_prep_power(const power_update_t powers[]) {
+  ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
+  memcpy(st.prep_powers, powers, sizeof(st.prep_powers));
+}
 
 
 void st_prep_line(const float target[]) {

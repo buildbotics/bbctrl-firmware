@@ -30,6 +30,7 @@ import math
 import re
 import logging
 import threading
+import time
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
@@ -55,6 +56,7 @@ class Planner():
         ctrl.state.add_listener(self._update)
 
         self.reset()
+        self._report_time()
 
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
@@ -109,6 +111,7 @@ class Planner():
             'max-vel':   self._get_config_vector('vm', 1000),
             'max-accel': self._get_config_vector('am', 1000000),
             'max-jerk':  self._get_config_vector('jm', 1000000),
+            'rapid-auto-off': self.ctrl.config.get('rapid-auto-off'),
             # TODO junction deviation & accel
             }
 
@@ -127,7 +130,6 @@ class Planner():
         if not mdi:
             program_start = self.ctrl.config.get('program-start')
             if program_start: config['program-start'] = program_start
-
 
         overrides = {}
 
@@ -208,12 +210,56 @@ class Planner():
         self.cmdq.enqueue(id, self.ctrl.state.set, name, value)
 
 
+    def _report_time(self):
+        state = self.ctrl.state.get('xx', '')
+
+        if state in ['STOPPING', 'RUNNING'] and self.move_start:
+            delta = time.time() - self.move_start
+            if self.move_time < delta: delta = self.move_time
+            plan_time = self.current_plan_time + delta
+
+            self.ctrl.state.set('plan_time', round(plan_time))
+
+        elif state != 'HOLDING': self.ctrl.state.set('plan_time', 0)
+
+        self.ctrl.ioloop.call_later(1, self._report_time)
+
+
+    def _plan_time_restart(self):
+        self.plan_time = self.ctrl.state.get('plan_time', 0)
+
+
+    def _update_time(self, plan_time, move_time):
+        self.current_plan_time = plan_time
+        self.move_time = move_time
+        self.move_start = time.time()
+
+
+    def _enqueue_line_time(self, block):
+        if block.get('first', False) or block.get('seeking', False): return
+
+        # Sum move times
+        move_time = sum(block['times']) / 1000 # To seconds
+
+        self.cmdq.enqueue(block['id'], self._update_time, self.plan_time,
+                          move_time)
+
+        self.plan_time += move_time
+
+
+    def _enqueue_dwell_time(self, block):
+        self.cmdq.enqueue(block['id'], self._update_time, self.plan_time,
+                          block['seconds'])
+        self.plan_time += block['seconds']
+
+
     def __encode(self, block):
         type, id = block['type'], block['id']
 
         if type != 'set': log.info('Cmd:' + json.dumps(block))
 
         if type == 'line':
+            self._enqueue_line_time(block)
             return Cmd.line(block['target'], block['exit-vel'],
                             block['max-accel'], block['max-jerk'],
                             block['times'], block.get('speeds', []))
@@ -222,18 +268,19 @@ class Planner():
             name, value = block['name'], block['value']
 
             if name == 'message':
-                self.cmdq.enqueue(
-                    id, self.ctrl.msgs.broadcast, {'message': value})
+                msg = dict(message = value)
+                self.cmdq.enqueue(id, self.ctrl.msgs.broadcast, msg)
 
-            if name in ['line', 'tool']:
-                self._enqueue_set_cmd(id, name, value)
-
+            if name in ['line', 'tool']: self._enqueue_set_cmd(id, name, value)
             if name == 'speed': return Cmd.speed(value)
 
             if len(name) and name[0] == '_':
                 # Don't queue axis positions, can be triggered by set_position()
                 if len(name) != 2 or name[1] not in 'xyzabc':
                     self._enqueue_set_cmd(id, name[1:], value)
+
+            if name == '_feed': # Must come after _enqueue_set_cmd() above
+                return Cmd.set_sync('if', 1 / value if value else 0)
 
             if name[0:1] == '_' and name[1:2] in 'xyzabc':
                 if name[2:] == '_home': return Cmd.set_axis(name[1], value)
@@ -253,7 +300,10 @@ class Planner():
         if type == 'output':
             return Cmd.output(block['port'], int(float(block['value'])))
 
-        if type == 'dwell': return Cmd.dwell(block['seconds'])
+        if type == 'dwell':
+            self._enqueue_dwell_time(block)
+            return Cmd.dwell(block['seconds'])
+
         if type == 'pause': return Cmd.pause(block['pause-type'])
         if type == 'seek':
             return Cmd.seek(block['switch'], block['active'], block['error'])
@@ -270,22 +320,32 @@ class Planner():
             return Cmd.set_sync('id', block['id']) + '\n' + cmd
 
 
+    def reset_times(self):
+        self.move_start = 0
+        self.move_time = 0
+        self.plan_time = 0
+        self.current_plan_time = 0
+
+
     def reset(self):
-        if (hasattr(self.ctrl, 'mach')): self.ctrl.mach.stop()
+        if hasattr(self.ctrl, 'mach'): self.ctrl.mach.stop()
         self.planner = gplan.Planner()
         self.planner.set_resolver(self._get_var_cb)
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
         self.cmdq.clear()
+        self.reset_times()
 
 
     def mdi(self, cmd, with_limits = True):
         log.info('MDI:' + cmd)
         self.planner.load_string(cmd, self.get_config(True, with_limits))
+        self.reset_times()
 
 
     def load(self, path):
         log.info('GCode:' + path)
         self.planner.load(path, self.get_config(False, True))
+        self.reset_times()
 
 
     def stop(self):
@@ -310,6 +370,9 @@ class Planner():
                     position[axis] = state.get(axis + 'p')
 
             log.info('Planner restart: %d %s' % (id, json.dumps(position)))
+            self.cmdq.clear()
+            self.cmdq.release(id)
+            self._plan_time_restart()
             self.planner.restart(id, position)
 
             if self.planner.is_synchronizing():

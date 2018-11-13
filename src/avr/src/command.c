@@ -201,14 +201,14 @@ bool command_callback() {
     if (status == STAT_OK) cmd.active = true; // Disables LCD booting message
   }
 
-  block = 0; // Command consumed
-
   switch (status) {
   case STAT_OK: break;
   case STAT_NOP: break;
   case STAT_MACHINE_ALARMED: STATUS_WARNING(status, ""); break;
-  default: STATUS_ERROR(status, ""); break;
+  default: STATUS_ERROR(status, "%s", block); break;
   }
+
+  block = 0; // Command consumed
 
   return true;
 }

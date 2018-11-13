@@ -170,6 +170,42 @@ script#indicators-template(type="text/x-template")
         th
         td
 
+    table.motor_fault
+      tr
+        th.header(colspan=99)
+          | Motor Faults
+          .fa(:class="motor_fault_class()", title="General motor driver fault")
+
+      tr
+        th Motor
+        th(title="Overtemperature fault"): .fa.fa-thermometer-full
+        th(title="Overcurrent motor channel A") A #[.fa.fa-bolt]
+        th(title="Predriver fault motor channel A")
+          | A #[.fa.fa-exclamation-triangle]
+        th(title="Overcurrent motor channel B") B #[.fa.fa-bolt]
+        th(title="Predriver fault motor channel B")
+          | B #[.fa.fa-exclamation-triangle]
+        th(title="Driver communication failure"): .fa.fa-handshake-o
+        th(title="Reset all motor flags")
+          .fa.fa-eraser(@click="motor_reset()")
+
+      tr(v-for="motor in [0, 1, 2, 3]")
+        td {{motor}}
+        td: .fa(:class="motor_fault_class(motor, 'temp')",
+          title="Overtemperature fault")
+        td: .fa(:class="motor_fault_class(motor, 'current a')",
+          title="Overcurrent motor channel A")
+        td: .fa(:class="motor_fault_class(motor, 'fault a')",
+          title="Predriver fault motor channel A")
+        td: .fa(:class="motor_fault_class(motor, 'current b')",
+          title="Overcurrent motor channel B")
+        td: .fa(:class="motor_fault_class(motor, 'fault b')",
+          title="Predriver fault motor channel B")
+        td: .fa(:class="motor_fault_class(motor, 'comm')",
+          title="Driver communication failure")
+        td(:title="'Reset motor ' + motor + ' flags'")
+          .fa.fa-eraser(@click="motor_reset(motor)")
+
     table.measurements
       tr
         th.header(colspan=5) Measurements

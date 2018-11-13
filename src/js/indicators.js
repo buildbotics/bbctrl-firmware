@@ -77,6 +77,31 @@ module.exports = {
       case 2: return 10;
       case 3: return 12;
       }
+    },
+
+
+    motor_fault_class: function (motor, fault) {
+      if (typeof motor == 'undefined') {
+        var status = this.state['fa'];
+        if (typeof status == 'undefined') return 'fa-question';
+        return 'fa-thumbs-' + (status ? 'down error' : 'up success')
+      }
+
+      var status = this.state[motor + 'ds'];
+      if (typeof status == 'undefined') return 'fa-question';
+      return status.indexOf(fault) == -1 ? 'fa-thumbs-up success' :
+        'fa-thumbs-down error';
+    },
+
+
+    motor_reset: function (motor) {
+      if (typeof motor == 'undefined') {
+        var cmd = '';
+        for (var i = 0; i < 4; i++)
+          cmd += '\\$' + i + 'df=0\n';
+        this.$dispatch('send', cmd);
+
+      } else this.$dispatch('send', '\\$' + motor + 'df=0');
     }
   }
 }

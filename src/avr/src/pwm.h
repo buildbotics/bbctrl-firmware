@@ -30,8 +30,8 @@
 #include "spindle.h"
 
 
-void pwm_spindle_init();
-void pwm_spindle_deinit(deinit_cb_t cb);
-void pwm_spindle_set(uint8_t time, float speed);
-float pwm_spindle_get();
-void pwm_spindle_update();
+void pwm_init();
+float pwm_get();
+void pwm_deinit(deinit_cb_t cb);
+power_update_t pwm_get_update(float power);
+void pwm_update(power_update_t update);

@@ -54,7 +54,11 @@ class MainLCDPage(bbctrl.LCDPage):
         # Show enabled axes
         row = 0
         for axis in 'xyzabc':
-            if state.is_axis_enabled(axis):
+            if state.is_axis_faulted(axis):
+                self.text('    FAULT %s' % axis.upper(), 9, row)
+                row += 1
+
+            elif state.is_axis_enabled(axis):
                 position = state.get(axis + 'p', 0)
                 position += state.get('offset_' + axis, 0)
                 position /= scale

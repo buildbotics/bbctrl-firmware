@@ -98,6 +98,7 @@ $(TARGET_DIR)/index.html: $(wildcard src/static/css/*)
 $(TARGET_DIR)/index.html: $(wildcard src/pug/templates/*)
 $(TARGET_DIR)/index.html: $(wildcard src/js/*)
 $(TARGET_DIR)/index.html: $(wildcard src/stylus/*)
+$(TARGET_DIR)/index.html: src/resources/config-template.json
 
 $(TARGET_DIR)/%.html: src/pug/%.pug node_modules
 	@mkdir -p $(shell dirname $@)

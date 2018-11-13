@@ -55,6 +55,12 @@ axis_homing_procedure = '''
   G90 G28.3 %(axis)s[#<_%(axis)s_home_position>]
 '''
 
+motor_fault_error = '''\
+Motor %d driver fault.  A potentially damaging electrical condition was \
+detected and the motor driver was shutdown.  Please power down the controller \
+and check your motor cabling. See the "Motor Faults" table on the "Indicators" \
+for more information.\
+'''
 
 def overrides(interface_class):
     def overrider(method):
@@ -73,6 +79,7 @@ class Mach(Comm):
 
         self.ctrl = ctrl
         self.planner = bbctrl.Planner(ctrl)
+        self.unpausing = False
 
         ctrl.state.set('cycle', 'idle')
         self._update_cycle_cb(False)
@@ -114,9 +121,19 @@ class Mach(Comm):
         # Handle EStop
         if update.get('xx', '') == 'ESTOPPED': self.planner.reset()
 
+        # Unpause sync
+        if update.get('xx', '') != 'HOLDING': self.unpausing = False
+
         # Update cycle now, if it has changed
         self._update_cycle()
 
+        # Detect motor faults
+        for motor in range(4):
+            key = '%ddf' % motor
+            if key in update and update[key] & 0x1f:
+                log.error(motor_fault_error % motor)
+
+        # Unpause
         if (('xx' in update or 'pr' in update) and
             self.ctrl.state.get('xx', '') == 'HOLDING'):
             pause_reason = self.ctrl.state.get('pr', '')
@@ -135,6 +152,9 @@ class Mach(Comm):
 
 
     def _unpause(self):
+        if self._get_state() != 'HOLDING' or self.unpausing: return
+        self.unpausing = True
+
         pause_reason = self.ctrl.state.get('pr', '')
         log.info('Unpause: ' + pause_reason)
 
@@ -268,8 +288,10 @@ class Mach(Comm):
 
 
     def start(self):
+        filename = self.ctrl.state.get('selected', '')
+        if not filename: return
         self._begin_cycle('running')
-        self.planner.load('upload/' + self.ctrl.state.get('selected'))
+        self.planner.load('upload/' + filename)
         super().resume()
 
 

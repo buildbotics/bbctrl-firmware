@@ -84,7 +84,7 @@ const vfd_reg_t ac_tech_regs[] PROGMEM = {
   {REG_FWD_WRITE,         1,    8}, // Start drive
   {REG_REV_WRITE,         1,   64}, // Reverse
   {REG_REV_WRITE,         1,    8}, // Start drive
-  {REG_FREQ_ACTECH_READ, 24,    0}, // Actual speed
+  {REG_FREQ_ACTECH_READ, 24,    0}, // Actual freq
   {REG_DISCONNECT_WRITE,  1,    2}, // Lock controls and parameters
   {REG_DISABLED},
 };
@@ -139,9 +139,9 @@ static struct {
   bool changed;
   bool shutdown;
 
-  float speed;
+  float power;
   uint16_t max_freq;
-  float actual_speed;
+  float actual_power;
   uint16_t status;
 
   uint32_t wait;
@@ -159,13 +159,13 @@ static void _disconnected() {
 static bool _next_state() {
   switch (vfd.state) {
   case REG_MAX_FREQ_FIXED:
-    if (!vfd.speed) vfd.state = REG_STOP_WRITE;
+    if (!vfd.power) vfd.state = REG_STOP_WRITE;
     else vfd.state = REG_FREQ_SET;
     break;
 
   case REG_FREQ_SIGN_SET:
-    if (vfd.speed < 0) vfd.state = REG_REV_WRITE;
-    else if (0 < vfd.speed) vfd.state = REG_FWD_WRITE;
+    if (vfd.power < 0) vfd.state = REG_REV_WRITE;
+    else if (0 < vfd.power) vfd.state = REG_FWD_WRITE;
     else vfd.state = REG_STOP_WRITE;
     break;
 
@@ -239,14 +239,14 @@ static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
 
   switch (regs[vfd.reg].type) {
   case REG_MAX_FREQ_READ: vfd.max_freq = value; break;
-  case REG_FREQ_READ: vfd.actual_speed = value / (float)vfd.max_freq; break;
+  case REG_FREQ_READ: vfd.actual_power = value / (float)vfd.max_freq; break;
 
   case REG_FREQ_SIGN_READ:
-    vfd.actual_speed = (int16_t)value / (float)vfd.max_freq;
+    vfd.actual_power = (int16_t)value / (float)vfd.max_freq;
     break;
 
   case REG_FREQ_ACTECH_READ:
-    if (vfd.read_count == 2) vfd.actual_speed = value / (float)vfd.max_freq;
+    if (vfd.read_count == 2) vfd.actual_power = value / (float)vfd.max_freq;
     if (vfd.read_count < 6) return;
     break;
 
@@ -275,12 +275,12 @@ static bool _exec_command() {
 
   case REG_FREQ_SET:
     write = true;
-    reg.value = fabs(vfd.speed) * vfd.max_freq;
+    reg.value = fabs(vfd.power) * vfd.max_freq;
     break;
 
   case REG_FREQ_SIGN_SET:
     write = true;
-    reg.value = vfd.speed * vfd.max_freq;
+    reg.value = vfd.power * vfd.max_freq;
     break;
 
   case REG_CONNECT_WRITE:
@@ -346,15 +346,15 @@ void vfd_spindle_deinit(deinit_cb_t cb) {
 }
 
 
-void vfd_spindle_set(float speed) {
-  if (vfd.speed != speed) {
-    vfd.speed = speed;
+void vfd_spindle_set(float power) {
+  if (vfd.power != power) {
+    vfd.power = power;
     vfd.changed = true;
   }
 }
 
 
-float vfd_spindle_get() {return vfd.actual_speed;}
+float vfd_spindle_get() {return vfd.actual_power;}
 
 
 void vfd_spindle_rtc_callback() {

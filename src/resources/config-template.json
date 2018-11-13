@@ -292,6 +292,7 @@
 
   "pwm-spindle": {
     "pwm-inverted": {
+      "help": "Invert the PWM signal output.",
       "type": "bool",
       "default": false,
       "code": "pi"
@@ -319,6 +320,18 @@
       "max": 320000,
       "default": 1000,
       "code": "sf"
+    },
+    "rapid-auto-off": {
+      "help": "Turn tool off during rapid moves.  Useful for LASERs.",
+      "type": "bool",
+      "default": false
+    },
+    "dynamic-power": {
+      "help":
+      "Adjust tool power based on velocity and feed rate.  Useful for LASERs.",
+      "type": "bool",
+      "default": false,
+      "code": "dp"
     }
   },
 

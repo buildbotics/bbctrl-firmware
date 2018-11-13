@@ -44,6 +44,15 @@ module.exports = {
     units: function () {
       return (this.metric || !this.template.iunit) ?
         this.template.unit : this.template.iunit;
+    },
+
+
+    title: function () {
+      var s = 'Default ' + this.template.default + ' ' +
+          (this.template.unit || '');
+      if (typeof this.template.help != 'undefined')
+        s = this.template.help + '\n' + s;
+      return s;
     }
   },
 

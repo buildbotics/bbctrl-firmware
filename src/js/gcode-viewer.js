@@ -73,7 +73,8 @@ module.exports = {
 
   methods: {
     load: function (file) {
-      if (file == this.file) return;
+      if (file == this.file || typeof file == 'undefined' ||
+          typeof file == 'null') return;
       this.clear();
       this.file = file;
 
