@@ -1,149 +1,60 @@
-# Buildbotics Machine Controller Setup
+# Buildbotics CNC Controller Firmware
+This repository contains the source code for the Buildbotics CNC Controller.
+See [buildbotics.com](https://buildbotics.com/) for more information.
 
-These instructions are for a Debian *testing* development system targeting the RaspberryPi.
+## Overview
+![Buildbotics architecture overview](docs/buildbotics_architecture_overview.png)
 
-## Download & install the base RPi system
+The main parts of the Buildbotics CNC Controller software and the technologies
+they are built with are as follows:
 
-```
-https://downloads.raspberrypi.org/raspbian/images/raspbian-2015-09-28/2015-09-24-raspbian-jessie.zip
-unzip 2015-09-24-raspbian-jessie.zip
-```
+ * Web App - Frontend user interface
+   * [Javascript](https://www.w3schools.com/js/)
+   * [HTML5](https://www.w3schools.com/html/)
+   * [Stylus](http://stylus-lang.com/)
+   * [Pug.js](https://pugjs.org/)
+   * [Vue.js](https://vuejs.org/)
 
-or
+ * Controller OS - RaspberryPi Operating System
+   * [Raspbian](https://www.raspbian.org/)
 
-```
-wget https://downloads.raspberrypi.org/raspbian/images/raspbian-2015-05-07/2015-05-05-raspbian-wheezy.zip
-unzip 2015-05-05-raspbian-wheezy.zip
-```
+ * BBCtrl - Python App
+   * [Python 3](https://www.python.org/)
+   * [Tornado Web](https://www.tornadoweb.org/)
 
-Now copy the base system to an SD card.  You need a card with at least 4GiB.  After installing the RPi system all data on the SD card will be lost.  So make sure you back up the SD card if there's anything important on it
-In the command below, make sure you have the correct device or you can **destroy your Linux system** by overwriting the disk.  One way to do this is to run ``sudo tail -f /var/log/syslog`` before inserting the SD card.  After inserting the card look for log messages containing ``/dev/sdx`` where ``x`` is a letter.  This should be the device name of the SD card.  Hit ``CTRL-C`` to stop following the system log.
+ * GPlan - Path Planner Python Module
+   * [C++](http://www.cplusplus.com/)
+   * [CAMotics](https://camotics.org/)
 
-```
-sudo dd bs=4M if=2015-05-05-raspbian-wheezy.img of=/dev/sde
-sudo sync
-```
+ * Main AVR Firmware + Bootloader - Real-time step generation, etc.
+   * [ATxmega192a3u](https://www.microchip.com/wwwproducts/ATxmega192A3U)
+   * [C](https://en.wikipedia.org/wiki/C_(programming_language))
 
-The first command takes awhile and does not produce any output until it's done.
+ * Pwr AVR Firmware - Power safety
+   * [ATtiny1634](https://www.microchip.com/wwwproducts/ATtiny1634)
+   * [C](https://en.wikipedia.org/wiki/C_(programming_language))
 
-Insert the SD card into your RPi and power it on.  Plug in the network connection, wired or wireless.
+## Quickstart Guide
 
-## Login to the RPi
+Be sure to read the [development guide](docs/development.md) for more detailed
+instructions.
 
-[Determine the IP address of your RPi](https://www.raspberrypi.org/documentation/troubleshooting/hardware/networking/ip-address.md).
+On a Debian Linux (9.6.0 stable) system:
 
-Login:
+    # Install the required packages
+    sudo apt-get update
+    sudo apt-get install -y build-essential git wget binfmt-support qemu \
+      parted gcc-avr avr-libc avrdude pylint3 python3 python3-tornado curl \
+      unzip python3-setuptools
+    curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+    sudo apt-get install -y nodejs
 
-```
-ssh pi@<ip>
-```
+    # Get the source
+    git clone https://github.com/buildbotics/bbctrl-firmware
 
-Substitute ``<ip>`` with the correct IP address.  The default password is ``raspberry``.  You should see a prompt like this: ``pi@raspberrypi ~ $``, but in color.
+    # Build the Firmware
+    cd bbctrl-firmware
+    make pkg
 
-## Configure the RPi
-Copy the ``scripts/setup_rpi.sh`` script to the RPi and run it as root:
-
-```
-scp scripts/setup_rpi.sh pi@<ip>:
-ssh pi@<ip> sudo ./setup_rpi.sh
-```
-
-This will take some time and will end by rebooting the RPi.  After this script has run you can log in to the RPi with out typing the IP addrerss like this:
-
-```
-ssh bbmc@bbctrl.local
-```
-
-## Install the RPi toolchain
-On the development system (i.e. not on the RPi):
-
-```
-sudo apt-get update
-sudo apt-get install -y gcc-arm-linux-gnueabihf
-```
-
-## Compile and run a test program
-
-On the development system, create a file ``hello.c`` with these contents:
-
-```
-#include <stdio.h>
-
-int main(int argc, char *argv[]) {
-  printf("Hello World!\n");
-  return 0;
-}
-```
-
-Compile it like this:
-
-```
-arm-linux-gnueabihf-gcc hello.c -o hello
-```
-
-Copy ``hello`` to the RPi:
-
-```
-scp hello pi@bbctrl.local:
-```
-
-Login to the system and run ``hello`` like this:
-
-```
-ssh bbmc@bbctrl.local
-./hello
-```
-
-You should see the output ``Hello World!``.
-
-## Install the AVR toolchain
-Install the following tools for programming the AVR:
-
-```
-sudo apt-get install -y avrdude gcc-avr
-```
-
-## Program Motion Controller
-
-```
-make program
-```
-
-
-## Setup Python Development
-
-
-# Huanyang Spindle Setup
-
-Connections:
-
- * pin 13 -> Rs+
- * pin 14 -> Rs-
-
-Program the following settings:
-
- * PD013 = 8 (reset to factory settings)
- * PD005 = 400 (max frequency 400Hz)
- * PD004 = 400 (base frequency 400Hz)
- * PD003 = 400 (main frequency 400Hz)
- * PD001 = 2 (set communication port as source of run commands)
- * PD002 = 2 (set communication port as source of operating frequency)
- * PD163 = 1 (slave address 1)
- * PD164 = 1 (baud rate 9600 bps)
- * PD165 = 3 (8N1 for RTU mode)
-
-For a 1.5KW spindle:
-
- * PD006 = 2.5 (intermediate frequency 2.5Hz)
- * PD008 = 220 (max voltage 220V)
- * PD009 = 15 (intermediate voltage 15V)
- * PD010 = 8 (min voltage 8V)
- * PD011 = 120 (frequency lower limit 120Hz, to limit lower RPM settings)
- * PD014 = 5.0 (acceleration time, 5 seconds)
- * PD015 = 0.8 (deceleration time; any more trips the VFD)
- * PD025 = 1 (starting mode: frequency track)
- * PD142 = 7 (max current 7 A)
- * PD143 = 2 (specific to my 1.5 KW spindle: number of poles - 2)
- * PD144 = 3000 (multiplied by PD010 = 3000 * 8 = 24,000 RPM)
-
-See manual for settings for other spindles.
+The resulting package will be a ``.tar.bz2`` file in ``dist``.  See the
+[development guide](docs/development.md) for more information.
