@@ -52,9 +52,9 @@ def _dump_json(o):
     elif isinstance(o, int): yield str(o)
 
     elif isinstance(o, float):
-        if o != o: yield 'NaN'
-        elif o == float('inf'): yield 'Infinity'
-        elif o == float('-inf'): yield '-Infinity'
+        if o != o: yield '"NaN"'
+        elif o == float('inf'): yield '"Infinity"'
+        elif o == float('-inf'): yield '"-Infinity"'
         else: yield format(o, '.2f')
 
     elif isinstance(o, (list, tuple)):
@@ -101,6 +101,7 @@ def plan_hash(path, config):
             buf = f.read(1024 * 1024)
             if not buf: break
             h.update(buf)
+            time.sleep(0.001) # Yield some time
 
     return h.hexdigest()
 
@@ -185,11 +186,15 @@ class Preplanner(object):
     def invalidate(self, filename):
         with self.lock:
             if filename in self.plans:
+                self.plans[filename][0].cancel()
                 del self.plans[filename]
 
 
     def invalidate_all(self):
-        with self.lock: self.plans = {}
+        with self.lock:
+            for filename, plan in self.plans.items():
+                plan[0].cancel()
+            self.plans = {}
 
 
     def delete_all_plans(self):
@@ -315,13 +320,13 @@ class Preplanner(object):
         bounds = dict(min = {}, max = {})
         messages = []
         count = 0
-        cancelled = False
 
         # Initialized axis states and bounds
         for axis in 'xyzabc':
             position[axis] = 0
             bounds['min'][axis] = math.inf
             bounds['max'][axis] = -math.inf
+
 
         def add_to_bounds(axis, value):
             if value < bounds['min'][axis]: bounds['min'][axis] = value
@@ -393,8 +398,9 @@ class Preplanner(object):
 
                             if update_speed(s):
                                 m = compute_move(startPos, unit, d)
-                                m['s'] = cur
-                                moves.append(m)
+                                if cur is not None:
+                                    m['s'] = cur
+                                    moves.append(m)
                                 move['s'] = s
 
                     moves.append(move)
@@ -413,8 +419,7 @@ class Preplanner(object):
                 elif cmd['type'] == 'dwell': totalTime += cmd['seconds']
 
                 if not self._progress(filename, maxLine / totalLines):
-                    cancelled = True
-                    raise Exception('Plan canceled.')
+                    return # Plan cancelled
 
                 if self.max_preplan_time < time.time() - start:
                     raise Exception('Max planning time (%d sec) exceeded.' %
@@ -430,7 +435,7 @@ class Preplanner(object):
         except Exception as e:
             log_cb('error', str(e), filename, line, 0)
 
-        self._progress(filename, 1)
+        if not self._progress(filename, 1): return # Cancelled
 
         # Remove infinity from bounds
         for axis in 'xyzabc':
@@ -447,8 +452,7 @@ class Preplanner(object):
         meta_comp = gzip.compress(dump_json(meta).encode('utf8'))
 
         # Save plan & meta data
-        if not cancelled:
-            with open(plan_path, 'wb') as f: f.write(data)
-            with open(meta_path, 'wb') as f: f.write(meta_comp)
+        with open(plan_path, 'wb') as f: f.write(data)
+        with open(meta_path, 'wb') as f: f.write(meta_comp)
 
         return (data, meta)

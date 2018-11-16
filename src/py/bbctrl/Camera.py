@@ -611,7 +611,6 @@ class VideoHandler(web.RequestHandler):
             self.flush()
 
         except iostream.StreamBufferFullError:
-            log.info('Camera buffer full')
             pass # Drop frame if buffer is full
 
 

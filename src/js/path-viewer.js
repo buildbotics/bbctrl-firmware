@@ -351,6 +351,8 @@ module.exports = {
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 24;
 
+      if (length < 1) length = 1;
+
       var material = new THREE.MeshPhongMaterial({
         transparent: true,
         opacity: 0.75,
@@ -402,6 +404,9 @@ module.exports = {
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 3;
       length /= 10;
+
+      if (length < 1) length = 1;
+
       var radius = length / 20;
 
       var group = new THREE.Group();
@@ -592,10 +597,15 @@ module.exports = {
 
 
     get_model_bounds: function () {
-      var bbox = new THREE.Box3();
+      var bbox = new THREE.Box3(new THREE.Vector3(0, 0, 0),
+                                new THREE.Vector3(0.00001, 0.00001, 0.00001));
 
       function add(o) {
-        if (typeof o != 'undefined') bbox.union(o.geometry.boundingBox);
+        if (typeof o != 'undefined') {
+          var oBBox = new THREE.Box3();
+          oBBox.setFromObject(o);
+          bbox.union(oBBox);
+        }
       }
 
       add(this.pathView);

@@ -189,7 +189,6 @@ class State(object):
 
 
     def add_listener(self, listener):
-        log.info(self.vars)
         self.listeners.append(listener)
         listener(self.vars)
 
