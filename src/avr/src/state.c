@@ -90,17 +90,12 @@ static void _set_state(state_t state) {
 }
 
 
-static void _set_hold_reason(hold_reason_t reason) {
-  if (s.hold_reason == reason) return; // No change
-  s.hold_reason = reason;
-}
-
-
+static void _set_hold_reason(hold_reason_t reason) {s.hold_reason = reason;}
 bool state_is_flushing() {return s.flushing && !s.resuming;}
 bool state_is_resuming() {return s.resuming;}
 
 
-bool state_is_quiescent() {
+static bool _is_idle() {
   return (state_get() == STATE_READY || state_get() == STATE_HOLDING) &&
     !st_is_busy();
 }
@@ -156,7 +151,8 @@ void state_running() {
 
 
 void state_jogging() {
-  if (state_get() == STATE_READY) _set_state(STATE_JOGGING);
+  if (state_get() == STATE_READY || state_get() == STATE_HOLDING)
+    _set_state(STATE_JOGGING);
 }
 
 
@@ -188,15 +184,12 @@ void state_callback() {
     s.stop_requested = false;
   }
 
-  // Only flush queue when idle or holding
-  if (s.flushing && state_is_quiescent()) {
+  // Only flush queue when idle (READY or HOLDING)
+  if (s.flushing && _is_idle()) {
     command_flush_queue();
 
     // Resume
-    if (s.resuming) {
-      s.flushing = s.resuming = false;
-      _set_state(STATE_READY);
-    }
+    if (s.resuming) s.flushing = s.resuming = false;
   }
 
   // Unpause

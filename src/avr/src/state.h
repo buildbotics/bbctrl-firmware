@@ -64,7 +64,6 @@ state_t state_get();
 
 bool state_is_flushing();
 bool state_is_resuming();
-bool state_is_quiescent();
 
 void state_seek_hold();
 void state_holding();

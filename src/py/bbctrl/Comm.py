@@ -202,7 +202,9 @@ class Comm(object):
 
                 else:
                     self.ctrl.state.update(msg)
-                    if 'xx' in msg: self.ctrl.ready()
+                    if 'xx' in msg:           # State change
+                        self.ctrl.ready()     # We've received data from AVR
+                        self._set_write(True) # May have more data to send now
 
 
     def _serial_handler(self, fd, events):

@@ -80,6 +80,7 @@ class Mach(Comm):
         self.ctrl = ctrl
         self.planner = bbctrl.Planner(ctrl)
         self.unpausing = False
+        self.last_cycle = 'idle'
 
         ctrl.state.set('cycle', 'idle')
         self._update_cycle_cb(False)
@@ -90,16 +91,25 @@ class Mach(Comm):
 
 
     def _get_state(self): return self.ctrl.state.get('xx', '')
+    def _is_holding(self): return self._get_state() == 'HOLDING'
+    def _get_pause_reason(self): return self.ctrl.state.get('pr', '')
     def _get_cycle(self): return self.ctrl.state.get('cycle')
+
+
+    def _can_jog(self):
+        return (self._get_cycle() == 'idle' or
+                (self._is_holding() and
+                 self._get_pause_reason() in ('User pause', 'Program pause')))
 
 
     def _begin_cycle(self, cycle):
         current = self._get_cycle()
         if current == cycle: return # No change
 
-        if current == 'idle':
+        if (current == 'idle' or (cycle == 'jogging' and self._can_jog())):
             self.planner.update_position()
             self.ctrl.state.set('cycle', cycle)
+            self.last_cycle = current
 
         else:
             raise Exception('Cannot enter %s cycle while in %s cycle' %
@@ -121,50 +131,43 @@ class Mach(Comm):
         # Handle EStop
         if update.get('xx', '') == 'ESTOPPED': self.planner.reset()
 
-        # Unpause sync
-        if update.get('xx', '') != 'HOLDING': self.unpausing = False
-
-        # Update cycle now, if it has changed
-        self._update_cycle()
-
         # Detect motor faults
         for motor in range(4):
             key = '%ddf' % motor
             if key in update and update[key] & 0x1f:
                 log.error(motor_fault_error % motor)
 
-        # Unpause
-        if (('xx' in update or 'pr' in update) and
-            self.ctrl.state.get('xx', '') == 'HOLDING'):
-            pause_reason = self.ctrl.state.get('pr', '')
+        # Update cycle now, if it has changed
+        self._update_cycle()
 
-            # Continue after seek hold
-            if (pause_reason == 'Switch found' and
-                self.planner.is_synchronizing()):
-                self._unpause()
+        # Unpause sync
+        if update.get('xx', 'HOLDING') != 'HOLDING': self.unpausing = False
 
-            # Continue after stop hold
-            if pause_reason == 'User stop':
-                self.planner.stop()
-                self.planner.update_position()
-                self.ctrl.state.set('line', 0)
-                self._unpause()
-
-
-    def _unpause(self):
-        if self._get_state() != 'HOLDING' or self.unpausing: return
-        self.unpausing = True
-
-        pause_reason = self.ctrl.state.get('pr', '')
-        log.info('Unpause: ' + pause_reason)
-
-        if pause_reason in ['User pause', 'Switch found']:
-            self.planner.restart()
-
-        if pause_reason in ['User pause', 'User stop', 'Switch found']:
+        # Entering HOLDING state
+        if update.get('xx', '') == 'HOLDING':
+            # Always flush queue after pause
             super().i2c_command(Cmd.FLUSH)
             super().resume()
 
+            # Return from jogging cycle
+            if self._get_cycle() == 'jogging':
+                self.ctrl.state.set('cycle', self.last_cycle)
+
+        # Automatically unpause after seek or stop hold
+        if (('xx' in update or 'pr' in update) and self._is_holding() and
+            self._get_pause_reason() in ('Switch found', 'User stop')):
+            self._unpause()
+
+
+    def _unpause(self):
+        pause_reason = self._get_pause_reason()
+        log.info('Unpause: ' + pause_reason)
+
+        if pause_reason == 'User stop':
+            self.planner.stop()
+            self.ctrl.state.set('line', 0)
+
+        else: self.planner.restart()
 
         super().i2c_command(Cmd.UNPAUSE)
 
@@ -183,7 +186,8 @@ class Mach(Comm):
 
     @overrides(Comm)
     def comm_next(self):
-        if self.planner.is_running(): return self.planner.next()
+        if self.planner.is_running() and not self._is_holding():
+            return self.planner.next()
 
 
     @overrides(Comm)
@@ -306,10 +310,10 @@ class Mach(Comm):
 
 
     def unpause(self):
-        if self._get_state() != 'HOLDING': return
+        if self._get_state() != 'HOLDING' or self.unpausing: return
 
-        pause_reason = self.ctrl.state.get('pr', '')
-        if pause_reason in ['User pause', 'Program pause']:
+        if self._get_pause_reason() in ('User pause', 'Program pause'):
+            self.unpausing = True
             self._unpause()
 
 

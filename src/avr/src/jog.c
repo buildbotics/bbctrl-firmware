@@ -43,6 +43,7 @@
 
 
 static struct {
+  bool holding;
   bool writing;
 
   SCurve scurves[AXES];
@@ -102,7 +103,8 @@ stat_t jog_exec() {
     command_reset_position();
     exec_set_velocity(0);
     exec_set_cb(0);
-    state_idle();
+    if (jr.holding) state_holding();
+    else state_idle();
 
     return STAT_NOP; // Done, no move executed
   }
@@ -124,8 +126,9 @@ void jog_stop() {
 
 
 stat_t command_jog(char *cmd) {
-  // Ignore jog commands when not READY and not JOGGING
-  if (state_get() != STATE_READY && state_get() != STATE_JOGGING)
+  // Ignore jog commands when not READY, HOLDING or JOGGING
+  if (state_get() != STATE_READY && state_get() != STATE_HOLDING &&
+      state_get() != STATE_JOGGING)
     return STAT_NOP;
 
   // Skip over command code
@@ -142,6 +145,8 @@ stat_t command_jog(char *cmd) {
   // Start jogging
   if (state_get() != STATE_JOGGING) {
     memset(&jr, 0, sizeof(jr));
+
+    jr.holding = state_get() == STATE_HOLDING;
 
     for (int axis = 0; axis < AXES; axis++)
       if (axis_is_enabled(axis))

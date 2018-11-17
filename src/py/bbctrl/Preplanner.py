@@ -179,8 +179,9 @@ class Preplanner(object):
 
 
     def start(self):
-        log.info('Preplanner started')
-        self.started.set_result(True)
+        if not self.started.done():
+            log.info('Preplanner started')
+            self.started.set_result(True)
 
 
     def invalidate(self, filename):
