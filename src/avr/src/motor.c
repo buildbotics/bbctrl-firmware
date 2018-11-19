@@ -90,31 +90,31 @@ static motor_t motors[MOTORS] = {
     .axis            = AXIS_X,
     .step_pin        = STEP_X_PIN,
     .dir_pin         = DIR_X_PIN,
-    .timer           = &M1_TIMER,
-    .dma             = &M1_DMA_CH,
-    .dma_trigger     = M1_DMA_TRIGGER,
+    .timer           = &TCD0,
+    .dma             = &DMA.CH0,
+    .dma_trigger     = DMA_CH_TRIGSRC_TCD0_CCA_gc,
   }, {
     .axis            = AXIS_Y,
     .step_pin        = STEP_Y_PIN,
     .dir_pin         = DIR_Y_PIN,
-    .timer           = &M2_TIMER,
-    .dma             = &M2_DMA_CH,
-    .dma_trigger     = M2_DMA_TRIGGER,
+    .timer           = &TCE0,
+    .dma             = &DMA.CH1,
+    .dma_trigger     = DMA_CH_TRIGSRC_TCE0_CCA_gc,
   }, {
     .axis            = AXIS_Z,
     .step_pin        = STEP_Z_PIN,
     .dir_pin         = DIR_Z_PIN,
-    .timer           = &M3_TIMER,
-    .dma             = &M3_DMA_CH,
-    .dma_trigger     = M3_DMA_TRIGGER,
+    .timer           = &TCF0,
+    .dma             = &DMA.CH2,
+    .dma_trigger     = DMA_CH_TRIGSRC_TCF0_CCA_gc,
   }, {
     .axis            = AXIS_A,
     .step_pin        = STEP_A_PIN,
     .dir_pin         = DIR_A_PIN,
-    .timer           = (TC0_t *)&M4_TIMER,
-    .dma             = &M4_DMA_CH,
-    .dma_trigger     = M4_DMA_TRIGGER,
-    }
+    .timer           = (TC0_t *)&TCE1,
+    .dma             = &DMA.CH3,
+    .dma_trigger     = DMA_CH_TRIGSRC_TCE1_CCA_gc,
+  }
 };
 
 
@@ -267,7 +267,8 @@ void motor_load_move(int motor) {
   const bool dir = m->negative ^ m->reverse;
   if (dir != IN_PIN(m->dir_pin)) {
     SET_PIN(m->dir_pin, dir);
-    // Need at least 200ns between direction change and next step.
+
+    // We need at least 200ns between direction change and next step.
     if (m->timer->CCA < m->timer->CNT) m->timer->CNT = m->timer->CCA + 1;
   }
 
@@ -276,9 +277,9 @@ void motor_load_move(int motor) {
   m->dma->TRFCNT = 0xffff;
   m->dma->CTRLA |= DMA_CH_ENABLE_bm;
 
-  // Note, it is important to start the clock, if it is stopped, before
-  // setting PERBUF so that PER is not updated immediately possibly
-  // interrupting the clock mid step or causing counter wrap around.
+  // To avoid causing couter wrap around, it is important to start the clock
+  // before setting PERBUF.  If PERBUF is set before the clock is started PER
+  // updates immediately and possibly mid step.
 
   // Set clock and period
   m->timer->CTRLA  = m->clock;         // Start clock

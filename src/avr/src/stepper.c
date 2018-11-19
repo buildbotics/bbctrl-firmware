@@ -40,13 +40,6 @@
 #include <stdio.h>
 
 
-typedef enum {
-  MOVE_TYPE_NULL,          // null move - does a no-op
-  MOVE_TYPE_LINE,          // linear move
-  MOVE_TYPE_DWELL,         // delay with no movement
-} move_type_t;
-
-
 typedef struct {
   // Runtime
   bool busy;
@@ -56,11 +49,9 @@ typedef struct {
   power_update_t powers[POWER_MAX_UPDATES];
 
   // Move prep
-  bool move_ready;         // prepped move ready for loader
-  bool move_queued;        // prepped move queued
-  move_type_t move_type;
+  bool move_ready;  // Prepped move ready for loader
+  bool move_queued; // Prepped move queued
   float prep_dwell;
-
   power_update_t prep_powers[POWER_MAX_UPDATES];
 
   uint32_t underflow;
@@ -76,16 +67,22 @@ void stepper_init() {
   DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
 
   // Setup step timer
-  TIMER_STEP.CTRLB = STEP_TIMER_WGMODE;    // waveform mode
-  TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // interrupt mode
-  TIMER_STEP.PER = STEP_TIMER_POLL;        // timer rate
-  TIMER_STEP.CTRLA = STEP_TIMER_ENABLE;    // start step timer
+  TIMER_STEP.CTRLB    = STEP_TIMER_WGMODE; // Waveform mode
+  TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // Interrupt mode
+  TIMER_STEP.PER      = STEP_TIMER_POLL;   // Timer rate
+  TIMER_STEP.CTRLA    = STEP_TIMER_ENABLE; // Start step timer
 }
 
 
 static void _end_move() {
   for (int motor = 0; motor < MOTORS; motor++)
     motor_end_move(motor);
+}
+
+
+static void _load_move() {
+  for (int motor = 0; motor < MOTORS; motor++)
+    motor_load_move(motor);
 }
 
 
@@ -156,7 +153,7 @@ static void _update_power() {
 
 
 /// Dwell or dequeue and load next move.
-static void _load_move() {
+static void _next_move() {
   static uint8_t tick = 0;
 
   // Update spindle power on every tick
@@ -166,9 +163,10 @@ static void _load_move() {
   if (0 < st.dwell) {
     st.dwell -= 0.001; // 1ms
     return;
-  } else st.dwell = 0;
+  }
+  st.dwell = 0;
 
-  if (tick++ & 3) return;
+  if (tick++ & 3) return; // Proceed every 4 ticks
 
   // If the next move is not ready try to load it
   if (!st.move_ready) {
@@ -179,37 +177,35 @@ static void _load_move() {
     return;
   }
 
-  // Start move
-  if (st.move_type == MOVE_TYPE_LINE)
-    for (int motor = 0; motor < MOTORS; motor++)
-      motor_load_move(motor);
+  if (st.prep_dwell) {
+    // End last move, if any
+    _end_move();
 
-  else _end_move();
+    // Start dwell
+    st.dwell = st.prep_dwell;
+    st.prep_dwell = 0;
 
-  ESTOP_ASSERT(st.move_type != MOVE_TYPE_NULL, STAT_STEPPER_NULL_MOVE);
-  st.busy = true;
+  } else {
+    // Start move
+    _load_move();
 
-  // Start dwell
-  st.dwell = st.prep_dwell;
+    // Handle power updates
+    st.power_index = 0;
+    memcpy(st.powers, st.prep_powers, sizeof(st.powers));
+    _update_power();
 
-  // Copy power updates
-  st.power_index = 0;
-  memcpy(st.powers, st.prep_powers, sizeof(st.powers));
-  _update_power();
+    // Request next move when not in a dwell.  Requesting the next move may
+    // power up motors which should not be powered up during a dwell.
+    _request_exec_move();
+  }
 
-  // We are done with this move
-  st.move_type = MOVE_TYPE_NULL;
-  st.prep_dwell = 0;      // clear dwell
-  st.move_ready = false;  // flip the flag back
-
-  // Request next move if not currently in a dwell.  Requesting the next move
-  // may power up motors and the motors should not be powered up during a dwell.
-  if (!st.dwell) _request_exec_move();
+  st.busy = true;        // Executing move so mark busy
+  st.move_ready = false; // We are done with this move, flip the flag back
 }
 
 
 /// Step timer interrupt routine.
-ISR(STEP_TIMER_ISR) {_load_move();}
+ISR(STEP_TIMER_ISR) {_next_move();}
 
 
 void st_prep_power(const power_update_t powers[]) {
@@ -222,9 +218,6 @@ void st_prep_line(const float target[]) {
   // Trap conditions that would prevent queuing the line
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
 
-  // Setup segment parameters
-  st.move_type = MOVE_TYPE_LINE;
-
   // Prepare motor moves
   for (int motor = 0; motor < MOTORS; motor++)
     motor_prep_move(motor, target[motor_get_axis(motor)]);
@@ -236,7 +229,6 @@ void st_prep_line(const float target[]) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
-  st.move_type = MOVE_TYPE_DWELL;
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
 }

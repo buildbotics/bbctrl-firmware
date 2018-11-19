@@ -128,21 +128,6 @@ enum {
 #define TIMER_STEP               TCC0 // Step timer (see stepper.h)
 #define TIMER_PWM                TCD1 // PWM timer  (see pwm.c)
 
-#define M1_TIMER                 TCD0
-#define M2_TIMER                 TCE0
-#define M3_TIMER                 TCF0
-#define M4_TIMER                 TCE1
-
-#define M1_DMA_CH                DMA.CH0
-#define M2_DMA_CH                DMA.CH1
-#define M3_DMA_CH                DMA.CH2
-#define M4_DMA_CH                DMA.CH3
-
-#define M1_DMA_TRIGGER           DMA_CH_TRIGSRC_TCD0_CCA_gc
-#define M2_DMA_TRIGGER           DMA_CH_TRIGSRC_TCE0_CCA_gc
-#define M3_DMA_TRIGGER           DMA_CH_TRIGSRC_TCF0_CCA_gc
-#define M4_DMA_TRIGGER           DMA_CH_TRIGSRC_TCE1_CCA_gc
-
 
 // Timer setup for stepper and dwells
 #define STEP_TIMER_ENABLE        TC_CLKSEL_DIV8_gc
