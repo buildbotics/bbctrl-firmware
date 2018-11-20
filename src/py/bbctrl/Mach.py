@@ -97,6 +97,8 @@ class Mach(Comm):
 
 
     def _can_jog(self):
+        return self._get_cycle() == 'idle'
+        # TODO handle jog during pause for manual tool changes
         return (self._get_cycle() == 'idle' or
                 (self._is_holding() and
                  self._get_pause_reason() in ('User pause', 'Program pause')))
@@ -107,7 +109,6 @@ class Mach(Comm):
         if current == cycle: return # No change
 
         if (current == 'idle' or (cycle == 'jogging' and self._can_jog())):
-            self.planner.update_position()
             self.ctrl.state.set('cycle', cycle)
             self.last_cycle = current
 

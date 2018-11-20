@@ -251,7 +251,6 @@ class PathHandler(bbctrl.APIHandler):
 
         try:
             if data is not None:
-                data = data[0] # We only want the compressed path
                 self.set_header('Content-Encoding', 'gzip')
 
                 # Respond with chunks to avoid long delays

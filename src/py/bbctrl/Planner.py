@@ -62,7 +62,6 @@ class Planner():
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
     def is_synchronizing(self): return self.planner.is_synchronizing()
-    def set_position(self, position): self.planner.set_position(position)
 
 
     def get_position(self):
@@ -76,8 +75,10 @@ class Planner():
         return position
 
 
-    def update_position(self):
-        self.set_position(self.get_position())
+    def set_position(self, position):
+        for axis in 'xyzabc':
+            if not self.ctrl.state.is_axis_enabled(axis): continue
+            self.ctrl.state.set(axis + 'p', position[axis])
 
 
     def _get_config_vector(self, name, scale):
@@ -104,7 +105,7 @@ class Planner():
         return limit
 
 
-    def get_config(self, mdi, with_limits):
+    def get_config(self, mdi, with_limits, with_position = True):
         metric = self.ctrl.state.get('metric', True)
         config = {
             'default-units': 'METRIC' if metric else 'IMPERIAL',
@@ -114,6 +115,8 @@ class Planner():
             'rapid-auto-off': self.ctrl.config.get('rapid-auto-off'),
             # TODO junction deviation & accel
             }
+
+        if with_position: config['position'] = self.get_position()
 
         if with_limits:
             minLimit = self._get_soft_limit('tn', -math.inf)
@@ -275,7 +278,7 @@ class Planner():
             if name == 'speed': return Cmd.speed(value)
 
             if len(name) and name[0] == '_':
-                # Don't queue axis positions, can be triggered by set_position()
+                # Don't queue axis positions, can be triggered by new position
                 if len(name) != 2 or name[1] not in 'xyzabc':
                     self._enqueue_set_cmd(id, name[1:], value)
 
@@ -352,7 +355,6 @@ class Planner():
         try:
             self.planner.stop()
             self.cmdq.clear()
-            self.update_position()
 
         except Exception as e:
             log.exception(e)

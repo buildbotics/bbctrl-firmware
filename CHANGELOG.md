@@ -5,7 +5,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Suppress ``Auto-creating missing tool`` warning.
  - Prevent ``Stream is closed`` error.
  - Suppress ``WebGL not supported`` warning.
- - Allow jogging during program or user pause.
+ - Fixed Web disconnect during simulation of large GCode.
 
 ## v0.4.1
  - Fix toolpath view axes bug.

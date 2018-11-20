@@ -61,6 +61,7 @@ module.exports = {
       var repeat = messages.length && _msg_equal(msg, messages[0]);
       if (repeat) messages[0].repeat++;
       else {
+        msg.repeat = msg.repeat || 1;
         messages.unshift(msg);
         while (256 < messages.length) messages.pop();
       }

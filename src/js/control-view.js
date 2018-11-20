@@ -217,8 +217,17 @@ module.exports = {
       api.get('path/' + file).done(function (toolpath) {
         if (this.last_file != file) return;
 
-        if (typeof toolpath.progress == 'undefined') this.toolpath = toolpath;
-        else {
+        if (typeof toolpath.progress == 'undefined') {
+          this.toolpath = toolpath;
+
+          var state = this.$root.state;
+          var bounds = toolpath.bounds;
+          for (var axis of 'xyzabc') {
+            Vue.set(state, 'path_min_' + axis, bounds.min[axis]);
+            Vue.set(state, 'path_max_' + axis, bounds.max[axis]);
+          }
+
+        } else {
           this.toolpath_progress = toolpath.progress;
           this.load_toolpath(file); // Try again
         }

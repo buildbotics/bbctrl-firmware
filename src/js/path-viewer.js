@@ -433,9 +433,9 @@ module.exports = {
 
     draw_path: function (scene) {
       var s = undefined;
-      var x = this.x.pos;
-      var y = this.y.pos;
-      var z = this.z.pos;
+      var x = 0;
+      var y = 0;
+      var z = 0;
       var color = undefined;
 
       var positions = [];
@@ -448,11 +448,11 @@ module.exports = {
         var newColor = this.get_color(step.rapid, s);
 
         // Handle color change
-        if (!i || newColor != color) {
-          color = newColor;
+        if (i && newColor != color) {
           positions.push(x, y, z);
-          colors.push.apply(colors, color);
+          colors.push.apply(colors, newColor);
         }
+        color = newColor;
 
         // Draw to move target
         x = get(step, 'x', x);

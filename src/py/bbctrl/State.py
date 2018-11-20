@@ -35,40 +35,6 @@ import bbctrl
 log = logging.getLogger('State')
 
 
-class StateSnapshot:
-    def __init__(self, state):
-        self.vars = copy.deepcopy(state.vars)
-
-        for name in state.callbacks:
-            if not name in self.vars:
-                self.vars[name] = state.callbacks[name](name)
-
-        self.motors = {}
-        for axis in 'xyzabc':
-            self.motors[axis] = state.find_motor(axis)
-
-
-    def json(self): return dict(vars = self.vars, motors = self.motors)
-
-
-    def resolve(self, name):
-        # Resolve axis prefixes to motor numbers
-        if 2 < len(name) and name[1] == '_' and name[0] in 'xyzabc':
-            motor = self.motors[name[0]]
-            if motor is not None: return str(motor) + name[2:]
-
-        return name
-
-
-    def get(self, name, default = None):
-        name = self.resolve(name)
-
-        if name in self.vars: return self.vars[name]
-        if default is None: log.warning('State variable "%s" not found' % name)
-        return default
-
-
-
 class State(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -179,7 +145,27 @@ class State(object):
         return default
 
 
-    def snapshot(self): return StateSnapshot(self)
+    def snapshot(self):
+        vars = copy.deepcopy(self.vars)
+
+        for name in self.callbacks:
+            if not name in vars:
+                vars[name] = self.callbacks[name](name)
+
+        axis_motors = {axis: self.find_motor(axis) for axis in 'xyzabc'}
+        axis_vars = {}
+
+        for name, value in vars.items():
+            if name[0] in '0123':
+                motor = int(name[0])
+
+                for axis in 'xyzabc':
+                    if motor == axis_motors[axis]:
+                        axis_vars[axis + '_' + name[1:]] = value
+
+        vars.update(axis_vars)
+
+        return vars
 
 
     def config(self, code, value):

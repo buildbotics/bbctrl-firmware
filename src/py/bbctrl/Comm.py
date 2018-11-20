@@ -132,7 +132,7 @@ class Comm(object):
 
         # Load next command from callback
         else:
-            cmd = self.comm_next()
+            cmd = self.comm_next() # pylint: disable=assignment-from-no-return
 
             if cmd is None: self._set_write(False) # Stop writing
             else: self._load_next_command(cmd)
