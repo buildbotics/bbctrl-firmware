@@ -117,6 +117,9 @@ module.exports = {
     },
 
 
+    pause_reason: function () {return this.state.pr},
+
+
     is_running: function () {
       return this.mach_state == 'RUNNING' || this.mach_state == 'HOMING';
     },
@@ -125,10 +128,23 @@ module.exports = {
     is_stopping: function () {return this.mach_state == 'STOPPING'},
     is_holding: function () {return this.mach_state == 'HOLDING'},
     is_ready: function () {return this.mach_state == 'READY'},
+    is_idle: function () {return this.state.cycle == 'idle'},
 
 
-    can_mdi: function () {
-      return this.state.cycle == 'idle' || this.state.cycle == 'mdi';
+    is_paused: function () {
+      return this.is_holding &&
+        (this.pause_reason == 'User pause' ||
+         this.pause_reason == 'Program pause')
+    },
+
+
+    can_mdi: function () {return this.is_idle || this.state.cycle == 'mdi'},
+
+
+    can_set_axis: function () {
+      return this.is_idle
+      // TODO allow setting axis position during pause
+      return this.is_idle || this.is_paused
     },
 
 

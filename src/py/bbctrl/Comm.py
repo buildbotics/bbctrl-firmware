@@ -100,6 +100,9 @@ class Comm(object):
         self.ctrl.ioloop.update_handler(self.sp, flags)
 
 
+    def flush(self): self._set_write(True)
+
+
     def _load_next_command(self, cmd):
         log.info('< ' + json.dumps(cmd).strip('"'))
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
@@ -110,7 +113,7 @@ class Comm(object):
 
     def queue_command(self, cmd):
         self.queue.append(cmd)
-        self._set_write(True)
+        self.flush()
 
 
     def _serial_write(self):
@@ -204,7 +207,7 @@ class Comm(object):
                     self.ctrl.state.update(msg)
                     if 'xx' in msg:           # State change
                         self.ctrl.ready()     # We've received data from AVR
-                        self._set_write(True) # May have more data to send now
+                        self.flush()          # May have more data to send now
 
 
     def _serial_handler(self, fd, events):

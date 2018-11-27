@@ -169,7 +169,7 @@ void state_callback() {
   if (estop_triggered()) return;
 
   // Pause
-  if (s.pause_requested || s.flushing) {
+  if (s.pause_requested) {
     if (state_get() == STATE_RUNNING) {
       if (s.pause_requested) _set_hold_reason(HOLD_REASON_USER_PAUSE);
       _set_state(STATE_STOPPING);

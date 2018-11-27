@@ -35,11 +35,11 @@ script#control-view-template(type="text/x-template")
         th.offset Offset
         th.state State
         th.actions
-          button.pure-button(:disabled="!can_mdi",
+          button.pure-button(:disabled="!can_set_axis",
             title="Zero all axis offsets.", @click="zero()") &empty;
 
           button.pure-button(title="Home all axes.", @click="home()",
-            :disabled="!can_mdi")
+            :disabled="!is_idle")
             .fa.fa-home
 
       each axis in 'xyzabc'
@@ -54,16 +54,16 @@ script#control-view-template(type="text/x-template")
             | {{#{axis}.state}}
 
           th.actions
-            button.pure-button(:disabled="!can_mdi",
+            button.pure-button(:disabled="!can_set_axis",
               title=`Set {{'${axis}' | upper}} axis position.`,
               @click=`show_set_position('${axis}')`)
               .fa.fa-cog
 
-            button.pure-button(:disabled="!can_mdi",
+            button.pure-button(:disabled="!can_set_axis",
               title=`Zero {{'${axis}' | upper}} axis offset.`,
               @click=`zero('${axis}')`) &empty;
 
-            button.pure-button(:disabled="!can_mdi", @click=`home('${axis}')`,
+            button.pure-button(:disabled="!is_idle", @click=`home('${axis}')`,
               title=`Home {{'${axis}' | upper}} axis.`)
               .fa.fa-home
 
@@ -121,7 +121,7 @@ script#control-view-template(type="text/x-template")
       tr(title="Currently active machine units")
         th Units
         td.mach_units
-          select(v-model="mach_units", :disabled="!can_mdi")
+          select(v-model="mach_units", :disabled="!is_idle")
             option(value="METRIC") METRIC
             option(value="IMPERIAL") IMPERIAL
       tr

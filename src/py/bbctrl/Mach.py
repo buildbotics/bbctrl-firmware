@@ -91,24 +91,25 @@ class Mach(Comm):
 
 
     def _get_state(self): return self.ctrl.state.get('xx', '')
+    def _is_estopped(self): return self._get_state() == 'ESTOPPED'
     def _is_holding(self): return self._get_state() == 'HOLDING'
+    def _is_ready(self): return self._get_state() == 'READY'
     def _get_pause_reason(self): return self.ctrl.state.get('pr', '')
     def _get_cycle(self): return self.ctrl.state.get('cycle')
 
 
-    def _can_jog(self):
-        return self._get_cycle() == 'idle'
-        # TODO handle jog during pause for manual tool changes
-        return (self._get_cycle() == 'idle' or
-                (self._is_holding() and
-                 self._get_pause_reason() in ('User pause', 'Program pause')))
+    def _is_paused(self):
+        if not self._is_holding() or self.unpausing: return False
+        return self._get_pause_reason() in ('User pause', 'Program pause')
 
 
     def _begin_cycle(self, cycle):
         current = self._get_cycle()
         if current == cycle: return # No change
 
-        if (current == 'idle' or (cycle == 'jogging' and self._can_jog())):
+        # TODO handle jogging during pause
+        # if current == 'idle' or (cycle == 'jogging' and self._is_paused()):
+        if current == 'idle':
             self.ctrl.state.set('cycle', cycle)
             self.last_cycle = current
 
@@ -123,7 +124,7 @@ class Mach(Comm):
 
 
     def _update_cycle(self):
-        if (self._get_cycle() != 'idle' and self._get_state() == 'READY' and
+        if (self._get_cycle() != 'idle' and self._is_ready() and
             not self.planner.is_busy() and not super().is_active()):
             self.ctrl.state.set('cycle', 'idle')
 
@@ -171,6 +172,7 @@ class Mach(Comm):
         else: self.planner.restart()
 
         super().i2c_command(Cmd.UNPAUSE)
+        self.unpausing = True
 
 
     def _reset(self):
@@ -272,13 +274,11 @@ class Mach(Comm):
 
 
     def unhome(self, axis): self.mdi('G28.2 %c0' % axis)
-
-
     def estop(self): super().estop()
 
 
     def clear(self):
-        if self._get_state() == 'ESTOPPED':
+        if self._is_estopped():
             self._reset()
             super().clear()
 
@@ -311,11 +311,7 @@ class Mach(Comm):
 
 
     def unpause(self):
-        if self._get_state() != 'HOLDING' or self.unpausing: return
-
-        if self._get_pause_reason() in ('User pause', 'Program pause'):
-            self.unpausing = True
-            self._unpause()
+        if self._is_paused(): self._unpause()
 
 
     def optional_pause(self, enable = True):
@@ -326,15 +322,16 @@ class Mach(Comm):
         axis = axis.lower()
 
         if self.ctrl.state.is_axis_homed(axis):
-            self.mdi('G92 %s%f' % (axis, position))
+            # If homed, change the offset rather than the absolute position
+            self.mdi('G92%s%f' % (axis, position))
 
-        else:
-            if self._get_cycle() not in ['idle', 'mdi']:
-                raise Exception('Cannot zero position during ' +
+        elif self.ctrl.state.is_axis_enabled(axis):
+            if self._get_cycle() != 'idle' and not self._is_paused():
+                raise Exception('Cannot set position during ' +
                                 self._get_cycle())
 
-            self._begin_cycle('mdi')
-            self.planner.set_position({axis: position})
+            # Set the absolute position both locally and via the AVR
+            self.ctrl.state.set(axis + 'p', position)
             super().queue_command(Cmd.set_axis(axis, position))
 
 

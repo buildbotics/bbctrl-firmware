@@ -162,6 +162,7 @@ void command_print_json() {
 void command_flush_queue() {
   sync_q_init();
   cmd.count = 0;
+  command_reset_position();
 }
 
 

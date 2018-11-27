@@ -75,12 +75,6 @@ class Planner():
         return position
 
 
-    def set_position(self, position):
-        for axis in 'xyzabc':
-            if not self.ctrl.state.is_axis_enabled(axis): continue
-            self.ctrl.state.set(axis + 'p', position[axis])
-
-
     def _get_config_vector(self, name, scale):
         state = self.ctrl.state
         v = {}
