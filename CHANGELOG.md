@@ -6,6 +6,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Prevent ``Stream is closed`` error.
  - Suppress ``WebGL not supported`` warning.
  - Fixed Web disconnect during simulation of large GCode.
+ - Disable outputs on estop.
+ - Improved switch debouncing for better homing.
+ - Removed tool-reversed option.  Use tool-direction-mode instead.
+ - Handle zero length dwell correctly.
 
 ## v0.4.1
  - Fix toolpath view axes bug.

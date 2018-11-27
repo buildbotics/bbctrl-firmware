@@ -230,6 +230,7 @@ void st_prep_line(const float target[]) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
+  if (seconds <= 1e-4) seconds = 1e-4; // Min dwell
   spindle_load_power_updates(st.prep_powers, 0, 0);
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
