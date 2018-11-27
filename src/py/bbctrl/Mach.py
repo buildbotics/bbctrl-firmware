@@ -131,7 +131,7 @@ class Mach(Comm):
 
     def _update(self, update):
         # Handle EStop
-        if update.get('xx', '') == 'ESTOPPED': self.planner.reset()
+        if update.get('xx', '') == 'ESTOPPED': self.planner.reset(False)
 
         # Detect motor faults
         for motor in range(4):

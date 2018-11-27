@@ -55,7 +55,7 @@ class Planner():
 
         ctrl.state.add_listener(self._update)
 
-        self.reset()
+        self.reset(False)
         self._report_time()
 
 
@@ -324,8 +324,8 @@ class Planner():
         self.current_plan_time = 0
 
 
-    def reset(self):
-        if hasattr(self.ctrl, 'mach'): self.ctrl.mach.stop()
+    def reset(self, stop = True):
+        if stop: self.ctrl.mach.stop()
         self.planner = gplan.Planner()
         self.planner.set_resolver(self._get_var_cb)
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
