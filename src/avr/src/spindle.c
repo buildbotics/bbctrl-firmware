@@ -49,7 +49,6 @@ static struct {
   float override;
   sync_speed_t sync_speed;
   float speed;
-  bool reversed;
   float min_rpm;
   float max_rpm;
   float inv_max_rpm;
@@ -84,7 +83,7 @@ static float _speed_to_power(float speed) {
   else if (spindle.max_rpm <= power) power = 1;
   else power *= spindle.inv_max_rpm;
 
-  return (spindle.reversed ^ negative) ? -power : power;
+  return negative ? -power : power;
 }
 
 
@@ -214,18 +213,9 @@ void spindle_estop() {_set_type(SPINDLE_TYPE_DISABLED);}
 // Var callbacks
 uint8_t get_tool_type() {return spindle.type;}
 void set_tool_type(uint8_t value) {_set_type((spindle_type_t)value);}
+
+
 float get_speed() {return _get_power() * spindle.max_rpm;}
-bool get_tool_reversed() {return spindle.reversed;}
-
-
-void set_tool_reversed(bool reversed) {
-  if (spindle.reversed != reversed) {
-    spindle.reversed = reversed;
-    _update_speed();
-  }
-}
-
-
 float get_max_spin() {return spindle.max_rpm;}
 
 

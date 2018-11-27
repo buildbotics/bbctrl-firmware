@@ -85,7 +85,6 @@ VAR(analog_input,    ai, f32,   ANALOG, 0, 0) // Analog input pins
 // Spindle
 VAR(tool_type,       st, u8,    0,      1, 1) // See spindle.c
 VAR(speed,            s, f32,   0,      0, 1) // Current spindle speed
-VAR(tool_reversed,   sr, b8,    0,      1, 1) // Reverse tool
 VAR(max_spin,        sx, f32,   0,      1, 1) // Maximum spindle speed
 VAR(min_spin,        sm, f32,   0,      1, 1) // Minimum spindle speed
 
