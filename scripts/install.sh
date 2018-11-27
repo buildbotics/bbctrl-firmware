@@ -90,7 +90,8 @@ if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
 fi
 
 # Install default GCode
-if [ -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
+if [ ! -d /var/lib/bbctrl/upload -o -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
+    mkdir -p /var/lib/bbctrl/upload/
     cp scripts/buildbotics.gc /var/lib/bbctrl/upload/
 fi
 
