@@ -331,6 +331,7 @@ class Planner():
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
         self.cmdq.clear()
         self.reset_times()
+        self.ctrl.state.reset()
 
 
     def mdi(self, cmd, with_limits = True):
@@ -377,7 +378,7 @@ class Planner():
 
         except Exception as e:
             log.exception(e)
-            self.reset()
+            self.stop()
 
 
     def next(self):
@@ -389,7 +390,4 @@ class Planner():
 
         except Exception as e:
             log.exception(e)
-            self.reset()
-
-            log.info('running: %s active %s' % (self.is_running(),
-                                                self.cmdq.is_active()))
+            self.stop()

@@ -175,9 +175,7 @@ class Mach(Comm):
         self.unpausing = True
 
 
-    def _reset(self):
-        self.planner.reset()
-        self.ctrl.state.reset()
+    def _reset(self): self.planner.reset()
 
 
     def _i2c_block(self, block):
