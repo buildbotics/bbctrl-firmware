@@ -347,10 +347,12 @@ void vfd_spindle_deinit(deinit_cb_t cb) {
 
 
 void vfd_spindle_set(float power) {
+  cli();
   if (vfd.power != power) {
     vfd.power = power;
     vfd.changed = true;
   }
+  sei();
 }
 
 

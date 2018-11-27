@@ -189,15 +189,16 @@ static void _next_move() {
     // Start move
     _load_move();
 
-    // Handle power updates
-    st.power_index = 0;
-    memcpy(st.powers, st.prep_powers, sizeof(st.powers));
-    _update_power();
-
     // Request next move when not in a dwell.  Requesting the next move may
     // power up motors which should not be powered up during a dwell.
     _request_exec_move();
   }
+
+  // Handle power updates
+  st.power_index = 0;
+  memcpy(st.powers, st.prep_powers, sizeof(st.powers));
+  memset(st.prep_powers, 0, sizeof(st.prep_powers));
+  _update_power();
 
   st.busy = true;        // Executing move so mark busy
   st.move_ready = false; // We are done with this move, flip the flag back
@@ -229,6 +230,7 @@ void st_prep_line(const float target[]) {
 /// Add a dwell to the move buffer
 void st_prep_dwell(float seconds) {
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
+  spindle_load_power_updates(st.prep_powers, 0, 0);
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
 }

@@ -279,10 +279,12 @@ void huanyang_deinit(deinit_cb_t cb) {
 
 
 void huanyang_set(float power) {
+  cli();
   if (hy.power != power && !hy.shutdown) {
     hy.power = power;
     hy.changed = true;
   }
+  sei();
 }
 
 

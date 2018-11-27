@@ -61,10 +61,8 @@ typedef void (*deinit_cb_t)();
 
 
 spindle_type_t spindle_get_type();
-float spindle_get_speed();
 void spindle_stop();
 void spindle_estop();
-bool spindle_is_reversed();
 void spindle_load_power_updates(power_update_t updates[], float minD,
                                 float maxD);
 void spindle_update(power_update_t update);

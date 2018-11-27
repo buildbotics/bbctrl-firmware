@@ -186,7 +186,7 @@ float get_pwm_min_duty() {return pwm.min_duty * 100;}
 
 
 void set_pwm_min_duty(float value) {
-  pwm.min_duty = value / 100;
+  pwm.min_duty = value * 0.01;
   _update_pwm();
 }
 
@@ -195,7 +195,7 @@ float get_pwm_max_duty() {return pwm.max_duty * 100;}
 
 
 void set_pwm_max_duty(float value) {
-  pwm.max_duty = value / 100;
+  pwm.max_duty = value * 0.01;
   _update_pwm();
 }
 
