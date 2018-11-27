@@ -102,6 +102,7 @@ enum {
 
 // Switch settings.  See switch.c
 #define SWITCH_DEBOUNCE          5 // ms
+#define SWITCH_LOCKOUT         250 // ms
 
 
 // Motor ISRs
