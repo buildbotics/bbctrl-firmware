@@ -34,6 +34,7 @@
 #include "config.h"
 #include "state.h"
 #include "outputs.h"
+#include "jog.h"
 #include "exec.h"
 
 #include <avr/eeprom.h>
@@ -89,9 +90,11 @@ void estop_trigger(stat_t reason) {
   // Set fault signal
   outputs_set_active(FAULT_PIN, true);
 
-  // Hard stop the motors and the spindle
+  // Hard stop peripherals
   st_shutdown();
   spindle_estop();
+  jog_stop();
+  outputs_stop();
 
   // Set machine state
   state_estop();
