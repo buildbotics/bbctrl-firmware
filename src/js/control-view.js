@@ -273,8 +273,10 @@ module.exports = {
 
 
     open: function (e) {
-      // TODO browser caches file if name is same even if contents changed
-      $('.gcode-file-input').click();
+      // If we don't reset the form the browser may cache file if name is same
+      // even if contents have changed
+      $('.gcode-file-input')[0].reset();
+      $('.gcode-file-input input').click();
     },
 
 

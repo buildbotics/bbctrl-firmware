@@ -228,9 +228,9 @@ script#control-view-template(type="text/x-template")
             :disabled="!is_ready")
             .fa.fa-folder-open
 
-          input.gcode-file-input(type="file", @change="upload",
-            style="display:none", accept=".nc,.gcode,.gc,.ngc,.txt,.tap,.cnc",
-            :disabled="!is_ready")
+          form.gcode-file-input
+            input(type="file", @change="upload", :disabled="!is_ready",
+              accept="text/*,.nc,.gcode,.gc,.ngc,.txt,.tap,.cnc")
 
           button.pure-button(title="Delete current GCode program.",
             @click="deleteGCode = true",

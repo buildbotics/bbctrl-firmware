@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Improved switch debouncing for better homing.
  - Removed tool-reversed option.  Use tool-direction-mode instead.
  - Handle zero length dwell correctly.
+ - Fixed problem with cached GCode file upload when file changed on disk.
 
 ## v0.4.1
  - Fix toolpath view axes bug.
