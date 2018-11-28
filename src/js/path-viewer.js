@@ -34,11 +34,6 @@ function get(obj, name, defaultValue) {
 }
 
 
-function set_visible(target, visible) {
-  if (typeof target != 'undefined') target.visible = visible;
-}
-
-
 var surfaceModes = ['cut', 'wire', 'solid', 'off'];
 
 
@@ -51,6 +46,7 @@ module.exports = {
     return {
       enabled: false,
       loading: false,
+      dirty: true,
       snapView: cookie.get('snap-view', 'isometric'),
       small: cookie.get_bool('small-path-view', true),
       surfaceMode: 'cut',
@@ -82,19 +78,19 @@ module.exports = {
 
     showPath: function (enable) {
       cookie.set_bool('show-path', enable);
-      set_visible(this.pathView, enable)
+      this.set_visible(this.pathView, enable)
     },
 
 
     showTool: function (enable) {
       cookie.set_bool('show-tool', enable);
-      set_visible(this.toolView, enable)
+      this.set_visible(this.toolView, enable)
     },
 
 
     showAxes: function (enable) {
       cookie.set_bool('show-axes', enable);
-      set_visible(this.axesView, enable)
+      this.set_visible(this.axesView, enable)
     },
 
 
@@ -106,8 +102,8 @@ module.exports = {
 
     showBBox: function (enable) {
       cookie.set_bool('show-bbox', enable);
-      set_visible(this.bboxView, enable);
-      set_visible(this.envelopeView, enable);
+      this.set_visible(this.bboxView, enable);
+      this.set_visible(this.envelopeView, enable);
     },
 
 
@@ -149,8 +145,8 @@ module.exports = {
         this.surfaceMaterial.needsUpdate = true;
       }
 
-      set_visible(this.surfaceMesh, mode == 'cut' || mode == 'wire');
-      set_visible(this.workpieceMesh, mode == 'solid');
+      this.set_visible(this.surfaceMesh, mode == 'cut' || mode == 'wire');
+      this.set_visible(this.workpieceMesh, mode == 'solid');
     },
 
 
@@ -172,6 +168,12 @@ module.exports = {
     },
 
 
+    set_visible: function (target, visible) {
+      if (typeof target != 'undefined') target.visible = visible;
+      this.dirty = true;
+    },
+
+
     get_dims: function () {
       var t = $(this.target);
       var width = t.innerWidth();
@@ -187,6 +189,7 @@ module.exports = {
       this.camera.aspect = dims.width / dims.height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(dims.width, dims.height);
+      this.dirty = true;
     },
 
 
@@ -222,6 +225,7 @@ module.exports = {
     axis_changed: function () {
       this.update_tool();
       this.update_envelope();
+      this.dirty = true;
     },
 
 
@@ -231,7 +235,6 @@ module.exports = {
         this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0, 0);
-
         this.target.appendChild(this.renderer.domElement);
 
       } catch (e) {
@@ -591,8 +594,11 @@ module.exports = {
     render: function () {
       window.requestAnimationFrame(this.render);
       if (typeof this.scene == 'undefined') return;
-      this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+
+      if (this.controls.update() || this.dirty) {
+        this.dirty = false;
+        this.renderer.render(this.scene, this.camera);
+      }
     },
 
 

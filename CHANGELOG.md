@@ -13,6 +13,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fixed problem with cached GCode file upload when file changed on disk.
  - Run simulation at low process priority.
  - Added ``Bug Report`` button to ``Admin`` -> ``General``.
+ - Only render 3D view as needed to save CPU.
 
 ## v0.4.1
  - Fix toolpath view axes bug.
