@@ -193,6 +193,39 @@ class State(object):
             else: self.machine_var_set.add(code)
 
 
+    def get_position(self):
+        position = {}
+
+        for axis in 'xyzabc':
+            if self.is_axis_enabled(axis) and self.has(axis + 'p'):
+                position[axis] = self.get(axis + 'p')
+
+        return position
+
+
+    def get_axis_vector(self, name, scale = 1):
+        v = {}
+
+        for axis in 'xyzabc':
+            motor = self.find_motor(axis)
+
+            if motor is not None and self.motor_enabled(motor):
+                value = self.get(str(motor) + name, None)
+                if value is not None: v[axis] = value * scale
+
+        return v
+
+
+    def get_soft_limit_vector(self, var, default):
+        limit = self.get_axis_vector(var, 1)
+
+        for axis in 'xyzabc':
+            if not axis in limit or not self.is_axis_homed(axis):
+                limit[axis] = default
+
+        return limit
+
+
     def find_motor(self, axis):
         for motor in range(6):
             if not ('%dan' % motor) in self.vars: continue

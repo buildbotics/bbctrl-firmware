@@ -29,7 +29,6 @@ import json
 import math
 import re
 import logging
-import threading
 import time
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
@@ -50,8 +49,6 @@ class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.cmdq = CommandQueue()
-        self.logLock = threading.Lock()
-        self.logIntercept = {}
 
         ctrl.state.add_listener(self._update)
 
@@ -61,99 +58,64 @@ class Planner():
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
-    def is_synchronizing(self): return self.planner.is_synchronizing()
-
-
-    def get_position(self):
-        position = {}
-
-        for axis in 'xyzabc':
-            if not self.ctrl.state.is_axis_enabled(axis): continue
-            value = self.ctrl.state.get(axis + 'p', None)
-            if value is not None: position[axis] = value
-
-        return position
-
-
-    def _get_config_vector(self, name, scale):
-        state = self.ctrl.state
-        v = {}
-
-        for axis in 'xyzabc':
-            motor = state.find_motor(axis)
-
-            if motor is not None and state.motor_enabled(motor):
-                value = state.get(str(motor) + name, None)
-                if value is not None: v[axis] = value * scale
-
-        return v
-
-
-    def _get_soft_limit(self, var, default):
-        limit = self._get_config_vector(var, 1)
-
-        for axis in 'xyzabc':
-            if not axis in limit or not self.ctrl.state.is_axis_homed(axis):
-                limit[axis] = default
-
-        return limit
 
 
     def get_config(self, mdi, with_limits, with_position = True):
-        metric = self.ctrl.state.get('metric', True)
-        config = {
-            'default-units': 'METRIC' if metric else 'IMPERIAL',
-            'max-vel':   self._get_config_vector('vm', 1000),
-            'max-accel': self._get_config_vector('am', 1000000),
-            'max-jerk':  self._get_config_vector('jm', 1000000),
-            'rapid-auto-off': self.ctrl.config.get('rapid-auto-off'),
+        state = self.ctrl.state
+        config = self.ctrl.config
+
+        cfg = {
+            'default-units': state.get('units', 'METRIC'),
+            'max-vel':   state.get_axis_vector('vm', 1000),
+            'max-accel': state.get_axis_vector('am', 1000000),
+            'max-jerk':  state.get_axis_vector('jm', 1000000),
+            'rapid-auto-off': config.get('rapid-auto-off'),
             # TODO junction deviation & accel
             }
 
-        if with_position: config['position'] = self.get_position()
+        if with_position: cfg['position'] = state.get_position()
 
         if with_limits:
-            minLimit = self._get_soft_limit('tn', -math.inf)
-            maxLimit = self._get_soft_limit('tm', math.inf)
+            minLimit = state.get_soft_limit_vector('tn', -math.inf)
+            maxLimit = state.get_soft_limit_vector('tm', math.inf)
 
             # If max <= min then no limit
             for axis in 'xyzabc':
                 if maxLimit[axis] <= minLimit[axis]:
                     minLimit[axis], maxLimit[axis] = -math.inf, math.inf
 
-            config['min-soft-limit'] = minLimit
-            config['max-soft-limit'] = maxLimit
+            cfg['min-soft-limit'] = minLimit
+            cfg['max-soft-limit'] = maxLimit
 
         if not mdi:
-            program_start = self.ctrl.config.get('program-start')
-            if program_start: config['program-start'] = program_start
+            program_start = config.get('program-start')
+            if program_start: cfg['program-start'] = program_start
 
         overrides = {}
 
-        tool_change = self.ctrl.config.get('tool-change')
+        tool_change = config.get('tool-change')
         if tool_change: overrides['M6'] = tool_change
 
-        program_end = self.ctrl.config.get('program-end')
+        program_end = config.get('program-end')
         if program_end: overrides['M2'] = program_end
 
-        if overrides: config['overrides'] = overrides
+        if overrides: cfg['overrides'] = overrides
 
-        log.info('Config:' + json.dumps(config))
+        log.info('Config:' + json.dumps(cfg))
 
-        return config
+        return cfg
 
 
     def _update(self, update):
         if 'id' in update:
             id = update['id']
-            self.planner.set_active(id)
-
-            # Synchronize planner variables with execution id
-            self.cmdq.release(id)
+            self.planner.set_active(id) # Release planner commands
+            self.cmdq.release(id)       # Synchronize planner variables
 
 
     def _get_var_cb(self, name, units):
         value = 0
+
         if len(name) and name[0] == '_':
             value = self.ctrl.state.get(name[1:], 0)
             if units == 'IMPERIAL': value /= 25.4 # Assume metric
@@ -161,11 +123,6 @@ class Planner():
         log.info('Get: %s=%s (units=%s)' % (name, value, units))
 
         return value
-
-
-    def log_intercept(self, cb):
-        with self.logLock:
-            self.logIntercept[threading.get_ident()] = cb
 
 
     def _log_cb(self, line):
@@ -183,14 +140,6 @@ class Planner():
 
         if line is not None: line = int(line)
         if column is not None: column = int(column)
-
-        # Per thread log intercept
-        with self.logLock:
-            tid = threading.get_ident()
-            if tid in self.logIntercept:
-                self.logIntercept[tid](level, msg, filename, line, column)
-                return
-
         if where: extra = dict(where = where)
         else: extra = None
 
@@ -362,23 +311,15 @@ class Planner():
 
     def restart(self):
         try:
-            state = self.ctrl.state
-            id = state.get('id')
-
-            position = {}
-            for axis in 'xyzabc':
-                if state.has(axis + 'p'):
-                    position[axis] = state.get(axis + 'p')
+            id = self.ctrl.state.get('id')
+            position = self.ctrl.state.get_position()
 
             log.info('Planner restart: %d %s' % (id, json.dumps(position)))
+
             self.cmdq.clear()
             self.cmdq.release(id)
             self._plan_time_restart()
             self.planner.restart(id, position)
-
-            if self.planner.is_synchronizing():
-                # TODO pass actual probed position
-                self.planner.synchronize(1) # Indicate successful probe
 
         except Exception as e:
             log.exception(e)
