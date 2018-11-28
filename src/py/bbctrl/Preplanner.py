@@ -178,6 +178,8 @@ class Preplanner(object):
 
     def _exec_plan(self, filename, state, config):
         try:
+            os.nice(5)
+
             hid = plan_hash(filename, config)
             plan_path = 'plans/' + filename + '.' + hid + '.gz'
 

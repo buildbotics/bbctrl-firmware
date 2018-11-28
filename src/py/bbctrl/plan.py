@@ -333,7 +333,7 @@ parser.add_argument('--max-time', default = 600,
                     type = int, help = 'Maximum planning time in seconds')
 parser.add_argument('--max-loop', default = 30,
                     type = int, help = 'Maximum time in loop in seconds')
-parser.add_argument('--priority', default = 1,
+parser.add_argument('--nice', default = 10,
                     type = int, help = 'Set "nice" process priority')
 
 args = parser.parse_args()
@@ -341,6 +341,6 @@ args = parser.parse_args()
 state = json.loads(args.state)
 config = json.loads(args.config)
 
-os.nice(args.priority)
+os.nice(args.nice)
 plan = Plan(args.gcode, state, config)
 plan.run()
