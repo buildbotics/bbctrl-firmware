@@ -68,7 +68,7 @@
 
 static struct {
   bool active;
-  uint32_t id;
+  uint16_t id;
   uint32_t last_empty;
   volatile uint16_t count;
   float position[AXES];
@@ -284,5 +284,5 @@ bool command_exec() {
 
 
 // Var callbacks
-uint32_t get_id() {return cmd.id;}
-void set_id(uint32_t id) {cmd.id = id;}
+uint16_t get_id() {return cmd.id;}
+void set_id(uint16_t id) {cmd.id = id;}

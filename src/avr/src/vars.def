@@ -120,7 +120,7 @@ VAR(hy_rated_rpm,    hq, u16,   0,      0, 1) // Huanyang rated RPM
 VAR(hy_status,       hs, u8,    0,      0, 1) // Huanyang status flags
 
 // Machine state
-VAR(id,              id, u32,   0,      1, 1) // Last executed command ID
+VAR(id,              id, u16,   0,      1, 1) // Last executed command ID
 VAR(feed_override,   fo, u16,   0,      1, 1) // Feed rate override
 VAR(speed_override,  so, u16,   0,      1, 1) // Spindle speed override
 VAR(optional_pause,  op, b8,    0,      1, 1) // Optional pause state

@@ -32,6 +32,10 @@ log = logging.getLogger('CmdQ')
 log.setLevel(logging.WARNING)
 
 
+# 16-bit less with wrap around
+def id_less(a, b): return (1 << 15) < (a - b) % ((1 << 16) - 1)
+
+
 class CommandQueue():
     def __init__(self):
         self.lastEnqueueID = 0
@@ -60,7 +64,7 @@ class CommandQueue():
             id, cb, args, kwargs = self.q[0]
 
             # Execute commands <= releaseID
-            if self.releaseID < id: return
+            if id_less(self.releaseID, id): return
 
             log.info('releasing id=%d' % id)
             self.q.popleft()
@@ -73,7 +77,7 @@ class CommandQueue():
 
 
     def release(self, id):
-        if id and id <= self.releaseID:
+        if id and not id_less(self.releaseID, id):
             log.warning('id out of order %d <= %d' % (id, self.releaseID))
         self.releaseID = id
 
