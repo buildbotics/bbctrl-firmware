@@ -409,9 +409,6 @@ span.unit
     select
       max-width 13em
 
-    .gcode-file-input
-      display none
-
   .tabs
     section
       min-height 500px
@@ -811,12 +808,8 @@ tt.save
 .modal-leave .modal-container
   transform scale(0.9)
 
-label.file-upload
-  display inline-block
-
-  input[type="file"]
-    position fixed
-    top -1000px
+.file-upload
+  display none
 
 .error-message
   &.modal-mask .modal-wrapper .modal-container

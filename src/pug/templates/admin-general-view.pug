@@ -30,9 +30,9 @@ script#admin-general-view-template(type="text/x-template")
     h2 Firmware
     button.pure-button.pure-button-primary(@click="check") Check
     button.pure-button.pure-button-primary(@click="upgrade") Upgrade
-    label.pure-button.pure-button-primary.file-upload
+    label.pure-button.pure-button-primary(@click="upload_firmware") Upload
+    form.upload-firmware.file-upload
       input(type="file", accept=".tar.bz2", @change="upload")
-      | Upload
 
     p
       input(type="checkbox", v-model="autoCheckUpgrade",
@@ -42,9 +42,9 @@ script#admin-general-view-template(type="text/x-template")
     h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
 
-    label.pure-button.pure-button-primary.file-upload
+    label.pure-button.pure-button-primary(@click="restore_config") Restore
+    form.restore-config.file-upload
       input(type="file", accept=".json", @change="restore")
-      | Restore
     message(:show.sync="configRestored")
       h3(slot="header") Success
       p(slot="body") Configuration restored.

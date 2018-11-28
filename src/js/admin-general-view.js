@@ -63,6 +63,14 @@ module.exports = {
     },
 
 
+    restore_config: function () {
+      // If we don't reset the form the browser may cache file if name is same
+      // even if contents have changed
+      $('.restore-config')[0].reset();
+      $('.restore-config input').click();
+    },
+
+
     restore: function (e) {
       var files = e.target.files || e.dataTransfer.files;
       if (!files.length) return;
@@ -105,6 +113,14 @@ module.exports = {
 
     check: function () {this.$dispatch('check')},
     upgrade: function () {this.$dispatch('upgrade')},
+
+
+    upload_firmware: function () {
+      // If we don't reset the form the browser may cache file if name is same
+      // even if contents have changed
+      $('.upload-firmware')[0].reset();
+      $('.upload-firmware input').click();
+    },
 
 
     upload: function (e) {

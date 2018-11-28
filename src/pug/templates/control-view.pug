@@ -228,7 +228,7 @@ script#control-view-template(type="text/x-template")
             :disabled="!is_ready")
             .fa.fa-folder-open
 
-          form.gcode-file-input
+          form.gcode-file-input.file-upload
             input(type="file", @change="upload", :disabled="!is_ready",
               accept="text/*,.nc,.gcode,.gc,.ngc,.txt,.tap,.cnc")
 
