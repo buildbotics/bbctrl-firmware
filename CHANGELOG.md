@@ -12,6 +12,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Handle zero length dwell correctly.
  - Fixed problem with cached GCode file upload when file changed on disk.
  - Run simulation at low process priority.
+ - Added ``Bug Report`` button to ``Admin`` -> ``General``.
 
 ## v0.4.1
  - Fix toolpath view axes bug.

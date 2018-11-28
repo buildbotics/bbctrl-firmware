@@ -103,6 +103,46 @@ class LogHandler(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'text/plain')
 
 
+class BugReportHandler(tornado.web.RequestHandler):
+    def __init__(self, app, request, **kwargs):
+        super(BugReportHandler, self).__init__(app, request, **kwargs)
+        self.app = app
+
+
+    def get(self):
+        import tarfile, io
+
+        buf = io.BytesIO()
+        tar = tarfile.open(mode = 'w:bz2', fileobj = buf)
+
+        def check_add(path, arcname = None):
+            if os.path.isfile(path):
+                if arcname is None: arcname = path
+                tar.add(path, self.basename + '/' + arcname)
+
+        def check_add_basename(path):
+            check_add(path, os.path.basename(path))
+
+        check_add_basename(self.app.ctrl.args.log)
+        check_add_basename(self.app.ctrl.args.log + '.1')
+        check_add_basename(self.app.ctrl.args.log + '.2')
+        check_add_basename(self.app.ctrl.args.log + '.3')
+        check_add('config.json')
+        check_add('upload/' + self.app.ctrl.state.get('selected', ''))
+
+        tar.close()
+
+        self.write(buf.getvalue())
+
+
+    def set_default_headers(self):
+        fmt = socket.gethostname() + '-%Y%m%d-%H%M%S'
+        self.basename = datetime.datetime.now().strftime(fmt)
+        filename = self.basename + '.tar.bz2'
+        self.set_header('Content-Disposition', 'filename="%s"' % filename)
+        self.set_header('Content-Type', 'application/x-bzip2')
+
+
 class HostnameHandler(bbctrl.APIHandler):
     def get(self): self.write_json(socket.gethostname())
 
@@ -403,6 +443,7 @@ class Web(tornado.web.Application):
         handlers = [
             (r'/websocket', WSConnection),
             (r'/api/log', LogHandler),
+            (r'/api/bugreport', BugReportHandler),
             (r'/api/reboot', RebootHandler),
             (r'/api/hostname', HostnameHandler),
             (r'/api/wifi', WifiHandler),

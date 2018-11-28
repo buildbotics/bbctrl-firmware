@@ -49,8 +49,7 @@ script#admin-general-view-template(type="text/x-template")
       h3(slot="header") Success
       p(slot="body") Configuration restored.
 
-    button.pure-button.pure-button-primary(@click="confirmReset = true")
-      | Reset
+    button.pure-button.pure-button-primary(@click="confirmReset = true") Reset
     message(:show.sync="confirmReset")
       h3(slot="header") Reset to default configuration?
       p(slot="body") All configuration changes will be lost.
@@ -65,3 +64,5 @@ script#admin-general-view-template(type="text/x-template")
     h2 Debugging
     a(href="/api/log", target="_blank")
       button.pure-button.pure-button-primary View Log
+    a(href="/api/bugreport")
+      button.pure-button.pure-button-primary Bug Report
