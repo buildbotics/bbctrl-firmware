@@ -39,7 +39,7 @@ from tornado import gen
 import bbctrl
 
 
-log = logging.getLogger('Preplaner')
+log = logging.getLogger('Preplanner')
 
 
 def hash_dump(o):
@@ -177,44 +177,45 @@ class Preplanner(object):
 
 
     def _exec_plan(self, filename, state, config):
-        hid = plan_hash(filename, config)
-        plan_path = 'plans/' + filename + '.' + hid + '.gz'
-
-        if not os.path.exists(plan_path):
-            self._clean_plans(filename) # Clean up old plans
-
-            path = os.path.abspath('upload/' + filename)
-            with tempfile.TemporaryDirectory() as tmpdir:
-                cmd = (
-                    '/usr/bin/env', 'python3',
-                    bbctrl.get_resource('plan.py'),
-                    path, json.dumps(state), json.dumps(config),
-                    '--max-time=%s' % self.max_plan_time,
-                    '--max-loop=%s' % self.max_loop_time
-                )
-
-                log.info('Running: %s', cmd)
-
-                with subprocess.Popen(cmd, stdout = subprocess.PIPE,
-                                      stderr = subprocess.PIPE,
-                                      cwd = tmpdir) as proc:
-
-                    for line in proc.stdout:
-                        if not self._progress(filename, float(line)):
-                            proc.terminate()
-                            return # Cancelled
-
-                    out, errs = proc.communicate()
-
-                    if not self._progress(filename, 1): return # Cancelled
-
-                    if proc.returncode:
-                        log.error('Plan failed: ' + errs)
-                        return # Failed
-
-                os.rename(tmpdir + '/plan.json.gz', plan_path)
-
         try:
+            hid = plan_hash(filename, config)
+            plan_path = 'plans/' + filename + '.' + hid + '.gz'
+
+            if not os.path.exists(plan_path):
+                self._clean_plans(filename) # Clean up old plans
+
+                path = os.path.abspath('upload/' + filename)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    cmd = (
+                        '/usr/bin/env', 'python3',
+                        bbctrl.get_resource('plan.py'),
+                        path, json.dumps(state), json.dumps(config),
+                        '--max-time=%s' % self.max_plan_time,
+                        '--max-loop=%s' % self.max_loop_time
+                    )
+
+                    log.info('Running: %s', cmd)
+
+                    with subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                                          stderr = subprocess.PIPE,
+                                          cwd = tmpdir) as proc:
+
+                        for line in proc.stdout:
+                            if not self._progress(filename, float(line)):
+                                proc.terminate()
+                                return # Cancelled
+
+                        out, errs = proc.communicate()
+
+                        if not self._progress(filename, 1): return # Cancelled
+
+                        if proc.returncode:
+                            log.error('Plan failed: ' + errs)
+                            return # Failed
+
+                    os.rename(tmpdir + '/plan.json.gz', plan_path)
+
             with open(plan_path, 'rb') as f:
                 return f.read()
+
         except Exception as e: log.error(e)
