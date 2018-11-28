@@ -78,7 +78,8 @@ class State(object):
         self.reset()
 
 
-    def is_metric(self): return self.ctrl.config.get('units') == 'METRIC'
+    def is_metric(self):
+        return self.ctrl.config.get('units', 'METRIC') == 'METRIC'
 
 
     def reset(self):
@@ -242,14 +243,14 @@ class State(object):
 
         if mode == 'manual': return 'Configured for manual homing'
 
-        if mode == 'switch-min' and not int(self.get(axis + '_ls')):
+        if mode == 'switch-min' and not int(self.get(axis + '_ls', 0)):
             return 'Configured for min switch but switch is disabled'
 
-        if mode == 'switch-max' and not int(self.get(axis + '_xs')):
+        if mode == 'switch-max' and not int(self.get(axis + '_xs', 0)):
             return 'Configured for max switch but switch is disabled'
 
-        softMin = int(self.get(axis + '_tn'))
-        softMax = int(self.get(axis + '_tm'))
+        softMin = int(self.get(axis + '_tn', 0))
+        softMax = int(self.get(axis + '_tm', 0))
         if softMax <= softMin + 1:
             return 'max-soft-limit must be at least 1mm greater ' \
                 'than min-soft-limit'
@@ -283,8 +284,8 @@ class State(object):
 
 
     def motor_home_travel(self, motor):
-        tmin = self.get(str(motor) + 'tm')
-        tmax = self.get(str(motor) + 'tn')
+        tmin = self.get(str(motor) + 'tm', 0)
+        tmax = self.get(str(motor) + 'tn', 0)
         hdir = self.motor_home_direction(motor)
 
         # (travel_max - travel_min) * 1.5 * home_dir
@@ -292,20 +293,20 @@ class State(object):
 
 
     def motor_latch_backoff(self, motor):
-        lb = self.get(str(motor) + 'lb')
+        lb = self.get(str(motor) + 'lb', 0)
         hdir = self.motor_home_direction(motor)
         return -(lb * hdir) # -latch_backoff * home_dir
 
 
     def motor_zero_backoff(self, motor):
-        zb = self.get(str(motor) + 'zb')
+        zb = self.get(str(motor) + 'zb', 0)
         hdir = self.motor_home_direction(motor)
         return -(zb * hdir) # -zero_backoff * home_dir
 
 
     def motor_search_velocity(self, motor):
-        return 1000 * self.get(str(motor) + 'sv')
+        return 1000 * self.get(str(motor) + 'sv', 0)
 
 
     def motor_latch_velocity(self, motor):
-        return 1000 * self.get(str(motor) + 'lv')
+        return 1000 * self.get(str(motor) + 'lv', 0)
