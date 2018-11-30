@@ -65,7 +65,8 @@ class Planner():
         config = self.ctrl.config
 
         cfg = {
-            'default-units': state.get('units', 'METRIC'),
+            # NOTE Must get current units not configured default units
+            'default-units': 'METRIC' if state.get('metric') else 'IMPERIAL',
             'max-vel':   state.get_axis_vector('vm', 1000),
             'max-accel': state.get_axis_vector('am', 1000000),
             'max-jerk':  state.get_axis_vector('jm', 1000000),

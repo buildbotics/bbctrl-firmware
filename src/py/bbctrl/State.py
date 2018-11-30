@@ -78,8 +78,7 @@ class State(object):
         self.reset()
 
 
-    def is_metric(self):
-        return self.ctrl.config.get('units', 'METRIC') == 'METRIC'
+    def is_metric(self): return self.get('units', 'METRIC') == 'METRIC'
 
 
     def reset(self):
