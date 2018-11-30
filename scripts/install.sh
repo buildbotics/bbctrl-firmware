@@ -32,6 +32,22 @@ if [ $? -ne 0 ]; then
 fi
 
 
+# TODO Enable GPU
+#grep ^dtoverlay=vc4-kms-v3d /boot/config.txt >/dev/null
+#if [ $? -ne 0 ]; then
+#    mount -o remount,rw /boot &&
+#    (
+#        echo
+#        echo dtoverlay=vc4-kms-v3d
+#        echo gpu_mem=16
+#    ) >> /boot/config.txt
+#    mount -o remount,ro /boot
+#fi
+#grep "plymouth quit" /etc/rc.local
+#if [ $? -ne 0 ]; then
+#    sed -i 's/cd \/home\/pi/cd \/home\/pi; plymouth quit/' /etc/rc.local
+#fi
+
 # Fix camera
 grep dwc_otg.fiq_fsm_mask /boot/cmdline.txt >/dev/null
 if [ $? -ne 0 ]; then
