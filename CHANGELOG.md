@@ -14,6 +14,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Run simulation at low process priority.
  - Added ``Bug Report`` button to ``Admin`` -> ``General``.
  - Only render 3D view as needed to save CPU.
+ - Prevent lockup due to browser causing out of memory condition.
 
 ## v0.4.1
  - Fix toolpath view axes bug.

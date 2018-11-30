@@ -3,5 +3,6 @@ include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
 include scripts/avr109-flash.py
 include scripts/buildbotics.gc
+include scripts/xinitrc
 recursive-include src/py/camotics *
 global-exclude .gitignore

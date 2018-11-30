@@ -89,6 +89,18 @@ if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
     REBOOT=true
 fi
 
+# Increase swap
+grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null
+if [ $? -ne 0 ]; then
+    sed -i 's/^CONF_SWAPSIZE=.*$/CONF_SWAPSIZE=1000/' /etc/dphys-swapfile
+    REBOOT=true
+fi
+
+# Install xinitrc
+cp scripts/xinitrc ~pi/.xinitrc
+chmod +x ~pi/.xinitrc
+chown pi:pi ~pi/.xinitrc
+
 # Install default GCode
 if [ ! -d /var/lib/bbctrl/upload -o -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
     mkdir -p /var/lib/bbctrl/upload/

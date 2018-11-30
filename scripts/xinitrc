@@ -5,6 +5,9 @@ xset s off
 xset s noblank
 
 while true; do
-  chromium-browser http://localhost/ \
-    --user-data-dir=/tmp/browse --no-first-run
+    tvservice -s 2>&1 | grep "state 0x40001" >/dev/null
+    if [ $? -ne 0 ]; then
+        /usr/local/bin/browser
+    fi
+    sleep 1
 done
