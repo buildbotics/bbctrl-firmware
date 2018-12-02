@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# Mount /boot read only
+mount -o remount,ro /boot
+
+# Set SPI GPIO mode
+gpio mode 27 alt3
+
+# Create browser memory limited cgroup
+if [ -d sys/fs/cgroup/memory ]; then
+    CGROUP=/sys/fs/cgroup/memory/chrome
+    mkdir $CGROUP
+    chown -R pi:pi $CGROUP
+    echo 700000000 > $CGROUP/memory.limit_in_bytes
+fi
+
+# Reload udev
+/etc/init.d/udev restart
+
+# Stop boot splash so it does not interfere with X if GPU enabled
+grep ^dtoverlay=vc4-kms-v3d /boot/config.txt >/dev/null
+if [ $? -eq 0 ]; then plymouth quit; fi
+
+# Start X in /home/pi
+cd /home/pi
+sudo -u pi startx

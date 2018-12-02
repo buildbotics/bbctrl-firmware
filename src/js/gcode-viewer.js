@@ -78,23 +78,26 @@ module.exports = {
       this.clear();
       this.file = file;
 
-      api.get('file/' + file)
-        .done(function (data) {
-          if (this.file != file) return;
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/file/' + file + '?' + Math.random(), true);
+      xhr.responseType = 'text';
 
-          var lines = data.trimRight().split(/\r?\n/);
+      xhr.onload = function (e) {
+        if (this.file != file) return;
+        var lines = xhr.response.trimRight().split(/\r?\n/);
 
-          for (var i = 0; i < lines.length; i++) {
-            lines[i] = '<li class="line-' + (i + 1) + '">' +
-              '<span class="gcode-line">' + (i + 1) + '</span>' +
-              lines[i] + '</li>';
-          }
+        for (var i = 0; i < lines.length; i++) {
+          lines[i] = '<li class="ln' + (i + 1) + '">' +
+            '<b>' + (i + 1) + '</b>' + lines[i] + '</li>';
+        }
 
-          this.clusterize.update(lines);
-          this.empty = false;
+        this.clusterize.update(lines);
+        this.empty = false;
 
-          Vue.nextTick(this.update_line);
-        }.bind(this));
+        Vue.nextTick(this.update_line);
+      }.bind(this)
+
+      xhr.send();
     },
 
 
@@ -117,7 +120,7 @@ module.exports = {
       var e = $(this.$el).find('.highlight');
       if (e.length) e.removeClass('highlight');
 
-      e = $(this.$el).find('.line-' + this.line);
+      e = $(this.$el).find('.ln' + this.line);
       if (e.length) e.addClass('highlight');
     },
 
@@ -158,3 +161,4 @@ module.exports = {
     }
   }
 }
+33554400

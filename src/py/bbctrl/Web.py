@@ -274,7 +274,7 @@ class UpgradeHandler(bbctrl.APIHandler):
 
 class PathHandler(bbctrl.APIHandler):
     @gen.coroutine
-    def get(self, filename):
+    def get(self, filename, dataType, *args):
         if not os.path.exists('upload/' + filename):
             raise HTTPError(404, 'File not found')
 
@@ -290,15 +290,27 @@ class PathHandler(bbctrl.APIHandler):
             return
 
         try:
-            if data is not None:
-                self.set_header('Content-Encoding', 'gzip')
+            if data is None: return
+            meta, positions, speeds = data
 
-                # Respond with chunks to avoid long delays
-                SIZE = 102400
-                chunks = [data[i:i + SIZE] for i in range(0, len(data), SIZE)]
-                for chunk in chunks:
-                    self.write(chunk)
-                    yield self.flush()
+            if dataType == '/positions': data = positions
+            elif dataType == '/speeds': data = speeds
+            else:
+                self.write_json(meta)
+                return
+
+            filename = filename + '-' + dataType[1:] + '.gz'
+            self.set_header('Content-Disposition', 'filename="%s"' % filename)
+            self.set_header('Content-Type', 'application/octet-stream')
+            self.set_header('Content-Encoding', 'gzip')
+            self.set_header('Content-Length', str(len(data)))
+
+            # Respond with chunks to avoid long delays
+            SIZE = 102400
+            chunks = [data[i:i + SIZE] for i in range(0, len(data), SIZE)]
+            for chunk in chunks:
+                self.write(chunk)
+                yield self.flush()
 
         except tornado.iostream.StreamClosedError as e: pass
 
@@ -456,7 +468,7 @@ class Web(tornado.web.Application):
             (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
             (r'/api/file(/[^/]+)?', bbctrl.FileHandler),
-            (r'/api/path/([^/]+)', PathHandler),
+            (r'/api/path/([^/]+)((/positions)|(/speeds))?', PathHandler),
             (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
             (r'/api/start', StartHandler),
             (r'/api/estop', EStopHandler),

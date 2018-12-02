@@ -27,6 +27,7 @@
 
 var orbit = require('./orbit');
 var cookie = require('./cookie')('bbctrl-');
+var api = require('./api');
 
 
 function get(obj, name, defaultValue) {
@@ -60,7 +61,6 @@ module.exports = {
 
 
   computed: {
-    hasPath: function () {return typeof this.toolpath.path != 'undefined'},
     target: function () {return $(this.$el).find('.path-viewer-content')[0]}
   },
 
@@ -115,25 +115,52 @@ module.exports = {
 
   ready: function () {
     this.graphics();
-    if (typeof this.toolpath.path != 'undefined') Vue.nextTick(this.update);
+    Vue.nextTick(this.update);
   },
 
 
   methods: {
     update: function () {
-      if (!this.enabled) return;
-
-      // Reset message
-      this.loading = !this.hasPath;
-
-      // Update scene
-      this.scene = new THREE.Scene();
-      if (this.hasPath) {
-        this.draw(this.scene);
-        this.snap(this.snapView);
+      if (!this.toolpath.filename && !this.loading) {
+        this.loading = true;
+        this.scene = new THREE.Scene();
+        this.dirty = true;
       }
 
-      this.update_view();
+      if (!this.enabled || !this.toolpath.filename) return;
+
+      function get(url) {
+        var d = $.Deferred();
+        var xhr = new XMLHttpRequest();
+
+        xhr.open('GET', url + '?' + Math.random(), true);
+        xhr.responseType = 'arraybuffer';
+
+        xhr.onload = function (e) {
+          if (xhr.response) d.resolve(new Float32Array(xhr.response));
+          else d.reject();
+        };
+
+        xhr.send();
+
+        return d.promise();
+      }
+
+      var d1 = get('/api/path/' + this.toolpath.filename + '/positions');
+      var d2 = get('/api/path/' + this.toolpath.filename + '/speeds');
+
+      $.when(d1, d2).done(function (positions, speeds) {
+        this.positions = positions
+        this.speeds = speeds;
+        this.loading = false;
+
+        // Update scene
+        this.scene = new THREE.Scene();
+        this.draw(this.scene);
+        this.snap(this.snapView);
+
+        this.update_view();
+      }.bind(this))
     },
 
 
@@ -284,6 +311,7 @@ module.exports = {
           keyLight.lookAt(scope.controls.target);
           fillLight.lookAt(scope.controls.target);
           backLight.lookAt(scope.controls.target);
+          scope.dirty = true;
         }
       }(this))
 
@@ -425,47 +453,16 @@ module.exports = {
     },
 
 
-    get_color: function (rapid, speed) {
-      if (rapid) return [1, 0, 0];
+    get_color: function (speed) {
+      if (isNaN(speed)) return [255, 0, 0]; // Rapid
 
       var intensity = speed / this.toolpath.maxSpeed;
       if (typeof speed == 'undefined' || !this.showIntensity) intensity = 1;
-      return [0, intensity, 0.5 * (1 - intensity)];
+      return [0, 255 * intensity, 127 * (1 - intensity)];
     },
 
 
     draw_path: function (scene) {
-      var s = undefined;
-      var x = 0;
-      var y = 0;
-      var z = 0;
-      var color = undefined;
-
-      var positions = [];
-      var colors = [];
-
-      for (var i = 0; i < this.toolpath.path.length; i++) {
-        var step = this.toolpath.path[i];
-
-        s = get(step, 's', s);
-        var newColor = this.get_color(step.rapid, s);
-
-        // Handle color change
-        if (i && newColor != color) {
-          positions.push(x, y, z);
-          colors.push.apply(colors, newColor);
-        }
-        color = newColor;
-
-        // Draw to move target
-        x = get(step, 'x', x);
-        y = get(step, 'y', y);
-        z = get(step, 'z', z);
-
-        positions.push(x, y, z);
-        colors.push.apply(colors, color);
-      }
-
       var geometry = new THREE.BufferGeometry();
       var material =
           new THREE.LineBasicMaterial({
@@ -473,10 +470,17 @@ module.exports = {
             linewidth: 1.5
           });
 
-      geometry.addAttribute('position',
-                            new THREE.Float32BufferAttribute(positions, 3));
-      geometry.addAttribute('color',
-                            new THREE.Float32BufferAttribute(colors, 3));
+      var positions = new THREE.Float32BufferAttribute(this.positions, 3);
+      geometry.addAttribute('position', positions);
+
+      var colors = [];
+      for (var i = 0; i < this.speeds.length; i++) {
+        var color = this.get_color(this.speeds[i]);
+        Array.prototype.push.apply(colors, color);
+      }
+
+      colors = new THREE.Uint8BufferAttribute(colors, 3, true);
+      geometry.addAttribute('color', colors);
 
       geometry.computeBoundingSphere();
       geometry.computeBoundingBox();

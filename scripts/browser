@@ -1,28 +1,16 @@
-#!/usr/bin/env python3
-
-import os
-import sys
-import resource
-import subprocess
-
-# Limit memory usage
-limit = 1.5e9
-resource.setrlimit(resource.RLIMIT_DATA, (limit, limit))
+#!/bin/bash
 
 # Clear browser errors
-prefs = '/home/pi/.config/chromium/Default/Preferences'
-subprocess.run(
-    ('sed', '-i', 's/"exited_cleanly":false/"exited_cleanly":true/', prefs))
-subprocess.run(
-    ('sed', '-i', 's/"exit_type":"Crashed"/"exit_type":"Normal"/', prefs))
+PREFS='/home/pi/.config/chromium/Default/Preferences'
+sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' $PREFS
+sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' $PREFS
 
 # Start browser
-cmd = '/usr/lib/chromium-browser/chromium-browser'
-args = (
-  '--no-first-run',
-  '--disable-infobars',
-  '--noerrdialogs',
-  '--single-process',
-  'http://localhost/'
-)
-os.execvp(cmd, args)
+/usr/lib/chromium-browser/chromium-browser --no-first-run \
+ --disable-infobars --noerrdialogs --disable-3d-apis --single-process \
+ http://localhost/ &
+
+# Enter cgroup
+echo $! >> /sys/fs/cgroup/memory/chrome/tasks
+
+wait

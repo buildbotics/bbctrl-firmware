@@ -78,7 +78,7 @@ class CommandQueue():
 
     def release(self, id):
         if id and not id_less(self.releaseID, id):
-            log.warning('id out of order %d <= %d' % (id, self.releaseID))
+            log.debug('id out of order %d <= %d' % (id, self.releaseID))
         self.releaseID = id
 
         self._release()

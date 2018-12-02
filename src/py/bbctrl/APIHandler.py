@@ -45,12 +45,11 @@ class APIHandler(RequestHandler):
 
     # Override exception logging
     def log_exception(self, typ, value, tb):
-        if isinstance(value, HTTPError) and value.status_code == 408:
+        if isinstance(value, HTTPError) and value.status_code in (404, 408):
             return
 
         log.error(str(value))
         trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.error(trace)
         log.debug(trace)
 
 

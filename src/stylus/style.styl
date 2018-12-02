@@ -447,13 +447,17 @@ span.unit
     list-style none
 
   .gcode ul
+    li
+      line-height 15px
+
     li:nth-child(even)
       background-color #fafafa
 
     li.highlight
       background-color #eaeaea
 
-    span.gcode-line
+    li > b
+      font-weight normal
       display inline-block
       padding 0 0.25em
       color #e5aa3d

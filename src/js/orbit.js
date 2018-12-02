@@ -175,12 +175,10 @@ var OrbitControls = function (object, domElement) {
         panOffset.set(0, 0, 0);
       }
 
-      scale = 1;
-
       // update condition is:
       // min(camera displacement, camera rotation in radians)^2 > EPS
       // using small-angle approximation cos(x/2) = 1 - x^2 / 8
-      if (zoomChanged ||
+      if (zoomChanged || scale != 1 ||
           lastPosition.distanceToSquared(scope.object.position) > EPS ||
           8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > EPS) {
 
@@ -189,6 +187,7 @@ var OrbitControls = function (object, domElement) {
         lastPosition.copy(scope.object.position);
         lastQuaternion.copy(scope.object.quaternion);
         zoomChanged = false;
+        scale = 1;
 
         return true;
       }

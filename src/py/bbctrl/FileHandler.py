@@ -80,8 +80,10 @@ class FileHandler(bbctrl.APIHandler):
         if path:
             path = path[1:]
 
+            self.set_header('Content-Type', 'text/plain')
+
             with open('upload/' + path, 'r') as f:
-                self.write_json(f.read())
+                self.write(f.read())
 
             self.ctrl.mach.select(path)
             return

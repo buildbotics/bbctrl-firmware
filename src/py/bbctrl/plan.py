@@ -35,6 +35,8 @@ import math
 import os
 import re
 import gzip
+import struct
+import math
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 
 
@@ -46,61 +48,18 @@ reLogLine = re.compile(
     r'(?P<msg>.*)$')
 
 
-
-# Formats floats with no more than two decimal places
-def _dump_json(o):
-    if isinstance(o, str): yield json.dumps(o)
-    elif o is None: yield 'null'
-    elif o is True: yield 'true'
-    elif o is False: yield 'false'
-    elif isinstance(o, int): yield str(o)
-
-    elif isinstance(o, float):
-        if o != o: yield '"NaN"'
-        elif o == float('inf'): yield '"Infinity"'
-        elif o == float('-inf'): yield '"-Infinity"'
-        else: yield format(o, '.2f')
-
-    elif isinstance(o, (list, tuple)):
-        yield '['
-        first = True
-
-        for item in o:
-            if first: first = False
-            else: yield ','
-            yield from _dump_json(item)
-
-        yield ']'
-
-    elif isinstance(o, dict):
-        yield '{'
-        first = True
-
-        for key, value in o.items():
-            if first: first = False
-            else: yield ','
-            yield from _dump_json(key)
-            yield ':'
-            yield from _dump_json(value)
-
-        yield '}'
-
-
-def dump_json(o): return ''.join(_dump_json(o))
-
-
 def compute_unit(a, b):
     unit = dict()
     length = 0
 
-    for axis in 'xyzabc':
+    for axis in 'xyz':
         if axis in a and axis in b:
             unit[axis] = b[axis] - a[axis]
             length += unit[axis] * unit[axis]
 
     length = math.sqrt(length)
 
-    for axis in 'xyzabc':
+    for axis in 'xyz':
         if axis in unit: unit[axis] /= length
 
     return unit
@@ -109,7 +68,7 @@ def compute_unit(a, b):
 def compute_move(start, unit, dist):
     move = dict()
 
-    for axis in 'xyzabc':
+    for axis in 'xyz':
         if axis in unit and axis in start:
             move[axis] = start[axis] + unit[axis] * dist
 
@@ -135,7 +94,7 @@ class Plan(object):
 
         # Initialized axis states and bounds
         self.bounds = dict(min = {}, max = {})
-        for axis in 'xyzabc':
+        for axis in 'xyz':
             self.bounds['min'][axis] = math.inf
             self.bounds['max'][axis] = -math.inf
 
@@ -153,7 +112,7 @@ class Plan(object):
 
     def get_bounds(self):
         # Remove infinity from bounds
-        for axis in 'xyzabc':
+        for axis in 'xyz':
             if self.bounds['min'][axis] == math.inf:
                 del self.bounds['min'][axis]
             if self.bounds['max'][axis] == -math.inf:
@@ -230,7 +189,7 @@ class Plan(object):
         line = 0
         maxLine = 0
         maxLineTime = time.time()
-        position = {axis: 0 for axis in 'xyzabc'}
+        position = {axis: 0 for axis in 'xyz'}
         rapid = False
 
         # Execute plan
@@ -251,7 +210,7 @@ class Plan(object):
                     move = {}
                     startPos = dict()
 
-                    for axis in 'xyzabc':
+                    for axis in 'xyz':
                         if axis in target:
                             startPos[axis] = position[axis]
                             position[axis] = target[axis]
@@ -305,23 +264,41 @@ class Plan(object):
 
 
     def run(self):
-        with gzip.open('plan.json.gz', 'wb') as f:
-            def write(s): f.write(s.encode('utf8'))
+        lastS = 0
+        speed = 0
+        first = True
+        x, y, z = 0, 0, 0
 
-            write('{"path":[')
+        with gzip.open('positions.gz', 'wb') as f1:
+            with gzip.open('speeds.gz', 'wb') as f2:
+                for move in self._run():
+                    x = move.get('x', x)
+                    y = move.get('y', y)
+                    z = move.get('z', z)
+                    rapid = move.get('rapid', False)
+                    speed = move.get('s', speed)
+                    s = struct.pack('<f', math.nan if rapid else speed)
 
-            first = True
-            for move in self._run():
-                if first: first = False
-                else: write(',')
-                write(dump_json(move))
+                    if not first and s != lastS:
+                        f1.write(p)
+                        f2.write(s)
 
-            write('],')
-            write('"time":%.2f,' % self.time)
-            write('"lines":%s,' % self.lines)
-            write('"maxSpeed":%s,' % self.maxSpeed)
-            write('"bounds":%s,' % dump_json(self.get_bounds()))
-            write('"messages":%s}' % dump_json(self.messages))
+                    lastS = s
+                    first = False
+                    p = struct.pack('<fff', x, y, z)
+
+                    f1.write(p)
+                    f2.write(s)
+
+        with open('meta.json', 'w') as f:
+            meta = dict(
+                time = self.time,
+                lines = self.lines,
+                maxSpeed = self.maxSpeed,
+                bounds = self.get_bounds(),
+                messages = self.messages)
+
+            json.dump(meta, f)
 
 
 parser = argparse.ArgumentParser(description = 'Buildbotics GCode Planner')

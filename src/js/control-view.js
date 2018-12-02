@@ -234,6 +234,7 @@ module.exports = {
         if (this.last_file != file) return;
 
         if (typeof toolpath.progress == 'undefined') {
+          toolpath.filename = file;
           this.toolpath = toolpath;
 
           var state = this.$root.state;
@@ -294,6 +295,9 @@ module.exports = {
           this.last_file = undefined; // Force reload
           this.$broadcast('gcode-reload', file.name);
           this.update();
+
+        }.bind(this)).fail(function (error) {
+          alert('Upload failed: ' + error)
         }.bind(this));
     },
 

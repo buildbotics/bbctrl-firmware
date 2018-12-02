@@ -43,16 +43,22 @@ fi
 #    ) >> /boot/config.txt
 #    mount -o remount,ro /boot
 #fi
-#grep "plymouth quit" /etc/rc.local
-#if [ $? -ne 0 ]; then
-#    sed -i 's/cd \/home\/pi/cd \/home\/pi; plymouth quit/' /etc/rc.local
-#fi
+#chmod ug+s /usr/lib/xorg/Xorg
 
 # Fix camera
 grep dwc_otg.fiq_fsm_mask /boot/cmdline.txt >/dev/null
 if [ $? -ne 0 ]; then
     mount -o remount,rw /boot &&
     sed -i 's/\(.*\)/\1 dwc_otg.fiq_fsm_mask=0x3/' /boot/cmdline.txt
+    mount -o remount,ro /boot
+    REBOOT=true
+fi
+
+# Enable memory cgroups
+grep cgroup_memory /boot/cmdline.txt >/dev/null
+if [ $? -ne 0 ]; then
+    mount -o remount,rw /boot &&
+    sed -i 's/\(.*\)/\1 cgroup_memory=1/' /boot/cmdline.txt
     mount -o remount,ro /boot
     REBOOT=true
 fi
@@ -96,11 +102,6 @@ if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
         echo 'LABEL="automount_end"'
     ) > /etc/udev/rules.d/11-automount.rules
 
-    grep "/etc/init.d/udev restart" /etc/rc.local >/dev/null
-    if [ $? -ne 0 ]; then
-        echo "/etc/init.d/udev restart" >> /etc/rc.local
-    fi
-
     sed -i 's/^\(MountFlags=slave\)/#\1/' /lib/systemd/system/systemd-udevd.service
     REBOOT=true
 fi
@@ -123,6 +124,10 @@ if [ ! -d /var/lib/bbctrl/upload -o -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
     cp scripts/buildbotics.gc /var/lib/bbctrl/upload/
 fi
 
+# Install rc.local
+cp scripts/rc.local /etc/
+
+# Install bbctrl
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force

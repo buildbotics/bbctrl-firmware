@@ -50,7 +50,7 @@ def hash_dump(o):
 def plan_hash(path, config):
     path = 'upload/' + path
     h = hashlib.sha256()
-    h.update('v3'.encode('utf8'))
+    h.update('v4'.encode('utf8'))
     h.update(hash_dump(config))
 
     with open(path, 'rb') as f:
@@ -89,14 +89,14 @@ class Preplanner(object):
     def invalidate(self, filename):
         with self.lock:
             if filename in self.plans:
-                self.plans[filename][0].cancel()
+                self.plans[filename][2].set() # Cancel
                 del self.plans[filename]
 
 
     def invalidate_all(self):
         with self.lock:
             for filename, plan in self.plans.items():
-                plan[0].cancel()
+                plan[2].set() # Cancel
             self.plans = {}
 
 
@@ -128,7 +128,8 @@ class Preplanner(object):
         with self.lock:
             if filename in self.plans: plan = self.plans[filename]
             else:
-                plan = [self._plan(filename), 0]
+                cancel = threading.Event()
+                plan = [self._plan(filename, cancel), 0, cancel]
                 self.plans[filename] = plan
 
             return plan[0]
@@ -141,7 +142,7 @@ class Preplanner(object):
 
 
     @gen.coroutine
-    def _plan(self, filename):
+    def _plan(self, filename, cancel):
         # Wait until state is fully initialized
         yield self.started
 
@@ -151,7 +152,8 @@ class Preplanner(object):
         del config['default-units']
 
         # Start planner thread
-        plan = yield self.pool.submit(self._exec_plan, filename, state, config)
+        plan = yield self.pool.submit(
+            self._exec_plan, filename, state, config, cancel)
         return plan
 
 
@@ -171,19 +173,24 @@ class Preplanner(object):
 
     def _progress(self, filename, progress):
         with self.lock:
-            if not filename in self.plans: return False
-            self.plans[filename][1] = progress
-            return True
+            if filename in self.plans:
+                self.plans[filename][1] = progress
 
 
-    def _exec_plan(self, filename, state, config):
+    def _exec_plan(self, filename, state, config, cancel):
         try:
             os.nice(5)
 
             hid = plan_hash(filename, config)
-            plan_path = 'plans/' + filename + '.' + hid + '.gz'
+            base = 'plans/' + filename + '.' + hid
+            files = [
+                base + '.json', base + '.positions.gz', base + '.speeds.gz']
 
-            if not os.path.exists(plan_path):
+            found = True
+            for path in files:
+                if not os.path.exists(path): found = False
+
+            if not found:
                 self._clean_plans(filename) # Clean up old plans
 
                 path = os.path.abspath('upload/' + filename)
@@ -203,21 +210,28 @@ class Preplanner(object):
                                           cwd = tmpdir) as proc:
 
                         for line in proc.stdout:
-                            if not self._progress(filename, float(line)):
+                            self._progress(filename, float(line))
+                            if cancel.is_set():
                                 proc.terminate()
-                                return # Cancelled
+                                return
 
                         out, errs = proc.communicate()
 
-                        if not self._progress(filename, 1): return # Cancelled
+                        self._progress(filename, 1)
+                        if cancel.is_set(): return
 
                         if proc.returncode:
-                            log.error('Plan failed: ' + errs)
+                            log.error('Plan failed: ' + errs.decode('utf8'))
                             return # Failed
 
-                    os.rename(tmpdir + '/plan.json.gz', plan_path)
+                    os.rename(tmpdir + '/meta.json', files[0])
+                    os.rename(tmpdir + '/positions.gz', files[1])
+                    os.rename(tmpdir + '/speeds.gz', files[2])
 
-            with open(plan_path, 'rb') as f:
-                return f.read()
+            with open(files[0], 'r') as f: meta = json.load(f)
+            with open(files[1], 'rb') as f: positions = f.read()
+            with open(files[2], 'rb') as f: speeds = f.read()
 
-        except Exception as e: log.error(e)
+            return meta, positions, speeds
+
+        except Exception as e: log.exception(e)

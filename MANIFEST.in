@@ -4,5 +4,6 @@ include src/avr/bbctrl-avr-firmware.hex
 include scripts/avr109-flash.py
 include scripts/buildbotics.gc
 include scripts/xinitrc
+include scripts/rc.local
 recursive-include src/py/camotics *
 global-exclude .gitignore

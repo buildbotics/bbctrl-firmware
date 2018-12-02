@@ -15,6 +15,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Added ``Bug Report`` button to ``Admin`` -> ``General``.
  - Only render 3D view as needed to save CPU.
  - Prevent lockup due to browser causing out of memory condition.
+ - Show error message when too large GCode upload fails.
+ - Much faster 3D view loading.
 
 ## v0.4.1
  - Fix toolpath view axes bug.

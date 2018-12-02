@@ -32,7 +32,7 @@ var Sock = function (url, retry, timeout) {
   if (!(this instanceof Sock)) return new Sock(url, retry);
 
   if (typeof retry == 'undefined') retry = 2000;
-  if (typeof timeout == 'undefined') timeout = 8000;
+  if (typeof timeout == 'undefined') timeout = 16000;
 
   this.url = url;
   this.retry = retry;

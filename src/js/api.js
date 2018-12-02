@@ -49,8 +49,10 @@ function api_cb(method, url, data, config) {
   }).error(function (xhr, status, error) {
     var text = xhr.responseText;
     try {text = $.parseJSON(xhr.responseText)} catch(e) {}
+    if (!text) text = error;
+
     d.reject(text, xhr, status, error);
-    console.debug('API Error: ' + url + ': ' + xhr.responseText);
+    console.debug('API Error: ' + url + ': ' + text);
   });
 
   return d.promise();
