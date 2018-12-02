@@ -83,7 +83,7 @@ class Mach(Comm):
         self.last_cycle = 'idle'
 
         ctrl.state.set('cycle', 'idle')
-        self._update_cycle_cb(False)
+        self._update_cb(False)
 
         ctrl.state.add_listener(self._update)
 
@@ -118,9 +118,12 @@ class Mach(Comm):
                             (cycle, current))
 
 
-    def _update_cycle_cb(self, now = True):
-        if now: self._update_cycle()
-        self.ctrl.ioloop.call_later(1, self._update_cycle_cb)
+    def _update_cb(self, now = True):
+        if now:
+            self._update_cycle()
+            self.flush()
+
+        self.ctrl.ioloop.call_later(1, self._update_cb)
 
 
     def _update_cycle(self):

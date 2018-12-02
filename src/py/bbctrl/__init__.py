@@ -34,6 +34,7 @@ import tornado
 import argparse
 import logging
 import datetime
+import pkg_resources
 
 from pkg_resources import Requirement, resource_filename
 
@@ -78,6 +79,11 @@ def on_exit(sig = 0, func = None):
         ctrl = None
 
     sys.exit(1)
+
+
+def log_time(log, ioloop):
+    log.info(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
+    ioloop.call_later(60 * 60, log_time, log, ioloop)
 
 
 def parse_args():
@@ -139,14 +145,17 @@ def run():
         root.addHandler(h)
 
     # Log header
-    now = datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
-    root.info('Log started ' + now)
+    version = pkg_resources.require('bbctrl')[0].version
+    root.info('Log started v%s' % version)
 
     # Set signal handler
     signal.signal(signal.SIGTERM, on_exit)
 
     # Create ioloop
     ioloop = tornado.ioloop.IOLoop.current()
+
+    # Write time to log periodically
+    log_time(root, ioloop)
 
     # Start controller
     ctrl = Ctrl(args, ioloop)

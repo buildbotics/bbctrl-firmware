@@ -1,6 +1,10 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.4.3
+ - Write version to log file.
+ - Write time to log file periodically.
+
 ## v0.4.2
  - Suppress ``Auto-creating missing tool`` warning.
  - Prevent ``Stream is closed`` error.
