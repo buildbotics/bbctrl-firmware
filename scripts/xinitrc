@@ -7,7 +7,15 @@ xset s noblank
 while true; do
     tvservice -s 2>&1 | grep "state 0x40001" >/dev/null
     if [ $? -ne 0 ]; then
-        /usr/local/bin/browser
+        # Clear browser errors
+        PREFS='/home/pi/.config/chromium/Default/Preferences'
+        sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' $PREFS
+        sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' $PREFS
+
+        # Start browser
+        /usr/local/bin/browser --no-first-run --disable-infobars \
+         --noerrdialogs --disable-3d-apis http://localhost/
     fi
+
     sleep 1
 done

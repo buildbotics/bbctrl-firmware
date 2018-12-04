@@ -251,10 +251,13 @@ script#control-view-template(type="text/x-template")
 
           select(title="Select previously uploaded GCode programs.",
             v-model="state.selected", @change="load", :disabled="!is_ready")
-            option(v-for="file in files", :value="file") {{file}}
+            option(v-for="file in state.files", :value="file") {{file}}
 
-        path-viewer(:toolpath="toolpath", :progress="toolpath_progress",
-          :state="state", :config="config")
+          .progress(v-if="toolpath_progress && toolpath_progress < 1")
+            div(:style="'width:' + (toolpath_progress || 0) * 100 + '%'")
+              label Simulating run {{(toolpath_progress || 0) | percent}}
+
+        path-viewer(:toolpath="toolpath", :state="state", :config="config")
         gcode-viewer
 
       section#content2.tab-content

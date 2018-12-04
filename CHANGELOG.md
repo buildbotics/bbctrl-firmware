@@ -4,6 +4,9 @@ Buildbotics CNC Controller Firmware Changelog
 ## v0.4.3
  - Write version to log file.
  - Write time to log file periodically.
+ - Show simulation progress with or with out 3D view.
+ - Synchronize file list between browsers.
+ - Increased max simulation time to 24hrs.
 
 ## v0.4.2
  - Suppress ``Auto-creating missing tool`` warning.

@@ -11,7 +11,8 @@ if [ -d sys/fs/cgroup/memory ]; then
     CGROUP=/sys/fs/cgroup/memory/chrome
     mkdir $CGROUP
     chown -R pi:pi $CGROUP
-    echo 700000000 > $CGROUP/memory.limit_in_bytes
+    echo 650000000 > $CGROUP/memory.soft_limit_in_bytes
+    echo 750000000 > $CGROUP/memory.limit_in_bytes
 fi
 
 # Reload udev

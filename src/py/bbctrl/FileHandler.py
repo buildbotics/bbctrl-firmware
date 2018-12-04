@@ -28,7 +28,9 @@
 import os
 import bbctrl
 import glob
+import html
 import logging
+from tornado import gen
 
 
 log = logging.getLogger('FileHandler')
@@ -49,54 +51,36 @@ class FileHandler(bbctrl.APIHandler):
             # Delete everything
             for path in glob.glob('upload/*'): safe_remove(path)
             self.ctrl.preplanner.delete_all_plans()
-            self.ctrl.state.set('selected', '')
+            self.ctrl.state.clear_files()
 
         else:
             # Delete a single file
             safe_remove('upload' + filename)
             self.ctrl.preplanner.delete_plans(filename)
-
-            if self.ctrl.state.get('selected', '') == filename:
-                self.ctrl.state.set('selected', '')
+            self.ctrl.state.remove_file(filename)
 
 
     def put_ok(self, path):
         gcode = self.request.files['gcode'][0]
+        filename = gcode['filename']
 
         if not os.path.exists('upload'): os.mkdir('upload')
 
-        path ='upload/' + gcode['filename']
+        path ='upload/' + filename
 
         with open(path, 'wb') as f:
             f.write(gcode['body'])
 
-        self.ctrl.preplanner.invalidate(gcode['filename'])
-        self.ctrl.state.set('selected', gcode['filename'])
+        self.ctrl.preplanner.invalidate(filename)
+        self.ctrl.state.add_file(filename)
+        log.info('GCode updated: ' + filename)
 
-        log.info('GCode updated: ' + gcode['filename'])
 
+    @gen.coroutine
+    def get(self, filename):
+        filename = filename[1:] # Remove /
 
-    def get(self, path):
-        if path:
-            path = path[1:]
+        with open('upload/' + filename, 'r') as f:
+            self.write(f.read())
 
-            self.set_header('Content-Type', 'text/plain')
-
-            with open('upload/' + path, 'r') as f:
-                self.write(f.read())
-
-            self.ctrl.mach.select(path)
-            return
-
-        files = []
-
-        if os.path.exists('upload'):
-            for path in os.listdir('upload'):
-                if os.path.isfile('upload/' + path):
-                    files.append(path)
-
-        selected = self.ctrl.state.get('selected', '')
-        if not selected in files:
-            if len(files): self.ctrl.state.set('selected', files[0])
-
-        self.write_json(files)
+        self.ctrl.state.select_file(filename)

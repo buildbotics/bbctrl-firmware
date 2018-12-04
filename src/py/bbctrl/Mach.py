@@ -284,15 +284,6 @@ class Mach(Comm):
             super().clear()
 
 
-    def select(self, path):
-        if self.ctrl.state.get('selected', '') == path: return
-
-        if self._get_cycle() != 'idle':
-            raise Exception('Cannot select file during ' + self._get_cycle())
-
-        self.ctrl.state.set('selected', path)
-
-
     def start(self):
         filename = self.ctrl.state.get('selected', '')
         if not filename: return

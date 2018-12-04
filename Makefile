@@ -23,6 +23,8 @@ RSYNC_OPTS    := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
 VERSION  := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
 PKG_NAME := bbctrl-$(VERSION)
 PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
+BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
+BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
 SUBPROJECTS := avr boot pwr jig
 WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
@@ -44,7 +46,7 @@ pkg: all $(AVR_FIRMWARE)
 	./setup.py sdist
 
 beta-pkg: pkg
-	cp dist/$(PKG_NAME).tar.bz2 dist/$(PKG_NAME)-beta.tar.bz2
+	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
 
 gplan: $(GPLAN_TARGET)
 
@@ -72,8 +74,8 @@ publish: pkg
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
 publish-beta: beta-pkg
-	echo -n $(VERSION)-beta > dist/latest-beta.txt
-	rsync $(RSYNC_OPTS) dist/$(PKG_NAME)-beta.tar.bz2 dist/latest-beta.txt \
+	echo -n $(BETA_VERSION) > dist/latest-beta.txt
+	rsync $(RSYNC_OPTS) dist/$(BETA_PKG_NAME).tar.bz2 dist/latest-beta.txt \
 	  $(PUB_PATH)/
 
 update: pkg

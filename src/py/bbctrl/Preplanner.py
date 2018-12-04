@@ -65,8 +65,8 @@ def plan_hash(path, config):
 
 
 class Preplanner(object):
-    def __init__(self, ctrl, threads = 4, max_plan_time = 600,
-                 max_loop_time = 30):
+    def __init__(self, ctrl, threads = 4, max_plan_time = 60 * 60 * 24,
+                 max_loop_time = 300):
         self.ctrl = ctrl
         self.max_plan_time = max_plan_time
         self.max_loop_time = max_loop_time

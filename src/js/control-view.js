@@ -50,7 +50,6 @@ module.exports = {
     return {
       mach_units: 'METRIC',
       mdi: '',
-      files: [],
       last_file: undefined,
       toolpath: {},
       toolpath_progress: 0,
@@ -187,29 +186,15 @@ module.exports = {
       var data = {};
       data[axis] = power;
       api.put('jog', data);
-    },
-
-    connected: function () {this.update()}
+    }
   },
 
 
-  ready: function () {
-    this.update();
-    this.load();
-  },
+  ready: function () {this.load()},
 
 
   methods: {
     send: function (msg) {this.$dispatch('send', msg)},
-
-
-    update: function () {
-      // Update file list
-      api.get('file').done(function (files) {
-        this.files = files;
-        this.load();
-      }.bind(this))
-    },
 
 
     load: function () {
@@ -235,6 +220,7 @@ module.exports = {
 
         if (typeof toolpath.progress == 'undefined') {
           toolpath.filename = file;
+          this.toolpath_progress = 1;
           this.toolpath = toolpath;
 
           var state = this.$root.state;
@@ -294,7 +280,6 @@ module.exports = {
         .done(function () {
           this.last_file = undefined; // Force reload
           this.$broadcast('gcode-reload', file.name);
-          this.update();
 
         }.bind(this)).fail(function (error) {
           alert('Upload failed: ' + error)
@@ -304,13 +289,13 @@ module.exports = {
 
     delete_current: function () {
       if (this.state.selected)
-        api.delete('file/' + this.state.selected).done(this.update);
+        api.delete('file/' + this.state.selected);
       this.deleteGCode = false;
     },
 
 
     delete_all: function () {
-      api.delete('file').done(this.update);
+      api.delete('file');
       this.deleteGCode = false;
     },
 

@@ -29,8 +29,15 @@
 
 var api = require('./api');
 
-var max_lines = 1000;
-var page_size = Math.round(max_lines / 10);
+
+var entityMap = {
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;'}
+
+
+function escapeHTML(s) {
+  return s.replace(/[&<>"'`=\/]/g, function (c) {return entityMap[c]})
+}
 
 
 module.exports = {
@@ -60,6 +67,7 @@ module.exports = {
       rows: [],
       scrollElem: $(this.$el).find('.clusterize-scroll')[0],
       contentElem: $(this.$el).find('.clusterize-content')[0],
+      no_data_text: 'Loading GCode...',
       callbacks: {clusterChanged: this.highlight}
     });
   },
@@ -84,7 +92,7 @@ module.exports = {
 
       xhr.onload = function (e) {
         if (this.file != file) return;
-        var lines = xhr.response.trimRight().split(/\r?\n/);
+        var lines = escapeHTML(xhr.response.trimRight()).split(/\r?\n/);
 
         for (var i = 0; i < lines.length; i++) {
           lines[i] = '<li class="ln' + (i + 1) + '">' +
@@ -161,4 +169,3 @@ module.exports = {
     }
   }
 }
-33554400

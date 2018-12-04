@@ -53,11 +53,6 @@ script#path-viewer-template(type="text/x-template")
           img(src=`images/${view}.png`)
 
     .path-viewer-content
-      .path-viewer-message
-        template(v-if="loading")
-          div(v-if="progress && progress < 1")
-            | Simulating run {{progress | non_zero_percent 0}}. . .
-          div(v-if="!progress || progress == 1") Loading. . .
 
     table.path-viewer-messages(
       v-if="typeof toolpath.messages != 'undefined' && " +

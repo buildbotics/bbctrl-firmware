@@ -28,6 +28,7 @@
 var orbit = require('./orbit');
 var cookie = require('./cookie')('bbctrl-');
 var api = require('./api');
+var font = require('./helvetiker_regular.typeface.json')
 
 
 function get(obj, name, defaultValue) {
@@ -40,7 +41,7 @@ var surfaceModes = ['cut', 'wire', 'solid', 'off'];
 
 module.exports = {
   template: '#path-viewer-template',
-  props: ['toolpath', 'progress'],
+  props: ['toolpath'],
 
 
   data: function () {
@@ -123,8 +124,8 @@ module.exports = {
     update: function () {
       if (!this.toolpath.filename && !this.loading) {
         this.loading = true;
-        this.scene = new THREE.Scene();
         this.dirty = true;
+        this.draw_loading();
       }
 
       if (!this.enabled || !this.toolpath.filename) return;
@@ -216,6 +217,13 @@ module.exports = {
       this.camera.aspect = dims.width / dims.height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(dims.width, dims.height);
+
+      if (this.loading) {
+        this.controls.reset();
+        this.camera.position.copy(new THREE.Vector3(0, 0, 1000));
+        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
+      }
+
       this.dirty = true;
     },
 
@@ -330,6 +338,31 @@ module.exports = {
         side: THREE.FrontSide,
         color: 0x0c2d53
       });
+    },
+
+
+    draw_loading: function () {
+      this.scene = new THREE.Scene();
+
+      var geometry = new THREE.TextGeometry('Loading 3D View...', {
+        font: new THREE.Font(font),
+        size: 80,
+        height: 5,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 10,
+        bevelSize: 8,
+        bevelSegments: 5
+      });
+      geometry.computeBoundingBox();
+
+      var center = geometry.center();
+      var mesh = new THREE.Mesh(geometry, this.surfaceMaterial);
+
+      this.scene.add(mesh);
+      this.scene.add(this.ambient);
+      this.scene.add(this.lights);
+      this.update_view();
     },
 
 
@@ -627,6 +660,7 @@ module.exports = {
 
 
     snap: function (view) {
+      if (this.loading) return;
       if (view != this.snapView) {
         this.snapView = view;
         cookie.set('snap-view', view);

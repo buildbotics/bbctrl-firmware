@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+
+import os
+import json
+
+if os.path.exists('dist/latest-beta.txt'):
+    with open('dist/latest-beta.txt', 'r') as f:
+        latest_beta = f.read().strip()
+
+else: latest_beta = ''
+
+with open('package.json', 'r') as f:
+    version = json.load(f)['version']
+
+if latest_beta.startswith(version + '-rc'):
+    print(int(latest_beta[len(version) + 3]) + 1)
+
+else:
+    print(1)

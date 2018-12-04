@@ -29,6 +29,7 @@ import logging
 import traceback
 import copy
 import uuid
+import os
 import bbctrl
 
 
@@ -76,6 +77,7 @@ class State(object):
         self.set('sid', str(uuid.uuid4()))
 
         self.reset()
+        self.load_files()
 
 
     def is_metric(self): return self.get('units', 'METRIC') == 'METRIC'
@@ -89,6 +91,47 @@ class State(object):
         for axis in 'xyzabc':
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
+
+
+    def load_files(self):
+        self.files = []
+
+        if os.path.exists('upload'):
+            for path in os.listdir('upload'):
+                if os.path.isfile('upload/' + path):
+                    self.files.append(path)
+
+        self.files.sort()
+        self.set('files', self.files)
+
+        if len(self.files): self.select_file(self.files[0])
+        else: self.select_file('')
+
+
+    def clear_files(self):
+        self.select_file('')
+        self.files = []
+        self.set('files', self.files)
+
+
+    def add_file(self, filename):
+        if filename not in self.files:
+            self.files.append(filename)
+            self.files.sort()
+            self.set('files', self.files)
+
+        self.select_file(filename)
+
+
+    def remove_file(self, filename):
+        if self.get('selected', '') == filename: self.select_file('')
+
+        if filename in self.files:
+            self.files.remove(filename)
+            self.set('files', self.files)
+
+
+    def select_file(self, filename): self.set('selected', filename)
 
 
     def _notify(self):
