@@ -31,6 +31,7 @@ import glob
 import html
 import logging
 from tornado import gen
+from tornado.web import HTTPError
 
 
 log = logging.getLogger('FileHandler')
@@ -55,30 +56,30 @@ class FileHandler(bbctrl.APIHandler):
 
         else:
             # Delete a single file
-            safe_remove('upload' + filename)
+            filename = os.path.basename(filename)
+            safe_remove('upload/' + filename)
             self.ctrl.preplanner.delete_plans(filename)
             self.ctrl.state.remove_file(filename)
 
 
-    def put_ok(self, path):
+    def put_ok(self, *args):
         gcode = self.request.files['gcode'][0]
-        filename = gcode['filename']
+        filename = os.path.basename(gcode['filename'])
 
         if not os.path.exists('upload'): os.mkdir('upload')
 
-        path ='upload/' + filename
-
-        with open(path, 'wb') as f:
+        with open('upload/' + filename, 'wb') as f:
             f.write(gcode['body'])
 
         self.ctrl.preplanner.invalidate(filename)
         self.ctrl.state.add_file(filename)
-        log.info('GCode updated: ' + filename)
+        log.info('GCode received: ' + filename)
 
 
     @gen.coroutine
     def get(self, filename):
-        filename = filename[1:] # Remove /
+        if not filename: raise HTTPError(400, 'Missing filename')
+        filename = os.path.basename(filename)
 
         with open('upload/' + filename, 'r') as f:
             self.write(f.read())

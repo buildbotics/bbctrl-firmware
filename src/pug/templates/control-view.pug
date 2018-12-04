@@ -232,6 +232,11 @@ script#control-view-template(type="text/x-template")
             input(type="file", @change="upload", :disabled="!is_ready",
               accept="text/*,.nc,.gcode,.gc,.ngc,.txt,.tap,.cnc")
 
+          a.pure-button(:disabled="!state.selected", download,
+            :href="'/api/file/' + state.selected",
+            title="Download the selected GCode program.")
+            .fa.fa-download
+
           button.pure-button(title="Delete current GCode program.",
             @click="deleteGCode = true",
             :disabled="!state.selected || !is_ready")
@@ -253,9 +258,12 @@ script#control-view-template(type="text/x-template")
             v-model="state.selected", @change="load", :disabled="!is_ready")
             option(v-for="file in state.files", :value="file") {{file}}
 
-          .progress(v-if="toolpath_progress && toolpath_progress < 1")
+          .progress(v-if="toolpath_progress && toolpath_progress < 1",
+            title="Simulating GCode to check for errors, calculate ETA and " +
+              "generate 3D view.  You can run GCode before the simulation " +
+              "finishes.")
             div(:style="'width:' + (toolpath_progress || 0) * 100 + '%'")
-              label Simulating run {{(toolpath_progress || 0) | percent}}
+              label Simulating {{(toolpath_progress || 0) | percent}}
 
         path-viewer(:toolpath="toolpath", :state="state", :config="config")
         gcode-viewer

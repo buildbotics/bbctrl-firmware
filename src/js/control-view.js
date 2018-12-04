@@ -97,7 +97,9 @@ module.exports = {
     },
 
 
-    'state.selected': function () {this.load()}
+    'state.selected': function () {this.load()},
+    'state.files': function () {
+      console.log('Files changed: ' + JSON.stringify(this.state.files))}
   },
 
 
@@ -199,11 +201,10 @@ module.exports = {
 
     load: function () {
       var file = this.state.selected;
-      if (this.last_file == file || typeof file == 'undefined' ||
-          typeof file == 'null') return;
+      if (this.last_file == file) return;
       this.last_file = file;
 
-      if (typeof file != 'undefined') this.$broadcast('gcode-load', file);
+      this.$broadcast('gcode-load', file);
       this.$broadcast('gcode-line', this.state.line);
       this.toolpath_progress = 0;
       this.load_toolpath(file);
@@ -213,7 +214,7 @@ module.exports = {
     load_toolpath: function (file) {
       this.toolpath = {};
 
-      if (typeof file == 'undefined' || typeof file == 'null') return;
+      if (!file) return;
 
       api.get('path/' + file).done(function (toolpath) {
         if (this.last_file != file) return;

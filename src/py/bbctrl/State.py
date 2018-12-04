@@ -111,24 +111,26 @@ class State(object):
     def clear_files(self):
         self.select_file('')
         self.files = []
-        self.set('files', self.files)
+        self.changes['files'] = self.files
 
 
     def add_file(self, filename):
-        if filename not in self.files:
+        if not filename in self.files:
             self.files.append(filename)
             self.files.sort()
-            self.set('files', self.files)
+            self.changes['files'] = self.files
 
         self.select_file(filename)
 
 
     def remove_file(self, filename):
-        if self.get('selected', '') == filename: self.select_file('')
-
         if filename in self.files:
             self.files.remove(filename)
-            self.set('files', self.files)
+            self.changes['files'] = self.files
+
+        if self.get('selected', filename) == filename:
+            if len(self.files): self.select_file(self.files[0])
+            else: self.select_file('')
 
 
     def select_file(self, filename): self.set('selected', filename)

@@ -48,6 +48,14 @@ function compare_versions(a, b) {
 
 
 function is_object(o) {return o !== null && typeof o == 'object'}
+function is_array(o) {return Array.isArray(o)}
+
+
+function update_array(dst, src) {
+  while (dst.length) dst.pop()
+  for (var i = 0; i < src.length; i++)
+    Vue.set(dst, i, src[i]);
+}
 
 
 function update_object(dst, src, remove) {
@@ -68,7 +76,10 @@ function update_object(dst, src, remove) {
     key = props[index];
     value = src[key];
 
-    if (is_object(value) && dst.hasOwnProperty(key) && is_object(dst[key]))
+    if (is_array(value) && dst.hasOwnProperty(key) && is_array(dst[key]))
+      update_array(dst[key], value);
+
+    else if (is_object(value) && dst.hasOwnProperty(key) && is_object(dst[key]))
       update_object(dst[key], value, remove);
 
     else Vue.set(dst, key, value);

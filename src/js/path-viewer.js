@@ -122,7 +122,11 @@ module.exports = {
 
   methods: {
     update: function () {
-      if (!this.toolpath.filename && !this.loading) {
+      if (!this.state.selected) {
+        this.dirty = true;
+        this.scene = new THREE.Scene();
+
+      } else if (!this.toolpath.filename && !this.loading) {
         this.loading = true;
         this.dirty = true;
         this.draw_loading();

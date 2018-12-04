@@ -67,7 +67,7 @@ module.exports = {
       rows: [],
       scrollElem: $(this.$el).find('.clusterize-scroll')[0],
       contentElem: $(this.$el).find('.clusterize-content')[0],
-      no_data_text: 'Loading GCode...',
+      no_data_text: 'GCode viewer...',
       callbacks: {clusterChanged: this.highlight}
     });
   },
@@ -81,10 +81,11 @@ module.exports = {
 
   methods: {
     load: function (file) {
-      if (file == this.file || typeof file == 'undefined' ||
-          typeof file == 'null') return;
+      if (file == this.file) return;
       this.clear();
       this.file = file;
+
+      if (!file) return;
 
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/api/file/' + file + '?' + Math.random(), true);
