@@ -52,12 +52,8 @@ tt
     &:hover
       border-color #aaa
 
-    &.medium
-      width inherit
-      height 240px
-
     &.large
-      width 794px
+      width 100%
       margin 5px 0
       height inherit
 
@@ -173,6 +169,8 @@ span.unit
 
 
 #main
+  margin-left 0.5em
+
   .content
     h2
       text-transform capitalize
@@ -216,8 +214,10 @@ span.unit
 
 .control-view
   table
-    margin 0.5em 0
     border-collapse collapse
+
+    &:first-child
+      margin 0.5em 0
 
     td, th
       border 1px solid #ddd
@@ -402,6 +402,7 @@ span.unit
 
   .toolbar
     clear both
+    padding 0 0.125em
 
     > *
       margin 0.25em 0.125em
@@ -415,7 +416,7 @@ span.unit
       line-height 2em
       border 1px solid #aaa
       border-radius 3px
-      width 300px
+      width 330px
       vertical-align middle
       text-align center
 
@@ -437,7 +438,6 @@ span.unit
 
   .path-viewer
     width 100%
-    max-width 99%
 
     .path-viewer-content
       height 500px
@@ -447,10 +447,7 @@ span.unit
     clear both
     overflow auto
     width 100%
-    max-width 99%
-    min-width 99%
     height 450px
-    padding 0.25em
     white-space nowrap
 
     .clusterize-scroll
@@ -458,6 +455,9 @@ span.unit
 
     &.placeholder
       color #aaa
+
+  .history
+    padding 0.25em
 
   .gcode ul, .history ul
     margin 0
@@ -487,9 +487,14 @@ span.unit
   .mdi
     clear both
     white-space nowrap
+    padding 0.125em
+    display flex
+
+    > *
+      margin 0.125em
 
     input
-      width 90%
+      flex 2
 
   .jog
     text-align center
@@ -550,14 +555,14 @@ span.unit
   .path-viewer-content
     background-color #333
     background linear-gradient(to bottom, #666 0%, #222 100%);
+    margin-bottom 0.5em
 
   &.small
     .path-viewer-content
-      width 335px
+      width 340px
       height 150px
       float right
-      margin-top -84px
-      border-radius 4px
+      margin-top -88px
 
 .console
   .console-wrapper
@@ -576,6 +581,12 @@ span.unit
       border 1px solid #ddd
       padding 2px
 
+      &:first-child
+        border-left 0
+
+      &:last-child
+        border-right 0
+
     tr
       > td
         margin 0 0.125em
@@ -591,7 +602,7 @@ tr.log-debug td
   color green
 
 .indicators
-  padding 1em 0.75em
+  padding 1em 0
   text-align center
 
   table
@@ -603,6 +614,7 @@ tr.log-debug td
 
     td, th
       padding 4px
+      white-space nowrap
 
     tr:nth-child(odd)
       background #f7f7f7
@@ -882,7 +894,13 @@ tt.save
       height 1em
 
 
-@media only screen and (max-width 48em)
+@media only screen and (max-width 970px)
+  .control-view #control
+    .path-viewer.small .path-viewer-content
+      margin-top inherit
+      float inherit
+
+@media only screen and (max-width 940px)
   .header
     height auto
 
@@ -905,12 +923,6 @@ tt.save
       float none
       clear both
       width 99%
-
-    .path-viewer
-      &.small
-        .path-viewer-content
-          margin-top inherit
-          float inherit
 
   .tab_container
     width 98%

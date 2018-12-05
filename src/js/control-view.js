@@ -97,9 +97,7 @@ module.exports = {
     },
 
 
-    'state.selected': function () {this.load()},
-    'state.files': function () {
-      console.log('Files changed: ' + JSON.stringify(this.state.files))}
+    'state.selected': function () {this.load()}
   },
 
 

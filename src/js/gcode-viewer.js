@@ -67,7 +67,7 @@ module.exports = {
       rows: [],
       scrollElem: $(this.$el).find('.clusterize-scroll')[0],
       contentElem: $(this.$el).find('.clusterize-content')[0],
-      no_data_text: 'GCode viewer...',
+      no_data_text: 'GCode view...',
       callbacks: {clusterChanged: this.highlight}
     });
   },

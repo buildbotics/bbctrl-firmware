@@ -207,7 +207,7 @@ script#control-view-template(type="text/x-template")
 
       section#content1.tab-content.pure-form
         .toolbar.pure-control-group
-          button.pure-button(
+          button.pure-button(:class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} program.",
             @click="start_pause", :disabled="!state.selected")
             .fa(:class="is_running ? 'fa-pause' : 'fa-play'")
@@ -271,6 +271,7 @@ script#control-view-template(type="text/x-template")
       section#content2.tab-content
         .mdi.pure-form(title="Manual GCode entry.")
           button.pure-button(:disabled="!can_mdi",
+            :class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
             @click="mdi_start_pause")
             .fa(:class="is_running ? 'fa-pause' : 'fa-play'")

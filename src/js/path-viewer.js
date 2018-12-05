@@ -224,7 +224,7 @@ module.exports = {
 
       if (this.loading) {
         this.controls.reset();
-        this.camera.position.copy(new THREE.Vector3(0, 0, 1000));
+        this.camera.position.copy(new THREE.Vector3(0, 0, 600));
         this.camera.lookAt(new THREE.Vector3(0, 0, 0));
       }
 
@@ -350,7 +350,7 @@ module.exports = {
 
       var geometry = new THREE.TextGeometry('Loading 3D View...', {
         font: new THREE.Font(font),
-        size: 80,
+        size: 40,
         height: 5,
         curveSegments: 12,
         bevelEnabled: true,
