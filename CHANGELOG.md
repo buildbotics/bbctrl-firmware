@@ -9,6 +9,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Increased max simulation time to 24hrs.
  - Added button to download current GCode file.
  - Blink play button to indicate pause.
+ - Many layout tweaks/improvements.
+ - Don't abort simulations when system time changes.
+ - Only allow one camera stream at a time.
+ -
 
 ## v0.4.2
  - Suppress ``Auto-creating missing tool`` warning.
