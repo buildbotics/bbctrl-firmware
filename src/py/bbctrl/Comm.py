@@ -170,6 +170,10 @@ class Comm(object):
 
         if level == 'error': self.comm_error()
 
+        # Treat machine alarmed warning as an error
+        if level == 'warning' and 'code' in msg and msg['code'] == 11:
+            self.comm_error()
+
 
     def _serial_read(self):
         try:
