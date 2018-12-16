@@ -45,6 +45,16 @@ reLogLine = re.compile(
     r'(?P<msg>.*)$')
 
 
+def log_floats(o):
+    if isinstance(o, float): return round(o, 2)
+    if isinstance(o, dict): return {k: log_floats(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)): return [log_floats(x) for x in o]
+    return o
+
+
+def log_json(o): return json.dumps(log_floats(o))
+
+
 class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -102,7 +112,7 @@ class Planner():
 
         if overrides: cfg['overrides'] = overrides
 
-        log.info('Config:' + json.dumps(cfg))
+        log.info('Config:' + log_json(cfg))
 
         return cfg
 
@@ -203,7 +213,7 @@ class Planner():
     def __encode(self, block):
         type, id = block['type'], block['id']
 
-        if type != 'set': log.info('Cmd:' + json.dumps(block))
+        if type != 'set': log.info('Cmd:' + log_json(block))
 
         if type == 'line':
             self._enqueue_line_time(block)
@@ -315,7 +325,7 @@ class Planner():
             id = self.ctrl.state.get('id')
             position = self.ctrl.state.get_position()
 
-            log.info('Planner restart: %d %s' % (id, json.dumps(position)))
+            log.info('Planner restart: %d %s' % (id, log_json(position)))
 
             self.cmdq.clear()
             self.cmdq.release(id)
