@@ -198,6 +198,11 @@
       "default": "Disabled",
       "code": "st"
     },
+    "tool-reversed": {
+      "type": "bool",
+      "default": false,
+      "code": "sr"
+    },
     "max-spin": {
       "type": "float",
       "unit": "RPM",

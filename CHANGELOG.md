@@ -12,7 +12,6 @@ Buildbotics CNC Controller Firmware Changelog
  - Many layout tweaks/improvements.
  - Don't abort simulations when system time changes.
  - Only allow one camera stream at a time.
- -
 
 ## v0.4.2
  - Suppress ``Auto-creating missing tool`` warning.
@@ -21,7 +20,6 @@ Buildbotics CNC Controller Firmware Changelog
  - Fixed Web disconnect during simulation of large GCode.
  - Disable outputs on estop.
  - Improved switch debouncing for better homing.
- - Removed tool-reversed option.  Use tool-direction-mode instead.
  - Handle zero length dwell correctly.
  - Fixed problem with cached GCode file upload when file changed on disk.
  - Run simulation at low process priority.
