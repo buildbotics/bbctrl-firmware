@@ -33,7 +33,7 @@ log.setLevel(logging.WARNING)
 
 
 # 16-bit less with wrap around
-def id_less(a, b): return (1 << 15) < (a - b) % ((1 << 16) - 1)
+def id_less(a, b): return (1 << 15) < (a - b) & ((1 << 16) - 1)
 
 
 class CommandQueue():

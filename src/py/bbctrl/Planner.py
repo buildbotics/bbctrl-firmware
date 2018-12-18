@@ -270,10 +270,6 @@ class Planner():
 
 
     def _encode(self, block):
-        # Handle id wrapping by restricting ids to 16-bit
-        # See CommandQueue id_less()
-        block['id'] %= (1 << 16) - 1
-
         cmd = self.__encode(block)
 
         if cmd is not None:
