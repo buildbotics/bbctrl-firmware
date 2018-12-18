@@ -191,11 +191,11 @@ void spindle_load_power_updates(power_update_t updates[], float minD,
 }
 
 
-// Called from hi-level stepper interrupt
+// Called from hi-priority stepper interrupt
 void spindle_update(power_update_t update) {pwm_update(update);}
 
 
-// Called from lo-level stepper interrupt
+// Called from lo-priority stepper interrupt
 void spindle_idle() {
   if (spindle.sync_speed.dist != -1) {
     spindle.sync_speed.dist = -1; // Mark done

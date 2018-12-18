@@ -112,8 +112,7 @@ ISR(STEP_LOW_LEVEL_ISR) {
 
     switch (status) {
     case STAT_NOP:                          // No move executed, idle
-      spindle_idle();
-      st.busy = false;
+      if (!st.busy) spindle_idle();
       break;
 
     case STAT_AGAIN: continue;              // No command executed, try again
@@ -152,8 +151,9 @@ static void _update_power() {
 }
 
 
+/// Step timer interrupt routine.
 /// Dwell or dequeue and load next move.
-static void _next_move() {
+ISR(STEP_TIMER_ISR) {
   static uint8_t tick = 0;
 
   // Update spindle power on every tick
@@ -174,6 +174,7 @@ static void _next_move() {
     _request_exec_move();
     _end_move();
     tick = 0; // Try again in 1ms
+    st.busy = false;
     return;
   }
 
@@ -203,10 +204,6 @@ static void _next_move() {
   st.busy = true;        // Executing move so mark busy
   st.move_ready = false; // We are done with this move, flip the flag back
 }
-
-
-/// Step timer interrupt routine.
-ISR(STEP_TIMER_ISR) {_next_move();}
 
 
 void st_prep_power(const power_update_t powers[]) {
