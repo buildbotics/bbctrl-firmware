@@ -36,6 +36,7 @@
 #include "seek.h"
 #include "estop.h"
 #include "state.h"
+#include "spindle.h"
 #include "config.h"
 #include "SCurve.h"
 
@@ -152,6 +153,7 @@ stat_t _segment_exec() {
       command_reset_position();
       state_holding();
       seek_end();
+      spindle_update_speed();
     }
   }
 

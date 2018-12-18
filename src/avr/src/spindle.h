@@ -66,4 +66,5 @@ void spindle_estop();
 void spindle_load_power_updates(power_update_t updates[], float minD,
                                 float maxD);
 void spindle_update(power_update_t update);
+void spindle_update_speed();
 void spindle_idle();

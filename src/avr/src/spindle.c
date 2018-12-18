@@ -109,9 +109,6 @@ static void _set_speed(float speed) {
 }
 
 
-static void _update_speed() {_set_speed(spindle.speed);}
-
-
 static void _deinit_cb() {
   spindle.type = spindle.next_type;
   spindle.next_type = SPINDLE_TYPE_DISABLED;
@@ -123,7 +120,7 @@ static void _deinit_cb() {
   default:                    vfd_spindle_init(); break;
   }
 
-  _update_speed();
+  spindle_update_speed();
 }
 
 
@@ -185,7 +182,7 @@ void spindle_load_power_updates(power_update_t updates[], float minD,
     if (spindle.type == SPINDLE_TYPE_PWM) updates[i] = _get_power_update();
     else {
       updates[i].state = POWER_IGNORE;
-      if (changed) _update_speed();
+      if (changed) spindle_update_speed();
     }
   }
 }
@@ -193,6 +190,7 @@ void spindle_load_power_updates(power_update_t updates[], float minD,
 
 // Called from hi-priority stepper interrupt
 void spindle_update(power_update_t update) {pwm_update(update);}
+void spindle_update_speed() {_set_speed(spindle.speed);}
 
 
 // Called from lo-priority stepper interrupt
@@ -202,7 +200,7 @@ void spindle_idle() {
     spindle.speed = spindle.sync_speed.speed;
 
     if (spindle.type == SPINDLE_TYPE_PWM) spindle_update(_get_power_update());
-    else _update_speed();
+    else spindle_update_speed();
   }
 }
 
@@ -220,7 +218,7 @@ bool get_tool_reversed() {return spindle.reversed;}
 void set_tool_reversed(bool reversed) {
   if (spindle.reversed == reversed) return;
   spindle.reversed = reversed;
-  _update_speed();
+  spindle_update_speed();
 }
 
 
@@ -232,7 +230,7 @@ void set_max_spin(float value) {
   if (spindle.max_rpm != value) {
     spindle.max_rpm = value;
     spindle.inv_max_rpm = 1 / value;
-    _update_speed();
+    spindle_update_speed();
   }
 }
 
@@ -243,7 +241,7 @@ float get_min_spin() {return spindle.min_rpm;}
 void set_min_spin(float value) {
   if (spindle.min_rpm != value) {
     spindle.min_rpm = value;
-    _update_speed();
+    spindle_update_speed();
   }
 }
 
@@ -256,7 +254,7 @@ void set_speed_override(uint16_t value) {
 
   if (spindle.override != value) {
     spindle.override = value;
-    _update_speed();
+    spindle_update_speed();
   }
 }
 
@@ -267,7 +265,7 @@ bool get_dynamic_power() {return spindle.dynamic_power;}
 void set_dynamic_power(bool enable) {
   if (spindle.dynamic_power != enable) {
     spindle.dynamic_power = enable;
-    _update_speed();
+    spindle_update_speed();
   }
 }
 
@@ -278,7 +276,7 @@ float get_inverse_feed() {return spindle.inv_feed;}
 void set_inverse_feed(float iF) {
   if (spindle.inv_feed != iF) {
     spindle.inv_feed = iF;
-    _update_speed();
+    spindle_update_speed();
   }
 }
 
