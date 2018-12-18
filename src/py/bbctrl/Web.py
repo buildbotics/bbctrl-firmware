@@ -439,7 +439,11 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
         sockjs.tornado.SockJSConnection.__init__(self, session)
 
 
-    def send(self, msg): sockjs.tornado.SockJSConnection.send(self, msg)
+    def send(self, msg):
+        try:
+            sockjs.tornado.SockJSConnection.send(self, msg)
+        except:
+            self.close()
 
 
 class StaticFileHandler(tornado.web.StaticFileHandler):
