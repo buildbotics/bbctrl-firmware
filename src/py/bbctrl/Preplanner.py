@@ -148,7 +148,7 @@ class Preplanner(object):
 
         # Copy state for thread
         state = self.ctrl.state.snapshot()
-        config = self.ctrl.mach.planner.get_config(False, False, False)
+        config = self.ctrl.mach.planner.get_config(False, False)
         del config['default-units']
 
         # Start planner thread

@@ -170,6 +170,7 @@ class Mach(Comm):
 
         if pause_reason == 'User stop':
             self.planner.stop()
+            self.planner.update_position()
             self.ctrl.state.set('line', 0)
 
         else: self.planner.restart()

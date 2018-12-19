@@ -70,7 +70,11 @@ class Planner():
     def is_running(self): return self.planner.is_running()
 
 
-    def get_config(self, mdi, with_limits, with_position = True):
+    def update_position(self):
+        self.planner.set_position(self.ctrl.state.get_position())
+
+
+    def get_config(self, mdi, with_limits):
         state = self.ctrl.state
         config = self.ctrl.config
 
@@ -83,8 +87,6 @@ class Planner():
             'rapid-auto-off': config.get('rapid-auto-off'),
             # TODO junction deviation & accel
             }
-
-        if with_position: cfg['position'] = state.get_position()
 
         if with_limits:
             minLimit = state.get_soft_limit_vector('tn', -math.inf)
@@ -289,6 +291,7 @@ class Planner():
         self.planner = gplan.Planner()
         self.planner.set_resolver(self._get_var_cb)
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
+        self.update_position()
         self.cmdq.clear()
         self.reset_times()
         self.ctrl.state.reset()
