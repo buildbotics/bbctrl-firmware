@@ -97,7 +97,7 @@ html(lang="en")
                 span.right botics
               .subtitle
                 | Machine Controller v{{config.version}}
-                a.upgrade-version(v-if="show_upgrade()", href="#admin")
+                a.upgrade-version(v-if="show_upgrade()", href="#admin-general")
                   | Upgrade to v{{latestVersion}}
                 .fa.fa-check(v-if="!show_upgrade() && latestVersion",
                   title="Firmware up to date")
