@@ -100,7 +100,8 @@ class Mach(Comm):
 
     def _is_paused(self):
         if not self._is_holding() or self.unpausing: return False
-        return self._get_pause_reason() in ('User pause', 'Program pause')
+        return self._get_pause_reason() in (
+            'User pause', 'Program pause', 'Optional pause')
 
 
     def _begin_cycle(self, cycle):
@@ -159,8 +160,11 @@ class Mach(Comm):
                 self.ctrl.state.set('cycle', self.last_cycle)
 
         # Automatically unpause after seek or stop hold
+        op = self.ctrl.state.get('optional_pause', False)
+        pr = self._get_pause_reason()
         if (('xx' in update or 'pr' in update) and self._is_holding() and
-            self._get_pause_reason() in ('Switch found', 'User stop')):
+            (pr in ('Switch found', 'User stop') or
+             (pr == 'Optional pause' and not op))):
             self._unpause()
 
 
@@ -304,11 +308,13 @@ class Mach(Comm):
 
 
     def unpause(self):
-        if self._is_paused(): self._unpause()
+        if self._is_paused():
+            self.ctrl.state.set('optional_pause', False)
+            self._unpause()
 
 
     def optional_pause(self, enable = True):
-        super().queue_command('$op=%d' % enable)
+        self.ctrl.state.set('optional_pause', enable)
 
 
     def set_position(self, axis, position):

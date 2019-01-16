@@ -119,7 +119,7 @@ static uint8_t _i2c_default_write_cb(uint8_t offset, bool *done) {
 void i2c_init() {
   i2c_set_write_callback(_i2c_default_write_cb);
 
-  I2C_DEV.SLAVE.CTRLA = TWI_SLAVE_INTLVL_MED_gc | TWI_SLAVE_DIEN_bm |
+  I2C_DEV.SLAVE.CTRLA = TWI_SLAVE_INTLVL_LO_gc | TWI_SLAVE_DIEN_bm |
     TWI_SLAVE_ENABLE_bm | TWI_SLAVE_APIEN_bm | TWI_SLAVE_PIEN_bm;
   I2C_DEV.SLAVE.ADDR = I2C_ADDR << 1;
 }

@@ -44,7 +44,6 @@ static struct {
   bool resuming;
   bool stop_requested;
   bool pause_requested;
-  bool optional_pause_requested;
   bool unpause_requested;
 
   state_t state;
@@ -70,10 +69,11 @@ PGM_P state_get_pgmstr(state_t state) {
 
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
-  case HOLD_REASON_USER_PAUSE:    return PSTR("User pause");
-  case HOLD_REASON_USER_STOP:     return PSTR("User stop");
-  case HOLD_REASON_PROGRAM_PAUSE: return PSTR("Program pause");
-  case HOLD_REASON_SWITCH_FOUND:  return PSTR("Switch found");
+  case HOLD_REASON_USER_PAUSE:     return PSTR("User pause");
+  case HOLD_REASON_USER_STOP:      return PSTR("User stop");
+  case HOLD_REASON_PROGRAM_PAUSE:  return PSTR("Program pause");
+  case HOLD_REASON_OPTIONAL_PAUSE: return PSTR("Optional pause");
+  case HOLD_REASON_SWITCH_FOUND:   return PSTR("Switch found");
   }
 
   return PSTR("INVALID");
@@ -136,12 +136,6 @@ static void _stop() {
 void state_holding() {
   _set_state(STATE_HOLDING);
   if (s.hold_reason == HOLD_REASON_USER_STOP) _stop();
-}
-
-
-void state_pause() {
-  _set_hold_reason(HOLD_REASON_PROGRAM_PAUSE);
-  state_holding();
 }
 
 
@@ -208,8 +202,6 @@ void state_callback() {
 // Var callbacks
 PGM_P get_state() {return state_get_pgmstr(state_get());}
 PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}
-bool get_optional_pause() {return s.optional_pause_requested;}
-void set_optional_pause(bool x) {s.optional_pause_requested = x;}
 
 
 // Command callbacks
@@ -229,13 +221,14 @@ unsigned command_pause_size() {return sizeof(pause_t);}
 void command_pause_exec(void *data) {
   switch (*(pause_t *)data) {
   case PAUSE_PROGRAM_OPTIONAL:
-    if (!s.optional_pause_requested) return;
-    s.optional_pause_requested = false;
-    // Fall through
+    _set_hold_reason(HOLD_REASON_OPTIONAL_PAUSE);
+    break;
 
-  case PAUSE_PROGRAM: state_pause(); break;
-  default: break;
+  case PAUSE_PROGRAM: _set_hold_reason(HOLD_REASON_PROGRAM_PAUSE); break;
+  default: return;
   }
+
+  state_holding();
 }
 
 

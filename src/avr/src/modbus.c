@@ -102,17 +102,17 @@ static void _set_write(bool x) {SET_PIN(RS485_RW_PIN, x);}
 
 
 static void _set_dre_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_DRE, MED, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_DRE, LO, enable);
 }
 
 
 static void _set_txc_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_TXC, MED, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_TXC, LO, enable);
 }
 
 
 static void _set_rxc_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_RXC, MED, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_RXC, LO, enable);
 }
 
 

@@ -1,7 +1,11 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
-## v0.4.3
+## v0.4.5
+ - Fix for random errors while running VFD.
+ - Fix bug where planner would not continue after optional pause (M1).
+
+## v0.4.4
  - Write version to log file.
  - Write time to log file periodically.
  - Show simulation progress with or with out 3D view.

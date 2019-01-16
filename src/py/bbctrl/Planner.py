@@ -264,8 +264,10 @@ class Planner():
             return Cmd.dwell(block['seconds'])
 
         if type == 'pause': return Cmd.pause(block['pause-type'])
+
         if type == 'seek':
             return Cmd.seek(block['switch'], block['active'], block['error'])
+
         if type == 'end': return '' # Sends id
 
         raise Exception('Unknown planner command "%s"' % type)
