@@ -74,6 +74,8 @@ static struct {
   uint8_t retry;
   uint8_t status;
   bool write_ready;
+  bool response_ready;
+  bool transmit_complete;
   bool busy;
 } state = {0};
 
@@ -102,17 +104,17 @@ static void _set_write(bool x) {SET_PIN(RS485_RW_PIN, x);}
 
 
 static void _set_dre_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_DRE, LO, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_DRE, MED, enable);
 }
 
 
 static void _set_txc_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_TXC, LO, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_TXC, MED, enable);
 }
 
 
 static void _set_rxc_interrupt(bool enable) {
-  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_RXC, LO, enable);
+  INTLVL_ENABLE(RS485_PORT.CTRLA, USART_RXC, MED, enable);
 }
 
 
@@ -177,6 +179,9 @@ static void _notify(uint8_t func, uint8_t bytes, const uint8_t *data) {
 
 
 static void _handle_response() {
+  if (!state.response_ready) return;
+  state.response_ready = false;
+
   if (!_check_response()) return;
 
   state.last_write = 0;             // Clear timeout timer
@@ -205,8 +210,8 @@ ISR(RS485_DRE_vect) {
 ISR(RS485_TXC_vect) {
   _set_txc_interrupt(false);
   _set_rxc_interrupt(true);
-  _set_write(false);              // Switch to read mode
-  state.last_write = rtc_get_time(); // Set timeout timer
+  _set_write(false); // Switch to read mode
+  state.transmit_complete = true;
 }
 
 
@@ -221,7 +226,7 @@ ISR(RS485_RXC_vect) {
     _set_rxc_interrupt(false);
     _set_write(true); // Back to write mode
     state.bytes = 0;
-    _handle_response();
+    state.response_ready = true;
   }
 }
 
@@ -407,7 +412,14 @@ void modbus_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb) {
 
 
 void modbus_rtc_callback() {
+  if (state.transmit_complete) {
+    state.last_write = rtc_get_time();
+    state.transmit_complete = false;
+  }
+
+  _handle_response();
   _start_write();
+
   if (!state.last_write || !rtc_expired(state.last_write + MODBUS_TIMEOUT))
     return;
   state.last_write = 0;
