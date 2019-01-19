@@ -130,6 +130,7 @@ class Mach(Comm):
     def _update_cycle(self):
         if (self._get_cycle() != 'idle' and self._is_ready() and
             not self.planner.is_busy() and not super().is_active()):
+            self.planner.update_position()
             self.ctrl.state.set('cycle', 'idle')
 
 
@@ -157,6 +158,7 @@ class Mach(Comm):
 
             # Return from jogging cycle
             if self._get_cycle() == 'jogging':
+                self.planner.update_position()
                 self.ctrl.state.set('cycle', self.last_cycle)
 
         # Automatically unpause after seek or stop hold

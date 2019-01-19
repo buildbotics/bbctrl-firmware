@@ -4,6 +4,8 @@ Buildbotics CNC Controller Firmware Changelog
 ## v0.4.5
  - Fix for random errors while running VFD.
  - Fix bug where planner would not continue after optional pause (M1).
+ - Fix lockup on invalid no move probe G38.x. #183
+ - Fix zeroing homed axis after jog.
 
 ## v0.4.4
  - Write version to log file.
