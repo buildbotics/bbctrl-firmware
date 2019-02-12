@@ -25,30 +25,39 @@
 #                                                                              #
 ################################################################################
 
+import errno
+
 try:
-    import smbus
+    try:
+        import smbus
+    except:
+        import smbus2 as smbus
 except:
-    import smbus2 as smbus
+    smbus = None
 
 
 class I2C(object):
-    def __init__(self, port):
+    def __init__(self, port, disabled):
         self.port = port
         self.i2c_bus = None
+        self.disabled = disabled or smbus is None
 
 
     def connect(self):
+        if self.disabled: return
         if self.i2c_bus is None:
             try:
                 self.i2c_bus = smbus.SMBus(self.port)
 
             except OSError as e:
                 self.i2c_bus = None
-                raise type(e)('I2C failed to open device: %s' % e)
+                if e.errno == errno.ENOENT: self.disabled = True
+                else: raise type(e)('I2C failed to open device: %s' % e)
 
 
     def read_word(self, addr):
         self.connect()
+        if self.disabled: return
 
         try:
             return self.i2c_bus.read_word_data(addr, 0)
@@ -61,6 +70,7 @@ class I2C(object):
 
     def write(self, addr, cmd, byte = None, word = None, block = None):
         self.connect()
+        if self.disabled: return
 
         try:
             if byte is not None:

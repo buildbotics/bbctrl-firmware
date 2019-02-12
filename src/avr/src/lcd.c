@@ -62,14 +62,21 @@ void lcd_init(uint8_t addr) {
 }
 
 
+static void _master_wait() {
+#ifdef __AVR__
+  while (!(TWIC.MASTER.STATUS & TWI_MASTER_WIF_bm)) continue;
+#endif
+}
+
+
 static void _write_i2c(uint8_t addr, uint8_t data) {
   data |= BACKLIGHT_BIT;
 
   TWIC.MASTER.ADDR = addr << 1;
-  while (!(TWIC.MASTER.STATUS & TWI_MASTER_WIF_bm)) continue;
+  _master_wait();
 
   TWIC.MASTER.DATA = data;
-  while (!(TWIC.MASTER.STATUS & TWI_MASTER_WIF_bm)) continue;
+  _master_wait();
 
   TWIC.MASTER.CTRLC = TWI_MASTER_CMD_STOP_gc;
 

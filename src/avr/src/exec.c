@@ -205,8 +205,6 @@ stat_t _segment_exec() {
 stat_t exec_segment(float time, const float target[], float vel, float accel,
                     float maxAccel, float maxJerk,
                     const power_update_t power_updates[]) {
-  ESTOP_ASSERT(time <= SEGMENT_TIME, STAT_SHORT_SEG_TIME);
-
   // Copy power updates in to the correct position given the time offset
   float nextT = ex.seg.time + time;
   const float stepT = 1.0 / 60000; // 1ms in mins

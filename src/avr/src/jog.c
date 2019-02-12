@@ -42,14 +42,16 @@
 #include <stdlib.h>
 
 
-static struct {
+typedef struct {
   bool holding;
   bool writing;
 
   SCurve scurves[AXES];
   float next[AXES];
   float targetV[AXES];
-} jr;
+} jr_t;
+
+jr_t jr = {0};
 
 
 stat_t jog_exec() {

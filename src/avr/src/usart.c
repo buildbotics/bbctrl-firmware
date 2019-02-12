@@ -89,10 +89,12 @@ ISR(SERIAL_RXC_vect) {
 }
 
 
+#ifdef __AVR__
 static int _usart_putchar(char c, FILE *f) {
   usart_putc(c);
   return 0;
 }
+#endif // __AVR__
 
 
 static void _set_baud(USART_t *port, uint16_t bsel, uint8_t bscale) {
@@ -194,6 +196,7 @@ void usart_init() {
 
   PMIC.CTRL |= PMIC_HILVLEN_bm; // Interrupt level on
 
+#ifdef __AVR__
   // Connect IO
   static FILE _stdout;
   memset(&_stdout, 0, sizeof(FILE));
@@ -202,6 +205,7 @@ void usart_init() {
 
   stdout = &_stdout;
   stderr = &_stdout;
+#endif // __AVR__
 
   // Enable Rx
   _set_rxc_interrupt(true);

@@ -39,68 +39,29 @@ log = logging.getLogger('Comm')
 
 
 class Comm(object):
-    def __init__(self, ctrl):
+    def __init__(self, ctrl, avr):
         self.ctrl = ctrl
+        self.avr = avr
         self.queue = deque()
         self.in_buf = ''
         self.command = None
 
-        try:
-            self.sp = serial.Serial(ctrl.args.serial, ctrl.args.baud,
-                                    rtscts = 1, timeout = 0, write_timeout = 0)
-            self.sp.nonblocking()
-
-        except Exception as e:
-            self.sp = None
-            log.warning('Failed to open serial port: %s', e)
-
-        if self.sp is not None:
-            ctrl.ioloop.add_handler(self.sp, self._serial_handler,
-                                    ctrl.ioloop.READ)
-
-        self.i2c_addr = ctrl.args.avr_addr
+        avr.set_handlers(self._read, self._write)
 
 
     def comm_next(self): raise Exception('Not implemented')
     def comm_error(self): raise Exception('Not implemented')
 
 
-    def is_active(self):
-        return len(self.queue) or self.command is not None
+    def is_active(self): return len(self.queue) or self.command is not None
 
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):
         log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
-        retry = 5
-        cmd = ord(cmd[0])
-
-        while True:
-            try:
-                self.ctrl.i2c.write(self.i2c_addr, cmd, byte, word, block)
-                break
-
-            except Exception as e:
-                retry -= 1
-
-                if retry:
-                    log.warning('AVR I2C failed, retrying: %s' % e)
-                    time.sleep(0.1)
-                    continue
-
-                else:
-                    log.error('AVR I2C failed: %s' % e)
-                    raise
+        self.avr.i2c_command(cmd, byte, word, block)
 
 
-    def _set_write(self, enable):
-        if self.sp is None: return
-
-        flags = self.ctrl.ioloop.READ
-        if enable: flags |= self.ctrl.ioloop.WRITE
-        self.ctrl.ioloop.update_handler(self.sp, flags)
-
-
-    def flush(self): self._set_write(True)
+    def flush(self): self.avr.enable_write(True)
 
 
     def _load_next_command(self, cmd):
@@ -116,11 +77,11 @@ class Comm(object):
         self.flush()
 
 
-    def _serial_write(self):
+    def _write(self, write):
         # Finish writing current command
         if self.command is not None:
             try:
-                count = self.sp.write(self.command)
+                count = write(self.command)
 
             except Exception as e:
                 self.command = None
@@ -137,7 +98,7 @@ class Comm(object):
         else:
             cmd = self.comm_next() # pylint: disable=assignment-from-no-return
 
-            if cmd is None: self._set_write(False) # Stop writing
+            if cmd is None: self.avr.enable_write(False) # Stop writing
             else: self._load_next_command(cmd)
 
 
@@ -175,13 +136,8 @@ class Comm(object):
             self.comm_error()
 
 
-    def _serial_read(self):
-        try:
-            data = self.sp.read(self.sp.in_waiting)
-            self.in_buf += data.decode('utf-8')
-
-        except Exception as e:
-            log.warning('%s: %s', e, data)
+    def _read(self, data):
+        self.in_buf += data.decode('utf-8')
 
         # Parse incoming serial data into lines
         while True:
@@ -212,14 +168,6 @@ class Comm(object):
                     if 'xx' in msg:           # State change
                         self.ctrl.ready()     # We've received data from AVR
                         self.flush()          # May have more data to send now
-
-
-    def _serial_handler(self, fd, events):
-        try:
-            if self.ctrl.ioloop.READ & events: self._serial_read()
-            if self.ctrl.ioloop.WRITE & events: self._serial_write()
-        except Exception as e:
-            log.warning('Serial handler error: %s', traceback.format_exc())
 
 
     def estop(self):

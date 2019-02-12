@@ -1,42 +1,38 @@
-TARGETS = firmware-test jogsim
+TARGET = bbemu
 
-FIRMWARE_TEST_SRC = status.c util.c axis.c report.c type.c exec.c base64.c \
-  command.c commands.c vars.c state.c line.c seek.c SCurve.cpp
-FIRMWARE_TEST_SRC := $(patsubst %,../src/%,$(FIRMWARE_TEST_SRC))
-FIRMWARE_TEST_SRC += firmware-test.c hal.c
+SRC:=$(wildcard ../src/*.c) $(wildcard ../src/*.cpp)
+OBJ:=$(patsubst %.cpp,%.o,$(patsubst %.c,%.o,$(SRC)))
+OBJ:=$(patsubst ../src/%,build/%,$(OBJ))
+SRC+=src/emu.c
+OBJ+=build/emu.o
 
-JOGSIM_SRC = ../src/SCurve.cpp jogsim.cpp
+CFLAGS = -I../src -Isrc -Wall -Werror -DDEBUG -g -std=gnu++98
+CFLAGS += -MD -MP -MT $@ -MF build/$(@F).d
+CFLAGS += -DF_CPU=32000000 -Wno-class-memaccess -pthread
+LDFLAGS = -lm -pthread
 
-CFLAGS = -I../src -Wall -Werror -DDEBUG -g -std=gnu++98
-CFLAGS += -MD -MP -MT $@ -MF .dep/$(@F).d
-CFLAGS += -DF_CPU=320000000
-LDFLAGS = -lm
+all: $(TARGET)
 
-all: $(TARGETS)
+$(TARGET): $(OBJ)
+	g++ -o $@ $(OBJ) $(LDFLAGS)
 
-firmware-test: $(FIRMWARE_TEST_SRC)
-	g++ -o $@ $(FIRMWARE_TEST_SRC) $(CFLAGS) $(LDFLAGS)
+build/%.o: ../src/%.c
+	g++ -c -o $@ $(CFLAGS) $<
 
-jogsim: $(JOGSIM_SRC)
-	g++ -o $@ $(JOGSIM_SRC) $(CFLAGS) $(LDFLAGS)
+build/%.o: src/%.c
+	g++ -c -o $@ $(CFLAGS) $<
 
-%.csv: %.gc firmware-test
-	./firmware-test < $< | grep -E '^-?[0-9.]+,'
-
-%-test: %.gc firmware-test
-	./firmware-test < $<
-
-%-plot: %.gc firmware-test
-	./firmware-test < $< | grep -E '^-?[0-9.]+,' | ./plot.py
+build/%.o: ../src/%.cpp
+	g++ -c -o $@ $(CFLAGS) $<
 
 # Clean
 tidy:
-	rm -f $(shell find -name \*~ -o -name \#\*) .dep
+	rm -f $(shell find -name \*~ -o -name \#\*)
 
 clean: tidy
-	rm -rf $(TESTS)
+	rm -rf $(TARGET) build
 
 .PHONY: tidy clean all
 
 # Dependencies
--include $(shell mkdir -p .dep) $(wildcard .dep/*)
+-include $(shell mkdir -p build) $(wildcard build/*.d)

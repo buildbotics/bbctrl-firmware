@@ -42,6 +42,7 @@
 #include "analog.h"
 #include "exec.h"
 #include "state.h"
+#include "emu.h"
 
 #include <avr/wdt.h>
 
@@ -55,6 +56,7 @@ int main() {
   // Init
   cli();                          // disable interrupts
 
+  emu_init();                     // Init emulator
   hw_init();                      // hardware setup - must be first
   outputs_init();                 // output pins
   analog_init();                  // analog input pins
@@ -76,6 +78,7 @@ int main() {
 
   // Main loop
   while (true) {
+    emu_callback();               // Emulator callback
     hw_reset_handler();           // handle hard reset requests
     state_callback();             // manage state
     command_callback();           // process next command

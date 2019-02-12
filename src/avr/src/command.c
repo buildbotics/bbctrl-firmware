@@ -39,14 +39,10 @@
 #include "base64.h"
 #include "rtc.h"
 #include "stepper.h"
+#include "log.h"
 #include "cpp_magic.h"
 
-#ifdef __AVR__
 #include <util/atomic.h>
-#else
-#define ATOMIC_BLOCK(x)
-#define ATOMIC_RESTORESTATE
-#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -54,10 +50,8 @@
 #include <stdlib.h>
 
 
-#ifdef __AVR__
 #define RING_BUF_ATOMIC_COPY(TO, FROM)          \
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) TO = FROM
-#endif
 
 #define RING_BUF_NAME sync_q
 #define RING_BUF_TYPE uint8_t
@@ -264,6 +258,7 @@ uint8_t *command_next() {
 // Called by exec.c from low-level interrupt
 bool command_exec() {
   if (!cmd.count) {
+    // TODO If MIN_VELOCITY < velocity then we have a potential buffer underrun
     cmd.last_empty = rtc_get_time();
     exec_set_velocity(0);
     state_idle();

@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 ==============================================
 
+## v0.4.6
+ - Fixed a rare ``Negative s-curve time`` error.
+
 ## v0.4.5
  - Fix for random errors while running VFD.
  - Fix bug where planner would not continue after optional pause (M1).

@@ -148,6 +148,7 @@ class Pwr():
         try:
             for i in range(len(self.regs)):
                 value = self.ctrl.i2c.read_word(self.i2c_addr + i)
+                if value is None: return # Handle lack of i2c port
 
                 if i == TEMP_REG: value -= 273
                 elif i == FLAGS_REG or i == VERSION_REG: pass

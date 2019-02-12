@@ -29,9 +29,7 @@
 
 #include "pins.h"
 
-#ifdef __AVR__
 #include <avr/interrupt.h>
-#endif
 
 
 // Pins

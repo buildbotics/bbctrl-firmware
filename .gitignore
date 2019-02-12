@@ -17,6 +17,7 @@ __pycache__
 *.deb
 *.zip
 /rpi-share
+/package-lock.json
 
 *.elf
 *.hex

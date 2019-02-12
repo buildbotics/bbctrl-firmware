@@ -232,6 +232,12 @@ stat_t motor_rtc_callback() { // called by controller
 }
 
 
+void motor_emulate_steps(int motor) {
+  motor_t *m = &motors[motor];
+  m->dma->TRFCNT = 0xffff - abs(m->commanded - m->encoder);
+}
+
+
 void motor_end_move(int motor) {
   motor_t *m = &motors[motor];
 

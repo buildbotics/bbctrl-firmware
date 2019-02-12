@@ -19,7 +19,7 @@
 #                                                                              #
 #       You should have received a copy of the GNU Lesser General Public       #
 #                License along with the software.  If not, see                 #
-#                       <http://www.gnu.org/licenses/>.                        #
+#                       <http://www.gnu.org/icenses/>.                        #
 #                                                                              #
 #                For information regarding this software email:                #
 #                  "Joseph Coffland" <joseph@buildbotics.com>                  #
@@ -58,6 +58,23 @@ def fourcc_to_string(i):
 
 
 def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
+
+
+def format_frame(frame):
+    frame = [
+        b'Content-type: image/jpeg\r\n',
+        b'Content-length: ', str(len(frame)).encode('utf8'), b'\r\n\r\n',
+        frame, VideoHandler.boundary.encode('utf8'), b'\n']
+
+    return b''.join(frame)
+
+
+def get_image_resource(path):
+    path = bbctrl.get_resource(path)
+
+    with open(path, 'rb') as f:
+        return format_frame(f.read())
+
 
 
 class VideoDevice(object):
@@ -268,8 +285,8 @@ class Camera(object):
         self.fps = ctrl.args.fps
         self.fourcc = string_to_fourcc(ctrl.args.fourcc)
 
-        self.offline_jpg = self._get_image_resource('http/images/offline.jpg')
-        self.in_use_jpg = self._get_image_resource('http/images/in-use.jpg')
+        self.offline_jpg = get_image_resource('http/images/offline.jpg')
+        self.in_use_jpg = get_image_resource('http/images/in-use.jpg')
         self.dev = None
         self.clients = []
         self.path = None
@@ -300,27 +317,11 @@ class Camera(object):
         if action == 'remove' and path == self.path: self.close()
 
 
-    def _get_image_resource(self, path):
-        path = bbctrl.get_resource(path)
-
-        with open(path, 'rb') as f:
-            return self._format_frame(f.read())
-
-
-    def _format_frame(self, frame):
-        frame = [
-            b'Content-type: image/jpeg\r\n',
-            b'Content-length: ', str(len(frame)).encode('utf8'), b'\r\n\r\n',
-            frame, VideoHandler.boundary.encode('utf8'), b'\n']
-
-        return b''.join(frame)
-
-
     def _send_frame(self, frame):
         if not len(self.clients): return
 
         try:
-            self.clients[-1].write_frame(self._format_frame(frame))
+            self.clients[-1].write_frame(format_frame(frame))
         except Exception as e:
             log.warning('Failed to write frame to client: %s' % e)
 
@@ -387,8 +388,7 @@ class Camera(object):
             self.dev.close()
 
             for client in self.clients:
-                client.write_frame(self.offline_jpg)
-                client.write_frame(self.offline_jpg)
+                client.write_frame_twice(self.offline_jpg)
 
             log.info('Closed camera %s' % self.path)
 
@@ -400,14 +400,12 @@ class Camera(object):
         log.info('Adding camera client: %d' % len(self.clients))
 
         if len(self.clients):
-            self.clients[-1].write_frame(self.in_use_jpg)
-            self.clients[-1].write_frame(self.in_use_jpg)
+            self.clients[-1].write_frame_twice(self.in_use_jpg)
 
         self.clients.append(client)
 
         if self.dev is None:
-            client.write_frame(self.offline_jpg)
-            client.write_frame(self.offline_jpg)
+            client.write_frame_twice(self.offline_jpg)
 
 
     def remove_client(self, client):
@@ -440,7 +438,11 @@ class VideoHandler(web.RequestHandler):
         self.set_header('Expires', 'Mon, 3 Jan 2000 12:34:56 GMT')
         self.set_header('Pragma', 'no-cache')
 
-        self.camera.add_client(self)
+        if self.camera is None:
+            frame = get_image_resource('http/images/offline.jpg')
+            self.write_frame_twice(frame)
+
+        else: self.camera.add_client(self)
 
 
     def write_frame(self, frame):
@@ -455,6 +457,11 @@ class VideoHandler(web.RequestHandler):
 
         except iostream.StreamBufferFullError:
             pass # Drop frame if buffer is full
+
+
+    def write_frame_twice(self, frame):
+        self.write_frame(frame)
+        self.write_frame(frame)
 
 
     def on_connection_close(self): self.camera.remove_client(self)

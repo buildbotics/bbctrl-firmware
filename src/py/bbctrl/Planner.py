@@ -172,7 +172,7 @@ class Planner():
     def _report_time(self):
         state = self.ctrl.state.get('xx', '')
 
-        if state in ['STOPPING', 'RUNNING'] and self.move_start:
+        if state in ('STOPPING', 'RUNNING') and self.move_start:
             delta = time.time() - self.move_start
             if self.move_time < delta: delta = self.move_time
             plan_time = self.current_plan_time + delta

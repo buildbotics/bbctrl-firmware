@@ -80,6 +80,7 @@ static void _init_clock()  {
 }
 
 
+#ifdef __AVR__
 static void _load_hw_id_byte(int i, register8_t *reg) {
   NVM.CMD = NVM_CMD_READ_CALIB_ROW_gc;
   uint8_t byte = pgm_read_byte(reg);
@@ -88,9 +89,11 @@ static void _load_hw_id_byte(int i, register8_t *reg) {
   hw.id[i] = HEXNIB(byte >> 4);
   hw.id[i + 1] = HEXNIB(byte);
 }
+#endif // __AVR__
 
 
 static void _read_hw_id() {
+#ifdef __AVR__
   int i = 0;
   _load_hw_id_byte(i, &PROD_SIGS.LOTNUM5); i += 2;
   _load_hw_id_byte(i, &PROD_SIGS.LOTNUM4); i += 2;
@@ -107,6 +110,12 @@ static void _read_hw_id() {
   _load_hw_id_byte(i, &PROD_SIGS.COORDY1); i += 2;
   _load_hw_id_byte(i, &PROD_SIGS.COORDY0); i += 2;
   hw.id[i] = 0;
+
+#else // __AVR__
+  for (int i = 0; i < 25; i++)
+    hw.id[i] = '0';
+  hw.id[25] = 0;
+#endif // __AVR__
 }
 
 

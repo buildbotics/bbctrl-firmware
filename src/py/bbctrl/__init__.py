@@ -58,6 +58,8 @@ from bbctrl.CommandQueue import CommandQueue
 from bbctrl.MainLCDPage import MainLCDPage
 from bbctrl.IPLCDPage import IPLCDPage
 from bbctrl.Camera import Camera, VideoHandler
+from bbctrl.AVR import AVR
+from bbctrl.AVREmu import AVREmu
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
 
@@ -110,6 +112,8 @@ def parse_args():
                         help = 'Verbose output')
     parser.add_argument('-l', '--log', metavar = "FILE",
                         help = 'Set a log file')
+    parser.add_argument('--disable-camera', action = 'store_true',
+                        help = 'Disable the camera')
     parser.add_argument('--width', default = 640, type = int,
                         help = 'Camera width')
     parser.add_argument('--height', default = 480, type = int,
@@ -118,6 +122,8 @@ def parse_args():
                         help = 'Camera frames per second')
     parser.add_argument('--fourcc', default = 'MJPG',
                         help = 'Camera frame format')
+    parser.add_argument('--demo', action = 'store_true',
+                        help = 'Enter demo mode')
 
     return parser.parse_args()
 
@@ -168,4 +174,4 @@ def run():
     except: logging.getLogger().exception('')
 
 
-if __name__ == "__main__": run()
+if __name__ == '__main__': run()

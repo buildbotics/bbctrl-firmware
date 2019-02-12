@@ -37,7 +37,6 @@ enum {PORT_A = 1, PORT_B, PORT_C, PORT_D, PORT_E, PORT_F};
 
 #define PIN_ID(PORT, PIN) (PORT << 3 | (PIN & 7))
 
-#ifdef __AVR__
 #include <avr/io.h>
 
 extern PORT_t *pin_ports[];
@@ -56,5 +55,3 @@ extern PORT_t *pin_ports[];
 
 #define PIN_EVSYS_CHMUX(PIN) \
   (EVSYS_CHMUX_PORTA_PIN0_gc + (8 * PORT_INDEX(PIN)) + PIN_INDEX(PIN))
-
-#endif // __AVR__

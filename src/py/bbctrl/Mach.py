@@ -74,8 +74,8 @@ def overrides(interface_class):
 
 
 class Mach(Comm):
-    def __init__(self, ctrl):
-        super().__init__(ctrl)
+    def __init__(self, ctrl, avr):
+        super().__init__(ctrl, avr)
 
         self.ctrl = ctrl
         self.planner = bbctrl.Planner(ctrl)

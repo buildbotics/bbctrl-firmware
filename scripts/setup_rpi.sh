@@ -10,7 +10,7 @@ apt-get dist-upgrade -y
 # Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
   i2c-tools python3-rpi.gpio libjpeg8 wiringpi dnsmasq hostapd \
-  iptables-persistent chromium-browser xorg rpd-plym-splash
+  iptables-persistent chromium-browser xorg rpd-plym-splash samba
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
@@ -89,6 +89,10 @@ mkdir -p /usr/share/plymouth/themes/buildbotics/
 cp -av /mnt/host/splash/* /usr/share/plymouth/themes/buildbotics/
 echo -n " quiet splash logo.nologo plymouth.ignore-serial-consoles" >> /boot/cmdline.txt
 plymouth-set-default-theme -R buildbotics
+
+# Samba
+# TODO install custom smb.conf
+smbpasswd -a bbmc
 
 # Install bbctrl
 tar xf /mnt/host/bbctrl-*.tar.bz2

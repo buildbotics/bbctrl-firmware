@@ -44,9 +44,12 @@ class Ctrl(object):
         self.web = bbctrl.Web(self)
 
         try:
-            self.i2c = bbctrl.I2C(args.i2c_port)
+            if args.demo: avr = bbctrl.AVREmu(self)
+            else: avr = bbctrl.AVR(self)
+
+            self.i2c = bbctrl.I2C(args.i2c_port, args.demo)
             self.lcd = bbctrl.LCD(self)
-            self.mach = bbctrl.Mach(self)
+            self.mach = bbctrl.Mach(self, avr)
             self.preplanner = bbctrl.Preplanner(self)
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
@@ -56,7 +59,9 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
-            self.camera = bbctrl.Camera(self)
+            self.camera = None
+            if not args.disable_camera:
+                self.camera = bbctrl.Camera(self)
 
         except Exception as e: log.exception(e)
 
@@ -71,4 +76,5 @@ class Ctrl(object):
         self.preplanner.start()
 
 
-    def close(self): self.camera.close()
+    def close(self):
+        if not self.camera is None: self.camera.close()

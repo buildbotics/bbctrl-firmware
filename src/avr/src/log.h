@@ -25,51 +25,11 @@
 
 \******************************************************************************/
 
-#include "axis.h"
-#include "command.h"
-#include "exec.h"
-#include "state.h"
-#include "vars.h"
-#include "report.h"
+#pragma once
 
+#ifdef __AVR__
+#define LOG(...)
+#else
 #include <stdio.h>
-#include <stdlib.h>
-
-
-int main() {
-  axis_map_motors();
-  exec_init();                    // motion exec
-  vars_init();                    // configuration variables
-  command_init();
-
-  stat_t status = STAT_OK;
-
-  while (true) {
-    bool reading = !feof(stdin);
-
-    report_callback();
-
-    if (reading) {
-      state_callback();
-      if (command_callback()) continue;
-    }
-
-    status = exec_next();
-    printf("EXEC: %s\n", status_to_pgmstr(status));
-
-    switch (status) {
-    case STAT_NOP: break;       // No command executed
-    case STAT_AGAIN: continue;  // No command executed, try again
-    case STAT_OK: continue;     // Move executed
-
-    default:
-      printf("ERROR: %s\n", status_to_pgmstr(status));
-    }
-
-    if (!reading) break;
-  }
-
-  printf("STATE: %s\n", state_get_pgmstr(state_get()));
-
-  return 0;
-}
+#define LOG(...) fprintf(stderr, __VA_ARGS__)
+#endif

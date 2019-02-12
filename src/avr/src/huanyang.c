@@ -297,4 +297,4 @@ uint16_t get_hy_temp() {return hy.temperature;}
 float get_hy_max_freq() {return hy.max_freq;}
 float get_hy_min_freq() {return hy.min_freq;}
 uint16_t get_hy_rated_rpm() {return hy.rated_rpm;}
-float get_hy_status() {return hy.status;}
+uint8_t get_hy_status() {return hy.status;}

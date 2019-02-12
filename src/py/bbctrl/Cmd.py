@@ -170,7 +170,7 @@ def pause(type):
     return '%s%d' % (PAUSE, type)
 
 
-def jog(axes): return 'j' + encode_axes(axes)
+def jog(axes): return JOG + encode_axes(axes)
 
 
 def seek(switch, active, error):

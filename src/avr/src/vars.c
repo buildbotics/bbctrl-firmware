@@ -230,7 +230,7 @@ static char *_resolve_name(const char *_name) {
 
 
 static int _index(char c, const char *s) {
-  char *index = strchr(s, c);
+  const char *index = strchr(s, c);
   return index ? index - s : -1;
 }
 
