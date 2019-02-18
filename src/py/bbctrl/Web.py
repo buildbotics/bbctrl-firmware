@@ -87,7 +87,7 @@ class RebootHandler(bbctrl.APIHandler):
 
 class LogHandler(tornado.web.RequestHandler):
     def __init__(self, app, request, **kwargs):
-        super(LogHandler, self).__init__(app, request, **kwargs)
+        super().__init__(app, request, **kwargs)
         self.filename = app.ctrl.args.log
 
 
@@ -105,7 +105,7 @@ class LogHandler(tornado.web.RequestHandler):
 
 class BugReportHandler(tornado.web.RequestHandler):
     def __init__(self, app, request, **kwargs):
-        super(BugReportHandler, self).__init__(app, request, **kwargs)
+        super().__init__(app, request, **kwargs)
         self.app = app
 
 

@@ -75,7 +75,10 @@ class AVREmu(object):
                 os.close(stdoutFDs[1])
                 os.close(i2cFDs[0])
 
-                os.execvp('bbemu', ('bbemu',))
+                cmd = ['bbemu']
+                if self.ctrl.args.fast_emu: cmd.append('--fast')
+
+                os.execvp(cmd[0], cmd)
                 os._exit(1) # In case of failure
 
             # Parent

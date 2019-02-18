@@ -124,6 +124,8 @@ def parse_args():
                         help = 'Camera frame format')
     parser.add_argument('--demo', action = 'store_true',
                         help = 'Enter demo mode')
+    parser.add_argument('--fast-emu', action = 'store_true',
+                        help = 'Enter demo mode')
 
     return parser.parse_args()
 

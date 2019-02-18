@@ -30,6 +30,7 @@
 #include <avr/io.h>
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -52,10 +53,14 @@ void __RTC_OVF_vect();       // RTC tick
 
 void motor_emulate_steps(int motor);
 
+extern int __argc;
+extern char **__argv;
+
 
 volatile uint8_t io_mem[4096] = {0};
 
 
+bool fast = false;
 int serialByte = -1;
 uint8_t i2cData[I2C_MAX_DATA];
 int i2cIndex = 0;
@@ -68,6 +73,10 @@ void sei() {}
 
 
 void emu_init() {
+  // Parse command line args
+  for (int i = 0; i < __argc; i++)
+    if (strcmp(__argv[i], "--fast") == 0) fast = true;
+
   // Mark clocks ready
   OSC.STATUS = OSC_XOSCRDY_bm | OSC_PLLRDY_bm | OSC_RC32KRDY_bm;
 
@@ -83,7 +92,7 @@ void emu_callback() {
 
   if (RST.CTRL == RST_SWRST_bm) exit(0);
 
-  struct timeval t = {0, 0}; // 1000};
+  struct timeval t = {0, fast ? 0 : 1000};
   bool readData = true;
   while (readData) {
     readData = false;

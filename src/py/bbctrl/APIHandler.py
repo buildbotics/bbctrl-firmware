@@ -39,7 +39,7 @@ log.setLevel(logging.DEBUG)
 
 class APIHandler(RequestHandler):
     def __init__(self, app, request, **kwargs):
-        super(APIHandler, self).__init__(app, request, **kwargs)
+        super().__init__(app, request, **kwargs)
         self.ctrl = app.ctrl
 
 

@@ -50,7 +50,15 @@
 #include <stdbool.h>
 
 
-int main() {
+// For emu
+int __argc;
+char **__argv;
+
+
+int main(int argc, char *argv[]) {
+  __argc = argc;
+  __argv = argv;
+
   wdt_enable(WDTO_250MS);
 
   // Init
