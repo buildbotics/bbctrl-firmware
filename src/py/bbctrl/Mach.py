@@ -25,14 +25,10 @@
 #                                                                              #
 ################################################################################
 
-import logging
-
 import bbctrl
 from bbctrl.Comm import Comm
 import bbctrl.Cmd as Cmd
 from tornado.ioloop import PeriodicCallback
-
-log = logging.getLogger('Mach')
 
 
 # Axis homing procedure:
@@ -65,7 +61,7 @@ for more information.\
 def overrides(interface_class):
     def overrider(method):
         if not method.__name__ in dir(interface_class):
-            log.warning('%s does not override %s' % (
+            raise Exception('%s does not override %s' % (
                 method.__name__, interface_class.__name__))
 
         return method
@@ -78,6 +74,8 @@ class Mach(Comm):
         super().__init__(ctrl, avr)
 
         self.ctrl = ctrl
+        self.mlog = self.ctrl.log.get('Mach')
+
         self.planner = bbctrl.Planner(ctrl)
         self.unpausing = False
         self.last_cycle = 'idle'
@@ -142,7 +140,7 @@ class Mach(Comm):
         for motor in range(4):
             key = '%ddf' % motor
             if key in update and update[key] & 0x1f:
-                log.error(motor_fault_error % motor)
+                self.mlog.error(motor_fault_error % motor)
 
         # Update cycle now, if it has changed
         self._update_cycle()
@@ -172,7 +170,7 @@ class Mach(Comm):
 
     def _unpause(self):
         pause_reason = self._get_pause_reason()
-        log.info('Unpause: ' + pause_reason)
+        self.mlog.info('Unpause: ' + pause_reason)
 
         if pause_reason == 'User stop':
             self.planner.stop()
@@ -214,7 +212,7 @@ class Mach(Comm):
     def _query_var(self, cmd):
         equal = cmd.find('=')
         if equal == -1:
-            log.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
+            self.mlog.info('%s=%s' % (cmd, self.ctrl.state.get(cmd[1:])))
 
         else:
             name, value = cmd[1:equal], cmd[equal + 1:]
@@ -251,34 +249,36 @@ class Mach(Comm):
     def home(self, axis, position = None):
         state = self.ctrl.state
 
-        if position is not None: self.mdi('G28.3 %c%f' % (axis, position))
+        if axis is None: axes = 'zxyabc' # TODO This should be configurable
+        else: axes = '%c' % axis
 
-        else:
+        for axis in axes:
+            enabled = state.is_axis_enabled(axis)
+            mode = state.axis_homing_mode(axis)
+
+            # If this is not a request to home a specific axis and the
+            # axis is disabled or in manual homing mode, don't show any
+            # warnings
+            if 1 < len(axes) and (not enabled or mode == 'manual'):
+                continue
+
+            # Error when axes cannot be homed
+            reason = state.axis_home_fail_reason(axis)
+            if reason is not None:
+                self.mlog.error('Cannot home %s axis: %s' % (
+                    axis.upper(), reason))
+                continue
+
+            if mode == 'manual':
+                if position is None: raise Exception('Position not set')
+                self.mdi('G28.3 %c%f' % (axis, position))
+                continue
+
+            # Home axis
+            self.mlog.info('Homing %s axis' % axis)
             self._begin_cycle('homing')
-
-            if axis is None: axes = 'zxyabc' # TODO This should be configurable
-            else: axes = '%c' % axis
-
-            for axis in axes:
-                # If this is not a request to home a specific axis and the
-                # axis is disabled or in manual homing mode, don't show any
-                # warnings
-                if 1 < len(axes) and (
-                        not state.is_axis_enabled(axis) or
-                        state.axis_homing_mode(axis) == 'manual'):
-                    continue
-
-                # Error when axes cannot be homed
-                reason = state.axis_home_fail_reason(axis)
-                if reason is not None:
-                    log.error('Cannot home %s axis: %s' % (
-                        axis.upper(), reason))
-                    continue
-
-                # Home axis
-                log.info('Homing %s axis' % axis)
-                self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
-                super().resume()
+            self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
+            super().resume()
 
 
     def unhome(self, axis): self.mdi('G28.2 %c0' % axis)
@@ -295,7 +295,7 @@ class Mach(Comm):
         filename = self.ctrl.state.get('selected', '')
         if not filename: return
         self._begin_cycle('running')
-        self.planner.load('upload/' + filename)
+        self.planner.load(filename)
         super().resume()
 
 

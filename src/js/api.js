@@ -89,5 +89,16 @@ module.exports = {
 
   'delete': function (url, config) {
     return api_cb('DELETE', url, undefined, config);
+  },
+
+
+  alert: function (msg, error) {
+    if (typeof error != 'undefined') {
+      if (typeof error.message != 'undefined')
+        msg += '\n' + error.message;
+      else msg += '\n' + JSON.stringify(error);
+    }
+
+    alert(msg);
   }
 }

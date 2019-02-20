@@ -25,31 +25,29 @@
 #                                                                              #
 ################################################################################
 
-import logging
+import os
 import bbctrl
 
 
-log = logging.getLogger('Ctrl')
-
-
-
 class Ctrl(object):
-    def __init__(self, args, ioloop):
+    def __init__(self, args, ioloop, id):
         self.args = args
-        self.ioloop = ioloop
+        self.ioloop = bbctrl.IOLoop(ioloop)
+        self.id = id
 
-        self.msgs = bbctrl.Messages(self)
+        if id and not os.path.exists(id): os.mkdir(id)
+
+        self.log = bbctrl.log.Log(self)
         self.state = bbctrl.State(self)
         self.config = bbctrl.Config(self)
-        self.web = bbctrl.Web(self)
 
         try:
-            if args.demo: avr = bbctrl.AVREmu(self)
-            else: avr = bbctrl.AVR(self)
+            if args.demo: self.avr = bbctrl.AVREmu(self)
+            else: self.avr = bbctrl.AVR(self)
 
             self.i2c = bbctrl.I2C(args.i2c_port, args.demo)
             self.lcd = bbctrl.LCD(self)
-            self.mach = bbctrl.Mach(self, avr)
+            self.mach = bbctrl.Mach(self, self.avr)
             self.preplanner = bbctrl.Preplanner(self)
             self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
@@ -63,7 +61,21 @@ class Ctrl(object):
             if not args.disable_camera:
                 self.camera = bbctrl.Camera(self)
 
-        except Exception as e: log.exception(e)
+        except Exception as e: self.log.get('Ctrl').exception(e)
+
+
+    def get_path(self, dir = None, filename = None):
+        path = './' + self.id if self.id else '.'
+        path = path if dir is None else (path + '/' + dir)
+        return path if filename is None else (path + '/' + filename)
+
+
+    def get_upload(self, filename = None):
+        return self.get_path('upload', filename)
+
+
+    def get_plan(self, filename = None):
+        return self.get_path('plans', filename)
 
 
     def configure(self):
@@ -78,3 +90,5 @@ class Ctrl(object):
 
     def close(self):
         if not self.camera is None: self.camera.close()
+        self.ioloop.close()
+        self.avr.close()

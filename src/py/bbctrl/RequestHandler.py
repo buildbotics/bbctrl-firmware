@@ -25,45 +25,39 @@
 #                                                                              #
 ################################################################################
 
-import os
-import logging
+import traceback
 import bbctrl
 
-
-log = logging.getLogger('Msgs')
-
-
-class Messages(logging.Handler):
-    def __init__(self, ctrl):
-        logging.Handler.__init__(self)
-
-        self.ctrl = ctrl
-        self.listeners = []
-
-        debug = os.path.exists('/etc/bbctrl-dev-mode')
-        self.setLevel(logging.DEBUG if debug else logging.WARNING)
-
-        logging.getLogger().addHandler(self)
+from tornado.web import HTTPError
+import tornado.web
 
 
-    def add_listener(self, listener): self.listeners.append(listener)
-    def remove_listener(self, listener): self.listeners.remove(listener)
+class RequestHandler(tornado.web.RequestHandler):
+    def __init__(self, app, request, **kwargs):
+        super().__init__(app, request, **kwargs)
+        self.app = app
 
 
-    def broadcast(self, msg):
-        for listener in self.listeners:
-            listener(msg)
+    def get_ctrl(self): return self.app.get_ctrl(self.get_cookie('client-id'))
+    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
 
 
-    # From logging.Handler
-    def emit(self, record):
-        if record.levelno == logging.INFO: return
+    def get_path(self, path = None, filename = None):
+        return self.get_ctrl().get_path(path, filename)
 
-        msg = dict(level = record.levelname.lower(),
-                   source = record.name,
-                   msg = record.getMessage())
 
-        if hasattr(record, 'where'): msg['where'] = record.where
-        else: msg['where'] = '%s:%d' % (record.filename, record.lineno)
+    def get_upload(self, filename = None):
+        return self.get_ctrl().get_upload(filename)
 
-        self.broadcast({'log': msg})
+
+    # Override exception logging
+    def log_exception(self, typ, value, tb):
+        if (isinstance(value, HTTPError) and
+            value.status_code in (400, 404, 408)): return
+
+        log = self.get_log()
+        log.set_level(bbctrl.log.DEBUG)
+
+        log.error(str(value))
+        trace = ''.join(traceback.format_exception(typ, value, tb))
+        log.debug(trace)

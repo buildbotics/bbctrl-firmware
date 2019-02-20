@@ -25,25 +25,32 @@
 #                                                                              #
 ################################################################################
 
-import logging
 import os
 import sys
 import traceback
+import signal
 
 import bbctrl
 import bbctrl.Cmd as Cmd
-
-log = logging.getLogger('AVREmu')
 
 
 class AVREmu(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('AVREmu')
+
         self.avrOut = None
         self.avrIn = None
         self.i2cOut = None
         self.read_cb = None
         self.write_cb = None
+        self.pid = None
+
+
+    def close(self):
+        if self.pid is None: return
+        os.kill(self.pid, signal.SIGINT)
+        os.waitpid(self.pid, 0)
         self.pid = None
 
 
@@ -104,7 +111,7 @@ class AVREmu(object):
         except Exception as e:
             self.pid = None
             self.avrOut, self.avrIn, self.i2cOut = None, None, None
-            log.exception('Failed to start bbemu')
+            self.log.exception('Failed to start bbemu')
 
 
     def set_handlers(self, read_cb, write_cb):
@@ -150,7 +157,8 @@ class AVREmu(object):
                 if not self.continue_write: break
 
         except Exception as e:
-            log.warning('AVR write handler error: %s', traceback.format_exc())
+            self.log.warning('AVR write handler error: %s',
+                             traceback.format_exc())
 
 
     def _avr_read_handler(self, fd, events):
@@ -165,7 +173,7 @@ class AVREmu(object):
             if data is not None: self.read_cb(data)
 
         except Exception as e:
-            log.warning('AVR read handler error: %s %s' %
+            self.log.warning('AVR read handler error: %s %s' %
                         (data, traceback.format_exc()))
 
 

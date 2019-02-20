@@ -3,6 +3,9 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.
+ - Don't allow manual axis homing when soft limits are not set.
+ - Right click to enable camera crosshair.
+ - Demo mode.
 
 ## v0.4.5
  - Fix for random errors while running VFD.

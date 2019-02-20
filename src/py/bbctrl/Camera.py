@@ -28,7 +28,6 @@
 
 import os
 import fcntl
-import logging
 import select
 import struct
 import mmap
@@ -42,8 +41,6 @@ try:
     import v4l2
 except:
     import bbctrl.v4l2 as v4l2
-
-log = logging.getLogger('Camera')
 
 
 def array_to_string(a): return ''.join([chr(i) for i in a])
@@ -273,13 +270,14 @@ class VideoDevice(object):
         if self.fd is None: return
         try:
             os.close(self.fd)
-        except Exception as e: log.warning('While closing camera: %s', e)
         finally: self.fd = None
 
 
 class Camera(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('Camera')
+
         self.width = ctrl.args.width
         self.height = ctrl.args.height
         self.fps = ctrl.args.fps
@@ -323,7 +321,7 @@ class Camera(object):
         try:
             self.clients[-1].write_frame(format_frame(frame))
         except Exception as e:
-            log.warning('Failed to write frame to client: %s' % e)
+            self.log.warning('Failed to write frame to client: %s' % e)
 
 
     def _fd_handler(self, fd, events):
@@ -337,7 +335,7 @@ class Camera(object):
         except Exception as e:
             if isinstance(e, BlockingIOError): return
 
-            log.warning('Failed to read from camera.')
+            self.log.warning('Failed to read from camera.')
             self.ctrl.ioloop.remove_handler(fd)
             self.close()
             return
@@ -350,15 +348,15 @@ class Camera(object):
             self.dev = VideoDevice(path)
 
             caps = self.dev.get_info()
-            log.info('%s, %s, %s, %s', caps._driver, caps._card, caps._bus_info,
-                     caps._caps)
+            self.log.info('%s, %s, %s, %s', caps._driver, caps._card,
+                          caps._bus_info, caps._caps)
 
             if caps.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE == 0:
                 raise Exception('Video capture not supported.')
 
-            log.info('Formats: %s', self.dev.get_formats())
-            log.info('Sizes: %s', self.dev.get_frame_sizes(self.fourcc))
-            log.info('Audio: %s', self.dev.get_audio())
+            self.log.info('Formats: %s', self.dev.get_formats())
+            self.log.info('Sizes: %s', self.dev.get_frame_sizes(self.fourcc))
+            self.log.info('Audio: %s', self.dev.get_audio())
 
             self.dev.set_format(self.width, self.height, fourcc = self.fourcc)
             self.dev.set_fps(self.fps)
@@ -368,14 +366,21 @@ class Camera(object):
             self.ctrl.ioloop.add_handler(self.dev, self._fd_handler,
                                          self.ctrl.ioloop.READ)
 
-            log.info('Opened camera ' + path)
+            self.log.info('Opened camera ' + path)
 
 
         except Exception as e:
-            log.warning('While loading camera: %s' % e)
-            if not self.dev is None:
-                self.dev.close()
-                self.dev = None
+            self.log.warning('While loading camera: %s' % e)
+            self._close_dev()
+
+
+    def _close_dev(self):
+        if self.dev is None: return
+        try:
+            self.dev.close()
+        except Exception as e: self.log.warning('While closing camera: %s', e)
+
+        self.dev = None
 
 
     def close(self):
@@ -385,19 +390,19 @@ class Camera(object):
             try:
                 self.dev.stop()
             except: pass
-            self.dev.close()
+            self._close_dev()
 
             for client in self.clients:
                 client.write_frame_twice(self.offline_jpg)
 
-            log.info('Closed camera %s' % self.path)
+            self.log.info('Closed camera %s' % self.path)
 
-        except: log.warning('Closing camera')
+        except: self.log.warning('Closing camera')
         finally: self.dev = None
 
 
     def add_client(self, client):
-        log.info('Adding camera client: %d' % len(self.clients))
+        self.log.info('Adding camera client: %d' % len(self.clients))
 
         if len(self.clients):
             self.clients[-1].write_frame_twice(self.in_use_jpg)
@@ -409,7 +414,7 @@ class Camera(object):
 
 
     def remove_client(self, client):
-        log.info('Removing camera client')
+        self.log.info('Removing camera client')
         try:
             self.clients.remove(client)
         except: pass
@@ -422,7 +427,7 @@ class VideoHandler(web.RequestHandler):
 
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
-        self.camera = app.ctrl.camera
+        self.camera = app.get_ctrl(self.get_cookie('client-id')).camera
 
 
     @web.asynchronous
@@ -470,9 +475,11 @@ class VideoHandler(web.RequestHandler):
 
 if __name__ == '__main__':
     class Ctrl(object):
-        def __init__(self):
-            from tornado import ioloop
-            self.ioloop = ioloop.IOLoop.current()
+        def __init__(self, args, ioloop):
+            self.args = args
+            self.ioloop = ioloop
+            self.log = bbctrl.log.Log(args, ioloop)
+            self.camera = Camera(self)
 
 
     class RootHandler(web.RequestHandler):
@@ -482,8 +489,8 @@ if __name__ == '__main__':
 
 
     class Web(web.Application):
-        def __init__(self, ctrl):
-            self.ctrl = ctrl
+        def __init__(self, args, ioloop):
+            self.ctrl = Ctrl(args, ioloop)
 
             handlers = [
                 (r'/', RootHandler),
@@ -493,6 +500,10 @@ if __name__ == '__main__':
             web.Application.__init__(self, handlers)
             self.listen(9000, address = '127.0.0.1')
 
+
+        def get_ctrl(self, id = None): return self.ctrl
+
+
     import argparse
     parser = argparse.ArgumentParser(description = 'Camera Server Test')
     parser.add_argument('--width', default = 640, type = int)
@@ -501,11 +512,8 @@ if __name__ == '__main__':
     parser.add_argument('--fourcc', default = 'MJPG')
     args = parser.parse_args()
 
+    from tornado import ioloop
+    ioloop = ioloop.IOLoop.current()
 
-    logging.basicConfig(level = logging.INFO)
-
-    ctrl = Ctrl()
-    ctrl.args = args
-    ctrl.camera = Camera(ctrl)
-    server = Web(ctrl)
-    ctrl.ioloop.start()
+    server = Web(args, ioloop)
+    ioloop.start()

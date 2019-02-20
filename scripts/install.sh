@@ -118,12 +118,6 @@ cp scripts/xinitrc ~pi/.xinitrc
 chmod +x ~pi/.xinitrc
 chown pi:pi ~pi/.xinitrc
 
-# Install default GCode
-if [ ! -d /var/lib/bbctrl/upload -o -z "$(ls -A /var/lib/bbctrl/upload)" ]; then
-    mkdir -p /var/lib/bbctrl/upload/
-    cp scripts/buildbotics.gc /var/lib/bbctrl/upload/
-fi
-
 # Install rc.local
 cp scripts/rc.local /etc/
 

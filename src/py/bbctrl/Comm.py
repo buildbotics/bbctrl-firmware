@@ -26,7 +26,6 @@
 ################################################################################
 
 import serial
-import logging
 import json
 import time
 import traceback
@@ -35,13 +34,12 @@ from collections import deque
 import bbctrl
 import bbctrl.Cmd as Cmd
 
-log = logging.getLogger('Comm')
-
 
 class Comm(object):
     def __init__(self, ctrl, avr):
         self.ctrl = ctrl
         self.avr = avr
+        self.log = self.ctrl.log.get('Comm')
         self.queue = deque()
         self.in_buf = ''
         self.command = None
@@ -57,7 +55,7 @@ class Comm(object):
 
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):
-        log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
+        self.log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
         self.avr.i2c_command(cmd, byte, word, block)
 
 
@@ -65,7 +63,7 @@ class Comm(object):
 
 
     def _load_next_command(self, cmd):
-        log.info('< ' + json.dumps(cmd).strip('"'))
+        self.log.info('< ' + json.dumps(cmd).strip('"'))
         self.command = bytes(cmd.strip() + '\n', 'utf-8')
 
 
@@ -114,20 +112,19 @@ class Comm(object):
                 self.queue_command(Cmd.set_axis(axis, position))
 
         except Exception as e:
-            log.warning('AVR reload failed: %s', traceback.format_exc())
+            self.log.warning('AVR reload failed: %s', traceback.format_exc())
             self.ctrl.ioloop.call_later(1, self.connect)
 
 
     def _log_msg(self, msg):
         level = msg.get('level', 'info')
-        if 'where' in msg: extra = {'where': msg['where']}
-        else: extra = None
+        where = msg.get('where')
         msg = msg['msg']
 
-        if   level == 'info':    log.info(msg,    extra = extra)
-        elif level == 'debug':   log.debug(msg,   extra = extra)
-        elif level == 'warning': log.warning(msg, extra = extra)
-        elif level == 'error':   log.error(msg,   extra = extra)
+        if   level == 'info':    self.log.info(msg,    where = where)
+        elif level == 'debug':   self.log.debug(msg,   where = where)
+        elif level == 'warning': self.log.warning(msg, where = where)
+        elif level == 'error':   self.log.error(msg,   where = where)
 
         if level == 'error': self.comm_error()
 
@@ -147,20 +144,20 @@ class Comm(object):
             self.in_buf = self.in_buf[i + 1:]
 
             if line:
-                log.info('> ' + line)
+                self.log.info('> ' + line)
 
                 try:
                     msg = json.loads(line)
 
                 except Exception as e:
-                    log.warning('%s, data: %s', e, line)
+                    self.log.warning('%s, data: %s', e, line)
                     continue
 
                 if 'variables' in msg: self._update_vars(msg)
                 elif 'msg' in msg: self._log_msg(msg)
 
                 elif 'firmware' in msg:
-                    log.info('AVR firmware rebooted')
+                    self.log.info('AVR firmware rebooted')
                     self.connect()
 
                 else:
@@ -194,5 +191,5 @@ class Comm(object):
             self.queue_command(Cmd.HELP) # Load AVR commands and variables
 
         except Exception as e:
-            log.warning('Connect failed: %s', e)
+            self.log.warning('Connect failed: %s', e)
             self.ctrl.ioloop.call_later(1, self.connect)

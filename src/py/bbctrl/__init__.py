@@ -32,15 +32,12 @@ import sys
 import signal
 import tornado
 import argparse
-import logging
-import datetime
-import pkg_resources
 
 from pkg_resources import Requirement, resource_filename
 
+from bbctrl.RequestHandler import RequestHandler
 from bbctrl.APIHandler import APIHandler
 from bbctrl.FileHandler import FileHandler
-from bbctrl.GCodeStream import GCodeStream
 from bbctrl.Config import Config
 from bbctrl.LCD import LCD, LCDPage
 from bbctrl.Mach import Mach
@@ -52,7 +49,6 @@ from bbctrl.I2C import I2C
 from bbctrl.Planner import Planner
 from bbctrl.Preplanner import Preplanner
 from bbctrl.State import State
-from bbctrl.Messages import Messages
 from bbctrl.Comm import Comm
 from bbctrl.CommandQueue import CommandQueue
 from bbctrl.MainLCDPage import MainLCDPage
@@ -60,8 +56,10 @@ from bbctrl.IPLCDPage import IPLCDPage
 from bbctrl.Camera import Camera, VideoHandler
 from bbctrl.AVR import AVR
 from bbctrl.AVREmu import AVREmu
+from bbctrl.IOLoop import IOLoop
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
+import bbctrl.Log as log
 
 
 ctrl = None
@@ -74,18 +72,13 @@ def get_resource(path):
 def on_exit(sig = 0, func = None):
     global ctrl
 
-    logging.info('Exit handler triggered: signal = %d', sig)
+    print('Exit handler triggered: signal = %d', sig)
 
     if ctrl is not None:
         ctrl.close()
         ctrl = None
 
     sys.exit(1)
-
-
-def log_time(log, ioloop):
-    log.info(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
-    ioloop.call_later(60 * 60, log_time, log, ioloop)
 
 
 def parse_args():
@@ -126,6 +119,8 @@ def parse_args():
                         help = 'Enter demo mode')
     parser.add_argument('--fast-emu', action = 'store_true',
                         help = 'Enter demo mode')
+    parser.add_argument('--client-timeout', default = 5 * 60, type = int,
+                        help = 'Demo client timeout in seconds')
 
     return parser.parse_args()
 
@@ -135,45 +130,19 @@ def run():
 
     args = parse_args()
 
-    # Init logging
-    root = logging.getLogger()
-    level = logging.DEBUG if args.verbose else logging.INFO
-    root.setLevel(logging.NOTSET)
-    f = logging.Formatter('{levelname[0]}:{name}:{message}', style = '{')
-    h = logging.StreamHandler()
-    h.setLevel(level)
-    h.setFormatter(f)
-    root.addHandler(h)
-
-    if args.log:
-        h = logging.handlers.RotatingFileHandler(args.log, maxBytes = 1000000,
-                                                 backupCount = 5)
-        h.setLevel(level)
-        h.setFormatter(f)
-        root.addHandler(h)
-
-    # Log header
-    version = pkg_resources.require('bbctrl')[0].version
-    root.info('Log started v%s' % version)
-
     # Set signal handler
     signal.signal(signal.SIGTERM, on_exit)
 
     # Create ioloop
     ioloop = tornado.ioloop.IOLoop.current()
 
-    # Write time to log periodically
-    log_time(root, ioloop)
-
-    # Start controller
-    ctrl = Ctrl(args, ioloop)
+    # Start server
+    web = Web(args, ioloop)
 
     try:
         ioloop.start()
 
     except KeyboardInterrupt: on_exit()
-    except SystemExit: raise
-    except: logging.getLogger().exception('')
 
 
 if __name__ == '__main__': run()

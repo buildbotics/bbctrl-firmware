@@ -106,6 +106,7 @@ module.exports = new Vue({
       state: {},
       messages: [],
       video_size: cookie.get('video-size', 'small'),
+      crosshair: cookie.get('crosshair', false),
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorShow: false,
@@ -218,10 +219,17 @@ module.exports = new Vue({
     },
 
 
-    toggle_video: function () {
+    toggle_video: function (e) {
       if      (this.video_size == 'small')  this.video_size = 'large';
       else if (this.video_size == 'large')  this.video_size = 'small';
       cookie.set('video-size', this.video_size);
+    },
+
+
+    toggle_crosshair: function (e) {
+      e.preventDefault();
+      this.crosshair = !this.crosshair;
+      cookie.set('crosshair', this.crosshair);
     },
 
 
@@ -238,7 +246,7 @@ module.exports = new Vue({
         this.firmwareUpgrading = true;
 
       }.bind(this)).fail(function () {
-        alert('Invalid password');
+        api.alert('Invalid password');
       }.bind(this))
     },
 
@@ -262,7 +270,7 @@ module.exports = new Vue({
         this.firmwareUpgrading = true;
 
       }.bind(this)).error(function () {
-        alert('Invalid password or bad firmware');
+        api.alert('Invalid password or bad firmware');
       }.bind(this))
     },
 
@@ -356,7 +364,7 @@ module.exports = new Vue({
       api.put('config/save', this.config).done(function (data) {
         this.modified = false;
       }.bind(this)).fail(function (error) {
-        alert('Save failed: ' + error);
+        api.alert('Save failed', error);
       });
     },
 

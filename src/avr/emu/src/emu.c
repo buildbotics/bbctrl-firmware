@@ -83,6 +83,9 @@ void emu_init() {
   // So usart_flush() returns
   SERIAL_PORT.STATUS = USART_DREIF_bm | USART_TXCIF_bm;
 
+  // Clear motor fault
+  PIN_PORT(MOTOR_FAULT_PIN)->IN |= PIN_BM(MOTOR_FAULT_PIN);
+
   FD_ZERO(&readFDs);
 }
 

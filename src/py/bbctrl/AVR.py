@@ -26,23 +26,26 @@
 ################################################################################
 
 import serial
-import logging
 import time
 import traceback
 
 import bbctrl
 import bbctrl.Cmd as Cmd
 
-log = logging.getLogger('AVR')
 
 
 class AVR(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('AVR')
+
         self.sp = None
         self.i2c_addr = ctrl.args.avr_addr
         self.read_cb = None
         self.write_cb = None
+
+
+    def close(self): pass
 
 
     def _start(self):
@@ -53,7 +56,7 @@ class AVR(object):
 
         except Exception as e:
             self.sp = None
-            log.warning('Failed to open serial port: %s', e)
+            self.log.warning('Failed to open serial port: %s', e)
 
         if self.sp is not None:
             self.ctrl.ioloop.add_handler(self.sp, self._serial_handler,
@@ -62,7 +65,7 @@ class AVR(object):
 
     def set_handlers(self, read_cb, write_cb):
         if self.read_cb is not None or self.write_cb is not None:
-            raise Exception('AVR handler already set')
+            raise Exception('Handler already set')
 
         self.read_cb = read_cb
         self.write_cb = write_cb
@@ -87,7 +90,7 @@ class AVR(object):
             self.read_cb(data)
 
         except Exception as e:
-            log.warning('%s: %s', e, data)
+            self.log.warning('%s: %s', e, data)
 
 
     def _serial_handler(self, fd, events):
@@ -96,11 +99,11 @@ class AVR(object):
             if self.ctrl.ioloop.WRITE & events: self._serial_write()
 
         except Exception as e:
-            log.warning('Serial handler error: %s', traceback.format_exc())
+            self.log.warning('Serial handler error: %s', traceback.format_exc())
 
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):
-        log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
+        self.log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
         retry = 5
         cmd = ord(cmd[0])
 
@@ -113,10 +116,10 @@ class AVR(object):
                 retry -= 1
 
                 if retry:
-                    log.warning('AVR I2C failed, retrying: %s' % e)
+                    self.log.warning('I2C failed, retrying: %s' % e)
                     time.sleep(0.1)
                     continue
 
                 else:
-                    log.error('AVR I2C failed: %s' % e)
+                    self.log.error('I2C failed: %s' % e)
                     raise

@@ -26,7 +26,6 @@
 ################################################################################
 
 import os
-import logging
 import time
 import json
 import hashlib
@@ -39,16 +38,12 @@ from tornado import gen
 import bbctrl
 
 
-log = logging.getLogger('Preplanner')
-
-
 def hash_dump(o):
     s = json.dumps(o, separators = (',', ':'), sort_keys = True)
     return s.encode('utf8')
 
 
 def plan_hash(path, config):
-    path = 'upload/' + path
     h = hashlib.sha256()
     h.update('v4'.encode('utf8'))
     h.update(hash_dump(config))
@@ -68,10 +63,13 @@ class Preplanner(object):
     def __init__(self, ctrl, threads = 4, max_plan_time = 60 * 60 * 24,
                  max_loop_time = 300):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('Preplanner')
+
         self.max_plan_time = max_plan_time
         self.max_loop_time = max_loop_time
 
-        if not os.path.exists('plans'): os.mkdir('plans')
+        path = self.ctrl.get_plan()
+        if not os.path.exists(path): os.mkdir(path)
 
         self.started = Future()
 
@@ -82,7 +80,7 @@ class Preplanner(object):
 
     def start(self):
         if not self.started.done():
-            log.info('Preplanner started')
+            self.log.info('Preplanner started')
             self.started.set_result(True)
 
 
@@ -101,7 +99,7 @@ class Preplanner(object):
 
 
     def delete_all_plans(self):
-        files = glob.glob('plans/*')
+        files = glob.glob(self.ctrl.get_plan('*'))
 
         for path in files:
             try:
@@ -112,7 +110,7 @@ class Preplanner(object):
 
 
     def delete_plans(self, filename):
-        files = glob.glob('plans/' + filename + '.*')
+        files = glob.glob(self.ctrl.get_plan(filename + '.*'))
 
         for path in files:
             try:
@@ -158,7 +156,7 @@ class Preplanner(object):
 
 
     def _clean_plans(self, filename, max = 2):
-        plans = glob.glob('plans/' + filename + '.*')
+        plans = glob.glob(self.ctrl.get_plan(filename + '.*'))
         if len(plans) <= max: return
 
         # Delete oldest plans
@@ -181,8 +179,8 @@ class Preplanner(object):
         try:
             os.nice(5)
 
-            hid = plan_hash(filename, config)
-            base = 'plans/' + filename + '.' + hid
+            hid = plan_hash(self.ctrl.get_upload(filename), config)
+            base = self.ctrl.get_plan(filename + '.' + hid)
             files = [
                 base + '.json', base + '.positions.gz', base + '.speeds.gz']
 
@@ -193,7 +191,7 @@ class Preplanner(object):
             if not found:
                 self._clean_plans(filename) # Clean up old plans
 
-                path = os.path.abspath('upload/' + filename)
+                path = os.path.abspath(self.ctrl.get_upload(filename))
                 with tempfile.TemporaryDirectory() as tmpdir:
                     cmd = (
                         '/usr/bin/env', 'python3',
@@ -203,7 +201,7 @@ class Preplanner(object):
                         '--max-loop=%s' % self.max_loop_time
                     )
 
-                    log.info('Running: %s', cmd)
+                    self.log.info('Running: %s', cmd)
 
                     with subprocess.Popen(cmd, stdout = subprocess.PIPE,
                                           stderr = subprocess.PIPE,
@@ -221,7 +219,8 @@ class Preplanner(object):
                         if cancel.is_set(): return
 
                         if proc.returncode:
-                            log.error('Plan failed: ' + errs.decode('utf8'))
+                            self.log.error('Plan failed: ' +
+                                           errs.decode('utf8'))
                             return # Failed
 
                     os.rename(tmpdir + '/meta.json', files[0])
@@ -234,4 +233,4 @@ class Preplanner(object):
 
             return meta, positions, speeds
 
-        except Exception as e: log.exception(e)
+        except Exception as e: self.log.exception(e)

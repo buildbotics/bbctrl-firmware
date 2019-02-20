@@ -96,7 +96,8 @@ html(lang="en")
                 span.left Build
                 span.right botics
               .subtitle
-                | Machine Controller v{{config.version}}
+                | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
+                | v{{config.version}}
                 a.upgrade-version(v-if="show_upgrade()", href="#admin-general")
                   | Upgrade to v{{latestVersion}}
                 .fa.fa-check(v-if="!show_upgrade() && latestVersion",
@@ -105,8 +106,15 @@ html(lang="en")
             .estop(:class="{active: state.es}")
               estop(@click="estop")
 
-            .video(title="Plug camera into USB.\nClick to change video size.")
-              img(src="/api/video", @click="toggle_video", :class="video_size")
+            .video(title="Plug camera into USB.\n" +
+              "Left click to toggle video size.\n" +
+              "Right click to toggle crosshair.", @click="toggle_video",
+              @contextmenu="toggle_crosshair", :class="video_size")
+              .crosshair(v-if="crosshair")
+                .vertical
+                .horizontal
+                .box
+              img(src="/api/video")
 
         .clear
 

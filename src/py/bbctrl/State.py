@@ -25,7 +25,6 @@
 #                                                                              #
 ################################################################################
 
-import logging
 import traceback
 import copy
 import uuid
@@ -33,12 +32,11 @@ import os
 import bbctrl
 
 
-log = logging.getLogger('State')
-
-
 class State(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('State')
+
         self.callbacks = {}
         self.changes = {}
         self.listeners = []
@@ -51,6 +49,8 @@ class State(object):
             'tool': 0,
             'feed': 0,
             'speed': 0,
+            'sid': str(uuid.uuid4()),
+            'demo': ctrl.args.demo,
         }
 
         # Add computed variable callbacks for each motor.
@@ -74,8 +74,6 @@ class State(object):
         self.set_callback('metric', lambda name: 1 if self.is_metric() else 0)
         self.set_callback('imperial', lambda name: 0 if self.is_metric() else 1)
 
-        self.set('sid', str(uuid.uuid4()))
-
         self.reset()
         self.load_files()
 
@@ -96,10 +94,16 @@ class State(object):
     def load_files(self):
         self.files = []
 
-        if os.path.exists('upload'):
-            for path in os.listdir('upload'):
-                if os.path.isfile('upload/' + path):
-                    self.files.append(path)
+        upload = self.ctrl.get_upload()
+
+        if not os.path.exists(upload):
+            os.mkdir(upload)
+            from shutil import copy
+            copy(bbctrl.get_resource('http/buildbotics.nc'), upload)
+
+        for path in os.listdir(upload):
+            if os.path.isfile(upload + '/' + path):
+                self.files.append(path)
 
         self.files.sort()
         self.set('files', self.files)
@@ -144,7 +148,7 @@ class State(object):
                 listener(self.changes)
 
             except Exception as e:
-                log.warning('Updating state listener: %s',
+                self.log.warning('Updating state listener: %s',
                             traceback.format_exc())
 
         self.changes = {}
@@ -186,7 +190,9 @@ class State(object):
 
         if name in self.vars: return self.vars[name]
         if name in self.callbacks: return self.callbacks[name](name)
-        if default is None: log.warning('State variable "%s" not found' % name)
+        if default is None:
+            self.log.warning('State variable "%s" not found' % name)
+
         return default
 
 
@@ -318,13 +324,12 @@ class State(object):
 
         mode = self.motor_homing_mode(motor)
 
-        if mode == 'manual': return 'Configured for manual homing'
+        if mode != 'manual':
+            if mode == 'switch-min' and not int(self.get(axis + '_ls', 0)):
+                return 'Configured for min switch but switch is disabled'
 
-        if mode == 'switch-min' and not int(self.get(axis + '_ls', 0)):
-            return 'Configured for min switch but switch is disabled'
-
-        if mode == 'switch-max' and not int(self.get(axis + '_xs', 0)):
-            return 'Configured for max switch but switch is disabled'
+            if mode == 'switch-max' and not int(self.get(axis + '_xs', 0)):
+                return 'Configured for max switch but switch is disabled'
 
         softMin = int(self.get(axis + '_tn', 0))
         softMax = int(self.get(axis + '_tm', 0))

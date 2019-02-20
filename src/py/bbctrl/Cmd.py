@@ -30,9 +30,6 @@
 import struct
 import base64
 import json
-import logging
-
-log = logging.getLogger('Cmd')
 
 # Keep this in sync with AVR code command.def
 SET          = '$'
@@ -261,12 +258,17 @@ def decode_command(cmd):
     elif cmd[0] == FLUSH:   data['type'] = 'flush'
     elif cmd[0] == RESUME:  data['type'] = 'resume'
 
-    print(json.dumps(data))
+    return data
 
 
 def decode(cmd):
     for line in cmd.split('\n'):
-        decode_command(line.strip())
+        yield decode_command(line.strip())
+
+
+def decode_and_print(cmd):
+    for data in decode(cmd):
+        print(json.dumps(data))
 
 
 if __name__ == "__main__":
@@ -274,8 +276,8 @@ if __name__ == "__main__":
 
     if 1 < len(sys.argv):
         for arg in sys.argv[1:]:
-            decode(arg)
+            decode_and_print(arg)
 
     else:
         for line in sys.stdin:
-            decode(line)
+            decode_and_print(line)

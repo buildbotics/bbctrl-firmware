@@ -27,15 +27,13 @@
 
 import inevent
 from inevent.Constants import *
-import logging
-
-log = logging.getLogger('Jog')
 
 
 # Listen for input events
 class Jog(inevent.JogHandler):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('Jog')
 
         config = {
             "Logitech Logitech RumblePad 2 USB": {
@@ -81,7 +79,7 @@ class Jog(inevent.JogHandler):
                 self.ctrl.mach.jog(axes)
 
             except Exception as e:
-                log.warning('Jog: %s', e)
+                self.log.warning('Jog: %s', e)
 
         self.ctrl.ioloop.call_later(0.25, self.callback)
 

@@ -28,7 +28,46 @@
 'use strict';
 
 
+function cookie_get(name) {
+  var decodedCookie = decodeURIComponent(document.cookie);
+  var ca = decodedCookie.split(';');
+  name = name + '=';
+
+  for (var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == ' ') c = c.substring(1);
+    if (!c.indexOf(name)) return c.substring(name.length, c.length);
+  }
+}
+
+
+function cookie_set(name, value, days) {
+  var d = new Date();
+  d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+  var expires = 'expires=' + d.toUTCString();
+  document.cookie = name + '=' + value + ';' + expires + ';path=/';
+}
+
+
+var uuid_chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+';
+
+
+function uuid(length) {
+  if (typeof length == 'undefined') length = 52;
+
+  var s = '';
+  for (var i = 0; i < length; i++)
+    s += uuid_chars[Math.floor(Math.random() * uuid_chars.length)];
+
+  return s
+}
+
+
 $(function() {
+  if (typeof cookie_get('client-id') == 'undefined')
+    cookie_set('client-id', uuid(), 10000);
+
   // Vue debugging
   Vue.config.debug = true;
   //Vue.util.warn = function (msg) {console.debug('[Vue warn]: ' + msg)}

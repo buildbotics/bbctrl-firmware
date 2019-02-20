@@ -27,11 +27,7 @@
 
 import lcd
 import atexit
-import logging
 from tornado.ioloop import PeriodicCallback
-
-
-log = logging.getLogger('LCD')
 
 
 class LCDPage:
@@ -77,6 +73,7 @@ class LCDPage:
 class LCD:
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('LCD')
 
         self.addrs = self.ctrl.args.lcd_addr
         self.addr = self.addrs[0]
@@ -102,7 +99,7 @@ class LCD:
             self.load_page(LCDPage(self, msg))
             self._update()
         except IOError as e:
-            log.warning('LCD communication failed: %s' % e)
+            self.log.warning('LCD communication failed: %s' % e)
 
 
     def new_screen(self):
@@ -189,7 +186,7 @@ class LCD:
             self.addr = self.addrs[self.addr_num]
             self.lcd = None
 
-            log.warning('LCD communication failed, ' +
+            self.log.warning('LCD communication failed, ' +
                         'retrying on address 0x%02x: %s' % (self.addr, e))
 
             self.reset = True

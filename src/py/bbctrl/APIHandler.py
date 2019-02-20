@@ -27,32 +27,13 @@
 
 import json
 import traceback
-import logging
+import bbctrl
 
-from tornado.web import RequestHandler, HTTPError
+from tornado.web import HTTPError
 import tornado.httpclient
 
 
-log = logging.getLogger('API')
-log.setLevel(logging.DEBUG)
-
-
-class APIHandler(RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.ctrl = app.ctrl
-
-
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if isinstance(value, HTTPError) and value.status_code in (404, 408):
-            return
-
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
-
-
+class APIHandler(bbctrl.RequestHandler):
     def delete(self, *args, **kwargs):
         self.delete_ok(*args, **kwargs)
         self.write_json('ok')
@@ -76,7 +57,7 @@ class APIHandler(RequestHandler):
             try:
                 self.json = tornado.escape.json_decode(self.request.body)
             except ValueError:
-                raise HTTPError(400, 'Unable to parse JSON.')
+                raise HTTPError(400, 'Unable to parse JSON')
 
 
     def set_default_headers(self):
@@ -87,8 +68,13 @@ class APIHandler(RequestHandler):
         e = {}
 
         if 'message' in kwargs: e['message'] = kwargs['message']
+
         elif 'exc_info' in kwargs:
-            e['message'] = str(kwargs['exc_info'][1])
+            typ, value, tb = kwargs['exc_info']
+            if isinstance(value, HTTPError) and value.log_message:
+                e['message'] = value.log_message % value.args
+            else: e['message'] = str(kwargs['exc_info'][1])
+
         else: e['message'] = 'Unknown error'
 
         e['code'] = status_code

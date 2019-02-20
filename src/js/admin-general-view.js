@@ -82,7 +82,7 @@ module.exports = {
         try {
           config = JSON.parse(e.target.result);
         } catch (ex) {
-          alert("Invalid config file");
+          api.alert("Invalid config file");
           return;
         }
 
@@ -91,7 +91,7 @@ module.exports = {
           this.configRestored = true;
 
         }.bind(this)).fail(function (error) {
-          alert('Restore failed: ' + error);
+          api.alert('Restore failed', error);
         })
       }.bind(this);
 
@@ -106,7 +106,7 @@ module.exports = {
         this.configReset = true;
 
       }.bind(this)).fail(function (error) {
-        alert('Reset failed: ' + error);
+        api.alert('Reset failed', error);
       });
     },
 

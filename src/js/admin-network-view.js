@@ -100,7 +100,7 @@ module.exports = {
         }.bind(this));
 
       }.bind(this)).fail(function (error) {
-        alert('Set hostname failed: ' + JSON.stringify(error));
+        api.alert('Set hostname failed', error);
       })
     },
 
@@ -109,19 +109,19 @@ module.exports = {
       api.put('remote/username', {username: this.username}).done(function () {
         this.usernameSet = true;
       }.bind(this)).fail(function (error) {
-        alert('Set username failed: ' + JSON.stringify(error));
+        api.alert('Set username failed', error);
       })
     },
 
 
     set_password: function () {
       if (this.password != this.password2) {
-        alert('Passwords to not match');
+        api.alert('Passwords to not match');
         return;
       }
 
       if (this.password.length < 6) {
-        alert('Password too short');
+        api.alert('Password too short');
         return;
       }
 
@@ -131,13 +131,14 @@ module.exports = {
       }).done(function () {
         this.passwordSet = true;
       }.bind(this)).fail(function (error) {
-        alert('Set password failed: ' + JSON.stringify(error));
+        api.alert('Set password failed', error);
       })
     },
 
 
     config_wifi: function () {
       this.wifiConfirm = false;
+
       this.rebooting = true;
 
       var config = {
@@ -148,8 +149,9 @@ module.exports = {
       }
 
       api.put('wifi', config).fail(function (error) {
-        alert('Failed to configure WiFi: ' + JSON.stringify(error));
-      })
+        api.alert('Failed to configure WiFi', error);
+        this.rebooting = false;
+      }.bind(this))
     }
   }
 }

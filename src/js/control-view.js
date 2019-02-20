@@ -281,7 +281,7 @@ module.exports = {
           this.$broadcast('gcode-reload', file.name);
 
         }.bind(this)).fail(function (error) {
-          alert('Upload failed: ' + error)
+          api.alert('Upload failed', error)
         }.bind(this));
     },
 

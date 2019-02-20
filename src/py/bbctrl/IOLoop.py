@@ -25,62 +25,48 @@
 #                                                                              #
 ################################################################################
 
-import re
-import logging
+import tornado.ioloop
+import bbctrl
 
 
-log = logging.getLogger('GCode')
+class IOLoop(object):
+    READ = tornado.ioloop.IOLoop.READ
+    WRITE = tornado.ioloop.IOLoop.WRITE
+    ERROR = tornado.ioloop.IOLoop.ERROR
 
 
-class GCodeStream():
-    comment1RE = re.compile(r';.*')
-    comment2RE = re.compile(r'\(([^\)]*)\)')
-
-
-    def __init__(self, path):
-        self.path = path
-        self.f = None
-
-        self.open()
+    def __init__(self, ioloop):
+        self.ioloop = ioloop
+        self.fds = set()
+        self.handles = set()
 
 
     def close(self):
-        if self.f is not None:
-            self.f.close()
-            self.f = None
+        for fd in self.fds: self.ioloop.remove_handler(fd)
+        for h in self.handles: self.ioloop.remove_timeout(h)
 
 
-    def open(self):
-        self.close()
-
-        self.line = 0
-        self.f = open('upload' + self.path, 'r')
-
-
-    def reset(self): self.open()
+    def add_handler(self, fd, handler, events):
+        self.ioloop.add_handler(fd, handler, events)
+        if hasattr(fd, 'fileno'): fd = fd.fileno()
+        self.fds.add(fd)
 
 
-    def comment(self, s):
-        log.debug('Comment: %s', s)
+    def remove_handler(self, fd):
+        self.ioloop.remove_handler(fd)
+        if hasattr(fd, 'fileno'): fd = fd.fileno()
+        self.fds.remove(fd)
 
 
-    def next(self):
-        line = self.f.readline()
-        if line is None or line == '': return
+    def update_handler(self, fd, events): self.ioloop.update_handler(fd, events)
 
-        # Remove comments
-        line = self.comment1RE.sub('', line)
 
-        for comment in self.comment2RE.findall(line):
-            self.comment(comment)
+    def call_later(self, delay, callback, *args, **kwargs):
+        h = self.ioloop.call_later(delay, callback, *args, **kwargs)
+        self.handles.add(h)
+        return h
 
-        line = self.comment2RE.sub(' ', line)
 
-        # Remove space
-        line = line.strip()
-
-        # Append line number
-        self.line += 1
-        line += ' N%d' % self.line
-
-        return line
+    def remove_timeout(self, h):
+        self.ioloop.remove_timeout(h)
+        self.handles.remove(h)

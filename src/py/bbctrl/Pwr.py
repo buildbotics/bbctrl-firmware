@@ -25,12 +25,9 @@
 #                                                                              #
 ################################################################################
 
-import logging
 from tornado.ioloop import PeriodicCallback
 
 import bbctrl
-
-log = logging.getLogger('PWR')
 
 
 # Must match regs in pwr firmware
@@ -66,6 +63,7 @@ reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
 class Pwr():
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('Pwr')
 
         self.i2c_addr = ctrl.args.pwr_addr
         self.regs = [-1] * 9
@@ -89,52 +87,52 @@ class Pwr():
         flags = self.regs[FLAGS_REG]
 
         if self.check_fault('under_voltage', flags & UNDER_VOLTAGE_FLAG):
-            log.error('Device under voltage')
+            self.log.error('Device under voltage')
 
         if self.check_fault('over_voltage', flags & OVER_VOLTAGE_FLAG):
-            log.error('Device over voltage')
+            self.log.error('Device over voltage')
 
         if self.check_fault('over_current', flags & OVER_CURRENT_FLAG):
-            log.error('Device total current limit exceeded')
+            self.log.error('Device total current limit exceeded')
 
         if self.check_fault('sense_error', flags & SENSE_ERROR_FLAG):
-            log.error('Power sense error')
+            self.log.error('Power sense error')
 
         if self.check_fault('shunt_overload', flags & SHUNT_OVERLOAD_FLAG):
-            log.error('Power shunt overload')
+            self.log.error('Power shunt overload')
 
         if self.check_fault('motor_overload', flags & MOTOR_OVERLOAD_FLAG):
-            log.error('Motor power overload')
+            self.log.error('Motor power overload')
 
         if self.check_fault('load1_shutdown', flags & LOAD1_SHUTDOWN_FLAG):
-            log.error('Load 1 over temperature shutdown')
+            self.log.error('Load 1 over temperature shutdown')
 
         if self.check_fault('load2_shutdown', flags & LOAD2_SHUTDOWN_FLAG):
-            log.error('Load 2 over temperature shutdown')
+            self.log.error('Load 2 over temperature shutdown')
 
         if self.check_fault('motor_under_voltage',
                             flags & MOTOR_UNDER_VOLTAGE_FLAG):
-            log.error('Motor under voltage')
+            self.log.error('Motor under voltage')
 
         if self.check_fault('motor_voltage_sense_error',
                             flags & MOTOR_VOLTAGE_SENSE_ERROR_FLAG):
-            log.error('Motor voltage sense error')
+            self.log.error('Motor voltage sense error')
 
         if self.check_fault('motor_current_sense_error',
                             flags & MOTOR_CURRENT_SENSE_ERROR_FLAG):
-            log.error('Motor current sense error')
+            self.log.error('Motor current sense error')
 
         if self.check_fault('load1_sense_error',
                             flags & LOAD1_SENSE_ERROR_FLAG):
-            log.error('Load1 sense error')
+            self.log.error('Load1 sense error')
 
         if self.check_fault('load2_sense_error',
                             flags & LOAD2_SENSE_ERROR_FLAG):
-            log.error('Load2 sense error')
+            self.log.error('Load2 sense error')
 
         if self.check_fault('vdd_current_sense_error',
                             flags & VDD_CURRENT_SENSE_ERROR_FLAG):
-            log.error('Vdd current sense error')
+            self.log.error('Vdd current sense error')
 
 
     def _update_cb(self, now = True):
@@ -167,9 +165,9 @@ class Pwr():
             if i < 6: # Older pwr firmware does not have regs > 5
                 self.failures += 1
                 msg = 'Pwr communication failed at reg %d: %s' % (i, e)
-                if self.failures != 5: log.info(msg)
+                if self.failures != 5: self.log.info(msg)
                 else:
-                    log.warning(msg)
+                    self.log.warning(msg)
                     self.failures = 0
                 return
 

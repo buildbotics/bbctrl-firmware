@@ -27,13 +27,10 @@
 
 import os
 import json
-import logging
 import pkg_resources
 import subprocess
 import copy
 from pkg_resources import Requirement, resource_filename
-
-log = logging.getLogger('Config')
 
 
 def get_resource(path):
@@ -43,6 +40,8 @@ def get_resource(path):
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
+        self.log = ctrl.log.get('Config')
+
         self.values = {}
 
         try:
@@ -53,7 +52,7 @@ class Config(object):
                       encoding = 'utf-8') as f:
                 self.template = json.load(f)
 
-        except Exception as e: log.exception(e)
+        except Exception as e: self.log.exception(e)
 
 
     def get(self, name, default = None):
@@ -64,22 +63,20 @@ class Config(object):
         return self.values.get(name, {}).get(str(index), None)
 
 
-    def load_path(self, path):
-        with open(path, 'r') as f:
-            return json.load(f)
+    def load(self):
+        path = self.ctrl.get_path('config.json')
 
-
-    def load(self, path = 'config.json'):
         try:
-            if os.path.exists(path): config = self.load_path(path)
+            if os.path.exists(path):
+                with open(path, 'r') as f: config = json.load(f)
             else: config = {'version': self.version}
 
             try:
                 self.upgrade(config)
-            except Exception as e: log.exception(e)
+            except Exception as e: self.log.exception(e)
 
         except Exception as e:
-            log.warning('%s', e)
+            self.log.warning('%s', e)
             config = {'version': self.version}
 
         self._defaults(config)
@@ -169,13 +166,13 @@ class Config(object):
         self.upgrade(config)
         self._update(config, False)
 
-        with open('config.json', 'w') as f:
+        with open(self.ctrl.get_path('config.json'), 'w') as f:
             json.dump(config, f)
 
         subprocess.check_call(['sync'])
 
         self.ctrl.preplanner.invalidate_all()
-        log.info('Saved')
+        self.log.info('Saved')
 
 
     def reset(self):
@@ -235,37 +232,3 @@ class Config(object):
 
 
     def reload(self): self._update(self.load(), True)
-
-
-
-if __name__ == "__main__":
-    import sys
-    import argparse
-
-    class State(object):
-        def config(self, name, value): print('config(%s, %s)' % (name, value))
-
-
-    class Ctrl(object):
-        def __init__(self):
-            self.state = State()
-
-    parser = argparse.ArgumentParser(description = 'Buildbotics Config Test')
-
-    parser.add_argument('configs', metavar = 'CONFIG', nargs = '*',
-                        help = 'Configuration file')
-    parser.add_argument('-u', '--update', action = 'store_true',
-                        help = 'Update config')
-    args = parser.parse_args()
-
-    config = Config(Ctrl())
-
-    def do_cfg(path):
-        cfg = config.load(path)
-        if args.update: config._update(cfg, True)
-        else: print(json.dumps(cfg, sort_keys = True, indent = 2))
-
-    if len(args.configs):
-        for path in args.configs: do_cfg(path)
-
-    else: do_cfg('')

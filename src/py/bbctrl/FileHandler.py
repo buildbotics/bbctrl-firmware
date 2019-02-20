@@ -29,12 +29,8 @@ import os
 import bbctrl
 import glob
 import html
-import logging
 from tornado import gen
 from tornado.web import HTTPError
-
-
-log = logging.getLogger('FileHandler')
 
 
 def safe_remove(path):
@@ -50,30 +46,30 @@ class FileHandler(bbctrl.APIHandler):
     def delete_ok(self, filename):
         if not filename:
             # Delete everything
-            for path in glob.glob('upload/*'): safe_remove(path)
-            self.ctrl.preplanner.delete_all_plans()
-            self.ctrl.state.clear_files()
+            for path in glob.glob(self.get_upload('*')): safe_remove(path)
+            self.get_ctrl().preplanner.delete_all_plans()
+            self.get_ctrl().state.clear_files()
 
         else:
             # Delete a single file
             filename = os.path.basename(filename)
-            safe_remove('upload/' + filename)
-            self.ctrl.preplanner.delete_plans(filename)
-            self.ctrl.state.remove_file(filename)
+            safe_remove(self.get_upload(filename))
+            self.get_ctrl().preplanner.delete_plans(filename)
+            self.get_ctrl().state.remove_file(filename)
 
 
     def put_ok(self, *args):
         gcode = self.request.files['gcode'][0]
         filename = os.path.basename(gcode['filename'])
 
-        if not os.path.exists('upload'): os.mkdir('upload')
+        if not os.path.exists(self.get_upload()): os.mkdir(self.get_upload())
 
-        with open('upload/' + filename, 'wb') as f:
+        with open(self.get_upload(filename), 'wb') as f:
             f.write(gcode['body'])
 
-        self.ctrl.preplanner.invalidate(filename)
-        self.ctrl.state.add_file(filename)
-        log.info('GCode received: ' + filename)
+        self.get_ctrl().preplanner.invalidate(filename)
+        self.get_ctrl().state.add_file(filename)
+        self.get_log('FileHandler').info('GCode received: ' + filename)
 
 
     @gen.coroutine
@@ -81,7 +77,7 @@ class FileHandler(bbctrl.APIHandler):
         if not filename: raise HTTPError(400, 'Missing filename')
         filename = os.path.basename(filename)
 
-        with open('upload/' + filename, 'r') as f:
+        with open(self.get_upload(filename), 'r') as f:
             self.write(f.read())
 
-        self.ctrl.state.select_file(filename)
+        self.get_ctrl().state.select_file(filename)

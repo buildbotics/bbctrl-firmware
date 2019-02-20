@@ -25,11 +25,8 @@
 #                                                                              #
 ################################################################################
 
-import logging
+import bbctrl
 from collections import deque
-
-log = logging.getLogger('CmdQ')
-log.setLevel(logging.WARNING)
 
 
 # 16-bit less with wrap around
@@ -37,7 +34,10 @@ def id_less(a, b): return (1 << 15) < (a - b) & ((1 << 16) - 1)
 
 
 class CommandQueue():
-    def __init__(self):
+    def __init__(self, ctrl):
+        self.log = ctrl.log.get('CmdQ')
+        self.log.set_level(bbctrl.log.WARNING)
+
         self.lastEnqueueID = 0
         self.releaseID = 0
         self.q = deque()
@@ -53,7 +53,7 @@ class CommandQueue():
 
 
     def enqueue(self, id, cb, *args, **kwargs):
-        log.info('add(#%d) releaseID=%d', id, self.releaseID)
+        self.log.info('add(#%d) releaseID=%d', id, self.releaseID)
         self.lastEnqueueID = id
         self.q.append([id, cb, args, kwargs])
         self._release()
@@ -66,19 +66,19 @@ class CommandQueue():
             # Execute commands <= releaseID
             if id_less(self.releaseID, id): return
 
-            log.info('releasing id=%d' % id)
+            self.log.info('releasing id=%d' % id)
             self.q.popleft()
 
             try:
                 if cb is not None: cb(*args, **kwargs)
             except Exception as e:
-                log.exception('During command queue callback')
+                self.log.exception('During command queue callback')
 
 
 
     def release(self, id):
         if id and not id_less(self.releaseID, id):
-            log.debug('id out of order %d <= %d' % (id, self.releaseID))
+            self.log.debug('id out of order %d <= %d' % (id, self.releaseID))
         self.releaseID = id
 
         self._release()

@@ -30,7 +30,6 @@ import sys
 import json
 import tornado
 import sockjs.tornado
-import logging
 import datetime
 import shutil
 import tarfile
@@ -42,8 +41,6 @@ from tornado import web, gen
 
 import bbctrl
 
-
-log = logging.getLogger('Web')
 
 
 def call_get_output(cmd):
@@ -81,18 +78,13 @@ def check_password(password):
 
 class RebootHandler(bbctrl.APIHandler):
     def put_ok(self):
-        self.ctrl.lcd.goodbye('Rebooting...')
+        self.get_ctrl().lcd.goodbye('Rebooting...')
         subprocess.Popen('reboot')
 
 
-class LogHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.filename = app.ctrl.args.log
-
-
+class LogHandler(bbctrl.RequestHandler):
     def get(self):
-        with open(self.filename, 'r') as f:
+        with open(self.get_ctrl().log.get_path(), 'r') as f:
             self.write(f.read())
 
 
@@ -103,12 +95,7 @@ class LogHandler(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'text/plain')
 
 
-class BugReportHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
-
-
+class BugReportHandler(bbctrl.RequestHandler):
     def get(self):
         import tarfile, io
 
@@ -123,12 +110,14 @@ class BugReportHandler(tornado.web.RequestHandler):
         def check_add_basename(path):
             check_add(path, os.path.basename(path))
 
-        check_add_basename(self.app.ctrl.args.log)
-        check_add_basename(self.app.ctrl.args.log + '.1')
-        check_add_basename(self.app.ctrl.args.log + '.2')
-        check_add_basename(self.app.ctrl.args.log + '.3')
+        ctrl = self.get_ctrl()
+        path = ctrl.log.get_path()
+        check_add_basename(path)
+        check_add_basename(path + '.1')
+        check_add_basename(path + '.2')
+        check_add_basename(path + '.3')
         check_add('config.json')
-        check_add('upload/' + self.app.ctrl.state.get('selected', ''))
+        check_add(ctrl.get_upload(ctrl.state.get('selected', '')))
 
         tar.close()
 
@@ -147,6 +136,9 @@ class HostnameHandler(bbctrl.APIHandler):
     def get(self): self.write_json(socket.gethostname())
 
     def put(self):
+        if self.get_ctrl().args.demo:
+            raise HTTPError(400, 'Cannot set hostname in demo mode')
+
         if 'hostname' in self.json:
             if subprocess.call(['/usr/local/bin/sethostname',
                                 self.json['hostname'].strip()]) == 0:
@@ -164,7 +156,11 @@ class WifiHandler(bbctrl.APIHandler):
         except: pass
         self.write_json(data)
 
+
     def put(self):
+        if self.get_ctrl().args.demo:
+            raise HTTPError(400, 'Cannot configure WiFi in demo mode')
+
         if 'mode' in self.json:
             cmd = ['config-wifi', '-r']
             mode = self.json['mode']
@@ -193,12 +189,18 @@ class UsernameHandler(bbctrl.APIHandler):
 
 
     def put_ok(self):
+        if self.get_ctrl().args.demo:
+            raise HTTPError(400, 'Cannot set username in demo mode')
+
         if 'username' in self.json: set_username(self.json['username'])
         else: raise HTTPError(400, 'Missing "username"')
 
 
 class PasswordHandler(bbctrl.APIHandler):
     def put(self):
+        if self.get_ctrl().args.demo:
+            raise HTTPError(400, 'Cannot set password in demo mode')
+
         if 'current' in self.json and 'password' in self.json:
             check_password(self.json['current'])
 
@@ -218,7 +220,7 @@ class PasswordHandler(bbctrl.APIHandler):
 
 
 class ConfigLoadHandler(bbctrl.APIHandler):
-    def get(self): self.write_json(self.ctrl.config.load())
+    def get(self): self.write_json(self.get_ctrl().config.load())
 
 
 class ConfigDownloadHandler(bbctrl.APIHandler):
@@ -230,15 +232,15 @@ class ConfigDownloadHandler(bbctrl.APIHandler):
                         'attachment; filename="%s"' % filename)
 
     def get(self):
-        self.write_json(self.ctrl.config.load(), pretty = True)
+        self.write_json(self.get_ctrl().config.load(), pretty = True)
 
 
 class ConfigSaveHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.config.save(self.json)
+    def put_ok(self): self.get_ctrl().config.save(self.json)
 
 
 class ConfigResetHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.config.reset()
+    def put_ok(self): self.get_ctrl().config.reset()
 
 
 class FirmwareUpdateHandler(bbctrl.APIHandler):
@@ -261,31 +263,31 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
         with open('firmware/update.tar.bz2', 'wb') as f:
             f.write(firmware['body'])
 
-        self.ctrl.lcd.goodbye('Upgrading firmware')
+        self.get_ctrl().lcd.goodbye('Upgrading firmware')
         subprocess.Popen(['/usr/local/bin/update-bbctrl'])
 
 
 class UpgradeHandler(bbctrl.APIHandler):
     def put_ok(self):
         check_password(self.json['password'])
-        self.ctrl.lcd.goodbye('Upgrading firmware')
+        self.get_ctrl().lcd.goodbye('Upgrading firmware')
         subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
 class PathHandler(bbctrl.APIHandler):
     @gen.coroutine
     def get(self, filename, dataType, *args):
-        if not os.path.exists('upload/' + filename):
+        if not os.path.exists(self.get_upload(filename)):
             raise HTTPError(404, 'File not found')
 
-        future = self.ctrl.preplanner.get_plan(filename)
+        future = self.get_ctrl().preplanner.get_plan(filename)
 
         try:
             delta = datetime.timedelta(seconds = 1)
             data = yield gen.with_timeout(delta, future)
 
         except gen.TimeoutError:
-            progress = self.ctrl.preplanner.get_plan_progress(filename)
+            progress = self.get_ctrl().preplanner.get_plan_progress(filename)
             self.write_json(dict(progress = progress))
             return
 
@@ -323,80 +325,81 @@ class HomeHandler(bbctrl.APIHandler):
             if not 'position' in self.json:
                 raise HTTPError(400, 'Missing "position"')
 
-            self.ctrl.mach.home(axis, self.json['position'])
+            self.get_ctrl().mach.home(axis, self.json['position'])
 
-        elif action == '/clear': self.ctrl.mach.unhome(axis)
-        else: self.ctrl.mach.home(axis)
+        elif action == '/clear': self.get_ctrl().mach.unhome(axis)
+        else: self.get_ctrl().mach.home(axis)
 
 
 class StartHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.start()
+    def put_ok(self): self.get_ctrl().mach.start()
 
 
 class EStopHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.estop()
+    def put_ok(self): self.get_ctrl().mach.estop()
 
 
 class ClearHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.clear()
+    def put_ok(self): self.get_ctrl().mach.clear()
 
 
 class StopHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.stop()
+    def put_ok(self): self.get_ctrl().mach.stop()
 
 
 class PauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.pause()
+    def put_ok(self): self.get_ctrl().mach.pause()
 
 
 class UnpauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.unpause()
+    def put_ok(self): self.get_ctrl().mach.unpause()
 
 
 class OptionalPauseHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.optional_pause()
+    def put_ok(self): self.get_ctrl().mach.optional_pause()
 
 
 class StepHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.step()
+    def put_ok(self): self.get_ctrl().mach.step()
 
 
 class PositionHandler(bbctrl.APIHandler):
     def put_ok(self, axis):
-        self.ctrl.mach.set_position(axis, float(self.json['position']))
+        self.get_ctrl().mach.set_position(axis, float(self.json['position']))
 
 
 class OverrideFeedHandler(bbctrl.APIHandler):
-    def put_ok(self, value): self.ctrl.mach.override_feed(float(value))
+    def put_ok(self, value): self.get_ctrl().mach.override_feed(float(value))
 
 
 class OverrideSpeedHandler(bbctrl.APIHandler):
-    def put_ok(self, value): self.ctrl.mach.override_speed(float(value))
+    def put_ok(self, value): self.get_ctrl().mach.override_speed(float(value))
 
 
 class ModbusReadHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.modbus_read(int(self.json['address']))
+    def put_ok(self):
+        self.get_ctrl().mach.modbus_read(int(self.json['address']))
 
 
 class ModbusWriteHandler(bbctrl.APIHandler):
     def put_ok(self):
-        self.ctrl.mach.modbus_write(int(self.json['address']),
+        self.get_ctrl().mach.modbus_write(int(self.json['address']),
                                     int(self.json['value']))
 
 
 class JogHandler(bbctrl.APIHandler):
-    def put_ok(self): self.ctrl.mach.jog(self.json)
+    def put_ok(self): self.get_ctrl().mach.jog(self.json)
 
 
 # Base class for Web Socket connections
 class ClientConnection(object):
-    def __init__(self, ctrl):
-        self.ctrl = ctrl
+    def __init__(self, app):
+        self.app = app
         self.count = 0
 
 
     def heartbeat(self):
-        self.timer = self.ctrl.ioloop.call_later(3, self.heartbeat)
+        self.timer = self.app.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
         self.count += 1
 
@@ -404,17 +407,19 @@ class ClientConnection(object):
     def send(self, msg): raise HTTPError(400, 'Not implemented')
 
 
-    def on_open(self, *args, **kwargs):
+    def on_open(self, id = None):
+        self.ctrl = self.app.get_ctrl(id)
+
         self.ctrl.state.add_listener(self.send)
-        self.ctrl.msgs.add_listener(self.send)
+        self.ctrl.log.add_listener(self.send)
         self.is_open = True
         self.heartbeat()
 
 
     def on_close(self):
-        self.ctrl.ioloop.remove_timeout(self.timer)
+        self.app.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
-        self.ctrl.msgs.remove_listener(self.send)
+        self.ctrl.log.remove_listener(self.send)
         self.is_open = False
 
 
@@ -424,7 +429,7 @@ class ClientConnection(object):
 # Used by CAMotics
 class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
     def __init__(self, app, request, **kwargs):
-        ClientConnection.__init__(self, app.ctrl)
+        ClientConnection.__init__(self, app)
         tornado.websocket.WebSocketHandler.__init__(
             self, app, request, **kwargs)
 
@@ -435,7 +440,7 @@ class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
 # Used by Web frontend
 class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def __init__(self, session):
-        ClientConnection.__init__(self, session.server.ctrl)
+        ClientConnection.__init__(self, session.server.app)
         sockjs.tornado.SockJSConnection.__init__(self, session)
 
 
@@ -446,6 +451,18 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
             self.close()
 
 
+    def on_open(self, info):
+        cookie = info.get_cookie('client-id')
+        if cookie is None: self.send(dict(sid = '')) # Trigger client reset
+        else:
+            id = cookie.value
+
+            ip = info.ip
+            if 'X-Real-IP' in info.headers: ip = info.headers['X-Real-IP']
+            self.app.get_ctrl(id).log.get('Web').info('Connection from %s' % ip)
+            super().on_open(id)
+
+
 class StaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
         self.set_header('Cache-Control',
@@ -453,8 +470,13 @@ class StaticFileHandler(tornado.web.StaticFileHandler):
 
 
 class Web(tornado.web.Application):
-    def __init__(self, ctrl):
-        self.ctrl = ctrl
+    def __init__(self, args, ioloop):
+        self.args = args
+        self.ioloop = ioloop
+        self.ctrls = {}
+
+        # Init controller
+        if not self.args.demo: self.get_ctrl()
 
         handlers = [
             (r'/websocket', WSConnection),
@@ -491,25 +513,55 @@ class Web(tornado.web.Application):
             (r'/api/video', bbctrl.VideoHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
-              "default_filename": "index.html"}),
+              'default_filename': 'index.html'}),
             ]
 
         router = sockjs.tornado.SockJSRouter(SockJSConnection, '/sockjs')
-        router.ctrl = ctrl
+        router.app = self
 
         tornado.web.Application.__init__(self, router.urls + handlers)
 
         try:
-            self.listen(ctrl.args.port, address = ctrl.args.addr)
+            self.listen(args.port, address = args.addr)
 
         except Exception as e:
-            log.error('Failed to bind %s:%d: %s', ctrl.args.addr,
-                      ctrl.args.port, e)
-            sys.exit(1)
+            raise Exception('Failed to bind %s:%d: %s' % (
+                args.addr, args.port, e))
 
-        log.info('Listening on http://%s:%d/', ctrl.args.addr, ctrl.args.port)
+        print('Listening on http://%s:%d/' % (args.addr, args.port))
+
+        self._reap_ctrls()
+
+
+    def _reap_ctrls(self):
+        if not self.args.demo: return
+        now = time.time()
+
+        for id in list(self.ctrls.keys()):
+            ctrl = self.ctrls[id]
+
+            if ctrl.lastTS + self.args.client_timeout < now:
+                ctrl.close()
+                del self.ctrls[id]
+
+        self.ioloop.call_later(60, self._reap_ctrls)
+
+
+    def get_ctrl(self, id = None):
+        if not id or not self.args.demo: id = ''
+
+        if not id in self.ctrls:
+            ctrl = bbctrl.Ctrl(self.args, self.ioloop, id)
+            self.ctrls[id] = ctrl
+
+        else: ctrl = self.ctrls[id]
+
+        ctrl.lastTS = time.time()
+
+        return ctrl
 
 
     # Override default logger
     def log_request(self, handler):
+        log = self.get_ctrl(handler.get_cookie('client-id')).log.get('Web')
         log.info("%d %s", handler.get_status(), handler._request_summary())

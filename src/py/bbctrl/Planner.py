@@ -28,14 +28,12 @@
 import json
 import math
 import re
-import logging
 import time
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
 from bbctrl.CommandQueue import CommandQueue
 
-log = logging.getLogger('Planner')
 
 reLogLine = re.compile(
     r'^(?P<level>[A-Z])[0-9 ]:'
@@ -58,7 +56,8 @@ def log_json(o): return json.dumps(log_floats(o))
 class Planner():
     def __init__(self, ctrl):
         self.ctrl = ctrl
-        self.cmdq = CommandQueue()
+        self.log = ctrl.log.get('Planner')
+        self.cmdq = CommandQueue(ctrl)
 
         ctrl.state.add_listener(self._update)
 
@@ -114,7 +113,7 @@ class Planner():
 
         if overrides: cfg['overrides'] = overrides
 
-        log.info('Config:' + log_json(cfg))
+        self.log.info('Config:' + log_json(cfg))
 
         return cfg
 
@@ -133,7 +132,7 @@ class Planner():
             value = self.ctrl.state.get(name[1:], 0)
             if units == 'IMPERIAL': value /= 25.4 # Assume metric
 
-        log.info('Get: %s=%s (units=%s)' % (name, value, units))
+        self.log.info('Get: %s=%s (units=%s)' % (name, value, units))
 
         return value
 
@@ -153,19 +152,16 @@ class Planner():
 
         if line is not None: line = int(line)
         if column is not None: column = int(column)
-        if where: extra = dict(where = where)
-        else: extra = None
 
-        if   level == 'I': log.info    (msg, extra = extra)
-        elif level == 'D': log.debug   (msg, extra = extra)
-        elif level == 'W': log.warning (msg, extra = extra)
-        elif level == 'E': log.error   (msg, extra = extra)
-        elif level == 'C': log.critical(msg, extra = extra)
-        else: log.error('Could not parse planner log line: ' + line)
+        if   level == 'I': self.log.info    (msg, where = where)
+        elif level == 'D': self.log.debug   (msg, where = where)
+        elif level == 'W': self.log.warning (msg, where = where)
+        elif level == 'E': self.log.error   (msg, where = where)
+        else: self.log.error('Could not parse planner log line: ' + line)
 
 
     def _enqueue_set_cmd(self, id, name, value):
-        log.info('set(#%d, %s, %s)', id, name, value)
+        self.log.info('set(#%d, %s, %s)', id, name, value)
         self.cmdq.enqueue(id, self.ctrl.state.set, name, value)
 
 
@@ -215,7 +211,7 @@ class Planner():
     def __encode(self, block):
         type, id = block['type'], block['id']
 
-        if type != 'set': log.info('Cmd:' + log_json(block))
+        if type != 'set': self.log.info('Cmd:' + log_json(block))
 
         if type == 'line':
             self._enqueue_line_time(block)
@@ -228,7 +224,7 @@ class Planner():
 
             if name == 'message':
                 msg = dict(message = value)
-                self.cmdq.enqueue(id, self.ctrl.msgs.broadcast, msg)
+                self.cmdq.enqueue(id, self.ctrl.log.broadcast, msg)
 
             if name in ['line', 'tool']: self._enqueue_set_cmd(id, name, value)
             if name == 'speed': return Cmd.speed(value)
@@ -300,13 +296,14 @@ class Planner():
 
 
     def mdi(self, cmd, with_limits = True):
-        log.info('MDI:' + cmd)
+        self.log.info('MDI:' + cmd)
         self.planner.load_string(cmd, self.get_config(True, with_limits))
         self.reset_times()
 
 
     def load(self, path):
-        log.info('GCode:' + path)
+        path = self.ctrl.get_path('upload', path)
+        self.log.info('GCode:' + path)
         self.planner.load(path, self.get_config(False, True))
         self.reset_times()
 
@@ -316,8 +313,8 @@ class Planner():
             self.planner.stop()
             self.cmdq.clear()
 
-        except Exception as e:
-            log.exception(e)
+        except:
+            self.log.exception()
             self.reset()
 
 
@@ -326,15 +323,15 @@ class Planner():
             id = self.ctrl.state.get('id')
             position = self.ctrl.state.get_position()
 
-            log.info('Planner restart: %d %s' % (id, log_json(position)))
+            self.log.info('Planner restart: %d %s' % (id, log_json(position)))
 
             self.cmdq.clear()
             self.cmdq.release(id)
             self._plan_time_restart()
             self.planner.restart(id, position)
 
-        except Exception as e:
-            log.exception(e)
+        except:
+            self.log.exception()
             self.stop()
 
 
@@ -345,6 +342,6 @@ class Planner():
                 cmd = self._encode(cmd)
                 if cmd is not None: return cmd
 
-        except Exception as e:
-            log.exception(e)
+        except:
+            self.log.exception()
             self.stop()
