@@ -159,6 +159,12 @@ class Config(object):
                     config['tool']['tool-reversed'] = reversed
                     del config['tool']['spin-reversed']
 
+        if version <= (0, 4, 6):
+            for motor in config['motors']:
+                if 2 < motor.get('idle-current', 0): motor['idle-current'] = 2
+                if 'enabled' not in motor:
+                    motor['enabled'] = motor.get('power-mode', '') != 'disabled'
+
         config['version'] = self.version
 
 

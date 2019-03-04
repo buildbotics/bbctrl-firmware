@@ -6,6 +6,9 @@ Buildbotics CNC Controller Firmware Changelog
  - Don't allow manual axis homing when soft limits are not set.
  - Right click to enable camera crosshair.
  - Demo mode.
+ - Limit idle-current to 2A.
+ - Removed dangerous ``power-mode`` in favor of simpler ``enabled`` option.
+ - Fixed bug where motor driver could fail to disabled during estop.
 
 ## v0.4.5
  - Fix for random errors while running VFD.

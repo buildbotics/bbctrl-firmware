@@ -42,8 +42,8 @@ class IOLoop(object):
 
 
     def close(self):
-        for fd in self.fds: self.ioloop.remove_handler(fd)
-        for h in self.handles: self.ioloop.remove_timeout(h)
+        for fd in list(self.fds): self.ioloop.remove_handler(fd)
+        for h in list(self.handles): self.ioloop.remove_timeout(h)
 
 
     def add_handler(self, fd, handler, events):

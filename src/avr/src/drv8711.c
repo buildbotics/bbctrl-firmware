@@ -29,6 +29,7 @@
 #include "status.h"
 #include "stepper.h"
 #include "switch.h"
+#include "estop.h"
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -165,6 +166,8 @@ static uint16_t _driver_get_isgain(int driver) {
 static uint8_t _driver_get_torque(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
+  if (estop_triggered()) return 0;
+
   switch (drv->state) {
   case DRV8711_IDLE: return drv->idle.torque;
   case DRV8711_ACTIVE: return drv->drive.torque;
@@ -198,7 +201,7 @@ static uint8_t _spi_next_command(uint8_t cmd) {
   // Next command
   if (++cmd == spi.ncmds) {
     cmd = 0; // Wrap around
-    st_enable(); // Enable motors
+    SET_PIN(MOTOR_ENABLE_PIN, !estop_triggered()); // Active high
   }
 
   // Prep next command
@@ -352,6 +355,10 @@ void drv8711_init() {
   OUTSET_PIN(SPI_MOSI_PIN); // High
   DIRSET_PIN(SPI_MOSI_PIN); // Output
 
+  // Motor enable
+  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Lo (disabled)
+  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
+
   for (int i = 0; i < DRIVERS; i++) {
     uint8_t cs_pin = drivers[i].cs_pin;
     OUTSET_PIN(cs_pin);     // High
@@ -375,11 +382,6 @@ void drv8711_init() {
   SPIC.INTCTRL = SPI_INTLVL_LO_gc; // interupt level
 
   _init_spi_commands();
-}
-
-
-void drv8711_shutdown() {
-  SPIC.INTCTRL = 0; // Disable SPI interrupts
 }
 
 
@@ -432,7 +434,7 @@ float get_idle_current(int driver) {
 
 
 void set_idle_current(int driver, float value) {
-  if (driver < 0 || DRIVERS <= driver || value < 0 || MAX_CURRENT < value)
+  if (driver < 0 || DRIVERS <= driver || value < 0 || MAX_IDLE_CURRENT < value)
     return;
 
   _current_set(&drivers[driver].idle, value);

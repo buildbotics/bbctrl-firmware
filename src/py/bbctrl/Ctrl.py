@@ -34,12 +34,19 @@ class Ctrl(object):
         self.args = args
         self.ioloop = bbctrl.IOLoop(ioloop)
         self.id = id
+        self.timeout = None
 
         if id and not os.path.exists(id): os.mkdir(id)
 
-        self.log = bbctrl.log.Log(self)
+        # Start log
+        if args.demo: log_path = self.get_path(filename = 'bbctrl.log')
+        else: log_path = args.log
+        self.log = bbctrl.log.Log(args, self.ioloop, log_path)
+
         self.state = bbctrl.State(self)
         self.config = bbctrl.Config(self)
+
+        self.log.get('Ctrl').info('Starting %s' % self.id)
 
         try:
             if args.demo: self.avr = bbctrl.AVREmu(self)
@@ -49,7 +56,7 @@ class Ctrl(object):
             self.lcd = bbctrl.LCD(self)
             self.mach = bbctrl.Mach(self, self.avr)
             self.preplanner = bbctrl.Preplanner(self)
-            self.jog = bbctrl.Jog(self)
+            if not args.demo: self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
             self.mach.connect()
@@ -57,11 +64,21 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
-            self.camera = None
-            if not args.disable_camera:
-                self.camera = bbctrl.Camera(self)
-
         except Exception as e: self.log.get('Ctrl').exception(e)
+
+
+    def __del__(self): print('Ctrl deleted')
+
+
+    def clear_timeout(self):
+        if self.timeout is not None: self.ioloop.remove_timeout(self.timeout)
+        self.timeout = None
+
+
+    def set_timeout(self, cb, *args, **kwargs):
+        self.clear_timeout()
+        t = self.args.client_timeout
+        self.timeout = self.ioloop.call_later(t, cb, *args, **kwargs)
 
 
     def get_path(self, dir = None, filename = None):
@@ -89,6 +106,7 @@ class Ctrl(object):
 
 
     def close(self):
-        if not self.camera is None: self.camera.close()
+        self.log.get('Ctrl').info('Closing %s' % self.id)
         self.ioloop.close()
         self.avr.close()
+        self.mach.planner.close()

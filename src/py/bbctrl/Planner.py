@@ -58,6 +58,7 @@ class Planner():
         self.ctrl = ctrl
         self.log = ctrl.log.get('Planner')
         self.cmdq = CommandQueue(ctrl)
+        self.planner = None
 
         ctrl.state.add_listener(self._update)
 
@@ -284,10 +285,18 @@ class Planner():
         self.current_plan_time = 0
 
 
+    def close(self):
+        # Release planner callbacks
+        if self.planner is not None:
+            self.planner.set_resolver(None)
+            self.planner.set_logger(None)
+
+
     def reset(self, stop = True):
         if stop: self.ctrl.mach.stop()
         self.planner = gplan.Planner()
         self.planner.set_resolver(self._get_var_cb)
+        # TODO logger is global and will not work correctly in demo mode
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
         self.update_position()
         self.cmdq.clear()

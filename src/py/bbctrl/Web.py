@@ -414,6 +414,7 @@ class ClientConnection(object):
         self.ctrl.log.add_listener(self.send)
         self.is_open = True
         self.heartbeat()
+        self.app.opened(self.ctrl)
 
 
     def on_close(self):
@@ -421,6 +422,7 @@ class ClientConnection(object):
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.log.remove_listener(self.send)
         self.is_open = False
+        self.app.closed(self.ctrl)
 
 
     def on_message(self, data): self.ctrl.mach.mdi(data)
@@ -478,6 +480,13 @@ class Web(tornado.web.Application):
         # Init controller
         if not self.args.demo: self.get_ctrl()
 
+        # Init camera
+        if not args.disable_camera:
+            if self.args.demo: log = bbctrl.log.Log(args, ioloop, 'camera.log')
+            else: log = self.get_ctrl().log
+            self.camera = bbctrl.Camera(ioloop, args, log)
+
+
         handlers = [
             (r'/websocket', WSConnection),
             (r'/api/log', LogHandler),
@@ -530,21 +539,18 @@ class Web(tornado.web.Application):
 
         print('Listening on http://%s:%d/' % (args.addr, args.port))
 
-        self._reap_ctrls()
+
+    def opened(self, ctrl): ctrl.clear_timeout()
 
 
-    def _reap_ctrls(self):
-        if not self.args.demo: return
-        now = time.time()
+    def closed(self, ctrl):
+        # Time out clients in demo mode
+        if self.args.demo: ctrl.set_timeout(self._reap_ctrl, ctrl)
 
-        for id in list(self.ctrls.keys()):
-            ctrl = self.ctrls[id]
 
-            if ctrl.lastTS + self.args.client_timeout < now:
-                ctrl.close()
-                del self.ctrls[id]
-
-        self.ioloop.call_later(60, self._reap_ctrls)
+    def _reap_ctrl(self, ctrl):
+        ctrl.close()
+        del self.ctrls[ctrl.id]
 
 
     def get_ctrl(self, id = None):
@@ -555,8 +561,6 @@ class Web(tornado.web.Application):
             self.ctrls[id] = ctrl
 
         else: ctrl = self.ctrls[id]
-
-        ctrl.lastTS = time.time()
 
         return ctrl
 

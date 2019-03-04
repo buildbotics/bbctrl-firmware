@@ -28,7 +28,6 @@
 import bbctrl
 from bbctrl.Comm import Comm
 import bbctrl.Cmd as Cmd
-from tornado.ioloop import PeriodicCallback
 
 
 # Axis homing procedure:

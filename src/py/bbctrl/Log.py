@@ -80,20 +80,19 @@ class Logger(object):
 
 
 class Log(object):
-    def __init__(self, ctrl):
+    def __init__(self, args, ioloop, path):
+        self.path = path
         self.listeners = []
         self.loggers = {}
 
-        self.level = DEBUG if ctrl.args.verbose else INFO
+        self.level = DEBUG if args.verbose else INFO
 
-        if ctrl.args.demo: self.path = ctrl.get_path(filename = 'bbctrl.log')
-        else: self.path = ctrl.args.log
         self.f = None if self.path is None else open(self.path, 'w')
 
         # Log header
         version = pkg_resources.require('bbctrl')[0].version
         self._log('Log started v%s' % version)
-        self._log_time(ctrl.ioloop)
+        self._log_time(ioloop)
 
 
     def get_path(self): return self.path

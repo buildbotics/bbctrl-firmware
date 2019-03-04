@@ -35,7 +35,6 @@
 
 void stepper_init();
 void st_shutdown();
-void st_enable();
 bool st_is_busy();
 void st_set_power_scale(float scale);
 void st_prep_power(const power_update_t powers[]);

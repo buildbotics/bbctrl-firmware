@@ -27,7 +27,6 @@
 
 import lcd
 import atexit
-from tornado.ioloop import PeriodicCallback
 
 
 class LCDPage:
@@ -91,7 +90,7 @@ class LCD:
         self.set_message('Loading...')
 
         self._redraw(False)
-        atexit.register(self.goodbye)
+        if not ctrl.args.demo: atexit.register(self.goodbye)
 
 
     def set_message(self, msg):

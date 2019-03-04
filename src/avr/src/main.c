@@ -67,16 +67,16 @@ int main(int argc, char *argv[]) {
   emu_init();                     // Init emulator
   hw_init();                      // hardware setup - must be first
   outputs_init();                 // output pins
+  switch_init();                  // switches
+  estop_init();                   // emergency stop handler
   analog_init();                  // analog input pins
   usart_init();                   // serial port
   i2c_init();                     // i2c port
   drv8711_init();                 // motor drivers
   stepper_init();                 // steppers
   motor_init();                   // motors
-  switch_init();                  // switches
   exec_init();                    // motion exec
   vars_init();                    // configuration variables
-  estop_init();                   // emergency stop handler
   command_init();                 // command queue
 
   sei();                          // enable interrupts

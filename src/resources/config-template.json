@@ -13,7 +13,7 @@
       {"axis": "X"},
       {"axis": "Y"},
       {"axis": "Z"},
-      {"axis": "A", "power-mode" : "disabled"}
+      {"axis": "A"}
     ],
     "template": {
       "general": {
@@ -26,11 +26,10 @@
       },
 
       "power": {
-        "power-mode": {
-          "type": "enum",
-          "values": ["disabled", "always-on", "in-cycle", "when-moving"],
-          "default": "when-moving",
-          "code": "pm"
+        "enabled": {
+          "type": "bool",
+          "default": true,
+          "code": "me"
         },
         "drive-current": {
           "type": "float",
@@ -43,7 +42,7 @@
         "idle-current": {
           "type": "float",
           "min": 0,
-          "max": 8,
+          "max": 2,
           "unit": "amps",
           "default": 0,
           "code": "ic"

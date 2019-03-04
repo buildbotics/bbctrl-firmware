@@ -274,14 +274,14 @@ class VideoDevice(object):
 
 
 class Camera(object):
-    def __init__(self, ctrl):
-        self.ctrl = ctrl
-        self.log = ctrl.log.get('Camera')
+    def __init__(self, ioloop, args, log):
+        self.ioloop = ioloop
+        self.log = log.get('Camera')
 
-        self.width = ctrl.args.width
-        self.height = ctrl.args.height
-        self.fps = ctrl.args.fps
-        self.fourcc = string_to_fourcc(ctrl.args.fourcc)
+        self.width = args.width
+        self.height = args.height
+        self.fps = args.fps
+        self.fourcc = string_to_fourcc(args.fourcc)
 
         self.offline_jpg = get_image_resource('http/images/offline.jpg')
         self.in_use_jpg = get_image_resource('http/images/in-use.jpg')
@@ -300,8 +300,7 @@ class Camera(object):
         self.udevCtx = pyudev.Context()
         self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
         self.udevMon.filter_by(subsystem = 'video4linux')
-        ctrl.ioloop.add_handler(self.udevMon, self._udev_handler,
-                                ctrl.ioloop.READ)
+        ioloop.add_handler(self.udevMon, self._udev_handler, ioloop.READ)
         self.udevMon.start()
 
 
@@ -336,7 +335,7 @@ class Camera(object):
             if isinstance(e, BlockingIOError): return
 
             self.log.warning('Failed to read from camera.')
-            self.ctrl.ioloop.remove_handler(fd)
+            self.ioloop.remove_handler(fd)
             self.close()
             return
 
@@ -363,8 +362,8 @@ class Camera(object):
             self.dev.create_buffers(4)
             self.dev.start()
 
-            self.ctrl.ioloop.add_handler(self.dev, self._fd_handler,
-                                         self.ctrl.ioloop.READ)
+            self.ioloop.add_handler(self.dev, self._fd_handler,
+                                    self.ioloop.READ)
 
             self.log.info('Opened camera ' + path)
 
@@ -386,7 +385,7 @@ class Camera(object):
     def close(self):
         if self.dev is None: return
         try:
-            self.ctrl.ioloop.remove_handler(self.dev)
+            self.ioloop.remove_handler(self.dev)
             try:
                 self.dev.stop()
             except: pass
@@ -427,7 +426,7 @@ class VideoHandler(web.RequestHandler):
 
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
-        self.camera = app.get_ctrl(self.get_cookie('client-id')).camera
+        self.camera = app.camera
 
 
     @web.asynchronous

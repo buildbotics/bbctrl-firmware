@@ -25,8 +25,6 @@
 #                                                                              #
 ################################################################################
 
-from tornado.ioloop import PeriodicCallback
-
 import bbctrl
 
 

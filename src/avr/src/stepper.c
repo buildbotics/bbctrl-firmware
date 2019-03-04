@@ -62,10 +62,6 @@ static stepper_t st = {0};
 
 
 void stepper_init() {
-  // Motor enable
-  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Lo (disabled)
-  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
-
   // Setup step timer
   TIMER_STEP.CTRLB    = STEP_TIMER_WGMODE; // Waveform mode
   TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // Interrupt mode
@@ -87,16 +83,9 @@ static void _load_move() {
 
 
 void st_shutdown() {
-  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Disable motors
   TIMER_STEP.CTRLA = 0;         // Stop stepper clock
   _end_move();                  // Stop motor clocks
   ADCB_CH0_INTCTRL = 0;         // Disable next move interrupt
-  drv8711_shutdown();           // Disable drivers
-}
-
-
-void st_enable() {
-  if (!estop_triggered()) OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
 }
 
 

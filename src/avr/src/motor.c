@@ -59,7 +59,7 @@ typedef struct {
   bool slave;
   uint16_t microsteps;           // microsteps per full step
   bool reverse;
-  motor_power_mode_t power_mode;
+  bool enabled;
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
   float min_soft_limit;
@@ -172,11 +172,7 @@ void motor_init() {
 }
 
 
-bool motor_is_enabled(int motor) {
-  return motors[motor].power_mode != MOTOR_DISABLED;
-}
-
-
+bool motor_is_enabled(int motor) {return motors[motor].enabled;}
 int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
@@ -203,23 +199,12 @@ bool motor_get_homed(int motor) {return motors[motor].homed;}
 static void _update_power(int motor) {
   motor_t *m = &motors[motor];
 
-  switch (m->power_mode) {
-  case MOTOR_POWERED_ONLY_WHEN_MOVING:
-  case MOTOR_POWERED_IN_CYCLE:
-    if (rtc_expired(m->power_timeout)) {
-      drv8711_set_state(motor, DRV8711_IDLE);
-      break;
-    }
-    // Fall through
-
-  case MOTOR_ALWAYS_POWERED:
+  if (m->enabled) {
+    bool timedout = rtc_expired(m->power_timeout);
     // NOTE, we have ~5ms to enable the motor
-    drv8711_set_state(motor, DRV8711_ACTIVE);
-    break;
+    drv8711_set_state(motor, timedout ? DRV8711_IDLE : DRV8711_ACTIVE);
 
-  default: // Disabled
-    drv8711_set_state(motor, DRV8711_DISABLED);
-  }
+  } else drv8711_set_state(motor, DRV8711_DISABLED);
 }
 
 
@@ -346,22 +331,13 @@ void motor_prep_move(int motor, float target) {
   m->timer_period = steps ? round(ticks_per_step) : 0;
 
   // Power motor
-  switch (m->power_mode) {
-  case MOTOR_POWERED_ONLY_WHEN_MOVING:
-    if (!m->timer_period) break; // Not moving
-    // Fall through
-
-  case MOTOR_ALWAYS_POWERED: case MOTOR_POWERED_IN_CYCLE:
-    // Reset timeout
-    m->power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
-    break;
-
-  default: // Disabled
+  if (!m->enabled) {
     m->timer_period = 0;
     m->encoder = m->commanded = m->position;
     m->error = 0;
-    break;
-  }
+
+  } else if (m->timer_period) // Motor is moving so reset power timeout
+    m->power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
   _update_power(motor);
 
   // Queue move
@@ -370,17 +346,15 @@ void motor_prep_move(int motor, float target) {
 
 
 // Var callbacks
-uint8_t get_power_mode(int motor) {return motors[motor].power_mode;}
+bool get_motor_enabled(int motor) {return motors[motor].enabled;}
 
 
-void set_power_mode(int motor, uint8_t value) {
+void set_motor_enabled(int motor, bool enabled) {
   if (motors[motor].slave) return;
 
   for (int m = motor; m < MOTORS; m++)
     if (motors[m].axis == motors[motor].axis)
-      motors[m].power_mode =
-        value <= MOTOR_POWERED_ONLY_WHEN_MOVING ?
-        (motor_power_mode_t)value : MOTOR_DISABLED;
+      motors[m].enabled = enabled;
 }
 
 
@@ -452,7 +426,7 @@ void set_motor_axis(int motor, uint8_t axis) {
       set_step_angle(motor, motors[m].step_angle);
       set_travel(motor, motors[m].travel_rev);
       set_microstep(motor, motors[m].microsteps);
-      set_power_mode(motor, motors[m].power_mode);
+      set_motor_enabled(motor, motors[m].enabled);
       motors[motor].slave = true;
       break;
     }
