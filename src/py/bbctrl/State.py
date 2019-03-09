@@ -277,10 +277,10 @@ class State(object):
 
 
     def find_motor(self, axis):
-        for motor in range(6):
+        for motor in range(4):
             if not ('%dan' % motor) in self.vars: continue
             motor_axis = 'xyzabc'[self.vars['%dan' % motor]]
-            if motor_axis == axis.lower() and self.vars.get('%dpm' % motor, 0):
+            if motor_axis == axis.lower() and self.vars.get('%dme' % motor, 0):
                 return motor
 
 
@@ -339,7 +339,7 @@ class State(object):
 
 
     def motor_enabled(self, motor):
-        return bool(int(self.vars.get('%dpm' % motor, 0)))
+        return bool(int(self.vars.get('%dme' % motor, 0)))
 
 
     def motor_homing_mode(self, motor):

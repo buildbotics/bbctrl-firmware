@@ -63,8 +63,7 @@ module.exports = {
       var off        = this.state['offset_' + axis];
       var motor_id   = this._get_motor_id(axis);
       var motor      = motor_id == -1 ? {} : this.config.motors[motor_id];
-      var pm         = motor['power-mode'];
-      var enabled    = typeof pm != 'undefined' && pm != 'disabled';
+      var enabled    = typeof motor.enabled != 'undefined' && motor.enabled;
       var homingMode = motor['homing-mode']
       var homed      = this.state[motor_id + 'homed'];
       var min        = this.state[motor_id + 'tn'];

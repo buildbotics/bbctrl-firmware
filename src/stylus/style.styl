@@ -217,7 +217,7 @@ span.unit
         height 12em
 
       > select, > input:not([type=checkbox])
-        min-width 11em
+        min-width 200px
 
       > tt
         min-width 15.25em
@@ -235,6 +235,9 @@ span.unit
 
   &.active .ring
     animation blink 2s step-start 0s infinite
+
+  &:hover .button circle
+    fill #b72424 !important
 
   svg
     cursor pointer
@@ -792,7 +795,7 @@ tt.save
     white-space nowrap
 
   fieldset.limits, fieldset.homing, fieldset.motion .pure-control-group,
-  fieldset.power .pure-control-group.tmpl-input-power-mode
+  fieldset.power .pure-control-group.tmpl-input-enabled
     display none
 
   fieldset.motion .pure-control-group.tmpl-input-reverse

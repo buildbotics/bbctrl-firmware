@@ -55,8 +55,8 @@ module.exports = {
 
   methods: {
     is_motor_enabled: function (motor) {
-      return typeof this.state[motor + 'pm'] != 'undefined' &&
-        this.state[motor + 'pm'];
+      return typeof this.state[motor + 'me'] != 'undefined' &&
+        this.state[motor + 'me'];
     },
 
 

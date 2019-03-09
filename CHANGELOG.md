@@ -1,5 +1,5 @@
 Buildbotics CNC Controller Firmware Changelog
-==============================================
+=============================================
 
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.
@@ -9,6 +9,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Limit idle-current to 2A.
  - Removed dangerous ``power-mode`` in favor of simpler ``enabled`` option.
  - Fixed bug where motor driver could fail to disabled during estop.
+ - Restored estop text.
 
 ## v0.4.5
  - Fix for random errors while running VFD.
