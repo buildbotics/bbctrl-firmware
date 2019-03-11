@@ -99,8 +99,10 @@ enum {
 #define VFDREG                  32 // number of supported VFD modbus registers
 
 // Switch settings.  See switch.c
-#define SWITCH_DEBOUNCE          5 // ms
-#define SWITCH_LOCKOUT         250 // ms
+#define SWITCH_DEBOUNCE          5 // ms, default value
+#define SWITCH_LOCKOUT         250 // ms, default value
+#define SWITCH_MAX_DEBOUNCE   5000 // ms
+#define SWITCH_MAX_LOCKOUT   60000 // ms
 
 
 // Motor ISRs

@@ -32,6 +32,14 @@
 #include <stdio.h>
 
 
+static struct {
+  int16_t debounce;
+  int16_t lockout;
+} sw = {
+  .debounce = SWITCH_DEBOUNCE,
+  .lockout = SWITCH_LOCKOUT,
+};
+
 typedef struct {
   uint8_t pin;
   switch_type_t type;
@@ -87,12 +95,12 @@ void switch_rtc_callback() {
     // Debounce switch
     bool state = IN_PIN(s->pin);
     if (state == s->state && s->initialized) s->debounce = 0;
-    else if ((state && ++s->debounce == SWITCH_DEBOUNCE) ||
-             (!state && --s->debounce == -SWITCH_DEBOUNCE)) {
+    else if ((state && ++s->debounce == sw.debounce) ||
+             (!state && --s->debounce == -sw.debounce)) {
       s->state = state;
       s->debounce = 0;
       s->initialized = true;
-      s->lockout = SWITCH_LOCKOUT;
+      s->lockout = sw.lockout;
       if (s->cb) s->cb((switch_id_t)i, switch_is_active((switch_id_t)i));
     }
   }
@@ -184,3 +192,19 @@ uint8_t get_min_switch(int index) {return _get_state(MIN_SWITCH(index));}
 uint8_t get_max_switch(int index) {return _get_state(MAX_SWITCH(index));}
 uint8_t get_estop_switch() {return _get_state(SW_ESTOP);}
 uint8_t get_probe_switch() {return _get_state(SW_PROBE);}
+
+
+void set_switch_debounce(uint16_t debounce) {
+  sw.debounce = SWITCH_MAX_DEBOUNCE < debounce ? SWITCH_DEBOUNCE : debounce;
+}
+
+
+uint16_t get_switch_debounce() {return sw.debounce;}
+
+
+void set_switch_lockout(uint16_t lockout) {
+  sw.lockout = SWITCH_MAX_LOCKOUT < lockout ? SWITCH_LOCKOUT : lockout;
+}
+
+
+uint16_t get_switch_lockout() {return sw.lockout;}

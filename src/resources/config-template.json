@@ -348,6 +348,24 @@
       "default": "normally-open",
       "code": "pt",
       "pin": 22
+    },
+    "switch-debounce": {
+      "type": "int",
+      "min": 1,
+      "max": 5000,
+      "unit": "ms",
+      "default": 5,
+      "code": "sd",
+      "help": "Minimum time in ms before a switch change is acknowledged."
+    },
+    "switch-lockout": {
+      "type": "int",
+      "min": 0,
+      "max": 60000,
+      "unit": "ms",
+      "default": 250,
+      "code": "sc",
+      "help": "Time in ms to ignore switch changes after an acknowledge change."
     }
   },
 

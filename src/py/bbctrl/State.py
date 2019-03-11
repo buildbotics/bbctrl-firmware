@@ -392,3 +392,27 @@ class State(object):
 
     def motor_latch_velocity(self, motor):
         return 1000 * self.get(str(motor) + 'lv', 0)
+
+
+    def get_axis_switch(self, axis, side):
+        axis = axis.lower()
+
+        if not axis in 'xyzabc':
+            raise Exception('Unsupported switch "%s-%s"' % (axis, side))
+
+        if not self.is_axis_enabled(axis):
+            raise Exception('Switch "%s-%s" axis not enabled' % (axis, side))
+
+        motor = self.find_motor(axis)
+        # This must match the switch ID enum in avr/src/switch.h
+        return 2 * motor + 2 + (0 if side.lower() == 'min' else 1)
+
+
+    def get_switch_id(self, switch):
+        # TODO Support other input switches in CAMotics gcode/machine/PortType.h
+        # TODO Support stall homing
+        switch = switch.lower()
+        if switch == 'probe': return 1
+        if switch[1:] == '-min': return self.get_axis_switch(switch[0], 'min')
+        if switch[1:] == '-max': return self.get_axis_switch(switch[0], 'max')
+        raise Exception('Unsupported switch "%s"' % switch)

@@ -70,6 +70,8 @@ VAR(min_switch,      lw, u8,    MOTORS, 0, 1) // Minimum switch state
 VAR(max_switch,      xw, u8,    MOTORS, 0, 1) // Maximum switch state
 VAR(estop_switch,    ew, u8,    0,      0, 1) // Estop switch state
 VAR(probe_switch,    pw, u8,    0,      0, 1) // Probe switch state
+VAR(switch_debounce, sd, u16,   0,      1, 1) // Switch debounce time in ms
+VAR(switch_lockout,  sc, u16,   0,      1, 1) // Switch lockout time in ms
 
 // Axis
 VAR(axis_position,    p, f32,   AXES,   0, 1) // Axis position

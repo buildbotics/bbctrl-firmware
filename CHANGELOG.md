@@ -1,6 +1,10 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.7
+ - Fix homing switch to motor channel mapping with non-standard axis order.
+ - Added ``switch-debounce`` and ``switch-lockout`` config options.
+
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.
  - Don't allow manual axis homing when soft limits are not set.

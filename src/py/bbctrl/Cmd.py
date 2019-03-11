@@ -171,18 +171,7 @@ def jog(axes): return JOG + encode_axes(axes)
 
 
 def seek(switch, active, error):
-    cmd = SEEK
-
-    if switch == 'probe': cmd += '1'
-    elif switch == 'x-min': cmd += '2'
-    elif switch == 'x-max': cmd += '3'
-    elif switch == 'y-min': cmd += '4'
-    elif switch == 'y-max': cmd += '5'
-    elif switch == 'z-min': cmd += '6'
-    elif switch == 'z-max': cmd += '7'
-    elif switch == 'a-min': cmd += '8'
-    elif switch == 'a-max': cmd += '9'
-    else: raise Exception('Unsupported switch "%s"' % switch)
+    cmd = SEEK + str(switch)
 
     flags = 0
     if active: flags |= SEEK_ACTIVE

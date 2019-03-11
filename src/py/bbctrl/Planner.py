@@ -143,11 +143,11 @@ class Planner():
         m = reLogLine.match(line)
         if not m: return
 
-        level = m.group('level')
-        msg = m.group('msg')
+        level    = m.group('level')
+        msg      = m.group('msg')
         filename = m.group('file')
-        line = m.group('line')
-        column = m.group('column')
+        line     = m.group('line')
+        column   = m.group('column')
 
         where = ':'.join(filter(None.__ne__, [filename, line, column]))
 
@@ -263,7 +263,8 @@ class Planner():
         if type == 'pause': return Cmd.pause(block['pause-type'])
 
         if type == 'seek':
-            return Cmd.seek(block['switch'], block['active'], block['error'])
+            sw = self.ctrl.state.get_switch_id(block['switch'])
+            return Cmd.seek(sw, block['active'], block['error'])
 
         if type == 'end': return '' # Sends id
 
