@@ -77,7 +77,7 @@ void exec_init() {
   ex.feed_override = 1; // TODO implement feed override
 
   // Set callback for limit switches
-  for (int sw = SW_MIN_X; sw <= SW_MAX_A; sw++)
+  for (int sw = SW_MIN_0; sw <= SW_MAX_3; sw++)
     switch_set_callback((switch_id_t)sw, _limit_switch_cb);
 }
 

@@ -55,11 +55,6 @@ bool axis_is_enabled(int axis) {
 }
 
 
-char axis_get_char(int axis) {
-  return (axis < 0 || AXES <= axis) ? '?' : "XYZABCUVW"[axis];
-}
-
-
 int axis_get_id(char axis) {
   const char *axes = "XYZABCUVW";
   const char *ptr = strchr(axes, toupper(axis));
@@ -89,13 +84,6 @@ void axis_map_motors() {
         motor_map[axis] = motor;
         break;
       }
-}
-
-
-float axis_get_vector_length(const float a[], const float b[]) {
-  return sqrt(square(a[AXIS_X] - b[AXIS_X]) + square(a[AXIS_Y] - b[AXIS_Y]) +
-              square(a[AXIS_Z] - b[AXIS_Z]) + square(a[AXIS_A] - b[AXIS_A]) +
-              square(a[AXIS_B] - b[AXIS_B]) + square(a[AXIS_C] - b[AXIS_C]));
 }
 
 

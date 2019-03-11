@@ -50,12 +50,12 @@ typedef enum {
 typedef enum {
   SW_INVALID = -1,
   SW_ESTOP, SW_PROBE,
-  SW_MIN_X, SW_MAX_X,
-  SW_MIN_Y, SW_MAX_Y,
-  SW_MIN_Z, SW_MAX_Z,
-  SW_MIN_A, SW_MAX_A,
-  SW_STALL_X, SW_STALL_Y,
-  SW_STALL_Z, SW_STALL_A,
+  SW_MIN_0, SW_MAX_0,
+  SW_MIN_1, SW_MAX_1,
+  SW_MIN_2, SW_MAX_2,
+  SW_MIN_3, SW_MAX_3,
+  SW_STALL_0, SW_STALL_1,
+  SW_STALL_2, SW_STALL_3,
   SW_MOTOR_FAULT,
 } switch_id_t;
 

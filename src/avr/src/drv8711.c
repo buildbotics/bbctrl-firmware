@@ -77,10 +77,10 @@ typedef struct {
 
 
 static drv8711_driver_t drivers[DRIVERS] = {
-  {.cs_pin = SPI_CS_X_PIN, .stall_sw = SW_STALL_X},
-  {.cs_pin = SPI_CS_Y_PIN, .stall_sw = SW_STALL_Y},
-  {.cs_pin = SPI_CS_Z_PIN, .stall_sw = SW_STALL_Z},
-  {.cs_pin = SPI_CS_A_PIN, .stall_sw = SW_STALL_A},
+  {.cs_pin = SPI_CS_0_PIN, .stall_sw = SW_STALL_0},
+  {.cs_pin = SPI_CS_1_PIN, .stall_sw = SW_STALL_1},
+  {.cs_pin = SPI_CS_2_PIN, .stall_sw = SW_STALL_2},
+  {.cs_pin = SPI_CS_3_PIN, .stall_sw = SW_STALL_3},
 };
 
 
@@ -330,10 +330,10 @@ static void _stall_change(int driver, bool stalled) {
 
 static void _stall_switch_cb(switch_id_t sw, bool active) {
   switch (sw) {
-  case SW_STALL_X: _stall_change(0, active); break;
-  case SW_STALL_Y: _stall_change(1, active); break;
-  case SW_STALL_Z: _stall_change(2, active); break;
-  case SW_STALL_A: _stall_change(3, active); break;
+  case SW_STALL_0: _stall_change(0, active); break;
+  case SW_STALL_1: _stall_change(1, active); break;
+  case SW_STALL_2: _stall_change(2, active); break;
+  case SW_STALL_3: _stall_change(3, active); break;
   default: break;
   }
 }
