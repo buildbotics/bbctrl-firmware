@@ -36,13 +36,13 @@ script#templated-input-template(type="text/x-template")
     input(v-if="template.type == 'bool'", type="checkbox", v-model="view",
       :name="name", @change="change")
 
-    input(v-if="template.type == 'float'", v-model="view", number,
+    input(v-if="template.type == 'float'", v-model.number="view", number,
       :min="template.min", :max="template.max", :step="template.step || 'any'",
-        type="number", :name="name", @change="change")
+      type="number", :name="name", @change="change")
 
-    input(v-if="template.type == 'int' && !template.values", v-model="view",
-      number, :min="template.min", :max="template.max", type="number",
-      :name="name", @change="change")
+    input(v-if="template.type == 'int' && !template.values", number,
+      v-model.number="view", :min="template.min", :max="template.max",
+      type="number", :name="name", @change="change")
 
     input(v-if="template.type == 'string'", v-model="view", type="text",
       :name="name", @change="change")

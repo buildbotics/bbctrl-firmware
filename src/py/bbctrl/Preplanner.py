@@ -151,7 +151,7 @@ class Preplanner(object):
 
         # Start planner thread
         plan = yield self.pool.submit(
-            self._exec_plan, filename, state, config, cancel)
+            self._load_plan, filename, state, config, cancel)
         return plan
 
 
@@ -175,7 +175,60 @@ class Preplanner(object):
                 self.plans[filename][1] = progress
 
 
-    def _exec_plan(self, filename, state, config, cancel):
+    def _read_files(self, files):
+        with open(files[0], 'r') as f: meta = json.load(f)
+        with open(files[1], 'rb') as f: positions = f.read()
+        with open(files[2], 'rb') as f: speeds = f.read()
+
+        return meta, positions, speeds
+
+
+    def _exec_plan(self, filename, files, state, config, cancel):
+        self._clean_plans(filename) # Clean up old plans
+
+        path = os.path.abspath(self.ctrl.get_upload(filename))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cmd = (
+                '/usr/bin/env', 'python3',
+                bbctrl.get_resource('plan.py'),
+                path, json.dumps(state), json.dumps(config),
+                '--max-time=%s' % self.max_plan_time,
+                '--max-loop=%s' % self.max_loop_time
+            )
+
+            self.log.info('Running: %s', cmd)
+
+            with subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                                  stderr = subprocess.PIPE,
+                                  cwd = tmpdir) as proc:
+
+                for line in proc.stdout:
+                    self._progress(filename, float(line))
+                    if cancel.is_set():
+                        proc.terminate()
+                        return
+
+                out, errs = proc.communicate()
+
+                self._progress(filename, 1)
+                if cancel.is_set(): return
+
+                if proc.returncode:
+                    raise Exception('Plan failed: ' + errs.decode('utf8'))
+
+            os.rename(tmpdir + '/meta.json', files[0])
+            os.rename(tmpdir + '/positions.gz', files[1])
+            os.rename(tmpdir + '/speeds.gz', files[2])
+
+
+    def _files_exist(self, files):
+        for path in files:
+            if not os.path.exists(path): return False
+
+        return True
+
+
+    def _load_plan(self, filename, state, config, cancel):
         try:
             os.nice(5)
 
@@ -184,53 +237,18 @@ class Preplanner(object):
             files = [
                 base + '.json', base + '.positions.gz', base + '.speeds.gz']
 
-            found = True
-            for path in files:
-                if not os.path.exists(path): found = False
+            try:
+                if not self._files_exist(files):
+                    self._exec_plan(filename, files, state, config, cancel)
 
-            if not found:
-                self._clean_plans(filename) # Clean up old plans
+                if not cancel.is_set(): return self._read_files(files)
 
-                path = os.path.abspath(self.ctrl.get_upload(filename))
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    cmd = (
-                        '/usr/bin/env', 'python3',
-                        bbctrl.get_resource('plan.py'),
-                        path, json.dumps(state), json.dumps(config),
-                        '--max-time=%s' % self.max_plan_time,
-                        '--max-loop=%s' % self.max_loop_time
-                    )
+            except:
+                self.log.exception()
 
-                    self.log.info('Running: %s', cmd)
+                for path in files:
+                    if os.path.exists(path):
+                        os.remove(path)
 
-                    with subprocess.Popen(cmd, stdout = subprocess.PIPE,
-                                          stderr = subprocess.PIPE,
-                                          cwd = tmpdir) as proc:
-
-                        for line in proc.stdout:
-                            self._progress(filename, float(line))
-                            if cancel.is_set():
-                                proc.terminate()
-                                return
-
-                        out, errs = proc.communicate()
-
-                        self._progress(filename, 1)
-                        if cancel.is_set(): return
-
-                        if proc.returncode:
-                            self.log.error('Plan failed: ' +
-                                           errs.decode('utf8'))
-                            return # Failed
-
-                    os.rename(tmpdir + '/meta.json', files[0])
-                    os.rename(tmpdir + '/positions.gz', files[1])
-                    os.rename(tmpdir + '/speeds.gz', files[2])
-
-            with open(files[0], 'r') as f: meta = json.load(f)
-            with open(files[1], 'rb') as f: positions = f.read()
-            with open(files[2], 'rb') as f: speeds = f.read()
-
-            return meta, positions, speeds
-
-        except Exception as e: self.log.exception(e)
+        except:
+            self.log.exception()

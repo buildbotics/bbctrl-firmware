@@ -55,7 +55,7 @@ module.exports = {
 
 
     maxMaxVelocity: function () {
-      return 15 * this.umPerStep / this.motor['microsteps'];
+      return 1 * (15 * this.umPerStep / this.motor['microsteps']).toFixed(3);
     },
 
 
@@ -85,11 +85,14 @@ module.exports = {
 
   events: {
     'input-changed': function() {
-      // Limit max-velocity
-      if (this.invalidMaxVelocity)
-        this.motor['max-velocity'] = this.maxMaxVelocity;
+      Vue.nextTick(function () {
+        // Limit max-velocity
+        if (this.invalidMaxVelocity)
+          this.$set('motor["max-velocity"]', this.maxMaxVelocity);
 
-      this.$dispatch('config-changed');
+        this.$dispatch('config-changed');
+      }.bind(this))
+
       return false;
     }
   }

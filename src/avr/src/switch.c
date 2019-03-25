@@ -33,8 +33,8 @@
 
 
 static struct {
-  int16_t debounce;
-  int16_t lockout;
+  uint16_t debounce;
+  uint16_t lockout;
 } sw = {
   .debounce = SWITCH_DEBOUNCE,
   .lockout = SWITCH_LOCKOUT,
@@ -46,8 +46,8 @@ typedef struct {
 
   switch_callback_t cb;
   bool state;
-  int8_t debounce;
-  uint8_t lockout;
+  uint16_t debounce;
+  uint16_t lockout;
   bool initialized;
 } switch_t;
 
@@ -95,8 +95,7 @@ void switch_rtc_callback() {
     // Debounce switch
     bool state = IN_PIN(s->pin);
     if (state == s->state && s->initialized) s->debounce = 0;
-    else if ((state && ++s->debounce == sw.debounce) ||
-             (!state && --s->debounce == -sw.debounce)) {
+    else if (++s->debounce == sw.debounce) {
       s->state = state;
       s->debounce = 0;
       s->initialized = true;

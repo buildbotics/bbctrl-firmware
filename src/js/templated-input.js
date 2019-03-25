@@ -41,6 +41,17 @@ module.exports = {
     metric: function () {return this.$root.metric()},
 
 
+    _view: function () {
+      if (this.template.scale) {
+        if (this.metric) return 1 * this.model.toFixed(3);
+
+        return 1 * (this.model / this.template.scale).toFixed(4);
+      }
+
+      return this.model;
+    },
+
+
     units: function () {
       return (this.metric || !this.template.iunit) ?
         this.template.unit : this.template.iunit;
@@ -58,28 +69,21 @@ module.exports = {
 
 
   watch: {
-    metric: function () {this.set_view()},
-    model: function () {this.set_view()}
+    _view: function () {this.view = this._view},
+
+
+    view: function () {
+      if (this.template.scale && !this.metric)
+        this.model = this.view * this.template.scale;
+      else this.model = this.view;
+    }
   },
 
 
-  ready: function () {this.set_view()},
+  ready: function () {this.view = this._view},
 
 
   methods: {
-    set_view: function () {
-      if (this.template.scale && !this.metric)
-        this.view = (this.model / this.template.scale).toFixed(3);
-      else this.view = this.model;
-    },
-
-
-    change: function () {
-      if (this.template.scale && !this.metric)
-        this.model = 1 * (this.view * this.template.scale).toFixed(4);
-      else this.model = this.view;
-
-      this.$dispatch('input-changed');
-    }
+    change: function () {this.$dispatch('input-changed')}
   }
 }

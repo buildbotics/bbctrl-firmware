@@ -108,7 +108,7 @@ class AVREmu(object):
 
             self.write_enabled = True
 
-        except Exception as e:
+        except Exception:
             self.pid = None
             self.avrOut, self.avrIn, self.i2cOut = None, None, None
             self.log.exception('Failed to start bbemu')

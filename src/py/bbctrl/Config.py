@@ -52,7 +52,7 @@ class Config(object):
                       encoding = 'utf-8') as f:
                 self.template = json.load(f)
 
-        except Exception as e: self.log.exception(e)
+        except Exception: self.log.exception()
 
 
     def get(self, name, default = None):
@@ -73,7 +73,7 @@ class Config(object):
 
             try:
                 self.upgrade(config)
-            except Exception as e: self.log.exception(e)
+            except Exception: self.log.exception()
 
         except Exception as e:
             self.log.warning('%s', e)

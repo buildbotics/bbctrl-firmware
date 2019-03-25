@@ -64,7 +64,7 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
-        except Exception as e: self.log.get('Ctrl').exception(e)
+        except Exception: self.log.get('Ctrl').exception()
 
 
     def __del__(self): print('Ctrl deleted')
