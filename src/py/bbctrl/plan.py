@@ -59,8 +59,9 @@ def compute_unit(a, b):
 
     length = math.sqrt(length)
 
-    for axis in 'xyz':
-        if axis in unit: unit[axis] /= length
+    if length:
+        for axis in 'xyz':
+            if axis in unit: unit[axis] /= length
 
     return unit
 
@@ -81,7 +82,7 @@ class Plan(object):
         self.state = state
         self.config = config
 
-        self.lines = sum(1 for line in open(path))
+        self.lines = sum(1 for line in open(path, 'rb'))
 
         self.planner = gplan.Planner()
         self.planner.set_resolver(self.get_var_cb)
@@ -257,7 +258,7 @@ class Plan(object):
                     raise Exception('Max loop time (%d sec) exceeded.' %
                                     args.max_loop)
 
-                self.progress(maxLine / self.lines)
+                if self.lines: self.progress(maxLine / self.lines)
 
         except Exception as e:
             self.log_cb('error', str(e), os.path.basename(self.path), line, 0)

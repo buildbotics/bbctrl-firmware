@@ -95,6 +95,7 @@ class AVREmu(object):
 
             os.set_blocking(stdinFDs[1], False)
             os.set_blocking(stdoutFDs[0], False)
+            os.set_blocking(i2cFDs[1], False)
 
             self.avrOut = stdinFDs[1]
             self.avrIn = stdoutFDs[0]
@@ -178,12 +179,13 @@ class AVREmu(object):
 
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):
-        if byte is not None: data = byte
+        if byte is not None: data = chr(byte)
         elif word is not None: data = word
         elif block is not None: data = block
         else: data = ''
 
         try:
-            os.write(self.i2cOut, bytes(cmd + data + '\n', 'utf-8'))
+            if self.i2cOut is not None:
+                os.write(self.i2cOut, bytes(cmd + data + '\n', 'utf-8'))
 
         except BrokenPipeError: pass

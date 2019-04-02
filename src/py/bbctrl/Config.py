@@ -175,7 +175,7 @@ class Config(object):
         with open(self.ctrl.get_path('config.json'), 'w') as f:
             json.dump(config, f)
 
-        subprocess.check_call(['sync'])
+        os.sync()
 
         self.ctrl.preplanner.invalidate_all()
         self.log.info('Saved')

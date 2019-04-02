@@ -80,18 +80,25 @@ script#admin-network-view-template(type="text/x-template")
           option(value="ap") Access Point
         button.pure-button.pure-button-primary(@click="wifiConfirm = true",
           v-if="wifi_mode == 'disabled'") Set
+
       .pure-control-group(v-if="wifi_mode == 'ap'")
         label(for="wifi_ch") Channel
         select(name="wifi_ch", v-model="wifi_ch")
           each ch in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
             option(value=ch)= ch
+
       .pure-control-group(v-if="wifi_mode != 'disabled'")
         label(for="ssid") Network (SSID)
         input(name="ssid", v-model="wifi_ssid")
+
       .pure-control-group(v-if="wifi_mode != 'disabled'")
         label(for="wifi_pass") Password
         input(name="wifi_pass", v-model="wifi_pass", type="password")
         button.pure-button.pure-button-primary(@click="wifiConfirm = true") Set
+
+    p(v-if="wifi_mode != 'disabled'").
+      WARNING: WiFi may be unreliable in an electrically noisy environment
+      such as a machine shop.
 
     message.wifi-confirm(:show.sync="wifiConfirm")
       h3(slot="header") Configure Wifi and reboot?

@@ -105,6 +105,8 @@ static void _current_set(current_t *c, float current) {
   c->current = current;
 
   float torque_over_gain = current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF;
+
+#if 0
   float gain = 0;
 
   if (torque_over_gain <= 1.0 / 40) {
@@ -125,6 +127,14 @@ static void _current_set(current_t *c, float current) {
     c->isgain = DRV8711_CTRL_ISGAIN_5;
     gain = 5;
   }
+
+#else
+  // Max configurable current is 11A
+  if (1.0 / 5 < torque_over_gain) torque_over_gain = 1.0 / 5;
+
+  float gain = 5;
+  c->isgain = DRV8711_CTRL_ISGAIN_5;
+#endif
 
   c->torque = round(torque_over_gain * gain * 255);
 }
@@ -169,7 +179,7 @@ static uint8_t _driver_get_torque(int driver) {
   if (estop_triggered()) return 0;
 
   switch (drv->state) {
-  case DRV8711_IDLE: return drv->idle.torque;
+  case DRV8711_IDLE:   return drv->idle.torque;
   case DRV8711_ACTIVE: return drv->drive.torque;
   default: return 0; // Off
   }
@@ -186,7 +196,8 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       switch (DRV8711_CMD_ADDR(command)) {
       case DRV8711_STATUS_REG:
         drv->status = spi.responses[driver];
-        drv->flags |= drv->status;
+        drv->flags = (drv->flags & 0xff00) | drv->status;
+        if (_driver_fault(driver)) estop_trigger(STAT_MOTOR_FAULT);
         break;
 
       case DRV8711_OFF_REG:
@@ -348,9 +359,9 @@ void drv8711_init() {
   // Setup pins
   // Must set the SS pin either in/high or any/output for master mode to work
   // Note, this pin is also used by the USART as the CTS line
-  DIRSET_PIN(SPI_SS_PIN); // Output
-  OUTSET_PIN(SPI_CLK_PIN); // High
-  DIRSET_PIN(SPI_CLK_PIN); // Output
+  DIRSET_PIN(SPI_SS_PIN);   // Output
+  OUTSET_PIN(SPI_CLK_PIN);  // High
+  DIRSET_PIN(SPI_CLK_PIN);  // Output
   DIRCLR_PIN(SPI_MISO_PIN); // Input
   OUTSET_PIN(SPI_MOSI_PIN); // High
   DIRSET_PIN(SPI_MOSI_PIN); // Output

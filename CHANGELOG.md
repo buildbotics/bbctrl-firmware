@@ -7,6 +7,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Handle corrupt GCode simulation data correctly.
  - Fixes for exception logging.
  - Always limit motor max-velocity.  #209
+ - Sync GCode and planner files to disk after write.
+ - Added warning about reliability in a noisy environment on WiFi config page.
+ - EStop on motor fault.
+ - Fixed ETA line wrapping on Web interface.
 
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.
@@ -80,7 +84,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Preplan GCode and check for errors.
  - Display 3D view of program tool paths in browser.
  - Display accurate time remaining, ETA and progress during run.
- - Automatically collapase moves in planner which are too short in time.
+ - Automatically collapse moves in planner which are too short in time.
  - Show IO status indicators on configuration pages.
  - Check that axis dimensions fit path plan dimensions.
  - Show machine working envelope in path plan viewer.
@@ -140,7 +144,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Faster switching of large GCode files in Web.
  - Fixed reported gcode line off by one.
  - Disable MDI input while running.
- - Stablized direction pin output during slow moves.
+ - Stabilized direction pin output during slow moves.
 
 ## v0.3.20
  - Eliminated drift caused by miscounting half microsteps.
@@ -158,7 +162,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Improved jogging with soft limits.
  - Added site favicon.
  - Fixed problems with offsets and imperial units.
- - Fixed ``All zero s-curve times`` caused by extreemly short, non-zero moves.
+ - Fixed ``All zero s-curve times`` caused by extremely short, non-zero moves.
  - Fixed position drift.
 
 ## v0.3.18
@@ -167,12 +171,12 @@ Buildbotics CNC Controller Firmware Changelog
 ## v0.3.17
  - Fixed pausing fail near end of run bug.
  - Show "Upgrading firmware" when upgrading.
- - Log excessive pwr communcation failures as errors.
+ - Log excessive pwr communication failures as errors.
  - Ensure we can still get out of non-idle cycles when there are errors.
  - Less frequent pwr variable updates.
  - Stop cancels seek and subsequent estop.
  - Fixed bug in AVR/Planner command synchronization.
- - Consistently display HOMMING state during homing operation.
+ - Consistently display HOMING state during homing operation.
  - Homing zeros axis global offset.
  - Added zero all button. #126
  - Separate "Auto" and "MDI" play/pause & stop buttons. #126
@@ -224,10 +228,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Support programmed pauses.  i.e. M0
 
 ## v0.3.11
- - Supressed ``firmware rebooted`` warning.
+ - Suppressed ``firmware rebooted`` warning.
  - Error on unexpected AVR reboot.
  - Fixed pin fault output.
- - No longer using interupts for switch inputs.  Debouncing on clock tick.
+ - No longer using interrupts for switch inputs.  Debouncing on clock tick.
 
 ## v0.3.10
  - Fixed "Flood" display, changed to "Load 1" and "Load 2".  #108
@@ -261,12 +265,12 @@ Buildbotics CNC Controller Firmware Changelog
  - Show actual error message on planner errors
  - Reset planner on serious error
  - Fixed console clear
- - Added helful info to Video tab
+ - Added helpful info to Video tab
  - Changed "Console" tab to "Messages"
  - Removed spin up/down velocity options, they don't do anything
  - Allow RS485 to work when wires are swapped
  - Allow setting VFD ID
- - Only show relavant spindle config items
+ - Only show relevant spindle config items
  - More robust video camera reset
  - Added help page
  - Allow upgrade with out Internet
@@ -301,7 +305,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Accel units mm/min² -> m/min²
  - Search and latch velocity mm/min -> m/min
  - Fixed password update (broken in last version)
- - Start Web server eariler in case of Python coding errors
+ - Start Web server earlier in case of Python coding errors
 
 
 Changelog not maintained in previous versions.  See git commit log.

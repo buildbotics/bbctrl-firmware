@@ -143,6 +143,7 @@ enum {
   DRV8711_DRIVE_IDRIVEP_200       = 3 << 10,
 };
 
+
 enum {
   DRV8711_STATUS_OTS_bm           = 1 << 0,
   DRV8711_STATUS_AOCP_bm          = 1 << 1,

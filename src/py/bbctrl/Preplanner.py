@@ -58,6 +58,124 @@ def plan_hash(path, config):
     return h.hexdigest()
 
 
+def safe_remove(path):
+    try:
+        os.unlink(path)
+    except: pass
+
+
+class Plan(object):
+    def __init__(self, preplanner, root, filename):
+        self.preplanner = preplanner
+        self.progress = 0
+        self.cancel = threading.Event()
+        self.gcode = '%s/upload/%s' % (root, filename)
+        self.base = '%s/plans/%s' % (root, filename)
+
+
+    def delete(self):
+        files = glob.glob(self.base + '.*')
+        for path in files: safe_remove(path)
+
+
+    def clean(self, max = 2):
+        plans = glob.glob(self.base + '.*.json')
+        if len(plans) <= max: return
+
+        # Delete oldest plans
+        plans = [(os.path.getmtime(path), path) for path in plans]
+        plans.sort()
+
+        for mtime, path in plans[:len(plans) - max]:
+            safe_remove(path)
+            safe_remove(path[:-4] + 'positions.gz')
+            safe_remove(path[:-4] + 'speeds.gz')
+
+
+    def _update_progress(self, progress):
+        with self.preplanner.lock:
+            self.progress = progress
+
+
+    def _exec(self, files, state, config):
+        self.clean() # Clean up old plans
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cmd = (
+                '/usr/bin/env', 'python3',
+                bbctrl.get_resource('plan.py'),
+                os.path.abspath(self.gcode), json.dumps(state),
+                json.dumps(config),
+                '--max-time=%s' % self.preplanner.max_plan_time,
+                '--max-loop=%s' % self.preplanner.max_loop_time
+            )
+
+            self.preplanner.log.info('Running: %s', cmd)
+
+            with subprocess.Popen(cmd, stdout = subprocess.PIPE,
+                                  stderr = subprocess.PIPE,
+                                  cwd = tmpdir) as proc:
+
+                for line in proc.stdout:
+                    self._update_progress(float(line))
+                    if self.cancel.is_set():
+                        proc.terminate()
+                        return
+
+                out, errs = proc.communicate()
+
+                self._update_progress(1)
+                if self.cancel.is_set(): return
+
+                if proc.returncode:
+                    raise Exception('Plan failed: ' + errs.decode('utf8'))
+
+            os.rename(tmpdir + '/meta.json', files[0])
+            os.rename(tmpdir + '/positions.gz', files[1])
+            os.rename(tmpdir + '/speeds.gz', files[2])
+            os.sync()
+
+
+    def load(self, state, config):
+        try:
+            os.nice(5)
+
+            hid = plan_hash(self.gcode, config)
+            base = '%s.%s.' % (self.base, hid)
+            files = [base + 'json', base + 'positions.gz', base + 'speeds.gz']
+
+            def exists():
+                for path in files:
+                    if not os.path.exists(path): return False
+                return True
+
+            def read():
+                if self.cancel.is_set(): return
+
+                try:
+                    with open(files[0], 'r')  as f: meta = json.load(f)
+                    with open(files[1], 'rb') as f: positions = f.read()
+                    with open(files[2], 'rb') as f: speeds = f.read()
+
+                    return meta, positions, speeds
+
+                except:
+                    self.preplanner.log.exception()
+
+                    for path in files:
+                        if os.path.exists(path):
+                            os.remove(path)
+
+            if exists():
+                data = read()
+                if data is not None: return data
+
+            if not exists(): self._exec(files, state, config)
+            return read()
+
+        except:
+            self.preplanner.log.exception()
+
 
 class Preplanner(object):
     def __init__(self, ctrl, threads = 4, max_plan_time = 60 * 60 * 24,
@@ -87,37 +205,28 @@ class Preplanner(object):
     def invalidate(self, filename):
         with self.lock:
             if filename in self.plans:
-                self.plans[filename][2].set() # Cancel
+                self.plans[filename].cancel.set()
                 del self.plans[filename]
 
 
     def invalidate_all(self):
         with self.lock:
             for filename, plan in self.plans.items():
-                plan[2].set() # Cancel
+                plan.cancel.set()
             self.plans = {}
 
 
     def delete_all_plans(self):
         files = glob.glob(self.ctrl.get_plan('*'))
-
-        for path in files:
-            try:
-                os.unlink(path)
-            except OSError: pass
-
+        for path in files: safe_remove(path)
         self.invalidate_all()
 
 
     def delete_plans(self, filename):
-        files = glob.glob(self.ctrl.get_plan(filename + '.*'))
-
-        for path in files:
-            try:
-                os.unlink(path)
-            except OSError: pass
-
-        self.invalidate(filename)
+        with self.lock:
+            if filename in self.plans:
+                self.plans[filename].delete()
+                self.invalidate(filename)
 
 
     def get_plan(self, filename):
@@ -126,21 +235,22 @@ class Preplanner(object):
         with self.lock:
             if filename in self.plans: plan = self.plans[filename]
             else:
-                cancel = threading.Event()
-                plan = [self._plan(filename, cancel), 0, cancel]
+                plan = Plan(self, self.ctrl.get_path(), filename)
+                plan.future = self._plan(plan)
                 self.plans[filename] = plan
 
-            return plan[0]
+            return plan.future
 
 
     def get_plan_progress(self, filename):
         with self.lock:
-            if filename in self.plans: return self.plans[filename][1]
+            if filename in self.plans:
+                return self.plans[filename].progress
             return 0
 
 
     @gen.coroutine
-    def _plan(self, filename, cancel):
+    def _plan(self, plan):
         # Wait until state is fully initialized
         yield self.started
 
@@ -150,105 +260,6 @@ class Preplanner(object):
         del config['default-units']
 
         # Start planner thread
-        plan = yield self.pool.submit(
-            self._load_plan, filename, state, config, cancel)
-        return plan
+        future = yield self.pool.submit(plan.load, state, config)
 
-
-    def _clean_plans(self, filename, max = 2):
-        plans = glob.glob(self.ctrl.get_plan(filename + '.*'))
-        if len(plans) <= max: return
-
-        # Delete oldest plans
-        plans = [(os.path.getmtime(path), path) for path in plans]
-        plans.sort()
-
-        for mtime, path in plans[:len(plans) - max]:
-            try:
-                os.unlink(path)
-            except OSError: pass
-
-
-    def _progress(self, filename, progress):
-        with self.lock:
-            if filename in self.plans:
-                self.plans[filename][1] = progress
-
-
-    def _read_files(self, files):
-        with open(files[0], 'r') as f: meta = json.load(f)
-        with open(files[1], 'rb') as f: positions = f.read()
-        with open(files[2], 'rb') as f: speeds = f.read()
-
-        return meta, positions, speeds
-
-
-    def _exec_plan(self, filename, files, state, config, cancel):
-        self._clean_plans(filename) # Clean up old plans
-
-        path = os.path.abspath(self.ctrl.get_upload(filename))
-        with tempfile.TemporaryDirectory() as tmpdir:
-            cmd = (
-                '/usr/bin/env', 'python3',
-                bbctrl.get_resource('plan.py'),
-                path, json.dumps(state), json.dumps(config),
-                '--max-time=%s' % self.max_plan_time,
-                '--max-loop=%s' % self.max_loop_time
-            )
-
-            self.log.info('Running: %s', cmd)
-
-            with subprocess.Popen(cmd, stdout = subprocess.PIPE,
-                                  stderr = subprocess.PIPE,
-                                  cwd = tmpdir) as proc:
-
-                for line in proc.stdout:
-                    self._progress(filename, float(line))
-                    if cancel.is_set():
-                        proc.terminate()
-                        return
-
-                out, errs = proc.communicate()
-
-                self._progress(filename, 1)
-                if cancel.is_set(): return
-
-                if proc.returncode:
-                    raise Exception('Plan failed: ' + errs.decode('utf8'))
-
-            os.rename(tmpdir + '/meta.json', files[0])
-            os.rename(tmpdir + '/positions.gz', files[1])
-            os.rename(tmpdir + '/speeds.gz', files[2])
-
-
-    def _files_exist(self, files):
-        for path in files:
-            if not os.path.exists(path): return False
-
-        return True
-
-
-    def _load_plan(self, filename, state, config, cancel):
-        try:
-            os.nice(5)
-
-            hid = plan_hash(self.ctrl.get_upload(filename), config)
-            base = self.ctrl.get_plan(filename + '.' + hid)
-            files = [
-                base + '.json', base + '.positions.gz', base + '.speeds.gz']
-
-            try:
-                if not self._files_exist(files):
-                    self._exec_plan(filename, files, state, config, cancel)
-
-                if not cancel.is_set(): return self._read_files(files)
-
-            except:
-                self.log.exception()
-
-                for path in files:
-                    if os.path.exists(path):
-                        os.remove(path)
-
-        except:
-            self.log.exception()
+        return future

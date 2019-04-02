@@ -64,8 +64,9 @@ class FileHandler(bbctrl.APIHandler):
 
         if not os.path.exists(self.get_upload()): os.mkdir(self.get_upload())
 
-        with open(self.get_upload(filename), 'wb') as f:
+        with open(self.get_upload(filename).encode('utf8'), 'wb') as f:
             f.write(gcode['body'])
+        os.sync()
 
         self.get_ctrl().preplanner.invalidate(filename)
         self.get_ctrl().state.add_file(filename)
