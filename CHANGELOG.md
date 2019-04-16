@@ -11,6 +11,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Added warning about reliability in a noisy environment on WiFi config page.
  - EStop on motor fault.
  - Fixed ETA line wrapping on Web interface.
+ - Fixed zeroing with non-zero offset when unhomed. #211
 
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.

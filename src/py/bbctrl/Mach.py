@@ -320,19 +320,21 @@ class Mach(Comm):
 
     def set_position(self, axis, position):
         axis = axis.lower()
+        state = self.ctrl.state
 
-        if self.ctrl.state.is_axis_homed(axis):
+        if state.is_axis_homed(axis):
             # If homed, change the offset rather than the absolute position
             self.mdi('G92%s%f' % (axis, position))
 
-        elif self.ctrl.state.is_axis_enabled(axis):
+        elif state.is_axis_enabled(axis):
             if self._get_cycle() != 'idle' and not self._is_paused():
                 raise Exception('Cannot set position during ' +
                                 self._get_cycle())
 
             # Set the absolute position both locally and via the AVR
-            self.ctrl.state.set(axis + 'p', position)
-            super().queue_command(Cmd.set_axis(axis, position))
+            target = position - state.get('offset_' + axis)
+            state.set(axis + 'p', target)
+            super().queue_command(Cmd.set_axis(axis, target))
 
 
     def override_feed(self, override):
