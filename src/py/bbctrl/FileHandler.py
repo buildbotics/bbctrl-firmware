@@ -60,7 +60,7 @@ class FileHandler(bbctrl.APIHandler):
 
     def put_ok(self, *args):
         gcode = self.request.files['gcode'][0]
-        filename = os.path.basename(gcode['filename'])
+        filename = os.path.basename(gcode['filename'].replace('\\', '/'))
 
         if not os.path.exists(self.get_upload()): os.mkdir(self.get_upload())
 

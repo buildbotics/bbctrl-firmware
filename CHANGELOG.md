@@ -12,6 +12,7 @@ Buildbotics CNC Controller Firmware Changelog
  - EStop on motor fault.
  - Fixed ETA line wrapping on Web interface.
  - Fixed zeroing with non-zero offset when unhomed. #211
+ - Handle file paths uploaded from Windows correctly. #212
 
 ## v0.4.6
  - Fixed a rare ``Negative s-curve time`` error.
