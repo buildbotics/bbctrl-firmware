@@ -30,7 +30,7 @@
 #include "pins.h"
 
 
-#define VERSION 1
+#define VERSION 2
 
 
 // Pins
@@ -78,12 +78,11 @@ enum {
 };
 
 
-#define CAP_CHARGE_TIME 100 // ms
-#define CAP_CHARGE_MAX_DUTY 0.5
+#define CAP_CHARGE_TIME 50 // ms
 #define VOLTAGE_MIN 11
 #define VOLTAGE_MAX 39
 #define CURRENT_MAX 25
-#define CURRENT_OVERTEMP 16 // Should read ~21A but over 11.86A is faulty
+#define CURRENT_OVERTEMP 16 // Should read as ~21A but over 11.86A in an error
 #define LOAD_OVERTEMP_MAX 10
 #define MOTOR_SHUTDOWN_THRESH 10
 #define VOLTAGE_SETTLE_COUNT 5

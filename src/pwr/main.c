@@ -224,7 +224,7 @@ inline static uint16_t convert_current(uint16_t sample) {
 }
 
 
-inline static uint16_t update_current(int reg, uint16_t sample) {
+inline static void update_current(int reg, uint16_t sample) {
   reg_avg[reg][reg_index[reg]] = convert_current(sample);
   if (++reg_index[reg] == BUCKETS) reg_index[reg] = 0;
 
@@ -232,7 +232,7 @@ inline static uint16_t update_current(int reg, uint16_t sample) {
   for (int i = 0; i < BUCKETS; i++)
     sum += reg_avg[reg][i];
 
-  return regs[reg] = sum >> AVG_SCALE;
+  regs[reg] = sum >> AVG_SCALE;
 }
 
 
@@ -245,11 +245,18 @@ static void read_conversion(uint8_t ch) {
   case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
 
   case CS1_ADC: {
-    uint16_t current = update_current(MOTOR_REG, data);
-    bool overtemp = CURRENT_OVERTEMP * 100 < current;
+    uint16_t raw = convert_current(data);
+    bool overtemp = CURRENT_OVERTEMP * 10 < raw;
+
     if (overtemp) {
       if (motor_overload < MOTOR_SHUTDOWN_THRESH) motor_overload++;
-    } else if (motor_overload) motor_overload--;
+
+    } else {
+      if (motor_overload != MOTOR_SHUTDOWN_THRESH && motor_overload)
+        motor_overload--;
+
+      update_current(MOTOR_REG, data);
+    }
     break;
   }
 
@@ -309,19 +316,10 @@ static void validate_input_voltage() {
 
 
 static void charge_caps() {
-  TCCR0A |= (1 << COM0A1) | (0 << COM0A0); // Clear on compare match
-  IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
-  IO_DDR_SET(MOTOR_PIN);  // Output
-
   uint64_t now = time;
-  for (int i = 0; i < CAP_CHARGE_TIME; i++) {
-    OCR0A = 0xff * CAP_CHARGE_MAX_DUTY / CAP_CHARGE_TIME * (i + 1);
-    while (time == now) continue;
-    now++;
-  }
 
-  TCCR0A &= ~((1 << COM0A1) | (1 << COM0A0));
   IO_PORT_SET(MOTOR_PIN); // Motor voltage on
+  while (time < now + CAP_CHARGE_TIME) continue;
 }
 
 
@@ -341,6 +339,7 @@ void init() {
 
   // IO
   IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
+  IO_DDR_SET(MOTOR_PIN);  // Output
   IO_DDR_CLR(LOAD1_PIN);  // Tri-state
   IO_DDR_CLR(LOAD2_PIN);  // Tri-state
   IO_PUE_SET(PWR_RESET);  // Pull up reset line
@@ -362,7 +361,7 @@ void init() {
   TIMSK = 1 << TOIE0; // Enable overflow interrupt
 
   // Timer 1 (Set output A on compare match, Fast PWM, 8-bit, no prescale)
-  OCR1A = 0; // Off
+  OCR1A = 0; // Shunt off
   TCCR1A = (1 << COM1A1) | (1 << COM1A0) | (0 << WGM11) | (1 << WGM10);
   TCCR1B =
     (0 << WGM13) | (1 << WGM12) | (0 << CS12) | (0 << CS11) | (1 << CS10);
@@ -425,7 +424,7 @@ int main() {
     if (VOLTAGE_MAX < vin || VOLTAGE_MAX < vout) fatal |= OVER_VOLTAGE_FLAG;
     if (CURRENT_MAX < get_total_current()) fatal |= OVER_CURRENT_FLAG;
     if (shunt_overload) fatal |= SHUNT_OVERLOAD_FLAG;
-    if (MOTOR_SHUTDOWN_THRESH <= motor_overload) fatal |= MOTOR_OVERLOAD_FLAG;
+    if (motor_overload == MOTOR_SHUTDOWN_THRESH) fatal |= MOTOR_OVERLOAD_FLAG;
     if (fatal) shutdown();
 
     // Nonfatal conditions
