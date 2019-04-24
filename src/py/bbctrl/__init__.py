@@ -32,6 +32,7 @@ import sys
 import signal
 import tornado
 import argparse
+import datetime
 
 from pkg_resources import Requirement, resource_filename
 
@@ -60,6 +61,7 @@ from bbctrl.IOLoop import IOLoop
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
 import bbctrl.Log as log
+import bbctrl.ObjGraph as ObjGraph
 
 
 ctrl = None
@@ -79,6 +81,40 @@ def on_exit(sig = 0, func = None):
         ctrl = None
 
     sys.exit(1)
+
+
+def time_str():
+    return datetime.datetime.now().strftime('%Y%m%d-%H:%M:%S')
+
+
+
+class Debugger:
+    def __init__(self, ioloop, freq = 60 * 15, depth = 100):
+        self.ioloop = ioloop
+        self.freq = freq
+        self.depth = depth
+        self._callback()
+
+
+    def _callback(self):
+        with open('bbctrl-debug-%s.log' % time_str(), 'w') as log:
+            def line(name):
+                log.write('==== ' + name + ' ' + '=' * (74 - len(name)) + '\n')
+
+            line('Common')
+            ObjGraph.show_most_common_types(limit = self.depth, file = log)
+
+            log.write('\n')
+            line('Growth')
+            ObjGraph.show_growth(limit = self.depth, file = log)
+
+            log.write('\n')
+            line('New IDs')
+            ObjGraph.get_new_ids(limit = self.depth, file = log)
+
+            log.flush()
+            self.ioloop.call_later(self.freq, self._callback)
+
 
 
 def parse_args():
@@ -117,6 +153,8 @@ def parse_args():
                         help = 'Camera frame format')
     parser.add_argument('--demo', action = 'store_true',
                         help = 'Enter demo mode')
+    parser.add_argument('--debug', default = 0, type = int,
+                        help = 'Enable debug mode and set frequency in seconds')
     parser.add_argument('--fast-emu', action = 'store_true',
                         help = 'Enter demo mode')
     parser.add_argument('--client-timeout', default = 5 * 60, type = int,
@@ -135,6 +173,9 @@ def run():
 
     # Create ioloop
     ioloop = tornado.ioloop.IOLoop.current()
+
+    # Set ObjGraph signal handler
+    if args.debug: Debugger(ioloop, args.debug)
 
     # Start server
     web = Web(args, ioloop)

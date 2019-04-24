@@ -280,14 +280,15 @@ class PathHandler(bbctrl.APIHandler):
         if not os.path.exists(self.get_upload(filename)):
             raise HTTPError(404, 'File not found')
 
-        future = self.get_ctrl().preplanner.get_plan(filename)
+        preplanner = self.get_ctrl().preplanner
+        future = preplanner.get_plan(filename)
 
         try:
             delta = datetime.timedelta(seconds = 1)
             data = yield gen.with_timeout(delta, future)
 
         except gen.TimeoutError:
-            progress = self.get_ctrl().preplanner.get_plan_progress(filename)
+            progress = preplanner.get_plan_progress(filename)
             self.write_json(dict(progress = progress))
             return
 

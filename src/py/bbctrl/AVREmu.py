@@ -49,14 +49,14 @@ class AVREmu(object):
 
     def close(self):
         if self.pid is None: return
-        os.kill(self.pid, signal.SIGINT)
+        os.kill(self.pid, signal.SIGKILL)
         os.waitpid(self.pid, 0)
         self.pid = None
 
 
     def _start(self):
         try:
-            if self.pid is not None: os.waitpid(self.pid, 0)
+            self.close()
 
             if self.avrOut is not None:
                 self.ctrl.ioloop.remove_handler(self.avrOut)
