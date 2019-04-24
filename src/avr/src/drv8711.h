@@ -162,6 +162,14 @@ enum {
 #define DRV8711_CMD_ADDR(CMD) (((CMD) >> 12) & 7)
 #define DRV8711_CMD_IS_READ(CMD) ((1 << 15) & (CMD))
 
+#define DRV8711_CTRL_ISGAIN_BM (3 << 8)
+#define DRV8711_CTRL_GET_GAIN(CTRL) ((CTRL) & DRV8711_CTRL_ISGAIN_BM)
+
+#define DRV8711_CTRL_GAIN(CTRL)                                         \
+  (DRV8711_CTRL_GET_GAIN(CTRL) == DRV8711_CTRL_ISGAIN_5 ? 5 :           \
+   (DRV8711_CTRL_GET_GAIN(CTRL) == DRV8711_CTRL_ISGAIN_10 ? 10 :        \
+    (DRV8711_CTRL_GET_GAIN(CTRL) == DRV8711_CTRL_ISGAIN_20 ? 20 : 40)))
+
 
 typedef enum {
   DRV8711_DISABLED,

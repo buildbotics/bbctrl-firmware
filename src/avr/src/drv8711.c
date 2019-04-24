@@ -52,7 +52,6 @@ bool motor_fault = false;
 
 typedef struct {
   float current;
-  uint16_t isgain;
   uint8_t torque;
 } current_t;
 
@@ -102,47 +101,15 @@ static spi_t spi = {0};
 
 
 static void _current_set(current_t *c, float current) {
+  const float gain = DRV8711_CTRL_GAIN(DRV8711_CTRL);
+  const float max_current = CURRENT_SENSE_REF / (CURRENT_SENSE_RESISTOR * gain);
+
+  // Limit to max configurable current (11A)
+  if (max_current < current) current = max_current;
+
   c->current = current;
-
-  float torque_over_gain = current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF;
-
-#if 0
-  float gain = 0;
-
-  if (torque_over_gain <= 1.0 / 40) {
-    c->isgain = DRV8711_CTRL_ISGAIN_40;
-    gain = 40;
-
-  } else if (torque_over_gain <= 1.0 / 20) {
-    c->isgain = DRV8711_CTRL_ISGAIN_20;
-    gain = 20;
-
-  } else if (torque_over_gain <= 1.0 / 10) {
-    c->isgain = DRV8711_CTRL_ISGAIN_10;
-    gain = 10;
-
-  } else {
-    // Max configurable current is 11A
-    if (1.0 / 5 < torque_over_gain) torque_over_gain = 1.0 / 5;
-    c->isgain = DRV8711_CTRL_ISGAIN_5;
-    gain = 5;
-  }
-
-#else
-  // Max configurable current is 11A
-  if (1.0 / 5 < torque_over_gain) torque_over_gain = 1.0 / 5;
-
-  float gain = 5;
-  c->isgain = DRV8711_CTRL_ISGAIN_5;
-#endif
-
-  c->torque = round(torque_over_gain * gain * 255);
-}
-
-
-static bool _driver_get_enabled(int driver) {
-  drv8711_state_t state = drivers[driver].state;
-  return state == DRV8711_IDLE || state == DRV8711_ACTIVE;
+  c->torque = round(current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF *
+                    gain * 255);
 }
 
 
@@ -162,17 +129,6 @@ static float _driver_get_current(int driver) {
 }
 
 
-static uint16_t _driver_get_isgain(int driver) {
-  drv8711_driver_t *drv = &drivers[driver];
-
-  switch (drv->state) {
-  case DRV8711_IDLE: return drv->idle.isgain;
-  case DRV8711_ACTIVE: return drv->drive.isgain;
-  default: return 0; // Off
-  }
-}
-
-
 static uint8_t _driver_get_torque(int driver) {
   drv8711_driver_t *drv = &drivers[driver];
 
@@ -186,11 +142,11 @@ static uint8_t _driver_get_torque(int driver) {
 }
 
 
-static uint8_t _spi_next_command(uint8_t cmd) {
+static void _spi_next_command() {
   // Process command responses
   for (int driver = 0; driver < DRIVERS; driver++) {
     drv8711_driver_t *drv = &drivers[driver];
-    uint16_t command = spi.commands[driver][cmd];
+    uint16_t command = spi.commands[driver][spi.cmd];
 
     if (DRV8711_CMD_IS_READ(command))
       switch (DRV8711_CMD_ADDR(command)) {
@@ -210,15 +166,15 @@ static uint8_t _spi_next_command(uint8_t cmd) {
   }
 
   // Next command
-  if (++cmd == spi.ncmds) {
-    cmd = 0; // Wrap around
+  if (++spi.cmd == spi.ncmds) {
+    spi.cmd = 0; // Wrap around
     SET_PIN(MOTOR_ENABLE_PIN, !estop_triggered()); // Active high
   }
 
   // Prep next command
   for (int driver = 0; driver < DRIVERS; driver++) {
     drv8711_driver_t *drv = &drivers[driver];
-    uint16_t *command = &spi.commands[driver][cmd];
+    uint16_t *command = &spi.commands[driver][spi.cmd];
 
     switch (DRV8711_CMD_ADDR(*command)) {
     case DRV8711_STATUS_REG:
@@ -237,19 +193,15 @@ static uint8_t _spi_next_command(uint8_t cmd) {
       break;
 
     case DRV8711_CTRL_REG: // Set microsteps
-      // NOTE, we disable the driver if it's not active.  Otherwise, the chip
-      // gets hot if when idling with the driver enabled.
-      *command = (*command & 0xfc86) | _driver_get_isgain(driver) |
-        (drv->mode << 3) |
-        ((_driver_get_enabled(driver) && _driver_get_torque(driver)) ?
-         DRV8711_CTRL_ENBL_bm : 0);
+      // NOTE, we disable the driver if it's not active.  The chip gets hot
+      // idling with the driver enabled.
+      *command = (*command & 0xff86) | (drv->mode << 3) |
+        (_driver_get_torque(driver) ? DRV8711_CTRL_ENBL_bm : 0);
       break;
 
     default: break;
     }
   }
-
-  return cmd;
 }
 
 
@@ -280,7 +232,7 @@ static void _spi_send() {
 
   // Callback, passing current command index, and get next command index
   if (spi.callback) {
-    spi.cmd = _spi_next_command(spi.cmd);
+    _spi_next_command();
     spi.callback = false;
   }
 

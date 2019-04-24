@@ -162,7 +162,7 @@ enum {
 #define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_50
 // NOTE, Datasheet suggests 850ns DTIME with the optional gate resistor
 // installed.  See page 30 section 8.1.2 of DRV8711 datasheet.
-#define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_10 | \
+#define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_5 | \
                                   DRV8711_CTRL_DTIME_850 | \
                                   DRV8711_CTRL_EXSTALL_bm)
 
