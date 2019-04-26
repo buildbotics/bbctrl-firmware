@@ -37,27 +37,8 @@
 #include "jog.h"
 #include "exec.h"
 
-#include <avr/eeprom.h>
 
-
-typedef struct {
-  bool triggered;
-} estop_t;
-
-
-static estop_t estop = {false};
-
-static uint16_t estop_reason_eeprom EEMEM;
-
-
-static void _set_reason(stat_t reason) {
-  eeprom_update_word(&estop_reason_eeprom, reason);
-}
-
-
-static stat_t _get_reason() {
-  return (stat_t)eeprom_read_word(&estop_reason_eeprom);
-}
+static stat_t estop_reason = STAT_OK;
 
 
 static void _switch_callback(switch_id_t id, bool active) {
@@ -67,30 +48,22 @@ static void _switch_callback(switch_id_t id, bool active) {
 
 
 void estop_init() {
-  if (switch_is_active(SW_ESTOP)) _set_reason(STAT_ESTOP_SWITCH);
-  if (STAT_MAX <= _get_reason()) _set_reason(STAT_OK);
-  estop.triggered = _get_reason() != STAT_OK;
-
   switch_set_callback(SW_ESTOP, _switch_callback);
-
-  if (estop.triggered) state_estop();
-
-  // Fault signal
-  outputs_set_active(FAULT_PIN, estop.triggered);
+  if (switch_is_active(SW_ESTOP)) estop_trigger(STAT_ESTOP_SWITCH);
 }
 
 
-bool estop_triggered() {return estop.triggered || switch_is_active(SW_ESTOP);}
+bool estop_triggered() {return estop_reason != STAT_OK;}
 
 
 void estop_trigger(stat_t reason) {
-  if (estop.triggered) return;
-  estop.triggered = true;
+  if (estop_triggered()) return;
+  estop_reason = reason;
 
   // Set fault signal
   outputs_set_active(FAULT_PIN, true);
 
-  // Hard stop peripherals
+  // Shutdown peripherals
   st_shutdown();
   spindle_estop();
   jog_stop();
@@ -98,30 +71,24 @@ void estop_trigger(stat_t reason) {
 
   // Set machine state
   state_estop();
-
-  // Save reason
-  _set_reason(reason);
 }
 
 
 void estop_clear() {
   // It is important that we don't clear the estop if it's not set because
   // it can cause a reboot loop.
-  if (!estop.triggered) return;
+  if (!estop_triggered()) return;
 
   // Check if estop switch is set
   if (switch_is_active(SW_ESTOP)) {
-    if (_get_reason() != STAT_ESTOP_SWITCH) _set_reason(STAT_ESTOP_SWITCH);
+    estop_reason = STAT_ESTOP_SWITCH;
     return; // Can't clear while estop switch is still active
   }
 
   // Clear fault signal
   outputs_set_active(FAULT_PIN, false);
 
-  estop.triggered = false;
-
-  // Clear reason
-  _set_reason(STAT_OK);
+  estop_reason = STAT_OK;
 
   // Reboot
   // Note, hardware.c waits until any spindle stop command has been delivered
@@ -140,7 +107,7 @@ void set_estop(bool value) {
 }
 
 
-PGM_P get_estop_reason() {return status_to_pgmstr(_get_reason());}
+PGM_P get_estop_reason() {return status_to_pgmstr(estop_reason);}
 
 
 // Command callbacks

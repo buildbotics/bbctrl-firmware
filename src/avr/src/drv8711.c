@@ -41,10 +41,23 @@
 
 
 #define DRIVERS MOTORS
-#define COMMANDS 10
 
 
 #define DRV8711_WORD_BYTE_PTR(WORD, LOW) (((uint8_t *)&(WORD)) + !(LOW))
+
+
+typedef enum {
+  SS_WRITE_OFF,
+  SS_WRITE_BLANK,
+  SS_WRITE_DECAY,
+  SS_WRITE_STALL,
+  SS_WRITE_DRIVE,
+  SS_WRITE_TORQUE,
+  SS_WRITE_CTRL,
+  SS_READ_OFF,
+  SS_READ_STATUS,
+  SS_CLEAR_STATUS,
+} spi_state_t;
 
 
 bool motor_fault = false;
@@ -70,8 +83,13 @@ typedef struct {
   current_t idle;
   float stall_threspause;
 
-  uint8_t mode; // microstepping mode
+  uint8_t microstep;
   stall_callback_t stall_cb;
+
+  uint8_t last_torque;
+  uint8_t last_microstep;
+
+  spi_state_t spi_state;
 } drv8711_driver_t;
 
 
@@ -84,17 +102,13 @@ static drv8711_driver_t drivers[DRIVERS] = {
 
 
 typedef struct {
-  uint8_t *read;
-  bool callback;
+  bool advance;
   uint8_t disable_cs_pin;
 
-  uint8_t cmd;
+  uint16_t command;
+  uint16_t response;
   uint8_t driver;
   bool low_byte;
-
-  uint8_t ncmds;
-  uint16_t commands[DRIVERS][COMMANDS];
-  uint16_t responses[DRIVERS];
 } spi_t;
 
 static spi_t spi = {0};
@@ -113,13 +127,21 @@ static void _current_set(current_t *c, float current) {
 }
 
 
-static bool _driver_fault(int driver) {return drivers[driver].flags & 0x1f;}
+static bool _driver_fault(drv8711_driver_t *drv) {return drv->flags & 0x1f;}
 
 
-static float _driver_get_current(int driver) {
-  if (_driver_fault(driver)) return 0;
+static bool _driver_enabled(drv8711_driver_t *drv) {
+  return drv->state != DRV8711_DISABLED;
+}
 
-  drv8711_driver_t *drv = &drivers[driver];
+
+static bool _driver_active(drv8711_driver_t *drv) {
+  return drv->state == DRV8711_ACTIVE;
+}
+
+
+static float _driver_get_current(drv8711_driver_t *drv) {
+  if (_driver_fault(drv)) return 0;
 
   switch (drv->state) {
   case DRV8711_IDLE: return drv->idle.current;
@@ -129,9 +151,7 @@ static float _driver_get_current(int driver) {
 }
 
 
-static uint8_t _driver_get_torque(int driver) {
-  drv8711_driver_t *drv = &drivers[driver];
-
+static uint8_t _driver_get_torque(drv8711_driver_t *drv) {
   if (estop_triggered()) return 0;
 
   switch (drv->state) {
@@ -142,73 +162,119 @@ static uint8_t _driver_get_torque(int driver) {
 }
 
 
-static void _spi_next_command() {
-  // Process command responses
-  for (int driver = 0; driver < DRIVERS; driver++) {
-    drv8711_driver_t *drv = &drivers[driver];
-    uint16_t command = spi.commands[driver][spi.cmd];
+static uint16_t _driver_spi_command(drv8711_driver_t *drv) {
+  if (!_driver_enabled(drv)) return 0;
 
-    if (DRV8711_CMD_IS_READ(command))
-      switch (DRV8711_CMD_ADDR(command)) {
-      case DRV8711_STATUS_REG:
-        drv->status = spi.responses[driver];
-        drv->flags = (drv->flags & 0xff00) | drv->status;
-        if (_driver_fault(driver)) estop_trigger(STAT_MOTOR_FAULT);
-        break;
+  switch (drv->spi_state) {
+  case SS_WRITE_OFF:   return DRV8711_WRITE(DRV8711_OFF_REG,   DRV8711_OFF);
+  case SS_WRITE_BLANK: return DRV8711_WRITE(DRV8711_BLANK_REG, DRV8711_BLANK);
+  case SS_WRITE_DECAY: return DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY);
+  case SS_WRITE_STALL: return DRV8711_WRITE(DRV8711_STALL_REG, DRV8711_STALL);
+  case SS_WRITE_DRIVE: return DRV8711_WRITE(DRV8711_DRIVE_REG, DRV8711_DRIVE);
 
-      case DRV8711_OFF_REG:
-        // We read back the OFF register to test for communication failure.
-        if ((spi.responses[driver] & 0x1ff) != DRV8711_OFF)
-          drv->flags |= DRV8711_COMM_ERROR_bm;
-        else drv->flags &= ~DRV8711_COMM_ERROR_bm;
-        break;
-      }
+  case SS_WRITE_TORQUE:
+    drv->last_torque = _driver_get_torque(drv);
+    return DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE | drv->last_torque);
+
+  case SS_WRITE_CTRL: {
+    // NOTE, we disable the driver if it's not active.  The chip gets hot
+    // idling with the driver enabled.
+    bool enable = _driver_get_torque(drv);
+    drv->last_microstep = drv->microstep;
+    return DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL |
+                         (drv->microstep << 3) |
+                         (enable ? DRV8711_CTRL_ENBL_bm : 0));
   }
 
-  // Next command
-  if (++spi.cmd == spi.ncmds) {
-    spi.cmd = 0; // Wrap around
-    SET_PIN(MOTOR_ENABLE_PIN, !estop_triggered()); // Active high
+  case SS_READ_OFF:    return DRV8711_READ(DRV8711_OFF_REG);
+  case SS_READ_STATUS: return DRV8711_READ(DRV8711_STATUS_REG);
+
+  case SS_CLEAR_STATUS:
+    drv->reset_flags = false;
+    drv->flags = 0;
+    return DRV8711_WRITE(DRV8711_STATUS_REG, 0x0fff & ~drv->status);
   }
 
-  // Prep next command
-  for (int driver = 0; driver < DRIVERS; driver++) {
-    drv8711_driver_t *drv = &drivers[driver];
-    uint16_t *command = &spi.commands[driver][spi.cmd];
+  return 0; // Should not get here
+}
 
-    switch (DRV8711_CMD_ADDR(*command)) {
-    case DRV8711_STATUS_REG:
-      if (!DRV8711_CMD_IS_READ(*command)) {
-        if (drv->reset_flags) { // Clear STATUS flags
-          *command = (*command & 0xf000) | (0x0fff & ~drv->status);
-          drv->reset_flags = false;
-          drv->flags = 0;
 
-        } else *command = (*command & 0xf000) | 0x0fff; // Don't clear flags
-      }
-      break;
+static spi_state_t _driver_spi_next(drv8711_driver_t *drv) {
+  if (!_driver_enabled(drv)) return SS_WRITE_OFF;
 
-    case DRV8711_TORQUE_REG: // Update motor current setting
-      *command = (*command & 0xff00) | _driver_get_torque(driver);
-      break;
+  // Process response
+  switch (drv->spi_state) {
+  case SS_READ_OFF:
+    // We read back the OFF register to test for communication failure.
+    if ((spi.response & 0x1ff) != DRV8711_OFF)
+      drv->flags |= DRV8711_COMM_ERROR_bm;
+    else drv->flags &= ~DRV8711_COMM_ERROR_bm;
+    break;
 
-    case DRV8711_CTRL_REG: // Set microsteps
-      // NOTE, we disable the driver if it's not active.  The chip gets hot
-      // idling with the driver enabled.
-      *command = (*command & 0xff86) | (drv->mode << 3) |
-        (_driver_get_torque(driver) ? DRV8711_CTRL_ENBL_bm : 0);
-      break;
+  case SS_READ_STATUS: {
+    drv->status = spi.response;
 
-    default: break;
-    }
+    // NOTE If there is a power fault and the drivers are not powered
+    // then the status flags will read 0xff but the motor fault line will
+    // not be asserted.  So, fault flags are not valid with out motor fault.
+    // A real stall cannot occur if the driver is inactive.
+    bool active = _driver_active(drv);
+    uint8_t mask =
+      ((motor_fault && !drv->reset_flags) ? 0xff : 0) | (active ? 0xc0 : 0);
+    drv->flags = (drv->flags & 0xff00) | (mask & drv->status);
+
+    // EStop on fatal driver faults
+    if (_driver_fault(drv)) estop_trigger(STAT_MOTOR_FAULT);
+
+    // Enable motors when last driver has been fully configured
+    if (drv == &drivers[DRIVERS - 1])
+      SET_PIN(MOTOR_ENABLE_PIN, !estop_triggered()); // Active high
+    break;
   }
+
+  default: break;
+  }
+
+  switch (drv->spi_state) {
+  case SS_READ_OFF:
+    if (drv->flags & DRV8711_COMM_ERROR_bm) return SS_WRITE_OFF; // Retry
+    break;
+
+  case SS_READ_STATUS:
+    if (drv->reset_flags) return SS_CLEAR_STATUS;
+    if (drv->last_torque != _driver_get_torque(drv)) return SS_WRITE_TORQUE;
+    if (drv->last_microstep != drv->microstep) return SS_WRITE_CTRL;
+    // Fall through
+
+  case SS_CLEAR_STATUS: return SS_READ_OFF;
+
+  default: break;
+  }
+
+  return (spi_state_t)(drv->spi_state + 1); // Next
 }
 
 
 static void _spi_send() {
-  // Flush any status errors (TODO check for errors)
+  drv8711_driver_t *drv = &drivers[spi.driver];
+
+  // Flush any status errors (TODO check SPI errors)
   uint8_t x = SPIC.STATUS;
   x = x;
+
+  // Read byte
+  *DRV8711_WORD_BYTE_PTR(spi.response, !spi.low_byte) = SPIC.DATA;
+
+  // Advance state and process response
+  if (spi.advance) {
+    spi.advance = false;
+
+    drv->spi_state = _driver_spi_next(drv);
+
+    // Next driver
+    if (++spi.driver == DRIVERS) spi.driver = 0; // Wrap around
+    drv = &drivers[spi.driver];
+  }
 
   // Disable CS
   if (spi.disable_cs_pin) {
@@ -217,65 +283,24 @@ static void _spi_send() {
     spi.disable_cs_pin = 0;
   }
 
-  // Schedule next CS disable or enable next CS now
-  if (spi.low_byte) spi.disable_cs_pin = drivers[spi.driver].cs_pin;
-  else {
-    OUTSET_PIN(drivers[spi.driver].cs_pin); // Set high (active)
+  if (spi.low_byte) {
+    spi.disable_cs_pin = drv->cs_pin; // Schedule next CS disable
+    spi.advance = true; // Word complete
+
+  } else {
+    // Enable CS
+    OUTSET_PIN(drv->cs_pin); // Set high (active)
     _delay_us(1);
-  }
 
-  // Read
-  if (spi.read) {
-    *spi.read = SPIC.DATA;
-    spi.read = 0;
-  }
-
-  // Callback, passing current command index, and get next command index
-  if (spi.callback) {
-    _spi_next_command();
-    spi.callback = false;
+    // Get next command
+    spi.command = _driver_spi_command(drv);
   }
 
   // Write byte and prep next read
-  SPIC.DATA =
-    *DRV8711_WORD_BYTE_PTR(spi.commands[spi.driver][spi.cmd], spi.low_byte);
-  spi.read = DRV8711_WORD_BYTE_PTR(spi.responses[spi.driver], spi.low_byte);
-
-  // Check if WORD complete, go to next driver & check if command finished
-  if (spi.low_byte && ++spi.driver == DRIVERS) {
-    spi.driver = 0;      // Wrap around
-    spi.callback = true; // Call back after last byte is read
-  }
+  SPIC.DATA = *DRV8711_WORD_BYTE_PTR(spi.command, spi.low_byte);
 
   // Next byte
   spi.low_byte = !spi.low_byte;
-}
-
-
-static void _init_spi_commands() {
-  // Setup SPI command sequence
-  for (int driver = 0; driver < DRIVERS; driver++) {
-    uint16_t *commands = spi.commands[driver];
-    spi.ncmds = 0;
-
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_OFF_REG,    DRV8711_OFF);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_BLANK_REG,  DRV8711_BLANK);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_DECAY_REG,  DRV8711_DECAY);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_STALL_REG,  DRV8711_STALL);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_DRIVE_REG,  DRV8711_DRIVE);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_CTRL_REG,   DRV8711_CTRL);
-    commands[spi.ncmds++] = DRV8711_READ(DRV8711_OFF_REG);
-    commands[spi.ncmds++] = DRV8711_READ(DRV8711_STATUS_REG);
-    commands[spi.ncmds++] = DRV8711_WRITE(DRV8711_STATUS_REG, 0);
-  }
-
-  if (COMMANDS < spi.ncmds)
-    STATUS_ERROR(STAT_INTERNAL_ERROR,
-                 "SPI command buffer overflow increase COMMANDS in %s",
-                 __FILE__);
-
-  _spi_send(); // Kick it off
 }
 
 
@@ -303,7 +328,7 @@ static void _stall_switch_cb(switch_id_t sw, bool active) {
 
 
 static void _motor_fault_switch_cb(switch_id_t sw, bool active) {
-  motor_fault = active; // TODO
+  motor_fault = active;
 }
 
 
@@ -344,7 +369,7 @@ void drv8711_init() {
   PIN_PORT(SPI_CLK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
   SPIC.INTCTRL = SPI_INTLVL_LO_gc; // interupt level
 
-  _init_spi_commands();
+  _spi_send(); // Kick it off
 }
 
 
@@ -368,7 +393,7 @@ void drv8711_set_microsteps(int driver, uint16_t msteps) {
   default: return; // Invalid
   }
 
-  drivers[driver].mode = round(logf(msteps) / logf(2));
+  drivers[driver].microstep = round(logf(msteps) / logf(2));
 }
 
 
@@ -406,7 +431,7 @@ void set_idle_current(int driver, float value) {
 
 float get_active_current(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
-  return _driver_get_current(driver);
+  return _driver_get_current(&drivers[driver]);
 }
 
 
