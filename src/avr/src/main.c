@@ -40,6 +40,8 @@
 #include "pgmspace.h"
 #include "outputs.h"
 #include "analog.h"
+#include "modbus.h"
+#include "io.h"
 #include "exec.h"
 #include "state.h"
 #include "emu.h"
@@ -90,6 +92,8 @@ int main(int argc, char *argv[]) {
     hw_reset_handler();           // handle hard reset requests
     state_callback();             // manage state
     command_callback();           // process next command
+    modbus_callback();            // handle modbus events
+    io_callback();                // handle io input
     report_callback();            // report changes
   }
 

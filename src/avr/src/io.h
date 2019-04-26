@@ -37,4 +37,4 @@ typedef enum {
 } input_mode_t;
 
 
-void io_rtc_callback();
+void io_callback();

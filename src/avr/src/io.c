@@ -51,13 +51,12 @@ static input_cmd_t active_cmd = {-1,};
 static uint32_t timeout;
 
 
-void io_rtc_callback() {
+void io_callback() {
   if (active_cmd.port == -1) return;
 
   bool done = false;
   float result = 0;
-  if (active_cmd.mode == INPUT_IMMEDIATE ||
-      rtc_expired(active_cmd.timeout)) done = true;
+  if (active_cmd.mode == INPUT_IMMEDIATE || rtc_expired(timeout)) done = true;
 
   // TODO handle modes
 
@@ -65,7 +64,6 @@ void io_rtc_callback() {
     if (active_cmd.digital) { // TODO
     } else result = analog_get(active_cmd.port);
 
-    // TODO find a better way to send this
     printf_P(PSTR("{\"result\": %f}\n"), (double)result);
     active_cmd.port = -1;
   }

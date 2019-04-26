@@ -93,9 +93,3 @@ void format_hex_buf(char *buf, const uint8_t *data, unsigned len) {
 
   buf[i * 2] = 0;
 }
-
-
-void print_vector(float v[4]) {
-  printf_P(PSTR("%f %f %f %f\n"),
-           (double)v[0], (double)v[1], (double)v[2], (double)v[3]);
-}

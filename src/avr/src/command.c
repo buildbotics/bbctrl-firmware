@@ -39,7 +39,6 @@
 #include "base64.h"
 #include "rtc.h"
 #include "stepper.h"
-#include "log.h"
 #include "cpp_magic.h"
 
 #include <util/atomic.h>

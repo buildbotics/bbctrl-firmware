@@ -355,8 +355,7 @@ static void _start_write() {
   //
   // At 9600 baud the minimum delay is 4.01ms.  At 19200 it's 2.005ms.  All
   // supported higher baud rates require the 1.75ms minimum delay.  We round up
-  // and add 1ms to ensure the delay is never less than the required minimum
-  // using our 1ms RTC clock callback.
+  // and add 1ms to ensure the delay is never less than the required minimum.
   if (state.last_read &&
       !rtc_expired(state.last_read + (cfg.baud == USART_BAUD_9600 ? 5 : 3)))
     return;
@@ -411,7 +410,7 @@ void modbus_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb) {
 }
 
 
-void modbus_rtc_callback() {
+void modbus_callback() {
   if (state.transmit_complete) {
     state.last_write = rtc_get_time();
     state.transmit_complete = false;
@@ -420,6 +419,7 @@ void modbus_rtc_callback() {
   _handle_response();
   _start_write();
 
+  // Timeout out writes
   if (!state.last_write || !rtc_expired(state.last_write + MODBUS_TIMEOUT))
     return;
   state.last_write = 0;
