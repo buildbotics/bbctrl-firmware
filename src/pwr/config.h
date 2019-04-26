@@ -82,9 +82,9 @@ enum {
 #define VOLTAGE_MIN 11
 #define VOLTAGE_MAX 39
 #define CURRENT_MAX 25
-#define CURRENT_OVERTEMP 16 // Should read as ~21A but over 11.86A in an error
+#define CURRENT_OVERTEMP 19 // Should read as ~21A but over 11.86A in an error
 #define LOAD_OVERTEMP_MAX 10
-#define MOTOR_SHUTDOWN_THRESH 10
+#define MOTOR_SHUTDOWN_THRESH 15
 #define VOLTAGE_SETTLE_COUNT 5
 #define VOLTAGE_SETTLE_PERIOD 20 // ms
 #define VOLTAGE_SETTLE_TOLERANCE 0.01
@@ -104,7 +104,7 @@ enum {
 #define CURRENT_REF_R2 137
 #define CURRENT_REF_MUL (100.0 * 2700 / CURRENT_REF_R2) // 2700 from datasheet
 
-#define AVG_SCALE 2
+#define AVG_SCALE 3
 #define BUCKETS (1 << AVG_SCALE)
 
 // Addresses 0x60 to 0x67

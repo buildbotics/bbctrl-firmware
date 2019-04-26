@@ -245,18 +245,13 @@ static void read_conversion(uint8_t ch) {
   case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
 
   case CS1_ADC: {
-    uint16_t raw = convert_current(data);
-    bool overtemp = CURRENT_OVERTEMP * 10 < raw;
+    update_current(MOTOR_REG, data);
+    bool overtemp = CURRENT_OVERTEMP * 100 < regs[MOTOR_REG];
 
     if (overtemp) {
       if (motor_overload < MOTOR_SHUTDOWN_THRESH) motor_overload++;
-
-    } else {
-      if (motor_overload != MOTOR_SHUTDOWN_THRESH && motor_overload)
-        motor_overload--;
-
-      update_current(MOTOR_REG, data);
-    }
+    } else if (motor_overload != MOTOR_SHUTDOWN_THRESH && motor_overload)
+      motor_overload--;
     break;
   }
 
