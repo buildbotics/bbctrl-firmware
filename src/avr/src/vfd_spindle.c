@@ -90,6 +90,18 @@ const vfd_reg_t ac_tech_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t nowforever_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ,     7,    0}, // Max frequency
+  {REG_FREQ_SET,       2305,    0}, // Frequency
+  {REG_STOP_WRITE,     2304,    0}, // Stop drive
+  {REG_FWD_WRITE,      2304,    1}, // Forward
+  {REG_REV_WRITE,      2304,    3}, // Reverse
+  {REG_FREQ_READ,      1282,    0}, // Output freq
+  {REG_STATUS_READ,     768,    0}, // Status
+  {REG_DISABLED},
+};
+
+
 const vfd_reg_t delta_vfd015m21a_regs[] PROGMEM = {
   {REG_CONNECT_WRITE, 0x2002,  2}, // Reset fault
   {REG_MAX_FREQ_READ,      3,  0}, // Max frequency
@@ -141,6 +153,7 @@ static struct {
 
   float power;
   uint16_t max_freq;
+  bool user_multi_write;
   float actual_power;
   uint16_t status;
 
@@ -260,6 +273,15 @@ static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
 }
 
 
+static bool _use_multi_write() {
+  switch (spindle_get_type()) {
+  case SPINDLE_TYPE_CUSTOM:     return vfd.user_multi_write;
+  case SPINDLE_TYPE_NOWFOREVER: return true;
+  default:                      return false;
+  }
+}
+
+
 static bool _exec_command() {
   if (vfd.wait) return true;
 
@@ -303,7 +325,8 @@ static bool _exec_command() {
   }
 
   if (read) modbus_read(reg.addr, words, _modbus_cb);
-  else if (write) modbus_write(reg.addr, reg.value, _modbus_cb);
+  else if (write) (_use_multi_write() ? modbus_multi_write : modbus_write)
+                    (reg.addr, reg.value, _modbus_cb);
   else return false;
 
   return true;
@@ -329,10 +352,11 @@ void vfd_spindle_init() {
 
   switch (spindle_get_type()) {
   case SPINDLE_TYPE_CUSTOM:  memcpy(regs, custom_regs, sizeof(regs)); break;
-  case SPINDLE_TYPE_AC_TECH:          _load(ac_tech_regs); break;
-  case SPINDLE_TYPE_DELTA_VFD015M21A: _load(delta_vfd015m21a_regs); break;
-  case SPINDLE_TYPE_YL600:            _load(yl600_regs);   break;
-  case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs); break;
+  case SPINDLE_TYPE_AC_TECH:          _load(ac_tech_regs);            break;
+  case SPINDLE_TYPE_NOWFOREVER:       _load(nowforever_regs);         break;
+  case SPINDLE_TYPE_DELTA_VFD015M21A: _load(delta_vfd015m21a_regs);   break;
+  case SPINDLE_TYPE_YL600:            _load(yl600_regs);              break;
+  case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs);            break;
   default: break;
   }
 
@@ -369,6 +393,8 @@ void vfd_spindle_rtc_callback() {
 // Variable callbacks
 uint16_t get_vfd_max_freq() {return vfd.max_freq;}
 void set_vfd_max_freq(uint16_t max_freq) {vfd.max_freq = max_freq;}
+bool get_vfd_multi_write() {return vfd.user_multi_write;}
+void set_vfd_multi_write(bool value) {vfd.user_multi_write = value;}
 uint16_t get_vfd_status() {return vfd.status;}
 uint8_t get_vfd_reg_type(int reg) {return regs[reg].type;}
 

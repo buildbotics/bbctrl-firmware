@@ -108,4 +108,5 @@ void modbus_func(uint8_t func, uint8_t send, const uint8_t *data,
                  uint8_t receive, modbus_cb_t cb);
 void modbus_read(uint16_t addr, uint16_t count, modbus_rw_cb_t cb);
 void modbus_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb);
+void modbus_multi_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb);
 void modbus_callback();

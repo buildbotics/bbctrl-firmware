@@ -53,7 +53,7 @@ script#tool-view-template(type="text/x-template")
           tt {{modbus_status}}
         templated-input(v-for="templ in template['modbus-spindle']",
           :name="$key", :model.sync="config['modbus-spindle'][$key]",
-          :template="templ", v-if="$key != 'regs'")
+          :template="templ", v-if="show_modbus_field($key)")
 
       fieldset.modbus-program(
         v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")

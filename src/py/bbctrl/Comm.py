@@ -35,6 +35,37 @@ import bbctrl
 import bbctrl.Cmd as Cmd
 
 
+# Must be kept in sync with drv8711.h
+DRV8711_STATUS_OTS_bm    = 1 << 0
+DRV8711_STATUS_AOCP_bm   = 1 << 1
+DRV8711_STATUS_BOCP_bm   = 1 << 2
+DRV8711_STATUS_APDF_bm   = 1 << 3
+DRV8711_STATUS_BPDF_bm   = 1 << 4
+DRV8711_STATUS_UVLO_bm   = 1 << 5
+DRV8711_STATUS_STD_bm    = 1 << 6
+DRV8711_STATUS_STDLAT_bm = 1 << 7
+DRV8711_COMM_ERROR_bm    = 1 << 8
+
+# Ignoring stall and stall latch flags for now
+DRV8711_MASK = ~(DRV8711_STATUS_STD_bm | DRV8711_STATUS_STDLAT_bm)
+
+
+def _driver_flags_to_string(flags):
+    if DRV8711_STATUS_OTS_bm    & flags: yield 'over temp'
+    if DRV8711_STATUS_AOCP_bm   & flags: yield 'over current a'
+    if DRV8711_STATUS_BOCP_bm   & flags: yield 'over current b'
+    if DRV8711_STATUS_APDF_bm   & flags: yield 'driver fault a'
+    if DRV8711_STATUS_BPDF_bm   & flags: yield 'driver fault b'
+    if DRV8711_STATUS_UVLO_bm   & flags: yield 'undervoltage'
+    if DRV8711_STATUS_STD_bm    & flags: yield 'stall'
+    if DRV8711_STATUS_STDLAT_bm & flags: yield 'stall latch'
+    if DRV8711_COMM_ERROR_bm    & flags: yield 'comm error'
+
+
+def driver_flags_to_string(flags):
+    return ', '.join(_driver_flags_to_string(flags))
+
+
 class Comm(object):
     def __init__(self, ctrl, avr):
         self.ctrl = ctrl
@@ -43,6 +74,7 @@ class Comm(object):
         self.queue = deque()
         self.in_buf = ''
         self.command = None
+        self.last_motor_flags = [0] * 4
 
         avr.set_handlers(self._read, self._write)
 
@@ -75,11 +107,11 @@ class Comm(object):
         self.flush()
 
 
-    def _write(self, write):
+    def _write(self, write_cb):
         # Finish writing current command
         if self.command is not None:
             try:
-                count = write(self.command)
+                count = write_cb(self.command)
 
             except Exception as e:
                 self.command = None
@@ -133,6 +165,30 @@ class Comm(object):
             self.comm_error()
 
 
+    def _log_motor_flags(self, update):
+        for motor in range(3):
+            var = '%ddf' % motor
+
+            if var in update:
+                flags = update[var] & DRV8711_MASK
+
+                if self.last_motor_flags[motor] == flags: continue
+                self.last_motor_flags[motor] = flags
+
+                flags = driver_flags_to_string(flags)
+                self.log.info('Motor %d flags: %s' % (motor, flags))
+
+
+    def _update_state(self, update):
+        self.ctrl.state.update(update)
+
+        if 'xx' in update:        # State change
+            self.ctrl.ready()     # We've received data from AVR
+            self.flush()          # May have more data to send now
+
+        self._log_motor_flags(update)
+
+
     def _read(self, data):
         self.in_buf += data.decode('utf-8')
 
@@ -160,11 +216,7 @@ class Comm(object):
                     self.log.info('AVR firmware rebooted')
                     self.connect()
 
-                else:
-                    self.ctrl.state.update(msg)
-                    if 'xx' in msg:           # State change
-                        self.ctrl.ready()     # We've received data from AVR
-                        self.flush()          # May have more data to send now
+                else: self._update_state(msg)
 
 
     def estop(self):

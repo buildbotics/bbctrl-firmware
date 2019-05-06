@@ -93,6 +93,12 @@ module.exports = {
     },
 
 
+    show_modbus_field: function (key) {
+      return key != 'regs' &&
+        (key != 'multi-write' || this.tool_type == 'CUSTOM MODBUS VFD');
+    },
+
+
     read: function (e) {
       e.preventDefault();
       api.put('modbus/read', {address: this.address});

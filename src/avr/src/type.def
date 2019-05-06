@@ -26,7 +26,6 @@
 \******************************************************************************/
 
 //      TYPE   DEF
-TYPEDEF(flags, uint16_t)
 TYPEDEF(str,   const char *)
 TYPEDEF(pstr,  PGM_P)
 TYPEDEF(f32,   float)

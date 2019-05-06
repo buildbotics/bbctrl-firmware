@@ -257,15 +257,13 @@ uint8_t *command_next() {
 // Called by exec.c from low-level interrupt
 bool command_exec() {
   if (!cmd.count) {
-    // TODO If MIN_VELOCITY < velocity then we have a potential buffer underrun
     cmd.last_empty = rtc_get_time();
-    exec_set_velocity(0);
     state_idle();
     return false;
   }
 
   // On restart wait a bit to give queue a chance to fill
-  if (!exec_get_velocity() && cmd.count < EXEC_FILL_TARGET &&
+  if (cmd.count < EXEC_FILL_TARGET &&
       !rtc_expired(cmd.last_empty + EXEC_DELAY)) return false;
 
   uint8_t *data = command_next();

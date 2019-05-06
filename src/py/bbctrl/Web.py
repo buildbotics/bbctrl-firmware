@@ -116,6 +116,7 @@ class BugReportHandler(bbctrl.RequestHandler):
         check_add_basename(path + '.1')
         check_add_basename(path + '.2')
         check_add_basename(path + '.3')
+        check_add_basename('/var/log/syslog')
         check_add('config.json')
         check_add(ctrl.get_upload(ctrl.state.get('selected', '')))
 
@@ -486,7 +487,6 @@ class Web(tornado.web.Application):
             if self.args.demo: log = bbctrl.log.Log(args, ioloop, 'camera.log')
             else: log = self.get_ctrl().log
             self.camera = bbctrl.Camera(ioloop, args, log)
-
 
         handlers = [
             (r'/websocket', WSConnection),

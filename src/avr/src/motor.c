@@ -201,7 +201,7 @@ static void _update_power(int motor) {
 
   if (m->enabled) {
     bool timedout = rtc_expired(m->power_timeout);
-    // NOTE, we have ~5ms to enable the motor
+    // NOTE, we have ~5ms to update the driver config
     drv8711_set_state(motor, timedout ? DRV8711_IDLE : DRV8711_ACTIVE);
 
   } else drv8711_set_state(motor, DRV8711_DISABLED);

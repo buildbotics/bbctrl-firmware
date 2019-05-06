@@ -228,7 +228,10 @@ class Planner():
                 self.cmdq.enqueue(id, self.ctrl.log.broadcast, msg)
 
             if name in ['line', 'tool']: self._enqueue_set_cmd(id, name, value)
-            if name == 'speed': return Cmd.speed(value)
+
+            if name == 'speed':
+                self._enqueue_set_cmd(id, name, value)
+                return Cmd.speed(value)
 
             if len(name) and name[0] == '_':
                 # Don't queue axis positions, can be triggered by new position

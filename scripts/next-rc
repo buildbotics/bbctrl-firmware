@@ -13,7 +13,7 @@ with open('package.json', 'r') as f:
     version = json.load(f)['version']
 
 if latest_beta.startswith(version + '-rc'):
-    print(int(latest_beta[len(version) + 3]) + 1)
+    print(int(latest_beta[len(version) + 3:]) + 1)
 
 else:
     print(1)

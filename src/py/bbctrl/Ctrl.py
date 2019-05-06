@@ -26,6 +26,7 @@
 ################################################################################
 
 import os
+import time
 import bbctrl
 
 
@@ -34,7 +35,9 @@ class Ctrl(object):
         self.args = args
         self.ioloop = bbctrl.IOLoop(ioloop)
         self.id = id
-        self.timeout = None
+        self.timeout = None # Used in demo mode
+        self.last_temp_warn = 0
+        self.temp_thresh = 80
 
         if id and not os.path.exists(id): os.mkdir(id)
 
@@ -64,6 +67,8 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
+            if not args.demo: self.check_temp()
+
         except Exception: self.log.get('Ctrl').exception()
 
 
@@ -79,6 +84,23 @@ class Ctrl(object):
         self.clear_timeout()
         t = self.args.client_timeout
         self.timeout = self.ioloop.call_later(t, cb, *args, **kwargs)
+
+
+    def check_temp(self):
+        with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+            temp = round(int(f.read()) / 1000)
+
+        # Reset temperature warning threshold after timeout
+        if time.time() < self.last_temp_warn + 60: self.temp_thresh = 80
+
+        if self.temp_thresh < temp:
+            self.last_temp_warn = time.time()
+            self.temp_thresh = temp
+
+            log = self.log.get('Ctrl')
+            log.info('Hot RaspberryPi at %d°C' % temp)
+
+        self.ioloop.call_later(15, self.check_temp)
 
 
     def get_path(self, dir = None, filename = None):

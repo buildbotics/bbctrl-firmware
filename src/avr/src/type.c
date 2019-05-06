@@ -55,18 +55,6 @@ void type_print_pstr(pstr s) {printf_P(PSTR("\"%" PRPSTR "\""), s);}
 const char *type_parse_pstr(const char *value, stat_t *) {return value;}
 
 
-// Flags
-bool type_eq_flags(flags a, flags b) {return a == b;}
-
-
-void type_print_flags(flags x) {
-  extern void print_status_flags(flags x);
-  print_status_flags(x);
-}
-
-flags type_parse_flags(const char *s, stat_t *) {return 0;} // Not used
-
-
 // Float
 bool type_eq_f32(float a, float b) {return a == b || (isnan(a) && isnan(b));}
 

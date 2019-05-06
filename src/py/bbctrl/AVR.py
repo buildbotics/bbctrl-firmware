@@ -28,10 +28,45 @@
 import serial
 import time
 import traceback
+import ctypes
 
 import bbctrl
 import bbctrl.Cmd as Cmd
 
+
+class serial_struct(ctypes.Structure):
+    _fields_ = [
+        ('type',            ctypes.c_int),
+        ('line',            ctypes.c_int),
+        ('port',            ctypes.c_uint),
+        ('irq',             ctypes.c_int),
+        ('flags',           ctypes.c_int),
+        ('xmit_fifo_size',  ctypes.c_int),
+        ('custom_divisor',  ctypes.c_int),
+        ('baud_base',       ctypes.c_int),
+        ('close_delay',     ctypes.c_ushort),
+        ('io_type',         ctypes.c_byte),
+        ('reserved',        ctypes.c_byte),
+        ('hub6',            ctypes.c_int),
+        ('closing_wait',    ctypes.c_ushort),
+        ('closing_wait2',   ctypes.c_ushort),
+        ('iomem_base',      ctypes.c_char_p),
+        ('iomem_reg_shift', ctypes.c_ushort),
+        ('port_high',       ctypes.c_uint),
+        ('iomap_base',      ctypes.c_ulong),
+    ]
+
+
+def serial_set_low_latency(sp):
+    import fcntl
+    import termios
+
+    ASYNCB_LOW_LATENCY = 13
+
+    ss = serial_struct()
+    fcntl.ioctl(sp, termios.TIOCGSERIAL, ss)
+    ss.flags |= 1 << ASYNCB_LOW_LATENCY
+    fcntl.ioctl(sp, termios.TIOCSSERIAL, ss)
 
 
 class AVR(object):
@@ -53,6 +88,7 @@ class AVR(object):
             self.sp = serial.Serial(self.ctrl.args.serial, self.ctrl.args.baud,
                                     rtscts = 1, timeout = 0, write_timeout = 0)
             self.sp.nonblocking()
+            serial_set_low_latency(self.sp)
 
         except Exception as e:
             self.sp = None

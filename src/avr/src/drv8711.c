@@ -130,11 +130,6 @@ static void _current_set(current_t *c, float current) {
 static bool _driver_fault(drv8711_driver_t *drv) {return drv->flags & 0x1f;}
 
 
-static bool _driver_enabled(drv8711_driver_t *drv) {
-  return drv->state != DRV8711_DISABLED;
-}
-
-
 static bool _driver_active(drv8711_driver_t *drv) {
   return drv->state == DRV8711_ACTIVE;
 }
@@ -163,8 +158,6 @@ static uint8_t _driver_get_torque(drv8711_driver_t *drv) {
 
 
 static uint16_t _driver_spi_command(drv8711_driver_t *drv) {
-  if (!_driver_enabled(drv)) return 0;
-
   switch (drv->spi_state) {
   case SS_WRITE_OFF:   return DRV8711_WRITE(DRV8711_OFF_REG,   DRV8711_OFF);
   case SS_WRITE_BLANK: return DRV8711_WRITE(DRV8711_BLANK_REG, DRV8711_BLANK);
@@ -200,8 +193,6 @@ static uint16_t _driver_spi_command(drv8711_driver_t *drv) {
 
 
 static spi_state_t _driver_spi_next(drv8711_driver_t *drv) {
-  if (!_driver_enabled(drv)) return SS_WRITE_OFF;
-
   // Process response
   switch (drv->spi_state) {
   case SS_READ_OFF:
@@ -217,7 +208,7 @@ static spi_state_t _driver_spi_next(drv8711_driver_t *drv) {
     // NOTE If there is a power fault and the drivers are not powered
     // then the status flags will read 0xff but the motor fault line will
     // not be asserted.  So, fault flags are not valid with out motor fault.
-    // A real stall cannot occur if the driver is inactive.
+    // Also, a real stall cannot occur if the driver is inactive.
     bool active = _driver_active(drv);
     uint8_t mask =
       ((motor_fault && !drv->reset_flags) ? 0xff : 0) | (active ? 0xc0 : 0);
@@ -225,10 +216,6 @@ static spi_state_t _driver_spi_next(drv8711_driver_t *drv) {
 
     // EStop on fatal driver faults
     if (_driver_fault(drv)) estop_trigger(STAT_MOTOR_FAULT);
-
-    // Enable motors when last driver has been fully configured
-    if (drv == &drivers[DRIVERS - 1])
-      SET_PIN(MOTOR_ENABLE_PIN, !estop_triggered()); // Active high
     break;
   }
 
@@ -269,6 +256,7 @@ static void _spi_send() {
   if (spi.advance) {
     spi.advance = false;
 
+    // Handle response and set next state
     drv->spi_state = _driver_spi_next(drv);
 
     // Next driver
@@ -343,8 +331,8 @@ void drv8711_init() {
   OUTSET_PIN(SPI_MOSI_PIN); // High
   DIRSET_PIN(SPI_MOSI_PIN); // Output
 
-  // Motor enable
-  OUTCLR_PIN(MOTOR_ENABLE_PIN); // Lo (disabled)
+  // Motor driver enable
+  OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
   DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
 
   for (int i = 0; i < DRIVERS; i++) {
@@ -444,64 +432,4 @@ void set_driver_flags(int driver, uint16_t flags) {
 
 
 uint16_t get_driver_flags(int driver) {return drivers[driver].flags;}
-
-
-void print_status_flags(uint16_t flags) {
-  bool first = true;
-
-  putchar('"');
-
-  if (DRV8711_STATUS_OTS_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("temp"));
-    first = false;
-  }
-
-  if (DRV8711_STATUS_AOCP_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("current a"));
-    first = false;
-  }
-
-  if (DRV8711_STATUS_BOCP_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("current b"));
-    first = false;
-  }
-
-  if (DRV8711_STATUS_APDF_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("fault a"));
-    first = false;
-  }
-
-  if (DRV8711_STATUS_BPDF_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("fault b"));
-    first = false;
-  }
-
-  if (DRV8711_STATUS_UVLO_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("uvlo"));
-    first = false;
-  }
-
-  if ((DRV8711_STATUS_STD_bm | DRV8711_STATUS_STDLAT_bm) & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("stall"));
-    first = false;
-  }
-
-  if (DRV8711_COMM_ERROR_bm & flags) {
-    if (!first) printf_P(PSTR(", "));
-    printf_P(PSTR("comm"));
-    first = false;
-  }
-
-  putchar('"');
-}
-
-
-uint16_t get_status_strings(int driver) {return get_driver_flags(driver);}
 bool get_driver_stalled(int driver) {return drivers[driver].stalled;}

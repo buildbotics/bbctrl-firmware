@@ -54,7 +54,7 @@ typedef struct {
   float prep_dwell;
   power_update_t prep_powers[POWER_MAX_UPDATES];
 
-  uint32_t underflow;
+  uint32_t underrun;
 } stepper_t;
 
 
@@ -101,7 +101,12 @@ ISR(STEP_LOW_LEVEL_ISR) {
 
     switch (status) {
     case STAT_NOP:                          // No move executed, idle
-      if (!st.busy) spindle_idle();
+      if (!st.busy) {
+        if (MIN_VELOCITY < exec_get_velocity()) st.underrun++;
+        exec_set_velocity(0); // Velocity is zero if there are no moves
+
+        spindle_idle();
+      }
       break;
 
     case STAT_AGAIN: continue;              // No command executed, try again
@@ -159,7 +164,6 @@ ISR(STEP_TIMER_ISR) {
 
   // If the next move is not ready try to load it
   if (!st.move_ready) {
-    if (exec_get_velocity()) st.underflow++;
     _request_exec_move();
     _end_move();
     tick = 0; // Try again in 1ms
@@ -224,7 +228,7 @@ void st_prep_dwell(float seconds) {
 
 
 // Var callbacks
-uint32_t get_underflow() {return st.underflow;}
+uint32_t get_underrun() {return st.underrun;}
 
 
 float get_dwell_time() {

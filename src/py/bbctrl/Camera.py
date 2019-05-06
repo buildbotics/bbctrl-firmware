@@ -34,6 +34,7 @@ import mmap
 import pyudev
 import base64
 import socket
+import ctypes
 from tornado import gen, web, iostream
 import bbctrl
 
@@ -43,7 +44,13 @@ except:
     import bbctrl.v4l2 as v4l2
 
 
-def array_to_string(a): return ''.join([chr(i) for i in a])
+def array_to_string(a):
+    def until_zero(a):
+        for c in a:
+            if c == 0: return
+            yield c
+
+    return ''.join([chr(i) for i in until_zero(a)])
 
 
 def fourcc_to_string(i):

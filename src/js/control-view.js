@@ -62,7 +62,6 @@ module.exports = {
       {x: false, y: false, z: false, a: false, b: false, c: false},
       axis_position: 0,
       jog_adjust: 100,
-      video_url: '/api/video?nocache=' + Math.random(),
       deleteGCode: false,
       tab: 'auto'
     }

@@ -269,4 +269,4 @@ if __name__ == "__main__":
 
     else:
         for line in sys.stdin:
-            decode_and_print(line)
+            decode_and_print(str(line).strip())

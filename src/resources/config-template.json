@@ -192,8 +192,8 @@
     "tool-type": {
       "type": "enum",
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
-                 "AC-Tech VFD", "Delta VFD015M21A (Beta)", "YL600 VFD (Beta)",
-                 "FR-D700 (Beta)"],
+                 "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
+                 "YL600 VFD (Beta)", "FR-D700 (Beta)"],
       "default": "Disabled",
       "code": "st"
     },
@@ -251,6 +251,12 @@
       "values": ["None", "Even", "Odd"],
       "default": "None",
       "code": "ma"
+    },
+    "multi-write": {
+      "help": "Use Modbus multi register write.  Function 16 vs. 6.",
+      "type": "bool",
+      "default": false,
+      "code": "mw"
     },
     "regs": {
       "type": "list",

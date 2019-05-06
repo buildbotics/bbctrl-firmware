@@ -73,6 +73,7 @@ static struct {
   uint32_t last_read;
   uint8_t retry;
   uint8_t status;
+  uint16_t crc_errs;
   bool write_ready;
   bool response_ready;
   bool transmit_complete;
@@ -136,14 +137,18 @@ static bool _check_response() {
     _read_word(state.response + state.response_length - 2, true);
 
   if (computed != expected) {
-    char sent[state.command_length * 2 + 1];
-    char response[state.response_length * 2 + 1];
-    format_hex_buf(sent, state.command, state.command_length);
-    format_hex_buf(response, state.response, state.response_length);
+    if (cfg.debug) {
+      char sent[state.command_length * 2 + 1];
+      char response[state.response_length * 2 + 1];
+      format_hex_buf(sent, state.command, state.command_length);
+      format_hex_buf(response, state.response, state.response_length);
 
-    STATUS_WARNING(STAT_OK, "modbus: invalid CRC, received=0x%04x "
-                   "computed=0x%04x sent=0x%s received=0x%s",
-                   expected, computed, sent, response);
+      STATUS_WARNING(STAT_OK, "modbus: invalid CRC, received=0x%04x "
+                     "computed=0x%04x sent=0x%s received=0x%s",
+                     expected, computed, sent, response);
+    }
+
+    state.crc_errs++;
     state.status = MODBUS_CRC;
     return false;
   }
@@ -244,7 +249,8 @@ static void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
 
 
 static void _write_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
-  if (func == MODBUS_WRITE_OUTPUT_REG && bytes == 4 &&
+  if ((func == MODBUS_WRITE_OUTPUT_REG ||
+       func == MODBUS_WRITE_OUTPUT_REGS) && bytes == 4 &&
       _read_word(data, false) == state.addr) {
     if (state.rw_cb)
       state.rw_cb(true, state.addr, _read_word(state.command + 4, false));
@@ -410,6 +416,18 @@ void modbus_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb) {
 }
 
 
+void modbus_multi_write(uint16_t addr, uint16_t value, modbus_rw_cb_t cb) {
+  state.rw_cb = cb;
+  state.addr = addr;
+  uint8_t cmd[7];
+  _write_word(cmd, addr, false);      // Start address
+  _write_word(cmd + 2, 1, false);     // Number of regs
+  cmd[4] = 2;                         // Number of bytes
+  _write_word(cmd + 5, value, false); // Value
+  modbus_func(MODBUS_WRITE_OUTPUT_REGS, 7, cmd, 4, _write_cb);
+}
+
+
 void modbus_callback() {
   if (state.transmit_complete) {
     state.last_write = rtc_get_time();
@@ -441,27 +459,28 @@ void modbus_callback() {
 
 
 // Variable callbacks
-bool get_modbus_debug() {return cfg.debug;}
-void set_modbus_debug(bool value) {cfg.debug = value;}
-uint8_t get_modbus_id() {return cfg.id;}
-void set_modbus_id(uint8_t id) {cfg.id = id;}
-uint8_t get_modbus_baud() {return cfg.baud;}
+bool get_mb_debug() {return cfg.debug;}
+void set_mb_debug(bool value) {cfg.debug = value;}
+uint8_t get_mb_id() {return cfg.id;}
+void set_mb_id(uint8_t id) {cfg.id = id;}
+uint8_t get_mb_baud() {return cfg.baud;}
 
 
-void set_modbus_baud(uint8_t baud) {
+void set_mb_baud(uint8_t baud) {
   cfg.baud = (baud_t)baud;
   usart_set_baud(&RS485_PORT, cfg.baud);
 }
 
 
-uint8_t get_modbus_parity() {return cfg.parity;}
+uint8_t get_mb_parity() {return cfg.parity;}
 
 
-void set_modbus_parity(uint8_t parity) {
+void set_mb_parity(uint8_t parity) {
   cfg.parity = (parity_t)parity;
   usart_set_parity(&RS485_PORT, cfg.parity);
   usart_set_stop(&RS485_PORT, _get_stop());
 }
 
 
-uint8_t get_modbus_status() {return state.status;}
+uint8_t get_mb_status() {return state.status;}
+uint16_t get_mb_crc_errs() {return state.crc_errs;}
