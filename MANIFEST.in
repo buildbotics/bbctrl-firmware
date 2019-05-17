@@ -1,9 +1,11 @@
 recursive-include src/py/bbctrl/http *
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
+include src/bbserial/bbserial.ko
 include scripts/avr109-flash.py
 include scripts/buildbotics.gc
 include scripts/xinitrc
 include scripts/rc.local
+include scripts/bbctrl.service
 recursive-include src/py/camotics *
 global-exclude .gitignore

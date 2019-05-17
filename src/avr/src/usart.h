@@ -33,8 +33,9 @@
 #include <stdbool.h>
 
 
-#define USART_TX_RING_BUF_SIZE 256
-#define USART_RX_RING_BUF_SIZE 256
+// NOTE, RING_BUF_INDEX_TYPE must be be large enough to cover the buffer
+#define USART_TX_RING_BUF_SIZE 1024
+#define USART_RX_RING_BUF_SIZE 1024
 
 
 typedef enum {

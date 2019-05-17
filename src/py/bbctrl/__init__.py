@@ -80,7 +80,7 @@ def on_exit(sig = 0, func = None):
         ctrl.close()
         ctrl = None
 
-    sys.exit(1)
+    sys.exit(0)
 
 
 def time_str():
@@ -125,7 +125,7 @@ def parse_args():
                         type = int, help = 'HTTP port')
     parser.add_argument('-a', '--addr', metavar = 'IP', default = '0.0.0.0',
                         help = 'HTTP address to bind')
-    parser.add_argument('-s', '--serial', default = '/dev/ttyAMA0',
+    parser.add_argument('-s', '--serial', default = '/dev/ttyBB0',
                         help = 'Serial device')
     parser.add_argument('-b', '--baud', default = 230400, type = int,
                         help = 'Serial baud rate')

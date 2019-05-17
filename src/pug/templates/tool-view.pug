@@ -58,7 +58,7 @@ script#tool-view-template(type="text/x-template")
       fieldset.modbus-program(
         v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
         h2 Active Modbus Program
-        p
+        p(v-if="$root.modified")
           | (Click #[tt(class="save") Save] to activate the selected
           | #[b tool-type].)
         table.modbus-regs.fixed-regs
@@ -145,6 +145,46 @@ script#tool-view-template(type="text/x-template")
             target="_blank") Huanyang VFD manual
           |
           | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('NOWFOREVER VFD')")
+        h2 Notes
+        p Set the following using the VFD's frontpanel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P0-000
+            td.reg-value 2
+            td Modbus communication
+            td Command source
+          tr
+            td.reg-addr P0-001
+            td.reg-value 0
+            td Main frequence X
+            td Select frequency source
+          tr
+            td.reg-addr P0-002
+            td.reg-value 6
+            td Modbus communication
+            td Main frequency X
+          tr
+            td.reg-addr P0-055
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P0-056
+            td.reg-value 2
+            td 9600 baud
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P0-057
+            td.reg-value 0
+            td 1 start, 8 data, no parity, 1 stop
+            td Must match #[tt parity] above
 
       .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
         h2 Notes

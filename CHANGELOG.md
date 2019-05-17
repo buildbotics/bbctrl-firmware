@@ -1,6 +1,14 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.8
+ - Fixed log rotating.
+ - Use systemd serivce instead of init.d.
+ - Fix planner terminate.
+ - Changed AVR serial interrupt priorites.
+ - Increased AVR serial and command buffers.
+ - Boost HDMI signal.
+
 ## v0.4.7
  - Fix homing switch to motor channel mapping with non-standard axis order.
  - Added ``switch-debounce`` and ``switch-lockout`` config options.

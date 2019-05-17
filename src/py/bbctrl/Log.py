@@ -87,7 +87,9 @@ class Log(object):
 
         self.level = DEBUG if args.verbose else INFO
 
-        self.f = None if self.path is None else open(self.path, 'w')
+        # Open log, rotate if necessary
+        self.f = None
+        self._open()
 
         # Log header
         version = pkg_resources.require('bbctrl')[0].version
@@ -123,8 +125,10 @@ class Log(object):
         s = hdr + ('\n' + hdr).join(msg.split('\n'))
 
         if self.f is not None:
+            if 1e22 <= self.bytes_written + len(s) + 1: self._open()
             self.f.write(s + '\n')
             self.f.flush()
+            self.bytes_written += len(s) + 1
 
         print(s)
 
@@ -135,3 +139,22 @@ class Log(object):
         if where is not None: msg['where'] = where
 
         self.broadcast(dict(log = msg))
+
+
+    def _open(self):
+        if self.path is None: return
+        if self.f is not None: self.f.close()
+        self._rotate(self.path)
+        self.f = open(self.path, 'w')
+        self.bytes_written = 0
+
+
+    def _rotate(self, path, n = None):
+        fullpath = '%s.%d' % (path, n) if n is not None else path
+        nextN = (0 if n is None else n) + 1
+
+        if os.path.exists(fullpath):
+            if n == 16: os.unlink(fullpath)
+            else: self._rotate(path, nextN)
+
+            os.rename(fullpath, '%s.%d' % (path, nextN))

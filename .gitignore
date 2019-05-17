@@ -5,6 +5,8 @@
 /crap
 /pkg
 /mnt
+/demo
+/bbctrl-*
 node_modules
 *~
 \#*

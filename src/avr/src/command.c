@@ -49,13 +49,11 @@
 #include <stdlib.h>
 
 
-#define RING_BUF_ATOMIC_COPY(TO, FROM)          \
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) TO = FROM
-
 #define RING_BUF_NAME sync_q
 #define RING_BUF_TYPE uint8_t
 #define RING_BUF_INDEX_TYPE volatile uint16_t
 #define RING_BUF_SIZE SYNC_QUEUE_SIZE
+#define RING_BUF_ATOMIC_COPY 1
 #include "ringbuf.def"
 
 

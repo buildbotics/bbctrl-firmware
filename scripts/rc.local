@@ -3,6 +3,11 @@
 # Mount /boot read only
 mount -o remount,ro /boot
 
+# Load bbserial
+echo 3f201000.serial > /sys/bus/amba/drivers/uart-pl011/unbind
+modprobe -r bbserial
+modprobe bbserial
+
 # Set SPI GPIO mode
 gpio mode 27 alt3
 

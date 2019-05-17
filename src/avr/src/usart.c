@@ -38,12 +38,16 @@
 
 
 // Ring buffers
+#define RING_BUF_INDEX_TYPE volatile uint16_t
 #define RING_BUF_NAME tx_buf
 #define RING_BUF_SIZE USART_TX_RING_BUF_SIZE
+#define RING_BUF_ATOMIC_COPY 1
 #include "ringbuf.def"
 
+#define RING_BUF_INDEX_TYPE volatile uint16_t
 #define RING_BUF_NAME rx_buf
 #define RING_BUF_SIZE USART_RX_RING_BUF_SIZE
+#define RING_BUF_ATOMIC_COPY 1
 #include "ringbuf.def"
 
 static bool _flush = false;
@@ -60,9 +64,9 @@ static void _set_rxc_interrupt(bool enable) {
     if (SERIAL_CTS_THRESH <= rx_buf_space())
       OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
 
-    SERIAL_PORT.CTRLA |= USART_RXCINTLVL_MED_gc;
+    SERIAL_PORT.CTRLA |= USART_RXCINTLVL_HI_gc;
 
-  } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_MED_gc;
+  } else SERIAL_PORT.CTRLA &= ~USART_RXCINTLVL_HI_gc;
 }
 
 

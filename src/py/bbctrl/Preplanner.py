@@ -31,6 +31,7 @@ import json
 import hashlib
 import glob
 import tempfile
+import signal
 from concurrent.futures import Future
 from tornado import gen, process, iostream
 import bbctrl
@@ -91,7 +92,10 @@ class Plan(object):
     def terminate(self):
         if self.cancel: return
         self.cancel = True
-        if self.pid is not None: os.kill(self.pid)
+        if self.pid is not None:
+            try:
+                os.kill(self.pid, signal.SIGKILL)
+            except: pass
 
 
     def delete(self):
@@ -226,7 +230,7 @@ class Preplanner(object):
 
     def invalidate(self, filename):
         if filename in self.plans:
-            self.plans[filename].terinate()
+            self.plans[filename].terminate()
             del self.plans[filename]
 
 

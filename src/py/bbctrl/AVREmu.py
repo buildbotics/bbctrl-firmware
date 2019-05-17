@@ -39,48 +39,64 @@ class AVREmu(object):
         self.ctrl = ctrl
         self.log = ctrl.log.get('AVREmu')
 
-        self.avrOut = None
-        self.avrIn = None
-        self.i2cOut = None
-        self.read_cb = None
+        self.avrOut   = None
+        self.avrIn    = None
+        self.i2cOut   = None
+        self.read_cb  = None
         self.write_cb = None
-        self.pid = None
+        self.pid      = None
 
 
     def close(self):
-        if self.pid is None: return
-        os.kill(self.pid, signal.SIGKILL)
-        os.waitpid(self.pid, 0)
-        self.pid = None
+        # Close pipes
+        def _close(fd, withHandle):
+            if fd is None: return
+            try:
+                if withHandle: self.ctrl.ioloop.remove_handler(fd)
+            except: pass
+            try:
+                os.close(fd)
+            except: pass
+
+        _close(self.avrOut, True)
+        _close(self.avrIn,  True)
+        _close(self.i2cOut, False)
+
+        self.avrOut, self.avrIn, self.i2cOut = None, None, None
+
+        # Kill process and wait for it
+        if self.pid is not None:
+            os.kill(self.pid, signal.SIGKILL)
+            os.waitpid(self.pid, 0)
+            self.pid = None
 
 
     def _start(self):
         try:
             self.close()
 
-            if self.avrOut is not None:
-                self.ctrl.ioloop.remove_handler(self.avrOut)
-                os.close(self.avrOut)
-
-            if self.avrIn is not None:
-                self.ctrl.ioloop.remove_handler(self.avrIn)
-                os.close(self.avrIn)
-
-            if self.i2cOut is not None: os.close(self.i2cOut)
-
-            stdinFDs = os.pipe()
+            # Create pipes
+            stdinFDs  = os.pipe()
             stdoutFDs = os.pipe()
-            i2cFDs = os.pipe()
+            i2cFDs    = os.pipe()
+
             self.pid = os.fork()
 
-            if not self.pid: # Child
-                os.dup2(stdinFDs[0], 0)
+            if not self.pid:
+                # Dup child ends
+                os.dup2(stdinFDs[0],  0)
                 os.dup2(stdoutFDs[1], 1)
-                os.dup2(i2cFDs[0], 3)
+                os.dup2(i2cFDs[0],    3)
 
+                # Close orig fds
                 os.close(stdinFDs[0])
                 os.close(stdoutFDs[1])
                 os.close(i2cFDs[0])
+
+                # Close parent ends
+                os.close(stdinFDs[1])
+                os.close(stdoutFDs[0])
+                os.close(i2cFDs[1])
 
                 cmd = ['bbemu']
                 if self.ctrl.args.fast_emu: cmd.append('--fast')
@@ -88,17 +104,18 @@ class AVREmu(object):
                 os.execvp(cmd[0], cmd)
                 os._exit(1) # In case of failure
 
-            # Parent
+            # Parent, close child ends
             os.close(stdinFDs[0])
             os.close(stdoutFDs[1])
             os.close(i2cFDs[0])
 
-            os.set_blocking(stdinFDs[1], False)
+            # Non-blocking IO
+            os.set_blocking(stdinFDs[1],  False)
             os.set_blocking(stdoutFDs[0], False)
-            os.set_blocking(i2cFDs[1], False)
+            os.set_blocking(i2cFDs[1],    False)
 
             self.avrOut = stdinFDs[1]
-            self.avrIn = stdoutFDs[0]
+            self.avrIn  = stdoutFDs[0]
             self.i2cOut = i2cFDs[1]
 
             ioloop = self.ctrl.ioloop
@@ -110,8 +127,7 @@ class AVREmu(object):
             self.write_enabled = True
 
         except Exception:
-            self.pid = None
-            self.avrOut, self.avrIn, self.i2cOut = None, None, None
+            self.close()
             self.log.exception('Failed to start bbemu')
 
 

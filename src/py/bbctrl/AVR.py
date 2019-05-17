@@ -65,7 +65,7 @@ def serial_set_low_latency(sp):
 
     ss = serial_struct()
     fcntl.ioctl(sp, termios.TIOCGSERIAL, ss)
-    ss.flags |= 1 << ASYNCB_LOW_LATENCY
+    ss.flags |= 1 << ASYNCB_LOW_LATENCY # pylint: disable=no-member
     fcntl.ioctl(sp, termios.TIOCSSERIAL, ss)
 
 
@@ -88,7 +88,7 @@ class AVR(object):
             self.sp = serial.Serial(self.ctrl.args.serial, self.ctrl.args.baud,
                                     rtscts = 1, timeout = 0, write_timeout = 0)
             self.sp.nonblocking()
-            serial_set_low_latency(self.sp)
+            #serial_set_low_latency(self.sp)
 
         except Exception as e:
             self.sp = None
@@ -122,6 +122,7 @@ class AVR(object):
 
     def _serial_read(self):
         try:
+            data = ''
             data = self.sp.read(self.sp.in_waiting)
             self.read_cb(data)
 

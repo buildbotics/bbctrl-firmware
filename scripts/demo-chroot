@@ -1,0 +1,17 @@
+#!/bin/bash -ex
+
+ROOT="$PWD/demo"
+
+# Clean up on EXIT
+function cleanup {
+    umount "$ROOT"/{dev/pts,dev,sys,proc} 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# mount binds
+mount --bind /dev "$ROOT/dev/"
+mount --bind /sys "$ROOT/sys/"
+mount --bind /proc "$ROOT/proc/"
+mount --bind /dev/pts "$ROOT/dev/pts"
+
+chroot "$ROOT" "$@"

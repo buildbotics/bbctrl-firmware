@@ -13,36 +13,42 @@ while [ $# -gt 0 ]; do
 done
 
 
-if $UPDATE_PY; then
-    if [ -e /var/run/bbctrl.pid ]; then
-        service bbctrl stop
+function update_config_txt() {
+    MATCH="$1"
+    CONFIG="$2"
+
+    grep "$MATCH" /boot/config.txt
+
+    if [ $? -ne 0 ]; then
+        mount -o remount,rw /boot &&
+            echo "$CONFIG" >> /boot/config.txt
+        mount -o remount,ro /boot
     fi
+
+}
+
+
+if $UPDATE_PY; then
+    service bbctrl stop
+
+    # Update service
+    rm -f /etc/init.d/bbctrl
+    cp scripts/bbctrl.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable bbctrl
 fi
 
 if $UPDATE_AVR; then
     ./scripts/avr109-flash.py src/avr/bbctrl-avr-firmware.hex
 fi
 
-# Increase USB current
-grep max_usb_current /boot/config.txt >/dev/null
-if [ $? -ne 0 ]; then
-    mount -o remount,rw /boot &&
-    echo max_usb_current=1 >> /boot/config.txt
-    mount -o remount,ro /boot
-fi
-
+# Update config.txt
+update_config_txt ^max_usb_current max_usb_current=1
+update_config_txt ^config_hdmi_boost config_hdmi_boost=8
 
 # TODO Enable GPU
-#grep ^dtoverlay=vc4-kms-v3d /boot/config.txt >/dev/null
-#if [ $? -ne 0 ]; then
-#    mount -o remount,rw /boot &&
-#    (
-#        echo
-#        echo dtoverlay=vc4-kms-v3d
-#        echo gpu_mem=16
-#    ) >> /boot/config.txt
-#    mount -o remount,ro /boot
-#fi
+#update_config_txt dtoverlay=vc4-kms "dtoverlay=vc4-kms-v3d"
+#update_config_txt gpu_mem "gpu_mem=16"
 #chmod ug+s /usr/lib/xorg/Xorg
 
 # Fix camera
@@ -66,17 +72,6 @@ fi
 # Remove Hawkeye
 if [ -e /etc/init.d/hawkeye ]; then
     apt-get remove --purge -y hawkeye
-fi
-
-# Enable USB audio
-if [ ! -e /etc/asound.conf ]; then
-    (
-        echo "pcm.!default {"
-        echo "  type asym"
-        echo "  playback.pcm \"plug:hw:0\""
-        echo "  capture.pcm \"plug:dsnoop:1\""
-        echo "}"
-    ) > etc/asound.conf
 fi
 
 # Decrease boot delay
@@ -117,6 +112,16 @@ fi
 cp scripts/xinitrc ~pi/.xinitrc
 chmod +x ~pi/.xinitrc
 chown pi:pi ~pi/.xinitrc
+
+# Install bbserial
+MODSRC=src/bbserial/bbserial.ko
+MODDST=/lib/modules/$(uname -r)/kernel/drivers/tty/serial/bbserial.ko
+diff -q $MODSRC $MODDST 2>/dev/null >/dev/null
+if [ $? -ne 0 ]; then
+    cp $MODSRC $MODDST
+    depmod
+    REBOOT=true
+fi
 
 # Install rc.local
 cp scripts/rc.local /etc/

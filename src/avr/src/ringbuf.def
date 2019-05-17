@@ -53,6 +53,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <util/atomic.h>
+
+
 #ifndef RING_BUF_NAME
 #error Must define RING_BUF_NAME
 #endif
@@ -105,6 +108,11 @@ RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _init)() {
 
 
 #ifdef RING_BUF_ATOMIC_COPY
+
+#undef RING_BUF_ATOMIC_COPY
+#define RING_BUF_ATOMIC_COPY(TO, FROM)          \
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) TO = FROM
+
 
 #define RING_BUF_ATOMIC_READ_INDEX(INDEX)                               \
   RING_BUF_FUNC RING_BUF_INDEX_TYPE CONCAT(RING_BUF_NAME, _read_##INDEX)() { \

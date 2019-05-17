@@ -42,11 +42,14 @@ endif
 all: $(HTML) $(RESOURCES)
 	@for SUB in $(SUBPROJECTS); do $(MAKE) -C src/$$SUB; done
 
-pkg: all $(AVR_FIRMWARE)
+pkg: all $(AVR_FIRMWARE) bbserial
 	./setup.py sdist
 
 beta-pkg: pkg
 	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
+
+bbserial:
+	$(MAKE) -C src/bbserial
 
 gplan: $(GPLAN_TARGET)
 
@@ -136,4 +139,4 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg gplan lint pylint jshint
+.PHONY: all install clean tidy pkg gplan lint pylint jshint bbserial

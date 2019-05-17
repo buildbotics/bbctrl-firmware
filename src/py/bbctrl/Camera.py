@@ -19,7 +19,7 @@
 #                                                                              #
 #       You should have received a copy of the GNU Lesser General Public       #
 #                License along with the software.  If not, see                 #
-#                       <http://www.gnu.org/icenses/>.                        #
+#                       <http://www.gnu.org/icenses/>.                         #
 #                                                                              #
 #                For information regarding this software email:                #
 #                  "Joseph Coffland" <joseph@buildbotics.com>                  #
