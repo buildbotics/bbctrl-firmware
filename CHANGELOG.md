@@ -8,6 +8,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Changed AVR serial interrupt priorites.
  - Increased AVR serial and command buffers.
  - Boost HDMI signal.
+ - Rewrote RPi serial driver.
 
 ## v0.4.7
  - Fix homing switch to motor channel mapping with non-standard axis order.
