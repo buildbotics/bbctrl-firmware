@@ -479,14 +479,17 @@ class Web(tornado.web.Application):
         self.ioloop = ioloop
         self.ctrls = {}
 
-        # Init controller
-        if not self.args.demo: self.get_ctrl()
-
         # Init camera
         if not args.disable_camera:
             if self.args.demo: log = bbctrl.log.Log(args, ioloop, 'camera.log')
             else: log = self.get_ctrl().log
             self.camera = bbctrl.Camera(ioloop, args, log)
+        else: self.camera = None
+
+        # Init controller
+        if not self.args.demo:
+            self.get_ctrl()
+            self.monitor = bbctrl.MonitorTemp(self)
 
         handlers = [
             (r'/websocket', WSConnection),

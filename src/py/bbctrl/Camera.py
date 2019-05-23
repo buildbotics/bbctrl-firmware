@@ -290,16 +290,17 @@ class Camera(object):
         self.fps = args.fps
         self.fourcc = string_to_fourcc(args.fourcc)
 
-        self.offline_jpg = get_image_resource('http/images/offline.jpg')
-        self.in_use_jpg = get_image_resource('http/images/in-use.jpg')
+        self.overtemp = False
         self.dev = None
         self.clients = []
         self.path = None
+        self.have_camera = False
 
         # Find connected cameras
         for i in range(4):
             path = '/dev/video%d' % i
             if os.path.exists(path):
+                self.have_camera = True
                 self.open(path)
                 break
 
@@ -317,8 +318,13 @@ class Camera(object):
 
         path = str(device.device_node)
 
-        if action == 'add': self.open(path)
-        if action == 'remove' and path == self.path: self.close()
+        if action == 'add':
+            self.have_camera = True
+            self.open(path)
+
+        if action == 'remove' and path == self.path:
+            self.have_camera = False
+            self.close()
 
 
     def _send_frame(self, frame):
@@ -344,13 +350,21 @@ class Camera(object):
             self.log.warning('Failed to read from camera.')
             self.ioloop.remove_handler(fd)
             self.close()
-            return
 
+
+    def _update_client_image(self):
+        if self.have_camera and not self.overtemp: return
+        if self.overtemp and self.have_camera: img = 'overtemp'
+        else: img = 'offline'
+
+        if len(self.clients): self.clients[-1].write_img(img)
 
 
     def open(self, path):
         try:
+            self._update_client_image()
             self.path = path
+            if self.overtemp: return
             self.dev = VideoDevice(path)
 
             caps = self.dev.get_info()
@@ -389,34 +403,29 @@ class Camera(object):
         self.dev = None
 
 
-    def close(self):
+    def close(self, overtemp = False):
+        self._update_client_image()
         if self.dev is None: return
+
         try:
             self.ioloop.remove_handler(self.dev)
             try:
                 self.dev.stop()
             except: pass
+
             self._close_dev()
+            self.log.info('Closed camera')
 
-            for client in self.clients:
-                client.write_frame_twice(self.offline_jpg)
-
-            self.log.info('Closed camera %s' % self.path)
-
-        except: self.log.warning('Closing camera')
+        except: self.log.exception('Exception while closing camera')
         finally: self.dev = None
 
 
     def add_client(self, client):
         self.log.info('Adding camera client: %d' % len(self.clients))
 
-        if len(self.clients):
-            self.clients[-1].write_frame_twice(self.in_use_jpg)
-
+        if len(self.clients): self.clients[-1].write_img('in-use')
         self.clients.append(client)
-
-        if self.dev is None:
-            client.write_frame_twice(self.offline_jpg)
+        self._update_client_image()
 
 
     def remove_client(self, client):
@@ -424,6 +433,14 @@ class Camera(object):
         try:
             self.clients.remove(client)
         except: pass
+
+
+    def set_overtemp(self, overtemp):
+        if self.overtemp == overtemp: return
+        self.overtemp = overtemp
+
+        if overtemp: self.close(True)
+        elif self.path is not None: self.open(self.path)
 
 
 
@@ -449,11 +466,12 @@ class VideoHandler(web.RequestHandler):
         self.set_header('Expires', 'Mon, 3 Jan 2000 12:34:56 GMT')
         self.set_header('Pragma', 'no-cache')
 
-        if self.camera is None:
-            frame = get_image_resource('http/images/offline.jpg')
-            self.write_frame_twice(frame)
-
+        if self.camera is None: self.write_img('offline')
         else: self.camera.add_client(self)
+
+
+    def write_img(self, name):
+        self.write_frame_twice(get_image_resource('http/images/%s.jpg' % name))
 
 
     def write_frame(self, frame):

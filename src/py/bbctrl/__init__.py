@@ -58,6 +58,7 @@ from bbctrl.Camera import Camera, VideoHandler
 from bbctrl.AVR import AVR
 from bbctrl.AVREmu import AVREmu
 from bbctrl.IOLoop import IOLoop
+from bbctrl.MonitorTemp import MonitorTemp
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
 import bbctrl.Log as log

@@ -23,9 +23,8 @@ fi
 # Reload udev
 /etc/init.d/udev restart
 
-# Stop boot splash so it does not interfere with X if GPU enabled
-grep ^dtoverlay=vc4-kms-v3d /boot/config.txt >/dev/null
-if [ $? -eq 0 ]; then plymouth quit; fi
+# Stop boot splash so it doesn't interfere with X if GPU enabled and to save CPU
+plymouth quit
 
 # Start X in /home/pi
 cd /home/pi

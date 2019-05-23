@@ -9,6 +9,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Increased AVR serial and command buffers.
  - Boost HDMI signal.
  - Rewrote RPi serial driver.
+ - Automatically scale max CPU speed to reduce RPi temp.
+ - Disable USB camera if RPi temperature above 80°C, back on at 75°C.
 
 ## v0.4.7
  - Fix homing switch to motor channel mapping with non-standard axis order.
