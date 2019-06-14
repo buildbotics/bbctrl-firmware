@@ -42,9 +42,9 @@ class MonitorTemp(object):
     def __init__(self, app):
         self.app = app
 
-        ctrl = app.get_ctrl()
-        self.log = ctrl.log.get('Mon')
-        self.ioloop = ctrl.ioloop
+        self.ctrl = app.get_ctrl()
+        self.log = self.ctrl.log.get('Mon')
+        self.ioloop = self.ctrl.ioloop
 
         self.last_temp_warn = 0
         self.temp_thresh = 80
@@ -94,6 +94,7 @@ class MonitorTemp(object):
         try:
             temp = read_temp()
 
+            self.ctrl.state.set('rpi_temp', temp)
             self.scale_cpu(temp)
             self.update_camera(temp)
             self.log_warnings(temp)

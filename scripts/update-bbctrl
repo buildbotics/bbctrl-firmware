@@ -7,13 +7,16 @@ if [ ! -e "$UPDATE" ]; then
   exit 1
 fi
 
+systemctl stop bbctrl
+
 rm -rf /tmp/update
 mkdir /tmp/update
 cd /tmp/update
 
+LOG=/var/log/bbctrl.$(date +%Y%m%d-%H%M%S).install
 tar xf "$UPDATE"
 cd *
-./scripts/install.sh "$*"
+./scripts/install.sh "$*" 2>&1 > $LOG
 
 cd -
 rm -rf /tmp/update $UPDATE

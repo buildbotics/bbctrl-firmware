@@ -397,8 +397,8 @@ float get_drive_current(int driver) {
 
 
 void set_drive_current(int driver, float value) {
-  if (driver < 0 || DRIVERS <= driver || value < 0 || MAX_CURRENT < value)
-    return;
+  if (driver < 0 || DRIVERS <= driver || value < 0) return;
+  if (MAX_CURRENT < value) value = MAX_CURRENT;
   _current_set(&drivers[driver].drive, value);
 }
 

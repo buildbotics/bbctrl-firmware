@@ -52,7 +52,7 @@ script#admin-general-view-template(type="text/x-template")
     button.pure-button.pure-button-primary(@click="confirmReset = true") Reset
     message(:show.sync="confirmReset")
       h3(slot="header") Reset to default configuration?
-      p(slot="body") All configuration changes will be lost.
+      p(slot="body") Non-network configuration changes will be lost.
       div(slot="footer")
         button.pure-button(@click="confirmReset = false") Cancel
         button.pure-button.button-success(@click="reset") OK

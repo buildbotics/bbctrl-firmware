@@ -1,6 +1,10 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.9
+ - Enforce 6A per motor channel peak current limit.
+ - Adjust config values above max or below min instead of resetting to default.
+
 ## v0.4.8
  - Fixed log rotating.
  - Use systemd serivce instead of init.d.
@@ -11,6 +15,13 @@ Buildbotics CNC Controller Firmware Changelog
  - Rewrote RPi serial driver.
  - Automatically scale max CPU speed to reduce RPi temp.
  - Disable USB camera if RPi temperature above 80°C, back on at 75°C.
+ - Respect offsets in canned cycle moves.  #219
+ - Fixed G53 warning.
+ - Fixed delayed offset update after M2 or M30 end of program.
+ - Handle multiple consecutive config resets correctly.
+ - Fixed log CPU usage problem introduced in v0.4.6.
+ - Show RPi temp on indicators page.
+ - Show red thermometer if RPi temp exceeds 80°C.
 
 ## v0.4.7
  - Fix homing switch to motor channel mapping with non-standard axis order.

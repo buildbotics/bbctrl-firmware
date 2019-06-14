@@ -27,6 +27,7 @@
 
 import os
 import sys
+import io
 import datetime
 import traceback
 import pkg_resources
@@ -43,6 +44,10 @@ ERROR    = 3
 def get_level_name(level): return 'debug info warning error'.split()[level]
 
 
+# Get this file's name
+_srcfile = os.path.normcase(get_level_name.__code__.co_filename)
+
+
 class Logger(object):
     def __init__(self, log, name, level):
         self.log = log
@@ -54,13 +59,29 @@ class Logger(object):
     def _enabled(self, level): return self.level <= level and level <= ERROR
 
 
+    def _find_caller(self):
+        f = sys._getframe()
+        if f is not None: f = f.f_back
+
+        while hasattr(f, 'f_code'):
+            co = f.f_code
+
+            filename = os.path.normcase(co.co_filename)
+            if filename == _srcfile:
+                f = f.f_back
+                continue
+
+            return co.co_filename, f.f_lineno, co.co_name
+
+        return '(unknown file)', 0, '(unknown function)'
+
+
     def _log(self, level, msg, *args, **kwargs):
         if not self._enabled(level): return
 
         if not 'where' in kwargs:
-            caller = getframeinfo(stack()[2][0])
-            kwargs['where'] = '%s:%d' % (
-                os.path.basename(caller.filename), caller.lineno)
+            filename, line, func = self._find_caller()
+            kwargs['where'] = '%s:%d' % (os.path.basename(filename), line)
 
         if len(args): msg %= args
 

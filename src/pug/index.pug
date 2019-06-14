@@ -95,6 +95,9 @@ html(lang="en")
               .title
                 span.left Build
                 span.right botics
+                .fa.fa-thermometer-full(class="error",
+                  v-if="80 <= state.rpi_temp",
+                  title="Raspberry Pi temperature too high.")
               .subtitle
                 | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
                 | v{{config.version}}

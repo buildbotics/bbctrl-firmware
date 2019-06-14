@@ -126,7 +126,7 @@ def parse_args():
                         type = int, help = 'HTTP port')
     parser.add_argument('-a', '--addr', metavar = 'IP', default = '0.0.0.0',
                         help = 'HTTP address to bind')
-    parser.add_argument('-s', '--serial', default = '/dev/ttyBB0',
+    parser.add_argument('-s', '--serial', default = '/dev/ttyAMA0',
                         help = 'Serial device')
     parser.add_argument('-b', '--baud', default = 230400, type = int,
                         help = 'Serial baud rate')

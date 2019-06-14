@@ -36,66 +36,27 @@
 #include <linux/poll.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
+#include <linux/tty.h>
 #include <asm/ioctls.h>
+#include <asm/termios.h>
 
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Joseph Coffland");
 MODULE_DESCRIPTION("Buildbotics controller serial port driver");
-MODULE_VERSION("0.2");
+MODULE_VERSION("0.3");
 
 
-#define DEVICE_NAME "ttyBB0"
+#define DEVICE_NAME "ttyAMA0"
 #define BUF_SIZE (1 << 16)
 
 
-enum {
-  REG_DR,
-  REG_ST_DMAWM,
-  REG_ST_TIMEOUT,
-  REG_FR,
-  REG_LCRH_RX,
-  REG_LCRH_TX,
-  REG_IBRD,
-  REG_FBRD,
-  REG_CR,
-  REG_IFLS,
-  REG_IMSC,
-  REG_RIS,
-  REG_MIS,
-  REG_ICR,
-  REG_DMACR,
-  REG_ST_XFCR,
-  REG_ST_XON1,
-  REG_ST_XON2,
-  REG_ST_XOFF1,
-  REG_ST_XOFF2,
-  REG_ST_ITCR,
-  REG_ST_ITIP,
-  REG_ST_ABCR,
-  REG_ST_ABIMSC,
-  REG_ARRAY_SIZE,
-};
+#define UART01x_LCRH_WLEN_bm 0x60
 
 
-static u16 _offsets[REG_ARRAY_SIZE] = {
-  [REG_DR]      = UART01x_DR,
-  [REG_FR]      = UART01x_FR,
-  [REG_LCRH_RX] = UART011_LCRH,
-  [REG_LCRH_TX] = UART011_LCRH,
-  [REG_IBRD]    = UART011_IBRD,
-  [REG_FBRD]    = UART011_FBRD,
-  [REG_CR]      = UART011_CR,
-  [REG_IFLS]    = UART011_IFLS,
-  [REG_IMSC]    = UART011_IMSC,
-  [REG_RIS]     = UART011_RIS,
-  [REG_MIS]     = UART011_MIS,
-  [REG_ICR]     = UART011_ICR,
-  [REG_DMACR]   = UART011_DMACR,
-};
+static int debug = 0;
+module_param(debug, int, 0660);
 
-
-static int _debug = 0;
 
 struct ring_buf {
   unsigned char *buf;
@@ -110,13 +71,10 @@ static struct {
   spinlock_t            lock;
   unsigned              open;
   unsigned char __iomem *base;
-  wait_queue_head_t     wait;
-  unsigned long         req_events;
+  wait_queue_head_t     read_wait;
+  wait_queue_head_t     write_wait;
   unsigned              irq;
   unsigned              im;             // interrupt mask
-
-  unsigned              rx_bytes;
-  unsigned              tx_bytes;
 
   unsigned              brk_errs;
   unsigned              parity_errs;
@@ -126,6 +84,7 @@ static struct {
   int                   major;
   struct class          *class;
   struct device         *dev;
+  struct ktermios       term;
 } _port;
 
 
@@ -137,70 +96,55 @@ static struct {
 #define RING_BUF_PUSH(BUF, C)                   \
   do {                                          \
     (BUF).buf[(BUF).head] = C;                  \
+    mb();                                       \
     RING_BUF_INC(BUF, head);                    \
   } while (0)
 
 #define RING_BUF_POKE(BUF) (BUF).buf[(BUF).head]
 #define RING_BUF_PEEK(BUF) (BUF).buf[(BUF).tail]
-
-#define RING_BUF_MOVE(SRC, DST)                 \
-  do {                                          \
-    RING_BUF_PUSH(DST, RING_BUF_PEEK(SRC));     \
-    RING_BUF_POP(SRC);                          \
-  } while (0)
-
-
 #define RING_BUF_SPACE(BUF) ((((BUF).tail) - ((BUF).head + 1)) & (BUF_SIZE - 1))
 #define RING_BUF_FILL(BUF) ((((BUF).head) - ((BUF).tail)) & (BUF_SIZE - 1))
+#define RING_BUF_CLEAR(BUF) do {(BUF).head = (BUF).tail = 0;} while (0)
 
 
-static unsigned _read(unsigned reg) {
-  return readw_relaxed(_port.base + _offsets[reg]);
-}
+static unsigned _read(unsigned reg) {return readw_relaxed(_port.base + reg);}
 
 
 static void _write(unsigned val, unsigned reg) {
-  writew_relaxed(val, _port.base + _offsets[reg]);
+  writew_relaxed(val, _port.base + reg);
 }
 
 
-static unsigned _tx_chars(void) {
-  unsigned bytes = 0;
+static void _tx_chars(void) {
   unsigned fill = RING_BUF_FILL(_port.tx_buf);
 
-  for (int i = 0; i < fill; i++) {
+  while (fill--) {
     // Check if UART FIFO full
-    if (_read(REG_FR) & UART01x_FR_TXFF) break;
+    if (_read(UART01x_FR) & UART01x_FR_TXFF) break;
 
-    _write(RING_BUF_PEEK(_port.tx_buf), REG_DR);
-    RING_BUF_POP(_port.tx_buf);
+    _write(RING_BUF_PEEK(_port.tx_buf), UART01x_DR);
     mb();
-    _port.tx_bytes++;
-    bytes++;
+    RING_BUF_POP(_port.tx_buf);
   }
 
   // Stop TX when buffer is empty
   if (!RING_BUF_FILL(_port.tx_buf)) {
     _port.im &= ~UART011_TXIM;
-    _write(_port.im, REG_IMSC);
+    _write(_port.im, UART011_IMSC);
   }
-
-  return bytes;
 }
 
 
-static unsigned _rx_chars(void) {
-  unsigned bytes = 0;
+static void _rx_chars(void) {
   unsigned space = RING_BUF_SPACE(_port.rx_buf);
 
-  for (int i = 0; i < space; i++) {
+  while (space--) {
     // Check if UART FIFO empty
-    unsigned status = _read(REG_FR);
+    unsigned status = _read(UART01x_FR);
     if (status & UART01x_FR_RXFE) break;
 
     // Read char from FIFO and update status
-    unsigned ch = _read(REG_DR);
-    _port.rx_bytes++;
+    unsigned ch = _read(UART01x_DR);
 
     // Record errors
     if (ch & UART011_DR_BE) _port.brk_errs++;
@@ -210,17 +154,173 @@ static unsigned _rx_chars(void) {
 
     // Queue char
     RING_BUF_PUSH(_port.rx_buf, ch);
-    bytes++;
   }
 
   // Stop RX interrupts when buffer is full
   if (!RING_BUF_SPACE(_port.rx_buf)) {
-    _port.im &= ~(UART011_RXIM | UART011_RTIM | UART011_FEIM | UART011_PEIM |
-                  UART011_BEIM | UART011_OEIM);
-    _write(_port.im, REG_IMSC);
+    _port.im &= ~(UART011_RXIM | UART011_RTIM);
+    _write(_port.im, UART011_IMSC);
+  }
+}
+
+
+static int _read_status(void) {
+  int status = 0;
+
+  unsigned fr = _read(UART01x_FR);
+  unsigned cr = _read(UART011_CR);
+
+  if (fr & UART01x_FR_DSR) status |= TIOCM_LE;  // DSR (data set ready)
+  if (cr & UART011_CR_DTR) status |= TIOCM_DTR; // DTR (data terminal ready)
+  if (cr & UART011_CR_RTS) status |= TIOCM_RTS; // RTS (request to send)
+  // TODO What is TIOCM_ST - Secondary TXD (transmit)?
+  // TODO What is TIOCM_SR - Secondary RXD (receive)?
+  if (fr & UART01x_FR_CTS) status |= TIOCM_CTS; // CTS (clear to send)
+  if (fr & UART01x_FR_DCD) status |= TIOCM_CD;  // DCD (data carrier detect)
+  if (fr & UART011_FR_RI)  status |= TIOCM_RI;  // RI  (ring)
+  if (fr & UART01x_FR_DSR) status |= TIOCM_DSR; // DSR (data set ready)
+
+  if (debug) printk(KERN_INFO "bbserial: _read_status() = %d\n", status);
+
+  return status;
+}
+
+
+static void _write_status(int status) {
+  if (debug) printk(KERN_INFO "bbserial: _write_status() = %d\n", status);
+
+  unsigned long flags;
+  spin_lock_irqsave(&_port.lock, flags);
+
+  unsigned cr = _read(UART011_CR);
+
+  // DTR (data terminal ready)
+  if (status & TIOCM_DTR) cr |= UART011_CR_DTR;
+  else cr &= ~UART011_CR_DTR;
+
+  // RTS (request to send)
+  if (status & TIOCM_RTS) cr |= UART011_CR_RTS;
+  else cr &= ~UART011_CR_RTS;
+
+  _write(cr, UART011_CR);
+
+  spin_unlock_irqrestore(&_port.lock, flags);
+}
+
+
+static struct ktermios *_get_term(void) {
+  unsigned lcrh = _read(UART011_LCRH);
+  unsigned cr = _read(UART011_CR);
+
+  // Baud rate
+  unsigned brd = _read(UART011_IBRD) << 6 | _read(UART011_FBRD);
+  speed_t baud = clk_get_rate(_port.clk) * 4 / brd;
+  tty_termios_encode_baud_rate(&_port.term, baud, baud);
+
+  // Data bits
+  unsigned cflag;
+  switch (lcrh & UART01x_LCRH_WLEN_bm) {
+  case UART01x_LCRH_WLEN_5: cflag = CS5; break;
+  case UART01x_LCRH_WLEN_6: cflag = CS6; break;
+  case UART01x_LCRH_WLEN_7: cflag = CS7; break;
+  default: cflag = CS8; break;
   }
 
-  return bytes;
+  // Stop bits
+  if (lcrh & UART01x_LCRH_STP2) cflag |= CSTOPB;
+
+  // Parity
+  if (lcrh & UART01x_LCRH_PEN) {
+    cflag |= PARENB;
+
+    if (!(UART01x_LCRH_EPS & lcrh)) cflag |= PARODD;
+    if (UART011_LCRH_SPS & lcrh) cflag |= CMSPAR;
+  }
+
+  // Hardware flow control
+  if (cr & UART011_CR_CTSEN) cflag |= CRTSCTS;
+
+  _port.term.c_cflag = cflag;
+
+  return &_port.term;
+}
+
+
+static void _set_baud(speed_t baud) {
+  if (debug) printk(KERN_INFO "bbserial: baud=%d\n", baud);
+
+  unsigned brd = clk_get_rate(_port.clk) * 16 / baud;
+
+  if ((brd & 3) == 3) brd = (brd >> 2) + 1; // Round up
+  else brd >>= 2;
+
+  _write(brd & 0x3f, UART011_FBRD);
+  _write(brd >> 6,   UART011_IBRD);
+}
+
+
+static int _set_term(struct ktermios *term) {
+  unsigned lcrh = UART01x_LCRH_FEN; // Enable FIFOs
+  unsigned cflag = term->c_cflag;
+
+  // Data bits
+  switch (cflag & CSIZE) {
+  case CS5: lcrh |= UART01x_LCRH_WLEN_5; break;
+  case CS6: lcrh |= UART01x_LCRH_WLEN_6; break;
+  case CS7: lcrh |= UART01x_LCRH_WLEN_7; break;
+  default:  lcrh |= UART01x_LCRH_WLEN_8; break;
+  }
+
+  // Stop bits
+  if (cflag & CSTOPB) lcrh |= UART01x_LCRH_STP2;
+
+  // Parity
+  if (cflag & PARENB) {
+    lcrh |= UART01x_LCRH_PEN;
+
+    if (!(cflag & PARODD)) lcrh |= UART01x_LCRH_EPS;
+    if (cflag & CMSPAR) lcrh |= UART011_LCRH_SPS;
+  }
+
+  // Get baud rate
+  speed_t baud = tty_termios_baud_rate(term);
+
+  // Set
+  unsigned long flags;
+  spin_lock_irqsave(&_port.lock, flags);
+
+  // Hardware flow control
+  unsigned cr = _read(UART011_CR);
+  if (cflag & CRTSCTS) cr |= UART011_CR_CTSEN;
+
+  _write(0, UART011_CR);      // Disable
+  _set_baud(baud);            // Baud
+  _write(lcrh, UART011_LCRH); // Must be after baud
+  _write(cr, UART011_CR);     // Enable
+
+  spin_unlock_irqrestore(&_port.lock, flags);
+
+  return 0;
+}
+
+
+static void _flush_input(void) {
+  unsigned long flags;
+  spin_lock_irqsave(&_port.lock, flags);
+
+  RING_BUF_CLEAR(_port.rx_buf);
+
+  spin_unlock_irqrestore(&_port.lock, flags);
+}
+
+
+static void _flush_output(void) {
+  unsigned long flags;
+  spin_lock_irqsave(&_port.lock, flags);
+
+  RING_BUF_CLEAR(_port.tx_buf);
+
+  spin_unlock_irqrestore(&_port.lock, flags);
 }
 
 
@@ -228,27 +328,19 @@ static irqreturn_t _interrupt(int irq, void *id) {
   unsigned long flags;
   spin_lock_irqsave(&_port.lock, flags);
 
-  unsigned rBytes = 0;
-  unsigned wBytes = 0;
+  // Read and/or write
+  unsigned status = _read(UART011_MIS);
+  if (status & (UART011_RTIS | UART011_RXIS)) _rx_chars();
+  if (status & UART011_TXIS) _tx_chars();
 
-  for (int pass = 0; pass < 256; pass++) {
-    unsigned status = _read(REG_MIS);
-    if (!status) break;
-
-    // Clear interrupt status
-    _write(status, REG_ICR);
-
-    // Read and/or write
-    if (status & (UART011_RTIS | UART011_RXIS)) rBytes += _rx_chars();
-    if (status & UART011_TXIS) wBytes += _tx_chars();
-  }
+  unsigned txSpace = RING_BUF_SPACE(_port.tx_buf);
+  unsigned rxFill  = RING_BUF_FILL(_port.rx_buf);
 
   spin_unlock_irqrestore(&_port.lock, flags);
 
   // Notify pollers
-  if ((rBytes && (_port.req_events & POLLIN)) ||
-      (wBytes && (_port.req_events & POLLOUT)))
-    wake_up_interruptible(&_port.wait);
+  if (rxFill)  wake_up_interruptible_poll(&_port.read_wait,  POLLIN);
+  if (txSpace) wake_up_interruptible_poll(&_port.write_wait, POLLOUT);
 
   return IRQ_HANDLED;
 }
@@ -259,11 +351,14 @@ static void _enable_tx(void) {
   spin_lock_irqsave(&_port.lock, flags);
 
   _port.im |= UART011_TXIM;
-  _write(_port.im, REG_IMSC);
+  _write(_port.im, UART011_IMSC);
   _tx_chars(); // Must prime the pump
 
   spin_unlock_irqrestore(&_port.lock, flags);
 }
+
+
+static int _tx_enabled(void) {return _port.im & UART011_TXIM;}
 
 
 static void _enable_rx(void) {
@@ -271,14 +366,17 @@ static void _enable_rx(void) {
   spin_lock_irqsave(&_port.lock, flags);
 
   _port.im |= UART011_RTIM | UART011_RXIM;
-  _write(_port.im, REG_IMSC);
+  _write(_port.im, UART011_IMSC);
 
   spin_unlock_irqrestore(&_port.lock, flags);
 }
 
 
+static int _rx_enabled(void) {return _port.im & (UART011_RTIM | UART011_RXIM);}
+
+
 static int _dev_open(struct inode *inodep, struct file *filep) {
-  if (_debug) printk(KERN_INFO "bbserial: open()\n");
+  if (debug) printk(KERN_INFO "bbserial: open()\n");
   if (_port.open) return -EBUSY;
   _port.open = 1;
   return 0;
@@ -287,40 +385,36 @@ static int _dev_open(struct inode *inodep, struct file *filep) {
 
 static ssize_t _dev_read(struct file *filep, char *buffer, size_t len,
                          loff_t *offset) {
-  if (_debug) printk(KERN_INFO "bbserial: read() len=%d\n", len);
+  if (debug) printk(KERN_INFO "bbserial: read() len=%d overruns=%d\n", len,
+                    _port.overruns);
+
   ssize_t bytes = 0;
 
-  // TODO read whole blocks
-  while (len && RING_BUF_FILL(_port.rx_buf)) {
+  while (bytes < len && RING_BUF_FILL(_port.rx_buf)) {
     put_user(RING_BUF_PEEK(_port.rx_buf), buffer++);
     RING_BUF_POP(_port.rx_buf);
-    len--;
     bytes++;
+    if (!_rx_enabled()) _enable_rx();
   }
-
-  if (bytes) _enable_rx();
 
   return bytes ? bytes : -EAGAIN;
 }
 
 
 static ssize_t _dev_write(struct file *filep, const char *buffer, size_t len,
-                         loff_t *offset) {
-  if (_debug)
+                          loff_t *offset) {
+  if (debug)
     printk(KERN_INFO "bbserial: write() len=%d tx=%d rx=%d\n",
            len, RING_BUF_FILL(_port.tx_buf), RING_BUF_FILL(_port.rx_buf));
 
   ssize_t bytes = 0;
 
-  // TODO write whole blocks
-  while (len && RING_BUF_SPACE(_port.tx_buf)) {
+  while (bytes < len && RING_BUF_SPACE(_port.tx_buf)) {
     get_user(RING_BUF_POKE(_port.tx_buf), buffer++);
     RING_BUF_INC(_port.tx_buf, head);
-    len--;
     bytes++;
+    if (!_tx_enabled()) _enable_tx();
   }
-
-  if (bytes) _enable_tx();
 
   return bytes ? bytes : -EAGAIN;
 }
@@ -334,34 +428,76 @@ static int _dev_release(struct inode *inodep, struct file *filep) {
 
 
 static unsigned _dev_poll(struct file *file, poll_table *wait) {
-  if (_debug) printk(KERN_INFO "bbserial: poll(tx=%d rx=%d)\n",
-                     RING_BUF_FILL(_port.tx_buf), RING_BUF_FILL(_port.rx_buf));
+  if (debug) {
+    unsigned events = poll_requested_events(wait);
+    printk(KERN_INFO "bbserial: poll(in=%s, out=%s)\n",
+           (events & POLLIN)  ? "true" : "false",
+           (events & POLLOUT) ? "true" : "false");
+  }
 
-  _port.req_events = poll_requested_events(wait);
-  poll_wait(file, &_port.wait, wait);
-  _port.req_events = 0;
+  poll_wait(file, &_port.read_wait,  wait);
+  poll_wait(file, &_port.write_wait, wait);
 
   unsigned ret = 0;
-  if (RING_BUF_SPACE(_port.tx_buf)) ret |= POLLOUT | POLLWRNORM;
   if (RING_BUF_FILL(_port.rx_buf))  ret |= POLLIN  | POLLRDNORM;
+  if (RING_BUF_SPACE(_port.tx_buf)) ret |= POLLOUT | POLLWRNORM;
+
+  if (debug) printk(KERN_INFO "bbserial: tx=%d rx=%d\n",
+                     RING_BUF_FILL(_port.tx_buf), RING_BUF_FILL(_port.rx_buf));
 
   return ret;
 }
 
 
 static long _dev_ioctl(struct file *file, unsigned cmd, unsigned long arg) {
-  if (_debug) printk(KERN_INFO "bbserial: ioctl() cmd=%d arg=%lu\n", cmd, arg);
+  if (debug)
+    printk(KERN_INFO "bbserial: ioctl() cmd=0x%04x arg=%lu\n", cmd, arg);
 
   int __user *ptr = (int __user *)arg;
+  int status;
 
   switch (cmd) {
-  case TCGETS:   // TODO Get serial port settings
-  case TCSETS:   // TODO Set serial port settings
-  case TIOCMBIS: // TODO Set modem control state
+  case TCGETS: { // Get serial port settings
+    struct ktermios *term = _get_term();
+    if (copy_to_user((void __user *)arg, &term, sizeof(struct termios)))
+      return -EFAULT;
+    return 0;
+  }
+
+  case TCSETS: { // Set serial port settings
+    struct ktermios term;
+    if (copy_from_user(&term, (void __user *)arg, sizeof(struct termios)))
+      return -EFAULT;
+    return _set_term(&term);
+  }
+
+  case TIOCMGET: // Get status of modem bits
+    put_user(_read_status(), ptr);
     return 0;
 
-  case TCFLSH: return 0;
-  case FIONREAD: return put_user(RING_BUF_FILL(_port.rx_buf), ptr);
+  case TIOCMSET: // Set status of modem bits
+    get_user(status, ptr);
+    _write_status(status);
+    return 0;
+
+  case TIOCMBIC: // Clear indicated modem bits
+    get_user(status, ptr);
+    _write_status(~status & _read_status());
+    return 0;
+
+  case TIOCMBIS: // Set indicated modem bits
+    get_user(status, ptr);
+    _write_status(status | _read_status());
+    return 0;
+
+  case TCFLSH: // Flush
+    if (arg == TCIFLUSH || arg == TCIOFLUSH) _flush_input();
+    if (arg == TCOFLUSH || arg == TCIOFLUSH) _flush_output();
+    return 0;
+
+  case TIOCINQ:  return put_user(RING_BUF_FILL(_port.rx_buf), ptr);
+  case TIOCOUTQ: return put_user(RING_BUF_FILL(_port.tx_buf), ptr);
+
   default: return -ENOIOCTLCMD;
   }
 
@@ -381,7 +517,7 @@ static struct file_operations _ops = {
 
 
 static int _probe(struct amba_device *dev, const struct amba_id *id) {
-  if (_debug) printk(KERN_INFO "bbserial: probing\n");
+  if (debug) printk(KERN_INFO "bbserial: probing\n");
 
   // Allocate buffers
   _port.tx_buf.buf = devm_kzalloc(&dev->dev, BUF_SIZE, GFP_KERNEL);
@@ -392,7 +528,7 @@ static int _probe(struct amba_device *dev, const struct amba_id *id) {
   _port.base = devm_ioremap_resource(&dev->dev, &dev->res);
   if (IS_ERR(_port.base)) {
     dev_err(&dev->dev, "bbserial: failed to map IO memory\n");
-   return PTR_ERR(_port.base);
+    return PTR_ERR(_port.base);
   }
 
   // Get and enable clock
@@ -409,33 +545,28 @@ static int _probe(struct amba_device *dev, const struct amba_id *id) {
   }
 
   // Disable UART and mask interrupts
-  _write(0, REG_CR);
-  _write(0, REG_IMSC);
+  _write(0, UART011_CR);
+  _write(0, UART011_IMSC);
 
-  // Set baud rate
-  const unsigned baud = 230400;
-  unsigned brd = clk_get_rate(_port.clk) * 16 / baud;
-  if ((brd & 3) == 3) brd = (brd >> 2) + 1;
-  else brd >>= 2;
-  _write(brd & 0x3f, REG_FBRD);
-  _write(brd >> 6,   REG_IBRD);
+  // Set default baud rate
+  _set_baud(38400);
 
-  // N81 & enable FIFOs
-  _write(UART01x_LCRH_WLEN_8 | UART01x_LCRH_FEN, REG_LCRH_RX);
+  // N81 & enable FIFOs, must be after baud
+  _write(UART01x_LCRH_WLEN_8 | UART01x_LCRH_FEN, UART011_LCRH);
 
   // Enable, TX, RX, RTS, DTR & CTS
   unsigned cr = UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE |
     UART011_CR_RTS | UART011_CR_DTR | UART011_CR_CTSEN;
-  _write(cr, REG_CR);
+  _write(cr, UART011_CR);
 
   // Set interrupt FIFO trigger levels
-  _write(UART011_IFLS_RX2_8 | UART011_IFLS_TX6_8, REG_IFLS);
+  _write(UART011_IFLS_RX2_8 | UART011_IFLS_TX6_8, UART011_IFLS);
 
   // Clear pending interrupts
-  _write(0x7ff, REG_ICR);
+  _write(0x7ff, UART011_ICR);
 
   // Enable read interrupts
-  _port.im = _read(REG_IMSC);
+  _port.im = 0;
   _enable_rx();
 
   // Allocate IRQ
@@ -461,7 +592,7 @@ static int _probe(struct amba_device *dev, const struct amba_id *id) {
   if (IS_ERR(_port.class)) {
     unregister_chrdev(_port.major, DEVICE_NAME);
     clk_disable_unprepare(_port.clk);
-    dev_err(&dev->dev, "bbserial: ailed to register device class\n");
+    dev_err(&dev->dev, "bbserial: failed to register device class\n");
     return PTR_ERR(_port.class);
   }
 
@@ -480,17 +611,17 @@ static int _probe(struct amba_device *dev, const struct amba_id *id) {
 
 
 static int _remove(struct amba_device *dev) {
-  if (_debug) printk(KERN_INFO "bbserial: removing\n");
+  if (debug) printk(KERN_INFO "bbserial: removing\n");
 
   unsigned long flags;
   spin_lock_irqsave(&_port.lock, flags);
 
   // Mask and clear interrupts
-  _write(0, REG_IMSC);
-  _write(0x7ff, REG_ICR);
+  _write(0, UART011_IMSC);
+  _write(0x7ff, UART011_ICR);
 
   // Disable UART
-  _write(0, REG_CR);
+  _write(0, UART011_CR);
 
   spin_unlock_irqrestore(&_port.lock, flags);
 
@@ -542,7 +673,8 @@ static int __init bbserial_init(void) {
   spin_lock_init(&_port.lock);
 
   // Init wait queues
-  init_waitqueue_head(&_port.wait);
+  init_waitqueue_head(&_port.read_wait);
+  init_waitqueue_head(&_port.write_wait);
 
   return amba_driver_register(&_driver);
 }

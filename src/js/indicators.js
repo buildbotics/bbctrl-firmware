@@ -80,17 +80,17 @@ module.exports = {
     },
 
 
-    motor_fault_class: function (motor, fault) {
+    motor_fault_class: function (motor, bit) {
       if (typeof motor == 'undefined') {
         var status = this.state['fa'];
         if (typeof status == 'undefined') return 'fa-question';
         return 'fa-thumbs-' + (status ? 'down error' : 'up success')
       }
 
-      var status = this.state[motor + 'ds'];
-      if (typeof status == 'undefined') return 'fa-question';
-      return status.indexOf(fault) == -1 ? 'fa-thumbs-up success' :
-        'fa-thumbs-down error';
+      var flags = this.state[motor + 'df'];
+      if (typeof flags == 'undefined') return 'fa-question';
+      return (flags & (1 << bit)) ? 'fa-thumbs-down error' :
+        'fa-thumbs-up success';
     },
 
 

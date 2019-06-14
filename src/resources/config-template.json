@@ -34,7 +34,7 @@
         "drive-current": {
           "type": "float",
           "min": 0,
-          "max": 8,
+          "max": 6,
           "unit": "amps",
           "default": 1.5,
           "code": "dc"

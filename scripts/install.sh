@@ -29,7 +29,7 @@ function update_config_txt() {
 
 
 if $UPDATE_PY; then
-    service bbctrl stop
+    systemctl stop bbctrl
 
     # Update service
     rm -f /etc/init.d/bbctrl
@@ -130,11 +130,14 @@ cp scripts/rc.local /etc/
 if $UPDATE_PY; then
     rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
     ./setup.py install --force
-    service bbctrl start
+    service bbctrl restart
 fi
 
 sync
 
 if $REBOOT; then
+    echo "Rebooting"
     reboot
 fi
+
+echo "Install complete"

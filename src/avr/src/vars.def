@@ -25,9 +25,9 @@
 
 \******************************************************************************/
 
-#define AXES_LABEL   "xyzabc"
+#define   AXES_LABEL "xyzabc"
 #define MOTORS_LABEL "0123"
-#define OUTS_LABEL   "ed12ft"
+#define   OUTS_LABEL "ed12ft"
 #define ANALOG_LABEL "12"
 #define VFDREG_LABEL "0123456789abcdefghijklmnopqrstuv"
 

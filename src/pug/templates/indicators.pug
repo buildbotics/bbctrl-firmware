@@ -191,17 +191,17 @@ script#indicators-template(type="text/x-template")
 
       tr(v-for="motor in [0, 1, 2, 3]")
         td {{motor}}
-        td: .fa(:class="motor_fault_class(motor, 'temp')",
+        td: .fa(:class="motor_fault_class(motor, 0)",
           title="Overtemperature fault")
-        td: .fa(:class="motor_fault_class(motor, 'current a')",
+        td: .fa(:class="motor_fault_class(motor, 1)",
           title="Overcurrent motor channel A")
-        td: .fa(:class="motor_fault_class(motor, 'fault a')",
+        td: .fa(:class="motor_fault_class(motor, 3)",
           title="Predriver fault motor channel A")
-        td: .fa(:class="motor_fault_class(motor, 'current b')",
+        td: .fa(:class="motor_fault_class(motor, 2)",
           title="Overcurrent motor channel B")
-        td: .fa(:class="motor_fault_class(motor, 'fault b')",
+        td: .fa(:class="motor_fault_class(motor, 4)",
           title="Predriver fault motor channel B")
-        td: .fa(:class="motor_fault_class(motor, 'comm')",
+        td: .fa(:class="motor_fault_class(motor, 8)",
           title="Driver communication failure")
         td(:title="'Reset motor ' + motor + ' flags'")
           .fa.fa-eraser(@click="motor_reset(motor)")
@@ -221,8 +221,8 @@ script#indicators-template(type="text/x-template")
         td {{state.motor | fixed 2}} A
         th Motor
         th.separator
-        td {{state.temp | fixed 0}} ℃
-        th Temp
+        td {{state.vdd | fixed 1}} V
+        th Low-side
 
       tr
         td {{state.load1 | fixed 2}} A
@@ -230,6 +230,14 @@ script#indicators-template(type="text/x-template")
         th.separator
         td {{state.load2 | fixed 2}} A
         th Load 2
+
+      tr
+        td {{state.temp | fixed 0}} ℃
+        th Temp
+        th.separator
+        td(:class="{'error': 80 <= state.rpi_temp}")
+          | {{state.rpi_temp | fixed 0}} ℃
+        th RPi Temp
 
       tr
         td {{state['1ai'] | percent 0}} A

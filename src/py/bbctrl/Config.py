@@ -94,9 +94,7 @@ class Config(object):
         except:
             return False
 
-        if (('min' in template and value < template['min']) or
-            ('max' in template and template['max'] < value) or
-            ('values' in template and value not in template['values'])):
+        if 'values' in template and value not in template['values']:
             return False
 
         return True
@@ -107,6 +105,12 @@ class Config(object):
             if (not name in config or
                 not self._valid_value(template, config[name])):
                 config[name] = template['default']
+
+            elif 'max' in template and template['max'] < config[name]:
+                config[name] = template['max']
+
+            elif 'min' in template and config[name] < template['min']:
+                config[name] = template['min']
 
             if template['type'] == 'list':
                 config = config[name]
@@ -182,7 +186,7 @@ class Config(object):
 
 
     def reset(self):
-        os.unlink('config.json')
+        if os.path.exists('config.json'): os.unlink('config.json')
         self.reload()
         self.ctrl.preplanner.invalidate_all()
 

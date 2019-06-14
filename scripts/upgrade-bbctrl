@@ -5,22 +5,18 @@
 
     VERSION=$(curl -s https://buildbotics.com/bbctrl/latest.txt)
     PKG_NAME=bbctrl-$VERSION
-    PKG=$PKG_NAME.tar.bz2
-    PKG_URL=https://buildbotics.com/bbctrl/$PKG
+    PKG=/var/lib/bbctrl/firmware/update.tar.bz2
+    PKG_URL=https://buildbotics.com/bbctrl/$PKG_NAME.tar.bz2
 
     logger Installing bbctrl firmware $VERSION
+
+    cd /var/lib/bbctrl
+    mkdir -p firmware
 
     echo Downloading $PKG_URL
     curl -s $PKG_URL > $PKG
 
-    echo Unpacking $PKG
-    tar xf $PKG
-
-    echo Installing $PKG
-    (cd $PKG_NAME; ./scripts/install.sh)
-
-    echo Cleaning up
-    rm -rf $PKG_NAME $PKG
+    /usr/local/bin/update-bbctrl
 
     echo Success
 
