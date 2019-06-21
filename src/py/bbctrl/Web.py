@@ -65,8 +65,8 @@ def check_password(password):
     current = s.split(':')[1].split('$')
 
     # Check password type
-    if current[1] != '1':
-        raise HTTPError(400, "Don't know how to update non-MD5 password")
+    if len(current) < 2 or current[1] != '1':
+        raise HTTPError(401, "Password invalid")
 
     # Check current password
     cmd = ['openssl', 'passwd', '-salt', current[2], '-1', password]

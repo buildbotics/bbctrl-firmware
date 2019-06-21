@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.10
+ - Fix demo password check
+
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.
  - Adjust config values above max or below min instead of resetting to default.
