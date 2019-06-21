@@ -53,7 +53,7 @@ class RequestHandler(tornado.web.RequestHandler):
     # Override exception logging
     def log_exception(self, typ, value, tb):
         if (isinstance(value, HTTPError) and
-            value.status_code in (400, 401, 404, 408)): return
+            400 <= value.status_code and value.status_code < 500): return
 
         log = self.get_log()
         log.set_level(bbctrl.log.DEBUG)
