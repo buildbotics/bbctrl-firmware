@@ -30,7 +30,7 @@
 #include "pins.h"
 
 
-#define VERSION 2
+#define VERSION 3
 
 
 // Pins
@@ -93,10 +93,9 @@ enum {
 #define SHUNT_WATTS 5
 #define SHUNT_OHMS  5.1
 #define SHUNT_PERIOD 65000 // ms
-#define SHUNT_JOULES 50    // Power per shunt period
+#define SHUNT_JOULES 25    // Power per shunt period
 #define SHUNT_JOULES_PER_MS ((float)SHUNT_JOULES / SHUNT_PERIOD)
-#define SHUNT_MIN_V 1
-#define SHUNT_MAX_V 3
+#define SHUNT_MIN_V 2
 
 #define VOLTAGE_REF 1.1
 #define VOLTAGE_REF_R1 37400

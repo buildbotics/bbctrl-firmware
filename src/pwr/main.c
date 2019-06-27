@@ -144,28 +144,21 @@ static void update_shunt() {
   if (SHUNT_JOULES < joules) joules = SHUNT_JOULES; // Max
 
   if (joules < shunt_joules) shunt_overload = true;
-  else if (shunt_joules) {
-    joules -= shunt_joules; // Subtract power dissipated
-    IO_DDR_SET(SHUNT_PIN);  // Enable
-    return;
-  }
-
-  IO_DDR_CLR(SHUNT_PIN); // Disable
+  else joules -= shunt_joules; // Subtract power dissipated
 }
 
 
 static void update_shunt_power(float vout, float vnom) {
   if (vnom + SHUNT_MIN_V < vout) {
-    float duty = (vout - vnom - SHUNT_MIN_V) / SHUNT_MAX_V;
-    if (duty < 0) duty = 0;
-    if (1 < duty) duty = 1;
-    if (VOLTAGE_MAX <= vout) duty = 1; // Full shunt at max voltage
-
     // Compute joules shunted this cycle: J = V^2 / RT
-    shunt_joules = duty * vout * vout / (SHUNT_OHMS * 1000.0);
-    OCR1A = 0xff * duty;
+    shunt_joules = vout * vout / (SHUNT_OHMS * 1000.0);
+    IO_DDR_SET(SHUNT_PIN);  // Enable
+    IO_PORT_CLR(SHUNT_PIN); // Lo
 
-  } else shunt_joules = 0;
+  } else {
+    shunt_joules = 0;
+    IO_DDR_CLR(SHUNT_PIN); // Disable
+  }
 }
 
 
@@ -242,7 +235,11 @@ static void read_conversion(uint8_t ch) {
   switch (ch) {
   case TEMP_ADC: regs[TEMP_REG] = data; break; // in Kelvin
   case VIN_ADC:  regs[VIN_REG]  = convert_voltage(data); break;
-  case VOUT_ADC: regs[VOUT_REG] = convert_voltage(data); break;
+
+  case VOUT_ADC:
+    regs[VOUT_REG] = convert_voltage(data);
+    update_shunt_power(regs[VOUT_REG] / 100.0, vnom);
+    break;
 
   case CS1_ADC: {
     update_current(MOTOR_REG, data);
@@ -344,22 +341,17 @@ void init() {
     (1 << ADC0D) | (1 << AREFD);
   DIDR1 = (1 << ADC5D);
 
-  // ADC internal 1.1v, enable, with interrupt, prescale 128
+  // ADC internal 1.1v, enable, with interrupt, prescale 64
+  // Note, a conversion takes ~200uS
   ADMUX = (1 << REFS1) | (0 << REFS0);
   ADCSRA = (1 << ADEN) | (1 << ADIE) |
-    (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
+    (1 << ADPS2) | (1 << ADPS1) | (0 << ADPS0);
   ADCSRB = 0;
 
   // Timer 0 (Fast PWM, clk/1)
   TCCR0A = (1 << WGM01) | (1 << WGM00);
   TCCR0B = (0 << WGM02) | (0 << CS02) | (0 << CS01) | (1 << CS00);
   TIMSK = 1 << TOIE0; // Enable overflow interrupt
-
-  // Timer 1 (Set output A on compare match, Fast PWM, 8-bit, no prescale)
-  OCR1A = 0; // Shunt off
-  TCCR1A = (1 << COM1A1) | (1 << COM1A0) | (0 << WGM11) | (1 << WGM10);
-  TCCR1B =
-    (0 << WGM13) | (1 << WGM12) | (0 << CS12) | (0 << CS11) | (1 << CS10);
 
   // I2C, enable, enable address/stop interrupt
   TWSCRA = (1 << TWEN) | (1 << TWASIE) | (1 << TWDIE);
@@ -412,7 +404,7 @@ int main() {
     float vin = get_reg(VIN_REG);
     float vout = get_reg(VOUT_REG);
 
-    update_shunt_power(vout, vnom);
+    //update_shunt_power(vout, vnom);
 
     // Fatal conditions
     if (vin < VOLTAGE_MIN) fatal |= UNDER_VOLTAGE_FLAG;
