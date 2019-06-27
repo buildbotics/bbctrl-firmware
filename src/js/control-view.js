@@ -182,7 +182,7 @@ module.exports = {
 
   events: {
     jog: function (axis, power) {
-      var data = {};
+      var data = {ts: new Date().getTime()};
       data[axis] = power;
       api.put('jog', data);
     }

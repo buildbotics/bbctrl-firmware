@@ -390,7 +390,21 @@ class ModbusWriteHandler(bbctrl.APIHandler):
 
 
 class JogHandler(bbctrl.APIHandler):
-    def put_ok(self): self.get_ctrl().mach.jog(self.json)
+    def put_ok(self):
+        # Handle possible out of order jog command processing
+        if 'ts' in self.json:
+            ts = self.json['ts']
+            id = self.get_cookie('client-id')
+
+            if not hasattr(self.app, 'last_jog'):
+                self.app.last_jog = {}
+
+            last = self.app.last_jog.get(id, 0)
+            self.app.last_jog[id] = ts
+
+            if ts < last: return # Out of order
+
+        self.get_ctrl().mach.jog(self.json)
 
 
 # Base class for Web Socket connections
