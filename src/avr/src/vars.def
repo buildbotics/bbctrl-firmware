@@ -140,6 +140,7 @@ VAR(hw_id,          hid, str,   0,      0, 1) // Hardware ID
 VAR(estop,           es, b8,    0,      1, 1) // Emergency stop
 VAR(estop_reason,    er, pstr,  0,      0, 1) // Emergency stop reason
 VAR(state,           xx, pstr,  0,      0, 1) // Machine state
+VAR(state_count,     xc, u16,   0,      0, 1) // Machine state change count
 VAR(hold_reason,     pr, pstr,  0,      0, 1) // Machine pause reason
 VAR(underrun,        un, u32,   0,      0, 1) // Stepper buffer underrun count
 VAR(dwell_time,      dt, f32,   0,      0, 1) // Dwell timer

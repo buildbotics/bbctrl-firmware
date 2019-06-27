@@ -77,6 +77,7 @@ class Comm(object):
         self.last_motor_flags = [0] * 4
 
         avr.set_handlers(self._read, self._write)
+        self._poll_cb(False)
 
 
     def comm_next(self): raise Exception('Not implemented')
@@ -105,6 +106,12 @@ class Comm(object):
     def queue_command(self, cmd):
         self.queue.append(cmd)
         self.flush()
+
+
+    def _poll_cb(self, now = True):
+        # Checks periodically for new commands from planner via comm_next()
+        if now: self.flush()
+        self.ctrl.ioloop.call_later(1, self._poll_cb)
 
 
     def _write(self, write_cb):

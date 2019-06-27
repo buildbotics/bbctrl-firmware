@@ -77,10 +77,8 @@ class Mach(Comm):
 
         self.planner = bbctrl.Planner(ctrl)
         self.unpausing = False
-        self.last_cycle = 'idle'
 
         ctrl.state.set('cycle', 'idle')
-        self._update_cb(False)
 
         ctrl.state.add_listener(self._update)
 
@@ -92,7 +90,7 @@ class Mach(Comm):
     def _is_holding(self): return self._get_state() == 'HOLDING'
     def _is_ready(self): return self._get_state() == 'READY'
     def _get_pause_reason(self): return self.ctrl.state.get('pr', '')
-    def _get_cycle(self): return self.ctrl.state.get('cycle')
+    def _get_cycle(self): return self.ctrl.state.get('cycle', 'idle')
 
 
     def _is_paused(self):
@@ -101,67 +99,57 @@ class Mach(Comm):
             'User pause', 'Program pause', 'Optional pause')
 
 
+    def _set_cycle(self, cycle): self.ctrl.state.set('cycle', cycle)
+
+
     def _begin_cycle(self, cycle):
         current = self._get_cycle()
         if current == cycle: return # No change
 
-        # TODO handle jogging during pause
-        # if current == 'idle' or (cycle == 'jogging' and self._is_paused()):
-        if current == 'idle':
-            self.ctrl.state.set('cycle', cycle)
-            self.last_cycle = current
-
-        else:
+        if current != 'idle':
             raise Exception('Cannot enter %s cycle while in %s cycle' %
                             (cycle, current))
 
-
-    def _update_cb(self, now = True):
-        if now:
-            self._update_cycle()
-            self.flush()
-
-        self.ctrl.ioloop.call_later(1, self._update_cb)
-
-
-    def _update_cycle(self):
-        if (self._get_cycle() != 'idle' and self._is_ready() and
-            not self.planner.is_busy() and not super().is_active()):
-            self.planner.update_position()
-            self.ctrl.state.set('cycle', 'idle')
+        # TODO handle jogging during pause
+        # if current == 'idle' or (cycle == 'jogging' and self._is_paused()):
+        self._set_cycle(cycle)
 
 
     def _update(self, update):
-        # Handle EStop
-        if update.get('xx', '') == 'ESTOPPED': self.planner.reset(False)
-
         # Detect motor faults
         for motor in range(4):
             key = '%ddf' % motor
             if key in update and update[key] & 0x1f:
                 self.mlog.error(motor_fault_error % motor)
 
-        # Update cycle now, if it has changed
-        self._update_cycle()
+        # Get state
+        state_changed = 'xc' in update
+        state = self._get_state()
+
+        # Handle EStop
+        if state_changed and state == 'ESTOPPED': self.planner.reset(False)
+
+        # Exit cycle if state changed to READY
+        if (state_changed and self._get_cycle() != 'idle' and
+            self._is_ready() and not self.planner.is_busy() and
+            not super().is_active()):
+            self.planner.position_change()
+            self._set_cycle('idle')
 
         # Unpause sync
-        if update.get('xx', 'HOLDING') != 'HOLDING': self.unpausing = False
+        if state_changed and state != 'HOLDING': self.unpausing = False
 
         # Entering HOLDING state
-        if update.get('xx', '') == 'HOLDING':
+        if state_changed and state == 'HOLDING':
             # Always flush queue after pause
             super().i2c_command(Cmd.FLUSH)
             super().resume()
 
-            # Return from jogging cycle
-            if self._get_cycle() == 'jogging':
-                self.planner.update_position()
-                self.ctrl.state.set('cycle', self.last_cycle)
-
         # Automatically unpause after seek or stop hold
+        # Must be after holding commands above
         op = self.ctrl.state.get('optional_pause', False)
         pr = self._get_pause_reason()
-        if (('xx' in update or 'pr' in update) and self._is_holding() and
+        if ((state_changed or 'pr' in update) and self._is_holding() and
             (pr in ('Switch found', 'User stop') or
              (pr == 'Optional pause' and not op))):
             self._unpause()
@@ -173,7 +161,6 @@ class Mach(Comm):
 
         if pause_reason == 'User stop':
             self.planner.stop()
-            self.planner.update_position()
             self.ctrl.state.set('line', 0)
 
         else: self.planner.restart()
@@ -242,6 +229,7 @@ class Mach(Comm):
 
     def jog(self, axes):
         self._begin_cycle('jogging')
+        self.planner.position_change()
         super().queue_command(Cmd.jog(axes))
 
 

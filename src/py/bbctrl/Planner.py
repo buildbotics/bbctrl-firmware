@@ -59,6 +59,7 @@ class Planner():
         self.log = ctrl.log.get('Planner')
         self.cmdq = CommandQueue(ctrl)
         self.planner = None
+        self._position_dirty = False
 
         ctrl.state.add_listener(self._update)
 
@@ -68,9 +69,12 @@ class Planner():
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
+    def position_change(self): self._position_dirty = True
 
 
-    def update_position(self):
+    def _sync_position(self, force = False):
+        if not force and not self._position_dirty: return
+        self._position_dirty = False
         self.planner.set_position(self.ctrl.state.get_position())
 
 
@@ -302,7 +306,7 @@ class Planner():
         self.planner.set_resolver(self._get_var_cb)
         # TODO logger is global and will not work correctly in demo mode
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
-        self.update_position()
+        self._position_dirty = True
         self.cmdq.clear()
         self.reset_times()
         self.ctrl.state.reset()
@@ -310,6 +314,7 @@ class Planner():
 
     def mdi(self, cmd, with_limits = True):
         self.log.info('MDI:' + cmd)
+        self._sync_position()
         self.planner.load_string(cmd, self.get_config(True, with_limits))
         self.reset_times()
 
@@ -317,6 +322,7 @@ class Planner():
     def load(self, path):
         path = self.ctrl.get_path('upload', path)
         self.log.info('GCode:' + path)
+        self._sync_position()
         self.planner.load(path, self.get_config(False, True))
         self.reset_times()
 
@@ -341,6 +347,7 @@ class Planner():
             self.cmdq.clear()
             self.cmdq.release(id)
             self._plan_time_restart()
+            self._sync_position(True)
             self.planner.restart(id, position)
 
         except:

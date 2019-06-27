@@ -3,6 +3,8 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.4.10
  - Fix demo password check
+ - Fix bug were fast clicks could cause jog commands to arrive out of order.
+ - Fix bug bug where planner position may not sync after jog.
 
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.

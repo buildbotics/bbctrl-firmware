@@ -47,6 +47,7 @@ static struct {
   bool unpause_requested;
 
   state_t state;
+  uint16_t state_count;
   hold_reason_t hold_reason;
 } s = {
   .flushing = true, // Start out flushing
@@ -87,6 +88,7 @@ static void _set_state(state_t state) {
   if (s.state == state) return; // No change
   if (s.state == STATE_ESTOPPED) return; // Can't leave EStop state
   s.state = state;
+  s.state_count++;
 }
 
 
@@ -201,6 +203,7 @@ void state_callback() {
 
 // Var callbacks
 PGM_P get_state() {return state_get_pgmstr(state_get());}
+uint16_t get_state_count() {return s.state_count;}
 PGM_P get_hold_reason() {return state_get_hold_reason_pgmstr(s.hold_reason);}
 
 
