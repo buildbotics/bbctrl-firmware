@@ -78,10 +78,11 @@ module.exports = {
       var state      = 'UNHOMED';
       var icon       = 'question-circle';
       var fault      = this.state[motor_id + 'df'] & 0x1f;
+      var shutdown   = this.state.power_shutdown;
       var title;
 
-      if (fault) {
-        state = 'FAULT';
+      if (fault || shutdown) {
+        state = shutdown ? 'SHUTDOWN' : 'FAULT';
         klass += ' error';
         icon = 'exclamation-circle';
 
@@ -102,7 +103,7 @@ module.exports = {
       }
 
       switch (state) {
-      case 'UNHOMED':  title = 'Click the home button to home axis.'; break;
+      case 'UNHOMED': title = 'Click the home button to home axis.'; break;
       case 'HOMED': title = 'Axis successfuly homed.'; break;
 
       case 'OVER':
@@ -124,9 +125,14 @@ module.exports = {
         title = 'Motor driver fault.  A potentially damaging electrical ' +
           'condition was detected and the motor driver was shutdown.  ' +
           'Please power down the controller and check your motor cabling.  ' +
-          'See the "Motor Faults" table on the "Indicators" for more ' +
+          'See the "Motor Faults" table on the "Indicators" tab for more ' +
           'information.';
         break;
+
+      case 'SHUTDOWN':
+        title = 'Motor power fault.  All motors in shutdown.  ' +
+          'See the "Power Faults" table on the "Indicators" tab for more ' +
+          'information.  Reboot controller to reset.';
       }
 
       return {

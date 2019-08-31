@@ -5,6 +5,10 @@ Buildbotics CNC Controller Firmware Changelog
  - Fix demo password check
  - Fix bug were fast clicks could cause jog commands to arrive out of order.
  - Fix bug bug where planner position may not sync after jog.
+ - Show power shutdown on indicators page.
+ - Show all motors in shutdown when in power shutdown.
+ - Improved GCode error messages.
+ - Don't reset global offsets on M2.
 
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.

@@ -51,6 +51,7 @@ REPORT       = 'r'
 REBOOT       = 'R'
 RESUME       = 'c'
 ESTOP        = 'E'
+SHUTDOWN     = 'X'
 CLEAR        = 'C'
 FLUSH        = 'F'
 DUMP         = 'D'
@@ -239,13 +240,14 @@ def decode_command(cmd):
             if name in 'xyzabcuvw': data['target'][name] = value
             else: data['times'][int(name)] = value
 
-    elif cmd[0] == REPORT:  data['type'] = 'report'
-    elif cmd[0] == PAUSE:   data['type'] = 'pause'
-    elif cmd[0] == UNPAUSE: data['type'] = 'unpause'
-    elif cmd[0] == ESTOP:   data['type'] = 'estop'
-    elif cmd[0] == CLEAR:   data['type'] = 'clear'
-    elif cmd[0] == FLUSH:   data['type'] = 'flush'
-    elif cmd[0] == RESUME:  data['type'] = 'resume'
+    elif cmd[0] == REPORT:   data['type'] = 'report'
+    elif cmd[0] == PAUSE:    data['type'] = 'pause'
+    elif cmd[0] == UNPAUSE:  data['type'] = 'unpause'
+    elif cmd[0] == ESTOP:    data['type'] = 'estop'
+    elif cmd[0] == SHUTDOWN: data['type'] = 'shutdown'
+    elif cmd[0] == CLEAR:    data['type'] = 'clear'
+    elif cmd[0] == FLUSH:    data['type'] = 'flush'
+    elif cmd[0] == RESUME:   data['type'] = 'resume'
 
     return data
 

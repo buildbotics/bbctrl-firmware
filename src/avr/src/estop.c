@@ -117,4 +117,10 @@ stat_t command_estop(char *cmd) {
 }
 
 
+stat_t command_shutdown(char *cmd) {
+  estop_trigger(STAT_POWER_SHUTDOWN);
+  return STAT_OK;
+}
+
+
 stat_t command_clear(char *cmd) {estop_clear(); return STAT_OK;}

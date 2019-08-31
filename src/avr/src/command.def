@@ -43,6 +43,7 @@ CMD('r', report,       0) // <0|1>[var] Enable or disable var reporting
 CMD('R', reboot,       0) // Reboot the controller
 CMD('c', resume,       0) // Continue processing after a flush
 CMD('E', estop,        0) // Emergency stop
+CMD('X', shutdown,     0) // Power shutdown
 CMD('C', clear,        0) // Clear estop
 CMD('F', flush,        0) // Flush command queue
 CMD('D', dump,         0) // Report all variables

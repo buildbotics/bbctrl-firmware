@@ -167,8 +167,9 @@ script#indicators-template(type="text/x-template")
         td(:class="{error: state.motor_under_voltage}")
           | {{state.motor_under_voltage ? 'True' : 'False'}}
         th.separator
-        th
-        td
+        th(:class="{error: state.power_shutdown}") Power shutdown
+        td(:class="{error: state.power_shutdown}")
+          | {{state.power_shutdown ? 'True' : 'False'}}
 
     table.motor_fault
       tr

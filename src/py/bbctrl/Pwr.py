@@ -26,6 +26,7 @@
 ################################################################################
 
 import bbctrl
+import bbctrl.Cmd as Cmd
 
 
 # Must match regs in pwr firmware
@@ -40,20 +41,21 @@ FLAGS_REG       = 7
 VERSION_REG     = 8
 
 # Must be kept in sync with pwr firmware
-UNDER_VOLTAGE_FLAG       = 1 << 0
-OVER_VOLTAGE_FLAG        = 1 << 1
-OVER_CURRENT_FLAG        = 1 << 2
-SENSE_ERROR_FLAG         = 1 << 3
-SHUNT_OVERLOAD_FLAG      = 1 << 4
-MOTOR_OVERLOAD_FLAG      = 1 << 5
-LOAD1_SHUTDOWN_FLAG      = 1 << 6
-LOAD2_SHUTDOWN_FLAG      = 1 << 7
-MOTOR_UNDER_VOLTAGE_FLAG = 1 << 8
+UNDER_VOLTAGE_FLAG             = 1 << 0
+OVER_VOLTAGE_FLAG              = 1 << 1
+OVER_CURRENT_FLAG              = 1 << 2
+SENSE_ERROR_FLAG               = 1 << 3
+SHUNT_OVERLOAD_FLAG            = 1 << 4
+MOTOR_OVERLOAD_FLAG            = 1 << 5
+LOAD1_SHUTDOWN_FLAG            = 1 << 6
+LOAD2_SHUTDOWN_FLAG            = 1 << 7
+MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8
 MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9
 MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10
 LOAD1_SENSE_ERROR_FLAG         = 1 << 11
 LOAD2_SENSE_ERROR_FLAG         = 1 << 12
 VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13
+POWER_SHUTDOWN_FLAG            = 1 << 14
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
 
@@ -131,6 +133,10 @@ class Pwr():
         if self.check_fault('vdd_current_sense_error',
                             flags & VDD_CURRENT_SENSE_ERROR_FLAG):
             self.log.error('Vdd current sense error')
+
+        if self.check_fault('power_shutdown', flags & POWER_SHUTDOWN_FLAG):
+            self.log.error('Power shutdown')
+            self.ctrl.mach.i2c_command(Cmd.SHUTDOWN)
 
 
     def _update_cb(self, now = True):

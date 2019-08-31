@@ -30,7 +30,7 @@
 #include "pins.h"
 
 
-#define VERSION 3
+#define VERSION 4
 
 
 // Pins
@@ -133,17 +133,17 @@ typedef enum {
 
 enum {
   // Fatal
-  UNDER_VOLTAGE_FLAG  = 1 << 0,
-  OVER_VOLTAGE_FLAG   = 1 << 1,
-  OVER_CURRENT_FLAG   = 1 << 2,
-  SENSE_ERROR_FLAG    = 1 << 3,
-  SHUNT_OVERLOAD_FLAG = 1 << 4,
-  MOTOR_OVERLOAD_FLAG = 1 << 5,
+  UNDER_VOLTAGE_FLAG             = 1 << 0,
+  OVER_VOLTAGE_FLAG              = 1 << 1,
+  OVER_CURRENT_FLAG              = 1 << 2,
+  SENSE_ERROR_FLAG               = 1 << 3,
+  SHUNT_OVERLOAD_FLAG            = 1 << 4,
+  MOTOR_OVERLOAD_FLAG            = 1 << 5,
 
   // Non fatal
-  LOAD1_SHUTDOWN_FLAG      = 1 << 6,
-  LOAD2_SHUTDOWN_FLAG      = 1 << 7,
-  MOTOR_UNDER_VOLTAGE_FLAG = 1 << 8,
+  LOAD1_SHUTDOWN_FLAG            = 1 << 6,
+  LOAD2_SHUTDOWN_FLAG            = 1 << 7,
+  MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8,
 
   // Sense errors
   MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9,
@@ -151,7 +151,11 @@ enum {
   LOAD1_SENSE_ERROR_FLAG         = 1 << 11,
   LOAD2_SENSE_ERROR_FLAG         = 1 << 12,
   VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13,
+
+  // State flags
+  POWER_SHUTDOWN_FLAG            = 1 << 14,
 };
 
 
-#define FATAL_FLAG_MASK ((1 << 6) - 1)
+#define FATAL_FLAGS       0x003f
+#define SENSE_ERROR_FLAGS 0x3e00

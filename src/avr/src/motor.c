@@ -427,7 +427,7 @@ void set_motor_axis(int motor, uint8_t axis) {
       set_travel(motor, motors[m].travel_rev);
       set_microstep(motor, motors[m].microsteps);
       set_motor_enabled(motor, motors[m].enabled);
-      motors[motor].slave = true;
+      motors[motor].slave = true; // Must be last
       break;
     }
 }
