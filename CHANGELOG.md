@@ -8,6 +8,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Show power shutdown on indicators page.
  - Show all motors in shutdown when in power shutdown.
  - Improved GCode error messages.
+ - Put controller into estop when in power shutdown.
  - Don't reset global offsets on M2.
 
 ## v0.4.9
