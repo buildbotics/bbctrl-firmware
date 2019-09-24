@@ -56,6 +56,7 @@ LOAD1_SENSE_ERROR_FLAG         = 1 << 11
 LOAD2_SENSE_ERROR_FLAG         = 1 << 12
 VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13
 POWER_SHUTDOWN_FLAG            = 1 << 14
+SHUNT_ERROR_FLAG               = 1 << 15
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
 
@@ -87,56 +88,59 @@ class Pwr():
         flags = self.regs[FLAGS_REG]
 
         if self.check_fault('under_voltage', flags & UNDER_VOLTAGE_FLAG):
-            self.log.error('Device under voltage')
+            self.log.warning('Device under voltage')
 
         if self.check_fault('over_voltage', flags & OVER_VOLTAGE_FLAG):
-            self.log.error('Device over voltage')
+            self.log.warning('Device over voltage')
 
         if self.check_fault('over_current', flags & OVER_CURRENT_FLAG):
-            self.log.error('Device total current limit exceeded')
+            self.log.warning('Device total current limit exceeded')
 
         if self.check_fault('sense_error', flags & SENSE_ERROR_FLAG):
-            self.log.error('Power sense error')
+            self.log.warning('Power sense error')
 
         if self.check_fault('shunt_overload', flags & SHUNT_OVERLOAD_FLAG):
-            self.log.error('Power shunt overload')
+            self.log.warning('Power shunt overload')
 
         if self.check_fault('motor_overload', flags & MOTOR_OVERLOAD_FLAG):
-            self.log.error('Motor power overload')
+            self.log.warning('Motor power overload')
 
         if self.check_fault('load1_shutdown', flags & LOAD1_SHUTDOWN_FLAG):
-            self.log.error('Load 1 over temperature shutdown')
+            self.log.warning('Load 1 over temperature shutdown')
 
         if self.check_fault('load2_shutdown', flags & LOAD2_SHUTDOWN_FLAG):
-            self.log.error('Load 2 over temperature shutdown')
+            self.log.warning('Load 2 over temperature shutdown')
 
         if self.check_fault('motor_under_voltage',
                             flags & MOTOR_UNDER_VOLTAGE_FLAG):
-            self.log.error('Motor under voltage')
+            self.log.warning('Motor under voltage')
 
         if self.check_fault('motor_voltage_sense_error',
                             flags & MOTOR_VOLTAGE_SENSE_ERROR_FLAG):
-            self.log.error('Motor voltage sense error')
+            self.log.warning('Motor voltage sense error')
 
         if self.check_fault('motor_current_sense_error',
                             flags & MOTOR_CURRENT_SENSE_ERROR_FLAG):
-            self.log.error('Motor current sense error')
+            self.log.warning('Motor current sense error')
 
         if self.check_fault('load1_sense_error',
                             flags & LOAD1_SENSE_ERROR_FLAG):
-            self.log.error('Load1 sense error')
+            self.log.warning('Load1 sense error')
 
         if self.check_fault('load2_sense_error',
                             flags & LOAD2_SENSE_ERROR_FLAG):
-            self.log.error('Load2 sense error')
+            self.log.warning('Load2 sense error')
 
         if self.check_fault('vdd_current_sense_error',
                             flags & VDD_CURRENT_SENSE_ERROR_FLAG):
-            self.log.error('Vdd current sense error')
+            self.log.warning('Vdd current sense error')
 
         if self.check_fault('power_shutdown', flags & POWER_SHUTDOWN_FLAG):
-            self.log.error('Power shutdown')
+            self.log.warning('Power shutdown')
             self.ctrl.mach.i2c_command(Cmd.SHUTDOWN)
+
+        if self.check_fault('shunt_error', flags & SHUNT_ERROR_FLAG):
+            self.log.warning('Shunt error')
 
 
     def _update_cb(self, now = True):

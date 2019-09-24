@@ -66,7 +66,14 @@ static volatile uint16_t reg_index[NUM_REGS] = {0};
 static volatile uint64_t time = 0; // ms
 static volatile uint8_t motor_overload = 0;
 static volatile float shunt_joules = 0;
+static volatile bool auto_shunt = false;
 static volatile float vnom = 0;
+
+
+void delay(uint16_t ms) {
+  uint64_t end = time + ms;
+  while (time < end) continue;
+}
 
 
 static void shutdown();
@@ -144,7 +151,7 @@ static float get_reg(int reg) {
 
 
 static void update_shunt() {
-  if (flags_get(POWER_SHUTDOWN_FLAG)) return;
+  if (!auto_shunt || flags_get(POWER_SHUTDOWN_FLAG)) return;
 
   static float joules = SHUNT_JOULES; // Power disipation budget
 
@@ -158,7 +165,7 @@ static void update_shunt() {
 
 
 static void update_shunt_power() {
-  if (flags_get(POWER_SHUTDOWN_FLAG)) return;
+  if (!auto_shunt || flags_get(POWER_SHUTDOWN_FLAG)) return;
 
   float vout = get_reg(VOUT_REG);
 
@@ -323,7 +330,7 @@ static void validate_input_voltage() {
   float vlast = 0;
 
   while (settle < VOLTAGE_SETTLE_COUNT) {
-    _delay_ms(VOLTAGE_SETTLE_PERIOD);
+    delay(VOLTAGE_SETTLE_PERIOD);
 
     // Check that voltage is with in range and settled
     float vin = get_reg(VIN_REG);
@@ -339,7 +346,19 @@ static void validate_input_voltage() {
 static void charge_caps() {
   IO_PORT_SET(SHUNT_PIN); // Disable shunt (hi)
   IO_PORT_SET(MOTOR_PIN); // Motor voltage on
-  _delay_ms(CAP_CHARGE_TIME);
+  delay(CAP_CHARGE_TIME);
+}
+
+
+static void shunt_test() {
+  charge_caps();
+
+  // Discharge caps
+  IO_PORT_CLR(MOTOR_PIN); // Motor voltage off
+  IO_PORT_CLR(SHUNT_PIN); // Enable shunt (lo)
+  delay(CAP_CHARGE_TIME);
+
+  if (SHUNT_FAIL_VOLTAGE < get_reg(VOUT_REG)) flags_set(SHUNT_ERROR_FLAG);
 }
 
 
@@ -378,8 +397,8 @@ void init() {
     (1 << ADPS2) | (1 << ADPS1) | (0 << ADPS0);
   ADCSRB = 0;
 
-  // Timer 0 (Fast PWM, clk/1)
-  TCCR0A = (1 << WGM01) | (1 << WGM00);
+  // Timer 0, normal, clk/1
+  TCCR0A = (0 << WGM01) | (0 << WGM00);
   TCCR0B = (0 << WGM02) | (0 << CS02) | (0 << CS01) | (1 << CS00);
   TIMSK  = 1 << TOIE0; // Enable overflow interrupt
 
@@ -427,8 +446,10 @@ int main() {
   init();
   adc_conversion(); // Start ADC
   validate_input_voltage();
+  shunt_test();
   charge_caps();
   validate_measurements();
+  auto_shunt = true;
 
   while (true) continue;
 

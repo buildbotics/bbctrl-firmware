@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Improved GCode error messages.
  - Put controller into estop when in power shutdown.
  - Don't reset global offsets on M2.
+ - Test shunt and show error on failure.
 
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.

@@ -141,7 +141,7 @@ class AVR(object):
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):
         self.log.info('I2C: %s b=%s w=%s d=%s' % (cmd, byte, word, block))
-        retry = 5
+        retry = 10
         cmd = ord(cmd[0])
 
         while True:
@@ -154,7 +154,7 @@ class AVR(object):
 
                 if retry:
                     self.log.warning('I2C failed, retrying: %s' % e)
-                    time.sleep(0.1)
+                    time.sleep(0.25)
                     continue
 
                 else:

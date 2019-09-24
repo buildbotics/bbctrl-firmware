@@ -151,9 +151,9 @@ script#indicators-template(type="text/x-template")
         td(:class="{error: state.shunt_overload}")
           | {{state.shunt_overload ? 'True' : 'False'}}
         th.separator
-        th(:class="{error: state.motor_overload}") Motor overload
-        td(:class="{error: state.motor_overload}")
-          | {{state.motor_overload ? 'True' : 'False'}}
+        th(:class="{error: state.shunt_error}") Shunt error
+        td(:class="{error: state.shunt_error}")
+          | {{state.shunt_error ? 'True' : 'False'}}
       tr
         th(:class="{error: state.load1_shutdown}") Load 1 shutdown
         td(:class="{error: state.load1_shutdown}")
@@ -167,9 +167,17 @@ script#indicators-template(type="text/x-template")
         td(:class="{error: state.motor_under_voltage}")
           | {{state.motor_under_voltage ? 'True' : 'False'}}
         th.separator
+        th(:class="{error: state.motor_overload}") Motor overload
+        td(:class="{error: state.motor_overload}")
+          | {{state.motor_overload ? 'True' : 'False'}}
+
+      tr
         th(:class="{error: state.power_shutdown}") Power shutdown
         td(:class="{error: state.power_shutdown}")
           | {{state.power_shutdown ? 'True' : 'False'}}
+        th.separator
+        th
+        td
 
     table.motor_fault
       tr

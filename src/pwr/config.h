@@ -30,7 +30,7 @@
 #include "pins.h"
 
 
-#define VERSION 4
+#define VERSION 5
 
 
 // Pins
@@ -78,43 +78,44 @@ enum {
 };
 
 
-#define CAP_CHARGE_TIME 50 // ms
-#define VOLTAGE_MIN 11
-#define VOLTAGE_MAX 39
-#define CURRENT_MAX 25
-#define CURRENT_OVERTEMP 19 // Should read as ~21A but over 11.86A in an error
-#define LOAD_OVERTEMP_MAX 10
-#define MOTOR_SHUTDOWN_THRESH 15
-#define VOLTAGE_SETTLE_COUNT 5
-#define VOLTAGE_SETTLE_PERIOD 20 // ms
+#define SHUNT_FAIL_VOLTAGE       5
+#define CAP_CHARGE_TIME          20 // ms
+#define VOLTAGE_MIN              11
+#define VOLTAGE_MAX              39
+#define CURRENT_MAX              25
+#define CURRENT_OVERTEMP         19 // Should read ~21A but > 11.86A is error
+#define LOAD_OVERTEMP_MAX        10
+#define MOTOR_SHUTDOWN_THRESH    15
+#define VOLTAGE_SETTLE_COUNT     5
+#define VOLTAGE_SETTLE_PERIOD    20 // ms
 #define VOLTAGE_SETTLE_TOLERANCE 0.01
-#define VOLTAGE_EXP 0.01
+#define VOLTAGE_EXP              0.01
 
-#define SHUNT_WATTS 5
-#define SHUNT_OHMS  5.1
-#define SHUNT_PERIOD 65000 // ms
-#define SHUNT_JOULES 25    // Power per shunt period
-#define SHUNT_JOULES_PER_MS ((float)SHUNT_JOULES / SHUNT_PERIOD)
-#define SHUNT_MIN_V 2
+#define SHUNT_WATTS              5
+#define SHUNT_OHMS               5.1
+#define SHUNT_PERIOD             65000 // ms
+#define SHUNT_JOULES             25    // Power per shunt period
+#define SHUNT_JOULES_PER_MS      ((float)SHUNT_JOULES / SHUNT_PERIOD)
+#define SHUNT_MIN_V              2
 
-#define VOLTAGE_REF 1.1
-#define VOLTAGE_REF_R1 37400
-#define VOLTAGE_REF_R2 1000
-#define CURRENT_REF_R2 137
+#define VOLTAGE_REF              1.1
+#define VOLTAGE_REF_R1           37400
+#define VOLTAGE_REF_R2           1000
+#define CURRENT_REF_R2           137
 #define CURRENT_REF_MUL (100.0 * 2700 / CURRENT_REF_R2) // 2700 from datasheet
 
-#define AVG_SCALE 3
-#define BUCKETS (1 << AVG_SCALE)
+#define AVG_SCALE                3
+#define BUCKETS                  (1 << AVG_SCALE)
 
 // Addresses 0x60 to 0x67
-#define I2C_ADDR 0x60
-#define I2C_MASK 0b00001111
+#define I2C_ADDR                 0x60
+#define I2C_MASK                 0b00001111
 
-#define I2C_ERROR_BM (1 << TWBE)
-#define I2C_DATA_INT_BM (1 << TWDIF)
-#define I2C_READ_BM (1 << TWDIR)
-#define I2C_ADDRESS_STOP_INT_BM (1 << TWASIF)
-#define I2C_ADDRESS_MATCH_BM (1 << TWAS)
+#define I2C_ERROR_BM             (1 << TWBE)
+#define I2C_DATA_INT_BM          (1 << TWDIF)
+#define I2C_READ_BM              (1 << TWDIR)
+#define I2C_ADDRESS_STOP_INT_BM  (1 << TWASIF)
+#define I2C_ADDRESS_MATCH_BM     (1 << TWAS)
 
 
 typedef enum {
@@ -144,6 +145,7 @@ enum {
   LOAD1_SHUTDOWN_FLAG            = 1 << 6,
   LOAD2_SHUTDOWN_FLAG            = 1 << 7,
   MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8,
+  SHUNT_ERROR_FLAG               = 1 << 15,
 
   // Sense errors
   MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9,
