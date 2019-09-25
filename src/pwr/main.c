@@ -113,11 +113,7 @@ ISR(TWI_SLAVE_vect) {
     if (status & I2C_READ_BM) {
       // Send response
       if (byte < 2) {
-        switch (byte++) {
-        case 0: TWSD = reg; break;
-        case 1: TWSD = reg >> 8; break;
-        }
-
+        TWSD = byte++ ? reg >> 8 : reg;
         i2c_ack();
 
       } else i2c_nack();
