@@ -50,7 +50,7 @@ script#tool-view-template(type="text/x-template")
         h2 Modbus Configuration
         .pure-control-group
           label status
-          tt {{modbus_status}}
+          tt {{modbus_status}} ({{state.ss || 0}})
         templated-input(v-for="templ in template['modbus-spindle']",
           :name="$key", :model.sync="config['modbus-spindle'][$key]",
           :template="templ", v-if="show_modbus_field($key)")

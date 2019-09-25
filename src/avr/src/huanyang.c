@@ -289,12 +289,12 @@ void huanyang_set(float power) {
 
 
 float huanyang_get() {return hy.actual_freq / hy.max_freq;}
+uint8_t huanyang_get_status() {return hy.status;}
 
-
+// Variable callbacks
 float get_hy_freq() {return hy.actual_freq;}
 float get_hy_current() {return hy.actual_current;}
 uint16_t get_hy_temp() {return hy.temperature;}
 float get_hy_max_freq() {return hy.max_freq;}
 float get_hy_min_freq() {return hy.min_freq;}
 uint16_t get_hy_rated_rpm() {return hy.rated_rpm;}
-uint8_t get_hy_status() {return hy.status;}

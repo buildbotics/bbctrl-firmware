@@ -11,6 +11,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Put controller into estop when in power shutdown.
  - Don't reset global offsets on M2.
  - Test shunt and show error on failure.
+ - Report spindle status codes from Modbus.
+ - Save more log files in bug report.
 
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.

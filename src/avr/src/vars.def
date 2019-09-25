@@ -89,6 +89,7 @@ VAR(speed,            s, f32,   0,      0, 1) // Current spindle speed
 VAR(tool_reversed,   sr, b8,    0,      1, 1) // Reverse tool
 VAR(max_spin,        sx, f32,   0,      1, 1) // Maximum spindle speed
 VAR(min_spin,        sm, f32,   0,      1, 1) // Minimum spindle speed
+VAR(spindle_status,  ss, u16,   0,      0, 1) // Spindle status code
 
 // PWM spindle
 VAR(pwm_invert,      pi, b8,    0,      1, 1) // Inverted spindle PWM
@@ -108,7 +109,6 @@ VAR(mb_crc_errs,     cr, u16,   0,      0, 1) // Modbus CRC error counter
 // VFD spindle
 VAR(vfd_max_freq,    vf, u16,   0,      1, 1) // VFD maximum frequency
 VAR(vfd_multi_write, mw, b8,    0,      1, 1) // Use Modbus multi write mode
-VAR(vfd_status,      vs, u16,   0,      0, 1) // VFD status
 VAR(vfd_reg_type,    vt, u8,    VFDREG, 1, 1) // VFD register type
 VAR(vfd_reg_addr,    va, u16,   VFDREG, 1, 1) // VFD register address
 VAR(vfd_reg_val,     vv, u16,   VFDREG, 1, 1) // VFD register value
@@ -121,7 +121,6 @@ VAR(hy_temp,         ht, u16,   0,      0, 0) // Huanyang temperature
 VAR(hy_max_freq,     hx, f32,   0,      0, 1) // Huanyang max freq
 VAR(hy_min_freq,     hm, f32,   0,      0, 1) // Huanyang min freq
 VAR(hy_rated_rpm,    hq, u16,   0,      0, 1) // Huanyang rated RPM
-VAR(hy_status,       hs, u8,    0,      0, 1) // Huanyang status flags
 
 // Machine state
 VAR(id,              id, u16,   0,      1, 1) // Last executed command ID

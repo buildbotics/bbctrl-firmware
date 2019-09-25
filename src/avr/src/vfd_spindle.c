@@ -381,6 +381,7 @@ void vfd_spindle_set(float power) {
 
 
 float vfd_spindle_get() {return vfd.actual_power;}
+uint16_t vfd_get_status() {return vfd.status;}
 
 
 void vfd_spindle_rtc_callback() {
@@ -395,7 +396,6 @@ uint16_t get_vfd_max_freq() {return vfd.max_freq;}
 void set_vfd_max_freq(uint16_t max_freq) {vfd.max_freq = max_freq;}
 bool get_vfd_multi_write() {return vfd.user_multi_write;}
 void set_vfd_multi_write(bool value) {vfd.user_multi_write = value;}
-uint16_t get_vfd_status() {return vfd.status;}
 uint8_t get_vfd_reg_type(int reg) {return regs[reg].type;}
 
 

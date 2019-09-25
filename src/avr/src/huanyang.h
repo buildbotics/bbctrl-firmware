@@ -34,6 +34,7 @@ void huanyang_init();
 void huanyang_deinit(deinit_cb_t cb);
 void huanyang_set(float power);
 float huanyang_get();
+uint8_t huanyang_get_status();
 
 
 /// See Huanyang VFD user manual

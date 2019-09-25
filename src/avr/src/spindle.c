@@ -246,6 +246,16 @@ void set_min_spin(float value) {
 }
 
 
+uint16_t get_spindle_status() {
+  switch (spindle.type) {
+  case SPINDLE_TYPE_DISABLED: return 0;
+  case SPINDLE_TYPE_PWM:      return 0;
+  case SPINDLE_TYPE_HUANYANG: return huanyang_get_status();
+  default:                    return vfd_get_status();
+  }
+}
+
+
 uint16_t get_speed_override() {return spindle.override * 1000;}
 
 
