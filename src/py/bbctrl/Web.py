@@ -113,9 +113,8 @@ class BugReportHandler(bbctrl.RequestHandler):
         ctrl = self.get_ctrl()
         path = ctrl.log.get_path()
         check_add_basename(path)
-        check_add_basename(path + '.1')
-        check_add_basename(path + '.2')
-        check_add_basename(path + '.3')
+        for i in range(1, 8):
+            check_add_basename('%s.%d' % (path, i))
         check_add_basename('/var/log/syslog')
         check_add('config.json')
         check_add(ctrl.get_upload(ctrl.state.get('selected', '')))
