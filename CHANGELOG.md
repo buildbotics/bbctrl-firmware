@@ -1,6 +1,13 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.11
+ - Don't reset global offsets on M2.
+ - Test shunt and show error on failure.
+ - Report spindle status codes from Modbus.
+ - Save more log files in bug report.
+ - Fixed indicators low-side units.
+
 ## v0.4.10
  - Fix demo password check
  - Fix bug were fast clicks could cause jog commands to arrive out of order.
@@ -9,10 +16,6 @@ Buildbotics CNC Controller Firmware Changelog
  - Show all motors in shutdown when in power shutdown.
  - Improved GCode error messages.
  - Put controller into estop when in power shutdown.
- - Don't reset global offsets on M2.
- - Test shunt and show error on failure.
- - Report spindle status codes from Modbus.
- - Save more log files in bug report.
 
 ## v0.4.9
  - Enforce 6A per motor channel peak current limit.
@@ -20,7 +23,7 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.4.8
  - Fixed log rotating.
- - Use systemd serivce instead of init.d.
+ - Use systemd service instead of init.d.
  - Fix planner terminate.
  - Changed AVR serial interrupt priorites.
  - Increased AVR serial and command buffers.
