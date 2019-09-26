@@ -233,3 +233,51 @@ script#tool-view-template(type="text/x-template")
             target="_blank") Delta VFD015M21A VFD manual
           |
           | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('YL600')")
+        h2 Notes
+        p Set the following using the VFD's frontpanel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P00.01
+            td.reg-value 3
+            td Modbus RS-485
+            td Start / stop command source
+          tr
+            td.reg-addr P03.00
+            td.reg-value 3
+            td 9600 baud
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P03.01
+            td.reg-value 1
+            td Modbus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P03.02
+            td.reg-value 5
+            td 8 bit, no parity, 2 stop
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr P03.04
+            td.reg-value 500
+            td RS-485 max delay
+            td Time in milliseconds
+          tr
+            td.reg-addr P07.15
+            td.reg-value 5
+            td RS-485
+            td Frequency source
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/YL620-A.pdf",
+            target="_blank") YL600 VFD manual
+          |
+          | and spindle type.

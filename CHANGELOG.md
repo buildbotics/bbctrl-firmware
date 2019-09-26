@@ -7,6 +7,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Report spindle status codes from Modbus.
  - Save more log files in bug report.
  - Fixed indicators low-side units.
+ - Support for YL600, YL620 & YL620-A VFDs.
 
 ## v0.4.10
  - Fix demo password check

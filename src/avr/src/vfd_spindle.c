@@ -116,16 +116,14 @@ const vfd_reg_t delta_vfd015m21a_regs[] PROGMEM = {
 
 
 const vfd_reg_t yl600_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE,    P(7, 8), 1}, // P07_08_FREQ_SOURCE_1
-  {REG_CONNECT_WRITE,    P(0, 1), 1}, // P00_01_START_STOP_SOURCE
-  {REG_MAX_FREQ_READ,    P(0, 4), 0}, // P00_04_HIGEST_OUTPUT_FREQ
-  {REG_FREQ_SET,         P(7, 0), 0}, // P07_00_FREQ_1
-//  {REG_STOP_WRITE,       P(?, ?), ?}, //
-//  {REG_FWD_WRITE,        P(1, 0), ?}, // P01_00_DIRECTION
-//  {REG_REV_WRITE,        P(?, ?), ?}, //
-  {REG_FREQ_READ,        P(0, 0), 0}, // P00_00_MAIN_FREQ
-  {REG_DISCONNECT_WRITE, P(0, 1), 0}, // P00_01_START_STOP_SOURCE
-  {REG_DISCONNECT_WRITE, P(7, 8), 0}, // P07_08_FREQ_SOURCE_1
+  {REG_CONNECT_WRITE, 0x2000, 128}, // Reset all errors
+  {REG_MAX_FREQ_READ, 0x0004,   0}, // Max frequency
+  {REG_FREQ_SET,      0x2001,   0}, // Frequency
+  {REG_STOP_WRITE,    0x2000,   1}, // Stop drive
+  {REG_FWD_WRITE,     0x2000,  18}, // Forward
+  {REG_REV_WRITE,     0x2000,  34}, // Reverse
+  {REG_FREQ_READ,     0x200b,   0}, // Output freq
+  {REG_STATUS_READ,   0x2008,   0}, // Status
   {REG_DISABLED},
 };
 

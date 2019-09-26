@@ -193,7 +193,7 @@
       "type": "enum",
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
                  "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
-                 "YL600 VFD (Beta)", "FR-D700 (Beta)"],
+                 "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)"],
       "default": "Disabled",
       "code": "st"
     },
