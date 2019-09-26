@@ -86,6 +86,7 @@ $(function() {
   });
 
   Vue.filter('percent', function (value, precision) {
+    if (typeof value == 'undefined') return '';
     if (typeof precision == 'undefined') precision = 2;
     return (value * 100.0).toFixed(precision) + '%';
   });
@@ -97,7 +98,7 @@ $(function() {
   });
 
   Vue.filter('fixed', function (value, precision) {
-    if (typeof value == 'undefined') return '';
+    if (typeof value == 'undefined') return '0';
     return parseFloat(value).toFixed(precision)
   });
 

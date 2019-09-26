@@ -118,13 +118,13 @@ script#control-view-template(type="text/x-template")
       tr
         th Message
         td.reason(:class="{attention: highlight_reason}") {{reason}}
-      tr(title="Currently active machine units")
+      tr(title="Active machine units")
         th Units
         td.mach_units
           select(v-model="mach_units", :disabled="!is_idle")
             option(value="METRIC") METRIC
             option(value="IMPERIAL") IMPERIAL
-      tr
+      tr(title="Active tool")
         th Tool
         td {{state.tool || 0}}
 
@@ -136,18 +136,18 @@ script#control-view-template(type="text/x-template")
           unit-value(:value="state.v", precision="2", unit="", iunit="",
             scale="0.0254")
           | {{metric ? ' m/min' : ' IPM'}}
-      tr
+      tr(title="Programmed feed rate.")
         th Feed
         td
           unit-value(:value="state.feed", precision="2", unit="", iunit="")
           | {{metric ? ' mm/min' : ' IPM'}}
-      tr
+      tr(title="Programed and actual speed.")
         th Speed
         td
           | {{state.speed || 0 | fixed 0}}
           span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
           = ' RPM'
-      tr
+      tr(title="Load switch states.")
         th Loads
         td
           span(:class="state['1oa'] ? 'load-on' : ''")

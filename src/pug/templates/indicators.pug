@@ -84,6 +84,15 @@ script#indicators-template(type="text/x-template")
         td 22
         th Probe
 
+      tr(v-if="false")
+        td {{state['1ai'] | percent 0}}
+        td 24
+        th Analog 1
+        th.separator
+        td {{state['2ai'] | percent 0}}
+        td 18
+        th Analog 2
+
     table.outputs
       tr
         th.header(colspan=7) Outputs
@@ -247,38 +256,6 @@ script#indicators-template(type="text/x-template")
         td(:class="{'error': 80 <= state.rpi_temp}")
           | {{state.rpi_temp | fixed 0}} ℃
         th RPi Temp
-
-      tr
-        td {{state['1ai'] | percent 0}} A
-        th Analog 1
-        th.separator
-        td {{state['2ai'] | percent 0}} A
-        th Analog 2
-
-    table.modbus
-      tr
-        th.header(colspan=5) Modbus VFD
-
-      tr
-        td {{modbus_status}}
-        th Status
-        th.separator
-        td {{state.hz}} Hz
-        th Frequency
-
-      tr
-        td {{state.s}} RPM
-        th Speed
-        th.separator
-        td {{state.hc}} A
-        th Current
-
-      tr
-        td {{state.ss}}
-        th VFD Status
-        th.separator
-        td
-        th
 
     h2 DB25 breakout box
     img(src="images/DB25_breakout_box.png")

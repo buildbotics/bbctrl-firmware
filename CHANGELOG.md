@@ -8,6 +8,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Save more log files in bug report.
  - Fixed indicators low-side units.
  - Support for YL600, YL620 & YL620-A VFDs.
+ - Move Modbus indicators to tool page.
+ - Support for Sunfar E300 VFD.
 
 ## v0.4.10
  - Fix demo password check

@@ -48,12 +48,21 @@ script#tool-view-template(type="text/x-template")
 
       fieldset(v-if="is_modbus")
         h2 Modbus Configuration
-        .pure-control-group
-          label status
-          tt {{modbus_status}} ({{state.ss || 0}})
         templated-input(v-for="templ in template['modbus-spindle']",
           :name="$key", :model.sync="config['modbus-spindle'][$key]",
           :template="templ", v-if="show_modbus_field($key)")
+
+        h2 Modbus Status
+        .pure-control-group(title="VFD connection status")
+          label connection
+          tt {{modbus_status}}
+        .pure-control-group(title="Numerical status reported by VFD")
+          label status
+          tt {{state.ss || 0}}
+        .pure-control-group(title="Speed reported by VFD")
+          label speed
+          tt {{state.s | fixed}}
+          label.units RPM
 
       fieldset.modbus-program(
         v-if="is_modbus && this.tool_type != 'HUANYANG VFD'")
@@ -279,5 +288,48 @@ script#tool-view-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/YL620-A.pdf",
             target="_blank") YL600 VFD manual
+          |
+          | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('SUNFAR')")
+        h2 Notes
+        p Set the following using the VFD's frontpanel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr F0.0
+            td.reg-value 2
+            td Serial communication
+            td Frequency source
+          tr
+            td.reg-addr F0.2
+            td.reg-value 1002
+            td Serial communication
+            td Control source
+          tr
+            td.reg-addr F4.0
+            td.reg-value 0104
+            td Modbus, no parity, 9600 baud
+            td Must match #[tt parity] and #[tt baud] above
+          tr
+            td.reg-addr F4.1
+            td.reg-value 1
+            td Bus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr F4.4
+            td.reg-value 3
+            td Seconds
+            td Communication timeout
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Sunfar-E300.pdf",
+            target="_blank") Sunfar E300 VFD manual
           |
           | and spindle type.

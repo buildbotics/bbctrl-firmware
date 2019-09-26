@@ -139,6 +139,19 @@ const vfd_reg_t fr_d700_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t sunfar_e300_regs[] PROGMEM = {
+  {REG_CONNECT_WRITE, 0x1001,  32}, // Reset all errors
+  {REG_MAX_FREQ_READ, 0xf004,   0}, // Max frequency F0.4
+  {REG_FREQ_SET,      0x1002,   0}, // Frequency
+  {REG_STOP_WRITE,    0x1001,   3}, // Stop drive
+  {REG_FWD_WRITE,     0x1001,   1}, // Forward
+  {REG_REV_WRITE,     0x1001,   2}, // Reverse
+  {REG_FREQ_READ,     0xd000,   0}, // Output freq d.0
+  {REG_STATUS_READ,   0x2000,   0}, // Status
+  {REG_DISABLED},
+};
+
+
 static vfd_reg_t regs[VFDREG];
 static vfd_reg_t custom_regs[VFDREG];
 
@@ -355,6 +368,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_DELTA_VFD015M21A: _load(delta_vfd015m21a_regs);   break;
   case SPINDLE_TYPE_YL600:            _load(yl600_regs);              break;
   case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs);            break;
+  case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
   default: break;
   }
 
