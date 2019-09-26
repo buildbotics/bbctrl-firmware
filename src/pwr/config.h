@@ -30,7 +30,7 @@
 #include "pins.h"
 
 
-#define VERSION 5
+#define VERSION 6
 
 
 // Pins
@@ -104,6 +104,7 @@ enum {
 #define CURRENT_REF_R2           137
 #define CURRENT_REF_MUL (100.0 * 2700 / CURRENT_REF_R2) // 2700 from datasheet
 
+#define REG_SCALE                100
 #define AVG_SCALE                3
 #define BUCKETS                  (1 << AVG_SCALE)
 

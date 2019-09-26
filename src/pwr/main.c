@@ -37,6 +37,16 @@
 
 
 typedef struct {
+  volatile uint16_t value;
+  volatile uint16_t raw;
+  volatile uint16_t buckets[BUCKETS];
+  volatile uint8_t index;
+  volatile uint8_t fill;
+  volatile uint32_t sum;
+} reg_t;
+
+
+typedef struct {
   const regs_t reg;
   const uint8_t pin;
   volatile uint8_t overtemp;
@@ -60,13 +70,11 @@ static const uint8_t ch_schedule[] = {
 };
 
 
-static volatile uint16_t regs[NUM_REGS] = {0};
-static volatile uint16_t reg_avg[NUM_REGS][BUCKETS] = {{0}};
-static volatile uint16_t reg_index[NUM_REGS] = {0};
+static reg_t regs[NUM_REGS] = {{0}};
 static volatile uint64_t time = 0; // ms
 static volatile uint8_t motor_overload = 0;
 static volatile float shunt_joules = 0;
-static volatile bool auto_shunt = false;
+static volatile bool initialized = false;
 static volatile float vnom = 0;
 
 
@@ -79,12 +87,16 @@ void delay(uint16_t ms) {
 static void shutdown();
 
 
-static uint16_t flags_get(uint16_t flags) {return regs[FLAGS_REG] & flags;}
-static void flags_clear(uint16_t flags) {regs[FLAGS_REG] &= ~flags;}
+static uint16_t flags_get(uint16_t flags) {
+  return regs[FLAGS_REG].value & flags;
+}
+
+
+static void flags_clear(uint16_t flags) {regs[FLAGS_REG].value &= ~flags;}
 
 
 static void flags_set(uint16_t flags) {
-  regs[FLAGS_REG] |= flags;
+  regs[FLAGS_REG].value |= flags;
   if (flags & FATAL_FLAGS) shutdown();
 }
 
@@ -127,7 +139,7 @@ ISR(TWI_SLAVE_vect) {
 
       if (addr < NUM_REGS) {
         i2c_ack();
-        reg = regs[addr];
+        reg = regs[addr].value;
         byte = 0;
 
       } else i2c_nack();
@@ -138,16 +150,17 @@ ISR(TWI_SLAVE_vect) {
 
 
 static float get_reg(int reg) {
+  uint8_t sreg = SREG;
   cli();
-  float value = regs[reg];
-  sei();
+  float value = regs[reg].value;
+  SREG = sreg;
 
-  return value / 100;
+  return value / REG_SCALE;
 }
 
 
 static void update_shunt() {
-  if (!auto_shunt || flags_get(POWER_SHUTDOWN_FLAG)) return;
+  if (!initialized) return;
 
   static float joules = SHUNT_JOULES; // Power disipation budget
 
@@ -161,7 +174,7 @@ static void update_shunt() {
 
 
 static void update_shunt_power() {
-  if (!auto_shunt || flags_get(POWER_SHUTDOWN_FLAG)) return;
+  if (!initialized) return;
 
   float vout = get_reg(VOUT_REG);
 
@@ -178,13 +191,10 @@ static void update_shunt_power() {
 
 
 static void measure_nominal_voltage() {
-  float vin = get_reg(VIN_REG);
-  float v;
+  float vin = regs[VIN_REG].raw / REG_SCALE;
 
-  if (vnom < VOLTAGE_MIN) v = vin;
-  else v = vnom * (1 - VOLTAGE_EXP) + vin * VOLTAGE_EXP;
-
-  vnom = v;
+  if (vnom < VOLTAGE_MIN) vnom = vin;
+  else vnom = vnom * (1 - VOLTAGE_EXP) + vin * VOLTAGE_EXP;
 }
 
 
@@ -201,9 +211,29 @@ ISR(TIMER0_OVF_vect) {
 }
 
 
+static uint16_t average_reg(int index, uint16_t sample) {
+  reg_t *reg = &regs[index];
+
+  reg->raw = sample;
+  reg->sum -= reg->buckets[reg->index];
+  reg->sum += sample;
+  reg->buckets[reg->index] = sample;
+  if (++reg->index == BUCKETS) reg->index = 0;
+
+  if (reg->fill < BUCKETS) {
+    reg->fill++;
+    reg->value = reg->sum / reg->fill;
+
+  } else reg->value = reg->sum >> AVG_SCALE;
+
+  return reg->value;
+}
+
+
 static uint16_t convert_voltage(uint16_t sample) {
-  return sample * (VOLTAGE_REF / 1024.0 *
-                   (VOLTAGE_REF_R1 + VOLTAGE_REF_R2) / VOLTAGE_REF_R2 * 100);
+  return
+    sample * (VOLTAGE_REF / 1024.0 *
+              (VOLTAGE_REF_R1 + VOLTAGE_REF_R2) / VOLTAGE_REF_R2 * REG_SCALE);
 }
 
 
@@ -213,49 +243,46 @@ static uint16_t convert_current(uint16_t sample) {
 
 
 static void update_current(int reg, uint16_t sample) {
-  reg_avg[reg][reg_index[reg]] = convert_current(sample);
-  if (++reg_index[reg] == BUCKETS) reg_index[reg] = 0;
-
-  uint32_t sum = 0;
-  for (int i = 0; i < BUCKETS; i++)
-    sum += reg_avg[reg][i];
-
-  regs[reg] = sum >> AVG_SCALE;
+  average_reg(reg, convert_current(sample));
 
   // Check total current
+  if (!initialized) return;
   uint16_t total_current =
-    regs[MOTOR_REG] + regs[VDD_REG] + regs[LOAD1_REG] + regs[LOAD2_REG];
-  if (CURRENT_MAX * 100 < total_current) flags_set(OVER_CURRENT_FLAG);
+    regs[MOTOR_REG].value + regs[VDD_REG].value + regs[LOAD1_REG].value +
+    regs[LOAD2_REG].value;
+  if (CURRENT_MAX * REG_SCALE < total_current) flags_set(OVER_CURRENT_FLAG);
 }
 
 
 static void update_vin(uint16_t sample) {
-  uint16_t vin = regs[VIN_REG] = convert_voltage(sample);
+  uint16_t vin = average_reg(VIN_REG, convert_voltage(sample));
 
   // Check voltage
-  if (vin < (VOLTAGE_MIN * 100)) flags_set(UNDER_VOLTAGE_FLAG);
-  if ((VOLTAGE_MAX * 100) < vin) flags_set(OVER_VOLTAGE_FLAG);
+  if (!initialized) return;
+  if (vin < (VOLTAGE_MIN * REG_SCALE)) flags_set(UNDER_VOLTAGE_FLAG);
+  if ((VOLTAGE_MAX * REG_SCALE) < vin) flags_set(OVER_VOLTAGE_FLAG);
 }
 
 
 static void update_vout(uint16_t sample) {
-  uint16_t vout = regs[VOUT_REG] = convert_voltage(sample);
+  uint16_t vout = average_reg(VOUT_REG, convert_voltage(sample));
 
   update_shunt_power();
 
   // Check voltage
-  if ((VOLTAGE_MAX * 100) < vout) flags_set(OVER_VOLTAGE_FLAG);
+  if (!initialized) return;
+  if ((VOLTAGE_MAX * REG_SCALE) < vout) flags_set(OVER_VOLTAGE_FLAG);
   flags(MOTOR_UNDER_VOLTAGE_FLAG,
-        vout < (VOLTAGE_MIN * 100) && !flags_get(POWER_SHUTDOWN_FLAG));
+        vout < (VOLTAGE_MIN * REG_SCALE) && !flags_get(POWER_SHUTDOWN_FLAG));
 }
 
 
 static void update_motor_current(uint16_t sample) {
   update_current(MOTOR_REG, sample);
 
-  if (flags_get(MOTOR_OVERLOAD_FLAG)) return;
-
-  bool overtemp = CURRENT_OVERTEMP * 100 < regs[MOTOR_REG];
+  // Check overtemp and motor overload
+  if (!initialized) return;
+  bool overtemp = CURRENT_OVERTEMP * REG_SCALE < regs[MOTOR_REG].value;
 
   if (overtemp) {
     if (motor_overload < MOTOR_SHUTDOWN_THRESH) motor_overload++;
@@ -267,7 +294,7 @@ static void update_motor_current(uint16_t sample) {
 
 
 static void load_shutdown(load_t *load) {
-  flags_set(load->shutdown_flag);
+  if (!flags_get(POWER_SHUTDOWN_FLAG)) flags_set(load->shutdown_flag);
   IO_PORT_CLR(load->pin); // Lo
   IO_DDR_SET(load->pin);  // Output
 }
@@ -276,9 +303,9 @@ static void load_shutdown(load_t *load) {
 static void update_load_current(load_t *load, uint16_t sample) {
   update_current(load->reg, sample);
 
-  if (flags_get(load->shutdown_flag)) return;
+  if (!initialized || flags_get(load->shutdown_flag)) return;
 
-  bool overtemp = CURRENT_OVERTEMP * 100 < regs[load->reg];
+  bool overtemp = CURRENT_OVERTEMP * REG_SCALE < regs[load->reg].value;
 
   if (overtemp) {
     if (++load->overtemp == LOAD_OVERTEMP_MAX) load_shutdown(load);
@@ -290,7 +317,7 @@ static void read_conversion(uint8_t ch) {
   uint16_t sample = ADC;
 
   switch (ch) {
-  case TEMP_ADC: regs[TEMP_REG] = sample;                break; // in Kelvin
+  case TEMP_ADC: regs[TEMP_REG].value = sample;          break; // in Kelvin
   case VIN_ADC:  update_vin(sample);                     break;
   case VOUT_ADC: update_vout(sample);                    break;
   case CS1_ADC:  update_motor_current(sample);           break;
@@ -410,6 +437,7 @@ void init() {
 static void shutdown() {
   if (flags_get(POWER_SHUTDOWN_FLAG)) return;
   flags_set(POWER_SHUTDOWN_FLAG);
+  initialized = false;
 
   // Disable loads
   load_shutdown(&loads[0]);
@@ -427,17 +455,22 @@ static void validate_measurements() {
   const float max_voltage = 0.99 * convert_voltage(0x3ff);
   const float max_current = 0.99 * convert_current(0x3ff);
 
-  if (max_voltage < regs[VOUT_REG])  flags_set(MOTOR_VOLTAGE_SENSE_ERROR_FLAG);
-  if (max_current < regs[MOTOR_REG]) flags_set(MOTOR_CURRENT_SENSE_ERROR_FLAG);
-  if (max_current < regs[LOAD1_REG]) flags_set(LOAD1_SENSE_ERROR_FLAG);
-  if (max_current < regs[LOAD2_REG]) flags_set(LOAD2_SENSE_ERROR_FLAG);
-  if (max_current < regs[VDD_REG])   flags_set(VDD_CURRENT_SENSE_ERROR_FLAG);
+  if (max_voltage < regs[VOUT_REG].value)
+    flags_set(MOTOR_VOLTAGE_SENSE_ERROR_FLAG);
+  if (max_current < regs[MOTOR_REG].value)
+    flags_set(MOTOR_CURRENT_SENSE_ERROR_FLAG);
+  if (max_current < regs[LOAD1_REG].value)
+    flags_set(LOAD1_SENSE_ERROR_FLAG);
+  if (max_current < regs[LOAD2_REG].value)
+    flags_set(LOAD2_SENSE_ERROR_FLAG);
+  if (max_current < regs[VDD_REG].value)
+    flags_set(VDD_CURRENT_SENSE_ERROR_FLAG);
   if (flags_get(SENSE_ERROR_FLAGS))  flags_set(SENSE_ERROR_FLAG);
 }
 
 
 int main() {
-  regs[VERSION_REG] = VERSION;
+  regs[VERSION_REG].value = VERSION;
 
   init();
   adc_conversion(); // Start ADC
@@ -445,7 +478,7 @@ int main() {
   shunt_test();
   charge_caps();
   validate_measurements();
-  auto_shunt = true;
+  initialized = true;
 
   while (true) continue;
 
