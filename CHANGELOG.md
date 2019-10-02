@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Support for YL600, YL620 & YL620-A VFDs.
  - Move Modbus indicators to tool page.
  - Support for Sunfar E300 VFD.
+ - Set GCODE_SCRIPT_PATH to support GCode file routines.
 
 ## v0.4.10
  - Fix demo password check

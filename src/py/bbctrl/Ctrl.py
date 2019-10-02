@@ -65,6 +65,8 @@ class Ctrl(object):
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
 
+            os.environ['GCODE_SCRIPT_PATH'] = self.get_upload()
+
         except Exception: self.log.get('Ctrl').exception()
 
 
