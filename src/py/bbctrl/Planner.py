@@ -347,7 +347,6 @@ class Planner():
             self.cmdq.clear()
             self.cmdq.release(id)
             self._plan_time_restart()
-            self._sync_position(True)
             self.planner.restart(id, position)
 
         except:

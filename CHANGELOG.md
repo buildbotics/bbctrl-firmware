@@ -11,11 +11,12 @@ Buildbotics CNC Controller Firmware Changelog
  - Move Modbus indicators to tool page.
  - Support for Sunfar E300 VFD.
  - Set GCODE_SCRIPT_PATH to support GCode file routines.
+ - Fix pause bug introduced in v0.4.10.
 
 ## v0.4.10
  - Fix demo password check
  - Fix bug were fast clicks could cause jog commands to arrive out of order.
- - Fix bug bug where planner position may not sync after jog.
+ - Fix bug where planner position may not sync after jog.
  - Show power shutdown on indicators page.
  - Show all motors in shutdown when in power shutdown.
  - Improved GCode error messages.
