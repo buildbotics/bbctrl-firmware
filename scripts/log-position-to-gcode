@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+import json
+import sys
+
+p = [0, 0, 0]
+
+
+print('F400 G21')
+
+for line in sys.stdin:
+    try:
+        if not line.startswith('I:Comm:> '): continue
+        line = line[9:]
+
+        data = json.loads(line)
+
+        changed = False
+        for axis in range(3):
+            var = 'xyz'[axis] + 'p'
+            if var in data:
+                p[axis] = data[var]
+                changed = True
+
+        if changed: print('G1 X%d Y%d Z%d' % tuple(p))
+
+    except json.decoder.JSONDecodeError: pass
