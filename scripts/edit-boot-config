@@ -1,0 +1,12 @@
+#!/bin/bash
+
+cp /boot/config.txt /tmp/
+
+edit-config /tmp/config.txt "$@"
+
+diff /boot/config.txt /tmp/config.txt >/dev/null
+if [ $? -eq 1 ]; then
+  mount -o remount,rw /boot
+  mv /tmp/config.txt /boot/
+  mount -o remount,ro /boot
+fi

@@ -9,6 +9,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Acknowledging a message on one browser clears it for all.
  - Automatically reload Web view when file changes.
  - Changed "Message" field to "Reason" in Web interface.
+ - Added ``config-screen`` script.  Web based screen config to come later.
 
 ## v0.4.11
  - Don't reset global offsets on M2.

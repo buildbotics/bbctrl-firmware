@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+import sys
+import argparse
+import re
+
+
+def option_type(s, pat = re.compile(r'\w+=.*')):
+  if not pat.match(s): raise argparse.ArgumentTypeError
+  return s
+
+
+parser = argparse.ArgumentParser(description = 'Edit config file.')
+parser.add_argument('config', help = 'The configuration file to edit.')
+parser.add_argument('options', nargs = '*', type = option_type,
+                    metavar = '<name>=<value>', help = 'An option to set.')
+args = parser.parse_args()
+
+
+# Parse config lines and options
+lines = []
+options = {}
+optRE = re.compile(r'(\w+)\s*=\s*([^#]+)(#.*)?')
+
+
+class Line:
+  def __init__(self, text, name = None, value = None, comment = None):
+    self.text = text
+    self.name = name
+    self.value = value
+    self.comment = comment
+
+
+  def __str__(self):
+    if self.name is not None:
+      if self.value.strip():
+        text = '%s=%s' % (self.name, self.value)
+        if self.comment: text += ' # ' + self.comment
+        text += '\n'
+        return text
+
+      else: return ''
+
+    return self.text
+
+
+with open(args.config, 'r') as f:
+  for line in f:
+    m = optRE.match(line.strip())
+
+    if m: name, value, comment = m.groups()
+    else: name, value, comment = None, None, None
+
+    l = Line(line, name, value, comment)
+    lines.append(l)
+    if name is not None: options[name] = l
+
+
+# Save original config
+config = ''.join(map(str, lines))
+
+
+# Set options
+first = True
+for opt in args.options:
+  name, value = opt.split('=', 1)
+
+  if name in options: options[name].value = value
+  else:
+    if first and len(lines) and str(lines[:-1]).strip() != '':
+      first = False
+      lines.append(Line('\n'))
+
+    lines.append(Line(None, name, value, None))
+
+
+# Assemble new config
+new_config = ''.join(map(str, lines))
+
+
+if new_config != config:
+  with open(args.config, 'w') as f:
+    f.write(new_config)

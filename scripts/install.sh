@@ -13,21 +13,6 @@ while [ $# -gt 0 ]; do
 done
 
 
-function update_config_txt() {
-    MATCH="$1"
-    CONFIG="$2"
-
-    grep "$MATCH" /boot/config.txt
-
-    if [ $? -ne 0 ]; then
-        mount -o remount,rw /boot &&
-            echo "$CONFIG" >> /boot/config.txt
-        mount -o remount,ro /boot
-    fi
-
-}
-
-
 if $UPDATE_PY; then
     systemctl stop bbctrl
 
@@ -43,12 +28,12 @@ if $UPDATE_AVR; then
 fi
 
 # Update config.txt
-update_config_txt ^max_usb_current max_usb_current=1
-update_config_txt ^config_hdmi_boost config_hdmi_boost=8
+./scripts/edit-boot-config max_usb_current=1
+./scripts/edit-boot-config config_hdmi_boost=8
 
 # TODO Enable GPU
-#update_config_txt dtoverlay=vc4-kms "dtoverlay=vc4-kms-v3d"
-#update_config_txt gpu_mem "gpu_mem=16"
+#./scripts/edit-boot-config dtoverlay=vc4-kms-v3d
+#./scripts/edit-boot-config gpu_mem=16
 #chmod ug+s /usr/lib/xorg/Xorg
 
 # Fix camera

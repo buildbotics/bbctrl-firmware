@@ -1,0 +1,32 @@
+#!/bin/bash
+
+if [ $# != 3 ]; then
+  echo "Usage: $0 <width> <height> <rotation>"
+  exit 1
+fi
+
+WIDTH="$1"
+HEIGHT="$2"
+ROTATION="$3"
+
+if [[ ! "$WIDTH" =~ ^[0-9]+$ ]]; then
+  echo "Invalid width '$WIDTH'."
+  exit 1
+fi
+
+if [[ ! "$HEIGHT" =~ ^[0-9]+$ ]]; then
+  echo "Invalid height '$HEIGHT'."
+  exit 1
+fi
+
+if [[ ! "$ROTATION" =~ ^[0-3]$ ]]; then
+  echo "Invalid rotation '$ROTATION'."
+  exit 1
+fi
+
+
+OPTIONS="framebuffer_width=$WIDTH "
+OPTIONS+="framebuffer_height=$HEIGHT "
+OPTIONS+="display_rotate=$ROTATION"
+
+edit-boot-config $OPTIONS
