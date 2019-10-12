@@ -103,8 +103,7 @@ module.exports = new Vue({
         motors: [{}, {}, {}, {}],
         version: '<loading>'
       },
-      state: {},
-      messages: [],
+      state: {messages: []},
       video_size: cookie.get('video-size', 'small'),
       crosshair: cookie.get('crosshair', false),
       errorTimeout: 30,
@@ -117,8 +116,7 @@ module.exports = new Vue({
       checkedUpgrade: false,
       firmwareName: '',
       latestVersion: '',
-      password: '',
-      showMessages: false
+      password: ''
     }
   },
 
@@ -308,11 +306,6 @@ module.exports = new Vue({
           delete e.data.log;
         }
 
-        if ('message' in e.data) {
-          this.add_message(e.data.message);
-          delete e.data.message;
-        }
-
         // Check for session ID change on controller
         if ('sid' in e.data) {
           if (typeof this.sid == 'undefined') this.sid = e.data.sid;
@@ -369,18 +362,15 @@ module.exports = new Vue({
     },
 
 
-    add_message: function (msg) {
-      this.messages.unshift(msg);
-      this.showMessages = true;
-    },
-
-
     close_messages: function (action) {
-      this.showMessages = false;
-      this.messages.splice(0, this.messages.length);
-
       if (action == 'stop') api.put('stop');
       if (action == 'continue') api.put('unpause');
+
+      // Acknowledge messages
+      if (this.state.messages.length) {
+        var id = this.state.messages.slice(-1)[0].id
+        api.put('message/' + id + '/ack');
+      }
     }
   }
 })

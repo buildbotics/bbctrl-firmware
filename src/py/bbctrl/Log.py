@@ -37,11 +37,14 @@ import bbctrl
 
 DEBUG    = 0
 INFO     = 1
-WARNING  = 2
-ERROR    = 3
+MESSAGE  = 2
+WARNING  = 3
+ERROR    = 4
 
 
-def get_level_name(level): return 'debug info warning error'.split()[level]
+level_names = 'debug info message warning error'.split()
+
+def get_level_name(level): return level_names[level]
 
 
 # Get this file's name
@@ -89,6 +92,7 @@ class Logger(object):
 
 
     def debug  (self, *args, **kwargs): self._log(DEBUG,   *args, **kwargs)
+    def message(self, *args, **kwargs): self._log(MESSAGE, *args, **kwargs)
     def info   (self, *args, **kwargs): self._log(INFO,    *args, **kwargs)
     def warning(self, *args, **kwargs): self._log(WARNING, *args, **kwargs)
     def error  (self, *args, **kwargs): self._log(ERROR,   *args, **kwargs)
@@ -142,7 +146,7 @@ class Log(object):
     def _log(self, msg, level = INFO, prefix = '', where = None):
         if not msg: return
 
-        hdr = '%s:%s:' % ('DIWE'[level], prefix)
+        hdr = '%s:%s:' % ('DIMWE'[level], prefix)
         s = hdr + ('\n' + hdr).join(msg.split('\n'))
 
         if self.f is not None:

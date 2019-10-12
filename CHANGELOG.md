@@ -1,6 +1,15 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.12
+ - Segments straddle arc in linearization.
+ - Control max-arc-error with GCode var.
+ - Implemented path modes G61, G61.1 & G64 with naive CAM but not blending, yet.
+ - Log GCode messages to "Messages" tab.
+ - Acknowledging a message on one browser clears it for all.
+ - Automatically reload Web view when file changes.
+ - Changed "Message" field to "Reason" in Web interface.
+
 ## v0.4.11
  - Don't reset global offsets on M2.
  - Test shunt and show error on failure.

@@ -51,6 +51,7 @@ module.exports = {
       mach_units: 'METRIC',
       mdi: '',
       last_file: undefined,
+      last_file_time: undefined,
       toolpath: {},
       toolpath_progress: 0,
       axes: 'xyzabc',
@@ -96,7 +97,7 @@ module.exports = {
     },
 
 
-    'state.selected': function () {this.load()}
+    'state.selected_time': function () {this.load()}
   },
 
 
@@ -153,7 +154,11 @@ module.exports = {
     },
 
 
-    highlight_reason: function () {return this.reason != ''},
+    highlight_reason: function () {
+      return this.mach_state == 'ESTOPPED' || this.mach_state == 'HOLDING';
+    },
+
+
     plan_time: function () {return this.state.plan_time},
 
 
@@ -197,24 +202,26 @@ module.exports = {
 
 
     load: function () {
+      var file_time = this.state.selected_time;
       var file = this.state.selected;
-      if (this.last_file == file) return;
+      if (this.last_file == file && this.last_file_time == file_time) return;
       this.last_file = file;
+      this.last_file_time = file_time;
 
       this.$broadcast('gcode-load', file);
       this.$broadcast('gcode-line', this.state.line);
       this.toolpath_progress = 0;
-      this.load_toolpath(file);
+      this.load_toolpath(file, file_time);
     },
 
 
-    load_toolpath: function (file) {
+    load_toolpath: function (file, file_time) {
       this.toolpath = {};
 
       if (!file) return;
 
       api.get('path/' + file).done(function (toolpath) {
-        if (this.last_file != file) return;
+        if (this.last_file_time != file_time) return;
 
         if (typeof toolpath.progress == 'undefined') {
           toolpath.filename = file;
@@ -230,7 +237,7 @@ module.exports = {
 
         } else {
           this.toolpath_progress = toolpath.progress;
-          this.load_toolpath(file); // Try again
+          this.load_toolpath(file, file_time); // Try again
         }
       }.bind(this));
     },
@@ -276,7 +283,7 @@ module.exports = {
 
       api.upload('file', fd)
         .done(function () {
-          this.last_file = undefined; // Force reload
+          this.last_file_time = undefined; // Force reload
           this.$broadcast('gcode-reload', file.name);
 
         }.bind(this)).fail(function (error) {

@@ -42,10 +42,12 @@ class State(object):
         self.listeners = []
         self.timeout = None
         self.machine_var_set = set()
+        self.message_id = 0
 
         # Defaults
         self.vars = {
             'line': -1,
+            'messages': [],
             'tool': 0,
             'feed': 0,
             'speed': 0,
@@ -137,7 +139,25 @@ class State(object):
             else: self.select_file('')
 
 
-    def select_file(self, filename): self.set('selected', filename)
+    def select_file(self, filename):
+        self.set('selected', filename)
+        time = os.path.getmtime(self.ctrl.get_upload(filename))
+        self.set('selected_time', time)
+
+
+    def ack_message(self, id):
+        self.log.info('Message %d acknowledged' % id)
+        msgs = self.vars['messages']
+        msgs = list(filter(lambda m: id < m['id'], msgs))
+        self.set('messages', msgs)
+
+
+    def add_message(self, text):
+        msg = dict(text = text, id = self.message_id)
+        self.message_id += 1
+        msgs = self.vars['messages']
+        msgs = msgs + [msg] # It's important we make a new list here
+        self.set('messages', msgs)
 
 
     def _notify(self):

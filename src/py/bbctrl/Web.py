@@ -95,6 +95,11 @@ class LogHandler(bbctrl.RequestHandler):
         self.set_header('Content-Type', 'text/plain')
 
 
+class MessageAckHandler(bbctrl.APIHandler):
+    def put_ok(self, id):
+        self.get_ctrl().state.ack_message(int(id))
+
+
 class BugReportHandler(bbctrl.RequestHandler):
     def get(self):
         import tarfile, io
@@ -507,6 +512,7 @@ class Web(tornado.web.Application):
         handlers = [
             (r'/websocket', WSConnection),
             (r'/api/log', LogHandler),
+            (r'/api/message/(\d+)/ack', MessageAckHandler),
             (r'/api/bugreport', BugReportHandler),
             (r'/api/reboot', RebootHandler),
             (r'/api/hostname', HostnameHandler),

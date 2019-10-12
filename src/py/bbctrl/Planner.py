@@ -60,6 +60,7 @@ class Planner():
         self.cmdq = CommandQueue(ctrl)
         self.planner = None
         self._position_dirty = False
+        self.where = ''
 
         ctrl.state.add_listener(self._update)
 
@@ -165,6 +166,16 @@ class Planner():
         else: self.log.error('Could not parse planner log line: ' + line)
 
 
+    def _add_message(self, text):
+        self.ctrl.state.add_message(text)
+
+        line = self.ctrl.state.get('line', 0)
+        if 0 <= line: where = '%s:%d' % (self.where, line)
+        else: where = self.where
+
+        self.log.message(text, where = where)
+
+
     def _enqueue_set_cmd(self, id, name, value):
         self.log.info('set(#%d, %s, %s)', id, name, value)
         self.cmdq.enqueue(id, self.ctrl.state.set, name, value)
@@ -228,8 +239,7 @@ class Planner():
             name, value = block['name'], block['value']
 
             if name == 'message':
-                msg = dict(message = value)
-                self.cmdq.enqueue(id, self.ctrl.log.broadcast, msg)
+                self.cmdq.enqueue(id, self._add_message, value)
 
             if name in ['line', 'tool']: self._enqueue_set_cmd(id, name, value)
 
@@ -313,6 +323,7 @@ class Planner():
 
 
     def mdi(self, cmd, with_limits = True):
+        self.where = '<mdi>'
         self.log.info('MDI:' + cmd)
         self._sync_position()
         self.planner.load_string(cmd, self.get_config(True, with_limits))
@@ -320,6 +331,7 @@ class Planner():
 
 
     def load(self, path):
+        self.where = path
         path = self.ctrl.get_path('upload', path)
         self.log.info('GCode:' + path)
         self._sync_position()
