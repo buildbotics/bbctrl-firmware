@@ -8,8 +8,9 @@ Buildbotics CNC Controller Firmware Changelog
  - Log GCode messages to "Messages" tab.
  - Acknowledging a message on one browser clears it for all.
  - Automatically reload Web view when file changes.
- - Changed "Message" field to "Reason" in Web interface.
  - Added ``config-screen`` script.  Web based screen config to come later.
+ - Suppress message popup with (MSG,# No popup message).
+ - Show latest GCode message in ``Message`` field on CONTROL page.
 
 ## v0.4.11
  - Don't reset global offsets on M2.

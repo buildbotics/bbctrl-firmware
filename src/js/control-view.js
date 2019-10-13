@@ -147,14 +147,16 @@ module.exports = {
     },
 
 
-    reason: function () {
+    message: function () {
       if (this.mach_state == 'ESTOPPED') return this.state.er;
       if (this.mach_state == 'HOLDING') return this.state.pr;
+      if (this.state.messages.length)
+        return this.state.messages.slice(-1)[0].text;
       return '';
     },
 
 
-    highlight_reason: function () {
+    highlight_state: function () {
       return this.mach_state == 'ESTOPPED' || this.mach_state == 'HOLDING';
     },
 

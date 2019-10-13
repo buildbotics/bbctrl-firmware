@@ -182,12 +182,12 @@ html(lang="en")
         p Loss of power during an upgrade may damage the controller.
       div(slot="footer")
 
-    message(v-if="state.messages.length", :show="true")
+    message(v-if="popupMessages.length", :show="true")
       h3(slot="header") GCode message
 
       div(slot="body")
         ul
-          li(v-for="msg in state.messages", track-by="$index") {{msg.text}}
+          li(v-for="msg in popupMessages", track-by="$index") {{msg}}
 
       div(slot="footer")
         button.pure-button.button-success(v-if="state.xx != 'HOLDING'",

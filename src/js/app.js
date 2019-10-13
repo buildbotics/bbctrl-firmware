@@ -201,6 +201,20 @@ module.exports = new Vue({
   },
 
 
+  computed: {
+    popupMessages: function () {
+      var msgs = [];
+
+      for (var i = 0; i < this.state.messages.length; i++) {
+        var text = this.state.messages[i].text;
+        if (!/^#/.test(text)) msgs.push(text);
+      }
+
+      return msgs;
+    }
+  },
+
+
   ready: function () {
     $(window).on('hashchange', this.parse_hash);
     this.connect();
