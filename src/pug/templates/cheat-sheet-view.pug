@@ -77,11 +77,6 @@ script#cheat-sheet-view-template(type="text/x-template")
           a(target="_blank", href=`${base}/g-code.html#gcode:g5.2-g5.3`) G5.2
         td P L
         td NURBS
-      tr
-        td
-          a(target="_blank", href=`${base}/g-code.html#gcode:g38`) G38.2 - G38.5
-        td
-        td Straight Probe
       tr.unimplemented(v-if="showUnimplemented")
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g33.1`) G33.1
@@ -97,6 +92,11 @@ script#cheat-sheet-view-template(type="text/x-template")
             | G28.2, G28.3
         td
         td (Un)set Axis Homed State
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g38`) G38.2 - G38.5
+        td
+        td Straight Probe
       tr
         td
           a(target="_blank", href=`${camotics_base}#gcodes-g38_6-38_9`)
@@ -122,37 +122,37 @@ script#cheat-sheet-view-template(type="text/x-template")
           a(target="_blank", href=`${base}/m-code.html#mcode:m61`) M61
         td Q
         td Set Current Tool
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g10-l1`) G10 L1
         td P Q R
         td Set Tool Table
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g10-l10`) G10 L10
         td P
         td Set Tool Table
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g10-l11`) G10 L11
         td P
         td Set Tool Table
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g43`) G43
         td  H
         td Tool Length Offset
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g43.1`) G43.1
         td
         td Dynamic Tool Length Offset
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g43.2`) G43.2
         td  H
         td Apply additional Tool Length Offset
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g49`) G49
         td
@@ -296,20 +296,20 @@ script#cheat-sheet-view-template(type="text/x-template")
         td D L
         td Dynamic Cutter Compensation
 
-      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
-      tr.header-row.unimplemented(v-if="showUnimplemented")
+      tr.spacer-row: th
+      tr.header-row
         th(colspan='3') Path Control Mode
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g61-g61.1`)
             | G61 G61.1
         td
         td Exact Path Mode
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g64`) G64
         td P Q
-        td Path Blending
+        td Path Blending (Partial support)
 
       tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
       tr.header-row.unimplemented(v-if="showUnimplemented")
@@ -349,6 +349,11 @@ script#cheat-sheet-view-template(type="text/x-template")
           a(target="_blank", href=`${base}/g-code.html#gcode:g10-l20`) G10 L20
         td P
         td Set Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g52`) G52
+        td
+        td Local Coordinate System Offset
       tr
         td
           a(target="_blank", href=`${base}/g-code.html#gcode:g53`) G53
@@ -418,7 +423,7 @@ script#cheat-sheet-view-template(type="text/x-template")
           a(target="_blank", href=`${base}/o-code.html#ocode:indirection`) []
         td
         td Indirection
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/o-code.html#ocode:calling-files`)
             | o call
@@ -546,7 +551,7 @@ script#cheat-sheet-view-template(type="text/x-template")
             | (MSG,…)
         td
         td Messages
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/overview.html#gcode:debug`) (DEBUG,…)
         td
@@ -556,6 +561,11 @@ script#cheat-sheet-view-template(type="text/x-template")
           a(target="_blank", href=`${base}/overview.html#gcode:print`) (PRINT,…)
         td
         td Print Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#_logging`) (LOG,…)
+        td
+        td Logging Messages
 
     div
       input(type="checkbox", v-model="showUnimplemented")
