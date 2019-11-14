@@ -39,3 +39,25 @@ script#settings-view-template(type="text/x-template")
         h2 GCode
         templated-input(v-for="templ in template.gcode", :name="$key",
           :model.sync="config.gcode[$key]", :template="templ")
+
+      fieldset
+        h2 Path Accuracy
+        templated-input(name="max-deviation",
+          :model.sync="config.settings['max-deviation']",
+          :template="template.settings['max-deviation']")
+
+        p.
+          Lower #[tt max-deviation] to follow the programmed path more precisely
+          but at a slower speed.
+
+        p.
+          In order to improve traversal speed, the path planner may merge
+          consecutive moves or round off sharp corners if doing so would deviate
+          from the program path by less than #[tt max-deviation].
+
+        - var base = '//linuxcnc.org/docs/html/gcode/g-code.html'
+        p.
+          GCode commands
+          #[a(href=base + "#gcode:g61-g61.1", target="_blank") G61, G61.1] and
+          #[a(href=base + "#gcode:g64", target="_blank") G64] also affect path
+          planning accuracy.

@@ -224,7 +224,9 @@ stat_t exec_segment(float time, const float target[], float vel, float accel,
   ex.seg.cb = ex.cb;
   ex.cb = _segment_exec;
 
-  if (!ex.seg.cb) seek_end();
+  // TODO To be precise, seek_end() should not be called until the current
+  // segment has completed execution.
+  if (!ex.seg.cb) seek_end(); // No callback when at line end
 
   return _segment_exec();
 }

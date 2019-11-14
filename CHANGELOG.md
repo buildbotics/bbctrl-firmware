@@ -13,6 +13,9 @@ Buildbotics CNC Controller Firmware Changelog
  - Show latest GCode message in ``Message`` field on CONTROL page.
  - Marked several GCodes supported in cheat sheet.
  - Solved planner lookahead failure for most reasonable cases.
+ - Prevent cutting off distant parts of 3D path view.
+ - Raised default ``latch-backoff`` to 100mm and ``zero-backoff`` to 5mm.
+ - Added ``max-deviation`` option.
 
 ## v0.4.11
  - Don't reset global offsets on M2.

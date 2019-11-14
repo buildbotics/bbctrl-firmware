@@ -320,7 +320,7 @@ class Mach(Comm):
                                 self._get_cycle())
 
             # Set the absolute position both locally and via the AVR
-            target = position - state.get('offset_' + axis)
+            target = position + state.get('offset_' + axis)
             state.set(axis + 'p', target)
             super().queue_command(Cmd.set_axis(axis, target))
 

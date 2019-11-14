@@ -90,7 +90,8 @@ class Planner():
             'max-accel': state.get_axis_vector('am', 1000000),
             'max-jerk':  state.get_axis_vector('jm', 1000000),
             'rapid-auto-off': config.get('rapid-auto-off'),
-            # TODO junction deviation & accel
+            'max-blend-error': config.get('max-deviation'),
+            'max-merge-error': config.get('max-deviation'),
             }
 
         if with_limits:

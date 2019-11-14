@@ -251,8 +251,8 @@ module.exports = {
       var max = new THREE.Vector3();
 
       for (var axis of 'xyz') {
-        min[axis] = this[axis].min + this[axis].off;
-        max[axis] = this[axis].max + this[axis].off;
+        min[axis] = this[axis].min - this[axis].off;
+        max[axis] = this[axis].max - this[axis].off;
       }
 
       var bounds = new THREE.Box3(min, max);
@@ -283,7 +283,7 @@ module.exports = {
       this.enabled = true;
 
       // Camera
-      this.camera = new THREE.PerspectiveCamera(45, 4 / 3, 1, 1000);
+      this.camera = new THREE.PerspectiveCamera(45, 4 / 3, 1, 10000);
 
       // Lighting
       this.ambient = new THREE.AmbientLight(0xffffff, 0.5);

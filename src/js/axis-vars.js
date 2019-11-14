@@ -72,8 +72,8 @@ module.exports = {
       var pathMin    = this.state['path_min_' + axis];
       var pathMax    = this.state['path_max_' + axis];
       var pathDim    = pathMax - pathMin;
-      var under      = pathMin - off < min;
-      var over       = max < pathMax - off;
+      var under      = pathMin + off < min;
+      var over       = max < pathMax + off;
       var klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis;
       var state      = 'UNHOMED';
       var icon       = 'question-circle';
@@ -108,12 +108,12 @@ module.exports = {
 
       case 'OVER':
         title = 'Tool path would move ' +
-          this._length_str(pathMax - off - max) + ' beyond axis bounds.';
+          this._length_str(pathMax + off - max) + ' beyond axis bounds.';
         break;
 
       case 'UNDER':
         title = 'Tool path would move ' +
-          this._length_str(min - pathMin + off) + ' below axis bounds.';
+          this._length_str(min - pathMin - off) + ' below axis bounds.';
         break;
 
       case 'NO FIT':
@@ -136,7 +136,7 @@ module.exports = {
       }
 
       return {
-        pos: abs + off,
+        pos: abs - off,
         abs: abs,
         off: off,
         min: min,
