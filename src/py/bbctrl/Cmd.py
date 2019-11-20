@@ -240,6 +240,11 @@ def decode_command(cmd):
             if name in 'xyzabcuvw': data['target'][name] = value
             else: data['times'][int(name)] = value
 
+    elif cmd[0] == SYNC_SPEED:
+        data['type'] = 'speed'
+        data['offset'] = decode_float(cmd[1:7])
+        data['speed']  = decode_float(cmd[7:13])
+
     elif cmd[0] == REPORT:   data['type'] = 'report'
     elif cmd[0] == PAUSE:    data['type'] = 'pause'
     elif cmd[0] == UNPAUSE:  data['type'] = 'unpause'
