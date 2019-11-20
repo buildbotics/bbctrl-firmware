@@ -189,7 +189,7 @@ void spindle_load_power_updates(power_update_t updates[], float minD,
 
 
 // Called from hi-priority stepper interrupt
-void spindle_update(power_update_t update) {pwm_update(update);}
+void spindle_update(const power_update_t &update) {pwm_update(update);}
 void spindle_update_speed() {_set_speed(spindle.speed);}
 
 

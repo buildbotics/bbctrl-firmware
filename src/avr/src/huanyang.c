@@ -30,6 +30,8 @@
 #include "modbus.h"
 #include "estop.h"
 
+#include <util/atomic.h>
+
 #include <string.h>
 #include <math.h>
 
@@ -279,12 +281,11 @@ void huanyang_deinit(deinit_cb_t cb) {
 
 
 void huanyang_set(float power) {
-  cli();
-  if (hy.power != power && !hy.shutdown) {
-    hy.power = power;
-    hy.changed = true;
-  }
-  sei();
+  if (hy.power != power && !hy.shutdown)
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      hy.power = power;
+      hy.changed = true;
+    }
 }
 
 

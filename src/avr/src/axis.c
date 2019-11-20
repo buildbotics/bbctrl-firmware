@@ -95,23 +95,7 @@ void axis_map_motors() {
   void set_##NAME(int axis, TYPE value) {axes[axis].NAME = value;}
 
 
-#define AXIS_GET(NAME, TYPE, DEFAULT)                   \
-  TYPE axis_get_##NAME(int axis) {                      \
-    int motor = axis_get_motor(axis);                   \
-    return motor == -1 ? DEFAULT : axes[motor].NAME;    \
-  }                                                     \
-  AXIS_VAR_GET(NAME, TYPE)
-
-
-#define AXIS_SET(NAME, TYPE)                            \
-  void axis_set_##NAME(int axis, TYPE value) {          \
-    int motor = axis_get_motor(axis);                   \
-    if (motor != -1) axes[motor].NAME = value;          \
-  }                                                     \
-  AXIS_VAR_SET(NAME, TYPE)
-
-
-/// Velocity is scaled by 1,000.
+/// Velocity is scaled by 1,000
 float axis_get_velocity_max(int axis) {
   int motor = axis_get_motor(axis);
   return motor == -1 ? 0 : axes[motor].velocity_max * VELOCITY_MULTIPLIER;
@@ -119,7 +103,7 @@ float axis_get_velocity_max(int axis) {
 AXIS_VAR_GET(velocity_max, float)
 
 
-/// Acceleration is scaled by 1,000.
+/// Acceleration is scaled by 1,000
 float axis_get_accel_max(int axis) {
   int motor = axis_get_motor(axis);
   return motor == -1 ? 0 : axes[motor].accel_max * ACCEL_MULTIPLIER;
@@ -127,7 +111,7 @@ float axis_get_accel_max(int axis) {
 AXIS_VAR_GET(accel_max, float)
 
 
-/// Jerk is scaled by 1,000,000.
+/// Jerk is scaled by 1,000,000
 float axis_get_jerk_max(int axis) {
   int motor = axis_get_motor(axis);
   return motor == -1 ? 0 : axes[motor].jerk_max * JERK_MULTIPLIER;

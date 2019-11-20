@@ -36,6 +36,8 @@
 #include "exec.h"
 #include "drv8711.h"
 
+#include <util/atomic.h>
+
 #include <string.h>
 #include <stdio.h>
 
@@ -45,14 +47,16 @@ typedef struct {
   bool busy;
   bool requesting;
   float dwell;
+  uint8_t power_buf;
   uint8_t power_index;
-  power_update_t powers[POWER_MAX_UPDATES];
 
   // Move prep
   bool move_ready;  // Prepped move ready for loader
   bool move_queued; // Prepped move queued
   float prep_dwell;
-  power_update_t prep_powers[POWER_MAX_UPDATES];
+  int8_t power_next;
+
+  power_update_t powers[2][POWER_MAX_UPDATES];
 
   uint32_t underrun;
 } stepper_t;
@@ -63,10 +67,10 @@ static stepper_t st = {0};
 
 void stepper_init() {
   // Setup step timer
-  TIMER_STEP.CTRLB    = STEP_TIMER_WGMODE; // Waveform mode
-  TIMER_STEP.INTCTRLA = STEP_TIMER_INTLVL; // Interrupt mode
-  TIMER_STEP.PER      = STEP_TIMER_POLL;   // Timer rate
-  TIMER_STEP.CTRLA    = STEP_TIMER_ENABLE; // Start step timer
+  TIMER_STEP.CTRLB    = TC_WGMODE_NORMAL_gc; // Count to TOP & rollover
+  TIMER_STEP.INTCTRLA = TC_OVFINTLVL_HI_gc;  // Interrupt level
+  TIMER_STEP.PER      = STEP_TIMER_POLL;     // Timer rate
+  TIMER_STEP.CTRLA    = TC_CLKSEL_DIV8_gc;   // Start step timer
 }
 
 
@@ -141,7 +145,7 @@ static void _request_exec_move() {
 
 static void _update_power() {
   if (st.power_index < POWER_MAX_UPDATES)
-    spindle_update(st.powers[st.power_index++]);
+    spindle_update(st.powers[st.power_buf][st.power_index++]);
 }
 
 
@@ -189,10 +193,12 @@ ISR(STEP_TIMER_ISR) {
   }
 
   // Handle power updates
-  st.power_index = 0;
-  memcpy(st.powers, st.prep_powers, sizeof(st.powers));
-  memset(st.prep_powers, 0, sizeof(st.prep_powers));
-  _update_power();
+  if (st.power_next != -1) {
+    st.power_index = 0;
+    st.power_buf = st.power_next;
+    st.power_next = -1;
+    _update_power();
+  }
 
   st.busy = true;        // Executing move so mark busy
   st.move_ready = false; // We are done with this move, flip the flag back
@@ -201,7 +207,9 @@ ISR(STEP_TIMER_ISR) {
 
 void st_prep_power(const power_update_t powers[]) {
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
-  memcpy(st.prep_powers, powers, sizeof(st.prep_powers));
+  st.power_next = !st.power_buf;
+  memcpy(st.powers[st.power_next], powers,
+         sizeof(power_update_t) * POWER_MAX_UPDATES);
 }
 
 
@@ -221,7 +229,8 @@ void st_prep_line(const float target[]) {
 void st_prep_dwell(float seconds) {
   ESTOP_ASSERT(!st.move_ready, STAT_STEPPER_NOT_READY);
   if (seconds <= 1e-4) seconds = 1e-4; // Min dwell
-  spindle_load_power_updates(st.prep_powers, 0, 0);
+  st.power_next = !st.power_buf;
+  spindle_load_power_updates(st.powers[st.power_next], 0, 0);
   st.prep_dwell = seconds;
   st.move_queued = true; // signal prep buffer ready
 }
@@ -233,8 +242,6 @@ uint32_t get_underrun() {return st.underrun;}
 
 float get_dwell_time() {
   float dwell;
-  cli();
-  dwell = st.dwell;
-  sei();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) dwell = st.dwell;
   return dwell;
 }

@@ -322,7 +322,7 @@ static void _motor_fault_switch_cb(switch_id_t sw, bool active) {
 
 void drv8711_init() {
   // Setup pins
-  // Must set the SS pin either in/high or any/output for master mode to work
+  // Must set the SS pin either in/high or out/any for master mode to work
   // Note, this pin is also used by the USART as the CTS line
   DIRSET_PIN(SPI_SS_PIN);   // Output
   OUTSET_PIN(SPI_CLK_PIN);  // High

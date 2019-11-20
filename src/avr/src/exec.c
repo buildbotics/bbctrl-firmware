@@ -300,6 +300,7 @@ void command_set_axis_exec(void *data) {
   ex.position[cmd->axis] = cmd->position;
 
   // Update motors
-  int motor = axis_get_motor(cmd->axis);
-  if (0 <= motor) motor_set_position(motor, cmd->position);
+  for (int motor = 0; motor < MOTORS; motor++)
+    if (motor_get_axis(motor) == cmd->axis)
+      motor_set_position(motor, cmd->position);
 }

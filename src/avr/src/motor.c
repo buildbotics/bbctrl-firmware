@@ -224,59 +224,59 @@ void motor_emulate_steps(int motor) {
 
 
 void motor_end_move(int motor) {
-  motor_t *m = &motors[motor];
+  motor_t &m = motors[motor];
 
-  if (!m->timer->CTRLA) return;
+  if (!m.timer->CTRLA) return;
 
   // Stop clock
-  m->timer->CTRLA = 0;
+  m.timer->CTRLA = 0;
 
   // Wait for pending DMA transfers
-  while (m->dma->CTRLB & DMA_CH_CHPEND_bm) continue;
+  while (m.dma->CTRLB & DMA_CH_CHPEND_bm) continue;
 
   // Get actual step count from DMA channel
-  const int32_t steps = 0xffff - m->dma->TRFCNT;
+  const int32_t steps = 0xffff - m.dma->TRFCNT;
 
   // Accumulate encoder & compute error
-  m->encoder += m->last_negative ? -steps : steps;
-  m->error = m->commanded - m->encoder;
+  m.encoder += m.last_negative ? -steps : steps;
+  m.error = m.commanded - m.encoder;
 }
 
 
 void motor_load_move(int motor) {
-  motor_t *m = &motors[motor];
+  motor_t &m = motors[motor];
 
   // Clear move
-  ESTOP_ASSERT(m->prepped, STAT_MOTOR_NOT_PREPPED);
-  m->prepped = false;
+  ESTOP_ASSERT(m.prepped, STAT_MOTOR_NOT_PREPPED);
+  m.prepped = false;
 
   motor_end_move(motor);
 
-  if (!m->timer_period) return; // Leave clock stopped
+  if (!m.timer_period) return; // Leave clock stopped
 
   // Set direction, compensating for polarity but only when moving
-  const bool dir = m->negative ^ m->reverse;
-  if (dir != IN_PIN(m->dir_pin)) {
-    SET_PIN(m->dir_pin, dir);
+  const bool dir = m.negative ^ m.reverse;
+  if (dir != IN_PIN(m.dir_pin)) {
+    SET_PIN(m.dir_pin, dir);
 
     // We need at least 200ns between direction change and next step.
-    if (m->timer->CCA < m->timer->CNT) m->timer->CNT = m->timer->CCA + 1;
+    if (m.timer->CCA < m.timer->CNT) m.timer->CNT = m.timer->CCA + 1;
   }
 
   // Reset DMA step counter
-  m->dma->CTRLA &= ~DMA_CH_ENABLE_bm;
-  m->dma->TRFCNT = 0xffff;
-  m->dma->CTRLA |= DMA_CH_ENABLE_bm;
+  m.dma->CTRLA &= ~DMA_CH_ENABLE_bm;
+  m.dma->TRFCNT = 0xffff;
+  m.dma->CTRLA |= DMA_CH_ENABLE_bm;
 
   // To avoid causing couter wrap around, it is important to start the clock
   // before setting PERBUF.  If PERBUF is set before the clock is started PER
   // updates immediately and possibly mid step.
 
   // Set clock and period
-  m->timer->CTRLA  = m->clock;         // Start clock
-  m->timer->PERBUF = m->timer_period;  // Set next frequency
-  m->last_negative = m->negative;
-  m->commanded     = m->position;
+  m.timer->CTRLA  = m.clock;         // Start clock
+  m.timer->PERBUF = m.timer_period;  // Set next frequency
+  m.last_negative = m.negative;
+  m.commanded     = m.position;
 }
 
 
@@ -285,27 +285,27 @@ void motor_prep_move(int motor, float target) {
   ESTOP_ASSERT(0 <= motor && motor < MOTORS, STAT_MOTOR_ID_INVALID);
   ESTOP_ASSERT(isfinite(target), STAT_BAD_FLOAT);
 
-  motor_t *m = &motors[motor];
-  ESTOP_ASSERT(!m->prepped, STAT_MOTOR_NOT_READY);
+  motor_t &m = motors[motor];
+  ESTOP_ASSERT(!m.prepped, STAT_MOTOR_NOT_READY);
 
   // Travel in steps
   int32_t position = _position_to_steps(motor, target);
-  int24_t steps = position - m->position;
-  m->position = position;
+  int24_t steps = position - m.position;
+  m.position = position;
 
   // Error correction
-  int16_t correction = abs(m->error);
+  int16_t correction = abs(m.error);
   if (MIN_STEP_CORRECTION <= correction) {
     // Dampen correction oscillation
     correction >>= 1;
 
     // Make correction
-    steps += m->error < 0 ? -correction : correction;
+    steps += m.error < 0 ? -correction : correction;
   }
 
   // Positive steps from here on
-  m->negative = steps < 0;
-  if (m->negative) steps = -steps;
+  m.negative = steps < 0;
+  if (m.negative) steps = -steps;
 
   // Start with clock / 2
   const float seg_clocks = SEGMENT_TIME * (F_CPU * 60 / 2);
@@ -321,27 +321,27 @@ void motor_prep_move(int motor, float target) {
   // Use faster clock with faster step rates for increased resolution.
   if (ticks_per_step < 0x7fff) {
     ticks_per_step *= 2;
-    m->clock = TC_CLKSEL_DIV1_gc;
+    m.clock = TC_CLKSEL_DIV1_gc;
 
-  } else m->clock = TC_CLKSEL_DIV2_gc;
+  } else m.clock = TC_CLKSEL_DIV2_gc;
 
   // Disable clock if too slow
   if (0xffff <= ticks_per_step) ticks_per_step = 0;
 
-  m->timer_period = steps ? round(ticks_per_step) : 0;
+  m.timer_period = steps ? round(ticks_per_step) : 0;
 
   // Power motor
-  if (!m->enabled) {
-    m->timer_period = 0;
-    m->encoder = m->commanded = m->position;
-    m->error = 0;
+  if (!m.enabled) {
+    m.timer_period = 0;
+    m.encoder = m.commanded = m.position;
+    m.error = 0;
 
-  } else if (m->timer_period) // Motor is moving so reset power timeout
-    m->power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
+  } else if (m.timer_period) // Motor is moving so reset power timeout
+    m.power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
   _update_power(motor);
 
   // Queue move
-  m->prepped = true;
+  m.prepped = true;
 }
 
 

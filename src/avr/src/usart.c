@@ -84,12 +84,10 @@ ISR(SERIAL_DRE_vect) {
 // Data received interrupt vector
 ISR(SERIAL_RXC_vect) {
   if (rx_buf_full()) _set_rxc_interrupt(false); // Disable interrupt
+  else rx_buf_push(SERIAL_PORT.DATA);
 
-  else {
-    rx_buf_push(SERIAL_PORT.DATA);
-    if (rx_buf_space() < SERIAL_CTS_THRESH)
-      OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
-  }
+  if (rx_buf_space() < SERIAL_CTS_THRESH)
+    OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
 }
 
 

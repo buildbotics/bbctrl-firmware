@@ -112,12 +112,15 @@ enum {
 
 /* Interrupt usage:
  *
- *    HI    Stepper timers                       (set in stepper.h)
- *    LO    Segment execution SW interrupt       (set in stepper.h)
- *   MED    Serial RX                            (set in usart.c)
- *   MED    Serial TX                            (set in usart.c) (* see note)
- *   MED    I2C Slave                            (set in i2c.c)
- *    LO    Real time clock interrupt            (set in rtc.h)
+ *    HI    Step timers                          stepper.c
+ *    HI    Serial RX                            usart.c
+ *   MED    Serial TX                            usart.c (* see note)
+ *   MED    Modbus serial interrupts             modbus.c
+ *    LO    Segment execution SW interrupt       stepper.c
+ *    LO    I2C Slave                            i2c.c
+ *    LO    Real-time clock interrupt            rtc.c
+ *    LO    DRV8711 SPI                          drv8711.c
+ *    LO    A2D interrupts                       analog.c
  *
  *    (*) The TX cannot run at LO level or exception reports and other prints
  *        called from a LO interrupt (as in prep_line()) will kill the system
@@ -125,19 +128,16 @@ enum {
  */
 
 // Timer assignments
-// NOTE, TCC1 free
+// NOTE, TCC1 is unused
 #define TIMER_STEP               TCC0 // Step timer (see stepper.h)
 #define TIMER_PWM                TCD1 // PWM timer  (see pwm.c)
 
 
 // Timer setup for stepper and dwells
-#define STEP_TIMER_ENABLE        TC_CLKSEL_DIV8_gc
 #define STEP_TIMER_DIV           8
 #define STEP_TIMER_FREQ          (F_CPU / STEP_TIMER_DIV)
 #define STEP_TIMER_POLL          ((uint16_t)(STEP_TIMER_FREQ * 0.001)) // 1ms
-#define STEP_TIMER_WGMODE        TC_WGMODE_NORMAL_gc // count to TOP & rollover
 #define STEP_TIMER_ISR           TCC0_OVF_vect
-#define STEP_TIMER_INTLVL        TC_OVFINTLVL_HI_gc
 #define STEP_LOW_LEVEL_ISR       ADCB_CH0_vect
 #define STEP_PULSE_WIDTH         (F_CPU * 0.000002 / 2) // 2uS w/ clk/2
 #define SEGMENT_MS               4

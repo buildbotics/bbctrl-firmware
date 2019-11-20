@@ -122,15 +122,11 @@ RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _init)() {
   }
 
 
-#define _RING_BUF_ATOMIC_WRITE_INDEX(INDEX, TARGET)                     \
-  RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _write_##INDEX)              \
-  (RING_BUF_INDEX_TYPE value) {                                         \
-    RING_BUF_ATOMIC_COPY(TARGET, value);                                \
-  }
-
-
 #define RING_BUF_ATOMIC_WRITE_INDEX(INDEX)                              \
-  _RING_BUF_ATOMIC_WRITE_INDEX(INDEX, RING_BUF.INDEX)
+  RING_BUF_FUNC void CONCAT(RING_BUF_NAME, _write_##INDEX)              \
+    (RING_BUF_INDEX_TYPE value) {                                       \
+    RING_BUF_ATOMIC_COPY(RING_BUF.INDEX, value);                        \
+  }
 
 
 RING_BUF_ATOMIC_READ_INDEX(head);

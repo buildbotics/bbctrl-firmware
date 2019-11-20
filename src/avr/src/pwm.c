@@ -173,7 +173,7 @@ power_update_t pwm_get_update(float power) {
 
 
 // Called from hi-priority stepper interrupt, must be very fast
-void pwm_update(power_update_t update) {
+void pwm_update(const power_update_t &update) {
   if (!pwm.initialized || update.state == POWER_IGNORE) return;
   _update_clock(update.period);
   if (update.period) _set_dir(update.state == POWER_FORWARD);

@@ -32,6 +32,8 @@
 #include "estop.h"
 #include "pgmspace.h"
 
+#include <util/atomic.h>
+
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
@@ -383,12 +385,11 @@ void vfd_spindle_deinit(deinit_cb_t cb) {
 
 
 void vfd_spindle_set(float power) {
-  cli();
-  if (vfd.power != power) {
-    vfd.power = power;
-    vfd.changed = true;
-  }
-  sei();
+  if (vfd.power != power)
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+      vfd.power = power;
+      vfd.changed = true;
+    }
 }
 
 
