@@ -19,6 +19,13 @@ On a Debian Linux (9.6.0 stable) system install the required packages:
 
     git clone https://github.com/buildbotics/bbctrl-firmware
 
+## Install the Linux kernel source
+
+An optimized Linux serial driver is built as part of the Buildboitcs firmwere.
+A copy of the Linux kernel source for the RaspberryPi is necessary for building
+this module.  [Download the kernel source](https://github.com/dbrgn/linux-rpi/releases/tag/raspberrypi-kernel_1.20171029-1)
+and move it to ``src/bbserial/kernel``.
+
 ## Build the Firmware
 
     cd bbctrl-firmware

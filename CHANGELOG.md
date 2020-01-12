@@ -16,6 +16,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Prevent cutting off distant parts of 3D path view.
  - Raised default ``latch-backoff`` to 100mm and ``zero-backoff`` to 5mm.
  - Added ``max-deviation`` option.
+ - Fixed problem with GCode boolean expression parsing.  #232.
 
 ## v0.4.11
  - Don't reset global offsets on M2.
