@@ -11,20 +11,13 @@ On a Debian Linux (9.6.0 stable) system install the required packages:
     sudo apt-get update
     sudo apt-get install -y build-essential git wget binfmt-support qemu \
       parted gcc-avr avr-libc avrdude pylint3 python3 python3-tornado curl \
-      unzip python3-setuptools
-    curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
+      unzip python3-setuptools gcc-arm-linux-gnueabihf bc sudo
+    curl -sL https://deb.nodesource.com/setup_13.x | sudo -E bash -
     sudo apt-get install -y nodejs
 
 ## Getting the Source Code
 
     git clone https://github.com/buildbotics/bbctrl-firmware
-
-## Install the Linux kernel source
-
-An optimized Linux serial driver is built as part of the Buildboitcs firmwere.
-A copy of the Linux kernel source for the RaspberryPi is necessary for building
-this module.  [Download the kernel source](https://github.com/dbrgn/linux-rpi/releases/tag/raspberrypi-kernel_1.20171029-1)
-and move it to ``src/bbserial/kernel``.
 
 ## Build the Firmware
 
