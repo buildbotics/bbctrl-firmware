@@ -311,19 +311,19 @@ void motor_prep_move(int motor, float target) {
   const float seg_clocks = SEGMENT_TIME * (F_CPU * 60 / 2);
   float ticks_per_step = seg_clocks / steps;
 
-  // Limit clock if step rate is too fast
-  // We allow a slight fudge here (i.e. 1.9 instead 2) because the motor driver
-  // seems to be able to handle it and otherwise we could not actually hit
-  // an average rate of 250k usteps/sec.
-  if (ticks_per_step < STEP_PULSE_WIDTH * 1.9)
-    ticks_per_step = STEP_PULSE_WIDTH * 1.9; // Too fast
-
   // Use faster clock with faster step rates for increased resolution.
   if (ticks_per_step < 0x7fff) {
     ticks_per_step *= 2;
     m.clock = TC_CLKSEL_DIV1_gc;
 
-  } else m.clock = TC_CLKSEL_DIV2_gc;
+    // Limit clock if step rate is too fast
+    // We allow a slight fudge here (i.e. 1.9 instead 2) because the motor
+    // driver is able to handle it and otherwise we could not actually hit
+    // an average rate of 250k usteps/sec.
+    if (ticks_per_step < STEP_PULSE_WIDTH * 1.9)
+      ticks_per_step = STEP_PULSE_WIDTH * 1.9; // Too fast
+
+  } else m.clock = TC_CLKSEL_DIV2_gc; // NOTE, pulse width will be twice as long
 
   // Disable clock if too slow
   if (0xffff <= ticks_per_step) ticks_per_step = 0;
