@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.13
+ - Beta support for OMRON MX2 VFD.
+
 ## v0.4.12
  - Segments straddle arc in linearization.
  - Control max-arc-error with GCode var.

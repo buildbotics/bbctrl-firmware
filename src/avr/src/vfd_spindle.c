@@ -154,6 +154,20 @@ const vfd_reg_t sunfar_e300_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t omron_mx2_regs[] PROGMEM = {
+  {REG_CONNECT_WRITE, 0x1201,   3}, // A001 Frequency reference modbus
+  {REG_CONNECT_WRITE, 0x1202,   3}, // A002 Run command modbus
+  {REG_MAX_FREQ_READ, 0x1204,   0}, // A004 Max frequency
+  {REG_FREQ_SET,      0x0001,   0}, // F001 Frequency
+  {REG_STOP_WRITE,    0x1e01,   0}, // Stop drive
+  {REG_FWD_WRITE,     0x1e01,   2}, // Forward
+  {REG_REV_WRITE,     0x1e01,   6}, // Reverse
+  {REG_FREQ_READ,     0x1001,   0}, // D001 Output freq
+  {REG_STATUS_READ,   0x0005,   0}, // Status A
+  {REG_DISABLED},
+};
+
+
 static vfd_reg_t regs[VFDREG];
 static vfd_reg_t custom_regs[VFDREG];
 
@@ -371,6 +385,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_YL600:            _load(yl600_regs);              break;
   case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs);            break;
   case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
+  case SPINDLE_TYPE_OMRON_MX2:        _load(omron_mx2_regs);          break;
   default: break;
   }
 

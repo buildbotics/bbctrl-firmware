@@ -109,7 +109,7 @@ script#tool-view-template(type="text/x-template")
 
       .notes(v-if="tool_type == 'HUANYANG VFD'")
         h2 Notes
-        p Set the following using the VFD's frontpanel.
+        p Set the following using the VFD's front panel.
         table.modbus-regs.fixed-regs
           tr
             th Address
@@ -157,7 +157,7 @@ script#tool-view-template(type="text/x-template")
 
       .notes(v-if="tool_type.startsWith('NOWFOREVER VFD')")
         h2 Notes
-        p Set the following using the VFD's frontpanel.
+        p Set the following using the VFD's front panel.
         table.modbus-regs.fixed-regs
           tr
             th Address
@@ -197,7 +197,7 @@ script#tool-view-template(type="text/x-template")
 
       .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
         h2 Notes
-        p Set the following using the VFD's frontpanel.
+        p Set the following using the VFD's front panel.
         table.modbus-regs.fixed-regs
           tr
             th Address
@@ -245,7 +245,7 @@ script#tool-view-template(type="text/x-template")
 
       .notes(v-if="tool_type.startsWith('YL600')")
         h2 Notes
-        p Set the following using the VFD's frontpanel.
+        p Set the following using the VFD's front panel.
         table.modbus-regs.fixed-regs
           tr
             th Address
@@ -293,7 +293,7 @@ script#tool-view-template(type="text/x-template")
 
       .notes(v-if="tool_type.startsWith('SUNFAR')")
         h2 Notes
-        p Set the following using the VFD's frontpanel.
+        p Set the following using the VFD's front panel.
         table.modbus-regs.fixed-regs
           tr
             th Address
@@ -333,3 +333,72 @@ script#tool-view-template(type="text/x-template")
             target="_blank") Sunfar E300 VFD manual
           |
           | and spindle type.
+
+      .notes(v-if="tool_type.startsWith('OMRON')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr C071
+            td.reg-value 5
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr C072
+            td.reg-value 1
+            td Bus ID 1
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr C074
+            td.reg-value 0
+            td No parity
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr C075
+            td.reg-value 2
+            td 2 stop bits
+            td Serial stop bits
+          tr
+            td.reg-addr C076
+            td.reg-value 4
+            td Deceleration stop
+            td Communication error action
+          tr
+            td.reg-addr C077
+            td.reg-value 500
+            td 0.5 seconds
+            td Communication error timeout
+          tr
+            td.reg-addr C077
+            td.reg-value 1
+            td 1 milisecond
+            td Communication wait time
+          tr
+            td.reg-addr C096
+            td.reg-value 0
+            td Modbus-RTU
+            td Communication mode
+          tr
+            td.reg-addr P200
+            td.reg-value 0
+            td Standard
+            td Modbus mapping
+          tr
+            td.reg-addr P400
+            td.reg-value 0
+            td Big endian
+            td Communication byte order
+
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/omron_i570_mx2.pdf",
+            target="_blank") OMRON MX2 VFD manual
+          |
+          | and spindle type.  The VFD must be rebooted after changing
+          | the above settings.

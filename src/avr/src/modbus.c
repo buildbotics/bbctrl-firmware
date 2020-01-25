@@ -120,8 +120,8 @@ static void _set_rxc_interrupt(bool enable) {
 
 
 static void _write_word(uint8_t *dst, uint16_t value, bool little_endian) {
-  dst[!little_endian]  = value;
-  dst[little_endian] = value >> 8;
+  dst[!little_endian] = value;
+  dst[little_endian]  = value >> 8;
 }
 
 
