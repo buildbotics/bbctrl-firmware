@@ -155,15 +155,15 @@ const vfd_reg_t sunfar_e300_regs[] PROGMEM = {
 
 
 const vfd_reg_t omron_mx2_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE, 0x1201,   3}, // A001 Frequency reference modbus
-  {REG_CONNECT_WRITE, 0x1202,   3}, // A002 Run command modbus
-  {REG_MAX_FREQ_READ, 0x1204,   0}, // A004 Max frequency
-  {REG_FREQ_SET,      0x0001,   0}, // F001 Frequency
-  {REG_STOP_WRITE,    0x1e01,   0}, // Stop drive
-  {REG_FWD_WRITE,     0x1e01,   2}, // Forward
-  {REG_REV_WRITE,     0x1e01,   6}, // Reverse
-  {REG_FREQ_READ,     0x1001,   0}, // D001 Output freq
-  {REG_STATUS_READ,   0x0005,   0}, // Status A
+  {REG_CONNECT_WRITE,  0x1200,     3}, // A001 Frequency reference modbus
+  {REG_CONNECT_WRITE,  0x1201,     3}, // A002 Run command modbus
+  {REG_MAX_FREQ_FIXED,      0, 40000}, // TODO Want to use A004 max frequency
+  {REG_FREQ_SET,       0x0001,     0}, // F001 Frequency
+  {REG_STOP_WRITE,     0x1f00,     0}, // Stop drive
+  {REG_FWD_WRITE,      0x1f00,     2}, // Forward
+  {REG_REV_WRITE,      0x1f00,     6}, // Reverse
+  {REG_FREQ_READ,      0x1001,     0}, // D001 Output freq
+  {REG_STATUS_READ,    0x0004,     0}, // Status A
   {REG_DISABLED},
 };
 
