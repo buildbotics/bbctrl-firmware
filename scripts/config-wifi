@@ -53,8 +53,9 @@ function configure_wlan0() {
     echo "  wpa-pairwise CCMP TKIP"
     echo "  wpa-group CCMP TKIP"
     echo "  wpa-ssid \"$SSID\""
+
     if [ ${#PASS} -ne 0 ]; then
-        echo "  wpa-psk \"$PASS\""
+      echo "  wpa-psk \"$PASS\""
     fi
 }
 
@@ -230,9 +231,11 @@ else
         exit 1
     fi
 
-    if [ ${#PASS} -lt 8 -o 128 -lt ${#PASS} ]; then
+    if [ ${#PASS} -ne 0 ]; then
+      if [ ${#PASS} -lt 8 -o 128 -lt ${#PASS} ]; then
         echo "Invalid passsword"
         exit 1
+      fi
     fi
 
     echo "$CHANNEL" | grep '^[0-9]\{1,2\}' > /dev/null
@@ -240,7 +243,6 @@ else
         echo "Invalid channel '$CHANNEL'"
         exit 1
     fi
-
 
     # Execute
     if $AP; then

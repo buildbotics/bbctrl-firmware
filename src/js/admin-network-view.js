@@ -116,12 +116,12 @@ module.exports = {
 
     set_password: function () {
       if (this.password != this.password2) {
-        api.alert('Passwords to not match');
+        alert('Passwords to not match');
         return;
       }
 
       if (this.password.length < 6) {
-        api.alert('Password too short');
+        alert('Password too short');
         return;
       }
 
@@ -139,13 +139,33 @@ module.exports = {
     config_wifi: function () {
       this.wifiConfirm = false;
 
+      if (!this.wifi_ssid.length) {
+        alert('SSID not set');
+        return;
+      }
+
+      if (32 < this.wifi_ssid.length) {
+        alert('SSID longer than 32 characters');
+        return;
+      }
+
+      if (this.wifi_pass.length && this.wifi_pass.length < 8) {
+        alert('WiFi password shorter than 8 characters');
+        return;
+      }
+
+      if (128 < this.wifi_pass.length) {
+        alert('WiFi password longer than 128 characters');
+        return;
+      }
+
       this.rebooting = true;
 
       var config = {
-        mode: this.wifi_mode,
+        mode:    this.wifi_mode,
         channel: this.wifi_ch,
-        ssid: this.wifi_ssid,
-        pass: this.wifi_pass
+        ssid:    this.wifi_ssid,
+        pass:    this.wifi_pass
       }
 
       api.put('wifi', config).fail(function (error) {

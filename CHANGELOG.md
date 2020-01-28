@@ -3,6 +3,8 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.4.13
  - Support for OMRON MX2 VFD.
+ - Better error handling in WiFi configuration.
+ - Fix open WiFi access.
 
 ## v0.4.12
  - Segments straddle arc in linearization.
