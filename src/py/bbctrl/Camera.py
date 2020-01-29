@@ -65,10 +65,10 @@ def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
 
 
 def format_frame(frame):
-    frame = [
+    frame = [b'--', VideoHandler.boundary.encode('utf8'), b'\r\n',
         b'Content-type: image/jpeg\r\n',
         b'Content-length: ', str(len(frame)).encode('utf8'), b'\r\n\r\n',
-        frame, VideoHandler.boundary.encode('utf8'), b'\n']
+        frame, b'\r\n\r\n']
 
     return b''.join(frame)
 
@@ -445,7 +445,7 @@ class Camera(object):
 
 
 class VideoHandler(web.RequestHandler):
-    boundary = '---boundary---'
+    boundary = 'f36a3a39e5c955484390e0e3a6b031d145ec893ae98489416d11409bc478e38'
 
 
     def __init__(self, app, request, **kwargs):
