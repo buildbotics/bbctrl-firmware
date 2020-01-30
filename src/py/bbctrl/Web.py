@@ -301,6 +301,8 @@ class PathHandler(bbctrl.APIHandler):
             if data is None: return
             meta, positions, speeds = data
 
+            self.get_ctrl().state.set_bounds(meta['bounds'])
+
             if dataType == '/positions': data = positions
             elif dataType == '/speeds': data = speeds
             else:

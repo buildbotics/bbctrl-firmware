@@ -145,6 +145,14 @@ class State(object):
         self.set('selected_time', time)
 
 
+    def set_bounds(self, bounds):
+        for axis in 'xyzabc':
+            for name in ('min', 'max'):
+                var = '%s_%s' % (axis, name)
+                value = bounds[name][axis] if axis in bounds[name] else 0
+                self.set(var, value)
+
+
     def ack_message(self, id):
         self.log.info('Message %d acknowledged' % id)
         msgs = self.vars['messages']

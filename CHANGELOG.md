@@ -6,6 +6,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Better error handling in WiFi configuration.
  - Fix open WiFi access.
  - Fixes for MJPEG video format.  Should help with video on iPhone.
+ - Add axis bounds GCode variables ``#<_x_min>``, ``#<_x_max>``, etc.
 
 ## v0.4.12
  - Segments straddle arc in linearization.
