@@ -66,10 +66,7 @@ def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
 
 def format_frame(frame):
     frame = [b'--', VideoHandler.boundary.encode('utf8'), b'\r\n',
-        b'Content-type: image/jpeg\r\n',
-        b'Content-length: ', str(len(frame)).encode('utf8'), b'\r\n\r\n',
-        frame, b'\r\n\r\n']
-
+             b'Content-type: image/jpeg\r\n\r\n', frame, b'\r\n\r\n']
     return b''.join(frame)
 
 
