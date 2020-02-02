@@ -89,9 +89,10 @@ class Planner():
             'max-vel':   state.get_axis_vector('vm', 1000),
             'max-accel': state.get_axis_vector('am', 1000000),
             'max-jerk':  state.get_axis_vector('jm', 1000000),
-            'rapid-auto-off': config.get('rapid-auto-off'),
+            'rapid-auto-off':  config.get('rapid-auto-off'),
             'max-blend-error': config.get('max-deviation'),
             'max-merge-error': config.get('max-deviation'),
+            'junction-accel':  config.get('junction-accel'),
             }
 
         if with_limits:

@@ -15,6 +15,17 @@
       "iunit": "in",
       "scale": 25.4,
       "default": 0.1
+    },
+    "junction-accel": {
+      "help":
+      "Higher values will increasing cornering speed but may cause stalls.",
+      "type": "float",
+      "min": 10000,
+      "max": 100000000,
+      "unit": "mm/min²",
+      "iunit": "in/min²",
+      "scale": 25.4,
+      "default": 200000
     }
   },
   "motors": {

@@ -61,3 +61,14 @@ script#settings-view-template(type="text/x-template")
           #[a(href=base + "#gcode:g61-g61.1", target="_blank") G61, G61.1] and
           #[a(href=base + "#gcode:g64", target="_blank") G64] also affect path
           planning accuracy.
+
+        h2 Cornering Speed (Advanced)
+        templated-input(name="junction-accel",
+          :model.sync="config.settings['junction-accel']",
+          :template="template.settings['junction-accel']")
+
+        p.
+          Junction acceleration limits the cornering speed the planner will
+          allow.  Increasing this value will allow for faster traversal of
+          corners but may cause the planner to violate axis jerk limits and
+          stall the motors.  Use with caution.
