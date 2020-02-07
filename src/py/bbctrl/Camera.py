@@ -77,7 +77,6 @@ def get_image_resource(path):
         return format_frame(f.read())
 
 
-
 class VideoDevice(object):
     def __init__(self, path = '/dev/video0'):
         self.fd = os.open(path, os.O_RDWR | os.O_NONBLOCK | os.O_CLOEXEC)
@@ -208,7 +207,7 @@ class VideoDevice(object):
         buf = self._dqbuf()
         mm = self.buffers[buf.index]
 
-        frame = mm.read()
+        frame = mm.read(buf.bytesused)
         mm.seek(0)
         self._qbuf(buf)
 
@@ -286,6 +285,7 @@ class Camera(object):
         self.height = args.height
         self.fps = args.fps
         self.fourcc = string_to_fourcc(args.fourcc)
+        self.max_clients = args.camera_clients
 
         self.overtemp = False
         self.dev = None
@@ -328,7 +328,11 @@ class Camera(object):
         if not len(self.clients): return
 
         try:
-            self.clients[-1].write_frame(format_frame(frame))
+            frame = format_frame(frame)
+            for i in range(self.max_clients):
+                if i < len(self.clients):
+                    self.clients[-(i + 1)].write_frame(frame)
+
         except Exception as e:
             self.log.warning('Failed to write frame to client: %s' % e)
 
@@ -420,7 +424,9 @@ class Camera(object):
     def add_client(self, client):
         self.log.info('Adding camera client: %d' % len(self.clients))
 
-        if len(self.clients): self.clients[-1].write_img('in-use')
+        if self.max_clients <= len(self.clients):
+            self.clients[-self.max_clients].write_img('in-use')
+
         self.clients.append(client)
         self._update_client_image()
 

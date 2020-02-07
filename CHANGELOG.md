@@ -5,7 +5,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Support for OMRON MX2 VFD.
  - Better error handling in WiFi configuration.
  - Fix open WiFi access.
- - Fixes for MJPEG video format.  Should help with video on iPhone.
+ - Improved video camera performance.
+ - Allow up to 4 camera clients at once.
  - Add axis bounds GCode variables ``#<_x_min>``, ``#<_x_max>``, etc.
  - Expose ``junction-accel`` planning parameter.
 

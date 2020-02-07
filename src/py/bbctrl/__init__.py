@@ -152,6 +152,8 @@ def parse_args():
                         help = 'Camera frames per second')
     parser.add_argument('--fourcc', default = 'MJPG',
                         help = 'Camera frame format')
+    parser.add_argument('--camera-clients', default = 4,
+                        help = 'Maximum simultaneous camera clients')
     parser.add_argument('--demo', action = 'store_true',
                         help = 'Enter demo mode')
     parser.add_argument('--debug', default = 0, type = int,

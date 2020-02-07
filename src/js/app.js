@@ -105,7 +105,7 @@ module.exports = new Vue({
       },
       state: {messages: []},
       video_size: cookie.get('video-size', 'small'),
-      crosshair: cookie.get('crosshair', false),
+      crosshair: cookie.get('crosshair', 'false') != 'false',
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorShow: false,
