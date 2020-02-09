@@ -32,7 +32,7 @@ script#admin-general-view-template(type="text/x-template")
     button.pure-button.pure-button-primary(@click="upgrade") Upgrade
     label.pure-button.pure-button-primary(@click="upload_firmware") Upload
     form.upload-firmware.file-upload
-      input(type="file", accept=".tar.bz2", @change="upload")
+      input(type="file", accept=".bz2", @change="upload")
 
     p
       input(type="checkbox", v-model="autoCheckUpgrade",

@@ -9,6 +9,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Allow up to 4 camera clients at once.
  - Add axis bounds GCode variables ``#<_x_min>``, ``#<_x_max>``, etc.
  - Expose ``junction-accel`` planning parameter.
+ - Fixed problem with manual firmware upload on OSX.
 
 ## v0.4.12
  - Segments straddle arc in linearization.
