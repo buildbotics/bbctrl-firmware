@@ -66,7 +66,8 @@ def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
 
 def format_frame(frame):
     frame = [b'--', VideoHandler.boundary.encode('utf8'), b'\r\n',
-             b'Content-type: image/jpeg\r\n\r\n', frame, b'\r\n\r\n']
+             b'Content-type: image/jpeg\r\n',
+             b'Content-length: %d\r\n\r\n' % len(frame), frame]
     return b''.join(frame)
 
 
@@ -448,7 +449,7 @@ class Camera(object):
 
 
 class VideoHandler(web.RequestHandler):
-    boundary = 'f36a3a39e5c955484390e0e3a6b031d145ec893ae98489416d11409bc478e38'
+    boundary = '-f36a3a39e5c955484390e0e3a6b031d1---'
 
 
     def __init__(self, app, request, **kwargs):
@@ -460,9 +461,8 @@ class VideoHandler(web.RequestHandler):
     def get(self):
         self.request.connection.stream.max_write_buffer_size = 10000
 
-        self.set_header('Cache-Control', 'no-store, no-cache, ' +
-                        'must-revalidate, pre-check=0, post-check=0, ' +
-                        'max-age=0')
+        self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, '
+                        'pre-check=0, post-check=0, max-age=0')
         self.set_header('Connection', 'close')
         self.set_header('Content-Type', 'multipart/x-mixed-replace;boundary=' +
                         self.boundary)
