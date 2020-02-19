@@ -7,5 +7,6 @@ include scripts/buildbotics.gc
 include scripts/xinitrc
 include scripts/rc.local
 include scripts/bbctrl.service
+include scripts/11-automount.rules
 recursive-include src/py/camotics *
 global-exclude .gitignore

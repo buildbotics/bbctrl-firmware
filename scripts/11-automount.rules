@@ -1,0 +1,9 @@
+KERNEL!="sd[abc]|sd[abc][123]", GOTO="automount_end"
+IMPORT{program}="/sbin/blkid -o udev -p %N"
+ENV{ID_FS_TYPE}=="", GOTO="automount_end"
+ENV{dir_name}="USB_DRIVE-%k"
+ACTION=="add", RUN+="/bin/mkdir -p /media/%E{dir_name}", \
+               RUN+="/bin/mount /dev/%k"
+ACTION=="remove", RUN+="/bin/umount -l /dev/%k", \
+                  RUN+="/bin/rmdir /media/%E{dir_name}"
+LABEL="automount_end"

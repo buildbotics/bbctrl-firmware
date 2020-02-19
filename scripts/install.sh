@@ -68,23 +68,27 @@ sed -i 's/^XKBLAYOUT="gb"$/XKBLAYOUT="us" # Comment stops change on upgrade/' \
     /etc/default/keyboard
 
 # Setup USB stick automount
-if [ ! -e /etc/udev/rules.d/11-automount.rules ]; then
-    (
-        echo 'KERNEL!="sd[a-z]*", GOTO="automount_end"'
-        echo 'IMPORT{program}="/sbin/blkid -o udev -p %N"'
-        echo 'ENV{ID_FS_TYPE}=="", GOTO="automount_end"'
-        echo 'ENV{ID_FS_LABEL}!="", ENV{dir_name}="%E{ID_FS_LABEL}"'
-        echo 'ENV{ID_FS_LABEL}=="", ENV{dir_name}="usb-%k"'
-        echo 'ACTION=="add", ENV{mount_options}="relatime"'
-        echo 'ACTION=="add", ENV{ID_FS_TYPE}=="vfat|ntfs", ENV{mount_options}="$env{mount_options},utf8,gid=100,umask=002,sync"'
-        echo 'ACTION=="add", RUN+="/bin/mkdir -p /media/%E{dir_name}", RUN+="/bin/mount -o $env{mount_options} /dev/%k /media/%E{dir_name}"'
-        echo 'ACTION=="remove", ENV{dir_name}!="", RUN+="/bin/umount -l /media/%E{dir_name}", RUN+="/bin/rmdir /media/%E{dir_name}"'
-        echo 'LABEL="automount_end"'
-    ) > /etc/udev/rules.d/11-automount.rules
-
-    sed -i 's/^\(MountFlags=slave\)/#\1/' /lib/systemd/system/systemd-udevd.service
-    REBOOT=true
+diff ./scripts/11-automount.rules /etc/udev/rules.d/11-automount.rules \
+     >/dev/null
+if [ $? -ne 0 ]; then
+  cp ./scripts/11-automount.rules /etc/udev/rules.d/
+  sed -i 's/^\(MountFlags=slave\)/#\1/' \
+      /lib/systemd/system/systemd-udevd.service
+  REBOOT=true
 fi
+
+for letter in a b c; do
+  for number in '' 1 2 3; do
+    DEV=sd$letter$number
+    MOUNT=/media/USB_DRIVE-$DEV
+    OPTIONS=defaults,utf8,gid=100,umask=002,sync,noauto,flush,users
+
+    grep "/dev/$DEV[[:space:]]" /etc/fstab >/dev/null
+    if [ $? -ne 0 ]; then
+      echo "/dev/$DEV $MOUNT auto $OPTIONS 0 0" >> /etc/fstab
+    fi
+  done
+done
 
 # Increase swap
 grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null

@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.14
+ - Allow user to unmount/eject USB stick on local head.
+
 ## v0.4.13
  - Support for OMRON MX2 VFD.
  - Better error handling in WiFi configuration.
