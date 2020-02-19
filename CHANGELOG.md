@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Add axis bounds GCode variables ``#<_x_min>``, ``#<_x_max>``, etc.
  - Expose ``junction-accel`` planning parameter.
  - Fixed problem with manual firmware upload on OSX.
+ - Ignore cameras that do not support MJPEG format video.
 
 ## v0.4.12
  - Segments straddle arc in linearization.

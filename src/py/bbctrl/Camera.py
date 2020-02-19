@@ -285,7 +285,7 @@ class Camera(object):
         self.width = args.width
         self.height = args.height
         self.fps = args.fps
-        self.fourcc = string_to_fourcc(args.fourcc)
+        self.fourcc = 'MJPG'
         self.max_clients = args.camera_clients
 
         self.overtemp = False
@@ -376,11 +376,22 @@ class Camera(object):
             if caps.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE == 0:
                 raise Exception('Video capture not supported.')
 
-            self.log.info('Formats: %s', self.dev.get_formats())
-            self.log.info('Sizes: %s', self.dev.get_frame_sizes(self.fourcc))
+            fourcc  = string_to_fourcc(self.fourcc)
+            formats = self.dev.get_formats()
+            sizes   = self.dev.get_frame_sizes(fourcc)
+
+            self.log.info('Formats: %s', formats)
+            self.log.info('Sizes: %s', sizes)
             self.log.info('Audio: %s', self.dev.get_audio())
 
-            self.dev.set_format(self.width, self.height, fourcc = self.fourcc)
+            hasFormat = False
+            for name, description in formats:
+                if name == self.fourcc: hasFormat = True
+
+            if not hasFormat:
+                raise Exception(self.fourcc + ' video format not supported.')
+
+            self.dev.set_format(self.width, self.height, fourcc = fourcc)
             self.dev.set_fps(self.fps)
             self.dev.create_buffers(4)
             self.dev.start()
