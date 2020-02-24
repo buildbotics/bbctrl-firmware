@@ -1,9 +1,10 @@
-KERNEL!="sd[abc]|sd[abc][123]", GOTO="automount_end"
+KERNEL!="sd[a-z]*", GOTO="automount_end"
 IMPORT{program}="/sbin/blkid -o udev -p %N"
 ENV{ID_FS_TYPE}=="", GOTO="automount_end"
-ENV{dir_name}="USB_DRIVE-%k"
-ACTION=="add", RUN+="/bin/mkdir -p /media/%E{dir_name}", \
-               RUN+="/bin/mount /dev/%k"
-ACTION=="remove", RUN+="/bin/umount -l /dev/%k", \
-                  RUN+="/bin/rmdir /media/%E{dir_name}"
+ENV{ID_FS_LABEL}!="", ENV{dir_name}="%E{ID_FS_LABEL}"
+ENV{ID_FS_LABEL}=="", ENV{dir_name}="usb-%k"
+ACTION=="add", ENV{mount_options}="relatime"
+ACTION=="add", ENV{ID_FS_TYPE}=="vfat|ntfs", ENV{mount_options}="$env{mount_options},utf8,gid=100,umask=002,sync"
+ACTION=="add", RUN+="/bin/mkdir -p /media/%E{dir_name}", RUN+="/bin/mount -o $env{mount_options} /dev/%k /media/%E{dir_name}"
+ACTION=="remove", ENV{dir_name}!="", RUN+="/bin/umount -l /media/%E{dir_name}", RUN+="/bin/rmdir /media/%E{dir_name}"
 LABEL="automount_end"

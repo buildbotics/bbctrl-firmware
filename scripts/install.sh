@@ -77,19 +77,6 @@ if [ $? -ne 0 ]; then
   REBOOT=true
 fi
 
-for letter in a b c; do
-  for number in '' 1 2 3; do
-    DEV=sd$letter$number
-    MOUNT=/media/USB_DRIVE-$DEV
-    OPTIONS=defaults,utf8,gid=100,umask=002,sync,noauto,flush,users
-
-    grep "/dev/$DEV[[:space:]]" /etc/fstab >/dev/null
-    if [ $? -ne 0 ]; then
-      echo "/dev/$DEV $MOUNT auto $OPTIONS 0 0" >> /etc/fstab
-    fi
-  done
-done
-
 # Increase swap
 grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null
 if [ $? -ne 0 ]; then
