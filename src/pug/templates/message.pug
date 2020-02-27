@@ -27,8 +27,8 @@
 
 script#message-template(type="text/x-template")
   .modal-mask(v-show="show", transition="modal")
-    .modal-wrapper
-      .modal-container
+    .modal-wrapper(@click="$emit('click-away')", v-el:wrapper)
+      .modal-container(@click.stop="")
         .modal-header
           slot(name="header") default header
 
@@ -37,4 +37,4 @@ script#message-template(type="text/x-template")
 
         .modal-footer
           slot(name="footer")
-            button.pure-button.button-success(@click="show = false") OK
+            div: button.pure-button(@click="show = false") OK

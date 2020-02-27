@@ -84,6 +84,13 @@ class RebootHandler(bbctrl.APIHandler):
         subprocess.Popen('reboot')
 
 
+class StateHandler(bbctrl.APIHandler):
+    def get(self, path):
+        if path is None or path == '' or path == '/':
+            self.write_json(self.get_ctrl().state.snapshot())
+        else: self.write_json(self.get_ctrl().state.get(path[1:]))
+
+
 class LogHandler(bbctrl.RequestHandler):
     def get(self):
         with open(self.get_ctrl().log.get_path(), 'r') as f:
@@ -124,7 +131,7 @@ class BugReportHandler(bbctrl.RequestHandler):
             check_add_basename('%s.%d' % (path, i))
         check_add_basename('/var/log/syslog')
         check_add('config.json')
-        check_add(ctrl.get_upload(ctrl.state.get('selected', '')))
+        check_add(ctrl.fs.realpath(ctrl.state.get('queued', '')))
 
         return files
 
@@ -302,21 +309,41 @@ class UpgradeHandler(bbctrl.APIHandler):
         subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
+class QueueHandler(bbctrl.APIHandler):
+    def put_ok(self, path):
+        path = os.path.normpath(path)
+        if path.startswith('..'): raise HTTPError(400, 'Invalid path')
+        path = path.lstrip('./')
+
+        realpath = self.get_ctrl().fs.realpath(path)
+        if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
+        self.get_ctrl().fs.queue_file(path)
+
+
+class USBUpdateHandler(bbctrl.APIHandler):
+    def put_ok(self): self.get_ctrl().fs.usb_update()
+
+
+class USBEjectHandler(bbctrl.APIHandler):
+    def put_ok(self, path):
+        subprocess.Popen(['/usr/local/bin/eject-usb', '/media/' + path])
+
+
 class PathHandler(bbctrl.APIHandler):
     @gen.coroutine
-    def get(self, filename, dataType, *args):
-        if not os.path.exists(self.get_upload(filename)):
+    def get(self, dataType, path, *args):
+        if not os.path.exists(self.get_ctrl().fs.realpath(path)):
             raise HTTPError(404, 'File not found')
 
         preplanner = self.get_ctrl().preplanner
-        future = preplanner.get_plan(filename)
+        future = preplanner.get_plan(path)
 
         try:
             delta = datetime.timedelta(seconds = 1)
             data = yield gen.with_timeout(delta, future)
 
         except gen.TimeoutError:
-            progress = preplanner.get_plan_progress(filename)
+            progress = preplanner.get_plan_progress(path)
             self.write_json(dict(progress = progress))
             return
 
@@ -324,14 +351,13 @@ class PathHandler(bbctrl.APIHandler):
             if data is None: return
             meta, positions, speeds = data
 
-            if dataType == '/positions': data = positions
-            elif dataType == '/speeds': data = speeds
+            if dataType == 'positions': data = positions
+            elif dataType == 'speeds': data = speeds
             else:
-                self.get_ctrl().state.set_bounds(meta['bounds'])
                 self.write_json(meta)
                 return
 
-            filename = filename + '-' + dataType[1:] + '.gz'
+            filename = os.path.basename(path) + '-' + dataType + '.gz'
             self.set_header('Content-Disposition', 'filename="%s"' % filename)
             self.set_header('Content-Type', 'application/octet-stream')
             self.set_header('Content-Encoding', 'gzip')
@@ -422,7 +448,7 @@ class JogHandler(bbctrl.APIHandler):
         # Handle possible out of order jog command processing
         if 'ts' in self.json:
             ts = self.json['ts']
-            id = self.get_cookie('client-id')
+            id = self.get_cookie('bbctrl-client-id')
 
             if not hasattr(self.app, 'last_jog'):
                 self.app.last_jog = {}
@@ -498,7 +524,7 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
 
 
     def on_open(self, info):
-        cookie = info.get_cookie('client-id')
+        cookie = info.get_cookie('bbctrl-client-id')
         if cookie is None: self.send(dict(sid = '')) # Trigger client reset
         else:
             id = cookie.value
@@ -535,6 +561,7 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket', WSConnection),
+            (r'/api/state(/.*)?', StateHandler),
             (r'/api/log', LogHandler),
             (r'/api/message/(\d+)/ack', MessageAckHandler),
             (r'/api/bugreport', BugReportHandler),
@@ -549,8 +576,13 @@ class Web(tornado.web.Application):
             (r'/api/config/reset', ConfigResetHandler),
             (r'/api/firmware/update', FirmwareUpdateHandler),
             (r'/api/upgrade', UpgradeHandler),
-            (r'/api/file(/[^/]+)?', bbctrl.FileHandler),
-            (r'/api/path/([^/]+)((/positions)|(/speeds))?', PathHandler),
+            (r'/api/queue/(.*)', QueueHandler),
+            (r'/api/usb/update', USBUpdateHandler),
+            (r'/api/usb/eject/(.*)', USBEjectHandler),
+            (r'/api/fs/(.*)', bbctrl.FileSystemHandler),
+            (r'/api/(path)/(.*)', PathHandler),
+            (r'/api/(positions)/(.*)', PathHandler),
+            (r'/api/(speeds)/(.*)', PathHandler),
             (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
             (r'/api/start', StartHandler),
             (r'/api/estop', EStopHandler),
@@ -618,5 +650,6 @@ class Web(tornado.web.Application):
 
     # Override default logger
     def log_request(self, handler):
-        log = self.get_ctrl(handler.get_cookie('client-id')).log.get('Web')
+        ctrl = self.get_ctrl(handler.get_cookie('bbctrl-client-id'))
+        log = ctrl.log.get('Web')
         log.info("%d %s", handler.get_status(), handler._request_summary())

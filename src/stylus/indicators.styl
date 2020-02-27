@@ -1,0 +1,48 @@
+.indicators
+  padding 1em 0
+  text-align center
+
+  table
+    display inline-block
+    vertical-align top
+    margin 0.5em
+    empty-cells show
+    border 3px solid #bbb
+
+    td, th
+      padding 4px
+      white-space nowrap
+
+    tr:nth-child(odd)
+      background #f7f7f7
+
+    th
+      text-align left
+
+    td
+      text-align right
+
+    &.inputs, &.outputs
+      td:nth-child(1), td:nth-child(5)
+        text-align center
+
+    th.header
+      height 2.5em
+      border-bottom 3px solid #ccc
+      text-align center
+
+    th.separator
+      background #ccc
+      border 1px solid #ccc
+      padding 1px
+
+    &.motor_fault
+      td, th
+        text-align center
+        min-width 1.75em
+
+      .fa-eraser
+        cursor pointer
+
+        &:hover
+          opacity 0.5

@@ -30,7 +30,7 @@
 
 module.exports = {
   replace: true,
-  template: '#modbus-reg-view-template',
+  template: '#modbus-reg-template',
   props: ['index', 'model', 'template', 'enable'],
 
 

@@ -1,0 +1,597 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#view-cheat-sheet-template(type="text/x-template")
+  // Modified from http://linuxcnc.org/docs/html/gcode.html
+  - var base = 'http://linuxcnc.org/docs/html/gcode';
+  - var camotics_base = 'https://camotics.org/gcode.html';
+
+  .cheat-sheet
+    h2 GCode Cheat Sheet
+
+    table
+      tr
+        th Code
+        th Parameters
+        th Description
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Motion
+      tr
+        td
+          a(href=`${base}/g-code.html#gcode:g0`) G0
+        td
+        td Rapid Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g1`) G1
+        td
+        td Linear Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g2-g3`) G2, G3
+        td I J K or R, P
+        td Arc Move
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g4`) G4
+        td P
+        td Dwell
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5`) G5
+        td I J P Q
+        td Cubic Spline
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5.1`) G5.1
+        td I J
+        td Quadratic Spline
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g5.2-g5.3`) G5.2
+        td P L
+        td NURBS
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g33.1`) G33.1
+        td K
+        td Rigid Tapping
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Homing & Probing
+      tr
+        td
+          a(target="_blank", href=`${camotics_base}#gcodes-g28_2-28_3`)
+            | G28.2, G28.3
+        td
+        td (Un)set Axis Homed State
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g38`) G38.2 - G38.5
+        td
+        td Straight Probe
+      tr
+        td
+          a(target="_blank", href=`${camotics_base}#gcodes-g38_6-38_9`)
+            | G38.6 - G38.9
+        td
+        td Seek Switch
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Tool Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:select-tool`) T
+        td
+        td Select Tool
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m6`) M6
+        td T
+        td Tool Change
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m61`) M61
+        td Q
+        td Set Current Tool
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l1`) G10 L1
+        td P Q R
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l10`) G10 L10
+        td P
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l11`) G10 L11
+        td P
+        td Set Tool Table
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43`) G43
+        td  H
+        td Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43.1`) G43.1
+        td
+        td Dynamic Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g43.2`) G43.2
+        td  H
+        td Apply additional Tool Length Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g49`) G49
+        td
+        td Cancel Tool Length Compensation
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Feed Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:set-feed-rate`) F
+        td
+        td Set Feed Rate
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g93-g94-g95`)
+            | G93, G94, G95
+        td
+        td Feed Rate Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m52`) M52
+        td P0 (off) or P1 (on)
+        td Adaptive Feed Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m53`) M53
+        td P0 (off) or P1 (on)
+        td Feed Stop Control
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Spindle Control
+      tr
+        td
+          a(href=`${base}/other-code.html#sec:set-spindle-speed`) S
+        td
+        td Set Spindle Speed
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m3-m4-m5`)
+            | M3, M4, M5
+        td S
+        td Spindle Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m19`) M19
+        td
+        td Orient Spindle
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g96-g97`) G96, G97
+        td  S D
+        td Spindle Control Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g33`) G33
+        td K
+        td Spindle Synchronized Motion
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Coolant
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m7-m8-m9`)
+            | M7, M8, M9
+        td
+        td Coolant Control
+      tr
+        td
+          a(target="_blank", href=`${camotics_base}#mcodes-m7_1-m8_1`)
+            | M7.1, M8.1
+        td
+        td Disable Coolant
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Stopping
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m0-m1`) M0, M1
+        td
+        td Program Pause
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m2-m30`) M2, M30
+        td
+        td Program End
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m60`) M60
+        td
+        td Pallet Change Pause
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Units
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g20-g21`) G20, G21
+        td
+        td Units (inch, mm)
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Distance Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g90-g91`) G90, G91
+        td
+        td Distance Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g90.1-g91.1`)
+            | G90.1, G91.1
+        td
+        td Arc Distance Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g7`) G7
+        td
+        td Lathe Diameter Mode
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g8`) G8
+        td
+        td Lathe Radius Mode
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Cutter Radius Compensation
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g40`) G40
+        td
+        td Compensation Off
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g41-g42`) G41,G42
+        td D
+        td Cutter Compensation
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g41.1-g42.1`)
+            | G41.1, G42.1
+        td D L
+        td Dynamic Cutter Compensation
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Path Control Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g61-g61.1`)
+            | G61 G61.1
+        td
+        td Exact Path Mode
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g64`) G64
+        td P Q
+        td Path Blending (Partial support)
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Overrides
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m48-m49`) M48, M49
+        td
+        td Speed and Feed Override Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m50`) M50
+        td P0 (off) or P1 (on)
+        td Feed Override Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m51`) M51
+        td P0 (off) or P1 (on)
+        td Spindle Speed Override Control
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Coordinate Systems, Offsets & Planes
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g54-g59.3`)
+            | G54-G59.3
+        td
+        td Select Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l2`) G10 L2
+        td P R
+        td Set Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g10-l20`) G10 L20
+        td P
+        td Set Coordinate System
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g52`) G52
+        td
+        td Local Coordinate System Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g53`) G53
+        td
+        td Move in Machine Coordinates
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92`) G92
+        td
+        td Coordinate System Offset
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92.1-g92.2`)
+            | G92.1, G92.2
+        td
+        td Reset G92 Offsets
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g92.3`) G92.3
+        td
+        td Restore G92 Offsets
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g28-g28.1`)
+            | G28, G28.1
+        td
+        td Go/Set Predefined Position
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g30-g30.1`)
+            | G30, G30.1
+        td
+        td Go/Set Predefined Position
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g17-g19.1`)
+            | G17 - G19.1
+        td
+        td Plane Select
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Flow-control Codes
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:subroutines`)
+            | o sub/endsub/call
+        td
+        td Subroutines, sub/endsub call
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:looping`) o while
+        td
+        td Looping, while/endwhile do/while
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:conditional`) o if
+        td
+        td Conditional, if/else/endif
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:repeat`) o repeat
+        td
+        td Repeat a loop of code
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:indirection`) []
+        td
+        td Indirection
+      tr
+        td
+          a(target="_blank", href=`${base}/o-code.html#ocode:calling-files`)
+            | o call
+        td
+        td Call named or numbered file
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Modal State
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m70`) M70
+        td
+        td Save modal state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m71`) M71
+        td
+        td Invalidate stored state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m72`) M72
+        td
+        td Restore modal state
+      tr
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m73`) M73
+        td
+        td Save/restore modal state
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') Input/Output
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m62-m65`) M62 - M65
+        td P
+        td Digital Output Control
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m66`) M66
+        td P E L Q
+        td Wait on Input
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m67`) M67
+        td T
+        td Analog Output,Synchronized
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m68`) M68
+        td T
+        td Analog Output, Immediate
+
+      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
+      tr.header-row.unimplemented(v-if="showUnimplemented")
+        th(colspan='3') User Defined Commands
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/m-code.html#mcode:m100-m199`)
+            | M101 - M199
+        td P Q
+        td User Defined Commands
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Canned cycles
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g80`) G80
+        td
+        td Cancel Canned Cycle
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g81`) G81
+        td R L (P)
+        td Drilling Cycle
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g82`) G82
+        td R L (P)
+        td Drilling Cycle, Dwell
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g83`) G83
+        td R L Q
+        td Drilling Cycle, Peck
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g73`) G73
+        td R L Q
+        td Drilling Cycle, Chip Breaking
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g85`) G85
+        td R L (P)
+        td Boring Cycle, Feed Out
+      tr
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g89`) G89
+        td R L (P)
+        td Boring Cycle, Dwell, Feed Out
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g76`) G76
+        td P Z I J R K Q H L E
+        td Threading Cycle
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/g-code.html#gcode:g98-g99`) G98, G99
+        td
+        td Canned Cycle Return Level
+
+      tr.spacer-row: th
+      tr.header-row
+        th(colspan='3') Comments & Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:comments`) ; (…)
+        td
+        td Comments
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:messages`)
+            | (MSG,…)
+        td
+        td Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:debug`) (DEBUG,…)
+        td
+        td Debug Messages
+      tr.unimplemented(v-if="showUnimplemented")
+        td
+          a(target="_blank", href=`${base}/overview.html#gcode:print`) (PRINT,…)
+        td
+        td Print Messages
+      tr
+        td
+          a(target="_blank", href=`${base}/overview.html#_logging`) (LOG,…)
+        td
+        td Logging Messages
+
+    div
+      input(type="checkbox", v-model="showUnimplemented")
+      label Show unsupported codes
+
+    h2 Further GCode Programming Documentation
+
+    p
+      | The Buildbotics controller implements a subset of LinuxCNC GCode.
+      | Supported commands are listed above.  You can find further help with
+      | #[a(href="http://wikipedia.com/wiki/G-code", target="_blank") GCode]
+      | programming on the LinuxCNC website:
+
+    ul
+      li: a(href="http://linuxcnc.org/docs/html/gcode/overview.html",
+        target="_blank")
+        | G Code overview
+      li: a(href="http://linuxcnc.org/docs/html/gcode/g-code.html",
+        target="_blank")
+        | G Code reference
+      li: a(href="http://linuxcnc.org/docs/html/gcode/m-code.html",
+        target="_blank")
+        | M Code reference

@@ -32,7 +32,7 @@ function api_cb(method, url, data, config) {
   config = $.extend({
     type: method,
     url: '/api/' + url,
-    dataType: 'json',
+    dataType: 'text',
     cache: false
   }, config);
 
@@ -44,7 +44,14 @@ function api_cb(method, url, data, config) {
   var d = $.Deferred();
 
   $.ajax(config).success(function (data, status, xhr) {
-    d.resolve(data, status, xhr);
+    try {
+      if (data) data = JSON.parse(data);
+
+      d.resolve(data, status, xhr);
+
+    } catch (e) {
+      d.reject(data, xhr, status, 'Failed to parse JSON');
+    }
 
   }).error(function (xhr, status, error) {
     var text = xhr.responseText;
@@ -87,18 +94,27 @@ module.exports = {
   },
 
 
-  'delete': function (url, config) {
-    return api_cb('DELETE', url, undefined, config);
+  download: function(url, type) {
+    var d = $.Deferred();
+    var xhr = new XMLHttpRequest();
+
+    xhr.open('GET', '/api/' + url + '?' + Math.random(), true);
+    xhr.responseType = type || 'text';
+    xhr.onload = function () {
+      if (200 <= xhr.status && xhr.status < 300)
+        d.resolve(xhr.response, xhr.status, xhr)
+      else d.reject('', xhr, xhr.status, xhr.statusText)
+    }
+    xhr.onerror = function () {
+      d.reject('', xhr, xhr.status, xhr.statusText)
+    }
+    xhr.send();
+
+    return d.promise();
   },
 
 
-  alert: function (msg, error) {
-    if (typeof error != 'undefined') {
-      if (typeof error.message != 'undefined')
-        msg += '\n' + error.message;
-      else msg += '\n' + JSON.stringify(error);
-    }
-
-    alert(msg);
+  'delete': function (url, config) {
+    return api_cb('DELETE', url, undefined, config);
   }
 }

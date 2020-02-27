@@ -1,0 +1,31 @@
+#main
+  overflow-y scroll
+  height 100vh
+  display flex
+  flex-direction column
+
+  .content
+    width 100%
+
+    h2
+      text-transform capitalize
+
+    .pure-control-group
+      label.units
+        width 6em
+
+      label.units
+        text-align left
+
+      textarea
+        width 24em
+        height 12em
+
+      > select, > input:not([type=checkbox])
+        min-width 200px
+
+      > tt
+        min-width 15.25em
+        padding 0.7em 1em
+        border-radius 3px
+        display inline-block

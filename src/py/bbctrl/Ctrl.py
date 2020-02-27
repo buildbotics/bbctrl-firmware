@@ -37,14 +37,18 @@ class Ctrl(object):
         self.id = id
         self.timeout = None # Used in demo mode
 
-        if id and not os.path.exists(id): os.mkdir(id)
+        if id:
+            if not os.path.exists(id): os.mkdir(id)
+            self.root = './' + id
+        else: self.root = '.'
 
         # Start log
         if args.demo: log_path = self.get_path(filename = 'bbctrl.log')
         else: log_path = args.log
         self.log = bbctrl.log.Log(args, self.ioloop, log_path)
 
-        self.state = bbctrl.State(self)
+        self.events = bbctrl.Events(self)
+        self.state  = bbctrl.State(self)
         self.config = bbctrl.Config(self)
 
         self.log.get('Ctrl').info('Starting %s' % self.id)
@@ -57,6 +61,7 @@ class Ctrl(object):
             self.lcd = bbctrl.LCD(self)
             self.mach = bbctrl.Mach(self, self.avr)
             self.preplanner = bbctrl.Preplanner(self)
+            self.fs = bbctrl.FileSystem(self)
             if not args.demo: self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 
@@ -64,8 +69,6 @@ class Ctrl(object):
 
             self.lcd.add_new_page(bbctrl.MainLCDPage(self))
             self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
-
-            os.environ['GCODE_SCRIPT_PATH'] = self.get_upload()
 
         except Exception: self.log.get('Ctrl').exception()
 
@@ -85,13 +88,8 @@ class Ctrl(object):
 
 
     def get_path(self, dir = None, filename = None):
-        path = './' + self.id if self.id else '.'
-        path = path if dir is None else (path + '/' + dir)
+        path = self.root if dir is None else (self.root + '/' + dir)
         return path if filename is None else (path + '/' + filename)
-
-
-    def get_upload(self, filename = None):
-        return self.get_path('upload', filename)
 
 
     def get_plan(self, filename = None):

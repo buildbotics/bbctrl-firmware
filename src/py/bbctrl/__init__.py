@@ -38,7 +38,8 @@ from pkg_resources import Requirement, resource_filename
 
 from bbctrl.RequestHandler import RequestHandler
 from bbctrl.APIHandler import APIHandler
-from bbctrl.FileHandler import FileHandler
+from bbctrl.FileSystemHandler import FileSystemHandler
+from bbctrl.FileSystem import FileSystem
 from bbctrl.Config import Config
 from bbctrl.LCD import LCD, LCDPage
 from bbctrl.Mach import Mach
@@ -58,6 +59,7 @@ from bbctrl.Camera import Camera, VideoHandler
 from bbctrl.AVR import AVR
 from bbctrl.AVREmu import AVREmu
 from bbctrl.IOLoop import IOLoop
+from bbctrl.Events import Events
 from bbctrl.MonitorTemp import MonitorTemp
 import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2

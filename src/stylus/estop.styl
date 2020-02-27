@@ -1,0 +1,19 @@
+@keyframes blink
+  50%
+    fill #ff9d00
+
+.estop
+  width 130px
+  transition 250ms
+
+  &.active .ring
+    animation blink 2s step-start 0s infinite
+
+  &:hover .button circle
+    fill #b72424 !important
+
+  svg
+    cursor pointer
+
+    .button:hover
+      filter brightness(120%)

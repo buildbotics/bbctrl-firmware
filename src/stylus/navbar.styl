@@ -1,0 +1,63 @@
+.navbar
+  display flex
+  align-items center
+  background #444
+  color #eee
+  white-space nowrap
+  text-overflow ellipsis
+  flex-wrap wrap
+
+  > *
+    line-height 30px
+    position relative
+
+  .nav-separator
+    border-bottom 1px solid #888
+
+  .nav-item
+    cursor pointer
+    padding 5px 15px
+
+    &:link, &:visited, &:active
+      color #eee
+      text-decoration none
+
+    .fa
+      width 1.5em
+      margin-left 0.5em
+
+    .nav-menu
+      display none
+      position absolute
+      margin 5px 0 0 -15px
+      background #444
+      z-index 100
+
+      .nav-item
+        display flex
+        flex-direction row
+        align-items center
+        min-width 6em
+
+        span:nth-child(3)
+          flex 1
+          font-size 80%
+          text-align right
+          padding-left 1.5em
+
+    &:hover
+      background #666
+
+      .nav-menu
+        display block
+
+        &.nav-menu-hide
+          display none
+
+    &[disabled]
+      background #444
+      color #aaa
+      cursor not-allowed
+
+  > .nav-item > .fa
+    width initial

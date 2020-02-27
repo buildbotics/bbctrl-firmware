@@ -77,7 +77,6 @@ class State(object):
         self.set_callback('timestamp', lambda name: time.time())
 
         self.reset()
-        self.load_files()
 
 
     def init(self):
@@ -95,66 +94,6 @@ class State(object):
         for axis in 'xyzabc':
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
-
-
-    def load_files(self):
-        self.files = []
-
-        upload = self.ctrl.get_upload()
-
-        if not os.path.exists(upload):
-            os.mkdir(upload)
-            from shutil import copy
-            copy(bbctrl.get_resource('http/buildbotics.nc'), upload)
-
-        for path in os.listdir(upload):
-            if os.path.isfile(upload + '/' + path):
-                self.files.append(path)
-
-        self.files.sort()
-        self.set('files', self.files)
-
-        if len(self.files): self.select_file(self.files[0])
-        else: self.select_file('')
-
-
-    def clear_files(self):
-        self.select_file('')
-        self.files = []
-        self.changes['files'] = self.files
-
-
-    def add_file(self, filename):
-        if not filename in self.files:
-            self.files.append(filename)
-            self.files.sort()
-            self.changes['files'] = self.files
-
-        self.select_file(filename)
-
-
-    def remove_file(self, filename):
-        if filename in self.files:
-            self.files.remove(filename)
-            self.changes['files'] = self.files
-
-        if self.get('selected', filename) == filename:
-            if len(self.files): self.select_file(self.files[0])
-            else: self.select_file('')
-
-
-    def select_file(self, filename):
-        self.set('selected', filename)
-        time = os.path.getmtime(self.ctrl.get_upload(filename))
-        self.set('selected_time', time)
-
-
-    def set_bounds(self, bounds):
-        for axis in 'xyzabc':
-            for name in ('min', 'max'):
-                var = '%s_%s' % (axis, name)
-                value = bounds[name][axis] if axis in bounds[name] else 0
-                self.set(var, value)
 
 
     def ack_message(self, id):

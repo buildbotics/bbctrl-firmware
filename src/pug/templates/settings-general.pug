@@ -1,0 +1,105 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+//-                           All rights reserved.                            //
+//-                                                                           //
+//-   This file ("the software") is free software: you can redistribute it    //
+//-   and/or modify it under the terms of the GNU General Public License,     //
+//-    version 2 as published by the Free Software Foundation. You should     //
+//-    have received a copy of the GNU General Public License, version 2      //
+//-   along with the software. If not, see <http://www.gnu.org/licenses/>.    //
+//-                                                                           //
+//-   The software is distributed in the hope that it will be useful, but     //
+//-        WITHOUT ANY WARRANTY; without even the implied warranty of         //
+//-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU      //
+//-             Lesser General Public License for more details.               //
+//-                                                                           //
+//-     You should have received a copy of the GNU Lesser General Public      //
+//-              License along with the software.  If not, see                //
+//-                     <http://www.gnu.org/licenses/>.                       //
+//-                                                                           //
+//-              For information regarding this software email:               //
+//-                "Joseph Coffland" <joseph@buildbotics.com>                 //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#settings-general-template(type="text/x-template")
+  #settings-general
+    h1 General Configuration
+
+    .pure-form.pure-form-aligned
+      fieldset
+        h2 Units
+        templated-input(name="units", :model.sync="config.settings.units",
+          :template="template.settings.units")
+
+        p
+          | Note, #[tt units] sets both the machine default units and the
+          | units used in motor configuration.  GCode #[tt program-start],
+          | set below, may also change the default machine units.
+
+      fieldset
+        h2 GCode
+        templated-input(v-for="templ in template.gcode", :name="$key",
+          :model.sync="config.gcode[$key]", :template="templ")
+
+      fieldset
+        h2 Path Accuracy
+        templated-input(name="max-deviation",
+          :model.sync="config.settings['max-deviation']",
+          :template="template.settings['max-deviation']")
+
+        p.
+          Lower #[tt max-deviation] to follow the programmed path more precisely
+          but at a slower speed.
+
+        p.
+          In order to improve traversal speed, the path planner may merge
+          consecutive moves or round off sharp corners if doing so would deviate
+          from the program path by less than #[tt max-deviation].
+
+        - var base = '//linuxcnc.org/docs/html/gcode/g-code.html'
+        p.
+          GCode commands
+          #[a(href=base + "#gcode:g61-g61.1", target="_blank") G61, G61.1] and
+          #[a(href=base + "#gcode:g64", target="_blank") G64] also affect path
+          planning accuracy.
+
+        p.
+          This also affects the maimum error when interpolating
+          #[a(href=base + "#gcode:g2-g3", target="_blank") G2 and G3] arcs.
+
+        h2 Cornering Speed (Advanced)
+        templated-input(name="junction-accel",
+          :model.sync="config.settings['junction-accel']",
+          :template="template.settings['junction-accel']")
+
+        p.
+          Junction acceleration limits the cornering speed the planner will
+          allow.  Increasing this value will allow for faster traversal of
+          corners but may cause the planner to violate axis jerk limits and
+          stall the motors.  Use with caution.

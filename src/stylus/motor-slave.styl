@@ -1,0 +1,11 @@
+.motor.slave
+  .tmpl-input-axis .units::after
+    content "(slave motor)"
+    white-space nowrap
+
+  fieldset.limits, fieldset.homing, fieldset.motion .pure-control-group,
+  fieldset.power .pure-control-group.tmpl-input-enabled
+    display none
+
+  fieldset.motion .pure-control-group.tmpl-input-reverse
+    display inherit

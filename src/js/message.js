@@ -36,6 +36,16 @@ module.exports = {
       type: Boolean,
       required: true,
       twoWay: true
+    },
+
+    click_away_close: {
+      type: Boolean,
+      default: true
     }
+  },
+
+
+  events: {
+    'click-away': function () {if (this.click_away_close) this.show = false}
   }
 }

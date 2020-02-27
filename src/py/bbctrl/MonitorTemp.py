@@ -104,6 +104,7 @@ class MonitorTemp(object):
             self.update_camera(temp)
             self.log_warnings(temp)
 
+        except SystemExit: pass
         except: self.log.exception()
 
         self.ioloop.call_later(5, self.callback)

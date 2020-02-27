@@ -63,7 +63,7 @@ def safe_remove(path):
 
 
 class Plan(object):
-    def __init__(self, preplanner, ctrl, filename):
+    def __init__(self, preplanner, ctrl, path):
         self.preplanner = preplanner
 
         # Copy planner state
@@ -75,9 +75,8 @@ class Plan(object):
         self.cancel = False
         self.pid = None
 
-        root = ctrl.get_path()
-        self.gcode = '%s/upload/%s' % (root, filename)
-        self.base = '%s/plans/%s' % (root, filename)
+        self.gcode = ctrl.fs.realpath(path)
+        self.base = '%s/plans/%s' % (ctrl.root, os.path.basename(path))
         self.hid = plan_hash(self.gcode, self.config)
         fbase = '%s.%s.' % (self.base, self.hid)
         self.files = [
@@ -96,25 +95,6 @@ class Plan(object):
             try:
                 os.kill(self.pid, signal.SIGKILL)
             except: pass
-
-
-    def delete(self):
-        files = glob.glob(self.base + '.*')
-        for path in files: safe_remove(path)
-
-
-    def clean(self, max = 2):
-        plans = glob.glob(self.base + '.*.json')
-        if len(plans) <= max: return
-
-        # Delete oldest plans
-        plans = [(os.path.getmtime(path), path) for path in plans]
-        plans.sort()
-
-        for mtime, path in plans[:len(plans) - max]:
-            safe_remove(path)
-            safe_remove(path[:-4] + 'positions.gz')
-            safe_remove(path[:-4] + 'speeds.gz')
 
 
     def _exists(self):
@@ -144,8 +124,6 @@ class Plan(object):
 
     @gen.coroutine
     def _exec(self):
-        self.clean() # Clean up old plans
-
         with tempfile.TemporaryDirectory() as tmpdir:
             cmd = (
                 '/usr/bin/env', 'python3',
@@ -187,6 +165,7 @@ class Plan(object):
                 os.rename(tmpdir + '/meta.json',    self.files[0])
                 os.rename(tmpdir + '/positions.gz', self.files[1])
                 os.rename(tmpdir + '/speeds.gz',    self.files[2])
+                self.preplanner.clean()
                 os.sync()
 
 
@@ -196,6 +175,7 @@ class Plan(object):
             if self._exists():
                 data = self._read()
                 if data is not None:
+                    self.progress = 1
                     self.future.set_result(data)
                     return
 
@@ -221,6 +201,23 @@ class Preplanner(object):
         self.started = Future()
         self.plans = {}
 
+        ctrl.events.on('invalidate-all', self.invalidate_all)
+        ctrl.events.on('invalidate', self.invalidate)
+
+
+    def clean(self, max = 100):
+        plans = glob.glob('%s/plans/*.json' % self.ctrl.root)
+        if len(plans) <= max: return
+
+        # Delete oldest plans
+        plans = [(os.path.getmtime(path), path) for path in plans]
+        plans.sort()
+
+        for mtime, path in plans[:len(plans) - max]:
+            safe_remove(path)
+            safe_remove(path[:-4] + 'positions.gz')
+            safe_remove(path[:-4] + 'speeds.gz')
+
 
     def start(self):
         if not self.started.done():
@@ -228,44 +225,35 @@ class Preplanner(object):
             self.started.set_result(True)
 
 
-    def invalidate(self, filename):
-        if filename in self.plans:
-            self.plans[filename].terminate()
-            del self.plans[filename]
+    def invalidate(self, path):
+        if path in self.plans:
+            self.plans[path].terminate()
+            del self.plans[path]
 
 
     def invalidate_all(self):
-        for filename, plan in self.plans.items():
+        for path, plan in self.plans.items():
             plan.terminate()
         self.plans = {}
 
 
-    def delete_all_plans(self):
-        files = glob.glob(self.ctrl.get_plan('*'))
-        for path in files: safe_remove(path)
-        self.invalidate_all()
-
-
-    def delete_plans(self, filename):
-        if filename in self.plans:
-            self.plans[filename].delete()
-            self.invalidate(filename)
-
     @gen.coroutine
-    def get_plan(self, filename):
-        if filename is None: raise Exception('Filename cannot be None')
+    def get_plan(self, path):
+        if path is None: raise Exception('Path cannot be None')
 
         # Wait until state is fully initialized
         yield self.started
 
-        if filename in self.plans: plan = self.plans[filename]
+        if not self.ctrl.fs.isfile(path): raise Exception('File not found')
+
+        if path in self.plans: plan = self.plans[path]
         else:
-            plan = Plan(self, self.ctrl, filename)
-            self.plans[filename] = plan
+            plan = Plan(self, self.ctrl, path)
+            self.plans[path] = plan
 
         data = yield plan.future
         return data
 
 
-    def get_plan_progress(self, filename):
-        return self.plans[filename].progress if filename in self.plans else 0
+    def get_plan_progress(self, path):
+        return self.plans[path].progress if path in self.plans else 0

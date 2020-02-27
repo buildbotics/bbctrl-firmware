@@ -38,16 +38,16 @@ class RequestHandler(tornado.web.RequestHandler):
         self.app = app
 
 
-    def get_ctrl(self): return self.app.get_ctrl(self.get_cookie('client-id'))
+    def get_ctrl(self):
+        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+
+
     def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
+    def get_events(self): return self.get_ctrl().events
 
 
-    def get_path(self, path = None, filename = None):
-        return self.get_ctrl().get_path(path, filename)
-
-
-    def get_upload(self, filename = None):
-        return self.get_ctrl().get_upload(filename)
+    def emit(self, event, *args, **kwargs):
+        self.get_events().emit(event, *args, **kwargs)
 
 
     # Override exception logging

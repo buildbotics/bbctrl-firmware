@@ -1,0 +1,62 @@
+.header
+  padding 0
+  border 0
+
+  .header-content
+    max-width 800px
+    margin auto
+    text-align left
+    display flex
+    flex-wrap wrap
+    align-items center
+
+  .header-tools
+    display flex
+    align-items center
+
+  .banner
+    white-space nowrap
+    flex 1
+
+    img
+      vertical-align top
+
+    .title
+      font-size 30pt
+      font-family Audiowide
+      display inline
+      margin-right 0.5em
+
+      .left
+        color #444
+      .right
+        color #e5aa3d
+
+    .subtitle
+      font-size 18pt
+      font-weight 100
+      color #aaa
+
+      .copyright
+        font-size 10pt
+
+  .video
+    position relative
+    width 174px
+    height 130px
+    margin 2px 5px
+    border 2px solid #fff
+
+    &:hover
+      border-color #aaa
+
+    img
+      height 100%
+      width 100%
+
+  .estop
+    margin 0 5px
+
+@media only screen and (max-width 985px)
+  .header .header-content > *
+    margin-left 70px

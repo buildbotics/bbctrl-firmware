@@ -295,10 +295,10 @@ class Mach(Comm):
 
 
     def start(self):
-        filename = self.ctrl.state.get('selected', '')
-        if not filename: return
+        path = self.ctrl.state.get('queued', '')
+        if not path: return
         self._begin_cycle('running')
-        self.planner.load(filename)
+        self.planner.load(path)
         super().resume()
 
 

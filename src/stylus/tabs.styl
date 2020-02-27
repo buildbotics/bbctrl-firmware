@@ -1,0 +1,48 @@
+.tabs
+  clear both
+
+  > input
+    display none
+
+  > label
+    display block
+    float left
+    width 6em
+    font-weight bold
+    cursor pointer
+    text-decoration none
+    text-align center
+    background #f6f6f6
+    border-top-left-radius 5px
+    border-top-right-radius 5px
+    border-top 2px solid #f6f6f6
+    border-left 1px solid #f6f6f6
+    border-right 1px solid #f6f6f6
+    margin-right 2px
+
+  > section
+    display none
+    clear both
+
+  > #tab1:checked ~ #content1,
+  > #tab2:checked ~ #content2,
+  > #tab3:checked ~ #content3,
+  > #tab4:checked ~ #content4,
+  > #tab5:checked ~ #content5,
+  > #tab6:checked ~ #content6,
+  > #tab7:checked ~ #content7,
+  > #tab8:checked ~ #content8,
+  > #tab9:checked ~ #content9
+    display block
+
+  [id^="tab"]:checked + label
+    background #fff
+    border-top 2px solid #ddd
+    border-left 1px solid #ddd
+    border-right 1px solid #ddd
+    border-bottom 1px solid #fff
+    margin-bottom -1px
+
+  .tab-content
+    border 1px solid #ddd
+    padding 0.5em

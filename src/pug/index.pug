@@ -38,48 +38,36 @@ html(lang="en")
 
     style: include ../static/css/font-awesome.min.css
     style: include ../static/css/Audiowide.css
-    style: include ../static/css/clusterize.css
+    style: include ../static/css/codemirror.css
     style: include:stylus ../stylus/style.styl
 
 
   body(v-cloak)
     #overlay(v-if="status != 'connected'")
       span {{status}}
-    #layout
+    #layout(:class="'view-' + currentView + '-page'")
       a#menuLink.menu-link(href="#menu"): span
 
       #menu
-        button.save.pure-button.button-success(:disabled="!modified",
-          @click="save") Save
-
         .pure-menu
           ul.pure-menu-list
             li.pure-menu-heading
               a.pure-menu-link(href="#control") Control
 
             li.pure-menu-heading
+              a.pure-menu-link(href="#viewer") 3D View
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#editor") Editor
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#camera") Camera
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#files") Files
+
+            li.pure-menu-heading
               a.pure-menu-link(href="#settings") Settings
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#motor:0") Motors
-
-            li.pure-menu-item(v-for="motor in config.motors")
-              a.pure-menu-link(:href="'#motor:' + $index") Motor {{$index}}
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#tool") Tool
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#io") I/O
-
-            li.pure-menu-heading
-              a.pure-menu-link(href="#admin-general") Admin
-
-            li.pure-menu-item
-              a.pure-menu-link(href="#admin-general") General
-
-            li.pure-menu-item
-              a.pure-menu-link(href="#admin-network") Network
 
             li.pure-menu-heading
               a.pure-menu-link(href="#cheat-sheet") Cheat Sheet
@@ -104,33 +92,25 @@ html(lang="en")
               .subtitle
                 | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
                 | v{{config.version}}
-                a.upgrade-version(v-if="show_upgrade()", href="#admin-general")
+                a.upgrade-version(v-if="show_upgrade", href="#settings:admin")
                   | Upgrade to v{{latestVersion}}
-                .fa.fa-check(v-if="!show_upgrade() && latestVersion",
+                .fa.fa-check(v-if="!show_upgrade && latestVersion",
                   title="Firmware up to date")
                 .copyright Copyright © 2015 - 2020, Buildbotics LLC
 
 
-            .estop(:class="{active: state.es}")
-              estop(@click="estop")
+            .header-tools
+              a(href="#camera"): video
+              .estop(:class="{active: state.es}"): estop(@click="estop")
 
-            .video(title="Plug camera into USB.\n" +
-              "Left click to toggle video size.\n" +
-              "Right click to toggle crosshair.", @click="toggle_video",
-              @contextmenu="toggle_crosshair", :class="video_size")
-              .crosshair(v-if="crosshair")
-                .vertical
-                .horizontal
-                .box
-              img(src="/api/video")
+        .content(class="view-{{currentView}}")
+          component(:is="'view-' + currentView", :config="config",
+            :template="template", :state="state", keep-alive)
 
-        .clear
+    file-dialog(v-ref:file-dialog, :locations="state.locations")
+    dialog(v-ref:dialog)
 
-        .content(class="{{currentView}}-view")
-          component(:is="currentView + '-view'", :index="index",
-            :config="config", :template="template", :state="state", keep-alive)
-
-    message.error-message(:show.sync="errorShow")
+    message.error-message(:show.sync="showError")
       div(slot="header")
         .estop(:class="{active: state.es}"): estop(@click="estop")
         h3 ERROR: {{errorMessage}}
@@ -146,46 +126,7 @@ html(lang="en")
         label seconds.
 
       div(slot="footer")
-        button.pure-button.pure-button-primary(@click="errorShow = false") Ok
-
-    message(:show.sync="confirmUpgrade")
-      h3(slot="header") Upgrade Firmware?
-      div(slot="body")
-        p
-          | Are you sure you want to upgrade the firmware to version
-          | {{latestVersion}}?
-
-        p.pure-control-group
-          label(for="pass") Password
-          input(name="pass", v-model="password", type="password",
-            @keyup.enter="upgrade_confirmed")
-
-      div(slot="footer")
-        button.pure-button(@click="confirmUpgrade=false") Cancel
-        button.pure-button.pure-button-primary(@click="upgrade_confirmed")
-          | Upgrade
-
-    message(:show.sync="confirmUpload")
-      h3(slot="header") Upload Firmware?
-      div(slot="body")
-        p Are you sure you want to upload firmware #[em {{firmwareName}}]?
-
-        p.pure-control-group
-          label(for="pass") Password
-          input(name="pass", v-model="password", type="password",
-            @keyup.enter="upload_confirmed")
-
-      div(slot="footer")
-        button.pure-button(@click="confirmUpload=false") Cancel
-        button.pure-button.pure-button-primary(@click="upload_confirmed")
-          | Upload
-
-    message(:show.sync="firmwareUpgrading")
-      h3(slot="header") Firmware upgrading
-      div(slot="body")
-        h3 Please wait...
-        p Loss of power during an upgrade may damage the controller.
-      div(slot="footer")
+        button.pure-button.pure-button-primary(@click="showError = false") Ok
 
     message(v-if="popupMessages.length", :show="true")
       h3(slot="header") GCode message
@@ -213,9 +154,8 @@ html(lang="en")
     script: include ../static/js/jquery-1.11.3.min.js
     script: include ../static/js/vue.js
     script: include ../static/js/sockjs.min.js
-    script: include ../static/js/clusterize.min.js
     script: include ../static/js/three.min.js
     script: include ../static/js/chart-2.9.3.min.js
     script: include ../static/js/chart.bundle-2.9.3.min.js
     script: include:browserify ../js/main.js
-    script: include ../static/js/ui.js
+    script: include ../static/js/codemirror.js

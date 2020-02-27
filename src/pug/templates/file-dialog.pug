@@ -1,0 +1,42 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#file-dialog-template(type="text/x-template")
+  .file-dialog
+    message(:show="show", click_away_close="false")
+      h3(slot="header") {{config.save ? 'Save' : 'Open'}} file
+
+      div(slot="body")
+        files(:mode="config.save ? 'save' : 'open'", :locations="locations",
+          @selected="set_selected", @activate="response", v-ref:files)
+
+      div(slot="footer")
+        button.pure-button(@click="cancel") #[.fa.fa-times] Cancel
+        button.pure-button.pure-button-primary(@click="ok",
+          :disabled="!selected").
+          #[.fa(:class="'fa-' + (config.save ? 'save' : 'check')")]
+          {{config.save ? 'Save' : 'Open'}}

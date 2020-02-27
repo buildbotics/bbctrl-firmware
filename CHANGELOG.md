@@ -1,6 +1,16 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v1.0.0
+ - Added online GCode editor.
+ - Added online file dialog.
+ - Allow subdirectories of files.
+ - Full page 3D viewer.
+ - Full page camera view.
+ - Move all configuration pages to ``SETTINGS``.
+ - Moved ``Save`` button to ``SETTINGS`` pages.
+ - Added firmware check message.
+
 ## v0.4.16
  - Improved axis under/over warning tooltip.
  - Added support for DMM DYN4 VFD.

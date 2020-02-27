@@ -27,9 +27,9 @@
 
 'use strict'
 
-var api = require('./api');
-var cookie = require('./cookie')('bbctrl-');
-var Sock = require('./sock');
+var api    = require('./api');
+var cookie = require('./cookie');
+var Sock   = require('./sock');
 
 
 function compare_versions(a, b) {
@@ -95,8 +95,6 @@ module.exports = new Vue({
     return {
       status: 'connecting',
       currentView: 'loading',
-      index: -1,
-      modified: false,
       template: require('../resources/config-template.json'),
       config: {
         settings: {units: 'METRIC'},
@@ -104,45 +102,42 @@ module.exports = new Vue({
         version: '<loading>'
       },
       state: {messages: []},
-      video_size: cookie.get('video-size', 'small'),
-      crosshair: cookie.get('crosshair', 'false') != 'false',
+      crosshair: cookie.get_bool('crosshair', false),
       errorTimeout: 30,
       errorTimeoutStart: 0,
-      errorShow: false,
       errorMessage: '',
-      confirmUpgrade: false,
-      confirmUpload: false,
-      firmwareUpgrading: false,
       checkedUpgrade: false,
-      firmwareName: '',
       latestVersion: '',
-      password: ''
+      showError: false
     }
   },
 
 
   components: {
-    'estop': {template: '#estop-template'},
-    'loading-view': {template: '<h1>Loading...</h1>'},
-    'control-view': require('./control-view'),
-    'settings-view': require('./settings-view'),
-    'motor-view': require('./motor-view'),
-    'chart-view': require('./chart-view'),
-    'tool-view': require('./tool-view'),
-    'io-view': require('./io-view'),
-    'admin-general-view': require('./admin-general-view'),
-    'admin-network-view': require('./admin-network-view'),
-    'help-view': {template: '#help-view-template'},
-    'license-view': {template: '#license-view-template'},
-    'cheat-sheet-view': {
-      template: '#cheat-sheet-view-template',
+    'estop':          {template: '#estop-template'},
+    'view-not-found': {template: '<h1>Error: View not found</h1>'},
+    'view-loading':   {template: '<h1>Loading...</h1>'},
+    'view-control':   require('./view-control'),
+    'view-viewer':    require('./view-viewer'),
+    'view-editor':    require('./view-editor'),
+    'view-settings':  require('./view-settings'),
+    'view-files':     require('./view-files'),
+    'view-camera':    {template: '#view-camera-template'},
+    'view-help':      {template: '#view-help-template'},
+    'view-license':   {template: '#view-license-template'},
+    'view-cheat-sheet': {
+      template: '#view-cheat-sheet-template',
       data: function () {return {showUnimplemented: false}}
     }
   },
 
 
+  watch: {
+    crosshair: function () {cookie.set_bool('crosshair', this.crosshair)}
+  },
+
+
   events: {
-    'config-changed': function () {this.modified = true;},
     'hostname-changed': function (hostname) {this.hostname = hostname},
 
 
@@ -158,7 +153,7 @@ module.exports = new Vue({
     update: function () {this.update()},
 
 
-    check: function () {
+    check: function (show_message) {
       this.latestVersion = '';
 
       $.ajax({
@@ -169,22 +164,26 @@ module.exports = new Vue({
 
       }).done(function (data) {
         this.latestVersion = data;
-        this.$broadcast('latest_version', data);
+        if (!show_message) return;
+        var cmp = compare_versions(this.config.version, this.latestVersion);
+
+        var msg;
+        if (cmp == 0) msg = 'You have the latest official firmware.'
+        else {
+          msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
+            ' than the latest official firmware release, version' +
+            this.latestVersion + '.'
+
+          if (cmp < 0) msg += ' Please upgrade.';
+        }
+
+        this.open_dialog({
+          icon: cmp ? (cmp < 0 ? 'chevron-left' : 'chevron-right') : 'check',
+          title: 'Firmware check',
+          body: msg
+        })
+
       }.bind(this))
-    },
-
-
-    upgrade: function () {
-      this.password = '';
-      this.confirmUpgrade = true;
-    },
-
-
-    upload: function (firmware) {
-      this.firmware = firmware;
-      this.firmwareName = firmware.name;
-      this.password = '';
-      this.confirmUpload = true;
     },
 
 
@@ -197,7 +196,7 @@ module.exports = new Vue({
       if (1 < msg.repeat && Date.now() - msg.ts < 1000) return;
 
       // Popup error dialog
-      this.errorShow = true;
+      this.showError = true;
       this.errorMessage = msg.msg;
     }
   },
@@ -213,6 +212,12 @@ module.exports = new Vue({
       }
 
       return msgs;
+    },
+
+
+    show_upgrade: function () {
+      if (!this.latestVersion) return false;
+      return compare_versions(this.config.version, this.latestVersion) < 0;
     }
   },
 
@@ -229,69 +234,13 @@ module.exports = new Vue({
 
     block_error_dialog: function () {
       this.errorTimeoutStart = Date.now();
-      this.errorShow = false;
-    },
-
-
-    toggle_video: function (e) {
-      if      (this.video_size == 'small')  this.video_size = 'large';
-      else if (this.video_size == 'large')  this.video_size = 'small';
-      cookie.set('video-size', this.video_size);
-    },
-
-
-    toggle_crosshair: function (e) {
-      e.preventDefault();
-      this.crosshair = !this.crosshair;
-      cookie.set('crosshair', this.crosshair);
+      this.showError = false;
     },
 
 
     estop: function () {
       if (this.state.xx == 'ESTOPPED') api.put('clear');
       else api.put('estop');
-    },
-
-
-    upgrade_confirmed: function () {
-      this.confirmUpgrade = false;
-
-      api.put('upgrade', {password: this.password}).done(function () {
-        this.firmwareUpgrading = true;
-
-      }.bind(this)).fail(function () {
-        api.alert('Invalid password');
-      }.bind(this))
-    },
-
-
-    upload_confirmed: function () {
-      this.confirmUpload = false;
-
-      var form = new FormData();
-      form.append('firmware', this.firmware);
-      if (this.password) form.append('password', this.password);
-
-      $.ajax({
-        url: '/api/firmware/update',
-        type: 'PUT',
-        data: form,
-        cache: false,
-        contentType: false,
-        processData: false
-
-      }).success(function () {
-        this.firmwareUpgrading = true;
-
-      }.bind(this)).error(function () {
-        api.alert('Invalid password or bad firmware');
-      }.bind(this))
-    },
-
-
-    show_upgrade: function () {
-      if (!this.latestVersion) return false;
-      return compare_versions(this.config.version, this.latestVersion) < 0;
     },
 
 
@@ -363,18 +312,10 @@ module.exports = new Vue({
 
       var parts = hash.split(':');
 
-      if (parts.length == 2) this.index = parts[1];
+      if (typeof this.$options.components['view-' + parts[0]] == 'undefined')
+        this.currentView = 'not-found';
 
-      this.currentView = parts[0];
-    },
-
-
-    save: function () {
-      api.put('config/save', this.config).done(function (data) {
-        this.modified = false;
-      }.bind(this)).fail(function (error) {
-        api.alert('Save failed', error);
-      });
+      else this.currentView = parts[0];
     },
 
 
@@ -387,6 +328,46 @@ module.exports = new Vue({
         var id = this.state.messages.slice(-1)[0].id
         api.put('message/' + id + '/ack');
       }
+    },
+
+
+    file_dialog: function (config) {this.$refs.fileDialog.open(config)},
+    open_dialog: function (config) {this.$refs.dialog.open(config)},
+    error_dialog:   function (msg) {this.$refs.dialog.error(msg)},
+    warning_dialog: function (msg) {this.$refs.dialog.warning(msg)},
+    success_dialog: function (msg) {this.$refs.dialog.success(msg)},
+
+
+    api_error: function (msg, error) {
+      if (typeof error != 'undefined') {
+        if (typeof error.message != 'undefined')
+          msg += '\n' + error.message;
+        else msg += '\n' + JSON.stringify(error);
+      }
+
+      this.error_dialog(msg);
+    },
+
+
+    run: function (path) {
+      if (this.state.xx != 'READY') return;
+
+      api.put('queue/' + path).done(function () {
+        location.hash = 'control';
+        api.put('start');
+      })
+    },
+
+
+    edit: function (path) {
+      cookie.set('selected-path', path);
+      location.hash = 'editor';
+    },
+
+
+    view: function (path) {
+      cookie.set('selected-path', path);
+      location.hash = 'viewer';
     }
   }
 })

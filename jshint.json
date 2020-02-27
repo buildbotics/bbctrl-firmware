@@ -10,6 +10,7 @@
     "Vue": false,
     "SockJS": false,
     "Gauge": false,
-    "Clusterize": false
+    "Clusterize": false,
+    "CodeMirror": false
   }
 }

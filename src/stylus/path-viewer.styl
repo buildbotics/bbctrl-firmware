@@ -1,0 +1,45 @@
+.path-viewer
+  table
+    margin 0.25em
+    width 100%
+
+  .path-viewer-toolbar
+    > *
+      margin 0.25em
+
+    .tool-button
+      display inline-block
+      cursor pointer
+      border 2px solid transparent
+      border-radius 2px
+      text-align center
+
+      &:hover
+        opacity 0.7
+        border 2px inset #eee
+
+      &.active
+        border 2px inset #888
+        background #ddd
+
+      img
+        max-height 32px
+        vertical-align bottom
+
+      .fa
+        font-size 28px
+        display inline-block
+        width 32px
+
+  .path-viewer-messages
+    margin 0.125em 0
+
+    th, td
+      padding 0.125em
+
+      &.level
+        text-transform capitalize
+
+  .path-viewer-content
+    margin-bottom 0.5em
+    background #eee

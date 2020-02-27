@@ -56,7 +56,7 @@ Sock.prototype.connect = function () {
   this._sock = new SockJS(this.url);
 
   this._sock.onmessage = function (e) {
-    console.debug('msg:', e.data);
+    //console.debug('msg:', e.data);
     this.heartbeat('msg');
     this.onmessage(e);
   }.bind(this);

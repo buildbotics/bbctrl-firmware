@@ -34,6 +34,8 @@ setup(
         'scripts/edit-config',
         'scripts/edit-boot-config',
         'scripts/browser',
+        'scripts/mount-usb',
+        'scripts/eject-usb',
         ],
     install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
     zip_safe = False,

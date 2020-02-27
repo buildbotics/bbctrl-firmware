@@ -1,0 +1,51 @@
+.view-viewer
+  max-width inherit
+  margin-bottom 0
+
+  .navbar
+    .filename
+      flex 1
+      text-align right
+      padding 5px 15px
+
+    img
+      width 1.5em
+      margin 0 0.25em
+
+    .snap
+      text-transform capitalize
+
+    .nav-item
+      align-items center
+
+  .path-viewer
+    height calc(100vh - 180px)
+
+    .path-viewer-content
+      height 100%
+      margin 0
+      overflow hidden
+
+.viewer-help-dialog
+  .modal-container
+    width 600px
+    height 600px
+
+  .modal-body
+    padding-right 1em
+
+  table
+    width 100%
+
+    tr:nth-of-type(even)
+      background #fafafa
+
+    th
+      width 1%
+      font-weight bold
+      white-space nowrap
+      text-align left
+
+    th, td
+      border 1px solid #eee
+      padding 0 1em

@@ -359,7 +359,7 @@ class Planner():
 
     def load(self, path):
         self.where = path
-        path = self.ctrl.get_path('upload', path)
+        path = self.ctrl.fs.realpath(path)
         self.log.info('GCode:' + path)
         self._log_time('Program Start: ')
         self._sync_position()

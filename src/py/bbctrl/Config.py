@@ -181,14 +181,14 @@ class Config(object):
 
         os.sync()
 
-        self.ctrl.preplanner.invalidate_all()
+        self.ctrl.events.emit('invalidate-all')
         self.log.info('Saved')
 
 
     def reset(self):
         if os.path.exists('config.json'): os.unlink('config.json')
         self.reload()
-        self.ctrl.preplanner.invalidate_all()
+        self.ctrl.events.emit('invalidate-all')
 
 
     def _encode(self, name, index, config, tmpl, with_defaults):

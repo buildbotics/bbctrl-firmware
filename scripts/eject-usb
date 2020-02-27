@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "$1" == "" ]; then
+  echo "Usage: $0 <mount point>"
+  exit 1
+fi
+
+if [ ! -d "$1" ]; then
+  echo "Mount point '$1' not found"
+  exit 1
+fi
+
+DEV=$(findmnt -n -o SOURCE --target "$1" | sed 's/^\/dev\/\([^0-9]*\).*$/\1/')
+
+echo offline > /sys/block/$DEV/device/state
+echo 1 > /sys/block/$DEV/device/delete

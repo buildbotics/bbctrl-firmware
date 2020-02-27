@@ -1,0 +1,94 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#view-viewer-template(type="text/x-template")
+  #viewer
+    nav.navbar
+      nav-item
+        | File
+        .fa.fa-caret-down
+
+        nav-menu
+          nav-item(@click="open()", title="Open a new program.")
+            .fa.fa-folder-open
+            span Open
+
+          nav-item(@click="$root.edit(path)",
+            title="Open the current program in the editor.")
+            .fa.fa-pencil
+            span Edit
+
+          nav-item(@click="$root.run(path)", :disabled="state.xx != 'READY'",
+            title="Start the current program.")
+            .fa.fa-play
+            span Run
+
+      nav-item
+        | View
+        .fa.fa-caret-down
+        nav-menu
+          nav-item(@click="toggle('tool')")
+            .fa(:class="show.tool ? 'fa-check' : ''")
+            span Show Tool
+
+          nav-item(@click="toggle('axes')")
+            .fa(:class="show.axes ? 'fa-check' : ''")
+            span Show Axes
+
+          nav-item(@click="toggle('grid')")
+            .fa(:class="show.grid ? 'fa-check' : ''")
+            span Show Grid
+
+          nav-item(@click="toggle('dims')")
+            .fa(:class="show.dims ? 'fa-check' : ''")
+            span Show Bounds
+
+          nav-item(@click="toggle('intensity')")
+            .fa(:class="show.intensity ? 'fa-check' : ''")
+            span LASER Raster
+
+      nav-item
+        | Snap
+        .fa.fa-caret-down
+        nav-menu
+          nav-item.snap(v-for="name in snaps" @click="snap(name)")
+            img(:src="'images/' + name + '.png'")
+            span {{name}}
+
+      nav-item(@click="$refs.helpDialog.open()") Help
+
+      .filename {{filename}}
+
+    loading-message(v-if="loading", :progress="progress")
+      p(slot="body").
+        Simulating program to check for errors, calculate timing and generate
+        3D view. Please wait...
+
+    viewer-help-dialog(v-ref:help-dialog)
+
+    path-viewer(v-ref:viewer, :toolpath="toolpath", :state="state",
+      :config="config")

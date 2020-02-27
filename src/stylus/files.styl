@@ -1,0 +1,115 @@
+.files .new-folder .modal-body input
+  width calc(100% - 18px)
+
+.files-name
+  display flex
+  margin-bottom 0.5em
+
+  label
+    font-weight bold
+    margin-right 1em
+    line-height 34px
+
+  input
+    flex 1
+
+.files-path-bar
+  display flex
+  gap 5px
+  margin-bottom 5px
+
+  > :first-child
+    flex 1
+
+.files-list
+  table
+    width 100%
+    overflow-y auto
+
+  .name
+    text-align left
+
+  .size, .modified, .actions
+    text-align right
+    width 1%
+
+  .actions
+    a, a:visited, a:active
+      text-decoration none
+      color #777
+
+    .fa:hover
+      color #222
+
+  thead tr
+    background #444
+    color #eee
+
+  tbody tr
+    cursor pointer
+
+    &:nth-of-type(even)
+      background #fafafa
+
+    &:hover
+      background #f7f7f7
+
+    &.selected
+      color #222
+      background #ffdd74
+
+  td, th
+    padding 0 1em
+    white-space nowrap
+
+.file-dialog > .modal-mask > .modal-wrapper > .modal-container
+  width 800px
+  height 600px
+
+.file-dialog .modal-body > div, .files, .files-locations,
+.files-body, .files-box
+  display flex
+  flex-direction column
+  overflow hidden
+
+.files-location
+  max-width 12em
+  padding 0.25em 1em
+  text-overflow ellipsis
+  overflow hidden
+  cursor pointer
+  white-space nowrap
+
+  .fa
+    padding-right 0.5em
+
+  &:hover
+    background #f7f7f7
+
+  &.active
+    background #ddd
+    color #444
+
+  &.files-upload
+    color #fff
+    background #0078e7
+
+    &:hover
+      background-image \
+        linear-gradient(transparent, rgba(0, 0, 0, .05) 40%, rgba(0, 0, 0, .1))
+
+
+.files-body
+  flex-direction row
+
+.files-box
+  flex 1
+
+.files-path
+  padding 0 1em
+
+.files-locations
+  border-right 1px solid #eee
+
+.files-locations, .files-list
+  overflow auto

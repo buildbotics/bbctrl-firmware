@@ -1,0 +1,35 @@
+.modbus-program button
+  margin 0.25em 0
+
+.pure-form .modbus-regs
+  input, select
+    border none
+    box-shadow none
+    border-radius 0
+    background transparent
+    padding 0 0.5em
+    height 1.75em
+    line-height 1.75em
+
+  input
+    text-align right
+    width 6em
+
+  button
+    margin 2px
+
+  th, td
+    border 1px solid #ccc
+    line-height 1.75em
+
+  th
+    padding 0.5em
+
+  &.fixed-regs td, td.reg-index, td.modbus-status
+    padding 0 0.5em
+
+  td.reg-index, td.reg-addr, td.reg-value
+    text-align right
+
+  tr:nth-child(even):not(.warn)
+    background-color #f3f3f3

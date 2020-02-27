@@ -45,7 +45,7 @@ class CB(object):
 
 
 class IOLoop(object):
-    READ = tornado.ioloop.IOLoop.READ
+    READ  = tornado.ioloop.IOLoop.READ
     WRITE = tornado.ioloop.IOLoop.WRITE
     ERROR = tornado.ioloop.IOLoop.ERROR
 
@@ -91,3 +91,7 @@ class IOLoop(object):
 
     def add_callback(self, cb, *args, **kwargs):
         self.ioloop.add_callback(cb, *args, **kwargs)
+
+
+    def add_future(self, future, cb):
+        self.ioloop.add_future(future, cb)

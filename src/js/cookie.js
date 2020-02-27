@@ -28,44 +28,45 @@
 'use strict'
 
 
-module.exports = function (prefix) {
-  if (typeof prefix == 'undefined') prefix = '';
-
-  var cookie = {
-    get: function (name, defaultValue) {
-      var decodedCookie = decodeURIComponent(document.cookie);
-      var ca = decodedCookie.split(';');
-      name = prefix + name + '=';
-
-      for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) == ' ') c = c.substring(1);
-        if (!c.indexOf(name)) return c.substring(name.length, c.length);
-      }
-
-      return defaultValue;
-    },
+var cookie = {
+  prefix: 'bbctrl-',
 
 
-    set: function (name, value, days) {
-      var offset = 2147483647; // Max value
-      if (typeof days != 'undefined') offset = days * 24 * 60 * 60 * 1000;
-      var d = new Date();
-      d.setTime(d.getTime() + offset);
-      var expires = 'expires=' + d.toUTCString();
-      document.cookie = prefix + name + '=' + value + ';' + expires + ';path=/';
-    },
+  get: function (name, defaultValue) {
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    name = cookie.prefix + name + '=';
 
-
-    set_bool: function (name, value) {
-      cookie.set(name, value ? 'true' : 'false');
-    },
-
-
-    get_bool: function (name, defaultValue) {
-      return cookie.get(name, defaultValue ? 'true' : 'false') == 'true';
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') c = c.substring(1);
+      if (!c.indexOf(name)) return c.substring(name.length, c.length);
     }
-  }
 
-  return cookie;
+    return defaultValue;
+  },
+
+
+  set: function (name, value, days) {
+    var offset = 2147483647; // Max value
+    if (typeof days != 'undefined') offset = days * 24 * 60 * 60 * 1000;
+    var d = new Date();
+    d.setTime(d.getTime() + offset);
+    var expires = 'expires=' + d.toUTCString();
+    document.cookie =
+      cookie.prefix + name + '=' + value + ';' + expires + ';path=/';
+  },
+
+
+  set_bool: function (name, value) {
+    cookie.set(name, value ? 'true' : 'false');
+  },
+
+
+  get_bool: function (name, defaultValue) {
+    return cookie.get(name, defaultValue ? 'true' : 'false') == 'true';
+  }
 }
+
+
+module.exports = cookie;

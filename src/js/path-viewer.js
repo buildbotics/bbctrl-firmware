@@ -27,14 +27,20 @@
 
 'use strict'
 
-var orbit = require('./orbit');
-var cookie = require('./cookie')('bbctrl-');
-var api = require('./api');
-var font = require('./helvetiker_regular.typeface.json')
+var orbit  = require('./orbit');
+var cookie = require('./cookie');
+var api    = require('./api');
+var font   = require('./helvetiker_regular.typeface.json')
 
 
 function get(obj, name, defaultValue) {
   return typeof obj[name] == 'undefined' ? defaultValue : obj[name];
+}
+
+
+function sizeOf(obj) {
+  obj.geometry.computeBoundingBox();
+  return obj.geometry.boundingBox.getSize(new THREE.Vector3());
 }
 
 
@@ -43,7 +49,7 @@ var surfaceModes = ['cut', 'wire', 'solid', 'off'];
 
 module.exports = {
   template: '#path-viewer-template',
-  props: ['toolpath'],
+  props: ['toolpath', 'state', 'config'],
 
 
   data: function () {
@@ -51,64 +57,52 @@ module.exports = {
       enabled: false,
       loading: false,
       dirty: true,
-      snapView: cookie.get('snap-view', 'isometric'),
-      small: cookie.get_bool('small-path-view', true),
+      snapView: cookie.get('snap-view', 'angled'),
       surfaceMode: 'cut',
-      showPath: cookie.get_bool('show-path', true),
-      showTool: cookie.get_bool('show-tool', true),
-      showBBox: cookie.get_bool('show-bbox', true),
-      showAxes: cookie.get_bool('show-axes', true),
-      showIntensity: cookie.get_bool('show-intensity', false)
+      axes: {},
+      show: {
+        path: cookie.get_bool('show-path', true),
+        tool: cookie.get_bool('show-tool', true),
+        bbox: cookie.get_bool('show-bbox', true),
+        axes: cookie.get_bool('show-axes', true),
+        grid: cookie.get_bool('show-grid', true),
+        dims: cookie.get_bool('show-dims', true),
+        intensity: cookie.get_bool('show-intensity', false)
+      }
     }
   },
 
 
   computed: {
-    target: function () {return $(this.$el).find('.path-viewer-content')[0]}
+    target: function () {return $(this.$el).find('.path-viewer-content')[0]},
+
+
+    metric: function () {
+      return this.config.settings.units.toLowerCase() == 'metric';
+    },
+
+
+    envelope: function () {
+      if (!this.axes.homed || !this.enabled) return undefined;
+
+      var min = new THREE.Vector3();
+      var max = new THREE.Vector3();
+
+      for (var axis of 'xyz') {
+        min[axis] = this[axis].min - this[axis].off;
+        max[axis] = this[axis].max - this[axis].off;
+      }
+
+      return new THREE.Box3(min, max);
+    }
   },
 
 
   watch: {
     toolpath: function () {Vue.nextTick(this.update)},
+    envelope: function () {Vue.nextTick(this.redraw)},
+    metric: function () {Vue.nextTick(this.redraw)},
     surfaceMode: function (mode) {this.update_surface_mode(mode)},
-
-
-    small: function (enable) {
-      cookie.set_bool('small-path-view', enable);
-      Vue.nextTick(this.update_view)
-    },
-
-
-    showPath: function (enable) {
-      cookie.set_bool('show-path', enable);
-      this.set_visible(this.pathView, enable)
-    },
-
-
-    showTool: function (enable) {
-      cookie.set_bool('show-tool', enable);
-      this.set_visible(this.toolView, enable)
-    },
-
-
-    showAxes: function (enable) {
-      cookie.set_bool('show-axes', enable);
-      this.set_visible(this.axesView, enable)
-    },
-
-
-    showIntensity: function (enable) {
-      cookie.set_bool('show-intensity', enable);
-      Vue.nextTick(this.update)
-    },
-
-
-    showBBox: function (enable) {
-      cookie.set_bool('show-bbox', enable);
-      this.set_visible(this.bboxView, enable);
-      this.set_visible(this.envelopeView, enable);
-    },
-
 
     x: function () {this.axis_changed()},
     y: function () {this.axis_changed()},
@@ -123,49 +117,55 @@ module.exports = {
 
 
   methods: {
-    update: function () {
-      if (!this.state.selected) {
-        this.dirty = true;
-        this.scene = new THREE.Scene();
+    setShow: function (name, show) {
+      this.show[name] = show;
+      cookie.set_bool('show-' + name, show);
 
-      } else if (!this.toolpath.filename && !this.loading) {
+      if (name == 'path')      this.pathView.visible = show;
+      if (name == 'tool')      this.toolView.visible = show;
+      if (name == 'axes')      this.axesView.visible = show;
+      if (name == 'grid')      this.gridView.visible = show;
+      if (name == 'dims')      this.dimsView.visible = show;
+      if (name == 'intensity') Vue.nextTick(this.redraw)
+      this.render_frame();
+    },
+
+
+    getShow: function (name) {return this.show[name]},
+    toggle: function (name) {this.setShow(name, !this.getShow(name))},
+
+
+    clear: function () {
+      this.scene = new THREE.Scene();
+      if (this.renderer != undefined) this.render_frame();
+    },
+
+
+    redraw: function () {
+      if (!this.enabled || this.loading) return;
+      this.scene = new THREE.Scene();
+      this.draw(this.scene);
+    },
+
+
+    update: function () {
+      if (!this.toolpath.path && !this.loading) {
         this.loading = true;
         this.dirty = true;
-        this.draw_loading();
       }
 
-      if (!this.enabled || !this.toolpath.filename) return;
+      if (!this.enabled || !this.toolpath.path) return;
 
-      function get(url) {
-        var d = $.Deferred();
-        var xhr = new XMLHttpRequest();
-
-        xhr.open('GET', url + '?' + Math.random(), true);
-        xhr.responseType = 'arraybuffer';
-
-        xhr.onload = function (e) {
-          if (xhr.response) d.resolve(new Float32Array(xhr.response));
-          else d.reject();
-        };
-
-        xhr.send();
-
-        return d.promise();
-      }
-
-      var d1 = get('/api/path/' + this.toolpath.filename + '/positions');
-      var d2 = get('/api/path/' + this.toolpath.filename + '/speeds');
+      var path = this.toolpath.path;
+      var d1 = api.download('positions/' + path, 'arraybuffer');
+      var d2 = api.download('speeds/' + path, 'arraybuffer');
 
       $.when(d1, d2).done(function (positions, speeds) {
-        this.positions = positions
-        this.speeds = speeds;
+        this.positions = new Float32Array(positions[0]);
+        this.speeds = new Float32Array(speeds[0]);
         this.loading = false;
-
-        // Update scene
-        this.scene = new THREE.Scene();
-        this.draw(this.scene);
+        this.redraw();
         this.snap(this.snapView);
-
         this.update_view();
       }.bind(this))
     },
@@ -223,13 +223,6 @@ module.exports = {
       this.camera.aspect = dims.width / dims.height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(dims.width, dims.height);
-
-      if (this.loading) {
-        this.controls.reset();
-        this.camera.position.copy(new THREE.Vector3(0, 0, 600));
-        this.camera.lookAt(new THREE.Vector3(0, 0, 0));
-      }
-
       this.dirty = true;
     },
 
@@ -244,28 +237,9 @@ module.exports = {
     },
 
 
-    update_envelope: function (envelope) {
-      if (!this.enabled || !this.axes.homed) return;
-      if (typeof envelope == 'undefined') envelope = this.envelopeView;
-      if (typeof envelope == 'undefined') return;
-
-      var min = new THREE.Vector3();
-      var max = new THREE.Vector3();
-
-      for (var axis of 'xyz') {
-        min[axis] = this[axis].min - this[axis].off;
-        max[axis] = this[axis].max - this[axis].off;
-      }
-
-      var bounds = new THREE.Box3(min, max);
-      if (bounds.isEmpty()) envelope.geometry = this.create_empty_geom();
-      else envelope.geometry = this.create_bbox_geom(bounds);
-    },
-
-
     axis_changed: function () {
+      if (!this.enabled) return;
       this.update_tool();
-      this.update_envelope();
       this.dirty = true;
     },
 
@@ -285,7 +259,8 @@ module.exports = {
       this.enabled = true;
 
       // Camera
-      this.camera = new THREE.PerspectiveCamera(45, 4 / 3, 1, 10000);
+      this.camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+      this.camera.up.set(0, 0, 1);
 
       // Lighting
       this.ambient = new THREE.AmbientLight(0xffffff, 0.5);
@@ -310,11 +285,11 @@ module.exports = {
       this.surfaceMaterial = this.create_surface_material();
 
       // Controls
-      this.controls = new orbit(this.camera, this.renderer.domElement);
+      this.controls =
+        new THREE.OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.2;
-      this.controls.rotateSpeed = 0.25;
-      this.controls.enableZoom = true;
+      this.controls.rotateSpeed = 0.5;
 
       // Move lights with scene
       this.controls.addEventListener('change', function (scope) {
@@ -347,33 +322,8 @@ module.exports = {
     },
 
 
-    draw_loading: function () {
-      this.scene = new THREE.Scene();
-
-      var geometry = new THREE.TextGeometry('Loading 3D View...', {
-        font: new THREE.Font(font),
-        size: 40,
-        height: 5,
-        curveSegments: 12,
-        bevelEnabled: true,
-        bevelThickness: 10,
-        bevelSize: 8,
-        bevelSegments: 5
-      });
-      geometry.computeBoundingBox();
-
-      var center = geometry.center();
-      var mesh = new THREE.Mesh(geometry, this.surfaceMaterial);
-
-      this.scene.add(mesh);
-      this.scene.add(this.ambient);
-      this.scene.add(this.lights);
-      this.update_view();
-    },
-
-
     draw_workpiece: function (scene, material) {
-      if (typeof this.workpiece == 'undefined') return;
+      if (typeof this.workpiece == 'undefined') return undefined;
 
       var min = this.workpiece.min;
       var max = this.workpiece.max;
@@ -437,7 +387,7 @@ module.exports = {
 
       var mesh = new THREE.Mesh(geometry, material);
       this.update_tool(mesh);
-      mesh.visible = this.showTool;
+      mesh.visible = this.show.tool;
       scene.add(mesh);
       return mesh;
     },
@@ -485,8 +435,112 @@ module.exports = {
         for (var up = 0; up < 2; up++)
           group.add(this.draw_axis(axis, up, length, radius));
 
-      group.visible = this.showAxes;
+      group.visible = this.show.axes;
       scene.add(group);
+
+      return group;
+    },
+
+
+    draw_grid: function (scene, bbox) {
+      // Grid size is relative to bounds
+      var size = bbox.getSize(new THREE.Vector3());
+      size = Math.max(size.x, size.y) * 16;
+      var step = this.metric ? 10 : 25.4;
+      var divs = Math.ceil(size / step);
+      size = divs * step;
+
+      var material = new THREE.MeshPhongMaterial({
+        shininess: 0,
+        specular: 0,
+        color: 0,
+        opacity: 0.2,
+        transparent: true
+      });
+
+      var grid = new THREE.GridHelper(size, divs);
+      grid.material = material;
+      grid.rotation.x = Math.PI / 2;
+
+      scene.add(grid);
+
+      return grid;
+    },
+
+
+    draw_text: function (text, size, color) {
+      var geometry = new THREE.TextGeometry(text, {
+        font: new THREE.Font(font),
+        size: size,
+        height: 0.001,
+        curveSegments: 12,
+        bevelEnabled: false
+      });
+
+      var material = new THREE.MeshBasicMaterial({color: color});
+
+      return new THREE.Mesh(geometry, material);
+    },
+
+
+    format_dim(dim) {
+      if (!this.metric) dim /= 25.4;
+      return dim.toFixed(1) + (this.metric ? ' mm' : ' in');
+    },
+
+
+    draw_box_dims: function (bounds, color) {
+      var group = new THREE.Group();
+
+      var dims = bounds.getSize(new THREE.Vector3());
+      var size = Math.max(dims.x, dims.y, dims.z) / 40;
+
+      var xDim = this.draw_text(this.format_dim(dims.x), size, color);
+      xDim.position.x = bounds.min.x + (dims.x - sizeOf(xDim).x) / 2;
+      xDim.position.y = bounds.max.y + size;
+      xDim.position.z = bounds.max.z;
+      group.add(xDim);
+
+      var yDim = this.draw_text(this.format_dim(dims.y), size, color);
+      yDim.position.x = bounds.max.x + size;
+      yDim.position.y = bounds.min.y + (dims.y + sizeOf(yDim).x) / 2;
+      yDim.position.z = bounds.max.z;
+      yDim.rotateZ(-Math.PI / 2);
+      group.add(yDim);
+
+      var zDim = this.draw_text(this.format_dim(dims.z), size, color);
+      zDim.position.x = bounds.max.x + size;
+      zDim.position.y = bounds.max.y
+      zDim.position.z = bounds.min.z + (dims.z - sizeOf(zDim).y) / 2;
+      zDim.rotateX(Math.PI / 2);
+      group.add(zDim);
+
+      var material = new THREE.LineBasicMaterial({
+        linewidth: 2,
+        color: color,
+        opacity: 0.4,
+        transparent: true
+      });
+
+      var box = new THREE.Box3Helper(bounds);
+      box.material = material;
+      group.add(box);
+
+      return group;
+    },
+
+
+    draw_dims: function (scene, bbox) {
+      var group = new THREE.Group();
+      group.visible = this.show.dims;
+      scene.add(group);
+
+      // Bounds
+      group.add(this.draw_box_dims(bbox, 0x0c2d53));
+
+      // Envelope
+      if (this.envelope)
+        group.add(this.draw_box_dims(this.envelope, 0x00f7ff));
 
       return group;
     },
@@ -496,7 +550,7 @@ module.exports = {
       if (isNaN(speed)) return [255, 0, 0]; // Rapid
 
       var intensity = speed / this.toolpath.maxSpeed;
-      if (typeof speed == 'undefined' || !this.showIntensity) intensity = 1;
+      if (typeof speed == 'undefined' || !this.show.intensity) intensity = 1;
       return [0, 255 * intensity, 127 * (1 - intensity)];
     },
 
@@ -526,87 +580,8 @@ module.exports = {
 
       var line = new THREE.Line(geometry, material);
 
-      line.visible = this.showPath;
+      line.visible = this.show.path;
       scene.add(line);
-
-      return line;
-    },
-
-
-    create_empty_geom: function () {
-      var geometry = new THREE.BufferGeometry();
-      geometry.addAttribute('position',
-                            new THREE.Float32BufferAttribute([], 3));
-      return geometry;
-    },
-
-
-    create_bbox_geom: function (bbox) {
-      var vertices = [];
-
-      if (!bbox.isEmpty()) {
-        // Top
-        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
-
-        // Bottom
-        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
-
-        // Sides
-        vertices.push(bbox.min.x, bbox.min.y, bbox.min.z);
-        vertices.push(bbox.min.x, bbox.max.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.min.z);
-        vertices.push(bbox.max.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.max.x, bbox.max.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.min.y, bbox.max.z);
-        vertices.push(bbox.min.x, bbox.max.y, bbox.max.z);
-      }
-
-      var geometry = new THREE.BufferGeometry();
-
-      geometry.addAttribute('position',
-                            new THREE.Float32BufferAttribute(vertices, 3));
-
-      return geometry;
-    },
-
-
-    draw_bbox: function (scene, bbox) {
-      var geometry = this.create_bbox_geom(bbox);
-      var material = new THREE.LineBasicMaterial({color: 0xffffff});
-      var line = new THREE.LineSegments(geometry, material);
-
-      line.visible = this.showBBox;
-
-      scene.add(line);
-
-      return line;
-    },
-
-
-    draw_envelope: function (scene) {
-      var geometry = this.create_empty_geom();
-      var material = new THREE.LineBasicMaterial({color: 0x00f7ff});
-      var line = new THREE.LineSegments(geometry, material);
-
-      line.visible = this.showBBox;
-
-      scene.add(line);
-      this.update_envelope(line);
 
       return line;
     },
@@ -618,8 +593,8 @@ module.exports = {
       scene.add(this.lights);
 
       // Model
-      this.pathView = this.draw_path(scene);
-      this.surfaceMesh = this.draw_surface(scene, this.surfaceMaterial);
+      this.pathView      = this.draw_path(scene);
+      this.surfaceMesh   = this.draw_surface(scene, this.surfaceMaterial);
       this.workpieceMesh = this.draw_workpiece(scene, this.surfaceMaterial);
       this.update_surface_mode(this.surfaceMode);
 
@@ -627,11 +602,14 @@ module.exports = {
       var bbox = this.get_model_bounds();
 
       // Tool, axes & bounds
-      this.toolView = this.draw_tool(scene, bbox);
-      this.axesView = this.draw_axes(scene, bbox);
-      this.bboxView = this.draw_bbox(scene, bbox);
-      this.envelopeView = this.draw_envelope(scene);
+      this.toolView     = this.draw_tool(scene, bbox);
+      this.axesView     = this.draw_axes(scene, bbox);
+      this.gridView     = this.draw_grid(scene, bbox);
+      this.dimsView     = this.draw_dims(scene, bbox);
     },
+
+
+    render_frame: function () {this.renderer.render(this.scene, this.camera)},
 
 
     render: function () {
@@ -640,20 +618,20 @@ module.exports = {
 
       if (this.controls.update() || this.dirty) {
         this.dirty = false;
-        this.renderer.render(this.scene, this.camera);
+        this.render_frame();
       }
     },
 
 
     get_model_bounds: function () {
-      var bbox = new THREE.Box3(new THREE.Vector3(0, 0, 0),
-                                new THREE.Vector3(0.00001, 0.00001, 0.00001));
+      var bbox = undefined;
 
       function add(o) {
         if (typeof o != 'undefined') {
           var oBBox = new THREE.Box3();
           oBBox.setFromObject(o);
-          bbox.union(oBBox);
+          if (bbox == undefined) bbox = oBBox;
+          else bbox.union(oBBox);
         }
       }
 
@@ -673,35 +651,6 @@ module.exports = {
       }
 
       var bbox = this.get_model_bounds();
-      this.controls.reset();
-      bbox.getCenter(this.controls.target);
-      this.update_view();
-
-      // Compute new camera position
-      var center = bbox.getCenter(new THREE.Vector3());
-      var offset = new THREE.Vector3();
-
-      if (view == 'isometric') {offset.y -= 1; offset.z += 1;}
-      if (view == 'front')  offset.y -= 1;
-      if (view == 'back')   offset.y += 1;
-      if (view == 'left')   offset.x -= 1;
-      if (view == 'right')  offset.x += 1;
-      if (view == 'top')    offset.z += 1;
-      if (view == 'bottom') offset.z -= 1;
-      offset.normalize();
-
-      // Initial camera position
-      var position = new THREE.Vector3().copy(center).add(offset);
-      this.camera.position.copy(position);
-      this.camera.lookAt(center); // Get correct camera orientation
-
-      var theta = this.camera.fov / 180 * Math.PI; // View angle
-      var cameraLine = new THREE.Line3(center, position);
-      var cameraUp = new THREE.Vector3().copy(this.camera.up)
-          .applyQuaternion(this.camera.quaternion);
-      var cameraLeft =
-          new THREE.Vector3().copy(offset).cross(cameraUp).normalize();
-
       var corners = [
         new THREE.Vector3(bbox.min.x, bbox.min.y, bbox.min.z),
         new THREE.Vector3(bbox.min.x, bbox.min.y, bbox.max.z),
@@ -712,6 +661,35 @@ module.exports = {
         new THREE.Vector3(bbox.max.x, bbox.max.y, bbox.min.z),
         new THREE.Vector3(bbox.max.x, bbox.max.y, bbox.max.z),
       ]
+
+      this.controls.reset();
+      bbox.getCenter(this.controls.target);
+      this.update_view();
+
+      // Compute new camera position
+      var center = bbox.getCenter(new THREE.Vector3());
+      var offset = new THREE.Vector3();
+
+      if (view == 'angled') {offset.y -= 1; offset.z += 1;}
+      if (view == 'front')  offset.y -= 1;
+      if (view == 'back')   offset.y += 1;
+      if (view == 'left')   {offset.x -= 1; offset.z += 0.0001;}
+      if (view == 'right')  {offset.x += 1; offset.z += 0.0001;}
+      if (view == 'top')    offset.z += 1;
+      if (view == 'bottom') offset.z -= 1;
+      offset.normalize();
+
+      // Initial camera position
+      var position = center.clone().add(offset);
+      this.camera.position.copy(position);
+      this.camera.lookAt(center); // Get correct camera orientation
+
+      var theta = this.camera.fov / 180 * Math.PI; // View angle
+      var cameraLine = new THREE.Line3(center, position);
+      var cameraUp = new THREE.Vector3().copy(this.camera.up)
+          .applyQuaternion(this.camera.quaternion);
+      var cameraLeft =
+          new THREE.Vector3().copy(offset).cross(cameraUp).normalize();
 
       var dist = this.camera.near; // Min camera dist
 
@@ -735,7 +713,7 @@ module.exports = {
         var l = p1.distanceTo(p2);
 
         // Update min camera distance
-        dist = Math.max(dist, d + l / Math.tan(theta / 2));
+        dist = Math.max(dist, d + l / Math.tan(theta / 2) / this.camera.aspect);
 
         // Compute left line
         var left =
@@ -749,7 +727,7 @@ module.exports = {
         l = p1.distanceTo(p3);
 
         // Update min camera distance
-        dist = Math.max(dist, d + l / Math.tan(theta / 2) / this.camera.aspect);
+        dist = Math.max(dist, d + l / Math.tan(theta / 2));
       }
 
       this.camera.position.copy(offset.multiplyScalar(dist * 1.2).add(center));

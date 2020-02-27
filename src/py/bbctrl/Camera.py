@@ -342,7 +342,7 @@ class Camera(object):
         except Exception as e:
             if isinstance(e, BlockingIOError): return
 
-            self.log.warning('Failed to read from camera.')
+            self.log.info('Failed to read from camera.  Unplugged?')
             self.ioloop.remove_handler(fd)
             self.close()
 
@@ -476,7 +476,7 @@ class VideoHandler(web.RequestHandler):
         self.set_header('Connection', 'close')
         self.set_header('Content-Type', 'multipart/x-mixed-replace;boundary=' +
                         self.boundary)
-        self.set_header('Expires', 'Mon, 3 Jan 2000 12:34:56 GMT')
+        self.set_header('Expires', 'Tue, 01 Jan 1980 1:00:00 GMT')
         self.set_header('Pragma', 'no-cache')
 
         if self.camera is None: self.write_img('offline')

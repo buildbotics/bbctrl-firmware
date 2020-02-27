@@ -1,0 +1,277 @@
+.view-control
+  table
+    border-collapse collapse
+
+    &:first-child
+      margin 0.5em 0
+
+    td, th
+      border 1px solid #ddd
+
+  .axes
+    width 100%
+
+    .axis-x .name
+      color #f00
+
+    .axis-y .name
+      color #0f0
+
+    .axis-z .name
+      color #00f
+
+    .axis-a .name
+      color #f80
+
+    .axis-b .name
+      color #0ff
+
+    .axis-c .name
+      color #f0f
+
+    td, th
+      padding 2px
+      white-space nowrap
+
+    th
+      text-align center
+      vertical-align bottom
+
+    td
+      text-align right
+      font-family Courier
+
+    .homed
+      background-color #ccffcc
+      color #000
+
+    .warn
+      background-color #ffffcc
+
+    .error
+      background-color #ffcccc
+
+    .axis
+      .name
+        text-transform capitalize
+
+      .name, .position
+        font-size 24pt
+        line-height 24pt
+
+      .position
+        width 99%
+
+      td.state
+        text-align left
+
+        .fa
+          font-size 140%
+          margin-left 2px
+          margin-right 6px
+
+      .absolute, .offset
+        min-width 6em
+
+    tr:nth-child(1) th.actions
+      text-align right
+
+  .jog svg
+    user-select none
+    -webkit-touch-callout none
+    -webkit-user-select none
+    -khtml-user-select none
+    -moz-user-select none
+    -ms-user-select none
+
+    text
+      font-family Sans
+      font-weight bold
+      stroke transparent
+      fill #444
+
+    .button
+      cursor pointer
+      stroke #4c4c4c
+
+      &:hover
+        stroke #e55
+
+      path
+        overflow visible
+
+    .house
+      stroke #444
+      fill #444
+
+    .ring
+      cursor pointer
+      overflow visible
+
+      .button
+        stroke transparent
+
+        &:hover
+          stroke #e55
+
+        text
+          font-size 10pt
+          text-anchor middle
+
+  .info
+    empty-cells show
+    width 32.9%
+    display inline-block
+
+    th, td
+      height 1.75em
+      padding 3px
+      text-align right
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
+
+    th
+      min-width 5.25em
+      width 5.25em
+
+    td
+      min-width 8em
+      width 100%
+
+    .eta
+      font-size 90%
+
+    .progress
+      height 1.75em
+
+      label
+        float right
+
+      .bar
+        height 1.75em
+        background #f2ac45
+
+  .override
+    display none /* Hidden for now */
+    margin 0.5em 0
+    white-space nowrap
+
+    label
+      font-weight bold
+      min-width 3.5em
+      display inline-block
+
+    .percent
+      display inline-block
+      width 3em
+
+    input
+      border-radius 0
+      margin -0.4em 0.5em
+
+  .override:nth-of-type(1)
+    clear left
+    float left
+
+  .override:nth-of-type(2)
+    clear right
+    float right
+
+  .toolbar
+    display flex
+    flex-wrap wrap
+    clear both
+    padding 0 0.125em
+
+    > *
+      margin 0.25em 0.125em
+
+    .filename
+      flex 1
+      text-align right
+
+  .tabs
+    section
+      min-height 500px
+      overflow-x hidden
+      overflow-y auto
+      padding 0
+      margin 0
+
+  .CodeMirror
+    height 460px
+
+  .gcode-view, .history
+    font-family courier
+    overflow auto
+    width 100%
+    height 450px
+    white-space nowrap
+
+    &.placeholder
+      color #aaa
+
+  .history
+    padding 0.25em
+
+  .history ul
+    margin 0
+    padding 0
+    list-style none
+
+    li
+      cursor pointer
+
+  .mdi
+    clear both
+    white-space nowrap
+    padding 0.125em
+    display flex
+
+    > *
+      margin 0.125em
+
+    input
+      flex 2
+
+  .jog
+    text-align center
+
+    > svg
+      margin 1em
+
+  .jog-adjust
+    text-align center
+    margin-bottom 1em
+
+    input
+      margin 0 0.5em
+      vertical-align middle
+
+.load-on
+  background-color #ccffcc
+  color #000
+
+
+@media only screen and (max-width 970px)
+  .view-control #control
+    .path-viewer.small .path-viewer-content
+      margin-top inherit
+      float inherit
+
+@media only screen and (max-width 940px)
+  .view-control #control
+    .axes
+      .axis
+        .name, .position
+          font-size 18pt
+          line-height 18pt
+
+      .absolute, .offset
+        display none
+
+    > *:nth-of-type(n)
+      float none
+      clear both
+      width 99%
