@@ -299,24 +299,41 @@ script#control-view-template(type="text/x-template")
         .jog
           axis-control(axes="XY", :colors="['red', 'green']",
             :enabled="[x.enabled, y.enabled]",
-            v-if="x.enabled || y.enabled", :adjust="jog_adjust")
+            v-if="x.enabled || y.enabled", :adjust="jog_adjust",
+            :step="jog_step")
 
           axis-control(axes="AZ", :colors="['orange', 'blue']",
             :enabled="[a.enabled, z.enabled]",
-            v-if="a.enabled || z.enabled", :adjust="jog_adjust")
+            v-if="a.enabled || z.enabled", :adjust="jog_adjust",
+            :step="jog_step")
 
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[b.enabled, c.enabled]",
-            v-if="b.enabled || c.enabled", :adjust="jog_adjust")
+            v-if="b.enabled || c.enabled", :adjust="jog_adjust",
+            :step="jog_step")
 
-        .jog-adjust
-          | Fine adjust
-          input(type="range", v-model="jog_adjust", min=1, max=100, step=1)
+          .jog-settings
+            .jog-adjust
+              | Fine adjust
+              input(type="range", v-model="jog_adjust", min=0, max=2, step=1,
+                list="jog-adjust-ticks")
+              datalist#jog-adjust-ticks
+                option(value="0")
+                option(value="1")
+                option(value="2")
 
-        center
-          | Left click the axes above holding down the mouse button to jog the
-          | machine.
-        center Jogging speed is set by the ring that is clicked.
+            .jog-mode
+              | Step mode
+              input(type="checkbox", v-model="jog_step")
+
+          .jog-instructions(v-if="jog_step")
+            p Left click the axes above to jog by the specified amount.
+
+          .jog-instructions(v-else)
+            p.
+              Left click the axes above holding down the mouse button to jog the
+              machine.
+            p Jogging speed is set by the ring that is clicked.
 
       section#content4.tab-content
         console

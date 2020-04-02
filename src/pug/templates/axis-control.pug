@@ -28,7 +28,7 @@
 script#axis-control-template(type="text/x-template")
   svg(xmlns="http://www.w3.org/2000/svg",
     xmlns:xlink="http://www.w3.org/1999/xlink",
-    width="200", height="200")
+    width="300", height="300")
     defs
       lineargradient#red
         stop(offset="0", stop-color="#d26969")
@@ -81,127 +81,145 @@ script#axis-control-template(type="text/x-template")
       path#arrow(d="M-16,9 0,9 0,17 17,0 0,-17 0,-9 -16,-9 -16,9Z")
 
 
-    g(transform="scale(0.8, 0.8)")
+    g(transform="scale(1.2, 1.2)")
       // 100% ring
       g.ring(fill="#9f9f9f", filter="url(#shadow)")
         use.button(xlink:href="#pie-1", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @mousedown="jog(0, 1)", @mouseup="release(0)")
+          @mousedown="jog(0, 3, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 3, 1)", @touchend.prevent="release(0)")
 
         use.button(xlink:href="#pie-1", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @mousedown="jog(0, -1)", @mouseup="release(0)")
+          @mousedown="jog(0, 3, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 3, -1)", @touchend.prevent="release(0)")
 
-        g.button(@mousedown="jog(1, 1)", @mouseup="release(1)",
-          v-if="enabled[1]")
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 3, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 3, 1)", @touchend.prevent="release(1)")
           use.button(xlink:href="#pie-1",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="24", transform="rotate(22 125 125)")
-            | {{adjust | fixed 0}}%
-          text(x="125", y="24", transform="rotate(-22 125 125)")
-            | {{adjust | fixed 0}}%
+          text(x="125", y="21", transform="rotate(22 125 125)") {{text(3)}}
+          text(x="125", y="21", transform="rotate(-22 125 125)") {{text(3)}}
           use.button(xlink:href="#pie-1", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-1", v-if="enabled[1]",
-          transform="translate(124 130) rotate(45)", @mousedown="jog(1, -1)",
-          @mouseup="release(1)")
+          transform="translate(124 130) rotate(45)",
+          @mousedown="jog(1, 3, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 3, -1)", @touchend.prevent="release(1)")
 
       // 50% ring
       g.ring(fill="#c5c5c5", filter="url(#shadow)")
         use.button(xlink:href="#pie-2", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @mousedown="jog(0, 0.5)", @mouseup="release(0)")
+          @mousedown="jog(0, 2, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 2, 1)", @touchend.prevent="release(0)")
 
         use.button(xlink:href="#pie-2", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @mousedown="jog(0, -0.5)", @mouseup="release(0)")
+          @mousedown="jog(0, 2, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 2, -1)", @touchend.prevent="release(0)")
 
-        g.button(@mousedown="jog(1, 0.5)", @mouseup="release(1)",
-          v-if="enabled[1]")
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 2, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 2, 1)", @touchend.prevent="release(1)")
           use.button(xlink:href="#pie-2",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="48") {{0.5 * adjust | fixed 1}}%
+          text(x="125", y="48") {{text(2)}}
           use.button(xlink:href="#pie-2", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-2", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @mousedown="jog(1, -0.5)", @mouseup="release(1)")
+          @mousedown="jog(1, 2, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 2, -1)", @touchend.prevent="release(1)")
 
 
       // 25% ring
       g.ring(fill="#e2e2e2", filter="url(#shadow)")
         use.button(xlink:href="#pie-3", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @mousedown="jog(0, 0.25)", @mouseup="release(0)")
+          @mousedown="jog(0, 1, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 1, 1)", @touchend.prevent="release(0)")
 
         use.button(xlink:href="#pie-3", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @mousedown="jog(0, -0.25)", @mouseup="release(0)")
+          @mousedown="jog(0, 1, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 1, -1)", @touchend.prevent="release(0)")
 
-        g.button(@mousedown="jog(1, 0.25)", @mouseup="release(1)",
-          v-if="enabled[1]")
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 1, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 1, 1)", @touchend.prevent="release(1)")
           use.button(xlink:href="#pie-3",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="73") {{0.25 * adjust | fixed 1}}%
+          text(x="125", y="69") {{text(1)}}
           use.button(xlink:href="#pie-3", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-3", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @mousedown="jog(1, -0.25)", @mouseup="release(1)")
+          @mousedown="jog(1, 1, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 1, -1)", @touchend.prevent="release(1)")
 
 
       // 10% ring
       g.ring(fill="#f7f7f7", filter="url(#shadow)")
         use.button(xlink:href="#pie-4", v-if="enabled[0]",
           transform="translate(134 121) rotate(-45)",
-          @mousedown="jog(0, 0.1)", @mouseup="release(0)")
+          @mousedown="jog(0, 0, 1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 0, 1)", @touchend.prevent="release(0)")
 
         use.button(xlink:href="#pie-4", v-if="enabled[0]",
           transform="translate(115 121) rotate(135)",
-          @mousedown="jog(0, -0.1)", @mouseup="release(0)")
+          @mousedown="jog(0, 0, -1)", @mouseup="release(0)",
+          @touchstart.prevent="jog(0, 0, -1)", @touchend.prevent="release(0)")
 
-        g.button(@mousedown="jog(1, 0.1)", @mouseup="release(1)",
-          v-if="enabled[1]")
+        g.button(v-if="enabled[1]",
+          @mousedown="jog(1, 0, 1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 0, 1)", @touchend.prevent="release(1)")
           use.button(xlink:href="#pie-4",
             transform="translate(124 111) rotate(-135)")
-          text(x="125", y="95") {{0.1 * adjust | fixed 1}}%
+          text(x="125", y="91") {{text(0)}}
           use.button(xlink:href="#pie-4", fill="transparent",
             transform="translate(124 111) rotate(-135)")
 
         use.button(xlink:href="#pie-4", v-if="enabled[1]",
           transform="translate(124 130) rotate(45)",
-          @mousedown="jog(1, -0.1)", @mouseup="release(1)")
+          @mousedown="jog(1, 0, -1)", @mouseup="release(1)",
+          @touchstart.prevent="jog(1, 0, -1)", @touchend.prevent="release(1)")
 
 
       // +A
-      g.button.arrow(@mousedown="jog(0, 1)", @mouseup="release(0)",
-        transform="translate(230 120)", v-if="enabled[0]")
+      g.button.arrow(v-if="enabled[0]", transform="translate(230 120)",
+        @mousedown="jog(0, 3, 1)", @mouseup="release(0)",
+        @touchstart.prevent="jog(0, 3, 1)", @touchend.prevent="release(0)")
         use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)")
         text(x="-12", y="5", font-size="14", textLength="21") +{{axes[0]}}
 
 
       // -A
-      g.button.arrow(@mousedown="jog(0, -1)", @mouseup="release(0)",
-        transform="translate(20 120)", v-if="enabled[0]")
+      g.button.arrow(v-if="enabled[0]", transform="translate(20 120)",
+        @mousedown="jog(0, 3, -1)", @mouseup="release(0)",
+        @touchstart.prevent="jog(0, 3, -1)", @touchend.prevent="release(0)")
         use(xlink:href="#arrow", fill="url(#{{colors[0]}}-1)",
           transform="rotate(180)")
         text(x="-8", y="5", font-size="14", textLength="16") -{{axes[0]}}
 
 
       // +B
-      g.button.arrow(@mousedown="jog(1, 1)", @mouseup="release(1)",
-        transform="translate(125, 18)", v-if="enabled[1]")
+      g.button.arrow(v-if="enabled[1]", transform="translate(125, 18)",
+        @mousedown="jog(1, 3, 1)", @mouseup="release(1)",
+        @touchstart.prevent="jog(1, 3, 1)", @touchend.prevent="release(1)")
         use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
           transform="rotate(-90)")
         text(x="-8", y="5", font-size="12", textLength="16") +{{axes[1]}}
 
 
       // -B
-      g.button.arrow(@mousedown="jog(1, -1)", @mouseup="release(1)",
-        transform="translate(125, 225)", v-if="enabled[1]")
+      g.button.arrow(v-if="enabled[1]", transform="translate(125, 225)",
+        @mousedown="jog(1, 3, -1)", @mouseup="release(1)",
+        @touchstart.prevent="jog(1, 3, -1)", @touchend.prevent="release(1)")
         use(xlink:href="#arrow", fill="url(#{{colors[1]}}-1)",
           transform="rotate(90)")
         text(x="-7", y="5", font-size="12", textLength="14") -{{axes[1]}}

@@ -61,6 +61,7 @@ class FileHandler(bbctrl.APIHandler):
     def put_ok(self, *args):
         gcode = self.request.files['gcode'][0]
         filename = os.path.basename(gcode['filename'].replace('\\', '/'))
+        filename = filename.replace('#', '-').replace('?', '-')
 
         if not os.path.exists(self.get_upload()): os.mkdir(self.get_upload())
 
@@ -78,7 +79,7 @@ class FileHandler(bbctrl.APIHandler):
         if not filename: raise HTTPError(400, 'Missing filename')
         filename = os.path.basename(filename)
 
-        with open(self.get_upload(filename), 'r') as f:
+        with open(self.get_upload(filename).encode('utf8'), 'r') as f:
             self.write(f.read())
 
         self.get_ctrl().state.select_file(filename)

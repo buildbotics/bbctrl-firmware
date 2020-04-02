@@ -2,6 +2,9 @@ Buildbotics CNC Controller Firmware Changelog
 =============================================
 
 ## v0.4.14
+ - Handle file uploads with '#' or '?' in the name.
+ - Added "step mode" to Web based jogging.
+ - Fixed touch screen Web jogging.
 
 ## v0.4.13
  - Support for OMRON MX2 VFD.

@@ -27,7 +27,8 @@
 
 'use strict'
 
-var api = require('./api');
+var api    = require('./api');
+var cookie = require('./cookie')('bbctrl-');
 
 
 function _is_array(x) {
@@ -62,7 +63,8 @@ module.exports = {
       position_msg:
       {x: false, y: false, z: false, a: false, b: false, c: false},
       axis_position: 0,
-      jog_adjust: 100,
+      jog_step: cookie.get_bool('jog-step'),
+      jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       deleteGCode: false,
       tab: 'auto'
     }
@@ -97,7 +99,9 @@ module.exports = {
     },
 
 
-    'state.selected_time': function () {this.load()}
+    'state.selected_time': function () {this.load()},
+    jog_step: function () {cookie.set_bool('jog-step', this.jog_step)},
+    jog_adjust: function () {cookie.set('jog-adjust', this.jog_adjust)}
   },
 
 
@@ -192,6 +196,11 @@ module.exports = {
       var data = {ts: new Date().getTime()};
       data[axis] = power;
       api.put('jog', data);
+    },
+
+
+    step: function (axis, value) {
+      this.send('M70\nG91\nG0' + axis + value + '\nM72');
     }
   },
 
