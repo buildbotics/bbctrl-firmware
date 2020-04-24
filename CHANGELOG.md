@@ -1,10 +1,16 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.15
+ - Set GCode variables #5400 and #<_tool>.
+ - Added #<_timestamp> GCode variable.
+ - Print program start, stop and end with timestamp.
+
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.
  - Added "step mode" to Web based jogging.
  - Fixed touch screen Web jogging.
+ - Support V70 Stepper Online VFD.
 
 ## v0.4.13
  - Support for OMRON MX2 VFD.

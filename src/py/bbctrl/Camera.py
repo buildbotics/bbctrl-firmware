@@ -36,7 +36,6 @@ import base64
 import socket
 import ctypes
 from tornado import gen, web, iostream
-import bbctrl
 
 try:
     import v4l2
@@ -69,13 +68,6 @@ def format_frame(frame):
              b'Content-type: image/jpeg\r\n',
              b'Content-length: %d\r\n\r\n' % len(frame), frame]
     return b''.join(frame)
-
-
-def get_image_resource(path):
-    path = bbctrl.get_resource(path)
-
-    with open(path, 'rb') as f:
-        return format_frame(f.read())
 
 
 class VideoDevice(object):
@@ -280,7 +272,7 @@ class VideoDevice(object):
 class Camera(object):
     def __init__(self, ioloop, args, log):
         self.ioloop = ioloop
-        self.log = log.get('Camera')
+        self.log = log
 
         self.width = args.width
         self.height = args.height
@@ -306,21 +298,21 @@ class Camera(object):
         self.udevCtx = pyudev.Context()
         self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
         self.udevMon.filter_by(subsystem = 'video4linux')
-        ioloop.add_handler(self.udevMon, self._udev_handler, ioloop.READ)
         self.udevMon.start()
+        ioloop.add_handler(self.udevMon, self._udev_handler, ioloop.READ)
 
 
     def _udev_handler(self, fd, events):
         action, device = self.udevMon.receive_device()
-        if device is None or self.dev is not None: return
+        if device is None: return
 
         path = str(device.device_node)
 
-        if action == 'add':
+        if action == 'add' and self.dev is None:
             self.have_camera = True
             self.open(path)
 
-        if action == 'remove' and path == self.path:
+        if action == 'remove' and self.dev is not None and path == self.path:
             self.have_camera = False
             self.close()
 
@@ -364,13 +356,15 @@ class Camera(object):
 
     def open(self, path):
         try:
+            self.log.info('Opening ' + path)
+
             self._update_client_image()
             self.path = path
             if self.overtemp: return
             self.dev = VideoDevice(path)
 
             caps = self.dev.get_info()
-            self.log.info('%s, %s, %s, %s', caps._driver, caps._card,
+            self.log.info('   Device: %s, %s, %s, %s', caps._driver, caps._card,
                           caps._bus_info, caps._caps)
 
             if caps.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE == 0:
@@ -380,9 +374,13 @@ class Camera(object):
             formats = self.dev.get_formats()
             sizes   = self.dev.get_frame_sizes(fourcc)
 
-            self.log.info('Formats: %s', formats)
-            self.log.info('Sizes: %s', sizes)
-            self.log.info('Audio: %s', self.dev.get_audio())
+            fmts    = ', '.join(map(lambda s: s[1], formats))
+            sizes   = ' '.join(map(lambda s: '%dx%d' % s, sizes))
+            audio   = ' '.join(self.dev.get_audio())
+
+            self.log.info('  Formats: %s', fmts)
+            self.log.info('    Sizes: %s', sizes)
+            self.log.info('    Audio: %s', audio)
 
             hasFormat = False
             for name, description in formats:
@@ -398,9 +396,6 @@ class Camera(object):
 
             self.ioloop.add_handler(self.dev, self._fd_handler,
                                     self.ioloop.READ)
-
-            self.log.info('Opened camera ' + path)
-
 
         except Exception as e:
             self.log.warning('While loading camera: %s' % e)
@@ -427,7 +422,7 @@ class Camera(object):
             except: pass
 
             self._close_dev()
-            self.log.info('Closed camera')
+            self.log.info('Closed camera\n')
 
         except: self.log.exception('Exception while closing camera')
         finally: self.dev = None
@@ -465,6 +460,7 @@ class VideoHandler(web.RequestHandler):
 
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
+        self.app = app
         self.camera = app.camera
 
 
@@ -485,7 +481,12 @@ class VideoHandler(web.RequestHandler):
 
 
     def write_img(self, name):
-        self.write_frame_twice(get_image_resource('http/images/%s.jpg' % name))
+        path = self.app.get_image_resource(name)
+        if path is None: return
+
+        with open(path, 'rb') as f:
+            img = format_frame(f.read())
+            self.write_frame_twice(img)
 
 
     def write_frame(self, frame):
@@ -508,3 +509,61 @@ class VideoHandler(web.RequestHandler):
 
 
     def on_connection_close(self): self.camera.remove_client(self)
+
+
+def parse_args():
+    import argparse
+
+    parser = argparse.ArgumentParser(description = 'Web Camera Server')
+
+    parser.add_argument('-p', '--port', default = 80,
+                        type = int, help = 'HTTP port')
+    parser.add_argument('-a', '--addr', metavar = 'IP', default = '127.0.0.1',
+                        help = 'HTTP address to bind')
+    parser.add_argument('--width', default = 1280, type = int,
+                        help = 'Camera width')
+    parser.add_argument('--height', default = 720, type = int,
+                        help = 'Camera height')
+    parser.add_argument('--fps', default = 24, type = int,
+                        help = 'Camera frames per second')
+    parser.add_argument('--camera_clients', default = 4,
+                        help = 'Maximum simultaneous camera clients')
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    import tornado
+    import logging
+
+
+    class Web(tornado.web.Application):
+        def __init__(self, args, ioloop, log):
+            tornado.web.Application.__init__(self, [(r'/.*', VideoHandler)])
+
+            self.args = args
+            self.ioloop = ioloop
+            self.camera = Camera(ioloop, args, log)
+
+            try:
+                self.listen(args.port, address = args.addr)
+
+            except Exception as e:
+                raise Exception('Failed to bind %s:%d: %s' % (
+                    args.addr, args.port, e))
+
+            print('Listening on http://%s:%d/' % (args.addr, args.port))
+
+
+        def get_image_resource(self, name): return None
+
+
+    args = parse_args()
+    logging.basicConfig(level = logging.INFO, format = '%(message)s')
+    log = logging.getLogger('Camera')
+    ioloop = tornado.ioloop.IOLoop.current()
+    app = Web(args, ioloop, log)
+
+    try:
+        ioloop.start()
+    except KeyboardInterrupt: pass

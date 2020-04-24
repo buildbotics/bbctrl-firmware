@@ -29,6 +29,7 @@ import traceback
 import copy
 import uuid
 import os
+import time
 import bbctrl
 
 
@@ -75,6 +76,7 @@ class State(object):
 
         self.set_callback('metric', lambda name: 1 if self.is_metric() else 0)
         self.set_callback('imperial', lambda name: 0 if self.is_metric() else 1)
+        self.set_callback('timestamp', lambda name: time.time())
 
         self.reset()
         self.load_files()

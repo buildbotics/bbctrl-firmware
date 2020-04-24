@@ -205,6 +205,13 @@
           "scale": 25.4,
           "default": 5,
           "code": "zb"
+        },
+        "stall-volts": {
+          "type": "float",
+          "min": 0,
+          "unit": "v",
+          "default": 12,
+          "code": "tv"
         }
       }
     }
@@ -216,7 +223,7 @@
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
                  "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
                  "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)",
-                 "Sunfar E300 (Beta)", "OMRON MX2"],
+                 "Sunfar E300 (Beta)", "OMRON MX2", "V70"],
       "default": "Disabled",
       "code": "st"
     },

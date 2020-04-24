@@ -402,3 +402,43 @@ script#tool-view-template(type="text/x-template")
           |
           | and spindle type.  The VFD must be rebooted after changing
           | the above settings.
+
+      .notes(v-if="tool_type.startsWith('V70')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr F001
+            td.reg-value 2
+            td Communication port
+            td Control mode
+          tr
+            td.reg-addr F002
+            td.reg-value 2
+            td Communication port
+            td Frequency setting selection
+          tr
+            td.reg-addr F163
+            td.reg-value 1
+            td Slave address
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr F164
+            td.reg-value 1
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr F165
+            td.reg-value 3
+            td 8 data, no parity, 1 stop, RTU
+            td Must match #[tt parity] above
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/stepperonline-v70.pdf",
+            target="_blank") Stepper Online V70 VFD manual

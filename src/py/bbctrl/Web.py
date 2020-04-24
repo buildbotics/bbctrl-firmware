@@ -502,7 +502,7 @@ class Web(tornado.web.Application):
         if not args.disable_camera:
             if self.args.demo: log = bbctrl.log.Log(args, ioloop, 'camera.log')
             else: log = self.get_ctrl().log
-            self.camera = bbctrl.Camera(ioloop, args, log)
+            self.camera = bbctrl.Camera(ioloop, args, log.get('Camera'))
         else: self.camera = None
 
         # Init controller
@@ -562,6 +562,10 @@ class Web(tornado.web.Application):
                 args.addr, args.port, e))
 
         print('Listening on http://%s:%d/' % (args.addr, args.port))
+
+
+    def get_image_resource(self, name):
+        return bbctrl.get_resource('http/images/%s.jpg' % name)
 
 
     def opened(self, ctrl): ctrl.clear_timeout()

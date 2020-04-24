@@ -55,6 +55,7 @@ VAR(homed,            h, b8,    MOTORS, 1, 1) // Motor homed status
 VAR(active_current,  ac, f32,   MOTORS, 0, 0) // Motor current now
 VAR(driver_flags,    df, u16,   MOTORS, 1, 1) // Motor driver flags
 VAR(driver_stalled,  sl, b8,    MOTORS, 0, 0) // Motor driver status
+VAR(stall_volts,     tv, f32,   MOTORS, 1, 0) // Motor BEMF threshold voltage
 VAR(encoder,         en, s32,   MOTORS, 0, 0) // Motor encoder
 VAR(error,           ee, s32,   MOTORS, 0, 0) // Motor position error
 

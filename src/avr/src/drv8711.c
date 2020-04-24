@@ -81,7 +81,8 @@ typedef struct {
   drv8711_state_t state;
   current_t drive;
   current_t idle;
-  float stall_threspause;
+  uint16_t stall_vdiv;
+  uint8_t stall_thresh;
 
   uint8_t microstep;
   stall_callback_t stall_cb;
@@ -162,7 +163,12 @@ static uint16_t _driver_spi_command(drv8711_driver_t *drv) {
   case SS_WRITE_OFF:   return DRV8711_WRITE(DRV8711_OFF_REG,   DRV8711_OFF);
   case SS_WRITE_BLANK: return DRV8711_WRITE(DRV8711_BLANK_REG, DRV8711_BLANK);
   case SS_WRITE_DECAY: return DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY);
-  case SS_WRITE_STALL: return DRV8711_WRITE(DRV8711_STALL_REG, DRV8711_STALL);
+
+  case SS_WRITE_STALL: {
+    uint16_t reg = drv->stall_thresh | DRV8711_STALL_SDCNT_2 | drv->stall_vdiv;
+    return DRV8711_WRITE(DRV8711_STALL_REG, reg);
+  }
+
   case SS_WRITE_DRIVE: return DRV8711_WRITE(DRV8711_DRIVE_REG, DRV8711_DRIVE);
 
   case SS_WRITE_TORQUE:
@@ -433,3 +439,46 @@ void set_driver_flags(int driver, uint16_t flags) {
 
 uint16_t get_driver_flags(int driver) {return drivers[driver].flags;}
 bool get_driver_stalled(int driver) {return drivers[driver].stalled;}
+
+
+float get_stall_volts(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+
+  float vdiv;
+  switch (drivers[driver].stall_vdiv) {
+  case DRV8711_STALL_VDIV_4:  vdiv =  4; break;
+  case DRV8711_STALL_VDIV_8:  vdiv =  8; break;
+  case DRV8711_STALL_VDIV_16: vdiv = 16; break;
+  default:                    vdiv = 32; break;
+  }
+
+  return 1.8 / 256 * vdiv * drivers[driver].stall_thresh;
+}
+
+
+void set_stall_volts(int driver, float volts) {
+  if (driver < 0 || DRIVERS <= driver) return;
+
+  uint16_t vdiv = DRV8711_STALL_VDIV_32;
+  uint16_t thresh = (uint16_t)(volts * 256 / 1.8);
+
+  if (thresh < 4 << 8) {
+    thresh >>= 2;
+    vdiv = DRV8711_STALL_VDIV_4;
+
+  } else if (thresh < 8 << 8) {
+    thresh >>= 3;
+    vdiv = DRV8711_STALL_VDIV_8;
+
+  } else if (thresh < 16 << 8) {
+    thresh >>= 4;
+    vdiv = DRV8711_STALL_VDIV_16;
+
+  } else {
+    if (thresh < 32 << 8) thresh >>= 5;
+    else thresh = 255;
+  }
+
+  drivers[driver].stall_vdiv = vdiv;
+  drivers[driver].stall_thresh = thresh;
+}

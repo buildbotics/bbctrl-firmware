@@ -168,6 +168,18 @@ const vfd_reg_t omron_mx2_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t v70_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ, 0x0005, 0}, // Maximum operating frequency
+  {REG_FREQ_SET,      0x0201, 0}, // Set frequency in 0.1Hz
+  {REG_STOP_WRITE,    0x0200, 0}, // Stop
+  {REG_FWD_WRITE,     0x0200, 1}, // Run forward
+  {REG_REV_WRITE,     0x0200, 5}, // Run reverse
+  {REG_FREQ_READ,     0x0220, 0}, // Read operating frequency
+  {REG_STATUS_READ,   0x0210, 0}, // Read status
+  {REG_DISABLED},
+};
+
+
 static vfd_reg_t regs[VFDREG];
 static vfd_reg_t custom_regs[VFDREG];
 
@@ -386,6 +398,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs);            break;
   case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
   case SPINDLE_TYPE_OMRON_MX2:        _load(omron_mx2_regs);          break;
+  case SPINDLE_TYPE_V70:              _load(v70_regs);                break;
   default: break;
   }
 

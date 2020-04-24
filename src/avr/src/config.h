@@ -151,8 +151,6 @@ enum {
 #define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
 #define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
 
-#define DRV8711_STALL            (DRV8711_STALL_SDCNT_2 | \
-                                  DRV8711_STALL_VDIV_4 | 200)
 #define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_50  | \
                                   DRV8711_DRIVE_IDRIVEN_100 | \
                                   DRV8711_DRIVE_TDRIVEP_500 | \

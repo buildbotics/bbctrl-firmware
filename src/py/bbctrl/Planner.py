@@ -29,6 +29,7 @@ import json
 import math
 import re
 import time
+import datetime
 from collections import deque
 import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
 import bbctrl.Cmd as Cmd
@@ -138,7 +139,10 @@ class Planner():
 
         if len(name) and name[0] == '_':
             value = self.ctrl.state.get(name[1:], 0)
-            if units == 'IMPERIAL': value /= 25.4 # Assume metric
+            try:
+                float(value)
+                if units == 'IMPERIAL': value /= 25.4 # Assume metric
+            except ValueError: value = 0
 
         self.log.info('Get: %s=%s (units=%s)' % (name, value, units))
 
@@ -166,6 +170,10 @@ class Planner():
         elif level == 'W': self.log.warning (msg, where = where)
         elif level == 'E': self.log.error   (msg, where = where)
         else: self.log.error('Could not parse planner log line: ' + line)
+
+
+    def _log_time(self, prefix):
+        self.log.info(prefix + datetime.datetime.now().isoformat())
 
 
     def _add_message(self, text):
@@ -285,7 +293,9 @@ class Planner():
             sw = self.ctrl.state.get_switch_id(block['switch'])
             return Cmd.seek(sw, block['active'], block['error'])
 
-        if type == 'end': return '' # Sends id
+        if type == 'end':
+            self.cmdq.enqueue(id, self._log_time, 'Program End: ')
+            return '' # Sends id
 
         raise Exception('Unknown planner command "%s"' % type)
 
@@ -336,6 +346,7 @@ class Planner():
         self.where = path
         path = self.ctrl.get_path('upload', path)
         self.log.info('GCode:' + path)
+        self._log_time('Program Start: ')
         self._sync_position()
         self.planner.load(path, self.get_config(False, True))
         self.reset_times()
@@ -345,6 +356,7 @@ class Planner():
         try:
             self.planner.stop()
             self.cmdq.clear()
+            self._log_time('Program Stop: ')
 
         except:
             self.log.exception()
