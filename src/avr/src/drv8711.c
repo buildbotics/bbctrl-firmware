@@ -1,27 +1,27 @@
 /******************************************************************************\
 
-                 This file is part of the Buildbotics firmware.
+                  This file is part of the Buildbotics firmware.
 
-                   Copyright (c) 2015 - 2018, Buildbotics LLC
-                              All rights reserved.
+         Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.
 
-      This file ("the software") is free software: you can redistribute it
-      and/or modify it under the terms of the GNU General Public License,
-       version 2 as published by the Free Software Foundation. You should
-       have received a copy of the GNU General Public License, version 2
-      along with the software. If not, see <http://www.gnu.org/licenses/>.
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
 
-      The software is distributed in the hope that it will be useful, but
-           WITHOUT ANY WARRANTY; without even the implied warranty of
-       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-                Lesser General Public License for more details.
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
 
-        You should have received a copy of the GNU Lesser General Public
-                 License along with the software.  If not, see
-                        <http://www.gnu.org/licenses/>.
+                 Source location: https://github.com/buildbotics
 
-                 For information regarding this software email:
-                   "Joseph Coffland" <joseph@buildbotics.com>
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
 
 \******************************************************************************/
 
@@ -30,19 +30,14 @@
 #include "stepper.h"
 #include "switch.h"
 #include "estop.h"
+#include "exec.h"
+#include "motor.h"
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-
 
 #define DRIVERS MOTORS
-
-
 #define DRV8711_WORD_BYTE_PTR(WORD, LOW) (((uint8_t *)&(WORD)) + !(LOW))
 
 
@@ -71,7 +66,6 @@ typedef struct {
 
 typedef struct {
   uint8_t cs_pin;
-  switch_id_t stall_sw;
 
   uint8_t status;
   uint16_t flags;
@@ -81,24 +75,31 @@ typedef struct {
   drv8711_state_t state;
   current_t drive;
   current_t idle;
-  uint16_t stall_vdiv;
-  uint8_t stall_thresh;
+  uint16_t last_torque_reg;
 
   uint8_t microstep;
-  stall_callback_t stall_cb;
-
-  uint8_t last_torque;
   uint8_t last_microstep;
+
+  struct {
+    uint16_t reg;
+    uint16_t last_reg;
+    bool detect;
+    uint16_t samp_time;
+    float velocity;
+    current_t current;
+    uint16_t microstep;
+    uint16_t save_microstep;
+  } stall;
 
   spi_state_t spi_state;
 } drv8711_driver_t;
 
 
 static drv8711_driver_t drivers[DRIVERS] = {
-  {.cs_pin = SPI_CS_0_PIN, .stall_sw = SW_STALL_0},
-  {.cs_pin = SPI_CS_1_PIN, .stall_sw = SW_STALL_1},
-  {.cs_pin = SPI_CS_2_PIN, .stall_sw = SW_STALL_2},
-  {.cs_pin = SPI_CS_3_PIN, .stall_sw = SW_STALL_3},
+  {.cs_pin = SPI_CS_0_PIN},
+  {.cs_pin = SPI_CS_1_PIN},
+  {.cs_pin = SPI_CS_2_PIN},
+  {.cs_pin = SPI_CS_3_PIN},
 };
 
 
@@ -113,6 +114,22 @@ typedef struct {
 } spi_t;
 
 static spi_t spi = {0};
+
+
+static uint8_t _microsteps(uint16_t msteps) {
+  switch (msteps) {
+  case 1:   return DRV8711_CTRL_MODE_1;
+  case 2:   return DRV8711_CTRL_MODE_2;
+  case 4:   return DRV8711_CTRL_MODE_4;
+  case 8:   return DRV8711_CTRL_MODE_8;
+  case 16:  return DRV8711_CTRL_MODE_16;
+  case 32:  return DRV8711_CTRL_MODE_32;
+  case 64:  return DRV8711_CTRL_MODE_64;
+  case 128: return DRV8711_CTRL_MODE_128;
+  case 256: return DRV8711_CTRL_MODE_256;
+  }
+  return 0xff; // Invalid
+}
 
 
 static void _current_set(current_t *c, float current) {
@@ -141,7 +158,8 @@ static float _driver_get_current(drv8711_driver_t *drv) {
 
   switch (drv->state) {
   case DRV8711_IDLE: return drv->idle.current;
-  case DRV8711_ACTIVE: return drv->drive.current;
+  case DRV8711_ACTIVE:
+    return drv->stall.detect ? drv->stall.current.current : drv->drive.current;
   default: return 0; // Off
   }
 }
@@ -152,9 +170,27 @@ static uint8_t _driver_get_torque(drv8711_driver_t *drv) {
 
   switch (drv->state) {
   case DRV8711_IDLE:   return drv->idle.torque;
-  case DRV8711_ACTIVE: return drv->drive.torque;
+  case DRV8711_ACTIVE:
+    return drv->stall.detect ? drv->stall.current.torque : drv->drive.torque;
   default: return 0; // Off
   }
+}
+
+static uint16_t _driver_get_torque_reg(drv8711_driver_t *drv) {
+  uint16_t reg;
+
+  switch (drv->stall.samp_time) {
+  case 100:  reg = DRV8711_TORQUE_SMPLTH_100;  break;
+  case 200:  reg = DRV8711_TORQUE_SMPLTH_200;  break;
+  case 300:  reg = DRV8711_TORQUE_SMPLTH_300;  break;
+  case 400:  reg = DRV8711_TORQUE_SMPLTH_400;  break;
+  case 600:  reg = DRV8711_TORQUE_SMPLTH_600;  break;
+  case 800:  reg = DRV8711_TORQUE_SMPLTH_800;  break;
+  case 1000: reg = DRV8711_TORQUE_SMPLTH_1000; break;
+  default:   reg = DRV8711_TORQUE_SMPLTH_50;   break;
+  }
+
+  return reg | _driver_get_torque(drv);
 }
 
 
@@ -165,23 +201,22 @@ static uint16_t _driver_spi_command(drv8711_driver_t *drv) {
   case SS_WRITE_DECAY: return DRV8711_WRITE(DRV8711_DECAY_REG, DRV8711_DECAY);
 
   case SS_WRITE_STALL: {
-    uint16_t reg = drv->stall_thresh | DRV8711_STALL_SDCNT_2 | drv->stall_vdiv;
-    return DRV8711_WRITE(DRV8711_STALL_REG, reg);
+    drv->stall.last_reg = drv->stall.reg;
+    return DRV8711_WRITE(DRV8711_STALL_REG, drv->stall.reg);
   }
 
   case SS_WRITE_DRIVE: return DRV8711_WRITE(DRV8711_DRIVE_REG, DRV8711_DRIVE);
 
   case SS_WRITE_TORQUE:
-    drv->last_torque = _driver_get_torque(drv);
-    return DRV8711_WRITE(DRV8711_TORQUE_REG, DRV8711_TORQUE | drv->last_torque);
+    drv->last_torque_reg = _driver_get_torque_reg(drv);
+    return DRV8711_WRITE(DRV8711_TORQUE_REG, drv->last_torque_reg);
 
   case SS_WRITE_CTRL: {
     // NOTE, we disable the driver if it's not active.  The chip gets hot
     // idling with the driver enabled.
     bool enable = _driver_get_torque(drv);
     drv->last_microstep = drv->microstep;
-    return DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL |
-                         (drv->microstep << 3) |
+    return DRV8711_WRITE(DRV8711_CTRL_REG, DRV8711_CTRL | drv->microstep |
                          (enable ? DRV8711_CTRL_ENBL_bm : 0));
   }
 
@@ -235,7 +270,9 @@ static spi_state_t _driver_spi_next(drv8711_driver_t *drv) {
 
   case SS_READ_STATUS:
     if (drv->reset_flags) return SS_CLEAR_STATUS;
-    if (drv->last_torque != _driver_get_torque(drv)) return SS_WRITE_TORQUE;
+    if (drv->stall.last_reg != drv->stall.reg) return SS_WRITE_STALL;
+    if (drv->last_torque_reg != _driver_get_torque_reg(drv))
+      return SS_WRITE_TORQUE;
     if (drv->last_microstep != drv->microstep) return SS_WRITE_CTRL;
     // Fall through
 
@@ -301,26 +338,6 @@ static void _spi_send() {
 ISR(SPIC_INT_vect) {_spi_send();}
 
 
-static void _stall_change(int driver, bool stalled) {
-  drivers[driver].stalled = stalled;
-
-  // Call stall callback
-  if (stalled && drivers[driver].stall_cb)
-    drivers[driver].stall_cb(driver);
-}
-
-
-static void _stall_switch_cb(switch_id_t sw, bool active) {
-  switch (sw) {
-  case SW_STALL_0: _stall_change(0, active); break;
-  case SW_STALL_1: _stall_change(1, active); break;
-  case SW_STALL_2: _stall_change(2, active); break;
-  case SW_STALL_3: _stall_change(3, active); break;
-  default: break;
-  }
-}
-
-
 static void _motor_fault_switch_cb(switch_id_t sw, bool active) {
   motor_fault = active;
 }
@@ -346,10 +363,6 @@ void drv8711_init() {
     OUTSET_PIN(cs_pin);     // High
     DIRSET_PIN(cs_pin);     // Output
 
-    switch_id_t stall_sw = drivers[i].stall_sw;
-    switch_set_type(stall_sw, SW_NORMALLY_OPEN);
-    switch_set_callback(stall_sw, _stall_switch_cb);
-
     drivers[i].reset_flags = true; // Reset flags once on startup
   }
 
@@ -367,12 +380,6 @@ void drv8711_init() {
 }
 
 
-drv8711_state_t drv8711_get_state(int driver) {
-  if (driver < 0 || DRIVERS <= driver) return DRV8711_DISABLED;
-  return drivers[driver].state;
-}
-
-
 void drv8711_set_state(int driver, drv8711_state_t state) {
   if (driver < 0 || DRIVERS <= driver) return;
   drivers[driver].state = state;
@@ -381,18 +388,47 @@ void drv8711_set_state(int driver, drv8711_state_t state) {
 
 void drv8711_set_microsteps(int driver, uint16_t msteps) {
   if (driver < 0 || DRIVERS <= driver) return;
-  switch (msteps) {
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
-    break;
-  default: return; // Invalid
-  }
+  uint8_t microstep = _microsteps(msteps);
+  if (microstep == 0xff) return; // Invalid
 
-  drivers[driver].microstep = round(logf(msteps) / logf(2));
+  drivers[driver].microstep = microstep;
 }
 
 
-void drv8711_set_stall_callback(int driver, stall_callback_t cb) {
-  drivers[driver].stall_cb = cb;
+void drv8711_set_stalled(int driver, bool stalled) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drivers[driver].stalled = stalled;
+}
+
+
+void drv8711_set_stall_detect(int driver, bool enable) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drv8711_driver_t *drv = &drivers[driver];
+
+  drv->stall.detect = enable;
+
+  if (enable) {
+    drv->stall.save_microstep = motor_get_microstep(driver);
+    motor_set_microstep(driver, drv->stall.microstep);
+
+  } else {
+    motor_set_microstep(driver, drv->stall.save_microstep);
+    motor_set_step_output(driver, true);
+  }
+}
+
+
+bool drv8711_detect_stall(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return false;
+  drv8711_driver_t *drv = &drivers[driver];
+
+  bool stalled =
+    drv->stall.detect && drv->stall.velocity <= exec_get_velocity();
+
+  if (stalled) motor_set_step_output(driver, false);
+  if (stalled) drv->stall.velocity = exec_get_velocity();
+
+  return stalled;
 }
 
 
@@ -444,15 +480,10 @@ bool get_driver_stalled(int driver) {return drivers[driver].stalled;}
 float get_stall_volts(int driver) {
   if (driver < 0 || DRIVERS <= driver) return 0;
 
-  float vdiv;
-  switch (drivers[driver].stall_vdiv) {
-  case DRV8711_STALL_VDIV_4:  vdiv =  4; break;
-  case DRV8711_STALL_VDIV_8:  vdiv =  8; break;
-  case DRV8711_STALL_VDIV_16: vdiv = 16; break;
-  default:                    vdiv = 32; break;
-  }
+  float vdiv = DRV8711_STALL_VDIV(drivers[driver].stall.reg);
+  float thresh = DRV8711_STALL_THRESH(drivers[driver].stall.reg);
 
-  return 1.8 / 256 * vdiv * drivers[driver].stall_thresh;
+  return vdiv * thresh;
 }
 
 
@@ -479,6 +510,54 @@ void set_stall_volts(int driver, float volts) {
     else thresh = 255;
   }
 
-  drivers[driver].stall_vdiv = vdiv;
-  drivers[driver].stall_thresh = thresh;
+  drivers[driver].stall.reg = thresh | DRV8711_STALL_SDCNT_2 | vdiv;
+}
+
+
+uint16_t get_stall_samp_time(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+  return drivers[driver].stall.samp_time;
+}
+
+
+void set_stall_samp_time(int driver, uint16_t value) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drivers[driver].stall.samp_time = value;
+}
+
+
+float get_stall_current(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+  return drivers[driver].stall.current.current;
+}
+
+
+void set_stall_current(int driver, float value) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  if (MAX_CURRENT < value) value = MAX_CURRENT;
+  _current_set(&drivers[driver].stall.current, value);
+}
+
+
+uint16_t get_stall_microstep(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+  return drivers[driver].stall.microstep;
+}
+
+
+void set_stall_microstep(int driver, uint16_t microstep) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drivers[driver].stall.microstep = microstep;
+}
+
+
+float get_stall_velocity(int driver) {
+  if (driver < 0 || DRIVERS <= driver) return 0;
+  return drivers[driver].stall.velocity / VELOCITY_MULTIPLIER;
+}
+
+
+void set_stall_velocity(int driver, float velocity) {
+  if (driver < 0 || DRIVERS <= driver) return;
+  drivers[driver].stall.velocity = velocity * VELOCITY_MULTIPLIER;
 }

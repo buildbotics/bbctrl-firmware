@@ -166,9 +166,18 @@
       "homing": {
         "homing-mode": {
           "type": "enum",
-          "values": ["manual", "switch-min", "switch-max"],
+          "values": [
+            "manual", "switch-min", "switch-max", "stall-min", "stall-max"],
           "default": "manual",
           "code": "ho"
+        },
+        "stall-microstep": {
+          "type": "int",
+          "values": [2, 4, 8, 16, 32, 64, 128, 256],
+          "unit": "per full step",
+          "default": 8,
+          "code": "lm",
+          "hmodes": ["stall-min", "stall-max"]
         },
         "search-velocity": {
           "type": "float",
@@ -177,7 +186,8 @@
           "iunit": "IPM",
           "scale": 0.0254,
           "default": 0.5,
-          "code": "sv"
+          "code": "sv",
+          "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
         },
         "latch-velocity": {
           "type": "float",
@@ -186,7 +196,8 @@
           "iunit": "IPM",
           "scale": 0.0254,
           "default": 0.1,
-          "code": "lv"
+          "code": "lv",
+          "hmodes": ["switch-min", "switch-max"]
         },
         "latch-backoff": {
           "type": "float",
@@ -195,7 +206,32 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 100,
-          "code": "lb"
+          "code": "lb",
+          "hmodes": ["switch-min", "switch-max"]
+        },
+        "stall-volts": {
+          "type": "float",
+          "min": 0,
+          "unit": "v",
+          "default": 6,
+          "code": "tv",
+          "hmodes": ["stall-min", "stall-max"]
+        },
+        "stall-sample-time": {
+          "type": "int",
+          "values": [50, 100, 200, 300, 400, 600, 800, 1000],
+          "default": 50,
+          "unit": "µsec",
+          "code": "sp",
+          "hmodes": ["stall-min", "stall-max"]
+        },
+        "stall-current": {
+          "type": "float",
+          "min": 0,
+          "unit": "amps",
+          "default": 1.5,
+          "code": "tc",
+          "hmodes": ["stall-min", "stall-max"]
         },
         "zero-backoff": {
           "type": "float",
@@ -204,14 +240,8 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 5,
-          "code": "zb"
-        },
-        "stall-volts": {
-          "type": "float",
-          "min": 0,
-          "unit": "v",
-          "default": 12,
-          "code": "tv"
+          "code": "zb",
+          "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
         }
       }
     }
@@ -261,6 +291,18 @@
       "default": "lo-hi",
       "code": "dom",
       "pin": 16
+    },
+    "rapid-auto-off": {
+      "help": "Turn tool off during rapid moves.  Useful for LASERs.",
+      "type": "bool",
+      "default": false
+    },
+    "dynamic-power": {
+      "help":
+      "Adjust tool power based on velocity and feed rate.  Useful for LASERs.",
+      "type": "bool",
+      "default": false,
+      "code": "dp"
     }
   },
 
@@ -355,18 +397,6 @@
       "max": 320000,
       "default": 1000,
       "code": "sf"
-    },
-    "rapid-auto-off": {
-      "help": "Turn tool off during rapid moves.  Useful for LASERs.",
-      "type": "bool",
-      "default": false
-    },
-    "dynamic-power": {
-      "help":
-      "Adjust tool power based on velocity and feed rate.  Useful for LASERs.",
-      "type": "bool",
-      "default": false,
-      "code": "dp"
     }
   },
 

@@ -1,27 +1,27 @@
 /******************************************************************************\
 
-                 This file is part of the Buildbotics firmware.
+                  This file is part of the Buildbotics firmware.
 
-                   Copyright (c) 2015 - 2018, Buildbotics LLC
-                              All rights reserved.
+         Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.
 
-      This file ("the software") is free software: you can redistribute it
-      and/or modify it under the terms of the GNU General Public License,
-       version 2 as published by the Free Software Foundation. You should
-       have received a copy of the GNU General Public License, version 2
-      along with the software. If not, see <http://www.gnu.org/licenses/>.
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
 
-      The software is distributed in the hope that it will be useful, but
-           WITHOUT ANY WARRANTY; without even the implied warranty of
-       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-                Lesser General Public License for more details.
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
 
-        You should have received a copy of the GNU Lesser General Public
-                 License along with the software.  If not, see
-                        <http://www.gnu.org/licenses/>.
+                 Source location: https://github.com/buildbotics
 
-                 For information regarding this software email:
-                   "Joseph Coffland" <joseph@buildbotics.com>
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
 
 \******************************************************************************/
 
@@ -157,12 +157,10 @@ enum {
                                   DRV8711_DRIVE_TDRIVEN_500 | \
                                   DRV8711_DRIVE_OCPDEG_1    | \
                                   DRV8711_DRIVE_OCPTH_500)
-#define DRV8711_TORQUE            DRV8711_TORQUE_SMPLTH_50
 // NOTE, Datasheet suggests 850ns DTIME with the optional gate resistor
 // installed.  See page 30 section 8.1.2 of DRV8711 datasheet.
 #define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_5 | \
-                                  DRV8711_CTRL_DTIME_850 | \
-                                  DRV8711_CTRL_EXSTALL_bm)
+                                  DRV8711_CTRL_DTIME_850)
 
 
 // RS485 settings

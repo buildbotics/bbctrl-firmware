@@ -1,27 +1,27 @@
 ################################################################################
 #                                                                              #
-#                This file is part of the Buildbotics firmware.                #
+#                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#                  Copyright (c) 2015 - 2018, Buildbotics LLC                  #
-#                             All rights reserved.                             #
+#        Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
-#     This file ("the software") is free software: you can redistribute it     #
-#     and/or modify it under the terms of the GNU General Public License,      #
-#      version 2 as published by the Free Software Foundation. You should      #
-#      have received a copy of the GNU General Public License, version 2       #
-#     along with the software. If not, see <http://www.gnu.org/licenses/>.     #
+#         This Source describes Open Hardware and is licensed under the        #
+#                                 CERN-OHL-S v2.                               #
 #                                                                              #
-#     The software is distributed in the hope that it will be useful, but      #
-#          WITHOUT ANY WARRANTY; without even the implied warranty of          #
-#      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU       #
-#               Lesser General Public License for more details.                #
+#         You may redistribute and modify this Source and make products        #
+#    using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).  #
+#           This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED          #
+#    WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS  #
+#     FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable    #
+#                                  conditions.                                 #
 #                                                                              #
-#       You should have received a copy of the GNU Lesser General Public       #
-#                License along with the software.  If not, see                 #
-#                       <http://www.gnu.org/licenses/>.                        #
+#                Source location: https://github.com/buildbotics               #
 #                                                                              #
-#                For information regarding this software email:                #
-#                  "Joseph Coffland" <joseph@buildbotics.com>                  #
+#      As per CERN-OHL-S v2 section 4, should You produce hardware based on    #
+#    these sources, You must maintain the Source Location clearly visible on   #
+#    the external case of the CNC Controller or other product you make using   #
+#                                  this Source.                                #
+#                                                                              #
+#                For more information, email info@buildbotics.com              #
 #                                                                              #
 ################################################################################
 
@@ -46,6 +46,13 @@ axis_homing_procedure = '''
   G38.6 %(axis)s[#<_%(axis)s_home_travel>]
   G38.8 %(axis)s[#<_%(axis)s_latch_backoff>] F[#<_%(axis)s_latch_velocity>]
   G38.6 %(axis)s[#<_%(axis)s_latch_backoff> * -8]
+  G91 G0 G53 %(axis)s[#<_%(axis)s_zero_backoff>]
+  G90 G28.3 %(axis)s[#<_%(axis)s_home_position>]
+'''
+
+stall_homing_procedure = '''
+  G28.2 %(axis)s0 F[#<_%(axis)s_search_velocity>]
+  G38.6 %(axis)s[#<_%(axis)s_home_travel>]
   G91 G0 G53 %(axis)s[#<_%(axis)s_zero_backoff>]
   G90 G28.3 %(axis)s[#<_%(axis)s_home_position>]
 '''
@@ -264,7 +271,9 @@ class Mach(Comm):
             # Home axis
             self.mlog.info('Homing %s axis' % axis)
             self._begin_cycle('homing')
-            self.planner.mdi(axis_homing_procedure % {'axis': axis}, False)
+            if mode.startswith('stall-'): procedure = stall_homing_procedure
+            else: procedure = axis_homing_procedure
+            self.planner.mdi(procedure % {'axis': axis}, False)
             super().resume()
 
 

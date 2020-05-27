@@ -1,27 +1,27 @@
 /******************************************************************************\
 
-                 This file is part of the Buildbotics firmware.
+                  This file is part of the Buildbotics firmware.
 
-                   Copyright (c) 2015 - 2018, Buildbotics LLC
-                              All rights reserved.
+         Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.
 
-      This file ("the software") is free software: you can redistribute it
-      and/or modify it under the terms of the GNU General Public License,
-       version 2 as published by the Free Software Foundation. You should
-       have received a copy of the GNU General Public License, version 2
-      along with the software. If not, see <http://www.gnu.org/licenses/>.
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
 
-      The software is distributed in the hope that it will be useful, but
-           WITHOUT ANY WARRANTY; without even the implied warranty of
-       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-                Lesser General Public License for more details.
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
 
-        You should have received a copy of the GNU Lesser General Public
-                 License along with the software.  If not, see
-                        <http://www.gnu.org/licenses/>.
+                 Source location: https://github.com/buildbotics
 
-                 For information regarding this software email:
-                   "Joseph Coffland" <joseph@buildbotics.com>
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
 
 \******************************************************************************/
 
@@ -170,6 +170,15 @@ enum {
    (DRV8711_CTRL_GET_GAIN(CTRL) == DRV8711_CTRL_ISGAIN_10 ? 10 :        \
     (DRV8711_CTRL_GET_GAIN(CTRL) == DRV8711_CTRL_ISGAIN_20 ? 20 : 40)))
 
+#define DRV8711_CTRL_VDIV_BM (3 << 10)
+#define DRV8711_STALL_GET_VDIV(STALL) ((STALL) & DRV8711_CTRL_VDIV_BM)
+#define DRV8711_STALL_VDIV(STALL)                                       \
+  (DRV8711_STALL_GET_VDIV(STALL) == DRV8711_STALL_VDIV_4 ? 4 :          \
+   (DRV8711_STALL_GET_VDIV(STALL) == DRV8711_STALL_VDIV_8 ? 8 :         \
+    (DRV8711_STALL_GET_VDIV(STALL) == DRV8711_STALL_VDIV_16 ? 16 : 32)))
+
+#define DRV8711_STALL_THRESH(STALL) ((0xff & (STALL)) * 1.8 / 256)
+
 
 typedef enum {
   DRV8711_DISABLED,
@@ -182,7 +191,9 @@ typedef void (*stall_callback_t)(int driver);
 
 
 void drv8711_init();
-drv8711_state_t drv8711_get_state(int driver);
+void drv8711_remap_switches();
 void drv8711_set_state(int driver, drv8711_state_t state);
 void drv8711_set_microsteps(int driver, uint16_t msteps);
-void drv8711_set_stall_callback(int driver, stall_callback_t cb);
+void drv8711_set_stalled(int driver, bool stalled);
+void drv8711_set_stall_detect(int driver, bool enable);
+bool drv8711_detect_stall(int driver);

@@ -1,27 +1,27 @@
 /******************************************************************************\
 
-                 This file is part of the Buildbotics firmware.
+                  This file is part of the Buildbotics firmware.
 
-                   Copyright (c) 2015 - 2018, Buildbotics LLC
-                              All rights reserved.
+         Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.
 
-      This file ("the software") is free software: you can redistribute it
-      and/or modify it under the terms of the GNU General Public License,
-       version 2 as published by the Free Software Foundation. You should
-       have received a copy of the GNU General Public License, version 2
-      along with the software. If not, see <http://www.gnu.org/licenses/>.
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
 
-      The software is distributed in the hope that it will be useful, but
-           WITHOUT ANY WARRANTY; without even the implied warranty of
-       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-                Lesser General Public License for more details.
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
 
-        You should have received a copy of the GNU Lesser General Public
-                 License along with the software.  If not, see
-                        <http://www.gnu.org/licenses/>.
+                 Source location: https://github.com/buildbotics
 
-                 For information regarding this software email:
-                   "Joseph Coffland" <joseph@buildbotics.com>
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
 
 \******************************************************************************/
 
@@ -121,10 +121,16 @@ static motor_t motors[MOTORS] = {
 static uint8_t _dummy;
 
 
+static void _reset_encoder(int motor) {
+  motor_set_position(motor, exec_get_axis_position(motors[motor].axis));
+}
+
+
 static void _update_config(int motor) {
   motor_t *m = &motors[motor];
 
   m->steps_per_unit = 360.0 * m->microsteps / m->travel_rev / m->step_angle;
+  _reset_encoder(motor);
 }
 
 
@@ -176,6 +182,27 @@ bool motor_is_enabled(int motor) {return motors[motor].enabled;}
 int motor_get_axis(int motor) {return motors[motor].axis;}
 
 
+uint16_t motor_get_microstep(int motor) {return motors[motor].microsteps;}
+
+
+void motor_set_microstep(int motor, uint16_t value) {
+  switch (value) {
+  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
+    break;
+  default: return;
+  }
+
+  if (motors[motor].slave) return;
+
+  for (int m = motor; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      motors[m].microsteps = value;
+      _update_config(m);
+      drv8711_set_microsteps(m, value);
+    }
+}
+
+
 static int32_t _position_to_steps(int motor, float position) {
   return (int32_t)round(position * motors[motor].steps_per_unit);
 }
@@ -194,6 +221,14 @@ float motor_get_soft_limit(int motor, bool min) {
 
 
 bool motor_get_homed(int motor) {return motors[motor].homed;}
+
+
+void motor_set_step_output(int motor, bool enabled) {
+  motor_t *m = &motors[motor];
+
+  if (enabled) DIRSET_PIN(m->step_pin); // Output
+  else DIRCLR_PIN(m->step_pin); // Input
+}
 
 
 static void _update_power(int motor) {
@@ -268,7 +303,7 @@ void motor_load_move(int motor) {
   m.dma->TRFCNT = 0xffff;
   m.dma->CTRLA |= DMA_CH_ENABLE_bm;
 
-  // To avoid causing couter wrap around, it is important to start the clock
+  // To avoid causing counter wrap around, it is important to start the clock
   // before setting PERBUF.  If PERBUF is set before the clock is started PER
   // updates immediately and possibly mid step.
 
@@ -386,24 +421,11 @@ void set_travel(int motor, float value) {
 }
 
 
-uint16_t get_microstep(int motor) {return motors[motor].microsteps;}
+uint16_t get_microstep(int motor) {return motor_get_microstep(motor);}
 
 
 void set_microstep(int motor, uint16_t value) {
-  switch (value) {
-  case 1: case 2: case 4: case 8: case 16: case 32: case 64: case 128: case 256:
-    break;
-  default: return;
-  }
-
-  if (motors[motor].slave) return;
-
-  for (int m = motor; m < MOTORS; m++)
-    if (motors[m].axis == motors[motor].axis) {
-      motors[m].microsteps = value;
-      _update_config(m);
-      drv8711_set_microsteps(m, value);
-    }
+  motor_set_microstep(motor, value);
 }
 
 
@@ -415,8 +437,7 @@ void set_motor_axis(int motor, uint8_t axis) {
   motors[motor].axis = axis;
   axis_map_motors();
 
-  // Reset encoder
-  motor_set_position(motor, exec_get_axis_position(axis));
+  _reset_encoder(motor);
 
   // Check if this is now a slave motor
   motors[motor].slave = false;

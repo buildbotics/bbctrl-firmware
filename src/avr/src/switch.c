@@ -1,27 +1,27 @@
 /******************************************************************************\
 
-                 This file is part of the Buildbotics firmware.
+                  This file is part of the Buildbotics firmware.
 
-                   Copyright (c) 2015 - 2018, Buildbotics LLC
-                              All rights reserved.
+         Copyright (c) 2015 - 2020, Buildbotics LLC, All rights reserved.
 
-      This file ("the software") is free software: you can redistribute it
-      and/or modify it under the terms of the GNU General Public License,
-       version 2 as published by the Free Software Foundation. You should
-       have received a copy of the GNU General Public License, version 2
-      along with the software. If not, see <http://www.gnu.org/licenses/>.
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
 
-      The software is distributed in the hope that it will be useful, but
-           WITHOUT ANY WARRANTY; without even the implied warranty of
-       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-                Lesser General Public License for more details.
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
 
-        You should have received a copy of the GNU Lesser General Public
-                 License along with the software.  If not, see
-                        <http://www.gnu.org/licenses/>.
+                 Source location: https://github.com/buildbotics
 
-                 For information regarding this software email:
-                   "Joseph Coffland" <joseph@buildbotics.com>
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
 
 \******************************************************************************/
 
@@ -144,7 +144,14 @@ void switch_set_type(switch_id_t sw, switch_type_t type) {
 
 
 void switch_set_callback(switch_id_t sw, switch_callback_t cb) {
+  if (sw < 0 || num_switches <= sw) return;
   switches[sw].cb = cb;
+}
+
+
+switch_callback_t switch_get_callback(switch_id_t sw) {
+  if (sw < 0 || num_switches <= sw) return 0;
+  return switches[sw].cb;
 }
 
 

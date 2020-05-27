@@ -2,9 +2,13 @@ Buildbotics CNC Controller Firmware Changelog
 =============================================
 
 ## v0.4.15
- - Set GCode variables #5400 and #<_tool>.
- - Added #<_timestamp> GCode variable.
+ - Set GCode variables ``#5400`` and ``#<_tool>``.
+ - Added ``#<_timestamp>`` GCode variable.
  - Print program start, stop and end with timestamp.
+ - Fix occasional "Plan Failed" when saving config.
+ - Fix motor step alignment when changing motor parameters like microsteping.
+ - Stall detect homing.
+ - Improved voltage spike clamping time.
 
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.
@@ -25,7 +29,7 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v0.4.12
  - Segments straddle arc in linearization.
- - Control max-arc-error with GCode var.
+ - Control ``max-arc-error`` with GCode var.
  - Implemented path modes G61, G61.1 & G64 with naive CAM and basic blending.
  - Log GCode messages to "Messages" tab.
  - Acknowledging a message on one browser clears it for all.
