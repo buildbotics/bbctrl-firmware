@@ -126,6 +126,7 @@ static void _stop() {
     spindle_stop();
     outputs_stop();
     seek_cancel();
+    _set_state(STATE_HOLDING);
     break;
 
   case STATE_STOPPING:

@@ -253,7 +253,7 @@
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
                  "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
                  "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)",
-                 "Sunfar E300 (Beta)", "OMRON MX2", "V70"],
+                 "Sunfar E300 (Beta)", "OMRON MX2", "V70", "WJ200"],
       "default": "Disabled",
       "code": "st"
     },

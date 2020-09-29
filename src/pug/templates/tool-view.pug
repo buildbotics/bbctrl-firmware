@@ -442,3 +442,48 @@ script#tool-view-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/stepperonline-v70.pdf",
             target="_blank") Stepper Online V70 VFD manual
+
+      .notes(v-if="tool_type.startsWith('WJ200')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr A001
+            td.reg-value 3
+            td Modbus
+            td Frequency source
+          tr
+            td.reg-addr A002
+            td.reg-value 3
+            td Modbus
+            td Run source
+          tr
+            td.reg-addr C071
+            td.reg-value 5
+            td 9600 BAUD rate
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr C072
+            td.reg-value 1
+            td Slave address
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr C074
+            td.reg-value 0
+            td no parity
+            td Must match #[tt parity] above
+          tr
+            td.reg-addr C075
+            td.reg-value 2
+            td 2 stop bits
+            td Communication stop bits
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/wj200.pdf",
+            target="_blank") WJ200 VFD manual

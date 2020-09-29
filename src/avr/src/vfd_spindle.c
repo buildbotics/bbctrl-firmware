@@ -154,6 +154,7 @@ const vfd_reg_t sunfar_e300_regs[] PROGMEM = {
 };
 
 
+// Register value for Modbus is one less than in the datasheet
 const vfd_reg_t omron_mx2_regs[] PROGMEM = {
   {REG_CONNECT_WRITE,  0x1200,     3}, // A001 Frequency reference modbus
   {REG_CONNECT_WRITE,  0x1201,     3}, // A002 Run command modbus
@@ -178,6 +179,10 @@ const vfd_reg_t v70_regs[] PROGMEM = {
   {REG_STATUS_READ,   0x0210, 0}, // Read status
   {REG_DISABLED},
 };
+
+
+// Same as OMRON MX2
+#define wj200_regs omron_mx2_regs
 
 
 static vfd_reg_t regs[VFDREG];
@@ -399,6 +404,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
   case SPINDLE_TYPE_OMRON_MX2:        _load(omron_mx2_regs);          break;
   case SPINDLE_TYPE_V70:              _load(v70_regs);                break;
+  case SPINDLE_TYPE_WJ200:            _load(wj200_regs);              break;
   default: break;
   }
 
