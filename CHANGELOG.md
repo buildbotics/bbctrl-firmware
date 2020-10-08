@@ -13,6 +13,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Added M8.1 and M7.1 coolant off commands.
  - Clear planner coolant and spindle state on stop.
  - Fix web disconnect problem when downloading a bug report.
+ - Fix for jogging on touch screens.
 
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.
