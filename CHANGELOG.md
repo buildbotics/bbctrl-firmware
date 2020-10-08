@@ -14,6 +14,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Clear planner coolant and spindle state on stop.
  - Fix web disconnect problem when downloading a bug report.
  - Fix for jogging on touch screens.
+ - Allow disabling the internal WiFi so a USB dongle can be used.
 
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.

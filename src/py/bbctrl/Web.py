@@ -194,6 +194,9 @@ class WifiHandler(bbctrl.APIHandler):
             elif 'ssid' in self.json:
                 cmd += ['-s', self.json['ssid']]
 
+                if 'internal' in self.json and not self.json['internal']:
+                    cmd += ['-x']
+
                 if mode == 'ap':
                     cmd += ['-a']
                     if 'channel' in self.json:

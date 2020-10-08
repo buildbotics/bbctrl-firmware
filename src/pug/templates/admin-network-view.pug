@@ -81,6 +81,11 @@ script#admin-network-view-template(type="text/x-template")
         button.pure-button.pure-button-primary(@click="wifiConfirm = true",
           v-if="wifi_mode == 'disabled'") Set
 
+      .pure-control-group(v-if="wifi_mode != 'disabled'",
+        title="Use the intenral WiFi.  Disable to use a USB WiFi dongle")
+        label(for="internal") Internal WiFi
+        input(type="checkbox", v-model="wifi_internal")
+
       .pure-control-group(v-if="wifi_mode == 'ap'")
         label(for="wifi_ch") Channel
         select(name="wifi_ch", v-model="wifi_ch")

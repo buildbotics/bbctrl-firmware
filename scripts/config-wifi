@@ -6,19 +6,28 @@ SSID=
 PASS=
 CHANNEL=7
 REBOOT=false
+DISABLE_INTERNAL_WIFI=false
 
 WLAN0_CFG=/etc/network/interfaces.d/wlan0
 HOSTAPD_CFG=/etc/hostapd/hostapd.conf
 DNSMASQ_CFG=/etc/dnsmasq.conf
 DHCPCD_CFG=/etc/dhcpcd.conf
 WPA_CFG=/etc/wpa_supplicant/wpa_supplicant.conf
+MOD_DISABLE=/etc/modprobe.d/blacklist-internal-wifi.conf
 
 
 function query_config() {
+    if [ -e $MOD_DISABLE ]; then
+      INTERNAL=false
+    else
+      INTERNAL=true
+    fi
+
     if [ -e $WLAN0_CFG ]; then
         SSID=$(grep wpa-ssid $WLAN0_CFG |
                    sed 's/^[[:space:]]*wpa-ssid "\([^"]*\)"/\1/')
-        echo "{\"ssid\": \"$SSID\", \"mode\": \"client\"}"
+        echo -n "{\"ssid\": \"$SSID\", \"mode\": \"client\", "
+        echo "\"internal\": $INTERNAL}"
 
     else
         if [ -e $HOSTAPD_CFG -a -e /etc/default/hostapd ]; then
@@ -27,7 +36,8 @@ function query_config() {
                           sed 's/^channel=\(.*\)$/\1/')
 
             echo -n "{\"ssid\": \"$SSID\", "
-            echo "\"channel\": $CHANNEL, \"mode\": \"ap\"}"
+            echo -n "\"channel\": $CHANNEL, \"mode\": \"ap\" "
+            echo "\"internal\": $INTERNAL}"
 
         else
             echo "{\"mode\": \"disabled\"}"
@@ -177,6 +187,7 @@ function usage() {
     echo
     echo "  -a             Configure access point."
     echo "  -d             Disable wifi."
+    echo "  -x             Disable internal wifi."
     echo "  -r             Reboot when done."
     echo "  -s <SSID>      Set SSID."
     echo "  -p <PASS>      Set password."
@@ -191,6 +202,7 @@ while [ $# -ne 0 ]; do
     case "$1" in
         -a) AP=true ;;
         -d) DISABLE=true ;;
+        -x) DISABLE_INTERNAL_WIFI=true ;;
         -r) REBOOT=true; ;;
         -s) SSID="$2"; shift ;;
         -p) PASS="$2"; shift ;;
@@ -252,6 +264,18 @@ else
     else
         echo "Configuring Wifi"
         configure_wifi
+    fi
+
+    if $DISABLE_INTERNAL_WIFI; then
+      if [ ! -e $MOD_DISABLE ]; then
+        echo -e "blacklist brcmfmac\nblacklist brcmutil" > $MOD_DISABLE
+        REBOOT=true;
+      fi
+    else
+      if [ -e $MOD_DISABLE ]; then
+        rm $MOD_DISABLE
+        REBOOT=true;
+      fi
     fi
 fi
 
