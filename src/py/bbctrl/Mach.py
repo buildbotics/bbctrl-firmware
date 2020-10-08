@@ -84,6 +84,7 @@ class Mach(Comm):
 
         self.planner = bbctrl.Planner(ctrl)
         self.unpausing = False
+        self.stopping = False
 
         ctrl.state.set('cycle', 'idle')
 
@@ -142,6 +143,12 @@ class Mach(Comm):
             not super().is_active()):
             self.planner.position_change()
             self._set_cycle('idle')
+
+        # Planner stop
+        if state == 'READY' and self.stopping:
+            self.planner.stop()
+            self.ctrl.state.set('line', 0)
+            self.stopping = False
 
         # Unpause sync
         if state_changed and state != 'HOLDING': self.unpausing = False
@@ -301,7 +308,11 @@ class Mach(Comm):
         else: super().i2c_command(Cmd.UNPAUSE)
 
 
-    def stop(self): super().i2c_command(Cmd.STOP)
+    def stop(self):
+        if self._get_state() != 'jogging': self.stopping = True
+        super().i2c_command(Cmd.STOP)
+
+
     def pause(self): super().pause()
 
 

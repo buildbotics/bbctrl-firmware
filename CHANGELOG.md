@@ -12,6 +12,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Support for WJ200 VFD
  - Added M8.1 and M7.1 coolant off commands.
  - Clear planner coolant and spindle state on stop.
+ - Fix web disconnect problem when downloading a bug report.
 
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.

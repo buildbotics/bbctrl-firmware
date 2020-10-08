@@ -38,6 +38,8 @@ import socket
 import time
 from tornado.web import HTTPError
 from tornado import web, gen
+from tornado.concurrent import run_on_executor
+from concurrent.futures import ThreadPoolExecutor
 
 import bbctrl
 
@@ -101,16 +103,16 @@ class MessageAckHandler(bbctrl.APIHandler):
 
 
 class BugReportHandler(bbctrl.RequestHandler):
-    def get(self):
-        import tarfile, io
+    executor = ThreadPoolExecutor(max_workers = 4)
 
-        buf = io.BytesIO()
-        tar = tarfile.open(mode = 'w:bz2', fileobj = buf)
+
+    def get_files(self):
+        files = []
 
         def check_add(path, arcname = None):
             if os.path.isfile(path):
                 if arcname is None: arcname = path
-                tar.add(path, self.basename + '/' + arcname)
+                files.append((path, self.basename + '/' + arcname))
 
         def check_add_basename(path):
             check_add(path, os.path.basename(path))
@@ -124,9 +126,27 @@ class BugReportHandler(bbctrl.RequestHandler):
         check_add('config.json')
         check_add(ctrl.get_upload(ctrl.state.get('selected', '')))
 
+        return files
+
+
+    @run_on_executor
+    def task(self):
+        import tarfile, io
+
+        files = self.get_files()
+
+        buf = io.BytesIO()
+        tar = tarfile.open(mode = 'w:bz2', fileobj = buf)
+        for path, name in files: tar.add(path, name)
         tar.close()
 
-        self.write(buf.getvalue())
+        return buf.getvalue()
+
+
+    @gen.coroutine
+    def get(self):
+        res = yield self.task()
+        self.write(res)
 
 
     def set_default_headers(self):
