@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v0.4.16
+ - Improved axis under/over warning tooltip.
+
 ## v0.4.15
  - Set GCode variables ``#5400`` and ``#<_tool>``.
  - Added ``#<_timestamp>`` GCode variable.

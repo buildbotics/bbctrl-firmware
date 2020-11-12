@@ -107,13 +107,15 @@ module.exports = {
       case 'HOMED': title = 'Axis successfuly homed.'; break;
 
       case 'OVER':
-        title = 'Tool path would move ' +
-          this._length_str(pathMax + off - max) + ' beyond axis bounds.';
+        title = 'Current program would move ' +
+          this._length_str(pathMax + off - max) + ' beyond axis bounds.  ' +
+          'Offsets must be adjusted or soft limits set correctly.';
         break;
 
       case 'UNDER':
-        title = 'Tool path would move ' +
-          this._length_str(min - pathMin - off) + ' below axis bounds.';
+        title = 'Current program would move ' +
+          this._length_str(min - pathMin - off) + ' below axis bounds.  ' +
+          'Offsets must be adjusted of soft limits set correctly.';
         break;
 
       case 'NO FIT':
