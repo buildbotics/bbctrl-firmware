@@ -118,7 +118,9 @@ class Planner():
         if tool_change: overrides['M6'] = tool_change
 
         program_end = config.get('program-end')
-        if program_end: overrides['M2'] = program_end
+        if program_end:
+            overrides['M2'] = program_end
+            overrides['M30'] = program_end
 
         if overrides: cfg['overrides'] = overrides
 

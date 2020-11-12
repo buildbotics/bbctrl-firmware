@@ -473,7 +473,7 @@
     },
     "program-end": {
       "type": "text",
-      "default": "(Runs on M2, program end)\nM2"
+      "default": "(Runs on M2 or M30, program end)\nM2"
     }
   },
 

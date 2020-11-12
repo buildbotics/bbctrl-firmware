@@ -15,6 +15,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fix web disconnect problem when downloading a bug report.
  - Fix for jogging on touch screens.
  - Allow disabling the internal WiFi so a USB dongle can be used.
+ - Override M30 as well as M2 with ``program-end`` override.
 
 ## v0.4.14
  - Handle file uploads with '#' or '?' in the name.
