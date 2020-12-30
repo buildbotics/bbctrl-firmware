@@ -83,6 +83,7 @@ class Planner():
     def get_config(self, mdi, with_limits):
         state = self.ctrl.state
         config = self.ctrl.config
+        is_pwm = config.get('tool-type') == 'PWM Spindle'
 
         cfg = {
             # NOTE Must get current units not configured default units
@@ -90,7 +91,7 @@ class Planner():
             'max-vel':   state.get_axis_vector('vm', 1000),
             'max-accel': state.get_axis_vector('am', 1000000),
             'max-jerk':  state.get_axis_vector('jm', 1000000),
-            'rapid-auto-off':  config.get('rapid-auto-off'),
+            'rapid-auto-off':  config.get('rapid-auto-off') and is_pwm,
             'max-blend-error': config.get('max-deviation'),
             'max-merge-error': config.get('max-deviation'),
             'junction-accel':  config.get('junction-accel'),
