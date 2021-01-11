@@ -181,6 +181,16 @@ const vfd_reg_t v70_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t dmm_dyn4_regs[] PROGMEM = {
+  {REG_MAX_FREQ_FIXED, 0x00, 6000}, // Maximum operating frequency
+  {REG_FREQ_SIGN_SET,  0x0e, 0}, // Set frequency in 0.1Hz
+  {REG_STOP_WRITE,     0x0e, 0}, // Stop
+  {REG_FREQ_SIGN_READ, 0x14, 0}, // Read operating frequency
+  {REG_STATUS_READ,    0x02, 0}, // Read status
+  {REG_DISABLED},
+};
+
+
 // Same as OMRON MX2
 #define wj200_regs omron_mx2_regs
 
@@ -405,6 +415,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_OMRON_MX2:        _load(omron_mx2_regs);          break;
   case SPINDLE_TYPE_V70:              _load(v70_regs);                break;
   case SPINDLE_TYPE_WJ200:            _load(wj200_regs);              break;
+  case SPINDLE_TYPE_DMM_DYN4:         _load(dmm_dyn4_regs);           break;
   default: break;
   }
 

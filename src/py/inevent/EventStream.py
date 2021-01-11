@@ -65,8 +65,6 @@ from inevent import Event
 from inevent.EventState import EventState
 
 
-log = logging.getLogger('inevent')
-
 EVIOCGRAB = ioctl._IOW(ord('E'), 0x90, "i") # Grab/Release device
 
 
@@ -116,7 +114,7 @@ class EventStream(object):
     ABS_DISTANCE, ABS_TILT_X, ABS_TILT_Y, ABS_TOOL_WIDTH]
 
 
-  def __init__(self, devIndex, devType, devName):
+  def __init__(self, devIndex, devType, devName, log = None):
     """
     Opens the given /dev/input/event file and grabs it.
 
@@ -125,6 +123,8 @@ class EventStream(object):
     self.devIndex = devIndex
     self.devType = devType
     self.devName = devName
+    self.log = log if log else logging.getLogger('inevent')
+
     self.filename = "/dev/input/event" + str(devIndex)
     self.filehandle = os.open(self.filename, os.O_RDWR)
     self.state = EventState()
@@ -195,7 +195,7 @@ class EventStream(object):
         return event
 
     except Exception as e:
-      log.info('Reading event: %s' % e)
+      self.log.info('Reading event: %s' % e)
 
 
   def __enter__(self): return self

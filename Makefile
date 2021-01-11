@@ -110,7 +110,7 @@ $(TARGET_DIR)/%.html: src/pug/%.pug node_modules
 	$(PUG) -O pug-opts.js -P $< -o $(TARGET_DIR) || (rm -f $@; exit 1)
 
 pylint:
-	pylint3 -E $(shell find src/py -name \*.py | grep -v flycheck_)
+	pylint -E $(shell find src/py -name \*.py | grep -v flycheck_)
 
 jshint:
 	./node_modules/jshint/bin/jshint --config jshint.json src/js/*.js

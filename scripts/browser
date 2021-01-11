@@ -6,8 +6,11 @@ import subprocess
 
 
 def enter_cgroup():
-    with open('/sys/fs/cgroup/memory/chrome/tasks', 'w') as f:
-        f.write(str(os.getpid()))
+    cgroup = '/sys/fs/cgroup/memory/chrome/tasks'
+
+    if os.path.exists(cgroup):
+        with open(cgroup, 'w') as f:
+            f.write(str(os.getpid()))
 
 
 # Start browser

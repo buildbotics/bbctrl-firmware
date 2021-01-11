@@ -487,3 +487,38 @@ script#tool-view-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/wj200.pdf",
             target="_blank") WJ200 VFD manual
+
+      .notes(v-if="tool_type.startsWith('DMM DYN4')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr 40001
+            td.reg-value 1
+            td Drive ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr 40002
+            td.reg-value 0
+            td RS232, relative mode, enable
+            td Drive config
+          tr
+            td.reg-addr 40035
+            td.reg-value 0
+            td 8-bit data, 1 start, no parity, two stop
+            td Communication format
+          tr
+            td.reg-addr 40036
+            td.reg-value 1
+            td 9600 BAUD rate
+            td Must match #[tt baud] above
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/dmm_dyn4.pdf",
+            target="_blank") DMM DYN4 VFD manual

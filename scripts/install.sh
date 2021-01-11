@@ -17,6 +17,7 @@ if $UPDATE_PY; then
     systemctl stop bbctrl
 
     # Update service
+    mkdir -p /var/lib/bbctrl
     rm -f /etc/init.d/bbctrl
     cp scripts/bbctrl.service /etc/systemd/system/
     systemctl daemon-reload

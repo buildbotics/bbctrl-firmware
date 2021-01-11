@@ -30,10 +30,6 @@ import logging
 from inevent.Constants import *
 
 
-log = logging.getLogger('inevent')
-log.setLevel(logging.INFO)
-
-
 def axes_to_string(axes):
     s = ''
     for axis in axes:
@@ -63,19 +59,20 @@ def event_to_string(event, state):
 
 
 class JogHandler:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self, log = None):
         self.reset()
+
+        self.log = log if log else logging.getLogger('inevent')
 
 
     def changed(self):
-        log.info(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
+        self.log.info(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
 
 
-    def up(self): log.debug('up')
-    def down(self): log.debug('down')
-    def left(self): log.debug('left')
-    def right(self): log.debug('right')
+    def up(self): self.log.debug('up')
+    def down(self): self.log.debug('down')
+    def left(self): self.log.debug('left')
+    def right(self): self.log.debug('right')
 
 
     def reset(self):
@@ -90,9 +87,7 @@ class JogHandler:
         self.changed()
 
 
-    def get_config(self, name):
-        if name in self.config: return self.config[name]
-        return self.config['default']
+    def get_config(self, name): raise Exception('No configs')
 
 
     def event(self, event, state, dev_name):
@@ -130,7 +125,7 @@ class JogHandler:
                 if index == 0: self.horizontal_lock = True
                 if index == 1: self.vertical_lock = True
 
-        log.debug(event_to_string(event, state))
+        self.log.debug(event_to_string(event, state))
 
         # Update axes
         old_axes = list(self.axes)

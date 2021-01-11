@@ -10,7 +10,8 @@ apt-get dist-upgrade -y
 # Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
   i2c-tools python3-rpi.gpio libjpeg8 wiringpi dnsmasq hostapd \
-  iptables-persistent chromium-browser xorg rpd-plym-splash samba
+  iptables-persistent chromium-browser xorg rpd-plym-splash samba ratpoison \
+  libpython3.5
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
@@ -39,20 +40,9 @@ sed -i 's/#dtparam=i2c/dtparam=i2c/' /boot/config.txt
 echo i2c-bcm2708 >> /etc/modules
 echo i2c-dev >> /etc/modules
 
-# Install bbctrl w/ init.d script
-cp bbctrl.init.d /etc/init.d/bbctrl
-chmod +x /etc/init.d/bbctrl
-update-rc.d bbctrl defaults
-
 # Disable Pi 3 USART BlueTooth swap
 echo -e "\ndtoverlay=pi3-disable-bt" >> /boot/config.txt
 rm -f /etc/systemd/system/multi-user.target.wants/hciuart.service
-
-# Install hawkeye
-dpkg -i hawkeye_0.6_armhf.deb
-sed -i 's/localhost/0.0.0.0/' /etc/hawkeye/hawkeye.conf
-echo 'ACTION=="add", KERNEL=="video0", RUN+="/usr/sbin/service hawkeye restart"' > /etc/udev/rules.d/50-hawkeye.rules
-adduser hawkeye video
 
 # Disable HDMI to save power and remount /boot read-only
 sed -i 's/^exit 0$//' /etc/rc.local
@@ -97,7 +87,7 @@ smbpasswd -a bbmc
 # Install bbctrl
 tar xf /mnt/host/bbctrl-*.tar.bz2
 cd $(basename bbctrl-*.tar.bz2 .tar.bz2)
-./setup.py install
+./scripts/install.sh
 cd ..
 rm -rf $(basename bbctrl-*.tar.bz2 .tar.bz2)
 
@@ -108,3 +98,4 @@ chmod +s /sbin/{halt,reboot,shutdown,poweroff}
 # Clean up
 apt-get autoremove -y
 apt-get autoclean -y
+apt-get clean

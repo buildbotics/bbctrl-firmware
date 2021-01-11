@@ -465,7 +465,6 @@ class VideoHandler(web.RequestHandler):
         self.camera = app.camera
 
 
-    @web.asynchronous
     def get(self):
         self.request.connection.stream.max_write_buffer_size = 10000
 

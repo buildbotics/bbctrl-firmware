@@ -66,8 +66,6 @@ from inevent.Constants import *
 from inevent.EventStream import EventStream
 
 
-log = logging.getLogger('inevent')
-
 _KEYS = (k for k in vars(Keys) if not k.startswith('_'))
 KEY_CODE = dict((k, getattr(Keys, k)) for k in _KEYS)
 CODE_KEY = {}
@@ -117,12 +115,13 @@ class InEvent(object):
   The keys are listed in inevent.Constants.py or /usr/include/linux/input.h
   Note that the key names refer to a US keyboard.
   """
-  def __init__(self, ioloop, cb, types = 'kbd mouse js'.split()):
+  def __init__(self, ioloop, cb, types = 'kbd mouse js'.split(), log = None):
     self.ioloop = ioloop
     self.cb = cb
     self.streams = []
     self.handler = EventHandler()
     self.types = types
+    self.log = log if log else logging.getLogger('inevent')
 
     self.udevCtx = pyudev.Context()
     self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
@@ -143,8 +142,9 @@ class InEvent(object):
   def get_dev_name(self, index):
     try:
       dev = self.get_dev(index)
-      return dev.parent.attributes.asstring('name').decode('utf-8')
-    except: pass
+      return dev.parent.attributes.asstring('name').strip()
+    except Exception as e:
+      self.log.error(e)
 
 
   def find_devices(self, types):
@@ -213,10 +213,10 @@ class InEvent(object):
       self.ioloop.add_handler(stream.filehandle, self.stream_handler,
                               self.ioloop.READ)
 
-      log.info('Added %s[%d] %s', devType, devIndex, devName)
+      self.log.info('Added %s[%d] %s', devType, devIndex, devName)
 
     except OSError as e:
-      log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
+      self.log.warning('Failed to add %s[%d]: %s', devType, devIndex, e)
 
 
   def remove_stream(self, devIndex):
@@ -227,7 +227,7 @@ class InEvent(object):
         stream.release()
         self.cb.clear()
 
-        log.info('Removed %s[%d]', stream.devType, devIndex)
+        self.log.info('Removed %s[%d]', stream.devType, devIndex)
 
 
   def key_state(self, key):

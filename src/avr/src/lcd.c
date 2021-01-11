@@ -121,10 +121,12 @@ void lcd_pgmstr(uint8_t addr, const char *s) {
 
 void _splash(uint8_t addr) {
   lcd_init(addr);
-  lcd_goto(addr, 1, 1);
+  lcd_goto(addr, 0, 0);
   lcd_pgmstr(addr, PSTR("Controller booting"));
-  lcd_goto(addr, 3, 2);
+  lcd_goto(addr, 0, 1);
   lcd_pgmstr(addr, PSTR("Please wait..."));
+  lcd_goto(addr, 0, 3);
+  lcd_pgmstr(addr, PSTR("(c) Buildbotics LLC"));
 }
 
 

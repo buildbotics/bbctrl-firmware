@@ -28,10 +28,6 @@
 ################################################################################
 
 import time
-import logging
-
-
-log = logging.getLogger('LCD')
 
 
 # Control flags
