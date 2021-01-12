@@ -74,15 +74,17 @@ class State(object):
             self.set_callback(str(i) + 'latch_velocity',
                               lambda name, i = i: self.motor_latch_velocity(i))
 
-        self.set_callback('metric', lambda name: 1 if self.is_metric() else 0)
-        self.set_callback('imperial', lambda name: 0 if self.is_metric() else 1)
         self.set_callback('timestamp', lambda name: time.time())
 
         self.reset()
         self.load_files()
 
 
-    def is_metric(self): return self.get('units', 'METRIC') == 'METRIC'
+    def init(self):
+        # Initialize units
+        metric = self.ctrl.config.get('units', 'METRIC').upper() == 'METRIC'
+        if not 'metric' in self.vars: self.set('metric', metric)
+        if not 'imperial' in self.vars: self.set('imperial', not metric)
 
 
     def reset(self):

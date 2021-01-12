@@ -6,6 +6,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Added support for DMM DYN4 VFD.
  - Only enable ``rapid-auto-off`` in PWM mode. #272
  - Support more gamepads.
+ - Added copyright to LCD boot up.
+ - Fixed default units handling. #206
 
 ## v0.4.15
  - Set GCode variables ``#5400`` and ``#<_tool>``.
