@@ -335,14 +335,9 @@ class Mach(Comm):
             self.mdi('G92%s%f' % (axis, position))
 
         elif state.is_axis_enabled(axis):
-            if self._get_cycle() != 'idle' and not self._is_paused():
-                raise Exception('Cannot set position during ' +
-                                self._get_cycle())
-
-            # Set the absolute position both locally and via the AVR
+            # Set absolute position via planner
             target = position + state.get('offset_' + axis)
-            state.set(axis + 'p', target)
-            super().queue_command(Cmd.set_axis(axis, target))
+            self.mdi('G28.3 %s%f\nG28.2 %s0' % (axis, target, axis))
 
 
     def override_feed(self, override):

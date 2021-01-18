@@ -8,6 +8,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Support more gamepads.
  - Added copyright to LCD boot up.
  - Fixed default units handling. #206
+ - Fix zero-all when some axes are homed and some are unhomed.
 
 ## v0.4.15
  - Set GCode variables ``#5400`` and ``#<_tool>``.
