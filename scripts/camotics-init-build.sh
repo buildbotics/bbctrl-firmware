@@ -4,10 +4,10 @@ IMG_DATE=2017-11-29
 IMG_BASE=${IMG_DATE}-raspbian-stretch-lite
 BASE_URL=https://downloads.raspberrypi.org/raspbian_lite/images
 IMG_URL=$BASE_URL/raspbian_lite-2017-12-01/$IMG_BASE.zip
-GPLAN_IMG=gplan-dev.img
+CAMOTICS_IMG=camotics-dev.img
 
 # Create dev image
-if [ ! -e $GPLAN_IMG ]; then
+if [ ! -e $CAMOTICS_IMG ]; then
 
     # Get base image
     if [ ! -e $IMG_BASE.img ]; then
@@ -19,15 +19,15 @@ if [ ! -e $GPLAN_IMG ]; then
     fi
 
     # Copy base image
-    cp $IMG_BASE.img $GPLAN_IMG.tmp
+    cp $IMG_BASE.img $CAMOTICS_IMG.tmp
 
     # Init image
     mkdir -p rpi-share
-    cp ./scripts/gplan-init-dev-img.sh rpi-share
-    sudo ./scripts/rpi-chroot.sh $GPLAN_IMG.tmp /mnt/host/gplan-init-dev-img.sh
+    cp ./scripts/camotics-init-dev-img.sh rpi-share
+    sudo ./scripts/rpi-chroot.sh $CAMOTICS_IMG.tmp /mnt/host/camotics-init-dev-img.sh
 
     # Move image
-    mv $GPLAN_IMG.tmp $GPLAN_IMG
+    mv $CAMOTICS_IMG.tmp $CAMOTICS_IMG
 fi
 
 # Get repos

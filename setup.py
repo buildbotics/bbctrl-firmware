@@ -17,7 +17,7 @@ setup(
     license = pkg['license'],
     url = pkg['homepage'],
     package_dir = {'': 'src/py'},
-    packages = ['bbctrl', 'inevent', 'lcd', 'camotics'],
+    packages = ['bbctrl', 'inevent', 'lcd'],
     include_package_data = True,
     entry_points = {
         'console_scripts': [

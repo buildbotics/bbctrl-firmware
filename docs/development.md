@@ -24,14 +24,14 @@ On a Debian Linux (9.6.0 stable) system install the required packages:
     cd bbctrl-firmware
     make
 
-## Build GPlan Module
+## Build CAMotics Module
 
-GPlan is a Python module written in C++.  It must be compiled for ARM so that
+CAMotics is a Python module written in C++.  It must be compiled for ARM so that
 it can be used on the Raspberry Pi.  This is accomplished using a chroot, qemu
 and binfmt to create an emulated ARM build environment.  This is faster and
 more convenient than building on the RPi itself.  All of this is automated.
 
-    make gplan
+    make camotics
 
 The first time this is run it will take quite awhile as it setups up the build
 environment.  You can run the above command again later to build the latest

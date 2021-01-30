@@ -63,6 +63,7 @@ import bbctrl.Cmd as Cmd
 import bbctrl.v4l2 as v4l2
 import bbctrl.Log as log
 import bbctrl.ObjGraph as ObjGraph
+import bbctrl.camotics as camotics
 
 
 ctrl = None

@@ -31,7 +31,12 @@ import re
 import time
 import datetime
 from collections import deque
-import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
+
+try:
+    import bbctrl.camotics as camotics # pylint: disable=no-name-in-module,import-error
+except:
+    print('Error loading camotics')
+
 import bbctrl.Cmd as Cmd
 from bbctrl.CommandQueue import CommandQueue
 
@@ -65,8 +70,11 @@ class Planner():
 
         ctrl.state.add_listener(self._update)
 
-        self.reset(False)
-        self._report_time()
+        try:
+            self.reset(False)
+            self._report_time()
+        except Exception as e:
+            self.log.exception()
 
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
@@ -84,6 +92,7 @@ class Planner():
         state = self.ctrl.state
         config = self.ctrl.config
         is_pwm = config.get('tool-type') == 'PWM Spindle'
+        deviation = config.get('max-deviation')
 
         cfg = {
             # NOTE Must get current units not configured default units
@@ -92,8 +101,9 @@ class Planner():
             'max-accel': state.get_axis_vector('am', 1000000),
             'max-jerk':  state.get_axis_vector('jm', 1000000),
             'rapid-auto-off':  config.get('rapid-auto-off') and is_pwm,
-            'max-blend-error': config.get('max-deviation'),
-            'max-merge-error': config.get('max-deviation'),
+            'max-blend-error': deviation,
+            'max-merge-error': deviation,
+            'max-arc-error':   deviation / 10,
             'junction-accel':  config.get('junction-accel'),
             }
 
@@ -240,6 +250,8 @@ class Planner():
     def __encode(self, block):
         type, id = block['type'], block['id']
 
+        if type == 'start': return # ignore
+
         if type != 'set': self.log.info('Cmd:' + log_json(block))
 
         if type == 'line':
@@ -327,7 +339,7 @@ class Planner():
 
     def reset(self, stop = True):
         if stop: self.ctrl.mach.stop()
-        self.planner = gplan.Planner()
+        self.planner = camotics.Planner()
         self.planner.set_resolver(self._get_var_cb)
         # TODO logger is global and will not work correctly in demo mode
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')

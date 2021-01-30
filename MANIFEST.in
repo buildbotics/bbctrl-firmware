@@ -1,4 +1,5 @@
 recursive-include src/py/bbctrl/http *
+include src/py/bbctrl/camotics.so
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
 include src/bbserial/bbserial.ko
@@ -8,5 +9,4 @@ include scripts/xinitrc
 include scripts/rc.local
 include scripts/bbctrl.service
 include scripts/11-automount.rules
-recursive-include src/py/camotics *
 global-exclude .gitignore

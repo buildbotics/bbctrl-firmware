@@ -292,18 +292,6 @@
       "default": "lo-hi",
       "code": "dom",
       "pin": 16
-    },
-    "rapid-auto-off": {
-      "help": "Turn tool off during rapid moves.  Useful for LASERs.",
-      "type": "bool",
-      "default": false
-    },
-    "dynamic-power": {
-      "help":
-      "Adjust tool power based on velocity and feed rate.  Useful for LASERs.",
-      "type": "bool",
-      "default": false,
-      "code": "dp"
     }
   },
 
@@ -398,6 +386,18 @@
       "max": 320000,
       "default": 1000,
       "code": "sf"
+    },
+    "rapid-auto-off": {
+      "help": "Turn tool off during rapid moves.  Useful for LASERs.",
+      "type": "bool",
+      "default": false
+    },
+    "dynamic-power": {
+      "help":
+      "Adjust tool power based on velocity and feed rate.  Useful for LASERs.",
+      "type": "bool",
+      "default": false,
+      "code": "dp"
     }
   },
 

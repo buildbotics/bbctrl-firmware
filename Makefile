@@ -12,9 +12,9 @@ RESOURCES  := $(patsubst src/resources/%,$(TARGET_DIR)/%,$(RESOURCES))
 TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
 AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
-GPLAN_MOD    := rpi-share/camotics/gplan.so
-GPLAN_TARGET := src/py/camotics/gplan.so
-GPLAN_IMG    := gplan-dev.img
+CAMOTICS_MOD    := rpi-share/camotics/build/camotics.so
+CAMOTICS_TARGET := src/py/bbctrl/camotics.so
+CAMOTICS_IMG    := camotics-dev.img
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
@@ -51,22 +51,22 @@ beta-pkg: pkg
 bbserial:
 	$(MAKE) -C src/bbserial
 
-gplan: $(GPLAN_TARGET)
+camotics: $(CAMOTICS_TARGET)
 
-$(GPLAN_TARGET): $(GPLAN_MOD)
+$(CAMOTICS_TARGET): $(CAMOTICS_MOD)
 	cp $< $@
 
-$(GPLAN_MOD): $(GPLAN_IMG)
-	./scripts/gplan-init-build.sh
+$(CAMOTICS_MOD): $(CAMOTICS_IMG)
+	./scripts/camotics-init-build.sh
 	git -C rpi-share/cbang fetch
 	git -C rpi-share/cbang reset --hard FETCH_HEAD
 	git -C rpi-share/camotics fetch
 	git -C rpi-share/camotics reset --hard FETCH_HEAD
-	cp ./scripts/gplan-build.sh rpi-share/
-	sudo ./scripts/rpi-chroot.sh $(GPLAN_IMG) /mnt/host/gplan-build.sh
+	cp ./scripts/camotics-build.sh rpi-share/
+	sudo ./scripts/rpi-chroot.sh $(CAMOTICS_IMG) /mnt/host/camotics-build.sh
 
-$(GPLAN_IMG):
-	./scripts/gplan-init-build.sh
+$(CAMOTICS_IMG):
+	./scripts/camotics-init-build.sh
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):
@@ -139,4 +139,4 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg gplan lint pylint jshint bbserial
+.PHONY: all install clean tidy pkg camotics lint pylint jshint bbserial

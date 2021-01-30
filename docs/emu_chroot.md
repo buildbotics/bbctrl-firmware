@@ -35,11 +35,11 @@ Setup the demo system:
     git clone --depth=1 https://github.com/CauldronDevelopmentLLC/camotics
     export CBANG_HOME=/opt/cbang
     scons -C cbang -j8 disable_local="re2 libevent"
-    scons -C camotics -j8 gplan.so with_gui=False
+    scons -C camotics -j8 build/camotics.so with_gui=False
 
     cd bbctrl
     python3 setup.py install
-    cp /opt/camotics/gplan.so /usr/local/lib/python*/dist-packages/bbctrl-$VERSION-py*.egg/camotics/gplan.so
+    cp /opt/camotics/build/camotics.so /usr/local/lib/python*/dist-packages/bbctrl-$VERSION-py*.egg/camotics.so
 
     mkdir -p /var/lib/bbctrl/upload
     useradd -u 1001 bbmc

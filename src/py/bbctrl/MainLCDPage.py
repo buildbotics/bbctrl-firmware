@@ -60,7 +60,7 @@ class MainLCDPage(bbctrl.LCDPage):
 
             elif state.is_axis_enabled(axis):
                 position = state.get(axis + 'p', 0)
-                position += state.get('offset_' + axis, 0)
+                position -= state.get('offset_' + axis, 0)
                 position /= scale
                 self.text('% 10.3f%s' % (position, axis.upper()), 9, row)
                 row += 1

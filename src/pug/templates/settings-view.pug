@@ -89,6 +89,10 @@ script#settings-view-template(type="text/x-template")
           #[a(href=base + "#gcode:g64", target="_blank") G64] also affect path
           planning accuracy.
 
+        p.
+          This also affects the maimum error when interpolating
+          #[a(href=base + "#gcode:g2-g3", target="_blank") G2 and G3] arcs.
+
         h2 Cornering Speed (Advanced)
         templated-input(name="junction-accel",
           :model.sync="config.settings['junction-accel']",

@@ -37,7 +37,7 @@ import re
 import gzip
 import struct
 import math
-import camotics.gplan as gplan # pylint: disable=no-name-in-module,import-error
+import bbctrl.camotics as camotics # pylint: disable=no-name-in-module,import-error
 
 
 reLogLine = re.compile(
@@ -87,7 +87,7 @@ class Plan(object):
 
         self.lines = sum(1 for line in open(path, 'rb'))
 
-        self.planner = gplan.Planner()
+        self.planner = camotics.Planner()
         self.planner.set_resolver(self.get_var_cb)
         self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
         self.planner.load(self.path, config)

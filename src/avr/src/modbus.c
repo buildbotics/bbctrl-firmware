@@ -130,6 +130,18 @@ static uint16_t _read_word(const uint8_t *data, bool little_endian) {
 }
 
 
+static void _debug_transfer() {
+  if (!cfg.debug) return;
+
+  char out[state.command_length * 2 + 1];
+  char in[state.response_length * 2 + 1];
+  format_hex_buf(out, state.command, state.command_length);
+  format_hex_buf(in, state.response, state.response_length);
+
+  STATUS_DEBUG("modbus: out=0x%s in=0x%s", out, in);
+}
+
+
 static bool _check_response() {
   // Check CRC
   uint16_t computed = _crc16(state.response, state.response_length - 2);
@@ -138,14 +150,9 @@ static bool _check_response() {
 
   if (computed != expected) {
     if (cfg.debug) {
-      char sent[state.command_length * 2 + 1];
-      char response[state.response_length * 2 + 1];
-      format_hex_buf(sent, state.command, state.command_length);
-      format_hex_buf(response, state.response, state.response_length);
-
       STATUS_WARNING(STAT_OK, "modbus: invalid CRC, received=0x%04x "
-                     "computed=0x%04x sent=0x%s received=0x%s",
-                     expected, computed, sent, response);
+                     "computed=0x%04x", expected, computed);
+      _debug_transfer();
     }
 
     state.crc_errs++;
@@ -157,6 +164,7 @@ static bool _check_response() {
   if (state.command[0] != state.response[0]) {
     STATUS_WARNING(STAT_OK, "modbus: unexpected slave id, expected=%u got=%u",
                    state.command[0], state.response[0]);
+    _debug_transfer();
     state.status = MODBUS_INVALID;
     return false;
   }
@@ -165,6 +173,7 @@ static bool _check_response() {
   if (state.command[1] != state.response[1]) {
     STATUS_WARNING(STAT_OK, "modbus: invalid function code, expected=%u got=%u",
                    state.command[1], state.response[1]);
+    _debug_transfer();
     state.status = MODBUS_INVALID;
     return false;
   }
@@ -245,6 +254,8 @@ static void _read_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
   }
 
   if (state.rw_cb) state.rw_cb(false, state.addr, 0);
+  STATUS_WARNING(STAT_OK, "modbus: unexpected response to read");
+  _debug_transfer();
 }
 
 
@@ -258,6 +269,8 @@ static void _write_cb(uint8_t func, uint8_t bytes, const uint8_t *data) {
   }
 
   if (state.rw_cb) state.rw_cb(false, state.addr, 0);
+  STATUS_WARNING(STAT_OK, "modbus: unexpected response to write");
+  _debug_transfer();
 }
 
 

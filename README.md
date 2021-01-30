@@ -24,7 +24,7 @@ they are built with are as follows:
    * [Python 3](https://www.python.org/)
    * [Tornado Web](https://www.tornadoweb.org/)
 
- * GPlan - Path Planner Python Module
+ * CAMotics - Path Planner Python Module
    * [C++](http://www.cplusplus.com/)
    * [CAMotics](https://camotics.org/)
 

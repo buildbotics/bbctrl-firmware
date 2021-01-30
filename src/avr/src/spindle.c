@@ -147,7 +147,8 @@ static power_update_t _get_power_update() {
   float power = _speed_to_power(spindle.speed);
 
   // Handle dynamic power
-  if (spindle.dynamic_power && spindle.inv_feed) {
+  if (spindle.type == SPINDLE_TYPE_PWM && spindle.dynamic_power &&
+      spindle.inv_feed) {
     float scale = spindle.inv_feed * exec_get_velocity();
     if (scale < 1) power *= scale;
   }

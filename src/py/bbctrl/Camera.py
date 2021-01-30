@@ -423,7 +423,7 @@ class Camera(object):
             except: pass
 
             self._close_dev()
-            self.log.info('Closed camera\n')
+            self.log.info('Closed camera')
 
         except: self.log.exception('Exception while closing camera')
         finally: self.dev = None
@@ -463,6 +463,9 @@ class VideoHandler(web.RequestHandler):
         super().__init__(app, request, **kwargs)
         self.app = app
         self.camera = app.camera
+
+
+    def finish(self): pass # Don't let it finish and end the response
 
 
     def get(self):

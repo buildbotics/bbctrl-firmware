@@ -4,11 +4,15 @@ Buildbotics CNC Controller Firmware Changelog
 ## v0.4.16
  - Improved axis under/over warning tooltip.
  - Added support for DMM DYN4 VFD.
- - Only enable ``rapid-auto-off`` in PWM mode. #272
+ - Only enable ``rapid-auto-off`` and ``dynamic-power`` in PWM mode. #272
  - Support more gamepads.
  - Added copyright to LCD boot up.
  - Fixed default units handling. #206
  - Fix zero-all when some axes are homed and some are unhomed.
+ - Fixed LCD axis offset position display.
+ - Set ``max-arc-error`` with ``max-deviation``.
+ - Improved modbus debugging.
+ - Fixed demo estop.
 
 ## v0.4.15
  - Set GCode variables ``#5400`` and ``#<_tool>``.
