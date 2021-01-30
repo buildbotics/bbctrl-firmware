@@ -38,6 +38,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifndef __AVR__
+#include <unistd.h>
+#endif
+
 
 typedef struct {
   char id[26];
@@ -137,9 +141,15 @@ void hw_request_hard_reset() {hw.hard_reset = true;}
 
 static void _hard_reset() {
   usart_flush();
+
+#ifdef __AVR__
   cli();
   CCP = CCP_IOREG_gc;
   RST.CTRL = RST_SWRST_bm;
+
+#else // __AVR__
+  exit(0);
+#endif
 }
 
 
