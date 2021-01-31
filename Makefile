@@ -45,8 +45,12 @@ all: html resources
 html: $(HTML)
 resources: $(RESOURCES)
 
-demo: html resources
+demo: html resources bbemu
 	./setup install
+	cp src/avr/emu/bbemu /usr/local/bin
+
+bbemu:
+	$(MAKE) -C src/avr/emu
 
 pkg: all $(AVR_FIRMWARE) bbserial
 	./setup.py sdist
