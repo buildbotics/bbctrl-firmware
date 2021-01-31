@@ -46,6 +46,7 @@ html: $(HTML)
 resources: $(RESOURCES)
 
 demo: html resources bbemu
+	ln -sf ../../../$(TARGET_DIR) src/py/bbctrl/http
 	./setup.py install
 	cp src/avr/emu/bbemu /usr/local/bin
 

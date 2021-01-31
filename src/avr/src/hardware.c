@@ -56,17 +56,6 @@ static hw_t hw = {{0}};
 
 
 static void _init_clock()  {
-#if 0 // 32Mhz Int RC
-  OSC.CTRL |= OSC_RC32MEN_bm | OSC_RC32KEN_bm;  // Enable 32MHz & 32KHz osc
-  while (!(OSC.STATUS & OSC_RC32KRDY_bm));      // Wait for 32Khz oscillator
-  while (!(OSC.STATUS & OSC_RC32MRDY_bm));      // Wait for 32MHz oscillator
-
-  // Defaults to calibrate against internal 32Khz clock
-  DFLLRC32M.CTRL = DFLL_ENABLE_bm;              // Enable DFLL
-  CCP = CCP_IOREG_gc;                           // Disable register security
-  CLK.CTRL = CLK_SCLKSEL_RC32M_gc;              // Switch to 32MHz clock
-
-#else
   // 12-16 MHz crystal; 0.4-16 MHz XTAL w/ 16K CLK startup
   OSC.XOSCCTRL = OSC_FRQRANGE_12TO16_gc | OSC_XOSCSEL_XTAL_16KCLK_gc;
   OSC.CTRL = OSC_XOSCEN_bm;                // enable external crystal oscillator
@@ -78,7 +67,6 @@ static void _init_clock()  {
 
   CCP = CCP_IOREG_gc;
   CLK.CTRL = CLK_SCLKSEL_PLL_gc;           // switch to PLL clock
-#endif
 
   OSC.CTRL &= ~OSC_RC2MEN_bm;              // disable internal 2 MHz clock
 }
