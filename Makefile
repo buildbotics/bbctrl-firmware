@@ -46,7 +46,7 @@ html: $(HTML)
 resources: $(RESOURCES)
 
 demo: html resources bbemu
-	./setup install
+	./setup.py install
 	cp src/avr/emu/bbemu /usr/local/bin
 
 bbemu:

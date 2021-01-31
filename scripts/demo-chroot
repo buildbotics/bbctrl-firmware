@@ -4,7 +4,10 @@ ROOT="$PWD/demo"
 
 # Clean up on EXIT
 function cleanup {
-    umount "$ROOT"/{dev/pts,dev,sys,proc} 2>/dev/null || true
+    umount "$ROOT"/dev/pts 2>/dev/null || true
+    umount "$ROOT"/proc 2>/dev/null || true
+    umount "$ROOT"/sys 2>/dev/null || true
+    umount "$ROOT"/dev 2>/dev/null || true
 }
 trap cleanup EXIT
 
