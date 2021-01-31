@@ -180,6 +180,6 @@ class Log(object):
 
         if os.path.exists(fullpath):
             if n == 16: os.unlink(fullpath)
-            else: self._rotate(path, nextN)
-
-            os.rename(fullpath, '%s.%d' % (path, nextN))
+            else:
+                self._rotate(path, nextN)
+                os.rename(fullpath, '%s.%d' % (path, nextN))
