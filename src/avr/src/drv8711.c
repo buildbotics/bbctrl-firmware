@@ -35,6 +35,7 @@
 
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <math.h>
 
 
 #define DRIVERS MOTORS

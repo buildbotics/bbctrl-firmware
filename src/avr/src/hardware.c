@@ -148,7 +148,7 @@ static void _hard_reset() {
   RST.CTRL = RST_SWRST_bm;
 
 #else // __AVR__
-  exit(0);
+  _exit(0);
 #endif
 }
 
