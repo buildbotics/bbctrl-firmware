@@ -26,16 +26,21 @@
 ################################################################################
 
 import time
+import os
 
 
 def read_temp():
-    with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+    path = '/sys/class/thermal/thermal_zone0/temp'
+    if not os.path.exists(path): return 0
+
+    with open(path, 'r') as f:
         return round(int(f.read()) / 1000)
 
 
 def set_max_freq(freq):
-    filename = '/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq'
-    with open(filename, 'w') as f: f.write('%d\n' % freq)
+    path = '/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq'
+    if not os.path.exists(path): return
+    with open(path, 'w') as f: f.write('%d\n' % freq)
 
 
 class MonitorTemp(object):
