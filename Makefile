@@ -39,8 +39,14 @@ PASSWORD=buildbotics
 endif
 
 
-all: $(HTML) $(RESOURCES)
+all: html resources
 	@for SUB in $(SUBPROJECTS); do $(MAKE) -C src/$$SUB; done
+
+html: $(HTML)
+resources: $(RESOURCES)
+
+demo: html resources
+	./setup install
 
 pkg: all $(AVR_FIRMWARE) bbserial
 	./setup.py sdist
@@ -140,3 +146,4 @@ dist-clean: clean
 	rm -rf node_modules
 
 .PHONY: all install clean tidy pkg camotics lint pylint jshint bbserial
+.PHONY: html resources
