@@ -25,60 +25,52 @@
 
 \******************************************************************************/
 
-body, #layout
-  overflow hidden
-  height 100vh
+'use strict'
 
-#layout.active
-  width calc(100vw - 150px)
 
-[v-cloak]
-  display none
+module.exports = {
+  template: '#color-picker-template',
+  props: {
+    value: {
+      type: String,
+      required: true,
+      twoWay: true
+    }
+  },
 
-tt
-  color #000
-  background #eee
-  padding 2px
 
-.content
-  padding 0
+  data: function () {
+    return {
+      config: '{}'
+    }
+  },
 
-.file-upload
-  display none
 
-@import('status-colors')
-@import('color-picker')
-@import('attention')
-@import('status')
-@import('header')
-@import('overlay')
-@import('menu')
-@import('main')
-@import('estop')
-@import('modal')
-@import('loading-message')
-@import('navbar')
-@import('video')
-@import('files')
-@import('code-mirror')
-@import('view-control')
-@import('view-settings')
-@import('view-editor')
-@import('view-viewer')
-@import('view-files')
-@import('view-camera')
-@import('view-help')
-@import('path-viewer')
-@import('console')
-@import('log')
-@import('indicators')
-@import('io')
-@import('save')
-@import('modbus')
-@import('tabs')
-@import('motor-slave')
-@import('upgrade-version')
-@import('error-message')
-@import('wifi')
-@import('cheat-sheet')
-@import('macros')
+  ready: function () {
+    window.jscolor.install(this.$el);
+    this.jscolor = this.$els.input.jscolor;
+    this.jscolor.option({
+      onChange: this.change,
+      onInput: this.change,
+      showOnClick: false,
+      hideOnPaletteClick: true,
+      zIndex: 500,
+      palette: [
+        '#e6e6e6', '#7d7d7d', '#870014', '#ec1c23', '#ff7e26',
+        '#fef100', '#22b14b', '#00a1e7', '#3f47cc', '#a349a4',
+        '#ffffff', '#c3c3c3', '#b87957', '#feaec9', '#ffc80d',
+        '#eee3af', '#b5e61d', '#99d9ea', '#7092be', '#c8bfe7'
+      ]});
+  },
+
+
+  methods: {
+    change: function() {
+      this.value = this.jscolor.toHEXString();
+      this.$emit('change', this.value);
+    },
+
+
+    show() {this.jscolor.show()}
+  }
+}

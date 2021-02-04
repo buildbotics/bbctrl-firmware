@@ -10,6 +10,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Move all configuration pages to ``SETTINGS``.
  - Moved ``Save`` button to ``SETTINGS`` pages.
  - Added firmware check message.
+ - Added macro buttons.
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.

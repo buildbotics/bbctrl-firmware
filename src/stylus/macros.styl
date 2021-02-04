@@ -1,0 +1,76 @@
+#settings-macros
+  .toolbar
+    text-align right
+
+    .fa
+      margin-right 0.25em
+
+  .macros
+    border 1px inset #ccc
+    padding 0.5em
+    margin 0.5em 0
+
+    li
+      display flex
+      align-items center
+
+    .index
+      padding 4px
+      width 2.5em
+
+    label
+      font-weight bold
+
+    .macro
+      display flex
+      flex 1
+      align-items center
+      background #eee
+      margin 2px 0
+      white-space nowrap
+      user-select none
+
+      > *
+        margin 2px
+
+      input
+        border 0
+        line-height 1.75em
+        padding 0 4px
+        user-select normal
+
+      .name
+        width 5em
+
+      .path
+        flex 1
+
+      .actions
+        display inline-block
+
+        .fa
+          margin 0 4px
+          cursor pointer
+
+          &:hover
+            opacity 0.8
+
+      .grip
+        content '....'
+        width 10px
+        height 24px
+        display inline-block
+        overflow hidden
+        line-height 5px
+        padding 3px 4px
+        cursor move
+        vertical-align middle
+        font-size 12px
+        font-family sans-serif
+        letter-spacing 2px
+        color #cccccc
+        text-shadow 1px 0 1px black
+        white-space normal
+
+      .grip:after
+        content '.. .. .. ..'

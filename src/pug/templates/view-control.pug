@@ -111,6 +111,13 @@ script#view-control-template(type="text/x-template")
                   title=`Home {{'${axis}' | upper}} axis.`,
                   @click=`set_home('${axis}', axis_position)`) Set
 
+    .macros
+      button.pure-button.macro(v-for="macro in config.macros",
+        v-if="macro.path", @click="run_macro($index + 1)",
+        :title="'Run macro ' + ($index + 1) + ' ' + macro.name + '\n' + macro.path",
+        :style="{background: macro.color}")
+        | {{($index + 1) + ' ' + macro.name}}
+
     table.info
       tr
         th State

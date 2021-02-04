@@ -25,27 +25,7 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-settings-template(type="text/x-template")
-  div
-    nav.navbar
-      a.nav-item(href="#settings:general") General
-
-      nav-item
-        | Motors
-        .fa.fa-caret-down
-
-        nav-menu
-          a.nav-item(v-for="motor in [0, 1, 2, 3]",
-            :href="'#settings:motor:' + motor") Motor {{motor}}
-
-      a.nav-item(href="#settings:tool") Tool
-      a.nav-item(href="#settings:io") I/O
-      a.nav-item(href="#settings:macros") Macros
-      a.nav-item(href="#settings:network") Network
-      a.nav-item(href="#settings:admin") Admin
-
-      button.save.pure-button.button-success(:disabled="!modified",
-        @click="save") Save
-
-    .settings-view(v-if="view", :is="'settings-' + view", :index="index",
-      :config="config", :template="template", :state="state", keep-alive)
+script#color-picker-template(type="text/x-template")
+  .color-picker(@click="show", :style="{background: value}")
+    input(v-el:input, :value="value", @change="change",
+      :data-jscolor="config")

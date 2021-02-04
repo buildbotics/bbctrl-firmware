@@ -353,3 +353,14 @@ class Mach(Comm):
 
     def modbus_write(self, addr, value):
         self._i2c_block(Cmd.modbus_write(addr, value))
+
+
+    def macro(self, macro):
+        macros = self.ctrl.config.get('macros')
+        if len(macros) < macro: raise Exception('Invalid macro id %d' % macro)
+        path = 'Home/' + macros[macro - 1]['path']
+
+        self.mlog.info('Running macro %d %s' % (macro, path))
+        self._begin_cycle('running')
+        self.planner.load(path)
+        super().resume()

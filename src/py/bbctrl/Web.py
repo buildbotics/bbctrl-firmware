@@ -329,6 +329,11 @@ class USBEjectHandler(bbctrl.APIHandler):
         subprocess.Popen(['/usr/local/bin/eject-usb', '/media/' + path])
 
 
+class MacroHandler(bbctrl.APIHandler):
+    def put_ok(self, macro):
+        self.get_ctrl().mach.macro(int(macro))
+
+
 class PathHandler(bbctrl.APIHandler):
     @gen.coroutine
     def get(self, dataType, path, *args):
@@ -580,6 +585,7 @@ class Web(tornado.web.Application):
             (r'/api/usb/update', USBUpdateHandler),
             (r'/api/usb/eject/(.*)', USBEjectHandler),
             (r'/api/fs/(.*)', bbctrl.FileSystemHandler),
+            (r'/api/macro/(\d+)', MacroHandler),
             (r'/api/(path)/(.*)', PathHandler),
             (r'/api/(positions)/(.*)', PathHandler),
             (r'/api/(speeds)/(.*)', PathHandler),

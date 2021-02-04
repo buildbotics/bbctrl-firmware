@@ -51,6 +51,7 @@ module.exports = {
     'settings-motor':     require('./settings-motor'),
     'settings-tool':      require('./settings-tool'),
     'settings-io':        require('./settings-io'),
+    'settings-macros':    require('./settings-macros'),
     'settings-network':   require('./settings-network'),
     'settings-admin':     require('./settings-admin')
   },

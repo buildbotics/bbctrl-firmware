@@ -25,27 +25,30 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-settings-template(type="text/x-template")
-  div
-    nav.navbar
-      a.nav-item(href="#settings:general") General
+script#settings-macros-template(type="text/x-template")
+  #settings-macros
+    h1 Macro Configuration
 
-      nav-item
-        | Motors
-        .fa.fa-caret-down
+    .toolbar
+      button.pure-button(title="Add a new macro.", @click="add")
+        .fa.fa-plus
+        | Add
 
-        nav-menu
-          a.nav-item(v-for="motor in [0, 1, 2, 3]",
-            :href="'#settings:motor:' + motor") Motor {{motor}}
-
-      a.nav-item(href="#settings:tool") Tool
-      a.nav-item(href="#settings:io") I/O
-      a.nav-item(href="#settings:macros") Macros
-      a.nav-item(href="#settings:network") Network
-      a.nav-item(href="#settings:admin") Admin
-
-      button.save.pure-button.button-success(:disabled="!modified",
-        @click="save") Save
-
-    .settings-view(v-if="view", :is="'settings-' + view", :index="index",
-      :config="config", :template="template", :state="state", keep-alive)
+    ol.macros
+      li(v-for="macro in macros")
+        label.index {{"#" + ($index + 1)}}
+        .macro(draggable="true", @dragstart="dragstart", @mousedown="mousedown",
+          @drag="drag($index)", @dragover.prevent="",
+          @drop.prevent="drop($index)")
+          .grip
+          color-picker(:value.sync="macro.color", @change="change",
+            title="Set the macro button color.")
+          input.name(@change="change", v-model="macro.name",
+            title="Set the macro button name.")
+          input.path(@click="open($index)", :value="macro.path", readonly,
+            title="Select the macro file")
+          .actions
+            .fa.fa-folder-open(@click="open($index)",
+              title="Select the macro file.")
+            .fa.fa-trash(@click="remove($index)",
+              :title="'Delete macro ' + ($index + 1) + '.'")

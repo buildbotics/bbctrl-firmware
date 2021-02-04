@@ -118,6 +118,23 @@
           font-size 10pt
           text-anchor middle
 
+  .macros
+    display grid
+    grid-template-columns repeat(8, 11.625%)
+    column-gap 1%
+    row-gap 8px
+    margin-bottom 10px
+
+    .macro
+      text-align left
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
+      padding 0.5em
+
+      &:hover
+        opacity 0.9
+
   .info
     empty-cells show
     width 32.9%

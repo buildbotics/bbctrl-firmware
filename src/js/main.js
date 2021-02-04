@@ -78,6 +78,7 @@ $(function() {
   Vue.component('nav-menu',        require('./nav-menu'));
   Vue.component('nav-item',        require('./nav-item'));
   Vue.component('video',           require('./video'));
+  Vue.component('color-picker',    require('./color-picker'));
 
   require('./filters')();
 

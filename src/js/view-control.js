@@ -225,6 +225,7 @@ module.exports = {
   methods: {
     send: function (msg) {this.$dispatch('send', msg)},
     on_scroll: function (cm, e) {e.preventDefault()},
+    run_macro: function (macro) {api.put('macro/' + macro)},
 
 
     highlight_gcode: function () {
