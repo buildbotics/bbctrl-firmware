@@ -53,8 +53,8 @@ typedef struct {
 static struct {
   line_t line;
 
-  int section;
-  int seg;
+  uint8_t section;
+  uint32_t seg;
 
   float iD; // Initial section distance
   float iV; // Initial section velocity

@@ -11,6 +11,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Moved ``Save`` button to ``SETTINGS`` pages.
  - Added firmware check message.
  - Added macro buttons.
+ - Fixed error setting lower soft limit with virtual keyboard installed. #249
+ - Fix numerical overflow causing long (time) linear moves to fail. #258
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.
