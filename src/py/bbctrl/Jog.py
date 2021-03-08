@@ -33,22 +33,13 @@ type2 = [
     'Logitech Logitech RumblePad 2 USB'
 ]
 
-config1 = {
+config = {
     "deadband": 0.1,
-    "axes":     [ABS_X, ABS_Y, ABS_RY, ABS_RX],
-    "dir":      [1, -1, -1, 1],
-    "arrows":   [ABS_HAT0X, ABS_HAT0Y],
-    "speed":    [0x133, 0x130, 0x131, 0x134],
-    "lock":     [0x136, 0x137],
-}
-
-config2 = {
-    "deadband": 0.1,
-    "axes":     [ABS_X, ABS_Y, ABS_RZ, ABS_Z],
-    "dir":      [1, -1, -1, 1],
-    "arrows":   [ABS_HAT0X, ABS_HAT0Y],
-    "speed":    [0x120, 0x121, 0x122, 0x123],
-    "lock":     [0x124, 0x125],
+    "axes":   [[ABS_X], [ABS_Y], [ABS_RY, ABS_RZ], [ABS_RX, ABS_Z]],
+    "dir":    [1, -1, -1, 1],
+    "arrows": [[ABS_HAT0X], [ABS_HAT0Y]],
+    "speed":  [[0x133, 0x120], [0x130, 0x121], [0x131, 0x122], [0x134, 0x123]],
+    "lock":   [[0x136, 0x124], [0x137, 0x125]],
 }
 
 
@@ -69,12 +60,20 @@ class Jog(inevent.JogHandler):
 
 
     # From JobHandler
-    def get_config(self, name):
-        if name in type2: return config2
+    def match_code(self, type, code):
+        if not type in config: return None
 
-        # Microsoft X-Box 360 pad
-        # Logitech Gamepad F310
-        return config1
+        index = 0
+        for codes in config[type]:
+            if code in codes: return index
+            index += 1
+
+
+    def get_config(self, type): return config[type]
+
+
+    def has_code(self, type, code):
+        return self.match_code(type, code) is not None
 
 
     def up(self): self.ctrl.lcd.page_up()
