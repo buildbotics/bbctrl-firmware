@@ -42,7 +42,7 @@ module.exports = {
 
 
     _view: function () {
-      if (this.template.scale) {
+      if (this.template.scale && !isNaN(this.model)) {
         if (this.metric) return 1 * this.model.toFixed(3);
 
         return 1 * (this.model / this.template.scale).toFixed(4);

@@ -202,7 +202,10 @@ class Config(object):
             return
 
         # Handle defaults
-        if config is not None: value = config
+        if config is not None:
+            if self._valid_value(tmpl, config): value = config
+            else: value = tmpl['default']
+
         elif with_defaults: value = tmpl['default']
         else: return
 
