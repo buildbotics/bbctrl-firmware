@@ -14,6 +14,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fixed error setting lower soft limit with virtual keyboard installed. #249
  - Fix numerical overflow causing long (time) linear moves to fail. #258
  - Better gamepad handling
+ - Fixed problem with web layout while using virtual keyboard
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.
