@@ -115,7 +115,6 @@ module.exports = new Vue({
 
   components: {
     'estop':          {template: '#estop-template'},
-    'view-not-found': {template: '<h1>Error: View not found</h1>'},
     'view-loading':   {template: '<h1>Loading...</h1>'},
     'view-control':   require('./view-control'),
     'view-viewer':    require('./view-viewer'),
@@ -312,10 +311,12 @@ module.exports = new Vue({
 
       var parts = hash.split(':');
 
-      if (typeof this.$options.components['view-' + parts[0]] == 'undefined')
-        this.currentView = 'not-found';
+      if (typeof this.$options.components['view-' + parts[0]] == 'undefined') {
+        location.hash = 'control';
+        return;
 
-      else this.currentView = parts[0];
+      } else this.currentView = parts[0];
+
     },
 
 
