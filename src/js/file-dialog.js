@@ -68,7 +68,7 @@ module.exports = {
     response: function (path) {
       this.show = false;
 
-      if (this.config.save) {
+      if (path && this.config.save) {
         var filename = util.basename(path);
         var exists = this.$refs.files.has_file(filename);
 

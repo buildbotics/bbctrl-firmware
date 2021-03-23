@@ -89,8 +89,7 @@ class Plan(object):
 
         self.planner = camotics.Planner()
         self.planner.set_resolver(self.get_var_cb)
-        self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
-        self.planner.load(self.path, config)
+        camotics.set_logger(self._log_cb, 1, 'LinePlanner:3')
 
         self.messages = []
         self.levels = dict(I = 'info', D = 'debug', W = 'warning', E = 'error',
@@ -151,9 +150,15 @@ class Plan(object):
             msg.startswith('Auto-creating missing tool')):
             return
 
-        self.messages.append(
-            dict(level = level, msg = msg, filename = filename, line = line,
-                 column = column))
+        msg = dict(
+            level    = level,
+            msg      = msg,
+            filename = filename,
+            line     = line,
+            column   = column)
+        msg = {k: v for k, v in msg.items() if v is not None}
+
+        self.messages.append(msg)
 
 
     def _log_cb(self, line):
@@ -161,11 +166,11 @@ class Plan(object):
         m = reLogLine.match(line)
         if not m: return
 
-        level = m.group('level')
-        msg = m.group('msg')
+        level    = m.group('level')
+        msg      = m.group('msg')
         filename = m.group('file')
-        line = m.group('line')
-        column = m.group('column')
+        line     = m.group('line')
+        column   = m.group('column')
 
         where = ':'.join(filter(None.__ne__, [filename, line, column]))
 
@@ -198,6 +203,8 @@ class Plan(object):
 
         # Execute plan
         try:
+            self.planner.load(self.path, self.config)
+
             while self.planner.has_more():
                 cmd = self.planner.next()
                 self.planner.set_active(cmd['id']) # Release plan
@@ -296,10 +303,10 @@ class Plan(object):
 
         with open('meta.json', 'w') as f:
             meta = dict(
-                time = self.time,
-                lines = self.lines,
+                time     = self.time,
+                lines    = self.lines,
                 maxSpeed = self.maxSpeed,
-                bounds = self.get_bounds(),
+                bounds   = self.get_bounds(),
                 messages = self.messages)
 
             json.dump(meta, f)

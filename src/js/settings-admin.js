@@ -62,17 +62,14 @@ module.exports = {
 
 
     restore_config: function () {
-      // If we don't reset the form the browser may cache file if name is same
-      // even if contents have changed
-      $('.restore-config')[0].reset();
-      $('.restore-config input').click();
+      this.$root.upload({
+        accept: '.json',
+        on_confirm: this.restore
+      })
     },
 
 
-    restore: function (e) {
-      var files = e.target.files || e.dataTransfer.files;
-      if (!files.length) return;
-
+    restore: function (file, done) {
       var fr = new FileReader();
       fr.onload = function (e) {
         var config;
@@ -81,7 +78,7 @@ module.exports = {
           config = JSON.parse(e.target.result);
         } catch (ex) {
           this.$root.error_dialog("Invalid config file");
-          return;
+          return done(false);
         }
 
         api.put('config/save', config).done(function (data) {
@@ -90,10 +87,11 @@ module.exports = {
 
         }.bind(this)).fail(function (error) {
           this.$root.api_error('Restore failed', error);
-        }.bind(this))
+
+        }.bind(this)).always(function () {done(false)})
       }.bind(this);
 
-      fr.readAsText(files[0]);
+      fr.readAsText(file);
     },
 
 
@@ -138,47 +136,38 @@ module.exports = {
     },
 
 
-    upload_firmware: function () {
-      // If we don't reset the form the browser may cache file if name is same
-      // even if contents have changed
-      $('.upload-firmware')[0].reset();
-      $('.upload-firmware input').click();
-    },
-
-
-    upload: function (e) {
-      var files = e.target.files || e.dataTransfer.files;
-      if (!files.length) return;
-
-      this.firmware = files[0];
-      this.firmwareName = files[0].name;
+    upload: function () {
       this.password = '';
-      this.show.upload = true;
+
+      this.$root.upload({
+        url: 'firmware/update',
+        accept: '.bz2',
+        form: function(file) {
+          return {
+            firmware: file,
+            password: this.password
+          }
+        }.bind(this),
+
+        on_confirm: function (file, ok) {
+          this.confirm_cb = ok;
+          this.show.upload = true;
+          this.firmwareName = file.name;
+        }.bind(this),
+
+        on_success: function (file, next) {
+          this.show.upgrading = true;
+          next();
+        }.bind(this),
+
+        on_failure: function (file, error) {
+          this.error_dialog('Invalid password or bad firmware');
+        }.bind(this)
+      })
     },
 
 
-    upload_confirmed: function () {
-      this.show.upload = false;
-
-      var form = new FormData();
-      form.append('firmware', this.firmware);
-      if (this.password) form.append('password', this.password);
-
-      $.ajax({
-        url: '/api/firmware/update',
-        type: 'PUT',
-        data: form,
-        cache: false,
-        contentType: false,
-        processData: false
-
-      }).success(function () {
-        this.show.upgrading = true;
-
-      }.bind(this)).error(function () {
-        this.error_dialog('Invalid password or bad firmware');
-      }.bind(this))
-    },
+    upload_confirmed: function () {this.confirm_cb(true)},
 
 
     change_auto_check_upgrade: function () {

@@ -82,11 +82,27 @@ module.exports = {
   },
 
 
-  upload: function(url, data, config) {
+  upload: function(url, data, config, progress) {
+    var xhr = function () {
+      var xhr = new window.XMLHttpRequest();
+
+      if (progress) {
+        xhr.upload.addEventListener('progress', function (e) {
+          if (e.lengthComputable) progress(e.loaded / e.total, false, xhr);
+        })
+        xhr.upload.addEventListener('loadend', function (e) {
+          progress(e.loaded / e.total, true, xhr);
+        })
+      }
+
+      return xhr;
+    }
+
     config = $.extend({
       processData: false,
       contentType: false,
       cache: false,
+      xhr: xhr,
       data: data
     }, config);
 

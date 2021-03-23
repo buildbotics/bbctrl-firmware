@@ -1,10 +1,11 @@
 .header
-  padding 0
+  width calc(100% - 2em)
+  padding 0 1em
   border 0
 
   .header-content
-    max-width 800px
-    margin auto
+    max-width limit-width
+    margin 0 auto
     text-align left
     display flex
     flex-wrap wrap
@@ -17,6 +18,7 @@
   .banner
     white-space nowrap
     flex 1
+    margin 0
 
     img
       vertical-align top
@@ -56,7 +58,11 @@
 
   .estop
     margin 0 5px
+    height 140px
 
-@media only screen and (max-width 985px)
-  .header .header-content > *
-    margin-left 70px
+@media only screen and (max-width collapse-width)
+  .header .header-content
+    margin-left 50px
+
+    .video
+      display none

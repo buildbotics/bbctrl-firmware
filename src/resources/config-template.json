@@ -487,11 +487,7 @@
 
   "macros": {
     "type": "list",
-    "default": [
-      {"name": "test1", "color": "#eceff1", "path": "macros/macro1.nc"},
-      {"name": "test2", "color": "#8d6e63", "path": "macros/macro2.nc"},
-      {"name": "test3", "color": "#ff7043", "path": "macros/macro3.nc"}
-    ],
+    "default": [],
     "template": {
       "name": {"type": "string"},
       "path": {"type": "string"},

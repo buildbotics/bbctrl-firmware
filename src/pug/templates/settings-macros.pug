@@ -34,7 +34,7 @@ script#settings-macros-template(type="text/x-template")
         .fa.fa-plus
         | Add
 
-    ol.macros
+    ol.macros(v-if="macros.length")
       li(v-for="macro in macros")
         label.index {{"#" + ($index + 1)}}
         .macro(draggable="true", @dragstart="dragstart", @mousedown="mousedown",
@@ -52,3 +52,10 @@ script#settings-macros-template(type="text/x-template")
               title="Select the macro file.")
             .fa.fa-trash(@click="remove($index)",
               :title="'Delete macro ' + ($index + 1) + '.'")
+
+    p.
+      Macros are programs that you can run by clicking the corrisponding
+      button on the #[a(href="#control") control page].  To create a new
+      macro, click the "Add" button.  Then set the button color, name and
+      select a program to run from the file menu.  You can upload new
+      programs or create them with the #[a(href="#editor") editor].

@@ -1,13 +1,18 @@
-.view-camera-page #main > .header .video
-  display none
+.view-camera-page #main
+  > .header .video
+    display none
 
 .view-camera
-  max-width inherit
   margin-bottom 0
   background #000
+  height 100%
+  overflow hidden
+
+  > div
+    height 100%
 
   .video
-    height calc(100vh - 177px)
+    height calc(100% - 40px)
     overflow hidden
 
     img

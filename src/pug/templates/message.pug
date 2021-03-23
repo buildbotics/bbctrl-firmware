@@ -27,8 +27,8 @@
 
 script#message-template(type="text/x-template")
   .modal-mask(v-show="show", transition="modal")
-    .modal-wrapper(@click="$emit('click-away')", v-el:wrapper)
-      .modal-container(@click.stop="")
+    .modal-wrapper(@click="click_away", v-el:wrapper)
+      .modal-container(:style="{width: width}")
         .modal-header
           slot(name="header") default header
 

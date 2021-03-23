@@ -29,17 +29,19 @@ script#path-viewer-template(type="text/x-template")
   .path-viewer(v-show="enabled")
     .path-viewer-content
 
-    table.path-viewer-messages(
+    .path-viewer-messages(
       v-if="typeof toolpath.messages != 'undefined' && " +
         "toolpath.messages.length")
-      tr
-        th Level
-        th Location
-        th Message
+      dragbar(title="Resize message panel.")
+      table
+        tr
+          th Level
+          th Location
+          th Message
 
-      tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
-        td.level {{msg.level}}
-        td.location
-          | {{msg.line}}
-          span(v-if="msg.column") :{{msg.column}}
-        td.message {{msg.msg}}
+        tr(v-for="msg in toolpath.messages", :class="'log-' + msg.level")
+          td.level {{msg.level}}
+          td.location
+            | {{msg.line}}
+            span(v-if="msg.column") :{{msg.column}}
+          td.message {{msg.msg}}

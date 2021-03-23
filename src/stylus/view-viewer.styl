@@ -1,6 +1,19 @@
+.view-viewer-page #main
+  height 100vh
+
 .view-viewer
-  max-width inherit
+  height 100%
+  overflow hidden
   margin-bottom 0
+
+  #viewer
+    display flex
+    flex-direction column
+    height 100%
+    overflow hidden
+
+  .path-viewer
+    height 100%
 
   .navbar
     .filename
@@ -17,14 +30,6 @@
 
     .nav-item
       align-items center
-
-  .path-viewer
-    height calc(100vh - 180px)
-
-    .path-viewer-content
-      height 100%
-      margin 0
-      overflow hidden
 
 .viewer-help-dialog
   .modal-container

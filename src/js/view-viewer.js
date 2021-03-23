@@ -117,7 +117,8 @@ module.exports = {
 
 
     load: function(path) {
-      if (!path || this.path == path) return;
+      //if (!path || this.path == path) return;
+      if (!path) return;
 
       cookie.set('selected-path', path)
       this.path = path;

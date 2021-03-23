@@ -31,19 +31,13 @@ script#settings-admin-template(type="text/x-template")
 
     h2 Configuration
     button.pure-button.pure-button-primary(@click="backup") Backup
-
-    label.pure-button.pure-button-primary(@click="restore_config") Restore
-    form.restore-config.file-upload
-      input(type="file", accept=".json", @change="restore")
-
+    button.pure-button.pure-button-primary(@click="restore_config") Restore
     button.pure-button.pure-button-primary(@click="reset") Reset
 
     h2 Firmware
     button.pure-button.pure-button-primary(@click="check") Check
     button.pure-button.pure-button-primary(@click="upgrade") Upgrade
-    label.pure-button.pure-button-primary(@click="upload_firmware") Upload
-    form.upload-firmware.file-upload
-      input(type="file", accept=".bz2", @change="upload")
+    button.pure-button.pure-button-primary(@click="upload") Upload
 
     p
       input(type="checkbox", v-model="autoCheckUpgrade",
@@ -67,7 +61,7 @@ script#settings-admin-template(type="text/x-template")
         p.pure-control-group
           label(for="pass") Password
           input(name="pass", v-model="password", type="password",
-            @keyup.enter="upgrade_confirmed")
+            @keyup.enter="upgrade_confirmed", focus)
 
       div(slot="footer")
         button.pure-button(@click="show.upgrade = false") Cancel
@@ -82,14 +76,14 @@ script#settings-admin-template(type="text/x-template")
         p.pure-control-group
           label(for="pass") Password
           input(name="pass", v-model="password", type="password",
-            @keyup.enter="upload_confirmed")
+            @keyup.enter="upload_confirmed", focus)
 
       div(slot="footer")
         button.pure-button(@click="show.upload = false") Cancel
         button.pure-button.pure-button-primary(@click="upload_confirmed")
           | Upload
 
-    message(:show.sync="show.upgrading", click_away_close="false")
+    message.upgrading(:show.sync="show.upgrading", :click_away_close="false")
       h3(slot="header") Firmware upgrading
       div(slot="body")
         h3 Please wait...

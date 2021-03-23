@@ -48,7 +48,8 @@ script#view-files-template(type="text/x-template")
             .fa.fa-pencil
             span Edit
 
-          nav-item(@click="view", :disabled="!selected || is_dir")
+          nav-item(@click="view", :disabled="!selected || is_dir",
+            v-if="$root.webGLSupported")
             .fa.fa-eye
             span View
 

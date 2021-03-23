@@ -89,7 +89,7 @@ module.exports = {
 
 
     'state.line': function () {
-      if (this.mach_state != 'HOMING') this.highlight_gcode();
+      if (this.mach_state != 'HOMING') this.highlight_code();
     },
 
 
@@ -222,13 +222,27 @@ module.exports = {
   },
 
 
+  attached: function () {
+    if (this.editor != undefined) this.editor.refresh()
+  },
+
+
   methods: {
+    goto: function (hash) {window.location.hash = hash},
     send: function (msg) {this.$dispatch('send', msg)},
     on_scroll: function (cm, e) {e.preventDefault()},
-    run_macro: function (macro) {api.put('macro/' + macro)},
 
 
-    highlight_gcode: function () {
+    run_macro: function (macro) {
+      api.put('macro/' + macro)
+        .fail(function (error) {
+          this.$root.error_dialog('Failed to run macro "' + macro + '":\n' +
+                                  error.message);
+        }.bind(this))
+    },
+
+
+    highlight_code: function () {
       if (typeof this.editor == 'undefined') return;
       var line = this.state.line - 1;
       var doc = this.editor.getDoc();
@@ -244,11 +258,15 @@ module.exports = {
 
 
     load: function (path) {
+      if (path == undefined) return;
+
       api.download('fs/' + path)
         .done(function (data) {
           if (this.state.queued != path) return;
+
+          this.editor.setOption('mode', util.get_highlight_mode(path))
           this.editor.setValue(data);
-          this.highlight_gcode();
+          this.highlight_code();
         }.bind(this))
     },
 

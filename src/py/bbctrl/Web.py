@@ -131,7 +131,7 @@ class BugReportHandler(bbctrl.RequestHandler):
             check_add_basename('%s.%d' % (path, i))
         check_add_basename('/var/log/syslog')
         check_add('config.json')
-        check_add(ctrl.fs.realpath(ctrl.state.get('queued', '')))
+        check_add(ctrl.fs.realpath(ctrl.queue.get()))
 
         return files
 
@@ -317,7 +317,7 @@ class QueueHandler(bbctrl.APIHandler):
 
         realpath = self.get_ctrl().fs.realpath(path)
         if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
-        self.get_ctrl().fs.queue_file(path)
+        self.get_ctrl().queue.set(path)
 
 
 class USBUpdateHandler(bbctrl.APIHandler):

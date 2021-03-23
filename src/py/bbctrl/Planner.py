@@ -67,6 +67,7 @@ class Planner():
         self.planner = None
         self._position_dirty = False
         self.where = ''
+        self.end_cb = None
 
         ctrl.state.add_listener(self._update)
 
@@ -309,7 +310,7 @@ class Planner():
             return Cmd.seek(sw, block['active'], block['error'])
 
         if type == 'end':
-            self.cmdq.enqueue(id, self._log_time, 'Program End: ')
+            self.cmdq.enqueue(id, self._end_program, 'Program end: ')
             return '' # Sends id
 
         raise Exception('Unknown planner command "%s"' % type)
@@ -334,15 +335,16 @@ class Planner():
         # Release planner callbacks
         if self.planner is not None:
             self.planner.set_resolver(None)
-            self.planner.set_logger(None)
+            camotics.set_logger(None)
 
 
     def reset(self, stop = True):
+        self._end_program()
         if stop: self.ctrl.mach.stop()
         self.planner = camotics.Planner()
         self.planner.set_resolver(self._get_var_cb)
         # TODO logger is global and will not work correctly in demo mode
-        self.planner.set_logger(self._log_cb, 1, 'LinePlanner:3')
+        camotics.set_logger(self._log_cb, 1, 'LinePlanner:3')
         self._position_dirty = True
         self.cmdq.clear()
         self.reset_times()
@@ -357,7 +359,19 @@ class Planner():
         self.reset_times()
 
 
-    def load(self, path):
+    def _end_program(self, msg = None):
+        if self.end_cb is not None:
+            self.end_cb()
+            self.end_cb = None
+
+        if msg is not None: self._log_time(msg)
+
+
+    def load(self, path, done):
+        if done is not None and self.end_cb is not None:
+            raise Exception('End callback already set')
+
+        self.end_cb = done
         self.where = path
         path = self.ctrl.fs.realpath(path)
         self.log.info('GCode:' + path)
@@ -371,7 +385,7 @@ class Planner():
         try:
             self.planner.stop()
             self.cmdq.clear()
-            self._log_time('Program Stop: ')
+            self._end_program('Program Stop: ')
 
         except:
             self.log.exception()

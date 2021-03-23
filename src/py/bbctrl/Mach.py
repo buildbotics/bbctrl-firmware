@@ -25,6 +25,8 @@
 #                                                                              #
 ################################################################################
 
+from tornado.web import HTTPError
+
 import bbctrl
 from bbctrl.Comm import Comm
 import bbctrl.Cmd as Cmd
@@ -295,7 +297,7 @@ class Mach(Comm):
 
 
     def start(self):
-        path = self.ctrl.state.get('queued', '')
+        path = self.ctrl.queue.get()
         if not path: return
         self._begin_cycle('running')
         self.planner.load(path)
@@ -360,7 +362,12 @@ class Mach(Comm):
         if len(macros) < macro: raise Exception('Invalid macro id %d' % macro)
         path = 'Home/' + macros[macro - 1]['path']
 
+        if not self.ctrl.fs.exists(path):
+            raise HTTPError(404, 'Macro file not found')
+
         self.mlog.info('Running macro %d %s' % (macro, path))
         self._begin_cycle('running')
-        self.planner.load(path)
+
+        self.ctrl.queue.push(path)
+        self.planner.load(path, lambda: self.ctrl.queue.pop())
         super().resume()

@@ -29,32 +29,38 @@
 
 
 module.exports = {
-  template: '#video-template',
+  template: '#view-docs-template',
+  props: ['config', 'template', 'state'],
 
-  attached: function () {Vue.nextTick(this.resize)},
 
-
-  ready: function () {
-    window.addEventListener('resize', this.resize, false);
+  data: function () {
+    return {
+      view: undefined
+    }
   },
 
 
-  methods: {
-    reload: function () {this.$els.img.src = '/api/video?' + Math.random()},
+  components: {
+    'docs-help':    {template: '#docs-help-template'},
+    'docs-gcode': {
+      template: '#docs-gcode-template',
+      data: function () {return {showUnimplemented: false}}
+    },
+    'docs-license':   {template: '#docs-license-template'}
+  },
 
 
-    resize: function () {
-      var width = this.$els.video.clientWidth;
-      var height = this.$els.video.clientHeight;
-      var aspect = 3 / 4; // TODO should probably not be hard coded
+  events: {
+    route: function (path) {
+      if (path[0] != 'docs') return;
+      var view = path.length < 2 ? '' : path[1];
 
-      if (!width) return;
+      if (typeof this.$options.components['docs-' + view] == 'undefined')
+        this.$root.replace_route('docs:help');
+      else this.view = view;
+    },
+  },
 
-      width = Math.min(width, height / aspect);
-      height = Math.min(height, width * aspect);
 
-      this.$els.img.style.width  = width  + 'px';
-      this.$els.img.style.height = height + 'px';
-    }
-  }
+  ready: function () {this.$root.parse_hash()}
 }

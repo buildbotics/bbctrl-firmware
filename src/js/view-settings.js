@@ -46,7 +46,6 @@ module.exports = {
 
 
   components: {
-    'settings-not-found': {template: '<h2>Settings page not found</h2>'},
     'settings-general':   require('./settings-general'),
     'settings-motor':     require('./settings-motor'),
     'settings-tool':      require('./settings-tool'),
@@ -58,6 +57,55 @@ module.exports = {
 
 
   events: {
+    'route-changing': function (path, cancel) {
+      if (this.modified && path[0] != 'settings') {
+        cancel();
+
+        var self = this;
+
+        function done(success) {
+          if (success) location.hash = path.join(':')
+        }
+
+        this.$root.open_dialog({
+          title: 'Save settings?',
+          body: 'Changes to the settings have not been saved.  ' +
+            'Would you like to save them now?',
+          width: '320px',
+          buttons: [
+            {
+              text: 'Cancel',
+              title: 'Stay on the Settings page.'
+            }, {
+              text: 'Discard',
+              title: 'Discard settings changes.'
+            }, {
+              text: 'Save',
+              title: 'Save settings.',
+              'class': 'button-success'
+            }
+          ],
+          callback: {
+            save: function () {this.save(done)}.bind(this),
+            discard: function () {this.discard(done)}.bind(this)
+          }.bind(this)
+        });
+      }
+    },
+
+
+    route: function (path) {
+      if (path[0] != 'settings') return;
+      var view = path.length < 2 ? '' : path[1];
+
+      if (typeof this.$options.components['settings-' + view] == 'undefined')
+        return this.$root.replace_route('settings:general');
+
+      if (path.length == 3) this.index = path[2];
+      this.view = view;
+    },
+
+
     'config-changed': function () {
       this.modified = true;
       return false;
@@ -71,39 +119,26 @@ module.exports = {
   },
 
 
-  ready: function () {
-    $(window).on('hashchange', this.parse_hash);
-    this.parse_hash();
-  },
+  ready: function () {this.$root.parse_hash()},
 
 
   methods: {
-    parse_hash: function () {
-      var hash = location.hash.substr(1);
-
-      if (!hash.trim().length) {
-        location.hash = 'settings:general';
-        return;
-      }
-
-      var parts = hash.split(':');
-      var view = parts.length == 1 ? 'general' : parts[1];
-
-      if (parts.length == 3) this.index = parts[2];
-
-      if (typeof this.$options.components['settings-' + view] == 'undefined')
-        this.view = 'not-found';
-
-      else this.view = view;
+    save: function (done) {
+      api.put('config/save', this.config).done(function (data) {
+        this.modified = false;
+        done(true);
+      }.bind(this)).fail(function (error) {
+        this.api_error('Save failed', error);
+        done(false);
+      }.bind(this));
     },
 
 
-    save: function () {
-      api.put('config/save', this.config).done(function (data) {
+    discard: function (done) {
+      this.$root.update(function (success) {
         this.modified = false;
-      }.bind(this)).fail(function (error) {
-        this.api_error('Save failed', error);
-      }.bind(this));
+        done(success);
+      }.bind(this))
     }
   }
 }

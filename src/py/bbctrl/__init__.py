@@ -40,6 +40,7 @@ from bbctrl.RequestHandler import RequestHandler
 from bbctrl.APIHandler import APIHandler
 from bbctrl.FileSystemHandler import FileSystemHandler
 from bbctrl.FileSystem import FileSystem
+from bbctrl.ProgramQueue import ProgramQueue
 from bbctrl.Config import Config
 from bbctrl.LCD import LCD, LCDPage
 from bbctrl.Mach import Mach
@@ -180,6 +181,10 @@ def run():
 
     # Set ObjGraph signal handler
     if args.debug: Debugger(ioloop, args.debug)
+
+    # Set TPL path
+    os.environ['TPL_PATH'] = \
+        '/var/lib/bbctrl/upload/lib/:' + get_resource('tpl_lib/')
 
     # Start server
     web = Web(args, ioloop)

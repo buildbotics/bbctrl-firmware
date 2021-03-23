@@ -3,7 +3,7 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v1.0.0
  - Added online GCode editor.
- - Added online file dialog.
+ - Added online file manager.
  - Allow subdirectories of files.
  - Full page 3D viewer.
  - Full page camera view.
@@ -16,6 +16,11 @@ Buildbotics CNC Controller Firmware Changelog
  - Better gamepad handling.
  - Fixed problem with web layout while using virtual keyboard.
  - Fixed problem with entering config values while virtual keyboard is active.
+ - Warn when leaving Settings without having saved.
+ - Show upload progress when uploading files or firmware.
+ - Allow multiple file upload.
+ - Moved documentation pages to ``DOCS`` page.
+ - Show program messages in 3D view.
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.

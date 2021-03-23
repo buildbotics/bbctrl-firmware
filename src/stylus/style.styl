@@ -29,8 +29,8 @@ body, #layout
   overflow hidden
   height 100vh
 
-#layout.active
-  width calc(100vw - 150px)
+#layout
+  display flex
 
 [v-cloak]
   display none
@@ -43,11 +43,20 @@ tt
 .content
   padding 0
 
-.file-upload
-  display none
+button
+  white-space nowrap
+
+  .fa
+    margin-right 0.25em
+
+button-hover = linear-gradient(transparent, #0000000d 40%, #00000019)
+limit-width = 1200px
+sidebar-width = 110px
+collapse-width = 810px
 
 @import('status-colors')
 @import('color-picker')
+@import('dragbar')
 @import('attention')
 @import('status')
 @import('header')
@@ -60,6 +69,7 @@ tt
 @import('navbar')
 @import('video')
 @import('files')
+@import('upload-dialog')
 @import('code-mirror')
 @import('view-control')
 @import('view-settings')
@@ -67,7 +77,7 @@ tt
 @import('view-viewer')
 @import('view-files')
 @import('view-camera')
-@import('view-help')
+@import('view-docs')
 @import('path-viewer')
 @import('console')
 @import('log')

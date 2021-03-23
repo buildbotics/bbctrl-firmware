@@ -115,78 +115,84 @@ script#view-control-template(type="text/x-template")
       button.pure-button.macro(v-for="macro in config.macros",
         v-if="macro.path", @click="run_macro($index + 1)",
         :title="'Run macro ' + ($index + 1) + ' ' + macro.name + '\n' + macro.path",
-        :style="{background: macro.color}")
+        :style="{'background-color': macro.color}")
         | {{($index + 1) + ' ' + macro.name}}
 
-    table.info
-      tr
-        th State
-        td(:class="{attention: highlight_state}") {{mach_state}}
+      button.pure-button.macro(@click="goto('#settings:macros')",
+        title="Go to macro settings")
+        .fa.fa-cog
+        | Macros
 
-      tr
-        th Message
-        td.message(:class="{attention: highlight_state}")
-          | {{message.replace(/^#/, '')}}
+    .info-blocks
+      table.info
+        tr
+          th State
+          td(:class="{attention: highlight_state}") {{mach_state}}
 
-      tr(title="Active machine units")
-        th Units
-        td.mach_units {{mach_units}}
+        tr
+          th Message
+          td.message(:class="{attention: highlight_state}")
+            | {{message.replace(/^#/, '')}}
 
-      tr(title="Active tool")
-        th Tool
-        td {{state.tool || 0}}
+        tr(title="Active machine units")
+          th Units
+          td.mach_units {{mach_units}}
 
-    table.info
-      tr(
-        title="Current velocity in {{metric ? 'meters' : 'inches'}} per minute")
-        th Velocity
-        td
-          unit-value(:value="state.v", precision="2", unit="", iunit="",
-            scale="0.0254")
-          | {{metric ? ' m/min' : ' IPM'}}
+        tr(title="Active tool")
+          th Tool
+          td {{state.tool || 0}}
 
-      tr(title="Programmed feed rate.")
-        th Feed
-        td
-          unit-value(:value="state.feed", precision="2", unit="", iunit="")
-          | {{metric ? ' mm/min' : ' IPM'}}
+      table.info
+        tr(
+          title="Velocity in {{metric ? 'meters' : 'inches'}} per minute")
+          th Velocity
+          td
+            unit-value(:value="state.v", precision="2", unit="", iunit="",
+              scale="0.0254")
+            | {{metric ? ' m/min' : ' IPM'}}
 
-      tr(title="Programed and actual speed.")
-        th Speed
-        td
-          | {{state.speed || 0 | fixed 0}}
-          span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
-          = ' RPM'
+        tr(title="Programmed feed rate.")
+          th Feed
+          td
+            unit-value(:value="state.feed", precision="2", unit="", iunit="")
+            | {{metric ? ' mm/min' : ' IPM'}}
 
-      tr(title="Load switch states.")
-        th Loads
-        td
-          span(:class="state['1oa'] ? 'load-on' : ''")
-            | 1:{{state['1oa'] ? 'On' : 'Off'}}
-          | &nbsp;
-          span(:class="state['2oa'] ? 'load-on' : ''")
-            | 2:{{state['2oa'] ? 'On' : 'Off'}}
+        tr(title="Programed and actual speed.")
+          th Speed
+          td
+            | {{state.speed || 0 | fixed 0}}
+            span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
+            = ' RPM'
 
-    table.info
-      tr
-        th Remaining
-        td(title="Total run time (days:hours:mins:secs)").
-          #[span(v-if="remaining") {{remaining | time}} of]
-          {{total_time | time}}
-      tr
-        th ETA
-        td.eta {{eta}}
-      tr
-        th Line
-        td
-          | {{0 <= state.line ? state.line : 0 | number}}
-          span(v-if="state.lines")
-            | &nbsp;of {{state.lines | number}}
-      tr
-        th {{this.simulating ? 'Simulating' : 'Progress'}}
-        td.progress
-          label {{(progress || 0) | percent}}
-          .bar(:style="'width:' + (progress || 0) * 100 + '%'")
+        tr(title="Load switch states.")
+          th Loads
+          td
+            span(:class="state['1oa'] ? 'load-on' : ''")
+              | 1:{{state['1oa'] ? 'On' : 'Off'}}
+            | &nbsp;
+            span(:class="state['2oa'] ? 'load-on' : ''")
+              | 2:{{state['2oa'] ? 'On' : 'Off'}}
+
+      table.info
+        tr
+          th Remaining
+          td(title="Total run time (days:hours:mins:secs)").
+            #[span(v-if="remaining") {{remaining | time}} of]
+            {{total_time | time}}
+        tr
+          th ETA
+          td.eta {{eta}}
+        tr
+          th Line
+          td
+            | {{0 <= state.line ? state.line : 0 | number}}
+            span(v-if="state.lines")
+              | &nbsp;of {{state.lines | number}}
+        tr
+          th {{this.simulating ? 'Simulating' : 'Progress'}}
+          td.progress
+            label {{(progress || 0) | percent}}
+            .bar(:style="'width:' + (progress || 0) * 100 + '%'")
 
     .override(title="Feed rate override.")
       label Feed
@@ -246,7 +252,7 @@ script#view-control-template(type="text/x-template")
             #[.fa.fa-pencil] Edit
 
           button.pure-button(title="Open 3D view.", @click="view",
-            :disabled="!state.queued").
+            v-if="$root.webGLSupported", :disabled="!state.queued").
             #[.fa.fa-eye] View
 
           .filename {{filename}}

@@ -45,7 +45,9 @@ script#view-settings-template(type="text/x-template")
       a.nav-item(href="#settings:admin") Admin
 
       button.save.pure-button.button-success(:disabled="!modified",
-        @click="save") Save
+        @click="save", title="Save settings")
+        .fa.fa-floppy-o
+        | Save
 
     .settings-view(v-if="view", :is="'settings-' + view", :index="index",
       :config="config", :template="template", :state="state", keep-alive)

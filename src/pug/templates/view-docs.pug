@@ -25,33 +25,12 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-license-template(type="text/x-template")
-  #license
-    h2 License
+script#view-docs-template(type="text/x-template")
+  div
+    nav.navbar
+      a.nav-item(href="#docs:help") Help
+      a.nav-item(href="#docs:gcode") GCode
+      a.nav-item(href="#docs:license") License
 
-    p.
-      This is Open Hardware licensed under the CERN-OHL-S v2.  Unless
-      otherwise noted, all sources are copyright 2015 - 2021,
-      Buildbotics LLC.
-
-    p.
-      You may redistribute and modify the Source and make products
-      using it under the terms of the CERN-OHL-S v2 (
-      #[a(href="https:/cern.ch/cern-ohl") https:/cern.ch/cern-ohl]).
-      The Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
-      WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
-      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
-
-    p.
-      The Source can be found at
-      #[a(href="//github.com/buildbotics") github.com/buildbotics].
-
-    p.
-      As per CERN-OHL-S v2 section 4, should You produce hardware based on
-      the Source, You must maintain the Source Location clearly visible on
-      the external case of the CNC Controller or other product you make using
-      the Source.
-
-    p.
-      For information regarding this software, email
-      #[a(href="mailto:info@buildbotics.com") info@buildbotics.com].
+    .docs-view(v-if="view", :is="'docs-' + view", :config="config",
+      :template="template", :state="state", keep-alive)

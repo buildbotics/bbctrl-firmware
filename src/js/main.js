@@ -32,28 +32,26 @@ var cookie = require('./cookie');
 var util   = require('./util');
 
 
-function ui() {
+function menu_ui() {
   var layout   = document.getElementById('layout');
-  var menu     = document.getElementById('menu');
   var menuLink = document.getElementById('menuLink');
+
+  var collapse = function () {
+    layout.classList.remove('active');
+    window.removeEventListener('click', collapse);
+  }
 
   menuLink.onclick = function (e) {
     e.preventDefault();
+    e.stopPropagation();
     layout.classList.toggle('active');
-    menu.classList.toggle('active');
-    menuLink.classList.toggle('active');
-  }
-
-  menu.onclick = function (e) {
-    layout.classList.remove('active');
-    menu.classList.remove('active');
-    menuLink.classList.remove('active');
+    window.addEventListener('click', collapse);
   }
 }
 
 
 $(function() {
-  ui();
+  menu_ui();
 
   if (typeof cookie.get('client-id') == 'undefined')
     cookie.set('client-id', util.uuid());
@@ -75,10 +73,12 @@ $(function() {
   Vue.component('unit-value',      require('./unit-value'));
   Vue.component('files',           require('./files'));
   Vue.component('file-dialog',     require('./file-dialog'));
+  Vue.component('upload-dialog',   require('./upload-dialog'));
   Vue.component('nav-menu',        require('./nav-menu'));
   Vue.component('nav-item',        require('./nav-item'));
   Vue.component('video',           require('./video'));
   Vue.component('color-picker',    require('./color-picker'));
+  Vue.component('dragbar',         require('./dragbar'));
 
   require('./filters')();
 

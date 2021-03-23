@@ -41,11 +41,37 @@ module.exports = {
     click_away_close: {
       type: Boolean,
       default: true
+    },
+
+    width: {
+      type: String,
+      default: ''
     }
   },
 
 
   events: {
     'click-away': function () {if (this.click_away_close) this.show = false}
+  },
+
+
+  watch: {
+    show: function (show) {if (show) Vue.nextTick(this.focus)}
+  },
+
+
+  methods: {
+    click_away: function (e) {
+      if (!e.target.classList.contains('modal-wrapper')) return;
+      this.$emit('click-away')
+    },
+
+
+    focus: function () {
+      $(this.$el).find('[focus]').each(function (index, e) {
+        e.focus()
+        return false;
+      })
+    }
   }
 }

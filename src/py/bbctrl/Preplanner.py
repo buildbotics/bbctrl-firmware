@@ -184,7 +184,7 @@ class Plan(object):
 
         except:
             self.preplanner.log.exception()
-
+            self.future.set_result(None)
 
 
 class Preplanner(object):

@@ -35,19 +35,19 @@ script#indicators-template(type="text/x-template")
         td
          .fa.fa-plus-circle.io
         th Hi/+3.3v
-        th.separator
+      tr
         td
          .fa.fa-minus-circle.io
         th Lo/Gnd
-        th.separator
+      tr
         td
          .fa.fa-circle.io.active
         th Active
-        th.separator
+      tr
         td
          .fa.fa-circle.io.inactive
         th Inactive
-        th.separator
+      tr
         td
          .fa.fa-circle-o.io
         th Tristated/Disabled
@@ -257,8 +257,10 @@ script#indicators-template(type="text/x-template")
           | {{state.rpi_temp | fixed 0}} ℃
         th RPi Temp
 
-    h2 DB25 breakout box
-    img(src="images/DB25_breakout_box.png")
+    div
+      h2 DB25 breakout box
+      img(src="images/DB25_breakout_box.png")
 
-    h2 DB25-M2 breakout
-    img(src="images/DB25-M2_breakout.png")
+    div
+      h2 DB25-M2 breakout
+      img(src="images/DB25-M2_breakout.png")

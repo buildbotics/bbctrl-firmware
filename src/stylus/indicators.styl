@@ -1,13 +1,15 @@
 .indicators
   padding 1em 0
   text-align center
+  display grid
+  grid-template-columns 1fr 1fr
 
   table
-    display inline-block
+    height 100%
     vertical-align top
-    margin 0.5em
     empty-cells show
-    border 3px solid #bbb
+    border 2px solid #bbb
+    border-collapse separate
 
     td, th
       padding 4px
@@ -34,7 +36,7 @@
     th.separator
       background #ccc
       border 1px solid #ccc
-      padding 1px
+      padding 0
 
     &.motor_fault
       td, th
@@ -46,3 +48,8 @@
 
         &:hover
           opacity 0.5
+
+
+@media only screen and (max-width 1000px)
+  .indicators
+    grid-template-columns 1fr

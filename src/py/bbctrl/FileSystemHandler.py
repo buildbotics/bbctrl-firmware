@@ -90,5 +90,5 @@ class FileSystemHandler(bbctrl.RequestHandler):
             self.write(json.dumps(d, separators = (',', ':')))
 
         else:
-            with open(realpath.encode('utf8'), 'r') as f:
+            with open(realpath.encode('utf8'), 'rb') as f:
                 self.write(f.read())

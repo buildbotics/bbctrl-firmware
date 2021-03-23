@@ -27,7 +27,8 @@
 
 script#dialog-template(type="text/x-template")
   .dialog
-    message(:show="show", click_away_close="false", @click-away="click_away")
+    message(:show.sync="show", :click_away_close="false",
+      @click-away="click_away", :width="config.width || '300px'")
       h3(slot="header").
         #[.fa(v-if="config.icon", class="'fa-' + config.icon")]
         {{config.title || ''}}
@@ -35,7 +36,7 @@ script#dialog-template(type="text/x-template")
       div(slot="body") {{{config.body || ''}}}
 
       div(slot="footer")
-        button.pure-button(v-for="button in buttons",
-          @click="close(button.action)").
+        button.pure-button(v-for="button in buttons", :title="button.title",
+          @click="close(button.action)", :class="button.class").
           #[.fa(v-if="button.icon", :class="'fa-' + button.icon")]
           {{button.text}}

@@ -25,77 +25,21 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-editor-template(type="text/x-template")
-  div
-    nav.navbar
-      nav-item
-        | File
-        .fa.fa-caret-down
+script#upload-dialog-template(type="text/x-template")
+  .upload-dialog
+    message(:show.sync="show", :click_away_close="false")
+      h3(slot="header") Uploading
 
-        nav-menu
-          nav-item(@click="new_file()")
-            .fa.fa-file
-            span New
+      div(slot="body")
+        div {{msg}}
+        .progress
+          .bar(:style="{width: 'calc(' + progress + '% - 1em)'}")
+            | {{progress}}%
 
-          nav-item(@click="open()")
-            .fa.fa-folder-open
-            span Open
+      div(slot="footer")
+        button.pure-button(title="Cancel upload", @click="cancel")
+          .fa.fa-times
+          | Cancel
 
-          nav-item(@click="save()", :disabled="!modified")
-            .fa.fa-save
-            span Save
-
-          nav-item(@click="save_as()")
-            .fa.fa-save
-            span Save As
-
-          nav-item(@click="revert()", :disabled="!modified")
-            .fa.fa-undo
-            span Revert
-
-          nav-item(@click="download()")
-            .fa.fa-download
-            span Download
-            a(v-el:download, style="display:none", :download="basename")
-
-          nav-item(@click="view()", v-if="$root.webGLSupported")
-            .fa.fa-eye
-            span View
-
-          nav-item(@click="$root.run(path)", :disabled="state.xx != 'READY'")
-            .fa.fa-play
-            span Run
-
-      nav-item
-        | Edit
-        .fa.fa-caret-down
-        nav-menu
-          nav-item(@click="undo()", :disabled="!canUndo")
-            .fa.fa-undo
-            span Undo
-            span Ctrl-Z
-
-          nav-item(@click="redo()", :disabled="!canRedo")
-            .fa.fa-repeat
-            span Redo
-            span Ctrl-Y
-
-          nav-item(@click="copy()")
-            .fa.fa-clone
-            span Copy
-            span Ctrl-C
-
-          nav-item(@click="cut()")
-            .fa.fa-scissors
-            span Cut
-            span Ctrl-X
-
-          nav-item(@click="paste()")
-            .fa.fa-clipboard
-            span Paste
-            span Ctrl-V
-
-      .filename {{filename}}
-
-    loading-message(v-if="loading")
-    textarea(v-el:textarea)
+    form(v-el:form)
+      input(type="file", v-el:input, @change="_upload")

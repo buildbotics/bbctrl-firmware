@@ -53,7 +53,6 @@ module.exports = {
       selected: -1,
       filename: '',
       folder: '',
-      activeFile: {},
       showNewFolder: false
     }
   },
@@ -174,16 +173,17 @@ module.exports = {
     },
 
 
-    load: function (path) {
+    load: function (path, done) {
       api.get('fs/' + path)
         .done(function (data) {
           this.fs = data
           this.selected = -1;
+          if (done) done();
         }.bind(this))
     },
 
 
-    reload: function () {this.load(this.fs.path || '')},
+    reload: function (done) {this.load(this.fs.path || '', done)},
 
 
     path_at: function (index) {
@@ -212,8 +212,10 @@ module.exports = {
       if (!this.folder_valid) return;
       this.showNewFolder = false;
 
-      api.put('fs/' + this.fs.path + '/' + this.folder)
-        .done(this.reload);
+      var path = this.fs.path + '/' + this.folder;
+
+      api.put('fs/' + path)
+        .done(function () {this.open(path)}.bind(this));
     },
 
 
@@ -238,52 +240,54 @@ module.exports = {
     },
 
 
-    upload: function ()  {
-      // If we don't reset the form the browser may cache file if name is same
-      // even if contents have changed
-      this.$els.uploadForm.reset();
-      this.$els.uploadFormInput.click();
+    activate_file: function (filename) {
+      for (var i = 0; i < this.files.length; i++)
+        if (this.files[i].name == filename)
+          this.activate(this.files[i]);
     },
 
 
-    do_upload: function (e)  {
-      var files = e.target.files || e.dataTransfer.files;
-      if (!files.length) return;
+    confirm_upload: function (file, cb) {
+      file.filename = util.basename(util.unix_path(file.name));
 
-      var file = files[0];
-      var filename = util.basename(util.unix_path(file.name));
+      var other = this.find_file(file.filename);
+      if (!other) return cb(true);
 
-      var upload = function() {
-        var fd = new FormData();
-        fd.append('file', file);
+      if (other.dir)
+        this.$root.open_dialog({
+          title: 'Cannot overwrite',
+          body: 'Cannot overwrite directory ' + file.filename + '.',
+          buttons: 'OK',
+          callback: function () {cb(false)}
+        });
 
-        api.upload('fs/' + this.fs.path + '/' + filename, fd)
-          .done(this.reload)
-          .fail(function (error) {
-            this.$root.api_error('Upload failed', error)
-          }.bind(this));
-      }.bind(this);
+      else
+        this.$root.open_dialog({
+          title: 'Overwrite file?',
+          body: 'Are you sure you want to overwrite ' + file.filename + '?',
+          buttons: 'Cancel OK',
+          callback: function (action) {cb(action == 'ok')}
+        });
+    },
 
-      // Check if file already exists
-      var other = this.find_file(filename);
 
-      if (other) {
-        if (other.dir)
-          this.$root.open_dialog({
-            title: 'Cannot overwrite',
-            body: 'Cannot overwrite directory ' + filename + '.',
-            buttons: 'OK'
-          });
+    upload_success: function (file, next) {
+      this.reload(function () {
+        if (this.mode == 'open') this.activate_file(file.filename)
+        next();
+      }.bind(this));
+    },
 
-        else
-          this.$root.open_dialog({
-            title: 'Overwrite file?',
-            body: 'Are you sure you want to overwrite ' + filename + '?',
-            buttons: 'Cancel OK',
-            callback: function (action) {if (action == 'ok') upload()}
-          });
 
-      } else upload();
+    upload: function ()  {
+      this.$root.upload({
+        multiple: this.mode != 'open',
+        url: function (file) {
+          return 'fs/' + this.fs.path + '/' + file.filename;
+        }.bind(this),
+        on_confirm: this.confirm_upload,
+        on_success: this.upload_success
+      })
     }
   }
 }

@@ -44,24 +44,7 @@ class FileSystem:
       from shutil import copy
       copy(bbctrl.get_resource('http/buildbotics.nc'), upload)
 
-    ctrl.events.on('invalidate', self.invalidate)
-    ctrl.events.on('invalidate-all', self.invalidate_all)
     self.usb_update()
-    self.queue_next_file()
-
-
-  def queue_next_file(self):
-    upload = self.ctrl.root + '/upload'
-
-    files = []
-    for path in os.listdir(upload):
-      if os.path.isfile(upload + '/' + path):
-        files.append(path)
-
-    files.sort()
-
-    if len(files): self.queue_file('Home/' + files[0])
-    else: self.queue_file('')
 
 
   def realpath(self, path):
@@ -81,72 +64,6 @@ class FileSystem:
 
   def exists(self, path): return os.path.exists(self.realpath(path))
   def isfile(self, path): return os.path.isfile(self.realpath(path))
-
-
-  def invalidate(self, path):
-    if path == self.ctrl.state.get('queued', ''):
-      self.ctrl.ioloop.add_callback(self.requeue)
-
-
-  def invalidate_all(self):
-    self.ctrl.ioloop.add_callback(self.requeue)
-
-
-  def requeue(self):
-    self.queue_file(self.ctrl.state.get('queued', ''))
-
-
-  def set_bounds(self, bounds):
-      import json
-      self.log.info('bounds %s' % json.dumps(bounds))
-
-      for axis in 'xyzabc':
-          for name in ('min', 'max'):
-              value = bounds[name][axis] if axis in bounds[name] else 0
-              self.ctrl.state.set('queued_%s_%s' % (name, axis), value)
-
-
-  def clear_bounds(self):
-      for axis in 'xyzabc':
-          for name in ('min', 'max'):
-              self.ctrl.state.set('queued_%s_%s' % (name, axis), 0)
-
-
-  def queue_file(self, path):
-    realpath = self.realpath(path)
-
-    if os.path.exists(realpath): modified = os.path.getmtime(realpath)
-    else: path, modified = '', 0
-
-    state = self.ctrl.state
-    state.set('queued', path)
-    state.set('queued_modified', modified)
-    state.set('queued_time', 0)
-    state.set('queued_messages', [])
-    state.set('line', 0)
-    self.clear_bounds()
-
-    if not modified: return
-
-
-    def check_progress():
-      if state.get('queued', '') != path: return
-      progress = self.ctrl.preplanner.get_plan_progress(path)
-      state.set('queued_progress', progress)
-      if progress < 1: self.ctrl.ioloop.call_later(1, check_progress)
-
-    check_progress()
-
-
-    def set_state(future):
-      meta = future.result()[0]
-
-      self.set_bounds(meta['bounds'])
-      state.set('queued_time', meta['time'])
-      state.set('queued_messages', meta['messages'])
-
-    future = self.ctrl.preplanner.get_plan(path)
-    self.ctrl.ioloop.add_future(future, set_state)
 
 
   def delete(self, path):

@@ -108,6 +108,27 @@ var util = {
       s += util.uuid_chars[Math.floor(Math.random() * util.uuid_chars.length)];
 
     return s
+  },
+
+
+  get_highlight_mode: function (path) {
+    if (path.endsWith('.tpl') || path.endsWith('.js') ||
+        path.endsWith('.json'))
+      return 'javascript';
+
+    return 'gcode'
+  },
+
+
+  webgl_supported: function (performance) {
+    try {
+      var opts = {failIfMajorPerformanceCaveat: performance || false};
+      var canvas = document.createElement('canvas');
+      return !!(window.WebGLRenderingContext &&
+                (canvas.getContext('webgl', opts) ||
+                 canvas.getContext('experimental-webgl', opts)));
+
+    } catch (e) {return false}
   }
 }
 

@@ -29,17 +29,10 @@ script#files-template(type="text/x-template")
   .files(v-if="fs.files")
     .files-name(v-if="mode == 'save'")
       label Name:
-      input(v-model="filename", @input="filename_changed")
+      input(v-model="filename", @input="filename_changed", focus)
 
     .files-body
       .files-locations
-        .files-location.files-upload(v-if="mode != 'save'",
-          title="Upload a file from this computer to the controller.",
-            @click="upload") #[.fa.fa-upload] Upload
-
-          form.file-upload(v-el:upload-form)
-            input(type="file", v-el:upload-form-input @change="do_upload")
-
         .files-location(v-for="name in locations", @click="open(name)",
           :class="{active: name == location}", :title="location_title(name)")
           .fa.fa-home(v-if="name == 'Home'")
@@ -55,21 +48,15 @@ script#files-template(type="text/x-template")
               :title="path_title($index)", @click="load_path($index)")
               | {{path}}
 
+          .files-upload(v-if="mode != 'save'")
+            button.pure-button.pure-button-primary(
+              title="Upload a file from this computer to the controller.",
+              @click="upload") #[.fa.fa-upload] Upload
+
           .new-folder
             button.pure-button(title="Create a new folder.",
               @click="new_folder", :disabled="10 < paths.length").
               #[.fa.fa-plus] New Folder
-
-            message(:show.sync="showNewFolder")
-              h3(slot="header") Folder Name
-              p(slot="body")
-                input(v-model="folder", @keyup.enter="create_folder")
-              div(slot="footer")
-                button.pure-button(@click="showNewFolder = false")
-                  | #[.fa.fa-times] Cancel
-                button.pure-button.pure-button-primary(
-                  :disabled="!folder_valid", @click="create_folder")
-                  | #[.fa.fa-plus] Create
 
         .files-list
           table
@@ -88,3 +75,14 @@ script#files-template(type="text/x-template")
                   {{file.name}}
                 td.size: span(v-if="!file.dir") {{file.size | size}}
                 td.modified {{file.modified | ago}}
+
+    message.new-folder(v-ref:new-folder, :show.sync="showNewFolder")
+      h3(slot="header") Folder Name
+      p(slot="body")
+        input(v-model="folder", @keyup.enter="create_folder", focus)
+      div(slot="footer")
+        button.pure-button(@click="showNewFolder = false")
+          | #[.fa.fa-times] Cancel
+        button.pure-button.pure-button-primary(
+          :disabled="!folder_valid", @click="create_folder")
+          | #[.fa.fa-plus] Create

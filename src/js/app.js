@@ -30,6 +30,7 @@
 var api    = require('./api');
 var cookie = require('./cookie');
 var Sock   = require('./sock');
+var util   = require('./util');
 
 
 function compare_versions(a, b) {
@@ -108,7 +109,9 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      showError: false
+      showError: false,
+      showPopup: true,
+      webGLSupported: util.webgl_supported()
     }
   },
 
@@ -122,12 +125,7 @@ module.exports = new Vue({
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),
     'view-camera':    {template: '#view-camera-template'},
-    'view-help':      {template: '#view-help-template'},
-    'view-license':   {template: '#view-license-template'},
-    'view-cheat-sheet': {
-      template: '#view-cheat-sheet-template',
-      data: function () {return {showUnimplemented: false}}
-    }
+    'view-docs':      require('./view-docs')
   },
 
 
@@ -137,6 +135,13 @@ module.exports = new Vue({
 
 
   events: {
+    route: function (path) {
+      if (typeof this.$options.components['view-' + path[0]] == 'undefined')
+        return location.hash = 'control';
+      else this.currentView = path[0];
+    },
+
+
     'hostname-changed': function (hostname) {this.hostname = hostname},
 
 
@@ -148,8 +153,8 @@ module.exports = new Vue({
     },
 
 
-    connected: function () {this.update()},
-    update: function () {this.update()},
+    connected: function () {this.update(this.parse_hash)},
+    update: function () {this.update(this.parse_hash)},
 
 
     check: function (show_message) {
@@ -210,6 +215,8 @@ module.exports = new Vue({
         if (!/^#/.test(text)) msgs.push(text);
       }
 
+      this.showPopup = msgs.length != 0;
+
       return msgs;
     },
 
@@ -224,6 +231,22 @@ module.exports = new Vue({
   ready: function () {
     $(window).on('hashchange', this.parse_hash);
     this.connect();
+
+    var warned = cookie.get_bool('webgl-warning', false);
+    if (util.webgl_supported() && !util.webgl_supported(true)) {
+      var msg = 'Your browser does not have hardware support for 3D ' +
+          'graphics.  3D viewer performance may be slow.'
+
+      console.warn(msg);
+
+      if (!warned)
+        this.open_dialog({
+          title: 'WebGL Warning',
+          body: msg,
+          buttons: 'ok',
+          callback: function () {cookie.set_bool('webgl-warning', true)}
+        });
+    }
   },
 
 
@@ -243,10 +266,9 @@ module.exports = new Vue({
     },
 
 
-    update: function () {
+    update: function (done) {
       api.get('config/load').done(function (config) {
         update_object(this.config, config, true);
-        this.parse_hash();
 
         if (!this.checkedUpgrade) {
           this.checkedUpgrade = true;
@@ -255,6 +277,8 @@ module.exports = new Vue({
           if (typeof check == 'undefined' || check)
             this.$emit('check');
         }
+
+        if (done != undefined) done(true);
       }.bind(this))
     },
 
@@ -301,22 +325,32 @@ module.exports = new Vue({
     },
 
 
+    route: function (path) {
+      var cancel = false;
+      var cb = function () {cancel = true}
+
+      this.$emit('route-changing', path, cb);
+      this.$broadcast('route-changing', path, cb);
+
+      if (cancel) return history.back();
+      this.$emit('route', path);
+      this.$broadcast('route', path);
+    },
+
+
+    replace_route: function (hash) {
+      history.replaceState(null, '', '#' + hash);
+      this.parse_hash()
+    },
+
+
     parse_hash: function () {
       var hash = location.hash.substr(1);
 
-      if (!hash.trim().length) {
-        location.hash = 'control';
-        return;
-      }
+      if (!hash.trim().length)
+        return location.hash = 'control';
 
-      var parts = hash.split(':');
-
-      if (typeof this.$options.components['view-' + parts[0]] == 'undefined') {
-        location.hash = 'control';
-        return;
-
-      } else this.currentView = parts[0];
-
+      this.route(hash.split(':'));
     },
 
 
@@ -332,16 +366,17 @@ module.exports = new Vue({
     },
 
 
-    file_dialog: function (config) {this.$refs.fileDialog.open(config)},
-    open_dialog: function (config) {this.$refs.dialog.open(config)},
-    error_dialog:   function (msg) {this.$refs.dialog.error(msg)},
-    warning_dialog: function (msg) {this.$refs.dialog.warning(msg)},
-    success_dialog: function (msg) {this.$refs.dialog.success(msg)},
+    file_dialog:    function (config) {this.$refs.fileDialog.open(config)},
+    upload:         function (config) {this.$refs.uploader.upload(config)},
+    open_dialog:    function (config) {this.$refs.dialog.open(config)},
+    error_dialog:   function (msg)    {this.$refs.dialog.error(msg)},
+    warning_dialog: function (msg)    {this.$refs.dialog.warning(msg)},
+    success_dialog: function (msg)    {this.$refs.dialog.success(msg)},
 
 
     api_error: function (msg, error) {
-      if (typeof error != 'undefined') {
-        if (typeof error.message != 'undefined')
+      if (error != undefined) {
+        if (error.message != undefined)
           msg += '\n' + error.message;
         else msg += '\n' + JSON.stringify(error);
       }

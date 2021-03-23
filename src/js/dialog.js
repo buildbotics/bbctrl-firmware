@@ -30,11 +30,21 @@
 
 function get_icon(action) {
   switch (action.toLowerCase()) {
-  case 'ok': case 'yes': return 'check';
-  case 'cancel': case 'no': return 'times';
+  case 'ok':     case 'yes': return 'check';
+  case 'cancel': case 'no':  return 'times';
+  case 'save':               return 'floppy-o';
+  case 'discard':            return 'trash';
   }
 
   return undefined
+}
+
+
+function make_button(button) {
+  if (typeof button == 'string') button = {text: button}
+  button.action = button.action || button.text.toLowerCase()
+  button.icon = button.icon || get_icon(button.action);
+  return button;
 }
 
 
@@ -79,19 +89,8 @@ module.exports = {
       if (typeof buttons == 'string') buttons = buttons.split(' ');
 
       this.buttons = [];
-      for (var i = 0; i < buttons.length; i++) {
-        if (typeof buttons[i] == 'string')
-          this.buttons.push({
-            action: buttons[i].toLowerCase(),
-            text: buttons[i],
-            icon: get_icon(buttons[i])
-          })
-
-        else {
-          buttons[i].action = buttons[i].action || buttons[i].text.toLowerCase()
-          this.buttons.push(buttons[i]);
-        }
-      }
+      for (var i = 0; i < buttons.length; i++)
+        this.buttons.push(make_button(buttons[i]))
 
       this.show = true;
     },

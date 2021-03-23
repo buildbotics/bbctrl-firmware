@@ -41,7 +41,7 @@ module.exports = {
     return {
       loading: false,
       path: undefined,
-      dirty: false,
+      modified: false,
       canRedo: false,
       canUndo: false,
       clipboard: ''
@@ -51,7 +51,7 @@ module.exports = {
 
   computed: {
     filename: function () {
-      return (this.dirty ? '* ' : '') +
+      return (this.modified ? '* ' : '') +
         (util.display_path(this.path) || '(unnamed)')
     },
 
@@ -65,6 +65,15 @@ module.exports = {
   watch: {
     'state.queued': function () {
       if (!this.path && this.state.queued) this.load(this.state.queued);
+    }
+  },
+
+
+  events: {
+    'route-changing': function (path, cancel) {
+      if (!this.modified || path[0] == 'editor') return;
+      cancel();
+      this.check_save(function () {location.hash = path.join(':')});
     }
   },
 
@@ -91,7 +100,7 @@ module.exports = {
 
   methods: {
     change: function () {
-      this.dirty = !this.doc.isClean()
+      this.modified = !this.doc.isClean()
 
       var size = this.doc.historySize();
       this.canRedo = !!size.redo;
@@ -99,7 +108,7 @@ module.exports = {
     },
 
 
-    do_load: function (path) {
+    do_load: function (path, ok) {
       if (!path) this.set_path();
       else {
         this.loading = true;
@@ -109,6 +118,7 @@ module.exports = {
             this.set_path(path);
             this.set(data);
             this.loading = false;
+            if (ok) ok();
 
           }.bind(this)).fail(function (text, xhr, status) {
             this.loading = false;
@@ -129,6 +139,7 @@ module.exports = {
     set_path: function (path) {
       this.path = path;
       cookie.set('selected-path', path || '');
+      this.editor.setOption('mode', util.get_highlight_mode(path))
     },
 
 
@@ -136,22 +147,36 @@ module.exports = {
       this.doc.setValue(text);
       this.doc.clearHistory();
       this.doc.markClean();
-      this.dirty = false;
+      this.modified = false;
       this.canRedo = false;
       this.canUndo = false;
     },
 
 
     check_save: function (ok) {
-      if (!this.dirty) ok();
-      else this.$root.open_dialog({
+      if (!this.modified) return ok();
+
+      this.$root.open_dialog({
         title: 'Save file?',
         body: 'The current file has been modified.  ' +
           'Would you like to save it first?',
-        buttons: 'Cancel No Yes',
+        width: '320px',
+        buttons: [
+          {
+            text: 'Cancel',
+            title: 'Stay on the editor page.'
+          }, {
+            text: 'Discard',
+            title: "Discard changes."
+          }, {
+            text: 'Save',
+            title: 'Save changes.',
+            'class': 'button-success'
+          }
+        ],
         callback: {
-          yes: function () {this.save(ok)}.bind(this),
-          no: ok
+          save: function () {this.save(ok)}.bind(this),
+          discard: function () {this.revert(ok)}.bind(this)
         }
       })
     },
@@ -185,7 +210,7 @@ module.exports = {
       api.upload('fs/' + path, fd)
         .done(function () {
           this.set_path(path);
-          this.dirty = false;
+          this.modified = false;
           this.doc.markClean();
           if (typeof ok != 'undefined') ok()
 
@@ -212,12 +237,12 @@ module.exports = {
     },
 
 
-    revert: function () {
-      if (this.dirty) {
+    revert: function (ok) {
+      if (this.modified) {
         var path = this.path;
         this.path = undefined;
-        this.dirty = false;
-        this.load(path)
+        this.modified = false;
+        this.do_load(path, ok);
       }
     },
 
@@ -230,11 +255,7 @@ module.exports = {
     },
 
 
-    view: function () {
-      this.check_save(function () {this.$root.view(this.path)}.bind(this))
-    },
-
-
+    view: function () {this.$root.view(this.path)},
     undo: function () {this.doc.undo()},
     redo: function () {this.doc.redo()},
 

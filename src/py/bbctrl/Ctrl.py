@@ -62,6 +62,7 @@ class Ctrl(object):
             self.mach = bbctrl.Mach(self, self.avr)
             self.preplanner = bbctrl.Preplanner(self)
             self.fs = bbctrl.FileSystem(self)
+            self.queue = bbctrl.ProgramQueue(self)
             if not args.demo: self.jog = bbctrl.Jog(self)
             self.pwr = bbctrl.Pwr(self)
 

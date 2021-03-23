@@ -161,8 +161,15 @@ module.exports = {
       var d2 = api.download('speeds/' + path, 'arraybuffer');
 
       $.when(d1, d2).done(function (positions, speeds) {
-        this.positions = new Float32Array(positions[0]);
+        console.log('Loaded ' + path);
+
+        this.positions = new Float32Array(positions[0])
         this.speeds = new Float32Array(speeds[0]);
+
+      }.bind(this)).fail(function () {
+        console.log('Loading ' + path + ' failed');
+
+      }.bind(this)).always(function () {
         this.loading = false;
         this.redraw();
         this.snap(this.snapView);
@@ -247,7 +254,10 @@ module.exports = {
     graphics: function () {
       try {
         // Renderer
-        this.renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true
+        });
         this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setClearColor(0, 0);
         this.target.appendChild(this.renderer.domElement);
@@ -354,9 +364,9 @@ module.exports = {
 
       var geometry = new THREE.BufferGeometry();
 
-      geometry.addAttribute
+      geometry.setAttribute
       ('position', new THREE.Float32BufferAttribute(this.vertices, 3));
-      geometry.addAttribute
+      geometry.setAttribute
       ('normal', new THREE.Float32BufferAttribute(this.normals, 3));
 
       geometry.computeBoundingSphere();
@@ -367,6 +377,8 @@ module.exports = {
 
 
     draw_tool: function (scene, bbox) {
+      if (bbox.isEmpty()) return new THREE.Group();
+
       // Tool size is relative to bounds
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 24;
@@ -462,6 +474,7 @@ module.exports = {
       grid.material = material;
       grid.rotation.x = Math.PI / 2;
 
+      grid.visible = this.show.grid;
       scene.add(grid);
 
       return grid;
@@ -522,6 +535,12 @@ module.exports = {
         transparent: true
       });
 
+      // Prevent any zero dimensions
+      bounds = bounds.clone();
+      if (bounds.min.x == bounds.max.x) bounds.max.x += 0.0000001;
+      if (bounds.min.y == bounds.max.y) bounds.max.y += 0.0000001;
+      if (bounds.min.z == bounds.max.z) bounds.max.z += 0.0000001;
+
       var box = new THREE.Box3Helper(bounds);
       box.material = material;
       group.add(box);
@@ -535,12 +554,14 @@ module.exports = {
       group.visible = this.show.dims;
       scene.add(group);
 
-      // Bounds
-      group.add(this.draw_box_dims(bbox, 0x0c2d53));
+      if (!bbox.isEmpty()) {
+        // Bounds
+        group.add(this.draw_box_dims(bbox, 0x0c2d53));
 
-      // Envelope
-      if (this.envelope)
-        group.add(this.draw_box_dims(this.envelope, 0x00f7ff));
+        // Envelope
+        if (this.envelope)
+          group.add(this.draw_box_dims(this.envelope, 0x00f7ff));
+      }
 
       return group;
     },
@@ -556,6 +577,8 @@ module.exports = {
 
 
     draw_path: function (scene) {
+      if (!this.positions.length) return new THREE.Group();
+
       var geometry = new THREE.BufferGeometry();
       var material =
           new THREE.LineBasicMaterial({
@@ -564,7 +587,7 @@ module.exports = {
           });
 
       var positions = new THREE.Float32BufferAttribute(this.positions, 3);
-      geometry.addAttribute('position', positions);
+      geometry.setAttribute('position', positions);
 
       var colors = [];
       for (var i = 0; i < this.speeds.length; i++) {
@@ -573,7 +596,7 @@ module.exports = {
       }
 
       colors = new THREE.Uint8BufferAttribute(colors, 3, true);
-      geometry.addAttribute('color', colors);
+      geometry.setAttribute('color', colors);
 
       geometry.computeBoundingSphere();
       geometry.computeBoundingBox();
@@ -600,12 +623,13 @@ module.exports = {
 
       // Compute bounding box
       var bbox = this.get_model_bounds();
+      var realBBox = this.get_model_bounds(true);
 
       // Tool, axes & bounds
-      this.toolView     = this.draw_tool(scene, bbox);
-      this.axesView     = this.draw_axes(scene, bbox);
-      this.gridView     = this.draw_grid(scene, bbox);
-      this.dimsView     = this.draw_dims(scene, bbox);
+      this.toolView = this.draw_tool(scene, realBBox);
+      this.axesView = this.draw_axes(scene, bbox);
+      this.gridView = this.draw_grid(scene, bbox);
+      this.dimsView = this.draw_dims(scene, realBBox);
     },
 
 
@@ -623,7 +647,7 @@ module.exports = {
     },
 
 
-    get_model_bounds: function () {
+    get_model_bounds: function (real) {
       var bbox = undefined;
 
       function add(o) {
@@ -638,6 +662,10 @@ module.exports = {
       add(this.pathView);
       add(this.surfaceMesh);
       add(this.workpieceMesh);
+
+      if (bbox.isEmpty() && !real)
+        bbox = new THREE.Box3(new THREE.Vector3(-10, -10, -10),
+                              new THREE.Vector3(10, 10, 10));
 
       return bbox;
     },
