@@ -21,6 +21,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Allow multiple file upload.
  - Moved documentation pages to ``DOCS`` page.
  - Show program messages in 3D view.
+ - Fix bug where rehoming fails after stop. #294
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.

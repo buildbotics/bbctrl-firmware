@@ -100,6 +100,9 @@ if [ $? -ne 0 ]; then
     REBOOT=true
 fi
 
+# Install splash
+cp src/splash/* /usr/share/plymouth/themes/buildbotics/
+
 # Install rc.local
 cp scripts/rc.local /etc/
 

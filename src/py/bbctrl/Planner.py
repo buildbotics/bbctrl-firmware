@@ -367,7 +367,7 @@ class Planner():
         if msg is not None: self._log_time(msg)
 
 
-    def load(self, path, done):
+    def load(self, path, done = None):
         if done is not None and self.end_cb is not None:
             raise Exception('End callback already set')
 
