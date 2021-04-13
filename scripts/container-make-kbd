@@ -1,0 +1,6 @@
+#!/bin/bash -ex
+
+cd /mnt/host
+
+# bbkbd
+make -C bbctrl-firmware/src/kbd

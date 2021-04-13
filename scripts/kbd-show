@@ -1,0 +1,6 @@
+#!/bin/bash
+
+FRAME=$(ratpoison -c curframe)
+if [ $FRAME -eq 0 ]; then FRAME=1; else FRAME=0;fi
+ratpoison -c "split 2/3"
+ratpoison -c "fselect $FRAME"

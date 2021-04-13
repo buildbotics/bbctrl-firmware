@@ -1,0 +1,45 @@
+#!/bin/bash -ex
+
+SHARE=share
+
+
+function update_repo() {
+  if [ ! -e $SHARE/$1 ]; then
+    if [[ "$2" == http* ]]; then
+      git clone "$2" $SHARE/$1 -b $3
+    else
+      mkdir -p $SHARE/$1
+      git -C $SHARE/$1 init
+    fi
+  fi
+
+  if [[ "$2" == http* ]]; then
+    git -C $SHARE/$1 fetch
+  else
+    git -C $SHARE/$1 fetch -t "$2" $3
+  fi
+
+  git -C $SHARE/$1 reset --hard FETCH_HEAD
+}
+
+
+mkdir -p $SHARE || true
+
+
+# C!
+if [ "$CBANG_HOME" != "" ]; then
+  update_repo cbang "$CBANG_HOME" master
+else
+  update_repo cbang https://github.com/CauldronDevelopmentLLC/cbang master
+fi
+
+# CAMotics
+if [ "$CAMOTICS_HOME" != "" ]; then
+  update_repo camotics "$CAMOTICS_HOME" master
+else
+  update_repo camotics https://github.com/CauldronDevelopmentLLC/camotics master
+fi
+
+
+# bbctrl-firmware
+update_repo bbctrl-firmware $PWD $(git branch --show-current)

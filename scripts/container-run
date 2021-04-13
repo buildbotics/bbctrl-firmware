@@ -1,0 +1,3 @@
+#!/bin/bash
+
+sudo lxc-attach -n bbctrl -- /bin/sh -c "cd /mnt/host; $@"

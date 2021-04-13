@@ -1,4 +1,5 @@
 ratpoison &
+(sleep 10; bbkbd -b 0.5 0 -S kbd-show -H kbd-hide) &
 
 xset -dpms
 xset s off

@@ -90,6 +90,10 @@ cp scripts/xinitrc ~pi/.xinitrc
 chmod +x ~pi/.xinitrc
 chown pi:pi ~pi/.xinitrc
 
+# Install ratpoisionrc
+cp scripts/ratpoisonrc ~pi/.ratpoisonrc
+chown pi:pi ~pi/.ratpoisonrc
+
 # Install bbserial
 MODSRC=src/bbserial/bbserial.ko
 MODDST=/lib/modules/$(uname -r)/kernel/drivers/tty/serial/bbserial.ko
@@ -105,6 +109,10 @@ cp src/splash/* /usr/share/plymouth/themes/buildbotics/
 
 # Install rc.local
 cp scripts/rc.local /etc/
+
+# Install bbkbd
+if [ ! -e /usr/local/bin/bbkbd ]; then REBOOT=true; fi
+cp src/kbd/bbkbd-arm /usr/local/bin/bbkbd
 
 # Install bbctrl
 if $UPDATE_PY; then
