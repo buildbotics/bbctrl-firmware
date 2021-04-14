@@ -19,7 +19,7 @@ if $UPDATE_PY; then
     # Update service
     mkdir -p /var/lib/bbctrl
     rm -f /etc/init.d/bbctrl
-    cp scripts/bbctrl.service /etc/systemd/system/
+    install scripts/bbctrl.service /etc/systemd/system/
     systemctl daemon-reload
     systemctl enable bbctrl
 fi
@@ -72,7 +72,7 @@ sed -i 's/^XKBLAYOUT="gb"$/XKBLAYOUT="us" # Comment stops change on upgrade/' \
 diff ./scripts/11-automount.rules /etc/udev/rules.d/11-automount.rules \
      >/dev/null
 if [ $? -ne 0 ]; then
-  cp ./scripts/11-automount.rules /etc/udev/rules.d/
+  install ./scripts/11-automount.rules /etc/udev/rules.d/
   sed -i 's/^\(MountFlags=slave\)/#\1/' \
       /lib/systemd/system/systemd-udevd.service
   REBOOT=true
@@ -86,36 +86,33 @@ if [ $? -ne 0 ]; then
 fi
 
 # Install xinitrc
-cp scripts/xinitrc ~pi/.xinitrc
-chmod +x ~pi/.xinitrc
-chown pi:pi ~pi/.xinitrc
+install -o pi -g pi -m 0555 scripts/xinitrc ~pi/.xinitrc
 
 # Install ratpoisionrc
-cp scripts/ratpoisonrc ~pi/.ratpoisonrc
-chown pi:pi ~pi/.ratpoisonrc
+install -o pi -g pi scripts/ratpoisonrc ~pi/.ratpoisonrc
 
 # Install bbserial
 MODSRC=src/bbserial/bbserial.ko
 MODDST=/lib/modules/$(uname -r)/kernel/drivers/tty/serial/bbserial.ko
 diff -q $MODSRC $MODDST 2>/dev/null >/dev/null
 if [ $? -ne 0 ]; then
-    cp $MODSRC $MODDST
+    install $MODSRC $MODDST
     depmod
     REBOOT=true
 fi
 
 # Install splash
-cp src/splash/* /usr/share/plymouth/themes/buildbotics/
+install -D src/splash/* /usr/share/plymouth/themes/buildbotics/
 
 # Install rc.local
-cp scripts/rc.local /etc/
+install scripts/rc.local /etc/
 
 # Install bbkbd
 diff share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/bbkbd 2>&1 >/dev/null
 if [ $? -ne 0 ]; then
   REBOOT=true
   killall -9 bbkbd
-  cp share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/
+  install -m 0555 share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/
 fi
 
 # Remove xontab keyboard
