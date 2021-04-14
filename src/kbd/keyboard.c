@@ -28,21 +28,22 @@
 #include "keyboard.h"
 
 #include <X11/Xatom.h>
+#include <X11/Xcursor/Xcursor.h>
 
 #include <signal.h>
+#include <unistd.h>
 
 
-static int create_window(Display *dpy, int root, const char *name, Dim dim,
-                         int x, int y, bool override, unsigned long fg,
-                         unsigned long bg) {
+static int create_window(Display *dpy, int root, const char *name, int w, int h,
+                         int x, int y, unsigned long fg, unsigned long bg) {
   XSetWindowAttributes wa;
-  wa.override_redirect = override;
+  wa.override_redirect = false;
   wa.border_pixel = fg;
   wa.background_pixel = bg;
 
   int win = XCreateWindow
-    (dpy, root, x, y, dim.width, dim.height, 0, CopyFromParent, CopyFromParent,
-     CopyFromParent, CWOverrideRedirect | CWBorderPixel | CWBackingPixel, &wa);
+    (dpy, root, x, y, w, h, 0, CopyFromParent, CopyFromParent, CopyFromParent,
+     CWOverrideRedirect | CWBorderPixel | CWBackingPixel, &wa);
 
   // Enable window events
   XSelectInput(dpy, win, StructureNotifyMask | ButtonReleaseMask |
@@ -73,6 +74,10 @@ static int create_window(Display *dpy, int root, const char *name, Dim dim,
   XChangeProperty(dpy, win, atom, XA_ATOM, 32, PropModeReplace,
                   (unsigned char *)&type, 1);
 
+  // Set cursor
+  Cursor c = XcursorLibraryLoadCursor(dpy, "hand1");
+  XDefineCursor(dpy, win, c);
+
   return win;
 }
 
@@ -81,10 +86,13 @@ static bool is_modifier(Key *k) {return k && IsModifierKey(k->keysym);}
 
 
 static int key_scheme(Keyboard *kbd, Key *k) {
-  if (k->pressed) return SchemePress;
+  if (k->pressed || (kbd->shift && k->keysym == XK_Shift_L) ||
+      (kbd->meta && k->keysym == XK_Cancel))
+    return SchemePress;
+
   if (k == kbd->focus) return SchemeHighlight;
-  if (k->keysym == XK_Return || (XK_a <= k->keysym && k->keysym <= XK_z) ||
-      (XK_Cyrillic_io <= k->keysym && k->keysym <= XK_Cyrillic_hardsign))
+
+  if (!is_modifier(k) && k->keysym != XK_space && k->keysym != XK_Cancel)
     return SchemeNormABC;
 
   return SchemeNorm;
@@ -92,12 +100,15 @@ static int key_scheme(Keyboard *kbd, Key *k) {
 
 
 Key *keyboard_find_key(Keyboard *kbd, int x, int y) {
-  Key *keys = kbd->keys;
 
-  for (int i = 0; i < kbd->nkeys; i++)
-    if (keys[i].keysym && keys[i].x < x && x < keys[i].x + keys[i].w &&
-        keys[i].y < y && y < keys[i].y + keys[i].h)
-      return &keys[i];
+  for (int r = 0; r < kbd->rows; r++) {
+    Key *keys = kbd->keys[r];
+
+    for (int c = 0; keys[c].keysym; c++)
+      if (keys[c].x < x && x < keys[c].x + keys[c].w &&
+          keys[c].y < y && y < keys[c].y + keys[c].h)
+        return &keys[c];
+  }
 
   return 0;
 }
@@ -111,7 +122,7 @@ void keyboard_draw_key(Keyboard *kbd, Key *k) {
 
   const char *label = k->label;
   if (!label) label = XKeysymToString(k->keysym);
-  if (kbd->shifted && k->label2) label = k->label2;
+  if (kbd->shift && k->label2) label = k->label2;
 
   int h = drw->fonts[0].xfont->height * 2;
   int y = k->y + (k->h - h) / 2;
@@ -124,33 +135,34 @@ void keyboard_draw_key(Keyboard *kbd, Key *k) {
 
 
 void keyboard_draw(Keyboard *kbd) {
-  for (int i = 0; i < kbd->nkeys; i++)
-    if (kbd->keys[i].keysym)
-      keyboard_draw_key(kbd, &kbd->keys[i]);
+  drw_setscheme(kbd->drw, kbd->scheme[SchemeBG]);
+  drw_rect(kbd->drw, 0, 0, kbd->w, kbd->h, 1, 1);
+  drw_map(kbd->drw, kbd->win, 0, 0, kbd->w, kbd->h);
+
+  for (int r = 0; r < kbd->rows; r++)
+    for (int c = 0; kbd->keys[r][c].keysym; c++)
+      keyboard_draw_key(kbd, &kbd->keys[r][c]);
 }
 
 
-void keyboard_update(Keyboard *kbd) {
-  int y = 0;
-  int r = kbd->nrows;
-  int h = (kbd->dim.height - 1) / r;
-  Key *keys = kbd->keys;
+void keyboard_layout(Keyboard *kbd) {
+  int w = (kbd->w - kbd->space) / kbd->cols;
+  int h = (kbd->h - kbd->space) / kbd->rows;
+  int y = (kbd->h - h * kbd->rows + kbd->space) / 2;
+  int xOffset = (kbd->w - w * kbd->cols + kbd->space) / 2;
 
-  for (int i = 0; i < kbd->nkeys; i++, r--) {
-    int base = 0;
+  for (int r = 0; r < kbd->rows; r++) {
+    Key *keys = kbd->keys[r];
+    int x = xOffset;
 
-    for (int j = i; j < kbd->nkeys && keys[j].keysym; j++)
-      base += keys[j].width;
-
-    for (int x = 0; i < kbd->nkeys && keys[i].keysym; i++) {
-      keys[i].x = x;
-      keys[i].y = y;
-      keys[i].w = keys[i].width * (kbd->dim.width - 1) / base;
-      keys[i].h = r == 1 ? kbd->dim.height - y - 1 : h;
-      x += keys[i].w;
+    for (int c = 0; keys[c].keysym; c++) {
+      keys[c].x = x;
+      keys[c].y = y;
+      keys[c].w = keys[c].width * w - kbd->space;
+      keys[c].h = h - kbd->space;
+      x += keys[c].w + kbd->space;
     }
 
-    if (base) keys[i - 1].w = kbd->dim.width - 1 - keys[i - 1].x;
     y += h;
   }
 
@@ -158,58 +170,31 @@ void keyboard_update(Keyboard *kbd) {
 }
 
 
-void keyboard_init_layer(Keyboard *kbd) {
-  Key *layer = kbd->layers[kbd->layer];
-
-  // Count keys
-  kbd->nkeys = 0;
-
-  for (int i = 0; ; i++) {
-    if (0 < i && !layer[i].keysym && !layer[i - 1].keysym) {
-      kbd->nkeys--;
-      break;
-    }
-
-    kbd->nkeys++;
-  }
-
-  kbd->keys = calloc(1, sizeof(Key) * kbd->nkeys);
-  memcpy(kbd->keys, layer, sizeof(Key) * kbd->nkeys);
-
-  // Count rows
-  kbd->nrows = 1;
-
-  for (int i = 0; i < kbd->nkeys; i++)
-    if (!kbd->keys[i].keysym) {
-      kbd->nrows++;
-
-      if (i && !kbd->keys[i - 1].keysym) {
-        kbd->nrows--;
-        break;
-      }
-    }
-}
-
-
-void keyboard_next_layer(Keyboard *kbd) {
-  if (!kbd->layers[++kbd->layer]) kbd->layer = 0;
-
-  print_dbg("Cycling to layer %d\n", kbd->layer);
-
-  keyboard_init_layer(kbd);
-  keyboard_update(kbd);
-}
-
-
 void keyboard_press_key(Keyboard *kbd, Key *k) {
   if (k->pressed) return;
 
-  if (k->keysym == XK_Shift_L || k->keysym == XK_Shift_R) {
-    kbd->shifted = true;
+  if (k->keysym == XK_Cancel) {
+    kbd->meta = !kbd->meta;
+    keyboard_draw_key(kbd, k);
+    return;
+  }
+
+  if (k->keysym == XK_Shift_L) {
+    kbd->shift = !kbd->shift;
+    simulate_key(kbd->drw->dpy, XK_Shift_L, kbd->shift);
+    keyboard_draw(kbd);
+    return;
+  }
+
+  if (!is_modifier(k) && kbd->meta) {
+    simulate_key(kbd->drw->dpy, XK_Super_L, true);
+    usleep(100000);
+    simulate_key(kbd->drw->dpy, XK_Super_L, false);
+    usleep(100000);
+    kbd->meta = false;
     keyboard_draw(kbd);
   }
 
-  simulate_key(kbd->drw->dpy, k->modifier, true);
   simulate_key(kbd->drw->dpy, k->keysym, true);
   k->pressed = true;
   keyboard_draw_key(kbd, k);
@@ -219,26 +204,21 @@ void keyboard_press_key(Keyboard *kbd, Key *k) {
 void keyboard_unpress_key(Keyboard *kbd, Key *k) {
   if (!k->pressed) return;
 
-  if (k->keysym == XK_Shift_L || k->keysym == XK_Shift_R) {
-    kbd->shifted = false;
-    keyboard_draw(kbd);
-  }
-
   simulate_key(kbd->drw->dpy, k->keysym, false);
-  simulate_key(kbd->drw->dpy, k->modifier, false);
   k->pressed = false;
   keyboard_draw_key(kbd, k);
 }
 
 
 void keyboard_unpress_all(Keyboard *kbd) {
-  for (int i = 0; i < kbd->nkeys; i++)
-    keyboard_unpress_key(kbd, &kbd->keys[i]);
+  for (int r = 0; r < kbd->rows; r++)
+    for (int c = 0; kbd->keys[r][c].keysym; c++)
+      keyboard_unpress_key(kbd, &kbd->keys[r][c]);
 }
 
 
-void keyboard_mouse_motion(Keyboard *kbd, int x, int y) {
-  Key *k = keyboard_find_key(kbd, x, y);
+void keyboard_mouse_motion(Keyboard *kbd, XMotionEvent *e) {
+  Key *k = e ? keyboard_find_key(kbd, e->x, e->y) : 0;
   Key *focus = kbd->focus;
 
   if (k == focus) return;
@@ -247,7 +227,7 @@ void keyboard_mouse_motion(Keyboard *kbd, int x, int y) {
   if (focus && !is_modifier(focus))
     keyboard_unpress_key(kbd, focus);
 
-  if (k && kbd->is_pressing && !is_modifier(k))
+  if (k && kbd->pressed && !is_modifier(k))
     keyboard_press_key(kbd, k);
 
   if (k) keyboard_draw_key(kbd, k);
@@ -255,59 +235,55 @@ void keyboard_mouse_motion(Keyboard *kbd, int x, int y) {
 }
 
 
-void keyboard_mouse_press(Keyboard *kbd, int x, int y) {
-  kbd->is_pressing = true;
-
-  Key *k = keyboard_find_key(kbd, x, y);
+void keyboard_mouse_press(Keyboard *kbd, XButtonEvent *e) {
+  Key *k = keyboard_find_key(kbd, e->x, e->y);
   if (k) {
-    if (is_modifier(k) && k->pressed) keyboard_unpress_key(kbd, k);
-    else keyboard_press_key(kbd, k);
+    if (is_modifier(k)) {
+      if (k->pressed) keyboard_unpress_key(kbd, k);
+      else keyboard_press_key(kbd, k);
+
+    } else {
+      keyboard_press_key(kbd, k);
+      kbd->pressed = k;
+    }
   }
 }
 
 
-void keyboard_mouse_release(Keyboard *kbd, int x, int y) {
-  kbd->is_pressing = false;
-
-  Key *k = keyboard_find_key(kbd, x, y);
-  if (k) {
-    switch (k->keysym) {
-    case XK_Cancel: keyboard_next_layer(kbd); break;
-    case XK_Break: raise(SIGINT); break;
-    default: break;
-    }
-
-    if (!is_modifier(k)) keyboard_unpress_all(kbd);
+void keyboard_mouse_release(Keyboard *kbd, XButtonEvent *e) {
+  if (kbd->pressed) {
+    keyboard_unpress_key(kbd, kbd->pressed);
+    kbd->pressed = 0;
   }
 }
 
 
 void keyboard_resize(Keyboard *kbd, int width, int height) {
-  if (width == kbd->dim.width && height == kbd->dim.height) return;
+  if (width == kbd->w && height == kbd->h) return;
 
-  kbd->dim.width = width;
-  kbd->dim.height = height;
+  kbd->w = width;
+  kbd->h = height;
   drw_resize(kbd->drw, width, height);
-  keyboard_update(kbd);
+  keyboard_layout(kbd);
 }
 
 
 void keyboard_event(Keyboard *kbd, XEvent *e) {
   switch (e->type) {
-  case LeaveNotify: keyboard_mouse_motion(kbd, -1, -1); break;
+  case LeaveNotify: keyboard_mouse_motion(kbd, 0); break;
 
   case MotionNotify:
-    keyboard_mouse_motion(kbd, e->xmotion.x, e->xmotion.y);
+    keyboard_mouse_motion(kbd, &e->xmotion);
     break;
 
   case ButtonPress:
     if (e->xbutton.button == 1)
-      keyboard_mouse_press(kbd, e->xbutton.x, e->xbutton.y);
+      keyboard_mouse_press(kbd, &e->xbutton);
     break;
 
   case ButtonRelease:
     if (e->xbutton.button == 1)
-      keyboard_mouse_release(kbd, e->xbutton.x, e->xbutton.y);
+      keyboard_mouse_release(kbd, &e->xbutton);
     break;
 
   case ConfigureNotify:
@@ -332,26 +308,43 @@ void keyboard_toggle(Keyboard *kbd) {
 }
 
 
-Keyboard *keyboard_create(Display *dpy, Key **layers, const char *font,
+Keyboard *keyboard_create(Display *dpy, Key **keys, int space, const char *font,
                           const char *colors[SchemeLast][2]) {
   Keyboard *kbd = calloc(1, sizeof(Keyboard));
-  kbd->layers = layers;
+  kbd->space = space;
+
+  // Count rows & colums
+  for (; keys[kbd->rows]; kbd->rows++) {
+    Key *row = keys[kbd->rows];
+
+    int cols;
+    for (cols = 0; row[cols].keysym; cols++) continue;
+    if (kbd->cols < cols) kbd->cols = cols;
+  }
+
+  kbd->keys = calloc(kbd->rows, sizeof(Key *));
+
+  // Copy keys
+  for (int r = 0; r < kbd->rows; r++) {
+    kbd->keys[r] = calloc(kbd->cols + 1, sizeof(Key));
+
+    for (int c = 0; keys[r][c].keysym; c++)
+      kbd->keys[r][c] = keys[r][c];
+  }
 
   // Init screen
   int screen = DefaultScreen(dpy);
   Window root = RootWindow(dpy, screen);
 
-  // Get display size
+  // Dimensions
   Dim dim = get_display_dims(dpy, screen);
-
-  // Init keyboard layer
-  keyboard_init_layer(kbd); // Computes kbd->nrows
-  kbd->dim.width = dim.width;
-  kbd->dim.height = dim.height * kbd->nrows / 18;
+  kbd->w = dim.width;
+  kbd->h = kbd->rows * 50;
+  kbd->x = 0;
+  kbd->y = dim.height - kbd->h;
 
   // Create drawable
-  Drw *drw = kbd->drw =
-    drw_create(dpy, screen, root, kbd->dim.width, kbd->dim.height);
+  Drw *drw = kbd->drw = drw_create(dpy, screen, root, kbd->w, kbd->h);
 
   // Setup fonts
   if (!drw_fontset_create(drw, &font, 1)) die("no fonts could be loaded");
@@ -363,13 +356,12 @@ Keyboard *keyboard_create(Display *dpy, Key **layers, const char *font,
   drw_setscheme(drw, kbd->scheme[SchemeNorm]);
 
   // Create window
-  int y = dim.height - kbd->dim.height;
   Clr *clr = kbd->scheme[SchemeNorm];
-  kbd->win = create_window(dpy, root, "bbkbd", kbd->dim, 0, y, false,
+  kbd->win = create_window(dpy, root, "bbkbd", kbd->w, kbd->h, kbd->x, kbd->y,
                            clr[ColFg].pixel, clr[ColBg].pixel);
 
   // Init keyboard
-  keyboard_update(kbd);
+  keyboard_layout(kbd);
 
   return kbd;
 }
@@ -391,6 +383,10 @@ void keyboard_destroy(Keyboard *kbd) {
   XSync(dpy, false);
   XSetInputFocus(dpy, PointerRoot, RevertToPointerRoot, CurrentTime);
 
-  free(kbd->keys);
+  if (kbd->keys) {
+    for (int r = 0; r < kbd->rows; r++)
+      free(kbd->keys[r]);
+    free(kbd->keys);
+  }
   free(kbd);
 }

@@ -11,4 +11,8 @@ include scripts/xinitrc
 include scripts/rc.local
 include scripts/bbctrl.service
 include scripts/11-automount.rules
+include scripts/kbd-show
+include scripts/kbd-hide
+include scripts/ratpoisonrc
+include share/bbctrl-firmware/src/kbd/bbkbd
 global-exclude .gitignore

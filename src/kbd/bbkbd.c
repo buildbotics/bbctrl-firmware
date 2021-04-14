@@ -34,12 +34,15 @@
 #include <signal.h>
 #include <locale.h>
 
-#define DEFAULT_FONT "DejaVu Sans:bold:size=22"
+#define DEFAULT_FONT "DejaVu Sans:size=18"
 
 static const char *font = DEFAULT_FONT;
-static int button_x = -60;
-static int button_y = 0;
+static float button_x = 1;
+static float button_y = 0;
 static bool running = true;
+static const char *show_cmd = 0;
+static const char *hide_cmd = 0;
+static int space = 4;
 
 
 void signaled(int sig) {
@@ -55,7 +58,10 @@ void usage(char *argv0, int ret) {
     "  -h         - Print this help screen and exit\n"
     "  -d         - Enable debug\n"
     "  -f <font>  - Font string, default: " DEFAULT_FONT "\n"
-    "  -b <x> <y> - Button screen position.\n";
+    "  -b <x> <y> - Button screen position. Values between 0 and 1.\n"
+    "  -S <cmd>   - Command to run before showing the keyboard.\n"
+    "  -H <cmd>   - Command to run after hiding the keyboard.\n"
+    "  -s <int>   - Space between buttons.\n";
 
   fprintf(ret ? stderr : stdout, usage, argv0);
   exit(ret);
@@ -72,14 +78,33 @@ void parse_args(int argc, char *argv[]) {
 
     } else if (!strcmp(argv[i], "-b")) {
       if (argc - 2 <= i) usage(argv[0], 1);
-      button_x = atoi(argv[++i]);
-      button_y = atoi(argv[++i]);
+      button_x = atof(argv[++i]);
+      button_y = atof(argv[++i]);
+
+    } else if (!strcmp(argv[i], "-S")) {
+      if (argc - 1 <= i) usage(argv[0], 1);
+      show_cmd = argv[++i];
+
+    } else if (!strcmp(argv[i], "-H")) {
+      if (argc - 1 <= i) usage(argv[0], 1);
+      hide_cmd = argv[++i];
+
+    } else if (!strcmp(argv[i], "-s")) {
+      if (argc - 1 <= i) usage(argv[0], 1);
+      space = atoi(argv[++i]);
 
     } else {
       fprintf(stderr, "Invalid argument: %s\n", argv[i]);
       usage(argv[0], 1);
     }
   }
+}
+
+
+void button_callback(Keyboard *kbd) {
+  if (!kbd->visible && show_cmd) system(show_cmd);
+  keyboard_toggle(kbd);
+  if (!kbd->visible && hide_cmd) system(hide_cmd);
 }
 
 
@@ -97,11 +122,10 @@ int main(int argc, char *argv[]) {
   Display *dpy = XOpenDisplay(0);
   if (!dpy) die("cannot open display");
 
-  int size = 60;
-  Button *btn = button_create(dpy, 0, button_x, button_y, size, size * 0.5,
-                              font);
-  Keyboard *kbd = keyboard_create(dpy, layers, font, colors);
-  btn->kbd = kbd;
+  Button *btn = button_create(dpy, button_x, button_y, 55, 35, font);
+  Keyboard *kbd = keyboard_create(dpy, keys, space, font, colors);
+
+  button_set_callback(btn, button_callback, kbd);
 
   // Event loop
   while (running) {

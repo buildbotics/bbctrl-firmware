@@ -111,8 +111,15 @@ cp src/splash/* /usr/share/plymouth/themes/buildbotics/
 cp scripts/rc.local /etc/
 
 # Install bbkbd
-if [ ! -e /usr/local/bin/bbkbd ]; then REBOOT=true; fi
-cp src/kbd/bbkbd-arm /usr/local/bin/bbkbd
+diff share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/bbkbd 2>&1 >/dev/null
+if [ $? -ne 0 ]; then
+  REBOOT=true
+  killall -9 bbkbd
+  cp share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/
+fi
+
+# Remove xontab keyboard
+rm -rf /home/pi/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlfninn
 
 # Install bbctrl
 if $UPDATE_PY; then

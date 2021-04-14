@@ -11,10 +11,10 @@ RESOURCES  := $(shell find src/resources -type f)
 RESOURCES  := $(patsubst src/resources/%,$(TARGET_DIR)/%,$(RESOURCES))
 TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
-AVR_FIRMWARE := src/avr/bbctrl-avr-firmware.hex
-CAMOTICS_MOD    := rpi-share/camotics/build/camotics.so
+SHARE           := share
+AVR_FIRMWARE    := src/avr/bbctrl-avr-firmware.hex
+CAMOTICS_MOD    := $(SHARE)/camotics/build/camotics.so
 CAMOTICS_TARGET := src/py/bbctrl/camotics.so
-CAMOTICS_IMG    := camotics-dev.img
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
@@ -54,7 +54,7 @@ bbemu:
 	$(MAKE) -C src/avr/emu
 
 pkg: all $(AVR_FIRMWARE) bbserial
-	cp -a rpi-share/camotics/tpl_lib src/py/bbctrl/
+	cp -a $(SHARE)/camotics/tpl_lib src/py/bbctrl/
 	./setup.py sdist
 
 beta-pkg: pkg
@@ -63,22 +63,19 @@ beta-pkg: pkg
 bbserial:
 	$(MAKE) -C src/bbserial
 
+container-update:
+	./scripts/container-update
+
 camotics: $(CAMOTICS_TARGET)
 
 $(CAMOTICS_TARGET): $(CAMOTICS_MOD)
 	cp $< $@
 
-$(CAMOTICS_MOD): $(CAMOTICS_IMG)
-	./scripts/camotics-init-build.sh
-	git -C rpi-share/cbang fetch
-	git -C rpi-share/cbang reset --hard FETCH_HEAD
-	git -C rpi-share/camotics fetch
-	git -C rpi-share/camotics reset --hard FETCH_HEAD
-	cp ./scripts/camotics-build.sh rpi-share/
-	sudo ./scripts/rpi-chroot.sh $(CAMOTICS_IMG) /mnt/host/camotics-build.sh
+$(CAMOTICS_MOD): container-update
+	./scripts/container-run ./bbctrl-firmware/scripts/container-make-camotics
 
-$(CAMOTICS_IMG):
-	./scripts/camotics-init-build.sh
+bbkbd: container-update
+	./scripts/container-run ./bbctrl-firmware/scripts/container-make-kbd
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):

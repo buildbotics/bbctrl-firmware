@@ -34,15 +34,16 @@
 
 
 enum {
-  SchemeNorm, SchemeNormABC, SchemePress, SchemeHighlight, SchemeLast
+  SchemeNorm, SchemeNormABC, SchemePress, SchemeHighlight, SchemeBG, SchemeLast
 };
+
+typedef void (*keyboard_show_cb)(bool show);
 
 typedef struct {
   char *label;
   char *label2;
   KeySym keysym;
   unsigned width;
-  KeySym modifier;
   int x, y, w, h;
   bool pressed;
 } Key;
@@ -50,24 +51,30 @@ typedef struct {
 typedef struct {
   Window win;
   Drw *drw;
-  Dim dim;
-  int layer;
-  int nrows;
-  int nkeys;
-  bool is_pressing;
-  bool shifted;
+
+  int space;
+  int w, h;
+  int x, y;
+  int rows;
+  int cols;
+
+  bool meta;
+  bool shift;
   bool visible;
 
+  Key *pressed;
   Key *focus;
-  Key **layers;
-  Key *keys;
+  Key **keys;
+
   char *font;
   Clr *scheme[SchemeLast];
+
+  keyboard_show_cb show_cb;
 } Keyboard;
 
 
 void keyboard_destroy(Keyboard *kbd);
-Keyboard *keyboard_create(Display *dpy, Key **layers, const char *font,
+Keyboard *keyboard_create(Display *dpy, Key **keys, int space, const char *font,
                           const char *colors[SchemeLast][2]);
 
 void keyboard_event(Keyboard *kbd, XEvent *e);

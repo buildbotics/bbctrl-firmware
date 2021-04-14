@@ -29,6 +29,7 @@
 #include "util.h"
 
 #include <X11/Xatom.h>
+#include <X11/Xcursor/Xcursor.h>
 
 
 void button_draw(Button *btn) {
@@ -47,6 +48,12 @@ void button_draw(Button *btn) {
 
 void button_event(Button *btn, XEvent *e) {
   switch (e->type) {
+  case VisibilityNotify: {
+    if (e->xvisibility.state == VisibilityFullyObscured)
+      XRaiseWindow(btn->drw->dpy, btn->win);
+    break;
+  }
+
   case MotionNotify: {
     int x = e->xmotion.x;
     int y = e->xmotion.y;
@@ -57,8 +64,8 @@ void button_event(Button *btn, XEvent *e) {
   case ButtonPress: break;
 
   case ButtonRelease:
-    if (e->xbutton.button == 1 && btn->mouse_in && btn->kbd)
-      keyboard_toggle(btn->kbd);
+    if (e->xbutton.button == 1 && btn->mouse_in && btn->cb)
+      btn->cb(btn->cb_data);
     break;
 
   case Expose: if (!e->xexpose.count) button_draw(btn); break;
@@ -66,18 +73,23 @@ void button_event(Button *btn, XEvent *e) {
 }
 
 
-Button *button_create(Display *dpy, Keyboard *kbd, int x, int y, int w, int h,
+void button_set_callback(Button *btn, button_cb cb, void *data) {
+  btn->cb = cb;
+  btn->cb_data = data;
+}
+
+
+Button *button_create(Display *dpy, float x, float y, int w, int h,
                       const char *font) {
   Button *btn = (Button *)calloc(1, sizeof(Button));
-  btn->kbd = kbd;
 
   int screen = DefaultScreen(dpy);
   Window root = RootWindow(dpy, screen);
 
   // Dimensions
   Dim dim = get_display_dims(dpy, screen);
-  x = x < 0 ? dim.width - w : 0;
-  y = y < 0 ? dim.height - h : 0;
+  x *= dim.width - w;
+  y *= dim.height - h;
   btn->w = w;
   btn->h = h;
 
@@ -101,7 +113,7 @@ Button *button_create(Display *dpy, Keyboard *kbd, int x, int y, int w, int h,
 
   // Enable window events
   XSelectInput(dpy, btn->win, ButtonReleaseMask | ButtonPressMask |
-               ExposureMask | PointerMotionMask);
+               ExposureMask | PointerMotionMask | VisibilityChangeMask);
 
   // Set window properties
   XWMHints *wmHints = XAllocWMHints();
@@ -127,6 +139,10 @@ Button *button_create(Display *dpy, Keyboard *kbd, int x, int y, int w, int h,
   Atom type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_UTILITY", false);
   XChangeProperty(dpy, btn->win, atom, XA_ATOM, 32, PropModeReplace,
                   (unsigned char *)&type, 1);
+
+  // Set cursor
+  Cursor c = XcursorLibraryLoadCursor(dpy, "hand2");
+  XDefineCursor(dpy, btn->win, c);
 
   // Raise window to top of stack
   XMapRaised(dpy, btn->win);

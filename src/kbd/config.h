@@ -31,15 +31,35 @@
 
 
 static const char *colors[SchemeLast][2] = {
-  //                         fg         bg
-  [SchemeNorm]           = {"#bbbbbb", "#132a33"},
-  [SchemeNormABC]        = {"#ffffff", "#14313d"},
-  [SchemePress]          = {"#ffffff", "#259937"},
-  [SchemeHighlight]      = {"#58a7c6", "#005577"},
+  //                    fg         bg
+  [SchemeNorm]       = {"#bbbbbb", "#272a2b"},
+  [SchemeNormABC]    = {"#ffffff", "#383c3d"},
+  [SchemePress]      = {"#ffffff", "#e5aa3d"},
+  [SchemeHighlight]  = {"#bbbbbb", "#666666"},
+  [SchemeBG]         = {"#ffffff", "#000000"},
 };
 
 
-static Key _main[] = {
+static Key row0[] = {
+  {"`", "~", XK_grave, 1},
+  {"1", "!", XK_1, 1},
+  {"2", "@", XK_2, 1},
+  {"3", "#", XK_3, 1},
+  {"4", "$", XK_4, 1},
+  {"5", "%", XK_5, 1},
+  {"6", "^", XK_6, 1},
+  {"7", "&", XK_7, 1},
+  {"8", "*", XK_8, 1},
+  {"9", "(", XK_9, 1},
+  {"0", ")", XK_0, 1},
+  {"-", "_", XK_minus, 1},
+  {"=", "+", XK_equal, 1},
+  {"Back", 0, XK_BackSpace, 1},
+  {0}
+};
+
+static Key row1[] = {
+  {"Tab ➡", "Tab ⬅", XK_Tab, 1},
   {"q", "Q", XK_q, 1},
   {"w", "W", XK_w, 1},
   {"e", "E", XK_e, 1},
@@ -50,13 +70,14 @@ static Key _main[] = {
   {"i", "I", XK_i, 1},
   {"o", "O", XK_o, 1},
   {"p", "P", XK_p, 1},
-  {"7", "&", XK_7, 1},
-  {"8", "*", XK_8, 1},
-  {"9", "(", XK_9, 1},
-  {"-", "_", XK_minus, 1},
+  {"[", "{", XK_bracketleft, 1},
+  {"]", "}", XK_bracketright, 1},
+  {"\\", "|", XK_backslash, 1},
+  {0}
+};
 
-  {0}, // New row
-
+static Key row2[] = {
+  {"Esc", 0, XK_Escape, 1},
   {"a", "A", XK_a, 1},
   {"s", "S", XK_s, 1},
   {"d", "D", XK_d, 1},
@@ -67,13 +88,13 @@ static Key _main[] = {
   {"k", "K", XK_k, 1},
   {"l", "L", XK_l, 1},
   {";", ":", XK_colon, 1},
-  {"4", "$", XK_4, 1},
-  {"5", "%", XK_5, 1},
-  {"6", "^", XK_6, 1},
-  {"=", "+", XK_equal, 1},
+  {"\"", "'", XK_quotedbl, 1},
+  {"↲ Enter", 0, XK_Return, 2},
+  {0}
+};
 
-  {0}, // New row
-
+static Key row3[] = {
+  {"⬆ Shift", 0, XK_Shift_L, 2},
   {"z", "Z", XK_z, 1},
   {"x", "X", XK_x, 1},
   {"c", "C", XK_c, 1},
@@ -81,151 +102,18 @@ static Key _main[] = {
   {"b", "B", XK_b, 1},
   {"n", "N", XK_n, 1},
   {"m", "M", XK_m, 1},
-  {"Tab", 0, XK_Tab, 1},
-  {"⇍ Bksp", 0, XK_BackSpace, 2},
-  {"1", "!", XK_1, 1},
-  {"2", "@", XK_2, 1},
-  {"3", "#", XK_3, 1},
-  {"/", "?", XK_slash, 1},
-
-  {0}, // New row
-  {"⌨", 0, XK_Cancel, 1},
-  {"Shift", 0, XK_Shift_L, 1},
-  {"↓", 0, XK_Down, 1},
-  {"↑", 0, XK_Up, 1},
-  {"Space", 0, XK_space, 2},
-  {"Esc", 0, XK_Escape, 1},
-  {"Ctrl", 0, XK_Control_L, 1},
-  {"↲ Enter", 0, XK_Return, 2},
-  {"0", ")", XK_0, 1},
-  {",", "<", XK_comma, 1},
-  {".", ">", XK_period, 1},
-  {"\\", "|", XK_slash, 1},
-
-  {0}, {0} // End
-};
-
-
-static Key _alt[] = {
-  {0, 0, XK_Q, 1},
-  {0, 0, XK_W, 1},
-  {0, 0, XK_E, 1},
-  {0, 0, XK_R, 1},
-  {0, 0, XK_T, 1},
-  {0, 0, XK_Y, 1},
-  {0, 0, XK_U, 1},
-  {0, 0, XK_I, 1},
-  {0, 0, XK_O, 1},
-  {0, 0, XK_P, 1},
-  {"7", 0, XK_7, 1},
-  {"8", 0, XK_8, 1},
-  {"9", 0, XK_9, 1},
-  {"-", 0, XK_minus, 1},
-
-  {0}, // New row
-
-  {0, 0, XK_A, 1},
-  {0, 0, XK_S, 1},
-  {0, 0, XK_D, 1},
-  {0, 0, XK_F, 1},
-  {0, 0, XK_G, 1},
-  {0, 0, XK_H, 1},
-  {0, 0, XK_J, 1},
-  {0, 0, XK_K, 1},
-  {0, 0, XK_L, 1},
-  {";",":", XK_colon, 1},
-  {"4", 0, XK_4, 1},
-  {"5", 0, XK_5, 1},
-  {"6", 0, XK_6, 1},
-  {"+", 0, XK_plus, 1},
-
-  {0}, // New row
-
-  {0, 0, XK_Z, 1},
-  {0, 0, XK_X, 1},
-  {0, 0, XK_C, 1},
-  {0, 0, XK_V, 1},
-  {0, 0, XK_B, 1},
-  {0, 0, XK_N, 1},
-  {0, 0, XK_M, 1},
-  {"Tab", 0, XK_Tab, 1},
-  {"⇍ Bksp", 0, XK_BackSpace, 2},
-  {"1", 0, XK_1, 1},
-  {"2", 0, XK_2, 1},
-  {"3", 0, XK_3, 1},
-  {"/", 0, XK_slash, 1},
-
-  {0}, // New row
-  {"⌨", 0, XK_Cancel, 1},
-  {"Shift", 0, XK_Shift_L, 1},
-  {"↓", 0, XK_Down, 1},
-  {"↑", 0, XK_Up, 1},
-  {"Space", 0, XK_space, 2},
-  {"Esc", 0, XK_Escape, 1},
-  {"Ctrl", 0, XK_Control_L, 1},
-  {"↲ Enter", 0, XK_Return, 2},
-  {"0", 0, XK_0, 1},
-  {".", 0, XK_period, 1},
-  {"=", 0, XK_equal, 1},
-  {"*", 0, XK_asterisk, 1},
-
-  {0}, {0} // End
-};
-
-
-Key _symbols[] = {
-  {"1", "!", XK_1, 1},
-  {"2", "@", XK_2, 1},
-  {"3", "#", XK_3, 1},
-  {"4", "$", XK_4, 1},
-  {"5", "%", XK_5, 1},
-  {"6", "^", XK_6, 1},
-  {"7", "&", XK_7, 1},
-  {"8", "*", XK_8, 1},
-  {"9", "(", XK_9, 1},
-  {"0", ")", XK_0, 1},
-
-  {0}, // New row
-
-  {"'", "\"", XK_apostrophe, 1},
-  {"`", "~", XK_grave, 1},
-  {"-", "_", XK_minus, 1},
-  {"=", "+", XK_plus, 1},
-  {"[", "{", XK_bracketleft, 1},
-  {"]", "}", XK_bracketright, 1},
   {",", "<", XK_comma, 1},
   {".", ">", XK_period, 1},
   {"/", "?", XK_slash, 1},
-  {"\\", "|", XK_backslash, 1},
-
-  {0}, // New row
-
-  {"", 0, XK_Shift_L|XK_bar, 1},
-  {"⇤", 0, XK_Home, 1},
-  {"←", 0, XK_Left, 1},
-  {"→", 0, XK_Right, 1},
-  {"⇥", 0, XK_End, 1},
-  {"⇊", 0, XK_Next, 1},
-  {"⇈", 0, XK_Prior, 1},
-  {"Tab", 0, XK_Tab, 1},
-  {"⇍ Bksp", 0, XK_BackSpace, 2},
-
-  {0}, // New row
-  {"⌨", 0, XK_Cancel, 1},
-  {"Shift", 0, XK_Shift_L, 1},
-  {"↓", 0, XK_Down, 1},
-  {"↑", 0, XK_Up, 1},
-  {"", 0, XK_space, 2},
-  {"Esc", 0, XK_Escape, 1},
-  {"Ctrl", 0, XK_Control_L, 1},
-  {"↲ Enter", 0, XK_Return, 2},
-
-  {0}, {0} // End
+  {"⬆ Shift", 0, XK_Shift_L, 2},
+  {0}
 };
 
-
-static Key *layers[] = {
-  _main,
-  _alt,
-  0
+static Key row4[] = {
+  {"Ctrl", 0, XK_Control_L, 2},
+  {"Space", 0, XK_space, 10},
+  {"Alt", 0, XK_Alt_R, 2},
+  {0}
 };
+
+static Key *keys[] = {row0, row1, row2, row3, row4, 0};

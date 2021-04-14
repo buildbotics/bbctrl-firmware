@@ -27,16 +27,19 @@
 
 #pragma once
 
-#include "keyboard.h"
+#include "drw.h"
 
 #include <stdbool.h>
 
+typedef void (*button_cb)();
 
 typedef struct {
-  Keyboard *kbd;
   Window win;
   Drw *drw;
   Clr *scheme;
+
+  button_cb cb;
+  void *cb_data;
 
   int w;
   int h;
@@ -44,7 +47,8 @@ typedef struct {
 } Button;
 
 
-Button *button_create(Display *dpy, Keyboard *kbd, int x, int y, int w, int h,
+Button *button_create(Display *dpy, float x, float y, int w, int h,
                       const char *font);
 void button_destroy(Button *btn);
+void button_set_callback(Button *btn, button_cb cb, void *data);
 void button_event(Button *btn, XEvent *e);

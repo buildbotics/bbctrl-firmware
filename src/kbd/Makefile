@@ -1,7 +1,7 @@
 NAME = bbkbd
 
 PKG_CONFIG = pkg-config
-PKGS = fontconfig freetype2 x11 xtst xft xinerama
+PKGS = fontconfig freetype2 x11 xtst xft xinerama xcursor
 
 CDEFS = -D_DEFAULT_SOURCE -DXINERAMA
 CFLAGS += -I. `$(PKG_CONFIG) --cflags $(PKGS)` $(CDEFS)

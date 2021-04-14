@@ -36,6 +36,8 @@ setup(
         'scripts/browser',
         'scripts/mount-usb',
         'scripts/eject-usb',
+        'scripts/kbd-show',
+        'scripts/kbd-hide',
         ],
     install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
     zip_safe = False,
