@@ -24,6 +24,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fix bug where rehoming fails after stop. #294
  - Fixed splash screen centering.
  - Much improved onscreen keyboard for touch screen operation.
+ - Handle pause duing seeking operation correctly.
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.
