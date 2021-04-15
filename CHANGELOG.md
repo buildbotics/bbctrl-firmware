@@ -23,7 +23,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Show program messages in 3D view.
  - Fix bug where rehoming fails after stop. #294
  - Fixed splash screen centering.
- - Much improved onscreen keyboard for touch screen operation.
+ - Much improved onscreen keyboard for touch screen operation. #292
  - Handle pause duing seeking operation correctly.
 
 ## v0.4.16
