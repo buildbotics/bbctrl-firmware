@@ -4,7 +4,7 @@
 #CODE: {                                        \
     "name": #NAME,                              \
     "type": #TYPE,                              \
-    "index": IF_ELSE(INDEX)(true, false),       \
+    IF(INDEX)("index": INDEX##_LABEL COMMA())   \
     "setable": IF_ELSE(SET)(true, false),       \
     "report": IF_ELSE(REPORT)(true, false)      \
   },

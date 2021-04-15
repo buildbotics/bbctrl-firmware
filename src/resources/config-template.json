@@ -168,8 +168,7 @@
           "type": "enum",
           "values": [
             "manual", "switch-min", "switch-max", "stall-min", "stall-max"],
-          "default": "manual",
-          "code": "ho"
+          "default": "manual"
         },
         "stall-microstep": {
           "type": "int",
@@ -196,7 +195,6 @@
           "iunit": "IPM",
           "scale": 0.0254,
           "default": 0.1,
-          "code": "lv",
           "hmodes": ["switch-min", "switch-max"]
         },
         "latch-backoff": {
@@ -206,7 +204,6 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 100,
-          "code": "lb",
           "hmodes": ["switch-min", "switch-max"]
         },
         "stall-volts": {
@@ -240,7 +237,6 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 5,
-          "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
         }
       }

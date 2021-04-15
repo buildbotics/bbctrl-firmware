@@ -24,7 +24,7 @@ $(PROJECT).elf: $(OBJ)
 
 # JSON
 build/%.json: src/%.json.in src/%.def
-	cpp -Isrc $< | sed "/^#.*$$/d;s/'\(.\)'/\"\1\"/g" > $@
+	cpp -Isrc $< | sed "/^#.*$$/d;s/'\(.\)'/\"\1\"/g" | json_pp > $@
 
 # Program
 init:
