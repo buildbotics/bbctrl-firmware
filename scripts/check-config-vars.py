@@ -7,7 +7,7 @@ import sys
 import json
 
 templ = json.load(open('src/resources/config-template.json', 'r'))
-vars = json.load(open('avr/build/vars.json', 'r'))
+vars = json.load(open('src/avr/build/vars.json', 'r'))
 
 
 def check(section):

@@ -25,6 +25,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fixed splash screen centering.
  - Much improved onscreen keyboard for touch screen operation. #292
  - Handle pause duing seeking operation correctly.
+ - Default Wifi config to internal.
 
 ## v0.4.16
  - Improved axis under/over warning tooltip.

@@ -67,7 +67,7 @@ module.exports = {
 
     api.get('wifi').done(function (config) {
       this.wifi_mode     = config.mode;
-      this.wifi_internal = config.internal;
+      this.wifi_internal = config.internal == undefined || config.internal;
       this.wifi_ssid     = config.ssid;
       this.wifi_ch       = config.channel;
     }.bind(this));
