@@ -93,7 +93,7 @@ class Planner():
         state = self.ctrl.state
         config = self.ctrl.config
         is_pwm = config.get('tool-type') == 'PWM Spindle'
-        deviation = config.get('max-deviation')
+        deviation = config.get('max-deviation', 0.1)
 
         cfg = {
             # NOTE Must get current units not configured default units
