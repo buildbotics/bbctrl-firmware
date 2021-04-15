@@ -79,6 +79,9 @@ class Comm(object):
         avr.set_handlers(self._read, self._write)
         self._poll_cb(False)
 
+        # Let simulations proceed after timeout
+        ctrl.ioloop.call_later(10, self.ctrl.ready)
+
 
     def comm_next(self): raise Exception('Not implemented')
     def comm_error(self): raise Exception('Not implemented')
