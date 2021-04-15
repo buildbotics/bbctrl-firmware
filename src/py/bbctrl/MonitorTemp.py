@@ -33,14 +33,19 @@ def read_temp():
     path = '/sys/class/thermal/thermal_zone0/temp'
     if not os.path.exists(path): return 0
 
-    with open(path, 'r') as f:
-        return round(int(f.read()) / 1000)
+    try:
+        with open(path, 'r') as f:
+            return round(int(f.read()) / 1000)
+    except:
+        return 0
 
 
 def set_max_freq(freq):
     path = '/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq'
     if not os.path.exists(path): return
-    with open(path, 'w') as f: f.write('%d\n' % freq)
+    try:
+        with open(path, 'w') as f: f.write('%d\n' % freq)
+    except: pass
 
 
 class MonitorTemp(object):
