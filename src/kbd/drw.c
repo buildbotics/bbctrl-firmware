@@ -32,6 +32,10 @@
 #include <stdint.h>
 
 
+#ifndef FC_COLOR
+#define FC_COLOR "color"
+#endif
+
 #define UTF_INVALID 0xFFFD
 #define UTF_SIZ     4
 
