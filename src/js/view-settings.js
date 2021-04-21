@@ -88,7 +88,7 @@ module.exports = {
           callback: {
             save: function () {this.save(done)}.bind(this),
             discard: function () {this.discard(done)}.bind(this)
-          }.bind(this)
+          }
         });
       }
     },
