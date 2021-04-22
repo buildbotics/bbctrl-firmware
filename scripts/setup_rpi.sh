@@ -10,8 +10,8 @@ apt-get dist-upgrade -y
 # Install packages
 apt-get install -y avahi-daemon avrdude minicom python3-pip python3-smbus \
   i2c-tools python3-rpi.gpio libjpeg8 wiringpi dnsmasq hostapd \
-  iptables-persistent chromium-browser xorg rpd-plym-splash samba ratpoison \
-  libpython3.5
+  iptables-persistent chromium-browser xorg rpd-plym-splash samba \
+  samba-common-bin smbclient cifs-utils ratpoison libpython3.5
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean
