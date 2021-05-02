@@ -108,7 +108,8 @@ static void flags(uint16_t flags, bool enable) {
 
 
 static void i2c_ack()  {TWSCRB = (1 << TWCMD1) | (1 << TWCMD0);}
-static void i2c_nack() {TWSCRB = (1 << TWAA) | (1 << TWCMD1) | (1 << TWCMD0);}
+static void i2c_nack() {TWSCRB = (1 << TWCMD1) | (1 << TWCMD0) | (1 << TWAA);}
+static void i2c_stop() {TWSCRB = (1 << TWCMD1) | (0 << TWCMD0);}
 
 
 ISR(TWI_SLAVE_vect) {
@@ -117,7 +118,7 @@ ISR(TWI_SLAVE_vect) {
 
   // Stretch clock longer to work around RPi bug
   // See https://github.com/raspberrypi/linux/issues/254
-  _delay_us(10); // Must use software delay while in interrupt
+  _delay_us(100); // Must use software delay while in interrupt
 
   uint8_t status = TWSSRA;
 
@@ -144,7 +145,7 @@ ISR(TWI_SLAVE_vect) {
 
       } else i2c_nack();
 
-    } else TWSCRB = (1 << TWCMD1) | (0 << TWCMD0);  // Stop
+    } else i2c_stop();
   }
 }
 
