@@ -5,6 +5,14 @@ xset -dpms
 xset s off
 xset s noblank
 
+OPTS=--no-first-run --disable-infobars --noerrdialogs
+
+# No GPU on Pi 3
+cat /proc/cpuinfo  | grep "Pi 3 Model" >/dev/null
+if [ $? -eq 0 ]; then
+  OPTS=$OPTS --disable-3d-apis
+fi
+
 while true; do
     tvservice -s 2>&1 | grep "state 0x40001" >/dev/null
     if [ $? -ne 0 ]; then
@@ -14,8 +22,7 @@ while true; do
         sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' $PREFS
 
         # Start browser
-        /usr/local/bin/browser --no-first-run --disable-infobars \
-         --noerrdialogs --disable-3d-apis http://localhost/
+        /usr/local/bin/browser $OPTS http://localhost/
     fi
 
     sleep 1

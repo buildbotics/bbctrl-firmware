@@ -459,7 +459,7 @@ static long _dev_ioctl(struct file *file, unsigned cmd, unsigned long arg) {
   switch (cmd) {
   case TCGETS: { // Get serial port settings
     struct ktermios *term = _get_term();
-    if (copy_to_user((void __user *)arg, &term, sizeof(struct termios)))
+    if (copy_to_user((void __user *)arg, term, sizeof(struct termios)))
       return -EFAULT;
     return 0;
   }

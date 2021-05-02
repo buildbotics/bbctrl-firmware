@@ -9,22 +9,26 @@ modprobe -r bbserial
 modprobe bbserial
 
 # Set SPI GPIO mode
-gpio mode 27 alt3
+gpio -g mode 16 alt3 # Does not work on Pi4 but it's set in /boot/config.txt
 
 # Create browser memory limited cgroup
 if [ -d sys/fs/cgroup/memory ]; then
-    CGROUP=/sys/fs/cgroup/memory/chrome
-    mkdir $CGROUP
-    chown -R pi:pi $CGROUP
-    echo 650000000 > $CGROUP/memory.soft_limit_in_bytes
-    echo 750000000 > $CGROUP/memory.limit_in_bytes
+  TOTALMEM=$(grep MemTotal /proc/meminfo | sed 's/[^0-9]*\([0-9]*\).*/\1/')
+  SOFTLIMIT=$(($TOTALMEM * 1024 * 2/3))
+  HARDLIMIT=$(($TOTALMEM * 1024 * 3/4))
+
+  CGROUP=/sys/fs/cgroup/memory/chrome
+  mkdir $CGROUP
+  chown -R pi:pi $CGROUP
+  echo $SOFTLIMIT > $CGROUP/memory.soft_limit_in_bytes
+  echo $HARDLIMIT > $CGROUP/memory.limit_in_bytes
 fi
 
 # Reload udev
 /etc/init.d/udev restart
 
-# Stop boot splash so it doesn't interfere with X if GPU enabled and to save CPU
-plymouth quit
+# Stop boot splash so it doesn't interfere with X if GPU enabled
+plymouth quit --retain-splash
 
 # Start X in /home/pi
 cd /home/pi

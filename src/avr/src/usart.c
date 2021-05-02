@@ -109,7 +109,6 @@ static void _set_baud(USART_t *port, uint16_t bsel, uint8_t bscale) {
 void usart_set_baud(USART_t *port, baud_t baud) {
   // The BSEL / BSCALE values provided below assume a 32 Mhz clock
   // With CTRLB CLK2X is set
-  // See http://www.avrcalc.elektronik-projekt.de/xmega/baud_rate_calculator
 
   switch (baud) {
   case USART_BAUD_9600:    _set_baud(port, 3325, 0b1101); break;

@@ -6,3 +6,5 @@
 /*.o
 /kernel
 /modules.order
+/*.gz
+/linux-*

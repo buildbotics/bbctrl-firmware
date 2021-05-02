@@ -5,59 +5,54 @@ UPDATE_PY=true
 REBOOT=false
 
 while [ $# -gt 0 ]; do
-    case "$1" in
-        --no-avr) UPDATE_AVR=false ;;
-        --no-py) UPDATE_PY=false ;;
-    esac
-    shift 1
+  case "$1" in
+    --no-avr) UPDATE_AVR=false ;;
+    --no-py) UPDATE_PY=false ;;
+  esac
+  shift 1
 done
 
 
 if $UPDATE_PY; then
-    systemctl stop bbctrl
+  systemctl stop bbctrl
 
-    # Update service
-    mkdir -p /var/lib/bbctrl
-    rm -f /etc/init.d/bbctrl
-    install scripts/bbctrl.service /etc/systemd/system/
-    systemctl daemon-reload
-    systemctl enable bbctrl
+  # Update service
+  mkdir -p /var/lib/bbctrl
+  rm -f /etc/init.d/bbctrl
+  install scripts/bbctrl.service /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable bbctrl
 fi
 
 if $UPDATE_AVR; then
-    ./scripts/avr109-flash.py src/avr/bbctrl-avr-firmware.hex
+  ./scripts/avr109-flash.py src/avr/bbctrl-avr-firmware.hex
 fi
 
 # Update config.txt
 ./scripts/edit-boot-config max_usb_current=1
 ./scripts/edit-boot-config config_hdmi_boost=8
 
-# TODO Enable GPU
-#./scripts/edit-boot-config dtoverlay=vc4-kms-v3d
-#./scripts/edit-boot-config gpu_mem=16
-#chmod ug+s /usr/lib/xorg/Xorg
-
 # Fix camera
 grep dwc_otg.fiq_fsm_mask /boot/cmdline.txt >/dev/null
 if [ $? -ne 0 ]; then
-    mount -o remount,rw /boot &&
+  mount -o remount,rw /boot &&
     sed -i 's/\(.*\)/\1 dwc_otg.fiq_fsm_mask=0x3/' /boot/cmdline.txt
-    mount -o remount,ro /boot
-    REBOOT=true
+  mount -o remount,ro /boot
+  REBOOT=true
 fi
 
 # Enable memory cgroups
 grep cgroup_memory /boot/cmdline.txt >/dev/null
 if [ $? -ne 0 ]; then
-    mount -o remount,rw /boot &&
+  mount -o remount,rw /boot &&
     sed -i 's/\(.*\)/\1 cgroup_memory=1/' /boot/cmdline.txt
-    mount -o remount,ro /boot
-    REBOOT=true
+  mount -o remount,ro /boot
+  REBOOT=true
 fi
 
 # Remove Hawkeye
 if [ -e /etc/init.d/hawkeye ]; then
-    apt-get remove --purge -y hawkeye
+  apt-get remove --purge -y hawkeye
 fi
 
 # Decrease boot delay
@@ -81,8 +76,8 @@ fi
 # Increase swap
 grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null
 if [ $? -ne 0 ]; then
-    sed -i 's/^CONF_SWAPSIZE=.*$/CONF_SWAPSIZE=1000/' /etc/dphys-swapfile
-    REBOOT=true
+  sed -i 's/^CONF_SWAPSIZE=.*$/CONF_SWAPSIZE=1000/' /etc/dphys-swapfile
+  REBOOT=true
 fi
 
 # Install xinitrc
@@ -96,13 +91,14 @@ MODSRC=src/bbserial/bbserial.ko
 MODDST=/lib/modules/$(uname -r)/kernel/drivers/tty/serial/bbserial.ko
 diff -q $MODSRC $MODDST 2>/dev/null >/dev/null
 if [ $? -ne 0 ]; then
-    install $MODSRC $MODDST
-    depmod
-    REBOOT=true
+  install $MODSRC $MODDST
+  depmod
+  REBOOT=true
 fi
 
 # Install splash
-install -D src/splash/* /usr/share/plymouth/themes/buildbotics/
+install -D src/splash/* -t /usr/share/plymouth/themes/buildbotics/
+plymouth-set-default-theme -R buildbotics
 
 # Install rc.local
 install scripts/rc.local /etc/
@@ -120,16 +116,16 @@ rm -rf /home/pi/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlf
 
 # Install bbctrl
 if $UPDATE_PY; then
-    rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
-    ./setup.py install --force
-    service bbctrl restart
+  rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
+  ./setup.py install --force
+  service bbctrl restart
 fi
 
 sync
 
 if $REBOOT; then
-    echo "Rebooting"
-    reboot
+  echo "Rebooting"
+  reboot
 fi
 
 echo "Install complete"

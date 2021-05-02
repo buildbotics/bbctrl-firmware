@@ -191,12 +191,12 @@ v4l2_field = enum
 
 def V4L2_FIELD_HAS_TOP(field):
     return (
-	field == V4L2_FIELD_TOP or
-	field == V4L2_FIELD_INTERLACED or
-	field == V4L2_FIELD_INTERLACED_TB or
-	field == V4L2_FIELD_INTERLACED_BT or
-	field == V4L2_FIELD_SEQ_TB or
-	field == V4L2_FIELD_SEQ_BT)
+        field == V4L2_FIELD_TOP or
+        field == V4L2_FIELD_INTERLACED or
+        field == V4L2_FIELD_INTERLACED_TB or
+        field == V4L2_FIELD_INTERLACED_BT or
+        field == V4L2_FIELD_SEQ_TB or
+        field == V4L2_FIELD_SEQ_BT)
 
 
 def V4L2_FIELD_HAS_BOTTOM(field):
@@ -405,7 +405,7 @@ V4L2_PIX_FMT_NV21 = v4l2_fourcc('N', 'V', '2', '1')
 V4L2_PIX_FMT_NV16 = v4l2_fourcc('N', 'V', '1', '6')
 V4L2_PIX_FMT_NV61 = v4l2_fourcc('N', 'V', '6', '1')
 
-# Bayer formats - see http://www.siliconimaging.com/RGB%20Bayer.htm
+# Bayer formats - see https://www.siliconimaging.com/RGB%20Bayer.htm
 V4L2_PIX_FMT_SBGGR8 = v4l2_fourcc('B', 'A', '8', '1')
 V4L2_PIX_FMT_SGBRG8 = v4l2_fourcc('G', 'B', 'R', 'G')
 V4L2_PIX_FMT_SGRBG8 = v4l2_fourcc('G', 'R', 'B', 'G')

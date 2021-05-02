@@ -62,7 +62,7 @@
 ;*      For comprehensive code documentation, supported compilers, compiler
 ;*      settings and supported devices see readme.html
 ;*
-;*      Atmel Corporation: http:;www.atmel.com \n
+;*      Atmel Corporation: https://www.atmel.com
 ;*      Support email: avr@atmel.com
 
 #include <avr/io.h>

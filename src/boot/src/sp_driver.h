@@ -83,7 +83,7 @@
  *      settings and supported devices see readme.html
  *
  * \author
- *      Atmel Corporation: http://www.atmel.com
+ *      Atmel Corporation: https://www.atmel.com
  *      Support email: avr@atmel.com
  ******************************************************************************/
 

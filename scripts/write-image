@@ -1,0 +1,14 @@
+#!/bin/bash -e
+
+IMG="$1"
+DEV="$2"
+
+if [ ! -e "$IMG" -o ! -e "$DEV" ]; then
+  echo "Usage: $0 <firmware.img> </dev/sd?>"
+  exit 1
+fi
+
+SIZE=$(du -h "$IMG" | cut -f1)
+echo "Writing ${SIZE}iB to $DEV"
+
+sudo dd if="$IMG" bs=10M of="$DEV" status=progress oflag=direct conv=fdatasync
