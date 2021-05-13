@@ -34,17 +34,17 @@ var util   = require('./util');
 
 
 function compare_versions(a, b) {
-    var reStripTrailingZeros = /(\.0+)+$/;
-    var segsA = a.replace(reStripTrailingZeros, '').split('.');
-    var segsB = b.replace(reStripTrailingZeros, '').split('.');
-    var l = Math.min(segsA.length, segsB.length);
+  var reStripTrailingZeros = /(\.0+)+$/;
+  var segsA = a.trim().replace(reStripTrailingZeros, '').split('.');
+  var segsB = b.trim().replace(reStripTrailingZeros, '').split('.');
+  var l = Math.min(segsA.length, segsB.length);
 
-    for (var i = 0; i < l; i++) {
-      var diff = parseInt(segsA[i], 10) - parseInt(segsB[i], 10);
-      if (diff) return diff;
-    }
+  for (var i = 0; i < l; i++) {
+    var diff = parseInt(segsA[i], 10) - parseInt(segsB[i], 10);
+    if (diff) return diff;
+  }
 
-    return segsA.length - segsB.length;
+  return segsA.length - segsB.length;
 }
 
 
