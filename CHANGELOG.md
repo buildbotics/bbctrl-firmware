@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v1.0.1
+ - Handle case correctly when assigning named GCode variables.
+
 ## v1.0.0
  - Added online GCode editor.
  - Added online file manager.

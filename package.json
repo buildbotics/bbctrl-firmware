@@ -1,14 +1,14 @@
 {
   "name": "bbctrl",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "http://buildbotics.com/",
   "repository": "https://github.com/buildbotics/bbctrl-firmware",
   "license": "CERN-OHL-S v2",
   "dependencies": {
-    "jshint": "",
     "browserify": "",
-    "jstransformer-stylus": "",
+    "jshint": "",
     "jstransformer-escape-html": "",
+    "jstransformer-stylus": "",
     "pug-cli": ""
   }
 }

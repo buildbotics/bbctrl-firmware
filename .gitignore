@@ -18,8 +18,7 @@ __pycache__
 *.so
 *.deb
 *.zip
-/share
 /package-lock.json
-
+/share
 *.elf
 *.hex
