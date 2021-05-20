@@ -217,13 +217,16 @@ static struct ktermios *_get_term(void) {
   speed_t baud = clk_get_rate(_port.clk) * 4 / brd;
   tty_termios_encode_baud_rate(&_port.term, baud, baud);
 
+  // Mask cflag
+  tcflag_t cflag = _port.term.c_cflag &
+    ~(CSIZE | CSTOPB | PARENB | PARODD | CMSPAR | CRTSCTS);
+
   // Data bits
-  unsigned cflag;
   switch (lcrh & UART01x_LCRH_WLEN_bm) {
-  case UART01x_LCRH_WLEN_5: cflag = CS5; break;
-  case UART01x_LCRH_WLEN_6: cflag = CS6; break;
-  case UART01x_LCRH_WLEN_7: cflag = CS7; break;
-  default: cflag = CS8; break;
+  case UART01x_LCRH_WLEN_5: cflag |= CS5; break;
+  case UART01x_LCRH_WLEN_6: cflag |= CS6; break;
+  case UART01x_LCRH_WLEN_7: cflag |= CS7; break;
+  default: cflag |= CS8; break;
   }
 
   // Stop bits
@@ -261,7 +264,7 @@ static void _set_baud(speed_t baud) {
 
 static int _set_term(struct ktermios *term) {
   unsigned lcrh = UART01x_LCRH_FEN; // Enable FIFOs
-  unsigned cflag = term->c_cflag;
+  tcflag_t cflag = term->c_cflag;
 
   // Data bits
   switch (cflag & CSIZE) {
@@ -299,6 +302,8 @@ static int _set_term(struct ktermios *term) {
   _write(cr, UART011_CR);     // Enable
 
   spin_unlock_irqrestore(&_port.lock, flags);
+
+  memcpy(&_port.term, term, sizeof(struct ktermios));
 
   return 0;
 }
