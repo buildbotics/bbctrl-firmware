@@ -111,7 +111,8 @@ module.exports = new Vue({
       latestVersion: '',
       showError: false,
       showPopup: true,
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(),
+      confirmShutdown: false,
     }
   },
 
@@ -282,6 +283,15 @@ module.exports = new Vue({
       }.bind(this))
     },
 
+    shutdown : function() {
+      this.confirmShutdown = false;
+      api.put('shutdown');
+    },
+    
+    reboot : function() {
+    	this.confirmShutdown = false;
+    	api.put('reboot');
+    },
 
     connect: function () {
       this.sock = new Sock('//' + window.location.host + '/sockjs');
