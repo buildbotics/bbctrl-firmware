@@ -14,7 +14,7 @@ echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-
 apt-get install -yq avahi-daemon avrdude minicom python3-pip python3-smbus \
   i2c-tools python3-rpi.gpio libjpeg8 wiringpi dnsmasq hostapd \
   iptables-persistent chromium-browser xorg rpd-plym-splash samba \
-  samba-common-bin smbclient cifs-utils ratpoison libpython3.5
+  samba-common-bin smbclient cifs-utils ratpoison libpython3.5 libgles2-mesa
 pip3 install --upgrade tornado sockjs-tornado pyserial
 
 # Clean up
@@ -55,6 +55,7 @@ dtparam=i2c_arm=on
 
 [pi4]
 dtoverlay=vc4-fkms-v3d
+dtoverlay=uart3
 max_framebuffers=2
 
 [all]

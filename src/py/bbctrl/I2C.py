@@ -55,12 +55,13 @@ class I2C(object):
                 else: raise type(e)('I2C failed to open device: %s' % e)
 
 
-    def read_word(self, addr):
+    def read_word(self, addr, reg, pec = False):
         self.connect()
         if self.disabled: return
 
         try:
-            return self.i2c_bus.read_word_data(addr, 0)
+            self.i2c_bus.pec = pec
+            return self.i2c_bus.read_word_data(addr, reg)
 
         except IOError as e:
             self.i2c_bus.close()
@@ -68,9 +69,12 @@ class I2C(object):
             raise type(e)('I2C read word failed: %s' % e)
 
 
-    def write(self, addr, cmd, byte = None, word = None, block = None):
+    def write(self, addr, cmd, byte = None, word = None, block = None,
+              pec = False):
         self.connect()
         if self.disabled: return
+
+        self.i2c_bus.pec = pec
 
         try:
             if byte is not None:

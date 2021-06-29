@@ -143,8 +143,6 @@ def parse_args():
                         help = 'LCD I2C address')
     parser.add_argument('--avr-addr', default = 0x2b, type = int,
                         help = 'AVR I2C address')
-    parser.add_argument('--pwr-addr', default = 0x60, type = int,
-                        help = 'Power AVR I2C address')
     parser.add_argument('-v', '--verbose', action = 'store_true',
                         help = 'Verbose output')
     parser.add_argument('-l', '--log', metavar = "FILE",

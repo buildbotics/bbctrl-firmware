@@ -5,7 +5,6 @@ CLOCK   = 8000000
 
 # Compile flags
 CC = avr-gcc
-CPP = avr-g++
 COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
 CFLAGS += -Wall -Werror

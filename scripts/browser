@@ -13,6 +13,10 @@ def enter_cgroup():
             f.write(str(os.getpid()))
 
 
+# Kill any existing Chromium process first
+# Note, "chromium-browse" is intentional
+subprocess.Popen(['killall', 'chromium-browse']).wait()
+
 # Start browser
 args = ['/usr/lib/chromium-browser/chromium-browser'] + sys.argv[1:]
 subprocess.Popen(args, preexec_fn = enter_cgroup).wait()
