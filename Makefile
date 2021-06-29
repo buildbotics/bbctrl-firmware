@@ -26,7 +26,7 @@ PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
 BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
-SUBPROJECTS := avr boot pwr jig
+SUBPROJECTS := avr boot pwr2 jig
 WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
 WATCH += src/static
 
@@ -66,6 +66,11 @@ bbserial:
 container-update:
 	./scripts/container-update
 
+container-init: container-update
+	./scripts/container-run ./bbctrl-firmware/scripts/container-init
+
+arm-bin: camotics bbkbd updiprog rpipdi
+
 camotics: $(CAMOTICS_TARGET)
 
 $(CAMOTICS_TARGET): $(CAMOTICS_MOD)
@@ -76,6 +81,12 @@ $(CAMOTICS_MOD): container-update
 
 bbkbd: container-update
 	./scripts/container-run ./bbctrl-firmware/scripts/container-make-kbd
+
+updiprog: container-update
+	./scripts/container-run "make -C updiprog"
+
+rpipdi: container-update
+	./scripts/container-run "make -C rpipdi"
 
 .PHONY: $(AVR_FIRMWARE)
 $(AVR_FIRMWARE):

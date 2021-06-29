@@ -5,7 +5,7 @@ xset -dpms
 xset s off
 xset s noblank
 
-OPTS=--no-first-run --disable-infobars --noerrdialogs
+OPTS="--no-first-run --disable-infobars --noerrdialogs"
 
 # No GPU on Pi 3
 cat /proc/cpuinfo  | grep "Pi 3 Model" >/dev/null

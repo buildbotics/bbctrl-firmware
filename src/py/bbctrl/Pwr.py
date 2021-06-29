@@ -66,7 +66,9 @@ class Pwr():
         self.ctrl = ctrl
         self.log = ctrl.log.get('Pwr')
 
-        self.i2c_addr = ctrl.args.pwr_addr
+        self.i2c_old = False
+        self.i2c_confirmed_new = False
+
         self.regs = [-1] * 9
         self.lcd_page = ctrl.lcd.add_new_page()
         self.failures = 0
@@ -153,8 +155,12 @@ class Pwr():
 
         try:
             for i in range(len(self.regs)):
-                value = self.ctrl.i2c.read_word(self.i2c_addr + i)
+                if self.i2c_old: value = self.ctrl.i2c.read_word(0x60 + i, 0)
+                else: value = self.ctrl.i2c.read_word(0x5f, i, pec = True)
+
                 if value is None: return # Handle lack of i2c port
+
+                if not self.i2c_old: self.i2c_confirmed_new = True
 
                 if i == TEMP_REG: value -= 273
                 elif i == FLAGS_REG or i == VERSION_REG: pass
@@ -170,6 +176,9 @@ class Pwr():
                 if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
+            if not self.i2c_confirmed_new:
+                self.i2c_old = not self.i2c_old
+
             if i < 6: # Older pwr firmware does not have regs > 5
                 self.failures += 1
                 msg = 'Pwr communication failed at reg %d: %s' % (i, e)

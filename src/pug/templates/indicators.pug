@@ -135,9 +135,8 @@ script#indicators-template(type="text/x-template")
 
     table.pwr_fault
       tr
-        th.header(colspan=5)
-          | Power Faults
-          span(v-if="state.pwr_version") &nbsp(Version {{state.pwr_version}})
+        th.header(colspan=5).
+          Power Faults #[span(v-if="pwr_version") (Version {{pwr_version}})]
       tr
         th(:class="{error: state.under_voltage}") Under voltage
         td(:class="{error: state.under_voltage}")
@@ -230,19 +229,19 @@ script#indicators-template(type="text/x-template")
 
       tr
         td {{state.vin | fixed 1}} V
-        th Input
+        th Input Voltage
         th.separator
+        td {{watts | fixed 2}} W
+        th Motor Power
+
+      tr
         td {{state.vout | fixed 1}} V
-        th Output
-
-      tr
-        td {{state.motor | fixed 2}} A
-        th Motor
+        th Motor Voltage
         th.separator
-        td {{state.vdd | fixed 2}} A
-        th Low-side
+        td {{state.motor | fixed 2}} A
+        th Motor Current
 
-      tr
+      tr(v-if="state.pwr_version < 0x100")
         td {{state.load1 | fixed 2}} A
         th Load 1
         th.separator
@@ -251,7 +250,7 @@ script#indicators-template(type="text/x-template")
 
       tr
         td {{state.temp | fixed 0}} ℃
-        th Temp
+        th Board Temp
         th.separator
         td(:class="{'error': 80 <= state.rpi_temp}")
           | {{state.rpi_temp | fixed 0}} ℃

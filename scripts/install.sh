@@ -1,21 +1,22 @@
 #!/bin/bash
 
 UPDATE_AVR=true
+UPDATE_PWR=true
 UPDATE_PY=true
 REBOOT=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-avr) UPDATE_AVR=false ;;
-    --no-py) UPDATE_PY=false ;;
+    --no-pwr) UPDATE_PWR=false ;;
+    --no-py)  UPDATE_PY=false  ;;
   esac
   shift 1
 done
 
+service bbctrl stop
 
 if $UPDATE_PY; then
-  systemctl stop bbctrl
-
   # Update service
   mkdir -p /var/lib/bbctrl
   rm -f /etc/init.d/bbctrl
@@ -103,6 +104,15 @@ plymouth-set-default-theme -R buildbotics
 # Install rc.local
 install scripts/rc.local /etc/
 
+# Install avr109-flash
+install -C -m 0555 ./scripts/avr109-flash.py /usr/local/bin/
+
+# Install updiprog
+install -C -m 0555 share/updiprog/updiprog /usr/local/bin/
+
+# Install rpipdi
+install -C -m 0555 share/rpipdi/rpipdi /usr/local/bin/
+
 # Install bbkbd
 diff share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/bbkbd 2>&1 >/dev/null
 if [ $? -ne 0 ]; then
@@ -114,11 +124,15 @@ fi
 # Remove xontab keyboard
 rm -rf /home/pi/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlfninn
 
+if $UPDATE_PWR; then
+  PWR_OPTS="-c /dev/ttyAMA1 -b 1000000 -x"
+  /usr/local/bin/updiprog $PWR_OPTS -w src/pwr2/bbctrl-pwr-firmware.hex
+fi
+
 # Install bbctrl
 if $UPDATE_PY; then
   rm -rf /usr/local/lib/python*/dist-packages/bbctrl-*
   ./setup.py install --force
-  service bbctrl restart
 fi
 
 sync
@@ -126,6 +140,9 @@ sync
 if $REBOOT; then
   echo "Rebooting"
   reboot
+
+else
+  service bbctrl start
 fi
 
 echo "Install complete"

@@ -3,6 +3,7 @@ recursive-include src/py/bbctrl/tpl_lib *
 include src/py/bbctrl/camotics.so
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
+include src/pwr2/bbctrl-pwr-firmware.hex
 include src/bbserial/bbserial.ko
 include src/splash/*
 include scripts/avr109-flash.py
@@ -15,4 +16,6 @@ include scripts/kbd-show
 include scripts/kbd-hide
 include scripts/ratpoisonrc
 include share/bbctrl-firmware/src/kbd/bbkbd
+include share/updiprog/updiprog
+include share/rpipdi/rpipdi
 global-exclude .gitignore

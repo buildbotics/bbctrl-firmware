@@ -1,6 +1,7 @@
 #!/bin/bash -ex
 
 SHARE=share
+umask 0000 # Directories need to be writeable by the container
 
 
 function update_repo() {
@@ -40,6 +41,19 @@ else
   update_repo camotics https://github.com/CauldronDevelopmentLLC/camotics master
 fi
 
-
 # bbctrl-firmware
 update_repo bbctrl-firmware $PWD $(git branch --show-current)
+
+# updiprog
+if [ "$UPDIPROG_HOME" != "" ]; then
+  update_repo updiprog "$UPDIPROG_HOME" master
+else
+  update_repo updiprog https://github.com/buildbotics/updiprog master
+fi
+
+# rpipdi
+if [ "$RPIPDI_HOME" != "" ]; then
+  update_repo rpipdi "$RPIPDI_HOME" master
+else
+  update_repo rpipdi https://github.com/buildbotics/rpipdi master
+fi
