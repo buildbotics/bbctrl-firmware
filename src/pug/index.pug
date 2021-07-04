@@ -70,6 +70,16 @@ html(lang="en")
 
             li.pure-menu-heading
               a.pure-menu-link(href="#docs") Docs
+            
+            button.pure-button.pure-button-primary(@click="confirmShutdown = true", style="width: 100%")
+              .fa.fa-power-off
+            message(:show.sync="confirmShutdown")
+              h3(slot="header") Confirm shutdown?
+              p(slot="body") Please wait for black screen before switching off power.
+              div(slot="footer")
+                button.pure-button(@click="confirmShutdown = false") Cancel
+                button.pure-button.button-success(@click="shutdown") Shutdown
+                button.pure-button.button-success(@click="reboot") Restart
 
       #main
         .header
