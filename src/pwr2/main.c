@@ -202,7 +202,7 @@ ISR(TCA0_OVF_vect) {
 
 
 static void vin_callback(uint16_t result) {
-  uint16_t vin = regs[VIN_REG] = to_voltage(result);
+  uint16_t vin = regs[VIN_REG] = to_voltage(result) + (VIN_OFFSET * REG_SCALE);
 
   update_shunt_power();
 
@@ -215,6 +215,10 @@ static void vin_callback(uint16_t result) {
 
 static void vout_callback(uint16_t result) {
   uint16_t vout = regs[VOUT_REG] = to_voltage(result);
+
+  // VOut ADC timing
+  DEBUG_PORT.OUTSET = DEBUG_PIN;
+  DEBUG_PORT.OUTCLR = DEBUG_PIN;
 
   // Check voltage
   if (!initialized) return;
@@ -245,7 +249,17 @@ static void temp_callback(uint16_t result) {
   int8_t offset = SIGROW.TEMPSENSE1;
   uint32_t t    = result * (REFV / 1.1 / ADC_SAMPLES);
 
-  regs[TEMP_REG] = ((t - offset) * gain + 0x80) >> 8;
+  static uint8_t sample = 0;
+  static uint16_t samples[ADC_BUCKETS] = {0};
+
+  samples[sample] = ((t - offset) * gain + 0x80) >> 8;
+  if (++sample == ADC_BUCKETS) sample = 0;
+
+  t = 0;
+  for (int i = 0; i < ADC_BUCKETS; i++)
+    t += samples[i];
+
+  regs[TEMP_REG] = t >> ADC_SCALE;
 }
 
 
@@ -276,9 +290,10 @@ static void adc_start(adc_t *adc) {
 
 static void adc_init(adc_t *adc) {
   adc->regs->CTRLB = ADC_SAMPNUM;
-  adc->regs->CTRLC = ADC_SAMPCAP_bm | ADC_REFSEL_INTREF_gc | ADC_PRESC_DIV16_gc;
+  adc->regs->CTRLC = ADC_SAMPCAP_bm | ADC_REFSEL_INTREF_gc | ADC_PRESC_DIV8_gc;
   adc->regs->INTCTRL = ADC_RESRDY_bm;
   adc->regs->CTRLA = ADC_RESSEL_10BIT_gc | ADC_ENABLE_bm | ADC_RUNSTBY_bm;
+  adc->regs->SAMPCTRL = 14;
   adc_start(adc);
 }
 
@@ -393,22 +408,65 @@ static void validate_input_voltage() {
 }
 
 
-static void charge_caps() {
-  shunt_enable(false);
-  motor_enable(true);
-  delay(CAP_CHARGE_TIME);
+static bool discharge_wait(float min_v) {
+  float vout = get_reg(VOUT_REG);
+  if (vout <= min_v) return true;
+
+  uint16_t max_ms = (vout - min_v) * MAX_DISCHARGE_WAIT_TIME + 1;
+
+  for (uint16_t i = 0; i < max_ms; i++) {
+    delay(1);
+    if (get_reg(VOUT_REG) <= min_v) return true;
+  }
+
+  return false;
 }
 
 
-static void shunt_test() {
-  charge_caps();
+bool charge_wait(float max_v) {
+  float vstart = get_reg(VOUT_REG);
+  if (max_v <= vstart) return true;
 
-  // Discharge caps
+  uint16_t max_ms = (max_v - vstart) * MAX_CHARGE_WAIT_TIME + 1;
+
+  for (uint16_t i = 0; i < max_ms; i++) {
+    delay(1);
+    float vout = get_reg(VOUT_REG);
+    if (max_v <= vout) return true;
+
+    // Abort if not charging fast enough
+    if (i && i % 16 == 0 && (vout - vstart) * MAX_CHARGE_WAIT_TIME < i)
+      break;
+  }
+
+  return false;
+}
+
+
+static void charge_test() {
+  // Wait for motor voltage to self discharge below min voltage
+  if (!discharge_wait(VOLTAGE_MIN - 2)) return flags_set(GATE_ERROR_FLAG);
+
+  // Charge caps
+  shunt_enable(false);
+  motor_enable(true);
+  delay(GATE_TURN_ON_DELAY);
+  if (!charge_wait(VOLTAGE_MIN - 1))
+    return flags_set(CHARGE_ERROR_FLAG);
+
+  // If the gate works, the caps should discharge a bit on their own
   motor_enable(false); // Motor voltage off
-  shunt_enable(true);  // Enable shunt (lo)
-  delay(CAP_CHARGE_TIME);
+  if (!discharge_wait(VOLTAGE_MIN - 2)) return flags_set(GATE_ERROR_FLAG);
 
+  // Discharge caps through shunt
+  shunt_enable(true);
+  delay(CAP_DISCHARGE_TIME);
   if (SHUNT_FAIL_VOLTAGE < get_reg(VOUT_REG)) flags_set(SHUNT_ERROR_FLAG);
+
+  // Charge caps
+  shunt_enable(false);
+  motor_enable(true);
+  charge_wait(get_reg(VIN_REG) - 2);
 }
 
 
@@ -469,6 +527,10 @@ void init() {
   TCA0.SINGLE.INTCTRL = TCA_SINGLE_OVF_bm;
   TCA0.SINGLE.PER = F_CPU / 1000;
 
+  // Debug pin
+  DEBUG_PORT.OUTCLR = DEBUG_PIN;
+  DEBUG_PORT.DIRSET = DEBUG_PIN;
+
   sei(); // Enable Global Interrupts
 }
 
@@ -479,12 +541,14 @@ int main() {
   uint16_t crc = pgm_read_word(32UL * 1024 - 2);
   regs[CRC_REG] = (crc >> 8) + (crc << 8);
 
+  flags_set(NOT_INITIALIZED_FLAG);
+
   init();
   validate_input_voltage();
-  shunt_test();
-  charge_caps();
+  charge_test();
   validate_measurements();
   initialized = true;
+  flags_clear(NOT_INITIALIZED_FLAG);
 
   while (true) sleep_cpu();
 

@@ -30,12 +30,14 @@
 #include <avr/io.h>
 
 
-#define VERSION 0x0100
+#define VERSION 0x0102
 
-#define VIN_ADC  ADC_MUXPOS_AIN9_gc
-#define VOUT_ADC ADC_MUXPOS_AIN8_gc
-#define IMON_ADC ADC_MUXPOS_AIN0_gc
+#define VIN_ADC  ADC_MUXPOS_AIN9_gc // ACD0
+#define VOUT_ADC ADC_MUXPOS_AIN8_gc // ADC0
+#define IMON_ADC ADC_MUXPOS_AIN0_gc // ADC1
 #define TEMP_ADC ADC_MUXPOS_TEMPSENSE_gc
+
+#define VIN_OFFSET 0.2 // volts, due to diode drop
 
 #define REFV   4.43
 #define VR1    100000.0
@@ -47,11 +49,17 @@
 #define MOTOR_PIN (1 << 1)
 #define SHUNT_PORT PORTA
 #define SHUNT_PIN (1 << 5)
+#define DEBUG_PORT PORTA
+#define DEBUG_PIN (1 << 6)
 
 #define SHUNT_FAIL_VOLTAGE       5
-#define CAP_CHARGE_TIME          20 // ms
-#define VOLTAGE_MIN              11
-#define VOLTAGE_MAX              50
+#define MAX_DISCHARGE_WAIT_TIME  500 // ms/volt
+#define MAX_CHARGE_WAIT_TIME     30  // ms/volt
+
+#define GATE_TURN_ON_DELAY       40
+#define CAP_DISCHARGE_TIME       20   // ms
+#define VOLTAGE_MIN              20
+#define VOLTAGE_MAX              54
 #define CURRENT_MAX              25
 #define MOTOR_DRIVER_CURRENT     0.15
 #define VOLTAGE_SETTLE_COUNT     5
@@ -67,8 +75,11 @@
 #define SHUNT_MIN_V              2
 
 #define REG_SCALE                100
-#define ADC_SAMPNUM              ADC_SAMPNUM_ACC64_gc
+#define ADC_SAMPNUM              ADC_SAMPNUM_ACC4_gc
 #define ADC_SAMPLES              (1 << ADC_SAMPNUM)
+
+#define ADC_SCALE                5
+#define ADC_BUCKETS              (1 << ADC_SCALE)
 
 #define I2C_ADDR                 0x5f
 
@@ -98,17 +109,15 @@ enum {
   MOTOR_OVERLOAD_FLAG            = 1 << 5,
 
   // Non fatal
-  //LOAD1_SHUTDOWN_FLAG            = 1 << 6,
-  //LOAD2_SHUTDOWN_FLAG            = 1 << 7,
+  GATE_ERROR_FLAG                = 1 << 6,
+  NOT_INITIALIZED_FLAG           = 1 << 7,
   MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8,
+  CHARGE_ERROR_FLAG              = 1 << 11,
   SHUNT_ERROR_FLAG               = 1 << 15,
 
   // Sense errors
   MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9,
   MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10,
-  //LOAD1_SENSE_ERROR_FLAG         = 1 << 11,
-  //LOAD2_SENSE_ERROR_FLAG         = 1 << 12,
-  //VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13,
 
   // State flags
   POWER_SHUTDOWN_FLAG            = 1 << 14,
@@ -116,4 +125,4 @@ enum {
 
 
 #define FATAL_FLAGS       0x003f
-#define SENSE_ERROR_FLAGS 0x3e00
+#define SENSE_ERROR_FLAGS 0x0600

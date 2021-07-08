@@ -36,12 +36,6 @@ module.exports = {
 
 
   computed: {
-    pwr_version: function () {
-      var v = parseInt(this.state.pwr_version)
-      return isNaN(v) ? 0 : ((v >> 8) + '.' + (v & 0xff))
-    },
-
-
     watts: function () {
       var I = parseFloat(this.state.motor)
       var V = parseFloat(this.state.vout)

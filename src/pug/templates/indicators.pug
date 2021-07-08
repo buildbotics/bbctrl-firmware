@@ -136,7 +136,8 @@ script#indicators-template(type="text/x-template")
     table.pwr_fault
       tr
         th.header(colspan=5).
-          Power Faults #[span(v-if="pwr_version") (Version {{pwr_version}})]
+          Power Faults
+          #[span(v-if="state.pwr_version") (Version {{state.pwr_version}})]
       tr
         th(:class="{error: state.under_voltage}") Under voltage
         td(:class="{error: state.under_voltage}")
@@ -184,8 +185,9 @@ script#indicators-template(type="text/x-template")
         td(:class="{error: state.power_shutdown}")
           | {{state.power_shutdown ? 'True' : 'False'}}
         th.separator
-        th
-        td
+        th(:class="{error: state.gate_error}") Gate error
+        td(:class="{error: state.gate_error}")
+          | {{state.gate_error ? 'True' : 'False'}}
 
     table.motor_fault
       tr

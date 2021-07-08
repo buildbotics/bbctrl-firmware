@@ -7,7 +7,7 @@ CLOCK   = 20E6
 CC = avr-gcc
 COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall -Werror -fshort-enums
 CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK) -O3
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
 CFLAGS += -I. -Iinclude
@@ -16,6 +16,15 @@ CFLAGS += -I. -Iinclude
 LDFLAGS += $(COMMON) -B$(MCU)
 
 PROGOPTS=-c /dev/ttyUSB0 -d tiny321x
+
+FUSE0=0x00 # Watch dog
+FUSE1=0xed # Brown out 4.2v, enabled, sleep enabled
+FUSE3=0x02 # Oscillator config
+FUSE4=0x00 # Timer counter config
+FUSE5=0xd4 # No CRC, NVM write block disabled, UPDI reset, no EEPROM save
+FUSE6=0x00 # Startup time
+FUSE7=0x00 # Application end
+FUSE8=0x00 # Boot end
 
 # SRC
 SRC = $(wildcard *.c)

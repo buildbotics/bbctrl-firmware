@@ -27,6 +27,8 @@ BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
 SUBPROJECTS := avr boot pwr2 jig
+SUBPROJECTS := $(patsubst %,src/%,$(SUBPROJECTS))
+
 WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
 WATCH += src/static
 
@@ -39,8 +41,11 @@ PASSWORD=buildbotics
 endif
 
 
-all: html resources
-	@for SUB in $(SUBPROJECTS); do $(MAKE) -C src/$$SUB; done
+all: html resources $(SUBPROJECTS)
+
+.PHONY: $(SUBPROJECTS)
+$(SUBPROJECTS):
+	$(MAKE) -C $@
 
 html: $(HTML)
 resources: $(RESOURCES)
@@ -160,4 +165,4 @@ dist-clean: clean
 	rm -rf node_modules
 
 .PHONY: all install clean tidy pkg camotics lint pylint jshint bbserial
-.PHONY: html resources
+.PHONY: html resources dist-clean

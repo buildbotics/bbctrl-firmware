@@ -3,6 +3,8 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.
+ - Increased gamepad deadband to 15% but with rescaling to improve precision.
+ - Disable 3D viewer if hardware WebGL not available.
 
 ## v1.0.0
  - Added online GCode editor.

@@ -30,35 +30,61 @@ import bbctrl.Cmd as Cmd
 
 
 # Must match regs in pwr firmware
-TEMP_REG        = 0
-VIN_REG         = 1
-VOUT_REG        = 2
-MOTOR_REG       = 3
-LOAD1_REG       = 4
-LOAD2_REG       = 5
-VDD_REG         = 6
-FLAGS_REG       = 7
-VERSION_REG     = 8
-
-# Must be kept in sync with pwr firmware
-UNDER_VOLTAGE_FLAG             = 1 << 0
-OVER_VOLTAGE_FLAG              = 1 << 1
-OVER_CURRENT_FLAG              = 1 << 2
-SENSE_ERROR_FLAG               = 1 << 3
-SHUNT_OVERLOAD_FLAG            = 1 << 4
-MOTOR_OVERLOAD_FLAG            = 1 << 5
-LOAD1_SHUTDOWN_FLAG            = 1 << 6
-LOAD2_SHUTDOWN_FLAG            = 1 << 7
-MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8
-MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9
-MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10
-LOAD1_SENSE_ERROR_FLAG         = 1 << 11
-LOAD2_SENSE_ERROR_FLAG         = 1 << 12
-VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13
-POWER_SHUTDOWN_FLAG            = 1 << 14
-SHUNT_ERROR_FLAG               = 1 << 15
+TEMP_REG     = 0
+VIN_REG      = 1
+VOUT_REG     = 2
+MOTOR_REG    = 3
+LOAD1_REG    = 4
+LOAD2_REG    = 5
+VDD_REG      = 6
+FLAGS_REG    = 7
+VERSION_REG  = 8
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
+
+
+def version_less(a, b):
+    a, b = [[int(y) for y in x.split('.')] for x in (a, b)]
+    return a < b
+
+
+class FD(object):
+    def __init__(self, bit, minVersion, maxVersion, name, description):
+        self.mask = 1 << bit
+        self.minVersion = minVersion
+        self.maxVersion = maxVersion
+        self.name = name
+        self.description = description
+
+
+    def valid_for_version(self, version):
+        if version_less(version, self.minVersion): return False
+        if not version_less(self.minVersion, self.maxVersion): return True
+        return not version_less(self.maxVersion, version)
+
+
+# Must be kept in sync with pwr firmware
+flag_defs = [
+    FD(0,  '0.0', '0.0', 'under_voltage', 'Device under voltage'),
+    FD(1,  '0.0', '0.0', 'over_voltage', 'Device over voltage'),
+    FD(2,  '0.0', '0.0', 'over_current', 'Device total current limit exceeded'),
+    FD(3,  '0.0', '0.0', 'sense_error', 'Power sense error'),
+    FD(4,  '0.0', '0.0', 'shunt_overload', 'Power shunt overload'),
+    FD(5,  '0.0', '0.0', 'motor_overload', 'Motor power overload'),
+    FD(6,  '0.0', '0.8', 'load1_shutdown', 'Load 1 over temperature shutdown'),
+    FD(6,  '1.1', '0.0', 'gate_error', 'Motor power gate not working'),
+    FD(7,  '0.0', '0.8', 'load2_shutdown', 'Load 2 over temperature shutdown'),
+    FD(8,  '0.0', '0.0', 'motor_under_voltage', 'Motor under voltage'),
+    FD(9,  '0.0', '0.0', 'motor_voltage_sense_error',
+       'Motor voltage sense error'),
+    FD(10, '0.0', '0.0', 'motor_current_sense_error',
+       'Motor current sense error'),
+    FD(11, '0.0', '0.8', 'load1_sense_error', 'Load1 sense error'),
+    FD(12, '0.0', '0.8', 'load2_sense_error', 'Load2 sense error'),
+    FD(13, '0.0', '0.8', 'vdd_current_sense_error', 'Vdd current sense error'),
+    FD(14, '0.0', '0.0', 'shutdown', 'Power shutdown'),
+    FD(15, '0.0', '0.0', 'shunt_error', 'Shunt error'),
+]
 
 
 class Pwr():
@@ -76,73 +102,24 @@ class Pwr():
         self._update_cb(False)
 
 
-    def check_fault(self, var, status):
-        status = bool(status)
+    def check_fault(self, fd, status):
+        if not fd.valid_for_version(self.regs[VERSION_REG]): return
 
-        if not self.ctrl.state.has(var) or status != self.ctrl.state.get(var):
-            self.ctrl.state.set(var, status)
-            if status: return True
+        if (not self.ctrl.state.has(fd.name) or
+            status != self.ctrl.state.get(fd.name)):
+            self.ctrl.state.set(fd.name, status)
 
-        return False
+            if status:
+                self.log.warning(fd.description)
+                if fd.name == 'power_shutdown':
+                    self.ctrl.mach.i2c_command(Cmd.SHUTDOWN)
 
 
     def check_faults(self):
         flags = self.regs[FLAGS_REG]
 
-        if self.check_fault('under_voltage', flags & UNDER_VOLTAGE_FLAG):
-            self.log.warning('Device under voltage')
-
-        if self.check_fault('over_voltage', flags & OVER_VOLTAGE_FLAG):
-            self.log.warning('Device over voltage')
-
-        if self.check_fault('over_current', flags & OVER_CURRENT_FLAG):
-            self.log.warning('Device total current limit exceeded')
-
-        if self.check_fault('sense_error', flags & SENSE_ERROR_FLAG):
-            self.log.warning('Power sense error')
-
-        if self.check_fault('shunt_overload', flags & SHUNT_OVERLOAD_FLAG):
-            self.log.warning('Power shunt overload')
-
-        if self.check_fault('motor_overload', flags & MOTOR_OVERLOAD_FLAG):
-            self.log.warning('Motor power overload')
-
-        if self.check_fault('load1_shutdown', flags & LOAD1_SHUTDOWN_FLAG):
-            self.log.warning('Load 1 over temperature shutdown')
-
-        if self.check_fault('load2_shutdown', flags & LOAD2_SHUTDOWN_FLAG):
-            self.log.warning('Load 2 over temperature shutdown')
-
-        if self.check_fault('motor_under_voltage',
-                            flags & MOTOR_UNDER_VOLTAGE_FLAG):
-            self.log.warning('Motor under voltage')
-
-        if self.check_fault('motor_voltage_sense_error',
-                            flags & MOTOR_VOLTAGE_SENSE_ERROR_FLAG):
-            self.log.warning('Motor voltage sense error')
-
-        if self.check_fault('motor_current_sense_error',
-                            flags & MOTOR_CURRENT_SENSE_ERROR_FLAG):
-            self.log.warning('Motor current sense error')
-
-        if self.check_fault('load1_sense_error',
-                            flags & LOAD1_SENSE_ERROR_FLAG):
-            self.log.warning('Load1 sense error')
-
-        if self.check_fault('load2_sense_error',
-                            flags & LOAD2_SENSE_ERROR_FLAG):
-            self.log.warning('Load2 sense error')
-
-        if self.check_fault('vdd_current_sense_error',
-                            flags & VDD_CURRENT_SENSE_ERROR_FLAG):
-            self.log.warning('Vdd current sense error')
-
-        if self.check_fault('power_shutdown', flags & POWER_SHUTDOWN_FLAG):
-            self.log.warning('Power shutdown')
-            self.ctrl.mach.i2c_command(Cmd.SHUTDOWN)
-
-        if self.check_fault('shunt_error', flags & SHUNT_ERROR_FLAG):
-            self.log.warning('Shunt error')
+        for fd in flag_defs:
+            self.check_fault(fd, bool(fd.mask & flags))
 
 
     def _update_cb(self, now = True):
@@ -154,7 +131,7 @@ class Pwr():
         update = {}
 
         try:
-            for i in range(len(self.regs)):
+            for i in reversed(range(len(self.regs))):
                 if self.i2c_old: value = self.ctrl.i2c.read_word(0x60 + i, 0)
                 else: value = self.ctrl.i2c.read_word(0x5f, i, pec = True)
 
@@ -163,7 +140,9 @@ class Pwr():
                 if not self.i2c_old: self.i2c_confirmed_new = True
 
                 if i == TEMP_REG: value -= 273
-                elif i == FLAGS_REG or i == VERSION_REG: pass
+                elif i == VERSION_REG:
+                    value = '%u.%u' % (value >> 8, value & 0xff)
+                elif i == FLAGS_REG: pass
                 else: value /= 100.0
 
                 key = reg_names[i]
@@ -179,7 +158,8 @@ class Pwr():
             if not self.i2c_confirmed_new:
                 self.i2c_old = not self.i2c_old
 
-            if i < 6: # Older pwr firmware does not have regs > 5
+            # Older pwr firmware does not have regs > 5
+            if self.regs[VERSION_REG] != -1 or i < 6:
                 self.failures += 1
                 msg = 'Pwr communication failed at reg %d: %s' % (i, e)
                 if self.failures != 5: self.log.info(msg)
