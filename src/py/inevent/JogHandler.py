@@ -97,6 +97,7 @@ class JogHandler:
 
         changed = False
         old_axes = list(self.axes)
+        deadband = self.get_config('deadband')
 
         # Process event
         if event.type == EV_ABS and self.has_code('axes', event.code):
@@ -105,8 +106,9 @@ class JogHandler:
             self.axes[axis] = event.stream.state.abs[event.code]
             self.axes[axis] *= self.get_config('dir')[axis]
 
-            if abs(self.axes[axis]) < self.get_config('deadband'):
-                self.axes[axis] = 0
+            if abs(self.axes[axis]) < deadband: self.axes[axis] = 0
+            else:
+                self.axes[axis] = (self.axes[axis] - deadband) / (1 - deadband)
 
             if self.horizontal_lock and axis not in [0, 3]:
                 self.axes[axis] = 0

@@ -34,7 +34,7 @@ type2 = [
 ]
 
 config = {
-    "deadband": 0.1,
+    "deadband": 0.15,
     "axes":   [[ABS_X], [ABS_Y], [ABS_RY, ABS_RZ], [ABS_RX, ABS_Z]],
     "dir":    [1, -1, -1, 1],
     "arrows": [[ABS_HAT0X], [ABS_HAT0Y]],
