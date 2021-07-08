@@ -114,11 +114,11 @@ install -C -m 0555 share/updiprog/updiprog /usr/local/bin/
 install -C -m 0555 share/rpipdi/rpipdi /usr/local/bin/
 
 # Install bbkbd
-diff share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/bbkbd 2>&1 >/dev/null
+diff share/bbkbd/bbkbd /usr/local/bin/bbkbd 2>&1 >/dev/null
 if [ $? -ne 0 ]; then
   REBOOT=true
   killall -9 bbkbd
-  install -m 0555 share/bbctrl-firmware/src/kbd/bbkbd /usr/local/bin/
+  install -m 0555 share/bbkbd/bbkbd /usr/local/bin/
 fi
 
 # Remove xontab keyboard

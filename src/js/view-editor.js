@@ -78,9 +78,10 @@ module.exports = {
   },
 
 
-  attached: function (done) {
+  attached: function () {
     if (typeof this.doc == 'undefined') return;
     this.load(cookie.get('selected-path'));
+    Vue.nextTick(function () {this.editor.refresh()}.bind(this))
   },
 
 
@@ -95,10 +96,23 @@ module.exports = {
     var path = cookie.get('selected-path');
     if (!path) path = this.state.queued;
     this.load(path);
+
+    window.addEventListener('resize', this.on_resize)
+  },
+
+
+  beforeDestroy: function () {
+    window.removeEventListener('resize', this.on_resize)
   },
 
 
   methods: {
+    on_resize: function () {
+      // Scroll cursor into view if visible
+      if (this.$el.offsetParent != null) this.editor.scrollIntoView(null)
+    },
+
+
     change: function () {
       this.modified = !this.doc.isClean()
 

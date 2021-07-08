@@ -466,6 +466,12 @@ class JogHandler(bbctrl.APIHandler):
         self.get_ctrl().mach.jog(self.json)
 
 
+class KeyboardHandler(bbctrl.APIHandler):
+    def put_ok(self, cmd, *args):
+        signal = 'SIGUSR' + ('1' if cmd == 'show' else '2')
+        subprocess.call(['killall', '-' + signal, 'bbkbd'])
+
+
 # Base class for Web Socket connections
 class ClientConnection(object):
     def __init__(self, app):
@@ -605,6 +611,7 @@ class Web(tornado.web.Application):
             (r'/api/modbus/write', ModbusWriteHandler),
             (r'/api/jog', JogHandler),
             (r'/api/video', bbctrl.VideoHandler),
+            (r'/api/keyboard/((show)|(hide))', KeyboardHandler),
             (r'/(.*)', StaticFileHandler,
              {'path': bbctrl.get_resource('http/'),
               'default_filename': 'index.html'}),

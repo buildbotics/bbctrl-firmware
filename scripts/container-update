@@ -57,3 +57,10 @@ if [ "$RPIPDI_HOME" != "" ]; then
 else
   update_repo rpipdi https://github.com/buildbotics/rpipdi master
 fi
+
+# bbkbd
+if [ "$BBKBD_HOME" != "" ]; then
+  update_repo bbkbd "$BBKBD_HOME" master
+else
+  update_repo bbkbd https://github.com/buildbotics/bbkbd master
+fi

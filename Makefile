@@ -85,7 +85,7 @@ $(CAMOTICS_MOD): container-update
 	./scripts/container-run ./bbctrl-firmware/scripts/container-make-camotics
 
 bbkbd: container-update
-	./scripts/container-run ./bbctrl-firmware/scripts/container-make-kbd
+	./scripts/container-run "make -C bbkbd"
 
 updiprog: container-update
 	./scripts/container-run "make -C updiprog"
