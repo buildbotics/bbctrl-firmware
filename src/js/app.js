@@ -111,7 +111,7 @@ module.exports = new Vue({
       latestVersion: '',
       showError: false,
       showPopup: true,
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(true)
     }
   },
 
@@ -235,7 +235,7 @@ module.exports = new Vue({
     var warned = cookie.get_bool('webgl-warning', false);
     if (util.webgl_supported() && !util.webgl_supported(true)) {
       var msg = 'Your browser does not have hardware support for 3D ' +
-          'graphics.  3D viewer performance may be slow.'
+          'graphics.  3D viewer disabled.'
 
       console.warn(msg);
 
