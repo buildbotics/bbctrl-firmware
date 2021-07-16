@@ -6,6 +6,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Increased gamepad deadband to 15% but with rescaling to improve precision.
  - Disable 3D viewer if hardware WebGL not available.
  - Automatically show keyboard when selecting input and hide when not.
+ - Use bbkbd instead of ratpoison.
 
 ## v1.0.0
  - Added online GCode editor.

@@ -26,7 +26,7 @@ if $UPDATE_PY; then
 fi
 
 if $UPDATE_AVR; then
-  ./scripts/avr109-flash.py src/avr/bbctrl-avr-firmware.hex
+  ./scripts/avr109-flash src/avr/bbctrl-avr-firmware.hex
 fi
 
 # Update config.txt
@@ -84,9 +84,6 @@ fi
 # Install xinitrc
 install -o pi -g pi -m 0555 scripts/xinitrc ~pi/.xinitrc
 
-# Install ratpoisionrc
-install -o pi -g pi scripts/ratpoisonrc ~pi/.ratpoisonrc
-
 # Install bbserial
 MODSRC=src/bbserial/bbserial.ko
 MODDST=/lib/modules/$(uname -r)/kernel/drivers/tty/serial/bbserial.ko
@@ -103,9 +100,6 @@ plymouth-set-default-theme -R buildbotics
 
 # Install rc.local
 install scripts/rc.local /etc/
-
-# Install avr109-flash
-install -C -m 0555 ./scripts/avr109-flash.py /usr/local/bin/
 
 # Install updiprog
 install -C -m 0555 share/updiprog/updiprog /usr/local/bin/

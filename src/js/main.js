@@ -51,60 +51,7 @@ function menu_ui() {
 }
 
 
-var kbd_input = undefined;
-var kbd_open = false;
-
-
-function keyboard_hide() {
-  if (!kbd_open) return
-  kbd_open = false
-  api.put('keyboard/hide')
-}
-
-
-function keyboard_show() {
-  if (kbd_open) return
-  kbd_open = true
-  api.put('keyboard/show')
-}
-
-
-function is_input(e) {
-  var name = e.nodeName.toLowerCase()
-  if (name == 'textarea') return true
-  if (name == 'input' && !e.readOnly)
-    return e.type == 'text' || e.type == 'number' || e.type == 'password'
-  return false
-}
-
-
-function keyboard_click(e) {kbd_input = e.target}
-
-
-function keyboard_in(e) {
-  if (is_input(e.target)) keyboard_show();
-  else keyboard_hide(e);
-}
-
-
-function keyboard_out(e) {
-  if (is_input(e.target)) keyboard_hide();
-}
-
-
-function keyboard_resize(e) {
-  if (kbd_open) kbd_input.scrollIntoView({block: 'nearest'})
-}
-
-
 $(function() {
-  if (location.host == 'localhost') {
-    document.addEventListener('click', keyboard_click);
-    document.addEventListener('focusin', keyboard_in);
-    document.addEventListener('focusout', keyboard_out);
-    window.addEventListener('resize', keyboard_resize);
-  }
-
   menu_ui();
 
   if (typeof cookie.get('client-id') == 'undefined')
@@ -113,8 +60,9 @@ $(function() {
   // Vue debugging
   Vue.config.debug = true;
 
-  // CodeMirror GCode mode
+  // Init global modules
   require('./cm-gcode');
+  require('./keyboard');
 
   // Register global components
   Vue.component('templated-input', require('./templated-input'));

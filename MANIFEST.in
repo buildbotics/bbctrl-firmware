@@ -6,15 +6,11 @@ include src/avr/bbctrl-avr-firmware.hex
 include src/pwr2/bbctrl-pwr-firmware.hex
 include src/bbserial/bbserial.ko
 include src/splash/*
-include scripts/avr109-flash.py
 include scripts/buildbotics.gc
 include scripts/xinitrc
 include scripts/rc.local
 include scripts/bbctrl.service
 include scripts/11-automount.rules
-include scripts/kbd-show
-include scripts/kbd-hide
-include scripts/ratpoisonrc
 include share/bbkbd/bbkbd
 include share/updiprog/updiprog
 include share/rpipdi/rpipdi

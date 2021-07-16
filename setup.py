@@ -7,38 +7,38 @@ pkg = json.load(open('package.json', 'r'))
 
 
 setup(
-    name = pkg['name'],
-    version = pkg['version'],
-    description = 'Buildbotics Machine Controller',
-    long_description = open('README.md', 'rt').read(),
-    author = 'Joseph Coffland',
-    author_email = 'joseph@buildbotics.org',
-    platforms = ['any'],
-    license = pkg['license'],
-    url = pkg['homepage'],
-    package_dir = {'': 'src/py'},
-    packages = ['bbctrl', 'inevent', 'lcd'],
-    include_package_data = True,
-    entry_points = {
-        'console_scripts': [
-            'bbctrl = bbctrl:run'
-            ]
-        },
-    scripts = [
-        'scripts/update-bbctrl',
-        'scripts/upgrade-bbctrl',
-        'scripts/sethostname',
-        'scripts/reset-video',
-        'scripts/config-wifi',
-        'scripts/config-screen',
-        'scripts/edit-config',
-        'scripts/edit-boot-config',
-        'scripts/browser',
-        'scripts/mount-usb',
-        'scripts/eject-usb',
-        'scripts/kbd-show',
-        'scripts/kbd-hide',
-        ],
-    install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
-    zip_safe = False,
-    )
+  name = pkg['name'],
+  version = pkg['version'],
+  description = 'Buildbotics Machine Controller',
+  long_description = open('README.md', 'rt').read(),
+  author = 'Joseph Coffland',
+  author_email = 'joseph@buildbotics.org',
+  platforms = ['any'],
+  license = pkg['license'],
+  url = pkg['homepage'],
+  package_dir = {'': 'src/py'},
+  packages = ['bbctrl', 'inevent', 'lcd'],
+  include_package_data = True,
+  entry_points = {
+    'console_scripts': [
+      'bbctrl = bbctrl:run'
+    ]
+  },
+  scripts = [
+    'scripts/update-bbctrl',
+    'scripts/upgrade-bbctrl',
+    'scripts/sethostname',
+    'scripts/reset-video',
+    'scripts/config-wifi',
+    'scripts/config-screen',
+    'scripts/edit-config',
+    'scripts/edit-boot-config',
+    'scripts/browser',
+    'scripts/run-browser',
+    'scripts/mount-usb',
+    'scripts/eject-usb',
+    'scripts/avr109-flash',
+  ],
+  install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
+  zip_safe = False,
+)

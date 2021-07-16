@@ -232,14 +232,13 @@ module.exports = new Vue({
     $(window).on('hashchange', this.parse_hash);
     this.connect();
 
-    var warned = cookie.get_bool('webgl-warning', false);
-    if (util.webgl_supported() && !util.webgl_supported(true)) {
+    if (!this.webGLSupported) {
       var msg = 'Your browser does not have hardware support for 3D ' +
           'graphics.  3D viewer disabled.'
 
       console.warn(msg);
 
-      if (!warned)
+      if (!cookie.get_bool('webgl-warning', false))
         this.open_dialog({
           title: 'WebGL Warning',
           body: msg,
