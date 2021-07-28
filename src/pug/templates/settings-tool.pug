@@ -522,3 +522,43 @@ script#settings-tool-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/dmm_dyn4.pdf",
             target="_blank") DMM DYN4 VFD manual
+
+      .notes(v-if="tool_type.startsWith('Galt G200')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P00.01
+            td.reg-value 2
+            td MODBUS control
+            td Run command channel
+          tr
+            td.reg-addr P00.06
+            td.reg-value 8
+            td Frequency set by MODBUS
+            td Frequency command selection
+          tr
+            td.reg-addr P14.00
+            td.reg-value 1
+            td Drive ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P14.01
+            td.reg-value 3
+            td 9600 BAUD rate
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P14.02
+            td.reg-value 3
+            td No parity, 8 data bits, 2 stop bits, RTU mode
+            td Communication mode
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/galt_g200-vfd.pdf",
+            target="_blank") Galt G200 VFD manual

@@ -60,6 +60,7 @@ typedef enum {
   SPINDLE_TYPE_V70,
   SPINDLE_TYPE_WJ200,
   SPINDLE_TYPE_DMM_DYN4,
+  SPINDLE_TYPE_GALT_G200,
 } spindle_type_t;
 
 
