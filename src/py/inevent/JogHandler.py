@@ -106,9 +106,12 @@ class JogHandler:
             self.axes[axis] = event.stream.state.abs[event.code]
             self.axes[axis] *= self.get_config('dir')[axis]
 
-            if abs(self.axes[axis]) < deadband: self.axes[axis] = 0
+            v = abs(self.axes[axis])
+            if v < deadband: self.axes[axis] = 0
             else:
-                self.axes[axis] = (self.axes[axis] - deadband) / (1 - deadband)
+                negative = self.axes[axis] < 0
+                self.axes[axis] = (v - deadband) / (1 - deadband)
+                if negative: self.axes[axis] *= -1
 
             if self.horizontal_lock and axis not in [0, 3]:
                 self.axes[axis] = 0

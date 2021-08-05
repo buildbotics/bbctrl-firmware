@@ -10,6 +10,7 @@ DISABLE_INTERNAL_WIFI=false
 
 WLAN0_CFG=/etc/network/interfaces.d/wlan0
 HOSTAPD_CFG=/etc/hostapd/hostapd.conf
+HOSTAPD_DFL=/etc/default/hostapd
 DNSMASQ_CFG=/etc/dnsmasq.conf
 DHCPCD_CFG=/etc/dhcpcd.conf
 WPA_CFG=/etc/wpa_supplicant/wpa_supplicant.conf
@@ -30,7 +31,7 @@ function query_config() {
         echo "\"internal\": $INTERNAL}"
 
     else
-        if [ -e $HOSTAPD_CFG -a -e /etc/default/hostapd ]; then
+        if [ -e $HOSTAPD_CFG -a -e $HOSTAPD_DFL ]; then
             SSID=$(grep ^ssid= $HOSTAPD_CFG | sed 's/^ssid=\(.*\)$/\1/')
             CHANNEL=$(grep ^channel= $HOSTAPD_CFG |
                           sed 's/^channel=\(.*\)$/\1/')
@@ -48,7 +49,8 @@ function query_config() {
 
 
 function disable_wifi() {
-    rm -f $WLAN0_CFG $HOSTAPD_CFG /etc/default/hostapd
+    rm -f $WLAN0_CFG $HOSTAPD_CFG $HOSTAPD_DFL
+    systemctl disable hostapd
 }
 
 
@@ -165,7 +167,7 @@ function configure_ap() {
     configure_dnsmasq > $DNSMASQ_CFG
     configure_hostapd > $HOSTAPD_CFG
 
-    echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" > /etc/default/hostapd
+    echo "DAEMON_CONF=\"/etc/hostapd/hostapd.conf\"" > $HOSTAPD_DFL
 
     # Enable IP forwarding
     sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
@@ -175,6 +177,9 @@ function configure_ap() {
     iptables -t nat -F
     iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
     iptables-save > /etc/iptables/rules.v4
+
+    # Enable hostapd
+    systemctl enable hostapd
 }
 
 

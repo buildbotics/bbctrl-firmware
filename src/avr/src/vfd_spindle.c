@@ -192,11 +192,12 @@ const vfd_reg_t dmm_dyn4_regs[] PROGMEM = {
 
 
 const vfd_reg_t galt_g200_regs[] PROGMEM = {
-  {REG_MAX_FREQ_READ, 0x2005, 0}, // Maximum operating frequency
-  {REG_FREQ_SET,      0x2001, 0},
-  {REG_FWD_WRITE,     0x2000, 1},
-  {REG_REV_WRITE,     0x2000, 2},
-  {REG_STOP_WRITE,    0x2000, 5},
+  {REG_MAX_FREQ_READ, 0x0003, 0}, // Read maximum operating frequency in 0.01Hz
+  {REG_FREQ_SET,      0x2001, 0}, // Set frequency in 0.01Hz
+  {REG_FREQ_READ,     0x3000, 0}, // Read frequency with 0.01Hz
+  {REG_FWD_WRITE,     0x2000, 1}, // Run forward
+  {REG_REV_WRITE,     0x2000, 2}, // Run reverse
+  {REG_STOP_WRITE,    0x2000, 5}, // Stop
   {REG_STATUS_READ,   0x2100, 0}, // Read status
   {REG_DISABLED},
 };
