@@ -30,49 +30,17 @@ import logging
 from inevent.Constants import *
 
 
-def axes_to_string(axes):
-    s = ''
-    for axis in axes:
-        if s: s += ', '
-        else: s = '('
-        s += '{:6.3f}'.format(axis)
-    return s + ')'
-
-
-def event_to_string(event, state):
-    s = '{} {}: '.format(event.get_source(), event.get_type_name())
-
-    if event.type == EV_ABS:
-        s += axes_to_string(state.get_joystick3d()) + ' ' + \
-            axes_to_string(state.get_joystickR3d()) + ' ' + \
-            '({:2.0f}, {:2.0f}) '.format(*state.get_hat())
-
-    if event.type == EV_REL:
-        s += '({:d}, {:d}) '.format(*state.get_mouse()) + \
-            '({:d}, {:d})'.format(*state.get_wheel())
-
-    if event.type == EV_KEY:
-        state = 'pressed' if event.value else 'released'
-        s += '0x{:x} {}'.format(event.code, state)
-
-    return s
-
-
 class JogHandler:
     def __init__(self, log = None):
         self.reset()
-
         self.log = log if log else logging.getLogger('inevent')
 
 
-    def changed(self):
-        self.log.info(axes_to_string(self.axes) + ' x {:d}'.format(self.speed))
-
-
-    def up(self): self.log.debug('up')
-    def down(self): self.log.debug('down')
-    def left(self): self.log.debug('left')
-    def right(self): self.log.debug('right')
+    def changed(self): pass
+    def up(self):      pass
+    def down(self):    pass
+    def left(self):    pass
+    def right(self):   pass
 
 
     def reset(self):
@@ -92,7 +60,7 @@ class JogHandler:
     def has_code(self, type, code): raise Exception('Not implemented')
 
 
-    def event(self, event, state, dev_name):
+    def __call__(self, event):
         if event.type not in [EV_ABS, EV_REL, EV_KEY]: return
 
         changed = False
@@ -103,7 +71,7 @@ class JogHandler:
         if event.type == EV_ABS and self.has_code('axes', event.code):
             axis = self.match_code('axes', event.code)
 
-            self.axes[axis] = event.stream.state.abs[event.code]
+            self.axes[axis] = event.stream.abs[event.code]
             self.axes[axis] *= self.get_config('dir')[axis]
 
             v = abs(self.axes[axis])
@@ -146,6 +114,6 @@ class JogHandler:
                 if index == 0: self.horizontal_lock = True
                 if index == 1: self.vertical_lock = True
 
-        self.log.debug(event_to_string(event, state))
+        self.log.info(str(event))
 
         if changed: self.changed()

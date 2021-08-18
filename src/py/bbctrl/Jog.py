@@ -28,11 +28,6 @@
 import inevent
 from inevent.Constants import *
 
-type2 = [
-    'USB Gamepad',
-    'Logitech Logitech RumblePad 2 USB'
-]
-
 config = {
     "deadband": 0.15,
     "axes":   [[ABS_X], [ABS_Y], [ABS_RY, ABS_RZ], [ABS_RX, ABS_Z]],
@@ -53,13 +48,13 @@ class Jog(inevent.JogHandler):
 
         self.v = [0.0] * 4
         self.lastV = self.v
-        self.callback()
+        self.update()
 
         self.processor = inevent.InEvent(ctrl.ioloop, self, types = ['js'],
                                          log = ctrl.log.get('InEvent'))
 
 
-    # From JobHandler
+    # From inevent.JogHandler
     def match_code(self, type, code):
         if not type in config: return None
 
@@ -76,13 +71,13 @@ class Jog(inevent.JogHandler):
         return self.match_code(type, code) is not None
 
 
-    def up(self): self.ctrl.lcd.page_up()
-    def down(self): self.ctrl.lcd.page_down()
-    def left(self): self.ctrl.lcd.page_left()
+    def up(self):    self.ctrl.lcd.page_up()
+    def down(self):  self.ctrl.lcd.page_down()
+    def left(self):  self.ctrl.lcd.page_left()
     def right(self): self.ctrl.lcd.page_right()
 
 
-    def callback(self):
+    def update(self):
         if self.v != self.lastV:
             self.lastV = self.v
             try:
@@ -93,7 +88,7 @@ class Jog(inevent.JogHandler):
             except Exception as e:
                 self.log.warning('Jog: %s', e)
 
-        self.ctrl.ioloop.call_later(0.25, self.callback)
+        self.ctrl.ioloop.call_later(0.25, self.update)
 
 
     def changed(self):

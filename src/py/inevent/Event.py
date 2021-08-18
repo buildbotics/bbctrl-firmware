@@ -28,7 +28,7 @@
 # The inevent Python module was adapted from pi3d.event from the pi3d
 # project.
 #
-# Copyright (c) 2016, Joseph Coffland, Cauldron Development LLC.
+# Copyright (c) 2016-2021, Joseph Coffland, Cauldron Development LLC.
 # Copyright (c) 2015, Tim Skillman.
 # Copyright (c) 2015, Paddy Gaunt.
 # Copyright (c) 2015, Tom Ritchford.
@@ -57,38 +57,25 @@ import struct
 
 from inevent.Constants import *
 
-
 _format = 'llHHi'
 size = struct.calcsize(_format)
 
 
+def axes_to_string(axes):
+    s = ''
+    for axis in axes:
+        if s: s += ', '
+        else: s = '('
+        s += '{:6.3f}'.format(axis)
+    return s + ')'
+
+
 class Event(object):
-  """
-  A single event from the linux input event system.
-
-  Events are tuples: (Time, Type, Code, Value)
-  In addition we remember the stream it came from.
-
-  Externally, only the unhandled event handler gets passed the whole event,
-  but the SYN handler gets the code and value. (Also the keyboard handler, but
-  those are renamed to key and value.)
-
-  This class is responsible for converting the Linux input event structure into
-  one of these objects and back again.
-  """
-  def __init__(self, stream, time = None, type = None, code = None,
-               value = None):
-    """
-    Create a new event.
-
-    Generally all but the stream parameter are left out; we will want to
-    populate the object from a Linux input event using decode.
-    """
+  def __init__(self, stream, data):
     self.stream = stream
-    self.time = time
-    self.type = type
-    self.code = code
-    self.value = value
+
+    tsec, tfrac, self.type, self.code, self.value = struct.unpack(_format, data)
+    self.time = tsec + tfrac / 1000000.0
 
 
   def get_type_name(self):
@@ -97,46 +84,31 @@ class Event(object):
 
 
   def get_source(self):
-    return "%s[%d]" % (self.stream.devType, self.stream.devIndex)
+    return '%s[%d]' % (self.stream.devType, self.stream.devIndex)
 
 
   def __str__(self):
-    """
-    Uses the stream to give the device type and whether it is currently grabbed.
-    """
-    grabbed = "grabbed" if self.stream.grabbed else "ungrabbed"
+    s = 'Event %s @%f: %s 0x%x=0x%x' % (
+      self.get_source(), self.time, self.get_type_name(), self.code, self.value)
 
-    return "Event %s %s @%f: %s 0x%x=0x%x" % (
-      self.get_source(), grabbed, self.time, self.get_type_name(), self.code,
-      self.value)
+    if self.type == EV_ABS:
+        abs = self.stream.abs
+        s += axes_to_string((abs[ABS_X], abs[ABS_Y], abs[ABS_Z])) + ' ' + \
+            axes_to_string((abs[ABS_RX], abs[ABS_RY], abs[ABS_RZ])) + ' ' + \
+            '({:2.0f}, {:2.0f}) '.format(abs[ABS_HAT0X], abs[ABS_HAT0Y])
+
+    if self.type == EV_REL:
+        rel = self.stream.rel
+        s += '({:d}, {:d}) '.format(rel[REL_X], rel[REL_Y]) + \
+            '({:d}, {:d})'.format(rel[REL_WHEEL], rel[REL_HWHEEL])
+
+    if self.type == EV_KEY:
+        state = 'pressed' if self.value else 'released'
+        s += '0x{:x} {}'.format(self.code, state)
+
+    return s
 
 
   def __repr__(self):
-    return "Event(%s, %f, 0x%x, 0x%x, 0x%x)" % (
+    return 'Event(%s, %f, 0x%x, 0x%x, 0x%x)' % (
       repr(self.stream), self.time, self.type, self.code, self.value)
-
-
-  def encode(self):
-    """
-    Encode this event into a Linux input event structure.
-
-    The output is packed into a string. It is unlikely that this function
-    will be required, but it might as well be here.
-    """
-    tsec = int(self.time)
-    tfrac = int((self.time - tsec) * 1000000)
-
-    return struct.pack(_format, tsec, tfrac, self.type, self.code, self.value)
-
-
-  def decode(self, s):
-    """
-    Decode a Linux input event into the fields of this object.
-
-    Arguments:
-      *s*
-        A binary structure packed into a string.
-    """
-    tsec, tfrac, self.type, self.code, self.value = struct.unpack(_format, s)
-
-    self.time = tsec + tfrac / 1000000.0

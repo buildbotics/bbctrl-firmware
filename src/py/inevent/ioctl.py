@@ -28,7 +28,7 @@
 # The inevent Python module was adapted from pi3d.event from the pi3d
 # project.
 #
-# Copyright (c) 2016, Joseph Coffland, Cauldron Development LLC.
+# Copyright (c) 2016-2021, Joseph Coffland, Cauldron Development LLC.
 # Copyright (c) 2015, Tim Skillman.
 # Copyright (c) 2015, Paddy Gaunt.
 # Copyright (c) 2015, Tom Ritchford.
@@ -125,4 +125,3 @@ IOC_OUT       = _IOC_READ     << _IOC_DIRSHIFT
 IOC_INOUT     = _IOC_RW       << _IOC_DIRSHIFT
 IOCSIZE_MASK  = _IOC_SIZEMASK << _IOC_SIZESHIFT
 IOCSIZE_SHIFT = _IOC_SIZESHIFT
-

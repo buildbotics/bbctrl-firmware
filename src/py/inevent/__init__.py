@@ -28,7 +28,7 @@
 # The inevent Python module was adapted from pi3d.event from the pi3d
 # project.
 #
-# Copyright (c) 2016, Joseph Coffland, Cauldron Development LLC.
+# Copyright (c) 2016-2021, Joseph Coffland, Cauldron Development LLC.
 # Copyright (c) 2015, Tim Skillman.
 # Copyright (c) 2015, Paddy Gaunt.
 # Copyright (c) 2015, Tom Ritchford.
