@@ -174,8 +174,9 @@ class Pwr():
         self.lcd_page.text(' %04x  Flg' % self.regs[FLAGS_REG], 0, 3)
 
         self.lcd_page.text('%5.1fA Mot' % self.regs[MOTOR_REG], 10, 0)
-        self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
-        self.lcd_page.text('%5.1fA Ld2' % self.regs[LOAD2_REG], 10, 2)
+        if self.regs[VERSION_REG] < 0x100:
+            self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
+            self.lcd_page.text('%5.1fA Ld2' % self.regs[LOAD2_REG], 10, 2)
         self.lcd_page.text('%5.1fA Vdd' % self.regs[VDD_REG],   10, 3)
 
         if len(update): self.ctrl.state.update(update)
