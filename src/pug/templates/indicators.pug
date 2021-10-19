@@ -163,7 +163,7 @@ script#indicators-template(type="text/x-template")
         th(:class="{error: state.shunt_error}") Shunt error
         td(:class="{error: state.shunt_error}")
           | {{state.shunt_error ? 'True' : 'False'}}
-      tr
+      tr(v-if="state.pwr_version_int < 0x100")
         th(:class="{error: state.load1_shutdown}") Load 1 shutdown
         td(:class="{error: state.load1_shutdown}")
           | {{state.load1_shutdown ? 'True' : 'False'}}
@@ -243,7 +243,7 @@ script#indicators-template(type="text/x-template")
         td {{state.motor | fixed 2}} A
         th Motor Current
 
-      tr(v-if="state.pwr_version < 0x100")
+      tr(v-if="state.pwr_version_int < 0x100")
         td {{state.load1 | fixed 2}} A
         th Load 1
         th.separator
@@ -263,5 +263,5 @@ script#indicators-template(type="text/x-template")
       img(src="images/DB25_breakout_box.png")
 
     div
-      h2 DB25-M2 breakout
-      img(src="images/DB25-M2_breakout.png")
+      h2 DB15 breakout box
+      img(src="images/DB15_breakout_box.png")

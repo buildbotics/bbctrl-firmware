@@ -125,7 +125,6 @@ $(TARGET_DIR)/%: src/resources/%
 $(TARGET_DIR)/index.html: build/templates.pug
 $(TARGET_DIR)/index.html: $(wildcard src/static/js/*)
 $(TARGET_DIR)/index.html: $(wildcard src/static/css/*)
-$(TARGET_DIR)/index.html: $(wildcard src/pug/templates/*)
 $(TARGET_DIR)/index.html: $(wildcard src/js/*)
 $(TARGET_DIR)/index.html: $(wildcard src/stylus/*)
 $(TARGET_DIR)/index.html: src/resources/config-template.json

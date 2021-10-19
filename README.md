@@ -33,7 +33,7 @@ they are built with are as follows:
    * [C](https://en.wikipedia.org/wiki/C_(programming_language))
 
  * Pwr AVR Firmware - Power safety
-   * [ATtiny1634](https://www.microchip.com/wwwproducts/ATtiny1634)
+   * [ATtiny3216](https://www.microchip.com/wwwproducts/ATtiny3216)
    * [C](https://en.wikipedia.org/wiki/C_(programming_language))
 
 ## Quickstart Guide
@@ -62,7 +62,7 @@ The resulting package will be a ``.tar.bz2`` file in ``dist``.  See the
 [development guide](docs/development.md) for more information.
 
 ## License
-Copyright Buildbotics LLC 2016-2020.
+Copyright Buildbotics LLC 2016-2021.
 
 This source describes Open Hardware and is licensed under the CERN-OHL-S v2
 

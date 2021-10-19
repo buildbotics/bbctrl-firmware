@@ -9,6 +9,8 @@ Buildbotics CNC Controller Firmware Changelog
  - Use bbkbd instead of ratpoison.
  - Added Galt G200/G500 VFD support
  - Correction for voltage measurements.
+ - Removed load current and faults for newer hardware from indicators and LCD.
+ - Added DB15 breakout box to indicators page.
 
 ## v1.0.0
  - Added online GCode editor.

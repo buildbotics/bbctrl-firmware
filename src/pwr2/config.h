@@ -60,7 +60,7 @@
 #define GATE_TURN_ON_DELAY       40
 #define CAP_DISCHARGE_TIME       20   // ms
 #define VOLTAGE_MIN              20
-#define VOLTAGE_MAX              54
+#define VOLTAGE_MAX              53
 #define CURRENT_MAX              25
 #define MOTOR_DRIVER_CURRENT     0.15
 #define VOLTAGE_SETTLE_COUNT     5

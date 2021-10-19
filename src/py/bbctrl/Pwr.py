@@ -27,6 +27,7 @@
 
 import bbctrl
 import bbctrl.Cmd as Cmd
+import pkg_resources
 
 
 # Must match regs in pwr firmware
@@ -41,6 +42,8 @@ FLAGS_REG    = 7
 VERSION_REG  = 8
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
+
+firmware_version = pkg_resources.require('bbctrl')[0].version
 
 
 def version_less(a, b):
@@ -141,6 +144,7 @@ class Pwr():
 
                 if i == TEMP_REG: value -= 273
                 elif i == VERSION_REG:
+                    self.ctrl.state.set('pwr_version_int', value)
                     value = '%u.%u' % (value >> 8, value & 0xff)
                 elif i == FLAGS_REG: pass
                 else: value /= 100.0
@@ -174,10 +178,15 @@ class Pwr():
         self.lcd_page.text(' %04x  Flg' % self.regs[FLAGS_REG], 0, 3)
 
         self.lcd_page.text('%5.1fA Mot' % self.regs[MOTOR_REG], 10, 0)
-        if self.regs[VERSION_REG] < 0x100:
+
+        if version_less(self.regs[VERSION_REG], '1.0'):
             self.lcd_page.text('%5.1fA Ld1' % self.regs[LOAD1_REG], 10, 1)
             self.lcd_page.text('%5.1fA Ld2' % self.regs[LOAD2_REG], 10, 2)
-        self.lcd_page.text('%5.1fA Vdd' % self.regs[VDD_REG],   10, 3)
+            self.lcd_page.text('%5.1fA Vdd' % self.regs[VDD_REG],   10, 3)
+
+        else:
+            self.lcd_page.text('%6s Pwr' % self.regs[VERSION_REG], 10, 1)
+            self.lcd_page.text('%6s Ver' % firmware_version, 10, 2)
 
         if len(update): self.ctrl.state.update(update)
 
