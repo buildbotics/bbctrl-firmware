@@ -143,7 +143,7 @@ static void motor_enable(bool enable) {
 
 static uint16_t to_voltage(uint16_t result) {
   return result *
-    (((REFV * (VR1 + VR2)) / (VR2 * 1023 * ADC_SAMPLES)) * REG_SCALE);
+    (((REFV * (VR1 + VR2)) / (VR2 * 1023 * ADC_SAMPLES)) * VSCALE * REG_SCALE);
 }
 
 
@@ -294,6 +294,7 @@ static void adc_init(adc_t *adc) {
   adc->regs->INTCTRL = ADC_RESRDY_bm;
   adc->regs->CTRLA = ADC_RESSEL_10BIT_gc | ADC_ENABLE_bm | ADC_RUNSTBY_bm;
   adc->regs->SAMPCTRL = 14;
+  adc->regs->CALIB = ADC_DUTYCYC_DUTY50_gc;
   adc_start(adc);
 }
 

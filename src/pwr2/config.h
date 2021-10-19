@@ -30,14 +30,15 @@
 #include <avr/io.h>
 
 
-#define VERSION 0x0102
+#define VERSION 0x0103
 
 #define VIN_ADC  ADC_MUXPOS_AIN9_gc // ACD0
 #define VOUT_ADC ADC_MUXPOS_AIN8_gc // ADC0
 #define IMON_ADC ADC_MUXPOS_AIN0_gc // ADC1
 #define TEMP_ADC ADC_MUXPOS_TEMPSENSE_gc
 
-#define VIN_OFFSET 0.2 // volts, due to diode drop
+#define VIN_OFFSET 0.3 // volts, due to diode drop
+#define VSCALE 0.9725  // Linear voltage measurement correction
 
 #define REFV   4.43
 #define VR1    100000.0
