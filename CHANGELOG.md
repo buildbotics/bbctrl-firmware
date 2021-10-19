@@ -8,6 +8,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Automatically show keyboard when selecting input and hide when not.
  - Use bbkbd instead of ratpoison.
  - Added Galt G200/G500 VFD support
+ - Correction for voltage measurements.
 
 ## v1.0.0
  - Added online GCode editor.

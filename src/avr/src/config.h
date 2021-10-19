@@ -210,7 +210,6 @@ enum {
 #define MIN_VELOCITY             10            // mm/min
 #define CURRENT_SENSE_RESISTOR   0.05          // ohms
 #define CURRENT_SENSE_REF        2.75          // volts
-#define MAX_CURRENT              6             // amps
 #define MAX_IDLE_CURRENT         2             // amps
 #define VELOCITY_MULTIPLIER      1000.0
 #define ACCEL_MULTIPLIER         1000000.0

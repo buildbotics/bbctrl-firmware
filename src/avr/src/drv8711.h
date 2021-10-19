@@ -179,6 +179,10 @@ enum {
 
 #define DRV8711_STALL_THRESH(STALL) ((0xff & (STALL)) * 1.8 / 256)
 
+#define DRV8711_GAIN DRV8711_CTRL_GAIN(DRV8711_CTRL)
+#define DRV8711_MAX_CURRENT                                     \
+  (CURRENT_SENSE_REF / (CURRENT_SENSE_RESISTOR * DRV8711_GAIN))
+
 
 typedef enum {
   DRV8711_DISABLED,

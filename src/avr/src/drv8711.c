@@ -134,15 +134,12 @@ static uint8_t _microsteps(uint16_t msteps) {
 
 
 static void _current_set(current_t *c, float current) {
-  const float gain = DRV8711_CTRL_GAIN(DRV8711_CTRL);
-  const float max_current = CURRENT_SENSE_REF / (CURRENT_SENSE_RESISTOR * gain);
-
-  // Limit to max configurable current (11A)
-  if (max_current < current) current = max_current;
+  // Limit to max configurable current (11A with gain 5 and 0.05Ω current sense)
+  if (DRV8711_MAX_CURRENT < current) current = DRV8711_MAX_CURRENT;
 
   c->current = current;
   c->torque = round(current * CURRENT_SENSE_RESISTOR / CURRENT_SENSE_REF *
-                    gain * 255);
+                    DRV8711_GAIN * 255);
 }
 
 
@@ -441,7 +438,7 @@ float get_drive_current(int driver) {
 
 void set_drive_current(int driver, float value) {
   if (driver < 0 || DRIVERS <= driver || value < 0) return;
-  if (MAX_CURRENT < value) value = MAX_CURRENT;
+  if (DRV8711_MAX_CURRENT < value) value = DRV8711_MAX_CURRENT;
   _current_set(&drivers[driver].drive, value);
 }
 
@@ -535,7 +532,7 @@ float get_stall_current(int driver) {
 
 void set_stall_current(int driver, float value) {
   if (driver < 0 || DRIVERS <= driver) return;
-  if (MAX_CURRENT < value) value = MAX_CURRENT;
+  if (DRV8711_MAX_CURRENT < value) value = DRV8711_MAX_CURRENT;
   _current_set(&drivers[driver].stall.current, value);
 }
 
