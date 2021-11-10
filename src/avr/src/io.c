@@ -26,93 +26,494 @@
 \******************************************************************************/
 
 #include "io.h"
+#include "config.h"
 
-#include "status.h"
-#include "util.h"
-#include "command.h"
-#include "exec.h"
-#include "rtc.h"
-#include "analog.h"
+#include <stdint.h>
+#include <string.h>
 
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
+
+#define IO_MIN_INDEX 'a'
+#define IO_MAX_INDEX 'q'
+
+#define IF_INVALID_INDEX_RETURN \
+  if (index < IO_MIN_INDEX || IO_MAX_INDEX < index) return
+
+// macros for finding io function given the axis number
+#define MIN_INPUT(axis) ((io_function_t)(INPUT_MOTOR_0_MIN + axis))
+#define MAX_INPUT(axis) ((io_function_t)(INPUT_MOTOR_0_MAX + axis))
+
+#define IO_INVALID 0xff
+
+
+static struct {
+  uint16_t debounce;
+  uint16_t lockout;
+  uint8_t adc_ch_pin[2];
+} _io = {
+  .debounce = INPUT_DEBOUNCE,
+  .lockout = INPUT_LOCKOUT,
+};
 
 
 typedef struct {
-  int8_t port;
-  bool digital;
-  input_mode_t mode;
-  float timeout;
-} input_cmd_t;
+  bool state;
+  uint16_t debounce;
+  uint16_t lockout;
+  bool initialized;
+} io_input_t;
 
 
-static input_cmd_t active_cmd = {-1,};
-static uint32_t timeout;
+typedef struct {
+  uint8_t pin;
+  uint8_t adc_ch;
+  uint8_t adc_mux;
+  io_function_t function;
+  io_mode_t mode;
+  io_input_t input;
+} io_pin_t;
 
 
-void io_callback() {
-  if (active_cmd.port == -1) return;
+typedef struct {
+  uint8_t active;
+  io_callback_t cb;
+} io_func_state_t;
 
-  bool done = false;
-  float result = 0;
-  if (active_cmd.mode == INPUT_IMMEDIATE || rtc_expired(timeout)) done = true;
 
-  // TODO handle modes
+static io_pin_t _pins[] = {
+  {IO_01_PIN, IO_INVALID},
+  {IO_02_PIN, IO_INVALID},
+  {IO_03_PIN, 1, ADC_CH_MUXPOS_PIN0_gc},
+  {IO_04_PIN, 1, ADC_CH_MUXPOS_PIN1_gc},
+  {IO_05_PIN, 1, ADC_CH_MUXPOS_PIN4_gc},
+  {IO_08_PIN, 1, ADC_CH_MUXPOS_PIN5_gc},
+  {IO_09_PIN, 1, ADC_CH_MUXPOS_PIN6_gc},
+  {IO_10_PIN, 1, ADC_CH_MUXPOS_PIN7_gc},
+  {IO_11_PIN, 1, ADC_CH_MUXPOS_PIN2_gc},
+  {IO_12_PIN, 1, ADC_CH_MUXPOS_PIN3_gc},
+  {IO_15_PIN, 0, ADC_CH_MUXPOS_PIN5_gc},
+  {IO_16_PIN, 0, ADC_CH_MUXPOS_PIN4_gc},
+  {IO_18_PIN, 0, ADC_CH_MUXPOS_PIN7_gc},
+  {IO_21_PIN, IO_INVALID},
+  {IO_22_PIN, IO_INVALID},
+  {IO_23_PIN, IO_INVALID},
+  {IO_24_PIN, 0, ADC_CH_MUXPOS_PIN6_gc},
 
-  if (done) {
-    if (active_cmd.digital) { // TODO
-    } else result = analog_get(active_cmd.port);
+  // Hard wired pins
+  {STALL_0_PIN,     IO_INVALID, 0, INPUT_STALL_0},
+  {STALL_1_PIN,     IO_INVALID, 0, INPUT_STALL_1},
+  {STALL_2_PIN,     IO_INVALID, 0, INPUT_STALL_2},
+  {STALL_3_PIN,     IO_INVALID, 0, INPUT_STALL_3},
+  {MOTOR_FAULT_PIN, IO_INVALID, 0, INPUT_MOTOR_FAULT},
+  {TEST_PIN,        IO_INVALID, 0, OUTPUT_TEST},
 
-    printf_P(PSTR("{\"result\": %f}\n"), (double)result);
-    active_cmd.port = -1;
+  {0}, // Sentinal
+};
+
+static io_func_state_t _func_state[IO_FUNCTION_COUNT];
+static float _analog_ports[ANALOGS];
+
+
+static io_function_t _output_to_function(int id) {
+  switch (id) {
+  case 0: return OUTPUT_0;
+  case 1: return OUTPUT_1;
+  case 2: return OUTPUT_2;
+  case 3: return OUTPUT_3;
+  case 4: return OUTPUT_MIST;
+  case 5: return OUTPUT_FLOOD;
+  case 6: return OUTPUT_FAULT;
+  case 7: return OUTPUT_TOOL_DIRECTION;
+  case 8: return OUTPUT_TOOL_ENABLE;
+  case 9: return OUTPUT_TEST;
+  default: return IO_DISABLED;
   }
 }
 
 
-static stat_t _exec_cb() {
-  if (active_cmd.port == -1) exec_set_cb(0);
-  return STAT_NOP;
+static uint8_t _function_to_analog_port(io_function_t function) {
+  return function - ANALOG_0;
 }
 
 
-// Command callbacks
-stat_t command_input(char *cmd) {
-  input_cmd_t input_cmd;
-  cmd++; // Skip command
+static void _state_set_active(io_function_t function, bool active) {
+  io_func_state_t *state = &_func_state[function];
 
-  // Analog or digital
-  if (*cmd == 'd') input_cmd.digital = true;
-  else if (*cmd == 'a') input_cmd.digital = false;
-  else return STAT_INVALID_ARGUMENTS;
-  cmd++;
+  if (active) {
+    state->active++;
+    if (state->active == 1 && state->cb) state->cb(function, true);
 
-  // Port index
-  if (!isdigit(*cmd)) return STAT_INVALID_ARGUMENTS;
-  input_cmd.port = *cmd - '0';
-  cmd++;
-
-  // Mode
-  if (!isdigit(*cmd)) return STAT_INVALID_ARGUMENTS;
-  input_cmd.mode = (input_mode_t)(*cmd - '0');
-  if (INPUT_LOW < input_cmd.mode) return STAT_INVALID_ARGUMENTS;
-  cmd++;
-
-  // Timeout
-  if (!decode_float(&cmd, &input_cmd.timeout)) return STAT_BAD_FLOAT;
-
-  command_push(COMMAND_input, &input_cmd);
-
-  return STAT_OK;
+  } else {
+    state->active--;
+    if (!state->active && state->cb) state->cb(function, false);
+  }
 }
 
 
-unsigned command_input_size() {return sizeof(input_cmd_t);}
+static bool _is_valid(io_function_t function, io_type_t type) {
+  return io_get_type(function) == type;
+}
 
 
-void command_input_exec(void *data) {
-  active_cmd = *(input_cmd_t *)data;
+static bool _is_input_active(io_pin_t *pin) {
+  if (!_is_valid(pin->function, IO_TYPE_INPUT) || !pin->input.initialized)
+    return false;
 
-  timeout = rtc_get_time() + active_cmd.timeout * 1000;
-  exec_set_cb(_exec_cb);
+  switch (pin->mode) {
+  case HI_LO: return !pin->input.state;
+  case LO_HI: return pin->input.state;
+  default:    return false;
+  }
+}
+
+
+static uint8_t _mode_state(io_mode_t mode, bool active) {
+  switch (mode) {
+  case LO_HI:  return active ? IO_HI  : IO_LO;
+  case HI_LO:  return active ? IO_LO  : IO_HI;
+  case TRI_LO: return active ? IO_LO  : IO_TRI;
+  case TRI_HI: return active ? IO_HI  : IO_TRI;
+  case LO_TRI: return active ? IO_TRI : IO_LO;
+  case HI_TRI: return active ? IO_TRI : IO_HI;
+  default: return IO_TRI;
+  }
+}
+
+
+static void _set_output(io_pin_t *pin, bool active) {
+  uint8_t state = _mode_state(pin->mode, active);
+
+  switch (state) {
+  case 0:  OUTCLR_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
+  case 1:  OUTSET_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
+  default: DIRCLR_PIN(pin->pin); break;
+  }
+}
+
+
+static void _set_function(io_pin_t *pin, io_function_t function) {
+  io_type_t oldType = io_get_type(pin->function);
+
+  switch (oldType) {
+  case IO_TYPE_INPUT:
+    // Release active input
+    if (_is_input_active(pin)) _state_set_active(pin->function, false);
+    memset(&pin->input, 0, sizeof(pin->input)); // Reset input state
+    break;
+
+  case IO_TYPE_ANALOG:
+    _analog_ports[_function_to_analog_port(pin->function)] = 0;
+    break;
+
+  default: break;
+  }
+
+  pin->function = function;
+
+  switch (io_get_type(function)) {
+  case IO_TYPE_INPUT:
+    PINCTRL_PIN(pin->pin) = PORT_OPC_PULLUP_gc; // Pull up
+    DIRCLR_PIN(pin->pin); // Input
+    break;
+
+  case IO_TYPE_OUTPUT:
+    _set_output(pin, _func_state[function].active);
+    break;
+
+  case IO_TYPE_ANALOG:
+    _analog_ports[_function_to_analog_port(function)] = 0;
+
+    if (pin->adc_ch == IO_INVALID) pin->function = IO_DISABLED;
+    else {
+      PINCTRL_PIN(pin->pin) = 0; // Disable pull up
+      DIRCLR_PIN(pin->pin); // Input
+      break;
+    }
+
+    // Fall through if analog disabled
+
+  case IO_TYPE_DISABLED:
+    PINCTRL_PIN(pin->pin) = 0; // Disable pull up
+    DIRCLR_PIN(pin->pin);      // Input
+    break;
+  }
+}
+
+
+static io_pin_t *_next_adc_pin(uint8_t ch) {
+  uint8_t current = _io.adc_ch_pin[ch];
+
+  while (true) {
+    uint8_t next = ++_io.adc_ch_pin[ch];
+    if (!_pins[next].pin) _io.adc_ch_pin[ch] = next = 0;
+    if (_pins[next].adc_ch == ch) return &_pins[next];
+    if (next == current) break; // We checked all pins
+  }
+
+  return 0;
+}
+
+
+static ADC_CH_t *_get_adc_ch(uint8_t ch) {return ch ? &ADCA.CH1 : &ADCA.CH0;}
+
+
+static void _start_acd_conversion(io_pin_t *pin) {
+  _get_adc_ch(pin->adc_ch)->MUXCTRL = pin->adc_mux;
+  ADCA.CTRLA |= pin->adc_ch ? ADC_CH1START_bm : ADC_CH0START_bm;
+}
+
+
+static float _convert_analog_result(uint16_t result) {
+  return result; // TODO convert result
+}
+
+
+static void _adc_callback(uint8_t ch) {
+  io_pin_t *pin = &_pins[_io.adc_ch_pin[ch]];
+
+  if (pin->adc_ch == ch) {
+    uint16_t result = _get_adc_ch(ch)->RES;
+
+    if (_is_valid(pin->function, IO_TYPE_ANALOG)) {
+      unsigned port = _function_to_analog_port(pin->function);
+      _analog_ports[port] = _convert_analog_result(result);
+    }
+  }
+}
+
+
+ISR(ADCA_CH0_vect) {_adc_callback(0);}
+ISR(ADCA_CH1_vect) {_adc_callback(1);}
+
+
+void io_init() {
+  // Analog channels
+  for (int i = 0; i < 2; i++) {
+    ADC_CH_t *ch = _get_adc_ch(i);
+    ch->CTRL    = ADC_CH_GAIN_1X_gc | ADC_CH_INPUTMODE_SINGLEENDED_gc;
+    ch->INTCTRL = ADC_CH_INTLVL_LO_gc;
+  }
+
+  // Analog module
+  ADCA.REFCTRL   = ADC_REFSEL_INTVCC_gc; // 3.3V / 1.6 = 2.06V
+  ADCA.PRESCALER = ADC_PRESCALER_DIV512_gc;
+  ADCA.EVCTRL    = ADC_SWEEP_01_gc;
+  ADCA.CTRLA     = ADC_FLUSH_bm | ADC_ENABLE_bm;
+
+  // Init fixed functions
+  for (int i = 0; _pins[i].pin; i++)
+    _set_function(&_pins[i], _pins[i].function);
+}
+
+
+bool io_is_enabled(io_function_t function) {
+  for (int i = 0; _pins[i].pin; i++)
+    if (_pins[i].function == function)
+      return true;
+
+  return false;
+}
+
+
+io_type_t io_get_type(io_function_t function) {
+  switch (function) {
+  case IO_DISABLED: break;
+
+  case INPUT_MOTOR_0_MAX: case INPUT_MOTOR_1_MAX: case INPUT_MOTOR_2_MAX:
+  case INPUT_MOTOR_3_MAX: case INPUT_MOTOR_0_MIN: case INPUT_MOTOR_1_MIN:
+  case INPUT_MOTOR_2_MIN: case INPUT_MOTOR_3_MIN:
+  case INPUT_0: case INPUT_1: case INPUT_2: case INPUT_3:
+  case INPUT_ESTOP: case INPUT_PROBE:
+    return IO_TYPE_INPUT;
+
+  case OUTPUT_0: case OUTPUT_1: case OUTPUT_2: case OUTPUT_3:
+  case OUTPUT_MIST: case OUTPUT_FLOOD: case OUTPUT_FAULT:
+  case OUTPUT_TOOL_ENABLE: case OUTPUT_TOOL_DIRECTION:
+    return IO_TYPE_OUTPUT;
+
+  case ANALOG_0: case ANALOG_1: case ANALOG_2: case ANALOG_3:
+    return IO_TYPE_ANALOG;
+
+  case INPUT_STALL_0: case INPUT_STALL_1: case INPUT_STALL_2:
+  case INPUT_STALL_3: case INPUT_MOTOR_FAULT:
+    return IO_TYPE_INPUT;
+
+  case OUTPUT_TEST: return IO_TYPE_OUTPUT;
+
+  case IO_FUNCTION_COUNT: break;
+  }
+
+  return IO_TYPE_DISABLED;
+}
+
+
+void io_set_callback(io_function_t function, io_callback_t cb) {
+  if (function < IO_FUNCTION_COUNT) _func_state[function].cb = cb;
+}
+
+
+io_callback_t io_get_callback(io_function_t function) {
+  return function < IO_FUNCTION_COUNT ? _func_state[function].cb : 0;
+}
+
+
+void io_set_output(io_function_t function, bool active) {
+  if (!_is_valid(function, IO_TYPE_OUTPUT)) return;
+  if (_func_state[function].active == active) return;
+
+  _func_state[function].active = active;
+
+  for (int i = 0; _pins[i].pin; i++) {
+    io_pin_t *pin = &_pins[i];
+    if (pin->function == function) _set_output(pin, active);
+  }
+}
+
+
+void io_stop_outputs() {
+  for (int i = 0; i < 4; i++)
+    io_set_output((io_function_t)(OUTPUT_0 + i), false);
+}
+
+
+io_function_t io_get_port_function(bool digital, uint8_t port) {
+  if ((digital ? DIGITALS : ANALOGS) <= port) return IO_DISABLED;
+  return (io_function_t)((digital ? INPUT_0 : ANALOG_0) + port);
+}
+
+
+uint8_t io_get_input(io_function_t function) {
+  if (!_is_valid(function, IO_TYPE_INPUT)) return IO_TRI;
+  return !!_func_state[function].active;
+}
+
+
+float io_get_analog(io_function_t function) {
+  if (!_is_valid(function, IO_TYPE_ANALOG)) return 0;
+  return _analog_ports[_function_to_analog_port(function)];
+}
+
+
+/// Called from RTC on each tick
+void io_rtc_callback() {
+  for (int i = 0; _pins[i].pin; i++) {
+    io_pin_t *pin = &_pins[i];
+
+    // Digital input
+    if (_is_valid(pin->function, IO_TYPE_INPUT)) {
+      io_input_t *input = &pin->input;
+
+      if (input->lockout && --input->lockout) continue;
+
+      // Debounce switch
+      bool state = IN_PIN(pin->pin);
+      if (state == input->state && input->initialized) input->debounce = 0;
+      else if (++input->debounce == _io.debounce) {
+        input->state = state;
+        input->debounce = 0;
+        input->initialized = true;
+        input->lockout = _io.lockout;
+
+        _state_set_active(pin->function, _is_input_active(pin));
+      }
+    }
+  }
+
+  // Analog input
+  static uint8_t count = 0;
+
+  // Every 1/4 sec
+  if (++count == 250) {
+    count = 0;
+
+    // Start next analog conversions
+    for (int ch = 0; ch < 2; ch++) {
+      io_pin_t *pin = _next_adc_pin(ch);
+      if (pin) _start_acd_conversion(pin);
+    }
+  }
+}
+
+
+static uint8_t _get_state(io_function_t function) {
+  if (!_is_valid(function, IO_TYPE_INPUT) || !io_is_enabled(function))
+    return IO_INVALID;
+
+  return _func_state[function].active;
+}
+
+
+// Var callbacks
+uint8_t get_io_function(int index) {
+  IF_INVALID_INDEX_RETURN IO_DISABLED;
+  return _pins[index].function;
+}
+
+
+void set_io_function(int index, uint8_t function) {
+  IF_INVALID_INDEX_RETURN;
+  if (IO_FUNCTION_COUNT <= function || _pins[index].function == function)
+    return;
+
+  _set_function(&_pins[index], (io_function_t)function);
+}
+
+
+uint8_t get_io_mode(int index) {
+  IF_INVALID_INDEX_RETURN 0;
+  return _pins[index].mode;
+}
+
+
+void set_io_mode(int index, uint8_t mode) {
+  IF_INVALID_INDEX_RETURN;
+  if (LO_TRI < mode) return;
+
+  // Changing the mode may change the input state
+  io_pin_t *pin = &_pins[index];
+  bool wasActive = _is_input_active(pin);
+  pin->mode = (io_mode_t)mode;
+  bool isActive = _is_input_active(pin);
+  if (wasActive != isActive) _state_set_active(pin->function, isActive);
+}
+
+
+uint8_t get_io_state(int pin) {return _is_input_active(&_pins[pin]);}
+
+
+void set_input_debounce(uint16_t debounce) {
+  _io.debounce = INPUT_MAX_DEBOUNCE < debounce ? INPUT_DEBOUNCE : debounce;
+}
+
+
+uint16_t get_input_debounce() {return _io.debounce;}
+
+
+void set_input_lockout(uint16_t lockout) {
+  _io.lockout = INPUT_MAX_LOCKOUT < lockout ? INPUT_LOCKOUT : lockout;
+}
+
+
+uint16_t get_input_lockout() {return _io.lockout;}
+
+
+uint8_t get_min_input(int axis) {return _get_state(MIN_INPUT(axis));}
+uint8_t get_max_input(int axis) {return _get_state(MAX_INPUT(axis));}
+uint8_t get_estop_input() {return _get_state(INPUT_ESTOP);}
+uint8_t get_probe_input() {return _get_state(INPUT_PROBE);}
+
+
+bool get_output_active(int id) {
+  return _func_state[_output_to_function(id)].active;
+}
+
+
+void set_output_active(int id, bool active) {
+  io_function_t f = _output_to_function(id);
+  if (f != IO_DISABLED) _func_state[f].active = active;
+}
+
+
+float get_analog_input(int port) {
+
+  return io_get_analog(io_get_port_function(false, port));
 }

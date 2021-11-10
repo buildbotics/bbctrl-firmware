@@ -111,7 +111,7 @@ module.exports = new Vue({
       latestVersion: '',
       showError: false,
       showPopup: true,
-      webGLSupported: util.webgl_supported(true)
+      webGLSupported: util.webgl_supported()
     }
   },
 
@@ -308,6 +308,13 @@ module.exports = new Vue({
         update_object(this.state, e.data, false);
         this.$broadcast('update');
 
+        // Disable WebGL on Pi 3 for local head
+        if (this.webGLSupported) {
+          var model = this.state.rpi_model
+          if (location.hostname == 'localhost' && model != undefined &&
+              model.indexOf('Pi 3') != -1)
+            this.webGLSupported = false;
+        }
       }.bind(this)
 
       this.sock.onopen = function (e) {

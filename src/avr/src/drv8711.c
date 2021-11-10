@@ -28,7 +28,7 @@
 #include "drv8711.h"
 #include "status.h"
 #include "stepper.h"
-#include "switch.h"
+#include "io.h"
 #include "estop.h"
 #include "exec.h"
 #include "motor.h"
@@ -336,7 +336,7 @@ static void _spi_send() {
 ISR(SPIC_INT_vect) {_spi_send();}
 
 
-static void _motor_fault_switch_cb(switch_id_t sw, bool active) {
+static void _motor_fault_cb(io_function_t function, bool active) {
   motor_fault = active;
 }
 
@@ -364,8 +364,7 @@ void drv8711_init() {
     drivers[i].reset_flags = true; // Reset flags once on startup
   }
 
-  switch_set_type(SW_MOTOR_FAULT, SW_NORMALLY_OPEN);
-  switch_set_callback(SW_MOTOR_FAULT, _motor_fault_switch_cb);
+  io_set_callback(INPUT_MOTOR_FAULT, _motor_fault_cb);
 
   // Configure SPI
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction

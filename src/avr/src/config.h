@@ -38,19 +38,19 @@ enum {
   STALL_1_PIN,
   STALL_2_PIN,
   STALL_3_PIN,
-  TOOL_DIR_PIN,
-  TOOL_ENABLE_PIN,
-  ANALOG_1_PIN,
-  ANALOG_2_PIN,
+  IO_16_PIN,
+  IO_15_PIN,
+  IO_24_PIN,
+  IO_18_PIN,
 
-  MIN_0_PIN = PIN_ID(PORT_B, 0),
-  MAX_0_PIN,
-  MIN_3_PIN,
-  MAX_3_PIN,
-  MIN_1_PIN,
-  MAX_1_PIN,
-  MIN_2_PIN,
-  MAX_2_PIN,
+  IO_03_PIN = PIN_ID(PORT_B, 0),
+  IO_04_PIN,
+  IO_11_PIN,
+  IO_12_PIN,
+  IO_05_PIN,
+  IO_08_PIN,
+  IO_09_PIN,
+  IO_10_PIN,
 
   SDA_PIN = PIN_ID(PORT_C, 0),
   SCL_PIN,
@@ -66,7 +66,7 @@ enum {
   SPI_CS_3_PIN,
   SPI_CS_2_PIN,
   PWM_PIN,
-  SWITCH_2_PIN,
+  IO_01_PIN,
   RS485_RO_PIN,
   RS485_DI_PIN,
 
@@ -75,18 +75,18 @@ enum {
   DIR_0_PIN,
   DIR_1_PIN,
   STEP_3_PIN,
-  SWITCH_1_PIN,
+  IO_02_PIN,
   DIR_2_PIN,
   DIR_3_PIN,
 
   STEP_2_PIN = PIN_ID(PORT_F, 0),
   RS485_RW_PIN,
-  FAULT_PIN,
-  ESTOP_PIN,
+  IO_21_PIN,
+  IO_23_PIN,
   MOTOR_FAULT_PIN,
   MOTOR_ENABLE_PIN,
   TEST_PIN,
-  PROBE_PIN,
+  IO_22_PIN,
 };
 
 #define SPI_SS_PIN               SERIAL_CTS_PIN // Needed for SPI configuration
@@ -94,15 +94,17 @@ enum {
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
-#define OUTS                     6 // number of supported pin outputs
-#define ANALOG                   2 // number of supported analog inputs
+#define OUTS                    10 // number of supported pin outputs
+#define ANALOGS                  4 // number of supported analog inputs
+#define DIGITALS                 4 // number of supported digital inputs
 #define VFDREG                  32 // number of supported VFD modbus registers
+#define IO_PINS                 17 // number of supported i/o pins
 
-// Switch settings.  See switch.c
-#define SWITCH_DEBOUNCE          5 // ms, default value
-#define SWITCH_LOCKOUT         250 // ms, default value
-#define SWITCH_MAX_DEBOUNCE   5000 // ms
-#define SWITCH_MAX_LOCKOUT   60000 // ms
+// Input settings.  See io.c
+#define INPUT_DEBOUNCE          5 // ms, default value
+#define INPUT_LOCKOUT         250 // ms, default value
+#define INPUT_MAX_DEBOUNCE   5000 // ms
+#define INPUT_MAX_LOCKOUT   60000 // ms
 
 
 // Motor ISRs

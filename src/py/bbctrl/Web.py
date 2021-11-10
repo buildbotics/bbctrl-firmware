@@ -467,9 +467,15 @@ class JogHandler(bbctrl.APIHandler):
 
 
 class KeyboardHandler(bbctrl.APIHandler):
-    def put_ok(self, cmd, *args):
-        signal = 'SIGUSR' + ('1' if cmd == 'show' else '2')
+    def set_keyboard(self, show):
+        signal = 'SIGUSR' + ('1' if show else '2')
         subprocess.call(['killall', '-' + signal, 'bbkbd'])
+
+
+    def put_ok(self, cmd, *args):
+        show = cmd == 'show'
+        enabled = self.get_ctrl().config.get('virtual-keyboard-enabled', True)
+        if enabled or not show: self.set_keyboard(show)
 
 
 # Base class for Web Socket connections

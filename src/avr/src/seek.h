@@ -27,13 +27,13 @@
 
 #pragma once
 
-#include "switch.h"
+#include "io.h"
 
 #include <stdbool.h>
 
 
 void seek_init();
-switch_id_t seek_get_switch();
-bool seek_switch_found();
+io_function_t seek_get_input();
+bool seek_found();
 void seek_end();
 void seek_cancel();

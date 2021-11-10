@@ -38,6 +38,7 @@ module.exports = {
 
   data: function () {
     return {
+      enableKeyboard: true,
       autoCheckUpgrade: true,
       password: '',
       firmwareName: '',
@@ -51,6 +52,7 @@ module.exports = {
 
 
   ready: function () {
+    this.enableKeyboard = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
   },
 
@@ -171,8 +173,15 @@ module.exports = {
 
 
     change_auto_check_upgrade: function () {
-      this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade;
-      this.$dispatch('config-changed');
+      this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade
+      this.$dispatch('config-changed')
+    },
+
+
+    change_enable_keyboard: function () {
+      this.config.admin['virtual-keyboard-enabled'] = this.enableKeyboard
+      this.$dispatch('config-changed')
+      if (!this.enableKeyboard) api.put('keyboard/hide')
     }
   }
 }

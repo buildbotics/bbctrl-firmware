@@ -4,7 +4,7 @@ Buildbotics CNC Controller Firmware Changelog
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.
  - Increased gamepad deadband to 15% but with rescaling to improve precision.
- - Disable 3D viewer if hardware WebGL not available.
+ - Disable 3D viewer if hardware WebGL not available or on Pi 3 local head.
  - Automatically show keyboard when selecting input and hide when not.
  - Use bbkbd instead of ratpoison.
  - Added Galt G200/G500 VFD support

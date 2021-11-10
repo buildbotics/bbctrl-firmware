@@ -29,11 +29,10 @@
 #include "motor.h"
 #include "stepper.h"
 #include "spindle.h"
-#include "switch.h"
+#include "io.h"
 #include "hardware.h"
 #include "config.h"
 #include "state.h"
-#include "outputs.h"
 #include "jog.h"
 #include "exec.h"
 
@@ -41,15 +40,15 @@
 static stat_t estop_reason = STAT_OK;
 
 
-static void _switch_callback(switch_id_t id, bool active) {
+static void _input_callback(io_function_t function, bool active) {
   if (active) estop_trigger(STAT_ESTOP_SWITCH);
   else estop_clear();
 }
 
 
 void estop_init() {
-  switch_set_callback(SW_ESTOP, _switch_callback);
-  if (switch_is_active(SW_ESTOP)) estop_trigger(STAT_ESTOP_SWITCH);
+  io_set_callback(INPUT_ESTOP, _input_callback);
+  if (io_get_input(INPUT_ESTOP)) estop_trigger(STAT_ESTOP_SWITCH);
 }
 
 
@@ -61,13 +60,13 @@ void estop_trigger(stat_t reason) {
   estop_reason = reason;
 
   // Set fault signal
-  outputs_set_active(FAULT_PIN, true);
+  io_set_output(OUTPUT_FAULT, true);
 
   // Shutdown peripherals
   st_shutdown();
   spindle_estop();
   jog_stop();
-  outputs_stop();
+  io_stop_outputs();
 
   // Set machine state
   state_estop();
@@ -79,14 +78,14 @@ void estop_clear() {
   // it can cause a reboot loop.
   if (!estop_triggered()) return;
 
-  // Check if estop switch is set
-  if (switch_is_active(SW_ESTOP)) {
+  // Check if estop is set
+  if (io_get_input(INPUT_ESTOP)) {
     estop_reason = STAT_ESTOP_SWITCH;
-    return; // Can't clear while estop switch is still active
+    return; // Can't clear while estop is still active
   }
 
   // Clear fault signal
-  outputs_set_active(FAULT_PIN, false);
+  io_set_output(OUTPUT_FAULT, false);
 
   estop_reason = STAT_OK;
 

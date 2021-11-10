@@ -32,7 +32,6 @@
 #include "axis.h"
 #include "util.h"
 #include "command.h"
-#include "switch.h"
 #include "seek.h"
 #include "estop.h"
 #include "state.h"
@@ -186,7 +185,7 @@ stat_t _segment_exec() {
   }
 
   // Check switch
-  if (seek_switch_found()) state_seek_hold();
+  if (seek_found()) state_seek_hold();
 
   return STAT_OK;
 }

@@ -28,7 +28,6 @@
 #include "hardware.h"
 #include "stepper.h"
 #include "motor.h"
-#include "switch.h"
 #include "usart.h"
 #include "drv8711.h"
 #include "vars.h"
@@ -38,10 +37,9 @@
 #include "estop.h"
 #include "i2c.h"
 #include "pgmspace.h"
-#include "outputs.h"
-#include "analog.h"
-#include "modbus.h"
 #include "io.h"
+#include "modbus.h"
+#include "input.h"
 #include "exec.h"
 #include "state.h"
 #include "seek.h"
@@ -69,10 +67,8 @@ int main(int argc, char *argv[]) {
 
   emu_init();                     // Init emulator
   hw_init();                      // hardware setup - must be first
-  outputs_init();                 // output pins
-  switch_init();                  // switches
+  io_init();                      // io pins
   estop_init();                   // emergency stop handler
-  analog_init();                  // analog input pins
   usart_init();                   // serial port
   i2c_init();                     // i2c port
   drv8711_init();                 // motor drivers
@@ -95,7 +91,7 @@ int main(int argc, char *argv[]) {
     state_callback();             // manage state
     command_callback();           // process next command
     modbus_callback();            // handle modbus events
-    io_callback();                // handle io input
+    input_callback();             // handle digital input
     report_callback();            // report changes
   }
 

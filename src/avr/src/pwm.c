@@ -29,7 +29,7 @@
 
 #include "config.h"
 #include "estop.h"
-#include "outputs.h"
+#include "io.h"
 
 #include <math.h>
 
@@ -47,12 +47,12 @@ static pwm_t pwm = {0};
 
 
 static void _set_enable(bool enable) {
-  outputs_set_active(TOOL_ENABLE_PIN, enable);
+  io_set_output(OUTPUT_TOOL_ENABLE, enable);
 }
 
 
 static void _set_dir(bool clockwise) {
-  outputs_set_active(TOOL_DIR_PIN, !clockwise);
+  io_set_output(OUTPUT_TOOL_DIRECTION, !clockwise);
 }
 
 

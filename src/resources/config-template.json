@@ -146,20 +146,6 @@
           "scale": 25.4,
           "default": 0,
           "code": "tm"
-        },
-        "min-switch": {
-          "type": "enum",
-          "values": ["disabled", "normally-open", "normally-closed"],
-          "default": "disabled",
-          "code": "ls",
-          "pins": [3, 5, 9, 11]
-        },
-        "max-switch": {
-          "type": "enum",
-          "values": ["disabled", "normally-open", "normally-closed"],
-          "default": "disabled",
-          "code": "xs",
-          "pins": [4, 8, 10, 12]
         }
       },
 
@@ -276,22 +262,6 @@
       "min": 0,
       "default": 0,
       "code": "sm"
-    },
-    "tool-enable-mode": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "eom",
-      "pin": 15
-    },
-    "tool-direction-mode": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "dom",
-      "pin": 16
     }
   },
 
@@ -401,22 +371,56 @@
     }
   },
 
-  "switches": {
-    "estop": {
-      "type": "enum",
-      "values": ["disabled", "normally-open", "normally-closed"],
-      "default": "disabled",
-      "code": "et",
-      "pin": 23
-    },
-    "probe": {
-      "type": "enum",
-      "values": ["disabled", "normally-open", "normally-closed"],
-      "default": "normally-open",
-      "code": "pt",
-      "pin": 22
-    },
-    "switch-debounce": {
+  "io-map": {
+    "type": "list",
+    "index": "abcdefghijklmnopq",
+    "default": [
+      {"function": "output-flood"},
+      {"function": "output-mist"},
+      {"function": "input-motor-0-min"},
+      {"function": "input-motor-0-max"},
+      {"function": "input-motor-1-min"},
+      {"function": "input-motor-1-max"},
+      {"function": "input-motor-2-min"},
+      {"function": "input-motor-2-max"},
+      {"function": "input-motor-3-min"},
+      {"function": "input-motor-3-max"},
+      {"function": "output-tool-enable"},
+      {"function": "output-tool-direction"},
+      {"function": "analog-1"},
+      {"function": "output-fault"},
+      {"function": "input-probe"},
+      {"function": "input-estop"},
+      {"function": "analog-0"}
+    ],
+    "template": {
+      "function": {
+        "type": "enum",
+        "values": [
+          "disabled",
+          "input-motor-0-max", "input-motor-1-max", "input-motor-2-max",
+          "input-motor-3-max", "input-motor-0-min", "input-motor-1-min",
+          "input-motor-2-min", "input-motor-3-min",
+          "input-0", "input-1", "input-2", "input-3",
+          "input-estop", "input-probe",
+          "output-0", "output-1", "output-2", "output-3",
+          "output-mist", "output-flood", "output-fault",
+          "output-tool-enable", "output-tool-direction",
+          "analog-0", "analog-1", "analog-2", "analog-3"
+        ],
+        "code": "io"
+      },
+      "mode": {
+        "type": "enum",
+        "values": ["lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri", "hi-tri"],
+        "default": "lo-hi",
+        "code": "im"
+      }
+    }
+  },
+
+  "input": {
+    "input-debounce": {
       "type": "int",
       "min": 1,
       "max": 5000,
@@ -425,7 +429,7 @@
       "code": "sd",
       "help": "Minimum time in ms before a switch change is acknowledged."
     },
-    "switch-lockout": {
+    "input-lockout": {
       "type": "int",
       "min": 0,
       "max": 60000,
@@ -433,33 +437,6 @@
       "default": 250,
       "code": "sc",
       "help": "Time in ms to ignore switch changes after an acknowledge change."
-    }
-  },
-
-  "outputs": {
-    "load-1": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "1om",
-      "pin": 2
-    },
-    "load-2": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "2om",
-      "pin": 1
-    },
-    "fault": {
-      "type": "enum",
-      "values": ["disabled", "lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri",
-                 "hi-tri"],
-      "default": "lo-hi",
-      "code": "fom",
-      "pin": 21
     }
   },
 
@@ -479,6 +456,10 @@
   },
 
   "admin": {
+    "virtual-keyboard-enabled": {
+      "type": "bool",
+      "default": true
+    },
     "auto-check-upgrade": {
       "type": "bool",
       "default": true

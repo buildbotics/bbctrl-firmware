@@ -28,7 +28,7 @@
 #include "seek.h"
 
 #include "command.h"
-#include "switch.h"
+#include "io.h"
 #include "estop.h"
 #include "util.h"
 #include "state.h"
@@ -48,52 +48,52 @@ enum {
 
 typedef struct {
   bool active;
-  switch_id_t sw;
+  io_function_t sw;
   uint8_t flags;
 } seek_t;
 
 
-static seek_t seek = {false, SW_INVALID, 0};
+static seek_t seek = {false, IO_DISABLED, 0};
 
 
-static bool _is_stall_switch(int sw) {
-  return SW_STALL_0 <= sw && sw <= SW_STALL_3;
+static bool _is_stall_input(int sw) {
+  return INPUT_STALL_0 <= sw && sw <= INPUT_STALL_3;
 }
 
 
-static int _switch_motor(int sw) {return sw - SW_STALL_0;}
+static int _input_motor(int sw) {return sw - INPUT_STALL_0;}
 
 
 
-static void _switch_cb(switch_id_t sw, bool active) {
-  if (_is_stall_switch(sw)) drv8711_set_stalled(_switch_motor(sw), active);
+static void _input_cb(io_function_t sw, bool active) {
+  if (_is_stall_input(sw)) drv8711_set_stalled(_input_motor(sw), active);
 
-  if (sw != seek_get_switch() && !_is_stall_switch(sw) &&
+  if (sw != seek_get_input() && !_is_stall_input(sw) &&
       exec_get_velocity() && active)
     estop_trigger(STAT_ESTOP_SWITCH);
 }
 
 
 void seek_init() {
-  for (int sw = SW_MIN_0; sw <= SW_STALL_3; sw++) {
-    if (_is_stall_switch(sw))
-      switch_set_type((switch_id_t)sw, SW_NORMALLY_OPEN);
-    switch_set_callback((switch_id_t)sw, _switch_cb);
-  }
+  for (int sw = INPUT_MOTOR_0_MAX; sw <= INPUT_MOTOR_3_MIN; sw++)
+    io_set_callback((io_function_t)sw, _input_cb);
+
+  for (int sw = INPUT_STALL_0; sw <= INPUT_STALL_3; sw++)
+    io_set_callback((io_function_t)sw, _input_cb);
 }
 
 
-switch_id_t seek_get_switch() {return seek.active ? seek.sw : SW_INVALID;}
+io_function_t seek_get_input() {return seek.active ? seek.sw : IO_DISABLED;}
 
 
-bool seek_switch_found() {
+bool seek_found() {
   if (!seek.active) return false;
 
   bool inactive = !(seek.flags & SEEK_ACTIVE);
-  bool found = switch_is_active(seek.sw) ^ inactive;
-  bool stall_sw = _is_stall_switch(seek.sw);
+  bool found = io_get_input(seek.sw) ^ inactive;
+  bool stall_sw = _is_stall_input(seek.sw);
 
-  if (found && (!stall_sw || drv8711_detect_stall(_switch_motor(seek.sw)))) {
+  if (found && (!stall_sw || drv8711_detect_stall(_input_motor(seek.sw)))) {
     seek.flags |= SEEK_FOUND;
     return true;
   }
@@ -106,8 +106,8 @@ static void _done() {
   if (!seek.active) return;
   seek.active = false;
 
-  if (_is_stall_switch(seek.sw))
-    drv8711_set_stall_detect(_switch_motor(seek.sw), false);
+  if (_is_stall_input(seek.sw))
+    drv8711_set_stall_detect(_input_motor(seek.sw), false);
 }
 
 
@@ -125,11 +125,28 @@ void seek_end() {
 void seek_cancel() {_done();}
 
 
+io_function_t _decode_id(int8_t id) {
+  switch (id) {
+  case 1: return INPUT_PROBE;
+  case 2: return INPUT_MOTOR_0_MIN;
+  case 3: return INPUT_MOTOR_0_MAX;
+  case 4: return INPUT_MOTOR_1_MIN;
+  case 5: return INPUT_MOTOR_1_MAX;
+  case 6: return INPUT_MOTOR_2_MIN;
+  case 7: return INPUT_MOTOR_2_MAX;
+  case 8: return INPUT_MOTOR_3_MIN;
+  case 9: return INPUT_MOTOR_3_MAX;
+  default: return IO_DISABLED;
+  }
+}
+
+
 // Command callbacks
 stat_t command_seek(char *cmd) {
-  switch_id_t sw = (switch_id_t)decode_hex_nibble(cmd[1]);
-  if (sw <= 0) return STAT_INVALID_ARGUMENTS; // Don't allow seek to ESTOP
-  if (!switch_is_enabled(sw)) return STAT_SEEK_NOT_ENABLED;
+  io_function_t sw = _decode_id(decode_hex_nibble(cmd[1]));
+
+  if (sw == IO_DISABLED) return STAT_INVALID_ARGUMENTS;
+  if (!io_is_enabled(sw)) return STAT_SEEK_NOT_ENABLED;
 
   uint8_t flags = decode_hex_nibble(cmd[2]);
   if (flags & 0xfc) return STAT_INVALID_ARGUMENTS;
@@ -147,6 +164,6 @@ unsigned command_seek_size() {return sizeof(seek_t);}
 void command_seek_exec(void *data) {
   seek = *(seek_t *)data;
 
-  if (_is_stall_switch(seek.sw))
-    drv8711_set_stall_detect(_switch_motor(seek.sw), true);
+  if (_is_stall_input(seek.sw))
+    drv8711_set_stall_detect(_input_motor(seek.sw), true);
 }

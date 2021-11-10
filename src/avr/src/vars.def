@@ -25,127 +25,121 @@
 
 \******************************************************************************/
 
-#define   AXES_LABEL "xyzabc"
-#define MOTORS_LABEL "0123"
-#define   OUTS_LABEL "ed12ft"
-#define ANALOG_LABEL "12"
-#define VFDREG_LABEL "0123456789abcdefghijklmnopqrstuv"
+#define   AXES_LABEL  "xyzabc"
+#define MOTORS_LABEL  "0123"
+#define   OUTS_LABEL  "0123MFfdet"
+#define ANALOGS_LABEL "0123"
+#define VFDREG_LABEL  "0123456789abcdefghijklmnopqrstuv"
+#define IO_PINS_LABEL "abcdefghijklmnopq"
 
 // VAR(name, code, type, index, settable, report)
 
 // Motor
-VAR(motor_axis,      an, u8,    MOTORS, 1, 1) // Maps motor to axis
+VAR(motor_axis,      an, u8,    MOTORS,  1, 1) // Maps motor to axis
 
-VAR(motor_enabled,   me, b8,    MOTORS, 1, 1) // Motor enabled
-VAR(drive_current,   dc, f32,   MOTORS, 1, 1) // Max motor drive current
-VAR(idle_current,    ic, f32,   MOTORS, 1, 1) // Motor idle current
+VAR(motor_enabled,   me, b8,    MOTORS,  1, 1) // Motor enabled
+VAR(drive_current,   dc, f32,   MOTORS,  1, 1) // Max motor drive current
+VAR(idle_current,    ic, f32,   MOTORS,  1, 1) // Motor idle current
 
-VAR(reverse,         rv, b8,    MOTORS, 1, 1) // Reverse motor polarity
-VAR(microstep,       mi, u16,   MOTORS, 1, 1) // Microsteps per full step
-VAR(velocity_max,    vm, f32,   MOTORS, 1, 1) // Maxium vel in mm/min
-VAR(accel_max,       am, f32,   MOTORS, 1, 1) // Maxium accel in mm/min^2
-VAR(jerk_max,        jm, f32,   MOTORS, 1, 1) // Maxium jerk in mm/min^3
-VAR(step_angle,      sa, f32,   MOTORS, 1, 1) // In degrees per full step
-VAR(travel,          tr, f32,   MOTORS, 1, 1) // Travel in mm/rev
+VAR(reverse,         rv, b8,    MOTORS,  1, 1) // Reverse motor polarity
+VAR(microstep,       mi, u16,   MOTORS,  1, 1) // Microsteps per full step
+VAR(velocity_max,    vm, f32,   MOTORS,  1, 1) // Maxium vel in mm/min
+VAR(accel_max,       am, f32,   MOTORS,  1, 1) // Maxium accel in mm/min^2
+VAR(jerk_max,        jm, f32,   MOTORS,  1, 1) // Maxium jerk in mm/min^3
+VAR(step_angle,      sa, f32,   MOTORS,  1, 1) // In degrees per full step
+VAR(travel,          tr, f32,   MOTORS,  1, 1) // Travel in mm/rev
 
-VAR(min_soft_limit,  tn, f32,   MOTORS, 1, 1) // Min soft limit
-VAR(max_soft_limit,  tm, f32,   MOTORS, 1, 1) // Max soft limit
-VAR(homed,            h, b8,    MOTORS, 1, 1) // Motor homed status
+VAR(min_soft_limit,  tn, f32,   MOTORS,  1, 1) // Min soft limit
+VAR(max_soft_limit,  tm, f32,   MOTORS,  1, 1) // Max soft limit
+VAR(homed,            h, b8,    MOTORS,  1, 1) // Motor homed status
 
-VAR(active_current,  ac, f32,   MOTORS, 0, 0) // Motor current now
-VAR(driver_flags,    df, u16,   MOTORS, 1, 1) // Motor driver flags
-VAR(encoder,         en, s32,   MOTORS, 0, 0) // Motor encoder
-VAR(error,           ee, s32,   MOTORS, 0, 0) // Motor position error
+VAR(active_current,  ac, f32,   MOTORS,  0, 0) // Motor current now
+VAR(driver_flags,    df, u16,   MOTORS,  1, 1) // Motor driver flags
+VAR(encoder,         en, s32,   MOTORS,  0, 0) // Motor encoder
+VAR(error,           ee, s32,   MOTORS,  0, 0) // Motor position error
 
-VAR(stall_current,   tc, f32,   MOTORS, 1, 1) // Stall detect current
-VAR(stall_microstep, lm, u16,   MOTORS, 1, 1) // Stall detect microsteps
-VAR(driver_stalled,  sl, b8,    MOTORS, 0, 1) // Motor stall status
-VAR(stall_volts,     tv, f32,   MOTORS, 1, 1) // Motor BEMF threshold voltage
-VAR(stall_velocity,  sv, f32,   MOTORS, 1, 1) // Stall velocity
-VAR(stall_samp_time, sp, u16,   MOTORS, 1, 1) // Stall sample time
+VAR(stall_current,   tc, f32,   MOTORS,  1, 1) // Stall detect current
+VAR(stall_microstep, lm, u16,   MOTORS,  1, 1) // Stall detect microsteps
+VAR(driver_stalled,  sl, b8,    MOTORS,  0, 1) // Motor stall status
+VAR(stall_volts,     tv, f32,   MOTORS,  1, 1) // Motor BEMF threshold voltage
+VAR(stall_velocity,  sv, f32,   MOTORS,  1, 1) // Stall velocity
+VAR(stall_samp_time, sp, u16,   MOTORS,  1, 1) // Stall sample time
 
-VAR(motor_fault,     fa, b8,    0,      0, 1) // Motor fault status
-
-// Switches
-VAR(min_sw_mode,     ls, u8,    MOTORS, 1, 1) // Minimum switch mode
-VAR(max_sw_mode,     xs, u8,    MOTORS, 1, 1) // Maximum switch mode
-VAR(estop_mode,      et, u8,    0,      1, 1) // Estop switch mode
-VAR(probe_mode,      pt, u8,    0,      1, 1) // Probe switch mode
-VAR(min_switch,      lw, u8,    MOTORS, 0, 1) // Minimum switch state
-VAR(max_switch,      xw, u8,    MOTORS, 0, 1) // Maximum switch state
-VAR(estop_switch,    ew, u8,    0,      0, 1) // Estop switch state
-VAR(probe_switch,    pw, u8,    0,      0, 1) // Probe switch state
-VAR(switch_debounce, sd, u16,   0,      1, 1) // Switch debounce time in ms
-VAR(switch_lockout,  sc, u16,   0,      1, 1) // Switch lockout time in ms
+VAR(motor_fault,     fa, b8,    0,       0, 1) // Motor fault status
 
 // Axis
-VAR(axis_position,    p, f32,   AXES,   0, 1) // Axis position
+VAR(axis_position,    p, f32,   AXES,    0, 1) // Axis position
 
-// Outputs
-VAR(output_active,   oa, b8,    OUTS,   1, 1) // Output pin active
-VAR(output_state,    os, u8,    OUTS,   0, 1) // Output pin state
-VAR(output_mode,     om, u8,    OUTS,   1, 1) // Output pin mode
-
-// Analog
-VAR(analog_input,    ai, f32,   ANALOG, 0, 0) // Analog input pins
+// I/O
+VAR(io_function,     io, u8,    IO_PINS, 1, 1) // IO pin function map
+VAR(io_mode,         im, u8,    IO_PINS, 1, 1) // IO pin mode
+VAR(io_state,        is, u8,    IO_PINS, 0, 1) // IO pin state
+VAR(input_debounce,  sd, u16,   0,       1, 1) // Input debounce time in ms
+VAR(input_lockout,   sc, u16,   0,       1, 1) // Input lockout time in ms
+VAR(min_input,       lw, u8,    MOTORS,  0, 1) // Minimum switch input state
+VAR(max_input,       xw, u8,    MOTORS,  0, 1) // Maximum switch input state
+VAR(estop_input,     ew, u8,    0,       0, 1) // Estop input state
+VAR(probe_input,     pw, u8,    0,       0, 1) // Probe input state
+VAR(output_active,   oa, b8,    OUTS,    1, 1) // Digital output active
+VAR(analog_input,    ai, f32,   ANALOGS, 0, 0) // Analog input state
 
 // Spindle
-VAR(tool_type,       st, u8,    0,      1, 1) // See spindle.c
-VAR(speed,            s, f32,   0,      0, 1) // Current spindle speed
-VAR(tool_reversed,   sr, b8,    0,      1, 1) // Reverse tool
-VAR(max_spin,        sx, f32,   0,      1, 1) // Maximum spindle speed
-VAR(min_spin,        sm, f32,   0,      1, 1) // Minimum spindle speed
-VAR(spindle_status,  ss, u16,   0,      0, 1) // Spindle status code
+VAR(tool_type,       st, u8,    0,       1, 1) // See spindle.c
+VAR(speed,            s, f32,   0,       0, 1) // Current spindle speed
+VAR(tool_reversed,   sr, b8,    0,       1, 1) // Reverse tool
+VAR(max_spin,        sx, f32,   0,       1, 1) // Maximum spindle speed
+VAR(min_spin,        sm, f32,   0,       1, 1) // Minimum spindle speed
+VAR(spindle_status,  ss, u16,   0,       0, 1) // Spindle status code
 
 // PWM spindle
-VAR(pwm_invert,      pi, b8,    0,      1, 1) // Inverted spindle PWM
-VAR(pwm_min_duty,    nd, f32,   0,      1, 1) // Minimum PWM duty cycle
-VAR(pwm_max_duty,    md, f32,   0,      1, 1) // Maximum PWM duty cycle
-VAR(pwm_duty,        pd, f32,   0,      0, 0) // Current PWM duty cycle
-VAR(pwm_freq,        sf, f32,   0,      1, 0) // Spindle PWM frequency in Hz
+VAR(pwm_invert,      pi, b8,    0,       1, 1) // Inverted spindle PWM
+VAR(pwm_min_duty,    nd, f32,   0,       1, 1) // Minimum PWM duty cycle
+VAR(pwm_max_duty,    md, f32,   0,       1, 1) // Maximum PWM duty cycle
+VAR(pwm_duty,        pd, f32,   0,       0, 0) // Current PWM duty cycle
+VAR(pwm_freq,        sf, f32,   0,       1, 0) // Spindle PWM frequency in Hz
 
 // Modbus spindle
-VAR(mb_debug,        hb, b8,    0,      1, 1) // Modbus debugging
-VAR(mb_id,           hi, u8,    0,      1, 1) // Modbus ID
-VAR(mb_baud,         mb, u8,    0,      1, 1) // Modbus BAUD rate
-VAR(mb_parity,       ma, u8,    0,      1, 1) // Modbus parity
-VAR(mb_status,       mx, u8,    0,      0, 1) // Modbus status
-VAR(mb_crc_errs,     cr, u16,   0,      0, 1) // Modbus CRC error counter
+VAR(mb_debug,        hb, b8,    0,       1, 1) // Modbus debugging
+VAR(mb_id,           hi, u8,    0,       1, 1) // Modbus ID
+VAR(mb_baud,         mb, u8,    0,       1, 1) // Modbus BAUD rate
+VAR(mb_parity,       ma, u8,    0,       1, 1) // Modbus parity
+VAR(mb_status,       mx, u8,    0,       0, 1) // Modbus status
+VAR(mb_crc_errs,     cr, u16,   0,       0, 1) // Modbus CRC error counter
 
 // VFD spindle
-VAR(vfd_max_freq,    vf, u16,   0,      1, 1) // VFD maximum frequency
-VAR(vfd_multi_write, mw, b8,    0,      1, 1) // Use Modbus multi write mode
-VAR(vfd_reg_type,    vt, u8,    VFDREG, 1, 1) // VFD register type
-VAR(vfd_reg_addr,    va, u16,   VFDREG, 1, 1) // VFD register address
-VAR(vfd_reg_val,     vv, u16,   VFDREG, 1, 1) // VFD register value
-VAR(vfd_reg_fails,   vr, u8,    VFDREG, 1, 1) // VFD register fail count
+VAR(vfd_max_freq,    vf, u16,   0,       1, 1) // VFD maximum frequency
+VAR(vfd_multi_write, mw, b8,    0,       1, 1) // Use Modbus multi write mode
+VAR(vfd_reg_type,    vt, u8,    VFDREG,  1, 1) // VFD register type
+VAR(vfd_reg_addr,    va, u16,   VFDREG,  1, 1) // VFD register address
+VAR(vfd_reg_val,     vv, u16,   VFDREG,  1, 1) // VFD register value
+VAR(vfd_reg_fails,   vr, u8,    VFDREG,  1, 1) // VFD register fail count
 
 // Huanyang spindle
-VAR(hy_freq,         hz, f32,   0,      0, 0) // Huanyang actual freq
-VAR(hy_current,      hc, f32,   0,      0, 0) // Huanyang actual current
-VAR(hy_temp,         ht, u16,   0,      0, 0) // Huanyang temperature
-VAR(hy_max_freq,     hx, f32,   0,      0, 1) // Huanyang max freq
-VAR(hy_min_freq,     hm, f32,   0,      0, 1) // Huanyang min freq
-VAR(hy_rated_rpm,    hq, u16,   0,      0, 1) // Huanyang rated RPM
+VAR(hy_freq,         hz, f32,   0,       0, 0) // Huanyang actual freq
+VAR(hy_current,      hc, f32,   0,       0, 0) // Huanyang actual current
+VAR(hy_temp,         ht, u16,   0,       0, 0) // Huanyang temperature
+VAR(hy_max_freq,     hx, f32,   0,       0, 1) // Huanyang max freq
+VAR(hy_min_freq,     hm, f32,   0,       0, 1) // Huanyang min freq
+VAR(hy_rated_rpm,    hq, u16,   0,       0, 1) // Huanyang rated RPM
 
 // Machine state
-VAR(id,              id, u16,   0,      1, 1) // Last executed command ID
-VAR(feed_override,   fo, u16,   0,      1, 1) // Feed rate override
-VAR(speed_override,  so, u16,   0,      1, 1) // Spindle speed override
+VAR(id,              id, u16,   0,       1, 1) // Last executed command ID
+VAR(feed_override,   fo, u16,   0,       1, 1) // Feed rate override
+VAR(speed_override,  so, u16,   0,       1, 1) // Spindle speed override
 
 // System
-VAR(velocity,         v, f32,   0,      0, 1) // Current velocity
-VAR(acceleration,    ax, f32,   0,      0, 0) // Current acceleration
-VAR(jerk,             j, f32,   0,      0, 0) // Current jerk
-VAR(peak_vel,        pv, f32,   0,      1, 1) // Peak velocity, set to clear
-VAR(peak_accel,      pa, f32,   0,      1, 1) // Peak accel, set to clear
-VAR(dynamic_power,   dp, b8,    0,      1, 1) // Dynamic power
-VAR(inverse_feed,    if, f32,   0,      1, 1) // Inverse feed rate
-VAR(hw_id,          hid, str,   0,      0, 1) // Hardware ID
-VAR(estop,           es, b8,    0,      1, 1) // Emergency stop
-VAR(estop_reason,    er, pstr,  0,      0, 1) // Emergency stop reason
-VAR(state,           xx, pstr,  0,      0, 1) // Machine state
-VAR(state_count,     xc, u16,   0,      0, 1) // Machine state change count
-VAR(hold_reason,     pr, pstr,  0,      0, 1) // Machine pause reason
-VAR(underrun,        un, u32,   0,      0, 1) // Stepper buffer underrun count
-VAR(dwell_time,      dt, f32,   0,      0, 1) // Dwell timer
+VAR(velocity,         v, f32,   0,       0, 1) // Current velocity
+VAR(acceleration,    ax, f32,   0,       0, 0) // Current acceleration
+VAR(jerk,             j, f32,   0,       0, 0) // Current jerk
+VAR(peak_vel,        pv, f32,   0,       1, 1) // Peak velocity, set to clear
+VAR(peak_accel,      pa, f32,   0,       1, 1) // Peak accel, set to clear
+VAR(dynamic_power,   dp, b8,    0,       1, 1) // Dynamic power
+VAR(inverse_feed,    if, f32,   0,       1, 1) // Inverse feed rate
+VAR(hw_id,          hid, str,   0,       0, 1) // Hardware ID
+VAR(estop,           es, b8,    0,       1, 1) // Emergency stop
+VAR(estop_reason,    er, pstr,  0,       0, 1) // Emergency stop reason
+VAR(state,           xx, pstr,  0,       0, 1) // Machine state
+VAR(state_count,     xc, u16,   0,       0, 1) // Machine state change count
+VAR(hold_reason,     pr, pstr,  0,       0, 1) // Machine pause reason
+VAR(underrun,        un, u32,   0,       0, 1) // Stepper buffer underrun count
+VAR(dwell_time,      dt, f32,   0,       0, 1) // Dwell timer

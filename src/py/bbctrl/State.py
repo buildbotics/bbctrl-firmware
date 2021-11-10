@@ -45,6 +45,11 @@ class State(object):
         self.machine_var_set = set()
         self.message_id = 0
 
+        try:
+            with open('/sys/firmware/devicetree/base/model', 'r') as f:
+                rpi_model = f.read()
+        except: rpi_model = 'unknown'
+
         # Defaults
         self.vars = {
             'line': -1,
@@ -54,6 +59,7 @@ class State(object):
             'speed': 0,
             'sid': str(uuid.uuid4()),
             'demo': ctrl.args.demo,
+            'rpi_model': rpi_model
         }
 
         # Add computed variable callbacks for each motor.
@@ -210,7 +216,7 @@ class State(object):
         for code, spec in vars.items():
             if 'index' in spec:
                 for index in spec['index']:
-                    self.machine_var_set.add(index + code)
+                    self.machine_var_set.add(str(index) + code)
             else: self.machine_var_set.add(code)
 
 

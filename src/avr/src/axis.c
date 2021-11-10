@@ -27,7 +27,6 @@
 
 #include "axis.h"
 #include "motor.h"
-#include "switch.h"
 #include "util.h"
 
 #include <math.h>

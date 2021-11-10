@@ -149,7 +149,7 @@ class Config(object):
                 for key in 'max-accel latch-velocity search-velocity'.split():
                     if key in motor: motor[key] /= 1000
 
-        if version <= (0, 3, 22):
+        if version < (0, 3, 23):
             if 'tool' in config:
                 if 'spindle-type' in config['tool']:
                     type = config['tool']['spindle-type']
@@ -163,11 +163,60 @@ class Config(object):
                     config['tool']['tool-reversed'] = reversed
                     del config['tool']['spin-reversed']
 
-        if version <= (0, 4, 6):
+        if version < (0, 4, 7):
             for motor in config['motors']:
                 if 2 < motor.get('idle-current', 0): motor['idle-current'] = 2
                 if 'enabled' not in motor:
                     motor['enabled'] = motor.get('power-mode', '') != 'disabled'
+
+        if version < (1, 0, 2):
+            io_map = self.tempate['io-map']
+            io_defaults = io_map['default']
+            config['io-map'] = [{} for i in range(len(io_defaults))]
+            io = config['io-map']
+
+            def find_io_index(function):
+                for i in range(len(io_defaults)):
+                    if io_defaults[i]['function'] == function:
+                        return i
+
+                raise Exception('IO default "%s" not found' % function)
+
+            def upgrade_io(config, old, new):
+                if not old in config: return
+                mode = config.get(old)
+                index = find_io_index(new)
+
+                if mode != 'disabled': io[index]['function'] = var
+
+                if new.startswith('input-'):
+                    if mode == 'normally-open': io[index]['mode'] = 'hi-lo'
+                    if mode == 'normally-closed': io[index]['mode'] = 'lo-hi'
+
+                else: io[index]['mode'] = mode # Output
+
+                del config[old]
+
+            # Motor switches
+            for i in range(len(config['motors'])):
+                motor = config['motors'][i]
+
+                for side in ('min', 'max'):
+                    var = 'input-motor-%d-%s' % (i, side)
+                    upgrade_io(motor, side + '-switch', var)
+
+            # Estop & probe
+            for name in ('estop', 'probe'):
+                upgrade_io(config['switches'], name, 'input-' + name)
+
+            # Outputs
+            for old, new in (('fault', 'fault'), ('load-1', 'mist'),
+                             ('load-2', 'flood')):
+                upgrade_io(config['outputs'], old, 'output-' + new)
+
+            # Tool outputs
+            for name in ('tool-direction', 'tool-enable'):
+                upgrade_io(config['tool'], name + '-mode', 'output-' + name)
 
         config['version'] = self.version
 
@@ -215,7 +264,7 @@ class Config(object):
                 for i in range(len(tmpl['index'])):
                     if config is not None and i < len(config): conf = config[i]
                     else: conf = None
-                    self._encode(name, index + tmpl['index'][i], conf,
+                    self._encode(name, index + str(tmpl['index'][i]), conf,
                                  tmpl['template'], with_defaults)
             else: self.values[name] = value
             return

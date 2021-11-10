@@ -120,14 +120,9 @@ var util = {
   },
 
 
-  webgl_supported: function (performance) {
+  webgl_supported: function () {
     try {
-      var opts = {failIfMajorPerformanceCaveat: performance || false};
-      var canvas = document.createElement('canvas');
-      return !!(window.WebGLRenderingContext &&
-                (canvas.getContext('webgl', opts) ||
-                 canvas.getContext('experimental-webgl', opts)));
-
+      return new THREE.WebGLRenderer({failIfMajorPerformanceCaveat: true})
     } catch (e) {return false}
   }
 }

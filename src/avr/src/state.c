@@ -31,7 +31,7 @@
 #include "command.h"
 #include "stepper.h"
 #include "spindle.h"
-#include "outputs.h"
+#include "io.h"
 #include "jog.h"
 #include "estop.h"
 #include "seek.h"
@@ -124,7 +124,7 @@ static void _stop() {
   case STATE_HOLDING:
     jog_stop();
     spindle_stop();
-    outputs_stop();
+    io_stop_outputs();
     seek_cancel();
     break;
 

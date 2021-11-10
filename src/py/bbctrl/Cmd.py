@@ -127,47 +127,62 @@ def sync_speed(dist, speed):
     return SYNC_SPEED + encode_float(dist) + encode_float(speed)
 
 
+def _get_input_type_index(port):
+    if port == 'digital-in-0': return 'd', 0
+    if port == 'digital-in-1': return 'd', 1
+    if port == 'digital-in-2': return 'd', 2
+    if port == 'digital-in-3': return 'd', 3
+    if port == 'analog-in-0':  return 'a', 0
+    if port == 'analog-in-1':  return 'a', 1
+    if port == 'analog-in-2':  return 'a', 2
+    if port == 'analog-in-3':  return 'a', 3
+
+    raise Exception('Unsupported input "%s"' % port)
+
+
+def _get_input_mode(mode):
+    if mode == 'immediate': return 0
+    if mode == 'rise':      return 1
+    if mode == 'fall':      return 2
+    if mode == 'high':      return 3
+    if mode == 'low':       return 4
+
+    raise Exception('Unsupported input mode "%s"' % mode)
+
+
 def input(port, mode, timeout):
-    type, index, m = 'd', 0, 0
+    type, index = _get_input_type_index(port)
+    mode = _get_input_mode(mode)
 
-    # Analog/digital & port index
-    if port == 'digital-in-0': type, index = 'd', 0
-    if port == 'digital-in-1': type, index = 'd', 1
-    if port == 'digital-in-2': type, index = 'd', 2
-    if port == 'digital-in-3': type, index = 'd', 3
-    if port == 'analog-in-0':  type, index = 'a', 0
-    if port == 'analog-in-1':  type, index = 'a', 1
-    if port == 'analog-in-2':  type, index = 'a', 2
-    if port == 'analog-in-3':  type, index = 'a', 3
+    return '%s%s%d%d%s' % (INPUT, type, index, mode, encode_float(timeout))
 
-    # Mode
-    if mode == 'immediate': m = 0
-    if mode == 'rise':      m = 1
-    if mode == 'fall':      m = 2
-    if mode == 'high':      m = 3
-    if mode == 'low':       m = 4
 
-    return '%s%s%d%d%s' % (INPUT, type, index, m, encode_float(timeout))
+def _get_output_id(port):
+    if port == 'digital-out-0': return '0'
+    if port == 'digital-out-1': return '1'
+    if port == 'digital-out-2': return '2'
+    if port == 'digital-out-3': return '3'
+    if port == 'mist':          return 'M'
+    if port == 'flood':         return 'F'
+
+    raise Exception('Unsupported output "%s"' % port)
 
 
 def output(port, value):
-    if port == 'mist':  return '#1oa=' + ('1' if value else '0')
-    if port == 'flood': return '#2oa=' + ('1' if value else '0')
-    raise Exception('Unsupported output "%s"' % port)
+    return '#%soa=%d' % (_get_output_id(port), 1 if value else 0)
 
 
 def dwell(seconds): return DWELL + encode_float(seconds)
 
 
-def pause(type):
-    if type == 'program': type = 1
-    elif type == 'optional': type = 2
-    elif type == 'pallet-change': type = 1
-    else: raise Exception('Unknown pause type "%s"' % type)
-
-    return '%s%d' % (PAUSE, type)
+def _get_pause_type(type):
+    if type == 'program':       return 1
+    if type == 'optional':      return 2
+    if type == 'pallet-change': return 1
+    raise Exception('Unknown pause type "%s"' % type)
 
 
+def pause(type): return '%s%d' % (PAUSE, _get_pause_type(type))
 def jog(axes): return JOG + encode_axes(axes)
 
 

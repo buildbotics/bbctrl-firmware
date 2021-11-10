@@ -27,14 +27,51 @@
 
 #pragma once
 
+#include <stdint.h>
+
+
+// Must be kept in synch with resources/config-template.json
+typedef enum {
+  IO_DISABLED,
+  INPUT_MOTOR_0_MAX, INPUT_MOTOR_1_MAX, INPUT_MOTOR_2_MAX, INPUT_MOTOR_3_MAX,
+  INPUT_MOTOR_0_MIN, INPUT_MOTOR_1_MIN, INPUT_MOTOR_2_MIN, INPUT_MOTOR_3_MIN,
+  INPUT_0, INPUT_1, INPUT_2, INPUT_3, INPUT_ESTOP, INPUT_PROBE,
+  OUTPUT_0, OUTPUT_1, OUTPUT_2, OUTPUT_3, OUTPUT_MIST, OUTPUT_FLOOD,
+  OUTPUT_FAULT, OUTPUT_TOOL_ENABLE, OUTPUT_TOOL_DIRECTION,
+  ANALOG_0, ANALOG_1, ANALOG_2, ANALOG_3,
+
+  // Hard wired functions
+  INPUT_STALL_0, INPUT_STALL_1, INPUT_STALL_2, INPUT_STALL_3, INPUT_MOTOR_FAULT,
+  OUTPUT_TEST,
+
+  IO_FUNCTION_COUNT
+} io_function_t;
+
+
+// Must be kept in synch with resources/config-template.json
+// <inactive>_<active>
+typedef enum {LO_HI, HI_LO, TRI_LO, TRI_HI, LO_TRI, HI_TRI} io_mode_t;
+
 
 typedef enum {
-  INPUT_IMMEDIATE,
-  INPUT_RISE,
-  INPUT_FALL,
-  INPUT_HIGH,
-  INPUT_LOW,
-} input_mode_t;
+  IO_TYPE_DISABLED, IO_TYPE_INPUT, IO_TYPE_OUTPUT, IO_TYPE_ANALOG
+} io_type_t;
 
 
-void io_callback();
+typedef enum {IO_LO, IO_HI, IO_TRI = 0xff} io_level_t;
+
+
+typedef void (*io_callback_t)(io_function_t function, bool active);
+
+
+void io_init();
+bool io_is_enabled(io_function_t function);
+io_type_t io_get_type(io_function_t function);
+void io_set_callback(io_function_t function, io_callback_t cb);
+io_callback_t io_get_callback(io_function_t function);
+void io_set_output(io_function_t function, bool active);
+void io_stop_outputs();
+io_function_t io_get_port_function(bool digital, uint8_t port);
+uint8_t io_get_input(io_function_t function);
+float io_get_analog(io_function_t function);
+void io_rtc_callback();
