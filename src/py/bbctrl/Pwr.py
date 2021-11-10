@@ -47,7 +47,7 @@ firmware_version = pkg_resources.require('bbctrl')[0].version
 
 
 def version_less(a, b):
-    a, b = [[int(y) for y in x.split('.')] for x in (a, b)]
+    a, b = [[int(y) for y in str(x).split('.')] for x in (a, b)]
     return a < b
 
 
@@ -96,7 +96,7 @@ class Pwr():
         self.log = ctrl.log.get('Pwr')
 
         self.i2c_old = False
-        self.i2c_confirmed_new = False
+        self.i2c_confirmed = False
 
         self.regs = [-1] * 9
         self.lcd_page = ctrl.lcd.add_new_page()
@@ -140,7 +140,7 @@ class Pwr():
 
                 if value is None: return # Handle lack of i2c port
 
-                if not self.i2c_old: self.i2c_confirmed_new = True
+                self.i2c_confirmed = True
 
                 if i == TEMP_REG: value -= 273
                 elif i == VERSION_REG:
@@ -159,8 +159,7 @@ class Pwr():
                 if i == FLAGS_REG: self.check_faults()
 
         except Exception as e:
-            if not self.i2c_confirmed_new:
-                self.i2c_old = not self.i2c_old
+            if not self.i2c_confirmed: self.i2c_old = not self.i2c_old
 
             # Older pwr firmware does not have regs > 5
             if self.regs[VERSION_REG] != -1 or i < 6:
