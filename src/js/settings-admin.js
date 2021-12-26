@@ -58,6 +58,14 @@ module.exports = {
 
 
   methods: {
+
+    shutdown: function() {
+      api.put('shutdown');
+    },
+    reboot: function() {
+      api.put('reboot');
+    },
+
     backup: function () {
       document.getElementById('download-target').src = '/api/config/download';
     },
