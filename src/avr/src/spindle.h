@@ -61,6 +61,7 @@ typedef enum {
   SPINDLE_TYPE_WJ200,
   SPINDLE_TYPE_DMM_DYN4,
   SPINDLE_TYPE_GALT_G200,
+  SPINDLE_TYPE_TECO_E510,
 } spindle_type_t;
 
 
@@ -69,7 +70,6 @@ typedef void (*deinit_cb_t)();
 
 spindle_type_t spindle_get_type();
 void spindle_stop();
-void spindle_estop();
 void spindle_load_power_updates(power_update_t updates[], float minD,
                                 float maxD);
 void spindle_update(const power_update_t &update);

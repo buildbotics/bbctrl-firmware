@@ -64,7 +64,7 @@ void estop_trigger(stat_t reason) {
 
   // Shutdown peripherals
   st_shutdown();
-  spindle_estop();
+  spindle_stop();
   jog_stop();
   io_stop_outputs();
 

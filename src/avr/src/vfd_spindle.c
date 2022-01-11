@@ -203,6 +203,18 @@ const vfd_reg_t galt_g200_regs[] PROGMEM = {
 };
 
 
+const vfd_reg_t teco_e510_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ, 0x0102, 0}, // Read max frequency
+  {REG_FREQ_SET,      0x2502, 0}, // Set frequency
+  {REG_FREQ_READ,     0x2524, 0}, // Read frequency
+  {REG_FWD_WRITE,     0x2501, 1}, // Run forward
+  {REG_REV_WRITE,     0x2501, 2}, // Run reverse
+  {REG_STOP_WRITE,    0x2501, 0}, // Stop
+  {REG_STATUS_READ,   0x2520, 0}, // Read status
+  {REG_DISABLED},
+};
+
+
 // Same as OMRON MX2
 #define wj200_regs omron_mx2_regs
 
@@ -429,6 +441,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_WJ200:            _load(wj200_regs);              break;
   case SPINDLE_TYPE_DMM_DYN4:         _load(dmm_dyn4_regs);           break;
   case SPINDLE_TYPE_GALT_G200:        _load(galt_g200_regs);          break;
+  case SPINDLE_TYPE_TECO_E510:        _load(teco_e510_regs);          break;
   default: break;
   }
 

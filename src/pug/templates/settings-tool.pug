@@ -562,3 +562,59 @@ script#settings-tool-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/galt_g200-vfd.pdf",
             target="_blank") Galt G200 VFD manual
+
+
+      .notes(v-if="tool_type.startsWith('Teco West')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr 09-00
+            td.reg-value 1
+            td Bus ID
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr 09-01
+            td.reg-value 0
+            td MODBUS
+            td Communication mode
+          tr
+            td.reg-addr 09-02
+            td.reg-value 3
+            td 9600 BAUD rate
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr 09-03
+            td.reg-value 1
+            td 2 stop bits
+            td Stop bits
+          tr
+            td.reg-addr 09-04
+            td.reg-value 0
+            td No parity
+            td Communication parity
+          tr
+            td.reg-addr 09-05
+            td.reg-value 0
+            td 8 data bits
+            td Communication bits
+          tr
+            td.reg-addr 00-02
+            td.reg-value 2
+            td MODBUS control
+            td Main run command source
+          tr
+            td.reg-addr 00-05
+            td.reg-value 5
+            td MODBUS control
+            td Main frequency command source
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/teco_e510-vfd.pdf",
+            target="_blank") Teco Westinghouse E510 VFD manual

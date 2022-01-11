@@ -33,6 +33,7 @@
 #include "config.h"
 #include "command.h"
 #include "exec.h"
+#include "estop.h"
 #include "util.h"
 
 #include <math.h>
@@ -92,6 +93,8 @@ static void _set_speed(float speed) {
   spindle.speed = speed;
 
   float power = _speed_to_power(speed);
+
+  if (estop_triggered()) power = 0;
 
   switch (spindle.type) {
   case SPINDLE_TYPE_DISABLED: break;
@@ -207,7 +210,6 @@ void spindle_idle() {
 
 
 void spindle_stop() {_set_speed(0);} // Only called when steppers have halted
-void spindle_estop() {_set_type(SPINDLE_TYPE_DISABLED);}
 
 
 // Var callbacks
