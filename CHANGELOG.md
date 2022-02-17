@@ -3,6 +3,7 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v1.0.2
  - Remappable IO
+ - Fix for "stuck in jogging" bug.
 
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.

@@ -125,6 +125,13 @@ class Mach(Comm):
         self._set_cycle(cycle)
 
 
+    def _end_cycle(self):
+        if (self._get_cycle() != 'idle' and self._is_ready() and
+            not self.planner.is_busy() and not super().is_active()):
+            self.planner.position_change()
+            self._set_cycle('idle')
+
+
     def _update(self, update):
         # Detect motor faults
         for motor in range(4):
@@ -139,12 +146,8 @@ class Mach(Comm):
         # Handle EStop
         if state_changed and state == 'ESTOPPED': self.planner.reset(False)
 
-        # Exit cycle if state changed to READY
-        if (state_changed and self._get_cycle() != 'idle' and
-            self._is_ready() and not self.planner.is_busy() and
-            not super().is_active()):
-            self.planner.position_change()
-            self._set_cycle('idle')
+        # Check if cycle has ended
+        if state_changed: self._end_cycle()
 
         # Planner stop
         if state == 'READY' and self.stopping:
@@ -197,8 +200,13 @@ class Mach(Comm):
 
     @overrides(Comm)
     def comm_next(self):
+        cmd = None
+
         if self.planner.is_running() and not self._is_holding():
-            return self.planner.next()
+            cmd = self.planner.next()
+
+        if cmd is None: self._end_cycle()
+        return cmd
 
 
     @overrides(Comm)
