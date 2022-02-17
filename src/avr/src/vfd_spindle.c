@@ -29,7 +29,6 @@
 #include "modbus.h"
 #include "rtc.h"
 #include "config.h"
-#include "estop.h"
 #include "pgmspace.h"
 
 #include <util/atomic.h>
@@ -274,7 +273,7 @@ static bool _next_state() {
     break;
 
   case REG_STATUS_READ:
-    if (vfd.shutdown || estop_triggered()) vfd.state = REG_DISCONNECT_WRITE;
+    if (vfd.shutdown) vfd.state = REG_DISCONNECT_WRITE;
 
     else if (vfd.changed) {
       // Update frequency and state
@@ -329,7 +328,7 @@ static void _modbus_cb(bool ok, uint16_t addr, uint16_t value) {
   // Handle error
   if (!ok) {
     if (regs[vfd.reg].fails < 255) regs[vfd.reg].fails++;
-    if (vfd.shutdown || estop_triggered()) _disconnected();
+    if (vfd.shutdown) _disconnected();
     else _connect();
     return;
   }

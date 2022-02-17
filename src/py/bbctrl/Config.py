@@ -170,7 +170,7 @@ class Config(object):
                     motor['enabled'] = motor.get('power-mode', '') != 'disabled'
 
         if version < (1, 0, 2):
-            io_map = self.tempate['io-map']
+            io_map = self.template['io-map']
             io_defaults = io_map['default']
             config['io-map'] = [{} for i in range(len(io_defaults))]
             io = config['io-map']
