@@ -374,9 +374,28 @@
   "io-map": {
     "type": "list",
     "index": "abcdefghijklmnopq",
+    "pins": [
+      {"id":  1, "type": "output"},
+      {"id":  2, "type": "output"},
+      {"id":  3, "type": "input"},
+      {"id":  4, "type": "input"},
+      {"id":  5, "type": "input"},
+      {"id":  8, "type": "input"},
+      {"id":  9, "type": "input"},
+      {"id": 10, "type": "input"},
+      {"id": 11, "type": "input"},
+      {"id": 12, "type": "input"},
+      {"id": 15, "type": "output"},
+      {"id": 16, "type": "output"},
+      {"id": 18, "type": "analog"},
+      {"id": 21, "type": "output"},
+      {"id": 22, "type": "input"},
+      {"id": 23, "type": "input"},
+      {"id": 24, "type": "analog"}
+    ],
     "default": [
-      {"function": "output-flood"},
-      {"function": "output-mist"},
+      {"function": "output-flood", "mode": "lo-hi"},
+      {"function": "output-mist", "mode": "lo-hi"},
       {"function": "input-motor-0-min"},
       {"function": "input-motor-0-max"},
       {"function": "input-motor-1-min"},
@@ -385,10 +404,10 @@
       {"function": "input-motor-2-max"},
       {"function": "input-motor-3-min"},
       {"function": "input-motor-3-max"},
-      {"function": "output-tool-enable"},
-      {"function": "output-tool-direction"},
+      {"function": "output-tool-enable", "mode": "lo-hi"},
+      {"function": "output-tool-direction", "mode": "lo-hi"},
       {"function": "analog-1"},
-      {"function": "output-fault"},
+      {"function": "output-fault", "mode": "lo-hi"},
       {"function": "input-probe"},
       {"function": "input-estop"},
       {"function": "analog-0"}
@@ -408,12 +427,17 @@
           "output-tool-enable", "output-tool-direction",
           "analog-0", "analog-1", "analog-2", "analog-3"
         ],
+        "codes": [
+          null, "0xw", "1xw", "2xw", "3xw", "0lw", "1lw", "2lw", "3lw",
+          "0w", "1w", "2w", "3w", "ew", "pw", "0oa", "1oa", "2oa", "3oa",
+          "Moa", "Foa", "foa", "eoa", "doa", "0ai", "1ai", "2ai", "3ai"
+        ],
         "code": "io"
       },
       "mode": {
         "type": "enum",
         "values": ["lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri", "hi-tri"],
-        "default": "lo-hi",
+        "default": "hi-lo",
         "code": "im"
       }
     }

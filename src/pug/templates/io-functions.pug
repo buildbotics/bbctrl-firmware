@@ -25,40 +25,22 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#indicators-template(type="text/x-template")
-  .indicators
-    div
-      io-pins(:state="state", :template="template")
+script#io-functions-template(type="text/x-template")
+  table.functions
+    tr: th.header(colspan=100) I/O Functions
 
-      table.legend
-        tr
-          th.header(colspan=100) Legend
+    tr
+      th(v-for="name in columns", track-by="$index",
+        :class="name || 'separator'") {{name}}
 
-        tr
-          td
-           .fa.fa-circle.io.active
-          th Active
-          th.separator
-          td
-           .fa.fa-circle.io.inactive
-          th Inactive
-        tr
-          td
-           .fa.fa-plus-circle.io
-          th Hi
-          th.separator
-          td
-           .fa.fa-minus-circle.io
-          th Lo
-        tr
-          td
-           .fa.fa-circle-o.io
-          th Tristated
-          th.separator
-          td
-           .fa.fa-ban.io
-          th Disabled
-    div: io-functions(:state="state", :template="template")
+    tr(v-for="i in rows")
+      td(is="io-functions-row", :func="functions[i * 2 + 0]")
+      th.separator
+      td(is="io-functions-row", :func="functions[i * 2 + 1]",
+        v-if="functions[i * 2 + 1]")
 
-    breakout(name="db25", :state="state", :template="template")
-    breakout(name="db15", :state="state", :template="template")
+
+script#io-functions-row-template(type="text/x-template")
+  td.function(:class="func.type", :title="func.title") {{func.name}}
+  td.state: io-indicator(:state="func.state", :type="func.type")
+  td.pins {{func.pins.join(' ')}}

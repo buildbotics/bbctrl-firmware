@@ -25,40 +25,31 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#indicators-template(type="text/x-template")
-  .indicators
-    div
-      io-pins(:state="state", :template="template")
+script#breakout-template(type="text/x-template")
+  .breakout
+    h2 {{name.toUpperCase()}} breakout box
+    .breakout-body
+      div(:is="name + '-breakout'", v-ref:breakout)
+      .breakout-pin
+        div(v-if="active_pin")
+          h3 Pin {{active_pin}}
+          div(:is="name + '-pin-' + active_pin", :state="state",
+            :template="template")
 
-      table.legend
-        tr
-          th.header(colspan=100) Legend
 
-        tr
-          td
-           .fa.fa-circle.io.active
-          th Active
-          th.separator
-          td
-           .fa.fa-circle.io.inactive
-          th Inactive
-        tr
-          td
-           .fa.fa-plus-circle.io
-          th Hi
-          th.separator
-          td
-           .fa.fa-minus-circle.io
-          th Lo
-        tr
-          td
-           .fa.fa-circle-o.io
-          th Tristated
-          th.separator
-          td
-           .fa.fa-ban.io
-          th Disabled
-    div: io-functions(:state="state", :template="template")
+script#breakout-ground-template(type="text/x-template")
+  .pin
+    h4 Ground
+    div This pin is connected to ground.
 
-    breakout(name="db25", :state="state", :template="template")
-    breakout(name="db15", :state="state", :template="template")
+
+script#breakout-5v-template(type="text/x-template")
+  .pin
+    h4 5v
+    div This pin is connected to 5 volts.  It can supply a maximum of 3A.
+
+
+script#breakout-reserved-template(type="text/x-template")
+  .pin
+    h4 Reserved
+    div This is a reserved pin.  Do not connect.

@@ -25,40 +25,33 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#indicators-template(type="text/x-template")
-  .indicators
-    div
-      io-pins(:state="state", :template="template")
+script#db15-breakout-template(type="text/x-template")
+  include http/images/db15_breakout.svg
 
-      table.legend
-        tr
-          th.header(colspan=100) Legend
 
-        tr
-          td
-           .fa.fa-circle.io.active
-          th Active
-          th.separator
-          td
-           .fa.fa-circle.io.inactive
-          th Inactive
-        tr
-          td
-           .fa.fa-plus-circle.io
-          th Hi
-          th.separator
-          td
-           .fa.fa-minus-circle.io
-          th Lo
-        tr
-          td
-           .fa.fa-circle-o.io
-          th Tristated
-          th.separator
-          td
-           .fa.fa-ban.io
-          th Disabled
-    div: io-functions(:state="state", :template="template")
+script#db15-fault-template(type="text/x-template")
+  .pin
+    h4 Motor fault output
+    div.
+      This pin will be pulled to ground when a motor fault is detected.
 
-    breakout(name="db25", :state="state", :template="template")
-    breakout(name="db15", :state="state", :template="template")
+
+script#db15-enable-template(type="text/x-template")
+  .pin
+    h4 Motor enable output
+    div.
+      This pin will be pulled high when the motor drivers are enabled.
+
+
+script#db15-step-template(type="text/x-template")
+  .pin
+    h4 Motor channel {{ch}} step
+    div.
+      The channel {{ch}} step signal is present on this pin.
+
+
+script#db15-dir-template(type="text/x-template")
+  .pin
+    h4 Motor channel {{ch}} direction
+    div.
+      The channel {{ch}} direction signal is present on this pin.

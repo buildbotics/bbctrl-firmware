@@ -29,33 +29,61 @@
 
 
 module.exports = {
-  template: '#settings-io-template',
-  props: ['config', 'template', 'state'],
+  template: "#io-functions-template",
+  props: ['template', 'state'],
+
+
+  components: {
+    'io-functions-row': {
+      template: "#io-functions-row-template",
+      props: ['func'],
+      replace: true
+    }
+  },
+
 
   computed: {
-    io() {
-      let io        = []
-      let config    = this.config['io-map']
-      let template  = this.template['io-map']
-      let indices   = template.index;
-      let functions = template.template.function.values;
-      let modes     = template.template.mode.values;
+    columns: () => ['function', 'state', 'pins', '',
+                    'function', 'state', 'pins'],
 
-      for (let i = 0; i < indices.length; i++) {
-        let type = template.pins[i].type
-        let funcs = functions.filter(name => name.startsWith(type))
-        funcs.unshift('disabled')
 
-        io.push({
-          id: template.pins[i].id,
+    rows: function () {return Math.ceil(this.functions.length / 2.0)},
+
+
+    functions: function () {
+      let l = []
+      let io_map = this.template['io-map']
+      let pins = io_map.pins
+      let tmpl = io_map.template.function
+      let funcs = tmpl.values
+      let codes = tmpl.codes
+      let title = ''
+
+      for (let i = 1; i < funcs.length; i++) {
+        let p = []
+
+        for (let j = 0; j < pins.length; j++) {
+          let code = String.fromCharCode(97 + j) + 'io'
+          if (i == this.state[code]) p.push(pins[j].id)
+        }
+
+        let state = this.state[codes[i]]
+        let type = funcs[i].split('-')[0]
+        if (!p.length) {
+          type = 'disabled'
+          title = 'Function not mapped to any pins.'
+        }
+
+        l.push({
+          name: funcs[i],
+          state,
+          pins: p,
           type,
-          config: config[i],
-          functions: funcs,
-          modes: type == 'output' ? modes : []
+          title
         })
       }
 
-      return io
+      return l
     }
   }
 }

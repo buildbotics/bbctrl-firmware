@@ -29,33 +29,12 @@
 
 
 module.exports = {
-  template: '#settings-io-template',
-  props: ['config', 'template', 'state'],
+  replace: true,
+  template: '#templated-select-template',
+  props: ['model', 'values'],
 
-  computed: {
-    io() {
-      let io        = []
-      let config    = this.config['io-map']
-      let template  = this.template['io-map']
-      let indices   = template.index;
-      let functions = template.template.function.values;
-      let modes     = template.template.mode.values;
 
-      for (let i = 0; i < indices.length; i++) {
-        let type = template.pins[i].type
-        let funcs = functions.filter(name => name.startsWith(type))
-        funcs.unshift('disabled')
-
-        io.push({
-          id: template.pins[i].id,
-          type,
-          config: config[i],
-          functions: funcs,
-          modes: type == 'output' ? modes : []
-        })
-      }
-
-      return io
-    }
+  methods: {
+    change: function () {this.$dispatch('input-changed')}
   }
 }

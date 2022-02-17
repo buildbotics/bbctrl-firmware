@@ -174,6 +174,7 @@ static uint8_t _driver_get_torque(drv8711_driver_t *drv) {
   }
 }
 
+
 static uint16_t _driver_get_torque_reg(drv8711_driver_t *drv) {
   uint16_t reg;
 

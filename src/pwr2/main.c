@@ -330,10 +330,6 @@ ISR(TWI0_TWIS_vect) {
   static uint16_t reg;
   static uint8_t pec = 0;
 
-  // Stretch clock longer to work around RPi bug
-  // See https://github.com/raspberrypi/linux/issues/254
-  //_delay_us(100); // Must use software delay while in interrupt
-
   uint8_t status = TWI0.SSTATUS;
 
   if (status & TWI_DIF_bm) {

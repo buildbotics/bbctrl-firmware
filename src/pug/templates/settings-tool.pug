@@ -194,6 +194,13 @@ script#settings-tool-template(type="text/x-template")
             td.reg-value 0
             td 1 start, 8 data, no parity, 1 stop
             td Must match #[tt parity] above
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/nowforever-e100.pdf",
+            target="_blank") Nowforever VFD manual
+          |
+          | and spindle type.
 
       .notes(v-if="tool_type.startsWith('DELTA VFD015M21A')")
         h2 Notes

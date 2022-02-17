@@ -55,12 +55,12 @@ module.exports = {
 
 
     maxMaxVelocity: function () {
-      return 1 * (15 * this.umPerStep / this.motor['microsteps']).toFixed(3);
+      return 1 * (15 * this.umPerStep / this.motor.microsteps).toFixed(3);
     },
 
 
     ustepPerSec: function () {
-      return this.rpm * this.stepsPerRev * this.motor['microsteps'] / 60;
+      return this.rpm * this.stepsPerRev * this.motor.microsteps / 60;
     },
 
 

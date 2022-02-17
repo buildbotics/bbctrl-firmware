@@ -32,11 +32,7 @@
 #include <string.h>
 
 
-#define IO_MIN_INDEX 'a'
-#define IO_MAX_INDEX 'q'
-
-#define IF_INVALID_INDEX_RETURN \
-  if (index < IO_MIN_INDEX || IO_MAX_INDEX < index) return
+#define IO_MAX_INDEX 17
 
 // macros for finding io function given the axis number
 #define MIN_INPUT(axis) ((io_function_t)(INPUT_MOTOR_0_MIN + axis))
@@ -65,6 +61,7 @@ typedef struct {
 
 typedef struct {
   uint8_t pin;
+  uint8_t types;
   uint8_t adc_ch;
   uint8_t adc_mux;
   io_function_t function;
@@ -80,31 +77,32 @@ typedef struct {
 
 
 static io_pin_t _pins[] = {
-  {IO_01_PIN, IO_INVALID},
-  {IO_02_PIN, IO_INVALID},
-  {IO_03_PIN, 1, ADC_CH_MUXPOS_PIN0_gc},
-  {IO_04_PIN, 1, ADC_CH_MUXPOS_PIN1_gc},
-  {IO_05_PIN, 1, ADC_CH_MUXPOS_PIN4_gc},
-  {IO_08_PIN, 1, ADC_CH_MUXPOS_PIN5_gc},
-  {IO_09_PIN, 1, ADC_CH_MUXPOS_PIN6_gc},
-  {IO_10_PIN, 1, ADC_CH_MUXPOS_PIN7_gc},
-  {IO_11_PIN, 1, ADC_CH_MUXPOS_PIN2_gc},
-  {IO_12_PIN, 1, ADC_CH_MUXPOS_PIN3_gc},
-  {IO_15_PIN, 0, ADC_CH_MUXPOS_PIN5_gc},
-  {IO_16_PIN, 0, ADC_CH_MUXPOS_PIN4_gc},
-  {IO_18_PIN, 0, ADC_CH_MUXPOS_PIN7_gc},
-  {IO_21_PIN, IO_INVALID},
-  {IO_22_PIN, IO_INVALID},
-  {IO_23_PIN, IO_INVALID},
-  {IO_24_PIN, 0, ADC_CH_MUXPOS_PIN6_gc},
+  // Remapable pins
+  {IO_01_PIN, IO_TYPE_OUTPUT},
+  {IO_02_PIN, IO_TYPE_OUTPUT},
+  {IO_03_PIN, IO_TYPE_INPUT},
+  {IO_04_PIN, IO_TYPE_INPUT},
+  {IO_05_PIN, IO_TYPE_INPUT},
+  {IO_08_PIN, IO_TYPE_INPUT},
+  {IO_09_PIN, IO_TYPE_INPUT},
+  {IO_10_PIN, IO_TYPE_INPUT},
+  {IO_11_PIN, IO_TYPE_INPUT},
+  {IO_12_PIN, IO_TYPE_INPUT},
+  {IO_15_PIN, IO_TYPE_OUTPUT},
+  {IO_16_PIN, IO_TYPE_OUTPUT},
+  {IO_18_PIN, IO_TYPE_ANALOG, 0, ADC_CH_MUXPOS_PIN7_gc},
+  {IO_21_PIN, IO_TYPE_OUTPUT},
+  {IO_22_PIN, IO_TYPE_INPUT},
+  {IO_23_PIN, IO_TYPE_INPUT},
+  {IO_24_PIN, IO_TYPE_ANALOG, 0, ADC_CH_MUXPOS_PIN6_gc},
 
   // Hard wired pins
-  {STALL_0_PIN,     IO_INVALID, 0, INPUT_STALL_0},
-  {STALL_1_PIN,     IO_INVALID, 0, INPUT_STALL_1},
-  {STALL_2_PIN,     IO_INVALID, 0, INPUT_STALL_2},
-  {STALL_3_PIN,     IO_INVALID, 0, INPUT_STALL_3},
-  {MOTOR_FAULT_PIN, IO_INVALID, 0, INPUT_MOTOR_FAULT},
-  {TEST_PIN,        IO_INVALID, 0, OUTPUT_TEST},
+  {STALL_0_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_0,     HI_LO},
+  {STALL_1_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_1,     HI_LO},
+  {STALL_2_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_2,     HI_LO},
+  {STALL_3_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_3,     HI_LO},
+  {MOTOR_FAULT_PIN, IO_TYPE_INPUT,  0, 0, INPUT_MOTOR_FAULT, HI_LO},
+  {TEST_PIN,        IO_TYPE_OUTPUT, 0, 0, OUTPUT_TEST},
 
   {0}, // Sentinal
 };
@@ -115,16 +113,29 @@ static float _analog_ports[ANALOGS];
 
 static io_function_t _output_to_function(int id) {
   switch (id) {
-  case 0: return OUTPUT_0;
-  case 1: return OUTPUT_1;
-  case 2: return OUTPUT_2;
-  case 3: return OUTPUT_3;
-  case 4: return OUTPUT_MIST;
-  case 5: return OUTPUT_FLOOD;
-  case 6: return OUTPUT_FAULT;
-  case 7: return OUTPUT_TOOL_DIRECTION;
-  case 8: return OUTPUT_TOOL_ENABLE;
-  case 9: return OUTPUT_TEST;
+  case 0:  return OUTPUT_0;
+  case 1:  return OUTPUT_1;
+  case 2:  return OUTPUT_2;
+  case 3:  return OUTPUT_3;
+  case 4:  return OUTPUT_MIST;
+  case 5:  return OUTPUT_FLOOD;
+  case 6:  return OUTPUT_FAULT;
+  case 7:  return OUTPUT_TOOL_ENABLE;
+  case 8:  return OUTPUT_TOOL_DIRECTION;
+  case 9:  return OUTPUT_TEST;
+  default: return IO_DISABLED;
+  }
+}
+
+
+static io_function_t _input_to_function(int id) {
+  switch (id) {
+  case 0:  return INPUT_0;
+  case 1:  return INPUT_1;
+  case 2:  return INPUT_2;
+  case 3:  return INPUT_3;
+  case 4:  return INPUT_ESTOP;
+  case 5:  return INPUT_PROBE;
   default: return IO_DISABLED;
   }
 }
@@ -135,7 +146,14 @@ static uint8_t _function_to_analog_port(io_function_t function) {
 }
 
 
+static bool _is_valid(io_function_t function, io_type_t type) {
+  return io_get_type(function) == type;
+}
+
+
 static void _state_set_active(io_function_t function, bool active) {
+  if (!_is_valid(function, IO_TYPE_INPUT)) return;
+
   io_func_state_t *state = &_func_state[function];
 
   if (active) {
@@ -145,23 +163,6 @@ static void _state_set_active(io_function_t function, bool active) {
   } else {
     state->active--;
     if (!state->active && state->cb) state->cb(function, false);
-  }
-}
-
-
-static bool _is_valid(io_function_t function, io_type_t type) {
-  return io_get_type(function) == type;
-}
-
-
-static bool _is_input_active(io_pin_t *pin) {
-  if (!_is_valid(pin->function, IO_TYPE_INPUT) || !pin->input.initialized)
-    return false;
-
-  switch (pin->mode) {
-  case HI_LO: return !pin->input.state;
-  case LO_HI: return pin->input.state;
-  default:    return false;
   }
 }
 
@@ -179,13 +180,39 @@ static uint8_t _mode_state(io_mode_t mode, bool active) {
 }
 
 
+static uint8_t _get_pin_output_mode(io_pin_t *pin) {
+  if (!DIR_PIN(pin->pin)) return IO_TRI;
+  return OUT_PIN(pin->pin) ? IO_HI : IO_LO;
+}
+
+
+static bool _is_active(io_pin_t *pin) {
+  switch (io_get_type(pin->function)) {
+  case IO_TYPE_INPUT:
+    if (!pin->input.initialized) return false;
+
+    switch (pin->mode) {
+    case HI_LO: return !pin->input.state;
+    case LO_HI: return pin->input.state;
+    default:    return false;
+    }
+    break;
+
+  case IO_TYPE_OUTPUT:
+    return _get_pin_output_mode(pin) == _mode_state(pin->mode, true);
+
+  default: return false;
+  }
+}
+
+
 static void _set_output(io_pin_t *pin, bool active) {
   uint8_t state = _mode_state(pin->mode, active);
 
   switch (state) {
-  case 0:  OUTCLR_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
-  case 1:  OUTSET_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
-  default: DIRCLR_PIN(pin->pin); break;
+  case IO_LO: OUTCLR_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
+  case IO_HI: OUTSET_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
+  default:                          DIRCLR_PIN(pin->pin); break;
   }
 }
 
@@ -196,7 +223,7 @@ static void _set_function(io_pin_t *pin, io_function_t function) {
   switch (oldType) {
   case IO_TYPE_INPUT:
     // Release active input
-    if (_is_input_active(pin)) _state_set_active(pin->function, false);
+    if (_is_active(pin)) _state_set_active(pin->function, false);
     memset(&pin->input, 0, sizeof(pin->input)); // Reset input state
     break;
 
@@ -208,8 +235,10 @@ static void _set_function(io_pin_t *pin, io_function_t function) {
   }
 
   pin->function = function;
+  io_type_t newType = io_get_type(function);
+  if (!(pin->types & newType)) newType = IO_TYPE_DISABLED;
 
-  switch (io_get_type(function)) {
+  switch (newType) {
   case IO_TYPE_INPUT:
     PINCTRL_PIN(pin->pin) = PORT_OPC_PULLUP_gc; // Pull up
     DIRCLR_PIN(pin->pin); // Input
@@ -221,13 +250,9 @@ static void _set_function(io_pin_t *pin, io_function_t function) {
 
   case IO_TYPE_ANALOG:
     _analog_ports[_function_to_analog_port(function)] = 0;
-
-    if (pin->adc_ch == IO_INVALID) pin->function = IO_DISABLED;
-    else {
-      PINCTRL_PIN(pin->pin) = 0; // Disable pull up
-      DIRCLR_PIN(pin->pin); // Input
-      break;
-    }
+    PINCTRL_PIN(pin->pin) = 0; // Disable pull up
+    DIRCLR_PIN(pin->pin); // Input
+    break;
 
     // Fall through if analog disabled
 
@@ -408,12 +433,15 @@ void io_rtc_callback() {
       bool state = IN_PIN(pin->pin);
       if (state == input->state && input->initialized) input->debounce = 0;
       else if (++input->debounce == _io.debounce) {
+        bool first = !input->initialized;
+
         input->state = state;
         input->debounce = 0;
         input->initialized = true;
         input->lockout = _io.lockout;
 
-        _state_set_active(pin->function, _is_input_active(pin));
+        if (!first || _is_active(pin))
+          _state_set_active(pin->function, _is_active(pin));
       }
     }
   }
@@ -438,46 +466,48 @@ static uint8_t _get_state(io_function_t function) {
   if (!_is_valid(function, IO_TYPE_INPUT) || !io_is_enabled(function))
     return IO_INVALID;
 
-  return _func_state[function].active;
+  return !!_func_state[function].active;
 }
 
 
 // Var callbacks
 uint8_t get_io_function(int index) {
-  IF_INVALID_INDEX_RETURN IO_DISABLED;
-  return _pins[index].function;
+  return IO_MAX_INDEX <= index ? IO_DISABLED : _pins[index].function;
 }
 
 
 void set_io_function(int index, uint8_t function) {
-  IF_INVALID_INDEX_RETURN;
-  if (IO_FUNCTION_COUNT <= function || _pins[index].function == function)
-    return;
+  if (IO_MAX_INDEX <= index || IO_FUNCTION_COUNT <= function ||
+      _pins[index].function == function) return;
 
   _set_function(&_pins[index], (io_function_t)function);
 }
 
 
 uint8_t get_io_mode(int index) {
-  IF_INVALID_INDEX_RETURN 0;
-  return _pins[index].mode;
+  return IO_MAX_INDEX <= index ? 0 : _pins[index].mode;
 }
 
 
 void set_io_mode(int index, uint8_t mode) {
-  IF_INVALID_INDEX_RETURN;
-  if (LO_TRI < mode) return;
+  if (IO_MAX_INDEX <= index || LO_TRI < mode) return;
 
-  // Changing the mode may change the input state
   io_pin_t *pin = &_pins[index];
-  bool wasActive = _is_input_active(pin);
+  bool wasActive = _is_active(pin);
   pin->mode = (io_mode_t)mode;
-  bool isActive = _is_input_active(pin);
-  if (wasActive != isActive) _state_set_active(pin->function, isActive);
+  bool isActive = _is_active(pin);
+
+  // Changing the mode may change the pin state
+  if (wasActive != isActive)
+    switch (io_get_type(pin->function)) {
+    case IO_TYPE_OUTPUT: _set_output(pin, wasActive);                break;
+    case IO_TYPE_INPUT:  _state_set_active(pin->function, isActive); break;
+    default: break;
+    }
 }
 
 
-uint8_t get_io_state(int pin) {return _is_input_active(&_pins[pin]);}
+uint8_t get_io_state(int pin) {return _is_active(&_pins[pin]);}
 
 
 void set_input_debounce(uint16_t debounce) {
@@ -494,26 +524,21 @@ void set_input_lockout(uint16_t lockout) {
 
 
 uint16_t get_input_lockout() {return _io.lockout;}
-
-
 uint8_t get_min_input(int axis) {return _get_state(MIN_INPUT(axis));}
 uint8_t get_max_input(int axis) {return _get_state(MAX_INPUT(axis));}
-uint8_t get_estop_input() {return _get_state(INPUT_ESTOP);}
-uint8_t get_probe_input() {return _get_state(INPUT_PROBE);}
+uint8_t get_input(int index) {return _get_state(_input_to_function(index));}
 
 
-bool get_output_active(int id) {
-  return _func_state[_output_to_function(id)].active;
+uint8_t get_output_active(int index) {
+  return _func_state[_output_to_function(index)].active;
 }
 
 
-void set_output_active(int id, bool active) {
-  io_function_t f = _output_to_function(id);
-  if (f != IO_DISABLED) _func_state[f].active = active;
+void set_output_active(int index, uint8_t active) {
+  io_set_output(_output_to_function(index), active);
 }
 
 
 float get_analog_input(int port) {
-
   return io_get_analog(io_get_port_function(false, port));
 }

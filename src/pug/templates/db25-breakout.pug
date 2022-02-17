@@ -25,40 +25,34 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#indicators-template(type="text/x-template")
-  .indicators
-    div
-      io-pins(:state="state", :template="template")
+script#db25-breakout-template(type="text/x-template")
+  include http/images/db25_breakout.svg
 
-      table.legend
-        tr
-          th.header(colspan=100) Legend
 
-        tr
-          td
-           .fa.fa-circle.io.active
-          th Active
-          th.separator
-          td
-           .fa.fa-circle.io.inactive
-          th Inactive
-        tr
-          td
-           .fa.fa-plus-circle.io
-          th Hi
-          th.separator
-          td
-           .fa.fa-minus-circle.io
-          th Lo
-        tr
-          td
-           .fa.fa-circle-o.io
-          th Tristated
-          th.separator
-          td
-           .fa.fa-ban.io
-          th Disabled
-    div: io-functions(:state="state", :template="template")
+script#db25-io-template(type="text/x-template")
+  .pin
+    h4 Mappable IO {{pin}}
+    mapped-io(:pin="pin", :state="state", :template="template")
 
-    breakout(name="db25", :state="state", :template="template")
-    breakout(name="db15", :state="state", :template="template")
+
+script#db25-rs485-template(type="text/x-template")
+  .pin
+    h4 RS485 channel {{ch}}
+    div.
+      RS485 communication is used to talk to VFDs using the Modbus protocol.
+
+
+script#db25-pwm-template(type="text/x-template")
+  .pin
+    h4 Tool PWM output
+    div.
+      This pin outputs a Pulse Width Modulated signal which can be used to
+      control spindle speed or LASER intensity.
+
+
+script#db25-0to10-template(type="text/x-template")
+  .pin
+    h4 0 to 10v output
+    div.
+      This pin outputs a voltage between 0 and 10 which can be used to
+      control spindle speed or LASER intensity.

@@ -250,6 +250,7 @@ class Comm(object):
         try:
             # Resume once current queue of GCode commands has flushed
             self.queue_command(Cmd.RESUME)
+            self.queue_command(Cmd.set('ct', 128))
             self.queue_command(Cmd.HELP) # Load AVR commands and variables
 
         except Exception as e:

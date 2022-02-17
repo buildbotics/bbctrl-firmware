@@ -32,6 +32,7 @@ import hashlib
 import glob
 import tempfile
 import signal
+import shutil
 from concurrent.futures import Future
 from tornado import gen, process, iostream
 import bbctrl
@@ -162,9 +163,9 @@ class Plan(object):
                 proc.stdout.close()
 
             if not self.cancel:
-                os.rename(tmpdir + '/meta.json',    self.files[0])
-                os.rename(tmpdir + '/positions.gz', self.files[1])
-                os.rename(tmpdir + '/speeds.gz',    self.files[2])
+                shutil.move(tmpdir + '/meta.json',    self.files[0])
+                shutil.move(tmpdir + '/positions.gz', self.files[1])
+                shutil.move(tmpdir + '/speeds.gz',    self.files[2])
                 self.preplanner.clean()
                 os.sync()
 

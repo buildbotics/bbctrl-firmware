@@ -1,6 +1,9 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v1.0.2
+ - Remappable IO
+
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.
  - Increased gamepad deadband to 15% but with rescaling to improve precision.
@@ -11,6 +14,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Correction for voltage measurements.
  - Removed load current and faults for newer hardware from indicators and LCD.
  - Added DB15 breakout box to indicators page.
+ - Send stop command to VFD on estop.
 
 ## v1.0.0
  - Added online GCode editor.

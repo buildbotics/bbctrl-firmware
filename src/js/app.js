@@ -136,9 +136,13 @@ module.exports = new Vue({
 
   events: {
     route: function (path) {
+      let oldView = this.currentView;
+
       if (typeof this.$options.components['view-' + path[0]] == 'undefined')
         return location.hash = 'control';
       else this.currentView = path[0];
+
+      if (oldView != this.currentView) $('#main').scrollTop(0)
     },
 
 

@@ -164,15 +164,6 @@ script#view-control-template(type="text/x-template")
             span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
             = ' RPM'
 
-        tr(title="Load switch states.")
-          th Loads
-          td
-            span(:class="state['1oa'] ? 'load-on' : ''")
-              | 1:{{state['1oa'] ? 'On' : 'Off'}}
-            | &nbsp;
-            span(:class="state['2oa'] ? 'load-on' : ''")
-              | 2:{{state['2oa'] ? 'On' : 'Off'}}
-
       table.info
         tr
           th Remaining
@@ -221,6 +212,9 @@ script#view-control-template(type="text/x-template")
 
       input#tab5(type="radio", name="tabs", @click="tab = 'indicators'")
       label(for="tab5") Indicators
+
+      input#tab6(type="radio", name="tabs", @click="tab = 'power'")
+      label(for="tab6") Power
 
       section#content1.tab-content.pure-form
         .toolbar.pure-control-group
@@ -324,3 +318,6 @@ script#view-control-template(type="text/x-template")
 
       section#content5.tab-content
         indicators(:state="state", :template="template")
+
+      section#content6.tab-content
+        power(:state="state", :template="template")

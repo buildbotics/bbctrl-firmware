@@ -3,6 +3,7 @@
   "browser": true,
   "devel": true,
   "strict": "global",
+  "esversion": 6,
   "globals": {
     "$": false,
     "require": false,
@@ -11,6 +12,8 @@
     "SockJS": false,
     "Gauge": false,
     "Clusterize": false,
-    "CodeMirror": false
+    "CodeMirror": false,
+    "Chart": false,
+    "THREE": false
   }
 }

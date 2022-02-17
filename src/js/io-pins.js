@@ -29,33 +29,44 @@
 
 
 module.exports = {
-  template: '#settings-io-template',
-  props: ['config', 'template', 'state'],
+  template: "#io-pins-template",
+  props: ['template', 'state'],
+
+
+  components: {
+    'io-pins-row': {
+      template: "#io-pins-row-template",
+      props: ['pin'],
+      replace: true
+    }
+  },
+
 
   computed: {
-    io() {
-      let io        = []
-      let config    = this.config['io-map']
-      let template  = this.template['io-map']
-      let indices   = template.index;
-      let functions = template.template.function.values;
-      let modes     = template.template.mode.values;
+    columns: () => ['pin', 'state', 'mode', 'function', '',
+                    'pin', 'state', 'mode', 'function'],
 
-      for (let i = 0; i < indices.length; i++) {
-        let type = template.pins[i].type
-        let funcs = functions.filter(name => name.startsWith(type))
-        funcs.unshift('disabled')
 
-        io.push({
-          id: template.pins[i].id,
-          type,
-          config: config[i],
-          functions: funcs,
-          modes: type == 'output' ? modes : []
-        })
+    rows: function () {return Math.ceil(this.io_pins.length / 2.0)},
+
+
+    io_pins: function () {
+      let l = []
+      let io_map = this.template['io-map']
+      let pins = io_map.pins
+      let modes = io_map.template.mode.values
+      let functions = io_map.template.function.values
+
+      for (let i = 0; i < pins.length; i++) {
+        let c = String.fromCharCode(97 + i)
+        let state = this.state[c + 'is']
+        let mode = modes[this.state[c + 'im']]
+        let func = functions[this.state[c + 'io']]
+
+        l.push({id: pins[i].id, state, mode, func})
       }
 
-      return io
+      return l
     }
   }
 }

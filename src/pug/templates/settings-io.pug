@@ -26,24 +26,31 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#settings-io-template(type="text/x-template")
-  #io
+  #settings-io
     h1 I/O Configuration
 
+    h2 Remapable Pins
+    table.pure-table.pure-table-striped
+      thead
+        tr
+          th Pin
+          th Type
+          th Function
+          th Mode
+
+      tbody
+        tr(v-for="pin in io")
+          td {{pin.id}}
+          td {{pin.type}}
+          td
+            templated-select.function(:model.sync="pin.config.function",
+              :values="pin.functions")
+          td
+            templated-select.mode(v-if="pin.modes.length",
+              :model.sync="pin.config.mode", :values="pin.modes")
+
+    h2 Input
     .pure-form.pure-form-aligned
       fieldset
-        h2 Switches
-        templated-input(v-for="templ in template.switches", :name="$key",
-          :model.sync="config.switches[$key]", :template="templ")
-
-          label.extra(slot="extra", v-if="templ.pin")
-            | Pin {{templ.pin}}
-            io-indicator(:name="$key", :state="state")
-
-      fieldset
-        h2 Outputs
-        templated-input(v-for="templ in template.outputs", :name="$key",
-          :model.sync="config.outputs[$key]", :template="templ")
-
-          label.extra(slot="extra")
-            | Pin {{templ.pin}}
-            io-indicator(:name="$key", :state="state")
+        templated-input(v-for="templ in template.input", :name="$key",
+          :model.sync="config.input[$key]", :template="templ")

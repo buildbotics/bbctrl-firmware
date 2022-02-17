@@ -94,8 +94,9 @@ enum {
 
 #define AXES                     6 // number of axes
 #define MOTORS                   4 // number of motors on the board
+#define INS                      6 // number of supported pin outputs
 #define OUTS                    10 // number of supported pin outputs
-#define ANALOGS                  4 // number of supported analog inputs
+#define ANALOGS                  2 // number of supported analog inputs
 #define DIGITALS                 4 // number of supported digital inputs
 #define VFDREG                  32 // number of supported VFD modbus registers
 #define IO_PINS                 17 // number of supported i/o pins

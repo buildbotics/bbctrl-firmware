@@ -25,17 +25,18 @@
 
 \******************************************************************************/
 
-.indicators
+.indicators, .power
   padding 1em 0
   text-align center
   display grid
   grid-template-columns 1fr 1fr
 
-  table
-    height 100%
-    vertical-align top
-    empty-cells show
+  > *
     border 2px solid #bbb
+
+  table
+    width 100%
+    empty-cells show
     border-collapse separate
 
     td, th
@@ -51,10 +52,6 @@
     td
       text-align right
 
-    &.inputs, &.outputs
-      td:nth-child(1), td:nth-child(5)
-        text-align center
-
     th.header
       height 2.5em
       border-bottom 3px solid #ccc
@@ -64,6 +61,23 @@
       background #ccc
       border 1px solid #ccc
       padding 0
+
+
+    &.legend
+      border-top 2px solid #bbb
+
+    &.functions, &.io-pins
+      th
+        text-transform capitalize
+
+      .function, .mode
+        text-align left
+
+      .disabled
+        text-decoration line-through
+
+      .state
+        text-align center
 
     &.motor_fault
       td, th
@@ -80,8 +94,37 @@
       td
         width 8em
 
+  .breakout
+    h3
+      margin 0
+
+    .pin
+      cursor pointer
+
+    .selected-pin
+      filter grayscale(100%) brightness(60%) sepia(100%) hue-rotate(-30deg) \
+        saturate(600%) contrast(0.8)
+
+      text
+        fill #fff !important
+
+  .breakout-body
+    display flex
+    flex-direction row
+
+    .breakout
+      margin 0.5em
+
+    .breakout-pin
+      flex 1
+      text-align left
+      padding 0 1em
 
 
 @media only screen and (max-width 1000px)
+  .power
+    grid-template-columns 1fr
+
+@media only screen and (max-width 1300px)
   .indicators
     grid-template-columns 1fr

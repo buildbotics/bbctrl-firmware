@@ -33,6 +33,8 @@
 // Must be kept in synch with resources/config-template.json
 typedef enum {
   IO_DISABLED,
+
+  // Mappable functions
   INPUT_MOTOR_0_MAX, INPUT_MOTOR_1_MAX, INPUT_MOTOR_2_MAX, INPUT_MOTOR_3_MAX,
   INPUT_MOTOR_0_MIN, INPUT_MOTOR_1_MIN, INPUT_MOTOR_2_MIN, INPUT_MOTOR_3_MIN,
   INPUT_0, INPUT_1, INPUT_2, INPUT_3, INPUT_ESTOP, INPUT_PROBE,
@@ -54,7 +56,10 @@ typedef enum {LO_HI, HI_LO, TRI_LO, TRI_HI, LO_TRI, HI_TRI} io_mode_t;
 
 
 typedef enum {
-  IO_TYPE_DISABLED, IO_TYPE_INPUT, IO_TYPE_OUTPUT, IO_TYPE_ANALOG
+  IO_TYPE_DISABLED = 0,
+  IO_TYPE_INPUT    = 1 << 0,
+  IO_TYPE_OUTPUT   = 1 << 1,
+  IO_TYPE_ANALOG   = 1 << 2,
 } io_type_t;
 
 

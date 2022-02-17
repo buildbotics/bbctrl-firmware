@@ -14,7 +14,21 @@ while [ $# -gt 0 ]; do
   shift 1
 done
 
-service bbctrl stop
+if [ -e /etc/systemd/system/bbctrl.service ]; then
+  service bbctrl stop
+fi
+
+# Find devices
+if [ -e /dev/ttyAMA0 ]; then
+  AVR_DEV=/dev/ttyAMA0
+  AVR_RESET=27
+elif [ -e /dev/ttyS2 ]; then
+  AVR_DEV=/dev/ttyS2
+  AVR_RESET=117
+else
+  >&2 echo "Cannot find AVR serial device."
+  UPDATE_AVR=false
+fi
 
 if $UPDATE_PY; then
   # Update service
@@ -26,7 +40,8 @@ if $UPDATE_PY; then
 fi
 
 if $UPDATE_AVR; then
-  ./scripts/avr109-flash src/avr/bbctrl-avr-firmware.hex
+  ./scripts/avr109-flash -d $AVR_DEV -r $AVR_RESET \
+    src/avr/bbctrl-avr-firmware.hex
 fi
 
 # Update config.txt

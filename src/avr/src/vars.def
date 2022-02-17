@@ -25,11 +25,12 @@
 
 \******************************************************************************/
 
-#define   AXES_LABEL  "xyzabc"
-#define MOTORS_LABEL  "0123"
-#define   OUTS_LABEL  "0123MFfdet"
+#define    AXES_LABEL "xyzabc"
+#define  MOTORS_LABEL "0123"
+#define    OUTS_LABEL "0123MFfedt"
+#define     INS_LABEL "0123ep"
 #define ANALOGS_LABEL "0123"
-#define VFDREG_LABEL  "0123456789abcdefghijklmnopqrstuv"
+#define  VFDREG_LABEL "0123456789abcdefghijklmnopqrstuv"
 #define IO_PINS_LABEL "abcdefghijklmnopq"
 
 // VAR(name, code, type, index, settable, report)
@@ -78,9 +79,8 @@ VAR(input_debounce,  sd, u16,   0,       1, 1) // Input debounce time in ms
 VAR(input_lockout,   sc, u16,   0,       1, 1) // Input lockout time in ms
 VAR(min_input,       lw, u8,    MOTORS,  0, 1) // Minimum switch input state
 VAR(max_input,       xw, u8,    MOTORS,  0, 1) // Maximum switch input state
-VAR(estop_input,     ew, u8,    0,       0, 1) // Estop input state
-VAR(probe_input,     pw, u8,    0,       0, 1) // Probe input state
-VAR(output_active,   oa, b8,    OUTS,    1, 1) // Digital output active
+VAR(input,            w, u8,    INS,     0, 1) // Digital input state
+VAR(output_active,   oa, u8,    OUTS,    1, 1) // Digital output active
 VAR(analog_input,    ai, f32,   ANALOGS, 0, 0) // Analog input state
 
 // Spindle
@@ -143,3 +143,5 @@ VAR(state_count,     xc, u16,   0,       0, 1) // Machine state change count
 VAR(hold_reason,     pr, pstr,  0,       0, 1) // Machine pause reason
 VAR(underrun,        un, u32,   0,       0, 1) // Stepper buffer underrun count
 VAR(dwell_time,      dt, f32,   0,       0, 1) // Dwell timer
+VAR(rx_max_fill,     rf, u16,   0,       0, 1) // UART receive buffer max fill
+VAR(cts_thresh,      ct, u16,   0,       1, 1) // UART receive buffer max fill

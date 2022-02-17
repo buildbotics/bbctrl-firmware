@@ -25,40 +25,22 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#indicators-template(type="text/x-template")
-  .indicators
-    div
-      io-pins(:state="state", :template="template")
+script#io-pins-template(type="text/x-template")
+  table.io-pins
+    tr: th.header(colspan=100) Mappable I/O Pins
 
-      table.legend
-        tr
-          th.header(colspan=100) Legend
+    tr
+      th(v-for="name in columns", track-by="$index",
+        :class="name || 'separator'") {{name}}
 
-        tr
-          td
-           .fa.fa-circle.io.active
-          th Active
-          th.separator
-          td
-           .fa.fa-circle.io.inactive
-          th Inactive
-        tr
-          td
-           .fa.fa-plus-circle.io
-          th Hi
-          th.separator
-          td
-           .fa.fa-minus-circle.io
-          th Lo
-        tr
-          td
-           .fa.fa-circle-o.io
-          th Tristated
-          th.separator
-          td
-           .fa.fa-ban.io
-          th Disabled
-    div: io-functions(:state="state", :template="template")
+    tr(v-for="i in rows")
+      td(is="io-pins-row", :pin="io_pins[i * 2 + 0]")
+      th.separator
+      td(is="io-pins-row", :pin="io_pins[i * 2 + 1]", v-if="io_pins[i * 2 + 1]")
 
-    breakout(name="db25", :state="state", :template="template")
-    breakout(name="db15", :state="state", :template="template")
+
+script#io-pins-row-template(type="text/x-template")
+  td.pin {{pin.id}}
+  td.state: io-indicator(:state="pin.state", :mode="pin.mode")
+  td.mode {{pin.mode}}
+  td.function {{pin.func}}

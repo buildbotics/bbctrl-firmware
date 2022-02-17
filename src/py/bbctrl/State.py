@@ -94,7 +94,7 @@ class State(object):
 
     def reset(self):
         # Unhome all motors
-        for i in range(4): self.set('%dhomed' % i, False)
+        for i in range(4): self.set('%dhomed' % i, 0)
 
         # Zero offsets and positions
         for axis in 'xyzabc':
@@ -261,7 +261,7 @@ class State(object):
                 return motor
 
 
-    def is_axis_homed(self, axis): return self.get('%s_homed' % axis, False)
+    def is_axis_homed(self, axis): return self.get('%s_homed' % axis, 0)
 
 
     def is_axis_enabled(self, axis):

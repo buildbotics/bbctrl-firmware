@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 import time
 import serial
 import binascii
+import argparse
 
 
-dev = '/dev/ttyAMA0'
-baud = 921600
 boot_id = 'bbctrl '
-verbose = False
 
 
 def crc16(data):
@@ -70,41 +69,57 @@ def read_intel_hex(f):
 
 
 def send(data):
-    if verbose: print('Sending:', data)
+    if args.verbose: print('Sending:', data)
     sp.write(bytes(data, 'utf8'))
 
 
 def send_int(x, size):
-    if verbose: print('Sending: %d', x)
+    if args.verbose: print('Sending: %d', x)
     sp.write((x).to_bytes(size, byteorder = 'big'))
 
 
 def recv(count):
     data = sp.read(count).decode('utf8')
-    if count and verbose: print('Received:', data)
+    if count and args.verbose: print('Received:', data)
     return data
 
 
 def recv_int(size):
     x = int.from_bytes(sp.read(size), byteorder = 'big')
-    if verbose: print('Received:', x)
+    if args.verbose: print('Received:', x)
     return x
 
+# Parse arguments
+parser = argparse.ArgumentParser(description = 'Program AVR over serial port '
+                                 'using the AVR109 bootloader protocol.')
+parser.add_argument('-b', '--baud', default = 921600, type = int,
+                    help = 'Set baud rate.')
+parser.add_argument('-t', '--timeout', default = 10, type = int,
+                    help = 'Timeout in seconds.')
+parser.add_argument('-d', '--device', default = '/dev/ttyAMA0',
+                    help = 'Serial device.')
+parser.add_argument('-r', '--reset', default = 27, type = int,
+                    help = 'Reset line GPIO.')
+parser.add_argument('-v', '--verbose', help = 'Enable verbose logging',
+                    action = 'count', default = 0)
+parser.add_argument('file', help = 'The Intel hex file to program.')
+args = parser.parse_args()
 
 # Read firmware hex file
-data = list(read_intel_hex(open(sys.argv[1], 'r')))
+data = list(read_intel_hex(open(args.file, 'r')))
 
 # Open serial  port
-sp = serial.Serial(dev, baud, timeout = 10)
+sp = serial.Serial(args.device, args.baud, timeout = args.timeout)
 
 # Reset AVR
-import RPi.GPIO as gpio
-gpio.setwarnings(False)
-gpio.setmode(gpio.BCM)
-gpio.setup(27, gpio.OUT)
-gpio.output(27, 0)
-gpio.output(27, 1)
-gpio.setup(27, gpio.IN, pull_up_down = gpio.PUD_UP)
+reset_gpio_path = '/sys/class/gpio/gpio%s' % args.reset
+if not os.path.exists(reset_gpio_path):
+    with open('/sys/class/gpio/export', 'w') as f:
+        f.write(str(args.reset))
+
+with open(reset_gpio_path + '/direction', 'w') as f: f.write('out')
+with open(reset_gpio_path + '/value', 'w') as f: f.write('0')
+with open(reset_gpio_path + '/value', 'w') as f: f.write('1')
 time.sleep(0.1)
 
 # Sync

@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -29,33 +29,42 @@
 
 
 module.exports = {
-  template: '#settings-io-template',
-  props: ['config', 'template', 'state'],
+  template: '#mapped-io-template',
+  props: ['pin', 'state', 'template'],
+
 
   computed: {
-    io() {
-      let io        = []
-      let config    = this.config['io-map']
-      let template  = this.template['io-map']
-      let indices   = template.index;
-      let functions = template.template.function.values;
-      let modes     = template.template.mode.values;
+    index() {
+      let io_map = this.template['io-map']
+      let code = ''
 
-      for (let i = 0; i < indices.length; i++) {
-        let type = template.pins[i].type
-        let funcs = functions.filter(name => name.startsWith(type))
-        funcs.unshift('disabled')
-
-        io.push({
-          id: template.pins[i].id,
-          type,
-          config: config[i],
-          functions: funcs,
-          modes: type == 'output' ? modes : []
-        })
+      for (let i = 0; i < io_map.pins.length; i++) {
+        let pin = io_map.pins[i]
+        if (pin.id == this.pin) return i
       }
 
-      return io
+      return undefined
+    },
+
+
+    code() {return this.template['io-map'].index[this.index]},
+    type() {return this.template['io-map'].pins[this.index].type},
+
+
+    func() {
+      let funcID = this.state[this.code + 'io']
+      return this.template['io-map'].template.function.values[funcID]
+    },
+
+
+    mode() {
+      let modeID = this.state[this.code + 'im']
+      return this.template['io-map'].template.mode.values[modeID]
     }
+  },
+
+
+  methods: {
+    capitalize(s) {return s.charAt(0).toUpperCase() + s.slice(1)}
   }
 }

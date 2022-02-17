@@ -87,69 +87,75 @@ const vfd_reg_t ac_tech_regs[] PROGMEM = {
   {REG_REV_WRITE,         1,   64}, // Reverse
   {REG_REV_WRITE,         1,    8}, // Start drive
   {REG_FREQ_ACTECH_READ, 24,    0}, // Actual freq
+  {REG_DISCONNECT_WRITE,  1,    4}, // Stop on disconnect
   {REG_DISCONNECT_WRITE,  1,    2}, // Lock controls and parameters
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t nowforever_regs[] PROGMEM = {
-  {REG_MAX_FREQ_READ,     7,    0}, // Max frequency
-  {REG_FREQ_SET,       2305,    0}, // Frequency
-  {REG_STOP_WRITE,     2304,    0}, // Stop drive
-  {REG_FWD_WRITE,      2304,    1}, // Forward
-  {REG_REV_WRITE,      2304,    3}, // Reverse
-  {REG_FREQ_READ,      1282,    0}, // Output freq
-  {REG_STATUS_READ,     768,    0}, // Status
+  {REG_MAX_FREQ_READ,    0x007, 0}, // Max frequency
+  {REG_FREQ_SET,         0x901, 0}, // Frequency
+  {REG_STOP_WRITE,       0x900, 0}, // Stop drive
+  {REG_FWD_WRITE,        0x900, 1}, // Forward
+  {REG_REV_WRITE,        0x900, 3}, // Reverse
+  {REG_FREQ_READ,        0x502, 0}, // Output freq
+  {REG_STATUS_READ,      0x300, 0}, // Status
+  {REG_DISCONNECT_WRITE, 0x900, 0}, // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t delta_vfd015m21a_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE, 0x2002,  2}, // Reset fault
-  {REG_MAX_FREQ_READ,      3,  0}, // Max frequency
-  {REG_FREQ_SET,      0x2001,  0}, // Frequency
-  {REG_STOP_WRITE,    0x2000,  1}, // Stop drive
-  {REG_FWD_WRITE,     0x2000, 18}, // Forward
-  {REG_REV_WRITE,     0x2000, 34}, // Reverse
-  {REG_FREQ_READ,     0x2103,  0}, // Output freq
-  {REG_STATUS_READ,   0x2100,  0}, // Status
+  {REG_CONNECT_WRITE,    0x2002,  2}, // Reset fault
+  {REG_MAX_FREQ_READ,         3,  0}, // Max frequency
+  {REG_FREQ_SET,         0x2001,  0}, // Frequency
+  {REG_STOP_WRITE,       0x2000,  1}, // Stop drive
+  {REG_FWD_WRITE,        0x2000, 18}, // Forward
+  {REG_REV_WRITE,        0x2000, 34}, // Reverse
+  {REG_FREQ_READ,        0x2103,  0}, // Output freq
+  {REG_STATUS_READ,      0x2100,  0}, // Status
+  {REG_DISCONNECT_WRITE, 0x2000,  1}, // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t yl600_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE, 0x2000, 128}, // Reset all errors
-  {REG_MAX_FREQ_READ, 0x0004,   0}, // Max frequency
-  {REG_FREQ_SET,      0x2001,   0}, // Frequency
-  {REG_STOP_WRITE,    0x2000,   1}, // Stop drive
-  {REG_FWD_WRITE,     0x2000,  18}, // Forward
-  {REG_REV_WRITE,     0x2000,  34}, // Reverse
-  {REG_FREQ_READ,     0x200b,   0}, // Output freq
-  {REG_STATUS_READ,   0x2008,   0}, // Status
+  {REG_CONNECT_WRITE,    0x2000, 128}, // Reset all errors
+  {REG_MAX_FREQ_READ,    0x0004,   0}, // Max frequency
+  {REG_FREQ_SET,         0x2001,   0}, // Frequency
+  {REG_STOP_WRITE,       0x2000,   1}, // Stop drive
+  {REG_FWD_WRITE,        0x2000,  18}, // Forward
+  {REG_REV_WRITE,        0x2000,  34}, // Reverse
+  {REG_FREQ_READ,        0x200b,   0}, // Output freq
+  {REG_STATUS_READ,      0x2008,   0}, // Status
+  {REG_DISCONNECT_WRITE, 0x2000,   1}, // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t fr_d700_regs[] PROGMEM = {
-  {REG_MAX_FREQ_READ,  1000,    0}, // Max frequency
-  {REG_FREQ_SET,         13,    0}, // Frequency
-  {REG_STOP_WRITE,        8,    1}, // Stop drive
-  {REG_FWD_WRITE,         8,    2}, // Forward
-  {REG_REV_WRITE,         8,    4}, // Reverse
-  {REG_FREQ_READ,       200,    0}, // Output freq
+  {REG_MAX_FREQ_READ,  1000, 0}, // Max frequency
+  {REG_FREQ_SET,         13, 0}, // Frequency
+  {REG_STOP_WRITE,        8, 1}, // Stop drive
+  {REG_FWD_WRITE,         8, 2}, // Forward
+  {REG_REV_WRITE,         8, 4}, // Reverse
+  {REG_FREQ_READ,       200, 0}, // Output freq
+  {REG_DISCONNECT_WRITE,  8, 1}, // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t sunfar_e300_regs[] PROGMEM = {
-  {REG_CONNECT_WRITE, 0x1001,  32}, // Reset all errors
-  {REG_MAX_FREQ_READ, 0xf004,   0}, // Max frequency F0.4
-  {REG_FREQ_SET,      0x1002,   0}, // Frequency
-  {REG_STOP_WRITE,    0x1001,   3}, // Stop drive
-  {REG_FWD_WRITE,     0x1001,   1}, // Forward
-  {REG_REV_WRITE,     0x1001,   2}, // Reverse
-  {REG_FREQ_READ,     0xd000,   0}, // Output freq d.0
-  {REG_STATUS_READ,   0x2000,   0}, // Status
+  {REG_CONNECT_WRITE,    0x1001, 32}, // Reset all errors
+  {REG_MAX_FREQ_READ,    0xf004,  0}, // Max frequency F0.4
+  {REG_FREQ_SET,         0x1002,  0}, // Frequency
+  {REG_STOP_WRITE,       0x1001,  3}, // Stop drive
+  {REG_FWD_WRITE,        0x1001,  1}, // Forward
+  {REG_REV_WRITE,        0x1001,  2}, // Reverse
+  {REG_FREQ_READ,        0xd000,  0}, // Output freq d.0
+  {REG_STATUS_READ,      0x2000,  0}, // Status
+  {REG_DISCONNECT_WRITE, 0x1001,  3}, // Stop on disconnect
   {REG_DISABLED},
 };
 
@@ -170,35 +176,38 @@ const vfd_reg_t omron_mx2_regs[] PROGMEM = {
 
 
 const vfd_reg_t v70_regs[] PROGMEM = {
-  {REG_MAX_FREQ_READ, 0x0005, 0}, // Maximum operating frequency
-  {REG_FREQ_SET,      0x0201, 0}, // Set frequency in 0.1Hz
-  {REG_STOP_WRITE,    0x0200, 0}, // Stop
-  {REG_FWD_WRITE,     0x0200, 1}, // Run forward
-  {REG_REV_WRITE,     0x0200, 5}, // Run reverse
-  {REG_FREQ_READ,     0x0220, 0}, // Read operating frequency
-  {REG_STATUS_READ,   0x0210, 0}, // Read status
+  {REG_MAX_FREQ_READ,    0x0005, 0}, // Maximum operating frequency
+  {REG_FREQ_SET,         0x0201, 0}, // Set frequency in 0.1Hz
+  {REG_STOP_WRITE,       0x0200, 0}, // Stop
+  {REG_FWD_WRITE,        0x0200, 1}, // Run forward
+  {REG_REV_WRITE,        0x0200, 5}, // Run reverse
+  {REG_FREQ_READ,        0x0220, 0}, // Read operating frequency
+  {REG_STATUS_READ,      0x0210, 0}, // Read status
+  {REG_DISCONNECT_WRITE, 0x0200, 0}, // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t dmm_dyn4_regs[] PROGMEM = {
-  {REG_MAX_FREQ_FIXED, 0x00, 6000}, // Maximum operating frequency
-  {REG_FREQ_SIGN_SET,  0x0e, 0}, // Set frequency in 0.1Hz
-  {REG_STOP_WRITE,     0x0e, 0}, // Stop
-  {REG_FREQ_SIGN_READ, 0x14, 0}, // Read operating frequency
-  {REG_STATUS_READ,    0x02, 0}, // Read status
+  {REG_MAX_FREQ_FIXED,   0x00, 6000}, // Maximum operating frequency
+  {REG_FREQ_SIGN_SET,    0x0e, 0},    // Set frequency in 0.1Hz
+  {REG_STOP_WRITE,       0x0e, 0},    // Stop
+  {REG_FREQ_SIGN_READ,   0x14, 0},    // Read operating frequency
+  {REG_STATUS_READ,      0x02, 0},    // Read status
+  {REG_DISCONNECT_WRITE, 0x0e, 0},    // Stop on disconnect
   {REG_DISABLED},
 };
 
 
 const vfd_reg_t galt_g200_regs[] PROGMEM = {
-  {REG_MAX_FREQ_READ, 0x0003, 0}, // Read maximum operating frequency in 0.01Hz
-  {REG_FREQ_SET,      0x2001, 0}, // Set frequency in 0.01Hz
-  {REG_FREQ_READ,     0x3000, 0}, // Read frequency with 0.01Hz
-  {REG_FWD_WRITE,     0x2000, 1}, // Run forward
-  {REG_REV_WRITE,     0x2000, 2}, // Run reverse
-  {REG_STOP_WRITE,    0x2000, 5}, // Stop
-  {REG_STATUS_READ,   0x2100, 0}, // Read status
+  {REG_MAX_FREQ_READ,    0x0003, 0}, // Read max operating frequency in 0.01Hz
+  {REG_FREQ_SET,         0x2001, 0}, // Set frequency in 0.01Hz
+  {REG_FREQ_READ,        0x3000, 0}, // Read frequency with 0.01Hz
+  {REG_FWD_WRITE,        0x2000, 1}, // Run forward
+  {REG_REV_WRITE,        0x2000, 2}, // Run reverse
+  {REG_STOP_WRITE,       0x2000, 5}, // Stop
+  {REG_STATUS_READ,      0x2100, 0}, // Read status
+  {REG_DISCONNECT_WRITE, 0x2000, 5}, // Stop on disconnect
   {REG_DISABLED},
 };
 
