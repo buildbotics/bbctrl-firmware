@@ -124,8 +124,8 @@ VAR(hy_rated_rpm,    hq, u16,   0,       0, 1) // Huanyang rated RPM
 
 // Machine state
 VAR(id,              id, u16,   0,       1, 1) // Last executed command ID
-VAR(feed_override,   fo, u16,   0,       1, 1) // Feed rate override
-VAR(speed_override,  so, u16,   0,       1, 1) // Spindle speed override
+VAR(feed_override,   fo, f32,   0,       1, 1) // Feed rate override
+VAR(speed_override,  so, f32,   0,       1, 1) // Spindle speed override
 
 // System
 VAR(velocity,         v, f32,   0,       0, 1) // Current velocity

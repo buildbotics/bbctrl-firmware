@@ -259,12 +259,10 @@ uint16_t get_spindle_status() {
 }
 
 
-uint16_t get_speed_override() {return spindle.override * 1000;}
+float get_speed_override() {return spindle.override;}
 
 
-void set_speed_override(uint16_t value) {
-  value *= 0.001;
-
+void set_speed_override(float value) {
   if (spindle.override != value) {
     spindle.override = value;
     spindle_update_speed();

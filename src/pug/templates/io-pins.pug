@@ -41,6 +41,6 @@ script#io-pins-template(type="text/x-template")
 
 script#io-pins-row-template(type="text/x-template")
   td.pin {{pin.id}}
-  td.state: io-indicator(:state="pin.state", :mode="pin.mode")
-  td.mode {{pin.mode}}
+  td.state
+    io-indicator(:state="pin.state", :mode="pin.mode", :type="pin.type")
   td.function {{pin.func}}

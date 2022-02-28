@@ -37,6 +37,7 @@ script#settings-io-template(type="text/x-template")
           th Type
           th Function
           th Mode
+          th State
 
       tbody
         tr(v-for="pin in io")
@@ -46,8 +47,13 @@ script#settings-io-template(type="text/x-template")
             templated-select.function(:model.sync="pin.config.function",
               :values="pin.functions")
           td
-            templated-select.mode(v-if="pin.modes.length",
+            templated-select.mode(
+              v-if="pin.modes.length && pin.config.function != 'disabled'",
               :model.sync="pin.config.mode", :values="pin.modes")
+          td.state
+            io-indicator(:state="pin.state", :mode="pin.config.mode",
+              :type="pin.type", :func="pin.config.function")
+
 
     h2 Input
     .pure-form.pure-form-aligned

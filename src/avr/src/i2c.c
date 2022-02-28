@@ -62,6 +62,7 @@ static void _i2c_end_command() {
 
 
 static void _i2c_command_byte(uint8_t byte) {
+  if (i2c.length == I2C_MAX_DATA) return;
   i2c.data[i2c.length++] = byte;
 }
 

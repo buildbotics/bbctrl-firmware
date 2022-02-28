@@ -37,6 +37,9 @@ def get_resource(path):
     return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
 
 
+def parse_version(s): return tuple(map(int, s.split('.')))
+
+
 class Config(object):
     def __init__(self, ctrl):
         self.ctrl = ctrl
@@ -94,8 +97,7 @@ class Config(object):
         except:
             return False
 
-        if 'values' in template and value not in template['values']:
-            return False
+        if 'values' in template: return value in template['values']
 
         return True
 
@@ -137,7 +139,11 @@ class Config(object):
 
 
     def upgrade(self, config):
-        version = tuple(map(int, config['version'].split('.')))
+        version = parse_version(config['version'])
+
+        if version < parse_version(self.version):
+            self.log.info('Upgrading config from %s to %s' %
+                          (version, self.version))
 
         if version < (0, 2, 4):
             for motor in config['motors']:
@@ -170,10 +176,9 @@ class Config(object):
                     motor['enabled'] = motor.get('power-mode', '') != 'disabled'
 
         if version < (1, 0, 2):
-            io_map = self.template['io-map']
-            io_defaults = io_map['default']
-            config['io-map'] = [{} for i in range(len(io_defaults))]
-            io = config['io-map']
+            io_map           = self.template['io-map']
+            io_defaults      = io_map['default']
+            config['io-map'] = io = copy.deepcopy(io_defaults)
 
             def find_io_index(function):
                 for i in range(len(io_defaults)):
@@ -184,16 +189,15 @@ class Config(object):
 
             def upgrade_io(config, old, new):
                 if not old in config: return
-                mode = config.get(old)
+                mode  = config.get(old)
                 index = find_io_index(new)
 
-                if mode != 'disabled': io[index]['function'] = var
-
-                if new.startswith('input-'):
-                    if mode == 'normally-open': io[index]['mode'] = 'hi-lo'
-                    if mode == 'normally-closed': io[index]['mode'] = 'lo-hi'
-
-                else: io[index]['mode'] = mode # Output
+                if mode == 'disabled':
+                    io[index]['function'] = 'disabled'
+                    io[index]['mode']     = io_defaults[index]['mode']
+                else:
+                    io[index]['function'] = new
+                    io[index]['mode']     = mode
 
                 del config[old]
 
@@ -202,10 +206,10 @@ class Config(object):
                 motor = config['motors'][i]
 
                 for side in ('min', 'max'):
-                    var = 'input-motor-%d-%s' % (i, side)
-                    upgrade_io(motor, side + '-switch', var)
+                    name = 'input-motor-%d-%s' % (i, side)
+                    upgrade_io(motor, side + '-switch', name)
 
-            # Estop & probe
+            # Inputs
             for name in ('estop', 'probe'):
                 upgrade_io(config['switches'], name, 'input-' + name)
 

@@ -54,7 +54,7 @@ static struct {
   line_t line;
 
   uint8_t section;
-  uint32_t seg;
+  float t;
 
   float iD; // Initial section distance
   float iV; // Initial section velocity
@@ -94,7 +94,7 @@ static bool _section_next() {
 
     // Jerk
     switch (l.section) {
-    case 0: case 6: l.jerk = l.line.max_jerk; break;
+    case 0: case 6: l.jerk =  l.line.max_jerk; break;
     case 2: case 4: l.jerk = -l.line.max_jerk; break;
     default: l.jerk = 0;
     }
@@ -102,7 +102,7 @@ static bool _section_next() {
 
     // Acceleration
     switch (l.section) {
-    case 1: case 2: l.iA = l.line.max_jerk * l.line.times[0]; break;
+    case 1: case 2: l.iA =  l.line.max_jerk * l.line.times[0]; break;
     case 5: case 6: l.iA = -l.line.max_jerk * l.line.times[4]; break;
     default: l.iA = 0;
     }
@@ -125,18 +125,18 @@ static stat_t _line_exec() {
   // Compute times
   float section_time = l.line.times[l.section];
   float seg_time = SEGMENT_TIME;
-  float t = ++l.seg * SEGMENT_TIME;
+  l.t += seg_time;
 
   // Don't exceed section time
-  if (section_time < t) {
-    seg_time = section_time - (l.seg - 1) * SEGMENT_TIME;
-    t = section_time;
+  if (section_time < l.t) {
+    seg_time = section_time - (l.t - seg_time);
+    l.t = section_time;
   }
 
-  // Compute distance and velocity
-  float d = _segment_distance(t);
-  float v = _segment_velocity(t);
-  float a = _segment_accel(t);
+  // Compute distance, velocity and acceleration
+  float d = _segment_distance(l.t);
+  float v = _segment_velocity(l.t);
+  float a = _segment_accel(l.t);
 
   // Don't allow overshoot
   if (l.line.length < d) d = l.line.length;
@@ -146,10 +146,10 @@ static stat_t _line_exec() {
   l.lD = d;
 
   // Check if section complete
-  if (t == section_time) {
+  if (l.t == section_time) {
     if (_section_next()) {
       // Setup next section
-      l.seg = 0;
+      l.t = 0;
       l.iD = d;
       l.iV = v;
 
@@ -243,7 +243,7 @@ void command_line_exec(void *data) {
   l.line = *(line_t *)data;
 
   // Setup first section
-  l.seg = 0;
+  l.t = 0;
   l.iD = 0;
   l.lD = 0;
   // If current velocity is non-zero use last target velocity

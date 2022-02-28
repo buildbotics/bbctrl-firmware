@@ -65,7 +65,7 @@ typedef struct {
   uint8_t adc_ch;
   uint8_t adc_mux;
   io_function_t function;
-  io_mode_t mode;
+  uint8_t mode;
   io_input_t input;
 } io_pin_t;
 
@@ -97,12 +97,12 @@ static io_pin_t _pins[] = {
   {IO_24_PIN, IO_TYPE_ANALOG, 0, ADC_CH_MUXPOS_PIN6_gc},
 
   // Hard wired pins
-  {STALL_0_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_0,     HI_LO},
-  {STALL_1_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_1,     HI_LO},
-  {STALL_2_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_2,     HI_LO},
-  {STALL_3_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_3,     HI_LO},
-  {MOTOR_FAULT_PIN, IO_TYPE_INPUT,  0, 0, INPUT_MOTOR_FAULT, HI_LO},
-  {TEST_PIN,        IO_TYPE_OUTPUT, 0, 0, OUTPUT_TEST},
+  {STALL_0_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_0,     NORMALLY_OPEN},
+  {STALL_1_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_1,     NORMALLY_OPEN},
+  {STALL_2_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_2,     NORMALLY_OPEN},
+  {STALL_3_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_3,     NORMALLY_OPEN},
+  {MOTOR_FAULT_PIN, IO_TYPE_INPUT,  0, 0, INPUT_MOTOR_FAULT, NORMALLY_OPEN},
+  {TEST_PIN,        IO_TYPE_OUTPUT, 0, 0, OUTPUT_TEST,       HI_LO},
 
   {0}, // Sentinal
 };
@@ -167,7 +167,7 @@ static void _state_set_active(io_function_t function, bool active) {
 }
 
 
-static uint8_t _mode_state(io_mode_t mode, bool active) {
+static uint8_t _out_mode_state(uint8_t mode, bool active) {
   switch (mode) {
   case LO_HI:  return active ? IO_HI  : IO_LO;
   case HI_LO:  return active ? IO_LO  : IO_HI;
@@ -192,14 +192,14 @@ static bool _is_active(io_pin_t *pin) {
     if (!pin->input.initialized) return false;
 
     switch (pin->mode) {
-    case HI_LO: return !pin->input.state;
-    case LO_HI: return pin->input.state;
-    default:    return false;
+    case NORMALLY_OPEN:   return !pin->input.state;
+    case NORMALLY_CLOSED: return  pin->input.state;
+    default:              return false;
     }
     break;
 
   case IO_TYPE_OUTPUT:
-    return _get_pin_output_mode(pin) == _mode_state(pin->mode, true);
+    return _get_pin_output_mode(pin) == _out_mode_state(pin->mode, true);
 
   default: return false;
   }
@@ -207,7 +207,7 @@ static bool _is_active(io_pin_t *pin) {
 
 
 static void _set_output(io_pin_t *pin, bool active) {
-  uint8_t state = _mode_state(pin->mode, active);
+  uint8_t state = _out_mode_state(pin->mode, active);
 
   switch (state) {
   case IO_LO: OUTCLR_PIN(pin->pin); DIRSET_PIN(pin->pin); break;
@@ -490,11 +490,11 @@ uint8_t get_io_mode(int index) {
 
 
 void set_io_mode(int index, uint8_t mode) {
-  if (IO_MAX_INDEX <= index || LO_TRI < mode) return;
+  if (IO_MAX_INDEX <= index || NORMALLY_OPEN < mode) return;
 
   io_pin_t *pin = &_pins[index];
   bool wasActive = _is_active(pin);
-  pin->mode = (io_mode_t)mode;
+  pin->mode = mode;
   bool isActive = _is_active(pin);
 
   // Changing the mode may change the pin state

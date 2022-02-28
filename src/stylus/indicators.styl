@@ -25,7 +25,7 @@
 
 \******************************************************************************/
 
-.indicators, .power
+.tab-content .indicators, .tab-content .power
   padding 1em 0
   text-align center
   display grid
@@ -42,6 +42,7 @@
     td, th
       padding 4px
       white-space nowrap
+      height 1.25em
 
     tr:nth-child(odd)
       background #f7f7f7
@@ -53,7 +54,7 @@
       text-align right
 
     th.header
-      height 2.5em
+      height calc(2.5em + 6px)
       border-bottom 3px solid #ccc
       text-align center
 
@@ -61,10 +62,13 @@
       background #ccc
       border 1px solid #ccc
       padding 0
-
+      width 0
 
     &.legend
       border-top 2px solid #bbb
+
+      td
+        text-align center
 
     &.functions, &.io-pins
       th

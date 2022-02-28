@@ -48,6 +48,7 @@ typedef enum {
 
   REG_FREQ_SET,
   REG_FREQ_SIGN_SET,
+  REG_FREQ_SCALED_SET,
 
   REG_STOP_WRITE,
   REG_FWD_WRITE,
@@ -223,8 +224,33 @@ const vfd_reg_t teco_e510_regs[] PROGMEM = {
 };
 
 
-// Same as OMRON MX2
+const vfd_reg_t em60_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ,   0x0007,     0}, // Read max frequency
+  {REG_FREQ_SCALED_SET, 0xa001, 10000}, // Set scaled frequency
+  {REG_FREQ_READ,       0x9000,     0}, // Read frequency
+  {REG_FWD_WRITE,       0xa000,     1}, // Run forward
+  {REG_REV_WRITE,       0xa000,     2}, // Run reverse
+  {REG_STOP_WRITE,      0xa000,     5}, // Stop
+  {REG_STATUS_READ,     0xb000,     0}, // Read status
+  {REG_DISABLED},
+};
+
+
+const vfd_reg_t fuling_dzb200_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ,   0x0004,     0}, // Read max frequency
+  {REG_FREQ_SCALED_SET, 0x2000, 10000}, // Set scaled frequency
+  {REG_FREQ_READ,       0x3001,     0}, // Read frequency
+  {REG_FWD_WRITE,       0x1000,     1}, // Run forward
+  {REG_REV_WRITE,       0x1000,     2}, // Run reverse
+  {REG_STOP_WRITE,      0x1000,     5}, // Stop
+  {REG_STATUS_READ,     0x5001,     0}, // Read status
+  {REG_DISABLED},
+};
+
+
+// VFD aliases
 #define wj200_regs omron_mx2_regs
+#define h100_regs  v70_regs
 
 
 static vfd_reg_t regs[VFDREG];
@@ -391,6 +417,11 @@ static bool _exec_command() {
     reg.value = vfd.power * vfd.max_freq;
     break;
 
+  case REG_FREQ_SCALED_SET:
+    write = true;
+    reg.value = vfd.power * reg.value;
+    break;
+
   case REG_CONNECT_WRITE:
   case REG_STOP_WRITE:
   case REG_FWD_WRITE:
@@ -446,10 +477,13 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
   case SPINDLE_TYPE_OMRON_MX2:        _load(omron_mx2_regs);          break;
   case SPINDLE_TYPE_V70:              _load(v70_regs);                break;
+  case SPINDLE_TYPE_H100:             _load(h100_regs);               break;
   case SPINDLE_TYPE_WJ200:            _load(wj200_regs);              break;
   case SPINDLE_TYPE_DMM_DYN4:         _load(dmm_dyn4_regs);           break;
   case SPINDLE_TYPE_GALT_G200:        _load(galt_g200_regs);          break;
   case SPINDLE_TYPE_TECO_E510:        _load(teco_e510_regs);          break;
+  case SPINDLE_TYPE_EM60:             _load(em60_regs);               break;
+  case SPINDLE_TYPE_FULING_DZB200:    _load(fuling_dzb200_regs);      break;
   default: break;
   }
 

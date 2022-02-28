@@ -239,8 +239,9 @@
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
                  "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
                  "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)",
-                 "Sunfar E300 (Beta)", "OMRON MX2", "V70", "WJ200",
-                 "DMM DYN4 (Beta)", "Galt G200/G500", "Teco Westinghouse E510"],
+                 "Sunfar E300 (Beta)", "OMRON MX2", "V70", "H100", "WJ200",
+                 "DMM DYN4 (Beta)", "Galt G200/G500", "Teco Westinghouse E510",
+                 "EM60", "Fuling DZB200/300"],
       "default": "Disabled",
       "code": "st"
     },
@@ -300,7 +301,7 @@
             "disabled",
             "connect-write",
             "max-freq-read", "max-freq-fixed",
-            "freq-set", "freq-signed-set",
+            "freq-set", "freq-signed-set", "freq-scaled-set",
             "stop-write", "forward-write", "reverse-write",
             "freq-read", "freq-signed-read", "freq-actech-read",
             "status-read",
@@ -394,22 +395,22 @@
       {"id": 24, "type": "analog"}
     ],
     "default": [
-      {"function": "output-flood", "mode": "lo-hi"},
-      {"function": "output-mist", "mode": "lo-hi"},
-      {"function": "input-motor-0-min"},
-      {"function": "input-motor-0-max"},
-      {"function": "input-motor-1-min"},
-      {"function": "input-motor-1-max"},
-      {"function": "input-motor-2-min"},
-      {"function": "input-motor-2-max"},
-      {"function": "input-motor-3-min"},
-      {"function": "input-motor-3-max"},
-      {"function": "output-tool-enable", "mode": "lo-hi"},
+      {"function": "output-flood",          "mode": "lo-hi"},
+      {"function": "output-mist",           "mode": "lo-hi"},
+      {"function": "input-motor-0-min",     "mode": "normally-open"},
+      {"function": "input-motor-0-max",     "mode": "normally-open"},
+      {"function": "input-motor-1-min",     "mode": "normally-open"},
+      {"function": "input-motor-1-max",     "mode": "normally-open"},
+      {"function": "input-motor-2-min",     "mode": "normally-open"},
+      {"function": "input-motor-2-max",     "mode": "normally-open"},
+      {"function": "input-motor-3-min",     "mode": "normally-open"},
+      {"function": "input-motor-3-max",     "mode": "normally-open"},
+      {"function": "output-tool-enable",    "mode": "lo-hi"},
       {"function": "output-tool-direction", "mode": "lo-hi"},
       {"function": "analog-1"},
-      {"function": "output-fault", "mode": "lo-hi"},
-      {"function": "input-probe"},
-      {"function": "input-estop"},
+      {"function": "output-fault",          "mode": "lo-hi"},
+      {"function": "input-probe",           "mode": "normally-open"},
+      {"function": "input-estop",           "mode": "normally-open"},
       {"function": "analog-0"}
     ],
     "template": {
@@ -432,11 +433,13 @@
           "0w", "1w", "2w", "3w", "ew", "pw", "0oa", "1oa", "2oa", "3oa",
           "Moa", "Foa", "foa", "eoa", "doa", "0ai", "1ai", "2ai", "3ai"
         ],
+        "default": "disabled",
         "code": "io"
       },
       "mode": {
         "type": "enum",
-        "values": ["lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri", "hi-tri"],
+        "values": ["lo-hi", "hi-lo", "tri-lo", "tri-hi", "lo-tri", "hi-tri",
+                   "normally-closed", "normally-open"],
         "default": "hi-lo",
         "code": "im"
       }
@@ -494,8 +497,8 @@
     "type": "list",
     "default": [],
     "template": {
-      "name": {"type": "string"},
-      "path": {"type": "string"},
+      "name": {"type": "string", "default": ""},
+      "path": {"type": "string", "default": ""},
       "color": {"type": "string", "default": "#e6e6e6"}
     }
   }

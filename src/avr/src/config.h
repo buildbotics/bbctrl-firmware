@@ -203,7 +203,7 @@ enum {
 #define I2C_DEV                  TWIC
 #define I2C_ISR                  TWIC_TWIS_vect
 #define I2C_ADDR                 0x2b
-#define I2C_MAX_DATA             8
+#define I2C_MAX_DATA             16
 
 
 // Motor

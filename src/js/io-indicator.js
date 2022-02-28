@@ -33,7 +33,8 @@ module.exports = {
   props: {
     state: {type: Number},
     mode: String,
-    type: String
+    type: String,
+    func: String
   },
 
 
@@ -41,13 +42,13 @@ module.exports = {
     klass: function () {
       let klass = ''
 
-      if (this.type == 'disabled') return 'fa-ban'
-      if (this.type == 'analog') return 'fa-circle-o'
+      if (this.func == 'disabled') return 'fa-ban'
+      if (this.type == 'analog')   return 'fa-random'
 
       if (this.state == 0) klass = 'inactive'
       if (this.state == 1) klass = 'active'
 
-      if (this.mode) {
+      if (this.mode && this.type == 'output') {
         let parts = this.mode.split('-')
         let state = 'tri'
 
@@ -73,7 +74,7 @@ module.exports = {
 
       if (this.type) parts.push('Type: ' + this.type)
       if (this.mode) parts.push('Mode: ' + this.mode)
-      if (this.type != 'analog')
+      if (this.type != 'analog' && this.type != 'disabled')
         parts.push('Active: ' + (this.state == 1 ? 'True' : 'False'))
 
       return parts.join('\n')

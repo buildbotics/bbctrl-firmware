@@ -76,6 +76,7 @@ $(function() {
   Vue.component('io-pins',          require('./io-pins'))
   Vue.component('io-indicator',     require('./io-indicator'))
   Vue.component('breakout',         require('./breakout'))
+  Vue.component('overrides',        require('./overrides'))
   Vue.component('console',          require('./console'))
   Vue.component('unit-value',       require('./unit-value'))
   Vue.component('files',            require('./files'))
@@ -87,6 +88,7 @@ $(function() {
   Vue.component('color-picker',     require('./color-picker'))
   Vue.component('dragbar',          require('./dragbar'))
   Vue.component('mapped-io',        require('./mapped-io'))
+  Vue.component('range-slider',     require('./range-slider'))
 
   require('./filters')()
 

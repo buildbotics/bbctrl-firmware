@@ -35,29 +35,30 @@ script#indicators-template(type="text/x-template")
           th.header(colspan=100) Legend
 
         tr
-          td
-           .fa.fa-circle.io.active
+          td: .fa.fa-circle.io.active
           th Active
           th.separator
-          td
-           .fa.fa-circle.io.inactive
+          td: .fa.fa-circle.io.inactive
           th Inactive
+          td: .fa.fa-random.io
+          th Analog
         tr
-          td
-           .fa.fa-plus-circle.io
+          td: .fa.fa-plus-circle.io
           th Hi
           th.separator
-          td
-           .fa.fa-minus-circle.io
+          td: .fa.fa-minus-circle.io
           th Lo
-        tr
           td
-           .fa.fa-circle-o.io
+          th
+        tr
+          td: .fa.fa-circle-o.io
           th Tristated
           th.separator
-          td
-           .fa.fa-ban.io
+          td: .fa.fa-ban.io
           th Disabled
+          td
+          th
+
     div: io-functions(:state="state", :template="template")
 
     breakout(name="db25", :state="state", :template="template")

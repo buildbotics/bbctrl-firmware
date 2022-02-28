@@ -25,43 +25,12 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#settings-motor-template(type="text/x-template")
-  .motor(:class="{slave: is_slave}")
-    h1 Motor {{index}} Configuration
+script#overrides-template(type="text/x-template")
+  .overrides
+    .override.override-feed(title="Feed rate override.")
+      range-slider(:min="0.1", :max="1.2", :step="0.01", :value.sync="feed",
+        @change="override_feed", label="Feed")
 
-    .pure-form.pure-form-aligned
-      fieldset(v-for="category in template.motors.template", :class="$key")
-        h2 {{$key}}
-
-        templated-input(v-for="templ in category", v-if="show($key, templ)",
-          :name="$key", :model.sync="motor[$key]", :template="templ")
-
-          label.extra(v-if="$key == 'microsteps'", slot="extra",
-            title="Microsteps per second")
-            | ({{ustepPerSec / 1000 | fixed 1}}k µstep/sec)
-
-          label.extra(v-if="$key == 'max-velocity'", slot="extra",
-            title="Revolutions Per Minute") ({{rpm | fixed 0}} RPM)
-
-          label.extra(v-if="$key == 'max-accel' && metric", slot="extra",
-            title="G-force") ({{gForce | fixed 3}} g)
-
-          label.extra(v-if="$key == 'max-jerk' && metric", slot="extra",
-            title="G-force per minute") ({{gForcePerMin | fixed 2}} g/min)
-
-          label.extra(v-if="$key == 'step-angle'", slot="extra",
-            title="Steps per revolution") ({{stepsPerRev | fixed 0}} steps/rev)
-
-          label.extra(v-if="$key == 'travel-per-rev' && metric", slot="extra",
-            title="Micrometers per step") ({{umPerStep | fixed 1}} µm/step)
-
-          label.extra(v-if="$key == 'travel-per-rev' && !metric", slot="extra",
-            title="Thousandths of an inch per step")
-            | ({{milPerStep | fixed 2}} mil/step)
-
-          label.extra(v-if="$key == 'search-velocity'", slot="extra",
-            title="Revolutions Per Minute") ({{stallRPM | fixed 0}} RPM)
-
-          label.extra(v-if="$key == 'stall-microstep'", slot="extra",
-            title="Microsteps per second")
-            | ({{stallUStepPerSec / 1000 | fixed 1}}k µstep/sec)
+    .override.override-speed(title="Spindle speed override.")
+      range-slider(:min="0.1", :max="2", :step="0.01", :value.sync="speed",
+        @change="override_speed", label="Speed")

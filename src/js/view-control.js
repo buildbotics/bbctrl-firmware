@@ -54,8 +54,6 @@ module.exports = {
       mdi: '',
       axes: 'xyzabc',
       history: [],
-      speed_override: 1,
-      feed_override: 1,
       manual_home: {x: false, y: false, z: false, a: false, b: false, c: false},
       position_msg:
       {x: false, y: false, z: false, a: false, b: false, c: false},
@@ -368,14 +366,6 @@ module.exports = {
 
     edit: function () {this.$root.edit(this.state.queued)},
     view: function () {this.$root.view(this.state.queued)},
-
-
-    override_feed: function () {api.put('override/feed/' + this.feed_override)},
-
-
-    override_speed: function () {
-      api.put('override/speed/' + this.speed_override)
-    },
 
 
     current: function (axis, value) {

@@ -67,7 +67,7 @@ static struct {
 
 void exec_init() {
   memset(&ex, 0, sizeof(ex));
-  ex.feed_override = 1; // TODO implement feed override
+  ex.feed_override = 1;
 }
 
 
@@ -195,23 +195,24 @@ stat_t exec_segment(float time, const float target[], float vel, float accel,
                     float maxAccel, float maxJerk,
                     const power_update_t power_updates[]) {
   // Copy power updates in to the correct position given the time offset
-  float nextT = ex.seg.time + time;
+  float nextT       = ex.seg.time + time;
   const float stepT = 1.0 / 60000; // 1ms in mins
-  float t = 0.5 / 60000; // 0.5ms in mins
-  unsigned j = 0;
+  float t           = 0.5 / 60000; // 0.5ms in mins
+  unsigned j        = 0;
+
   for (unsigned i = 0; t < nextT && j < POWER_MAX_UPDATES; i++) {
     if (ex.seg.time < t) ex.seg.power_updates[i] = power_updates[j++];
     t += stepT;
   }
 
   copy_vector(ex.seg.target, target);
-  ex.seg.time = nextT;
-  ex.seg.vel = vel;
-  ex.seg.accel = accel;
+  ex.seg.time      = nextT;
+  ex.seg.vel       = vel;
+  ex.seg.accel     = accel;
   ex.seg.max_accel = maxAccel;
-  ex.seg.max_jerk = maxJerk;
-  ex.seg.cb = ex.cb;
-  ex.cb = _segment_exec;
+  ex.seg.max_jerk  = maxJerk;
+  ex.seg.cb        = ex.cb;
+  ex.cb            = _segment_exec;
 
   // TODO To be precise, seek_end() should not be called until the current
   // segment has completed execution.
@@ -235,16 +236,16 @@ stat_t exec_next() {
 
 
 // Variable callbacks
-float get_axis_position(int axis) {return ex.position[axis];}
-float get_velocity() {return ex.velocity / VELOCITY_MULTIPLIER;}
-float get_acceleration() {return ex.accel / ACCEL_MULTIPLIER;}
-float get_jerk() {return ex.jerk / JERK_MULTIPLIER;}
-float get_peak_vel() {return ex.peak_vel / VELOCITY_MULTIPLIER;}
-void set_peak_vel(float x) {ex.peak_vel = 0;}
-float get_peak_accel() {return ex.peak_accel / ACCEL_MULTIPLIER;}
-void set_peak_accel(float x) {ex.peak_accel = 0;}
-uint16_t get_feed_override() {return ex.feed_override * 1000;}
-void set_feed_override(uint16_t value) {ex.feed_override = value / 1000.0;}
+float get_axis_position(int axis)    {return ex.position[axis];}
+float get_velocity()                 {return ex.velocity / VELOCITY_MULTIPLIER;}
+float get_acceleration()             {return ex.accel / ACCEL_MULTIPLIER;}
+float get_jerk()                     {return ex.jerk / JERK_MULTIPLIER;}
+float get_peak_vel()                 {return ex.peak_vel / VELOCITY_MULTIPLIER;}
+void  set_peak_vel(float x)          {ex.peak_vel = 0;}
+float get_peak_accel()               {return ex.peak_accel / ACCEL_MULTIPLIER;}
+void  set_peak_accel(float x)        {ex.peak_accel = 0;}
+float get_feed_override()            {return ex.feed_override;}
+void  set_feed_override(float value) {ex.feed_override = value;}
 
 
 // Command callbacks

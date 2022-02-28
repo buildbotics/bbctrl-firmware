@@ -4,6 +4,9 @@ Buildbotics CNC Controller Firmware Changelog
 ## v1.0.2
  - Remappable IO
  - Fix for "stuck in jogging" bug.
+ - Added support for Fuling DZB200/300 VFD.
+ - Added support for EM60 VFD.
+ - Added support for H100 VFD.
 
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.

@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -29,45 +29,31 @@
 
 
 module.exports = {
-  template: "#io-pins-template",
-  props: ['template', 'state'],
+  template: '#range-slider-template',
 
 
-  components: {
-    'io-pins-row': {
-      template: "#io-pins-row-template",
-      props: ['pin'],
-      replace: true
-    }
+  props: {
+    min:   {type: Number, default: 0},
+    max:   {type: Number, default: 100},
+    step:  {type: Number, default: 1},
+    value: {type: Number, required: true, twoWay: true},
+    label: {type: String}
   },
 
 
   computed: {
-    columns: () => ['pin', 'state', 'function', '', 'pin', 'state', 'function'],
-    rows: function () {return Math.ceil(this.io_pins.length / 2.0)},
-
-
-    io_pins: function () {
-      let l = []
-      let io_map = this.template['io-map']
-      let pins = io_map.pins
-      let modes = io_map.template.mode.values
-      let functions = io_map.template.function.values
-
-      for (let i = 0; i < pins.length; i++) {
-        let c     = String.fromCharCode(97 + i)
-        let func  = functions[this.state[c + 'io']]
-        let state = func == 'disabled' ? 'disabled' : this.state[c + 'is']
-        let type  = pins[i].type
-        let mode  = ''
-
-        if (func != 'disabled' && type != 'analog')
-          mode = modes[this.state[c + 'im']]
-
-        l.push({id: pins[i].id, state, mode, func, type})
-      }
-
-      return l
+    pos() {
+      let width = $(this.$el).find('input')[0].offsetWidth
+      return width * (this.value - this.min) / (this.max - this.min)
     }
+  },
+
+
+  ready() {
+  },
+
+
+  methods: {
+    on_change(e) {this.$emit('change', this.value)},
   }
 }

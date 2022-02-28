@@ -52,7 +52,9 @@ typedef enum {
 
 // Must be kept in synch with resources/config-template.json
 // <inactive>_<active>
-typedef enum {LO_HI, HI_LO, TRI_LO, TRI_HI, LO_TRI, HI_TRI} io_mode_t;
+typedef enum {
+  LO_HI, HI_LO, TRI_LO, TRI_HI, LO_TRI, HI_TRI, NORMALLY_CLOSED, NORMALLY_OPEN
+} io_mode_t;
 
 
 typedef enum {

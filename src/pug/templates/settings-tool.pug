@@ -35,11 +35,6 @@ script#settings-tool-template(type="text/x-template")
           :model.sync="config.tool[$key]", :template="templ",
           v-if="tool_type != 'DISABLED' || $key == 'tool-type'")
 
-          label.extra(slot="extra",
-            v-if="$key == 'tool-enable-mode' || $key == 'tool-direction-mode'")
-            | Pin {{templ.pin}}
-            io-indicator(:name="$key", :state="state")
-
       fieldset(v-if="tool_type == 'PWM SPINDLE'")
         h2 PWM Spindle
         templated-input(v-for="templ in template['pwm-spindle']",
@@ -450,6 +445,46 @@ script#settings-tool-template(type="text/x-template")
           a(href="https://buildbotics.com/upload/vfd/stepperonline-v70.pdf",
             target="_blank") Stepper Online V70 VFD manual
 
+      .notes(v-if="tool_type.startsWith('H100')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr F001
+            td.reg-value 2
+            td Communication port
+            td Control mode
+          tr
+            td.reg-addr F002
+            td.reg-value 2
+            td Communication port
+            td Frequency setting selection
+          tr
+            td.reg-addr F163
+            td.reg-value 1
+            td Slave address
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr F164
+            td.reg-value 1
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr F165
+            td.reg-value 3
+            td 8 data, no parity, 1 stop, RTU
+            td Must match #[tt parity] above
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/h100.pdf",
+            target="_blank") LS Electric H100 VFD manual
+
       .notes(v-if="tool_type.startsWith('WJ200')")
         h2 Notes
         p Set the following using the VFD's front panel.
@@ -625,3 +660,105 @@ script#settings-tool-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/teco_e510-vfd.pdf",
             target="_blank") Teco Westinghouse E510 VFD manual
+
+
+      .notes(v-if="tool_type.startsWith('EM60')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P0.0.03
+            td.reg-value 2
+            td Modbus
+            td Control mode
+          tr
+            td.reg-addr P0.0.04
+            td.reg-value 9
+            td Modbus
+            td Frequency source A
+          tr
+            td.reg-addr P0.1.00
+            td.reg-value 0
+            td Source A
+            td Frequency source
+          tr
+            td.reg-addr P4.1.00
+            td.reg-value 3
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr P4.1.01
+            td.reg-value 0
+            td 8N2
+            td Data format
+          tr
+            td.reg-addr P4.1.02
+            td.reg-value 1
+            td Bus id
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr P4.1.03
+            td.reg-value 2
+            td No delay
+            td Communications response delay
+          tr
+            td.reg-addr P4.1.04
+            td.reg-value 0
+            td No timeout
+            td Communications timeout
+          tr
+            td.reg-addr P4.1.05
+            td.reg-value 1
+            td RTU
+            td Modbus format
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/em60.pdf",
+            target="_blank") EM60 VFD manual
+
+
+      .notes(v-if="tool_type.startsWith('Fuling DZB200')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr F0.01
+            td.reg-value 2
+            td Modbus
+            td Command source
+          tr
+            td.reg-addr F0.03
+            td.reg-value 6
+            td Modbus
+            td Frequency source
+          tr
+            td.reg-addr F6.00
+            td.reg-value 1
+            td Modbus address
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr F6.01
+            td.reg-value 3
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr F6.02
+            td.reg-value 3
+            td N82 RTU
+            td Data format
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/fuling_dzb200.pdf",
+            target="_blank") Fuling DZB200/300 VFD manual

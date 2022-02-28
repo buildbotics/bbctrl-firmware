@@ -350,13 +350,8 @@ class Mach(Comm):
             self.mdi('G28.3 %s%f\nG28.2 %s0' % (axis, target, axis))
 
 
-    def override_feed(self, override):
-        self._i2c_set('fo', int(1000 * override))
-
-
-    def override_speed(self, override):
-        self._i2c_set('so', int(1000 * override))
-
+    def override_feed(self,  override): self._i2c_set('fo', float(override))
+    def override_speed(self, override): self._i2c_set('so', float(override))
 
     def modbus_read(self, addr): self._i2c_block(Cmd.modbus_read(addr))
 

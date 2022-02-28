@@ -381,9 +381,9 @@ stat_t command_sync_var(char *cmd) {
   stat_t status;
   var_cmd_t buffer;
 
-  buffer.type = info.type;
+  buffer.type  = info.type;
   buffer.index = info.index;
-  buffer.set = info.set;
+  buffer.set   = info.set;
   buffer.value = type_parse(info.type, value, &status);
 
   if (status == STAT_OK) command_push(*cmd, &buffer);

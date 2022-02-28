@@ -37,21 +37,30 @@ module.exports = {
       let io        = []
       let config    = this.config['io-map']
       let template  = this.template['io-map']
-      let indices   = template.index;
-      let functions = template.template.function.values;
-      let modes     = template.template.mode.values;
+      let indices   = template.index
+      let functions = template.template.function.values
+      let modes     = template.template.mode.values
+      let omodes    = modes.slice(0, 5)
+      let imodes    = modes.slice(6, 8)
 
       for (let i = 0; i < indices.length; i++) {
+        let c = String.fromCharCode(97 + i)
+
         let type = template.pins[i].type
         let funcs = functions.filter(name => name.startsWith(type))
         funcs.unshift('disabled')
 
+        let modes = []
+        if (type == 'output') modes = omodes
+        if (type == 'input')  modes = imodes
+
         io.push({
           id: template.pins[i].id,
           type,
+          state: this.state[c + 'is'],
           config: config[i],
           functions: funcs,
-          modes: type == 'output' ? modes : []
+          modes
         })
       }
 
