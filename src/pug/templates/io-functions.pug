@@ -42,5 +42,6 @@ script#io-functions-template(type="text/x-template")
 
 script#io-functions-row-template(type="text/x-template")
   td.function(:class="func.type", :title="func.title") {{func.name}}
-  td.state: io-indicator(:state="func.state", :type="func.type")
+  td.state: io-indicator(:state="func.state", :type="func.type",
+    :func="func.name")
   td.pins {{func.pins.join(' ')}}

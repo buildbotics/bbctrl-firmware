@@ -28,6 +28,17 @@
 'use strict'
 
 
+function get_state_class(state) {
+  switch (state) {
+  case 0: case 1: return 'fa-circle'
+  case      'lo': return 'fa-minus-circle'
+  case      'hi': return 'fa-plus-circle'
+  case     'tri': return 'fa-circle-o'
+  default:        return 'fa-exclamation-triangle warn'
+  }
+}
+
+
 module.exports = {
   template: "#io-indicator-template",
   props: {
@@ -40,32 +51,36 @@ module.exports = {
 
   computed: {
     klass: function () {
+      if (this.func == 'disabled' || this.type == 'disabled') return 'fa-ban'
+      if (this.type == 'analog') return 'fa-random'
+
       let klass = ''
+      let state = this.state
 
-      if (this.func == 'disabled') return 'fa-ban'
-      if (this.type == 'analog')   return 'fa-random'
+      if (state == 0) klass = 'inactive'
+      if (state == 1) klass = 'active'
 
-      if (this.state == 0) klass = 'inactive'
-      if (this.state == 1) klass = 'active'
+      if (this.mode) {
+        if (this.type == 'output') {
+          let parts = this.mode.split('-')
 
-      if (this.mode && this.type == 'output') {
-        let parts = this.mode.split('-')
-        let state = 'tri'
+          switch (state) {
+          case 0: case 1: state = parts[state]; break
+          default: return 'fa-exclamation-triangle warn'
+          }
 
-        if (this.state == 0) state = parts[0]
-        if (this.state == 1) state = parts[1]
+        } else if (this.type == 'input') {
+          let no = this.mode == 'normally-open'
 
-        if (state == 'lo')  return klass + ' fa-minus-circle'
-        if (state == 'hi')  return klass + ' fa-plus-circle'
-        if (state == 'tri') return klass + ' fa-circle-o'
-
-      } else {
-        if (this.state == 0)    return klass + ' fa-circle'
-        if (this.state == 1)    return klass + ' fa-circle'
-        if (this.state == 0xff) return klass + ' fa-ban'
+          switch (state) {
+          case 0: state = no ? 'hi' : 'lo'; break
+          case 1: state = no ? 'lo' : 'hi'; break
+          default: return 'fa-exclamation-triangle warn'
+          }
+        }
       }
 
-      return 'fa-exclamation-triangle warn'
+      return klass + ' ' + get_state_class(state)
     },
 
 

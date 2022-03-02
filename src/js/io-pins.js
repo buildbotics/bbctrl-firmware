@@ -57,12 +57,9 @@ module.exports = {
       for (let i = 0; i < pins.length; i++) {
         let c     = String.fromCharCode(97 + i)
         let func  = functions[this.state[c + 'io']]
-        let state = func == 'disabled' ? 'disabled' : this.state[c + 'is']
+        let state = this.state[c + 'is']
         let type  = pins[i].type
-        let mode  = ''
-
-        if (func != 'disabled' && type != 'analog')
-          mode = modes[this.state[c + 'im']]
+        let mode  = modes[this.state[c + 'im']]
 
         l.push({id: pins[i].id, state, mode, func, type})
       }
