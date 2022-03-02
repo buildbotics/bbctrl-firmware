@@ -130,7 +130,7 @@ class BugReportHandler(bbctrl.RequestHandler):
         for i in range(1, 8):
             check_add_basename('%s.%d' % (path, i))
         check_add_basename('/var/log/syslog')
-        check_add('config.json')
+        check_add(ctrl.config.get_path())
         check_add(ctrl.fs.realpath(ctrl.queue.get()))
 
         return files

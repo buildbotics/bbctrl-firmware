@@ -7,6 +7,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Added support for Fuling DZB200/300 VFD.
  - Added support for EM60 VFD.
  - Added support for H100 VFD.
+ - Maintain versioned config files to make downgrading easier.
 
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.

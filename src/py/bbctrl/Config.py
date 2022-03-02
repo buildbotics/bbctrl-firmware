@@ -30,6 +30,8 @@ import json
 import pkg_resources
 import subprocess
 import copy
+import glob
+import re
 from pkg_resources import Requirement, resource_filename
 
 
@@ -66,8 +68,35 @@ class Config(object):
         return self.values.get(name, {}).get(str(index), None)
 
 
+    def get_path(self):
+        root = self.ctrl.get_path()
+
+        try:
+            path = root + '/config-v%s.json' % self.version
+
+            # Look for current config version
+            if os.path.exists(path): return path
+
+            # Look for most recent versioned config
+            versions = []
+            pat = re.compile(r'^.*/config-v(\d+\.\d+\.\d+)\.json$')
+            for name in glob.glob(root + '/config-v*.json'):
+                m = pat.match(name)
+                if m: versions.append(parse_version(m.groups()[0]))
+
+            current = parse_version(self.version)
+            versions = list(filter(lambda v: v < current, versions))
+            if len(versions):
+                return root + '/config-v%d.%d.%d.json' % max(versions)
+
+        except: self.log.exception()
+
+        # Return default config
+        return root + '/config.json'
+
+
     def load(self):
-        path = self.ctrl.get_path('config.json')
+        path = self.get_path()
 
         try:
             if os.path.exists(path):
@@ -229,7 +258,8 @@ class Config(object):
         self.upgrade(config)
         self._update(config, False)
 
-        with open(self.ctrl.get_path('config.json'), 'w') as f:
+        path = self.ctrl.get_path('config-v%s.json' % self.version)
+        with open(path, 'w') as f:
             json.dump(config, f)
 
         os.sync()
@@ -239,8 +269,10 @@ class Config(object):
 
 
     def reset(self):
-        if os.path.exists('config.json'): os.unlink('config.json')
-        self.reload()
+        config = {'version': self.version}
+        self.save(config)
+        self._defaults(config)
+        self._update(config, True)
         self.ctrl.events.emit('invalidate-all')
 
 
