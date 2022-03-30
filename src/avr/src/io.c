@@ -77,7 +77,7 @@ typedef struct {
 
 
 static io_pin_t _pins[] = {
-  // Remapable pins
+  // Remappable pins
   {IO_01_PIN, IO_TYPE_OUTPUT},
   {IO_02_PIN, IO_TYPE_OUTPUT},
   {IO_03_PIN, IO_TYPE_INPUT},

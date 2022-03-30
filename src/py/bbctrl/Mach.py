@@ -113,6 +113,8 @@ class Mach(Comm):
 
 
     def _begin_cycle(self, cycle):
+        self._end_cycle() # Try to end the current cycle
+
         current = self._get_cycle()
         if current == cycle: return # No change
 

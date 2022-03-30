@@ -27,16 +27,16 @@
 
 script#io-pins-template(type="text/x-template")
   table.io-pins
-    tr: th.header(colspan=100) Mappable I/O Pins
+    tr: th.header(colspan=100) DB25 Pins
 
     tr
       th(v-for="name in columns", track-by="$index",
         :class="name || 'separator'") {{name}}
 
     tr(v-for="i in rows")
-      td(is="io-pins-row", :pin="io_pins[i * 2 + 0]")
+      td(is="io-pins-row", :pin="io_pins[i]")
       th.separator
-      td(is="io-pins-row", :pin="io_pins[i * 2 + 1]", v-if="io_pins[i * 2 + 1]")
+      td(is="io-pins-row", :pin="io_pins[rows + i]", v-if="io_pins[rows + i]")
 
 
 script#io-pins-row-template(type="text/x-template")

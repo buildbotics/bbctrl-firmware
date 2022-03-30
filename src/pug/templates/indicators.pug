@@ -27,6 +27,8 @@
 
 script#indicators-template(type="text/x-template")
   .indicators
+    breakout(name="db25", :state="state", :template="template")
+
     div
       io-pins(:state="state", :template="template")
 
@@ -59,7 +61,4 @@ script#indicators-template(type="text/x-template")
           td
           th
 
-    div: io-functions(:state="state", :template="template")
-
-    breakout(name="db25", :state="state", :template="template")
     breakout(name="db15", :state="state", :template="template")

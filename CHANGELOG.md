@@ -1,13 +1,18 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v1.0.3
+ - Fix for "stuck in jogging" bug.
+
 ## v1.0.2
  - Remappable IO
- - Fix for "stuck in jogging" bug.
  - Added support for Fuling DZB200/300 VFD.
  - Added support for EM60 VFD.
  - Added support for H100 VFD.
  - Maintain versioned config files to make downgrading easier.
+ - Handle 3D view with only one move.
+ - Fix over/under notification with offsets enabled.
+ - Fix for type 2 gamepads.
 
 ## v1.0.1
  - Handle case correctly when assigning named GCode variables.

@@ -27,15 +27,21 @@
 
 import inevent
 from inevent.Constants import *
+import copy
+
 
 config = {
-    "deadband": 0.15,
-    "axes":   [[ABS_X], [ABS_Y], [ABS_RY, ABS_RZ], [ABS_RX, ABS_Z]],
-    "dir":    [1, -1, -1, 1],
-    "arrows": [[ABS_HAT0X], [ABS_HAT0Y]],
-    "speed":  [[0x133, 0x120], [0x130, 0x121], [0x131, 0x122], [0x134, 0x123]],
-    "lock":   [[0x136, 0x124], [0x137, 0x125]],
+    'deadband': 0.15,
+    'dir':    [1, -1, -1, 1],
+    'arrows': [[ABS_HAT0X], [ABS_HAT0Y]],
+    'speed':  [[0x133, 0x120], [0x130, 0x121], [0x131, 0x122], [0x134, 0x123]],
+    'lock':   [[0x136, 0x124], [0x137, 0x125]],
 }
+
+configA = copy.deepcopy(config)
+configB = copy.deepcopy(config)
+configA['axes'] = [[ABS_X], [ABS_Y], [ABS_RZ], [ABS_Z]]
+configB['axes'] = [[ABS_X], [ABS_Y], [ABS_RY], [ABS_RX]]
 
 
 # Listen for input events
@@ -54,21 +60,32 @@ class Jog(inevent.JogHandler):
                                          log = ctrl.log.get('InEvent'))
 
 
+    def _get_config(self, event):
+        # There are two types of controller.  One uses axes 0, 1, 2 & 5 and
+        # the other uses 0, 1, 3 & 4 for X, Y, Z and A.  However, the second
+        # type also uses axes 2 & 5 for the front analog trigger buttons.
+        # We differentiate between the two by looking for an unused axis 3.
+        if event.stream.absScale[3].max == 0: return configA
+        return configB
+
+
     # From inevent.JogHandler
-    def match_code(self, type, code):
+    def match_code(self, type, event):
+        config = self._get_config(event)
+
         if not type in config: return None
 
         index = 0
         for codes in config[type]:
-            if code in codes: return index
+            if event.code in codes: return index
             index += 1
 
 
-    def get_config(self, type): return config[type]
+    def get_config(self, type, event): return self._get_config(event)[type]
 
 
-    def has_code(self, type, code):
-        return self.match_code(type, code) is not None
+    def has_code(self, type, event):
+        return self.match_code(type, event) is not None
 
 
     def up(self):    self.ctrl.lcd.page_up()

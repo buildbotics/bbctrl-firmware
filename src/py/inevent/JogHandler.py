@@ -55,9 +55,9 @@ class JogHandler:
         self.changed()
 
 
-    def get_config(self, type): raise Exception('Not implemented')
-    def match_code(self, type, code): raise Exception('Not implemented')
-    def has_code(self, type, code): raise Exception('Not implemented')
+    def get_config(self, type, event): raise Exception('Not implemented')
+    def match_code(self, type, event): raise Exception('Not implemented')
+    def has_code(self, type, event):   raise Exception('Not implemented')
 
 
     def __call__(self, event):
@@ -65,14 +65,14 @@ class JogHandler:
 
         changed = False
         old_axes = list(self.axes)
-        deadband = self.get_config('deadband')
+        deadband = self.get_config('deadband', event)
 
         # Process event
-        if event.type == EV_ABS and self.has_code('axes', event.code):
-            axis = self.match_code('axes', event.code)
+        if event.type == EV_ABS and self.has_code('axes', event):
+            axis = self.match_code('axes', event)
 
             self.axes[axis] = event.stream.abs[event.code]
-            self.axes[axis] *= self.get_config('dir')[axis]
+            self.axes[axis] *= self.get_config('dir', event)[axis]
 
             v = abs(self.axes[axis])
             if v < deadband: self.axes[axis] = 0
@@ -89,8 +89,8 @@ class JogHandler:
 
             if old_axes[axis] != self.axes[axis]: changed = True
 
-        elif event.type == EV_ABS and self.has_code('arrows', event.code):
-            axis = self.match_code('arrows', event.code)
+        elif event.type == EV_ABS and self.has_code('arrows', event):
+            axis = self.match_code('arrows', event)
 
             if event.value < 0:
                 if axis == 1: self.up()
@@ -100,13 +100,13 @@ class JogHandler:
                 if axis == 1: self.down()
                 else: self.right()
 
-        elif event.type == EV_KEY and self.has_code('speed', event.code):
+        elif event.type == EV_KEY and self.has_code('speed', event):
             old_speed = self.speed
-            self.speed = self.match_code('speed', event.code) + 1
+            self.speed = self.match_code('speed', event) + 1
             if self.speed != old_speed: changed = True
 
-        elif event.type == EV_KEY and self.has_code('lock', event.code):
-            index = self.match_code('lock', event.code)
+        elif event.type == EV_KEY and self.has_code('lock', event):
+            index = self.match_code('lock', event)
 
             self.horizontal_lock, self.vertical_lock = False, False
 

@@ -62,7 +62,7 @@ module.exports = {
     'db15-pin-13':   make_tmpl('db15-dir', {ch: 3}),
     'db15-pin-14':   make_tmpl('breakout-ground'),
     'db15-pin-15':   make_tmpl('breakout-ground'),
-    'db15-pin-gnd':  make_tmpl('breakout-ground'),
+    'db15-pin-gnd':  make_tmpl('breakout-ungrounded'),
     'db25-pin-1':    make_tmpl('db25-io', {pin: 1}),
     'db25-pin-2':    make_tmpl('db25-io', {pin: 2}),
     'db25-pin-3':    make_tmpl('db25-io', {pin: 3}),
@@ -93,6 +93,8 @@ module.exports = {
 
 
   ready() {
+    this.active_pin = '1'
+
     $(this.$refs.breakout.$el).find('.pin').mouseover((e) => {
       let classes = e.currentTarget.classList
 

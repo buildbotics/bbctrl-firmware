@@ -82,8 +82,9 @@ class EventStream(object):
     fcntl.ioctl(self.fd, EVIOCGRAB, 1) # Grab
 
     if devType == 'js':
-      for axis in range(ABS_MAX):
+      for axis in range(6):
         self.absScale[axis] = AbsAxisScaling(self, axis)
+        self.log.info('Axis %s %s' % (axis, self.absScale[axis]))
 
 
   def __iter__(self): return self

@@ -78,7 +78,5 @@ class AbsAxisScaling(object):
 
 
   def __call__(self, value):
-    if 0 <= self.min: return 0 # Ignore positive only axes for now
-
     # Scale to range [-1, 1]
     return (float(value) - self.min) / (self.max - self.min) * 2.0 - 1.0

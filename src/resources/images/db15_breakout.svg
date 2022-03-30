@@ -36,7 +36,7 @@
      showgrid="false"
      inkscape:zoom="2.8435394"
      inkscape:cx="149.49479"
-     inkscape:cy="198.5317"
+     inkscape:cy="100.06287"
      inkscape:window-x="2560"
      inkscape:window-y="76"
      inkscape:window-maximized="1"
@@ -1126,14 +1126,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:8px;line-height:14px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-decoration:none;text-decoration-line:none;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1.00157;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;stop-color:#000000"
-       x="17.25"
+       x="20"
        y="136.82031"
        id="text3459"
        class="pin pin-gnd"><tspan
          sodipodi:role="line"
          id="tspan3457"
          x="17.25"
-         y="136.82031">gnd</tspan></text>
+         y="136.82031">n/c</tspan></text>
   </g>
   <g
      transform="translate(-4.1)"

@@ -301,16 +301,11 @@ class State(object):
 
         mode = self.motor_homing_mode(motor)
 
-        if mode != 'manual':
-            if mode == 'switch-min' and not int(self.get(axis + '_ls', 0)):
-                return 'Configured for min switch but switch is disabled'
-
-            if mode == 'switch-max' and not int(self.get(axis + '_xs', 0)):
-                return 'Configured for max switch but switch is disabled'
+        # TODO check for pin configured for required homing switch function
 
         softMin = int(self.get(axis + '_tn', 0))
         softMax = int(self.get(axis + '_tm', 0))
-        if softMax <= softMin + 1:
+        if softMax < softMin + 1:
             return 'max-soft-limit must be at least 1mm greater ' \
                 'than min-soft-limit'
 

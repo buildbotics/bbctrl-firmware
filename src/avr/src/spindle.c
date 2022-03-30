@@ -212,6 +212,12 @@ void spindle_idle() {
 void spindle_stop() {_set_speed(0);} // Only called when steppers have halted
 
 
+void spindle_estop() {
+  _set_speed(0);
+  if (spindle.type == SPINDLE_TYPE_PWM) pwm_update(pwm_get_update(0));
+}
+
+
 // Var callbacks
 uint8_t get_tool_type() {return spindle.type;}
 void set_tool_type(uint8_t value) {_set_type((spindle_type_t)value);}

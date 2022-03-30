@@ -577,7 +577,7 @@ module.exports = {
 
 
     draw_path: function (scene) {
-      if (!this.positions.length) return new THREE.Group();
+      if (this.positions.length < 6) return new THREE.Group();
 
       var geometry = new THREE.BufferGeometry();
       var material =
@@ -651,12 +651,12 @@ module.exports = {
       var bbox = undefined;
 
       function add(o) {
-        if (typeof o != 'undefined') {
-          var oBBox = new THREE.Box3();
-          oBBox.setFromObject(o);
-          if (bbox == undefined) bbox = oBBox;
-          else bbox.union(oBBox);
-        }
+        if (o == undefined) return
+
+        var oBBox = new THREE.Box3()
+        oBBox.setFromObject(o)
+        if (bbox == undefined) bbox = oBBox
+        else bbox.union(oBBox)
       }
 
       add(this.pathView);

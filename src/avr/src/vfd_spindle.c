@@ -288,7 +288,7 @@ static bool _next_state() {
     else vfd.state = REG_FREQ_SET;
     break;
 
-  case REG_FREQ_SIGN_SET:
+  case REG_FREQ_SCALED_SET:
     if (vfd.power < 0) vfd.state = REG_REV_WRITE;
     else if (0 < vfd.power) vfd.state = REG_FWD_WRITE;
     else vfd.state = REG_STOP_WRITE;
@@ -419,7 +419,7 @@ static bool _exec_command() {
 
   case REG_FREQ_SCALED_SET:
     write = true;
-    reg.value = vfd.power * reg.value;
+    reg.value = fabs(vfd.power) * reg.value;
     break;
 
   case REG_CONNECT_WRITE:
@@ -456,7 +456,7 @@ static void _load(const vfd_reg_t *_regs) {
   for (int i = 0; i < VFDREG; i++) {
     regs[i].type = (vfd_reg_type_t)pgm_read_byte(&_regs[i].type);
     if (!regs[i].type) break;
-    regs[i].addr = pgm_read_word(&_regs[i].addr);
+    regs[i].addr  = pgm_read_word(&_regs[i].addr);
     regs[i].value = pgm_read_word(&_regs[i].value);
   }
 }

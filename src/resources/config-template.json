@@ -303,8 +303,7 @@
             "max-freq-read", "max-freq-fixed",
             "freq-set", "freq-signed-set", "freq-scaled-set",
             "stop-write", "forward-write", "reverse-write",
-            "freq-read", "freq-signed-read", "freq-actech-read",
-            "status-read",
+            "freq-read", "freq-signed-read", "freq-actech-read", "status-read",
             "disconnect-write"],
           "default": "disabled",
           "code": "vt"

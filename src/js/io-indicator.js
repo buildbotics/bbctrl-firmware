@@ -52,7 +52,10 @@ module.exports = {
   computed: {
     klass: function () {
       if (this.func == 'disabled' || this.type == 'disabled') return 'fa-ban'
-      if (this.type == 'analog') return 'fa-random'
+      if (this.type == 'analog')  return 'fa-random'
+      if (this.type == 'digital') return 'fa-random'
+      if (this.type == 'ground')  return 'fa-minus-circle'
+      if (this.type == 'power')   return 'fa-plus-circle'
 
       let klass = ''
       let state = this.state
