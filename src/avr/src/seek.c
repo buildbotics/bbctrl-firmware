@@ -127,15 +127,19 @@ void seek_cancel() {_done();}
 
 io_function_t _decode_id(int8_t id) {
   switch (id) {
-  case 1: return INPUT_PROBE;
-  case 2: return INPUT_MOTOR_0_MIN;
-  case 3: return INPUT_MOTOR_0_MAX;
-  case 4: return INPUT_MOTOR_1_MIN;
-  case 5: return INPUT_MOTOR_1_MAX;
-  case 6: return INPUT_MOTOR_2_MIN;
-  case 7: return INPUT_MOTOR_2_MAX;
-  case 8: return INPUT_MOTOR_3_MIN;
-  case 9: return INPUT_MOTOR_3_MAX;
+  case 1:  return INPUT_PROBE;
+  case 2:  return INPUT_MOTOR_0_MIN;
+  case 3:  return INPUT_MOTOR_0_MAX;
+  case 4:  return INPUT_MOTOR_1_MIN;
+  case 5:  return INPUT_MOTOR_1_MAX;
+  case 6:  return INPUT_MOTOR_2_MIN;
+  case 7:  return INPUT_MOTOR_2_MAX;
+  case 8:  return INPUT_MOTOR_3_MIN;
+  case 9:  return INPUT_MOTOR_3_MAX;
+  case 10: return INPUT_STALL_0;
+  case 11: return INPUT_STALL_1;
+  case 12: return INPUT_STALL_2;
+  case 13: return INPUT_STALL_3;
   default: return IO_DISABLED;
   }
 }

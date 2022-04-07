@@ -134,7 +134,7 @@ fi
 rm -rf /home/pi/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlfninn
 
 if $UPDATE_PWR; then
-  PWR_OPTS="-c /dev/ttyAMA1 -b 1000000 -x"
+  PWR_OPTS="-c /dev/ttyAMA1 -b 500000 -x"
   /usr/local/bin/updiprog $PWR_OPTS -w src/pwr2/bbctrl-pwr-firmware.hex
 fi
 

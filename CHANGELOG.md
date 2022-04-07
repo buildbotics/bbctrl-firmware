@@ -3,6 +3,9 @@ Buildbotics CNC Controller Firmware Changelog
 
 ## v1.0.3
  - Fix for "stuck in jogging" bug.
+ - Fix bug in stall detect homing.
+ - Fix offset over/under detection bug.
+ - Program power firmware on upgrade.
 
 ## v1.0.2
  - Remappable IO
