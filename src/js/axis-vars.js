@@ -72,8 +72,6 @@ module.exports = {
       var pathMin    = this.state['queued_min_' + axis];
       var pathMax    = this.state['queued_max_' + axis];
       var pathDim    = pathMax - pathMin;
-      var under      = pathMin + off < min;
-      var over       = max < pathMax + off;
       var klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis;
       var state      = 'UNHOMED';
       var icon       = 'question-circle';
@@ -94,29 +92,11 @@ module.exports = {
       } else if (homed) {
         state = 'HOMED'
         icon = 'check-circle';
-
-        if (over || under) {
-          state = over ? 'OVER' : 'UNDER';
-          klass += ' warn';
-          icon = 'exclamation-circle';
-        }
       }
 
       switch (state) {
       case 'UNHOMED': title = 'Click the home button to home axis.'; break;
       case 'HOMED': title = 'Axis successfuly homed.'; break;
-
-      case 'OVER':
-        title = 'Current program would move ' +
-          this._length_str(pathMax + off - max) + ' beyond axis bounds.  ' +
-          'Offsets must be adjusted or soft limits set correctly.';
-        break;
-
-      case 'UNDER':
-        title = 'Current program would move ' +
-          this._length_str(min - pathMin - off) + ' below axis bounds.  ' +
-          'Offsets must be adjusted or soft limits set correctly.';
-        break;
 
       case 'NO FIT':
         title = 'Tool path dimensions exceed axis dimensions by ' +
