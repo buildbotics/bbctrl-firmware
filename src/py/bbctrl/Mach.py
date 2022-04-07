@@ -87,6 +87,7 @@ class Mach(Comm):
         self.planner = bbctrl.Planner(ctrl)
         self.unpausing = False
         self.stopping = False
+        self.cycle_timeout = None
 
         ctrl.state.set('cycle', 'idle')
 
@@ -128,10 +129,18 @@ class Mach(Comm):
 
 
     def _end_cycle(self):
-        if (self._get_cycle() != 'idle' and self._is_ready() and
-            not self.planner.is_busy() and not super().is_active()):
+        if self.cycle_timeout is not None:
+            self.ctrl.ioloop.remove_timeout(self.cycle_timeout)
+            self.cycle_timeout = None
+
+        if self._get_cycle() == 'idle': return
+
+        if (self._is_ready() and not self.planner.is_busy() and
+            not super().is_active()):
             self.planner.position_change()
             self._set_cycle('idle')
+
+        else: self.ctrl.ioloop.call_later(2, self._end_cycle)
 
 
     def _update(self, update):

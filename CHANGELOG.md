@@ -7,6 +7,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Fix offset over/under detection bug.
  - Program power firmware on upgrade.
  - Remove inaccurate over/under detection feature.
+ - Fix GCode editor File -> New.
 
 ## v1.0.2
  - Remappable IO
