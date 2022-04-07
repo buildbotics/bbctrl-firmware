@@ -153,7 +153,7 @@ module.exports = {
     set_path: function (path) {
       this.path = path;
       cookie.set('selected-path', path || '');
-      this.editor.setOption('mode', util.get_highlight_mode(path))
+      if (path) this.editor.setOption('mode', util.get_highlight_mode(path))
     },
 
 
