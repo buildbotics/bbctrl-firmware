@@ -51,8 +51,6 @@
 #include "ringbuf.def"
 
 static bool _flush = false;
-static uint16_t rx_max_fill = 0;
-static uint16_t cts_thresh = SERIAL_CTS_THRESH;
 
 
 static void _set_dre_interrupt(bool enable) {
@@ -63,7 +61,7 @@ static void _set_dre_interrupt(bool enable) {
 
 static void _set_rxc_interrupt(bool enable) {
   if (enable) {
-    if (cts_thresh <= rx_buf_space())
+    if (SERIAL_CTS_THRESH <= rx_buf_space())
       OUTCLR_PIN(SERIAL_CTS_PIN); // CTS Lo (enable)
 
     SERIAL_PORT.CTRLA |= USART_RXCINTLVL_HI_gc;
@@ -86,14 +84,9 @@ ISR(SERIAL_DRE_vect) {
 // Data received interrupt vector
 ISR(SERIAL_RXC_vect) {
   if (rx_buf_full()) _set_rxc_interrupt(false); // Disable interrupt
-  else {
-    rx_buf_push(SERIAL_PORT.DATA);
+  else rx_buf_push(SERIAL_PORT.DATA);
 
-    uint16_t fill = rx_buf_fill();
-    if (rx_max_fill < fill) rx_max_fill = fill;
-  }
-
-  if (rx_buf_space() < cts_thresh)
+  if (rx_buf_space() < SERIAL_CTS_THRESH)
     OUTSET_PIN(SERIAL_CTS_PIN); // CTS Hi (disable)
 }
 
@@ -289,9 +282,3 @@ int16_t usart_rx_space() {return rx_buf_space();}
 int16_t usart_rx_fill()  {return rx_buf_fill();}
 int16_t usart_tx_space() {return tx_buf_space();}
 int16_t usart_tx_fill()  {return tx_buf_fill();}
-
-
-// Variable callbacks
-uint16_t get_rx_max_fill() {return rx_max_fill;}
-void set_cts_thresh(uint16_t x) {cts_thresh = x;}
-uint16_t get_cts_thresh() {return cts_thresh;}
