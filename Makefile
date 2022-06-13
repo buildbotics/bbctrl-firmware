@@ -41,13 +41,13 @@ PASSWORD=buildbotics
 endif
 
 
-all: html resources $(SUBPROJECTS)
+all: html $(SUBPROJECTS)
 
 .PHONY: $(SUBPROJECTS)
 $(SUBPROJECTS):
 	$(MAKE) -C $@
 
-html: $(HTML)
+html: resources $(HTML)
 resources: $(RESOURCES)
 
 demo: html resources bbemu
