@@ -215,10 +215,16 @@ module.exports = new Vue({
       var msgs = [];
 
       for (var i = 0; i < this.state.messages.length; i++) {
+      	
         var text = this.state.messages[i].text;
-        if (!/^#/.test(text)) msgs.push(text);
+        var pattern = /#/;
+        
+        if(pattern.test(text)) {
+         var splitText = text.split("#");
+         for (var j = 0; j < splitText.length; j++) msgs.push(splitText[j]);
+      	}
       }
-
+      
       this.showPopup = msgs.length != 0;
 
       return msgs;
