@@ -223,7 +223,7 @@ module.exports = new Vue({
         	var splitText = text.split("#");
         	for (var j = 0; j < splitText.length; j++) msgs.push(splitText[j]);
       	} else {
-      		msgs.push(text)
+      		msgs.push(text);
       }
       
       this.showPopup = msgs.length != 0;
