@@ -224,6 +224,7 @@ module.exports = new Vue({
         	for (var j = 0; j < splitText.length; j++) msgs.push(splitText[j]);
       	} else {
       		msgs.push(text);
+      	}	
       }
       
       this.showPopup = msgs.length != 0;
