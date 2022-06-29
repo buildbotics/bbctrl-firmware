@@ -116,7 +116,7 @@ script#view-control-template(type="text/x-template")
         v-if="macro.path", @click="run_macro($index + 1)",
         :title="'Run macro ' + ($index + 1) + ' ' + macro.name + '\n' + macro.path",
         :style="{'background-color': macro.color}")
-        | {{macro.name}}
+        | {{macro.name || ($index + 1)}}
 
       button.pure-button.macro(@click="goto('#settings:macros')",
         title="Go to macro settings")
