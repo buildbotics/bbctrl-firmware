@@ -126,8 +126,7 @@ html(lang="en")
       h3(slot="header") GCode message
 
       div(slot="body")
-        ul
-          li(v-for="msg in popupMessages", track-by="$index") {{msg}}
+        p(v-for="msg in popupMessages", track-by="$index") {{msg}}
 
       div(slot="footer")
         button.pure-button.button-success(v-if="state.xx != 'HOLDING'",
