@@ -61,11 +61,7 @@ module.exports = {
       if (this.modified && path[0] != 'settings') {
         cancel();
 
-        var self = this;
-
-        function done(success) {
-          if (success) location.hash = path.join(':')
-        }
+        let done = (success) => {if (success) location.hash = path.join(':')}
 
         this.$root.open_dialog({
           title: 'Save settings?',
@@ -86,8 +82,8 @@ module.exports = {
             }
           ],
           callback: {
-            save: function () {this.save(done)}.bind(this),
-            discard: function () {this.discard(done)}.bind(this)
+            save() {this.save(done)},
+            discard() {this.discard(done)}
           }
         });
       }
@@ -124,21 +120,22 @@ module.exports = {
 
   methods: {
     save: function (done) {
-      api.put('config/save', this.config).done(function (data) {
-        this.modified = false;
-        done(true);
-      }.bind(this)).fail(function (error) {
-        this.api_error('Save failed', error);
-        done(false);
-      }.bind(this));
+      api.put('config/save', this.config)
+        .done((data) => {
+          this.modified = false
+          done(true)
+        }).fail((error) => {
+          this.api_error('Save failed', error)
+          done(false)
+        })
     },
 
 
     discard: function (done) {
-      this.$root.update(function (success) {
-        this.modified = false;
-        done(success);
-      }.bind(this))
+      this.$root.update((success) => {
+        this.modified = false
+        done(success)
+      })
     }
   }
 }

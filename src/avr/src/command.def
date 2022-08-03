@@ -38,7 +38,7 @@ CMD('d', dwell,        1) // [seconds]
 CMD('P', pause,        1) // [type] Pause control
 CMD('S', stop,         0) // Stop move, spindle and load outputs
 CMD('U', unpause,      0) // Unpause
-CMD('j', jog,          0) // [axes]
+CMD('j', jog,          0) // [id][axes]
 CMD('r', report,       0) // <0|1>[var] Enable or disable var reporting
 CMD('R', reboot,       0) // Reboot the controller
 CMD('c', resume,       0) // Continue processing after a flush

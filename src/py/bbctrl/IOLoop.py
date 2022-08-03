@@ -26,7 +26,8 @@
 ################################################################################
 
 import tornado.ioloop
-import bbctrl
+
+__all__ = ['IOLoop']
 
 
 class CB(object):

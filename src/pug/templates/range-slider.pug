@@ -32,7 +32,7 @@ script#range-slider-template(type="text/x-template")
       | {{value | percent 0}}
 
     input(type="range", :min="min", :max="max", :step="step", v-model="value",
-      @change="on_change", v-ref:input)
+      @change="on_change")
 
     .range-slider-range
       .range-slider-min {{min | percent 0}}

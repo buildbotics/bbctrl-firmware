@@ -41,10 +41,12 @@ from tornado import gen, web, iostream
 try:
     import v4l2
 except:
-    import bbctrl.v4l2 as v4l2
+    from . import v4l2
+
+__all__ = ['Camera', 'VideoHandler']
 
 
-def array_to_string(a):
+def _array_to_string(a):
     def until_zero(a):
         for c in a:
             if c == 0: return
@@ -53,7 +55,7 @@ def array_to_string(a):
     return ''.join([chr(i) for i in until_zero(a)])
 
 
-def fourcc_to_string(i):
+def _fourcc_to_string(i):
     return \
         chr((i >>  0) & 0xff) + \
         chr((i >>  8) & 0xff) + \
@@ -61,14 +63,15 @@ def fourcc_to_string(i):
         chr((i >> 24) & 0xff)
 
 
-def string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
+def _string_to_fourcc(s): return v4l2.v4l2_fourcc(s[0], s[1], s[2], s[3])
 
 
-def format_frame(frame):
+def _format_frame(frame):
     frame = [b'--', VideoHandler.boundary.encode('utf8'), b'\r\n',
              b'Content-type: image/jpeg\r\n',
              b'Content-length: %d\r\n\r\n' % len(frame), frame]
     return b''.join(frame)
+
 
 
 class VideoDevice(object):
@@ -89,7 +92,7 @@ class VideoDevice(object):
         while True:
             try:
                 fcntl.ioctl(self, v4l2.VIDIOC_ENUMAUDIO, b)
-                l.append((array_to_string(b.name), b.capability, b.mode))
+                l.append((_array_to_string(b.name), b.capability, b.mode))
                 b.index += 1
 
             except OSError: break
@@ -108,8 +111,8 @@ class VideoDevice(object):
             try:
                 fcntl.ioctl(self, v4l2.VIDIOC_ENUM_FMT, b)
 
-                l.append((fourcc_to_string(b.pixelformat),
-                          array_to_string(b.description)))
+                l.append((_fourcc_to_string(b.pixelformat),
+                          _array_to_string(b.description)))
 
                 b.index += 1
 
@@ -215,9 +218,9 @@ class VideoDevice(object):
         caps = v4l2.v4l2_capability()
         fcntl.ioctl(self, v4l2.VIDIOC_QUERYCAP, caps)
 
-        caps._driver   = array_to_string(caps.driver)
-        caps._card     = array_to_string(caps.card)
-        caps._bus_info = array_to_string(caps.bus_info)
+        caps._driver   = _array_to_string(caps.driver)
+        caps._card     = _array_to_string(caps.card)
+        caps._bus_info = _array_to_string(caps.bus_info)
 
         l = []
         c = caps.capabilities
@@ -322,7 +325,7 @@ class Camera(object):
         if not len(self.clients): return
 
         try:
-            frame = format_frame(frame)
+            frame = _format_frame(frame)
             for i in range(self.max_clients):
                 if i < len(self.clients):
                     self.clients[-(i + 1)].write_frame(frame)
@@ -371,7 +374,7 @@ class Camera(object):
             if caps.capabilities & v4l2.V4L2_CAP_VIDEO_CAPTURE == 0:
                 raise Exception('Video capture not supported.')
 
-            fourcc  = string_to_fourcc(self.fourcc)
+            fourcc  = _string_to_fourcc(self.fourcc)
             formats = self.dev.get_formats()
             sizes   = self.dev.get_frame_sizes(fourcc)
 
@@ -488,7 +491,7 @@ class VideoHandler(web.RequestHandler):
         if path is None: return
 
         with open(path, 'rb') as f:
-            img = format_frame(f.read())
+            img = _format_frame(f.read())
             self.write_frame_twice(img)
 
 
@@ -514,7 +517,7 @@ class VideoHandler(web.RequestHandler):
     def on_connection_close(self): self.camera.remove_client(self)
 
 
-def parse_args():
+def _parse_args():
     import argparse
 
     parser = argparse.ArgumentParser(description = 'Web Camera Server')
@@ -540,7 +543,7 @@ if __name__ == '__main__':
     import logging
 
 
-    class Web(tornado.web.Application):
+    class _Web(tornado.web.Application):
         def __init__(self, args, ioloop, log):
             tornado.web.Application.__init__(self, [(r'/.*', VideoHandler)])
 
@@ -561,11 +564,11 @@ if __name__ == '__main__':
         def get_image_resource(self, name): return None
 
 
-    args = parse_args()
+    args = _parse_args()
     logging.basicConfig(level = logging.INFO, format = '%(message)s')
     log = logging.getLogger('Camera')
     ioloop = tornado.ioloop.IOLoop.current()
-    app = Web(args, ioloop, log)
+    app = _Web(args, ioloop, log)
 
     try:
         ioloop.start()

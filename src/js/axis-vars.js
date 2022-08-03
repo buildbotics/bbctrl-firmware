@@ -47,6 +47,9 @@ module.exports = {
 
 
   methods: {
+    get_bounds() {throw 'Not implemented'},
+
+
     _convert_length: function (value) {
       return this.state.imperial ? value / 25.4 : value;
     },
@@ -69,8 +72,9 @@ module.exports = {
       var min        = this.state[motor_id + 'tn'];
       var max        = this.state[motor_id + 'tm'];
       var dim        = max - min;
-      var pathMin    = this.state['queued_min_' + axis];
-      var pathMax    = this.state['queued_max_' + axis];
+      let bounds     = this.toolpath.bounds
+      var pathMin    = bounds ? bounds.min[axis] : 0;
+      var pathMax    = bounds ? bounds.max[axis] : 0;
       var pathDim    = pathMax - pathMin;
       var klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis;
       var state      = 'UNHOMED';
@@ -153,7 +157,7 @@ module.exports = {
       var homed = false;
 
       for (var name of 'xyzabc') {
-        var axis = this[name];
+        let axis = this[name];
 
         if (!axis.enabled) continue
         if (!axis.homed) {homed = false; break}
@@ -165,7 +169,7 @@ module.exports = {
 
       if (homed)
         for (name of 'xyzabc') {
-          axis = this[name];
+          let axis = this[name];
 
           if (!axis.enabled) continue;
           if (axis.klass.indexOf('error') != -1) error = true;

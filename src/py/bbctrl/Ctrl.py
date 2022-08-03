@@ -27,13 +27,31 @@
 
 import os
 import time
-import bbctrl
+
+from .IOLoop import *
+from .Log import *
+from .Events import *
+from .State import *
+from .Config import *
+from .AVREmu import *
+from .AVR import *
+from .I2C import *
+from .LCD import *
+from .Mach import *
+from .Preplanner import *
+from .FileSystem import *
+from .Jog import *
+from .Pwr import *
+from .MainLCDPage import *
+from .IPLCDPage import *
+
+__all__ = ['Ctrl']
 
 
 class Ctrl(object):
     def __init__(self, args, ioloop, id):
         self.args = args
-        self.ioloop = bbctrl.IOLoop(ioloop)
+        self.ioloop = IOLoop(ioloop)
         self.id = id
         self.timeout = None # Used in demo mode
 
@@ -45,31 +63,30 @@ class Ctrl(object):
         # Start log
         if args.demo: log_path = self.get_path(filename = 'bbctrl.log')
         else: log_path = args.log
-        self.log = bbctrl.log.Log(args, self.ioloop, log_path)
+        self.log = Log(args, self.ioloop, log_path)
 
-        self.events = bbctrl.Events(self)
-        self.state  = bbctrl.State(self)
-        self.config = bbctrl.Config(self)
+        self.events = Events(self)
+        self.state  = State(self)
+        self.config = Config(self)
 
         self.log.get('Ctrl').info('Starting %s' % self.id)
 
         try:
-            if args.demo: self.avr = bbctrl.AVREmu(self)
-            else: self.avr = bbctrl.AVR(self)
+            if args.demo: self.avr = AVREmu(self)
+            else: self.avr = AVR(self)
 
-            self.i2c = bbctrl.I2C(args.i2c_port, args.demo)
-            self.lcd = bbctrl.LCD(self)
-            self.mach = bbctrl.Mach(self, self.avr)
-            self.preplanner = bbctrl.Preplanner(self)
-            self.fs = bbctrl.FileSystem(self)
-            self.queue = bbctrl.ProgramQueue(self)
-            if not args.demo: self.jog = bbctrl.Jog(self)
-            self.pwr = bbctrl.Pwr(self)
+            self.i2c = I2C(args.i2c_port, args.demo)
+            self.lcd = LCD(self)
+            self.mach = Mach(self, self.avr)
+            self.preplanner = Preplanner(self)
+            self.fs = FileSystem(self)
+            if not args.demo: self.jog = Jog(self)
+            self.pwr = Pwr(self)
 
             self.mach.connect()
 
-            self.lcd.add_new_page(bbctrl.MainLCDPage(self))
-            self.lcd.add_new_page(bbctrl.IPLCDPage(self.lcd))
+            self.lcd.add_new_page(MainLCDPage(self))
+            self.lcd.add_new_page(IPLCDPage(self.lcd))
 
         except Exception: self.log.get('Ctrl').exception()
 

@@ -49,6 +49,10 @@ typedef struct {
   SCurve scurves[AXES];
   float next[AXES];
   float targetV[AXES];
+
+  uint16_t id;
+  uint16_t nextID;
+  uint16_t lastID;
 } jr_t;
 
 jr_t jr = {0};
@@ -100,8 +104,15 @@ stat_t jog_exec() {
     target[axis] = p;
   }
 
+  // Next jog ID
+  if (!jr.writing && jr.id != jr.nextID) {
+    jr.lastID = jr.id;
+    jr.id = jr.nextID;
+  }
+
   // Check if we are done
   if (done) {
+    jr.lastID = jr.id;
     command_reset_position();
     exec_set_velocity(0);
     exec_set_cb(0);
@@ -136,6 +147,10 @@ stat_t command_jog(char *cmd) {
   // Skip over command code
   cmd++;
 
+  // Get ID
+  uint16_t id;
+  if (!decode_hex_u16(&cmd, &id)) return STAT_BAD_INT;
+
   // Get velocities
   float velocity[AXES] = {0,};
   stat_t status = decode_axes(&cmd, velocity);
@@ -163,7 +178,12 @@ stat_t command_jog(char *cmd) {
   // Set next velocities
   jr.writing = true;
   for (int axis = 0; axis < AXES; axis++) jr.next[axis] = velocity[axis];
+  jr.nextID = id;
   jr.writing = false;
 
   return STAT_OK;
 }
+
+
+// Variable callbacks
+uint16_t get_jog_id() {return jr.lastID;}

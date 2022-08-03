@@ -75,13 +75,13 @@ module.exports = {
 
 
     _upload_file: function (file, next) {
-      var _progress = function (fraction, done, xhr) {
+      var _progress = (fraction, done, xhr) => {
         if (typeof this.config.on_progress == 'function')
           this.config.on_progress(fraction, done, xhr);
 
         this.xhr = xhr;
         this.progress = (fraction * 100).toFixed(1);
-      }.bind(this);
+      }
 
       this.progress = 0;
       this.show = true;
@@ -96,41 +96,41 @@ module.exports = {
         fd.append(key, get_value(form[key], file));
 
       api.upload(url, fd, data, _progress)
-        .done(function () {
+        .done(() => {
           if (typeof this.config.on_success == 'function')
-            this.config.on_success(file, next);
-          else next();
+            this.config.on_success(file, next)
+          else next()
 
-        }.bind(this)).fail(function (error) {
-          this.show = false;
-          if (this.canceled) return;
+        }).fail((error) => {
+          this.show = false
+          if (this.canceled) return
           if (typeof this.config.on_failure == 'function')
             this.config.on_failure(file, error);
           else this.$root.api_error(this.msg + ' failed', error)
-        }.bind(this));
+        })
     },
 
 
     _upload_files: function (files, i) {
-      if (files.length <= i || this.canceled) return this.show = false;
-      var file = files[i];
+      if (files.length <= i || this.canceled) return this.show = false
+      var file = files[i]
 
-      var _next   = function () {this._upload_files(files, i + 1)}.bind(this);
-      var _upload = function () {this._upload_file(file,   _next)}.bind(this);
+      let _next   = () => {this._upload_files(files, i + 1)}
+      let _upload = () => {this._upload_file(file,   _next)}
 
       if (typeof this.config.on_confirm == 'function')
-        this.config.on_confirm(file, function (ok) {
-          if (ok) _upload();
-          else _next();
-        }.bind(this));
+        this.config.on_confirm(file, (ok) => {
+          if (ok) _upload()
+          else _next()
+        })
 
-      else _upload();
+      else _upload()
     },
 
 
     _upload: function (e)  {
-      this.canceled = false;
-      this._upload_files(e.target.files || e.dataTransfer.files, 0);
+      this.canceled = false
+      this._upload_files(e.target.files || e.dataTransfer.files, 0)
     }
   }
 }

@@ -27,72 +27,18 @@
 
 'use strict'
 
-var api    = require('./api');
-var cookie = require('./cookie');
-var Sock   = require('./sock');
-var util   = require('./util');
-
-
-function compare_versions(a, b) {
-  var reStripTrailingZeros = /(\.0+)+$/;
-  var segsA = a.trim().replace(reStripTrailingZeros, '').split('.');
-  var segsB = b.trim().replace(reStripTrailingZeros, '').split('.');
-  var l = Math.min(segsA.length, segsB.length);
-
-  for (var i = 0; i < l; i++) {
-    var diff = parseInt(segsA[i], 10) - parseInt(segsB[i], 10);
-    if (diff) return diff;
-  }
-
-  return segsA.length - segsB.length;
-}
-
-
-function is_object(o) {return o !== null && typeof o == 'object'}
-function is_array(o) {return Array.isArray(o)}
-
-
-function update_array(dst, src) {
-  while (dst.length) dst.pop()
-  for (var i = 0; i < src.length; i++)
-    Vue.set(dst, i, src[i]);
-}
-
-
-function update_object(dst, src, remove) {
-  var props, index, key, value;
-
-  if (remove) {
-    props = Object.getOwnPropertyNames(dst);
-
-    for (index in props) {
-      key = props[index];
-      if (!src.hasOwnProperty(key))
-        Vue.delete(dst, key);
-    }
-  }
-
-  props = Object.getOwnPropertyNames(src);
-  for (index in props) {
-    key = props[index];
-    value = src[key];
-
-    if (is_array(value) && dst.hasOwnProperty(key) && is_array(dst[key]))
-      update_array(dst[key], value);
-
-    else if (is_object(value) && dst.hasOwnProperty(key) && is_object(dst[key]))
-      update_object(dst[key], value, remove);
-
-    else Vue.set(dst, key, value);
-  }
-}
+var api     = require('./api');
+var cookie  = require('./cookie');
+var Sock    = require('./sock');
+var util    = require('./util');
+var Program = require('./program');
 
 
 module.exports = new Vue({
   el: 'body',
 
 
-  data: function () {
+  data() {
     return {
       status: 'connecting',
       currentView: 'loading',
@@ -104,6 +50,8 @@ module.exports = new Vue({
       },
       state: {messages: []},
       crosshair: cookie.get_bool('crosshair', false),
+      selected_program: new Program(cookie.get('selected-path')),
+      active_program: undefined,
       errorTimeout: 30,
       errorTimeoutStart: 0,
       errorMessage: '',
@@ -130,12 +78,23 @@ module.exports = new Vue({
 
 
   watch: {
-    crosshair: function () {cookie.set_bool('crosshair', this.crosshair)}
+    crosshair() {cookie.set_bool('crosshair', this.crosshair)},
+
+
+    'state.active_program'() {
+      let path = this.state.active_program
+      this.active_program = path ? new Program(path) : undefined
+    },
+
+
+    'state.first_file'(value) {
+      if (!this.selected_program.path) this.select_path(value)
+    }
   },
 
 
   events: {
-    route: function (path) {
+    route(path) {
       let oldView = this.currentView;
 
       if (typeof this.$options.components['view-' + path[0]] == 'undefined')
@@ -146,10 +105,10 @@ module.exports = new Vue({
     },
 
 
-    'hostname-changed': function (hostname) {this.hostname = hostname},
+    'hostname-changed'(hostname) {this.hostname = hostname},
 
 
-    send: function (msg) {
+    send(msg) {
       if (this.status == 'connected') {
         console.debug('>', msg);
         this.sock.send(msg);
@@ -157,11 +116,11 @@ module.exports = new Vue({
     },
 
 
-    connected: function () {this.update(this.parse_hash)},
-    update: function () {this.update(this.parse_hash)},
+    connected() {this.update(this.parse_hash)},
+    update() {this.update(this.parse_hash)},
 
 
-    check: function (show_message) {
+    check(show_message) {
       this.latestVersion = '';
 
       $.ajax({
@@ -173,7 +132,7 @@ module.exports = new Vue({
       }).done(function (data) {
         this.latestVersion = data;
         if (!show_message) return;
-        var cmp = compare_versions(this.config.version, this.latestVersion);
+        var cmp = util.compare_versions(this.config.version, this.latestVersion)
 
         var msg;
         if (cmp == 0) msg = 'You have the latest official firmware.'
@@ -195,7 +154,7 @@ module.exports = new Vue({
     },
 
 
-    error: function (msg) {
+    error(msg) {
       // Honor user error blocking
       if (Date.now() - this.errorTimeoutStart < this.errorTimeout * 1000)
         return;
@@ -211,7 +170,7 @@ module.exports = new Vue({
 
 
   computed: {
-    popupMessages: function () {
+    popupMessages() {
       var msgs = [];
 
       for (var i = 0; i < this.state.messages.length; i++) {
@@ -225,14 +184,14 @@ module.exports = new Vue({
     },
 
 
-    show_upgrade: function () {
+    show_upgrade() {
       if (!this.latestVersion) return false;
-      return compare_versions(this.config.version, this.latestVersion) < 0;
+      return util.compare_versions(this.config.version, this.latestVersion) < 0
     }
   },
 
 
-  ready: function () {
+  ready() {
     $(window).on('hashchange', this.parse_hash);
     this.connect();
 
@@ -247,31 +206,31 @@ module.exports = new Vue({
           title: 'WebGL Warning',
           body: msg,
           buttons: 'ok',
-          callback: function () {cookie.set_bool('webgl-warning', true)}
+          callback() {cookie.set_bool('webgl-warning', true)}
         });
     }
   },
 
 
   methods: {
-    metric: function () {return this.config.settings.units != 'IMPERIAL'},
+    metric() {return this.config.settings.units != 'IMPERIAL'},
 
 
-    block_error_dialog: function () {
+    block_error_dialog() {
       this.errorTimeoutStart = Date.now();
       this.showError = false;
     },
 
 
-    estop: function () {
+    estop() {
       if (this.state.xx == 'ESTOPPED') api.put('clear');
       else api.put('estop');
     },
 
 
-    update: function (done) {
+    update(done) {
       api.get('config/load').done(function (config) {
-        update_object(this.config, config, true);
+        util.update_object(this.config, config, true);
 
         if (!this.checkedUpgrade) {
           this.checkedUpgrade = true;
@@ -281,15 +240,15 @@ module.exports = new Vue({
             this.$emit('check');
         }
 
-        if (done != undefined) done(true);
+        if (done) done(true);
       }.bind(this))
     },
 
 
-    connect: function () {
+    connect() {
       this.sock = new Sock('//' + window.location.host + '/sockjs');
 
-      this.sock.onmessage = function (e) {
+      this.sock.onmessage = (e) => {
         if (typeof e.data != 'object') return;
 
         if ('log' in e.data) {
@@ -309,7 +268,7 @@ module.exports = new Vue({
           }
         }
 
-        update_object(this.state, e.data, false);
+        util.update_object(this.state, e.data, false);
         this.$broadcast('update');
 
         // Disable WebGL on Pi 3 for local head
@@ -319,23 +278,23 @@ module.exports = new Vue({
               model.indexOf('Pi 3') != -1)
             this.webGLSupported = false;
         }
-      }.bind(this)
+      }
 
-      this.sock.onopen = function (e) {
+      this.sock.onopen = (e) => {
         this.status = 'connected';
         this.$emit(this.status);
         this.$broadcast(this.status);
-      }.bind(this)
+      }
 
-      this.sock.onclose = function (e) {
+      this.sock.onclose = (e) => {
         this.status = 'disconnected';
         this.$emit(this.status);
         this.$broadcast(this.status);
-      }.bind(this)
+      }
     },
 
 
-    route: function (path) {
+    route(path) {
       var cancel = false;
       var cb = function () {cancel = true}
 
@@ -348,13 +307,13 @@ module.exports = new Vue({
     },
 
 
-    replace_route: function (hash) {
+    replace_route(hash) {
       history.replaceState(null, '', '#' + hash);
       this.parse_hash()
     },
 
 
-    parse_hash: function () {
+    parse_hash() {
       var hash = location.hash.substr(1);
 
       if (!hash.trim().length)
@@ -364,7 +323,7 @@ module.exports = new Vue({
     },
 
 
-    close_messages: function (action) {
+    close_messages(action) {
       if (action == 'stop') api.put('stop');
       if (action == 'continue') api.put('unpause');
 
@@ -376,15 +335,15 @@ module.exports = new Vue({
     },
 
 
-    file_dialog:    function (config) {this.$refs.fileDialog.open(config)},
-    upload:         function (config) {this.$refs.uploader.upload(config)},
-    open_dialog:    function (config) {this.$refs.dialog.open(config)},
-    error_dialog:   function (msg)    {this.$refs.dialog.error(msg)},
-    warning_dialog: function (msg)    {this.$refs.dialog.warning(msg)},
-    success_dialog: function (msg)    {this.$refs.dialog.success(msg)},
+    file_dialog(config) {this.$refs.fileDialog.open(config)},
+    upload(config)      {this.$refs.uploader.upload(config)},
+    open_dialog(config) {this.$refs.dialog.open(config)},
+    error_dialog(msg)   {this.$refs.dialog.error(msg)},
+    warning_dialog(msg) {this.$refs.dialog.warning(msg)},
+    success_dialog(msg) {this.$refs.dialog.success(msg)},
 
 
-    api_error: function (msg, error) {
+    api_error(msg, error) {
       if (error != undefined) {
         if (error.message != undefined)
           msg += '\n' + error.message;
@@ -395,25 +354,31 @@ module.exports = new Vue({
     },
 
 
-    run: function (path) {
+    run(path) {
       if (this.state.xx != 'READY') return;
-
-      api.put('queue/' + path).done(function () {
-        location.hash = 'control';
-        api.put('start');
-      })
+      api.put('start/' + path).done(function () {location.hash = 'control'})
     },
 
 
-    edit: function (path) {
-      cookie.set('selected-path', path);
-      location.hash = 'editor';
+    select_path(path) {
+      if (path && this.selected_program.path != path) {
+        cookie.set('selected-path', path)
+        this.selected_program = new Program(path)
+      }
+
+      return this.selected_program
     },
 
 
-    view: function (path) {
-      cookie.set('selected-path', path);
-      location.hash = 'viewer';
+    edit(path) {
+      this.select_path(path)
+      location.hash = 'editor'
+    },
+
+
+    view(path) {
+      this.select_path(path)
+      location.hash = 'viewer'
     }
   }
 })

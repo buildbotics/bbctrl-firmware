@@ -30,8 +30,9 @@ import sys
 import traceback
 import signal
 
-import bbctrl
-import bbctrl.Cmd as Cmd
+from . import Cmd
+
+__all__ = ['AVREmu']
 
 
 class AVREmu(object):

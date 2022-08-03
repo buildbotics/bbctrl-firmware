@@ -30,11 +30,10 @@ import time
 import traceback
 import ctypes
 
-import bbctrl
-import bbctrl.Cmd as Cmd
+__all__ = ['AVR']
 
 
-class serial_struct(ctypes.Structure):
+class _serial_struct(ctypes.Structure):
     _fields_ = [
         ('type',            ctypes.c_int),
         ('line',            ctypes.c_int),
@@ -57,16 +56,17 @@ class serial_struct(ctypes.Structure):
     ]
 
 
-def serial_set_low_latency(sp):
+def _serial_set_low_latency(sp):
     import fcntl
     import termios
 
     ASYNCB_LOW_LATENCY = 13
 
-    ss = serial_struct()
+    ss = _serial_struct()
     fcntl.ioctl(sp, termios.TIOCGSERIAL, ss)
     ss.flags |= 1 << ASYNCB_LOW_LATENCY # pylint: disable=no-member
     fcntl.ioctl(sp, termios.TIOCSSERIAL, ss)
+
 
 
 class AVR(object):
@@ -88,7 +88,7 @@ class AVR(object):
             self.sp = serial.Serial(self.ctrl.args.serial, self.ctrl.args.baud,
                                     rtscts = 1, timeout = 0, write_timeout = 0)
             self.sp.nonblocking()
-            #serial_set_low_latency(self.sp)
+            #_serial_set_low_latency(self.sp)
 
         except Exception as e:
             self.sp = None

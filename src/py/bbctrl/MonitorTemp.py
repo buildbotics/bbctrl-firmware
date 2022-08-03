@@ -28,6 +28,8 @@
 import time
 import os
 
+__all__ = ['MonitorTemp']
+
 
 def read_temp():
     path = '/sys/class/thermal/thermal_zone0/temp'

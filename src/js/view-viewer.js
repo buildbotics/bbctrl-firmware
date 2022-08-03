@@ -27,9 +27,8 @@
 
 'use strict'
 
-var api    = require('./api');
-var cookie = require('./cookie');
-var util   = require('./util');
+var api  = require('./api');
+var util = require('./util');
 
 
 module.exports = {
@@ -37,13 +36,13 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       loading: false,
       retry: 0,
       path: undefined,
       toolpath: {},
-      progress: 0,
+      program: {},
       snaps: 'angled top bottom front back left right'.split(' ')
     }
   },
@@ -56,89 +55,54 @@ module.exports = {
 
 
   computed: {
-    filename: function () {return util.display_path(this.path)},
+    filename() {return util.display_path(this.path)},
 
 
-    show: function () {
+    show() {
       if (this.$refs.viewer == undefined) return {};
       return this.$refs.viewer.show;
     }
   },
 
 
-  watch: {
-    'state.queued': function () {
-      if (!this.path && this.state.queued) this.load(this.state.queued);
-    }
-  },
-
-
-  attached: function () {
-    var path = cookie.get('selected-path');
-    if (!path) path = this.state.queued;
-    this.load(path)
-  },
+  attached() {this.load(this.$root.selected_program.path)},
 
 
   methods: {
-    _load: function (path) {
-      this.loading = true;
+    load(path) {
+      if (this.path == path)
+        return Vue.nextTick(this.$refs.viewer.update_view)
 
-      api.get('path/' + path).done(function (toolpath) {
-        if (path != this.path) return;
-        this.retry = 0;
+      this.path = path
+      this.toolpath = {}
+      this.$refs.viewer.clear()
 
-        if (toolpath.progress == undefined) {
-          toolpath.path = path;
-          this.progress = 1;
-          this.toolpath = toolpath;
-          this.loading = false;
+      if (!path) return
+      this.loading = true
+      this.program = this.$root.select_path(path)
 
-        } else {
-          this._load(path); // Try again
-          this.progress = toolpath.progress;
-        }
+      this.program.view()
+        .done((toolpath) => {
+          if (path != this.path) return
+          this.toolpath = toolpath
+          Vue.nextTick(this.$refs.viewer.update)
 
-      }.bind(this)).fail(function (error, xhr) {
-        if (xhr.status == 404) {
-          this.loading = false;
-          this.$root.api_error('', error);
-          return
-        }
-
-        if (++this.retry < 10)
-          setTimeout(function () {this._load(path)}.bind(this), 5000);
-        else {
-          this.loading = false;
-          this.$root.api_error('3D view loading failed', error);
-        }
-      }.bind(this))
+        }).fail(this.$root.api_error)
+        .always(() => {
+          if (path == this.path) this.loading = false
+        })
     },
 
 
-    load: function(path) {
-      //if (!path || this.path == path) return;
-      if (!path) return;
-
-      cookie.set('selected-path', path)
-      this.path = path;
-      this.progress = 0;
-      this.toolpath = {};
-      this.$refs.viewer.clear();
-
-      if (path) this._load(path);
-    },
-
-
-    open: function () {
+    open() {
       this.$root.file_dialog({
-        callback: function (path) {this.load(path)}.bind(this),
+        callback: (path) => {this.load(path)},
         dir: util.dirname(this.path)
       })
     },
 
 
-    toggle: function (name) {this.$refs.viewer.toggle(name)},
-    snap: function (view) {this.$refs.viewer.snap(view)}
+    toggle(name) {this.$refs.viewer.toggle(name)},
+    snap(view) {this.$refs.viewer.snap(view)}
   }
 }

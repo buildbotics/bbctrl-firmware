@@ -41,8 +41,16 @@ from tornado import web, gen
 from tornado.concurrent import run_on_executor
 from concurrent.futures import ThreadPoolExecutor
 
-import bbctrl
+from . import util
+from .Log import *
+from .APIHandler import *
+from .RequestHandler import *
+from .Camera import *
+from .MonitorTemp import *
+from .FileSystemHandler import *
+from .Ctrl import *
 
+__all__ = ['Web']
 
 
 def call_get_output(cmd):
@@ -78,20 +86,20 @@ def check_password(password):
 
 
 
-class RebootHandler(bbctrl.APIHandler):
+class RebootHandler(APIHandler):
     def put_ok(self):
         self.get_ctrl().lcd.goodbye('Rebooting...')
         subprocess.Popen('reboot')
 
 
-class StateHandler(bbctrl.APIHandler):
+class StateHandler(APIHandler):
     def get(self, path):
         if path is None or path == '' or path == '/':
             self.write_json(self.get_ctrl().state.snapshot())
         else: self.write_json(self.get_ctrl().state.get(path[1:]))
 
 
-class LogHandler(bbctrl.RequestHandler):
+class LogHandler(RequestHandler):
     def get(self):
         with open(self.get_ctrl().log.get_path(), 'r') as f:
             self.write(f.read())
@@ -104,12 +112,12 @@ class LogHandler(bbctrl.RequestHandler):
         self.set_header('Content-Type', 'text/plain')
 
 
-class MessageAckHandler(bbctrl.APIHandler):
+class MessageAckHandler(APIHandler):
     def put_ok(self, id):
         self.get_ctrl().state.ack_message(int(id))
 
 
-class BugReportHandler(bbctrl.RequestHandler):
+class BugReportHandler(RequestHandler):
     executor = ThreadPoolExecutor(max_workers = 4)
 
 
@@ -131,7 +139,7 @@ class BugReportHandler(bbctrl.RequestHandler):
             check_add_basename('%s.%d' % (path, i))
         check_add_basename('/var/log/syslog')
         check_add(ctrl.config.get_path())
-        check_add(ctrl.fs.realpath(ctrl.queue.get()))
+        # TODO Add recently run programs
 
         return files
 
@@ -164,7 +172,7 @@ class BugReportHandler(bbctrl.RequestHandler):
         self.set_header('Content-Type', 'application/x-bzip2')
 
 
-class HostnameHandler(bbctrl.APIHandler):
+class HostnameHandler(APIHandler):
     def get(self): self.write_json(socket.gethostname())
 
     def put(self):
@@ -180,7 +188,7 @@ class HostnameHandler(bbctrl.APIHandler):
         raise HTTPError(400, 'Failed to set hostname')
 
 
-class WifiHandler(bbctrl.APIHandler):
+class WifiHandler(APIHandler):
     def get(self):
         data = {'ssid': '', 'channel': 0}
         try:
@@ -219,7 +227,7 @@ class WifiHandler(bbctrl.APIHandler):
         raise HTTPError(400, 'Failed to configure wifi')
 
 
-class UsernameHandler(bbctrl.APIHandler):
+class UsernameHandler(APIHandler):
     def get(self): self.write_json(get_username())
 
 
@@ -231,7 +239,7 @@ class UsernameHandler(bbctrl.APIHandler):
         else: raise HTTPError(400, 'Missing "username"')
 
 
-class PasswordHandler(bbctrl.APIHandler):
+class PasswordHandler(APIHandler):
     def put(self):
         if self.get_ctrl().args.demo:
             raise HTTPError(400, 'Cannot set password in demo mode')
@@ -254,11 +262,11 @@ class PasswordHandler(bbctrl.APIHandler):
         raise HTTPError(401, 'Failed to set password')
 
 
-class ConfigLoadHandler(bbctrl.APIHandler):
+class ConfigLoadHandler(APIHandler):
     def get(self): self.write_json(self.get_ctrl().config.load())
 
 
-class ConfigDownloadHandler(bbctrl.APIHandler):
+class ConfigDownloadHandler(APIHandler):
     def set_default_headers(self):
         fmt = socket.gethostname() + '-%Y%m%d.json'
         filename = datetime.date.today().strftime(fmt)
@@ -270,15 +278,15 @@ class ConfigDownloadHandler(bbctrl.APIHandler):
         self.write_json(self.get_ctrl().config.load(), pretty = True)
 
 
-class ConfigSaveHandler(bbctrl.APIHandler):
+class ConfigSaveHandler(APIHandler):
     def put_ok(self): self.get_ctrl().config.save(self.json)
 
 
-class ConfigResetHandler(bbctrl.APIHandler):
+class ConfigResetHandler(APIHandler):
     def put_ok(self): self.get_ctrl().config.reset()
 
 
-class FirmwareUpdateHandler(bbctrl.APIHandler):
+class FirmwareUpdateHandler(APIHandler):
     def prepare(self): pass
 
 
@@ -302,39 +310,39 @@ class FirmwareUpdateHandler(bbctrl.APIHandler):
         subprocess.Popen(['/usr/local/bin/update-bbctrl'])
 
 
-class UpgradeHandler(bbctrl.APIHandler):
+class UpgradeHandler(APIHandler):
     def put_ok(self):
         check_password(self.json['password'])
         self.get_ctrl().lcd.goodbye('Upgrading firmware')
         subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
 
 
-class QueueHandler(bbctrl.APIHandler):
-    def put_ok(self, path):
-        path = os.path.normpath(path)
-        if path.startswith('..'): raise HTTPError(400, 'Invalid path')
-        path = path.lstrip('./')
-
-        realpath = self.get_ctrl().fs.realpath(path)
-        if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
-        self.get_ctrl().queue.set(path)
-
-
-class USBUpdateHandler(bbctrl.APIHandler):
+class USBUpdateHandler(APIHandler):
     def put_ok(self): self.get_ctrl().fs.usb_update()
 
 
-class USBEjectHandler(bbctrl.APIHandler):
+class USBEjectHandler(APIHandler):
     def put_ok(self, path):
         subprocess.Popen(['/usr/local/bin/eject-usb', '/media/' + path])
 
 
-class MacroHandler(bbctrl.APIHandler):
+class MacroHandler(APIHandler):
     def put_ok(self, macro):
-        self.get_ctrl().mach.macro(int(macro))
+        macros = self.get_ctrl().config.get('macros')
+
+        macro = int(macro)
+        if macro < 0 or len(macros) < macro:
+            raise HTTPError(404, 'Invalid macro id %d' % macro)
+
+        path = 'Home/' + macros[macro - 1]['path']
+
+        if not self.get_ctrl().fs.exists(path):
+            raise HTTPError(404, 'Macro file not found')
+
+        self.get_ctrl().mach.start(path)
 
 
-class PathHandler(bbctrl.APIHandler):
+class PathHandler(APIHandler):
     @gen.coroutine
     def get(self, dataType, path, *args):
         if not os.path.exists(self.get_ctrl().fs.realpath(path)):
@@ -378,7 +386,7 @@ class PathHandler(bbctrl.APIHandler):
         except tornado.iostream.StreamClosedError as e: pass
 
 
-class HomeHandler(bbctrl.APIHandler):
+class HomeHandler(APIHandler):
     def put_ok(self, axis, action, *args):
         if axis is not None: axis = ord(axis[1:2].lower())
 
@@ -392,63 +400,71 @@ class HomeHandler(bbctrl.APIHandler):
         else: self.get_ctrl().mach.home(axis)
 
 
-class StartHandler(bbctrl.APIHandler):
-    def put_ok(self): self.get_ctrl().mach.start()
+class StartHandler(APIHandler):
+    def put_ok(self, path):
+        path = os.path.normpath(path)
+        if path.startswith('..'): raise HTTPError(400, 'Invalid path')
+        path = path.lstrip('./')
+
+        realpath = self.get_ctrl().fs.realpath(path)
+        if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
+
+        self.get_ctrl().mach.start(path)
 
 
-class EStopHandler(bbctrl.APIHandler):
+class EStopHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.estop()
 
 
-class ClearHandler(bbctrl.APIHandler):
+class ClearHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.clear()
 
 
-class StopHandler(bbctrl.APIHandler):
+class StopHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.stop()
 
 
-class PauseHandler(bbctrl.APIHandler):
+class PauseHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.pause()
 
 
-class UnpauseHandler(bbctrl.APIHandler):
+class UnpauseHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.unpause()
 
 
-class OptionalPauseHandler(bbctrl.APIHandler):
+class OptionalPauseHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.optional_pause()
 
 
-class StepHandler(bbctrl.APIHandler):
+class StepHandler(APIHandler):
     def put_ok(self): self.get_ctrl().mach.step()
 
 
-class PositionHandler(bbctrl.APIHandler):
+class PositionHandler(APIHandler):
     def put_ok(self, axis):
         self.get_ctrl().mach.set_position(axis, float(self.json['position']))
 
 
-class OverrideFeedHandler(bbctrl.APIHandler):
+class OverrideFeedHandler(APIHandler):
     def put_ok(self, value): self.get_ctrl().mach.override_feed(float(value))
 
 
-class OverrideSpeedHandler(bbctrl.APIHandler):
+class OverrideSpeedHandler(APIHandler):
     def put_ok(self, value): self.get_ctrl().mach.override_speed(float(value))
 
 
-class ModbusReadHandler(bbctrl.APIHandler):
+class ModbusReadHandler(APIHandler):
     def put_ok(self):
         self.get_ctrl().mach.modbus_read(int(self.json['address']))
 
 
-class ModbusWriteHandler(bbctrl.APIHandler):
+class ModbusWriteHandler(APIHandler):
     def put_ok(self):
         self.get_ctrl().mach.modbus_write(int(self.json['address']),
                                     int(self.json['value']))
 
 
-class JogHandler(bbctrl.APIHandler):
+class JogHandler(APIHandler):
     def put_ok(self):
         # Handle possible out of order jog command processing
         if 'ts' in self.json:
@@ -466,7 +482,7 @@ class JogHandler(bbctrl.APIHandler):
         self.get_ctrl().mach.jog(self.json)
 
 
-class KeyboardHandler(bbctrl.APIHandler):
+class KeyboardHandler(APIHandler):
     def set_keyboard(self, show):
         signal = 'SIGUSR' + ('1' if show else '2')
         subprocess.call(['killall', '-' + signal, 'bbkbd'])
@@ -566,15 +582,15 @@ class Web(tornado.web.Application):
 
         # Init camera
         if not args.disable_camera:
-            if self.args.demo: log = bbctrl.log.Log(args, ioloop, 'camera.log')
+            if self.args.demo: log = Log(args, ioloop, 'camera.log')
             else: log = self.get_ctrl().log
-            self.camera = bbctrl.Camera(ioloop, args, log.get('Camera'))
+            self.camera = Camera(ioloop, args, log.get('Camera'))
         else: self.camera = None
 
         # Init controller
         if not self.args.demo:
             self.get_ctrl()
-            self.monitor = bbctrl.MonitorTemp(self)
+            self.monitor = MonitorTemp(self)
 
         handlers = [
             (r'/websocket',                     WSConnection),
@@ -593,16 +609,15 @@ class Web(tornado.web.Application):
             (r'/api/config/reset',              ConfigResetHandler),
             (r'/api/firmware/update',           FirmwareUpdateHandler),
             (r'/api/upgrade',                   UpgradeHandler),
-            (r'/api/queue/(.*)',                QueueHandler),
             (r'/api/usb/update',                USBUpdateHandler),
             (r'/api/usb/eject/(.*)',            USBEjectHandler),
-            (r'/api/fs/(.*)',                   bbctrl.FileSystemHandler),
+            (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/macro/(\d+)',               MacroHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),
             (r'/api/(speeds)/(.*)',             PathHandler),
             (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
-            (r'/api/start',                     StartHandler),
+            (r'/api/start/(.*)',                StartHandler),
             (r'/api/estop',                     EStopHandler),
             (r'/api/clear',                     ClearHandler),
             (r'/api/stop',                      StopHandler),
@@ -616,10 +631,10 @@ class Web(tornado.web.Application):
             (r'/api/modbus/read',               ModbusReadHandler),
             (r'/api/modbus/write',              ModbusWriteHandler),
             (r'/api/jog',                       JogHandler),
-            (r'/api/video',                     bbctrl.VideoHandler),
+            (r'/api/video',                     VideoHandler),
             (r'/api/keyboard/((show)|(hide))',  KeyboardHandler),
             (r'/(.*)',                          StaticFileHandler, {
-                'path': bbctrl.get_resource('http/'),
+                'path': util.get_resource('http/'),
                 'default_filename': 'index.html'
             }),
         ]
@@ -640,7 +655,7 @@ class Web(tornado.web.Application):
 
 
     def get_image_resource(self, name):
-        return bbctrl.get_resource('http/images/%s.jpg' % name)
+        return util.get_resource('http/images/%s.jpg' % name)
 
 
     def opened(self, ctrl): ctrl.clear_timeout()
@@ -660,7 +675,7 @@ class Web(tornado.web.Application):
         if not id or not self.args.demo: id = ''
 
         if not id in self.ctrls:
-            ctrl = bbctrl.Ctrl(self.args, self.ioloop, id)
+            ctrl = Ctrl(self.args, self.ioloop, id)
             self.ctrls[id] = ctrl
 
         else: ctrl = self.ctrls[id]

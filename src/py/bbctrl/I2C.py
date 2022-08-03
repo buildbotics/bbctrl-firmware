@@ -35,6 +35,8 @@ try:
 except:
     smbus = None
 
+__all__ = ['I2C']
+
 
 class I2C(object):
     def __init__(self, port, disabled):

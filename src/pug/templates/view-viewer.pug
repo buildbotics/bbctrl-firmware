@@ -83,7 +83,7 @@ script#view-viewer-template(type="text/x-template")
 
       .filename {{filename}}
 
-    loading-message(v-if="loading", :progress="progress")
+    loading-message(v-if="loading", :progress="program.progress")
       p(slot="body").
         Simulating program to check for errors, calculate timing and generate
         3D view. Please wait...

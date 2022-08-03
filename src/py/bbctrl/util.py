@@ -25,41 +25,33 @@
 #                                                                              #
 ################################################################################
 
-import traceback
-from tornado.web import HTTPError
-import tornado.web
-
-from .Log import *
-
-__all__ = ['RequestHandler']
+from datetime import datetime
+import pkg_resources
+from pkg_resources import Requirement, resource_filename
 
 
-class RequestHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
+_version = pkg_resources.require('bbctrl')[0].version
+
+try:
+  with open('/sys/firmware/devicetree/base/model', 'r') as f:
+    _model = f.read()
+except: _model = 'unknown'
 
 
-    def get_ctrl(self):
-        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+# 16-bit less with wrap around
+def id16_less(a, b): return (1 << 15) < (a - b) & ((1 << 16) - 1)
 
 
-    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
-    def get_events(self): return self.get_ctrl().events
+def get_resource(path):
+  return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
 
 
-    def emit(self, event, *args, **kwargs):
-        self.get_events().emit(event, *args, **kwargs)
+def get_version(): return _version
+def get_model(): return _model
+def parse_version(s): return tuple([int(x) for x in s.split('.')])
+def version_less(a, b): return parse_version(a) < parse_version(b)
+def timestamp(): return datetime.now().strftime('%Y%m%d-%H%M%S')
 
 
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if (isinstance(value, HTTPError) and
-            400 <= value.status_code and value.status_code < 500): return
-
-        log = self.get_log()
-        log.set_level(Log.DEBUG)
-
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
+def timestamp_to_iso8601(ts):
+  return datetime.fromtimestamp(ts).replace(microsecond = 0).isoformat() + 'Z'

@@ -30,8 +30,7 @@ script#path-viewer-template(type="text/x-template")
     .path-viewer-content
 
     .path-viewer-messages(
-      v-if="typeof toolpath.messages != 'undefined' && " +
-        "toolpath.messages.length")
+      v-if="toolpath.messages != undefined && toolpath.messages.length")
       dragbar(title="Resize message panel.")
       table
         tr

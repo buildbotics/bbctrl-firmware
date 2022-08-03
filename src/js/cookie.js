@@ -54,7 +54,7 @@ var cookie = {
     d.setTime(d.getTime() + offset);
     var expires = 'expires=' + d.toUTCString();
     document.cookie =
-      cookie.prefix + name + '=' + value + ';' + expires + ';path=/';
+      cookie.prefix + name + '=' + value + ';' + expires + ';path=/;samesite=lax'
   },
 
 

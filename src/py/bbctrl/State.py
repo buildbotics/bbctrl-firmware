@@ -30,7 +30,10 @@ import copy
 import uuid
 import os
 import time
-import bbctrl
+
+from . import util
+
+__all__ = ['State']
 
 
 class State(object):
@@ -45,11 +48,6 @@ class State(object):
         self.machine_var_set = set()
         self.message_id = 0
 
-        try:
-            with open('/sys/firmware/devicetree/base/model', 'r') as f:
-                rpi_model = f.read()
-        except: rpi_model = 'unknown'
-
         # Defaults
         self.vars = {
             'line': -1,
@@ -59,7 +57,7 @@ class State(object):
             'speed': 0,
             'sid': str(uuid.uuid4()),
             'demo': ctrl.args.demo,
-            'rpi_model': rpi_model
+            'rpi_model': util.get_model()
         }
 
         # Add computed variable callbacks for each motor.

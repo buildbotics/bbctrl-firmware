@@ -1,10 +1,13 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v1.0.4
+ - Detect ``ngc``, ``tap``, ``txt`` and ``tpl`` program file extensions.
+ - Fixed bug where planner config changes were not reflected after program stop.
+ - Fixed "stuck in jogging" bug.
+
 ## v1.0.3
- - Fix for "stuck in jogging" bug.
  - Fix bug in stall detect homing.
- - Fix offset over/under detection bug.
  - Program power firmware on upgrade.
  - Remove inaccurate over/under detection feature.
  - Fix GCode editor File -> New.

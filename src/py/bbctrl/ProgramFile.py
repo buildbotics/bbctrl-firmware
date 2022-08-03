@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -25,41 +25,22 @@
 #                                                                              #
 ################################################################################
 
-import traceback
-from tornado.web import HTTPError
-import tornado.web
+from .Program import *
 
-from .Log import *
-
-__all__ = ['RequestHandler']
+__all__ = ['ProgramFile']
 
 
-class RequestHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
+class ProgramFile(Program):
+  status = 'running'
 
 
-    def get_ctrl(self):
-        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+  def __init__(self, ctrl, path, with_start = True):
+    super().__init__(ctrl)
+    self.path = path
+    self.with_start = with_start
 
 
-    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
-    def get_events(self): return self.get_ctrl().events
-
-
-    def emit(self, event, *args, **kwargs):
-        self.get_events().emit(event, *args, **kwargs)
-
-
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if (isinstance(value, HTTPError) and
-            400 <= value.status_code and value.status_code < 500): return
-
-        log = self.get_log()
-        log.set_level(Log.DEBUG)
-
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
+  def start(self, mach, planner):
+    planner.load(lambda: mach.end(self), self.path, None, self.with_start, True)
+    mach.resume()
+    return True

@@ -35,7 +35,10 @@ import signal
 import shutil
 from concurrent.futures import Future
 from tornado import gen, process, iostream
-import bbctrl
+
+from . import util
+
+__all__ = ['Preplanner']
 
 
 def hash_dump(o):
@@ -69,7 +72,7 @@ class Plan(object):
 
         # Copy planner state
         self.state = ctrl.state.snapshot()
-        self.config = ctrl.mach.planner.get_config(False, False)
+        self.config = ctrl.mach.planner.get_config(True, False)
         del self.config['default-units']
 
         self.progress = 0
@@ -128,7 +131,7 @@ class Plan(object):
         with tempfile.TemporaryDirectory() as tmpdir:
             cmd = (
                 '/usr/bin/env', 'python3',
-                bbctrl.get_resource('plan.py'),
+                util.get_resource('plan.py'),
                 os.path.abspath(self.gcode), json.dumps(self.state),
                 json.dumps(self.config),
                 '--max-time=%s' % self.preplanner.max_plan_time,

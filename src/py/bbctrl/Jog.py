@@ -29,6 +29,8 @@ import inevent
 from inevent.Constants import *
 import copy
 
+__all__ = ['Jog']
+
 
 config = {
     'deadband': 0.15,

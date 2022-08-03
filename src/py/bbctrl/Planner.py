@@ -29,16 +29,17 @@ import json
 import math
 import re
 import time
-import datetime
 from collections import deque
 
+from . import Cmd
+from .CommandQueue import *
+
 try:
-    import bbctrl.camotics as camotics # pylint: disable=no-name-in-module,import-error
+    from . import camotics # pylint: disable=no-name-in-module,import-error
 except:
     print('Error loading camotics')
 
-import bbctrl.Cmd as Cmd
-from bbctrl.CommandQueue import CommandQueue
+__all__ = ['Planner']
 
 
 reLogLine = re.compile(
@@ -64,10 +65,10 @@ class Planner():
         self.ctrl = ctrl
         self.log = ctrl.log.get('Planner')
         self.cmdq = CommandQueue(ctrl)
+        self.end_callbacks = deque()
         self.planner = None
         self._position_dirty = False
         self.where = ''
-        self.end_cb = None
 
         ctrl.state.add_listener(self._update)
 
@@ -89,7 +90,7 @@ class Planner():
         self.planner.set_position(self.ctrl.state.get_position())
 
 
-    def get_config(self, mdi, with_limits):
+    def get_config(self, with_start, with_limits):
         state = self.ctrl.state
         config = self.ctrl.config
         is_pwm = config.get('tool-type') == 'PWM Spindle'
@@ -120,7 +121,7 @@ class Planner():
             cfg['min-soft-limit'] = minLimit
             cfg['max-soft-limit'] = maxLimit
 
-        if not mdi:
+        if with_start:
             program_start = config.get('program-start')
             if program_start: cfg['program-start'] = program_start
 
@@ -179,15 +180,11 @@ class Planner():
         if line is not None: line = int(line)
         if column is not None: column = int(column)
 
-        if   level == 'I': self.log.info    (msg, where = where)
-        elif level == 'D': self.log.debug   (msg, where = where)
-        elif level == 'W': self.log.warning (msg, where = where)
-        elif level == 'E': self.log.error   (msg, where = where)
+        if   level == 'I': self.log.info   (msg, where = where)
+        elif level == 'D': self.log.debug  (msg, where = where)
+        elif level == 'W': self.log.warning(msg, where = where)
+        elif level == 'E': self.log.error  (msg, where = where)
         else: self.log.error('Could not parse planner log line: ' + line)
-
-
-    def _log_time(self, prefix):
-        self.log.info(prefix + datetime.datetime.now().isoformat())
 
 
     def _add_message(self, text):
@@ -310,8 +307,8 @@ class Planner():
             return Cmd.seek(sw, block['active'], block['error'])
 
         if type == 'end':
-            self.cmdq.enqueue(id, self._end_program, 'Program end: ')
-            return '' # Sends id
+            self.cmdq.enqueue(id, self._end_program, 'Program end')
+            return '' # Blank command still sends command id
 
         raise Exception('Unknown planner command "%s"' % type)
 
@@ -320,6 +317,7 @@ class Planner():
         cmd = self.__encode(block)
 
         if cmd is not None:
+            # Enqueue id with no callback to track command activity
             self.cmdq.enqueue(block['id'], None)
             return Cmd.set_sync('id', block['id']) + '\n' + cmd
 
@@ -339,7 +337,7 @@ class Planner():
 
 
     def reset(self, stop = True):
-        self._end_program()
+        self._end_program('Program reset', True)
         if stop: self.ctrl.mach.stop()
         self.planner = camotics.Planner()
         self.planner.set_resolver(self._get_var_cb)
@@ -351,33 +349,29 @@ class Planner():
         self.ctrl.state.reset()
 
 
-    def mdi(self, cmd, with_limits = True):
-        self.where = '<mdi>'
-        self.log.info('MDI:' + cmd)
-        self._sync_position()
-        self.planner.load_string(cmd, self.get_config(True, with_limits))
-        self.reset_times()
+    def _end_program(self, msg = None, end_all = False):
+        self.ctrl.state.set('active_program', None)
+
+        if end_all:
+            while len(self.end_callbacks):
+                self.end_callbacks.popleft()()
+
+        else: self.end_callbacks.popleft()()
+
+        if msg is not None: self.log.info(msg, time = True)
 
 
-    def _end_program(self, msg = None):
-        if self.end_cb is not None:
-            self.end_cb()
-            self.end_cb = None
-
-        if msg is not None: self._log_time(msg)
-
-
-    def load(self, path, done = None):
-        if done is not None and self.end_cb is not None:
-            raise Exception('End callback already set')
-
-        self.end_cb = done
+    def load(self, cb, path, mdi = None, with_start = True, with_limits = True):
+        self.end_callbacks.append(cb)
         self.where = path
-        path = self.ctrl.fs.realpath(path)
-        self.log.info('GCode:' + path)
-        self._log_time('Program Start: ')
+        self.log.info('Start: ' + path, time = True)
+        self.ctrl.state.set('active_program', path)
         self._sync_position()
-        self.planner.load(path, self.get_config(False, True))
+
+        config = self.get_config(with_start, with_limits)
+        if mdi is not None: self.planner.load_string(mdi, config)
+        else: self.planner.load(self.ctrl.fs.realpath(path), config)
+
         self.reset_times()
 
 
@@ -385,7 +379,7 @@ class Planner():
         try:
             self.planner.stop()
             self.cmdq.clear()
-            self._end_program('Program Stop: ')
+            self._end_program('Program stop', True)
 
         except:
             self.log.exception()
@@ -412,13 +406,12 @@ class Planner():
     def next(self):
         try:
             while self.planner.has_more():
-                cmd = self.planner.next()
-                cmd = self._encode(cmd)
+                cmd = self._encode(self.planner.next())
                 if cmd is not None: return cmd
 
         except RuntimeError as e:
             # Pass on the planner message
-            self.log.error(str(e));
+            self.log.error(str(e))
             self.stop()
 
         except:

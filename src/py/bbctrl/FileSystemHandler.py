@@ -28,10 +28,13 @@
 import os
 import stat
 import json
-import bbctrl
-from datetime import datetime
 from tornado import gen
 from tornado.web import HTTPError
+
+from .RequestHandler import *
+from . import util
+
+__all__ = ['FileSystemHandler']
 
 
 def clean_path(path):
@@ -42,11 +45,7 @@ def clean_path(path):
     return path.lstrip('./').replace('#', '-').replace('?', '-')
 
 
-def timestamp_to_iso8601(ts):
-    return datetime.fromtimestamp(ts).replace(microsecond = 0).isoformat() + 'Z'
-
-
-class FileSystemHandler(bbctrl.RequestHandler):
+class FileSystemHandler(RequestHandler):
     def get_fs(self): return self.get_ctrl().fs
     def delete(self, path): self.get_fs().delete(clean_path(path))
 
@@ -77,8 +76,8 @@ class FileSystemHandler(bbctrl.RequestHandler):
                     s = os.stat(realpath + '/' + name)
 
                     d = dict(name = name)
-                    d['created']  = timestamp_to_iso8601(s.st_ctime)
-                    d['modified'] = timestamp_to_iso8601(s.st_mtime)
+                    d['created']  = util.timestamp_to_iso8601(s.st_ctime)
+                    d['modified'] = util.timestamp_to_iso8601(s.st_mtime)
                     d['size']     = s.st_size
                     d['dir']      = stat.S_ISDIR(s.st_mode)
 

@@ -8,7 +8,7 @@
     "browserify": "",
     "jshint": "",
     "jstransformer-escape-html": "",
-    "jstransformer-stylus": "",
-    "pug-cli": ""
+    "jstransformer-stylus": "^1.5.0",
+    "pug-cli": "^1.0.0-alpha6"
   }
 }

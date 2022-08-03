@@ -27,13 +27,15 @@
 
 import json
 import traceback
-import bbctrl
-
 from tornado.web import HTTPError
 import tornado.httpclient
 
+from .RequestHandler import *
 
-class APIHandler(bbctrl.RequestHandler):
+__all__ = ['APIHandler']
+
+
+class APIHandler(RequestHandler):
     def delete(self, *args, **kwargs):
         self.delete_ok(*args, **kwargs)
         self.write_json('ok')

@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -25,41 +25,34 @@
 #                                                                              #
 ################################################################################
 
-import traceback
-from tornado.web import HTTPError
-import tornado.web
+from . import ObjGraph, util
 
-from .Log import *
-
-__all__ = ['RequestHandler']
+__all__ = ['Debugger']
 
 
-class RequestHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
+class Debugger:
+  def __init__(self, ioloop, freq = 60 * 15, depth = 100):
+    self.ioloop = ioloop
+    self.freq   = freq
+    self.depth  = depth
+    self._callback()
 
 
-    def get_ctrl(self):
-        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+  def _callback(self):
+    with open('bbctrl-debug-%s.log' % util.timestamp(), 'w') as log:
+      def line(name):
+        log.write('==== ' + name + ' ' + '=' * (74 - len(name)) + '\n')
 
+      line('Common')
+      ObjGraph.show_most_common_types(limit = self.depth, file = log)
 
-    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
-    def get_events(self): return self.get_ctrl().events
+      log.write('\n')
+      line('Growth')
+      ObjGraph.show_growth(limit = self.depth, file = log)
 
+      log.write('\n')
+      line('New IDs')
+      ObjGraph.get_new_ids(limit = self.depth, file = log)
 
-    def emit(self, event, *args, **kwargs):
-        self.get_events().emit(event, *args, **kwargs)
-
-
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if (isinstance(value, HTTPError) and
-            400 <= value.status_code and value.status_code < 500): return
-
-        log = self.get_log()
-        log.set_level(Log.DEBUG)
-
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
+      log.flush()
+      self.ioloop.call_later(self.freq, self._callback)

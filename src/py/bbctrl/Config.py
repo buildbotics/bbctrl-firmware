@@ -27,19 +27,14 @@
 
 import os
 import json
-import pkg_resources
 import subprocess
 import copy
 import glob
 import re
-from pkg_resources import Requirement, resource_filename
 
+from . import util
 
-def get_resource(path):
-    return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
-
-
-def parse_version(s): return tuple(map(int, s.split('.')))
+__all__ = ['Config']
 
 
 class Config(object):
@@ -50,10 +45,10 @@ class Config(object):
         self.values = {}
 
         try:
-            self.version = pkg_resources.require('bbctrl')[0].version
+            self.version = util.get_version()
 
             # Load config template
-            with open(get_resource('http/config-template.json'), 'r',
+            with open(util.get_resource('http/config-template.json'), 'r',
                       encoding = 'utf-8') as f:
                 self.template = json.load(f)
 
@@ -82,9 +77,9 @@ class Config(object):
             pat = re.compile(r'^.*/config-v(\d+\.\d+\.\d+)\.json$')
             for name in glob.glob(root + '/config-v*.json'):
                 m = pat.match(name)
-                if m: versions.append(parse_version(m.groups()[0]))
+                if m: versions.append(util.parse_version(m.groups()[0]))
 
-            current = parse_version(self.version)
+            current = util.parse_version(self.version)
             versions = list(filter(lambda v: v < current, versions))
             if len(versions):
                 return root + '/config-v%d.%d.%d.json' % max(versions)
@@ -168,9 +163,9 @@ class Config(object):
 
 
     def upgrade(self, config):
-        version = parse_version(config['version'])
+        version = util.parse_version(config['version'])
 
-        if version < parse_version(self.version):
+        if version < util.parse_version(self.version):
             self.log.info('Upgrading config from %s to %s' %
                           (version, self.version))
 

@@ -54,8 +54,12 @@ module.exports = {
     },
 
 
-    maxMaxVelocity: function () {
-      return 1 * (15 * this.umPerStep / this.motor.microsteps).toFixed(3);
+    maxStepsPerSecond: function () {return 250000},
+
+
+    maxMaxVelocity: function () { // In meters per minute
+      let metersPerUStep = this.umPerStep / this.motor.microsteps / 1000000
+      return 1 * (this.maxStepsPerSec * 60 * metersPerUStep).toFixed(3)
     },
 
 

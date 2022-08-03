@@ -49,10 +49,6 @@ module.exports = {
   },
 
 
-  ready() {
-  },
-
-
   methods: {
     on_change(e) {this.$emit('change', this.value)},
   }

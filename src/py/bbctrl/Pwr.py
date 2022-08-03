@@ -25,9 +25,10 @@
 #                                                                              #
 ################################################################################
 
-import bbctrl
-import bbctrl.Cmd as Cmd
-import pkg_resources
+from . import Cmd
+from . import util
+
+__all__ = ['Pwr']
 
 
 # Must match regs in pwr firmware
@@ -42,8 +43,6 @@ FLAGS_REG    = 7
 VERSION_REG  = 8
 
 reg_names = 'temp vin vout motor load1 load2 vdd pwr_flags pwr_version'.split()
-
-firmware_version = pkg_resources.require('bbctrl')[0].version
 
 
 def version_less(a, b):
@@ -185,7 +184,7 @@ class Pwr():
 
         else:
             self.lcd_page.text('%6s Pwr' % self.regs[VERSION_REG], 10, 1)
-            self.lcd_page.text('%6s Ver' % firmware_version, 10, 2)
+            self.lcd_page.text('%6s Ver' % util.get_version(), 10, 2)
 
         if len(update): self.ctrl.state.update(update)
 

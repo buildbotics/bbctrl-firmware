@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -29,24 +29,21 @@
 
 
 var Sock = function (url, retry, timeout) {
-  if (!(this instanceof Sock)) return new Sock(url, retry);
+  if (!(this instanceof Sock)) return new Sock(url, retry)
 
-  if (typeof retry == 'undefined') retry = 2000;
-  if (typeof timeout == 'undefined') timeout = 16000;
+  this.url       = url
+  this.retry     = retry   == undefined ? 2000  : retry
+  this.timeout   = timeout == undefined ? 16000 : timeout
+  this.divisions = 4
+  this.count     = 0
 
-  this.url = url;
-  this.retry = retry;
-  this.timeout = timeout;
-  this.divisions = 4;
-  this.count = 0;
-
-  this.connect();
+  this.connect()
 }
 
 
 Sock.prototype.onmessage = function () {}
-Sock.prototype.onopen = function () {}
-Sock.prototype.onclose = function () {}
+Sock.prototype.onopen    = function () {}
+Sock.prototype.onclose   = function () {}
 
 
 Sock.prototype.connect = function () {

@@ -27,10 +27,16 @@
 
 import os
 import shutil
-import bbctrl
+
+from . import util
+
+__all__ = ['FileSystem']
 
 
 class FileSystem:
+  extensions = ('.nc', '.gc', '.gcode', '.ngc', '.tap', '.txt', '.tpl')
+
+
   def __init__(self, ctrl):
     self.ctrl = ctrl
     self.log = ctrl.log.get('FileSystem')
@@ -42,9 +48,35 @@ class FileSystem:
     if not os.path.exists(upload):
       os.mkdir(upload)
       from shutil import copy
-      copy(bbctrl.get_resource('http/buildbotics.nc'), upload)
+      copy(util.get_resource('http/buildbotics.nc'), upload)
 
     self.usb_update()
+
+    self._update_first_file()
+    ctrl.events.on('invalidate', self._invalidate)
+
+
+  def _invalidate(self, path):
+    if path == self.ctrl.state.get('first_file', ''):
+      self._update_first_file()
+
+
+  def _update_first_file(self):
+    # Get GCode files from root upload directory
+    upload = self.ctrl.root + '/upload'
+
+    files = []
+    for path in os.listdir(upload):
+      parts = os.path.splitext(path)
+      if (len(parts) == 2 and parts[1] in self.extensions and
+          os.path.isfile(upload + '/' + path)):
+        files.append(path)
+
+    files.sort()
+
+    # Set first file
+    path = 'Home/' + files[0] if len(files) else ''
+    self.ctrl.state.set('first_file', path)
 
 
   def realpath(self, path):

@@ -27,9 +27,6 @@
 #                                                                              #
 ################################################################################
 
-import struct
-import base64
-import json
 
 # Keep this in sync with AVR code command.def
 SET          = '$'
@@ -62,10 +59,16 @@ SEEK_ERROR  = 1 << 1
 
 
 def encode_float(x):
-    return base64.b64encode(struct.pack('<f', x))[:-2].decode("utf-8")
+    import struct
+    import base64
+
+    return base64.b64encode(struct.pack('<f', x))[:-2].decode('utf-8')
 
 
 def decode_float(s):
+    import struct
+    import base64
+
     return struct.unpack('<f', base64.b64decode(s + '=='))[0]
 
 
@@ -183,7 +186,7 @@ def _get_pause_type(type):
 
 
 def pause(type): return '%s%d' % (PAUSE, _get_pause_type(type))
-def jog(axes): return JOG + encode_axes(axes)
+def jog(id, axes): return JOG + ('%04x' % id) + encode_axes(axes)
 
 
 def seek(switch, active, error):
@@ -278,6 +281,8 @@ def decode(cmd):
 
 
 def decode_and_print(cmd):
+    import json
+
     for data in decode(cmd):
         print(json.dumps(data))
 

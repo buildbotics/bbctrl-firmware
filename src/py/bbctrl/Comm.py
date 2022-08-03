@@ -30,9 +30,11 @@ import json
 import time
 import traceback
 from collections import deque
+from abc import *
 
-import bbctrl
-import bbctrl.Cmd as Cmd
+from . import Cmd
+
+__all__ = ['Comm']
 
 
 # Must be kept in sync with drv8711.h
@@ -66,7 +68,7 @@ def driver_flags_to_string(flags):
     return ', '.join(_driver_flags_to_string(flags))
 
 
-class Comm(object):
+class Comm(ABC):
     def __init__(self, ctrl, avr):
         self.ctrl = ctrl
         self.avr = avr
@@ -82,9 +84,10 @@ class Comm(object):
         # Let simulations proceed after timeout
         ctrl.ioloop.call_later(10, self.ctrl.ready)
 
-
-    def comm_next(self): raise Exception('Not implemented')
-    def comm_error(self): raise Exception('Not implemented')
+    @abstractmethod
+    def comm_next(self): pass
+    @abstractmethod
+    def comm_error(self): pass
 
 
     def is_active(self): return len(self.queue) or self.command is not None
@@ -95,12 +98,23 @@ class Comm(object):
         self.avr.i2c_command(cmd, byte, word, block)
 
 
+    def i2c_block(self, block): self.i2c_command(block[0], block = block[1:])
+    def i2c_set(self, name, value): self.i2c_block(Cmd.set(name, value))
+
+
+    def modbus_read(self, addr): self.i2c_block(Cmd.modbus_read(addr))
+
+
+    def modbus_write(self, addr, value):
+        self.i2c_block(Cmd.modbus_write(addr, value))
+
+
     def flush(self): self.avr.enable_write(True)
 
 
-    def _load_next_command(self, cmd):
+    def _prep_command(self, cmd):
         self.log.info('< ' + json.dumps(cmd).strip('"'))
-        self.command = bytes(cmd.strip() + '\n', 'utf-8')
+        return bytes(cmd.strip() + '\n', 'utf-8')
 
 
     def resume(self): self.queue_command(Cmd.RESUME)
@@ -132,14 +146,15 @@ class Comm(object):
             self.command = None
 
         # Load next command from queue
-        if len(self.queue): self._load_next_command(self.queue.popleft())
+        if len(self.queue):
+            self.command = self._prep_command(self.queue.popleft())
 
         # Load next command from callback
         else:
             cmd = self.comm_next() # pylint: disable=assignment-from-no-return
 
             if cmd is None: self.avr.enable_write(False) # Stop writing
-            else: self._load_next_command(cmd)
+            else: self.command = self._prep_command(cmd)
 
 
     def _update_vars(self, msg):

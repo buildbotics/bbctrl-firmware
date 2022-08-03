@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -25,41 +25,44 @@
 #                                                                              #
 ################################################################################
 
-import traceback
-from tornado.web import HTTPError
-import tornado.web
-
-from .Log import *
-
-__all__ = ['RequestHandler']
+__all__ = ['LCDPage']
 
 
-class RequestHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
+class LCDPage:
+    def __init__(self, lcd, text = None):
+        self.lcd = lcd
+        self.data = lcd.new_screen()
+
+        if text is not None:
+            self.text(text, (lcd.width - len(text)) // 2, 1)
 
 
-    def get_ctrl(self):
-        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+    def activate(self): pass
+    def deactivate(self): pass
 
 
-    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
-    def get_events(self): return self.get_ctrl().events
+    def put(self, c, x, y):
+        y += x // self.lcd.width
+        x %= self.lcd.width
+        y %= self.lcd.height
+
+        if self.data[x][y] != c:
+            self.data[x][y] = c
+            if self == self.lcd.page: self.lcd.update()
 
 
-    def emit(self, event, *args, **kwargs):
-        self.get_events().emit(event, *args, **kwargs)
+    def text(self, s, x, y):
+        for c in s:
+            self.put(c, x, y)
+            x += 1
 
 
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if (isinstance(value, HTTPError) and
-            400 <= value.status_code and value.status_code < 500): return
+    def clear(self):
+        self.data = self.lcd.new_screen()
+        self.lcd.redraw = True
 
-        log = self.get_log()
-        log.set_level(Log.DEBUG)
 
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
+    def shift_left(self): pass
+    def shift_right(self): pass
+    def shift_up(self): pass
+    def shift_down(self): pass

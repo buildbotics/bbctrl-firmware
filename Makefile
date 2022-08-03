@@ -112,6 +112,10 @@ update: pkg
 	  http://$(HOST)/api/firmware/update
 	@-tput sgr0 && echo # Fix terminal output
 
+ssh-update: pkg
+	scp scripts/update-bbctrl dist/$(PKG_NAME).tar.bz2 $(HOST):/tmp/
+	ssh -t $(HOST) "sudo /tmp/update-bbctrl /tmp/$(PKG_NAME).tar.bz2"
+
 build/templates.pug: $(TEMPLS)
 	mkdir -p build
 	cat $(TEMPLS) >$@

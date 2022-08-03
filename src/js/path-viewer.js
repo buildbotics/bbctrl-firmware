@@ -29,7 +29,6 @@
 
 var orbit  = require('./orbit');
 var cookie = require('./cookie');
-var api    = require('./api');
 var font   = require('./helvetiker_regular.typeface.json')
 
 
@@ -52,10 +51,9 @@ module.exports = {
   props: ['toolpath', 'state', 'config'],
 
 
-  data: function () {
+  data() {
     return {
       enabled: false,
-      loading: false,
       dirty: true,
       snapView: cookie.get('snap-view', 'angled'),
       surfaceMode: 'cut',
@@ -74,15 +72,15 @@ module.exports = {
 
 
   computed: {
-    target: function () {return $(this.$el).find('.path-viewer-content')[0]},
+    target() {return $(this.$el).find('.path-viewer-content')[0]},
 
 
-    metric: function () {
+    metric() {
       return this.config.settings.units.toLowerCase() == 'metric';
     },
 
 
-    envelope: function () {
+    envelope() {
       if (!this.axes.homed || !this.enabled) return undefined;
 
       var min = new THREE.Vector3();
@@ -99,86 +97,68 @@ module.exports = {
 
 
   watch: {
-    toolpath: function () {Vue.nextTick(this.update)},
-    envelope: function () {Vue.nextTick(this.redraw)},
-    metric: function () {Vue.nextTick(this.redraw)},
-    surfaceMode: function (mode) {this.update_surface_mode(mode)},
+    envelope() {this.redraw()},
+    metric() {this.redraw()},
+    surfaceMode(mode) {this.update_surface_mode(mode)},
 
-    x: function () {this.axis_changed()},
-    y: function () {this.axis_changed()},
-    z: function () {this.axis_changed()}
+    x() {this.axis_changed()},
+    y() {this.axis_changed()},
+    z() {this.axis_changed()}
   },
 
 
-  ready: function () {
-    this.graphics();
-    Vue.nextTick(this.update);
-  },
+  ready() {this.graphics()},
 
 
   methods: {
-    setShow: function (name, show) {
-      this.show[name] = show;
-      cookie.set_bool('show-' + name, show);
+    // From axis-vars
+    get_bounds() {return this.toolpath.bounds},
 
-      if (name == 'path')      this.pathView.visible = show;
-      if (name == 'tool')      this.toolView.visible = show;
-      if (name == 'axes')      this.axesView.visible = show;
-      if (name == 'grid')      this.gridView.visible = show;
-      if (name == 'dims')      this.dimsView.visible = show;
-      if (name == 'intensity') Vue.nextTick(this.redraw)
-      this.render_frame();
+
+    setShow(name, show) {
+      this.show[name] = show
+      cookie.set_bool('show-' + name, show)
+
+      if (name == 'path')      this.pathView.visible = show
+      if (name == 'tool')      this.toolView.visible = show
+      if (name == 'axes')      this.axesView.visible = show
+      if (name == 'grid')      this.gridView.visible = show
+      if (name == 'dims')      this.dimsView.visible = show
+      if (name == 'intensity') this.redraw()
+
+      this.render_frame()
     },
 
 
-    getShow: function (name) {return this.show[name]},
-    toggle: function (name) {this.setShow(name, !this.getShow(name))},
+    getShow(name) {return this.show[name]},
+    toggle(name) {this.setShow(name, !this.getShow(name))},
 
 
-    clear: function () {
+    clear() {
       this.scene = new THREE.Scene();
       if (this.renderer != undefined) this.render_frame();
     },
 
 
-    redraw: function () {
-      if (!this.enabled || this.loading) return;
+    redraw() {
+      if (!this.enabled) return;
       this.scene = new THREE.Scene();
       this.draw(this.scene);
     },
 
 
-    update: function () {
-      if (!this.toolpath.path && !this.loading) {
-        this.loading = true;
-        this.dirty = true;
-      }
-
-      if (!this.enabled || !this.toolpath.path) return;
-
-      var path = this.toolpath.path;
-      var d1 = api.download('positions/' + path, 'arraybuffer');
-      var d2 = api.download('speeds/' + path, 'arraybuffer');
-
-      $.when(d1, d2).done(function (positions, speeds) {
-        console.log('Loaded ' + path);
-
-        this.positions = new Float32Array(positions[0])
-        this.speeds = new Float32Array(speeds[0]);
-
-      }.bind(this)).fail(function () {
-        console.log('Loading ' + path + ' failed');
-
-      }.bind(this)).always(function () {
-        this.loading = false;
-        this.redraw();
-        this.snap(this.snapView);
-        this.update_view();
-      }.bind(this))
+    update() {
+      if (!this.enabled || !this.toolpath.positions) return
+      this.dirty = true
+      this.positions = this.toolpath.positions
+      this.speeds = this.toolpath.speeds
+      this.redraw()
+      this.snap(this.snapView)
+      this.update_view();
     },
 
 
-    update_surface_mode: function (mode) {
+    update_surface_mode(mode) {
       if (!this.enabled) return;
 
       if (typeof this.surfaceMaterial != 'undefined') {
@@ -191,7 +171,7 @@ module.exports = {
     },
 
 
-    load_surface: function (surface) {
+    load_surface(surface) {
       if (typeof surface == 'undefined') {
         this.vertices = undefined;
         this.normals = undefined;
@@ -209,13 +189,13 @@ module.exports = {
     },
 
 
-    set_visible: function (target, visible) {
+    set_visible(target, visible) {
       if (typeof target != 'undefined') target.visible = visible;
       this.dirty = true;
     },
 
 
-    get_dims: function () {
+    get_dims() {
       var t = $(this.target);
       var width = t.innerWidth();
       var height = t.innerHeight();
@@ -223,35 +203,35 @@ module.exports = {
     },
 
 
-    update_view: function () {
-      if (!this.enabled) return;
-      var dims = this.get_dims();
+    update_view() {
+      if (!this.enabled) return
+      var dims = this.get_dims()
 
-      this.camera.aspect = dims.width / dims.height;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(dims.width, dims.height);
-      this.dirty = true;
+      this.camera.aspect = dims.width / dims.height
+      this.camera.updateProjectionMatrix()
+      this.renderer.setSize(dims.width, dims.height)
+      this.dirty = true
     },
 
 
-    update_tool: function (tool) {
+    update_tool(tool) {
       if (!this.enabled) return;
-      if (typeof tool == 'undefined') tool = this.toolView;
-      if (typeof tool == 'undefined') return;
+      if (tool == undefined) tool = this.toolView;
+      if (tool == undefined) return;
       tool.position.x = this.x.pos;
       tool.position.y = this.y.pos;
       tool.position.z = this.z.pos;
     },
 
 
-    axis_changed: function () {
+    axis_changed() {
       if (!this.enabled) return;
       this.update_tool();
       this.dirty = true;
     },
 
 
-    graphics: function () {
+    graphics() {
       try {
         // Renderer
         this.renderer = new THREE.WebGLRenderer({
@@ -322,7 +302,7 @@ module.exports = {
     },
 
 
-    create_surface_material: function () {
+    create_surface_material() {
       return new THREE.MeshPhongMaterial({
         specular: 0x111111,
         shininess: 10,
@@ -332,7 +312,7 @@ module.exports = {
     },
 
 
-    draw_workpiece: function (scene, material) {
+    draw_workpiece(scene, material) {
       if (typeof this.workpiece == 'undefined') return undefined;
 
       var min = this.workpiece.min;
@@ -359,7 +339,7 @@ module.exports = {
     },
 
 
-    draw_surface: function (scene, material) {
+    draw_surface(scene, material) {
       if (typeof this.vertices == 'undefined') return;
 
       var geometry = new THREE.BufferGeometry();
@@ -376,7 +356,7 @@ module.exports = {
     },
 
 
-    draw_tool: function (scene, bbox) {
+    draw_tool(scene, bbox) {
       if (bbox.isEmpty()) return new THREE.Group();
 
       // Tool size is relative to bounds
@@ -405,7 +385,7 @@ module.exports = {
     },
 
 
-    draw_axis: function (axis, up, length, radius) {
+    draw_axis(axis, up, length, radius) {
       var color;
 
       if (axis == 0)      color = 0xff0000; // Red
@@ -432,7 +412,7 @@ module.exports = {
     },
 
 
-    draw_axes: function (scene, bbox) {
+    draw_axes(scene, bbox) {
       var size = bbox.getSize(new THREE.Vector3());
       var length = (size.x + size.y + size.z) / 3;
       length /= 10;
@@ -454,7 +434,7 @@ module.exports = {
     },
 
 
-    draw_grid: function (scene, bbox) {
+    draw_grid(scene, bbox) {
       // Grid size is relative to bounds
       var size = bbox.getSize(new THREE.Vector3());
       size = Math.max(size.x, size.y) * 16;
@@ -481,7 +461,7 @@ module.exports = {
     },
 
 
-    draw_text: function (text, size, color) {
+    draw_text(text, size, color) {
       var geometry = new THREE.TextGeometry(text, {
         font: new THREE.Font(font),
         size: size,
@@ -502,7 +482,7 @@ module.exports = {
     },
 
 
-    draw_box_dims: function (bounds, color) {
+    draw_box_dims(bounds, color) {
       var group = new THREE.Group();
 
       var dims = bounds.getSize(new THREE.Vector3());
@@ -549,7 +529,7 @@ module.exports = {
     },
 
 
-    draw_dims: function (scene, bbox) {
+    draw_dims(scene, bbox) {
       var group = new THREE.Group();
       group.visible = this.show.dims;
       scene.add(group);
@@ -567,7 +547,7 @@ module.exports = {
     },
 
 
-    get_color: function (speed) {
+    get_color(speed) {
       if (isNaN(speed)) return [255, 0, 0]; // Rapid
 
       var intensity = speed / this.toolpath.maxSpeed;
@@ -576,7 +556,7 @@ module.exports = {
     },
 
 
-    draw_path: function (scene) {
+    draw_path(scene) {
       if (this.positions.length < 6) return new THREE.Group();
 
       var geometry = new THREE.BufferGeometry();
@@ -610,7 +590,7 @@ module.exports = {
     },
 
 
-    draw: function (scene) {
+    draw(scene) {
       // Lights
       scene.add(this.ambient);
       scene.add(this.lights);
@@ -633,22 +613,22 @@ module.exports = {
     },
 
 
-    render_frame: function () {this.renderer.render(this.scene, this.camera)},
+    render_frame() {this.renderer.render(this.scene, this.camera)},
 
 
-    render: function () {
-      window.requestAnimationFrame(this.render);
-      if (typeof this.scene == 'undefined') return;
+    render() {
+      window.requestAnimationFrame(this.render)
+      if (this.scene == undefined) return
 
       if (this.controls.update() || this.dirty) {
-        this.dirty = false;
-        this.render_frame();
+        this.dirty = false
+        this.render_frame()
       }
     },
 
 
-    get_model_bounds: function (real) {
-      var bbox = undefined;
+    get_model_bounds(real) {
+      var bbox
 
       function add(o) {
         if (o == undefined) return
@@ -671,8 +651,7 @@ module.exports = {
     },
 
 
-    snap: function (view) {
-      if (this.loading) return;
+    snap(view) {
       if (view != this.snapView) {
         this.snapView = view;
         cookie.set('snap-view', view);

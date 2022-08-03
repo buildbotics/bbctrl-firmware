@@ -66,6 +66,7 @@ inline static bool fp_FALSE(float a) {return fp_ZERO(a);}
 inline static bool fp_TRUE(float a) {return !fp_ZERO(a);}
 
 int8_t decode_hex_nibble(char c);
+bool decode_hex_u16(char **s, uint16_t *x);
 bool decode_float(char **s, float *f);
 stat_t decode_axes(char **cmd, float axes[AXES]);
 void format_hex_buf(char *buf, const uint8_t *data, unsigned len);

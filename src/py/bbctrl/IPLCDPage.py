@@ -27,11 +27,13 @@
 
 import subprocess
 
-import bbctrl
+from .LCDPage import *
+
+__all__ = ['IPLCDPage']
 
 
-class IPLCDPage(bbctrl.LCDPage):
-    # From bbctrl.LCDPage
+class IPLCDPage(LCDPage):
+    # From LCDPage
     def activate(self):
         p = subprocess.Popen(['hostname', '-I'], stdout = subprocess.PIPE)
         ips = p.communicate()[0].decode('utf-8').split()

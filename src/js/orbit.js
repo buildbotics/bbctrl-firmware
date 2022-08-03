@@ -25,6 +25,8 @@
 
 \******************************************************************************/
 
+'use strict'
+
 /**
  * @author qiao        / https://github.com/qiao
  * @author mrdoob      / https://mrdoob.com
@@ -786,7 +788,8 @@ THREE.OrbitControls = function ( object, domElement ) {
                 // Manually set the focus since calling preventDefault above
                 // prevents the browser from setting it automatically.
 
-                scope.domElement.focus ? scope.domElement.focus() : window.focus();
+                if (scope.domElement.focus) scope.domElement.focus()
+                else window.focus()
 
                 switch ( event.button ) {
 

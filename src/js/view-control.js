@@ -48,7 +48,7 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       mach_units: 'METRIC',
       mdi: '',
@@ -61,7 +61,8 @@ module.exports = {
       jog_step: cookie.get_bool('jog-step'),
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       tab: 'auto',
-      highlighted_line: 0
+      highlighted_line: 0,
+      toolpath: {}
     }
   },
 
@@ -73,37 +74,40 @@ module.exports = {
 
   watch: {
     'state.imperial': {
-      handler: function (imperial) {
+      handler(imperial) {
         this.mach_units = imperial ? 'IMPERIAL' : 'METRIC';
       },
       immediate: true
     },
 
 
-    mach_units: function (units) {
+    mach_units(units) {
       if ((units == 'METRIC') != this.metric)
         this.send(units == 'METRIC' ? 'G21' : 'G20');
     },
 
 
-    'state.line': function () {
+    'state.line'() {
       if (this.mach_state != 'HOMING') this.highlight_code();
     },
 
 
-    'state.selected_time': function () {this.load()},
-    'state.queued_modified': function () {this.load(this.state.queued)},
-    jog_step: function () {cookie.set_bool('jog-step', this.jog_step)},
-    jog_adjust: function () {cookie.set('jog-adjust', this.jog_adjust)}
+    'active.path'() {this.load()},
+    jog_step() {cookie.set_bool('jog-step', this.jog_step)},
+    jog_adjust() {cookie.set('jog-adjust', this.jog_adjust)}
   },
 
 
   computed: {
-    filename: function () {return util.display_path(this.state.queued)},
-    metric: function () {return !this.state.imperial},
+    active() {
+      return this.$root.active_program || this.$root.selected_program
+    },
 
 
-    mach_state: function () {
+    metric() {return !this.state.imperial},
+
+
+    mach_state() {
       var cycle = this.state.cycle;
       var state = this.state.xx;
 
@@ -114,38 +118,38 @@ module.exports = {
     },
 
 
-    pause_reason: function () {return this.state.pr},
+    pause_reason() {return this.state.pr},
 
 
-    is_running: function () {
+    is_running() {
       return this.mach_state == 'RUNNING' || this.mach_state == 'HOMING';
     },
 
 
-    is_stopping: function () {return this.mach_state == 'STOPPING'},
-    is_holding: function () {return this.mach_state == 'HOLDING'},
-    is_ready: function () {return this.mach_state == 'READY'},
-    is_idle: function () {return this.state.cycle == 'idle'},
+    is_stopping() {return this.mach_state  == 'STOPPING'},
+    is_holding()  {return this.mach_state  == 'HOLDING'},
+    is_ready()    {return this.mach_state  == 'READY'},
+    is_idle()     {return this.state.cycle == 'idle'},
 
 
-    is_paused: function () {
+    is_paused() {
       return this.is_holding &&
         (this.pause_reason == 'User pause' ||
          this.pause_reason == 'Program pause')
     },
 
 
-    can_mdi: function () {return this.is_idle || this.state.cycle == 'mdi'},
+    can_mdi() {return this.is_idle || this.state.cycle == 'mdi'},
 
 
-    can_set_axis: function () {
+    can_set_axis() {
       return this.is_idle
       // TODO allow setting axis position during pause
-      return this.is_idle || this.is_paused
+      //   return this.is_idle || this.is_paused
     },
 
 
-    message: function () {
+    message() {
       if (this.mach_state == 'ESTOPPED') return this.state.er;
       if (this.mach_state == 'HOLDING') return this.state.pr;
       if (this.state.messages.length)
@@ -154,23 +158,22 @@ module.exports = {
     },
 
 
-    highlight_state: function () {
+    highlight_state() {
       return this.mach_state == 'ESTOPPED' || this.mach_state == 'HOLDING';
     },
 
 
-    total_time: function () {return this.state.queued_time},
-    plan_time: function () {return this.state.plan_time},
+    plan_time() {return this.state.plan_time},
 
 
-    remaining: function () {
+    remaining() {
       if (!(this.is_stopping || this.is_running || this.is_holding)) return 0;
-      if (this.total_time < this.plan_time) return 0;
-      return this.total_time - this.plan_time
+      if (this.active.time < this.plan_time) return 0;
+      return this.active.time - this.plan_time
     },
 
 
-    eta: function () {
+    eta() {
       if (this.mach_state != 'RUNNING') return '';
       var d = new Date();
       d.setSeconds(d.getSeconds() + this.remaining);
@@ -178,36 +181,36 @@ module.exports = {
     },
 
 
-    simulating: function () {
-      return 0 < this.state.queued_progress && this.state.queued_progress < 1
+    simulating() {
+      return 0 < this.active.progress && this.active.progress < 1
     },
 
 
-    progress: function () {
-      if (this.simulating) return this.state.queued_progress;
+    progress() {
+      if (this.simulating) return this.active.progress;
 
-      if (!this.total_time || this.is_ready) return 0;
-      var p = this.plan_time / this.total_time;
+      if (!this.active.time || this.is_ready) return 0;
+      var p = this.plan_time / this.active.time;
       return p < 1 ? p : 1;
     }
   },
 
 
   events: {
-    jog: function (axis, power) {
+    jog(axis, power) {
       var data = {ts: new Date().getTime()};
       data[axis] = power;
       api.put('jog', data);
     },
 
 
-    step: function (axis, value) {
+    step(axis, value) {
       this.send('M70\nG91\nG0' + axis + value + '\nM72');
     }
   },
 
 
-  ready: function () {
+  ready() {
     this.editor = CodeMirror.fromTextArea(this.$els.gcodeView, {
       readOnly: true,
       lineNumbers: true,
@@ -215,32 +218,33 @@ module.exports = {
     })
 
     this.editor.on('scrollCursorIntoView', this.on_scroll);
-
-    this.load(this.state.queued)
+    this.load()
   },
 
 
-  attached: function () {
-    if (this.editor != undefined) this.editor.refresh()
-  },
+  attached() {if (this.editor) this.editor.refresh()},
 
 
   methods: {
-    goto: function (hash) {window.location.hash = hash},
-    send: function (msg) {this.$dispatch('send', msg)},
-    on_scroll: function (cm, e) {e.preventDefault()},
+    // From axis-vars
+    get_bounds() {return this.toolpath.bounds},
 
 
-    run_macro: function (macro) {
+    goto(hash) {window.location.hash = hash},
+    send(msg) {this.$dispatch('send', msg)},
+    on_scroll(cm, e) {e.preventDefault()},
+
+
+    run_macro(macro) {
       api.put('macro/' + macro)
-        .fail(function (error) {
-          this.$root.error_dialog('Failed to run macro "' + macro + '":\n' +
-                                  error.message);
-        }.bind(this))
+        .fail((error) => {
+          this.$root.error_dialog(
+            'Failed to run macro "' + macro + '":\n' + error.message)
+        })
     },
 
 
-    highlight_code: function () {
+    highlight_code() {
       if (typeof this.editor == 'undefined') return;
       var line = this.state.line - 1;
       var doc = this.editor.getDoc();
@@ -255,21 +259,28 @@ module.exports = {
     },
 
 
-    load: function (path) {
-      if (path == undefined) return;
+    load() {
+      let path = this.active.path
+      if (!path) return
 
-      api.download('fs/' + path)
-        .done(function (data) {
-          if (this.state.queued != path) return;
+      this.active.load()
+        .done((data) => {
+          if (this.active.path != path) return
 
           this.editor.setOption('mode', util.get_highlight_mode(path))
-          this.editor.setValue(data);
-          this.highlight_code();
-        }.bind(this))
+          this.editor.setValue(data)
+          this.highlight_code()
+        })
+
+      this.active.toolpath()
+        .done((data) => {
+          if (this.active.path != path) return
+          this.toolpath = data
+        })
     },
 
 
-    submit_mdi: function () {
+    submit_mdi() {
       this.send(this.mdi);
       if (!this.history.length || this.history[0] != this.mdi)
         this.history.unshift(this.mdi);
@@ -277,7 +288,7 @@ module.exports = {
     },
 
 
-    mdi_start_pause: function () {
+    mdi_start_pause() {
       if (this.state.xx == 'RUNNING') this.pause();
 
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
@@ -287,10 +298,10 @@ module.exports = {
     },
 
 
-    load_history: function (index) {this.mdi = this.history[index];},
+    load_history(index) {this.mdi = this.history[index];},
 
 
-    home: function (axis) {
+    home(axis) {
       if (typeof axis == 'undefined') api.put('home');
 
       else {
@@ -300,43 +311,43 @@ module.exports = {
     },
 
 
-    set_home: function (axis, position) {
+    set_home(axis, position) {
       this.manual_home[axis] = false;
       api.put('home/' + axis + '/set', {position: parseFloat(position)});
     },
 
 
-    unhome: function (axis) {
+    unhome(axis) {
       this.position_msg[axis] = false;
       api.put('home/' + axis + '/clear');
     },
 
 
-    show_set_position: function (axis) {
+    show_set_position(axis) {
       this.axis_position = 0;
       this.position_msg[axis] = true;
     },
 
 
-    set_position: function (axis, position) {
+    set_position(axis, position) {
       this.position_msg[axis] = false;
       api.put('position/' + axis, {'position': parseFloat(position)});
     },
 
 
-    zero_all: function () {
+    zero_all() {
       for (var axis of 'xyzabc')
         if (this[axis].enabled) this.zero(axis);
     },
 
 
-    zero: function (axis) {
+    zero(axis) {
       if (typeof axis == 'undefined') this.zero_all();
       else this.set_position(axis, 0);
     },
 
 
-    start_pause: function () {
+    start_pause() {
       if (this.state.xx == 'RUNNING') this.pause();
 
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
@@ -346,29 +357,29 @@ module.exports = {
     },
 
 
-    start: function () {api.put('start')},
-    pause: function () {api.put('pause')},
-    unpause: function () {api.put('unpause')},
-    optional_pause: function () {api.put('pause/optional')},
-    stop: function () {api.put('stop')},
-    step: function () {api.put('step')},
+    start()          {api.put('start/' + this.$root.selected_program.path)},
+    pause()          {api.put('pause')},
+    unpause()        {api.put('unpause')},
+    optional_pause() {api.put('pause/optional')},
+    stop()           {api.put('stop')},
+    step()           {api.put('step')},
 
 
-    open: function () {
-      var path = this.state.queued;
+    open() {
+      let path = this.active.path
 
       this.$root.file_dialog({
-        callback: function (path) {if (path) api.put('queue/' + path)},
+        callback: (path) => {if (path) this.$root.select_path(path)},
         dir: path ? util.dirname(path) : '/'
       })
     },
 
 
-    edit: function () {this.$root.edit(this.state.queued)},
-    view: function () {this.$root.view(this.state.queued)},
+    edit() {this.$root.edit(this.active.path)},
+    view() {this.$root.view(this.active.path)},
 
 
-    current: function (axis, value) {
+    current(axis, value) {
       var x = value / 32.0;
       if (this.state[axis + 'pl'] == x) return;
 

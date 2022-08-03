@@ -25,18 +25,18 @@
 #                                                                              #
 ################################################################################
 
-import bbctrl
 from collections import deque
 
+from . import util
+from .Log import *
 
-# 16-bit less with wrap around
-def id_less(a, b): return (1 << 15) < (a - b) & ((1 << 16) - 1)
+__all__ = ['CommandQueue']
 
 
 class CommandQueue():
     def __init__(self, ctrl):
         self.log = ctrl.log.get('CmdQ')
-        self.log.set_level(bbctrl.log.WARNING)
+        self.log.set_level(Log.WARNING)
 
         self.lastEnqueueID = 0
         self.releaseID = 0
@@ -64,7 +64,7 @@ class CommandQueue():
             id, cb, args, kwargs = self.q[0]
 
             # Execute commands <= releaseID
-            if id_less(self.releaseID, id): return
+            if util.id16_less(self.releaseID, id): return
 
             self.log.info('releasing id=%d' % id)
             self.q.popleft()
@@ -77,7 +77,7 @@ class CommandQueue():
 
 
     def release(self, id):
-        if id and not id_less(self.releaseID, id):
+        if id and not util.id16_less(self.releaseID, id):
             self.log.debug('id out of order %d <= %d' % (id, self.releaseID))
         self.releaseID = id
 

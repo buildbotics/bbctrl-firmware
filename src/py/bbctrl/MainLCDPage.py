@@ -25,12 +25,14 @@
 #                                                                              #
 ################################################################################
 
-import bbctrl
+from .LCDPage import *
+
+__all__ = ['MainLCDPage']
 
 
-class MainLCDPage(bbctrl.LCDPage):
+class MainLCDPage(LCDPage):
     def __init__(self, ctrl):
-        bbctrl.LCDPage.__init__(self, ctrl.lcd)
+        super().__init__(ctrl.lcd)
 
         self.ctrl = ctrl
         self.install = True

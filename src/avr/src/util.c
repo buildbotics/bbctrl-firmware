@@ -63,6 +63,17 @@ int8_t decode_hex_nibble(char c) {
 }
 
 
+bool decode_hex_u16(char **s, uint16_t *x) {
+  for (int i = 0; i < 4; i++) {
+    int8_t n = decode_hex_nibble(*(*s)++);
+    if (n < 0) return false;
+    *x = *x << 4 | n;
+  }
+
+  return true;
+}
+
+
 bool decode_float(char **s, float *f) {
   bool ok = b64_decode_float(*s, f) && isfinite(*f);
   *s += 6;

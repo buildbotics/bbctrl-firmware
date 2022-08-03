@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -25,41 +25,55 @@
 #                                                                              #
 ################################################################################
 
-import traceback
-from tornado.web import HTTPError
-import tornado.web
+from .Program import *
 
-from .Log import *
-
-__all__ = ['RequestHandler']
+__all__ = ['ProgramMDI']
 
 
-class RequestHandler(tornado.web.RequestHandler):
-    def __init__(self, app, request, **kwargs):
-        super().__init__(app, request, **kwargs)
-        self.app = app
+class ProgramMDI(Program):
+  status = 'mdi'
 
 
-    def get_ctrl(self):
-        return self.app.get_ctrl(self.get_cookie('bbctrl-client-id'))
+  def __init__(self, ctrl, cmd, with_limits = True):
+    super().__init__(ctrl)
+
+    self.cmd = cmd
+    self.with_limits = with_limits
+    self.log = self.ctrl.log.get('MDI')
 
 
-    def get_log(self, name = 'API'): return self.get_ctrl().log.get(name)
-    def get_events(self): return self.get_ctrl().events
+  def _start_var_cmd(self, cmd):
+    state = self.ctrl.state
+    equal = cmd.find('=')
+
+    if equal == -1:
+      # Log state variable
+      self.log.info('%s=%s' % (cmd, state.get(cmd[1:])))
+
+    else:
+      # Set state variable
+      name, value = cmd[1:equal], cmd[equal + 1:]
+
+      if value.lower() == 'true': value = True
+      elif value.lower() == 'false': value = False
+      else:
+        try:
+          value = float(value)
+        except: pass
+
+        state.config(name, value)
 
 
-    def emit(self, event, *args, **kwargs):
-        self.get_events().emit(event, *args, **kwargs)
+  def start(self, mach, planner):
+    if self.cmd:
+      self.log.info(self.cmd)
 
+      if self.cmd[0] == '$': self._start_var_cmd(self.cmd)
+      elif self.cmd[0] == '\\': mach.queue_command(self.cmd[1:])
+      else:
+        end_cb = lambda: mach.end(self)
+        planner.load(end_cb, '<mdi>', self.cmd, False, self.with_limits)
+        mach.resume()
+        return True
 
-    # Override exception logging
-    def log_exception(self, typ, value, tb):
-        if (isinstance(value, HTTPError) and
-            400 <= value.status_code and value.status_code < 500): return
-
-        log = self.get_log()
-        log.set_level(Log.DEBUG)
-
-        log.error(str(value))
-        trace = ''.join(traceback.format_exception(typ, value, tb))
-        log.debug(trace)
+    return False

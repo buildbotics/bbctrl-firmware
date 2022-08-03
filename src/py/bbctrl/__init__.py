@@ -27,105 +27,10 @@
 #                                                                              #
 ################################################################################
 
-import os
-import sys
-import signal
-import tornado
-import argparse
-import datetime
 
-from pkg_resources import Requirement, resource_filename
+def _parse_args():
+    import argparse
 
-from bbctrl.RequestHandler import RequestHandler
-from bbctrl.APIHandler import APIHandler
-from bbctrl.FileSystemHandler import FileSystemHandler
-from bbctrl.FileSystem import FileSystem
-from bbctrl.ProgramQueue import ProgramQueue
-from bbctrl.Config import Config
-from bbctrl.LCD import LCD, LCDPage
-from bbctrl.Mach import Mach
-from bbctrl.Web import Web
-from bbctrl.Jog import Jog
-from bbctrl.Ctrl import Ctrl
-from bbctrl.Pwr import Pwr
-from bbctrl.I2C import I2C
-from bbctrl.Planner import Planner
-from bbctrl.Preplanner import Preplanner
-from bbctrl.State import State
-from bbctrl.Comm import Comm
-from bbctrl.CommandQueue import CommandQueue
-from bbctrl.MainLCDPage import MainLCDPage
-from bbctrl.IPLCDPage import IPLCDPage
-from bbctrl.Camera import Camera, VideoHandler
-from bbctrl.AVR import AVR
-from bbctrl.AVREmu import AVREmu
-from bbctrl.IOLoop import IOLoop
-from bbctrl.Events import Events
-from bbctrl.MonitorTemp import MonitorTemp
-import bbctrl.Cmd as Cmd
-import bbctrl.v4l2 as v4l2
-import bbctrl.Log as log
-import bbctrl.ObjGraph as ObjGraph
-
-try:
-    import bbctrl.camotics as camotics
-except:
-    print('Error loading camotics')
-
-ctrl = None
-
-
-def get_resource(path):
-    return resource_filename(Requirement.parse('bbctrl'), 'bbctrl/' + path)
-
-
-def on_exit(sig = 0, func = None):
-    global ctrl
-
-    print('Exit handler triggered: signal = %d', sig)
-
-    if ctrl is not None:
-        ctrl.close()
-        ctrl = None
-
-    sys.exit(0)
-
-
-def time_str():
-    return datetime.datetime.now().strftime('%Y%m%d-%H:%M:%S')
-
-
-
-class Debugger:
-    def __init__(self, ioloop, freq = 60 * 15, depth = 100):
-        self.ioloop = ioloop
-        self.freq = freq
-        self.depth = depth
-        self._callback()
-
-
-    def _callback(self):
-        with open('bbctrl-debug-%s.log' % time_str(), 'w') as log:
-            def line(name):
-                log.write('==== ' + name + ' ' + '=' * (74 - len(name)) + '\n')
-
-            line('Common')
-            ObjGraph.show_most_common_types(limit = self.depth, file = log)
-
-            log.write('\n')
-            line('Growth')
-            ObjGraph.show_growth(limit = self.depth, file = log)
-
-            log.write('\n')
-            line('New IDs')
-            ObjGraph.get_new_ids(limit = self.depth, file = log)
-
-            log.flush()
-            self.ioloop.call_later(self.freq, self._callback)
-
-
-
-def parse_args():
     parser = argparse.ArgumentParser(
         description = 'Buildbotics Machine Controller')
 
@@ -170,30 +75,27 @@ def parse_args():
 
 
 def run():
-    global ctrl
+    import os
+    import tornado
+    from . import util
+    from .Debugger import Debugger
+    from .Web import Web
 
-    args = parse_args()
-
-    # Set signal handler
-    signal.signal(signal.SIGTERM, on_exit)
+    args = _parse_args()
 
     # Create ioloop
     ioloop = tornado.ioloop.IOLoop.current()
 
-    # Set ObjGraph signal handler
+    # Debug handler
     if args.debug: Debugger(ioloop, args.debug)
 
     # Set TPL path
     os.environ['TPL_PATH'] = \
-        '/var/lib/bbctrl/upload/lib/:' + get_resource('tpl_lib/')
+        '/var/lib/bbctrl/upload/lib/:' + util.get_resource('tpl_lib/')
 
     # Start server
-    web = Web(args, ioloop)
-
-    try:
-        ioloop.start()
-
-    except KeyboardInterrupt: on_exit()
+    Web(args, ioloop)
+    ioloop.start()
 
 
 if __name__ == '__main__': run()

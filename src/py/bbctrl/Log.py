@@ -28,27 +28,12 @@
 import os
 import sys
 import io
-import datetime
 import traceback
-import pkg_resources
 from inspect import getframeinfo, stack
-import bbctrl
 
+from . import util
 
-DEBUG    = 0
-INFO     = 1
-MESSAGE  = 2
-WARNING  = 3
-ERROR    = 4
-
-
-level_names = 'debug info message warning error'.split()
-
-def get_level_name(level): return level_names[level]
-
-
-# Get this file's name
-_srcfile = os.path.normcase(get_level_name.__code__.co_filename)
+__all__ = ['Log']
 
 
 class Logger(object):
@@ -59,7 +44,7 @@ class Logger(object):
 
 
     def set_level(self, level): self.level = level
-    def _enabled(self, level): return self.level <= level and level <= ERROR
+    def _enabled(self, level): return self.level <= level and level <= Log.ERROR
 
 
     def _find_caller(self):
@@ -70,7 +55,7 @@ class Logger(object):
             co = f.f_code
 
             filename = os.path.normcase(co.co_filename)
-            if filename == _srcfile:
+            if filename == Logger.__init__.__code__.co_filename:
                 f = f.f_back
                 continue
 
@@ -91,34 +76,42 @@ class Logger(object):
         self.log._log(msg, level = level, prefix = self.name, **kwargs)
 
 
-    def debug  (self, *args, **kwargs): self._log(DEBUG,   *args, **kwargs)
-    def message(self, *args, **kwargs): self._log(MESSAGE, *args, **kwargs)
-    def info   (self, *args, **kwargs): self._log(INFO,    *args, **kwargs)
-    def warning(self, *args, **kwargs): self._log(WARNING, *args, **kwargs)
-    def error  (self, *args, **kwargs): self._log(ERROR,   *args, **kwargs)
+    def debug  (self, *args, **kwargs): self._log(Log.DEBUG,   *args, **kwargs)
+    def message(self, *args, **kwargs): self._log(Log.MESSAGE, *args, **kwargs)
+    def info   (self, *args, **kwargs): self._log(Log.INFO,    *args, **kwargs)
+    def warning(self, *args, **kwargs): self._log(Log.WARNING, *args, **kwargs)
+    def error  (self, *args, **kwargs): self._log(Log.ERROR,   *args, **kwargs)
 
 
     def exception(self, *args, **kwargs):
         msg = traceback.format_exc()
         if len(args): msg = args[0] % args[1:] + '\n' + msg
-        self._log(ERROR, msg, **kwargs)
+        self._log(Log.ERROR, msg, **kwargs)
 
 
 class Log(object):
+    DEBUG    = 0
+    INFO     = 1
+    MESSAGE  = 2
+    WARNING  = 3
+    ERROR    = 4
+
+    level_names = 'debug info message warning error'.split()
+
+
     def __init__(self, args, ioloop, path):
         self.path = path
         self.listeners = []
         self.loggers = {}
 
-        self.level = DEBUG if args.verbose else INFO
+        self.level = self.DEBUG if args.verbose else self.INFO
 
         # Open log, rotate if necessary
         self.f = None
         self._open()
 
         # Log header
-        version = pkg_resources.require('bbctrl')[0].version
-        self._log('Log started v%s' % version)
+        self._log('Log started v%s' % util.get_version())
         self._log_time(ioloop)
 
 
@@ -135,7 +128,7 @@ class Log(object):
 
 
     def _log_time(self, ioloop):
-        self._log(datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S'))
+        self._log(util.timestamp())
         ioloop.call_later(60 * 60, self._log_time, ioloop)
 
 
@@ -143,10 +136,11 @@ class Log(object):
         for listener in self.listeners: listener(msg)
 
 
-    def _log(self, msg, level = INFO, prefix = '', where = None):
+    def _log(self, msg, level = INFO, prefix = '', where = None, time = False):
         if not msg: return
 
         hdr = '%s:%s:' % ('DIMWE'[level], prefix)
+        if time: hdr += util.timestamp() + ':'
         s = hdr + ('\n' + hdr).join(msg.split('\n'))
 
         if self.f is not None:
@@ -158,9 +152,9 @@ class Log(object):
         print(s)
 
         # Broadcast to log listeners
-        if level == INFO: return
+        if level == self.INFO: return
 
-        msg = dict(level = get_level_name(level), source = prefix, msg = msg)
+        msg = dict(level = self.level_names[level], source = prefix, msg = msg)
         if where is not None: msg['where'] = where
 
         self.broadcast(dict(log = msg))

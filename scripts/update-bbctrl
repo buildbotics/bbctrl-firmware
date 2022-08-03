@@ -3,7 +3,11 @@
 (
     flock -n 9
 
-    UPDATE=/var/lib/bbctrl/firmware/update.tar.bz2
+    if [ "$1" != "" ]; then
+      UPDATE="$1"
+    else
+      UPDATE=/var/lib/bbctrl/firmware/update.tar.bz2
+    fi
 
     if [ ! -e "$UPDATE" ]; then
       echo "Missing $UPDATE"
@@ -19,7 +23,11 @@
     LOG=/var/log/bbctrl.$(date +%Y%m%d-%H%M%S).install
     tar xf "$UPDATE"
     cd *
-    ./scripts/install.sh "$*" 2>&1 > $LOG
+    if [ -x ./scripts/install.sh ]; then
+      ./scripts/install.sh "$*" 2>&1 > $LOG
+    else
+      systemctl start bbctrl
+    fi
 
     cd -
     rm -rf /tmp/update $UPDATE
