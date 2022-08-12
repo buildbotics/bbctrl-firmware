@@ -70,11 +70,12 @@ PGM_P state_get_pgmstr(state_t state) {
 
 PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   switch (reason) {
-  case HOLD_REASON_USER_PAUSE:     return PSTR("User pause");
-  case HOLD_REASON_USER_STOP:      return PSTR("User stop");
-  case HOLD_REASON_PROGRAM_PAUSE:  return PSTR("Program pause");
-  case HOLD_REASON_OPTIONAL_PAUSE: return PSTR("Optional pause");
-  case HOLD_REASON_SWITCH_FOUND:   return PSTR("Switch found");
+  case HOLD_REASON_USER_PAUSE:       return PSTR("User pause");
+  case HOLD_REASON_USER_STOP:        return PSTR("User stop");
+  case HOLD_REASON_PROGRAM_PAUSE:    return PSTR("Program pause");
+  case HOLD_REASON_OPTIONAL_PAUSE:   return PSTR("Optional pause");
+  case HOLD_REASON_SWITCH_FOUND:     return PSTR("Switch found");
+  case HOLD_REASON_SWITCH_NOT_FOUND: return PSTR("Switch not found");
   }
 
   return PSTR("INVALID");
@@ -103,11 +104,10 @@ static bool _is_idle() {
 }
 
 
-void state_seek_hold() {
-  if (state_get() == STATE_RUNNING) {
-    _set_hold_reason(HOLD_REASON_SWITCH_FOUND);
-    _set_state(STATE_STOPPING);
-  }
+void state_seek_hold(bool found) {
+  _set_hold_reason(found ? HOLD_REASON_SWITCH_FOUND :
+                   HOLD_REASON_SWITCH_NOT_FOUND);
+  if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
 }
 
 

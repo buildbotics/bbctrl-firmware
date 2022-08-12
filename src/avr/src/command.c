@@ -161,8 +161,8 @@ void command_push(char code, void *_data) {
   uint8_t *data = (uint8_t *)_data;
   unsigned size = _size(code);
 
-  if (!_is_synchronous(code)) estop_trigger(STAT_Q_INVALID_PUSH);
-  if (sync_q_space() <= size) estop_trigger(STAT_Q_OVERRUN);
+  ESTOP_ASSERT(_is_synchronous(code), STAT_Q_INVALID_PUSH);
+  ESTOP_ASSERT(size < sync_q_space(), STAT_Q_OVERRUN);
 
   sync_q_push(code);
   for (unsigned i = 0; i < size; i++) sync_q_push(*data++);
@@ -235,13 +235,13 @@ uint8_t *command_next() {
   if (!cmd.count) return 0;
   cmd.count--;
 
-  if (sync_q_empty()) estop_trigger(STAT_Q_UNDERRUN);
+  ESTOP_ASSERT(!sync_q_empty(), STAT_Q_UNDERRUN);
 
   static uint8_t data[INPUT_BUFFER_LEN];
 
   data[0] = sync_q_next();
 
-  if (!_is_synchronous((char)data[0])) estop_trigger(STAT_INVALID_QCMD);
+  ESTOP_ASSERT(_is_synchronous((char)data[0]), STAT_INVALID_QCMD);
 
   unsigned size = _size((char)data[0]);
   for (unsigned i = 0; i < size; i++)

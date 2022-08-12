@@ -32,6 +32,16 @@
 #include <stdbool.h>
 
 
+/*
+ * Estop cases:
+ *   - Estop switch triggered
+ *   - User trigged software estop
+ *   - Unexpected limit switch
+ *   - Motor fault
+ *   - Shutdown command
+ *   - Code assert
+*/
+
 void estop_init();
 bool estop_triggered();
 void estop_trigger(stat_t reason);

@@ -116,13 +116,12 @@ ISR(STEP_LOW_LEVEL_ISR) {
     case STAT_AGAIN: continue;              // No command executed, try again
 
     case STAT_OK:                           // Move executed
-      if (!st.move_queued)
-        estop_trigger(STAT_EXPECTED_MOVE);  // No move was queued
+      ESTOP_ASSERT(st.move_queued, STAT_EXPECTED_MOVE);
       st.move_queued = false;
       st.move_ready = true;
       break;
 
-    default: estop_trigger(status); break;
+    default: ESTOP_ASSERT(false, status); break;
     }
 
     break;

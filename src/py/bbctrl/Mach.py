@@ -118,10 +118,15 @@ class Mach(Comm):
         # Must be after holding commands above
         op = self.ctrl.state.get('optional_pause', False)
         pr = self._get_pause_reason()
-        if ((state_changed or 'pr' in update) and self._is_holding() and
-            (pr in ('Switch found', 'User stop') or
-             (pr == 'Optional pause' and not op))):
-            self._unpause()
+        if ((state_changed or 'pr' in update) and self._is_holding()):
+            if ((pr in ('Switch found', 'User stop') or
+                 (pr == 'Optional pause' and not op))):
+                self._unpause()
+
+            if pr == 'Switch not found':
+                self.mlog.error(pr)
+                self.stop()
+                self.planner.position_change()
 
 
     def _unpause(self):

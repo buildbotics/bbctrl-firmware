@@ -5,6 +5,7 @@ Buildbotics CNC Controller Firmware Changelog
  - Detect ``ngc``, ``tap``, ``txt`` and ``tpl`` program file extensions.
  - Fixed bug where planner config changes were not reflected after program stop.
  - Fixed "stuck in jogging" bug.
+ - Show error when switch not found rather than estop.
 
 ## v1.0.3
  - Fix bug in stall detect homing.

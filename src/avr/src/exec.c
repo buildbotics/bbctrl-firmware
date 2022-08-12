@@ -140,8 +140,8 @@ stat_t _segment_exec() {
       t = v = 0;
       ex.seg.cb = 0;
       command_reset_position();
+      seek_end(); // Must be before state_holding()
       state_holding();
-      seek_end();
       spindle_update_speed();
     }
   }
@@ -185,7 +185,7 @@ stat_t _segment_exec() {
   }
 
   // Check switch
-  if (seek_found()) state_seek_hold();
+  if (seek_found()) state_seek_hold(true);
 
   return STAT_OK;
 }

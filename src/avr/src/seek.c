@@ -114,9 +114,8 @@ static void _done() {
 void seek_end() {
   if (!seek.active) return;
 
-  if (!(SEEK_FOUND & seek.flags) && (SEEK_ERROR & seek.flags) &&
-      state_get() != STATE_STOPPING)
-    estop_trigger(STAT_SEEK_NOT_FOUND);
+  if (!(SEEK_FOUND & seek.flags) && (SEEK_ERROR & seek.flags))
+    state_seek_hold(false);
 
   _done();
 }
