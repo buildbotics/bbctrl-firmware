@@ -26,6 +26,10 @@ FUSE6=0x00 # Startup time
 FUSE7=0x00 # Application end
 FUSE8=0x00 # Boot end
 
+FUSEOPTS  = -fw 0:$(FUSE0) -fw 1:$(FUSE1) -fw 2:$(FUSE2) -fw 3:$(FUSE3)
+FUSEOPTS += -fw 4:$(FUSE4) -fw 5:$(FUSE5) -fw 6:$(FUSE6) -fw 7:$(FUSE7)
+FUSEOPTS += -fw 8:$(FUSE8)
+
 # SRC
 SRC = $(wildcard *.c)
 OBJ = $(patsubst %.c,build/%.o,$(SRC))
@@ -77,7 +81,7 @@ program: $(PROJECT).hex
 	updiprog $(PROGOPTS) -e -w $(PROJECT).hex
 
 fuses:
-	false
+	updiprog $(PROGOPTS) $(FUSEOPTS)
 
 read_fuses:
 	updiprog $(PROGOPTS) -fr
