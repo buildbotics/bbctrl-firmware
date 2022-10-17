@@ -15,7 +15,7 @@ CFLAGS += -I. -Iinclude
 # Linker flags
 LDFLAGS += $(COMMON) -B$(MCU)
 
-PROGOPTS=-c /dev/ttyUSB0 -d tiny321x
+PROGOPTS=-c /dev/ttyUSB0 -d tiny3216
 
 FUSE0=0x00 # Watch dog
 FUSE1=0xed # Brown out 4.2v, enabled, sleep enabled
@@ -26,9 +26,9 @@ FUSE6=0x00 # Startup time
 FUSE7=0x00 # Application end
 FUSE8=0x00 # Boot end
 
-FUSEOPTS  = -fw 0:$(FUSE0) -fw 1:$(FUSE1) -fw 2:$(FUSE2) -fw 3:$(FUSE3)
-FUSEOPTS += -fw 4:$(FUSE4) -fw 5:$(FUSE5) -fw 6:$(FUSE6) -fw 7:$(FUSE7)
-FUSEOPTS += -fw 8:$(FUSE8)
+FUSEOPTS  = -f 0 $(FUSE0) -f 1 $(FUSE1) -f 3 $(FUSE3)
+FUSEOPTS += -f 4 $(FUSE4) -f 5 $(FUSE5) -f 6 $(FUSE6) -f 7 $(FUSE7)
+FUSEOPTS += -f 8 $(FUSE8)
 
 # SRC
 SRC = $(wildcard *.c)
