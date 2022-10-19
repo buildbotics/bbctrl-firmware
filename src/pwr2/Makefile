@@ -19,16 +19,15 @@ PROGOPTS=-c /dev/ttyUSB0 -d tiny3216
 
 FUSE0=0x00 # Watch dog
 FUSE1=0xed # Brown out 4.2v, enabled, sleep enabled
-FUSE3=0x02 # Oscillator config
+FUSE2=0x02 # Oscillator config
 FUSE4=0x00 # Timer counter config
 FUSE5=0xd4 # No CRC, NVM write block disabled, UPDI reset, no EEPROM save
 FUSE6=0x00 # Startup time
 FUSE7=0x00 # Application end
 FUSE8=0x00 # Boot end
 
-FUSEOPTS  = -f 0 $(FUSE0) -f 1 $(FUSE1) -f 3 $(FUSE3)
-FUSEOPTS += -f 4 $(FUSE4) -f 5 $(FUSE5) -f 6 $(FUSE6) -f 7 $(FUSE7)
-FUSEOPTS += -f 8 $(FUSE8)
+FUSEOPTS  = -f 0 $(FUSE0) -f 1 $(FUSE1) -f 2 $(FUSE2) -f 4 $(FUSE4)
+FUSEOPTS += -f 5 $(FUSE5) -f 6 $(FUSE6) -f 7 $(FUSE7) -f 8 $(FUSE8)
 
 # SRC
 SRC = $(wildcard *.c)
