@@ -424,7 +424,6 @@ bool drv8711_detect_stall(int driver) {
     drv->stall.detect && drv->stall.velocity <= exec_get_velocity();
 
   if (stalled) motor_set_step_output(driver, false);
-  if (stalled) drv->stall.velocity = exec_get_velocity();
 
   return stalled;
 }
@@ -532,7 +531,6 @@ float get_stall_current(int driver) {
 
 void set_stall_current(int driver, float value) {
   if (driver < 0 || DRIVERS <= driver) return;
-  if (DRV8711_MAX_CURRENT < value) value = DRV8711_MAX_CURRENT;
   _current_set(&drivers[driver].stall.current, value);
 }
 
