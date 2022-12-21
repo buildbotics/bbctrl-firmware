@@ -141,6 +141,13 @@ static void motor_enable(bool enable) {
 }
 
 
+static void driver_enable(bool enable) {
+  if (enable) DRVEN_PORT.OUTSET = DRVEN_PIN; // Hi
+  else DRVEN_PORT.OUTCLR = DRVEN_PIN;        // Lo
+  DRVEN_PORT.DIRSET = MOTOR_PIN;             // Out
+}
+
+
 static uint16_t to_voltage(uint16_t result) {
   return result *
     (((REFV * (VR1 + VR2)) / (VR2 * 1023 * ADC_SAMPLES)) * VSCALE * REG_SCALE);
@@ -464,6 +471,9 @@ static void charge_test() {
   shunt_enable(false);
   motor_enable(true);
   charge_wait(get_reg(VIN_REG) - 2);
+
+  // Enable drivers
+  driver_enable(true);
 }
 
 
@@ -489,6 +499,7 @@ static void shutdown() {
 
   // Disable motors
   motor_enable(false);
+  driver_enable(false);
 
   // Enable shunt
   shunt_enable(true);

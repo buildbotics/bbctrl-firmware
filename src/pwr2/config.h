@@ -52,6 +52,8 @@
 #define SHUNT_PIN (1 << 5)
 #define DEBUG_PORT PORTA
 #define DEBUG_PIN (1 << 6)
+#define DRVEN_PORT PORTC
+#define DRVEN_PIN (1 << 3)
 
 #define SHUNT_FAIL_VOLTAGE       5
 #define MAX_DISCHARGE_WAIT_TIME  500 // ms/volt
