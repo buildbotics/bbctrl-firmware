@@ -157,11 +157,7 @@
           text-anchor middle
 
   .macros
-    display grid
-    grid-template-columns repeat(8, 1fr)
-    column-gap 1%
-    row-gap 8px
-    padding 0 0.25em
+    display flex-wrap
 
     .macro
       text-align left
@@ -169,6 +165,8 @@
       text-overflow ellipsis
       white-space nowrap
       padding 0.5em
+  		margin: 4px;
+  		width: max-content
 
       &:hover
         background-image button-hover
