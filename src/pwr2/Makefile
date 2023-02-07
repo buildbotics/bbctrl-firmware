@@ -1,6 +1,6 @@
 # Makefile for the project Bulidbotics firmware
 PROJECT = bbctrl-pwr-firmware
-MCU     = attiny3216
+MCU     = attiny1616
 CLOCK   = 20E6
 
 # Compile flags
