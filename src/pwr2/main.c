@@ -144,7 +144,7 @@ static void motor_enable(bool enable) {
 static void driver_enable(bool enable) {
   if (enable) DRVEN_PORT.OUTSET = DRVEN_PIN; // Hi
   else DRVEN_PORT.OUTCLR = DRVEN_PIN;        // Lo
-  DRVEN_PORT.DIRSET = MOTOR_PIN;             // Out
+  DRVEN_PORT.DIRSET = DRVEN_PIN;             // Out
 }
 
 
