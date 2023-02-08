@@ -4,7 +4,7 @@ CHIP    = tiny1616
 CLOCK   = 20E6
 
 # Compile flags
-MCU    = at$CHIP
+MCU    = at$(CHIP)
 CC     = avr-gcc
 COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
@@ -16,7 +16,7 @@ CFLAGS += -I. -Iinclude
 # Linker flags
 LDFLAGS += $(COMMON) -B$(MCU)
 
-PROGOPTS=-c /dev/ttyUSB0 -d $CHIP
+PROGOPTS=-c /dev/ttyUSB0 -d $(CHIP)
 
 FUSE0=0x00 # Watch dog
 FUSE1=0xed # Brown out 4.2v, enabled, sleep enabled

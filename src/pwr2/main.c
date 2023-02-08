@@ -472,8 +472,6 @@ static void charge_test() {
   motor_enable(true);
   charge_wait(get_reg(VIN_REG) - 2);
 
-  // Enable drivers
-  driver_enable(true);
 }
 
 
@@ -554,6 +552,8 @@ int main() {
   init();
   validate_input_voltage();
   charge_test();
+  // Enable drivers
+  driver_enable(true);
   validate_measurements();
   initialized = true;
   flags_clear(NOT_INITIALIZED_FLAG);
