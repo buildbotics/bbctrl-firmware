@@ -1,6 +1,6 @@
 # Makefile for the project Bulidbotics firmware
 PROJECT  = bbctrl-avr-firmware
-MCU      = atxmega192a3u
+MCU      = atxmega256a3u
 CLOCK    = 32000000
 
 # SRC

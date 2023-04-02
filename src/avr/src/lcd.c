@@ -26,6 +26,7 @@
 \******************************************************************************/
 
 #include "lcd.h"
+#include "oled.h"
 #include "rtc.h"
 #include "hardware.h"
 #include "command.h"
@@ -132,6 +133,7 @@ void _splash(uint8_t addr) {
 
 void lcd_splash() {
   wdt_disable();
+  oled_splash();
   _splash(0x27);
   _splash(0x3f);
   wdt_enable(WDTO_250MS);
