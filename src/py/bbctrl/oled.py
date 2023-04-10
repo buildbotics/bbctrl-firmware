@@ -39,12 +39,10 @@ class OLED:
     self.log = ctrl.log.get('OLED')
     self.device = 0
     try:
-      serial = i2c(port=1, address = 0x3C)
       self.device = ssd1306(i2c(port=1, address=0x3c), width = 128, height=64, rotate=0)
       self.device.contrast(1)
-      self.log.info("oled initialization complete")
     except:
-      self.log.info("oled not found")
+      pass
 
   def write(self,message="hello",col=0,row=0):
     with canvas(self.device,dither=True) as draw:

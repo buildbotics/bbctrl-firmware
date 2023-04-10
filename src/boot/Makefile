@@ -1,6 +1,6 @@
 # Makefile for the project Bulidbotics bootloader
 PROJECT         = bbctrl-avr-boot
-MCU             = atxmega256a3u
+MCU             = atxmega192a3u
 CLOCK           = 32000000
 
 TARGET  = $(PROJECT).elf

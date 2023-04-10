@@ -28,8 +28,8 @@
 import lcd
 import atexit
 
-from .oled import *
 from .LCDPage import *
+from .oled import *
 
 __all__ = ['LCD']
 
@@ -52,18 +52,18 @@ class LCD:
         self.pages = []
         self.current_page = 0
         self.screen = self.new_screen()
+
+        try:
+          self.oled = OLED(self.ctrl)
+        except:
+          pass
+        self.wrote_to_oled = False
         self.set_message('Loading...')
 
         self._redraw(False)
         if not ctrl.args.demo: atexit.register(self.goodbye)
 
-        self.oled = OLED(ctrl)
-        try:
-          self.oled
-        except:
-          self.log.info("oled not present")
-        self.wrote_to_oled = False
-        
+
     def set_message(self, msg):
         try:
             self.load_page(LCDPage(self, msg))
