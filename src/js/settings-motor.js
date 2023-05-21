@@ -54,12 +54,17 @@ module.exports = {
     },
 
 
-    maxStepsPerSecond: function () {return 250000},
+    maxStepsPerSecond: function () {return (0.5 / this.motor['step-length'])},
 
 
-    maxMaxVelocity: function () { // In meters per minute
-      let metersPerUStep = this.umPerStep / this.motor.microsteps / 1000000
-      return 1 * (this.maxStepsPerSec * 60 * metersPerUStep).toFixed(3)
+    maxMaxVelocity: function () {
+      let maxUStepsPerSecond = 0.5 / this.motor['step-length'];
+      let uStepsPerRevolution =
+          (360.0 / this.motor['step-angle']) * this.motor['microsteps'];
+      let maxRPS = maxUStepsPerSecond / uStepsPerRevolution;
+
+      return parseFloat((maxRPS * 60.0 * this.motor['travel-per-rev'] / 1000)
+                        .toFixed(3)); // returns max vel in meters / minute
     },
 
 
@@ -119,6 +124,10 @@ module.exports = {
   events: {
     'input-changed': function() {
       Vue.nextTick(function () {
+        // set step length to default of 2ms if user selects internal drivers
+        if (this.motor['type-of-driver'] == 'internal')
+          this.$set('motor["step-length"]', 0.000002);
+
         // Limit max-velocity
         if (this.invalidMaxVelocity)
           this.$set('motor["max-velocity"]', this.maxMaxVelocity);
@@ -126,6 +135,7 @@ module.exports = {
         // Limit stall-velocity
         if (this.invalidStallVelocity)
           this.$set('motor["search-velocity"]', this.maxStallVelocity);
+
 
         this.$dispatch('config-changed');
       }.bind(this))
@@ -136,8 +146,34 @@ module.exports = {
 
   methods: {
     show: function (name, templ) {
+      if (name == 'step-length' && this.motor['type-of-driver'] == 'internal')
+        return false;
+
+      if (this.motor['type-of-driver'] == 'generic external' &&
+          name == 'homing-mode') return false;
+
+      if (this.motor['type-of-driver'] == 'internal' &&
+          name == 'homing-mode-external') return false;
+
+      if ((this.motor['type-of-driver'] == 'generic external') &&
+          ['stall-microstep', 'stall-volts', 'stall-sample-time',
+           'stall-current'].includes(name)) return false;
+
       if (templ.hmodes == undefined) return true;
-      return templ.hmodes.indexOf(this.motor['homing-mode']) != -1;
+
+      if (this.motor['type-of-driver'] == 'internal')
+        return templ.hmodes.indexOf(this.motor['homing-mode']) != -1;
+
+      return templ.hmodes.indexOf(this.motor['homing-mode-external']) != -1;
+    },
+
+
+    showCategory: function (name) {
+      if (name == 'power' && this.motor['type-of-driver'] == 'generic external')
+        return false
+
+      return true;
     }
   }
+
 }

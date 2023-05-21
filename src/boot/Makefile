@@ -1,6 +1,6 @@
 # Makefile for the project Bulidbotics bootloader
 PROJECT         = bbctrl-avr-boot
-MCU             = atxmega192a3u
+MCU             = atxmega256a3u
 CLOCK           = 32000000
 
 TARGET  = $(PROJECT).elf
@@ -19,7 +19,7 @@ CFLAGS += -Isrc
 
 # Linker flags
 LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
-LDFLAGS += -Wl,--section-start=.text=0x030000
+LDFLAGS += -Wl,--section-start=.text=0x040000
 LIBS += -lm
 
 # Programming flags

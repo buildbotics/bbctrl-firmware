@@ -60,6 +60,7 @@ typedef struct {
   uint16_t microsteps;           // microsteps per full step
   bool reverse;
   bool enabled;
+  float pulse_length;            // length of step pulses in microseconds
   float step_angle;              // degrees per whole step
   float travel_rev;              // mm or deg of travel per motor revolution
   float min_soft_limit;
@@ -175,6 +176,15 @@ void motor_init() {
   }
 
   axis_map_motors();
+}
+
+
+float get_pulse_length(int motor) {return motors[motor].pulse_length;}
+
+
+void set_pulse_length(int motor, float value) {
+    motors[motor].pulse_length = value;
+    motors[motor].timer->CCA = value * F_CPU;
 }
 
 

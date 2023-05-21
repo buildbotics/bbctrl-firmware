@@ -54,10 +54,10 @@ class LCD:
         self.screen = self.new_screen()
 
         try:
-          self.oled = OLED(self.ctrl)
-        except:
-          pass
+            self.oled = OLED(self.ctrl)
+        except: pass
         self.wrote_to_oled = False
+
         self.set_message('Loading...')
 
         self._redraw(False)
@@ -122,12 +122,10 @@ class LCD:
     def _update(self):
         self.timeout = None
         try:
-          self.oled
-          self.oled.writePage(self.page.data)
-          self.wrote_to_oled = True
-          return
-        except:
-          self.wrote_to_oled = False
+            self.oled.writePage(self.page.data)
+            self.wrote_to_oled = True
+            return
+        except: pass
 
         try:
             if self.lcd is None:

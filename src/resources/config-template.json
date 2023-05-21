@@ -46,7 +46,21 @@
           "code": "an"
         }
       },
-
+      "driver": {
+        "type-of-driver": {
+          "type": "enum",
+          "values": ["internal","generic external"],
+          "default": "internal",
+          "code": "dt"
+        },
+        "step-length": {
+          "type": "float",
+          "min": 0,
+          "unit": "seconds",
+          "default": 0.000002,
+          "code": "pl"
+        }
+      },
       "power": {
         "enabled": {
           "type": "bool",
@@ -150,6 +164,12 @@
       },
 
       "homing": {
+        "homing-mode-external": {
+          "type": "enum",
+          "values": ["manual", "switch-min", "switch-max"],
+          "default": "manual",
+          "code": "ho"
+        },
         "homing-mode": {
           "type": "enum",
           "values": [

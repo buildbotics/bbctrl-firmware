@@ -28,6 +28,7 @@ BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
 SUBPROJECTS := avr boot pwr2 jig
 SUBPROJECTS := $(patsubst %,src/%,$(SUBPROJECTS))
+$(info SUBPROJECTS="$(SUBPROJECTS)")
 
 WATCH := src/pug src/pug/templates src/stylus src/js src/resources Makefile
 WATCH += src/static

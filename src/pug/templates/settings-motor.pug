@@ -30,7 +30,7 @@ script#settings-motor-template(type="text/x-template")
     h1 Motor {{index}} Configuration
 
     .pure-form.pure-form-aligned
-      fieldset(v-for="category in template.motors.template", :class="$key")
+      fieldset(v-for="category in template.motors.template", v-if='showCategory($key)', :class="$key")
         h2 {{$key}}
 
         templated-input(v-for="templ in category", v-if="show($key, templ)",

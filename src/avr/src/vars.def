@@ -39,6 +39,7 @@
 VAR(motor_axis,      an, u8,    MOTORS,  1, 1) // Maps motor to axis
 
 VAR(motor_enabled,   me, b8,    MOTORS,  1, 1) // Motor enabled
+VAR(pulse_length,    pl, f32,   MOTORS,  1, 1) // length of step pulses
 VAR(drive_current,   dc, f32,   MOTORS,  1, 1) // Max motor drive current
 VAR(idle_current,    ic, f32,   MOTORS,  1, 1) // Motor idle current
 

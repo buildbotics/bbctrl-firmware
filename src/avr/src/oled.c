@@ -139,6 +139,6 @@ void oled_splash() {
   oled_init();
   _writeStringAt((char *) "Controller booting",1,5);
   _writeStringAt((char *) "Please wait...",3,5);
-  _writeStringAt((char *) "(c) Buildbotics LLC",4,5);
+  _writeStringAt((char *) "(c) Buildbotics LLC",5,5);
   _delay_us(100);
 };
