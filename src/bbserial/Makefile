@@ -17,6 +17,7 @@ all: $(KDIR)
 $(KDIR): $(KPKG)
 	tar xf $(KPKG)
 	patch -p1 < yylloc.patch
+	patch -p1 < arm-arch.patch
 	$(MAKE) $(KOPTS) bcm2709_defconfig
 	$(MAKE) $(KOPTS) modules_prepare
 

@@ -2,7 +2,7 @@
 This repository contains the source code for the Buildbotics CNC Controller.
 See [buildbotics.com](https://buildbotics.com/) for more information.
 
-![Buildboitcs CNC Controller](docs/buildbotics_controller.png)
+![Buildbotics CNC Controller](docs/buildbotics_controller.png)
 
 ## Overview
 ![Buildbotics architecture overview](docs/buildbotics_architecture_overview.png)
@@ -41,15 +41,14 @@ they are built with are as follows:
 Be sure to read the [development guide](docs/development.md) for more detailed
 instructions.
 
-On a Debian Linux (9.6.0 stable) system:
+On a Debian Linux (12) system:
 
     # Install the required packages
     sudo apt-get update
-    sudo apt-get install -y build-essential git wget binfmt-support qemu \
-      parted gcc-avr avr-libc avrdude pylint3 python3 python3-tornado curl \
-      unzip python3-setuptools
-    curl -sL https://deb.nodesource.com/setup_11.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    sudo apt-get install -y build-essential git wget binfmt-support \
+      qemu-user-static parted gcc-avr avr-libc avrdude pylint python3 \
+      python3-tornado curl unzip python3-setuptools nodejs coreutils bison \
+      flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf mtools debootstrap
 
     # Get the source
     git clone https://github.com/buildbotics/bbctrl-firmware
@@ -62,7 +61,7 @@ The resulting package will be a ``.tar.bz2`` file in ``dist``.  See the
 [development guide](docs/development.md) for more information.
 
 ## License
-Copyright Buildbotics LLC 2016-2021.
+Copyright Buildbotics LLC 2016-2023.
 
 This source describes Open Hardware and is licensed under the CERN-OHL-S v2
 
