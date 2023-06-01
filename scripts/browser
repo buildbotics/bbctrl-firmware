@@ -14,8 +14,7 @@ def enter_cgroup():
 
 
 # Kill any existing Chromium process first
-# Note, "chromium-browse" is intentional
-subprocess.Popen(['killall', 'chromium-browse']).wait()
+subprocess.Popen(['killall', '-r', 'chromium-browse.*']).wait()
 
 # Start browser
 args = ['/usr/lib/chromium-browser/chromium-browser'] + sys.argv[1:]
