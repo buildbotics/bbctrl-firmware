@@ -79,6 +79,17 @@ class FileSystem:
     self.ctrl.state.set('first_file', path)
 
 
+  def validate_path(self, path):
+    path = os.path.normpath(path)
+    if path.startswith('..'): raise HTTPError(400, 'Invalid path')
+    path = path.lstrip('./')
+
+    realpath = self.realpath(path)
+    if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
+
+    return path
+
+
   def realpath(self, path):
     path = os.path.normpath(path)
     parts = path.split('/', 1)

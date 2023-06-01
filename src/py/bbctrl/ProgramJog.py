@@ -43,5 +43,4 @@ class ProgramJog(Program):
 
   def start(self, mach, planner):
     mach.queue_command(Cmd.jog(self.id, self.axes))
-    mach.planner.position_change()
     return True

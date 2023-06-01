@@ -67,7 +67,6 @@ class Planner():
         self.cmdq = CommandQueue(ctrl)
         self.end_callbacks = deque()
         self.planner = None
-        self._position_dirty = False
         self.where = ''
 
         ctrl.state.add_listener(self._update)
@@ -81,13 +80,6 @@ class Planner():
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
     def is_running(self): return self.planner.is_running()
-    def position_change(self): self._position_dirty = True
-
-
-    def _sync_position(self, force = False):
-        if not force and not self._position_dirty: return
-        self._position_dirty = False
-        self.planner.set_position(self.ctrl.state.get_position())
 
 
     def get_config(self, with_start, with_limits):
@@ -343,7 +335,6 @@ class Planner():
         self.planner.set_resolver(self._get_var_cb)
         # TODO logger is global and will not work correctly in demo mode
         camotics.set_logger(self._log_cb, 1, 'LinePlanner:3')
-        self._position_dirty = True
         self.cmdq.clear()
         self.reset_times()
         self.ctrl.state.reset()
@@ -366,7 +357,8 @@ class Planner():
         self.where = path
         self.log.info('Start: ' + path, time = True)
         self.ctrl.state.set('active_program', path)
-        self._sync_position()
+        # Sync position
+        self.planner.set_position(self.ctrl.state.get_position())
 
         config = self.get_config(with_start, with_limits)
         if mdi is not None: self.planner.load_string(mdi, config)

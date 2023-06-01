@@ -94,7 +94,10 @@ class Mach(Comm):
         state = self._get_state()
 
         # Handle EStop
-        if state_changed and state == 'ESTOPPED': self.planner.reset(False)
+        if state_changed and state == 'ESTOPPED':
+            self.programs.clear()
+            self.planner.reset(False)
+            self.enter_estop()
 
         # Jog ID
         if 'jd' in update: self.end_jog(update['jd'])
@@ -126,7 +129,6 @@ class Mach(Comm):
             if pr == 'Switch not found':
                 self.mlog.error(pr)
                 self.stop()
-                self.planner.position_change()
 
 
     def _unpause(self):
@@ -185,7 +187,10 @@ class Mach(Comm):
             self.end(self.programs[0])
 
 
-    def estop(self): super().estop()
+    def estop(self):
+        self.planner.reset(False)
+        self.programs.clear()
+        super().estop()
 
 
     def clear(self):

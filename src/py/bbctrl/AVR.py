@@ -83,6 +83,9 @@ class AVR(object):
     def close(self): pass
 
 
+    def flush_output(self): self.sp.reset_output_buffer()
+
+
     def _start(self):
         try:
             self.sp = serial.Serial(self.ctrl.args.serial, self.ctrl.args.baud,

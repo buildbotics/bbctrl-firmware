@@ -168,8 +168,8 @@ module.exports = {
 
     remaining() {
       if (!(this.is_stopping || this.is_running || this.is_holding)) return 0;
-      if (this.active.time < this.plan_time) return 0;
-      return this.active.time - this.plan_time
+      if (this.toolpath.time < this.plan_time) return 0;
+      return this.toolpath.time - this.plan_time
     },
 
 
@@ -189,8 +189,8 @@ module.exports = {
     progress() {
       if (this.simulating) return this.active.progress;
 
-      if (!this.active.time || this.is_ready) return 0;
-      var p = this.plan_time / this.active.time;
+      if (!this.toolpath.time || this.is_ready) return 0;
+      var p = this.plan_time / this.toolpath.time;
       return p < 1 ? p : 1;
     }
   },

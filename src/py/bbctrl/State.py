@@ -171,6 +171,9 @@ class State(object):
         return default
 
 
+    def is_estopped(self): return self.get('xx', '') == 'ESTOPPED'
+
+
     def snapshot(self):
         vars = copy.deepcopy(self.vars)
 

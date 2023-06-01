@@ -77,6 +77,7 @@ class Comm(ABC):
         self.in_buf = ''
         self.command = None
         self.last_motor_flags = [0] * 4
+        self.estopped = False
 
         avr.set_handlers(self._read, self._write)
         self._poll_cb(False)
@@ -225,14 +226,18 @@ class Comm(ABC):
             self.in_buf = self.in_buf[i + 1:]
 
             if line:
-                self.log.info('> ' + line)
-
                 try:
                     msg = json.loads(line)
 
                 except Exception as e:
                     self.log.warning('%s, data: %s', e, line)
                     continue
+
+                if self.estopped:
+                    if not 'firmware' in msg: continue
+                    self.estopped = False
+
+                self.log.info('> ' + line)
 
                 if 'variables' in msg: self._update_vars(msg)
                 elif 'msg' in msg: self._log_msg(msg)
@@ -244,8 +249,14 @@ class Comm(ABC):
                 else: self._update_state(msg)
 
 
+    def enter_estop(self): self.estopped = True
+
+
     def estop(self):
         if self.ctrl.state.get('xx', '') != 'ESTOPPED':
+            self.command = None
+            self.queue.clear()
+            self.avr.flush_output()
             self.i2c_command(Cmd.ESTOP)
 
 

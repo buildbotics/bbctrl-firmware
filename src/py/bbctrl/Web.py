@@ -402,14 +402,14 @@ class HomeHandler(APIHandler):
 
 class StartHandler(APIHandler):
     def put_ok(self, path):
-        path = os.path.normpath(path)
-        if path.startswith('..'): raise HTTPError(400, 'Invalid path')
-        path = path.lstrip('./')
-
-        realpath = self.get_ctrl().fs.realpath(path)
-        if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
-
+        path = self.get_ctrl().fs.validate_path(path)
         self.get_ctrl().mach.start(path)
+
+
+class ActivateHandler(APIHandler):
+    def put_ok(self, path):
+        path = self.get_ctrl().fs.validate_path(path)
+        self.get_ctrl().state.set('active_program', path)
 
 
 class EStopHandler(APIHandler):
@@ -618,6 +618,7 @@ class Web(tornado.web.Application):
             (r'/api/(speeds)/(.*)',             PathHandler),
             (r'/api/home(/[xyzabcXYZABC]((/set)|(/clear))?)?', HomeHandler),
             (r'/api/start/(.*)',                StartHandler),
+            (r'/api/activate/(.*)',             ActivateHandler),
             (r'/api/estop',                     EStopHandler),
             (r'/api/clear',                     ClearHandler),
             (r'/api/stop',                      StopHandler),

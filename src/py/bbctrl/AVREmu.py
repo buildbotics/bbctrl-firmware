@@ -72,6 +72,9 @@ class AVREmu(object):
             self.pid = None
 
 
+    def flush_output(self): pass
+
+
     def _start(self):
         try:
             self.close()
