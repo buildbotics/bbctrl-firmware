@@ -29,7 +29,7 @@
 
 
 var Sock = function (url, retry, timeout) {
-  if (!(this instanceof Sock)) return new Sock(url, retry)
+  if (!(this instanceof Sock)) return new Sock(url, retry, timeout)
 
   this.url       = url
   this.retry     = retry   == undefined ? 2000  : retry
