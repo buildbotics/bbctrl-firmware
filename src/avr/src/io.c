@@ -241,20 +241,17 @@ static void _set_function(io_pin_t *pin, io_function_t function) {
   switch (newType) {
   case IO_TYPE_INPUT:
     PINCTRL_PIN(pin->pin) = PORT_OPC_PULLUP_gc; // Pull up
-    DIRCLR_PIN(pin->pin); // Input
+    DIRCLR_PIN(pin->pin);                       // Input
     break;
 
   case IO_TYPE_OUTPUT:
+    PINCTRL_PIN(pin->pin) = 0; // Disable pull up
     _set_output(pin, _func_state[function].active);
     break;
 
   case IO_TYPE_ANALOG:
     _analog_ports[_function_to_analog_port(function)] = 0;
-    PINCTRL_PIN(pin->pin) = 0; // Disable pull up
-    DIRCLR_PIN(pin->pin); // Input
-    break;
-
-    // Fall through if analog disabled
+    // Fall through
 
   case IO_TYPE_DISABLED:
     PINCTRL_PIN(pin->pin) = 0; // Disable pull up
