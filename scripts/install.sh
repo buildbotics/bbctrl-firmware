@@ -30,6 +30,13 @@ else
   UPDATE_AVR=false
 fi
 
+# Find user
+if [ -e /home/pi ]; then
+  TARGET_USER=pi
+else
+  TARGET_USER=bbmc
+fi
+
 if $UPDATE_PY; then
   # Update service
   mkdir -p /var/lib/bbctrl
@@ -90,14 +97,16 @@ if [ $? -ne 0 ]; then
 fi
 
 # Increase swap
-grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null
-if [ $? -ne 0 ]; then
-  sed -i 's/^CONF_SWAPSIZE=.*$/CONF_SWAPSIZE=1000/' /etc/dphys-swapfile
-  REBOOT=true
+if [ -e /etc/dphys-swapfile ]; then
+  grep 'CONF_SWAPSIZE=1000' /etc/dphys-swapfile >/dev/null
+  if [ $? -ne 0 ]; then
+    sed -i 's/^CONF_SWAPSIZE=.*$/CONF_SWAPSIZE=1000/' /etc/dphys-swapfile
+    REBOOT=true
+  fi
 fi
 
 # Install xinitrc
-install -o pi -g pi -m 0555 scripts/xinitrc ~pi/.xinitrc
+install -o $TARGET_USER -g $TARGET_USER -m 0555 scripts/xinitrc ~$TARGET_USER/.xinitrc
 
 # Install bbserial
 MODSRC=src/bbserial/bbserial.ko
@@ -131,7 +140,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Remove xontab keyboard
-rm -rf /home/pi/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlfninn
+rm -rf /home/$TARGET_USER/.config/chromium/Default/Extensions/pflmllfnnabikmfkkaddkoolinlfninn
 
 if $UPDATE_PWR; then
   PWR_OPTS="-c /dev/ttyAMA1 -b 500000 -x"
