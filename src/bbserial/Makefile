@@ -1,7 +1,7 @@
-CROSS:=arm-linux-gnueabihf-
+CROSS:=arm-linux-gnueabi-
 DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 obj-m:=bbserial.o
-ccflags-y:=-std=gnu99 -Wno-declaration-after-statement
+ccflags-y:=-std=gnu99 -Wno-declaration-after-statement -Wno-missing-attributes
 
 KVER=1.20171029-1
 KPKG=raspberrypi-kernel_$(KVER).tar.gz
