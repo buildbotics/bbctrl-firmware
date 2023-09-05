@@ -33,6 +33,10 @@
 
 #include <math.h>
 
+#if defined (__AVR_ATxmega256A3__)
+#define TC_WGMODE_SINGLESLOPE_gc TC_WGMODE_SS_gc
+#endif
+
 
 typedef struct {
   bool initialized;

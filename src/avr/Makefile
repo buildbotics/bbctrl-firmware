@@ -1,7 +1,7 @@
 # Makefile for the project Bulidbotics firmware
-PROJECT  = bbctrl-avr-firmware
-MCU      = atxmega256a3u
-CLOCK    = 32000000
+PROJECT = bbctrl-avr-firmware
+MCU     = atxmega256a3
+CLOCK   = 32000000
 
 # SRC
 SRC = $(wildcard src/*.c) $(wildcard src/*.cpp) $(wildcard src/vfd/*.c)

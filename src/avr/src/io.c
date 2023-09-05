@@ -31,6 +31,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#if defined (__AVR_ATxmega256A3__)
+#define ADC_REFSEL_INTVCC_gc ADC_REFSEL_VCC_gc
+#endif
 
 #define IO_MAX_INDEX 17
 

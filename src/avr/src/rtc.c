@@ -62,11 +62,11 @@ void rtc_init() {
   while (!(OSC.STATUS & OSC_RC32KRDY_bm));            // 32kHz osc stabilize
   while (RTC.STATUS & RTC_SYNCBUSY_bm);               // wait RTC not busy
 
-  CLK.RTCCTRL = CLK_RTCSRC_RCOSC32_gc | CLK_RTCEN_bm; // 32kHz clock as RTC src
+  CLK.RTCCTRL = CLK_RTCSRC_RCOSC_gc | CLK_RTCEN_bm;   // 1.024KHz clock RTC src
   while (RTC.STATUS & RTC_SYNCBUSY_bm);               // wait RTC not busy
 
   // the following must be in this order or it doesn't work
-  RTC.PER = 33;                        // overflow period ~1ms
+  RTC.PER = 1;                         // overflow period ~1ms
   RTC.INTCTRL = RTC_OVFINTLVL_LO_gc;   // overflow LO interrupt
   RTC.CTRL = RTC_PRESCALER_DIV1_gc;    // no prescale
 }
