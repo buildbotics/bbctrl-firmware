@@ -1,0 +1,4 @@
+[Slice]
+MemoryAccounting=true
+MemoryHigh=1.5G
+MemoryMax=1.75G

@@ -1,0 +1,17 @@
+[Unit]
+Description=Buildbotics Controller
+After=network.target
+
+[Service]
+User=root
+ExecStartPre=/usr/local/bin/update-bb-firmware
+ExecStart=/usr/local/bin/bbctrl -l /var/log/bbctrl.log
+WorkingDirectory=/var/lib/bbctrl
+Restart=always
+StandardOutput=null
+Nice=-10
+KillMode=process
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

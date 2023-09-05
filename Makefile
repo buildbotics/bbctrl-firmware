@@ -12,7 +12,6 @@ RESOURCES  := $(patsubst src/resources/%,$(TARGET_DIR)/%,$(RESOURCES))
 TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
 SHARE           := share
-AVR_FIRMWARE    := src/avr/bbctrl-avr-firmware.hex
 CAMOTICS_MOD    := $(SHARE)/camotics/build/camotics.so
 CAMOTICS_TARGET := src/py/bbctrl/camotics.so
 
@@ -26,7 +25,7 @@ PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
 BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
-SUBPROJECTS := avr boot pwr2 jig
+SUBPROJECTS := avr pwr
 SUBPROJECTS := $(patsubst %,src/%,$(SUBPROJECTS))
 $(info SUBPROJECTS="$(SUBPROJECTS)")
 
@@ -59,44 +58,14 @@ demo: html resources bbemu
 bbemu:
 	$(MAKE) -C src/avr/emu
 
-pkg: all $(AVR_FIRMWARE) bbserial
-	cp -a $(SHARE)/camotics/tpl_lib src/py/bbctrl/
+pkg: all $(SUBPROJECTS)
+	#cp -a $(SHARE)/camotics/tpl_lib src/py/bbctrl/
 	./setup.py sdist
 
 beta-pkg: pkg
 	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
 
-bbserial:
-	$(MAKE) -C src/bbserial
-
-container-update:
-	./scripts/container-update
-
-container-init: container-update
-	./scripts/container-run ./bbctrl-firmware/scripts/container-init
-
 arm-bin: camotics bbkbd updiprog rpipdi
-
-camotics: $(CAMOTICS_TARGET)
-
-$(CAMOTICS_TARGET): $(CAMOTICS_MOD)
-	cp $< $@
-
-$(CAMOTICS_MOD): container-update
-	./scripts/container-run ./bbctrl-firmware/scripts/container-make-camotics
-
-bbkbd: container-update
-	./scripts/container-run "make -C bbkbd"
-
-updiprog: container-update
-	./scripts/container-run "make -C updiprog"
-
-rpipdi: container-update
-	./scripts/container-run "make -C rpipdi"
-
-.PHONY: $(AVR_FIRMWARE)
-$(AVR_FIRMWARE):
-	$(MAKE) -C src/avr
 
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
@@ -168,5 +137,5 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg camotics lint pylint jshint bbserial
+.PHONY: all install clean tidy pkg camotics lint pylint jshint
 .PHONY: html resources dist-clean

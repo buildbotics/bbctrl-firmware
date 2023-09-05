@@ -1,33 +1,34 @@
 # Makefile for the project Bulidbotics firmware
 PROJECT = bbctrl-pwr-firmware
-MCU     = attiny1634
-CLOCK   = 8000000
+CHIP    = tiny1616
+CLOCK   = 20E6
 
 # Compile flags
-CC = avr-gcc
+MCU    = at$(CHIP)
+CC     = avr-gcc
 COMMON = -mmcu=$(MCU)
 CFLAGS += $(COMMON)
-CFLAGS += -Wall -Werror
-CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK)UL -O3
-CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
+CFLAGS += -Wall -Werror -fshort-enums
+CFLAGS += -std=gnu99 -DF_CPU=$(CLOCK) -O3
 CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
-CFLAGS += -I.
+CFLAGS += -I. -Iinclude
 
 # Linker flags
-LDFLAGS += $(COMMON) -Wl,-u,vfprintf -lprintf_flt -lm
-LIBS += -lm
+LDFLAGS += $(COMMON) -B$(MCU)
 
-# Programming flags
-ifndef (PROGRAMMER)
-PROGRAMMER = avrispmkII
-#PROGRAMMER = jtag3pdi
-endif
-PDEV = usb
-AVRDUDE_OPTS = -c $(PROGRAMMER) -p $(MCU) -P $(PDEV)
+PROGOPTS=-c /dev/ttyUSB0 -d $(CHIP)
 
-FUSE_EX=0xff
-FUSE_HI=0xdf
-FUSE_LO=0x62
+FUSE0=0x00 # Watch dog
+FUSE1=0xed # Brown out 4.2v, enabled, sleep enabled
+FUSE2=0x02 # Oscillator config
+FUSE4=0x00 # Timer counter config
+FUSE5=0xd4 # No CRC, NVM write block disabled, UPDI reset, no EEPROM save
+FUSE6=0x00 # Startup time
+FUSE7=0x00 # Application end
+FUSE8=0x00 # Boot end
+
+FUSEOPTS  = -f 0 $(FUSE0) -f 1 $(FUSE1) -f 2 $(FUSE2) -f 4 $(FUSE4)
+FUSEOPTS += -f 5 $(FUSE5) -f 6 $(FUSE6) -f 7 $(FUSE7) -f 8 $(FUSE8)
 
 # SRC
 SRC = $(wildcard *.c)
@@ -47,10 +48,10 @@ build/%.o: %.S
 
 # Link
 $(PROJECT).elf: $(OBJ)
-	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $@
+	$(CC) $(LDFLAGS) $(OBJ) -o $@
 
 %.hex: %.elf
-	avr-objcopy -O ihex -R .fuse -R .lock -R .signature $< $@
+	avr-objcopy -O ihex -R .eeprom $< $@
 
 %.lss: %.elf
 	avr-objdump -h -S $< > $@
@@ -71,35 +72,19 @@ init:
 	$(MAKE) program
 
 reset:
-	avrdude $(AVRDUDE_OPTS)
+	updiprog $(PROGOPTS) -fr
 
 erase:
-	avrdude $(AVRDUDE_OPTS) -e
+	updiprog $(PROGOPTS) -e
 
 program: $(PROJECT).hex
-	avrdude $(AVRDUDE_OPTS) -U flash:w:$(PROJECT).hex:i
-
-verify: $(PROJECT).hex
-	avrdude $(AVRDUDE_OPTS) -U flash:v:$(PROJECT).hex:i
+	updiprog $(PROGOPTS) -e -w $(PROJECT).hex
 
 fuses:
-	avrdude $(AVRDUDE_OPTS) -U efuse:w:$(FUSE_EX):m -U lfuse:w:$(FUSE_LO):m \
-	  -U hfuse:w:$(FUSE_HI):m
+	updiprog $(PROGOPTS) $(FUSEOPTS)
 
 read_fuses:
-	avrdude $(AVRDUDE_OPTS) -q -q -U efuse:r:-:h -U lfuse:r:-:h -U hfuse:r:-:h
-
-signature:
-	avrdude $(AVRDUDE_OPTS) -q -q -U signature:r:-:h
-
-prodsig:
-	avrdude $(AVRDUDE_OPTS) -q -q -U prodsig:r:-:h
-
-usersig:
-	avrdude $(AVRDUDE_OPTS) -q -q -U usersig:r:-:h
-
-info:
-	avrdude $(AVRDUDE_OPTS) -v
+	updiprog $(PROGOPTS) -fr
 
 # Clean
 tidy:
@@ -108,8 +93,7 @@ tidy:
 clean: tidy
 	rm -rf $(PROJECT).elf $(PROJECT).hex $(PROJECT).lss $(PROJECT).map build
 
-.PHONY: tidy clean size all reset erase program fuses read_fuses prodsig
-.PHONY: signature usersig
+.PHONY: tidy clean size all reset erase program fuses read_fuses
 
 # Dependencies
 -include $(shell mkdir -p build/dep) $(wildcard build/dep/*)

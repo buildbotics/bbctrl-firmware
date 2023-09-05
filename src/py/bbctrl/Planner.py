@@ -79,7 +79,10 @@ class Planner():
 
 
     def is_busy(self): return self.is_running() or self.cmdq.is_active()
-    def is_running(self): return self.planner.is_running()
+
+
+    def is_running(self):
+        return self.planner is not None and self.planner.is_running()
 
 
     def get_config(self, with_start, with_limits):

@@ -27,65 +27,44 @@
 
 #pragma once
 
-#include "pins.h"
+#include <avr/io.h>
 
 
-#define VERSION 7
+#define VERSION 0x0103
 
+#define VIN_ADC  ADC_MUXPOS_AIN9_gc // ACD0
+#define VOUT_ADC ADC_MUXPOS_AIN8_gc // ADC0
+#define IMON_ADC ADC_MUXPOS_AIN0_gc // ADC1
+#define TEMP_ADC ADC_MUXPOS_TEMPSENSE_gc
 
-// Pins
-enum {
-  AREF_PIN = PORT_A << 3,
-  PA1_PIN, // NC
-  PA2_PIN, // NC
-  CS1_PIN,
-  CS2_PIN,
-  CS3_PIN,
-  CS4_PIN,
-  VOUT_REF_PIN,
+#define VIN_OFFSET 0.3 // volts, due to diode drop
+#define VSCALE 0.9725  // Linear voltage measurement correction
 
-  VIN_REF_PIN = PORT_B << 3,
-  PWR_MOSI_PIN,
-  PWR_MISO_PIN,
-  SHUNT_PIN,
+#define REFV   4.43
+#define VR1    100000.0
+#define VR2    7020.0
+#define RSENSE 0.002
+#define ISCALE 100 // Current sense scale
 
-  MOTOR_PIN = PORT_C << 3, // IN1
-  PWR_SCK_PIN,
-  PC2_PIN,                 // NC
-  PWR_RESET,
-  LOAD2_PIN,               // IN3
-  LOAD1_PIN,               // IN4
-};
-
-
-// ADC channels
-enum {
-  CS1_ADC,  // Motor current
-  CS2_ADC,  // Vdd current
-  CS3_ADC,  // Load 2 current
-  CS4_ADC,  // Load 1 current
-  VOUT_ADC, // Motor voltage
-  VIN_ADC,  // Input voltage
-  NC6_ADC,
-  NC7_ADC,
-  NC8_ADC,
-  NC9_ADC,
-  NC10_ADC,
-  NC11_ADC,
-  NC12_ADC,
-  NC13_ADC,
-  TEMP_ADC, // Temperature
-};
-
+#define MOTOR_PORT PORTC
+#define MOTOR_PIN (1 << 1)
+#define SHUNT_PORT PORTA
+#define SHUNT_PIN (1 << 5)
+#define DEBUG_PORT PORTA
+#define DEBUG_PIN (1 << 6)
+#define DRVEN_PORT PORTC
+#define DRVEN_PIN (1 << 3)
 
 #define SHUNT_FAIL_VOLTAGE       5
-#define CAP_CHARGE_TIME          20 // ms
-#define VOLTAGE_MIN              11
-#define VOLTAGE_MAX              39
+#define MAX_DISCHARGE_WAIT_TIME  500 // ms/volt
+#define MAX_CHARGE_WAIT_TIME     30  // ms/volt
+
+#define GATE_TURN_ON_DELAY       40
+#define CAP_DISCHARGE_TIME       20   // ms
+#define VOLTAGE_MIN              20
+#define VOLTAGE_MAX              53
 #define CURRENT_MAX              25
-#define CURRENT_OVERTEMP         19 // Should read ~21A but > 11.86A is error
-#define LOAD_OVERTEMP_MAX        10
-#define MOTOR_SHUTDOWN_THRESH    15
+#define MOTOR_DRIVER_CURRENT     0.15
 #define VOLTAGE_SETTLE_COUNT     5
 #define VOLTAGE_SETTLE_PERIOD    20 // ms
 #define VOLTAGE_SETTLE_TOLERANCE 0.01
@@ -98,25 +77,14 @@ enum {
 #define SHUNT_JOULES_PER_MS      ((float)SHUNT_JOULES / SHUNT_PERIOD)
 #define SHUNT_MIN_V              2
 
-#define VOLTAGE_REF              1.1
-#define VOLTAGE_REF_R1           37400
-#define VOLTAGE_REF_R2           1000
-#define CURRENT_REF_R2           137
-#define CURRENT_REF_MUL (100.0 * 2700 / CURRENT_REF_R2) // 2700 from datasheet
-
 #define REG_SCALE                100
-#define AVG_SCALE                3
-#define BUCKETS                  (1 << AVG_SCALE)
+#define ADC_SAMPNUM              ADC_SAMPNUM_ACC4_gc
+#define ADC_SAMPLES              (1 << ADC_SAMPNUM)
 
-// Addresses 0x60 to 0x67
-#define I2C_ADDR                 0x60
-#define I2C_MASK                 0b00001111
+#define ADC_SCALE                5
+#define ADC_BUCKETS              (1 << ADC_SCALE)
 
-#define I2C_ERROR_BM             (1 << TWBE)
-#define I2C_DATA_INT_BM          (1 << TWDIF)
-#define I2C_READ_BM              (1 << TWDIR)
-#define I2C_ADDRESS_STOP_INT_BM  (1 << TWASIF)
-#define I2C_ADDRESS_MATCH_BM     (1 << TWAS)
+#define I2C_ADDR                 0x5f
 
 
 typedef enum {
@@ -124,11 +92,12 @@ typedef enum {
   VIN_REG,
   VOUT_REG,
   MOTOR_REG,
-  LOAD1_REG,
-  LOAD2_REG,
-  VDD_REG,
+  RESERVED1_REG,
+  RESERVED2_REG,
+  RESERVED3_REG,
   FLAGS_REG,
   VERSION_REG,
+  CRC_REG,
   NUM_REGS
 } regs_t;
 
@@ -143,17 +112,15 @@ enum {
   MOTOR_OVERLOAD_FLAG            = 1 << 5,
 
   // Non fatal
-  LOAD1_SHUTDOWN_FLAG            = 1 << 6,
-  LOAD2_SHUTDOWN_FLAG            = 1 << 7,
+  GATE_ERROR_FLAG                = 1 << 6,
+  NOT_INITIALIZED_FLAG           = 1 << 7,
   MOTOR_UNDER_VOLTAGE_FLAG       = 1 << 8,
+  CHARGE_ERROR_FLAG              = 1 << 11,
   SHUNT_ERROR_FLAG               = 1 << 15,
 
   // Sense errors
   MOTOR_VOLTAGE_SENSE_ERROR_FLAG = 1 << 9,
   MOTOR_CURRENT_SENSE_ERROR_FLAG = 1 << 10,
-  LOAD1_SENSE_ERROR_FLAG         = 1 << 11,
-  LOAD2_SENSE_ERROR_FLAG         = 1 << 12,
-  VDD_CURRENT_SENSE_ERROR_FLAG   = 1 << 13,
 
   // State flags
   POWER_SHUTDOWN_FLAG            = 1 << 14,
@@ -161,4 +128,4 @@ enum {
 
 
 #define FATAL_FLAGS       0x003f
-#define SENSE_ERROR_FLAGS 0x3e00
+#define SENSE_ERROR_FLAGS 0x0600

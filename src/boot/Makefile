@@ -1,12 +1,10 @@
 # Makefile for the project Bulidbotics bootloader
-PROJECT         = bbctrl-avr-boot
-MCU             = atxmega256a3u
-CLOCK           = 32000000
-
-TARGET  = $(PROJECT).elf
+PROJECT = bbctrl-avr-boot
+MCU     = atxmega256a3u
+CLOCK   = 32000000
 
 # Compile flags
-CC = avr-gcc
+CC  = avr-gcc
 CPP = avr-g++
 
 COMMON = -mmcu=$(MCU) -flto -fwhole-program
@@ -34,14 +32,14 @@ FUSE4=0xff
 FUSE5=0xeb
 
 # SRC
-SRC = $(wildcard src/*.S)
+SRC  = $(wildcard src/*.S)
 SRC += $(wildcard src/*.c)
-OBJ = $(patsubst src/%.c,build/%.o,$(SRC))
+OBJ  = $(patsubst src/%.c,build/%.o,$(SRC))
 OBJ := $(patsubst src/%.S,build/%.o,$(OBJ))
 
 
 # Build
-all: $(TARGET) size
+all: $(PROJECT).hex size
 
 # Compile
 build/%.o: src/%.c
@@ -53,16 +51,16 @@ build/%.o: src/%.S
 	$(CC) $(INCLUDES) $(CFLAGS) -c -o $@ $<
 
 # Link
-$(TARGET): $(OBJ)
+$(PROJECT).elf: $(OBJ)
 	$(CC) $(LDFLAGS) $(OBJ) $(LIBS) -o $@
 
 %.hex: %.elf
 	avr-objcopy -O ihex -R .eeprom -R .fuse -R .lock -R .signature $< $@
 
-size: $(TARGET)
+size: $(PROJECT).elf
 	@for X in A B C; do\
 	  echo '****************************************************************' ;\
-	  avr-size -$$X --mcu=$(MCU) $(TARGET) ;\
+	  avr-size -$$X --mcu=$(MCU) $(PROJECT).elf ;\
 	done
 
 # Program

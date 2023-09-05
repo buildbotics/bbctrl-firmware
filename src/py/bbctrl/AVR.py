@@ -29,6 +29,7 @@ import serial
 import time
 import traceback
 import ctypes
+import math
 
 __all__ = ['AVR']
 
@@ -71,13 +72,14 @@ def _serial_set_low_latency(sp):
 
 class AVR(object):
     def __init__(self, ctrl):
-        self.ctrl = ctrl
-        self.log = ctrl.log.get('AVR')
-
-        self.sp = None
+        self.ctrl     = ctrl
+        self.log      = ctrl.log.get('AVR')
+        self.sp       = None
         self.i2c_addr = ctrl.args.avr_addr
-        self.read_cb = None
+        self.read_cb  = None
         self.write_cb = None
+        self.events   = 0
+        self.errors   = 0
 
 
     def close(self): pass
@@ -93,53 +95,61 @@ class AVR(object):
             self.sp.nonblocking()
             #_serial_set_low_latency(self.sp)
 
+            self.ctrl.ioloop.add_handler(self.sp, self._serial_handler, 0)
+            self.enable_read(True)
+
         except Exception as e:
             self.sp = None
             self.log.warning('Failed to open serial port: %s', e)
 
-        if self.sp is not None:
-            self.ctrl.ioloop.add_handler(self.sp, self._serial_handler,
-                                         self.ctrl.ioloop.READ)
-
 
     def set_handlers(self, read_cb, write_cb):
         if self.read_cb is not None or self.write_cb is not None:
-            raise Exception('Handler already set')
+            raise Exception('Handlers already set')
 
-        self.read_cb = read_cb
+        self.read_cb  = read_cb
         self.write_cb = write_cb
         self._start()
 
 
-    def enable_write(self, enable):
+    def update_events(self, events, enable):
         if self.sp is None: return
 
-        flags = self.ctrl.ioloop.READ
-        if enable: flags |= self.ctrl.ioloop.WRITE
-        self.ctrl.ioloop.update_handler(self.sp, flags)
+        if enable: self.events |= events
+        else: self.events &= ~events
+
+        self.ctrl.ioloop.update_handler(self.sp, self.events)
 
 
-    def _serial_write(self):
-        self.write_cb(lambda data: self.sp.write(data))
+    def enable_write(self, enable):
+        self.update_events(self.ctrl.ioloop.WRITE, enable)
 
 
-    def _serial_read(self):
-        try:
-            data = ''
-            data = self.sp.read(self.sp.in_waiting)
-            self.read_cb(data)
-
-        except Exception as e:
-            self.log.warning('%s: %s', e, data)
+    def enable_read(self, enable):
+        self.update_events(self.ctrl.ioloop.READ, enable)
 
 
     def _serial_handler(self, fd, events):
         try:
-            if self.ctrl.ioloop.READ & events: self._serial_read()
-            if self.ctrl.ioloop.WRITE & events: self._serial_write()
+            if self.ctrl.ioloop.READ & events:
+                self.read_cb(self.sp.read(self.sp.in_waiting))
+
+            if self.ctrl.ioloop.WRITE & events:
+                self.write_cb(lambda data: self.sp.write(data))
+
+            self.errors = 0
 
         except Exception as e:
-            self.log.warning('Serial handler error: %s', traceback.format_exc())
+            self.log.warning('Serial: %s', e)
+
+            # Delay next IO
+            self.errors += 1
+            delay = 0.1 * math.pow(2, max(6, self.errors))
+
+            events = self.events
+            self.update_events(events, False)
+
+            self.ctrl.ioloop.call_later(delay, self.update_events, events, True)
 
 
     def i2c_command(self, cmd, byte = None, word = None, block = None):

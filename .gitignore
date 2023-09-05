@@ -1,9 +1,8 @@
-.sconf_temp/
+.sconf_temp
 .sconsign.dblite
 /build
 /dist
 /crap
-/pkg
 /mnt
 /demo
 /bbctrl-*
@@ -19,6 +18,6 @@ __pycache__
 *.deb
 *.zip
 /package-lock.json
-/share
 *.elf
 *.hex
+/scratch.txt

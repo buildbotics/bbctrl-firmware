@@ -1,0 +1,41 @@
+#!/bin/bash -e
+
+FWPATH=/var/lib/bbctrl/firmware
+UPDIPROG=/usr/local/bin/updiprog
+RPIPDI=/usr/local/bin/rpipdi
+
+PWRFW=$FWPATH/bbctrl-pwr-firmware.hex
+AVRFW=$FWPATH/bbctrl-avr-firmware.hex
+
+# Power firmware
+if [ -e /dev/ttyAMA3 ]; then
+  PWRDEV=/dev/ttyAMA3
+elif [ -e /dev/ttyAMA1 ]; then
+  PWRDEV=/dev/ttyAMA1
+fi
+
+printf "Checking Firmwares\n"
+
+# Main firmware
+if [ -e "$AVRFW" ]; then
+  printf "\n*** Main Firmware ***\n"
+  $RPIPDI -c 27 -d 23 -f 0=0xff -f 1=0x00 -f 2=0xbe -f 4=0xff -f 5=0xeb \
+          -x -w $AVRFW
+fi
+
+# Reset AVR
+printf "\n*** Reseting AVR ***\n"
+GPIO=/sys/class/gpio/gpio27
+if [ ! -e $GPIO ]; then
+  echo 27 > /sys/class/gpio/export
+fi
+echo out > $GPIO/direction
+echo 1   > $GPIO/value
+sleep 0.1
+echo in  > $GPIO/direction
+
+# PWR firmware
+if [ -e "$PWRFW" -a -e "$PWRDEV" ]; then
+  printf "\n*** Power Firmware ***\n"
+  $UPDIPROG -c $PWRDEV -b 500000 -x -w $PWRFW
+fi

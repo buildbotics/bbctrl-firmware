@@ -1,0 +1,1 @@
+bbmc ALL=NOPASSWD: /sbin/halt, /sbin/reboot, /sbin/poweroff, /sbin/shutdown
