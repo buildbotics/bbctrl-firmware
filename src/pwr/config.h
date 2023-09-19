@@ -30,7 +30,7 @@
 #include <avr/io.h>
 
 
-#define VERSION 0x0103
+#define VERSION 0x0104
 
 #define VIN_ADC  ADC_MUXPOS_AIN9_gc // ACD0
 #define VOUT_ADC ADC_MUXPOS_AIN8_gc // ADC0
@@ -57,10 +57,11 @@
 
 #define SHUNT_FAIL_VOLTAGE       5
 #define MAX_DISCHARGE_WAIT_TIME  500 // ms/volt
+#define MAX_DUMP_WAIT_TIME       1   // ms/volt
 #define MAX_CHARGE_WAIT_TIME     30  // ms/volt
 
 #define GATE_TURN_ON_DELAY       40
-#define CAP_DISCHARGE_TIME       20   // ms
+#define CAP_DISCHARGE_TIME       20  // ms
 #define VOLTAGE_MIN              20
 #define VOLTAGE_MAX              53
 #define CURRENT_MAX              25
