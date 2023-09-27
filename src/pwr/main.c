@@ -98,6 +98,7 @@ typedef struct {
 static volatile uint16_t regs[NUM_REGS] = {0};
 static volatile float shunt_joules = 0;
 static volatile bool initialized = false;
+static volatile bool failed = false;
 static volatile float vnom = 0;
 static volatile uint64_t time = 0; // ms
 
@@ -128,6 +129,7 @@ static void flags(uint16_t flags, bool enable) {
 
 
 static void shunt_enable(bool enable) {
+  if (failed) return;
   if (enable) SHUNT_PORT.OUTCLR = SHUNT_PIN; // Lo
   else SHUNT_PORT.OUTSET = SHUNT_PIN;        // Hi
   SHUNT_PORT.DIRSET = SHUNT_PIN;             // Out
@@ -135,6 +137,7 @@ static void shunt_enable(bool enable) {
 
 
 static void motor_enable(bool enable) {
+  if (failed) return;
   if (enable) MOTOR_PORT.OUTSET = MOTOR_PIN; // Hi
   else MOTOR_PORT.OUTCLR = MOTOR_PIN;        // Lo
   MOTOR_PORT.DIRSET = MOTOR_PIN;             // Out
@@ -142,6 +145,7 @@ static void motor_enable(bool enable) {
 
 
 static void driver_enable(bool enable) {
+  if (failed) return;
   if (enable) DRVEN_PORT.OUTSET = DRVEN_PIN; // Hi
   else DRVEN_PORT.OUTCLR = DRVEN_PIN;        // Lo
   DRVEN_PORT.DIRSET = DRVEN_PIN;             // Out
@@ -160,7 +164,7 @@ static uint16_t to_current(uint16_t result) {
 
 
 static void update_shunt() {
-  if (!initialized) return;
+  if (!initialized || failed) return;
 
   static float joules = SHUNT_JOULES; // Power disipation budget
 
@@ -174,7 +178,7 @@ static void update_shunt() {
 
 
 static void update_shunt_power() {
-  if (!initialized) return;
+  if (!initialized || failed) return;
 
   float vout = regs[VOUT_REG] / REG_SCALE;
 
@@ -412,35 +416,17 @@ static void validate_input_voltage() {
 }
 
 
-static bool discharge_wait(float min_v, unsigned wait) {
+static bool charge_wait(float target_v, uint16_t wait, bool up) {
   float vout = get_reg(VOUT_REG);
-  if (vout <= min_v) return true;
-
-  uint16_t max_ms = (vout - min_v + 1) * wait;
+  uint16_t max_ms = (fabs(vout - target_v) + 1) * wait;
 
   for (uint16_t i = 0; i < max_ms; i++) {
+    vout = get_reg(VOUT_REG);
+
+    if ((up && target_v <= vout) || (!up && vout <= target_v))
+      return true;
+
     delay(1);
-    if (get_reg(VOUT_REG) <= min_v) return true;
-  }
-
-  return false;
-}
-
-
-bool charge_wait(float max_v) {
-  float vstart = get_reg(VOUT_REG);
-  if (max_v <= vstart) return true;
-
-  uint16_t max_ms = (max_v - vstart) * MAX_CHARGE_WAIT_TIME + 1;
-
-  for (uint16_t i = 0; i < max_ms; i++) {
-    delay(1);
-    float vout = get_reg(VOUT_REG);
-    if (max_v <= vout) return true;
-
-    // Abort if not charging fast enough
-    if (i && i % 16 == 0 && (vout - vstart) * MAX_CHARGE_WAIT_TIME < i)
-      break;
   }
 
   return false;
@@ -448,31 +434,33 @@ bool charge_wait(float max_v) {
 
 
 static void charge_test() {
-  // Wait for motor voltage to self discharge below min voltage
+  // Wait for motor voltage to discharge below min voltage
+  motor_enable(false);
   shunt_enable(true);
-  if (!discharge_wait(VOLTAGE_MIN - 2, MAX_DUMP_WAIT_TIME))
+  if (!charge_wait(VOLTAGE_MIN - 2, MAX_DUMP_WAIT_TIME, false))
     return flags_set(GATE_ERROR_FLAG);
 
   // Charge caps
   shunt_enable(false);
   motor_enable(true);
   delay(GATE_TURN_ON_DELAY);
-  if (!charge_wait(VOLTAGE_MIN - 1)) return flags_set(CHARGE_ERROR_FLAG);
+  if (!charge_wait(VOLTAGE_MIN - 1, MAX_CHARGE_WAIT_TIME, true))
+    return flags_set(CHARGE_ERROR_FLAG);
 
   // If the gate works, the caps should discharge a bit on their own
   motor_enable(false); // Motor voltage off
-  if (!discharge_wait(VOLTAGE_MIN - 1.5, MAX_DISCHARGE_WAIT_TIME))
+  if (!charge_wait(VOLTAGE_MIN - 1.5, MAX_DISCHARGE_WAIT_TIME, false))
     return flags_set(GATE_ERROR_FLAG);
 
   // Discharge caps through shunt
   shunt_enable(true);
-  if (!discharge_wait(SHUNT_FAIL_VOLTAGE, MAX_DUMP_WAIT_TIME))
+  if (!charge_wait(SHUNT_FAIL_VOLTAGE, MAX_DUMP_WAIT_TIME, false))
     return flags_set(SHUNT_ERROR_FLAG);
 
   // Charge caps
   shunt_enable(false);
   motor_enable(true);
-  charge_wait(get_reg(VIN_REG) - 2);
+  charge_wait(get_reg(VIN_REG) - 2, MAX_CHARGE_WAIT_TIME, true);
 }
 
 
@@ -494,7 +482,6 @@ static void validate_measurements() {
 static void shutdown() {
   if (flags_get(POWER_SHUTDOWN_FLAG)) return;
   flags_set(POWER_SHUTDOWN_FLAG);
-  initialized = false;
 
   // Disable motors
   motor_enable(false);
@@ -502,6 +489,9 @@ static void shutdown() {
 
   // Enable shunt
   shunt_enable(true);
+
+  // Must be last
+  failed = true;
 }
 
 
@@ -529,10 +519,10 @@ void init() {
   CPUINT.LVL1VEC = TWI0_TWIS_vect_num; // High priority
 
   // Configure timer
-  TCA0.SINGLE.CTRLA = TCA_SINGLE_CLKSEL_DIV1_gc | TCA_SINGLE_ENABLE_bm;
-  TCA0.SINGLE.CTRLB = TCA_SINGLE_WGMODE_NORMAL_gc;
+  TCA0.SINGLE.CTRLA   = TCA_SINGLE_CLKSEL_DIV1_gc | TCA_SINGLE_ENABLE_bm;
+  TCA0.SINGLE.CTRLB   = TCA_SINGLE_WGMODE_NORMAL_gc;
   TCA0.SINGLE.INTCTRL = TCA_SINGLE_OVF_bm;
-  TCA0.SINGLE.PER = F_CPU / 1000;
+  TCA0.SINGLE.PER     = F_CPU / 1000;
 
   // Debug pin
   DEBUG_PORT.OUTCLR = DEBUG_PIN;
@@ -551,12 +541,12 @@ int main() {
   flags_set(NOT_INITIALIZED_FLAG);
 
   init();
-  validate_input_voltage();
-  charge_test();
 
-  // Enable drivers
-  driver_enable(true);
-  validate_measurements();
+  validate_input_voltage();
+  if (!failed) charge_test();
+  if (!failed) driver_enable(true);
+  if (!failed) validate_measurements();
+
   initialized = true;
   flags_clear(NOT_INITIALIZED_FLAG);
 
