@@ -61,7 +61,7 @@ def call_get_output(cmd):
 
 
 def get_username():
-    return call_get_output(['getent', 'passwd', '1001']).split(':')[0]
+    return call_get_output(['getent', 'passwd', 'bbmc']).split(':')[0]
 
 
 def set_username(username):
