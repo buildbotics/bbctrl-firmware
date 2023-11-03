@@ -37,6 +37,14 @@ script#breakout-template(type="text/x-template")
             :template="template")
 
 
+script#db25-breakout-template(type="text/x-template")
+  include http/images/db25_breakout.svg
+
+
+script#db15-breakout-template(type="text/x-template")
+  include http/images/db15_breakout.svg
+
+
 script#breakout-ground-template(type="text/x-template")
   .pin
     h4 Ground
@@ -46,7 +54,9 @@ script#breakout-ground-template(type="text/x-template")
 script#breakout-5v-template(type="text/x-template")
   .pin
     h4 5v
-    div This pin is connected to 5 volts.  It can supply a maximum of 3A.
+    div.
+      This pin is connected to 5 volts.  All 5v pins together
+      can supply a maximum of 3A.
 
 
 script#breakout-reserved-template(type="text/x-template")
@@ -59,3 +69,66 @@ script#breakout-ungrounded-template(type="text/x-template")
   .pin
     h4 Ungrounded
     div This pin may not be grounded.  Do not connect.
+
+
+script#breakout-nc-template(type="text/x-template")
+  .pin
+    h4 No Connect
+    div Unconnected.
+
+
+script#breakout-io-template(type="text/x-template")
+  .pin
+    h4 Mappable IO {{pin}}
+    mapped-io(:pin="pin", :state="state", :template="template")
+
+
+script#breakout-rs485-template(type="text/x-template")
+  .pin
+    h4 RS485 channel {{ch}}
+    div.
+      RS485 communication is used to talk to VFDs using the Modbus protocol.
+
+
+script#breakout-pwm-template(type="text/x-template")
+  .pin
+    h4 Tool PWM output
+    div.
+      This pin outputs a Pulse Width Modulated signal which can be used to
+      control spindle speed or LASER intensity.
+
+
+script#breakout-0to10-template(type="text/x-template")
+  .pin
+    h4 0 to 10v output
+    div.
+      This pin outputs a voltage between 0 and 10 which can be used to
+      control spindle speed or LASER intensity.
+
+
+script#breakout-fault-template(type="text/x-template")
+  .pin
+    h4 Motor fault output
+    div.
+      This pin will be pulled to ground when a motor fault is detected.
+
+
+script#breakout-enable-template(type="text/x-template")
+  .pin
+    h4 Motor enable output
+    div.
+      This pin will be pulled high when the motor drivers are enabled.
+
+
+script#breakout-step-template(type="text/x-template")
+  .pin
+    h4 Motor channel {{ch}} step
+    div.
+      The channel {{ch}} step signal is present on this pin.
+
+
+script#breakout-dir-template(type="text/x-template")
+  .pin
+    h4 Motor channel {{ch}} direction
+    div.
+      The channel {{ch}} direction signal is present on this pin.
