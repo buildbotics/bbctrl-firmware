@@ -25,6 +25,7 @@
 #                                                                              #
 ################################################################################
 
+import os
 import serial
 import time
 import traceback
@@ -88,7 +89,28 @@ class AVR(object):
     def flush_output(self): self.sp.reset_output_buffer()
 
 
+    def _reset(self, active):
+        try:
+            gpio = '/sys/class/gpio/gpio27'
+
+            if not os.path.exists(gpio):
+                with open('/sys/class/gpio/export', 'w') as f: f.write('27\n')
+
+            if active:
+                with open(gpio + '/direction', 'w') as f: f.write('out\n')
+                with open(gpio + '/value',     'w') as f: f.write('1\n')
+
+            else:
+                with open(gpio + '/direction', 'w') as f: f.write('in\n')
+
+        except Exception as e:
+            self.log.exception('Reset failed')
+
+
     def _start(self):
+        self._reset(True)
+        self._reset(False)
+
         try:
             self.sp = serial.Serial(self.ctrl.args.serial, self.ctrl.args.baud,
                                     rtscts = 1, timeout = 0, write_timeout = 0)

@@ -27,12 +27,21 @@
 #                                                                              #
 ################################################################################
 
+try:
+    import smbus
+except:
+    import smbus2 as smbus
+
 import lcd
 
+
 if __name__ == "__main__":
-    screen = lcd.LCD(1, 0x27)
+    bus    = 1
+    addr   = 0x27
+    i2c    = smbus.SMBus(bus)
+    screen = lcd.LCD(lambda byte: i2c.write_byte(addr, byte))
 
     screen.clear()
     screen.display(0, 'Buildbotics', lcd.JUSTIFY_CENTER)
-    screen.display(1, 'Controller', lcd.JUSTIFY_CENTER)
-    screen.display(3, 'Booting...', lcd.JUSTIFY_CENTER)
+    screen.display(1, 'Controller',  lcd.JUSTIFY_CENTER)
+    screen.display(3, 'Booting...',  lcd.JUSTIFY_CENTER)

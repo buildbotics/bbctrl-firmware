@@ -6,7 +6,7 @@
   "license": "CERN-OHL-S v2",
   "dependencies": {
     "browserify": "",
-    "jshint": "",
+    "jshint": "^2.13.6",
     "jstransformer-escape-html": "",
     "jstransformer-stylus": "^1.5.0",
     "pug-cli": "^1.0.0-alpha6"

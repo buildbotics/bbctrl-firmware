@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -34,28 +33,28 @@ module.exports = {
 
 
   methods: {
-    jog: function (axis, ring, direction) {
-      var value = direction * this.value(ring);
-      this.$dispatch(this.step ? 'step' : 'jog', this.axes[axis], value);
+    jog(axis, ring, direction) {
+      let value = direction * this.value(ring)
+      this.$dispatch(this.step ? 'step' : 'jog', this.axes[axis], value)
     },
 
 
-    release: function (axis) {
+    release(axis) {
       if (!this.step) this.$dispatch('jog', this.axes[axis], 0)
     },
 
 
-    value: function (ring) {
-      var adjust = [0.01, 0.1, 1][this.adjust];
-      if (this.step) return adjust * [0.1, 1, 10, 100][ring];
-      return adjust * [0.1, 0.25, 0.5, 1][ring];
+    value(ring) {
+      let adjust = [0.01, 0.1, 1][this.adjust]
+      if (this.step) return adjust * [0.1, 1, 10, 100][ring]
+      return adjust * [0.1, 0.25, 0.5, 1][ring]
     },
 
 
-    text: function (ring) {
-      var value = this.value(ring) * (this.step ? 1 : 100);
-      value = parseFloat(value.toFixed(3));
-      return value + (this.step ? '' : '%');
+    text(ring) {
+      let value = this.value(ring) * (this.step ? 1 : 100)
+      value = parseFloat(value.toFixed(3))
+      return value + (this.step ? '' : '%')
     }
   }
 }

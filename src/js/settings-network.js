@@ -25,10 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
-
-
-var api = require('./api');
 
 
 module.exports = {
@@ -36,133 +32,98 @@ module.exports = {
   props: ['config', 'state'],
 
 
-  data: function () {
+  components: {
+    'wifi-connect': require('./wifi-connect'),
+    'wifi-hotspot': require('./wifi-hotspot')
+  },
+
+
+  data() {
     return {
-      hostnameSet: false,
+      hostnameSet:     false,
       redirectTimeout: 0,
-      hostname: '',
-      username: '',
-      current: '',
-      password: '',
-      password2: '',
-      wifi_mode: 'client',
-      wifi_internal: true,
-      wifi_ssid: '',
-      wifi_ch: undefined,
-      wifi_pass: '',
-      wifiConfirm: false,
-      rebooting: false
+      hostname:        '',
+      username:        '',
+      current:         '',
+      password:        '',
+      password2:       '',
+      wifi_country:    'Unknown',
+      wifi_pass:       '',
     }
   },
 
 
-  ready: function () {
-    api.get('hostname').done(function (hostname) {
-      this.hostname = hostname;
-    }.bind(this));
-
-    api.get('remote/username').done(function (username) {
-      this.username = username;
-    }.bind(this));
-
-    api.get('wifi').done(function (config) {
-      this.wifi_mode     = config.mode;
-      this.wifi_internal = config.internal == undefined || config.internal;
-      this.wifi_ssid     = config.ssid;
-      this.wifi_ch       = config.channel;
-    }.bind(this));
+  async ready() {
+    this.hostname = await this.$api.get('hostname')
+    this.username = await this.$api.get('remote/username')
   },
 
 
   methods: {
-    redirect: function (hostname) {
+    redirect(hostname) {
       if (0 < this.redirectTimeout) {
-        this.redirectTimeout -= 1;
-        setTimeout(function () {this.redirect(hostname)}.bind(this), 1000);
+        this.redirectTimeout -= 1
+        setTimeout(() => this.redirect(hostname), 1000)
 
-      } else location.hostname = hostname;
+      } else location.hostname = hostname
     },
 
 
-    set_hostname: function () {
-      api.put('hostname', {hostname: this.hostname}).done(function () {
-        this.redirectTimeout = 45;
-        this.hostnameSet = true;
+    async set_hostname() {
+      await this.$api.put('hostname', {hostname: this.hostname})
+      this.redirectTimeout = 45
+      this.hostnameSet = true
 
-        api.put('reboot').always(function () {
-          if (String(location.hostname) == 'localhost') return;
+      await this.$api.put('reboot')
 
-          var hostname = this.hostname;
-          if (String(location.hostname).endsWith('.local'))
-            hostname += '.local'
-          this.$dispatch('hostname-changed', hostname);
-          this.redirect(hostname);
-        }.bind(this));
+      if (String(location.hostname) == 'localhost') return
 
-      }.bind(this)).fail(function (error) {
-        this.$root.api_error('Set hostname failed', error);
-      }.bind(this))
+      let hostname = this.hostname
+      if (String(location.hostname).endsWith('.local'))
+        hostname += '.local'
+      this.$dispatch('hostname-changed', hostname)
+      this.redirect(hostname)
     },
 
 
-    set_username: function () {
-      api.put('remote/username', {username: this.username}).done(function () {
-        this.$root.open_dialog({title: 'User name Set'});
-      }.bind(this)).fail(function (error) {
-        this.$root.api_error('Set username failed', error);
-      }.bind(this))
+    async set_username() {
+      this.$api.put('remote/username', {username: this.username})
+      this.$root.success_dialog('User name Set')
     },
 
 
-    set_password: function () {
-      if (this.password != this.password2) {
-        this.$root.error_dialog('Passwords to not match');
-        return;
-      }
+    async set_password() {
+      if (this.password != this.password2)
+        return this.$root.error_dialog('Passwords to not match')
 
-      if (this.password.length < 6) {
-        this.$root.error_dialog('Password too short');
-        return;
-      }
+      if (this.password.length < 6)
+        return this.$root.error_dialog('Password too short')
 
-      api.put('remote/password', {
+      await this.$api.put('remote/password', {
         current: this.current,
         password: this.password
-      }).done(function () {
-        this.$root.open_dialog({title: 'Password Set'});
+      })
 
-      }.bind(this)).fail(function (error) {
-        this.$root.api_error('Set password failed', error);
-      }.bind(this))
+      this.$root.success_dialog('Password Set')
     },
 
 
-    config_wifi: function () {
-      this.wifiConfirm = false;
+    async config_wifi() {
+      if (!this.wifi_ssid.length)
+        return this.$root.error_dialog('SSID not set')
 
-      if (!this.wifi_ssid.length) {
-        this.$root.error_dialog('SSID not set');
-        return;
-      }
+      if (32 < this.wifi_ssid.length)
+        return this.$root.error_dialog('SSID longer than 32 characters')
 
-      if (32 < this.wifi_ssid.length) {
-        this.$root.error_dialog('SSID longer than 32 characters');
-        return;
-      }
+      if (this.wifi_pass.length && this.wifi_pass.length < 8)
+        return this.$root.error_dialog(
+          'WiFi password shorter than 8 characters')
 
-      if (this.wifi_pass.length && this.wifi_pass.length < 8) {
-        this.$root.error_dialog('WiFi password shorter than 8 characters');
-        return;
-      }
+      if (128 < this.wifi_pass.length)
+        return this.$root.error_dialog(
+          'WiFi password longer than 128 characters')
 
-      if (128 < this.wifi_pass.length) {
-        this.$root.error_dialog('WiFi password longer than 128 characters');
-        return;
-      }
-
-      this.rebooting = true;
-
-      var config = {
+      let config = {
         mode:     this.wifi_mode,
         internal: this.wifi_internal,
         channel:  this.wifi_ch,
@@ -170,10 +131,50 @@ module.exports = {
         pass:     this.wifi_pass
       }
 
-      api.put('wifi', config).fail(function (error) {
-        this.$root.api_error('Failed to configure WiFi', error);
-        this.rebooting = false;
-      }.bind(this))
+      return this.$api.put('wifi', config)
+    },
+
+
+    async set_country() {
+      return this.$api.put('net/country', {code: this.wifi_country})
+    },
+
+
+    async get_wifi_password() {
+      this.wifi_pass = ''
+
+      let result = await this.$refs.wifiPassword.open()
+      if (result == 'ok') return this.wifi_pass
+    },
+
+
+    async connect(net) {
+      let result = await this.$refs.connect.open(net)
+
+      if (result.action == 'connect') {
+        let ap = result.ap
+        let data = {}
+
+        if (ap.connection) data.uuid = ap.connection
+        else {
+          data.ssid = ap.ssid
+
+          if (ap.security) {
+            data.password = await this.get_wifi_password()
+            if (!data.password) return
+          }
+        }
+
+        return this.$api.put('net/' + net.name + '/connect', data)
+      }
+    },
+
+
+    hotspot(net) {this.$refs.hotspot.open(net)},
+
+
+    async disconnect(net) {
+      return this.$api.put('net/' + net.name + '/disconnect')
     }
   }
 }

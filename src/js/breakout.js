@@ -25,14 +25,13 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 function make_tmpl(name, data) {
   return {
     props: ['state', 'template'],
     template: '#breakout-' + name + '-template',
-    data() {return Object.create(data || {})}
+    data() {return Object.assign({}, data || {})}
   }
 }
 

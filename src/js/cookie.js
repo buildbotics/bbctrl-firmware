@@ -25,48 +25,47 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
-var cookie = {
+let cookie = {
   prefix: 'bbctrl-',
 
 
-  get: function (name, defaultValue) {
-    var decodedCookie = decodeURIComponent(document.cookie);
-    var ca = decodedCookie.split(';');
-    name = cookie.prefix + name + '=';
+  get(name, defaultValue) {
+    let decodedCookie = decodeURIComponent(document.cookie)
+    let ca = decodedCookie.split(';')
+    name = cookie.prefix + name + '='
 
-    for (var i = 0; i < ca.length; i++) {
-      var c = ca[i];
-      while (c.charAt(0) == ' ') c = c.substring(1);
-      if (!c.indexOf(name)) return c.substring(name.length, c.length);
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i]
+      while (c.charAt(0) == ' ') c = c.substring(1)
+      if (!c.indexOf(name)) return c.substring(name.length, c.length)
     }
 
-    return defaultValue;
+    return defaultValue
   },
 
 
-  set: function (name, value, days) {
-    var offset = 2147483647; // Max value
-    if (typeof days != 'undefined') offset = days * 24 * 60 * 60 * 1000;
-    var d = new Date();
-    d.setTime(d.getTime() + offset);
-    var expires = 'expires=' + d.toUTCString();
+  set(name, value, days) {
+    let offset = 2147483647 // Max value
+    if (typeof days != 'undefined') offset = days * 24 * 60 * 60 * 1000
+    let d = new Date()
+    d.setTime(d.getTime() + offset)
+    let expires = 'expires=' + d.toUTCString()
     document.cookie =
       cookie.prefix + name + '=' + value + ';' + expires + ';path=/;samesite=lax'
   },
 
 
-  set_bool: function (name, value) {
-    cookie.set(name, value ? 'true' : 'false');
+  set_bool(name, value) {
+    cookie.set(name, value ? 'true' : 'false')
   },
 
 
-  get_bool: function (name, defaultValue) {
-    return cookie.get(name, defaultValue ? 'true' : 'false') == 'true';
+  get_bool(name, defaultValue) {
+    return cookie.get(name, defaultValue ? 'true' : 'false') == 'true'
   }
 }
 
 
-module.exports = cookie;
+module.exports = cookie

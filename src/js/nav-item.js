@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict';
 
 
 module.exports = {
@@ -34,8 +33,8 @@ module.exports = {
 
 
   methods: {
-    show: function (e) {
-      $(e.currentTarget).find('.nav-menu-hide').removeClass('nav-menu-hide');
+    show(e) {
+      $(e.currentTarget).find('.nav-menu-hide').removeClass('nav-menu-hide')
     }
   }
 }

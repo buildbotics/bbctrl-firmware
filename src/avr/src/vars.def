@@ -83,6 +83,7 @@ VAR(max_input,       xw, u8,    MOTORS,  0, 1) // Maximum switch input state
 VAR(input,            w, u8,    INS,     0, 1) // Digital input state
 VAR(output_active,   oa, u8,    OUTS,    1, 1) // Digital output active
 VAR(analog_input,    ai, f32,   ANALOGS, 0, 0) // Analog input state
+VAR(buffer_enable,   be, b8,    0,       1, 1) // Buffer enable state
 
 // Spindle
 VAR(tool_type,       st, u8,    0,       1, 1) // See spindle.c

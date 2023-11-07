@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -33,15 +32,15 @@ module.exports = {
 
   props: {
     direction: {
-      validator: function (value) {
-        return value == 'veritcal' || value == 'horizontal';
+      validator(value) {
+        return value == 'veritcal' || value == 'horizontal'
       },
       default: 'vertical'
     }
   },
 
 
-  data: function() {
+  data() {
     return {
       last: 0
     }
@@ -49,60 +48,60 @@ module.exports = {
 
 
   methods: {
-    resize: function (e) {
-      if (e.which != 1) return; // Primary click only
-      e.preventDefault();
+    resize(e) {
+      if (e.which != 1) return // Primary click only
+      e.preventDefault()
 
-      var parent = e.target.parentNode;
-      var startX = e.pageX;
-      var startY = e.pageY;
-      var startHeight = parent.clientHeight;
-      var startWidth = parent.clientWidth;
-      var cursor = document.body.style.cursor;
+      let parent = e.target.parentNode
+      let startX = e.pageX
+      let startY = e.pageY
+      let startHeight = parent.clientHeight
+      let startWidth = parent.clientWidth
+      let cursor = document.body.style.cursor
       document.body.style.cursor =
-        this.direction == 'vertical' ? 'row-resize' : 'col-resize';
+        this.direction == 'vertical' ? 'row-resize' : 'col-resize'
 
-      var onmove = function (e) {
-        e.preventDefault();
+      let onmove = e => {
+        e.preventDefault()
 
         if (this.direction == 'vertical') {
-          var h = startHeight + (startY - e.pageY)
-          if (h < 0) h = 0;
-          parent.style.height = h + 'px';
+          let h = startHeight + (startY - e.pageY)
+          if (h < 0) h = 0
+          parent.style.height = h + 'px'
 
         } else {
-          var w = startWidth + (startX - e.pageX)
-          if (w < 0) w = 0;
-          parent.style.width = w + 'px';
+          let w = startWidth + (startX - e.pageX)
+          if (w < 0) w = 0
+          parent.style.width = w + 'px'
         }
 
-        window.dispatchEvent(new Event('resize'));
-      }.bind(this);
+        window.dispatchEvent(new Event('resize'))
+      }
 
-      var onup = function (e) {
-        e.preventDefault();
+      let onup = e => {
+        e.preventDefault()
 
-        document.body.style.cursor = cursor;
-        window.removeEventListener('mousemove', onmove);
-        window.removeEventListener('mouseup', onup);
+        document.body.style.cursor = cursor
+        window.removeEventListener('mousemove', onmove)
+        window.removeEventListener('mouseup', onup)
 
         // Toggle on double click
-        var now = new Date().getTime();
+        let now = new Date().getTime()
         if (now - this.last < 500) {
           if (this.direction == 'vertical') parent.style.height =
-            parent.style.height == '0px' ? '10000px' : '0px';
+            parent.style.height == '0px' ? '10000px' : '0px'
           else parent.style.width =
-            parent.style.width == '0px' ? '10000px' : '0px';
+            parent.style.width == '0px' ? '10000px' : '0px'
 
-          this.last = 0;
+          this.last = 0
 
-        } else this.last = now;
+        } else this.last = now
 
-        window.dispatchEvent(new Event('resize'));
-      }.bind(this);
+        window.dispatchEvent(new Event('resize'))
+      }
 
-      window.addEventListener('mousemove', onmove);
-      window.addEventListener('mouseup', onup);
+      window.addEventListener('mousemove', onmove)
+      window.addEventListener('mouseup', onup)
     }
   }
 }

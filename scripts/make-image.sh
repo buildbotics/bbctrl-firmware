@@ -41,7 +41,6 @@ if [ ! -e $KERNEL/arch/$ARCH/boot/Image ]; then
 fi
 
 # Create boot image
-BOOT_START=2048
 BOOT_SIZE=$((100 * 1024 * 2)) # 100MiB in sectors
 echo Building $BOOT_IMG
 
@@ -111,6 +110,7 @@ sudo cp -rfp $ROOT/* $BUILD/mnt/
 sudo umount -d $BUILD/mnt
 
 # Compute sizes
+BOOT_START=2048
 ROOT_START=$((BOOT_START + BOOT_SIZE))
 ROOT_SIZE=$(stat -L --format="%s" $ROOT_IMG)
 IMAGE_SIZE=$((ROOT_START * 512 + ROOT_SIZE + 35))
@@ -120,10 +120,11 @@ IMAGE_SIZE=$((IMAGE_SIZE / 1024 / 1024 + 2))
 dd if=/dev/zero of=$SYSTEM_IMG bs=1M count=0 seek=$IMAGE_SIZE
 
 # Partition
-parted -s $SYSTEM_IMG mklabel gpt
-parted -s $SYSTEM_IMG unit s mkpart boot $BOOT_START $((ROOT_START - 1))
-parted -s $SYSTEM_IMG set 1 boot on
-parted -s $SYSTEM_IMG -- unit s mkpart root $ROOT_START -34s
+parted -s $SYSTEM_IMG -- unit s \
+  mklabel gpt \
+  mkpart boot $BOOT_START $((ROOT_START - 1)) \
+  set 1 boot on \
+  mkpart root $ROOT_START -34s
 
 # Write partitions
 dd if=$BOOT_IMG of=$SYSTEM_IMG conv=notrunc,fsync seek=$BOOT_START

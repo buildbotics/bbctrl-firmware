@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -46,8 +45,8 @@ module.exports = {
       for (let i = 0; i < indices.length; i++) {
         let c = String.fromCharCode(97 + i)
 
-        let type = template.pins[i].type
-        let funcs = functions.filter(name => name.startsWith(type))
+        const type = template.pins[i].type
+        let funcs  = functions.filter(name => name.startsWith(type))
         funcs.unshift('disabled')
 
         let modes = []

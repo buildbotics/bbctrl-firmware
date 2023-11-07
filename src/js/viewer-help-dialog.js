@@ -25,14 +25,13 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
   template: '#viewer-help-dialog-template',
 
 
-  data: function () {
+  data() {
     return {
       show: false
     }
@@ -40,6 +39,6 @@ module.exports = {
 
 
   methods: {
-    open: function () {this.show = true}
+    open() {this.show = true}
   }
 }

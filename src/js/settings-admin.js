@@ -25,163 +25,135 @@
 
 \******************************************************************************/
 
-'use strict'
-
-
-var api = require('./api');
-
 
 module.exports = {
   template: '#settings-admin-template',
   props: ['config', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       enableKeyboard: true,
       autoCheckUpgrade: true,
       password: '',
       firmwareName: '',
-      show: {
-        upgrade: false,
-        upgrading: false,
-        upload: false
-      }
     }
   },
 
 
-  ready: function () {
+  ready() {
     this.enableKeyboard = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
   },
 
 
   methods: {
-    backup: function () {
-      document.getElementById('download-target').src = '/api/config/download';
+    backup() {
+      document.getElementById('download-target').src = '/api/config/download'
     },
 
 
-    restore_config: function () {
-      this.$root.upload({
+    async restore_config() {
+      return this.$root.upload({
         accept: '.json',
         on_confirm: this.restore
       })
     },
 
 
-    restore: function (file, done) {
-      var fr = new FileReader();
-      fr.onload = function (e) {
-        var config;
+    restore(file) {
+      let fr = new FileReader()
+      fr.onload = async e => {
+        let config
 
         try {
-          config = JSON.parse(e.target.result);
+          config = JSON.parse(e.target.result)
         } catch (ex) {
-          this.$root.error_dialog("Invalid config file");
-          return done(false);
+          return this.$root.error_dialog("Invalid config file")
         }
 
-        api.put('config/save', config).done(function (data) {
-          this.$dispatch('update');
-          this.$root.success_dialog('Configuration restored.');
+        let data = await this.$api.put('config/save', config)
+        this.$dispatch('update')
+        this.$root.success_dialog('Configuration restored.')
+      }
 
-        }.bind(this)).fail(function (error) {
-          this.$root.api_error('Restore failed', error);
-
-        }.bind(this)).always(function () {done(false)})
-      }.bind(this);
-
-      fr.readAsText(file);
+      fr.readAsText(file)
     },
 
 
-    do_reset: function () {
-      api.put('config/reset').done(function () {
-        this.$dispatch('update');
-        this.$root.success_dialog('Configuration reset.')
-
-      }.bind(this)).fail(function (error) {
-        this.$root.api_error('Reset failed', error);
-      }.bind(this));
+    async do_reset() {
+      await this.$api.put('config/reset')
+      this.$dispatch('update')
+      return this.$root.success_dialog('Configuration reset.')
     },
 
 
-    reset: function () {
-      this.$root.open_dialog({
+    async reset() {
+      let response = await this.$root.open_dialog({
         title: 'Reset to default configuration?',
         body: 'Non-network configuration changes will be lost.',
-        buttons: 'Cancel OK',
-        callback: {ok: this.do_reset}
+        buttons: 'Cancel OK'
       })
-    },
 
-    check: function () {this.$dispatch('check', true)},
-
-
-    upgrade: function () {
-      this.password = '';
-      this.show.upgrade = true;
+      if (response == 'ok') this.do_reset()
     },
 
 
-    upgrade_confirmed: function () {
-      this.show.upgrade = false;
+    check() {this.$dispatch('check', true)},
 
-      api.put('upgrade', {password: this.password}).done(function () {
-        this.show.upgrading = true;
 
-      }.bind(this)).fail(function () {
-        this.error_dialog('Invalid password');
-      }.bind(this))
+    async upgrade() {
+      this.password = ''
+
+      if (await this.$refs.upgrade.open() == 'upgrade') {
+        await this.$api.put('upgrade', {password: this.password})
+        await this.$refs.upgrading.open()
+      }
     },
 
 
-    upload: function () {
-      this.password = '';
+    async upload() {
+      this.password = ''
 
-      this.$root.upload({
-        url: 'firmware/update',
-        accept: '.bz2',
-        form: function(file) {
-          return {
-            firmware: file,
-            password: this.password
-          }
-        }.bind(this),
+      try {
+        await this.$root.upload({
+          url: 'firmware/update',
+          accept: '.bz2',
+          form(file) {
+            return {
+              firmware: file,
+              password: this.password
+            }
+          },
 
-        on_confirm: function (file, ok) {
-          this.confirm_cb = ok;
-          this.show.upload = true;
-          this.firmwareName = file.name;
-        }.bind(this),
+          async on_confirm(file) {
+            this.firmwareName = file.name
+            return await this.$refs.upload.open() == 'upload'
+          },
+        })
 
-        on_success: function (file, next) {
-          this.show.upgrading = true;
-          next();
-        }.bind(this),
+        await this.$refs.upgrading.open()
 
-        on_failure: function (file, error) {
-          this.error_dialog('Invalid password or bad firmware');
-        }.bind(this)
-      })
+      } catch (e) {
+        return this.error_dialog('Invalid password or bad firmware')
+      }
     },
 
 
-    upload_confirmed: function () {this.confirm_cb(true)},
+    upgrade_confirmed() {this.$refs.upload.close('upgrade')},
+    upload_confirmed()  {this.$refs.upload.close('upload')},
 
 
-    change_auto_check_upgrade: function () {
+    change_auto_check_upgrade() {
       this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade
       this.$dispatch('config-changed')
     },
 
 
-    change_enable_keyboard: function () {
+    change_enable_keyboard() {
       this.config.admin['virtual-keyboard-enabled'] = this.enableKeyboard
       this.$dispatch('config-changed')
-      if (!this.enableKeyboard) api.put('keyboard/hide')
+      if (!this.enableKeyboard) this.$api.put('keyboard/hide')
     }
   }
 }

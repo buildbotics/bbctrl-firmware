@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -47,10 +46,10 @@ module.exports = {
                     'function', 'state', 'pins'],
 
 
-    rows: function () {return Math.ceil(this.functions.length / 2.0)},
+    rows() {return Math.ceil(this.functions.length / 2.0)},
 
 
-    functions: function () {
+    functions() {
       let l = []
       let io_map = this.template['io-map']
       let pins = io_map.pins

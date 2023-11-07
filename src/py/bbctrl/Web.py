@@ -49,6 +49,7 @@ from .Camera import *
 from .MonitorTemp import *
 from .FileSystemHandler import *
 from .Ctrl import *
+from udevevent import UDevEvent
 
 __all__ = ['Web']
 
@@ -61,7 +62,7 @@ def call_get_output(cmd):
 
 
 def get_username():
-    return call_get_output(['getent', 'passwd', 'bbmc']).split(':')[0]
+    return call_get_output(['getent', 'passwd', '1000']).split(':')[0]
 
 
 def set_username(username):
@@ -84,6 +85,11 @@ def check_password(password):
 
     if s.split('$') != current: raise HTTPError(401, 'Wrong password')
 
+
+def upgrade_command(ctrl, cmd):
+    ctrl.lcd.goodbye('Upgrading firmware')
+    subprocess.Popen(['systemd-run', '--unit=bbctrl-update', '--scope',
+                      '--slice=bbctrl-update'] + cmd)
 
 
 class RebootHandler(APIHandler):
@@ -188,43 +194,17 @@ class HostnameHandler(APIHandler):
         raise HTTPError(400, 'Failed to set hostname')
 
 
-class WifiHandler(APIHandler):
-    def get(self):
-        data = {'ssid': '', 'channel': 0}
-        try:
-            data = json.loads(call_get_output(['config-wifi', '-j']))
-        except: pass
-        self.write_json(data)
-
-
-    def put(self):
+class NetworkHandler(APIHandler):
+    def put_ok(self, device, action):
         if self.get_ctrl().args.demo:
             raise HTTPError(400, 'Cannot configure WiFi in demo mode')
 
-        if 'mode' in self.json:
-            cmd = ['config-wifi', '-r']
-            mode = self.json['mode']
+        try:
+            args = self.json if self.json else {}
+            getattr(self.get_ctrl().net, action)(device, **args)
 
-            if mode == 'disabled': cmd += ['-d']
-            elif 'ssid' in self.json:
-                cmd += ['-s', self.json['ssid']]
-
-                if 'internal' in self.json and not self.json['internal']:
-                    cmd += ['-x']
-
-                if mode == 'ap':
-                    cmd += ['-a']
-                    if 'channel' in self.json:
-                        cmd += ['-c', self.json['channel']]
-
-                if 'pass' in self.json:
-                    cmd += ['-p', self.json['pass']]
-
-            if subprocess.call(cmd) == 0:
-                self.write_json('ok')
-                return
-
-        raise HTTPError(400, 'Failed to configure wifi')
+        except Exception as e:
+            self.get_ctrl().log.exception('Network handler')
 
 
 class UsernameHandler(APIHandler):
@@ -306,19 +286,13 @@ class FirmwareUpdateHandler(APIHandler):
         with open('firmware/update.tar.bz2', 'wb') as f:
             f.write(firmware['body'])
 
-        self.get_ctrl().lcd.goodbye('Upgrading firmware')
-        subprocess.Popen(['/usr/local/bin/update-bbctrl'])
+        upgrade_command(self.get_ctrl(), ['/usr/local/bin/update-bbctrl'])
 
 
 class UpgradeHandler(APIHandler):
     def put_ok(self):
         check_password(self.json['password'])
-        self.get_ctrl().lcd.goodbye('Upgrading firmware')
-        subprocess.Popen(['/usr/local/bin/upgrade-bbctrl'])
-
-
-class USBUpdateHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().fs.usb_update()
+        upgrade_command(self.get_ctrl(), ['/usr/local/bin/upgrade-bbctrl'])
 
 
 class USBEjectHandler(APIHandler):
@@ -576,15 +550,17 @@ class StaticFileHandler(tornado.web.StaticFileHandler):
 
 class Web(tornado.web.Application):
     def __init__(self, args, ioloop):
-        self.args = args
+        self.args   = args
         self.ioloop = ioloop
-        self.ctrls = {}
+        self.udevev = UDevEvent(ioloop)
+        self.ctrls  = {}
+
+        self.udevev.log = self._get_log('udevevent.log').get('UDev')
 
         # Init camera
         if not args.disable_camera:
-            if self.args.demo: log = Log(args, ioloop, 'camera.log')
-            else: log = self.get_ctrl().log
-            self.camera = Camera(ioloop, args, log.get('Camera'))
+            log = self._get_log('camera.log')
+            self.camera = Camera(ioloop, self.udevev, args, log.get('Camera'))
         else: self.camera = None
 
         # Init controller
@@ -600,7 +576,8 @@ class Web(tornado.web.Application):
             (r'/api/bugreport',                 BugReportHandler),
             (r'/api/reboot',                    RebootHandler),
             (r'/api/hostname',                  HostnameHandler),
-            (r'/api/wifi',                      WifiHandler),
+            (r'/api/net/([^/]+)/(scan|connect|forget|hotspot|disconnect)',
+             NetworkHandler),
             (r'/api/remote/username',           UsernameHandler),
             (r'/api/remote/password',           PasswordHandler),
             (r'/api/config/load',               ConfigLoadHandler),
@@ -609,7 +586,6 @@ class Web(tornado.web.Application):
             (r'/api/config/reset',              ConfigResetHandler),
             (r'/api/firmware/update',           FirmwareUpdateHandler),
             (r'/api/upgrade',                   UpgradeHandler),
-            (r'/api/usb/update',                USBUpdateHandler),
             (r'/api/usb/eject/(.*)',            USBEjectHandler),
             (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/macro/(\d+)',               MacroHandler),
@@ -655,6 +631,11 @@ class Web(tornado.web.Application):
         print('Listening on http://%s:%d/' % (args.addr, args.port))
 
 
+    def _get_log(self, path):
+        if self.args.demo: return Log(self.args, self.ioloop, path)
+        return self.get_ctrl().log
+
+
     def get_image_resource(self, name):
         return util.get_resource('http/images/%s.jpg' % name)
 
@@ -676,7 +657,7 @@ class Web(tornado.web.Application):
         if not id or not self.args.demo: id = ''
 
         if not id in self.ctrls:
-            ctrl = Ctrl(self.args, self.ioloop, id)
+            ctrl = Ctrl(self.args, self.ioloop, self.udevev, id)
             self.ctrls[id] = ctrl
 
         else: ctrl = self.ctrls[id]

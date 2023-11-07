@@ -25,10 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
-
-var api = require('./api');
-
 
 module.exports = {
   template: '#overrides-template',
@@ -49,11 +45,13 @@ module.exports = {
 
 
   methods: {
-    override_feed: function () {api.put('override/feed/' + this.feed)},
+    async override_feed()  {
+      return this.$api.put('override/feed/'  + this.feed)
+    },
 
 
-    override_speed: function () {
-      api.put('override/speed/' + this.speed)
+    async override_speed() {
+      return this.$api.put('override/speed/' + this.speed)
     }
   }
 }

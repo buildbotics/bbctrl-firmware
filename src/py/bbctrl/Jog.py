@@ -52,14 +52,15 @@ class Jog(inevent.JogHandler):
         super().__init__(ctrl.log.get('JogHandler'))
 
         self.ctrl = ctrl
-        self.log = ctrl.log.get('Jog')
+        self.log  = ctrl.log.get('Jog')
 
         self.v = [0.0] * 4
         self.lastV = self.v
         self.update()
 
-        self.processor = inevent.InEvent(ctrl.ioloop, self, types = ['js'],
-                                         log = ctrl.log.get('InEvent'))
+        self.processor = inevent.InEvent(
+            ctrl.ioloop, ctrl.udevev, self, types = ['js'],
+            log = ctrl.log.get('InEvent'))
 
 
     def _get_config(self, event):

@@ -27,9 +27,9 @@
 
 #include "rtc.h"
 
+#include "config.h"
 #include "io.h"
 #include "motor.h"
-#include "lcd.h"
 #include "vfd_spindle.h"
 
 #include <avr/io.h>
@@ -43,12 +43,14 @@ static uint32_t ticks;
 
 
 ISR(RTC_OVF_vect) {
-  ticks++;
+  ticks += 4;
 
-  lcd_rtc_callback();
+  //static bool toggle = false;
+  //io_set_output(OUTPUT_TEST, toggle = !toggle);
+
   io_rtc_callback();
   vfd_spindle_rtc_callback();
-  if (!(ticks & 255)) motor_rtc_callback();
+  if (!(ticks & 255)) motor_rtc_callback(); // Every 1/4 s
   wdt_reset();
 }
 
@@ -61,14 +63,13 @@ void rtc_init() {
   OSC.CTRL |= OSC_RC32KEN_bm;                         // enable internal 32kHz.
   while (!(OSC.STATUS & OSC_RC32KRDY_bm));            // 32kHz osc stabilize
   while (RTC.STATUS & RTC_SYNCBUSY_bm);               // wait RTC not busy
-
   CLK.RTCCTRL = CLK_RTCSRC_RCOSC_gc | CLK_RTCEN_bm;   // 1.024KHz clock RTC src
   while (RTC.STATUS & RTC_SYNCBUSY_bm);               // wait RTC not busy
 
   // the following must be in this order or it doesn't work
-  RTC.PER = 1;                         // overflow period ~1ms
+  RTC.PER     = 1;                     // overflow period ~4ms
   RTC.INTCTRL = RTC_OVFINTLVL_LO_gc;   // overflow LO interrupt
-  RTC.CTRL = RTC_PRESCALER_DIV1_gc;    // no prescale
+  RTC.CTRL    = RTC_PRESCALER_DIV1_gc; // no prescale
 }
 
 

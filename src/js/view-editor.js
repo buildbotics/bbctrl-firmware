@@ -25,10 +25,8 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api  = require('./api')
-var util = require('./util')
+let util = require('./util')
 
 
 module.exports = {
@@ -95,29 +93,29 @@ module.exports = {
     },
 
 
-    _load(path, ok) {
+    async _load(path) {
       this.path = path || ''
       if (!path) return
 
       this.loading = true
 
-      this.$root.select_path(path).load()
-        .done((data) => {
-          if (this.path == path) {
-            this.set(data)
-            if (ok) ok()
-          }
+      try {
+        let data = await (this.$root.select_path(path).load())
 
-        }).always(() => {
-          if (this.path == path) this.loading = false
+        if (this.path == path) {
+          this.set(data)
+          return true
+        }
 
-        }).fail(this.$root.api_error)
+      } finally {
+        if (this.path == path) this.loading = false
+      }
     },
 
 
-    load(path) {
+    async load(path) {
       if (this.path == path) return
-      this.check_save(() => {this._load(path)})
+      if (await this.check_save()) return this._load(path)
     },
 
 
@@ -133,10 +131,10 @@ module.exports = {
     },
 
 
-    check_save(ok) {
-      if (!this.modified) return ok()
+    async check_save() {
+      if (!this.modified) return true
 
-      this.$root.open_dialog({
+      let response = this.$root.open_dialog({
         title: 'Save file?',
         body: 'The current file has been modified.  ' +
           'Would you like to save it first?',
@@ -153,76 +151,75 @@ module.exports = {
             title: 'Save changes.',
             'class': 'button-success'
           }
-        ],
-        callback: {
-          save() {this.save(ok)},
-          discard() {this.revert(ok)}
-        }
+        ]
       })
+
+      if (response == 'save')    return this.save()
+      if (response == 'discard') return this.revert()
+
+      return false
     },
 
 
-    new_file() {
-      this.check_save(() => {
+    async new_file() {
+      if (await this.check_save()) {
         this.path = ''
         this.set('')
-      })
-    },
-
-
-    open() {
-      this.check_save(() => {
-        this.$root.file_dialog({
-          callback: (path) => {if (path) this.load(path)},
-          dir: this.path ? util.dirname(this.path) : '/'
-        })
-      })
-    },
-
-
-    do_save(path, ok) {
-      var fd = new FormData()
-      var file = new File([new Blob([this.doc.getValue()])], path)
-      fd.append('file', file)
-
-      api.upload('fs/' + path, fd)
-        .done(() => {
-          this.path = path
-          this.modified = false
-          this.doc.markClean()
-          if (typeof ok != 'undefined') ok()
-
-        }).fail((error) => {
-          this.$root.error_dialog({body: 'Save failed'})
-        })
-    },
-
-
-    save(ok) {
-      if (!this.path) this.save_as(ok)
-      else this.do_save(this.path, ok)
-    },
-
-
-    save_as(ok) {
-      this.$root.file_dialog({
-        save: true,
-        callback: (path) => {if (path) this.do_save(path, ok)},
-        dir: this.path ? util.dirname(this.path) : '/'
-      })
-    },
-
-
-    revert(ok) {
-      if (this.modified) {
-        this.modified = false
-        this._load(this.path, ok)
       }
     },
 
 
+    async open() {
+      if (await this.check_save()) {
+        let path = await this.$root.file_dialog({
+          dir: this.path ? util.dirname(this.path) : '/'
+        })
+
+        if (path) return this.load(path)
+      }
+    },
+
+
+    async do_save(path) {
+      let fd = new FormData()
+      let file = new File([new Blob([this.doc.getValue()])], path)
+      fd.append('file', file)
+
+      await this.$api.put('fs/' + path, fd)
+
+      this.path = path
+      this.modified = false
+      this.doc.markClean()
+    },
+
+
+    async save() {
+      if (this.path) return this.do_save(this.path)
+      return this.save_as()
+    },
+
+
+    async save_as() {
+      let path = await this.$root.file_dialog({
+        save: true,
+        dir: this.path ? util.dirname(this.path) : '/'
+      })
+
+      if (path) return this.do_save(path)
+      return false
+    },
+
+
+    async revert() {
+      if (!this.modified) return false
+
+      this.modified = false
+      return this._load(this.path)
+    },
+
+
     download() {
-      var data = new Blob([this.doc.getValue()], {type: 'text/plain'})
+      let data = new Blob([this.doc.getValue()], {type: 'text/plain'})
       window.URL.revokeObjectURL(this.$els.download.href)
       this.$els.download.href = window.URL.createObjectURL(data)
       this.$els.download.click()

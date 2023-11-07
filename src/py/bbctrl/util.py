@@ -34,7 +34,7 @@ _version = pkg_resources.require('bbctrl')[0].version
 
 try:
   with open('/sys/firmware/devicetree/base/model', 'r') as f:
-    _model = f.read()
+    _model = f.read().strip('\0')
 except: _model = 'unknown'
 
 

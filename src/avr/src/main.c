@@ -50,8 +50,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-//#include "SSD1306.h"
-
 
 // For emu
 int __argc;
@@ -62,7 +60,7 @@ int main(int argc, char *argv[]) {
   __argc = argc;
   __argv = argv;
 
-  wdt_enable(WDTO_250MS);
+  //wdt_enable(WDTO_250MS);
 
   // Init
   cli();                          // disable interrupts

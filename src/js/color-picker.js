@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -39,16 +38,16 @@ module.exports = {
   },
 
 
-  data: function () {
+  data() {
     return {
       config: '{}'
     }
   },
 
 
-  ready: function () {
-    window.jscolor.install(this.$el);
-    this.jscolor = this.$els.input.jscolor;
+  ready() {
+    window.jscolor.install(this.$el)
+    this.jscolor = this.$els.input.jscolor
     this.jscolor.option({
       onChange: this.change,
       onInput: this.change,
@@ -60,14 +59,14 @@ module.exports = {
         '#fef100', '#22b14b', '#00a1e7', '#3f47cc', '#a349a4',
         '#ffffff', '#c3c3c3', '#b87957', '#feaec9', '#ffc80d',
         '#eee3af', '#b5e61d', '#99d9ea', '#7092be', '#c8bfe7'
-      ]});
+      ]})
   },
 
 
   methods: {
-    change: function() {
-      this.value = this.jscolor.toHEXString();
-      this.$emit('change', this.value);
+    change() {
+      this.value = this.jscolor.toHEXString()
+      this.$emit('change', this.value)
     },
 
 

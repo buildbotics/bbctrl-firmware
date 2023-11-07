@@ -25,36 +25,35 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
   template: '#video-template',
 
-  attached: function () {Vue.nextTick(this.resize)},
+  attached() {Vue.nextTick(this.resize)},
 
 
-  ready: function () {
-    window.addEventListener('resize', this.resize, false);
+  ready() {
+    window.addEventListener('resize', this.resize, false)
   },
 
 
   methods: {
-    reload: function () {this.$els.img.src = '/api/video?' + Math.random()},
+    reload() {this.$els.img.src = '/api/video?' + Math.random()},
 
 
-    resize: function () {
-      var width = this.$els.video.clientWidth;
-      var height = this.$els.video.clientHeight;
-      var aspect = 3 / 4; // TODO should probably not be hard coded
+    resize() {
+      let width = this.$els.video.clientWidth
+      let height = this.$els.video.clientHeight
+      let aspect = 3 / 4 // TODO should probably not be hard coded
 
-      if (!width) return;
+      if (!width) return
 
-      width = Math.min(width, height / aspect);
-      height = Math.min(height, width * aspect);
+      width = Math.min(width, height / aspect)
+      height = Math.min(height, width * aspect)
 
-      this.$els.img.style.width  = width  + 'px';
-      this.$els.img.style.height = height + 'px';
+      this.$els.img.style.width  = width  + 'px'
+      this.$els.img.style.height = height + 'px'
     }
   }
 }

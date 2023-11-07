@@ -25,9 +25,8 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var util   = require('./util');
+let util = require('./util')
 
 
 module.exports = {
@@ -35,7 +34,7 @@ module.exports = {
   props: ['config', 'state', 'template'],
 
 
-  data: function () {
+  data() {
     return {
       dragging: -1
     }
@@ -43,60 +42,57 @@ module.exports = {
 
 
   computed: {
-    macros: function () {return this.config.macros || []}
+    macros() {return this.config.macros || []}
   },
 
 
   methods: {
-    add: function () {
+    add() {
       this.macros.push({name: '', path: '', color: '#e6e6e6'})
     },
 
 
-    mousedown: function (event) {this.target = event.target},
+    mousedown(event) {this.target = event.target},
 
 
-    dragstart: function(event) {
-      if (this.target.localName == 'input') event.preventDefault();
+    dragstart(event) {
+      if (this.target.localName == 'input') event.preventDefault()
     },
 
 
-    drag: function(index) {
-      console.log('drag(' + index + ')');
-      this.dragging = index;
-      event.preventDefault();
+    drag(index) {
+      console.log('drag(' + index + ')')
+      this.dragging = index
+      event.preventDefault()
     },
 
 
-    drop: function(index) {
-      console.log('drop(' + index + ') dragging=' + this.dragging);
+    drop(index) {
+      console.log('drop(' + index + ') dragging=' + this.dragging)
 
-      if (index == this.dragging) return;
-      var item = this.macros[this.dragging];
-      this.macros.splice(this.dragging, 1);
-      this.macros.splice(index, 0, item);
-      this.change();
+      if (index == this.dragging) return
+      let item = this.macros[this.dragging]
+      this.macros.splice(this.dragging, 1)
+      this.macros.splice(index, 0, item)
+      this.change()
     },
 
 
-    remove: function(index) {
-      this.macros.splice(index, 1);
-      this.change();
+    remove(index) {
+      this.macros.splice(index, 1)
+      this.change()
     },
 
 
-    open: function(index) {
-      this.$root.file_dialog({
-        callback: function (path) {
-          if (path) {
-            this.macros[index].path = util.display_path(path);
-            this.change();
-          }
-        }.bind(this)
-      })
+    async open(index) {
+      let path = await this.$root.file_dialog()
+      if (path) {
+        this.macros[index].path = util.display_path(path)
+        this.change()
+      }
     },
 
 
-    change: function () {this.$dispatch('input-changed')}
+    change() {this.$dispatch('input-changed')}
   }
 }

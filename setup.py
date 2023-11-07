@@ -17,7 +17,7 @@ setup(
   license = pkg['license'],
   url = pkg['homepage'],
   package_dir = {'': 'src/py'},
-  packages = ['bbctrl', 'inevent', 'lcd'],
+  packages = ['bbctrl', 'inevent', 'lcd', 'udevevent'],
   include_package_data = True,
   entry_points = {
     'console_scripts': [
@@ -33,6 +33,7 @@ setup(
     'scripts/mount-usb',
     'scripts/eject-usb',
     'scripts/update-bb-firmware',
+    'scripts/boot-splash',
   ],
   install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
   zip_safe = False,

@@ -25,10 +25,9 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
-var util = require('./util');
+let util = require('./util')
 
 
 module.exports = {
@@ -36,7 +35,7 @@ module.exports = {
   props: ['locations'],
 
 
-  data: function () {
+  data() {
     return {
       show: false,
       config: {},
@@ -47,56 +46,60 @@ module.exports = {
 
 
   methods: {
-    open: function (config) {
-      this.config = config;
-      this.show = true;
-      this.$refs.files.open(config.dir || '/');
+    open(config) {
+      this.config = config
+      this.show = true
+      this.$refs.files.open(config.dir || '/')
+
+      return new Promise(resolve => this.resolve = resolve)
     },
 
 
-    set_selected: function (path, dir) {
-      this.selected = path;
-      this.dir = dir;
+    set_selected(path, dir) {
+      this.selected = path
+      this.dir = dir
     },
 
 
-    respond: function (path) {
-      if (this.config.callback) this.config.callback(path);
+    respond(path) {
+      if (this.resolve) {
+        this.resolve(path)
+        delete this.resolve
+      }
     },
 
 
-    response: function (path) {
-      this.show = false;
+    async response(path) {
+      this.show = false
 
       if (path && this.config.save) {
-        var filename = util.basename(path);
-        var exists = this.$refs.files.has_file(filename);
+        let filename = util.basename(path)
+        let exists = this.$refs.files.has_file(filename)
 
         if (exists) {
-          this.$root.open_dialog({
+          let response = await this.$root.open_dialog({
             title: 'Overwrite file?',
             body: 'Overwrite <tt>' + filename + '</tt>?',
-            buttons: 'No Yes',
-            callback: {
-              no: this.respond,
-              yes: function () {this.respond(path)}.bind(this)
-            }
+            buttons: 'No Yes'
           })
 
-          return;
+          if (response == 'no')  this.respond()
+          if (response == 'yes') this.respond(path)
+
+          return
         }
       }
 
-      this.respond(path);
+      this.respond(path)
     },
 
 
-    ok: function () {
-      if (this.dir) this.$refs.files.open(this.selected);
+    ok() {
+      if (this.dir) this.$refs.files.open(this.selected)
       else this.response(this.selected)
     },
 
 
-    cancel: function () {this.response()}
+    cancel() {this.response()}
   }
 }

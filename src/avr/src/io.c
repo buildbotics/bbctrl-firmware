@@ -100,12 +100,13 @@ static io_pin_t _pins[] = {
   {IO_24_PIN, IO_TYPE_ANALOG, 0, ADC_CH_MUXPOS_PIN6_gc},
 
   // Hard wired pins
-  {STALL_0_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_0,     NORMALLY_OPEN},
-  {STALL_1_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_1,     NORMALLY_OPEN},
-  {STALL_2_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_2,     NORMALLY_OPEN},
-  {STALL_3_PIN,     IO_TYPE_INPUT,  0, 0, INPUT_STALL_3,     NORMALLY_OPEN},
-  {MOTOR_FAULT_PIN, IO_TYPE_INPUT,  0, 0, INPUT_MOTOR_FAULT, NORMALLY_OPEN},
-  {TEST_PIN,        IO_TYPE_OUTPUT, 0, 0, OUTPUT_TEST,       HI_LO},
+  {STALL_0_PIN,       IO_TYPE_INPUT,  0, 0, INPUT_STALL_0,     NORMALLY_OPEN},
+  {STALL_1_PIN,       IO_TYPE_INPUT,  0, 0, INPUT_STALL_1,     NORMALLY_OPEN},
+  {STALL_2_PIN,       IO_TYPE_INPUT,  0, 0, INPUT_STALL_2,     NORMALLY_OPEN},
+  {STALL_3_PIN,       IO_TYPE_INPUT,  0, 0, INPUT_STALL_3,     NORMALLY_OPEN},
+  {MOTOR_FAULT_PIN,   IO_TYPE_INPUT,  0, 0, INPUT_MOTOR_FAULT, NORMALLY_OPEN},
+  {TEST_PIN,          IO_TYPE_OUTPUT, 0, 0, OUTPUT_TEST,       HI_LO},
+  {BUFFER_ENABLE_PIN, IO_TYPE_OUTPUT, 0, 0, OUTPUT_BUFEN,      HI_LO},
 
   {0}, // Sentinal
 };
@@ -126,6 +127,7 @@ static io_function_t _output_to_function(int id) {
   case 7:  return OUTPUT_TOOL_ENABLE;
   case 8:  return OUTPUT_TOOL_DIRECTION;
   case 9:  return OUTPUT_TEST;
+  case 10: return OUTPUT_BUFEN;
   default: return IO_DISABLED;
   }
 }
@@ -362,7 +364,8 @@ io_type_t io_get_type(io_function_t function) {
   case INPUT_STALL_3: case INPUT_MOTOR_FAULT:
     return IO_TYPE_INPUT;
 
-  case OUTPUT_TEST: return IO_TYPE_OUTPUT;
+  case OUTPUT_TEST: case OUTPUT_BUFEN:
+    return IO_TYPE_OUTPUT;
 
   case IO_FUNCTION_COUNT: break;
   }
@@ -542,3 +545,7 @@ void set_output_active(int index, uint8_t active) {
 float get_analog_input(int port) {
   return io_get_analog(io_get_port_function(false, port));
 }
+
+
+bool get_buffer_enable() {return io_get_input(OUTPUT_BUFEN);}
+void set_buffer_enable(bool enable) {io_set_output(OUTPUT_BUFEN, enable);}

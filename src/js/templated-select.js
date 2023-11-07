@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -35,6 +34,6 @@ module.exports = {
 
 
   methods: {
-    change: function () {this.$dispatch('input-changed')}
+    change() {this.$dispatch('input-changed')}
   }
 }

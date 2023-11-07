@@ -21,7 +21,7 @@ RSYNC_OPTS    := $(RSYNC_EXCLUDE) -rv --no-g --delete --force
 
 VERSION  := $(shell sed -n 's/^.*"version": "\([^"]*\)",.*$$/\1/p' package.json)
 PKG_NAME := bbctrl-$(VERSION)
-PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl
+PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl-2.0
 BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 

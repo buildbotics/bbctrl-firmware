@@ -25,18 +25,15 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api     = require('./api');
-var cookie  = require('./cookie');
-var Sock    = require('./sock');
-var util    = require('./util');
-var Program = require('./program');
+let cookie  = require('./cookie')
+let Sock    = require('./sock')
+let util    = require('./util')
+let Program = require('./program')
 
 
 module.exports = new Vue({
   el: 'body',
-
 
   data() {
     return {
@@ -50,7 +47,7 @@ module.exports = new Vue({
       },
       state: {messages: []},
       crosshair: cookie.get_bool('crosshair', false),
-      selected_program: new Program(cookie.get('selected-path')),
+      selected_program: new Program(this.$api, cookie.get('selected-path')),
       active_program: undefined,
       errorTimeout: 30,
       errorTimeoutStart: 0,
@@ -83,7 +80,7 @@ module.exports = new Vue({
 
     'state.active_program'() {
       let path = this.state.active_program
-      this.active_program = path ? new Program(path) : undefined
+      this.active_program = path ? new Program(this.$api, path) : undefined
     },
 
 
@@ -95,11 +92,11 @@ module.exports = new Vue({
 
   events: {
     route(path) {
-      let oldView = this.currentView;
+      let oldView = this.currentView
 
       if (typeof this.$options.components['view-' + path[0]] == 'undefined')
-        return location.hash = 'control';
-      else this.currentView = path[0];
+        return location.hash = 'control'
+      else this.currentView = path[0]
 
       if (oldView != this.currentView) $('#main').scrollTop(0)
     },
@@ -110,104 +107,110 @@ module.exports = new Vue({
 
     send(msg) {
       if (this.status == 'connected') {
-        console.debug('>', msg);
-        this.sock.send(msg);
+        console.debug('>', msg)
+        this.sock.send(msg)
       }
     },
 
 
-    connected() {this.update(this.parse_hash)},
-    update() {this.update(this.parse_hash)},
+    async connected() {
+      await this.update()
+      this.parse_hash()
+    },
 
 
-    check(show_message) {
-      this.latestVersion = '';
+    async update() {
+      await this.update()
+      this.parse_hash()
+    },
 
-      $.ajax({
-        type: 'GET',
-        url: 'https://buildbotics.com/bbctrl/latest.txt',
-        data: {hid: this.state.hid},
-        cache: false
 
-      }).done(function (data) {
-        this.latestVersion = data;
-        if (!show_message) return;
-        var cmp = util.compare_versions(this.config.version, this.latestVersion)
+    async check(show_message) {
+      this.latestVersion = ''
 
-        var msg;
-        if (cmp == 0) msg = 'You have the latest official firmware.'
-        else {
-          msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
-            ' than the latest official firmware release, version' +
-            this.latestVersion + '.'
+      let url  = 'https://buildbotics.com/bbctrl/latest.txt'
+      let conf = {data: {hid: this.state.hid}, type: 'text'}
+      this.latestVersion = await this.$api.get(url, conf)
 
-          if (cmp < 0) msg += ' Please upgrade.';
-        }
+      if (!show_message) return
+      let cmp = util.compare_versions(this.config.version, this.latestVersion)
 
-        this.open_dialog({
-          icon: cmp ? (cmp < 0 ? 'chevron-left' : 'chevron-right') : 'check',
-          title: 'Firmware check',
-          body: msg
-        })
+      let msg
+      if (cmp == 0) msg = 'You have the latest official firmware.'
+      else {
+        msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
+          ' than the latest official firmware release, version' +
+          this.latestVersion + '.'
 
-      }.bind(this))
+        if (cmp < 0) msg += ' Please upgrade.'
+      }
+
+      return this.open_dialog({
+        icon: cmp ? (cmp < 0 ? 'chevron-left' : 'chevron-right') : 'check',
+        title: 'Firmware check',
+        body: msg
+      })
     },
 
 
     error(msg) {
       // Honor user error blocking
       if (Date.now() - this.errorTimeoutStart < this.errorTimeout * 1000)
-        return;
+        return
 
       // Wait at least 1 sec to pop up repeated errors
-      if (1 < msg.repeat && Date.now() - msg.ts < 1000) return;
+      if (1 < msg.repeat && Date.now() - msg.ts < 1000) return
 
       // Popup error dialog
-      this.showError = true;
-      this.errorMessage = msg.msg;
+      this.showError = true
+      this.errorMessage = msg.msg
     }
   },
 
 
   computed: {
     popupMessages() {
-      var msgs = [];
+      let msgs = []
 
-      for (var i = 0; i < this.state.messages.length; i++) {
-        var text = this.state.messages[i].text;
+      for (let i = 0; i < this.state.messages.length; i++) {
+        let text = this.state.messages[i].text
         msgs = msgs.concat(text.split('#'))
       }
 
-      this.showPopup = msgs.length != 0;
+      this.showPopup = msgs.length != 0
 
-      return msgs;
+      return msgs
     },
 
 
     show_upgrade() {
-      if (!this.latestVersion) return false;
+      if (!this.latestVersion) return false
       return util.compare_versions(this.config.version, this.latestVersion) < 0
     }
   },
 
 
-  ready() {
-    $(window).on('hashchange', this.parse_hash);
-    this.connect();
+  async ready() {
+    this.$api.set_error_handler(this.error_dialog)
+
+    window.onhashchange = this.parse_hash
+    this.connect()
 
     if (!this.webGLSupported) {
-      var msg = 'Your browser does not have hardware support for 3D ' +
+      let msg = 'Your browser does not have hardware support for 3D ' +
           'graphics.  3D viewer disabled.'
 
-      console.warn(msg);
+      console.warn(msg)
 
-      if (!cookie.get_bool('webgl-warning', false))
-        this.open_dialog({
+      if (!cookie.get_bool('webgl-warning', false)) {
+        await this.open_dialog({
           title: 'WebGL Warning',
           body: msg,
-          buttons: 'ok',
-          callback() {cookie.set_bool('webgl-warning', true)}
-        });
+          buttons: 'ok'
+        })
+
+        cookie.set_bool('webgl-warning', true)
+      }
     }
   },
 
@@ -217,153 +220,137 @@ module.exports = new Vue({
 
 
     block_error_dialog() {
-      this.errorTimeoutStart = Date.now();
-      this.showError = false;
+      this.errorTimeoutStart = Date.now()
+      this.showError = false
     },
 
 
-    estop() {
-      if (this.state.xx == 'ESTOPPED') api.put('clear');
-      else api.put('estop');
+    async estop() {
+      if (this.state.xx == 'ESTOPPED') return this.$api.put('clear')
+      return this.$api.put('estop')
     },
 
 
-    update(done) {
-      api.get('config/load').done(function (config) {
-        util.update_object(this.config, config, true);
+    async update() {
+      let config = await this.$api.get('config/load')
 
-        if (!this.checkedUpgrade) {
-          this.checkedUpgrade = true;
+      util.update_object(this.config, config, true)
 
-          var check = this.config.admin['auto-check-upgrade'];
-          if (typeof check == 'undefined' || check)
-            this.$emit('check');
-        }
+      if (!this.checkedUpgrade) {
+        this.checkedUpgrade = true
 
-        if (done) done(true);
-      }.bind(this))
+        let check = this.config.admin['auto-check-upgrade']
+        if (check == undefined || check) this.$emit('check')
+      }
     },
 
 
     connect() {
-      this.sock = new Sock('//' + window.location.host + '/sockjs');
+      this.sock = new Sock('//' + window.location.host + '/sockjs')
 
       this.sock.onmessage = (e) => {
-        if (typeof e.data != 'object') return;
+        if (typeof e.data != 'object') return
 
         if ('log' in e.data) {
-          this.$broadcast('log', e.data.log);
-          delete e.data.log;
+          this.$broadcast('log', e.data.log)
+          delete e.data.log
         }
 
         // Check for session ID change on controller
         if ('sid' in e.data) {
-          if (typeof this.sid == 'undefined') this.sid = e.data.sid;
+          if (typeof this.sid == 'undefined') this.sid = e.data.sid
 
           else if (this.sid != e.data.sid) {
             if (typeof this.hostname != 'undefined' &&
                 String(location.hostname) != 'localhost')
-              location.hostname = this.hostname;
-            location.reload(true);
+              location.hostname = this.hostname
+            location.reload(true)
           }
         }
 
-        util.update_object(this.state, e.data, false);
-        this.$broadcast('update');
+        util.update_object(this.state, e.data, false)
+        this.$broadcast('update')
 
         // Disable WebGL on Pi 3 for local head
         if (this.webGLSupported) {
-          var model = this.state.rpi_model
+          let model = this.state.rpi_model
           if (location.hostname == 'localhost' && model != undefined &&
               model.indexOf('Pi 3') != -1)
-            this.webGLSupported = false;
+            this.webGLSupported = false
         }
       }
 
       this.sock.onopen = (e) => {
-        this.status = 'connected';
-        this.$emit(this.status);
-        this.$broadcast(this.status);
+        this.status = 'connected'
+        this.$emit(this.status)
+        this.$broadcast(this.status)
       }
 
       this.sock.onclose = (e) => {
-        this.status = 'disconnected';
-        this.$emit(this.status);
-        this.$broadcast(this.status);
+        this.status = 'disconnected'
+        this.$emit(this.status)
+        this.$broadcast(this.status)
       }
     },
 
 
     route(path) {
-      var cancel = false;
-      var cb = function () {cancel = true}
+      let cancel = false
+      let cb = () => {cancel = true}
 
-      this.$emit('route-changing', path, cb);
-      this.$broadcast('route-changing', path, cb);
+      this.$emit('route-changing', path, cb)
+      this.$broadcast('route-changing', path, cb)
 
-      if (cancel) return history.back();
-      this.$emit('route', path);
-      this.$broadcast('route', path);
+      if (cancel) return history.back()
+      this.$emit('route', path)
+      this.$broadcast('route', path)
     },
 
 
     replace_route(hash) {
-      history.replaceState(null, '', '#' + hash);
+      history.replaceState(null, '', '#' + hash)
       this.parse_hash()
     },
 
 
     parse_hash() {
-      var hash = location.hash.substr(1);
-
-      if (!hash.trim().length)
-        return location.hash = 'control';
-
-      this.route(hash.split(':'));
+      let hash = location.hash.substr(1)
+      if (!hash.trim().length) return location.hash = 'control'
+      this.route(hash.split(':'))
     },
 
 
-    close_messages(action) {
-      if (action == 'stop') api.put('stop');
-      if (action == 'continue') api.put('unpause');
+    async close_messages(action) {
+      if (action == 'stop') await this.$api.put('stop')
+      if (action == 'continue') await this.$api.put('unpause')
 
       // Acknowledge messages
       if (this.state.messages.length) {
-        var id = this.state.messages.slice(-1)[0].id
-        api.put('message/' + id + '/ack');
+        let id = this.state.messages.slice(-1)[0].id
+        await this.$api.put('message/' + id + '/ack')
       }
     },
 
 
-    file_dialog(config) {this.$refs.fileDialog.open(config)},
-    upload(config)      {this.$refs.uploader.upload(config)},
-    open_dialog(config) {this.$refs.dialog.open(config)},
-    error_dialog(msg)   {this.$refs.dialog.error(msg)},
-    warning_dialog(msg) {this.$refs.dialog.warning(msg)},
-    success_dialog(msg) {this.$refs.dialog.success(msg)},
+    async file_dialog(config) {return this.$refs.fileDialog.open(config)},
+    async upload(config)      {return this.$refs.uploader.upload(config)},
+    async open_dialog(config) {return this.$refs.dialog.open(config)},
+    async error_dialog(msg)   {return this.$refs.dialog.error(msg)},
+    async warning_dialog(msg) {return this.$refs.dialog.warning(msg)},
+    async success_dialog(msg) {return this.$refs.dialog.success(msg)},
 
 
-    api_error(msg, error) {
-      if (error != undefined) {
-        if (error.message != undefined)
-          msg += '\n' + error.message;
-        else msg += '\n' + JSON.stringify(error);
-      }
-
-      this.error_dialog(msg);
-    },
-
-
-    run(path) {
-      if (this.state.xx != 'READY') return;
-      api.put('start/' + path).done(function () {location.hash = 'control'})
+    async run(path) {
+      if (this.state.xx != 'READY') return
+      await this.$api.put('start/' + path)
+      location.hash = 'control'
     },
 
 
     select_path(path) {
       if (path && this.selected_program.path != path) {
         cookie.set('selected-path', path)
-        this.selected_program = new Program(path)
+        this.selected_program = new Program(this.$api, path)
       }
 
       return this.selected_program

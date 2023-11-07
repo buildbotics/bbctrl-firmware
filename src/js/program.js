@@ -25,115 +25,80 @@
 
 \******************************************************************************/
 
-'use strict'
 
-let api  = require('./api')
 let util = require('./util')
 
 
-function fail_message(xhr, path) {
-  if (xhr.status == 404) return '<tt>' + path + '</tt> not found'
-  return 'Failed to load <tt>' + path + '</tt>'
-}
-
-
-function download_array(url) {
-  let d = $.Deferred()
-
-  api.download(url, 'arraybuffer')
-    .done((data) => {d.resolve(new Float32Array(data))})
-    .fail(d.reject)
-
-  return d.promise()
-}
-
-
 class Program {
-  constructor(path) {
+  constructor($api, path) {
+    this.$api = $api
     this.path = path
     this.filename = util.display_path(path)
     this.progress = 0
   }
 
 
+  async download_array(url) {
+    let data = await this.$api.get(url, {type: 'arraybuffer'})
+    return new Float32Array(data)
+  }
+
+
   positions() {
     if (!this._positions)
-      this._positions = download_array('positions/' + this.path)
+      this._positions = this.download_array('positions/' + this.path)
 
     return this._positions
   }
 
 
   speeds() {
-    if (!this._speeds) this._speeds = download_array('speeds/' + this.path)
+    if (!this._speeds) this._speeds = this.download_array('speeds/' + this.path)
     return this._speeds
   }
 
 
+  async _load_view() {
+    let toolpath = await this.toolpath()
+    let [positions, speeds] =
+        await Promise.all([this.positions(), this.speeds()])
+
+    toolpath.positions = positions
+    toolpath.speeds    = speeds
+    return toolpath
+  }
+
+
   view() {
-    if (!this._view) {
-      let d = $.Deferred()
-
-      this.toolpath().done((toolpath) => {
-        $.when(this.positions(), this.speeds())
-          .done((positions, speeds) => {
-            toolpath.positions = positions
-            toolpath.speeds = speeds
-            d.resolve(toolpath)
-
-          }).fail(d.reject)
-
-      }).fail(d.reject)
-
-      this._view = d.promise()
-    }
-
+    if (!this._view) this._view = this._load_view()
     return this._view
   }
 
 
-  toolpath() {
-    if (!this._toolpath) {
-      let d = $.Deferred()
-      let retry = 0
-      let _load = () => {
-        api.get('path/' + this.path)
-          .done((toolpath) => {
-            if (toolpath.progress == undefined) {
-              this.progress = 1
-              util.update_object(this, toolpath)
-              d.resolve(toolpath)
+  async _load_toolpath() {
+    let toolpath = await this.$api.get('path/' + this.path)
 
-            } else {
-              this.progress = toolpath.progress
-              _load() // Try again
-            }
+    if (toolpath.progress == undefined) {
+      this.progress = 1
+      util.update_object(this, toolpath)
+      return toolpath
 
-          }).fail((error, xhr) => {
-            if (xhr.status == 404 || ++retry < 10)
-              d.reject(fail_message(xhr, this.path), error)
-          })
-      }
-
-      _load()
-      this._toolpath = d.promise()
+    } else {
+      this.progress = toolpath.progress
+      return this._load_toolpath() // Try again
     }
+  }
 
+
+  toolpath() {
+    if (!this._toolpath) this._toolpath = this._load_toolpath()
     return this._toolpath
   }
 
 
   load() {
-    if (!this._load) {
-      let d = $.Deferred()
-
-      api.download('fs/' + this.path)
-        .done(d.resolve)
-        .fail((error, xhr) => {d.reject(fail_message(xhr, this.path), error)})
-
-      this._load = d.promise()
-    }
-
+    if (!this._load)
+      this._load = this.$api.get('fs/' + this.path, {type: 'text'})
     return this._load
   }
 }

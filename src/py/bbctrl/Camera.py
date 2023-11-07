@@ -32,10 +32,10 @@ import fcntl
 import select
 import struct
 import mmap
-import pyudev
 import base64
 import socket
 import ctypes
+import logging
 from tornado import gen, web, iostream
 
 try:
@@ -273,21 +273,22 @@ class VideoDevice(object):
         finally: self.fd = None
 
 
-class Camera(object):
-    def __init__(self, ioloop, args, log):
-        self.ioloop = ioloop
-        self.log = log
+class Camera:
+    def __init__(self, ioloop, udevev, args, log = None):
+        self.ioloop      = ioloop
+        self.udevev      = udevev
+        self.log         = log if log else logging.getLogger('Camera')
 
-        self.width = args.width
-        self.height = args.height
-        self.fps = args.fps
-        self.fourcc = 'MJPG'
+        self.width       = args.width
+        self.height      = args.height
+        self.fps         = args.fps
+        self.fourcc      = 'MJPG'
         self.max_clients = args.camera_clients
 
-        self.overtemp = False
-        self.dev = None
-        self.clients = []
-        self.path = None
+        self.overtemp    = False
+        self.dev         = None
+        self.clients     = []
+        self.path        = None
         self.have_camera = False
 
         # Find connected cameras
@@ -299,17 +300,10 @@ class Camera(object):
                 break
 
         # Get notifications of camera (un)plug events
-        self.udevCtx = pyudev.Context()
-        self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
-        self.udevMon.filter_by(subsystem = 'video4linux')
-        self.udevMon.start()
-        ioloop.add_handler(self.udevMon, self._udev_handler, ioloop.READ)
+        udevev.add_handler(self._event_handler, 'video4linux')
 
 
-    def _udev_handler(self, fd, events):
-        action, device = self.udevMon.receive_device()
-        if device is None: return
-
+    def _event_handler(self, action, device):
         path = str(device.device_node)
 
         if action == 'add' and self.dev is None:
@@ -540,16 +534,16 @@ def _parse_args():
 
 if __name__ == '__main__':
     import tornado
-    import logging
+    from udevevent import UDevEvent
 
 
     class _Web(tornado.web.Application):
-        def __init__(self, args, ioloop, log):
+        def __init__(self, args, ioloop):
             tornado.web.Application.__init__(self, [(r'/.*', VideoHandler)])
 
-            self.args = args
+            self.args   = args
             self.ioloop = ioloop
-            self.camera = Camera(ioloop, args, log)
+            self.camera = Camera(ioloop, UDevEvent(ioloop), args)
 
             try:
                 self.listen(args.port, address = args.addr)
@@ -566,9 +560,8 @@ if __name__ == '__main__':
 
     args = _parse_args()
     logging.basicConfig(level = logging.INFO, format = '%(message)s')
-    log = logging.getLogger('Camera')
     ioloop = tornado.ioloop.IOLoop.current()
-    app = _Web(args, ioloop, log)
+    app = _Web(args, ioloop)
 
     try:
         ioloop.start()

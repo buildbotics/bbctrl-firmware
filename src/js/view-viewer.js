@@ -25,10 +25,8 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api  = require('./api');
-var util = require('./util');
+let util = require('./util')
 
 
 module.exports = {
@@ -59,8 +57,8 @@ module.exports = {
 
 
     show() {
-      if (this.$refs.viewer == undefined) return {};
-      return this.$refs.viewer.show;
+      if (this.$refs.viewer == undefined) return {}
+      return this.$refs.viewer.show
     }
   },
 
@@ -69,7 +67,7 @@ module.exports = {
 
 
   methods: {
-    load(path) {
+    async load(path) {
       if (this.path == path)
         return Vue.nextTick(this.$refs.viewer.update_view)
 
@@ -81,24 +79,21 @@ module.exports = {
       this.loading = true
       this.program = this.$root.select_path(path)
 
-      this.program.view()
-        .done((toolpath) => {
-          if (path != this.path) return
-          this.toolpath = toolpath
-          Vue.nextTick(this.$refs.viewer.update)
+      try {
+        let toolpath = await this.program.view()
+        if (path != this.path) return
+        this.toolpath = toolpath
+        Vue.nextTick(this.$refs.viewer.update)
 
-        }).fail(this.$root.api_error)
-        .always(() => {
-          if (path == this.path) this.loading = false
-        })
+      } finally {
+        if (path == this.path) this.loading = false
+      }
     },
 
 
-    open() {
-      this.$root.file_dialog({
-        callback: (path) => {this.load(path)},
-        dir: util.dirname(this.path)
-      })
+    async open() {
+      let path = await this.$root.file_dialog({dir: util.dirname(this.path)})
+      if (path) this.load(path)
     },
 
 

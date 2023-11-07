@@ -28,6 +28,58 @@
 script#settings-network-template(type="text/x-template")
   #settings-network
     h1 Network Configuration
+
+    h2 Wifi Setup
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="wifi_country") Country
+        input(name="wifi_country", v-model="wifi_country",
+          title="Set Wifi regulatory region.")
+        button.pure-button.pure-button-primary(@click="set_country") Set
+
+    .wifi-device(v-for="net in state.network", v-if="net.type == 'wifi'")
+      table.pure-table.pure-table-striped
+        tr
+          th Device
+          td {{net.name}}
+        tr
+          th State
+          td {{net.state}}
+        tr
+          th SSID
+          td {{net.ssid}}
+        tr
+          th Address
+          td: span(v-for="ip in net.ipv4") {{ip + ' '}}
+
+        tr
+          th Actions
+          td.actions
+            button.pure-button.pure-button-primary(@click="connect(net)")
+              | #[.fa.fa-link] Connect
+            button.pure-button.pure-button-primary(@click="hotspot(net)")
+              | #[.fa.fa-wifi] Hotspot
+            button.pure-button.pure-button-primary(@click="disconnect(net)")
+              | #[.fa.fa-times] Disconnect
+
+    p.
+      WARNING: WiFi may be unreliable in an electrically noisy environment
+      such as a machine shop.
+
+    wifi-connect(v-ref:connect)
+    wifi-hotspot(v-ref:hotspot)
+
+    dialog(v-ref:wifi-password, header="Enter Wifi password", icon="question",
+       width="400px",
+       :buttons="['Cancel', {text: 'Ok', class: 'pure-button-primary'}]")
+
+      div(slot="body")
+        .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="wifi_pass") Password
+            input.password(name="wifi_pass", v-model="wifi_pass")
+          .pure-control-group
+
     h2 Hostname
     .pure-form.pure-form-aligned
       .pure-control-group
@@ -53,76 +105,11 @@ script#settings-network-template(type="text/x-template")
     .pure-form.pure-form-aligned
       .pure-control-group
         label(for="current") Current Password
-        input(name="current", v-model="current", type="password")
+        input.password(name="current", v-model="current")
       .pure-control-group
         label(for="pass1") New Password
-        input(name="pass1", v-model="password", type="password")
+        input.password(name="pass1", v-model="password")
       .pure-control-group
         label(for="pass2") New Password
-        input(name="pass2", v-model="password2", type="password")
+        input.password(name="pass2", v-model="password2")
         button.pure-button.pure-button-primary(@click="set_password") Set
-
-    h2 Wifi Setup
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="wifi_mode") Mode
-        select(name="wifi_mode", v-model="wifi_mode",
-          title="Select client or access point mode")
-          option(value="disabled") Disabled
-          option(value="client") Client
-          option(value="ap") Access Point
-        button.pure-button.pure-button-primary(@click="wifiConfirm = true",
-          v-if="wifi_mode == 'disabled'") Set
-
-      .pure-control-group(v-if="wifi_mode != 'disabled'",
-        title="Use the intenral WiFi.  Disable to use a USB WiFi dongle")
-        label(for="internal") Internal WiFi
-        input(type="checkbox", v-model="wifi_internal")
-
-      .pure-control-group(v-if="wifi_mode == 'ap'")
-        label(for="wifi_ch") Channel
-        select(name="wifi_ch", v-model="wifi_ch")
-          each ch in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-            option(value=ch)= ch
-
-      .pure-control-group(v-if="wifi_mode != 'disabled'")
-        label(for="ssid") Network (SSID)
-        input(name="ssid", v-model="wifi_ssid")
-
-      .pure-control-group(v-if="wifi_mode != 'disabled'")
-        label(for="wifi_pass") Password
-        input(name="wifi_pass", v-model="wifi_pass", type="password")
-        button.pure-button.pure-button-primary(@click="wifiConfirm = true") Set
-
-    p(v-if="wifi_mode != 'disabled'").
-      WARNING: WiFi may be unreliable in an electrically noisy environment
-      such as a machine shop.
-
-    message.wifi-confirm(:show.sync="wifiConfirm")
-      h3(slot="header") Configure Wifi and reboot?
-      div(slot="body")
-        p.
-          After configuring the Wifi settings the controller will automatically
-          reboot.
-        table
-          tr
-            th Mode
-            td &nbsp;{{wifi_mode}}
-          tr(v-if="wifi_mode == 'ap'")
-            th Channel
-            td &nbsp;{{wifi_ch}}
-          tr(v-if="wifi_mode != 'disabled'")
-            th SSID
-            td &nbsp;{{wifi_ssid}}
-          tr(v-if="wifi_mode != 'disabled'")
-            th Auth
-            td &nbsp;{{wifi_pass ? 'WPA2' : 'Open'}}
-
-      div(slot="footer")
-        button.pure-button(@click="wifiConfirm = false") Cancel
-        button.pure-button.button-success(@click="config_wifi") OK
-
-    message(:show.sync="rebooting")
-      h3(slot="header") Rebooting
-      p(slot="body") Please wait...
-      div(slot="footer")

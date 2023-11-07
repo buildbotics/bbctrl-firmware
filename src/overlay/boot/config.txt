@@ -3,7 +3,7 @@ dtparam=audio=on
 disable_splash=1
 initial_turbo=30
 force_eeprom_read=0
-dtparam=i2c=on,i2c_baudrate=400000
+dtparam=i2c=on,i2c_baudrate=90000
 
 dtoverlay=vc4-fkms-v3d
 gpu_mem=256

@@ -25,10 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
-
-let api = require('./api')
-
 
 let kbd = {
   input: undefined,
@@ -37,8 +33,8 @@ let kbd = {
   lost_focus: false,
 
 
-  is_input: function(e) {
-    var name = e.nodeName.toLowerCase()
+  is_input(e) {
+    let name = e.nodeName.toLowerCase()
     if (name == 'textarea') return true
     if (name == 'input' && !e.readOnly)
       return e.type == 'text' || e.type == 'number' || e.type == 'password'
@@ -47,24 +43,24 @@ let kbd = {
   },
 
 
-  hide: function() {
+  async hide() {
     kbd.lost_focus = true
     if (!kbd.open || kbd.lockout) return
     kbd.open = false
-    api.put('keyboard/hide')
+    return this.$api.put('keyboard/hide')
   },
 
 
-  show: function() {
+  async show() {
     kbd.lost_focus = false
     if (kbd.open) return
     kbd.open = true
     kbd.lockout = true
-    api.put('keyboard/show')
+    return this.$api.put('keyboard/show')
   },
 
 
-  click: function(e) {
+  click(e) {
     if (kbd.is_input(e.target)) kbd.input = e.target
     else if (kbd.lost_focus) {
       kbd.lockout = false
@@ -73,7 +69,7 @@ let kbd = {
   },
 
 
-  focusin: function(e) {
+  focusin(e) {
     if (kbd.is_input(e.target)) {
       kbd.input = e.target
       kbd.show()
@@ -82,17 +78,17 @@ let kbd = {
   },
 
 
-  focusout: function (e) {
+  focusout(e) {
     if (kbd.is_input(e.target)) kbd.hide()
   },
 
 
-  resize: function(e) {
+  resize(e) {
     if (kbd.open) kbd.input.scrollIntoView({block: 'nearest'})
   },
 
 
-  init: function () {
+  init() {
     if (location.host == 'localhost') {
       document.addEventListener('click',    kbd.click)
       document.addEventListener('focusin',  kbd.focusin)

@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -33,50 +32,50 @@ module.exports = {
   props: ['state', 'template'],
 
   computed: {
-    watts: function () {
-      var I = parseFloat(this.state.motor)
-      var V = parseFloat(this.state.vout)
+    watts() {
+      let I = parseFloat(this.state.motor)
+      let V = parseFloat(this.state.vout)
       return I * V
     },
 
 
-    sense_error: function () {
-      var error = '';
+    sense_error() {
+      let error = ''
 
-      if (this.state.motor_voltage_sense_error) error += 'Motor voltage\n';
-      if (this.state.motor_current_sense_error) error += 'Motor current\n';
-      if (this.state.load1_sense_error) error += 'Load 1\n';
-      if (this.state.load2_sense_error) error += 'Load 2\n';
-      if (this.state.vdd_current_sense_error) error += 'Vdd current\n';
+      if (this.state.motor_voltage_sense_error) error += 'Motor voltage\n'
+      if (this.state.motor_current_sense_error) error += 'Motor current\n'
+      if (this.state.load1_sense_error) error += 'Load 1\n'
+      if (this.state.load2_sense_error) error += 'Load 2\n'
+      if (this.state.vdd_current_sense_error) error += 'Vdd current\n'
 
-      return error;
+      return error
     }
   },
 
 
   methods: {
-    motor_fault_class: function (motor, bit) {
+    motor_fault_class(motor, bit) {
       if (motor == undefined) {
-        var status = this.state.fa;
-        if (status == undefined) return 'fa-question';
+        let status = this.state.fa
+        if (status == undefined) return 'fa-question'
         return 'fa-thumbs-' + (status ? 'down error' : 'up success')
       }
 
-      var flags = this.state[motor + 'df'];
-      if (typeof flags == 'undefined') return 'fa-question';
+      let flags = this.state[motor + 'df']
+      if (typeof flags == 'undefined') return 'fa-question'
       return (flags & (1 << bit)) ? 'fa-thumbs-down error' :
-        'fa-thumbs-up success';
+        'fa-thumbs-up success'
     },
 
 
-    motor_reset: function (motor) {
+    motor_reset(motor) {
       if (typeof motor == 'undefined') {
-        var cmd = '';
-        for (var i = 0; i < 4; i++)
-          cmd += '\\$' + i + 'df=0\n';
-        this.$dispatch('send', cmd);
+        let cmd = ''
+        for (let i = 0; i < 4; i++)
+          cmd += '\\$' + i + 'df=0\n'
+        this.$dispatch('send', cmd)
 
-      } else this.$dispatch('send', '\\$' + motor + 'df=0');
+      } else this.$dispatch('send', '\\$' + motor + 'df=0')
     }
   }
 }

@@ -25,10 +25,8 @@
 
 \******************************************************************************/
 
-'use strict';
 
-var api = require('./api');
-var modbus = require('./modbus.js');
+let modbus = require('./modbus.js')
 
 
 module.exports = {
@@ -36,7 +34,7 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       address: 0,
       value: 0
@@ -48,82 +46,82 @@ module.exports = {
 
 
   watch: {
-    'state.mr': function () {this.value = this.state.mr}
+    'state.mr'() {this.value = this.state.mr}
   },
 
 
-  ready: function () {this.value = this.state.mr},
+  ready() {this.value = this.state.mr},
 
 
   computed: {
-    regs_tmpl: function () {return this.template['modbus-spindle'].regs},
-    tool_type: function () {return this.config.tool['tool-type'].toUpperCase()},
+    regs_tmpl() {return this.template['modbus-spindle'].regs},
+    tool_type() {return this.config.tool['tool-type'].toUpperCase()},
 
 
-    is_modbus: function () {
+    is_modbus() {
       return this.tool_type != 'DISABLED' && this.tool_type != 'PWM SPINDLE'
     },
 
 
-    modbus_status: function () {return modbus.status_to_string(this.state.mx)}
+    modbus_status() {return modbus.status_to_string(this.state.mx)}
   },
 
 
   methods: {
-    get_reg_type: function (reg) {
+    get_reg_type(reg) {
       return this.regs_tmpl.template['reg-type'].values[this.state[reg + 'vt']]
     },
 
 
-    get_reg_addr: function (reg) {return this.state[reg + 'va']},
-    get_reg_value: function (reg) {return this.state[reg + 'vv']},
+    get_reg_addr(reg) {return this.state[reg + 'va']},
+    get_reg_value(reg) {return this.state[reg + 'vv']},
 
 
-    get_reg_fails: function (reg) {
-      var fails = this.state[reg + 'vr']
-      return fails == 255 ? 'Max' : fails;
+    get_reg_fails(reg) {
+      let fails = this.state[reg + 'vr']
+      return fails == 255 ? 'Max' : fails
     },
 
 
-    show_modbus_field: function (key) {
+    show_modbus_field(key) {
       return key != 'regs' &&
-        (key != 'multi-write' || this.tool_type == 'CUSTOM MODBUS VFD');
+        (key != 'multi-write' || this.tool_type == 'CUSTOM MODBUS VFD')
     },
 
 
-    customize: function (e) {
-      this.config.tool['tool-type'] = 'Custom Modbus VFD';
+    customize(e) {
+      this.config.tool['tool-type'] = 'Custom Modbus VFD'
 
-      var regs = this.config['modbus-spindle'].regs;
-      for (var i = 0; i < regs.length; i++) {
-        var reg = this.regs_tmpl.index[i];
-        regs[i]['reg-type']  = this.get_reg_type(reg);
-        regs[i]['reg-addr']  = this.get_reg_addr(reg);
-        regs[i]['reg-value'] = this.get_reg_value(reg);
+      let regs = this.config['modbus-spindle'].regs
+      for (let i = 0; i < regs.length; i++) {
+        let reg = this.regs_tmpl.index[i]
+        regs[i]['reg-type']  = this.get_reg_type(reg)
+        regs[i]['reg-addr']  = this.get_reg_addr(reg)
+        regs[i]['reg-value'] = this.get_reg_value(reg)
       }
 
-      this.$dispatch('config-changed');
+      this.$dispatch('config-changed')
     },
 
 
-    clear: function (e) {
-      this.config.tool['tool-type'] = 'Custom Modbus VFD';
+    clear(e) {
+      this.config.tool['tool-type'] = 'Custom Modbus VFD'
 
-      var regs = this.config['modbus-spindle'].regs;
-      for (var i = 0; i < regs.length; i++) {
-        regs[i]['reg-type']  = 'disabled';
-        regs[i]['reg-addr']  = 0;
-        regs[i]['reg-value'] = 0;
+      let regs = this.config['modbus-spindle'].regs
+      for (let i = 0; i < regs.length; i++) {
+        regs[i]['reg-type']  = 'disabled'
+        regs[i]['reg-addr']  = 0
+        regs[i]['reg-value'] = 0
       }
 
-      this.$dispatch('config-changed');
+      this.$dispatch('config-changed')
     },
 
 
-    reset_failures: function (e) {
-      var regs = this.config['modbus-spindle'].regs;
-      for (var reg = 0; reg < regs.length; reg++)
-        this.$dispatch('send', '\$' + reg + 'vr=0');
+    reset_failures(e) {
+      let regs = this.config['modbus-spindle'].regs
+      for (let reg = 0; reg < regs.length; reg++)
+        this.$dispatch('send', '\$' + reg + 'vr=0')
     }
   }
 }

@@ -25,27 +25,24 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
-// Must match modbus.c
-var exports = {
+module.exports = {
+  // Must match modbus.c
   DISCONNECTED: 0,
   OK:           1,
   CRC:          2,
   INVALID:      3,
-  TIMEDOUT:     4
-};
+  TIMEDOUT:     4,
 
 
-exports.status_to_string =
-  function (status) {
-    if (status == exports.OK)       return 'Ok';
-    if (status == exports.CRC)      return 'CRC error';
-    if (status == exports.INVALID)  return 'Invalid response';
-    if (status == exports.TIMEDOUT) return 'Timedout';
-    return 'Disconnected';
+  status_to_string(status) {
+    switch (status) {
+    case this.OK:       return 'Ok'
+    case this.CRC:      return 'CRC error'
+    case this.INVALID:  return 'Invalid response'
+    case this.TIMEDOUT: return 'Timedout'
+    default:            return 'Disconnected'
+    }
   }
-
-
-module.exports = exports;
+}

@@ -2,7 +2,7 @@
 //-                                                                           //
 //-               This file is part of the Buildbotics firmware.              //
 //-                                                                           //
-//-      Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.     //
+//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
 //-                                                                           //
 //-       This Source describes Open Hardware and is licensed under the       //
 //-                               CERN-OHL-S v2.                              //
@@ -27,16 +27,14 @@
 
 script#dialog-template(type="text/x-template")
   .dialog
-    message(:show.sync="show", :click_away_close="false",
-      @click-away="click_away", :width="config.width || '300px'")
+    message(:show.sync="show", :click-away-close="clickAway", :width="width")
       h3(slot="header").
-        #[.fa(v-if="config.icon", class="'fa-' + config.icon")]
-        {{config.title || ''}}
+        #[.fa(v-if="icon", class="'fa-' + icon")] {{header}}
 
-      div(slot="body") {{{config.body || ''}}}
+      div(slot="body")
+        slot(name="body") {{{body}}}
 
       div(slot="footer")
-        button.pure-button(v-for="button in buttons", :title="button.title",
-          @click="close(button.action)", :class="button.class").
-          #[.fa(v-if="button.icon", :class="'fa-' + button.icon")]
-          {{button.text}}
+        bbutton(v-for="button in buttons", @click="close(button.action)",
+          :class="button.class", :title="button.title",
+          :disabled="button.disabled", :text="button.text", :icon="button.icon")

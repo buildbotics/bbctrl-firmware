@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict';
 
 
 module.exports = {
@@ -80,7 +79,7 @@ module.exports = {
 
 
   dirname(path) {
-    var sep = path.lastIndexOf('/')
+    let sep = path.lastIndexOf('/')
     return sep == -1 ? '.' : (sep == 0 ? '/' : path.substr(0, sep))
   },
 
@@ -103,8 +102,8 @@ module.exports = {
   uuid(length) {
     if (typeof length == 'undefined') length = 52
 
-    var s = ''
-    for (var i = 0; i < length; i++)
+    let s = ''
+    for (let i = 0; i < length; i++)
       s += this.uuid_chars[Math.floor(Math.random() * this.uuid_chars.length)]
 
     return s
@@ -128,13 +127,13 @@ module.exports = {
 
 
   compare_versions(a, b) {
-    var reStripTrailingZeros = /(\.0+)+$/
-    var segsA = a.trim().replace(reStripTrailingZeros, '').split('.')
-    var segsB = b.trim().replace(reStripTrailingZeros, '').split('.')
-    var l = Math.min(segsA.length, segsB.length)
+    let reStripTrailingZeros = /(\.0+)+$/
+    let segsA = a.trim().replace(reStripTrailingZeros, '').split('.')
+    let segsB = b.trim().replace(reStripTrailingZeros, '').split('.')
+    let l = Math.min(segsA.length, segsB.length)
 
-    for (var i = 0; i < l; i++) {
-      var diff = parseInt(segsA[i], 10) - parseInt(segsB[i], 10)
+    for (let i = 0; i < l; i++) {
+      let diff = parseInt(segsA[i], 10) - parseInt(segsB[i], 10)
       if (diff) return diff
     }
 
@@ -148,13 +147,13 @@ module.exports = {
 
   update_array(dst, src) {
     while (dst.length) dst.pop()
-    for (var i = 0; i < src.length; i++)
+    for (let i = 0; i < src.length; i++)
       Vue.set(dst, i, src[i])
   },
 
 
   update_object(dst, src, remove) {
-    var props, index, key, value
+    let props, index, key, value
 
     if (remove) {
       props = Object.getOwnPropertyNames(dst)

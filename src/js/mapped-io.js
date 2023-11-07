@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -43,7 +42,7 @@ module.exports = {
         if (pin.id == this.pin) return i
       }
 
-      return undefined
+      console.error('Pin', this.pin, 'not found in template')
     },
 
 

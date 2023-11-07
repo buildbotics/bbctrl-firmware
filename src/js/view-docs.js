@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -33,7 +32,7 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       view: undefined
     }
@@ -44,23 +43,23 @@ module.exports = {
     'docs-help':    {template: '#docs-help-template'},
     'docs-gcode': {
       template: '#docs-gcode-template',
-      data: function () {return {showUnimplemented: false}}
+      data() {return {showUnimplemented: false}}
     },
     'docs-license':   {template: '#docs-license-template'}
   },
 
 
   events: {
-    route: function (path) {
-      if (path[0] != 'docs') return;
-      var view = path.length < 2 ? '' : path[1];
+    route(path) {
+      if (path[0] != 'docs') return
+      let view = path.length < 2 ? '' : path[1]
 
       if (typeof this.$options.components['docs-' + view] == 'undefined')
-        this.$root.replace_route('docs:help');
-      else this.view = view;
+        this.$root.replace_route('docs:help')
+      else this.view = view
     },
   },
 
 
-  ready: function () {this.$root.parse_hash()}
+  ready() {this.$root.parse_hash()}
 }

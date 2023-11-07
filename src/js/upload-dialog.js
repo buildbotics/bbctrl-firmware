@@ -25,16 +25,14 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api  = require('./api');
-var util = require('./util');
+let util = require('./util')
 
 
 function get_value(value, file, defaultValue) {
-  if (typeof value == 'function') value = value(file);
-  if (value == undefined) value = defaultValue;
-  return value;
+  if (typeof value == 'function') value = value(file)
+  if (value == undefined) value = defaultValue
+  return value
 }
 
 
@@ -42,7 +40,7 @@ module.exports = {
   template: '#upload-dialog-template',
 
 
-  data: function () {
+  data() {
     return {
       config: {},
       show: false,
@@ -53,84 +51,65 @@ module.exports = {
 
 
   methods: {
-    upload: function (config)  {
-      this.config = config;
+    async upload(config)  {
+      this.canceled = false
+      this.config   = config
 
       // Reset <form> so the browser does not cache the file when the name is
       // same but the contents have changed.
-      this.$els.form.reset();
+      this.$els.form.reset()
 
-      var input = this.$els.input;
-      if (config.multiple) input.setAttribute('multiple', '');
-      else input.removeAttribute('multiple');
-      input.setAttribute('accept', get_value(config.accept, undefined, ''));
-      input.click();
+      let input = this.$els.input
+      if (config.multiple) input.setAttribute('multiple', '')
+      else input.removeAttribute('multiple')
+      input.setAttribute('accept', get_value(config.accept, undefined, ''))
+      input.click()
+
+      return new Promise((resolve, reject) => {
+        this.resolve = resolve
+        this.reject  = reject
+      })
     },
 
 
-    cancel: function () {
-      this.canceled = true;
-      if (this.xhr) this.xhr.abort();
+    cancel() {
+      this.canceled = true
+      if (this.xhr) this.xhr.abort()
     },
 
 
-    _upload_file: function (file, next) {
-      var _progress = (fraction, done, xhr) => {
-        if (typeof this.config.on_progress == 'function')
-          this.config.on_progress(fraction, done, xhr);
-
-        this.xhr = xhr;
-        this.progress = (fraction * 100).toFixed(1);
+    async _upload_file(file) {
+      let _progress = (fraction, done, xhr) => {
+        this.xhr = xhr
+        this.progress = (fraction * 100).toFixed(1)
       }
 
-      this.progress = 0;
-      this.show = true;
+      this.progress = 0
+      this.show = true
 
-      this.msg = get_value(this.config.msg,  file, file.name);
-      var url  = get_value(this.config.url,  file);
-      var form = get_value(this.config.form, file, {file: file});
-      var data = get_value(this.config.data, file, {});
+      this.msg = get_value(this.config.msg,  file, file.name)
+      let url  = get_value(this.config.url,  file)
+      let form = get_value(this.config.form, file, {file: file})
 
-      var fd = new FormData();
+      let fd = new FormData()
       for (const key in form)
-        fd.append(key, get_value(form[key], file));
+        fd.append(key, get_value(form[key], file))
 
-      api.upload(url, fd, data, _progress)
-        .done(() => {
-          if (typeof this.config.on_success == 'function')
-            this.config.on_success(file, next)
-          else next()
-
-        }).fail((error) => {
-          this.show = false
-          if (this.canceled) return
-          if (typeof this.config.on_failure == 'function')
-            this.config.on_failure(file, error);
-          else this.$root.api_error(this.msg + ' failed', error)
-        })
+      return this.$api.put(url, fd, {progress: _progress})
     },
 
 
-    _upload_files: function (files, i) {
-      if (files.length <= i || this.canceled) return this.show = false
-      var file = files[i]
+    async _upload(e)  {
+      try {
+        let files   = e.target.files || e.dataTransfer.files
+        let confirm = this.config.on_confirm ?
+            this.config.on_confirm : async () => true
 
-      let _next   = () => {this._upload_files(files, i + 1)}
-      let _upload = () => {this._upload_file(file,   _next)}
+        for (let i = 0; i < files.length && !this.canceled; i++)
+          if (await confirm(files[i]))
+            await this._upload_file(files[i])
 
-      if (typeof this.config.on_confirm == 'function')
-        this.config.on_confirm(file, (ok) => {
-          if (ok) _upload()
-          else _next()
-        })
-
-      else _upload()
-    },
-
-
-    _upload: function (e)  {
-      this.canceled = false
-      this._upload_files(e.target.files || e.dataTransfer.files, 0)
+      } finally {this.show = false}
     }
   }
 }

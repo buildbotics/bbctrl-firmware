@@ -29,40 +29,40 @@ __all__ = ['LCDPage']
 
 
 class LCDPage:
-    def __init__(self, lcd, text = None):
-        self.lcd = lcd
-        self.data = lcd.new_screen()
+  def __init__(self, lcd, text = None):
+    self.lcd  = lcd
+    self.data = lcd.new_screen()
 
-        if text is not None:
-            self.text(text, (lcd.width - len(text)) // 2, 1)
-
-
-    def activate(self): pass
-    def deactivate(self): pass
+    if text is not None:
+      self.text(text, (lcd.width - len(text)) // 2, 1)
 
 
-    def put(self, c, x, y):
-        y += x // self.lcd.width
-        x %= self.lcd.width
-        y %= self.lcd.height
-
-        if self.data[x][y] != c:
-            self.data[x][y] = c
-            if self == self.lcd.page: self.lcd.update()
+  def activate(self): pass
+  def deactivate(self): pass
 
 
-    def text(self, s, x, y):
-        for c in s:
-            self.put(c, x, y)
-            x += 1
+  def put(self, c, x, y):
+    y += x // self.lcd.width
+    x %= self.lcd.width
+    y %= self.lcd.height
+
+    if self.data[x][y] != c:
+      self.data[x][y] = c
+      if self == self.lcd.page: self.lcd.update()
 
 
-    def clear(self):
-        self.data = self.lcd.new_screen()
-        self.lcd.redraw = True
+  def text(self, s, x, y):
+    for c in s:
+      self.put(c, x, y)
+      x += 1
 
 
-    def shift_left(self): pass
-    def shift_right(self): pass
-    def shift_up(self): pass
-    def shift_down(self): pass
+  def clear(self):
+    self.data = self.lcd.new_screen()
+    self.lcd.redraw = True
+
+
+  def shift_left(self): pass
+  def shift_right(self): pass
+  def shift_up(self): pass
+  def shift_down(self): pass

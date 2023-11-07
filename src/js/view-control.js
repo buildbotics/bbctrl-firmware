@@ -25,21 +25,19 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api    = require('./api');
-var cookie = require('./cookie');
-var util   = require('./util');
+let cookie = require('./cookie')
+let util   = require('./util')
 
 
 function _is_array(x) {
-  return Object.prototype.toString.call(x) === '[object Array]';
+  return Object.prototype.toString.call(x) === '[object Array]'
 }
 
 
 function escapeHTML(s) {
-  var entityMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;'};
-  return String(s).replace(/[&<>]/g, function (s) {return entityMap[s];});
+  let entityMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;'}
+  return String(s).replace(/[&<>]/g, s => entityMap[s])
 }
 
 
@@ -75,7 +73,7 @@ module.exports = {
   watch: {
     'state.imperial': {
       handler(imperial) {
-        this.mach_units = imperial ? 'IMPERIAL' : 'METRIC';
+        this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'
       },
       immediate: true
     },
@@ -83,12 +81,12 @@ module.exports = {
 
     mach_units(units) {
       if ((units == 'METRIC') != this.metric)
-        this.send(units == 'METRIC' ? 'G21' : 'G20');
+        this.send(units == 'METRIC' ? 'G21' : 'G20')
     },
 
 
     'state.line'() {
-      if (this.mach_state != 'HOMING') this.highlight_code();
+      if (this.mach_state != 'HOMING') this.highlight_code()
     },
 
 
@@ -108,12 +106,12 @@ module.exports = {
 
 
     mach_state() {
-      var cycle = this.state.cycle;
-      var state = this.state.xx;
+      let cycle = this.state.cycle
+      let state = this.state.xx
 
       if (typeof cycle != 'undefined' && state != 'ESTOPPED' &&
           (cycle == 'jogging' || cycle == 'homing'))
-        return cycle.toUpperCase();
+        return cycle.toUpperCase()
       return state || ''
     },
 
@@ -122,7 +120,7 @@ module.exports = {
 
 
     is_running() {
-      return this.mach_state == 'RUNNING' || this.mach_state == 'HOMING';
+      return this.mach_state == 'RUNNING' || this.mach_state == 'HOMING'
     },
 
 
@@ -150,16 +148,16 @@ module.exports = {
 
 
     message() {
-      if (this.mach_state == 'ESTOPPED') return this.state.er;
-      if (this.mach_state == 'HOLDING') return this.state.pr;
+      if (this.mach_state == 'ESTOPPED') return this.state.er
+      if (this.mach_state == 'HOLDING') return this.state.pr
       if (this.state.messages.length)
-        return this.state.messages.slice(-1)[0].text;
-      return '';
+        return this.state.messages.slice(-1)[0].text
+      return ''
     },
 
 
     highlight_state() {
-      return this.mach_state == 'ESTOPPED' || this.mach_state == 'HOLDING';
+      return this.mach_state == 'ESTOPPED' || this.mach_state == 'HOLDING'
     },
 
 
@@ -167,17 +165,17 @@ module.exports = {
 
 
     remaining() {
-      if (!(this.is_stopping || this.is_running || this.is_holding)) return 0;
-      if (this.toolpath.time < this.plan_time) return 0;
+      if (!(this.is_stopping || this.is_running || this.is_holding)) return 0
+      if (this.toolpath.time < this.plan_time) return 0
       return this.toolpath.time - this.plan_time
     },
 
 
     eta() {
-      if (this.mach_state != 'RUNNING') return '';
-      var d = new Date();
-      d.setSeconds(d.getSeconds() + this.remaining);
-      return d.toLocaleString();
+      if (this.mach_state != 'RUNNING') return ''
+      let d = new Date()
+      d.setSeconds(d.getSeconds() + this.remaining)
+      return d.toLocaleString()
     },
 
 
@@ -187,25 +185,25 @@ module.exports = {
 
 
     progress() {
-      if (this.simulating) return this.active.progress;
+      if (this.simulating) return this.active.progress
 
-      if (!this.toolpath.time || this.is_ready) return 0;
-      var p = this.plan_time / this.toolpath.time;
-      return p < 1 ? p : 1;
+      if (!this.toolpath.time || this.is_ready) return 0
+      let p = this.plan_time / this.toolpath.time
+      return p < 1 ? p : 1
     }
   },
 
 
   events: {
     jog(axis, power) {
-      var data = {ts: new Date().getTime()};
-      data[axis] = power;
-      api.put('jog', data);
+      let data = {ts: new Date().getTime()}
+      data[axis] = power
+      this.$api.put('jog', data)
     },
 
 
     step(axis, value) {
-      this.send('M70\nG91\nG0' + axis + value + '\nM72');
+      this.send('M70\nG91\nG0' + axis + value + '\nM72')
     }
   },
 
@@ -217,7 +215,7 @@ module.exports = {
       mode: 'gcode'
     })
 
-    this.editor.on('scrollCursorIntoView', this.on_scroll);
+    this.editor.on('scrollCursorIntoView', this.on_scroll)
     this.load()
   },
 
@@ -235,143 +233,143 @@ module.exports = {
     on_scroll(cm, e) {e.preventDefault()},
 
 
-    run_macro(macro) {
-      api.put('macro/' + macro)
-        .fail((error) => {
-          this.$root.error_dialog(
-            'Failed to run macro "' + macro + '":\n' + error.message)
-        })
+    async run_macro(macro) {
+      try {
+        return this.$api.put('macro/' + macro)
+      } catch (e) {
+        this.$root.error_dialog('Failed to run macro "' + macro + '":\n' + e)
+      }
     },
 
 
     highlight_code() {
-      if (typeof this.editor == 'undefined') return;
-      var line = this.state.line - 1;
-      var doc = this.editor.getDoc();
+      if (typeof this.editor == 'undefined') return
+      let line = this.state.line - 1
+      let doc = this.editor.getDoc()
 
-      doc.removeLineClass(this.highlighted_line, 'wrap', 'highlight');
+      doc.removeLineClass(this.highlighted_line, 'wrap', 'highlight')
 
       if (0 <= line) {
-        doc.addLineClass(line, 'wrap', 'highlight');
-        this.highlighted_line = line;
-        this.editor.scrollIntoView({line: line, ch: 0}, 200);
+        doc.addLineClass(line, 'wrap', 'highlight')
+        this.highlighted_line = line
+        this.editor.scrollIntoView({line: line, ch: 0}, 200)
       }
     },
 
 
-    load() {
+    async load() {
       let path = this.active.path
       if (!path) return
 
-      this.active.load()
-        .done((data) => {
-          if (this.active.path != path) return
+      let data = await this.active.load()
+      if (this.active.path != path) return
 
-          this.editor.setOption('mode', util.get_highlight_mode(path))
-          this.editor.setValue(data)
-          this.highlight_code()
-        })
+      this.editor.setOption('mode', util.get_highlight_mode(path))
+      this.editor.setValue(data)
+      this.highlight_code()
 
-      this.active.toolpath()
-        .done((data) => {
-          if (this.active.path != path) return
-          this.toolpath = data
-        })
+      let toolpath = await this.active.toolpath()
+      if (this.active.path != path) return
+      this.toolpath = toolpath
     },
 
 
     submit_mdi() {
-      this.send(this.mdi);
+      this.send(this.mdi)
       if (!this.history.length || this.history[0] != this.mdi)
-        this.history.unshift(this.mdi);
-      this.mdi = '';
+        this.history.unshift(this.mdi)
+      this.mdi = ''
     },
 
 
     mdi_start_pause() {
-      if (this.state.xx == 'RUNNING') this.pause();
+      if (this.state.xx == 'RUNNING') this.pause()
 
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
-        this.unpause();
+        this.unpause()
 
-      else this.submit_mdi();
+      else this.submit_mdi()
     },
 
 
-    load_history(index) {this.mdi = this.history[index];},
+    load_history(index) {this.mdi = this.history[index]},
 
 
-    home(axis) {
-      if (typeof axis == 'undefined') api.put('home');
+    async home(axis) {
+      if (axis == undefined) return this.$api.put('home')
 
-      else {
-        if (this[axis].homingMode != 'manual') api.put('home/' + axis);
-        else this.manual_home[axis] = true;
-      }
+      if (this[axis].homingMode != 'manual')
+        return this.$api.put('home/' + axis)
+
+      this.manual_home[axis] = true
     },
 
 
-    set_home(axis, position) {
-      this.manual_home[axis] = false;
-      api.put('home/' + axis + '/set', {position: parseFloat(position)});
+    async set_home(axis, position) {
+      this.manual_home[axis] = false
+      return this.$api.put('home/' + axis + '/set',
+                           {position: parseFloat(position)})
     },
 
 
-    unhome(axis) {
-      this.position_msg[axis] = false;
-      api.put('home/' + axis + '/clear');
+    async unhome(axis) {
+      this.position_msg[axis] = false
+      return this.$api.put('home/' + axis + '/clear')
     },
 
 
     show_set_position(axis) {
-      this.axis_position = 0;
-      this.position_msg[axis] = true;
+      this.axis_position = 0
+      this.position_msg[axis] = true
     },
 
 
-    set_position(axis, position) {
-      this.position_msg[axis] = false;
-      api.put('position/' + axis, {'position': parseFloat(position)});
+    async set_position(axis, position) {
+      this.position_msg[axis] = false
+      return this.$api.put('position/' + axis, {position: parseFloat(position)})
     },
 
 
     zero_all() {
-      for (var axis of 'xyzabc')
-        if (this[axis].enabled) this.zero(axis);
+      for (let axis of 'xyzabc')
+        if (this[axis].enabled) this.zero(axis)
     },
 
 
     zero(axis) {
-      if (typeof axis == 'undefined') this.zero_all();
-      else this.set_position(axis, 0);
+      if (typeof axis == 'undefined') this.zero_all()
+      else this.set_position(axis, 0)
     },
 
 
     start_pause() {
-      if (this.state.xx == 'RUNNING') this.pause();
+      if (this.state.xx == 'RUNNING') this.pause()
 
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
-        this.unpause();
+        this.unpause()
 
-      else this.start();
+      else this.start()
     },
 
 
-    start()          {api.put('start/' + this.$root.selected_program.path)},
-    pause()          {api.put('pause')},
-    unpause()        {api.put('unpause')},
-    optional_pause() {api.put('pause/optional')},
-    stop()           {api.put('stop')},
-    step()           {api.put('step')},
+    async start()          {
+      return this.$api.put('start/' + this.$root.selected_program.path)
+    },
 
 
-    open() {
-      let path = this.active.path
+    async pause()          {return this.$api.put('pause')},
+    async unpause()        {return this.$api.put('unpause')},
+    async optional_pause() {return this.$api.put('pause/optional')},
+    async stop()           {return this.$api.put('stop')},
+    async step()           {return this.$api.put('step')},
 
-      this.$root.file_dialog({
-        callback: (path) => {if (path) this.$root.select_path(path)},
-        dir: path ? util.dirname(path) : '/'
-      })
+
+    async open() {
+      let aPath = this.active.path
+      let dir   = aPath ? util.dirname(aPath) : '/'
+
+      let path = await this.$root.file_dialog({dir})
+      if (path) this.$root.select_path(path)
     },
 
 
@@ -380,12 +378,12 @@ module.exports = {
 
 
     current(axis, value) {
-      var x = value / 32.0;
-      if (this.state[axis + 'pl'] == x) return;
+      let x = value / 32.0
+      if (this.state[axis + 'pl'] == x) return
 
-      var data = {};
-      data[axis + 'pl'] = x;
-      this.send(JSON.stringify(data));
+      let data = {}
+      data[axis + 'pl'] = x
+      this.send(JSON.stringify(data))
     }
   },
 

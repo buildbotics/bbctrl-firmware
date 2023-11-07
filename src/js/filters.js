@@ -25,98 +25,97 @@
 
 \******************************************************************************/
 
-'use strict';
 
-var util = require('./util');
+let util = require('./util')
 
 
-var filters = {
-  number: function (value) {
-    if (isNaN(value)) return 'NaN';
-    return value.toLocaleString();
+let filters = {
+  number(value) {
+    if (isNaN(value)) return 'NaN'
+    return value.toLocaleString()
   },
 
 
-  percent: function (value, precision) {
-    if (typeof value == 'undefined') return '';
-    if (typeof precision == 'undefined') precision = 2;
-    return (value * 100.0).toFixed(precision) + '%';
+  percent(value, precision) {
+    if (typeof value == 'undefined') return ''
+    if (typeof precision == 'undefined') precision = 2
+    return (value * 100.0).toFixed(precision) + '%'
   },
 
 
 
-  non_zero_percent: function (value, precision) {
-    if (!value) return '';
-    if (typeof precision == 'undefined') precision = 2;
-    return (value * 100.0).toFixed(precision) + '%';
+  non_zero_percent(value, precision) {
+    if (!value) return ''
+    if (typeof precision == 'undefined') precision = 2
+    return (value * 100.0).toFixed(precision) + '%'
   },
 
 
-  fixed: function (value, precision) {
-    if (typeof value == 'undefined') return '0';
+  fixed(value, precision) {
+    if (typeof value == 'undefined') return '0'
     return parseFloat(value).toFixed(precision)
   },
 
 
-  upper: function (value) {
-    if (typeof value == 'undefined') return '';
+  upper(value) {
+    if (typeof value == 'undefined') return ''
     return value.toUpperCase()
   },
 
 
-  time: function (value, precision) {
-    if (isNaN(value)) return '';
-    if (isNaN(precision)) precision = 0;
+  time(value, precision) {
+    if (isNaN(value)) return ''
+    if (isNaN(precision)) precision = 0
 
-    var MIN = 60;
-    var HR  = MIN * 60;
-    var DAY = HR * 24;
-    var parts = [];
+    let MIN = 60
+    let HR  = MIN * 60
+    let DAY = HR * 24
+    let parts = []
 
     if (DAY <= value) {
-      parts.push(Math.floor(value / DAY));
-      value %= DAY;
+      parts.push(Math.floor(value / DAY))
+      value %= DAY
     }
 
     if (HR <= value) {
-      parts.push(Math.floor(value / HR));
-      value %= HR;
+      parts.push(Math.floor(value / HR))
+      value %= HR
     }
 
     if (MIN <= value) {
-      parts.push(Math.floor(value / MIN));
-      value %= MIN;
+      parts.push(Math.floor(value / MIN))
+      value %= MIN
 
-    } else parts.push(0);
+    } else parts.push(0)
 
-    parts.push(value);
+    parts.push(value)
 
-    for (var i = 0; i < parts.length; i++) {
-      parts[i] = parts[i].toFixed(i == parts.length - 1 ? precision : 0);
-      if (i && parts[i] < 10) parts[i] = '0' + parts[i];
+    for (let i = 0; i < parts.length; i++) {
+      parts[i] = parts[i].toFixed(i == parts.length - 1 ? precision : 0)
+      if (i && parts[i] < 10) parts[i] = '0' + parts[i]
     }
 
-    return parts.join(':');
+    return parts.join(':')
   },
 
 
-  ago: function (ts) {
-    if (typeof ts == 'string') ts = Date.parse(ts) / 1000;
+  ago(ts) {
+    if (typeof ts == 'string') ts = Date.parse(ts) / 1000
 
-    return util.human_duration(new Date().getTime() / 1000 - ts) + ' ago';
+    return util.human_duration(new Date().getTime() / 1000 - ts) + ' ago'
   },
 
 
-  duration: function (ts, precision) {
+  duration(ts, precision) {
     return util.human_duration(parseInt(ts), precision)
   },
 
 
-  size: function (x, precision) {return util.human_size(x, precision)}
+  size(x, precision) {return util.human_size(x, precision)}
 }
 
 
-module.exports = function () {
-  for (var name in filters)
+module.exports = () => {
+  for (let name in filters)
     Vue.filter(name, filters[name])
 }

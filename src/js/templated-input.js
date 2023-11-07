@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -34,56 +33,56 @@ module.exports = {
   props: ['name', 'model', 'template'],
 
 
-  data: function () {return {view: ''}},
+  data() {return {view: ''}},
 
 
   computed: {
-    metric: function () {return this.$root.metric()},
+    metric() {return this.$root.metric()},
 
 
-    _view: function () {
+    _view() {
       if (this.template.scale && !isNaN(this.model)) {
-        if (this.metric) return 1 * this.model.toFixed(3);
+        if (this.metric) return 1 * this.model.toFixed(3)
 
-        return 1 * (this.model / this.template.scale).toFixed(4);
+        return 1 * (this.model / this.template.scale).toFixed(4)
       }
 
-      return this.model;
+      return this.model
     },
 
 
-    units: function () {
+    units() {
       return (this.metric || !this.template.iunit) ?
-        this.template.unit : this.template.iunit;
+        this.template.unit : this.template.iunit
     },
 
 
-    title: function () {
-      var s = 'Default ' + this.template.default + ' ' +
-          (this.template.unit || '');
+    title() {
+      let s = 'Default ' + this.template.default + ' ' +
+          (this.template.unit || '')
       if (typeof this.template.help != 'undefined')
-        s = this.template.help + '\n' + s;
-      return s;
+        s = this.template.help + '\n' + s
+      return s
     }
   },
 
 
   watch: {
-    _view: function () {this.view = this._view},
+    _view() {this.view = this._view},
 
 
-    view: function () {
+    view() {
       if (this.template.scale && !this.metric)
-        this.model = this.view * this.template.scale;
-      else this.model = this.view;
+        this.model = this.view * this.template.scale
+      else this.model = this.view
     }
   },
 
 
-  ready: function () {this.view = this._view},
+  ready() {this.view = this._view},
 
 
   methods: {
-    change: function () {this.$dispatch('input-changed')}
+    change() {this.$dispatch('input-changed')}
   }
 }

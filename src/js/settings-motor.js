@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -34,145 +33,145 @@ module.exports = {
 
 
   computed: {
-    metric: function () {return this.$root.metric()},
+    metric() {return this.$root.metric()},
 
 
-    is_slave: function () {
-      for (var i = 0; i < this.index; i++)
+    is_slave() {
+      for (let i = 0; i < this.index; i++)
         if (this.motor.axis == this.config.motors[i].axis)
-          return true;
+          return true
 
-      return false;
+      return false
     },
 
 
-    motor: function () {return this.config.motors[this.index]},
+    motor() {return this.config.motors[this.index]},
 
 
-    invalidMaxVelocity: function () {
-      return this.maxMaxVelocity < this.motor['max-velocity'];
+    invalidMaxVelocity() {
+      return this.maxMaxVelocity < this.motor['max-velocity']
     },
 
 
-    maxStepsPerSecond: function () {return (0.5 / this.motor['step-length'])},
+    maxStepsPerSecond() {return (0.5 / this.motor['step-length'])},
 
 
-    maxMaxVelocity: function () {
-      let maxUStepsPerSecond = 0.5 / this.motor['step-length'];
+    maxMaxVelocity() {
+      let maxUStepsPerSecond = 0.5 / this.motor['step-length']
       let uStepsPerRevolution =
-          (360.0 / this.motor['step-angle']) * this.motor['microsteps'];
-      let maxRPS = maxUStepsPerSecond / uStepsPerRevolution;
+          (360.0 / this.motor['step-angle']) * this.motor.microsteps
+      let maxRPS = maxUStepsPerSecond / uStepsPerRevolution
 
       return parseFloat((maxRPS * 60.0 * this.motor['travel-per-rev'] / 1000)
-                        .toFixed(3)); // returns max vel in meters / minute
+                        .toFixed(3)) // returns max vel in meters / minute
     },
 
 
-    ustepPerSec: function () {
-      return this.rpm * this.stepsPerRev * this.motor.microsteps / 60;
+    ustepPerSec() {
+      return this.rpm * this.stepsPerRev * this.motor.microsteps / 60
     },
 
 
-    rpm: function () {
-      return 1000 * this.motor['max-velocity'] / this.motor['travel-per-rev'];
+    rpm() {
+      return 1000 * this.motor['max-velocity'] / this.motor['travel-per-rev']
     },
 
 
-    gForce: function () {return this.motor['max-accel'] * 0.0283254504},
-    gForcePerMin: function () {return this.motor['max-jerk'] * 0.0283254504},
-    stepsPerRev: function () {return 360 / this.motor['step-angle']},
+    gForce() {return this.motor['max-accel'] * 0.0283254504},
+    gForcePerMin() {return this.motor['max-jerk'] * 0.0283254504},
+    stepsPerRev() {return 360 / this.motor['step-angle']},
 
 
-    umPerStep: function () {
+    umPerStep() {
       return this.motor['travel-per-rev'] * this.motor['step-angle'] / 0.36
     },
 
 
-    milPerStep: function () {return this.umPerStep / 25.4},
+    milPerStep() {return this.umPerStep / 25.4},
 
 
-    invalidStallVelocity: function () {
-      if (!this.motor['homing-mode'].startsWith('stall-')) return false;
-      return this.maxStallVelocity < this.motor['search-velocity'];
+    invalidStallVelocity() {
+      if (!this.motor['homing-mode'].startsWith('stall-')) return false
+      return this.maxStallVelocity < this.motor['search-velocity']
     },
 
 
-    stallRPM: function () {
-      var v = this.motor['search-velocity'];
-      return 1000 * v / this.motor['travel-per-rev'];
+    stallRPM() {
+      let v = this.motor['search-velocity']
+      return 1000 * v / this.motor['travel-per-rev']
     },
 
 
-    maxStallVelocity: function () {
-      var maxRate  = 900000 / this.motor['stall-sample-time'];
-      var ustep    = this.motor['stall-microstep'];
-      var angle    = this.motor['step-angle'];
-      var travel   = this.motor['travel-per-rev'];
-      var maxStall = maxRate * 60 / 360 / 1000 * angle / ustep * travel;
+    maxStallVelocity() {
+      let maxRate  = 900000 / this.motor['stall-sample-time']
+      let ustep    = this.motor['stall-microstep']
+      let angle    = this.motor['step-angle']
+      let travel   = this.motor['travel-per-rev']
+      let maxStall = maxRate * 60 / 360 / 1000 * angle / ustep * travel
 
-      return 1 * maxStall.toFixed(3);
+      return 1 * maxStall.toFixed(3)
     },
 
 
-    stallUStepPerSec: function () {
-      var ustep = this.motor['stall-microstep'];
-      return this.stallRPM * this.stepsPerRev * ustep / 60;
+    stallUStepPerSec() {
+      let ustep = this.motor['stall-microstep']
+      return this.stallRPM * this.stepsPerRev * ustep / 60
     }
   },
 
 
   events: {
-    'input-changed': function() {
-      Vue.nextTick(function () {
+    'input-changed'() {
+      Vue.nextTick(() => {
         // set step length to default of 2ms if user selects internal drivers
         if (this.motor['type-of-driver'] == 'internal')
-          this.$set('motor["step-length"]', 0.000002);
+          this.$set('motor["step-length"]', 0.000002)
 
         // Limit max-velocity
         if (this.invalidMaxVelocity)
-          this.$set('motor["max-velocity"]', this.maxMaxVelocity);
+          this.$set('motor["max-velocity"]', this.maxMaxVelocity)
 
         // Limit stall-velocity
         if (this.invalidStallVelocity)
-          this.$set('motor["search-velocity"]', this.maxStallVelocity);
+          this.$set('motor["search-velocity"]', this.maxStallVelocity)
 
 
-        this.$dispatch('config-changed');
-      }.bind(this))
-      return true;
+        this.$dispatch('config-changed')
+      })
+      return true
     }
   },
 
 
   methods: {
-    show: function (name, templ) {
+    show(name, templ) {
       if (name == 'step-length' && this.motor['type-of-driver'] == 'internal')
-        return false;
+        return false
 
       if (this.motor['type-of-driver'] == 'generic external' &&
-          name == 'homing-mode') return false;
+          name == 'homing-mode') return false
 
       if (this.motor['type-of-driver'] == 'internal' &&
-          name == 'homing-mode-external') return false;
+          name == 'homing-mode-external') return false
 
       if ((this.motor['type-of-driver'] == 'generic external') &&
           ['stall-microstep', 'stall-volts', 'stall-sample-time',
-           'stall-current'].includes(name)) return false;
+           'stall-current'].includes(name)) return false
 
-      if (templ.hmodes == undefined) return true;
+      if (templ.hmodes == undefined) return true
 
       if (this.motor['type-of-driver'] == 'internal')
-        return templ.hmodes.indexOf(this.motor['homing-mode']) != -1;
+        return templ.hmodes.indexOf(this.motor['homing-mode']) != -1
 
-      return templ.hmodes.indexOf(this.motor['homing-mode-external']) != -1;
+      return templ.hmodes.indexOf(this.motor['homing-mode-external']) != -1
     },
 
 
-    showCategory: function (name) {
+    showCategory(name) {
       if (name == 'power' && this.motor['type-of-driver'] == 'generic external')
         return false
 
-      return true;
+      return true
     }
   }
 

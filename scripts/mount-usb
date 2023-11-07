@@ -7,38 +7,36 @@ fi
 
 DEV=/dev/$1
 
-eval $(/sbin/blkid -o udev -p $DEV)
-
-if [ "$ID_FS_USAGE" != "filesystem" ]; then
-  echo "$DEV not a filesystem"
-  exit 1
-fi
-
-MOUNT_POINT=$ID_FS_LABEL
-if [ "$MOUNT_POINT" == "" ]; then
-  MOUNT_POINT=USB_DISK-$1
-fi
-MOUNT_POINT=/media/"$MOUNT_POINT"
-
-OPTS=relatime,noauto #,users
-
-if [ "$ID_FS_TYPE" == "vfat" -o "$ID_FS_TYPE" == "ntfs" ]; then
-  OPTS+=",utf8,gid=100,umask=002,sync"
-fi
-
 if [ "$2" == "-u" ]; then
-  /bin/umount $DEV
-  /bin/sed -i "/^\/dev\/$1/d" /etc/fstab
-  rmdir "$MOUNT_POINT"
-
+  if [ -e $DEV ]; then
+    MOUNT_POINT=$(
+      sed -n "s/^\/dev\/$1 \([^ ]*\) .*/\1/p;s/\\040/ /g" /proc/mounts)
+    systemd-umount $DEV
+    rmdir "$MOUNT_POINT"
+  fi
 else
-  /bin/sed -i "/^\/dev\/$1/d" /etc/fstab
-  /bin/mkdir -p "$MOUNT_POINT"
+  eval $(/sbin/blkid -o udev -p $DEV)
 
-  MOUNT_POINT=$(echo -n "$MOUNT_POINT" | /bin/sed 's/ /\\040/g')
-  echo "$DEV $MOUNT_POINT auto $OPTS 0 0" >> /etc/fstab
+  if [ "$ID_FS_USAGE" != "filesystem" ]; then
+    echo "$DEV not a filesystem"
+    exit 0
+  fi
 
-  /bin/mount $DEV
+  MOUNT_POINT=$ID_FS_LABEL
+  if [ "$MOUNT_POINT" == "" ]; then
+    MOUNT_POINT=USB_DISK-$1
+  fi
+  MOUNT_POINT=/media/"$MOUNT_POINT"
+
+  OPTS=relatime,noauto #,users
+
+  if [ "$ID_FS_TYPE" == "vfat" -o "$ID_FS_TYPE" == "ntfs" ]; then
+    OPTS+=",utf8,gid=1000,umask=002,sync"
+  fi
+
+  mkdir -p "$MOUNT_POINT"
+
+  MOUNT_POINT=$(echo -n "$MOUNT_POINT" | sed 's/ /\\040/g')
+
+  systemd-mount --no-block --collect -o $OPTS $DEV "$MOUNT_POINT"
 fi
-
-curl -X PUT 127.0.0.1:80/api/usb/update

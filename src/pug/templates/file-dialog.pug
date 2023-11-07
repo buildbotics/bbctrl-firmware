@@ -27,7 +27,7 @@
 
 script#file-dialog-template(type="text/x-template")
   .file-dialog
-    message(:show.sync="show", :click_away_close="false")
+    message(:show.sync="show", :click-away-close="false")
       h3(slot="header") {{config.save ? 'Save' : 'Open'}} file
 
       div(slot="body")

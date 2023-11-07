@@ -25,10 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
-
-
-var api = require('./api');
 
 
 module.exports = {
@@ -36,7 +32,7 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       index: -1,
       view: undefined,
@@ -57,13 +53,11 @@ module.exports = {
 
 
   events: {
-    'route-changing': function (path, cancel) {
+    async 'route-changing'(path, cancel) {
       if (this.modified && path[0] != 'settings') {
-        cancel();
+        cancel()
 
-        let done = (success) => {if (success) location.hash = path.join(':')}
-
-        this.$root.open_dialog({
+        let result = await this.$root.open_dialog({
           title: 'Save settings?',
           body: 'Changes to the settings have not been saved.  ' +
             'Would you like to save them now?',
@@ -80,62 +74,53 @@ module.exports = {
               title: 'Save settings.',
               'class': 'button-success'
             }
-          ],
-          callback: {
-            save() {this.save(done)},
-            discard() {this.discard(done)}
-          }
-        });
+          ]})
+
+        if (result == 'save') await this.save()
+        if (result == 'discard') await this.discard()
+        location.hash = path.join(':')
       }
     },
 
 
-    route: function (path) {
-      if (path[0] != 'settings') return;
-      var view = path.length < 2 ? '' : path[1];
+    route(path) {
+      if (path[0] != 'settings') return
+      let view = path.length < 2 ? '' : path[1]
 
       if (typeof this.$options.components['settings-' + view] == 'undefined')
-        return this.$root.replace_route('settings:general');
+        return this.$root.replace_route('settings:general')
 
-      if (path.length == 3) this.index = path[2];
-      this.view = view;
+      if (path.length == 3) this.index = path[2]
+      this.view = view
     },
 
 
-    'config-changed': function () {
-      this.modified = true;
-      return false;
+    'config-changed'() {
+      this.modified = true
+      return false
     },
 
 
-    'input-changed': function() {
-      this.$dispatch('config-changed');
-      return false;
+    'input-changed'() {
+      this.$dispatch('config-changed')
+      return false
     }
   },
 
 
-  ready: function () {this.$root.parse_hash()},
+  ready() {this.$root.parse_hash()},
 
 
   methods: {
-    save: function (done) {
-      api.put('config/save', this.config)
-        .done((data) => {
-          this.modified = false
-          done(true)
-        }).fail((error) => {
-          this.api_error('Save failed', error)
-          done(false)
-        })
+    async save() {
+      await this.$api.put('config/save', this.config)
+      this.modified = false
     },
 
 
-    discard: function (done) {
-      this.$root.update((success) => {
-        this.modified = false
-        done(success)
-      })
+    async discard() {
+      await this.$root.update()
+      this.modified = false
     }
   }
 }

@@ -25,112 +25,108 @@
 
 \******************************************************************************/
 
-'use strict'
 
-
-function api_cb(method, url, data, config) {
-  config = $.extend({
-    type: method,
-    url: '/api/' + url,
-    dataType: 'text',
-    cache: false
-  }, config);
-
-  if (typeof data == 'object') {
-    config.data = JSON.stringify(data);
-    config.contentType = 'application/json; charset=utf-8';
+class API {
+  constructor(base = '/api/') {
+    this.base = base
+    this.error_handler = console.error
   }
 
-  var d = $.Deferred();
 
-  $.ajax(config).success(function (data, status, xhr) {
-    try {
-      if (data) data = JSON.parse(data);
+  set_error_handler(handler) {
+    this.error_handler = handler
+  }
 
-      d.resolve(data, status, xhr);
 
-    } catch (e) {
-      d.reject(data, xhr, status, 'Failed to parse JSON');
+  error(path, xhr) {
+    let msg = 'API Error: ' + path
+
+    if (xhr.response) {
+      if (xhr.response.message != undefined)
+        msg += '\n' + xhr.response.message
+      else msg += '\n' + JSON.stringify(xhr.response)
     }
 
-  }).error(function (xhr, status, error) {
-    var text = xhr.responseText;
-    try {text = $.parseJSON(xhr.responseText)} catch(e) {}
-    if (!text) text = error;
-
-    d.reject(text, xhr, status, error);
-    console.debug('API Error: ' + url + ': ' + text);
-  });
-
-  return d.promise();
-}
+    this.error_handler(msg)
+  }
 
 
-module.exports = {
-  get: function (url, config) {
-    return api_cb('GET', url, undefined, config);
-  },
+  api(method, path, data, conf = {}) {
+    return new Promise((resolve, reject) => {
+      let xhr = new XMLHttpRequest()
 
+      xhr.onload = () => {
+        let status = xhr.status
 
-  put: function(url, data, config) {
-    return api_cb('PUT', url, data, config);
-  },
+        if (200 <= status && status < 300) resolve(xhr.response)
+        else {
+          this.error(path, xhr)
+          reject({status, statusText: xhr.statusText})
+        }
+      }
 
+      // Error
+      xhr.onerror = (e) => {
+        this.error(path, xhr)
+        reject(xhr.response, xhr, xhr.status, xhr.statusText)
+      }
 
-  post: function(url, data, config) {
-    return api_cb('POST', url, data, config);
-  },
-
-
-  upload: function(url, data, config, progress) {
-    var xhr = function () {
-      var xhr = new window.XMLHttpRequest();
-
-      if (progress) {
-        xhr.upload.addEventListener('progress', function (e) {
-          if (e.lengthComputable) progress(e.loaded / e.total, false, xhr);
+      // Progress
+      // TODO What about download progress?
+      if (conf.progress) {
+        xhr.upload.addEventListener('progress', e => {
+          if (e.lengthComputable)
+            conf.progress(e.loaded / e.total, false, xhr)
         })
-        xhr.upload.addEventListener('loadend', function (e) {
-          progress(e.loaded / e.total, true, xhr);
+
+        xhr.upload.addEventListener('loadend', e => {
+          conf.progress(e.loaded / e.total, true, xhr)
         })
       }
 
-      return xhr;
-    }
+      // URL
+      if (!path.includes('://')) path = this.base + path
+      let url = new URL(path, location.href)
 
-    config = $.extend({
-      processData: false,
-      contentType: false,
-      cache: false,
-      xhr: xhr,
-      data: data
-    }, config);
+      // Open
+      xhr.open(method, url)
 
-    return api_cb('PUT', url, undefined, config);
-  },
+      // Data
+      if (data) {
+        if (method == 'GET' || method == 'DELETE') {
+          url.search = new URLSearchParams(data).toString()
+          data = null
 
+        } else if (!(data instanceof FormData)) {
+          xhr.setRequestHeader('Content-Type',
+                               'application/json; charset=utf-8')
+          data = JSON.stringify(data)
+        }
+      }
 
-  download: function(url, type) {
-    var d = $.Deferred();
-    var xhr = new XMLHttpRequest();
+      // Response
+      xhr.responseType = conf.type || 'json'
 
-    xhr.open('GET', '/api/' + url + '?' + Math.random(), true);
-    xhr.responseType = type || 'text';
-    xhr.onload = function () {
-      if (200 <= xhr.status && xhr.status < 300)
-        d.resolve(xhr.response, xhr.status, xhr)
-      else d.reject('', xhr, xhr.status, xhr.statusText)
-    }
-    xhr.onerror = function () {
-      d.reject('', xhr, xhr.status, xhr.statusText)
-    }
-    xhr.send();
+      if (xhr.responseType == 'json')
+        xhr.setRequestHeader('Accept', 'application/json; charset=utf-8')
 
-    return d.promise();
-  },
+      if (xhr.responseType == 'text')
+        xhr.setRequestHeader('Content-Type', 'text/plain')
 
+      if (conf.cache === false)
+        xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0')
 
-  'delete': function (url, config) {
-    return api_cb('DELETE', url, undefined, config);
+      // Send it
+      xhr.send(data)
+    })
   }
+
+
+  async get(path, conf) {return this.api('GET', path, undefined, conf)}
+  async put(path, data, conf) {return this.api('PUT', path, data, conf)}
+  async post(path, data, conf) {return this.api('POST', path, data, conf)}
+  async delete(path, conf) {return this.api('DELETE', path, undefined, conf)}
 }
+
+
+module.exports = API

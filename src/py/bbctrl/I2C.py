@@ -39,7 +39,7 @@ __all__ = ['I2C']
 
 
 class I2C(object):
-    def __init__(self, port, disabled):
+    def __init__(self, port, disabled = False):
         self.port = port
         self.i2c_bus = None
         self.disabled = disabled or smbus is None

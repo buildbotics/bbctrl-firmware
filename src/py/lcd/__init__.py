@@ -81,11 +81,10 @@ JUSTIFY_CENTER          = 2
 
 
 class LCD:
-    def __init__(self, i2c, addr, height = 4, width = 20):
-        self.addr = addr
-        self.height = height
-        self.width = width
-        self.i2c = i2c
+    def __init__(self, write_cb, height = 4, width = 20):
+        self.write_cb  = write_cb
+        self.height    = height
+        self.width     = width
         self.backlight = True
 
         self.reset()
@@ -107,22 +106,22 @@ class LCD:
         self.write(LCD_ENTRY_MODE_SET | LCD_ENTRY_SHIFT_INC)
 
 
-    def write_i2c(self, data):
+    def write_byte(self, data):
         if self.backlight: data |= BACKLIGHT_BIT
 
-        self.i2c.write(self.addr, data)
+        self.write_cb(data)
         time.sleep(0.0001)
 
 
     # Write half of a command to LCD
     def write_nibble(self, data):
-        self.write_i2c(data)
+        self.write_byte(data)
 
         # Strobe
-        self.write_i2c(data | ENABLE_BIT)
+        self.write_byte(data | ENABLE_BIT)
         time.sleep(0.0005)
 
-        self.write_i2c(data & ~ENABLE_BIT)
+        self.write_byte(data & ~ENABLE_BIT)
         time.sleep(0.0001)
 
 
@@ -143,7 +142,7 @@ class LCD:
 
     def set_backlight(self, enable):
         self.backlight = enable
-        self.write_i2c(0)
+        self.write_byte(0)
 
 
     def program_char(self, addr, data):

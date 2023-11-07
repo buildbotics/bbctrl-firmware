@@ -25,24 +25,22 @@
 
 \******************************************************************************/
 
-'use strict'
 
-
-var cookie = require('./cookie')
-var util   = require('./util')
-var api    = require('./api')
+let cookie = require('./cookie')
+let util   = require('./util')
+let API    = require('./api')
 
 
 function menu_ui() {
-  var layout   = document.getElementById('layout')
-  var menuLink = document.getElementById('menuLink')
+  let layout   = document.getElementById('layout')
+  let menuLink = document.getElementById('menuLink')
 
-  var collapse = function () {
+  let collapse = () => {
     layout.classList.remove('active')
     window.removeEventListener('click', collapse)
   }
 
-  menuLink.onclick = function (e) {
+  menuLink.onclick = e => {
     e.preventDefault()
     e.stopPropagation()
     layout.classList.toggle('active')
@@ -51,7 +49,7 @@ function menu_ui() {
 }
 
 
-$(function() {
+function main() {
   menu_ui()
 
   if (typeof cookie.get('client-id') == 'undefined')
@@ -64,12 +62,16 @@ $(function() {
   require('./cm-gcode')
   require('./keyboard')
 
+  let api = new API()
+  Object.defineProperty(Vue.prototype, '$api', {get() {return api}})
+
   // Register global components
   Vue.component('templated-input',  require('./templated-input'))
   Vue.component('templated-select', require('./templated-select'))
   Vue.component('message',          require('./message'))
   Vue.component('loading-message',  require('./loading-message'))
   Vue.component('dialog',           require('./dialog'))
+  Vue.component('bbutton',          require('./bbutton'))
   Vue.component('power',            require('./power'))
   Vue.component('indicators',       require('./indicators'))
   Vue.component('io-functions',     require('./io-functions'))
@@ -94,4 +96,6 @@ $(function() {
 
   // Vue app
   require('./app')
-})
+}
+
+$(main)

@@ -52,8 +52,6 @@ Released under the MIT licence.
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from __future__ import print_function
-
 import codecs
 import collections
 import gc
@@ -66,46 +64,14 @@ import subprocess
 import tempfile
 import sys
 import itertools
-
-try:
-    # Python 2.x compatibility
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-try:
-    from types import InstanceType
-except ImportError:
-    # Python 3.x compatibility
-    InstanceType = None
+import io
 
 
-__author__ = "Marius Gedminas (marius@gedmin.as)"
+__author__    = "Marius Gedminas (marius@gedmin.as)"
 __copyright__ = "Copyright (c) 2008-2017 Marius Gedminas and contributors"
-__license__ = "MIT"
-__version__ = '3.4.1.dev0'
-__date__ = '2018-02-13'
-
-
-try:
-    basestring
-except NameError:
-    # Python 3.x compatibility
-    basestring = str
-
-try:
-    iteritems = dict.iteritems
-except AttributeError:
-    # Python 3.x compatibility
-    iteritems = dict.items
-
-IS_INTERACTIVE = False
-try:  # pragma: nocover
-    import graphviz
-    if get_ipython().__class__.__name__ != 'TerminalInteractiveShell':
-        IS_INTERACTIVE = True
-except (NameError, ImportError):
-    pass
+__license__   = "MIT"
+__version__   = '3.4.1.dev0'
+__date__      = '2018-02-13'
 
 
 def _isinstance(object, classinfo):
@@ -329,7 +295,7 @@ def growth(limit=10, peak_stats={}, shortnames=True, filter=None):
     gc.collect()
     stats = typestats(shortnames=shortnames, filter=filter)
     deltas = {}
-    for name, count in iteritems(stats):
+    for name, count in dict.items(stats):
         old_count = peak_stats.get(name, 0)
         if count > old_count:
             deltas[name] = count - old_count
@@ -927,7 +893,6 @@ def _show_graph(objs, edge_func, swap_source_target,
     if not _isinstance(objs, (list, tuple)):
         objs = [objs]
 
-    is_interactive = False
     if filename and output:
         raise ValueError('Cannot specify both output and filename.')
     elif output:
@@ -935,18 +900,12 @@ def _show_graph(objs, edge_func, swap_source_target,
     elif filename and filename.endswith('.dot'):
         f = codecs.open(filename, 'w', encoding='utf-8')
         dot_filename = filename
-    elif IS_INTERACTIVE:
-        is_interactive = True
-        f = StringIO()
     else:
         fd, dot_filename = tempfile.mkstemp(prefix='objgraph-',
                                             suffix='.dot', text=True)
         f = os.fdopen(fd, "w")
-        if getattr(f, 'encoding', None):
-            # Python 3 will wrap the file in the user's preferred encoding
-            # Re-wrap it for utf-8
-            import io
-            f = io.TextIOWrapper(f.detach(), 'utf-8')
+        f = io.TextIOWrapper(f.detach(), 'utf-8')
+
     f.write('digraph ObjectGraph {\n'
             '  node[shape=box, style=filled, fillcolor=white];\n')
     queue = []
@@ -1045,17 +1004,13 @@ def _show_graph(objs, edge_func, swap_source_target,
                     % (_obj_node_id(target)))
     f.write("}\n")
 
-    if output:
-        return
+    if output: return
 
-    if is_interactive:
-        return graphviz.Source(f.getvalue())
-    else:
-        # The file should only be closed if this function was in charge of
-        # opening the file.
-        f.close()
-        print("Graph written to %s (%d nodes)" % (dot_filename, nodes))
-        _present_graph(dot_filename, filename)
+    # The file should only be closed if this function was in charge of
+    # opening the file.
+    f.close()
+    print("Graph written to %s (%d nodes)" % (dot_filename, nodes))
+    _present_graph(dot_filename, filename)
 
 
 def _present_graph(dot_filename, filename=None):
@@ -1127,8 +1082,7 @@ def _quote(s):
 
 def _get_obj_type(obj):
     objtype = type(obj)
-    if type(obj) == InstanceType:
-        objtype = obj.__class__
+    if type(obj) == None: objtype = obj.__class__
     return objtype
 
 
@@ -1159,7 +1113,7 @@ def _name_or_repr(value):
     except AttributeError:
         result = repr(value)[:40]
 
-    if _isinstance(result, basestring):
+    if _isinstance(result, str):
         return result
     else:
         return repr(value)[:40]
@@ -1225,9 +1179,9 @@ def _edge_label(source, target, shortnames=True):
             if target is getattr(source, k):
                 return ' [label="%s",weight=10]' % _quote(k)
     if _isinstance(source, dict):
-        for k, v in iteritems(source):
+        for k, v in dict.items(source):
             if v is target:
-                if _isinstance(k, basestring) and _is_identifier(k):
+                if _isinstance(k, str) and _is_identifier(k):
                     return ' [label="%s",weight=2]' % _quote(k)
                 else:
                     if shortnames:

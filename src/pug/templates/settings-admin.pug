@@ -57,8 +57,7 @@ script#settings-admin-template(type="text/x-template")
       button.pure-button.pure-button-primary Bug Report
 
 
-    message(:show.sync="show.upgrade")
-      h3(slot="header") Upgrade Firmware?
+    dialog(v-ref:upgrade, header="Upgrade Firmware?", buttons="Cancel Upgrade")
       div(slot="body")
         p
           | Are you sure you want to upgrade the firmware to version
@@ -66,32 +65,20 @@ script#settings-admin-template(type="text/x-template")
 
         p.pure-control-group
           label(for="pass") Password
-          input(name="pass", v-model="password", type="password",
+          input.password(name="pass", v-model="password",
             @keyup.enter="upgrade_confirmed", focus)
 
-      div(slot="footer")
-        button.pure-button(@click="show.upgrade = false") Cancel
-        button.pure-button.pure-button-primary(@click="upgrade_confirmed")
-          | Upgrade
-
-    message(:show.sync="show.upload")
-      h3(slot="header") Upload Firmware
+    dialog(v-ref:upload, header="Upload Firmware", buttons="Cancel Upload")
       div(slot="body")
         p Enter password to upload firmware #[em {{firmwareName}}]?
 
         p.pure-control-group
           label(for="pass") Password
-          input(name="pass", v-model="password", type="password",
+          input.password(name="pass", v-model="password",
             @keyup.enter="upload_confirmed", focus)
 
-      div(slot="footer")
-        button.pure-button(@click="show.upload = false") Cancel
-        button.pure-button.pure-button-primary(@click="upload_confirmed")
-          | Upload
-
-    message.upgrading(:show.sync="show.upgrading", :click_away_close="false")
-      h3(slot="header") Firmware upgrading
+    dialog.upgrading(v-ref:upgrading, :click-away="false", :buttons="[]",
+      header="Firmware upgrading")
       div(slot="body")
         h3 Please wait...
         p Loss of power during an upgrade may damage the controller.
-      div(slot="footer")

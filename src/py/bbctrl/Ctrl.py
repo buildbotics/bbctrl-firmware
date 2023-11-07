@@ -40,6 +40,7 @@ from .LCD import *
 from .Mach import *
 from .Preplanner import *
 from .FileSystem import *
+from .Network import *
 from .Jog import *
 from .Pwr import *
 from .MainLCDPage import *
@@ -48,11 +49,12 @@ from .IPLCDPage import *
 __all__ = ['Ctrl']
 
 
-class Ctrl(object):
-    def __init__(self, args, ioloop, id):
-        self.args = args
-        self.ioloop = IOLoop(ioloop)
-        self.id = id
+class Ctrl:
+    def __init__(self, args, ioloop, udevev, id):
+        self.args    = args
+        self.ioloop  = IOLoop(ioloop)
+        self.udevev  = udevev
+        self.id      = id
         self.timeout = None # Used in demo mode
 
         if id:
@@ -80,6 +82,7 @@ class Ctrl(object):
             self.mach = Mach(self, self.avr)
             self.preplanner = Preplanner(self)
             self.fs = FileSystem(self)
+            self.net = Network(self)
             if not args.demo: self.jog = Jog(self)
             self.pwr = Pwr(self)
 
@@ -119,6 +122,7 @@ class Ctrl(object):
         # Indirectly configures state via calls to config() and the AVR
         self.config.reload()
         self.state.init()
+        self.mach.set('be', 1) # Enable buffers
 
 
     def ready(self):

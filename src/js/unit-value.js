@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -35,24 +34,24 @@ module.exports = {
 
 
   computed: {
-    metric: function () {return !this.$root.state.imperial},
+    metric() {return !this.$root.state.imperial},
 
 
-    text: function () {
-      var value = this.value;
-      if (typeof value == 'undefined') return '';
+    text() {
+      let value = this.value
+      if (typeof value == 'undefined') return ''
 
-      if (!this.metric) value /= this.scale;
+      if (!this.metric) value /= this.scale
 
-      return (1 * value.toFixed(this.precision)).toLocaleString();
+      return (1 * value.toFixed(this.precision)).toLocaleString()
     }
   },
 
 
-  ready: function () {
-    if (typeof this.precision == 'undefined') this.precision = 0;
-    if (typeof this.unit == 'undefined') this.unit = 'mm';
-    if (typeof this.iunit == 'undefined') this.iunit = 'in';
-    if (typeof this.scale == 'undefined') this.scale = 25.4;
+  ready() {
+    if (typeof this.precision == 'undefined') this.precision = 0
+    if (typeof this.unit == 'undefined') this.unit = 'mm'
+    if (typeof this.iunit == 'undefined') this.iunit = 'in'
+    if (typeof this.scale == 'undefined') this.scale = 25.4
   }
 }

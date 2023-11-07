@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -35,16 +34,16 @@ module.exports = {
 
 
   computed: {
-    has_user_value: function () {
-      var type = this.model['reg-type'];
+    has_user_value() {
+      let type = this.model['reg-type']
 
       return type.indexOf('write') != -1 || type.indexOf('fixed') != -1 ||
-        type.indexOf('scaled') != -1;
+        type.indexOf('scaled') != -1
     }
   },
 
 
   methods: {
-    change: function () {this.$dispatch('input-changed')}
+    change() {this.$dispatch('input-changed')}
   }
 }

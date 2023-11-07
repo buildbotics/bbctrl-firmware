@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict';
 
 
 module.exports = {
@@ -33,7 +32,7 @@ module.exports = {
 
 
   methods: {
-    hide: function (e) {
+    hide(e) {
       e.currentTarget.classList.add('nav-menu-hide')
     }
   }

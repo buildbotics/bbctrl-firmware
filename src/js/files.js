@@ -25,20 +25,18 @@
 
 \******************************************************************************/
 
-'use strict'
 
-var api  = require('./api')
-var util = require('./util')
+let util = require('./util')
 
 
 function order_files(a, b) {
-  if (a.dir != b.dir) return a.dir ? -1 : 1;
-  return a.name.localeCompare(b.name);
+  if (a.dir != b.dir) return a.dir ? -1 : 1
+  return a.name.localeCompare(b.name)
 }
 
 
 function valid_filename(name) {
-  return name.length && name[0] != '.' && name.indexOf('/') == -1;
+  return name.length && name[0] != '.' && name.indexOf('/') == -1
 }
 
 
@@ -47,7 +45,7 @@ module.exports = {
   props: ['mode', 'locations'],
 
 
-  data: function () {
+  data() {
     return {
       fs: {},
       selected: -1,
@@ -59,31 +57,31 @@ module.exports = {
 
 
   watch: {
-    selected: function () {
-      var path;
-      var dir = false;
+    selected() {
+      let path
+      let dir = false
 
       if (0 <= this.selected && this.selected <= this.files.length) {
-        var file = this.files[this.selected];
-        if (file.dir) dir = true;
-        path = this.file_path(file);
+        let file = this.files[this.selected]
+        if (file.dir) dir = true
+        path = this.file_path(file)
       }
 
-      if (this.mode != 'save') this.$emit('selected', path, dir);
-      if (path && !dir) this.filename = util.basename(path);
+      if (this.mode != 'save') this.$emit('selected', path, dir)
+      if (path && !dir) this.filename = util.basename(path)
     },
 
 
-    filename: function () {
-      if (this.mode != 'save') return;
-      var path;
+    filename() {
+      if (this.mode != 'save') return
+      let path
       if (this.filename_valid)
         path = util.join_path(this.fs.path, this.filename)
-      this.$emit('selected', path, false);
+      this.$emit('selected', path, false)
     },
 
 
-    locations: function () {
+    locations() {
       if (this.locations.indexOf(this.location) == -1)
         this.load('')
     }
@@ -91,203 +89,196 @@ module.exports = {
 
 
   computed: {
-    files: function () {
-      if (typeof this.fs.files == 'undefined') return [];
-      return this.fs.files.sort(order_files);
+    files() {
+      if (typeof this.fs.files == 'undefined') return []
+      return this.fs.files.sort(order_files)
     },
 
 
-    location: function () {
+    location() {
       if (typeof this.fs.path != 'undefined') {
-        var paths = this.fs.path.split('/').filter(function (s) {return s});
-        if (paths.length) return paths[0];
+        let paths = this.fs.path.split('/').filter(s => s)
+        if (paths.length) return paths[0]
       }
 
-      return 'Home';
+      return 'Home'
     },
 
 
-    paths: function () {
-      if (typeof this.fs.path == 'undefined') return [];
+    paths() {
+      if (typeof this.fs.path == 'undefined') return []
 
-      var paths = this.fs.path.split('/').filter(function (s) {return s});
-      if (paths.length) paths.shift(); // Remove location
-      paths.unshift('/');
+      let paths = this.fs.path.split('/').filter(s => s)
+      if (paths.length) paths.shift() // Remove location
+      paths.unshift('/')
 
-      return paths;
+      return paths
     },
 
 
-    folder_valid: function () {
-      var file = this.find_file(this.folder);
-      return file == undefined && valid_filename(this.folder);
+    folder_valid() {
+      let file = this.find_file(this.folder)
+      return file == undefined && valid_filename(this.folder)
     },
 
 
-    filename_valid: function () {
-      var file = this.find_file(this.filename);
-      return (file == undefined || !file.dir) && valid_filename(this.filename);
+    filename_valid() {
+      let file = this.find_file(this.filename)
+      return (file == undefined || !file.dir) && valid_filename(this.filename)
     }
   },
 
 
-  ready: function () {this.load('')},
+  ready() {this.load('')},
 
 
   methods: {
-    location_title: function (name) {
+    location_title(name) {
       if (name == 'Home')
-        return 'Select files already on the controller.';
-      return 'Select files from a USB drive.';
+        return 'Select files already on the controller.'
+      return 'Select files from a USB drive.'
     },
 
 
-    filename_changed: function () {
+    filename_changed() {
       if (this.selected != -1 &&
           this.filename != this.files[this.selected].name)
-        this.selected = -1;
+        this.selected = -1
     },
 
 
-    find_file: function (name) {
-      for (var i = 0; i < this.files.length; i++)
-        if (this.files[i].name == name) return this.files[i];
-      return undefined;
+    find_file(name) {
+      for (let i = 0; i < this.files.length; i++)
+        if (this.files[i].name == name) return this.files[i]
+      return undefined
     },
 
 
-    has_file:  function (name) {return this.find_file(name) != undefined},
-    file_path: function (file) {return util.join_path(this.fs.path, file.name)},
-    file_url:  function (file) {return '/api/fs' + this.file_path(file)},
-    select:    function (index) {this.selected = index},
+    has_file(name) {return this.find_file(name) != undefined},
+    file_path(file) {return util.join_path(this.fs.path, file.name)},
+    file_url(file) {return '/api/fs' + this.file_path(file)},
+    select(index) {this.selected = index},
 
 
-    eject: function (location) {
-      api.put('usb/eject/' + location)
+    async eject(location) {return this.$api.put('usb/eject/' + location)},
+
+
+    open(path) {
+      this.filename = ''
+      this.load(path)
     },
 
 
-    open: function (path) {
-      this.filename = '';
-      this.load(path);
+    async load(path) {
+      let data = await this.$api.get('fs/' + path)
+      this.fs = data
+      this.selected = -1
     },
 
 
-    load: function (path, done) {
-      api.get('fs/' + path)
-        .done(function (data) {
-          this.fs = data
-          this.selected = -1;
-          if (done) done();
-        }.bind(this))
+    async reload() {return this.load(this.fs.path || '')},
+
+
+    path_at(index) {
+      return '/' + this.paths.slice(1, index + 1).join('/')
     },
 
 
-    reload: function (done) {this.load(this.fs.path || '', done)},
-
-
-    path_at: function (index) {
-      return '/' + this.paths.slice(1, index + 1).join('/');
+    path_title(index) {
+      if (index == this.paths.length - 1) return ''
+      return 'Go to folder ' + this.path_at(index)
     },
 
 
-    path_title: function (index) {
-      if (index == this.paths.length - 1) return '';
-      return 'Go to folder ' + this.path_at(index);
-    },
-
-
-    load_path: function (index) {
+    load_path(index) {
       this.load(this.location + this.path_at(index))
     },
 
 
-    new_folder: function () {
-      this.folder = '';
-      this.showNewFolder = true;
+    new_folder() {
+      this.folder = ''
+      this.showNewFolder = true
     },
 
 
-    create_folder: function () {
-      if (!this.folder_valid) return;
-      this.showNewFolder = false;
+    async create_folder() {
+      if (!this.folder_valid) return
+      this.showNewFolder = false
 
-      var path = this.fs.path + '/' + this.folder;
-
-      api.put('fs/' + path)
-        .done(function () {this.open(path)}.bind(this));
+      let path = this.fs.path + '/' + this.folder
+      await this.$api.put('fs/' + path)
+      this.open(path)
     },
 
 
-    activate: function (file) {
-      if (file.dir) this.load(this.fs.path + '/' + file.name);
-      else this.$emit('activate', this.file_path(file));
+    activate(file) {
+      if (file.dir) this.load(this.fs.path + '/' + file.name)
+      else this.$emit('activate', this.file_path(file))
     },
 
 
-    delete: function (file) {
-      this.$root.open_dialog({
+    async delete(file) {
+      let response = await this.$root.open_dialog({
         title: 'Delete ' + (file.dir ? 'directory' : 'file') + '?',
         body: 'Are you sure you want to delete <tt>' + file.name +
           (file.dir ? '</tt> and all the files under it?' : '</tt>?'),
-        buttons: 'Cancel OK',
-        callback: function (action) {
-          if (action == 'ok')
-            api.delete('fs/' + this.fs.path + '/' + file.name)
-            .done(this.reload)
-        }.bind(this)
-      });
-    },
-
-
-    activate_file: function (filename) {
-      for (var i = 0; i < this.files.length; i++)
-        if (this.files[i].name == filename)
-          this.activate(this.files[i]);
-    },
-
-
-    confirm_upload: function (file, cb) {
-      file.filename = util.basename(util.unix_path(file.name));
-
-      var other = this.find_file(file.filename);
-      if (!other) return cb(true);
-
-      if (other.dir)
-        this.$root.open_dialog({
-          title: 'Cannot overwrite',
-          body: 'Cannot overwrite directory ' + file.filename + '.',
-          buttons: 'OK',
-          callback: function () {cb(false)}
-        });
-
-      else
-        this.$root.open_dialog({
-          title: 'Overwrite file?',
-          body: 'Are you sure you want to overwrite ' + file.filename + '?',
-          buttons: 'Cancel OK',
-          callback: function (action) {cb(action == 'ok')}
-        });
-    },
-
-
-    upload_success: function (file, next) {
-      this.reload(function () {
-        if (this.mode == 'open') this.activate_file(file.filename)
-        next();
-      }.bind(this));
-    },
-
-
-    upload: function ()  {
-      this.$root.upload({
-        multiple: this.mode != 'open',
-        url: function (file) {
-          return 'fs/' + this.fs.path + '/' + file.filename;
-        }.bind(this),
-        on_confirm: this.confirm_upload,
-        on_success: this.upload_success
+        buttons: 'Cancel OK'
       })
+
+      if (response == 'ok') {
+        await this.$api.delete('fs/' + this.fs.path + '/' + file.name)
+        this.reload()
+      }
+    },
+
+
+    activate_file(filename) {
+      for (let i = 0; i < this.files.length; i++)
+        if (this.files[i].name == filename)
+          this.activate(this.files[i])
+    },
+
+
+    async confirm_upload(file) {
+      file.filename = util.basename(util.unix_path(file.name))
+
+      let other = this.find_file(file.filename)
+      if (!other) return true
+
+      if (other.dir) {
+        await this.$root.open_dialog({
+          title:   'Cannot overwrite',
+          body:    'Cannot overwrite directory ' + file.filename + '.',
+          buttons: 'OK'
+        })
+
+        return false
+      }
+
+      let response = await this.$root.open_dialog({
+        title:   'Overwrite file?',
+        body:    'Are you sure you want to overwrite ' + file.filename + '?',
+        buttons: 'Cancel OK'
+      })
+
+      return response == 'ok'
+    },
+
+
+    async upload()  {
+      let filename
+
+      await this.$root.upload({
+        multiple: this.mode != 'open',
+        url(file) {
+          filename = file.filename
+          return 'fs/' + this.fs.path + '/' + filename
+        },
+        on_confirm: this.confirm_upload,
+      })
+
+      await this.reload()
+      if (this.mode == 'open') this.activate_file(filename)
     }
   }
 }

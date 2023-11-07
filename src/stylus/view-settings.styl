@@ -52,3 +52,39 @@
 
   select.function
     width 14em
+
+#settings-network
+  .wifi-aps
+    tr:nth-child(odd)
+      background #eee
+
+    tr:nth-child(even)
+      background #f7f7f7
+
+    tr:first-child
+      background #ddd
+
+    td
+      white-space nowrap
+
+    .ssid
+      width 100%
+
+    .channel, .rate, .security
+      text-align right
+
+    .signal-bars
+      display flex
+      justify-content center
+      align-items end
+      gap 1px
+
+      .bar
+        width 4px
+        background #ccc
+
+        &.active
+          background green
+
+  .wifi-device
+    margin-top 1em

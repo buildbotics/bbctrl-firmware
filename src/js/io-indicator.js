@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 function get_state_class(state) {
@@ -50,7 +49,7 @@ module.exports = {
 
 
   computed: {
-    klass: function () {
+    klass() {
       if (this.func == 'disabled' || this.type == 'disabled') return 'fa-ban'
       if (this.type == 'analog')  return 'fa-random'
       if (this.type == 'digital') return 'fa-random'
@@ -87,7 +86,7 @@ module.exports = {
     },
 
 
-    tooltip: function () {
+    tooltip() {
       let parts = []
 
       if (this.type) parts.push('Type: ' + this.type)

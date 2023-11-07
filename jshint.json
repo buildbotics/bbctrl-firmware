@@ -2,8 +2,7 @@
   "asi": true,
   "browser": true,
   "devel": true,
-  "strict": "global",
-  "esversion": 6,
+  "esversion": 8,
   "globals": {
     "$": false,
     "require": false,
@@ -15,5 +14,6 @@
     "CodeMirror": false,
     "Chart": false,
     "THREE": false
-  }
+  },
+  "-W093": false
 }

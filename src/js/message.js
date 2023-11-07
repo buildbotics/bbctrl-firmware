@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -38,7 +37,7 @@ module.exports = {
       twoWay: true
     },
 
-    click_away_close: {
+    clickAwayClose: {
       type: Boolean,
       default: true
     },
@@ -50,27 +49,22 @@ module.exports = {
   },
 
 
-  events: {
-    'click-away': function () {if (this.click_away_close) this.show = false}
-  },
-
-
   watch: {
-    show: function (show) {if (show) Vue.nextTick(this.focus)}
+    show(show) {if (show) Vue.nextTick(this.focus)}
   },
 
 
   methods: {
-    click_away: function (e) {
-      if (!e.target.classList.contains('modal-wrapper')) return;
-      this.$emit('click-away')
+    click_away(e) {
+      if (e.target.classList.contains('modal-wrapper') &&
+          this.clickAwayClose) this.show = false
     },
 
 
-    focus: function () {
-      $(this.$el).find('[focus]').each(function (index, e) {
+    focus() {
+      $(this.$el).find('[focus]').each((index, e) => {
         e.focus()
-        return false;
+        return false
       })
     }
   }

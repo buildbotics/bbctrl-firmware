@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -25,101 +25,82 @@
 
 \******************************************************************************/
 
-'use strict'
-
-
-function get_icon(action) {
-  switch (action.toLowerCase()) {
-  case 'ok':     case 'yes': return 'check';
-  case 'cancel': case 'no':  return 'times';
-  case 'save':               return 'floppy-o';
-  case 'discard':            return 'trash';
-  }
-
-  return undefined
-}
-
-
-function make_button(button) {
-  if (typeof button == 'string') button = {text: button}
-  button.action = button.action || button.text.toLowerCase()
-  button.icon = button.icon || get_icon(button.action);
-  return button;
-}
-
 
 module.exports = {
   template: '#dialog-template',
 
 
-  data: function () {
+  props: {
+    width:     {type: String,  default: '300px'},
+    icon:      {type: String},
+    clickAway: {type: Boolean, default: true},
+    header:    {type: String,  default: ''},
+    body:      {type: String,  default: ''},
+
+    buttons: {
+      type: Array,
+      default() {return 'Ok'},
+
+
+      coerce(buttons) {
+        if (typeof buttons == 'string') buttons = buttons.split(' ')
+
+        for (let i = 0; i < buttons.length; i++) {
+          if (typeof buttons[i] == 'string') buttons[i] = {text: buttons[i]}
+          buttons[i].action = buttons[i].action || buttons[i].text.toLowerCase()
+        }
+
+        return buttons
+      }
+    }
+  },
+
+
+  data() {
     return {
-      show: false,
-      config: {},
-      buttons: []
+      show: false
     }
   },
 
 
   methods: {
-    click_away: function () {
-      if (typeof this.config.click_away == 'undefined')
-        this.close('click-away');
-
-      if (this.config.click_away) this.close(this.config.click_away);
-    },
-
-
-    close: function (action) {
+    close(action) {
       this.show = false
+      this.$emit('close', action)
 
-      if (typeof this.config.callback == 'function')
-        this.config.callback(action);
-
-      if (typeof this.config.callback == 'object' &&
-          typeof this.config.callback[action] == 'function')
-        this.config.callback[action]();
+      if (this.resolve) {
+        this.resolve(action)
+        delete this.resolve
+      }
     },
 
 
-    open: function(config) {
-      this.config = config;
+    open(config) {
+      if (config)
+        for (let name in config)
+          this[name] = config[name]
 
-      var buttons = config.buttons || 'OK';
-      if (typeof buttons == 'string') buttons = buttons.split(' ');
-
-      this.buttons = [];
-      for (var i = 0; i < buttons.length; i++)
-        this.buttons.push(make_button(buttons[i]))
-
-      this.show = true;
+      this.show = true
+      return new Promise(resolve => this.resolve = resolve)
     },
 
 
-    error: function (msg) {
-      this.open({
-        icon: 'exclamation',
-        title: 'Error',
-        body: msg
-      })
+    async error(msg) {
+      return this.open({icon: 'exclamation', header: 'Error', body: msg})
     },
 
 
-    warning: function (msg) {
-      this.open({
+    async warning(msg) {
+      return this.open({
         icon: 'exclamation-triangle',
-        title: 'Warning',
+        header: 'Warning',
         body: msg
       })
     },
 
 
-    success: function (msg) {
-      this.open({
-        icon: 'check',
-        title: 'Success',
-        body: msg
-      })
+    async success(msg) {
+      return this.open({icon: 'check', header: 'Success', body: msg})
     }
   }
 }

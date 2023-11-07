@@ -44,7 +44,7 @@ typedef enum {
 
   // Hard wired functions
   INPUT_STALL_0, INPUT_STALL_1, INPUT_STALL_2, INPUT_STALL_3, INPUT_MOTOR_FAULT,
-  OUTPUT_TEST,
+  OUTPUT_TEST, OUTPUT_BUFEN,
 
   IO_FUNCTION_COUNT
 } io_function_t;

@@ -27,7 +27,7 @@
 
 import os
 import shutil
-
+from tornado.web import HTTPError
 from . import util
 
 __all__ = ['FileSystem']
@@ -38,9 +38,8 @@ class FileSystem:
 
 
   def __init__(self, ctrl):
-    self.ctrl = ctrl
-    self.log = ctrl.log.get('FileSystem')
-    self.locations = ['Home']
+    self.ctrl      = ctrl
+    self.log       = ctrl.log.get('FS')
 
     upload = self.ctrl.root + '/upload'
     os.environ['GCODE_SCRIPT_PATH'] = upload
@@ -50,10 +49,11 @@ class FileSystem:
       from shutil import copy
       copy(util.get_resource('http/buildbotics.nc'), upload)
 
-    self.usb_update()
-
+    self._update_locations()
     self._update_first_file()
+
     ctrl.events.on('invalidate', self._invalidate)
+    ctrl.udevev.add_handler(self._udev_event, 'block')
 
 
   def _invalidate(self, path):
@@ -140,11 +140,32 @@ class FileSystem:
       os.sync()
 
 
-  def usb_update(self):
-    self.locations = ['Home']
+  def _set_locations(self):
+    self.ctrl.state.set('locations', list(self.locations.values()))
 
-    for name in os.listdir('/media'):
-      if os.path.isdir('/media/' + name):
-        self.locations.append(name)
 
-    self.ctrl.state.set('locations', self.locations)
+  def _update_locations(self):
+    self.locations = {'home': 'Home'}
+
+    with open('/proc/mounts', 'r') as f:
+      for line in f:
+        mount = line.split()
+
+        if mount[1].startswith('/media/'):
+          self.locations[mount[0]] = mount[1][7:]
+
+    self._set_locations()
+
+
+  def _udev_event(self, action, device):
+    node = device.device_node
+
+    if action == 'add' and device.get('ID_FS_USAGE', '') == 'filesystem':
+      label = device.get('ID_FS_LABEL', '')
+      if not label: label = 'USB_DISK-' + node.split('/')[-1]
+      self.locations[node] = label
+      self._set_locations()
+
+    if action == 'remove' and node in self.locations:
+      del self.locations[node]
+      self._set_locations()

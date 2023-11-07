@@ -5,6 +5,8 @@ include src/avr/bbctrl-avr-firmware.hex
 include src/pwr/bbctrl-pwr-firmware.hex
 include scripts/buildbotics.gc
 include scripts/bbctrl.service
+include scripts/update-bb-firmware
+include scripts/boot-splash
 include bin/camotics.so
 include bin/bbkbd
 include bin/updiprog

@@ -25,11 +25,9 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
-var util = require('./util');
-var api  = require('./api');
+let util = require('./util')
 
 
 module.exports = {
@@ -37,7 +35,7 @@ module.exports = {
   props: ['state'],
 
 
-  data: function () {
+  data() {
     return {
       first: true,
       selected: '',
@@ -46,54 +44,54 @@ module.exports = {
   },
 
 
-  attached: function () {
-    if (this.first) this.first = false;
-    else this.$refs.files.reload();
+  attached() {
+    if (this.first) this.first = false
+    else this.$refs.files.reload()
   },
 
 
   methods: {
-    upload: function () {this.$refs.files.upload()},
-    new_folder: function () {this.$refs.files.new_folder()},
+    upload() {this.$refs.files.upload()},
+    new_folder() {this.$refs.files.new_folder()},
 
 
-    set_selected: function (path, dir) {
+    set_selected(path, dir) {
       this.selected = path
-      this.is_dir = dir;
+      this.is_dir = dir
     },
 
 
-    edit: function () {
+    edit() {
       if (this.selected && !this.is_dir) this.$root.edit(this.selected)
     },
 
 
-    view: function () {
+    view() {
       if (this.selected && !this.is_dir) this.$root.view(this.selected)
     },
 
 
-    download: function () {
-      if (this.selected && !this.is_dir) this.$els.download.click();
+    download() {
+      if (this.selected && !this.is_dir) this.$els.download.click()
     },
 
 
-    delete: function () {
-      if (!this.selected) return;
+    async delete() {
+      if (!this.selected) return
 
-      var filename = util.basename(this.selected);
+      let filename = util.basename(this.selected)
 
-      this.$root.open_dialog({
+      let result = await this.$root.open_dialog({
         title: 'Delete ' + (this.is_dir ? 'directory' : 'file') + '?',
         body: 'Are you sure you want to delete <tt>' + filename +
           (this.is_dir ? '</tt> and all the files under it?' : '</tt>?'),
-        buttons: 'Cancel OK',
-        callback: function (action) {
-          if (action == 'ok')
-            api.delete('fs/' + this.selected)
-            .done(this.$refs.files.reload)
-        }.bind(this)
-      });
+        buttons: 'Cancel OK'
+      })
+
+      if (result == 'ok') {
+        await this.$api.delete('fs/' + this.selected)
+        await this.$refs.files.reload()
+      }
     }
   }
 }

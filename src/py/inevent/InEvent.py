@@ -53,7 +53,6 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import pyudev
 import re
 import select
 import errno
@@ -64,27 +63,24 @@ from inevent.Constants import *
 from inevent.EventStream import EventStream
 
 
-class InEvent(object):
-  def __init__(self, ioloop, cb, types = 'kbd mouse js'.split(), log = None):
-    self.ioloop = ioloop
-    self.cb = cb
+class InEvent:
+  def __init__(
+      self, ioloop, udevev, cb, types = 'kbd mouse js'.split(), log = None):
+    self.ioloop  = ioloop
+    self.udevev  = udevev
+    self.cb      = cb
     self.streams = []
-    self.types = types
-    self.log = log if log else logging.getLogger('inevent')
-
-    self.udevCtx = pyudev.Context()
-    self.udevMon = pyudev.Monitor.from_netlink(self.udevCtx)
-    self.udevMon.filter_by(subsystem = 'input')
+    self.types   = types
+    self.log     = log if log else logging.getLogger('inevent')
 
     for index, type, name in self.find_devices(types):
       self.add(index, type, name)
 
-    self.udevMon.start()
-    ioloop.add_handler(self.udevMon.fileno(), self.udev_handler, ioloop.READ)
+    udevev.add_handler(self._input_event_handler, 'input')
 
 
   def get_dev(self, index):
-    return pyudev.Device.from_name(self.udevCtx, 'input', 'event%s' % index)
+    return self.udevev.dev_by_name('input', 'event%s' % index)
 
 
   def get_dev_name(self, index):
@@ -115,17 +111,7 @@ class InEvent(object):
               if index: yield int(index), type, self.get_dev_name(index)
 
 
-  def io_handler(self, fd, events):
-    for stream in self.streams:
-      if stream.fd == fd:
-        for event in stream:
-          self.cb(event)
-
-
-  def udev_handler(self, fd, events):
-    action, device = self.udevMon.receive_device()
-    if device is None: return
-
+  def _input_event_handler(self, action, device):
     match = re.search(r'/dev/input/event([0-9]+)', str(device.device_node))
     devIndex = match and match.group(1)
     if not devIndex: return
@@ -144,7 +130,11 @@ class InEvent(object):
     try:
       stream = EventStream(devIndex, devType, devName, self.log)
       self.streams.append(stream)
-      self.ioloop.add_handler(stream.fd, self.io_handler, self.ioloop.READ)
+
+      def io_handler(self, fd, events):
+        for event in stream: self.cb(event)
+
+      self.ioloop.add_handler(stream.fd, io_handler, self.ioloop.READ)
       self.log.info('Added %s[%d] %s', devType, devIndex, devName)
 
     except OSError as e:

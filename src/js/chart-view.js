@@ -25,7 +25,6 @@
 
 \******************************************************************************/
 
-'use strict'
 
 
 module.exports = {
@@ -33,7 +32,7 @@ module.exports = {
   props: ['config', 'template', 'state'],
 
 
-  data: function () {
+  data() {
     return {
       v: [],
       s: [],
@@ -41,8 +40,8 @@ module.exports = {
   },
 
 
-  ready: function () {
-    var options = {
+  ready() {
+    let options = {
       title: {display: true},
       legend: {display: false},
       animation: {duration: 100},
@@ -59,8 +58,8 @@ module.exports = {
         yAxes: [{
           ticks: {
             beginAtZero: true,
-            callback: function (value) {
-              return value.toLocaleString();
+            callback(value) {
+              return value.toLocaleString()
             }
           }
         }]
@@ -86,23 +85,21 @@ module.exports = {
     })
 
 
-    setInterval(function () {
-      this.add(this.state.v, this.state['0sl']);
-    }.bind(this), 125)
+    setInterval(() => {this.add(this.state.v, this.state['0sl'])}, 125)
   },
 
 
   methods: {
-    add: function (v, s) {
-      var t = new Date();
+    add(v, s) {
+      let t = new Date()
 
-      this.v.unshift({x: t, y: v});
-      this.s.unshift({x: t, y: s});
+      this.v.unshift({x: t, y: v})
+      this.s.unshift({x: t, y: s})
 
-      if (40 < this.v.length) this.v.length = 40;
-      if (40 < this.s.length) this.s.length = 40;
+      if (40 < this.v.length) this.v.length = 40
+      if (40 < this.s.length) this.s.length = 40
 
-      if (this.chart != undefined) this.chart.update();
+      if (this.chart != undefined) this.chart.update()
     }
   }
 }

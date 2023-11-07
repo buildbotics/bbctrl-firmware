@@ -353,10 +353,6 @@ void drv8711_init() {
   OUTSET_PIN(SPI_MOSI_PIN); // High
   DIRSET_PIN(SPI_MOSI_PIN); // Output
 
-  // Motor driver enable
-  OUTSET_PIN(MOTOR_ENABLE_PIN); // Active high
-  DIRSET_PIN(MOTOR_ENABLE_PIN); // Output
-
   for (int i = 0; i < DRIVERS; i++) {
     uint8_t cs_pin = drivers[i].cs_pin;
     OUTSET_PIN(cs_pin);     // High

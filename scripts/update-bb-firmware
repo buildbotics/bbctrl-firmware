@@ -31,8 +31,8 @@ if [ ! -e $GPIO ]; then
 fi
 echo out > $GPIO/direction
 echo 1   > $GPIO/value
-sleep 0.1
-echo in  > $GPIO/direction
+#sleep 0.1
+#echo in  > $GPIO/direction
 
 # PWR firmware
 if [ -e "$PWRFW" -a -e "$PWRDEV" ]; then

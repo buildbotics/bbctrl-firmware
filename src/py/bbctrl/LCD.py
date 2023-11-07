@@ -35,146 +35,146 @@ __all__ = ['LCD']
 
 
 class LCD:
-    def __init__(self, ctrl):
-        self.ctrl = ctrl
-        self.log = ctrl.log.get('LCD')
+  def __init__(self, ctrl):
+    self.ctrl = ctrl
+    self.log = ctrl.log.get('LCD')
 
-        self.addrs = self.ctrl.args.lcd_addr
-        self.addr = self.addrs[0]
-        self.addr_num = 0
+    self.addrs = self.ctrl.args.lcd_addr
+    self.addr = self.addrs[0]
+    self.addr_num = 0
 
-        self.width = 20
-        self.height = 4
-        self.lcd = None
-        self.timeout = None
+    self.width = 20
+    self.height = 4
+    self.lcd = None
+    self.timeout = None
+    self.reset = False
+    self.page = None
+    self.pages = []
+    self.current_page = 0
+    self.screen = self.new_screen()
+
+    try:
+      self.oled = OLED(self.ctrl)
+    except: pass
+    self.wrote_to_oled = False
+
+    self.set_message('Loading...')
+
+    self._redraw(False)
+    if not ctrl.args.demo: atexit.register(self.goodbye)
+
+
+  def set_message(self, msg):
+    try:
+      self.load_page(LCDPage(self, msg))
+      self._update()
+    except IOError as e:
+      self.log.warning('LCD communication failed: %s' % e)
+
+
+  def new_screen(self):
+    return [[' ' for y in range(self.height)] for x in range(self.width)]
+
+
+  def new_page(self): return LCDPage(self)
+  def add_page(self, page): self.pages.append(page)
+
+
+  def add_new_page(self, page = None):
+    if page is None: page = self.new_page()
+    page.id = len(self.pages)
+    self.add_page(page)
+    return page
+
+
+  def load_page(self, page):
+    if self.page != page:
+      if self.page is not None: self.page.deactivate()
+      page.activate()
+      self.page = page
+      self.redraw = True
+      self.update()
+
+
+  def set_current_page(self, current_page):
+    self.current_page = current_page % len(self.pages)
+    self.load_page(self.pages[self.current_page])
+
+
+  def page_up(self): pass
+  def page_down(self): pass
+  def page_right(self): self.set_current_page(self.current_page + 1)
+  def page_left(self): self.set_current_page(self.current_page - 1)
+
+
+  def update(self):
+    if self.timeout is None:
+      self.timeout = self.ctrl.ioloop.call_later(0.25, self._update)
+
+
+  def _redraw(self, now = True):
+    if now:
+      self.redraw = True
+      self.update()
+    self.redraw_timer = self.ctrl.ioloop.call_later(5, self._redraw)
+
+
+  def _update(self):
+    self.timeout = None
+    try:
+      self.oled.writePage(self.page.data)
+      self.wrote_to_oled = True
+      return
+    except: pass
+
+    try:
+      if self.lcd is None:
+        def write_cb(byte): self.ctrl.i2c.write(self.addr, byte)
+        self.lcd = lcd.LCD(write_cb, self.height, self.width)
+
+      if self.reset:
+        self.lcd.reset()
+        self.redraw = True
         self.reset = False
-        self.page = None
-        self.pages = []
-        self.current_page = 0
-        self.screen = self.new_screen()
 
-        try:
-            self.oled = OLED(self.ctrl)
-        except: pass
-        self.wrote_to_oled = False
+      cursorX, cursorY = -1, -1
 
-        self.set_message('Loading...')
+      for y in range(self.height):
+        for x in range(self.width):
+          c = self.page.data[x][y]
 
-        self._redraw(False)
-        if not ctrl.args.demo: atexit.register(self.goodbye)
+          if self.redraw or self.screen[x][y] != c:
+            if cursorX != x or cursorY != y:
+              self.lcd.goto(x, y)
+              cursorX, cursorY = x, y
 
+            self.lcd.put_char(c)
+            cursorX += 1
+            self.screen[x][y] = c
 
-    def set_message(self, msg):
-        try:
-            self.load_page(LCDPage(self, msg))
-            self._update()
-        except IOError as e:
-            self.log.warning('LCD communication failed: %s' % e)
+      self.redraw = False
 
+    except IOError as e:
+      # Try next address
+      self.addr_num += 1
+      if len(self.addrs) <= self.addr_num: self.addr_num = 0
+      self.addr = self.addrs[self.addr_num]
+      self.lcd = None
 
-    def new_screen(self):
-        return [[' ' for y in range(self.height)] for x in range(self.width)]
+      self.log.warning('LCD communication failed, ' +
+                       'retrying on address 0x%02x: %s' % (self.addr, e))
 
-
-    def new_page(self): return LCDPage(self)
-    def add_page(self, page): self.pages.append(page)
-
-
-    def add_new_page(self, page = None):
-        if page is None: page = self.new_page()
-        page.id = len(self.pages)
-        self.add_page(page)
-        return page
+      self.reset = True
+      self.timeout = self.ctrl.ioloop.call_later(1, self._update)
 
 
-    def load_page(self, page):
-        if self.page != page:
-            if self.page is not None: self.page.deactivate()
-            page.activate()
-            self.page = page
-            self.redraw = True
-            self.update()
+  def goodbye(self, message = ''):
+    if self.timeout:
+      self.ctrl.ioloop.remove_timeout(self.timeout)
+      self.timeout = None
 
+    if self.redraw_timer:
+      self.ctrl.ioloop.remove_timeout(self.redraw_timer)
+      self.redraw_timer = None
 
-    def set_current_page(self, current_page):
-        self.current_page = current_page % len(self.pages)
-        self.load_page(self.pages[self.current_page])
-
-
-    def page_up(self): pass
-    def page_down(self): pass
-    def page_right(self): self.set_current_page(self.current_page + 1)
-    def page_left(self): self.set_current_page(self.current_page - 1)
-
-
-    def update(self):
-        if self.timeout is None:
-            self.timeout = self.ctrl.ioloop.call_later(0.25, self._update)
-
-
-    def _redraw(self, now = True):
-        if now:
-            self.redraw = True
-            self.update()
-        self.redraw_timer = self.ctrl.ioloop.call_later(5, self._redraw)
-
-
-    def _update(self):
-        self.timeout = None
-        try:
-            self.oled.writePage(self.page.data)
-            self.wrote_to_oled = True
-            return
-        except: pass
-
-        try:
-            if self.lcd is None:
-                self.lcd = lcd.LCD(self.ctrl.i2c, self.addr, self.height,
-                                   self.width)
-
-            if self.reset:
-                self.lcd.reset()
-                self.redraw = True
-                self.reset = False
-
-            cursorX, cursorY = -1, -1
-
-            for y in range(self.height):
-                for x in range(self.width):
-                    c = self.page.data[x][y]
-
-                    if self.redraw or self.screen[x][y] != c:
-                        if cursorX != x or cursorY != y:
-                            self.lcd.goto(x, y)
-                            cursorX, cursorY = x, y
-
-                        self.lcd.put_char(c)
-                        cursorX += 1
-                        self.screen[x][y] = c
-
-            self.redraw = False
-
-        except IOError as e:
-            # Try next address
-            self.addr_num += 1
-            if len(self.addrs) <= self.addr_num: self.addr_num = 0
-            self.addr = self.addrs[self.addr_num]
-            self.lcd = None
-
-            self.log.warning('LCD communication failed, ' +
-                        'retrying on address 0x%02x: %s' % (self.addr, e))
-
-            self.reset = True
-            self.timeout = self.ctrl.ioloop.call_later(1, self._update)
-
-
-    def goodbye(self, message = ''):
-        if self.timeout:
-            self.ctrl.ioloop.remove_timeout(self.timeout)
-            self.timeout = None
-
-        if self.redraw_timer:
-            self.ctrl.ioloop.remove_timeout(self.redraw_timer)
-            self.redraw_timer = None
-
-        if self.lcd is not None: self.set_message(message)
+    if self.lcd is not None: self.set_message(message)

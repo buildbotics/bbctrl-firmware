@@ -85,8 +85,8 @@ script#view-viewer-template(type="text/x-template")
 
     loading-message(v-if="loading", :progress="program.progress")
       p(slot="body").
-        Simulating program to check for errors, calculate timing and generate
-        3D view. Please wait...
+        Simulating program to check for errors, calculating timing and
+        generating 3D view. Please wait...
 
     viewer-help-dialog(v-ref:help-dialog)
 
