@@ -43,7 +43,6 @@ module.exports = {
   data() {
     return {
       config: {},
-      show: false,
       progress: 0,
       msg: ''
     }
@@ -85,7 +84,7 @@ module.exports = {
       }
 
       this.progress = 0
-      this.show = true
+      this.$refs.dialog.open()
 
       this.msg = get_value(this.config.msg,  file, file.name)
       let url  = get_value(this.config.url,  file)
@@ -109,7 +108,7 @@ module.exports = {
           if (await confirm(files[i]))
             await this._upload_file(files[i])
 
-      } finally {this.show = false}
+      } finally {this.$refs.dialog.close()}
     }
   }
 }

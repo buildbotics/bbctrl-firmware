@@ -33,7 +33,6 @@ setup(
     'scripts/mount-usb',
     'scripts/eject-usb',
     'scripts/update-bb-firmware',
-    'scripts/boot-splash',
   ],
   install_requires = 'tornado sockjs-tornado pyserial pyudev smbus2'.split(),
   zip_safe = False,

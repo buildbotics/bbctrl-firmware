@@ -33,51 +33,78 @@ module.exports = {
 
   data() {
     return {
+      username:        '',
+      password:        '',
+      password2:       '',
       enableKeyboard: true,
       autoCheckUpgrade: true,
-      password: '',
-      firmwareName: '',
     }
   },
 
 
-  ready() {
-    this.enableKeyboard = this.config.admin['virtual-keyboard-enabled']
+  computed: {
+    authorized() {return this.$root.authorized}
+  },
+
+
+  async ready() {
+    this.enableKeyboard   = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
+    this.username         = await this.$api.get('auth/username')
   },
 
 
   methods: {
+    async set_username() {
+      if (this.username.length < 2)
+        return this.$root.error_dialog('Username too short')
+
+      this.$api.put('auth/username', {username: this.username})
+      this.$root.success_dialog('User name Set')
+    },
+
+
+    async set_password() {
+      if (this.password != this.password2)
+        return this.$root.error_dialog('Passwords to not match')
+
+      if (this.password.length < 6)
+        return this.$root.error_dialog('Password too short')
+
+      await this.$api.put('auth/password', {password: this.password})
+      this.$root.success_dialog('Password Set')
+    },
+
+
     backup() {
       document.getElementById('download-target').src = '/api/config/download'
     },
 
 
-    async restore_config() {
+    async restore() {
       return this.$root.upload({
         accept: '.json',
-        on_confirm: this.restore
-      })
-    },
 
+        on_confirm: (file) => {
+          let fr = new FileReader()
 
-    restore(file) {
-      let fr = new FileReader()
-      fr.onload = async e => {
-        let config
+          fr.onload = async e => {
+            let config
 
-        try {
-          config = JSON.parse(e.target.result)
-        } catch (ex) {
-          return this.$root.error_dialog("Invalid config file")
+            try {
+              config = JSON.parse(e.target.result)
+            } catch (ex) {
+              return this.$root.error_dialog("Invalid config file")
+            }
+
+            let data = await this.$api.put('config/save', config)
+            this.$dispatch('update')
+            return this.$root.success_dialog('Configuration restored.')
+          }
+
+          fr.readAsText(file)
         }
-
-        let data = await this.$api.put('config/save', config)
-        this.$dispatch('update')
-        this.$root.success_dialog('Configuration restored.')
-      }
-
-      fr.readAsText(file)
+      })
     },
 
 
@@ -90,58 +117,35 @@ module.exports = {
 
     async reset() {
       let response = await this.$root.open_dialog({
-        title: 'Reset to default configuration?',
+        header: 'Reset to default configuration?',
         body: 'Non-network configuration changes will be lost.',
-        buttons: 'Cancel OK'
+        buttons: 'Cancel Ok'
       })
 
       if (response == 'ok') this.do_reset()
     },
 
 
-    check() {this.$dispatch('check', true)},
+    check() {this.$root.check_version(true)},
 
 
     async upgrade() {
-      this.password = ''
-
       if (await this.$refs.upgrade.open() == 'upgrade') {
-        await this.$api.put('upgrade', {password: this.password})
+        await this.$api.put('upgrade')
         await this.$refs.upgrading.open()
       }
     },
 
 
     async upload() {
-      this.password = ''
+      await this.$root.upload({
+        url: 'firmware/update',
+        accept: '.bz2',
+        form: file => {return {firmware: file}},
+      })
 
-      try {
-        await this.$root.upload({
-          url: 'firmware/update',
-          accept: '.bz2',
-          form(file) {
-            return {
-              firmware: file,
-              password: this.password
-            }
-          },
-
-          async on_confirm(file) {
-            this.firmwareName = file.name
-            return await this.$refs.upload.open() == 'upload'
-          },
-        })
-
-        await this.$refs.upgrading.open()
-
-      } catch (e) {
-        return this.error_dialog('Invalid password or bad firmware')
-      }
+      await this.$refs.upgrading.open()
     },
-
-
-    upgrade_confirmed() {this.$refs.upload.close('upgrade')},
-    upload_confirmed()  {this.$refs.upload.close('upload')},
 
 
     change_auto_check_upgrade() {

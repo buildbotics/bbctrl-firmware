@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2022, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -68,7 +68,6 @@ function main() {
   // Register global components
   Vue.component('templated-input',  require('./templated-input'))
   Vue.component('templated-select', require('./templated-select'))
-  Vue.component('message',          require('./message'))
   Vue.component('loading-message',  require('./loading-message'))
   Vue.component('dialog',           require('./dialog'))
   Vue.component('bbutton',          require('./bbutton'))

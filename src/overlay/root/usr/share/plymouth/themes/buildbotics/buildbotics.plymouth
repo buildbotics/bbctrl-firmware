@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=buildbotics
-Description=Buildbotics boot splash
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/buildbotics
-ScriptFile=/usr/share/plymouth/themes/buildbotics/buildbotics.script

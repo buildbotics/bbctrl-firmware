@@ -4,13 +4,13 @@ OPTS="--no-first-run --no-default-browser-check --disable-infobars"
 OPTS+=" --noerrdialogs --ignore-gpu-blocklist"
 
 while true; do
+  # Kill any running browsers
+  killall -r 'chromium.*'
+
   # Clear browser errors
   PREFS="$HOME/.config/chromium/Default/Preferences"
   sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' $PREFS
   sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' $PREFS
-
-  # Kill any running browsers
-  killall -r 'chromium.*'
 
   # Start browser
   systemd-run --user --scope --slice=chrome.slice \

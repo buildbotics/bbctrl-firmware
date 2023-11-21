@@ -38,6 +38,8 @@ module.exports = new Vue({
   data() {
     return {
       status: 'connecting',
+      authorized: false,
+      password: '',
       currentView: 'loading',
       template: require('../resources/config-template.json'),
       config: {
@@ -54,8 +56,6 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      showError: false,
-      showPopup: true,
       webGLSupported: util.webgl_supported()
     }
   },
@@ -80,7 +80,8 @@ module.exports = new Vue({
 
     'state.active_program'() {
       let path = this.state.active_program
-      this.active_program = path ? new Program(this.$api, path) : undefined
+      if (!path || path == '<mdi>') this.active_program = undefined
+      else new Program(this.$api, path)
     },
 
 
@@ -125,34 +126,6 @@ module.exports = new Vue({
     },
 
 
-    async check(show_message) {
-      this.latestVersion = ''
-
-      let url  = 'https://buildbotics.com/bbctrl/latest.txt'
-      let conf = {data: {hid: this.state.hid}, type: 'text'}
-      this.latestVersion = await this.$api.get(url, conf)
-
-      if (!show_message) return
-      let cmp = util.compare_versions(this.config.version, this.latestVersion)
-
-      let msg
-      if (cmp == 0) msg = 'You have the latest official firmware.'
-      else {
-        msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
-          ' than the latest official firmware release, version' +
-          this.latestVersion + '.'
-
-        if (cmp < 0) msg += ' Please upgrade.'
-      }
-
-      return this.open_dialog({
-        icon: cmp ? (cmp < 0 ? 'chevron-left' : 'chevron-right') : 'check',
-        title: 'Firmware check',
-        body: msg
-      })
-    },
-
-
     error(msg) {
       // Honor user error blocking
       if (Date.now() - this.errorTimeoutStart < this.errorTimeout * 1000)
@@ -162,8 +135,8 @@ module.exports = new Vue({
       if (1 < msg.repeat && Date.now() - msg.ts < 1000) return
 
       // Popup error dialog
-      this.showError = true
       this.errorMessage = msg.msg
+      this.$refs.errorMessage.open()
     }
   },
 
@@ -177,7 +150,8 @@ module.exports = new Vue({
         msgs = msgs.concat(text.split('#'))
       }
 
-      this.showPopup = msgs.length != 0
+      if (msgs.length) this.$refs.popupMessages.open()
+      else this.$refs.popupMessages.close()
 
       return msgs
     },
@@ -193,7 +167,7 @@ module.exports = new Vue({
   async ready() {
     this.$api.set_error_handler(this.error_dialog)
 
-    window.onhashchange = this.parse_hash
+    window.addEventListener('hashchange', this.parse_hash)
     this.connect()
 
     if (!this.webGLSupported) {
@@ -204,7 +178,7 @@ module.exports = new Vue({
 
       if (!cookie.get_bool('webgl-warning', false)) {
         await this.open_dialog({
-          title: 'WebGL Warning',
+          header: 'WebGL Warning',
           body: msg,
           buttons: 'ok'
         })
@@ -212,16 +186,68 @@ module.exports = new Vue({
         cookie.set_bool('webgl-warning', true)
       }
     }
+
+    this.check_login()
   },
 
 
   methods: {
+    async check_login() {
+      this.authorized = await this.$api.get('auth/login')
+    },
+
+
+    async login() {
+      this.password = ''
+      let response = await this.$refs.loginDialog.open()
+
+      if (response == 'login' && this.password) {
+        await this.$api.put('auth/login', {password: this.password})
+        this.authorized = true
+      }
+    },
+
+
+    async logout() {
+      await this.$api.delete('auth/login')
+      this.authorized = false
+    },
+
+
+    async check_version(show_message) {
+      this.latestVersion = ''
+
+      let url  = 'https://buildbotics.com/bbctrl/latest.txt'
+      let conf = {data: {hid: this.state.hid}, type: 'text'}
+      this.latestVersion = await this.$api.get(url, conf)
+
+      if (!show_message) return
+      let cmp = util.compare_versions(this.config.version, this.latestVersion)
+
+      let msg
+      if (cmp == 0) msg = 'You have the latest official firmware.'
+      else {
+        msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
+          ' than the latest official firmware release, version ' +
+          this.latestVersion + '.'
+
+        if (cmp < 0) msg += ' Please upgrade.'
+      }
+
+      return this.open_dialog({
+        icon: cmp ? (cmp < 0 ? 'chevron-left' : 'chevron-right') : 'check',
+        header: 'Firmware check',
+        body: msg
+      })
+    },
+
+
     metric() {return this.config.settings.units != 'IMPERIAL'},
 
 
     block_error_dialog() {
       this.errorTimeoutStart = Date.now()
-      this.showError = false
+      this.$refs.errorMessage.close()
     },
 
 
@@ -240,7 +266,7 @@ module.exports = new Vue({
         this.checkedUpgrade = true
 
         let check = this.config.admin['auto-check-upgrade']
-        if (check == undefined || check) this.$emit('check')
+        if (check == undefined || check) await this.check_version()
       }
     },
 
@@ -321,7 +347,7 @@ module.exports = new Vue({
 
 
     async close_messages(action) {
-      if (action == 'stop') await this.$api.put('stop')
+      if (action == 'stop')     await this.$api.put('stop')
       if (action == 'continue') await this.$api.put('unpause')
 
       // Acknowledge messages

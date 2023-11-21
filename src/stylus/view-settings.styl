@@ -28,11 +28,15 @@
 .view-settings
   margin-bottom 0
 
-  .navbar button
+  .navbar .actions
+    display flex
+    gap 0.5em
     margin-left auto
-    padding 0.25em 1em
-    border-radius 0
-    height 40px
+
+    button
+      padding 0.25em 1em
+      border-radius 0
+      height 40px
 
   .settings-view
     margin 0 auto
@@ -40,8 +44,12 @@
     margin-bottom 50px
     padding 0 1em
 
-#settings-admin a
-  text-decoration none
+#settings-admin
+  a
+    text-decoration none
+
+  .pure-form input
+    width 16em
 
 #settings-io .pure-table
   td, th
@@ -87,4 +95,4 @@
           background green
 
   .wifi-device
-    margin-top 1em
+    margin 1em 0

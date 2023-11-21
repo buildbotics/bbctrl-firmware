@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+if [ $# != 3 ]; then
+  echo "Usage: $(basename $0) <hostname> <password> <firmware>"
+  exit 1
+fi
+
+HOST="$1"
+PASS="$2"
+FW="$3"
+
+TEMP=$(mktemp)
+
+# Login
+curl -s -c $TEMP -X PUT -H 'Content-Type: application/json' \
+     -d "{\"password\":\"$PASS\"}" "http://$HOST/api/auth/login"
+
+# Send firmware
+curl -s -b $TEMP -i -X PUT -H "Content-Type: multipart/form-data" \
+     -F "firmware=@$FW" "http://$HOST/api/firmware/update"
+
+rm $TEMP

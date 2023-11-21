@@ -41,7 +41,40 @@ module.exports = {
     a() {return this._compute_axis('a')},
     b() {return this._compute_axis('b')},
     c() {return this._compute_axis('c')},
-    axes() {return this._compute_axes()}
+
+
+    axes() {
+      let homed = false
+
+      for (let name of 'xyzabc') {
+        let axis = this[name]
+
+        if (!axis.enabled) continue
+        if (!axis.homed) {homed = false; break}
+        homed = true
+      }
+
+      let error = false
+      let warn = false
+
+      if (homed)
+        for (let name of 'xyzabc') {
+          let axis = this[name]
+
+          if (!axis.enabled) continue
+          if (axis.klass.indexOf('error') != -1) error = true
+          if (axis.klass.indexOf('warn') != -1) warn = true
+        }
+
+      let klass = homed ? 'homed' : 'unhomed'
+      if (error) klass += ' error'
+      else if (warn) klass += ' warn'
+
+      return {
+        homed: homed,
+        klass: klass
+      }
+    }
   },
 
 
@@ -57,6 +90,16 @@ module.exports = {
     _length_str(value) {
       return this._convert_length(value).toLocaleString() +
         (this.state.imperial ? ' in' : ' mm')
+    },
+
+
+    _get_motor_id(axis) {
+      for (let i = 0; i < this.config.motors.length; i++) {
+        let motor = this.config.motors[i]
+        if (motor.axis.toLowerCase() == axis) return i
+      }
+
+      return -1
     },
 
 
@@ -121,6 +164,7 @@ module.exports = {
       }
 
       return {
+        name: axis,
         pos: abs - off,
         abs: abs,
         off: off,
@@ -138,50 +182,6 @@ module.exports = {
         state: state,
         icon: icon,
         title: title
-      }
-    },
-
-
-    _get_motor_id(axis) {
-      for (let i = 0; i < this.config.motors.length; i++) {
-        let motor = this.config.motors[i]
-        if (motor.axis.toLowerCase() == axis) return i
-      }
-
-      return -1
-    },
-
-
-    _compute_axes() {
-      let homed = false
-
-      for (let name of 'xyzabc') {
-        let axis = this[name]
-
-        if (!axis.enabled) continue
-        if (!axis.homed) {homed = false; break}
-        homed = true
-      }
-
-      let error = false
-      let warn = false
-
-      if (homed)
-        for (let name of 'xyzabc') {
-          let axis = this[name]
-
-          if (!axis.enabled) continue
-          if (axis.klass.indexOf('error') != -1) error = true
-          if (axis.klass.indexOf('warn') != -1) warn = true
-        }
-
-      let klass = homed ? 'homed' : 'unhomed'
-      if (error) klass += ' error'
-      else if (warn) klass += ' warn'
-
-      return {
-        homed: homed,
-        klass: klass
       }
     }
   }

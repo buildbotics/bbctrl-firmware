@@ -31,8 +31,11 @@ module.exports = {
 
 
   props: {
-    text:     {type: String},
-    icon:     {type: String},
+    text:      {type: String},
+    icon:      {type: String},
+    success:   {type: Boolean, default: false},
+    primary:   {type: Boolean, default: false},
+    secondary: {type: Boolean, default: false},
 
     disabled: {
       type: Boolean,
@@ -42,22 +45,33 @@ module.exports = {
 
 
   computed: {
+    classes() {
+      return {
+        success:                 this.success,
+        'pure-button-primary':   this.primary,
+        'pure-button-secondary': this.secondary,
+      }
+    },
+
+
     _icon() {
       if (this.icon) return this.icon
+      if (!this.text) return
 
-      switch (this.text.toLowerCase()) {
+      let text = this.text.toLowerCase()
+      switch (text) {
       case 'ok':     case 'yes': return 'check'
       case 'cancel': case 'no':  return 'times'
       case 'save':               return 'floppy-o'
+      case 'open':               return 'folder-open'
       case 'discard':            return 'trash'
+      case 'add': case 'create': return 'plus'
+      case 'edit':               return 'pencil'
+      case 'login':              return 'sign-in'
+      case 'logout':             return 'sign-out'
       }
-    }
-  },
 
-
-  methods: {
-    click(event) {
-      if (!this.disabled) this.$emit('click', event)
+      return text
     }
   }
 }

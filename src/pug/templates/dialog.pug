@@ -26,15 +26,19 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#dialog-template(type="text/x-template")
-  .dialog
-    message(:show.sync="show", :click-away-close="clickAway", :width="width")
-      h3(slot="header").
-        #[.fa(v-if="icon", class="'fa-' + icon")] {{header}}
+  .dialog-mask(v-show="show", transition="dialog")
+    .dialog-wrapper(@click.stop="click_away")
+      .dialog-container(@click.stop="true", :style="{width: width}")
+        .dialog-header
+          slot(name="header")
+            h3 #[.fa(v-if="icon", class="'fa-' + icon")] {{{header}}}
 
-      div(slot="body")
-        slot(name="body") {{{body}}}
+        .dialog-body
+          slot(name="body") {{{body}}}
 
-      div(slot="footer")
-        bbutton(v-for="button in buttons", @click="close(button.action)",
-          :class="button.class", :title="button.title",
-          :disabled="button.disabled", :text="button.text", :icon="button.icon")
+        .dialog-footer
+          slot(name="footer")
+            bbutton(v-for="button in buttons",
+              @click.stop="close(button.action)",
+              :class="button.class", :title="button.title", :icon="button.icon",
+              :disabled="button.disabled", :text="button.text")

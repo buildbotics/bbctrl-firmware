@@ -30,9 +30,7 @@ script#settings-macros-template(type="text/x-template")
     h1 Macro Configuration
 
     .toolbar
-      button.pure-button(title="Add a new macro.", @click="add")
-        .fa.fa-plus
-        | Add
+      bbutton(title="Add a new macro.", @click="add", text="Add")
 
     ol.macros(v-if="macros.length")
       li(v-for="macro in macros")
@@ -41,12 +39,16 @@ script#settings-macros-template(type="text/x-template")
           @drag="drag($index)", @dragover.prevent="",
           @drop.prevent="drop($index)")
           .grip
+
           color-picker(:value.sync="macro.color", @change="change",
             title="Set the macro button color.")
+
           input.name(@change="change", v-model="macro.name",
             title="Set the macro button name.")
+
           input.path(@click="open($index)", :value="macro.path", readonly,
             title="Select the macro file")
+
           .actions
             .fa.fa-folder-open(@click="open($index)",
               title="Select the macro file.")

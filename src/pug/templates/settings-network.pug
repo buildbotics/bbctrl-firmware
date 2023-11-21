@@ -28,20 +28,29 @@
 script#settings-network-template(type="text/x-template")
   #settings-network
     h1 Network Configuration
+    em(v-if="!authorized") Login to make changes.
 
-    h2 Wifi Setup
+    h2 Hostname
     .pure-form.pure-form-aligned
       .pure-control-group
-        label(for="wifi_country") Country
-        input(name="wifi_country", v-model="wifi_country",
-          title="Set Wifi regulatory region.")
-        button.pure-button.pure-button-primary(@click="set_country") Set
+        label(for="hostname") Hostname
+        input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
+        bbutton(primary, :disabled="!$root.authorized", @click="set_hostname",
+          text="Set")
 
+    dialog(v-ref:hostname-set, header="Hostname Set")
+      div(slot="body")
+        p Hostname was successfuly set to #[strong {{hostname}}].
+        p Rebooting to apply changes.
+        p Redirecting to new hostname in {{redirectTimeout}} seconds.
+      div(slot="footer")
+
+    h2 WiFi
     .wifi-device(v-for="net in state.network", v-if="net.type == 'wifi'")
       table.pure-table.pure-table-striped
         tr
           th Device
-          td {{net.name}}
+          td {{net.usb ? 'USB' : 'Internal'}} WiFi
         tr
           th State
           td {{net.state}}
@@ -49,18 +58,27 @@ script#settings-network-template(type="text/x-template")
           th SSID
           td {{net.ssid}}
         tr
-          th Address
+          th Addresses
           td: span(v-for="ip in net.ipv4") {{ip + ' '}}
 
         tr
           th Actions
           td.actions
-            button.pure-button.pure-button-primary(@click="connect(net)")
-              | #[.fa.fa-link] Connect
-            button.pure-button.pure-button-primary(@click="hotspot(net)")
-              | #[.fa.fa-wifi] Hotspot
-            button.pure-button.pure-button-primary(@click="disconnect(net)")
-              | #[.fa.fa-times] Disconnect
+            bbutton(primary, :disabled="!authorized", @click="connect(net)",
+              icon="link", text="Connect")
+            bbutton(v-if="false", primary, :disabled="!authorized",
+              @click="hotspot(net)", icon="wifi", text="Hotspot")
+            bbutton(primary, :disabled="!authorized", @click="disconnect(net)",
+              icon="times", text="Disconnect")
+
+    .pure-form.pure-form-aligned(v-if="false")
+      .pure-control-group
+        label(for="wifi_region") WiFi Region
+        select(name="wifi_region", v-model="wifi_region",
+          title="Set WiFi regulatory region.")
+          option(v-for="region in wifi_regions", :value="region[0]")
+            | {{region[1]}}
+        bbutton(primary, @click="set_region", text="Set")
 
     p.
       WARNING: WiFi may be unreliable in an electrically noisy environment
@@ -69,47 +87,11 @@ script#settings-network-template(type="text/x-template")
     wifi-connect(v-ref:connect)
     wifi-hotspot(v-ref:hotspot)
 
-    dialog(v-ref:wifi-password, header="Enter Wifi password", icon="question",
-       width="400px",
-       :buttons="['Cancel', {text: 'Ok', class: 'pure-button-primary'}]")
+    dialog(v-ref:wifi-password, header="Enter WiFi password", icon="question",
+       width="400px", buttons="Cancel Ok")
 
       div(slot="body")
         .pure-form.pure-form-aligned
           .pure-control-group
             label(for="wifi_pass") Password
             input.password(name="wifi_pass", v-model="wifi_pass")
-          .pure-control-group
-
-    h2 Hostname
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="hostname") Hostname
-        input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
-        button.pure-button.pure-button-primary(@click="set_hostname") Set
-
-    message(:show.sync="hostnameSet")
-      h3(slot="header") Hostname Set
-      div(slot="body")
-        p Hostname was successfuly set to #[strong {{hostname}}].
-        p Rebooting to apply changes.
-        p Redirecting to new hostname in {{redirectTimeout}} seconds.
-      div(slot="footer")
-
-    h2 Remote SSH User
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="username") Username
-        input(name="username", v-model="username", @keyup.enter="set_username")
-        button.pure-button.pure-button-primary(@click="set_username") Set
-
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="current") Current Password
-        input.password(name="current", v-model="current")
-      .pure-control-group
-        label(for="pass1") New Password
-        input.password(name="pass1", v-model="password")
-      .pure-control-group
-        label(for="pass2") New Password
-        input.password(name="pass2", v-model="password2")
-        button.pure-button.pure-button-primary(@click="set_password") Set

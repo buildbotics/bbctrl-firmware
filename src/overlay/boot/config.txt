@@ -1,17 +1,16 @@
+disable_spash=1
 disable_overscan=1
 dtparam=audio=on
-disable_splash=1
 initial_turbo=30
 force_eeprom_read=0
 dtparam=i2c=on,i2c_baudrate=90000
 
-dtoverlay=vc4-fkms-v3d
+dtoverlay=vc4-fkms-v3d-pi4
 gpu_mem=256
 dtoverlay=uart3
 max_framebuffers=2
 arm_64bit=1
 
-[all]
 dtoverlay=disable-bt
 nohz=on
 max_usb_current=1

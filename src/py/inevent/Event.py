@@ -70,7 +70,7 @@ def axes_to_string(axes):
     return s + ')'
 
 
-class Event(object):
+class Event:
   def __init__(self, stream, data):
     self.stream = stream
 

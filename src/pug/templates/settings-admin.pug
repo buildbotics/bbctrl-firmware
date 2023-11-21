@@ -28,22 +28,39 @@
 script#settings-admin-template(type="text/x-template")
   #settings-admin
     h1 Admin
+    em(v-if="!authorized") Login to make changes.
 
-    h2 Virtual Keyboard
-    p
-      input(type="checkbox", v-model="enableKeyboard",
-        @change="change_enable_keyboard")
-      label &nbsp; Enable automatic virtual keyboard on local screen.
+    h2 Authentication for Settings & Remote Access
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="pass1") New Password
+        input.password(name="pass1", v-model="password")
+
+      .pure-control-group
+        label(for="pass2") Repeat Password
+        input.password(name="pass2", v-model="password2")
+        bbutton(@click="set_password", primary, text="Set",
+          :disabled="!authorized")
+
+      .pure-control-group
+        label(for="username") Username
+        input(name="username", v-model="username")
+        bbutton(@click="set_username", primary, text="Set",
+          :disabled="!authorized")
 
     h2 Configuration
-    button.pure-button.pure-button-primary(@click="backup") Backup
-    button.pure-button.pure-button-primary(@click="restore_config") Restore
-    button.pure-button.pure-button-primary(@click="reset") Reset
+    bbutton(primary, :disabled="!authorized", @click="backup",  text="Backup",
+      icon="save")
+    bbutton(primary, :disabled="!authorized", @click="restore", text="Restore",
+      icon="refresh")
+    bbutton(primary, :disabled="!authorized", @click="reset",   text="Reset"
+      icon="eraser")
 
     h2 Firmware
-    button.pure-button.pure-button-primary(@click="check") Check
-    button.pure-button.pure-button-primary(@click="upgrade") Upgrade
-    button.pure-button.pure-button-primary(@click="upload") Upload
+    bbutton(primary, @click="check", text="Check")
+    bbutton(primary, :disabled="!authorized", @click="upgrade", text="Upgrade",
+      icon="cloud-download")
+    bbutton(primary, :disabled="!authorized", @click="upload",  text="Upload")
 
     p
       input(type="checkbox", v-model="autoCheckUpgrade",
@@ -52,9 +69,15 @@ script#settings-admin-template(type="text/x-template")
 
     h2 Debugging
     a(href="/api/log", target="_blank")
-      button.pure-button.pure-button-primary View Log
+      bbutton(primary, icon="file-text-o", text="View Log")
     a(href="/api/bugreport", download)
-      button.pure-button.pure-button-primary Bug Report
+      bbutton(primary, icon="bug", text="Bug Report")
+
+    h2 Virtual Keyboard
+    p
+      input(type="checkbox", v-model="enableKeyboard",
+        @change="change_enable_keyboard")
+      label &nbsp; Enable automatic virtual keyboard on local screen.
 
 
     dialog(v-ref:upgrade, header="Upgrade Firmware?", buttons="Cancel Upgrade")
@@ -62,20 +85,6 @@ script#settings-admin-template(type="text/x-template")
         p
           | Are you sure you want to upgrade the firmware to version
           | {{latestVersion}}?
-
-        p.pure-control-group
-          label(for="pass") Password
-          input.password(name="pass", v-model="password",
-            @keyup.enter="upgrade_confirmed", focus)
-
-    dialog(v-ref:upload, header="Upload Firmware", buttons="Cancel Upload")
-      div(slot="body")
-        p Enter password to upload firmware #[em {{firmwareName}}]?
-
-        p.pure-control-group
-          label(for="pass") Password
-          input.password(name="pass", v-model="password",
-            @keyup.enter="upload_confirmed", focus)
 
     dialog.upgrading(v-ref:upgrading, :click-away="false", :buttons="[]",
       header="Firmware upgrading")

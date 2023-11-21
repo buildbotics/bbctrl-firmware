@@ -2,7 +2,7 @@
 //-                                                                           //
 //-               This file is part of the Buildbotics firmware.              //
 //-                                                                           //
-//-      Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.     //
+//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
 //-                                                                           //
 //-       This Source describes Open Hardware and is licensed under the       //
 //-                               CERN-OHL-S v2.                              //
@@ -25,16 +25,39 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#message-template(type="text/x-template")
-  .modal-mask(v-show="show", transition="modal")
-    .modal-wrapper(@click="click_away", v-el:wrapper)
-      .modal-container(:style="{width: width}")
-        .modal-header
-          slot(name="header") default header
+script#axis-row-template(type="text/x-template")
+  tr.axis(:class="axis.klass", :title="axis.title")
+    th.name {{name}}
+    td.position: unit-value(:value="axis.pos", precision=4)
+    td.absolute: unit-value(:value="axis.abs", precision=3)
+    td.offset: unit-value(:value="axis.off", precision=3)
+    td.state #[.fa(class="fa-{{axis.icon}}")] {{axis.state}}
+    th.actions
+      bbutton(:disabled="!is_idle", icon="cog",
+        title="Set {{name}} axis position.", @click="set_position")
 
-        .modal-body
-          slot(name="body") default body
+      bbutton(:disabled="!is_idle", text="&empty;",
+        title="Zero {{name}} axis offset.", @click="zero")
 
-        .modal-footer
-          slot(name="footer")
-            div: button.pure-button(@click="show = false") OK
+      bbutton(:disabled="!is_idle", @click="home", icon="home",
+        title="Home {{name}} axis.")
+
+      dialog(v-ref:set-position,
+        :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",
+        :header="'Set ' + name + ' axis position'")
+        div(slot="body")
+          .pure-form
+            .pure-control-group
+              label Position
+              input(v-model="position",
+                @keyup.enter="$refs.setPosition.close('set')")
+
+      dialog(v-ref:set-home, buttons="Cancel Set",
+        :header="'Manually home ' + name + ' axis'")
+        div(slot="body")
+          p Set axis absolute position.
+          .pure-form
+            .pure-control-group
+              label Absolute
+              input(v-model="position",
+                @keyup.enter="$refs.setHome.close('set')")

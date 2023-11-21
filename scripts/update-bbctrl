@@ -4,7 +4,7 @@
     flock -n 9
 
     if [ "$1" != "" ]; then
-      UPDATE="$1"
+      UPDATE="$(realpath "$1")"
     else
       UPDATE=/var/lib/bbctrl/firmware/update.tar.bz2
     fi

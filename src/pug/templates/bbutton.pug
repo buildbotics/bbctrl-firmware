@@ -26,5 +26,5 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#bbutton-template(type="text/x-template")
-  button.pure-button(@click.prevent="click", :disabled="disabled").
-    #[.fa(v-if="_icon", :class="'fa-' + _icon")] {{text}}
+  button.pure-button(:disabled="disabled", :class="classes").
+    #[.fa(v-if="_icon", :class="'fa-' + _icon")] {{{text}}}

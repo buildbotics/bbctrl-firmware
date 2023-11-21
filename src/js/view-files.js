@@ -82,10 +82,10 @@ module.exports = {
       let filename = util.basename(this.selected)
 
       let result = await this.$root.open_dialog({
-        title: 'Delete ' + (this.is_dir ? 'directory' : 'file') + '?',
+        header: 'Delete ' + (this.is_dir ? 'directory' : 'file') + '?',
         body: 'Are you sure you want to delete <tt>' + filename +
           (this.is_dir ? '</tt> and all the files under it?' : '</tt>?'),
-        buttons: 'Cancel OK'
+        buttons: 'Cancel Ok'
       })
 
       if (result == 'ok') {

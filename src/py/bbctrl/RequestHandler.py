@@ -48,6 +48,20 @@ class RequestHandler(tornado.web.RequestHandler):
     def get_events(self): return self.get_ctrl().events
 
 
+    def is_authorized(self):
+        sid = self.get_cookie('bbctrl-sid')
+        return self.get_ctrl().get_authorized(sid)
+
+
+    def authorize(self):
+        if not self.is_authorized(): raise HTTPError(401, 'Unauthorized')
+
+
+    def not_demo(self):
+        if self.get_ctrl().args.demo:
+            raise HTTPError(400, 'Not supported in demo mode')
+
+
     def emit(self, event, *args, **kwargs):
         self.get_events().emit(event, *args, **kwargs)
 

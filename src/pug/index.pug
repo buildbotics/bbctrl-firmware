@@ -104,7 +104,7 @@ html(lang="en")
     upload-dialog(v-ref:uploader)
     dialog(v-ref:dialog)
 
-    message.error-message(:show.sync="showError")
+    dialog.error-message(v-ref:error-message, width="800px")
       div(slot="header")
         .estop(:class="{active: state.es}"): estop(@click="estop")
         h3 ERROR: {{errorMessage}}
@@ -112,34 +112,34 @@ html(lang="en")
       div(slot="body")
         console
 
-        button.pure-button(@click="block_error_dialog")
-          .fa.fa-ban
-          | &nbsp;Stop
+        bbutton(@click="block_error_dialog", icon="ban", text="Stop")
         label showing errors for
         input(style="width: 50px", v-model="errorTimeout", number)
         label seconds.
 
-      div(slot="footer")
-        button.pure-button.pure-button-primary(@click="showError = false") Ok
-
-    message(v-if="popupMessages.length", :show.sync="showPopup")
-      h3(slot="header") GCode message
-
+    dialog(v-show="popupMessages.length", v-ref:popup-messages,
+      header="GCode messages", :click-away="false")
       div(slot="body")
         p(v-for="msg in popupMessages", track-by="$index") {{msg}}
 
       div(slot="footer")
-        button.pure-button.button-success(v-if="state.xx != 'HOLDING'",
-          @click="close_messages('ok')") OK
+        bbutton.button-success(v-if="state.xx != 'HOLDING'",
+          @click="close_messages('ok')", text="Ok")
 
         div(v-if="state.xx == 'HOLDING'")
-          button.pure-button(@click="close_messages('stop')")
-            | Stop
-            .fa.fa-stop
+          bbutton(@click="close_messages('stop')", icon="stop", text="Stop")
+          bbutton(@click="close_messages('continue')", icon="play",
+            text="Continue")
 
-          button.pure-button(@click="close_messages('continue')")
-            | Continue
-            .fa.fa-play
+    dialog(v-ref:login-dialog, header="Login", icon="question", width="400px",
+      buttons="Login")
+
+      div(slot="body")
+        .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="password") Password
+            input.password(name="password", v-model="password",
+              @keyup.enter="$refs.loginDialog.close('login')")
 
     #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")

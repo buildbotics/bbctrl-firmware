@@ -40,22 +40,22 @@ module.exports = {
 
   data() {
     return {
-      hostnameSet:     false,
       redirectTimeout: 0,
       hostname:        '',
-      username:        '',
-      current:         '',
-      password:        '',
-      password2:       '',
-      wifi_country:    'Unknown',
       wifi_pass:       '',
+      wifi_region:     '',
+      wifi_regions:    require('../resources/wifi-regions.json'),
     }
+  },
+
+
+  computed: {
+    authorized() {return this.$root.authorized}
   },
 
 
   async ready() {
     this.hostname = await this.$api.get('hostname')
-    this.username = await this.$api.get('remote/username')
   },
 
 
@@ -72,7 +72,7 @@ module.exports = {
     async set_hostname() {
       await this.$api.put('hostname', {hostname: this.hostname})
       this.redirectTimeout = 45
-      this.hostnameSet = true
+      this.$refs.hostnameSet.open()
 
       await this.$api.put('reboot')
 
@@ -86,57 +86,8 @@ module.exports = {
     },
 
 
-    async set_username() {
-      this.$api.put('remote/username', {username: this.username})
-      this.$root.success_dialog('User name Set')
-    },
-
-
-    async set_password() {
-      if (this.password != this.password2)
-        return this.$root.error_dialog('Passwords to not match')
-
-      if (this.password.length < 6)
-        return this.$root.error_dialog('Password too short')
-
-      await this.$api.put('remote/password', {
-        current: this.current,
-        password: this.password
-      })
-
-      this.$root.success_dialog('Password Set')
-    },
-
-
-    async config_wifi() {
-      if (!this.wifi_ssid.length)
-        return this.$root.error_dialog('SSID not set')
-
-      if (32 < this.wifi_ssid.length)
-        return this.$root.error_dialog('SSID longer than 32 characters')
-
-      if (this.wifi_pass.length && this.wifi_pass.length < 8)
-        return this.$root.error_dialog(
-          'WiFi password shorter than 8 characters')
-
-      if (128 < this.wifi_pass.length)
-        return this.$root.error_dialog(
-          'WiFi password longer than 128 characters')
-
-      let config = {
-        mode:     this.wifi_mode,
-        internal: this.wifi_internal,
-        channel:  this.wifi_ch,
-        ssid:     this.wifi_ssid,
-        pass:     this.wifi_pass
-      }
-
-      return this.$api.put('wifi', config)
-    },
-
-
-    async set_country() {
-      return this.$api.put('net/country', {code: this.wifi_country})
+    async set_region() {
+      return this.$api.put('wifi/region', {code: this.wifi_region})
     },
 
 
@@ -150,22 +101,28 @@ module.exports = {
 
     async connect(net) {
       let result = await this.$refs.connect.open(net)
+      let password
 
       if (result.action == 'connect') {
-        let ap = result.ap
         let data = {}
 
-        if (ap.connection) data.uuid = ap.connection
-        else {
-          data.ssid = ap.ssid
+        if (result.ssid) {
+          data.ssid = result.ssid
+          password = await this.get_wifi_password()
 
-          if (ap.security) {
-            data.password = await this.get_wifi_password()
-            if (!data.password) return
+        } else if (result.ap.connection) data.uuid = result.ap.connection
+        else {
+          data.ssid = result.ap.ssid
+
+          if (result.ap.security) {
+            password = await this.get_wifi_password()
+            if (password == undefined) return
           }
         }
 
-        return this.$api.put('net/' + net.name + '/connect', data)
+        if (password) data.password = password
+
+        return this.$api.put('wifi/' + net.name + '/connect', data)
       }
     },
 
@@ -174,7 +131,7 @@ module.exports = {
 
 
     async disconnect(net) {
-      return this.$api.put('net/' + net.name + '/disconnect')
+      return this.$api.put('wifi/' + net.name + '/disconnect')
     }
   }
 }

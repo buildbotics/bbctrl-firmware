@@ -40,66 +40,64 @@ module.exports = {
       show: false,
       config: {},
       selected: undefined,
-      dir: false
+      dir: false,
+    }
+  },
+
+
+  computed: {
+    buttons() {
+      return [
+        'Cancel',
+        {text: this.config.save ? 'Save' : 'Open', disabled: !this.selected}
+      ]
     }
   },
 
 
   methods: {
-    open(config) {
-      this.config = config
-      this.show = true
-      this.$refs.files.open(config.dir || '/')
-
-      return new Promise(resolve => this.resolve = resolve)
-    },
-
-
     set_selected(path, dir) {
       this.selected = path
       this.dir = dir
     },
 
 
-    respond(path) {
-      if (this.resolve) {
-        this.resolve(path)
-        delete this.resolve
+    activate(path) {this.$refs.dialog.close('activate')},
+
+
+    async open(config = {}) {
+      this.config = config
+
+      this.$refs.files.open(config.dir || '/')
+      let response = await this.$refs.dialog.open()
+
+      if (response == 'cancel') return
+
+      // Open directory
+      if (response == 'open' && this.dir) {
+        config = Object.assign({}, config, {dir: this.dir})
+        return this.open(config)
       }
-    },
 
+      let path = this.selected
 
-    async response(path) {
-      this.show = false
-
+      // Confirm overwrite
       if (path && this.config.save) {
         let filename = util.basename(path)
         let exists = this.$refs.files.has_file(filename)
 
         if (exists) {
           let response = await this.$root.open_dialog({
-            title: 'Overwrite file?',
-            body: 'Overwrite <tt>' + filename + '</tt>?',
+            header:  'Overwrite file?',
+            body:    'Overwrite <tt>' + filename + '</tt>?',
             buttons: 'No Yes'
           })
 
-          if (response == 'no')  this.respond()
-          if (response == 'yes') this.respond(path)
-
-          return
+          return response == 'yes' ? path : undefined
         }
       }
 
-      this.respond(path)
-    },
-
-
-    ok() {
-      if (this.dir) this.$refs.files.open(this.selected)
-      else this.response(this.selected)
-    },
-
-
-    cancel() {this.response()}
+      return path
+    }
   }
 }

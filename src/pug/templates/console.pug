@@ -28,9 +28,8 @@
 script#console-template(type="text/x-template")
   .console
     .toolbar
-      button.pure-button(title="Clear console.", @click="clear")
-        .fa.fa-trash
-        | &nbsp;Clear
+      bbutton(title="Clear console.", @click="clear", icon="trash",
+        text="&nbsp;Clear")
 
     .console-wrapper
       table

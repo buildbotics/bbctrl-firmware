@@ -44,10 +44,15 @@ script#view-settings-template(type="text/x-template")
       a.nav-item(href="#settings:network") Network
       a.nav-item(href="#settings:admin") Admin
 
-      button.save.pure-button.button-success(:disabled="!modified",
-        @click="save", title="Save settings")
-        .fa.fa-floppy-o
-        | Save
+      .actions
+        bbutton(v-if="$root.authorized", @click="$root.logout", text="Logout",
+          title="Logout to lock protected settings")
+
+        bbutton(v-else, @click="$root.login", text="Login", success,
+          title="Login to unlock protected settings")
+
+        bbutton(:success="modified", :disabled="!modified", @click="save",
+          title="Save settings", text="Save")
 
     .settings-view(v-if="view", :is="'settings-' + view", :index="index",
       :config="config", :template="template", :state="state", keep-alive)

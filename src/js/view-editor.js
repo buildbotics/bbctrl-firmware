@@ -135,21 +135,21 @@ module.exports = {
       if (!this.modified) return true
 
       let response = this.$root.open_dialog({
-        title: 'Save file?',
-        body: 'The current file has been modified.  ' +
-          'Would you like to save it first?',
-        width: '320px',
+        header: 'Save file?',
+        body:   'The current file has been modified.  ' +
+                'Would you like to save it first?',
+        width:  '320px',
         buttons: [
           {
-            text: 'Cancel',
+            text:  'Cancel',
             title: 'Stay on the editor page.'
           }, {
-            text: 'Discard',
-            title: "Discard changes."
+            text:  'Discard',
+            title: 'Discard changes.'
           }, {
-            text: 'Save',
+            text:  'Save',
             title: 'Save changes.',
-            'class': 'button-success'
+            class: 'button-success'
           }
         ]
       })

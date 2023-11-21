@@ -36,20 +36,11 @@ __all__ = ['APIHandler']
 
 
 class APIHandler(RequestHandler):
-    def delete(self, *args, **kwargs):
-        self.delete_ok(*args, **kwargs)
-        self.write_json('ok')
+    def require_arg(self, name):
+        if not name in self.json:
+            raise HTTPError(400, 'Argument "%s" required' % name)
 
-
-    def delete_ok(self): raise HTTPError(405)
-
-
-    def put(self, *args, **kwargs):
-        self.put_ok(*args, **kwargs)
-        self.write_json('ok')
-
-
-    def put_ok(self): raise HTTPError(405)
+        return self.json[name]
 
 
     def prepare(self):

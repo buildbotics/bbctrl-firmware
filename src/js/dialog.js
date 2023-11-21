@@ -26,6 +26,23 @@
 \******************************************************************************/
 
 
+function make_buttons(buttons) {
+  if (typeof buttons == 'string') buttons = buttons.split(' ')
+
+  let hasClass = false
+  for (let i = 0; i < buttons.length; i++) {
+    if (typeof buttons[i] == 'string') buttons[i] = {text: buttons[i]}
+    buttons[i].action = buttons[i].action || buttons[i].text.toLowerCase()
+    if (buttons[i].class) hasClass = true
+  }
+
+  if (buttons.length && !hasClass)
+    buttons.slice(-1)[0].class = 'pure-button-primary'
+
+  return buttons
+}
+
+
 module.exports = {
   template: '#dialog-template',
 
@@ -40,18 +57,7 @@ module.exports = {
     buttons: {
       type: Array,
       default() {return 'Ok'},
-
-
-      coerce(buttons) {
-        if (typeof buttons == 'string') buttons = buttons.split(' ')
-
-        for (let i = 0; i < buttons.length; i++) {
-          if (typeof buttons[i] == 'string') buttons[i] = {text: buttons[i]}
-          buttons[i].action = buttons[i].action || buttons[i].text.toLowerCase()
-        }
-
-        return buttons
-      }
+      coerce(buttons) {return make_buttons(buttons)}
     }
   },
 
@@ -64,23 +70,31 @@ module.exports = {
 
 
   methods: {
-    close(action) {
-      this.show = false
-      this.$emit('close', action)
+    click_away() {if (this.clickAway) this.close('cancel')},
 
-      if (this.resolve) {
+
+    close(action) {
+      Vue.nextTick(() => {this.show = false})
+
+      if (this.resolve != undefined) {
         this.resolve(action)
         delete this.resolve
       }
+
+      this.$emit('closed', action)
     },
 
 
     open(config) {
       if (config)
-        for (let name in config)
-          this[name] = config[name]
+        for (let name in config) {
+          if (name == 'buttons') this[name] = make_buttons(config[name])
+          else this[name] = config[name]
+        }
 
       this.show = true
+      Vue.nextTick(this.focus)
+
       return new Promise(resolve => this.resolve = resolve)
     },
 
@@ -101,6 +115,14 @@ module.exports = {
 
     async success(msg) {
       return this.open({icon: 'check', header: 'Success', body: msg})
+    },
+
+
+    focus() {
+      $(this.$el).find('[focus]').each((index, e) => {
+        e.focus()
+        return false
+      })
     }
   }
 }

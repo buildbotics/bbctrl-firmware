@@ -1,1 +1,1 @@
-root=/dev/mmcblk0p2 console=tty0 rootfstype=ext4 rootwait fsck.repair=yes quiet splash loglevel=1 consoleblank=0 logo.nologo cgroup_enable=memory systemd.unified_cgroup_hierarchy=1 dwc_otg.fiq_fsm_mask=0x3 vt.global_cursor_default=0 ipv6.disable=1 init=/root/resize.sh
+root=/dev/mmcblk0p2 console=tty3 rootfstype=ext4 rootwait fsck.repair=yes quiet loglevel=1 consoleblank=0 logo.nologo cgroup_enable=memory systemd.unified_cgroup_hierarchy=1 dwc_otg.fiq_fsm_mask=0x3 vt.global_cursor_default=0 ipv6.disable=1 init=/root/resize.sh

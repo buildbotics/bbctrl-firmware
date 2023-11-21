@@ -50,12 +50,7 @@ module.exports = {
     return {
       mach_units: 'METRIC',
       mdi: '',
-      axes: 'xyzabc',
       history: [],
-      manual_home: {x: false, y: false, z: false, a: false, b: false, c: false},
-      position_msg:
-      {x: false, y: false, z: false, a: false, b: false, c: false},
-      axis_position: 0,
       jog_step: cookie.get_bool('jog-step'),
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       tab: 'auto',
@@ -66,15 +61,14 @@ module.exports = {
 
 
   components: {
+    'axis-row':     require('./axis-row'),
     'axis-control': require('./axis-control')
   },
 
 
   watch: {
     'state.imperial': {
-      handler(imperial) {
-        this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'
-      },
+      handler(imperial) {this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'},
       immediate: true
     },
 
@@ -138,13 +132,6 @@ module.exports = {
 
 
     can_mdi() {return this.is_idle || this.state.cycle == 'mdi'},
-
-
-    can_set_axis() {
-      return this.is_idle
-      // TODO allow setting axis position during pause
-      //   return this.is_idle || this.is_paused
-    },
 
 
     message() {
@@ -295,50 +282,13 @@ module.exports = {
     load_history(index) {this.mdi = this.history[index]},
 
 
-    async home(axis) {
-      if (axis == undefined) return this.$api.put('home')
-
-      if (this[axis].homingMode != 'manual')
-        return this.$api.put('home/' + axis)
-
-      this.manual_home[axis] = true
-    },
-
-
-    async set_home(axis, position) {
-      this.manual_home[axis] = false
-      return this.$api.put('home/' + axis + '/set',
-                           {position: parseFloat(position)})
-    },
-
-
-    async unhome(axis) {
-      this.position_msg[axis] = false
-      return this.$api.put('home/' + axis + '/clear')
-    },
-
-
-    show_set_position(axis) {
-      this.axis_position = 0
-      this.position_msg[axis] = true
-    },
-
-
-    async set_position(axis, position) {
-      this.position_msg[axis] = false
-      return this.$api.put('position/' + axis, {position: parseFloat(position)})
-    },
+    async home_all() {return this.$api.put('home')},
 
 
     zero_all() {
       for (let axis of 'xyzabc')
-        if (this[axis].enabled) this.zero(axis)
-    },
-
-
-    zero(axis) {
-      if (typeof axis == 'undefined') this.zero_all()
-      else this.set_position(axis, 0)
+        if (this[axis].enabled)
+          return this.$api.put('position/' + axis, {position: 0})
     },
 
 

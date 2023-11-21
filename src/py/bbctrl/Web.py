@@ -47,43 +47,12 @@ from .APIHandler import *
 from .RequestHandler import *
 from .Camera import *
 from .MonitorTemp import *
+from .AuthHandler import *
 from .FileSystemHandler import *
 from .Ctrl import *
 from udevevent import UDevEvent
 
 __all__ = ['Web']
-
-
-def call_get_output(cmd):
-    p = subprocess.Popen(cmd, stdout = subprocess.PIPE)
-    s = p.communicate()[0].decode('utf-8')
-    if p.returncode: raise HTTPError(400, 'Command failed')
-    return s
-
-
-def get_username():
-    return call_get_output(['getent', 'passwd', '1000']).split(':')[0]
-
-
-def set_username(username):
-    if subprocess.call(['usermod', '-l', username, get_username()]):
-        raise HTTPError(400, 'Failed to set username to "%s"' % username)
-
-
-def check_password(password):
-    # Get current password
-    s = call_get_output(['getent', 'shadow', get_username()])
-    current = s.split(':')[1].split('$')
-
-    # Check password type
-    if len(current) < 2 or current[1] != '1':
-        raise HTTPError(401, "Password invalid")
-
-    # Check current password
-    cmd = ['openssl', 'passwd', '-salt', current[2], '-1', password]
-    s = call_get_output(cmd).strip()
-
-    if s.split('$') != current: raise HTTPError(401, 'Wrong password')
 
 
 def upgrade_command(ctrl, cmd):
@@ -93,7 +62,8 @@ def upgrade_command(ctrl, cmd):
 
 
 class RebootHandler(APIHandler):
-    def put_ok(self):
+    def put(self):
+        self.authorize()
         self.get_ctrl().lcd.goodbye('Rebooting...')
         subprocess.Popen('reboot')
 
@@ -103,6 +73,7 @@ class StateHandler(APIHandler):
         if path is None or path == '' or path == '/':
             self.write_json(self.get_ctrl().state.snapshot())
         else: self.write_json(self.get_ctrl().state.get(path[1:]))
+
 
 
 class LogHandler(RequestHandler):
@@ -119,7 +90,7 @@ class LogHandler(RequestHandler):
 
 
 class MessageAckHandler(APIHandler):
-    def put_ok(self, id):
+    def put(self, id):
         self.get_ctrl().state.ack_message(int(id))
 
 
@@ -166,6 +137,7 @@ class BugReportHandler(RequestHandler):
 
     @gen.coroutine
     def get(self):
+        self.authorize()
         res = yield self.task()
         self.write(res)
 
@@ -181,65 +153,27 @@ class BugReportHandler(RequestHandler):
 class HostnameHandler(APIHandler):
     def get(self): self.write_json(socket.gethostname())
 
+
     def put(self):
-        if self.get_ctrl().args.demo:
-            raise HTTPError(400, 'Cannot set hostname in demo mode')
+        self.not_demo()
+        self.authorize()
 
-        if 'hostname' in self.json:
-            if subprocess.call(['/usr/local/bin/sethostname',
-                                self.json['hostname'].strip()]) == 0:
-                self.write_json('ok')
-                return
-
-        raise HTTPError(400, 'Failed to set hostname')
+        hostname = self.require_arg('hostname')
+        r = subprocess.call(['/usr/local/bin/sethostname', hostname.strip()])
+        if r: raise HTTPError(400, 'Failed to set hostname')
 
 
-class NetworkHandler(APIHandler):
-    def put_ok(self, device, action):
-        if self.get_ctrl().args.demo:
-            raise HTTPError(400, 'Cannot configure WiFi in demo mode')
+class WifiHandler(APIHandler):
+    def put(self, device, action):
+        self.not_demo()
+        self.authorize()
 
         try:
             args = self.json if self.json else {}
             getattr(self.get_ctrl().net, action)(device, **args)
 
         except Exception as e:
-            self.get_ctrl().log.exception('Network handler')
-
-
-class UsernameHandler(APIHandler):
-    def get(self): self.write_json(get_username())
-
-
-    def put_ok(self):
-        if self.get_ctrl().args.demo:
-            raise HTTPError(400, 'Cannot set username in demo mode')
-
-        if 'username' in self.json: set_username(self.json['username'])
-        else: raise HTTPError(400, 'Missing "username"')
-
-
-class PasswordHandler(APIHandler):
-    def put(self):
-        if self.get_ctrl().args.demo:
-            raise HTTPError(400, 'Cannot set password in demo mode')
-
-        if 'current' in self.json and 'password' in self.json:
-            check_password(self.json['current'])
-
-            # Set password
-            s = '%s:%s' % (get_username(), self.json['password'])
-            s = s.encode('utf-8')
-
-            p = subprocess.Popen(['chpasswd', '-c', 'MD5'],
-                                 stdin = subprocess.PIPE)
-            p.communicate(input = s)
-
-            if p.returncode == 0:
-                self.write_json('ok')
-                return
-
-        raise HTTPError(401, 'Failed to set password')
+            self.get_ctrl().log.exception('Wifi handler')
 
 
 class ConfigLoadHandler(APIHandler):
@@ -259,25 +193,22 @@ class ConfigDownloadHandler(APIHandler):
 
 
 class ConfigSaveHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().config.save(self.json)
+    def put(self): self.get_ctrl().config.save(self.json)
 
 
 class ConfigResetHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().config.reset()
+    def put(self): self.get_ctrl().config.reset()
 
 
 class FirmwareUpdateHandler(APIHandler):
     def prepare(self): pass
 
 
-    def put_ok(self):
-        if not 'password' in self.request.arguments:
-            raise HTTPError(401, 'Missing "password"')
+    def put(self):
+        self.authorize()
 
         if not 'firmware' in self.request.files:
-            raise HTTPError(401, 'Missing "firmware"')
-
-        check_password(self.request.arguments['password'][0])
+            raise HTTPError(400, 'Missing "firmware"')
 
         firmware = self.request.files['firmware'][0]
 
@@ -290,18 +221,18 @@ class FirmwareUpdateHandler(APIHandler):
 
 
 class UpgradeHandler(APIHandler):
-    def put_ok(self):
-        check_password(self.json['password'])
+    def put(self):
+        self.authorize()
         upgrade_command(self.get_ctrl(), ['/usr/local/bin/upgrade-bbctrl'])
 
 
 class USBEjectHandler(APIHandler):
-    def put_ok(self, path):
+    def put(self, path):
         subprocess.Popen(['/usr/local/bin/eject-usb', '/media/' + path])
 
 
 class MacroHandler(APIHandler):
-    def put_ok(self, macro):
+    def put(self, macro):
         macros = self.get_ctrl().config.get('macros')
 
         macro = int(macro)
@@ -361,85 +292,83 @@ class PathHandler(APIHandler):
 
 
 class HomeHandler(APIHandler):
-    def put_ok(self, axis, action, *args):
+    def put(self, axis, action, *args):
         if axis is not None: axis = ord(axis[1:2].lower())
 
         if action == '/set':
-            if not 'position' in self.json:
-                raise HTTPError(400, 'Missing "position"')
-
-            self.get_ctrl().mach.home(axis, self.json['position'])
+            position = self.require_arg('position')
+            self.get_ctrl().mach.home(axis, position)
 
         elif action == '/clear': self.get_ctrl().mach.unhome(axis)
         else: self.get_ctrl().mach.home(axis)
 
 
 class StartHandler(APIHandler):
-    def put_ok(self, path):
+    def put(self, path):
         path = self.get_ctrl().fs.validate_path(path)
         self.get_ctrl().mach.start(path)
 
 
 class ActivateHandler(APIHandler):
-    def put_ok(self, path):
+    def put(self, path):
         path = self.get_ctrl().fs.validate_path(path)
         self.get_ctrl().state.set('active_program', path)
 
 
 class EStopHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.estop()
+    def put(self): self.get_ctrl().mach.estop()
 
 
 class ClearHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.clear()
+    def put(self): self.get_ctrl().mach.clear()
 
 
 class StopHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.stop()
+    def put(self): self.get_ctrl().mach.stop()
 
 
 class PauseHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.pause()
+    def put(self): self.get_ctrl().mach.pause()
 
 
 class UnpauseHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.unpause()
+    def put(self): self.get_ctrl().mach.unpause()
 
 
 class OptionalPauseHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.optional_pause()
+    def put(self): self.get_ctrl().mach.optional_pause()
 
 
 class StepHandler(APIHandler):
-    def put_ok(self): self.get_ctrl().mach.step()
+    def put(self): self.get_ctrl().mach.step()
 
 
 class PositionHandler(APIHandler):
-    def put_ok(self, axis):
+    def put(self, axis):
         self.get_ctrl().mach.set_position(axis, float(self.json['position']))
 
 
 class OverrideFeedHandler(APIHandler):
-    def put_ok(self, value): self.get_ctrl().mach.override_feed(float(value))
+    def put(self, value): self.get_ctrl().mach.override_feed(float(value))
 
 
 class OverrideSpeedHandler(APIHandler):
-    def put_ok(self, value): self.get_ctrl().mach.override_speed(float(value))
+    def put(self, value): self.get_ctrl().mach.override_speed(float(value))
 
 
 class ModbusReadHandler(APIHandler):
-    def put_ok(self):
+    def put(self):
         self.get_ctrl().mach.modbus_read(int(self.json['address']))
 
 
 class ModbusWriteHandler(APIHandler):
-    def put_ok(self):
+    def put(self):
         self.get_ctrl().mach.modbus_write(int(self.json['address']),
                                     int(self.json['value']))
 
 
 class JogHandler(APIHandler):
-    def put_ok(self):
+    def put(self):
         # Handle possible out of order jog command processing
         if 'ts' in self.json:
             ts = self.json['ts']
@@ -462,7 +391,7 @@ class KeyboardHandler(APIHandler):
         subprocess.call(['killall', '-' + signal, 'bbkbd'])
 
 
-    def put_ok(self, cmd, *args):
+    def put(self, cmd, *args):
         show = cmd == 'show'
         enabled = self.get_ctrl().config.get('virtual-keyboard-enabled', True)
         if enabled or not show: self.set_keyboard(show)
@@ -570,16 +499,15 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket',                     WSConnection),
+            (r'/api/auth/(login|password|username)', AuthHandler),
             (r'/api/state(/.*)?',               StateHandler),
             (r'/api/log',                       LogHandler),
             (r'/api/message/(\d+)/ack',         MessageAckHandler),
             (r'/api/bugreport',                 BugReportHandler),
             (r'/api/reboot',                    RebootHandler),
             (r'/api/hostname',                  HostnameHandler),
-            (r'/api/net/([^/]+)/(scan|connect|forget|hotspot|disconnect)',
-             NetworkHandler),
-            (r'/api/remote/username',           UsernameHandler),
-            (r'/api/remote/password',           PasswordHandler),
+            (r'/api/wifi/([^/]+)/(scan|connect|forget|disconnect)',
+             WifiHandler),
             (r'/api/config/load',               ConfigLoadHandler),
             (r'/api/config/download',           ConfigDownloadHandler),
             (r'/api/config/save',               ConfigSaveHandler),

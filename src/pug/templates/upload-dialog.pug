@@ -27,9 +27,7 @@
 
 script#upload-dialog-template(type="text/x-template")
   .upload-dialog
-    message(:show.sync="show", :click-away-close="false")
-      h3(slot="header") Uploading
-
+    dialog(v-ref:dialog, :click-away="false", header="Uploading")
       div(slot="body")
         div {{msg}}
         .progress
@@ -37,9 +35,7 @@ script#upload-dialog-template(type="text/x-template")
             | {{progress}}%
 
       div(slot="footer")
-        button.pure-button(title="Cancel upload", @click="cancel")
-          .fa.fa-times
-          | Cancel
+        bbutton(title="Cancel upload", @click="cancel", text="Cancel")
 
     form(v-el:form)
       input(type="file", v-el:input, @change="_upload")

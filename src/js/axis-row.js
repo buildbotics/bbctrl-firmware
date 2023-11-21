@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -26,46 +26,56 @@
 \******************************************************************************/
 
 
-
 module.exports = {
-  template: '#message-template',
+  template: '#axis-row-template',
+  replace: true,
+  props: ['axis'],
 
-  props: {
-    show: {
-      type: Boolean,
-      required: true,
-      twoWay: true
-    },
 
-    clickAwayClose: {
-      type: Boolean,
-      default: true
-    },
-
-    width: {
-      type: String,
-      default: ''
+  data() {
+    return {
+      position: 0,
     }
   },
 
 
-  watch: {
-    show(show) {if (show) Vue.nextTick(this.focus)}
+  computed: {
+    name() {return this.axis.name.toUpperCase()},
+    is_idle() {return this.$parent.is_idle}
   },
 
 
   methods: {
-    click_away(e) {
-      if (e.target.classList.contains('modal-wrapper') &&
-          this.clickAwayClose) this.show = false
+    async zero() {
+      return this.$api.put('position/' + this.axis.name, {position: 0})
     },
 
 
-    focus() {
-      $(this.$el).find('[focus]').each((index, e) => {
-        e.focus()
-        return false
-      })
-    }
+    async set_position() {
+      this.position = 0
+
+      let response = await this.$refs.setPosition.open()
+
+      if (response == 'set')
+        return this.$api.put('position/' + this.axis.name,
+                             {position: parseFloat(this.position)})
+
+      if (response == 'unhome')
+        return this.$api.put('home/' + this.axis.name + '/clear')
+    },
+
+
+    async home() {
+      if (this.axis.homingMode != 'manual')
+        return this.$api.put('home/' + this.axis.name)
+
+      this.position = 0
+
+      let response = await this.$refs.setHome.open()
+
+      if (response == 'set')
+        return this.$api.put('home/' + this.axis.name + '/set',
+                             {position: parseFloat(this.position)})
+    },
   }
 }

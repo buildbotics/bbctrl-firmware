@@ -27,9 +27,7 @@
 
 script#viewer-help-dialog-template(type="text/x-template")
   .viewer-help-dialog
-    message(:show.sync="show")
-      h3(slot="header") 3D Viewer Help
-
+    dialog(v-ref:dialog, header="3D Viewer Help", width="500px")
       div(slot="body")
         h2 Mouse Controls
         table

@@ -68,7 +68,7 @@ EVIOCGRAB = ioctl._IOW(ord('E'), 0x90, 'i') # Grab/Release device
 
 
 
-class EventStream(object):
+class EventStream:
   def __init__(self, devIndex, devType, devName, log = None):
     self.devIndex = devIndex
     self.devType = devType

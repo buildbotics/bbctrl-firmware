@@ -27,16 +27,10 @@
 
 script#file-dialog-template(type="text/x-template")
   .file-dialog
-    message(:show.sync="show", :click-away-close="false")
-      h3(slot="header") {{config.save ? 'Save' : 'Open'}} file
+    dialog(v-ref:dialog, :click-away="false", :buttons="buttons",
+      :header="(config.save ? 'Save' : 'Open') + ' file'", width="")
 
       div(slot="body")
-        files(:mode="config.save ? 'save' : 'open'", :locations="locations",
-          @selected="set_selected", @activate="response", v-ref:files)
-
-      div(slot="footer")
-        button.pure-button(@click="cancel") #[.fa.fa-times] Cancel
-        button.pure-button.pure-button-primary(@click="ok",
-          :disabled="!selected").
-          #[.fa(:class="'fa-' + (config.save ? 'save' : 'check')")]
-          {{config.save ? 'Save' : 'Open'}}
+        files(v-ref:files, :mode="config.save ? 'save' : 'open'",
+          :locations="locations", @selected="set_selected",
+          @activate="activate")

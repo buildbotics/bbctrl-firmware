@@ -31,14 +31,7 @@ module.exports = {
   template: '#viewer-help-dialog-template',
 
 
-  data() {
-    return {
-      show: false
-    }
-  },
-
-
   methods: {
-    open() {this.show = true}
+    async open() {return this.$refs.dialog.open()}
   }
 }

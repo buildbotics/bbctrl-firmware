@@ -29,8 +29,8 @@ import os
 import re
 import subprocess
 import copy
+import json
 import configparser
-from tornado.web import HTTPError
 from tornado import gen, process, iostream
 
 __all__ = ['Network']
@@ -101,7 +101,6 @@ class Network:
     self.channels = {}
 
     if not ctrl.args.demo:
-      #ctrl.udevev.add_handler(self._udev_event, 'net')
       ctrl.ioloop.add_callback(self._monitor)
 
 
@@ -130,8 +129,12 @@ class Network:
             if name in self.devs:
               self.log.info('Mon: ' + line)
 
-              dev = self.devs[name]
+              if value == 'device removed':
+                del self.devs[name]
+                self._set_devs()
+                continue
 
+              dev   = self.devs[name]
               state = value.split()[0]
 
               if state in ('disconnected', 'connected', 'connecting'):
@@ -163,17 +166,25 @@ class Network:
     return self._exec(['nmcli', '-t'] + cmd, **kwargs)
 
 
-  def scan(self, device):
-    if device in self.devs:
-      self.devs[device]['scan'] = self._dev_scan(device)
-      self._set_devs()
+  def scan(self, name = '*'):
+    changed = False
 
-    else: raise HTTPError(404, 'Device not found')
+    for dev in self.devs.values():
+      if name == '*' or dev['name'] == name and dev['type'] == 'wifi':
+        scan = self._dev_scan(dev['name'])
+
+        if not 'scan' in dev or json.dumps(scan) != json.dumps(dev['scan']):
+          dev['scan'] = scan
+          changed = True
+
+    if changed: self._set_devs()
 
 
   def connect(self, device, uuid = None, ssid = None, password = None):
     if uuid: cmd = ['connection', 'up', 'uuid', uuid]
-    else: cmd = ['device', 'wifi', 'connect', ssid, 'password', password]
+    else:
+      cmd = ['device', 'wifi', 'connect', ssid]
+      if password is not None: cmd += ['password', password]
 
     self._nmcli(['-w', '0'] + cmd + ['ifname', device])
 
@@ -202,6 +213,10 @@ class Network:
   def _dev_scan(self, name): return list(self._load_scan(name))
 
 
+  def _get_phy(self, name):
+    return read_file('/sys/class/net/' + name + '/phy80211/name')
+
+
   def _load_channels(self, phy):
     cmd    = ['iw', 'phy', phy, 'channels']
     result = self._exec(cmd, capture_output = True, text = True)
@@ -214,7 +229,7 @@ class Network:
 
 
   def _dev_channels(self, name):
-    phy = read_file('/sys/class/net/' + name + '/phy80211/name')
+    phy = self._get_phy(name)
 
     if not phy in self.channels:
       self.channels[phy] = list(self._load_channels(phy))
@@ -264,6 +279,9 @@ class Network:
           if e['ssid'] == con['ssid']:
             e['connection'] = con['uuid']
 
+    # Is USB device?
+    dev['usb'] = 'usb' in conf.get('general.udi')
+
     return dev
 
 
@@ -277,15 +295,5 @@ class Network:
 
     for name in os.listdir('/sys/class/net'):
       self._add_dev(name)
-
-    self._set_devs()
-
-
-  def _udev_event(self, action, device):
-    name = device.get('INTERFACE', '')
-
-    if action == 'add': self._add_dev(name)
-    elif action == 'remove' and name in self.devs: del self.devs[name]
-    else: return
 
     self._set_devs()

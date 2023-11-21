@@ -1,0 +1,9 @@
+[Unit]
+Description=Kill Splash Screen
+
+[Service]
+ExecStart=/usr/bin/killall fbi
+Type=oneshot
+
+[Install]
+WantedBy=getty.target

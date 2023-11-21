@@ -43,20 +43,18 @@ script#files-template(type="text/x-template")
       .files-box
         .files-path-bar
           .files-path
-            button.pure-button(v-for="path in paths", track-by="$index",
-              :disabled="$index == paths.length - 1",
+            bbutton(v-for="path in paths", track-by="$index",
+              :disabled="$index == paths.length - 1", :text="path",
               :title="path_title($index)", @click="load_path($index)")
-              | {{path}}
 
           .files-upload(v-if="mode != 'save'")
-            button.pure-button.pure-button-primary(
+            bbutton(
               title="Upload a file from this computer to the controller.",
-              @click="upload") #[.fa.fa-upload] Upload
+              primary, @click="upload", text="Upload")
 
           .new-folder
-            button.pure-button(title="Create a new folder.",
-              @click="new_folder", :disabled="10 < paths.length").
-              #[.fa.fa-plus] New Folder
+            bbutton(title="Create a new folder.", text="New Folder",
+              @click="new_folder", :disabled="10 < paths.length", icon="plus")
 
         .files-list
           table
@@ -76,13 +74,7 @@ script#files-template(type="text/x-template")
                 td.size: span(v-if="!file.dir") {{file.size | size}}
                 td.modified {{file.modified | ago}}
 
-    message.new-folder(v-ref:new-folder, :show.sync="showNewFolder")
-      h3(slot="header") Folder Name
+    dialog.new-folder(v-ref:new-folder, header="Folder Name",
+      :buttons="['Cancel', {text: 'Create', disabled: !folder_valid}]")
       p(slot="body")
         input(v-model="folder", @keyup.enter="create_folder", focus)
-      div(slot="footer")
-        button.pure-button(@click="showNewFolder = false")
-          | #[.fa.fa-times] Cancel
-        button.pure-button.pure-button-primary(
-          :disabled="!folder_valid", @click="create_folder")
-          | #[.fa.fa-plus] Create

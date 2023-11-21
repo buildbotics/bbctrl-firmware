@@ -25,6 +25,11 @@ PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl-2.0
 BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
 
+IMAGE := $(shell date +%Y%m%d)-debian-bookworm-bbctrl.img
+IMG_PATH := root@buildbotics.com:/var/www/buildbotics.com/upload
+
+CPUS := $(shell grep -c ^processor /proc/cpuinfo)
+
 SUBPROJECTS := avr pwr
 SUBPROJECTS := $(patsubst %,src/%,$(SUBPROJECTS))
 $(info SUBPROJECTS="$(SUBPROJECTS)")
@@ -67,6 +72,19 @@ beta-pkg: pkg
 
 arm-bin: camotics bbkbd updiprog rpipdi
 
+%.xz: %.img
+	xz -T $(CPUS) $<
+
+$(IMAGE):
+	sudo ./scripts/make-image.sh
+	mv build/system.img $(IMAGE)
+
+image: $(IMAGE)
+image-xz: $(IMAGE).xz
+
+publish-image: $(IMAGE).xz
+	rsync --progress $< $(IMG_PATH)/
+
 publish: pkg
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
@@ -77,9 +95,8 @@ publish-beta: beta-pkg
 	  $(PUB_PATH)/
 
 update: pkg
-	http_proxy= curl -i -X PUT -H "Content-Type: multipart/form-data" \
-	  -F "firmware=@dist/$(PKG_NAME).tar.bz2" -F "password=$(PASSWORD)" \
-	  http://$(HOST)/api/firmware/update
+	http_proxy= ./scripts/remote-firmware-update $(HOST) "$(PASSWORD)" \
+	  dist/$(PKG_NAME).tar.bz2
 	@-tput sgr0 && echo # Fix terminal output
 
 ssh-update: pkg

@@ -131,7 +131,7 @@ class InEvent:
       stream = EventStream(devIndex, devType, devName, self.log)
       self.streams.append(stream)
 
-      def io_handler(self, fd, events):
+      def io_handler(fd, events):
         for event in stream: self.cb(event)
 
       self.ioloop.add_handler(stream.fd, io_handler, self.ioloop.READ)

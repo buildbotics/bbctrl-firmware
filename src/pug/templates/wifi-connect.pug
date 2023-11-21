@@ -26,9 +26,9 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#wifi-connect-template(type="text/x-template")
-  dialog.wifi-connect(v-ref:dialog, width="1000px",
-    :header="'Connect ' + net.name + ' to a Wifi Network'",
-    :buttons="['Cancel']")
+  dialog.wifi-connect(v-ref:dialog, width="1000px", @closed="closed",
+    :header="'Connect ' + (net.usb ? 'USB' : 'internal') + ' WiFi'",
+    buttons="Cancel")
 
     div(slot="body")
       table.pure-table.wifi-aps
@@ -52,8 +52,8 @@ script#wifi-connect-template(type="text/x-template")
 
           td.security {{e.security}}
           td.actions
-            bbutton.pure-button-primary(@click="connect(e)", icon="wifi",
+            bbutton(primary, @click="connect(e)", icon="wifi",
               text="Connect")
 
-            bbutton.pure-button-primary(v-if="e.connection", @click="forget(e)",
+            bbutton(v-if="e.connection", primary, @click="forget(e)",
               icon="ban", text="Forget")

@@ -35,93 +35,24 @@ script#view-control-template(type="text/x-template")
         th.offset Offset
         th.state State
         th.actions
-          button.pure-button(:disabled="!can_set_axis",
-            title="Zero all axis offsets.", @click="zero()") &empty;
+          bbutton(:disabled="!is_idle", text="&empty;",
+            title="Zero all axis offsets.", @click="zero_all")
 
-          button.pure-button(title="Home all axes.", @click="home()",
+          bbutton(title="Home all axes.", @click="home_all", icon="home",
             :disabled="!is_idle")
-            .fa.fa-home
 
       each axis in 'xyzabc'
-        tr.axis(:class=`${axis}.klass`, v-if=`${axis}.enabled`,
-          :title=`${axis}.title`)
-          th.name= axis
-          td.position: unit-value(:value=`${axis}.pos`, precision=4)
-          td.absolute: unit-value(:value=`${axis}.abs`, precision=3)
-          td.offset: unit-value(:value=`${axis}.off`, precision=3)
-          td.state
-            .fa(:class=`'fa-' + ${axis}.icon`)
-            | {{#{axis}.state}}
-
-          th.actions
-            button.pure-button(:disabled="!can_set_axis",
-              title=`Set {{'${axis}' | upper}} axis position.`,
-              @click=`show_set_position('${axis}')`)
-              .fa.fa-cog
-
-            button.pure-button(:disabled="!can_set_axis",
-              title=`Zero {{'${axis}' | upper}} axis offset.`,
-              @click=`zero('${axis}')`) &empty;
-
-            button.pure-button(:disabled="!is_idle", @click=`home('${axis}')`,
-              title=`Home {{'${axis}' | upper}} axis.`)
-              .fa.fa-home
-
-            message(:show.sync=`position_msg['${axis}']`)
-              h3(slot="header") Set {{'#{axis}' | upper}} axis position
-
-              div(slot="body")
-                .pure-form
-                  .pure-control-group
-                    label Position
-                    input(v-model="axis_position",
-                      @keyup.enter=`set_position('${axis}', axis_position)`)
-                p
-
-              div(slot="footer")
-                button.pure-button(@click=`position_msg['${axis}'] = false`)
-                  | Cancel
-
-                button.pure-button(v-if=`${axis}.homed`,
-                  @click=`unhome('${axis}')`) Unhome
-
-                button.pure-button.button-success(
-                  @click=`set_position('${axis}', axis_position)`) Set
-
-
-            message(:show.sync=`manual_home['${axis}']`)
-              h3(slot="header") Manually home {{'#{axis}' | upper}} axis
-
-              div(slot="body")
-                p Set axis absolute position.
-
-                .pure-form
-                  .pure-control-group
-                    label Absolute
-                    input(v-model="axis_position",
-                      @keyup.enter=`set_home('${axis}', axis_position)`)
-
-                p
-
-              div(slot="footer")
-                button.pure-button(@click=`manual_home['${axis}'] = false`)
-                  | Cancel
-
-                button.pure-button.button-success(
-                  title=`Home {{'${axis}' | upper}} axis.`,
-                  @click=`set_home('${axis}', axis_position)`) Set
+        tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)
 
     .macros
-      button.pure-button.macro(v-for="macro in config.macros",
+      bbutton.macro(v-for="macro in config.macros",
         v-if="macro.path", @click="run_macro($index + 1)",
-        :title="'Run macro ' + ($index + 1) + ' ' + macro.name + '\n' + macro.path",
-        :style="{'background-color': macro.color}")
-        | {{macro.name || ($index + 1)}}
+        title="Run macro {{$index + 1}} {{macro.name}}\n{{macro.path}}",
+        :style="{'background-color': macro.color}",
+        :text="macro.name || ($index + 1)")
 
-      button.pure-button.macro(@click="goto('#settings:macros')",
-        title="Go to macro settings")
-        .fa.fa-cog
-        | Macros
+      bbutton.macro(@click="goto('#settings:macros')", icon="cog",
+        text="Macros", title="Go to macro settings")
 
     .info-blocks
       table.info
@@ -207,37 +138,30 @@ script#view-control-template(type="text/x-template")
 
       section#content1.tab-content.pure-form
         .toolbar.pure-control-group
-          button.pure-button(:class="{'attention': is_holding}",
+          bbutton(:class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} program.",
-            @click="start_pause",
-            :disabled="!active.path || mach_state == 'JOGGING'").
-            #[.fa(:class="is_running ? 'fa-pause' : 'fa-play'")]
-            {{is_running ? 'Pause' : 'Run'}}
+            @click="start_pause", :icon="is_running ? 'pause' : 'play'",
+            :disabled="!active.path || mach_state == 'JOGGING'",
+            :text="is_running ? 'Pause' : 'Run'")
 
-          button.pure-button(title="Stop program.", @click="stop").
-            #[.fa.fa-stop] Stop
+          bbutton(title="Stop program.", @click="stop", text="Stop")
 
+          bbutton(title="Pause program at next optional stop (M1).",
+            @click="optional_pause", v-if="false", icon="stop-circle-o",
+            text="Optional Pause")
 
-          button.pure-button(title="Pause program at next optional stop (M1).",
-            @click="optional_pause", v-if="false").
-            #[.fa.fa-stop-circle-o] Optional Pause
-
-          button.pure-button(title="Execute one program step.", @click="step",
+          bbutton(title="Execute one program step.", @click="step",
             :disabled="(!is_ready && !is_holding) || !active.path",
-            v-if="false").
-            #[.fa.fa-step-forward] Step
+            v-if="false", icon="step-forward", text="Step")
 
-          button.pure-button(title="Select a program.", @click="open",
-            :disabled="!is_ready").
-            #[.fa.fa-folder-open] Open
+          bbutton(title="Select a program.", @click="open",
+            :disabled="!is_ready", text="Open")
 
-          button.pure-button(title="Edit program.", @click="edit",
-            :disabled="!active.path").
-            #[.fa.fa-pencil] Edit
+          bbutton(title="Edit program.", @click="edit", text="Edit",
+            :disabled="!active.path")
 
-          button.pure-button(title="Open 3D view.", @click="view",
-            v-if="$root.webGLSupported", :disabled="!active.path").
-            #[.fa.fa-eye] View
+          bbutton(title="Open 3D view.", @click="view", icon="eye", text="View",
+            v-if="$root.webGLSupported", :disabled="!active.path")
 
           .filename {{active.filename}}
 
@@ -245,14 +169,11 @@ script#view-control-template(type="text/x-template")
 
       section#content2.tab-content
         .mdi.pure-form(title="Manual command entry.")
-          button.pure-button(:disabled="!can_mdi",
-            :class="{'attention': is_holding}",
+          bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause")
-            .fa(:class="is_running ? 'fa-pause' : 'fa-play'")
+            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'")
 
-          button.pure-button(title="Stop command.", @click="stop")
-            .fa.fa-stop
+          bbutton(title="Stop command.", @click="stop", icon="stop")
 
           input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
 

@@ -28,8 +28,8 @@
 
 
 module.exports = {
-  replace: true,
   template: '#modbus-reg-template',
+  replace: true,
   props: ['index', 'model', 'template', 'enable'],
 
 

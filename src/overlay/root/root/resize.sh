@@ -9,7 +9,7 @@ mount -o remount,rw /
 
 if [ -e /root/resize2 ]; then
   mount /dev/${DISK}p1 /boot
-  sed -i 's|init=/root/resize.sh||' /boot/cmdline.txt
+  sed -i 's|/resize.sh|/splash.sh|' /boot/cmdline.txt
   umount /boot
 
   echo Resizing filesystem
@@ -17,7 +17,7 @@ if [ -e /root/resize2 ]; then
 
   rm /root/resize.sh /root/resize2
 
-  exec /sbin/init "$@"
+  /root/splash.sh
 
 else
   touch /root/resize2

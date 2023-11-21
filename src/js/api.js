@@ -41,10 +41,14 @@ class API {
   error(path, xhr) {
     let msg = 'API Error: ' + path
 
-    if (xhr.response) {
-      if (xhr.response.message != undefined)
-        msg += '\n' + xhr.response.message
-      else msg += '\n' + JSON.stringify(xhr.response)
+    let response = xhr.responseText
+    if (response) {
+      try {
+        let data = JSON.parse(response)
+        if (data.message != undefined) response = data.message
+      } catch (e) {}
+
+      if (response) msg += '\n' + response
     }
 
     this.error_handler(msg)
@@ -61,14 +65,14 @@ class API {
         if (200 <= status && status < 300) resolve(xhr.response)
         else {
           this.error(path, xhr)
-          reject({status, statusText: xhr.statusText})
+          reject({path, xhr})
         }
       }
 
       // Error
-      xhr.onerror = (e) => {
+      xhr.onerror = e => {
         this.error(path, xhr)
-        reject(xhr.response, xhr, xhr.status, xhr.statusText)
+        reject({path, xhr})
       }
 
       // Progress
@@ -105,7 +109,8 @@ class API {
       }
 
       // Response
-      xhr.responseType = conf.type || 'json'
+      if (method == 'GET' || conf.type)
+        xhr.responseType = conf.type || 'json'
 
       if (xhr.responseType == 'json')
         xhr.setRequestHeader('Accept', 'application/json; charset=utf-8')

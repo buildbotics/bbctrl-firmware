@@ -29,34 +29,26 @@ import lcd
 import atexit
 
 from .LCDPage import *
-from .oled import *
 
 __all__ = ['LCD']
 
 
 class LCD:
   def __init__(self, ctrl):
-    self.ctrl = ctrl
-    self.log = ctrl.log.get('LCD')
-
-    self.addrs = self.ctrl.args.lcd_addr
-    self.addr = self.addrs[0]
-    self.addr_num = 0
-
-    self.width = 20
-    self.height = 4
-    self.lcd = None
-    self.timeout = None
-    self.reset = False
-    self.page = None
-    self.pages = []
+    self.ctrl         = ctrl
+    self.log          = ctrl.log.get('LCD')
+    self.addrs        = self.ctrl.args.lcd_addr
+    self.addr         = self.addrs[0]
+    self.addr_num     = 0
+    self.width        = 20
+    self.height       = 4
+    self.lcd          = None
+    self.timeout      = None
+    self.reset        = True
+    self.page         = None
+    self.pages        = []
     self.current_page = 0
-    self.screen = self.new_screen()
-
-    try:
-      self.oled = OLED(self.ctrl)
-    except: pass
-    self.wrote_to_oled = False
+    self.screen       = self.new_screen()
 
     self.set_message('Loading...')
 
@@ -121,11 +113,6 @@ class LCD:
 
   def _update(self):
     self.timeout = None
-    try:
-      self.oled.writePage(self.page.data)
-      self.wrote_to_oled = True
-      return
-    except: pass
 
     try:
       if self.lcd is None:

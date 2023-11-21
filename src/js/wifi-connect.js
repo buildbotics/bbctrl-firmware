@@ -40,18 +40,28 @@ module.exports = {
 
 
   methods: {
+    scan() {
+      this.$api.put('wifi/' + this.net.name + '/scan')
+      clearTimeout(this.timer)
+      this.timer = setTimeout(() => this.scan(), 4000)
+    },
+
+
     async open(net) {
-      this.net = net
+      this.net  = net
+      this.ssid = ''
+      this.scan()
       return this.$refs.dialog.open()
     },
 
 
+    closed() {clearTimeout(this.timer)},
     close(response) {this.$refs.dialog.close(response)},
     connect(e) {this.close({action: 'connect', ap: e})},
 
 
     async forget(e) {
-      let path = 'net/' + this.net.name + '/forget'
+      let path = 'wifi/' + this.net.name + '/forget'
       await this.$api.put(path, {uuid: e.connection})
       delete e.connection
     }

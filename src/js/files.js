@@ -51,7 +51,6 @@ module.exports = {
       selected: -1,
       filename: '',
       folder: '',
-      showNewFolder: false
     }
   },
 
@@ -154,18 +153,18 @@ module.exports = {
     },
 
 
-    has_file(name) {return this.find_file(name) != undefined},
+    has_file(name)  {return this.find_file(name) != undefined},
     file_path(file) {return util.join_path(this.fs.path, file.name)},
-    file_url(file) {return '/api/fs' + this.file_path(file)},
-    select(index) {this.selected = index},
+    file_url(file)  {return '/api/fs' + this.file_path(file)},
+    select(index)   {this.selected = index},
 
 
     async eject(location) {return this.$api.put('usb/eject/' + location)},
 
 
-    open(path) {
+    async open(path) {
       this.filename = ''
-      this.load(path)
+      await this.load(path)
     },
 
 
@@ -195,19 +194,20 @@ module.exports = {
     },
 
 
-    new_folder() {
+    async new_folder() {
       this.folder = ''
-      this.showNewFolder = true
+      let response = await this.$refs.newFolder.open()
+
+      if (response == 'create') {
+        let path = this.fs.path + '/' + this.folder
+        await this.$api.put('fs/' + path)
+        this.open(path)
+      }
     },
 
 
-    async create_folder() {
-      if (!this.folder_valid) return
-      this.showNewFolder = false
-
-      let path = this.fs.path + '/' + this.folder
-      await this.$api.put('fs/' + path)
-      this.open(path)
+    create_folder() {
+      if (this.folder_valid) this.$refs.newFolder.close('create')
     },
 
 
@@ -219,10 +219,10 @@ module.exports = {
 
     async delete(file) {
       let response = await this.$root.open_dialog({
-        title: 'Delete ' + (file.dir ? 'directory' : 'file') + '?',
+        header: 'Delete ' + (file.dir ? 'directory' : 'file') + '?',
         body: 'Are you sure you want to delete <tt>' + file.name +
           (file.dir ? '</tt> and all the files under it?' : '</tt>?'),
-        buttons: 'Cancel OK'
+        buttons: 'Cancel Ok'
       })
 
       if (response == 'ok') {
@@ -247,18 +247,17 @@ module.exports = {
 
       if (other.dir) {
         await this.$root.open_dialog({
-          title:   'Cannot overwrite',
-          body:    'Cannot overwrite directory ' + file.filename + '.',
-          buttons: 'OK'
+          header: 'Cannot overwrite',
+          body:   'Cannot overwrite directory ' + file.filename + '.',
         })
 
         return false
       }
 
       let response = await this.$root.open_dialog({
-        title:   'Overwrite file?',
+        header:  'Overwrite file?',
         body:    'Are you sure you want to overwrite ' + file.filename + '?',
-        buttons: 'Cancel OK'
+        buttons: 'Cancel Ok'
       })
 
       return response == 'ok'
@@ -270,7 +269,7 @@ module.exports = {
 
       await this.$root.upload({
         multiple: this.mode != 'open',
-        url(file) {
+        url: file => {
           filename = file.filename
           return 'fs/' + this.fs.path + '/' + filename
         },

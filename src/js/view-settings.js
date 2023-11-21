@@ -58,25 +58,25 @@ module.exports = {
         cancel()
 
         let result = await this.$root.open_dialog({
-          title: 'Save settings?',
-          body: 'Changes to the settings have not been saved.  ' +
-            'Would you like to save them now?',
-          width: '320px',
+          header: 'Save settings?',
+          body:   'Changes to the settings have not been saved.  ' +
+                  'Would you like to save them now?',
+          width:  '320px',
           buttons: [
             {
-              text: 'Cancel',
+              text:  'Cancel',
               title: 'Stay on the Settings page.'
             }, {
-              text: 'Discard',
+              text:  'Discard',
               title: 'Discard settings changes.'
             }, {
-              text: 'Save',
+              text:  'Save',
               title: 'Save settings.',
-              'class': 'button-success'
+              class: 'button-success'
             }
           ]})
 
-        if (result == 'save') await this.save()
+        if (result == 'save')    await this.save()
         if (result == 'discard') await this.discard()
         location.hash = path.join(':')
       }
