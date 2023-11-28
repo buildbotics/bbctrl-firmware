@@ -61,7 +61,7 @@ The resulting package will be a ``.tar.bz2`` file in ``dist``.  See the
 [development guide](docs/development.md) for more information.
 
 ## License
-Copyright Buildbotics LLC 2016-2023.
+Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
 This source describes Open Hardware and is licensed under the CERN-OHL-S v2
 

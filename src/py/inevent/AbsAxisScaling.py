@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -28,7 +28,7 @@
 # The inevent Python module was adapted from pi3d.event from the pi3d
 # project.
 #
-# Copyright (c) 2016-2021, Joseph Coffland, Cauldron Development LLC.
+# Copyright (c) 2016 - 2023, Joseph Coffland, Cauldron Development LLC.
 # Copyright (c) 2015, Tim Skillman.
 # Copyright (c) 2015, Paddy Gaunt.
 # Copyright (c) 2015, Tom Ritchford.
