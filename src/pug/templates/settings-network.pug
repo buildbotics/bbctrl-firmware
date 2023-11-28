@@ -94,4 +94,5 @@ script#settings-network-template(type="text/x-template")
         .pure-form.pure-form-aligned
           .pure-control-group
             label(for="wifi_pass") Password
-            input.password(name="wifi_pass", v-model="wifi_pass")
+            input.password(
+              name="wifi_pass", v-model="wifi_pass", autocomplete="off")

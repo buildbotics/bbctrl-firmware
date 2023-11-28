@@ -34,11 +34,12 @@ script#settings-admin-template(type="text/x-template")
     .pure-form.pure-form-aligned
       .pure-control-group
         label(for="pass1") New Password
-        input.password(name="pass1", v-model="password")
+        input.password(name="pass1", v-model="password", focus,
+          autocomplete="new-password")
 
       .pure-control-group
         label(for="pass2") Repeat Password
-        input.password(name="pass2", v-model="password2")
+        input.password(name="pass2", v-model="password2", autocomplete="off")
         bbutton(@click="set_password", primary, text="Set",
           :disabled="!authorized")
 

@@ -39,17 +39,14 @@ class API {
 
 
   error(path, xhr) {
-    let msg = 'API Error: ' + path
+    let msg
 
-    let response = xhr.responseText
-    if (response) {
-      try {
-        let data = JSON.parse(response)
-        if (data.message != undefined) response = data.message
-      } catch (e) {}
+    if (xhr.responseType == 'json' && xhr.response && xhr.response.message)
+      msg = xhr.response.message
 
-      if (response) msg += '\n' + response
-    }
+    else if (xhr.statusText) msg = xhr.statusText
+
+    if (!msg) msg = 'API Error: ' + path
 
     this.error_handler(msg)
   }
@@ -59,20 +56,18 @@ class API {
     return new Promise((resolve, reject) => {
       let xhr = new XMLHttpRequest()
 
+      xhr.onerror = e => {
+        if (conf.error) conf.error(path, xhr)
+        else this.error(path, xhr)
+
+        reject({path, xhr})
+      }
+
       xhr.onload = () => {
         let status = xhr.status
 
         if (200 <= status && status < 300) resolve(xhr.response)
-        else {
-          this.error(path, xhr)
-          reject({path, xhr})
-        }
-      }
-
-      // Error
-      xhr.onerror = e => {
-        this.error(path, xhr)
-        reject({path, xhr})
+        else xhr.onerror()
       }
 
       // Progress
@@ -92,23 +87,20 @@ class API {
       if (!path.includes('://')) path = this.base + path
       let url = new URL(path, location.href)
 
+      // Params
+      if (conf.params) url.search = new URLSearchParams(conf.params).toString()
+
       // Open
       xhr.open(method, url)
 
-      // Data
-      if (data) {
-        if (method == 'GET' || method == 'DELETE') {
-          url.search = new URLSearchParams(data).toString()
-          data = null
-
-        } else if (!(data instanceof FormData)) {
-          xhr.setRequestHeader('Content-Type',
-                               'application/json; charset=utf-8')
-          data = JSON.stringify(data)
-        }
+      // JSON data
+      if (data && !(data instanceof FormData)) {
+        xhr.setRequestHeader('Content-Type',
+                             'application/json; charset=utf-8')
+        data = JSON.stringify(data)
       }
 
-      // Response
+      // Response type
       if (method == 'GET' || conf.type)
         xhr.responseType = conf.type || 'json'
 
@@ -118,6 +110,7 @@ class API {
       if (xhr.responseType == 'text')
         xhr.setRequestHeader('Content-Type', 'text/plain')
 
+      // Cache
       if (conf.cache === false)
         xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0')
 

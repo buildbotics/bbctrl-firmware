@@ -138,8 +138,9 @@ html(lang="en")
         .pure-form.pure-form-aligned
           .pure-control-group
             label(for="password") Password
-            input.password(name="password", v-model="password",
-              @keyup.enter="$refs.loginDialog.close('login')")
+            input.password(name="password", v-model="password", focus,
+              @keyup.enter="$refs.loginDialog.close('login')",
+              autocomplete="off")
 
     #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")

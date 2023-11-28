@@ -46,7 +46,8 @@ class APIHandler(RequestHandler):
     def prepare(self):
         self.json = {}
 
-        if self.request.body:
+        contentType = self.request.headers.get('Content-Type', '')
+        if contentType.startswith('application/json') and self.request.body:
             try:
                 self.json = tornado.escape.json_decode(self.request.body)
             except ValueError:

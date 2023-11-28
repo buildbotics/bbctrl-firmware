@@ -74,6 +74,8 @@ module.exports = {
     cancel() {
       this.canceled = true
       if (this.xhr) this.xhr.abort()
+      this.reject()
+      this.$refs.dialog.close()
     },
 
 
@@ -107,6 +109,8 @@ module.exports = {
         for (let i = 0; i < files.length && !this.canceled; i++)
           if (await confirm(files[i]))
             await this._upload_file(files[i])
+
+        this.resolve()
 
       } finally {this.$refs.dialog.close()}
     }

@@ -32,7 +32,7 @@ __all__ = ['ProgramSetPosition']
 
 class ProgramSetPosition(ProgramMDI):
   def __init__(self, ctrl, axis, position):
-    axis = axis.lower()
+    axis  = axis.lower()
     state = ctrl.state
 
     if state.is_axis_homed(axis):

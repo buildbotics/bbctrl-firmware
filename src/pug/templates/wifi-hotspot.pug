@@ -38,12 +38,14 @@ script#wifi-hotspot-template(type="text/x-template")
 
         .pure-control-group
           label(for="ssid") Network (SSID)
-          input(name="ssid", v-model="ssid")
+          input(name="ssid", v-model="ssid", focus)
 
         .pure-control-group
           label(for="password") Password
-          input.password(name="password", v-model="password")
+          input.password(name="password", v-model="password",
+            autocomplete="new-password")
 
         .pure-control-group
           label(for="password2") Password (Again)
-          input.password(name="password2", v-model="password2")
+          input.password(name="password2", v-model="password2",
+            autocomplete="off")

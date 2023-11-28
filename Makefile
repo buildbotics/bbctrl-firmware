@@ -72,7 +72,7 @@ beta-pkg: pkg
 
 arm-bin: camotics bbkbd updiprog rpipdi
 
-%.xz: %.img
+%.img.xz: %.img
 	xz -T $(CPUS) $<
 
 $(IMAGE):

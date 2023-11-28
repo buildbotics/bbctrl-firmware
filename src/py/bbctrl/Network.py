@@ -230,6 +230,7 @@ class Network:
 
   def _dev_channels(self, name):
     phy = self._get_phy(name)
+    if not phy: return
 
     if not phy in self.channels:
       self.channels[phy] = list(self._load_channels(phy))

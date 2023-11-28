@@ -47,7 +47,7 @@ script#files-template(type="text/x-template")
               :disabled="$index == paths.length - 1", :text="path",
               :title="path_title($index)", @click="load_path($index)")
 
-          .files-upload(v-if="mode != 'save'")
+          .files-upload(v-if="mode != 'save' && !$root.is_local")
             bbutton(
               title="Upload a file from this computer to the controller.",
               primary, @click="upload", text="Upload")

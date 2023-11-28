@@ -99,22 +99,25 @@ module.exports = {
     },
 
 
-    async error(msg) {
-      return this.open({icon: 'exclamation', header: 'Error', body: msg})
+    async _message(icon, header, body) {
+      return this.open({icon, header, body, buttons: 'Ok'})
     },
+
+
+    async success(msg) {return this._message('check',       'Success', msg)},
+    async error(msg)   {return this._message('exclamation', 'Error',   msg)},
 
 
     async warning(msg) {
-      return this.open({
-        icon: 'exclamation-triangle',
-        header: 'Warning',
-        body: msg
-      })
+      return this._message('exclamation-triangle', 'Warning', msg)
     },
 
 
-    async success(msg) {
-      return this.open({icon: 'check', header: 'Success', body: msg})
+    blur() {
+      $(this.$el).find('[focus]').each((index, e) => {
+        e.blur()
+        return false
+      })
     },
 
 

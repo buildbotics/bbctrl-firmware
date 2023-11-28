@@ -142,6 +142,9 @@ module.exports = new Vue({
 
 
   computed: {
+    is_local() {return location.host == 'localhost'},
+
+
     popupMessages() {
       let msgs = []
 
@@ -166,6 +169,8 @@ module.exports = new Vue({
 
   async ready() {
     this.$api.set_error_handler(this.error_dialog)
+
+    if (this.is_local) this.$kbd.install()
 
     window.addEventListener('hashchange', this.parse_hash)
     this.connect()
@@ -217,8 +222,9 @@ module.exports = new Vue({
     async check_version(show_message) {
       this.latestVersion = ''
 
-      let url  = 'https://buildbotics.com/bbctrl/latest.txt'
-      let conf = {data: {hid: this.state.hid}, type: 'text'}
+      let url  = 'https://buildbotics.com/bbctrl-2.0/latest.txt'
+      let conf = {params: {hid: this.state.hid}, type: 'text'}
+      if (!show_message) conf.error = () => {} // Ignore errors
       this.latestVersion = await this.$api.get(url, conf)
 
       if (!show_message) return
@@ -266,7 +272,7 @@ module.exports = new Vue({
         this.checkedUpgrade = true
 
         let check = this.config.admin['auto-check-upgrade']
-        if (check == undefined || check) await this.check_version()
+        if (check == undefined || check) this.check_version()
       }
     },
 
@@ -287,8 +293,7 @@ module.exports = new Vue({
           if (typeof this.sid == 'undefined') this.sid = e.data.sid
 
           else if (this.sid != e.data.sid) {
-            if (typeof this.hostname != 'undefined' &&
-                String(location.hostname) != 'localhost')
+            if (typeof this.hostname != 'undefined' && !this.is_local)
               location.hostname = this.hostname
             location.reload(true)
           }
@@ -296,14 +301,6 @@ module.exports = new Vue({
 
         util.update_object(this.state, e.data, false)
         this.$broadcast('update')
-
-        // Disable WebGL on Pi 3 for local head
-        if (this.webGLSupported) {
-          let model = this.state.rpi_model
-          if (location.hostname == 'localhost' && model != undefined &&
-              model.indexOf('Pi 3') != -1)
-            this.webGLSupported = false
-        }
       }
 
       this.sock.onopen = (e) => {

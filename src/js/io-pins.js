@@ -47,10 +47,10 @@ module.exports = {
 
 
     io_pins() {
-      let l = []
-      let io_map = this.template['io-map']
-      let pins = io_map.pins
-      let modes = io_map.template.mode.values
+      let l         = []
+      let io_map    = this.template['io-map']
+      let pins      = io_map.pins
+      let modes     = io_map.template.mode.values
       let functions = io_map.template.function.values
 
       for (let i = 0; i < pins.length; i++) {
@@ -64,14 +64,14 @@ module.exports = {
       }
 
       let fixed = [
-        {id:     6, func: '0-10v',    type: 'analog'},
-        {id:     7, func: 'ground',   type: 'ground'},
-        {id:    13, func: 'rs485-a',  type: 'digital'},
-        {id:    14, func: 'rs485-b',  type: 'digital'},
-        {id:    17, func: 'tool-pwm', type: 'digital'},
-        {id:    19, func: 'ground',   type: 'ground'},
-        {id:    20, func: '5v',       type: 'power'},
-        {id:    25, func: 'ground',   type: 'ground'}
+        {id:  6, func: '0-10v',    type: 'analog' },
+        {id:  7, func: 'ground',   type: 'ground' },
+        {id: 13, func: 'rs485-a',  type: 'digital'},
+        {id: 14, func: 'rs485-b',  type: 'digital'},
+        {id: 17, func: 'tool-pwm', type: 'digital'},
+        {id: 19, func: 'ground',   type: 'ground' },
+        {id: 20, func: '5v',       type: 'power'  },
+        {id: 25, func: 'ground',   type: 'ground' }
       ]
 
       return l.concat(fixed).sort((a, b) => b.id < a.id)

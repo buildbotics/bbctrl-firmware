@@ -102,9 +102,6 @@ script#view-control-template(type="text/x-template")
             #[span(v-if="remaining") {{remaining | time}} of]
             {{active.time | time}}
         tr
-          th ETA
-          td.eta {{eta}}
-        tr
           th Line
           td {{0 <= state.line ? state.line : 0 | number}}
         tr

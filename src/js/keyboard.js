@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -26,11 +26,19 @@
 \******************************************************************************/
 
 
-let kbd = {
-  input: undefined,
-  open: false,
-  lockout: false,
-  lost_focus: false,
+module.exports = class Keyboard {
+  constructor(api) {
+    this.api   = api
+    this.input = undefined
+    this.open  = false
+  }
+
+
+  install() {
+    document.addEventListener('focusin',  e => this.focusin(e))
+    document.addEventListener('focusout', e => this.focusout(e))
+    window  .addEventListener('resize',   e => this.resize(e))
+  }
 
 
   is_input(e) {
@@ -40,64 +48,32 @@ let kbd = {
       return e.type == 'text' || e.type == 'number' || e.type == 'password'
 
     return false
-  },
+  }
 
 
-  async hide() {
-    kbd.lost_focus = true
-    if (!kbd.open || kbd.lockout) return
-    kbd.open = false
-    return this.$api.put('keyboard/hide')
-  },
+  async hide(force) {
+    if (!this.open) return
+    this.open = false
+    return this.api.put('keyboard/hide')
+  }
 
 
   async show() {
-    kbd.lost_focus = false
-    if (kbd.open) return
-    kbd.open = true
-    kbd.lockout = true
-    return this.$api.put('keyboard/show')
-  },
-
-
-  click(e) {
-    if (kbd.is_input(e.target)) kbd.input = e.target
-    else if (kbd.lost_focus) {
-      kbd.lockout = false
-      kbd.hide()
-    }
-  },
+    if (this.open) return
+    this.open = true
+    return this.api.put('keyboard/show')
+  }
 
 
   focusin(e) {
-    if (kbd.is_input(e.target)) {
-      kbd.input = e.target
-      kbd.show()
+    if (this.is_input(e.target)) {
+      this.input = e.target
+      this.show()
 
-    } else kbd.hide()
-  },
-
-
-  focusout(e) {
-    if (kbd.is_input(e.target)) kbd.hide()
-  },
-
-
-  resize(e) {
-    if (kbd.open) kbd.input.scrollIntoView({block: 'nearest'})
-  },
-
-
-  init() {
-    if (location.host == 'localhost') {
-      document.addEventListener('click',    kbd.click)
-      document.addEventListener('focusin',  kbd.focusin)
-      document.addEventListener('focusout', kbd.focusout)
-      window  .addEventListener('resize',   kbd.resize)
-    }
+    } else this.hide()
   }
+
+
+  focusout(e) {if (this.is_input(e.target)) this.hide()}
+  resize(e) {if (this.open) this.input.scrollIntoView({block: 'nearest'})}
 }
-
-
-kbd.init()
-module.exports = kbd

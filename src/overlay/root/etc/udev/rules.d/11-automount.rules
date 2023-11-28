@@ -1,5 +1,4 @@
 KERNEL!="sd[a-z]*", GOTO="automount_end"
-ENV{ID_FS_USAGE}!="filesystem", GOTO="automount_end"
 ACTION=="add", RUN+="/usr/local/bin/mount-usb %k"
 ACTION=="remove", RUN+="/usr/local/bin/mount-usb %k -u"
 LABEL="automount_end"

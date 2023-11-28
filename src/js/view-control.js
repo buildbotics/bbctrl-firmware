@@ -158,14 +158,6 @@ module.exports = {
     },
 
 
-    eta() {
-      if (this.mach_state != 'RUNNING') return ''
-      let d = new Date()
-      d.setSeconds(d.getSeconds() + this.remaining)
-      return d.toLocaleString()
-    },
-
-
     simulating() {
       return 0 < this.active.progress && this.active.progress < 1
     },
@@ -288,7 +280,7 @@ module.exports = {
     zero_all() {
       for (let axis of 'xyzabc')
         if (this[axis].enabled)
-          return this.$api.put('position/' + axis, {position: 0})
+          this.$api.put('position/' + axis, {position: 0})
     },
 
 

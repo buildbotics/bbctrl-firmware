@@ -63,5 +63,6 @@ script#view-files-template(type="text/x-template")
 
     a(v-el:download, :href="'/api/fs/' + selected", style="display:none",
       download, target="_blank")
+
     files(v-ref:files, @selected="set_selected", @activate="download",
       :locations="state.locations")

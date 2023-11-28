@@ -58,16 +58,16 @@ module.exports = {
   watch: {
     selected() {
       let path
-      let dir = false
+      let is_dir = false
 
       if (0 <= this.selected && this.selected <= this.files.length) {
         let file = this.files[this.selected]
-        if (file.dir) dir = true
+        if (file.dir) is_dir = true
         path = this.file_path(file)
       }
 
-      if (this.mode != 'save') this.$emit('selected', path, dir)
-      if (path && !dir) this.filename = util.basename(path)
+      if (this.mode != 'save') this.$emit('selected', path, is_dir)
+      if (path && !is_dir) this.filename = util.basename(path)
     },
 
 

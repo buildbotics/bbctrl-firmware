@@ -26,9 +26,11 @@
 \******************************************************************************/
 
 
-let cookie = require('./cookie')
-let util   = require('./util')
-let API    = require('./api')
+let cookie   = require('./cookie')
+let util     = require('./util')
+let API      = require('./api')
+let CMGCode  = require('./cm-gcode')
+let Keyboard = require('./keyboard')
 
 
 function menu_ui() {
@@ -59,11 +61,13 @@ function main() {
   Vue.config.debug = true
 
   // Init global modules
-  require('./cm-gcode')
-  require('./keyboard')
-
   let api = new API()
   Object.defineProperty(Vue.prototype, '$api', {get() {return api}})
+
+  let kbd = new Keyboard(api)
+  Object.defineProperty(Vue.prototype, '$kbd', {get() {return kbd}})
+
+  let cmg = new CMGCode()
 
   // Register global components
   Vue.component('templated-input',  require('./templated-input'))

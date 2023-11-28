@@ -76,7 +76,7 @@ module.exports = {
 
       await this.$api.put('reboot')
 
-      if (String(location.hostname) == 'localhost') return
+      if (this.$root.is_local) return
 
       let hostname = this.hostname
       if (String(location.hostname).endsWith('.local'))

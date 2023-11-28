@@ -37,9 +37,9 @@ module.exports = {
 
   data() {
     return {
-      first: true,
+      first:    true,
       selected: '',
-      is_dir: false
+      is_dir:   false
     }
   },
 
@@ -55,9 +55,9 @@ module.exports = {
     new_folder() {this.$refs.files.new_folder()},
 
 
-    set_selected(path, dir) {
+    set_selected(path, is_dir) {
       this.selected = path
-      this.is_dir = dir
+      this.is_dir   = is_dir
     },
 
 

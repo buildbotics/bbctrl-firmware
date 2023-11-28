@@ -3,10 +3,10 @@
 (
     flock -n 9
 
-    VERSION=$(curl -s https://buildbotics.com/bbctrl/latest.txt)
+    VERSION=$(curl -s https://buildbotics.com/bbctrl-2.0/latest.txt)
     PKG_NAME=bbctrl-$VERSION
     PKG=/var/lib/bbctrl/firmware/update.tar.bz2
-    PKG_URL=https://buildbotics.com/bbctrl/$PKG_NAME.tar.bz2
+    PKG_URL=https://buildbotics.com/bbctrl-2.0/$PKG_NAME.tar.bz2
 
     logger Installing bbctrl firmware $VERSION
 

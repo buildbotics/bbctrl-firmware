@@ -76,35 +76,60 @@ module.exports = {
     },
 
 
+    async _local_backup() {
+      await this.$api.put('config/backup')
+      return this.$root.success_dialog(
+        'Configuration backup saved in "Home/configs/".')
+    },
+
+
     backup() {
+      if (this.$root.is_local) return this._local_backup()
       document.getElementById('download-target').src = '/api/config/download'
     },
 
 
+    async _restore_config(config) {
+      await this.$api.put('config/save', config)
+      this.$dispatch('update')
+      return this.$root.success_dialog('Configuration restored.')
+    },
+
+
     async restore() {
-      return this.$root.upload({
-        accept: '.json',
+      if (this.$root.is_local) {
+        let path = await this.$root.file_dialog()
+        if (!path) return
 
-        on_confirm: (file) => {
-          let fr = new FileReader()
+        let config = await this.$api.get('fs/' + path)
+        return this._restore_config(config)
 
-          fr.onload = async e => {
-            let config
+      } else
+        return this.$root.upload({
+          accept: '.json',
 
-            try {
-              config = JSON.parse(e.target.result)
-            } catch (ex) {
-              return this.$root.error_dialog("Invalid config file")
-            }
+          on_confirm: async file => {
+            return new Promise((resolve, reject) => {
+              let fr = new FileReader()
 
-            let data = await this.$api.put('config/save', config)
-            this.$dispatch('update')
-            return this.$root.success_dialog('Configuration restored.')
+              fr.onload = async e => {
+                let config
+
+                try {
+                  config = JSON.parse(e.target.result)
+
+                } catch (e) {
+                  await this.$root.error_dialog("Invalid configuration.")
+                  reject()
+                }
+
+                await this._restore_config(config)
+              }
+
+              fr.readAsText(file)
+            })
           }
-
-          fr.readAsText(file)
-        }
-      })
+        })
     },
 
 
@@ -138,11 +163,17 @@ module.exports = {
 
 
     async upload() {
-      await this.$root.upload({
-        url: 'firmware/update',
-        accept: '.bz2',
-        form: file => {return {firmware: file}},
-      })
+      if (this.$root.is_local) {
+        let path = await this.$root.file_dialog()
+        if (!path) return
+        await this.$api.put('firmware/update', {path})
+
+      } else
+        await this.$root.upload({
+          url: 'firmware/update',
+          accept: '.bz2',
+          form: file => ({firmware: file}),
+        })
 
       await this.$refs.upgrading.open()
     },

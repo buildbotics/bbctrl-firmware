@@ -83,8 +83,8 @@ class LogHandler(RequestHandler):
 
 
     def set_default_headers(self):
-        fmt = socket.gethostname() + '-%Y%m%d.log'
-        filename = datetime.date.today().strftime(fmt)
+        fmt = socket.gethostname() + '-%Y%m%d-%H%M%S.log'
+        filename = datetime.datetime.now().strftime(fmt)
         self.set_header('Content-Disposition', 'filename="%s"' % filename)
         self.set_header('Content-Type', 'text/plain')
 
@@ -176,14 +176,9 @@ class WifiHandler(APIHandler):
             self.get_ctrl().log.exception('Wifi handler')
 
 
-class ConfigLoadHandler(APIHandler):
-    def get(self): self.write_json(self.get_ctrl().config.load())
-
-
 class ConfigDownloadHandler(APIHandler):
     def set_default_headers(self):
-        fmt = socket.gethostname() + '-%Y%m%d.json'
-        filename = datetime.date.today().strftime(fmt)
+        filename = self.get_ctrl().config.get_filename()
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition',
                         'attachment; filename="%s"' % filename)
@@ -192,30 +187,42 @@ class ConfigDownloadHandler(APIHandler):
         self.write_json(self.get_ctrl().config.load(), pretty = True)
 
 
-class ConfigSaveHandler(APIHandler):
-    def put(self): self.get_ctrl().config.save(self.json)
+
+class ConfigHandler(APIHandler):
+    def get(self, action):
+        if action == 'load': self.write_json(self.get_ctrl().config.load())
+        else: raise HTTPError(400, 'Invalid config action')
 
 
-class ConfigResetHandler(APIHandler):
-    def put(self): self.get_ctrl().config.reset()
+    def put(self, action):
+        if   action == 'save':   self.get_ctrl().config.save(self.json)
+        elif action == 'reset':  self.get_ctrl().config.reset()
+        elif action == 'backup': self.get_ctrl().config.backup()
+        else: raise HTTPError(400, 'Invalid config action')
 
 
 class FirmwareUpdateHandler(APIHandler):
-    def prepare(self): pass
-
-
     def put(self):
         self.authorize()
 
-        if not 'firmware' in self.request.files:
-            raise HTTPError(400, 'Missing "firmware"')
-
-        firmware = self.request.files['firmware'][0]
-
         if not os.path.exists('firmware'): os.mkdir('firmware')
+        target = 'firmware/update.tar.bz2'
 
-        with open('firmware/update.tar.bz2', 'wb') as f:
-            f.write(firmware['body'])
+        if 'firmware' in self.request.files:
+            firmware = self.request.files['firmware'][0]
+
+            with open(target, 'wb') as f:
+                f.write(firmware['body'])
+
+        elif 'path' in self.json:
+            path = self.get_ctrl().fs.realpath(self.json['path'])
+
+            if not os.path.exists(path):
+                raise HTTPError(404, 'Firmware file not found')
+
+            if path != target: shutil.copyfile(path, target)
+
+        else: raise HTTPError(400, 'Need "firmware" or "path"')
 
         upgrade_command(self.get_ctrl(), ['/usr/local/bin/update-bbctrl'])
 
@@ -508,10 +515,9 @@ class Web(tornado.web.Application):
             (r'/api/hostname',                  HostnameHandler),
             (r'/api/wifi/([^/]+)/(scan|connect|forget|disconnect)',
              WifiHandler),
-            (r'/api/config/load',               ConfigLoadHandler),
             (r'/api/config/download',           ConfigDownloadHandler),
-            (r'/api/config/save',               ConfigSaveHandler),
-            (r'/api/config/reset',              ConfigResetHandler),
+            (r'/api/config/(load|save|reset|backup)',
+             ConfigHandler),
             (r'/api/firmware/update',           FirmwareUpdateHandler),
             (r'/api/upgrade',                   UpgradeHandler),
             (r'/api/usb/eject/(.*)',            USBEjectHandler),

@@ -76,8 +76,10 @@ module.exports = {
             }
           ]})
 
+        if (result == 'cancel')  return
         if (result == 'save')    await this.save()
         if (result == 'discard') await this.discard()
+
         location.hash = path.join(':')
       }
     },

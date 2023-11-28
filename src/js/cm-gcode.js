@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2021, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -26,38 +26,38 @@
 \******************************************************************************/
 
 
+module.exports = class CMGCode {
+  constructor() {CodeMirror.defineMode('gcode', () => this)}
 
-CodeMirror.defineMode('gcode', (config, parserConfig) => {
-  return {
-    token(stream, state) {
-      if (stream.eatSpace()) return null
 
-      if (stream.match(';')) {
-        stream.skipToEnd()
-        return 'comment'
-      }
+  token(stream, state) {
+    if (stream.eatSpace()) return null
 
-      if (stream.match('(')) {
-        if (stream.skipTo(')')) stream.next()
-        else stream.skipToEnd()
-        return 'comment'
-      }
-
-      if (stream.match(/[+-]?[\d.]+/))     return 'number'
-      if (stream.match(/[\/*%=+-]/))       return 'operator'
-      if (stream.match('[\[\]]'))          return 'bracket'
-      if (stream.match(/N\d+/i))           return 'line'
-      if (stream.match(/O\d+\s*[a-z]+/i))  return 'ocode'
-      if (stream.match(/[F][+-]?[\d.]+/i)) return 'feed'
-      if (stream.match(/[S][+-]?[\d.]+/i)) return 'speed'
-      if (stream.match(/[T]\d+/i))         return 'tool'
-      if (stream.match(/[GM][\d.]+/i))     return 'gcode'
-      if (stream.match(/[A-Z]/i))          return 'id'
-      if (stream.match(/#<[_a-z\d]+>/i))   return 'variable'
-      if (stream.match(/#\d+/))            return 'ref'
-
-      stream.next()
-      return 'error'
+    if (stream.match(';')) {
+      stream.skipToEnd()
+      return 'comment'
     }
+
+    if (stream.match('(')) {
+      if (stream.skipTo(')')) stream.next()
+      else stream.skipToEnd()
+      return 'comment'
+    }
+
+    if (stream.match(/[+-]?[\d.]+/))     return 'number'
+    if (stream.match(/[\/*%=+-]/))       return 'operator'
+    if (stream.match('[\[\]]'))          return 'bracket'
+    if (stream.match(/N\d+/i))           return 'line'
+    if (stream.match(/O\d+\s*[a-z]+/i))  return 'ocode'
+    if (stream.match(/[F][+-]?[\d.]+/i)) return 'feed'
+    if (stream.match(/[S][+-]?[\d.]+/i)) return 'speed'
+    if (stream.match(/[T]\d+/i))         return 'tool'
+    if (stream.match(/[GM][\d.]+/i))     return 'gcode'
+    if (stream.match(/[A-Z]/i))          return 'id'
+    if (stream.match(/#<[_a-z\d]+>/i))   return 'variable'
+    if (stream.match(/#\d+/))            return 'ref'
+
+    stream.next()
+    return 'error'
   }
-})
+}

@@ -37,10 +37,10 @@ module.exports = {
 
   data() {
     return {
-      show: false,
-      config: {},
+      show:     false,
+      config:   {},
       selected: undefined,
-      dir: false,
+      is_dir:   false,
     }
   },
 
@@ -56,13 +56,16 @@ module.exports = {
 
 
   methods: {
-    set_selected(path, dir) {
+    set_selected(path, is_dir) {
       this.selected = path
-      this.dir = dir
+      this.is_dir   = is_dir
     },
 
 
-    activate(path) {this.$refs.dialog.close('activate')},
+    activate(path) {
+      this.set_selected(path)
+      this.$refs.dialog.close('activate')
+    },
 
 
     async open(config = {}) {
@@ -74,8 +77,8 @@ module.exports = {
       if (response == 'cancel') return
 
       // Open directory
-      if (response == 'open' && this.dir) {
-        config = Object.assign({}, config, {dir: this.dir})
+      if (response == 'open' && this.is_dir) {
+        config = Object.assign({}, config, {dir: this.selected})
         return this.open(config)
       }
 
