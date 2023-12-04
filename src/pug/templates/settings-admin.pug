@@ -43,12 +43,6 @@ script#settings-admin-template(type="text/x-template")
         bbutton(@click="set_password", primary, text="Set",
           :disabled="!authorized")
 
-      .pure-control-group
-        label(for="username") Username
-        input(name="username", v-model="username")
-        bbutton(@click="set_username", primary, text="Set",
-          :disabled="!authorized")
-
     h2 Configuration
     bbutton(primary, :disabled="!authorized", @click="backup",  text="Backup",
       icon="save")

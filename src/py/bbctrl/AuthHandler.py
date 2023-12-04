@@ -88,20 +88,6 @@ class AuthHandler(APIHandler):
     self.get_ctrl().set_authorized(sid, False)
 
 
-  def get_username(self): self.write_json(get_username())
-
-
-  def put_username(self):
-    self.not_demo()
-    self.authorize()
-
-    username = self.require_arg('username')
-    if subprocess.call(['usermod', '-l', username, get_username()]):
-      raise HTTPError(
-        400, ('Failed to set username to "%s".  Note, ' +
-              'username cannot be changed while logged in.') % username)
-
-
   def put_password(self):
     self.not_demo()
     self.authorize()

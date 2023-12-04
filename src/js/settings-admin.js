@@ -33,7 +33,6 @@ module.exports = {
 
   data() {
     return {
-      username:        '',
       password:        '',
       password2:       '',
       enableKeyboard: true,
@@ -50,20 +49,10 @@ module.exports = {
   async ready() {
     this.enableKeyboard   = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
-    this.username         = await this.$api.get('auth/username')
   },
 
 
   methods: {
-    async set_username() {
-      if (this.username.length < 2)
-        return this.$root.error_dialog('Username too short')
-
-      this.$api.put('auth/username', {username: this.username})
-      this.$root.success_dialog('User name Set')
-    },
-
-
     async set_password() {
       if (this.password != this.password2)
         return this.$root.error_dialog('Passwords to not match')
