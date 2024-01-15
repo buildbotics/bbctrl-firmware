@@ -1,6 +1,11 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v2.0.0
+ - Changes for RPi4
+ - Updated Debian version
+ - Improved Wifi settings
+
 ## v1.0.4
  - Detect ``ngc``, ``tap``, ``txt`` and ``tpl`` program file extensions.
  - Fixed bug where planner config changes were not reflected after program stop.
