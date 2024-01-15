@@ -62,12 +62,12 @@ def log_json(o): return json.dumps(log_floats(o))
 
 class Planner():
     def __init__(self, ctrl):
-        self.ctrl = ctrl
-        self.log = ctrl.log.get('Planner')
-        self.cmdq = CommandQueue(ctrl)
+        self.ctrl          = ctrl
+        self.log           = ctrl.log.get('Planner')
+        self.cmdq          = CommandQueue(ctrl)
         self.end_callbacks = deque()
-        self.planner = None
-        self.where = ''
+        self.planner       = None
+        self.where         = ''
 
         ctrl.state.add_listener(self._update)
 
@@ -86,23 +86,23 @@ class Planner():
 
 
     def get_config(self, with_start, with_limits):
-        state = self.ctrl.state
-        config = self.ctrl.config
-        is_pwm = config.get('tool-type') == 'PWM Spindle'
+        state     = self.ctrl.state
+        config    = self.ctrl.config
+        is_pwm    = config.get('tool-type') == 'PWM Spindle'
         deviation = config.get('max-deviation', 0.1)
 
         cfg = {
             # NOTE Must get current units not configured default units
             'default-units': 'METRIC' if state.get('metric') else 'IMPERIAL',
-            'max-vel':   state.get_axis_vector('vm', 1000),
-            'max-accel': state.get_axis_vector('am', 1000000),
-            'max-jerk':  state.get_axis_vector('jm', 1000000),
+            'max-vel':         state.get_axis_vector('vm', 1000),
+            'max-accel':       state.get_axis_vector('am', 1000000),
+            'max-jerk':        state.get_axis_vector('jm', 1000000),
             'rapid-auto-off':  config.get('rapid-auto-off') and is_pwm,
             'max-blend-error': deviation,
             'max-merge-error': deviation,
             'max-arc-error':   deviation / 10,
             'junction-accel':  config.get('junction-accel'),
-            }
+        }
 
         if with_limits:
             minLimit = state.get_soft_limit_vector('tn', -math.inf)

@@ -148,9 +148,10 @@ enum {
 
 
 // DRV8711 settings
-// NOTE, PWM frequency = 1 / (2 * DTIME + TBLANK + TOFF)
-// We have PWM frequency = 1 / (2 * 850nS + 1uS + 6.5uS) ~= 110kHz
-#define DRV8711_OFF              12
+// NOTE,   PWM frequency = 1 / (2 * DTIME + TBLANK +   TOFF)
+// We have PWM frequency = 1 / (2 * 850nS +    1uS +  6.5uS) ~= 110kHz
+// We have PWM frequency = 1 / (2 * 850nS +    1uS + 24.5uS) ~= 36.8kHz
+#define DRV8711_OFF              48
 #define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
 #define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
 
