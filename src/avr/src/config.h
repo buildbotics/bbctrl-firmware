@@ -153,14 +153,16 @@ enum {
 // We have PWM frequency = 1 / (2 * 850nS +    1uS + 24.5uS) ~= 36.8kHz
 #define DRV8711_OFF              48
 #define DRV8711_BLANK            (0x32 | DRV8711_BLANK_ABT_bm)
-#define DRV8711_DECAY            (DRV8711_DECAY_DECMOD_MIXED | 16)
 
-#define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_50  | \
-                                  DRV8711_DRIVE_IDRIVEN_100 | \
+// NOTE, slow decay mode can cause FET failure when motor wired incorrectly
+#define DRV8711_DECAY            DRV8711_DECAY_DECMOD_FAST
+
+#define DRV8711_DRIVE            (DRV8711_DRIVE_IDRIVEP_200 | \
+                                  DRV8711_DRIVE_IDRIVEN_400 | \
                                   DRV8711_DRIVE_TDRIVEP_500 | \
                                   DRV8711_DRIVE_TDRIVEN_500 | \
                                   DRV8711_DRIVE_OCPDEG_1    | \
-                                  DRV8711_DRIVE_OCPTH_500)
+                                  DRV8711_DRIVE_OCPTH_250)
 // NOTE, Datasheet suggests 850ns DTIME with the optional gate resistor
 // installed.  See page 30 section 8.1.2 of DRV8711 datasheet.
 #define DRV8711_CTRL             (DRV8711_CTRL_ISGAIN_5 | \

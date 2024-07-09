@@ -27,7 +27,7 @@
 
 #define    AXES_LABEL "xyzabc"
 #define  MOTORS_LABEL "0123"
-#define    OUTS_LABEL "0123MFfedt"
+#define    OUTS_LABEL "0123MFfedtb"
 #define     INS_LABEL "0123ep"
 #define ANALOGS_LABEL "0123"
 #define  VFDREG_LABEL "0123456789abcdefghijklmnopqrstuv"

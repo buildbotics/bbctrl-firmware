@@ -77,6 +77,8 @@ typedef struct {
   current_t drive;
   current_t idle;
   uint16_t last_torque_reg;
+  uint8_t torque_step;
+  uint8_t torque_bytes;
 
   uint8_t microstep;
   uint8_t last_microstep;
@@ -112,9 +114,22 @@ typedef struct {
   uint16_t response;
   uint8_t driver;
   bool low_byte;
+  uint8_t bytes;
 } spi_t;
 
 static spi_t spi = {0};
+
+
+static uint8_t torque_ramp[] = {
+#if 0
+  0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 9,
+  10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 26, 28, 31, 34, 37, 41, 45, 50, 55,
+  60, 66, 73, 80, 88, 97, 107, 117, 129, 142, 156, 172, 189, 208, 229, 252, 255
+#else
+  0, 1, 1, 2, 2, 2, 3, 4, 5, 6, 7, 9, 12, 15, 18, 23, 28, 36, 44, 56, 69, 87,
+  108, 136, 169, 212, 255
+#endif
+};
 
 
 static uint8_t _microsteps(uint16_t msteps) {
@@ -175,6 +190,29 @@ static uint8_t _driver_get_torque(drv8711_driver_t *drv) {
 }
 
 
+static uint8_t _driver_ramp_torque(drv8711_driver_t *drv) {
+  uint8_t target = _driver_get_torque(drv);
+
+  // Drop down
+  if (target < torque_ramp[drv->torque_step]) {
+    while (drv->torque_step && target <= torque_ramp[drv->torque_step - 1])
+      drv->torque_step--;
+    return target;
+  }
+
+  // Ramp up
+  if (torque_ramp[drv->torque_step + 1] < target &&
+    32 < spi.bytes - drv->torque_bytes) {
+    drv->torque_step++;
+    drv->torque_bytes = spi.bytes;
+    return torque_ramp[drv->torque_step];
+  }
+
+  // At target
+  return target;
+}
+
+
 static uint16_t _driver_get_torque_reg(drv8711_driver_t *drv) {
   uint16_t reg;
 
@@ -189,7 +227,7 @@ static uint16_t _driver_get_torque_reg(drv8711_driver_t *drv) {
   default:   reg = DRV8711_TORQUE_SMPLTH_50;   break;
   }
 
-  return reg | _driver_get_torque(drv);
+  return reg | _driver_ramp_torque(drv);
 }
 
 
@@ -328,6 +366,7 @@ static void _spi_send() {
 
   // Write byte and prep next read
   SPIC.DATA = *DRV8711_WORD_BYTE_PTR(spi.command, spi.low_byte);
+  spi.bytes++; // Count bytes sent for current ramp timing
 
   // Next byte
   spi.low_byte = !spi.low_byte;
