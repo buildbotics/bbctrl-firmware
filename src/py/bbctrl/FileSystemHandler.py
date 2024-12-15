@@ -50,15 +50,23 @@ class FileSystemHandler(RequestHandler):
     def delete(self, path): self.get_fs().delete(clean_path(path))
 
 
-    def put(self, path):
-        path = clean_path(path)
+    def put(self, path = None):
+        if path is not None:
+            path = clean_path(path)
 
-        if 'file' in self.request.files:
-            self.get_fs().mkdir(os.path.dirname(path))
-            file = self.request.files['file'][0]
+            if 'file' in self.request.files:
+                self.get_fs().mkdir(os.path.dirname(path))
+                file = self.request.files['file'][0]
+                self.get_fs().write(path, file['body'])
+
+            else: self.get_fs().mkdir(clean_path(path))
+
+        elif 'gcode' in self.request.files: # Backwards compatibility
+            file = self.request.files['gcode'][0]
+            path = 'Home/' + clean_path(os.path.basename(file['filename']))
             self.get_fs().write(path, file['body'])
 
-        else: self.get_fs().mkdir(path)
+        os.sync()
 
 
     @gen.coroutine

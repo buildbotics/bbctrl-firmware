@@ -28,6 +28,7 @@
 from datetime import datetime
 import pkg_resources
 from pkg_resources import Requirement, resource_filename
+import socket
 
 
 _version = pkg_resources.require('bbctrl')[0].version
@@ -51,6 +52,10 @@ def get_model(): return _model
 def parse_version(s): return tuple([int(x) for x in s.split('.')])
 def version_less(a, b): return parse_version(a) < parse_version(b)
 def timestamp(): return datetime.now().strftime('%Y%m%d-%H%M%S')
+
+
+def get_config_filename():
+  return socket.gethostname() + datetime.now().strftime('-%Y%m%d-%H%M%S.json')
 
 
 def timestamp_to_iso8601(ts):

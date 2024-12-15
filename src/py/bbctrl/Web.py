@@ -178,7 +178,8 @@ class WifiHandler(APIHandler):
 
 class ConfigDownloadHandler(APIHandler):
     def set_default_headers(self):
-        filename = self.get_ctrl().config.get_filename()
+        # NOTE get_ctrl() not accessible from here because it needs get_cookie()
+        filename = util.get_config_filename()
         self.set_header('Content-Type', 'application/octet-stream')
         self.set_header('Content-Disposition',
                         'attachment; filename="%s"' % filename)
@@ -195,6 +196,7 @@ class ConfigHandler(APIHandler):
 
 
     def put(self, action):
+        self.authorize()
         if   action == 'save':   self.get_ctrl().config.save(self.json)
         elif action == 'reset':  self.get_ctrl().config.reset()
         elif action == 'backup': self.get_ctrl().config.backup()
@@ -522,6 +524,7 @@ class Web(tornado.web.Application):
             (r'/api/upgrade',                   UpgradeHandler),
             (r'/api/usb/eject/(.*)',            USBEjectHandler),
             (r'/api/fs/(.*)',                   FileSystemHandler),
+            (r'/api/file',                      FileSystemHandler), # Compat
             (r'/api/macro/(\d+)',               MacroHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),

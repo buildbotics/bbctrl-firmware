@@ -31,7 +31,6 @@ import subprocess
 import copy
 import glob
 import re
-import socket
 import datetime
 
 from . import util
@@ -273,15 +272,10 @@ class Config(object):
         self.ctrl.events.emit('invalidate-all')
 
 
-    def get_filename(self):
-        fmt = socket.gethostname() + '-%Y%m%d-%H%M%S.json'
-        return datetime.datetime.now().strftime(fmt)
-
-
     def backup(self):
         path = 'upload/configs'
         if not os.path.exists(path): os.makedirs(path)
-        path += '/' + self.get_filename()
+        path += '/' + util.get_config_filename()
 
         with open(path, 'w') as f:
             json.dump(self.load(), f, indent = 2, separators = (',', ': '))
