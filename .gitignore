@@ -22,3 +22,7 @@ __pycache__
 *.elf
 *.hex
 /scratch.txt
+
+/bin
+/rootfs
+/share
