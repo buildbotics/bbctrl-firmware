@@ -284,8 +284,6 @@ class Planner():
             return
 
         if type == 'input':
-            # TODO handle timeout
-            self.planner.synchronize(0) # TODO Fix this
             return Cmd.input(block['port'], block['mode'], block['timeout'])
 
         if type == 'output':
@@ -341,6 +339,9 @@ class Planner():
         self.cmdq.clear()
         self.reset_times()
         self.ctrl.state.reset()
+
+
+    def result(self, result): self.planner.synchronize(result)
 
 
     def _end_program(self, msg = None, end_all = False):

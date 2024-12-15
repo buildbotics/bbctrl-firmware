@@ -122,7 +122,7 @@ static stat_t _exec_cb() {
 
 // Command callbacks
 stat_t command_input(char *cmd) {
-  input_cmd_t input_cmd;
+  input_cmd_t input_cmd = {IO_DISABLED, };
   cmd++; // Skip command
 
   // Analog or digital

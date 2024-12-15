@@ -89,6 +89,8 @@ class Comm(ABC):
     def comm_next(self): pass
     @abstractmethod
     def comm_error(self): pass
+    @abstractmethod
+    def comm_result(self, result): pass
 
 
     def is_active(self): return len(self.queue) or self.command is not None
@@ -246,7 +248,9 @@ class Comm(ABC):
                     self.log.info('AVR firmware rebooted')
                     self.connect()
 
-                else: self._update_state(msg)
+                else:
+                    if 'result' in msg: self.comm_result(msg['result'])
+                    self._update_state(msg)
 
 
     def enter_estop(self): self.estopped = True

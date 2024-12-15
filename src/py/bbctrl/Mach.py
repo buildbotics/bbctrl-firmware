@@ -264,6 +264,7 @@ class Mach(Comm):
 
 
     def comm_error(self): self.planner.reset()
+    def comm_result(self, result): self.planner.result(result)
 
 
     def connect(self):
