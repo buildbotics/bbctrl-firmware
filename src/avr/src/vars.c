@@ -99,7 +99,7 @@ typedef struct {
 
 
 // Var names
-#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT)           \
+#define VAR(NAME, CODE, TYPE, INDEX, SET, REPORT, ...)       \
   static const char NAME##_name[] PROGMEM = #NAME;
 
 #include "vars.def"

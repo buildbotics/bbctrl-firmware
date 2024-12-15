@@ -460,15 +460,15 @@ script#docs-gcode-template(type="text/x-template")
         td
         td Save/restore modal state
 
-      tr.spacer-row.unimplemented(v-if="showUnimplemented"): th
-      tr.header-row.unimplemented(v-if="showUnimplemented")
+      tr.spacer-row: th
+      tr
         th(colspan='3') Input/Output
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/m-code.html#mcode:m62-m65`) M62 - M65
         td P
         td Digital Output Control
-      tr.unimplemented(v-if="showUnimplemented")
+      tr
         td
           a(target="_blank", href=`${base}/m-code.html#mcode:m66`) M66
         td P E L Q

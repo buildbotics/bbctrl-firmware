@@ -1,0 +1,1210 @@
+---
+openapi: 3.1.0
+info:
+  title: Buildbotics CNC Controller API
+  version: 1.0.0
+  description: |-
+    This document describes the programmatic interface to the Buildbotics CNC
+    Controller.  This interface is used by the controller's own web user
+    interface but can also be used by third-party programs to interact with
+    the Buildbotics controller and monitor its status.
+
+    The Buildbotics controller is a smart CNC machine controller
+    with built-in Web interface and advanced GCode processor. It can drive
+    up to 4 stepper motors and many different tools such as a CNC spindle,
+    LASER cutter or plasma torch.  See https://buildbotics.com/ for more info.
+  contact: {email: info@buildbotics.com}
+  license:
+    name: GNU General Public License v3.0 or later
+    identifier: GPL-3.0-or-later
+
+servers:
+  - url: http://bbctrl.local/api
+
+tags:
+  - name: Authorization
+    description: >
+      These functions are used to control access to some of the admin
+      functions.  Since the controller is typically accessed over
+      insecure HTTP and the password and cookie are transmitted over
+      the network in plain text, this should not be relied upon for
+      strict security.  The purpose of these functions is to prevent
+      accidental alteration of a few critical configuration items.
+
+      Those API end points which can return a 401 code require
+      authorization.  The login in associated with a session ID which
+      is stored in an HTTP cookie named ``bbctrl-client-id``.
+
+      The cookie is a random string created by the client.  For example,
+      in the web interface code it is a random 52 character string
+      containing upper and lower case characters, numbers, underscore
+      or plus.
+
+  - name: Control
+  - name: Administration
+  - name: Filesystem
+  - name: Miscellaneous
+
+paths:
+  /websocket:
+    get:
+      description: >
+        Websocket interface.  See https://datatracker.ietf.org/doc/html/rfc6455
+        Also see https://api.buildbotics.com/Websocket_API.md for the message
+        format details.
+      tags: ['Control']
+
+  /state:
+    get:
+      description: Get the current controller state.
+      tags: ['Control']
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/state'}
+
+  /state/{name}:
+    get:
+      description: >
+        Get a controller state variable.  The format of the result depends on
+        the requested variable.  See the state schema.
+      tags: ['Control']
+      parameters:
+        - name: name
+          description: State variable name.
+          required: true
+          schema: {type: string}
+          in: path
+      responses:
+        200:
+          description: success
+          content:
+            application/json:
+
+  /message/{id}/ack:
+    put:
+      description: >
+        Acknowledge the receipt of a message.  Used by the web interface.
+      tags: ['Control']
+      parameters:
+        - name: id
+          description: Message ID
+          required: true
+          schema: {type: integer}
+          in: path
+
+  /usb/eject/{path}:
+    parameters:
+      - name: path
+        description: A USB device path.
+        required: true
+        schema: {type: string}
+        in: path
+
+    put:
+      description: Cause the USB device at the specified path to by ejected.
+      tags: ['Filesystem']
+      responses:
+        200: {description: Success.}
+
+  /fs/{path}:
+    parameters:
+      - name: path
+        description: A file path.
+        required: true
+        schema: {type: string}
+        in: path
+
+    get:
+      description: Download a file or directory.
+      tags: ['Filesystem']
+      responses:
+        200:
+          description: >
+            Response is either a JSON object defining a directory or the
+            contents of a file.
+          content:
+            application-json:
+              schema: {$ref: '#/components/schemas/directory'}
+            text/plain: {schema: {type: string}}
+        400: {description: Invalid path.}
+        404: {description: Not found.}
+
+    put:
+      description: Upload a file or create a directory.
+      tags: ['Filesystem']
+      requestBody:
+        description: The firmware package.
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                firmware:
+                  type: array
+                  maxItems: 1
+                  minItems: 1
+                  items: {}
+      responses:
+        400: {description: Invalid path.}
+        200: {description: Success.}
+
+    delete:
+      description: Delete a file or directory.
+      tags: ['Filesystem']
+      responses:
+        200: {description: Success.}
+        400: {description: Invalid path.}
+        404: {description: Not found.}
+
+  /macro/{id}:
+    parameters:
+      - name: id
+        description: Macro ID.
+        required: true
+        schema: {type: integer}
+        in: path
+
+    put:
+      description: Run a macro.
+      tags: ['Control']
+      responses:
+        200: {description: Success.}
+        404: {description: Not found.}
+
+  /path/{path}:
+    parameters:
+      - name: path
+        description: Path to tool path file.
+        required: true
+        in: path
+        schema: {type: string}
+
+    get:
+      description: Download tool path meta data.
+      tags: ['Control']
+
+      responses:
+        200:
+          description: >
+            Returns a JSON object specifying the current progress if the data
+            is not yet ready, otherwise the JSON tool path meta data.
+
+          content:
+            application-json:
+              schema: {$ref: '#/components/schemas/toolpath-meta'}
+
+  /positions/{path}:
+    parameters:
+      - name: path
+        description: Path to tool path file.
+        required: true
+        in: path
+        schema: {type: string}
+
+    get:
+      description: Download computed tool path target XYZ positions.
+      tags: ['Control']
+
+      responses:
+        200:
+          description: >-
+            Returns gzip a compressed raw array of IEEE 754 binary32 position
+            data.  Each group of three numbers represent an XYZ target tool
+            position.
+
+          headers:
+            Content-Disposition:
+              description: >
+                See https://www.rfc-editor.org/rfc/rfc2183#section-2
+              schema: {type: string}
+
+            Content-Encoding:
+              schema:
+                type: string
+                const: gzip
+
+            Content-Length:
+              description: Byte length of the compressed data.
+              schema: {type: integer}
+
+          content:
+            application-octet-stream:
+
+  /speeds/{path}:
+    parameters:
+      - name: path
+        description: Path to tool path file.
+        required: true
+        in: path
+        schema: {type: string}
+
+    get:
+      description: >
+        Download computed tool path tool speeds.  There is one speed entry
+        for every XYZ position in the positions data.
+      tags: ['Control']
+
+      responses:
+        200:
+          description: >-
+            Returns gzip a compressed raw array of IEEE 754 binary32 speed
+            data.
+
+          headers:
+            Content-Disposition:
+              description: See https://www.rfc-editor.org/rfc/rfc2183#section-2
+              schema: {type: string}
+
+            Content-Encoding:
+              schema:
+                type: string
+                const: gzip
+
+            Content-Length:
+              description: Byte length of the compressed data.
+              schema: {type: integer}
+
+          content:
+            application-octet-stream:
+
+  /home:
+    put:
+      description: Home all axes.
+      tags: ['Control']
+
+  /home/{axis}:
+    put:
+      description: Home an axis.
+      tags: ['Control']
+      parameters:
+        - name: axis
+          description: Axis name.
+          required: true
+          in: path
+          schema: {$ref: '#/components/schemas/axis'}
+
+  /home/{axis}/set:
+    put:
+      description: Set the home position of an axis.
+      tags: ['Control']
+      parameters:
+        - name: axis
+          description: Axis name.
+          required: true
+          in: path
+          schema: {$ref: '#/components/schemas/axis'}
+
+      requestBody:
+        description: The position.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['position']
+              properties:
+                position: {type: number}
+
+  /home/{axis}/clear:
+    put:
+      description: Mark an axis as unhomed.
+      tags: ['Control']
+      parameters:
+        - name: axis
+          description: Axis name.
+          required: true
+          in: path
+          schema: {$ref: '#/components/schemas/axis'}
+
+  /start/{path}:
+    put:
+      description: Start a program.
+      tags: ['Control']
+      parameters:
+        - name: path
+          description: Program path.
+          required: true
+          in: path
+          schema: {type: string}
+
+  /activate/{path}:
+    put:
+      description: Set the active program.
+      tags: ['Control']
+      parameters:
+        - name: path
+          description: Program path.
+          required: true
+          in: path
+          schema: {type: string}
+
+  /estop:
+    put:
+      description: Trigger an emergency stop.
+      tags: ['Control']
+
+  /clear:
+    put:
+      description: Clear an emergency stop.
+      tags: ['Control']
+
+  /stop:
+    put:
+      description: Stop the running program.
+      tags: ['Control']
+
+  /pause:
+    put:
+      description: Pause the running program.
+      tags: ['Control']
+
+  /unpause:
+    put:
+      description: Resume the running program.
+      tags: ['Control']
+
+  /position/{axis}:
+    put:
+      description: Set the axis position.
+      tags: ['Control']
+      parameters:
+        - name: axis
+          description: Axis name.
+          required: true
+          in: path
+          schema: {$ref: '#/components/schemas/axis'}
+
+  /jog:
+    put:
+      description: Jog the machine.
+      tags: ['Control']
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: []
+              properties:
+                ts:
+                  description: >
+                    An increasing value that ensures jog commands are not
+                    processed out of order.
+                  type: integer
+
+              patternProperties:
+                '^[xyzabcXYZABC]$':
+                  description: >
+                    The axis direction and force.  A value of zero brings
+                    the axis to a halt. The sign determines the axis direction.
+                  type: number
+                  minimum: -1
+                  maximum: 1
+
+  /bugreport:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    get:
+      description: Download a bug report file.
+      tags: ['Administration']
+      responses:
+        200:
+          description: >
+            Returns a unix tar archive format file compressed with bzip2.
+            The file will containing recent controller log files and the
+            current controller configuration.
+          headers:
+            Content-Disposition:
+              description: See https://www.rfc-editor.org/rfc/rfc2183#section-2
+              schema: {type: string}
+          content:
+            application/x-bzip2:
+        401: {description: Not authorized.}
+
+  /reboot:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Reboot the controller.
+      tags: ['Administration']
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /hostname:
+    get:
+      description: Get the current controller network hostname.
+      tags: ['Administration']
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema: {type: string}
+
+    put:
+      parameters:
+        - name: bbctrl-sid
+          description: A session ID
+          required: true
+          schema: {type: string}
+          in: cookie
+
+      description: Set the controller network hostname.
+      tags: ['Administration']
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['hostname']
+              properties:
+                hostname:
+                  description: The new hostname.
+                  schema:
+                    type: string
+                    pattern: '[a-zA-Z][a-zA-Z0-9-]*'
+                    minLength: 1
+                    maxLength: 62
+                    not:
+                      oneOf:
+                        - const: localhost
+                        - pattern: '.*\.local'
+      responses:
+        200: {description: Success.}
+        400: {description: Invalid hostname.}
+        401: {description: Not authorized.}
+
+  /wifi/{device}/scan:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Trigger a Wifi device(s) network scan.
+      tags: ['Administration']
+      parameters:
+        - name: device
+          description: >
+            WiFi device name or "*" to scan all devices.  The scan response
+            is not returned directly but will show up in the controller
+            state "network" variable.
+          required: true
+          schema: {type: string}
+          in: path
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /wifi/{device}/connect:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Connect a Wifi network.
+      tags: ['Administration']
+      parameters:
+        - name: device
+          description: WiFi device name.
+          required: true
+          schema: {type: string}
+          in: path
+
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  description: The UUID of a Wifi network.
+                  schema: {type: string}
+
+                ssid:
+                  description: The SSID of a Wifi network.
+                  schema: {type: string}
+
+                password:
+                  description: The Wifi network password.
+                  schema: {type: string}
+
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /wifi/{device}/forget:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Forget a Wifi network configuration.
+      tags: ['Administration']
+      parameters:
+        - name: device
+          description: WiFi device name.
+          required: true
+          schema: {type: string}
+          in: path
+
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['uuid']
+              properties:
+                uuid:
+                  description: The UUID of a Wifi network.
+                  schema: {type: string}
+
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /wifi/{device}/disconnect:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Disconnect for a Wifi network.
+      tags: ['Administration']
+      parameters:
+        - name: device
+          description: WiFi device name.
+          required: true
+          schema: {type: string}
+          in: path
+
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /config/download:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    get:
+      description:
+        Download the current controller configuration file.
+      tags: ['Administration']
+      responses:
+        200:
+          description: Success
+          headers:
+            Content-Disposition:
+              description: See https://www.rfc-editor.org/rfc/rfc2183#section-2
+              schema: {type: string}
+
+            Content-Type:
+              description: Causes the browser to open a save file dialog.
+              schema: {type: string}
+              example: application/octet-stream
+
+          content:
+            application/json:
+              schema:
+                $ref: 'https://api.buildbotics.com/bbctrl-config-schema.yaml'
+
+        401: {description: Not authorized.}
+
+  /config/load:
+    get:
+      description: Download a controller configuration file.
+      tags: ['Administration']
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: 'https://api.buildbotics.com/bbctrl-config-schema.yaml'
+
+  /config/save:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Upload a controller configuration file.
+      tags: ['Administration']
+      requestBody:
+        description: The new config.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'https://api.buildbotics.com/bbctrl-config-schema.yaml'
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /config/reset:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Restore the default config.
+      tags: ['Administration']
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /config/backup:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Make a backup of the current config.
+      tags: ['Administration']
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /firmware/update:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Update the controller firmware.
+      tags: ['Administration']
+      requestBody:
+        description: The firmware package.
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                firmware:
+                  type: array
+                  maxItems: 1
+                  minItems: 1
+                  items:
+                    $ref: 'https://api.buildbotics.com/bbctrl-config-schema.yaml'
+
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  description: A path on the controller to a firmware package.
+                  schema: {type: string}
+
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /upgrade:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Trigger a remote firmware upgrade.
+      tags: ['Administration']
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+
+  /log:
+    get:
+      description: Download the controller log.
+      tags: ['Administration']
+      responses:
+        200:
+          description: success
+          content:
+            text/plain:
+
+  /auth/login:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    get:
+      description: Query the login status.
+      tags: ['Authorization']
+      responses:
+        200:
+          description: True if logged in.
+          content:
+            application/json:
+              schema: {type: boolean}
+
+    put:
+      description: Login to the controller.
+      tags: ['Authorization']
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['password']
+              properties:
+                password: {type: string}
+
+      responses:
+        200: {description: Login success.}
+        401: {description: Invalid password.}
+
+    delete:
+      description: Logout of the controller.
+      tags: ['Authorization']
+      responses:
+        200: {description: Logout success.}
+        401: {description: Unauthorized.}
+
+  /auth/password:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: Set the login password.
+      tags: ['Authorization']
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['password']
+              properties:
+                password: {type: string}
+      responses:
+        200: {description: Password updated.}
+        400: {description: Missing required argument.}
+        401: {description: Password update failed.}
+
+  /video:
+    get:
+      description: Get video stream from attached USB camera.
+      tags: ['Miscellaneous']
+      responses:
+        200:
+          description: A stream of MJPEG frames.
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                const: multipart/x-mixed-replace
+
+  /keyboard/show:
+    put:
+      description: Show the virtual keyboard on the local screen.
+      tags: ['Miscellaneous']
+
+
+  /keyboard/hide:
+    put:
+      description: Hide the virtual keyboard on the local screen.
+      tags: ['Miscellaneous']
+
+  /modbus/read:
+    put:
+      description: >
+        Read a value from the modbus.  The result is stored in modbus
+        state variable.
+      tags: ['Miscellaneous']
+
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['address']
+              properties:
+                address: {type: integer}
+
+  /modbus/write:
+    put:
+      description: Write a value to the modbus.
+      tags: ['Miscellaneous']
+      requestBody:
+        description: Parameters.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['address', 'value']
+              properties:
+                address: {type: integer}
+                value: {type: integer}
+
+components:
+  schemas:
+    axis:
+      type: string
+      enum: [x, y, z, a, b, c, X, Y, Z, A, B, C]
+
+    directory:
+      type: object
+      properties:
+        path:
+          description: The full directory path.
+          type: string
+        files:
+          description: An array of file entries.
+          type: array
+          items:
+            name:
+              description: File name.
+              type: string
+            created:
+              description: File creation time.
+              type: string
+              format: date-time
+            modified:
+              description: Last file modification time.
+              type: string
+              format: date-time
+            size:
+              description: File size in bytes.
+              type: integer
+            dir:
+              description: True if this entry is a directory.
+              type: boolean
+
+    network:
+      type: object
+
+    toolpath-meta:
+      type: object
+      properties:
+        time:
+          type: number
+          description: Total estimated program runtime.
+        lines:
+          type: integer
+          description: Total number of program lines.
+        maxSpeed:
+          type: number
+          description: Maximum programed tool speed.
+        bounds:
+          type: object
+          description: The bounds of the programmed tool path.
+          properties:
+            min:
+              type: object
+              properties:
+                x: {type: number}
+                y: {type: number}
+                z: {type: number}
+            max:
+              type: object
+              properties:
+                x: {type: number}
+                y: {type: number}
+                z: {type: number}
+        messages:
+          type: array
+          description: An array of messages generated by running the program.
+          items:
+            type: object
+            properties:
+              level:
+                type: string
+                enum: ['info', 'debug', 'warning', 'error']
+              msg: {type: string}
+              filename: {type: string}
+              line: {type: integer}
+              column: {type: integer}
+
+    state:
+      type: object
+      description: >
+        A dictionary of all the controllers state variables.  In addition to
+        the variables defined here any of the config variables in
+        [bbctrl-config-schema.yaml](bbctrl-config-schema.yaml) or internal
+        variables in [bbctrl-vars-schema.yaml](bbctrl-vars-schema.yaml) may
+        appear in the state as well.
+
+      properties:
+        active_program:
+          type: string
+          description: The path to the currently active program.
+
+        line:
+          type: integer
+          description: Currently executing program line.
+
+        cycle:
+          type: string
+          description: The current program cycle.
+          enum: ['idle', 'running', 'mdi', 'jogging', 'homing']
+
+        plan_time:
+          type: number
+          description: >
+            How far along in seconds the machine is into the currently running
+            program.
+
+        units:
+          type: string
+          description: >
+            The current machine measurement units.  All internal values are
+            always in metric but a machine program or user interface may also
+            operate with imperial units.
+          enum: ['metric', 'imperial']
+
+        metric:
+          type: boolean
+          description: True if the machine is currently using metric units.
+
+        imperial:
+          type: boolean
+          description: True if the machine is currently using imperial units.
+
+        tool:
+          type: integer
+          description: The currently selected tool.
+
+        feed:
+          type: number
+          description: The current feed rate.
+
+        speed:
+          type: number
+          description: The current tool speed.
+
+        optional_pause:
+          type: boolean
+          description: Enables the next program optional pause.
+
+        messages:
+          type: array
+          description: >
+            An array of active messages and their IDs.  IDs increment
+            monotonically.
+          entries:
+            type: object
+            properties:
+              text:
+                type: string
+                description: The message.
+              id:
+                type: integer
+                description: The message identifier.
+
+        first_file:
+          type: string
+          description: The path of the first file on the controller.
+
+        locations:
+          type: array
+          description: A list of filesystem locations.
+          items:
+            type: object
+            patternProperties:
+              '.*':
+                type: string
+                description: >
+                  The key is the name of the location and the value its path.
+
+        demo:
+          type: boolean
+          description: True if running in demo mode.
+
+        rpi_model:
+          type: string
+          description: >
+            The model name of the RaspberryPi inside the Buildbotics
+            controller.
+
+        rpi_temp:
+          type: integer
+          description: >
+            The measured temperature of the RaspberryPi in degrees C.
+
+        timestamp:
+          type: number
+          description: >
+            Current controller time since the Unix epoch in seconds.
+
+        power_version:
+          type: string
+          description: The version number of the power firmware.
+          format: '\d+\.\d+'
+
+        power_version_int:
+          type: integer
+          description: The version number of the power firmware.
+
+        temp:
+          type: integer
+          description: >
+            The temperature of the Buildbotics main board measured in degrees C.
+
+        vin:
+          type: number
+          description: The measured input voltage.
+
+        vout:
+          type: number
+          description: The measured voltage at the motor outputs.
+
+        motor:
+          type: number
+          description:
+
+        pwr_flags:
+          type: integer
+          description: Power error flags.
+
+        under_voltage:
+          type: boolean
+          description: Device under voltage
+
+        over_voltage:
+          type: boolean
+          description: Device over voltage
+
+        over_current:
+          type: boolean
+          description: Device total current limit exceeded
+
+        sense_error:
+          type: boolean
+          description: Power sense error
+
+        shunt_overload:
+          type: boolean
+          description: Power shunt overload
+
+        motor_overload:
+          type: boolean
+          description: Motor power overload
+
+        load1_shutdown:
+          type: boolean
+          description: Load 1 over temperature shutdown
+
+        gate_error:
+          type: boolean
+          description: Motor power gate not working
+
+        load2_shutdown:
+          type: boolean
+          description: Load 2 over temperature shutdown
+
+        motor_under_voltage:
+          type: boolean
+          description: Motor under voltage
+
+        motor_voltage_sense_error:
+          type: boolean
+          description: Motor voltage sense error
+
+        motor_current_sense_error:
+          type: boolean
+          description: Motor current sense error
+
+        load1_sense_error:
+          type: boolean
+          description: Load1 sense error
+
+        load2_sense_error:
+          type: boolean
+          description: Load2 sense error
+
+        vdd_current_sense_error:
+          type: boolean
+          description: Vdd current sense error
+
+        shutdown:
+          type: boolean
+          description: Power shutdown
+
+        shunt_error:
+          type: boolean
+          description: Shunt error
+
+        network: {'$ref': '#/components/schemas/network'}
+
+      patternProperties:
+        '^[xyzabc]p$':
+          type: number
+          description: Axis position in mm.
+
+        '^offset_[xyzabc]$':
+          type: number
+          description: Axis offset in mm.
+
+        '^[0123]homed$':
+          type: integer
+          description: Non-zero if the motor is homed.
+
+        '^[0123]home_position$':
+          type: number
+          description: Home position in mm of the axis or motor.
+
+        '^[0123]home_travel$':
+          type: number
+          description: The maximum travel distance in mm to find home.

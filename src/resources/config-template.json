@@ -31,6 +31,7 @@
   "motors": {
     "type": "list",
     "index": "0123",
+    "help": "Motor configuration variables are index by the motor number.",
     "default": [
       {"axis": "X"},
       {"axis": "Y"},
@@ -49,9 +50,8 @@
       "driver": {
         "type-of-driver": {
           "type": "enum",
-          "values": ["internal","generic external"],
-          "default": "internal",
-          "code": "dt"
+          "values": ["internal", "generic external"],
+          "default": "internal"
         },
         "step-length": {
           "type": "float",
@@ -167,15 +167,13 @@
         "homing-mode-external": {
           "type": "enum",
           "values": ["manual", "switch-min", "switch-max"],
-          "default": "manual",
-          "code": "ho"
+          "default": "manual"
         },
         "homing-mode": {
           "type": "enum",
           "values": [
             "manual", "switch-min", "switch-max", "stall-min", "stall-max"],
-          "default": "manual",
-          "code": "ho"
+          "default": "manual"
         },
         "stall-microstep": {
           "type": "int",
@@ -187,6 +185,7 @@
         },
         "search-velocity": {
           "type": "float",
+          "help": "The homing latch search speed in m/min.",
           "min": 0,
           "unit": "m/min",
           "iunit": "IPM",
@@ -197,22 +196,22 @@
         },
         "latch-velocity": {
           "type": "float",
+          "help": "The when backing off the latch or reprobing speed in m/min.",
           "min": 0,
           "unit": "m/min",
           "iunit": "IPM",
           "scale": 0.0254,
           "default": 0.1,
-          "code": "lv",
           "hmodes": ["switch-min", "switch-max"]
         },
         "latch-backoff": {
           "type": "float",
+          "help": "The distance in mm to move away from a latch before the more accurate and slower reprobe.",
           "min": 0,
           "unit": "mm",
           "iunit": "in",
           "scale": 25.4,
           "default": 100,
-          "code": "lb",
           "hmodes": ["switch-min", "switch-max"]
         },
         "stall-volts": {
@@ -241,12 +240,12 @@
         },
         "zero-backoff": {
           "type": "float",
+          "help": "The distance in mm to move away from a latch after the final probe.",
           "min": 0,
           "unit": "mm",
           "iunit": "in",
           "scale": 25.4,
           "default": 5,
-          "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
         }
       }
@@ -289,13 +288,13 @@
   "modbus-spindle": {
     "bus-id": {
       "type": "int",
-      "default": "1",
+      "default": 1,
       "code": "hi"
     },
     "baud": {
-      "type": "enum",
-      "values": ["9600", "19200", "38400", "57600", "115200"],
-      "default": "9600",
+      "type": "int",
+      "values": [9600, 19200, 38400, 57600, 115200],
+      "default": 9600,
       "code": "mb"
     },
     "parity": {
@@ -313,6 +312,7 @@
     "regs": {
       "type": "list",
       "index": "0123456789abcdefghijklmnopqrstuv",
+      "help": "ModBus registers are index by alphanumeric characters.",
       "default": [],
       "template": {
         "reg-type": {
@@ -394,6 +394,7 @@
   "io-map": {
     "type": "list",
     "index": "abcdefghijklmnopq",
+    "help": "IO Map entries are indexed by letters.",
     "pins": [
       {"id":  1, "type": "output"},
       {"id":  2, "type": "output"},

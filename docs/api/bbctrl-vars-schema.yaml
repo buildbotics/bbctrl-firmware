@@ -1,0 +1,399 @@
+type: object
+description: Buildbotics internal variables schema.
+properties:
+  fa:
+    type: integer
+    description: >-
+      motor_fault - Motor fault status. 0 for false, 1 for true.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  sd:
+    type: integer
+    description: input_debounce - Input debounce time in ms.
+    minimum: 0
+    maximum: 0
+  sc:
+    type: integer
+    description: input_lockout - Input lockout time in ms.
+    minimum: 0
+    maximum: 0
+  be:
+    type: integer
+    description: >-
+      buffer_enable - Buffer enable state. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  st:
+    type: integer
+    description: tool_type - See spindle.c.
+    minimum: 0
+    maximum: 0
+  s:
+    type: number
+    description: speed - Current spindle speed.
+    readOnly: true
+  sr:
+    type: integer
+    description: >-
+      tool_reversed - Reverse tool. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  sx:
+    type: number
+    description: max_spin - Maximum spindle speed.
+  sm:
+    type: number
+    description: min_spin - Minimum spindle speed.
+  ss:
+    type: integer
+    description: spindle_status - Spindle status code.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  pi:
+    type: integer
+    description: >-
+      pwm_invert - Inverted spindle PWM. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  nd:
+    type: number
+    description: pwm_min_duty - Minimum PWM duty cycle.
+  md:
+    type: number
+    description: pwm_max_duty - Maximum PWM duty cycle.
+  pd:
+    type: number
+    description: pwm_duty - Current PWM duty cycle.
+    readOnly: true
+  sf:
+    type: number
+    description: pwm_freq - Spindle PWM frequency in Hz.
+  hb:
+    type: integer
+    description: >-
+      mb_debug - Modbus debugging. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  hi:
+    type: integer
+    description: mb_id - Modbus ID.
+    minimum: 0
+    maximum: 0
+  mb:
+    type: integer
+    description: mb_baud - Modbus BAUD rate.
+    minimum: 0
+    maximum: 0
+  ma:
+    type: integer
+    description: mb_parity - Modbus parity.
+    minimum: 0
+    maximum: 0
+  mx:
+    type: integer
+    description: mb_status - Modbus status.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  cr:
+    type: integer
+    description: mb_crc_errs - Modbus CRC error counter.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  vf:
+    type: integer
+    description: vfd_max_freq - VFD maximum frequency.
+    minimum: 0
+    maximum: 0
+  mw:
+    type: integer
+    description: >-
+      vfd_multi_write - Use Modbus multi write mode. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  hz:
+    type: number
+    description: hy_freq - Huanyang actual freq.
+    readOnly: true
+  hc:
+    type: number
+    description: hy_current - Huanyang actual current.
+    readOnly: true
+  ht:
+    type: integer
+    description: hy_temp - Huanyang temperature.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  hx:
+    type: number
+    description: hy_max_freq - Huanyang max freq.
+    readOnly: true
+  hm:
+    type: number
+    description: hy_min_freq - Huanyang min freq.
+    readOnly: true
+  hq:
+    type: integer
+    description: hy_rated_rpm - Huanyang rated RPM.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  id:
+    type: integer
+    description: id - Last executed command ID.
+    minimum: 0
+    maximum: 0
+  fo:
+    type: number
+    description: feed_override - Feed rate override.
+  so:
+    type: number
+    description: speed_override - Spindle speed override.
+  jd:
+    type: integer
+    description: jog_id - Last completed jog command ID.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  v:
+    type: number
+    description: velocity - Current velocity.
+    readOnly: true
+  ax:
+    type: number
+    description: acceleration - Current acceleration.
+    readOnly: true
+  j:
+    type: number
+    description: jerk - Current jerk.
+    readOnly: true
+  pv:
+    type: number
+    description: peak_vel - Peak velocity, set to clear.
+  pa:
+    type: number
+    description: peak_accel - Peak accel, set to clear.
+  dp:
+    type: integer
+    description: >-
+      dynamic_power - Dynamic power. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  if:
+    type: number
+    description: inverse_feed - Inverse feed rate.
+  hid:
+    type: string
+    description: hw_id - Hardware ID.
+    readOnly: true
+  es:
+    type: integer
+    description: estop - Emergency stop. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  er:
+    type: string
+    description: estop_reason - Emergency stop reason.
+    readOnly: true
+  xx:
+    type: string
+    description: state - Machine state.
+    readOnly: true
+  xc:
+    type: integer
+    description: state_count - Machine state change count.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  pr:
+    type: string
+    description: hold_reason - Machine pause reason.
+    readOnly: true
+  un:
+    type: integer
+    description: underrun - Stepper buffer underrun count.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  dt:
+    type: number
+    description: dwell_time - Dwell timer.
+    readOnly: true
+patternProperties:
+  ^[0123]an$:
+    type: integer
+    description: motor_axis - Maps motor to axis.
+    minimum: 0
+    maximum: 0
+  ^[0123]me$:
+    type: integer
+    description: >-
+      motor_enabled - Motor enabled. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  ^[0123]pl$:
+    type: number
+    description: pulse_length - length of step pulses.
+  ^[0123]dc$:
+    type: number
+    description: drive_current - Max motor drive current.
+  ^[0123]ic$:
+    type: number
+    description: idle_current - Motor idle current.
+  ^[0123]rv$:
+    type: integer
+    description: >-
+      reverse - Reverse motor polarity. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  ^[0123]mi$:
+    type: integer
+    description: microstep - Microsteps per full step.
+    minimum: 0
+    maximum: 0
+  ^[0123]vm$:
+    type: number
+    description: velocity_max - Maximum vel in mm/min.
+  ^[0123]am$:
+    type: number
+    description: accel_max - Maximum accel in mm/min^2.
+  ^[0123]jm$:
+    type: number
+    description: jerk_max - Maximum jerk in mm/min^3.
+  ^[0123]sa$:
+    type: number
+    description: step_angle - In degrees per full step.
+  ^[0123]tr$:
+    type: number
+    description: travel - Travel in mm/rev.
+  ^[0123]tn$:
+    type: number
+    description: min_soft_limit - Min soft limit.
+  ^[0123]tm$:
+    type: number
+    description: max_soft_limit - Max soft limit.
+  ^[0123]h$:
+    type: integer
+    description: >-
+      homed - Motor homed status. 0 for false, 1 for true.
+    minimum: 0
+    maximum: 0
+  ^[0123]ac$:
+    type: number
+    description: active_current - Motor current now.
+    readOnly: true
+  ^[0123]df$:
+    type: integer
+    description: driver_flags - Motor driver flags.
+    minimum: 0
+    maximum: 0
+  ^[0123]en$:
+    type: integer
+    description: encoder - Motor encoder.
+    readOnly: true
+    minimum: -2147483648
+    maximum: -2147483648
+  ^[0123]ee$:
+    type: integer
+    description: error - Motor position error.
+    readOnly: true
+    minimum: -2147483648
+    maximum: -2147483648
+  ^[0123]tc$:
+    type: number
+    description: stall_current - Stall detect current.
+  ^[0123]lm$:
+    type: integer
+    description: stall_microstep - Stall detect microsteps.
+    minimum: 0
+    maximum: 0
+  ^[0123]sl$:
+    type: integer
+    description: >-
+      driver_stalled - Motor stall status. 0 for false, 1 for true.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  ^[0123]tv$:
+    type: number
+    description: stall_volts - Motor BEMF threshold voltage.
+  ^[0123]sv$:
+    type: number
+    description: stall_velocity - Stall velocity.
+  ^[0123]sp$:
+    type: integer
+    description: stall_samp_time - Stall sample time.
+    minimum: 0
+    maximum: 0
+  ^[xyzabc]p$:
+    type: number
+    description: axis_position - Axis position.
+    readOnly: true
+  ^[abcdefghijklmnopq]io$:
+    type: integer
+    description: io_function - IO pin function map.
+    minimum: 0
+    maximum: 0
+  ^[abcdefghijklmnopq]im$:
+    type: integer
+    description: io_mode - IO pin mode.
+    minimum: 0
+    maximum: 0
+  ^[abcdefghijklmnopq]is$:
+    type: integer
+    description: io_state - IO pin state.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  ^[0123]lw$:
+    type: integer
+    description: min_input - Minimum switch input state.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  ^[0123]xw$:
+    type: integer
+    description: max_input - Maximum switch input state.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  ^[0123ep]w$:
+    type: integer
+    description: input - Digital input state.
+    readOnly: true
+    minimum: 0
+    maximum: 0
+  ^[0123MFfedtb]oa$:
+    type: integer
+    description: output_active - Digital output active.
+    minimum: 0
+    maximum: 0
+  ^[0123]ai$:
+    type: number
+    description: analog_input - Analog input state.
+    readOnly: true
+  ^[0123456789abcdefghijklmnopqrstuv]vt$:
+    type: integer
+    description: vfd_reg_type - VFD register type.
+    minimum: 0
+    maximum: 0
+  ^[0123456789abcdefghijklmnopqrstuv]va$:
+    type: integer
+    description: vfd_reg_addr - VFD register address.
+    minimum: 0
+    maximum: 0
+  ^[0123456789abcdefghijklmnopqrstuv]vv$:
+    type: integer
+    description: vfd_reg_val - VFD register value.
+    minimum: 0
+    maximum: 0
+  ^[0123456789abcdefghijklmnopqrstuv]vr$:
+    type: integer
+    description: vfd_reg_fails - VFD register fail count.
+    minimum: 0
+    maximum: 0
+

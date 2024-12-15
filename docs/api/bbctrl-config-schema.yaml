@@ -1,0 +1,407 @@
+type: object
+description: Buildbotics configuration file.
+required:
+- version
+properties:
+  version:
+    description: >-
+      Configuration file version number.  This is the same as the version of the Buildbotics
+      firmware which created the configuration file.
+    type: string
+    pattern: \d+\.\d+\.\d+
+  units:
+    type: string
+    default: METRIC
+    enum:
+    - METRIC
+    - IMPERIAL
+  max-deviation:
+    type: number
+    default: 0.1
+    minimum: 0.001
+    maximum: 100
+    description: >-
+      Default allowed deviation from programmed path.  Also see G64 & G61. Units mm
+      or in.
+  junction-accel:
+    type: number
+    default: 200000
+    minimum: 10000
+    maximum: 100000000
+    description: "Higher values will increase cornering speed but may cause stalls.\
+      \ Units mm/min\xB2 or in/min\xB2."
+  tool-type:
+    type: string
+    default: Disabled
+    enum:
+    - Disabled
+    - PWM Spindle
+    - Huanyang VFD
+    - Custom Modbus VFD
+    - AC-Tech VFD
+    - Nowforever VFD
+    - Delta VFD015M21A (Beta)
+    - YL600, YL620, YL620-A VFD (Beta)
+    - FR-D700 (Beta)
+    - Sunfar E300 (Beta)
+    - OMRON MX2
+    - V70
+    - H100
+    - WJ200
+    - DMM DYN4 (Beta)
+    - Galt G200/G500
+    - Teco Westinghouse E510
+    - EM60
+    - Fuling DZB200/300
+  tool-reversed:
+    type: boolean
+    default: false
+  max-spin:
+    type: number
+    default: 10000
+    minimum: 0
+    description: Units RPM.
+  min-spin:
+    type: number
+    default: 0
+    minimum: 0
+    description: Units RPM.
+  bus-id:
+    type: integer
+    default: 1
+  baud:
+    type: integer
+    default: 9600
+    enum:
+    - 9600
+    - 19200
+    - 38400
+    - 57600
+    - 115200
+  parity:
+    type: string
+    default: None
+    enum:
+    - None
+    - Even
+    - Odd
+  multi-write:
+    type: boolean
+    default: false
+    description: >-
+      Use Modbus multi register write.  Function 16 vs. 6.
+  pwm-inverted:
+    type: boolean
+    default: false
+    description: Invert the PWM signal output.
+  pwm-min-duty:
+    type: number
+    default: 1
+    minimum: 0
+    maximum: 100
+    description: Units %.
+  pwm-max-duty:
+    type: number
+    default: 99.99
+    minimum: 0
+    maximum: 100
+    description: Units %.
+  pwm-freq:
+    type: integer
+    default: 1000
+    minimum: 8
+    maximum: 320000
+    description: Units Hz.
+  rapid-auto-off:
+    type: boolean
+    default: false
+    description: >-
+      Turn tool off during rapid moves.  Useful for LASERs.
+  dynamic-power:
+    type: boolean
+    default: false
+    description: >-
+      Adjust tool power based on velocity and feed rate.  Useful for LASERs.
+  input-debounce:
+    type: integer
+    default: 5
+    minimum: 1
+    maximum: 5000
+    description: >-
+      Minimum time in ms before a switch change is acknowledged. Units ms.
+  input-lockout:
+    type: integer
+    default: 250
+    minimum: 0
+    maximum: 60000
+    description: >-
+      Time in ms to ignore switch changes after an acknowledge change. Units ms.
+  program-start:
+    type: string
+    default: |
+      (Runs at program start)
+      G90 (Absolute distance mode)
+      G17 (Select XY plane)
+  tool-change:
+    type: string
+    default: |-
+      (Runs on M6, tool change)
+      M0 M6 (MSG, Change tool)
+  program-end:
+    type: string
+    default: |-
+      (Runs on M2 or M30, program end)
+      M2
+  virtual-keyboard-enabled:
+    type: boolean
+    default: true
+  auto-check-upgrade:
+    type: boolean
+    default: true
+  macros:
+    type: array
+    default: []
+patternProperties:
+  ^[0123]axis$:
+    type: string
+    default: X
+    enum:
+    - X
+    - Y
+    - Z
+    - A
+    - B
+    - C
+  ^[0123]type-of-driver$:
+    type: string
+    default: internal
+    enum:
+    - internal
+    - generic external
+  ^[0123]step-length$:
+    type: number
+    default: 2.0e-06
+    minimum: 0
+    description: Units seconds.
+  ^[0123]enabled$:
+    type: boolean
+    default: true
+  ^[0123]drive-current$:
+    type: number
+    default: 1.5
+    minimum: 0
+    maximum: 6
+    description: Units amps.
+  ^[0123]idle-current$:
+    type: number
+    default: 0
+    minimum: 0
+    maximum: 2
+    description: Units amps.
+  ^[0123]reverse$:
+    type: boolean
+    default: false
+  ^[0123]microsteps$:
+    type: integer
+    default: 32
+    enum:
+    - 1
+    - 2
+    - 4
+    - 8
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    description: Units per full step.
+  ^[0123]max-velocity$:
+    type: number
+    default: 5
+    minimum: 0
+    description: Units m/min or IPM.
+  ^[0123]max-accel$:
+    type: number
+    default: 10
+    minimum: 0
+    description: "Units km/min\xB2 or g-force."
+  ^[0123]max-jerk$:
+    type: number
+    default: 50
+    minimum: 0
+    description: "Units km/min\xB3 or g/min."
+  ^[0123]step-angle$:
+    type: number
+    default: 1.8
+    minimum: 0
+    maximum: 360
+    description: Units degrees.
+  ^[0123]travel-per-rev$:
+    type: number
+    default: 5
+    description: Units mm or in.
+  ^[0123]min-soft-limit$:
+    type: number
+    default: 0
+    description: Units mm or in.
+  ^[0123]max-soft-limit$:
+    type: number
+    default: 0
+    description: Units mm or in.
+  ^[0123]homing-mode-external$:
+    type: string
+    default: manual
+    enum:
+    - manual
+    - switch-min
+    - switch-max
+  ^[0123]homing-mode$:
+    type: string
+    default: manual
+    enum:
+    - manual
+    - switch-min
+    - switch-max
+    - stall-min
+    - stall-max
+  ^[0123]stall-microstep$:
+    type: integer
+    default: 8
+    enum:
+    - 2
+    - 4
+    - 8
+    - 16
+    - 32
+    - 64
+    - 128
+    - 256
+    description: >-
+      Units per full step. Only valid for homing modes: stall-min, stall-max
+  ^[0123]search-velocity$:
+    type: number
+    default: 0.5
+    minimum: 0
+    description: >-
+      The homing latch search speed in m/min. Units m/min or IPM. Only valid for homing
+      modes: switch-min, switch-max, stall-min, stall-max
+  ^[0123]latch-velocity$:
+    type: number
+    default: 0.1
+    minimum: 0
+    description: >-
+      The when backing off the latch or reprobing speed in m/min. Units m/min or IPM.
+      Only valid for homing modes: switch-min, switch-max
+  ^[0123]latch-backoff$:
+    type: number
+    default: 100
+    minimum: 0
+    description: >-
+      The distance in mm to move away from a latch before the more accurate and slower
+      reprobe. Units mm or in. Only valid for homing modes: switch-min, switch-max
+  ^[0123]stall-volts$:
+    type: number
+    default: 6
+    minimum: 0
+    description: >-
+      Units v. Only valid for homing modes: stall-min, stall-max
+  ^[0123]stall-sample-time$:
+    type: integer
+    default: 50
+    enum:
+    - 50
+    - 100
+    - 200
+    - 300
+    - 400
+    - 600
+    - 800
+    - 1000
+    description: "Units \xB5sec. Only valid for homing modes: stall-min, stall-max"
+  ^[0123]stall-current$:
+    type: number
+    default: 1.5
+    minimum: 0
+    description: >-
+      Units amps. Only valid for homing modes: stall-min, stall-max
+  ^[0123]zero-backoff$:
+    type: number
+    default: 5
+    minimum: 0
+    description: >-
+      The distance in mm to move away from a latch after the final probe. Units mm
+      or in. Only valid for homing modes: switch-min, switch-max, stall-min, stall-max
+  ^[0123456789abcdefghijklmnopqrstuv]reg-type$:
+    type: string
+    default: disabled
+    enum:
+    - disabled
+    - connect-write
+    - max-freq-read
+    - max-freq-fixed
+    - freq-set
+    - freq-signed-set
+    - freq-scaled-set
+    - stop-write
+    - forward-write
+    - reverse-write
+    - freq-read
+    - freq-signed-read
+    - freq-actech-read
+    - status-read
+    - disconnect-write
+  ^[0123456789abcdefghijklmnopqrstuv]reg-addr$:
+    type: integer
+    default: 0
+    minimum: 0
+    maximum: 65535
+  ^[0123456789abcdefghijklmnopqrstuv]reg-value$:
+    type: integer
+    default: 0
+    minimum: 0
+    maximum: 65535
+  ^[abcdefghijklmnopq]function$:
+    type: string
+    default: disabled
+    enum:
+    - disabled
+    - input-motor-0-max
+    - input-motor-1-max
+    - input-motor-2-max
+    - input-motor-3-max
+    - input-motor-0-min
+    - input-motor-1-min
+    - input-motor-2-min
+    - input-motor-3-min
+    - input-0
+    - input-1
+    - input-2
+    - input-3
+    - input-estop
+    - input-probe
+    - output-0
+    - output-1
+    - output-2
+    - output-3
+    - output-mist
+    - output-flood
+    - output-fault
+    - output-tool-enable
+    - output-tool-direction
+    - analog-0
+    - analog-1
+    - analog-2
+    - analog-3
+  ^[abcdefghijklmnopq]mode$:
+    type: string
+    default: hi-lo
+    enum:
+    - lo-hi
+    - hi-lo
+    - tri-lo
+    - tri-hi
+    - lo-tri
+    - hi-tri
+    - normally-closed
+    - normally-open
+
