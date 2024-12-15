@@ -31,6 +31,9 @@ PKG_DIR=$(printf "import bbctrl\nprint(bbctrl.__file__)"|python3 -)
 PKG_DIR=$(dirname "$(dirname "$PKG_DIR")")
 install bin/camotics.so $PKG_DIR/bbctrl/
 
+# Synchronize files
+sync
+
 # Restart service
 if $PI4; then
   service bbctrl start

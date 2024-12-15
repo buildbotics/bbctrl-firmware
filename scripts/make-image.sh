@@ -11,6 +11,7 @@ KERNEL=$BUILD/kernel
 # Config
 KERNEL_DEFCONFIG=bcm2711_defconfig
 KERNEL_BRANCH=rpi-6.1.y
+BOOT_DTB=bcm2711-rpi-4-b
 CPUS=$(grep -c ^processor /proc/cpuinfo)
 
 BOOT_FILES="bootcode.bin start.elf fixup.dat start4.elf fixup4.dat"
@@ -51,7 +52,7 @@ KERNEL_BOOT=$KERNEL/arch/$ARCH/boot
 mcopy -i $BOOT_IMG -s $BUILD/boot/* ::
 mcopy -i $BOOT_IMG -s src/overlay/boot/* ::
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/Image ::kernel8.img
-mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/broadcom/bcm2711-rpi-4-b.dtb ::
+mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/broadcom/$BOOT_DTB.dtb ::
 mmd -i $BOOT_IMG ::/overlays
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/overlays/*.dtbo ::/overlays/
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/overlays/README ::/overlays/

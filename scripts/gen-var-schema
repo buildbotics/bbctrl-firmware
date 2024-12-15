@@ -1,0 +1,348 @@
+#!/usr/bin/env python3
+
+'''
+Check that the configuration variable template used on the RPi matches the
+variables used in the AVR.
+'''
+
+import argparse
+import json
+import yaml
+from json import JSONDecoder
+from collections import OrderedDict
+
+
+class Schema:
+  def load(self, path):
+    with open(path, 'r') as f:
+      self.process(json.load(f))
+
+
+  def process(self, data): raise Exception('Not implemented')
+
+
+class ConfigSchema(Schema):
+  def process(self, data, depth = 0, index = None):
+    for name, entry in data.items():
+      if 'type' in entry:
+        if entry['type'] == 'list' and 'index' in entry:
+          self.handle_heading(name, entry, depth)
+          self.process(entry['template'], depth + 1, entry['index'])
+        else: self.handle_entry(depth, OrderedDict(
+          name = name, index = index, **entry))
+      else:
+        self.handle_heading(name, entry, depth)
+        self.process(entry, depth + 1, index)
+
+
+  def handle_heading(self, title, data, depth): pass
+  def handle_entry(self, depth, entry): raise Exception('Not implemented')
+
+
+  def get_type(self, entry):
+    type  = entry['type']
+
+    if type in ('text', 'enum'): return 'string'
+    if type == 'float': return 'number'
+    if type == 'int':   return 'integer'
+    if type == 'list':  return 'array'
+    if type == 'bool':  return 'boolean'
+
+
+  def get_units(self, entry):
+    if 'unit' in entry:
+      units = entry['unit']
+      if 'iunit' in entry: units += ' or ' + entry['iunit']
+      return units
+
+
+  def get_description(self, entry):
+    desc = []
+
+    if 'help' in entry: desc.append(entry['help'])
+    if 'unit' in entry: desc.append('Units ' + self.get_units(entry) + '.')
+
+    if 'hmodes' in entry:
+      desc.append('Only valid for homing modes: ' + ', '.join(entry['hmodes']))
+
+    return desc
+
+
+class ConfigSchemaJSONSchema(ConfigSchema):
+  def __init__(self, path):
+    self.schema = OrderedDict(
+      type        = 'object',
+      description = 'Buildbotics configuration file.',
+      required    = ['version'],
+      properties  = OrderedDict(
+        version = OrderedDict(
+          description = 'Configuration file version number.  This is the ' +
+            'same as the version of the Buildbotics firmware which created ' +
+            'the configuration file.',
+          type        = 'string',
+          pattern     = r'\d+\.\d+\.\d+')),
+      patternProperties = OrderedDict())
+
+    self.load(path)
+
+    print(yaml.dump(self.schema))
+
+
+  def handle_entry(self, depth, entry):
+    name  = entry['name']
+    index = entry['index']
+    type  = self.get_type(entry)
+    desc  = self.get_description(entry)
+
+    p = OrderedDict(type = type)
+    if 'default' in entry: p['default'] = entry['default']
+    if 'values'  in entry: p['enum']    = entry['values']
+
+    if type in ('number', 'integer'):
+      if 'min' in entry: p['minimum'] = entry['min']
+      if 'max' in entry: p['maximum'] = entry['max']
+
+    if len(desc): p['description'] = ' '.join(desc)
+
+    if index is None: self.schema['properties'][name] = p
+    else: self.schema['patternProperties']['^[%s]%s$' % (index, name)] = p
+
+
+config_header = '''\
+# Buildbotics Controller Configuration Variables
+
+Configuration variables are set on the Buildbotics controller
+via a JSON configuration file.  The controller may be configured
+by uploading a configuration file via the administration panel of
+web interface or via the API.  Individual configuration options may
+also set via the web interface or the API.
+
+Configuration variables are organized into categories and subcategories.
+The variable type is noted and where appropriate, units, and minium and
+maximum values.
+
+Some variables start with an index.  An index is a single character
+appended to the front of the variable name and indicates an offset into
+an array.  For example, the motor variable ``0microsteps`` is the microstep
+value for motor 0.
+
+A formal [JSON Schema](https://json-schema.org/) specification can be
+found in the file [bbctrl-config-schema.yaml](bbctrl-config-schema.yaml).
+Note, this is in YAML format but it can be easily converted to JSON if needed.
+
+'''
+
+class ConfigSchemaMarkdown(ConfigSchema):
+  def __init__(self, path):
+    print(config_header)
+
+    self.load(path)
+
+
+  def handle_heading(self, title, data, depth):
+    print('#' * (2 + depth), title)
+    if 'help' in data: print(data['help'] + '\n')
+
+
+  def handle_entry(self, depth, entry):
+    name  = entry['name']
+    index = entry.get('index')
+    type  = self.get_type(entry)
+    units = self.get_units(entry)
+
+    if index is not None: name = '{index}' + name
+
+    print('#' * (2 + depth), name)
+    if index is not None: print('**Index:** ``%s``  ' % index)
+    print('**Type:** %s  ' % type)
+
+    if units: print('**Units:** %s  ' % units)
+
+    if 'values' in entry:
+      print('**Enum:** ``%s``  ' %
+            '``, ``'.join([str(v) for v in entry['values']]))
+
+    if 'hmodes' in entry:
+      print('**Homing modes:** ``%s``  ' % '``, ``'.join(entry['hmodes']))
+
+    if type in ('number', 'integer'):
+      if 'min' in entry: print('**Minimum:** ``%(min)s``  ' % entry)
+      if 'max' in entry: print('**Maximum:** ``%(max)s``  ' % entry)
+
+    default = entry.get('default')
+    if default:
+      print('**Default:**', end = '')
+      if '\n' in str(default): print('\n```\n%s\n```' % default)
+      else: print(' ``%s``  ' % default)
+
+    if 'help' in entry: print('\n%(help)s' % entry)
+
+    print()
+
+
+
+class VarSchema(Schema):
+  def process(self, data):
+    for code, entry in data.items():
+      if code != '_': self.handle_entry(code, entry)
+
+
+  def get_type(self, entry):
+    return dict(
+      b8   = 'integer',
+      f32  = 'number',
+      pstr = 'string',
+      s32  = 'integer',
+      str  = 'string',
+      u16  = 'integer',
+      u32  = 'integer',
+      u8   = 'integer'
+    )[entry['type']]
+
+
+  def get_minimum(self, entry):
+    return dict(
+      b8   = 0,
+      s32  = -2147483648,
+      u16  = 0,
+      u32  = 0,
+      u8   = 0
+    ).get(entry['type'])
+
+
+  def get_maximum(self, entry):
+    return dict(
+      b8   = 1,
+      s32  = 2147483647,
+      u16  = 65535,
+      u32  = 4294967295,
+      u8   = 255
+    ).get(entry['type'])
+
+
+  def handle_entry(self, code, entry): raise Exception('Not implemented')
+
+
+class VarSchemaJSONSchema(VarSchema):
+  def __init__(self, path):
+    self.schema = OrderedDict(
+      type              = 'object',
+      description       = 'Buildbotics internal variables schema.',
+      properties        = OrderedDict(),
+      patternProperties = OrderedDict()
+    )
+
+    self.load(path)
+    print(yaml.dump(self.schema))
+
+
+  def handle_entry(self, code, entry):
+    type  = self.get_type(entry)
+    index = entry.get('index')
+    desc  = '%s - %s.' % (entry['name'], entry['desc'])
+    min   = self.get_minimum(entry)
+    max   = self.get_maximum(entry)
+
+    if entry['type'] == 'b8': desc += ' 0 for false, 1 for true.'
+
+    p = OrderedDict(type = type, description = desc)
+
+    if not entry['setable']: p['readOnly'] = True
+    if min is not None: p['minimum'] = min
+    if max is not None: p['maximum'] = min
+
+    if index is None: self.schema['properties'][code] = p
+    else: self.schema['patternProperties']['^[%s]%s$' % (index, code)] = p
+
+
+vars_header = '''\
+# Buildbotics Controller Internal Variables
+
+Internal variables may be read or written on the Buildbotics
+controller via the API.  These variables are reported via the
+Websocket interface at ``http://bbctrl.local/api/websocket``.
+
+Some variables start with an index.  An index is a single
+character appended to the front of the variable name and
+indicates an offset into an array.  For example, the motor
+variable ``0me`` is the motor enable value for motor 0.
+
+These variable names are kept very short because they are used
+for internal communication between the Buildbotics contoller's
+internal RaspberryPi and AVR microcontroller.
+
+A formal [JSON Schema](https://json-schema.org/) specification can be
+found in the file [bbctrl-vars-schema.yaml](bbctrl-vars-schema.yaml).
+Note, this is in YAML format but it can be easily converted to JSON if
+needed.
+
+'''
+
+
+class VarSchemaMarkdown(VarSchema):
+  def __init__(self, path):
+    print(vars_header)
+    self.load(path)
+
+
+  def handle_entry(self, code, entry):
+    name  = code
+    index = entry.get('index')
+    type  = self.get_type(entry)
+    min   = self.get_minimum(entry)
+    max   = self.get_maximum(entry)
+
+    if index is not None: name = '{index}' + name
+
+    print('##', name)
+    print('**Full name**: %s  ' % entry['name'])
+    if index is not None: print('**Index:** ``%s``  ' % index)
+    print('**Type:** %s  ' % type)
+    if min is not None: print('**Minimum:** %s  ' % min)
+    if max is not None: print('**Maximum:** %s  ' % max)
+    if not entry['setable']: print('**Read only**  ')
+
+    desc = entry['desc'] + '.'
+    if entry['type'] == 'b8': desc += ' 0 for false, 1 for true.'
+
+    print('\n%s' % desc)
+    print()
+
+
+# Configure YAML output
+def str_rep(dump, data):
+  style = ''
+  if '\n' in data: style = '|'
+  elif 50 < len(data): style = '>'
+
+  return dump.represent_scalar('tag:yaml.org,2002:str', data, style = style)
+
+
+def dict_rep(dump, data):
+  value = [(dump.represent_data(k), dump.represent_data(v))
+           for k, v in data.items()]
+
+  return yaml.nodes.MappingNode(u"tag:yaml.org,2002:map", value)
+
+yaml.add_representer(str,         str_rep)
+yaml.add_representer(OrderedDict, dict_rep)
+
+
+# Parse arguments
+parser = argparse.ArgumentParser(
+  'Generate config and internal variable schemas and documentation.')
+parser.add_argument('source', choices = ('vars', 'config'),
+                    help = 'Choose the variable source.')
+parser.add_argument('-d', '--doc', action = 'store_true',
+                    help = 'Output Markdown documentation.')
+args = parser.parse_args()
+
+if args.source == 'vars':
+  path = 'src/avr/build/vars.json'
+  if args.doc: VarSchemaMarkdown(path)
+  else: VarSchemaJSONSchema(path)
+
+if args.source == 'config':
+  path = 'src/resources/config-template.json'
+  if args.doc: ConfigSchemaMarkdown(path)
+  else: ConfigSchemaJSONSchema(path)

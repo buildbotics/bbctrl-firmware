@@ -15,7 +15,7 @@ fi
 
 export CBANG_HOME=$PWD/cbang
 
-PROJECTS="buildbotics/updiprog buildbotics/rpipdi buildbotics/bbkbd"
+PROJECTS="buildbotics/updiprog buildbotics/rpipdi buildbotics/bbkbd "
 PROJECTS+="cauldrondevelopmentllc/cbang cauldrondevelopmentllc/camotics"
 
 for PROJECT in $PROJECTS; do
