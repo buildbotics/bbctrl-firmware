@@ -52,9 +52,9 @@ Authorization is only required for a few administrative operations such as uploa
 The Buildbotics Controller API is documented in the following files:
 
 * [Buildbotics Controller API Reference](https://api.buildbotics.com/)
-* [Buildbotics Controller Configuration Variables](https://api.buildbotics.com/Config_Variables.md)
-* [Buildbotics Controller Internal Variables](https://api.buildbotics.com/Internal_Variables.md)
-* [Buildbotics Controller WebSocket API](https://api.buildbotics.com/Websocket_API.md)
+* [Buildbotics Controller Configuration Variables](Config_Variables.md)
+* [Buildbotics Controller Internal Variables](Internal_Variables.md)
+* [Buildbotics Controller WebSocket API](Websocket_API.md)
 
 In addition to these human friendly documents, more precise formal specifications can be found in YAML format in the following files:
 
