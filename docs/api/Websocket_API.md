@@ -54,7 +54,7 @@ https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API.
 let state
 ws = new WebSocket('ws://bbctrl.local/websocket')
 
-ws.on_message(event) {
+ws.onmessage(event) {
   let msg = JSON.parse(event.data)
   if (state == undefined) state = msg  // First message
   else update_state(state, msg)        // Update messages
