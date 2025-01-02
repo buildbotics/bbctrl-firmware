@@ -52,7 +52,7 @@ https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API.
 
 ```javascript
 let state
-ws = new WebSocket('ws://bbctrl.local/api/websocket')
+ws = new WebSocket('ws://bbctrl.local/websocket')
 
 ws.on_message(event) {
   let msg = JSON.parse(event.data)
