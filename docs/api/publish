@@ -1,2 +1,3 @@
 #!/bin/bash
+cd "$(dirname "$0")"
 rsync -v *.yaml *.md index.html favicon.ico root@buildbotics.com:/var/www/api.buildbotics.com/

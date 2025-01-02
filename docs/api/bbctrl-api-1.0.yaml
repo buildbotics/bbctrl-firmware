@@ -46,14 +46,6 @@ tags:
   - name: Miscellaneous
 
 paths:
-  /websocket:
-    get:
-      description: >
-        Websocket interface.  See https://datatracker.ietf.org/doc/html/rfc6455
-        Also see https://api.buildbotics.com/Websocket_API.md for the message
-        format details.
-      tags: ['Control']
-
   /state:
     get:
       description: Get the current controller state.
