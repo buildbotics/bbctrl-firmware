@@ -450,6 +450,7 @@ class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
         tornado.websocket.WebSocketHandler.__init__(
             self, app, request, **kwargs)
 
+    def check_origin(self, origin): return True
     def send(self, msg): self.write_message(msg)
     def open(self): self.on_open()
 
