@@ -51,7 +51,8 @@
         "type-of-driver": {
           "type": "enum",
           "values": ["internal", "generic external"],
-          "default": "internal"
+          "default": "internal",
+          "code": "dt"
         },
         "step-length": {
           "type": "float",
@@ -173,7 +174,8 @@
           "type": "enum",
           "values": [
             "manual", "switch-min", "switch-max", "stall-min", "stall-max"],
-          "default": "manual"
+          "default": "manual",
+          "code": "ho"
         },
         "stall-microstep": {
           "type": "int",
@@ -202,6 +204,7 @@
           "iunit": "IPM",
           "scale": 0.0254,
           "default": 0.1,
+          "code": "lv",
           "hmodes": ["switch-min", "switch-max"]
         },
         "latch-backoff": {
@@ -212,6 +215,7 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 100,
+          "code": "lb",
           "hmodes": ["switch-min", "switch-max"]
         },
         "stall-volts": {
@@ -246,6 +250,7 @@
           "iunit": "in",
           "scale": 25.4,
           "default": 5,
+          "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
         }
       }
