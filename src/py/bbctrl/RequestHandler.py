@@ -80,7 +80,7 @@ class RequestHandler(tornado.web.RequestHandler):
         log.debug(trace)
 
 
-    def options(self):
+    def options(self, *args):
         self.set_status(204)
         self.finish()
 
