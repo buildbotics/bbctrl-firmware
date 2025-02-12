@@ -24,6 +24,8 @@ PKG_NAME := bbctrl-$(VERSION)
 PUB_PATH := root@buildbotics.com:/var/www/buildbotics.com/bbctrl-2.0
 BETA_VERSION := $(VERSION)-rc$(shell ./scripts/next-rc)
 BETA_PKG_NAME := bbctrl-$(BETA_VERSION)
+CUR_BETA_VERSION := $(shell cat dist/latest-beta.txt)
+CUR_BETA_PKG_NAME := bbctrl-$(CUR_BETA_VERSION)
 
 IMAGE := $(shell date +%Y%m%d)-debian-bookworm-bbctrl.img
 IMG_PATH := root@buildbotics.com:/var/www/buildbotics.com/upload
@@ -69,6 +71,7 @@ pkg: all $(SUBPROJECTS)
 
 beta-pkg: pkg
 	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
+	echo -n $(BETA_VERSION) > dist/latest-beta.txt
 
 arm-bin: camotics bbkbd updiprog rpipdi
 
@@ -90,8 +93,10 @@ publish: pkg
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
 publish-beta: beta-pkg
-	echo -n $(BETA_VERSION) > dist/latest-beta.txt
-	rsync $(RSYNC_OPTS) dist/$(BETA_PKG_NAME).tar.bz2 dist/latest-beta.txt \
+	$(MAKE) push-beta
+
+push-beta:
+	rsync $(RSYNC_OPTS) dist/$(CUR_BETA_PKG_NAME).tar.bz2 dist/latest-beta.txt \
 	  $(PUB_PATH)/
 
 update: pkg
