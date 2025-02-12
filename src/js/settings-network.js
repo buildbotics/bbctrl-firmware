@@ -29,7 +29,7 @@
 
 module.exports = {
   template: '#settings-network-template',
-  props: ['config', 'state'],
+  props: ['config', 'template', 'state'],
 
 
   components: {

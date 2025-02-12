@@ -96,3 +96,9 @@ script#settings-network-template(type="text/x-template")
             label(for="wifi_pass") Password
             input.password(
               name="wifi_pass", v-model="wifi_pass", autocomplete="off")
+
+    h2 Allowed CORS Origins
+    templated-input(name="cors-origins",
+      :model.sync="config.network['cors-origins']",
+      :template="template.network['cors-origins']")
+    p For app development only.

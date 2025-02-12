@@ -26,7 +26,6 @@
 ################################################################################
 
 import json
-import traceback
 from tornado.web import HTTPError
 import tornado.httpclient
 

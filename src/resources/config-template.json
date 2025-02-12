@@ -507,6 +507,13 @@
     }
   },
 
+  "network": {
+    "cors-origins": {
+      "type": "string",
+      "default": ""
+    }
+  },
+
   "admin": {
     "virtual-keyboard-enabled": {
       "type": "bool",

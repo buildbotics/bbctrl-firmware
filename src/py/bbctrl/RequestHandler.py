@@ -38,6 +38,7 @@ class RequestHandler(tornado.web.RequestHandler):
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
         self.app = app
+        self.set_cors_headers()
 
 
     def get_ctrl(self):
@@ -77,3 +78,22 @@ class RequestHandler(tornado.web.RequestHandler):
         log.error(str(value))
         trace = ''.join(traceback.format_exception(typ, value, tb))
         log.debug(trace)
+
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+
+    def set_cors_headers(self):
+        origin = self.request.headers.get('Origin', '')
+        origins = self.get_ctrl().config.get('cors-origins', '').split()
+        if origin and origin in origins:
+            self.set_header('Access-Control-Allow-Origin', origin)
+            self.set_header(
+                'Access-Control-Allow-Headers', 'DNT,User-Agent,' +
+                'X-Requested-With,If-Modified-Since,Cache-Control,' +
+                'Content-Type,Range,Set-Cookie,Authorization')
+            self.set_header(
+                'Access-Control-Allow-Methods',
+                'POST,PUT,GET,OPTIONS,DELETE')
