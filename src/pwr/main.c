@@ -166,7 +166,7 @@ static uint16_t to_current(uint16_t result) {
 static void update_shunt() {
   if (!initialized || failed) return;
 
-  static float joules = SHUNT_JOULES; // Power disipation budget
+  static float joules = SHUNT_JOULES; // Power dissipation budget
 
   // Add power dissipation credit for the 1ms that elapsed
   joules += SHUNT_JOULES_PER_MS;
