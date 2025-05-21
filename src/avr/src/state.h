@@ -49,6 +49,7 @@ typedef enum {
   HOLD_REASON_OPTIONAL_PAUSE,
   HOLD_REASON_SWITCH_FOUND,
   HOLD_REASON_SWITCH_NOT_FOUND,
+  HOLD_REASON_SWITCH_NO_ERROR,
 } hold_reason_t;
 
 
@@ -67,7 +68,7 @@ state_t state_get();
 bool state_is_flushing();
 bool state_is_resuming();
 
-void state_seek_hold(bool found);
+void state_seek_hold(bool found, bool error);
 void state_holding();
 void state_running();
 void state_jogging();

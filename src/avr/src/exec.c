@@ -185,7 +185,7 @@ stat_t _segment_exec() {
   }
 
   // Check switch
-  if (seek_found()) state_seek_hold(true);
+  if (seek_found()) state_seek_hold(true, false);
 
   return STAT_OK;
 }

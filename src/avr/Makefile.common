@@ -58,10 +58,8 @@ build/%.o: src/%.S
 	avr-objdump -h -S $< > $@
 
 size: $(PROJECT).elf
-	@for X in A B C; do\
-	  echo '****************************************************************' ;\
-	  avr-size -$$X --mcu=$(MCU) $(PROJECT).elf ;\
-	done
+	@echo '****************************************************************'
+	@avr-size -B --mcu=$(MCU) $(PROJECT).elf
 
 data-usage: $(PROJECT).elf
 	avr-nm -CS --size-sort -t decimal $(PROJECT).elf | grep ' [BbDd] '

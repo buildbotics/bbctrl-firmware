@@ -76,6 +76,7 @@ PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   case HOLD_REASON_OPTIONAL_PAUSE:   return PSTR("Optional pause");
   case HOLD_REASON_SWITCH_FOUND:     return PSTR("Switch found");
   case HOLD_REASON_SWITCH_NOT_FOUND: return PSTR("Switch not found");
+  case HOLD_REASON_SWITCH_NO_ERROR:  return PSTR("Switch no error");
   }
 
   return PSTR("INVALID");
@@ -104,9 +105,10 @@ static bool _is_idle() {
 }
 
 
-void state_seek_hold(bool found) {
+void state_seek_hold(bool found, bool error) {
   _set_hold_reason(found ? HOLD_REASON_SWITCH_FOUND :
-                   HOLD_REASON_SWITCH_NOT_FOUND);
+                   (error ? HOLD_REASON_SWITCH_NOT_FOUND :
+                    HOLD_REASON_SWITCH_NO_ERROR));
   if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
 }
 

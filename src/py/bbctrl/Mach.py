@@ -126,6 +126,10 @@ class Mach(Comm):
                  (pr == 'Optional pause' and not op))):
                 self._unpause()
 
+            if pr == 'Switch no error':
+                self.planner.result(0) # Switch not found
+                self._unpause()
+
             if pr == 'Switch not found':
                 self.mlog.error(pr)
                 self.stop()
