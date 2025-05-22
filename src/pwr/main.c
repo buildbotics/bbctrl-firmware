@@ -433,13 +433,17 @@ static bool charge_wait(float target_v, uint16_t wait, bool up) {
 }
 
 
-static void charge_test() {
-  // Wait for motor voltage to discharge below min voltage
+static void discharge() {
   motor_enable(false);
   shunt_enable(true);
-  if (!charge_wait(VOLTAGE_MIN - 2, MAX_DUMP_WAIT_TIME, false))
-    return flags_set(GATE_ERROR_FLAG);
 
+  // Wait for motor voltage to discharge below min voltage
+  if (!charge_wait(VOLTAGE_MIN - 2, MAX_DUMP_WAIT_TIME, false))
+    flags_set(GATE_ERROR_FLAG);
+}
+
+
+static void charge_test() {
   // Charge caps
   shunt_enable(false);
   motor_enable(true);
@@ -488,7 +492,7 @@ static void shutdown() {
   driver_enable(false);
 
   // Enable shunt
-  shunt_enable(true);
+  shunt_enable(!flags_get(GATE_ERROR_FLAG));
 
   // Must be last
   failed = true;
@@ -542,7 +546,9 @@ int main() {
 
   init();
 
-  validate_input_voltage();
+  discharge();
+  delay(10000); // Avoid overloading the shunt if resetting repeatedly
+  if (!failed) validate_input_voltage();
   if (!failed) charge_test();
   if (!failed) driver_enable(true);
   if (!failed) validate_measurements();

@@ -30,7 +30,7 @@
 #include <avr/io.h>
 
 
-#define VERSION 0x0105
+#define VERSION 0x0106
 
 #define VIN_ADC  ADC_MUXPOS_AIN9_gc // ACD0
 #define VOUT_ADC ADC_MUXPOS_AIN8_gc // ADC0

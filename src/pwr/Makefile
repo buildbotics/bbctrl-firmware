@@ -57,10 +57,8 @@ $(PROJECT).elf: $(OBJ)
 	avr-objdump -h -S $< > $@
 
 _size:
-	@for X in A B C; do\
-	  echo '****************************************************************' ;\
-	  avr-size -$$X --mcu=$(MCU) $(SIZE_TARGET) ;\
-	done
+	@echo '****************************************************************'
+	@avr-size -B --mcu=$(MCU) $(SIZE_TARGET) 
 
 size: $(PROJECT).elf
 	@$(MAKE) SIZE_TARGET=$< _size
