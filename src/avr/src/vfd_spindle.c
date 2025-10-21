@@ -106,9 +106,9 @@ const vfd_reg_t nowforever_regs[] PROGMEM = {
 };
 
 
-const vfd_reg_t delta_vfd015m21a_regs[] PROGMEM = {
+const vfd_reg_t delta_regs[] PROGMEM = {
   {REG_CONNECT_WRITE,    0x2002,  2}, // Reset fault
-  {REG_MAX_FREQ_READ,         3,  0}, // Max frequency
+  {REG_MAX_FREQ_READ,    0x211b,  0}, // Max frequency
   {REG_FREQ_SET,         0x2001,  0}, // Frequency
   {REG_STOP_WRITE,       0x2000,  1}, // Stop drive
   {REG_FWD_WRITE,        0x2000, 18}, // Forward
@@ -471,7 +471,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_CUSTOM:  memcpy(regs, custom_regs, sizeof(regs)); break;
   case SPINDLE_TYPE_AC_TECH:          _load(ac_tech_regs);            break;
   case SPINDLE_TYPE_NOWFOREVER:       _load(nowforever_regs);         break;
-  case SPINDLE_TYPE_DELTA_VFD015M21A: _load(delta_vfd015m21a_regs);   break;
+  case SPINDLE_TYPE_DELTA:            _load(delta_regs);              break;
   case SPINDLE_TYPE_YL600:            _load(yl600_regs);              break;
   case SPINDLE_TYPE_FR_D700:          _load(fr_d700_regs);            break;
   case SPINDLE_TYPE_SUNFAR_E300:      _load(sunfar_e300_regs);        break;
