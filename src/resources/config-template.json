@@ -261,7 +261,7 @@
     "tool-type": {
       "type": "enum",
       "values": ["Disabled", "PWM Spindle", "Huanyang VFD", "Custom Modbus VFD",
-                 "AC-Tech VFD", "Nowforever VFD", "Delta VFD015M21A (Beta)",
+                 "AC-Tech VFD", "Nowforever VFD", "Delta VFD",
                  "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)",
                  "Sunfar E300 (Beta)", "OMRON MX2", "V70", "H100", "WJ200",
                  "DMM DYN4 (Beta)", "Galt G200/G500", "Teco Westinghouse E510",
