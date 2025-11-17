@@ -11,6 +11,18 @@ if [ -e /proc/cpuinfo ]; then
   fi
 fi
 
+# Self-signed SSL Certificate
+if [ ! -d /etc/bbctrl ]; then
+  mkdir -m 0744 /etc/bbctrl
+fi
+
+SSLKEY=/etc/bbctrl/ssl.key
+SSLCRT=/etc/bbctrl/ssl.crt
+if [ ! -e $SSLKEY ]; then
+  openssl req -x509 -nodes -days $((365 * 100)) -newkey rsa:2048 \
+    -keyout $SSLKEY -out $SSLCRT -subj "/C=US/O=Buildbotics LLC/CN=buildbotics"
+fi
+
 # Programs
 install -C -m 0555 bin/updiprog bin/rpipdi bin/bbkbd /usr/local/bin/
 

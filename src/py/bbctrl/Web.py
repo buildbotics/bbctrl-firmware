@@ -26,16 +26,12 @@
 ################################################################################
 
 import os
-import sys
-import json
 import tornado
 import sockjs.tornado
 import datetime
 import shutil
-import tarfile
 import subprocess
 import socket
-import time
 from tornado.web import HTTPError
 from tornado import web, gen
 from tornado.concurrent import run_on_executor
@@ -558,15 +554,6 @@ class Web(tornado.web.Application):
         router.app = self
 
         tornado.web.Application.__init__(self, router.urls + handlers)
-
-        try:
-            self.listen(args.port, address = args.addr)
-
-        except Exception as e:
-            raise Exception('Failed to bind %s:%d: %s' % (
-                args.addr, args.port, e))
-
-        print('Listening on http://%s:%d/' % (args.addr, args.port))
 
 
     def _get_log(self, path):
