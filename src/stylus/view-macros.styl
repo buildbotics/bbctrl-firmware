@@ -32,29 +32,23 @@
 .macros-view
   padding 0
 
-  // Navigation bar (matches service page)
+  // Navigation bar (dark style - matches service page)
   .navbar
     display flex
     align-items center
-    background #f5f5f5
-    border-bottom 1px solid #ddd
-    padding 0.5em 1em
+    background #333
+    padding 0 1em
+    min-height 40px
 
     .nav-item
       padding 0.5em 1em
       text-decoration none
-      color #333
-      border-radius 4px
-      margin-right 0.25em
+      color #ccc
+      border-radius 4px 4px 0 0
       
       &:hover
-        background #e8e8e8
-      
-      &.active, &:target
-        background #fff
-        border 1px solid #ddd
-        border-bottom-color #fff
-        margin-bottom -1px
+        color #fff
+        background rgba(255,255,255,0.1)
 
     .spacer
       flex 1
@@ -63,9 +57,6 @@
       display flex
       align-items center
       gap 0.5em
-      
-      button
-        margin-left 0.25em
 
     .save-status
       display flex
@@ -117,10 +108,6 @@
       font-size 0.9em
       margin-bottom 1em
 
-    .toolbar
-      margin-bottom 1em
-      text-align right
-
   // Macro list
   .macro-list
     border 1px solid #ddd
@@ -141,33 +128,37 @@
       width 24px
 
     .col-index
-      width 28px
+      width 32px
       text-align center
 
     .col-visibility
-      width 50px
+      width 55px
       text-align center
       
       .fa
         color #5bc0de
 
     .col-confirm
-      width 50px
+      width 55px
       text-align center
       
       .fa
         color #f0ad4e
 
     .col-tab
-      width 100px
+      width 110px
       text-align center
 
+    .col-spacer
+      flex 1
+
     .col-color
-      width 50px
+      width 120px
       text-align center
 
     .col-actions
-      width 40px
+      width 50px
+      text-align center
 
   .macro-row
     border-bottom 1px solid #eee
@@ -208,27 +199,27 @@
           color #999
 
     .col-index
-      width 28px
+      width 32px
       text-align center
       color #999
       font-size 0.9em
 
     .col-visibility
-      width 50px
+      width 55px
       text-align center
       
       input
         cursor pointer
 
     .col-confirm
-      width 50px
+      width 55px
       text-align center
       
       input
         cursor pointer
 
     .col-tab
-      width 100px
+      width 110px
       padding 0 0.25em
 
       select
@@ -239,19 +230,30 @@
         background #fff
         font-size 0.85em
 
+    .col-spacer
+      flex 1
+
     .col-color
-      width 50px
-      text-align center
+      width 120px
+      display flex
+      justify-content center
+      
+      // Make color picker hex input larger
+      input[type="text"]
+        width 70px
+        height 28px
+        padding 4px 6px
+        font-size 12px
 
     .col-actions
-      width 40px
+      width 50px
       text-align center
       
       .fa
-        padding 0.25em
+        padding 0.5em
         cursor pointer
         color #999
-        font-size 1em
+        font-size 1.1em
         
         &:hover
           color #d9534f
@@ -259,7 +261,7 @@
     .row-details
       display flex
       padding 0 0.75em 0.75em 0.75em
-      padding-left 52px  // Align with content after grip + index
+      padding-left 56px  // Align with content after grip + index
       gap 1em
 
       .detail-group

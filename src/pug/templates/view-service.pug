@@ -153,9 +153,9 @@ script#view-service-template(type="text/x-template")
               :disabled="!$root.authorized",
               :class="{'button-success': isItemDue(item)}",
               title="Record service completion and reset timer")
-            bbutton(@click="openItemEditor(item)", icon="pencil",
+            bbutton(@click="openItemEditor(item)", icon="pencil", text="Edit",
               :disabled="!$root.authorized", title="Edit item")
-            bbutton(@click="deleteItem(item)", icon="trash",
+            bbutton(@click="deleteItem(item)", icon="trash", text="Delete",
               :disabled="!$root.authorized", title="Delete item")
 
       p.empty-message(v-else)
@@ -165,16 +165,10 @@ script#view-service-template(type="text/x-template")
       .editor-panel(v-if="editingItem")
         h3 {{editingItem.id ? 'Edit' : 'Add'}} Service Item
         
-        .form-row
-          .form-group.form-group-flex
-            label Label
-            input(v-model="editingItem.label", placeholder="e.g., Spindle Grease",
-              @input="markModified")
-          
-          .form-group.form-group-small
-            label Interval (hours)
-            input(type="number", v-model.number="editingItem.interval", min="1",
-              @input="markModified")
+        .form-group
+          label Label
+          input(v-model="editingItem.label", placeholder="e.g., Spindle Grease",
+            @input="markModified")
         
         .form-row
           .form-group
@@ -182,9 +176,15 @@ script#view-service-template(type="text/x-template")
             select(v-model="editingItem.hour_type", @change="markModified")
               option(v-for="ht in hourTypes", :value="ht.value") {{ht.label}}
           
-          .form-group.form-group-small
+          .form-group
+            label Interval (hours)
+            input.interval-input(type="number", v-model.number="editingItem.interval", min="1",
+              @input="markModified")
+          
+          .form-group.form-group-color
             label Color
-            color-picker(:value.sync="editingItem.color", @change="markModified")
+            .color-input-wrapper
+              color-picker(:value.sync="editingItem.color", @change="markModified")
         
         .editor-actions
           bbutton(@click="cancelItemEdit", text="Cancel")

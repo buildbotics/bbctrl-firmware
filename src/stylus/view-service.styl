@@ -31,29 +31,23 @@
 .service-view
   padding: 0
 
-  // Navigation bar
+  // Navigation bar (dark style)
   .navbar
     display: flex
     align-items: center
-    background: #f5f5f5
-    border-bottom: 1px solid #ddd
-    padding: 0.5em 1em
+    background: #333
+    padding: 0 1em
+    min-height: 40px
 
     .nav-item
       padding: 0.5em 1em
       text-decoration: none
-      color: #333
-      border-radius: 4px
-      margin-right: 0.25em
+      color: #ccc
+      border-radius: 4px 4px 0 0
       
       &:hover
-        background: #e8e8e8
-      
-      &.active, &:target
-        background: #fff
-        border: 1px solid #ddd
-        border-bottom-color: #fff
-        margin-bottom: -1px
+        color: #fff
+        background: rgba(255,255,255,0.1)
 
     .spacer
       flex: 1
@@ -62,9 +56,6 @@
       display: flex
       align-items: center
       gap: 0.5em
-      
-      button
-        margin-left: 0.25em
     
     .save-status
       display: flex
@@ -295,8 +286,6 @@
       border: 1px solid #ddd
       border-radius: 4px
       margin-bottom: 12px
-      display: flex
-      align-items: center
       overflow: hidden
 
       &.due
@@ -306,14 +295,12 @@
           background: #ff5722 !important
 
       .item-color-bar
-        width: 8px
-        align-self: stretch
+        width: 100%
+        height: 6px
         flex-shrink: 0
 
       .item-content
-        flex: 1
         padding: 15px
-        min-width: 0
 
         .item-header
           display: flex
@@ -355,15 +342,10 @@
 
       .item-actions
         display: flex
-        flex-direction: column
-        gap: 6px
-        padding: 15px
-        border-left: 1px solid #eee
-        
-        button, .pure-button
-          padding: 6px 12px
-          font-size: 13px
-          white-space: nowrap
+        gap: 8px
+        padding: 12px 15px
+        background: #f9f9f9
+        border-top: 1px solid #eee
 
 
   // Notes list
@@ -428,12 +410,6 @@
       .form-group
         flex: 1
         min-width: 0  // Prevent flex items from overflowing
-      
-      .form-group-flex
-        flex: 2
-      
-      .form-group-small
-        flex: 0 0 150px
 
     .form-group
       margin-bottom: 15px
@@ -451,25 +427,35 @@
         border-radius: 4px
         font-size: 14px
         font-family: inherit
-        box-sizing: border-box  // Ensure padding doesn't cause overflow
+        box-sizing: border-box
+        height: 38px
 
         &:focus
           outline: none
           border-color: #2196F3
 
-      input[type="number"]
-        -moz-appearance: textfield
-        
-        &::-webkit-inner-spin-button,
-        &::-webkit-outer-spin-button
-          opacity: 1
+      .interval-input
+        width: 120px
 
       textarea
         resize: vertical
         min-height: 150px
+        height: auto
 
       select
         background: white
+
+    .form-group-color
+      flex: 0 0 auto
+      
+      .color-input-wrapper
+        display: flex
+        align-items: center
+        
+        // Make color-picker inputs consistent height
+        input
+          height: 38px
+          padding: 8px 12px
 
     .editor-actions
       display: flex

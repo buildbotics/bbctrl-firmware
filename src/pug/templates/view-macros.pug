@@ -27,7 +27,7 @@
 
 script#view-macros-template(type="text/x-template")
   .macros-view
-    //- Navigation bar
+    //- Navigation bar (dark style)
     nav.navbar
       a.nav-item(href="#macros") Macros
       a.nav-item(href="#macros:tabs") Tabs
@@ -35,9 +35,13 @@ script#view-macros-template(type="text/x-template")
       .spacer
       
       .actions
-        bbutton(@click="add", icon="plus", text="Add Macro",
+        //- Add button changes based on view
+        bbutton(v-if="view === 'macros'", @click="add", icon="plus", text="Add Macro",
           :disabled="!$root.authorized",
           title="Add a new macro")
+        bbutton(v-if="view === 'tabs'", @click="add_tab", icon="plus", text="Add Tab",
+          :disabled="!$root.authorized",
+          title="Add a new tab")
         
         //- Login/Save button area (far right)
         bbutton(v-if="!$root.authorized", @click="$root.login()", 
@@ -81,6 +85,7 @@ script#view-macros-template(type="text/x-template")
           .col-confirm
             .fa.fa-check-circle(title="Confirm")
           .col-tab Tab
+          .col-spacer
           .col-color Color
           .col-actions
         
@@ -110,6 +115,8 @@ script#view-macros-template(type="text/x-template")
                 title="Assign macro to a tab")
                 option(v-for="tab in macro_tabs", :value="tab.id",
                   :selected="get_macro_tab(macro) === tab.id") {{tab.name}}
+            
+            .col-spacer
             
             .col-color
               color-picker(:value.sync="macro.color", @change="change",
@@ -156,10 +163,6 @@ script#view-macros-template(type="text/x-template")
       p.help-text.
         Create tabs to organize your macros into focused groups. 
         On the control page, only macros from the selected tab will be shown.
-      
-      .toolbar
-        bbutton(@click="add_tab", icon="plus", text="Add Tab",
-          title="Add a new tab")
 
       //- Tab list
       .tab-list(v-if="macro_tabs.length")
