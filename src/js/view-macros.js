@@ -38,7 +38,8 @@ module.exports = {
     return {
       view: 'macros',
       dragging: -1,
-      draggingTab: -1
+      draggingTab: -1,
+      modified: false
     }
   },
 
@@ -84,6 +85,30 @@ module.exports = {
       }
       
       this.view = view
+    },
+    
+    
+    async 'route-changing'(path, cancel) {
+      if (this.modified && path[0] != 'macros') {
+        cancel()
+
+        let result = await this.$root.open_dialog({
+          header: 'Save changes?',
+          body: 'Changes to macros have not been saved. Would you like to save them now?',
+          width: '320px',
+          buttons: [
+            {text: 'Cancel', title: 'Stay on the Macros page.'},
+            {text: 'Discard', title: 'Discard changes.'},
+            {text: 'Save', title: 'Save changes.', class: 'button-success'}
+          ]
+        })
+
+        if (result == 'cancel') return
+        if (result == 'save') await this.save()
+        if (result == 'discard') await this.discard()
+
+        location.hash = path.join(':')
+      }
     }
   },
 
@@ -104,7 +129,7 @@ module.exports = {
     },
     
     
-    remove_tab(index) {
+    async remove_tab(index) {
       let tab = this.macro_tabs[index]
       if (!tab) return
       
@@ -113,6 +138,23 @@ module.exports = {
         this.$root.error_dialog('Cannot remove the last tab. At least one tab is required.')
         return
       }
+      
+      let macroCount = this.count_macros_in_tab(tab.id)
+      let message = 'Delete tab "' + tab.name + '"?'
+      if (macroCount > 0) {
+        message += '\n\n' + macroCount + ' macro(s) will be moved to the first tab.'
+      }
+      
+      let result = await this.$root.open_dialog({
+        header: 'Delete Tab',
+        body: message,
+        buttons: [
+          {text: 'Cancel'},
+          {text: 'Delete', class: 'button-danger', action: 'delete'}
+        ]
+      })
+      
+      if (result != 'delete') return
       
       // Move macros from this tab to the first tab
       let firstTabId = this.macro_tabs[0].id
@@ -253,7 +295,21 @@ module.exports = {
     },
 
 
-    remove(index) {
+    async remove(index) {
+      let macro = this.macros[index]
+      let name = macro.name || ('Macro ' + (index + 1))
+      
+      let result = await this.$root.open_dialog({
+        header: 'Delete Macro',
+        body: 'Delete "' + name + '"? This cannot be undone.',
+        buttons: [
+          {text: 'Cancel'},
+          {text: 'Delete', class: 'button-danger', action: 'delete'}
+        ]
+      })
+      
+      if (result != 'delete') return
+      
       this.macros.splice(index, 1)
       this.change()
     },
@@ -268,6 +324,25 @@ module.exports = {
     },
 
 
-    change() {this.$dispatch('input-changed')}
+    change() {
+      this.modified = true
+      this.$dispatch('input-changed')
+    },
+    
+    
+    async save() {
+      try {
+        await this.$api.put('config/save', this.config)
+        this.modified = false
+      } catch (error) {
+        this.$root.error_dialog('Failed to save: ' + error)
+      }
+    },
+    
+    
+    async discard() {
+      await this.$root.update()
+      this.modified = false
+    }
   }
 }

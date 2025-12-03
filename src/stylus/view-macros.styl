@@ -56,11 +56,26 @@
         border-bottom-color #fff
         margin-bottom -1px
 
+    .spacer
+      flex 1
+
     .actions
-      margin-left auto
+      display flex
+      align-items center
+      gap 0.5em
       
       button
-        margin-left 0.5em
+        margin-left 0.25em
+
+    .save-status
+      display flex
+      align-items center
+      color #5cb85c
+      font-size 0.9em
+      padding 0.25em 0.5em
+      
+      .fa
+        margin-right 0.35em
 
   // Summary bar
   .summary-bar
@@ -115,43 +130,46 @@
   .macro-header
     display flex
     align-items center
-    padding 0.5em
+    padding 0.5em 0.75em
     background #f5f5f5
     border-bottom 1px solid #ddd
-    font-weight bold
-    font-size 0.85em
-    color #666
+    font-size 0.8em
+    color #888
+    text-transform uppercase
+
+    .col-grip
+      width 24px
 
     .col-index
-      width 2.5em
+      width 28px
       text-align center
 
     .col-visibility
-      width 3em
+      width 50px
       text-align center
       
       .fa
         color #5bc0de
 
     .col-confirm
-      width 3em
+      width 50px
       text-align center
       
       .fa
         color #f0ad4e
 
     .col-tab
-      width 8em
-      padding 0 0.5em
+      width 100px
+      text-align center
 
-    .col-macro
-      flex 1
-      padding-left 0.5em
+    .col-color
+      width 50px
+      text-align center
+
+    .col-actions
+      width 40px
 
   .macro-row
-    display flex
-    align-items center
-    padding 0.5em
     border-bottom 1px solid #eee
     transition background 0.15s ease
 
@@ -161,56 +179,22 @@
     &:hover
       background #fafafa
 
-    .col-index
-      width 2.5em
-      text-align center
-      font-weight bold
-      color #999
-
-    .col-visibility
-      width 3em
-      text-align center
-      
-      input
-        cursor pointer
-
-    .col-confirm
-      width 3em
-      text-align center
-      
-      input
-        cursor pointer
-
-    .col-tab
-      width 8em
-      padding 0 0.5em
-
-      select
-        width 100%
-        padding 0.25em
-        border 1px solid #ccc
-        border-radius 3px
-        background #fff
-
-    .col-macro
-      flex 1
+    .row-main
       display flex
       align-items center
-      background #f8f8f8
-      border-radius 4px
-      padding 0.25em
+      padding 0.5em 0.75em
 
-      > *
-        margin 0 0.25em
+    .col-grip
+      width 24px
 
       .grip
-        width 12px
-        height 24px
+        width 14px
+        height 20px
         cursor move
         display inline-block
         overflow hidden
         line-height 5px
-        padding 3px 4px
+        padding 2px 3px
         font-size 12px
         font-family sans-serif
         letter-spacing 2px
@@ -218,41 +202,112 @@
         text-shadow 1px 0 1px #999
 
         &:after
-          content '.. .. .. ..'
+          content '.. .. ..'
 
-      input
-        border 1px solid #ddd
-        border-radius 3px
-        padding 0.35em 0.5em
-        font-size 0.9em
-
-      .name
-        width 8em
-
-      .path
-        flex 1
-        background #fff
-        cursor pointer
-        color #333
-
-        &::placeholder
+        &:hover
           color #999
-          font-style italic
 
-      .macro-actions
-        display flex
+    .col-index
+      width 28px
+      text-align center
+      color #999
+      font-size 0.9em
+
+    .col-visibility
+      width 50px
+      text-align center
+      
+      input
+        cursor pointer
+
+    .col-confirm
+      width 50px
+      text-align center
+      
+      input
+        cursor pointer
+
+    .col-tab
+      width 100px
+      padding 0 0.25em
+
+      select
+        width 100%
+        padding 0.25em
+        border 1px solid #ccc
+        border-radius 3px
+        background #fff
+        font-size 0.85em
+
+    .col-color
+      width 50px
+      text-align center
+
+    .col-actions
+      width 40px
+      text-align center
+      
+      .fa
+        padding 0.25em
+        cursor pointer
+        color #999
+        font-size 1em
         
-        .fa
-          padding 0.25em
-          cursor pointer
-          color #666
-          font-size 1.1em
-          
-          &:hover
-            color #333
+        &:hover
+          color #d9534f
 
-          &.fa-trash:hover
-            color #d9534f
+    .row-details
+      display flex
+      padding 0 0.75em 0.75em 0.75em
+      padding-left 52px  // Align with content after grip + index
+      gap 1em
+
+      .detail-group
+        display flex
+        flex-direction column
+        gap 0.25em
+
+        label
+          font-size 0.75em
+          color #888
+          text-transform uppercase
+
+        input
+          border 1px solid #ddd
+          border-radius 3px
+          padding 0.4em 0.5em
+          font-size 0.9em
+
+        .name
+          width 150px
+
+      .detail-file
+        flex 1
+        min-width 0
+
+        .file-input
+          display flex
+          align-items center
+          gap 0.5em
+
+          .path
+            flex 1
+            background #f9f9f9
+            cursor pointer
+            color #333
+            min-width 0
+
+            &::placeholder
+              color #999
+              font-style italic
+
+          .fa
+            cursor pointer
+            color #666
+            padding 0.25em
+            
+            &:hover
+              color #333
 
   // Empty state
   .empty-state
