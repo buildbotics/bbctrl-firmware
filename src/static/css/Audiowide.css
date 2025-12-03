@@ -2,5 +2,5 @@
   font-family: 'Audiowide';
   font-style: normal;
   font-weight: 400;
-  src: local('Audiowide'), local('Audiowide-Regular'), url(http://fonts.gstatic.com/s/audiowide/v4/8XtYtNKEyyZh481XVWfVOqCWcynf_cDxXwCLxiixG1c.ttf) format('truetype');
+  src: local('Audiowide'), local('Audiowide-Regular'), url(//fonts.gstatic.com/s/audiowide/v4/8XtYtNKEyyZh481XVWfVOqCWcynf_cDxXwCLxiixG1c.ttf) format('truetype');
 }
