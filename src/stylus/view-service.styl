@@ -31,6 +31,51 @@
 .service-view
   padding: 0
 
+  // Navigation bar
+  .navbar
+    display: flex
+    align-items: center
+    background: #f5f5f5
+    border-bottom: 1px solid #ddd
+    padding: 0.5em 1em
+
+    .nav-item
+      padding: 0.5em 1em
+      text-decoration: none
+      color: #333
+      border-radius: 4px
+      margin-right: 0.25em
+      
+      &:hover
+        background: #e8e8e8
+      
+      &.active, &:target
+        background: #fff
+        border: 1px solid #ddd
+        border-bottom-color: #fff
+        margin-bottom: -1px
+
+    .spacer
+      flex: 1
+
+    .actions
+      display: flex
+      align-items: center
+      gap: 0.5em
+      
+      button
+        margin-left: 0.25em
+    
+    .save-status
+      display: flex
+      align-items: center
+      color: #5cb85c
+      font-size: 0.9em
+      padding: 0.25em 0.5em
+      
+      .fa
+        margin-right: 0.35em
+
   // Hours summary bar - matches info-blocks style
   .hours-bar
     display: flex
@@ -145,6 +190,10 @@
 
         .item-actions
           margin-left: 10px
+          
+          button, .pure-button
+            padding: 4px 10px
+            font-size: 13px
 
 
   // No due items message
@@ -214,7 +263,9 @@
         border: 1px solid rgba(0,0,0,0.1)
 
       .item-info
-        flex: 1
+        display: flex
+        align-items: baseline
+        gap: 10px
 
         .item-label
           font-weight: 500
@@ -222,12 +273,17 @@
         .item-remaining
           font-size: 14px
           color: #666
+          padding: 2px 8px
+          background: #f0f0f0
+          border-radius: 10px
 
           &.overdue
             color: #d32f2f
             font-weight: bold
+            background: #ffebee
 
       .item-interval
+        margin-left: auto
         font-size: 13px
         color: #999
 
@@ -240,6 +296,7 @@
       border-radius: 4px
       margin-bottom: 12px
       display: flex
+      align-items: center
       overflow: hidden
 
       &.due
@@ -250,16 +307,18 @@
 
       .item-color-bar
         width: 8px
+        align-self: stretch
         flex-shrink: 0
 
       .item-content
         flex: 1
         padding: 15px
+        min-width: 0
 
         .item-header
           display: flex
-          justify-content: space-between
           align-items: center
+          gap: 12px
           margin-bottom: 10px
 
           .item-label
@@ -272,6 +331,7 @@
             padding: 4px 10px
             background: #e8f5e9
             border-radius: 12px
+            white-space: nowrap
 
             &.overdue
               background: #ffebee
@@ -282,7 +342,6 @@
           display: flex
           flex-wrap: wrap
           gap: 15px
-          margin-bottom: 12px
 
           .detail
             font-size: 14px
@@ -294,9 +353,17 @@
             .detail-value
               color: #333
 
-        .item-actions
-          display: flex
-          gap: 8px
+      .item-actions
+        display: flex
+        flex-direction: column
+        gap: 6px
+        padding: 15px
+        border-left: 1px solid #eee
+        
+        button, .pure-button
+          padding: 6px 12px
+          font-size: 13px
+          white-space: nowrap
 
 
   // Notes list
@@ -335,6 +402,11 @@
       .note-actions
         display: flex
         gap: 8px
+        
+        // Make buttons in action areas smaller
+        button, .pure-button
+          padding: 4px 10px
+          font-size: 13px
 
 
   // Editor panel
@@ -347,6 +419,21 @@
 
     h3
       margin: 0 0 20px 0
+
+    .form-row
+      display: flex
+      gap: 15px
+      margin-bottom: 15px
+      
+      .form-group
+        flex: 1
+        min-width: 0  // Prevent flex items from overflowing
+      
+      .form-group-flex
+        flex: 2
+      
+      .form-group-small
+        flex: 0 0 150px
 
     .form-group
       margin-bottom: 15px
@@ -364,10 +451,18 @@
         border-radius: 4px
         font-size: 14px
         font-family: inherit
+        box-sizing: border-box  // Ensure padding doesn't cause overflow
 
         &:focus
           outline: none
           border-color: #2196F3
+
+      input[type="number"]
+        -moz-appearance: textfield
+        
+        &::-webkit-inner-spin-button,
+        &::-webkit-outer-spin-button
+          opacity: 1
 
       textarea
         resize: vertical
@@ -381,6 +476,8 @@
       justify-content: flex-end
       gap: 10px
       margin-top: 20px
+      padding-top: 15px
+      border-top: 1px solid #ddd
 
 
   // Empty message
@@ -391,12 +488,6 @@
     text-align: center
     background: #f9f9f9
     border-radius: 4px
-
-
-  // Small button variant
-  .button.small, button.small
-    padding: 4px 10px
-    font-size: 13px
 
 
 // Control page service warning

@@ -33,9 +33,22 @@ script#view-service-template(type="text/x-template")
       a.nav-item(href="#service:items") Items
       a.nav-item(href="#service:notes") Notes
       
+      .spacer
+      
       .actions
         bbutton(@click="exportData", icon="download", text="Export",
           title="Export all service data")
+        
+        //- Login/Save button area (far right)
+        bbutton(v-if="!$root.authorized", @click="$root.login()", 
+          icon="sign-in", text="Login",
+          title="Login to make changes")
+        bbutton(v-if="$root.authorized && modified", @click="saveChanges", 
+          icon="save", text="Save", success,
+          title="Save pending changes")
+        .save-status(v-if="$root.authorized && !modified")
+          .fa.fa-check
+          span Saved
 
     //- Hours summary bar
     .hours-bar
@@ -68,7 +81,7 @@ script#view-service-template(type="text/x-template")
                 span.hour-type {{getHourTypeLabel(item.hour_type)}} hours
                 span.overdue Overdue by {{(getHoursForType(item.hour_type) - item.next_due).toFixed(1)}} hrs
             .item-actions
-              bbutton.small(@click="completeItem(item)", text="Complete",
+              bbutton(@click="completeItem(item)", text="Complete",
                 title="Mark as completed")
 
       //- No items due
@@ -134,13 +147,16 @@ script#view-service-template(type="text/x-template")
                 span.detail-label Last Done:
                 span.detail-value {{item.last_completed.toFixed(1)}} hrs
             
-            .item-actions
-              bbutton.small(v-if="isItemDue(item)", @click="completeItem(item)",
-                text="Complete", :disabled="!$root.authorized")
-              bbutton.small(@click="openItemEditor(item)", icon="pencil",
-                :disabled="!$root.authorized", title="Edit item")
-              bbutton.small(@click="deleteItem(item)", icon="trash",
-                :disabled="!$root.authorized", title="Delete item")
+          .item-actions
+            bbutton(@click="completeItem(item)", icon="check",
+              :text="isItemDue(item) ? 'Complete Now' : 'Mark Complete'",
+              :disabled="!$root.authorized",
+              :class="{'button-success': isItemDue(item)}",
+              title="Record service completion and reset timer")
+            bbutton(@click="openItemEditor(item)", icon="pencil",
+              :disabled="!$root.authorized", title="Edit item")
+            bbutton(@click="deleteItem(item)", icon="trash",
+              :disabled="!$root.authorized", title="Delete item")
 
       p.empty-message(v-else)
         | No service items configured. Click "Add Item" to create one.
@@ -149,25 +165,29 @@ script#view-service-template(type="text/x-template")
       .editor-panel(v-if="editingItem")
         h3 {{editingItem.id ? 'Edit' : 'Add'}} Service Item
         
-        .form-group
-          label Label
-          input(v-model="editingItem.label", placeholder="e.g., Spindle Grease")
+        .form-row
+          .form-group.form-group-flex
+            label Label
+            input(v-model="editingItem.label", placeholder="e.g., Spindle Grease",
+              @input="markModified")
+          
+          .form-group.form-group-small
+            label Interval (hours)
+            input(type="number", v-model.number="editingItem.interval", min="1",
+              @input="markModified")
         
-        .form-group
-          label Interval (hours)
-          input(type="number", v-model.number="editingItem.interval", min="1")
-        
-        .form-group
-          label Track By
-          select(v-model="editingItem.hour_type")
-            option(v-for="ht in hourTypes", :value="ht.value") {{ht.label}}
-        
-        .form-group
-          label Color
-          color-picker(:value.sync="editingItem.color")
+        .form-row
+          .form-group
+            label Track By
+            select(v-model="editingItem.hour_type", @change="markModified")
+              option(v-for="ht in hourTypes", :value="ht.value") {{ht.label}}
+          
+          .form-group.form-group-small
+            label Color
+            color-picker(:value.sync="editingItem.color", @change="markModified")
         
         .editor-actions
-          bbutton(@click="editingItem = null", text="Cancel")
+          bbutton(@click="cancelItemEdit", text="Cancel")
           bbutton(@click="saveItem", text="Save", success)
 
     //- Notes View
@@ -185,9 +205,9 @@ script#view-service-template(type="text/x-template")
             .note-date {{formatDate(note.created)}}
           .note-content {{note.content}}
           .note-actions
-            bbutton.small(@click="openNoteEditor(note)", icon="pencil",
+            bbutton(@click="openNoteEditor(note)", icon="pencil",
               :disabled="!$root.authorized", title="Edit note")
-            bbutton.small(@click="deleteNote(note)", icon="trash",
+            bbutton(@click="deleteNote(note)", icon="trash",
               :disabled="!$root.authorized", title="Delete note")
 
       p.empty-message(v-else)
@@ -199,13 +219,15 @@ script#view-service-template(type="text/x-template")
         
         .form-group
           label Title
-          input(v-model="editingNote.title", placeholder="e.g., Spindle Specifications")
+          input(v-model="editingNote.title", placeholder="e.g., Spindle Specifications",
+            @input="markModified")
         
         .form-group
           label Content
           textarea(v-model="editingNote.content", rows="10",
-            placeholder="Enter note content...")
+            placeholder="Enter note content...",
+            @input="markModified")
         
         .editor-actions
-          bbutton(@click="editingNote = null", text="Cancel")
+          bbutton(@click="cancelNoteEdit", text="Cancel")
           bbutton(@click="saveNote", text="Save", success)

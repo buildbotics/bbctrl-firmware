@@ -46,6 +46,9 @@ module.exports = {
       editingItem: null,
       editingNote: null,
       currentItemId: null,
+      modified: false,
+      originalItem: null,
+      originalNote: null,
       manualEntry: {
         hours: 0,
         date: '',
@@ -107,6 +110,20 @@ module.exports = {
       }
       
       this.view = view
+    },
+    
+    
+    'route-changing'(path, cancel) {
+      // Don't block if staying on service pages
+      if (path[0] == 'service') return
+      
+      // Check for unsaved editor changes
+      if (this.modified || this.editingItem || this.editingNote) {
+        cancel()
+        this.checkUnsavedChanges(() => {
+          location.hash = path.join(':')
+        })
+      }
     }
   },
 
@@ -124,6 +141,57 @@ module.exports = {
       } catch (error) {
         console.error('Failed to load service data:', error)
       }
+    },
+    
+    
+    // === DIRTY FORM TRACKING ===
+    
+    markModified() {
+      this.modified = true
+    },
+    
+    
+    clearModified() {
+      this.modified = false
+      this.originalItem = null
+      this.originalNote = null
+    },
+    
+    
+    async checkUnsavedChanges(callback) {
+      let response = await this.$root.open_dialog({
+        header: 'Unsaved Changes',
+        body: 'You have unsaved changes. Would you like to save them first?',
+        width: '320px',
+        buttons: [
+          {text: 'Cancel', title: 'Stay on this page'},
+          {text: 'Discard', title: 'Discard changes'},
+          {text: 'Save', title: 'Save changes', class: 'button-success'}
+        ]
+      })
+      
+      if (response == 'save') {
+        await this.saveChanges()
+        if (callback) callback()
+      } else if (response == 'discard') {
+        this.discardChanges()
+        if (callback) callback()
+      }
+      // Cancel does nothing - stays on page
+    },
+    
+    
+    async saveChanges() {
+      if (this.editingItem) await this.saveItem()
+      if (this.editingNote) await this.saveNote()
+      this.clearModified()
+    },
+    
+    
+    discardChanges() {
+      this.editingItem = null
+      this.editingNote = null
+      this.clearModified()
     },
     
     
@@ -178,12 +246,45 @@ module.exports = {
 
 
     async openItemEditor(item) {
+      // Check for unsaved changes in note editor
+      if (this.editingNote && this.modified) {
+        let response = await this.$root.open_dialog({
+          header: 'Unsaved Note',
+          body: 'You have an unsaved note. Discard changes?',
+          buttons: [
+            {text: 'Cancel'},
+            {text: 'Discard', action: 'discard'}
+          ]
+        })
+        if (response != 'discard') return
+        this.editingNote = null
+      }
+      
       this.editingItem = item ? {...item} : {
         label: '',
         interval: 100,
         color: '#e6e6e6',
         hour_type: 'motion_hours'
       }
+      this.originalItem = item ? {...item} : null
+      this.modified = false
+    },
+    
+    
+    async cancelItemEdit() {
+      if (this.modified) {
+        let response = await this.$root.open_dialog({
+          header: 'Discard Changes?',
+          body: 'You have unsaved changes. Are you sure you want to cancel?',
+          buttons: [
+            {text: 'Keep Editing'},
+            {text: 'Discard', class: 'button-danger', action: 'discard'}
+          ]
+        })
+        if (response != 'discard') return
+      }
+      this.editingItem = null
+      this.clearModified()
     },
 
 
@@ -199,6 +300,7 @@ module.exports = {
 
         await this.loadService()
         this.editingItem = null
+        this.clearModified()
       } catch (error) {
         this.$root.error_dialog('Failed to save service item: ' + error)
       }
@@ -299,11 +401,44 @@ module.exports = {
 
     // === NOTES ===
 
-    openNoteEditor(note) {
+    async openNoteEditor(note) {
+      // Check for unsaved changes in item editor
+      if (this.editingItem && this.modified) {
+        let response = await this.$root.open_dialog({
+          header: 'Unsaved Item',
+          body: 'You have an unsaved service item. Discard changes?',
+          buttons: [
+            {text: 'Cancel'},
+            {text: 'Discard', action: 'discard'}
+          ]
+        })
+        if (response != 'discard') return
+        this.editingItem = null
+      }
+      
       this.editingNote = note ? {...note} : {
         title: '',
         content: ''
       }
+      this.originalNote = note ? {...note} : null
+      this.modified = false
+    },
+    
+    
+    async cancelNoteEdit() {
+      if (this.modified) {
+        let response = await this.$root.open_dialog({
+          header: 'Discard Changes?',
+          body: 'You have unsaved changes. Are you sure you want to cancel?',
+          buttons: [
+            {text: 'Keep Editing'},
+            {text: 'Discard', class: 'button-danger', action: 'discard'}
+          ]
+        })
+        if (response != 'discard') return
+      }
+      this.editingNote = null
+      this.clearModified()
     },
 
 
@@ -319,6 +454,7 @@ module.exports = {
 
         await this.loadService()
         this.editingNote = null
+        this.clearModified()
       } catch (error) {
         this.$root.error_dialog('Failed to save note: ' + error)
       }
