@@ -1,0 +1,364 @@
+/******************************************************************************\
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
+\******************************************************************************/
+
+// =====================================================
+// MACROS PAGE - Dedicated macro management view
+// =====================================================
+
+.macros-view
+  padding 0
+
+  // Navigation bar (matches service page)
+  .navbar
+    display flex
+    align-items center
+    background #f5f5f5
+    border-bottom 1px solid #ddd
+    padding 0.5em 1em
+
+    .nav-item
+      padding 0.5em 1em
+      text-decoration none
+      color #333
+      border-radius 4px
+      margin-right 0.25em
+      
+      &:hover
+        background #e8e8e8
+      
+      &.active, &:target
+        background #fff
+        border 1px solid #ddd
+        border-bottom-color #fff
+        margin-bottom -1px
+
+    .actions
+      margin-left auto
+      
+      button
+        margin-left 0.5em
+
+  // Summary bar
+  .summary-bar
+    display flex
+    justify-content center
+    background #fafafa
+    border-bottom 1px solid #eee
+    padding 0.75em 1em
+
+    .summary-item
+      text-align center
+      padding 0 2em
+      border-right 1px solid #ddd
+
+      &:last-child
+        border-right none
+
+    .summary-label
+      font-size 0.8em
+      color #666
+      text-transform uppercase
+
+    .summary-value
+      font-size 1.4em
+      font-weight bold
+      color #333
+
+  // Main content area
+  .macros-content
+    padding 1em
+
+    h2
+      margin-top 0
+      margin-bottom 0.5em
+      color #333
+
+    .help-text
+      color #666
+      font-size 0.9em
+      margin-bottom 1em
+
+    .toolbar
+      margin-bottom 1em
+      text-align right
+
+  // Macro list
+  .macro-list
+    border 1px solid #ddd
+    border-radius 4px
+    background #fff
+
+  .macro-header
+    display flex
+    align-items center
+    padding 0.5em
+    background #f5f5f5
+    border-bottom 1px solid #ddd
+    font-weight bold
+    font-size 0.85em
+    color #666
+
+    .col-index
+      width 2.5em
+      text-align center
+
+    .col-visibility
+      width 3em
+      text-align center
+      
+      .fa
+        color #5bc0de
+
+    .col-confirm
+      width 3em
+      text-align center
+      
+      .fa
+        color #f0ad4e
+
+    .col-tab
+      width 8em
+      padding 0 0.5em
+
+    .col-macro
+      flex 1
+      padding-left 0.5em
+
+  .macro-row
+    display flex
+    align-items center
+    padding 0.5em
+    border-bottom 1px solid #eee
+    transition background 0.15s ease
+
+    &:last-child
+      border-bottom none
+
+    &:hover
+      background #fafafa
+
+    .col-index
+      width 2.5em
+      text-align center
+      font-weight bold
+      color #999
+
+    .col-visibility
+      width 3em
+      text-align center
+      
+      input
+        cursor pointer
+
+    .col-confirm
+      width 3em
+      text-align center
+      
+      input
+        cursor pointer
+
+    .col-tab
+      width 8em
+      padding 0 0.5em
+
+      select
+        width 100%
+        padding 0.25em
+        border 1px solid #ccc
+        border-radius 3px
+        background #fff
+
+    .col-macro
+      flex 1
+      display flex
+      align-items center
+      background #f8f8f8
+      border-radius 4px
+      padding 0.25em
+
+      > *
+        margin 0 0.25em
+
+      .grip
+        width 12px
+        height 24px
+        cursor move
+        display inline-block
+        overflow hidden
+        line-height 5px
+        padding 3px 4px
+        font-size 12px
+        font-family sans-serif
+        letter-spacing 2px
+        color #ccc
+        text-shadow 1px 0 1px #999
+
+        &:after
+          content '.. .. .. ..'
+
+      input
+        border 1px solid #ddd
+        border-radius 3px
+        padding 0.35em 0.5em
+        font-size 0.9em
+
+      .name
+        width 8em
+
+      .path
+        flex 1
+        background #fff
+        cursor pointer
+        color #333
+
+        &::placeholder
+          color #999
+          font-style italic
+
+      .macro-actions
+        display flex
+        
+        .fa
+          padding 0.25em
+          cursor pointer
+          color #666
+          font-size 1.1em
+          
+          &:hover
+            color #333
+
+          &.fa-trash:hover
+            color #d9534f
+
+  // Empty state
+  .empty-state
+    text-align center
+    padding 3em
+    color #999
+
+    .fa
+      font-size 4em
+      margin-bottom 0.5em
+      opacity 0.5
+
+    p
+      font-size 1.1em
+      margin-bottom 1em
+
+  // Help section
+  .help-section
+    margin-top 2em
+    padding 1em
+    background #f9f9f9
+    border-radius 4px
+
+    h3
+      margin-top 0
+      margin-bottom 0.5em
+      font-size 1em
+      color #666
+
+    ul
+      margin 0
+      padding-left 1.5em
+      color #666
+      font-size 0.9em
+
+      li
+        margin-bottom 0.25em
+
+  // Tab list (for Tabs view)
+  .tab-list
+    border 1px solid #ddd
+    border-radius 4px
+    background #fff
+    padding 0.5em
+
+  .tab-row
+    display flex
+    align-items center
+    padding 0.5em
+    background #f8f8f8
+    border-radius 4px
+    margin-bottom 0.5em
+
+    &:last-child
+      margin-bottom 0
+
+    &:hover
+      background #f0f0f0
+
+    .grip
+      width 12px
+      height 24px
+      cursor move
+      display inline-block
+      overflow hidden
+      line-height 5px
+      padding 3px 4px
+      font-size 12px
+      font-family sans-serif
+      letter-spacing 2px
+      color #ccc
+      text-shadow 1px 0 1px #999
+      margin-right 0.5em
+
+      &:after
+        content '.. .. .. ..'
+
+    .tab-name
+      flex 1
+      border 1px solid #ccc
+      border-radius 3px
+      padding 0.35em 0.5em
+      font-size 1em
+      margin-right 1em
+
+    .tab-macro-count
+      color #666
+      font-size 0.85em
+      padding 0 1em
+      white-space nowrap
+
+    .tab-actions
+      .fa
+        padding 0.25em 0.5em
+        cursor pointer
+        color #666
+
+        &:hover
+          color #333
+
+        &.fa-trash:hover
+          color #d9534f
+
+        &.disabled
+          opacity 0.3
+          cursor not-allowed
+
+          &:hover
+            color #666

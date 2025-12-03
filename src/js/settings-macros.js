@@ -26,73 +26,10 @@
 \******************************************************************************/
 
 
-let util = require('./util')
-
+// This component is now just a redirect notice to the new dedicated Macros page
+// The actual macro configuration is handled in view-macros.js
 
 module.exports = {
   template: '#settings-macros-template',
-  props: ['config', 'state', 'template'],
-
-
-  data() {
-    return {
-      dragging: -1
-    }
-  },
-
-
-  computed: {
-    macros() {return this.config.macros || []}
-  },
-
-
-  methods: {
-    add() {
-      this.macros.push({name: '', path: '', color: '#e6e6e6'})
-    },
-
-
-    mousedown(event) {this.target = event.target},
-
-
-    dragstart(event) {
-      if (this.target.localName == 'input') event.preventDefault()
-    },
-
-
-    drag(index) {
-      console.log('drag(' + index + ')')
-      this.dragging = index
-      event.preventDefault()
-    },
-
-
-    drop(index) {
-      console.log('drop(' + index + ') dragging=' + this.dragging)
-
-      if (index == this.dragging) return
-      let item = this.macros[this.dragging]
-      this.macros.splice(this.dragging, 1)
-      this.macros.splice(index, 0, item)
-      this.change()
-    },
-
-
-    remove(index) {
-      this.macros.splice(index, 1)
-      this.change()
-    },
-
-
-    async open(index) {
-      let path = await this.$root.file_dialog()
-      if (path) {
-        this.macros[index].path = util.display_path(path)
-        this.change()
-      }
-    },
-
-
-    change() {this.$dispatch('input-changed')}
-  }
+  props: ['config', 'state', 'template']
 }

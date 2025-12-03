@@ -1,0 +1,211 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#view-service-template(type="text/x-template")
+  .service-view
+    //- Navigation bar
+    nav.navbar
+      a.nav-item(href="#service:dashboard") Dashboard
+      a.nav-item(href="#service:items") Items
+      a.nav-item(href="#service:notes") Notes
+      
+      .actions
+        bbutton(@click="exportData", icon="download", text="Export",
+          title="Export all service data")
+
+    //- Hours summary bar
+    .hours-bar
+      .hours-item
+        .hours-label Power-On
+        .hours-value {{powerHours}} hrs
+      .hours-item
+        .hours-label Spindle
+        .hours-value {{spindleHours}} hrs
+      .hours-item
+        .hours-label Motion
+        .hours-value {{motionHours}} hrs
+
+    //- Dashboard View
+    .service-content(v-if="view === 'dashboard'")
+      h2 Service Dashboard
+      
+      //- Due items warning
+      .due-items-section(v-if="dueItems.length")
+        .section-header
+          .fa.fa-exclamation-triangle
+          span Service Due ({{dueItems.length}})
+        
+        .due-items-list
+          .due-item(v-for="item in dueItems")
+            .item-color(:style="{backgroundColor: item.color}")
+            .item-info
+              .item-label {{item.label}}
+              .item-details
+                span.hour-type {{getHourTypeLabel(item.hour_type)}} hours
+                span.overdue Overdue by {{(getHoursForType(item.hour_type) - item.next_due).toFixed(1)}} hrs
+            .item-actions
+              bbutton.small(@click="completeItem(item)", text="Complete",
+                title="Mark as completed")
+
+      //- No items due
+      .no-due-items(v-else)
+        .fa.fa-check-circle
+        span All services up to date!
+
+      //- Quick stats
+      .stats-section
+        h3 Service Summary
+        .stats-grid
+          .stat-card
+            .stat-value {{serviceData.items.length}}
+            .stat-label Service Items
+          .stat-card
+            .stat-value {{dueItems.length}}
+            .stat-label Items Due
+          .stat-card
+            .stat-value {{serviceData.notes.length}}
+            .stat-label Notes
+
+      //- Recent activity
+      .recent-section(v-if="itemsSorted.length")
+        h3 Upcoming Service
+        .upcoming-list
+          .upcoming-item(v-for="item in itemsSorted.slice(0, 5)", 
+            :class="{due: isItemDue(item)}")
+            .item-color(:style="{backgroundColor: item.color}")
+            .item-info
+              .item-label {{item.label}}
+              .item-remaining(:class="{overdue: isItemDue(item)}")
+                | {{getItemHoursRemaining(item)}}
+            .item-interval {{item.interval}} hr interval
+
+    //- Items View
+    .service-content(v-if="view === 'items'")
+      .section-header-row
+        h2 Service Items
+        bbutton(@click="openItemEditor(null)", icon="plus", text="Add Item",
+          :disabled="!$root.authorized",
+          title="Add a new service item")
+
+      .items-list(v-if="itemsSorted.length")
+        .item-card(v-for="item in itemsSorted", :class="{due: isItemDue(item)}")
+          .item-color-bar(:style="{backgroundColor: item.color}")
+          .item-content
+            .item-header
+              .item-label {{item.label}}
+              .item-status(:class="{overdue: isItemDue(item)}")
+                | {{getItemHoursRemaining(item)}}
+            
+            .item-details
+              .detail
+                span.detail-label Interval:
+                span.detail-value {{item.interval}} hrs
+              .detail
+                span.detail-label Tracks:
+                span.detail-value {{getHourTypeLabel(item.hour_type)}} Hours
+              .detail
+                span.detail-label Next Due:
+                span.detail-value {{item.next_due.toFixed(1)}} hrs
+              .detail
+                span.detail-label Last Done:
+                span.detail-value {{item.last_completed.toFixed(1)}} hrs
+            
+            .item-actions
+              bbutton.small(v-if="isItemDue(item)", @click="completeItem(item)",
+                text="Complete", :disabled="!$root.authorized")
+              bbutton.small(@click="openItemEditor(item)", icon="pencil",
+                :disabled="!$root.authorized", title="Edit item")
+              bbutton.small(@click="deleteItem(item)", icon="trash",
+                :disabled="!$root.authorized", title="Delete item")
+
+      p.empty-message(v-else)
+        | No service items configured. Click "Add Item" to create one.
+
+      //- Item Editor
+      .editor-panel(v-if="editingItem")
+        h3 {{editingItem.id ? 'Edit' : 'Add'}} Service Item
+        
+        .form-group
+          label Label
+          input(v-model="editingItem.label", placeholder="e.g., Spindle Grease")
+        
+        .form-group
+          label Interval (hours)
+          input(type="number", v-model.number="editingItem.interval", min="1")
+        
+        .form-group
+          label Track By
+          select(v-model="editingItem.hour_type")
+            option(v-for="ht in hourTypes", :value="ht.value") {{ht.label}}
+        
+        .form-group
+          label Color
+          color-picker(:value.sync="editingItem.color")
+        
+        .editor-actions
+          bbutton(@click="editingItem = null", text="Cancel")
+          bbutton(@click="saveItem", text="Save", success)
+
+    //- Notes View
+    .service-content(v-if="view === 'notes'")
+      .section-header-row
+        h2 Machine Notes
+        bbutton(@click="openNoteEditor(null)", icon="plus", text="Add Note",
+          :disabled="!$root.authorized",
+          title="Add a new note")
+
+      .notes-list(v-if="notesSorted.length")
+        .note-card(v-for="note in notesSorted")
+          .note-header
+            .note-title {{note.title}}
+            .note-date {{formatDate(note.created)}}
+          .note-content {{note.content}}
+          .note-actions
+            bbutton.small(@click="openNoteEditor(note)", icon="pencil",
+              :disabled="!$root.authorized", title="Edit note")
+            bbutton.small(@click="deleteNote(note)", icon="trash",
+              :disabled="!$root.authorized", title="Delete note")
+
+      p.empty-message(v-else)
+        | No notes created. Use notes to record machine specs, procedures, or other information.
+
+      //- Note Editor
+      .editor-panel(v-if="editingNote")
+        h3 {{editingNote.id ? 'Edit' : 'Add'}} Note
+        
+        .form-group
+          label Title
+          input(v-model="editingNote.title", placeholder="e.g., Spindle Specifications")
+        
+        .form-group
+          label Content
+          textarea(v-model="editingNote.content", rows="10",
+            placeholder="Enter note content...")
+        
+        .editor-actions
+          bbutton(@click="editingNote = null", text="Cancel")
+          bbutton(@click="saveNote", text="Save", success)

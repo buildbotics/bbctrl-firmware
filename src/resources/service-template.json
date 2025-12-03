@@ -1,0 +1,143 @@
+{
+  "hours": {
+    "power_hours": {
+      "help": "Total time the controller has been powered on.",
+      "type": "float",
+      "min": 0,
+      "unit": "hours",
+      "default": 0
+    },
+    "spindle_hours": {
+      "help": "Total time the spindle has been running (speed > 0).",
+      "type": "float",
+      "min": 0,
+      "unit": "hours",
+      "default": 0
+    },
+    "motion_hours": {
+      "help": "Total time the machine has been actively running programs.",
+      "type": "float",
+      "min": 0,
+      "unit": "hours",
+      "default": 0
+    }
+  },
+
+  "items": {
+    "type": "list",
+    "help": "Service items to track for maintenance scheduling.",
+    "default": [],
+    "template": {
+      "id": {
+        "type": "int",
+        "help": "Unique identifier for this service item."
+      },
+      "label": {
+        "type": "string",
+        "default": "",
+        "help": "Name of the service item (e.g., 'Spindle Grease')."
+      },
+      "interval": {
+        "type": "int",
+        "min": 1,
+        "default": 100,
+        "unit": "hours",
+        "help": "Hours between service intervals."
+      },
+      "hour_type": {
+        "type": "enum",
+        "values": ["power_hours", "spindle_hours", "motion_hours"],
+        "default": "motion_hours",
+        "help": "Which hour counter to track against."
+      },
+      "color": {
+        "type": "string",
+        "default": "#e6e6e6",
+        "help": "Display color for this service item."
+      },
+      "last_completed": {
+        "type": "float",
+        "default": 0,
+        "unit": "hours",
+        "help": "Hour count when service was last completed."
+      },
+      "next_due": {
+        "type": "float",
+        "default": 0,
+        "unit": "hours",
+        "help": "Hour count when service is next due."
+      },
+      "created": {
+        "type": "string",
+        "help": "ISO timestamp when item was created."
+      },
+      "history": {
+        "type": "list",
+        "default": [],
+        "help": "Service completion history.",
+        "template": {
+          "type": {
+            "type": "enum",
+            "values": ["completed", "manual"],
+            "help": "Type of history entry."
+          },
+          "hours": {
+            "type": "float",
+            "help": "Hour count at time of service."
+          },
+          "date": {
+            "type": "string",
+            "help": "ISO timestamp of service."
+          },
+          "notes": {
+            "type": "string",
+            "default": "",
+            "help": "Optional notes about the service."
+          }
+        }
+      }
+    }
+  },
+
+  "notes": {
+    "type": "list",
+    "help": "Machine notes for specifications, procedures, etc.",
+    "default": [],
+    "template": {
+      "id": {
+        "type": "int",
+        "help": "Unique identifier for this note."
+      },
+      "title": {
+        "type": "string",
+        "default": "",
+        "help": "Note title."
+      },
+      "content": {
+        "type": "string",
+        "default": "",
+        "help": "Note content (supports multi-line text)."
+      },
+      "created": {
+        "type": "string",
+        "help": "ISO timestamp when note was created."
+      },
+      "modified": {
+        "type": "string",
+        "help": "ISO timestamp when note was last modified."
+      }
+    }
+  },
+
+  "meta": {
+    "version": {
+      "type": "int",
+      "default": 2,
+      "help": "Service data format version."
+    },
+    "last_update": {
+      "type": "string",
+      "help": "ISO timestamp of last update."
+    }
+  }
+}

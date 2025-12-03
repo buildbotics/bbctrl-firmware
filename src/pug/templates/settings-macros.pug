@@ -28,36 +28,14 @@
 script#settings-macros-template(type="text/x-template")
   #settings-macros
     h1 Macro Configuration
-
-    .toolbar
-      bbutton(title="Add a new macro.", @click="add", text="Add")
-
-    ol.macros(v-if="macros.length")
-      li(v-for="macro in macros")
-        label.index {{"#" + ($index + 1)}}
-        .macro(draggable="true", @dragstart="dragstart", @mousedown="mousedown",
-          @drag="drag($index)", @dragover.prevent="",
-          @drop.prevent="drop($index)")
-          .grip
-
-          color-picker(:value.sync="macro.color", @change="change",
-            title="Set the macro button color.")
-
-          input.name(@change="change", v-model="macro.name",
-            title="Set the macro button name.")
-
-          input.path(@click="open($index)", :value="macro.path", readonly,
-            title="Select the macro file")
-
-          .actions
-            .fa.fa-folder-open(@click="open($index)",
-              title="Select the macro file.")
-            .fa.fa-trash(@click="remove($index)",
-              :title="'Delete macro ' + ($index + 1) + '.'")
-
-    p.
-      Macros are programs that you can run by clicking the corresponding
-      button on the #[a(href="#control") control page].  To create a new
-      macro, click the "Add" button.  Then set the button color, name and
-      select a program to run from the file menu.  You can upload new
-      programs or create them with the #[a(href="#editor") editor].
+    
+    .redirect-notice
+      .fa.fa-info-circle
+      p.
+        Macros now have their own dedicated page! 
+        #[a(href="#macros") Click here to go to the Macros page] 
+        to configure your macros, tabs, and settings.
+    
+    p.help-text.
+      The macro configuration has been moved to its own top-level menu item
+      for easier access. You can find it in the main navigation menu under "Macros".

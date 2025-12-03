@@ -44,15 +44,38 @@ script#view-control-template(type="text/x-template")
       each axis in 'xyzabc'
         tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)
 
-    .macros
-      bbutton.macro(v-for="macro in config.macros",
-        v-if="macro.path", @click="run_macro($index + 1)",
-        title="Run macro {{$index + 1}} {{macro.name}}\n{{macro.path}}",
-        :style="{'background-color': macro.color}",
-        :text="macro.name || ($index + 1)")
+    //- Macro section with tabs
+    .macros-container
+      //- Tab bar (always show - includes settings tab)
+      .macro-tabs
+        .macro-tab(v-for="tab in macro_tabs",
+          :class="{active: current_macro_tab === tab.id}",
+          @click="select_macro_tab(tab.id)",
+          :title="tab.name")
+          | {{tab.name}}
+        
+        //- Settings tab - always visible at the end
+        a.macro-tab.settings-tab(href="#macros", title="Configure macros")
+          .fa.fa-cog
+          |  Settings
+      
+      //- Macro buttons
+      .macros
+        bbutton.macro(v-for="macro in visible_macros",
+          v-if="macro.path",
+          :disabled="!is_idle",
+          @click="run_macro(macro.originalIndex)",
+          :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
+          :style="{'background-color': macro.color}",
+          :text="macro.name || (macro.originalIndex + 1)")
 
-      bbutton.macro(@click="goto('#settings:macros')", icon="cog",
-        text="Macros", title="Go to macro settings")
+    //- Service warning banner (shows when items are due)
+    .service-warning-banner(v-if="serviceDueCount > 0", 
+      @click="goto('#service:dashboard')",
+      title="Click to view service items")
+      .fa.fa-wrench
+      .warning-text Service maintenance due
+      .warning-count {{serviceDueCount}}
 
     .info-blocks
       table.info

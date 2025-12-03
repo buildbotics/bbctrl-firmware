@@ -69,6 +69,8 @@ module.exports = new Vue({
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),
+    'view-macros':    require('./view-macros'),
+    'view-service':   require('./view-service'),
     'view-camera':    {template: '#view-camera-template'},
     'view-docs':      require('./view-docs')
   },
