@@ -35,6 +35,19 @@ class Program {
     this.path = path
     this.filename = util.display_path(path)
     this.progress = 0
+    // FIX: Track when program was created/refreshed for cache busting
+    this.timestamp = Date.now()
+  }
+
+
+  // FIX: Invalidate cached data so file is re-fetched
+  invalidate() {
+    this._load = null
+    this._toolpath = null
+    this._positions = null
+    this._speeds = null
+    this._view = null
+    this.timestamp = Date.now()
   }
 
 
@@ -97,9 +110,11 @@ class Program {
 
 
   load() {
-    if (!this._load)
-      this._load = this.$api.get('fs/' + this.path, {type: 'text'})
-    return this._load
+    // FIX: Always fetch fresh content - don't cache file loads
+    // This ensures re-uploaded files are always fetched from server
+    // The server also sets no-cache headers
+    return this.$api.get('fs/' + this.path + '?_t=' + Date.now(), 
+      {type: 'text'})
   }
 }
 

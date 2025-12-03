@@ -163,12 +163,22 @@
     row-gap 8px
     padding 0 0.25em
 
+    // FIX: Button text overflow - allow text to wrap
     .macro
-      text-align left
+      text-align center
       overflow hidden
-      text-overflow ellipsis
-      white-space nowrap
-      padding 0.5em
+      // FIX: Remove text-overflow ellipsis and white-space nowrap
+      // to allow long names to wrap to multiple lines
+      white-space normal
+      word-wrap break-word
+      overflow-wrap break-word
+      padding 0.5em 0.25em
+      min-height 2.5em
+      display flex
+      align-items center
+      justify-content center
+      font-size 14px
+      line-height 1.2
 
       &:hover
         background-image button-hover

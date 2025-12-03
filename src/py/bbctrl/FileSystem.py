@@ -35,6 +35,9 @@ __all__ = ['FileSystem']
 
 class FileSystem:
   extensions = ('.nc', '.gc', '.gcode', '.ngc', '.tap', '.txt', '.tpl')
+  
+  # Protected directories that users cannot modify directly
+  PROTECTED_DIRS = ['macros']
 
 
   def __init__(self, ctrl):
@@ -49,11 +52,138 @@ class FileSystem:
       from shutil import copy
       copy(util.get_resource('http/buildbotics.nc'), upload)
 
+    # Create protected macros directory
+    self._ensure_macros_dir()
+
     self._update_locations()
     self._update_first_file()
 
     ctrl.events.on('invalidate', self._invalidate)
     ctrl.udevev.add_handler(self._udev_event, 'block')
+
+
+  def _ensure_macros_dir(self):
+    """Create the protected macros directory if it doesn't exist"""
+    macros_dir = self.ctrl.root + '/upload/macros'
+    if not os.path.exists(macros_dir):
+      os.makedirs(macros_dir, mode=0o755)
+      self.log.info('Created protected macros directory')
+
+
+  def is_protected_path(self, path):
+    """Check if a path is in a protected directory"""
+    # Normalize the path
+    path = os.path.normpath(path).lstrip('./')
+    
+    # Check if path starts with any protected directory
+    for protected in self.PROTECTED_DIRS:
+      # Check for Home/macros or just macros
+      if path.startswith('Home/' + protected) or path.startswith(protected + '/'):
+        return True
+      if path == 'Home/' + protected or path == protected:
+        return True
+    
+    return False
+
+
+  def get_macros_dir(self):
+    """Get the real path to the macros directory"""
+    return self.ctrl.root + '/upload/macros'
+
+
+  def isolate_macro(self, macro_id, source_path, macro_name=''):
+    """
+    Copy a macro file to the protected macros directory.
+    
+    Args:
+      macro_id: The macro index (1-based)
+      source_path: Original path to the macro file (relative, e.g., 'Home/file.nc')
+      macro_name: Optional macro name for the filename
+      
+    Returns:
+      New isolated path (relative), or None if source doesn't exist
+    """
+    # Skip if already in macros directory
+    if source_path.startswith('Home/macros/') or source_path.startswith('macros/'):
+      return source_path
+    
+    # Get the real source path
+    real_source = self.realpath(source_path)
+    if not real_source or not os.path.exists(real_source):
+      self.log.warning('Macro %d source not found: %s' % (macro_id, source_path))
+      return None
+    
+    if not os.path.isfile(real_source):
+      self.log.warning('Macro %d source is not a file: %s' % (macro_id, source_path))
+      return None
+    
+    # Create isolated filename: macro_<id>_<original_name>
+    original_name = os.path.basename(source_path)
+    # Clean the macro name for use in filename
+    safe_name = ''.join(c for c in macro_name if c.isalnum() or c in '._-') if macro_name else ''
+    if safe_name:
+      isolated_name = 'macro_%d_%s_%s' % (macro_id, safe_name, original_name)
+    else:
+      isolated_name = 'macro_%d_%s' % (macro_id, original_name)
+    
+    # Destination path
+    macros_dir = self.get_macros_dir()
+    real_dest = os.path.join(macros_dir, isolated_name)
+    
+    try:
+      # Copy the file
+      shutil.copy2(real_source, real_dest)
+      self.log.info('Isolated macro %d: %s -> macros/%s' % (
+        macro_id, source_path, isolated_name))
+      
+      # Return the new relative path
+      return 'macros/' + isolated_name
+      
+    except Exception as e:
+      self.log.error('Failed to isolate macro %d: %s' % (macro_id, str(e)))
+      return None
+
+
+  def cleanup_orphaned_macros(self, current_paths):
+    """
+    Remove macro files that are no longer referenced.
+    
+    Args:
+      current_paths: Set of paths currently in use (relative paths like 'macros/...')
+    """
+    macros_dir = self.get_macros_dir()
+    if not os.path.exists(macros_dir):
+      return
+    
+    # Normalize current paths to just filenames
+    current_files = set()
+    for path in current_paths:
+      if path and (path.startswith('macros/') or path.startswith('Home/macros/')):
+        current_files.add(os.path.basename(path))
+    
+    # Check each file in macros directory
+    try:
+      for filename in os.listdir(macros_dir):
+        filepath = os.path.join(macros_dir, filename)
+        
+        # Skip directories
+        if not os.path.isfile(filepath):
+          continue
+        
+        # Only clean up files that look like isolated macros
+        if not filename.startswith('macro_'):
+          continue
+        
+        # Remove if not in current paths
+        if filename not in current_files:
+          try:
+            os.remove(filepath)
+            self.log.info('Cleaned up orphaned macro file: %s' % filename)
+          except Exception as e:
+            self.log.error('Failed to remove orphaned macro: %s' % str(e))
+            
+    except Exception as e:
+      self.log.error('Error cleaning orphaned macros: %s' % str(e))
 
 
   def _invalidate(self, path):
@@ -67,6 +197,9 @@ class FileSystem:
 
     files = []
     for path in os.listdir(upload):
+      # Skip protected directories
+      if path in self.PROTECTED_DIRS:
+        continue
       parts = os.path.splitext(path)
       if (len(parts) == 2 and parts[1] in self.extensions and
           os.path.isfile(upload + '/' + path)):
@@ -110,6 +243,10 @@ class FileSystem:
 
 
   def delete(self, path):
+    # Check for protected paths
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot delete protected macro files')
+    
     realpath = self.realpath(path)
 
     try:
@@ -122,6 +259,10 @@ class FileSystem:
 
 
   def mkdir(self, path):
+    # Check for protected paths
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot create directories in protected area')
+    
     realpath = self.realpath(path)
 
     if not os.path.exists(realpath):
@@ -130,6 +271,10 @@ class FileSystem:
 
 
   def write(self, path, data):
+    # Check for protected paths
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot write to protected macro files')
+    
     realpath = self.realpath(path)
 
     with open(realpath.encode('utf8'), 'wb') as f:

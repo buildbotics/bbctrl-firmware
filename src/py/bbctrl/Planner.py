@@ -345,7 +345,11 @@ class Planner():
 
 
     def _end_program(self, msg = None, end_all = False):
-        self.ctrl.state.set('active_program', None)
+        # FIX: Check if this was a macro - if so, restore previous program
+        # Otherwise, just clear active_program as before
+        if not self.ctrl.state.end_macro():
+            # Not a macro, clear active_program normally
+            self.ctrl.state.set('active_program', None)
 
         if end_all:
             while len(self.end_callbacks):

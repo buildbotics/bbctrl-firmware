@@ -40,7 +40,16 @@ module.exports = {
 
   data() {
     return {
-      config: '{}'
+      config: '{}',
+      hexInput: ''  // FIX: Track hex input value
+    }
+  },
+
+
+  watch: {
+    // FIX: Sync hex input when value changes from picker
+    value(newVal) {
+      this.hexInput = newVal || ''
     }
   },
 
@@ -60,16 +69,60 @@ module.exports = {
         '#ffffff', '#c3c3c3', '#b87957', '#feaec9', '#ffc80d',
         '#eee3af', '#b5e61d', '#99d9ea', '#7092be', '#c8bfe7'
       ]})
+    
+    // FIX: Initialize hex input with current value
+    this.hexInput = this.value || ''
   },
 
 
   methods: {
     change() {
       this.value = this.jscolor.toHEXString()
+      this.hexInput = this.value
       this.$emit('change', this.value)
     },
 
 
-    show() {this.jscolor.show()}
+    show() {this.jscolor.show()},
+    
+    
+    // FIX: Handle direct hex input
+    onHexInput(e) {
+      let hex = e.target.value.trim()
+      
+      // Add # if missing
+      if (hex && !hex.startsWith('#')) {
+        hex = '#' + hex
+      }
+      
+      // Validate hex format
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        this.value = hex.toUpperCase()
+        this.jscolor.fromString(hex)
+        this.$emit('change', this.value)
+      }
+    },
+    
+    
+    // FIX: Update on blur to handle partial input
+    onHexBlur(e) {
+      let hex = e.target.value.trim()
+      
+      // Add # if missing
+      if (hex && !hex.startsWith('#')) {
+        hex = '#' + hex
+      }
+      
+      // Validate and apply, or revert to current value
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        this.value = hex.toUpperCase()
+        this.hexInput = this.value
+        this.jscolor.fromString(hex)
+        this.$emit('change', this.value)
+      } else {
+        // Revert to current value if invalid
+        this.hexInput = this.value || ''
+      }
+    }
   }
 }

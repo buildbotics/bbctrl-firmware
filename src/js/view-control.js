@@ -183,6 +183,12 @@ module.exports = {
 
     step(axis, value) {
       this.send('M70\nG91\nG0' + axis + value + '\nM72')
+    },
+    
+    
+    // FIX #1: Handle program-cleared event to clear textarea
+    'program-cleared'() {
+      this.clear_display()
     }
   },
 
@@ -236,9 +242,24 @@ module.exports = {
     },
 
 
+    // FIX #1: Clear the display when no program is loaded
+    clear_display() {
+      if (typeof this.editor != 'undefined') {
+        this.editor.setValue('')
+      }
+      this.toolpath = {}
+      this.highlighted_line = 0
+    },
+
+
     async load() {
       let path = this.active.path
-      if (!path) return
+      
+      // FIX #1: If no path, clear the display
+      if (!path) {
+        this.clear_display()
+        return
+      }
 
       let data = await this.active.load()
       if (this.active.path != path) return

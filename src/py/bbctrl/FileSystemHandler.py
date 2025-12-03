@@ -47,12 +47,29 @@ def clean_path(path):
 
 class FileSystemHandler(RequestHandler):
     def get_fs(self): return self.get_ctrl().fs
-    def delete(self, path): self.get_fs().delete(clean_path(path))
+    
+    
+    def delete(self, path):
+        path = clean_path(path)
+        
+        # Check for protected paths before deletion
+        if self.get_fs().is_protected_path(path):
+            raise HTTPError(403, 
+                'Cannot delete files in the macros folder. '
+                'Remove the macro from Settings to delete its file.')
+        
+        self.get_fs().delete(path)
 
 
     def put(self, path = None):
         if path is not None:
             path = clean_path(path)
+            
+            # Check for protected paths before write
+            if self.get_fs().is_protected_path(path):
+                raise HTTPError(403, 
+                    'Cannot upload files to the macros folder. '
+                    'Macro files are managed through Settings.')
 
             if 'file' in self.request.files:
                 self.get_fs().mkdir(os.path.dirname(path))
@@ -88,6 +105,10 @@ class FileSystemHandler(RequestHandler):
                     d['modified'] = util.timestamp_to_iso8601(s.st_mtime)
                     d['size']     = s.st_size
                     d['dir']      = stat.S_ISDIR(s.st_mode)
+                    
+                    # Mark protected directories
+                    if stat.S_ISDIR(s.st_mode) and name in self.get_fs().PROTECTED_DIRS:
+                        d['protected'] = True
 
                     files.append(d)
 
@@ -97,5 +118,12 @@ class FileSystemHandler(RequestHandler):
             self.write(json.dumps(d, separators = (',', ':')))
 
         else:
+            # FIX: Add no-cache headers to prevent stale file content
+            # This ensures re-uploaded files are fetched fresh
+            self.set_header('Cache-Control', 
+                'no-store, no-cache, must-revalidate, max-age=0')
+            self.set_header('Pragma', 'no-cache')
+            self.set_header('Expires', '0')
+            
             with open(realpath.encode('utf8'), 'rb') as f:
                 self.write(f.read())

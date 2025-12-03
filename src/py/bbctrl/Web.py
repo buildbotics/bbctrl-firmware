@@ -26,12 +26,16 @@
 ################################################################################
 
 import os
+import sys
+import json
 import tornado
 import sockjs.tornado
 import datetime
 import shutil
+import tarfile
 import subprocess
 import socket
+import time
 from tornado.web import HTTPError
 from tornado import web, gen
 from tornado.concurrent import run_on_executor
@@ -238,7 +242,8 @@ class USBEjectHandler(APIHandler):
 
 class MacroHandler(APIHandler):
     def put(self, macro):
-        macros = self.get_ctrl().config.get('macros')
+        ctrl = self.get_ctrl()
+        macros = ctrl.config.get('macros')
 
         macro = int(macro)
         if macro < 0 or len(macros) < macro:
@@ -246,10 +251,13 @@ class MacroHandler(APIHandler):
 
         path = 'Home/' + macros[macro - 1]['path']
 
-        if not self.get_ctrl().fs.exists(path):
+        if not ctrl.fs.exists(path):
             raise HTTPError(404, 'Macro file not found')
 
-        self.get_ctrl().mach.start(path)
+        # FIX: Mark that we're starting a macro so the UI can restore
+        # the previous program when the macro completes
+        ctrl.state.start_macro()
+        ctrl.mach.start(path)
 
 
 class PathHandler(APIHandler):
@@ -405,9 +413,8 @@ class KeyboardHandler(APIHandler):
 # Base class for Web Socket connections
 class ClientConnection(object):
     def __init__(self, app):
-        self.app     = app
-        self.count   = 0
-        self.is_open = False
+        self.app = app
+        self.count = 0
 
 
     def heartbeat(self):
@@ -420,23 +427,20 @@ class ClientConnection(object):
 
 
     def on_open(self, id = None):
-        if self.is_open: return
-        self.is_open = True
-
         self.ctrl = self.app.get_ctrl(id)
+
         self.ctrl.state.add_listener(self.send)
         self.ctrl.log.add_listener(self.send)
+        self.is_open = True
         self.heartbeat()
         self.app.opened(self.ctrl)
 
 
     def on_close(self):
-        if not self.is_open: return
-        self.is_open = False
-
         self.app.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.log.remove_listener(self.send)
+        self.is_open = False
         self.app.closed(self.ctrl)
 
 
@@ -465,8 +469,6 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def send(self, msg):
         try:
             sockjs.tornado.SockJSConnection.send(self, msg)
-        except tornado.websocket.WebSocketClosedError:
-            self.on_close()
         except:
             self.close()
 
@@ -560,6 +562,15 @@ class Web(tornado.web.Application):
         router.app = self
 
         tornado.web.Application.__init__(self, router.urls + handlers)
+
+        try:
+            self.listen(args.port, address = args.addr)
+
+        except Exception as e:
+            raise Exception('Failed to bind %s:%d: %s' % (
+                args.addr, args.port, e))
+
+        print('Listening on http://%s:%d/' % (args.addr, args.port))
 
 
     def _get_log(self, path):

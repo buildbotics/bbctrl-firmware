@@ -250,8 +250,75 @@ class Config(object):
         config['version'] = self.version
 
 
+    def _isolate_macros(self, config):
+        """
+        Isolate macro files to the protected macros/ directory.
+        
+        When a macro is saved with a file path, the file is copied to the
+        macros/ folder so it can't be accidentally deleted or modified.
+        
+        Returns the set of active macro paths for cleanup purposes.
+        """
+        macros = config.get('macros', [])
+        if not macros:
+            return set()
+        
+        fs = self.ctrl.fs
+        active_paths = set()
+        
+        for i, macro in enumerate(macros):
+            if not macro.get('path'):
+                continue
+            
+            macro_id = i + 1  # 1-based ID
+            source_path = macro['path']
+            macro_name = macro.get('name', '')
+            
+            # Check if already isolated
+            if source_path.startswith('macros/'):
+                active_paths.add(source_path)
+                continue
+            
+            # Need to prepend Home/ for the filesystem
+            if not source_path.startswith('Home/'):
+                full_source = 'Home/' + source_path
+            else:
+                full_source = source_path
+            
+            # Isolate the macro file
+            isolated_path = fs.isolate_macro(macro_id, full_source, macro_name)
+            
+            if isolated_path:
+                # Update the macro config to use isolated path
+                # Store without Home/ prefix since that's how paths are stored
+                if isolated_path.startswith('Home/'):
+                    macro['path'] = isolated_path[5:]  # Remove 'Home/'
+                else:
+                    macro['path'] = isolated_path
+                active_paths.add(macro['path'])
+                self.log.info('Macro %d isolated: %s -> %s' % (
+                    macro_id, source_path, macro['path']))
+            else:
+                # Keep original path if isolation failed (file might not exist yet)
+                self.log.warning('Macro %d isolation skipped: %s' % (
+                    macro_id, source_path))
+                active_paths.add(source_path)
+        
+        return active_paths
+
+
     def save(self, config):
         self.upgrade(config)
+        
+        # Isolate macro files before saving
+        try:
+            active_macro_paths = self._isolate_macros(config)
+            
+            # Clean up orphaned macro files
+            self.ctrl.fs.cleanup_orphaned_macros(active_macro_paths)
+        except Exception as e:
+            self.log.error('Macro isolation failed: %s' % str(e))
+        
         self._update(config, False)
 
         path = self.ctrl.get_path('config-v%s.json' % self.version)

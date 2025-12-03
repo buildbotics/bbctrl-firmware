@@ -56,7 +56,9 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(),
+      // FIX #1: Track if we've initialized after connect
+      initialized: false
     }
   },
 
@@ -78,15 +80,32 @@ module.exports = new Vue({
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
 
 
-    'state.active_program'() {
-      let path = this.state.active_program
-      if (!path || path == '<mdi>') this.active_program = undefined
-      else new Program(this.$api, path)
+    // FIX #3: Watch for active_program changes from server
+    // Only update the active_program object - don't clear selected_program here
+    // (selected_program should persist through macro runs)
+    'state.active_program'(path) {
+      if (!path || path == '<mdi>') {
+        this.active_program = undefined
+      } else {
+        this.active_program = new Program(this.$api, path)
+      }
+    },
+
+
+    // FIX #1: Watch for e-stop state to clear programs
+    'state.xx'(state) {
+      if (state == 'ESTOPPED') {
+        // Clear programs on e-stop for safety
+        this.clear_selected_program()
+      }
     },
 
 
     'state.first_file'(value) {
-      if (!this.selected_program.path) this.select_path(value)
+      // Only auto-select first file if we have no selection
+      if (!this.selected_program.path && value) {
+        this.select_path(value)
+      }
     }
   },
 
@@ -116,6 +135,16 @@ module.exports = new Vue({
 
     async connected() {
       await this.update()
+      
+      // FIX #1: On initial connection, check if server has no active program
+      // and clear our cached selection to sync with server state
+      if (!this.initialized) {
+        this.initialized = true
+        if (!this.state.active_program) {
+          this.clear_selected_program()
+        }
+      }
+      
       this.parse_hash()
     },
 
@@ -157,6 +186,20 @@ module.exports = new Vue({
       else this.$refs.popupMessages.close()
 
       return msgs
+    },
+
+
+    // FIX: Dynamic header for GCode messages modal showing spindle speed
+    popupMessagesHeader() {
+      let header = 'GCode Messages'
+      
+      // Show current spindle speed if available
+      let speed = this.state.s
+      if (speed !== undefined && !isNaN(speed) && speed > 0) {
+        header += ' - Spindle: ' + Math.round(speed) + ' RPM'
+      }
+      
+      return header
     },
 
 
@@ -370,13 +413,34 @@ module.exports = new Vue({
     },
 
 
-    select_path(path) {
+    // FIX #1: Clear selected program and cookie
+    clear_selected_program() {
+      cookie.set('selected-path', '')
+      this.selected_program = new Program(this.$api, '')
+      // Broadcast that program was cleared so views can update
+      this.$broadcast('program-cleared')
+    },
+
+
+    // FIX #5: Handle re-selecting same path to ensure fresh file content
+    select_path(path, force) {
       if (path && this.selected_program.path != path) {
         cookie.set('selected-path', path)
         this.selected_program = new Program(this.$api, path)
+      } else if (path && force) {
+        // Same path but force refresh - invalidate cached data
+        this.selected_program.invalidate()
       }
 
       return this.selected_program
+    },
+    
+    
+    // FIX #5: Refresh current program to reload file content
+    refresh_selected_program() {
+      if (this.selected_program && this.selected_program.path) {
+        this.selected_program.invalidate()
+      }
     },
 
 

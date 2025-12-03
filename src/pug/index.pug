@@ -117,8 +117,9 @@ html(lang="en")
         input(style="width: 50px", v-model="errorTimeout", number)
         label seconds.
 
+    //- FIX: Use dynamic header to show spindle speed during M0 pause
     dialog(v-show="popupMessages.length", v-ref:popup-messages,
-      header="GCode messages", :click-away="false")
+      :header="popupMessagesHeader", :click-away="false")
       div(slot="body")
         p(v-for="msg in popupMessages", track-by="$index") {{msg}}
 

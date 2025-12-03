@@ -25,13 +25,38 @@
 
 \******************************************************************************/
 
+// FIX: Container for color picker and hex input
+.color-picker-container
+  display inline-flex
+  align-items center
+  gap 4px
+
 .color-picker
   height 1.5em
   width 1.5em
   border 1px solid #aaa
   cursor pointer
   overflow hidden
+  flex-shrink 0
 
   input
     opacity 0
     cursor pointer
+
+// FIX: Hex input field styling
+.hex-input
+  width 5.5em
+  height 1.5em
+  padding 0 4px
+  border 1px solid #aaa
+  font-family monospace
+  font-size 0.85em
+  text-transform uppercase
+  
+  &:focus
+    outline none
+    border-color #3498db
+    
+  &::placeholder
+    color #aaa
+    text-transform none

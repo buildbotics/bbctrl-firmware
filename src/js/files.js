@@ -264,19 +264,32 @@ module.exports = {
     },
 
 
+    // FIX #5: Invalidate selected program cache after upload
     async upload()  {
       let filename
+      let uploadedPath
 
       await this.$root.upload({
         multiple: this.mode != 'open',
         url: file => {
           filename = file.filename
-          return 'fs/' + this.fs.path + '/' + filename
+          uploadedPath = this.fs.path + '/' + filename
+          return 'fs/' + uploadedPath
         },
         on_confirm: this.confirm_upload,
       })
 
       await this.reload()
+      
+      // FIX #5: If we uploaded a file that matches the currently selected program,
+      // invalidate the cache so fresh content is loaded
+      if (uploadedPath && this.$root.selected_program) {
+        let selectedPath = this.$root.selected_program.path
+        if (selectedPath && selectedPath == uploadedPath) {
+          this.$root.refresh_selected_program()
+        }
+      }
+      
       if (this.mode == 'open') this.activate_file(filename)
     }
   }
