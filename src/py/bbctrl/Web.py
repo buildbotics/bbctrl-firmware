@@ -405,8 +405,9 @@ class KeyboardHandler(APIHandler):
 # Base class for Web Socket connections
 class ClientConnection(object):
     def __init__(self, app):
-        self.app = app
-        self.count = 0
+        self.app     = app
+        self.count   = 0
+        self.is_open = False
 
 
     def heartbeat(self):
@@ -419,20 +420,23 @@ class ClientConnection(object):
 
 
     def on_open(self, id = None):
-        self.ctrl = self.app.get_ctrl(id)
+        if self.is_open: return
+        self.is_open = True
 
+        self.ctrl = self.app.get_ctrl(id)
         self.ctrl.state.add_listener(self.send)
         self.ctrl.log.add_listener(self.send)
-        self.is_open = True
         self.heartbeat()
         self.app.opened(self.ctrl)
 
 
     def on_close(self):
+        if not self.is_open: return
+        self.is_open = False
+
         self.app.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.log.remove_listener(self.send)
-        self.is_open = False
         self.app.closed(self.ctrl)
 
 
@@ -461,6 +465,8 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def send(self, msg):
         try:
             sockjs.tornado.SockJSConnection.send(self, msg)
+        except tornado.websocket.WebSocketClosedError:
+            self.on_close()
         except:
             self.close()
 
