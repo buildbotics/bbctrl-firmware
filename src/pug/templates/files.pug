@@ -37,16 +37,29 @@ script#files-template(type="text/x-template")
         .files-path-bar
           .breadcrumbs
             //- Home/location root
-            a.breadcrumb-item.breadcrumb-root(@click="open(location)")
+            a.breadcrumb-item.breadcrumb-root(@click="open(location)",
+              :class="{current: paths.length <= 1}")
               .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
               span {{location}}
             
-            //- Path segments with separators
-            template(v-for="(path, $index) in paths")
-              span.path-separator /
-              a.breadcrumb-item(:class="{current: $index == paths.length - 1}",
-                @click="load_path($index)")
-                span {{path}}
+            //- Path segments (skip first '/' entry)
+            template(v-for="path in paths")
+              template(v-if="path != '/'")
+                span.path-separator /
+                a.breadcrumb-item(:class="{current: $index == paths.length - 1}",
+                  @click="load_path($index)")
+                  span {{path}}
+          
+          //- Upload and New Folder buttons
+          .files-actions
+            button.btn.btn-primary.btn-sm(v-if="mode != 'save' && !$root.is_local",
+              @click="upload", title="Upload a file from this computer")
+              .fa.fa-upload
+              |  Upload
+            button.btn.btn-default.btn-sm(@click="new_folder",
+              :disabled="10 < paths.length", title="Create a new folder")
+              .fa.fa-plus
+              |  New Folder
 
         //- File list
         .files-list
