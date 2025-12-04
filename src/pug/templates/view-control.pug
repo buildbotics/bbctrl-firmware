@@ -193,9 +193,10 @@ script#view-control-template(type="text/x-template")
         .mdi.pure-form(title="Manual command entry.")
           bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'")
+            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
+            :text="is_running ? 'Pause' : 'Run'")
 
-          bbutton(title="Stop command.", @click="stop", icon="stop")
+          bbutton(title="Stop command.", @click="stop", icon="stop", text="Stop")
 
           input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
 
