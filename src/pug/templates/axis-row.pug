@@ -31,16 +31,19 @@ script#axis-row-template(type="text/x-template")
     td.position: unit-value(:value="axis.pos", precision=4)
     td.absolute: unit-value(:value="axis.abs", precision=3)
     td.offset: unit-value(:value="axis.off", precision=3)
-    td.state #[.fa(class="fa-{{axis.icon}}")] {{axis.state}}
+    td.state {{axis.state}}
     th.actions
-      bbutton(:disabled="!is_idle", icon="cog",
+      bbutton(:disabled="!is_idle", icon="dot-circle-o",
         title="Set {{name}} axis position.", @click="set_position")
+        span.btn-text Set
 
       bbutton(:disabled="!is_idle", text="&empty;",
         title="Zero {{name}} axis offset.", @click="zero")
+        span.btn-text Zero
 
       bbutton(:disabled="!is_idle", @click="home", icon="home",
         title="Home {{name}} axis.")
+        span.btn-text Home
 
       dialog(v-ref:set-position,
         :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",
