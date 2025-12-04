@@ -51,6 +51,7 @@ module.exports = {
       selected: -1,
       filename: '',
       folder: '',
+      show_locations: false
     }
   },
 

@@ -58,64 +58,7 @@
   flex 1
   overflow hidden
 
-// Locations sidebar
-.files-locations
-  width 180px
-  background #fff
-  border-right 1px solid #e0e0e0
-  overflow-y auto
-  flex-shrink 0
-
-  .location-header
-    padding 0.75em 1em
-    font-size 0.75em
-    font-weight 600
-    text-transform uppercase
-    color #888
-    background #fafafa
-    border-bottom 1px solid #eee
-
-  .files-location
-    display flex
-    align-items center
-    padding 0.6em 1em
-    cursor pointer
-    color #555
-    transition background 0.15s ease
-
-    > .fa
-      width 1.5em
-      color #888
-
-    .location-name
-      flex 1
-      overflow hidden
-      text-overflow ellipsis
-      white-space nowrap
-
-    .eject-btn
-      opacity 0
-      color #999
-      padding 0.25em
-      transition opacity 0.15s ease
-
-      &:hover
-        color #d9534f
-
-    &:hover
-      background #f5f5f5
-
-      .eject-btn
-        opacity 1
-
-    &.active
-      background #e3f2fd
-      color #1976d2
-
-      > .fa
-        color #1976d2
-
-// Files box (right side)
+// Files box (main area)
 .files-box
   flex 1
   display flex
@@ -127,24 +70,96 @@
 .files-path-bar
   display flex
   align-items center
-  justify-content space-between
-  padding 0.75em 1em
+  padding 0.6em 1em
   background #fafafa
   border-bottom 1px solid #eee
-  gap 1em
 
   .breadcrumbs
     display flex
     align-items center
     flex-wrap wrap
-    gap 0.25em
-    min-width 0
+    gap 0.15em
+    flex 1
+
+  .breadcrumb-location
+    display flex
+    align-items center
+    gap 0.4em
+    padding 0.35em 0.6em
+    color #333
+    cursor pointer
+    border-radius 4px
+    text-decoration none
+    font-size 14px
+    font-weight 500
+    background #e8e8e8
+    position relative
+
+    &:hover
+      background #ddd
+
+    .fa-caret-down
+      font-size 0.7em
+      color #666
+
+    .location-dropdown
+      position absolute
+      top 100%
+      left 0
+      margin-top 2px
+      background #fff
+      border 1px solid #ddd
+      border-radius 4px
+      box-shadow 0 4px 12px rgba(0,0,0,0.15)
+      z-index 100
+      min-width 150px
+
+      .location-option
+        display flex
+        align-items center
+        gap 0.5em
+        padding 0.5em 0.75em
+        color #333
+        cursor pointer
+        text-decoration none
+
+        .fa
+          width 1.2em
+          color #666
+
+        span
+          flex 1
+
+        .eject-btn
+          opacity 0
+          color #999
+          padding 0.25em
+
+          &:hover
+            color #d9534f
+
+        &:hover
+          background #f5f5f5
+
+          .eject-btn
+            opacity 1
+
+        &.active
+          background #e3f2fd
+          color #1976d2
+
+          .fa
+            color #1976d2
+
+  .path-separator
+    color #aaa
+    font-size 0.7em
+    margin 0 0.1em
 
   .breadcrumb-item
     display flex
     align-items center
-    gap 0.35em
-    padding 0.25em 0.5em
+    padding 0.25em 0.4em
     color #666
     cursor pointer
     border-radius 3px
@@ -162,15 +177,6 @@
 
       &:hover
         background transparent
-
-    .fa-chevron-right
-      font-size 0.7em
-      color #aaa
-
-  .path-actions
-    display flex
-    gap 0.5em
-    flex-shrink 0
 
 // File list
 .files-list
@@ -190,10 +196,9 @@
     padding 0.6em 1em
     text-align left
     font-weight 600
-    font-size 0.85em
-    color #555
+    font-size 0.8em
+    color #666
     text-transform uppercase
-    letter-spacing 0.02em
 
   .col-name
     text-align left
@@ -226,18 +231,18 @@
           color #f0ad4e
 
       td
-        padding 0.6em 1em
+        padding 0.5em 1em
 
       .col-name
         display flex
         align-items center
-        gap 0.75em
+        gap 0.6em
 
         .fa
-          width 1.2em
+          width 1.1em
           text-align center
           color #888
-          font-size 1.1em
+          font-size 1em
 
       .col-size, .col-modified
         color #888

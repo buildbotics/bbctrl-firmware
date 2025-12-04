@@ -33,17 +33,6 @@ script#view-files-template(type="text/x-template")
         span File
         .fa.fa-caret-down
         .nav-dropdown
-          a.dropdown-item(@click="upload")
-            .fa.fa-upload
-            span Upload File
-          a.dropdown-item(@click="new_folder")
-            .fa.fa-folder-o
-            span New Folder
-
-      .nav-item.has-dropdown
-        span Selection
-        .fa.fa-caret-down
-        .nav-dropdown
           a.dropdown-item(@click="edit", :class="{disabled: !selected || is_dir}")
             .fa.fa-pencil
             span Edit
@@ -62,9 +51,10 @@ script#view-files-template(type="text/x-template")
       .spacer
 
       .actions
-        bbutton(v-if="!$root.authorized", @click="$root.login()", 
-          icon="sign-in", text="Login",
-          title="Login to upload, delete, or modify files")
+        bbutton(@click="upload", icon="upload", text="Upload",
+          title="Upload a file from this computer")
+        bbutton(@click="new_folder", icon="folder-o", text="New Folder",
+          title="Create a new folder")
 
     a(v-el:download, :href="'/api/fs/' + selected", style="display:none",
       download, target="_blank")

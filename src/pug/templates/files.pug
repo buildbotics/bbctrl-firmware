@@ -32,33 +32,32 @@ script#files-template(type="text/x-template")
       input(v-model="filename", @input="filename_changed", focus)
 
     .files-body
-      //- Locations sidebar
-      .files-locations
-        .location-header Storage
-        .files-location(v-for="name in locations", @click="open(name)",
-          :class="{active: name == location}", :title="location_title(name)")
-          .fa.fa-home(v-if="name == 'Home'")
-          .fa.fa-usb(v-else)
-          span.location-name {{name}}
-          .fa.fa-eject.eject-btn(v-if="name != 'Home'", @click.stop="eject(name)",
-            title="Eject USB drive")
-
       .files-box
         //- Breadcrumb path bar
         .files-path-bar
           .breadcrumbs
-            a.breadcrumb-item(v-for="path in paths", track-by="$index",
-              :class="{current: $index == paths.length - 1}",
-              :title="path_title($index)", @click="load_path($index)")
-              span {{path}}
-              .fa.fa-chevron-right(v-if="$index < paths.length - 1")
-
-          .path-actions
-            bbutton(v-if="!$root.is_local", @click="upload",
-              title="Upload a file from this computer to the controller.",
-              icon="upload", text="Upload", primary)
-            bbutton(@click="new_folder", :disabled="10 < paths.length",
-              title="Create a new folder.", icon="folder-o", text="New Folder")
+            //- Location selector (Home or USB drive)
+            a.breadcrumb-location(@click="show_locations = !show_locations",
+              :title="location_title(location)")
+              .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
+              span {{location}}
+              .fa.fa-caret-down
+              
+              //- Location dropdown
+              .location-dropdown(v-if="show_locations")
+                a.location-option(v-for="name in locations", @click.stop="open(name); show_locations = false",
+                  :class="{active: name == location}")
+                  .fa(:class="name == 'Home' ? 'fa-home' : 'fa-usb'")
+                  span {{name}}
+                  .fa.fa-eject.eject-btn(v-if="name != 'Home'", @click.stop="eject(name)",
+                    title="Eject USB drive")
+            
+            //- Path segments
+            template(v-for="path in paths")
+              .fa.fa-chevron-right.path-separator
+              a.breadcrumb-item(:class="{current: $index == paths.length - 1}",
+                :title="path_title($index)", @click="load_path($index)")
+                span {{path}}
 
         //- File list
         .files-list

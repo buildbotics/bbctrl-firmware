@@ -66,6 +66,12 @@ html(lang="en")
               a.pure-menu-link(href="#files") Files
 
             li.pure-menu-heading
+              a.pure-menu-link(href="#macros") Macros
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#service") Service
+
+            li.pure-menu-heading
               a.pure-menu-link(href="#settings") Settings
 
             li.pure-menu-heading
@@ -85,16 +91,32 @@ html(lang="en")
               .subtitle
                 | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
                 | v{{config.version}}
-                a.upgrade-version(v-if="show_upgrade", href="#settings:admin")
-                  | Upgrade to v{{latestVersion}}
                 .fa.fa-check(v-if="!show_upgrade && latestVersion",
                   title="Firmware up to date")
                 .copyright Copyright © 2015 - 2023, Buildbotics LLC
 
 
             .header-tools
-              a(href="#camera"): video
+              a(v-if="camera_available", href="#camera"): video
               .estop(:class="{active: state.es}"): estop(@click="estop")
+          
+          //- System Alerts
+          .system-alerts(v-if="show_upgrade_alert || show_service_alert")
+            .alert.alert-upgrade(v-if="show_upgrade_alert")
+              .alert-icon: .fa.fa-arrow-circle-up
+              .alert-content
+                span Firmware update available: 
+                a(href="#settings:admin") Upgrade to v{{latestVersion}}
+              .alert-dismiss(@click="dismiss_upgrade", title="Dismiss")
+                .fa.fa-times
+            
+            .alert.alert-service(v-if="show_service_alert")
+              .alert-icon: .fa.fa-wrench
+              .alert-content
+                span {{state.service_due_count}} service item{{state.service_due_count > 1 ? 's' : ''}} due
+                a(href="#service:items") View Service
+              .alert-dismiss(@click="dismiss_service", title="Dismiss")
+                .fa.fa-times
 
         .content(class="view-{{currentView}}")
           component(:is="'view-' + currentView", :config="config",

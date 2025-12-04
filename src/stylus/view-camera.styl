@@ -30,11 +30,17 @@
   > .header .video
     display none
 
+// Make content area fill available height on camera page
+.view-camera-page .content
+  height calc(100vh - 180px)  // Adjust for header height
+  overflow hidden
+
 .camera-view
-  padding 0
+  margin-bottom 0
   height 100%
   display flex
   flex-direction column
+  overflow hidden
 
   // Navigation bar (dark style - consistent with service/macros)
   .navbar
@@ -80,6 +86,13 @@
     .video
       height 100%
       width 100%
+      display flex
+      align-items center
+      justify-content center
+      
+      .video-content
+        max-height 100%
+        max-width 100%
       
       img
         max-height 100%
