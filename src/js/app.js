@@ -56,7 +56,10 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(),
+      // Alert dismissal state (session-based, resets on browser close)
+      upgrade_dismissed: sessionStorage.getItem('upgrade_dismissed') === 'true',
+      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true'
     }
   },
 
@@ -89,6 +92,24 @@ module.exports = new Vue({
 
     'state.first_file'(value) {
       if (!this.selected_program.path) this.select_path(value)
+    },
+
+
+    // Reset upgrade dismissal when version changes
+    latestVersion(newVersion, oldVersion) {
+      if (oldVersion && newVersion !== oldVersion) {
+        this.upgrade_dismissed = false
+        sessionStorage.removeItem('upgrade_dismissed')
+      }
+    },
+
+
+    // Reset service dismissal when due count changes (new items become due)
+    'state.service_due_count'(newCount, oldCount) {
+      if (oldCount !== undefined && newCount > oldCount) {
+        this.service_dismissed = false
+        sessionStorage.removeItem('service_dismissed')
+      }
     }
   },
 
@@ -165,6 +186,23 @@ module.exports = new Vue({
     show_upgrade() {
       if (!this.latestVersion) return false
       return util.compare_versions(this.config.version, this.latestVersion) < 0
+    },
+
+
+    show_upgrade_alert() {
+      return this.show_upgrade && !this.upgrade_dismissed
+    },
+
+
+    show_service_alert() {
+      let count = this.state.service_due_count || 0
+      return count > 0 && !this.service_dismissed
+    },
+
+
+    camera_available() {
+      // Use state from backend, default to true if not yet received
+      return this.state.camera_available !== false
     }
   },
 
@@ -199,6 +237,18 @@ module.exports = new Vue({
 
 
   methods: {
+    dismiss_upgrade() {
+      this.upgrade_dismissed = true
+      sessionStorage.setItem('upgrade_dismissed', 'true')
+    },
+
+
+    dismiss_service() {
+      this.service_dismissed = true
+      sessionStorage.setItem('service_dismissed', 'true')
+    },
+
+
     async check_login() {
       this.authorized = await this.$api.get('auth/login')
     },

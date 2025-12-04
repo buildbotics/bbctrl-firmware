@@ -261,6 +261,12 @@ class State(object):
         except Exception as e:
             self.log.error('Failed to get service hours: %s' % e)
 
+        # Add camera availability to snapshot
+        try:
+            vars['camera_available'] = self.ctrl.camera is not None
+        except Exception as e:
+            vars['camera_available'] = False
+
         return vars
 
 
