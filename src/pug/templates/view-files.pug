@@ -26,43 +26,50 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#view-files-template(type="text/x-template")
-  div
+  .files-view
+    //- Navigation bar (dark style)
     nav.navbar
-      nav-item
-        | File
+      .nav-item.has-dropdown
+        span File
         .fa.fa-caret-down
-        nav-menu
-          nav-item(@click="upload")
+        .nav-dropdown
+          a.dropdown-item(@click="upload")
             .fa.fa-upload
             span Upload File
-
-          nav-item(@click="new_folder")
-            .fa.fa-plus
+          a.dropdown-item(@click="new_folder")
+            .fa.fa-folder-o
             span New Folder
 
-      nav-item
-        | Selection
+      .nav-item.has-dropdown
+        span Selection
         .fa.fa-caret-down
-        nav-menu
-          nav-item(@click="edit", :disabled="!selected || is_dir")
+        .nav-dropdown
+          a.dropdown-item(@click="edit", :class="{disabled: !selected || is_dir}")
             .fa.fa-pencil
             span Edit
-
-          nav-item(@click="view", :disabled="!selected || is_dir",
+          a.dropdown-item(@click="view", :class="{disabled: !selected || is_dir}",
             v-if="$root.webGLSupported")
             .fa.fa-eye
-            span View
-
-          nav-item(@click="download", :disabled="!selected || is_dir")
+            span 3D View
+          a.dropdown-item(@click="download", :class="{disabled: !selected || is_dir}")
             .fa.fa-download
             span Download
-
-          nav-item(@click="delete", :disabled="!selected")
+          .dropdown-divider
+          a.dropdown-item(@click="delete", :class="{disabled: !selected}")
             .fa.fa-trash
             span Delete
+
+      .spacer
+
+      .actions
+        bbutton(v-if="!$root.authorized", @click="$root.login()", 
+          icon="sign-in", text="Login",
+          title="Login to upload, delete, or modify files")
 
     a(v-el:download, :href="'/api/fs/' + selected", style="display:none",
       download, target="_blank")
 
-    files(v-ref:files, @selected="set_selected", @activate="download",
-      :locations="state.locations")
+    //- Files content
+    .files-content
+      files(v-ref:files, @selected="set_selected", @activate="download",
+        :locations="state.locations")

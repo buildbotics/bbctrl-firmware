@@ -159,6 +159,31 @@ module.exports = {
     select(index)   {this.selected = index},
 
 
+    file_icon(filename) {
+      let ext = filename.split('.').pop().toLowerCase()
+      let icons = {
+        'nc': 'fa-file-code-o',
+        'ngc': 'fa-file-code-o',
+        'gcode': 'fa-file-code-o',
+        'tap': 'fa-file-code-o',
+        'txt': 'fa-file-text-o',
+        'json': 'fa-file-code-o',
+        'stl': 'fa-cube',
+        'dxf': 'fa-file-image-o',
+        'svg': 'fa-file-image-o',
+        'png': 'fa-file-image-o',
+        'jpg': 'fa-file-image-o',
+        'jpeg': 'fa-file-image-o',
+        'gif': 'fa-file-image-o',
+        'pdf': 'fa-file-pdf-o',
+        'zip': 'fa-file-archive-o',
+        'gz': 'fa-file-archive-o',
+        'tar': 'fa-file-archive-o'
+      }
+      return icons[ext] || 'fa-file-o'
+    },
+
+
     async eject(location) {return this.$api.put('usb/eject/' + location)},
 
 

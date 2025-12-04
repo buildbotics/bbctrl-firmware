@@ -25,9 +25,94 @@
 
 \******************************************************************************/
 
-.view-files
-  margin-bottom 0
+.files-view
+  padding 0
+  height 100%
+  display flex
+  flex-direction column
 
-  .files-path-bar
-    .files-upload, .new-folder
-      display none
+  // Navigation bar (dark style - consistent with other views)
+  .navbar
+    display flex
+    align-items center
+    background #333
+    padding 0 1em
+    min-height 40px
+    flex-shrink 0
+
+    .nav-item
+      padding 0.5em 1em
+      color #ccc
+      cursor pointer
+      position relative
+      display flex
+      align-items center
+      gap 0.35em
+      
+      &:hover
+        color #fff
+        background rgba(255,255,255,0.1)
+
+      .fa-caret-down
+        font-size 0.8em
+        margin-left 0.25em
+
+    .has-dropdown
+      .nav-dropdown
+        display none
+        position absolute
+        top 100%
+        left 0
+        background #444
+        border-radius 0 0 4px 4px
+        min-width 160px
+        z-index 100
+        box-shadow 0 4px 12px rgba(0,0,0,0.3)
+
+      &:hover .nav-dropdown
+        display block
+
+    .nav-dropdown
+      .dropdown-item
+        display flex
+        align-items center
+        gap 0.75em
+        padding 0.6em 1em
+        color #ccc
+        cursor pointer
+        text-decoration none
+        
+        .fa
+          width 1.2em
+          text-align center
+
+        &:hover
+          background #555
+          color #fff
+
+        &.disabled
+          color #777
+          cursor not-allowed
+          
+          &:hover
+            background transparent
+            color #777
+
+      .dropdown-divider
+        height 1px
+        background #555
+        margin 0.25em 0
+
+    .spacer
+      flex 1
+
+    .actions
+      display flex
+      align-items center
+      gap 0.5em
+
+  // Files content area
+  .files-content
+    flex 1
+    overflow hidden
+    background #f5f5f5
