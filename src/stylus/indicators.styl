@@ -25,119 +25,99 @@
 
 \******************************************************************************/
 
-// =====================================================
-// INDICATORS TAB
-// =====================================================
-.tab-content .indicators
-  padding 1em
+.tab-content .indicators, .tab-content .power
+  padding 1em 0
+  text-align center
+  display grid
+  grid-template-columns 1fr 1fr
 
-  // Pin tables section at top
-  .pin-tables
-    margin-bottom 2em
+  > *
+    border 2px solid #bbb
 
   table
     width 100%
-    border-collapse collapse
-    margin-bottom 1em
+    empty-cells show
+    border-collapse separate
 
     td, th
-      padding 4px 8px
+      padding 4px
       white-space nowrap
-      border 1px solid #ddd
+      height 1.25em
+
+    tr:nth-child(odd)
+      background #f7f7f7
 
     th
       text-align left
-      background #f8f8f8
-      font-weight 600
 
     td
-      text-align center
+      text-align right
 
     th.header
+      height calc(2.5em + 6px)
+      border-bottom 3px solid #ccc
       text-align center
-      background #555
-      color #fff
-      font-size 0.9em
-      text-transform uppercase
-      letter-spacing 0.5px
-      padding 8px 10px
 
     th.separator
-      background #ddd
+      background #ccc
+      border 1px solid #ccc
       padding 0
       width 4px
-      border none
 
-  // I/O Pins table - fixed layout for centered divider
-  table.io-pins
-    table-layout fixed
+    &.legend
+      border-top 2px solid #bbb
 
-    td.pin
-      width 3em
-      text-align center
-      font-weight 600
+      td
+        text-align center
 
-    td.state
-      width 2.5em
-      text-align center
+    &.functions, &.io-pins
+      // Fixed table layout for equal column distribution
+      table-layout fixed
 
-    td.function
-      text-align left
-      text-transform capitalize
+      th
+        text-transform capitalize
 
-    .disabled
-      text-decoration line-through
-      color #999
+      .function, .mode
+        text-align left
 
-  // Legend table
-  table.legend
-    width auto
-    margin 0 auto
+      .disabled
+        text-decoration line-through
 
-    th.header
-      background #666
+      .state
+        text-align center
 
-    td
-      text-align center
-      padding 6px 12px
+      // Explicit column widths for centering
+      td.pin
+        width 2.5em
 
-    th
-      font-weight normal
-      text-align left
+      td.state
+        width 2.5em
 
-  // Breakout section below
-  .breakout-section
-    border-top 2px solid #ddd
-    padding-top 1.5em
+    &.motor_fault
+      td, th
+        text-align center
+        min-width 1.75em
 
-    .section-title
-      text-align center
-      color #666
-      font-size 1em
-      font-weight 600
-      margin 0 0 1em 0
-      text-transform uppercase
-      letter-spacing 1px
+      .fa-eraser
+        cursor pointer
 
-    .breakout-diagrams
-      display flex
-      justify-content center
-      flex-wrap wrap
-      gap 2em
+        &:hover
+          opacity 0.5
+
+    &.measurements
+      td
+        width 8em
 
   .breakout
-    text-align center
-
     h3
-      margin 0 0 0.5em 0
-      font-size 0.9em
-      color #555
+      margin 0
 
     .pin
       cursor pointer
 
     .selected-pin
-      filter grayscale(100%) brightness(60%) sepia(100%) hue-rotate(-30deg) saturate(600%) contrast(0.8)
+      filter grayscale(100%) brightness(60%) sepia(100%) hue-rotate(-30deg) \
+        saturate(600%) contrast(0.8)
 
       text
         fill #fff !important
@@ -155,87 +135,10 @@
       padding 0 1em
 
 
-// =====================================================
-// POWER TAB
-// =====================================================
-.tab-content .power
-  padding 1em
-  display flex
-  flex-direction column
-  gap 1.5em
-
-  table
-    width 100%
-    border-collapse collapse
-    background #fff
-    border-radius 4px
-    overflow hidden
-    box-shadow 0 1px 3px rgba(0,0,0,0.1)
-
-    td, th
-      padding 8px 12px
-      white-space nowrap
-      border 1px solid #ddd
-
-    th
-      text-align left
-      background #f8f8f8
-      font-weight 600
-
-    td
-      text-align right
-      width 5em
-
-    th.header
-      text-align center
-      background #555
-      color #fff
-      font-size 0.9em
-      text-transform uppercase
-      letter-spacing 0.5px
-      padding 10px 12px
-      border none
-
-    th.separator
-      background #ddd
-      padding 0
-      width 2px
-      border none
-
-    .error
-      background #ffcccc
-      color #c00
-
-  table.motor_fault
-    td, th
-      text-align center
-      min-width 2em
-
-    td
-      width auto
-
-    .fa-eraser
-      cursor pointer
-      color #666
-
-      &:hover
-        color #333
-
-  table.measurements, table.pwr_fault
-    td
-      font-family Courier
-      font-size 1.1em
-
-
-// =====================================================
-// RESPONSIVE
-// =====================================================
 @media only screen and (max-width 1000px)
-  .tab-content .power
-    gap 1em
+  .power
+    grid-template-columns 1fr
 
-@media only screen and (max-width 800px)
-  .tab-content .indicators
-    .breakout-diagrams
-      flex-direction column
-      align-items center
+@media only screen and (max-width 1300px)
+  .indicators
+    grid-template-columns 1fr

@@ -56,7 +56,12 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(),
+      // Track if we've initialized after connect
+      initialized: false,
+      // Alert dismissal state (session-based, resets on browser close)
+      upgrade_dismissed: sessionStorage.getItem('upgrade_dismissed') === 'true',
+      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true'
     }
   },
 
@@ -69,6 +74,8 @@ module.exports = new Vue({
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),
+    'view-macros':    require('./view-macros'),
+    'view-service':   require('./view-service'),
     'view-camera':    {template: '#view-camera-template'},
     'view-docs':      require('./view-docs')
   },
@@ -78,15 +85,50 @@ module.exports = new Vue({
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
 
 
-    'state.active_program'() {
-      let path = this.state.active_program
-      if (!path || path == '<mdi>') this.active_program = undefined
-      else new Program(this.$api, path)
+    // Watch for active_program changes from server
+    // Only update the active_program object - don't clear selected_program here
+    // (selected_program should persist through macro runs)
+    'state.active_program'(path) {
+      if (!path || path == '<mdi>') {
+        this.active_program = undefined
+      } else {
+        this.active_program = new Program(this.$api, path)
+      }
+    },
+
+
+    // Watch for e-stop state to clear programs
+    'state.xx'(state) {
+      if (state == 'ESTOPPED') {
+        // Clear programs on e-stop for safety
+        this.clear_selected_program()
+      }
     },
 
 
     'state.first_file'(value) {
-      if (!this.selected_program.path) this.select_path(value)
+      // Only auto-select first file if we have no selection
+      if (!this.selected_program.path && value) {
+        this.select_path(value)
+      }
+    },
+
+
+    // Reset upgrade dismissal when version changes
+    latestVersion(newVersion, oldVersion) {
+      if (oldVersion && newVersion !== oldVersion) {
+        this.upgrade_dismissed = false
+        sessionStorage.removeItem('upgrade_dismissed')
+      }
+    },
+
+
+    // Reset service dismissal when due count changes (new items become due)
+    'state.service_due_count'(newCount, oldCount) {
+      if (oldCount !== undefined && newCount > oldCount) {
+        this.service_dismissed = false
+        sessionStorage.removeItem('service_dismissed')
+      }
     }
   },
 
@@ -116,6 +158,16 @@ module.exports = new Vue({
 
     async connected() {
       await this.update()
+      
+      // On initial connection, check if server has no active program
+      // and clear our cached selection to sync with server state
+      if (!this.initialized) {
+        this.initialized = true
+        if (!this.state.active_program) {
+          this.clear_selected_program()
+        }
+      }
+      
       this.parse_hash()
     },
 
@@ -160,9 +212,40 @@ module.exports = new Vue({
     },
 
 
+    // Dynamic header for GCode messages modal showing spindle speed
+    popupMessagesHeader() {
+      let header = 'GCode Messages'
+      
+      // Show current spindle speed if available
+      let speed = this.state.s
+      if (speed !== undefined && !isNaN(speed) && speed > 0) {
+        header += ' - Spindle: ' + Math.round(speed) + ' RPM'
+      }
+      
+      return header
+    },
+
+
     show_upgrade() {
       if (!this.latestVersion) return false
       return util.compare_versions(this.config.version, this.latestVersion) < 0
+    },
+
+
+    show_upgrade_alert() {
+      return this.show_upgrade && !this.upgrade_dismissed
+    },
+
+
+    show_service_alert() {
+      let count = this.state.service_due_count || 0
+      return count > 0 && !this.service_dismissed
+    },
+
+
+    camera_available() {
+      // Only show camera if backend explicitly says it's available
+      return this.state.camera_available === true
     }
   },
 
@@ -197,6 +280,18 @@ module.exports = new Vue({
 
 
   methods: {
+    dismiss_upgrade() {
+      this.upgrade_dismissed = true
+      sessionStorage.setItem('upgrade_dismissed', 'true')
+    },
+
+
+    dismiss_service() {
+      this.service_dismissed = true
+      sessionStorage.setItem('service_dismissed', 'true')
+    },
+
+
     async check_login() {
       this.authorized = await this.$api.get('auth/login')
     },
@@ -370,13 +465,34 @@ module.exports = new Vue({
     },
 
 
-    select_path(path) {
+    // Clear selected program and cookie
+    clear_selected_program() {
+      cookie.set('selected-path', '')
+      this.selected_program = new Program(this.$api, '')
+      // Broadcast that program was cleared so views can update
+      this.$broadcast('program-cleared')
+    },
+
+
+    // Handle re-selecting same path to ensure fresh file content
+    select_path(path, force) {
       if (path && this.selected_program.path != path) {
         cookie.set('selected-path', path)
         this.selected_program = new Program(this.$api, path)
+      } else if (path && force) {
+        // Same path but force refresh - invalidate cached data
+        this.selected_program.invalidate()
       }
 
       return this.selected_program
+    },
+    
+    
+    // Refresh current program to reload file content
+    refresh_selected_program() {
+      if (this.selected_program && this.selected_program.path) {
+        this.selected_program.invalidate()
+      }
     },
 
 
