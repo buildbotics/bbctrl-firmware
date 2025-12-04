@@ -125,7 +125,7 @@
     text-transform uppercase
 
     .col-grip
-      width 24px
+      width 28px
 
     .col-index
       width 32px
@@ -149,12 +149,12 @@
       width 110px
       text-align center
 
+    .col-color
+      width 130px
+      padding-left 10px
+
     .col-spacer
       flex 1
-
-    .col-color
-      width 120px
-      text-align center
 
     .col-actions
       width 50px
@@ -176,27 +176,27 @@
       padding 0.5em 0.75em
 
     .col-grip
-      width 24px
+      width 28px
 
       .grip
-        width 14px
-        height 20px
+        width 16px
+        height 24px
         cursor move
         display inline-block
         overflow hidden
         line-height 5px
-        padding 2px 3px
-        font-size 12px
+        padding 3px 4px
+        font-size 14px
         font-family sans-serif
         letter-spacing 2px
-        color #ccc
-        text-shadow 1px 0 1px #999
+        color #bbb
+        text-shadow 1px 0 1px #888
 
         &:after
           content '.. .. ..'
 
         &:hover
-          color #999
+          color #888
 
     .col-index
       width 32px
@@ -230,20 +230,23 @@
         background #fff
         font-size 0.85em
 
+    .col-color
+      width 130px
+      padding-left 10px
+      display flex
+      align-items center
+      gap 4px
+      
+      // Make color picker hex input match file input
+      input[type="text"]
+        height 28px
+        padding 0.4em 0.5em
+        font-size 0.9em
+        border 1px solid #ddd
+        border-radius 3px
+
     .col-spacer
       flex 1
-
-    .col-color
-      width 120px
-      display flex
-      justify-content center
-      
-      // Make color picker hex input larger
-      input[type="text"]
-        width 70px
-        height 28px
-        padding 4px 6px
-        font-size 12px
 
     .col-actions
       width 50px
@@ -261,7 +264,7 @@
     .row-details
       display flex
       padding 0 0.75em 0.75em 0.75em
-      padding-left 56px  // Align with content after grip + index
+      padding-left 60px  // Align with content after grip + index
       gap 1em
 
       .detail-group
@@ -279,6 +282,7 @@
           border-radius 3px
           padding 0.4em 0.5em
           font-size 0.9em
+          height 28px
 
         .name
           width 150px
@@ -298,6 +302,7 @@
             cursor pointer
             color #333
             min-width 0
+            height 28px
 
             &::placeholder
               color #999

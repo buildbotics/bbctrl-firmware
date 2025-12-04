@@ -354,14 +354,14 @@
       background: white
       border: 1px solid #ddd
       border-radius: 4px
-      padding: 15px
       margin-bottom: 12px
+      overflow: hidden
 
       .note-header
         display: flex
         justify-content: space-between
         align-items: center
-        margin-bottom: 10px
+        padding: 15px 15px 10px
 
         .note-title
           font-size: 16px
@@ -375,20 +375,15 @@
         white-space: pre-wrap
         color: #333
         line-height: 1.6
-        margin-bottom: 12px
-        padding: 10px
-        background: #f9f9f9
-        border-radius: 4px
+        padding: 0 15px 15px
         font-family: inherit
 
       .note-actions
         display: flex
         gap: 8px
-        
-        // Make buttons in action areas smaller
-        button, .pure-button
-          padding: 4px 10px
-          font-size: 13px
+        padding: 12px 15px
+        background: #f9f9f9
+        border-top: 1px solid #eee
 
 
   // Editor panel

@@ -36,6 +36,16 @@ script#view-service-template(type="text/x-template")
       .spacer
       
       .actions
+        //- Context-sensitive Add button
+        bbutton(v-if="view === 'items'", @click="openItemEditor(null)", 
+          icon="plus", text="Add Item",
+          :disabled="!$root.authorized",
+          title="Add a new service item")
+        bbutton(v-if="view === 'notes'", @click="openNoteEditor(null)", 
+          icon="plus", text="Add Note",
+          :disabled="!$root.authorized",
+          title="Add a new note")
+        
         bbutton(@click="exportData", icon="download", text="Export",
           title="Export all service data")
         
@@ -118,11 +128,7 @@ script#view-service-template(type="text/x-template")
 
     //- Items View
     .service-content(v-if="view === 'items'")
-      .section-header-row
-        h2 Service Items
-        bbutton(@click="openItemEditor(null)", icon="plus", text="Add Item",
-          :disabled="!$root.authorized",
-          title="Add a new service item")
+      h2 Service Items
 
       .items-list(v-if="itemsSorted.length")
         .item-card(v-for="item in itemsSorted", :class="{due: isItemDue(item)}")
@@ -192,11 +198,7 @@ script#view-service-template(type="text/x-template")
 
     //- Notes View
     .service-content(v-if="view === 'notes'")
-      .section-header-row
-        h2 Machine Notes
-        bbutton(@click="openNoteEditor(null)", icon="plus", text="Add Note",
-          :disabled="!$root.authorized",
-          title="Add a new note")
+      h2 Machine Notes
 
       .notes-list(v-if="notesSorted.length")
         .note-card(v-for="note in notesSorted")
@@ -205,9 +207,9 @@ script#view-service-template(type="text/x-template")
             .note-date {{formatDate(note.created)}}
           .note-content {{note.content}}
           .note-actions
-            bbutton(@click="openNoteEditor(note)", icon="pencil",
+            bbutton(@click="openNoteEditor(note)", icon="pencil", text="Edit",
               :disabled="!$root.authorized", title="Edit note")
-            bbutton(@click="deleteNote(note)", icon="trash",
+            bbutton(@click="deleteNote(note)", icon="trash", text="Delete",
               :disabled="!$root.authorized", title="Delete note")
 
       p.empty-message(v-else)

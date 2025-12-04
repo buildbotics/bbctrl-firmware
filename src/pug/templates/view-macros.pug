@@ -85,8 +85,8 @@ script#view-macros-template(type="text/x-template")
           .col-confirm
             .fa.fa-check-circle(title="Confirm")
           .col-tab Tab
-          .col-spacer
           .col-color Color
+          .col-spacer
           .col-actions
         
         .macro-row(v-for="macro in macros", draggable="true",
@@ -116,11 +116,11 @@ script#view-macros-template(type="text/x-template")
                 option(v-for="tab in macro_tabs", :value="tab.id",
                   :selected="get_macro_tab(macro) === tab.id") {{tab.name}}
             
-            .col-spacer
-            
             .col-color
               color-picker(:value.sync="macro.color", @change="change",
                 title="Set the macro button color.")
+            
+            .col-spacer
             
             .col-actions
               .fa.fa-trash(@click="remove($index)",
