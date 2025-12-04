@@ -190,6 +190,18 @@ class State(object):
 
 
     def update(self, update):
+        # Track state changes for motion timing
+        if 'xx' in update:
+            old_state = self.get('xx', '')
+            new_state = update['xx']
+            
+            # Detect transition to RUNNING
+            if new_state == 'RUNNING' and old_state != 'RUNNING':
+                self.program_started()
+            # Detect transition from RUNNING to anything else
+            elif old_state == 'RUNNING' and new_state != 'RUNNING':
+                self.program_stopped()
+        
         for name, value in update.items():
             self.set(name, value)
 

@@ -151,21 +151,20 @@
       margin-left 8px
 
     .col-color
-      width 90px
+      width 100px
       text-align center
       margin-left 16px
 
     .col-name
       width 130px
       text-align center
-      margin-left 10px
+      margin-left 16px
 
     .col-file
       flex 1
       text-align center
       min-width 0
-      margin-left 10px
-      margin-right 12px
+      margin-left 16px
 
     .col-actions
       width 52px
@@ -238,14 +237,23 @@
         background #fff
 
     .col-color
-      width 90px
+      width 100px
       margin-left 16px
       display flex
       align-items center
+      gap 0.35em
+
+      input[type="text"]
+        flex 1
+        min-width 0
+        height 28px
+        padding 0.3em 0.4em
+        border 1px solid #ccc
+        border-radius 3px
 
     .col-name
       width 130px
-      margin-left 10px
+      margin-left 16px
 
       input
         width 100%
@@ -257,11 +265,14 @@
     .col-file
       flex 1
       min-width 0
-      margin-left 10px
-      margin-right 12px
+      margin-left 16px
+      display flex
+      align-items center
 
       input
-        width 100%
+        flex 1
+        min-width 0
+        margin-right 8px
         border 1px solid #ddd
         border-radius 3px
         padding 0.3em 0.5em
