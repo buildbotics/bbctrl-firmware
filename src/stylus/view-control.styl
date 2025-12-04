@@ -129,16 +129,15 @@
       th.actions
         text-align right
 
-    // Action buttons
+    // Action buttons - compact column, normal font weight
     .actions
       white-space nowrap
       text-align right
+      width 1%
       
       button, .bbutton
         margin-left 4px
-        
-      .btn-text
-        margin-left 0.35em
+        font-weight normal
 
   // =====================================================
   // JOG CONTROLS
@@ -196,7 +195,7 @@
     padding 0.5em
 
     .macro
-      text-align left
+      text-align center
       overflow hidden
       text-overflow ellipsis
       white-space nowrap
@@ -396,10 +395,6 @@
           line-height 20pt
 
       .absolute, .offset
-        display none
-        
-      // Hide button text on small screens
-      .btn-text
         display none
 
     .macros

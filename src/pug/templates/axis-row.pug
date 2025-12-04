@@ -36,11 +36,11 @@ script#axis-row-template(type="text/x-template")
       bbutton(:disabled="!is_idle", icon="dot-circle-o", text="Set",
         title="Set {{name}} axis position.", @click="set_position")
 
-      bbutton(:disabled="!is_idle", text="Zero",
+      bbutton(:disabled="!is_idle", icon="circle-o", text="Zero",
         title="Zero {{name}} axis offset.", @click="zero")
 
-      bbutton(:disabled="!is_idle", @click="home", icon="home", text="Home",
-        title="Home {{name}} axis.")
+      bbutton(:disabled="!is_idle", icon="home", text="Home",
+        title="Home {{name}} axis.", @click="home")
 
       dialog(v-ref:set-position,
         :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",

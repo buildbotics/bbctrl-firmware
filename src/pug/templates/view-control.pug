@@ -35,13 +35,11 @@ script#view-control-template(type="text/x-template")
         th.offset Offset
         th.state State
         th.actions
-          bbutton(:disabled="!is_idle", text="&empty;",
+          bbutton(:disabled="!is_idle", icon="circle-o", text="Zero All",
             title="Zero all axis offsets.", @click="zero_all")
-            span.btn-text Zero All
 
-          bbutton(title="Home all axes.", @click="home_all", icon="home",
-            :disabled="!is_idle")
-            span.btn-text Home All
+          bbutton(:disabled="!is_idle", icon="home", text="Home All",
+            title="Home all axes.", @click="home_all")
 
       each axis in 'xyzabc'
         tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)

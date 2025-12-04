@@ -97,7 +97,7 @@ html(lang="en")
 
 
             .header-tools
-              a(v-if="camera_available", href="#camera"): video
+              a(v-if="camera_available && currentView != 'camera'", href="#camera"): video
               .estop(:class="{active: state.es}"): estop(@click="estop")
           
           //- System Alerts
