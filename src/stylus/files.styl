@@ -78,93 +78,27 @@
     display flex
     align-items center
     flex-wrap wrap
-    gap 0.15em
+    gap 0.25em
     flex 1
 
-  .breadcrumb-location
-    display flex
-    align-items center
-    gap 0.4em
-    padding 0.35em 0.6em
-    color #333
-    cursor pointer
-    border-radius 4px
-    text-decoration none
-    font-size 14px
-    font-weight 500
-    background #e8e8e8
-    position relative
-
-    &:hover
-      background #ddd
-
-    .fa-caret-down
-      font-size 0.7em
-      color #666
-
-    .location-dropdown
-      position absolute
-      top 100%
-      left 0
-      margin-top 2px
-      background #fff
-      border 1px solid #ddd
-      border-radius 4px
-      box-shadow 0 4px 12px rgba(0,0,0,0.15)
-      z-index 100
-      min-width 150px
-
-      .location-option
-        display flex
-        align-items center
-        gap 0.5em
-        padding 0.5em 0.75em
-        color #333
-        cursor pointer
-        text-decoration none
-
-        .fa
-          width 1.2em
-          color #666
-
-        span
-          flex 1
-
-        .eject-btn
-          opacity 0
-          color #999
-          padding 0.25em
-
-          &:hover
-            color #d9534f
-
-        &:hover
-          background #f5f5f5
-
-          .eject-btn
-            opacity 1
-
-        &.active
-          background #e3f2fd
-          color #1976d2
-
-          .fa
-            color #1976d2
-
   .path-separator
-    color #aaa
-    font-size 0.7em
-    margin 0 0.1em
+    color #999
+    font-size 14px
+    margin 0 0.15em
 
   .breadcrumb-item
     display flex
     align-items center
-    padding 0.25em 0.4em
+    gap 0.4em
+    padding 0.25em 0.5em
     color #666
     cursor pointer
     border-radius 3px
     text-decoration none
     font-size 14px
+
+    .fa
+      font-size 1em
 
     &:hover
       background #e8e8e8
@@ -177,6 +111,13 @@
 
       &:hover
         background transparent
+
+    &.breadcrumb-root
+      color #333
+      font-weight 500
+
+      .fa
+        color #666
 
 // File list
 .files-list

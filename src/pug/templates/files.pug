@@ -36,27 +36,16 @@ script#files-template(type="text/x-template")
         //- Breadcrumb path bar
         .files-path-bar
           .breadcrumbs
-            //- Location selector (Home or USB drive)
-            a.breadcrumb-location(@click="show_locations = !show_locations",
-              :title="location_title(location)")
+            //- Home/location root
+            a.breadcrumb-item.breadcrumb-root(@click="open(location)")
               .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
               span {{location}}
-              .fa.fa-caret-down
-              
-              //- Location dropdown
-              .location-dropdown(v-if="show_locations")
-                a.location-option(v-for="name in locations", @click.stop="open(name); show_locations = false",
-                  :class="{active: name == location}")
-                  .fa(:class="name == 'Home' ? 'fa-home' : 'fa-usb'")
-                  span {{name}}
-                  .fa.fa-eject.eject-btn(v-if="name != 'Home'", @click.stop="eject(name)",
-                    title="Eject USB drive")
             
-            //- Path segments
-            template(v-for="path in paths")
-              .fa.fa-chevron-right.path-separator
+            //- Path segments with separators
+            template(v-for="(path, $index) in paths")
+              span.path-separator /
               a.breadcrumb-item(:class="{current: $index == paths.length - 1}",
-                :title="path_title($index)", @click="load_path($index)")
+                @click="load_path($index)")
                 span {{path}}
 
         //- File list
