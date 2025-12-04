@@ -132,35 +132,45 @@
       text-align center
 
     .col-visibility
-      width 55px
+      width 60px
       text-align center
       
       .fa
         color #5bc0de
 
     .col-confirm
-      width 55px
+      width 60px
       text-align center
       
       .fa
         color #f0ad4e
 
     .col-tab
-      width 110px
+      width 100px
       text-align center
 
     .col-color
-      width 130px
-      padding-left 10px
+      width 100px
+      text-align center
+      padding-left 15px
 
-    .col-spacer
+    .col-name
+      width 140px
+      text-align center
+
+    .col-file
       flex 1
+      text-align center
+      min-width 0
 
     .col-actions
-      width 50px
+      width 60px
       text-align center
 
   .macro-row
+    display flex
+    align-items center
+    padding 0.5em 0.75em
     border-bottom 1px solid #eee
     transition background 0.15s ease
 
@@ -169,11 +179,6 @@
 
     &:hover
       background #fafafa
-
-    .row-main
-      display flex
-      align-items center
-      padding 0.5em 0.75em
 
     .col-grip
       width 28px
@@ -205,116 +210,93 @@
       font-size 0.9em
 
     .col-visibility
-      width 55px
+      width 60px
       text-align center
       
       input
         cursor pointer
 
     .col-confirm
-      width 55px
+      width 60px
       text-align center
       
       input
         cursor pointer
 
     .col-tab
-      width 110px
-      padding 0 0.25em
+      width 100px
 
       select
         width 100%
-        padding 0.25em
+        padding 0.3em 0.4em
         border 1px solid #ccc
         border-radius 3px
         background #fff
         font-size 0.85em
 
     .col-color
-      width 130px
-      padding-left 10px
+      width 100px
+      padding-left 15px
       display flex
       align-items center
-      gap 4px
       
-      // Make color picker hex input match file input
+      // Make color picker hex input match other inputs
       input[type="text"]
+        width 65px
         height 28px
-        padding 0.4em 0.5em
-        font-size 0.9em
-        border 1px solid #ddd
+        padding 0.3em 0.4em
+        font-size 0.85em
+        border 1px solid #ccc
         border-radius 3px
 
-    .col-spacer
+    .col-name
+      width 140px
+
+      input
+        width 100%
+        border 1px solid #ddd
+        border-radius 3px
+        padding 0.3em 0.5em
+        font-size 0.85em
+        height 28px
+
+    .col-file
       flex 1
+      min-width 0
+      padding 0 0.5em
+
+      input
+        width 100%
+        border 1px solid #ddd
+        border-radius 3px
+        padding 0.3em 0.5em
+        font-size 0.85em
+        height 28px
+        background #f9f9f9
+        cursor pointer
+        color #333
+
+        &::placeholder
+          color #999
+          font-style italic
 
     .col-actions
-      width 50px
-      text-align center
+      width 60px
+      display flex
+      justify-content center
+      gap 0.5em
       
       .fa
-        padding 0.5em
+        padding 0.4em
         cursor pointer
-        color #999
-        font-size 1.1em
+        color #888
+        font-size 1em
         
         &:hover
+          color #333
+
+        &.fa-trash:hover
           color #d9534f
-
-    .row-details
-      display flex
-      padding 0 0.75em 0.75em 0.75em
-      padding-left 60px  // Align with content after grip + index
-      gap 1em
-
-      .detail-group
-        display flex
-        flex-direction column
-        gap 0.25em
-
-        label
-          font-size 0.75em
-          color #888
-          text-transform uppercase
-
-        input
-          border 1px solid #ddd
-          border-radius 3px
-          padding 0.4em 0.5em
-          font-size 0.9em
-          height 28px
-
-        .name
-          width 150px
-
-      .detail-file
-        flex 1
-        min-width 0
-
-        .file-input
-          display flex
-          align-items center
-          gap 0.5em
-
-          .path
-            flex 1
-            background #f9f9f9
-            cursor pointer
-            color #333
-            min-width 0
-            height 28px
-
-            &::placeholder
-              color #999
-              font-style italic
-
-          .fa
-            cursor pointer
-            color #666
-            padding 0.25em
-            
-            &:hover
-              color #333
 
   // Empty state
   .empty-state

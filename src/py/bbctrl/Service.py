@@ -38,7 +38,6 @@ __all__ = ['Service']
 class Service:
     # Hour types tracked
     HOUR_POWER = 'power_hours'      # Total power-on time
-    HOUR_SPINDLE = 'spindle_hours'  # Time spindle is running
     HOUR_MOTION = 'motion_hours'    # Time actively running program (in motion)
     
     SAVE_INTERVAL = 60  # Save to disk every 60 seconds
@@ -61,18 +60,15 @@ class Service:
         
         # Time tracking state
         self._power_start = time.time()  # Always tracking power-on
-        self._spindle_start = None
         self._motion_start = None
         self._last_save = time.time()
         
         # Accumulated time since last save (in seconds)
         self._pending_power = 0
-        self._pending_spindle = 0
         self._pending_motion = 0
         
-        self.log.info('Service tracking initialized. Hours: power=%.1f, spindle=%.1f, motion=%.1f' % (
+        self.log.info('Service tracking initialized. Hours: power=%.1f, motion=%.1f' % (
             self.get_hours(self.HOUR_POWER),
-            self.get_hours(self.HOUR_SPINDLE),
             self.get_hours(self.HOUR_MOTION)
         ))
 
@@ -110,7 +106,6 @@ class Service:
         defaults = {
             'version': self._get_template_default('meta', 'version') or 2,
             self.HOUR_POWER: self._get_template_default('hours', 'power_hours') or 0.0,
-            self.HOUR_SPINDLE: self._get_template_default('hours', 'spindle_hours') or 0.0,
             self.HOUR_MOTION: self._get_template_default('hours', 'motion_hours') or 0.0,
             'last_update': datetime.datetime.utcnow().isoformat() + 'Z',
             'items': [],
@@ -193,25 +188,8 @@ class Service:
         """Get all hour types as dict"""
         return {
             self.HOUR_POWER: self.get_hours(self.HOUR_POWER),
-            self.HOUR_SPINDLE: self.get_hours(self.HOUR_SPINDLE),
             self.HOUR_MOTION: self.get_hours(self.HOUR_MOTION)
         }
-    
-    
-    def spindle_started(self):
-        """Called when spindle starts"""
-        if self._spindle_start is None:
-            self._spindle_start = time.time()
-            self.log.debug('Spindle tracking started')
-    
-    
-    def spindle_stopped(self):
-        """Called when spindle stops"""
-        if self._spindle_start is not None:
-            elapsed = time.time() - self._spindle_start
-            self._pending_spindle += elapsed
-            self._spindle_start = None
-            self.log.debug('Spindle tracking stopped, +%.1f seconds' % elapsed)
     
     
     def motion_started(self):
@@ -240,12 +218,6 @@ class Service:
             self._pending_power += elapsed
             self._power_start = now
         
-        # Accumulate spindle hours if running
-        if self._spindle_start is not None:
-            elapsed = now - self._spindle_start
-            self._pending_spindle += elapsed
-            self._spindle_start = now
-        
         # Accumulate motion hours if running
         if self._motion_start is not None:
             elapsed = now - self._motion_start
@@ -259,14 +231,12 @@ class Service:
     
     def _flush_pending(self):
         """Flush pending hours to data and save"""
-        if self._pending_power > 0 or self._pending_spindle > 0 or self._pending_motion > 0:
+        if self._pending_power > 0 or self._pending_motion > 0:
             # Convert seconds to hours
             self.data[self.HOUR_POWER] += self._pending_power / 3600.0
-            self.data[self.HOUR_SPINDLE] += self._pending_spindle / 3600.0
             self.data[self.HOUR_MOTION] += self._pending_motion / 3600.0
             
             self._pending_power = 0
-            self._pending_spindle = 0
             self._pending_motion = 0
             
             self._save()
@@ -450,8 +420,6 @@ class Service:
             # Add pending hours
             if hour_type == self.HOUR_MOTION:
                 current_hours += self._pending_motion / 3600.0
-            elif hour_type == self.HOUR_SPINDLE:
-                current_hours += self._pending_spindle / 3600.0
             else:
                 current_hours += self._pending_power / 3600.0
             
@@ -532,7 +500,6 @@ class Service:
         lines.append('')
         lines.append('MACHINE HOURS:')
         lines.append('  Power-On Hours:  %.1f hrs' % self.get_hours(self.HOUR_POWER))
-        lines.append('  Spindle Hours:   %.1f hrs' % self.get_hours(self.HOUR_SPINDLE))
         lines.append('  Motion Hours:    %.1f hrs' % self.get_hours(self.HOUR_MOTION))
         lines.append('')
         
@@ -547,7 +514,6 @@ class Service:
             current_hours = self.get_hours(hour_type)
             hour_label = {
                 self.HOUR_POWER: 'Power',
-                self.HOUR_SPINDLE: 'Spindle',
                 self.HOUR_MOTION: 'Motion'
             }.get(hour_type, 'Motion')
             

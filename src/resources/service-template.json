@@ -7,13 +7,6 @@
       "unit": "hours",
       "default": 0
     },
-    "spindle_hours": {
-      "help": "Total time the spindle has been running (speed > 0).",
-      "type": "float",
-      "min": 0,
-      "unit": "hours",
-      "default": 0
-    },
     "motion_hours": {
       "help": "Total time the machine has been actively running programs.",
       "type": "float",
@@ -46,7 +39,7 @@
       },
       "hour_type": {
         "type": "enum",
-        "values": ["power_hours", "spindle_hours", "motion_hours"],
+        "values": ["power_hours", "motion_hours"],
         "default": "motion_hours",
         "help": "Which hour counter to track against."
       },

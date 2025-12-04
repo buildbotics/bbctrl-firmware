@@ -49,7 +49,6 @@ class State(object):
         self.message_id = 0
 
         # Service tracking state
-        self._last_spindle_speed = 0
         self._service_update_interval = 10  # Update service every 10 seconds
         self._last_service_update = time.time()
 
@@ -158,31 +157,9 @@ class State(object):
             self.vars[name] = value
             self.changes[name] = value
 
-            # Track spindle state changes for service hours
-            if name == 's':
-                self._check_spindle_change(value)
-
             # Trigger listener notify
             if self.timeout is None:
                 self.timeout = self.ctrl.ioloop.call_later(0.25, self._notify)
-
-
-    def _check_spindle_change(self, new_speed):
-        """Check if spindle state changed and update service tracking"""
-        try:
-            # Convert to float in case it's a string
-            new_speed = float(new_speed) if new_speed else 0
-            was_running = self._last_spindle_speed > 0
-            is_running = new_speed > 0
-
-            if is_running and not was_running:
-                self.ctrl.service.spindle_started()
-            elif was_running and not is_running:
-                self.ctrl.service.spindle_stopped()
-
-            self._last_spindle_speed = new_speed
-        except Exception as e:
-            self.log.error('Failed to track spindle: %s' % e)
 
 
     def update_service(self):
@@ -255,7 +232,6 @@ class State(object):
         try:
             hours = self.ctrl.service.get_all_hours()
             vars['service_power_hours'] = hours.get('power_hours', 0)
-            vars['service_spindle_hours'] = hours.get('spindle_hours', 0)
             vars['service_motion_hours'] = hours.get('motion_hours', 0)
             vars['service_due_count'] = len(self.ctrl.service.get_due_items())
         except Exception as e:

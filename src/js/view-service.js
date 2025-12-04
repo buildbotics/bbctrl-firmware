@@ -38,7 +38,6 @@ module.exports = {
       serviceTemplate: serviceTemplate,
       serviceData: {
         power_hours: 0,
-        spindle_hours: 0,
         motion_hours: 0,
         items: [],
         notes: []
@@ -61,10 +60,6 @@ module.exports = {
   computed: {
     powerHours() {
       return (this.state.service_power_hours || this.serviceData.power_hours || 0).toFixed(1)
-    },
-    
-    spindleHours() {
-      return (this.state.service_spindle_hours || this.serviceData.spindle_hours || 0).toFixed(1)
     },
     
     motionHours() {
@@ -93,7 +88,6 @@ module.exports = {
     hourTypes() {
       return [
         {value: 'motion_hours', label: 'Motion Hours'},
-        {value: 'spindle_hours', label: 'Spindle Hours'},
         {value: 'power_hours', label: 'Power-On Hours'}
       ]
     }
@@ -198,7 +192,6 @@ module.exports = {
     getHoursForType(hourType) {
       let type = hourType || 'motion_hours'
       if (type === 'power_hours') return parseFloat(this.powerHours)
-      if (type === 'spindle_hours') return parseFloat(this.spindleHours)
       return parseFloat(this.motionHours)
     },
     
@@ -206,7 +199,6 @@ module.exports = {
     getHourTypeLabel(hourType) {
       let labels = {
         'power_hours': 'Power',
-        'spindle_hours': 'Spindle',
         'motion_hours': 'Motion'
       }
       return labels[hourType] || 'Motion'

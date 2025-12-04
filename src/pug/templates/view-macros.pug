@@ -79,14 +79,15 @@ script#view-macros-template(type="text/x-template")
       .macro-list(v-if="macros.length")
         .macro-header
           .col-grip
-          .col-index
+          .col-index #
           .col-visibility
             .fa.fa-eye(title="Visible")
           .col-confirm
             .fa.fa-check-circle(title="Confirm")
           .col-tab Tab
           .col-color Color
-          .col-spacer
+          .col-name Name
+          .col-file File
           .col-actions
         
         .macro-row(v-for="macro in macros", draggable="true",
@@ -94,53 +95,46 @@ script#view-macros-template(type="text/x-template")
           @drag="drag($index)", @dragover.prevent="",
           @drop.prevent="drop($index)")
           
-          .row-main
-            .col-grip
-              .grip
-            
-            .col-index {{$index + 1}}
-            
-            .col-visibility
-              input(type="checkbox", :checked="is_visible(macro)",
-                @change="toggle_visibility($index)",
-                :title="is_visible(macro) ? 'Visible on control page' : 'Hidden from control page'")
-            
-            .col-confirm
-              input(type="checkbox", :checked="requires_confirm(macro)",
-                @change="toggle_confirm($index)",
-                :title="requires_confirm(macro) ? 'Confirmation required' : 'Runs immediately'")
-            
-            .col-tab
-              select(@change="set_macro_tab($index, $event.target.value)",
-                title="Assign macro to a tab")
-                option(v-for="tab in macro_tabs", :value="tab.id",
-                  :selected="get_macro_tab(macro) === tab.id") {{tab.name}}
-            
-            .col-color
-              color-picker(:value.sync="macro.color", @change="change",
-                title="Set the macro button color.")
-            
-            .col-spacer
-            
-            .col-actions
-              .fa.fa-trash(@click="remove($index)",
-                title="Delete this macro")
+          .col-grip
+            .grip
           
-          .row-details
-            .detail-group
-              label Name
-              input.name(@change="change", v-model="macro.name",
-                title="Set the macro button name.",
-                placeholder="Button name")
-            
-            .detail-group.detail-file
-              label File
-              .file-input
-                input.path(@click="open($index)", :value="macro.path", readonly,
-                  title="Select the macro file",
-                  placeholder="Click to select file...")
-                .fa.fa-folder-open(@click="open($index)",
-                  title="Select the macro file.")
+          .col-index {{$index + 1}}
+          
+          .col-visibility
+            input(type="checkbox", :checked="is_visible(macro)",
+              @change="toggle_visibility($index)",
+              :title="is_visible(macro) ? 'Visible on control page' : 'Hidden from control page'")
+          
+          .col-confirm
+            input(type="checkbox", :checked="requires_confirm(macro)",
+              @change="toggle_confirm($index)",
+              :title="requires_confirm(macro) ? 'Confirmation required' : 'Runs immediately'")
+          
+          .col-tab
+            select(@change="set_macro_tab($index, $event.target.value)",
+              title="Assign macro to a tab")
+              option(v-for="tab in macro_tabs", :value="tab.id",
+                :selected="get_macro_tab(macro) === tab.id") {{tab.name}}
+          
+          .col-color
+            color-picker(:value.sync="macro.color", @change="change",
+              title="Set the macro button color.")
+          
+          .col-name
+            input.name(@change="change", v-model="macro.name",
+              title="Set the macro button name.",
+              placeholder="Button name")
+          
+          .col-file
+            input.path(@click="open($index)", :value="macro.path", readonly,
+              title="Select the macro file",
+              placeholder="Click to select file...")
+          
+          .col-actions
+            .fa.fa-folder-open(@click="open($index)",
+              title="Select the macro file.")
+            .fa.fa-trash(@click="remove($index)",
+              title="Delete this macro")
       //- Empty state
       .empty-state(v-else)
         .fa.fa-file-code-o
