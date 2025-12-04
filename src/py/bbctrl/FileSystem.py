@@ -27,6 +27,7 @@
 
 import os
 import shutil
+import uuid
 from tornado.web import HTTPError
 from . import util
 
@@ -91,14 +92,12 @@ class FileSystem:
     return self.ctrl.root + '/upload/macros'
 
 
-  def isolate_macro(self, macro_id, source_path, macro_name=''):
+  def isolate_macro(self, source_path):
     """
     Copy a macro file to the protected macros directory.
     
     Args:
-      macro_id: The macro index (1-based)
       source_path: Original path to the macro file (relative, e.g., 'Home/file.nc')
-      macro_name: Optional macro name for the filename
       
     Returns:
       New isolated path (relative), or None if source doesn't exist
@@ -110,21 +109,17 @@ class FileSystem:
     # Get the real source path
     real_source = self.realpath(source_path)
     if not real_source or not os.path.exists(real_source):
-      self.log.warning('Macro %d source not found: %s' % (macro_id, source_path))
+      self.log.warning('Macro source not found: %s' % source_path)
       return None
     
     if not os.path.isfile(real_source):
-      self.log.warning('Macro %d source is not a file: %s' % (macro_id, source_path))
+      self.log.warning('Macro source is not a file: %s' % source_path)
       return None
     
-    # Create isolated filename: macro_<id>_<original_name>
+    # Create isolated filename: macro_<4-char-guid>_<original_name>
     original_name = os.path.basename(source_path)
-    # Clean the macro name for use in filename
-    safe_name = ''.join(c for c in macro_name if c.isalnum() or c in '._-') if macro_name else ''
-    if safe_name:
-      isolated_name = 'macro_%d_%s_%s' % (macro_id, safe_name, original_name)
-    else:
-      isolated_name = 'macro_%d_%s' % (macro_id, original_name)
+    short_guid = uuid.uuid4().hex[:4]
+    isolated_name = 'macro_%s_%s' % (short_guid, original_name)
     
     # Destination path
     macros_dir = self.get_macros_dir()
@@ -133,14 +128,13 @@ class FileSystem:
     try:
       # Copy the file
       shutil.copy2(real_source, real_dest)
-      self.log.info('Isolated macro %d: %s -> macros/%s' % (
-        macro_id, source_path, isolated_name))
+      self.log.info('Isolated macro: %s -> macros/%s' % (source_path, isolated_name))
       
       # Return the new relative path
       return 'macros/' + isolated_name
       
     except Exception as e:
-      self.log.error('Failed to isolate macro %d: %s' % (macro_id, str(e)))
+      self.log.error('Failed to isolate macro: %s' % str(e))
       return None
 
 

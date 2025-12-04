@@ -108,7 +108,50 @@ class Config(object):
             config = {'version': self.version}
 
         self._defaults(config)
+        
+        # Auto-isolate macros on load (handles firmware updates)
+        # Check if any macros need isolation
+        try:
+            self._auto_isolate_macros(config)
+        except Exception as e:
+            self.log.error('Auto-isolation failed: %s' % str(e))
+        
         return config
+
+
+    def _auto_isolate_macros(self, config):
+        """
+        Check if any macros need isolation and save config if so.
+        Called on load to handle firmware updates where macros
+        were previously stored with unprotected paths.
+        """
+        macros = config.get('macros', [])
+        if not macros:
+            return
+        
+        # Check if any macro needs isolation
+        needs_isolation = False
+        for macro in macros:
+            macro_path = macro.get('path', '')
+            if macro_path and not macro_path.startswith('macros/'):
+                needs_isolation = True
+                break
+        
+        if not needs_isolation:
+            return
+        
+        self.log.info('Auto-isolating macros after firmware update')
+        
+        # Isolate and save
+        active_paths = self._isolate_macros(config)
+        self.ctrl.fs.cleanup_orphaned_macros(active_paths)
+        
+        # Save the updated config
+        path = self.ctrl.get_path('config-v%s.json' % self.version)
+        with open(path, 'w') as f:
+            json.dump(config, f)
+        os.sync()
+        self.log.info('Macro isolation complete')
 
 
     def _valid_value(self, template, value):
@@ -270,9 +313,7 @@ class Config(object):
             if not macro.get('path'):
                 continue
             
-            macro_id = i + 1  # 1-based ID
             source_path = macro['path']
-            macro_name = macro.get('name', '')
             
             # Check if already isolated
             if source_path.startswith('macros/'):
@@ -286,7 +327,7 @@ class Config(object):
                 full_source = source_path
             
             # Isolate the macro file
-            isolated_path = fs.isolate_macro(macro_id, full_source, macro_name)
+            isolated_path = fs.isolate_macro(full_source)
             
             if isolated_path:
                 # Update the macro config to use isolated path
@@ -297,7 +338,7 @@ class Config(object):
                     macro['path'] = isolated_path
                 active_paths.add(macro['path'])
                 self.log.info('Macro %d isolated: %s -> %s' % (
-                    macro_id, source_path, macro['path']))
+                    i + 1, source_path, macro['path']))
             else:
                 # Keep original path if isolation failed (file might not exist yet)
                 self.log.warning('Macro %d isolation skipped: %s' % (
