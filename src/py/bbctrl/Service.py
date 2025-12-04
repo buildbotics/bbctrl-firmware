@@ -244,12 +244,10 @@ class Service:
     
     def shutdown(self):
         """Called on shutdown to save final hours"""
-        self.spindle_stopped()
         self.motion_stopped()
         self._flush_pending()
-        self.log.info('Service tracking shutdown. Final hours: power=%.1f, spindle=%.1f, motion=%.1f' % (
+        self.log.info('Service tracking shutdown. Final hours: power=%.1f, motion=%.1f' % (
             self.get_hours(self.HOUR_POWER),
-            self.get_hours(self.HOUR_SPINDLE),
             self.get_hours(self.HOUR_MOTION)
         ))
 
@@ -263,7 +261,6 @@ class Service:
         # Include current (unsaved) hours in response
         data = dict(self.data)
         data[self.HOUR_POWER] += self._pending_power / 3600.0
-        data[self.HOUR_SPINDLE] += self._pending_spindle / 3600.0
         data[self.HOUR_MOTION] += self._pending_motion / 3600.0
         return data
 
@@ -291,7 +288,6 @@ class Service:
         
         current_hours = self.get_hours(hour_type) + (
             self._pending_motion / 3600.0 if hour_type == self.HOUR_MOTION else
-            self._pending_spindle / 3600.0 if hour_type == self.HOUR_SPINDLE else
             self._pending_power / 3600.0
         )
         
@@ -355,8 +351,6 @@ class Service:
                 # Add pending hours
                 if hour_type == self.HOUR_MOTION:
                     current_hours += self._pending_motion / 3600.0
-                elif hour_type == self.HOUR_SPINDLE:
-                    current_hours += self._pending_spindle / 3600.0
                 else:
                     current_hours += self._pending_power / 3600.0
                 
