@@ -25,22 +25,99 @@
 
 \******************************************************************************/
 
+// Hide header video preview when on camera page
 .view-camera-page #main
   > .header .video
     display none
 
-.view-camera
-  margin-bottom 0
-  background #000
+.camera-view
+  padding 0
   height 100%
-  overflow hidden
+  display flex
+  flex-direction column
 
-  > div
-    height 100%
+  // Navigation bar (dark style - consistent with service/macros)
+  .navbar
+    display flex
+    align-items center
+    background #333
+    padding 0 1em
+    min-height 40px
+    flex-shrink 0
 
-  .video
-    height calc(100% - 40px)
+    .nav-item
+      padding 0.5em 1em
+      text-decoration none
+      color #ccc
+      border-radius 4px
+      cursor pointer
+      display flex
+      align-items center
+      gap 0.5em
+      
+      &:hover
+        color #fff
+        background rgba(255,255,255,0.1)
+      
+      &.active
+        color #5cb85c
+        
+        .fa
+          color #5cb85c
+
+    .spacer
+      flex 1
+
+  // Camera content area
+  .camera-content
+    flex 1
+    background #1a1a1a
+    display flex
+    align-items center
+    justify-content center
     overflow hidden
 
-    img
+    .video
       height 100%
+      width 100%
+      
+      img
+        max-height 100%
+        max-width 100%
+        object-fit contain
+
+  // Camera offline message
+  .camera-offline
+    text-align center
+    color #888
+    padding 2em
+    
+    .offline-icon
+      position relative
+      display inline-block
+      font-size 80px
+      color #555
+      margin-bottom 1em
+      
+      .fa-video-camera
+        display block
+      
+      .overlay-icon
+        position absolute
+        top 50%
+        left 50%
+        transform translate(-50%, -50%)
+        font-size 100px
+        color #d9534f
+        opacity 0.8
+    
+    .offline-message
+      h3
+        font-size 1.5em
+        color #aaa
+        margin 0 0 0.5em 0
+      
+      p
+        font-size 1em
+        color #666
+        margin 0
