@@ -33,10 +33,10 @@ script#axis-row-template(type="text/x-template")
     td.offset: unit-value(:value="axis.off", precision=3)
     td.state {{axis.state}}
     th.actions
-      bbutton(:disabled="!is_idle", icon="dot-circle-o", text="Set",
+      bbutton(:disabled="!is_idle", icon="pen-to-square", text="Set",
         title="Set {{name}} axis position.", @click="set_position")
 
-      bbutton(:disabled="!is_idle", icon="map-marker", text="Zero",
+      bbutton(:disabled="!is_idle", icon="location-crosshairs", text="Zero",
         title="Zero {{name}} axis offset.", @click="zero")
 
       bbutton(:disabled="!is_idle", icon="home", text="Home",
