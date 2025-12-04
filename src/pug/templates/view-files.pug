@@ -48,14 +48,6 @@ script#view-files-template(type="text/x-template")
             .fa.fa-trash
             span Delete
 
-      .spacer
-
-      .actions
-        bbutton(@click="upload", icon="upload", text="Upload",
-          title="Upload a file from this computer")
-        bbutton(@click="new_folder", icon="folder-o", text="New Folder",
-          title="Create a new folder")
-
     a(v-el:download, :href="'/api/fs/' + selected", style="display:none",
       download, target="_blank")
 
