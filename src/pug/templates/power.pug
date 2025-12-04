@@ -33,55 +33,53 @@ script#power-template(type="text/x-template")
           Power Faults
           #[span(v-if="state.pwr_version") (Version {{state.pwr_version}})]
       tr
-        th(:class="{error: state.under_voltage}") Under voltage
         td(:class="{error: state.under_voltage}")
           | {{state.under_voltage ? 'True' : 'False'}}
+        th(:class="{error: state.under_voltage}") Under voltage
         th.separator
-        th(:class="{error: state.over_voltage}") Over voltage
         td(:class="{error: state.over_voltage}")
           | {{state.over_voltage ? 'True' : 'False'}}
+        th(:class="{error: state.over_voltage}") Over voltage
       tr
-        th(:class="{error: state.over_current}") Over current
         td(:class="{error: state.over_current}")
           | {{state.over_current ? 'True' : 'False'}}
+        th(:class="{error: state.over_current}") Over current
         th.separator
-        th(:class="{error: state.sense_error}", :title="sense_error")
-          | Sense error
         td(:class="{error: state.sense_error}")
           | {{state.sense_error ? 'True' : 'False'}}
+        th(:class="{error: state.sense_error}", :title="sense_error") Sense error
       tr
-        th(:class="{error: state.shunt_overload}") Shunt overload
         td(:class="{error: state.shunt_overload}")
           | {{state.shunt_overload ? 'True' : 'False'}}
+        th(:class="{error: state.shunt_overload}") Shunt overload
         th.separator
-        th(:class="{error: state.shunt_error}") Shunt error
         td(:class="{error: state.shunt_error}")
           | {{state.shunt_error ? 'True' : 'False'}}
+        th(:class="{error: state.shunt_error}") Shunt error
       tr(v-if="state.pwr_version_int < 0x100")
-        th(:class="{error: state.load1_shutdown}") Load 1 shutdown
         td(:class="{error: state.load1_shutdown}")
           | {{state.load1_shutdown ? 'True' : 'False'}}
+        th(:class="{error: state.load1_shutdown}") Load 1 shutdown
         th.separator
-        th(:class="{error: state.load2_shutdown}") Load 2 shutdown
         td(:class="{error: state.load2_shutdown}")
           | {{state.load2_shutdown ? 'True' : 'False'}}
+        th(:class="{error: state.load2_shutdown}") Load 2 shutdown
       tr
-        th(:class="{error: state.motor_under_voltage}") Motor under volt
         td(:class="{error: state.motor_under_voltage}")
           | {{state.motor_under_voltage ? 'True' : 'False'}}
+        th(:class="{error: state.motor_under_voltage}") Motor under volt
         th.separator
-        th(:class="{error: state.motor_overload}") Motor overload
         td(:class="{error: state.motor_overload}")
           | {{state.motor_overload ? 'True' : 'False'}}
-
+        th(:class="{error: state.motor_overload}") Motor overload
       tr
-        th(:class="{error: state.power_shutdown}") Power shutdown
         td(:class="{error: state.power_shutdown}")
           | {{state.power_shutdown ? 'True' : 'False'}}
+        th(:class="{error: state.power_shutdown}") Power shutdown
         th.separator
-        th(:class="{error: state.gate_error}") Gate error
         td(:class="{error: state.gate_error}")
           | {{state.gate_error ? 'True' : 'False'}}
+        th(:class="{error: state.gate_error}") Gate error
 
     table.motor_fault
       tr

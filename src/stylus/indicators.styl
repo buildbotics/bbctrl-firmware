@@ -35,66 +35,73 @@
   .pin-tables
     margin-bottom 2em
 
-    table
-      width 100%
-      border-collapse collapse
-      margin-bottom 1em
+  table
+    width 100%
+    border-collapse collapse
+    margin-bottom 1em
 
-      td, th
-        padding 6px 10px
-        white-space nowrap
-        border 1px solid #ddd
+    td, th
+      padding 4px 8px
+      white-space nowrap
+      border 1px solid #ddd
 
-      th
-        text-align left
-        background #f8f8f8
-        font-weight 600
+    th
+      text-align left
+      background #f8f8f8
+      font-weight 600
 
-      td
-        text-align right
+    td
+      text-align center
 
-      th.header
-        text-align center
-        background #555
-        color #fff
-        font-size 0.9em
-        text-transform uppercase
-        letter-spacing 0.5px
-        padding 8px 10px
+    th.header
+      text-align center
+      background #555
+      color #fff
+      font-size 0.9em
+      text-transform uppercase
+      letter-spacing 0.5px
+      padding 8px 10px
 
-      th.separator
-        background #ddd
-        padding 0
-        width 2px
-        border none
+    th.separator
+      background #ddd
+      padding 0
+      width 2px
+      border none
 
-    &.io-pins, &.functions
-      th
-        text-transform capitalize
+  // I/O Pins table - compact layout
+  table.io-pins
+    td.pin
+      width 2.5em
+      text-align center
+      font-weight 600
 
-      .function, .mode
-        text-align left
+    td.state
+      width 2em
+      text-align center
 
-      .disabled
-        text-decoration line-through
-        color #999
+    td.function
+      text-align left
+      text-transform capitalize
 
-      .state
-        text-align center
+    .disabled
+      text-decoration line-through
+      color #999
 
-    table.legend
-      width auto
-      margin 0 auto
+  // Legend table
+  table.legend
+    width auto
+    margin 0 auto
 
-      th.header
-        background #666
+    th.header
+      background #666
 
-      td
-        text-align center
-        padding 6px 12px
+    td
+      text-align center
+      padding 6px 12px
 
-      th
-        font-weight normal
+    th
+      font-weight normal
+      text-align left
 
   // Breakout section below
   .breakout-section
@@ -175,6 +182,7 @@
 
     td
       text-align right
+      width 5em
 
     th.header
       text-align center
@@ -201,6 +209,9 @@
       text-align center
       min-width 2em
 
+    td
+      width auto
+
     .fa-eraser
       cursor pointer
       color #666
@@ -208,9 +219,8 @@
       &:hover
         color #333
 
-  table.measurements
+  table.measurements, table.pwr_fault
     td
-      width 6em
       font-family Courier
       font-size 1.1em
 
