@@ -35,11 +35,25 @@ script#view-control-template(type="text/x-template")
         th.offset Offset
         th.state State
         th.actions
-          bbutton(:disabled="!is_idle", icon="map-marker", text="Zero All",
-            title="Zero all axis offsets.", @click="zero_all")
+          //- Desktop: individual buttons
+          .actions-inline
+            bbutton(:disabled="!is_idle", icon="map-marker", text="Zero All",
+              title="Zero all axis offsets.", @click="zero_all")
 
-          bbutton(:disabled="!is_idle", icon="home", text="Home All",
-            title="Home all axes.", @click="home_all")
+            bbutton(:disabled="!is_idle", icon="home", text="Home All",
+              title="Home all axes.", @click="home_all")
+
+          //- Mobile: dropdown menu
+          .actions-dropdown
+            nav-item
+              .fa.fa-ellipsis-v
+              nav-menu
+                a.nav-item(:class="{disabled: !is_idle}", @click="zero_all")
+                  .fa.fa-map-marker
+                  | Zero All
+                a.nav-item(:class="{disabled: !is_idle}", @click="home_all")
+                  .fa.fa-home
+                  | Home All
 
       each axis in 'xyzabc'
         tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)
@@ -67,14 +81,6 @@ script#view-control-template(type="text/x-template")
           :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
           :style="{'background-color': macro.color}",
           :text="macro.name || (macro.originalIndex + 1)")
-
-    //- Service warning banner (shows when items are due)
-    .service-warning-banner(v-if="serviceDueCount > 0", 
-      @click="goto('#service:dashboard')",
-      title="Click to view service items")
-      .fa.fa-wrench
-      .warning-text Service maintenance due
-      .warning-count {{serviceDueCount}}
 
     .info-blocks
       table.info

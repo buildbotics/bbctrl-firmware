@@ -47,18 +47,35 @@ script#view-settings-template(type="text/x-template")
       .spacer
 
       .actions
-        bbutton(v-if="!$root.authorized", @click="$root.login()", 
-          icon="sign-in", text="Login",
-          title="Login to unlock protected settings")
-        bbutton(v-if="$root.authorized && modified", @click="save", 
-          icon="save", text="Save", success,
-          title="Save settings")
-        .save-status(v-if="$root.authorized && !modified")
-          .fa.fa-check
-          span Saved
-        bbutton(v-if="$root.authorized", @click="$root.logout()", 
-          icon="sign-out",
-          title="Logout")
+        //- Desktop: inline buttons
+        .actions-inline
+          bbutton(v-if="!$root.authorized", @click="$root.login()", 
+            icon="sign-in", text="Login",
+            title="Login to unlock protected settings")
+          bbutton(v-if="$root.authorized && modified", @click="save", 
+            icon="save", text="Save", success,
+            title="Save settings")
+          .save-status(v-if="$root.authorized && !modified")
+            .fa.fa-check
+            span Saved
+          bbutton(v-if="$root.authorized", @click="$root.logout()", 
+            icon="sign-out",
+            title="Logout")
+
+        //- Mobile: dropdown menu
+        .actions-dropdown
+          nav-item
+            .fa.fa-ellipsis-v
+            nav-menu
+              a.nav-item(v-if="!$root.authorized", @click="$root.login()")
+                .fa.fa-sign-in
+                | Login
+              a.nav-item(v-if="$root.authorized && modified", @click="save")
+                .fa.fa-save
+                | Save
+              a.nav-item(v-if="$root.authorized", @click="$root.logout()")
+                .fa.fa-sign-out
+                | Logout
 
     .settings-view(v-if="view", :is="'settings-' + view", :index="index",
       :config="config", :template="template", :state="state", keep-alive)

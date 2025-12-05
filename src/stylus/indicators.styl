@@ -69,7 +69,13 @@
       border none
 
   // I/O Pins table - compact layout
+  .io-pins-container
+    display flex
+    gap 1em
+    
   table.io-pins
+    flex 1
+    
     td.pin
       width 2.5em
       text-align center
@@ -237,3 +243,13 @@
     .breakout-diagrams
       flex-direction column
       align-items center
+
+@media only screen and (max-width 600px)
+  .tab-content .indicators
+    // Stack pin tables vertically
+    .io-pins-container
+      flex-direction column
+      
+    // Hide breakout section on mobile
+    .breakout-section
+      display none

@@ -1,0 +1,356 @@
+/******************************************************************************\
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
+\******************************************************************************/
+
+// Service View Styles
+// Uses existing Buildbotics variables and patterns
+
+.service-view
+  padding: 0
+
+  // Navigation bar (dark style)
+  .navbar
+    display: flex
+    align-items: center
+    background: #333
+    padding: 0 1em
+    min-height: 40px
+
+    .nav-item
+      padding: 0.5em 1em
+      text-decoration: none
+      color: #ccc
+      border-radius: 4px 4px 0 0
+      
+      &:hover
+        color: #fff
+        background: rgba(255,255,255,0.1)
+
+    .spacer
+      flex: 1
+
+    .actions
+      display: flex
+      align-items: center
+      gap: 0.5em
+      
+      // Desktop: show inline, hide dropdown
+      .actions-inline
+        display: flex
+        align-items: center
+        gap: 0.5em
+        
+      .actions-dropdown
+        display: none
+        
+        > .nav-item
+          padding: 0.5em
+          cursor: pointer
+          
+          .fa
+            color: #ccc
+            font-size: 1.2em
+            
+          &:hover .fa
+            color: #fff
+            
+        .nav-menu
+          right: 0
+          left: auto
+          
+          .nav-item
+            display: flex
+            align-items: center
+            gap: 0.5em
+            
+            &.disabled
+              opacity: 0.5
+              pointer-events: none
+    
+    .save-status
+      display: flex
+      align-items: center
+      color: #5cb85c
+      font-size: 0.9em
+      padding: 0.25em 0.5em
+      
+      .fa
+        margin-right: 0.35em
+
+  // Hours summary bar - matches info-blocks style
+  .hours-bar
+    display: flex
+    justify-content: center
+    gap: 20px
+    padding: 15px
+    background: #f5f5f5
+    border-bottom: 1px solid #ddd
+    margin-bottom: 20px
+
+    .hours-item
+      text-align: center
+      padding: 10px 20px
+      background: white
+      border-radius: 4px
+      border: 1px solid #ddd
+      min-width: 120px
+
+      .hours-label
+        font-size: 12px
+        color: #666
+        text-transform: uppercase
+        margin-bottom: 5px
+
+      .hours-value
+        font-size: 24px
+        font-weight: bold
+        color: #333
+
+
+  // Main content area
+  .service-content
+    padding: 0 20px 20px
+
+    h2
+      margin: 0 0 20px 0
+      color: #333
+
+    h3
+      margin: 20px 0 15px 0
+      color: #555
+
+
+  // Section header with button
+  .section-header-row
+    display: flex
+    justify-content: space-between
+    align-items: center
+    margin-bottom: 20px
+
+    h2
+      margin: 0
+
+
+  // Items list
+  .items-list
+    .item-card
+      background: white
+      border: 1px solid #ddd
+      border-radius: 4px
+      margin-bottom: 12px
+      overflow: hidden
+
+      &.due
+        border-color: #ff5722
+
+        .item-color-bar
+          background: #ff5722 !important
+
+      .item-color-bar
+        width: 100%
+        height: 6px
+        flex-shrink: 0
+
+      .item-content
+        padding: 15px
+
+        .item-header
+          display: flex
+          align-items: center
+          gap: 12px
+          margin-bottom: 10px
+
+          .item-label
+            font-size: 16px
+            font-weight: bold
+
+          .item-status
+            font-size: 14px
+            color: #666
+            padding: 4px 10px
+            background: #e8f5e9
+            border-radius: 12px
+            white-space: nowrap
+
+            &.overdue
+              background: #ffebee
+              color: #d32f2f
+              font-weight: bold
+
+        .item-details
+          display: flex
+          flex-wrap: wrap
+          gap: 15px
+
+          .detail
+            font-size: 14px
+
+            .detail-label
+              color: #666
+              margin-right: 5px
+
+            .detail-value
+              color: #333
+
+      .item-actions
+        display: flex
+        gap: 8px
+        padding: 12px 15px
+        background: #f9f9f9
+        border-top: 1px solid #eee
+
+
+  // Notes list
+  .notes-list
+    .note-card
+      background: white
+      border: 1px solid #ddd
+      border-radius: 4px
+      margin-bottom: 12px
+      overflow: hidden
+
+      .note-header
+        display: flex
+        justify-content: space-between
+        align-items: center
+        padding: 15px 15px 10px
+
+        .note-title
+          font-size: 16px
+          font-weight: bold
+
+        .note-date
+          font-size: 12px
+          color: #999
+
+      .note-content
+        white-space: pre-wrap
+        color: #333
+        line-height: 1.6
+        padding: 0 15px 15px
+        font-family: inherit
+
+      .note-actions
+        display: flex
+        gap: 8px
+        padding: 12px 15px
+        background: #f9f9f9
+        border-top: 1px solid #eee
+
+
+  // Editor panel
+  .editor-panel
+    background: #f5f5f5
+    border: 1px solid #ddd
+    border-radius: 4px
+    padding: 20px
+    margin-top: 20px
+
+    h3
+      margin: 0 0 20px 0
+
+    .form-row
+      display: flex
+      gap: 15px
+      margin-bottom: 15px
+      
+      .form-group
+        flex: 1
+        min-width: 0  // Prevent flex items from overflowing
+
+    .form-group
+      margin-bottom: 15px
+
+      label
+        display: block
+        font-weight: 500
+        margin-bottom: 5px
+        color: #333
+
+      input, textarea, select
+        width: 100%
+        padding: 8px 12px
+        border: 1px solid #ddd
+        border-radius: 4px
+        font-size: 14px
+        font-family: inherit
+        box-sizing: border-box
+        height: 38px
+
+        &:focus
+          outline: none
+          border-color: #2196F3
+
+      .interval-input
+        width: 120px
+
+      textarea
+        resize: vertical
+        min-height: 150px
+        height: auto
+
+      select
+        background: white
+
+    .form-group-color
+      flex: 0 0 auto
+      
+      .color-input-wrapper
+        display: flex
+        align-items: center
+        
+        // Make color-picker inputs consistent height
+        input
+          height: 38px
+          padding: 8px 12px
+
+    .editor-actions
+      display: flex
+      justify-content: flex-end
+      gap: 10px
+      margin-top: 20px
+      padding-top: 15px
+      border-top: 1px solid #ddd
+
+
+  // Empty message
+  .empty-message
+    color: #666
+    font-style: italic
+    padding: 20px
+    text-align: center
+    background: #f9f9f9
+    border-radius: 4px
+
+// Responsive
+@media only screen and (max-width: 600px)
+  .service-view
+    .navbar .actions
+      .actions-inline
+        display: none
+        
+      .actions-dropdown
+        display: block

@@ -38,6 +38,35 @@
       display flex
       align-items center
       gap 0.5em
+      
+      // Desktop: show inline, hide dropdown
+      .actions-inline
+        display flex
+        align-items center
+        gap 0.5em
+        
+      .actions-dropdown
+        display none
+        
+        > .nav-item
+          padding 0.5em
+          cursor pointer
+          
+          .fa
+            color #ccc
+            font-size 1.2em
+            
+          &:hover .fa
+            color #fff
+            
+        .nav-menu
+          right 0
+          left auto
+          
+          .nav-item
+            display flex
+            align-items center
+            gap 0.5em
 
     .save-status
       display flex
@@ -107,3 +136,13 @@
 
   .wifi-device
     margin 1em 0
+
+// Responsive
+@media only screen and (max-width 600px)
+  .view-settings
+    .navbar .actions
+      .actions-inline
+        display none
+        
+      .actions-dropdown
+        display block

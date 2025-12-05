@@ -142,6 +142,41 @@
         margin-left 4px
         font-weight normal
 
+      // Desktop: show inline buttons, hide dropdown
+      .actions-inline
+        display flex
+        gap 4px
+        justify-content flex-end
+        
+      .actions-dropdown
+        display none
+        
+        .nav-item
+          padding 0.5em
+          cursor pointer
+          color #555
+          
+          &:hover
+            background rgba(0,0,0,0.05)
+            
+          .fa
+            font-size 1.2em
+            
+        .nav-menu
+          right 0
+          left auto
+          min-width 140px
+          
+          .nav-item
+            padding 0.6em 1em
+            display flex
+            align-items center
+            gap 0.5em
+            
+            &.disabled
+              opacity 0.5
+              pointer-events none
+
   // =====================================================
   // JOG CONTROLS
   // =====================================================
@@ -427,3 +462,10 @@
       .actions
         .button-text
           display none
+          
+        // Mobile: hide inline buttons, show dropdown
+        .actions-inline
+          display none
+          
+        .actions-dropdown
+          display block
