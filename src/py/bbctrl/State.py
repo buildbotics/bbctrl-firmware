@@ -47,6 +47,10 @@ class State(object):
         self.timeout = None
         self.machine_var_set = set()
         self.message_id = 0
+        
+        # FIX: Macro tracking - not exposed to frontend, internal only
+        self._running_macro = False
+        self._previous_program = None
 
         # Service tracking state
         self._service_update_interval = 10  # Update service every 10 seconds
@@ -95,6 +99,14 @@ class State(object):
 
 
     def reset(self):
+        # SAFETY: Clear active program on reset/boot
+        # Prevents accidentally running last loaded file after power cycle
+        self.set('active_program', '')
+        
+        # FIX: Also clear macro tracking state
+        self._running_macro = False
+        self._previous_program = None
+        
         # Unhome all motors
         for i in range(4): self.set('%dhomed' % i, 0)
 
@@ -102,6 +114,43 @@ class State(object):
         for axis in 'xyzabc':
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
+
+
+    # FIX: Macro tracking methods
+    def start_macro(self):
+        """Called before a macro starts. Saves the current program for restoration."""
+        current = self.get('active_program', '')
+        self._previous_program = current if current else None
+        self._running_macro = True
+        self.log.info('Macro started, saved previous program: %s' % 
+                      (self._previous_program or '(none)'))
+
+
+    def end_macro(self):
+        """
+        Called when a program ends. If it was a macro, restores the previous program.
+        Returns True if this was a macro end, False otherwise.
+        """
+        if not self._running_macro:
+            return False
+        
+        self._running_macro = False
+        previous = self._previous_program
+        self._previous_program = None
+        
+        if previous:
+            self.log.info('Macro ended, restoring previous program: %s' % previous)
+            self.set('active_program', previous)
+        else:
+            self.log.info('Macro ended, no previous program to restore')
+            self.set('active_program', '')
+        
+        return True
+
+
+    def is_running_macro(self):
+        """Check if a macro is currently running."""
+        return self._running_macro
 
 
     def ack_message(self, id):
@@ -168,6 +217,11 @@ class State(object):
         if now - self._last_service_update >= self._service_update_interval:
             try:
                 self.ctrl.service.update()
+                # Push service state to websocket clients
+                hours = self.ctrl.service.get_all_hours()
+                self.set('service_power_hours', hours.get('power_hours', 0))
+                self.set('service_motion_hours', hours.get('motion_hours', 0))
+                self.set('service_due_count', len(self.ctrl.service.get_due_items()))
             except Exception as e:
                 self.log.error('Failed to update service: %s' % e)
             self._last_service_update = now
