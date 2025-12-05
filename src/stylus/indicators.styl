@@ -210,13 +210,36 @@
       background #ffcccc
       color #c00
 
+  // Container for side-by-side tables
+  .power-faults-container, .measurements-container
+    display flex
+    gap 1em
+    
+    table
+      flex 1
+
   table.motor_fault
+    th.fault-label
+      text-align left
+      font-weight 500
+      white-space nowrap
+      
+      .fa
+        width 1.2em
+        margin-right 0.25em
+        
+    th.reset-col
+      width 3em
+      
     td, th
       text-align center
       min-width 2em
 
     td
       width auto
+
+    tr.reset-row
+      background #f9f9f9
 
     .fa-eraser
       cursor pointer
@@ -253,3 +276,29 @@
     // Hide breakout section on mobile
     .breakout-section
       display none
+
+  .tab-content .power
+    // Stack split tables vertically
+    .power-faults-container, .measurements-container
+      flex-direction column
+      
+    table
+      font-size 0.85em
+      
+      td, th
+        padding 4px 6px
+        
+      th.separator
+        display none
+        
+      th.header
+        font-size 0.8em
+        
+    // Motor faults table - hide reset column header on mobile
+    table.motor_fault
+      th.reset-col
+        display none
+        
+      // Empty cells in reset column
+      td:last-child:empty
+        display none

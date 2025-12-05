@@ -34,6 +34,7 @@ module.exports = {
   methods: {
     hide(e) {
       e.currentTarget.classList.add('nav-menu-hide')
+      e.currentTarget.classList.remove('nav-menu-open')
     }
   }
 }

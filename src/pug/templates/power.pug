@@ -27,125 +27,164 @@
 
 script#power-template(type="text/x-template")
   .power
-    table.pwr_fault
-      tr
-        th.header(colspan=5).
-          Power Faults
-          #[span(v-if="state.pwr_version") (Version {{state.pwr_version}})]
-      tr
-        td(:class="{error: state.under_voltage}")
-          | {{state.under_voltage ? 'True' : 'False'}}
-        th(:class="{error: state.under_voltage}") Under voltage
-        th.separator
-        td(:class="{error: state.over_voltage}")
-          | {{state.over_voltage ? 'True' : 'False'}}
-        th(:class="{error: state.over_voltage}") Over voltage
-      tr
-        td(:class="{error: state.over_current}")
-          | {{state.over_current ? 'True' : 'False'}}
-        th(:class="{error: state.over_current}") Over current
-        th.separator
-        td(:class="{error: state.sense_error}")
-          | {{state.sense_error ? 'True' : 'False'}}
-        th(:class="{error: state.sense_error}", :title="sense_error") Sense error
-      tr
-        td(:class="{error: state.shunt_overload}")
-          | {{state.shunt_overload ? 'True' : 'False'}}
-        th(:class="{error: state.shunt_overload}") Shunt overload
-        th.separator
-        td(:class="{error: state.shunt_error}")
-          | {{state.shunt_error ? 'True' : 'False'}}
-        th(:class="{error: state.shunt_error}") Shunt error
-      tr(v-if="state.pwr_version_int < 0x100")
-        td(:class="{error: state.load1_shutdown}")
-          | {{state.load1_shutdown ? 'True' : 'False'}}
-        th(:class="{error: state.load1_shutdown}") Load 1 shutdown
-        th.separator
-        td(:class="{error: state.load2_shutdown}")
-          | {{state.load2_shutdown ? 'True' : 'False'}}
-        th(:class="{error: state.load2_shutdown}") Load 2 shutdown
-      tr
-        td(:class="{error: state.motor_under_voltage}")
-          | {{state.motor_under_voltage ? 'True' : 'False'}}
-        th(:class="{error: state.motor_under_voltage}") Motor under volt
-        th.separator
-        td(:class="{error: state.motor_overload}")
-          | {{state.motor_overload ? 'True' : 'False'}}
-        th(:class="{error: state.motor_overload}") Motor overload
-      tr
-        td(:class="{error: state.power_shutdown}")
-          | {{state.power_shutdown ? 'True' : 'False'}}
-        th(:class="{error: state.power_shutdown}") Power shutdown
-        th.separator
-        td(:class="{error: state.gate_error}")
-          | {{state.gate_error ? 'True' : 'False'}}
-        th(:class="{error: state.gate_error}") Gate error
+    //- Power Faults - Split into two tables
+    .power-faults-container
+      table.pwr_fault
+        tr
+          th.header(colspan=2).
+            Power Faults
+            #[span(v-if="state.pwr_version") (v{{state.pwr_version}})]
+        tr
+          td(:class="{error: state.under_voltage}")
+            | {{state.under_voltage ? 'True' : 'False'}}
+          th(:class="{error: state.under_voltage}") Under voltage
+        tr
+          td(:class="{error: state.over_current}")
+            | {{state.over_current ? 'True' : 'False'}}
+          th(:class="{error: state.over_current}") Over current
+        tr
+          td(:class="{error: state.shunt_overload}")
+            | {{state.shunt_overload ? 'True' : 'False'}}
+          th(:class="{error: state.shunt_overload}") Shunt overload
+        tr(v-if="state.pwr_version_int < 0x100")
+          td(:class="{error: state.load1_shutdown}")
+            | {{state.load1_shutdown ? 'True' : 'False'}}
+          th(:class="{error: state.load1_shutdown}") Load 1 shutdown
+        tr
+          td(:class="{error: state.motor_under_voltage}")
+            | {{state.motor_under_voltage ? 'True' : 'False'}}
+          th(:class="{error: state.motor_under_voltage}") Motor under volt
+        tr
+          td(:class="{error: state.power_shutdown}")
+            | {{state.power_shutdown ? 'True' : 'False'}}
+          th(:class="{error: state.power_shutdown}") Power shutdown
 
+      table.pwr_fault
+        tr
+          th.header(colspan=2) &nbsp;
+        tr
+          td(:class="{error: state.over_voltage}")
+            | {{state.over_voltage ? 'True' : 'False'}}
+          th(:class="{error: state.over_voltage}") Over voltage
+        tr
+          td(:class="{error: state.sense_error}")
+            | {{state.sense_error ? 'True' : 'False'}}
+          th(:class="{error: state.sense_error}", :title="sense_error") Sense error
+        tr
+          td(:class="{error: state.shunt_error}")
+            | {{state.shunt_error ? 'True' : 'False'}}
+          th(:class="{error: state.shunt_error}") Shunt error
+        tr(v-if="state.pwr_version_int < 0x100")
+          td(:class="{error: state.load2_shutdown}")
+            | {{state.load2_shutdown ? 'True' : 'False'}}
+          th(:class="{error: state.load2_shutdown}") Load 2 shutdown
+        tr
+          td(:class="{error: state.motor_overload}")
+            | {{state.motor_overload ? 'True' : 'False'}}
+          th(:class="{error: state.motor_overload}") Motor overload
+        tr
+          td(:class="{error: state.gate_error}")
+            | {{state.gate_error ? 'True' : 'False'}}
+          th(:class="{error: state.gate_error}") Gate error
+
+    //- Motor Faults - Transposed (fault types as rows, motors as columns)
     table.motor_fault
       tr
-        th.header(colspan=99)
+        th.header(colspan=6)
           | Motor Faults
           .fa(:class="motor_fault_class()", title="General motor driver fault")
 
       tr
-        th Motor
-        th(title="Overtemperature fault"): .fa.fa-thermometer-full
-        th(title="Overcurrent motor channel A") A #[.fa.fa-bolt]
-        th(title="Predriver fault motor channel A")
-          | A #[.fa.fa-exclamation-triangle]
-        th(title="Overcurrent motor channel B") B #[.fa.fa-bolt]
-        th(title="Predriver fault motor channel B")
-          | B #[.fa.fa-exclamation-triangle]
-        th(title="Driver communication failure"): .fa.fa-handshake-o
-        th(title="Reset all motor flags")
-          .fa.fa-eraser(@click="motor_reset()")
+        th.fault-label Fault Type
+        th(v-for="motor in [0, 1, 2, 3]") Motor {{motor}}
+        th.reset-col Reset
 
-      tr(v-for="motor in [0, 1, 2, 3]")
-        td {{motor}}
-        td: .fa(:class="motor_fault_class(motor, 0)",
-          title="Overtemperature fault")
-        td: .fa(:class="motor_fault_class(motor, 1)",
-          title="Overcurrent motor channel A")
-        td: .fa(:class="motor_fault_class(motor, 3)",
-          title="Predriver fault motor channel A")
-        td: .fa(:class="motor_fault_class(motor, 2)",
-          title="Overcurrent motor channel B")
-        td: .fa(:class="motor_fault_class(motor, 4)",
-          title="Predriver fault motor channel B")
-        td: .fa(:class="motor_fault_class(motor, 8)",
-          title="Driver communication failure")
-        td(:title="'Reset motor ' + motor + ' flags'")
+      tr
+        th.fault-label
+          .fa.fa-thermometer-full
+          |  Overtemperature
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 0)")
+        th.reset-col
+          .fa.fa-eraser(@click="motor_reset()", title="Reset all motor flags")
+
+      tr
+        th.fault-label
+          .fa.fa-bolt
+          |  Overcurrent A
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 1)")
+        td
+
+      tr
+        th.fault-label
+          .fa.fa-exclamation-triangle
+          |  Predriver A
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 3)")
+        td
+
+      tr
+        th.fault-label
+          .fa.fa-bolt
+          |  Overcurrent B
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 2)")
+        td
+
+      tr
+        th.fault-label
+          .fa.fa-exclamation-triangle
+          |  Predriver B
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 4)")
+        td
+
+      tr
+        th.fault-label
+          .fa.fa-handshake-o
+          |  Comm failure
+        td(v-for="motor in [0, 1, 2, 3]")
+          .fa(:class="motor_fault_class(motor, 8)")
+        td
+
+      tr.reset-row
+        th.fault-label Reset Motor
+        td(v-for="motor in [0, 1, 2, 3]", :title="'Reset motor ' + motor + ' flags'")
           .fa.fa-eraser(@click="motor_reset(motor)")
+        td
 
-    table.measurements
-      tr
-        th.header(colspan=5) Measurements
+    //- Measurements - Split into two tables
+    .measurements-container
+      table.measurements
+        tr
+          th.header(colspan=2) Measurements
+        tr
+          td {{state.vin | fixed 1}} V
+          th Input Voltage
+        tr
+          td {{state.vout | fixed 1}} V
+          th Motor Voltage
+        tr(v-if="state.pwr_version_int < 0x100")
+          td {{state.load1 | fixed 2}} A
+          th Load 1
+        tr
+          td {{state.temp | fixed 0}} ℃
+          th Board Temp
 
-      tr
-        td {{state.vin | fixed 1}} V
-        th Input Voltage
-        th.separator
-        td {{watts | fixed 2}} W
-        th Motor Power
-
-      tr
-        td {{state.vout | fixed 1}} V
-        th Motor Voltage
-        th.separator
-        td {{state.motor | fixed 2}} A
-        th Motor Current
-
-      tr(v-if="state.pwr_version_int < 0x100")
-        td {{state.load1 | fixed 2}} A
-        th Load 1
-        th.separator
-        td {{state.load2 | fixed 2}} A
-        th Load 2
-
-      tr
-        td {{state.temp | fixed 0}} ℃
-        th Board Temp
-        th.separator
-        td(:class="{'error': 80 <= state.rpi_temp}")
-          | {{state.rpi_temp | fixed 0}} ℃
-        th RPi Temp
+      table.measurements
+        tr
+          th.header(colspan=2) &nbsp;
+        tr
+          td {{watts | fixed 2}} W
+          th Motor Power
+        tr
+          td {{state.motor | fixed 2}} A
+          th Motor Current
+        tr(v-if="state.pwr_version_int < 0x100")
+          td {{state.load2 | fixed 2}} A
+          th Load 2
+        tr
+          td(:class="{'error': 80 <= state.rpi_temp}")
+            | {{state.rpi_temp | fixed 0}} ℃
+          th RPi Temp

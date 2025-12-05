@@ -150,32 +150,60 @@
         
       .actions-dropdown
         display none
+        position relative
         
-        .nav-item
+        > .nav-item
           padding 0.5em
           cursor pointer
           color #555
           
+          > .fa-ellipsis-v
+            font-size 1.2em
+            
           &:hover
             background rgba(0,0,0,0.05)
             
-          .fa
-            font-size 1.2em
+          // Show menu on hover
+          &:hover > .nav-menu
+            display block
             
-        .nav-menu
-          right 0
-          left auto
-          min-width 140px
-          
-          .nav-item
-            padding 0.6em 1em
-            display flex
-            align-items center
-            gap 0.5em
+          // Show menu on click (mobile)
+          > .nav-menu.nav-menu-open
+            display block
             
-            &.disabled
-              opacity 0.5
-              pointer-events none
+          > .nav-menu
+            display none
+            position absolute
+            top 100%
+            right 0
+            left auto
+            min-width 140px
+            background #fff
+            border 1px solid #ddd
+            border-radius 4px
+            box-shadow 0 4px 12px rgba(0,0,0,0.15)
+            z-index 100
+            
+            // Menu items
+            > a
+              padding 0.6em 1em
+              display flex
+              align-items center
+              gap 0.5em
+              color #333
+              white-space nowrap
+              text-decoration none
+              
+              &:hover
+                background #f5f5f5
+              
+              &.disabled
+                opacity 0.5
+                pointer-events none
+                
+              .fa
+                width 1.2em
+                color #666
 
   // =====================================================
   // JOG CONTROLS
@@ -469,3 +497,7 @@
           
         .actions-dropdown
           display block
+
+  // Bottom padding for mobile browser chrome
+  .view-control
+    padding-bottom 80px

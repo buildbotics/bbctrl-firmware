@@ -456,7 +456,7 @@
       .actions-dropdown
         display block
         
-    // Hide grip, index, and file input on mobile
+    // Hide grip, index, file input, and color hex on mobile
     .macro-list
       .col-grip, .col-index
         display none
@@ -466,8 +466,16 @@
         input.path
           display none
           
+      .col-color
+        // Hide hex input, show only color swatch
+        input[type="text"]
+          display none
+          
       .col-tab select
         max-width 80px
         
       .col-name input
         min-width 60px
+    
+    // Bottom padding for mobile browser chrome
+    padding-bottom 80px
