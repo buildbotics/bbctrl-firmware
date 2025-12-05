@@ -227,10 +227,13 @@
       .fa
         width 1.2em
         margin-right 0.25em
-        
-    th.reset-col
-      width 3em
       
+      // Reset All button in header
+      .reset-all-btn
+        float right
+        margin-left 1em
+        font-size 1.1em
+        
     td, th
       text-align center
       min-width 2em
@@ -240,6 +243,11 @@
 
     tr.reset-row
       background #f9f9f9
+      
+      th.fault-label
+        display flex
+        align-items center
+        justify-content space-between
 
     .fa-eraser
       cursor pointer
@@ -293,12 +301,3 @@
         
       th.header
         font-size 0.8em
-        
-    // Motor faults table - hide reset column header on mobile
-    table.motor_fault
-      th.reset-col
-        display none
-        
-      // Empty cells in reset column
-      td:last-child:empty
-        display none
