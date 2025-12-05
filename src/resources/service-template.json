@@ -43,11 +43,6 @@
         "default": "motion_hours",
         "help": "Which hour counter to track against."
       },
-      "color": {
-        "type": "string",
-        "default": "#e6e6e6",
-        "help": "Display color for this service item."
-      },
       "last_completed": {
         "type": "float",
         "default": 0,

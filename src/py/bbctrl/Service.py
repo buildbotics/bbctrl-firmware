@@ -121,11 +121,11 @@ class Service:
 
     def _get_item_defaults(self):
         """Get default values for a new service item from template"""
+        # Simplified - no color field
         defaults = {
             'label': '',
             'interval': 100,
             'hour_type': self.HOUR_MOTION,
-            'color': '#e6e6e6',
             'last_completed': 0.0,
             'next_due': 0.0,
             'history': []
@@ -270,7 +270,7 @@ class Service:
         return self.data.get('items', [])
 
 
-    def add_item(self, label, interval=None, color=None, hour_type=None):
+    def add_item(self, label, interval=None, hour_type=None):
         """Add a new service item"""
         items = self.data.get('items', [])
         new_id = max([item['id'] for item in items], default=0) + 1
@@ -281,8 +281,6 @@ class Service:
         # Use provided values or template defaults
         if interval is None:
             interval = defaults['interval']
-        if color is None:
-            color = defaults['color']
         if hour_type is None:
             hour_type = defaults['hour_type']
         
@@ -295,7 +293,6 @@ class Service:
             'id': new_id,
             'label': label,
             'interval': interval,
-            'color': color,
             'hour_type': hour_type,
             'last_completed': current_hours,
             'next_due': current_hours + interval,
@@ -309,7 +306,7 @@ class Service:
         return item
 
 
-    def update_item(self, item_id, label=None, interval=None, color=None, hour_type=None):
+    def update_item(self, item_id, label=None, interval=None, hour_type=None):
         """Update an existing service item"""
         items = self.data.get('items', [])
         
@@ -317,8 +314,6 @@ class Service:
             if item['id'] == item_id:
                 if label is not None:
                     item['label'] = label
-                if color is not None:
-                    item['color'] = color
                 if hour_type is not None:
                     item['hour_type'] = hour_type
                 if interval is not None:

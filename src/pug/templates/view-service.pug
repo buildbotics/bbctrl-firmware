@@ -35,29 +35,63 @@ script#view-service-template(type="text/x-template")
       .spacer
       
       .actions
-        //- Context-sensitive Add button
-        bbutton(v-if="view === 'items'", @click="openItemEditor(null)", 
-          icon="plus", text="Add Item",
-          :disabled="!$root.authorized",
-          title="Add a new service item")
-        bbutton(v-if="view === 'notes'", @click="openNoteEditor(null)", 
-          icon="plus", text="Add Note",
-          :disabled="!$root.authorized",
-          title="Add a new note")
-        
-        bbutton(@click="exportData", icon="download", text="Export",
-          title="Export all service data")
-        
-        //- Login/Save button area (far right)
-        bbutton(v-if="!$root.authorized", @click="$root.login()", 
-          icon="sign-in", text="Login",
-          title="Login to make changes")
-        bbutton(v-if="$root.authorized && modified", @click="saveChanges", 
-          icon="save", text="Save", success,
-          title="Save pending changes")
-        .save-status(v-if="$root.authorized && !modified")
-          .fa.fa-check
-          span Saved
+        //- Desktop: inline buttons
+        .actions-inline
+          //- Context-sensitive Add button
+          bbutton(v-if="view === 'items'", @click="openItemEditor(null)", 
+            icon="plus", text="Add Item",
+            :disabled="!$root.authorized",
+            title="Add a new service item")
+          bbutton(v-if="view === 'notes'", @click="openNoteEditor(null)", 
+            icon="plus", text="Add Note",
+            :disabled="!$root.authorized",
+            title="Add a new note")
+          
+          bbutton(@click="exportData", icon="download", text="Export",
+            title="Export all service data")
+          
+          //- Login/Save button area (far right)
+          bbutton(v-if="!$root.authorized", @click="$root.login()", 
+            icon="sign-in", text="Login",
+            title="Login to make changes")
+          bbutton(v-if="$root.authorized && modified", @click="saveChanges", 
+            icon="save", text="Save", success,
+            title="Save pending changes")
+          .save-status(v-if="$root.authorized && !modified")
+            .fa.fa-check
+            span Saved
+          bbutton(v-if="$root.authorized", @click="$root.logout()", 
+            icon="sign-out",
+            title="Logout")
+
+        //- Mobile: dropdown menu
+        .actions-dropdown
+          nav-item
+            .fa.fa-ellipsis-v
+            nav-menu
+              a.nav-item(v-if="view === 'items'", 
+                :class="{disabled: !$root.authorized}",
+                @click="openItemEditor(null)")
+                .fa.fa-plus
+                | Add Item
+              a.nav-item(v-if="view === 'notes'", 
+                :class="{disabled: !$root.authorized}",
+                @click="openNoteEditor(null)")
+                .fa.fa-plus
+                | Add Note
+              a.nav-item(@click="exportData")
+                .fa.fa-download
+                | Export
+              .nav-separator
+              a.nav-item(v-if="!$root.authorized", @click="$root.login()")
+                .fa.fa-sign-in
+                | Login
+              a.nav-item(v-if="$root.authorized && modified", @click="saveChanges")
+                .fa.fa-save
+                | Save
+              a.nav-item(v-if="$root.authorized", @click="$root.logout()")
+                .fa.fa-sign-out
+                | Logout
 
     //- Hours summary bar
     .hours-bar
@@ -74,7 +108,6 @@ script#view-service-template(type="text/x-template")
 
       .items-list(v-if="itemsSorted.length")
         .item-card(v-for="item in itemsSorted", :class="{due: isItemDue(item)}")
-          .item-color-bar(:style="{backgroundColor: item.color}")
           .item-content
             .item-header
               .item-label {{item.label}}
@@ -109,7 +142,7 @@ script#view-service-template(type="text/x-template")
       p.empty-message(v-else)
         | No service items configured. Click "Add Item" to create one.
 
-      //- Item Editor
+      //- Item Editor (simplified - no color picker)
       .editor-panel(v-if="editingItem")
         h3 {{editingItem.id ? 'Edit' : 'Add'}} Service Item
         
@@ -128,11 +161,6 @@ script#view-service-template(type="text/x-template")
             label Interval (hours)
             input.interval-input(type="number", v-model.number="editingItem.interval", min="1",
               @input="markModified")
-          
-          .form-group.form-group-color
-            label Color
-            .color-input-wrapper
-              color-picker(:value.sync="editingItem.color", @change="markModified")
         
         .editor-actions
           bbutton(@click="cancelItemEdit", text="Cancel")

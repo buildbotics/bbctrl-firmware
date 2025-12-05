@@ -225,10 +225,10 @@ module.exports = {
     
     
     getItemDialogBody() {
+      // Simplified - no color field
       this.editingItem = {
         label: '',
         interval: 100,
-        color: '#e6e6e6',
         hour_type: 'motion_hours'
       }
       
@@ -252,10 +252,10 @@ module.exports = {
         this.editingNote = null
       }
       
+      // Simplified - no color field
       this.editingItem = item ? {...item} : {
         label: '',
         interval: 100,
-        color: '#e6e6e6',
         hour_type: 'motion_hours'
       }
       this.originalItem = item ? {...item} : null

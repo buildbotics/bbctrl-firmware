@@ -56,6 +56,39 @@
       display: flex
       align-items: center
       gap: 0.5em
+      
+      // Desktop: show inline, hide dropdown
+      .actions-inline
+        display: flex
+        align-items: center
+        gap: 0.5em
+        
+      .actions-dropdown
+        display: none
+        
+        > .nav-item
+          padding: 0.5em
+          cursor: pointer
+          
+          .fa
+            color: #ccc
+            font-size: 1.2em
+            
+          &:hover .fa
+            color: #fff
+            
+        .nav-menu
+          right: 0
+          left: auto
+          
+          .nav-item
+            display: flex
+            align-items: center
+            gap: 0.5em
+            
+            &.disabled
+              opacity: 0.5
+              pointer-events: none
     
     .save-status
       display: flex
@@ -121,7 +154,7 @@
       margin: 0
 
 
-  // Items list
+  // Items list - simplified without user colors
   .items-list
     .item-card
       background: white
@@ -129,17 +162,13 @@
       border-radius: 4px
       margin-bottom: 12px
       overflow: hidden
+      // Default gray top bar
+      border-top: 4px solid #e6e6e6
 
       &.due
+        // Red border when due - clear visual indicator
         border-color: #ff5722
-
-        .item-color-bar
-          background: #ff5722 !important
-
-      .item-color-bar
-        width: 100%
-        height: 6px
-        flex-shrink: 0
+        border-top-color: #ff5722
 
       .item-content
         padding: 15px
@@ -228,7 +257,7 @@
         border-top: 1px solid #eee
 
 
-  // Editor panel
+  // Editor panel - simplified without color picker
   .editor-panel
     background: #f5f5f5
     border: 1px solid #ddd
@@ -282,18 +311,6 @@
       select
         background: white
 
-    .form-group-color
-      flex: 0 0 auto
-      
-      .color-input-wrapper
-        display: flex
-        align-items: center
-        
-        // Make color-picker inputs consistent height
-        input
-          height: 38px
-          padding: 8px 12px
-
     .editor-actions
       display: flex
       justify-content: flex-end
@@ -311,3 +328,16 @@
     text-align: center
     background: #f9f9f9
     border-radius: 4px
+
+// Responsive
+@media only screen and (max-width: 600px)
+  .service-view
+    .navbar .actions
+      .actions-inline
+        display: none
+        
+      .actions-dropdown
+        display: block
+        
+    // Bottom padding for mobile browser chrome
+    padding-bottom: 80px
