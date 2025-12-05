@@ -55,7 +55,8 @@ module.exports = {
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       tab: 'auto',
       highlighted_line: 0,
-      toolpath: {}
+      toolpath: {},
+      macro_tab: null  // Currently selected macro tab
     }
   },
 
@@ -158,6 +159,19 @@ module.exports = {
     },
 
 
+    // ETA: Estimated completion time based on remaining seconds
+    // Uses browser locale for time format (12h vs 24h)
+    eta() {
+      if (!this.remaining || this.remaining <= 0) return null
+      let completionTime = new Date(Date.now() + this.remaining * 1000)
+      // Use short format: "2:45 PM" or "14:45" based on browser locale
+      return completionTime.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    },
+
+
     simulating() {
       return 0 < this.active.progress && this.active.progress < 1
     },
@@ -169,7 +183,58 @@ module.exports = {
       if (!this.toolpath.time || this.is_ready) return 0
       let p = this.plan_time / this.toolpath.time
       return p < 1 ? p : 1
-    }
+    },
+    
+    
+    // Get macro tabs from config, with default fallback
+    macro_tabs() {
+      let tabs = this.config.macro_tabs
+      if (!tabs || !tabs.length) {
+        return [{id: 'default', name: 'Macros'}]
+      }
+      return tabs
+    },
+    
+    
+    // Get the currently selected macro tab ID
+    current_macro_tab() {
+      if (this.macro_tab) return this.macro_tab
+      return this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
+    },
+    
+    
+    // Get macros filtered by current tab and visibility
+    visible_macros() {
+      let macros = this.config.macros || []
+      let currentTab = this.current_macro_tab
+      let defaultTab = this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
+      
+      let result = []
+      for (let i = 0; i < macros.length; i++) {
+        let macro = macros[i]
+        // Check visibility
+        if (macro.visible === false) continue
+        // Check tab assignment
+        let macroTab = macro.tab || defaultTab
+        if (macroTab === currentTab) {
+          result.push({
+            name: macro.name,
+            path: macro.path,
+            color: macro.color,
+            confirm: macro.confirm,
+            originalIndex: i
+          })
+        }
+      }
+      return result
+    },
+    
+    
+    // Check if there are multiple tabs to show
+    has_multiple_tabs() {
+      return this.macro_tabs.length > 1
+    },
+    
   },
 
 
@@ -216,13 +281,64 @@ module.exports = {
     goto(hash) {window.location.hash = hash},
     send(msg) {this.$dispatch('send', msg)},
     on_scroll(cm, e) {e.preventDefault()},
+    
+    
+    // Select a macro tab
+    select_macro_tab(tabId) {
+      this.macro_tab = tabId
+    },
 
 
     async run_macro(macro) {
       try {
-        return this.$api.put('macro/' + macro)
+        // macro is the 1-based index from the button
+        // originalIndex is the 0-based index in config.macros
+        let originalIndex = macro
+        if (typeof macro === 'object' && macro.originalIndex !== undefined) {
+          originalIndex = macro.originalIndex
+        }
+        
+        let macros = this.config.macros || []
+        if (originalIndex < 0 || originalIndex >= macros.length) {
+          throw new Error('Invalid macro index: ' + originalIndex)
+        }
+        
+        let macroConfig = macros[originalIndex]
+        if (!macroConfig || !macroConfig.path) {
+          throw new Error('Macro has no file configured')
+        }
+        
+        // Build full path
+        let path = macroConfig.path
+        if (!path.startsWith('Home/')) {
+          path = 'Home/' + path
+        }
+        
+        // Check if confirmation is required (default: true for safety)
+        let requiresConfirm = macroConfig.confirm !== false
+        
+        if (requiresConfirm) {
+          // Show confirmation dialog before running macro
+          let macroName = macroConfig.name || ('Macro ' + (originalIndex + 1))
+          let confirmed = await this.$root.open_dialog({
+            header: 'Confirm Macro',
+            icon: 'question',
+            body: 'Run macro "' + macroName + '"?\n\nFile: ' + path,
+            buttons: [
+              {text: 'Cancel', class: 'button-default'},
+              {text: 'Run', class: 'button-success', action: 'run'}
+            ]
+          })
+          
+          // User cancelled - don't run macro
+          if (confirmed != 'run') return
+        }
+        
+        // Call the macro API endpoint (uses 1-based index)
+        return this.$api.put('macro/' + (originalIndex + 1))
+        
       } catch (e) {
-        this.$root.error_dialog('Failed to run macro "' + macro + '":\n' + e)
+        this.$root.error_dialog('Failed to run macro:\n' + e)
       }
     },
 

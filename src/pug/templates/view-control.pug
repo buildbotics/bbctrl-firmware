@@ -35,24 +35,52 @@ script#view-control-template(type="text/x-template")
         th.offset Offset
         th.state State
         th.actions
-          bbutton(:disabled="!is_idle", text="&empty;",
-            title="Zero all axis offsets.", @click="zero_all")
+          //- Desktop: individual buttons
+          .actions-inline
+            bbutton(:disabled="!is_idle", icon="map-marker", text="Zero All",
+              title="Zero all axis offsets.", @click="zero_all")
 
-          bbutton(title="Home all axes.", @click="home_all", icon="home",
-            :disabled="!is_idle")
+            bbutton(:disabled="!is_idle", icon="home", text="Home All",
+              title="Home all axes.", @click="home_all")
+
+          //- Mobile: dropdown menu
+          .actions-dropdown
+            nav-item
+              .fa.fa-ellipsis-v
+              nav-menu
+                a.nav-item(:class="{disabled: !is_idle}", @click="zero_all")
+                  .fa.fa-map-marker
+                  | Zero All
+                a.nav-item(:class="{disabled: !is_idle}", @click="home_all")
+                  .fa.fa-home
+                  | Home All
 
       each axis in 'xyzabc'
         tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)
 
-    .macros
-      bbutton.macro(v-for="macro in config.macros",
-        v-if="macro.path", @click="run_macro($index + 1)",
-        title="Run macro {{$index + 1}} {{macro.name}}\n{{macro.path}}",
-        :style="{'background-color': macro.color}",
-        :text="macro.name || ($index + 1)")
-
-      bbutton.macro(@click="goto('#settings:macros')", icon="cog",
-        text="Macros", title="Go to macro settings")
+    //- Macro section with tabs
+    .macros-container
+      //- Tab bar (always show - includes settings tab)
+      .macro-tabs
+        .macro-tab(v-for="tab in macro_tabs",
+          :class="{active: current_macro_tab === tab.id}",
+          @click="select_macro_tab(tab.id)",
+          :title="tab.name")
+          | {{tab.name}}
+        
+        a.macro-tab.settings-tab(href="#macros", title="Configure macros")
+          .fa.fa-th-large
+          |  Macros
+      
+      //- Macro buttons
+      .macros
+        bbutton.macro(v-for="macro in visible_macros",
+          v-if="macro.path",
+          :disabled="!is_idle",
+          @click="run_macro(macro.originalIndex)",
+          :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
+          :style="{'background-color': macro.color}",
+          :text="macro.name || (macro.originalIndex + 1)")
 
     .info-blocks
       table.info
@@ -101,6 +129,9 @@ script#view-control-template(type="text/x-template")
           td(title="Total run time (days:hours:mins:secs)").
             #[span(v-if="remaining") {{remaining | time}} of]
             {{active.time | time}}
+        tr(v-if="eta", title="Estimated completion time based on remaining time")
+          th ETA
+          td {{eta}}
         tr
           th Line
           td {{0 <= state.line ? state.line : 0 | number}}
@@ -168,9 +199,10 @@ script#view-control-template(type="text/x-template")
         .mdi.pure-form(title="Manual command entry.")
           bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'")
+            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
+            :text="is_running ? 'Pause' : 'Run'")
 
-          bbutton(title="Stop command.", @click="stop", icon="stop")
+          bbutton(title="Stop command.", @click="stop", icon="stop", text="Stop")
 
           input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
 
