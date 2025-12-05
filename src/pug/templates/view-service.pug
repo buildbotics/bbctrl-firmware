@@ -29,7 +29,6 @@ script#view-service-template(type="text/x-template")
   .service-view
     //- Navigation bar
     nav.navbar
-      a.nav-item(href="#service:dashboard") Dashboard
       a.nav-item(href="#service:items") Items
       a.nav-item(href="#service:notes") Notes
       
@@ -68,60 +67,6 @@ script#view-service-template(type="text/x-template")
       .hours-item
         .hours-label Motion
         .hours-value {{motionHours}} hrs
-
-    //- Dashboard View
-    .service-content(v-if="view === 'dashboard'")
-      h2 Service Dashboard
-      
-      //- Due items warning
-      .due-items-section(v-if="dueItems.length")
-        .section-header
-          .fa.fa-exclamation-triangle
-          span Service Due ({{dueItems.length}})
-        
-        .due-items-list
-          .due-item(v-for="item in dueItems")
-            .item-color(:style="{backgroundColor: item.color}")
-            .item-info
-              .item-label {{item.label}}
-              .item-details
-                span.hour-type {{getHourTypeLabel(item.hour_type)}} hours
-                span.overdue Overdue by {{(getHoursForType(item.hour_type) - item.next_due).toFixed(1)}} hrs
-            .item-actions
-              bbutton(@click="completeItem(item)", text="Complete",
-                title="Mark as completed")
-
-      //- No items due
-      .no-due-items(v-else)
-        .fa.fa-check-circle
-        span All services up to date!
-
-      //- Quick stats
-      .stats-section
-        h3 Service Summary
-        .stats-grid
-          .stat-card
-            .stat-value {{serviceData.items.length}}
-            .stat-label Service Items
-          .stat-card
-            .stat-value {{dueItems.length}}
-            .stat-label Items Due
-          .stat-card
-            .stat-value {{serviceData.notes.length}}
-            .stat-label Notes
-
-      //- Recent activity
-      .recent-section(v-if="itemsSorted.length")
-        h3 Upcoming Service
-        .upcoming-list
-          .upcoming-item(v-for="item in itemsSorted.slice(0, 5)", 
-            :class="{due: isItemDue(item)}")
-            .item-color(:style="{backgroundColor: item.color}")
-            .item-info
-              .item-label {{item.label}}
-              .item-remaining(:class="{overdue: isItemDue(item)}")
-                | {{getItemHoursRemaining(item)}}
-            .item-interval {{item.interval}} hr interval
 
     //- Items View
     .service-content(v-if="view === 'items'")

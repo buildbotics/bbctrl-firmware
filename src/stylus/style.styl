@@ -107,13 +107,24 @@ collapse-width = 810px
 .system-alerts
   display flex
   flex-direction column
-  gap 0
+  gap 2px
+  margin-bottom 10px
 
 .alert
   display flex
   align-items center
   padding 8px 15px
   font-size 14px
+  
+  &:first-child
+    border-radius 4px 4px 0 0
+  
+  &:last-child
+    border-radius 0 0 4px 4px
+    border-bottom none
+  
+  &:only-child
+    border-radius 4px
   
   .alert-icon
     margin-right 10px

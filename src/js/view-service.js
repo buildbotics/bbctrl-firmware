@@ -34,7 +34,7 @@ module.exports = {
 
   data() {
     return {
-      view: 'dashboard',
+      view: 'items',
       serviceTemplate: serviceTemplate,
       serviceData: {
         power_hours: 0,
@@ -97,10 +97,10 @@ module.exports = {
   events: {
     route(path) {
       if (path[0] != 'service') return
-      let view = path.length < 2 ? 'dashboard' : path[1]
+      let view = path.length < 2 ? 'items' : path[1]
       
-      if (!['dashboard', 'items', 'notes'].includes(view)) {
-        return this.$root.replace_route('service:dashboard')
+      if (!['items', 'notes'].includes(view)) {
+        return this.$root.replace_route('service:items')
       }
       
       this.view = view
