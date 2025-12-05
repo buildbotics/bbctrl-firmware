@@ -47,7 +47,7 @@ module.exports = new Vue({
         motors: [{}, {}, {}, {}],
         version: '<loading>'
       },
-      state: {messages: []},
+      state: {messages: [], service_due_count: 0},
       crosshair: cookie.get_bool('crosshair', false),
       selected_program: new Program(this.$api, cookie.get('selected-path')),
       active_program: undefined,
