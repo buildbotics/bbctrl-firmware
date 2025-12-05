@@ -110,11 +110,13 @@ class Program {
 
 
   load() {
-    // FIX: Always fetch fresh content - don't cache file loads
-    // This ensures re-uploaded files are always fetched from server
-    // The server also sets no-cache headers
-    return this.$api.get('fs/' + this.path + '?_t=' + Date.now(), 
-      {type: 'text'})
+    // Cache the promise so multiple callers get the same result
+    // Server sets no-cache headers to prevent browser caching
+    // Use invalidate() to clear cache when file is re-uploaded
+    if (!this._load) {
+      this._load = this.$api.get('fs/' + this.path, {type: 'text'})
+    }
+    return this._load
   }
 }
 
