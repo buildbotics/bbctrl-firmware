@@ -185,3 +185,32 @@
         line-height 1.5
         max-height 500px
         overflow-y auto
+
+// =============================================================================
+// Responsive - Mobile
+// =============================================================================
+
+@media only screen and (max-width 600px)
+  .view-docs
+    .docs-view
+      padding 1em
+      
+      h1
+        font-size 1.4em
+        
+      h2
+        font-size 1.15em
+        
+      // Make tables scrollable
+      table
+        display block
+        overflow-x auto
+        -webkit-overflow-scrolling touch
+        
+      // GCode cheat sheet table on mobile
+      .cheat-sheet table
+        font-size 0.85em
+        min-width 400px
+        
+    // Bottom padding for mobile browser chrome
+    padding-bottom 80px

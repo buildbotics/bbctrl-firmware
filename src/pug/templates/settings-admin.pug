@@ -44,18 +44,21 @@ script#settings-admin-template(type="text/x-template")
           :disabled="!authorized")
 
     h2 Configuration
-    bbutton(primary, :disabled="!authorized", @click="backup",  text="Backup",
-      icon="save")
-    bbutton(primary, :disabled="!authorized", @click="restore", text="Restore",
-      icon="refresh")
-    bbutton(primary, :disabled="!authorized", @click="reset",   text="Reset"
-      icon="eraser")
+    .button-group
+      bbutton(primary, :disabled="!authorized", @click="backup",  text="Backup",
+        icon="save")
+      bbutton(primary, :disabled="!authorized", @click="restore", text="Restore",
+        icon="refresh")
+      bbutton(primary, :disabled="!authorized", @click="reset",   text="Reset"
+        icon="eraser")
 
     h2 Firmware
-    bbutton(primary, @click="check", text="Check")
-    bbutton(primary, :disabled="!authorized", @click="upgrade", text="Upgrade",
-      icon="cloud-download")
-    bbutton(primary, :disabled="!authorized", @click="upload",  text="Upload")
+    .button-group
+      bbutton(primary, @click="check", text="Check", icon="search")
+      bbutton(primary, :disabled="!authorized", @click="upgrade", text="Upgrade",
+        icon="cloud-download")
+      bbutton(primary, :disabled="!authorized", @click="upload",  text="Upload",
+        icon="upload")
 
     p
       input(type="checkbox", v-model="autoCheckUpgrade",
@@ -63,10 +66,11 @@ script#settings-admin-template(type="text/x-template")
       label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
 
     h2 Debugging
-    a(href="/api/log", target="_blank")
-      bbutton(primary, icon="file-text-o", text="View Log")
-    a(href="/api/bugreport", download)
-      bbutton(primary, icon="bug", text="Bug Report")
+    .button-group
+      a(href="/api/log", target="_blank")
+        bbutton(primary, icon="file-text-o", text="View Log")
+      a(href="/api/bugreport", download)
+        bbutton(primary, icon="bug", text="Bug Report")
 
     h2 Virtual Keyboard
     p

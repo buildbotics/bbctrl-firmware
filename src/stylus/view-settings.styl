@@ -84,6 +84,140 @@
     margin-bottom 50px
     padding 0 1em
 
+// =============================================================================
+// Common Settings Page Styles
+// =============================================================================
+
+// Headings
+.settings-view
+  h1
+    margin-top 0.5em
+    margin-bottom 0.5em
+    font-size 1.5em
+    border-bottom 2px solid #ddd
+    padding-bottom 0.25em
+    
+  h2
+    margin-top 1.5em
+    margin-bottom 0.75em
+    font-size 1.2em
+    color #444
+    
+  // First h2 after h1 shouldn't have as much top margin
+  h1 + .pure-form h2:first-child,
+  h1 + h2
+    margin-top 0.75em
+
+// Fieldsets - visual grouping
+.settings-view fieldset
+  margin-bottom 1.5em
+  padding 0
+  border none
+  
+  h2
+    margin-top 0
+    
+  // Help text within fieldsets
+  p
+    margin 0.5em 0
+    color #666
+    font-size 0.9em
+    max-width 600px
+    
+    tt
+      background #f5f5f5
+      padding 0.1em 0.4em
+      border-radius 3px
+      font-size 0.95em
+
+// Form controls
+.settings-view .pure-form
+  .pure-control-group
+    margin-bottom 0.75em
+    
+    > label:first-child
+      min-width 10em
+      
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    select,
+    textarea
+      max-width 100%
+      
+    // Units label
+    label.units
+      margin-left 0.5em
+      color #666
+      
+    // Extra computed values (RPM, g-force, etc)
+    label.extra
+      margin-left 0.5em
+      color #888
+      font-size 0.9em
+
+// Button groups
+.settings-view
+  .button-group
+    display flex
+    flex-wrap wrap
+    gap 0.5em
+    margin 0.75em 0
+    
+    .bbutton
+      margin 0
+      
+    a
+      text-decoration none
+      
+  fieldset > .bbutton
+    margin-right 0.5em
+    margin-bottom 0.5em
+
+// Tables - make them responsive
+.settings-view
+  .table-responsive
+    overflow-x auto
+    margin 1em 0
+    -webkit-overflow-scrolling touch
+    
+  .pure-table
+    width 100%
+    border-collapse collapse
+    
+    th, td
+      padding 0.5em 0.75em
+      text-align left
+      border 1px solid #ddd
+      
+    th
+      background #f5f5f5
+      font-weight 600
+      
+    &.pure-table-striped tbody tr:nth-child(odd)
+      background #fafafa
+
+// Notes sections (VFD configuration help)
+.settings-view .notes
+  margin 1.5em 0
+  padding 1em
+  background #f9f9f9
+  border-left 4px solid #ddd
+  border-radius 0 4px 4px 0
+  
+  h2
+    margin-top 0
+    
+  p
+    margin 0.5em 0
+    
+  table
+    margin 1em 0
+
+// =============================================================================
+// Settings Admin
+// =============================================================================
+
 #settings-admin
   a
     text-decoration none
@@ -91,15 +225,46 @@
   .pure-form input
     width 16em
 
-#settings-io .pure-table
-  td, th
-    padding 0.25em 0.5em
+  h2
+    margin-top 1.5em
+    
+  // Button sections
+  h2 + .bbutton,
+  h2 + a
+    margin-top 0.5em
+    
+  .bbutton, a .bbutton
+    margin-right 0.5em
+    margin-bottom 0.5em
+    
+  // Checkbox options
+  p
+    margin 0.75em 0
+    
+    input[type="checkbox"]
+      margin-right 0.5em
 
-  td.state
-    text-align center
+// =============================================================================
+// Settings I/O
+// =============================================================================
 
-  select.function
-    width 14em
+#settings-io
+  .pure-table
+    td, th
+      padding 0.25em 0.5em
+
+    td.state
+      text-align center
+
+    select.function
+      width 14em
+      
+    select.mode
+      width 8em
+
+// =============================================================================
+// Settings Network
+// =============================================================================
 
 #settings-network
   .wifi-aps
@@ -136,16 +301,209 @@
 
   .wifi-device
     margin 1em 0
+    
+    table
+      margin-bottom 0.75em
+      
+    .actions
+      display flex
+      flex-wrap wrap
+      gap 0.5em
+      
+      .bbutton
+        margin 0
 
-// Responsive
+// WiFi Connect Dialog - table responsive
+.wifi-connect
+  .dialog-body
+    overflow-x auto
+    -webkit-overflow-scrolling touch
+    
+  .wifi-aps
+    min-width 600px
+    
+    .actions
+      white-space nowrap
+
+// =============================================================================
+// Settings Tool - VFD Tables
+// =============================================================================
+
+#tool
+  .modbus-regs
+    font-size 0.9em
+    
+    &.fixed-regs
+      width auto
+      
+  .modbus-program
+    margin 1.5em 0
+    
+    .bbutton
+      margin-right 0.5em
+      margin-bottom 0.5em
+
+// =============================================================================
+// Settings Motor
+// =============================================================================
+
+.motor
+  .pure-control-group
+    label.extra
+      display inline-block
+      min-width 8em
+      color #888
+
+// =============================================================================
+// Settings Macros Redirect
+// =============================================================================
+
+#settings-macros
+  .redirect-notice
+    display flex
+    align-items flex-start
+    gap 1em
+    padding 1.5em
+    background #e8f4fd
+    border 1px solid #b8daff
+    border-radius 6px
+    margin 1em 0
+    
+    .fa
+      font-size 1.5em
+      color #004085
+      flex-shrink 0
+      
+    p
+      margin 0
+      color #004085
+      
+    a
+      color #004085
+      font-weight 600
+      
+  .help-text
+    color #666
+    margin-top 1em
+
+// =============================================================================
+// Responsive - Tablet
+// =============================================================================
+
+@media only screen and (max-width 768px)
+  .settings-view
+    h1
+      font-size 1.3em
+      
+    h2
+      font-size 1.1em
+      
+    // Forms - start transitioning labels
+    .pure-form.pure-form-aligned .pure-control-group
+      label:first-child
+        min-width 8em
+
+// =============================================================================
+// Responsive - Mobile
+// =============================================================================
+
 @media only screen and (max-width 600px)
   .view-settings
-    .navbar .actions
-      .actions-inline
-        display none
-        
-      .actions-dropdown
-        display block
-        
+    .navbar
+      // Allow horizontal scroll for nav items on mobile
+      overflow-x auto
+      flex-wrap nowrap
+      -webkit-overflow-scrolling touch
+      
+      // Smaller padding on nav items
+      .nav-item
+        padding 0.5em 0.75em
+        font-size 0.9em
+      
+      .actions
+        .actions-inline
+          display none
+          
+        .actions-dropdown
+          display block
+          
     // Bottom padding for mobile browser chrome
     padding-bottom 80px
+
+  .settings-view
+    padding 0 0.5em
+    
+    h1
+      font-size 1.2em
+      
+    // Forms - stack labels above inputs
+    .pure-form.pure-form-aligned .pure-control-group
+      display flex
+      flex-direction column
+      align-items flex-start
+      
+      label:first-child
+        margin-bottom 0.25em
+        min-width auto
+        
+      input[type="text"],
+      input[type="number"],
+      input[type="password"],
+      select
+        width 100%
+        max-width 300px
+        
+      textarea
+        width 100%
+        
+      label.units,
+      label.extra
+        margin-left 0
+        margin-top 0.25em
+        
+    // Tables - horizontal scroll
+    .pure-table
+      display block
+      overflow-x auto
+      white-space nowrap
+      
+    // I/O table selects
+    #settings-io
+      select.function,
+      select.mode
+        width auto
+        min-width 8em
+        
+    // VFD notes tables
+    .notes
+      padding 0.75em
+      
+      .modbus-regs
+        font-size 0.85em
+        
+    // Button groups on mobile - stack vertically
+    .button-group
+      flex-direction column
+      
+      .bbutton, a
+        width 100%
+        
+      a .bbutton
+        width 100%
+        
+    // Network WiFi actions
+    #settings-network .wifi-device .actions
+      flex-direction column
+      
+      .bbutton
+        width 100%
+
+// WiFi Connect Dialog - mobile adjustments
+@media only screen and (max-width 600px)
+  .wifi-connect
+    .wifi-aps
+      font-size 0.85em
+      
+      // Hide less important columns on mobile
+      .channel, .rate
+        display none
