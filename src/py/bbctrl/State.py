@@ -93,16 +93,24 @@ class State(object):
         if not 'metric' in self.vars: self.set('metric', metric)
         if not 'imperial' in self.vars: self.set('imperial', not metric)
 
+        # Initialize distance mode (90=G90 absolute, 91=G91 incremental)
+        # Default to absolute mode - safest assumption on startup
+        if not 'distance_mode' in self.vars: self.set('distance_mode', 90)
+
 
     def reset(self):
         # SAFETY: Clear active program on reset/boot
         # Prevents accidentally running last loaded file after power cycle
         self.set('active_program', '')
-        
+
         # FIX: Also clear macro tracking state
         self._running_macro = False
         self._previous_program = None
-        
+
+        # SAFETY: Reset to absolute distance mode on reset
+        # Prevents unexpected incremental moves after power cycle
+        self.set('distance_mode', 90)
+
         # Unhome all motors
         for i in range(4): self.set('%dhomed' % i, 0)
 

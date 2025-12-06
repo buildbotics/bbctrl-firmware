@@ -97,9 +97,9 @@ script#view-control-template(type="text/x-template")
           th Units
           td.mach_units {{mach_units}}
 
-        tr(title="Active tool")
-          th Tool
-          td {{state.tool || 0}}
+        tr(title="Distance mode: G90=Absolute, G91=Incremental")
+          th Distance
+          td {{distance_mode}}
 
       table.info
         tr(
@@ -120,8 +120,12 @@ script#view-control-template(type="text/x-template")
           th Speed
           td
             | {{state.speed || 0 | fixed 0}}
-            span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
+            span(v-if="!isNaN(state.s)")  ({{state.s | fixed 0}})
             = ' RPM'
+
+        tr(title="Active tool number")
+          th Tool
+          td {{state.tool || 0}}
 
       table.info
         tr

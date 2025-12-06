@@ -49,6 +49,7 @@ module.exports = {
   data() {
     return {
       mach_units: 'METRIC',
+      distance_mode: 'ABSOLUTE',
       mdi: '',
       history: [],
       jog_step: cookie.get_bool('jog-step'),
@@ -70,6 +71,15 @@ module.exports = {
   watch: {
     'state.imperial': {
       handler(imperial) {this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'},
+      immediate: true
+    },
+
+
+    'state.distance_mode': {
+      handler(mode) {
+        // 90 = G90 (absolute), 91 = G91 (incremental)
+        this.distance_mode = (mode == 91) ? 'INCREMENTAL' : 'ABSOLUTE'
+      },
       immediate: true
     },
 
@@ -279,7 +289,15 @@ module.exports = {
 
 
     goto(hash) {window.location.hash = hash},
-    send(msg) {this.$dispatch('send', msg)},
+    send(msg) {
+      // Track distance mode from G-code commands
+      if (/\bG90\b/i.test(msg) && !/G90\.1/i.test(msg)) {
+        this.distance_mode = 'ABSOLUTE'
+      } else if (/\bG91\b/i.test(msg) && !/G91\.1/i.test(msg)) {
+        this.distance_mode = 'INCREMENTAL'
+      }
+      this.$dispatch('send', msg)
+    },
     on_scroll(cm, e) {e.preventDefault()},
     
     
