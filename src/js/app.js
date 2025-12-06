@@ -230,13 +230,12 @@ module.exports = new Vue({
     popupMessagesHeader() {
       let header = 'GCode Messages'
       
-      // Only show spindle speed if:
-      // 1. Tool is configured (not Disabled)
-      // 2. Spindle is actually running (speed > 0)
+      // Show spindle speed when tool is configured (not Disabled)
+      // Always show RPM so user can watch spindle spin up in real-time
       let toolType = this.config.tool && this.config.tool['tool-type']
       if (toolType && toolType !== 'Disabled') {
         let speed = this.state.s
-        if (speed !== undefined && !isNaN(speed) && speed > 0) {
+        if (speed !== undefined && !isNaN(speed)) {
           header += ' - Spindle: ' + Math.round(speed) + ' RPM'
         }
       }

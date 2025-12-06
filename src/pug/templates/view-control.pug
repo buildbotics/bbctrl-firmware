@@ -218,17 +218,17 @@ script#view-control-template(type="text/x-template")
           axis-control(axes="XY", :colors="['red', 'green']",
             :enabled="[x.enabled, y.enabled]",
             v-if="x.enabled || y.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="!is_idle")
 
           axis-control(axes="AZ", :colors="['orange', 'blue']",
             :enabled="[a.enabled, z.enabled]",
             v-if="a.enabled || z.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="!is_idle")
 
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[b.enabled, c.enabled]",
             v-if="b.enabled || c.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="!is_idle")
 
           .jog-settings
             .jog-adjust

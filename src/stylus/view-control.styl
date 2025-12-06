@@ -39,8 +39,8 @@
     .info-blocks
       display grid
       grid-template-columns auto auto auto
-      column-gap 4px
-      row-gap 4px
+      column-gap 1em
+      row-gap 0.5em
 
   table
     border-collapse collapse
@@ -48,6 +48,9 @@
     td, th
       border 1px solid #ddd
 
+  // =====================================================
+  // AXIS TABLE
+  // =====================================================
   .axes
     .axis-x .name
       color #f00
@@ -68,12 +71,15 @@
       color #f0f
 
     td, th
-      padding 2px
+      padding 6px 10px
       white-space nowrap
 
     th
       text-align center
       vertical-align bottom
+      background #f8f8f8
+      font-weight 600
+      color #555
 
     td
       text-align right
@@ -92,28 +98,116 @@
     .axis
       .name
         text-transform capitalize
+        min-width 2.5em
+        font-weight 600
 
       .name, .position
         font-size 24pt
-        line-height 24pt
+        line-height 28pt
 
       .position
-        width 99%
+        width auto
+        min-width 5em
 
       td.state
-        text-align left
-
-        .fa
-          font-size 140%
-          margin-left 2px
-          margin-right 6px
+        text-align center
+        min-width 6em
+        font-family inherit
+        font-size 0.9em
 
       .absolute, .offset
-        min-width 6em
+        min-width 5em
+        font-size 0.95em
 
-    tr:nth-child(1) th.actions
+    // Header row
+    tr:first-child
+      th
+        font-size 0.85em
+        text-transform uppercase
+        letter-spacing 0.5px
+        
+      th.actions
+        text-align right
+        
+        button, .bbutton
+          font-size 1rem
+
+    // Action buttons - compact column, normal font weight
+    .actions
+      white-space nowrap
       text-align right
+      width 1%
+      
+      button, .bbutton
+        margin-left 4px
+        font-weight normal
 
+      // Desktop: show inline buttons, hide dropdown
+      .actions-inline
+        display flex
+        gap 4px
+        justify-content flex-end
+        
+      .actions-dropdown
+        display none
+        position relative
+        
+        > .nav-item
+          padding 0.5em
+          cursor pointer
+          color #555
+          
+          > .fa-ellipsis-v
+            font-size 1.2em
+            
+          &:hover
+            background rgba(0,0,0,0.05)
+            
+          // Show menu on hover
+          &:hover > .nav-menu
+            display block
+            
+          // Show menu on click (mobile)
+          > .nav-menu.nav-menu-open
+            display block
+            
+          > .nav-menu
+            display none
+            position absolute
+            top 100%
+            right 0
+            left auto
+            min-width 140px
+            background #fff
+            border 1px solid #ddd
+            border-radius 4px
+            box-shadow 0 4px 12px rgba(0,0,0,0.15)
+            z-index 100
+            
+            // Menu items
+            > a
+              padding 0.6em 1em
+              display flex
+              align-items center
+              gap 0.5em
+              color #333
+              white-space nowrap
+              text-decoration none
+              
+              &:hover
+                background #f5f5f5
+              
+              &.disabled
+                opacity 0.5
+                pointer-events none
+                
+              .fa
+                width 1.2em
+                color #666
+
+  // =====================================================
+  // JOG CONTROLS
+  // =====================================================
   .jog svg
     user-select none
     -webkit-touch-callout none
@@ -156,12 +250,15 @@
           font-size 10pt
           text-anchor middle
 
+  // =====================================================
+  // MACRO BUTTONS (in control page)
+  // =====================================================
   .macros
     display grid
     grid-template-columns repeat(8, 1fr)
     column-gap 1%
     row-gap 8px
-    padding 0 0.25em
+    padding 0.5em
 
     // FIX: Button text overflow - allow text to wrap
     .macro
@@ -186,40 +283,61 @@
       .fa
         margin-right 0.25em
 
+  // =====================================================
+  // INFO TABLES
+  // =====================================================
   .info
     empty-cells show
+    background #fff
+    border-radius 4px
 
     th, td
       height 1.75em
-      padding 3px
+      padding 6px 10px
       text-align right
       overflow hidden
       text-overflow ellipsis
       white-space nowrap
 
     th
-      min-width 5.25em
-      width 5.25em
+      min-width 5.5em
+      width 5.5em
+      background #f8f8f8
+      font-weight 600
+      color #555
 
     td
-      min-width 8em
+      min-width 7em
       width 100%
 
     .progress
       height 1.75em
+      position relative
 
       label
+        position relative
+        z-index 1
         float right
 
       .bar
-        height 1.75em
+        position absolute
+        top 0
+        left 0
+        height 100%
         background #f2ac45
+        border-radius 2px
 
+  // =====================================================
+  // AUTO TAB TOOLBAR
+  // =====================================================
   .toolbar
     display flex
     flex-wrap wrap
     clear both
-    padding 0 0.125em
+    padding 0.5em
+    background #f5f5f5
+    border-radius 4px
+    margin-bottom 0.5em
 
     > *
       margin 0.25em 0.125em
@@ -227,7 +345,13 @@
     .filename
       flex 1
       text-align right
+      color #666
+      font-style italic
+      align-self center
 
+  // =====================================================
+  // TABS
+  // =====================================================
   .tabs
     section
       min-height 500px
@@ -249,7 +373,9 @@
       color #aaa
 
   .history
-    padding 0.25em
+    padding 0.5em
+    background #fafafa
+    border-radius 4px
 
   .history ul
     margin 0
@@ -258,38 +384,79 @@
 
     li
       cursor pointer
+      padding 0.25em 0.5em
+      border-radius 3px
+      
+      &:hover
+        background #e8e8e8
 
+  // =====================================================
+  // MDI
+  // =====================================================
   .mdi
     clear both
     white-space nowrap
-    padding 0.125em
+    padding 0.5em
     display flex
+    background #f5f5f5
+    border-radius 4px
+    gap 0.5em
 
-    > *
-      margin 0.125em
+    button, .bbutton
+      flex-shrink 0
 
     input
-      flex 2
+      flex 1
+      padding 0.5em
+      border 1px solid #ccc
+      border-radius 4px
+      font-family monospace
 
+  // =====================================================
+  // JOG
+  // =====================================================
   .jog
     text-align center
 
     > svg
       margin 1em
+      
+      // Visual feedback when jog controls are disabled (program running)
+      &.disabled
+        opacity 0.4
+        pointer-events none
+        cursor not-allowed
 
-  .jog-adjust
+  .jog-settings
+    display flex
+    justify-content center
+    gap 2em
+    margin 1em 0
+    
+  .jog-adjust, .jog-mode
+    display flex
+    align-items center
+    gap 0.5em
+
+  .jog-adjust input
+    vertical-align middle
+
+  .jog-instructions
     text-align center
-    margin-bottom 1em
-
-    input
-      margin 0 0.5em
-      vertical-align middle
+    color #666
+    font-size 0.9em
+    
+    p
+      margin 0.5em 0
 
 .load-on
   background-color #ccffcc
   color #000
 
 
+// =====================================================
+// RESPONSIVE BREAKPOINTS
+// =====================================================
 @media only screen and (min-width 1350px)
   .view-control #control
     .macros
@@ -307,7 +474,7 @@
       .axis
         .name, .position
           font-size 18pt
-          line-height 18pt
+          line-height 20pt
 
       .absolute, .offset
         display none
@@ -322,3 +489,24 @@
   .view-control #control
     .macros
       grid-template-columns repeat(4, 1fr)
+      
+    .axes
+      .axis
+        .name, .position
+          font-size 16pt
+          line-height 18pt
+
+      .actions
+        .button-text
+          display none
+          
+        // Mobile: hide inline buttons, show dropdown
+        .actions-inline
+          display none
+          
+        .actions-dropdown
+          display block
+
+  // Bottom padding for mobile browser chrome
+  .view-control
+    padding-bottom 80px
