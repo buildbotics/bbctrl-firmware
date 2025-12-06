@@ -132,7 +132,7 @@ script#view-control-template(type="text/x-template")
           th Remaining
           td(title="Total run time (days:hours:mins:secs)").
             #[span(v-if="remaining") {{remaining | time}} of]
-            {{active.time | time}}
+            {{toolpath.time || 0 | time}}
         tr(v-if="eta", title="Estimated completion time based on remaining time")
           th ETA
           td {{eta}}
