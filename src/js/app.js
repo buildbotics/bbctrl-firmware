@@ -234,8 +234,9 @@ module.exports = new Vue({
       // Always show RPM so user can watch spindle spin up in real-time
       let toolType = this.config.tool && this.config.tool['tool-type']
       if (toolType && toolType !== 'Disabled') {
-        let speed = this.state.s
-        if (speed !== undefined && !isNaN(speed)) {
+        // Backend may send 'nan' string, so use parseFloat to handle it
+        let speed = parseFloat(this.state.s)
+        if (!isNaN(speed)) {
           header += ' - Spindle: ' + Math.round(speed) + ' RPM'
         }
       }
