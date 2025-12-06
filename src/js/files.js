@@ -51,6 +51,7 @@ module.exports = {
       selected: -1,
       filename: '',
       folder: '',
+      show_locations: false
     }
   },
 
@@ -159,6 +160,31 @@ module.exports = {
     select(index)   {this.selected = index},
 
 
+    file_icon(filename) {
+      let ext = filename.split('.').pop().toLowerCase()
+      let icons = {
+        'nc': 'fa-file-code-o',
+        'ngc': 'fa-file-code-o',
+        'gcode': 'fa-file-code-o',
+        'tap': 'fa-file-code-o',
+        'txt': 'fa-file-text-o',
+        'json': 'fa-file-code-o',
+        'stl': 'fa-cube',
+        'dxf': 'fa-file-image-o',
+        'svg': 'fa-file-image-o',
+        'png': 'fa-file-image-o',
+        'jpg': 'fa-file-image-o',
+        'jpeg': 'fa-file-image-o',
+        'gif': 'fa-file-image-o',
+        'pdf': 'fa-file-pdf-o',
+        'zip': 'fa-file-archive-o',
+        'gz': 'fa-file-archive-o',
+        'tar': 'fa-file-archive-o'
+      }
+      return icons[ext] || 'fa-file-o'
+    },
+
+
     async eject(location) {return this.$api.put('usb/eject/' + location)},
 
 
@@ -264,7 +290,7 @@ module.exports = {
     },
 
 
-    // FIX #5: Invalidate selected program cache after upload
+    // Invalidate selected program cache after upload
     async upload()  {
       let filename
       let uploadedPath
@@ -273,7 +299,7 @@ module.exports = {
         multiple: this.mode != 'open',
         url: file => {
           filename = file.filename
-          uploadedPath = this.fs.path + '/' + filename
+          uploadedPath = util.join_path(this.fs.path, filename)
           return 'fs/' + uploadedPath
         },
         on_confirm: this.confirm_upload,
@@ -281,11 +307,11 @@ module.exports = {
 
       await this.reload()
       
-      // FIX #5: If we uploaded a file that matches the currently selected program,
+      // If we uploaded a file that matches the currently selected program,
       // invalidate the cache so fresh content is loaded
       if (uploadedPath && this.$root.selected_program) {
         let selectedPath = this.$root.selected_program.path
-        if (selectedPath && selectedPath == uploadedPath) {
+        if (selectedPath && selectedPath === uploadedPath) {
           this.$root.refresh_selected_program()
         }
       }
