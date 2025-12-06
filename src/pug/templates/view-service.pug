@@ -108,7 +108,6 @@ script#view-service-template(type="text/x-template")
 
       .items-list(v-if="itemsSorted.length")
         .item-card(v-for="item in itemsSorted", :class="{due: isItemDue(item)}")
-          .item-color-bar(:style="{backgroundColor: item.color}")
           .item-content
             .item-header
               .item-label {{item.label}}
@@ -143,7 +142,7 @@ script#view-service-template(type="text/x-template")
       p.empty-message(v-else)
         | No service items configured. Click "Add Item" to create one.
 
-      //- Item Editor
+      //- Item Editor (simplified - no color picker)
       .editor-panel(v-if="editingItem")
         h3 {{editingItem.id ? 'Edit' : 'Add'}} Service Item
         
@@ -162,11 +161,6 @@ script#view-service-template(type="text/x-template")
             label Interval (hours)
             input.interval-input(type="number", v-model.number="editingItem.interval", min="1",
               @input="markModified")
-          
-          .form-group.form-group-color
-            label Color
-            .color-input-wrapper
-              color-picker(:value.sync="editingItem.color", @change="markModified")
         
         .editor-actions
           bbutton(@click="cancelItemEdit", text="Cancel")

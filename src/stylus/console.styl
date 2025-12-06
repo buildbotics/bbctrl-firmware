@@ -29,41 +29,133 @@
   .toolbar
     margin-bottom 0.5em
     
-  .console-wrapper
+  .console-cards
     max-height 400px
     overflow-y auto
-    overflow-x auto
     -webkit-overflow-scrolling touch
+    display flex
+    flex-direction column
+    gap 8px
+    padding 4px
 
-  .message
-    white-space pre
+  .message-card
+    background #fff
+    border 1px solid #ddd
+    border-radius 4px
+    overflow hidden
+    
+    // Level-based left border accent
+    &.log-error, &.log-critical
+      border-left 4px solid #d9534f
+      
+    &.log-warning
+      border-left 4px solid #f0ad4e
+      
+    &.log-info
+      border-left 4px solid #5bc0de
+      
+    &.log-debug
+      border-left 4px solid #999
 
-  table
-    width 100%
-    min-width 500px
-    margin 0.5em 0
-    border-collapse collapse
+    .card-header
+      display flex
+      justify-content space-between
+      align-items center
+      padding 6px 10px
+      background #f8f8f8
+      border-bottom 1px solid #eee
+      font-size 12px
+      
+      .card-meta
+        display flex
+        align-items center
+        gap 10px
+        flex-wrap wrap
+        
+        .level
+          font-weight 600
+          text-transform uppercase
+          padding 2px 6px
+          border-radius 3px
+          font-size 11px
+          
+          &.error, &.critical
+            background #f2dede
+            color #a94442
+            
+          &.warning
+            background #fcf8e3
+            color #8a6d3b
+            
+          &.info
+            background #d9edf7
+            color #31708f
+            
+          &.debug
+            background #f5f5f5
+            color #666
+        
+        .source
+          color #666
+          
+        .location
+          color #999
+          font-family monospace
+          font-size 11px
+          
+        .repeat
+          background #e0e0e0
+          color #666
+          padding 2px 6px
+          border-radius 10px
+          font-size 11px
+          font-weight 600
+      
+      .card-actions
+        .copy-btn
+          background none
+          border none
+          color #999
+          cursor pointer
+          padding 4px 8px
+          border-radius 3px
+          
+          &:hover
+            background #e8e8e8
+            color #333
 
-    td, th
-      border 1px solid #ddd
-      padding 2px
+    .card-body
+      padding 10px
+      
+      .message-text
+        white-space pre-wrap
+        word-wrap break-word
+        font-family monospace
+        font-size 13px
+        line-height 1.4
+        color #333
 
-      &:first-child
-        border-left 0
-
-      &:last-child
-        border-right 0
-
-    tr
-      > td
-        margin 0 0.125em
-        background-color #fff
-
-// Mobile - make console table scrollable and reduce height
+// Mobile - reduce card size
 @media only screen and (max-width 600px)
   .console
-    .console-wrapper
+    .console-cards
       max-height 300px
       
-    table
-      font-size 0.85em
+    .message-card
+      .card-header
+        flex-direction column
+        align-items flex-start
+        gap 6px
+        
+        .card-meta
+          width 100%
+          
+        .card-actions
+          align-self flex-end
+          margin-top -24px
+          
+      .card-body
+        padding 8px
+        
+        .message-text
+          font-size 12px

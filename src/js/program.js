@@ -35,11 +35,35 @@ class Program {
     this.path = path
     this.filename = util.display_path(path)
     this.progress = 0
+    // FIX: Initialize time for Vue 1.x reactivity
+    this.time = 0
+    // FIX: Track when program was created/refreshed for cache busting
+    this.timestamp = Date.now()
+  }
+
+
+  // FIX: Invalidate cached data so file is re-fetched
+  invalidate() {
+    this._load = null
+    this._toolpath = null
+    this._positions = null
+    this._speeds = null
+    this._view = null
+    this.progress = 0
+    this.time = 0
+    this.timestamp = Date.now()
+  }
+
+
+  // FIX: Add cache-busting parameter to prevent browser caching
+  _cacheBust(url) {
+    let separator = url.includes('?') ? '&' : '?'
+    return url + separator + '_t=' + this.timestamp
   }
 
 
   async download_array(url) {
-    let data = await this.$api.get(url, {type: 'arraybuffer'})
+    let data = await this.$api.get(this._cacheBust(url), {type: 'arraybuffer'})
     return new Float32Array(data)
   }
 
@@ -76,7 +100,7 @@ class Program {
 
 
   async _load_toolpath() {
-    let toolpath = await this.$api.get('path/' + this.path)
+    let toolpath = await this.$api.get(this._cacheBust('path/' + this.path))
 
     if (toolpath.progress == undefined) {
       this.progress = 1
@@ -97,8 +121,11 @@ class Program {
 
 
   load() {
-    if (!this._load)
-      this._load = this.$api.get('fs/' + this.path, {type: 'text'})
+    // Cache the promise so multiple callers get the same result
+    // Use invalidate() to clear cache when file is re-uploaded
+    if (!this._load) {
+      this._load = this.$api.get(this._cacheBust('fs/' + this.path), {type: 'text'})
+    }
     return this._load
   }
 }

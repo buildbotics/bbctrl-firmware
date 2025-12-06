@@ -31,18 +31,16 @@ script#console-template(type="text/x-template")
       bbutton(title="Clear console.", @click="clear", icon="trash",
         text="Clear")
 
-    .console-wrapper
-      table
-        tr
-          th Level
-          th Source
-          th Location
-          th Repeat
-          th Message
-
-        tr(v-for="msg in messages", class="log-{{msg.level || 'info'}}")
-          td {{msg.level  || 'info'}}
-          td {{msg.source || ''}}
-          td {{msg.where  || ''}}
-          td {{msg.repeat}}
-          td.message {{msg.msg}}
+    .console-cards
+      .message-card(v-for="msg in messages", :class="'log-' + (msg.level || 'info')")
+        .card-header
+          .card-meta
+            span.level(:class="msg.level || 'info'") {{msg.level || 'info'}}
+            span.source(v-if="msg.source") {{msg.source}}
+            span.location(v-if="msg.where") {{msg.where}}
+            span.repeat(v-if="msg.repeat > 1") ×{{msg.repeat}}
+          .card-actions
+            button.copy-btn(@click="copyMessage(msg)", title="Copy message")
+              .fa.fa-copy
+        .card-body
+          .message-text {{msg.msg}}

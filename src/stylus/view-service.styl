@@ -154,7 +154,7 @@
       margin: 0
 
 
-  // Items list
+  // Items list - simplified without user colors
   .items-list
     .item-card
       background: white
@@ -162,17 +162,13 @@
       border-radius: 4px
       margin-bottom: 12px
       overflow: hidden
+      // Default gray top bar
+      border-top: 4px solid #e6e6e6
 
       &.due
+        // Red border when due - clear visual indicator
         border-color: #ff5722
-
-        .item-color-bar
-          background: #ff5722 !important
-
-      .item-color-bar
-        width: 100%
-        height: 6px
-        flex-shrink: 0
+        border-top-color: #ff5722
 
       .item-content
         padding: 15px
@@ -261,7 +257,7 @@
         border-top: 1px solid #eee
 
 
-  // Editor panel
+  // Editor panel - simplified without color picker
   .editor-panel
     background: #f5f5f5
     border: 1px solid #ddd
@@ -314,18 +310,6 @@
 
       select
         background: white
-
-    .form-group-color
-      flex: 0 0 auto
-      
-      .color-input-wrapper
-        display: flex
-        align-items: center
-        
-        // Make color-picker inputs consistent height
-        input
-          height: 38px
-          padding: 8px 12px
 
     .editor-actions
       display: flex
