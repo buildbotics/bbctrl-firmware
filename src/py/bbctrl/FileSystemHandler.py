@@ -58,6 +58,9 @@ class FileSystemHandler(RequestHandler):
                 'Cannot delete files in the macros folder. '
                 'Remove the macro from Settings to delete its file.')
         
+        # Invalidate any cached plan for deleted file
+        self.get_ctrl().preplanner.invalidate(path)
+        
         self.get_fs().delete(path)
 
 
@@ -75,6 +78,10 @@ class FileSystemHandler(RequestHandler):
                 self.get_fs().mkdir(os.path.dirname(path))
                 file = self.request.files['file'][0]
                 self.get_fs().write(path, file['body'])
+                
+                # FIX: Invalidate cached plan when file is uploaded/overwritten
+                # This ensures the preplanner recomputes the toolpath for new content
+                self.get_ctrl().preplanner.invalidate(path)
 
             else: self.get_fs().mkdir(clean_path(path))
 
@@ -82,6 +89,9 @@ class FileSystemHandler(RequestHandler):
             file = self.request.files['gcode'][0]
             path = 'Home/' + clean_path(os.path.basename(file['filename']))
             self.get_fs().write(path, file['body'])
+            
+            # FIX: Invalidate cached plan for legacy upload path too
+            self.get_ctrl().preplanner.invalidate(path)
 
         os.sync()
 
