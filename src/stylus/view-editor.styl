@@ -28,7 +28,7 @@
 // FIX: Selector was ".view-editor-page .content" but HTML structure is
 // ".content.view-editor" (two classes on same element, not nested)
 .content.view-editor
-  height calc(100vh - 120px)
+  height calc(100vh - 90px)
   overflow hidden
 
 .view-editor
@@ -50,3 +50,4 @@
   .CodeMirror
     flex 1
     min-height 0  // Required for flex children to respect parent constraints
+    height auto !important
