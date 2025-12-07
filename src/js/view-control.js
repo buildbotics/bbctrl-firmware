@@ -48,8 +48,6 @@ module.exports = {
 
   data() {
     return {
-      mach_units: 'METRIC',
-      distance_mode: 'ABSOLUTE',
       mdi: '',
       history: [],
       jog_step: cookie.get_bool('jog-step'),
@@ -69,31 +67,9 @@ module.exports = {
 
 
   watch: {
-    'state.imperial': {
-      handler(imperial) {this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'},
-      immediate: true
-    },
-
-
-    'state.distance_mode': {
-      handler(mode) {
-        // 90 = G90 (absolute), 91 = G91 (incremental)
-        this.distance_mode = (mode == 91) ? 'INCREMENTAL' : 'ABSOLUTE'
-      },
-      immediate: true
-    },
-
-
-    mach_units(units) {
-      if ((units == 'METRIC') != this.metric)
-        this.send(units == 'METRIC' ? 'G21' : 'G20')
-    },
-
-
     'state.line'() {
       if (this.mach_state != 'HOMING') this.highlight_code()
     },
-
 
     'active.path'() {this.load()},
     jog_step() {cookie.set_bool('jog-step', this.jog_step)},
@@ -108,6 +84,20 @@ module.exports = {
 
 
     metric() {return !this.state.imperial},
+
+
+    // Units display with G-code reference
+    mach_units() {
+      return this.state.imperial ? 'Imperial (G20)' : 'Metric (G21)'
+    },
+
+
+    // Distance mode display with G-code reference
+    // Backend broadcasts state.distance_mode: 90 = G90, 91 = G91
+    distance_mode() {
+      let mode = this.state.distance_mode
+      return (mode == 91) ? 'Incremental (G91)' : 'Absolute (G90)'
+    },
 
 
     mach_state() {
@@ -289,15 +279,11 @@ module.exports = {
 
 
     goto(hash) {window.location.hash = hash},
-    send(msg) {
-      // Track distance mode from G-code commands
-      if (/\bG90\b/i.test(msg) && !/G90\.1/i.test(msg)) {
-        this.distance_mode = 'ABSOLUTE'
-      } else if (/\bG91\b/i.test(msg) && !/G91\.1/i.test(msg)) {
-        this.distance_mode = 'INCREMENTAL'
-      }
-      this.$dispatch('send', msg)
-    },
+
+    // Send G-code to backend
+    // Distance mode (G90/G91) is tracked by CAMotics planner and broadcast via state
+    send(msg) {this.$dispatch('send', msg)},
+
     on_scroll(cm, e) {e.preventDefault()},
     
     

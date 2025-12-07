@@ -93,11 +93,11 @@ script#view-control-template(type="text/x-template")
           td.message(:class="{attention: highlight_state}")
             | {{message.replace(/^#/, '')}}
 
-        tr(title="Active machine units")
+        tr(title="Active machine units: G20=Imperial (inches), G21=Metric (mm)")
           th Units
-          td.mach_units {{mach_units}}
+          td {{mach_units}}
 
-        tr(title="Distance mode: G90=Absolute, G91=Incremental")
+        tr(title="Distance mode: G90=Absolute positioning, G91=Incremental positioning")
           th Distance
           td {{distance_mode}}
 
