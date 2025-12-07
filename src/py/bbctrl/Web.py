@@ -50,7 +50,9 @@ from .MonitorTemp import *
 from .AuthHandler import *
 from .FileSystemHandler import *
 from .Ctrl import *
+from .ServiceHandler import *
 from udevevent import UDevEvent
+
 
 __all__ = ['Web']
 
@@ -319,6 +321,35 @@ class HomeHandler(APIHandler):
 class StartHandler(APIHandler):
     def put(self, path):
         path = self.get_ctrl().fs.validate_path(path)
+        
+        # Pre-flight check: Verify position reference for required axes
+        state = self.get_ctrl().state
+        config = self.get_ctrl().config.load()
+        motors_config = config.get('motors', [])
+        
+        for axis in 'xyzabc':
+            motor = state.find_motor(axis)
+            if motor is None:
+                continue
+            if not state.motor_enabled(motor):
+                continue
+            
+            # Check if reference is required for this motor
+            # Values: "Auto", "Yes", "No" - Auto means XYZ=Yes, ABC=No
+            motor_config = motors_config[motor] if motor < len(motors_config) else {}
+            ref_setting = motor_config.get('reference-required', 'Auto')
+            
+            if ref_setting == 'Auto':
+                # Default based on axis - XYZ require reference, ABC don't
+                required = axis.lower() in 'xyz'
+            else:
+                required = ref_setting == 'Yes'
+            
+            if required and not state.is_axis_referenced(axis):
+                raise HTTPError(400, 
+                    'Axis %s requires position reference before running program. '
+                    'Please home or zero the axis first.' % axis.upper())
+        
         self.get_ctrl().mach.start(path)
 
 
@@ -359,6 +390,8 @@ class StepHandler(APIHandler):
 class PositionHandler(APIHandler):
     def put(self, axis):
         self.get_ctrl().mach.set_position(axis, float(self.json['position']))
+        # Mark axis as having position reference
+        self.get_ctrl().state.set_axis_referenced(axis.lower())
 
 
 class OverrideFeedHandler(APIHandler):
@@ -531,6 +564,16 @@ class Web(tornado.web.Application):
             (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/file',                      FileSystemHandler), # Compat
             (r'/api/macro/(\d+)',               MacroHandler),
+            (r'/api/service',                   ServiceHandler),
+            (r'/api/service/hours',             ServiceHoursHandler),
+            (r'/api/service/items',             ServiceItemHandler),
+            (r'/api/service/items/([0-9]+)',    ServiceItemHandler),
+            (r'/api/service/complete/([0-9]+)', ServiceCompleteHandler),
+            (r'/api/service/manual/([0-9]+)',   ServiceManualEntryHandler),
+            (r'/api/service/notes',             ServiceNoteHandler),
+            (r'/api/service/notes/([0-9]+)',    ServiceNoteHandler),
+            (r'/api/service/export',            ServiceExportHandler),
+            (r'/api/service/due',               ServiceDueHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),
             (r'/api/(speeds)/(.*)',             PathHandler),

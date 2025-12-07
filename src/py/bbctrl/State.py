@@ -52,6 +52,10 @@ class State(object):
         self._running_macro = False
         self._previous_program = None
 
+        # Service tracking state
+        self._service_update_interval = 10  # Update service every 10 seconds
+        self._last_service_update = time.time()
+
         # Defaults
         self.vars = {
             'line': -1,
@@ -111,8 +115,10 @@ class State(object):
         # Prevents unexpected incremental moves after power cycle
         self.set('distance_mode', 90)
 
-        # Unhome all motors
-        for i in range(4): self.set('%dhomed' % i, 0)
+        # Unhome all motors and clear position references
+        for i in range(4):
+            self.set('%dhomed' % i, 0)
+            self.set('%dreferenced' % i, 0)
 
         # Zero offsets and positions
         for axis in 'xyzabc':
@@ -186,6 +192,9 @@ class State(object):
         self.changes = {}
         self.timeout = None
 
+        # Update service tracking periodically
+        self.update_service()
+
 
     def resolve(self, name):
         # Resolve axis prefixes to motor numbers
@@ -207,12 +216,66 @@ class State(object):
             self.vars[name] = value
             self.changes[name] = value
 
+            # Mirror homed state to referenced
+            # When axis becomes homed, it also has a position reference
+            if name.endswith('homed') and len(name) == 6 and name[0].isdigit():
+                motor = int(name[0])
+                if value:  # If becoming homed
+                    ref_name = '%dreferenced' % motor
+                    if not ref_name in self.vars or self.vars[ref_name] != 1:
+                        self.vars[ref_name] = 1
+                        self.changes[ref_name] = 1
+
             # Trigger listener notify
             if self.timeout is None:
                 self.timeout = self.ctrl.ioloop.call_later(0.25, self._notify)
 
 
+    def update_service(self):
+        """Called periodically to update service hour tracking"""
+        now = time.time()
+        if now - self._last_service_update >= self._service_update_interval:
+            try:
+                self.ctrl.service.update()
+                # Push service state to websocket clients
+                hours = self.ctrl.service.get_all_hours()
+                self.set('service_power_hours', hours.get('power_hours', 0))
+                self.set('service_motion_hours', hours.get('motion_hours', 0))
+                self.set('service_due_count', len(self.ctrl.service.get_due_items()))
+            except Exception as e:
+                self.log.error('Failed to update service: %s' % e)
+            self._last_service_update = now
+
+
+    def program_started(self):
+        """Called when a program starts running"""
+        try:
+            self.ctrl.service.motion_started()
+        except Exception as e:
+            self.log.error('Failed to start motion tracking: %s' % e)
+
+
+    def program_stopped(self):
+        """Called when a program stops (complete, pause, stop)"""
+        try:
+            self.ctrl.service.motion_stopped()
+        except Exception as e:
+            self.log.error('Failed to stop motion tracking: %s' % e)
+
+
     def update(self, update):
+        # Track state changes for motion timing
+        if 'xx' in update:
+            old_state = self.get('xx', '')
+            new_state = update['xx']
+            
+            # Detect transition to RUNNING
+            if new_state == 'RUNNING' and old_state != 'RUNNING':
+                self.program_started()
+            # Detect transition from RUNNING to anything else
+            elif old_state == 'RUNNING' and new_state != 'RUNNING':
+                self.program_stopped()
+        
         for name, value in update.items():
             self.set(name, value)
 
@@ -250,6 +313,21 @@ class State(object):
                         axis_vars[axis + '_' + name[1:]] = value
 
         vars.update(axis_vars)
+
+        # Add service hours to snapshot
+        try:
+            hours = self.ctrl.service.get_all_hours()
+            vars['service_power_hours'] = hours.get('power_hours', 0)
+            vars['service_motion_hours'] = hours.get('motion_hours', 0)
+            vars['service_due_count'] = len(self.ctrl.service.get_due_items())
+        except Exception as e:
+            self.log.error('Failed to get service hours: %s' % e)
+
+        # Add camera availability to snapshot
+        try:
+            vars['camera_available'] = self.ctrl.camera is not None
+        except Exception as e:
+            vars['camera_available'] = False
 
         return vars
 
@@ -320,6 +398,21 @@ class State(object):
 
 
     def is_axis_homed(self, axis): return self.get('%s_homed' % axis, 0)
+
+
+    def is_axis_referenced(self, axis):
+        """Check if axis has a position reference (from homing or zeroing)."""
+        motor = self.find_motor(axis)
+        if motor is None:
+            return False
+        return self.get('%dreferenced' % motor, 0) == 1
+
+
+    def set_axis_referenced(self, axis, referenced=True):
+        """Mark an axis as having a position reference."""
+        motor = self.find_motor(axis)
+        if motor is not None:
+            self.set('%dreferenced' % motor, 1 if referenced else 0)
 
 
     def is_axis_enabled(self, axis):

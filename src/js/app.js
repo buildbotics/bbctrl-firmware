@@ -507,10 +507,15 @@ module.exports = new Vue({
     },
     
     
-    // Refresh current program to reload file content
-    refresh_selected_program() {
+    // Reload current program - creates new instance to force fresh fetch
+    // Used after file upload to ensure new content is displayed
+    reload_selected_program() {
       if (this.selected_program && this.selected_program.path) {
-        this.selected_program.invalidate()
+        let path = this.selected_program.path
+        // Create new Program instance - guarantees fresh data fetch
+        this.selected_program = new Program(this.$api, path)
+        // Broadcast to trigger reload in view-control
+        this.$broadcast('program-reloaded')
       }
     },
 

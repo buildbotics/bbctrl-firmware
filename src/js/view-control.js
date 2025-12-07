@@ -254,6 +254,12 @@ module.exports = {
     // FIX #1: Handle program-cleared event to clear textarea
     'program-cleared'() {
       this.clear_display()
+    },
+    
+    
+    // FIX #5: Handle program-reloaded event to reload file content
+    'program-reloaded'() {
+      this.load()
     }
   },
 
