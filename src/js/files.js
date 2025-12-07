@@ -312,7 +312,7 @@ module.exports = {
       if (uploadedPath && this.$root.selected_program) {
         let selectedPath = this.$root.selected_program.path
         if (selectedPath && selectedPath === uploadedPath) {
-          this.$root.refresh_selected_program()
+          this.$root.reload_selected_program()
         }
       }
       
