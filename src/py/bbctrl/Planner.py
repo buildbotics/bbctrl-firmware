@@ -320,6 +320,15 @@ class Planner():
         self.move_time = 0
         self.plan_time = 0
         self.current_plan_time = 0
+        
+        
+    def _update_modal_state(self):
+        """Update frontend with planner's modal state (units, distance mode, etc.)"""
+        try:
+            modal = self.planner.get_modal_state()
+            self.ctrl.state.set('distance_mode', modal.get('distance_mode', 90))
+        except Exception as e:
+            self.log.warning('Failed to get modal state: %s' % e)    
 
 
     def close(self):
@@ -373,6 +382,7 @@ class Planner():
         else: self.planner.load(self.ctrl.fs.realpath(path), config)
 
         self.reset_times()
+        self._update_modal_state()
 
 
     def stop(self):
