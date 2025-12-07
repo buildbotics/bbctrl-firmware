@@ -25,17 +25,8 @@
 
 \******************************************************************************/
 
-// FIX: Selector was ".view-editor-page .content" but HTML structure is
-// ".content.view-editor" (two classes on same element, not nested)
-.content.view-editor
-  height calc(100vh - 90px)
-  overflow hidden
-
 .view-editor
   margin-bottom 0
-  height 100%
-  display flex
-  flex-direction column
 
   .navbar
     flex-shrink 0
@@ -45,8 +36,7 @@
       text-align right
       padding 5px 15px
 
-  // CodeMirror needs a fixed/constrained height to enable virtual scrolling
-  // Without this, it renders ALL lines which freezes UI on large files
+  // FIX: Use fixed height for CodeMirror - simpler and more predictable
+  // 700px provides ~35 lines of visible code at standard font size
   .CodeMirror
-    flex 1
-    min-height 0  // Required for flex children to respect parent constraints
+    height 700px
