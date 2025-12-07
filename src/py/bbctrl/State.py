@@ -218,13 +218,18 @@ class State(object):
 
             # Mirror homed state to referenced
             # When axis becomes homed, it also has a position reference
+            # When axis becomes unhomed, position reference is lost
             if name.endswith('homed') and len(name) == 6 and name[0].isdigit():
                 motor = int(name[0])
-                if value:  # If becoming homed
-                    ref_name = '%dreferenced' % motor
+                ref_name = '%dreferenced' % motor
+                if value:  # Becoming homed - set referenced
                     if not ref_name in self.vars or self.vars[ref_name] != 1:
                         self.vars[ref_name] = 1
                         self.changes[ref_name] = 1
+                else:  # Becoming unhomed - clear referenced
+                    if ref_name in self.vars and self.vars[ref_name] != 0:
+                        self.vars[ref_name] = 0
+                        self.changes[ref_name] = 0
 
             # Trigger listener notify
             if self.timeout is None:

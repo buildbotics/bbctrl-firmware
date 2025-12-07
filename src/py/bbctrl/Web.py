@@ -314,8 +314,12 @@ class HomeHandler(APIHandler):
             position = self.require_arg('position')
             self.get_ctrl().mach.home(axis, position)
 
-        elif action == '/clear': self.get_ctrl().mach.unhome(axis)
-        else: self.get_ctrl().mach.home(axis)
+        elif action == '/clear':
+            # Unhome the axis - referenced flag cleared via State.set() mirroring
+            self.get_ctrl().mach.unhome(axis)
+
+        else:
+            self.get_ctrl().mach.home(axis)
 
 
 class StartHandler(APIHandler):
@@ -326,6 +330,9 @@ class StartHandler(APIHandler):
         state = self.get_ctrl().state
         config = self.get_ctrl().config.load()
         motors_config = config.get('motors', [])
+        
+        # Collect ALL unreferenced axes first (don't fail on first one)
+        unreferenced_axes = []
         
         for axis in 'xyzabc':
             motor = state.find_motor(axis)
@@ -346,9 +353,27 @@ class StartHandler(APIHandler):
                 required = ref_setting == 'Yes'
             
             if required and not state.is_axis_referenced(axis):
-                raise HTTPError(400, 
-                    'Axis %s requires position reference before running program. '
-                    'Please home or zero the axis first.' % axis.upper())
+                unreferenced_axes.append(axis.upper())
+        
+        # Generate user-friendly error message if any axes need attention
+        if unreferenced_axes:
+            axis_list = ', '.join(unreferenced_axes)
+            
+            if len(unreferenced_axes) == 1:
+                msg = ('Cannot start: %s axis position is unknown. '
+                       'Please home or zero the %s axis before running.' 
+                       % (axis_list, axis_list))
+            elif len(unreferenced_axes) == 2:
+                msg = ('Cannot start: %s axis positions are unknown. '
+                       'Please home or zero these axes before running.'
+                       % ' and '.join(unreferenced_axes))
+            else:
+                # 3 or more axes
+                msg = ('Cannot start: %s axis positions are unknown. '
+                       'Please home or zero all axes before running.'
+                       % axis_list)
+            
+            raise HTTPError(400, msg)
         
         self.get_ctrl().mach.start(path)
 
