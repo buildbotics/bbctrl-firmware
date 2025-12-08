@@ -1,34 +1,34 @@
 /******************************************************************************\
- *                                                                            *
- *                 This file is part of the Buildbotics firmware.             *
- *                                                                            *
- *       Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     *
- *                                                                            *
- *        This Source describes Open Hardware and is licensed under the       *
- *                               CERN-OHL-S v2.                               *
- *                                                                            *
- *        You may redistribute and modify this Source and make products       *
- *   using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). *
- *          This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         *
- *   WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS *
- *    FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   *
- *                                 conditions.                                *
- *                                                                            *
- *               Source location: https://github.com/buildbotics              *
- *                                                                            *
- *     As per CERN-OHL-S v2 section 4, should You produce hardware based on   *
- *   these sources, You must maintain the Source Location clearly visible on  *
- *   the external case of the CNC Controller or other product you make using  *
- *                                 this Source.                               *
- *                                                                            *
- *               For more information, email info@buildbotics.com             *
- *                                                                            *
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
 \******************************************************************************/
 
 
 class API {
-  constructor(url) {
-    this.url = url
+  constructor(base = '/api/') {
+    this.base = base
     this.error_handler = console.error
   }
 
@@ -97,8 +97,15 @@ class API {
         })
       }
 
+      // URL
+      if (!path.includes('://')) path = this.base + path
+      let url = new URL(path, location.href)
+
+      // Params
+      if (conf.params) url.search = new URLSearchParams(conf.params).toString()
+
       // Open
-      xhr.open(method, this.url + path)
+      xhr.open(method, url)
 
       // JSON data
       if (data && !(data instanceof FormData)) {
@@ -127,11 +134,10 @@ class API {
   }
 
 
-  get(path, conf)       {return this.api('GET',    '/api/' + path, null, conf)}
-  put(path, data, conf) {return this.api('PUT',    '/api/' + path, data, conf)}
-  post(path, data, conf){return this.api('POST',   '/api/' + path, data, conf)}
-  delete(path, conf)    {return this.api('DELETE', '/api/' + path, null, conf)}
-  upload(path, data, conf) {return this.api('PUT', '/api/' + path, data, conf)}
+  async get(path, conf) {return this.api('GET', path, undefined, conf)}
+  async put(path, data, conf) {return this.api('PUT', path, data, conf)}
+  async post(path, data, conf) {return this.api('POST', path, data, conf)}
+  async delete(path, conf) {return this.api('DELETE', path, undefined, conf)}
 }
 
 
