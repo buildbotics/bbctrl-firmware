@@ -437,7 +437,7 @@ module.exports = {
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
         this.unpause()
 
-      else this.start()
+      else this.start().catch(() => {}) // Error already shown by API handler
     },
 
 
