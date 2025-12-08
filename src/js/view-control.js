@@ -324,6 +324,14 @@ module.exports = {
           path = 'Home/' + path
         }
         
+        // SAFETY: Check position reference BEFORE showing confirmation
+        // Don't ask user to confirm something they can't do anyway
+        let unreferenced = this._get_unreferenced_axes()
+        if (unreferenced.length) {
+          this.$root.error_dialog(this._format_reference_error(unreferenced))
+          return
+        }
+        
         // Check if confirmation is required (default: true for safety)
         let requiresConfirm = macroConfig.confirm !== false
         
@@ -345,7 +353,7 @@ module.exports = {
         }
         
         // Call the macro API endpoint (uses 1-based index)
-        return this.$api.put('macro/' + (originalIndex + 1))
+        return this.$api.put('macro/' + (originalIndex + 1)).catch(() => {})
         
       } catch (e) {
         this.$root.error_dialog('Failed to run macro:\n' + e)
@@ -473,6 +481,52 @@ module.exports = {
       let data = {}
       data[axis + 'pl'] = x
       this.send(JSON.stringify(data))
+    },
+
+
+    // SAFETY: Check which axes lack position reference
+    _get_unreferenced_axes() {
+      let unreferenced = []
+      let motors = this.config.motors || []
+      
+      for (let axis of 'xyzabc') {
+        // Find motor for this axis
+        let motor = -1
+        for (let i = 0; i < motors.length; i++) {
+          if (motors[i].axis && motors[i].axis.toLowerCase() == axis) {
+            motor = i
+            break
+          }
+        }
+        
+        if (motor == -1) continue
+        if (!motors[motor].enabled) continue
+        
+        // Check if reference is required
+        let refSetting = motors[motor]['reference-required'] || 'Auto'
+        let required = (refSetting == 'Auto') ? 'xyz'.includes(axis) : (refSetting == 'Yes')
+        
+        if (required && !this.state[motor + 'referenced']) {
+          unreferenced.push(axis.toUpperCase())
+        }
+      }
+      
+      return unreferenced
+    },
+
+
+    // Format user-friendly error message for unreferenced axes
+    _format_reference_error(axes) {
+      if (axes.length == 1) {
+        return 'Cannot start: ' + axes[0] + ' axis position is unknown. ' +
+               'Please home or zero the ' + axes[0] + ' axis before running.'
+      } else if (axes.length == 2) {
+        return 'Cannot start: ' + axes.join(' and ') + ' axis positions are unknown. ' +
+               'Please home or zero these axes before running.'
+      } else {
+        return 'Cannot start: ' + axes.join(', ') + ' axis positions are unknown. ' +
+               'Please home or zero all axes before running.'
+      }
     }
   },
 
