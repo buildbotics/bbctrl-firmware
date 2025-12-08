@@ -41,17 +41,19 @@ class API {
   error(path, xhr) {
     let msg
 
-    // Try to get message from JSON response
+    // Try to get message from JSON response (responseType is 'json')
     if (xhr.responseType == 'json' && xhr.response && xhr.response.message)
       msg = xhr.response.message
 
-    // For non-json responseType, try to parse responseText as JSON
-    else if (xhr.responseText) {
-      try {
-        let response = JSON.parse(xhr.responseText)
-        if (response && response.message) msg = response.message
-      } catch (e) {
-        // Not valid JSON, fall through
+    // For empty or text responseType, try to parse responseText as JSON
+    else if (xhr.responseType == '' || xhr.responseType == 'text') {
+      if (xhr.responseText) {
+        try {
+          let response = JSON.parse(xhr.responseText)
+          if (response && response.message) msg = response.message
+        } catch (e) {
+          // Not valid JSON, fall through
+        }
       }
     }
 
