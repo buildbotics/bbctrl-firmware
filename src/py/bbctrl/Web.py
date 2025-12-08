@@ -57,6 +57,54 @@ from udevevent import UDevEvent
 __all__ = ['Web']
 
 
+def _check_position_reference(ctrl):
+    """Check if all required axes have position reference.
+    Returns list of unreferenced axis names, or empty list if all OK."""
+    state = ctrl.state
+    config = ctrl.config.load()
+    motors_config = config.get('motors', [])
+    
+    unreferenced_axes = []
+    
+    for axis in 'xyzabc':
+        motor = state.find_motor(axis)
+        if motor is None:
+            continue
+        if not state.motor_enabled(motor):
+            continue
+        
+        motor_config = motors_config[motor] if motor < len(motors_config) else {}
+        ref_setting = motor_config.get('reference-required', 'Auto')
+        
+        if ref_setting == 'Auto':
+            required = axis.lower() in 'xyz'
+        else:
+            required = ref_setting == 'Yes'
+        
+        if required and not state.is_axis_referenced(axis):
+            unreferenced_axes.append(axis.upper())
+    
+    return unreferenced_axes
+
+
+def _format_reference_error(unreferenced_axes):
+    """Format user-friendly error message for unreferenced axes."""
+    axis_list = ', '.join(unreferenced_axes)
+    
+    if len(unreferenced_axes) == 1:
+        return ('Cannot start: %s axis position is unknown. '
+               'Please home or zero the %s axis before running.'
+               % (axis_list, axis_list))
+    elif len(unreferenced_axes) == 2:
+        return ('Cannot start: %s axis positions are unknown. '
+               'Please home or zero these axes before running.'
+               % ' and '.join(unreferenced_axes))
+    else:
+        return ('Cannot start: %s axis positions are unknown. '
+               'Please home or zero all axes before running.'
+               % axis_list)
+
+
 def upgrade_command(ctrl, cmd):
     ctrl.lcd.goodbye('Upgrading firmware')
     subprocess.Popen(['systemd-run', '--unit=bbctrl-update', '--scope',
@@ -256,6 +304,12 @@ class MacroHandler(APIHandler):
         if not ctrl.fs.exists(path):
             raise HTTPError(404, 'Macro file not found')
 
+        # SAFETY: Same position reference check as StartHandler
+        # Macros can move the machine just like programs
+        unreferenced = _check_position_reference(ctrl)
+        if unreferenced:
+            raise HTTPError(400, _format_reference_error(unreferenced))
+
         # FIX: Mark that we're starting a macro so the UI can restore
         # the previous program when the macro completes
         ctrl.state.start_macro()
@@ -324,58 +378,15 @@ class HomeHandler(APIHandler):
 
 class StartHandler(APIHandler):
     def put(self, path):
-        path = self.get_ctrl().fs.validate_path(path)
+        ctrl = self.get_ctrl()
+        path = ctrl.fs.validate_path(path)
         
         # Pre-flight check: Verify position reference for required axes
-        state = self.get_ctrl().state
-        config = self.get_ctrl().config.load()
-        motors_config = config.get('motors', [])
+        unreferenced = _check_position_reference(ctrl)
+        if unreferenced:
+            raise HTTPError(400, _format_reference_error(unreferenced))
         
-        # Collect ALL unreferenced axes first (don't fail on first one)
-        unreferenced_axes = []
-        
-        for axis in 'xyzabc':
-            motor = state.find_motor(axis)
-            if motor is None:
-                continue
-            if not state.motor_enabled(motor):
-                continue
-            
-            # Check if reference is required for this motor
-            # Values: "Auto", "Yes", "No" - Auto means XYZ=Yes, ABC=No
-            motor_config = motors_config[motor] if motor < len(motors_config) else {}
-            ref_setting = motor_config.get('reference-required', 'Auto')
-            
-            if ref_setting == 'Auto':
-                # Default based on axis - XYZ require reference, ABC don't
-                required = axis.lower() in 'xyz'
-            else:
-                required = ref_setting == 'Yes'
-            
-            if required and not state.is_axis_referenced(axis):
-                unreferenced_axes.append(axis.upper())
-        
-        # Generate user-friendly error message if any axes need attention
-        if unreferenced_axes:
-            axis_list = ', '.join(unreferenced_axes)
-            
-            if len(unreferenced_axes) == 1:
-                msg = ('Cannot start: %s axis position is unknown. '
-                       'Please home or zero the %s axis before running.' 
-                       % (axis_list, axis_list))
-            elif len(unreferenced_axes) == 2:
-                msg = ('Cannot start: %s axis positions are unknown. '
-                       'Please home or zero these axes before running.'
-                       % ' and '.join(unreferenced_axes))
-            else:
-                # 3 or more axes
-                msg = ('Cannot start: %s axis positions are unknown. '
-                       'Please home or zero all axes before running.'
-                       % axis_list)
-            
-            raise HTTPError(400, msg)
-        
-        self.get_ctrl().mach.start(path)
+        ctrl.mach.start(path)
 
 
 class ActivateHandler(APIHandler):
