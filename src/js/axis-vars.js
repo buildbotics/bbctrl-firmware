@@ -111,6 +111,7 @@ module.exports = {
       let enabled    = typeof motor.enabled != 'undefined' && motor.enabled
       let homingMode = motor['homing-mode']
       let homed      = this.state[motor_id + 'homed']
+      let referenced = this.state[motor_id + 'referenced']
       let min        = this.state[motor_id + 'tn']
       let max        = this.state[motor_id + 'tm']
       let dim        = max - min
@@ -118,9 +119,14 @@ module.exports = {
       let pathMin    = bounds ? bounds.min[axis] : 0
       let pathMax    = bounds ? bounds.max[axis] : 0
       let pathDim    = pathMax - pathMin
-      let klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis
+      let klass      = 'axis-' + axis
       let state      = 'UNHOMED'
       let icon       = 'question-circle'
+
+      // Determine base state class
+      if (homed) klass += ' homed'
+      else if (referenced) klass += ' warn'
+      else klass += ' unhomed'
       let fault      = this.state[motor_id + 'df'] & 0x1f
       let shutdown   = this.state.power_shutdown
       let title
@@ -138,11 +144,19 @@ module.exports = {
       } else if (homed) {
         state = 'HOMED'
         icon = 'check-circle'
+
+      } else if (referenced) {
+        state = 'ZEROED'
+        icon = 'exclamation-triangle'
       }
 
       switch (state) {
       case 'UNHOMED': title = 'Click the home button to home axis.'; break
-      case 'HOMED': title = 'Axis successfuly homed.'; break
+      case 'HOMED': title = 'Axis successfully homed.'; break
+      case 'ZEROED': 
+        title = 'Position set manually. Soft limits not active - ' +
+          'verify program stays within machine bounds.'
+        break
 
       case 'NO FIT':
         title = 'Tool path dimensions exceed axis dimensions by ' +
@@ -178,6 +192,7 @@ module.exports = {
         enabled: enabled,
         homingMode: homingMode,
         homed: homed,
+        referenced: referenced,
         klass: klass,
         state: state,
         icon: icon,
