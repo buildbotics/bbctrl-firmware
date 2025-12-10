@@ -25,42 +25,53 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-settings-template(type="text/x-template")
-  div
-    nav.navbar
-      a.nav-item(href="#settings:general") General
+script#settings-macros-safety-template(type="text/x-template")
+  #settings-macros-safety
+    h1 Macro Safety Settings
 
-      nav-item
-        | Motors
-        .fa.fa-caret-down
+    p.description.
+      Configure safety options for each macro. These settings help prevent
+      accidental machine movement.
 
-        nav-menu
-          a.nav-item(v-for="motor in [0, 1, 2, 3]",
-            :href="'#settings:motor:' + motor") Motor {{motor}}
+    .safety-table(v-if="macros.length")
+      table
+        thead
+          tr
+            th.index #
+            th.name Macro
+            th.confirm(title="Show confirmation dialog before running this macro")
+              | Confirm
+            th.bypass(title="Allow this macro to run before axes are homed or zeroed (for homing/setup macros only)")
+              | Skip Reference Check
 
-      a.nav-item(href="#settings:tool") Tool
-      a.nav-item(href="#settings:io") I/O
+        tbody
+          tr(v-for="macro in macros")
+            td.index {{ $index + 1 }}
+            td.name {{ macro.name || '(unnamed)' }}
+            td.confirm
+              input(type="checkbox", v-model="macro.confirm", @change="change",
+                title="Require confirmation before running")
+            td.bypass
+              input(type="checkbox", v-model="macro.skip_reference_check", @change="change",
+                title="Allow running without position reference")
 
-      nav-item
-        | Macros
-        .fa.fa-caret-down
+    p.no-macros(v-else)
+      | No macros configured. 
+      a(href="#settings:macros") Add macros
+      |  first.
 
-        nav-menu
-          a.nav-item(href="#settings:macros") Configuration
-          a.nav-item(href="#settings:macros-safety") Safety
+    .help-section
+      h3 Setting Descriptions
 
-      a.nav-item(href="#settings:network") Network
-      a.nav-item(href="#settings:admin") Admin
+      dl
+        dt Confirm
+        dd.
+          When enabled (default), a confirmation dialog appears before the macro
+          runs. Disable for frequently-used macros that don't require user
+          confirmation.
 
-      .actions
-        bbutton(v-if="$root.authorized", @click="$root.logout", text="Logout",
-          title="Logout to lock protected settings")
-
-        bbutton(v-else, @click="$root.login", text="Login", success,
-          title="Login to unlock protected settings")
-
-        bbutton(:success="modified", :disabled="!modified", @click="save",
-          title="Save settings", text="Save")
-
-    .settings-view(v-if="view", :is="'settings-' + view", :index="index",
-      :config="config", :template="template", :state="state", keep-alive)
+        dt Skip Reference Check
+        dd.
+          When enabled, the macro can run even if axes have not been homed or
+          zeroed. #[strong Use only for homing or setup macros] that establish
+          position reference. Most macros should leave this disabled for safety.
