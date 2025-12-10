@@ -299,16 +299,18 @@ class MacroHandler(APIHandler):
         if macro < 0 or len(macros) < macro:
             raise HTTPError(404, 'Invalid macro id %d' % macro)
 
-        path = 'Home/' + macros[macro - 1]['path']
+        macro_config = macros[macro - 1]
+        path = 'Home/' + macro_config['path']
 
         if not ctrl.fs.exists(path):
             raise HTTPError(404, 'Macro file not found')
 
-        # SAFETY: Same position reference check as StartHandler
-        # Macros can move the machine just like programs
-        unreferenced = _check_position_reference(ctrl)
-        if unreferenced:
-            raise HTTPError(400, _format_reference_error(unreferenced))
+        # SAFETY: Check position reference unless macro is flagged to skip
+        # Homing/setup macros need to run before axes are referenced
+        if not macro_config.get('skip_reference_check', False):
+            unreferenced = _check_position_reference(ctrl)
+            if unreferenced:
+                raise HTTPError(400, _format_reference_error(unreferenced))
 
         # FIX: Mark that we're starting a macro so the UI can restore
         # the previous program when the macro completes

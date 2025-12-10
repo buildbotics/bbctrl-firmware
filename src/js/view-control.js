@@ -325,11 +325,13 @@ module.exports = {
         }
         
         // SAFETY: Check position reference BEFORE showing confirmation
-        // Don't ask user to confirm something they can't do anyway
-        let unreferenced = this._get_unreferenced_axes()
-        if (unreferenced.length) {
-          this.$root.error_dialog(this._format_reference_error(unreferenced))
-          return
+        // Skip check if macro is flagged (for homing/setup macros)
+        if (!macroConfig.skip_reference_check) {
+          let unreferenced = this._get_unreferenced_axes()
+          if (unreferenced.length) {
+            this.$root.error_dialog(this._format_reference_error(unreferenced))
+            return
+          }
         }
         
         // Check if confirmation is required (default: true for safety)
