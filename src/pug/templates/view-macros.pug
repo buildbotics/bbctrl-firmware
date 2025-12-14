@@ -31,28 +31,60 @@ script#view-macros-template(type="text/x-template")
     nav.navbar
       a.nav-item(href="#macros") Macros
       a.nav-item(href="#macros:tabs") Tabs
+      a.nav-item(href="#macros:safety") Safety
       
       .spacer
       
       .actions
-        //- Add button changes based on view
-        bbutton(v-if="view === 'macros'", @click="add", icon="plus", text="Add Macro",
-          :disabled="!$root.authorized",
-          title="Add a new macro")
-        bbutton(v-if="view === 'tabs'", @click="add_tab", icon="plus", text="Add Tab",
-          :disabled="!$root.authorized",
-          title="Add a new tab")
-        
-        //- Login/Save button area (far right)
-        bbutton(v-if="!$root.authorized", @click="$root.login()", 
-          icon="sign-in", text="Login",
-          title="Login to make changes")
-        bbutton(v-if="$root.authorized && modified", @click="save", 
-          icon="save", text="Save", success,
-          title="Save macro configuration")
-        .save-status(v-if="$root.authorized && !modified")
-          .fa.fa-check
-          span Saved
+        //- Desktop: inline buttons
+        .actions-inline
+          //- Add button changes based on view
+          bbutton(v-if="view === 'macros'", @click="add", icon="plus", text="Add Macro",
+            :disabled="!$root.authorized",
+            title="Add a new macro")
+          bbutton(v-if="view === 'tabs'", @click="add_tab", icon="plus", text="Add Tab",
+            :disabled="!$root.authorized",
+            title="Add a new tab")
+          
+          //- Login/Save button area (far right)
+          bbutton(v-if="!$root.authorized", @click="$root.login()", 
+            icon="sign-in", text="Login",
+            title="Login to make changes")
+          bbutton(v-if="$root.authorized && modified", @click="save", 
+            icon="save", text="Save", success,
+            title="Save macro configuration")
+          .save-status(v-if="$root.authorized && !modified")
+            .fa.fa-check
+            span Saved
+          bbutton(v-if="$root.authorized", @click="$root.logout()", 
+            icon="sign-out",
+            title="Logout")
+
+        //- Mobile: dropdown menu
+        .actions-dropdown
+          nav-item
+            .fa.fa-ellipsis-v
+            nav-menu
+              a.nav-item(v-if="view === 'macros'", 
+                :class="{disabled: !$root.authorized}",
+                @click="add")
+                .fa.fa-plus
+                | Add Macro
+              a.nav-item(v-if="view === 'tabs'", 
+                :class="{disabled: !$root.authorized}",
+                @click="add_tab")
+                .fa.fa-plus
+                | Add Tab
+              .nav-separator
+              a.nav-item(v-if="!$root.authorized", @click="$root.login()")
+                .fa.fa-sign-in
+                | Login
+              a.nav-item(v-if="$root.authorized && modified", @click="save")
+                .fa.fa-save
+                | Save
+              a.nav-item(v-if="$root.authorized", @click="$root.logout()")
+                .fa.fa-sign-out
+                | Logout
 
     //- Summary bar
     .summary-bar
@@ -187,3 +219,61 @@ script#view-macros-template(type="text/x-template")
           li Deleting a tab moves its macros to the first remaining tab
           li On the control page, click tab names to switch between macro groups
           li Tabs only appear on the control page when you have more than one
+
+    //- Safety View
+    .macros-content(v-if="view === 'safety'")
+      h2 Macro Safety Settings
+      
+      p.help-text.
+        Configure safety options for each macro. These settings help prevent
+        accidental machine movement.
+
+      //- Safety table
+      .safety-list(v-if="macros.length")
+        .safety-header
+          .col-index #
+          .col-confirm
+            .fa.fa-check-circle(title="Confirm before running")
+          .col-bypass
+            .fa.fa-shield(title="Skip reference check")
+          .col-name Macro Name
+        
+        .safety-row(v-for="macro in macros")
+          .col-index {{$index + 1}}
+          
+          .col-confirm
+            input(type="checkbox", :checked="requires_confirm(macro)",
+              @change="toggle_confirm($index)",
+              title="Require confirmation before running")
+          
+          .col-bypass
+            input(type="checkbox", v-model="macro.skip_reference_check",
+              @change="change",
+              title="Allow running without position reference")
+          
+          .col-name {{macro.name || '(unnamed)'}}
+
+      //- Empty state
+      .empty-state(v-else)
+        .fa.fa-shield
+        p No macros configured yet.
+        p Go to the #[a(href="#macros") Macros tab] to add macros first.
+
+      //- Help text
+      .help-section
+        h3 Setting Descriptions
+        dl
+          dt
+            .fa.fa-check-circle
+            |  Confirm
+          dd.
+            When enabled (default), a confirmation dialog appears before the macro
+            runs. Disable for frequently-used macros that don't need confirmation.
+          
+          dt
+            .fa.fa-shield
+            |  Skip Reference Check
+          dd.
+            When enabled, the macro can run even if axes have not been homed or
+            zeroed. #[strong Use only for homing or setup macros] that establish
+            position reference. Most macros should leave this disabled for safety.

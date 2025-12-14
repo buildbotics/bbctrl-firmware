@@ -266,12 +266,12 @@
       .grip:after
         content '.. .. .. ..'
 
+
   .no-macros
     color #666
     font-style italic
     padding 1em
     text-align center
-
 
 // =====================================================
 // CONTROL PAGE - Macro Display
@@ -337,99 +337,7 @@
     min-height 2.5em
 
     .macro
-      margin 2px
+      margin 3px
+      padding 0.4em 0.75em
 
 
-// =====================================================
-// SETTINGS - Macro Safety Page
-// =====================================================
-
-#settings-macros-safety
-  p.description
-    margin-bottom 1em
-    color #666
-
-  .safety-table
-    margin 1em 0
-
-    table
-      width 100%
-      border-collapse collapse
-      background #fff
-
-      th, td
-        padding 0.5em 0.75em
-        text-align left
-        border-bottom 1px solid #ddd
-
-      th
-        background #f5f5f5
-        font-weight 600
-        white-space nowrap
-
-        &.index
-          width 3em
-          text-align center
-
-        &.name
-          width auto
-
-        &.confirm, &.bypass
-          width 8em
-          text-align center
-
-      td
-        &.index
-          text-align center
-          color #666
-
-        &.name
-          font-weight 500
-
-        &.confirm, &.bypass
-          text-align center
-
-          input[type="checkbox"]
-            width 1.2em
-            height 1.2em
-            cursor pointer
-
-      tbody tr
-        &:hover
-          background #fafafa
-
-        &:last-child td
-          border-bottom none
-
-  p.no-macros
-    padding 1em
-    background #f9f9f9
-    border 1px solid #ddd
-    border-radius 4px
-    color #666
-
-    a
-      color #0066cc
-
-  .help-section
-    margin-top 2em
-    padding-top 1em
-    border-top 1px solid #ddd
-
-    h3
-      font-size 1em
-      margin-bottom 0.75em
-      color #333
-
-    dl
-      margin 0
-
-    dt
-      font-weight 600
-      margin-top 0.75em
-      color #333
-
-    dd
-      margin 0.25em 0 0 1em
-      color #666
-      line-height 1.5

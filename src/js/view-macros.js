@@ -80,7 +80,8 @@ module.exports = {
       if (path[0] != 'macros') return
       let view = path.length < 2 ? 'macros' : path[1]
       
-      if (!['macros', 'tabs'].includes(view)) {
+      // Valid views: macros, tabs, safety
+      if (!['macros', 'tabs', 'safety'].includes(view)) {
         return this.$root.replace_route('macros')
       }
       
