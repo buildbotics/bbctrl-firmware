@@ -555,7 +555,7 @@ module.exports = {
 
 
     draw_path(scene) {
-      if (this.positions.length < 6) return new THREE.Group()
+      if (!this.positions || this.positions.length < 6) return new THREE.Group()
 
       let geometry = new THREE.BufferGeometry()
       let material =
