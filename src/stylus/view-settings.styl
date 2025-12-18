@@ -416,6 +416,9 @@
 
 @media only screen and (max-width 600px)
   .view-settings
+    // Prevent horizontal scroll/swipe
+    overflow-x hidden
+    
     .navbar
       // Wrap nav items on mobile instead of horizontal scroll
       flex-wrap wrap
@@ -437,6 +440,11 @@
           
         .actions-dropdown
           display block
+          
+          // Ensure dropdown menu opens to right, not left
+          .nav-menu
+            right 0
+            left auto
           
     // Bottom padding for mobile browser chrome
     padding-bottom 80px
