@@ -32,26 +32,28 @@ script#files-template(type="text/x-template")
       input(v-model="filename", @input="filename_changed", focus)
 
     .files-body
-      //- Location bar (Home, USB drives)
-      .files-locations
-        .files-location(v-for="name in locations", @click="open(name)",
-          :class="{active: name == location}", :title="location_title(name)")
-          .fa.fa-home(v-if="name == 'Home'")
-          .fa.fa-eject(v-else, @click.stop="eject(name)",
-            title="Eject USB drive")
-          | {{name}}
-
       .files-box
-        //- Breadcrumb path bar
+        //- Breadcrumb path bar with location dropdown
         .files-path-bar
           .breadcrumbs
-            //- Home/location root
-            a.breadcrumb-item.breadcrumb-root(@click="open(location)",
-              :class="{current: paths.length <= 1}")
-              .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
-              span {{location}}
+            //- Location dropdown
+            .location-dropdown
+              button.btn.btn-default.btn-sm.location-btn(
+                @click="toggle_location_menu",
+                :title="'Current location: ' + location")
+                .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
+                span {{location}}
+                .fa.fa-caret-down
+              .location-menu(v-show="location_menu_open")
+                a.location-item(v-for="name in locations",
+                  @click="select_location(name)",
+                  :class="{active: name == location}")
+                  .fa(:class="name == 'Home' ? 'fa-home' : 'fa-usb'")
+                  span {{name}}
+                  .fa.fa-eject.eject-btn(v-if="name != 'Home'",
+                    @click.stop="eject(name)", title="Eject USB drive")
             
-            //- Path segments (skip first '/' entry)
+            //- Path segments
             template(v-for="path in paths")
               template(v-if="path != '/'")
                 span.path-separator /

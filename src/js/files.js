@@ -51,7 +51,7 @@ module.exports = {
       selected: -1,
       filename: '',
       folder: '',
-      show_locations: false
+      location_menu_open: false
     }
   },
 
@@ -129,7 +129,22 @@ module.exports = {
   },
 
 
-  ready() {this.load('')},
+  ready() {
+    this.load('')
+    
+    // Close location menu when clicking outside
+    this._closeLocationMenu = (e) => {
+      if (!this.$el.querySelector('.location-dropdown').contains(e.target)) {
+        this.location_menu_open = false
+      }
+    }
+    document.addEventListener('click', this._closeLocationMenu)
+  },
+  
+  
+  beforeDestroy() {
+    document.removeEventListener('click', this._closeLocationMenu)
+  },
 
 
   methods: {
@@ -137,6 +152,17 @@ module.exports = {
       if (name == 'Home')
         return 'Select files already on the controller.'
       return 'Select files from a USB drive.'
+    },
+
+
+    toggle_location_menu() {
+      this.location_menu_open = !this.location_menu_open
+    },
+
+
+    select_location(name) {
+      this.location_menu_open = false
+      this.open(name)
     },
 
 
@@ -290,19 +316,32 @@ module.exports = {
     },
 
 
+    // Invalidate selected program cache after upload
     async upload()  {
       let filename
+      let uploadedPath
 
       await this.$root.upload({
         multiple: this.mode != 'open',
         url: file => {
           filename = file.filename
-          return 'fs/' + this.fs.path + '/' + filename
+          uploadedPath = util.join_path(this.fs.path, filename)
+          return 'fs/' + uploadedPath
         },
         on_confirm: this.confirm_upload,
       })
 
       await this.reload()
+      
+      // If we uploaded a file that matches the currently selected program,
+      // invalidate the cache so fresh content is loaded
+      if (uploadedPath && this.$root.selected_program) {
+        let selectedPath = this.$root.selected_program.path
+        if (selectedPath && selectedPath === uploadedPath) {
+          this.$root.reload_selected_program()
+        }
+      }
+      
       if (this.mode == 'open') this.activate_file(filename)
     }
   }
