@@ -423,18 +423,27 @@
       // Wrap nav items on mobile instead of horizontal scroll
       flex-wrap wrap
       gap 0.25em
+      position relative  // For absolute positioning of actions
+      padding-right 3em  // Make room for absolutely positioned dots
       
       // Smaller padding on nav items
       .nav-item
         padding 0.5em 0.75em
         font-size 0.9em
       
-      // Shrink spacer on mobile so it doesn't push everything
+      // Hide spacer on mobile - not needed with absolute actions
       .spacer
-        flex 0 1 auto
-        min-width 1em
+        display none
       
       .actions
+        // Force actions to top-right corner, aligned with first row
+        position absolute
+        top 0
+        right 0.5em
+        height 40px  // Match navbar min-height
+        display flex
+        align-items center
+        
         .actions-inline
           display none
           
