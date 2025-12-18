@@ -151,13 +151,11 @@
       .actions-dropdown
         display none
         position relative
-        margin-left auto  // Fix: push dropdown to right side of cell
         
         > .nav-item
           padding 0.5em
           cursor pointer
           color #555
-          display inline-block  // Fix: proper inline display for alignment
           
           > .fa-ellipsis-v
             font-size 1.2em
@@ -165,11 +163,7 @@
           &:hover
             background rgba(0,0,0,0.05)
             
-          // Show menu on hover
-          &:hover > .nav-menu
-            display block
-            
-          // Show menu on click (mobile)
+          // Show menu on click
           > .nav-menu.nav-menu-open
             display block
             
@@ -509,7 +503,6 @@
           
         .actions-dropdown
           display block
-          text-align right  // Fix: ensure dropdown stays right-aligned
 
   // Bottom padding for mobile browser chrome
   .view-control
