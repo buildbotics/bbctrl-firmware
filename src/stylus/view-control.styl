@@ -34,7 +34,7 @@
     flex-direction column
 
     > *
-      margin 0.5em 0
+      margin 0.25em 0  // Reduced from 0.5em for tighter layout
 
     .info-blocks
       display grid
@@ -71,7 +71,7 @@
       color #f0f
 
     td, th
-      padding 6px 10px
+      padding 4px 8px  // Reduced from 6px 10px for tighter layout
       white-space nowrap
 
     th
@@ -151,11 +151,13 @@
       .actions-dropdown
         display none
         position relative
+        margin-left auto  // Fix: push dropdown to right side of cell
         
         > .nav-item
           padding 0.5em
           cursor pointer
           color #555
+          display inline-block  // Fix: proper inline display for alignment
           
           > .fa-ellipsis-v
             font-size 1.2em
@@ -184,7 +186,7 @@
             box-shadow 0 4px 12px rgba(0,0,0,0.15)
             z-index 100
             
-            // Menu items
+            // Menu items - override th font-weight inheritance
             > a
               padding 0.6em 1em
               display flex
@@ -193,6 +195,7 @@
               color #333
               white-space nowrap
               text-decoration none
+              font-weight normal  // Fix: override bold from th
               
               &:hover
                 background #f5f5f5
@@ -260,9 +263,12 @@
     row-gap 8px
     padding 0.5em
 
+    // FIX: Button text overflow - allow text to wrap
     .macro
       text-align center
       overflow hidden
+      // FIX: Remove text-overflow ellipsis and white-space nowrap
+      // to allow long names to wrap to multiple lines
       white-space normal
       word-wrap break-word
       overflow-wrap break-word
@@ -289,8 +295,8 @@
     border-radius 4px
 
     th, td
-      height 1.75em
-      padding 6px 10px
+      height 1.5em  // Reduced from 1.75em
+      padding 4px 8px  // Reduced from 6px 10px
       text-align right
       overflow hidden
       text-overflow ellipsis
@@ -351,7 +357,7 @@
   // =====================================================
   .tabs
     section
-      min-height 500px
+      min-height 400px  // Reduced from 500px for tighter layout
       overflow-x hidden
       overflow-y auto
       padding 0
@@ -417,6 +423,12 @@
 
     > svg
       margin 1em
+      
+      // Visual feedback when jog controls are disabled (program running)
+      &.disabled
+        opacity 0.4
+        pointer-events none
+        cursor not-allowed
 
   .jog-settings
     display flex
@@ -497,6 +509,7 @@
           
         .actions-dropdown
           display block
+          text-align right  // Fix: ensure dropdown stays right-aligned
 
   // Bottom padding for mobile browser chrome
   .view-control

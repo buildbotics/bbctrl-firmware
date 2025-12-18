@@ -28,15 +28,10 @@
 .view-editor
   margin-bottom 0
 
-  .navbar
-    flex-shrink 0
-    
-    .filename
-      flex 1
-      text-align right
-      padding 5px 15px
+  .navbar .filename
+    flex 1
+    text-align right
+    padding 5px 15px
 
-  // FIX: Use fixed height for CodeMirror - simpler and more predictable
-  // 700px provides ~35 lines of visible code at standard font size
   .CodeMirror
-    height 700px
+    height calc(100vh - 180px)

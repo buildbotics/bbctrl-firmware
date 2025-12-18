@@ -32,6 +32,15 @@ script#files-template(type="text/x-template")
       input(v-model="filename", @input="filename_changed", focus)
 
     .files-body
+      //- Location bar (Home, USB drives)
+      .files-locations
+        .files-location(v-for="name in locations", @click="open(name)",
+          :class="{active: name == location}", :title="location_title(name)")
+          .fa.fa-home(v-if="name == 'Home'")
+          .fa.fa-eject(v-else, @click.stop="eject(name)",
+            title="Eject USB drive")
+          | {{name}}
+
       .files-box
         //- Breadcrumb path bar
         .files-path-bar
