@@ -50,6 +50,12 @@ html(lang="en")
       #menu
         .pure-menu
           ul.pure-menu-list
+            //- Fullscreen toggle button
+            li.pure-menu-item.fullscreen-btn
+              a.pure-menu-link(@click="toggle_fullscreen")
+                .fa(:class="is_fullscreen ? 'fa-compress' : 'fa-expand'")
+                |  {{is_fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}}
+            
             li.pure-menu-heading
               a.pure-menu-link(href="#control") Control
 
@@ -59,7 +65,7 @@ html(lang="en")
             li.pure-menu-heading
               a.pure-menu-link(href="#editor") Editor
 
-            li.pure-menu-heading
+            li.pure-menu-heading(v-if="camera_available")
               a.pure-menu-link(href="#camera") Camera
 
             li.pure-menu-heading
@@ -139,8 +145,9 @@ html(lang="en")
         input(style="width: 50px", v-model="errorTimeout", number)
         label seconds.
 
+    //- FIX: Use dynamic header to show spindle speed during M0 pause
     dialog(v-show="popupMessages.length", v-ref:popup-messages,
-      header="GCode messages", :click-away="false")
+      :header="popupMessagesHeader", :click-away="false")
       div(slot="body")
         p(v-for="msg in popupMessages", track-by="$index") {{msg}}
 

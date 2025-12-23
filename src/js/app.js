@@ -45,9 +45,22 @@ module.exports = new Vue({
       config: {
         settings: {units: 'METRIC'},
         motors: [{}, {}, {}, {}],
+        tool: {},  // FIX: Initialize tool config for reactivity
         version: '<loading>'
       },
-      state: {messages: []},
+      // FIX: Initialize state properties for Vue 1.x reactivity
+      // Properties must exist before Vue processes the component
+      state: {
+        messages: [],
+        service_due_count: 0,
+        s: 0,           // Spindle speed - needed for popupMessagesHeader reactivity
+        xx: '',         // Machine state
+        line: 0,        // Current line
+        v: 0,           // Velocity
+        feed: 0,        // Feed rate
+        speed: 0,       // Programmed speed
+        tool: 0         // Current tool
+      },
       crosshair: cookie.get_bool('crosshair', false),
       selected_program: new Program(this.$api, cookie.get('selected-path')),
       active_program: undefined,
@@ -61,7 +74,9 @@ module.exports = new Vue({
       initialized: false,
       // Alert dismissal state (session-based, resets on browser close)
       upgrade_dismissed: sessionStorage.getItem('upgrade_dismissed') === 'true',
-      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true'
+      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true',
+      // Fullscreen state
+      is_fullscreen: false
     }
   },
 
@@ -213,15 +228,19 @@ module.exports = new Vue({
 
 
     // Dynamic header for GCode messages modal showing spindle speed
-    popupMessagesHeader() {
+    // Shows real-time spindle speed during M0 pause when tool is configured
+     popupMessagesHeader() {
       let header = 'GCode Messages'
-      
-      // Show current spindle speed if available
-      let speed = this.state.s
-      if (speed !== undefined && !isNaN(speed) && speed > 0) {
-        header += ' - Spindle: ' + Math.round(speed) + ' RPM'
+
+      // Show spindle speed when tool is configured (not Disabled)
+      // NOTE: Access state.s unconditionally for Vue 1.x reactivity tracking
+      let toolType = this.config.tool && this.config.tool['tool-type']
+      let speed = parseFloat(this.state.s)
+
+      if (toolType && toolType !== 'Disabled' && !isNaN(speed)) {
+        header += ' - ' + Math.round(speed) + ' RPM'
       }
-      
+
       return header
     },
 
@@ -244,8 +263,8 @@ module.exports = new Vue({
 
 
     camera_available() {
-      // Only show camera if backend explicitly says it's available
-      return this.state.camera_available === true
+      // Use state from backend, default to true if not yet received
+      return this.state.camera_available !== false
     }
   },
 
@@ -276,6 +295,11 @@ module.exports = new Vue({
     }
 
     this.check_login()
+
+    // Listen for fullscreen changes (e.g., user presses Escape)
+    document.addEventListener('fullscreenchange', () => {
+      this.is_fullscreen = !!document.fullscreenElement
+    })
   },
 
 
@@ -488,10 +512,15 @@ module.exports = new Vue({
     },
     
     
-    // Refresh current program to reload file content
-    refresh_selected_program() {
+    // Reload current program - creates new instance to force fresh fetch
+    // Used after file upload to ensure new content is displayed
+    reload_selected_program() {
       if (this.selected_program && this.selected_program.path) {
-        this.selected_program.invalidate()
+        let path = this.selected_program.path
+        // Create new Program instance - guarantees fresh data fetch
+        this.selected_program = new Program(this.$api, path)
+        // Broadcast to trigger reload in view-control
+        this.$broadcast('program-reloaded')
       }
     },
 
@@ -505,6 +534,23 @@ module.exports = new Vue({
     view(path) {
       this.select_path(path)
       location.hash = 'viewer'
+    },
+
+
+    toggle_fullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          this.is_fullscreen = true
+        }).catch(err => {
+          console.warn('Fullscreen request failed:', err)
+        })
+      } else {
+        document.exitFullscreen().then(() => {
+          this.is_fullscreen = false
+        }).catch(err => {
+          console.warn('Exit fullscreen failed:', err)
+        })
+      }
     }
   }
 })

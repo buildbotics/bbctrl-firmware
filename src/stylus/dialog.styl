@@ -56,6 +56,19 @@
   font-family Helvetica, Arial, sans-serif
   text-align left
 
+// Mobile responsive styles
+@media only screen and (max-width: 480px)
+  .dialog-container
+    width calc(100vw - 20px)
+    max-width calc(100vw - 20px)
+    max-height calc(100vh - 20px)
+    padding 15px
+    margin 10px auto
+    
+  .dialog-footer
+    flex-wrap wrap
+    justify-content center
+
 .dialog-header
   border-bottom 1px solid #777
   margin-bottom 1em

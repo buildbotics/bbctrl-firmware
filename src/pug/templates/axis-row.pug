@@ -29,8 +29,8 @@ script#axis-row-template(type="text/x-template")
   tr.axis(:class="axis.klass", :title="axis.title")
     th.name {{name}}
     td.position: unit-value(:value="axis.pos", precision=4)
-    td.absolute: unit-value(:value="axis.abs", precision=3)
-    td.offset: unit-value(:value="axis.off", precision=3)
+    td.absolute(v-show="showAbsolute"): unit-value(:value="axis.abs", precision=3)
+    td.offset(v-show="showOffset"): unit-value(:value="axis.off", precision=3)
     td.state {{axis.state}}
     th.actions
       //- Desktop: individual buttons
