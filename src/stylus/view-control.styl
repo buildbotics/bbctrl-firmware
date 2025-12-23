@@ -135,23 +135,26 @@
         letter-spacing 0.5px
         
       th.actions
-        text-align right
+        text-align center
 
-    // Actions header with column selector
-    .actions-header
+    // Axis name header with gear icon
+    .name-header
       display flex
-      justify-content flex-end
       align-items center
       gap 0.5em
+      
+      span
+        flex 1
 
-    // Column selector dropdown
+    // Column selector dropdown - LEFT ALIGNED
     .column-selector
       position relative
       
       > .fa-cog
         cursor pointer
         padding 0.25em
-        color #666
+        color #888
+        font-size 0.9em
         
         &:hover
           color #333
@@ -159,7 +162,7 @@
       .column-menu
         position absolute
         top 100%
-        right 0
+        left 0
         background #fff
         border 1px solid #ddd
         border-radius 4px
@@ -174,6 +177,9 @@
           cursor pointer
           white-space nowrap
           font-weight normal
+          text-transform none
+          letter-spacing 0
+          font-size 0.95em
           
           &:hover
             background #f5f5f5
@@ -181,20 +187,39 @@
           input
             margin-right 0.5em
 
-    // Action buttons
+    // Actions header with icon buttons
+    .actions-header
+      display flex
+      justify-content center
+      align-items center
+      gap 0.75em
+
+    // Icon-only buttons (no background)
+    .icon-btn
+      cursor pointer
+      padding 0.35em
+      color #555
+      font-size 1.1em
+      transition color 0.15s ease
+      
+      &:hover
+        color #0078e7
+      
+      &.disabled
+        opacity 0.4
+        pointer-events none
+        cursor not-allowed
+
+    // Action buttons column
     .actions
       white-space nowrap
-      text-align right
+      text-align center
       width 1%
-      
-      button, .bbutton
-        margin-left 4px
-        font-weight normal
 
       .actions-inline
         display flex
-        gap 4px
-        justify-content flex-end
+        gap 0.5em
+        justify-content center
         
       .actions-dropdown
         display none
@@ -268,6 +293,9 @@
       color #666
       border-bottom 2px solid transparent
       
+      .fa
+        margin-right 0.25em
+      
       &:hover
         background #f0f0f0
       
@@ -312,13 +340,12 @@
     flex-direction column
     gap 0.5em
     
-    .action-btn
-      width 100%
-      justify-content flex-start
+    .action-row
+      display flex
+      gap 0.5em
       
-      .fa
-        width 1.5em
-        text-align center
+      button, .bbutton
+        flex 1
 
   // MDI tab
   .panel-mdi
@@ -385,11 +412,59 @@
         &:hover
           background #e8e8e8
 
-  // Jog tab
-  .panel-jog
-    padding 0.5em
-    overflow-y auto
+  // =====================================================
+  // JOG MODAL
+  // =====================================================
+  .jog-modal
+    .modal-body
+      padding 1em
+    
+  .jog-modal-content
+    display flex
+    flex-direction column
+    align-items center
+    
+  .jog-controls
+    display flex
+    flex-wrap wrap
+    justify-content center
+    gap 1em
+    
+    > *
+      flex-shrink 0
 
+  .jog-settings
+    display flex
+    justify-content center
+    gap 2em
+    margin 1em 0
+    padding 1em
+    background #f8f8f8
+    border-radius 4px
+    width 100%
+    box-sizing border-box
+    
+  .jog-adjust, .jog-mode
+    display flex
+    align-items center
+    gap 0.5em
+    font-size 0.9em
+    
+    label
+      font-weight normal
+
+  .jog-instructions
+    text-align center
+    color #666
+    font-size 0.85em
+    padding 0.5em
+    
+    p
+      margin 0.25em 0
+
+  // =====================================================
+  // JOG SVG CONTROLS
+  // =====================================================
   .jog svg
     user-select none
     -webkit-touch-callout none
@@ -424,39 +499,6 @@
         text
           font-size 10pt
           text-anchor middle
-
-  .jog
-    text-align center
-    
-    > svg
-      margin 0.5em
-      max-width 100%
-      height auto
-      
-      &.disabled
-        opacity 0.4
-        pointer-events none
-
-  .jog-settings
-    display flex
-    justify-content center
-    gap 1em
-    margin 0.5em 0
-    flex-wrap wrap
-    
-  .jog-adjust, .jog-mode
-    display flex
-    align-items center
-    gap 0.5em
-    font-size 0.9em
-
-  .jog-instructions
-    text-align center
-    color #666
-    font-size 0.85em
-    
-    p
-      margin 0.25em 0
 
   // =====================================================
   // INFO TABLES
@@ -591,6 +633,7 @@
     height 350px
     white-space nowrap
 
+
 .load-on
   background-color #ccffcc
   color #000
@@ -616,14 +659,6 @@
       width 100%
       min-width 100%
       max-height 400px
-    
-    .panel-jog .jog
-      display flex
-      flex-wrap wrap
-      justify-content center
-      
-      > svg
-        margin 0.25em
 
 @media only screen and (max-width 940px)
   .view-control #control
@@ -641,6 +676,9 @@
 
     .info-blocks
       grid-template-columns 1fr
+      
+  .jog-controls
+    flex-direction column
 
 @media only screen and (max-width 600px)
   .view-control #control
@@ -659,6 +697,7 @@
           
         .actions-dropdown
           display block
+
 
   .view-control
     padding-bottom 80px

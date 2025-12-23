@@ -41,6 +41,15 @@ function escapeHTML(s) {
 }
 
 
+// Format file size for display
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+
 module.exports = {
   template: '#view-control-template',
   props: ['config', 'template', 'state'],
@@ -58,6 +67,7 @@ module.exports = {
       highlighted_line: 0,
       toolpath: {},
       macro_tab: null,
+      file_size: '',
       // Column visibility with cookie persistence
       columns: {
         offset: cookie.get_bool('col-offset', true),
@@ -193,7 +203,7 @@ module.exports = {
       return p < 1 ? p : 1
     },
     
-    
+
     macro_tabs() {
       let tabs = this.config.macro_tabs
       if (!tabs || !tabs.length) {
@@ -202,13 +212,13 @@ module.exports = {
       return tabs
     },
     
-    
+
     current_macro_tab() {
       if (this.macro_tab) return this.macro_tab
       return this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
     },
     
-    
+
     visible_macros() {
       let macros = this.config.macros || []
       let currentTab = this.current_macro_tab
@@ -232,11 +242,10 @@ module.exports = {
       return result
     },
     
-    
+
     has_multiple_tabs() {
       return this.macro_tabs.length > 1
-    },
-    
+    }
   },
 
 
@@ -252,12 +261,12 @@ module.exports = {
       this.send('M70\nG91\nG0' + axis + value + '\nM72')
     },
     
-    
+
     'program-cleared'() {
       this.clear_display()
     },
     
-    
+
     'program-reloaded'() {
       this.load()
     }
@@ -293,6 +302,7 @@ module.exports = {
 
     goto(hash) {window.location.hash = hash},
 
+
     send(msg) {this.$dispatch('send', msg)},
 
     on_scroll(cm, e) {e.preventDefault()},
@@ -321,6 +331,12 @@ module.exports = {
     },
     
     
+    // Jog modal
+    open_jog_modal() {
+      this.$refs.jogModal.open()
+    },
+    
+
     select_macro_tab(tabId) {
       this.macro_tab = tabId
     },
@@ -401,6 +417,7 @@ module.exports = {
         this.editor.setValue('')
       }
       this.toolpath = {}
+      this.file_size = ''
       this.highlighted_line = 0
     },
 
@@ -415,6 +432,9 @@ module.exports = {
 
       let data = await this.active.load()
       if (this.active.path != path) return
+
+      // Calculate file size from loaded content
+      this.file_size = formatFileSize(data ? data.length : 0)
 
       this.editor.setOption('mode', util.get_highlight_mode(path))
       this.editor.setValue(data)

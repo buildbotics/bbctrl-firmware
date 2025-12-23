@@ -33,16 +33,12 @@ script#view-control-template(type="text/x-template")
       .axis-section
         table.axes
           tr
-            th.name Axis
-            th.position Position
-            th.absolute(v-show="columns.absolute") Absolute
-            th.offset(v-show="columns.offset") Offset
-            th.state State
-            th.actions
-              .actions-header
-                //- Column selector dropdown
+            th.name
+              .name-header
+                //- Column selector (gear icon) - left aligned
                 .column-selector
-                  .fa.fa-cog(@click="toggle_column_menu")
+                  .fa.fa-cog(@click="toggle_column_menu",
+                    title="Show/hide columns")
                   .column-menu(v-show="show_column_menu")
                     label
                       input(type="checkbox", v-model="columns.offset")
@@ -50,10 +46,22 @@ script#view-control-template(type="text/x-template")
                     label
                       input(type="checkbox", v-model="columns.absolute")
                       |  Absolute
+                span Axis
+            th.position Position
+            th.absolute(v-show="columns.absolute") Absolute
+            th.offset(v-show="columns.offset") Offset
+            th.state State
+            th.actions
+              .actions-header
+                .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
+                  @click="home_all", title="Home all axes")
+                .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
+                  @click="zero_all", title="Zero all axis offsets")
 
           each axis in 'xyzabc'
             tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`,
               :show-offset="columns.offset", :show-absolute="columns.absolute")
+
 
         //- Info tables
         .info-blocks
@@ -111,15 +119,17 @@ script#view-control-template(type="text/x-template")
                 label {{(progress || 0) | percent}}
                 .bar(:style="'width:' + (progress || 0) * 100 + '%'")
 
+
       //- Right side: User panel
       .user-panel
         .user-panel-tabs
           .user-panel-tab(:class="{active: user_tab === 'program'}", 
-            @click="user_tab = 'program'") Program
+            @click="user_tab = 'program'", title="Program controls") Program
           .user-panel-tab(:class="{active: user_tab === 'mdi'}", 
-            @click="user_tab = 'mdi'") MDI
-          .user-panel-tab(:class="{active: user_tab === 'jog'}", 
-            @click="user_tab = 'jog'") Jog
+            @click="user_tab = 'mdi'", title="Manual Data Input") MDI
+          .user-panel-tab(@click="open_jog_modal", title="Open jog controls")
+            .fa.fa-arrows
+            |  Jog
 
         .user-panel-content
           //- Program tab
@@ -132,36 +142,38 @@ script#view-control-template(type="text/x-template")
                 .fa.fa-file-o
                 |  No file loaded
               .program-meta(v-if="active.path")
-                span {{toolpath.lines || 0 | number}} lines
-                span  |  
-                span {{toolpath.bytes || 0 | size}}
+                | {{toolpath.lines || 0 | number}} lines
+                span(v-if="file_size")  | {{file_size}}
             
             .program-actions
-              bbutton.action-btn(:class="{'attention': is_holding}",
-                title="{{is_running ? 'Pause' : 'Start'}} program.",
-                @click="start_pause", :icon="is_running ? 'pause' : 'play'",
-                :disabled="!active.path || mach_state == 'JOGGING'",
-                :text="is_running ? 'Pause' : 'Start'")
+              .action-row
+                bbutton(:class="{'attention': is_holding}",
+                  title="{{is_running ? 'Pause' : 'Start'}} program",
+                  @click="start_pause", :icon="is_running ? 'pause' : 'play'",
+                  :disabled="!active.path || mach_state == 'JOGGING'",
+                  :text="is_running ? 'Pause' : 'Start'")
+                
+                bbutton(title="Stop program", @click="stop", 
+                  icon="stop", text="Stop")
               
-              bbutton.action-btn(title="Stop program.", @click="stop", 
-                icon="stop", text="Stop")
+              .action-row
+                bbutton(title="Edit program in editor", @click="edit", 
+                  icon="pencil", text="Edit", :disabled="!active.path")
+                
+                bbutton(title="Open 3D viewer", @click="view", 
+                  icon="eye", text="View",
+                  v-if="$root.webGLSupported", :disabled="!active.path")
               
-              bbutton.action-btn(title="Edit program.", @click="edit", 
-                icon="pencil", text="Edit", :disabled="!active.path")
-              
-              bbutton.action-btn(title="Open 3D view.", @click="view", 
-                icon="eye", text="View",
-                v-if="$root.webGLSupported", :disabled="!active.path")
-              
-              bbutton.action-btn(title="Select a program.", @click="open",
-                :disabled="!is_ready", icon="folder-open", text="Open")
+              .action-row
+                bbutton(title="Select a different program", @click="open",
+                  :disabled="!is_ready", icon="folder-open", text="Open")
 
           //- MDI tab
           .panel-mdi(v-show="user_tab === 'mdi'")
             .mdi-input-row
               select.mdi-commands(v-model="mdi_command", 
                 @change="apply_mdi_command",
-                title="Common G-code commands")
+                title="Select a common G-code command")
                 option(value="") Common Commands...
                 option(value="G90") G90 - Absolute Distance
                 option(value="G91") G91 - Incremental Distance
@@ -173,62 +185,60 @@ script#view-control-template(type="text/x-template")
             
             .mdi-input-row
               input.mdi-input(v-model="mdi", :disabled="!can_mdi", 
-                @keyup.enter="submit_mdi", placeholder="Enter G-code...")
+                @keyup.enter="submit_mdi", placeholder="Enter G-code...",
+                title="Type G-code commands here")
             
             .mdi-buttons
               bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
-                title="{{is_running ? 'Pause' : 'Run'}} command.",
+                title="{{is_running ? 'Pause' : 'Execute'}} MDI command",
                 @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
                 :text="is_running ? 'Pause' : 'Run'")
-              bbutton(title="Stop command.", @click="stop", icon="stop", text="Stop")
+              bbutton(title="Stop current operation", @click="stop", 
+                icon="stop", text="Stop")
             
             .mdi-history(:class="{placeholder: !history.length}")
               .history-label(v-if="history.length") History
               span(v-else) MDI history displays here.
               ul
                 li(v-for="item in history", @click="load_history($index)",
-                  track-by="$index") {{item}}
+                  track-by="$index", title="Click to load this command") {{item}}
 
-          //- Jog tab
-          .panel-jog(v-show="user_tab === 'jog'")
-            .jog
-              axis-control(axes="XY", :colors="['red', 'green']",
-                :enabled="[x.enabled, y.enabled]",
-                v-if="x.enabled || y.enabled", :adjust="jog_adjust",
-                :step="jog_step", :disabled="!is_idle")
+    //- Jog Modal
+    dialog.jog-modal(v-ref:jog-modal, header="Jog Controls", buttons="Close")
+      div(slot="body")
+        .jog-modal-content
+          .jog-controls
+            axis-control(axes="XY", :colors="['red', 'green']",
+              :enabled="[x.enabled, y.enabled]",
+              v-if="x.enabled || y.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
 
-              axis-control(axes="AZ", :colors="['orange', 'blue']",
-                :enabled="[a.enabled, z.enabled]",
-                v-if="a.enabled || z.enabled", :adjust="jog_adjust",
-                :step="jog_step", :disabled="!is_idle")
+            axis-control(axes="AZ", :colors="['orange', 'blue']",
+              :enabled="[a.enabled, z.enabled]",
+              v-if="a.enabled || z.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
 
-              axis-control(axes="BC", :colors="['cyan', 'purple']",
-                :enabled="[b.enabled, c.enabled]",
-                v-if="b.enabled || c.enabled", :adjust="jog_adjust",
-                :step="jog_step", :disabled="!is_idle")
+            axis-control(axes="BC", :colors="['cyan', 'purple']",
+              :enabled="[b.enabled, c.enabled]",
+              v-if="b.enabled || c.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
 
-              .jog-settings
-                .jog-adjust
-                  | Fine adjust
-                  input(type="range", v-model="jog_adjust", min=0, max=2, step=1,
-                    list="jog-adjust-ticks")
-                  datalist#jog-adjust-ticks
-                    option(value="0")
-                    option(value="1")
-                    option(value="2")
+          .jog-settings
+            .jog-adjust
+              label Fine adjust
+              input(type="range", v-model="jog_adjust", min=0, max=2, step=1,
+                title="Adjust jog speed sensitivity")
+            
+            .jog-mode
+              label
+                input(type="checkbox", v-model="jog_step")
+                |  Step mode
 
-                .jog-mode
-                  | Step mode
-                  input(type="checkbox", v-model="jog_step")
-
-              .jog-instructions(v-if="jog_step")
-                p Left click the axes above to jog by the specified amount.
-
-              .jog-instructions(v-else)
-                p.
-                  Left click the axes above holding down the mouse button to jog the
-                  machine.
-                p Jogging speed is set by the ring that is clicked.
+          .jog-instructions(v-if="jog_step")
+            p Click axis buttons to jog by step amount.
+          .jog-instructions(v-else)
+            p Click and hold axis buttons to jog continuously.
+            p Speed is determined by which ring you click.
 
     //- Macros section
     .macros-container
@@ -236,7 +246,7 @@ script#view-control-template(type="text/x-template")
         .macro-tab(v-for="tab in macro_tabs",
           :class="{active: current_macro_tab === tab.id}",
           @click="select_macro_tab(tab.id)",
-          :title="tab.name")
+          :title="'Show ' + tab.name + ' macros'")
           | {{tab.name}}
         
         a.macro-tab.settings-tab(href="#macros", title="Configure macros")
@@ -248,26 +258,27 @@ script#view-control-template(type="text/x-template")
           v-if="macro.path",
           :disabled="!is_idle",
           @click="run_macro(macro.originalIndex)",
-          :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
+          :title="is_idle ? 'Run macro: ' + macro.name + '\\nFile: ' + macro.path : 'Cannot run macro while program is active'",
           :style="{'background-color': macro.color}",
           :text="macro.name || ('' + (macro.originalIndex + 1))")
 
     //- Bottom tabs
     .tabs
       input#tab1(type="radio", name="tabs" checked, @click="tab = 'code'")
-      label(for="tab1", title="Program code with line highlighting") Code
+      label(for="tab1", title="View program code with line highlighting") Code
 
       input#tab5(type="radio", name="tabs", @click="tab = 'messages'")
-      label(for="tab5") Messages
+      label(for="tab5", title="View console messages") Messages
 
       input#tab6(type="radio", name="tabs", @click="tab = 'indicators'")
-      label(for="tab6") I/O Pins
+      label(for="tab6", title="View I/O pin states") I/O Pins
 
       input#tab7(type="radio", name="tabs", @click="tab = 'power'")
-      label(for="tab7") Power
+      label(for="tab7", title="View power information") Power
 
       section#content1.tab-content
         textarea.gcode-view(v-el:gcode-view)
+
 
       section#content5.tab-content
         console
