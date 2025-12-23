@@ -136,6 +136,13 @@
         
       th.actions
         text-align center
+        
+      // Reset icon size in header (not affected by th font-size)
+      .icon-btn
+        font-size 1rem
+        
+      .fa-cog
+        font-size 1rem
 
     // Axis name header with gear icon
     .name-header
@@ -154,7 +161,6 @@
         cursor pointer
         padding 0.25em
         color #888
-        font-size 0.9em
         
         &:hover
           color #333
@@ -275,7 +281,7 @@
   .user-panel
     width 280px
     min-width 280px
-    min-height 450px  // Match axis table + info tables height
+    min-height 320px  // Match axis table + one info table height
     border 1px solid #ddd
     border-radius 4px
     background #fff
