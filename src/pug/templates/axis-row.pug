@@ -33,29 +33,29 @@ script#axis-row-template(type="text/x-template")
     td.offset(v-show="showOffset"): unit-value(:value="axis.off", precision=3)
     td.state {{axis.state}}
     th.actions
-      //- Desktop: icon-only buttons
+      //- Desktop: icon-only buttons (zero, set, home)
       .actions-inline
-        .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
-          @click="home", title="Home {{name}} axis")
         .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
           @click="zero", title="Zero {{name}} axis offset")
         .fa.fa-pencil-square-o.icon-btn(:class="{disabled: !is_idle}",
           @click="set_position", title="Set {{name}} axis position")
+        .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
+          @click="home", title="Home {{name}} axis")
 
       //- Mobile: dropdown menu
       .actions-dropdown
         nav-item
           .fa.fa-ellipsis-v
           nav-menu
-            a.nav-item(:class="{disabled: !is_idle}", @click="home")
-              .fa.fa-home
-              | Home {{name}}
             a.nav-item(:class="{disabled: !is_idle}", @click="zero")
               .fa.fa-map-marker
               | Zero {{name}}
             a.nav-item(:class="{disabled: !is_idle}", @click="set_position")
               .fa.fa-pencil-square-o
               | Set {{name}}
+            a.nav-item(:class="{disabled: !is_idle}", @click="home")
+              .fa.fa-home
+              | Home {{name}}
 
       dialog(v-ref:set-position,
         :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",

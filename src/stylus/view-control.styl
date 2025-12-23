@@ -172,7 +172,8 @@
         min-width 120px
         
         label
-          display block
+          display flex
+          align-items center
           padding 0.25em 0.5em
           cursor pointer
           white-space nowrap
@@ -180,12 +181,14 @@
           text-transform none
           letter-spacing 0
           font-size 0.95em
+          text-align left
           
           &:hover
             background #f5f5f5
           
           input
             margin-right 0.5em
+            flex-shrink 0
 
     // Actions header with icon buttons
     .actions-header
@@ -272,6 +275,7 @@
   .user-panel
     width 280px
     min-width 280px
+    min-height 450px  // Match axis table + info tables height
     border 1px solid #ddd
     border-radius 4px
     background #fff
@@ -426,7 +430,8 @@
     
   .jog-controls
     display flex
-    flex-wrap wrap
+    flex-direction row
+    flex-wrap nowrap
     justify-content center
     gap 1em
     
@@ -658,6 +663,7 @@
     .user-panel
       width 100%
       min-width 100%
+      min-height auto
       max-height 400px
 
 @media only screen and (max-width 940px)

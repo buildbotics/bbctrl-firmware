@@ -52,9 +52,10 @@ html(lang="en")
           ul.pure-menu-list
             //- Fullscreen toggle button
             li.pure-menu-item.fullscreen-btn
-              a.pure-menu-link(@click="toggle_fullscreen")
-                .fa(:class="is_fullscreen ? 'fa-compress' : 'fa-expand'")
-                |  {{is_fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}}
+              a.pure-menu-link(@click="toggle_fullscreen", 
+                :title="is_fullscreen ? 'Exit fullscreen mode' : 'Enter fullscreen mode'")
+                .fa(:class="is_fullscreen ? 'fa-times' : 'fa-arrows-alt'")
+                |  {{is_fullscreen ? 'Exit' : 'Expand'}}
             
             li.pure-menu-heading
               a.pure-menu-link(href="#control") Control
@@ -104,6 +105,7 @@ html(lang="en")
 
             .header-tools
               a(v-if="camera_available && currentView != 'camera'", href="#camera"): video
+
               .estop(:class="{active: state.es}"): estop(@click="estop")
           
           //- System Alerts

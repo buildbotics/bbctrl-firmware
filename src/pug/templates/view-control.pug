@@ -53,10 +53,10 @@ script#view-control-template(type="text/x-template")
             th.state State
             th.actions
               .actions-header
-                .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
-                  @click="home_all", title="Home all axes")
                 .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
                   @click="zero_all", title="Zero all axis offsets")
+                .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
+                  @click="home_all", title="Home all axes")
 
           each axis in 'xyzabc'
             tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`,
