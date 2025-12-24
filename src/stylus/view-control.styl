@@ -274,6 +274,7 @@
               &.disabled
                 opacity 0.5
                 pointer-events none
+  // JOG CONTROLS
 
   // =====================================================
   // USER PANEL (right side)
@@ -318,11 +319,9 @@
 
   .user-panel-content
     flex 1
-    height 0  // Start at 0, grow via flex - ensures parent's overflow is respected
     min-height 0
     overflow hidden
-    display flex
-    flex-direction column
+    position relative  // Positioning context for panel children
 
   // Program tab
   .panel-program
@@ -363,17 +362,16 @@
 
   // MDI tab
   .panel-mdi
+    position absolute
+    top 0
+    left 0
+    right 0
+    bottom 0
     padding 0.75em
-    display flex
-    flex-direction column
-    gap 0.5em
-    flex 1
-    height 0  // Start at 0, grow via flex
-    min-height 0
-    overflow hidden
+    box-sizing border-box
 
   .mdi-input-row
-    flex-shrink 0
+    margin-bottom 0.5em
     
     .mdi-commands
       width 100%
@@ -392,7 +390,7 @@
       box-sizing border-box
 
   .mdi-buttons
-    flex-shrink 0  // Don't shrink buttons
+    margin-bottom 0.5em
     display flex
     gap 0.5em
     
@@ -400,14 +398,11 @@
       flex 1
 
   .mdi-history
-    flex 1
-    height 0  // Start at 0, grow via flex
-    min-height 0
+    height calc(100% - 11em)  // Fill remaining after dropdown, input, buttons + padding
     overflow-y auto
     background #fafafa
     border-radius 4px
     padding 0.5em
-    margin-top 0.5em
     font-family courier
     font-size 0.9em
     
@@ -524,6 +519,35 @@
           text-anchor middle
 
   // =====================================================
+  .macros
+    display grid
+    grid-template-columns repeat(8, 1fr)
+    column-gap 1%
+    row-gap 8px
+    padding 0.5em
+
+    // FIX: Button text overflow - allow text to wrap
+    .macro
+      text-align center
+      overflow hidden
+      // FIX: Remove text-overflow ellipsis and white-space nowrap
+      // to allow long names to wrap to multiple lines
+      white-space normal
+      word-wrap break-word
+      overflow-wrap break-word
+      padding 0.5em 0.25em
+      min-height 2.5em
+      display flex
+      align-items center
+      justify-content center
+      font-size 14px
+      line-height 1.2
+
+      &:hover
+        background-image button-hover
+
+      .fa
+        margin-right 0.25em
   // INFO TABLES
   // =====================================================
   .info-blocks
@@ -532,6 +556,9 @@
     gap 0.5em
     margin-top 0.5em
 
+  // =====================================================
+  // INFO TABLES
+  // =====================================================
   .info
     empty-cells show
     background #fff
@@ -592,7 +619,6 @@
     display flex
     flex-wrap wrap
     gap 0.25em
-    margin-bottom 0.25em
     
     .macro-tab
       padding 0.4em 0.75em
@@ -612,12 +638,20 @@
       
       &.settings-tab
         margin-left auto
+        background #fff
+        border 1px solid #ddd
+        border-bottom-color #fff
+        margin-bottom -1px
         color #666
         text-decoration none
         
         .fa
           margin-right 0.25em
+        
+        &:hover
+          background #f8f8f8
 
+  // TABS
   .macros
     display grid
     grid-template-columns repeat(8, 1fr)
