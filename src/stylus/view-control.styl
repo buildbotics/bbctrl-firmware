@@ -35,24 +35,24 @@
 
     > *
       margin 0.25em 0
+      
+    // =====================================================
+    // TOP SECTION: Axis table + User panel side by side
+    // =====================================================
+    .control-top
+      display flex
+      gap 1em
+      align-items stretch  // User panel height matches axis section
+
+    .axis-section
+      flex 1
+      min-width 0
 
   table
     border-collapse collapse
 
     td, th
       border 1px solid #ddd
-
-  // =====================================================
-  // TOP SECTION: Axis table + User panel side by side
-  // =====================================================
-  .control-top
-    display flex
-    gap 1em
-    align-items stretch  // User panel height matches axis section
-
-  .axis-section
-    flex 1
-    min-width 0
 
   // =====================================================
   // AXIS TABLE
@@ -286,9 +286,11 @@
     background #fff
     display flex
     flex-direction column
-    // Height adapts to axis table via flexbox align-items: stretch
+    overflow hidden  // Prevent panel from growing - content scrolls instead
+    // Height set by align-items: stretch on parent .control-top
 
   .user-panel-tabs
+    flex-shrink 0  // Don't shrink tabs
     display flex
     border-bottom 1px solid #ddd
     background #f8f8f8
@@ -316,6 +318,7 @@
 
   .user-panel-content
     flex 1
+    min-height 0  // Critical for flex child to allow shrinking
     overflow hidden
     display flex
     flex-direction column
@@ -387,6 +390,7 @@
       box-sizing border-box
 
   .mdi-buttons
+    flex-shrink 0  // Don't shrink buttons
     display flex
     gap 0.5em
     
@@ -633,29 +637,24 @@
   .tabs
     margin-top 0.5em
     
-    // Clear icon in Messages tab
-    .messages-tab
-      display flex
-      align-items center
-      gap 0.5em
+    // Action link on right side of tab bar (like macros settings link)
+    .tab-action
+      margin-left auto
+      padding 0.5em 1em
+      background #f8f8f8
+      color #666
+      cursor pointer
+      border-top-left-radius 4px
+      border-top-right-radius 4px
+      font-size 0.9em
+      text-decoration none
       
-      .clear-messages
-        display inline-flex
-        align-items center
-        justify-content center
-        width 1.2em
-        height 1.2em
-        border-radius 50%
-        cursor pointer
-        opacity 0.6
-        transition opacity 0.15s, background 0.15s
-        
-        .fa
-          font-size 0.75em
-        
-        &:hover
-          opacity 1
-          background rgba(0, 0, 0, 0.1)
+      .fa
+        margin-right 0.25em
+      
+      &:hover
+        background #e8e8e8
+        color #333
     
     section
       min-height 300px

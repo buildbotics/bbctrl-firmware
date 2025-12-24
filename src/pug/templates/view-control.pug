@@ -272,16 +272,19 @@ script#view-control-template(type="text/x-template")
       label(for="tab1", title="View program code with line highlighting") Code
 
       input#tab5(type="radio", name="tabs", @click="tab = 'messages'")
-      label.messages-tab(for="tab5", title="View console messages")
-        | Messages
-        span.clear-messages(@click.stop="clear_console", title="Clear messages")
-          .fa.fa-times
+      label(for="tab5", title="View console messages") Messages
 
       input#tab6(type="radio", name="tabs", @click="tab = 'indicators'")
       label(for="tab6", title="View I/O pin states") I/O Pins
 
       input#tab7(type="radio", name="tabs", @click="tab = 'power'")
       label(for="tab7", title="View power information") Power
+
+      //- Clear link - only visible when Messages tab is active
+      a.tab-action(v-show="tab === 'messages'", @click="clear_console",
+        title="Clear console messages")
+        .fa.fa-trash
+        |  Clear
 
       section#content1.tab-content
         textarea.gcode-view(v-el:gcode-view)
