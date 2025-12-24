@@ -286,7 +286,7 @@
     background #fff
     display flex
     flex-direction column
-    overflow hidden  // Prevent panel from growing - content scrolls instead
+    overflow hidden  // Prevent content from growing panel
     // Height set by align-items: stretch on parent .control-top
 
   .user-panel-tabs
@@ -318,7 +318,8 @@
 
   .user-panel-content
     flex 1
-    min-height 0  // Critical for flex child to allow shrinking
+    height 0  // Start at 0, grow via flex - ensures parent's overflow is respected
+    min-height 0
     overflow hidden
     display flex
     flex-direction column
@@ -367,7 +368,8 @@
     flex-direction column
     gap 0.5em
     flex 1
-    min-height 0  // Allow flex shrinking
+    height 0  // Start at 0, grow via flex
+    min-height 0
     overflow hidden
 
   .mdi-input-row
@@ -399,7 +401,8 @@
 
   .mdi-history
     flex 1
-    min-height 0  // Allow flex shrinking
+    height 0  // Start at 0, grow via flex
+    min-height 0
     overflow-y auto
     background #fafafa
     border-radius 4px
@@ -572,6 +575,14 @@
         border-radius 2px
 
   // =====================================================
+  .toolbar
+    display flex
+    flex-wrap wrap
+    clear both
+    padding 0.5em
+    background #f5f5f5
+    border-radius 4px
+    margin-bottom 0.5em
   // MACROS
   // =====================================================
   .macros-container
@@ -637,23 +648,29 @@
   .tabs
     margin-top 0.5em
     
-    // Action link on right side of tab bar (like macros settings link)
+    // Clear action styled as a tab on the far right
     .tab-action
-      margin-left auto
+      float right
       padding 0.5em 1em
-      background #f8f8f8
-      color #666
+      font-weight bold
       cursor pointer
-      border-top-left-radius 4px
-      border-top-right-radius 4px
-      font-size 0.9em
       text-decoration none
+      text-align center
+      background #fff
+      border-top-left-radius 5px
+      border-top-right-radius 5px
+      border-top 2px solid #ddd
+      border-left 1px solid #ddd
+      border-right 1px solid #ddd
+      border-bottom 1px solid #fff
+      margin-bottom -1px
+      color #666
       
       .fa
         margin-right 0.25em
       
       &:hover
-        background #e8e8e8
+        background-image button-hover
         color #333
     
     section
@@ -672,6 +689,64 @@
     height 350px
     white-space nowrap
 
+  // =====================================================
+  // MDI
+  // =====================================================
+  .mdi
+    clear both
+    white-space nowrap
+    padding 0.5em
+    display flex
+    background #f5f5f5
+    border-radius 4px
+    gap 0.5em
+
+    button, .bbutton
+      flex-shrink 0
+
+    input
+      flex 1
+      padding 0.5em
+      border 1px solid #ccc
+      border-radius 4px
+      font-family monospace
+
+  // =====================================================
+  // JOG
+  // =====================================================
+  .jog
+    text-align center
+
+    > svg
+      margin 1em
+      
+      // Visual feedback when jog controls are disabled (program running)
+      &.disabled
+        opacity 0.4
+        pointer-events none
+        cursor not-allowed
+
+  .jog-settings
+    display flex
+    justify-content center
+    gap 2em
+    margin 1em 0
+    
+  .jog-adjust, .jog-mode
+    display flex
+    align-items center
+    gap 0.5em
+
+  .jog-adjust input
+    vertical-align middle
+
+  .jog-instructions
+    text-align center
+    color #666
+    font-size 0.9em
+    
+    p
+      margin 0.5em 0
 
 .load-on
   background-color #ccffcc
