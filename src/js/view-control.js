@@ -71,7 +71,8 @@ module.exports = {
       // Column visibility with cookie persistence
       columns: {
         offset: cookie.get_bool('col-offset', true),
-        absolute: cookie.get_bool('col-absolute', true)
+        absolute: cookie.get_bool('col-absolute', true),
+        state: cookie.get_bool('col-state', true)
       },
       show_column_menu: false
     }
@@ -95,7 +96,8 @@ module.exports = {
     
     // Persist column visibility
     'columns.offset'(val) {cookie.set_bool('col-offset', val)},
-    'columns.absolute'(val) {cookie.set_bool('col-absolute', val)}
+    'columns.absolute'(val) {cookie.set_bool('col-absolute', val)},
+    'columns.state'(val) {cookie.set_bool('col-state', val)}
   },
 
 
@@ -319,6 +321,12 @@ module.exports = {
       if (!e.target.closest('.column-selector')) {
         this.show_column_menu = false
       }
+    },
+    
+    
+    // Clear console messages via event
+    clear_console() {
+      this.$broadcast('clear-console')
     },
     
     

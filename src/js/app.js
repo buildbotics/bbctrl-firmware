@@ -77,6 +77,7 @@ module.exports = new Vue({
       service_dismissed: sessionStorage.getItem('service_dismissed') === 'true',
       // Fullscreen state
       is_fullscreen: false
+
     }
   },
 
@@ -173,22 +174,6 @@ module.exports = new Vue({
 
     async connected() {
       await this.update()
-      
-      // On initial connection, check if server has no active program
-      // and clear our cached selection to sync with server state
-      if (!this.initialized) {
-        this.initialized = true
-        if (!this.state.active_program) {
-          this.clear_selected_program()
-        }
-      }
-      
-      this.parse_hash()
-    },
-
-
-    async update() {
-      await this.update()
       this.parse_hash()
     },
 
@@ -265,6 +250,7 @@ module.exports = new Vue({
     camera_available() {
       // Use state from backend, default to true if not yet received
       return this.state.camera_available !== false
+
     }
   },
 

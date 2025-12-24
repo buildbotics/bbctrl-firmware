@@ -31,7 +31,7 @@ script#axis-row-template(type="text/x-template")
     td.position: unit-value(:value="axis.pos", precision=4)
     td.absolute(v-show="showAbsolute"): unit-value(:value="axis.abs", precision=3)
     td.offset(v-show="showOffset"): unit-value(:value="axis.off", precision=3)
-    td.state {{axis.state}}
+    td.state(v-show="showState") {{axis.state}}
     th.actions
       //- Desktop: icon-only buttons (zero, set, home)
       .actions-inline

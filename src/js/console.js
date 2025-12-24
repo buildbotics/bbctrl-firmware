@@ -41,6 +41,14 @@ module.exports = {
   template: '#console-template',
 
 
+  props: {
+    showToolbar: {
+      type: Boolean,
+      default: true
+    }
+  },
+
+
   data() {
     return {messages: messages}
   },
@@ -76,6 +84,12 @@ module.exports = {
       // Event on errors
       if (msg.level == 'error' || msg.level == 'critical')
         this.$dispatch('error', msg)
+    },
+    
+    
+    // Allow parent to trigger clear via event
+    'clear-console'() {
+      this.clear()
     }
   },
 

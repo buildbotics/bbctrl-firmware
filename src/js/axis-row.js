@@ -29,7 +29,7 @@
 module.exports = {
   template: '#axis-row-template',
   replace: true,
-  props: ['axis', 'showOffset', 'showAbsolute'],
+  props: ['axis', 'showOffset', 'showAbsolute', 'showState'],
 
 
   data() {

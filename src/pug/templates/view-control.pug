@@ -46,11 +46,14 @@ script#view-control-template(type="text/x-template")
                     label
                       input(type="checkbox", v-model="columns.absolute")
                       |  Absolute
+                    label
+                      input(type="checkbox", v-model="columns.state")
+                      |  State
                 span Axis
             th.position Position
             th.absolute(v-show="columns.absolute") Absolute
             th.offset(v-show="columns.offset") Offset
-            th.state State
+            th.state(v-show="columns.state") State
             th.actions
               .actions-header
                 .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
@@ -60,7 +63,8 @@ script#view-control-template(type="text/x-template")
 
           each axis in 'xyzabc'
             tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`,
-              :show-offset="columns.offset", :show-absolute="columns.absolute")
+              :show-offset="columns.offset", :show-absolute="columns.absolute",
+              :show-state="columns.state")
 
 
         //- Info tables
@@ -268,7 +272,10 @@ script#view-control-template(type="text/x-template")
       label(for="tab1", title="View program code with line highlighting") Code
 
       input#tab5(type="radio", name="tabs", @click="tab = 'messages'")
-      label(for="tab5", title="View console messages") Messages
+      label.messages-tab(for="tab5", title="View console messages")
+        | Messages
+        span.clear-messages(@click.stop="clear_console", title="Clear messages")
+          .fa.fa-times
 
       input#tab6(type="radio", name="tabs", @click="tab = 'indicators'")
       label(for="tab6", title="View I/O pin states") I/O Pins
@@ -281,7 +288,7 @@ script#view-control-template(type="text/x-template")
 
 
       section#content5.tab-content
-        console
+        console(:show-toolbar="false")
 
       section#content6.tab-content
         indicators(:state="state", :template="template")

@@ -27,7 +27,7 @@
 
 script#console-template(type="text/x-template")
   .console
-    .toolbar
+    .toolbar(v-show="showToolbar")
       bbutton(title="Clear console.", @click="clear", icon="trash",
         text="Clear")
 

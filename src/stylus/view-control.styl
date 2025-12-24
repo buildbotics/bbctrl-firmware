@@ -48,7 +48,7 @@
   .control-top
     display flex
     gap 1em
-    align-items flex-start
+    align-items stretch  // User panel height matches axis section
 
   .axis-section
     flex 1
@@ -281,12 +281,12 @@
   .user-panel
     width 280px
     min-width 280px
-    min-height 320px  // Match axis table + one info table height
     border 1px solid #ddd
     border-radius 4px
     background #fff
     display flex
     flex-direction column
+    // Height adapts to axis table via flexbox align-items: stretch
 
   .user-panel-tabs
     display flex
@@ -363,15 +363,19 @@
     display flex
     flex-direction column
     gap 0.5em
-    height 100%
+    flex 1
+    min-height 0  // Allow flex shrinking
+    overflow hidden
 
   .mdi-input-row
+    flex-shrink 0
+    
     .mdi-commands
       width 100%
       padding 0.5em
       border 1px solid #ccc
       border-radius 4px
-      font-size 0.9em
+      font-size 1rem
       
     .mdi-input
       width 100%
@@ -379,7 +383,7 @@
       border 1px solid #ccc
       border-radius 4px
       font-family monospace
-      font-size 0.95em
+      font-size 1rem
       box-sizing border-box
 
   .mdi-buttons
@@ -391,6 +395,7 @@
 
   .mdi-history
     flex 1
+    min-height 0  // Allow flex shrinking
     overflow-y auto
     background #fafafa
     border-radius 4px
@@ -627,6 +632,30 @@
   // =====================================================
   .tabs
     margin-top 0.5em
+    
+    // Clear icon in Messages tab
+    .messages-tab
+      display flex
+      align-items center
+      gap 0.5em
+      
+      .clear-messages
+        display inline-flex
+        align-items center
+        justify-content center
+        width 1.2em
+        height 1.2em
+        border-radius 50%
+        cursor pointer
+        opacity 0.6
+        transition opacity 0.15s, background 0.15s
+        
+        .fa
+          font-size 0.75em
+        
+        &:hover
+          opacity 1
+          background rgba(0, 0, 0, 0.1)
     
     section
       min-height 300px
