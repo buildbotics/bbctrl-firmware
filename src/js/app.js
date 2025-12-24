@@ -185,12 +185,6 @@ module.exports = new Vue({
     },
 
 
-    async update() {
-      await this.update()
-      this.parse_hash()
-    },
-
-
     error(msg) {
       // Honor user error blocking
       if (Date.now() - this.errorTimeoutStart < this.errorTimeout * 1000)
@@ -227,18 +221,20 @@ module.exports = new Vue({
 
     // Dynamic header for GCode messages modal showing spindle speed
     // Shows real-time spindle speed during M0 pause when tool is configured
-     popupMessagesHeader() {
+    popupMessagesHeader() {
       let header = 'GCode Messages'
-
+      
       // Show spindle speed when tool is configured (not Disabled)
-      // NOTE: Access state.s unconditionally for Vue 1.x reactivity tracking
+      // Always show RPM so user can watch spindle spin up in real-time
       let toolType = this.config.tool && this.config.tool['tool-type']
-      let speed = parseFloat(this.state.s)
-
-      if (toolType && toolType !== 'Disabled' && !isNaN(speed)) {
-        header += ' - ' + Math.round(speed) + ' RPM'
+      if (toolType && toolType !== 'Disabled') {
+        // Backend may send 'nan' string, so use parseFloat to handle it
+        let speed = parseFloat(this.state.s)
+        if (!isNaN(speed)) {
+          header += ' - Spindle: ' + Math.round(speed) + ' RPM'
+        }
       }
-
+      
       return header
     },
 
