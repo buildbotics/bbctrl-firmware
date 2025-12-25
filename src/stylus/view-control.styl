@@ -908,12 +908,14 @@
           width 100% !important
           max-width 100% !important
 
-  // FIX #8: Jog modal - remove overflow hidden and scale SVGs
+  // FIX #8: Jog modal - scale SVGs and make scrollable on small screens
   .jog-modal
     .dialog-container
       width 95vw !important
       max-width 350px !important
-      overflow visible !important
+      max-height 90vh !important
+      overflow-y auto !important
+      overflow-x visible !important
       
     .dialog-body
       overflow visible !important
