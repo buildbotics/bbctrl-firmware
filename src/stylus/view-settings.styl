@@ -416,7 +416,13 @@
 
 @media only screen and (max-width 600px)
   .view-settings
-    // FIX: Removed overflow-x hidden - was creating separate scroll context
+    // FIX: Use max-width instead of overflow-x hidden
+    // overflow-x hidden creates separate scroll context making header sticky
+    // max-width constrains content without affecting scroll behavior
+    max-width 100vw
+    box-sizing border-box
+    
+    // Original comment: Removed overflow-x hidden - was creating separate scroll context
     // causing header/alerts to appear sticky while navbar scrolled.
     // Tables already have .table-responsive wrappers with overflow-x auto.
     
