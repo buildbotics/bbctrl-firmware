@@ -851,9 +851,12 @@
   // a separate scroll context that makes header/alerts appear sticky
   .view-control
     padding 0 0.5em 80px 0.5em
+    max-width 100vw
+    box-sizing border-box
     
     #control
       max-width 100%
+      box-sizing border-box
       
       .control-top
         max-width 100%
@@ -861,6 +864,10 @@
       .axis-section
         max-width 100%
         overflow-x auto  // Allow axis table to scroll if needed
+        
+      .user-panel
+        max-width 100%
+        min-width 0  // Override the min-width: 280px
         
       .axes
         // Allow table to be responsive
@@ -892,30 +899,35 @@
         
       .macros
         grid-template-columns repeat(4, 1fr)
+      
+      // FIX: CodeMirror has inline 1000px textarea causing overflow
+      .CodeMirror
+        max-width 100%
+        
+        textarea
+          width 100% !important
+          max-width 100% !important
 
-  // FIX #8: Jog modal SVGs - stack vertically and scale on small screens
+  // FIX #8: Jog modal - remove overflow hidden and scale SVGs
   .jog-modal
-    .modal-body
+    .dialog-container
+      width 95vw !important
+      max-width 350px !important
+      overflow visible !important
+      
+    .dialog-body
+      overflow visible !important
       padding 0.5em
       
     .jog-modal-content
+      overflow visible !important
       width 100%
-      max-width 100%
-      overflow hidden
       
     .jog-controls
       flex-direction column !important
       align-items center
-      gap 0.5em
-      width 100%
+      gap 1em
       
-      > *
-        flex-shrink 1 !important
-        max-width 100%
-        
-      // Make SVGs small enough to fit mobile screens
       svg
-        width 200px !important
-        height 200px !important
-        max-width 90vw
-        max-height 90vw
+        transform scale(0.85)
+        transform-origin center center

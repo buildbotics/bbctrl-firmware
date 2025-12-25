@@ -467,6 +467,8 @@
 
   .settings-view
     padding 0 0.5em
+    max-width 100%
+    box-sizing border-box
     
     h1
       font-size 1.2em
@@ -489,7 +491,9 @@
         max-width 300px
         
       textarea
-        width 100%
+        width 100% !important
+        max-width calc(100vw - 2em) !important
+        box-sizing border-box
         
       label.units,
       label.extra

@@ -134,7 +134,10 @@ module.exports = {
     
     // Close location menu when clicking outside
     this._closeLocationMenu = (e) => {
-      if (!this.$el.querySelector('.location-dropdown').contains(e.target)) {
+      // Guard against component not being mounted
+      if (!this.$el || !this.$el.querySelector) return
+      let dropdown = this.$el.querySelector('.location-dropdown')
+      if (dropdown && !dropdown.contains(e.target)) {
         this.location_menu_open = false
       }
     }
