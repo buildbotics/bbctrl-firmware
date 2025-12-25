@@ -416,8 +416,9 @@
 
 @media only screen and (max-width 600px)
   .view-settings
-    // Prevent horizontal scroll/swipe
-    overflow-x hidden
+    // FIX: Removed overflow-x hidden - was creating separate scroll context
+    // causing header/alerts to appear sticky while navbar scrolled.
+    // Tables already have .table-responsive wrappers with overflow-x auto.
     
     .navbar
       // Wrap nav items on mobile instead of horizontal scroll

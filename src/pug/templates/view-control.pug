@@ -55,11 +55,24 @@ script#view-control-template(type="text/x-template")
             th.offset(v-show="columns.offset") Offset
             th.state(v-show="columns.state") State
             th.actions
-              .actions-header
+              //- Desktop: inline icon buttons
+              .actions-inline
                 .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
                   @click="zero_all", title="Zero all axis offsets")
                 .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
                   @click="home_all", title="Home all axes")
+              
+              //- Mobile: dropdown menu
+              .actions-dropdown
+                nav-item
+                  .fa.fa-ellipsis-v
+                  nav-menu
+                    a.nav-item(:class="{disabled: !is_idle}", @click="zero_all")
+                      .fa.fa-map-marker
+                      | Zero All
+                    a.nav-item(:class="{disabled: !is_idle}", @click="home_all")
+                      .fa.fa-home
+                      | Home All
 
           each axis in 'xyzabc'
             tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`,
