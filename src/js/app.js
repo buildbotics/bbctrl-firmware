@@ -224,15 +224,15 @@ module.exports = new Vue({
     popupMessagesHeader() {
       let header = 'GCode Messages'
       
+      // FIX: Read state.s BEFORE conditional to ensure Vue 1.x dependency tracking
+      // If state.s is only read inside the conditional, Vue won't re-evaluate
+      // the computed property when state.s changes (if condition was initially false)
+      let speed = parseFloat(this.state.s)
+      
       // Show spindle speed when tool is configured (not Disabled)
-      // Always show RPM so user can watch spindle spin up in real-time
       let toolType = this.config.tool && this.config.tool['tool-type']
-      if (toolType && toolType !== 'Disabled') {
-        // Backend may send 'nan' string, so use parseFloat to handle it
-        let speed = parseFloat(this.state.s)
-        if (!isNaN(speed)) {
-          header += ' - Spindle: ' + Math.round(speed) + ' RPM'
-        }
+      if (toolType && toolType !== 'Disabled' && !isNaN(speed)) {
+        header += ' - Spindle: ' + Math.round(speed) + ' RPM'
       }
       
       return header
