@@ -35,6 +35,8 @@ class Program {
     this.path = path
     this.filename = util.display_path(path)
     this.progress = 0
+    // FIX: Initialize time for Vue 1.x reactivity
+    this.time = 0
     // Track when program was created/refreshed for cache busting
     this.timestamp = Date.now()
   }
@@ -47,6 +49,8 @@ class Program {
     this._positions = null
     this._speeds = null
     this._view = null
+    this.progress = 0
+    this.time = 0
     // New timestamp ensures cache-busted URLs are unique
     this.timestamp = Date.now()
   }
@@ -55,7 +59,8 @@ class Program {
   // Append cache-busting timestamp to URL
   // This forces browser to fetch fresh data after invalidate()
   _cacheBust(url) {
-    return url + '?_t=' + this.timestamp
+    let separator = url.includes('?') ? '&' : '?'
+    return url + separator + '_t=' + this.timestamp
   }
 
 

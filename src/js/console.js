@@ -41,6 +41,14 @@ module.exports = {
   template: '#console-template',
 
 
+  props: {
+    showToolbar: {
+      type: Boolean,
+      default: true
+    }
+  },
+
+
   data() {
     return {messages: messages}
   },
@@ -76,11 +84,39 @@ module.exports = {
       // Event on errors
       if (msg.level == 'error' || msg.level == 'critical')
         this.$dispatch('error', msg)
+    },
+    
+    
+    // Allow parent to trigger clear via event
+    'clear-console'() {
+      this.clear()
     }
   },
 
 
   methods: {
     clear() {messages.splice(0, messages.length)},
+    
+    
+    copyMessage(msg) {
+      // Format message for clipboard
+      let text = '[' + (msg.level || 'info').toUpperCase() + ']'
+      if (msg.source) text += ' ' + msg.source
+      if (msg.where) text += ' @ ' + msg.where
+      text += ': ' + msg.msg
+      
+      // Copy to clipboard
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for older browsers
+        let textarea = document.createElement('textarea')
+        textarea.value = text
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textarea)
+      }
+    }
   }
 }

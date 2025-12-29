@@ -74,7 +74,9 @@ module.exports = new Vue({
       initialized: false,
       // Alert dismissal state (session-based, resets on browser close)
       upgrade_dismissed: sessionStorage.getItem('upgrade_dismissed') === 'true',
-      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true'
+      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true',
+      // Fullscreen state
+      is_fullscreen: false
     }
   },
 
@@ -289,6 +291,11 @@ module.exports = new Vue({
     }
 
     this.check_login()
+
+    // Listen for fullscreen changes (e.g., user presses Escape)
+    document.addEventListener('fullscreenchange', () => {
+      this.is_fullscreen = !!document.fullscreenElement
+    })
   },
 
 
@@ -523,6 +530,23 @@ module.exports = new Vue({
     view(path) {
       this.select_path(path)
       location.hash = 'viewer'
+    },
+
+
+    toggle_fullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          this.is_fullscreen = true
+        }).catch(err => {
+          console.warn('Fullscreen request failed:', err)
+        })
+      } else {
+        document.exitFullscreen().then(() => {
+          this.is_fullscreen = false
+        }).catch(err => {
+          console.warn('Exit fullscreen failed:', err)
+        })
+      }
     }
   }
 })

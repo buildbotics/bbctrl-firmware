@@ -41,6 +41,15 @@ function escapeHTML(s) {
 }
 
 
+// Format file size for display
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return ''
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+
 module.exports = {
   template: '#view-control-template',
   props: ['config', 'template', 'state'],
@@ -49,13 +58,23 @@ module.exports = {
   data() {
     return {
       mdi: '',
+      mdi_command: '',
       history: [],
       jog_step: cookie.get_bool('jog-step'),
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
-      tab: 'auto',
+      tab: 'code',
+      user_tab: 'program',
       highlighted_line: 0,
       toolpath: {},
-      macro_tab: null  // Currently selected macro tab
+      macro_tab: null,
+      file_size: '',
+      // Column visibility with cookie persistence
+      columns: {
+        offset: cookie.get_bool('col-offset', true),
+        absolute: cookie.get_bool('col-absolute', true),
+        state: cookie.get_bool('col-state', true)
+      },
+      show_column_menu: false
     }
   },
 
@@ -73,7 +92,12 @@ module.exports = {
 
     'active.path'() {this.load()},
     jog_step() {cookie.set_bool('jog-step', this.jog_step)},
-    jog_adjust() {cookie.set('jog-adjust', this.jog_adjust)}
+    jog_adjust() {cookie.set('jog-adjust', this.jog_adjust)},
+    
+    // Persist column visibility
+    'columns.offset'(val) {cookie.set_bool('col-offset', val)},
+    'columns.absolute'(val) {cookie.set_bool('col-absolute', val)},
+    'columns.state'(val) {cookie.set_bool('col-state', val)}
   },
 
 
@@ -93,7 +117,6 @@ module.exports = {
 
 
     // Distance mode display with G-code reference
-    // Backend broadcasts state.distance_mode: 90 = G90, 91 = G91
     distance_mode() {
       let mode = this.state.distance_mode
       return (mode == 91) ? 'Incremental (G91)' : 'Absolute (G90)'
@@ -159,12 +182,9 @@ module.exports = {
     },
 
 
-    // ETA: Estimated completion time based on remaining seconds
-    // Uses browser locale for time format (12h vs 24h)
     eta() {
       if (!this.remaining || this.remaining <= 0) return null
       let completionTime = new Date(Date.now() + this.remaining * 1000)
-      // Use short format: "2:45 PM" or "14:45" based on browser locale
       return completionTime.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit'
@@ -185,8 +205,7 @@ module.exports = {
       return p < 1 ? p : 1
     },
     
-    
-    // Get macro tabs from config, with default fallback
+
     macro_tabs() {
       let tabs = this.config.macro_tabs
       if (!tabs || !tabs.length) {
@@ -195,15 +214,13 @@ module.exports = {
       return tabs
     },
     
-    
-    // Get the currently selected macro tab ID
+
     current_macro_tab() {
       if (this.macro_tab) return this.macro_tab
       return this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
     },
     
-    
-    // Get macros filtered by current tab and visibility
+
     visible_macros() {
       let macros = this.config.macros || []
       let currentTab = this.current_macro_tab
@@ -212,9 +229,7 @@ module.exports = {
       let result = []
       for (let i = 0; i < macros.length; i++) {
         let macro = macros[i]
-        // Check visibility
         if (macro.visible === false) continue
-        // Check tab assignment
         let macroTab = macro.tab || defaultTab
         if (macroTab === currentTab) {
           result.push({
@@ -229,12 +244,10 @@ module.exports = {
       return result
     },
     
-    
-    // Check if there are multiple tabs to show
+
     has_multiple_tabs() {
       return this.macro_tabs.length > 1
-    },
-    
+    }
   },
 
 
@@ -250,14 +263,12 @@ module.exports = {
       this.send('M70\nG91\nG0' + axis + value + '\nM72')
     },
     
-    
-    // FIX #1: Handle program-cleared event to clear textarea
+
     'program-cleared'() {
       this.clear_display()
     },
     
-    
-    // FIX #5: Handle program-reloaded event to reload file content
+
     'program-reloaded'() {
       this.load()
     }
@@ -273,6 +284,14 @@ module.exports = {
 
     this.editor.on('scrollCursorIntoView', this.on_scroll)
     this.load()
+    
+    // Close column menu when clicking outside
+    document.addEventListener('click', this.close_column_menu_outside)
+  },
+  
+  
+  beforeDestroy() {
+    document.removeEventListener('click', this.close_column_menu_outside)
   },
 
 
@@ -280,20 +299,52 @@ module.exports = {
 
 
   methods: {
-    // From axis-vars
     get_bounds() {return this.toolpath.bounds},
 
 
     goto(hash) {window.location.hash = hash},
 
-    // Send G-code to backend
-    // Distance mode (G90/G91) is tracked by CAMotics planner and broadcast via state
+
     send(msg) {this.$dispatch('send', msg)},
 
     on_scroll(cm, e) {e.preventDefault()},
     
     
-    // Select a macro tab
+    // Column menu toggle
+    toggle_column_menu(e) {
+      e.stopPropagation()
+      this.show_column_menu = !this.show_column_menu
+    },
+    
+    
+    close_column_menu_outside(e) {
+      if (!e.target.closest('.column-selector')) {
+        this.show_column_menu = false
+      }
+    },
+    
+    
+    // Clear console messages via event
+    clear_console() {
+      this.$broadcast('clear-console')
+    },
+    
+    
+    // MDI common commands
+    apply_mdi_command() {
+      if (this.mdi_command) {
+        this.mdi = this.mdi_command
+        this.mdi_command = ''
+      }
+    },
+    
+    
+    // Jog modal
+    open_jog_modal() {
+      this.$refs.jogModal.open()
+    },
+    
+
     select_macro_tab(tabId) {
       this.macro_tab = tabId
     },
@@ -301,8 +352,6 @@ module.exports = {
 
     async run_macro(macro) {
       try {
-        // macro is the 1-based index from the button
-        // originalIndex is the 0-based index in config.macros
         let originalIndex = macro
         if (typeof macro === 'object' && macro.originalIndex !== undefined) {
           originalIndex = macro.originalIndex
@@ -318,14 +367,11 @@ module.exports = {
           throw new Error('Macro has no file configured')
         }
         
-        // Build full path
         let path = macroConfig.path
         if (!path.startsWith('Home/')) {
           path = 'Home/' + path
         }
         
-        // SAFETY: Check position reference BEFORE showing confirmation
-        // Skip check if macro is flagged (for homing/setup macros)
         if (!macroConfig.skip_reference_check) {
           let unreferenced = this._get_unreferenced_axes()
           if (unreferenced.length) {
@@ -334,11 +380,9 @@ module.exports = {
           }
         }
         
-        // Check if confirmation is required (default: true for safety)
         let requiresConfirm = macroConfig.confirm !== false
         
         if (requiresConfirm) {
-          // Show confirmation dialog before running macro
           let macroName = macroConfig.name || ('Macro ' + (originalIndex + 1))
           let confirmed = await this.$root.open_dialog({
             header: 'Confirm Macro',
@@ -350,11 +394,9 @@ module.exports = {
             ]
           })
           
-          // User cancelled - don't run macro
           if (confirmed != 'run') return
         }
         
-        // Call the macro API endpoint (uses 1-based index)
         return this.$api.put('macro/' + (originalIndex + 1)).catch(() => {})
         
       } catch (e) {
@@ -378,12 +420,12 @@ module.exports = {
     },
 
 
-    // FIX #1: Clear the display when no program is loaded
     clear_display() {
       if (typeof this.editor != 'undefined') {
         this.editor.setValue('')
       }
       this.toolpath = {}
+      this.file_size = ''
       this.highlighted_line = 0
     },
 
@@ -391,7 +433,6 @@ module.exports = {
     async load() {
       let path = this.active.path
       
-      // FIX #1: If no path, clear the display
       if (!path) {
         this.clear_display()
         return
@@ -399,6 +440,9 @@ module.exports = {
 
       let data = await this.active.load()
       if (this.active.path != path) return
+
+      // Calculate file size from loaded content
+      this.file_size = formatFileSize(data ? data.length : 0)
 
       this.editor.setOption('mode', util.get_highlight_mode(path))
       this.editor.setValue(data)
@@ -447,11 +491,11 @@ module.exports = {
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
         this.unpause()
 
-      else this.start().catch(() => {}) // Error already shown by API handler
+      else this.start().catch(() => {})
     },
 
 
-    async start()          {
+    async start() {
       return this.$api.put('start/' + this.$root.selected_program.path)
     },
 
@@ -486,13 +530,11 @@ module.exports = {
     },
 
 
-    // SAFETY: Check which axes lack position reference
     _get_unreferenced_axes() {
       let unreferenced = []
       let motors = this.config.motors || []
       
       for (let axis of 'xyzabc') {
-        // Find motor for this axis
         let motor = -1
         for (let i = 0; i < motors.length; i++) {
           if (motors[i].axis && motors[i].axis.toLowerCase() == axis) {
@@ -504,7 +546,6 @@ module.exports = {
         if (motor == -1) continue
         if (!motors[motor].enabled) continue
         
-        // Check if reference is required
         let refSetting = motors[motor]['reference-required'] || 'Auto'
         let required = (refSetting == 'Auto') ? 'xyz'.includes(axis) : (refSetting == 'Yes')
         
@@ -517,7 +558,6 @@ module.exports = {
     },
 
 
-    // Format user-friendly error message for unreferenced axes
     _format_reference_error(axes) {
       if (axes.length == 1) {
         return 'Cannot start: ' + axes[0] + ' axis position is unknown. ' +

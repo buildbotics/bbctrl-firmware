@@ -28,6 +28,10 @@
 .view-viewer-page #main
   height 100vh
 
+.view-viewer-page .content
+  height calc(100vh - 180px)
+  overflow hidden
+
 .view-viewer
   height 100%
   overflow hidden
@@ -40,13 +44,11 @@
     overflow hidden
 
   .path-viewer
-    height 100%
+    flex 1
+    height auto
 
   .navbar
-    .filename
-      flex 1
-      text-align right
-      padding 5px 15px
+    flex-shrink 0
 
     img
       width 1.5em

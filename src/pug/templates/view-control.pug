@@ -27,241 +27,284 @@
 
 script#view-control-template(type="text/x-template")
   #control
-    table.axes
-      tr(:class="axes.klass")
-        th.name Axis
-        th.position Position
-        th.absolute Absolute
-        th.offset Offset
-        th.state State
-        th.actions
-          //- Desktop: individual buttons
-          .actions-inline
-            bbutton(:disabled="!is_idle", icon="map-marker", text="Zero All",
-              title="Zero all axis offsets.", @click="zero_all")
+    //- Top row: Axis table + User panel
+    .control-top
+      //- Left side: Axis table
+      .axis-section
+        table.axes
+          tr
+            th.name
+              .name-header
+                //- Column selector (gear icon) - left aligned
+                .column-selector
+                  .fa.fa-cog(@click="toggle_column_menu",
+                    title="Show/hide columns")
+                  .column-menu(v-show="show_column_menu")
+                    label
+                      input(type="checkbox", v-model="columns.offset")
+                      |  Offset
+                    label
+                      input(type="checkbox", v-model="columns.absolute")
+                      |  Absolute
+                    label
+                      input(type="checkbox", v-model="columns.state")
+                      |  State
+                span Axis
+            th.position Position
+            th.absolute(v-show="columns.absolute") Absolute
+            th.offset(v-show="columns.offset") Offset
+            th.state(v-show="columns.state") State
+            th.actions
+              //- Desktop: inline icon buttons
+              .actions-inline
+                .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
+                  @click="zero_all", title="Zero all axis offsets")
+                .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
+                  @click="home_all", title="Home all axes")
+              
+              //- Mobile: dropdown menu
+              .actions-dropdown
+                nav-item
+                  .fa.fa-ellipsis-v
+                  nav-menu
+                    a.nav-item(:class="{disabled: !is_idle}", @click="zero_all")
+                      .fa.fa-map-marker
+                      | Zero All
+                    a.nav-item(:class="{disabled: !is_idle}", @click="home_all")
+                      .fa.fa-home
+                      | Home All
 
-            bbutton(:disabled="!is_idle", icon="home", text="Home All",
-              title="Home all axes.", @click="home_all")
+          each axis in 'xyzabc'
+            tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`,
+              :show-offset="columns.offset", :show-absolute="columns.absolute",
+              :show-state="columns.state")
 
-          //- Mobile: dropdown menu
-          .actions-dropdown
-            nav-item
-              .fa.fa-ellipsis-v
-              nav-menu
-                a.nav-item(:class="{disabled: !is_idle}", @click="zero_all")
-                  .fa.fa-map-marker
-                  | Zero All
-                a.nav-item(:class="{disabled: !is_idle}", @click="home_all")
-                  .fa.fa-home
-                  | Home All
 
-      each axis in 'xyzabc'
-        tr(is="axis-row", :axis=axis, v-if=`${axis}.enabled`)
+        //- Info tables
+        .info-blocks
+          table.info
+            tr
+              th State
+              td(:class="{attention: highlight_state}") {{mach_state}}
+            tr
+              th Message
+              td.message(:class="{attention: highlight_state}")
+                | {{message.replace(/^#/, '')}}
+            tr(title="Active machine units: G20=Imperial (inches), G21=Metric (mm)")
+              th Units
+              td {{mach_units}}
+            tr(title="Distance mode: G90=Absolute positioning, G91=Incremental positioning")
+              th Distance
+              td {{distance_mode}}
 
-    //- Macro section with tabs
+          table.info
+            tr(title="Velocity in {{metric ? 'meters' : 'inches'}} per minute")
+              th Velocity
+              td
+                unit-value(:value="state.v", precision="2", unit="", iunit="", scale="0.0254")
+                | {{metric ? ' m/min' : ' IPM'}}
+            tr(title="Programmed feed rate.")
+              th Feed
+              td
+                unit-value(:value="state.feed", precision="2", unit="", iunit="")
+                | {{metric ? ' mm/min' : ' IPM'}}
+            tr(title="Programed and actual speed.")
+              th Speed
+              td
+                | {{state.speed || 0 | fixed 0}}
+                span(v-if="!isNaN(state.s)")  ({{state.s | fixed 0}})
+                = ' RPM'
+            tr(title="Active tool number")
+              th Tool
+              td {{state.tool || 0}}
+
+          table.info
+            tr
+              th Remaining
+              td(title="Total run time (days:hours:mins:secs)").
+                #[span(v-if="remaining") {{remaining | time}} of]
+                {{toolpath.time || 0 | time}}
+            tr(title="Estimated completion time based on remaining time")
+              th ETA
+              td {{eta || '--'}}
+            tr
+              th Line
+              td {{0 <= state.line ? state.line : 0 | number}}
+            tr
+              th {{this.simulating ? 'Simulating' : 'Progress'}}
+              td.progress
+                label {{(progress || 0) | percent}}
+                .bar(:style="'width:' + (progress || 0) * 100 + '%'")
+
+
+      //- Right side: User panel
+      .user-panel
+        .user-panel-tabs
+          .user-panel-tab(:class="{active: user_tab === 'program'}", 
+            @click="user_tab = 'program'", title="Program controls") Program
+          .user-panel-tab(:class="{active: user_tab === 'mdi'}", 
+            @click="user_tab = 'mdi'", title="Manual Data Input") MDI
+          .user-panel-tab(@click="open_jog_modal", title="Open jog controls")
+            .fa.fa-arrows
+            |  Jog
+
+        .user-panel-content
+          //- Program tab
+          .panel-program(v-show="user_tab === 'program'")
+            .program-info
+              .program-filename(v-if="active.filename")
+                .fa.fa-file-code-o
+                |  {{active.filename}}
+              .program-filename.no-file(v-else)
+                .fa.fa-file-o
+                |  No file loaded
+              .program-meta(v-if="active.path")
+                | {{toolpath.lines || 0 | number}} lines
+                span(v-if="file_size")  | {{file_size}}
+            
+            .program-actions
+              .action-row
+                bbutton(:class="{'attention': is_holding}",
+                  title="{{is_running ? 'Pause' : 'Start'}} program",
+                  @click="start_pause", :icon="is_running ? 'pause' : 'play'",
+                  :disabled="!active.path || mach_state == 'JOGGING'",
+                  :text="is_running ? 'Pause' : 'Start'")
+                
+                bbutton(title="Stop program", @click="stop", 
+                  icon="stop", text="Stop")
+              
+              .action-row
+                bbutton(title="Edit program in editor", @click="edit", 
+                  icon="pencil", text="Edit", :disabled="!active.path")
+                
+                bbutton(title="Open 3D viewer", @click="view", 
+                  icon="eye", text="View",
+                  v-if="$root.webGLSupported", :disabled="!active.path")
+              
+              .action-row
+                bbutton(title="Select a different program", @click="open",
+                  :disabled="!is_ready", icon="folder-open", text="Open")
+
+          //- MDI tab
+          .panel-mdi(v-show="user_tab === 'mdi'")
+            .mdi-input-row
+              select.mdi-commands(v-model="mdi_command", 
+                @change="apply_mdi_command",
+                title="Select a common G-code command")
+                option(value="") Common Commands...
+                option(value="G90") G90 - Absolute Distance
+                option(value="G91") G91 - Incremental Distance
+                option(value="M3 S") M3 S##### - Start Spindle
+                option(value="M5") M5 - Stop Spindle
+                option(value="G28") G28 - Return to Home
+                option(value="G30") G30 - Return to Secondary
+                option(value="G92 X0 Y0 Z0") G92 X0 Y0 Z0 - Set Position
+            
+            .mdi-input-row
+              input.mdi-input(v-model="mdi", :disabled="!can_mdi", 
+                @keyup.enter="submit_mdi", placeholder="Enter G-code...",
+                title="Type G-code commands here")
+            
+            .mdi-buttons
+              bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
+                title="{{is_running ? 'Pause' : 'Execute'}} MDI command",
+                @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
+                :text="is_running ? 'Pause' : 'Run'")
+              bbutton(title="Stop current operation", @click="stop", 
+                icon="stop", text="Stop")
+            
+            .mdi-history(:class="{placeholder: !history.length}")
+              .history-label(v-if="history.length") History
+              span(v-else) MDI history displays here.
+              ul
+                li(v-for="item in history", @click="load_history($index)",
+                  track-by="$index", title="Click to load this command") {{item}}
+
+    //- Jog Modal
+    dialog.jog-modal(v-ref:jog-modal, header="Jog Controls", buttons="Close")
+      div(slot="body")
+        .jog-modal-content
+          .jog-controls
+            axis-control(axes="XY", :colors="['red', 'green']",
+              :enabled="[x.enabled, y.enabled]",
+              v-if="x.enabled || y.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
+
+            axis-control(axes="AZ", :colors="['orange', 'blue']",
+              :enabled="[a.enabled, z.enabled]",
+              v-if="a.enabled || z.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
+
+            axis-control(axes="BC", :colors="['cyan', 'purple']",
+              :enabled="[b.enabled, c.enabled]",
+              v-if="b.enabled || c.enabled", :adjust="jog_adjust",
+              :step="jog_step", :disabled="!is_idle")
+
+          .jog-settings
+            .jog-adjust
+              label Fine adjust
+              input(type="range", v-model="jog_adjust", min=0, max=2, step=1,
+                title="Adjust jog speed sensitivity")
+            
+            .jog-mode
+              label
+                input(type="checkbox", v-model="jog_step")
+                |  Step mode
+
+          .jog-instructions(v-if="jog_step")
+            p Click axis buttons to jog by step amount.
+          .jog-instructions(v-else)
+            p Click and hold axis buttons to jog continuously.
+            p Speed is determined by which ring you click.
+
+    //- Macros section
     .macros-container
-      //- Tab bar (always show - includes settings tab)
       .macro-tabs
         .macro-tab(v-for="tab in macro_tabs",
           :class="{active: current_macro_tab === tab.id}",
           @click="select_macro_tab(tab.id)",
-          :title="tab.name")
+          :title="'Show ' + tab.name + ' macros'")
           | {{tab.name}}
         
         a.macro-tab.settings-tab(href="#macros", title="Configure macros")
           .fa.fa-th-large
           |  Macros
       
-      //- Macro buttons
       .macros
         bbutton.macro(v-for="macro in visible_macros",
           v-if="macro.path",
           :disabled="!is_idle",
           @click="run_macro(macro.originalIndex)",
-          :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
+          :title="is_idle ? 'Run macro: ' + macro.name + '\\nFile: ' + macro.path : 'Cannot run macro while program is active'",
           :style="{'background-color': macro.color}",
           :text="macro.name || ('' + (macro.originalIndex + 1))")
 
-    .info-blocks
-      table.info
-        tr
-          th State
-          td(:class="{attention: highlight_state}") {{mach_state}}
-
-        tr
-          th Message
-          td.message(:class="{attention: highlight_state}")
-            | {{message.replace(/^#/, '')}}
-
-        tr(title="Active machine units: G20=Imperial (inches), G21=Metric (mm)")
-          th Units
-          td {{mach_units}}
-
-        tr(title="Distance mode: G90=Absolute positioning, G91=Incremental positioning")
-          th Distance
-          td {{distance_mode}}
-
-      table.info
-        tr(
-          title="Velocity in {{metric ? 'meters' : 'inches'}} per minute")
-          th Velocity
-          td
-            unit-value(:value="state.v", precision="2", unit="", iunit="",
-              scale="0.0254")
-            | {{metric ? ' m/min' : ' IPM'}}
-
-        tr(title="Programmed feed rate.")
-          th Feed
-          td
-            unit-value(:value="state.feed", precision="2", unit="", iunit="")
-            | {{metric ? ' mm/min' : ' IPM'}}
-
-        tr(title="Programed and actual speed.")
-          th Speed
-          td
-            | {{state.speed || 0 | fixed 0}}
-            span(v-if="!isNaN(state.s)")  ({{state.s | fixed 0}})
-            = ' RPM'
-
-        tr(title="Active tool number")
-          th Tool
-          td {{state.tool || 0}}
-
-      table.info
-        tr
-          th Remaining
-          td(title="Total run time (days:hours:mins:secs)").
-            #[span(v-if="remaining") {{remaining | time}} of]
-            {{toolpath.time || 0 | time}}
-        tr(title="Estimated completion time based on remaining time")
-          th ETA
-          td {{eta || '--'}}
-        tr
-          th Line
-          td {{0 <= state.line ? state.line : 0 | number}}
-        tr
-          th {{this.simulating ? 'Simulating' : 'Progress'}}
-          td.progress
-            label {{(progress || 0) | percent}}
-            .bar(:style="'width:' + (progress || 0) * 100 + '%'")
-
+    //- Bottom tabs
     .tabs
-      input#tab1(type="radio", name="tabs" checked, @click="tab = 'auto'")
-      label(for="tab1", title="Run programs") Auto
-
-      input#tab2(type="radio", name="tabs", @click="tab = 'mdi'")
-      label(for="tab2", title="Manual command entry") MDI
-
-      input#tab3(type="radio", name="tabs", @click="tab = 'jog'")
-      label(for="tab3", "Jog the axes manually") Jog
-
-      template(v-if="false")
-        input#tab4(type="radio", name="tabs", @click="tab = 'overrides'")
-        label(for="tab4", "Speed and feed overrides") Overrides
+      input#tab1(type="radio", name="tabs" checked, @click="tab = 'code'")
+      label(for="tab1", title="View program code with line highlighting") Code
 
       input#tab5(type="radio", name="tabs", @click="tab = 'messages'")
-      label(for="tab5") Messages
+      label(for="tab5", title="View console messages") Messages
 
       input#tab6(type="radio", name="tabs", @click="tab = 'indicators'")
-      label(for="tab6") I/O Pins
+      label(for="tab6", title="View I/O pin states") I/O Pins
 
       input#tab7(type="radio", name="tabs", @click="tab = 'power'")
-      label(for="tab7") Power
+      label(for="tab7", title="View power information") Power
 
-      section#content1.tab-content.pure-form
-        .toolbar.pure-control-group
-          bbutton(:class="{'attention': is_holding}",
-            title="{{is_running ? 'Pause' : 'Start'}} program.",
-            @click="start_pause", :icon="is_running ? 'pause' : 'play'",
-            :disabled="!active.path || mach_state == 'JOGGING'",
-            :text="is_running ? 'Pause' : 'Run'")
+      //- Clear link - only visible when Messages tab is active
+      a.tab-action(v-show="tab === 'messages'", @click="clear_console",
+        title="Clear console messages")
+        .fa.fa-trash
+        |  Clear
 
-          bbutton(title="Stop program.", @click="stop", text="Stop")
-
-          bbutton(title="Pause program at next optional stop (M1).",
-            @click="optional_pause", v-if="false", icon="stop-circle-o",
-            text="Optional Pause")
-
-          bbutton(title="Execute one program step.", @click="step",
-            :disabled="(!is_ready && !is_holding) || !active.path",
-            v-if="false", icon="step-forward", text="Step")
-
-          bbutton(title="Select a program.", @click="open",
-            :disabled="!is_ready", text="Open")
-
-          bbutton(title="Edit program.", @click="edit", text="Edit",
-            :disabled="!active.path")
-
-          bbutton(title="Open 3D view.", @click="view", icon="eye", text="View",
-            v-if="$root.webGLSupported", :disabled="!active.path")
-
-          .filename {{active.filename}}
-
+      section#content1.tab-content
         textarea.gcode-view(v-el:gcode-view)
 
-      section#content2.tab-content
-        .mdi.pure-form(title="Manual command entry.")
-          bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
-            title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
-            :text="is_running ? 'Pause' : 'Run'")
-
-          bbutton(title="Stop command.", @click="stop", icon="stop", text="Stop")
-
-          input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
-
-        .history(:class="{placeholder: !history}")
-          span(v-if="!history.length") MDI history displays here.
-          ul
-            li(v-for="item in history", @click="load_history($index)",
-               track-by="$index")
-              | {{item}}
-
-      section#content3.tab-content
-        .jog
-          axis-control(axes="XY", :colors="['red', 'green']",
-            :enabled="[x.enabled, y.enabled]",
-            v-if="x.enabled || y.enabled", :adjust="jog_adjust",
-            :step="jog_step", :disabled="!is_idle")
-
-          axis-control(axes="AZ", :colors="['orange', 'blue']",
-            :enabled="[a.enabled, z.enabled]",
-            v-if="a.enabled || z.enabled", :adjust="jog_adjust",
-            :step="jog_step", :disabled="!is_idle")
-
-          axis-control(axes="BC", :colors="['cyan', 'purple']",
-            :enabled="[b.enabled, c.enabled]",
-            v-if="b.enabled || c.enabled", :adjust="jog_adjust",
-            :step="jog_step", :disabled="!is_idle")
-
-          .jog-settings
-            .jog-adjust
-              | Fine adjust
-              input(type="range", v-model="jog_adjust", min=0, max=2, step=1,
-                list="jog-adjust-ticks")
-              datalist#jog-adjust-ticks
-                option(value="0")
-                option(value="1")
-                option(value="2")
-
-            .jog-mode
-              | Step mode
-              input(type="checkbox", v-model="jog_step")
-
-          .jog-instructions(v-if="jog_step")
-            p Left click the axes above to jog by the specified amount.
-
-          .jog-instructions(v-else)
-            p.
-              Left click the axes above holding down the mouse button to jog the
-              machine.
-            p Jogging speed is set by the ring that is clicked.
-
-      section#content4.tab-content
-        overrides(:state="state", :template="template")
 
       section#content5.tab-content
-        console
+        console(:show-toolbar="false")
 
       section#content6.tab-content
         indicators(:state="state", :template="template")
