@@ -342,7 +342,7 @@ class Config(object):
             else:
                 # Keep original path if isolation failed (file might not exist yet)
                 self.log.warning('Macro %d isolation skipped: %s' % (
-                    macro_id, source_path))
+                    i + 1, source_path))
                 active_paths.add(source_path)
         
         return active_paths

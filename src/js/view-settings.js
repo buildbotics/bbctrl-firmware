@@ -42,13 +42,12 @@ module.exports = {
 
 
   components: {
-    'settings-general':   require('./settings-general'),
-    'settings-motor':     require('./settings-motor'),
-    'settings-tool':      require('./settings-tool'),
-    'settings-io':        require('./settings-io'),
-    'settings-macros':    require('./settings-macros'),
-    'settings-network':   require('./settings-network'),
-    'settings-admin':     require('./settings-admin')
+    'settings-general': require('./settings-general'),
+    'settings-motor':   require('./settings-motor'),
+    'settings-tool':    require('./settings-tool'),
+    'settings-io':      require('./settings-io'),
+    'settings-network': require('./settings-network'),
+    'settings-admin':   require('./settings-admin')
   },
 
 

@@ -80,7 +80,7 @@ script#view-control-template(type="text/x-template")
           @click="run_macro(macro.originalIndex)",
           :title="is_idle ? 'Run macro ' + macro.name + '\\n' + macro.path : 'Cannot run macro while program is active'",
           :style="{'background-color': macro.color}",
-          :text="macro.name || (macro.originalIndex + 1)")
+          :text="macro.name || ('' + (macro.originalIndex + 1))")
 
     .info-blocks
       table.info

@@ -109,7 +109,8 @@ class FileSystem:
     # Get the real source path
     real_source = self.realpath(source_path)
     if not real_source or not os.path.exists(real_source):
-      self.log.warning('Macro source not found: %s' % source_path)
+      # Don't warn - this is expected for pre-existing configs where
+      # the source file might not exist yet or was deleted
       return None
     
     if not os.path.isfile(real_source):

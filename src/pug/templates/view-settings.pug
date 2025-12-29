@@ -40,19 +40,41 @@ script#view-settings-template(type="text/x-template")
 
       a.nav-item(href="#settings:tool") Tool
       a.nav-item(href="#settings:io") I/O
-      a.nav-item(href="#settings:macros") Macros
       a.nav-item(href="#settings:network") Network
       a.nav-item(href="#settings:admin") Admin
 
+      .spacer
+
       .actions
-        bbutton(v-if="$root.authorized", @click="$root.logout", text="Logout",
-          title="Logout to lock protected settings")
+        //- Desktop: inline buttons
+        .actions-inline
+          bbutton(v-if="!$root.authorized", @click="$root.login()", 
+            icon="sign-in", text="Login",
+            title="Login to unlock protected settings")
+          bbutton(v-if="$root.authorized && modified", @click="save", 
+            icon="save", text="Save", success,
+            title="Save settings")
+          .save-status(v-if="$root.authorized && !modified")
+            .fa.fa-check
+            span Saved
+          bbutton(v-if="$root.authorized", @click="$root.logout()", 
+            icon="sign-out",
+            title="Logout")
 
-        bbutton(v-else, @click="$root.login", text="Login", success,
-          title="Login to unlock protected settings")
-
-        bbutton(:success="modified", :disabled="!modified", @click="save",
-          title="Save settings", text="Save")
+        //- Mobile: dropdown menu
+        .actions-dropdown
+          nav-item
+            .fa.fa-ellipsis-v
+            nav-menu
+              a.nav-item(v-if="!$root.authorized", @click="$root.login()")
+                .fa.fa-sign-in
+                | Login
+              a.nav-item(v-if="$root.authorized && modified", @click="save")
+                .fa.fa-save
+                | Save
+              a.nav-item(v-if="$root.authorized", @click="$root.logout()")
+                .fa.fa-sign-out
+                | Logout
 
     .settings-view(v-if="view", :is="'settings-' + view", :index="index",
       :config="config", :template="template", :state="state", keep-alive)

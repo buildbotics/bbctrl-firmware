@@ -326,6 +326,12 @@ class Planner():
         """Update frontend with planner's modal state (units, distance mode, etc.)"""
         if self.planner is None:
             return
+        
+        # get_modal_state() requires updated camotics.so
+        # Gracefully skip if method doesn't exist (old camotics version)
+        if not hasattr(self.planner, 'get_modal_state'):
+            return
+        
         try:
             modal = self.planner.get_modal_state()
             self.ctrl.state.set('distance_mode', modal.get('distance_mode', 90))
