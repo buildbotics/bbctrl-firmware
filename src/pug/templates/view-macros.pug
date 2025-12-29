@@ -1,0 +1,272 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#view-macros-template(type="text/x-template")
+  .macros-view
+    //- Navigation bar (dark style)
+    nav.navbar
+      a.nav-item(href="#macros") Macros
+      a.nav-item(href="#macros:tabs") Tabs
+      a.nav-item(href="#macros:safety") Safety
+      
+      .spacer
+      
+      .actions
+        //- Desktop: inline buttons
+        .actions-inline
+          //- Add button changes based on view
+          bbutton(v-if="view === 'macros'", @click="add", icon="plus", text="Add Macro",
+            :disabled="!$root.authorized",
+            title="Add a new macro")
+          bbutton(v-if="view === 'tabs'", @click="add_tab", icon="plus", text="Add Tab",
+            :disabled="!$root.authorized",
+            title="Add a new tab")
+          
+          //- Login/Save button area (far right)
+          bbutton(v-if="!$root.authorized", @click="$root.login()", 
+            icon="sign-in", text="Login",
+            title="Login to make changes")
+          bbutton(v-if="$root.authorized && modified", @click="save", 
+            icon="save", text="Save", success,
+            title="Save macro configuration")
+          .save-status(v-if="$root.authorized && !modified")
+            .fa.fa-check
+            span Saved
+          bbutton(v-if="$root.authorized", @click="$root.logout()", 
+            icon="sign-out",
+            title="Logout")
+
+        //- Mobile: dropdown menu
+        .actions-dropdown
+          nav-item
+            .fa.fa-ellipsis-v
+            nav-menu
+              a.nav-item(v-if="view === 'macros'", 
+                :class="{disabled: !$root.authorized}",
+                @click="add")
+                .fa.fa-plus
+                | Add Macro
+              a.nav-item(v-if="view === 'tabs'", 
+                :class="{disabled: !$root.authorized}",
+                @click="add_tab")
+                .fa.fa-plus
+                | Add Tab
+              .nav-separator
+              a.nav-item(v-if="!$root.authorized", @click="$root.login()")
+                .fa.fa-sign-in
+                | Login
+              a.nav-item(v-if="$root.authorized && modified", @click="save")
+                .fa.fa-save
+                | Save
+              a.nav-item(v-if="$root.authorized", @click="$root.logout()")
+                .fa.fa-sign-out
+                | Logout
+
+    //- Summary bar
+    .summary-bar
+      .summary-item
+        .summary-label Total Macros
+        .summary-value {{macros.length}}
+      .summary-item
+        .summary-label Visible
+        .summary-value {{visible_macro_count}}
+      .summary-item
+        .summary-label Tabs
+        .summary-value {{macro_tabs.length}}
+
+    //- Macros View (default)
+    .macros-content(v-if="view === 'macros'")
+      h2 Macro Configuration
+      
+      p.help-text.
+        Macros are programs that you can run by clicking the corresponding
+        button on the #[a(href="#control") control page]. Configure the button 
+        appearance, assign to tabs, and set visibility options.
+
+      //- Macro list
+      .macro-list(v-if="macros.length")
+        .macro-header
+          .col-grip
+          .col-index #
+          .col-visibility
+            .fa.fa-eye(title="Visible")
+          .col-tab Tab
+          .col-color Color
+          .col-name Name
+          .col-file File
+          .col-actions
+        
+        .macro-row(v-for="macro in macros", draggable="true",
+          @dragstart="dragstart", @mousedown="mousedown",
+          @drag="drag($index)", @dragover.prevent="",
+          @drop.prevent="drop($index)")
+          
+          .col-grip
+            .grip
+          
+          .col-index {{$index + 1}}
+          
+          .col-visibility
+            input(type="checkbox", :checked="is_visible(macro)",
+              @change="toggle_visibility($index)",
+              :title="is_visible(macro) ? 'Visible on control page' : 'Hidden from control page'")
+          
+          .col-tab
+            select(@change="set_macro_tab($index, $event.target.value)",
+              title="Assign macro to a tab")
+              option(v-for="tab in macro_tabs", :value="tab.id",
+                :selected="get_macro_tab(macro) === tab.id") {{tab.name}}
+          
+          .col-color
+            color-picker(:value.sync="macro.color", @change="change",
+              title="Set the macro button color.")
+          
+          .col-name
+            input.name(@change="change", v-model="macro.name",
+              title="Set the macro button name.",
+              placeholder="Button name")
+          
+          .col-file
+            input.path(@click="open($index)", :value="macro.path", readonly,
+              title="Select the macro file",
+              placeholder="Click to select file...")
+          
+          .col-actions
+            .fa.fa-folder-open(@click="open($index)",
+              title="Select the macro file.")
+            .fa.fa-trash(@click="remove($index)",
+              title="Delete this macro")
+      //- Empty state
+      .empty-state(v-else)
+        .fa.fa-file-code-o
+        p No macros configured yet.
+        bbutton(@click="add", icon="plus", text="Add Your First Macro")
+
+      //- Help text
+      .help-section(v-if="macros.length")
+        h3 Tips
+        ul
+          li Use the #[strong eye icon] checkbox to show/hide macros on the control page
+          li Drag macros by the grip handle to reorder them
+          li Assign macros to tabs to organize them into groups
+          li Use the #[a(href="#macros:safety") Safety tab] to configure confirmation dialogs and reference checks
+
+    //- Tabs View
+    .macros-content(v-if="view === 'tabs'")
+      h2 Macro Tabs
+      
+      p.help-text.
+        Create tabs to organize your macros into focused groups. 
+        On the control page, only macros from the selected tab will be shown.
+
+      //- Tab list
+      .tab-list(v-if="macro_tabs.length")
+        .tab-row(v-for="tab in macro_tabs", draggable="true",
+          @dragstart="tab_dragstart", @mousedown="tab_mousedown",
+          @drag="tab_drag($index)", @dragover.prevent="",
+          @drop.prevent="tab_drop($index)")
+          
+          .grip
+          
+          input.tab-name(v-model="tab.name", @change="change",
+            title="Tab name displayed on control page",
+            placeholder="Tab name")
+          
+          .tab-macro-count(title="Number of macros in this tab").
+            {{count_macros_in_tab(tab.id)}} macros
+          
+          .tab-actions
+            .fa.fa-trash(@click="remove_tab($index)",
+              :title="'Delete tab (macros will move to first tab)'",
+              :class="{disabled: macro_tabs.length <= 1}")
+
+      //- Help text
+      .help-section
+        h3 How Tabs Work
+        ul
+          li The first tab is the default - new macros are assigned here automatically
+          li Deleting a tab moves its macros to the first remaining tab
+          li On the control page, click tab names to switch between macro groups
+          li Tabs only appear on the control page when you have more than one
+
+    //- Safety View
+    .macros-content(v-if="view === 'safety'")
+      h2 Macro Safety Settings
+      
+      p.help-text.
+        Configure safety options for each macro. These settings help prevent
+        accidental machine movement.
+
+      //- Safety table
+      .safety-list(v-if="macros.length")
+        .safety-header
+          .col-index #
+          .col-confirm
+            .fa.fa-check-circle(title="Confirm before running")
+          .col-bypass
+            .fa.fa-shield(title="Skip reference check")
+          .col-name Macro Name
+        
+        .safety-row(v-for="macro in macros")
+          .col-index {{$index + 1}}
+          
+          .col-confirm
+            input(type="checkbox", :checked="requires_confirm(macro)",
+              @change="toggle_confirm($index)",
+              title="Require confirmation before running")
+          
+          .col-bypass
+            input(type="checkbox", v-model="macro.skip_reference_check",
+              @change="change",
+              title="Allow running without position reference")
+          
+          .col-name {{macro.name || '(unnamed)'}}
+
+      //- Empty state
+      .empty-state(v-else)
+        .fa.fa-shield
+        p No macros configured yet.
+        p Go to the #[a(href="#macros") Macros tab] to add macros first.
+
+      //- Help text
+      .help-section
+        h3 Setting Descriptions
+        dl
+          dt
+            .fa.fa-check-circle
+            |  Confirm
+          dd.
+            When enabled (default), a confirmation dialog appears before the macro
+            runs. Disable for frequently-used macros that don't need confirmation.
+          
+          dt
+            .fa.fa-shield
+            |  Skip Reference Check
+          dd.
+            When enabled, the macro can run even if axes have not been homed or
+            zeroed. #[strong Use only for homing or setup macros] that establish
+            position reference. Most macros should leave this disabled for safety.

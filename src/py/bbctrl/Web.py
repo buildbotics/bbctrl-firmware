@@ -26,12 +26,16 @@
 ################################################################################
 
 import os
+import sys
+import json
 import tornado
 import sockjs.tornado
 import datetime
 import shutil
+import tarfile
 import subprocess
 import socket
+import time
 from tornado.web import HTTPError
 from tornado import web, gen
 from tornado.concurrent import run_on_executor
@@ -46,7 +50,9 @@ from .MonitorTemp import *
 from .AuthHandler import *
 from .FileSystemHandler import *
 from .Ctrl import *
+from .ServiceHandler import *
 from udevevent import UDevEvent
+
 
 __all__ = ['Web']
 
@@ -405,9 +411,8 @@ class KeyboardHandler(APIHandler):
 # Base class for Web Socket connections
 class ClientConnection(object):
     def __init__(self, app):
-        self.app     = app
-        self.count   = 0
-        self.is_open = False
+        self.app = app
+        self.count = 0
 
 
     def heartbeat(self):
@@ -420,23 +425,20 @@ class ClientConnection(object):
 
 
     def on_open(self, id = None):
-        if self.is_open: return
-        self.is_open = True
-
         self.ctrl = self.app.get_ctrl(id)
+
         self.ctrl.state.add_listener(self.send)
         self.ctrl.log.add_listener(self.send)
+        self.is_open = True
         self.heartbeat()
         self.app.opened(self.ctrl)
 
 
     def on_close(self):
-        if not self.is_open: return
-        self.is_open = False
-
         self.app.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.log.remove_listener(self.send)
+        self.is_open = False
         self.app.closed(self.ctrl)
 
 
@@ -465,8 +467,6 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def send(self, msg):
         try:
             sockjs.tornado.SockJSConnection.send(self, msg)
-        except tornado.websocket.WebSocketClosedError:
-            self.on_close()
         except:
             self.close()
 
@@ -529,6 +529,16 @@ class Web(tornado.web.Application):
             (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/file',                      FileSystemHandler), # Compat
             (r'/api/macro/(\d+)',               MacroHandler),
+            (r'/api/service',                   ServiceHandler),
+            (r'/api/service/hours',             ServiceHoursHandler),
+            (r'/api/service/items',             ServiceItemHandler),
+            (r'/api/service/items/([0-9]+)',    ServiceItemHandler),
+            (r'/api/service/complete/([0-9]+)', ServiceCompleteHandler),
+            (r'/api/service/manual/([0-9]+)',   ServiceManualEntryHandler),
+            (r'/api/service/notes',             ServiceNoteHandler),
+            (r'/api/service/notes/([0-9]+)',    ServiceNoteHandler),
+            (r'/api/service/export',            ServiceExportHandler),
+            (r'/api/service/due',               ServiceDueHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),
             (r'/api/(speeds)/(.*)',             PathHandler),
@@ -560,6 +570,15 @@ class Web(tornado.web.Application):
         router.app = self
 
         tornado.web.Application.__init__(self, router.urls + handlers)
+
+        try:
+            self.listen(args.port, address = args.addr)
+
+        except Exception as e:
+            raise Exception('Failed to bind %s:%d: %s' % (
+                args.addr, args.port, e))
+
+        print('Listening on http://%s:%d/' % (args.addr, args.port))
 
 
     def _get_log(self, path):
