@@ -462,16 +462,6 @@
     
     > *
       flex-shrink 0
-    
-    // Critical: Prevent browser drag/select behavior on SVG jog controls
-    // Without this, hold-click triggers drag and steals mouseup events
-    svg
-      user-select none
-      -webkit-touch-callout none
-      -webkit-user-select none
-      -khtml-user-select none
-      -moz-user-select none
-      -ms-user-select none
 
   .jog-settings
     display flex
@@ -504,10 +494,12 @@
 
   // JOG SVG CONTROLS
   // =====================================================
-  .jog svg
+  // Note: .jog is used in tab layout, .jog-controls is used in modal
+  .jog svg, .jog-controls svg
     user-select none
     -webkit-touch-callout none
     -webkit-user-select none
+    touch-action none
 
     text
       font-family Sans
