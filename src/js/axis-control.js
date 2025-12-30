@@ -43,7 +43,9 @@ module.exports = {
 
 
     release(axis) {
-      if (this.disabled) return
+      // NOTE: Do NOT check this.disabled here!
+      // When jog starts, machine state changes to JOGGING, which sets disabled=true.
+      // If we check disabled here, the stop command (jog 0) never gets sent.
       if (!this.step) this.$dispatch('jog', this.axes[axis], 0)
     },
 
