@@ -29,18 +29,33 @@ script#axis-row-template(type="text/x-template")
   tr.axis(:class="axis.klass", :title="axis.title")
     th.name {{name}}
     td.position: unit-value(:value="axis.pos", precision=4)
-    td.absolute: unit-value(:value="axis.abs", precision=3)
-    td.offset: unit-value(:value="axis.off", precision=3)
-    td.state #[.fa(class="fa-{{axis.icon}}")] {{axis.state}}
+    td.absolute(v-show="showAbsolute"): unit-value(:value="axis.abs", precision=3)
+    td.offset(v-show="showOffset"): unit-value(:value="axis.off", precision=3)
+    td.state(v-show="showState") {{axis.state}}
     th.actions
-      bbutton(:disabled="!is_idle", icon="cog",
-        title="Set {{name}} axis position.", @click="set_position")
+      //- Desktop: icon-only buttons (zero, set, home)
+      .actions-inline
+        .fa.fa-map-marker.icon-btn(:class="{disabled: !is_idle}",
+          @click="zero", title="Zero {{name}} axis offset")
+        .fa.fa-pencil-square-o.icon-btn(:class="{disabled: !is_idle}",
+          @click="set_position", title="Set {{name}} axis position")
+        .fa.fa-home.icon-btn(:class="{disabled: !is_idle}",
+          @click="home", title="Home {{name}} axis")
 
-      bbutton(:disabled="!is_idle", text="&empty;",
-        title="Zero {{name}} axis offset.", @click="zero")
-
-      bbutton(:disabled="!is_idle", @click="home", icon="home",
-        title="Home {{name}} axis.")
+      //- Mobile: dropdown menu
+      .actions-dropdown
+        nav-item
+          .fa.fa-ellipsis-v
+          nav-menu
+            a.nav-item(:class="{disabled: !is_idle}", @click="zero")
+              .fa.fa-map-marker
+              | Zero {{name}}
+            a.nav-item(:class="{disabled: !is_idle}", @click="set_position")
+              .fa.fa-pencil-square-o
+              | Set {{name}}
+            a.nav-item(:class="{disabled: !is_idle}", @click="home")
+              .fa.fa-home
+              | Home {{name}}
 
       dialog(v-ref:set-position,
         :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",

@@ -252,6 +252,12 @@
           "default": 5,
           "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
+        },
+        "reference-required": {
+          "type": "enum",
+          "values": ["Auto", "Yes", "No"],
+          "help": "Require position reference (homing or zeroing) before running programs. Auto = Yes for XYZ, No for ABC.",
+          "default": "Auto"
         }
       }
     }
@@ -525,13 +531,27 @@
     }
   },
 
+  "macro_tabs": {
+    "type": "list",
+    "help": "Tabs for organizing macros on the control page.",
+    "default": [{"id": "default", "name": "Macros"}],
+    "template": {
+      "id": {"type": "string", "default": ""},
+      "name": {"type": "string", "default": "New Tab"}
+    }
+  },
+
   "macros": {
     "type": "list",
     "default": [],
     "template": {
       "name": {"type": "string", "default": ""},
       "path": {"type": "string", "default": ""},
-      "color": {"type": "string", "default": "#e6e6e6"}
+      "color": {"type": "string", "default": "#e6e6e6"},
+      "tab": {"type": "string", "default": "", "help": "Tab ID this macro belongs to"},
+      "visible": {"type": "bool", "default": true, "help": "Whether macro appears on control page"},
+      "confirm": {"type": "bool", "default": true, "help": "Whether to show confirmation dialog before running"},
+      "skip_reference_check": {"type": "bool", "default": false, "help": "Allow macro to run without position reference (for homing macros)"}
     }
   }
 }

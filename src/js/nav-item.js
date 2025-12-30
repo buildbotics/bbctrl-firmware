@@ -28,13 +28,38 @@
 
 
 module.exports = {
-  template: '<div class="nav-item", @mouseenter="show", @click="show">' +
+  template: '<div class="nav-item", @mouseenter="show", @click.stop="toggle">' +
     '<slot></slot></div>',
 
+  ready: function() {
+    // Close menu when clicking outside
+    var self = this
+    $(document).on('click.navitem', function(e) {
+      if (!$(e.target).closest('.nav-item').length) {
+        $('.nav-menu-open').removeClass('nav-menu-open')
+      }
+    })
+  },
+  
+  beforeDestroy: function() {
+    $(document).off('click.navitem')
+  },
 
   methods: {
     show(e) {
       $(e.currentTarget).find('.nav-menu-hide').removeClass('nav-menu-hide')
+    },
+    
+    toggle(e) {
+      var menu = $(e.currentTarget).find('.nav-menu')
+      // Toggle using nav-menu-open class for click behavior
+      if (menu.hasClass('nav-menu-open')) {
+        menu.removeClass('nav-menu-open')
+      } else {
+        // Close any other open menus first
+        $('.nav-menu-open').removeClass('nav-menu-open')
+        menu.addClass('nav-menu-open')
+      }
     }
   }
 }

@@ -45,6 +45,7 @@ from .Jog import *
 from .Pwr import *
 from .MainLCDPage import *
 from .IPLCDPage import *
+from .Service import *
 
 __all__ = ['Ctrl']
 
@@ -67,6 +68,7 @@ class Ctrl:
         if args.demo: log_path = self.get_path(filename = 'bbctrl.log')
         else: log_path = args.log
         self.log = Log(args, self.ioloop, log_path)
+        self.service  = Service(self)
 
         self.events = Events(self)
         self.state  = State(self)
@@ -140,6 +142,7 @@ class Ctrl:
 
     def close(self):
         self.log.get('Ctrl').info('Closing %s' % self.id)
+        self.service.shutdown()  # Save final service hours
         self.ioloop.close()
         self.avr.close()
         self.mach.planner.close()

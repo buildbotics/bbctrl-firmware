@@ -26,8 +26,191 @@
 \******************************************************************************/
 
 .view-docs
+  margin-bottom 0
+
+  .navbar
+    flex-shrink 0
+
+    .nav-item.active
+      background rgba(255,255,255,0.15)
+      color #fff
+
   .docs-view
-    padding 0 1em
-    width calc(100% - 2em)
-    max-width limit-width
+    padding 1.5em 2em
+    max-width 900px
     margin 0 auto
+    background #fff
+    min-height calc(100vh - 220px)
+
+    h1
+      color #333
+      font-size 1.8em
+      font-weight 600
+      margin-top 0
+      margin-bottom 0.75em
+      padding-bottom 0.5em
+      border-bottom 2px solid #eee
+
+    h2
+      color #444
+      font-size 1.3em
+      font-weight 600
+      margin-top 1.5em
+      margin-bottom 0.5em
+
+    h3
+      color #555
+      font-size 1.1em
+      font-weight 600
+      margin-top 1.25em
+      margin-bottom 0.4em
+
+    p
+      color #555
+      line-height 1.6
+      margin-bottom 1em
+
+    a
+      color #337ab7
+      text-decoration none
+
+      &:hover
+        text-decoration underline
+
+    ul, ol
+      color #555
+      line-height 1.6
+      margin-bottom 1em
+      padding-left 1.5em
+
+      li
+        margin-bottom 0.4em
+
+    table
+      width 100%
+      border-collapse collapse
+      margin 1em 0
+
+      th, td
+        padding 0.5em 0.75em
+        border 1px solid #ddd
+        text-align left
+
+      th
+        background #f5f5f5
+        font-weight 600
+        color #333
+
+      tr:nth-child(even)
+        background #fafafa
+
+    code
+      background #f5f5f5
+      padding 0.15em 0.4em
+      border-radius 3px
+      font-family monospace
+      font-size 0.9em
+      color #c7254e
+
+    pre
+      background #f5f5f5
+      padding 1em
+      border-radius 4px
+      overflow-x auto
+      margin 1em 0
+
+      code
+        background none
+        padding 0
+        color #333
+
+    // GCode cheat sheet styles
+    .cheat-sheet
+      h1
+        margin-bottom 1em
+
+      table
+        margin-top 0
+
+        // Header row at top of table
+        > tr:first-child th
+          background #444
+          color #fff
+          font-weight 600
+
+        // Section header rows
+        .header-row
+          th
+            background #555
+            color #fff
+            font-weight 600
+            font-size 0.95em
+            padding 0.6em 0.75em
+
+        // Spacer rows - minimal height, no background
+        .spacer-row
+          th
+            background transparent
+            border none
+            padding 0.75em 0
+            height 0
+
+        // Unimplemented rows
+        .unimplemented
+          td
+            color #999
+          a
+            color #999
+
+      // Checkbox for showing unimplemented
+      > div
+        margin 1em 0
+        display flex
+        align-items center
+        gap 0.5em
+
+        input[type="checkbox"]
+          margin 0
+
+        label
+          color #555
+          cursor pointer
+
+    // License specific styles
+    #license
+      pre
+        white-space pre-wrap
+        word-wrap break-word
+        font-size 0.85em
+        line-height 1.5
+        max-height 500px
+        overflow-y auto
+
+// =============================================================================
+// Responsive - Mobile
+// =============================================================================
+
+@media only screen and (max-width 600px)
+  .view-docs
+    .docs-view
+      padding 1em
+      
+      h1
+        font-size 1.4em
+        
+      h2
+        font-size 1.15em
+        
+      // Make tables scrollable
+      table
+        display block
+        overflow-x auto
+        -webkit-overflow-scrolling touch
+        
+      // GCode cheat sheet table on mobile
+      .cheat-sheet table
+        font-size 0.85em
+        min-width 400px
+        
+    // Bottom padding for mobile browser chrome
+    padding-bottom 80px

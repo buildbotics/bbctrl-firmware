@@ -26,12 +26,16 @@
 ################################################################################
 
 import os
+import sys
+import json
 import tornado
 import sockjs.tornado
 import datetime
 import shutil
+import tarfile
 import subprocess
 import socket
+import time
 from tornado.web import HTTPError
 from tornado import web, gen
 from tornado.concurrent import run_on_executor
@@ -46,9 +50,59 @@ from .MonitorTemp import *
 from .AuthHandler import *
 from .FileSystemHandler import *
 from .Ctrl import *
+from .ServiceHandler import *
 from udevevent import UDevEvent
 
+
 __all__ = ['Web']
+
+
+def _check_position_reference(ctrl):
+    """Check if all required axes have position reference.
+    Returns list of unreferenced axis names, or empty list if all OK."""
+    state = ctrl.state
+    config = ctrl.config.load()
+    motors_config = config.get('motors', [])
+    
+    unreferenced_axes = []
+    
+    for axis in 'xyzabc':
+        motor = state.find_motor(axis)
+        if motor is None:
+            continue
+        if not state.motor_enabled(motor):
+            continue
+        
+        motor_config = motors_config[motor] if motor < len(motors_config) else {}
+        ref_setting = motor_config.get('reference-required', 'Auto')
+        
+        if ref_setting == 'Auto':
+            required = axis.lower() in 'xyz'
+        else:
+            required = ref_setting == 'Yes'
+        
+        if required and not state.is_axis_referenced(axis):
+            unreferenced_axes.append(axis.upper())
+    
+    return unreferenced_axes
+
+
+def _format_reference_error(unreferenced_axes):
+    """Format user-friendly error message for unreferenced axes."""
+    axis_list = ', '.join(unreferenced_axes)
+    
+    if len(unreferenced_axes) == 1:
+        return ('Cannot start: %s axis position is unknown. '
+               'Please home or zero the %s axis before running.'
+               % (axis_list, axis_list))
+    elif len(unreferenced_axes) == 2:
+        return ('Cannot start: %s axis positions are unknown. '
+               'Please home or zero these axes before running.'
+               % ' and '.join(unreferenced_axes))
+    else:
+        return ('Cannot start: %s axis positions are unknown. '
+               'Please home or zero all axes before running.'
+               % axis_list)
 
 
 def upgrade_command(ctrl, cmd):
@@ -238,18 +292,30 @@ class USBEjectHandler(APIHandler):
 
 class MacroHandler(APIHandler):
     def put(self, macro):
-        macros = self.get_ctrl().config.get('macros')
+        ctrl = self.get_ctrl()
+        macros = ctrl.config.get('macros')
 
         macro = int(macro)
         if macro < 0 or len(macros) < macro:
             raise HTTPError(404, 'Invalid macro id %d' % macro)
 
-        path = 'Home/' + macros[macro - 1]['path']
+        macro_config = macros[macro - 1]
+        path = 'Home/' + macro_config['path']
 
-        if not self.get_ctrl().fs.exists(path):
+        if not ctrl.fs.exists(path):
             raise HTTPError(404, 'Macro file not found')
 
-        self.get_ctrl().mach.start(path)
+        # SAFETY: Check position reference unless macro is flagged to skip
+        # Homing/setup macros need to run before axes are referenced
+        if not macro_config.get('skip_reference_check', False):
+            unreferenced = _check_position_reference(ctrl)
+            if unreferenced:
+                raise HTTPError(400, _format_reference_error(unreferenced))
+
+        # FIX: Mark that we're starting a macro so the UI can restore
+        # the previous program when the macro completes
+        ctrl.state.start_macro()
+        ctrl.mach.start(path)
 
 
 class PathHandler(APIHandler):
@@ -304,14 +370,25 @@ class HomeHandler(APIHandler):
             position = self.require_arg('position')
             self.get_ctrl().mach.home(axis, position)
 
-        elif action == '/clear': self.get_ctrl().mach.unhome(axis)
-        else: self.get_ctrl().mach.home(axis)
+        elif action == '/clear':
+            # Unhome the axis - referenced flag cleared via State.set() mirroring
+            self.get_ctrl().mach.unhome(axis)
+
+        else:
+            self.get_ctrl().mach.home(axis)
 
 
 class StartHandler(APIHandler):
     def put(self, path):
-        path = self.get_ctrl().fs.validate_path(path)
-        self.get_ctrl().mach.start(path)
+        ctrl = self.get_ctrl()
+        path = ctrl.fs.validate_path(path)
+        
+        # Pre-flight check: Verify position reference for required axes
+        unreferenced = _check_position_reference(ctrl)
+        if unreferenced:
+            raise HTTPError(400, _format_reference_error(unreferenced))
+        
+        ctrl.mach.start(path)
 
 
 class ActivateHandler(APIHandler):
@@ -351,6 +428,8 @@ class StepHandler(APIHandler):
 class PositionHandler(APIHandler):
     def put(self, axis):
         self.get_ctrl().mach.set_position(axis, float(self.json['position']))
+        # Mark axis as having position reference
+        self.get_ctrl().state.set_axis_referenced(axis.lower())
 
 
 class OverrideFeedHandler(APIHandler):
@@ -405,9 +484,8 @@ class KeyboardHandler(APIHandler):
 # Base class for Web Socket connections
 class ClientConnection(object):
     def __init__(self, app):
-        self.app     = app
-        self.count   = 0
-        self.is_open = False
+        self.app = app
+        self.count = 0
 
 
     def heartbeat(self):
@@ -420,23 +498,20 @@ class ClientConnection(object):
 
 
     def on_open(self, id = None):
-        if self.is_open: return
-        self.is_open = True
-
         self.ctrl = self.app.get_ctrl(id)
+
         self.ctrl.state.add_listener(self.send)
         self.ctrl.log.add_listener(self.send)
+        self.is_open = True
         self.heartbeat()
         self.app.opened(self.ctrl)
 
 
     def on_close(self):
-        if not self.is_open: return
-        self.is_open = False
-
         self.app.ioloop.remove_timeout(self.timer)
         self.ctrl.state.remove_listener(self.send)
         self.ctrl.log.remove_listener(self.send)
+        self.is_open = False
         self.app.closed(self.ctrl)
 
 
@@ -465,8 +540,6 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def send(self, msg):
         try:
             sockjs.tornado.SockJSConnection.send(self, msg)
-        except tornado.websocket.WebSocketClosedError:
-            self.on_close()
         except:
             self.close()
 
@@ -529,6 +602,16 @@ class Web(tornado.web.Application):
             (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/file',                      FileSystemHandler), # Compat
             (r'/api/macro/(\d+)',               MacroHandler),
+            (r'/api/service',                   ServiceHandler),
+            (r'/api/service/hours',             ServiceHoursHandler),
+            (r'/api/service/items',             ServiceItemHandler),
+            (r'/api/service/items/([0-9]+)',    ServiceItemHandler),
+            (r'/api/service/complete/([0-9]+)', ServiceCompleteHandler),
+            (r'/api/service/manual/([0-9]+)',   ServiceManualEntryHandler),
+            (r'/api/service/notes',             ServiceNoteHandler),
+            (r'/api/service/notes/([0-9]+)',    ServiceNoteHandler),
+            (r'/api/service/export',            ServiceExportHandler),
+            (r'/api/service/due',               ServiceDueHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),
             (r'/api/(speeds)/(.*)',             PathHandler),
@@ -560,6 +643,15 @@ class Web(tornado.web.Application):
         router.app = self
 
         tornado.web.Application.__init__(self, router.urls + handlers)
+
+        try:
+            self.listen(args.port, address = args.addr)
+
+        except Exception as e:
+            raise Exception('Failed to bind %s:%d: %s' % (
+                args.addr, args.port, e))
+
+        print('Listening on http://%s:%d/' % (args.addr, args.port))
 
 
     def _get_log(self, path):

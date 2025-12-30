@@ -28,63 +28,98 @@
 .navbar
   display flex
   align-items center
-  background #444
+  background #333
   color #eee
   white-space nowrap
   text-overflow ellipsis
   flex-wrap wrap
+  min-height 40px
 
   > *
     line-height 30px
     position relative
 
   .nav-separator
-    border-bottom 1px solid #888
+    border-bottom 1px solid #555
 
   .nav-item
     cursor pointer
-    padding 5px 15px
+    padding 0.5em 1em
+    display flex
+    align-items center
+    gap 0.35em
+    color #ccc
+    text-decoration none
 
     &:link, &:visited, &:active
-      color #eee
+      color #ccc
       text-decoration none
 
     .fa
-      width 1.5em
-      margin-left 0.5em
+      width 1.2em
+      text-align center
+
+    .fa-caret-down
+      font-size 0.8em
+      margin-left 0.25em
 
     .nav-menu
       display none
       position absolute
-      margin 5px 0 0 -15px
+      top 100%
+      left 0
       background #444
       z-index 100
+      min-width 160px
+      border-radius 0 0 4px 4px
+      box-shadow 0 4px 12px rgba(0,0,0,0.3)
 
       .nav-item
         display flex
         flex-direction row
         align-items center
         min-width 6em
+        padding 0.6em 1em
+        color #ccc
+
+        &:hover
+          background #555
+          color #fff
 
         span:nth-child(3)
           flex 1
           font-size 80%
           text-align right
           padding-left 1.5em
+          color #888
 
     &:hover
-      background #666
+      background rgba(255,255,255,0.1)
+      color #fff
 
-      .nav-menu
-        display block
-
-        &.nav-menu-hide
-          display none
+    // Click-activated menu (for mobile/touch)
+    .nav-menu.nav-menu-open
+      display block
 
     &[disabled]
-      background #444
-      color #aaa
+      background transparent
+      color #666
       cursor not-allowed
+
+      &:hover
+        background transparent
+        color #666
+
+    &.active
+      color #fff
+      background rgba(255,255,255,0.1)
 
   > .nav-item > .fa
     width initial
+
+  .filename
+    flex 1
+    text-align right
+    padding 0.5em 1em
+    color #aaa
+    font-size 0.9em

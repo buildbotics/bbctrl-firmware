@@ -47,6 +47,14 @@ class State(object):
         self.timeout = None
         self.machine_var_set = set()
         self.message_id = 0
+        
+        # FIX: Macro tracking - not exposed to frontend, internal only
+        self._running_macro = False
+        self._previous_program = None
+
+        # Service tracking state
+        self._service_update_interval = 10  # Update service every 10 seconds
+        self._last_service_update = time.time()
 
         # Defaults
         self.vars = {
@@ -89,15 +97,70 @@ class State(object):
         if not 'metric' in self.vars: self.set('metric', metric)
         if not 'imperial' in self.vars: self.set('imperial', not metric)
 
+        # Initialize distance mode (90=G90 absolute, 91=G91 incremental)
+        # Default to absolute mode - safest assumption on startup
+        if not 'distance_mode' in self.vars: self.set('distance_mode', 90)
+
 
     def reset(self):
-        # Unhome all motors
-        for i in range(4): self.set('%dhomed' % i, 0)
+        # SAFETY: Clear active program on reset/boot
+        # Prevents accidentally running last loaded file after power cycle
+        self.set('active_program', '')
+
+        # FIX: Also clear macro tracking state
+        self._running_macro = False
+        self._previous_program = None
+
+        # SAFETY: Reset to absolute distance mode on reset
+        # Prevents unexpected incremental moves after power cycle
+        self.set('distance_mode', 90)
+
+        # Unhome all motors and clear position references
+        for i in range(4):
+            self.set('%dhomed' % i, 0)
+            self.set('%dreferenced' % i, 0)
 
         # Zero offsets and positions
         for axis in 'xyzabc':
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
+
+
+    # FIX: Macro tracking methods
+    def start_macro(self):
+        """Called before a macro starts. Saves the current program for restoration."""
+        current = self.get('active_program', '')
+        self._previous_program = current if current else None
+        self._running_macro = True
+        self.log.info('Macro started, saved previous program: %s' % 
+                      (self._previous_program or '(none)'))
+
+
+    def end_macro(self):
+        """
+        Called when a program ends. If it was a macro, restores the previous program.
+        Returns True if this was a macro end, False otherwise.
+        """
+        if not self._running_macro:
+            return False
+        
+        self._running_macro = False
+        previous = self._previous_program
+        self._previous_program = None
+        
+        if previous:
+            self.log.info('Macro ended, restoring previous program: %s' % previous)
+            self.set('active_program', previous)
+        else:
+            self.log.info('Macro ended, no previous program to restore')
+            self.set('active_program', '')
+        
+        return True
+
+
+    def is_running_macro(self):
+        """Check if a macro is currently running."""
+        return self._running_macro
 
 
     def ack_message(self, id):
@@ -129,6 +192,9 @@ class State(object):
         self.changes = {}
         self.timeout = None
 
+        # Update service tracking periodically
+        self.update_service()
+
 
     def resolve(self, name):
         # Resolve axis prefixes to motor numbers
@@ -150,12 +216,71 @@ class State(object):
             self.vars[name] = value
             self.changes[name] = value
 
+            # Mirror homed state to referenced
+            # When axis becomes homed, it also has a position reference
+            # When axis becomes unhomed, position reference is lost
+            if name.endswith('homed') and len(name) == 6 and name[0].isdigit():
+                motor = int(name[0])
+                ref_name = '%dreferenced' % motor
+                if value:  # Becoming homed - set referenced
+                    if not ref_name in self.vars or self.vars[ref_name] != 1:
+                        self.vars[ref_name] = 1
+                        self.changes[ref_name] = 1
+                else:  # Becoming unhomed - clear referenced
+                    if ref_name in self.vars and self.vars[ref_name] != 0:
+                        self.vars[ref_name] = 0
+                        self.changes[ref_name] = 0
+
             # Trigger listener notify
             if self.timeout is None:
                 self.timeout = self.ctrl.ioloop.call_later(0.25, self._notify)
 
 
+    def update_service(self):
+        """Called periodically to update service hour tracking"""
+        now = time.time()
+        if now - self._last_service_update >= self._service_update_interval:
+            try:
+                self.ctrl.service.update()
+                # Push service state to websocket clients
+                hours = self.ctrl.service.get_all_hours()
+                self.set('service_power_hours', hours.get('power_hours', 0))
+                self.set('service_motion_hours', hours.get('motion_hours', 0))
+                self.set('service_due_count', len(self.ctrl.service.get_due_items()))
+            except Exception as e:
+                self.log.error('Failed to update service: %s' % e)
+            self._last_service_update = now
+
+
+    def program_started(self):
+        """Called when a program starts running"""
+        try:
+            self.ctrl.service.motion_started()
+        except Exception as e:
+            self.log.error('Failed to start motion tracking: %s' % e)
+
+
+    def program_stopped(self):
+        """Called when a program stops (complete, pause, stop)"""
+        try:
+            self.ctrl.service.motion_stopped()
+        except Exception as e:
+            self.log.error('Failed to stop motion tracking: %s' % e)
+
+
     def update(self, update):
+        # Track state changes for motion timing
+        if 'xx' in update:
+            old_state = self.get('xx', '')
+            new_state = update['xx']
+            
+            # Detect transition to RUNNING
+            if new_state == 'RUNNING' and old_state != 'RUNNING':
+                self.program_started()
+            # Detect transition from RUNNING to anything else
+            elif old_state == 'RUNNING' and new_state != 'RUNNING':
+                self.program_stopped()
+        
         for name, value in update.items():
             self.set(name, value)
 
@@ -193,6 +318,21 @@ class State(object):
                         axis_vars[axis + '_' + name[1:]] = value
 
         vars.update(axis_vars)
+
+        # Add service hours to snapshot
+        try:
+            hours = self.ctrl.service.get_all_hours()
+            vars['service_power_hours'] = hours.get('power_hours', 0)
+            vars['service_motion_hours'] = hours.get('motion_hours', 0)
+            vars['service_due_count'] = len(self.ctrl.service.get_due_items())
+        except Exception as e:
+            self.log.error('Failed to get service hours: %s' % e)
+
+        # Add camera availability to snapshot
+        try:
+            vars['camera_available'] = self.ctrl.camera is not None
+        except Exception as e:
+            vars['camera_available'] = False
 
         return vars
 
@@ -263,6 +403,21 @@ class State(object):
 
 
     def is_axis_homed(self, axis): return self.get('%s_homed' % axis, 0)
+
+
+    def is_axis_referenced(self, axis):
+        """Check if axis has a position reference (from homing or zeroing)."""
+        motor = self.find_motor(axis)
+        if motor is None:
+            return False
+        return self.get('%dreferenced' % motor, 0) == 1
+
+
+    def set_axis_referenced(self, axis, referenced=True):
+        """Mark an axis as having a position reference."""
+        motor = self.find_motor(axis)
+        if motor is not None:
+            self.set('%dreferenced' % motor, 1 if referenced else 0)
 
 
     def is_axis_enabled(self, axis):

@@ -36,8 +36,6 @@ def _parse_args():
 
     parser.add_argument('-p', '--port', default = 80,
                         type = int, help = 'HTTP port')
-    parser.add_argument('--sport', default = 443,
-                        type = int, help = 'HTTPS port')
     parser.add_argument('-a', '--addr', metavar = 'IP', default = '0.0.0.0',
                         help = 'HTTP address to bind')
     parser.add_argument('-s', '--serial', default = '/dev/ttyAMA0',
@@ -95,42 +93,8 @@ def run():
     os.environ['TPL_PATH'] = \
         '/var/lib/bbctrl/upload/lib/:' + util.get_resource('tpl_lib/')
 
-    # Create application
-    app = Web(args, ioloop)
-
-    # HTTPS server
-    try:
-      import ssl
-
-      ssl_path = '/etc/bbctrl/ssl'
-      ssl_cert = ssl_path + '.crt'
-      ssl_key  = ssl_path + '.key'
-
-      if os.path.exists(ssl_cert) and os.path.exists(ssl_key):
-          ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-          ssl_ctx.load_cert_chain(ssl_cert, ssl_key)
-
-          https_server = tornado.httpserver.HTTPServer(
-              app, ssl_options = ssl_ctx)
-          https_server.listen(args.sport, args.addr)
-
-          print('Listening on https://%s:%d/' % (args.addr, args.sport))
-
-    except Exception as e:
-        print('Error loading SSL server:', e)
-
-    # HTTP server
-    try:
-        http_server = tornado.httpserver.HTTPServer(app)
-        http_server.listen(args.port, args.addr)
-
-        print('Listening on http://%s:%d/' % (args.addr, args.port))
-
-    except Exception as e:
-        raise Exception('Failed to bind %s:%d: %s' % (
-            args.addr, args.port, e))
-
-    # Start loop
+    # Start server
+    Web(args, ioloop)
     ioloop.start()
 
 

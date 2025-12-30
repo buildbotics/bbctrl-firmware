@@ -29,6 +29,7 @@
   &.dialog-mask .dialog-wrapper .dialog-container
     width auto
     max-width 800px
+    max-height calc(100vh - 40px)
 
   .dialog-header h3
     white-space nowrap
@@ -40,6 +41,13 @@
     transform scale(0.75)
     margin-top -30px
 
+  // FIX: Override console min-height to prevent modal overflow
+  // Console normally has min-height: 460px which makes error dialog too tall
   .console
     margin-bottom 1em
     clear both
+    min-height 0
+    max-height 50vh
+    
+    .console-cards
+      max-height 45vh

@@ -60,10 +60,18 @@ module.exports = {
 
 
   events: {
+    // FIX #4: Improved route-changing handler with proper navigation continuation
     'route-changing'(path, cancel) {
       if (!this.modified || path[0] == 'editor') return
+      
       cancel()
-      this.check_save(() => {location.hash = path.join(':')})
+      
+      // Check save and continue navigation if user chose save or discard
+      this.check_save().then(proceed => {
+        if (proceed) {
+          location.hash = path.join(':')
+        }
+      })
     }
   },
 
@@ -95,7 +103,7 @@ module.exports = {
 
     async _load(path) {
       this.path = path || ''
-      if (!path) return
+      if (!path) return true  // FIX #4: Return true for empty path
 
       this.loading = true
 
@@ -110,6 +118,8 @@ module.exports = {
       } finally {
         if (this.path == path) this.loading = false
       }
+      
+      return false  // FIX #4: Return false if path changed during load
     },
 
 
@@ -131,10 +141,11 @@ module.exports = {
     },
 
 
+    // FIX #4: Improved check_save with proper async handling and return values
     async check_save() {
       if (!this.modified) return true
 
-      let response = this.$root.open_dialog({
+      let response = await this.$root.open_dialog({
         header: 'Save file?',
         body:   'The current file has been modified.  ' +
                 'Would you like to save it first?',
@@ -154,10 +165,20 @@ module.exports = {
         ]
       })
 
-      if (response == 'save')    return this.save()
-      if (response == 'discard') return this.revert()
+      if (response == 'save') {
+        let saved = await this.save()
+        return saved  // Return true if save succeeded
+      }
+      
+      if (response == 'discard') {
+        // FIX #4: Just clear modified state and return true to allow navigation
+        // Don't reload the file - just discard in-memory changes
+        this.modified = false
+        this.doc.markClean()
+        return true
+      }
 
-      return false
+      return false  // Cancel - stay on editor
     },
 
 
@@ -180,16 +201,25 @@ module.exports = {
     },
 
 
+    // FIX #4: Return true on successful save
     async do_save(path) {
-      let fd = new FormData()
-      let file = new File([new Blob([this.doc.getValue()])], path)
-      fd.append('file', file)
+      try {
+        let fd = new FormData()
+        let file = new File([new Blob([this.doc.getValue()])], path)
+        fd.append('file', file)
 
-      await this.$api.put('fs/' + path, fd)
+        await this.$api.put('fs/' + path, fd)
 
-      this.path = path
-      this.modified = false
-      this.doc.markClean()
+        this.path = path
+        this.modified = false
+        this.doc.markClean()
+        
+        return true  // Save succeeded
+      } catch (e) {
+        // FIX #4: Show error dialog on save failure
+        await this.$root.error_dialog('Failed to save file: ' + e.message)
+        return false  // Save failed
+      }
     },
 
 
@@ -210,11 +240,19 @@ module.exports = {
     },
 
 
+    // FIX #4: Revert now returns true to indicate it succeeded
     async revert() {
-      if (!this.modified) return false
+      if (!this.modified) return true  // Already clean, can proceed
 
       this.modified = false
-      return this._load(this.path)
+      this.doc.markClean()
+      
+      // Reload the file content
+      if (this.path) {
+        await this._load(this.path)
+      }
+      
+      return true  // Revert succeeded
     },
 
 

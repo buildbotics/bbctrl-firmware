@@ -25,13 +25,26 @@
 
 \******************************************************************************/
 
+.view-editor-page .content
+  height calc(100vh - 90px)
+  overflow hidden
+
 .view-editor
   margin-bottom 0
+  height 100%
+  display flex
+  flex-direction column
 
-  .navbar .filename
-    flex 1
-    text-align right
-    padding 5px 15px
+  .navbar
+    flex-shrink 0
+    
+    .filename
+      flex 1
+      text-align right
+      padding 5px 15px
 
+  // CodeMirror needs a fixed/constrained height to enable virtual scrolling
+  // Without this, it renders ALL lines which freezes UI on large files
   .CodeMirror
-    height calc(100vh - 180px)
+    flex 1
+    min-height 0  // Required for flex children to respect parent constraints

@@ -56,6 +56,30 @@
   font-family Helvetica, Arial, sans-serif
   text-align left
 
+// Jog modal - wider to fit controls side-by-side
+.jog-modal .dialog-container
+  width auto
+  min-width 650px
+  max-width calc(100vw - 40px)
+
+// Mobile responsive styles
+@media only screen and (max-width: 480px)
+  .dialog-container
+    width calc(100vw - 20px)
+    max-width calc(100vw - 20px)
+    max-height calc(100vh - 20px)
+    padding 15px
+    margin 10px auto
+    
+  .dialog-footer
+    flex-wrap wrap
+    justify-content center
+    
+  // Jog modal on mobile - narrow, stacked controls
+  .jog-modal .dialog-container
+    min-width auto
+    width calc(100vw - 20px)
+
 .dialog-header
   border-bottom 1px solid #777
   margin-bottom 1em
