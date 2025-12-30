@@ -26,11 +26,11 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#view-docs-template(type="text/x-template")
-  div
+  .docs-page
     nav.navbar
-      a.nav-item(href="#docs:help") Help
-      a.nav-item(href="#docs:gcode") GCode
-      a.nav-item(href="#docs:license") License
+      a.nav-item(href="#docs:help", :class="{active: view == 'help'}") Help
+      a.nav-item(href="#docs:gcode", :class="{active: view == 'gcode'}") GCode
+      a.nav-item(href="#docs:license", :class="{active: view == 'license'}") License
 
     .docs-view(v-if="view", :is="'docs-' + view", :config="config",
       :template="template", :state="state", keep-alive)

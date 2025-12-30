@@ -26,14 +26,25 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#view-camera-template(type="text/x-template")
-  div
+  .camera-view
+    //- Navigation bar (dark style, consistent with other views)
     nav.navbar
-      nav-item
-        | Settings
-        .fa.fa-caret-down
-        nav-menu
-          nav-item(@click="$root.crosshair = !$root.crosshair")
-            .fa(:class="$root.crosshair ? 'fa-check' : ''")
-            span Show Crosshair
+      a.nav-item.crosshair-toggle(@click="$root.crosshair = !$root.crosshair",
+        :class="{active: $root.crosshair}",
+        title="Toggle crosshair overlay")
+        .fa(:class="$root.crosshair ? 'fa-check-square-o' : 'fa-square-o'")
+        span Show Crosshair
 
-    video
+    //- Camera content
+    .camera-content
+      //- Show video when camera available
+      video(v-if="$root.camera_available")
+      
+      //- Show offline message when camera not available
+      .camera-offline(v-else)
+        .offline-icon
+          .fa.fa-video-camera
+          .fa.fa-ban.overlay-icon
+        .offline-message
+          h3 Camera Unavailable
+          p No camera detected. Connect a USB camera and refresh the page.

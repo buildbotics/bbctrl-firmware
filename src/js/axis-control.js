@@ -29,17 +29,23 @@
 
 module.exports = {
   template: '#axis-control-template',
-  props: ['axes', 'colors', 'enabled', 'adjust', 'step'],
+  props: ['axes', 'colors', 'enabled', 'adjust', 'step', 'disabled'],
 
 
   methods: {
     jog(axis, ring, direction) {
+      // Prevent jogging when disabled (e.g., program is running)
+      if (this.disabled) return
+      
       let value = direction * this.value(ring)
       this.$dispatch(this.step ? 'step' : 'jog', this.axes[axis], value)
     },
 
 
     release(axis) {
+      // NOTE: Do NOT check this.disabled here!
+      // When jog starts, machine state changes to JOGGING, which sets disabled=true.
+      // If we check disabled here, the stop command (jog 0) never gets sent.
       if (!this.step) this.$dispatch('jog', this.axes[axis], 0)
     },
 

@@ -25,109 +25,297 @@
 
 \******************************************************************************/
 
-.files .new-folder input
-  width calc(100% - 8px)
+// Files component styles
+.files
+  display flex
+  flex-direction column
+  height 100%
+  overflow hidden
 
+// Save mode filename input
 .files-name
   display flex
-  margin-bottom 0.5em
+  align-items center
+  padding 0.75em 1em
+  background #fff
+  border-bottom 1px solid #ddd
 
   label
-    font-weight bold
+    font-weight 600
     margin-right 1em
-    line-height 34px
+    color #333
 
   input
     flex 1
+    padding 0.5em 0.75em
+    border 1px solid #ddd
+    border-radius 4px
+    font-size 14px
 
+// Main body layout
+.files-body
+  display flex
+  flex 1
+  overflow hidden
+
+// Files box (main area)
+.files-box
+  flex 1
+  display flex
+  flex-direction column
+  overflow hidden
+  background #fff
+
+// Breadcrumb path bar
 .files-path-bar
   display flex
-  gap 5px
-  margin-bottom 5px
+  align-items center
+  padding 0.6em 1em
+  background #fafafa
+  border-bottom 1px solid #eee
 
-  > :first-child
+  .breadcrumbs
+    display flex
+    align-items center
+    flex-wrap wrap
+    gap 0.25em
     flex 1
 
-.files-list
-  table
-    width 100%
-    overflow-y auto
+  // Location dropdown
+  .location-dropdown
+    position relative
+    margin-right 0.5em
 
-  .name
-    text-align left
+    .location-btn
+      display flex
+      align-items center
+      gap 0.4em
+      padding 0.35em 0.75em
+      font-size 14px
+      background #fff
+      border 1px solid #ddd
+      border-radius 4px
+      cursor pointer
+      
+      .fa-caret-down
+        font-size 0.8em
+        margin-left 0.25em
+        color #888
 
-  .size, .modified, .actions
-    text-align right
-    width 1%
+      &:hover
+        background #f5f5f5
+        border-color #ccc
 
-  .actions
-    a, a:visited, a:active
+    .location-menu
+      position absolute
+      top 100%
+      left 0
+      margin-top 2px
+      background #fff
+      border 1px solid #ddd
+      border-radius 4px
+      box-shadow 0 4px 12px rgba(0,0,0,0.15)
+      min-width 150px
+      z-index 100
+
+    .location-item
+      display flex
+      align-items center
+      gap 0.5em
+      padding 0.5em 0.75em
+      color #333
+      cursor pointer
       text-decoration none
-      color #777
 
-    .fa:hover
-      color #222
+      .fa
+        width 1em
+        text-align center
+        color #666
 
-  thead tr
-    background #444
-    color #eee
+      .eject-btn
+        margin-left auto
+        color #999
+        font-size 0.9em
 
-  tbody tr
+        &:hover
+          color #d9534f
+
+      &:hover
+        background #f5f5f5
+
+      &.active
+        background #e3f2fd
+        color #1976d2
+
+        .fa
+          color #1976d2
+
+  .path-separator
+    color #999
+    font-size 14px
+    margin 0 0.15em
+
+  .breadcrumb-item
+    display flex
+    align-items center
+    gap 0.4em
+    padding 0.25em 0.5em
+    color #666
     cursor pointer
+    border-radius 3px
+    text-decoration none
+    font-size 14px
 
-    &:nth-of-type(even)
-      background #fafafa
+    .fa
+      font-size 1em
 
     &:hover
-      background #f7f7f7
+      background #e8e8e8
+      color #333
 
-    &.selected
-      color #222
-      background #ffdd74
+    &.current
+      color #333
+      font-weight 500
+      cursor default
 
-  td, th
-    padding 0 1em
-    white-space nowrap
+      &:hover
+        background transparent
 
+    &.breadcrumb-root
+      color #333
+      font-weight 500
+
+      .fa
+        color #666
+
+  .files-actions
+    display flex
+    gap 0.5em
+    margin-left 1em
+
+    .btn
+      display flex
+      align-items center
+      gap 0.35em
+      
+    .btn-sm
+      padding 0.35em 0.75em
+      font-size 13px
+
+// File list
+.files-list
+  flex 1
+  overflow auto
+  padding 0
+
+  table
+    width 100%
+    border-collapse collapse
+
+  thead tr
+    background #f5f5f5
+    border-bottom 2px solid #ddd
+
+  th
+    padding 0.6em 1em
+    text-align left
+    font-weight 600
+    font-size 0.8em
+    color #666
+    text-transform uppercase
+
+  .col-name
+    text-align left
+
+  .col-size
+    text-align right
+    width 100px
+
+  .col-modified
+    text-align right
+    width 140px
+
+  tbody
+    .file-row
+      cursor pointer
+      border-bottom 1px solid #f0f0f0
+      transition background 0.1s ease
+
+      &:hover
+        background #f8f9fa
+
+      &.selected
+        background #fff3cd
+        
+        &:hover
+          background #ffecb3
+
+      &.directory
+        .col-name .fa
+          color #f0ad4e
+
+      td
+        padding 0.5em 1em
+
+      .col-name
+        display flex
+        align-items center
+        gap 0.6em
+
+        .fa
+          width 1.1em
+          text-align center
+          color #888
+          font-size 1em
+
+      .col-size, .col-modified
+        color #888
+        font-size 0.9em
+
+  .empty-message
+    display flex
+    flex-direction column
+    align-items center
+    justify-content center
+    padding 3em
+    color #aaa
+
+    .fa
+      font-size 3em
+      margin-bottom 0.5em
+
+    p
+      margin 0
+      font-size 1em
+
+// New folder dialog
+.new-folder-dialog
+  .form-group
+    label
+      display block
+      font-weight 500
+      margin-bottom 0.5em
+      color #333
+
+    input
+      width 100%
+      padding 0.6em 0.75em
+      border 1px solid #ddd
+      border-radius 4px
+      font-size 14px
+      box-sizing border-box
+
+      &:focus
+        outline none
+        border-color #2196F3
+
+// File dialog (used for file picker)
 .file-dialog > .dialog-mask > .dialog-wrapper > .dialog-container
   width 800px
   height 600px
 
-.file-dialog .dialog-body > div, .files, .files-locations,
-.files-body, .files-box
+.file-dialog .dialog-body > div
   display flex
   flex-direction column
   overflow hidden
-
-.files-location
-  max-width 12em
-  padding 0.25em 1em
-  text-overflow ellipsis
-  overflow hidden
-  cursor pointer
-  white-space nowrap
-
-  .fa
-    padding-right 0.5em
-
-  &:hover
-    background #f7f7f7
-
-  &.active
-    background #ddd
-    color #444
-
-.files-body
-  flex-direction row
-
-.files-box
-  flex 1
-
-.files-path
-  padding 0 1em
-
-.files-locations
-  border-right 1px solid #eee
-
-.files-locations, .files-list
-  overflow auto
+  height 100%

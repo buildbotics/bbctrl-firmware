@@ -50,6 +50,13 @@ html(lang="en")
       #menu
         .pure-menu
           ul.pure-menu-list
+            //- Fullscreen toggle button
+            li.pure-menu-item.fullscreen-btn
+              a.pure-menu-link(@click="toggle_fullscreen", 
+                :title="is_fullscreen ? 'Exit fullscreen mode' : 'Enter fullscreen mode'")
+                .fa(:class="is_fullscreen ? 'fa-times' : 'fa-arrows-alt'")
+                |  {{is_fullscreen ? 'Exit' : 'Full'}}
+            
             li.pure-menu-heading
               a.pure-menu-link(href="#control") Control
 
@@ -59,11 +66,17 @@ html(lang="en")
             li.pure-menu-heading
               a.pure-menu-link(href="#editor") Editor
 
-            li.pure-menu-heading
+            li.pure-menu-heading(v-if="camera_available")
               a.pure-menu-link(href="#camera") Camera
 
             li.pure-menu-heading
               a.pure-menu-link(href="#files") Files
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#macros") Macros
+
+            li.pure-menu-heading
+              a.pure-menu-link(href="#service") Service
 
             li.pure-menu-heading
               a.pure-menu-link(href="#settings") Settings
@@ -85,16 +98,33 @@ html(lang="en")
               .subtitle
                 | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
                 | v{{config.version}}
-                a.upgrade-version(v-if="show_upgrade", href="#settings:admin")
-                  | Upgrade to v{{latestVersion}}
                 .fa.fa-check(v-if="!show_upgrade && latestVersion",
                   title="Firmware up to date")
                 .copyright Copyright © 2015 - 2023, Buildbotics LLC
 
 
             .header-tools
-              a(href="#camera"): video
+              a(v-if="camera_available && currentView != 'camera'", href="#camera"): video
+
               .estop(:class="{active: state.es}"): estop(@click="estop")
+          
+          //- System Alerts
+          .system-alerts(v-if="show_upgrade_alert || show_service_alert")
+            .alert.alert-upgrade(v-if="show_upgrade_alert")
+              .alert-icon: .fa.fa-arrow-circle-up
+              .alert-content
+                span Firmware update available: 
+                a(href="#settings:admin") Upgrade to v{{latestVersion}}
+              .alert-dismiss(@click="dismiss_upgrade", title="Dismiss")
+                .fa.fa-times
+            
+            .alert.alert-service(v-if="show_service_alert")
+              .alert-icon: .fa.fa-wrench
+              .alert-content
+                span {{state.service_due_count}} service item{{state.service_due_count > 1 ? 's' : ''}} due
+                a(href="#service:items") View Service
+              .alert-dismiss(@click="dismiss_service", title="Dismiss")
+                .fa.fa-times
 
         .content(class="view-{{currentView}}")
           component(:is="'view-' + currentView", :config="config",
@@ -117,8 +147,9 @@ html(lang="en")
         input(style="width: 50px", v-model="errorTimeout", number)
         label seconds.
 
+    //- FIX: Use dynamic header to show spindle speed during M0 pause
     dialog(v-show="popupMessages.length", v-ref:popup-messages,
-      header="GCode messages", :click-away="false")
+      :header="popupMessagesHeader", :click-away="false")
       div(slot="body")
         p(v-for="msg in popupMessages", track-by="$index") {{msg}}
 

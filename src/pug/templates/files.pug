@@ -32,49 +32,74 @@ script#files-template(type="text/x-template")
       input(v-model="filename", @input="filename_changed", focus)
 
     .files-body
-      .files-locations
-        .files-location(v-for="name in locations", @click="open(name)",
-          :class="{active: name == location}", :title="location_title(name)")
-          .fa.fa-home(v-if="name == 'Home'")
-          .fa.fa-eject(v-else, @click.stop="eject(name)",
-            title="Eject USB drive")
-          | {{name}}
-
       .files-box
+        //- Breadcrumb path bar with location dropdown
         .files-path-bar
-          .files-path
-            bbutton(v-for="path in paths", track-by="$index",
-              :disabled="$index == paths.length - 1", :text="path",
-              :title="path_title($index)", @click="load_path($index)")
+          .breadcrumbs
+            //- Location dropdown
+            .location-dropdown
+              button.btn.btn-default.btn-sm.location-btn(
+                @click="toggle_location_menu",
+                :title="'Current location: ' + location")
+                .fa(:class="location == 'Home' ? 'fa-home' : 'fa-usb'")
+                span {{location}}
+                .fa.fa-caret-down
+              .location-menu(v-show="location_menu_open")
+                a.location-item(v-for="name in locations",
+                  @click="select_location(name)",
+                  :class="{active: name == location}")
+                  .fa(:class="name == 'Home' ? 'fa-home' : 'fa-usb'")
+                  span {{name}}
+                  .fa.fa-eject.eject-btn(v-if="name != 'Home'",
+                    @click.stop="eject(name)", title="Eject USB drive")
+            
+            //- Path segments
+            template(v-for="path in paths")
+              template(v-if="path != '/'")
+                span.path-separator /
+                a.breadcrumb-item(:class="{current: $index == paths.length - 1}",
+                  @click="load_path($index)")
+                  span {{path}}
+          
+          //- Upload and New Folder buttons
+          .files-actions
+            button.btn.btn-primary.btn-sm(v-if="mode != 'save' && !$root.is_local",
+              @click="upload", title="Upload a file from this computer")
+              .fa.fa-upload
+              |  Upload
+            button.btn.btn-default.btn-sm(@click="new_folder",
+              :disabled="10 < paths.length", title="Create a new folder")
+              .fa.fa-plus
+              |  New Folder
 
-          .files-upload(v-if="mode != 'save' && !$root.is_local")
-            bbutton(
-              title="Upload a file from this computer to the controller.",
-              primary, @click="upload", text="Upload")
-
-          .new-folder
-            bbutton(title="Create a new folder.", text="New Folder",
-              @click="new_folder", :disabled="10 < paths.length", icon="plus")
-
+        //- File list
         .files-list
           table
             thead
               tr
-                th.name Name
-                th.size Size
-                th.modified Modified
+                th.col-name Name
+                th.col-size Size
+                th.col-modified Modified
 
             tbody
-              tr(v-for="file in files",
-                :class="{selected: $index == selected}",
+              tr.file-row(v-for="file in files",
+                :class="{selected: $index == selected, directory: file.dir}",
                 @click="select($index)", @dblclick="activate(file)")
-                td.name.
-                  #[.fa(:class="file.dir ? 'fa-folder' : 'fa-file-o'")]
-                  {{file.name}}
-                td.size: span(v-if="!file.dir") {{file.size | size}}
-                td.modified {{file.modified | ago}}
+                td.col-name
+                  .fa(:class="file.dir ? 'fa-folder' : file_icon(file.name)")
+                  span {{file.name}}
+                td.col-size
+                  span(v-if="!file.dir") {{file.size | size}}
+                td.col-modified {{file.modified | ago}}
 
-    dialog.new-folder(v-ref:new-folder, header="Folder Name",
+          .empty-message(v-if="!files.length")
+            .fa.fa-folder-open-o
+            p This folder is empty
+
+    dialog.new-folder-dialog(v-ref:new-folder, header="Create New Folder",
       :buttons="['Cancel', {text: 'Create', disabled: !folder_valid}]")
-      p(slot="body")
-        input(v-model="folder", @keyup.enter="create_folder", focus)
+      div(slot="body")
+        .form-group
+          label Folder Name
+          input(v-model="folder", @keyup.enter="create_folder", focus,
+            placeholder="Enter folder name...")

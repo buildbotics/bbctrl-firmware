@@ -27,15 +27,13 @@
 
 script#indicators-template(type="text/x-template")
   .indicators
-    breakout(name="db25", :state="state", :template="template")
-
-    div
+    //- Pin assignments table at top (main focus)
+    .pin-tables
       io-pins(:state="state", :template="template")
 
       table.legend
         tr
           th.header(colspan=100) Legend
-
         tr
           td: .fa.fa-circle.io.active
           th Active
@@ -61,4 +59,9 @@ script#indicators-template(type="text/x-template")
           td
           th
 
-    breakout(name="db15", :state="state", :template="template")
+    //- Breakout diagrams below as reference
+    .breakout-section
+      h3.section-title Connector Reference
+      .breakout-diagrams
+        breakout(name="db25", :state="state", :template="template")
+        breakout(name="db15", :state="state", :template="template")

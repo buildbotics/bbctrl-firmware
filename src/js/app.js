@@ -45,9 +45,22 @@ module.exports = new Vue({
       config: {
         settings: {units: 'METRIC'},
         motors: [{}, {}, {}, {}],
+        tool: {},  // FIX: Initialize tool config for reactivity
         version: '<loading>'
       },
-      state: {messages: []},
+      // FIX: Initialize state properties for Vue 1.x reactivity
+      // Properties must exist before Vue processes the component
+      state: {
+        messages: [],
+        service_due_count: 0,
+        s: 0,           // Spindle speed - needed for popupMessagesHeader reactivity
+        xx: '',         // Machine state
+        line: 0,        // Current line
+        v: 0,           // Velocity
+        feed: 0,        // Feed rate
+        speed: 0,       // Programmed speed
+        tool: 0         // Current tool
+      },
       crosshair: cookie.get_bool('crosshair', false),
       selected_program: new Program(this.$api, cookie.get('selected-path')),
       active_program: undefined,
@@ -56,7 +69,15 @@ module.exports = new Vue({
       errorMessage: '',
       checkedUpgrade: false,
       latestVersion: '',
-      webGLSupported: util.webgl_supported()
+      webGLSupported: util.webgl_supported(),
+      // Track if we've initialized after connect
+      initialized: false,
+      // Alert dismissal state (session-based, resets on browser close)
+      upgrade_dismissed: sessionStorage.getItem('upgrade_dismissed') === 'true',
+      service_dismissed: sessionStorage.getItem('service_dismissed') === 'true',
+      // Fullscreen state
+      is_fullscreen: false
+
     }
   },
 
@@ -69,6 +90,8 @@ module.exports = new Vue({
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),
+    'view-macros':    require('./view-macros'),
+    'view-service':   require('./view-service'),
     'view-camera':    {template: '#view-camera-template'},
     'view-docs':      require('./view-docs')
   },
@@ -78,15 +101,50 @@ module.exports = new Vue({
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
 
 
-    'state.active_program'() {
-      let path = this.state.active_program
-      if (!path || path == '<mdi>') this.active_program = undefined
-      else new Program(this.$api, path)
+    // Watch for active_program changes from server
+    // Only update the active_program object - don't clear selected_program here
+    // (selected_program should persist through macro runs)
+    'state.active_program'(path) {
+      if (!path || path == '<mdi>') {
+        this.active_program = undefined
+      } else {
+        this.active_program = new Program(this.$api, path)
+      }
+    },
+
+
+    // Watch for e-stop state to clear programs
+    'state.xx'(state) {
+      if (state == 'ESTOPPED') {
+        // Clear programs on e-stop for safety
+        this.clear_selected_program()
+      }
     },
 
 
     'state.first_file'(value) {
-      if (!this.selected_program.path) this.select_path(value)
+      // Only auto-select first file if we have no selection
+      if (!this.selected_program.path && value) {
+        this.select_path(value)
+      }
+    },
+
+
+    // Reset upgrade dismissal when version changes
+    latestVersion(newVersion, oldVersion) {
+      if (oldVersion && newVersion !== oldVersion) {
+        this.upgrade_dismissed = false
+        sessionStorage.removeItem('upgrade_dismissed')
+      }
+    },
+
+
+    // Reset service dismissal when due count changes (new items become due)
+    'state.service_due_count'(newCount, oldCount) {
+      if (oldCount !== undefined && newCount > oldCount) {
+        this.service_dismissed = false
+        sessionStorage.removeItem('service_dismissed')
+      }
     }
   },
 
@@ -115,12 +173,6 @@ module.exports = new Vue({
 
 
     async connected() {
-      await this.update()
-      this.parse_hash()
-    },
-
-
-    async update() {
       await this.update()
       this.parse_hash()
     },
@@ -160,9 +212,45 @@ module.exports = new Vue({
     },
 
 
+    // Dynamic header for GCode messages modal showing spindle speed
+    // Shows real-time spindle speed during M0 pause when tool is configured
+     popupMessagesHeader() {
+      let header = 'GCode Messages'
+
+      // Show spindle speed when tool is configured (not Disabled)
+      // NOTE: Access state.s unconditionally for Vue 1.x reactivity tracking
+      let toolType = this.config.tool && this.config.tool['tool-type']
+      let speed = parseFloat(this.state.s)
+
+      if (toolType && toolType !== 'Disabled' && !isNaN(speed)) {
+        header += ' - ' + Math.round(speed) + ' RPM'
+      }
+
+      return header
+    },
+
+
     show_upgrade() {
       if (!this.latestVersion) return false
       return util.compare_versions(this.config.version, this.latestVersion) < 0
+    },
+
+
+    show_upgrade_alert() {
+      return this.show_upgrade && !this.upgrade_dismissed
+    },
+
+
+    show_service_alert() {
+      let count = this.state.service_due_count || 0
+      return count > 0 && !this.service_dismissed
+    },
+
+
+    camera_available() {
+      // Use state from backend, default to true if not yet received
+      return this.state.camera_available !== false
+
     }
   },
 
@@ -193,10 +281,27 @@ module.exports = new Vue({
     }
 
     this.check_login()
+
+    // Listen for fullscreen changes (e.g., user presses Escape)
+    document.addEventListener('fullscreenchange', () => {
+      this.is_fullscreen = !!document.fullscreenElement
+    })
   },
 
 
   methods: {
+    dismiss_upgrade() {
+      this.upgrade_dismissed = true
+      sessionStorage.setItem('upgrade_dismissed', 'true')
+    },
+
+
+    dismiss_service() {
+      this.service_dismissed = true
+      sessionStorage.setItem('service_dismissed', 'true')
+    },
+
+
     async check_login() {
       this.authorized = await this.$api.get('auth/login')
     },
@@ -370,13 +475,39 @@ module.exports = new Vue({
     },
 
 
-    select_path(path) {
+    // Clear selected program and cookie
+    clear_selected_program() {
+      cookie.set('selected-path', '')
+      this.selected_program = new Program(this.$api, '')
+      // Broadcast that program was cleared so views can update
+      this.$broadcast('program-cleared')
+    },
+
+
+    // Handle re-selecting same path to ensure fresh file content
+    select_path(path, force) {
       if (path && this.selected_program.path != path) {
         cookie.set('selected-path', path)
         this.selected_program = new Program(this.$api, path)
+      } else if (path && force) {
+        // Same path but force refresh - invalidate cached data
+        this.selected_program.invalidate()
       }
 
       return this.selected_program
+    },
+    
+    
+    // Reload current program - creates new instance to force fresh fetch
+    // Used after file upload to ensure new content is displayed
+    reload_selected_program() {
+      if (this.selected_program && this.selected_program.path) {
+        let path = this.selected_program.path
+        // Create new Program instance - guarantees fresh data fetch
+        this.selected_program = new Program(this.$api, path)
+        // Broadcast to trigger reload in view-control
+        this.$broadcast('program-reloaded')
+      }
     },
 
 
@@ -389,6 +520,23 @@ module.exports = new Vue({
     view(path) {
       this.select_path(path)
       location.hash = 'viewer'
+    },
+
+
+    toggle_fullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          this.is_fullscreen = true
+        }).catch(err => {
+          console.warn('Fullscreen request failed:', err)
+        })
+      } else {
+        document.exitFullscreen().then(() => {
+          this.is_fullscreen = false
+        }).catch(err => {
+          console.warn('Exit fullscreen failed:', err)
+        })
+      }
     }
   }
 })
