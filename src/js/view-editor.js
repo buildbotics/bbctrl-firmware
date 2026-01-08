@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -63,7 +63,7 @@ module.exports = {
     'route-changing'(path, cancel) {
       if (!this.modified || path[0] == 'editor') return
       cancel()
-      this.check_save(() => {location.hash = path.join(':')})
+      this.check_save(ok => {if (ok) location.hash = path.join(':')})
     }
   },
 
@@ -95,7 +95,7 @@ module.exports = {
 
     async _load(path) {
       this.path = path || ''
-      if (!path) return
+      if (!path) return true
 
       this.loading = true
 
@@ -114,7 +114,7 @@ module.exports = {
 
 
     async load(path) {
-      if (this.path == path) return
+      if (this.path == path) return true
       if (await this.check_save()) return this._load(path)
     },
 
@@ -134,7 +134,7 @@ module.exports = {
     async check_save() {
       if (!this.modified) return true
 
-      let response = this.$root.open_dialog({
+      let response = await this.$root.open_dialog({
         header: 'Save file?',
         body:   'The current file has been modified.  ' +
                 'Would you like to save it first?',
@@ -155,9 +155,14 @@ module.exports = {
       })
 
       if (response == 'save')    return this.save()
-      if (response == 'discard') return this.revert()
 
-      return false
+      if (response == 'discard') {
+        this.modified = false
+        this.doc.markClean()
+        return true
+      }
+
+      return false // Cancel - stay in editor
     },
 
 
@@ -181,15 +186,23 @@ module.exports = {
 
 
     async do_save(path) {
-      let fd = new FormData()
-      let file = new File([new Blob([this.doc.getValue()])], path)
-      fd.append('file', file)
+      try {
+        let fd   = new FormData()
+        let file = new File([new Blob([this.doc.getValue()])], path)
+        fd.append('file', file)
 
-      await this.$api.put('fs/' + path, fd)
+        await this.$api.put('fs/' + path, fd)
 
-      this.path = path
-      this.modified = false
-      this.doc.markClean()
+        this.path     = path
+        this.modified = false
+        this.doc.markClean()
+
+        return true // Success
+
+      } catch (e) {
+        await this.$root.error_dialog('Failed to save file: ' + e.message)
+        return false
+      }
     },
 
 
@@ -211,7 +224,7 @@ module.exports = {
 
 
     async revert() {
-      if (!this.modified) return false
+      if (!this.modified) return true // clean
 
       this.modified = false
       return this._load(this.path)

@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -47,7 +47,12 @@ def clean_path(path):
 
 class FileSystemHandler(RequestHandler):
     def get_fs(self): return self.get_ctrl().fs
-    def delete(self, path): self.get_fs().delete(clean_path(path))
+
+
+    def delete(self, path):
+        path = clean_path(path)
+        self.get_ctrl().preplanner.invalidate(path)
+        self.get_fs().delete(path)
 
 
     def put(self, path = None):
@@ -58,6 +63,7 @@ class FileSystemHandler(RequestHandler):
                 self.get_fs().mkdir(os.path.dirname(path))
                 file = self.request.files['file'][0]
                 self.get_fs().write(path, file['body'])
+                self.get_ctrl().preplanner.invalidate(path)
 
             else: self.get_fs().mkdir(clean_path(path))
 
@@ -65,6 +71,7 @@ class FileSystemHandler(RequestHandler):
             file = self.request.files['gcode'][0]
             path = 'Home/' + clean_path(os.path.basename(file['filename']))
             self.get_fs().write(path, file['body'])
+            self.get_ctrl().preplanner.invalidate(path)
 
         os.sync()
 
@@ -97,5 +104,11 @@ class FileSystemHandler(RequestHandler):
             self.write(json.dumps(d, separators = (',', ':')))
 
         else:
+            # Add no-cache headers to prevent stale file content
+            self.set_header('Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0')
+            self.set_header('Pragma', 'no-cache')
+            self.set_header('Expires', '0')
+
             with open(realpath.encode('utf8'), 'rb') as f:
                 self.write(f.read())

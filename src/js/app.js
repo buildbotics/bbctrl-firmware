@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -44,19 +44,30 @@ module.exports = new Vue({
       template: require('../resources/config-template.json'),
       config: {
         settings: {units: 'METRIC'},
-        motors: [{}, {}, {}, {}],
-        version: '<loading>'
+        motors:   [{}, {}, {}, {}],
+        tool:     {},
+        version:  '<loading>'
       },
-      state: {messages: []},
-      crosshair: cookie.get_bool('crosshair', false),
-      selected_program: new Program(this.$api, cookie.get('selected-path')),
-      active_program: undefined,
-      errorTimeout: 30,
+      state: {
+        messages: [],
+        s:        0,
+        xx:       '',
+        line:     0,
+        v:        0,
+        feed:     0,
+        speed:    0,
+        tool:     0,
+      },
+      crosshair:         cookie.get_bool('crosshair', false),
+      selected_program:  new Program(this.$api, cookie.get('selected-path')),
+      active_program:    undefined,
+      errorTimeout:      30,
       errorTimeoutStart: 0,
-      errorMessage: '',
-      checkedUpgrade: false,
-      latestVersion: '',
-      webGLSupported: util.webgl_supported()
+      errorMessage:      '',
+      checkedUpgrade:    false,
+      latestVersion:     '',
+      webGLSupported:    util.webgl_supported(),
+      initialized:       false,
     }
   },
 
@@ -78,12 +89,10 @@ module.exports = new Vue({
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
 
 
-    'state.active_program'() {
-      let path = this.state.active_program
+    'state.active_program'(path) {
       if (!path || path == '<mdi>') this.active_program = undefined
-      else new Program(this.$api, path)
+      else this.active_program = new Program(this.$api, path)
     },
-
 
     'state.first_file'(value) {
       if (!this.selected_program.path) this.select_path(value)

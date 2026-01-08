@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -555,7 +555,7 @@ module.exports = {
 
 
     draw_path(scene) {
-      if (this.positions.length < 6) return new THREE.Group()
+      if (!this.positions || this.positions.length < 6) return new THREE.Group()
 
       let geometry = new THREE.BufferGeometry()
       let material =

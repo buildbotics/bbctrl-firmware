@@ -1,6 +1,25 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## v2.0.8
+  - Try to parse API response text as JSON.
+  - Initialize referenced app.js vars so that vue.js sees them.
+  - Added check for ``undefined`` positions in path-viewer.js
+  - Catch API error.
+  - Disable caching of file downloads.
+  - Prevent web caching of program files.
+  - Invalidate planner on matching file changes.
+  - Clear active program on planner reset. #343
+  - Set ``app.active_program`` correctly.
+  - Clear display when loading empty path.
+  - Fixes for file save/revert logic. #348
+  - Disable jog axes when not idle.
+  - Enable color picker hex input.
+  - Display GCode code commands with units mode.
+  - Display distance mode on control page.
+  - Display ETA on control page. #345
+  - Fix error message positioning. #349
+
 ## v2.0.0
  - Changes for RPi4
  - Updated Debian version

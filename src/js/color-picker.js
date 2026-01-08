@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -40,8 +40,14 @@ module.exports = {
 
   data() {
     return {
-      config: '{}'
+      config: '{}',
+      hexInput: ''
     }
+  },
+
+
+  watch: {
+    value(newVal) {this.hexInput = newVal || ''}
   },
 
 
@@ -60,16 +66,51 @@ module.exports = {
         '#ffffff', '#c3c3c3', '#b87957', '#feaec9', '#ffc80d',
         '#eee3af', '#b5e61d', '#99d9ea', '#7092be', '#c8bfe7'
       ]})
+
+    this.hexInput = this.value || ''
   },
 
 
   methods: {
     change() {
       this.value = this.jscolor.toHEXString()
+      this.hexInput = this.value
       this.$emit('change', this.value)
     },
 
 
-    show() {this.jscolor.show()}
+    show() {this.jscolor.show()},
+
+
+    onHexInput(e) {
+      let hex = e.target.value.trim()
+
+      // Add # if missing
+      if (hex && !hex.startsWith('#')) hex = '#' + hex
+
+      // Validate hex format
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        this.value = hex.toUpperCase()
+        this.jscolor.fromString(hex)
+        this.$emit('change', this.value)
+      }
+    },
+
+
+    onHexBlur(e) {
+      let hex = e.target.value.trim()
+
+      // Add # if missing
+      if (hex && !hex.startsWith('#')) hex = '#' + hex
+
+      // Validate
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        this.value = hex.toUpperCase()
+        this.hexInput = this.value
+        this.jscolor.fromString(hex)
+        this.$emit('change', this.value)
+
+      } else this.hexInput = this.value || '' // Revert if invalid
+    }
   }
 }

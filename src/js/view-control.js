@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -30,17 +30,6 @@ let cookie = require('./cookie')
 let util   = require('./util')
 
 
-function _is_array(x) {
-  return Object.prototype.toString.call(x) === '[object Array]'
-}
-
-
-function escapeHTML(s) {
-  let entityMap = {'&': '&amp;', '<': '&lt;', '>': '&gt;'}
-  return String(s).replace(/[&<>]/g, s => entityMap[s])
-}
-
-
 module.exports = {
   template: '#view-control-template',
   props: ['config', 'template', 'state'],
@@ -48,7 +37,6 @@ module.exports = {
 
   data() {
     return {
-      mach_units: 'METRIC',
       mdi: '',
       history: [],
       jog_step: cookie.get_bool('jog-step'),
@@ -67,18 +55,6 @@ module.exports = {
 
 
   watch: {
-    'state.imperial': {
-      handler(imperial) {this.mach_units = imperial ? 'IMPERIAL' : 'METRIC'},
-      immediate: true
-    },
-
-
-    mach_units(units) {
-      if ((units == 'METRIC') != this.metric)
-        this.send(units == 'METRIC' ? 'G21' : 'G20')
-    },
-
-
     'state.line'() {
       if (this.mach_state != 'HOMING') this.highlight_code()
     },
@@ -99,6 +75,18 @@ module.exports = {
     metric() {return !this.state.imperial},
 
 
+    // Units display with G-code reference
+    mach_units() {
+      return this.state.imperial ? 'Imperial (G20)' : 'Metric (G21)'
+    },
+
+
+    distance_mode() {
+      return this.state.incremental_distance_mode ?
+        'Incremental (G91)' : 'Absolute (G90)'
+    },
+
+
     mach_state() {
       let cycle = this.state.cycle
       let state = this.state.xx
@@ -107,6 +95,13 @@ module.exports = {
           (cycle == 'jogging' || cycle == 'homing'))
         return cycle.toUpperCase()
       return state || ''
+    },
+
+
+    eta() {
+      if (!this.remaining || this.remaining <= 0) return null
+      let eta = new Date(Date.now() + this.remaining * 1000)
+      return eta.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
     },
 
 
@@ -236,9 +231,16 @@ module.exports = {
     },
 
 
+    clear_display() {
+      if (this.editor != undefined) this.editor.setValue('')
+      this.toolpath         = {}
+      this.highlighted_line = 0
+    },
+
+
     async load() {
       let path = this.active.path
-      if (!path) return
+      if (!path) return this.clear_display()
 
       let data = await this.active.load()
       if (this.active.path != path) return
@@ -290,7 +292,7 @@ module.exports = {
       else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
         this.unpause()
 
-      else this.start()
+      else this.start().catch(() => {}) // Error already shown by API handler
     },
 
 

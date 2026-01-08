@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -26,7 +26,6 @@
 ################################################################################
 
 import os
-import time
 
 from .IOLoop import *
 from .Log import *

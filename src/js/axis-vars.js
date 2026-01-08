@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -142,7 +142,7 @@ module.exports = {
 
       switch (state) {
       case 'UNHOMED': title = 'Click the home button to home axis.'; break
-      case 'HOMED': title = 'Axis successfuly homed.'; break
+      case 'HOMED': title = 'Axis successfully homed.'; break
 
       case 'NO FIT':
         title = 'Tool path dimensions exceed axis dimensions by ' +
@@ -164,24 +164,9 @@ module.exports = {
       }
 
       return {
-        name: axis,
-        pos: abs - off,
-        abs: abs,
-        off: off,
-        min: min,
-        max: max,
-        dim: dim,
-        pathMin: pathMin,
-        pathMax: pathMax,
-        pathDim: pathDim,
-        motor: motor_id,
-        enabled: enabled,
-        homingMode: homingMode,
-        homed: homed,
-        klass: klass,
-        state: state,
-        icon: icon,
-        title: title
+        name: axis, pos: abs - off, abs, off, min, max, dim, pathMin, pathMax,
+        pathDim, motor: motor_id, enabled, homingMode, homed, klass, state,
+        icon, title,
       }
     }
   }

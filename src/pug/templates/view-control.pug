@@ -2,7 +2,7 @@
 //-                                                                           //
 //-               This file is part of the Buildbotics firmware.              //
 //-                                                                           //
-//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
+//-      Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.     //
 //-                                                                           //
 //-       This Source describes Open Hardware and is licensed under the       //
 //-                               CERN-OHL-S v2.                              //
@@ -65,13 +65,13 @@ script#view-control-template(type="text/x-template")
           td.message(:class="{attention: highlight_state}")
             | {{message.replace(/^#/, '')}}
 
-        tr(title="Active machine units")
+        tr(title="Active machine units: G20=Imperial (inches), G21=Metric (mm)")
           th Units
           td.mach_units {{mach_units}}
 
-        tr(title="Active tool")
-          th Tool
-          td {{state.tool || 0}}
+        tr(title="Distance mode: G90=Absolute positioning, G91=Incremental positioning")
+          th Distance
+          td {{distance_mode}}
 
       table.info
         tr(
@@ -92,15 +92,22 @@ script#view-control-template(type="text/x-template")
           th Speed
           td
             | {{state.speed || 0 | fixed 0}}
-            span(v-if="!isNaN(state.s)") &nbsp;({{state.s | fixed 0}})
+            span(v-if="!isNaN(state.s)")  ({{state.s | fixed 0}})
             = ' RPM'
+
+        tr(title="Active tool")
+          th Tool
+          td {{state.tool || 0}}
 
       table.info
         tr
           th Remaining
           td(title="Total run time (days:hours:mins:secs)").
             #[span(v-if="remaining") {{remaining | time}} of]
-            {{active.time | time}}
+            {{toolpath.time || 0 | time}}
+        tr(title="Estimated completion time based on remaining time")
+          th ETA
+          td {{eta || '--'}}
         tr
           th Line
           td {{0 <= state.line ? state.line : 0 | number}}
@@ -168,9 +175,11 @@ script#view-control-template(type="text/x-template")
         .mdi.pure-form(title="Manual command entry.")
           bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
             title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'")
+            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
+            :text="is_running ? 'Pause' : 'Run'")
 
-          bbutton(title="Stop command.", @click="stop", icon="stop")
+          bbutton(title="Stop command.", @click="stop", icon="stop",
+            text="Stop")
 
           input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
 
@@ -186,17 +195,17 @@ script#view-control-template(type="text/x-template")
           axis-control(axes="XY", :colors="['red', 'green']",
             :enabled="[x.enabled, y.enabled]",
             v-if="x.enabled || y.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="is_running")
 
           axis-control(axes="AZ", :colors="['orange', 'blue']",
             :enabled="[a.enabled, z.enabled]",
             v-if="a.enabled || z.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="is_running")
 
           axis-control(axes="BC", :colors="['cyan', 'purple']",
             :enabled="[b.enabled, c.enabled]",
             v-if="b.enabled || c.enabled", :adjust="jog_adjust",
-            :step="jog_step")
+            :step="jog_step", :disabled="is_running")
 
           .jog-settings
             .jog-adjust

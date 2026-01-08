@@ -2,7 +2,7 @@
 
                   This file is part of the Buildbotics firmware.
 
-         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
 
           This Source describes Open Hardware and is licensed under the
                                   CERN-OHL-S v2.
@@ -25,13 +25,36 @@
 
 \******************************************************************************/
 
+.color-picker-container
+  display inline-flex
+  align-items center
+  gap 4px
+
 .color-picker
   height 1.5em
   width 1.5em
   border 1px solid #aaa
   cursor pointer
   overflow hidden
+  flex-shrink 0
 
   input
     opacity 0
     cursor pointer
+
+.hex-input
+  width 5.5em
+  height 1.5em
+  padding 0 4px
+  border 1px solid #aaa
+  font-family monospace
+  font-size 0.85em
+  text-transform uppercase
+
+  &:focus
+    outline none
+    border-color #3498db
+
+  &::placeholder
+    color #aaa
+    text-transform none

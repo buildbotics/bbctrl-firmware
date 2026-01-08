@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -50,14 +50,14 @@ class State(object):
 
         # Defaults
         self.vars = {
-            'line': -1,
-            'messages': [],
-            'tool': 0,
-            'feed': 0,
-            'speed': 0,
-            'sid': str(uuid.uuid4()),
-            'demo': ctrl.args.demo,
-            'rpi_model': util.get_model()
+            'line':      -1,
+            'messages':  [],
+            'tool':      0,
+            'feed':      0,
+            'speed':     0,
+            'sid':       str(uuid.uuid4()),
+            'demo':      ctrl.args.demo,
+            'rpi_model': util.get_model(),
         }
 
         # Add computed variable callbacks for each motor.
@@ -91,6 +91,9 @@ class State(object):
 
 
     def reset(self):
+        # Clear active program
+        self.set('active_program', '')
+
         # Unhome all motors
         for i in range(4): self.set('%dhomed' % i, 0)
 
