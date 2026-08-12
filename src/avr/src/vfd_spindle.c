@@ -248,6 +248,20 @@ const vfd_reg_t fuling_dzb200_regs[] PROGMEM = {
 };
 
 
+// INVT derived, function code PX.YY is Modbus reg 0xXXYY
+const vfd_reg_t huanyang_gt_regs[] PROGMEM = {
+  {REG_MAX_FREQ_READ,    0x0003,     0}, // P0.03 max frequency
+  {REG_FREQ_SCALED_SET,  0x2000, 10000}, // Set frequency as % of max
+  {REG_FREQ_READ,        0x3000,     0}, // Output freq
+  {REG_FWD_WRITE,        0x1000,     1}, // Run forward
+  {REG_REV_WRITE,        0x1000,     2}, // Run reverse
+  {REG_STOP_WRITE,       0x1000,     6}, // Coast to stop
+  {REG_STATUS_READ,      0x1001,     0}, // Status
+  {REG_DISCONNECT_WRITE, 0x1000,     6}, // Coast to stop on disconnect
+  {REG_DISABLED},
+};
+
+
 // VFD aliases
 #define wj200_regs omron_mx2_regs
 #define h100_regs  v70_regs
@@ -484,6 +498,7 @@ void vfd_spindle_init() {
   case SPINDLE_TYPE_TECO_E510:        _load(teco_e510_regs);          break;
   case SPINDLE_TYPE_EM60:             _load(em60_regs);               break;
   case SPINDLE_TYPE_FULING_DZB200:    _load(fuling_dzb200_regs);      break;
+  case SPINDLE_TYPE_HUANYANG_GT:      _load(huanyang_gt_regs);        break;
   default: break;
   }
 

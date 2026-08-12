@@ -53,6 +53,7 @@ properties:
     - Teco Westinghouse E510
     - EM60
     - Fuling DZB200/300
+    - Huanyang GT-series
   tool-reversed:
     type: boolean
     default: false

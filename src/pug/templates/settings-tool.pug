@@ -762,3 +762,64 @@ script#settings-tool-template(type="text/x-template")
           |
           a(href="https://buildbotics.com/upload/vfd/fuling_dzb200.pdf",
             target="_blank") Fuling DZB200/300 VFD manual
+
+
+      .notes(v-if="tool_type.startsWith('HUANYANG GT')")
+        h2 Notes
+        p Set the following using the VFD's front panel.
+        table.modbus-regs.fixed-regs
+          tr
+            th Address
+            th Value
+            th Meaning
+            th Description
+          tr
+            td.reg-addr P0.01
+            td.reg-value 2
+            td Communication
+            td Run command source
+          tr
+            td.reg-addr P0.03
+            td.reg-value 400.00
+            td Maximum frequency
+            td Set to suit the spindle.  Reported speed depends on this.
+          tr
+            td.reg-addr P0.04
+            td.reg-value 400.00
+            td Upper frequency limit
+            td Set equal to #[tt P0.03] or the VFD clamps below maximum
+          tr
+            td.reg-addr P0.05
+            td.reg-value 0.00
+            td Lower frequency limit
+            td Set to suit the spindle
+          tr
+            td.reg-addr P0.07
+            td.reg-value 7
+            td Remote communication
+            td Frequency A command source
+          tr
+            td.reg-addr PC.00
+            td.reg-value 1
+            td Local address
+            td Must match #[tt bus-id] above
+          tr
+            td.reg-addr PC.01
+            td.reg-value 3
+            td 9600 BAUD
+            td Must match #[tt baud] above
+          tr
+            td.reg-addr PC.02
+            td.reg-value 0
+            td N81 RTU
+            td Data format
+          tr
+            td.reg-addr PC.06
+            td.reg-value 00
+            td Respond to writing
+            td Writes fail if the unit's digit is 1
+        p
+          | Other settings according to the
+          |
+          a(href="https://buildbotics.com/upload/vfd/Huanyang-GT-manual.pdf",
+            target="_blank") Huanyang GT-series VFD manual

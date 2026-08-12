@@ -2,6 +2,7 @@ Buildbotics CNC Controller Firmware Changelog
 =============================================
 
 ## v2.0.8
+  - Added support for Huanyang GT-series VFD.
   - Try to parse API response text as JSON.
   - Initialize referenced app.js vars so that vue.js sees them.
   - Added check for ``undefined`` positions in path-viewer.js
