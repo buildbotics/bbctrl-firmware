@@ -130,7 +130,7 @@ class Mach(Comm):
                 self.planner.result(0) # Switch not found
                 self._unpause()
 
-            if pr == 'Switch not found':
+            if pr in ('Switch not found', 'Squaring limit exceeded'):
                 self.mlog.error(pr)
                 self.stop()
 

@@ -77,6 +77,7 @@ PGM_P state_get_hold_reason_pgmstr(hold_reason_t reason) {
   case HOLD_REASON_SWITCH_FOUND:     return PSTR("Switch found");
   case HOLD_REASON_SWITCH_NOT_FOUND: return PSTR("Switch not found");
   case HOLD_REASON_SWITCH_NO_ERROR:  return PSTR("Switch no error");
+  case HOLD_REASON_SQUARE_LIMIT:     return PSTR("Squaring limit exceeded");
   }
 
   return PSTR("INVALID");
@@ -109,6 +110,13 @@ void state_seek_hold(bool found, bool error) {
   _set_hold_reason(found ? HOLD_REASON_SWITCH_FOUND :
                    (error ? HOLD_REASON_SWITCH_NOT_FOUND :
                     HOLD_REASON_SWITCH_NO_ERROR));
+  if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
+}
+
+
+/// Stop because a squared axis' motors drifted too far apart while homing
+void state_square_hold() {
+  _set_hold_reason(HOLD_REASON_SQUARE_LIMIT);
   if (state_get() == STATE_RUNNING) _set_state(STATE_STOPPING);
 }
 

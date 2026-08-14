@@ -35,8 +35,11 @@
 #include "exec.h"
 #include "stepper.h"
 #include "drv8711.h"
+#include "motor.h"
+#include "axis.h"
 
 #include <stdint.h>
+#include <math.h>
 
 
 enum {
@@ -50,10 +53,12 @@ typedef struct {
   bool active;
   io_function_t sw;
   uint8_t flags;
+  io_function_t sw2; // Second switch, IO_DISABLED unless squaring an axis
+  uint8_t found;     // One bit per switch, set as each one triggers
 } seek_t;
 
 
-static seek_t seek = {false, IO_DISABLED, 0};
+static seek_t seek = {false, IO_DISABLED, 0, IO_DISABLED, 0};
 
 
 static bool _is_stall_input(int sw) {
@@ -64,11 +69,42 @@ static bool _is_stall_input(int sw) {
 static int _input_motor(int sw) {return sw - INPUT_STALL_0;}
 
 
+/// The motor a limit or stall input belongs to, or -1
+static int _switch_motor(io_function_t sw) {
+  if (INPUT_MOTOR_0_MAX <= sw && sw <= INPUT_MOTOR_3_MAX)
+    return sw - INPUT_MOTOR_0_MAX;
+
+  if (INPUT_MOTOR_0_MIN <= sw && sw <= INPUT_MOTOR_3_MIN)
+    return sw - INPUT_MOTOR_0_MIN;
+
+  if (_is_stall_input(sw)) return _input_motor(sw);
+
+  return -1;
+}
+
+
+static bool _is_seek_input(io_function_t sw) {
+  return seek.active && (sw == seek.sw || sw == seek.sw2);
+}
+
+
+static void _hold_motor(io_function_t sw, bool hold) {
+  const int motor = _switch_motor(sw);
+  if (0 <= motor) motor_set_homing_hold(motor, hold);
+}
+
+
+static void _release_holds() {
+  if (seek.sw2 == IO_DISABLED) return;
+  _hold_motor(seek.sw, false);
+  _hold_motor(seek.sw2, false);
+}
+
 
 static void _input_cb(io_function_t sw, bool active) {
   if (_is_stall_input(sw)) drv8711_set_stalled(_input_motor(sw), active);
 
-  if (sw != seek_get_input() && !_is_stall_input(sw) &&
+  if (!_is_seek_input(sw) && !_is_stall_input(sw) &&
       exec_get_velocity() && active)
     estop_trigger(STAT_ESTOP_SWITCH);
 }
@@ -86,19 +122,12 @@ void seek_init() {
 io_function_t seek_get_input() {return seek.active ? seek.sw : IO_DISABLED;}
 
 
-bool seek_found() {
-  if (!seek.active) return false;
+/// True once a single switch has triggered
+static bool _switch_found(io_function_t sw) {
+  const bool inactive = !(seek.flags & SEEK_ACTIVE);
+  if (!(io_get_input(sw) ^ inactive)) return false;
 
-  bool inactive = !(seek.flags & SEEK_ACTIVE);
-  bool found = io_get_input(seek.sw) ^ inactive;
-  bool stall_sw = _is_stall_input(seek.sw);
-
-  if (found && (!stall_sw || drv8711_detect_stall(_input_motor(seek.sw)))) {
-    seek.flags |= SEEK_FOUND;
-    return true;
-  }
-
-  return false;
+  return !_is_stall_input(sw) || drv8711_detect_stall(_input_motor(sw));
 }
 
 
@@ -106,8 +135,67 @@ static void _done() {
   if (!seek.active) return;
   seek.active = false;
 
+  _release_holds();
+
   if (_is_stall_input(seek.sw))
     drv8711_set_stall_detect(_input_motor(seek.sw), false);
+
+  if (_is_stall_input(seek.sw2))
+    drv8711_set_stall_detect(_input_motor(seek.sw2), false);
+}
+
+
+/// True when the motor already at its switch has waited too long for the other
+static bool _square_error_exceeded() {
+  // The limit is configured on the axis' first motor, which owns seek.sw
+  const int master = _switch_motor(seek.sw);
+  const int held   = (seek.found & 1) ? master : _switch_motor(seek.sw2);
+  if (master < 0 || held < 0) return false;
+
+  const float max = motor_get_square_limit(master);
+
+  return 0 < max && max < fabs(motor_get_square_offset(held));
+}
+
+
+bool seek_found() {
+  if (!seek.active) return false;
+
+  // Single switch seek
+  if (seek.sw2 == IO_DISABLED) {
+    if (!_switch_found(seek.sw)) return false;
+    seek.flags |= SEEK_FOUND;
+    return true;
+  }
+
+  // Dual switch seek.  Hold each motor as its own switch triggers, letting the
+  // other keep going until it reaches its switch.  That squares the axis.
+  const io_function_t sws[2] = {seek.sw, seek.sw2};
+
+  for (int i = 0; i < 2; i++) {
+    const uint8_t bit = 1 << i;
+    if ((seek.found & bit) || !_switch_found(sws[i])) continue;
+
+    seek.found |= bit;
+    _hold_motor(sws[i], true);
+  }
+
+  // Release before stopping so both motors decelerate together
+  if (seek.found == 0x3) {
+    _release_holds();
+    seek.flags |= SEEK_FOUND;
+    return true;
+  }
+
+  // A switch that never triggers would rack the axis until the seek runs out
+  // of travel.  Give up as soon as the motors are too far apart.  Ending the
+  // seek here also keeps seek_end() from overriding the hold reason.
+  if (seek.found && _square_error_exceeded()) {
+    _done();
+    state_square_hold();
+  }
+
+  return false;
 }
 
 
@@ -154,7 +242,29 @@ stat_t command_seek(char *cmd) {
   uint8_t flags = decode_hex_nibble(cmd[2]);
   if (flags & 0xfc) return STAT_INVALID_ARGUMENTS;
 
-  seek_t seek = {true, sw, flags};
+  // An optional second switch homes a second motor on the same axis.  Each
+  // motor stops at its own switch, squaring the axis.
+  io_function_t sw2 = IO_DISABLED;
+
+  if (cmd[3]) {
+    sw2 = _decode_id(decode_hex_nibble(cmd[3]));
+
+    if (sw2 == IO_DISABLED || sw2 == sw) return STAT_INVALID_ARGUMENTS;
+    if (!io_is_enabled(sw2)) return STAT_SEEK_NOT_ENABLED;
+
+    // The switches must be the ones belonging to the two motors of a single
+    // axis.  Holding a motor that does not share an axis with the other would
+    // drive them apart with nothing to stop it.
+    const int m1 = _switch_motor(sw);
+    const int m2 = _switch_motor(sw2);
+    if (m1 < 0 || m2 < 0) return STAT_INVALID_ARGUMENTS;
+
+    const int axis = motor_get_axis(m1);
+    if (axis_get_motor(axis) != m1 || axis_get_slave_motor(axis) != m2)
+      return STAT_INVALID_ARGUMENTS;
+  }
+
+  seek_t seek = {true, sw, flags, sw2, 0};
   command_push(*cmd, &seek);
 
   return STAT_OK;
@@ -169,4 +279,7 @@ void command_seek_exec(void *data) {
 
   if (_is_stall_input(seek.sw))
     drv8711_set_stall_detect(_input_motor(seek.sw), true);
+
+  if (_is_stall_input(seek.sw2))
+    drv8711_set_stall_detect(_input_motor(seek.sw2), true);
 }

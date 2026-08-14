@@ -92,7 +92,9 @@ class ProgramHome(ProgramMDI):
         continue
 
       # Home axis
-      log.info('Homing %s axis' % axis)
+      if state.axis_is_squared(axis):
+        log.info('Homing and squaring %s axis' % axis)
+      else: log.info('Homing %s axis' % axis)
       if mode.startswith('stall-'): procedure = stall_homing_procedure
       else: procedure = axis_homing_procedure
       mdi += procedure % {'axis': axis}

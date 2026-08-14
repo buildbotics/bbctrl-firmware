@@ -58,6 +58,8 @@ VAR(travel,          tr, f32,   MOTORS,  1, 1, "Travel in mm/rev")
 VAR(min_soft_limit,  tn, f32,   MOTORS,  1, 1, "Min soft limit")
 VAR(max_soft_limit,  tm, f32,   MOTORS,  1, 1, "Max soft limit")
 VAR(homed,            h, b8,    MOTORS,  1, 1, "Motor homed status")
+VAR(square_limit,    qe, f32,   MOTORS,  1, 1, "Max axis squaring travel")
+VAR(square_offset,   qo, f32,   MOTORS,  0, 1, "Axis squaring offset")
 
 VAR(active_current,  ac, f32,   MOTORS,  0, 0, "Motor current now")
 VAR(driver_flags,    df, u16,   MOTORS,  1, 1, "Motor driver flags")

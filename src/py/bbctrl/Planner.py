@@ -296,8 +296,10 @@ class Planner():
         if type == 'pause': return Cmd.pause(block['pause-type'])
 
         if type == 'seek':
-            sw = self.ctrl.state.get_switch_id(block['switch'])
-            return Cmd.seek(sw, block['active'], block['error'])
+            state = self.ctrl.state
+            sw = state.get_switch_id(block['switch'])
+            sw2 = state.get_square_switch_id(block['switch'])
+            return Cmd.seek(sw, block['active'], block['error'], sw2)
 
         if type == 'end':
             self.cmdq.enqueue(id, self._end_program, 'Program end')

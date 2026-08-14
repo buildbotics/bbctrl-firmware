@@ -257,12 +257,22 @@ class State(object):
         return limit
 
 
-    def find_motor(self, axis):
+    def find_motors(self, axis):
+        '''Enabled motors mapped to an axis, in motor order.'''
+        motors = []
+
         for motor in range(4):
             if not ('%dan' % motor) in self.vars: continue
             motor_axis = 'xyzabc'[self.vars['%dan' % motor]]
             if motor_axis == axis.lower() and self.vars.get('%dme' % motor, 0):
-                return motor
+                motors.append(motor)
+
+        return motors
+
+
+    def find_motor(self, axis):
+        motors = self.find_motors(axis)
+        return motors[0] if motors else None
 
 
     def is_axis_homed(self, axis): return self.get('%s_homed' % axis, 0)
@@ -298,6 +308,20 @@ class State(object):
         return self.motor_homing_mode(motor)
 
 
+    def axis_squaring_enabled(self, axis):
+        '''True when the axis is configured to home both its motors.'''
+        motors = self.find_motors(axis)
+        if not motors: return False
+        return bool(int(self.vars.get('%dsq' % motors[0], 0)))
+
+
+    def axis_is_squared(self, axis):
+        '''True when the axis can and should home both its motors.'''
+        if not self.axis_squaring_enabled(axis): return False
+        if len(self.find_motors(axis)) < 2: return False
+        return self.axis_homing_mode(axis).startswith('switch-')
+
+
     def axis_home_fail_reason(self, axis):
         motor = self.find_motor(axis)
         if motor is None: return 'Not mapped to motor'
@@ -306,6 +330,14 @@ class State(object):
         mode = self.motor_homing_mode(motor)
 
         # TODO check for pin configured for required homing switch function
+
+        if self.axis_squaring_enabled(axis):
+            if len(self.find_motors(axis)) < 2:
+                return 'square-axis needs a second enabled motor mapped to ' \
+                    'this axis'
+
+            if not mode.startswith('switch-'):
+                return 'square-axis requires switch-min or switch-max homing'
 
         softMin = int(self.get(axis + '_tn', 0))
         softMax = int(self.get(axis + '_tm', 0))
@@ -372,7 +404,13 @@ class State(object):
         return 1000 * self.get(str(motor) + 'lv', 0)
 
 
-    def get_axis_switch(self, axis, side):
+    def motor_switch_id(self, motor, side, hmode):
+        # The following must match _decode_id() in avr/src/seek.c
+        if hmode.startswith('stall-'): return motor + 10
+        return 2 * motor + 2 + (0 if side.lower() == 'min' else 1)
+
+
+    def _check_axis_switch(self, axis, side):
         axis = axis.lower()
 
         if not axis in 'xyzabc':
@@ -381,18 +419,49 @@ class State(object):
         if not self.is_axis_enabled(axis):
             raise Exception('Switch "%s-%s" axis not enabled' % (axis, side))
 
-        motor = self.find_motor(axis)
+        return axis
 
-        # The following must match the switch ID enum in avr/src/switch.h
-        hmode = self.motor_homing_mode(motor)
-        if hmode.startswith('stall-'): return motor + 10
-        return 2 * motor + 2 + (0 if side.lower() == 'min' else 1)
+
+    def get_axis_switch(self, axis, side):
+        axis = self._check_axis_switch(axis, side)
+        motor = self.find_motor(axis)
+        return self.motor_switch_id(motor, side, self.motor_homing_mode(motor))
+
+
+    def get_axis_square_switch(self, axis, side):
+        '''Switch of the axis' second motor, or None if it is not squared.
+
+        The second motor homes to the same side as the first, so it uses the
+        first motor's homing mode.
+        '''
+        axis = self._check_axis_switch(axis, side)
+        if not self.axis_is_squared(axis): return None
+
+        motors = self.find_motors(axis)
+        return self.motor_switch_id(motors[1], side,
+                                    self.motor_homing_mode(motors[0]))
+
+
+    def _switch_side(self, switch):
+        switch = switch.lower()
+        if switch[1:] == '-min': return switch[0], 'min'
+        if switch[1:] == '-max': return switch[0], 'max'
+        return None, None
 
 
     def get_switch_id(self, switch):
         # TODO Support other input switches in CAMotics gcode/machine/PortType.h
-        switch = switch.lower()
-        if switch == 'probe': return 1
-        if switch[1:] == '-min': return self.get_axis_switch(switch[0], 'min')
-        if switch[1:] == '-max': return self.get_axis_switch(switch[0], 'max')
-        raise Exception('Unsupported switch "%s"' % switch)
+        if switch.lower() == 'probe': return 1
+
+        axis, side = self._switch_side(switch)
+        if axis is None: raise Exception('Unsupported switch "%s"' % switch)
+
+        return self.get_axis_switch(axis, side)
+
+
+    def get_square_switch_id(self, switch):
+        '''Second switch ID for a squared axis, otherwise None.'''
+        axis, side = self._switch_side(switch)
+        if axis is None: return None
+
+        return self.get_axis_square_switch(axis, side)

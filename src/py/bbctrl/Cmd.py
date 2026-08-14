@@ -189,13 +189,16 @@ def pause(type): return '%s%d' % (PAUSE, _get_pause_type(type))
 def jog(id, axes): return JOG + ('%04x' % id) + encode_axes(axes)
 
 
-def seek(switch, active, error):
+def seek(switch, active, error, switch2 = None):
     cmd = SEEK + '%x' % switch
 
     flags = 0
     if active: flags |= SEEK_ACTIVE
     if error:  flags |= SEEK_ERROR
     cmd += chr(flags + ord('0'))
+
+    # A second switch homes a second motor on the same axis, squaring it
+    if switch2 is not None: cmd += '%x' % switch2
 
     return cmd
 
@@ -234,11 +237,12 @@ def decode_command(cmd):
     elif cmd[0] == SEEK:
         data['type'] = 'seek'
 
-        data['port'] = int(cmd[2], 16)
+        data['port'] = int(cmd[1], 16)
         flags = int(cmd[2], 16)
 
         data['active'] = bool(flags & SEEK_ACTIVE)
         data['error'] = bool(flags & SEEK_ERROR)
+        if 3 < len(cmd): data['port2'] = int(cmd[3], 16)
 
     elif cmd[0] == LINE:
         data['type'] = 'line'

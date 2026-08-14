@@ -252,6 +252,24 @@
           "default": 5,
           "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
+        },
+        "square-axis": {
+          "type": "bool",
+          "help": "Home a second motor on this axis to its own limit switch, squaring a gantry.  Requires a second motor mapped to this axis with its own switch configured under IO.  Set on the first motor of the pair.",
+          "default": false,
+          "code": "sq",
+          "hmodes": ["switch-min", "switch-max"]
+        },
+        "max-square-error": {
+          "type": "float",
+          "help": "The furthest apart in mm the two motors may travel while squaring.  Homing stops if exceeded, which catches a miswired or failed second switch before the gantry racks.  Zero disables the check.",
+          "min": 0,
+          "unit": "mm",
+          "iunit": "in",
+          "scale": 25.4,
+          "default": 10,
+          "code": "qe",
+          "hmodes": ["switch-min", "switch-max"]
         }
       }
     }

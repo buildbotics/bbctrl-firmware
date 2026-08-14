@@ -70,6 +70,7 @@ typedef struct {
   float min_soft_limit;
   float max_soft_limit;
   bool homed;
+  float square_limit;            // max squaring travel, 0 disables the check
 
   // Computed
   float steps_per_unit;
@@ -80,6 +81,12 @@ typedef struct {
   int32_t encoder;
   int16_t error;
   bool last_negative;
+
+  // Gantry squaring
+  bool homing_hold;              // motor holds position while its sibling homes
+  float hold_target;             // motor target while held
+  float square_offset;           // motor lead over its axis, in axis units
+  float last_target;             // last motor target, in axis units
 
   // Move prep
   bool prepped;
@@ -224,9 +231,31 @@ static int32_t _position_to_steps(int motor, float position) {
 
 void motor_set_position(int motor, float position) {
   motor_t *m = &motors[motor];
-  m->commanded = m->encoder = m->position = _position_to_steps(motor, position);
+
+  // A squared motor sits square_offset away from its axis position
+  const float target = position - m->square_offset;
+
+  m->commanded = m->encoder = m->position = _position_to_steps(motor, target);
   m->error = 0;
+  m->last_target = target;
 }
+
+
+void motor_set_homing_hold(int motor, bool hold) {
+  motor_t *m = &motors[motor];
+  if (m->homing_hold == hold) return;
+
+  // Hold at wherever the motor is now.  Releasing keeps the offset that
+  // accumulated while held so the motor does not jump back.
+  if (hold) m->hold_target = m->last_target;
+  m->homing_hold = hold;
+}
+
+
+float motor_get_square_offset(int motor) {return motors[motor].square_offset;}
+
+
+float motor_get_square_limit(int motor) {return motors[motor].square_limit;}
 
 
 float motor_get_soft_limit(int motor, bool min) {
@@ -337,6 +366,16 @@ void motor_prep_move(int motor, float target) {
   motor_t &m = motors[motor];
   ESTOP_ASSERT(!m.prepped, STAT_MOTOR_NOT_READY);
 
+  // A held motor stays put and banks the axis motion as its squaring offset.
+  // Otherwise it tracks the axis, offset by whatever it banked earlier.
+  if (m.homing_hold) {
+    m.square_offset = target - m.hold_target;
+    target = m.hold_target;
+
+  } else target -= m.square_offset;
+
+  m.last_target = target;
+
   // Travel in steps
   int32_t position = _position_to_steps(motor, target);
   int24_t steps = position - m.position;
@@ -379,13 +418,14 @@ void motor_prep_move(int motor, float target) {
 
   m.timer_period = steps ? round(ticks_per_step) : 0;
 
-  // Power motor
+  // Power motor.  A held motor is not stepping but must stay powered or the
+  // axis racks against it and back drives it, spoiling the squaring.
   if (!m.enabled) {
     m.timer_period = 0;
     m.encoder = m.commanded = m.position;
     m.error = 0;
 
-  } else if (m.timer_period) // Motor is moving so reset power timeout
+  } else if (m.timer_period || m.homing_hold) // Reset power timeout
     m.power_timeout = rtc_get_time() + MOTOR_IDLE_TIMEOUT * 1000;
   _update_power(motor);
 
@@ -487,7 +527,35 @@ void set_max_soft_limit(int motor, float limit) {
 
 
 bool get_homed(int motor) {return motors[motor].homed;}
-void set_homed(int motor, bool homed) {motors[motor].homed = homed;}
+
+
+void set_homed(int motor, bool homed) {
+  motors[motor].homed = homed;
+
+  if (homed) return;
+
+  // Unhoming discards the whole axis' squaring offsets.  Only the axis' first
+  // motor is ever unhomed, but either of its motors may hold an offset.
+  // Resync so dropping an offset does not command a jump on the next move.
+  for (int m = 0; m < MOTORS; m++)
+    if (motors[m].axis == motors[motor].axis) {
+      motors[m].homing_hold = false;
+
+      if (motors[m].square_offset) {
+        motors[m].square_offset = 0;
+        _reset_encoder(m);
+      }
+    }
+}
+
+
+float get_square_offset(int motor) {return motor_get_square_offset(motor);}
+float get_square_limit(int motor) {return motor_get_square_limit(motor);}
+
+
+void set_square_limit(int motor, float value) {
+  motors[motor].square_limit = value;
+}
 
 
 int32_t get_encoder(int m) {return motors[m].encoder;}

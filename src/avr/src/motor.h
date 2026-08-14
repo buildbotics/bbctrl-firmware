@@ -53,6 +53,12 @@ float motor_get_soft_limit(int motor, bool min);
 bool motor_get_homed(int motor);
 void motor_set_step_output(int motor, bool enabled);
 
+// Dual-motor (gantry squaring) homing.  While a motor is held it ignores
+// further axis motion and banks the difference as its squaring offset.
+void motor_set_homing_hold(int motor, bool hold);
+float motor_get_square_offset(int motor);
+float motor_get_square_limit(int motor);
+
 stat_t motor_rtc_callback();
 
 void motor_end_move(int motor);

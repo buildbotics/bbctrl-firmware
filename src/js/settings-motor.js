@@ -158,6 +158,13 @@ module.exports = {
           ['stall-microstep', 'stall-volts', 'stall-sample-time',
            'stall-current'].includes(name)) return false
 
+      // Squaring is configured on the first motor of the pair
+      if (this.is_slave &&
+          ['square-axis', 'max-square-error'].includes(name)) return false
+
+      if (name == 'max-square-error' && !this.motor['square-axis'])
+        return false
+
       if (templ.hmodes == undefined) return true
 
       if (this.motor['type-of-driver'] == 'internal')
