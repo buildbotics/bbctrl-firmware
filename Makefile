@@ -137,6 +137,9 @@ jshint:
 
 lint: pylint jshint
 
+test:
+	pytest
+
 watch:
 	@clear
 	$(MAKE)
@@ -159,5 +162,5 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg camotics lint pylint jshint
+.PHONY: all install clean tidy pkg camotics lint pylint jshint test
 .PHONY: html resources dist-clean

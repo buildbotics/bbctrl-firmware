@@ -1,6 +1,16 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
+## Unreleased
+  - Dual-motor homing (gantry squaring).  An axis driven by two motors can
+    home each motor to its own limit switch, squaring the gantry.  Enable
+    with the new ``square-axis`` motor setting; ``max-square-error`` limits
+    how far the motors may separate before homing aborts.
+  - New AVR variables ``qe`` (squaring limit) and ``qo`` (squaring offset).
+  - Fixed axis to motor remapping not clearing stale motor assignments.
+  - Added pytest test suite covering the AVR command protocol, serial
+    framing, config load/save and homing logic.  Run with ``make test``.
+
 ## v2.0.8
   - Added support for Huanyang GT-series VFD.
   - Try to parse API response text as JSON.

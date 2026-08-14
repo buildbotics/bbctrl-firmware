@@ -24,6 +24,29 @@ On a Debian Linux (9.6.0 stable) system install the required packages:
     cd bbctrl-firmware
     make
 
+## Running the Tests
+
+The Python test suite lives in ``tests/`` and covers the AVR command
+protocol (``Cmd.py``), serial framing (``Comm.py``), config load/save
+(``Config.py``) and the homing/squaring logic (``State.py``).  One-time
+setup:
+
+    pip3 install -r requirements-dev.txt
+    pip3 install -e .
+
+Then run:
+
+    make test
+
+or ``pytest`` directly.  Coverage is reported per module; a few tests are
+marked ``xfail`` to document known bugs — they start passing (reported as
+``XPASS``) when the bug is fixed, at which point the marker should be
+removed.
+
+The tests fake the serial port, filesystem and controller at their seams; no
+hardware is required.  They run on any OS, though one test of versioned
+config paths is skipped on Windows.
+
 ## Build CAMotics Module
 
 CAMotics is a Python module written in C++.  It must be compiled for ARM so that

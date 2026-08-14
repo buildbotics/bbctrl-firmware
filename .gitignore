@@ -33,3 +33,6 @@ __pycache__
 .env.*.local
 *.pem
 *.key
+.pytest_cache
+.coverage
+htmlcov

@@ -1,0 +1,15 @@
+# Development and test dependencies.
+#
+# The test suite imports bbctrl, and src/py/bbctrl/util.py resolves its own
+# version through pkg_resources at import time.  That needs the package to be
+# installed, not merely importable:
+#
+#     pip install -r requirements-dev.txt
+#     pip install -e .
+#
+# pkg_resources was removed in setuptools 81; pin below it until util.py moves
+# to importlib.metadata.
+pytest>=8.0
+pytest-cov>=5.0
+pylint>=3.0
+setuptools<81
