@@ -45,7 +45,11 @@ script#view-settings-template(type="text/x-template")
       a.nav-item(href="#settings:admin") Admin
 
       .actions
-        bbutton(v-if="$root.authorized", @click="$root.logout", text="Logout",
+        bbutton(v-if="$root.user", icon="key", text="Password",
+          @click="$root.change_password($root.user)",
+          title="Change my password")
+
+        bbutton(v-if="$root.user", @click="$root.logout", text="Logout",
           title="Logout to lock protected settings")
 
         bbutton(v-else, @click="$root.login", text="Login", success,

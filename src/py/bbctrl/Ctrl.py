@@ -50,12 +50,11 @@ __all__ = ['Ctrl']
 
 class Ctrl:
     def __init__(self, args, ioloop, udevev, id):
-        self.args     = args
-        self.ioloop   = IOLoop(ioloop)
-        self.udevev   = udevev
-        self.id       = id
-        self.timeout  = None # Used in demo mode
-        self.sessions = {}
+        self.args    = args
+        self.ioloop  = IOLoop(ioloop)
+        self.udevev  = udevev
+        self.id      = id
+        self.timeout = None # Used in demo mode
 
         if id:
             if not os.path.exists(id): os.mkdir(id)
@@ -95,13 +94,6 @@ class Ctrl:
 
 
     def __del__(self): print('Ctrl deleted')
-
-
-    def get_authorized(self, sid): return self.sessions.get(sid, False)
-
-
-    def set_authorized(self, sid, auth = True):
-        if id: self.sessions[sid] = auth
 
 
     def clear_timeout(self):

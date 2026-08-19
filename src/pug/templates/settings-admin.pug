@@ -2,7 +2,7 @@
 //-                                                                           //
 //-               This file is part of the Buildbotics firmware.              //
 //-                                                                           //
-//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
+//-      Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.     //
 //-                                                                           //
 //-       This Source describes Open Hardware and is licensed under the       //
 //-                               CERN-OHL-S v2.                              //
@@ -28,51 +28,114 @@
 script#settings-admin-template(type="text/x-template")
   #settings-admin
     h1 Admin
-    em(v-if="!authorized") Login to make changes.
 
-    h2 Authentication for Settings & Remote Access
-    .pure-form.pure-form-aligned
-      .pure-control-group
-        label(for="pass1") New Password
-        input.password(name="pass1", v-model="password", focus,
-          autocomplete="new-password")
+    p(v-if="!admin")
+      bbutton(success, @click="$root.login", text="Login",
+        title="Login to make changes")
+      em  as an admin to make changes.
 
-      .pure-control-group
-        label(for="pass2") Repeat Password
-        input.password(name="pass2", v-model="password2", autocomplete="off")
-        bbutton(@click="set_password", primary, text="Set",
-          :disabled="!authorized")
+    div(v-else)
+      h2 Users
+      p
+        | Web interface users are separate from the Unix system users.  The
+        | built in #[b admin] user cannot be removed.  Users may also be
+        | managed over SSH with #[code sudo bbctrl-users].
 
-    h2 Configuration
-    bbutton(primary, :disabled="!authorized", @click="backup",  text="Backup",
-      icon="save")
-    bbutton(primary, :disabled="!authorized", @click="restore", text="Restore",
-      icon="refresh")
-    bbutton(primary, :disabled="!authorized", @click="reset",   text="Reset"
-      icon="eraser")
+      .notice(v-if="first_user && !access_control")
+        span.fa.fa-exclamation-triangle
+        |  Adding the first user turns on access control.  All web access will
+        |  then require a login over HTTPS.  If you lose access, log in over
+        |  SSH and run #[code sudo bbctrl-users disable].
 
-    h2 Firmware
-    bbutton(primary, @click="check", text="Check")
-    bbutton(primary, :disabled="!authorized", @click="upgrade", text="Upgrade",
-      icon="cloud-download")
-    bbutton(primary, :disabled="!authorized", @click="upload",  text="Upload")
+      table.pure-table.users
+        tr
+          th Name
+          th Admin
+          th.password Password
+          th
 
-    p
-      input(type="checkbox", v-model="autoCheckUpgrade",
-        @change="change_auto_check_upgrade")
-      label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
+        tr(v-for="user in users", track-by="name")
+          td.name {{user.name}}
+          td.center
+            input(type="checkbox", v-model="user.admin",
+              :disabled="user.builtin", @change="set_admin(user)",
+              title="Admin users may change the configuration and firmware.")
+          td.password
+            span.builtin(v-if="user.builtin") system password
+            bbutton(v-else, primary, icon="key", text="Change",
+              @click="$root.change_password(user.name)",
+              title="Change this user's password")
+          td
+            bbutton.button-error(v-if="!user.builtin", @click="remove(user)",
+              icon="trash", text="Remove", title="Remove this user")
 
-    h2 Debugging
-    a(href="/api/log", target="_blank")
-      bbutton(primary, icon="file-text-o", text="View Log")
-    a(href="/api/bugreport", download)
-      bbutton(primary, icon="bug", text="Bug Report")
+        tr
+          td
+            input(type="text", name="name", v-model="name",
+              autocomplete="off", title="New user name")
+          td.center
+            input(name="new-admin", type="checkbox", v-model="user_admin",
+              title="Grant admin access to the new user.")
+          td.password
+            input.password(name="new-pass", v-model="password",
+              autocomplete="new-password", title="New user password")
+            bbutton(@click="generate", icon="refresh", text="Generate",
+              title="Generate a random passphrase")
+          td
+            bbutton(primary, @click="add", icon="plus", text="Add",
+              title="Add the new user")
 
-    h2 Virtual Keyboard
-    p
-      input(type="checkbox", v-model="enableKeyboard",
-        @change="change_enable_keyboard")
-      label &nbsp; Enable automatic virtual keyboard on local screen.
+        tr(v-if="generated")
+          td(colspan="4")
+            | Generated passphrase: #[span.generated {{generated}}]
+
+      h2 Access Control
+      .notice(v-if="!https")
+        span.fa.fa-exclamation-triangle
+        |  No HTTPS server is running so logins and machine data would be sent
+        |  over the network in plain text.  Reinstall the firmware to create a
+        |  new certificate.
+
+      .pure-form
+        p
+          input(name="access", type="checkbox", v-model="access_control",
+            @change="set_access_control")
+          label(for="access")
+            |  Require a login for all web access.  Also requires HTTPS.
+
+        p
+          input(name="local", type="checkbox", v-model="local_access",
+            @change="set_local_access")
+          label(for="local")
+            |  Let the local touch screen use the machine without a login.
+            |  Admin functions still require a login.
+
+      h2 Configuration
+      bbutton(primary, @click="backup",  text="Backup", icon="save")
+      bbutton(primary, @click="restore", text="Restore", icon="refresh")
+      bbutton(primary, @click="reset",   text="Reset", icon="eraser")
+
+      h2 Firmware
+      bbutton(primary, @click="check", text="Check")
+      bbutton(primary, @click="upgrade", text="Upgrade", icon="cloud-download")
+      bbutton(primary, @click="upload",  text="Upload")
+
+      p
+        input(type="checkbox", v-model="autoCheckUpgrade",
+          @change="change_auto_check_upgrade")
+        label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
+
+      h2 Debugging
+      a(href="/api/log", target="_blank")
+        bbutton(primary, icon="file-text-o", text="View Log")
+      a(href="/api/bugreport", download)
+        bbutton(primary, icon="bug", text="Bug Report")
+
+      h2 Virtual Keyboard
+      p
+        input(type="checkbox", v-model="enableKeyboard",
+          @change="change_enable_keyboard")
+        label &nbsp; Enable automatic virtual keyboard on local screen.
 
 
     dialog(v-ref:upgrade, header="Upgrade Firmware?", buttons="Cancel Upgrade")

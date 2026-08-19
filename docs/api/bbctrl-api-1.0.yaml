@@ -24,21 +24,45 @@ servers:
 tags:
   - name: Authorization
     description: >
-      These functions are used to control access to some of the admin
-      functions.  Since the controller is typically accessed over
-      insecure HTTP and the password and cookie are transmitted over
-      the network in plain text, this should not be relied upon for
-      strict security.  The purpose of these functions is to prevent
-      accidental alteration of a few critical configuration items.
+      These functions control access to the controller.  A session is created
+      by ``PUT /auth/login`` and is identified by a random string in an HTTP
+      cookie named ``bbctrl-sid``.  Sessions expire after 24 hours without use
+      and are lost when the controller restarts.
 
-      Those API end points which can return a 401 code require
-      authorization.  The login in associated with a session ID which
-      is stored in an HTTP cookie named ``bbctrl-client-id``.
+      Clients which cannot use the cookie may instead pass the session ID in
+      an ``Authorization: Bearer <sid>`` header.  Browsers do not send the
+      controller's cookie from another origin, so ``PUT /auth/login`` returns
+      the session ID in its response when the request comes from an origin
+      listed in the ``cors-origins`` setting.  Such an origin can therefore
+      log in, keep the session ID in its own storage and use the whole API
+      with the header.  The WebSocket at ``/websocket`` accepts the header too
+      but browsers cannot set headers on a WebSocket handshake.
 
-      The cookie is a random string created by the client.  For example,
-      in the web interface code it is a random 52 character string
-      containing upper and lower case characters, numbers, underscore
-      or plus.
+      The built in ``admin`` user always exists, always has admin access and
+      is authenticated with the system password of user 1000, the same password
+      used for SSH.  It is the default for ``PUT /auth/login`` and cannot be
+      listed, removed or changed through the user end points.  Changing its
+      password with ``PUT /auth/password`` changes the system password.
+
+      Additional users are separate from the Unix system users.  They are
+      managed with the ``bbctrl-users`` command line tool over SSH or through
+      the user end points below.  Any user may be granted admin access.
+
+      When no users have been created, access control is disabled.  Only a few
+      admin functions are then protected and they are unlocked by logging in
+      as ``admin``.  Since the controller may be accessed over insecure HTTP
+      in this mode, this should not be relied upon for strict security.  Its
+      purpose is to prevent accidental alteration of a few critical
+      configuration items.
+
+      Once a user has been created, or access control is enabled explicitly,
+      every end point, the static web files and the websocket require an
+      active session and HTTPS.  Requests made over HTTP are redirected to
+      HTTPS.  Connections from localhost are exempt from the redirect and may
+      also be exempted from the login with ``bbctrl-users local-access on``.
+
+      End points which can return a 401 code require a login.  End points
+      which can return a 403 code also require a user with admin access.
 
   - name: Control
   - name: Administration
@@ -790,16 +814,32 @@ paths:
       tags: ['Authorization']
       responses:
         200:
-          description: True if logged in.
+          description: The current login status.
           content:
             application/json:
-              schema: {type: boolean}
+              schema:
+                type: object
+                properties:
+                  user:
+                    description: The logged in user or null.
+                    type: ['string', 'null']
+                  admin:
+                    description: True if the user has admin access.
+                    type: boolean
+                  authorized:
+                    description: True if the client may access the controller.
+                    type: boolean
+                  access_control:
+                    description: True if users have been created.
+                    type: boolean
 
     put:
       description: Login to the controller.
       tags: ['Authorization']
       requestBody:
-        description: Parameters.
+        description: >
+          Parameters.  The user name defaults to ``admin`` which is
+          authenticated with the system password of user 1000.
         required: true
         content:
           application/json:
@@ -807,11 +847,26 @@ paths:
               type: object
               required: ['password']
               properties:
+                user:     {type: string}
                 password: {type: string}
 
       responses:
-        200: {description: Login success.}
-        401: {description: Invalid password.}
+        200:
+          description: Login success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:  {type: string}
+                  admin: {type: boolean}
+                  sid:
+                    description: >
+                      The session ID, returned only when the request comes
+                      from an allowed CORS origin.  Pass it in an
+                      ``Authorization: Bearer <sid>`` header.
+                    type: string
+        401: {description: Invalid user name or password.}
 
     delete:
       description: Logout of the controller.
@@ -829,7 +884,9 @@ paths:
         in: cookie
 
     put:
-      description: Set the login password.
+      description: >
+        Change the password of the logged in user.  For the built in ``admin``
+        user this sets the system password of user 1000.
       tags: ['Authorization']
       requestBody:
         description: Parameters.
@@ -843,8 +900,183 @@ paths:
                 password: {type: string}
       responses:
         200: {description: Password updated.}
-        400: {description: Missing required argument.}
+        400: {description: Missing required argument or password too short.}
         401: {description: Password update failed.}
+        403: {description: Admin access required.}
+
+  /auth/passphrase:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    get:
+      description: >
+        Generate a random passphrase of four words from the BIP-39 English
+        word list.  Intended for use as a password.
+      tags: ['Authorization']
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  passphrase: {type: string}
+        401: {description: Not authorized.}
+
+  /auth/users:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    get:
+      description: >
+        List the web interface users.  The built in ``admin`` user is listed
+        first with ``builtin`` set.  Requires admin access.
+      tags: ['Authorization']
+      responses:
+        200:
+          description: Success.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_control:
+                    description: True if a login is required.
+                    type: boolean
+                  local_access:
+                    description: True if localhost may skip the login.
+                    type: boolean
+                  https:
+                    description: True if the HTTPS server is running.
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:  {type: string}
+                        admin: {type: boolean}
+                        builtin:
+                          description: >
+                            True for the built in admin, which cannot be
+                            changed or removed here.
+                          type: boolean
+        401: {description: Not authorized.}
+        403: {description: Admin access required.}
+
+  /auth/users/{name}:
+    parameters:
+      - name: name
+        description: The user name.
+        required: true
+        schema: {type: string}
+        in: path
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    post:
+      description: >
+        Add a user.  Fails if the user already exists.  Requires admin access.
+        Adding the first user enables access control.
+      tags: ['Authorization']
+      requestBody:
+        description: >
+          Parameters.  The first user is an admin unless ``admin`` is false.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ['password']
+              properties:
+                password: {type: string}
+                admin:    {type: boolean}
+
+      responses:
+        200: {description: Success.}
+        400:
+          description: >
+            The user exists, the name is invalid, the password is too short or
+            the name is reserved for the built in admin.
+        401: {description: Not authorized.}
+        403: {description: Admin access required.}
+
+    put:
+      description: >
+        Change an existing user's password or admin access.  Requires admin
+        access.  The built in ``admin`` user cannot be changed here, its
+        password is the system password.
+      tags: ['Authorization']
+      requestBody:
+        description: Parameters.  Omitted values are left unchanged.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password: {type: string}
+                admin:    {type: boolean}
+
+      responses:
+        200: {description: Success.}
+        400: {description: Password too short or user is the built in admin.}
+        401: {description: Not authorized.}
+        403: {description: Admin access required.}
+        404: {description: User not found.}
+
+    delete:
+      description: >
+        Remove a user.  Requires admin access.  Removing users does not change
+        whether a login is required, the built in ``admin`` can always log in.
+        The built in ``admin`` user cannot be removed.
+      tags: ['Authorization']
+      responses:
+        200: {description: Success.}
+        400: {description: User not found or is the built in admin.}
+        401: {description: Not authorized.}
+        403: {description: Admin access required.}
+
+  /auth/access:
+    parameters:
+      - name: bbctrl-sid
+        description: A session ID
+        required: true
+        schema: {type: string}
+        in: cookie
+
+    put:
+      description: >
+        Enable or disable access control and local access.  Requires admin
+        access.  Access control has no effect until a user is created.
+      tags: ['Authorization']
+      requestBody:
+        description: Parameters.  Omitted values are left unchanged.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_control: {type: boolean}
+                local_access:   {type: boolean}
+
+      responses:
+        200: {description: Success.}
+        401: {description: Not authorized.}
+        403: {description: Admin access required.}
 
   /video:
     get:

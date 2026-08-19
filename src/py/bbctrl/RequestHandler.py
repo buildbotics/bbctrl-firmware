@@ -31,14 +31,36 @@ import tornado.web
 
 from .Log import *
 
-__all__ = ['RequestHandler']
+__all__ = ['RequestHandler', 'get_bearer_sid']
+
+BEARER = 'Bearer '
+
+
+# Cross origin clients cannot use the session cookie so they pass the session
+# ID in an Authorization header instead
+def get_bearer_sid(request):
+    auth = request.headers.get('Authorization', '')
+    if auth.startswith(BEARER): return auth[len(BEARER):].strip()
 
 
 class RequestHandler(tornado.web.RequestHandler):
+    auth = True # Set False to allow access without a login
+
+
     def __init__(self, app, request, **kwargs):
         super().__init__(app, request, **kwargs)
         self.app = app
         self.set_cors_headers()
+
+
+    def prepare(self):
+        # CORS preflight requests carry no cookies and no data.  They must be
+        # answered where they are sent because browsers will not follow a
+        # redirect for a preflight.
+        if self.request.method == 'OPTIONS': return
+
+        if self.redirect_https(): return
+        if self.auth: self.require_session()
 
 
     def get_ctrl(self):
@@ -49,13 +71,38 @@ class RequestHandler(tornado.web.RequestHandler):
     def get_events(self): return self.get_ctrl().events
 
 
+    def get_sid(self):
+        return get_bearer_sid(self.request) or self.get_cookie('bbctrl-sid')
+    def get_user(self): return self.app.sessions.get_user(self.get_sid())
+    def is_admin(self): return self.app.sessions.is_admin(self.get_sid())
+
+
     def is_authorized(self):
-        sid = self.get_cookie('bbctrl-sid')
-        return self.get_ctrl().get_authorized(sid)
+        return self.app.is_authorized(self.get_sid(), self.request.remote_ip)
 
 
-    def authorize(self):
-        if not self.is_authorized(): raise HTTPError(401, 'Unauthorized')
+    def redirect_https(self):
+        if not self.app.needs_https(self.request.protocol,
+                                    self.request.remote_ip): return False
+
+        port = self.app.https_port
+        host = self.request.host_name
+        if port != 443: host += ':%d' % port
+
+        self.set_status(307) # Preserve the request method
+        self.set_header('Location', 'https://%s%s' % (host, self.request.uri))
+        self.finish()
+
+        return True
+
+
+    def require_session(self):
+        if not self.is_authorized(): raise HTTPError(401, 'Login required')
+
+
+    def require_admin(self):
+        if self.get_user() is None: raise HTTPError(401, 'Login required')
+        if not self.is_admin(): raise HTTPError(403, 'Admin access required')
 
 
     def not_demo(self):
@@ -85,10 +132,16 @@ class RequestHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-    def set_cors_headers(self):
+    def get_cors_origin(self):
+        # Returns the request's origin if it is allowed
         origin = self.request.headers.get('Origin', '')
         origins = self.get_ctrl().config.get('cors-origins', '').split()
-        if origin and origin in origins:
+        if origin and origin in origins: return origin
+
+
+    def set_cors_headers(self):
+        origin = self.get_cors_origin()
+        if origin:
             self.set_header('Access-Control-Allow-Origin', origin)
             self.set_header(
                 'Access-Control-Allow-Headers', 'DNT,User-Agent,' +

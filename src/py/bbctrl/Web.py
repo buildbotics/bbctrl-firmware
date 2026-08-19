@@ -29,6 +29,7 @@ import os
 import tornado
 import sockjs.tornado
 import datetime
+import ipaddress
 import shutil
 import subprocess
 import socket
@@ -46,6 +47,8 @@ from .MonitorTemp import *
 from .AuthHandler import *
 from .FileSystemHandler import *
 from .Ctrl import *
+from .Users import *
+from .Sessions import *
 from udevevent import UDevEvent
 
 __all__ = ['Web']
@@ -59,7 +62,7 @@ def upgrade_command(ctrl, cmd):
 
 class RebootHandler(APIHandler):
     def put(self):
-        self.authorize()
+        self.require_admin()
         self.get_ctrl().lcd.goodbye('Rebooting...')
         subprocess.Popen('reboot')
 
@@ -133,7 +136,7 @@ class BugReportHandler(RequestHandler):
 
     @gen.coroutine
     def get(self):
-        self.authorize()
+        self.require_admin()
         res = yield self.task()
         self.write(res)
 
@@ -152,7 +155,7 @@ class HostnameHandler(APIHandler):
 
     def put(self):
         self.not_demo()
-        self.authorize()
+        self.require_admin()
 
         hostname = self.require_arg('hostname')
         r = subprocess.call(['/usr/local/bin/sethostname', hostname.strip()])
@@ -162,7 +165,7 @@ class HostnameHandler(APIHandler):
 class WifiHandler(APIHandler):
     def put(self, device, action):
         self.not_demo()
-        self.authorize()
+        self.require_admin()
 
         try:
             args = self.json if self.json else {}
@@ -192,7 +195,7 @@ class ConfigHandler(APIHandler):
 
 
     def put(self, action):
-        self.authorize()
+        self.require_admin()
         if   action == 'save':   self.get_ctrl().config.save(self.json)
         elif action == 'reset':  self.get_ctrl().config.reset()
         elif action == 'backup': self.get_ctrl().config.backup()
@@ -201,7 +204,7 @@ class ConfigHandler(APIHandler):
 
 class FirmwareUpdateHandler(APIHandler):
     def put(self):
-        self.authorize()
+        self.require_admin()
 
         if not os.path.exists('firmware'): os.mkdir('firmware')
         target = 'firmware/update.tar.bz2'
@@ -227,7 +230,7 @@ class FirmwareUpdateHandler(APIHandler):
 
 class UpgradeHandler(APIHandler):
     def put(self):
-        self.authorize()
+        self.require_admin()
         upgrade_command(self.get_ctrl(), ['/usr/local/bin/upgrade-bbctrl'])
 
 
@@ -391,12 +394,19 @@ class JogHandler(APIHandler):
 
 
 class KeyboardHandler(APIHandler):
+    # The virtual keyboard is needed to type a password on the touch screen
+    auth = False
+
+
     def set_keyboard(self, show):
         signal = 'SIGUSR' + ('1' if show else '2')
         subprocess.call(['killall', '-' + signal, 'bbkbd'])
 
 
     def put(self, cmd, *args):
+        if not self.app.is_local(self.request.remote_ip):
+            raise HTTPError(403, 'Only the local browser has a keyboard')
+
         show = cmd == 'show'
         enabled = self.get_ctrl().config.get('virtual-keyboard-enabled', True)
         if enabled or not show: self.set_keyboard(show)
@@ -408,9 +418,17 @@ class ClientConnection(object):
         self.app     = app
         self.count   = 0
         self.is_open = False
+        self.sid     = None
+        self.ip      = None
+
+
+    def is_authorized(self): return self.app.is_authorized(self.sid, self.ip)
 
 
     def heartbeat(self):
+        # Drop the connection when the session is closed or expires
+        if not self.is_authorized(): return self.close()
+
         self.timer = self.app.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
         self.count += 1
@@ -455,6 +473,18 @@ class WSConnection(ClientConnection, tornado.websocket.WebSocketHandler):
     def open(self): self.on_open()
 
 
+    def prepare(self):
+        self.sid = (get_bearer_sid(self.request) or
+                    self.get_cookie('bbctrl-sid'))
+        self.ip  = self.request.remote_ip
+
+        # Redirecting a handshake does not work so refuse it instead
+        if self.app.needs_https(self.request.protocol, self.ip):
+            raise HTTPError(403, 'HTTPS required')
+
+        if not self.is_authorized(): raise HTTPError(401, 'Login required')
+
+
 # Used by Web frontend
 class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
     def __init__(self, session):
@@ -471,7 +501,28 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
             self.close()
 
 
+    # The transport's request is not part of the SockJS connection API so the
+    # protocol may be unavailable, in which case it is not enforced
+    def get_protocol(self):
+        handler = getattr(self.session, 'handler', None)
+        request = getattr(handler, 'request', None)
+        return getattr(request, 'protocol', None)
+
+
     def on_open(self, info):
+        sid      = info.get_cookie('bbctrl-sid')
+        self.sid = None if sid is None else sid.value
+        self.ip  = info.ip
+
+        protocol = self.get_protocol()
+        if protocol is not None and self.app.needs_https(protocol, self.ip):
+            self.close()
+            return False
+
+        if not self.is_authorized():
+            self.close()
+            return False
+
         cookie = info.get_cookie('bbctrl-client-id')
         if cookie is None: self.send(dict(sid = '')) # Trigger client reset
         else:
@@ -483,7 +534,22 @@ class SockJSConnection(ClientConnection, sockjs.tornado.SockJSConnection):
             super().on_open(id)
 
 
-class StaticFileHandler(tornado.web.StaticFileHandler):
+class StaticFileHandler(RequestHandler, tornado.web.StaticFileHandler):
+    # Files needed to display the login page
+    open_files = ('', 'index.html', 'favicon.ico')
+    open_dirs  = ('images/', 'fonts/')
+
+
+    def is_authorized(self):
+        path = os.path.normpath(self.path_args[0] if self.path_args else '')
+        if path == '.': path = ''
+
+        if path in self.open_files or path.startswith(self.open_dirs):
+            return True
+
+        return super().is_authorized()
+
+
     def set_extra_headers(self, path):
         self.set_header('Cache-Control',
                         'no-store, no-cache, must-revalidate, max-age=0')
@@ -491,12 +557,18 @@ class StaticFileHandler(tornado.web.StaticFileHandler):
 
 class Web(tornado.web.Application):
     def __init__(self, args, ioloop):
-        self.args   = args
-        self.ioloop = ioloop
-        self.udevev = UDevEvent(ioloop)
-        self.ctrls  = {}
+        self.args       = args
+        self.ioloop     = ioloop
+        self.udevev     = UDevEvent(ioloop)
+        self.ctrls      = {}
+        self.https_port = None # Set once the HTTPS server is listening
 
         self.udevev.log = self._get_log('udevevent.log').get('UDev')
+
+        # Web interface access control
+        auth_log      = self._get_log('bbctrl.log').get('Auth')
+        self.users    = Users(args.users, auth_log)
+        self.sessions = Sessions(self.users)
 
         # Init camera
         if not args.disable_camera:
@@ -511,7 +583,9 @@ class Web(tornado.web.Application):
 
         handlers = [
             (r'/websocket',                     WSConnection),
-            (r'/api/auth/(login|password)',     AuthHandler),
+            (r'/api/auth/(login|password|access|passphrase)',
+             AuthHandler),
+            (r'/api/auth/(users)(?:/([^/]+))?', AuthHandler),
             (r'/api/state(/.*)?',               StateHandler),
             (r'/api/log',                       LogHandler),
             (r'/api/message/(\d+)/ack',         MessageAckHandler),
@@ -565,6 +639,35 @@ class Web(tornado.web.Application):
     def _get_log(self, path):
         if self.args.demo: return Log(self.args, self.ioloop, path)
         return self.get_ctrl().log
+
+
+    def access_control(self): return self.users.access_control()
+
+
+    def is_local(self, ip):
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError: return False
+
+        # Handle IPv4 mapped IPv6 addresses
+        if addr.version == 6 and addr.ipv4_mapped: addr = addr.ipv4_mapped
+
+        return addr.is_loopback
+
+
+    def needs_https(self, protocol, ip):
+        # Access control requires HTTPS, localhost is exempt
+        return (self.https_port is not None and protocol != 'https' and
+                not self.is_local(ip) and self.access_control())
+
+
+    def is_authorized(self, sid, ip):
+        if not self.access_control(): return True
+
+        # The local kiosk browser may be exempted from logging in
+        if self.users.local_access() and self.is_local(ip): return True
+
+        return self.sessions.get_user(sid) is not None
 
 
     def get_image_resource(self, name):

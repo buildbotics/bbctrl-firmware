@@ -1,22 +1,37 @@
 #!/bin/bash -e
 
-if [ $# != 3 ]; then
-  echo "Usage: $(basename $0) <hostname> <password> <firmware>"
+if [ $# != 2 ]; then
+  echo "Usage: $(basename $0) <hostname> <firmware>"
   exit 1
 fi
 
 HOST="$1"
-PASS="$2"
-FW="$3"
+FW="$2"
+LOGIN=admin
 
-TEMP=$(mktemp)
+read -r -s -p "Password for \"$LOGIN\" on $HOST: " PASS
+echo
 
-# Login
-curl -s -c $TEMP -X PUT -H 'Content-Type: application/json' \
-     -d "{\"password\":\"$PASS\"}" "http://$HOST/api/auth/login"
+# Escape for JSON
+PASS="$(printf '%s' "$PASS" | sed 's/[\\"]/\\&/g')"
+
+COOKIES=$(mktemp)
+BODY=$(mktemp)
+trap 'rm -f $COOKIES $BODY' EXIT
+
+# Login.  Follow the redirect to HTTPS and accept the self-signed certificate
+# when the controller has access control enabled.  The password is passed on
+# stdin to keep it out of the process list.
+CODE=$(curl -sLk -c $COOKIES -o $BODY -w '%{http_code}' -X PUT \
+            -H 'Content-Type: application/json' --data @- \
+            "http://$HOST/api/auth/login" \
+            <<< "{\"user\":\"$LOGIN\",\"password\":\"$PASS\"}")
+
+if [ "$CODE" != 200 ]; then
+  echo "Login failed: $(cat $BODY)"
+  exit 1
+fi
 
 # Send firmware
-curl -s -b $TEMP -i -X PUT -H "Content-Type: multipart/form-data" \
+curl -sLk -b $COOKIES -i -X PUT -H "Content-Type: multipart/form-data" \
      -F "firmware=@$FW" "http://$HOST/api/firmware/update"
-
-rm $TEMP

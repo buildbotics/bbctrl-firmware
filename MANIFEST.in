@@ -1,5 +1,6 @@
 recursive-include src/py/bbctrl/http *
 recursive-include src/py/bbctrl/tpl_lib *
+include src/py/bbctrl/bip39.txt
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
 include src/pwr/bbctrl-pwr-firmware.hex

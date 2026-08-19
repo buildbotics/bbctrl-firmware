@@ -43,10 +43,6 @@ ifndef HOST
 HOST=bbctrl.local
 endif
 
-ifndef PASSWORD
-PASSWORD=buildbotics
-endif
-
 
 all: html $(SUBPROJECTS)
 
@@ -88,23 +84,23 @@ image-xz: $(IMAGE).xz
 publish-image: $(IMAGE).xz
 	rsync --progress $< $(IMG_PATH)/
 
-publish: pkg
+publish:
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
-publish-beta: beta-pkg
+publish-beta:
 	$(MAKE) push-beta
 
 push-beta:
 	rsync $(RSYNC_OPTS) dist/$(CUR_BETA_PKG_NAME).tar.bz2 dist/latest-beta.txt \
 	  $(PUB_PATH)/
 
-update: pkg
-	http_proxy= ./scripts/remote-firmware-update $(HOST) "$(PASSWORD)" \
+update:
+	http_proxy= ./scripts/remote-firmware-update $(HOST) \
 	  dist/$(PKG_NAME).tar.bz2
 	@-tput sgr0 && echo # Fix terminal output
 
-ssh-update: pkg
+ssh-update:
 	scp scripts/update-bbctrl dist/$(PKG_NAME).tar.bz2 $(HOST):/tmp/
 	ssh -t $(HOST) "sudo /tmp/update-bbctrl /tmp/$(PKG_NAME).tar.bz2"
 

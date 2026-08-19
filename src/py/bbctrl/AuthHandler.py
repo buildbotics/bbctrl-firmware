@@ -2,7 +2,7 @@
 #                                                                              #
 #                 This file is part of the Buildbotics firmware.               #
 #                                                                              #
-#        Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.      #
+#        Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.      #
 #                                                                              #
 #         This Source describes Open Hardware and is licensed under the        #
 #                                 CERN-OHL-S v2.                               #
@@ -26,10 +26,10 @@
 ################################################################################
 
 import subprocess
-import secrets
 from tornado.web import HTTPError
 
 from .APIHandler import *
+from .Users import MIN_PASSWORD_LEN, ADMIN, generate_passphrase
 
 __all__ = ['AuthHandler']
 
@@ -46,21 +46,178 @@ def get_username():
 
 
 class AuthHandler(APIHandler):
+  auth = False # Logging in must be possible without a session
+
+
   def not_found(self): raise HTTPError(404, 'Method not found')
-  def  try_call(self, method): getattr(self, method, self.not_found)()
-  def       get(self, action): self.try_call('get_'    + action)
-  def       put(self, action): self.try_call('put_'    + action)
-  def    delete(self, action): self.try_call('delete_' + action)
+  def  try_call(self, m, *args): getattr(self, m, self.not_found)(*args)
+  def       get(self, action, *args): self.try_call('get_'    + action, *args)
+  def       put(self, action, *args): self.try_call('put_'    + action, *args)
+  def      post(self, action, *args): self.try_call('post_'   + action, *args)
+  def    delete(self, action, *args): self.try_call('delete_' + action, *args)
 
 
-  def get_login(self): self.write_json(self.is_authorized())
+  # Turns user database errors into client errors
+  def attempt(self, cb, *args):
+    try:
+      return cb(*args)
+    except HTTPError: raise
+    except Exception as e: raise HTTPError(400, str(e))
+
+
+  def require_name(self, name):
+    if not name: raise HTTPError(400, 'User name required')
+    return name
+
+
+  def get_login(self):
+    self.write_json(dict(
+      user           = self.get_user(),
+      admin          = self.is_admin(),
+      authorized     = self.is_authorized(),
+      access_control = self.app.access_control()))
 
 
   def put_login(self):
-    self.not_demo()
+    password = self.require_arg('password')
+    user     = self.json.get('user', ADMIN)
 
+    if user == ADMIN:
+      # The built in admin uses the system password of user 1000
+      self.not_demo()
+      if not self.check_unix_password(password): self.login_failed(user)
+
+    elif not self.app.users.authenticate(user, password):
+      self.login_failed(user)
+
+    sid = self.app.sessions.open(user)
+    self.set_cookie('bbctrl-sid', sid, httponly = True, samesite = 'Strict',
+                    secure = self.request.protocol == 'https')
+    self.get_log('Auth').info('User "%s" logged in' % user)
+
+    response = dict(user = user, admin = self.app.sessions.is_admin(sid))
+
+    # An allowed cross origin client cannot use the cookie, it must pass the
+    # session ID in an Authorization header
+    if self.get_cors_origin(): response['sid'] = sid
+
+    self.write_json(response)
+
+
+  def delete_login(self):
+    self.app.sessions.close(self.get_sid())
+    self.clear_cookie('bbctrl-sid')
+
+
+  def put_password(self):
     password = self.require_arg('password')
 
+    if len(password) < MIN_PASSWORD_LEN:
+      raise HTTPError(400, 'Password must be at least %d characters' %
+                      MIN_PASSWORD_LEN)
+
+    user = self.get_user()
+    if user is None: raise HTTPError(401, 'Login required')
+
+    # The built in admin uses the system password of user 1000
+    if user == ADMIN:
+      self.not_demo()
+      self.set_unix_password(password)
+
+    else: self.attempt(self.app.users.set_password, user, password)
+
+    self.get_log('Auth').info('Password changed for "%s"' % user)
+
+
+  def get_passphrase(self):
+    if not self.is_authorized(): raise HTTPError(401, 'Login required')
+    self.write_json(dict(passphrase = generate_passphrase()))
+
+
+  def get_users(self, name = None):
+    self.require_admin()
+    users = self.app.users
+
+    # The built in admin is listed first and cannot be managed here
+    entries = [dict(name = ADMIN, admin = True, builtin = True)]
+    entries += [dict(name = n, admin = users.is_admin(n), builtin = False)
+                for n in users.names()]
+
+    self.write_json(dict(
+      access_control = users.access_control(),
+      local_access   = users.local_access(),
+      https          = self.app.https_port is not None,
+      users          = entries))
+
+
+  # Adds a user, fails if the user already exists
+  def post_users(self, name = None):
+    self.require_admin()
+
+    name     = self.require_name(name)
+    password = self.json.get('password', '')
+    if not password: raise HTTPError(400, 'Password required')
+
+    self.attempt(self.app.users.add, name, password,
+                 self.json.get('admin', None))
+    self.get_log('Auth').info(
+      'User "%s" added by "%s"' % (name, self.get_user()))
+
+
+  # Changes an existing user's password or admin access
+  def put_users(self, name = None):
+    self.require_admin()
+
+    name     = self.require_name(name)
+    users    = self.app.users
+    password = self.json.get('password', '')
+    admin    = self.json.get('admin', None)
+
+    if not users.exists(name):
+      raise HTTPError(404, 'User "%s" not found' % name)
+
+    if password: self.attempt(users.set_password, name, password)
+    if admin is not None: self.attempt(users.set_admin, name, admin)
+
+    self.get_log('Auth').info(
+      'User "%s" updated by "%s"' % (name, self.get_user()))
+
+
+  def delete_users(self, name = None):
+    self.require_admin()
+
+    name = self.require_name(name)
+    self.attempt(self.app.users.remove, name)
+    self.get_log('Auth').info(
+      'User "%s" removed by "%s"' % (name, self.get_user()))
+
+
+  def put_access(self):
+    self.require_admin()
+
+    users = self.app.users
+    log   = self.get_log('Auth')
+
+    if 'access_control' in self.json:
+      enabled = bool(self.json['access_control'])
+      self.attempt(users.set_access_control, enabled)
+      log.info('Access control %s by "%s"' %
+               ('enabled' if enabled else 'disabled', self.get_user()))
+
+    if 'local_access' in self.json:
+      enabled = bool(self.json['local_access'])
+      self.attempt(users.set_local_access, enabled)
+      log.info('Local access %s by "%s"' %
+               ('enabled' if enabled else 'disabled', self.get_user()))
+
+
+  def login_failed(self, user):
+    self.get_log('Auth').warning(
+      'Failed login for "%s" from %s' % (user, self.request.remote_ip))
+    raise HTTPError(401, 'Invalid user name or password')
+
+
+  def check_unix_password(self, password):
     # Get current password
     s = call_get_output(['getent', 'shadow', get_username()])
     current = s.split(':')[1].split('$')
@@ -71,30 +228,10 @@ class AuthHandler(APIHandler):
 
     # Check current password
     cmd = ['openssl', 'passwd', '-salt', current[2], '-1', password]
-    s = call_get_output(cmd).strip()
-
-    if s.split('$') != current: raise HTTPError(401, 'Wrong password')
-
-    sid = secrets.token_urlsafe(16)
-    self.set_cookie('bbctrl-sid', sid, samesite = 'Strict')
-    self.get_ctrl().set_authorized(sid)
+    return call_get_output(cmd).strip().split('$') == current
 
 
-  def delete_login(self):
-    self.not_demo()
-    self.authorize()
-
-    sid = self.get_cookie('bbctrl-sid')
-    self.get_ctrl().set_authorized(sid, False)
-
-
-  def put_password(self):
-    self.not_demo()
-    self.authorize()
-
-    password = self.require_arg('password')
-
-    # Set password
+  def set_unix_password(self, password):
     s = ('%s:%s' % (get_username(), password)).encode('utf-8')
     p = subprocess.Popen(['chpasswd', '-c', 'MD5'], stdin = subprocess.PIPE)
     p.communicate(input = s)

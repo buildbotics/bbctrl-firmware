@@ -30,6 +30,7 @@ class API {
   constructor(base = '/api/') {
     this.base = base
     this.error_handler = console.error
+    this.unauthorized_handler = undefined
   }
 
 
@@ -38,8 +39,20 @@ class API {
   }
 
 
+  set_unauthorized_handler(handler) {
+    this.unauthorized_handler = handler
+  }
+
+
   error(path, xhr) {
     let msg
+
+    // A login is required or the session has expired.  The login dialog is
+    // feedback enough, except when it was the login itself that failed.
+    if (xhr.status == 401 && this.unauthorized_handler) {
+      this.unauthorized_handler()
+      if (!path.endsWith('auth/login')) return
+    }
 
     // Try to get message from JSON response (responseType is 'json')
     if (xhr.responseType == 'json' && xhr.response && xhr.response.message)

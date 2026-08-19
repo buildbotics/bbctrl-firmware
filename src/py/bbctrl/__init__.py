@@ -30,9 +30,13 @@
 
 def _parse_args():
     import argparse
+    from .Users import USERS_PATH
 
     parser = argparse.ArgumentParser(
         description = 'Buildbotics Machine Controller')
+
+    parser.add_argument('--users', default = USERS_PATH, metavar = 'FILE',
+                        help = 'Web interface user database')
 
     parser.add_argument('-p', '--port', default = 80,
                         type = int, help = 'HTTP port')
@@ -113,6 +117,7 @@ def run():
           https_server = tornado.httpserver.HTTPServer(
               app, ssl_options = ssl_ctx)
           https_server.listen(args.sport, args.addr)
+          app.https_port = args.sport
 
           print('Listening on https://%s:%d/' % (args.addr, args.sport))
 

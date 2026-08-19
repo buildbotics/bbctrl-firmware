@@ -43,7 +43,7 @@ html(lang="en")
 
   body(v-cloak)
     #overlay(v-if="status != 'connected'")
-      span {{status}}
+      span {{login_required ? 'login required' : status}}
     #layout(:class="'view-' + currentView + '-page'")
       #menuLink.menu-link(href="#menu"): span
 
@@ -132,15 +132,46 @@ html(lang="en")
             text="Continue")
 
     dialog(v-ref:login-dialog, header="Login", icon="question", width="400px",
-      buttons="Login")
+      buttons="Login", :click-away="!login_required")
 
       div(slot="body")
         .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="user") User
+            input(name="user", v-model="login_user", focus,
+              @keyup.enter="$refs.loginDialog.close('login')",
+              autocomplete="username")
+
           .pure-control-group
             label(for="password") Password
             input.password(name="password", v-model="password", focus,
               @keyup.enter="$refs.loginDialog.close('login')",
               autocomplete="off")
+
+    dialog(v-ref:password-dialog, header="Change password", icon="key",
+      width="400px", buttons="Cancel Set")
+
+      div(slot="body")
+        .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="pass1") New Password
+            input.password(name="pass1", v-model="password", focus,
+              autocomplete="new-password")
+
+          .pure-control-group
+            label(for="pass2") Repeat Password
+            input.password(name="pass2", v-model="password2",
+              autocomplete="off",
+              @keyup.enter="$refs.passwordDialog.close('set')")
+
+          .pure-control-group
+            label
+            bbutton(@click="generate_passphrase", icon="refresh",
+              text="Generate", title="Generate a random passphrase")
+
+          .pure-control-group(v-if="generated")
+            label Passphrase
+            span.generated {{generated}}
 
     #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")

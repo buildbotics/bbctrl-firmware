@@ -43,6 +43,7 @@ class APIHandler(RequestHandler):
 
 
     def prepare(self):
+        super().prepare()
         self.json = {}
 
         contentType = self.request.headers.get('Content-Type', '')

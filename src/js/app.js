@@ -39,7 +39,14 @@ module.exports = new Vue({
     return {
       status: 'connecting',
       authorized: false,
+      access_control: false,
+      admin: false,
+      user: '',
+      login_user: 'admin',
       password: '',
+      password2: '',
+      generated: '',
+      logging_in: false,
       currentView: 'loading',
       template: require('../resources/config-template.json'),
       config: {
@@ -87,6 +94,13 @@ module.exports = new Vue({
 
   watch: {
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
+
+
+    login_required(required) {
+      if (!required) return
+      this.disconnect() // Don't retry the websocket while logged out
+      this.login()
+    },
 
 
     'state.active_program'(path) {
@@ -152,6 +166,7 @@ module.exports = new Vue({
 
   computed: {
     is_local() {return location.host == 'localhost'},
+    login_required() {return !this.authorized},
 
 
     popupMessages() {
@@ -178,11 +193,15 @@ module.exports = new Vue({
 
   async ready() {
     this.$api.set_error_handler(this.error_dialog)
+    this.$api.set_unauthorized_handler(this.check_login)
 
     if (this.is_local) this.$kbd.install()
 
     window.addEventListener('hashchange', this.parse_hash)
-    this.connect()
+
+    await this.check_login()
+    if (this.login_required) await this.login()
+    else this.connect()
 
     if (!this.webGLSupported) {
       let msg = 'Your browser does not have hardware support for 3D ' +
@@ -200,31 +219,89 @@ module.exports = new Vue({
         cookie.set_bool('webgl-warning', true)
       }
     }
-
-    this.check_login()
   },
 
 
   methods: {
     async check_login() {
-      this.authorized = await this.$api.get('auth/login')
+      let login
+
+      // Ignore errors, the controller may be unreachable
+      try {
+        login = await this.$api.get('auth/login', {error: () => {}})
+      } catch (e) {return}
+
+      this.user           = login.user || ''
+      this.admin          = login.admin
+      this.authorized     = login.authorized
+      this.access_control = login.access_control
+
+      if (this.user) this.login_user = this.user
     },
 
 
     async login() {
-      this.password = ''
-      let response = await this.$refs.loginDialog.open()
+      if (this.logging_in) return // Already showing the login dialog
+      this.logging_in = true
 
-      if (response == 'login' && this.password) {
-        await this.$api.put('auth/login', {password: this.password})
-        this.authorized = true
+      try {
+        do {
+          this.password = ''
+          if (await this.$refs.loginDialog.open() != 'login') break
+
+          try {
+            await this.$api.put('auth/login',
+                                {user: this.login_user,
+                                 password: this.password})
+          } catch (e) {continue} // Error already reported
+
+          await this.check_login()
+        } while (this.login_required)
+
+      } finally {
+        this.password   = ''
+        this.logging_in = false
       }
+
+      if (!this.authorized) return
+
+      // Clear errors reported before the login, such as a mistyped password
+      this.$refs.dialog.close()
+      if (this.status != 'connected') this.connect()
+    },
+
+
+    async generate_passphrase() {
+      this.generated = (await this.$api.get('auth/passphrase')).passphrase
+      this.password  = this.generated
+      this.password2 = this.generated
+    },
+
+
+    // Changes the password of the logged in user or, for admins, any user
+    async change_password(name) {
+      this.password = this.password2 = this.generated = ''
+
+      let action = await this.$refs.passwordDialog.open({header:
+        'Change password for "' + name + '"'})
+      if (action != 'set') return
+
+      if (this.password != this.password2)
+        return this.error_dialog('Passwords do not match')
+
+      if (name == this.user)
+        await this.$api.put('auth/password', {password: this.password})
+      else await this.$api.put('auth/users/' + name, {password: this.password})
+
+      this.password = this.password2 = this.generated = ''
+
+      return this.success_dialog('Password changed for "' + name + '".')
     },
 
 
     async logout() {
       await this.$api.delete('auth/login')
-      this.authorized = false
+      await this.check_login() // Gates the interface if a login is required
     },
 
 
@@ -286,7 +363,12 @@ module.exports = new Vue({
     },
 
 
+    disconnect() {if (this.sock) this.sock.close()},
+
+
     connect() {
+      if (this.sock) return this.sock.connect()
+
       this.sock = new Sock('//' + window.location.host + '/sockjs')
 
       this.sock.onmessage = (e) => {
@@ -322,6 +404,7 @@ module.exports = new Vue({
         this.status = 'disconnected'
         this.$emit(this.status)
         this.$broadcast(this.status)
+        this.check_login() // The session may have expired
       }
     },
 

@@ -1,0 +1,223 @@
+#!/usr/bin/env python3
+
+################################################################################
+#                                                                              #
+#                 This file is part of the Buildbotics firmware.               #
+#                                                                              #
+#        Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.      #
+#                                                                              #
+#         This Source describes Open Hardware and is licensed under the        #
+#                                 CERN-OHL-S v2.                               #
+#                                                                              #
+#         You may redistribute and modify this Source and make products        #
+#    using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).  #
+#           This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED          #
+#    WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS  #
+#     FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable    #
+#                                  conditions.                                 #
+#                                                                              #
+#                Source location: https://github.com/buildbotics               #
+#                                                                              #
+#      As per CERN-OHL-S v2 section 4, should You produce hardware based on    #
+#    these sources, You must maintain the Source Location clearly visible on   #
+#    the external case of the CNC Controller or other product you make using   #
+#                                  this Source.                                #
+#                                                                              #
+#                For more information, email info@buildbotics.com              #
+#                                                                              #
+################################################################################
+
+import os
+import sys
+import argparse
+import getpass
+
+from bbctrl.Users import Users, USERS_PATH, MIN_PASSWORD_LEN, ADMIN, \
+    generate_passphrase
+
+SSL_CERT = '/etc/bbctrl/ssl.crt'
+
+
+def get_password(name, args):
+    if not args.generate: return prompt_password(name)
+
+    password = generate_passphrase()
+    print('Generated passphrase for "%s": %s' % (name, password))
+
+    return password
+
+
+def prompt_password(name):
+    for i in range(3):
+        password = getpass.getpass('New password for "%s": ' % name)
+
+        if len(password) < MIN_PASSWORD_LEN:
+            print('Password must be at least %d characters' % MIN_PASSWORD_LEN)
+
+        elif password != getpass.getpass('Retype password: '):
+            print('Passwords do not match')
+
+        else: return password
+
+    raise Exception('Too many failed attempts')
+
+
+def check_ssl(args):
+    if args.force or os.path.exists(SSL_CERT): return
+
+    sys.exit('No SSL certificate found at %s but web access control requires\n'
+             'HTTPS.  Reinstall the firmware or override with --force.' %
+             SSL_CERT)
+
+
+def cmd_status(users, args):
+    if users.access_control(): access = 'enabled'
+    elif users.names(): access = 'disabled'
+    else: access = 'disabled, no users have been created'
+
+    if users.local_access():
+        local = 'enabled, the local browser may skip the login'
+    else: local = 'disabled'
+
+    print('Access control: %s' % access)
+    print('Local access:   %s' % local)
+    cmd_list(users, args)
+
+    if users.access_control() and not users.names():
+        print('There are no users so only "%s" can log in.' % ADMIN)
+
+
+def cmd_list(users, args):
+    print('Users:%s' % ('' if users.names() else ' none'))
+    for name in users.names():
+        line = '  %-20s %s' % (name, 'admin' if users.is_admin(name) else '')
+        print(line.rstrip())
+
+
+def cmd_add(users, args):
+    first  = not users.names()
+    was_on = users.access_control()
+    if first: check_ssl(args)
+
+    users.add(args.name, get_password(args.name, args), args.admin)
+    admin = ' with admin access' if users.is_admin(args.name) else ''
+    print('Added user "%s"%s' % (args.name, admin))
+
+    if not was_on and users.access_control():
+        print('Web access now requires a login and HTTPS.  Requests made over '
+              'HTTP are\nredirected to HTTPS where the browser will warn '
+              'about the self-signed\ncertificate.')
+
+
+def cmd_passwd(users, args):
+    users.set_password(args.name, get_password(args.name, args))
+    print('Changed password for "%s"' % args.name)
+
+
+def cmd_del(users, args):
+    users.remove(args.name)
+    print('Removed user "%s"' % args.name)
+
+    if users.names(): return
+
+    if users.access_control():
+        print('There are no users so only "%s" can log in.' % ADMIN)
+    else: print('No users remain and web access control is disabled.')
+
+
+def cmd_admin(users, args):
+    users.set_admin(args.name, args.state == 'on')
+    print('%s admin access for "%s"' %
+          ('Granted' if args.state == 'on' else 'Revoked', args.name))
+
+
+def cmd_enable(users, args):
+    check_ssl(args)
+    users.set_access_control(True)
+    print('Access control enabled')
+
+    if not users.names():
+        print('There are no users so only "%s" can log in.' % ADMIN)
+
+
+def cmd_disable(users, args):
+    users.set_access_control(False)
+    print('Access control disabled')
+
+
+def cmd_local_access(users, args):
+    users.set_local_access(args.state == 'on')
+    print('Local access %s' % ('enabled' if args.state == 'on' else 'disabled'))
+
+
+COMMANDS = {
+    'status': cmd_status, 'list':    cmd_list,    'add':    cmd_add,
+    'passwd': cmd_passwd, 'delete':  cmd_del,     'del':    cmd_del,
+    'admin':  cmd_admin,  'enable':  cmd_enable,  'disable': cmd_disable,
+    'local-access': cmd_local_access}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description = 'Manage Buildbotics controller web interface users.  '
+        'These users are separate from the Unix system users.  Web access '
+        'control is enabled automatically when the first user is added.  '
+        'The built in "%s" user always exists, is authenticated with the '
+        'system password of user 1000 and cannot be listed or removed.' % ADMIN)
+
+    parser.add_argument('-f', '--file', default = USERS_PATH, metavar = 'FILE',
+                        help = 'User database')
+    parser.add_argument('--force', action = 'store_true',
+                        help = 'Enable access control without an SSL cert')
+
+    cmds = parser.add_subparsers(dest = 'command', required = True)
+
+    cmds.add_parser('status', help = 'Show the access control status')
+    cmds.add_parser('list',   help = 'List users')
+
+    p = cmds.add_parser('add', help = 'Add a user')
+    p.add_argument('name')
+    p.add_argument('--admin', action = 'store_true', default = None,
+                   help = 'Grant admin access, the default for the first user')
+    p.add_argument('--no-admin', dest = 'admin', action = 'store_false',
+                   help = 'Deny admin access')
+    p.add_argument('-g', '--generate', action = 'store_true',
+                   help = 'Generate a passphrase')
+
+    p = cmds.add_parser('passwd', help = "Change a user's password")
+    p.add_argument('name')
+    p.add_argument('-g', '--generate', action = 'store_true',
+                   help = 'Generate a passphrase')
+
+    p = cmds.add_parser('delete', aliases = ['del'], help = 'Remove a user')
+    p.add_argument('name')
+
+    p = cmds.add_parser('admin', help = 'Grant or revoke admin access')
+    p.add_argument('name')
+    p.add_argument('state', choices = ('on', 'off'))
+
+    cmds.add_parser('enable',  help = 'Enable access control')
+    cmds.add_parser('disable', help = 'Disable access control')
+
+    p = cmds.add_parser('local-access',
+                        help = 'Allow the local browser to skip the login')
+    p.add_argument('state', choices = ('on', 'off'))
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    if os.geteuid():
+        sys.exit('Must be run as root, try: sudo %s ...' %
+                 os.path.basename(sys.argv[0]))
+
+    try:
+        users = Users(args.file)
+        if users.error:
+            sys.exit('Error: %s is corrupt, fix or remove it' % args.file)
+
+        COMMANDS[args.command](users, args)
+
+    except Exception as e: sys.exit('Error: %s' % e)

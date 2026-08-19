@@ -45,7 +45,17 @@ There are many configuration options which control the machine's performance and
 
 # API Authorization
 
-Authorization is only required for a few administrative operations such as uploading a new configuration file.  Authorization is achieved by setting an HTTP cookie with the name ``bbctrl-sid`` to the value of the state variable ``sid`` and then making a PUT request to  ``/api/auth/login`` with that cookie and the correct password in the JSON body of the request.  Once the ``sid`` (Session ID) is authorized any of the endpoints which require authorization may be accessed by providing the ``bbctrl-sid`` cookie.  Only those endpoints which specify the possibility of a 401 return code in the API documentation require authorization.  See [https://api.buildbotics.com/\#tag/authorization/PUT/auth/login](https://api.buildbotics.com/#tag/authorization/PUT/auth/login).
+Log in by making a PUT request to ``/api/auth/login`` with ``user`` and ``password`` in the JSON body.  The controller replies with a session ID in an HTTP cookie named ``bbctrl-sid``.  Endpoints which require authorization may then be accessed by providing that cookie or by passing the session ID in an ``Authorization: Bearer <sid>`` header.  Sessions expire after 24 hours without use and are lost when the controller restarts.  The login status may be queried with a GET request to ``/api/auth/login``.
+
+The built in ``admin`` user always exists, always has admin access and is authenticated with the system password of user 1000, the same password used for SSH.  It is the default when ``user`` is omitted.  Additional users are separate from the Unix system users and are created either on the Settings->Admin page or with the ``bbctrl-users`` command line tool over SSH.
+
+When no additional users have been created, authorization is only required for a few administrative operations such as uploading a new configuration file.  Only those endpoints which specify the possibility of a 401 return code in the API documentation require authorization in this mode.
+
+Browsers do not send the controller's cookie from another origin.  A web application served from an origin listed in the ``cors-origins`` setting may therefore log in, read the session ID from the ``sid`` field of the login response, keep it in its own storage and access the API with the ``Authorization`` header.  The session ID is only returned to allowed origins.
+
+Once a user has been created, all endpoints, the static web files and the WebSocket require a valid session and HTTPS.  Requests made over HTTP are redirected to HTTPS.  Those endpoints which specify the possibility of a 403 return code additionally require a user with admin access.
+
+See [https://api.buildbotics.com/\#tag/authorization/PUT/auth/login](https://api.buildbotics.com/#tag/authorization/PUT/auth/login).
 
 # API Specification
 
