@@ -135,6 +135,13 @@ html(lang="en")
       buttons="Login", :click-away="!login_required")
 
       div(slot="body")
+        p.error(v-if="login_error") {{login_error}}
+        p(v-if="session_expired") Your session expired.
+
+        p
+          | Log in as a web interface user or as #[b admin] with the system
+          | password, the same one used for SSH.
+
         .pure-form.pure-form-aligned
           .pure-control-group
             label(for="user") User
@@ -152,7 +159,18 @@ html(lang="en")
       width="400px", buttons="Cancel Set")
 
       div(slot="body")
+        p.error(v-if="password_error") {{password_error}}
+
+        p(v-if="system_password")
+          | This is the controller's system password.  It is also used for SSH
+          | and #[code sudo].
+
         .pure-form.pure-form-aligned
+          .pure-control-group(v-if="password_user == user")
+            label(for="current") Current Password
+            input.password(name="current", v-model="password_current", focus,
+              autocomplete="current-password")
+
           .pure-control-group
             label(for="pass1") New Password
             input.password(name="pass1", v-model="password", focus,

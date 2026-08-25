@@ -30,8 +30,16 @@
 
   .navbar .actions
     display flex
+    align-items center
     gap 0.5em
     margin-left auto
+
+    // Position the menu against this item, not the whole actions block
+    .login-user
+      position relative
+
+      > .fa:first-child
+        margin-left 0
 
     button
       padding 0.25em 1em

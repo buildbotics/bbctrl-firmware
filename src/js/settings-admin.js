@@ -36,11 +36,11 @@ module.exports = {
       users:            [],
       access_control:   false,
       local_access:     true,
-      https:            true,
       name:             '',
       password:         '',
       generated:        '',
       user_admin:       false,
+      add_error:        '',
       enableKeyboard: true,
       autoCheckUpgrade: true,
     }
@@ -50,7 +50,12 @@ module.exports = {
   computed: {
     admin()      {return this.$root.admin},
     real_users() {return this.users.filter(user => !user.builtin)},
-    first_user() {return !this.real_users.length}
+    first_user() {return !this.real_users.length},
+    last_user()  {return this.access_control && this.real_users.length == 1},
+
+
+    // The controller refuses to send or accept passwords in plain text
+    needs_https() {return !this.$root.is_secure && this.$root.https != 0}
   },
 
 
@@ -68,14 +73,15 @@ module.exports = {
 
   methods: {
     async update_users() {
-      if (!this.admin) return
+      if (this.admin) this.set_users(await this.$api.get('auth/users'))
+    },
 
-      let data = await this.$api.get('auth/users')
 
+    // Every change to the users returns the new state
+    set_users(data) {
       this.users          = data.users
       this.access_control = data.access_control
       this.local_access   = data.local_access
-      this.https          = data.https
     },
 
 
@@ -85,55 +91,46 @@ module.exports = {
     },
 
 
-    async add() {
-      if (!this.name) return this.$root.error_dialog('User name required')
-      if (!this.password) return this.$root.error_dialog('Password required')
-
-      // Adding the first user locks down the interface
-      if (this.first_user && !this.access_control) {
-        let msg =
-          '<p>Adding the first user turns on access control.  All web ' +
-          'access will then require a login over HTTPS.  Since the ' +
-          'controller uses a self-signed certificate your browser will warn ' +
-          'you the first time it connects over HTTPS.</p>' +
-          '<p>If you lose access, log in over SSH and run ' +
-          '<code>sudo bbctrl-users disable</code>.</p>'
-
-        let response = await this.$root.open_dialog({
-          icon:    'exclamation-triangle',
-          header:  'Enable access control?',
-          body:    msg,
-          width:   '450px',
-          buttons: [{text: 'Cancel'}, {
-            text:  'Add User',
-            title: 'Add the user and require a login.',
-            class: 'pure-button-primary'
-          }]
-        })
-
-        if (response != 'add user') return
-      }
-
-      await this.$api.post('auth/users/' + this.name,
-                           {password: this.password, admin: this.user_admin})
-
+    clear_new_user() {
       this.name       = ''
       this.password   = ''
       this.generated  = ''
       this.user_admin = false
-
-      await this.$root.check_login()
-
-      // Move to HTTPS so the certificate can be accepted
-      if (this.access_control_needs_https())
-        return location.protocol = 'https:'
-
-      await this.update_users()
+      this.add_error  = ''
     },
 
 
-    access_control_needs_https() {
-      return this.$root.access_control && location.protocol != 'https:'
+    async add() {
+      this.clear_new_user()
+      let was_off = !this.access_control
+
+      // Report failures in the dialog and reopen it so nothing is retyped
+      let ok = false
+      while (!ok) {
+        if (await this.$refs.addUser.open() != 'add') return
+
+        if (!this.name) this.add_error = 'User name required'
+        else if (!this.password) this.add_error = 'Password required'
+
+        else try {
+          this.set_users(await this.$api.post(
+            'auth/users/' + this.name,
+            {password: this.password, admin: this.user_admin},
+            {error: (p, xhr) => this.add_error = this.$api.message(p, xhr)}))
+          ok = true
+
+        } catch (e) {} // Reported in the dialog
+      }
+
+      this.clear_new_user() // Don't keep the password around
+      await this.$root.check_login()
+
+      // Say so, the change is immediate but nothing else looks different
+      if (was_off && this.access_control)
+        return this.$root.success_dialog(
+          '<p>Access control is on.  Every browser must now log in over ' +
+          'HTTPS.  This one stays logged in as <b>' + this.$root.user +
+          '</b> until it is closed or the controller restarts.</p>')
     },
 
 
@@ -157,18 +154,20 @@ module.exports = {
       }
 
       try {
-        await this.$api.put('auth/users/' + user.name, {admin: user.admin})
-      } finally {
-        if (user.name == this.$root.user) await this.$root.check_login()
-        await this.update_users() // Resynchronize on failure
+        this.set_users(await this.$api.put('auth/users/' + user.name,
+                                           {admin: user.admin}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
       }
+
+      if (user.name == this.$root.user) await this.$root.check_login()
     },
 
 
     async remove(user) {
       let msg = 'Remove user <b>' + user.name + '</b>?'
 
-      if (this.access_control && this.real_users.length == 1)
+      if (this.last_user)
         msg += '  This is the last user so only <b>admin</b> will be able ' +
           'to log in.'
       else if (user.name == this.$root.user)
@@ -184,9 +183,8 @@ module.exports = {
 
       if (response != 'remove') return
 
-      await this.$api.delete('auth/users/' + user.name)
+      this.set_users(await this.$api.delete('auth/users/' + user.name))
       await this.$root.check_login()
-      await this.update_users()
     },
 
 
@@ -210,27 +208,26 @@ module.exports = {
       }
 
       try {
-        await this.$api.put('auth/access',
-                            {access_control: this.access_control})
-      } finally {
-        await this.$root.check_login()
-
-        if (this.access_control_needs_https())
-          return location.protocol = 'https:'
-
-        await this.update_users() // Resynchronize on failure
+        this.set_users(await this.$api.put(
+          'auth/access', {access_control: this.access_control}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
       }
+
+      await this.$root.check_login()
     },
 
 
     async set_local_access() {
       // The checkbox has already been toggled by the model
       try {
-        await this.$api.put('auth/access', {local_access: this.local_access})
-      } finally {
-        await this.$root.check_login()
-        await this.update_users() // Resynchronize on failure
+        this.set_users(await this.$api.put(
+          'auth/access', {local_access: this.local_access}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
       }
+
+      await this.$root.check_login()
     },
 
 

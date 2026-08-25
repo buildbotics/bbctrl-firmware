@@ -661,6 +661,13 @@ class Web(tornado.web.Application):
                 not self.is_local(ip) and self.access_control())
 
 
+    def is_secure(self, protocol, ip):
+        # Passwords may only be sent over a secure connection.  Localhost
+        # never leaves the machine and without HTTPS there is no other option.
+        return (protocol == 'https' or self.is_local(ip) or
+                self.https_port is None)
+
+
     def is_authorized(self, sid, ip):
         if not self.access_control(): return True
 

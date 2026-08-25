@@ -28,17 +28,12 @@
 script#settings-network-template(type="text/x-template")
   #settings-network
     h1 Network Configuration
-    p(v-if="!admin")
-      bbutton(success, @click="$root.login", text="Login",
-        title="Login to make changes")
-      em  as an admin to make changes.
-
     h2 Hostname
     .pure-form.pure-form-aligned
       .pure-control-group
         label(for="hostname") Hostname
         input(name="hostname", v-model="hostname", @keyup.enter="set_hostname")
-        bbutton(primary, :disabled="!$root.admin", @click="set_hostname",
+        bbutton(primary, v-if="admin", @click="set_hostname",
           text="Set")
 
     dialog(v-ref:hostname-set, header="Hostname Set")
@@ -67,11 +62,11 @@ script#settings-network-template(type="text/x-template")
         tr
           th Actions
           td.actions
-            bbutton(primary, :disabled="!admin", @click="connect(net)",
+            bbutton(primary, v-if="admin", @click="connect(net)",
               icon="link", text="Connect")
             bbutton(v-if="false", primary, :disabled="!admin",
               @click="hotspot(net)", icon="wifi", text="Hotspot")
-            bbutton(primary, :disabled="!admin", @click="disconnect(net)",
+            bbutton(primary, v-if="admin", @click="disconnect(net)",
               icon="times", text="Disconnect")
 
     .pure-form.pure-form-aligned(v-if="false")

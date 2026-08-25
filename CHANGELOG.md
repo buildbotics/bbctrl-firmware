@@ -12,6 +12,15 @@ Buildbotics CNC Controller Firmware Changelog
   - Added ``bbctrl-users`` command line tool to manage users over SSH.
   - Added passphrase generation from the BIP-39 word list.
   - Accept the session ID in an ``Authorization: Bearer`` header.
+  - Logins, password changes and user changes require HTTPS.
+  - Changing your own password requires your current password.
+  - Admin access expires five minutes after it was last used.
+  - Settings require admin access to view and change.
+  - Moved the login actions under the user menu.
+  - Show the logged in user and explain the built in ``admin`` login.
+  - Report unreachable controller instead of an API error.
+  - Fixed system password check for any ``crypt(3)`` hash type.
+  - Changes to users report the new state so the client cannot get stuck.
   - Added support for Huanyang GT-series VFD.
   - Try to parse API response text as JSON.
   - Initialize referenced app.js vars so that vue.js sees them.

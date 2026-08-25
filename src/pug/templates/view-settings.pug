@@ -45,18 +45,36 @@ script#view-settings-template(type="text/x-template")
       a.nav-item(href="#settings:admin") Admin
 
       .actions
-        bbutton(v-if="$root.user", icon="key", text="Password",
-          @click="$root.change_password($root.user)",
-          title="Change my password")
+        nav-item.login-user(v-if="$root.user",
+          :title="$root.admin ? 'Logged in with admin access' : 'Logged in'")
+          span.fa(:class="$root.admin ? 'fa-key' : 'fa-user'")
+          |  {{$root.user}}
+          .fa.fa-caret-down
 
-        bbutton(v-if="$root.user", @click="$root.logout", text="Logout",
-          title="Logout to lock protected settings")
+          nav-menu
+            nav-item(@click="$root.change_password($root.user)")
+              .fa.fa-key
+              span Password
 
-        bbutton(v-else, @click="$root.login", text="Login", success,
-          title="Login to unlock protected settings")
+            nav-item(v-if="!$root.admin", @click="$root.login('admin')")
+              .fa.fa-sign-in
+              span Login
 
-        bbutton(:success="modified", :disabled="!modified", @click="save",
-          title="Save settings", text="Save")
+            nav-item(@click="$root.logout")
+              .fa.fa-sign-out
+              span Logout
 
-    .settings-view(v-if="view", :is="'settings-' + view", :index="index",
-      :config="config", :template="template", :state="state", keep-alive)
+        bbutton(v-if="!$root.user", @click="$root.login()", text="Login",
+          success, title="Login to unlock protected settings")
+
+        bbutton(v-if="$root.admin", :success="modified",
+          :disabled="!modified", @click="save", title="Save settings",
+          text="Save")
+
+    // Nothing under Settings can be changed without admin access
+    .settings-view
+      admin-gate(v-if="!$root.admin")
+
+      div(v-if="$root.admin && view", :is="'settings-' + view",
+        :index="index", :config="config", :template="template",
+        :state="state", keep-alive)

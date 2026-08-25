@@ -32,4 +32,5 @@ script#video-template(type="text/x-template")
         .vertical
         .horizontal
         .box
-      img(src="/api/video", v-el:img, @click="reload")
+      img(src="/api/video", v-el:img, @click="reload",
+        @error="failed = true")

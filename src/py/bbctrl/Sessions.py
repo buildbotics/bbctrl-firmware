@@ -31,20 +31,24 @@ import secrets
 __all__ = ['Sessions']
 
 
-TIMEOUT = 24 * 60 * 60 # Expire unused sessions
+TIMEOUT       = 24 * 60 * 60 # Expire unused sessions
+ADMIN_TIMEOUT = 5 * 60       # Expire unused admin access
 
 
 # Login sessions are held in memory only, a restart requires a new login
 class Sessions:
-    def __init__(self, users, timeout = TIMEOUT):
-        self.users    = users
-        self.timeout  = timeout
-        self.sessions = {}
+    def __init__(self, users, timeout = TIMEOUT,
+                 admin_timeout = ADMIN_TIMEOUT):
+        self.users         = users
+        self.timeout       = timeout
+        self.admin_timeout = admin_timeout
+        self.sessions      = {}
 
 
     def open(self, user):
         sid = secrets.token_urlsafe(16)
-        self.sessions[sid] = [user, time.time()]
+        now = time.time()
+        self.sessions[sid] = [user, now, now]
         return sid
 
 
@@ -67,9 +71,21 @@ class Sessions:
         return session[0]
 
 
-    def is_admin(self, sid):
+    def admin_left(self, sid):
+        # Returns the seconds of admin access left, zero if there is none
         user = self.get_user(sid)
-        return user is not None and self.users.is_admin(user)
+        if user is None or not self.users.is_admin(user): return 0
+
+        left = self.admin_timeout - (time.time() - self.sessions[sid][2])
+        return max(0, left)
+
+
+    # Admin access expires so that it cannot be left standing on an
+    # unattended browser.  Using it renews it, like sudo.
+    def is_admin(self, sid, renew = False):
+        if not self.admin_left(sid): return False
+        if renew: self.sessions[sid][2] = time.time()
+        return True
 
 
     def _expire(self):

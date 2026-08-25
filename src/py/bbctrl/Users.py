@@ -179,6 +179,10 @@ class Users:
         # The first user is always an admin
         if admin is None: admin = not users
 
+        # Users are pointless without a login, so adding the first one always
+        # requires one.  Drop any explicit setting and let the default apply.
+        if not users: self.data.pop('access-control', None)
+
         users[name] = dict(admin = bool(admin), hash = hash_password(password))
         self.save()
 

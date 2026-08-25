@@ -100,9 +100,18 @@ class RequestHandler(tornado.web.RequestHandler):
         if not self.is_authorized(): raise HTTPError(401, 'Login required')
 
 
+    def require_secure(self):
+        if not self.app.is_secure(self.request.protocol,
+                                  self.request.remote_ip):
+            raise HTTPError(403, 'HTTPS required')
+
+
     def require_admin(self):
         if self.get_user() is None: raise HTTPError(401, 'Login required')
-        if not self.is_admin(): raise HTTPError(403, 'Admin access required')
+
+        # Using admin access renews it
+        if not self.app.sessions.is_admin(self.get_sid(), renew = True):
+            raise HTTPError(403, 'Admin access required')
 
 
     def not_demo(self):

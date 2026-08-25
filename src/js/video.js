@@ -33,13 +33,30 @@ module.exports = {
   attached() {Vue.nextTick(this.resize)},
 
 
+  data() {
+    return {failed: false}
+  },
+
+
+  watch: {
+    // An image loaded before the login is unauthorized and the browser does
+    // not retry it on its own
+    '$root.authorized'(authorized) {
+      if (authorized && this.failed) this.reload()
+    }
+  },
+
+
   ready() {
     window.addEventListener('resize', this.resize, false)
   },
 
 
   methods: {
-    reload() {this.$els.img.src = '/api/video?' + Math.random()},
+    reload() {
+      this.failed = false
+      this.$els.img.src = '/api/video?' + Math.random()
+    },
 
 
     resize() {

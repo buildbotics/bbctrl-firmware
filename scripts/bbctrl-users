@@ -62,12 +62,15 @@ def prompt_password(name):
     raise Exception('Too many failed attempts')
 
 
+# Warn but do not refuse, weak protection beats none and the web interface
+# behaves the same way
 def check_ssl(args):
-    if args.force or os.path.exists(SSL_CERT): return
+    if os.path.exists(SSL_CERT): return
 
-    sys.exit('No SSL certificate found at %s but web access control requires\n'
-             'HTTPS.  Reinstall the firmware or override with --force.' %
-             SSL_CERT)
+    print('WARNING: No SSL certificate found at %s.  Logins and\n'
+          'machine data will be sent over the network in plain text.  '
+          'Reinstall\nthe firmware to create one.' % SSL_CERT,
+          file = sys.stderr)
 
 
 def cmd_status(users, args):
@@ -167,9 +170,6 @@ def parse_args():
 
     parser.add_argument('-f', '--file', default = USERS_PATH, metavar = 'FILE',
                         help = 'User database')
-    parser.add_argument('--force', action = 'store_true',
-                        help = 'Enable access control without an SSL cert')
-
     cmds = parser.add_subparsers(dest = 'command', required = True)
 
     cmds.add_parser('status', help = 'Show the access control status')

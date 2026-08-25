@@ -40,13 +40,21 @@ module.exports = new Vue({
       status: 'connecting',
       authorized: false,
       access_control: false,
+      https: 0, // The controller's HTTPS port, zero if not running
       admin: false,
+      admin_user: false,
       user: '',
       login_user: 'admin',
+      login_error: '',
+      password_user: '',
+      password_current: '',
+      password_error: '',
       password: '',
       password2: '',
       generated: '',
       logging_in: false,
+      session_expired: false,
+      admin_timer: 0,
       currentView: 'loading',
       template: require('../resources/config-template.json'),
       config: {
@@ -169,6 +177,21 @@ module.exports = new Vue({
     login_required() {return !this.authorized},
 
 
+    // Matches the controller's idea of a secure connection
+    is_secure() {
+      return location.protocol == 'https:' ||
+        ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+    },
+
+
+    // The built in admin's password is the system password
+    system_password() {return this.password_user == 'admin'},
+
+
+    // The user has admin access but it timed out, logging in restores it
+    admin_expired() {return this.admin_user && !this.admin},
+
+
     popupMessages() {
       let msgs = []
 
@@ -231,17 +254,55 @@ module.exports = new Vue({
         login = await this.$api.get('auth/login', {error: () => {}})
       } catch (e) {return}
 
+      let was_logged_in = this.user
+
       this.user           = login.user || ''
       this.admin          = login.admin
+      this.admin_user     = login.admin_user
       this.authorized     = login.authorized
       this.access_control = login.access_control
+      this.https          = login.https || 0
 
-      if (this.user) this.login_user = this.user
+      // Explain why the login dialog appeared
+      if (was_logged_in && !this.user) this.session_expired = true
+
+      // Admin access expires on its own, drop it from the interface with it
+      clearTimeout(this.admin_timer)
+      if (login.admin)
+        this.admin_timer =
+          setTimeout(this.check_login, (login.admin_left + 1) * 1000)
+
+      // Don't change the name while the user is typing it
+      if (this.user && !this.logging_in) this.login_user = this.user
     },
 
 
-    async login() {
+    // The controller refuses to accept a password in plain text
+    async require_https() {
+      if (this.is_secure || !this.https) return false
+
+      let response = await this.open_dialog({
+        icon:    'lock',
+        header:  'HTTPS required',
+        body:    '<p>Passwords may only be sent over a secure connection.  ' +
+                 'The controller creates its own certificate, so the browser ' +
+                 'cannot vouch for it and will ask you to continue the first ' +
+                 'time.</p>',
+        width:   '400px',
+        buttons: [{text: 'Cancel'},
+                  {text: 'Use HTTPS', class: 'pure-button-primary'}]
+      })
+
+      if (response == 'use https') this.goto_https()
+      return true
+    },
+
+
+    async login(user) {
+      if (await this.require_https()) return
       if (this.logging_in) return // Already showing the login dialog
+
+      if (user) this.login_user = user
       this.logging_in = true
 
       try {
@@ -250,17 +311,24 @@ module.exports = new Vue({
           if (await this.$refs.loginDialog.open() != 'login') break
 
           try {
+            // Report the failure in the dialog, an error dialog would open
+            // behind it
             await this.$api.put('auth/login',
                                 {user: this.login_user,
-                                 password: this.password})
-          } catch (e) {continue} // Error already reported
+                                 password: this.password},
+                                {error: (path, xhr) => this.login_error =
+                                 this.$api.message(path, xhr)})
+          } catch (e) {continue} // Reported in the dialog
 
+          this.login_error = ''
           await this.check_login()
         } while (this.login_required)
 
       } finally {
-        this.password   = ''
-        this.logging_in = false
+        this.password        = ''
+        this.login_error     = ''
+        this.logging_in      = false
+        this.session_expired = false
       }
 
       if (!this.authorized) return
@@ -278,28 +346,66 @@ module.exports = new Vue({
     },
 
 
-    // Changes the password of the logged in user or, for admins, any user
+    clear_password() {
+      this.password_current = ''
+      this.password_error   = ''
+      this.password         = ''
+      this.password2        = ''
+      this.generated        = ''
+    },
+
+
+    // Changes the password of the logged in user, which requires confirming
+    // the current one, or of any user for an admin
     async change_password(name) {
-      this.password = this.password2 = this.generated = ''
+      if (await this.require_https()) return
 
-      let action = await this.$refs.passwordDialog.open({header:
-        'Change password for "' + name + '"'})
-      if (action != 'set') return
+      this.password_user = name
+      this.clear_password()
 
-      if (this.password != this.password2)
-        return this.error_dialog('Passwords do not match')
+      let own = name == this.user
+      let ok  = false
 
-      if (name == this.user)
-        await this.$api.put('auth/password', {password: this.password})
-      else await this.$api.put('auth/users/' + name, {password: this.password})
+      while (!ok) {
+        if (await this.$refs.passwordDialog.open({header:
+          'Change password for "' + name + '"'}) != 'set') return
 
-      this.password = this.password2 = this.generated = ''
+        if (own && !this.password_current)
+          this.password_error = 'Your current password is required'
+
+        else if (this.password != this.password2)
+          this.password_error = 'Passwords do not match'
+
+        else try {
+          let data = {password: this.password}
+          if (own) data.current = this.password_current
+
+          // Report failures in the dialog, an error dialog opens behind it
+          await this.$api.put(
+            own ? 'auth/password' : 'auth/users/' + name, data,
+            {error: (p, xhr) =>
+             this.password_error = this.$api.message(p, xhr)})
+          ok = true
+
+        } catch (e) {} // Reported in the dialog
+      }
+
+      this.clear_password()
 
       return this.success_dialog('Password changed for "' + name + '".')
     },
 
 
+    // Reloads the page over HTTPS so the certificate can be accepted
+    goto_https() {
+      let port = this.https == 443 ? '' : ':' + this.https
+      location.href = 'https://' + location.hostname + port +
+        location.pathname + location.hash
+    },
+
+
     async logout() {
+      this.user = '' // Logging out is not a session expiry
       await this.$api.delete('auth/login')
       await this.check_login() // Gates the interface if a login is required
     },

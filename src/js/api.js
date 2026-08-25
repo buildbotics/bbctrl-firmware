@@ -44,15 +44,8 @@ class API {
   }
 
 
-  error(path, xhr) {
+  message(path, xhr) {
     let msg
-
-    // A login is required or the session has expired.  The login dialog is
-    // feedback enough, except when it was the login itself that failed.
-    if (xhr.status == 401 && this.unauthorized_handler) {
-      this.unauthorized_handler()
-      if (!path.endsWith('auth/login')) return
-    }
 
     // Try to get message from JSON response (responseType is 'json')
     if (xhr.responseType == 'json' && xhr.response && xhr.response.message)
@@ -70,12 +63,25 @@ class API {
       }
     }
 
+    // A network level failure has no status and no response
+    if (!msg && !xhr.status) msg = 'Cannot reach the controller.'
+
     // Fallback to status text
     if (!msg && xhr.statusText) msg = xhr.statusText
 
-    if (!msg) msg = 'API Error: ' + path
+    return msg ? msg : 'API Error: ' + path
+  }
 
-    this.error_handler(msg)
+
+  error(path, xhr) {
+    // A login is required or the session has expired.  The login dialog is
+    // feedback enough, except when it was the login itself that failed.
+    if (xhr.status == 401 && this.unauthorized_handler) {
+      this.unauthorized_handler()
+      if (!path.endsWith('auth/login')) return
+    }
+
+    this.error_handler(this.message(path, xhr))
   }
 
 
@@ -127,9 +133,8 @@ class API {
         data = JSON.stringify(data)
       }
 
-      // Response type
-      if (method == 'GET' || conf.type)
-        xhr.responseType = conf.type || 'json'
+      // Response type.  Every method returns JSON unless told otherwise.
+      xhr.responseType = conf.type || 'json'
 
       if (xhr.responseType == 'json')
         xhr.setRequestHeader('Accept', 'application/json; charset=utf-8')
@@ -150,7 +155,7 @@ class API {
   async get(path, conf) {return this.api('GET', path, undefined, conf)}
   async put(path, data, conf) {return this.api('PUT', path, data, conf)}
   async post(path, data, conf) {return this.api('POST', path, data, conf)}
-  async delete(path, conf) {return this.api('DELETE', path, undefined, conf)}
+  async delete(path, data, conf) {return this.api('DELETE', path, data, conf)}
 }
 
 

@@ -29,23 +29,23 @@ script#settings-admin-template(type="text/x-template")
   #settings-admin
     h1 Admin
 
-    p(v-if="!admin")
-      bbutton(success, @click="$root.login", text="Login",
-        title="Login to make changes")
-      em  as an admin to make changes.
+    .notice(v-if="needs_https")
+      span.fa.fa-exclamation-triangle
+      |  You cannot log in or manage users over an insecure connection.
+      |  Switch to HTTPS so that passwords are never sent over the network in
+      |  plain text.  The controller creates its own certificate, so the
+      |  browser cannot vouch for it and will ask you to continue the first
+      |  time.
+      p
+        bbutton(success, @click="$root.goto_https()", text="Use HTTPS",
+          title="Reload this page over a secure connection")
 
-    div(v-else)
+    div(v-if="admin")
       h2 Users
       p
         | Web interface users are separate from the Unix system users.  The
         | built in #[b admin] user cannot be removed.  Users may also be
         | managed over SSH with #[code sudo bbctrl-users].
-
-      .notice(v-if="first_user && !access_control")
-        span.fa.fa-exclamation-triangle
-        |  Adding the first user turns on access control.  All web access will
-        |  then require a login over HTTPS.  If you lose access, log in over
-        |  SSH and run #[code sudo bbctrl-users disable].
 
       table.pure-table.users
         tr
@@ -69,28 +69,11 @@ script#settings-admin-template(type="text/x-template")
             bbutton.button-error(v-if="!user.builtin", @click="remove(user)",
               icon="trash", text="Remove", title="Remove this user")
 
-        tr
-          td
-            input(type="text", name="name", v-model="name",
-              autocomplete="off", title="New user name")
-          td.center
-            input(name="new-admin", type="checkbox", v-model="user_admin",
-              title="Grant admin access to the new user.")
-          td.password
-            input.password(name="new-pass", v-model="password",
-              autocomplete="new-password", title="New user password")
-            bbutton(@click="generate", icon="refresh", text="Generate",
-              title="Generate a random passphrase")
-          td
-            bbutton(primary, @click="add", icon="plus", text="Add",
-              title="Add the new user")
-
-        tr(v-if="generated")
-          td(colspan="4")
-            | Generated passphrase: #[span.generated {{generated}}]
+      bbutton(primary, @click="add", icon="plus", text="Add",
+        title="Add a user")
 
       h2 Access Control
-      .notice(v-if="!https")
+      .notice(v-if="!$root.https")
         span.fa.fa-exclamation-triangle
         |  No HTTPS server is running so logins and machine data would be sent
         |  over the network in plain text.  Reinstall the firmware to create a
@@ -101,7 +84,8 @@ script#settings-admin-template(type="text/x-template")
           input(name="access", type="checkbox", v-model="access_control",
             @change="set_access_control")
           label(for="access")
-            |  Require a login for all web access.  Also requires HTTPS.
+            |  Require a login for all web access.
+            span(v-if="$root.https")  Also requires HTTPS.
 
         p
           input(name="local", type="checkbox", v-model="local_access",
@@ -137,6 +121,45 @@ script#settings-admin-template(type="text/x-template")
           @change="change_enable_keyboard")
         label &nbsp; Enable automatic virtual keyboard on local screen.
 
+
+    dialog(v-ref:add-user, header="Add user", icon="plus", width="400px",
+      buttons="Cancel Add")
+
+      div(slot="body")
+        p.error(v-if="add_error") {{add_error}}
+
+        .notice(v-if="first_user && !access_control")
+          span.fa.fa-exclamation-triangle
+          |  This turns on #[b Require a login for all web access].  Every
+          |  browser will then have to log in over HTTPS to use the machine.
+          |  If you lose access, log in over SSH and run
+          |  #[code sudo bbctrl-users disable].
+
+        .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="new-name") User
+            input(name="new-name", v-model="name", focus, autocomplete="off",
+              @keyup.enter="$refs.addUser.close('add')")
+
+          .pure-control-group
+            label(for="new-pass") Password
+            input.password(name="new-pass", v-model="password",
+              autocomplete="new-password",
+              @keyup.enter="$refs.addUser.close('add')")
+
+          .pure-control-group
+            label
+            bbutton(@click="generate", icon="refresh", text="Generate",
+              title="Generate a random passphrase")
+
+          .pure-control-group(v-if="generated")
+            label Passphrase
+            span.generated {{generated}}
+
+          .pure-control-group
+            label(for="new-admin") Admin
+            input(name="new-admin", type="checkbox", v-model="user_admin",
+              title="Admin users may change the configuration and firmware.")
 
     dialog(v-ref:upgrade, header="Upgrade Firmware?", buttons="Cancel Upgrade")
       div(slot="body")

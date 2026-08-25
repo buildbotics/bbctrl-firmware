@@ -61,6 +61,21 @@ tags:
       HTTPS.  Connections from localhost are exempt from the redirect and may
       also be exempted from the login with ``bbctrl-users local-access on``.
 
+      Logging in, changing a password and changing which users may access the
+      controller all require a secure connection so that passwords are never
+      sent in plain text.  Such requests made over HTTP are refused with a 403
+      code unless they come from localhost or no HTTPS server is running.
+      Recovery from a lost login is over SSH with ``bbctrl-users``.
+
+      Admin access expires five minutes after it was last used.  The session
+      stays valid and the user stays logged in, only the admin access is lost.
+      Logging in again restores it, logging out first is not necessary.  The
+      seconds left are reported by ``GET /auth/login``.
+
+      Changing your own password always requires your current password in the
+      ``current`` field.  Changing another user's password needs only admin
+      access.
+
       End points which can return a 401 code require a login.  End points
       which can return a 403 code also require a user with admin access.
 
@@ -824,7 +839,13 @@ paths:
                     description: The logged in user or null.
                     type: ['string', 'null']
                   admin:
-                    description: True if the user has admin access.
+                    description: True if the user has admin access now.
+                    type: boolean
+                  admin_user:
+                    description: >
+                      True if the user may have admin access.  With ``admin``
+                      false this means the access timed out and logging in
+                      again restores it.
                     type: boolean
                   authorized:
                     description: True if the client may access the controller.
@@ -832,6 +853,15 @@ paths:
                   access_control:
                     description: True if users have been created.
                     type: boolean
+                  https:
+                    description: >
+                      The port of the HTTPS server or null if it is not
+                      running.
+                    type: ['integer', 'null']
+                  admin_left:
+                    description: >
+                      Seconds of admin access left, zero if there is none.
+                    type: integer
 
     put:
       description: Login to the controller.
@@ -867,6 +897,7 @@ paths:
                       ``Authorization: Bearer <sid>`` header.
                     type: string
         401: {description: Invalid user name or password.}
+        403: {description: HTTPS required.}
 
     delete:
       description: Logout of the controller.
@@ -886,23 +917,26 @@ paths:
     put:
       description: >
         Change the password of the logged in user.  For the built in ``admin``
-        user this sets the system password of user 1000.
+        user this sets the system password of user 1000.  The logged in user's
+        current password must be confirmed.
       tags: ['Authorization']
       requestBody:
-        description: Parameters.
+        description: >
+          Parameters.  ``current`` is the logged in user's existing password.
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: ['password']
+              required: ['password', 'current']
               properties:
                 password: {type: string}
+                current:  {type: string}
       responses:
         200: {description: Password updated.}
         400: {description: Missing required argument or password too short.}
         401: {description: Password update failed.}
-        403: {description: Admin access required.}
+        403: {description: HTTPS or the right current password required.}
 
   /auth/passphrase:
     parameters:
@@ -939,7 +973,8 @@ paths:
     get:
       description: >
         List the web interface users.  The built in ``admin`` user is listed
-        first with ``builtin`` set.  Requires admin access.
+        first with ``builtin`` set.  Requires admin access.  Every change
+        below responds with this same object.
       tags: ['Authorization']
       responses:
         200:
@@ -954,9 +989,6 @@ paths:
                     type: boolean
                   local_access:
                     description: True if localhost may skip the login.
-                    type: boolean
-                  https:
-                    description: True if the HTTPS server is running.
                     type: boolean
                   users:
                     type: array
@@ -1005,13 +1037,13 @@ paths:
                 admin:    {type: boolean}
 
       responses:
-        200: {description: Success.}
+        200: {description: Success.  Returns the new user list.}
         400:
           description: >
             The user exists, the name is invalid, the password is too short or
             the name is reserved for the built in admin.
         401: {description: Not authorized.}
-        403: {description: Admin access required.}
+        403: {description: Admin access or HTTPS required.}
 
     put:
       description: >
@@ -1031,10 +1063,10 @@ paths:
                 admin:    {type: boolean}
 
       responses:
-        200: {description: Success.}
+        200: {description: Success.  Returns the new user list.}
         400: {description: Password too short or user is the built in admin.}
         401: {description: Not authorized.}
-        403: {description: Admin access required.}
+        403: {description: Admin access or HTTPS required.}
         404: {description: User not found.}
 
     delete:
@@ -1044,7 +1076,7 @@ paths:
         The built in ``admin`` user cannot be removed.
       tags: ['Authorization']
       responses:
-        200: {description: Success.}
+        200: {description: Success.  Returns the new user list.}
         400: {description: User not found or is the built in admin.}
         401: {description: Not authorized.}
         403: {description: Admin access required.}
@@ -1060,7 +1092,8 @@ paths:
     put:
       description: >
         Enable or disable access control and local access.  Requires admin
-        access.  Access control has no effect until a user is created.
+        access and a secure connection.  Access control has no effect until a
+        user is created.
       tags: ['Authorization']
       requestBody:
         description: Parameters.  Omitted values are left unchanged.
@@ -1074,9 +1107,9 @@ paths:
                 local_access:   {type: boolean}
 
       responses:
-        200: {description: Success.}
+        200: {description: Success.  Returns the new user list.}
         401: {description: Not authorized.}
-        403: {description: Admin access required.}
+        403: {description: Admin access or HTTPS required.}
 
   /video:
     get:
