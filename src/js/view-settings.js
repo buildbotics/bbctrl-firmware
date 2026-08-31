@@ -57,12 +57,16 @@ module.exports = {
       if (this.modified && path[0] != 'settings') {
         cancel()
 
+        let authorized = this.$root.authorized
         let result = await this.$root.open_dialog({
-          header: 'Save settings?',
-          body:   'Changes to the settings have not been saved.  ' +
-                  'Would you like to save them now?',
+          header: authorized ? 'Save settings?' : 'Login required',
+          body:   authorized ?
+            'Changes to the settings have not been saved. Would you like to ' +
+            'save them now?' :
+            'Changes to the settings have not been saved. Log in to save ' +
+            'them, discard them, or stay on this page.',
           width:  '320px',
-          buttons: [
+          buttons: authorized ? [
             {
               text:  'Cancel',
               title: 'Stay on the Settings page.'
@@ -74,13 +78,29 @@ module.exports = {
               title: 'Save settings.',
               class: 'button-success'
             }
+          ] : [
+            {
+              text:  'Cancel',
+              title: 'Stay on the Settings page.'
+            }, {
+              text:  'Discard',
+              title: 'Discard settings changes.'
+            }, {
+              text:  'Login',
+              title: 'Log in and save settings.',
+              class: 'button-success'
+            }
           ]})
 
-        if (result == 'cancel')  return
-        if (result == 'save')    await this.save()
-        if (result == 'discard') await this.discard()
+        if (result == 'cancel') return
+        if (result == 'discard') {
+          await this.discard()
+          return location.hash = path.join(':')
+        }
 
-        location.hash = path.join(':')
+        if (result == 'save' || result == 'login') {
+          if (await this.save()) location.hash = path.join(':')
+        }
       }
     },
 
@@ -114,9 +134,66 @@ module.exports = {
 
 
   methods: {
-    async save() {
-      await this.$api.put('config/save', this.config)
-      this.modified = false
+    async authorize() {
+      if (this.$root.authorized) return true
+      await this.$root.login()
+      return this.$root.authorized
+    },
+
+
+    get_error_message(error, fallback) {
+      let xhr = error && error.xhr
+
+      if (xhr && xhr.response && xhr.response.message)
+        return xhr.response.message
+
+      if (xhr && xhr.responseText) {
+        try {
+          let response = JSON.parse(xhr.responseText)
+          if (response && response.message) return response.message
+        } catch (e) {}
+      }
+
+      if (xhr && xhr.statusText) return xhr.statusText
+      return fallback
+    },
+
+
+    async save(retry = true) {
+      if (!await this.authorize()) return false
+
+      try {
+        await this.$api.put('config/save', this.config, {error() {}})
+        this.modified = false
+        return true
+
+      } catch (error) {
+        let xhr = error && error.xhr
+
+        if (xhr && xhr.status == 401) {
+          this.$root.authorized = false
+
+          if (retry) {
+            let result = await this.$root.open_dialog({
+              header: 'Login required',
+              body: 'Your login session expired. Log in to save settings.',
+              buttons: [
+                {text: 'Cancel'},
+                {text: 'Login', class: 'button-success'}
+              ]
+            })
+
+            if (result == 'login' && await this.authorize())
+              return this.save(false)
+          }
+
+          return false
+        }
+
+        await this.$root.error_dialog('Failed to save settings.\n' +
+          this.get_error_message(error, 'Unable to save configuration.'))
+        return false
+      }
     },
 
 
