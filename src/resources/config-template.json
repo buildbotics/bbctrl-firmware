@@ -260,8 +260,8 @@
   "tool": {
     "tool-type": {
       "type": "enum",
-      "values": ["Disabled", "PWM Spindle", "Huanyang VFD",
-                 "Huanyang GT-series", "Custom Modbus VFD",
+      "values": ["Disabled", "PWM Spindle", "Custom Modbus VFD",
+                 "Huanyang VFD", "Huanyang GT-series",
                  "AC-Tech VFD", "Nowforever VFD", "Delta VFD",
                  "YL600, YL620, YL620-A VFD (Beta)", "FR-D700 (Beta)",
                  "Sunfar E300 (Beta)", "OMRON MX2", "V70", "H100", "WJ200",

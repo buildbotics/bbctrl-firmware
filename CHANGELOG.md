@@ -41,6 +41,7 @@ Buildbotics CNC Controller Firmware Changelog
   - Display ETA on control page. #345
   - Fix error message positioning. #349
   - Break to stop Huanyang GT VFD.
+  - Fixed VFD config ordering.
 
 ## v2.0.0
  - Changes for RPi4
