@@ -32,7 +32,7 @@ __all__ = ['Sessions']
 
 
 TIMEOUT       = 24 * 60 * 60 # Expire unused sessions
-ADMIN_TIMEOUT = 5 * 60       # Expire unused admin access
+ADMIN_TIMEOUT = 60 * 60      # Expire unused admin access
 
 
 # Login sessions are held in memory only, a restart requires a new login
