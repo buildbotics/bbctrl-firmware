@@ -20,6 +20,7 @@ Buildbotics CNC Controller Firmware Changelog
   - Show the logged in user and explain the built in ``admin`` login.
   - Report unreachable controller instead of an API error.
   - Fixed system password check for any ``crypt(3)`` hash type.
+  - Keep writing MD5 system password hashes so a downgrade can still log in.
   - Changes to users report the new state so the client cannot get stuck.
   - Added support for Huanyang GT-series VFD.
   - Try to parse API response text as JSON.

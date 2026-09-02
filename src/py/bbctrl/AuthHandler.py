@@ -286,9 +286,12 @@ class AuthHandler(APIHandler):
     return secrets.compare_digest(crypt(password, hash), hash)
 
 
+  # Write MD5 because v2.0.4 and earlier only accept a $1$ hash and would
+  # reject the login after a downgrade.  Drop -c once those are no longer
+  # supported downgrade targets; the check above reads any crypt(3) type.
   def set_unix_password(self, password):
     s = ('%s:%s' % (get_username(), password)).encode('utf-8')
-    p = subprocess.Popen(['chpasswd'], stdin = subprocess.PIPE)
+    p = subprocess.Popen(['chpasswd', '-c', 'MD5'], stdin = subprocess.PIPE)
     p.communicate(input = s)
 
     if p.returncode: raise HTTPError(401, 'Failed to set password')
