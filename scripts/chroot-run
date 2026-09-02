@@ -1,0 +1,19 @@
+#!/bin/bash -ex
+
+ROOT="$1"
+shift
+
+# Clean up on EXIT.  The recursive binds need a recursive umount.
+function cleanup {
+    umount -R "$ROOT"/dev 2>/dev/null || true
+    umount -R "$ROOT"/sys 2>/dev/null || true
+    umount "$ROOT"/proc 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# mount binds
+mount --bind /proc "$ROOT/proc"
+mount --rbind /sys "$ROOT/sys"
+mount --rbind /dev "$ROOT/dev"
+
+chroot "$ROOT" "$@"
