@@ -47,6 +47,8 @@ class State(object):
         self.timeout = None
         self.machine_var_set = set()
         self.message_id = 0
+        self._running_macro = False
+        self._previous_program = None
 
         # Defaults
         self.vars = {
@@ -93,14 +95,34 @@ class State(object):
     def reset(self):
         # Clear active program
         self.set('active_program', '')
+        self._running_macro = False
+        self._previous_program = None
 
         # Unhome all motors
-        for i in range(4): self.set('%dhomed' % i, 0)
+        for i in range(4):
+            self.set('%dhomed' % i, 0)
+            self.set('%dreferenced' % i, 0)
 
         # Zero offsets and positions
         for axis in 'xyzabc':
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
+
+
+    def start_macro(self):
+        active = self.get('active_program', None)
+        self._previous_program = active if active else None
+        self._running_macro = True
+
+
+    def end_macro(self):
+        if not self._running_macro: return False
+
+        self._running_macro = False
+        active = self._previous_program
+        self._previous_program = None
+        self.set('active_program', active)
+        return True
 
 
     def ack_message(self, id):
@@ -152,6 +174,10 @@ class State(object):
         if not name in self.vars or self.vars[name] != value:
             self.vars[name] = value
             self.changes[name] = value
+
+            if name.endswith('homed') and len(name) == 6 and name[0].isdigit():
+                self.vars['%sreferenced' % name[0]] = 1 if value else 0
+                self.changes['%sreferenced' % name[0]] = 1 if value else 0
 
             # Trigger listener notify
             if self.timeout is None:
@@ -266,6 +292,17 @@ class State(object):
 
 
     def is_axis_homed(self, axis): return self.get('%s_homed' % axis, 0)
+
+
+    def is_axis_referenced(self, axis):
+        motor = self.find_motor(axis)
+        return motor is not None and self.get('%dreferenced' % motor, 0)
+
+
+    def set_axis_referenced(self, axis, referenced = True):
+        motor = self.find_motor(axis)
+        if motor is not None:
+            self.set('%dreferenced' % motor, 1 if referenced else 0)
 
 
     def is_axis_enabled(self, axis):

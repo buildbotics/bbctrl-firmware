@@ -252,6 +252,12 @@
           "default": 5,
           "code": "zb",
           "hmodes": ["switch-min", "switch-max", "stall-min", "stall-max"]
+        },
+        "reference-required": {
+          "type": "enum",
+          "values": ["Auto", "Yes", "No"],
+          "help": "Require position reference before running macros. Auto = Yes for XYZ, No for ABC.",
+          "default": "Auto"
         }
       }
     }
@@ -526,13 +532,31 @@
     }
   },
 
+  "macro_tabs": {
+    "type": "list",
+    "default": [{"id": "default", "name": "Macros"}],
+    "help": "Tabs for organizing macros on the control page.",
+    "template": {
+      "id": {"type": "string", "default": ""},
+      "name": {"type": "string", "default": "New Tab"}
+    }
+  },
+
   "macros": {
     "type": "list",
     "default": [],
     "template": {
       "name": {"type": "string", "default": ""},
       "path": {"type": "string", "default": ""},
-      "color": {"type": "string", "default": "#e6e6e6"}
+      "color": {"type": "string", "default": "#e6e6e6"},
+      "tab": {"type": "string", "default": ""},
+      "visible": {"type": "bool", "default": true},
+      "confirm": {"type": "bool", "default": true},
+      "skip_reference_check": {
+        "type": "bool",
+        "default": false,
+        "help": "Allow setup and homing macros to run before axes are referenced."
+      }
     }
   }
 }

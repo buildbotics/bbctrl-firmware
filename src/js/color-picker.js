@@ -34,6 +34,11 @@ module.exports = {
       type: String,
       required: true,
       twoWay: true
+    },
+
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -73,16 +78,20 @@ module.exports = {
 
   methods: {
     change() {
+      if (this.disabled) return
       this.value = this.jscolor.toHEXString()
       this.hexInput = this.value
       this.$emit('change', this.value)
     },
 
 
-    show() {this.jscolor.show()},
+    show() {
+      if (!this.disabled) this.jscolor.show()
+    },
 
 
     onHexInput(e) {
+      if (this.disabled) return
       let hex = e.target.value.trim()
 
       // Add # if missing
@@ -98,6 +107,7 @@ module.exports = {
 
 
     onHexBlur(e) {
+      if (this.disabled) return
       let hex = e.target.value.trim()
 
       // Add # if missing

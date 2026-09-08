@@ -27,11 +27,9 @@
 
 import os
 import json
-import subprocess
 import copy
 import glob
 import re
-import datetime
 
 from . import util
 
@@ -108,7 +106,30 @@ class Config(object):
             config = {'version': self.version}
 
         self._defaults(config)
+
+        try: self._auto_isolate_macros(config)
+        except Exception: self.log.exception()
+
         return config
+
+
+    def _auto_isolate_macros(self, config):
+        macros = config.get('macros', [])
+        if not len(macros): return
+
+        for macro in macros:
+            path = macro.get('path', '')
+            if path and not path.startswith('macros/'):
+                break
+        else: return
+
+        active = self._isolate_macros(config)
+        self.ctrl.fs.cleanup_orphaned_macros(active)
+
+        path = self.ctrl.get_path('config-v%s.json' % self.version)
+        with open(path, 'w') as f: json.dump(config, f)
+        os.sync()
+        self.log.info('Auto-isolated macros')
 
 
     def _valid_value(self, template, value):
@@ -250,8 +271,40 @@ class Config(object):
         config['version'] = self.version
 
 
+    def _isolate_macros(self, config):
+        active = set()
+        macros = config.get('macros', [])
+
+        for i in range(len(macros)):
+            path = macros[i].get('path', '')
+            if not path: continue
+
+            if path.startswith('macros/'):
+                active.add(path)
+                continue
+
+            source = path if path.startswith('Home/') else 'Home/' + path
+            isolated = self.ctrl.fs.isolate_macro(source)
+
+            if isolated is None:
+                active.add(path)
+                continue
+
+            macros[i]['path'] = isolated[5:] if isolated.startswith('Home/') \
+                else isolated
+            active.add(macros[i]['path'])
+            self.log.info('Macro %d isolated: %s -> %s' %
+                          (i + 1, path, macros[i]['path']))
+
+        return active
+
+
     def save(self, config):
         self.upgrade(config)
+
+        active = self._isolate_macros(config)
+        self.ctrl.fs.cleanup_orphaned_macros(active)
+
         self._update(config, False)
 
         path = self.ctrl.get_path('config-v%s.json' % self.version)

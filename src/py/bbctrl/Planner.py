@@ -345,7 +345,8 @@ class Planner():
 
 
     def _end_program(self, msg = None, end_all = False):
-        self.ctrl.state.set('active_program', None)
+        if not self.ctrl.state.end_macro():
+            self.ctrl.state.set('active_program', None)
 
         if end_all:
             while len(self.end_callbacks):

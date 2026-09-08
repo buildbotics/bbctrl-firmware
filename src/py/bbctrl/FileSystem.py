@@ -27,6 +27,7 @@
 
 import os
 import shutil
+import uuid
 from tornado.web import HTTPError
 from . import util
 
@@ -35,6 +36,7 @@ __all__ = ['FileSystem']
 
 class FileSystem:
   extensions = ('.nc', '.gc', '.gcode', '.ngc', '.tap', '.txt', '.tpl')
+  protected = ('macros',)
 
 
   def __init__(self, ctrl):
@@ -49,11 +51,78 @@ class FileSystem:
       from shutil import copy
       copy(util.get_resource('http/buildbotics.nc'), upload)
 
+    self._ensure_macros_dir()
     self._update_locations()
     self._update_first_file()
 
     ctrl.events.on('invalidate', self._invalidate)
     ctrl.udevev.add_handler(self._udev_event, 'block')
+
+
+  def _ensure_macros_dir(self):
+    path = self.get_macros_dir()
+    if not os.path.exists(path): os.makedirs(path, mode = 0o755)
+
+
+  def is_protected_path(self, path):
+    path = os.path.normpath(path).lstrip('./')
+
+    for name in self.protected:
+      if path == name or path == 'Home/' + name: return True
+      if path.startswith(name + '/') or path.startswith('Home/' + name + '/'):
+        return True
+
+    return False
+
+
+  def get_macros_dir(self):
+    return self.ctrl.root + '/upload/macros'
+
+
+  def isolate_macro(self, source):
+    if (source.startswith('Home/macros/') or source.startswith('macros/')):
+      return source
+
+    real = self.realpath(source)
+    if not real or not os.path.exists(real): return
+    if not os.path.isfile(real):
+      self.log.warning('Macro source is not a file: %s' % source)
+      return
+
+    base = os.path.basename(source)
+    name = 'macro_%s_%s' % (uuid.uuid4().hex[:4], base)
+    target = os.path.join(self.get_macros_dir(), name)
+
+    try:
+      shutil.copy2(real, target)
+      self.log.info('Isolated macro: %s -> macros/%s' % (source, name))
+      return 'macros/' + name
+
+    except Exception as e:
+      self.log.error('Failed to isolate macro: %s' % e)
+
+
+  def cleanup_orphaned_macros(self, active):
+    path = self.get_macros_dir()
+    if not os.path.exists(path): return
+
+    keep = set()
+    for entry in active:
+      if entry.startswith('macros/'): keep.add(os.path.basename(entry))
+      elif entry.startswith('Home/macros/'):
+        keep.add(os.path.basename(entry))
+
+    for name in os.listdir(path):
+      target = os.path.join(path, name)
+      if not os.path.isfile(target): continue
+      if not name.startswith('macro_'): continue
+      if name in keep: continue
+
+      try:
+        os.unlink(target)
+        self.log.info('Deleted orphaned macro %s' % name)
+      except Exception as e:
+        self.log.error('Failed to delete orphaned macro %s: %s' % (name, e))
 
 
   def _invalidate(self, path):
@@ -67,6 +136,7 @@ class FileSystem:
 
     files = []
     for path in os.listdir(upload):
+      if path in self.protected: continue
       parts = os.path.splitext(path)
       if (len(parts) == 2 and parts[1] in self.extensions and
           os.path.isfile(upload + '/' + path)):
@@ -110,6 +180,9 @@ class FileSystem:
 
 
   def delete(self, path):
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot delete protected macro files')
+
     realpath = self.realpath(path)
 
     try:
@@ -122,6 +195,9 @@ class FileSystem:
 
 
   def mkdir(self, path):
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot create directories in protected area')
+
     realpath = self.realpath(path)
 
     if not os.path.exists(realpath):
@@ -130,6 +206,9 @@ class FileSystem:
 
 
   def write(self, path, data):
+    if self.is_protected_path(path):
+      raise HTTPError(403, 'Cannot write protected macro files')
+
     realpath = self.realpath(path)
 
     with open(realpath.encode('utf8'), 'wb') as f:

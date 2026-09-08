@@ -42,6 +42,7 @@ module.exports = {
       jog_step: cookie.get_bool('jog-step'),
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       tab: 'auto',
+      macro_tab: undefined,
       highlighted_line: 0,
       toolpath: {}
     }
@@ -164,6 +165,42 @@ module.exports = {
       if (!this.toolpath.time || this.is_ready) return 0
       let p = this.plan_time / this.toolpath.time
       return p < 1 ? p : 1
+    },
+
+
+    macro_tabs() {
+      let tabs = this.config.macro_tabs
+      if (!tabs || !tabs.length) return [{id: 'default', name: 'Macros'}]
+      return tabs
+    },
+
+
+    current_macro_tab() {
+      if (this.macro_tab) return this.macro_tab
+      return this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
+    },
+
+
+    visible_macros() {
+      let macros = this.config.macros || []
+      let current = this.current_macro_tab
+      let first = this.macro_tabs.length ? this.macro_tabs[0].id : 'default'
+      let visible = []
+
+      for (let i = 0; i < macros.length; i++) {
+        let macro = macros[i]
+        if (macro.visible === false) continue
+        if ((macro.tab || first) != current) continue
+
+        visible.push({
+          name: macro.name,
+          path: macro.path,
+          color: macro.color,
+          originalIndex: i
+        })
+      }
+
+      return visible
     }
   },
 
@@ -202,16 +239,125 @@ module.exports = {
     get_bounds() {return this.toolpath.bounds},
 
 
+    get_error_message(error, fallback) {
+      let xhr = error && error.xhr
+
+      if (xhr && xhr.response && xhr.response.message)
+        return xhr.response.message
+
+      if (xhr && xhr.responseText) {
+        try {
+          let response = JSON.parse(xhr.responseText)
+          if (response && response.message) return response.message
+        } catch (e) {}
+      }
+
+      if (xhr && xhr.statusText) return xhr.statusText
+      return fallback
+    },
+
+
+    get_motor_id(axis) {
+      let motors = this.config.motors || []
+
+      for (let i = 0; i < motors.length; i++) {
+        let motor = motors[i]
+        if ((motor.axis || '').toLowerCase() == axis) return i
+      }
+
+      return -1
+    },
+
+
+    get_missing_reference_axes() {
+      let missing = []
+      let motors = this.config.motors || []
+
+      for (let axis of 'xyzabc') {
+        let motor = this.get_motor_id(axis)
+        if (motor == -1) continue
+
+        let config = motors[motor]
+        if (!config.enabled) continue
+
+        let required = config['reference-required']
+        if (required == undefined || required == 'Auto')
+          required = axis == 'x' || axis == 'y' || axis == 'z'
+        else required = required == 'Yes'
+
+        if (required && !this.state[motor + 'referenced'])
+          missing.push(axis.toUpperCase())
+      }
+
+      return missing
+    },
+
+
+    format_reference_error(missing) {
+      if (missing.length == 1) {
+        let axis = missing[0]
+        return 'Cannot start: ' + axis + ' axis position is unknown. ' +
+          'Please home or zero the ' + axis + ' axis before running.'
+      }
+
+      if (missing.length == 2)
+        return 'Cannot start: ' + missing.join(' and ') +
+          ' axis positions are unknown. Please home or zero these axes ' +
+          'before running.'
+
+      return 'Cannot start: ' + missing.join(', ') + ' axis positions are ' +
+        'unknown. Please home or zero all axes before running.'
+    },
+
+
     goto(hash) {window.location.hash = hash},
     send(msg) {this.$dispatch('send', msg)},
     on_scroll(cm, e) {e.preventDefault()},
 
 
+    select_macro_tab(tabId) {this.macro_tab = tabId},
+
+
     async run_macro(macro) {
       try {
-        return this.$api.put('macro/' + macro)
-      } catch (e) {
-        this.$root.error_dialog('Failed to run macro "' + macro + '":\n' + e)
+        let index = macro
+
+        if (typeof macro == 'object' && macro.originalIndex !== undefined)
+          index = macro.originalIndex
+
+        let macros = this.config.macros || []
+        if (index < 0 || index >= macros.length)
+          throw new Error('Invalid macro index: ' + index)
+
+        let config = macros[index]
+        if (!config.skip_reference_check) {
+          let missing = this.get_missing_reference_axes()
+          if (missing.length) {
+            await this.$root.error_dialog(this.format_reference_error(missing))
+            return
+          }
+        }
+
+        if (config.confirm !== false) {
+          let name = config.name || ('Macro ' + (index + 1))
+          let result = await this.$root.open_dialog({
+            header: 'Confirm Macro',
+            icon: 'question',
+            body: 'Run macro "' + name + '"?\n\nFile: ' + config.path,
+            buttons: [
+              {text: 'Cancel'},
+              {text: 'Run', class: 'button-success', action: 'run'}
+            ]
+          })
+
+          if (result != 'run') return
+        }
+
+        await this.$api.put('macro/' + (index + 1), undefined, {error() {}})
+
+      } catch (error) {
+        await this.$root.error_dialog('Failed to run macro.\n' +
+          this.get_error_message(error, 'Unable to start macro.'))
       }
     },
 

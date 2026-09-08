@@ -91,6 +91,7 @@ module.exports = new Vue({
     'estop':          {template: '#estop-template'},
     'view-loading':   {template: '<h1>Loading...</h1>'},
     'view-control':   require('./view-control'),
+    'view-macros':    require('./view-macros'),
     'view-viewer':    require('./view-viewer'),
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),

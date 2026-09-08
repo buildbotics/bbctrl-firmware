@@ -80,14 +80,21 @@ class FileSystemHandler(RequestHandler):
     def get(self, path):
         path = clean_path(path)
         if path == '': path = 'Home'
+
         realpath = self.get_fs().realpath(path)
 
         if not os.path.exists(realpath): raise HTTPError(404, 'File not found')
         elif os.path.isdir(realpath):
+            if self.get_fs().is_protected_path(path):
+                raise HTTPError(403, 'Protected macro files are not directly accessible')
+
             files = []
 
             if os.path.exists(realpath):
                 for name in os.listdir(realpath):
+                    if self.get_fs().is_protected_path(path + '/' + name):
+                        continue
+
                     s = os.stat(realpath + '/' + name)
 
                     d = dict(name = name)

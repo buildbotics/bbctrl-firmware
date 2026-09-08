@@ -54,6 +54,43 @@ from udevevent import UDevEvent
 __all__ = ['Web']
 
 
+def _check_position_reference(ctrl):
+    state = ctrl.state
+    motors = ctrl.config.load().get('motors', [])
+    missing = []
+
+    for axis in 'xyzabc':
+        if not state.is_axis_enabled(axis): continue
+
+        motor = state.find_motor(axis)
+        config = motors[motor] if motor is not None and motor < len(motors) \
+            else {}
+        required = config.get('reference-required', 'Auto')
+
+        if required == 'Auto': required = axis in 'xyz'
+        else: required = required == 'Yes'
+
+        if required and not state.is_axis_referenced(axis):
+            missing.append(axis.upper())
+
+    return missing
+
+
+def _format_reference_error(missing):
+    if len(missing) == 1:
+        axis = missing[0]
+        return ('Cannot start: %s axis position is unknown. '
+                'Please home or zero the %s axis before running.') % (axis, axis)
+
+    if len(missing) == 2:
+        return ('Cannot start: %s axis positions are unknown. '
+                'Please home or zero these axes before running.') % \
+            ' and '.join(missing)
+
+    return ('Cannot start: %s axis positions are unknown. '
+            'Please home or zero all axes before running.') % ', '.join(missing)
+
+
 def upgrade_command(ctrl, cmd):
     ctrl.lcd.goodbye('Upgrading firmware')
     subprocess.Popen(['systemd-run', '--unit=bbctrl-update', '--scope',
@@ -241,18 +278,29 @@ class USBEjectHandler(APIHandler):
 
 class MacroHandler(APIHandler):
     def put(self, macro):
-        macros = self.get_ctrl().config.get('macros')
+        ctrl = self.get_ctrl()
+        macros = ctrl.config.get('macros')
 
         macro = int(macro)
-        if macro < 0 or len(macros) < macro:
+        if macro < 1 or len(macros) < macro:
             raise HTTPError(404, 'Invalid macro id %d' % macro)
 
-        path = 'Home/' + macros[macro - 1]['path']
+        macro = macros[macro - 1]
+        path = 'Home/' + macro['path']
 
-        if not self.get_ctrl().fs.exists(path):
+        if not ctrl.fs.exists(path):
             raise HTTPError(404, 'Macro file not found')
 
-        self.get_ctrl().mach.start(path)
+        if not macro.get('skip_reference_check', False):
+            missing = _check_position_reference(ctrl)
+            if len(missing): raise HTTPError(400, _format_reference_error(missing))
+
+        ctrl.state.start_macro()
+
+        try: ctrl.mach.start(path)
+        except:
+            ctrl.state.end_macro()
+            raise
 
 
 class PathHandler(APIHandler):
@@ -353,7 +401,9 @@ class StepHandler(APIHandler):
 
 class PositionHandler(APIHandler):
     def put(self, axis):
-        self.get_ctrl().mach.set_position(axis, float(self.json['position']))
+        ctrl = self.get_ctrl()
+        ctrl.mach.set_position(axis, float(self.json['position']))
+        ctrl.state.set_axis_referenced(axis.lower())
 
 
 class OverrideFeedHandler(APIHandler):

@@ -30,6 +30,7 @@ script#color-picker-template(type="text/x-template")
     //- Color swatch that opens the picker
     .color-picker(@click="show", :style="{background: value}")
       input(v-el:input, :value="value", @change="change",
+        :disabled="disabled",
         :data-jscolor="config")
 
     //- Hex input field for direct color entry
@@ -37,6 +38,7 @@ script#color-picker-template(type="text/x-template")
       v-model="hexInput",
       @input="onHexInput",
       @blur="onHexBlur",
+      :disabled="disabled",
       placeholder="#RRGGBB",
       maxlength="7",
       title="Enter hex color code (e.g. #FF0000)")

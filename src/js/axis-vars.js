@@ -111,6 +111,7 @@ module.exports = {
       let enabled    = typeof motor.enabled != 'undefined' && motor.enabled
       let homingMode = motor['homing-mode']
       let homed      = this.state[motor_id + 'homed']
+      let referenced = this.state[motor_id + 'referenced']
       let min        = this.state[motor_id + 'tn']
       let max        = this.state[motor_id + 'tm']
       let dim        = max - min
@@ -118,12 +119,16 @@ module.exports = {
       let pathMin    = bounds ? bounds.min[axis] : 0
       let pathMax    = bounds ? bounds.max[axis] : 0
       let pathDim    = pathMax - pathMin
-      let klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis
+      let klass      = 'axis-' + axis
       let state      = 'UNHOMED'
       let icon       = 'question-circle'
       let fault      = this.state[motor_id + 'df'] & 0x1f
       let shutdown   = this.state.power_shutdown
       let title
+
+      if (homed) klass += ' homed'
+      else if (referenced) klass += ' warn'
+      else klass += ' unhomed'
 
       if (fault || shutdown) {
         state = shutdown ? 'SHUTDOWN' : 'FAULT'
@@ -138,11 +143,19 @@ module.exports = {
       } else if (homed) {
         state = 'HOMED'
         icon = 'check-circle'
+
+      } else if (referenced) {
+        state = 'ZEROED'
+        icon = 'exclamation-triangle'
       }
 
       switch (state) {
       case 'UNHOMED': title = 'Click the home button to home axis.'; break
       case 'HOMED': title = 'Axis successfully homed.'; break
+      case 'ZEROED':
+        title = 'Position set manually. Verify the program stays within ' +
+          'machine bounds.'
+        break
 
       case 'NO FIT':
         title = 'Tool path dimensions exceed axis dimensions by ' +
@@ -165,8 +178,8 @@ module.exports = {
 
       return {
         name: axis, pos: abs - off, abs, off, min, max, dim, pathMin, pathMax,
-        pathDim, motor: motor_id, enabled, homingMode, homed, klass, state,
-        icon, title,
+        pathDim, motor: motor_id, enabled, homingMode, homed, referenced,
+        klass, state, icon, title,
       }
     }
   }
