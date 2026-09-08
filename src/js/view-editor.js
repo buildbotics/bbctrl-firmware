@@ -60,10 +60,10 @@ module.exports = {
 
 
   events: {
-    'route-changing'(path, cancel) {
+    async 'route-changing'(path, cancel) {
       if (!this.modified || path[0] == 'editor') return
       cancel()
-      this.check_save(ok => {if (ok) location.hash = path.join(':')})
+      if (await this.check_save()) location.hash = path.join(':')
     }
   },
 
@@ -84,6 +84,24 @@ module.exports = {
 
 
   methods: {
+    get_error_message(error, fallback) {
+      let xhr = error && error.xhr
+
+      if (xhr && xhr.response && xhr.response.message)
+        return xhr.response.message
+
+      if (xhr && xhr.responseText) {
+        try {
+          let response = JSON.parse(xhr.responseText)
+          if (response && response.message) return response.message
+        } catch (e) {}
+      }
+
+      if (xhr && xhr.statusText) return xhr.statusText
+      return fallback
+    },
+
+
     change() {
       this.modified = !this.doc.isClean()
 
@@ -191,7 +209,7 @@ module.exports = {
         let file = new File([new Blob([this.doc.getValue()])], path)
         fd.append('file', file)
 
-        await this.$api.put('fs/' + path, fd)
+        await this.$api.put('fs/' + path, fd, {error() {}})
 
         this.path     = path
         this.modified = false
@@ -199,8 +217,9 @@ module.exports = {
 
         return true // Success
 
-      } catch (e) {
-        await this.$root.error_dialog('Failed to save file: ' + e.message)
+      } catch (error) {
+        await this.$root.error_dialog('Failed to save file.\n' +
+          this.get_error_message(error, 'Unable to write file.'))
         return false
       }
     },
