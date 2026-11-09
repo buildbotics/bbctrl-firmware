@@ -65,8 +65,11 @@ class AVREmu(object):
 
         self.avrOut, self.avrIn, self.i2cOut = None, None, None
 
-        # Kill process and wait for it
-        if self.pid is not None:
+        # Kill process and wait for it.  NOTE: os.kill() treats a pid of 0
+        # as "every process in my process group".  A forked child that
+        # reaches close() still has self.pid == 0 and would SIGKILL the
+        # controller along with itself.  Guard on truthiness, not None.
+        if self.pid:
             os.kill(self.pid, signal.SIGKILL)
             os.waitpid(self.pid, 0)
             self.pid = None
@@ -105,8 +108,18 @@ class AVREmu(object):
                 cmd = ['bbemu']
                 if self.ctrl.args.fast_emu: cmd.append('--fast')
 
-                os.execvp(cmd[0], cmd)
-                os._exit(1) # In case of failure
+                # execvp() raises on failure rather than returning, so the
+                # os._exit(1) that used to sit here was unreachable and the
+                # exception escaped into the parent's handler while still
+                # running in the child.  Exit here instead, reporting via a
+                # raw write to stderr: the child must not touch the
+                # parent's log or ioloop state.
+                try:
+                    os.execvp(cmd[0], cmd)
+                except Exception as e:
+                    msg = 'Failed to exec %s: %s%s' % (cmd[0], e, os.linesep)
+                    os.write(2, msg.encode('utf8'))
+                os._exit(1)
 
             # Parent, close child ends
             os.close(stdinFDs[0])
