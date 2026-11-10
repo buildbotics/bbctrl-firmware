@@ -33,6 +33,7 @@ from .Log import *
 from .Events import *
 from .State import *
 from .Config import *
+from .OffsetTable import *
 from .AVREmu import *
 from .AVR import *
 from .I2C import *
@@ -70,8 +71,14 @@ class Ctrl:
         self.events = Events(self)
         self.state  = State(self)
         self.config = Config(self)
+        self.offsets = OffsetTable(self.get_path(filename = 'offsets.json'),
+                                   self.log.get('Offsets'))
 
         self.log.get('Ctrl').info('Starting %s' % self.id)
+
+        # Bad offsets must not stop the controller starting, they load as zero
+        try: self.offsets.load()
+        except Exception: self.log.get('Offsets').exception('Loading offsets')
 
         try:
             if args.demo: self.avr = AVREmu(self)

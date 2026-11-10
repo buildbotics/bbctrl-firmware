@@ -2,6 +2,13 @@ Buildbotics CNC Controller Firmware Changelog
 =============================================
 
 ## Unreleased
+  - Work offsets (G54-G59) and tool lengths (T1-T99) are saved and survive
+    E-stop, reset and restart; before, an E-stop zeroed them.  They are kept
+    in ``offsets.json`` and updated by G10 L1/L2/L10/L11/L20 and by assigning
+    the G54-G59 parameters.  The tool reference (T0, the spindle nose) is
+    available to macros as ``#<_tool_reference_z>``.
+  - The displayed work position now follows tool length offsets applied or
+    cancelled with G43 and G49 alone.
   - Run on older controllers again: Raspberry Pi 3, and main boards back to
     Rev 13 and earlier with their ATxmega192A3U and ATtiny1634.  The AVR
     image is chosen from the detected chip; boards without a PDI link to the

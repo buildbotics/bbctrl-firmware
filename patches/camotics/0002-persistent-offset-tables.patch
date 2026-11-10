@@ -1,0 +1,284 @@
+diff --git a/src/gcode/ControllerImpl.cpp b/src/gcode/ControllerImpl.cpp
+index 8932973..a54215e 100644
+--- a/src/gcode/ControllerImpl.cpp
++++ b/src/gcode/ControllerImpl.cpp
+@@ -552,6 +552,20 @@ void ControllerImpl::pause(pause_t type) {
+ }
+ 
+ 
++namespace {
++  // Tool table variables measured in length units.  A, B and C are angles and
++  // I, J and Q are angles or an orientation code.
++  bool isToolLengthVar(char v) {
++    switch (std::toupper(v)) {
++    case 'X': case 'Y': case 'Z': case 'U': case 'V': case 'W': case 'R':
++      return true;
++    }
++
++    return false;
++  }
++}
++
++
+ void ControllerImpl::setTools(int vars, bool relative, bool cs9) {
+   Tool &tool = getTool(getVar('P'));
+ 
+@@ -567,10 +581,16 @@ void ControllerImpl::setTools(int vars, bool relative, bool cs9) {
+           (cs9 ? 0 : getAxisGlobalOffset(*v)) - offset;
+       }
+ 
++      // Store lengths in the tool's units, not the program's, so a tool
++      // table entry means the same thing under G20 and G21.
++      if (isToolLengthVar(*v)) offset = convert(getUnits(), tool.getUnits(),
++                                                offset);
++
+       tool.set(*v, offset);
+     }
+ 
+   LOG_INFO(3, "Controller: Set Tool Table" << getVarGroupStr("PRXYZABCUVWIJQ"));
++  publishOffsetTableChange();
+ }
+ 
+ 
+@@ -588,8 +608,9 @@ void ControllerImpl::loadToolOffsets(unsigned number, bool add) {
+ 
+     for (const char *axis = Axes::AXES; *axis; axis++) {
+       address_t addr = TOOL_OFFSET_ADDR(Axes::toIndex(*axis));
+-      double offset = tool.get(*axis) + (add ? get(addr, getUnits()) : 0);
+-      set(addr, offset, getUnits());
++      Units units = tool.getUnits();
++      double offset = tool.get(*axis) + (add ? get(addr, units) : 0);
++      set(addr, offset, units);
+     }
+ 
+     state.toolLengthComp = true;
+@@ -661,6 +682,40 @@ void ControllerImpl::setCoordSystemOffsets(int vars, bool relative) {
+ }
+ 
+ 
++double ControllerImpl::getCoordSystemOffset(unsigned cs, char axis,
++                                            Units units) const {
++  if (cs < 1 || 9 < cs) THROW("Invalid coordinate system number " << cs);
++  return get(COORD_SYSTEM_ADDR(cs, Axes::toIndex(axis)), units);
++}
++
++
++// Load a stored offset from outside the program.  Unlike G10 this does not
++// publish an offset table change, the caller already has the value.
++void ControllerImpl::setCoordSystemOffset(unsigned cs, char axis, double value,
++                                          Units units) {
++  if (cs < 1 || 9 < cs) THROW("Invalid coordinate system number " << cs);
++  machine.set(COORD_SYSTEM_ADDR(cs, Axes::toIndex(axis)), value, units);
++  offsetParamChanged = true;
++}
++
++
++// Load a stored tool offset from outside the program, without publishing.
++void ControllerImpl::setToolOffset(unsigned tool, char axis, double value,
++                                   Units units) {
++  if (!tools.has(tool)) tools.set(Tool(tool));
++  Tool &t = getTool(tool);
++  t.set(axis, convert(units, t.getUnits(), value));
++}
++
++
++// The planner emits named variables as set commands only when their value
++// changes, so a counter tells the host that G10 or a parameter assignment
++// changed a work offset or the tool table and it should read them back.
++void ControllerImpl::publishOffsetTableChange() {
++  set("_offset_table_id", ++offsetTableChanges, NO_UNITS);
++}
++
++
+ void ControllerImpl::setAxisGlobalOffset(char axis, double offset) {
+   set(GLOBAL_OFFSET_ADDR(Axes::toIndex(axis)), offset, getUnits());
+ }
+@@ -831,6 +886,12 @@ void ControllerImpl::set(address_t addr, double value, Units units) {
+   // Check if offsets have changed
+   if (GLOBAL_OFFSETS_ENABLED <= addr && addr <= CS9_ROTATION)
+     offsetParamChanged = true;
++
++  // Tool length offsets also change the reported _offset_<axis>
++  if (TOOL_X_OFFSET <= addr && addr <= TOOL_W_OFFSET) offsetParamChanged = true;
++
++  // Work offsets are persisted by the host
++  if (CS1_X_OFFSET <= addr && addr <= CS9_ROTATION) publishOffsetTableChange();
+ }
+ 
+ 
+@@ -1095,7 +1156,10 @@ bool ControllerImpl::execute(const Code &code, int vars) {
+ 
+     case 431: loadToolVarOffsets(vars); break;
+     case 432: loadToolOffsets(getVar('H'), true); break;
+-    case 490: state.toolLengthComp = false; break;
++    case 490:
++      state.toolLengthComp = false;
++      offsetParamChanged = true;
++      break;
+ 
+     case 520: setGlobalOffsets(vars, false); break;
+     case 530: state.moveInAbsoluteCoords = true;  break;
+diff --git a/src/gcode/ControllerImpl.h b/src/gcode/ControllerImpl.h
+index 8e29238..2508243 100644
+--- a/src/gcode/ControllerImpl.h
++++ b/src/gcode/ControllerImpl.h
+@@ -52,6 +52,7 @@ namespace GCode {
+ 
+     synchronize_state_t syncState = SYNC_NONE;
+     bool offsetParamChanged       = false;
++    unsigned offsetTableChanges   = 0;
+ 
+     // State variables
+     unsigned currentMotionMode    = 10;
+@@ -163,6 +164,8 @@ namespace GCode {
+     void toolChange();
+     void loadToolOffsets(unsigned tool, bool add);
+     void loadToolVarOffsets(int vars);
++    const ToolTable &getTools() const {return tools;}
++    void setToolOffset(unsigned tool, char axis, double value, Units units);
+ 
+     // Predefined locations
+     void storePredefined(bool first);
+@@ -176,6 +179,10 @@ namespace GCode {
+     void resetGlobalOffsets(bool clear);
+     void restoreGlobalOffsets();
+     void updateOffsetParams();
++    double getCoordSystemOffset(unsigned cs, char axis, Units units) const;
++    void setCoordSystemOffset(unsigned cs, char axis, double value,
++                              Units units);
++    void publishOffsetTableChange();
+ 
+     // Homing
+     void setHomed(int vars, bool homed);
+diff --git a/src/gcode/plan/Planner.h b/src/gcode/plan/Planner.h
+index b018e18..a73ee43 100644
+--- a/src/gcode/plan/Planner.h
++++ b/src/gcode/plan/Planner.h
+@@ -61,6 +61,8 @@ namespace GCode {
+   public:
+     Planner();
+ 
++    ControllerImpl &getController() {return controller;}
++
+     double getTime() const {return planner.getTime();}
+     double getDistance() const {return planner.getDistance();}
+ 
+diff --git a/src/python/PyPlanner.cpp b/src/python/PyPlanner.cpp
+index f4a9613..4d513b6 100644
+--- a/src/python/PyPlanner.cpp
++++ b/src/python/PyPlanner.cpp
+@@ -29,6 +29,7 @@
+ #include <cbang/String.h>
+ 
+ #include <limits>
++#include <cctype>
+ 
+ 
+ namespace {
+@@ -262,6 +263,93 @@ namespace {
+   }
+ 
+ 
++  char parseAxis(const char *axis) {
++    if (!axis[0] || axis[1] || !GCode::Axes::isAxis(axis[0]))
++      THROW("Invalid axis '" << axis << "'");
++    return std::toupper(axis[0]);
++  }
++
++
++  // Offsets are exchanged with the host in millimeters
++  PyObject *_set_coord_offset(PyPlanner *self, PyObject *args) {
++    try {
++      unsigned cs;
++      const char *axis;
++      double value;
++
++      if (!PyArg_ParseTuple(args, "Isd", &cs, &axis, &value)) return 0;
++
++      self->planner->getController()
++        .setCoordSystemOffset(cs, parseAxis(axis), value, GCode::Units::METRIC);
++      Py_RETURN_NONE;
++
++    } CATCH_PYTHON;
++
++    return 0;
++  }
++
++
++  PyObject *_set_tool_offset(PyPlanner *self, PyObject *args) {
++    try {
++      unsigned tool;
++      const char *axis;
++      double value;
++
++      if (!PyArg_ParseTuple(args, "Isd", &tool, &axis, &value)) return 0;
++
++      self->planner->getController()
++        .setToolOffset(tool, parseAxis(axis), value, GCode::Units::METRIC);
++      Py_RETURN_NONE;
++
++    } CATCH_PYTHON;
++
++    return 0;
++  }
++
++
++  // Returns {"coord_systems": {"1": {"x": mm, ...}, ... "9": {...}},
++  //          "tools": {"<number>": {"x": mm, ...}, ...}}
++  PyObject *_get_offsets(PyPlanner *self) {
++    try {
++      GCode::ControllerImpl &ctrl = self->planner->getController();
++      PyJSONSink sink;
++
++      sink.beginDict();
++
++      sink.insertDict("coord_systems");
++      for (unsigned cs = 1; cs <= 9; cs++) {
++        sink.insertDict(cb::String(cs));
++        for (const char *axis = GCode::Axes::AXES; *axis; axis++)
++          sink.insert(std::string(1, std::tolower(*axis)),
++                      ctrl.getCoordSystemOffset(cs, *axis,
++                                                GCode::Units::METRIC));
++        sink.endDict();
++      }
++      sink.endDict();
++
++      sink.insertDict("tools");
++      for (auto &entry: ctrl.getTools()) {
++        const GCode::Tool &tool = entry.second;
++        GCode::Units units = tool.getUnits();
++
++        sink.insertDict(cb::String(entry.first));
++        for (const char *axis = GCode::Axes::AXES; *axis; axis++)
++          sink.insert(std::string(1, std::tolower(*axis)),
++                      GCode::convert(units, GCode::Units::METRIC,
++                                            tool.get(*axis)));
++        sink.endDict();
++      }
++      sink.endDict();
++
++      sink.endDict();
++      return sink.getRoot();
++
++    } CATCH_PYTHON;
++
++    return 0;
++  }
++
++
+   PyMethodDef _methods[] = {
+     {"is_running", (PyCFunction)_is_running, METH_NOARGS,
+      "True if the planner is active"},
+@@ -286,6 +374,12 @@ namespace {
+     {"synchronize", (PyCFunction)_synchronize, METH_VARARGS | METH_KEYWORDS,
+      "Continue with result synchronized command"},
+     {"get_queue", (PyCFunction)_get_queue, METH_NOARGS, "Dump planner queue"},
++    {"set_coord_offset", (PyCFunction)_set_coord_offset, METH_VARARGS,
++     "Load a work offset in mm: (cs 1-9, axis, value)"},
++    {"set_tool_offset", (PyCFunction)_set_tool_offset, METH_VARARGS,
++     "Load a tool table offset in mm: (tool, axis, value)"},
++    {"get_offsets", (PyCFunction)_get_offsets, METH_NOARGS,
++     "Read work offsets and tool table in mm"},
+     {0}
+   };
+ }

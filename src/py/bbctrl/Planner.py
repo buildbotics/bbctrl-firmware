@@ -33,6 +33,7 @@ from collections import deque
 
 from . import Cmd
 from .CommandQueue import *
+from .OffsetTable import WORK_AXES
 
 try:
     from . import camotics # pylint: disable=no-name-in-module,import-error
@@ -259,6 +260,10 @@ class Planner():
             if name == 'message':
                 self.cmdq.enqueue(id, self._add_message, value)
 
+            if name == '_offset_table_id':
+                self._save_offsets()
+                return
+
             if name in ['line', 'tool']: self._enqueue_set_cmd(id, name, value)
 
             if name == 'speed':
@@ -341,6 +346,42 @@ class Planner():
         self.cmdq.clear()
         self.reset_times()
         self.ctrl.state.reset()
+        self._load_offsets()
+
+
+    def _load_offsets(self) -> None:
+        'Load the persistent work offsets and tool table into a new planner.'
+        offsets = self.ctrl.offsets
+
+        if not hasattr(self.planner, 'get_offsets'):
+            self.log.error('The camotics module has no offset support, work '
+                           'offsets and tool lengths will not be kept')
+            return
+
+        try:
+            offsets.apply_to(self.planner)
+        except Exception:
+            self.log.exception('Loading offsets, all offsets are zero')
+            return
+
+        # A new planner starts in G54 with no tool length offset applied
+        state = self.ctrl.state
+        for axis in WORK_AXES:
+            state.set('offset_' + axis, offsets.get_work('G54', axis))
+
+        # For macros as #<_tool_reference_z>
+        state.set('tool_reference_z', offsets.tool_reference)
+
+
+    def _save_offsets(self) -> None:
+        'G10 or a parameter assignment changed the planner\'s offset table.'
+        try:
+            offsets = self.ctrl.offsets
+            if offsets.update_from(self.planner.get_offsets()):
+                offsets.save()
+
+        # Never stop the program over this, but say so
+        except Exception: self.log.exception('Saving offsets')
 
 
     def result(self, result): self.planner.synchronize(result)
