@@ -28,6 +28,10 @@
 script#view-editor-template(type="text/x-template")
   div
     nav.navbar
+      nav-item(@click="close", title="Back to Files")
+        .fa.fa-arrow-left
+        span Files
+
       nav-item
         | File
         .fa.fa-caret-down

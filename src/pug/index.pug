@@ -65,12 +65,9 @@ html(lang="en")
                 .fa.fa-arrows
                 span Offsets
 
-            li.pure-menu-heading(:class="{active: currentView == 'editor'}")
-              a.pure-menu-link(href="#editor")
-                .fa.fa-pencil-square-o
-                span Editor
-
-            li.pure-menu-heading(:class="{active: currentView == 'files'}")
+            //- The editor is opened from Files and belongs to it
+            li.pure-menu-heading(
+              :class="{active: currentView == 'files' || currentView == 'editor'}")
               a.pure-menu-link(href="#files")
                 .fa.fa-folder-open
                 span Files

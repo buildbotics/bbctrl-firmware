@@ -76,6 +76,7 @@ function main() {
   Vue.component('loading-message',  require('./loading-message'))
   Vue.component('dialog',           require('./dialog'))
   Vue.component('bbutton',          require('./bbutton'))
+  Vue.component('bi-icon',          require('./bi-icon'))
   Vue.component('power',            require('./power'))
   Vue.component('indicators',       require('./indicators'))
   Vue.component('io-functions',     require('./io-functions'))

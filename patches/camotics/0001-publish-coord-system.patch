@@ -1,0 +1,16 @@
+diff --git a/src/gcode/ControllerImpl.cpp b/src/gcode/ControllerImpl.cpp
+index cec007a..8932973 100644
+--- a/src/gcode/ControllerImpl.cpp
++++ b/src/gcode/ControllerImpl.cpp
+@@ -627,6 +627,11 @@ void ControllerImpl::loadPredefined(bool first, int vars) {
+ void ControllerImpl::setCoordSystem(unsigned cs) {
+   state.coordSystem = cs;
+   set(CURRENT_COORD_SYSTEM, cs, NO_UNITS);
++
++  // Publish by name, as LinuxCNC's #<_coord_system> does: 540 for G54 through
++  // 590 for G59, then 591-593 for G59.1-G59.3.  The planner emits named
++  // variables as set commands, so the WCS can be shown while a program runs.
++  set("_coord_system", cs <= 6 ? 530 + 10 * cs : 584 + cs, NO_UNITS);
+ }
+ 
+ 

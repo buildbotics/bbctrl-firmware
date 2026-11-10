@@ -70,9 +70,16 @@ module.exports = {
       if (error) klass += ' error'
       else if (warn) klass += ' warn'
 
+      // Colours the home-all button: any axis in error wins over homing
+      let stateClass = homed ? 'homed' : 'unhomed'
+      for (let name of 'xyzabc')
+        if (this[name].enabled && this[name].stateClass == 'error')
+          stateClass = 'error'
+
       return {
         homed: homed,
-        klass: klass
+        klass: klass,
+        stateClass: stateClass
       }
     }
   },
@@ -120,7 +127,7 @@ module.exports = {
       let pathDim    = pathMax - pathMin
       let klass      = (homed ? 'homed' : 'unhomed') + ' axis-' + axis
       let state      = 'UNHOMED'
-      let icon       = 'question-circle'
+      let icon       = 'question-square-fill'
       let fault      = this.state[motor_id + 'df'] & 0x1f
       let shutdown   = this.state.power_shutdown
       let title
@@ -128,17 +135,21 @@ module.exports = {
       if (fault || shutdown) {
         state = shutdown ? 'SHUTDOWN' : 'FAULT'
         klass += ' error'
-        icon = 'exclamation-circle'
+        icon = 'exclamation-square-fill'
 
       } else if (0 < dim && dim < pathDim) {
         state = 'NO FIT'
         klass += ' error'
-        icon = 'ban'
+        icon = 'x-square-fill'
 
       } else if (homed) {
         state = 'HOMED'
-        icon = 'check-circle'
+        icon = 'check-square-fill'
       }
+
+      // One word for styling the state icon and home button
+      let stateClass = homed ? 'homed' : 'unhomed'
+      if (klass.indexOf('error') != -1) stateClass = 'error'
 
       switch (state) {
       case 'UNHOMED': title = 'Click the home button to home axis.'; break
@@ -166,7 +177,7 @@ module.exports = {
       return {
         name: axis, pos: abs - off, abs, off, min, max, dim, pathMin, pathMax,
         pathDim, motor: motor_id, enabled, homingMode, homed, klass, state,
-        icon, title,
+        stateClass, icon, title,
       }
     }
   }

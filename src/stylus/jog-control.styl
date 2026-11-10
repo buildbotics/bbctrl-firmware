@@ -1,0 +1,113 @@
+/******************************************************************************\
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2026, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
+\******************************************************************************/
+
+
+.jog-control
+  display flex
+  flex-direction column
+  gap gutter
+
+  .jog-buttons
+    display grid
+    grid-auto-columns 1fr
+    grid-auto-flow column
+    gap gutter
+
+  .pure-button
+    padding 0.5em 0
+    font-weight 600
+
+  // One long button split into options; the selected one is filled
+  .segmented
+    display flex
+
+    .pure-button
+      flex 1
+      min-width 0
+      border-radius 0
+      margin-left -1px
+
+      &:first-child
+        margin-left 0
+        border-radius radius 0 0 radius
+
+      &:last-child
+        border-radius 0 radius radius 0
+
+      // Keep the selected option's border on top of its neighbours'
+      &.active
+        position relative
+        z-index 1
+
+      &.active:not([disabled])
+        color #fff
+        background accent
+        border-color accent
+
+  .jog-axes .pure-button
+    font-size 14pt
+
+    &.axis-x:not(.active)
+      color #ff5a52
+    &.axis-y:not(.active)
+      color #3ccf6e
+    &.axis-z:not(.active)
+      color #4ea3ff
+    &.axis-a:not(.active)
+      color #f80
+
+  .jog-increments .pure-button
+    font-family mono-font
+    padding 0.5em 0.25em
+
+  .jog-feed
+    display flex
+    align-items center
+    gap gutter
+    min-height touch-height
+
+    label
+      color text-muted
+      font-weight 600
+
+    input
+      flex 1
+      min-width 0
+
+    .value
+      min-width 3.5em
+      text-align right
+      font-family mono-font
+
+  // Big targets; no text selection, callout or scrolling while held
+  .jog-buttons .pure-button
+    font-size 18pt
+    padding 0.75em 0
+    touch-action none
+    user-select none
+    -webkit-user-select none
+    -webkit-touch-callout none

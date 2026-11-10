@@ -275,9 +275,9 @@ module.exports = {
                 try {
                   config = JSON.parse(e.target.result)
 
-                } catch (e) {
+                } catch (err) {
                   await this.$root.error_dialog("Invalid configuration.")
-                  reject()
+                  return reject()
                 }
 
                 await this._restore_config(config)

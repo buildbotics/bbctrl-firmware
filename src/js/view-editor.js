@@ -78,7 +78,9 @@ module.exports = {
       this.doc.on('change', this.change)
     }
 
-    this.load(this.$root.selected_program.path)
+    // Files' "New Program" opens #editor:new
+    if (location.hash == '#editor:new') this.new_file()
+    else this.load(this.$root.selected_program.path)
     Vue.nextTick(() => {this.editor.refresh()})
   },
 
@@ -164,6 +166,10 @@ module.exports = {
 
       return false // Cancel - stay in editor
     },
+
+
+    // Leaving checks for unsaved changes (see route-changing)
+    close() {location.hash = 'files'},
 
 
     async new_file() {

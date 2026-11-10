@@ -90,6 +90,8 @@ $(DEV_ROOT):
 .PHONY: dev-build
 dev-build: | $(DEV_ROOT)
 	sudo install -m 755 scripts/init-devfs.sh $(DEV_ROOT)/root/
+	sudo rm -rf $(DEV_ROOT)/root/patches
+	sudo cp -r patches $(DEV_ROOT)/root/
 	sudo ./scripts/chroot-run $(DEV_ROOT) /bin/bash /root/init-devfs.sh
 
 bin/camotics.so: DEV_BIN := camotics/build/camotics.so

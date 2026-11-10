@@ -45,12 +45,15 @@ module.exports = {
 
 
   computed: {
+    // Only the flags that are set.  In Vue 1 a false entry removes the class,
+    // which would strip the same class bound by the parent, such as the
+    // primary class the dialog gives its last button.
     classes() {
-      return {
-        success:                 this.success,
-        'pure-button-primary':   this.primary,
-        'pure-button-secondary': this.secondary,
-      }
+      let classes = {}
+      if (this.success)   classes.success                 = true
+      if (this.primary)   classes['pure-button-primary']   = true
+      if (this.secondary) classes['pure-button-secondary'] = true
+      return classes
     },
 
 

@@ -60,3 +60,6 @@ script#settings-io-template(type="text/x-template")
       fieldset
         templated-input(v-for="templ in template.input", :name="$key",
           :model.sync="config.input[$key]", :template="templ")
+
+    h2 Pin Status
+    indicators(:state="state", :template="template")

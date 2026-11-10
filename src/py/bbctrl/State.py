@@ -102,6 +102,9 @@ class State(object):
             self.set(axis + 'p', 0)
             self.set('offset_' + axis, 0)
 
+        # A new planner starts in G54 without reporting it
+        self.set('coord_system', 540)
+
 
     def ack_message(self, id):
         self.log.info('Message %d acknowledged' % id)

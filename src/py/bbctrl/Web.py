@@ -343,8 +343,14 @@ class UnpauseHandler(APIHandler):
     def put(self): self.get_ctrl().mach.unpause()
 
 
+# M01 Break.  {"enable": false} turns it off; no body turns it on, as before.
 class OptionalPauseHandler(APIHandler):
-    def put(self): self.get_ctrl().mach.optional_pause()
+    def put(self) -> None:
+        enable = self.json.get('enable', True)
+        if not isinstance(enable, bool):
+            raise HTTPError(400, '"enable" must be true or false')
+
+        self.get_ctrl().mach.optional_pause(enable)
 
 
 class StepHandler(APIHandler):

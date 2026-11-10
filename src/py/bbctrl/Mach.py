@@ -222,13 +222,12 @@ class Mach(Comm):
     def pause(self): super().pause()
 
 
-    def unpause(self):
-        if self._is_paused():
-            self.ctrl.state.set('optional_pause', False)
-            self._unpause()
+    # Resuming leaves M01 Break as it is: it stops at every M01 until turned off
+    def unpause(self) -> None:
+        if self._is_paused(): self._unpause()
 
 
-    def optional_pause(self, enable = True):
+    def optional_pause(self, enable: bool = True) -> None:
         self.ctrl.state.set('optional_pause', enable)
 
 

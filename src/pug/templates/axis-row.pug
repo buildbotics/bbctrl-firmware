@@ -28,19 +28,20 @@
 script#axis-row-template(type="text/x-template")
   tr.axis(:class="axis.klass", :title="axis.title")
     th.name {{name}}
-    td.position: unit-value(:value="axis.pos", precision=4)
-    td.absolute: unit-value(:value="axis.abs", precision=3)
-    td.offset: unit-value(:value="axis.off", precision=3)
-    td.state #[.fa(class="fa-{{axis.icon}}")] {{axis.state}}
-    th.actions
-      bbutton(:disabled="!is_idle", icon="cog",
-        title="Set {{name}} axis position.", @click="set_position")
-
-      bbutton(:disabled="!is_idle", text="&empty;",
-        title="Zero {{name}} axis offset.", @click="zero")
-
-      bbutton(:disabled="!is_idle", @click="home", icon="home",
-        title="Home {{name}} axis.")
+    td.zero
+      button.pure-button.square(:disabled="!is_idle", @click="zero",
+        title="Zero {{name}} axis in the current offset.")
+        bi-icon(name="zero-square-fill")
+    td.position(:class="{clickable: is_idle}", @click="set_position",
+      title="Click to set {{name}} axis position.")
+      unit-value(:value="axis.pos", precision=4)
+    td.state(:class="'state-' + axis.stateClass",
+      :title="axis.state + ': ' + axis.title")
+      bi-icon(:name="axis.icon")
+    td.home
+      button.pure-button.square(:disabled="!is_idle", @click="home",
+        :class="'home-' + axis.stateClass", title="Home {{name}} axis.")
+        bi-icon(name="house-door-fill")
 
       dialog(v-ref:set-position,
         :buttons="axis.homed ? 'Cancel Unhome Set' : 'Cancel Set'",

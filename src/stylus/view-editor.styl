@@ -33,11 +33,15 @@
     text-align right
     padding 5px 15px
 
+  .navbar .fa-arrow-left
+    margin-right 0.4em
+
   .CodeMirror
     // header + submenu bar + gutters
-    height calc(100vh - 215px)
+    height calc(100vh - 120px)
     border-radius radius
 
 #layout.nav-bottom .view-editor .CodeMirror
-  // ...plus the bottom navigation bar
-  height calc(100vh - 300px)
+  // ...plus the bottom navigation bar.  Stylus does not substitute
+  // variables inside calc(), so build the string.
+  height 'calc(100vh - %s)' % (120px + footer-height)

@@ -31,6 +31,11 @@ for PROJECT in $PROJECTS; do
     scons -C cbang -j$CPUS v8_compress_pointers=0
 
   elif [ $NAME == camotics ]; then
+    # Local changes on top of upstream, see patches/camotics/.  Reapplied on
+    # every build because the reset above discards them.
+    for PATCH in /root/patches/camotics/*.patch; do
+      git -C camotics apply "$PATCH" || exit 1
+    done
     scons -C camotics -j$CPUS build/camotics.so with_gui=0 wrap_glibc=0
   else
     make -C $NAME -j$CPUS

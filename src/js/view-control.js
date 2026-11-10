@@ -26,7 +26,6 @@
 \******************************************************************************/
 
 
-let cookie = require('./cookie')
 let util   = require('./util')
 
 
@@ -40,19 +39,21 @@ module.exports = {
       mdi: '',
       history: [],
       history_index: -1,
-      jog_step: cookie.get_bool('jog-step'),
-      jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
       highlighted_line: 0,
       loading: false,
       toolpath: {},
-      snaps: 'angled top bottom front back left right'.split(' ')
+      snaps: 'angled top bottom front back left right'.split(' '),
+      viewer_tab: this.$root.webGLSupported ? '3d' : 'messages',
+      unseen_level: '', // 'warning' or 'error' while Messages is hidden
+      new_tool: ''
     }
   },
 
 
   components: {
     'axis-row':           require('./axis-row'),
-    'axis-control':       require('./axis-control'),
+    'jog-control':        require('./jog-control'),
+    'spindle-control':    require('./spindle-control'),
     'path-viewer':        require('./path-viewer'),
     'viewer-help-dialog': require('./viewer-help-dialog')
   },
@@ -65,8 +66,15 @@ module.exports = {
 
 
     'active.path'() {this.load()},
-    jog_step() {cookie.set_bool('jog-step', this.jog_step)},
-    jog_adjust() {cookie.set('jog-adjust', this.jog_adjust)}
+
+
+    viewer_tab(tab) {
+      if (tab == 'messages') this.unseen_level = ''
+
+      // The canvas has no size while hidden
+      if (tab == '3d' && this.$refs.viewer)
+        Vue.nextTick(this.$refs.viewer.update_view)
+    }
   },
 
 
@@ -79,22 +87,18 @@ module.exports = {
     metric() {return !this.state.imperial},
 
 
+    // Stream only while the Camera tab is visible.  Views are kept alive, so
+    // also stop when another page is shown or the camera modal has the feed.
+    camera_live() {
+      return this.viewer_tab == 'camera' &&
+        this.$root.currentView == 'control' && !this.$root.cameraOpen
+    },
+
+
     // 3D view options, owned by the path viewer
     show() {
       if (this.$refs.viewer == undefined) return {}
       return this.$refs.viewer.show
-    },
-
-
-    // Units display with G-code reference
-    mach_units() {
-      return this.state.imperial ? 'Imperial (G20)' : 'Metric (G21)'
-    },
-
-
-    distance_mode() {
-      return this.state.incremental_distance_mode ?
-        'Incremental (G91)' : 'Absolute (G90)'
     },
 
 
@@ -130,6 +134,19 @@ module.exports = {
     is_idle()     {return this.state.cycle == 'idle'},
 
 
+    // A program or MDI command is underway, so the run button stops it
+    program_active() {
+      return this.is_running || this.is_holding || this.is_stopping
+    },
+
+
+    m01_break() {return !!this.state.optional_pause},
+
+
+    // Reset clears an E-stop, or stops and rewinds an active program
+    can_reset() {return this.mach_state == 'ESTOPPED' || this.program_active},
+
+
     is_paused() {
       return this.is_holding &&
         (this.pause_reason == 'User pause' ||
@@ -140,12 +157,33 @@ module.exports = {
     can_mdi() {return this.is_idle || this.state.cycle == 'mdi'},
 
 
+    // Blank or anything but a whole number is refused rather than guessed at
+    new_tool_valid() {return /^\s*\d+\s*$/.test(this.new_tool)},
+
+
+    // The reasons may not have arrived yet.  An undefined message throws in
+    // the template, and in Vue 1 that stops every later update to the page.
     message() {
-      if (this.mach_state == 'ESTOPPED') return this.state.er
-      if (this.mach_state == 'HOLDING') return this.state.pr
+      if (this.mach_state == 'ESTOPPED') return this.state.er || ''
+      if (this.mach_state == 'HOLDING') return this.state.pr || ''
       if (this.state.messages.length)
         return this.state.messages.slice(-1)[0].text
       return ''
+    },
+
+
+    // Colour of the state overlay
+    state_class() {
+      switch (this.mach_state) {
+      case 'READY':    return 'ready'
+      case 'RUNNING':
+      case 'JOGGING':
+      case 'HOMING':   return 'moving'
+      case 'STOPPING':
+      case 'HOLDING':  return 'holding'
+      case 'ESTOPPED': return 'estopped'
+      default:         return 'unknown'
+      }
     },
 
 
@@ -180,6 +218,25 @@ module.exports = {
 
 
   events: {
+    // Flag warnings and errors that arrive while the Messages tab is hidden.
+    // Errors also bring the tab to the front, unless a program is running
+    // and the 3D view is being watched; the error dialog still pops up.
+    // Return true so the console below also gets the message.
+    log(msg) {
+      let level = msg.level || 'info'
+      let error = level == 'error' || level == 'critical'
+
+      if (this.viewer_tab == 'messages') return true
+
+      if (error && !this.program_active) this.viewer_tab = 'messages'
+      else if (error) this.unseen_level = 'error'
+      else if (level == 'warning' && this.unseen_level != 'error')
+        this.unseen_level = 'warning'
+
+      return true
+    },
+
+
     jog(axis, power) {
       let data = {ts: new Date().getTime()}
       data[axis] = power
@@ -220,6 +277,25 @@ module.exports = {
 
     goto(hash) {window.location.hash = hash},
     send(msg) {this.$dispatch('send', msg)},
+
+
+    // Runs the same M6 a program would: the planner replaces it with the
+    // tool-change GCode from Settings, so a hand change, tool setter probe
+    // or ATC behaves the same from here as mid-program.
+    async change_tool() {
+      if (!this.is_idle) return
+      this.new_tool = ''
+
+      let response = await this.$refs.toolChange.open()
+      if (response != 'change' || !this.new_tool_valid || !this.is_idle) return
+
+      this.send('T' + parseInt(this.new_tool) + ' M6')
+    },
+
+
+    confirm_tool_change() {
+      if (this.new_tool_valid) this.$refs.toolChange.close('change')
+    },
     on_scroll(cm, e) {e.preventDefault()},
 
 
@@ -328,20 +404,8 @@ module.exports = {
     async home_all() {return this.$api.put('home')},
 
 
-    zero_all() {
-      for (let axis of 'xyzabc')
-        if (this[axis].enabled)
-          this.$api.put('position/' + axis, {position: 0})
-    },
-
-
-    start_pause() {
-      if (this.state.xx == 'RUNNING') this.pause()
-
-      else if (this.state.xx == 'STOPPING' || this.state.xx == 'HOLDING')
-        this.unpause()
-
-      else this.start().catch(() => {}) // Error already shown by API handler
+    run() {
+      this.start().catch(() => {}) // Error already shown by API handler
     },
 
 
@@ -352,21 +416,21 @@ module.exports = {
 
     async pause()          {return this.$api.put('pause')},
     async unpause()        {return this.$api.put('unpause')},
-    async optional_pause() {return this.$api.put('pause/optional')},
     async stop()           {return this.$api.put('stop')},
-    async step()           {return this.$api.put('step')},
 
 
-    async open() {
-      let aPath = this.active.path
-      let dir   = aPath ? util.dirname(aPath) : '/'
-
-      let path = await this.$root.file_dialog({dir})
-      if (path) this.$root.select_path(path)
+    async toggle_m01_break() {
+      return this.$api.put('pause/optional', {enable: !this.m01_break})
     },
 
 
-    edit() {this.$root.edit(this.active.path)},
+    // A stop already rewinds: the planner resets and the line returns to 0
+    async reset() {
+      if (this.mach_state == 'ESTOPPED') return this.$api.put('clear')
+      if (this.program_active) return this.stop()
+    },
+
+
     toggle(name) {this.$refs.viewer.toggle(name)},
     snap(view) {this.$refs.viewer.snap(view)},
 
