@@ -26,8 +26,86 @@
 //-/////////////////////////////////////////////////////////////////////////////
 
 script#view-offsets-template(type="text/x-template")
-  .placeholder-view
-    .fa.fa-arrows
-    h1 Offsets
-    p View and edit work coordinate offsets (G54–G59) and tool length offsets here.
-    p.muted Coming soon
+  .offsets-view
+    nav.navbar
+      a.nav-item(href="#offsets:work", :class="{active: tab == 'work'}",
+        @click="show_tab('work')") Work
+      a.nav-item(href="#offsets:tool", :class="{active: tab == 'tool'}",
+        @click="show_tab('tool')") Tool
+
+      .actions
+        span.units Values in {{units}}
+
+    p.offsets-locked(v-if="!editable")
+      span.fa.fa-lock
+      |  Offsets can be changed when the machine is idle.
+
+    p(v-if="!table") Loading offsets...
+
+    //- Work coordinate systems
+    .offsets-card(v-if="table && tab == 'work'")
+      table.offsets-table
+        thead
+          tr
+            th System
+            th(v-for="axis in work_axes") {{axis | upper}}
+            th
+        tbody
+          tr(v-for="cs in systems", :class="{active: cs == active_system}")
+            th.system
+              | {{cs}}
+              span.badge(v-if="cs == active_system") Active
+            td(v-for="axis in work_axes")
+              input.offset-input(type="text", inputmode="decimal",
+                :value="format(table.work[cs][axis])",
+                :disabled="!editable", @change="set_work(cs, axis, $event)")
+            td.actions
+              button.pure-button(@click="activate(cs)",
+                :disabled="!can_mdi || cs == active_system",
+                :title="'Switch to ' + cs") Use
+
+      p.help.
+        Offsets are stored on the controller and maintained through E-stops
+        and reboots.
+
+    //- Tool lengths
+    .offsets-card(v-if="table && tab == 'tool'")
+      .tool-reference
+        h3 Tool reference (T0)
+        p.help.
+          Where the spindle nose sits, usually the machine Z at which it
+          triggers the tool setter.  Tool lengths below are measured from the
+          spindle nose, so tools can be measured against this one reference,
+          or offline, rather than against each other.
+        .offset-cell
+          input.offset-input(type="text", inputmode="decimal",
+            :value="format(table.tool_reference.z)",
+            :disabled="!editable", @change="set_reference($event)")
+          button.pure-button(@click="reference_from_machine",
+            :disabled="!editable || !has_machine_z",
+            title="Use the current machine Z position")
+            | Use machine Z
+            span.machine-z(v-if="has_machine_z")
+              |  ({{format(machine_z)}})
+
+      table.offsets-table.tool-table
+        thead
+          tr
+            th Tool
+            th Length
+            th
+        tbody
+          tr(v-for="tool in tools", :class="{active: tool == state.tool}")
+            th.system
+              | T{{tool}}
+              span.badge(v-if="tool == state.tool") Loaded
+            td
+              input.offset-input(type="text", inputmode="decimal",
+                :value="format(table.tools[tool].z)",
+                :disabled="!editable", @change="set_tool(tool, $event)")
+            td.note
+              span(v-if="tool == probe_tool") Probe
+
+      p.help.
+        A length is applied by G43 H&lt;tool&gt;, normally from the tool change
+        macro.  G10 L1, L10 and L11 in a program update this table too.

@@ -100,7 +100,7 @@ module.exports = new Vue({
     'view-loading':   {template: '<h1>Loading...</h1>'},
     'view-control':   require('./view-control'),
     'view-probing':   {template: '#view-probing-template'},
-    'view-offsets':   {template: '#view-offsets-template'},
+    'view-offsets':   require('./view-offsets'),
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),

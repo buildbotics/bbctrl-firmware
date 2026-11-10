@@ -37,6 +37,13 @@ from .ProgramHome import *
 from .ProgramFile import *
 from .ProgramSetPosition import *
 
+
+def coord_system_gcode(code: int) -> str:
+    'The G-code for a reported coord_system: 540 is G54, 591 is G59.1.'
+    if code <= 590: return 'G%d' % (code // 10)
+    return 'G59.%d' % (code - 590)
+
+
 __all__ = ['Mach']
 
 
@@ -233,6 +240,21 @@ class Mach(Comm):
 
     def mdi(self, cmd, with_limits = True):
         self._run(ProgramMDI(self.ctrl, cmd, with_limits))
+
+
+    def edit_offsets(self, changes: dict) -> None:
+        'Edit the work offsets or tool table, only while idle.'
+        if self._get_cycle() != 'idle':
+            raise Exception('Offsets can only be changed while idle')
+
+        self.planner.edit_offsets(changes)
+
+        # Reselecting the active coordinate system has the planner report the
+        # offsets now in effect, so the displayed work position follows.  An
+        # E-stop clear rebuilds the planner, which does the same.
+        if self._is_ready():
+            cs = self.ctrl.state.get('coord_system', 540)
+            self.mdi(coord_system_gcode(cs))
 
 
     def jog(self, axes):

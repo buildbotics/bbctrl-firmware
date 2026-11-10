@@ -369,8 +369,28 @@ class Planner():
         for axis in WORK_AXES:
             state.set('offset_' + axis, offsets.get_work('G54', axis))
 
+        self._publish_offsets()
+
+
+    def _publish_offsets(self) -> None:
+        state = self.ctrl.state
+        state.set('offset_table', self.ctrl.offsets.to_dict())
+
         # For macros as #<_tool_reference_z>
-        state.set('tool_reference_z', offsets.tool_reference)
+        state.set('tool_reference_z', self.ctrl.offsets.tool_reference)
+
+
+    def edit_offsets(self, changes: dict) -> None:
+        'Apply and save an edit from the web UI.  Raises ValueError if invalid.'
+        if self.is_busy(): raise Exception('Cannot edit offsets while running')
+        if not hasattr(self.planner, 'get_offsets'):
+            raise Exception('The camotics module has no offset support')
+
+        offsets = self.ctrl.offsets
+        offsets.edit(changes)
+        offsets.save()
+        offsets.apply_to(self.planner)
+        self._publish_offsets()
 
 
     def _save_offsets(self) -> None:
@@ -379,6 +399,7 @@ class Planner():
             offsets = self.ctrl.offsets
             if offsets.update_from(self.planner.get_offsets()):
                 offsets.save()
+                self._publish_offsets()
 
         # Never stop the program over this, but say so
         except Exception: self.log.exception('Saving offsets')

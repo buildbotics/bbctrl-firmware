@@ -1,0 +1,122 @@
+/******************************************************************************\
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
+\******************************************************************************/
+
+.offsets-view
+  max-width limit-width
+  margin 0 auto
+
+  .navbar
+    .nav-item.active
+      background accent
+
+    .actions
+      margin-left auto
+      padding 0 15px
+
+    .units
+      color chrome-muted
+
+  .offsets-locked
+    color warn-color
+    font-weight 600
+
+  .offsets-card
+    card()
+    padding 0.75em 1em
+    overflow-x auto
+
+  .offsets-table
+    border-collapse collapse
+
+    th, td
+      padding 0.3em 0.5em
+      text-align left
+      border-bottom 1px solid border-color
+
+    thead th
+      color text-muted
+      font-weight 600
+
+    tr.active
+      background accent-tint
+
+    th.system
+      white-space nowrap
+      padding-right 1.5em
+
+    td.actions, td.note
+      white-space nowrap
+      color text-muted
+
+  .badge
+    margin-left 0.5em
+    padding 0.1em 0.5em
+    font-size 9pt
+    font-weight 600
+    color #fff
+    background accent
+    border-radius radius
+
+  .offset-cell
+    display flex
+    align-items center
+    gap 0.25em
+
+  .offset-input
+    width 7.5em
+    min-height touch-height
+    padding 0 0.5em
+    font-family mono-font
+    text-align right
+    border 1px solid border-color
+    border-radius radius
+    background surface
+
+    &:focus
+      outline none
+      border-color accent
+
+    &[disabled]
+      color text-muted
+      background surface-alt
+
+  .tool-reference
+    margin-bottom 1em
+    padding-bottom 1em
+    border-bottom 1px solid border-color
+
+    h3
+      margin 0 0 0.25em
+
+    .machine-z
+      font-family mono-font
+      color text-muted
+
+  .help
+    color text-muted
+    font-size 10pt
+    max-width 60em

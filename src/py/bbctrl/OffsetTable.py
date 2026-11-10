@@ -61,12 +61,38 @@ def _cs_number(system: str) -> int:
     return WORK_SYSTEMS.index(system) + 1
 
 
+def _is_mm(value) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value))
+
+
 def _to_mm(value, what: str, log) -> float:
-    if (isinstance(value, (int, float)) and not isinstance(value, bool) and
-        math.isfinite(value)): return float(value)
+    if _is_mm(value): return float(value)
 
     log.warning('Ignoring invalid offset %s=%r, using 0' % (what, value))
     return 0.0
+
+
+def _edit_entries(changes, what: str, keys, axes) -> list:
+    '''Validate one section of an edit: {key: {axis: mm}}.  Returns a list of
+    (key, axis, mm).'''
+    if not isinstance(changes, dict):
+        raise ValueError('%s must be an object' % what)
+
+    entries = []
+    for key, values in changes.items():
+        if key not in keys: raise ValueError('Invalid %s %r' % (what, key))
+        if not isinstance(values, dict):
+            raise ValueError('%s %s must be an object' % (what, key))
+
+        for axis, mm in values.items():
+            if axis not in set(axes):
+                raise ValueError('Invalid axis %r for %s' % (axis, key))
+            if not _is_mm(mm):
+                raise ValueError('Invalid value %r for %s %s' % (mm, key, axis))
+            entries.append((key, axis, float(mm)))
+
+    return entries
 
 
 class OffsetTable:
@@ -84,7 +110,7 @@ class OffsetTable:
 
 
     def set_work(self, system: str, axis: str, mm: float) -> None:
-        if axis not in WORK_AXES: raise ValueError('Invalid axis %r' % axis)
+        if axis not in set(WORK_AXES): raise ValueError('Invalid axis %r' % axis)
         self.work[system][axis] = float(mm)
 
 
@@ -126,6 +152,32 @@ class OffsetTable:
 
         value = data.get('tool_reference', {}).get('z', 0)
         self.tool_reference = _to_mm(value, 'T0', log)
+
+
+    def edit(self, changes: dict) -> None:
+        '''Apply an edit from the web UI, in the to_dict() layout with only the
+        values that change: {"work": {"G54": {"z": mm}}, "tools": {"5": {"z":
+        mm}}, "tool_reference": {"z": mm}}.  Nothing changes if any part is
+        invalid; raises ValueError.'''
+        if not isinstance(changes, dict) or not changes:
+            raise ValueError('No offsets given')
+
+        unknown = set(changes) - {'work', 'tools', 'tool_reference'}
+        if unknown: raise ValueError('Invalid offsets %s' % sorted(unknown))
+
+        work = _edit_entries(changes.get('work', {}), 'coordinate system',
+                             WORK_SYSTEMS, WORK_AXES)
+        tools = _edit_entries(changes.get('tools', {}), 'tool',
+                              [str(n) for n in TOOL_NUMBERS], 'z')
+        reference = changes.get('tool_reference', {})
+        if not isinstance(reference, dict) or set(reference) - {'z'}:
+            raise ValueError('tool_reference must be {"z": mm}')
+        if 'z' in reference and not _is_mm(reference['z']):
+            raise ValueError('Invalid tool reference %r' % reference['z'])
+
+        for cs, axis, mm in work: self.set_work(cs, axis, mm)
+        for n, _, mm in tools: self.set_tool_length(int(n), mm)
+        if 'z' in reference: self.set_tool_reference(reference['z'])
 
 
     def load(self) -> None:

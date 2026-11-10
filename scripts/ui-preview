@@ -41,6 +41,9 @@ DEMO_FILE = os.path.join(ROOT, 'src', 'resources', 'buildbotics.nc')
 DEMO_PATH = 'Home/' + os.path.basename(DEMO_FILE)
 RAPID_FEED = 10000 # mm/min, assumed for G0 time estimates
 
+sys.path.insert(0, os.path.join(ROOT, 'src', 'py'))
+from bbctrl.OffsetTable import OffsetTable # pylint: disable=wrong-import-position
+
 
 def apply_defaults(config: dict, name: str, tmpl: dict) -> None:
     '''Fill config defaults from config-template.json (mirrors Config.py).'''
@@ -168,7 +171,7 @@ def iso_time(timestamp: float) -> str:
 STATE = {
     'sid': 'ui-preview', 'xx': 'READY', 'cycle': 'idle',
     'xp': 125.4321, 'yp': -42.1, 'zp': 12.5,
-    'offset_x': 25.0, 'offset_y': 0, 'offset_z': 2.5,
+    'offset_x': 25.0, 'offset_y': 0, 'offset_z': 2.5, 'coord_system': 540,
     '0homed': 1, '1homed': 1, '2homed': 0,
     'v': 0, 'feed': 1200, 'speed': 18000, 's': 18000, 'tool': 3, 'line': 0,
     'rpi_temp': 52, 'demo': False, 'messages': [], 'locations': ['Home'],
@@ -176,8 +179,31 @@ STATE = {
 }
 
 
+class PreviewLog:
+    def warning(self, msg): print('offsets:', msg, flush = True)
+    def error(self, msg): print('offsets:', msg, flush = True)
+
+
+def make_offsets() -> OffsetTable:
+    'A table with a few values set, kept in memory only.'
+    table = OffsetTable(os.devnull, PreviewLog())
+    table.set_work('G54', 'x', 25)
+    table.set_work('G54', 'z', 2.5)
+    table.set_work('G55', 'x', 300)
+    table.set_work('G55', 'y', 150)
+    table.set_work('G55', 'z', -40.25)
+    table.set_tool_reference(-185.5)
+    table.set_tool_length(1, 42.3)
+    table.set_tool_length(3, 63.125)
+    table.set_tool_length(99, 88.2)
+    return table
+
+
 def make_handler(site: str, config: dict, poll_delay: float):
     sessions: dict = {}
+    offsets = make_offsets()
+    # Edits made since each poll session last sent the table
+    edits = {'count': 0}
 
     with open(DEMO_FILE) as f: demo_gcode = f.read()
     toolpath = make_toolpath(demo_gcode)
@@ -263,6 +289,17 @@ def make_handler(site: str, config: dict, poll_delay: float):
 
         def do_PUT(self):
             print('PUT', self.path, flush = True)
+
+            if self.path.split('?')[0] == '/api/offsets':
+                length = int(self.headers.get('Content-Length') or 0)
+                try:
+                    offsets.edit(json.loads(self.rfile.read(length) or b'{}'))
+                except ValueError as e:
+                    message = json.dumps({'message': str(e), 'code': 400})
+                    return self.reply(message, code = 400)
+
+                edits['count'] += 1
+
             self.reply('{}')
 
 
@@ -288,10 +325,19 @@ def make_handler(site: str, config: dict, poll_delay: float):
                 ctype = 'application/javascript'
                 if count == 0: return self.reply('o\n', ctype)
                 if count == 1:
-                    return self.reply('a' + json.dumps([STATE]) + '\n', ctype)
+                    state = dict(STATE, offset_table = offsets.to_dict())
+                    sessions[path + ':edits'] = edits['count']
+                    return self.reply('a' + json.dumps([state]) + '\n', ctype)
                 time.sleep(poll_delay)
-                heartbeat = {'heartbeat': count - 2}
-                return self.reply('a' + json.dumps([heartbeat]) + '\n', ctype)
+                update = {'heartbeat': count - 2}
+
+                # Like the controller, push the table after an edit
+                seen = sessions.get(path + ':edits', 0)
+                if seen != edits['count']:
+                    sessions[path + ':edits'] = edits['count']
+                    update['offset_table'] = offsets.to_dict()
+
+                return self.reply('a' + json.dumps([update]) + '\n', ctype)
 
             if path.startswith('/api/'):
                 print('POST', self.path, flush = True)

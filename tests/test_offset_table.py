@@ -141,6 +141,64 @@ def test_an_unreadable_file_is_set_aside_not_overwritten(path, log, content):
     with open(path + '.bad') as f: assert f.read() == content
 
 
+# Edits from the web UI
+
+def test_an_edit_changes_only_the_values_given(path, log):
+    t = table(path, log)
+    t.set_work('G54', 'x', 1)
+
+    t.edit({'work': {'G55': {'z': -12.5}}})
+
+    assert t.get_work('G55', 'z') == -12.5
+    assert t.get_work('G54', 'x') == 1
+
+
+def test_an_edit_can_set_work_tools_and_reference_together(path, log):
+    t = table(path, log)
+
+    t.edit({'work': {'G59': {'a': 90, 'x': 1.5}},
+            'tools': {'1': {'z': 10}, '99': {'z': 80.25}},
+            'tool_reference': {'z': -200}})
+
+    assert t.get_work('G59', 'a') == 90
+    assert t.get_work('G59', 'x') == 1.5
+    assert t.get_tool_length(1) == 10
+    assert t.get_tool_length(99) == 80.25
+    assert t.tool_reference == -200
+
+
+@pytest.mark.parametrize('changes', [
+    {},
+    [],
+    {'offsets': {}},
+    {'work': {'G59.1': {'x': 1}}},
+    {'work': {'G54': {'u': 1}}},
+    {'work': {'G54': {'xy': 1}}},
+    {'work': {'G54': 5}},
+    {'work': {'G54': {'x': '5'}}},
+    {'work': {'G54': {'x': float('nan')}}},
+    {'work': {'G54': {'x': True}}},
+    {'tools': {'0': {'z': 1}}},
+    {'tools': {'100': {'z': 1}}},
+    {'tools': {'5': {'x': 1}}},
+    {'tool_reference': {'x': 1}},
+    {'tool_reference': {'z': None}},
+    {'tool_reference': 5},
+])
+def test_an_invalid_edit_is_refused(path, log, changes):
+    with pytest.raises(ValueError): table(path, log).edit(changes)
+
+
+def test_a_partly_invalid_edit_changes_nothing(path, log):
+    t = table(path, log)
+    before = t.to_dict()
+
+    with pytest.raises(ValueError):
+        t.edit({'work': {'G54': {'x': 5}}, 'tools': {'5': {'z': 'long'}}})
+
+    assert t.to_dict() == before
+
+
 # Loading into the planner
 
 def test_apply_loads_every_work_offset_and_tool_length(path, log):

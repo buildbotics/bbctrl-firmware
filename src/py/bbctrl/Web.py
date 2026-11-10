@@ -255,6 +255,12 @@ class MacroHandler(APIHandler):
         self.get_ctrl().mach.start(path)
 
 
+class OffsetsHandler(APIHandler):
+    def put(self):
+        try: self.get_ctrl().mach.edit_offsets(self.json)
+        except ValueError as e: raise HTTPError(400, '%s', str(e))
+
+
 class PathHandler(APIHandler):
     @gen.coroutine
     def get(self, dataType, path, *args):
@@ -609,6 +615,7 @@ class Web(tornado.web.Application):
             (r'/api/fs/(.*)',                   FileSystemHandler),
             (r'/api/file',                      FileSystemHandler), # Compat
             (r'/api/macro/(\d+)',               MacroHandler),
+            (r'/api/offsets',                   OffsetsHandler),
             (r'/api/(path)/(.*)',               PathHandler),
             (r'/api/(positions)/(.*)',          PathHandler),
             (r'/api/(speeds)/(.*)',             PathHandler),
