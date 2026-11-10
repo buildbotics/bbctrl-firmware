@@ -222,6 +222,13 @@ script#view-control-template(type="text/x-template")
               @click="reset", icon="undo", text="Reset",
               :disabled="!can_reset")
 
+        overrides(:state="state", :template="template")
+
+        .modal-status(title="Active modes, as reported by the planner")
+          span.modal-label Active
+          span.modal-code(v-for="c in modal_codes", :title="c.title")
+            | {{c.code}}
+
       .axes-column
         table.axes
           tr(:class="axes.klass")

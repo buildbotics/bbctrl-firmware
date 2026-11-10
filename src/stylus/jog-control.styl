@@ -84,24 +84,8 @@
     font-family mono-font
     padding 0.5em 0.25em
 
-  .jog-feed
-    display flex
-    align-items center
-    gap gutter
-    min-height touch-height
-
-    label
-      color text-muted
-      font-weight 600
-
-    input
-      flex 1
-      min-width 0
-
-    .value
-      min-width 3.5em
-      text-align right
-      font-family mono-font
+  .jog-feed input
+    slider-segments(9) // 10% to 100%
 
   // Big targets; no text selection, callout or scrolling while held
   .jog-buttons .pure-button

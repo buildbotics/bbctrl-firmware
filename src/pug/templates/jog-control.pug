@@ -40,9 +40,10 @@ script#jog-control-template(type="text/x-template")
       button.pure-button(:class="{active: step}", @click="step = true",
         :disabled="!!held", title="Move a fixed distance per press") Step
 
-    .jog-feed(v-if="!step")
-      label Feed
-      input(type="range", v-model="feed", number, min=1, max=100, step=1)
+    .jog-feed.slider-row(v-if="!step")
+      label Jog Feed
+      input.segmented-slider(type="range", v-model="feed", number, min=10,
+        max=100, step=10)
       span.value {{feed}}%
 
     .jog-increments.segmented(v-else)

@@ -79,6 +79,30 @@
         gap gutter
         min-width 0
 
+      .modal-status
+        card()
+        display flex
+        flex-wrap wrap
+        align-items center
+        gap 0.25em 0.5em
+        padding 0.4em 0.5em
+
+        .modal-label
+          font-size 10pt
+          font-weight 600
+          text-transform uppercase
+          letter-spacing 0.05em
+          color text-muted
+          margin-right 0.25em
+
+        .modal-code
+          font-family mono-font
+          font-size 12pt
+          padding 0.1em 0.4em
+          border-radius 3px
+          background chrome-2
+          color chrome-text
+
       .axes-column
         grid-area axes
         display flex
@@ -157,11 +181,13 @@
     td, th
       padding 4px 8px
       white-space nowrap
+    // Light like the other cards: muted header labels, as on the tool and
+    // active code panels, and plain axis letters in their colours
     th
       text-align center
       vertical-align bottom
-      background chrome-2
-      color chrome-text
+      background transparent
+      color text-muted
       font-weight 600
       font-size 10pt
       text-transform uppercase
@@ -592,13 +618,28 @@
 .load-on
   background-color ok-tint
   color text-color
-// Narrow and tall: the axis table across the top, the other two side by
-// side below.  Narrow but wide screens keep three columns: there is no
-// height to spare for the extra row.
-@media only screen and (max-width 970px) and (orientation portrait)
+// Narrow and tall: the run controls across the top, the axis table and
+// jog side by side below.  The table takes more than half rather than
+// overflow into the jog controls.  Narrow but wide screens keep three
+// columns: there is no height to spare for the extra row.  Narrow and
+// very short screens, such as 800x480, scroll anyway, so they get the
+// roomier rows too.
+@media only screen and (max-width 970px) and (orientation portrait),
+  only screen and (max-width 970px) and (max-height 540px)
   .view-control #control .dro-row
-    grid-template-columns minmax(0, 1fr) minmax(0, 1fr)
-    grid-template-areas "axes axes" "run manual"
+    grid-template-columns minmax(min-content, 1fr) minmax(0, 1fr)
+    grid-template-areas "run run" "axes manual"
+
+    // Full width is more than the run buttons need, so the overrides and
+    // modes go beside them rather than below, leaving the program height
+    .run-column
+      display grid
+      grid-template-columns minmax(0, 1fr) minmax(0, 1fr)
+      align-items start
+
+      .run-panel
+        grid-row 1 / span 2
+        align-self stretch
 
 // Tall: the 3D view on top, closer to square, with the program below it
 @media only screen and (orientation portrait)
@@ -634,7 +675,7 @@
     .manual-panel, .run-panel, .run-options, .macros
       gap 0.375em
 
-    .tool-panel
+    .tool-panel, .modal-status
       padding 0.15em 0.375em
 
       .tool-number
@@ -662,7 +703,8 @@
 
     .run-panel .run-options .pure-button
       min-height 0
-      padding 0.3em 0.5em
+      padding 0.3em 0.25em
+      font-size 11pt
 
     .macros .macro
       min-height 0
@@ -691,16 +733,22 @@
 // With the menu collapsed the E-stop floats in the bottom left corner.
 // Rather than give up its height across the whole page, indent just the
 // bottom row so the E-stop sits beside it.
+@media only screen and (max-width collapse-width)
+  #layout.view-control-page:not(.nav-bottom) #main .content.view-control
+    #control .dro-row
+      margin-left sidebar-width
+
+// Nothing scrolls under the E-stop when the page fits, so drop the room
+// left for it below the content
 @media only screen and (max-width collapse-width) and (min-height 541px)
   #layout.view-control-page:not(.nav-bottom) #main .content.view-control
     padding-bottom gutter
 
-    #control .dro-row
-      margin-left sidebar-width
 
-
-// Narrow: icon-only tabs so the 3D view's options still fit beside them
-@media only screen and (max-width 700px)
+// Narrow, or narrow landscape where the program takes some of the width:
+// icon-only tabs so the 3D view's options still fit beside them
+@media only screen and (max-width 700px),
+  only screen and (max-width 860px) and (orientation landscape)
   .view-control .viewer-panel .navbar
     .viewer-tab > span:not(.unseen)
       display none
@@ -727,3 +775,39 @@
     .top-panels
       flex none
       height 300px
+
+
+// Too narrow for the axis table and jog side by side, such as a 480x800
+// panel: one column and scroll, with the 3D view and program at a usable
+// fixed height
+@media only screen and (max-width 640px) and (orientation portrait)
+  .view-control-page #main
+    overflow-y auto
+
+    .content.view-control
+      flex none
+
+  .view-control #control
+    height auto
+
+    .top-panels
+      flex none
+
+    .viewer-column
+      flex none
+      height 420px
+
+    .program-panel
+      flex none
+      height 220px
+
+    .dro-row
+      grid-template-columns minmax(0, 1fr)
+      grid-template-areas "run" "axes" "manual"
+
+      .run-column
+        display flex
+        align-items stretch
+
+      .axes-column
+        overflow-x auto

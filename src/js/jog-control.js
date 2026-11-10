@@ -37,6 +37,15 @@ const increments = {
 }
 
 
+// The jog feed slider moves in 10% steps.  Snap a value saved before then,
+// or a bad cookie, onto one.
+function saved_feed() {
+  let feed = Math.round(parseInt(cookie.get('jog-feed', 30)) / 10) * 10
+  if (isNaN(feed)) return 30
+  return Math.min(100, Math.max(10, feed))
+}
+
+
 // One axis at a time: hold +/- to jog continuously at a fraction of the
 // axis' max velocity, or press once to step by a fixed increment.
 //
@@ -51,7 +60,7 @@ module.exports = {
     return {
       axis:     cookie.get('jog-axis', 'X'),
       step:     cookie.get_bool('jog-step'),
-      feed:     parseInt(cookie.get('jog-feed', 25)),
+      feed:     saved_feed(),
       inc_index: parseInt(cookie.get('jog-increment', 2)),
       held:     0 // Direction of the continuous jog under way, or 0
     }

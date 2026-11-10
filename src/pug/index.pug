@@ -72,11 +72,6 @@ html(lang="en")
                 .fa.fa-folder-open
                 span Files
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#camera")
-                .fa.fa-video-camera
-                span Camera
-
             li.pure-menu-heading(:class="{active: currentView == 'settings'}")
               a.pure-menu-link(href="#settings")
                 .fa.fa-cog
@@ -90,7 +85,6 @@ html(lang="en")
         .header
           .header-content
             .banner
-              img(src="/images/rontrol-logo-light.png", alt="RONtrol")
               .banner-text
                 .title
                   span.left RON
@@ -110,6 +104,8 @@ html(lang="en")
               title="Buildbotics: original firmware, manual and forum")
               | Based on Buildbotics firmware © 2015 - 2026 Buildbotics LLC,
               | CERN-OHL-S v2
+
+            img.logo(src="/images/rontrol-logo-light.png", alt="RONtrol")
 
         .content(class="view-{{currentView}}")
           component(:is="'view-' + currentView", :config="config",

@@ -27,10 +27,25 @@
 
 
 
+// Exactly `precision` decimals, with locale digit grouping.  Rounds first so
+// a tiny negative value shows as 0.000 rather than -0.000.
+function fixed_str(value, precision) {
+  let scale = Math.pow(10, precision)
+  let rounded = Math.round(value * scale) / scale
+  if (rounded == 0) rounded = 0
+
+  return rounded.toLocaleString(undefined, {
+    minimumFractionDigits: precision, maximumFractionDigits: precision})
+}
+
+
 module.exports = {
   replace: true,
   template: '{{text}}<span class="unit">{{metric ? unit : iunit}}</span>',
-  props: ['value', 'precision', 'unit', 'iunit', 'scale'],
+  // `iprecision` overrides `precision` in imperial units.  With `fixed` the
+  // value always shows that many decimals, trailing zeros included.
+  props: ['value', 'precision', 'iprecision', 'fixed', 'unit', 'iunit',
+          'scale'],
 
 
   computed: {
@@ -41,9 +56,14 @@ module.exports = {
       let value = this.value
       if (typeof value == 'undefined') return ''
 
-      if (!this.metric) value /= this.scale
+      let precision = this.precision
+      if (!this.metric) {
+        value /= this.scale
+        if (typeof this.iprecision != 'undefined') precision = this.iprecision
+      }
 
-      return (1 * value.toFixed(this.precision)).toLocaleString()
+      if (this.fixed) return fixed_str(value, precision)
+      return (1 * value.toFixed(precision)).toLocaleString()
     }
   },
 

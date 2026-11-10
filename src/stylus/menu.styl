@@ -150,16 +150,23 @@
     order 2
     width 100%
     height footer-height
-    padding 0 0 0 footer-height // Docked E-stop
+    padding 0 footer-height 0 0 // Docked E-stop
     flex none
     overflow visible
     border-right 0
     border-top 1px solid #000
 
+    // Fill the bar's height so the tiles centre vertically in it
+    .pure-menu
+      height 100%
+
     .pure-menu-list
       display flex
-      justify-content center
-      padding 0.25em 0
+      height 100%
+      box-sizing border-box
+      align-items center
+      justify-content flex-start
+      padding 0
 
     .pure-menu-heading
       flex 1

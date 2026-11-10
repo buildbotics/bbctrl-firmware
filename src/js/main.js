@@ -95,7 +95,6 @@ function main() {
   Vue.component('color-picker',     require('./color-picker'))
   Vue.component('dragbar',          require('./dragbar'))
   Vue.component('mapped-io',        require('./mapped-io'))
-  Vue.component('range-slider',     require('./range-slider'))
 
   require('./filters')()
 

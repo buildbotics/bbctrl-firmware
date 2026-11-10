@@ -28,7 +28,8 @@
 
 header-height = 40px
 
-// One compact row: logo, name and version on the left, attribution right
+// One compact row: name and version on the left, then attribution and the
+// logo in the right corner
 .header
   padding 0 0.5em
   border 0
@@ -43,9 +44,9 @@ header-height = 40px
     gap 1em
     overflow hidden
 
+  // Shrinks no narrower than the name, which never gets covered
   .banner
     flex 1
-    min-width 0
     margin 0
     display flex
     align-items center
@@ -58,10 +59,8 @@ header-height = 40px
       gap 0.75em
       min-width 0
 
-    img
-      height 26px
-
     .title
+      flex none
       font-size 16pt
       font-weight 300
       letter-spacing 0.02em
@@ -100,10 +99,11 @@ header-height = 40px
       color accent
       opacity 1
 
+  .logo
+    flex none
+    height 18px
+
 @media only screen and (max-width collapse-width)
   // Room for the menu button
   .header .header-content
     margin-left 40px
-
-  .header .banner img
-    display none

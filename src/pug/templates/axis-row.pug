@@ -34,7 +34,8 @@ script#axis-row-template(type="text/x-template")
         bi-icon(name="zero-square-fill")
     td.position(:class="{clickable: is_idle}", @click="set_position",
       title="Click to set {{name}} axis position.")
-      unit-value(:value="axis.pos", precision=4)
+      unit-value(:value="axis.pos", precision="3", iprecision="4",
+        :fixed="true")
     td.state(:class="'state-' + axis.stateClass",
       :title="axis.state + ': ' + axis.title")
       bi-icon(:name="axis.icon")

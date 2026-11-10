@@ -87,6 +87,41 @@ module.exports = {
     metric() {return !this.state.imperial},
 
 
+    // The modal codes the planner reports as they change.  Feed and spindle
+    // modes, canned cycle retract and cutter compensation are not reported,
+    // so they are not shown.  Until a program or MDI sets them, these are the
+    // planner's defaults.
+    modal_codes() {
+      let state = this.state
+      let codes = []
+
+      // 540 for G54 through 590 for G59, 591-593 for G59.1-G59.3, published
+      // by patches/camotics/0001-publish-coord-system.patch
+      let cs = state.coord_system || 540
+      codes.push({code: 'G' + cs / 10, title: 'Work coordinate system'})
+
+      if (state.imperial) codes.push({code: 'G20', title: 'Inches'})
+      else codes.push({code: 'G21', title: 'Millimeters'})
+
+      if (state.incremental_distance_mode)
+        codes.push({code: 'G91', title: 'Incremental distance'})
+      else codes.push({code: 'G90', title: 'Absolute distance'})
+
+      // CAMotics numbers the planes 170 for G17, 181 for G18.1 and so on
+      let plane = state.plane || 170
+      let planes = {170: 'XY', 171: 'UV', 180: 'ZX', 181: 'WU', 190: 'YZ',
+                    191: 'VW'}
+      codes.push({code: 'G' + plane / 10, title: planes[plane] + ' plane'})
+
+      if (state.mist) codes.push({code: 'M7', title: 'Mist coolant on'})
+      if (state.flood) codes.push({code: 'M8', title: 'Flood coolant on'})
+      if (!state.mist && !state.flood)
+        codes.push({code: 'M9', title: 'Coolant off'})
+
+      return codes
+    },
+
+
     // Stream only while the Camera tab is visible.  Views are kept alive, so
     // also stop when another page is shown or the camera modal has the feed.
     camera_live() {
