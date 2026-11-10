@@ -55,12 +55,6 @@ html(lang="en")
                 .fa.fa-sliders
                 span Control
 
-            li.pure-menu-heading(:class="{active: currentView == 'viewer'}",
-              v-if="$root.webGLSupported")
-              a.pure-menu-link(href="#viewer")
-                .fa.fa-cube
-                span 3D View
-
             li.pure-menu-heading(:class="{active: currentView == 'probing'}")
               a.pure-menu-link(href="#probing")
                 .fa.fa-crosshairs
@@ -71,12 +65,9 @@ html(lang="en")
                 .fa.fa-arrows
                 span Offsets
 
-            li.pure-menu-heading(:class="{active: currentView == 'editor'}")
-              a.pure-menu-link(href="#editor")
-                .fa.fa-pencil-square-o
-                span Editor
-
-            li.pure-menu-heading(:class="{active: currentView == 'files'}")
+            //- The editor is opened from Files and belongs to it
+            li.pure-menu-heading(
+              :class="{active: currentView == 'files' || currentView == 'editor'}")
               a.pure-menu-link(href="#files")
                 .fa.fa-folder-open
                 span Files
@@ -86,11 +77,14 @@ html(lang="en")
                 .fa.fa-cog
                 span Settings
 
+      //- Docked in the menu's bottom left corner, outside the menu so it stays
+      //- on screen when the menu collapses and above every dialog
+      #estop-dock.estop(:class="{active: state.es}"): estop(@click="estop")
+
       #main
         .header
           .header-content
             .banner
-              img(src="/images/rontrol-logo-light.png", alt="RONtrol")
               .banner-text
                 .title
                   span.left RON
@@ -105,18 +99,13 @@ html(lang="en")
                     | Upgrade to v{{latestVersion}}
                   .fa.fa-check(v-if="!show_upgrade && latestVersion",
                     title="Firmware up to date")
-                  a.copyright(href="https://buildbotics.com", target="_blank",
-                    title="Buildbotics: original firmware, manual and forum")
-                    | Based on Buildbotics firmware © 2015 - 2026 Buildbotics LLC,
-                    | CERN-OHL-S v2
 
+            a.copyright(href="https://buildbotics.com", target="_blank",
+              title="Buildbotics: original firmware, manual and forum")
+              | Based on Buildbotics firmware © 2015 - 2026 Buildbotics LLC,
+              | CERN-OHL-S v2
 
-            .header-tools
-              .camera-thumb(@click="open_camera", title="Open camera")
-                video(:reload-on-click="false")
-              bbutton.camera-button(icon="video-camera", title="Open camera",
-                @click="open_camera")
-              .estop(:class="{active: state.es}"): estop(@click="estop")
+            img.logo(src="/images/rontrol-logo-light.png", alt="RONtrol")
 
         .content(class="view-{{currentView}}")
           component(:is="'view-' + currentView", :config="config",

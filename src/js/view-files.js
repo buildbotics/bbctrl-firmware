@@ -53,6 +53,7 @@ module.exports = {
   methods: {
     upload() {this.$refs.files.upload()},
     new_folder() {this.$refs.files.new_folder()},
+    new_program() {location.hash = 'editor:new'},
 
 
     set_selected(path, is_dir) {

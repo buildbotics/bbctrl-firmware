@@ -32,6 +32,8 @@
 // Left navigation rail: one icon tile per view
 #menu
   width sidebar-width
+  box-sizing border-box
+  padding-bottom sidebar-width // Docked E-stop
   background chrome
   overflow hidden
   overflow-y auto
@@ -89,7 +91,7 @@
   font-size 10px
   width 2em
   height auto
-  padding 2.1em 1.6em
+  padding 1.4em 1em
 
   &:hover
     background chrome-2
@@ -131,6 +133,10 @@
     #menuLink
       margin-left sidebar-width
 
+  // The docked E-stop floats over the content when the rail is collapsed
+  #layout:not(.nav-bottom) #main .content
+    padding-bottom sidebar-width
+
 
 // Bottom navigation (portrait monitors): the rail becomes a tab bar under
 // the main view and the active marker moves to the tile's bottom edge.
@@ -143,16 +149,24 @@
   #menu
     order 2
     width 100%
-    height auto
+    height footer-height
+    padding 0 footer-height 0 0 // Docked E-stop
     flex none
     overflow visible
     border-right 0
     border-top 1px solid #000
 
+    // Fill the bar's height so the tiles centre vertically in it
+    .pure-menu
+      height 100%
+
     .pure-menu-list
       display flex
-      justify-content center
-      padding 0.25em 0
+      height 100%
+      box-sizing border-box
+      align-items center
+      justify-content flex-start
+      padding 0
 
     .pure-menu-heading
       flex 1
@@ -160,6 +174,7 @@
       margin 0 0.25em
 
       .pure-menu-link
+        padding 0.5em 0.25em
         border-left 0
         border-bottom 3px solid transparent
 
@@ -174,7 +189,7 @@
     #menu
       position static
       width 100%
-      height auto
+      height footer-height
       opacity 1
 
     .header .header-content

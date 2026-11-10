@@ -52,6 +52,7 @@ module.exports = {
 
 
     async set_position() {
+      if (!this.is_idle) return
       this.position = 0
 
       let response = await this.$refs.setPosition.open()

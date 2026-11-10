@@ -25,58 +25,10 @@
 
 \******************************************************************************/
 
-.view-viewer-page #main
-  height 100vh
 
-.view-viewer
-  height 100%
-  overflow hidden
-  margin-bottom 0
 
-  #viewer
-    display flex
-    flex-direction column
-    height 100%
-    overflow hidden
-
-  .path-viewer
-    height 100%
-
-  .navbar
-    .filename
-      flex 1
-      text-align right
-      padding 5px 15px
-
-    img
-      width 1.5em
-      margin 0 0.25em
-
-    .snap
-      text-transform capitalize
-
-    .nav-item
-      align-items center
-
-.viewer-help-dialog
-  .dialog-container
-    width 600px
-    height 600px
-
-  .dialog-body
-    padding-right 1em
-
-  table
-    width 100%
-
-    tr:nth-of-type(even)
-      background surface-alt
-    th
-      width 1%
-      font-weight bold
-      white-space nowrap
-      text-align left
-
-    th, td
-      border 1px solid border-color
-      padding 0 1em
+// Read-only power and motor driver status, so it needs no admin login
+module.exports = {
+  template: '#settings-power-template',
+  props: ['config', 'template', 'state']
+}

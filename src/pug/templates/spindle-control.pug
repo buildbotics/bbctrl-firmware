@@ -25,70 +25,23 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#view-viewer-template(type="text/x-template")
-  #viewer
-    nav.navbar
-      nav-item
-        | File
-        .fa.fa-caret-down
+script#spindle-control-template(type="text/x-template")
+  .spindle-control
+    button.pure-button(:class="{active: reverse}",
+      :disabled="disabled || invalid", @click="start('M4')",
+      title="Start the spindle in reverse at the speed typed (M4)")
+      bi-icon(name="arrow-counterclockwise")
+      span Rev
+    button.pure-button(:disabled="disabled", @click="send('M5')",
+      title="Stop the spindle (M5)") Stop
+    button.pure-button(:class="{active: forward}",
+      :disabled="disabled || invalid", @click="start('M3')",
+      title="Start the spindle forward at the speed typed (M3)")
+      bi-icon(name="arrow-clockwise")
+      span Fwd
 
-        nav-menu
-          nav-item(@click="open()", title="Open a new program.")
-            .fa.fa-folder-open
-            span Open
-
-          nav-item(@click="$root.edit(path)",
-            title="Open the current program in the editor.")
-            .fa.fa-pencil
-            span Edit
-
-          nav-item(@click="$root.run(path)", :disabled="state.xx != 'READY'",
-            title="Start the current program.")
-            .fa.fa-play
-            span Run
-
-      nav-item
-        | View
-        .fa.fa-caret-down
-        nav-menu
-          nav-item(@click="toggle('tool')")
-            .fa(:class="show.tool ? 'fa-check' : ''")
-            span Show Tool
-
-          nav-item(@click="toggle('axes')")
-            .fa(:class="show.axes ? 'fa-check' : ''")
-            span Show Axes
-
-          nav-item(@click="toggle('grid')")
-            .fa(:class="show.grid ? 'fa-check' : ''")
-            span Show Grid
-
-          nav-item(@click="toggle('dims')")
-            .fa(:class="show.dims ? 'fa-check' : ''")
-            span Show Bounds
-
-          nav-item(@click="toggle('intensity')")
-            .fa(:class="show.intensity ? 'fa-check' : ''")
-            span LASER Raster
-
-      nav-item
-        | Snap
-        .fa.fa-caret-down
-        nav-menu
-          nav-item.snap(v-for="name in snaps" @click="snap(name)")
-            img(:src="'images/' + name + '.png'")
-            span {{name}}
-
-      nav-item(@click="$refs.helpDialog.open()") Help
-
-      .filename {{filename}}
-
-    loading-message(v-if="loading", :progress="program.progress")
-      p(slot="body").
-        Simulating program to check for errors, calculating timing and
-        generating 3D view. Please wait...
-
-    viewer-help-dialog(v-ref:help-dialog)
-
-    path-viewer(v-ref:viewer, :toolpath="toolpath", :state="state",
-      :config="config")
+    label.rpm(:class="{invalid: invalid}",
+      :title="rpm_title")
+      input(v-model="target", inputmode="numeric", placeholder="S",
+        :disabled="disabled", @input="editing = true")
+      span.units RPM

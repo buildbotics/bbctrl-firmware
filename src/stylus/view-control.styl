@@ -25,28 +25,134 @@
 
 \******************************************************************************/
 
-.view-control
-  max-width limit-width
-  margin 0 auto
+// The control page fits the window without scrolling: the 3D view and
+// program take whatever height the controls below them leave.
+.view-control-page #main
+  overflow-y hidden
 
+  .content.view-control
+    flex 1
+    min-height 0
+
+.view-control
   #control
+    height 100%
     display flex
     flex-direction column
+    gap gutter
 
-    > *
-      margin 0.5em 0
+    .top-panels
+      flex 1
+      min-height 0
+      display flex
+      gap gutter
 
-    .info-blocks
+    .viewer-column
+      flex 1
+      min-width 0
+      min-height 0
+      display flex
+      flex-direction column
+      gap gutter
+
+      .viewer-panel
+        min-height 0
+
+      .macros
+        flex none
+
+    // Run controls, axis table and tool, then jog and spindle: a third of
+    // the width each.  The table takes more on narrow screens rather than
+    // overflow into its neighbours.
+    .dro-row
+      flex none
       display grid
-      grid-template-columns auto auto auto
-      column-gap 4px
-      row-gap 4px
+      grid-template-columns minmax(0, 1fr) minmax(min-content, 1fr) minmax(0, 1fr)
+      grid-template-areas "run axes manual"
+      gap gutter
+      align-items start
 
+      .run-column
+        grid-area run
+        display flex
+        flex-direction column
+        gap gutter
+        min-width 0
+
+      .modal-status
+        card()
+        display flex
+        flex-wrap wrap
+        align-items center
+        gap 0.25em 0.5em
+        padding 0.4em 0.5em
+
+        .modal-label
+          font-size 10pt
+          font-weight 600
+          text-transform uppercase
+          letter-spacing 0.05em
+          color text-muted
+          margin-right 0.25em
+
+        .modal-code
+          font-family mono-font
+          font-size 12pt
+          padding 0.1em 0.4em
+          border-radius 3px
+          background chrome-2
+          color chrome-text
+
+      .axes-column
+        grid-area axes
+        display flex
+        flex-direction column
+        gap gutter
+        min-width 0
+
+      .tool-panel
+        card()
+        display flex
+        align-items center
+        gap gutter
+        padding 0.25em 0.5em
+
+        .tool-label
+          font-size 10pt
+          font-weight 600
+          text-transform uppercase
+          letter-spacing 0.05em
+          color text-muted
+
+        .tool-number
+          font-family mono-font
+          font-size 18pt
+          line-height 22pt
+
+        .tool-change
+          margin-left auto
+          text-transform uppercase
+          font-weight 600
+
+      .manual-panel
+        grid-area manual
+
+      // Compact enough for a third of the page
+      table.axes
+        width 100%
+
+        td, th
+          padding 2px 4px
+
+        .axis
+          .name, .position
+            font-size 18pt
+            line-height 22pt
   table
     border-collapse collapse
     td, th
       border 1px solid border-color
-  table.axes, table.info
+  table.axes
     border-collapse separate
     border-spacing 0
     card()
@@ -75,11 +181,13 @@
     td, th
       padding 4px 8px
       white-space nowrap
+    // Light like the other cards: muted header labels, as on the tool and
+    // active code panels, and plain axis letters in their colours
     th
       text-align center
       vertical-align bottom
-      background chrome-2
-      color chrome-text
+      background transparent
+      color text-muted
       font-weight 600
       font-size 10pt
       text-transform uppercase
@@ -103,6 +211,8 @@
       .name
         font-family ui-font
         font-weight 700
+        // Row labels are th, which the header rule bottom-aligns
+        vertical-align middle
         text-align center
       .name, .position
         font-size 26pt
@@ -110,70 +220,78 @@
       .position
         width 99%
 
-      td.state
-        text-align left
+      // Click the position to set it
+      td.position.clickable
+        cursor pointer
 
-        .fa
-          font-size 140%
-          margin-left 2px
-          margin-right 6px
-
-      .absolute, .offset
-        min-width 6em
-
-    tr:nth-child(1) th.actions
-      text-align right
-
-  .jog svg
-    user-select none
-    -webkit-touch-callout none
-    -webkit-user-select none
-    -khtml-user-select none
-    -moz-user-select none
-    -ms-user-select none
-
-    text
-      font-family Sans
-      font-weight bold
-      stroke transparent
-      fill text-color
-    .button
-      cursor pointer
-      stroke chrome-3
-      &:hover
-        stroke accent
-      path
-        overflow visible
-
-    .house
-      stroke chrome
-      fill chrome
-    .ring
-      cursor pointer
-      overflow visible
-
-      .button
-        stroke transparent
         &:hover
-          stroke accent
-        text
-          font-size 10pt
-          text-anchor middle
+          background-color accent-tint
 
+    // Narrow icon columns either side of the position
+    .zero, .state, .home
+      width 1%
+      text-align center
+
+    td.state .bi
+      width 1.6em
+      height 1.6em
+      vertical-align middle
+
+    // Square icon buttons; the home button's colour shows homing state
+    .pure-button.square
+      display inline-flex
+      align-items center
+      justify-content center
+      width touch-height
+      height touch-height
+      padding 0
+
+      .bi
+        width 1.4em
+        height 1.4em
+
+    .state-homed, .home-homed
+      color ok-color
+    .state-unhomed, .home-unhomed
+      color warn-color
+    .state-error, .home-error
+      color err-color
+
+  // Jog and spindle controls, third column of the DRO row
+  .manual-panel
+    card()
+    display flex
+    flex-direction column
+    gap gutter
+    padding gutter
+
+    // All-caps labels, as on a machine's control panel
+    .pure-button, .jog-feed label
+      text-transform uppercase
+
+    hr
+      width 100%
+      margin 0
+      border 0
+      border-top 1px solid border-color
+
+  // One row; swipe or scroll sideways when there are more than fit.  The
+  // buttons share any spare width and never shrink below their label.
   .macros
-    display grid
-    grid-template-columns repeat(auto-fill, minmax(9em, 1fr))
-    column-gap 1%
-    row-gap 8px
+    display flex
+    gap gutter
     padding 0
+    overflow-x auto
+    overflow-y hidden
+    overscroll-behavior-x contain
+    scrollbar-width thin
 
     .macro
-      text-align left
-      overflow hidden
-      text-overflow ellipsis
+      flex 1 0 auto
+      text-align center
       white-space nowrap
-      min-height 3.25em
-      padding 0.5em 0.75em
+      min-height 2.75em
+      padding 0.4em 0.5em
       font-weight 600
       &:hover
         background-image button-hover
@@ -181,38 +299,6 @@
       .fa
         margin-right 0.25em
 
-  .info
-    empty-cells show
-
-    th, td
-      height 1.75em
-      padding 3px 10px
-      text-align right
-      overflow hidden
-      text-overflow ellipsis
-      white-space nowrap
-
-    th
-      min-width 5.25em
-      width 5.25em
-      text-align left
-      color text-muted
-      font-weight 600
-      background surface-alt
-    td
-      min-width 8em
-      width 100%
-
-    .progress
-      height 1.75em
-
-      label
-        float right
-
-      .bar
-        height 1.75em
-        background accent
-        border-radius 3px
   .toolbar
     display flex
     flex-wrap wrap
@@ -226,77 +312,348 @@
       flex 1
       text-align right
 
-  .tabs
-    section
-      min-height 500px
-      overflow-x hidden
-      overflow-y auto
-      padding 0
-      margin 0
+  .program-panel, .viewer-panel
+    card()
+    overflow hidden
+    display flex
+    flex-direction column
+    min-width 0
 
-  .CodeMirror
-    height 460px
+  .program-panel
+    flex 0 0 25%
 
-  .gcode-view, .history
-    font-family courier
-    overflow auto
-    height 450px
-    white-space nowrap
-
-    &.placeholder
+    .filename
+      padding 0.25em 0.5em
       color text-muted
-  .history
-    padding 0.25em
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
 
-  .history ul
-    margin 0
-    padding 0
-    list-style none
-    li
-      cursor pointer
-      padding 2px 4px
-      border-radius 3px
-      &:hover
-        background accent-tint
+    .gcode
+      flex 1
+      min-height 0
+      position relative
+      border-top 1px solid border-color
+
+      .CodeMirror
+        position absolute
+        top 0
+        right 0
+        bottom 0
+        left 0
+        height auto
+
+  // Cycle button across the top, half-width options below
+  .run-panel
+    card()
+    display flex
+    flex-direction column
+    gap gutter
+    padding gutter
+
+    .pure-button
+      width 100%
+      font-weight 600
+
+    .cycle
+      font-size 14pt
+      padding 0.6em 0
+
+    .run-options
+      display grid
+      grid-template-columns 1fr 1fr
+      gap gutter
+
+      // Never spill out of a narrow column
+      .pure-button
+        padding 0.5em 0
+        min-width 0
+        overflow hidden
+        text-overflow ellipsis
+
   .mdi
-    clear both
     white-space nowrap
     padding 0.125em
     display flex
+    border-top 1px solid border-color
 
     > *
       margin 0.125em
 
     input
-      flex 2
+      flex 1
+      min-width 0
+      font-family mono-font
 
-  .jog
-    text-align center
+  .viewer-panel
+    flex 1
+    position relative
 
-    > svg
-      margin 1em
+    // Flush against the panel body: no gap below, square bottom corners
+    .navbar
+      margin-bottom 0
+      border-radius 0
+      flex-wrap nowrap
 
-      &.disabled
-        opacity 0.4
-        pointer-events none
-        cursor not-allowed
+      img
+        width 1.5em
+        margin 0 0.25em
 
-  .jog-adjust
-    text-align center
-    margin-bottom 1em
+      .snap
+        text-transform capitalize
 
-    input
-      margin 0 0.5em
-      vertical-align middle
+      .nav-item
+        align-items center
+
+      .bi
+        width 1em
+        height 1em
+        margin-right 0.4em
+        vertical-align -0.125em
+
+      .viewer-tab
+        border-bottom 3px solid transparent
+
+        &.active
+          background chrome-3
+          border-bottom-color accent
+
+      // Warnings or errors arrived while the tab was hidden
+      .unseen
+        display inline-block
+        width 0.6em
+        height 0.6em
+        margin-left 0.4em
+        border-radius 50%
+        vertical-align 0.1em
+
+        &.unseen-warning
+          background warn-color
+        &.unseen-error
+          background err-color
+
+      .viewer-options
+        display flex
+        margin-left auto
+
+    .viewer-body
+      flex 1
+      min-height 0
+      position relative
+      display flex
+      flex-direction column
+
+    .viewer-3d, .viewer-messages, .viewer-camera
+      flex 1
+      min-height 0
+      position relative
+
+    // Overlays on the 3D view and camera.  Translucent dark so they read
+    // over both; clicks pass through except on the message.
+    overlay()
+      position absolute
+      z-index 1
+      background rgba(43, 45, 48, 0.8)
+      color chrome-text
+      border-radius radius
+      font-size 10pt
+      pointer-events none
+
+    // Top left, coloured by machine state
+    .viewer-state
+      overlay()
+      top gutter
+      left gutter
+      padding 4px 12px
+      font-weight 700
+      letter-spacing 0.05em
+      border-left 6px solid chrome-muted
+
+      &[data-state=ready]
+        border-left-color ok-color
+      &[data-state=moving]
+        border-left-color accent
+      &[data-state=holding]
+        border-left-color warn-color
+      &[data-state=estopped]
+        color #fff
+        background rgba(208, 52, 44, 0.9)
+        border-left-color err-color
+
+      // Blinks without the yellow background .attention normally adds
+      &.attention
+        background-color rgba(43, 45, 48, 0.8)
+        color chrome-text
+
+      &[data-state=estopped].attention
+        background-color rgba(208, 52, 44, 0.9)
+        color #fff
+
+    // Bottom edge: message, then the readout
+    .viewer-footer
+      position absolute
+      left gutter
+      right gutter
+      bottom gutter
+      z-index 1
+      display flex
+      align-items flex-end
+      gap gutter
+      pointer-events none
+
+    .viewer-message
+      overlay()
+      position static
+      flex 1
+      min-width 0
+      padding 4px 10px
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
+      cursor pointer
+      pointer-events auto
+
+      &:hover
+        background rgba(58, 61, 66, 0.9)
+
+      &.none
+        color chrome-muted
+
+      &.attention
+        background-color rgba(224, 138, 0, 0.9)
+        color #000
+
+    .viewer-readout
+      overlay()
+      position static
+      flex none
+      border-collapse collapse
+
+      th, td
+        border 0
+        padding 2px 8px
+        white-space nowrap
+
+      th
+        text-align left
+        color chrome-muted
+        font-weight 600
+
+      td
+        text-align right
+        font-family mono-font
+
+    // Program progress along the bottom edge of the panel
+    .viewer-progress
+      flex none
+      position relative
+      height 1.75rem
+      background chrome-2
+      color chrome-text
+      overflow hidden
+
+      .bar
+        position absolute
+        top 0
+        bottom 0
+        left 0
+        background accent
+        transition width 0.5s
+
+      &.simulating .bar
+        background chrome-3
+
+      .progress-text
+        position relative
+        display flex
+        align-items center
+        gap 1.5em
+        height 100%
+        padding 0 0.75em
+        font-size 10pt
+        white-space nowrap
+
+        .percent
+          flex 1
+          font-weight 600
+
+        .remaining, .eta
+          font-family mono-font
+
+    .viewer-3d
+      display flex
+      flex-direction column
+
+      .path-viewer
+        flex 1
+        min-height 0
+
+    .viewer-messages
+      overflow-y auto
+
+      .console
+        padding 0 0.25em
+
+        .console-wrapper
+          max-height none
+
+    .viewer-camera
+      background #000
+
+      .video
+        width 100%
+        height 100%
+        display flex
+        align-items center
+        justify-content center
+
+    // Centered on the 3D view rather than the window
+    .loading-message
+      position absolute
+      top 50%
+      left 50%
+      margin 0
+      transform translate(-50%, -50%)
 
 .load-on
   background-color ok-tint
   color text-color
-@media only screen and (max-width 970px)
+// Narrow and tall: the run controls across the top, the axis table and
+// jog side by side below.  The table takes more than half rather than
+// overflow into the jog controls.  Narrow but wide screens keep three
+// columns: there is no height to spare for the extra row.  Narrow and
+// very short screens, such as 800x480, scroll anyway, so they get the
+// roomier rows too.
+@media only screen and (max-width 970px) and (orientation portrait),
+  only screen and (max-width 970px) and (max-height 540px)
+  .view-control #control .dro-row
+    grid-template-columns minmax(min-content, 1fr) minmax(0, 1fr)
+    grid-template-areas "run run" "axes manual"
+
+    // Full width is more than the run buttons need, so the overrides and
+    // modes go beside them rather than below, leaving the program height
+    .run-column
+      display grid
+      grid-template-columns minmax(0, 1fr) minmax(0, 1fr)
+      align-items start
+
+      .run-panel
+        grid-row 1 / span 2
+        align-self stretch
+
+// Tall: the 3D view on top, closer to square, with the program below it
+@media only screen and (orientation portrait)
   .view-control #control
-    .path-viewer.small .path-viewer-content
-      margin-top inherit
-      float inherit
+    .top-panels
+      flex-direction column
+
+    .viewer-column
+      order -1
+      flex 1 1 0
+
+    .program-panel
+      flex 0 0 28%
+      min-height 0
 
 @media only screen and (max-width 940px)
   .view-control #control
@@ -306,10 +663,151 @@
           font-size 18pt
           line-height 18pt
 
-      .absolute, .offset
-        display none
+
+// Short screens, such as 1024x600 and 800x480 panels: tighter controls so
+// the 3D view and program keep some height
+@media only screen and (max-height 720px),
+  only screen and (max-width 970px) and (orientation portrait)
+  .view-control #control
+    gap 0.375em
+
+    .top-panels, .viewer-column, .dro-row, .run-column, .axes-column,
+    .manual-panel, .run-panel, .run-options, .macros
+      gap 0.375em
+
+    .tool-panel, .modal-status
+      padding 0.15em 0.375em
+
+      .tool-number
+        font-size 16pt
+        line-height 18pt
+
+      .tool-change
+        padding 0.3em 0.6em
+
+    .dro-row table.axes
+      .axis .name, .axis .position
+        font-size 16pt
+        line-height 18pt
+
+      .pure-button.square
+        width 32px
+        height 32px
+
+    .run-panel, .manual-panel
+      padding 0.375em
+
+    .run-panel .cycle
+      font-size 12pt
+      padding 0.35em 0
+
+    .run-panel .run-options .pure-button
+      min-height 0
+      padding 0.3em 0.25em
+      font-size 11pt
+
+    .macros .macro
+      min-height 0
+      padding 0.3em 0.4em
+
+    .jog-control
+      gap 0.375em
+
+      .pure-button
+        padding 0.3em 0
+
+      .jog-axes .pure-button
+        font-size 12pt
+
+      .jog-buttons .pure-button
+        font-size 14pt
+        padding 0.35em 0
+
+      .jog-feed
+        min-height 0
+
+    .spindle-control .pure-button
+      padding 0.3em 0
 
 
-    .info-blocks
-      grid-template-columns auto
+// With the menu collapsed the E-stop floats in the bottom left corner.
+// Rather than give up its height across the whole page, indent just the
+// bottom row so the E-stop sits beside it.
+@media only screen and (max-width collapse-width)
+  #layout.view-control-page:not(.nav-bottom) #main .content.view-control
+    #control .dro-row
+      margin-left sidebar-width
 
+// Nothing scrolls under the E-stop when the page fits, so drop the room
+// left for it below the content
+@media only screen and (max-width collapse-width) and (min-height 541px)
+  #layout.view-control-page:not(.nav-bottom) #main .content.view-control
+    padding-bottom gutter
+
+
+// Narrow, or narrow landscape where the program takes some of the width:
+// icon-only tabs so the 3D view's options still fit beside them
+@media only screen and (max-width 700px),
+  only screen and (max-width 860px) and (orientation landscape)
+  .view-control .viewer-panel .navbar
+    .viewer-tab > span:not(.unseen)
+      display none
+
+    .viewer-tab .bi
+      margin-right 0
+
+    .nav-item
+      padding-left 10px
+      padding-right 10px
+
+// Too short for everything at once, such as an 800x480 panel: scroll after
+// all, with the 3D view and program at a usable fixed height
+@media only screen and (max-height 540px)
+  .view-control-page #main
+    overflow-y auto
+
+    .content.view-control
+      flex none
+
+  .view-control #control
+    height auto
+
+    .top-panels
+      flex none
+      height 300px
+
+
+// Too narrow for the axis table and jog side by side, such as a 480x800
+// panel: one column and scroll, with the 3D view and program at a usable
+// fixed height
+@media only screen and (max-width 640px) and (orientation portrait)
+  .view-control-page #main
+    overflow-y auto
+
+    .content.view-control
+      flex none
+
+  .view-control #control
+    height auto
+
+    .top-panels
+      flex none
+
+    .viewer-column
+      flex none
+      height 420px
+
+    .program-panel
+      flex none
+      height 220px
+
+    .dro-row
+      grid-template-columns minmax(0, 1fr)
+      grid-template-areas "run" "axes" "manual"
+
+      .run-column
+        display flex
+        align-items stretch
+
+      .axes-column
+        overflow-x auto

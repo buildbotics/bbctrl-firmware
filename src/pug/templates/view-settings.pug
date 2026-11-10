@@ -40,6 +40,7 @@ script#view-settings-template(type="text/x-template")
 
       a.nav-item(href="#settings:tool") Tool
       a.nav-item(href="#settings:io") I/O
+      a.nav-item(href="#settings:power") Power
       a.nav-item(href="#settings:macros") Macros
       a.nav-item(href="#settings:network") Network
       a.nav-item(href="#settings:admin") Admin
@@ -73,8 +74,8 @@ script#view-settings-template(type="text/x-template")
 
     // Nothing under Settings can be changed without admin access
     .settings-view
-      admin-gate(v-if="!$root.admin")
+      admin-gate(v-if="needs_admin && !$root.admin")
 
-      div(v-if="$root.admin && view", :is="'settings-' + view",
+      div(v-if="view && ($root.admin || !needs_admin)", :is="'settings-' + view",
         :index="index", :config="config", :template="template",
         :state="state", keep-alive)

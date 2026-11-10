@@ -26,35 +26,65 @@
 \******************************************************************************/
 
 
+// Rev, Stop and Fwd, then the measured speed
+// Wraps the speed box onto its own line when the column is narrow
+.spindle-control
+  display flex
+  flex-wrap wrap
+  gap gutter
+  align-items stretch
 
-module.exports = {
-  template: '#axis-control-template',
-  props: ['axes', 'colors', 'enabled', 'adjust', 'step', 'disabled'],
+  .pure-button
+    flex 1 1 4.5em
+    padding 0.5em 0
+    font-weight 600
 
+    display inline-flex
+    align-items center
+    justify-content center
 
-  methods: {
-    jog(axis, ring, direction) {
-      let value = direction * this.value(ring)
-      this.$dispatch(this.step ? 'step' : 'jog', this.axes[axis], value)
-    },
+    .bi
+      width 1em
+      height 1em
+      margin-right 0.35em
 
+    // Lit while the spindle turns that way
+    &.active:not([disabled])
+      color #fff
+      background ok-color
+      border-color ok-color
 
-    release(axis) {
-      if (!this.step) this.$dispatch('jog', this.axes[axis], 0)
-    },
+  .rpm
+    flex 1.5 1 7em
+    display flex
+    align-items center
+    padding 0 0.5em
+    border 1px solid border-color
+    border-radius radius
+    background surface
+    cursor text
 
+    &:focus-within
+      border-color accent
 
-    value(ring) {
-      let adjust = [0.01, 0.1, 1][this.adjust]
-      if (this.step) return adjust * [0.1, 1, 10, 100][ring]
-      return adjust * [0.1, 0.25, 0.5, 1][ring]
-    },
+    &.invalid
+      border-color err-color
+      background err-tint
 
+    input
+      flex 1
+      min-width 0
+      width 100%
+      padding 0
+      border 0
+      outline 0
+      background transparent
+      box-shadow none
+      text-align right
+      font-family mono-font
+      font-size 14pt
 
-    text(ring) {
-      let value = this.value(ring) * (this.step ? 1 : 100)
-      value = parseFloat(value.toFixed(3))
-      return value + (this.step ? '' : '%')
-    }
-  }
-}
+    .units
+      margin-left 0.3em
+      font-size 10pt
+      color text-muted

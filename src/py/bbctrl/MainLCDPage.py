@@ -52,6 +52,7 @@ class MainLCDPage(LCDPage):
 
         metric = not state.get('imperial', False)
         scale = 1 if metric else 25.4
+        precision = 3 if metric else 4 # 0.001 mm or 0.0001 in
 
         # Show enabled axes
         row = 0
@@ -64,7 +65,10 @@ class MainLCDPage(LCDPage):
                 position = state.get(axis + 'p', 0)
                 position -= state.get('offset_' + axis, 0)
                 position /= scale
-                self.text('% 10.3f%s' % (position, axis.upper()), 9, row)
+                # Avoid showing -0.000 for tiny negative values
+                position = round(position, precision) + 0.0
+                self.text('% 10.*f%s' % (precision, position, axis.upper()),
+                          9, row)
                 row += 1
 
         while row < 4:

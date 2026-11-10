@@ -51,7 +51,8 @@ class Program {
 
 
   async download(url, conf = {}) {
-    conf.params = (conf.params || {})['_t']= this.timestamp // cache-busting
+    conf.params = conf.params || {}
+    conf.params._t = this.timestamp // cache-busting
     return this.$api.get(url, conf)
   }
 

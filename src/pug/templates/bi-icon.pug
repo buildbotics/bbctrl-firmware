@@ -25,15 +25,7 @@
 //-                                                                           //
 //-/////////////////////////////////////////////////////////////////////////////
 
-script#range-slider-template(type="text/x-template")
-  .range-slider
-    .range-slider-current
-      .range-slider-label(v-if="label") {{label}}
-      | {{value | percent 0}}
-
-    input(type="range", :min="min", :max="max", :step="step", v-model="value",
-      @change="on_change")
-
-    .range-slider-range
-      .range-slider-min {{min | percent 0}}
-      .range-slider-max {{max | percent 0}}
+script#bi-icon-template(type="text/x-template")
+  svg.bi(xmlns="http://www.w3.org/2000/svg", viewBox="0 0 16 16",
+    fill="currentColor", aria-hidden="true")
+    path(v-for="d in paths", :d="d", :fill-rule="fill_rule")

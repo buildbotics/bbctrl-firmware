@@ -38,6 +38,14 @@ module.exports = {
   },
 
 
+  // Follow the controller, which may report after this mounts or reset the
+  // override itself
+  watch: {
+    'state.so'(value) {if (value) this.speed = value},
+    'state.fo'(value) {if (value) this.feed  = value}
+  },
+
+
   ready() {
     this.speed = this.state.so || 1
     this.feed  = this.state.fo || 1
@@ -45,13 +53,15 @@ module.exports = {
 
 
   methods: {
-    async override_feed()  {
-      return this.$api.put('override/feed/'  + this.feed)
+    // Two decimals hide float noise from the 0.1 steps, such as 0.30000004
+    async override_speed() {
+      return this.$api.put('override/speed/' + this.speed.toFixed(2))
     },
 
 
-    async override_speed() {
-      return this.$api.put('override/speed/' + this.speed)
+    async reset_speed() {
+      this.speed = 1
+      return this.override_speed()
     }
   }
 }

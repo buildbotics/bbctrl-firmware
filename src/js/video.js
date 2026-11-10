@@ -31,10 +31,6 @@ module.exports = {
   template: '#video-template',
 
 
-  props: {
-    reloadOnClick: {type: Boolean, default: true}
-  },
-
   attached() {Vue.nextTick(this.resize)},
 
 
@@ -62,9 +58,6 @@ module.exports = {
       this.failed = false
       this.$els.img.src = '/api/video?' + Math.random()
     },
-
-
-    clicked() {if (this.reloadOnClick) this.reload()},
 
 
     // If the stream fails outright, show the offline placeholder rather

@@ -25,30 +25,25 @@
 
 \******************************************************************************/
 
+.viewer-help-dialog
+  .dialog-container
+    width 600px
+    height 600px
 
+  .dialog-body
+    padding-right 1em
 
-module.exports = {
-  template: '#range-slider-template',
+  table
+    width 100%
 
+    tr:nth-of-type(even)
+      background surface-alt
+    th
+      width 1%
+      font-weight bold
+      white-space nowrap
+      text-align left
 
-  props: {
-    min:   {type: Number, default: 0},
-    max:   {type: Number, default: 100},
-    step:  {type: Number, default: 1},
-    value: {type: Number, required: true, twoWay: true},
-    label: {type: String}
-  },
-
-
-  computed: {
-    pos() {
-      let width = $(this.$el).find('input')[0].offsetWidth
-      return width * (this.value - this.min) / (this.max - this.min)
-    }
-  },
-
-
-  methods: {
-    on_change(e) {this.$emit('change', this.value)},
-  }
-}
+    th, td
+      border 1px solid border-color
+      padding 0 1em

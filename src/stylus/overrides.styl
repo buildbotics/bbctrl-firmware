@@ -1,11 +1,38 @@
+// Feed and speed override sliders, a card under the run panel
 .overrides
-  padding 0 1em
+  card()
+  display flex
+  flex-direction column
+  padding 0 gutter
 
-  .override
-    display flex
-    flex-direction column
-    margin 1em auto
-    padding 1em
-    border 1px solid #ddd
-    border-radius 5px
-    max-width 40em
+  // Same width so the sliders line up
+  label
+    min-width 3.5em
+    text-transform uppercase
+
+  // Square icon button, the same as the axis home buttons
+  .reset
+    flex none
+    display inline-flex
+    align-items center
+    justify-content center
+    width touch-height
+    height touch-height
+    padding 0
+
+    .bi
+      width 1.4em
+      height 1.4em
+
+    // Fade only the icon, so the button keeps its outline
+    &[disabled]
+      opacity 1
+
+      .bi
+        opacity 0.45
+
+  .override-speed input
+    slider-segments(19) // 10% to 200%
+
+  .override-feed input
+    slider-segments(11) // 10% to 120%

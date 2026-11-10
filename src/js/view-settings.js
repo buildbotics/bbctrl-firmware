@@ -46,6 +46,7 @@ module.exports = {
     'settings-motor':     require('./settings-motor'),
     'settings-tool':      require('./settings-tool'),
     'settings-io':        require('./settings-io'),
+    'settings-power':     require('./settings-power'),
     'settings-macros':    require('./settings-macros'),
     'settings-network':   require('./settings-network'),
     'settings-admin':     require('./settings-admin')
@@ -111,6 +112,12 @@ module.exports = {
 
 
   ready() {this.$root.parse_hash()},
+
+
+  computed: {
+    // Pages that only show status and change nothing
+    needs_admin() {return this.view != 'power'}
+  },
 
 
   methods: {

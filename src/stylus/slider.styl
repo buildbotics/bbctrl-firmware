@@ -1,0 +1,101 @@
+// Segmented sliders: a plain range input with a rectangular handle on a
+// recessed groove, and a tick at every step.  Used by the jog feed and the
+// overrides.
+
+slider-height      = 30px
+slider-track       = 8px
+slider-thumb-width = 16px
+
+slider-thumb()
+  box-sizing border-box
+  width slider-thumb-width
+  height slider-height
+  border 1px solid #555
+  border-radius 2px
+  // A grip line down the middle over a light metal face
+  background-color #d8dbde
+  background-image linear-gradient(#555, #555),
+    linear-gradient(#f6f7f8, #c4c8cc)
+  background-size 2px 60%, 100% 100%
+  background-position center, center
+  background-repeat no-repeat
+  box-shadow 0 1px 2px rgba(0, 0, 0, 0.35)
+  cursor pointer
+
+slider-groove()
+  box-sizing border-box
+  height slider-track
+  border-radius (slider-track / 2)
+  background chrome-2
+  box-shadow inset 0 1px 2px rgba(0, 0, 0, 0.5)
+
+// A tick for each of `segments` steps, spaced along the handle's travel,
+// which is the input width less the handle width
+slider-segments(segments)
+  background-image linear-gradient(to right, #b0b5ba 1px, transparent 1px)
+  background-size ('calc((100% - %s) / %s) 100%' % (slider-thumb-width segments))
+  background-position ((slider-thumb-width / 2) - 0.5px) 0
+  background-repeat repeat-x
+
+input[type="range"].segmented-slider
+  -webkit-appearance none
+  appearance none
+  width 100%
+  height slider-height
+  margin 0
+  padding 0
+  border 0
+  background-color transparent
+
+  &::-webkit-slider-runnable-track
+    slider-groove()
+
+  &::-webkit-slider-thumb
+    -webkit-appearance none
+    slider-thumb()
+    margin-top ((slider-track - slider-height) / 2)
+
+  &::-moz-range-track
+    slider-groove()
+
+  &::-moz-range-thumb
+    slider-thumb()
+
+  &:focus
+    outline none
+
+  &:focus-visible::-webkit-slider-thumb
+    border-color accent
+
+  &:focus-visible::-moz-range-thumb
+    border-color accent
+
+  &:disabled
+    opacity 0.45
+
+    &::-webkit-slider-thumb
+      cursor default
+
+    &::-moz-range-thumb
+      cursor default
+
+// Label, slider and value in one row
+.slider-row
+  display flex
+  align-items center
+  gap gutter
+  min-height touch-height
+
+  label
+    color text-muted
+    font-weight 600
+    white-space nowrap
+
+  input
+    flex 1
+    min-width 0
+
+  .value
+    min-width 3.5em
+    text-align right
+    font-family mono-font

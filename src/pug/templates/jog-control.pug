@@ -1,0 +1,64 @@
+//-/////////////////////////////////////////////////////////////////////////////
+//-                                                                           //
+//-               This file is part of the Buildbotics firmware.              //
+//-                                                                           //
+//-      Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.     //
+//-                                                                           //
+//-       This Source describes Open Hardware and is licensed under the       //
+//-                               CERN-OHL-S v2.                              //
+//-                                                                           //
+//-       You may redistribute and modify this Source and make products       //
+//-  using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl). //
+//-         This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED         //
+//-  WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS //
+//-   FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable   //
+//-                                conditions.                                //
+//-                                                                           //
+//-              Source location: https://github.com/buildbotics              //
+//-                                                                           //
+//-    As per CERN-OHL-S v2 section 4, should You produce hardware based on   //
+//-  these sources, You must maintain the Source Location clearly visible on  //
+//-  the external case of the CNC Controller or other product you make using  //
+//-                                this Source.                               //
+//-                                                                           //
+//-              For more information, email info@buildbotics.com             //
+//-                                                                           //
+//-/////////////////////////////////////////////////////////////////////////////
+
+script#jog-control-template(type="text/x-template")
+  .jog-control(:class="{disabled: disabled}")
+    .jog-axes.segmented
+      button.pure-button(v-for="name in axes",
+        class="axis-{{name.toLowerCase()}}", :class="{active: axis == name}",
+        :disabled="!enabled[name.toLowerCase()] || !!held",
+        @click="select_axis(name)", :title="'Jog the ' + name + ' axis'")
+        | {{name}}
+
+    .jog-mode.segmented
+      button.pure-button(:class="{active: !step}", @click="step = false",
+        :disabled="!!held", title="Move while the button is held") Cont
+      button.pure-button(:class="{active: step}", @click="step = true",
+        :disabled="!!held", title="Move a fixed distance per press") Step
+
+    .jog-feed.slider-row(v-if="!step")
+      label Jog Feed
+      input.segmented-slider(type="range", v-model="feed", number, min=10,
+        max=100, step=10)
+      span.value {{feed}}%
+
+    .jog-increments.segmented(v-else)
+      button.pure-button(v-for="inc in increments",
+        :class="{active: inc_index == $index}", @click="inc_index = $index",
+        :title="'Step ' + inc + ' ' + units") {{inc}}
+
+    .jog-buttons
+      button.pure-button(:disabled="disabled || !axis_enabled",
+        @pointerdown="press(-1, $event)", @pointerup="release",
+        @pointercancel="release", @lostpointercapture="release",
+        @contextmenu="ignore", :title="'Jog ' + axis + ' negative'")
+        | {{axis}} &minus;
+      button.pure-button(:disabled="disabled || !axis_enabled",
+        @pointerdown="press(1, $event)", @pointerup="release",
+        @pointercancel="release", @lostpointercapture="release",
+        @contextmenu="ignore", :title="'Jog ' + axis + ' positive'")
+        | {{axis}} +

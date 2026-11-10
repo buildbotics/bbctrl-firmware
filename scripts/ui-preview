@@ -274,7 +274,10 @@ def make_handler(site: str, config: dict, poll_delay: float):
             length = int(self.headers.get('Content-Length') or 0)
             body = self.rfile.read(length)
 
-            # SockJS xhr-polling transport: open, send state once, heartbeat
+            # SockJS xhr-polling transport: open, send state once, then
+            # heartbeats.  Like the controller's (Web.py), the heartbeat is a
+            # data message: SockJS swallows its own 'h' frames, and without
+            # data the UI's Sock times the connection out and reconnects.
             if path.endswith('/xhr_send'):
                 print('SOCK', body.decode(errors = 'replace'), flush = True)
                 return self.reply('', 'text/plain', 204)
@@ -287,7 +290,8 @@ def make_handler(site: str, config: dict, poll_delay: float):
                 if count == 1:
                     return self.reply('a' + json.dumps([STATE]) + '\n', ctype)
                 time.sleep(poll_delay)
-                return self.reply('h\n', ctype)
+                heartbeat = {'heartbeat': count - 2}
+                return self.reply('a' + json.dumps([heartbeat]) + '\n', ctype)
 
             if path.startswith('/api/'):
                 print('POST', self.path, flush = True)
