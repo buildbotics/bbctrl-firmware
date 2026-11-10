@@ -210,7 +210,14 @@ def make_handler(site: str, config: dict, poll_delay: float):
             path, _, query = self.path.partition('?')
 
             if path == '/api/config/load': return self.reply(json.dumps(config))
-            if path == '/api/auth/login': return self.reply('false')
+            # Logged in as the built in admin so every page is viewable
+            if path == '/api/auth/login': return self.reply(json.dumps(dict(
+                user = 'admin', admin = True, admin_user = True,
+                admin_left = 3600, authorized = True,
+                access_control = False, https = 0)))
+            if path == '/api/auth/users': return self.reply(json.dumps(dict(
+                users = [dict(name = 'admin', admin = True, builtin = True)],
+                access_control = False, local_access = True)))
 
             if path.startswith('/api/fs'):
                 name = path[len('/api/fs'):].strip('/')

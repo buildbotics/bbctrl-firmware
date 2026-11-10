@@ -70,9 +70,11 @@ The resulting package will be a ``.tar.bz2`` file in ``dist``.
 If you have a controller running 2.x firmware at ``bbctrl.local``, the default
 address, you can upgrade it with the new package like this:
 
-    make update HOST=bbctrl.local PASSWORD=<pass>
+    make pkg
+    make update HOST=bbctrl.local
 
-Where ``<pass>`` is the controller's admin password.
+``make update`` does not rebuild the package, so run ``make pkg`` first.  It
+prompts for the controller's admin password and sends it over HTTPS.
 
 ## Publishing a Release
 

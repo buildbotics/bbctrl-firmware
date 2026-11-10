@@ -465,6 +465,14 @@ class VideoHandler(web.RequestHandler):
     def finish(self): pass # Don't let it finish and end the response
 
 
+    def prepare(self):
+        if self.app.is_authorized(self.get_cookie('bbctrl-sid'),
+                                  self.request.remote_ip): return
+
+        self.set_status(401)
+        web.RequestHandler.finish(self) # Bypass the finish() override
+
+
     def get(self):
         self.request.connection.stream.max_write_buffer_size = 10000
 
@@ -556,6 +564,7 @@ if __name__ == '__main__':
 
 
         def get_image_resource(self, name): return None
+        def is_authorized(self, sid, ip): return True
 
 
     args = _parse_args()

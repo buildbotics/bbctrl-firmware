@@ -43,7 +43,7 @@ html(lang="en")
 
   body(v-cloak)
     #overlay(v-if="status != 'connected'")
-      span {{status}}
+      span {{login_required ? 'login required' : status}}
     #layout(:class="'view-' + currentView + '-page nav-' + navPosition")
       #menuLink.menu-link(href="#menu"): span
 
@@ -165,15 +165,64 @@ html(lang="en")
             text="Continue")
 
     dialog(v-ref:login-dialog, header="Login", icon="question", width="400px",
-      buttons="Login")
+      buttons="Login", :click-away="!login_required")
 
       div(slot="body")
+        p.error(v-if="login_error") {{login_error}}
+        p(v-if="session_expired") Your session expired.
+
+        p
+          | Log in as a web interface user or as #[b admin] with the system
+          | password, the same one used for SSH.
+
         .pure-form.pure-form-aligned
+          .pure-control-group
+            label(for="user") User
+            input(name="user", v-model="login_user", focus,
+              @keyup.enter="$refs.loginDialog.close('login')",
+              autocomplete="username")
+
           .pure-control-group
             label(for="password") Password
             input.password(name="password", v-model="password", focus,
               @keyup.enter="$refs.loginDialog.close('login')",
               autocomplete="off")
+
+    dialog(v-ref:password-dialog, header="Change password", icon="key",
+      width="400px", buttons="Cancel Set")
+
+      div(slot="body")
+        p.error(v-if="password_error") {{password_error}}
+
+        p(v-if="system_password")
+          | This is the controller's system password.  It is also used for SSH
+          | and #[code sudo].
+
+        .pure-form.pure-form-aligned
+          .pure-control-group(v-if="password_user == user")
+            label(for="current") Current Password
+            input.password(name="current", v-model="password_current", focus,
+              autocomplete="current-password")
+
+          .pure-control-group
+            label(for="pass1") New Password
+            input.password(name="pass1", v-model="password", focus,
+              autocomplete="new-password")
+
+          .pure-control-group
+            label(for="pass2") Repeat Password
+            input.password(name="pass2", v-model="password2",
+              autocomplete="off",
+              @keyup.enter="$refs.passwordDialog.close('set')")
+
+          .pure-control-group
+            label
+            bbutton(@click="generate_passphrase", icon="refresh",
+              text="Generate", title="Generate a random passphrase")
+
+          .pure-control-group(v-if="generated")
+            label Passphrase
+            span.generated {{generated}}
 
     #templates: include ../../build/templates.pug
     iframe#download-target(style="display:none")

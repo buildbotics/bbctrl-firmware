@@ -12,8 +12,8 @@ RESOURCES  := $(patsubst src/resources/%,$(TARGET_DIR)/%,$(RESOURCES))
 TEMPLS     := $(wildcard src/pug/templates/*.pug)
 
 SHARE           := share
-CAMOTICS_MOD    := $(SHARE)/camotics/build/camotics.so
-CAMOTICS_TARGET := src/py/bbctrl/camotics.so
+DEV_ROOT        := build/dev
+ARM_BINS        := bin/camotics.so bin/bbkbd bin/updiprog bin/rpipdi
 
 RSYNC_EXCLUDE := \*.pyc __pycache__ \*.egg-info \\\#* \*~ .\\\#\*
 RSYNC_EXCLUDE := $(patsubst %,--exclude %,$(RSYNC_EXCLUDE))
@@ -41,10 +41,6 @@ WATCH += src/static
 
 ifndef HOST
 HOST=bbctrl.local
-endif
-
-ifndef PASSWORD
-PASSWORD=buildbotics
 endif
 
 
@@ -78,7 +74,31 @@ beta-pkg: pkg
 	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
 	echo -n $(BETA_VERSION) > dist/latest-beta.txt
 
-arm-bin: camotics bbkbd updiprog rpipdi
+arm-bin: $(ARM_BINS)
+camotics: bin/camotics.so
+
+# Emulated aarch64 build environment.  Order-only prerequisite below so an
+# existing chroot is never rebuilt on a timestamp change.
+$(DEV_ROOT):
+	sudo debootstrap --arch=arm64 --foreign \
+	  --components main,contrib,non-free-firmware bookworm $@
+	sudo cp -av /usr/bin/qemu-aarch64-static $@/usr/bin/
+	sudo ./scripts/chroot-run $@ /debootstrap/debootstrap --second-stage
+
+# init-devfs.sh builds every ARM project in one pass, so the copy out of the
+# chroot is per-binary but the build is not.
+.PHONY: dev-build
+dev-build: | $(DEV_ROOT)
+	sudo install -m 755 scripts/init-devfs.sh $(DEV_ROOT)/root/
+	sudo ./scripts/chroot-run $(DEV_ROOT) /bin/bash /root/init-devfs.sh
+
+bin/camotics.so: DEV_BIN := camotics/build/camotics.so
+bin/bbkbd:       DEV_BIN := bbkbd/bbkbd
+bin/updiprog:    DEV_BIN := updiprog/updiprog
+bin/rpipdi:      DEV_BIN := rpipdi/rpipdi
+
+$(ARM_BINS): dev-build
+	install -m 755 -D $(DEV_ROOT)/$(DEV_BIN) $@
 
 %.img.xz: %.img
 	xz -T $(CPUS) $<
@@ -93,23 +113,23 @@ image-xz: $(IMAGE).xz
 publish-image: $(IMAGE).xz
 	rsync --progress $< $(IMG_PATH)/
 
-publish: pkg
+publish:
 	echo -n $(VERSION) > dist/latest.txt
 	rsync $(RSYNC_OPTS) dist/$(PKG_NAME).tar.bz2 dist/latest.txt $(PUB_PATH)/
 
-publish-beta: beta-pkg
+publish-beta:
 	$(MAKE) push-beta
 
 push-beta:
 	rsync $(RSYNC_OPTS) dist/$(CUR_BETA_PKG_NAME).tar.bz2 dist/latest-beta.txt \
 	  $(PUB_PATH)/
 
-update: pkg
-	http_proxy= ./scripts/remote-firmware-update $(HOST) "$(PASSWORD)" \
+update:
+	http_proxy= ./scripts/remote-firmware-update $(HOST) \
 	  dist/$(PKG_NAME).tar.bz2
 	@-tput sgr0 && echo # Fix terminal output
 
-ssh-update: pkg
+ssh-update:
 	scp scripts/update-bbctrl dist/$(PKG_NAME).tar.bz2 $(HOST):/tmp/
 	ssh -t $(HOST) "sudo /tmp/update-bbctrl /tmp/$(PKG_NAME).tar.bz2"
 
@@ -171,5 +191,5 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg release camotics lint pylint jshint test
-.PHONY: html resources dist-clean preview
+.PHONY: all install clean tidy pkg release arm-bin camotics lint pylint
+.PHONY: jshint test html resources dist-clean preview dev-build

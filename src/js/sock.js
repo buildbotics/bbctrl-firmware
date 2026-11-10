@@ -70,7 +70,7 @@ class Sock {
 
       this.onclose()
       if (this._sock != undefined)
-        setTimeout(() => this.connect(), this.retry)
+        this._retry = setTimeout(() => this.connect(), this.retry)
     }
   }
 
@@ -108,6 +108,8 @@ class Sock {
 
 
   close() {
+    clearTimeout(this._retry) // Cancel any pending reconnect
+
     if (this._sock != undefined) {
       let sock = this._sock
       this._sock = undefined

@@ -70,6 +70,7 @@ function main() {
   let cmg = new CMGCode()
 
   // Register global components
+  Vue.component('admin-gate',       {template: '#admin-gate-template'})
   Vue.component('templated-input',  require('./templated-input'))
   Vue.component('templated-select', require('./templated-select'))
   Vue.component('loading-message',  require('./loading-message'))

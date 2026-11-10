@@ -50,7 +50,7 @@ module.exports = {
 
 
   computed: {
-    authorized() {return this.$root.authorized}
+    admin() {return this.$root.admin}
   },
 
 

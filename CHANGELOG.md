@@ -25,6 +25,26 @@ Buildbotics CNC Controller Firmware Changelog
     framing, config load/save and homing logic.  Run with ``make test``.
 
 ## v2.0.8
+  - Added web interface user logins.
+  - Built in ``admin`` user logs in with the system password.
+  - Adding a user requires a login for all web and websocket access.
+  - Require HTTPS when a login is required.  Localhost is exempt.
+  - Users with admin access may change the configuration and firmware.
+  - Optionally let the local browser skip the login.
+  - Settings->Admin manages users and requires an admin login.
+  - Added ``bbctrl-users`` command line tool to manage users over SSH.
+  - Added passphrase generation from the BIP-39 word list.
+  - Accept the session ID in an ``Authorization: Bearer`` header.
+  - Logins, password changes and user changes require HTTPS.
+  - Changing your own password requires your current password.
+  - Admin access expires five minutes after it was last used.
+  - Settings require admin access to view and change.
+  - Moved the login actions under the user menu.
+  - Show the logged in user and explain the built in ``admin`` login.
+  - Report unreachable controller instead of an API error.
+  - Fixed system password check for any ``crypt(3)`` hash type.
+  - Keep writing MD5 system password hashes so a downgrade can still log in.
+  - Changes to users report the new state so the client cannot get stuck.
   - Added support for Huanyang GT-series VFD.
   - Try to parse API response text as JSON.
   - Initialize referenced app.js vars so that vue.js sees them.
@@ -43,6 +63,8 @@ Buildbotics CNC Controller Firmware Changelog
   - Display distance mode on control page.
   - Display ETA on control page. #345
   - Fix error message positioning. #349
+  - Break to stop Huanyang GT VFD.
+  - Fixed VFD config ordering.
 
 ## v2.0.0
  - Changes for RPi4

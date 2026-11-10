@@ -33,8 +33,14 @@ module.exports = {
 
   data() {
     return {
-      password:        '',
-      password2:       '',
+      users:            [],
+      access_control:   false,
+      local_access:     true,
+      name:             '',
+      password:         '',
+      generated:        '',
+      user_admin:       false,
+      add_error:        '',
       enableKeyboard: true,
       autoCheckUpgrade: true,
       boardRevision: 'auto',
@@ -43,7 +49,19 @@ module.exports = {
 
 
   computed: {
-    authorized() {return this.$root.authorized}
+    admin()      {return this.$root.admin},
+    real_users() {return this.users.filter(user => !user.builtin)},
+    first_user() {return !this.real_users.length},
+    last_user()  {return this.access_control && this.real_users.length == 1},
+
+
+    // The controller refuses to send or accept passwords in plain text
+    needs_https() {return !this.$root.is_secure && this.$root.https != 0}
+  },
+
+
+  watch: {
+    '$root.admin'(admin) {if (admin) this.update_users()}
   },
 
 
@@ -51,19 +69,167 @@ module.exports = {
     this.enableKeyboard   = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
     this.boardRevision    = this.config.admin['board-revision'] || 'auto'
+    this.update_users()
   },
 
 
   methods: {
-    async set_password() {
-      if (this.password != this.password2)
-        return this.$root.error_dialog('Passwords to not match')
+    async update_users() {
+      if (this.admin) this.set_users(await this.$api.get('auth/users'))
+    },
 
-      if (this.password.length < 6)
-        return this.$root.error_dialog('Password too short')
 
-      await this.$api.put('auth/password', {password: this.password})
-      this.$root.success_dialog('Password Set')
+    // Every change to the users returns the new state
+    set_users(data) {
+      this.users          = data.users
+      this.access_control = data.access_control
+      this.local_access   = data.local_access
+    },
+
+
+    async generate() {
+      this.generated = (await this.$api.get('auth/passphrase')).passphrase
+      this.password  = this.generated
+    },
+
+
+    clear_new_user() {
+      this.name       = ''
+      this.password   = ''
+      this.generated  = ''
+      this.user_admin = false
+      this.add_error  = ''
+    },
+
+
+    async add() {
+      this.clear_new_user()
+      let was_off = !this.access_control
+
+      // Report failures in the dialog and reopen it so nothing is retyped
+      let ok = false
+      while (!ok) {
+        if (await this.$refs.addUser.open() != 'add') return
+
+        if (!this.name) this.add_error = 'User name required'
+        else if (!this.password) this.add_error = 'Password required'
+
+        else try {
+          this.set_users(await this.$api.post(
+            'auth/users/' + this.name,
+            {password: this.password, admin: this.user_admin},
+            {error: (p, xhr) => this.add_error = this.$api.message(p, xhr)}))
+          ok = true
+
+        } catch (e) {} // Reported in the dialog
+      }
+
+      this.clear_new_user() // Don't keep the password around
+      await this.$root.check_login()
+
+      // Say so, the change is immediate but nothing else looks different
+      if (was_off && this.access_control)
+        return this.$root.success_dialog(
+          '<p>Access control is on.  Every browser must now log in over ' +
+          'HTTPS.  This one stays logged in as <b>' + this.$root.user +
+          '</b> until it is closed or the controller restarts.</p>')
+    },
+
+
+    async set_admin(user) {
+      // The checkbox has already been toggled by the model
+      if (!user.admin && user.name == this.$root.user) {
+        let response = await this.$root.open_dialog({
+          icon:    'exclamation-triangle',
+          header:  'Remove your own admin access?',
+          body:    '<p>You will lose access to this page immediately.  Log ' +
+                   'in as <b>admin</b> with the system password to get it ' +
+                   'back.</p>',
+          width:   '400px',
+          buttons: [{text: 'Cancel'}, {text: 'Remove', class: 'button-error'}]
+        })
+
+        if (response != 'remove') {
+          user.admin = true // Restore the checkbox
+          return
+        }
+      }
+
+      try {
+        this.set_users(await this.$api.put('auth/users/' + user.name,
+                                           {admin: user.admin}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
+      }
+
+      if (user.name == this.$root.user) await this.$root.check_login()
+    },
+
+
+    async remove(user) {
+      let msg = 'Remove user <b>' + user.name + '</b>?'
+
+      if (this.last_user)
+        msg += '  This is the last user so only <b>admin</b> will be able ' +
+          'to log in.'
+      else if (user.name == this.$root.user)
+        msg += '  This is your own account and you will be logged out.'
+
+      let response = await this.$root.open_dialog({
+        icon:    'exclamation-triangle',
+        header:  'Remove user',
+        body:    '<p>' + msg + '</p>',
+        width:   '400px',
+        buttons: [{text: 'Cancel'}, {text: 'Remove', class: 'button-error'}]
+      })
+
+      if (response != 'remove') return
+
+      this.set_users(await this.$api.delete('auth/users/' + user.name))
+      await this.$root.check_login()
+    },
+
+
+    async set_access_control() {
+      // The checkbox has already been toggled by the model
+      if (!this.access_control) {
+        let response = await this.$root.open_dialog({
+          icon:    'exclamation-triangle',
+          header:  'Disable access control?',
+          body:    '<p>Anyone who can reach this controller over the ' +
+                   'network will be able to run the machine and change its ' +
+                   'configuration without logging in.</p>',
+          width:   '400px',
+          buttons: [{text: 'Cancel'}, {text: 'Disable', class: 'button-error'}]
+        })
+
+        if (response != 'disable') {
+          this.access_control = true
+          return
+        }
+      }
+
+      try {
+        this.set_users(await this.$api.put(
+          'auth/access', {access_control: this.access_control}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
+      }
+
+      await this.$root.check_login()
+    },
+
+
+    async set_local_access() {
+      // The checkbox has already been toggled by the model
+      try {
+        this.set_users(await this.$api.put(
+          'auth/access', {local_access: this.local_access}))
+      } catch (e) {
+        await this.update_users() // Resynchronize the checkbox
+      }
+
+      await this.$root.check_login()
     },
 
 

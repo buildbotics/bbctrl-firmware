@@ -38,21 +38,40 @@ module.exports = {
   attached() {Vue.nextTick(this.resize)},
 
 
+  data() {
+    return {failed: false}
+  },
+
+
+  watch: {
+    // An image loaded before the login is unauthorized and the browser does
+    // not retry it on its own
+    '$root.authorized'(authorized) {
+      if (authorized && this.failed) this.reload()
+    }
+  },
+
+
   ready() {
     window.addEventListener('resize', this.resize, false)
   },
 
 
   methods: {
-    reload() {this.$els.img.src = '/api/video?' + Math.random()},
+    reload() {
+      this.failed = false
+      this.$els.img.src = '/api/video?' + Math.random()
+    },
 
 
     clicked() {if (this.reloadOnClick) this.reload()},
 
 
     // If the stream fails outright, show the offline placeholder rather
-    // than the browser's broken-image icon.  Clicking still retries.
-    show_offline() {
+    // than the browser's broken-image icon.  Clicking still retries, and
+    // so does a later login (see the watch above).
+    failed_load() {
+      this.failed = true
       let offline = '/images/offline.jpg'
       if (!this.$els.img.src.endsWith(offline)) this.$els.img.src = offline
     },

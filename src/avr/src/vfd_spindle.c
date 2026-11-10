@@ -255,9 +255,9 @@ const vfd_reg_t huanyang_gt_regs[] PROGMEM = {
   {REG_FREQ_READ,        0x3000,     0}, // Output freq
   {REG_FWD_WRITE,        0x1000,     1}, // Run forward
   {REG_REV_WRITE,        0x1000,     2}, // Run reverse
-  {REG_STOP_WRITE,       0x1000,     6}, // Coast to stop
+  {REG_STOP_WRITE,       0x1000,     5}, // Break to stop
   {REG_STATUS_READ,      0x1001,     0}, // Status
-  {REG_DISCONNECT_WRITE, 0x1000,     6}, // Coast to stop on disconnect
+  {REG_DISCONNECT_WRITE, 0x1000,     5}, // Break to stop on disconnect
   {REG_DISABLED},
 };
 

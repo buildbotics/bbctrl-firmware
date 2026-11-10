@@ -32,4 +32,4 @@ script#video-template(type="text/x-template")
         .vertical
         .horizontal
         .box
-      img(src="/api/video", v-el:img, @click="clicked", @error="show_offline")
+      img(src="/api/video", v-el:img, @click="clicked", @error="failed_load")
