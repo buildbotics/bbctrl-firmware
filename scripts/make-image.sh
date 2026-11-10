@@ -11,7 +11,8 @@ KERNEL=$BUILD/kernel
 # Config
 KERNEL_DEFCONFIG=bcm2711_defconfig
 KERNEL_BRANCH=rpi-6.1.y
-BOOT_DTB=bcm2711-rpi-4-b
+# The arm64 bcm2711 kernel also boots the Pi 3; ship its device trees too
+BOOT_DTBS="bcm2711-rpi-4-b bcm2710-rpi-3-b bcm2710-rpi-3-b-plus"
 CPUS=$(grep -c ^processor /proc/cpuinfo)
 
 BOOT_FILES="bootcode.bin start.elf fixup.dat start4.elf fixup4.dat"
@@ -52,7 +53,9 @@ KERNEL_BOOT=$KERNEL/arch/$ARCH/boot
 mcopy -i $BOOT_IMG -s $BUILD/boot/* ::
 mcopy -i $BOOT_IMG -s src/overlay/boot/* ::
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/Image ::kernel8.img
-mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/broadcom/$BOOT_DTB.dtb ::
+for DTB in $BOOT_DTBS; do
+  mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/broadcom/$DTB.dtb ::
+done
 mmd -i $BOOT_IMG ::/overlays
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/overlays/*.dtbo ::/overlays/
 mcopy -i $BOOT_IMG -s $KERNEL_BOOT/dts/overlays/README ::/overlays/
@@ -120,12 +123,12 @@ IMAGE_SIZE=$((IMAGE_SIZE / 1024 / 1024 + 2))
 # Create image file
 dd if=/dev/zero of=$SYSTEM_IMG bs=1M count=0 seek=$IMAGE_SIZE
 
-# Partition
+# Partition.  MBR rather than GPT: the Pi 3 boot ROM cannot read GPT.
 parted -s $SYSTEM_IMG -- unit s \
-  mklabel gpt \
-  mkpart boot $BOOT_START $((ROOT_START - 1)) \
+  mklabel msdos \
+  mkpart primary fat32 $BOOT_START $((ROOT_START - 1)) \
   set 1 boot on \
-  mkpart root $ROOT_START -34s
+  mkpart primary ext4 $ROOT_START -1s
 
 # Write partitions
 dd if=$BOOT_IMG of=$SYSTEM_IMG conv=notrunc,fsync seek=$BOOT_START

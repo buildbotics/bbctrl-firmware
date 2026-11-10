@@ -31,6 +31,12 @@ let Sock    = require('./sock')
 let util    = require('./util')
 let Program = require('./program')
 
+// Firmware releases are GitHub Releases on this repository.  The tag is the
+// version, optionally prefixed with 'v'.  scripts/upgrade-bbctrl downloads
+// from the same repository.
+const RELEASES_API =
+  'https://api.github.com/repos/alexpinson5/RONtrol-firmware/releases/latest'
+
 
 module.exports = new Vue({
   el: 'body',
@@ -244,19 +250,20 @@ module.exports = new Vue({
     async check_version(show_message) {
       this.latestVersion = ''
 
-      let url  = 'https://buildbotics.com/bbctrl-2.0/latest.txt'
-      let conf = {params: {hid: this.state.hid}, type: 'text'}
+      let conf = {}
       if (!show_message) conf.error = () => {} // Ignore errors
-      this.latestVersion = await this.$api.get(url, conf)
+      let release = await this.$api.get(RELEASES_API, conf)
+      if (!release || !release.tag_name) return
+      this.latestVersion = release.tag_name.replace(/^v/, '')
 
       if (!show_message) return
       let cmp = util.compare_versions(this.config.version, this.latestVersion)
 
       let msg
-      if (cmp == 0) msg = 'You have the latest official firmware.'
+      if (cmp == 0) msg = 'You have the latest firmware release.'
       else {
         msg = 'Your firmware is ' + (cmp < 0 ? 'older': 'newer') +
-          ' than the latest official firmware release, version ' +
+          ' than the latest firmware release, version ' +
           this.latestVersion + '.'
 
         if (cmp < 0) msg += ' Please upgrade.'

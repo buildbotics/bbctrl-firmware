@@ -1,41 +1,100 @@
 #!/bin/bash -e
 
+# Program the main AVR and the power chip with the firmware images installed
+# by the package.  Runs before every bbctrl start; each programmer compares
+# CRCs first, so this writes nothing when a chip already holds its image.
+#
+# Which images and which programming method fit is detected from the hardware
+# rather than configured (see bbctrl-pcb for the netlists):
+#
+#   Main AVR   Rev 14 and later wire the AVR's PDI port to the Pi, so rpipdi
+#              can read the chip ID and the matching image is chosen:
+#              ATxmega192A3U up to Rev 16, ATxmega256A3 after that.
+#              Rev 13 and earlier have no PDI connection.  Those boards always
+#              carry an ATxmega192A3U and are programmed through its serial
+#              bootloader instead.
+#
+#   Power      Rev 13 and earlier carry an ATtiny1634, which has no UPDI
+#              connection to the Pi and answers I2C at 0x60 + register.  Its
+#              firmware is not managed here.
+
 FWPATH=/var/lib/bbctrl/firmware
 UPDIPROG=/usr/local/bin/updiprog
 RPIPDI=/usr/local/bin/rpipdi
+AVR109=/usr/local/bin/avr109-flash
 
 PWRFW=$FWPATH/bbctrl-pwr-firmware.hex
-AVRFW=$FWPATH/bbctrl-avr-firmware.hex
+AVRFW_256A3=$FWPATH/bbctrl-avr-firmware.hex
+AVRFW_192A3U=$FWPATH/bbctrl-avr-firmware-192a3u.hex
 
-# Power firmware
+AVR_DEV=/dev/ttyAMA0
+AVR_RESET=27 # Also PDI_CLK
+PDI_DATA=23
+AVR_FUSES="-f 0=0xff -f 1=0x00 -f 2=0xbe -f 4=0xff -f 5=0xeb"
+APP_SIZE_192A3U=0x30000
+
+LEGACY_PWR_I2C_BUS=1
+LEGACY_PWR_I2C_ADDR=0x60
+
+
+# Print the AVR device name rpipdi detects, or nothing without a PDI link.
+# rpipdi prints the device before touching memory, so its exit status and the
+# fuse dump itself are irrelevant here.
+pdi_device() {
+  $RPIPDI -c $AVR_RESET -d $PDI_DATA -m fuse -D 2>/dev/null |
+    sed -n 's/^Device: *\([^ ]*\) *$/\1/p' || true
+}
+
+
+has_legacy_pwr_chip() {
+  i2cget -y $LEGACY_PWR_I2C_BUS $LEGACY_PWR_I2C_ADDR 0 w >/dev/null 2>&1
+}
+
+
+printf "Checking Firmwares\n"
+
+# Main firmware
+printf "\n*** Main Firmware ***\n"
+DEVICE=$(pdi_device)
+
+# Anything but the old chip gets the default image, as upstream always did
+case "$DEVICE" in
+  xmega192a3u) AVRFW=$AVRFW_192A3U ;;
+  *)           AVRFW=$AVRFW_256A3  ;;
+esac
+
+if [ -n "$DEVICE" ]; then
+  echo "Programming $DEVICE over PDI"
+  if [ -e "$AVRFW" ]; then
+    $RPIPDI -c $AVR_RESET -d $PDI_DATA $AVR_FUSES -x -w "$AVRFW"
+  fi
+
+elif [ -e "$AVRFW_192A3U" ]; then
+  echo "No PDI link (Rev 13 or earlier), programming over the bootloader"
+  $AVR109 -d $AVR_DEV -r $AVR_RESET --app-size $APP_SIZE_192A3U \
+    "$AVRFW_192A3U"
+fi
+
+# Reset AVR
+printf "\n*** Reseting AVR ***\n"
+GPIO=/sys/class/gpio/gpio$AVR_RESET
+if [ ! -e $GPIO ]; then
+  echo $AVR_RESET > /sys/class/gpio/export
+fi
+echo out > $GPIO/direction
+echo 1   > $GPIO/value
+
+# PWR firmware
 if [ -e /dev/ttyAMA3 ]; then
   PWRDEV=/dev/ttyAMA3
 elif [ -e /dev/ttyAMA1 ]; then
   PWRDEV=/dev/ttyAMA1
 fi
 
-printf "Checking Firmwares\n"
+if has_legacy_pwr_chip; then
+  printf "\nATtiny1634 power chip (Rev 13 or earlier), not programmed\n"
 
-# Main firmware
-if [ -e "$AVRFW" ]; then
-  printf "\n*** Main Firmware ***\n"
-  $RPIPDI -c 27 -d 23 -f 0=0xff -f 1=0x00 -f 2=0xbe -f 4=0xff -f 5=0xeb \
-          -x -w $AVRFW
-fi
-
-# Reset AVR
-printf "\n*** Reseting AVR ***\n"
-GPIO=/sys/class/gpio/gpio27
-if [ ! -e $GPIO ]; then
-  echo 27 > /sys/class/gpio/export
-fi
-echo out > $GPIO/direction
-echo 1   > $GPIO/value
-#sleep 0.1
-#echo in  > $GPIO/direction
-
-# PWR firmware
-if [ -e "$PWRFW" -a -e "$PWRDEV" ]; then
+elif [ -e "$PWRFW" -a -e "$PWRDEV" ]; then
   printf "\n*** Power Firmware ***\n"
   $UPDIPROG -c $PWRDEV -b 500000 -x -w $PWRFW
 fi

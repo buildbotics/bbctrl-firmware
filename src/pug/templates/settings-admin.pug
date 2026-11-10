@@ -62,6 +62,24 @@ script#settings-admin-template(type="text/x-template")
         @change="change_auto_check_upgrade")
       label(for="auto-check-upgrade") &nbsp; Automatically check for upgrades
 
+    h2 Main Board
+    .pure-form.pure-form-aligned
+      .pure-control-group
+        label(for="board-revision") Revision
+        select(name="board-revision", v-model="boardRevision",
+          @change="change_board_revision", :disabled="!authorized")
+          option(value="auto") Detect automatically
+          option(value="13 or earlier") Rev 13 or earlier
+          option(value="14 or 15") Rev 14 or 15
+          option(value="16 or later") Rev 16 or later
+        span(v-if="state.board_revision") &nbsp; Using Rev {{state.board_revision}}
+
+    p.
+      The revision is printed on the main board.  Rev 13 and earlier are
+      detected automatically.  Rev 14 and 15 must be selected here: they look
+      like Rev 16 to the software, and with the wrong setting the motor
+      drivers stay disabled.
+
     h2 Debugging
     a(href="/api/log", target="_blank")
       bbutton(primary, icon="file-text-o", text="View Log")

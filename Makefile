@@ -69,6 +69,11 @@ pkg: all $(SUBPROJECTS)
 	#cp -a $(SHARE)/camotics/tpl_lib src/py/bbctrl/
 	./setup.py sdist
 
+# Release assets for GitHub Releases, read by scripts/upgrade-bbctrl.  Publish
+# with: gh release create v$(VERSION) dist/$(PKG_NAME).tar.bz2*
+release: pkg
+	cd dist && sha256sum $(PKG_NAME).tar.bz2 > $(PKG_NAME).tar.bz2.sha256
+
 beta-pkg: pkg
 	cp dist/$(PKG_NAME).tar.bz2 dist/$(BETA_PKG_NAME).tar.bz2
 	echo -n $(BETA_VERSION) > dist/latest-beta.txt
@@ -166,5 +171,5 @@ clean: tidy
 dist-clean: clean
 	rm -rf node_modules
 
-.PHONY: all install clean tidy pkg camotics lint pylint jshint test
+.PHONY: all install clean tidy pkg release camotics lint pylint jshint test
 .PHONY: html resources dist-clean preview

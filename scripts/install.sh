@@ -1,14 +1,25 @@
 #!/bin/bash
 
-# Check that we are on a Pi 4
-PI4=false
+# Check that we are on a Pi 3 or Pi 4.  /proc is not mounted when this runs
+# inside the image build chroot.
+ON_PI=false
 if [ -e /proc/cpuinfo ]; then
-  if ! grep -q 'Model.* Pi 4' /proc/cpuinfo; then
-    echo "This firmware only works on Raspberry Pi 4"
+  if ! grep -q 'Model.* Pi [34]' /proc/cpuinfo; then
+    echo "This firmware only works on Raspberry Pi 3 or 4"
     exit 1
   else
-    PI4=true
+    ON_PI=true
   fi
+fi
+
+# This firmware needs the 64-bit 2.x SD card image.  A 1.x controller runs
+# 32-bit Raspbian, and its firmware upload stops bbctrl before running this
+# script, so restart it rather than leave the controller down.
+if [ "$(dpkg --print-architecture)" != arm64 ]; then
+  echo "This firmware needs the 64-bit 2.x SD card image." \
+       "See 'Moving a 1.x Controller' in docs/development.md."
+  if $ON_PI; then systemctl start bbctrl; fi
+  exit 1
 fi
 
 # Self-signed SSL Certificate
@@ -28,10 +39,10 @@ install -C -m 0555 bin/updiprog bin/rpipdi bin/bbkbd /usr/local/bin/
 
 # Firmwares
 install -D src/pwr/bbctrl-pwr-firmware.hex src/avr/bbctrl-avr-firmware.hex \
-        -t /var/lib/bbctrl/firmware/
+        src/avr/bbctrl-avr-firmware-192a3u.hex -t /var/lib/bbctrl/firmware/
 
 # Stop service
-if $PI4; then
+if $ON_PI; then
   service bbctrl stop
 fi
 
@@ -47,7 +58,7 @@ install bin/camotics.so $PKG_DIR/bbctrl/
 sync
 
 # Restart service
-if $PI4; then
+if $ON_PI; then
   service bbctrl start
 fi
 

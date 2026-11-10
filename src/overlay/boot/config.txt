@@ -5,10 +5,20 @@ initial_turbo=30
 force_eeprom_read=0
 dtparam=i2c=on,i2c_baudrate=90000
 
+[pi4]
 dtoverlay=vc4-fkms-v3d-pi4
 gpu_mem=256
+# UART3 programs the power chip on main board Rev 14 and later
 dtoverlay=uart3
 max_framebuffers=2
+
+[pi3]
+# 1GiB of RAM is shared with the GPU.  The Pi 3 has no UART3, so the power
+# chip is not programmed from it.
+dtoverlay=vc4-fkms-v3d
+gpu_mem=128
+
+[all]
 arm_64bit=1
 
 dtoverlay=disable-bt

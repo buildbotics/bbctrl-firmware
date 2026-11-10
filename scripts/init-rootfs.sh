@@ -44,8 +44,9 @@ locale-gen
   mkdir -p /lib/firmware/brcm
   cd /lib/firmware/brcm
   URL=https://github.com/RPi-Distro/firmware-nonfree/raw/buster/brcm
-  for EXT in txt clm_blob bin; do
-    FILE=brcmfmac43455-sdio.$EXT
+  # 43455: Pi 3B+ and Pi 4.  43430: Pi 3B, which has no clm_blob.
+  for FILE in brcmfmac43455-sdio.{txt,clm_blob,bin} brcmfmac43430-sdio.{txt,bin}
+  do
     if [ ! -e $FILE ]; then
       wget $URL/$FILE
     fi

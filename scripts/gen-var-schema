@@ -42,7 +42,7 @@ class ConfigSchema(Schema):
   def get_type(self, entry):
     type  = entry['type']
 
-    if type in ('text', 'enum'): return 'string'
+    if type in ('text', 'enum', 'string'): return 'string'
     if type == 'float': return 'number'
     if type == 'int':   return 'integer'
     if type == 'list':  return 'array'

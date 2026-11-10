@@ -540,6 +540,12 @@
     "auto-check-upgrade": {
       "type": "bool",
       "default": true
+    },
+    "board-revision": {
+      "type": "enum",
+      "help": "Main board revision, printed on the board.  Decides whether the host enables the AVR buffer output, which on Rev 15 and earlier is the motor driver enable line.  Auto detects Rev 13 and earlier and otherwise assumes Rev 16 or later.",
+      "values": ["auto", "13 or earlier", "14 or 15", "16 or later"],
+      "default": "auto"
     }
   },
 

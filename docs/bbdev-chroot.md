@@ -13,14 +13,6 @@ or manual changes.
     mkdir bbdev
     sudo debootstrap --arch amd64 stable bbdev http://deb.debian.org/debian
 
-# Copy downloaded files (optional)
-To speed things up you can copy to large downloads, if you already have them,
-into the chroot.
-
-    sudo mkdir -p bbdev/opt/bbctrl-firmware/src/bbserial/
-    sudo cp 2017-11-29-raspbian-stretch-lite.zip bbdev/opt/bbctrl-firmware/
-    sudo cp raspberrypi-kernel_1.20171029-1.tar.gz bbdev/opt/bbctrl-firmware/src/bbserial/
-
 # Enter the chroot
 
     sudo mount --bind /proc bbdev/proc

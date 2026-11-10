@@ -1,4 +1,6 @@
 [Slice]
+# Relative to installed RAM so a 1GiB Pi 3 still leaves room for bbctrl.
+# Same ratios as the 1.x firmware's chrome cgroup limits.
 MemoryAccounting=true
-MemoryHigh=1.5G
-MemoryMax=1.75G
+MemoryHigh=66%
+MemoryMax=75%

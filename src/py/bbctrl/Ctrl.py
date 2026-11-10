@@ -27,6 +27,7 @@
 
 import os
 
+from . import Board
 from .IOLoop import *
 from .Log import *
 from .Events import *
@@ -86,6 +87,9 @@ class Ctrl:
             if not args.demo: self.jog = Jog(self)
             self.pwr = Pwr(self)
 
+            # A saved config may change the board revision setting
+            self.events.on('invalidate-all', self.configure_board)
+
             self.mach.connect()
 
             self.lcd.add_new_page(MainLCDPage(self))
@@ -129,7 +133,19 @@ class Ctrl:
         # Indirectly configures state via calls to config() and the AVR
         self.config.reload()
         self.state.init()
-        self.mach.set('be', 1) # Enable buffers
+        self.configure_board()
+
+
+    def configure_board(self) -> None:
+        setting = self.config.get('board-revision', Board.AUTO)
+        legacy = Board.has_legacy_pwr_chip(self.i2c)
+        revision = Board.resolve(setting, legacy)
+        self.state.set('board_revision', revision)
+
+        # On Rev 15 and earlier the buffer enable pin is the motor driver
+        # enable, which must stay high, so leave the output inactive there
+        enable = Board.host_enables_buffers(revision)
+        self.mach.set('be', 1 if enable else 0)
 
 
     def ready(self):

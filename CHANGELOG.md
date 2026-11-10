@@ -2,6 +2,19 @@ Buildbotics CNC Controller Firmware Changelog
 =============================================
 
 ## Unreleased
+  - Run on older controllers again: Raspberry Pi 3, and main boards back to
+    Rev 13 and earlier with their ATxmega192A3U and ATtiny1634.  The AVR
+    image is chosen from the detected chip; boards without a PDI link to the
+    Pi are programmed through the AVR bootloader.
+  - New Admin setting for the main board revision.  Rev 14 and 15 must be
+    selected there so their motor drivers are enabled.
+  - SD card image boots on Pi 3 and Pi 4 (MBR partition table, Pi 3 device
+    trees and Wi-Fi firmware, per-model ``config.txt`` sections).
+  - Check for and install firmware from this repository's GitHub Releases,
+    verifying each download's SHA-256 sum.
+  - Refuse to install on the 32-bit OS of a 1.x controller, restarting
+    bbctrl rather than leaving it half-installed.  1.x controllers move to
+    2.x with a new SD card image.
   - Dual-motor homing (gantry squaring).  An axis driven by two motors can
     home each motor to its own limit switch, squaring the gantry.  Enable
     with the new ``square-axis`` motor setting; ``max-square-error`` limits

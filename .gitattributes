@@ -1,0 +1,4 @@
+# Everything here runs on Linux (the controller, or a Debian build host).  Keep
+# LF endings in the working tree even where core.autocrlf is set, or packaged
+# scripts fail on the controller with "bad interpreter".
+* text=auto eol=lf

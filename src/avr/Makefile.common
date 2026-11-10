@@ -1,3 +1,6 @@
+# Object and dependency directory
+BUILD ?= build
+
 # Compile flags
 CC = avr-g++
 
@@ -8,7 +11,7 @@ CFLAGS += -Wall -Werror
 CFLAGS += -Wno-error=strict-aliasing # for _invsqrt
 CFLAGS += -std=gnu++98 -DF_CPU=$(CLOCK)UL -O3
 CFLAGS += -funsigned-bitfields -fpack-struct -fshort-enums -funsigned-char
-CFLAGS += -MD -MP -MT $@ -MF build/dep/$(@F).d
+CFLAGS += -MD -MP -MT $@ -MF $(BUILD)/dep/$(@F).d
 CFLAGS += -D__STDC_LIMIT_MACROS
 
 # Linker flags
@@ -35,15 +38,15 @@ FUSE4=0xff
 FUSE5=0xeb
 
 # Compile
-build/%.o: src/%.c
+$(BUILD)/%.o: src/%.c
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/%.o: src/%.cpp
+$(BUILD)/%.o: src/%.cpp
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/%.o: src/%.S
+$(BUILD)/%.o: src/%.S
 	@mkdir -p $(shell dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
@@ -110,4 +113,4 @@ clean: tidy
 .PHONY: signature usersig data-usage prog-usage
 
 # Dependencies
--include $(shell mkdir -p build/dep) $(wildcard build/dep/*)
+-include $(shell mkdir -p $(BUILD)/dep) $(wildcard $(BUILD)/dep/*)

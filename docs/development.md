@@ -6,29 +6,29 @@ Debian Linux are not supported.
 
 ## Installing the Development Prerequisites
 
-On a Debian Linux (9.6.0 stable) system install the required packages:
+On a Debian Linux (12) system install the required packages:
 
     sudo apt-get update
-    sudo apt-get install -y build-essential git wget binfmt-support qemu \
-      parted gcc-avr avr-libc avrdude pylint3 python3 python3-tornado curl \
-      unzip python3-setuptools gcc-arm-linux-gnueabihf bc sudo
-    curl -sL https://deb.nodesource.com/setup_13.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    sudo apt-get install -y build-essential git wget binfmt-support \
+      qemu-user-static parted gcc-avr avr-libc avrdude pylint python3 \
+      python3-tornado curl unzip python3-setuptools nodejs coreutils bison \
+      flex gcc-aarch64-linux-gnu gcc-arm-linux-gnueabihf mtools debootstrap
 
 ## Getting the Source Code
 
-    git clone https://github.com/buildbotics/bbctrl-firmware
+    git clone https://github.com/alexpinson5/RONtrol-firmware
 
 ## Build the Firmware
 
-    cd bbctrl-firmware
+    cd RONtrol-firmware
     make
 
 ## Running the Tests
 
 The Python test suite lives in ``tests/`` and covers the AVR command
 protocol (``Cmd.py``), serial framing (``Comm.py``), config load/save
-(``Config.py``) and the homing/squaring logic (``State.py``).  One-time
+(``Config.py``), the homing/squaring logic (``State.py``) and main board
+revision handling (``Board.py``).  One-time
 setup:
 
     pip3 install -r requirements-dev.txt
@@ -67,43 +67,94 @@ version.
 The resulting package will be a ``.tar.bz2`` file in ``dist``.
 
 ## Upload the Firmware Package to a Buildbotics CNC Controller
-If you have a Buildbotics CNC controller at ``bbctrl.local``, the default
+If you have a controller running 2.x firmware at ``bbctrl.local``, the default
 address, you can upgrade it with the new package like this:
 
     make update HOST=bbctrl.local PASSWORD=<pass>
 
 Where ``<pass>`` is the controller's admin password.
 
+## Publishing a Release
+
+Controllers check this repository's GitHub Releases for new firmware: the web
+UI compares the latest release tag with the installed version, and the
+Upgrade button runs ``scripts/upgrade-bbctrl``, which downloads the release
+package, checks its SHA-256 sum and installs it.  To publish:
+
+    make release
+    gh release create v<version> dist/bbctrl-<version>.tar.bz2*
+
+``<version>`` is the ``version`` in ``package.json``.  The tag must be that
+version, optionally prefixed with ``v``, and the repository must be public.
+The repository is named in ``scripts/upgrade-bbctrl`` and ``src/js/app.js``.
+
+## Supported Hardware
+
+One package and one SD card image serve every supported controller:
+
+| Main board | Main AVR      | Power chip | Pi     | Notes                     |
+|------------|---------------|------------|--------|---------------------------|
+| Rev <= 13  | ATxmega192A3U | ATtiny1634 | 3 or 4 | AVR via serial bootloader |
+| Rev 14-15  | ATxmega192A3U | ATtiny3216 | 3 or 4 | Select revision in Admin  |
+| Rev 16     | ATxmega192A3U | ATtiny3216 | 3 or 4 |                           |
+| Rev 17+    | ATxmega256A3  | ATtiny3216 | 3 or 4 |                           |
+
+``src/avr`` builds an image for each AVR, and ``scripts/update-bb-firmware``
+picks one on every start from the chip ID read over PDI.  Rev 13 and earlier
+have no PDI link to the Pi, so they are programmed through the AVR's serial
+bootloader.  The power chip is only programmed from a Pi 4 (UART3), and never
+on Rev 13 and earlier.  On Rev 15 and earlier the motor driver enable line is
+driven by the AVR rather than the power chip; see ``src/py/bbctrl/Board.py``.
+
 ## Updating the Pwr Firmware
 
-The Pwr firmware must be uploaded manually using an ISP programmer.  With the
-programmer attached to the pwr chip ISP port on the Builbotics controller's
-main board run the following:
+On main board Rev 14 and later with a Pi 4, the power chip is programmed
+automatically over UPDI (the Pi's UART3) whenever bbctrl starts.  With a Pi 3,
+which has no UART3, program it manually with a UPDI serial adapter on
+``/dev/ttyUSB0`` attached to the power chip:
 
     make -C src/pwr program
 
+``src/pwr`` is firmware for the ATtiny power chip used since Rev 14.  The
+ATtiny1634 on Rev 13 and earlier keeps its factory firmware, which bbctrl
+still reads.
+
 ## Initializing the main AVR firmware
 
-The main AVR must also be programmed manually the first time.  Later it will be
-automatically programmed by the RPi as part of the firmware install.  To perform
-the initial AVR programming connec the ISP programmer to the main AVR's ISP port
-on the Buildbotics controller's main board and run the following:
+The main AVR must be programmed manually the first time, or after it has been
+erased.  After that the RPi programs it on every bbctrl start.  Connect an ISP
+programmer to the main AVR's PDI port on the main board.
+
+On Rev 17 and later (ATxmega256A3):
 
     make -C src/avr init
 
-This will set the fuses, install the bootloader and program the firmware.
+This sets the fuses, installs the bootloader from ``src/boot`` and programs
+the firmware.  ``src/boot`` is configured for the ATxmega256A3U; check that
+matches the chip before relying on it.
+
+On Rev 16 and earlier (ATxmega192A3U), program the 192A3U build instead:
+
+    make -C src/avr MCU=atxmega192a3u PROJECT=bbctrl-avr-firmware-192a3u \
+      BUILD=build/atxmega192a3u fuses program
+
+The bootloader in ``src/boot`` is linked for the ATxmega256A3U only, so this
+tree cannot reinstall the bootloader on a 192A3U.  Boards that shipped with
+1.x firmware have one.  Rev 13 and earlier depend on it, because they have no
+PDI link to the Pi; do not erase it.
 
 ## Installing the RaspberryPi base system
 
-Download the latest Buildbotics CNC controller base image and decompress it:
+The base system is a 64-bit Debian 12 (Bookworm) SD card image that boots on
+both the Pi 3 and the Pi 4.  Build the firmware package first, then the image
+(this needs root and takes a long time; the first run also builds the kernel):
 
-    wget \
-      https://buildbotics.com/upload/2018-05-15-raspbian-stretch-bbctrl.img.xz
-    xz -d 2018-05-15-raspbian-stretch-bbctrl.img.xz
+    make pkg
+    make image
 
-Now copy the base system to an SD card.  You need a card with at least 8GiB.
-After installing the RPi system all data on the SD card will be lost.  So make
-sure you back up the SD card if there's anything important on it.
+The image is ``<date>-debian-bookworm-bbctrl.img``.  You need an SD card with
+at least 8GiB.  All data on the card will be lost, so back it up if there's
+anything important on it.
 
 In the command below, make sure you have the correct device or you can
 **destroy your Linux system** by overwriting the disk.  One way to do this is
@@ -112,13 +163,32 @@ inserting the card look for log messages containing ``/dev/sdx`` where ``x`` is
 a letter.  This should be the device name of the SD card.  Hit ``CTRL-C`` to
 stop following the system log.
 
-    sudo dd bs=4M if=2015-05-05-raspbian-wheezy.img of=/dev/sde
-    sudo sync
+    ./scripts/write-image <date>-debian-bookworm-bbctrl.img /dev/sdx
 
-The first command takes awhile and does not produce any output until it's done.
-
-Insert the SD card into your RPi and power it on.  Plug in the network
+Insert the SD card into your RPi and power it on.  On first boot it grows the
+root partition to fill the card and reboots twice.  Plug in the network
 connection, wired or wireless.
+
+## Moving a 1.x Controller
+
+Controllers that shipped with 1.x firmware run 32-bit Raspbian and cannot be
+upgraded in place.  Uploading a 2.x package from the 1.x web UI is refused by
+``scripts/install.sh``.  Instead:
+
+1. Save a configuration backup from the 1.x **Admin** page.
+2. Set the old SD card aside unchanged.  Putting it back restores 1.x.
+3. Write a new card as described above and boot from it.
+4. Restore the configuration backup from the **Admin** page.  Older
+   settings are upgraded on load; review them before running a job.
+5. Check **Admin > Main Board**.  Rev 13 and earlier are detected; Rev 14 and
+   15 must be selected there or the motor drivers stay disabled.
+6. With the motors unloaded, confirm they energize and that E-stop works
+   before running a job.
+
+On first start the AVR is reprogrammed with 2.x firmware.  Putting the old
+card back afterwards runs 1.x software against 2.x AVR firmware.  Upload a 1.x
+firmware package from the 1.x **Admin** page, which reprograms the AVR, before
+using the machine that way.
 
 ## Logging into the Buildbotics Controller
 

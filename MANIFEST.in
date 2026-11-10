@@ -2,6 +2,7 @@ recursive-include src/py/bbctrl/http *
 recursive-include src/py/bbctrl/tpl_lib *
 include package.json README.md scripts/install.sh
 include src/avr/bbctrl-avr-firmware.hex
+include src/avr/bbctrl-avr-firmware-192a3u.hex
 include src/pwr/bbctrl-pwr-firmware.hex
 include scripts/buildbotics.gc
 include scripts/bbctrl.service

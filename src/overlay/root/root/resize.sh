@@ -23,8 +23,7 @@ else
   touch /root/resize2
 
   echo Resizing partition
-  printf "w\ny\ny\n" | gdisk /dev/$DISK
-  parted -s /dev/$DISK -- unit s resizepart 2 -34s
+  parted -s /dev/$DISK -- unit s resizepart 2 -1s
 fi
 
 mount -o remount,ro /

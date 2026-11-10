@@ -25,9 +25,11 @@ Setup the demo system:
       libpython3-dev
 
     cd /opt
-    BASE=https://buildbotics.com/bbctrl
-    LATEST=$(wget $BASE/latest.txt -O- -q)
-    wget $BASE/bbctrl-$LATEST.tar.bz2
+    REPO=alexpinson5/RONtrol-firmware
+    TAG=$(wget -q -O- https://api.github.com/repos/$REPO/releases/latest |
+      python3 -c 'import json, sys; print(json.load(sys.stdin)["tag_name"])')
+    LATEST=${TAG#v}
+    wget https://github.com/$REPO/releases/download/$TAG/bbctrl-$LATEST.tar.bz2
     tar xf bbctrl-$LATEST.tar.bz2
     ln -sf bbctrl-$LATEST bbctrl
 

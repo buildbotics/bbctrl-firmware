@@ -20,15 +20,28 @@ unexpectedly. Bias toward caution.
 | Controller app | Python 3, Tornado | `src/py/bbctrl/` |
 | Input/LCD helpers | Python 3 | `src/py/inevent/`, `src/py/lcd/`, `src/py/udevevent/` |
 | Path planner | C++ via CAMotics Python module | external dependency |
-| Main firmware | C, ATxmega192A3U (avr-gcc) | `src/avr/` |
-| Power firmware | C, ATtiny3216 | `src/pwr/` |
+| Main firmware | C, avr-gcc; built for ATxmega256A3 and ATxmega192A3U | `src/avr/` |
+| Power firmware | C, ATtiny3216 (main board Rev 14+) | `src/pwr/` |
 | Bootloader / boot | C | `src/boot/` |
-| OS overlay | Raspbian files | `src/overlay/` |
+| OS image | 64-bit Debian 12 for Pi 3 and Pi 4 | `scripts/make-image.sh`, `src/overlay/` |
 | Packaging | Python setuptools + Make | `setup.py`, `Makefile` |
+
+### Hardware compatibility
+
+One package and one SD image support the Raspberry Pi 3 and 4 and main
+boards from Rev 13 and earlier through Rev 17+.  The boards differ in AVR
+chip, power chip, programming links and what drives the motor driver
+enable line; the table is in `docs/development.md` ("Supported Hardware").
+The board-specific decisions live in two places:
+`scripts/update-bb-firmware` (which AVR image, which programming method,
+detected from hardware) and `src/py/bbctrl/Board.py` (motor driver enable,
+from detection plus the Admin setting).  A change that only works on the
+newest board is a regression: keep both AVR images building and route new
+board differences through those two places.
 
 ### Canonical commands
 
-Use these — not the kit's npm/pytest defaults.
+Use these — not the kit's npm defaults.
 
 | Task | Command |
 |---|---|
@@ -36,13 +49,15 @@ Use these — not the kit's npm/pytest defaults.
 | Web assets only | `make html` |
 | Preview web UI (mock controller, no hardware) | `make preview` → http://localhost:8765/ |
 | Package | `make pkg` (output: `dist/*.tar.bz2`) |
+| Release assets | `make release` (package + `.sha256`), then `gh release create` |
+| SD card image | `make image` (root, slow; Pi 3 and Pi 4) |
 | Lint (both) | `make lint` |
 | Lint Python | `make pylint` → `pylint -E` over `src/py/**.py` |
 | Lint JS | `make jshint` → jshint over `src/js/*.js` with `jshint.json` |
 | AVR firmware | `make -C src/avr`, `make -C src/pwr` |
 | Rebuild on change | `make watch` (Linux only, needs inotifywait) |
 | Clean | `make clean` |
-| **Tests** | **none configured — see "Testing" below** |
+| Tests | `make test` (pytest over `tests/`, with coverage; no hardware needed) |
 
 Build targets assume a Debian 12 host with the toolchain from `README.md`.
 On Windows, `make` will not run; use WSL or a Debian VM. Don't fake a
@@ -52,8 +67,10 @@ build result you couldn't actually produce.
 
 - **No CI.** There is no `.github/workflows/`, no `.gitlab-ci.yml`, no
   pre-commit or pre-push hook. Nothing runs automatically on push or PR.
-- **No test framework.** Zero test files in the tree. `make lint` is the
-  only automated quality gate, and it is local and manual.
+- **Narrow test suite.** `tests/` holds a pytest suite (`make test`)
+  covering the command and serial protocols, config load/save,
+  homing/squaring and board revision logic: about 13% of `src/py/`.
+  Like `make lint`, it is local and manual.
 - `pylint -E` is errors-only, so style and most correctness warnings are
   not enforced.
 
@@ -161,9 +178,11 @@ it in so you can test," or "it's only a dev key."
 
 ## Testing
 
-**This project has no test framework and no test files.** That is the
-single largest gap between this repo and the kit's principles, and it is
-the honest starting point for every conversation about verification.
+**This project has a narrow pytest suite** in `tests/` (`make test`;
+setup in `docs/development.md`).  The motion path, Tornado handlers, the
+web UI and the firmware are untested.  That is the single largest gap
+between this repo and the kit's principles, and it is the honest starting
+point for every conversation about verification.
 
 Until that changes:
 
@@ -179,7 +198,7 @@ Until that changes:
   what makes a test suite possible later. Do it opportunistically when
   you're already in the file, not as a speculative sweep.
 
-When tests do get added, the principles that apply:
+When adding tests, the principles that apply:
 
 - Test behavior, not implementation. Test names describe what the system
   does, not what the code calls.
@@ -196,12 +215,9 @@ When tests do get added, the principles that apply:
 - Some files are correctly untested: vendored headers, generated
   bindings, pure-presentation Pug templates, bootstrap.
 
-**Recommended stack when the user wants to start** (see
-`/jgl-setup-testing`): **pytest** for `src/py/`, since Python holds most
-of the testable logic and the toolchain is already Python 3. Add
-`pytest-cov` for coverage. JS testing is a second step and a harder one —
-`src/js/` has no module system, so it needs either a browserify/jsdom
-harness or the logic extracted first.
+**Stack:** pytest and pytest-cov for `src/py/` (`requirements-dev.txt`).
+JS testing is the next and harder step: `src/js/` has no module system, so
+it needs either a browserify/jsdom harness or the logic extracted first.
 
 ## Git Hygiene
 
@@ -252,7 +268,9 @@ harness or the logic extracted first.
 - Refactoring means same behavior, better shape.
 - Be especially conservative in `src/avr/`, `src/pwr/`, and
   `src/py/bbctrl/Planner.py` / `Mach.py` / `Comm.py` — these control
-  motion. A "harmless cleanup" here can move a machine.
+  motion. A "harmless cleanup" here can move a machine.  The same goes
+  for `src/py/bbctrl/Board.py` and `scripts/update-bb-firmware`, which
+  decide whether motor drivers are enabled and what gets flashed.
 - No speculative future-proofing. No backwards-compatibility shims for
   things nothing uses; delete dead code rather than commenting it out.
 
@@ -264,8 +282,8 @@ harness or the logic extracted first.
   incentivize gaming the number.
 - Coverage finds *untested* code; it does not judge whether *tested* code
   is well tested.
-- When testing exists here, that means `pytest --cov=bbctrl` over
-  `src/py/`. There is no coverage tooling today.
+- Coverage is `pytest --cov=bbctrl`, configured in `setup.cfg` and
+  reported on every `make test` run.
 
 ## CI / Automation
 

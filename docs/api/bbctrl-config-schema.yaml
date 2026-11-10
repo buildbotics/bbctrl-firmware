@@ -40,7 +40,7 @@ properties:
     - Custom Modbus VFD
     - AC-Tech VFD
     - Nowforever VFD
-    - Delta VFD015M21A (Beta)
+    - Delta VFD
     - YL600, YL620, YL620-A VFD (Beta)
     - FR-D700 (Beta)
     - Sunfar E300 (Beta)
@@ -153,12 +153,27 @@ properties:
     default: |-
       (Runs on M2 or M30, program end)
       M2
+  cors-origins:
+    type: string
+    default: ''
   virtual-keyboard-enabled:
     type: boolean
     default: true
   auto-check-upgrade:
     type: boolean
     default: true
+  board-revision:
+    type: string
+    default: auto
+    enum:
+    - auto
+    - 13 or earlier
+    - 14 or 15
+    - 16 or later
+    description: >-
+      Main board revision, printed on the board.  Decides whether the host enables
+      the AVR buffer output, which on Rev 15 and earlier is the motor driver enable
+      line.  Auto detects Rev 13 and earlier and otherwise assumes Rev 16 or later.
   macros:
     type: array
     default: []
@@ -332,6 +347,22 @@ patternProperties:
     description: >-
       The distance in mm to move away from a latch after the final probe. Units mm
       or in. Only valid for homing modes: switch-min, switch-max, stall-min, stall-max
+  ^[0123]square-axis$:
+    type: boolean
+    default: false
+    description: >-
+      Home a second motor on this axis to its own limit switch, squaring a gantry.  Requires
+      a second motor mapped to this axis with its own switch configured under IO.  Set
+      on the first motor of the pair. Only valid for homing modes: switch-min, switch-max
+  ^[0123]max-square-error$:
+    type: number
+    default: 10
+    minimum: 0
+    description: >-
+      The furthest apart in mm the two motors may travel while squaring.  Homing stops
+      if exceeded, which catches a miswired or failed second switch before the gantry
+      racks.  Zero disables the check. Units mm or in. Only valid for homing modes:
+      switch-min, switch-max
   ^[0123456789abcdefghijklmnopqrstuv]reg-type$:
     type: string
     default: disabled

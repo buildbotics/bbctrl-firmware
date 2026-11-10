@@ -7,6 +7,17 @@ To build in Linux run:
 
     make
 
+This builds two images from the same source:
+
+ * ``bbctrl-avr-firmware.hex`` for the ATxmega256A3 (main board Rev 17+)
+ * ``bbctrl-avr-firmware-192a3u.hex`` for the ATxmega192A3U (Rev 16 and
+   earlier), in its own ``build/atxmega192a3u`` object directory
+
+The controller picks the matching image on every start; see
+``scripts/update-bb-firmware``.  The ``program``, ``fuses`` and other
+programmer targets act on the ATxmega256A3 image unless ``MCU``, ``PROJECT``
+and ``BUILD`` are overridden as shown in ``docs/development.md``.
+
 Other make commands are:
 
  * **size** - Display program and data sizes

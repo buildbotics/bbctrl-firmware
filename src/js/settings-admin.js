@@ -37,6 +37,7 @@ module.exports = {
       password2:       '',
       enableKeyboard: true,
       autoCheckUpgrade: true,
+      boardRevision: 'auto',
     }
   },
 
@@ -49,6 +50,7 @@ module.exports = {
   async ready() {
     this.enableKeyboard   = this.config.admin['virtual-keyboard-enabled']
     this.autoCheckUpgrade = this.config.admin['auto-check-upgrade']
+    this.boardRevision    = this.config.admin['board-revision'] || 'auto'
   },
 
 
@@ -170,6 +172,12 @@ module.exports = {
 
     change_auto_check_upgrade() {
       this.config.admin['auto-check-upgrade'] = this.autoCheckUpgrade
+      this.$dispatch('config-changed')
+    },
+
+
+    change_board_revision() {
+      this.config.admin['board-revision'] = this.boardRevision
       this.$dispatch('config-changed')
     },
 

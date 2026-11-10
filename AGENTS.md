@@ -11,11 +11,14 @@ Short version, so nothing gets missed if you only read this file:
 - **Brownfield production firmware.** This code ships to CNC machines
   that move. Audit before changing; be conservative in `src/avr/`,
   `src/pwr/`, and the motion path in `src/py/bbctrl/`.
+- **Old hardware is supported.** Pi 3 and Pi 4, main board Rev 13 and
+  earlier through Rev 17+, two AVR chips. Don't break older boards; see
+  "Hardware compatibility" in CLAUDE.md.
 - **Stack is settled**: Python 3 + Tornado, plain ES2017 JS + Vue 2 +
   Pug + Stylus, C for AVR, Make for builds. Don't propose migrations.
-- **Real commands**: `make`, `make html`, `make lint`, `make pkg`. There
-  is no test suite and no CI — never claim a change was tested when it
-  wasn't.
+- **Real commands**: `make`, `make html`, `make lint`, `make test`,
+  `make pkg`. The pytest suite is narrow and there is no CI — never claim
+  a change was tested when it wasn't.
 - **Never commit or echo secrets.** If one reaches you, stop and tell the
   user to rotate it.
 - **Commit messages carry no AI attribution** — no `Co-Authored-By` for a

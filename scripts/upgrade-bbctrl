@@ -1,20 +1,41 @@
 #!/bin/bash -e
 
+# Download the latest firmware release from GitHub, check it against its
+# published SHA-256 sum and install it.  Each release carries two assets:
+#
+#   bbctrl-<version>.tar.bz2         the package built by 'make pkg'
+#   bbctrl-<version>.tar.bz2.sha256  its 'sha256sum' line, from 'make release'
+#
+# src/js/app.js checks the same repository for the latest version.
+
+REPO=alexpinson5/RONtrol-firmware
+API=https://api.github.com/repos/$REPO/releases/latest
+DOWNLOAD=https://github.com/$REPO/releases/download
+
 (
     flock -n 9
 
-    VERSION=$(curl -s https://buildbotics.com/bbctrl-2.0/latest.txt)
-    PKG_NAME=bbctrl-$VERSION
+    TAG=$(curl -fsSL "$API" |
+      python3 -c 'import json, sys; print(json.load(sys.stdin)["tag_name"])')
+    VERSION=${TAG#v}
+    PKG_NAME=bbctrl-$VERSION.tar.bz2
     PKG=/var/lib/bbctrl/firmware/update.tar.bz2
-    PKG_URL=https://buildbotics.com/bbctrl-2.0/$PKG_NAME.tar.bz2
 
     logger Installing bbctrl firmware $VERSION
 
     cd /var/lib/bbctrl
     mkdir -p firmware
 
-    echo Downloading $PKG_URL
-    curl -s $PKG_URL > $PKG
+    echo Downloading $DOWNLOAD/$TAG/$PKG_NAME
+    curl -fsSL "$DOWNLOAD/$TAG/$PKG_NAME" -o $PKG
+    SUM=$(curl -fsSL "$DOWNLOAD/$TAG/$PKG_NAME.sha256" | cut -d' ' -f1)
+
+    if ! echo "$SUM  $PKG" | sha256sum --check --status; then
+      rm -f $PKG
+      logger bbctrl firmware $VERSION failed its SHA-256 check, not installed
+      echo "SHA-256 check failed, not installing"
+      exit 1
+    fi
 
     /usr/local/bin/update-bbctrl
 
