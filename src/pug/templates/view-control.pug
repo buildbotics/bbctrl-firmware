@@ -27,6 +27,83 @@
 
 script#view-control-template(type="text/x-template")
   #control
+    .top-panels
+      .program-panel.pure-form
+        .toolbar
+          bbutton(:class="{'attention': is_holding}",
+            title="{{is_running ? 'Pause' : 'Start'}} program.",
+            @click="start_pause", :icon="is_running ? 'pause' : 'play'",
+            :disabled="!active.path || mach_state == 'JOGGING'",
+            :text="is_running ? 'Pause' : 'Run'")
+
+          bbutton(title="Stop program.", @click="stop", text="Stop")
+
+          bbutton(title="Select a program.", @click="open",
+            :disabled="!is_ready", text="Open")
+
+          bbutton(title="Edit program.", @click="edit", text="Edit",
+            :disabled="!active.path")
+
+        .filename(:title="active.path") {{active.filename || 'No program'}}
+
+        .gcode
+          textarea.gcode-view(v-el:gcode-view)
+
+        .mdi(title="Manual command entry.  Up and down recall history.")
+          input(v-model="mdi", :disabled="!can_mdi", placeholder="MDI",
+            @keyup.enter="submit_mdi", @keydown.up="history_back($event)",
+            @keydown.down="history_forward($event)")
+
+          bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
+            title="{{is_running ? 'Pause' : 'Send'}} command.",
+            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'")
+
+      .viewer-panel(v-if="$root.webGLSupported")
+        nav.navbar
+          nav-item
+            | View
+            .fa.fa-caret-down
+            nav-menu
+              nav-item(@click="toggle('tool')")
+                .fa(:class="show.tool ? 'fa-check' : ''")
+                span Show Tool
+
+              nav-item(@click="toggle('axes')")
+                .fa(:class="show.axes ? 'fa-check' : ''")
+                span Show Axes
+
+              nav-item(@click="toggle('grid')")
+                .fa(:class="show.grid ? 'fa-check' : ''")
+                span Show Grid
+
+              nav-item(@click="toggle('dims')")
+                .fa(:class="show.dims ? 'fa-check' : ''")
+                span Show Bounds
+
+              nav-item(@click="toggle('intensity')")
+                .fa(:class="show.intensity ? 'fa-check' : ''")
+                span LASER Raster
+
+          nav-item
+            | Snap
+            .fa.fa-caret-down
+            nav-menu
+              nav-item.snap(v-for="name in snaps" @click="snap(name)")
+                img(:src="'images/' + name + '.png'")
+                span {{name}}
+
+          nav-item(@click="$refs.helpDialog.open()") Help
+
+        loading-message(v-if="loading", :progress="active.progress")
+          p(slot="body").
+            Simulating program to check for errors, calculating timing and
+            generating 3D view. Please wait...
+
+        viewer-help-dialog(v-ref:help-dialog)
+
+        path-viewer(v-ref:viewer, :toolpath="toolpath", :state="state",
+          :config="config")
+
     table.axes
       tr(:class="axes.klass")
         th.name Axis
@@ -118,77 +195,21 @@ script#view-control-template(type="text/x-template")
             .bar(:style="'width:' + (progress || 0) * 100 + '%'")
 
     .tabs
-      input#tab1(type="radio", name="tabs" checked, @click="tab = 'auto'")
-      label(for="tab1", title="Run programs") Auto
-
-      input#tab2(type="radio", name="tabs", @click="tab = 'mdi'")
-      label(for="tab2", title="Manual command entry") MDI
-
-      input#tab3(type="radio", name="tabs", @click="tab = 'jog'")
+      input#tab3(type="radio", name="tabs", checked)
       label(for="tab3", "Jog the axes manually") Jog
 
       template(v-if="false")
-        input#tab4(type="radio", name="tabs", @click="tab = 'overrides'")
+        input#tab4(type="radio", name="tabs")
         label(for="tab4", "Speed and feed overrides") Overrides
 
-      input#tab5(type="radio", name="tabs", @click="tab = 'messages'")
+      input#tab5(type="radio", name="tabs")
       label(for="tab5") Messages
 
-      input#tab6(type="radio", name="tabs", @click="tab = 'indicators'")
+      input#tab6(type="radio", name="tabs")
       label(for="tab6") I/O Pins
 
-      input#tab7(type="radio", name="tabs", @click="tab = 'power'")
+      input#tab7(type="radio", name="tabs")
       label(for="tab7") Power
-
-      section#content1.tab-content.pure-form
-        .toolbar.pure-control-group
-          bbutton(:class="{'attention': is_holding}",
-            title="{{is_running ? 'Pause' : 'Start'}} program.",
-            @click="start_pause", :icon="is_running ? 'pause' : 'play'",
-            :disabled="!active.path || mach_state == 'JOGGING'",
-            :text="is_running ? 'Pause' : 'Run'")
-
-          bbutton(title="Stop program.", @click="stop", text="Stop")
-
-          bbutton(title="Pause program at next optional stop (M1).",
-            @click="optional_pause", v-if="false", icon="stop-circle-o",
-            text="Optional Pause")
-
-          bbutton(title="Execute one program step.", @click="step",
-            :disabled="(!is_ready && !is_holding) || !active.path",
-            v-if="false", icon="step-forward", text="Step")
-
-          bbutton(title="Select a program.", @click="open",
-            :disabled="!is_ready", text="Open")
-
-          bbutton(title="Edit program.", @click="edit", text="Edit",
-            :disabled="!active.path")
-
-          bbutton(title="Open 3D view.", @click="view", icon="eye", text="View",
-            v-if="$root.webGLSupported", :disabled="!active.path")
-
-          .filename {{active.filename}}
-
-        textarea.gcode-view(v-el:gcode-view)
-
-      section#content2.tab-content
-        .mdi.pure-form(title="Manual command entry.")
-          bbutton(:disabled="!can_mdi", :class="{'attention': is_holding}",
-            title="{{is_running ? 'Pause' : 'Start'}} command.",
-            @click="mdi_start_pause", :icon="is_running ? 'pause' : 'play'",
-            :text="is_running ? 'Pause' : 'Run'")
-
-          bbutton(title="Stop command.", @click="stop", icon="stop",
-            text="Stop")
-
-          input(v-model="mdi", :disabled="!can_mdi", @keyup.enter="submit_mdi")
-
-        .history(:class="{placeholder: !history}")
-          span(v-if="!history.length") MDI history displays here.
-          ul
-            li(v-for="item in history", @click="load_history($index)",
-               track-by="$index")
-              | {{item}}
 
       section#content3.tab-content
         .jog

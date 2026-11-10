@@ -26,21 +26,21 @@
 \******************************************************************************/
 
 .view-control
-  max-width limit-width
-  margin 0 auto
-
   #control
     display flex
     flex-direction column
+    gap gutter
 
-    > *
-      margin 0.5em 0
+    .top-panels
+      display flex
+      gap gutter
+      height 60vh
+      min-height 400px
 
     .info-blocks
       display grid
       grid-template-columns auto auto auto
-      column-gap 4px
-      row-gap 4px
+      gap gutter
 
   table
     border-collapse collapse
@@ -163,8 +163,7 @@
   .macros
     display grid
     grid-template-columns repeat(auto-fill, minmax(9em, 1fr))
-    column-gap 1%
-    row-gap 8px
+    gap gutter
     padding 0
 
     .macro
@@ -234,41 +233,81 @@
       padding 0
       margin 0
 
-  .CodeMirror
-    height 460px
+  .program-panel, .viewer-panel
+    card()
+    overflow hidden
+    display flex
+    flex-direction column
+    min-width 0
 
-  .gcode-view, .history
-    font-family courier
-    overflow auto
-    height 450px
-    white-space nowrap
+  .program-panel
+    flex 0 0 25%
 
-    &.placeholder
+    // Without WebGL there is no 3D view to share the row with
+    &:only-child
+      flex 1
+
+    .filename
+      padding 0 0.5em 0.25em
       color text-muted
-  .history
-    padding 0.25em
+      overflow hidden
+      text-overflow ellipsis
+      white-space nowrap
 
-  .history ul
-    margin 0
-    padding 0
-    list-style none
-    li
-      cursor pointer
-      padding 2px 4px
-      border-radius 3px
-      &:hover
-        background accent-tint
+    .gcode
+      flex 1
+      min-height 0
+      position relative
+      border-top 1px solid border-color
+
+      .CodeMirror
+        position absolute
+        top 0
+        right 0
+        bottom 0
+        left 0
+        height auto
+
   .mdi
-    clear both
     white-space nowrap
     padding 0.125em
     display flex
+    border-top 1px solid border-color
 
     > *
       margin 0.125em
 
     input
-      flex 2
+      flex 1
+      min-width 0
+      font-family mono-font
+
+  .viewer-panel
+    flex 1
+    position relative
+
+    .path-viewer
+      flex 1
+      min-height 0
+
+    .navbar
+      img
+        width 1.5em
+        margin 0 0.25em
+
+      .snap
+        text-transform capitalize
+
+      .nav-item
+        align-items center
+
+    // Centered on the 3D view rather than the window
+    .loading-message
+      position absolute
+      top 50%
+      left 50%
+      margin 0
+      transform translate(-50%, -50%)
 
   .jog
     text-align center
@@ -294,9 +333,19 @@
   color text-color
 @media only screen and (max-width 970px)
   .view-control #control
-    .path-viewer.small .path-viewer-content
-      margin-top inherit
-      float inherit
+    .top-panels
+      flex-direction column
+      height auto
+      min-height 0
+
+    .program-panel
+      flex-basis auto
+      height 400px
+
+    .viewer-panel
+      flex-basis auto
+      height 60vh
+      min-height 300px
 
 @media only screen and (max-width 940px)
   .view-control #control

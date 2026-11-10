@@ -39,18 +39,22 @@ module.exports = {
     return {
       mdi: '',
       history: [],
+      history_index: -1,
       jog_step: cookie.get_bool('jog-step'),
       jog_adjust: parseInt(cookie.get('jog-adjust', 2)),
-      tab: 'auto',
       highlighted_line: 0,
-      toolpath: {}
+      loading: false,
+      toolpath: {},
+      snaps: 'angled top bottom front back left right'.split(' ')
     }
   },
 
 
   components: {
-    'axis-row':     require('./axis-row'),
-    'axis-control': require('./axis-control')
+    'axis-row':           require('./axis-row'),
+    'axis-control':       require('./axis-control'),
+    'path-viewer':        require('./path-viewer'),
+    'viewer-help-dialog': require('./viewer-help-dialog')
   },
 
 
@@ -73,6 +77,13 @@ module.exports = {
 
 
     metric() {return !this.state.imperial},
+
+
+    // 3D view options, owned by the path viewer
+    show() {
+      if (this.$refs.viewer == undefined) return {}
+      return this.$refs.viewer.show
+    },
 
 
     // Units display with G-code reference
@@ -194,7 +205,12 @@ module.exports = {
   },
 
 
-  attached() {if (this.editor) this.editor.refresh()},
+  attached() {
+    if (this.editor) this.editor.refresh()
+
+    // The canvas has no size while the page is hidden
+    if (this.$refs.viewer) Vue.nextTick(this.$refs.viewer.update_view)
+  },
 
 
   methods: {
@@ -233,6 +249,7 @@ module.exports = {
 
     clear_display() {
       if (this.editor != undefined) this.editor.setValue('')
+      if (this.$refs.viewer) this.$refs.viewer.clear()
       this.toolpath         = {}
       this.highlighted_line = 0
     },
@@ -249,9 +266,27 @@ module.exports = {
       this.editor.setValue(data)
       this.highlight_code()
 
-      let toolpath = await this.active.toolpath()
-      if (this.active.path != path) return
-      this.toolpath = toolpath
+      await this.load_toolpath(path)
+    },
+
+
+    // The 3D view also needs the positions and speeds, so only download
+    // them when there is a viewer to show them
+    async load_toolpath(path) {
+      let program = this.active
+      let viewer  = this.$refs.viewer
+      if (viewer) viewer.clear()
+      this.loading = true
+
+      try {
+        let toolpath = await (viewer ? program.view() : program.toolpath())
+        if (this.active.path != path) return
+        this.toolpath = toolpath
+        if (viewer) Vue.nextTick(viewer.update)
+
+      } finally {
+        if (this.active.path == path) this.loading = false
+      }
     },
 
 
@@ -260,6 +295,23 @@ module.exports = {
       if (!this.history.length || this.history[0] != this.mdi)
         this.history.unshift(this.mdi)
       this.mdi = ''
+      this.history_index = -1
+    },
+
+
+    // Up arrow steps back through earlier commands, down arrow forward
+    history_back(e) {
+      e.preventDefault()
+      if (this.history_index + 1 < this.history.length)
+        this.mdi = this.history[++this.history_index]
+    },
+
+
+    history_forward(e) {
+      e.preventDefault()
+      if (this.history_index < 0) return
+      this.history_index--
+      this.mdi = this.history_index < 0 ? '' : this.history[this.history_index]
     },
 
 
@@ -271,9 +323,6 @@ module.exports = {
 
       else this.submit_mdi()
     },
-
-
-    load_history(index) {this.mdi = this.history[index]},
 
 
     async home_all() {return this.$api.put('home')},
@@ -318,7 +367,8 @@ module.exports = {
 
 
     edit() {this.$root.edit(this.active.path)},
-    view() {this.$root.view(this.active.path)},
+    toggle(name) {this.$refs.viewer.toggle(name)},
+    snap(view) {this.$refs.viewer.snap(view)},
 
 
     current(axis, value) {

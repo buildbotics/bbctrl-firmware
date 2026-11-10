@@ -26,46 +26,45 @@
 \******************************************************************************/
 
 
+header-height = 40px
+
+// One compact row: logo, name and version on the left, attribution right
 .header
-  width calc(100% - 2em)
-  padding 0 1em
+  padding 0 0.5em
   border 0
   background chrome
   color chrome-text
-  border-bottom 3px solid accent
+  border-bottom 2px solid accent
 
   .header-content
-    max-width limit-width
-    margin 0 auto
-    text-align left
-    display flex
-    flex-wrap wrap
-    align-items center
-
-  .header-tools
-    display flex
-    align-items center
-
-  .banner
-    white-space nowrap
-    flex 1
-    margin 0
+    height header-height
     display flex
     align-items center
     gap 1em
+    overflow hidden
+
+  .banner
+    flex 1
+    min-width 0
+    margin 0
+    display flex
+    align-items center
+    gap 0.6em
+    white-space nowrap
 
     .banner-text
       display flex
-      flex-direction column
+      align-items baseline
+      gap 0.75em
+      min-width 0
 
     img
-      height 56px
+      height 26px
 
     .title
-      font-size 28pt
+      font-size 16pt
       font-weight 300
       letter-spacing 0.02em
-      line-height 1.1
 
       .left
         color #fff
@@ -74,68 +73,37 @@
         color accent
 
       .fa
-        font-size 60%
+        font-size 70%
         margin-left 0.5em
-        vertical-align middle
 
     .subtitle
-      font-size 12pt
-      font-weight 400
+      font-size 10pt
       color chrome-muted
+      overflow hidden
+      text-overflow ellipsis
 
       b
         color chrome-text
 
-      .copyright
-        display block
-        font-size 9pt
-        color chrome-muted
-        opacity 0.8
-        text-decoration none
-
-        &:hover
-          color accent
-          opacity 1
-
-  .camera-thumb
-    cursor pointer
-
-  .camera-button
-    display none
-    margin 0 5px
-    color chrome-text
-    background chrome-2
-    border-color chrome-3
-
-  .video
-    position relative
-    width 174px
-    height 130px
-    margin 2px 5px
-    border 2px solid chrome-3
-    border-radius radius
+  .copyright
+    flex 0 1 auto
+    min-width 0
     overflow hidden
+    text-overflow ellipsis
+    white-space nowrap
+    font-size 8pt
+    color chrome-muted
+    opacity 0.8
+    text-decoration none
 
     &:hover
-      border-color accent
-
-    img
-      height 100%
-      width 100%
-
-  .estop
-    margin 0 5px
-    height 140px
+      color accent
+      opacity 1
 
 @media only screen and (max-width collapse-width)
+  // Room for the menu button
   .header .header-content
-    margin-left 50px
-
-    .video
-      display none
-
-    .camera-button
-      display inline-block
+    margin-left 40px
 
   .header .banner img
     display none

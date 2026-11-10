@@ -99,7 +99,6 @@ module.exports = new Vue({
     'estop':          {template: '#estop-template'},
     'view-loading':   {template: '<h1>Loading...</h1>'},
     'view-control':   require('./view-control'),
-    'view-viewer':    require('./view-viewer'),
     'view-probing':   {template: '#view-probing-template'},
     'view-offsets':   {template: '#view-offsets-template'},
     'view-editor':    require('./view-editor'),
@@ -137,7 +136,7 @@ module.exports = new Vue({
 
       // The camera is a modal now; keep old #camera links working.
       // replaceState rather than location.hash so the browser doesn't
-      // jump-scroll to the #control element and hide the header E-stop.
+      // jump-scroll to the #control element.
       if (path[0] == 'camera') {
         let view = oldView == 'loading' ? 'control' : oldView
         history.replaceState(null, '', '#' + view)
@@ -621,9 +620,10 @@ module.exports = new Vue({
     },
 
 
+    // The 3D view is part of the Control page
     view(path) {
       this.select_path(path)
-      location.hash = 'viewer'
+      location.hash = 'control'
     }
   }
 })
