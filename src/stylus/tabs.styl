@@ -34,22 +34,21 @@
   > label
     display block
     float left
-    width 6em
-    font-weight bold
+    min-width 6em
+    font-weight 600
     cursor pointer
     text-decoration none
     text-align center
-    background #eee
-    border-top-left-radius 5px
-    border-top-right-radius 5px
-    border-top 2px solid #f6f6f6
-    border-left 1px solid #f6f6f6
-    border-right 1px solid #f6f6f6
+    color text-muted
+    background transparent
+    border 0
+    border-bottom 3px solid transparent
     margin-right 2px
-    padding 0.5em
+    padding 0.7em 1em
 
     &:hover
-      background-image button-hover
+      color text-color
+      background surface-alt
 
   > section
     display none
@@ -67,13 +66,12 @@
     display block
 
   [id^="tab"]:checked + label
-    background #fff
-    border-top 2px solid #ddd
-    border-left 1px solid #ddd
-    border-right 1px solid #ddd
-    border-bottom 1px solid #fff
-    margin-bottom -1px
+    color text-color
+    background surface
+    border-bottom-color accent
+    border-radius radius radius 0 0
 
   .tab-content
-    border 1px solid #ddd
+    card()
+    border-top-left-radius 0
     padding 0.5em

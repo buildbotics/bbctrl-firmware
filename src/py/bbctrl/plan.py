@@ -312,7 +312,7 @@ class Plan(object):
             json.dump(meta, f)
 
 
-parser = argparse.ArgumentParser(description = 'Buildbotics GCode Planner')
+parser = argparse.ArgumentParser(description = 'RONtrol GCode Planner')
 parser.add_argument('gcode', help = 'The GCode file to plan')
 parser.add_argument('state', help = 'GCode state variables')
 parser.add_argument('config', help = 'Planner config')

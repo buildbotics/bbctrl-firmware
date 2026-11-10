@@ -63,30 +63,24 @@
   .actions
     a, a:visited, a:active
       text-decoration none
-      color #777
-
+      color text-muted
     .fa:hover
-      color #222
-
+      color accent
   thead tr
-    background #444
-    color #eee
-
+    background chrome-2
+    color chrome-text
   tbody tr
     cursor pointer
 
     &:nth-of-type(even)
-      background #fafafa
-
+      background surface-alt
     &:hover
-      background #f7f7f7
-
+      background accent-tint
     &.selected
-      color #222
-      background #ffdd74
-
+      color #fff
+      background accent
   td, th
-    padding 0 1em
+    padding 0.35em 1em
     white-space nowrap
 
 .file-dialog > .dialog-mask > .dialog-wrapper > .dialog-container
@@ -110,13 +104,13 @@
   .fa
     padding-right 0.5em
 
+  border-radius radius
+  margin 1px 0.25em
   &:hover
-    background #f7f7f7
-
+    background accent-tint
   &.active
-    background #ddd
-    color #444
-
+    background accent
+    color #fff
 .files-body
   flex-direction row
 
@@ -127,7 +121,6 @@
   padding 0 1em
 
 .files-locations
-  border-right 1px solid #eee
-
+  border-right 1px solid border-color
 .files-locations, .files-list
   overflow auto

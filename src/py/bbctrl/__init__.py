@@ -32,7 +32,7 @@ def _parse_args():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description = 'Buildbotics Machine Controller')
+        description = 'RONtrol Machine Controller')
 
     parser.add_argument('-p', '--port', default = 80,
                         type = int, help = 'HTTP port')

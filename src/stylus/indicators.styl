@@ -31,9 +31,11 @@
   display grid
   grid-template-columns 1fr 1fr
 
+  gap 0.5em
   > *
-    border 2px solid #bbb
-
+    border 1px solid border-color
+    border-radius radius
+    overflow hidden
   table
     width 100%
     empty-cells show
@@ -45,8 +47,7 @@
       height 1.25em
 
     tr:nth-child(odd)
-      background #f7f7f7
-
+      background surface-alt
     th
       text-align left
 
@@ -55,18 +56,18 @@
 
     th.header
       height calc(2.5em + 6px)
-      border-bottom 3px solid #ccc
+      border-bottom 3px solid accent
+      background chrome-2
+      color chrome-text
       text-align center
-
     th.separator
-      background #ccc
-      border 1px solid #ccc
+      background border-color
+      border 1px solid border-color
       padding 0
       width 0
 
     &.legend
-      border-top 2px solid #bbb
-
+      border-top 1px solid border-color
       td
         text-align center
 

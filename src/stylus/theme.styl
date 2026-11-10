@@ -1,0 +1,152 @@
+/******************************************************************************\
+
+                  This file is part of the Buildbotics firmware.
+
+         Copyright (c) 2015 - 2023, Buildbotics LLC, All rights reserved.
+
+          This Source describes Open Hardware and is licensed under the
+                                  CERN-OHL-S v2.
+
+          You may redistribute and modify this Source and make products
+     using it under the terms of the CERN-OHL-S v2 (https:/cern.ch/cern-ohl).
+            This Source is distributed WITHOUT ANY EXPRESS OR IMPLIED
+     WARRANTY, INCLUDING OF MERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS
+      FOR A PARTICULAR PURPOSE. Please see the CERN-OHL-S v2 for applicable
+                                   conditions.
+
+                 Source location: https://github.com/buildbotics
+
+       As per CERN-OHL-S v2 section 4, should You produce hardware based on
+     these sources, You must maintain the Source Location clearly visible on
+     the external case of the CNC Controller or other product you make using
+                                   this Source.
+
+                 For more information, email info@buildbotics.com
+
+\******************************************************************************/
+
+
+// RONtrol theme: flat, touch-first "app tile" styling inspired by modern
+// machine-tool HMIs.  Palette and shared control styling live here; the
+// per-view files below only use these variables.
+
+chrome        = #2b2d30
+chrome-2      = #3a3d42
+chrome-3      = #4a4e54
+chrome-text   = #f2f4f6
+chrome-muted  = #a3a9b0
+page-bg       = #e9ecef
+surface       = #ffffff
+surface-alt   = #f5f7f9
+border-color  = #d5d9de
+text-color    = #2b2d30
+text-muted    = #6b7178
+accent        = #0096d6
+accent-dark   = #0079ad
+accent-tint   = #e3f3fb
+ok-color      = #2e9e4f
+ok-tint       = #dff2e5
+warn-color    = #e08a00
+warn-tint     = #fff3d6
+err-color     = #d0342c
+err-tint      = #fbe1df
+radius        = 6px
+card-shadow   = 0 1px 2px rgba(0, 0, 0, .08), 0 1px 6px rgba(0, 0, 0, .04)
+touch-height  = 40px
+ui-font       = "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif
+mono-font     = "DejaVu Sans Mono", Consolas, "Courier New", monospace
+
+body
+  font-family ui-font
+  color text-color
+  background page-bg
+
+h1, h2, h3, h4
+  font-weight 600
+  color text-color
+
+a
+  color accent-dark
+
+tt
+  color text-color
+  background surface-alt
+  border-radius 3px
+  padding 2px
+
+// Buttons: flat tiles with a touch-friendly minimum height
+.pure-button
+  font-family ui-font
+  min-height touch-height
+  padding 0 1em
+  color text-color
+  background surface
+  border 1px solid border-color
+  border-radius radius
+  transition background-color 120ms, border-color 120ms, color 120ms
+
+  &:hover:not([disabled])
+    background-image none
+    background-color accent-tint
+    border-color accent
+
+  &:active:not([disabled])
+    box-shadow inset 0 2px 4px rgba(0, 0, 0, .15)
+
+  &:focus
+    outline none
+    border-color accent
+
+  &[disabled]
+    opacity 0.45
+
+.pure-button-primary, .pure-button-selected
+  &:not([disabled])
+    color #fff
+    background accent
+    border-color accent
+
+    &:hover
+      color #fff
+      background accent-dark
+
+// Form fields
+.pure-form
+  input[type=text], input[type=password], input[type=email],
+  input[type=number], input[type=url], input[type=search],
+  input:not([type]), select, textarea
+    border 1px solid border-color
+    border-radius radius
+    box-shadow none
+
+    &:focus
+      border-color accent
+      box-shadow 0 0 0 2px accent-tint
+
+  select
+    height touch-height
+
+  legend
+    color text-color
+    font-weight 600
+    border-bottom 2px solid accent
+
+// Tables
+.pure-table
+  border 1px solid border-color
+  border-radius radius
+  overflow hidden
+
+  thead
+    background chrome-2
+    color chrome-text
+
+  td, th
+    border-color border-color
+
+// Generic card surface used by several views
+card()
+  background surface
+  border 1px solid border-color
+  border-radius radius
+  box-shadow card-shadow

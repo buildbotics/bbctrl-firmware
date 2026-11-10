@@ -35,11 +35,6 @@ body, #layout
 [v-cloak]
   display none
 
-tt
-  color #000
-  background #eee
-  padding 2px
-
 .content
   padding 0
 
@@ -56,11 +51,12 @@ button
 input.password
   font-family password
 
-button-hover = linear-gradient(transparent, #0000000d 40%, #00000019)
+button-hover = linear-gradient(transparent, #0000000a 40%, #00000014)
 limit-width = 1200px
 sidebar-width = 110px
 collapse-width = 810px
 
+@import('theme')
 @import('status-colors')
 @import('color-picker')
 @import('dragbar')
@@ -84,8 +80,7 @@ collapse-width = 810px
 @import('view-editor')
 @import('view-viewer')
 @import('view-files')
-@import('view-camera')
-@import('view-docs')
+@import('placeholder-view')
 @import('path-viewer')
 @import('overrides')
 @import('console')
@@ -98,5 +93,4 @@ collapse-width = 810px
 @import('motor-slave')
 @import('upgrade-version')
 @import('error-message')
-@import('cheat-sheet')
 @import('macros')

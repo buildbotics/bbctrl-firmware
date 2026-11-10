@@ -42,6 +42,6 @@ if __name__ == "__main__":
     screen = lcd.LCD(lambda byte: i2c.write_byte(addr, byte))
 
     screen.clear()
-    screen.display(0, 'Buildbotics', lcd.JUSTIFY_CENTER)
+    screen.display(0, 'RONtrol',     lcd.JUSTIFY_CENTER)
     screen.display(1, 'Controller',  lcd.JUSTIFY_CENTER)
     screen.display(3, 'Booting...',  lcd.JUSTIFY_CENTER)

@@ -27,12 +27,18 @@
 
 #main
   overflow-y scroll
+  background page-bg
+  background page-bg
   display flex
   flex-direction column
   flex 1
 
+  // Every view gets the same gutter so nothing butts against the edges
   .content
     width 100%
+    padding 0.75em 0.75em 0
+    box-sizing border-box
+    padding-top 0.75em
 
     h2
       text-transform capitalize
@@ -54,5 +60,5 @@
       > tt
         min-width 15.25em
         padding 0.7em 1em
-        border-radius 3px
+        border-radius radius
         display inline-block

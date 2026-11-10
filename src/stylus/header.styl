@@ -25,10 +25,14 @@
 
 \******************************************************************************/
 
+
 .header
   width calc(100% - 2em)
   padding 0 1em
   border 0
+  background chrome
+  color chrome-text
+  border-bottom 3px solid accent
 
   .header-content
     max-width limit-width
@@ -46,38 +50,74 @@
     white-space nowrap
     flex 1
     margin 0
+    display flex
+    align-items center
+    gap 1em
+
+    .banner-text
+      display flex
+      flex-direction column
 
     img
-      vertical-align top
+      height 56px
 
     .title
-      font-size 30pt
-      font-family Audiowide
-      display inline
-      margin-right 0.5em
+      font-size 28pt
+      font-weight 300
+      letter-spacing 0.02em
+      line-height 1.1
 
       .left
-        color #444
+        color #fff
+        font-weight 700
       .right
-        color #e5aa3d
+        color accent
+
+      .fa
+        font-size 60%
+        margin-left 0.5em
+        vertical-align middle
 
     .subtitle
-      font-size 18pt
-      font-weight 100
-      color #aaa
+      font-size 12pt
+      font-weight 400
+      color chrome-muted
+
+      b
+        color chrome-text
 
       .copyright
-        font-size 10pt
+        display block
+        font-size 9pt
+        color chrome-muted
+        opacity 0.8
+        text-decoration none
+
+        &:hover
+          color accent
+          opacity 1
+
+  .camera-thumb
+    cursor pointer
+
+  .camera-button
+    display none
+    margin 0 5px
+    color chrome-text
+    background chrome-2
+    border-color chrome-3
 
   .video
     position relative
     width 174px
     height 130px
     margin 2px 5px
-    border 2px solid #fff
+    border 2px solid chrome-3
+    border-radius radius
+    overflow hidden
 
     &:hover
-      border-color #aaa
+      border-color accent
 
     img
       height 100%
@@ -93,3 +133,9 @@
 
     .video
       display none
+
+    .camera-button
+      display inline-block
+
+  .header .banner img
+    display none

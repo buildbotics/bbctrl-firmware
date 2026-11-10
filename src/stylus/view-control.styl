@@ -27,7 +27,7 @@
 
 .view-control
   max-width limit-width
-  margin auto
+  margin 0 auto
 
   #control
     display flex
@@ -44,20 +44,25 @@
 
   table
     border-collapse collapse
-
     td, th
-      border 1px solid #ddd
-
+      border 1px solid border-color
+  table.axes, table.info
+    border-collapse separate
+    border-spacing 0
+    card()
+    overflow hidden
+    td, th
+      border 0
+      border-bottom 1px solid border-color
+    tr:last-child td, tr:last-child th
+      border-bottom 0
   .axes
     .axis-x .name
-      color #f00
-
+      color #ff5a52
     .axis-y .name
-      color #0f0
-
+      color #3ccf6e
     .axis-z .name
-      color #00f
-
+      color #4ea3ff
     .axis-a .name
       color #f80
 
@@ -68,35 +73,40 @@
       color #f0f
 
     td, th
-      padding 2px
+      padding 4px 8px
       white-space nowrap
-
     th
       text-align center
       vertical-align bottom
-
+      background chrome-2
+      color chrome-text
+      font-weight 600
+      font-size 10pt
+      text-transform uppercase
+      letter-spacing 0.05em
     td
       text-align right
-      font-family Courier
-
+      font-family mono-font
     .homed
-      background-color #ccffcc
-      color #000
-
+      background-color ok-tint
+      color text-color
     .warn
-      background-color #ffffcc
-
+      background-color warn-tint
+      color text-color
     .error
-      background-color #ffcccc
-
+      background-color err-tint
+      color text-color
     .axis
       .name
         text-transform capitalize
 
+      .name
+        font-family ui-font
+        font-weight 700
+        text-align center
       .name, .position
-        font-size 24pt
-        line-height 24pt
-
+        font-size 26pt
+        line-height 30pt
       .position
         width 99%
 
@@ -126,50 +136,45 @@
       font-family Sans
       font-weight bold
       stroke transparent
-      fill #444
-
+      fill text-color
     .button
       cursor pointer
-      stroke #4c4c4c
-
+      stroke chrome-3
       &:hover
-        stroke #e55
-
+        stroke accent
       path
         overflow visible
 
     .house
-      stroke #444
-      fill #444
-
+      stroke chrome
+      fill chrome
     .ring
       cursor pointer
       overflow visible
 
       .button
         stroke transparent
-
         &:hover
-          stroke #e55
-
+          stroke accent
         text
           font-size 10pt
           text-anchor middle
 
   .macros
     display grid
-    grid-template-columns repeat(8, 1fr)
+    grid-template-columns repeat(auto-fill, minmax(9em, 1fr))
     column-gap 1%
     row-gap 8px
-    padding 0 0.25em
+    padding 0
 
     .macro
       text-align left
       overflow hidden
       text-overflow ellipsis
       white-space nowrap
-      padding 0.5em
-
+      min-height 3.25em
+      padding 0.5em 0.75em
+      font-weight 600
       &:hover
         background-image button-hover
 
@@ -181,7 +186,7 @@
 
     th, td
       height 1.75em
-      padding 3px
+      padding 3px 10px
       text-align right
       overflow hidden
       text-overflow ellipsis
@@ -190,7 +195,10 @@
     th
       min-width 5.25em
       width 5.25em
-
+      text-align left
+      color text-muted
+      font-weight 600
+      background surface-alt
     td
       min-width 8em
       width 100%
@@ -203,8 +211,8 @@
 
       .bar
         height 1.75em
-        background #f2ac45
-
+        background accent
+        border-radius 3px
   .toolbar
     display flex
     flex-wrap wrap
@@ -236,8 +244,7 @@
     white-space nowrap
 
     &.placeholder
-      color #aaa
-
+      color text-muted
   .history
     padding 0.25em
 
@@ -245,10 +252,12 @@
     margin 0
     padding 0
     list-style none
-
     li
       cursor pointer
-
+      padding 2px 4px
+      border-radius 3px
+      &:hover
+        background accent-tint
   .mdi
     clear both
     white-space nowrap
@@ -281,15 +290,8 @@
       vertical-align middle
 
 .load-on
-  background-color #ccffcc
-  color #000
-
-
-@media only screen and (min-width 1350px)
-  .view-control #control
-    .macros
-      grid-template-columns repeat(12, 1fr)
-
+  background-color ok-tint
+  color text-color
 @media only screen and (max-width 970px)
   .view-control #control
     .path-viewer.small .path-viewer-content
@@ -307,13 +309,7 @@
       .absolute, .offset
         display none
 
-    .macros
-      grid-template-columns repeat(6, 1fr)
 
     .info-blocks
       grid-template-columns auto
 
-@media only screen and (max-width 570px)
-  .view-control #control
-    .macros
-      grid-template-columns repeat(4, 1fr)

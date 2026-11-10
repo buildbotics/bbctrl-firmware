@@ -35,9 +35,8 @@
 
     button
       padding 0.25em 1em
-      border-radius 0
-      height 40px
-
+      border-radius radius
+      height touch-height
   .settings-view
     margin 0 auto
     max-width limit-width
@@ -64,14 +63,12 @@
 #settings-network
   .wifi-aps
     tr:nth-child(odd)
-      background #eee
-
+      background surface
     tr:nth-child(even)
-      background #f7f7f7
-
+      background surface-alt
     tr:first-child
-      background #ddd
-
+      background chrome-2
+      color chrome-text
     td
       white-space nowrap
 
@@ -89,10 +86,8 @@
 
       .bar
         width 4px
-        background #ccc
-
+        background border-color
         &.active
-          background green
-
+          background ok-color
   .wifi-device
     margin 1em 0

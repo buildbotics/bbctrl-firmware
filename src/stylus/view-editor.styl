@@ -34,4 +34,10 @@
     padding 5px 15px
 
   .CodeMirror
-    height calc(100vh - 180px)
+    // header + submenu bar + gutters
+    height calc(100vh - 215px)
+    border-radius radius
+
+#layout.nav-bottom .view-editor .CodeMirror
+  // ...plus the bottom navigation bar
+  height calc(100vh - 300px)

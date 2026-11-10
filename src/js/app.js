@@ -59,6 +59,8 @@ module.exports = new Vue({
         tool:     0,
       },
       crosshair:         cookie.get_bool('crosshair', false),
+      cameraOpen:        false,
+      navPosition:       cookie.get('nav-position', 'left'),
       selected_program:  new Program(this.$api, cookie.get('selected-path')),
       active_program:    undefined,
       errorTimeout:      30,
@@ -77,16 +79,17 @@ module.exports = new Vue({
     'view-loading':   {template: '<h1>Loading...</h1>'},
     'view-control':   require('./view-control'),
     'view-viewer':    require('./view-viewer'),
+    'view-probing':   {template: '#view-probing-template'},
+    'view-offsets':   {template: '#view-offsets-template'},
     'view-editor':    require('./view-editor'),
     'view-settings':  require('./view-settings'),
     'view-files':     require('./view-files'),
-    'view-camera':    {template: '#view-camera-template'},
-    'view-docs':      require('./view-docs')
   },
 
 
   watch: {
     crosshair() {cookie.set_bool('crosshair', this.crosshair)},
+    navPosition() {cookie.set('nav-position', this.navPosition)},
 
 
     'state.active_program'(path) {
@@ -103,6 +106,16 @@ module.exports = new Vue({
   events: {
     route(path) {
       let oldView = this.currentView
+
+      // The camera is a modal now; keep old #camera links working.
+      // replaceState rather than location.hash so the browser doesn't
+      // jump-scroll to the #control element and hide the header E-stop.
+      if (path[0] == 'camera') {
+        let view = oldView == 'loading' ? 'control' : oldView
+        history.replaceState(null, '', '#' + view)
+        this.currentView = view
+        return this.open_camera()
+      }
 
       if (typeof this.$options.components['view-' + path[0]] == 'undefined')
         return location.hash = 'control'
@@ -263,6 +276,23 @@ module.exports = new Vue({
     block_error_dialog() {
       this.errorTimeoutStart = Date.now()
       this.$refs.errorMessage.close()
+    },
+
+
+    async open_camera() {
+      if (this.cameraOpen) return
+
+      // The modal sits below the header; make sure the header (and its
+      // E-stop) is on screen while the modal is up.
+      $('#main').scrollTop(0)
+
+      let done = this.$refs.cameraDialog.open()
+
+      // Mount the feed only while open so closing drops the stream and
+      // frees one of the controller's limited camera client slots.
+      Vue.nextTick(() => {this.cameraOpen = true})
+      await done
+      this.cameraOpen = false
     },
 
 

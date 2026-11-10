@@ -34,6 +34,7 @@ Use these — not the kit's npm/pytest defaults.
 |---|---|
 | Full build | `make` |
 | Web assets only | `make html` |
+| Preview web UI (mock controller, no hardware) | `make preview` → http://localhost:8765/ |
 | Package | `make pkg` (output: `dist/*.tar.bz2`) |
 | Lint (both) | `make lint` |
 | Lint Python | `make pylint` → `pylint -E` over `src/py/**.py` |

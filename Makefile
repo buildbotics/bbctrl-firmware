@@ -140,6 +140,10 @@ lint: pylint jshint
 test:
 	pytest
 
+# Preview the web UI against a mock controller (no hardware needed)
+preview: html
+	./scripts/ui-preview $(TARGET_DIR)
+
 watch:
 	@clear
 	$(MAKE)
@@ -163,4 +167,4 @@ dist-clean: clean
 	rm -rf node_modules
 
 .PHONY: all install clean tidy pkg camotics lint pylint jshint test
-.PHONY: html resources dist-clean
+.PHONY: html resources dist-clean preview

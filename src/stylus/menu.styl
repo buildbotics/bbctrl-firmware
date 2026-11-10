@@ -25,47 +25,66 @@
 
 \******************************************************************************/
 
+
 #menu, #menuLink
   transition: all 0.2s ease-out;
 
+// Left navigation rail: one icon tile per view
 #menu
   width sidebar-width
-  background #222
+  background chrome
   overflow hidden
-
-  a
-    color #999
-    padding: 0.6em 0 0.6em 0.6em
-
-  .save
-    display block
-    margin 0.25em 0.6em
-
-  .pure-menu li
-    a:hover, a:focus
-      background #333
+  overflow-y auto
+  border-right 1px solid #000
 
   .pure-menu-list
     border 0
+    padding 0.5em 0
 
   .pure-menu-heading
     background inherit
-    margin 0
+    margin 0.25em 0.5em
     padding 0
-    font-size 110%
-    color #fff
+    text-transform none
+    color chrome-text
 
     .pure-menu-link
-      padding 0.6em
+      display flex
+      flex-direction column
+      align-items center
+      gap 0.35em
+      padding 0.8em 0.25em
+      border-radius radius
+      color chrome-muted
+      font-size 10pt
+      font-weight 600
+      letter-spacing 0.03em
+      text-align center
+      border-left 3px solid transparent
+
+      .fa
+        font-size 22pt
+        width auto
+
+      &:hover, &:focus
+        background chrome-2
+        color #fff
+
+    &.active .pure-menu-link
+      background chrome-2
       color #fff
+      border-left-color accent
+
+      .fa
+        color accent
 
   .pure-menu-item .pure-menu-link
     padding-left 1.5em
 
 #menuLink
   position absolute
-  opacity 0.9
-  background #222
+  opacity 0.95
+  background chrome
   display none
   font-size 10px
   width 2em
@@ -73,7 +92,7 @@
   padding 2.1em 1.6em
 
   &:hover
-    background #333
+    background chrome-2
 
   span
     position relative
@@ -99,7 +118,7 @@
     z-index 100
     height 100vh
     width 0
-    opacity 0.9
+    opacity 0.97
 
   #menuLink
     display block
@@ -111,3 +130,52 @@
 
     #menuLink
       margin-left sidebar-width
+
+
+// Bottom navigation (portrait monitors): the rail becomes a tab bar under
+// the main view and the active marker moves to the tile's bottom edge.
+#layout.nav-bottom
+  flex-direction column
+
+  #main
+    min-height 0
+
+  #menu
+    order 2
+    width 100%
+    height auto
+    flex none
+    overflow visible
+    border-right 0
+    border-top 1px solid #000
+
+    .pure-menu-list
+      display flex
+      justify-content center
+      padding 0.25em 0
+
+    .pure-menu-heading
+      flex 1
+      max-width 9em
+      margin 0 0.25em
+
+      .pure-menu-link
+        border-left 0
+        border-bottom 3px solid transparent
+
+      &.active .pure-menu-link
+        border-bottom-color accent
+
+  #menuLink
+    display none
+
+@media (max-width: collapse-width)
+  #layout.nav-bottom
+    #menu
+      position static
+      width 100%
+      height auto
+      opacity 1
+
+    .header .header-content
+      margin-left 0

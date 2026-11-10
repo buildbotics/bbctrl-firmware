@@ -28,25 +28,27 @@
 .navbar
   display flex
   align-items center
-  background #444
-  color #eee
+  background chrome-2
+  color chrome-text
+  border-radius radius
+  margin-bottom 0.5em
   white-space nowrap
   text-overflow ellipsis
   flex-wrap wrap
 
   > *
-    line-height 30px
+    line-height 34px
     position relative
 
   .nav-separator
-    border-bottom 1px solid #888
+    border-bottom 1px solid chrome-3
 
   .nav-item
     cursor pointer
     padding 5px 15px
 
     &:link, &:visited, &:active
-      color #eee
+      color chrome-text
       text-decoration none
 
     .fa
@@ -57,7 +59,9 @@
       display none
       position absolute
       margin 5px 0 0 -15px
-      background #444
+      background chrome-2
+      border-radius 0 0 radius radius
+      box-shadow 0 4px 12px rgba(0, 0, 0, .25)
       z-index 100
 
       .nav-item
@@ -73,7 +77,7 @@
           padding-left 1.5em
 
     &:hover
-      background #666
+      background chrome-3
 
       .nav-menu
         display block
@@ -82,8 +86,8 @@
           display none
 
     &[disabled]
-      background #444
-      color #aaa
+      background chrome-2
+      color chrome-muted
       cursor not-allowed
 
   > .nav-item > .fa

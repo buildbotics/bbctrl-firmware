@@ -31,6 +31,20 @@ script#settings-general-template(type="text/x-template")
 
     .pure-form.pure-form-aligned
       fieldset
+        h2 Display
+        .pure-control-group
+          label(for="nav-position") navigation
+          select(name="nav-position", v-model="$root.navPosition")
+            option(value="left") Left
+            option(value="bottom") Bottom
+
+        p.
+          Places the main navigation bar on the left or along the bottom of
+          the screen.  Bottom suits portrait (vertical) monitors.  This
+          preference is stored in this browser only and takes effect
+          immediately; it is not part of the controller configuration.
+
+      fieldset
         h2 Units
         templated-input(name="units", :model.sync="config.settings.units",
           :template="template.settings.units")

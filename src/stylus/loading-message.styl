@@ -35,14 +35,16 @@
   top 50%
   left 50%
   padding 20px 30px
-  background-color #fff
-  border-radius 2px
-  box-shadow 0 2px 8px rgba(0, 0, 0, .33)
+  background-color surface
+  border-radius 8px
+  border-top 4px solid accent
+  box-shadow 0 8px 32px rgba(0, 0, 0, .3)
   transition all .3s ease
-  font-family Helvetica, Arial, sans-serif
-
+  font-family ui-font
   .progress
-    border 1px solid #888
+    border 1px solid border-color
+    border-radius radius
+    overflow hidden
     height 1.75em
     text-align center
 
@@ -51,4 +53,4 @@
 
     .bar
       height 1.75em
-      background #f2ac45
+      background accent

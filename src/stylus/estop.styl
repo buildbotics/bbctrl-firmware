@@ -44,3 +44,10 @@
 
     .button:hover
       filter brightness(120%)
+
+
+// The header E-stop must never be covered: keep it above every dialog
+// mask (.dialog-mask is z-index 1000) so it stays visible and clickable.
+.header .estop
+  position relative
+  z-index 1001

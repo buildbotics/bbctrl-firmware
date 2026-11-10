@@ -65,3 +65,22 @@
       left 50%
       margin-top -9px
       margin-left -9px
+
+
+// Camera modal: opens below the header so it never overlaps the E-stop.
+header-clearance = 150px
+
+.camera-dialog .dialog-wrapper
+  vertical-align top
+  padding-top header-clearance
+
+.camera-dialog .dialog-container
+  max-height 'calc(100vh - %s - 20px)' % header-clearance
+
+.camera-dialog .video
+  width 100%
+  aspect-ratio 4 / 3
+  max-height 'calc(100vh - %s - 215px)' % header-clearance
+  background #000
+  border-radius radius
+  overflow hidden

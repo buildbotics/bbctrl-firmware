@@ -1,0 +1,326 @@
+#!/usr/bin/env python3
+'''
+Preview the web UI in a browser without a controller.
+
+Serves the built UI (build/http) and fakes just enough of the controller
+API and SockJS state feed for the pages to render with plausible machine
+data.  Nothing here talks to hardware: button presses (E-stop, jog, run,
+...) are logged to the terminal and otherwise ignored, and the camera is
+always "offline".
+
+The Home folder holds the stock demo program (src/resources/buildbotics.nc,
+which a real controller copies to Home on first boot).  Its 3D toolpath is
+built here by a simple G-code reader that understands G0/G1 straight moves,
+G20/G21 and G90/G91 only -- good enough for previewing the viewer, not a
+substitute for the real planner.
+
+Usage:  make preview            (builds the UI first)
+   or:  scripts/ui-preview [--port 8765] [--poll-delay 2] [build/http]
+
+Files are read from disk on every request, so after editing Pug/Stylus/JS
+just run `make html` (or keep `make watch` running) and refresh.
+
+Add ?nav=bottom or ?nav=left to the URL to force the navigation position.
+'''
+
+import argparse
+import copy
+import math
+import http.server
+import json
+import os
+import socketserver
+import struct
+import sys
+import time
+from datetime import datetime, timezone
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE = os.path.join(ROOT, 'src', 'resources', 'config-template.json')
+DEMO_FILE = os.path.join(ROOT, 'src', 'resources', 'buildbotics.nc')
+DEMO_PATH = 'Home/' + os.path.basename(DEMO_FILE)
+RAPID_FEED = 10000 # mm/min, assumed for G0 time estimates
+
+
+def apply_defaults(config: dict, name: str, tmpl: dict) -> None:
+    '''Fill config defaults from config-template.json (mirrors Config.py).'''
+    if 'type' in tmpl:
+        if name not in config: config[name] = copy.deepcopy(tmpl['default'])
+
+        if tmpl['type'] == 'list' and 'index' in tmpl:
+            entries = config[name]
+            for i in range(len(tmpl['index'])):
+                if len(entries) <= i: entries.append({})
+                for n, t in tmpl['template'].items():
+                    apply_defaults(entries[i], n, t)
+
+    else:
+        for n, t in tmpl.items(): apply_defaults(config, n, t)
+
+
+def make_config() -> dict:
+    with open(TEMPLATE) as f: template = json.load(f)
+
+    config: dict = {}
+    for name, tmpl in template.items():
+        if 'type' in tmpl: apply_defaults(config, name, tmpl)
+        else: apply_defaults(config.setdefault(name, {}), name, tmpl)
+
+    # Three-axis mill
+    for i, axis in enumerate('XYZA'):
+        config['motors'][i]['axis'] = axis
+        config['motors'][i]['enabled'] = i < 3
+
+    config['macros'] = [
+        {'name': name, 'path': name.lower().replace(' ', '-') + '.nc',
+         'color': '#ffffff'}
+        for name in ('Probe Z', 'Probe XYZ', 'Tool change', 'Park', 'Warm up')]
+
+    with open(os.path.join(ROOT, 'package.json')) as f:
+        config['version'] = json.load(f)['version'] + ' (preview)'
+    config['admin']['auto-check-upgrade'] = False
+
+    return config
+
+
+def read_words(line: str) -> dict:
+    '''Split one G-code line into {letter: [values]}, ignoring comments.'''
+    words: dict = {}
+    line = line.split(';')[0]
+    while '(' in line:
+        start = line.index('(')
+        end = line.find(')', start)
+        line = line[:start] + (line[end + 1:] if end != -1 else '')
+
+    token = ''
+    for c in line.upper() + ' ':
+        if c.isalpha() or c.isspace():
+            if token:
+                try: words.setdefault(token[0], []).append(float(token[1:]))
+                except ValueError: pass
+            token = c if c.isalpha() else ''
+        else: token += c
+
+    return words
+
+
+def make_toolpath(gcode: str) -> tuple:
+    '''Return (meta, positions, speeds) in the format the planner produces:
+    float32 xyz triples, and one float32 speed per point (NaN for rapids).'''
+    pos = {'x': 0.0, 'y': 0.0, 'z': 0.0}
+    scale, absolute, motion, feed = 1.0, True, 0, 1000.0
+    points, speeds = [], []
+    bounds = {'min': {}, 'max': {}}
+    time_s, max_speed, last_speed = 0.0, 0.0, None
+
+    for line in gcode.splitlines():
+        words = read_words(line)
+        for g in words.get('G', []):
+            if g == 20: scale = 25.4
+            elif g == 21: scale = 1.0
+            elif g == 90: absolute = True
+            elif g == 91: absolute = False
+            elif g in (0, 1): motion = int(g)
+        if 'F' in words: feed = words['F'][-1] * scale
+
+        target = dict(pos)
+        for axis in 'xyz':
+            if axis.upper() in words:
+                value = words[axis.upper()][-1] * scale
+                target[axis] = value if absolute else pos[axis] + value
+        if target == pos: continue
+
+        speed = math.nan if motion == 0 else feed
+        dist = math.dist([pos[a] for a in 'xyz'], [target[a] for a in 'xyz'])
+        time_s += dist / (RAPID_FEED if motion == 0 else feed) * 60
+        if motion: max_speed = max(max_speed, feed)
+
+        if not points:
+            points.append([pos[a] for a in 'xyz'])
+            speeds.append(speed)
+        elif last_speed is not None and not (
+                speed == last_speed or (speed != speed and last_speed != last_speed)):
+            points.append(points[-1]) # duplicate point where speed changes
+            speeds.append(speed)
+
+        points.append([target[a] for a in 'xyz'])
+        speeds.append(speed)
+        last_speed = speed
+        pos = target
+
+    for p in points:
+        for axis, v in zip('xyz', p):
+            bounds['min'][axis] = min(bounds['min'].get(axis, v), v)
+            bounds['max'][axis] = max(bounds['max'].get(axis, v), v)
+
+    meta = {'time': time_s, 'lines': len(gcode.splitlines()),
+            'maxSpeed': max_speed, 'bounds': bounds, 'messages': []}
+    positions = b''.join(struct.pack('<fff', *p) for p in points)
+    speed_data = b''.join(struct.pack('<f', s) for s in speeds)
+
+    return meta, positions, speed_data
+
+
+def iso_time(timestamp: float) -> str:
+    return datetime.fromtimestamp(timestamp, timezone.utc).isoformat()
+
+
+STATE = {
+    'sid': 'ui-preview', 'xx': 'READY', 'cycle': 'idle',
+    'xp': 125.4321, 'yp': -42.1, 'zp': 12.5,
+    'offset_x': 25.0, 'offset_y': 0, 'offset_z': 2.5,
+    '0homed': 1, '1homed': 1, '2homed': 0,
+    'v': 0, 'feed': 1200, 'speed': 18000, 's': 18000, 'tool': 3, 'line': 0,
+    'rpi_temp': 52, 'demo': False, 'messages': [], 'locations': ['Home'],
+    'first_file': DEMO_PATH,
+}
+
+
+def make_handler(site: str, config: dict, poll_delay: float):
+    sessions: dict = {}
+
+    with open(DEMO_FILE) as f: demo_gcode = f.read()
+    toolpath = make_toolpath(demo_gcode)
+    stat = os.stat(DEMO_FILE)
+    home = {'path': 'Home', 'files': [{
+        'name': os.path.basename(DEMO_FILE), 'size': stat.st_size,
+        'created': iso_time(stat.st_ctime), 'modified': iso_time(stat.st_mtime),
+        'dir': False}]}
+
+    class Handler(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory = site, **kwargs)
+
+
+        def log_message(self, *args): pass
+
+
+        def reply(self, body: str, ctype: str = 'application/json',
+                  code: int = 200, cookies: list = ()) -> None:
+            data = body.encode()
+            self.send_response(code)
+            self.send_header('Content-Type', ctype)
+            self.send_header('Content-Length', str(len(data)))
+            for cookie in cookies: self.send_header('Set-Cookie', cookie)
+            self.end_headers()
+            self.wfile.write(data)
+
+
+        def do_GET(self):
+            path, _, query = self.path.partition('?')
+
+            if path == '/api/config/load': return self.reply(json.dumps(config))
+            if path == '/api/auth/login': return self.reply('false')
+
+            if path.startswith('/api/fs'):
+                name = path[len('/api/fs'):].strip('/')
+                if name in ('', 'Home'): return self.reply(json.dumps(home))
+                if name == DEMO_PATH:
+                    return self.reply(demo_gcode, 'text/plain')
+                return self.reply('{"message": "File not found"}', code = 404)
+
+            for kind, index in (('path', 0), ('positions', 1), ('speeds', 2)):
+                if path == '/api/%s/%s' % (kind, DEMO_PATH):
+                    if kind == 'path':
+                        return self.reply(json.dumps(toolpath[0]))
+                    return self.reply_bytes(toolpath[index])
+
+            # Anything else, including /api/video, fails like an unplugged
+            # camera would; the UI falls back to its offline image.
+            if path.startswith('/api/'): return self.reply('{}')
+
+            if path.startswith('/sockjs/info'):
+                return self.reply(json.dumps({
+                    'websocket': False, 'cookie_needed': False,
+                    'origins': ['*:*'], 'entropy': 1}))
+
+            if path in ('/', '/index.html'):
+                cookies = ['bbctrl-webgl-warning=true; path=/']
+                for nav in ('left', 'bottom'):
+                    if 'nav=' + nav in query:
+                        cookies.append('bbctrl-nav-position=%s; path=/' % nav)
+
+                with open(os.path.join(site, 'index.html')) as f:
+                    return self.reply(f.read(), 'text/html', cookies = cookies)
+
+            return super().do_GET()
+
+
+        def reply_bytes(self, data: bytes) -> None:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/octet-stream')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+
+        def do_PUT(self):
+            print('PUT', self.path, flush = True)
+            self.reply('{}')
+
+
+        def do_DELETE(self): self.do_PUT()
+
+
+        def do_POST(self):
+            path = self.path.split('?')[0]
+            length = int(self.headers.get('Content-Length') or 0)
+            body = self.rfile.read(length)
+
+            # SockJS xhr-polling transport: open, send state once, heartbeat
+            if path.endswith('/xhr_send'):
+                print('SOCK', body.decode(errors = 'replace'), flush = True)
+                return self.reply('', 'text/plain', 204)
+
+            if path.endswith('/xhr'):
+                count = sessions.get(path, 0)
+                sessions[path] = count + 1
+                ctype = 'application/javascript'
+                if count == 0: return self.reply('o\n', ctype)
+                if count == 1:
+                    return self.reply('a' + json.dumps([STATE]) + '\n', ctype)
+                time.sleep(poll_delay)
+                return self.reply('h\n', ctype)
+
+            if path.startswith('/api/'):
+                print('POST', self.path, flush = True)
+                return self.reply('{}')
+
+            self.reply('', 'text/plain', 404)
+
+    return Handler
+
+
+class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    # Browsers routinely drop connections (page reloads, aborted polls and
+    # camera requests); that's normal, so don't print a traceback for it.
+    def handle_error(self, request, client_address):
+        if isinstance(sys.exc_info()[1], ConnectionError): return
+        super().handle_error(request, client_address)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description = __doc__.split('\n')[1])
+    parser.add_argument('site', nargs = '?',
+                        default = os.path.join(ROOT, 'build', 'http'))
+    parser.add_argument('--port', type = int, default = 8765)
+    parser.add_argument('--poll-delay', type = float, default = 2,
+                        help = 'seconds between fake SockJS heartbeats')
+    args = parser.parse_args()
+
+    if not os.path.exists(os.path.join(args.site, 'index.html')):
+        sys.exit('%s/index.html not found; run `make html` first' % args.site)
+
+    handler = make_handler(args.site, make_config(), args.poll_delay)
+    server = Server(('127.0.0.1', args.port), handler)
+    print('UI preview (mock controller, no hardware) on '
+          'http://localhost:%d/  -- Ctrl+C to stop' % args.port, flush = True)
+
+    try: server.serve_forever()
+    except KeyboardInterrupt: pass
+
+
+if __name__ == '__main__': main()

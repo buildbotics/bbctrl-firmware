@@ -63,6 +63,15 @@ module.exports = {
   },
 
 
+  ready() {
+    // If the viewer is opened before the controller has reported which
+    // file is selected (e.g. a page reload on #viewer), load it on arrival.
+    this.$watch(() => this.$root.selected_program.path, path => {
+      if (!this.path && path) this.load(path)
+    })
+  },
+
+
   attached() {this.load(this.$root.selected_program.path)},
 
 

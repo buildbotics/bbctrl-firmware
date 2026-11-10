@@ -30,6 +30,11 @@
 module.exports = {
   template: '#video-template',
 
+
+  props: {
+    reloadOnClick: {type: Boolean, default: true}
+  },
+
   attached() {Vue.nextTick(this.resize)},
 
 
@@ -40,6 +45,17 @@ module.exports = {
 
   methods: {
     reload() {this.$els.img.src = '/api/video?' + Math.random()},
+
+
+    clicked() {if (this.reloadOnClick) this.reload()},
+
+
+    // If the stream fails outright, show the offline placeholder rather
+    // than the browser's broken-image icon.  Clicking still retries.
+    show_offline() {
+      let offline = '/images/offline.jpg'
+      if (!this.$els.img.src.endsWith(offline)) this.$els.img.src = offline
+    },
 
 
     resize() {

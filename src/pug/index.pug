@@ -31,7 +31,7 @@ html(lang="en")
     meta(charset="utf-8")
     meta(name="viewport", content="width=device-width, initial-scale=1.0")
 
-    title Buildbotics Controller - Web interface
+    title RONtrol - CNC Control
 
     style: include ../static/css/pure-min.css
 
@@ -44,56 +44,78 @@ html(lang="en")
   body(v-cloak)
     #overlay(v-if="status != 'connected'")
       span {{status}}
-    #layout(:class="'view-' + currentView + '-page'")
+    #layout(:class="'view-' + currentView + '-page nav-' + navPosition")
       #menuLink.menu-link(href="#menu"): span
 
       #menu
         .pure-menu
           ul.pure-menu-list
-            li.pure-menu-heading
-              a.pure-menu-link(href="#control") Control
+            li.pure-menu-heading(:class="{active: currentView == 'control'}")
+              a.pure-menu-link(href="#control")
+                .fa.fa-sliders
+                span Control
 
-            li.pure-menu-heading(v-if="$root.webGLSupported")
-              a.pure-menu-link(href="#viewer") 3D View
+            li.pure-menu-heading(:class="{active: currentView == 'viewer'}",
+              v-if="$root.webGLSupported")
+              a.pure-menu-link(href="#viewer")
+                .fa.fa-cube
+                span 3D View
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#editor") Editor
+            li.pure-menu-heading(:class="{active: currentView == 'probing'}")
+              a.pure-menu-link(href="#probing")
+                .fa.fa-crosshairs
+                span Probing
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#camera") Camera
+            li.pure-menu-heading(:class="{active: currentView == 'offsets'}")
+              a.pure-menu-link(href="#offsets")
+                .fa.fa-arrows
+                span Offsets
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#files") Files
+            li.pure-menu-heading(:class="{active: currentView == 'editor'}")
+              a.pure-menu-link(href="#editor")
+                .fa.fa-pencil-square-o
+                span Editor
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#settings") Settings
+            li.pure-menu-heading(:class="{active: currentView == 'files'}")
+              a.pure-menu-link(href="#files")
+                .fa.fa-folder-open
+                span Files
 
-            li.pure-menu-heading
-              a.pure-menu-link(href="#docs") Docs
+            li.pure-menu-heading(:class="{active: currentView == 'settings'}")
+              a.pure-menu-link(href="#settings")
+                .fa.fa-cog
+                span Settings
 
       #main
         .header
           .header-content
             .banner
-              img(src="/images/buildbotics_logo.png")
-              .title
-                span.left Build
-                span.right botics
-                .fa.fa-thermometer-full(class="error",
-                  v-if="80 <= state.rpi_temp",
-                  title="Raspberry Pi temperature too high.")
-              .subtitle
-                | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
-                | v{{config.version}}
-                a.upgrade-version(v-if="show_upgrade", href="#settings:admin")
-                  | Upgrade to v{{latestVersion}}
-                .fa.fa-check(v-if="!show_upgrade && latestVersion",
-                  title="Firmware up to date")
-                .copyright Copyright © 2015 - 2026, Buildbotics LLC
+              img(src="/images/rontrol-logo-light.png", alt="RONtrol")
+              .banner-text
+                .title
+                  span.left RON
+                  span.right trol
+                  .fa.fa-thermometer-full(class="error",
+                    v-if="80 <= state.rpi_temp",
+                    title="Raspberry Pi temperature too high.")
+                .subtitle
+                  | CNC Controller #[b {{state.demo ? 'Demo ' : ''}}]
+                  | v{{config.version}}
+                  a.upgrade-version(v-if="show_upgrade", href="#settings:admin")
+                    | Upgrade to v{{latestVersion}}
+                  .fa.fa-check(v-if="!show_upgrade && latestVersion",
+                    title="Firmware up to date")
+                  a.copyright(href="https://buildbotics.com", target="_blank",
+                    title="Buildbotics: original firmware, manual and forum")
+                    | Based on Buildbotics firmware © 2015 - 2026 Buildbotics LLC,
+                    | CERN-OHL-S v2
 
 
             .header-tools
-              a(href="#camera"): video
+              .camera-thumb(@click="open_camera", title="Open camera")
+                video(:reload-on-click="false")
+              bbutton.camera-button(icon="video-camera", title="Open camera",
+                @click="open_camera")
               .estop(:class="{active: state.es}"): estop(@click="estop")
 
         .content(class="view-{{currentView}}")
@@ -116,6 +138,17 @@ html(lang="en")
         label showing errors for
         input(style="width: 50px", v-model="errorTimeout", number)
         label seconds.
+
+    dialog.camera-dialog(v-ref:camera-dialog, header="Camera", width="960px")
+      div(slot="body")
+        video(v-if="cameraOpen")
+
+      div(slot="footer")
+        bbutton(@click="crosshair = !crosshair", text="Crosshair",
+          :icon="crosshair ? 'check-square-o' : 'square-o'",
+          title="Show or hide the crosshair overlay")
+        bbutton.pure-button-primary(@click="$refs.cameraDialog.close('close')",
+          text="Close")
 
     dialog(v-show="popupMessages.length", v-ref:popup-messages,
       header="GCode messages", :click-away="false")
