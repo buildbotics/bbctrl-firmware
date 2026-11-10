@@ -72,9 +72,13 @@ module.exports = {
       case 'edit':               return 'pencil'
       case 'login':              return 'sign-in'
       case 'logout':             return 'sign-out'
+      case 'check':              return 'check'
+      case 'remove':             return 'remove'
+      case 'upload':             return 'upload'
       }
 
-      return text
+      // No icon for other labels.  Guessing one from the text gave an
+      // empty icon and a gap before labels such as "Set" or "Use HTTPS".
     }
   }
 }
