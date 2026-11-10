@@ -67,7 +67,7 @@ tags:
       code unless they come from localhost or no HTTPS server is running.
       Recovery from a lost login is over SSH with ``bbctrl-users``.
 
-      Admin access expires five minutes after it was last used.  The session
+      Admin access expires an hour after it was last used.  The session
       stays valid and the user stays logged in, only the admin access is lost.
       Logging in again restores it, logging out first is not necessary.  The
       seconds left are reported by ``GET /auth/login``.

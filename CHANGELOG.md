@@ -37,7 +37,7 @@ Buildbotics CNC Controller Firmware Changelog
   - Accept the session ID in an ``Authorization: Bearer`` header.
   - Logins, password changes and user changes require HTTPS.
   - Changing your own password requires your current password.
-  - Admin access expires five minutes after it was last used.
+  - Admin access expires an hour after it was last used.
   - Settings require admin access to view and change.
   - Moved the login actions under the user menu.
   - Show the logged in user and explain the built in ``admin`` login.

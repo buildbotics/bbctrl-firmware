@@ -122,9 +122,10 @@ carries a `.env.example` with names and placeholder values only. The AI
 works with variable **names**, never values.
 
 **This repo's specific situation.** Several developer convenience
-scripts carry default device credentials in plaintext — `Makefile`
-(`HOST`, `PASSWORD` for `make ssh-update`), `scripts/config-wifi`,
-`scripts/remote-firmware-update`, `scripts/ssh-bbctrl`. These are
+scripts may carry default device credentials in plaintext —
+`scripts/config-wifi`, `scripts/ssh-bbctrl`. (The `Makefile` no longer
+has a `PASSWORD` default, and `scripts/remote-firmware-update` prompts for
+the password and sends it over HTTPS.) These are
 shipped-default controller credentials, not customer secrets, but they
 are still credentials in version control. Do not add more, do not copy
 these values into new files or into chat, and prefer environment

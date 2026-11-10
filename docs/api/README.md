@@ -57,7 +57,7 @@ Once a user has been created, all endpoints, the static web files and the WebSoc
 
 Logging in, changing a password and changing which users may access the controller all require a secure connection so that passwords are never sent in plain text.  Such requests made over HTTP are refused with a 403 return code unless they come from localhost or no HTTPS server is running.  Recovery from a lost login is over SSH with the ``bbctrl-users`` tool.
 
-Admin access expires five minutes after it was last used.  The session stays valid and the user stays logged in, only the admin access is lost.  Logging in again restores it and logging out first is not necessary.  The number of seconds left is reported by a GET request to ``/api/auth/login``.
+Admin access expires an hour after it was last used.  The session stays valid and the user stays logged in, only the admin access is lost.  Logging in again restores it and logging out first is not necessary.  The number of seconds left is reported by a GET request to ``/api/auth/login``.
 
 Changing your own password always requires your current password in the ``current`` field of the request.  Changing another user's password needs only admin access.
 
