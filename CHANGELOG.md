@@ -1,7 +1,7 @@
 Buildbotics CNC Controller Firmware Changelog
 =============================================
 
-## Unreleased
+## v3.0.0
   - Work offsets (G54-G59) and tool lengths (T1-T99) are saved and survive
     E-stop, reset and restart; before, an E-stop zeroed them.  They are kept
     in ``offsets.json`` and updated by G10 L1/L2/L10/L11/L20 and by assigning
