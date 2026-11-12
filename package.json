@@ -2,7 +2,7 @@
   "name": "bbctrl",
   "version": "3.0.0",
   "homepage": "http://buildbotics.com/",
-  "repository": "https://github.com/buildbotics/bbctrl-firmware",
+  "repository": "https://github.com/alexpinson5/RONtrol-firmware",
   "license": "CERN-OHL-S v2",
   "dependencies": {
     "browserify": "",

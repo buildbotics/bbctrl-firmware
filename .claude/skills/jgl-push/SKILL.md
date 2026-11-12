@@ -45,7 +45,7 @@ pull request:
 
     git checkout -b <feature-branch>
     git push -u origin <feature-branch>
-    (open a PR on github.com/buildbotics/bbctrl-firmware)
+    (open a PR on github.com/alexpinson5/RONtrol-firmware)
 
 Continue pushing directly to master? (yes/no)
 ```
@@ -76,7 +76,7 @@ the user the remote has commits they don't have, suggest
 
 ```
 Pushed 3 commit(s) to origin/feature/vfd-gt-series.
-https://github.com/buildbotics/bbctrl-firmware/tree/feature/vfd-gt-series
+https://github.com/alexpinson5/RONtrol-firmware/tree/feature/vfd-gt-series
 ```
 
 Derive the URL from `git remote get-url origin` when you can.
