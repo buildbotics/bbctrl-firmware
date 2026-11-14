@@ -75,6 +75,29 @@ if [ ! -e $ROOT -o ! -e $BUILD/root.success ]; then
   touch $BUILD/root.success
 fi
 
+# The root fs is arm64.  On any other host the kernel needs a qemu binfmt
+# handler to run it; fail here with a clear message instead of mid-chroot.
+if ! sudo chroot $ROOT /bin/true 2>/dev/null; then
+  set +x
+  echo "ERROR: cannot run arm64 programs in $ROOT" >&2
+  if [ "$(uname -m)" != aarch64 ]; then
+    echo "No qemu-aarch64 binfmt handler is registered on this host." >&2
+    if grep -qi microsoft /proc/version; then
+      echo "WSL skips systemd-binfmt; register it (again after each" \
+        "WSL restart) with:" >&2
+      echo "  sudo /usr/lib/systemd/systemd-binfmt" \
+        "/usr/lib/binfmt.d/qemu-aarch64.conf" >&2
+    else
+      echo "Install qemu-user-static and binfmt-support, then run:" >&2
+      echo "  sudo systemctl restart systemd-binfmt" >&2
+    fi
+    echo "Check: cat /proc/sys/fs/binfmt_misc/qemu-aarch64" >&2
+  else
+    echo "The root fs may be incomplete; delete $ROOT and rebuild." >&2
+  fi
+  exit 1
+fi
+
 # Init root image
 sudo cp scripts/init-rootfs.sh $ROOT/root/
 sudo chroot $ROOT /bin/bash /root/init-rootfs.sh

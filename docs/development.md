@@ -154,6 +154,14 @@ both the Pi 3 and the Pi 4.  Build the firmware package first, then the image
     make pkg
     make image
 
+On an x86 host the image build runs arm64 programs through qemu, which needs
+the ``qemu-aarch64`` binfmt handler; ``make image`` stops with instructions if
+it is missing.  Under WSL2 the handler is not registered automatically and is
+lost on every WSL restart.  Register it before building:
+
+    sudo /usr/lib/systemd/systemd-binfmt /usr/lib/binfmt.d/qemu-aarch64.conf
+    cat /proc/sys/fs/binfmt_misc/qemu-aarch64   # should print "enabled"
+
 The image is ``<date>-debian-bookworm-bbctrl.img``.  You need an SD card with
 at least 8GiB.  All data on the card will be lost, so back it up if there's
 anything important on it.
@@ -166,6 +174,19 @@ a letter.  This should be the device name of the SD card.  Hit ``CTRL-C`` to
 stop following the system log.
 
     ./scripts/write-image <date>-debian-bookworm-bbctrl.img /dev/sdx
+
+WSL2 cannot see SD card readers without ``usbipd``, so on Windows write the
+card from Windows instead.  Copy the image out of WSL and flash it with
+Raspberry Pi Imager (**Use custom**) or balenaEtcher.  In Imager, answer
+**No** to OS customisation: it edits ``cmdline.txt``, which the first boot
+relies on to grow the root partition.
+
+After writing, Windows mounts the ext4 root partition, cannot read it and
+offers to format it.  **Cancel that prompt.**  Formatting replaces the root
+filesystem with an empty FAT32 one and the Pi stops with
+``VFS: Unable to mount root fs on unknown-block(179,2)``.  Removing the drive
+letter from that partition in Disk Management stops the prompt; if it was
+formatted, write the card again.
 
 Insert the SD card into your RPi and power it on.  On first boot it grows the
 root partition to fill the card and reboots twice.  Plug in the network
