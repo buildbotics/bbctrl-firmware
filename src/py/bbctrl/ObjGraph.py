@@ -897,6 +897,7 @@ def _show_graph(objs, edge_func, swap_source_target,
         raise ValueError('Cannot specify both output and filename.')
     elif output:
         f = output
+        dot_filename = None # Caller owns the stream; nothing to present
     elif filename and filename.endswith('.dot'):
         f = codecs.open(filename, 'w', encoding='utf-8')
         dot_filename = filename

@@ -44,4 +44,6 @@ class ProgramSetPosition(ProgramMDI):
       target = position + state.get('offset_' + axis)
       cmd = 'G28.3 %s%f\nG28.2 %s0' % (axis, target, axis)
 
+    else: raise Exception('Cannot set position, %s axis not enabled' % axis)
+
     super().__init__(ctrl, cmd)

@@ -439,7 +439,9 @@ class ClientConnection(object):
 
     def heartbeat(self):
         # Drop the connection when the session is closed or expires
-        if not self.is_authorized(): return self.close()
+        # close() comes from the Tornado or SockJS connection class mixed in
+        if not self.is_authorized():
+            return self.close() # pylint: disable=no-member
 
         self.timer = self.app.ioloop.call_later(3, self.heartbeat)
         self.send({'heartbeat': self.count})
