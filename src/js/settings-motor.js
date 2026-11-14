@@ -36,12 +36,33 @@ module.exports = {
     metric() {return this.$root.metric()},
 
 
-    is_slave() {
+    // The first motor mapped to the same axis, or -1 if this motor is first
+    master_index() {
       for (let i = 0; i < this.index; i++)
         if (this.motor.axis == this.config.motors[i].axis)
-          return true
+          return i
 
-      return false
+      return -1
+    },
+
+
+    is_slave() {return this.master_index != -1},
+
+
+    // Pins assigned to this motor's limit switch functions under I/O
+    switch_pins() {
+      let pins = this.template['io-map'].pins
+      let io_map = this.config['io-map'] || []
+
+      return ['min', 'max'].map(side => {
+        let name = 'input-motor-' + this.index + '-' + side
+        let ids = []
+
+        for (let i = 0; i < pins.length; i++)
+          if (io_map[i] && io_map[i].function == name) ids.push(pins[i].id)
+
+        return {name, pins: ids}
+      })
     },
 
 

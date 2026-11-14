@@ -27,7 +27,14 @@ Buildbotics CNC Controller Firmware Changelog
     with the new ``square-axis`` motor setting; ``max-square-error`` limits
     how far the motors may separate before homing aborts.
   - New AVR variables ``qe`` (squaring limit) and ``qo`` (squaring offset).
+  - The second motor of a pair shows which I/O pins its limit switches are
+    assigned to.
   - Fixed axis to motor remapping not clearing stale motor assignments.
+  - Fixed motor driver communication failure, and no motor power, on main
+    boards with an ATxmega192A3U (Rev 16 and earlier).  Those boards need the
+    AVR's SPI clock and data pins swapped, which the ATxmega256A3 changes
+    had dropped.
+  - Finer jog steps: 0.0001 to 1 in, or 0.001 to 10 mm.
   - Added pytest test suite covering the AVR command protocol, serial
     framing, config load/save and homing logic.  Run with ``make test``.
 

@@ -49,7 +49,8 @@ script#jog-control-template(type="text/x-template")
     .jog-increments.segmented(v-else)
       button.pure-button(v-for="inc in increments",
         :class="{active: inc_index == $index}", @click="inc_index = $index",
-        :title="'Step ' + inc + ' ' + units") {{inc}}
+        :title="'Step ' + format_increment(inc) + ' ' + units")
+        | {{format_increment(inc)}}
 
     .jog-buttons
       button.pure-button(:disabled="disabled || !axis_enabled",

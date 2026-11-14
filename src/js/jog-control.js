@@ -30,10 +30,11 @@
 let cookie = require('./cookie')
 
 
-// Step sizes in the machine's active units, smallest first
+// Step sizes in the machine's active units, smallest first.  Decimals are
+// the places shown on the buttons, enough for the smallest step.
 const increments = {
-  metric:   [0.01, 0.1, 1, 10, 100],
-  imperial: [0.001, 0.01, 0.1, 1, 10]
+  metric:   {steps: [0.001, 0.01, 0.1, 1, 10],     decimals: 3},
+  imperial: {steps: [0.0001, 0.001, 0.01, 0.1, 1], decimals: 4}
 }
 
 
@@ -69,7 +70,8 @@ module.exports = {
 
   computed: {
     axes() {return 'XYZA'.split('')},
-    increments() {return increments[this.metric ? 'metric' : 'imperial']},
+    unit_increments() {return increments[this.metric ? 'metric' : 'imperial']},
+    increments() {return this.unit_increments.steps},
     increment() {return this.increments[this.inc_index]},
     units() {return this.metric ? 'mm' : 'in'},
     axis_enabled() {return !!this.enabled[this.axis.toLowerCase()]}
@@ -109,6 +111,11 @@ module.exports = {
 
 
   methods: {
+    format_increment(inc) {
+      return inc.toFixed(this.unit_increments.decimals)
+    },
+
+
     select_axis(axis) {
       if (this.held) return
       this.axis = axis

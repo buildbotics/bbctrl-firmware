@@ -29,6 +29,17 @@ script#settings-motor-template(type="text/x-template")
   .motor(:class="{slave: is_slave}")
     h1 Motor {{index}} Configuration
 
+    .slave-switches(v-if="is_slave")
+      p.
+        This motor follows motor {{master_index}} on the
+        {{motor.axis}} axis.  When motor {{master_index}} has square-axis
+        set, this motor homes to its own switch, which is assigned to a pin
+        under Settings &rarr; I/O:
+      ul
+        li(v-for="sw in switch_pins")
+          code {{sw.name}}
+          | : {{sw.pins.length ? 'pin ' + sw.pins.join(', ') : 'not assigned'}}
+
     .pure-form.pure-form-aligned
       fieldset(v-for="category in template.motors.template", v-if='showCategory($key)', :class="$key")
         h2 {{$key}}

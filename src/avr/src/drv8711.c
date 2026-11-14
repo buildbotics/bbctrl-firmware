@@ -406,7 +406,12 @@ void drv8711_init() {
   PR.PRPC &= ~PR_SPI_bm; // Disable power reduction
   SPIC.CTRL = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_MODE_0_gc |
     SPI_PRESCALER_DIV16_gc; // enable, big endian, master, mode, clock div
-  //PIN_PORT(SPI_CLK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
+#ifdef __AVR_ATxmega192A3U__
+  // Boards with this chip (Rev 16 and earlier) route the DRV8711 SPI clock
+  // and data to swapped pins.  The ATxmega256A3 has no remap register and
+  // its boards are routed straight.
+  PIN_PORT(SPI_CLK_PIN)->REMAP = PORT_SPI_bm; // Swap SCK and MOSI
+#endif
   SPIC.INTCTRL = SPI_INTLVL_LO_gc; // interupt level
 
   _spi_send(); // Kick it off
