@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Ubuntu 24.04 ships gcc-avr 7.3, the compiler the firmware is built with
+    # on the development hosts.  Pinned so a runner image bump can't silently
+    # change the AVR toolchain.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install AVR toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-avr avr-libc
+
+      # The controller runs Debian 12's Python 3.11 on the Pi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - run: npm install
+
+      # Report-only for now: pug and pug-cli carry advisories with no fixed
+      # release.  They run at build time on the developer's host and are not
+      # shipped to the controller.  Make this blocking once they're resolved.
+      - name: npm audit (report only)
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - run: make lint
+      - run: make test
+      - run: make html
+
+      - name: Build main firmware (ATxmega256A3 and ATxmega192A3U)
+        run: make -C src/avr
+
+      - name: Build power firmware
+        run: make -C src/pwr
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            src/avr/*.hex
+            src/pwr/*.hex
+          retention-days: 14
